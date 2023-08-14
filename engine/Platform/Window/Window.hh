@@ -18,10 +18,10 @@
 #include <Utility/Common.hh>
 #include <Core/Events/Event.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class WindowProperties {
     public:
-        explicit WindowProperties(std::string_view name = "kaTe Engine", Int32_T width = 1920, Int32_T height = 1080)
+        explicit WindowProperties(std::string_view name = "Mikoto Engine", Int32_T width = 1920, Int32_T height = 1080)
             :   m_Title{ name }, m_Width{ width }, m_Height{ height }
         {}
 
@@ -83,6 +83,6 @@ namespace kaTe {
         bool                m_WindowCreateSuccess{};
     };
 
-}   // END NAMESPACE kaTe
+}   // END NAMESPACE Mikoto
 
 #endif // KATE_ENGINE_WINDOW_HH

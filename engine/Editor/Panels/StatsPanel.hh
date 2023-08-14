@@ -10,7 +10,7 @@
 #include <Editor/Panels/PanelData.hh>
 #include <Editor/Panels/Panel.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class StatsPanel : public Panel {
     public:
         explicit StatsPanel() = default;

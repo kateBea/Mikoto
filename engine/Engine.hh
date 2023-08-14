@@ -9,10 +9,10 @@
 
 #include <Utility/Common.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class Engine {
     public:
-        auto Run() -> kaTe::Int32_T;
+        auto Run() -> Mikoto::Int32_T;
     };
 }
 

@@ -12,7 +12,7 @@
 #include <Core/Logger.hh>
 #include <Renderer/OpenGL/OpenGLFrameBuffer.hh>
 
-namespace kaTe {
+namespace Mikoto {
 
     auto OpenGLFrameBuffer::Bind() -> void {
         glBindFramebuffer(GL_FRAMEBUFFER, m_Id);

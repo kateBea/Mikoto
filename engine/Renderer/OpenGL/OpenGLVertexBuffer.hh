@@ -18,7 +18,7 @@
 #include <Utility/Common.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class OpenGLVertexBuffer : public VertexBuffer {
     public:
         explicit OpenGLVertexBuffer() = default;
@@ -71,7 +71,7 @@ namespace kaTe {
          * */
         ~OpenGLVertexBuffer() override { glDeleteBuffers(1, &m_Id); }
 
-        auto OnRelease() -> void override {}
+        auto OnRelease() const -> void override {}
     public:
         // Forbidden operations
         OpenGLVertexBuffer(const OpenGLVertexBuffer & other) = delete;

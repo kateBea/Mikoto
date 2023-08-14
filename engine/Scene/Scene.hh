@@ -14,7 +14,7 @@
 
 #include <Scene/Component.hh>
 
-namespace kaTe {
+namespace Mikoto {
     // Forward declare Entity to not engine it. Temporary
     class Entity;
 

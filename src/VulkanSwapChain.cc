@@ -9,7 +9,7 @@
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanSwapChain.hh>
 
-namespace kaTe {
+namespace Mikoto {
 
     VulkanSwapChain::VulkanSwapChain(const VulkanSwapChainCreateInfo& createInfo)
         : m_SwapChainDetails{ createInfo }, m_WindowExtent{ createInfo.Extent }
@@ -30,6 +30,10 @@ namespace kaTe {
         vkWaitForFences(VulkanContext::GetPrimaryLogicalDevice(), 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, std::numeric_limits<UInt64_T>::max());
         VkResult result{ vkAcquireNextImageKHR(VulkanContext::GetPrimaryLogicalDevice(), m_SwapChain, std::numeric_limits<UInt32_T>::max(), m_ImageAvailableSemaphores[m_CurrentFrame],  /* must be a not signaled semaphore*/ VK_NULL_HANDLE, imageIndex) };
         return result;
+    }
+
+    auto VulkanSwapChain::OnCreate(const VulkanSwapChainCreateInfo &createInfo) -> void {
+        // TODO: move ctor functionality here for more initialization control
     }
 
     auto VulkanSwapChain::SubmitCommandBuffers(const VkCommandBuffer* buffers, const UInt32_T imageIndex) -> VkResult {
@@ -59,6 +63,7 @@ namespace kaTe {
         if (vkQueueSubmit(VulkanContext::GetPrimaryLogicalDeviceGraphicsQueue(), 1, &submitInfo, m_InFlightFences[m_CurrentFrame]) != VK_SUCCESS)
             throw std::runtime_error("failed to submit draw command buffer!");
 
+        // Prepare presentation
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
         presentInfo.waitSemaphoreCount = signalSemaphores.size();
@@ -141,7 +146,7 @@ namespace kaTe {
 
     auto VulkanSwapChain::CreateImageViews() -> void {
         m_SwapChainImageViews.resize(m_SwapChainImages.size());
-        for (std::size_t i{}; i < m_SwapChainImages.size(); i++) {
+        for (Size_T i{}; i < m_SwapChainImages.size(); i++) {
             VkImageViewCreateInfo viewInfo{};
 
             viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -160,7 +165,7 @@ namespace kaTe {
 
             viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
             viewInfo.format = m_SwapChainImageFormat;
-            viewInfo.flags = VK_IMAGE_USAGE_SAMPLED_BIT;
+            viewInfo.flags = 0;
 
             if (vkCreateImageView(VulkanContext::GetPrimaryLogicalDevice(), &viewInfo, nullptr, &m_SwapChainImageViews[i]) != VK_SUCCESS)
                 throw std::runtime_error("failed to create texture image view!");

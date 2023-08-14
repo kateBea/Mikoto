@@ -4,6 +4,6 @@
 
 #include <Renderer/Camera/Camera.hh>
 
-namespace kaTe {
+namespace Mikoto {
 
 }

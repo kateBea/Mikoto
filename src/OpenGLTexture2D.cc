@@ -13,7 +13,7 @@
 
 #include <Renderer/OpenGL/OpenGLTexture2D.hh>
 
-namespace kaTe {
+namespace Mikoto {
 
     OpenGLTexture2D::OpenGLTexture2D(const Path_T &path, bool retainFileData)
         :   m_RetainData{ retainFileData }

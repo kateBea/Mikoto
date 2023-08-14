@@ -12,7 +12,7 @@
 #include "Renderer/RenderContext.hh"
 
 
-namespace kaTe {
+namespace Mikoto {
 
     SettingsPanel::SettingsPanel(const std::shared_ptr<SettingsPanelData> &data, const Path_T &iconPath)
         :   Panel{ iconPath }, m_Visible{ true }, m_Hovered{ false }, m_Focused{ false }, m_Data{ data }

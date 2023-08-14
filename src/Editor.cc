@@ -4,7 +4,7 @@
 
 #include <Editor/Editor.hh>
 
-namespace kaTe::Editor {
+namespace Mikoto::Editor {
     auto ThemeDarkModeAlt() -> void {
         // Setup Dear ImGui style
         ImGuiStyle& style = ImGui::GetStyle();

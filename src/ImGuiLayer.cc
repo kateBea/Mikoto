@@ -29,7 +29,7 @@
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     ImGuiLayer::ImGuiLayer() noexcept
         :   Layer{"ImGuiLayer"} {}
 

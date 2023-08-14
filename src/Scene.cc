@@ -12,7 +12,7 @@
 #include <Scene/Component.hh>
 #include <Scene/Entity.hh>
 
-namespace kaTe {
+namespace Mikoto {
 
     Scene::Scene() {
         entt::entity entity{ m_Registry.create() };

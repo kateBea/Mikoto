@@ -14,7 +14,7 @@
 #include <Renderer/OpenGL/OpenGLTexture2D.hh>
 
 
-namespace kaTe {
+namespace Mikoto {
 
     auto Texture2D::CreateTexture(const Path_T &path) -> std::shared_ptr<Texture> {
         switch(Renderer::GetActiveGraphicsAPI()) {
@@ -36,7 +36,7 @@ namespace kaTe {
         }
     }
 
-    auto Texture2D::LoadFromFile(const Path_T &path, Texture2D::Type type) -> std::shared_ptr<kaTe::Texture> {
+    auto Texture2D::LoadFromFile(const Path_T &path, Texture2D::Type type) -> std::shared_ptr<Mikoto::Texture> {
         switch(Renderer::GetActiveGraphicsAPI()) {
             case Renderer::GraphicsAPI::OPENGL_API:
                 return std::make_shared<OpenGLTexture2D>(path);

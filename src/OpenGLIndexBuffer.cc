@@ -4,7 +4,7 @@
 #include <Core/Logger.hh>
 #include <Renderer/OpenGL/OpenGLIndexBuffer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     OpenGLIndexBuffer::OpenGLIndexBuffer(const std::vector<UInt32_T>& indices, GLbitfield flags) {
         glCreateBuffers(1, &m_Id);
         m_ValidId = m_Id != 0;

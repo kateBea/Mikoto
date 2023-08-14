@@ -3,8 +3,8 @@
  * Created by kate on 6/29/23.
  * */
 
-#ifndef KATE_ENGINE_MESH_HH
-#define KATE_ENGINE_MESH_HH
+#ifndef MIKOTO_MESH_HH
+#define MIKOTO_MESH_HH
 
 // C++ Standard Library
 #include <vector>
@@ -15,12 +15,11 @@
 
 // Project Libraries
 #include <Utility/Common.hh>
-
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
 #include <Renderer/Material/Texture.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class MeshData {
     public:
         MeshData() = default;
@@ -30,10 +29,6 @@ namespace kaTe {
             :   m_Vertices{ std::move(other.m_Vertices) }, m_Indices{ std::move(other.m_Indices) }, m_Textures{ std::move(other.m_Textures) }
         {}
 
-        KT_NODISCARD auto GetVertices() -> std::shared_ptr<VertexBuffer>& { return m_Vertices; }
-        KT_NODISCARD auto GetIndices() -> std::shared_ptr<IndexBuffer>& { return m_Indices; }
-        KT_NODISCARD auto GetTextures() -> std::vector<std::shared_ptr<Texture>>& { return m_Textures; }
-
         KT_NODISCARD auto GetVertices() const -> const std::shared_ptr<VertexBuffer>& { return m_Vertices; }
         KT_NODISCARD auto GetIndices() const -> const std::shared_ptr<IndexBuffer>& { return m_Indices; }
         KT_NODISCARD auto GetTextures() const -> const std::vector<std::shared_ptr<Texture>>& { return m_Textures; }
@@ -42,21 +37,10 @@ namespace kaTe {
         auto SetIndices(const std::shared_ptr<IndexBuffer>& indices) -> void { m_Indices = indices; }
         auto SetTextures(std::vector<std::shared_ptr<Texture>>&& textures) -> void { m_Textures = std::move(textures); }
 
-        auto operator=(MeshData&& other) noexcept -> MeshData& {
-            m_Vertices = std::move(other.m_Vertices);
-            m_Indices = std::move(other.m_Indices);
-            m_Textures = std::move(other.m_Textures);
-
-            return *this;
-        }
-
-        auto operator=(const MeshData& other) -> MeshData& {
-            m_Vertices = other.m_Vertices;
-            m_Indices = other.m_Indices;
-            m_Textures = other.m_Textures;
-            return *this;
-        }
+        auto operator=(MeshData&& other) noexcept -> MeshData& = default;
+        auto operator=(const MeshData& other) -> MeshData& = default;
     private:
+        // Specifies the default vertex buffer layout for Meshes
         inline static const BufferLayout MeshLayout{
                 { ShaderDataType::FLOAT3_TYPE, "a_Position" },
                 { ShaderDataType::FLOAT3_TYPE, "a_Normal" },
@@ -66,12 +50,7 @@ namespace kaTe {
 
         std::shared_ptr<VertexBuffer> m_Vertices{};
         std::shared_ptr<IndexBuffer> m_Indices{};
-
-        // TODO: make part of the material
         std::vector<std::shared_ptr<Texture>> m_Textures{};
-
-        // should probably have a material or set of material alongside with the set of indices/vertices
-        // std::unordered_map<material_id, Material>
     };
 
     class Mesh {
@@ -107,7 +86,7 @@ namespace kaTe {
 
         KT_NODISCARD auto GetVertexBuffer() const -> const std::shared_ptr<VertexBuffer>& { return m_Data.GetVertices(); }
         KT_NODISCARD auto GetIndexBuffer() const -> const std::shared_ptr<IndexBuffer>& { return m_Data.GetIndices(); }
-        KT_NODISCARD auto GetTextures() const -> const std::vector<std::shared_ptr<Texture>>& { return (m_Data.GetTextures()); }
+        KT_NODISCARD [[maybe_unused]] auto GetTextures() const -> const std::vector<std::shared_ptr<Texture>>& { return (m_Data.GetTextures()); }
 
         ~Mesh() = default;
         
@@ -116,4 +95,4 @@ namespace kaTe {
     };
 }
 
-#endif
+#endif // MIKOTO_MESH_HH

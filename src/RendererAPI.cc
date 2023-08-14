@@ -1,5 +1,5 @@
 #include <Renderer/RendererAPI.hh>
 
-namespace kaTe {
+namespace Mikoto {
 
 }

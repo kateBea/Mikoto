@@ -12,11 +12,10 @@
 
 // Project Headers
 #include <Renderer/Vulkan/VulkanContext.hh>
-#include <Renderer/Vulkan/VulkanRenderer.hh>
 #include <Renderer/Vulkan/VulkanStandardMaterial.hh>
 #include <Renderer/Vulkan/VulkanSwapChain.hh>
 
-namespace kaTe {
+namespace Mikoto {
     VulkanStandardMaterial::VulkanStandardMaterial(std::string_view name)
         :   Material{ name }
     {
@@ -65,8 +64,8 @@ namespace kaTe {
 
     auto VulkanStandardMaterial::CreatePipeline() -> void {
         auto pipelineConfig{ VulkanPipeline::GetDefaultPipelineConfigInfo() };
-        pipelineConfig.renderPass = VulkanContext::GetSwapChain()->GetRenderPass();
-        pipelineConfig.pipelineLayout = m_PipelineLayout;
+        pipelineConfig.RenderPass = VulkanContext::GetSwapChain()->GetRenderPass();
+        pipelineConfig.PipelineLayout = m_PipelineLayout;
 
         m_Pipeline = std::make_shared<VulkanPipeline>("../assets/shaders/vulkan-spirv/basicVert.sprv",
                                                       "../assets/shaders/vulkan-spirv/basicFrag.sprv",
@@ -236,13 +235,14 @@ namespace kaTe {
         auto pipelineConfig{ VulkanPipeline::GetDefaultPipelineConfigInfo() };
 
         constexpr float GPU_STANDARD_LINE_WIDTH{ 1.0f };
-        pipelineConfig.rasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
-        pipelineConfig.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
-        pipelineConfig.rasterizationInfo.lineWidth = pipelineConfig.rasterizationInfo.polygonMode == VK_POLYGON_MODE_LINE ? GPU_STANDARD_LINE_WIDTH : 0.0f;
+        pipelineConfig.RasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
+        pipelineConfig.RasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+        pipelineConfig.RasterizationInfo.lineWidth = pipelineConfig.RasterizationInfo.polygonMode == VK_POLYGON_MODE_LINE ? GPU_STANDARD_LINE_WIDTH : 0.0f;
 
-        pipelineConfig.renderPass = VulkanContext::GetSwapChain()->GetRenderPass();
-        pipelineConfig.pipelineLayout = m_PipelineLayout;
+        pipelineConfig.RenderPass = VulkanContext::GetSwapChain()->GetRenderPass();
+        pipelineConfig.PipelineLayout = m_PipelineLayout;
 
+        // creating a pipeline is expensive might have a material separated with a cached pipeline to draw in wireframe mode
         m_Pipeline = std::make_shared<VulkanPipeline>("../assets/basicVert.sprv", "../assets/basicFrag.sprv", pipelineConfig);
     }
 
@@ -251,12 +251,12 @@ namespace kaTe {
 
         auto pipelineConfig{ VulkanPipeline::GetDefaultPipelineConfigInfo() };
 
-        pipelineConfig.rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
-        pipelineConfig.rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-        pipelineConfig.rasterizationInfo.lineWidth = 0.0f;
+        pipelineConfig.RasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
+        pipelineConfig.RasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+        pipelineConfig.RasterizationInfo.lineWidth = 0.0f;
 
-        pipelineConfig.renderPass = VulkanContext::GetSwapChain()->GetRenderPass();
-        pipelineConfig.pipelineLayout = m_PipelineLayout;
+        pipelineConfig.RenderPass = VulkanContext::GetSwapChain()->GetRenderPass();
+        pipelineConfig.PipelineLayout = m_PipelineLayout;
 
         m_Pipeline = std::make_shared<VulkanPipeline>("../assets/basicVert.sprv", "../assets/basicFrag.sprv", pipelineConfig);
     }

@@ -4,7 +4,7 @@
 
 #include "Scene/SceneCamera.hh"
 
-namespace kaTe {
+namespace Mikoto {
 
     auto SceneCamera::SetOrthographic(double nearPlane, double farPlane, double size) -> void {
         m_Projection = ProjectionType::ORTHOGRAPHIC;

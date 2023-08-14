@@ -15,7 +15,7 @@
 #include <Renderer/OpenGL/OpenGLRenderer.hh>
 #include <Renderer/Buffers/FrameBuffer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     auto OpenGLRenderer::SetClearColor(float red, float green, float blue, float alpha) -> void {
         glClearColor(red, green, blue, alpha);
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);

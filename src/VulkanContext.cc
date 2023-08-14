@@ -25,7 +25,7 @@
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanSwapChain.hh>
 
-namespace kaTe {
+namespace Mikoto {
     auto VulkanContext::Init(const std::shared_ptr<Window>& handle) -> void {
         VkResult ret{ volkInitialize() };
         s_ContextData.VOLKInitSuccess = ret == VK_SUCCESS;

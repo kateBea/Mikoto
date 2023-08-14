@@ -13,7 +13,7 @@
 #include <Renderer/Vulkan/VulkanIndexBuffer.hh>
 #include <Renderer/OpenGL/OpenGLIndexBuffer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     auto IndexBuffer::CreateBuffer(const std::vector<UInt32_T>& data) -> std::shared_ptr<IndexBuffer> {
         switch(Renderer::GetActiveGraphicsAPI()) {
             case Renderer::GraphicsAPI::OPENGL_API:

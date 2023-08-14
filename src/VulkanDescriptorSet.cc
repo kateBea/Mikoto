@@ -4,6 +4,6 @@
 
 #include "Renderer/Vulkan/VulkanDescriptorSet.hh"
 
-namespace kaTe {
+namespace Mikoto {
 
 }

@@ -12,7 +12,7 @@
 #include <Utility/Common.hh>
 #include <Renderer/Material/Material.hh>
 
-namespace kaTe {
+namespace Mikoto {
 
     auto Material::Create(Type matType) -> std::shared_ptr<Material> {
         switch(matType) {

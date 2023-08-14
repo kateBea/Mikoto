@@ -22,7 +22,7 @@
 #include <Editor/Editor.hh>
 #include <Editor/EditorLayer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     auto EditorLayer::OnAttach() -> void {
         Window& window{ Application::Get().GetMainWindow() };
 

@@ -19,13 +19,15 @@
 #include <Renderer/Renderer.hh>
 #include <Renderer/RendererAPI.hh>
 #include <Renderer/Material/Material.hh>
+#include <Renderer/Vulkan/VulkanImage.hh>
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
 #include <Renderer/Vulkan/VulkanCommandPool.hh>
 #include <Renderer/Vulkan/VulkanFrameBuffer.hh>
+#include <Renderer/Vulkan/VulkanCommandBuffer.hh>
 #include <Renderer/Vulkan/VulkanStandardMaterial.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class VulkanRenderer : public RendererAPI {
     public:
         explicit VulkanRenderer() = default;
@@ -48,29 +50,45 @@ namespace kaTe {
         auto GetCommandPool() -> VulkanCommandPool& { return *m_CommandPool; }
 
         ~VulkanRenderer() override = default;
-    private:
-        friend class VulkanStandardMaterial;
-        friend class Application;
 
     private:
         /*************************************************************
-        * HELPERS
+        * HELPERS (Setup offscreen rendering)
         * ********************************************************+ */
+        auto PrepareOffscreen() -> void;
         auto CreateRenderPass() -> void;
-        auto CreateImages() -> void;
-        auto CreateDepthResources() -> void;
+        auto CreateAttachments() -> void;
         auto CreateFrameBuffers() -> void;
-        auto CreateCommandBuffers() -> void;
 
-        auto CreateDescriptorLayout() -> void;
-        auto CreateDescriptorPool() -> void;
-        auto CreateDescriptorSet() -> void;
+        // These are the default values for the frame buffers we will be rendering into
+        // Although, it is more appropriate to adjust them, so they match the viewport values
+        static constexpr UInt32_T DEFAULT_FRAMEBUFFER_WIDTH{ 1280 };
+        static constexpr UInt32_T DEFAULT_FRAMEBUFFER_HEIGHT{ 720 };
 
+        VkExtent2D m_OffscreenExtent{};
+        VkRenderPass m_OffscreenMainRenderPass{};
+        VulkanFrameBuffer m_OffscreenFrameBuffer{};
+        VulkanImage m_OffscreenColorAttachment{};
+        VulkanImage m_OffscreenDepthAttachment{};
+
+        VkFormat m_ColorAttachmentFormat{};
+        VkFormat m_DepthAttachmentFormat{};
+
+    private:
+        /*************************************************************
+        * HELPERS (For geometry drawing)
+        * ********************************************************+ */
         auto DrawFrame(const Model &model) -> void;
-        auto RecordCommandBuffers(UInt32_T imageIndex, const Mesh& model) -> void;
+        auto RecordMainRenderPassCommands(const Mesh &mesh) -> void;
 
-        auto UpdateViewport(UInt32_T xVal, UInt32_T yVal, UInt32_T widthVal, UInt32_T heightVal) -> void;
+        auto UpdateViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void;
         auto UpdateScissor(Int32_T x, Int32_T y, VkExtent2D extent) -> void;
+
+    private:
+        /*************************************************************
+        * HELPERS (Renderer Initialization)
+        * ********************************************************+ */
+        auto CreateCommandBuffers() -> void;
 
     private:
         /*************************************************************
@@ -78,9 +96,8 @@ namespace kaTe {
         * ********************************************************+ */
         std::shared_ptr<VulkanStandardMaterial> m_DefaultMaterial{};
         std::shared_ptr<VulkanCommandPool> m_CommandPool{};
-        std::vector<VkCommandBuffer> m_CommandBuffers{};
 
-        std::vector<VulkanFrameBuffer> m_FrameBuffers{};
+        std::vector<VulkanCommandBuffer> m_CommandBuffers{};
 
         // Temporary
         // Index 0 represents clear values for color buffer
@@ -89,14 +106,6 @@ namespace kaTe {
 
         VkViewport m_Viewport{};
         VkRect2D m_Scissor{};
-
-        VkDescriptorPool m_DescriptorPool{};
-        VkDescriptorSet m_DescriptorSet{};
-        VkDescriptorSetLayout m_DescriptorSetLayout{};
-        VkRenderPass m_MainRenderPass{};
-
-        std::vector<VkImage> m_Images{};
-        std::vector<VkImageView> m_ImageViews{};
 
         std::vector<VkImage> m_DepthImages{};
         std::vector<VkDeviceMemory> m_DepthImageMemories{};

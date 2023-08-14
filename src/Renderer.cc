@@ -18,7 +18,7 @@
 #include <Renderer/OpenGL/OpenGLRenderer.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     auto Renderer::BeginScene(std::shared_ptr<OrthographicCamera> camera) -> void {
         s_DrawData->OrthographicCameraForScene = std::move(camera);
     }

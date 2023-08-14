@@ -14,7 +14,7 @@
 #include <Scene/Scene.hh>
 #include <Scene/Component.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class Entity {
     public:
         explicit Entity() = default;

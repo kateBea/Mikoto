@@ -12,7 +12,7 @@
 #include <Renderer/Vulkan/VulkanVertexBuffer.hh>
 #include <Renderer/OpenGL/OpenGLVertexBuffer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     auto VertexBuffer::CreateBuffer(const std::vector<float>& data) -> std::shared_ptr<VertexBuffer> {
         VertexBufferCreateInfo createInfo{};
 

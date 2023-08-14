@@ -17,8 +17,7 @@
 #include <Renderer/Vulkan/VulkanTexture2D.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
 
-namespace kaTe {
-
+namespace Mikoto {
     VulkanTexture2D::VulkanTexture2D(const Path_T& path, bool retainFileData) {
         m_RetainData = retainFileData;
 

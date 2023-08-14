@@ -21,7 +21,7 @@
 
 #include <Renderer/Buffers/VertexBuffer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class OpenGLVertexArray {
     public:
         explicit OpenGLVertexArray() { glCreateVertexArrays(1, &m_Id); m_ValidId = m_Id != 0; }

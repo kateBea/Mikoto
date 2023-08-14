@@ -10,7 +10,7 @@
 #include "Core/LayerStack.hh"
 #include <Core/Logger.hh>
 
-namespace kaTe {
+namespace Mikoto {
     auto LayerStack::AddLayer(const std::shared_ptr<Layer>& layer) -> void {
         m_Layers.emplace(m_Layers.begin() + m_LayerIndex, layer);
         layer->OnAttach();

@@ -17,7 +17,7 @@
 
 #include <Renderer/OpenGL/OpenGLContext.hh>
 
-namespace kaTe {
+namespace Mikoto {
 
     auto OpenGLContext::Init(const std::shared_ptr<Window>& windowHandle) -> void {
         try {

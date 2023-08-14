@@ -2,7 +2,7 @@
 
 #include <Renderer/OpenGL/OpenGLVertexBuffer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     OpenGLVertexBuffer::OpenGLVertexBuffer(const VertexBufferCreateInfo& createInfo, GLenum usage) noexcept {
         glCreateBuffers(1, &m_Id);
         m_ValidId = m_Id != 0;

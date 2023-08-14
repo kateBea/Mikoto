@@ -9,7 +9,7 @@
 
 #include <Renderer/Buffers/FrameBuffer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class OpenGLFrameBuffer : public FrameBuffer {
     public:
         explicit OpenGLFrameBuffer() = default;

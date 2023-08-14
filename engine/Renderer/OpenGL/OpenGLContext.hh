@@ -14,7 +14,7 @@
 
 #include <Renderer/RenderContext.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class OpenGLContext {
     public:
         explicit OpenGLContext() = default;

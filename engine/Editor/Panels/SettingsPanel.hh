@@ -9,7 +9,7 @@
 #include <Editor/Panels/PanelData.hh>
 #include <Editor/Panels/Panel.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class SettingsPanel : public Panel {
     public:
         explicit SettingsPanel() = default;

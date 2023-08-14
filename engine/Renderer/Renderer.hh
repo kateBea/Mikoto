@@ -26,7 +26,7 @@
 #include <Renderer/Material/Texture.hh>
 
 
-namespace kaTe {
+namespace Mikoto {
     class Renderer {
     public:
         enum class GraphicsAPI {

@@ -23,7 +23,7 @@
 #include <Platform/Window/MainWindow.hh>
 #include <Platform/Window/Window.hh>
 
-namespace kaTe {
+namespace Mikoto {
     /**
      * The Vulkan context class is the way of the app to encapsulate Vulkan related functionality
      * and provide and interface to interact with the Vulkan API.
@@ -62,6 +62,11 @@ namespace kaTe {
         friend class VulkanTexture2D;
         friend class VulkanFrameBuffer;
         friend class VulkanStandardMaterial;
+        friend class VulkanCommandBuffer;
+        friend class VulkanRenderPass;
+        friend class VulkanBuffer;
+        friend class VulkanImage;
+
         friend class VulkanUtils;
         friend class ImGuiLayer;
         friend class ScenePanel;

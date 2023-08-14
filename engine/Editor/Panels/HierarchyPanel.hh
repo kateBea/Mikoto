@@ -14,7 +14,7 @@
 #include <Editor/Panels/Panel.hh>
 #include <Scene/Entity.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class HierarchyPanel : public Panel {
     public:
         explicit HierarchyPanel(const std::shared_ptr<Scene>& scene, const Path_T &iconPath = {});

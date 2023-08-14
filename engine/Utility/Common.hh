@@ -234,7 +234,7 @@
 * TYPE ALIAS -------------------------------------------------
 * ********************************************************+ */
 
-namespace kaTe {
+namespace Mikoto {
     using Path_T = std::filesystem::path;
 
     using Int8_T = std::int8_t;

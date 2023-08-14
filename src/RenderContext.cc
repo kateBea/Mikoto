@@ -8,7 +8,7 @@
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/OpenGL/OpenGLContext.hh>
 
-namespace kaTe {
+namespace Mikoto {
     auto RenderContext::Init(std::shared_ptr<Window> windowHandle) -> void {
         s_WindowHandle = std::move(windowHandle);
 

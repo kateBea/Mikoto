@@ -18,7 +18,7 @@
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Material/Texture.hh>
 
-namespace kaTe {
+namespace Mikoto {
     Model::Model(const Path_T &path, bool wantLoadTextures)
         :   m_ModelDirectory{ path.string().substr(0,  path.string().find_last_of('/')) }
         ,   m_ModelName{ path.string().substr(path.string().find_last_of('/'),  path.string().size() - 1) }

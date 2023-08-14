@@ -12,11 +12,11 @@
 
 #include <Renderer/Buffers/IndexBuffer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class VulkanIndexBuffer : public IndexBuffer {
     public:
         explicit VulkanIndexBuffer(const std::vector<UInt32_T>& indices);
-        auto Bind(VkCommandBuffer commandBuffer) const -> void;
+        auto Submit(VkCommandBuffer commandBuffer) const -> void;
 
         auto Bind() const -> void override {}
         auto Unbind() const -> void override {}

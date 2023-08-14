@@ -8,7 +8,7 @@
 #include <Renderer/OpenGL/OpenGLShader.hh>
 #include <Renderer/Renderer.hh>
 
-namespace kaTe {
+namespace Mikoto {
 
     auto Shader::CreateShader(const Path_T& vertStage, const Path_T& pixelStage) -> std::shared_ptr<Shader> {
         switch(Renderer::GetActiveGraphicsAPI()) {

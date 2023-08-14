@@ -15,7 +15,7 @@
 #include <Editor/Panels/Panel.hh>
 #include <Scene/Scene.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class InspectorPanel : public Panel {
     public:
 

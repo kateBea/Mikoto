@@ -10,20 +10,21 @@
 #include <volk.h>
 
 // Project Headers
+#include <Utility/Common.hh>
 #include <Renderer/Buffers/FrameBuffer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class VulkanFrameBuffer : public FrameBuffer {
     public:
-        explicit VulkanFrameBuffer(const FrameBufferCreateInfo& createInfo);
-        explicit VulkanFrameBuffer(const VkFramebufferCreateInfo& createInfo);
+        explicit VulkanFrameBuffer() = default;
+
+        auto OnCreate(const VkFramebufferCreateInfo& createInfo) -> void;
+        auto OnRelease() const -> void;
 
         auto Resize(UInt32_T width, UInt32_T height) -> void override;
         KT_NODISCARD auto GetFrameBufferProperties() const -> const FrameBufferCreateInfo& override { return m_CreateInfo; }
+        KT_NODISCARD auto Get() const -> const VkFramebuffer& { return m_FrameBuffer; }
 
-        auto OnRelease() const -> void;
-    private:
-        static auto OnCreate(VkFramebufferCreateInfo createInfo, VkFramebuffer &fb) -> void;
     private:
         FrameBufferCreateInfo m_CreateInfo{};
         VkFramebufferCreateInfo m_VkCreateInfo{};

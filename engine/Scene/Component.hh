@@ -19,7 +19,7 @@
 #include <Renderer/Mesh.hh>
 #include <Renderer/Model.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class TagComponent {
     public:
         explicit TagComponent() = default;
@@ -162,10 +162,10 @@ namespace kaTe {
      * needed when binding and scriptable entity to the native script component
      * */
     template<typename ScriptableEntityType>
-    concept HasOnCreate = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->OnCreate(VkFramebufferCreateInfo(), nullptr); };
+    concept HasOnCreate = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->OnCreate(); };
 
     template<typename ScriptableEntityType>
-    concept HasOnUpdate = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->OnUpdate(0); };
+    concept HasOnUpdate = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->OnUpdate(); };
 
     template<typename ScriptableEntityType>
     concept HasOnDestroy = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->OnDestroy(); };
@@ -188,8 +188,8 @@ namespace kaTe {
                      HasOnUpdate<ScriptableEntityType> &&
                      HasOnDestroy<ScriptableEntityType>
         auto Bind() -> void {
-            m_OnCreateFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->OnCreate(VkFramebufferCreateInfo(), nullptr); };
-            m_OnUpdateFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->OnUpdate(0); };
+            m_OnCreateFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->OnCreate(); };
+            m_OnUpdateFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->OnUpdate(); };
             m_OnDestroyFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->OnDestroy(); };
         }
 

@@ -10,7 +10,7 @@
 
 #include <Utility/Common.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class Camera {
     public:
         explicit Camera(const glm::mat4& projection = glm::mat4(1.0f), const glm::mat4& transform = glm::mat4(1.0f))

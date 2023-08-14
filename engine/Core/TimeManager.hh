@@ -13,7 +13,7 @@
 
 #include <Utility/Common.hh>
 
-namespace kaTe {
+namespace Mikoto {
     enum class TimeUnit {
         NONE,
         SECONDS,

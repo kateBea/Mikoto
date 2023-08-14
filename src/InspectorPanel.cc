@@ -24,7 +24,7 @@
 
 #include <Editor/Panels/InspectorPanel.hh>
 
-namespace kaTe {
+namespace Mikoto {
     InspectorPanel::InspectorPanel(const std::shared_ptr<HierarchyPanel> &hierarchy, const Path_T& iconPath)
         :   Panel{ iconPath }, m_Hierarchy{ hierarchy }, m_Visible{ true }, m_Hovered{ false }, m_Focused{ false }
     {}

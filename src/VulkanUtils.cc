@@ -14,7 +14,7 @@
 #include <Utility/VulkanUtils.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 
-namespace kaTe {
+namespace Mikoto {
     auto VulkanUtils::CreateBuffer(VkBuffer &buffer, VkDeviceMemory &bufferMemory, VkDeviceSize size, VkMemoryPropertyFlags properties, VkBufferUsageFlags usage) -> void {
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -53,7 +53,7 @@ namespace kaTe {
         vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
     }
 
-    auto VulkanUtils::UploadBuffer(AllocatedBuffer& allocatedBufferData) -> void {
+    auto VulkanUtils::UploadBuffer(BufferAllocateInfo& allocatedBufferData) -> void {
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         bufferInfo.size = allocatedBufferData.Size;             // this is the total size, in bytes, of the buffer we are allocating
@@ -62,7 +62,39 @@ namespace kaTe {
         VmaAllocationCreateInfo allocInfo{};
         allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;          // Buffer is writeable by host but readable by device
 
-        if (vmaCreateBuffer(VulkanContext::GetDefaultAllocator(), &bufferInfo, &allocInfo,&allocatedBufferData.Buffer, &allocatedBufferData.Allocation, nullptr) != VK_SUCCESS)
+        auto result { vmaCreateBuffer(VulkanContext::GetDefaultAllocator(),
+                            &bufferInfo,
+                            &allocInfo,&allocatedBufferData.Buffer,
+                            &allocatedBufferData.Allocation,
+                            nullptr) };
+
+        if (result  != VK_SUCCESS)
             throw std::runtime_error("Failed to create VMA buffer");
+    }
+
+    auto VulkanUtils::AllocateImage(ImageAllocateInfo& allocatedImageData) -> void {
+        auto result{ vmaCreateImage(VulkanContext::GetDefaultAllocator(),
+                                     &allocatedImageData.ImageCreateInfo,
+                                     &allocatedImageData.AllocationCreateInfo,
+                                     &allocatedImageData.Image,
+                                     &allocatedImageData.Allocation,
+                                     nullptr) };
+
+        if (result != VK_SUCCESS)
+            throw std::runtime_error("Failed to allocate VMA Image!");
+    }
+
+    auto VulkanUtils::WaitIdle(VkDevice device) -> void {
+        vkDeviceWaitIdle(device);
+    }
+
+    auto VulkanUtils::SubmitCommandBuffers(const CommandBuffersSubmitInfo& submitInfo) -> VkResult {
+
+        return VK_SUCCESS;
+    }
+
+    auto VulkanUtils::QueueImageForPresentation(const QueuePresentInfo& presentInfo) -> VkResult {
+
+        return VK_SUCCESS;
     }
 }

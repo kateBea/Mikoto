@@ -19,7 +19,7 @@
 
 #include <Renderer/Vulkan/VulkanCommandPool.hh>
 
-namespace kaTe {
+namespace Mikoto {
     /**
      * ImGuiLayer interface for ImGui GUI elements
      * Uses OpenGL/Vulkan for rendering and GLFW for event handling

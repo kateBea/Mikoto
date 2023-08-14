@@ -4,6 +4,6 @@
 
 #include "Utility/OpenGLUtils.hh"
 
-namespace kaTe {
+namespace Mikoto {
 
 }

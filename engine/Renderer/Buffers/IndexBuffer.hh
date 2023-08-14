@@ -9,7 +9,7 @@
 
 #include <Utility/Common.hh>
 
-namespace kaTe {
+namespace Mikoto {
     /**
      * General interface for Vertex index buffers
      * */

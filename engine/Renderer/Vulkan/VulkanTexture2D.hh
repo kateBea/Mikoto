@@ -16,7 +16,7 @@
 #include <Utility/Common.hh>
 #include <Renderer/Material/Texture2D.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class VulkanTexture2D : public Texture2D {
     public:
         /**

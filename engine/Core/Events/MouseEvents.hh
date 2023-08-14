@@ -18,7 +18,7 @@
 #include <Core/Events/Event.hh>
 
 
-namespace kaTe {
+namespace Mikoto {
     class MouseMovedEvent : public Event {
     public:
         MouseMovedEvent(double x, double y)

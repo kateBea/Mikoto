@@ -11,7 +11,7 @@
 #include <Platform/Window/Window.hh>
 #include <Utility/Common.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class OrthographicCamera {
     public:
         OrthographicCamera(double left, double right, double bottom, double top);

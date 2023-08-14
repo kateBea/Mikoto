@@ -14,7 +14,7 @@
 // Project Headers
 #include <Utility/Common.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class Material {
     public:
         enum class Type {

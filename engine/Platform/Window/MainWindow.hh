@@ -20,7 +20,7 @@
 
 #include <Renderer/RenderContext.hh>
 
-namespace kaTe {
+namespace Mikoto {
     /**
      * Tells whether the GLFW was initialized successfully.
      * Needed before creating windows

@@ -26,7 +26,7 @@
 #include <Renderer/Material/Texture2D.hh>
 #include <Renderer/Mesh.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class Model {
     public:
         explicit Model() = default;

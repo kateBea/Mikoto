@@ -10,7 +10,7 @@
 #include <Utility/Common.hh>
 #include <Core/Events/Event.hh>
 
-namespace kaTe {
+namespace Mikoto {
     /**
      * General interface for panels. Panels are windows that
      * can be dragged around our main window or simply dock

@@ -22,7 +22,7 @@
 #include <Renderer/Vulkan/VulkanRenderer.hh>
 #include <Renderer/Vulkan/VulkanVertexBuffer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     VulkanVertexBuffer::VulkanVertexBuffer(const VertexBufferCreateInfo& createInfo)
         :   m_Layout{ createInfo.Layout }
     {
@@ -136,7 +136,7 @@ namespace kaTe {
         vmaUnmapMemory(VulkanContext::GetDefaultAllocator(), m_AllocationInfo.Allocation);
     }
 
-    auto VulkanVertexBuffer::OnRelease() -> void {
+    auto VulkanVertexBuffer::OnRelease() const -> void {
         vmaDestroyBuffer(VulkanContext::GetDefaultAllocator(), m_AllocationInfo.Buffer, m_AllocationInfo.Allocation);
     }
 }

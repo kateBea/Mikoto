@@ -10,7 +10,7 @@
 #include <Utility/Common.hh>
 #include <Renderer/Material/Texture.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class Texture2D : public Texture {
     public:
         enum class Type {
@@ -29,7 +29,7 @@ namespace kaTe {
         static auto CreateTexture(const Path_T& path) -> std::shared_ptr<Texture>;
         static auto CreateTextureRawPtr(const Path_T &path) -> Texture*;
 
-        static auto LoadFromFile(const Path_T &path, Type type) -> std::shared_ptr<kaTe::Texture>;
+        static auto LoadFromFile(const Path_T &path, Type type) -> std::shared_ptr<Mikoto::Texture>;
     };
 }
 

@@ -140,7 +140,7 @@
 
 
 
-namespace kaTe {
+namespace Mikoto {
     enum KeyCode : Int16_T {
         Key_Space           = KT_KEY_SPACE           ,
         Key_Apostrophe      = KT_KEY_APOSTROPHE      , /* ' */

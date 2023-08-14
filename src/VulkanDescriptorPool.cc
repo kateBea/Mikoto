@@ -4,6 +4,6 @@
 
 #include <Renderer/Vulkan/VulkanDescriptorPool.hh>
 
-namespace kaTe {
+namespace Mikoto {
 
 }

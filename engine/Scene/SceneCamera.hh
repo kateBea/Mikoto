@@ -8,7 +8,7 @@
 #include <Utility/Common.hh>
 #include <Renderer/Camera/Camera.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class SceneCamera : public Camera {
     public:
         enum ProjectionType {

@@ -21,7 +21,7 @@
 #include <Renderer/OpenGL/OpenGLVertexArray.hh>
 #include <Renderer/OpenGL/OpenGLDefaultMaterial.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class OpenGLRenderer : public RendererAPI {
     public:
         explicit OpenGLRenderer() = default;

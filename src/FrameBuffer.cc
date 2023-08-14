@@ -10,7 +10,7 @@
 #include "Renderer/OpenGL/OpenGLFrameBuffer.hh"
 #include "Renderer/Renderer.hh"
 
-namespace kaTe {
+namespace Mikoto {
 
     auto FrameBuffer::CreatFrameBuffer(const FrameBufferCreateInfo &properties) -> std::shared_ptr<FrameBuffer> {
         switch(Renderer::GetActiveGraphicsAPI()) {

@@ -5,7 +5,7 @@
 #include <Engine.hh>
 
 int main(int, char**) {
-    auto app { new kaTe::Engine() };
+    auto app { new Mikoto::Engine() };
     auto ret{app->Run() };
     delete app;
 

@@ -28,7 +28,7 @@
 #include <Renderer/Camera/Camera.hh>
 #include <Scene/Entity.hh>
 
-namespace kaTe {
+namespace Mikoto {
 
     class EditorLayer : public Layer {
     public:

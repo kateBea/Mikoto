@@ -12,7 +12,7 @@
 
 #include <Utility/Common.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class Timer {
     public:
         explicit Timer(std::string_view id = "Unknown scope", TimeUnit defaultUnit = TimeUnit::MICROSECONDS);

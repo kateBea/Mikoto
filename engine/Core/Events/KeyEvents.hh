@@ -19,7 +19,7 @@
 #include <Core/Events/Event.hh>
 #include <Utility/Common.hh>
 
-namespace kaTe {
+namespace Mikoto {
     /**
      * Common interface for Key Events
      * */

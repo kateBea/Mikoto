@@ -17,7 +17,7 @@
 #include <Renderer/RenderingUtilities.hh>
 
 
-namespace kaTe {
+namespace Mikoto {
     /**
      * Describes a general Renderer interface for various graphic API
      * which is the graphics API being used right now. Supported API's currently

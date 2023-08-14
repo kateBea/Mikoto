@@ -7,13 +7,13 @@
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanIndexBuffer.hh>
 
-namespace kaTe {
+namespace Mikoto {
 
     VulkanIndexBuffer::VulkanIndexBuffer(const std::vector<UInt32_T>& indices) {
         SetIndicesData(indices);
     }
 
-    auto VulkanIndexBuffer::Bind(VkCommandBuffer commandBuffer) const -> void {
+    auto VulkanIndexBuffer::Submit(VkCommandBuffer commandBuffer) const -> void {
         vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
     }
 

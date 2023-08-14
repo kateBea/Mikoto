@@ -25,7 +25,7 @@
 #include <Renderer/OpenGL/OpenGLShader.hh>
 
 
-namespace kaTe {
+namespace Mikoto {
     OpenGLShader::OpenGLShader(const std::filesystem::path& vertexSourceDir, const std::filesystem::path& fragmentSourceDir) {
         m_Id = glCreateProgram();
         if (m_Id == 0)

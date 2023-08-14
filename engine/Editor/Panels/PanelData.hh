@@ -11,7 +11,7 @@
 #include <Scene/Scene.hh>
 #include <Renderer/Buffers/FrameBuffer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     struct SettingsPanelData {
         glm::vec4 ClearColor{};
         bool VerticalSyncEnabled{ true };

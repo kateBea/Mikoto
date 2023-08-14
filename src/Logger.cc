@@ -3,7 +3,7 @@
 #include <Core/Logger.hh>
 #include <Core/Assert.hh>
 
-namespace kaTe {
+namespace Mikoto {
     auto Logger::Init() -> void {
         m_CoreLogger = spdlog::stdout_color_mt("KATE_CORE_LOGGER");
         m_AppLogger = spdlog::stdout_color_mt("KATE_APP_LOGGER");

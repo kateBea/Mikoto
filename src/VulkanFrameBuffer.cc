@@ -14,33 +14,11 @@
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanFrameBuffer.hh>
 
-namespace kaTe {
-    VulkanFrameBuffer::VulkanFrameBuffer(const FrameBufferCreateInfo& createInfo)
-        :   m_CreateInfo{ createInfo }
-    {
-        m_VkCreateInfo = {};
+namespace Mikoto {
+    auto VulkanFrameBuffer::OnCreate(const VkFramebufferCreateInfo& createInfo) -> void {
+        m_VkCreateInfo = createInfo;
 
-        m_VkCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        m_VkCreateInfo.pNext = nullptr;
-        m_VkCreateInfo.renderPass = VK_NULL_HANDLE; // TODO: reorganize
-        m_VkCreateInfo.width = createInfo.width;
-        m_VkCreateInfo.height = createInfo.height;
-        m_VkCreateInfo.layers = 1;
-
-        m_VkCreateInfo.attachmentCount = 0;
-        m_VkCreateInfo.pAttachments = VK_NULL_HANDLE; /* Image Views */
-
-        OnCreate(m_VkCreateInfo, m_FrameBuffer);
-    }
-
-    VulkanFrameBuffer::VulkanFrameBuffer(const VkFramebufferCreateInfo& createInfo)
-        :   m_VkCreateInfo{ createInfo }
-    {
-        OnCreate(m_VkCreateInfo, m_FrameBuffer);
-    }
-
-    auto VulkanFrameBuffer::OnCreate(VkFramebufferCreateInfo createInfo, VkFramebuffer& fb) -> void {
-        if (vkCreateFramebuffer(VulkanContext::GetPrimaryLogicalDevice(), &createInfo, nullptr, &fb) != VK_SUCCESS)
+        if (vkCreateFramebuffer(VulkanContext::GetPrimaryLogicalDevice(), &createInfo, nullptr, &m_FrameBuffer) != VK_SUCCESS)
             throw std::runtime_error("failed to create framebuffer!");
     }
 
@@ -49,6 +27,14 @@ namespace kaTe {
     }
 
     auto VulkanFrameBuffer::Resize(UInt32_T width, UInt32_T height) -> void {
+        vkDestroyFramebuffer(VulkanContext::GetPrimaryLogicalDevice(), m_FrameBuffer, nullptr);
 
+        m_VkCreateInfo.width = width;
+        m_VkCreateInfo.height = height;
+
+        m_CreateInfo.width = (Int32_T)width;
+        m_CreateInfo.height = (Int32_T)height;
+
+        OnCreate(m_VkCreateInfo);
     }
 }

@@ -14,7 +14,7 @@
 
 #include <Core/Layer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     /**
      * Defines the order of handling of the attached layers.
      * This helps task to be done in their appropriate order.

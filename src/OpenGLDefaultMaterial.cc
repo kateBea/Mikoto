@@ -4,7 +4,7 @@
 
 #include <Renderer/OpenGL/OpenGLDefaultMaterial.hh>
 
-namespace kaTe {
+namespace Mikoto {
 
     auto OpenGLDefaultMaterial::BindShader() -> void {
         m_DefaultVertexPixelShaders->Bind();

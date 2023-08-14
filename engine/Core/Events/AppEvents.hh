@@ -16,7 +16,7 @@
 #include <Core/Events/Event.hh>
 #include <Utility/Common.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class WindowResizedEvent : public Event {
     public:
         WindowResizedEvent(Int32_T newWidth, Int32_T newHeight)

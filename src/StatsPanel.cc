@@ -12,7 +12,7 @@
 
 #include "Editor/Panels/StatsPanel.hh"
 
-namespace kaTe {
+namespace Mikoto {
 
     StatsPanel::StatsPanel(const std::shared_ptr<StatsPanelData> &data, const Path_T &iconPath)
         :   Panel{ iconPath }, m_Visible{ true }, m_Hovered{ false }, m_Focused{ false }, m_Data{ data }

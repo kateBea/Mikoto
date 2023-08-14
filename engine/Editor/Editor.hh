@@ -11,7 +11,7 @@
 
 #include <Utility/Common.hh>
 
-namespace kaTe::Editor {
+namespace Mikoto::Editor {
 
     struct DockControlFlags {
         bool ApplicationCloseFlag{};

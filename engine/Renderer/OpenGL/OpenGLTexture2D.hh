@@ -11,7 +11,7 @@
 
 #include <Renderer/Material/Texture2D.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class OpenGLTexture2D : public Texture2D {
     public:
         /**

@@ -19,7 +19,7 @@
 #include <Renderer/OpenGL/OpenGLShader.hh>
 #include <Renderer/OpenGL/OpenGLTexture2D.hh>
 
-namespace kaTe {
+namespace Mikoto {
     //TODO: inherit from common default material
     class OpenGLDefaultMaterial : public Material {
     public:

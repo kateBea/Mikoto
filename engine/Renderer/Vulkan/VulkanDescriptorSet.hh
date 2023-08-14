@@ -6,7 +6,7 @@
 #define KATE_ENGINE_VULKAN_DESCRIPTOR_SET_HH
 
 
-namespace kaTe {
+namespace Mikoto {
     class VulkanDescriptorSet {
     };
 }

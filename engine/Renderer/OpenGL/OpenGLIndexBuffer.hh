@@ -17,7 +17,7 @@
 #include <Utility/Common.hh>
 #include <Renderer/Buffers/IndexBuffer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class OpenGLIndexBuffer : public IndexBuffer {
     public:
         explicit OpenGLIndexBuffer() = default;

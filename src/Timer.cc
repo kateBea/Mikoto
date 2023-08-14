@@ -9,7 +9,7 @@
 #include <Core/TimeManager.hh>
 #include <Core/Timer.hh>
 
-namespace kaTe {
+namespace Mikoto {
 
     Timer::Timer(std::string_view id, TimeUnit unit)
         :   m_Identifier{ id }, m_TimeSinceStart{ Clock_T::now() }, m_DefaultUnit{ unit }

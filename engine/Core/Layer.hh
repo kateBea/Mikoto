@@ -14,7 +14,7 @@
 #include <Core/Events/Event.hh>
 #include <Utility/Common.hh>
 
-namespace kaTe {
+namespace Mikoto {
 
     /**
      * Describes a modular entity that helps encapsulate and organize

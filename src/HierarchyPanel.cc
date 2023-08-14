@@ -18,7 +18,7 @@
 
 #include <Editor/Panels/HierarchyPanel.hh>
 
-namespace kaTe {
+namespace Mikoto {
     auto HierarchyPanel::OnUpdate() -> void {
         if (m_Visible) {
             ImGui::Begin("Hierarchy");

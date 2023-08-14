@@ -10,7 +10,7 @@
 
 #include <Utility/Common.hh>
 
-namespace kaTe {
+namespace Mikoto {
     struct VulkanSwapChainCreateInfo {
         VkExtent2D Extent{};
         bool VSyncEnable{};
@@ -24,10 +24,12 @@ namespace kaTe {
         explicit VulkanSwapChain() = default;
         explicit VulkanSwapChain(const VulkanSwapChainCreateInfo& createInfo);
 
-        KT_NODISCARD auto GetFrameBuffer(std::size_t index) -> VkFramebuffer { return m_SwapChainFrameBuffers[index]; }
+        auto OnCreate(const VulkanSwapChainCreateInfo& createInfo) -> void;
+
+        KT_NODISCARD auto GetFrameBuffer(Size_T index) -> VkFramebuffer { return m_SwapChainFrameBuffers[index]; }
         KT_NODISCARD auto GetRenderPass() const -> VkRenderPass { return m_RenderPass; }
-        KT_NODISCARD auto GetImageView(std::size_t index) -> VkImageView { return m_SwapChainImageViews[index]; }
-        KT_NODISCARD auto GetImageCount() -> std::size_t { return m_SwapChainImages.size(); }
+        KT_NODISCARD auto GetImageView(Size_T index) -> VkImageView { return m_SwapChainImageViews[index]; }
+        KT_NODISCARD auto GetImageCount() -> Size_T { return m_SwapChainImages.size(); }
         KT_NODISCARD auto GetSwapChainImageFormat() -> VkFormat { return m_SwapChainImageFormat; }
         KT_NODISCARD auto GetSwapChainExtent() -> VkExtent2D { return m_SwapChainExtent; }
 
@@ -88,7 +90,7 @@ namespace kaTe {
         std::vector<VkSemaphore>        m_RenderFinishedSemaphores{};
         std::vector<VkFence>            m_InFlightFences{};
         std::vector<VkFence>            m_ImagesInFlight{};
-        std::size_t                     m_CurrentFrame{};
+        Size_T                     m_CurrentFrame{};
     };
 
 }

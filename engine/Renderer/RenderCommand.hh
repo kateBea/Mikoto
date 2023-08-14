@@ -19,7 +19,7 @@
 #include <Renderer/RendererAPI.hh>
 #include <Renderer/Material/Shader.hh>
 
-namespace kaTe {
+namespace Mikoto {
 	class RenderCommand {
 	public:
         static auto Init(RendererAPI* activeAPI) -> void;

@@ -5,7 +5,7 @@
 #include <Renderer/OpenGL/OpenGLVertexArray.hh>
 #include <Renderer/OpenGL/OpenGLVertexBuffer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     OpenGLVertexArray::OpenGLVertexArray(OpenGLVertexArray&& other) noexcept
         :   m_Id{ other.GetId() }, m_ValidId{ other.m_ValidId } { other.m_Id = 0; }
 

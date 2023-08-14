@@ -13,8 +13,8 @@
 #include <Editor/EditorLayer.hh>
 
 
-namespace kaTe {
-    auto Engine::Run() -> kaTe::Int32_T {
+namespace Mikoto {
+    auto Engine::Run() -> Mikoto::Int32_T {
         Application& application{ Application::Get() };
 
         try {

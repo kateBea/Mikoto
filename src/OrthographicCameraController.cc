@@ -14,7 +14,7 @@
 
 #include <Renderer/Camera/OrthographicCameraController.hh>
 
-namespace kaTe {
+namespace Mikoto {
 
     OrthographicCameraController::OrthographicCameraController(double aspectRatio, bool enableRotation, std::shared_ptr<OrthographicCamera> target)
         :   m_AspectRatio{ (float)aspectRatio }, m_EnableRotation{ enableRotation }

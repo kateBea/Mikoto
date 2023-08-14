@@ -5,7 +5,7 @@
 #ifndef KATE_ENGINE_OPENGL_UTILS_HH
 #define KATE_ENGINE_OPENGL_UTILS_HH
 
-namespace kaTe {
+namespace Mikoto {
 
 }
 

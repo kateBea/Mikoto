@@ -13,24 +13,15 @@
 #include <Renderer/Vulkan/VulkanPipeline.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 
-namespace kaTe {
+namespace Mikoto {
 
     VulkanPipeline::VulkanPipeline(const Path_T &vPath, const Path_T &fPath, const PipelineConfigInfo& config) {
         CreateGraphicsPipeline(vPath, fPath, config);
     }
 
-    auto VulkanPipeline::GetFileData(const Path_T &path) -> Cont_T {
-        std::ifstream file{ path, std::ios::binary };
-
-        if (!file.is_open())
-            throw std::runtime_error("Failed to open SPR-V file");
-
-        return Cont_T { std::istreambuf_iterator<Cont_T::value_type>(file), std::istreambuf_iterator<Cont_T::value_type>() };
-    }
-
     auto VulkanPipeline::CreateGraphicsPipeline(const Path_T& vPath, const Path_T& fPath, const PipelineConfigInfo& config) -> void {
-        KT_ASSERT(config.pipelineLayout != VK_NULL_HANDLE, "Cannot create graphics pipeline. No Pipeline Layout in PipelineConfigInfo");
-        KT_ASSERT(config.renderPass != VK_NULL_HANDLE, "Cannot create graphics pipeline. No Render Pass Layout in PipelineConfigInfo");
+        KT_ASSERT(config.PipelineLayout != VK_NULL_HANDLE, "Cannot create graphics pipeline. No Pipeline Layout in PipelineConfigInfo");
+        KT_ASSERT(config.RenderPass != VK_NULL_HANDLE, "Cannot create graphics pipeline. No Render Pass Layout in PipelineConfigInfo");
 
         auto vData{ GetFileData(vPath) };
         auto fData{ GetFileData(fPath) };
@@ -56,7 +47,6 @@ namespace kaTe {
         shaderStages[1].pNext = nullptr;
         shaderStages[1].pSpecializationInfo = nullptr;
 
-
         // Setup Vertex Input State Info
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -77,15 +67,15 @@ namespace kaTe {
         pipelineInfo.pStages =  shaderStages.data();
 
         pipelineInfo.pVertexInputState = &vertexInputInfo;
-        pipelineInfo.pInputAssemblyState = &config.inputAssemblyInfo;
+        pipelineInfo.pInputAssemblyState = &config.InputAssemblyInfo;
         pipelineInfo.pViewportState = &config.ViewportInfo;
-        pipelineInfo.pRasterizationState = &config.rasterizationInfo;
-        pipelineInfo.pMultisampleState = &config.multisampleInfo;
-        pipelineInfo.pColorBlendState = &config.colorBlendInfo;
-        pipelineInfo.pDepthStencilState = &config.depthStencilInfo;
-        pipelineInfo.layout = config.pipelineLayout;
-        pipelineInfo.renderPass = config.renderPass;
-        pipelineInfo.subpass = config.subpass;
+        pipelineInfo.pRasterizationState = &config.RasterizationInfo;
+        pipelineInfo.pMultisampleState = &config.MultisampleInfo;
+        pipelineInfo.pColorBlendState = &config.ColorBlendInfo;
+        pipelineInfo.pDepthStencilState = &config.DepthStencilInfo;
+        pipelineInfo.layout = config.PipelineLayout;
+        pipelineInfo.renderPass = config.RenderPass;
+        pipelineInfo.subpass = config.Subpass;
         pipelineInfo.basePipelineIndex = -1;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
         pipelineInfo.pDynamicState = &config.DynamicStateInfo;
@@ -94,7 +84,7 @@ namespace kaTe {
             throw std::runtime_error("Failed to create Graphics pipeline");
     }
 
-    auto VulkanPipeline::CreateShaderModule(const Cont_T& srcCode, VkShaderModule* shaderModule) -> void {
+    auto VulkanPipeline::CreateShaderModule(const CharArray& srcCode, VkShaderModule* shaderModule) -> void {
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = srcCode.size();
@@ -108,73 +98,71 @@ namespace kaTe {
 
 
     auto VulkanPipeline::GetDefaultPipelineConfigInfo() -> PipelineConfigInfo {
-        PipelineConfigInfo configInfo{};
+        static PipelineConfigInfo configInfo{};
 
-        configInfo.inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        // Every three vertices are group together into a separate triangle
-        configInfo.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        configInfo.inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
+        configInfo.InputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        configInfo.InputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;    // Every three vertices are group together into a separate triangle
+        configInfo.InputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
 
-        // Using dynamic viewport and scissor
+        // Viewport and Scissor set dynamically
         configInfo.ViewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        configInfo.ViewportInfo.viewportCount = 1;
+        configInfo.ViewportInfo.viewportCount = 1; // VK_DYNAMIC_VIEWPORT_WITH_COUNT has to be set for this to be 0
         configInfo.ViewportInfo.pViewports = nullptr;
-        configInfo.ViewportInfo.scissorCount = 1;
+        configInfo.ViewportInfo.scissorCount = 1; // VK_DYNAMIC_SCISSOR_WITH_COUNT has to be set for this to be 0
         configInfo.ViewportInfo.pScissors = nullptr;
 
-
         constexpr float GPU_STANDARD_LINE_WIDTH{ 1.0f };
-        configInfo.rasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        configInfo.rasterizationInfo.depthClampEnable = VK_FALSE;
-        configInfo.rasterizationInfo.rasterizerDiscardEnable = VK_FALSE; // requires extension if enabled
-        configInfo.rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
-        configInfo.rasterizationInfo.lineWidth = configInfo.rasterizationInfo.polygonMode == VK_POLYGON_MODE_LINE ? GPU_STANDARD_LINE_WIDTH : 0.0f; // The maximum line width that is supported depends on the hardware, any line thicker than 1.0f requires you to enable the wideLines GPU feature.
-        configInfo.rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-        configInfo.rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-        configInfo.rasterizationInfo.depthBiasEnable = VK_FALSE;
-        configInfo.rasterizationInfo.depthBiasConstantFactor = 0.0f;
-        configInfo.rasterizationInfo.depthBiasClamp = 0.0f;
-        configInfo.rasterizationInfo.depthBiasSlopeFactor = 0.0f;
+        configInfo.RasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        configInfo.RasterizationInfo.depthClampEnable = VK_FALSE;
+        configInfo.RasterizationInfo.rasterizerDiscardEnable = VK_FALSE; // requires extension if enabled
+        configInfo.RasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
+        configInfo.RasterizationInfo.lineWidth = configInfo.RasterizationInfo.polygonMode == VK_POLYGON_MODE_LINE ? GPU_STANDARD_LINE_WIDTH : 0.0f; // The maximum line width that is supported depends on the hardware, any line thicker than 1.0f requires you to enable the wideLines GPU feature.
+        configInfo.RasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+        configInfo.RasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        configInfo.RasterizationInfo.depthBiasEnable = VK_FALSE;
+        configInfo.RasterizationInfo.depthBiasConstantFactor = 0.0f;
+        configInfo.RasterizationInfo.depthBiasClamp = 0.0f;
+        configInfo.RasterizationInfo.depthBiasSlopeFactor = 0.0f;
 
 
-        configInfo.multisampleInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        configInfo.multisampleInfo.sampleShadingEnable = VK_FALSE;
-        configInfo.multisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-        configInfo.multisampleInfo.minSampleShading = 1.0f;             // Optional
-        configInfo.multisampleInfo.pSampleMask = nullptr;               // Optional
-        configInfo.multisampleInfo.alphaToCoverageEnable = VK_FALSE;    // Optional
-        configInfo.multisampleInfo.alphaToOneEnable = VK_FALSE;         // Optional
+        configInfo.MultisampleInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        configInfo.MultisampleInfo.sampleShadingEnable = VK_FALSE;
+        configInfo.MultisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+        configInfo.MultisampleInfo.minSampleShading = 1.0f;             // Optional
+        configInfo.MultisampleInfo.pSampleMask = nullptr;               // Optional
+        configInfo.MultisampleInfo.alphaToCoverageEnable = VK_FALSE;    // Optional
+        configInfo.MultisampleInfo.alphaToOneEnable = VK_FALSE;         // Optional
 
         // Blending enabled by default
-        configInfo.colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        configInfo.colorBlendAttachment.blendEnable = VK_TRUE;
-        configInfo.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        configInfo.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        configInfo.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-        configInfo.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        configInfo.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        configInfo.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+        configInfo.ColorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        configInfo.ColorBlendAttachment.blendEnable = VK_TRUE;
+        configInfo.ColorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        configInfo.ColorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        configInfo.ColorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+        configInfo.ColorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        configInfo.ColorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        configInfo.ColorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
-        configInfo.colorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-        configInfo.colorBlendInfo.logicOpEnable = VK_FALSE;
-        configInfo.colorBlendInfo.logicOp = VK_LOGIC_OP_COPY;
-        configInfo.colorBlendInfo.attachmentCount = 1;
-        configInfo.colorBlendInfo.pAttachments = &configInfo.colorBlendAttachment;
-        configInfo.colorBlendInfo.blendConstants[0] = 0.0f;
-        configInfo.colorBlendInfo.blendConstants[1] = 0.0f;
-        configInfo.colorBlendInfo.blendConstants[2] = 0.0f;
-        configInfo.colorBlendInfo.blendConstants[3] = 0.0f;
+        configInfo.ColorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        configInfo.ColorBlendInfo.logicOpEnable = VK_FALSE;
+        configInfo.ColorBlendInfo.logicOp = VK_LOGIC_OP_COPY;
+        configInfo.ColorBlendInfo.attachmentCount = 1;
+        configInfo.ColorBlendInfo.pAttachments = &configInfo.ColorBlendAttachment;
+        configInfo.ColorBlendInfo.blendConstants[0] = 0.0f;
+        configInfo.ColorBlendInfo.blendConstants[1] = 0.0f;
+        configInfo.ColorBlendInfo.blendConstants[2] = 0.0f;
+        configInfo.ColorBlendInfo.blendConstants[3] = 0.0f;
 
-        configInfo.depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        configInfo.depthStencilInfo.depthTestEnable = VK_TRUE;
-        configInfo.depthStencilInfo.depthWriteEnable = VK_TRUE;
-        configInfo.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
-        configInfo.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
-        configInfo.depthStencilInfo.minDepthBounds = 0.0f;
-        configInfo.depthStencilInfo.maxDepthBounds = 1.0f;
-        configInfo.depthStencilInfo.stencilTestEnable = VK_FALSE;
-        configInfo.depthStencilInfo.front = {};
-        configInfo.depthStencilInfo.back = {};
+        configInfo.DepthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+        configInfo.DepthStencilInfo.depthTestEnable = VK_TRUE;
+        configInfo.DepthStencilInfo.depthWriteEnable = VK_TRUE;
+        configInfo.DepthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+        configInfo.DepthStencilInfo.depthBoundsTestEnable = VK_FALSE;
+        configInfo.DepthStencilInfo.minDepthBounds = 0.0f;
+        configInfo.DepthStencilInfo.maxDepthBounds = 1.0f;
+        configInfo.DepthStencilInfo.stencilTestEnable = VK_FALSE;
+        configInfo.DepthStencilInfo.front = {};
+        configInfo.DepthStencilInfo.back = {};
 
         configInfo.DynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH, /*VK_DYNAMIC_STATE_VERTEX_INPUT_EXT*/ };
         configInfo.DynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;

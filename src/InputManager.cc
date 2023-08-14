@@ -16,7 +16,7 @@
 
 #include <Platform/InputManager.hh>
 
-namespace kaTe::InputManager {
+namespace Mikoto::InputManager {
 #if defined(USE_GLFW_INPUT)
     auto IsKeyPressed(Int32_T keyCode) -> bool {
         GLFWwindow* window{ nullptr };
@@ -81,12 +81,12 @@ namespace kaTe::InputManager {
 #endif
 
     auto Init() -> void {
-        KATE_CORE_LOGGER_INFO("kaTe Engine: Input Manager initialization");
+        KATE_CORE_LOGGER_INFO("Mikoto Engine: Input Manager initialization");
 
     }
 
     auto ShutDown() -> void {
-        KATE_CORE_LOGGER_INFO("kaTe Engine: Input Manager shut down");
+        KATE_CORE_LOGGER_INFO("Mikoto Engine: Input Manager shut down");
     }
 
     auto PrintKey(KeyCode keycode) -> void {

@@ -18,7 +18,7 @@
 #include <Renderer/Camera/OrthographicCamera.hh>
 
 // TODO: move to OrthographicCamera.hh file
-namespace kaTe {
+namespace Mikoto {
     /**
      * This class controls an orthographic camera. The camera can be an entity independent to
      * it or be part of it as an aggregate relationship, we specify so upon construction

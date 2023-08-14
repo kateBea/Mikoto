@@ -6,7 +6,7 @@
 
 #include <Renderer/Camera/OrthographicCamera.hh>
 
-namespace kaTe {
+namespace Mikoto {
 
     OrthographicCamera::OrthographicCamera(double left, double right, double bottom, double top)
         :   m_ViewMatrix{ 1.0f }, m_Projection{ glm::ortho(left, right, bottom, top, s_DefaultNearPlane, s_DefaultFarPlane) }

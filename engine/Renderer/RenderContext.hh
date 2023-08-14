@@ -12,7 +12,7 @@
 
 #include <Platform/Window/Window.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class RenderContext {
     public:
         explicit RenderContext() = default;

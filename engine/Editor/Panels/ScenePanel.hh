@@ -12,7 +12,7 @@
 #include <Editor/Panels/Panel.hh>
 #include <Editor/Panels/PanelData.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class ScenePanel : public Panel {
     public:
         explicit ScenePanel() = default;

@@ -12,7 +12,7 @@
 // Project Headers
 #include <Utility/Common.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class VulkanCommandPool {
     public:
         explicit VulkanCommandPool() = default;

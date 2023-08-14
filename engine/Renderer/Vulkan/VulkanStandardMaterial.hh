@@ -24,7 +24,7 @@
 #include <Renderer/Vulkan/VulkanShader.hh>
 #include <Renderer/Vulkan/VulkanTexture2D.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class VulkanStandardMaterial : public Material {
     public:
         explicit VulkanStandardMaterial(std::string_view name = "VulkanStandardMaterial");

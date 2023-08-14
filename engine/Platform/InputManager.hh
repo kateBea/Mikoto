@@ -21,7 +21,7 @@
 #include <Platform/Window/Window.hh>
 
 
-namespace kaTe::InputManager {
+namespace Mikoto::InputManager {
     auto Init() -> void;
 
     auto IsKeyPressed(Int32_T keyCode) -> bool;

@@ -2,7 +2,7 @@
 This is a simple engine written in modern C++. For now and quite some time 
 it will use OpenGL as its main rendering API, but the end goal is to integrate Vulkan.
 
-![kaTe Engine](assets/image/img7.png)
+![Mikoto Engine](assets/image/img7.png)
 
 # Building
 
@@ -29,7 +29,7 @@ is included as a submodule and build along with the project.
 
 - Clone the repository
     ```shell
-    git clone --recursive https://github.com/kateBea/kaTe-Engine.git && cd kaTe-Engine
+    git clone --recursive https://github.com/kateBea/Mikoto-Engine.git && cd Mikoto-Engine
     ```
 - Create a build directory
     ```shell

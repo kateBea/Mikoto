@@ -9,7 +9,7 @@
 
 #include <Renderer/OpenGL/OpenGLRenderer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     auto RenderCommand::Init(RendererAPI* activeAPI) -> void {
         s_ActiveRendererAPI = activeAPI;
     }

@@ -11,7 +11,7 @@
 
 #include <Utility/Common.hh>
 
-namespace kaTe {
+namespace Mikoto {
     enum ShaderStage {
         NONE,
         VERTEX_STAGE = BIT_SET(1),

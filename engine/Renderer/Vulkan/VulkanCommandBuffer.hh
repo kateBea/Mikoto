@@ -1,13 +1,33 @@
-//
-// Created by kate on 8/8/2023.
-//
+/**
+ * VulkanCommandBuffer.hh
+ * Created by kate on 8/8/2023.
+ * */
 
 #ifndef KATE_ENGINE_VULKAN_COMMAND_BUFFER_HH
 #define KATE_ENGINE_VULKAN_COMMAND_BUFFER_HH
 
+// Third-Party Libraries
+#include <volk.h>
 
-namespace kaTe {
+// Project Headers
+#include <Utility/Common.hh>
+
+namespace Mikoto {
     class VulkanCommandBuffer {
+    public:
+        explicit VulkanCommandBuffer() = default;
+
+        auto OnCreate(const VkCommandBufferAllocateInfo& allocateInfo) -> void;
+
+        auto BeginRecording() const -> void;
+        auto EndRecording() const -> void;
+
+        KT_NODISCARD auto Get() const -> const VkCommandBuffer& { return m_CommandBuffer; }
+        KT_NODISCARD auto GetAllocateInfo() const -> const VkCommandBufferAllocateInfo& { return m_AllocInfo; }
+
+    private:
+        VkCommandBuffer m_CommandBuffer{};
+        VkCommandBufferAllocateInfo m_AllocInfo{};
     };
 }
 

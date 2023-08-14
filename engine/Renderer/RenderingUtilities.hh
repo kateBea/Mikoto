@@ -19,7 +19,7 @@
 #include <Renderer/Buffers/VertexBuffer.hh>
 #include <Renderer/Model.hh>
 
-namespace kaTe {
+namespace Mikoto {
     enum BufferBit {
         COLOR_BUFFER_BIT = BIT_SET(1),
         DEPTH_BUFFER_BIT = BIT_SET(2),
@@ -28,11 +28,14 @@ namespace kaTe {
     struct UniformTransformData {
         glm::mat4 ProjectionView{};
         glm::mat4 Transform{};
+
+        glm::mat4 Model{};
         glm::mat4 Projection{};
         glm::mat4 View{};
     };
 
     struct RenderingData {
+        std::shared_ptr<Model> ModelData{};
         std::shared_ptr<VertexBuffer> VertexBufferData{};
         std::shared_ptr<IndexBuffer> IndexBufferData{};
         std::shared_ptr<Material> MaterialData{};

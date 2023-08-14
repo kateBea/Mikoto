@@ -27,7 +27,7 @@
 
 #define MOUSE_BUTTON_STRING_REPRESENTATION(name) #name
 
-namespace kaTe {
+namespace Mikoto {
     enum MouseButton : Int8_T {
         Mouse_Button_1 = KT_MOUSE_BUTTON_1,
         Mouse_Button_2 = KT_MOUSE_BUTTON_2,

@@ -13,11 +13,30 @@
 #include <volk.h>
 #include <vk_mem_alloc.h>
 
-namespace kaTe {
-    struct AllocatedBuffer {
+namespace Mikoto {
+    struct BufferAllocateInfo {
         VkBuffer Buffer{};
         VkDeviceSize Size{}; // In Bytes of the buffer
         VmaAllocation Allocation{};
+    };
+
+    struct ImageAllocateInfo {
+        VkImage Image{};
+        VkImageCreateInfo ImageCreateInfo{};
+        VmaAllocation Allocation{};
+        VmaAllocationCreateInfo AllocationCreateInfo{};
+    };
+
+    struct QueuePresentInfo {
+
+    };
+
+    struct CommandBuffersSubmitInfo {
+        VkSubmitInfo SubmitInfo{};
+        VkQueue QueueDst{};
+        std::vector<VkSemaphore> WaitSemaphores{};
+        std::vector<VkPipelineStageFlags> WaitStages{};
+        std::vector<VkFence> InFlightFences{};
     };
 
     class VulkanUtils {
@@ -47,7 +66,31 @@ namespace kaTe {
          * Uploads CPU accessible data to GPU readable memory
          * @param allocatedBufferData
          * */
-        static auto UploadBuffer(AllocatedBuffer &allocatedBufferData) -> void;
+        static auto UploadBuffer(BufferAllocateInfo& allocatedBufferData) -> void;
+
+        /**
+         * Allocates an image
+         * @param allocatedImageData
+         * */
+        static auto AllocateImage(ImageAllocateInfo& allocatedImageData) -> void;
+
+        /**
+         * Wait on the host for the completion of outstanding queue operations for all queues the given device
+         * @param device logical device to wait on
+         * */
+        static auto WaitIdle(VkDevice device) -> void;
+
+        /**
+         * @param submitInfo
+         * @returns
+         * */
+        static auto SubmitCommandBuffers(const CommandBuffersSubmitInfo& submitInfo) -> VkResult;
+
+        /**
+         * @param presentInfo
+         * @returns
+         * */
+        static auto QueueImageForPresentation(const QueuePresentInfo& presentInfo) -> VkResult;
     };
 }
 #endif//KATE_ENGINE_VULKAN_UTILS_HH

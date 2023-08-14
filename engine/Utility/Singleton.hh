@@ -8,7 +8,7 @@
 
 #include <Core/Assert.hh>
 
-namespace kaTe {
+namespace Mikoto {
     /**
      * Defines a general interface for classes that require global single instance.
      * @tparam Derived The type that requires a single instance
@@ -52,6 +52,6 @@ namespace kaTe {
         inline static ValuePtr_T s_Instance;
     };
 
-}   // END NAMESPACE kaTe
+}   // END NAMESPACE Mikoto
 
 #endif // KATE_ENGINE_SINGLETON_HH

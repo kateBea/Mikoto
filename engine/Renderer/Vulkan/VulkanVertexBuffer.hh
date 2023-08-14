@@ -19,7 +19,7 @@
 #include <Utility/VulkanUtils.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class VulkanVertexBuffer : public VertexBuffer {
     public:
         explicit VulkanVertexBuffer(const VertexBufferCreateInfo& createInfo);
@@ -38,7 +38,7 @@ namespace kaTe {
         static auto GetDefaultBindingDescriptions() -> std::vector<VkVertexInputBindingDescription>&;
         static auto GetDefaultAttributeDescriptions() -> std::vector<VkVertexInputAttributeDescription>&;
 
-        auto OnRelease() -> void override;
+        auto OnRelease() const -> void override;
 
         ~VulkanVertexBuffer() override = default;
     public:
@@ -55,7 +55,7 @@ namespace kaTe {
         inline static std::vector<VkVertexInputAttributeDescription> s_AttributeDesc{};
 
         BufferLayout m_Layout{};
-        AllocatedBuffer m_AllocationInfo{};
+        BufferAllocateInfo m_AllocationInfo{};
         std::vector<VkVertexInputBindingDescription> m_BindingDesc{};
         std::vector<VkVertexInputAttributeDescription>  m_AttributeDesc{};
         std::vector<float> m_RetainedData{};

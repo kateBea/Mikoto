@@ -21,7 +21,7 @@
 #include <Utility/Singleton.hh>
 #include <Utility/Common.hh>
 
-namespace kaTe {
+namespace Mikoto {
     /**
      * Holds the CORE logger and the APP logger. The CORE logger
      * logs information about the current state of the Core systems of the engine.
@@ -52,18 +52,18 @@ namespace kaTe {
 // Log macros
 #if defined(KT_ENABLE_LOGGING)
 
-    #define KATE_CORE_LOGGER_ERROR(...) kaTe::Logger::Get().GetCoreLogger()->error(fmt::format(__VA_ARGS__))
-    #define KATE_CORE_LOGGER_WARN(...) kaTe::Logger::Get().GetCoreLogger()->warn(fmt::format(__VA_ARGS__))
-    #define KATE_CORE_LOGGER_CRITICAL(...) kaTe::Logger::Get().GetCoreLogger()->critical(fmt::format(__VA_ARGS__))
-    #define KATE_CORE_LOGGER_TRACE(...) kaTe::Logger::Get().GetCoreLogger()->trace(fmt::format(__VA_ARGS__))
-    #define KATE_CORE_LOGGER_INFO(...) kaTe::Logger::Get().GetCoreLogger()->info(fmt::format(__VA_ARGS__))
-    #define KATE_CORE_LOGGER_DEBUG(...) kaTe::Logger::Get().GetCoreLogger()->debug(fmt::format(__VA_ARGS__))
+    #define KATE_CORE_LOGGER_ERROR(...) Mikoto::Logger::Get().GetCoreLogger()->error(fmt::format(__VA_ARGS__))
+    #define KATE_CORE_LOGGER_WARN(...) Mikoto::Logger::Get().GetCoreLogger()->warn(fmt::format(__VA_ARGS__))
+    #define KATE_CORE_LOGGER_CRITICAL(...) Mikoto::Logger::Get().GetCoreLogger()->critical(fmt::format(__VA_ARGS__))
+    #define KATE_CORE_LOGGER_TRACE(...) Mikoto::Logger::Get().GetCoreLogger()->trace(fmt::format(__VA_ARGS__))
+    #define KATE_CORE_LOGGER_INFO(...) Mikoto::Logger::Get().GetCoreLogger()->info(fmt::format(__VA_ARGS__))
+    #define KATE_CORE_LOGGER_DEBUG(...) Mikoto::Logger::Get().GetCoreLogger()->debug(fmt::format(__VA_ARGS__))
 
-    #define KATE_APP_LOGGER_ERROR(...) kaTe::Logger::Get().GetAppLogger()->error(fmt::format(__VA_ARGS__))
+    #define KATE_APP_LOGGER_ERROR(...) Mikoto::Logger::Get().GetAppLogger()->error(fmt::format(__VA_ARGS__))
     #define KATE_APP_LOGGER_WARN(...) kaTe::Logger::Get().GetAppLogger()->warn(fmt::format(__VA_ARGS__))
-    #define KATE_APP_LOGGER_CRITICAL(...) kaTe::Logger::Get().GetAppLogger()->critical(fmt::format(__VA_ARGS__))
+    #define KATE_APP_LOGGER_CRITICAL(...) Mikoto::Logger::Get().GetAppLogger()->critical(fmt::format(__VA_ARGS__))
     #define KATE_APP_LOGGER_TRACE(...) kaTe::Logger::Get().GetAppLogger()->trace(fmt::format(__VA_ARGS__))
-    #define KATE_APP_LOGGER_INFO(...) kaTe::Logger::Get().GetAppLogger()->info(fmt::format(__VA_ARGS__))
+    #define KATE_APP_LOGGER_INFO(...) Mikoto::Logger::Get().GetAppLogger()->info(fmt::format(__VA_ARGS__))
     #define KATE_APP_LOGGER_DEBUG(...) kaTe::Logger::Get().GetAppLogger()->debug(fmt::format(__VA_ARGS__))
 #else
     #define KATE_CORE_LOGGER_ERROR(...)

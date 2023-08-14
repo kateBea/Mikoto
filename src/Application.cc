@@ -19,10 +19,10 @@
 
 
 // TODO: rename all constants to use upper cases
-namespace kaTe {
+namespace Mikoto {
     auto Application::Init() -> void {
         TimeManager::Init();
-        KATE_CORE_LOGGER_DEBUG("Initializing kaTe Engine {}", TimeManager::ToString(TimeManager::GetTime()));
+        KATE_CORE_LOGGER_DEBUG("Initializing Mikoto Engine {}", TimeManager::ToString(TimeManager::GetTime()));
         m_MainWindow = std::make_shared<MainWindow>();
         m_LayerStack = std::make_unique<LayerStack>();
 
@@ -40,7 +40,7 @@ namespace kaTe {
         m_ImGuiLayer = std::make_shared<ImGuiLayer>();
         PushOverlay(m_ImGuiLayer);
 
-        KATE_CORE_LOGGER_DEBUG("Finished kaTe Engine initialization {}", TimeManager::ToString(TimeManager::GetTime()));
+        KATE_CORE_LOGGER_DEBUG("Finished Mikoto Engine initialization {}", TimeManager::ToString(TimeManager::GetTime()));
     }
 
     // Should probably not be here
@@ -87,7 +87,7 @@ namespace kaTe {
     }
 
     auto Application::ShutDown() -> void {
-        KATE_CORE_LOGGER_INFO("Shutting down kaTe Engine");
+        KATE_CORE_LOGGER_INFO("Shutting down Mikoto Engine");
 
         m_LayerStack->PopOverlay(m_ImGuiLayer);
         m_ImGuiLayer->OnDetach();

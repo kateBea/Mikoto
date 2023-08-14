@@ -12,7 +12,7 @@
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanShader.hh>
 
-namespace kaTe {
+namespace Mikoto {
     VulkanShader::VulkanShader(const ShaderStage stage) {
         m_Data.Stage = stage;
     }

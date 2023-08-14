@@ -14,7 +14,7 @@
 // Project Headers
 #include <Utility/Common.hh>
 
-namespace kaTe {
+namespace Mikoto {
     struct FrameBufferCreateInfo {
         Int32_T width{};
         Int32_T height{};

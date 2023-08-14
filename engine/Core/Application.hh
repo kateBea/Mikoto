@@ -20,7 +20,7 @@
 
 #include <Platform/Window/Window.hh>
 
-namespace kaTe {
+namespace Mikoto {
     /**
      * This class is essentially a wrapper around all the subsystems of our
      * application, and it serves as a way of communicating the different

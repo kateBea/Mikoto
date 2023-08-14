@@ -20,7 +20,7 @@
 #include <Core/Assert.hh>
 #include <Utility/Common.hh>
 
-namespace kaTe {
+namespace Mikoto {
     enum class ShaderDataType {
         NONE,
         FLOAT_TYPE,     // Represents a single float data type
@@ -283,7 +283,7 @@ namespace kaTe {
         /**
          * Releases the resources of this vertex buffer
          * */
-        virtual auto OnRelease() -> void = 0;
+        virtual auto OnRelease() const -> void = 0;
 
         /**
          * Default destructor

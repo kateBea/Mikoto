@@ -23,7 +23,7 @@
 #include <Utility/Common.hh>
 #include <Renderer/Material/Shader.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class OpenGLShader : public Shader {
     public:
         /**

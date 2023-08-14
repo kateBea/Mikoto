@@ -7,7 +7,7 @@
 
 #include <Utility/Common.hh>
 
-namespace kaTe {
+namespace Mikoto {
     class Texture {
     public:
         Texture() = default;

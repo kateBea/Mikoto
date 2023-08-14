@@ -16,7 +16,7 @@
 // Project Headers
 #include <Utility/Common.hh>
 
-namespace kaTe {
+namespace Mikoto {
     /**
      * Simply specifies the type of an Event
      * */
@@ -79,7 +79,7 @@ namespace kaTe {
     /**
      * Defines the general interface for all types of events.
      *
-     * At the moment kaTe events are blocking, meaning when an event
+     * At the moment Mikoto events are blocking, meaning when an event
      * occurs it is notified and must be handled at that moment. An alternative
      * system is Even queueing where we dispatch events to a queue and can
      * handle them when we consider appropriate
@@ -249,6 +249,6 @@ namespace kaTe {
         return out << "Type: " << e.GetNameStr();
     }
 
-}   // END NAMESPACE kaTe
+}   // END NAMESPACE Mikoto
 
 #endif // KATE_ENGINE_EVENT_HH

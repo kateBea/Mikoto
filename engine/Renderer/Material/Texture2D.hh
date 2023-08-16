@@ -1,12 +1,15 @@
-//
-// Created by kate on 6/8/23.
-//
+/**
+ * Texture2D.cc
+ * Created by kate on 6/8/23.
+ * */
 
-#ifndef KATE_ENGINE_TEXTURE2D_HH
-#define KATE_ENGINE_TEXTURE2D_HH
+#ifndef MIKOTO_TEXTURE2D_HH
+#define MIKOTO_TEXTURE2D_HH
 
+// C++ Standard Library
 #include <memory>
 
+// Project Headers
 #include <Utility/Common.hh>
 #include <Renderer/Material/Texture.hh>
 
@@ -34,4 +37,4 @@ namespace Mikoto {
 }
 
 
-#endif//KATE_ENGINE_TEXTURE2D_HH
+#endif // MIKOTO_TEXTURE2D_HH

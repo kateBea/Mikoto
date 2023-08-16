@@ -25,7 +25,7 @@ namespace Mikoto {
     }
 
 
-    auto RenderCommand::Draw(const RenderingData& data) -> void {
+    auto RenderCommand::Draw(const DrawData & data) -> void {
         KT_ASSERT(s_ActiveRendererAPI, "Render command active API is NULL");
         s_ActiveRendererAPI->Draw(data);
     }

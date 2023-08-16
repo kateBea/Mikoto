@@ -31,7 +31,7 @@ namespace Mikoto {
     }
 
     OpenGLIndexBuffer::OpenGLIndexBuffer(OpenGLIndexBuffer&& other) noexcept
-        :   IndexBuffer{ other.GetID(), other.GetCount() }, m_ValidId{ other.m_ValidId }
+        :   IndexBuffer{ other.GetCount() }, m_ValidId{ other.m_ValidId }
     {
         other.m_Id = 0;
         other.m_Count = 0;

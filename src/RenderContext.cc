@@ -1,8 +1,10 @@
-//
-// Created by kate on 7/19/2023.
-//
+/**
+ * RenderContext.cc
+ * Created by kate on 7/19/2023.
+ * */
 
 #include <Renderer/Renderer.hh>
+#include <Renderer/RenderingUtilities.hh>
 #include <Renderer/RenderContext.hh>
 
 #include <Renderer/Vulkan/VulkanContext.hh>
@@ -13,10 +15,10 @@ namespace Mikoto {
         s_WindowHandle = std::move(windowHandle);
 
         switch (s_ActiveAPI) {
-            case Renderer::GraphicsAPI::OPENGL_API:
+            case GraphicsAPI::OPENGL_API:
                 OpenGLContext::Init(s_WindowHandle);
                 break;
-            case Renderer::GraphicsAPI::VULKAN_API:
+            case GraphicsAPI::VULKAN_API:
                 VulkanContext::Init(s_WindowHandle);
                 break;
         }
@@ -24,10 +26,10 @@ namespace Mikoto {
 
     auto RenderContext::ShutDown() -> void {
         switch (s_ActiveAPI) {
-            case Renderer::GraphicsAPI::OPENGL_API:
+            case GraphicsAPI::OPENGL_API:
                 OpenGLContext::ShutDown();
                 break;
-            case Renderer::GraphicsAPI::VULKAN_API:
+            case GraphicsAPI::VULKAN_API:
                 VulkanContext::ShutDown();
                 break;
         }
@@ -35,19 +37,19 @@ namespace Mikoto {
 
     auto RenderContext::Present() -> void {
         switch (s_ActiveAPI) {
-            case Renderer::GraphicsAPI::OPENGL_API:
+            case GraphicsAPI::OPENGL_API:
                 OpenGLContext::Present();
                 break;
-            case Renderer::GraphicsAPI::VULKAN_API:
+            case GraphicsAPI::VULKAN_API:
                 VulkanContext::Present();
                 break;
         }
     }
     auto RenderContext::IsVSyncActive() -> bool {
         switch (s_ActiveAPI) {
-            case Renderer::GraphicsAPI::OPENGL_API:
+            case GraphicsAPI::OPENGL_API:
                 return OpenGLContext::IsVSyncActive();
-            case Renderer::GraphicsAPI::VULKAN_API:
+            case GraphicsAPI::VULKAN_API:
                 return VulkanContext::IsVSyncActive();
             default: return false;
         }
@@ -55,10 +57,10 @@ namespace Mikoto {
 
     auto RenderContext::EnableVSync() -> void {
         switch (s_ActiveAPI) {
-            case Renderer::GraphicsAPI::OPENGL_API:
+            case GraphicsAPI::OPENGL_API:
                 OpenGLContext::EnableVSync();
                 break;
-            case Renderer::GraphicsAPI::VULKAN_API:
+            case GraphicsAPI::VULKAN_API:
                 VulkanContext::EnableVSync();
                 break;
         }
@@ -66,10 +68,10 @@ namespace Mikoto {
 
     auto RenderContext::DisableVSync() -> void {
         switch (s_ActiveAPI) {
-            case Renderer::GraphicsAPI::OPENGL_API:
+            case GraphicsAPI::OPENGL_API:
                 OpenGLContext::DisableVSync();
                 break;
-            case Renderer::GraphicsAPI::VULKAN_API:
+            case GraphicsAPI::VULKAN_API:
                 VulkanContext::DisableVSync();
                 break;
         }

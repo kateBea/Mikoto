@@ -91,7 +91,6 @@ namespace Mikoto {
         m_ScenePanelInfo->SceneFrameBuffer->Unbind();
 #endif
 
-        // For Vulkan testing
         m_ScenePanelInfo->Viewport->OnUpdate();
     }
 

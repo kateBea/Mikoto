@@ -3,8 +3,8 @@
 * Created by kate on 6/17/23.
 * */
 
-#ifndef KATE_ENGINE_VULKAN_VERTEX_BUFFER_HH
-#define KATE_ENGINE_VULKAN_VERTEX_BUFFER_HH
+#ifndef MIKOTO_VULKAN_VERTEX_BUFFER_HH
+#define MIKOTO_VULKAN_VERTEX_BUFFER_HH
 
 // C++ Standard Library
 #include <memory>
@@ -18,13 +18,14 @@
 #include <Utility/Common.hh>
 #include <Utility/VulkanUtils.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
+#include <Renderer/Vulkan/VulkanBuffer.hh>
 
 namespace Mikoto {
     class VulkanVertexBuffer : public VertexBuffer {
     public:
         explicit VulkanVertexBuffer(const VertexBufferCreateInfo& createInfo);
 
-        auto Submit(VkCommandBuffer commandBuffer) const -> void;
+        auto Bind(VkCommandBuffer commandBuffer) const -> void;
 
         KT_NODISCARD auto GetBufferLayout() const -> const BufferLayout& override { return m_Layout; }
         auto SetBufferLayout(const BufferLayout& layout) -> void override { m_Layout = layout; }
@@ -42,25 +43,38 @@ namespace Mikoto {
 
         ~VulkanVertexBuffer() override = default;
     public:
+        /*************************************************************
+        * FORBIDDEN OPERATIONS
+        * ***********************************************************/
         VulkanVertexBuffer(const VulkanVertexBuffer&) = delete;
         auto operator=(const VulkanVertexBuffer&) -> VulkanVertexBuffer& = delete;
 
         VulkanVertexBuffer(VulkanVertexBuffer&&) = delete;
         auto operator=(VulkanVertexBuffer&&) -> VulkanVertexBuffer& = delete;
     private:
+        /*************************************************************
+        * HELPERS
+        * ***********************************************************/
         auto SetVertexData(const std::vector<float>& vertices) -> void;
 
     private:
+        /*************************************************************
+        * STATIC MEMBERS
+        * ***********************************************************/
         inline static std::vector<VkVertexInputBindingDescription> s_BindingDesc{};
         inline static std::vector<VkVertexInputAttributeDescription> s_AttributeDesc{};
 
+    private:
+        /*************************************************************
+        * MEMBER VARIABLES
+        * ***********************************************************/
         BufferLayout m_Layout{};
-        BufferAllocateInfo m_AllocationInfo{};
+        VulkanBuffer m_Buffer{};
+        std::vector<float> m_RetainedData{};
         std::vector<VkVertexInputBindingDescription> m_BindingDesc{};
         std::vector<VkVertexInputAttributeDescription>  m_AttributeDesc{};
-        std::vector<float> m_RetainedData{};
     };
 }
 
 
-#endif //KATE_ENGINE_VULKAN_VERTEX_BUFFER_HH
+#endif // MIKOTO_VULKAN_VERTEX_BUFFER_HH

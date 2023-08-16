@@ -4,10 +4,13 @@
  * */
 
 // C++ Standard Library
+#include <vector>
+#include <memory>
 
 // Project Headers
 #include <Core/Logger.hh>
 #include <Renderer/Renderer.hh>
+#include <Renderer/RenderingUtilities.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
 #include <Renderer/Vulkan/VulkanVertexBuffer.hh>
 #include <Renderer/OpenGL/OpenGLVertexBuffer.hh>
@@ -21,9 +24,9 @@ namespace Mikoto {
         createInfo.Layout = VertexBuffer::GetDefaultBufferLayout();
 
         switch(Renderer::GetActiveGraphicsAPI()) {
-            case Renderer::GraphicsAPI::OPENGL_API:
+            case GraphicsAPI::OPENGL_API:
                 return std::make_shared<OpenGLVertexBuffer>(createInfo);
-            case Renderer::GraphicsAPI::VULKAN_API:
+            case GraphicsAPI::VULKAN_API:
                 return std::make_shared<VulkanVertexBuffer>(createInfo);
             default:
                 KATE_CORE_LOGGER_CRITICAL("Unsupported renderer API");

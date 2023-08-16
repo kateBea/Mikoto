@@ -1,16 +1,24 @@
+/**
+ * VulkanSwapChain.cc
+ * Created by kate on 12/7/23.
+ * */
+
+// C++ Standard Library
 #include <limits>
 #include <stdexcept>
 #include <utility>
 #include <array>
 
-#include <Utility/Common.hh>
+// Third-Party Libraries
+#include <volk.h>
 
+// Project Headers
+#include <Utility/Common.hh>
 #include <Core/Application.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanSwapChain.hh>
 
 namespace Mikoto {
-
     VulkanSwapChain::VulkanSwapChain(const VulkanSwapChainCreateInfo& createInfo)
         : m_SwapChainDetails{ createInfo }, m_WindowExtent{ createInfo.Extent }
     {
@@ -26,13 +34,14 @@ namespace Mikoto {
         CreateSyncObjects();
     }
 
-    auto VulkanSwapChain::AcquireNextImage(uint32_t* imageIndex) -> VkResult {
+    auto VulkanSwapChain::GetNextImage(UInt32_T* imageIndex) -> VkResult {
         vkWaitForFences(VulkanContext::GetPrimaryLogicalDevice(), 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, std::numeric_limits<UInt64_T>::max());
-        VkResult result{ vkAcquireNextImageKHR(VulkanContext::GetPrimaryLogicalDevice(), m_SwapChain, std::numeric_limits<UInt32_T>::max(), m_ImageAvailableSemaphores[m_CurrentFrame],  /* must be a not signaled semaphore*/ VK_NULL_HANDLE, imageIndex) };
+        // m_ImageAvailableSemaphores[m_CurrentFrame] must be a not signaled semaphore
+        VkResult result{ vkAcquireNextImageKHR(VulkanContext::GetPrimaryLogicalDevice(), m_SwapChain, std::numeric_limits<UInt32_T>::max(), m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, imageIndex) };
         return result;
     }
 
-    auto VulkanSwapChain::OnCreate(const VulkanSwapChainCreateInfo &createInfo) -> void {
+    auto VulkanSwapChain::OnCreate(const VulkanSwapChainCreateInfo& createInfo) -> void {
         // TODO: move ctor functionality here for more initialization control
     }
 
@@ -75,7 +84,10 @@ namespace Mikoto {
         presentInfo.pImageIndices = &imageIndex;
 
         auto result{ vkQueuePresentKHR(VulkanContext::GetPrimaryLogicalDevicePresentQueue(), &presentInfo) };
-        m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+
+
+
+        m_CurrentFrame = (m_CurrentFrame + EXTRA_IMAGE_REQUEST) % MAX_FRAMES_IN_FLIGHT;
 
         return result;
     }
@@ -86,11 +98,6 @@ namespace Mikoto {
         VkSurfaceFormatKHR surfaceFormat{ ChooseSwapSurfaceFormat(swapChainSupport.Formats) };
         VkPresentModeKHR presentMode{ ChooseSwapPresentMode(swapChainSupport.PresentModes) };
         VkExtent2D extent{ ChooseSwapExtent(swapChainSupport.Capabilities) };
-
-        // We may sometimes have to wait on the driver to complete internal operations
-        // before we can acquire another image to render to. Therefore, it is recommended
-        // to request at least one more image
-        const UInt32_T EXTRA_IMAGE_REQUEST{ 1 };
 
         UInt32_T imageCount{ swapChainSupport.Capabilities.minImageCount + EXTRA_IMAGE_REQUEST };
 

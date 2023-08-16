@@ -1,9 +1,9 @@
-//
-// Created by kate on 6/4/23.
-//
-
-#ifndef KATE_ENGINE_VERTEX_BUFFER_HH
-#define KATE_ENGINE_VERTEX_BUFFER_HH
+/**
+ * VertexBuffer.cc
+ * Created by kate on 6/5/23.
+ * */
+#ifndef MIKOTO_VERTEX_BUFFER_HH
+#define MIKOTO_VERTEX_BUFFER_HH
 
 // C++ Standard Library
 #include <vector>
@@ -308,4 +308,4 @@ namespace Mikoto {
     };
 }
 
-#endif//KATE_ENGINE_VERTEX_BUFFER_HH
+#endif // MIKOTO_VERTEX_BUFFER_HH

@@ -3,8 +3,8 @@
  * Created by kate on 7/21/2023.
  * */
 
-#ifndef KATE_ENGINE_RENDERING_UTILITIES_HH
-#define KATE_ENGINE_RENDERING_UTILITIES_HH
+#ifndef MIKOTO_RENDERING_UTILITIES_HH
+#define MIKOTO_RENDERING_UTILITIES_HH
 
 // C++ Standard Library
 #include <memory>
@@ -13,13 +13,18 @@
 #include <glm/glm.hpp>
 
 // Projects Headers
+#include <Renderer/Model.hh>
 #include <Renderer/Material/Material.hh>
 #include <Renderer/Material/Texture.hh>
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
-#include <Renderer/Model.hh>
+#include <Renderer/Camera/Camera.hh>
 
 namespace Mikoto {
+    struct ScenePrepareData {
+        std::shared_ptr<Camera> SceneCamera{};
+    };
+
     enum BufferBit {
         COLOR_BUFFER_BIT = BIT_SET(1),
         DEPTH_BUFFER_BIT = BIT_SET(2),
@@ -28,31 +33,23 @@ namespace Mikoto {
     struct UniformTransformData {
         glm::mat4 ProjectionView{};
         glm::mat4 Transform{};
-
-        glm::mat4 Model{};
-        glm::mat4 Projection{};
-        glm::mat4 View{};
     };
 
-    struct RenderingData {
+    struct DrawData {
         std::shared_ptr<Model> ModelData{};
         std::shared_ptr<VertexBuffer> VertexBufferData{};
         std::shared_ptr<IndexBuffer> IndexBufferData{};
         std::shared_ptr<Material> MaterialData{};
         std::shared_ptr<Texture> TextureData{};
+        std::shared_ptr<Camera> Camera{};
         UniformTransformData TransformData{};
         glm::vec4 Color{};
     };
 
-    // TODO: will eventually merge into RenderingData
-    struct DrawData {
-        std::shared_ptr<Model> ModelData{};
-        std::shared_ptr<Material> Material{};
-
-        glm::mat4 Model{};
-        glm::mat4 View{};
-        glm::mat4 Projection{};
+    enum class GraphicsAPI {
+        OPENGL_API,
+        VULKAN_API,
     };
 }
 
-#endif//KATE_ENGINE_RENDERING_UTILITIES_HH
+#endif // MIKOTO_RENDERING_UTILITIES_HH

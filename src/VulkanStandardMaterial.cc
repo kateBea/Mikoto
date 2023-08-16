@@ -11,23 +11,27 @@
 #include <volk.h>
 
 // Project Headers
+#include <Utility/VulkanUtils.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanStandardMaterial.hh>
-#include <Renderer/Vulkan/VulkanSwapChain.hh>
 
 namespace Mikoto {
     VulkanStandardMaterial::VulkanStandardMaterial(std::string_view name)
         :   Material{ name }
-    {
+    {}
+
+    auto VulkanStandardMaterial::OnCreate(const VulkanStandardMaterialCreateInfo& createInfo) -> void {
+        m_RenderPass = createInfo.RenderPass;
+
         m_Texture = std::make_shared<VulkanTexture2D>("../assets/textures/lava512x512.png");
 
         CreateDescriptorSetLayout();
         CreatePipelineLayout();
         CreatePipeline();
 
-        CreateUniformBuffers();
+        CreateUniformBuffer();
         CreateDescriptorPool();
-        CreateDescriptorSets();
+        CreateDescriptorSet();
     }
 
     auto VulkanStandardMaterial::OnRelease() const -> void {
@@ -36,11 +40,7 @@ namespace Mikoto {
         vkDestroyDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), m_DescriptorPool, nullptr);
         vkDestroyDescriptorSetLayout(VulkanContext::GetPrimaryLogicalDevice(), m_DescriptorSetLayout, nullptr);
 
-        for (std::size_t i{}; i < VulkanSwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-            // TODO: remove, we will have one uniform buffer only which is setup properly before rendering a frame we will no longer be rendering directly to the swapchain images
-            vkDestroyBuffer(VulkanContext::GetPrimaryLogicalDevice(), m_UniformBuffers[i], nullptr);
-            vkFreeMemory(VulkanContext::GetPrimaryLogicalDevice(), m_UniformBuffersMemory[i], nullptr);
-        }
+        m_UniformBuffer.OnRelease();
 
         vkDestroyPipelineLayout(VulkanContext::GetPrimaryLogicalDevice(), m_PipelineLayout, nullptr);
         m_Pipeline->OnRelease();
@@ -64,7 +64,7 @@ namespace Mikoto {
 
     auto VulkanStandardMaterial::CreatePipeline() -> void {
         auto pipelineConfig{ VulkanPipeline::GetDefaultPipelineConfigInfo() };
-        pipelineConfig.RenderPass = VulkanContext::GetSwapChain()->GetRenderPass();
+        pipelineConfig.RenderPass = m_RenderPass;
         pipelineConfig.PipelineLayout = m_PipelineLayout;
 
         m_Pipeline = std::make_shared<VulkanPipeline>("../assets/shaders/vulkan-spirv/basicVert.sprv",
@@ -73,7 +73,7 @@ namespace Mikoto {
     }
 
     auto VulkanStandardMaterial::BindDescriptorSets(VkCommandBuffer commandBuffer) -> void {
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_DescriptorSets[VulkanContext::GetSwapChain()->GetCurrentFrame()], 0, nullptr);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_DescriptorSet, 0, nullptr);
     }
 
     auto VulkanStandardMaterial::CreateDescriptorSetLayout() -> void {
@@ -103,130 +103,93 @@ namespace Mikoto {
 
     }
 
-    auto VulkanStandardMaterial::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) -> void {
-        VkBufferCreateInfo bufferInfo{};
-        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = size;
-        bufferInfo.usage = usage;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    auto VulkanStandardMaterial::CreateUniformBuffer() -> void {
+        BufferAllocateInfo allocInfo{};
+        allocInfo.Size = sizeof(UniformTransformData);
+        allocInfo.BufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        allocInfo.BufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        allocInfo.BufferCreateInfo.size = allocInfo.Size;
+        allocInfo.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
-        if (vkCreateBuffer(VulkanContext::GetPrimaryLogicalDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
-            throw std::runtime_error("failed to create buffer!");
+        m_UniformBuffer.OnCreate(allocInfo);
 
-        VkMemoryRequirements memRequirements{};
-        vkGetBufferMemoryRequirements(VulkanContext::GetPrimaryLogicalDevice(), buffer, &memRequirements);
+        void* data{};
+        if (vmaMapMemory(VulkanContext::GetDefaultAllocator(), m_UniformBuffer.GetVmaAllocation(), &data) != VK_SUCCESS)
+            throw std::runtime_error("Failed to map memory for uniform buffer in default material!");
 
-        VkMemoryAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = VulkanContext::FindMemoryType(memRequirements.memoryTypeBits, properties, VulkanContext::GetPrimaryPhysicalDevice());
-
-        /**
-         * NOTE:
-         * It should be noted that in a real world application, you're not supposed to actually call
-         * vkAllocateMemory for every individual buffer. The maximum number of simultaneous memory
-         * allocations is limited by the maxMemoryAllocationCount physical device limit, which may
-         * be as low as 4096 even on high end hardware like an NVIDIA GTX 1080
-         * See: https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
-         * */
-        if (vkAllocateMemory(VulkanContext::GetPrimaryLogicalDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
-            throw std::runtime_error("failed to allocate buffer memory!");
-
-        vkBindBufferMemory(VulkanContext::GetPrimaryLogicalDevice(), buffer, bufferMemory, 0);
+        vmaUnmapMemory(VulkanContext::GetDefaultAllocator(), m_UniformBuffer.GetVmaAllocation());
     }
 
-    auto VulkanStandardMaterial::CreateUniformBuffers() -> void {
-        VkDeviceSize bufferSize{ sizeof(UniformBufferObject) };
-
-        m_UniformBuffers.resize(VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
-        m_UniformBuffersMemory.resize(VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
-        m_UniformBuffersMapped.resize(VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
-
-        for (std::size_t i{}; i < VulkanSwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-            CreateBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_UniformBuffers[i], m_UniformBuffersMemory[i]);
-            vkMapMemory(VulkanContext::GetPrimaryLogicalDevice(), m_UniformBuffersMemory[i], 0, bufferSize, 0, &m_UniformBuffersMapped[i]);
-        }
-    }
-
-    auto VulkanStandardMaterial::UpdateUniformBuffers(UInt32_T frame) -> void {
-        std::memcpy(m_UniformBuffersMapped[frame], &m_Transform, sizeof(m_Transform));
+    auto VulkanStandardMaterial::UploadUniformBuffers() -> void {
+        std::memcpy(m_UniformBuffersMapped, &m_Transform, sizeof(m_Transform));
     }
 
     auto VulkanStandardMaterial::CreateDescriptorPool() -> void {
         std::array<VkDescriptorPoolSize, 2> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSizes[0].descriptorCount = static_cast<UInt32_T>(VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
+        poolSizes[0].descriptorCount = 1;
 
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = static_cast<UInt32_T>(VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
+        poolSizes[1].descriptorCount = 1;
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<UInt32_T>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = static_cast<UInt32_T>(VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
+        poolInfo.maxSets = 1;
 
         if (vkCreateDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), &poolInfo, nullptr, &m_DescriptorPool) != VK_SUCCESS)
             throw std::runtime_error("failed to create descriptor pool!");
     }
 
-    auto VulkanStandardMaterial::CreateDescriptorSets() -> void {
-        std::vector<VkDescriptorSetLayout> layouts(VulkanSwapChain::MAX_FRAMES_IN_FLIGHT, m_DescriptorSetLayout);
-
+    auto VulkanStandardMaterial::CreateDescriptorSet() -> void {
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         allocInfo.descriptorPool = m_DescriptorPool;
-        allocInfo.descriptorSetCount = static_cast<UInt32_T>(VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
-        allocInfo.pSetLayouts = layouts.data();
+        allocInfo.descriptorSetCount = 1;
+        allocInfo.pSetLayouts = &m_DescriptorSetLayout;
 
-        m_DescriptorSets.resize(VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
-
-        if (vkAllocateDescriptorSets(VulkanContext::GetPrimaryLogicalDevice(), &allocInfo, m_DescriptorSets.data()) != VK_SUCCESS)
+        if (vkAllocateDescriptorSets(VulkanContext::GetPrimaryLogicalDevice(), &allocInfo, &m_DescriptorSet) != VK_SUCCESS)
             throw std::runtime_error("failed to allocate descriptor sets!");
 
-        for (std::size_t i{}; i < VulkanSwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-            VkDescriptorImageInfo imageInfo{};
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-            imageInfo.imageView = m_Texture->GetImageView();
-            imageInfo.sampler = m_Texture->GetImageSampler();
+        imageInfo.imageView = m_Texture->GetImageView();
+        imageInfo.sampler = m_Texture->GetImageSampler();
 
-            VkDescriptorBufferInfo bufferInfo{};
-            bufferInfo.buffer = m_UniformBuffers[i];
-            bufferInfo.offset = 0;
-            bufferInfo.range = sizeof(UniformBufferObject);
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = m_UniformBuffer.Get();
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof(UniformTransformData);
 
-            std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[0].dstSet = m_DescriptorSets[i];
-            descriptorWrites[0].dstBinding = 0;
-            descriptorWrites[0].dstArrayElement = 0;
-            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            descriptorWrites[0].descriptorCount = 1;
-            descriptorWrites[0].pBufferInfo = &bufferInfo;
+        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[0].dstSet = m_DescriptorSet;
+        descriptorWrites[0].dstBinding = 0;
+        descriptorWrites[0].dstArrayElement = 0;
+        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[0].descriptorCount = 1;
+        descriptorWrites[0].pBufferInfo = &bufferInfo;
 
-            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[1].dstSet = m_DescriptorSets[i];
-            descriptorWrites[1].dstBinding = 1;
-            descriptorWrites[1].dstArrayElement = 0;
-            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            descriptorWrites[1].descriptorCount = 1;
-            descriptorWrites[1].pImageInfo = &imageInfo;
+        descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[1].dstSet = m_DescriptorSet;
+        descriptorWrites[1].dstBinding = 1;
+        descriptorWrites[1].dstArrayElement = 0;
+        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[1].descriptorCount = 1;
+        descriptorWrites[1].pImageInfo = &imageInfo;
 
-            vkUpdateDescriptorSets(VulkanContext::GetPrimaryLogicalDevice(), static_cast<UInt32_T>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-        }
+        vkUpdateDescriptorSets(VulkanContext::GetPrimaryLogicalDevice(), static_cast<UInt32_T>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 
-    auto VulkanStandardMaterial::SetModelMatrix(const glm::mat4& model) -> void {
-        m_Transform.Model = model;
+
+    auto VulkanStandardMaterial::SetProjectionView(const glm::mat4 &projView) -> void {
+        m_Transform.ProjectionView = projView;
     }
 
-    auto VulkanStandardMaterial::SetViewMatrix(const glm::mat4 &view) -> void {
-        m_Transform.View = view;
-    }
-
-    auto VulkanStandardMaterial::SetProjectionMatrix(const glm::mat4& proj) -> void {
-        m_Transform.Projection = proj;
+    auto VulkanStandardMaterial::SetTransform(const glm::mat4&transform) -> void {
+        m_Transform.Transform = transform;
     }
 
     auto VulkanStandardMaterial::EnableWireframe() -> void {
@@ -239,7 +202,7 @@ namespace Mikoto {
         pipelineConfig.RasterizationInfo.cullMode = VK_CULL_MODE_NONE;
         pipelineConfig.RasterizationInfo.lineWidth = pipelineConfig.RasterizationInfo.polygonMode == VK_POLYGON_MODE_LINE ? GPU_STANDARD_LINE_WIDTH : 0.0f;
 
-        pipelineConfig.RenderPass = VulkanContext::GetSwapChain()->GetRenderPass();
+        pipelineConfig.RenderPass = m_RenderPass;
         pipelineConfig.PipelineLayout = m_PipelineLayout;
 
         // creating a pipeline is expensive might have a material separated with a cached pipeline to draw in wireframe mode
@@ -255,7 +218,7 @@ namespace Mikoto {
         pipelineConfig.RasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
         pipelineConfig.RasterizationInfo.lineWidth = 0.0f;
 
-        pipelineConfig.RenderPass = VulkanContext::GetSwapChain()->GetRenderPass();
+        pipelineConfig.RenderPass = m_RenderPass;
         pipelineConfig.PipelineLayout = m_PipelineLayout;
 
         m_Pipeline = std::make_shared<VulkanPipeline>("../assets/basicVert.sprv", "../assets/basicFrag.sprv", pipelineConfig);

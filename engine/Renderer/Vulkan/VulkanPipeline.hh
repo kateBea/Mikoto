@@ -17,10 +17,10 @@
 
 // Project Headers
 #include <Utility/Common.hh>
+#include <Utility/VulkanUtils.hh>
 #include <Renderer/Vulkan/VulkanShader.hh>
 
 namespace Mikoto {
-
     struct PipelineConfigInfo {
         VkPipelineViewportStateCreateInfo ViewportInfo{};
         VkPipelineInputAssemblyStateCreateInfo InputAssemblyInfo{};
@@ -30,16 +30,17 @@ namespace Mikoto {
         VkPipelineColorBlendStateCreateInfo ColorBlendInfo{};
         VkPipelineDepthStencilStateCreateInfo DepthStencilInfo{};
         VkPipelineLayout PipelineLayout{};
-        std::vector<VkDynamicState> DynamicStateEnables{};
-        std::vector<VkShaderModule> ShaderStages{};
         VkPipelineDynamicStateCreateInfo DynamicStateInfo{};
         VkRenderPass RenderPass{};
         UInt32_T Subpass{};
+
+        std::vector<VkDynamicState> DynamicStateEnables{};
+        std::vector<VulkanShader> ShaderStages{};
     };
 
     class VulkanPipeline {
     public:
-        KT_NODISCARD static auto GetDefaultPipelineConfigInfo() -> PipelineConfigInfo;
+        KT_NODISCARD static auto GetDefaultPipelineConfigInfo() -> PipelineConfigInfo &;
 
         VulkanPipeline(const Path_T &vPath, const Path_T &fPath, const PipelineConfigInfo &config);
         auto Bind(VkCommandBuffer commandBuffer) const -> void;

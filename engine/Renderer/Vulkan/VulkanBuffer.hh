@@ -3,8 +3,8 @@
 * Created by kate on 8/13/2023.
 * */
 
-#ifndef KATE_ENGINE_VULKAN_BUFFER_HH
-#define KATE_ENGINE_VULKAN_BUFFER_HH
+#ifndef MIKOTO_VULKAN_BUFFER_HH
+#define MIKOTO_VULKAN_BUFFER_HH
 
 // C++ Standard Library
 
@@ -24,15 +24,13 @@ namespace Mikoto {
         auto OnCreate(const BufferAllocateInfo& allocInfo) -> void;
         auto OnRelease() const -> void;
 
-        KT_NODISCARD auto Get() const -> const VkBuffer& { return m_Buffer; }
-        KT_NODISCARD auto GetSize() const -> const VkDeviceSize& { return m_Size; }
-        KT_NODISCARD auto GetVmaAllocation() const -> const VmaAllocation& { return m_Allocation; }
+        KT_NODISCARD auto Get() const -> const VkBuffer& { return m_AllocationInfo.Buffer; }
+        KT_NODISCARD auto GetSize() const -> const VkDeviceSize& { return m_AllocationInfo.Size; }
+        KT_NODISCARD auto GetVmaAllocation() const -> const VmaAllocation& { return m_AllocationInfo.Allocation; }
     private:
-        VkBuffer m_Buffer{};
-        VkDeviceSize m_Size{};
-        VmaAllocation m_Allocation{};
+        BufferAllocateInfo m_AllocationInfo{};
     };
 }
 
 
-#endif // KATE_ENGINE_VULKAN_BUFFER_HH
+#endif // MIKOTO_VULKAN_BUFFER_HH

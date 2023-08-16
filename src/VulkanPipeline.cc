@@ -2,13 +2,16 @@
 // Created by kate on 6/2/23.
 //
 
+// C++ Standard Library
 #include <fstream>
 #include <array>
 
+// Third-Party Libraries
+#include <volk.h>
+
+// Project Headers
 #include <Utility/Common.hh>
-
 #include <Core/Logger.hh>
-
 #include <Renderer/Vulkan/VulkanVertexBuffer.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
@@ -97,7 +100,7 @@ namespace Mikoto {
     }
 
 
-    auto VulkanPipeline::GetDefaultPipelineConfigInfo() -> PipelineConfigInfo {
+    auto VulkanPipeline::GetDefaultPipelineConfigInfo() -> PipelineConfigInfo& {
         static PipelineConfigInfo configInfo{};
 
         configInfo.InputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -123,7 +126,6 @@ namespace Mikoto {
         configInfo.RasterizationInfo.depthBiasConstantFactor = 0.0f;
         configInfo.RasterizationInfo.depthBiasClamp = 0.0f;
         configInfo.RasterizationInfo.depthBiasSlopeFactor = 0.0f;
-
 
         configInfo.MultisampleInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         configInfo.MultisampleInfo.sampleShadingEnable = VK_FALSE;
@@ -170,7 +172,6 @@ namespace Mikoto {
         configInfo.DynamicStateInfo.dynamicStateCount = configInfo.DynamicStateEnables.size();
         configInfo.DynamicStateInfo.flags = 0;
 
-
         return configInfo;
     }
 
@@ -186,6 +187,4 @@ namespace Mikoto {
         vkDestroyShaderModule(VulkanContext::GetPrimaryLogicalDevice(), m_FragShaderModule, nullptr);
         vkDestroyPipeline(VulkanContext::GetPrimaryLogicalDevice(), m_GraphicsPipeline, nullptr);
     }
-
-
 }

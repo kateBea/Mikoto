@@ -31,7 +31,7 @@ namespace Mikoto {
         static auto SetClearColor(const glm::vec4& color) -> void;
         static auto SetClearColor(float red, float green, float blue, float alpha) -> void;
 
-        static auto Draw(const RenderingData& data) -> void;
+        static auto Draw(const DrawData & data) -> void;
 
         static auto UpdateViewPort(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void;
 

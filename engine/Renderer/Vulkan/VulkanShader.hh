@@ -1,18 +1,20 @@
-//
-// Created by kate on 7/3/23.
-//
+/**
+ * VulkanShader.hh
+ * Created by kate on 7/3/23.
+ * */
 
-#ifndef VULKATE_VULKAN_SHADER_HH
-#define VULKATE_VULKAN_SHADER_HH
+#ifndef MIKOTO_VULKAN_SHADER_HH
+#define MIKOTO_VULKAN_SHADER_HH
 
+// C++ Standard Library
 #include <filesystem>
 
+// Third-Party Libraries
 #include <volk.h>
 
+// Project Headers
 #include <Utility/Common.hh>
-
 #include <Renderer/Material/Shader.hh>
-#include <Renderer/Vulkan/VulkanPipeline.hh>
 
 namespace Mikoto {
     struct VulkanShaderInfo {
@@ -30,7 +32,6 @@ namespace Mikoto {
         auto OnRelease() const -> void;
 
     private:
-        static auto GetFileData(const Path_T& path) -> std::vector<char>;
 
         static auto CreateShaderModule(const std::string &srcCode, VkShaderModule& shaderModule) -> void;
         static auto GetVulkanStageFromShaderStage(ShaderStage stage) -> VkShaderStageFlagBits;
@@ -40,4 +41,4 @@ namespace Mikoto {
     };
 }
 
-#endif //VULKATE_VULKAN_SHADER_HH
+#endif // MIKOTO_VULKAN_SHADER_HH

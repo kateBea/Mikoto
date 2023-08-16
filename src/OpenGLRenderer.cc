@@ -12,8 +12,9 @@
 // Project Headers
 #include <Core/Application.hh>
 #include <Platform/Window/Window.hh>
-#include <Renderer/OpenGL/OpenGLRenderer.hh>
 #include <Renderer/Buffers/FrameBuffer.hh>
+#include <Renderer/OpenGL/OpenGLRenderer.hh>
+#include <Renderer/OpenGL/OpenGLIndexBuffer.hh>
 
 namespace Mikoto {
     auto OpenGLRenderer::SetClearColor(float red, float green, float blue, float alpha) -> void {
@@ -36,13 +37,13 @@ namespace Mikoto {
         glEnable(GL_BLEND);
         m_DefaultMaterial.BindShader();
         m_VertexArray.UseVertexBuffer(vertexBuffer);
-        indexBuffer->Bind();
+        std::dynamic_pointer_cast<OpenGLIndexBuffer>(indexBuffer)->Bind();
 
         glDrawElements(GL_TRIANGLES, (GLsizei)indexBuffer->GetCount(), GL_UNSIGNED_INT, nullptr);
         m_DefaultFrameBuffer.Unbind();
     }
 
-    auto OpenGLRenderer::Draw(const RenderingData& data) -> void {
+    auto OpenGLRenderer::Draw(const DrawData& data) -> void {
 
         m_DefaultMaterial.SetTiltingColor(data.Color);
         m_DefaultMaterial.SetProjectionView(data.TransformData.ProjectionView);

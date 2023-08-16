@@ -1,14 +1,15 @@
-//
-// Created by kate on 6/8/23.
-//
+/**
+ * Shader.hh
+ * Created by kate on 6/8/23.
+ * */
 
-#ifndef KATE_ENGINE_BASE_SHADER_HH
-#define KATE_ENGINE_BASE_SHADER_HH
+#ifndef MIKOTO_BASE_SHADER_HH
+#define MIKOTO_BASE_SHADER_HH
 
-#include <filesystem>
+// C++ Standard Library
+#include <memory>
 
-#include <glm/glm.hpp>
-
+// Project Headers
 #include <Utility/Common.hh>
 
 namespace Mikoto {
@@ -29,4 +30,4 @@ namespace Mikoto {
 }
 
 
-#endif//KATE_ENGINE_BASE_SHADER_HH
+#endif // MIKOTO_BASE_SHADER_HH

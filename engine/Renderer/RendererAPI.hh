@@ -65,7 +65,7 @@ namespace Mikoto {
          * */
 		virtual auto SetClearColor(float red, float green, float blue, float alpha) -> void = 0;
 
-        virtual auto Draw(const RenderingData& data) -> void = 0;
+        virtual auto Draw(const DrawData & data) -> void = 0;
 
 		virtual auto SetViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void = 0;
         virtual auto OnEvent(Event& event) -> void = 0;

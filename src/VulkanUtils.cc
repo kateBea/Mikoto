@@ -54,17 +54,11 @@ namespace Mikoto {
     }
 
     auto VulkanUtils::UploadBuffer(BufferAllocateInfo& allocatedBufferData) -> void {
-        VkBufferCreateInfo bufferInfo{};
-        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = allocatedBufferData.Size;             // this is the total size, in bytes, of the buffer we are allocating
-        bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;   //this buffer is going to be used as a Vertex Buffer
-
-        VmaAllocationCreateInfo allocInfo{};
-        allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;          // Buffer is writeable by host but readable by device
 
         auto result { vmaCreateBuffer(VulkanContext::GetDefaultAllocator(),
-                            &bufferInfo,
-                            &allocInfo,&allocatedBufferData.Buffer,
+                            &allocatedBufferData.BufferCreateInfo,
+                            &allocatedBufferData.AllocationCreateInfo,
+                                    &allocatedBufferData.Buffer,
                             &allocatedBufferData.Allocation,
                             nullptr) };
 

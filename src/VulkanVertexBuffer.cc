@@ -35,8 +35,8 @@ namespace Mikoto {
         SetVertexData(createInfo.Data);
     }
 
-    auto VulkanVertexBuffer::Submit(VkCommandBuffer commandBuffer) const -> void {
-        std::array<VkBuffer, 1> buffers{ m_AllocationInfo.Buffer };
+    auto VulkanVertexBuffer::Bind(VkCommandBuffer commandBuffer) const -> void {
+        std::array<VkBuffer, 1> buffers{ m_Buffer.Get() };
         std::array<VkDeviceSize, 1> offsets{ 0 };
 
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffers.data(), offsets.data());
@@ -124,19 +124,26 @@ namespace Mikoto {
 
     auto VulkanVertexBuffer::SetVertexData(const std::vector<float>& vertices) -> void {
         m_Count = vertices.size();
-        m_AllocationInfo.Size = m_Count * sizeof(float);
-        m_Size = m_AllocationInfo.Size;
+        m_Size = m_Count * sizeof(float);
+        BufferAllocateInfo allocaInfo{};
 
-        VulkanUtils::UploadBuffer(m_AllocationInfo);
+        allocaInfo.Size = m_Size;
+        allocaInfo.BufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        allocaInfo.BufferCreateInfo.size = m_Size;
+        allocaInfo.BufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+
+        allocaInfo.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;          // Buffer is writeable by host but readable by device
+
+        m_Buffer.OnCreate(allocaInfo);
 
         // Copy data to CPU readable memory
         void* data{};
-        vmaMapMemory(VulkanContext::GetDefaultAllocator(), m_AllocationInfo.Allocation, &data);
-        std::memcpy(data, (const void*)vertices.data(), m_AllocationInfo.Size);
-        vmaUnmapMemory(VulkanContext::GetDefaultAllocator(), m_AllocationInfo.Allocation);
+        vmaMapMemory(VulkanContext::GetDefaultAllocator(), m_Buffer.GetVmaAllocation(), &data);
+        std::memcpy(data, static_cast<const void*>(vertices.data()), m_Buffer.GetSize());
+        vmaUnmapMemory(VulkanContext::GetDefaultAllocator(), m_Buffer.GetVmaAllocation());
     }
 
     auto VulkanVertexBuffer::OnRelease() const -> void {
-        vmaDestroyBuffer(VulkanContext::GetDefaultAllocator(), m_AllocationInfo.Buffer, m_AllocationInfo.Allocation);
+        vmaDestroyBuffer(VulkanContext::GetDefaultAllocator(), m_Buffer.Get(), m_Buffer.GetVmaAllocation());
     }
 }

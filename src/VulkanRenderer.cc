@@ -8,16 +8,17 @@
 
 // Third-Party Libraries
 #include <volk.h>
+#include <backends/imgui_impl_vulkan.h>
 
 // Project Headers
 #include <Utility/Common.hh>
 #include <Utility/VulkanUtils.hh>
 #include <Core/Assert.hh>
 #include <Core/Application.hh>
-#include <Renderer/Vulkan/VulkanImage.hh>
 #include <Renderer/Vulkan/VulkanCommandPool.hh>
-#include <Renderer/Vulkan/VulkanFrameBuffer.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
+#include <Renderer/Vulkan/VulkanFrameBuffer.hh>
+#include <Renderer/Vulkan/VulkanImage.hh>
 #include <Renderer/Vulkan/VulkanIndexBuffer.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
 #include <Renderer/Vulkan/VulkanStandardMaterial.hh>
@@ -36,6 +37,11 @@ namespace Mikoto {
 
         PrepareOffscreen();
         CreateCommandBuffers();
+
+        VulkanStandardMaterialCreateInfo createInfo{};
+        createInfo.RenderPass = m_OffscreenMainRenderPass;
+
+        m_DefaultMaterial->OnCreate(createInfo);
     }
 
     auto VulkanRenderer::EnableWireframeMode() -> void {
@@ -87,8 +93,7 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::DrawFrame(const Model& model) -> void {
-        // TODO: reorganize, we no longer render directly to the swapchain
-        m_DefaultMaterial->UpdateUniformBuffers(VulkanContext::GetSwapChain()->GetCurrentFrame());
+        m_DefaultMaterial->UploadUniformBuffers();
 
         for (const auto& mesh : model.GetMeshes())
             RecordMainRenderPassCommands(mesh);
@@ -122,8 +127,8 @@ namespace Mikoto {
         m_DefaultMaterial->BindDescriptorSets(m_CommandBuffers[0].Get());
 
         // Bind vertex and index buffer
-        std::dynamic_pointer_cast<VulkanIndexBuffer>(mesh.GetIndexBuffer())->Submit(m_CommandBuffers[0].Get());
-        std::dynamic_pointer_cast<VulkanVertexBuffer>(mesh.GetVertexBuffer())->Submit(m_CommandBuffers[0].Get());
+        std::dynamic_pointer_cast<VulkanIndexBuffer>(mesh.GetIndexBuffer())->Bind(m_CommandBuffers[0].Get());
+        std::dynamic_pointer_cast<VulkanVertexBuffer>(mesh.GetVertexBuffer())->Bind(m_CommandBuffers[0].Get());
 
         // Draw call command
         vkCmdDrawIndexed(m_CommandBuffers[0].Get(), std::dynamic_pointer_cast<VulkanIndexBuffer>(mesh.GetIndexBuffer())->GetCount(), 1, 0, 0, 0);
@@ -135,24 +140,53 @@ namespace Mikoto {
         m_CommandBuffers[0].EndRecording();
     }
 
-    auto VulkanRenderer::Draw(const DrawData& data) -> void {
-        m_DefaultMaterial->SetModelMatrix(data.Model);
-        m_DefaultMaterial->SetProjectionMatrix(data.Projection);
-        m_DefaultMaterial->SetViewMatrix(data.View);
+    auto VulkanRenderer::Draw(const DrawData & data) -> void {
+        m_DefaultMaterial->SetProjectionView(data.TransformData.ProjectionView);
+        m_DefaultMaterial->SetTransform(data.TransformData.Transform);
 
-        DrawFrame(*data.ModelData);
+        if (data.ModelData)
+            DrawFrame(*data.ModelData);
+        else {
+            m_CommandBuffers[0].BeginRecording();
+
+            VkRenderPassBeginInfo renderPassInfo{};
+            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            renderPassInfo.renderPass = m_OffscreenMainRenderPass;
+            renderPassInfo.framebuffer = m_OffscreenFrameBuffer.Get();
+            renderPassInfo.renderArea.offset = { 0, 0 };
+            renderPassInfo.renderArea.extent = m_OffscreenExtent;
+
+            renderPassInfo.clearValueCount = static_cast<UInt32_T>(m_ClearValues.size());
+            renderPassInfo.pClearValues = m_ClearValues.data();
+
+            // Begin Render pass commands recording
+            vkCmdBeginRenderPass(m_CommandBuffers[0].Get(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+            // Set Viewport and Scissor
+            vkCmdSetViewport(m_CommandBuffers[0].Get(), 0, 1, &m_Viewport);
+            vkCmdSetScissor(m_CommandBuffers[0].Get(), 0, 1, &m_Scissor);
+
+            // Bind material Pipeline and Descriptors
+            m_DefaultMaterial->GetPipeline().Bind(m_CommandBuffers[0].Get());
+            m_DefaultMaterial->BindDescriptorSets(m_CommandBuffers[0].Get());
+
+            // End Render pass commands recording
+            vkCmdEndRenderPass(m_CommandBuffers[0].Get());
+
+            // End command buffer recording
+            m_CommandBuffers[0].EndRecording();
+
+            VkSubmitInfo submitInfo{};
+            submitInfo.commandBufferCount = 1;
+            submitInfo.pCommandBuffers = &m_CommandBuffers[0].Get();
+
+            if (vkQueueSubmit(VulkanContext::GetPrimaryLogicalDeviceGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+                throw std::runtime_error("failed to submit draw command buffer!");
+        }
     }
 
-    auto VulkanRenderer::OnEvent(Event &event) -> void {
+    auto VulkanRenderer::OnEvent(Event& event) -> void {
 
-    }
-
-    auto VulkanRenderer::Draw(const RenderingData &data) -> void {
-        m_DefaultMaterial->SetModelMatrix(data.TransformData.Model);
-        m_DefaultMaterial->SetProjectionMatrix(data.TransformData.Projection);
-        m_DefaultMaterial->SetViewMatrix(data.TransformData.View);
-
-        //DrawFrame(*data.ModelData);
     }
 
     auto VulkanRenderer::CreateRenderPass() -> void {
@@ -230,7 +264,7 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::CreateFrameBuffers() -> void {
-        std::vector<VkImageView> attachments{ m_OffscreenColorAttachment.GetView(), m_OffscreenDepthAttachment.GetView() };
+        std::array<VkImageView, 2> attachments{ m_OffscreenColorAttachment.GetView(), m_OffscreenDepthAttachment.GetView() };
 
         VkFramebufferCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -284,8 +318,7 @@ namespace Mikoto {
         colorAttachmentCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         colorAttachmentCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
         colorAttachmentCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        colorAttachmentCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        colorAttachmentCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorAttachmentCreateInfo.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         VkImageViewCreateInfo colorAttachmentViewCreateInfo{};
         colorAttachmentViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -294,10 +327,12 @@ namespace Mikoto {
         colorAttachmentViewCreateInfo.image = m_OffscreenColorAttachment.Get();
         colorAttachmentViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         colorAttachmentViewCreateInfo.format = colorAttachmentCreateInfo.format; // match formats for simplicity
+
         colorAttachmentViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_R;
         colorAttachmentViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_G;
         colorAttachmentViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_B;
         colorAttachmentViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_A;
+
         colorAttachmentViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         colorAttachmentViewCreateInfo.subresourceRange.baseMipLevel = 0;
         colorAttachmentViewCreateInfo.subresourceRange.levelCount = 1;
@@ -336,7 +371,8 @@ namespace Mikoto {
         depthAttachmentViewCreateInfo.subresourceRange.levelCount = 1;
         depthAttachmentViewCreateInfo.subresourceRange.baseArrayLayer = 0;
         depthAttachmentViewCreateInfo.subresourceRange.layerCount = 1;
-        depthAttachmentViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        depthAttachmentViewCreateInfo.subresourceRange.aspectMask =
+                depthAttachmentCreateInfo.format < VK_FORMAT_D16_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT : (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
 
         m_OffscreenDepthAttachment.OnCreate({ depthAttachmentCreateInfo , depthAttachmentViewCreateInfo });
     }
@@ -348,7 +384,7 @@ namespace Mikoto {
                 VK_IMAGE_TILING_OPTIMAL,
                 VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT);
 
-        m_DepthAttachmentFormat =VulkanContext::FindSupportedFormat(
+        m_DepthAttachmentFormat = VulkanContext::FindSupportedFormat(
                 VulkanContext::GetPrimaryPhysicalDevice(),
                 { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
                 VK_IMAGE_TILING_OPTIMAL,

@@ -1,15 +1,18 @@
-//
-// Created by kate on 6/4/23.
-//
+/**
+ * RenderContext.hh
+ * Created by kate on 6/4/23.
+ * */
 
-#ifndef KATE_ENGINE_RENDER_CONTEXT_HH
-#define KATE_ENGINE_RENDER_CONTEXT_HH
+#ifndef MIKOTO_RENDER_CONTEXT_HH
+#define MIKOTO_RENDER_CONTEXT_HH
 
+// C++ Standard Library
 #include <any>
 #include <memory>
 
+// Project Headers
 #include <Renderer/Renderer.hh>
-
+#include <Renderer/RenderingUtilities.hh>
 #include <Platform/Window/Window.hh>
 
 namespace Mikoto {
@@ -34,10 +37,10 @@ namespace Mikoto {
         auto operator=(RenderContext&&) -> RenderContext& = delete;
 
     private:
-        inline static Renderer::GraphicsAPI s_ActiveAPI{ Renderer::GetActiveGraphicsAPI() };
+        inline static GraphicsAPI s_ActiveAPI{ Renderer::GetActiveGraphicsAPI() };
         inline static std::shared_ptr<Window> s_WindowHandle{};
     };
 }
 
 
-#endif//KATE_ENGINE_RENDER_CONTEXT_HH
+#endif // MIKOTO_RENDER_CONTEXT_HH

@@ -2,8 +2,8 @@
  * Created by kate on 7/3/23.
  * */
 
-#ifndef KATE_ENGINE_VULKAN_RENDERER_HH
-#define KATE_ENGINE_VULKAN_RENDERER_HH
+#ifndef MIKOTO_VULKAN_RENDERER_HH
+#define MIKOTO_VULKAN_RENDERER_HH
 
 // C++ Standard Library
 #include <array>
@@ -41,13 +41,15 @@ namespace Mikoto {
         auto SetClearColor(const glm::vec4& color) -> void override;
         auto SetClearColor(float red, float green, float blue, float alpha) -> void override;
 
-        auto Draw(const DrawData& data) -> void;
-        auto Draw(const RenderingData &data) -> void override;
+        auto Draw(const DrawData& data) -> void override;
 
         auto SetViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void override;
         auto OnEvent(Event& event) -> void override;
 
         auto GetCommandPool() -> VulkanCommandPool& { return *m_CommandPool; }
+
+        KT_NODISCARD auto GetDescriptorSet() const -> VkDescriptorSet { return m_OffscreenDescriptorSet; }
+        KT_NODISCARD auto GetOffscreenColorAttachmentImage() const -> VkImageView { return m_OffscreenColorAttachment.GetView(); }
 
         ~VulkanRenderer() override = default;
 
@@ -70,6 +72,10 @@ namespace Mikoto {
         VulkanFrameBuffer m_OffscreenFrameBuffer{};
         VulkanImage m_OffscreenColorAttachment{};
         VulkanImage m_OffscreenDepthAttachment{};
+
+        // For usage with ImGui
+        VkSampler m_OffscreenSampler{};
+        VkDescriptorSet m_OffscreenDescriptorSet{};
 
         VkFormat m_ColorAttachmentFormat{};
         VkFormat m_DepthAttachmentFormat{};
@@ -114,4 +120,4 @@ namespace Mikoto {
 }
 
 
-#endif //KATE_ENGINE_VULKAN_RENDERER_HH
+#endif // MIKOTO_VULKAN_RENDERER_HH

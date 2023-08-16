@@ -8,7 +8,6 @@
 
 // Third-Party Libraries
 #include <volk.h>
-
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
@@ -16,16 +15,14 @@
 
 // Project Headers
 #include <Utility/Common.hh>
-
 #include <Core/KeyCodes.hh>
 #include <Core/Logger.hh>
-
 #include <Core/Application.hh>
-
 #include <Core/ImGui/ImGuiLayer.hh>
 #include <Editor/Editor.hh>
 #include <Platform/InputManager.hh>
 #include <Renderer/Renderer.hh>
+#include <Renderer/RenderingUtilities.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
 
@@ -66,10 +63,10 @@ namespace Mikoto {
             GLFWwindow *window{std::any_cast<GLFWwindow *>(Application::Get().GetMainWindow().GetNativeWindow())};
 
             switch (Renderer::GetActiveGraphicsAPI()) {
-                case Renderer::GraphicsAPI::OPENGL_API:
+                case GraphicsAPI::OPENGL_API:
                     m_UseOpenGL = true;
                     break;
-                case Renderer::GraphicsAPI::VULKAN_API:
+                case GraphicsAPI::VULKAN_API:
                     m_UseVulkan = true;
                     break;
                 default:
@@ -273,7 +270,7 @@ namespace Mikoto {
     }
 
     auto ImGuiLayer::AcquireNextSwapChainImage(UInt32_T &imageIndex) -> VkResult {
-        return VulkanContext::GetSwapChain()->AcquireNextImage(&imageIndex);
+        return VulkanContext::GetSwapChain()->GetNextImage(&imageIndex);
     }
 
     auto ImGuiLayer::SubmitImGuiCommandBuffers(UInt32_T &imageIndex) -> VkResult {

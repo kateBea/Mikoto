@@ -1,16 +1,20 @@
-//
-// Created by kate on 6/24/23.
-//
+/**
+ * Scene.cc
+ * Created by kate on 6/24/23.
+ * */
 
+// C++ Standard Library
 #include <utility>
 
+// Third-Party Libraries
 #include <entt/entt.hpp>
 
-#include <Renderer/Renderer.hh>
-
-#include "Scene/Scene.hh"
-#include <Scene/Component.hh>
+// Project Headers
+#include <Scene/Scene.hh>
 #include <Scene/Entity.hh>
+#include <Scene/Component.hh>
+#include <Renderer/Renderer.hh>
+#include <Renderer/RenderingUtilities.hh>
 
 namespace Mikoto {
 
@@ -47,7 +51,11 @@ namespace Mikoto {
 
         if (sceneHasMainCam) {
             // Render stuff if the scene has a camera
-            Renderer::BeginScene(mainCam);
+            ScenePrepareData prepareData{};
+
+            prepareData.SceneCamera = mainCam;
+
+            Renderer::BeginScene(prepareData);
 
             auto view{ m_Registry.view<TagComponent, TransformComponent, SpriteRendererComponent>() };
 
@@ -75,7 +83,6 @@ namespace Mikoto {
     }
 
     auto Scene::DestroyEntity(Entity& entity) -> void {
-        // Cast necessary to call appropriate overload
         m_Registry.destroy(entity.m_EntityHandle);
         entity.Invalidate();
     }

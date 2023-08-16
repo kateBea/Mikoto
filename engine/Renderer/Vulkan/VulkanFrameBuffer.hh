@@ -3,8 +3,8 @@
  * Created by kate on 7/10/2023.
  * */
 
-#ifndef KATE_ENGINE_VULKAN_FRAMEBUFFER_HH
-#define KATE_ENGINE_VULKAN_FRAMEBUFFER_HH
+#ifndef MIKOTO_VULKAN_FRAMEBUFFER_HH
+#define MIKOTO_VULKAN_FRAMEBUFFER_HH
 
 // Third-Party Library
 #include <volk.h>
@@ -33,4 +33,4 @@ namespace Mikoto {
 }
 
 
-#endif //KATE_ENGINE_VULKAN_FRAMEBUFFER_HH
+#endif // MIKOTO_VULKAN_FRAMEBUFFER_HH

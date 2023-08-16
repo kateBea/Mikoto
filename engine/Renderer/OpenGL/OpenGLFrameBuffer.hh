@@ -1,9 +1,10 @@
-//
-// Created by kate on 6/23/23.
-//
+/**
+ * OpenGLFrameBuffer.hh
+ * Created by kate on 6/23/23.
+ * */
 
-#ifndef KATE_ENGINE_OPENGL_FRAME_BUFFER_HH
-#define KATE_ENGINE_OPENGL_FRAME_BUFFER_HH
+#ifndef MIKOTO_OPENGL_FRAME_BUFFER_HH
+#define MIKOTO_OPENGL_FRAME_BUFFER_HH
 
 #include <Utility/Common.hh>
 
@@ -15,16 +16,16 @@ namespace Mikoto {
         explicit OpenGLFrameBuffer() = default;
         auto OnCreate(const FrameBufferCreateInfo& properties) -> void;
 
-        auto Bind() -> void override;
-        auto Unbind() -> void override;
+        auto Bind() -> void;
+        auto Unbind() -> void;
         auto Recreate() -> void;
         auto Resize(UInt32_T width, UInt32_T height) -> void override;
 
-        KT_NODISCARD auto GetId() -> UInt32_T override { return m_Id; }
+        KT_NODISCARD auto GetId() const -> UInt32_T { return m_Id; }
         KT_NODISCARD auto GetFrameBufferProperties() const -> const FrameBufferCreateInfo& override { return m_FrameBufferCreateInfo; }
 
-        KT_NODISCARD auto GetColorAttachmentId() -> UInt32_T override { return m_ColorAttachment; }
-        KT_NODISCARD auto GetDepthAttachmentId() -> UInt32_T override { return m_DepthAttachment; }
+        KT_NODISCARD auto GetColorAttachmentId() const -> UInt32_T { return m_ColorAttachment; }
+        KT_NODISCARD auto GetDepthAttachmentId() const -> UInt32_T { return m_DepthAttachment; }
 
         ~OpenGLFrameBuffer() override;
     private:
@@ -37,4 +38,4 @@ namespace Mikoto {
 }
 
 
-#endif//KATE_ENGINE_OPENGL_FRAME_BUFFER_HH
+#endif // MIKOTO_OPENGL_FRAME_BUFFER_HH

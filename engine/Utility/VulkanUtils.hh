@@ -3,8 +3,8 @@
  * Created by kate on 8/5/2023.
  * */
 
-#ifndef KATE_ENGINE_VULKAN_UTILS_HH
-#define KATE_ENGINE_VULKAN_UTILS_HH
+#ifndef MIKOTO_VULKAN_UTILS_HH
+#define MIKOTO_VULKAN_UTILS_HH
 
 // C++ Standard Library
 #include <vector>
@@ -13,11 +13,16 @@
 #include <volk.h>
 #include <vk_mem_alloc.h>
 
+// Project Headers
+#include <Utility/Common.hh>
+
 namespace Mikoto {
     struct BufferAllocateInfo {
         VkBuffer Buffer{};
-        VkDeviceSize Size{}; // In Bytes of the buffer
+        VkDeviceSize Size{};
         VmaAllocation Allocation{};
+        VkBufferCreateInfo BufferCreateInfo{};
+        VmaAllocationCreateInfo AllocationCreateInfo{};
     };
 
     struct ImageAllocateInfo {
@@ -48,7 +53,7 @@ namespace Mikoto {
          * @param size
          * @param properties
          * @param usage
-         * @deprecated Prefer allocating memory buffers via VMA with the default allocator, number of allocations is pretty limited
+         * @deprecated Prefer allocating memory buffers via VMA with the default allocator, number of allocations is pretty limited even in modern hardware
          * */
         static auto CreateBuffer(VkBuffer& buffer, VkDeviceMemory& bufferMemory, VkDeviceSize size, VkMemoryPropertyFlags properties, VkBufferUsageFlags usage) -> void;
 
@@ -58,7 +63,7 @@ namespace Mikoto {
          * @param dstBuffer
          * @param size
          * @param commandBuffer
-         * @deprecated Previously used in conjunction with CreateBuffer() to create staging buffers
+         * @deprecated Previously used in conjunction with Create() to create staging buffers
          * */
         static auto CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkCommandBuffer commandBuffer) -> void;
 
@@ -93,4 +98,4 @@ namespace Mikoto {
         static auto QueueImageForPresentation(const QueuePresentInfo& presentInfo) -> VkResult;
     };
 }
-#endif//KATE_ENGINE_VULKAN_UTILS_HH
+#endif // MIKOTO_VULKAN_UTILS_HH

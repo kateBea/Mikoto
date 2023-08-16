@@ -16,7 +16,30 @@ namespace Mikoto {
 
     ScenePanel::ScenePanel(const std::shared_ptr<ScenePanelData>& data, const Path_T& iconPath)
         :   Panel{ iconPath }, m_Visible{ true }, m_Hovered{ false }, m_Focused{ false }, m_Data{ data }
-    {}
+    {
+        m_SceneRendererVk = dynamic_cast<VulkanRenderer*>(Renderer::GetRendererAPIActive());
+#if true
+        // Create Sampler
+        VkSamplerCreateInfo samplerCreateInfo{};
+        samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
+        samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
+        samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerCreateInfo.minLod = -1000;
+        samplerCreateInfo.maxLod = 1000;
+        samplerCreateInfo.maxAnisotropy = 1.0f;
+
+        if (vkCreateSampler(VulkanContext::GetPrimaryLogicalDevice(), &samplerCreateInfo, nullptr, &m_ColorAttachmentSampler) != VK_SUCCESS)
+            throw std::runtime_error("Failed to create Vulkan Renderer sampler!");
+
+        m_DescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(m_ColorAttachmentSampler,
+                                                                                 m_SceneRendererVk->GetOffscreenColorAttachmentImage(),
+                                                                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+#endif
+    }
 
     auto ScenePanel::OnUpdate() -> void {
         if (m_Visible) {
@@ -42,10 +65,10 @@ namespace Mikoto {
             ImGui::Image((ImTextureID)textId, ImVec2{ frameWidth, frameHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
 #endif
 
-#if false
+#if true
             float frameWidth{ static_cast<float>(m_Data->ViewPortWidth) };
             float frameHeight{ static_cast<float>(m_Data->ViewPortHeight) };
-            ImGui::Image((ImTextureID)descSet, ImVec2{ frameWidth, frameHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+            ImGui::Image((ImTextureID)m_DescriptorSet, ImVec2{ frameWidth, frameHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
 #endif
 
             ImGui::End();

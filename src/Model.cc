@@ -123,7 +123,7 @@ namespace Mikoto {
 
         // Setup mesh data structure from previously retrieved data
         meshData.SetVertices(VertexBuffer::CreateBuffer(vertices));
-        meshData.SetIndices(IndexBuffer::CreateBuffer(indices));
+        meshData.SetIndices(IndexBuffer::Create(indices));
 
         meshData.SetTextures(std::move(textures));
         return Mesh{ meshData };

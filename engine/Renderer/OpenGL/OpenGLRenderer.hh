@@ -3,8 +3,8 @@
  * Created by kate on 6/6/23.
  * */
 
-#ifndef KATE_ENGINE_OPENGL_RENDERER_HH
-#define KATE_ENGINE_OPENGL_RENDERER_HH
+#ifndef MIKOTO_OPENGL_RENDERER_HH
+#define MIKOTO_OPENGL_RENDERER_HH
 
 // C++ Standard Library
 #include <memory>
@@ -36,7 +36,7 @@ namespace Mikoto {
         auto SetClearColor(float red, float green, float blue, float alpha) -> void override;
         auto SetViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void override;
 
-        auto Draw(const RenderingData& data) -> void override;
+        auto Draw(const DrawData & data) -> void override;
         auto DrawIndexed(const std::shared_ptr<VertexBuffer> &vertexBuffer, const std::shared_ptr<IndexBuffer> &indexBuffer) -> void;
 
         auto OnEvent(Event& event) -> void override;
@@ -82,4 +82,4 @@ namespace Mikoto {
 }
 
 
-#endif//KATE_ENGINE_OPENGL_RENDERER_HH
+#endif // MIKOTO_OPENGL_RENDERER_HH

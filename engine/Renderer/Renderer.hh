@@ -3,8 +3,8 @@
 * Created by kate on 6/5/23.
 * */
 
-#ifndef KATE_ENGINE_RENDERER_HH
-#define KATE_ENGINE_RENDERER_HH
+#ifndef MIKOTO_RENDERER_HH
+#define MIKOTO_RENDERER_HH
 
 // C++ Standard Library
 #include <memory>
@@ -14,34 +14,24 @@
 
 // Project headers
 #include <Utility/Common.hh>
-
 #include <Renderer/RendererAPI.hh>
-#include <Renderer/RenderingUtilities.hh>
+#include <Renderer/Camera/Camera.hh>
 #include <Renderer/Material/Material.hh>
+#include <Renderer/RenderingUtilities.hh>
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
-#include <Renderer/Camera/Camera.hh>
-#include <Renderer/Camera/OrthographicCamera.hh>
-#include <Renderer/Material/Shader.hh>
-#include <Renderer/Material/Texture.hh>
 
 
 namespace Mikoto {
     class Renderer {
     public:
-        enum class GraphicsAPI {
-            OPENGL_API,
-            VULKAN_API,
-        };
-
         static auto Init() -> void;
         static auto ShutDown() -> void;
 
-        static auto BeginScene(std::shared_ptr<Camera> camera) -> void;
-        static auto BeginScene(std::shared_ptr<OrthographicCamera> camera) -> void;
+        static auto BeginScene(const ScenePrepareData& prepareData) -> void;
         static auto EndScene() -> void;
 
-        static auto Submit(const RenderingData& data) -> void;
+        static auto Submit(const DrawData & data) -> void;
         static auto Flush() -> void;
 
         static auto OnEvent(Event &event) -> void;
@@ -56,11 +46,11 @@ namespace Mikoto {
         /**
          * Submits a Quad for drawing, expects the angle to be in degrees
          * */
-        static auto SubmitQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color, double angle, bool useOrthographicCamera = false) -> void;
-        static auto SubmitQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color, double angle, const std::shared_ptr<Texture> &texture, bool useOrthographicCamera = false) -> void;
+        static auto SubmitQuad(const glm::vec3 &position, const glm::vec2 &size, const glm::vec4 &color, double angle) -> void;
+        static auto SubmitQuad(const glm::vec3 &position, const glm::vec2 &size, const glm::vec4 &color, double angle, const std::shared_ptr<Texture> &texture) -> void;
 
-        static auto SubmitQuad(const glm::mat4& transform, const glm::vec4& color, bool useOrthographicCamera = false) -> void;
-        static auto SubmitQuad(const glm::mat4& transform, const glm::vec4 &color, const std::shared_ptr<Texture> &texture, bool useOrthographicCamera) -> void;
+        static auto SubmitQuad(const glm::mat4 &transform, const glm::vec4 &color) -> void;
+        static auto SubmitQuad(const glm::mat4 &transform, const glm::vec4 &color, const std::shared_ptr<Texture> &texture) -> void;
 
 
         KT_NODISCARD static auto QueryDrawCallsCount() -> UInt32_T { return s_SavedSceneStats->GetDrawCallsCount(); }
@@ -112,26 +102,18 @@ namespace Mikoto {
         struct RendererDrawData {
             std::shared_ptr<VertexBuffer> VertexBufferData{};
             std::shared_ptr<IndexBuffer> IndexBufferData{};
-            std::shared_ptr<Camera> CameraForScene{};
-            std::shared_ptr<OrthographicCamera> OrthographicCameraForScene{};
-        };
-
-        struct Renderer2DDrawData {
-            std::shared_ptr<VertexBuffer> VertexBufferData{};
-            std::shared_ptr<IndexBuffer> IndexBufferData{};
-            std::shared_ptr<Camera> CameraForScene{};
-            std::shared_ptr<OrthographicCamera> OrthographicCameraForScene{};
+            std::shared_ptr<Camera> SceneCamera{};
         };
 
     private:
         inline static RendererAPI* s_ActiveRendererAPI{ nullptr };
 
         inline static std::unique_ptr<RendererDrawData> s_DrawData{};
-        inline static std::unique_ptr<Renderer2DDrawData> s_QuadData{};
+        inline static std::unique_ptr<RendererDrawData> s_QuadData{};
 
         inline static std::unique_ptr<RenderingStats>   s_RenderingStats{};
         inline static std::unique_ptr<RenderingStats>   s_SavedSceneStats{};
     };
 }
 
-#endif
+#endif // MIKOTO_RENDERER_HH

@@ -19,6 +19,7 @@
 #include <Core/Events/KeyEvents.hh>
 #include <Core/Events/MouseEvents.hh>
 #include <Renderer/Renderer.hh>
+#include <Renderer/RenderingUtilities.hh>
 #include <Renderer/RenderContext.hh>
 #include <Platform/Window/MainWindow.hh>
 
@@ -38,11 +39,11 @@ namespace Mikoto {
         InitGLFW();
 
         switch(Renderer::GetActiveGraphicsAPI()) {
-            case Renderer::GraphicsAPI::OPENGL_API:
+            case GraphicsAPI::OPENGL_API:
                 m_CurrentGraphicsAPIIsOpenGL = true;
                 m_Properties.SetTitle(fmt::format("Mikoto (OpenGL Version {}.{}.0)", KT_OPENGL_VERSION_MAJOR, KT_OPENGL_VERSION_MINOR));
                 break;
-            case Renderer::GraphicsAPI::VULKAN_API:
+            case GraphicsAPI::VULKAN_API:
                 UInt32_T major{ KT_VULKAN_VERSION_MAJOR };
                 UInt32_T minor{ KT_VULKAN_VERSION_MINOR };
                 m_Properties.SetTitle(fmt::format("Mikoto (Vulkan Version {}.{})", major, minor));

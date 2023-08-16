@@ -21,6 +21,7 @@ namespace Mikoto {
         const auto srcData{ GetFileData(src) };
         m_Data.SrcPath = std::string(srcData.begin(), srcData.end());
         KATE_CORE_LOGGER_DEBUG("Loaded vertex shader data. Size {}", srcData.size());
+
         VkShaderModule shaderModule{};
         CreateShaderModule(m_Data.SrcPath, shaderModule);
 
@@ -33,7 +34,7 @@ namespace Mikoto {
         m_Data.StageCreateInfo.pSpecializationInfo = nullptr;
     }
 
-    auto VulkanShader::CreateShaderModule(const std::string &srcCode, VkShaderModule& shaderModule) -> void {
+    auto VulkanShader::CreateShaderModule(const std::string& srcCode, VkShaderModule& shaderModule) -> void {
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = srcCode.size();
@@ -43,16 +44,6 @@ namespace Mikoto {
 
         if (vkCreateShaderModule(VulkanContext::GetPrimaryLogicalDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
             throw std::runtime_error("Failed to create shader module");
-    }
-
-    // TODO: move to Common.hh
-    auto VulkanShader::GetFileData(const std::filesystem::path& path) -> std::vector<char> {
-        std::ifstream file{ path, std::ios::binary };
-
-        if (!file.is_open())
-            throw std::runtime_error("Failed to open SPR-V file");
-
-        return { std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>() };
     }
 
     auto VulkanShader::GetVulkanStageFromShaderStage(ShaderStage stage) -> VkShaderStageFlagBits {

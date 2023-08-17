@@ -32,5 +32,4 @@ namespace Mikoto {
     };
 }
 
-
 #endif // MIKOTO_VULKAN_FRAMEBUFFER_HH

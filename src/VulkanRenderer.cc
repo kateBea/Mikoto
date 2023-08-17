@@ -2,9 +2,11 @@
  * VulkanRenderer.cc
  * Created by kate on 7/3/23.
  * */
+
  // C++ Standard Library
 #include <memory>
 #include <array>
+#include <limits>
 
 // Third-Party Libraries
 #include <volk.h>
@@ -15,14 +17,14 @@
 #include <Utility/VulkanUtils.hh>
 #include <Core/Assert.hh>
 #include <Core/Application.hh>
-#include <Renderer/Vulkan/VulkanCommandPool.hh>
-#include <Renderer/Vulkan/VulkanContext.hh>
-#include <Renderer/Vulkan/VulkanFrameBuffer.hh>
 #include <Renderer/Vulkan/VulkanImage.hh>
-#include <Renderer/Vulkan/VulkanIndexBuffer.hh>
+#include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
-#include <Renderer/Vulkan/VulkanStandardMaterial.hh>
+#include <Renderer/Vulkan/VulkanFrameBuffer.hh>
+#include <Renderer/Vulkan/VulkanCommandPool.hh>
+#include <Renderer/Vulkan/VulkanIndexBuffer.hh>
 #include <Renderer/Vulkan/VulkanVertexBuffer.hh>
+#include <Renderer/Vulkan/VulkanStandardMaterial.hh>
 
 namespace Mikoto {
     auto VulkanRenderer::Init() -> void {
@@ -61,14 +63,7 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::SetViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void {
-        m_Viewport = {
-                .x = static_cast<float>(x),
-                .y = static_cast<float>(y),
-                .width = static_cast<float>(width),
-                .height = static_cast<float>(height),
-                .minDepth = 0.0f,
-                .maxDepth = 1.0f,
-        };
+        UpdateViewport(x, y, width, height);
     }
 
     auto VulkanRenderer::Shutdown() -> void {
@@ -79,17 +74,16 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::CreateCommandBuffers() -> void {
+        // Right now there's only one command buffer which
         constexpr UInt32_T COMMAND_BUFFERS_COUNT{ 1 };
-        m_CommandBuffers = std::vector<VulkanCommandBuffer>(COMMAND_BUFFERS_COUNT);
 
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandPool = m_CommandPool->GetCommandPool();
-        allocInfo.commandBufferCount = static_cast<UInt32_T>(m_CommandBuffers.size());
+        allocInfo.commandBufferCount = COMMAND_BUFFERS_COUNT;
 
-        for (auto& commandBuffer : m_CommandBuffers)
-            commandBuffer.OnCreate(allocInfo);
+        m_DrawCommandBuffer.OnCreate(allocInfo);
     }
 
     auto VulkanRenderer::DrawFrame(const Model& model) -> void {
@@ -98,12 +92,11 @@ namespace Mikoto {
         for (const auto& mesh : model.GetMeshes())
             RecordMainRenderPassCommands(mesh);
 
-        // Submit commands for execution once they are recorded
-        // result = VulkanContext::GetSwapChain()->SubmitCommandBuffers(&m_CommandBuffers[imageIndex].Get(), imageIndex);
+        SubmitToQueue();
     }
 
     auto VulkanRenderer::RecordMainRenderPassCommands(const Mesh &mesh) -> void {
-        m_CommandBuffers[0].BeginRecording();
+        m_DrawCommandBuffer.BeginRecording();
 
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -116,28 +109,28 @@ namespace Mikoto {
         renderPassInfo.pClearValues = m_ClearValues.data();
 
         // Begin Render pass commands recording
-        vkCmdBeginRenderPass(m_CommandBuffers[0].Get(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(m_DrawCommandBuffer.Get(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         // Set Viewport and Scissor
-        vkCmdSetViewport(m_CommandBuffers[0].Get(), 0, 1, &m_Viewport);
-        vkCmdSetScissor(m_CommandBuffers[0].Get(), 0, 1, &m_Scissor);
+        vkCmdSetViewport(m_DrawCommandBuffer.Get(), 0, 1, &m_Viewport);
+        vkCmdSetScissor(m_DrawCommandBuffer.Get(), 0, 1, &m_Scissor);
 
         // Bind material Pipeline and Descriptors
-        m_DefaultMaterial->GetPipeline().Bind(m_CommandBuffers[0].Get());
-        m_DefaultMaterial->BindDescriptorSets(m_CommandBuffers[0].Get());
+        m_DefaultMaterial->GetPipeline().Bind(m_DrawCommandBuffer.Get());
+        m_DefaultMaterial->BindDescriptorSets(m_DrawCommandBuffer.Get());
 
-        // Bind vertex and index buffer
-        std::dynamic_pointer_cast<VulkanIndexBuffer>(mesh.GetIndexBuffer())->Bind(m_CommandBuffers[0].Get());
-        std::dynamic_pointer_cast<VulkanVertexBuffer>(mesh.GetVertexBuffer())->Bind(m_CommandBuffers[0].Get());
+        // Bind vertex and index buffers
+        std::dynamic_pointer_cast<VulkanIndexBuffer>(mesh.GetIndexBuffer())->Bind(m_DrawCommandBuffer.Get());
+        std::dynamic_pointer_cast<VulkanVertexBuffer>(mesh.GetVertexBuffer())->Bind(m_DrawCommandBuffer.Get());
 
         // Draw call command
-        vkCmdDrawIndexed(m_CommandBuffers[0].Get(), std::dynamic_pointer_cast<VulkanIndexBuffer>(mesh.GetIndexBuffer())->GetCount(), 1, 0, 0, 0);
+        vkCmdDrawIndexed(m_DrawCommandBuffer.Get(), std::dynamic_pointer_cast<VulkanIndexBuffer>(mesh.GetIndexBuffer())->GetCount(), 1, 0, 0, 0);
 
         // End Render pass commands recording
-        vkCmdEndRenderPass(m_CommandBuffers[0].Get());
+        vkCmdEndRenderPass(m_DrawCommandBuffer.Get());
 
         // End command buffer recording
-        m_CommandBuffers[0].EndRecording();
+        m_DrawCommandBuffer.EndRecording();
     }
 
     auto VulkanRenderer::Draw(const DrawData & data) -> void {
@@ -147,7 +140,7 @@ namespace Mikoto {
         if (data.ModelData)
             DrawFrame(*data.ModelData);
         else {
-            m_CommandBuffers[0].BeginRecording();
+            m_DrawCommandBuffer.BeginRecording();
 
             VkRenderPassBeginInfo renderPassInfo{};
             renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -160,28 +153,23 @@ namespace Mikoto {
             renderPassInfo.pClearValues = m_ClearValues.data();
 
             // Begin Render pass commands recording
-            vkCmdBeginRenderPass(m_CommandBuffers[0].Get(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBeginRenderPass(m_DrawCommandBuffer.Get(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
             // Set Viewport and Scissor
-            vkCmdSetViewport(m_CommandBuffers[0].Get(), 0, 1, &m_Viewport);
-            vkCmdSetScissor(m_CommandBuffers[0].Get(), 0, 1, &m_Scissor);
+            vkCmdSetViewport(m_DrawCommandBuffer.Get(), 0, 1, &m_Viewport);
+            vkCmdSetScissor(m_DrawCommandBuffer.Get(), 0, 1, &m_Scissor);
 
             // Bind material Pipeline and Descriptors
-            m_DefaultMaterial->GetPipeline().Bind(m_CommandBuffers[0].Get());
-            m_DefaultMaterial->BindDescriptorSets(m_CommandBuffers[0].Get());
+            m_DefaultMaterial->GetPipeline().Bind(m_DrawCommandBuffer.Get());
+            m_DefaultMaterial->BindDescriptorSets(m_DrawCommandBuffer.Get());
 
             // End Render pass commands recording
-            vkCmdEndRenderPass(m_CommandBuffers[0].Get());
+            vkCmdEndRenderPass(m_DrawCommandBuffer.Get());
 
             // End command buffer recording
-            m_CommandBuffers[0].EndRecording();
+            m_DrawCommandBuffer.EndRecording();
 
-            VkSubmitInfo submitInfo{};
-            submitInfo.commandBufferCount = 1;
-            submitInfo.pCommandBuffers = &m_CommandBuffers[0].Get();
-
-            if (vkQueueSubmit(VulkanContext::GetPrimaryLogicalDeviceGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
-                throw std::runtime_error("failed to submit draw command buffer!");
+            SubmitToQueue();
         }
     }
 
@@ -199,7 +187,7 @@ namespace Mikoto {
         colorAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         colorAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         colorAttachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkAttachmentReference colorAttachmentRef{};
         colorAttachmentRef.attachment = 0;
@@ -318,7 +306,7 @@ namespace Mikoto {
         colorAttachmentCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         colorAttachmentCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
         colorAttachmentCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        colorAttachmentCreateInfo.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        colorAttachmentCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
         VkImageViewCreateInfo colorAttachmentViewCreateInfo{};
         colorAttachmentViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -393,5 +381,59 @@ namespace Mikoto {
         CreateRenderPass();
         CreateAttachments();
         CreateFrameBuffers();
+
+        UpdateViewport(0, 0, DEFAULT_FRAMEBUFFER_WIDTH, DEFAULT_FRAMEBUFFER_HEIGHT);
+        UpdateScissor(0, 0, { DEFAULT_FRAMEBUFFER_WIDTH, DEFAULT_FRAMEBUFFER_HEIGHT });
+
+        CreateSynchronizationObjects();
+    }
+
+    auto VulkanRenderer::SubmitToQueue() -> void {
+        //if (vkWaitForFences(VulkanContext::GetPrimaryLogicalDevice(), 1, &m_QueueSubmitData.Fence, VK_TRUE, std::numeric_limits<UInt64_T>::max()) != VK_SUCCESS)
+          //  throw std::runtime_error("Failed to wait for fences in renderer queue submission!");
+
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+        std::array<VkSemaphore, 1> waitSemaphores{ m_QueueSubmitData.RenderFinishedSemaphore };
+        std::array<VkSemaphore, 1> signalSemaphores{ m_QueueSubmitData.RenderFinishedSemaphore };
+        std::array<VkPipelineStageFlags, 1> waitStages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        std::array<VkCommandBuffer, 1> commandBuffers{ m_DrawCommandBuffer.Get() };
+
+        // Wait semaphores
+        //submitInfo.waitSemaphoreCount = waitSemaphores.size();
+        //submitInfo.pWaitSemaphores = waitSemaphores.data();
+        //submitInfo.pWaitDstStageMask = waitStages.data();
+
+        // Signal semaphores
+        //submitInfo.signalSemaphoreCount = signalSemaphores.size();
+        //submitInfo.pSignalSemaphores = signalSemaphores.data();
+
+        // Command buffers to be submitted
+        submitInfo.commandBufferCount = static_cast<UInt32_T>(commandBuffers.size());
+        submitInfo.pCommandBuffers = commandBuffers.data();
+
+        //vkResetFences(VulkanContext::GetPrimaryLogicalDevice(), 1, &m_QueueSubmitData.Fence);
+
+        if (vkQueueSubmit(VulkanContext::GetPrimaryLogicalDeviceGraphicsQueue(), 1, &submitInfo, nullptr) != VK_SUCCESS)
+            throw std::runtime_error("failed to submit draw command buffer!");
+
+        VulkanUtils::WaitIdle(VulkanContext::GetPrimaryLogicalDevice());
+    }
+
+    auto VulkanRenderer::CreateSynchronizationObjects() -> void {
+        VkSemaphoreCreateInfo semaphoreInfo{};
+        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+        VkFenceCreateInfo fenceInfo{};
+        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+        if (vkCreateSemaphore(VulkanContext::GetPrimaryLogicalDevice(), &semaphoreInfo, nullptr, &m_QueueSubmitData.ImageAvailableSemaphore) != VK_SUCCESS ||
+            vkCreateSemaphore(VulkanContext::GetPrimaryLogicalDevice(), &semaphoreInfo, nullptr, &m_QueueSubmitData.RenderFinishedSemaphore) != VK_SUCCESS ||
+            vkCreateFence(VulkanContext::GetPrimaryLogicalDevice(), &fenceInfo, nullptr, &m_QueueSubmitData.Fence) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create synchronization objects");
+        }
     }
 }

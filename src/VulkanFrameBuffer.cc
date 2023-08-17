@@ -3,8 +3,6 @@
  * Created by kate on 7/10/2023.
  * */
 
-// C++ Standard Library
-
 // Third-Party Library
 #include <volk.h>
 

@@ -3,8 +3,8 @@
  * Created by kate on 5/25/23.
  * */
 
-#ifndef KATE_ENGINE_COMMON_HH
-#define KATE_ENGINE_COMMON_HH
+#ifndef MIKOTO_COMMON_HH
+#define MIKOTO_COMMON_HH
 
 // C++ Standard Libraries
 #include <memory>
@@ -25,6 +25,12 @@
 /*************************************************************
 * MACROS -----------------------------------------------------
 * ********************************************************+ */
+
+// Debug Break
+#if defined(WIN32) || defined(WIN64) && !defined(NDEBUG)
+    #include <intrin.h>
+    #define MKT_DEBUG_BREAK() __debugbreak()
+#endif
 
 // Set bit specified by the argument
 #define BIT_SET(N)              (1 << N)
@@ -311,4 +317,4 @@ namespace Mikoto {
     }
 }
 
-#endif // KATE_ENGINE_COMMON_HH
+#endif // MIKOTO_COMMON_HH

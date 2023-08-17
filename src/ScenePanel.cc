@@ -1,15 +1,16 @@
-//
-// Created by kate on 6/27/23.
-//
+/**
+ * ScenePanel.cc
+ * Created by kate on 6/27/23.
+ * */
 
+// Third-Party Libraries
 #include <volk.h>
-
 #include <imgui.h>
 #include <backends/imgui_impl_vulkan.h>
 
+// Project Headers
 #include <Core/Application.hh>
 #include <Editor/Panels/ScenePanel.hh>
-
 #include <Renderer/Vulkan/VulkanContext.hh>
 
 namespace Mikoto {
@@ -18,7 +19,7 @@ namespace Mikoto {
         :   Panel{ iconPath }, m_Visible{ true }, m_Hovered{ false }, m_Focused{ false }, m_Data{ data }
     {
         m_SceneRendererVk = dynamic_cast<VulkanRenderer*>(Renderer::GetRendererAPIActive());
-#if true
+
         // Create Sampler
         VkSamplerCreateInfo samplerCreateInfo{};
         samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -35,10 +36,7 @@ namespace Mikoto {
         if (vkCreateSampler(VulkanContext::GetPrimaryLogicalDevice(), &samplerCreateInfo, nullptr, &m_ColorAttachmentSampler) != VK_SUCCESS)
             throw std::runtime_error("Failed to create Vulkan Renderer sampler!");
 
-        m_DescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(m_ColorAttachmentSampler,
-                                                                                 m_SceneRendererVk->GetOffscreenColorAttachmentImage(),
-                                                                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-#endif
+        m_DescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(m_ColorAttachmentSampler, m_SceneRendererVk->GetOffscreenColorAttachmentImage(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 
     auto ScenePanel::OnUpdate() -> void {
@@ -65,11 +63,10 @@ namespace Mikoto {
             ImGui::Image((ImTextureID)textId, ImVec2{ frameWidth, frameHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
 #endif
 
-#if true
             float frameWidth{ static_cast<float>(m_Data->ViewPortWidth) };
             float frameHeight{ static_cast<float>(m_Data->ViewPortHeight) };
+            m_SceneRendererVk->SetViewport(0, 0, (UInt32_T)m_Data->ViewPortWidth, (UInt32_T)m_Data->ViewPortHeight);
             ImGui::Image((ImTextureID)m_DescriptorSet, ImVec2{ frameWidth, frameHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
-#endif
 
             ImGui::End();
             ImGui::PopStyleVar();

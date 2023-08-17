@@ -3,9 +3,8 @@
 * Created by kate on 7/3/23.
 * */
 
-
-#ifndef KATE_ENGINE_VULKAN_CONTEXT_HH
-#define KATE_ENGINE_VULKAN_CONTEXT_HH
+#ifndef MIKOTO_VULKAN_CONTEXT_HH
+#define MIKOTO_VULKAN_CONTEXT_HH
 
 // C++ Standard Library
 #include <any>
@@ -233,4 +232,4 @@ namespace Mikoto {
     };
 }
 
-#endif //KATE_ENGINE_VULKAN_CONTEXT_HH
+#endif // MIKOTO_VULKAN_CONTEXT_HH

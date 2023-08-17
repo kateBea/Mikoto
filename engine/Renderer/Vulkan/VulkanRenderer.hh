@@ -1,4 +1,5 @@
 /**
+ * VulkanRenderer.hh
  * Created by kate on 7/3/23.
  * */
 
@@ -52,11 +53,20 @@ namespace Mikoto {
         KT_NODISCARD auto GetOffscreenColorAttachmentImage() const -> VkImageView { return m_OffscreenColorAttachment.GetView(); }
 
         ~VulkanRenderer() override = default;
+    private:
+        /*************************************************************
+        * STRUCTURES
+        * ***********************************************************/
+        struct SubmitInfo {
+            VkSemaphore ImageAvailableSemaphore{};
+            VkSemaphore RenderFinishedSemaphore{};
+            VkFence Fence{};
+        };
 
     private:
         /*************************************************************
         * HELPERS (Setup offscreen rendering)
-        * ********************************************************+ */
+        * ***********************************************************/
         auto PrepareOffscreen() -> void;
         auto CreateRenderPass() -> void;
         auto CreateAttachments() -> void;
@@ -83,7 +93,7 @@ namespace Mikoto {
     private:
         /*************************************************************
         * HELPERS (For geometry drawing)
-        * ********************************************************+ */
+        * ***********************************************************/
         auto DrawFrame(const Model &model) -> void;
         auto RecordMainRenderPassCommands(const Mesh &mesh) -> void;
 
@@ -93,17 +103,21 @@ namespace Mikoto {
     private:
         /*************************************************************
         * HELPERS (Renderer Initialization)
-        * ********************************************************+ */
+        * ***********************************************************/
         auto CreateCommandBuffers() -> void;
+        auto SubmitToQueue() -> void;
+        auto CreateSynchronizationObjects() -> void;
 
     private:
         /*************************************************************
         * PRIVATE MEMBERS
-        * ********************************************************+ */
+        * ***********************************************************/
         std::shared_ptr<VulkanStandardMaterial> m_DefaultMaterial{};
         std::shared_ptr<VulkanCommandPool> m_CommandPool{};
 
-        std::vector<VulkanCommandBuffer> m_CommandBuffers{};
+        VulkanCommandBuffer m_DrawCommandBuffer{};
+
+        SubmitInfo m_QueueSubmitData{};
 
         // Temporary
         // Index 0 represents clear values for color buffer

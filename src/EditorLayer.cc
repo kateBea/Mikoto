@@ -11,14 +11,9 @@
 
 // Project Headers
 #include <Core/Application.hh>
-
 #include <Platform/InputManager.hh>
-
 #include <Renderer/RenderCommand.hh>
-#include <Renderer/Buffers/FrameBuffer.hh>
-
 #include <Scene/Scene.hh>
-
 #include <Editor/Editor.hh>
 #include <Editor/EditorLayer.hh>
 
@@ -26,19 +21,11 @@ namespace Mikoto {
     auto EditorLayer::OnAttach() -> void {
         Window& window{ Application::Get().GetMainWindow() };
 
-        // Necessary for OpenGL for rendering to ImGui panel, should not be here
-        FrameBufferCreateInfo createInfo{};
-
-        createInfo.width = window.GetWidth();
-        createInfo.height = window.GetHeight();
-        createInfo.samples = 1;
-
         // Panel data setup
         m_SettingsPanelInfo = std::make_shared<SettingsPanelData>();
         m_SettingsPanelInfo->ClearColor = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f);
 
         m_ScenePanelInfo = std::make_shared<ScenePanelData>();
-        m_ScenePanelInfo->SceneFrameBuffer = FrameBuffer::CreatFrameBuffer(createInfo);
         m_ScenePanelInfo->Viewport = std::make_unique<Scene>();
 
         m_StatsPanelInfo = std::make_shared<StatsPanelData>();
@@ -51,10 +38,11 @@ namespace Mikoto {
         ent1.AddComponent<SpriteRendererComponent>(glm::vec4{ 0.8f, 0.2f, 0.15f, 1.0f });
         ent2.AddComponent<SpriteRendererComponent>(glm::vec4{ 0.2f, 0.8f, 0.25f, 0.5f });
 
-        ent1.GetComponent<TransformComponent>().SetTranslation({0.0f, 0.0f, .01f});
-        ent2.GetComponent<TransformComponent>().SetTranslation({1.0f, 0.0f, 1.0f});
+        ent1.GetComponent<TransformComponent>().SetTranslation({ 0.0f, 0.0f, 0.0f });
+        ent2.GetComponent<TransformComponent>().SetTranslation({ 0.0f, 0.0f, 0.0f });
 
-        ent1.GetComponent<TransformComponent>().SetRotation({0.0f, 0.0f, 45.0f});
+        ent1.GetComponent<TransformComponent>().SetRotation({ 0.0f, 0.0f, 45.0f });
+        ent2.GetComponent<TransformComponent>().SetRotation({ 0.0f, 0.0f, 1.0f });
 
         double aspect{ window.GetWidth() / (double)window.GetHeight() };
         m_MainCamera = std::make_shared<SceneCamera>(glm::ortho(-aspect, aspect, -1.0, 1.0));
@@ -68,7 +56,7 @@ namespace Mikoto {
         m_ScenePanel = std::make_shared<ScenePanel>(m_ScenePanelInfo);
         m_StatsPanel = std::make_shared<StatsPanel>(m_StatsPanelInfo);
 
-        model.LoadFromFile("../assets/models/Pod42/source/POD/POD.obj");
+        m_TestModel.LoadFromFile("../assets/models/Pod42/source/POD/POD.obj");
 
         {
             // scripting test
@@ -83,13 +71,6 @@ namespace Mikoto {
 
     auto EditorLayer::OnUpdate(double ts) -> void {
         RenderCommand::SetClearColor(m_SettingsPanelInfo->ClearColor);
-#if false
-        // TODO: framebuffer should be part of the renderer as it is the entity we render our geometry into, in the case of opengl the framebuffer must be bound prior to rendering
-        m_ScenePanelInfo->SceneFrameBuffer->Bind();
-
-        m_ScenePanelInfo->Viewport->OnUpdate();
-        m_ScenePanelInfo->SceneFrameBuffer->Unbind();
-#endif
 
         m_ScenePanelInfo->Viewport->OnUpdate();
     }

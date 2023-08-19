@@ -43,15 +43,9 @@ namespace Mikoto {
         * FOR 2D DRAWING
         * ********************************************************+ */
 
-        /**
-         * Submits a Quad for drawing, expects the angle to be in degrees
-         * */
-        static auto SubmitQuad(const glm::vec3 &position, const glm::vec2 &size, const glm::vec4 &color, double angle) -> void;
-        static auto SubmitQuad(const glm::vec3 &position, const glm::vec2 &size, const glm::vec4 &color, double angle, const std::shared_ptr<Texture> &texture) -> void;
 
-        static auto SubmitQuad(const glm::mat4 &transform, const glm::vec4 &color) -> void;
-        static auto SubmitQuad(const glm::mat4 &transform, const glm::vec4 &color, const std::shared_ptr<Texture> &texture) -> void;
-
+        static auto SubmitQuad(const glm::mat4& transform, const glm::vec4& color) -> void;
+        static auto SubmitQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color, double angle) -> void;
 
         KT_NODISCARD static auto QueryDrawCallsCount() -> UInt32_T { return s_SavedSceneStats->GetDrawCallsCount(); }
         KT_NODISCARD static auto QueryQuadCount() -> UInt32_T { return s_SavedSceneStats->GetQuadCount(); }
@@ -82,9 +76,9 @@ namespace Mikoto {
             KT_NODISCARD auto GetQuadCount() const -> UInt32_T { return m_QuadCount; }
             KT_NODISCARD auto GetDrawCallsCount() const -> UInt32_T { return m_DrawCallsCount; }
 
-            // This value is fixed since all quads need 4 vertices at most
+            // This value is fixed since all quads need four vertices at most
             KT_NODISCARD auto GetVertexCount() const -> UInt32_T { return m_QuadCount * 4; }
-            // This value is fixed since all quads need 6 indices at most
+            // This value is fixed since all quads need six indices at most
             KT_NODISCARD auto GetIndexCount() const -> UInt32_T { return m_QuadCount * 6; }
 
             auto IncrementDrawCallCount(UInt32_T value) { m_DrawCallsCount += value; }

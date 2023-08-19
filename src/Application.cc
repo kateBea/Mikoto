@@ -4,16 +4,12 @@
 
 // Project headers
 #include <Utility/Common.hh>
-
 #include <Core/Events/AppEvents.hh>
 #include <Core/Logger.hh>
-
 #include <Core/Application.hh>
-
 #include <Core/ImGui/ImGuiLayer.hh>
 #include <Platform/InputManager.hh>
 #include <Platform/Window/MainWindow.hh>
-
 #include <Renderer/Renderer.hh>
 #include <Renderer/RenderCommand.hh>
 
@@ -133,6 +129,7 @@ namespace Mikoto {
     auto Application::BlockImGuiLayerEvents(bool value) -> void {
         m_ImGuiLayer->SetBlockEvents(value);
     }
+
     auto Application::GetMainWindowPtr() -> std::shared_ptr<Window> {
         return m_MainWindow;
     }

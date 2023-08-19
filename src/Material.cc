@@ -10,6 +10,8 @@
 
 // Project Headers
 #include <Utility/Common.hh>
+#include <Renderer/Renderer.hh>
+#include <Renderer/RenderingUtilities.hh>
 #include <Renderer/Material/Material.hh>
 
 namespace Mikoto {

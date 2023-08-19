@@ -17,7 +17,6 @@
 // Project Headers
 #include <Utility/Common.hh>
 #include <Utility/Types.hh>
-
 #include <Renderer/Vulkan/VulkanSwapChain.hh>
 #include <Platform/Window/MainWindow.hh>
 #include <Platform/Window/Window.hh>
@@ -192,6 +191,14 @@ namespace Mikoto {
         inline static const std::vector<const char *> s_ValidationLayers{ "VK_LAYER_KHRONOS_validation" };
         inline static const std::vector<const char *> s_DeviceRequiredExtensions{
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+
+            // Passing your vertex data jus like in OpenGL, using the same state (as the pipeline setup)
+            // and shaders as in OpenGL, your scene will likely not display as you’d expect.
+            // The viewport’s origin in OpenGL is in the lower left of the screen, with Y pointing up.
+            // In Vulkan the origin is in the top left of the screen, with Y pointing downwards.
+            // See: https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport/
+            VK_KHR_MAINTENANCE1_EXTENSION_NAME,
+
             //VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME,
         };
 

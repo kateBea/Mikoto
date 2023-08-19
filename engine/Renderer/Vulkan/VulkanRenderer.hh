@@ -15,18 +15,19 @@
 #include <glm/glm.hpp>
 
 // Project Headers
-#include <Utility/Common.hh>
+#include "VulkanVertexBuffer.hh"
+#include <Renderer/Buffers/IndexBuffer.hh>
+#include <Renderer/Buffers/VertexBuffer.hh>
+#include <Renderer/Material/Material.hh>
 #include <Renderer/Model.hh>
 #include <Renderer/Renderer.hh>
 #include <Renderer/RendererAPI.hh>
-#include <Renderer/Material/Material.hh>
-#include <Renderer/Vulkan/VulkanImage.hh>
-#include <Renderer/Buffers/IndexBuffer.hh>
-#include <Renderer/Buffers/VertexBuffer.hh>
+#include <Renderer/Vulkan/VulkanCommandBuffer.hh>
 #include <Renderer/Vulkan/VulkanCommandPool.hh>
 #include <Renderer/Vulkan/VulkanFrameBuffer.hh>
-#include <Renderer/Vulkan/VulkanCommandBuffer.hh>
+#include <Renderer/Vulkan/VulkanImage.hh>
 #include <Renderer/Vulkan/VulkanStandardMaterial.hh>
+#include <Utility/Common.hh>
 
 namespace Mikoto {
     class VulkanRenderer : public RendererAPI {
@@ -45,7 +46,9 @@ namespace Mikoto {
         auto Draw(const DrawData& data) -> void override;
 
         auto SetViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void override;
+
         auto OnEvent(Event& event) -> void override;
+        auto OnFramebufferResize(UInt32_T width, UInt32_T height) -> void;
 
         auto GetCommandPool() -> VulkanCommandPool& { return *m_CommandPool; }
 
@@ -72,11 +75,6 @@ namespace Mikoto {
         auto CreateAttachments() -> void;
         auto CreateFrameBuffers() -> void;
 
-        // These are the default values for the frame buffers we will be rendering into
-        // Although, it is more appropriate to adjust them, so they match the viewport values
-        static constexpr UInt32_T DEFAULT_FRAMEBUFFER_WIDTH{ 1280 };
-        static constexpr UInt32_T DEFAULT_FRAMEBUFFER_HEIGHT{ 720 };
-
         VkExtent2D m_OffscreenExtent{};
         VkRenderPass m_OffscreenMainRenderPass{};
         VulkanFrameBuffer m_OffscreenFrameBuffer{};
@@ -89,6 +87,8 @@ namespace Mikoto {
 
         VkFormat m_ColorAttachmentFormat{};
         VkFormat m_DepthAttachmentFormat{};
+
+        bool m_OffscreenPrepareFinished{};
 
     private:
         /*************************************************************

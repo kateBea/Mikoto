@@ -3,8 +3,8 @@
  * Created by kate on 6/30/23.
  * */
 
-#ifndef KATE_ENGINE_MATERIAL_HH
-#define KATE_ENGINE_MATERIAL_HH
+#ifndef MIKOTO_MATERIAL_HH
+#define MIKOTO_MATERIAL_HH
 
 // C++ Standard Library
 #include <string>
@@ -44,4 +44,4 @@ namespace Mikoto {
 }
 
 
-#endif//KATE_ENGINE_MATERIAL_HH
+#endif // MIKOTO_MATERIAL_HH

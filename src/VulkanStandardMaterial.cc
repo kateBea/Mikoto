@@ -25,11 +25,12 @@ namespace Mikoto {
 
         m_Texture = std::make_shared<VulkanTexture2D>("../assets/textures/lava512x512.png");
 
+        CreateUniformBuffer();
+
         CreateDescriptorSetLayout();
         CreatePipelineLayout();
         CreatePipeline();
 
-        CreateUniformBuffer();
         CreateDescriptorPool();
         CreateDescriptorSet();
     }
@@ -106,15 +107,16 @@ namespace Mikoto {
     auto VulkanStandardMaterial::CreateUniformBuffer() -> void {
         BufferAllocateInfo allocInfo{};
         allocInfo.Size = sizeof(UniformTransformData);
+
         allocInfo.BufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         allocInfo.BufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         allocInfo.BufferCreateInfo.size = allocInfo.Size;
+
         allocInfo.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
         m_UniformBuffer.OnCreate(allocInfo);
 
-        void* data{};
-        if (vmaMapMemory(VulkanContext::GetDefaultAllocator(), m_UniformBuffer.GetVmaAllocation(), &data) != VK_SUCCESS)
+        if (vmaMapMemory(VulkanContext::GetDefaultAllocator(), m_UniformBuffer.GetVmaAllocation(), &m_UniformBuffersMapped) != VK_SUCCESS)
             throw std::runtime_error("Failed to map memory for uniform buffer in default material!");
 
         vmaUnmapMemory(VulkanContext::GetDefaultAllocator(), m_UniformBuffer.GetVmaAllocation());
@@ -136,7 +138,7 @@ namespace Mikoto {
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<UInt32_T>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = 1;
+        poolInfo.maxSets = 10;
 
         if (vkCreateDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), &poolInfo, nullptr, &m_DescriptorPool) != VK_SUCCESS)
             throw std::runtime_error("failed to create descriptor pool!");
@@ -222,5 +224,16 @@ namespace Mikoto {
         pipelineConfig.PipelineLayout = m_PipelineLayout;
 
         m_Pipeline = std::make_shared<VulkanPipeline>("../assets/basicVert.sprv", "../assets/basicFrag.sprv", pipelineConfig);
+    }
+
+    auto VulkanStandardMaterial::SetTiltingColor(float red, float green, float blue, float alpha) -> void {
+        //m_UniformBufferData.Color.r = red;
+        //m_UniformBufferData.Color.g = green;
+        //m_UniformBufferData.Color.b = blue;
+        //m_UniformBufferData.Color.a = alpha;
+    }
+
+    auto VulkanStandardMaterial::SetTiltingColor(const glm::vec4& color) -> void {
+        //m_UniformBufferData.Color = color;
     }
 }

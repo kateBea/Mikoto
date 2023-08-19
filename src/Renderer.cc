@@ -46,19 +46,21 @@ namespace Mikoto {
 
         // Init Data for quad rendering
         const std::vector<float> squareData {
-            // Positions            // Texture coordinates
-            -0.5f,  -0.5f, 0.0f,     0.0f, 0.0f,   // bottom left
-             0.5f,  -0.5f, 0.0f,     1.0f, 0.0f,   // bottom right
-             0.5f,   0.5f, 0.0f,     1.0f, 1.0f,   // top right
-            -0.5f,   0.5f, 0.0f,     0.0f, 1.0f,   // top left
+            // Positions            // Normals           // Colors                // Texture coordinates
+            -0.5f,  -0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f,        0.0f, 0.0f,   // bottom left
+             0.5f,  -0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,        1.0f, 0.0f,   // bottom right
+             0.5f,   0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,        1.0f, 1.0f,   // top right
+            -0.5f,   0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    0.8f, 0.3f, 0.4f,        0.0f, 1.0f,   // top left
         };
 
         s_QuadData->VertexBufferData = VertexBuffer::CreateBuffer(squareData);
         s_QuadData->IndexBufferData = IndexBuffer::Create({0, 1, 2, 2, 3, 0});
 
         s_QuadData->VertexBufferData->SetBufferLayout(BufferLayout{
-            { ShaderDataType::FLOAT3_TYPE, "a_Position" },
-            { ShaderDataType::FLOAT2_TYPE, "a_TextureCoordinates" }
+                { ShaderDataType::FLOAT3_TYPE, "a_Position" },
+                { ShaderDataType::FLOAT3_TYPE, "a_Normal" },
+                { ShaderDataType::FLOAT3_TYPE, "a_Color" },
+                { ShaderDataType::FLOAT2_TYPE, "a_TextureCoordinates" },
         });
     }
 
@@ -111,17 +113,6 @@ namespace Mikoto {
         s_RenderingStats->IncrementDrawCallCount(1);
     }
 
-    auto Renderer::SubmitQuad(const glm::vec3 &position, const glm::vec2 &size, const glm::vec4 &color, double angle, const std::shared_ptr<Texture> &texture) -> void {
-        static constexpr glm::vec3 zAxis{ 0.0f, 0.0f, 1.0f };
-        static constexpr glm::mat4 identMat{ glm::mat4(1.0) };
-
-        glm::mat4 scale{ glm::scale(identMat, glm::vec3(size, 1.0f)) };
-        glm::mat4 rotation{ glm::rotate(identMat, (float)glm::radians(angle), zAxis) };
-        glm::mat4 transform{ glm::translate(identMat, position) * scale * rotation };
-
-        SubmitQuad(transform, color, texture);
-    }
-
     auto Renderer::SubmitQuad(const glm::mat4 &transform, const glm::vec4 &color) -> void {
         glm::mat4 cameraViewProj{ s_DrawData->SceneCamera->GetProjection() * s_DrawData->SceneCamera->GetTransform() };
 
@@ -130,27 +121,6 @@ namespace Mikoto {
                 .IndexBufferData = s_QuadData->IndexBufferData,
 
                 .TransformData{ .ProjectionView = cameraViewProj , .Transform = transform},
-                .Color = color,
-        };
-
-        // Render
-        RenderCommand::Draw(data);
-
-        // Rendering Stats management
-        s_RenderingStats->IncrementQuadCount(1);
-        // We increment the number of draw calls because for now
-        // The RenderCommand directly flushes the draw call
-        s_RenderingStats->IncrementDrawCallCount(1);
-    }
-
-    auto Renderer::SubmitQuad(const glm::mat4 &transform, const glm::vec4 &color, const std::shared_ptr<Texture> &texture) -> void {
-        glm::mat4 cameraViewProj{ s_QuadData->SceneCamera->GetProjection() * glm::inverse(s_QuadData->SceneCamera->GetTransform()) };
-
-        DrawData data{
-                .VertexBufferData = s_QuadData->VertexBufferData,
-                .IndexBufferData = s_QuadData->IndexBufferData,
-                .TextureData = texture,
-                .TransformData{ .ProjectionView = cameraViewProj, .Transform = transform },
                 .Color = color,
         };
 

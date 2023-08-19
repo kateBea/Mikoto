@@ -67,6 +67,9 @@ namespace Mikoto {
          * */
         auto SetTransform(const glm::mat4& transform) -> void;
 
+        auto SetTiltingColor(float red, float green, float blue, float alpha) -> void;
+        auto SetTiltingColor(const glm::vec4& color) -> void;
+
         auto GetPipeline() -> VulkanPipeline& { return *m_Pipeline; }
         auto BindDescriptorSets(VkCommandBuffer commandBuffer) -> void;
         /**

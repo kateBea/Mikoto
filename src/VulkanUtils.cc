@@ -78,8 +78,12 @@ namespace Mikoto {
             throw std::runtime_error("Failed to allocate VMA Image!");
     }
 
-    auto VulkanUtils::WaitIdle(VkDevice device) -> void {
+    auto VulkanUtils::WaitOnDevice(VkDevice device) -> void {
         vkDeviceWaitIdle(device);
+    }
+
+    auto VulkanUtils::WaitOnQueue(VkQueue queue) -> void {
+        vkQueueWaitIdle(queue);
     }
 
     auto VulkanUtils::SubmitCommandBuffers(const CommandBuffersSubmitInfo& submitInfo) -> VkResult {

@@ -39,6 +39,8 @@ namespace Mikoto {
         auto Draw(const DrawData & data) -> void override;
         auto DrawIndexed(const std::shared_ptr<VertexBuffer> &vertexBuffer, const std::shared_ptr<IndexBuffer> &indexBuffer) -> void;
 
+        auto GetColorAttachment() -> OpenGLFrameBuffer& { return m_DefaultFrameBuffer; }
+
         auto OnEvent(Event& event) -> void override;
 
         KT_NODISCARD auto GetDefaultFrameBuffer() -> OpenGLFrameBuffer& { return m_DefaultFrameBuffer; }

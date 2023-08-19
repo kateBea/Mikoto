@@ -67,7 +67,7 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::Shutdown() -> void {
-        VulkanUtils::WaitIdle(VulkanContext::GetPrimaryLogicalDevice());
+        VulkanUtils::WaitOnDevice(VulkanContext::GetPrimaryLogicalDevice());
 
         m_CommandPool->OnRelease();
         m_DefaultMaterial->OnRelease();
@@ -124,7 +124,8 @@ namespace Mikoto {
         std::dynamic_pointer_cast<VulkanVertexBuffer>(mesh.GetVertexBuffer())->Bind(m_DrawCommandBuffer.Get());
 
         // Draw call command
-        vkCmdDrawIndexed(m_DrawCommandBuffer.Get(), std::dynamic_pointer_cast<VulkanIndexBuffer>(mesh.GetIndexBuffer())->GetCount(), 1, 0, 0, 0);
+        UInt32_T indexCount{ (UInt32_T)std::dynamic_pointer_cast<VulkanIndexBuffer>(mesh.GetIndexBuffer())->GetCount() };
+        vkCmdDrawIndexed(m_DrawCommandBuffer.Get(), indexCount, 1, 0, 0, 0);
 
         // End Render pass commands recording
         vkCmdEndRenderPass(m_DrawCommandBuffer.Get());
@@ -140,6 +141,7 @@ namespace Mikoto {
         if (data.ModelData)
             DrawFrame(*data.ModelData);
         else {
+            m_DefaultMaterial->UploadUniformBuffers();
             m_DrawCommandBuffer.BeginRecording();
 
             VkRenderPassBeginInfo renderPassInfo{};
@@ -163,6 +165,13 @@ namespace Mikoto {
             m_DefaultMaterial->GetPipeline().Bind(m_DrawCommandBuffer.Get());
             m_DefaultMaterial->BindDescriptorSets(m_DrawCommandBuffer.Get());
 
+            // Bind vertex and index buffers
+            std::dynamic_pointer_cast<VulkanVertexBuffer>(data.VertexBufferData)->Bind(m_DrawCommandBuffer.Get());
+            std::dynamic_pointer_cast<VulkanIndexBuffer>(data.IndexBufferData)->Bind(m_DrawCommandBuffer.Get());
+
+            // Draw call command
+            vkCmdDrawIndexed(m_DrawCommandBuffer.Get(), std::dynamic_pointer_cast<VulkanIndexBuffer>(data.IndexBufferData)->GetCount(), 1, 0, 0, 0);
+
             // End Render pass commands recording
             vkCmdEndRenderPass(m_DrawCommandBuffer.Get());
 
@@ -171,6 +180,16 @@ namespace Mikoto {
 
             SubmitToQueue();
         }
+    }
+
+    auto VulkanRenderer::OnFramebufferResize(UInt32_T width, UInt32_T height) -> void {
+        m_OffscreenExtent.width = width;
+        m_OffscreenExtent.height = height;
+
+        VulkanUtils::WaitOnDevice(VulkanContext::GetPrimaryLogicalDevice());
+
+        CreateAttachments();
+        CreateFrameBuffers();
     }
 
     auto VulkanRenderer::OnEvent(Event& event) -> void {
@@ -252,6 +271,9 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::CreateFrameBuffers() -> void {
+        if (m_OffscreenPrepareFinished)
+            m_OffscreenFrameBuffer.OnRelease();
+
         std::array<VkImageView, 2> attachments{ m_OffscreenColorAttachment.GetView(), m_OffscreenDepthAttachment.GetView() };
 
         VkFramebufferCreateInfo createInfo{};
@@ -259,8 +281,8 @@ namespace Mikoto {
         createInfo.pNext = nullptr;
         createInfo.renderPass = m_OffscreenMainRenderPass;
 
-        createInfo.width = DEFAULT_FRAMEBUFFER_WIDTH;
-        createInfo.height = DEFAULT_FRAMEBUFFER_HEIGHT;
+        createInfo.width = m_OffscreenExtent.width;
+        createInfo.height = m_OffscreenExtent.height;
         createInfo.layers = 1;
 
         createInfo.attachmentCount = static_cast<UInt32_T>(attachments.size());
@@ -288,8 +310,10 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::CreateAttachments() -> void {
-        m_OffscreenExtent.width = DEFAULT_FRAMEBUFFER_WIDTH;
-        m_OffscreenExtent.height = DEFAULT_FRAMEBUFFER_HEIGHT;
+        if (m_OffscreenPrepareFinished) {
+            m_OffscreenColorAttachment.OnRelease();
+            m_OffscreenDepthAttachment.OnRelease();
+        }
 
         // Color Buffer attachment
         VkImageCreateInfo colorAttachmentCreateInfo{};
@@ -366,6 +390,9 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::PrepareOffscreen() -> void {
+        m_OffscreenExtent.width = 1920;
+        m_OffscreenExtent.height = 1032;
+
         m_ColorAttachmentFormat = VulkanContext::FindSupportedFormat(
                 VulkanContext::GetPrimaryPhysicalDevice(),
                 { VK_FORMAT_D32_SFLOAT, VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_SRGB },
@@ -382,10 +409,12 @@ namespace Mikoto {
         CreateAttachments();
         CreateFrameBuffers();
 
-        UpdateViewport(0, 0, DEFAULT_FRAMEBUFFER_WIDTH, DEFAULT_FRAMEBUFFER_HEIGHT);
-        UpdateScissor(0, 0, { DEFAULT_FRAMEBUFFER_WIDTH, DEFAULT_FRAMEBUFFER_HEIGHT });
+        UpdateViewport(0, 0, m_OffscreenExtent.width, m_OffscreenExtent.height);
+        UpdateScissor(0, 0, { m_OffscreenExtent.width, m_OffscreenExtent.height });
 
         CreateSynchronizationObjects();
+
+        m_OffscreenPrepareFinished = true;
     }
 
     auto VulkanRenderer::SubmitToQueue() -> void {
@@ -418,7 +447,7 @@ namespace Mikoto {
         if (vkQueueSubmit(VulkanContext::GetPrimaryLogicalDeviceGraphicsQueue(), 1, &submitInfo, nullptr) != VK_SUCCESS)
             throw std::runtime_error("failed to submit draw command buffer!");
 
-        VulkanUtils::WaitIdle(VulkanContext::GetPrimaryLogicalDevice());
+        VulkanUtils::WaitOnQueue(VulkanContext::GetPrimaryLogicalDeviceGraphicsQueue());
     }
 
     auto VulkanRenderer::CreateSynchronizationObjects() -> void {

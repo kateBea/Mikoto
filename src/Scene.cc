@@ -52,12 +52,11 @@ namespace Mikoto {
         if (sceneHasMainCam) {
             // Render stuff if the scene has a camera
             ScenePrepareData prepareData{};
-
             prepareData.SceneCamera = mainCam;
 
-            Renderer::BeginScene(prepareData);
-
             auto view{ m_Registry.view<TagComponent, TransformComponent, SpriteRendererComponent>() };
+
+            Renderer::BeginScene(prepareData);
 
             for (const auto& entity : view) {
                 TagComponent& tag{ view.get<TagComponent>(entity) };
@@ -68,6 +67,7 @@ namespace Mikoto {
                 // Right if an object is on top of another but it is rendered after before blending does not work
                 Renderer::SubmitQuad(transform.GetTransform(), sprite.GetColor());
             }
+
             Renderer::EndScene();
         }
     }

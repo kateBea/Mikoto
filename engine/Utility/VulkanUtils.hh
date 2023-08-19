@@ -83,7 +83,13 @@ namespace Mikoto {
          * Wait on the host for the completion of outstanding queue operations for all queues the given device
          * @param device logical device to wait on
          * */
-        static auto WaitIdle(VkDevice device) -> void;
+        static auto WaitOnDevice(VkDevice device) -> void;
+
+        /**
+         * Wait on the specified queue to finish commands execution
+         * @param device queue to wait on
+         * */
+        static auto WaitOnQueue(VkQueue queue) -> void;
 
         /**
          * @param submitInfo

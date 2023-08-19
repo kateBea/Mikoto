@@ -26,8 +26,6 @@ namespace Mikoto {
         float ViewPortWidth{};
         float ViewPortHeight{};
 
-        // TODO: remove, port to the opengl renderer (only relevant here when rendering with opengl)
-        std::shared_ptr<FrameBuffer> SceneFrameBuffer{};
         std::shared_ptr<Scene> Viewport{};
     };
 

@@ -18,13 +18,17 @@
 
 namespace Mikoto {
     auto OpenGLRenderer::SetClearColor(float red, float green, float blue, float alpha) -> void {
+        m_DefaultFrameBuffer.Bind();
         glClearColor(red, green, blue, alpha);
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+        m_DefaultFrameBuffer.Unbind();
     }
 
     auto OpenGLRenderer::SetClearColor(const glm::vec4 &color) -> void {
+        m_DefaultFrameBuffer.Bind();
         glClearColor(color.r, color.g, color.b, color.a);
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+        m_DefaultFrameBuffer.Unbind();
     }
 
     auto OpenGLRenderer::SetViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void {

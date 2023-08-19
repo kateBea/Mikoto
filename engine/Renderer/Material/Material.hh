@@ -23,7 +23,7 @@ namespace Mikoto {
             COUNT,
         };
 
-        explicit Material(std::string_view name = "Base Material", Type type = Type::STANDARD) : m_Name{ name }, m_Type{ type } {}
+        explicit Material(std::string_view name = "Base Material", Type type = Type::STANDARD) : m_Type{ type }, m_Name{ name }{}
 
         Material(const Material& other) = default;
         Material(Material&& other) = default;
@@ -37,9 +37,10 @@ namespace Mikoto {
         KT_NODISCARD static auto Create(Type matType) -> std::shared_ptr<Material>;
 
         virtual ~Material() = default;
+
     private:
-        std::string m_Name{};
         Type m_Type{};
+        std::string m_Name{};
     };
 }
 

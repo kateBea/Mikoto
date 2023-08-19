@@ -19,7 +19,7 @@ namespace Mikoto {
     }
 
     auto OpenGLDefaultMaterial::UnbindTexture() -> void {
-
+        m_Texture->Unbind();
     }
 
     auto OpenGLDefaultMaterial::UploadShaders(const Path_T &vertexShader, const Path_T &fragmentShader) -> void {
@@ -56,5 +56,11 @@ namespace Mikoto {
         m_DefaultVertexPixelShaders->SetUniformMat4("u_ProjectionView", m_ProjectionView);
         m_DefaultVertexPixelShaders->SetUniformVec4("u_Color", m_Color);
 
+    }
+
+    OpenGLDefaultMaterial::OpenGLDefaultMaterial()
+        :   Material{ "OpenGL Default Material" }
+    {
+        UploadShaders("../assets/shaders/debugShaderVert.glsl", "../assets/shaders/debugShaderFrag.glsl");
     }
 }

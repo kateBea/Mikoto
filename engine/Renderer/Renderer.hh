@@ -21,7 +21,6 @@
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
 
-
 namespace Mikoto {
     class Renderer {
     public:
@@ -32,20 +31,13 @@ namespace Mikoto {
         static auto EndScene() -> void;
 
         static auto Submit(const DrawData & data) -> void;
-        static auto Flush() -> void;
+        static auto SubmitQuad(const glm::mat4 &transform, const glm::vec4 &color, std::shared_ptr<Material> material) -> void;
 
+        static auto Flush() -> void;
         static auto OnEvent(Event &event) -> void;
 
         KT_NODISCARD static auto GetActiveGraphicsAPI() -> GraphicsAPI { return s_ActiveAPI;  }
-        KT_NODISCARD static auto GetRendererAPIActive() -> RendererAPI* { return s_ActiveRendererAPI;  }
-
-        /*************************************************************
-        * FOR 2D DRAWING
-        * ********************************************************+ */
-
-
-        static auto SubmitQuad(const glm::mat4& transform, const glm::vec4& color) -> void;
-        static auto SubmitQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color, double angle) -> void;
+        KT_NODISCARD static auto GetActiveGraphicsAPIPtr() -> RendererAPI* { return s_ActiveRendererAPI;  }
 
         KT_NODISCARD static auto QueryDrawCallsCount() -> UInt32_T { return s_SavedSceneStats->GetDrawCallsCount(); }
         KT_NODISCARD static auto QueryQuadCount() -> UInt32_T { return s_SavedSceneStats->GetQuadCount(); }
@@ -53,12 +45,20 @@ namespace Mikoto {
         KT_NODISCARD static auto QueryVertexCount() -> UInt32_T { return s_SavedSceneStats->GetVertexCount(); }
 
     public:
-        // Forbidden operations
+        /*************************************************************
+        * DELETED OPERATIONS
+        * ***********************************************************/
         Renderer(const Renderer&) = delete;
         auto operator=(const Renderer&) -> Renderer& = delete;
 
         Renderer(Renderer&&) = delete;
         auto operator=(Renderer&&) -> Renderer& = delete;
+    private:
+        /*************************************************************
+        * HELPERS
+        * ***********************************************************/
+        static auto PickGraphicsAPI() -> void;
+
     private:
         // States the active Graphics Rendering API for the current window.
         // For the time being, we only have one main window, therefore, this attribute is going
@@ -66,40 +66,6 @@ namespace Mikoto {
         // have more than one Renderer API specific active
         inline static GraphicsAPI s_ActiveAPI{ GraphicsAPI::VULKAN_API };
 
-        static auto PickGraphicsAPI() -> void;
-    private:
-        // For 2D rendering
-        struct RenderingStats {
-            explicit RenderingStats() = default;
-            RenderingStats(const RenderingStats& other) = default;
-
-            KT_NODISCARD auto GetQuadCount() const -> UInt32_T { return m_QuadCount; }
-            KT_NODISCARD auto GetDrawCallsCount() const -> UInt32_T { return m_DrawCallsCount; }
-
-            // This value is fixed since all quads need four vertices at most
-            KT_NODISCARD auto GetVertexCount() const -> UInt32_T { return m_QuadCount * 4; }
-            // This value is fixed since all quads need six indices at most
-            KT_NODISCARD auto GetIndexCount() const -> UInt32_T { return m_QuadCount * 6; }
-
-            auto IncrementDrawCallCount(UInt32_T value) { m_DrawCallsCount += value; }
-            auto IncrementQuadCount(UInt32_T value) { m_QuadCount += value; }
-
-            auto Reset() -> void {
-                m_DrawCallsCount = 0;
-                m_QuadCount = 0;
-            }
-
-            UInt32_T m_DrawCallsCount{};
-            UInt32_T m_QuadCount{};
-        };
-
-        struct RendererDrawData {
-            std::shared_ptr<VertexBuffer> VertexBufferData{};
-            std::shared_ptr<IndexBuffer> IndexBufferData{};
-            std::shared_ptr<Camera> SceneCamera{};
-        };
-
-    private:
         inline static RendererAPI* s_ActiveRendererAPI{ nullptr };
 
         inline static std::unique_ptr<RendererDrawData> s_DrawData{};

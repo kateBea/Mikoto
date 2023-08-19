@@ -101,4 +101,8 @@ namespace Mikoto {
         KATE_APP_LOGGER_INFO("Deleting OpenGLTexture2D. Id {}", GetId());
         glDeleteTextures(1, &m_Id);
     }
+
+    auto OpenGLTexture2D::Unbind() -> void {
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 }

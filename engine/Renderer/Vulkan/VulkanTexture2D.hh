@@ -3,8 +3,8 @@
  * Created by kate on 7/5/2023.
  * */
 
-#ifndef KATE_ENGINE_VULKAN_TEXTURE2D_HH
-#define KATE_ENGINE_VULKAN_TEXTURE2D_HH
+#ifndef MIKOTO_VULKAN_TEXTURE2D_HH
+#define MIKOTO_VULKAN_TEXTURE2D_HH
 
 // C++ Standard Library
 #include <filesystem>
@@ -45,8 +45,6 @@ namespace Mikoto {
         KT_NODISCARD auto GetImageSampler() const -> VkSampler { return m_TextureSampler; }
         KT_NODISCARD auto GetImage() const -> VkImage { return m_TextureImage; }
 
-        auto Bind(UInt32_T slot) -> void override {}
-
         auto OnRelease() const -> void;
     private:
         auto LoadImageData(const Path_T& path) -> void;
@@ -77,5 +75,4 @@ namespace Mikoto {
     };
 }
 
-
-#endif //KATE_ENGINE_VULKAN_TEXTURE2D_HH
+#endif // MIKOTO_VULKAN_TEXTURE2D_HH

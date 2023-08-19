@@ -46,7 +46,8 @@ namespace Mikoto {
 
         KT_NODISCARD auto GetTextureFileData() const -> stbi_uc* { return m_TextureFileData; }
 
-        auto Bind(UInt32_T slot) -> void override;
+        auto Unbind() -> void;
+        auto Bind(UInt32_T slot) -> void;
 
         ~OpenGLTexture2D() override;
     public:

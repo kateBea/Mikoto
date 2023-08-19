@@ -37,18 +37,50 @@ namespace Mikoto {
 
     struct DrawData {
         std::shared_ptr<Model> ModelData{};
+        std::shared_ptr<Camera> CameraData{};
+        glm::vec4 Color{};
+
+        // TODO: deleted eventually, already contained within the model
         std::shared_ptr<VertexBuffer> VertexBufferData{};
         std::shared_ptr<IndexBuffer> IndexBufferData{};
+
         std::shared_ptr<Material> MaterialData{};
-        std::shared_ptr<Texture> TextureData{};
-        std::shared_ptr<Camera> Camera{};
         UniformTransformData TransformData{};
-        glm::vec4 Color{};
     };
 
     enum class GraphicsAPI {
         OPENGL_API,
         VULKAN_API,
+    };
+
+    struct RenderingStats {
+        explicit RenderingStats() = default;
+        RenderingStats(const RenderingStats& other) = default;
+
+        KT_NODISCARD auto GetQuadCount() const -> UInt32_T { return m_QuadCount; }
+        KT_NODISCARD auto GetDrawCallsCount() const -> UInt32_T { return m_DrawCallsCount; }
+
+        // This value is fixed since all quads need four vertices at most
+        KT_NODISCARD auto GetVertexCount() const -> UInt32_T { return m_QuadCount * 4; }
+        // This value is fixed since all quads need six indices at most
+        KT_NODISCARD auto GetIndexCount() const -> UInt32_T { return m_QuadCount * 6; }
+
+        auto IncrementDrawCallCount(UInt32_T value) { m_DrawCallsCount += value; }
+        auto IncrementQuadCount(UInt32_T value) { m_QuadCount += value; }
+
+        auto Reset() -> void {
+            m_DrawCallsCount = 0;
+            m_QuadCount = 0;
+        }
+
+        UInt32_T m_DrawCallsCount{};
+        UInt32_T m_QuadCount{};
+    };
+
+    struct RendererDrawData {
+        std::shared_ptr<VertexBuffer> VertexBufferData{};
+        std::shared_ptr<IndexBuffer> IndexBufferData{};
+        std::shared_ptr<Camera> SceneCamera{};
     };
 }
 

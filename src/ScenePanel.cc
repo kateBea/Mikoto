@@ -19,7 +19,7 @@ namespace Mikoto {
         :   Panel{ iconPath }, m_Visible{ true }, m_Hovered{ false }, m_Focused{ false }, m_Data{ data }
     {
         if (Renderer::GetActiveGraphicsAPI() == GraphicsAPI::VULKAN_API) {
-            m_SceneRendererVk = dynamic_cast<VulkanRenderer*>(Renderer::GetRendererAPIActive());
+            m_SceneRendererVk = dynamic_cast<VulkanRenderer*>(Renderer::GetActiveGraphicsAPIPtr());
 
             // Create Sampler
             VkSamplerCreateInfo samplerCreateInfo{};
@@ -40,7 +40,7 @@ namespace Mikoto {
             m_DescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(m_ColorAttachmentSampler, m_SceneRendererVk->GetOffscreenColorAttachmentImage(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         }
         else {
-            m_SceneRendererOGL = dynamic_cast<OpenGLRenderer*>(Renderer::GetRendererAPIActive());
+            m_SceneRendererOGL = dynamic_cast<OpenGLRenderer*>(Renderer::GetActiveGraphicsAPIPtr());
         }
     }
 

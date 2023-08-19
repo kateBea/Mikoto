@@ -12,9 +12,6 @@ namespace Mikoto {
     public:
         Texture() = default;
         virtual ~Texture() = default;
-
-        // Move to opengl textures
-        virtual auto Bind(UInt32_T slot = 0) -> void = 0;
     };
 }
 

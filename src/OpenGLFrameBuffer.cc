@@ -62,12 +62,6 @@ namespace Mikoto {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    OpenGLFrameBuffer::~OpenGLFrameBuffer() {
-        glDeleteFramebuffers(1, &m_Id);
-        glDeleteTextures(1, &m_ColorAttachment);
-        glDeleteTextures(1, &m_DepthAttachment);
-    }
-
     auto OpenGLFrameBuffer::Resize(UInt32_T width, UInt32_T height) -> void {
         m_FrameBufferCreateInfo.width = width;
         m_FrameBufferCreateInfo.height = height;
@@ -78,5 +72,11 @@ namespace Mikoto {
         m_FrameBufferCreateInfo = properties;
 
         Recreate();
+    }
+
+    auto OpenGLFrameBuffer::OnRelease() const -> void {
+        glDeleteFramebuffers(1, &m_Id);
+        glDeleteTextures(1, &m_ColorAttachment);
+        glDeleteTextures(1, &m_DepthAttachment);
     }
 }

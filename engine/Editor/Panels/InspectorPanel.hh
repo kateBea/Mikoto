@@ -2,8 +2,8 @@
 // Created by kate on 6/25/23.
 //
 
-#ifndef KATE_ENGINE_INSPECTORPANEL_HH
-#define KATE_ENGINE_INSPECTORPANEL_HH
+#ifndef MIKOTO_INSPECTOR_PANEL_HH
+#define MIKOTO_INSPECTOR_PANEL_HH
 
 #include <memory>
 
@@ -48,4 +48,4 @@ namespace Mikoto {
 }
 
 
-#endif//KATE_ENGINE_INSPECTORPANEL_HH
+#endif // MIKOTO_INSPECTOR_PANEL_HH

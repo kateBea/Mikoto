@@ -32,7 +32,7 @@ namespace Mikoto {
         KT_ASSERT(m_CommandPool, "Command Pool pointer is NULL");
         m_CommandPool->OnCreate(VkCommandPoolCreateInfo());
 
-        m_ClearValues[0].color = { 0.2f, 0.2f, 0.2f, 1.0f };
+        m_ClearValues[0].color = { { 0.2f, 0.2f, 0.2f, 1.0f } };
         m_ClearValues[1].depthStencil = { 1.0f, 0 };
 
         m_DefaultMaterial = std::make_shared<VulkanStandardMaterial>();
@@ -55,11 +55,11 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::SetClearColor(const glm::vec4 &color) -> void {
-        m_ClearValues[0].color = { color.r, color.g, color.b, color.a };
+        m_ClearValues[0].color = { { color.r, color.g, color.b, color.a } };
     }
 
     auto VulkanRenderer::SetClearColor(float red, float green, float blue, float alpha) -> void {
-        m_ClearValues[0].color = { red, green, blue, alpha };
+        m_ClearValues[0].color = { { red, green, blue, alpha } };
     }
 
     auto VulkanRenderer::SetViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void {
@@ -413,6 +413,7 @@ namespace Mikoto {
         UpdateScissor(0, 0, { m_OffscreenExtent.width, m_OffscreenExtent.height });
 
         CreateSynchronizationObjects();
+        InitializeMaterialSpecificData();
 
         m_OffscreenPrepareFinished = true;
     }
@@ -464,5 +465,34 @@ namespace Mikoto {
         {
             throw std::runtime_error("failed to create synchronization objects");
         }
+    }
+
+    auto VulkanRenderer::InitializeMaterialSpecificData() -> void {
+        // DEFAULT MATERIAL DATA INITIALIZATION
+        MaterialSharedSpecificData defaultMaterial{};
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount = 0;
+        pipelineLayoutInfo.pSetLayouts = nullptr;
+        pipelineLayoutInfo.pushConstantRangeCount = 0;
+        pipelineLayoutInfo.pPushConstantRanges = nullptr;
+
+        // use dynamic descriptor sets
+        pipelineLayoutInfo.setLayoutCount = 0;
+        pipelineLayoutInfo.pSetLayouts = nullptr;
+
+        if (vkCreatePipelineLayout(VulkanContext::GetPrimaryLogicalDevice(), &pipelineLayoutInfo, nullptr, &defaultMaterial.MaterialPipelineLayout) != VK_SUCCESS)
+            throw std::runtime_error("Failed to create pipeline layout");
+
+        auto pipelineConfig{ VulkanPipeline::GetDefaultPipelineConfigInfo() };
+        pipelineConfig.RenderPass = m_OffscreenMainRenderPass;
+        pipelineConfig.PipelineLayout = defaultMaterial.MaterialPipelineLayout;
+
+        defaultMaterial.Pipeline = std::make_shared<VulkanPipeline>("../assets/shaders/vulkan-spirv/basicVert.sprv", "../assets/shaders/vulkan-spirv/basicFrag.sprv", pipelineConfig);
+
+        m_MaterialInfo.insert(std::make_pair("VulkanStandardMaterial", defaultMaterial));
+
+        // WIREFRAME MATERIAL DATA INITIALIZATION
     }
 }

@@ -1,23 +1,26 @@
-//
-// Created by kate on 6/24/23.
-//
+/**
+ * Component.hh
+ * Created by kate on 6/24/23.
+ * */
 
-#ifndef KATE_ENGINE_COMPONENT_HH
-#define KATE_ENGINE_COMPONENT_HH
+#ifndef MIKOTO_COMPONENT_HH
+#define MIKOTO_COMPONENT_HH
 
+// C++ Standard Library
 #include <functional>
 #include <string>
 
+// Third-Party Libraries
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+// Project Headers
 #include <Utility/Common.hh>
-
 #include <Core/Assert.hh>
-
 #include <Scene/SceneCamera.hh>
 #include <Renderer/Mesh.hh>
 #include <Renderer/Model.hh>
+#include <Renderer/RenderingUtilities.hh>
 
 namespace Mikoto {
     class TagComponent {
@@ -102,12 +105,20 @@ namespace Mikoto {
         glm::mat4 m_Transform{};
     };
 
+    /**
+     * For 2D rendering
+     * @deprecated Using RenderObject instead to filter renderables
+     * */
     class SpriteRendererComponent {
     public:
         explicit SpriteRendererComponent() = default;
 
-        explicit SpriteRendererComponent(const glm::vec4& color) {
+        explicit SpriteRendererComponent(const glm::vec4& color, const DrawData& drawData = {}) {
             m_Color = color;
+            m_DrawData = drawData;
+
+            if (m_DrawData.MaterialData == nullptr)
+                m_DrawData.MaterialData = Material::Create(Material::Type::STANDARD);
         }
 
         SpriteRendererComponent(const SpriteRendererComponent& other) = default;
@@ -117,13 +128,36 @@ namespace Mikoto {
         auto operator=(SpriteRendererComponent&& other) -> SpriteRendererComponent& = default;
 
         KT_NODISCARD auto GetColor() const -> const glm::vec4& { return m_Color; }
+        KT_NODISCARD auto GetDrawData() -> DrawData& { return m_DrawData; }
 
         auto SetColor(const glm::vec4& value) -> void { m_Color = value; }
 
         ~SpriteRendererComponent() = default;
 
     private:
+        DrawData m_DrawData{};
         glm::vec4 m_Color{};
+    };
+
+    /**
+     * Represents render-able objects
+     * */
+    class Renderable {
+    public:
+        explicit Renderable() = default;
+
+        Renderable(const Renderable& other) = default;
+        Renderable(Renderable&& other) = default;
+
+        auto operator=(const Renderable& other) -> Renderable& = default;
+        auto operator=(Renderable&& other) -> Renderable& = default;
+
+        auto GetDrawData() -> DrawData& { return m_DrawData; }
+
+        ~Renderable() = default;
+
+    private:
+        DrawData m_DrawData{};
     };
 
     class CameraComponent {
@@ -227,4 +261,5 @@ namespace Mikoto {
         std::shared_ptr<Mesh> m_Mesh{};
     };
 }
-#endif//KATE_ENGINE_COMPONENT_HH
+
+#endif // MIKOTO_COMPONENT_HH

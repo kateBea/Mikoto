@@ -9,13 +9,13 @@
 // C++ Standard Library
 #include <array>
 #include <filesystem>
+#include <unordered_map>
 
 // Third-Party Library
 #include <volk.h>
 #include <glm/glm.hpp>
 
 // Project Headers
-#include "VulkanVertexBuffer.hh"
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
 #include <Renderer/Material/Material.hh>
@@ -66,6 +66,17 @@ namespace Mikoto {
             VkFence Fence{};
         };
 
+        /**
+         * This structure will hold data that is necessary for the different types of
+         * materials, but is not necessary to have a duplicate for each one of them. Fo example,
+         * the pipeline for the default material will be shared amongst all default material since
+         * pipelines are expensive to create and makes no sense to have one per material
+         * */
+        struct MaterialSharedSpecificData {
+            VkPipelineLayout MaterialPipelineLayout{};
+            std::shared_ptr<VulkanPipeline> Pipeline{};
+        };
+
     private:
         /*************************************************************
         * HELPERS (Setup offscreen rendering)
@@ -74,6 +85,7 @@ namespace Mikoto {
         auto CreateRenderPass() -> void;
         auto CreateAttachments() -> void;
         auto CreateFrameBuffers() -> void;
+        auto InitializeMaterialSpecificData() -> void;
 
         VkExtent2D m_OffscreenExtent{};
         VkRenderPass m_OffscreenMainRenderPass{};
@@ -112,6 +124,8 @@ namespace Mikoto {
         /*************************************************************
         * PRIVATE MEMBERS
         * ***********************************************************/
+        std::unordered_map<std::string, MaterialSharedSpecificData> m_MaterialInfo{};
+
         std::shared_ptr<VulkanStandardMaterial> m_DefaultMaterial{};
         std::shared_ptr<VulkanCommandPool> m_CommandPool{};
 

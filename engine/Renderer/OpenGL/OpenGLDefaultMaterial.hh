@@ -3,8 +3,8 @@
  * Created by kate on 7/20/2023.
  * */
 
-#ifndef KATE_ENGINE_OPENGL_DEFAULT_MATERIAL_HH
-#define KATE_ENGINE_OPENGL_DEFAULT_MATERIAL_HH
+#ifndef MIKOTO_OPENGL_DEFAULT_MATERIAL_HH
+#define MIKOTO_OPENGL_DEFAULT_MATERIAL_HH
 
 // C++ Standard Library
 #include <memory>
@@ -14,16 +14,20 @@
 
 // Project Headers
 #include <Utility/Common.hh>
-
 #include <Renderer/Material/Material.hh>
 #include <Renderer/OpenGL/OpenGLShader.hh>
 #include <Renderer/OpenGL/OpenGLTexture2D.hh>
 
 namespace Mikoto {
-    //TODO: inherit from common default material
     class OpenGLDefaultMaterial : public Material {
     public:
-        explicit OpenGLDefaultMaterial() : Material{ "OpenGL Default Material" } {}
+        explicit OpenGLDefaultMaterial();
+
+        OpenGLDefaultMaterial(const OpenGLDefaultMaterial& other) = default;
+        OpenGLDefaultMaterial(OpenGLDefaultMaterial&& other) = default;
+
+        auto operator=(const OpenGLDefaultMaterial& other) -> OpenGLDefaultMaterial& = default;
+        auto operator=(OpenGLDefaultMaterial&& other) -> OpenGLDefaultMaterial& = default;
 
         auto BindShader() -> void;
         static auto UnbindShader() -> void;
@@ -55,5 +59,4 @@ namespace Mikoto {
     };
 }
 
-
-#endif //KATE_ENGINE_OPENGL_DEFAULT_MATERIAL_HH
+#endif // MIKOTO_OPENGL_DEFAULT_MATERIAL_HH

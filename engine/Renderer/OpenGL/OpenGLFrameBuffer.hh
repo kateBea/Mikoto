@@ -15,6 +15,7 @@ namespace Mikoto {
     public:
         explicit OpenGLFrameBuffer() = default;
         auto OnCreate(const FrameBufferCreateInfo& properties) -> void;
+        auto OnRelease() const -> void;
 
         auto Bind() -> void;
         auto Unbind() -> void;
@@ -27,7 +28,7 @@ namespace Mikoto {
         KT_NODISCARD auto GetColorAttachmentId() const -> UInt32_T { return m_ColorAttachment; }
         KT_NODISCARD auto GetDepthAttachmentId() const -> UInt32_T { return m_DepthAttachment; }
 
-        ~OpenGLFrameBuffer() override;
+        ~OpenGLFrameBuffer() override = default;
     private:
         UInt32_T m_Id{};
         UInt32_T m_ColorAttachment{};

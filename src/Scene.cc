@@ -4,6 +4,7 @@
  * */
 
 // C++ Standard Library
+#include <memory>
 #include <utility>
 
 // Third-Party Libraries
@@ -40,7 +41,7 @@ namespace Mikoto {
                 sceneHasMainCam = camera.IsMainCamera();
 
                 if (sceneHasMainCam) {
-                    mainCam = std::move(camera.GetCameraPtr());
+                    mainCam = camera.GetCameraPtr();
 
                     // The camera's position and rotation depends on its transform component
                     mainCam->SetPosition(transform.GetTranslation(), transform.GetRotation());
@@ -54,6 +55,7 @@ namespace Mikoto {
             ScenePrepareData prepareData{};
             prepareData.SceneCamera = mainCam;
 
+            // add filter Renderable
             auto view{ m_Registry.view<TagComponent, TransformComponent, SpriteRendererComponent>() };
 
             Renderer::BeginScene(prepareData);
@@ -62,10 +64,11 @@ namespace Mikoto {
                 TagComponent& tag{ view.get<TagComponent>(entity) };
                 TransformComponent& transform{ view.get<TransformComponent>(entity) };
                 SpriteRendererComponent& sprite{ view.get<SpriteRendererComponent>(entity) };
+                DrawData& drawData{ sprite.GetDrawData() };
 
                 // TODO: fix rendering order for blending, objects that are nearer to the camera should be rendered first
-                // Right if an object is on top of another but it is rendered after before blending does not work
-                Renderer::SubmitQuad(transform.GetTransform(), sprite.GetColor());
+                // Right now if an object is on top of another but it is rendered after before blending does not work
+                Renderer::SubmitQuad(transform.GetTransform(), sprite.GetColor(), drawData.MaterialData);
             }
 
             Renderer::EndScene();

@@ -39,7 +39,7 @@ namespace Mikoto {
         m_DefaultFrameBuffer.Bind();
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glEnable(GL_BLEND);
-        m_DefaultMaterial.BindShader();
+        m_CurrentDefaultMaterial->BindShader();
         m_VertexArray.UseVertexBuffer(vertexBuffer);
         std::dynamic_pointer_cast<OpenGLIndexBuffer>(indexBuffer)->Bind();
 
@@ -48,29 +48,29 @@ namespace Mikoto {
     }
 
     auto OpenGLRenderer::Draw(const DrawData& data) -> void {
+        m_CurrentDefaultMaterial = std::dynamic_pointer_cast<OpenGLDefaultMaterial>(data.MaterialData);
 
-        m_DefaultMaterial.SetTiltingColor(data.Color);
-        m_DefaultMaterial.SetProjectionView(data.TransformData.ProjectionView);
-        m_DefaultMaterial.SetTransform(data.TransformData.Transform);
+        m_CurrentDefaultMaterial->SetTiltingColor(data.Color);
+        m_CurrentDefaultMaterial->SetProjectionView(data.TransformData.ProjectionView);
+        m_CurrentDefaultMaterial->SetTransform(data.TransformData.Transform);
 
-        if (data.TextureData != nullptr) {
-            m_DefaultMaterial.SetTextureSampler(0);
-            std::dynamic_pointer_cast<OpenGLTexture2D>(data.TextureData)->Bind(0);
+        if (m_CurrentDefaultMaterial->GetTexture() != nullptr) {
+            m_CurrentDefaultMaterial->SetTextureSampler(0);
+            std::dynamic_pointer_cast<OpenGLTexture2D>(m_CurrentDefaultMaterial->GetTexture())->Bind(0);
         }
 
         if (data.IndexBufferData != nullptr) {
-            m_DefaultMaterial.UploadUniformBuffersData();
+            m_CurrentDefaultMaterial->UploadUniformBuffersData();
             DrawIndexed(data.VertexBufferData, data.IndexBufferData);
         }
     }
 
     auto OpenGLRenderer::Init() -> void {
-        m_DefaultMaterial.UploadShaders("../assets/shaders/debugShaderVert.glsl", "../assets/shaders/debugShaderFrag.glsl");
         CreateFrameBuffers();
     }
 
     auto OpenGLRenderer::Shutdown() -> void {
-
+        m_DefaultFrameBuffer.OnRelease();
     }
 
     auto OpenGLRenderer::EnableWireframeMode() -> void {

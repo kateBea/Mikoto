@@ -84,44 +84,15 @@ namespace Mikoto {
         delete s_ActiveRendererAPI;
     }
 
-    auto Renderer::SubmitQuad(const glm::vec3 &position, const glm::vec2 &size, const glm::vec4 &color, double angle) -> void {
-        glm::mat4 cameraViewProj{ s_DrawData->SceneCamera->GetProjection() * glm::inverse(s_DrawData->SceneCamera->GetTransform()) };
-
-        // Data Setup
-        static constexpr glm::vec3 ZAxis{ 0.0f, 0.0f, 1.0f };
-        static constexpr glm::mat4 IdentityMatrix{ glm::mat4(1.0) };
-
-        glm::mat4 scale{ glm::scale(IdentityMatrix, glm::vec3(size, 1.0f)) };
-        glm::mat4 rotation{ glm::rotate(IdentityMatrix, (float)glm::radians(angle), ZAxis) };
-        glm::mat4 transform{ glm::translate(IdentityMatrix, position) * scale * rotation };
-
-        DrawData data{
-                .VertexBufferData = s_QuadData->VertexBufferData,
-                .IndexBufferData = s_QuadData->IndexBufferData,
-
-                .TransformData{ .ProjectionView = cameraViewProj, .Transform = transform },
-                .Color = color,
-        };
-
-        // Render
-        RenderCommand::Draw(data);
-
-        // Rendering Stats management
-        s_RenderingStats->IncrementQuadCount(1);
-        // We increment the number of draw calls because for now
-        // The RenderCommand directly flushes the draw call
-        s_RenderingStats->IncrementDrawCallCount(1);
-    }
-
-    auto Renderer::SubmitQuad(const glm::mat4 &transform, const glm::vec4 &color) -> void {
+    auto Renderer::SubmitQuad(const glm::mat4 &transform, const glm::vec4& color, std::shared_ptr<Material> material) -> void {
         glm::mat4 cameraViewProj{ s_DrawData->SceneCamera->GetProjection() * s_DrawData->SceneCamera->GetTransform() };
 
         DrawData data{
+                .Color = color,
                 .VertexBufferData = s_QuadData->VertexBufferData,
                 .IndexBufferData = s_QuadData->IndexBufferData,
-
-                .TransformData{ .ProjectionView = cameraViewProj , .Transform = transform},
-                .Color = color,
+                .MaterialData = std::move(material),
+                .TransformData{ .ProjectionView = cameraViewProj , .Transform = transform },
         };
 
         // Render

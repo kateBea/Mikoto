@@ -77,7 +77,7 @@ namespace Mikoto {
          * */
         auto UploadUniformBuffers() -> void;
 
-        // SEPARATE TO A DIFERENT PIPELINE THAT WILL BE PART OF THE RENDERER
+        // SEPARATE TO A DIFFERENT PIPELINE THAT WILL BE PART OF THE RENDERER
         auto EnableWireframe() -> void;
         auto DisableWireframe() -> void;
 
@@ -101,13 +101,12 @@ namespace Mikoto {
         VkDescriptorSetLayout m_DescriptorSetLayout{};
         VkDescriptorPool m_DescriptorPool{};
         VkDescriptorSet m_DescriptorSet{};
-        VkCommandBuffer m_CommandBuffers{};
         VkRenderPass m_RenderPass{};
 
         std::shared_ptr<VulkanPipeline> m_Pipeline{};
-        std::shared_ptr<VulkanShader> m_Shader{};
         std::shared_ptr<VulkanTexture2D> m_Texture{};
         UniformTransformData m_Transform{};
+        glm::vec4 m_Color{};
     };
 }
 

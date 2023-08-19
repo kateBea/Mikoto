@@ -227,13 +227,13 @@ namespace Mikoto {
     }
 
     auto VulkanStandardMaterial::SetTiltingColor(float red, float green, float blue, float alpha) -> void {
-        //m_UniformBufferData.Color.r = red;
-        //m_UniformBufferData.Color.g = green;
-        //m_UniformBufferData.Color.b = blue;
-        //m_UniformBufferData.Color.a = alpha;
+        m_Color.r = red;
+        m_Color.g = green;
+        m_Color.b = blue;
+        m_Color.a = alpha;
     }
 
     auto VulkanStandardMaterial::SetTiltingColor(const glm::vec4& color) -> void {
-        //m_UniformBufferData.Color = color;
+        m_Color = color;
     }
 }

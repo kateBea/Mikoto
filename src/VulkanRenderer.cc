@@ -35,23 +35,16 @@ namespace Mikoto {
         m_ClearValues[0].color = { { 0.2f, 0.2f, 0.2f, 1.0f } };
         m_ClearValues[1].depthStencil = { 1.0f, 0 };
 
-        m_DefaultMaterial = std::make_shared<VulkanStandardMaterial>();
-
         PrepareOffscreen();
         CreateCommandBuffers();
-
-        VulkanStandardMaterialCreateInfo createInfo{};
-        createInfo.RenderPass = m_OffscreenMainRenderPass;
-
-        m_DefaultMaterial->OnCreate(createInfo);
     }
 
     auto VulkanRenderer::EnableWireframeMode() -> void {
-        m_DefaultMaterial->EnableWireframe();
+
     }
 
     auto VulkanRenderer::DisableWireframeMode() -> void {
-        m_DefaultMaterial->DisableWireframe();
+
     }
 
     auto VulkanRenderer::SetClearColor(const glm::vec4 &color) -> void {
@@ -70,7 +63,15 @@ namespace Mikoto {
         VulkanUtils::WaitOnDevice(VulkanContext::GetPrimaryLogicalDevice());
 
         m_CommandPool->OnRelease();
-        m_DefaultMaterial->OnRelease();
+
+        auto standardMatInfo{ m_MaterialInfo[std::string(VulkanStandardMaterial::GetStandardMaterialName())] };
+        vkDestroyDescriptorSetLayout(VulkanContext::GetPrimaryLogicalDevice(), standardMatInfo.DescriptorSetLayout, nullptr);
+
+        // Release material data
+        for (auto& [materialName, materialData] : m_MaterialInfo) {
+            vkDestroyPipelineLayout(VulkanContext::GetPrimaryLogicalDevice(), materialData.MaterialPipelineLayout, nullptr);
+            materialData.Pipeline->OnRelease();
+        }
     }
 
     auto VulkanRenderer::CreateCommandBuffers() -> void {
@@ -87,15 +88,18 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::DrawFrame(const Model& model) -> void {
-        m_DefaultMaterial->UploadUniformBuffers();
+        // choose material
+        m_ActiveDefaultMaterial->UploadUniformBuffers();
 
+        // build commands
         for (const auto& mesh : model.GetMeshes())
-            RecordMainRenderPassCommands(mesh);
+            RecordMeshDrawCommands(mesh);
 
+        // submit commands for execution
         SubmitToQueue();
     }
 
-    auto VulkanRenderer::RecordMainRenderPassCommands(const Mesh &mesh) -> void {
+    auto VulkanRenderer::RecordMeshDrawCommands(const Mesh &mesh) -> void {
         m_DrawCommandBuffer.BeginRecording();
 
         VkRenderPassBeginInfo renderPassInfo{};
@@ -116,8 +120,8 @@ namespace Mikoto {
         vkCmdSetScissor(m_DrawCommandBuffer.Get(), 0, 1, &m_Scissor);
 
         // Bind material Pipeline and Descriptors
-        m_DefaultMaterial->GetPipeline().Bind(m_DrawCommandBuffer.Get());
-        m_DefaultMaterial->BindDescriptorSets(m_DrawCommandBuffer.Get());
+        m_MaterialInfo[m_ActiveDefaultMaterial->GetName()].Pipeline->Bind(m_DrawCommandBuffer.Get());
+        m_ActiveDefaultMaterial->BindDescriptorSet(m_DrawCommandBuffer.Get(), m_MaterialInfo[m_ActiveDefaultMaterial->GetName()].MaterialPipelineLayout);
 
         // Bind vertex and index buffers
         std::dynamic_pointer_cast<VulkanIndexBuffer>(mesh.GetIndexBuffer())->Bind(m_DrawCommandBuffer.Get());
@@ -135,13 +139,15 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::Draw(const DrawData & data) -> void {
-        m_DefaultMaterial->SetProjectionView(data.TransformData.ProjectionView);
-        m_DefaultMaterial->SetTransform(data.TransformData.Transform);
+        m_ActiveDefaultMaterial = std::dynamic_pointer_cast<VulkanStandardMaterial>(data.MaterialData);
+
+        m_ActiveDefaultMaterial->SetProjectionView(data.TransformData.ProjectionView);
+        m_ActiveDefaultMaterial->SetTransform(data.TransformData.Transform);
 
         if (data.ModelData)
             DrawFrame(*data.ModelData);
         else {
-            m_DefaultMaterial->UploadUniformBuffers();
+            m_ActiveDefaultMaterial->UploadUniformBuffers();
             m_DrawCommandBuffer.BeginRecording();
 
             VkRenderPassBeginInfo renderPassInfo{};
@@ -162,8 +168,8 @@ namespace Mikoto {
             vkCmdSetScissor(m_DrawCommandBuffer.Get(), 0, 1, &m_Scissor);
 
             // Bind material Pipeline and Descriptors
-            m_DefaultMaterial->GetPipeline().Bind(m_DrawCommandBuffer.Get());
-            m_DefaultMaterial->BindDescriptorSets(m_DrawCommandBuffer.Get());
+            m_MaterialInfo[m_ActiveDefaultMaterial->GetName()].Pipeline->Bind(m_DrawCommandBuffer.Get());
+            m_ActiveDefaultMaterial->BindDescriptorSet(m_DrawCommandBuffer.Get(), m_MaterialInfo[m_ActiveDefaultMaterial->GetName()].MaterialPipelineLayout);
 
             // Bind vertex and index buffers
             std::dynamic_pointer_cast<VulkanVertexBuffer>(data.VertexBufferData)->Bind(m_DrawCommandBuffer.Get());
@@ -469,30 +475,89 @@ namespace Mikoto {
 
     auto VulkanRenderer::InitializeMaterialSpecificData() -> void {
         // DEFAULT MATERIAL DATA INITIALIZATION
-        MaterialSharedSpecificData defaultMaterial{};
+        const std::string standardMaterialName{ VulkanStandardMaterial::GetStandardMaterialName() };
+        m_MaterialInfo.insert(std::make_pair(standardMaterialName, MaterialSharedSpecificData{}));
+        MaterialSharedSpecificData& defaultMaterial{ m_MaterialInfo[standardMaterialName] };
 
+        // Pipeline layout
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 0;
-        pipelineLayoutInfo.pSetLayouts = nullptr;
         pipelineLayoutInfo.pushConstantRangeCount = 0;
         pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-        // use dynamic descriptor sets
-        pipelineLayoutInfo.setLayoutCount = 0;
-        pipelineLayoutInfo.pSetLayouts = nullptr;
+        // This descriptor set layout is global as in, global to all Standard Materials
+        CreateGlobalDescriptorSetLayoutForStandardMaterial();
+        pipelineLayoutInfo.setLayoutCount = 1;
+        pipelineLayoutInfo.pSetLayouts = &m_MaterialInfo[standardMaterialName].DescriptorSetLayout;
 
         if (vkCreatePipelineLayout(VulkanContext::GetPrimaryLogicalDevice(), &pipelineLayoutInfo, nullptr, &defaultMaterial.MaterialPipelineLayout) != VK_SUCCESS)
             throw std::runtime_error("Failed to create pipeline layout");
 
-        auto pipelineConfig{ VulkanPipeline::GetDefaultPipelineConfigInfo() };
-        pipelineConfig.RenderPass = m_OffscreenMainRenderPass;
-        pipelineConfig.PipelineLayout = defaultMaterial.MaterialPipelineLayout;
+        auto defaultMatPipelineConfig{ VulkanPipeline::GetDefaultPipelineConfigInfo() };
+        defaultMatPipelineConfig.RenderPass = m_OffscreenMainRenderPass;
+        defaultMatPipelineConfig.PipelineLayout = defaultMaterial.MaterialPipelineLayout;
 
-        defaultMaterial.Pipeline = std::make_shared<VulkanPipeline>("../assets/shaders/vulkan-spirv/basicVert.sprv", "../assets/shaders/vulkan-spirv/basicFrag.sprv", pipelineConfig);
+        defaultMaterial.Pipeline = std::make_shared<VulkanPipeline>("../assets/shaders/vulkan-spirv/basicVert.sprv", "../assets/shaders/vulkan-spirv/basicFrag.sprv", defaultMatPipelineConfig);
 
-        m_MaterialInfo.insert(std::make_pair("VulkanStandardMaterial", defaultMaterial));
 
         // WIREFRAME MATERIAL DATA INITIALIZATION
+        const std::string wireframeMaterialName{ "WireframeMaterial" };
+        m_MaterialInfo.insert(std::make_pair(wireframeMaterialName, MaterialSharedSpecificData{}));
+        MaterialSharedSpecificData& wireframeMaterial{ m_MaterialInfo[wireframeMaterialName] };
+
+        // Pipeline layout
+        VkPipelineLayoutCreateInfo wireframePipelineLayoutInfo{};
+        wireframePipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        wireframePipelineLayoutInfo.pushConstantRangeCount = 0;
+        wireframePipelineLayoutInfo.pPushConstantRanges = nullptr;
+
+        // This descriptor set layout is global as in, global to all Standard Materials
+        // For now the wireframe material takes the same descriptor set layout as the standard material
+        wireframePipelineLayoutInfo.setLayoutCount = 1;
+        wireframePipelineLayoutInfo.pSetLayouts = &m_MaterialInfo[standardMaterialName].DescriptorSetLayout;
+
+        if (vkCreatePipelineLayout(VulkanContext::GetPrimaryLogicalDevice(), &wireframePipelineLayoutInfo, nullptr, &wireframeMaterial.MaterialPipelineLayout) != VK_SUCCESS)
+            throw std::runtime_error("Failed to create pipeline layout");
+
+        auto wireframePipelineConfig{ VulkanPipeline::GetDefaultPipelineConfigInfo() };
+
+        constexpr float GPU_STANDARD_LINE_WIDTH{ 1.0f };
+        wireframePipelineConfig.RasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
+        wireframePipelineConfig.RasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+        wireframePipelineConfig.RasterizationInfo.lineWidth = GPU_STANDARD_LINE_WIDTH;
+
+        wireframePipelineConfig.RenderPass = m_OffscreenMainRenderPass;
+        wireframePipelineConfig.PipelineLayout = wireframeMaterial.MaterialPipelineLayout;
+
+        wireframeMaterial.Pipeline = std::make_shared<VulkanPipeline>("../assets/shaders/vulkan-spirv/basicVert.sprv", "../assets/shaders/vulkan-spirv/basicFrag.sprv", wireframePipelineConfig);
+    }
+
+    auto VulkanRenderer::CreateGlobalDescriptorSetLayoutForStandardMaterial() -> void {
+        auto& standardMatInfo{ m_MaterialInfo[std::string(VulkanStandardMaterial::GetStandardMaterialName())] };
+
+        VkDescriptorSetLayoutBinding transformLayoutBinding{};
+        transformLayoutBinding.binding = 0;
+        transformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        transformLayoutBinding.descriptorCount = 1;
+        transformLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        transformLayoutBinding.pImmutableSamplers = nullptr;
+
+        VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+        samplerLayoutBinding.binding = 1;
+        samplerLayoutBinding.descriptorCount = 1;
+        samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        samplerLayoutBinding.pImmutableSamplers = nullptr;
+        samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings{ transformLayoutBinding, samplerLayoutBinding};
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = static_cast<UInt32_T>(bindings.size());
+        layoutInfo.pBindings = bindings.data();
+
+        if (vkCreateDescriptorSetLayout(VulkanContext::GetPrimaryLogicalDevice(), &layoutInfo, nullptr, &standardMatInfo.DescriptorSetLayout) != VK_SUCCESS)
+            throw std::runtime_error("failed to create descriptor set layout!");
+
     }
 }

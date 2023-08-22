@@ -57,13 +57,13 @@ namespace Mikoto {
         explicit RenderingStats() = default;
         RenderingStats(const RenderingStats& other) = default;
 
-        KT_NODISCARD auto GetQuadCount() const -> UInt32_T { return m_QuadCount; }
-        KT_NODISCARD auto GetDrawCallsCount() const -> UInt32_T { return m_DrawCallsCount; }
+        MKT_NODISCARD auto GetQuadCount() const -> UInt32_T { return m_QuadCount; }
+        MKT_NODISCARD auto GetDrawCallsCount() const -> UInt32_T { return m_DrawCallsCount; }
 
         // This value is fixed since all quads need four vertices at most
-        KT_NODISCARD auto GetVertexCount() const -> UInt32_T { return m_QuadCount * 4; }
+        MKT_NODISCARD auto GetVertexCount() const -> UInt32_T { return m_QuadCount * 4; }
         // This value is fixed since all quads need six indices at most
-        KT_NODISCARD auto GetIndexCount() const -> UInt32_T { return m_QuadCount * 6; }
+        MKT_NODISCARD auto GetIndexCount() const -> UInt32_T { return m_QuadCount * 6; }
 
         auto IncrementDrawCallCount(UInt32_T value) { m_DrawCallsCount += value; }
         auto IncrementQuadCount(UInt32_T value) { m_QuadCount += value; }

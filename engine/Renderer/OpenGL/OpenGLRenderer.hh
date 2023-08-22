@@ -63,7 +63,7 @@ namespace Mikoto {
 
         auto OnEvent(Event& event) -> void override;
 
-        KT_NODISCARD auto GetDefaultFrameBuffer() -> OpenGLFrameBuffer& { return m_DefaultFrameBuffer; }
+        MKT_NODISCARD auto GetDefaultFrameBuffer() -> OpenGLFrameBuffer& { return m_DefaultFrameBuffer; }
 
         ~OpenGLRenderer() override = default;
 

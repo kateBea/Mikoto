@@ -38,10 +38,10 @@ namespace Mikoto {
 
         virtual auto Resize(UInt32_T width, UInt32_T height) -> void = 0;
 
-        KT_NODISCARD virtual auto GetFrameBufferProperties() const -> const FrameBufferCreateInfo& = 0;
+        MKT_NODISCARD virtual auto GetFrameBufferProperties() const -> const FrameBufferCreateInfo& = 0;
 
-        KT_NODISCARD static auto CreatFrameBuffer(const FrameBufferCreateInfo& properties) -> std::shared_ptr<FrameBuffer>;
-        KT_NODISCARD static auto CreatFrameBufferRawPtr(const FrameBufferCreateInfo& properties) -> FrameBuffer*;
+        MKT_NODISCARD static auto CreatFrameBuffer(const FrameBufferCreateInfo& properties) -> std::shared_ptr<FrameBuffer>;
+        MKT_NODISCARD static auto CreatFrameBufferRawPtr(const FrameBufferCreateInfo& properties) -> FrameBuffer*;
     };
 }
 

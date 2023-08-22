@@ -34,22 +34,22 @@ namespace Mikoto {
     public:
         explicit MainWindow(const WindowProperties& properties = WindowProperties{});
 
-        KT_NODISCARD auto GetWidth() const -> Int32_T override { return m_Properties.GetWidth(); }
-        KT_NODISCARD auto GetHeight() const -> Int32_T override { return m_Properties.GetHeight(); }
-        KT_NODISCARD auto GetExtent() const -> std::pair<Int32_T, Int32_T> override { return { GetWidth(), GetHeight() }; }
+        MKT_NODISCARD auto GetWidth() const -> Int32_T override { return m_Properties.GetWidth(); }
+        MKT_NODISCARD auto GetHeight() const -> Int32_T override { return m_Properties.GetHeight(); }
+        MKT_NODISCARD auto GetExtent() const -> std::pair<Int32_T, Int32_T> override { return { GetWidth(), GetHeight() }; }
 
         /**
          * Returns a pointer to a structure containing the
          * native Window structure
          * */
-        KT_NODISCARD auto GetNativeWindow() -> std::any override { return m_Window; }
+        MKT_NODISCARD auto GetNativeWindow() -> std::any override { return m_Window; }
 
         auto Init() -> void override;
         auto OnUpdate() -> void override;
         auto ShutDown() -> void override;
         auto SetEventCallback(EventCallbackFunc_T func) -> void override { m_Callback = func; }
 
-        KT_NODISCARD auto IsVSyncEnabled() const -> bool { return RenderContext::IsVSyncActive(); }
+        MKT_NODISCARD auto IsVSyncEnabled() const -> bool { return RenderContext::IsVSyncActive(); }
 
         auto CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface) -> void;
 

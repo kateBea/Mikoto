@@ -22,11 +22,11 @@ namespace Mikoto {
         auto Recreate() -> void;
         auto Resize(UInt32_T width, UInt32_T height) -> void override;
 
-        KT_NODISCARD auto GetId() const -> UInt32_T { return m_Id; }
-        KT_NODISCARD auto GetFrameBufferProperties() const -> const FrameBufferCreateInfo& override { return m_FrameBufferCreateInfo; }
+        MKT_NODISCARD auto GetId() const -> UInt32_T { return m_Id; }
+        MKT_NODISCARD auto GetFrameBufferProperties() const -> const FrameBufferCreateInfo& override { return m_FrameBufferCreateInfo; }
 
-        KT_NODISCARD auto GetColorAttachmentId() const -> UInt32_T { return m_ColorAttachment; }
-        KT_NODISCARD auto GetDepthAttachmentId() const -> UInt32_T { return m_DepthAttachment; }
+        MKT_NODISCARD auto GetColorAttachmentId() const -> UInt32_T { return m_ColorAttachment; }
+        MKT_NODISCARD auto GetDepthAttachmentId() const -> UInt32_T { return m_DepthAttachment; }
 
         ~OpenGLFrameBuffer() override = default;
     private:

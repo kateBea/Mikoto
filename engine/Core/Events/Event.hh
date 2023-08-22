@@ -99,27 +99,27 @@ namespace Mikoto {
          * Returns the type of this event. Can be used to query the type of
          * this event in scenarios where polymorphism is used
          * */
-        KT_NODISCARD virtual auto GetType() const -> EventType = 0;
-        KT_NODISCARD virtual auto GetCategoryFlags() const -> EventCategory { return m_Categories; };
+        MKT_NODISCARD virtual auto GetType() const -> EventType = 0;
+        MKT_NODISCARD virtual auto GetCategoryFlags() const -> EventCategory { return m_Categories; };
 
         /**
          * Returns the string representation of this Event.
          * Mainly for debugging purposes
          * */
-        KT_NODISCARD auto GetNameStr() const -> std::string_view { return ToString(); };
+        MKT_NODISCARD auto GetNameStr() const -> std::string_view { return ToString(); };
 
         /**
          * Tells whether this event has been handled or not
          * @returns true if the event has been handled, false otherwise
          * */
-        KT_NODISCARD auto IsHandled() const -> bool { return m_Handled; }
-        KT_NODISCARD auto IsInCategory(EventCategory cat) const -> bool { return GetCategoryFlags() & cat; }
+        MKT_NODISCARD auto IsHandled() const -> bool { return m_Handled; }
+        MKT_NODISCARD auto IsInCategory(EventCategory cat) const -> bool { return GetCategoryFlags() & cat; }
 
         /**
          * Returns a formatted string representing the data, if any,
          * that this event holds. Used for debugging purposes
          * */
-        KT_NODISCARD virtual auto DisplayData() const -> std::string = 0;
+        MKT_NODISCARD virtual auto DisplayData() const -> std::string = 0;
 
         auto SetHandled(bool value) -> void { m_Handled = value; }
 
@@ -138,7 +138,7 @@ namespace Mikoto {
          * It is to be defined by the type of event that specializes this
          * interface
          * */
-        KT_NODISCARD virtual auto ToString() const -> std::string_view = 0;
+        MKT_NODISCARD virtual auto ToString() const -> std::string_view = 0;
 
         /**
          * In case we want to avoid propagating an Event we mark it as handled.
@@ -185,7 +185,7 @@ namespace Mikoto {
 
         template<typename EventClassType>
             requires HasStaticGetType<EventClassType>
-        KT_NODISCARD auto Forward(EventFunc_T<EventClassType> func) -> bool {
+        MKT_NODISCARD auto Forward(EventFunc_T<EventClassType> func) -> bool {
             if (m_Event.GetType() == EventClassType::GetStaticType()) {
                 m_Event.m_Handled = func(*(static_cast<EventClassType*>(&m_Event)));
                 return true;
@@ -206,7 +206,7 @@ namespace Mikoto {
      * Returns the exact string representation of the given EventType enum
      * @returns EventType string representation
      * */
-    KT_NODISCARD constexpr auto GetEventFormattedStr(EventType type) -> std::string_view {
+    MKT_NODISCARD constexpr auto GetEventFormattedStr(EventType type) -> std::string_view {
         switch(type) {
             case EventType::EMPTY_EVENT: return "EMPTY_EVENT";
 

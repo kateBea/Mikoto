@@ -22,7 +22,7 @@ namespace Mikoto {
         s_DrawData->SceneCamera = prepareData.SceneCamera;
     }
 
-    auto Renderer::Submit(const DrawData & data) -> void {
+    auto Renderer::Submit(const DrawData& data) -> void {
         RenderCommand::Draw(data);
     }
 

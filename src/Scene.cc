@@ -55,7 +55,7 @@ namespace Mikoto {
             ScenePrepareData prepareData{};
             prepareData.SceneCamera = mainCam;
 
-            // add filter Renderable
+            // TODO: add filter Renderable and deprecate SpriteRendererComponent
             auto view{ m_Registry.view<TagComponent, TransformComponent, SpriteRendererComponent>() };
 
             Renderer::BeginScene(prepareData);
@@ -75,11 +75,11 @@ namespace Mikoto {
         }
     }
 
-    auto Scene::CreateEntity(std::string_view entityNameTag, std::shared_ptr<Scene> scene) -> Entity {
-        Entity result{ std::move(scene) };
+    auto Scene::CreateEntity(std::string_view tagName, const std::shared_ptr<Scene>& scene) -> Entity {
+        Entity result{ scene };
 
         // By default, all entities will have a transform component and a tag
-        result.AddComponent<TagComponent>(entityNameTag);
+        result.AddComponent<TagComponent>(tagName);
         result.AddComponent<TransformComponent>(glm::vec3{ 0.0, 0.0, 0.0 },  glm::vec3{ 1.0f, 1.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f });
 
         return result;

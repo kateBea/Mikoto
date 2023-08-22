@@ -23,10 +23,10 @@ namespace Mikoto {
         auto BeginRender() -> void;
         auto EndRender() -> void;
 
-        KT_NODISCARD static auto GetDefaultRenderPassConfig() -> VkRenderPassCreateInfo;
-        KT_NODISCARD auto Get() const -> const VkRenderPass& { return m_RenderPass; }
-        KT_NODISCARD auto GetBeginInfo() const -> const VkRenderPassBeginInfo& { return m_RenderPassInfo; }
-        KT_NODISCARD auto GetCreateInfo() const -> const VkRenderPassCreateInfo& { return m_CreateInfo; }
+        MKT_NODISCARD static auto GetDefaultRenderPassConfig() -> VkRenderPassCreateInfo;
+        MKT_NODISCARD auto Get() const -> const VkRenderPass& { return m_RenderPass; }
+        MKT_NODISCARD auto GetBeginInfo() const -> const VkRenderPassBeginInfo& { return m_RenderPassInfo; }
+        MKT_NODISCARD auto GetCreateInfo() const -> const VkRenderPassCreateInfo& { return m_CreateInfo; }
 
         auto UpdateBeginPassInfo(const VkRenderPassBeginInfo& passInfo) -> void { m_RenderPassInfo = passInfo; }
 

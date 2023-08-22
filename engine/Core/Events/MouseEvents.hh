@@ -27,21 +27,21 @@ namespace Mikoto {
             ,   m_PositionY{ y }
         {}
 
-        KT_NODISCARD auto GetPositionX() const -> double { return m_PositionX; }
-        KT_NODISCARD auto GetPositionY() const -> double { return m_PositionY; }
-        KT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
+        MKT_NODISCARD auto GetPositionX() const -> double { return m_PositionX; }
+        MKT_NODISCARD auto GetPositionY() const -> double { return m_PositionY; }
+        MKT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
 
         /**
          * Useful if we need to query the type of this event.
          * See <code>kT::EventDispatcher</code> for usage
          * */
-        KT_NODISCARD static auto GetStaticType() -> EventType { return EventType::MOUSE_MOVED_EVENT; }
+        MKT_NODISCARD static auto GetStaticType() -> EventType { return EventType::MOUSE_MOVED_EVENT; }
 
-        KT_NODISCARD auto DisplayData() const -> std::string override {
+        MKT_NODISCARD auto DisplayData() const -> std::string override {
             return fmt::format("{} POS [{}, {}]", GetEventFormattedStr(GetType()).data(), m_PositionX, m_PositionY);
         }
     protected:
-        KT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
+        MKT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
 
         double m_PositionX{};
         double m_PositionY{};
@@ -59,23 +59,23 @@ namespace Mikoto {
             :   MouseEvent{ EventType::MOUSE_BUTTON_PRESSED_EVENT, MOUSE_BUTTON_EVENT_CATEGORY}, m_Button{ button }, m_Modifiers{ modifiers }
         {}
 
-        KT_NODISCARD auto GetMouseButton() const -> Int32_T { return m_Button; }
-        KT_NODISCARD auto GetModifiers() const -> Int32_T { return m_Modifiers; }
-        KT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
+        MKT_NODISCARD auto GetMouseButton() const -> Int32_T { return m_Button; }
+        MKT_NODISCARD auto GetModifiers() const -> Int32_T { return m_Modifiers; }
+        MKT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
 
         /**
          * Useful if we need to query the type of this event.
          * See <code>kT::EventDispatcher</code> for usage
          * */
-        KT_NODISCARD static auto GetStaticType() -> EventType { return EventType::MOUSE_BUTTON_PRESSED_EVENT; }
+        MKT_NODISCARD static auto GetStaticType() -> EventType { return EventType::MOUSE_BUTTON_PRESSED_EVENT; }
 
-        KT_NODISCARD auto DisplayData() const -> std::string override {
+        MKT_NODISCARD auto DisplayData() const -> std::string override {
             constexpr static std::array<std::string_view, 3> NAME{ "LEFT_CLICK", "RIGHT_CLICK", "SCROLL_WHEEL_CLICK" };
             // we are just testing with a mouse with three buttons for now
             return fmt::format("{} BUTTON {}", GetEventFormattedStr(GetType()).data(), NAME[m_Button]);
         }
     protected:
-        KT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
+        MKT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
 
         Int32_T m_Button{};
         Int32_T m_Modifiers{};
@@ -87,20 +87,20 @@ namespace Mikoto {
             :    MouseEvent{ EventType::MOUSE_BUTTON_RELEASED_EVENT, MOUSE_BUTTON_EVENT_CATEGORY }, m_Button{ button }
         {}
 
-        KT_NODISCARD auto GetMouseButton() const -> Int32_T { return m_Button; }
-        KT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
+        MKT_NODISCARD auto GetMouseButton() const -> Int32_T { return m_Button; }
+        MKT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
 
         /**
          * Useful if we need to query the type of this event.
          * See <code>kT::EventDispatcher</code> for usage
          * */
-        KT_NODISCARD static auto GetStaticType() -> EventType { return EventType::MOUSE_BUTTON_RELEASED_EVENT; }
-        KT_NODISCARD auto DisplayData() const -> std::string override {
+        MKT_NODISCARD static auto GetStaticType() -> EventType { return EventType::MOUSE_BUTTON_RELEASED_EVENT; }
+        MKT_NODISCARD auto DisplayData() const -> std::string override {
             constexpr static std::array<std::string_view, 3> NAME{ "LEFT_CLICK", "RIGHT_CLICK", "SCROLL_WHEEL_CLICK" };
             return fmt::format("{} BUTTON {}", GetEventFormattedStr(GetType()).data(), NAME[m_Button]);
         }
     protected:
-        KT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
+        MKT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
 
         Int32_T m_Button{};
     };
@@ -111,21 +111,21 @@ namespace Mikoto {
             :   MouseEvent{ EventType::MOUSE_SCROLLED_EVENT }, m_OffsetX{ xOffset }, m_OffsetY{ yOffset }
         {}
 
-        KT_NODISCARD auto GetOffsetX() const -> double { return m_OffsetX; }
-        KT_NODISCARD auto GetOffsetY() const -> double { return m_OffsetY; }
-        KT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
+        MKT_NODISCARD auto GetOffsetX() const -> double { return m_OffsetX; }
+        MKT_NODISCARD auto GetOffsetY() const -> double { return m_OffsetY; }
+        MKT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
 
         /**
          * Useful if we need to query the type of this event.
          * See <code>kT::EventDispatcher</code> for usage
          * */
-        KT_NODISCARD static auto GetStaticType() -> EventType { return EventType::MOUSE_SCROLLED_EVENT; }
+        MKT_NODISCARD static auto GetStaticType() -> EventType { return EventType::MOUSE_SCROLLED_EVENT; }
 
-        KT_NODISCARD auto DisplayData() const -> std::string override {
+        MKT_NODISCARD auto DisplayData() const -> std::string override {
             return fmt::format("{} OFFSETS [{}, {}]", GetEventFormattedStr(GetType()).data(), m_OffsetX, m_OffsetY);
         }
     protected:
-        KT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
+        MKT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
 
         double m_OffsetX{};
         double m_OffsetY{};

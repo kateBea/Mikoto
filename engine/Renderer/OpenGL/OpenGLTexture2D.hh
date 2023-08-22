@@ -38,18 +38,13 @@ namespace Mikoto {
          * Returns the identifier of this Texture
          * @return id of this object
          * */
-        KT_NODISCARD auto GetId() const -> UInt32_T override { return m_Id; }
-
-        KT_NODISCARD auto GetChannels() const -> UInt32_T override { return m_Channels; }
-        KT_NODISCARD auto GetWidth() const -> UInt32_T override { return m_Width; }
-        KT_NODISCARD auto GetHeight() const -> UInt32_T override { return m_Height; }
-
-        KT_NODISCARD auto GetTextureFileData() const -> stbi_uc* { return m_TextureFileData; }
+        MKT_NODISCARD auto GetId() const -> UInt32_T { return m_Id; }
+        MKT_NODISCARD auto GetTextureFileData() const -> stbi_uc* { return m_TextureFileData; }
 
         auto Unbind() -> void;
         auto Bind(UInt32_T slot) -> void;
 
-        ~OpenGLTexture2D() override;
+        ~OpenGLTexture2D();
     public:
         // Forbidden operations
         OpenGLTexture2D(const OpenGLTexture2D& other) = delete;
@@ -58,11 +53,8 @@ namespace Mikoto {
     private:
         auto SetupTexture(const stbi_uc* data) -> void;
 
+    private:
         UInt32_T    m_Id{};
-        UInt32_T    m_Width{};
-        UInt32_T    m_Height{};
-        UInt32_T    m_Channels{};
-
         GLenum      m_InternalFormat{}; // Specifies the sized internal format to be used to store texture image data
         GLenum      m_Format{};         // Specifies the format of the pixel data
 

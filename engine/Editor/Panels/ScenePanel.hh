@@ -35,9 +35,9 @@ namespace Mikoto {
         auto OnEvent(Event& event) ->  void override;
         auto MakeVisible(bool value) ->  void override { m_Visible = value; }
 
-        KT_NODISCARD auto IsHovered() const -> bool override { return m_Hovered; }
-        KT_NODISCARD auto IsFocused() const -> bool override { return m_Focused; }
-        KT_NODISCARD auto IsVisible() const -> bool override { return m_Visible; }
+        MKT_NODISCARD auto IsHovered() const -> bool override { return m_Hovered; }
+        MKT_NODISCARD auto IsFocused() const -> bool override { return m_Focused; }
+        MKT_NODISCARD auto IsVisible() const -> bool override { return m_Visible; }
     private:
         bool m_Visible{};
         bool m_Hovered{};

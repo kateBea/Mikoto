@@ -270,7 +270,7 @@ namespace Mikoto {
         Key_Menu            = KT_KEY_MENU            ,
     };
 
-    KT_NODISCARD inline auto GetStringRepresentation(KeyCode code) -> std::string_view {
+    MKT_NODISCARD inline auto GetStringRepresentation(KeyCode code) -> std::string_view {
         switch (code) {
             case Key_Space           : return KEY_STRING_REPRESENTATION(KT_KEY_SPACE)         ;
             case Key_Apostrophe      : return KEY_STRING_REPRESENTATION(KT_KEY_APOSTROPHE)    ;

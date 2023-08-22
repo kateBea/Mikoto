@@ -22,11 +22,11 @@ namespace Mikoto {
         auto operator=(const Camera& other) -> Camera& = default;
         auto operator=(Camera&& other) -> Camera& = default;
 
-        KT_NODISCARD auto GetProjection() const -> const glm::mat4& { return m_Projection; }
+        MKT_NODISCARD auto GetProjection() const -> const glm::mat4& { return m_Projection; }
         auto SetProjection(const glm::mat4& projection = glm::mat4(1.0)) -> void { m_Projection = projection; }
 
-        KT_NODISCARD auto GetTransform() const -> const glm::mat4& { return m_Transform; }
-        KT_NODISCARD auto GetTransform() -> glm::mat4& { return m_Transform; }
+        MKT_NODISCARD auto GetTransform() const -> const glm::mat4& { return m_Transform; }
+        MKT_NODISCARD auto GetTransform() -> glm::mat4& { return m_Transform; }
         auto SetTransform(const glm::mat4& transform = glm::mat4(1.0)) -> void { m_Transform = transform; }
 
         auto SetPosition(const glm::vec3& position, const glm::vec3& angles = glm::vec3(0.0f)) -> void {

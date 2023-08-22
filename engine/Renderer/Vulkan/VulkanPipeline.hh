@@ -40,10 +40,10 @@ namespace Mikoto {
 
     class VulkanPipeline {
     public:
-        KT_NODISCARD static auto GetDefaultPipelineConfigInfo() -> PipelineConfigInfo &;
-
         VulkanPipeline(const Path_T &vPath, const Path_T &fPath, const PipelineConfigInfo &config);
         auto Bind(VkCommandBuffer commandBuffer) const -> void;
+        MKT_NODISCARD auto Get() const -> const VkPipeline& { return m_GraphicsPipeline; }
+        MKT_NODISCARD static auto GetDefaultPipelineConfigInfo() -> PipelineConfigInfo &;
 
         auto OnRelease() const -> void;
         ~VulkanPipeline() = default;

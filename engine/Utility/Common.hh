@@ -210,7 +210,7 @@
 #define KT_FMT_COLOR_YELLOW                     fmt::color::yellow
 #define KT_FMT_COLOR_YELLOW_GREEN               fmt::color::yellow_green
 
-#define  KT_NODISCARD [[nodiscard]]
+#define MKT_NODISCARD [[nodiscard]]
 /**
  * Output style
  * */

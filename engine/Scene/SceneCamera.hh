@@ -25,27 +25,27 @@ namespace Mikoto {
         auto operator=(const SceneCamera& other) -> SceneCamera& = default;
         auto operator=(SceneCamera&& other) -> SceneCamera& = default;
 
-        KT_NODISCARD auto GetOrthographicFarPlane() const -> double;
+        MKT_NODISCARD auto GetOrthographicFarPlane() const -> double;
         auto SetOrthographicFarPlane(double value) -> void;
 
-        KT_NODISCARD auto GetOrthographicNearPlane() const -> double;
+        MKT_NODISCARD auto GetOrthographicNearPlane() const -> double;
         auto SetOrthographicNearPlane(double value) -> void;
 
-        KT_NODISCARD auto GetOrthographicSize() const -> double;
+        MKT_NODISCARD auto GetOrthographicSize() const -> double;
         auto SetOrthographicSize(double value) -> void;
 
 
-        KT_NODISCARD auto GetPerspectiveFarPlane() const -> double;
+        MKT_NODISCARD auto GetPerspectiveFarPlane() const -> double;
         auto SetPerspectiveFarPlane(double value) -> void;
 
-        KT_NODISCARD auto GetPerspectiveNearPlane() const -> double;
+        MKT_NODISCARD auto GetPerspectiveNearPlane() const -> double;
         auto SetPerspectiveNearPlane(double value) -> void;
 
-        KT_NODISCARD auto GetPerspectiveFOV() const -> double;
+        MKT_NODISCARD auto GetPerspectiveFOV() const -> double;
         auto SetPerspectiveFOV(double value) -> void;
 
 
-        KT_NODISCARD auto GetProjectionType() -> ProjectionType { return m_Projection; }
+        MKT_NODISCARD auto GetProjectionType() -> ProjectionType { return m_Projection; }
         auto SetProjectionType(ProjectionType type) -> void {
             m_Projection = type;
 

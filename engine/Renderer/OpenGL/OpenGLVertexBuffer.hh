@@ -50,7 +50,7 @@ namespace Mikoto {
          * */
         auto Bind() const -> void { glBindBuffer(GL_ARRAY_BUFFER, GetID()); }
 
-        KT_NODISCARD auto GetID() const -> UInt32_T { return m_Id; }
+        MKT_NODISCARD auto GetID() const -> UInt32_T { return m_Id; }
 
         /**
          * Releases the currently bound Vertex buffer object.
@@ -64,7 +64,7 @@ namespace Mikoto {
 
         auto SetBufferLayout(const BufferLayout& layout) -> void override { m_Layout = layout; }
 
-        KT_NODISCARD
+        MKT_NODISCARD
         auto GetBufferLayout() const -> const BufferLayout& override { return m_Layout; }
         /**
          * Releases resources from this Vertex buffer

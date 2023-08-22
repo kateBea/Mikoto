@@ -43,7 +43,7 @@ namespace Mikoto {
          * Returns the identifier of this Vertex Array Object
          * @return identifier of this vao
          * */
-        KT_NODISCARD auto GetId() const -> UInt32_T { return m_Id; }
+        MKT_NODISCARD auto GetId() const -> UInt32_T { return m_Id; }
 
         /**
          * Mark this Vertex Array Object as current

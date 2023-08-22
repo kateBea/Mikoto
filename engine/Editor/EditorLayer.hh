@@ -3,29 +3,31 @@
  * Created by kate on 6/12/23.
  * */
 
-#ifndef KATE_ENGINE_EDITOR_LAYER_HH
-#define KATE_ENGINE_EDITOR_LAYER_HH
+#ifndef MIKOTO_EDITOR_LAYER_HH
+#define MIKOTO_EDITOR_LAYER_HH
 
+// C++ Standard Library
 #include <memory>
 
-#include "Core/Layer.hh"
-#include "Editor.hh"
-#include "Editor/Panels/HierarchyPanel.hh"
-#include "Editor/Panels/InspectorPanel.hh"
-#include "Editor/Panels/ScenePanel.hh"
-#include "Editor/Panels/SettingsPanel.hh"
-#include "Editor/Panels/StatsPanel.hh"
-#include "Renderer/Buffers/FrameBuffer.hh"
-#include "Renderer/Buffers/IndexBuffer.hh"
-#include "Renderer/Buffers/VertexBuffer.hh"
-#include "Renderer/Camera/OrthographicCamera.hh"
-#include "Renderer/Material/Shader.hh"
-#include "Renderer/Material/Texture.hh"
-#include "Renderer/Model.hh"
-#include "Scene/Scene.hh"
+// Project Headers
+#include <Core/Layer.hh>
+#include <Renderer/Buffers/FrameBuffer.hh>
+#include <Renderer/Buffers/IndexBuffer.hh>
+#include <Renderer/Buffers/VertexBuffer.hh>
+#include <Renderer/Camera/OrthographicCamera.hh>
+#include <Renderer/Material/Shader.hh>
+#include <Renderer/Material/Texture.hh>
+#include <Renderer/Model.hh>
+#include <Renderer/Camera/Camera.hh>
+#include <Editor/Editor.hh>
+#include <Editor/Panels/HierarchyPanel.hh>
+#include <Editor/Panels/InspectorPanel.hh>
+#include <Editor/Panels/ScenePanel.hh>
+#include <Editor/Panels/SettingsPanel.hh>
+#include <Editor/Panels/StatsPanel.hh>
 #include <Editor/Panels/Panel.hh>
 #include <Editor/Panels/PanelData.hh>
-#include <Renderer/Camera/Camera.hh>
+#include <Scene/Scene.hh>
 #include <Scene/Entity.hh>
 
 namespace Mikoto {
@@ -58,4 +60,4 @@ namespace Mikoto {
 
 }
 
-#endif//KATE_ENGINE_EDITOR_LAYER_HH
+#endif // MIKOTO_EDITOR_LAYER_HH

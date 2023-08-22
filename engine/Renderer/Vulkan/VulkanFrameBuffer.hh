@@ -22,8 +22,8 @@ namespace Mikoto {
         auto OnRelease() const -> void;
 
         auto Resize(UInt32_T width, UInt32_T height) -> void override;
-        KT_NODISCARD auto GetFrameBufferProperties() const -> const FrameBufferCreateInfo& override { return m_CreateInfo; }
-        KT_NODISCARD auto Get() const -> const VkFramebuffer& { return m_FrameBuffer; }
+        MKT_NODISCARD auto GetFrameBufferProperties() const -> const FrameBufferCreateInfo& override { return m_CreateInfo; }
+        MKT_NODISCARD auto Get() const -> const VkFramebuffer& { return m_FrameBuffer; }
 
     private:
         FrameBufferCreateInfo m_CreateInfo{};

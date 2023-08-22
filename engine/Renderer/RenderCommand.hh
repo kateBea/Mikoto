@@ -1,5 +1,10 @@
-#ifndef KATE_ENGINE_RENDER_COMMAND_HH
-#define KATE_ENGINE_RENDER_COMMAND_HH
+/**
+ * RenderCommand.cc
+ * Created by kate on 6/9/23.
+ * */
+
+#ifndef MIKOTO_RENDER_COMMAND_HH
+#define MIKOTO_RENDER_COMMAND_HH
 
 // C++ Standard Library
 #include <memory>
@@ -9,15 +14,11 @@
 
 // Project headers
 #include <Utility/Common.hh>
-
 #include <Core/Logger.hh>
-
-#include <Renderer/Buffers/IndexBuffer.hh>
-#include <Renderer/Buffers/VertexBuffer.hh>
-
 #include <Renderer/Renderer.hh>
 #include <Renderer/RendererAPI.hh>
-#include <Renderer/Material/Shader.hh>
+#include <Renderer/Buffers/IndexBuffer.hh>
+#include <Renderer/Buffers/VertexBuffer.hh>
 
 namespace Mikoto {
 	class RenderCommand {
@@ -40,4 +41,4 @@ namespace Mikoto {
 	};
 }
 
-#endif
+#endif // MIKOTO_RENDER_COMMAND_HH

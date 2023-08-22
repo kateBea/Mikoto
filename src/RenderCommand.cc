@@ -1,13 +1,15 @@
-//
-// Created by kate on 6/9/23.
-//
+/**
+ * RenderCommand.cc
+ * Created by kate on 6/9/23.
+ * */
 
+// Third-Party Libraries
+#include <glm/glm.hpp>
+
+// Project Headers
 #include <Core/Assert.hh>
-
 #include <Renderer/Renderer.hh>
 #include <Renderer/RenderCommand.hh>
-
-#include <Renderer/OpenGL/OpenGLRenderer.hh>
 
 namespace Mikoto {
     auto RenderCommand::Init(RendererAPI* activeAPI) -> void {

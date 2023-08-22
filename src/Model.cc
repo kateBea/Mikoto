@@ -72,7 +72,7 @@ namespace Mikoto {
     auto Model::ProcessMesh(aiMesh *mesh, const aiScene *scene, const Path_T &modelDirectory, bool wantLoadTextures) -> Mesh {
         std::vector<float> vertices{};
         std::vector<UInt32_T> indices{};
-        std::vector<std::shared_ptr<Texture>> textures{};
+        std::vector<std::shared_ptr<Texture2D>> textures{};
 
         for(UInt64_T index{}; index < mesh->mNumVertices; index++) {
             vertices.push_back(mesh->mVertices[index].x);
@@ -104,9 +104,9 @@ namespace Mikoto {
             auto material { scene->mMaterials[mesh->mMaterialIndex] };
 
             if (wantLoadTextures) {
-                auto diffuseMaps { LoadTextures(material, aiTextureType_DIFFUSE, Texture2D::Type::DIFFUSE, scene, modelDirectory) };
-                auto specularMaps { LoadTextures(material, aiTextureType_SPECULAR, Texture2D::Type::SPECULAR, scene, modelDirectory) };
-                auto normalMaps { LoadTextures(material, aiTextureType_NORMALS, Texture2D::Type::NORMAL, scene, modelDirectory) };
+                auto diffuseMaps { LoadTextures(material, aiTextureType_DIFFUSE, Type::DIFFUSE, scene, modelDirectory) };
+                auto specularMaps { LoadTextures(material, aiTextureType_SPECULAR, Type::SPECULAR, scene, modelDirectory) };
+                auto normalMaps { LoadTextures(material, aiTextureType_NORMALS, Type::NORMAL, scene, modelDirectory) };
 
                 for (auto& item : diffuseMaps)
                     textures.push_back(std::move(item));
@@ -129,8 +129,8 @@ namespace Mikoto {
         return Mesh{ meshData };
     }
 
-    auto Model::LoadTextures(aiMaterial *mat, aiTextureType type, Texture2D::Type tType, const aiScene *scene, const Path_T& modelDirectory) -> std::vector<std::shared_ptr<Texture>> {
-        std::vector<std::shared_ptr<Texture>> textures{};
+    auto Model::LoadTextures(aiMaterial *mat, aiTextureType type, Type tType, const aiScene *scene, const Path_T& modelDirectory) -> std::vector<std::shared_ptr<Texture2D>> {
+        std::vector<std::shared_ptr<Texture2D>> textures{};
         for(std::uint32_t i{}; i < mat->GetTextureCount(type); i++) {
             aiString str{};
             if (mat->GetTexture(type, i, &str) == AI_SUCCESS)

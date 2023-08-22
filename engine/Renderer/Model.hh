@@ -46,9 +46,9 @@ namespace Mikoto {
          * */
         Model(const Model& other) = delete;
 
-        KT_NODISCARD auto GetMeshes() const -> const std::vector<Mesh>& { return m_Meshes; }
-        KT_NODISCARD auto GetDirectory() const -> const Path_T& { return m_ModelDirectory; }
-        KT_NODISCARD auto GetName() const -> const std::string& { return m_ModelName; }
+        MKT_NODISCARD auto GetMeshes() const -> const std::vector<Mesh>& { return m_Meshes; }
+        MKT_NODISCARD auto GetDirectory() const -> const Path_T& { return m_ModelDirectory; }
+        MKT_NODISCARD auto GetName() const -> const std::string& { return m_ModelName; }
 
         auto LoadFromFile(const Path_T& path, bool wantLoadTextures = false) -> void;
 
@@ -111,7 +111,7 @@ namespace Mikoto {
          * @param scene represents a complete scene, which contains aiNodes and the associated meshes, materials, etc.
          * @returns a list of textures from the given material of type <code>type</code>
          * */
-        static auto LoadTextures(aiMaterial *mat, aiTextureType type, Texture2D::Type tType, const aiScene *scene, const Path_T& modelDirectory) -> std::vector<std::shared_ptr<Texture>>;
+        static auto LoadTextures(aiMaterial *mat, aiTextureType type, Type tType, const aiScene *scene, const Path_T& modelDirectory) -> std::vector<std::shared_ptr<Texture2D>>;
 
     private:
         static inline BufferLayout s_Layout{
@@ -121,7 +121,7 @@ namespace Mikoto {
                 { ShaderDataType::FLOAT2_TYPE, "a_TextureCoordinates" }
         };
 
-        KT_NODISCARD static auto GetDefaultBufferLayout() -> const BufferLayout& { return s_Layout; }
+        MKT_NODISCARD static auto GetDefaultBufferLayout() -> const BufferLayout& { return s_Layout; }
         static auto SetDefaultBufferLayout(const BufferLayout& layout) -> void { s_Layout = layout; }
 
     private:

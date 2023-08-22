@@ -37,8 +37,8 @@ namespace Mikoto {
 
         auto UploadShaders(const Path_T& vertexShader, const Path_T& fragmentShader) -> void;
 
-        KT_NODISCARD auto GetShader() -> std::shared_ptr<OpenGLShader> { return m_DefaultVertexPixelShaders; }
-        KT_NODISCARD auto GetTexture() -> std::shared_ptr<OpenGLTexture2D> { return m_Texture; }
+        MKT_NODISCARD auto GetShader() -> std::shared_ptr<OpenGLShader> { return m_DefaultVertexPixelShaders; }
+        MKT_NODISCARD auto GetTexture() -> std::shared_ptr<OpenGLTexture2D> { return m_Texture; }
 
         auto SetTextureSampler(Int32_T value) -> void;
         auto SetTiltingColor(float red, float green, float blue, float alpha) -> void;

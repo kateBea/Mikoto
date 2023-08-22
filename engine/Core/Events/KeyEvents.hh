@@ -25,7 +25,7 @@ namespace Mikoto {
      * */
     class KeyEvent : public Event {
     public:
-        KT_NODISCARD auto GetKeyCode() const -> Int32_T { return m_KeyCode; }
+        MKT_NODISCARD auto GetKeyCode() const -> Int32_T { return m_KeyCode; }
 
     protected:
         /**
@@ -44,22 +44,22 @@ namespace Mikoto {
             :   KeyEvent{ EventType::KEY_PRESSED_EVENT, keyCode }, m_Repeated{ repeated }, m_Modifiers{ modifiers }
         {}
 
-        KT_NODISCARD auto IsRepeated() const -> bool { return m_Repeated; }
-        KT_NODISCARD auto GetModifiers() const -> bool { return m_Modifiers; }
-        KT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
+        MKT_NODISCARD auto IsRepeated() const -> bool { return m_Repeated; }
+        MKT_NODISCARD auto GetModifiers() const -> bool { return m_Modifiers; }
+        MKT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
 
         /**
          * Useful if we need to query the type of this event.
          * See <code>kT::EventDispatcher</code> for usage
          * */
-        KT_NODISCARD static auto GetStaticType() -> EventType { return EventType::KEY_PRESSED_EVENT; }
+        MKT_NODISCARD static auto GetStaticType() -> EventType { return EventType::KEY_PRESSED_EVENT; }
 
-        KT_NODISCARD auto DisplayData() const -> std::string override {
+        MKT_NODISCARD auto DisplayData() const -> std::string override {
             return fmt::format("{} KEY: {} REPEATED: {}", GetEventFormattedStr(GetType()).data(), m_KeyCode, m_Repeated ? "TRUE" : "FALSE");
         }
 
     private:
-        KT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
+        MKT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
 
         bool m_Repeated{};
         Int32_T m_Modifiers{};
@@ -71,19 +71,19 @@ namespace Mikoto {
             :   KeyEvent{ EventType::KEY_RELEASED_EVENT, code }
         {}
 
-        KT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
+        MKT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
 
         /**
          * Useful if we need to query the type of this event.
          * See <code>kT::EventDispatcher</code> for usage
          * */
-        KT_NODISCARD static auto GetStaticType() -> EventType { return EventType::KEY_RELEASED_EVENT; }
+        MKT_NODISCARD static auto GetStaticType() -> EventType { return EventType::KEY_RELEASED_EVENT; }
 
-        KT_NODISCARD auto DisplayData() const -> std::string override {
+        MKT_NODISCARD auto DisplayData() const -> std::string override {
             return fmt::format("{} KEY: {}", GetEventFormattedStr(GetType()).data(), m_KeyCode);
         }
     private:
-        KT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
+        MKT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
     };
 
     class KeyCharEvent : public Event {
@@ -93,20 +93,20 @@ namespace Mikoto {
             ,   m_KeyChar{ charCode }
         {}
 
-        KT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
-        KT_NODISCARD auto GetChar() const -> UInt32_T { return m_KeyChar; }
+        MKT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
+        MKT_NODISCARD auto GetChar() const -> UInt32_T { return m_KeyChar; }
 
         /**
          * Useful if we need to query the type of this event.
          * See <code>kT::EventDispatcher</code> for usage
          * */
-        KT_NODISCARD static auto GetStaticType() -> EventType { return EventType::KEY_CHAR_EVENT; }
+        MKT_NODISCARD static auto GetStaticType() -> EventType { return EventType::KEY_CHAR_EVENT; }
 
-        KT_NODISCARD auto DisplayData() const -> std::string override {
+        MKT_NODISCARD auto DisplayData() const -> std::string override {
             return fmt::format("{} KEY: {}", GetEventFormattedStr(GetType()).data(), m_KeyChar);
         }
     private:
-        KT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
+        MKT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
 
         UInt32_T m_KeyChar{};
     };

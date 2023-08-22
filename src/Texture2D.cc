@@ -18,7 +18,7 @@
 
 namespace Mikoto {
 
-    auto Texture2D::CreateTexture(const Path_T &path) -> std::shared_ptr<Texture> {
+    auto Texture2D::CreateTexture(const Path_T &path) -> std::shared_ptr<Texture2D> {
         switch(Renderer::GetActiveGraphicsAPI()) {
             case GraphicsAPI::OPENGL_API:
                 return std::make_shared<OpenGLTexture2D>(path);
@@ -28,7 +28,7 @@ namespace Mikoto {
         }
     }
 
-    auto Texture2D::CreateTextureRawPtr(const Path_T &path) -> Texture* {
+    auto Texture2D::CreateTextureRawPtr(const Path_T &path) -> Texture2D* {
         switch(Renderer::GetActiveGraphicsAPI()) {
             case GraphicsAPI::OPENGL_API:
                 return new OpenGLTexture2D(path);
@@ -38,7 +38,7 @@ namespace Mikoto {
         }
     }
 
-    auto Texture2D::LoadFromFile(const Path_T &path, Texture2D::Type type) -> std::shared_ptr<Mikoto::Texture> {
+    auto Texture2D::LoadFromFile(const Path_T &path, Type type) -> std::shared_ptr<Mikoto::Texture2D> {
         switch(Renderer::GetActiveGraphicsAPI()) {
             case GraphicsAPI::OPENGL_API:
                 return std::make_shared<OpenGLTexture2D>(path);

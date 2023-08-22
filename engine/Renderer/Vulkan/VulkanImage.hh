@@ -26,10 +26,10 @@ namespace Mikoto {
         auto OnCreate(const ImageCreateInfo& createInfo) -> void;
         auto OnRelease() const -> void;
 
-        KT_NODISCARD auto Get() const -> const VkImage& { return m_AllocInfo.Image; }
-        KT_NODISCARD auto GetView() const -> const VkImageView& { return m_ImageView; }
-        KT_NODISCARD auto GetCreateInfo() const -> const VkImageCreateInfo& { return m_AllocInfo.ImageCreateInfo; }
-        KT_NODISCARD auto GetViewCreateInfo() const -> const VkImageViewCreateInfo& { return m_ImageViewCreateInfo; }
+        MKT_NODISCARD auto Get() const -> const VkImage& { return m_AllocInfo.Image; }
+        MKT_NODISCARD auto GetView() const -> const VkImageView& { return m_ImageView; }
+        MKT_NODISCARD auto GetCreateInfo() const -> const VkImageCreateInfo& { return m_AllocInfo.ImageCreateInfo; }
+        MKT_NODISCARD auto GetViewCreateInfo() const -> const VkImageViewCreateInfo& { return m_ImageViewCreateInfo; }
 
     private:
         ImageAllocateInfo m_AllocInfo{};

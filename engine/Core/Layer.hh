@@ -42,7 +42,7 @@ namespace Mikoto {
         /**
          * For debugging purposes
          * */
-        KT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
+        MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 
     private:
         std::string m_Name{};

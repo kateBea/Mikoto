@@ -25,9 +25,9 @@ namespace Mikoto {
             :   m_Title{ name }, m_Width{ width }, m_Height{ height }
         {}
 
-        KT_NODISCARD auto GetName() const -> const std::string& { return m_Title; }
-        KT_NODISCARD auto GetWidth() const -> Int32_T { return m_Width; }
-        KT_NODISCARD auto GetHeight() const -> Int32_T { return m_Height; }
+        MKT_NODISCARD auto GetName() const -> const std::string& { return m_Title; }
+        MKT_NODISCARD auto GetWidth() const -> Int32_T { return m_Width; }
+        MKT_NODISCARD auto GetHeight() const -> Int32_T { return m_Height; }
 
         auto SetWidth(Int32_T width) -> void { m_Width = width; }
         auto SetHeight(Int32_T height) -> void { m_Height = height; }
@@ -60,11 +60,11 @@ namespace Mikoto {
         explicit Window([[maybe_unused]] const WindowProperties& props = WindowProperties{})
             :   m_WindowCreateSuccess{ false } {}
 
-        KT_NODISCARD virtual auto GetWidth() const -> Int32_T = 0;
-        KT_NODISCARD virtual auto GetHeight() const -> Int32_T = 0;
-        KT_NODISCARD virtual auto GetExtent() const -> std::pair<Int32_T, Int32_T> = 0;
+        MKT_NODISCARD virtual auto GetWidth() const -> Int32_T = 0;
+        MKT_NODISCARD virtual auto GetHeight() const -> Int32_T = 0;
+        MKT_NODISCARD virtual auto GetExtent() const -> std::pair<Int32_T, Int32_T> = 0;
 
-        KT_NODISCARD virtual auto GetNativeWindow() -> std::any = 0;
+        MKT_NODISCARD virtual auto GetNativeWindow() -> std::any = 0;
 
         virtual auto Init() -> void = 0;
         virtual auto OnUpdate() -> void = 0;

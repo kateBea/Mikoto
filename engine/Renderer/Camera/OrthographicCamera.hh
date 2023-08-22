@@ -17,13 +17,13 @@ namespace Mikoto {
         OrthographicCamera(double left, double right, double bottom, double top);
         OrthographicCamera(double left, double right, double bottom, double top, double zNear, double zFar);
 
-        KT_NODISCARD auto GetFieldOfView() const -> double { return m_FieldOfView; }
-        KT_NODISCARD auto GetAspectRatio() const -> double { return m_AspectRatio; }
-        KT_NODISCARD auto GetRotation() const -> double { return m_Rotation; }
-        KT_NODISCARD auto GetPosition() const -> const glm::vec3& { return m_Position; }
-        KT_NODISCARD auto GetProjection() const -> const glm::mat4& { return m_Projection; }
-        KT_NODISCARD auto GetView() const -> const glm::mat4& { return m_ViewMatrix; }
-        KT_NODISCARD auto GetProjectionView() const -> const glm::mat4& { return m_ProjectionAndView; }
+        MKT_NODISCARD auto GetFieldOfView() const -> double { return m_FieldOfView; }
+        MKT_NODISCARD auto GetAspectRatio() const -> double { return m_AspectRatio; }
+        MKT_NODISCARD auto GetRotation() const -> double { return m_Rotation; }
+        MKT_NODISCARD auto GetPosition() const -> const glm::vec3& { return m_Position; }
+        MKT_NODISCARD auto GetProjection() const -> const glm::mat4& { return m_Projection; }
+        MKT_NODISCARD auto GetView() const -> const glm::mat4& { return m_ViewMatrix; }
+        MKT_NODISCARD auto GetProjectionView() const -> const glm::mat4& { return m_ProjectionAndView; }
 
         auto SetFieldOfView(double fov) -> void { m_FieldOfView = fov; RecomputeViewMatrix(); }
         auto SetAspectRatio(double ar) -> void { m_AspectRatio = ar; RecomputeViewMatrix(); }

@@ -64,8 +64,7 @@ namespace Mikoto {
     }
 
     OpenGLTexture2D::OpenGLTexture2D(OpenGLTexture2D &&other) noexcept
-        :   m_Id{ other.GetId() }, m_Width{other.GetWidth() }, m_Height{other.GetHeight() }
-        ,   m_Channels{other.GetChannels() }, m_TextureFileData{ other.m_TextureFileData }
+        : Texture2D{ other.m_Width, other.m_Height, other.m_Channels }, m_Id{ other.GetId() }
     {
         other.m_Id          = 0;
         other.m_Width       = 0;

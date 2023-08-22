@@ -47,17 +47,17 @@ namespace Mikoto {
         BufferElement(ShaderDataType type, std::string_view name, bool normalized = false)
             :   m_Name{ name }, m_Type{ type }, m_Size{GetSizeFromShaderType(type) }, m_Offset{ 0 }, m_Normalized{ normalized } {}
 
-        KT_NODISCARD auto GetAttributeCount() const -> UInt32_T { return GetComponentCount(m_Type); }
-        KT_NODISCARD auto GetOpenGLAttributeDataType() const -> UInt32_T { return GetOpenGLTypeFromShaderDataType(m_Type); }
-        KT_NODISCARD auto GetVulkanAttributeDataType() const -> VkFormat { return GetVulkanTypeFromShaderDataType(m_Type); }
-        KT_NODISCARD auto GetAttributeSize() const -> UInt32_T { return m_Size; }
+        MKT_NODISCARD auto GetAttributeCount() const -> UInt32_T { return GetComponentCount(m_Type); }
+        MKT_NODISCARD auto GetOpenGLAttributeDataType() const -> UInt32_T { return GetOpenGLTypeFromShaderDataType(m_Type); }
+        MKT_NODISCARD auto GetVulkanAttributeDataType() const -> VkFormat { return GetVulkanTypeFromShaderDataType(m_Type); }
+        MKT_NODISCARD auto GetAttributeSize() const -> UInt32_T { return m_Size; }
 
         /*  Getters */
-        KT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
-        KT_NODISCARD auto GetType() const -> ShaderDataType { return m_Type; }
-        KT_NODISCARD auto GetSize() const -> UInt32_T { return m_Size; }
-        KT_NODISCARD auto GetOffset() const -> UInt32_T { return m_Offset; }
-        KT_NODISCARD auto IsNormalized() const  { return m_Normalized; }
+        MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
+        MKT_NODISCARD auto GetType() const -> ShaderDataType { return m_Type; }
+        MKT_NODISCARD auto GetSize() const -> UInt32_T { return m_Size; }
+        MKT_NODISCARD auto GetOffset() const -> UInt32_T { return m_Offset; }
+        MKT_NODISCARD auto IsNormalized() const  { return m_Normalized; }
 
         /*  Setters */
         auto SetName(std::string_view name) -> void { m_Name = name; }
@@ -199,9 +199,9 @@ namespace Mikoto {
             ComputeOffsetAndStride();
         }
 
-        KT_NODISCARD auto GetElements() const -> const std::vector<BufferElement>& { return m_Items; }
-        KT_NODISCARD auto GetCount() const -> Int32_T { return m_Items.size(); }
-        KT_NODISCARD auto GetStride() const { return m_Stride; }
+        MKT_NODISCARD auto GetElements() const -> const std::vector<BufferElement>& { return m_Items; }
+        MKT_NODISCARD auto GetCount() const -> Int32_T { return m_Items.size(); }
+        MKT_NODISCARD auto GetStride() const { return m_Stride; }
 
         auto operator[](UInt32_T index) -> BufferElement& { return m_Items[index]; }
         auto operator[](UInt32_T index) const -> const BufferElement& { return m_Items[index]; }
@@ -209,14 +209,14 @@ namespace Mikoto {
         auto begin() -> std::vector<BufferElement>::iterator { return m_Items.begin(); }
         auto end() -> std::vector<BufferElement>::iterator { return m_Items.end(); }
 
-        KT_NODISCARD auto begin() const -> std::vector<BufferElement>::const_iterator { return m_Items.begin(); }
-        KT_NODISCARD auto end() const -> std::vector<BufferElement>::const_iterator { return m_Items.end(); }
+        MKT_NODISCARD auto begin() const -> std::vector<BufferElement>::const_iterator { return m_Items.begin(); }
+        MKT_NODISCARD auto end() const -> std::vector<BufferElement>::const_iterator { return m_Items.end(); }
 
         auto rbegin() -> std::vector<BufferElement>::reverse_iterator { return m_Items.rbegin(); }
         auto rend() -> std::vector<BufferElement>::reverse_iterator { return m_Items.rend(); }
 
-        KT_NODISCARD auto rbegin() const -> std::vector<BufferElement>::const_reverse_iterator { return m_Items.rbegin(); }
-        KT_NODISCARD auto rend() const -> std::vector<BufferElement>::const_reverse_iterator { return m_Items.rend(); }
+        MKT_NODISCARD auto rbegin() const -> std::vector<BufferElement>::const_reverse_iterator { return m_Items.rbegin(); }
+        MKT_NODISCARD auto rend() const -> std::vector<BufferElement>::const_reverse_iterator { return m_Items.rend(); }
     private:
         // Helpers
         auto ComputeOffsetAndStride() -> void {
@@ -259,26 +259,26 @@ namespace Mikoto {
          * Returns the data layout of this vertex buffer
          * @returns buffer layout of the implicit parameter
          * */
-        KT_NODISCARD virtual auto GetBufferLayout() const -> const BufferLayout& = 0;
+        MKT_NODISCARD virtual auto GetBufferLayout() const -> const BufferLayout& = 0;
 
         /**
          * Returns the total size in bytes of the contents of this Vertex buffer
          * @return total size in bytes of the vertices of this buffer
          * */
-        KT_NODISCARD auto GetSize() const -> Size_T { return m_Size; }
+        MKT_NODISCARD auto GetSize() const -> Size_T { return m_Size; }
         /**
          * Returns the total number of vertices contained within this vertex buffer
          * @return number of vertices
          * */
-        KT_NODISCARD virtual auto GetCount() const -> Size_T { return m_Count; }
+        MKT_NODISCARD virtual auto GetCount() const -> Size_T { return m_Count; }
 
         /**
          * Returns true if this vertex buffer contains data, false otherwise
          * @returns true if this vertex buffer is empty, false otherwise
          * */
-        KT_NODISCARD auto IsEmpty() const -> bool { return m_Size == 0; }
+        MKT_NODISCARD auto IsEmpty() const -> bool { return m_Size == 0; }
 
-        KT_NODISCARD static auto CreateBuffer(const std::vector<float>& data) -> std::shared_ptr<VertexBuffer>;
+        MKT_NODISCARD static auto CreateBuffer(const std::vector<float>& data) -> std::shared_ptr<VertexBuffer>;
 
         /**
          * Releases the resources of this vertex buffer
@@ -299,7 +299,7 @@ namespace Mikoto {
                 { ShaderDataType::FLOAT2_TYPE, "a_TextureCoordinates" }
         };
 
-        KT_NODISCARD static auto GetDefaultBufferLayout() -> const BufferLayout& { return s_DefaultBufferLayout; }
+        MKT_NODISCARD static auto GetDefaultBufferLayout() -> const BufferLayout& { return s_DefaultBufferLayout; }
         static auto SetDefaultBufferLayout(const BufferLayout& layout) -> void { s_DefaultBufferLayout = layout; }
 
     protected:

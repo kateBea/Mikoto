@@ -69,7 +69,7 @@ namespace Mikoto {
          * Get Shader program ID
          * @return Shader program ID
          * */
-        KT_NODISCARD auto GetProgram() const -> UInt32_T { return m_Id; }
+        MKT_NODISCARD auto GetProgram() const -> UInt32_T { return m_Id; }
 
         /**
          * Sets the given boolean value to the uniform identified by "name",

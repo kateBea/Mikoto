@@ -43,9 +43,9 @@ namespace Mikoto {
          * */
         auto HasCamera() -> bool { return m_TargetCamera != nullptr; }
 
-        KT_NODISCARD auto GetCamera() const -> const std::shared_ptr<OrthographicCamera>&;
-        KT_NODISCARD auto GetCamera() -> std::shared_ptr<OrthographicCamera>&;
-        KT_NODISCARD auto GetZoomLevel() const -> double { return m_Zoom; }
+        MKT_NODISCARD auto GetCamera() const -> const std::shared_ptr<OrthographicCamera>&;
+        MKT_NODISCARD auto GetCamera() -> std::shared_ptr<OrthographicCamera>&;
+        MKT_NODISCARD auto GetZoomLevel() const -> double { return m_Zoom; }
 
     private:
         auto OnMouseScrolledEvent(MouseScrollEvent& event) -> bool;

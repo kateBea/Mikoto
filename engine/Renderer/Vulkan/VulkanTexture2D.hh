@@ -29,21 +29,11 @@ namespace Mikoto {
         explicit VulkanTexture2D(const Path_T& path, bool retainFileData = false);
 
 
-        /**
-         * Returns the identifier of this Texture
-         * @return id of this object
-         * */
-        KT_NODISCARD auto GetId() const -> UInt32_T override { return m_Id; }
+        MKT_NODISCARD auto GetFileData() const -> stbi_uc* { return m_TextureFileData; }
 
-        KT_NODISCARD auto GetChannels() const -> UInt32_T override { return m_Channels; }
-        KT_NODISCARD auto GetWidth() const -> UInt32_T override { return m_Width; }
-        KT_NODISCARD auto GetHeight() const -> UInt32_T override { return m_Height; }
-
-        KT_NODISCARD auto GetFileData() const -> stbi_uc* { return m_TextureFileData; }
-
-        KT_NODISCARD auto GetImageView() const -> VkImageView { return m_TextureImageView; }
-        KT_NODISCARD auto GetImageSampler() const -> VkSampler { return m_TextureSampler; }
-        KT_NODISCARD auto GetImage() const -> VkImage { return m_TextureImage; }
+        MKT_NODISCARD auto GetImageView() const -> VkImageView { return m_TextureImageView; }
+        MKT_NODISCARD auto GetImageSampler() const -> VkSampler { return m_TextureSampler; }
+        MKT_NODISCARD auto GetImage() const -> VkImage { return m_TextureImage; }
 
         auto OnRelease() const -> void;
     private:
@@ -59,12 +49,7 @@ namespace Mikoto {
         static auto CreateImage(UInt32_T width, UInt32_T height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
                                           VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) -> void;
     private:
-        UInt32_T    m_Id{};
-        UInt32_T    m_Width{};
-        UInt32_T    m_Height{};
-        UInt32_T    m_Channels{};
         stbi_uc*    m_TextureFileData{};
-
         VkImage         m_TextureImage{};
         VkDeviceMemory  m_TextureImageMemory{};
         VkDeviceSize    m_ImageSize{};

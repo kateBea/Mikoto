@@ -28,15 +28,15 @@ namespace Mikoto {
         auto operator=(const Panel& other) -> Panel& = default;
         auto operator=(Panel&& other) -> Panel& = default;
 
-        KT_NODISCARD auto GetIconPath() const -> const Path_T& { return m_IconDirectory; }
+        MKT_NODISCARD auto GetIconPath() const -> const Path_T& { return m_IconDirectory; }
 
         virtual auto OnUpdate() -> void = 0;
         virtual auto OnEvent(Event& event) -> void = 0;
         virtual auto MakeVisible(bool value) -> void = 0;
 
-        KT_NODISCARD virtual auto IsHovered() const -> bool = 0;
-        KT_NODISCARD virtual auto IsFocused() const -> bool = 0;
-        KT_NODISCARD virtual auto IsVisible() const -> bool = 0;
+        MKT_NODISCARD virtual auto IsHovered() const -> bool = 0;
+        MKT_NODISCARD virtual auto IsFocused() const -> bool = 0;
+        MKT_NODISCARD virtual auto IsVisible() const -> bool = 0;
     private:
         Path_T m_IconDirectory{};
     };

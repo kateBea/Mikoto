@@ -26,24 +26,15 @@
 #include <Renderer/RenderingUtilities.hh>
 
 namespace Mikoto {
-    struct VulkanStandardMaterialCreateInfo {
-        VkRenderPass RenderPass{};
-    };
-
     class VulkanStandardMaterial : public Material {
     public:
-        explicit VulkanStandardMaterial(std::string_view name = "VulkanStandardMaterial");
+        explicit VulkanStandardMaterial(std::string_view name = GetStandardMaterialName());
 
         VulkanStandardMaterial(const VulkanStandardMaterial & other) = default;
         VulkanStandardMaterial(VulkanStandardMaterial && other) = default;
 
         auto operator=(const VulkanStandardMaterial & other) -> VulkanStandardMaterial & = default;
         auto operator=(VulkanStandardMaterial && other) -> VulkanStandardMaterial & = default;
-
-        /**
-         * Initializes this material
-         * */
-        auto OnCreate(const VulkanStandardMaterialCreateInfo& createInfo) -> void;
 
         /**
          * Releases the resources held by this material
@@ -68,18 +59,15 @@ namespace Mikoto {
         auto SetTransform(const glm::mat4& transform) -> void;
 
         auto SetTiltingColor(float red, float green, float blue, float alpha) -> void;
-        auto SetTiltingColor(const glm::vec4& color) -> void;
 
-        auto GetPipeline() -> VulkanPipeline& { return *m_Pipeline; }
-        auto BindDescriptorSets(VkCommandBuffer commandBuffer) -> void;
+        auto BindDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout) -> void;
+
         /**
          * Sends the transform data to the mapped GPU block of memory
          * */
         auto UploadUniformBuffers() -> void;
 
-        // SEPARATE TO A DIFFERENT PIPELINE THAT WILL BE PART OF THE RENDERER
-        auto EnableWireframe() -> void;
-        auto DisableWireframe() -> void;
+        MKT_NODISCARD static auto GetStandardMaterialName() -> std::string_view { return "StandardMaterial"; }
 
     private:
         /*************************************************************
@@ -89,21 +77,13 @@ namespace Mikoto {
         auto CreateDescriptorPool() -> void;
         auto CreateDescriptorSet() -> void;
 
-        auto CreateDescriptorSetLayout() -> void;
-        auto CreatePipelineLayout() -> void;
-        auto CreatePipeline() -> void;
-
     private:
         VulkanBuffer m_UniformBuffer{};
         void* m_UniformBuffersMapped{};
 
-        VkPipelineLayout m_PipelineLayout{};
-        VkDescriptorSetLayout m_DescriptorSetLayout{};
         VkDescriptorPool m_DescriptorPool{};
         VkDescriptorSet m_DescriptorSet{};
-        VkRenderPass m_RenderPass{};
 
-        std::shared_ptr<VulkanPipeline> m_Pipeline{};
         std::shared_ptr<VulkanTexture2D> m_Texture{};
         UniformTransformData m_Transform{};
         glm::vec4 m_Color{};

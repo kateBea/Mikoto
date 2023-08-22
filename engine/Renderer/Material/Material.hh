@@ -31,10 +31,10 @@ namespace Mikoto {
         auto operator=(const Material& other) -> Material& = default;
         auto operator=(Material&& other) -> Material& = default;
 
-        KT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
+        MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
         auto SetName(std::string_view newName) -> void { m_Name = newName; }
 
-        KT_NODISCARD static auto Create(Type matType) -> std::shared_ptr<Material>;
+        MKT_NODISCARD static auto Create(Type matType) -> std::shared_ptr<Material>;
 
         virtual ~Material() = default;
 

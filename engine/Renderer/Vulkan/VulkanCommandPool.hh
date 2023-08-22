@@ -20,8 +20,8 @@ namespace Mikoto {
 
         auto OnCreate(VkCommandPoolCreateInfo createInfo) -> void;
 
-        KT_NODISCARD auto GetCommandPool() const -> VkCommandPool { return m_CommandPool; }
-        KT_NODISCARD auto BeginSingleTimeCommands() const -> VkCommandBuffer;
+        MKT_NODISCARD auto GetCommandPool() const -> VkCommandPool { return m_CommandPool; }
+        MKT_NODISCARD auto BeginSingleTimeCommands() const -> VkCommandBuffer;
         auto EndSingleTimeCommands(VkCommandBuffer commandBuffer) const -> void;
 
         auto OnRelease() const -> void;

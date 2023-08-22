@@ -28,7 +28,7 @@ namespace Mikoto {
          * */
         explicit OpenGLIndexBuffer(const std::vector<UInt32_T> &indices, GLbitfield usage = GL_DYNAMIC_STORAGE_BIT);
 
-        KT_NODISCARD auto GetID() const -> UInt32_T { return m_Id; }
+        MKT_NODISCARD auto GetID() const -> UInt32_T { return m_Id; }
 
         /**
          * Mark this Vertex index buffer as current

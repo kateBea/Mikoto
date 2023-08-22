@@ -36,24 +36,24 @@ namespace Mikoto {
 
         auto OnCreate(const VulkanSwapChainCreateInfo& createInfo) -> void;
 
-        KT_NODISCARD auto GetFrameBuffer(Size_T index) -> VkFramebuffer { return m_SwapChainFrameBuffers[index]; }
-        KT_NODISCARD auto GetRenderPass() const -> VkRenderPass { return m_RenderPass; }
-        KT_NODISCARD auto GetImageView(Size_T index) -> VkImageView { return m_SwapChainImageViews[index]; }
-        KT_NODISCARD auto GetImageCount() -> Size_T { return m_SwapChainImages.size(); }
-        KT_NODISCARD auto GetSwapChainImageFormat() -> VkFormat { return m_SwapChainImageFormat; }
-        KT_NODISCARD auto GetSwapChainExtent() -> VkExtent2D { return m_SwapChainExtent; }
+        MKT_NODISCARD auto GetFrameBuffer(Size_T index) -> VkFramebuffer { return m_SwapChainFrameBuffers[index]; }
+        MKT_NODISCARD auto GetRenderPass() const -> VkRenderPass { return m_RenderPass; }
+        MKT_NODISCARD auto GetImageView(Size_T index) -> VkImageView { return m_SwapChainImageViews[index]; }
+        MKT_NODISCARD auto GetImageCount() -> Size_T { return m_SwapChainImages.size(); }
+        MKT_NODISCARD auto GetSwapChainImageFormat() -> VkFormat { return m_SwapChainImageFormat; }
+        MKT_NODISCARD auto GetSwapChainExtent() -> VkExtent2D { return m_SwapChainExtent; }
 
-        KT_NODISCARD auto GetWidth() const -> UInt32_T { return m_SwapChainExtent.width; }
-        KT_NODISCARD auto GetHeight() const -> UInt32_T { return m_SwapChainExtent.height; }
-        KT_NODISCARD auto GetExtentAspectRatio() const -> float { return static_cast<float>(m_SwapChainExtent.width) / static_cast<float>(m_SwapChainExtent.height); }
-        KT_NODISCARD auto GetSwapChainCreateInfo() const -> const VulkanSwapChainCreateInfo& { return m_SwapChainDetails; }
-        KT_NODISCARD auto GetNextImage(UInt32_T *imageIndex) -> VkResult;
-        KT_NODISCARD auto SubmitCommandBuffers(const VkCommandBuffer* buffers, UInt32_T imageIndex) -> VkResult;
-        KT_NODISCARD auto GetCurrentFrame() const -> UInt32_T { return m_CurrentFrame; }
-        KT_NODISCARD auto GetFrameBufferAtIndex(Size_T index) -> VkFramebuffer { return m_SwapChainFrameBuffers[index]; }
+        MKT_NODISCARD auto GetWidth() const -> UInt32_T { return m_SwapChainExtent.width; }
+        MKT_NODISCARD auto GetHeight() const -> UInt32_T { return m_SwapChainExtent.height; }
+        MKT_NODISCARD auto GetExtentAspectRatio() const -> float { return static_cast<float>(m_SwapChainExtent.width) / static_cast<float>(m_SwapChainExtent.height); }
+        MKT_NODISCARD auto GetSwapChainCreateInfo() const -> const VulkanSwapChainCreateInfo& { return m_SwapChainDetails; }
+        MKT_NODISCARD auto GetNextImage(UInt32_T *imageIndex) -> VkResult;
+        MKT_NODISCARD auto SubmitCommandBuffers(const VkCommandBuffer* buffers, UInt32_T imageIndex) -> VkResult;
+        MKT_NODISCARD auto GetCurrentFrame() const -> UInt32_T { return m_CurrentFrame; }
+        MKT_NODISCARD auto GetFrameBufferAtIndex(Size_T index) -> VkFramebuffer { return m_SwapChainFrameBuffers[index]; }
 
-        KT_NODISCARD static auto FindDepthFormat() -> VkFormat;
-        KT_NODISCARD static auto GetDefaultCreateInfo() -> VulkanSwapChainCreateInfo;
+        MKT_NODISCARD static auto FindDepthFormat() -> VkFormat;
+        MKT_NODISCARD static auto GetDefaultCreateInfo() -> VulkanSwapChainCreateInfo;
 
         auto OnRelease() const -> void;
 
@@ -72,9 +72,9 @@ namespace Mikoto {
         auto CreateSyncObjects() -> void;
         auto OnCreate() -> void;
 
-        KT_NODISCARD static auto ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) -> VkSurfaceFormatKHR;
-        KT_NODISCARD auto ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) const -> VkPresentModeKHR;
-        KT_NODISCARD auto ChooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) -> VkExtent2D;
+        MKT_NODISCARD static auto ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) -> VkSurfaceFormatKHR;
+        MKT_NODISCARD auto ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) const -> VkPresentModeKHR;
+        MKT_NODISCARD auto ChooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) -> VkExtent2D;
 
         static auto CreateImageWithInfo(const VkImageCreateInfo &imageInfo, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) -> void;
     private:

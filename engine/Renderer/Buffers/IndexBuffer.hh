@@ -20,7 +20,7 @@ namespace Mikoto {
      public:
          virtual ~IndexBuffer() = default;
 
-         KT_NODISCARD virtual auto GetCount() const -> UInt32_T { return m_Count; }
+         MKT_NODISCARD virtual auto GetCount() const -> UInt32_T { return m_Count; }
 
          static auto Create(const std::vector<UInt32_T>& data) -> std::shared_ptr<IndexBuffer>;
      protected:

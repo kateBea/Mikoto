@@ -1,18 +1,22 @@
-//
-// Created by kate on 6/8/23.
-//
+/**
+ * Texture.hh
+ * Created by kate on 6/8/23.
+ * */
 
-#ifndef KATE_ENGINE_TEXTURE_HH
-#define KATE_ENGINE_TEXTURE_HH
+#ifndef MIKOTO_TEXTURE_HH
+#define MIKOTO_TEXTURE_HH
 
+// Project Headers
 #include <Utility/Common.hh>
 
 namespace Mikoto {
+    template<typename TextureType>
     class Texture {
     public:
         Texture() = default;
-        virtual ~Texture() = default;
+
+        ~Texture() = default;
     };
 }
 
-#endif//KATE_ENGINE_TEXTURE_HH
+#endif // MIKOTO_TEXTURE_HH

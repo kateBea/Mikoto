@@ -17,7 +17,7 @@
 #include <Utility/Common.hh>
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
-#include <Renderer/Material/Texture.hh>
+#include <Renderer/Material/Texture2D.hh>
 
 namespace Mikoto {
     class MeshData {
@@ -29,13 +29,13 @@ namespace Mikoto {
             :   m_Vertices{ std::move(other.m_Vertices) }, m_Indices{ std::move(other.m_Indices) }, m_Textures{ std::move(other.m_Textures) }
         {}
 
-        KT_NODISCARD auto GetVertices() const -> const std::shared_ptr<VertexBuffer>& { return m_Vertices; }
-        KT_NODISCARD auto GetIndices() const -> const std::shared_ptr<IndexBuffer>& { return m_Indices; }
-        KT_NODISCARD auto GetTextures() const -> const std::vector<std::shared_ptr<Texture>>& { return m_Textures; }
+        MKT_NODISCARD auto GetVertices() const -> const std::shared_ptr<VertexBuffer>& { return m_Vertices; }
+        MKT_NODISCARD auto GetIndices() const -> const std::shared_ptr<IndexBuffer>& { return m_Indices; }
+        MKT_NODISCARD auto GetTextures() const -> const std::vector<std::shared_ptr<Texture2D>>& { return m_Textures; }
 
         auto SetVertices(const std::shared_ptr<VertexBuffer>& vertices) -> void { m_Vertices = vertices; }
         auto SetIndices(const std::shared_ptr<IndexBuffer>& indices) -> void { m_Indices = indices; }
-        auto SetTextures(std::vector<std::shared_ptr<Texture>>&& textures) -> void { m_Textures = std::move(textures); }
+        auto SetTextures(std::vector<std::shared_ptr<Texture2D>>&& textures) -> void { m_Textures = std::move(textures); }
 
         auto operator=(MeshData&& other) noexcept -> MeshData& = default;
         auto operator=(const MeshData& other) -> MeshData& = default;
@@ -50,7 +50,7 @@ namespace Mikoto {
 
         std::shared_ptr<VertexBuffer> m_Vertices{};
         std::shared_ptr<IndexBuffer> m_Indices{};
-        std::vector<std::shared_ptr<Texture>> m_Textures{};
+        std::vector<std::shared_ptr<Texture2D>> m_Textures{};
     };
 
     class Mesh {
@@ -84,9 +84,9 @@ namespace Mikoto {
          * */
         auto operator=(Mesh&& other) noexcept -> Mesh&;
 
-        KT_NODISCARD auto GetVertexBuffer() const -> const std::shared_ptr<VertexBuffer>& { return m_Data.GetVertices(); }
-        KT_NODISCARD auto GetIndexBuffer() const -> const std::shared_ptr<IndexBuffer>& { return m_Data.GetIndices(); }
-        KT_NODISCARD [[maybe_unused]] auto GetTextures() const -> const std::vector<std::shared_ptr<Texture>>& { return (m_Data.GetTextures()); }
+        MKT_NODISCARD auto GetVertexBuffer() const -> const std::shared_ptr<VertexBuffer>& { return m_Data.GetVertices(); }
+        MKT_NODISCARD auto GetIndexBuffer() const -> const std::shared_ptr<IndexBuffer>& { return m_Data.GetIndices(); }
+        MKT_NODISCARD [[maybe_unused]] auto GetTextures() const -> const std::vector<std::shared_ptr<Texture2D>>& { return (m_Data.GetTextures()); }
 
         ~Mesh() = default;
         

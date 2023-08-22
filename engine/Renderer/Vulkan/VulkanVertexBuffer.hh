@@ -27,11 +27,11 @@ namespace Mikoto {
 
         auto Bind(VkCommandBuffer commandBuffer) const -> void;
 
-        KT_NODISCARD auto GetBufferLayout() const -> const BufferLayout& override { return m_Layout; }
+        MKT_NODISCARD auto GetBufferLayout() const -> const BufferLayout& override { return m_Layout; }
         auto SetBufferLayout(const BufferLayout& layout) -> void override { m_Layout = layout; }
 
-        KT_NODISCARD auto GetBindingDescriptions() -> std::vector<VkVertexInputBindingDescription>& { return m_BindingDesc; }
-        KT_NODISCARD auto GetAttributeDescriptions() -> std::vector<VkVertexInputAttributeDescription>& { return m_AttributeDesc; }
+        MKT_NODISCARD auto GetBindingDescriptions() -> std::vector<VkVertexInputBindingDescription>& { return m_BindingDesc; }
+        MKT_NODISCARD auto GetAttributeDescriptions() -> std::vector<VkVertexInputAttributeDescription>& { return m_AttributeDesc; }
 
         auto SetBindingDescriptions() -> void;
         auto SetAttributeDescriptions() -> void;

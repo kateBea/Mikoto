@@ -37,7 +37,7 @@ namespace Mikoto {
         auto operator=(const TagComponent& other) -> TagComponent& = default;
         auto operator=(TagComponent&& other) -> TagComponent& = default;
 
-        KT_NODISCARD auto GetTag() const -> const std::string& { return m_Tag; }
+        MKT_NODISCARD auto GetTag() const -> const std::string& { return m_Tag; }
         auto SetTag(std::string_view newName) -> void { m_Tag = newName; }
     private:
         std::string m_Tag{};
@@ -59,10 +59,10 @@ namespace Mikoto {
         auto operator=(const TransformComponent& other) -> TransformComponent& = default;
         auto operator=(TransformComponent&& other) -> TransformComponent& = default;
 
-        KT_NODISCARD auto GetTranslation() const -> const glm::vec3& { return m_Translation; }
-        KT_NODISCARD auto GetRotation() const -> const glm::vec3& { return m_Rotation; }
-        KT_NODISCARD auto GetScale() const -> const glm::vec3& { return m_Scale; }
-        KT_NODISCARD auto GetTransform() const -> const glm::mat4& { return m_Transform; }
+        MKT_NODISCARD auto GetTranslation() const -> const glm::vec3& { return m_Translation; }
+        MKT_NODISCARD auto GetRotation() const -> const glm::vec3& { return m_Rotation; }
+        MKT_NODISCARD auto GetScale() const -> const glm::vec3& { return m_Scale; }
+        MKT_NODISCARD auto GetTransform() const -> const glm::mat4& { return m_Transform; }
 
         // "angles" specifies the rotation angle in degrees for each axis
         auto ComputeTransform(const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3(0.0f)) -> void {
@@ -127,8 +127,8 @@ namespace Mikoto {
         auto operator=(const SpriteRendererComponent& other) -> SpriteRendererComponent& = default;
         auto operator=(SpriteRendererComponent&& other) -> SpriteRendererComponent& = default;
 
-        KT_NODISCARD auto GetColor() const -> const glm::vec4& { return m_Color; }
-        KT_NODISCARD auto GetDrawData() -> DrawData& { return m_DrawData; }
+        MKT_NODISCARD auto GetColor() const -> const glm::vec4& { return m_Color; }
+        MKT_NODISCARD auto GetDrawData() -> DrawData& { return m_DrawData; }
 
         auto SetColor(const glm::vec4& value) -> void { m_Color = value; }
 
@@ -174,11 +174,11 @@ namespace Mikoto {
         auto operator=(const CameraComponent& other) -> CameraComponent& = default;
         auto operator=(CameraComponent&& other) -> CameraComponent& = default;
 
-        KT_NODISCARD auto IsMainCamera() const -> bool { return m_MainCam; }
-        KT_NODISCARD auto GetCamera() -> SceneCamera& { return *m_Camera; }
-        KT_NODISCARD auto GetCamera() const -> const SceneCamera& { return *m_Camera; }
-        KT_NODISCARD auto GetCameraPtr() const -> std::shared_ptr<SceneCamera> { return m_Camera; }
-        KT_NODISCARD auto IsAspectRatioFixed() const -> bool { return m_FixedAspectRatio; }
+        MKT_NODISCARD auto IsMainCamera() const -> bool { return m_MainCam; }
+        MKT_NODISCARD auto GetCamera() -> SceneCamera& { return *m_Camera; }
+        MKT_NODISCARD auto GetCamera() const -> const SceneCamera& { return *m_Camera; }
+        MKT_NODISCARD auto GetCameraPtr() const -> std::shared_ptr<SceneCamera> { return m_Camera; }
+        MKT_NODISCARD auto IsAspectRatioFixed() const -> bool { return m_FixedAspectRatio; }
 
         auto EnableFixedAspectRatio() -> void { m_FixedAspectRatio = true; }
         auto DisableFixedAspectRatio() -> void { m_FixedAspectRatio = false; }

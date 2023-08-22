@@ -1,14 +1,18 @@
-//
-// Created by kate on 6/24/23.
-//
+/**
+ * Entity.hh
+ * Created by kate on 6/24/23.
+ * */
 
-#ifndef KATE_ENGINE_ENTITY_HH
-#define KATE_ENGINE_ENTITY_HH
+#ifndef MIKOTO_ENTITY_HH
+#define MIKOTO_ENTITY_HH
 
+// C++ Standard Library
 #include <utility>
 
+// Third-Party Libraries
 #include <entt/entt.hpp>
 
+// Project Headers
 #include <Utility/Common.hh>
 #include <Core/Logger.hh>
 #include <Scene/Scene.hh>
@@ -18,12 +22,9 @@ namespace Mikoto {
     class Entity {
     public:
         explicit Entity() = default;
-
-        Entity(Entity&& other) noexcept {
-            *this = std::move(other);
-        }
-
+        Entity(Entity&& other) noexcept = default;
         Entity(const Entity& other) = default;
+
         auto operator=(const Entity& other) -> Entity& = default;
 
         auto operator=(Entity&& other) noexcept -> Entity& {
@@ -36,8 +37,14 @@ namespace Mikoto {
             return *this;
         }
 
+        /**
+         * Returns true if this entity contains all of the components
+         * listed in the parameter pack
+         * @returns true if this entity contains all of components of the parameter pack list
+         * @tparam ComponentTypeList parameter pack containing all of the components to be checked
+         * */
         template<typename... ComponentTypeList>
-        KT_NODISCARD auto HasAllComponents() -> bool {
+        MKT_NODISCARD auto HasAllComponents() -> bool {
             if (auto ptr{ m_Scene.lock() }) {
                 return ptr->m_Registry.all_of<ComponentTypeList...>(m_EntityHandle);
             }
@@ -46,8 +53,14 @@ namespace Mikoto {
             return false;
         }
 
+        /**
+         * Returns true if this entity contains at least one of the components
+         * listed in the parameter pack
+         * @returns true if this entity contains at least one of components of the parameter pack list
+         * @tparam ComponentTypeList parameter pack containing all of the components to be checked
+         * */
         template<typename... ComponentTypeList>
-        KT_NODISCARD auto HasAnyOfComponents() -> bool {
+        MKT_NODISCARD auto HasAnyOfComponents() -> bool {
             if (auto ptr{ m_Scene.lock() }) {
                 return ptr->m_Registry.any_of<ComponentTypeList...>(m_EntityHandle);
             }
@@ -56,8 +69,13 @@ namespace Mikoto {
             return false;
         }
 
+        /**
+         * Returns true if this entity contains the given component
+         * @returns true if this entity contains the given component
+         * @tparam ComponentType component to be checked
+         * */
         template<typename ComponentType>
-        KT_NODISCARD auto HasComponent() -> bool {
+        MKT_NODISCARD auto HasComponent() -> bool {
             if (auto ptr{ m_Scene.lock() }) {
                 return ptr->m_Registry.all_of<ComponentType>(m_EntityHandle);
             }
@@ -66,6 +84,17 @@ namespace Mikoto {
             return false;
         }
 
+        /**
+         * Returns true if this entity is valid, false otherwise
+         * @returns true if the implicit parameter is a valid entity
+         * */
+        MKT_NODISCARD auto IsValid() const -> bool { return m_EntityHandle != entt::null; }
+
+        /**
+         * Returns the component with specified type
+         * @returns specified component
+         * @tparam ComponentType type of the component to be looked for
+         * */
         template<typename ComponentType>
         auto GetComponent() -> decltype(auto) {
             if (!m_Scene.lock())
@@ -82,7 +111,6 @@ namespace Mikoto {
             return std::forward_as_tuple(m_Scene.lock()->m_Registry.get<ComponentTypeList>(m_EntityHandle)...);
         }
 
-        // Will return a reference to the newly created component if this entity does not contain it
         template<typename ComponentType, typename... Args>
         auto AddComponent(Args&&... args) -> decltype(auto) {
             std::shared_ptr<Scene> ptr{};
@@ -113,8 +141,7 @@ namespace Mikoto {
             return scene->m_Registry.valid(m_EntityHandle);
         }
 
-        KT_NODISCARD auto operator==(const Entity& other) const -> bool { return m_EntityHandle == other.m_EntityHandle; /*&& m_Scene == other.m_Scene;*/ }
-        KT_NODISCARD auto IsValid() const -> bool { return m_EntityHandle != entt::null; }
+        auto operator==(const Entity& other) const -> bool { return m_EntityHandle == other.m_EntityHandle; /*&& m_Scene == other.m_Scene;*/ }
 
         auto Invalidate() -> void { m_EntityHandle = entt::null; }
 
@@ -124,8 +151,7 @@ namespace Mikoto {
         auto OnComponentAttach(ComponentType& newComponent) -> void;
 
     private:
-        // usable by friends classes
-        explicit Entity(std::shared_ptr<Scene> scene) {
+        explicit Entity(const std::shared_ptr<Scene>& scene) {
             m_Scene = scene;
             m_EntityHandle = scene->m_Registry.create();
         }
@@ -196,4 +222,4 @@ namespace Mikoto {
 
 }
 
-#endif//KATE_ENGINE_ENTITY_HH
+#endif // MIKOTO_ENTITY_HH

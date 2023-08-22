@@ -27,7 +27,7 @@ namespace Mikoto {
 
         auto OnUpdate() -> void;
 
-        KT_NODISCARD static auto CreateEntity(std::string_view entityNameTag, std::shared_ptr<Scene> scene) -> Entity;
+        MKT_NODISCARD static auto CreateEntity(std::string_view tagName, const std::shared_ptr<Scene>& scene) -> Entity;
         auto DestroyEntity(Entity& entity) -> void;
 
         auto OnViewPortResize(UInt32_T width, UInt32_T height) -> void;

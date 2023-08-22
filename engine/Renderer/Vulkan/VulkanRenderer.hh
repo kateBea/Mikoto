@@ -16,20 +16,33 @@
 #include <glm/glm.hpp>
 
 // Project Headers
-#include <Renderer/Buffers/IndexBuffer.hh>
-#include <Renderer/Buffers/VertexBuffer.hh>
-#include <Renderer/Material/Material.hh>
+#include <Utility/Common.hh>
+#include <Utility/VulkanUtils.hh>
 #include <Renderer/Model.hh>
 #include <Renderer/Renderer.hh>
 #include <Renderer/RendererAPI.hh>
-#include <Renderer/Vulkan/VulkanCommandBuffer.hh>
+#include <Renderer/Material/Material.hh>
+#include <Renderer/Vulkan/VulkanImage.hh>
+#include <Renderer/Buffers/IndexBuffer.hh>
+#include <Renderer/Buffers/VertexBuffer.hh>
 #include <Renderer/Vulkan/VulkanCommandPool.hh>
 #include <Renderer/Vulkan/VulkanFrameBuffer.hh>
-#include <Renderer/Vulkan/VulkanImage.hh>
+#include <Renderer/Vulkan/VulkanCommandBuffer.hh>
 #include <Renderer/Vulkan/VulkanStandardMaterial.hh>
-#include <Utility/Common.hh>
 
 namespace Mikoto {
+    /**
+     * This structure will hold data that is necessary for the different types of
+     * materials, but is not necessary to have a duplicate for each one of them. Fo example,
+     * the pipeline for the default material will be shared amongst all default material since
+     * pipelines are expensive to create and makes no sense to have one per material
+     * */
+    struct MaterialSharedSpecificData {
+        VkPipelineLayout MaterialPipelineLayout{};
+        VkDescriptorSetLayout DescriptorSetLayout{};
+        std::shared_ptr<VulkanPipeline> Pipeline{};
+    };
+
     class VulkanRenderer : public RendererAPI {
     public:
         explicit VulkanRenderer() = default;
@@ -42,18 +55,16 @@ namespace Mikoto {
 
         auto SetClearColor(const glm::vec4& color) -> void override;
         auto SetClearColor(float red, float green, float blue, float alpha) -> void override;
+        auto SetViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void override;
 
         auto Draw(const DrawData& data) -> void override;
-
-        auto SetViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void override;
 
         auto OnEvent(Event& event) -> void override;
         auto OnFramebufferResize(UInt32_T width, UInt32_T height) -> void;
 
-        auto GetCommandPool() -> VulkanCommandPool& { return *m_CommandPool; }
-
-        KT_NODISCARD auto GetDescriptorSet() const -> VkDescriptorSet { return m_OffscreenDescriptorSet; }
-        KT_NODISCARD auto GetOffscreenColorAttachmentImage() const -> VkImageView { return m_OffscreenColorAttachment.GetView(); }
+        MKT_NODISCARD auto GetCommandPool() -> VulkanCommandPool& { return *m_CommandPool; }
+        MKT_NODISCARD auto GetOffscreenColorAttachmentImage() const -> VkImageView { return m_OffscreenColorAttachment.GetView(); }
+        MKT_NODISCARD auto GetMaterialInfo() -> std::unordered_map<std::string, MaterialSharedSpecificData>& { return m_MaterialInfo; }
 
         ~VulkanRenderer() override = default;
     private:
@@ -66,20 +77,9 @@ namespace Mikoto {
             VkFence Fence{};
         };
 
-        /**
-         * This structure will hold data that is necessary for the different types of
-         * materials, but is not necessary to have a duplicate for each one of them. Fo example,
-         * the pipeline for the default material will be shared amongst all default material since
-         * pipelines are expensive to create and makes no sense to have one per material
-         * */
-        struct MaterialSharedSpecificData {
-            VkPipelineLayout MaterialPipelineLayout{};
-            std::shared_ptr<VulkanPipeline> Pipeline{};
-        };
-
     private:
         /*************************************************************
-        * HELPERS (Setup offscreen rendering)
+        * HELPERS (Setup for offscreen rendering)
         * ***********************************************************/
         auto PrepareOffscreen() -> void;
         auto CreateRenderPass() -> void;
@@ -93,21 +93,27 @@ namespace Mikoto {
         VulkanImage m_OffscreenColorAttachment{};
         VulkanImage m_OffscreenDepthAttachment{};
 
-        // For usage with ImGui
-        VkSampler m_OffscreenSampler{};
-        VkDescriptorSet m_OffscreenDescriptorSet{};
-
         VkFormat m_ColorAttachmentFormat{};
         VkFormat m_DepthAttachmentFormat{};
 
         bool m_OffscreenPrepareFinished{};
+    private:
+        /*************************************************************
+        * MATERIALS
+        * ***********************************************************/
+        auto CreateGlobalDescriptorSetLayoutForStandardMaterial() -> void;
+
+        std::unordered_map<std::string, MaterialSharedSpecificData> m_MaterialInfo{};
+
+        std::shared_ptr<VulkanStandardMaterial> m_ActiveDefaultMaterial{};
+        std::shared_ptr<VulkanStandardMaterial> m_ActiveWireframeMaterial{};
 
     private:
         /*************************************************************
         * HELPERS (For geometry drawing)
         * ***********************************************************/
         auto DrawFrame(const Model &model) -> void;
-        auto RecordMainRenderPassCommands(const Mesh &mesh) -> void;
+        auto RecordMeshDrawCommands(const Mesh &mesh) -> void;
 
         auto UpdateViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void;
         auto UpdateScissor(Int32_T x, Int32_T y, VkExtent2D extent) -> void;
@@ -124,13 +130,8 @@ namespace Mikoto {
         /*************************************************************
         * PRIVATE MEMBERS
         * ***********************************************************/
-        std::unordered_map<std::string, MaterialSharedSpecificData> m_MaterialInfo{};
-
-        std::shared_ptr<VulkanStandardMaterial> m_DefaultMaterial{};
         std::shared_ptr<VulkanCommandPool> m_CommandPool{};
-
         VulkanCommandBuffer m_DrawCommandBuffer{};
-
         SubmitInfo m_QueueSubmitData{};
 
         // Temporary
@@ -146,6 +147,5 @@ namespace Mikoto {
         std::vector<VkImageView> m_DepthImageViews{};
     };
 }
-
 
 #endif // MIKOTO_VULKAN_RENDERER_HH

@@ -44,9 +44,11 @@ namespace Mikoto {
         std::vector<VkFence> InFlightFences{};
     };
 
-    class VulkanUtils {
-    public:
-        /**
+} // NAMESPACE MIKOTO
+
+namespace Mikoto::VulkanUtils {
+
+    /**
          * Allocates a block of memory in the device's heap memory and binds given block to the given buffer
          * @param buffer
          * @param bufferMemory
@@ -55,9 +57,9 @@ namespace Mikoto {
          * @param usage
          * @deprecated Prefer allocating memory buffers via VMA with the default allocator, number of allocations is pretty limited even in modern hardware
          * */
-        static auto CreateBuffer(VkBuffer& buffer, VkDeviceMemory& bufferMemory, VkDeviceSize size, VkMemoryPropertyFlags properties, VkBufferUsageFlags usage) -> void;
+    auto CreateBuffer(VkBuffer& buffer, VkDeviceMemory& bufferMemory, VkDeviceSize size, VkMemoryPropertyFlags properties, VkBufferUsageFlags usage) -> void;
 
-        /**
+    /**
          * Copies a block of data to a different location
          * @param srcBuffer
          * @param dstBuffer
@@ -65,43 +67,44 @@ namespace Mikoto {
          * @param commandBuffer
          * @deprecated Previously used in conjunction with Create() to create staging buffers
          * */
-        static auto CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkCommandBuffer commandBuffer) -> void;
+    auto CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkCommandBuffer commandBuffer) -> void;
 
-        /**
+    /**
          * Uploads CPU accessible data to GPU readable memory
          * @param allocatedBufferData
          * */
-        static auto UploadBuffer(BufferAllocateInfo& allocatedBufferData) -> void;
+    auto UploadBuffer(BufferAllocateInfo& allocatedBufferData) -> void;
 
-        /**
+    /**
          * Allocates an image
          * @param allocatedImageData
          * */
-        static auto AllocateImage(ImageAllocateInfo& allocatedImageData) -> void;
+    auto AllocateImage(ImageAllocateInfo& allocatedImageData) -> void;
 
-        /**
+    /**
          * Wait on the host for the completion of outstanding queue operations for all queues the given device
          * @param device logical device to wait on
          * */
-        static auto WaitOnDevice(VkDevice device) -> void;
+    auto WaitOnDevice(VkDevice device) -> void;
 
-        /**
+    /**
          * Wait on the specified queue to finish commands execution
          * @param device queue to wait on
          * */
-        static auto WaitOnQueue(VkQueue queue) -> void;
+    auto WaitOnQueue(VkQueue queue) -> void;
 
-        /**
+    /**
          * @param submitInfo
          * @returns
          * */
-        static auto SubmitCommandBuffers(const CommandBuffersSubmitInfo& submitInfo) -> VkResult;
+    auto SubmitCommandBuffers(const CommandBuffersSubmitInfo& submitInfo) -> VkResult;
 
-        /**
+    /**
          * @param presentInfo
          * @returns
          * */
-        static auto QueueImageForPresentation(const QueuePresentInfo& presentInfo) -> VkResult;
-    };
-}
+    auto QueueImageForPresentation(const QueuePresentInfo& presentInfo) -> VkResult;
+
+} // MIKOTO::VULKAN_UTILS
+
 #endif // MIKOTO_VULKAN_UTILS_HH

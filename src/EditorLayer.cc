@@ -71,11 +71,10 @@ namespace Mikoto {
 
     auto EditorLayer::OnUpdate(double ts) -> void {
         RenderCommand::SetClearColor(m_SettingsPanelInfo->ClearColor);
-
         m_ScenePanelInfo->Viewport->OnUpdate();
     }
 
-    auto EditorLayer::OnEvent(Event &event) -> void {
+    auto EditorLayer::OnEvent(Event& event) -> void {
         m_SettingsPanel->OnEvent(event);
         m_HierarchyPanel->OnEvent(event);
         m_InspectorPanel->OnEvent(event);

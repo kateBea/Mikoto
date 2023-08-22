@@ -32,7 +32,7 @@ namespace Mikoto::Editor {
     auto HelpMarker(std::string_view description) -> void;
     auto OnDockSpaceUpdate() -> void;
 
-    KT_NODISCARD inline auto GetControlFlags() -> const DockControlFlags& { return s_ControlFlags; }
+    MKT_NODISCARD inline auto GetControlFlags() -> const DockControlFlags& { return s_ControlFlags; }
 
 
 }

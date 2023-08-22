@@ -1,5 +1,10 @@
-#ifndef KATE_ENGINE_RENDERER_API_HH
-#define KATE_ENGINE_RENDERER_API_HH
+/**
+ * RenderCommand.hh
+ * Created by kate on 6/9/23.
+ * */
+
+#ifndef MIKOTO_RENDERER_API_HH
+#define MIKOTO_RENDERER_API_HH
 
 // C++ Standard Library
 #include <any>
@@ -70,6 +75,9 @@ namespace Mikoto {
 		virtual auto SetViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void = 0;
         virtual auto OnEvent(Event& event) -> void = 0;
 
+        /**
+         * Default destructor.
+         * */
         virtual ~RendererAPI() = default;
     public:
         RendererAPI(const RendererAPI&) = delete;
@@ -80,4 +88,4 @@ namespace Mikoto {
 	};
 }
 
-#endif
+#endif // MIKOTO_RENDERER_API_HH

@@ -111,7 +111,13 @@ namespace Mikoto {
      * */
     class SpriteRendererComponent {
     public:
-        explicit SpriteRendererComponent() = default;
+        explicit SpriteRendererComponent() {
+            m_Color = {};
+            m_DrawData = {};
+
+            if (m_DrawData.MaterialData == nullptr)
+                m_DrawData.MaterialData = Material::Create(Material::Type::STANDARD);
+        }
 
         explicit SpriteRendererComponent(const glm::vec4& color, const DrawData& drawData = {}) {
             m_Color = color;

@@ -147,6 +147,14 @@ namespace Mikoto {
         if (data.ModelData)
             DrawFrame(*data.ModelData);
         else {
+            /**
+             * The two squares are not being shown in the final image at the moment, I'm clueless as to why this is happening.
+             * The problem that happens is that the last object is the one that is shown in the final image
+             * when I remove the WaitIdle on the submit function i can see the second square for a tiny amount of time,
+             * kind of like flickering
+             * */
+
+
             m_ActiveDefaultMaterial->UploadUniformBuffers();
             m_DrawCommandBuffer.BeginRecording();
 
@@ -454,7 +462,7 @@ namespace Mikoto {
         if (vkQueueSubmit(VulkanContext::GetPrimaryLogicalDeviceGraphicsQueue(), 1, &submitInfo, nullptr) != VK_SUCCESS)
             throw std::runtime_error("failed to submit draw command buffer!");
 
-        VulkanUtils::WaitOnQueue(VulkanContext::GetPrimaryLogicalDeviceGraphicsQueue());
+        VulkanUtils::WaitOnDevice(VulkanContext::GetPrimaryLogicalDevice());
     }
 
     auto VulkanRenderer::CreateSynchronizationObjects() -> void {

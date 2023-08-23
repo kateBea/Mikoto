@@ -31,17 +31,16 @@ namespace Mikoto {
         m_StatsPanelInfo = std::make_shared<StatsPanelData>();
 
         // Scene pre setup
-        auto ent1{ Scene::CreateEntity("RedColoredSquare", m_ScenePanelInfo->Viewport) };
-        auto ent2{ Scene::CreateEntity("GreenColoredSquare", m_ScenePanelInfo->Viewport) };
         auto cam{ Scene::CreateEntity("MainCamera", m_ScenePanelInfo->Viewport) };
 
+        auto ent1{ Scene::CreateEntity("RedColoredSquare", m_ScenePanelInfo->Viewport) };
         ent1.AddComponent<SpriteRendererComponent>(glm::vec4{ 0.8f, 0.2f, 0.15f, 1.0f });
-        ent2.AddComponent<SpriteRendererComponent>(glm::vec4{ 0.2f, 0.8f, 0.25f, 0.5f });
-
         ent1.GetComponent<TransformComponent>().SetTranslation({ 0.0f, 0.0f, 0.0f });
-        ent2.GetComponent<TransformComponent>().SetTranslation({ 0.0f, 0.0f, 0.0f });
-
         ent1.GetComponent<TransformComponent>().SetRotation({ 0.0f, 0.0f, 45.0f });
+
+        auto ent2{ Scene::CreateEntity("GreenColoredSquare", m_ScenePanelInfo->Viewport) };
+        ent2.GetComponent<TransformComponent>().SetTranslation({ 0.0f, 0.0f, 0.0f });
+        ent2.AddComponent<SpriteRendererComponent>(glm::vec4{ 0.2f, 0.8f, 0.25f, 0.5f });
         ent2.GetComponent<TransformComponent>().SetRotation({ 0.0f, 0.0f, 1.0f });
 
         double aspect{ window.GetWidth() / (double)window.GetHeight() };

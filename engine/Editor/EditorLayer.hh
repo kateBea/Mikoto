@@ -54,8 +54,8 @@ namespace Mikoto {
         std::shared_ptr<ScenePanelData> m_ScenePanelInfo{};
         std::shared_ptr<StatsPanelData> m_StatsPanelInfo{};
 
+        // For testing
         Model m_TestModel{};
-
     };
 
 }

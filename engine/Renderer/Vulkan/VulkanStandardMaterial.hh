@@ -71,8 +71,15 @@ namespace Mikoto {
 
     private:
         /*************************************************************
+        * STRUCTURES
+        * ***********************************************************/
+        UniformTransformData Transform{};
+        glm::vec4 Color{};
+
+    private:
+        /*************************************************************
         * HELPERS
-        * ********************************************************+ */
+        * ***********************************************************/
         auto CreateUniformBuffer() -> void;
         auto CreateDescriptorPool() -> void;
         auto CreateDescriptorSet() -> void;
@@ -85,6 +92,7 @@ namespace Mikoto {
         VkDescriptorSet m_DescriptorSet{};
 
         std::shared_ptr<VulkanTexture2D> m_Texture{};
+
         UniformTransformData m_Transform{};
         glm::vec4 m_Color{};
     };

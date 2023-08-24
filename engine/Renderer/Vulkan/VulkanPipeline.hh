@@ -45,6 +45,8 @@ namespace Mikoto {
         MKT_NODISCARD auto Get() const -> const VkPipeline& { return m_GraphicsPipeline; }
         MKT_NODISCARD static auto GetDefaultPipelineConfigInfo() -> PipelineConfigInfo &;
 
+        auto operator==(const VulkanPipeline& other) const -> bool { return m_GraphicsPipeline == other.m_GraphicsPipeline; }
+
         auto OnRelease() const -> void;
         ~VulkanPipeline() = default;
 

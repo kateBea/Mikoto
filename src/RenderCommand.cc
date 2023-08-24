@@ -10,6 +10,7 @@
 #include <Core/Assert.hh>
 #include <Renderer/Renderer.hh>
 #include <Renderer/RenderCommand.hh>
+#include <utility>
 
 namespace Mikoto {
     auto RenderCommand::Init(RendererAPI* activeAPI) -> void {
@@ -27,11 +28,6 @@ namespace Mikoto {
     }
 
 
-    auto RenderCommand::Draw(const DrawData & data) -> void {
-        KT_ASSERT(s_ActiveRendererAPI, "Render command active API is NULL");
-        s_ActiveRendererAPI->Draw(data);
-    }
-
     auto RenderCommand::UpdateViewPort(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void {
         KT_ASSERT(s_ActiveRendererAPI, "Render command active API is NULL");
         s_ActiveRendererAPI->SetViewport(x, y, width, height);
@@ -46,6 +42,14 @@ namespace Mikoto {
 
     auto RenderCommand::DisableWireframeMode() -> void {
         s_ActiveRendererAPI->DisableWireframeMode();
+    }
+
+    auto RenderCommand::Flush() -> void {
+        s_ActiveRendererAPI->Flush();
+    }
+
+    auto RenderCommand::AddToRenderQueue(std::shared_ptr<DrawData> data) -> void {
+        s_ActiveRendererAPI->QueueForDrawing(std::move(data));
     }
 
 }

@@ -30,7 +30,7 @@ namespace Mikoto {
         static auto BeginScene(const ScenePrepareData& prepareData) -> void;
         static auto EndScene() -> void;
 
-        static auto Submit(const DrawData & data) -> void;
+        static auto Submit(std::shared_ptr<DrawData> data) -> void;
         static auto SubmitQuad(const glm::mat4 &transform, const glm::vec4 &color, std::shared_ptr<Material> material) -> void;
 
         static auto Flush() -> void;

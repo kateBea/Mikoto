@@ -54,7 +54,9 @@ namespace Mikoto {
         auto EnableWireframeMode() -> void override;
         auto DisableWireframeMode() -> void override;
 
-        auto Draw(const DrawData & data) -> void override;
+        auto QueueForDrawing(std::shared_ptr<DrawData>) -> void override;
+        auto Draw() -> void override;
+        auto Flush() -> void override;
         auto SetClearColor(const glm::vec4& color) -> void override;
         auto SetClearColor(float red, float green, float blue, float alpha) -> void override;
         auto SetViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void override;

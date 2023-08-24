@@ -21,16 +21,22 @@ namespace Mikoto {
             throw std::runtime_error("Failed to allocate command buffer");
     }
 
-    auto VulkanCommandBuffer::BeginRecording() const -> void {
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    auto VulkanCommandBuffer::BeginRecording() -> void {
+        if (!m_Recording) {
+            VkCommandBufferBeginInfo beginInfo{};
+            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-        if (vkBeginCommandBuffer(m_CommandBuffer, &beginInfo) != VK_SUCCESS)
-            throw std::runtime_error("Failed to begin recording to command buffer");
+            if (vkBeginCommandBuffer(m_CommandBuffer, &beginInfo) != VK_SUCCESS)
+                throw std::runtime_error("Failed to begin recording to command buffer");
+        }
+
+        m_Recording = true;
     }
 
-    auto VulkanCommandBuffer::EndRecording() const -> void {
+    auto VulkanCommandBuffer::EndRecording() -> void {
         if (vkEndCommandBuffer(m_CommandBuffer) != VK_SUCCESS)
             throw std::runtime_error("Failed to record command buffer");
+
+        m_Recording = false;
     }
 }

@@ -47,7 +47,8 @@ namespace Mikoto {
         m_DefaultFrameBuffer.Unbind();
     }
 
-    auto OpenGLRenderer::Draw(const DrawData& data) -> void {
+    auto OpenGLRenderer::Draw() -> void {
+#if 0 // TODO: remove usage of data, see vulkan renderer
         m_CurrentDefaultMaterial = std::dynamic_pointer_cast<OpenGLDefaultMaterial>(data.MaterialData);
 
         m_CurrentDefaultMaterial->SetTiltingColor(data.Color);
@@ -63,6 +64,7 @@ namespace Mikoto {
             m_CurrentDefaultMaterial->UploadUniformBuffersData();
             DrawIndexed(data.VertexBufferData, data.IndexBufferData);
         }
+#endif
     }
 
     auto OpenGLRenderer::Init() -> void {
@@ -94,6 +96,14 @@ namespace Mikoto {
         createInfo.samples = 1;
 
         m_DefaultFrameBuffer.OnCreate(createInfo);
+    }
+
+    auto OpenGLRenderer::Flush() -> void {
+
+    }
+
+    auto OpenGLRenderer::QueueForDrawing(std::shared_ptr<DrawData>) -> void {
+
     }
 
 }

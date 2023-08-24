@@ -95,7 +95,6 @@ namespace Mikoto {
         for (const auto& mesh : model.GetMeshes())
             RecordMeshDrawCommands(mesh);
 
-        // submit commands for execution
         SubmitToQueue();
     }
 
@@ -136,64 +135,56 @@ namespace Mikoto {
 
         // End command buffer recording
         m_DrawCommandBuffer.EndRecording();
+
     }
 
-    auto VulkanRenderer::Draw(const DrawData & data) -> void {
-        m_ActiveDefaultMaterial = std::dynamic_pointer_cast<VulkanStandardMaterial>(data.MaterialData);
+    auto VulkanRenderer::Draw() -> void {
 
-        m_ActiveDefaultMaterial->SetProjectionView(data.TransformData.ProjectionView);
-        m_ActiveDefaultMaterial->SetTransform(data.TransformData.Transform);
+        m_DrawCommandBuffer.BeginRecording();
 
-        if (data.ModelData)
-            DrawFrame(*data.ModelData);
-        else {
-            /**
-             * The two squares are not being shown in the final image at the moment, I'm clueless as to why this is happening.
-             * The problem that happens is that the last object is the one that is shown in the final image
-             * when I remove the WaitIdle on the submit function i can see the second square for a tiny amount of time,
-             * kind of like flickering
-             * */
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = m_OffscreenMainRenderPass;
+        renderPassInfo.framebuffer = m_OffscreenFrameBuffer.Get();
+        renderPassInfo.renderArea.offset = { 0, 0 };
+        renderPassInfo.renderArea.extent = m_OffscreenExtent;
 
+        renderPassInfo.clearValueCount = static_cast<UInt32_T>(m_ClearValues.size());
+        renderPassInfo.pClearValues = m_ClearValues.data();
+
+        // Set Viewport and Scissor
+        vkCmdSetViewport(m_DrawCommandBuffer.Get(), 0, 1, &m_Viewport);
+        vkCmdSetScissor(m_DrawCommandBuffer.Get(), 0, 1, &m_Scissor);
+
+        // Begin Render pass commands recording
+        vkCmdBeginRenderPass(m_DrawCommandBuffer.Get(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        for (const auto& drawObject : m_DrawQueue) {
+            m_ActiveDefaultMaterial = std::dynamic_pointer_cast<VulkanStandardMaterial>(drawObject->MaterialData);
+
+            m_ActiveDefaultMaterial->SetProjectionView(drawObject->TransformData.ProjectionView);
+            m_ActiveDefaultMaterial->SetTransform(drawObject->TransformData.Transform);
+            m_ActiveDefaultMaterial->SetTiltingColor(drawObject->Color.r, drawObject->Color.g, drawObject->Color.b, drawObject->Color.a);
 
             m_ActiveDefaultMaterial->UploadUniformBuffers();
-            m_DrawCommandBuffer.BeginRecording();
-
-            VkRenderPassBeginInfo renderPassInfo{};
-            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            renderPassInfo.renderPass = m_OffscreenMainRenderPass;
-            renderPassInfo.framebuffer = m_OffscreenFrameBuffer.Get();
-            renderPassInfo.renderArea.offset = { 0, 0 };
-            renderPassInfo.renderArea.extent = m_OffscreenExtent;
-
-            renderPassInfo.clearValueCount = static_cast<UInt32_T>(m_ClearValues.size());
-            renderPassInfo.pClearValues = m_ClearValues.data();
-
-            // Begin Render pass commands recording
-            vkCmdBeginRenderPass(m_DrawCommandBuffer.Get(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-            // Set Viewport and Scissor
-            vkCmdSetViewport(m_DrawCommandBuffer.Get(), 0, 1, &m_Viewport);
-            vkCmdSetScissor(m_DrawCommandBuffer.Get(), 0, 1, &m_Scissor);
 
             // Bind material Pipeline and Descriptors
             m_MaterialInfo[m_ActiveDefaultMaterial->GetName()].Pipeline->Bind(m_DrawCommandBuffer.Get());
             m_ActiveDefaultMaterial->BindDescriptorSet(m_DrawCommandBuffer.Get(), m_MaterialInfo[m_ActiveDefaultMaterial->GetName()].MaterialPipelineLayout);
 
             // Bind vertex and index buffers
-            std::dynamic_pointer_cast<VulkanVertexBuffer>(data.VertexBufferData)->Bind(m_DrawCommandBuffer.Get());
-            std::dynamic_pointer_cast<VulkanIndexBuffer>(data.IndexBufferData)->Bind(m_DrawCommandBuffer.Get());
+            std::dynamic_pointer_cast<VulkanVertexBuffer>(drawObject->VertexBufferData)->Bind(m_DrawCommandBuffer.Get());
+            std::dynamic_pointer_cast<VulkanIndexBuffer>(drawObject->IndexBufferData)->Bind(m_DrawCommandBuffer.Get());
 
             // Draw call command
-            vkCmdDrawIndexed(m_DrawCommandBuffer.Get(), std::dynamic_pointer_cast<VulkanIndexBuffer>(data.IndexBufferData)->GetCount(), 1, 0, 0, 0);
-
-            // End Render pass commands recording
-            vkCmdEndRenderPass(m_DrawCommandBuffer.Get());
-
-            // End command buffer recording
-            m_DrawCommandBuffer.EndRecording();
-
-            SubmitToQueue();
+            vkCmdDrawIndexed(m_DrawCommandBuffer.Get(), std::dynamic_pointer_cast<VulkanIndexBuffer>(drawObject->IndexBufferData)->GetCount(), 1, 0, 0, 0);
         }
+
+        // End Render pass commands recording
+        vkCmdEndRenderPass(m_DrawCommandBuffer.Get());
+
+        // End command buffer recording
+        m_DrawCommandBuffer.EndRecording();
     }
 
     auto VulkanRenderer::OnFramebufferResize(UInt32_T width, UInt32_T height) -> void {
@@ -217,7 +208,7 @@ namespace Mikoto {
         colorAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
         colorAttachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         colorAttachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         colorAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         colorAttachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         colorAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -233,7 +224,7 @@ namespace Mikoto {
         depthAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
         depthAttachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        depthAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         depthAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         depthAttachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         depthAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -266,6 +257,31 @@ namespace Mikoto {
         deptAttachmentDependency.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
         deptAttachmentDependency.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
+
+
+        // Temporary
+        // Use subpass dependencies for layout transitions
+        std::array<VkSubpassDependency, 2> dependencies{};
+
+        dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[0].dstSubpass = 0;
+        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+        dependencies[1].srcSubpass = 0;
+        dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+
+
+
         std::array<VkSubpassDependency, 2> attachmentDependencies{ colorAttachmentDependency, deptAttachmentDependency };
         std::array<VkAttachmentDescription, 2> attachmentDescriptions{ colorAttachmentDesc, depthAttachmentDesc };
 
@@ -274,8 +290,8 @@ namespace Mikoto {
         info.attachmentCount = static_cast<UInt32_T>(attachmentDescriptions.size());
         info.pAttachments = attachmentDescriptions.data();
 
-        info.dependencyCount = static_cast<UInt32_T>(attachmentDependencies.size());
-        info.pDependencies = attachmentDependencies.data();
+        info.dependencyCount = static_cast<UInt32_T>(dependencies.size());
+        info.pDependencies = dependencies.data();
 
         info.subpassCount = 1;
         info.pSubpasses = &subpass;
@@ -344,7 +360,6 @@ namespace Mikoto {
         colorAttachmentCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         colorAttachmentCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
         colorAttachmentCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        colorAttachmentCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
         VkImageViewCreateInfo colorAttachmentViewCreateInfo{};
         colorAttachmentViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -353,11 +368,6 @@ namespace Mikoto {
         colorAttachmentViewCreateInfo.image = m_OffscreenColorAttachment.Get();
         colorAttachmentViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         colorAttachmentViewCreateInfo.format = colorAttachmentCreateInfo.format; // match formats for simplicity
-
-        colorAttachmentViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_R;
-        colorAttachmentViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_G;
-        colorAttachmentViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_B;
-        colorAttachmentViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_A;
 
         colorAttachmentViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         colorAttachmentViewCreateInfo.subresourceRange.baseMipLevel = 0;
@@ -371,8 +381,8 @@ namespace Mikoto {
         VkImageCreateInfo depthAttachmentCreateInfo{};
         depthAttachmentCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         depthAttachmentCreateInfo.pNext = nullptr;
-
         depthAttachmentCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+        depthAttachmentCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
         depthAttachmentCreateInfo.extent.width = m_OffscreenExtent.width;
         depthAttachmentCreateInfo.extent.height = m_OffscreenExtent.height;
@@ -383,7 +393,6 @@ namespace Mikoto {
         depthAttachmentCreateInfo.arrayLayers = 1;
         depthAttachmentCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         depthAttachmentCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-        depthAttachmentCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
         VkImageViewCreateInfo depthAttachmentViewCreateInfo{};
         depthAttachmentViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -393,6 +402,8 @@ namespace Mikoto {
         depthAttachmentViewCreateInfo.image = m_OffscreenDepthAttachment.Get();
         depthAttachmentViewCreateInfo.format = depthAttachmentCreateInfo.format;
 
+        depthAttachmentViewCreateInfo.flags = 0;
+        depthAttachmentViewCreateInfo.subresourceRange = {};
         depthAttachmentViewCreateInfo.subresourceRange.baseMipLevel = 0;
         depthAttachmentViewCreateInfo.subresourceRange.levelCount = 1;
         depthAttachmentViewCreateInfo.subresourceRange.baseArrayLayer = 0;
@@ -409,13 +420,13 @@ namespace Mikoto {
 
         m_ColorAttachmentFormat = VulkanContext::FindSupportedFormat(
                 VulkanContext::GetPrimaryPhysicalDevice(),
-                { VK_FORMAT_D32_SFLOAT, VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_SRGB },
+                { VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_D32_SFLOAT, VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_SRGB },
                 VK_IMAGE_TILING_OPTIMAL,
                 VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT);
 
         m_DepthAttachmentFormat = VulkanContext::FindSupportedFormat(
                 VulkanContext::GetPrimaryPhysicalDevice(),
-                { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+                { VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT },
                 VK_IMAGE_TILING_OPTIMAL,
                 VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
@@ -426,59 +437,24 @@ namespace Mikoto {
         UpdateViewport(0, 0, m_OffscreenExtent.width, m_OffscreenExtent.height);
         UpdateScissor(0, 0, { m_OffscreenExtent.width, m_OffscreenExtent.height });
 
-        CreateSynchronizationObjects();
         InitializeMaterialSpecificData();
 
         m_OffscreenPrepareFinished = true;
     }
 
     auto VulkanRenderer::SubmitToQueue() -> void {
-        //if (vkWaitForFences(VulkanContext::GetPrimaryLogicalDevice(), 1, &m_QueueSubmitData.Fence, VK_TRUE, std::numeric_limits<UInt64_T>::max()) != VK_SUCCESS)
-          //  throw std::runtime_error("Failed to wait for fences in renderer queue submission!");
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        std::array<VkSemaphore, 1> waitSemaphores{ m_QueueSubmitData.RenderFinishedSemaphore };
-        std::array<VkSemaphore, 1> signalSemaphores{ m_QueueSubmitData.RenderFinishedSemaphore };
-        std::array<VkPipelineStageFlags, 1> waitStages{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
         std::array<VkCommandBuffer, 1> commandBuffers{ m_DrawCommandBuffer.Get() };
-
-        // Wait semaphores
-        //submitInfo.waitSemaphoreCount = waitSemaphores.size();
-        //submitInfo.pWaitSemaphores = waitSemaphores.data();
-        //submitInfo.pWaitDstStageMask = waitStages.data();
-
-        // Signal semaphores
-        //submitInfo.signalSemaphoreCount = signalSemaphores.size();
-        //submitInfo.pSignalSemaphores = signalSemaphores.data();
 
         // Command buffers to be submitted
         submitInfo.commandBufferCount = static_cast<UInt32_T>(commandBuffers.size());
         submitInfo.pCommandBuffers = commandBuffers.data();
 
-        //vkResetFences(VulkanContext::GetPrimaryLogicalDevice(), 1, &m_QueueSubmitData.Fence);
-
         if (vkQueueSubmit(VulkanContext::GetPrimaryLogicalDeviceGraphicsQueue(), 1, &submitInfo, nullptr) != VK_SUCCESS)
             throw std::runtime_error("failed to submit draw command buffer!");
-
-        VulkanUtils::WaitOnDevice(VulkanContext::GetPrimaryLogicalDevice());
-    }
-
-    auto VulkanRenderer::CreateSynchronizationObjects() -> void {
-        VkSemaphoreCreateInfo semaphoreInfo{};
-        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-        VkFenceCreateInfo fenceInfo{};
-        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-        if (vkCreateSemaphore(VulkanContext::GetPrimaryLogicalDevice(), &semaphoreInfo, nullptr, &m_QueueSubmitData.ImageAvailableSemaphore) != VK_SUCCESS ||
-            vkCreateSemaphore(VulkanContext::GetPrimaryLogicalDevice(), &semaphoreInfo, nullptr, &m_QueueSubmitData.RenderFinishedSemaphore) != VK_SUCCESS ||
-            vkCreateFence(VulkanContext::GetPrimaryLogicalDevice(), &fenceInfo, nullptr, &m_QueueSubmitData.Fence) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create synchronization objects");
-        }
     }
 
     auto VulkanRenderer::InitializeMaterialSpecificData() -> void {
@@ -567,5 +543,18 @@ namespace Mikoto {
         if (vkCreateDescriptorSetLayout(VulkanContext::GetPrimaryLogicalDevice(), &layoutInfo, nullptr, &standardMatInfo.DescriptorSetLayout) != VK_SUCCESS)
             throw std::runtime_error("failed to create descriptor set layout!");
 
+    }
+
+    auto VulkanRenderer::Flush() -> void {
+        Draw();
+
+        // submit commands for execution
+        SubmitToQueue();
+
+        m_DrawQueue.clear();
+    }
+
+    auto VulkanRenderer::QueueForDrawing(std::shared_ptr<DrawData> data) -> void {
+        m_DrawQueue.emplace_back(data);
     }
 }

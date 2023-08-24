@@ -22,8 +22,15 @@ namespace Mikoto {
         s_DrawData->SceneCamera = prepareData.SceneCamera;
     }
 
-    auto Renderer::Submit(const DrawData& data) -> void {
-        RenderCommand::Draw(data);
+    auto Renderer::Submit(std::shared_ptr<DrawData> data) -> void {
+        RenderCommand::AddToRenderQueue(std::move(data));
+
+        // TODO: review
+        // Rendering Stats management
+        s_RenderingStats->IncrementQuadCount(1);
+        // We increment the number of draw calls because for now
+        // The RenderCommand directly flushes the draw call
+        s_RenderingStats->IncrementDrawCallCount(1);
     }
 
     auto Renderer::EndScene() -> void {
@@ -32,7 +39,7 @@ namespace Mikoto {
     }
 
     auto Renderer::Flush() -> void {
-
+        RenderCommand::Flush();
     }
 
     auto Renderer::Init() -> void {
@@ -87,22 +94,17 @@ namespace Mikoto {
     auto Renderer::SubmitQuad(const glm::mat4 &transform, const glm::vec4& color, std::shared_ptr<Material> material) -> void {
         glm::mat4 cameraViewProj{ s_DrawData->SceneCamera->GetProjection() * s_DrawData->SceneCamera->GetTransform() };
 
-        DrawData data{
-                .Color = color,
-                .VertexBufferData = s_QuadData->VertexBufferData,
-                .IndexBufferData = s_QuadData->IndexBufferData,
-                .MaterialData = std::move(material),
-                .TransformData{ .ProjectionView = cameraViewProj , .Transform = transform },
-        };
+        auto data{ std::make_shared<DrawData>() };
+        data->Color = color;
+        data->VertexBufferData = s_QuadData->VertexBufferData;
+        data->IndexBufferData = s_QuadData->IndexBufferData;
+        data->MaterialData = std::move(material);
+        data->TransformData.ProjectionView = cameraViewProj;
+        data->TransformData.Transform = transform;
+
 
         // Render
-        RenderCommand::Draw(data);
-
-        // Rendering Stats management
-        s_RenderingStats->IncrementQuadCount(1);
-        // We increment the number of draw calls because for now
-        // The RenderCommand directly flushes the draw call
-        s_RenderingStats->IncrementDrawCallCount(1);
+        Renderer::Submit(data);
     }
 
     auto Renderer::OnEvent(Event& event) -> void {

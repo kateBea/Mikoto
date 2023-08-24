@@ -19,13 +19,14 @@ namespace Mikoto {
 
         auto OnCreate(const VkCommandBufferAllocateInfo& allocateInfo) -> void;
 
-        auto BeginRecording() const -> void;
-        auto EndRecording() const -> void;
+        auto BeginRecording() -> void;
+        auto EndRecording() -> void;
 
         MKT_NODISCARD auto Get() const -> const VkCommandBuffer& { return m_CommandBuffer; }
         MKT_NODISCARD auto GetAllocateInfo() const -> const VkCommandBufferAllocateInfo& { return m_AllocInfo; }
 
     private:
+        bool m_Recording{ false };
         VkCommandBuffer m_CommandBuffer{};
         VkCommandBufferAllocateInfo m_AllocInfo{};
     };

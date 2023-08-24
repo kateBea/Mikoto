@@ -71,6 +71,7 @@ namespace Mikoto {
                 Renderer::SubmitQuad(transform.GetTransform(), sprite.GetColor(), drawData.MaterialData);
             }
 
+            Renderer::Flush();
             Renderer::EndScene();
         }
     }

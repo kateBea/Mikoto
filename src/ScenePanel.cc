@@ -27,12 +27,16 @@ namespace Mikoto {
             samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
             samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
             samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-            samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-            samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-            samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-            samplerCreateInfo.minLod = -1000;
-            samplerCreateInfo.maxLod = 1000;
+
+            samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+
             samplerCreateInfo.maxAnisotropy = 1.0f;
+            samplerCreateInfo.mipLodBias = 0.0f;
+            samplerCreateInfo.minLod = 0.0f;
+            samplerCreateInfo.maxLod = 1.0f;
+            samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
 
             if (vkCreateSampler(VulkanContext::GetPrimaryLogicalDevice(), &samplerCreateInfo, nullptr, &m_ColorAttachmentSampler) != VK_SUCCESS)
                 throw std::runtime_error("Failed to create Vulkan Renderer sampler!");

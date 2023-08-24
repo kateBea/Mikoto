@@ -10,6 +10,7 @@
 #include <array>
 #include <filesystem>
 #include <unordered_map>
+#include <vector>
 
 // Third-Party Library
 #include <volk.h>
@@ -57,7 +58,10 @@ namespace Mikoto {
         auto SetClearColor(float red, float green, float blue, float alpha) -> void override;
         auto SetViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void override;
 
-        auto Draw(const DrawData& data) -> void override;
+        auto Flush() -> void override;
+
+        auto Draw() -> void override;
+        auto QueueForDrawing(std::shared_ptr<DrawData>) -> void override;
 
         auto OnEvent(Event& event) -> void override;
         auto OnFramebufferResize(UInt32_T width, UInt32_T height) -> void;
@@ -71,11 +75,7 @@ namespace Mikoto {
         /*************************************************************
         * STRUCTURES
         * ***********************************************************/
-        struct SubmitInfo {
-            VkSemaphore ImageAvailableSemaphore{};
-            VkSemaphore RenderFinishedSemaphore{};
-            VkFence Fence{};
-        };
+
 
     private:
         /*************************************************************
@@ -124,15 +124,14 @@ namespace Mikoto {
         * ***********************************************************/
         auto CreateCommandBuffers() -> void;
         auto SubmitToQueue() -> void;
-        auto CreateSynchronizationObjects() -> void;
 
     private:
         /*************************************************************
         * PRIVATE MEMBERS
         * ***********************************************************/
+        std::vector<std::shared_ptr<DrawData>> m_DrawQueue{};
         std::shared_ptr<VulkanCommandPool> m_CommandPool{};
         VulkanCommandBuffer m_DrawCommandBuffer{};
-        SubmitInfo m_QueueSubmitData{};
 
         // Temporary
         // Index 0 represents clear values for color buffer

@@ -73,8 +73,11 @@ namespace Mikoto {
         /*************************************************************
         * STRUCTURES
         * ***********************************************************/
-        UniformTransformData Transform{};
-        glm::vec4 Color{};
+        struct UniformBufferData {
+            glm::mat4 ProjectionView{};
+            glm::mat4 Transform{};
+            glm::vec4 Color{};
+        };
 
     private:
         /*************************************************************
@@ -93,8 +96,8 @@ namespace Mikoto {
 
         std::shared_ptr<VulkanTexture2D> m_Texture{};
 
-        UniformTransformData m_Transform{};
-        glm::vec4 m_Color{};
+        UniformBufferData m_UniformData{};
+        Size_T m_UniformDataStructureSize{}; // size of the UniformBufferData structure, with required padding for the device
     };
 }
 

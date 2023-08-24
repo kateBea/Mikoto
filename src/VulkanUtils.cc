@@ -95,4 +95,20 @@ namespace Mikoto::VulkanUtils {
 
         return VK_SUCCESS;
     }
+
+    auto GetDeviceMinimumOffsetAlignment(VkPhysicalDevice physicalDevice) -> VkDeviceSize {
+        VkPhysicalDeviceProperties properties{};
+        vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+
+        return properties.limits.minUniformBufferOffsetAlignment;
+    }
+
+    auto GetUniformBufferPadding(VkDeviceSize bufferOriginalSize, VkDeviceSize deviceMinOffsetAlignment) -> VkDeviceSize {
+        VkDeviceSize alignedSize{ bufferOriginalSize };
+
+        if (deviceMinOffsetAlignment > 0)
+            alignedSize = (alignedSize + deviceMinOffsetAlignment - 1) & ~(deviceMinOffsetAlignment - 1);
+
+        return alignedSize;
+    }
 }

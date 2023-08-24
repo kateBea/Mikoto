@@ -3,6 +3,7 @@
 layout(set = 0, binding = 0) uniform UniformBufferObject {
     mat4 ProjectionView;
     mat4 Transform;
+    vec4 Color;
 } UniformBufferData;
 
 // Vertex Buffer elements
@@ -17,7 +18,7 @@ layout(location = 1) out vec2 vertexTexCoord;
 
 void main() {
     // Setup frament shader expected data
-    vertexColor = vec4(a_Color, 1.0f);
+    vertexColor = UniformBufferData.Color;
     vertexTexCoord = a_TextureCoordinates;
 
     gl_Position = UniformBufferData.ProjectionView * UniformBufferData.Transform * vec4(a_Position, 1.0);

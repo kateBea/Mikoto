@@ -23,14 +23,17 @@ namespace Mikoto {
     {
         m_Texture = std::make_shared<VulkanTexture2D>("../assets/textures/lava512x512.png");
 
+        // UniformBuffer size padded
+        auto minOffsetAlignment{ VulkanUtils::GetDeviceMinimumOffsetAlignment(VulkanContext::GetPrimaryPhysicalDevice()) };
+        auto paddedSize{ VulkanUtils::GetUniformBufferPadding(sizeof(m_UniformData), minOffsetAlignment) };
+        m_UniformDataStructureSize = paddedSize;
+
         CreateUniformBuffer();
         CreateDescriptorPool();
         CreateDescriptorSet();
     }
 
     auto VulkanStandardMaterial::OnRelease() const -> void {
-        vkDeviceWaitIdle(VulkanContext::GetPrimaryLogicalDevice());
-
         vkDestroyDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), m_DescriptorPool, nullptr);
 
         m_UniformBuffer.OnRelease();
@@ -43,7 +46,7 @@ namespace Mikoto {
 
     auto VulkanStandardMaterial::CreateUniformBuffer() -> void {
         BufferAllocateInfo allocInfo{};
-        allocInfo.Size = sizeof(UniformTransformData);
+        allocInfo.Size = m_UniformDataStructureSize;
 
         allocInfo.BufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         allocInfo.BufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
@@ -56,11 +59,18 @@ namespace Mikoto {
         if (vmaMapMemory(VulkanContext::GetDefaultAllocator(), m_UniformBuffer.GetVmaAllocation(), &m_UniformBuffersMapped) != VK_SUCCESS)
             throw std::runtime_error("Failed to map memory for uniform buffer in default material!");
 
+        std::memcpy(m_UniformBuffersMapped, &m_UniformData, sizeof(m_UniformData));
+
         vmaUnmapMemory(VulkanContext::GetDefaultAllocator(), m_UniformBuffer.GetVmaAllocation());
     }
 
     auto VulkanStandardMaterial::UploadUniformBuffers() -> void {
-        std::memcpy(m_UniformBuffersMapped, &m_Transform, sizeof(m_Transform));
+        if (vmaMapMemory(VulkanContext::GetDefaultAllocator(), m_UniformBuffer.GetVmaAllocation(), &m_UniformBuffersMapped) != VK_SUCCESS)
+            throw std::runtime_error("Failed to map memory for uniform buffer in default material!");
+
+        std::memcpy(m_UniformBuffersMapped, &m_UniformData, sizeof(m_UniformData));
+
+        vmaUnmapMemory(VulkanContext::GetDefaultAllocator(), m_UniformBuffer.GetVmaAllocation());
     }
 
     auto VulkanStandardMaterial::CreateDescriptorPool() -> void {
@@ -126,17 +136,17 @@ namespace Mikoto {
 
 
     auto VulkanStandardMaterial::SetProjectionView(const glm::mat4 &projView) -> void {
-        m_Transform.ProjectionView = projView;
+        m_UniformData.ProjectionView = projView;
     }
 
     auto VulkanStandardMaterial::SetTransform(const glm::mat4&transform) -> void {
-        m_Transform.Transform = transform;
+        m_UniformData.Transform = transform;
     }
 
     auto VulkanStandardMaterial::SetTiltingColor(float red, float green, float blue, float alpha) -> void {
-        m_Color.r = red;
-        m_Color.g = green;
-        m_Color.b = blue;
-        m_Color.a = alpha;
+        m_UniformData.Color.r = red;
+        m_UniformData.Color.g = green;
+        m_UniformData.Color.b = blue;
+        m_UniformData.Color.a = alpha;
     }
 }

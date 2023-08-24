@@ -455,6 +455,8 @@ namespace Mikoto {
 
         if (vkQueueSubmit(VulkanContext::GetPrimaryLogicalDeviceGraphicsQueue(), 1, &submitInfo, nullptr) != VK_SUCCESS)
             throw std::runtime_error("failed to submit draw command buffer!");
+
+        VulkanUtils::WaitOnQueue(VulkanContext::GetPrimaryLogicalDeviceGraphicsQueue());
     }
 
     auto VulkanRenderer::InitializeMaterialSpecificData() -> void {

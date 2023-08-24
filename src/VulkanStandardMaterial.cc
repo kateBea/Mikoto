@@ -35,7 +35,7 @@ namespace Mikoto {
 
     auto VulkanStandardMaterial::OnRelease() const -> void {
         vkDestroyDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), m_DescriptorPool, nullptr);
-
+        vmaUnmapMemory(VulkanContext::GetDefaultAllocator(), m_UniformBuffer.GetVmaAllocation());
         m_UniformBuffer.OnRelease();
         m_Texture->OnRelease();
     }
@@ -58,19 +58,10 @@ namespace Mikoto {
 
         if (vmaMapMemory(VulkanContext::GetDefaultAllocator(), m_UniformBuffer.GetVmaAllocation(), &m_UniformBuffersMapped) != VK_SUCCESS)
             throw std::runtime_error("Failed to map memory for uniform buffer in default material!");
-
-        std::memcpy(m_UniformBuffersMapped, &m_UniformData, sizeof(m_UniformData));
-
-        vmaUnmapMemory(VulkanContext::GetDefaultAllocator(), m_UniformBuffer.GetVmaAllocation());
     }
 
     auto VulkanStandardMaterial::UploadUniformBuffers() -> void {
-        if (vmaMapMemory(VulkanContext::GetDefaultAllocator(), m_UniformBuffer.GetVmaAllocation(), &m_UniformBuffersMapped) != VK_SUCCESS)
-            throw std::runtime_error("Failed to map memory for uniform buffer in default material!");
-
         std::memcpy(m_UniformBuffersMapped, &m_UniformData, sizeof(m_UniformData));
-
-        vmaUnmapMemory(VulkanContext::GetDefaultAllocator(), m_UniformBuffer.GetVmaAllocation());
     }
 
     auto VulkanStandardMaterial::CreateDescriptorPool() -> void {
@@ -112,7 +103,7 @@ namespace Mikoto {
         VkDescriptorBufferInfo bufferInfo{};
         bufferInfo.buffer = m_UniformBuffer.Get();
         bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(UniformTransformData);
+        bufferInfo.range = sizeof(m_UniformData);
 
         std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

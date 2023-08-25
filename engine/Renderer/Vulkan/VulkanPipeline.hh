@@ -57,7 +57,7 @@ namespace Mikoto {
         VulkanPipeline &operator=(VulkanPipeline&&) = delete;
 
     private:
-        static auto CreateShaderModule(const CharArray& srcCode, VkShaderModule* shaderModule) -> void;
+        static auto CreateShaderModule(const std::string& srcCode, VkShaderModule* shaderModule) -> void;
         auto CreateGraphicsPipeline(const Path_T& vPath, const Path_T& fPath, const PipelineConfigInfo& config) -> void;
 
     private:

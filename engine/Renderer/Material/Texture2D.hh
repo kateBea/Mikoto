@@ -11,7 +11,6 @@
 
 // Project Headers
 #include <Utility/Common.hh>
-#include <Renderer/Material/Texture.hh>
 
 namespace Mikoto {
     enum class Type {
@@ -22,7 +21,7 @@ namespace Mikoto {
         COUNT,
     };
 
-    class Texture2D : public Texture<Texture2D> {
+    class Texture2D {
     public:
         explicit Texture2D() = default;
 

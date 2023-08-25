@@ -9,6 +9,13 @@ it will use OpenGL as its main rendering API, but the end goal is to integrate V
 Clone the repository, at the moment I only tested building on Linux. 
 The project already comes with a CMake file ready to use. 
 
+```shell
+  git clone --recursive https://github.com/kateBea/Mikoto-Engine.git && cd Mikoto-Engine
+  mkdir build && cd build
+  cmake ..
+  cmake --build .
+  ./Mikoto
+```
 
 This project is done thanks to various third-party libraries:
 
@@ -27,25 +34,6 @@ The following tools are required on Linux:
 The GLFW library is not necessary to be installed on the system since it 
 is included as a submodule and build along with the project.
 
-- Clone the repository
-    ```shell
-    git clone --recursive https://github.com/kateBea/Mikoto-Engine.git && cd Mikoto-Engine
-    ```
-- Create a build directory
-    ```shell
-    mkdir build && cd build
-    ```
-
-- Run CMake
-    ```shell
-    cmake ..
-    ```
-  
-- Build the project using CMake
-    ```shell
-    cmake --build .
-    ```
-
 # Goals
 
 The main goal is really just offer support for 3D and 2D graphics rendering. A the moment many configurations necessary for
@@ -56,3 +44,4 @@ the engine are hardcoded in the translation units, the idea is to be able to loa
   - Cem Yuksel for his [YouTube videos](https://www.youtube.com/@cem_yuksel/videos) about graphics programing
   - Jason Gregory for the [Game Engine Architecture](https://www.gameenginebook.com/) book
   - Matt Pharr, Wenzel Jakob, Greg Humphreys for the [Physically Based Rendering: From Theory to Implementation](https://www.pbr-book.org/)
+  - Sascha Willems for the [Vulkan examples](https://github.com/SaschaWillems/Vulkan)

@@ -3,8 +3,8 @@
  * Created by kate on 6/4/23.
  */
 
-#ifndef KATE_ENGINE_OPENGL_SHADER_HH
-#define KATE_ENGINE_OPENGL_SHADER_HH
+#ifndef MIKOTO_OPENGL_SHADER_HH
+#define MIKOTO_OPENGL_SHADER_HH
 
 // C++ Standard Library
 #include <string_view>
@@ -12,12 +12,7 @@
 
 // Third-Party Libraries
 #include <GL/glew.h>
-
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
-#include <glm/mat3x3.hpp>
-#include <glm/mat4x4.hpp>
+#include <glm/glm.hpp>
 
 // Project headers
 #include <Utility/Common.hh>
@@ -63,6 +58,9 @@ namespace Mikoto {
          * */
         auto Bind() const -> void { glUseProgram(m_Id); }
 
+        /**
+         * Unbinds any currently bound shader program
+         * */
         static auto Unbind() -> void { glUseProgram(0); }
 
         /**
@@ -149,8 +147,8 @@ namespace Mikoto {
         ~OpenGLShader() override { glDeleteProgram(GetProgram()); }
     public:
         // Forbidden operations
-        OpenGLShader(const OpenGLShader &) = delete;
-        OpenGLShader & operator=(const OpenGLShader &) = delete;
+        OpenGLShader(const OpenGLShader&) = delete;
+        OpenGLShader & operator=(const OpenGLShader&) = delete;
 
     private:
         /**
@@ -208,8 +206,11 @@ namespace Mikoto {
          * */
         auto ShowProgramStatus(GLenum status) const -> void;
 
-        auto GetFileData(const std::filesystem::path &path) -> std::string;
     private:
+        /*************************************************************
+        * MEMBER VARIABLES
+        * ***********************************************************/
+
         /**
          * Identifier of this Shader program
          * */
@@ -227,4 +228,4 @@ namespace Mikoto {
     };
 }
 
-#endif // END SHADER_HH
+#endif // MIKOTO_OPENGL_SHADER_HH

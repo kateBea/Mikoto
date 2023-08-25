@@ -22,7 +22,7 @@ namespace Mikoto {
 
     class Shader {
     public:
-        Shader() = default;
+        explicit Shader() = default;
         virtual ~Shader() = default;
 
         static auto CreateShader(const Path_T& vertStage, const Path_T& pixelStage) -> std::shared_ptr<Shader>;

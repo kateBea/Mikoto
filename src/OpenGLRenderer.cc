@@ -48,23 +48,23 @@ namespace Mikoto {
     }
 
     auto OpenGLRenderer::Draw() -> void {
-#if 0 // TODO: remove usage of data, see vulkan renderer
-        m_CurrentDefaultMaterial = std::dynamic_pointer_cast<OpenGLDefaultMaterial>(data.MaterialData);
+        for (const auto& drawData : m_DrawQueue) {
+            m_CurrentDefaultMaterial = std::dynamic_pointer_cast<OpenGLDefaultMaterial>(drawData->MaterialData);
 
-        m_CurrentDefaultMaterial->SetTiltingColor(data.Color);
-        m_CurrentDefaultMaterial->SetProjectionView(data.TransformData.ProjectionView);
-        m_CurrentDefaultMaterial->SetTransform(data.TransformData.Transform);
+            m_CurrentDefaultMaterial->SetTiltingColor(drawData->Color);
+            m_CurrentDefaultMaterial->SetProjectionView(drawData->TransformData.ProjectionView);
+            m_CurrentDefaultMaterial->SetTransform(drawData->TransformData.Transform);
 
-        if (m_CurrentDefaultMaterial->GetTexture() != nullptr) {
-            m_CurrentDefaultMaterial->SetTextureSampler(0);
-            std::dynamic_pointer_cast<OpenGLTexture2D>(m_CurrentDefaultMaterial->GetTexture())->Bind(0);
+            if (m_CurrentDefaultMaterial->GetTexture() != nullptr) {
+                m_CurrentDefaultMaterial->SetTextureSampler(0);
+                std::dynamic_pointer_cast<OpenGLTexture2D>(m_CurrentDefaultMaterial->GetTexture())->Bind(0);
+            }
+
+            if (drawData->IndexBufferData != nullptr) {
+                m_CurrentDefaultMaterial->UploadUniformBuffersData();
+                DrawIndexed(drawData->VertexBufferData, drawData->IndexBufferData);
+            }
         }
-
-        if (data.IndexBufferData != nullptr) {
-            m_CurrentDefaultMaterial->UploadUniformBuffersData();
-            DrawIndexed(data.VertexBufferData, data.IndexBufferData);
-        }
-#endif
     }
 
     auto OpenGLRenderer::Init() -> void {
@@ -99,11 +99,12 @@ namespace Mikoto {
     }
 
     auto OpenGLRenderer::Flush() -> void {
-
+        Draw();
+        m_DrawQueue.clear();
     }
 
-    auto OpenGLRenderer::QueueForDrawing(std::shared_ptr<DrawData>) -> void {
-
+    auto OpenGLRenderer::QueueForDrawing(std::shared_ptr<DrawData> data) -> void {
+        m_DrawQueue.emplace_back(data);
     }
 
 }

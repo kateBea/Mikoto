@@ -26,7 +26,7 @@
 
 
 namespace Mikoto {
-    OpenGLShader::OpenGLShader(const std::filesystem::path& vertexSourceDir, const std::filesystem::path& fragmentSourceDir) {
+    OpenGLShader::OpenGLShader(const Path_T& vertexSourceDir, const Path_T& fragmentSourceDir) {
         m_Id = glCreateProgram();
         if (m_Id == 0)
             throw std::runtime_error("Error when creating shader program");
@@ -37,8 +37,6 @@ namespace Mikoto {
 
     auto OpenGLShader::Upload(const Path_T& vShaderPath, const Path_T& fShaderPath) -> void {
         if (!m_ValidId) {
-            // Check, in case this shader does not contain a valid
-            // OpenGL Shader identifier
             m_Id = glCreateProgram();
             if (m_Id == 0)
                 throw std::runtime_error("Error when creating shader program");
@@ -50,21 +48,10 @@ namespace Mikoto {
         Build(vertexShaderData.c_str(), fragmentShaderData.c_str());
     }
 
-    auto OpenGLShader::GetFileData(const std::filesystem::path &path) -> std::string {
-        std::ifstream file{ path, std::ios::binary };
-
-        if (!file.is_open())
-            throw std::runtime_error("Failed to open Shader file for OpenGL");
-
-        return std::string { std::istreambuf_iterator<std::string::value_type>(file), std::istreambuf_iterator<std::string::value_type>() };
-    }
-
     auto OpenGLShader::Compile(const char* content, GLenum shaderType) -> UInt32_T {
-        UInt32_T shaderId{};
-        shaderId = glCreateShader(shaderType);
+        UInt32_T shaderId{ glCreateShader(shaderType) };
         glShaderSource(shaderId, 1, &content, nullptr);
         glCompileShader(shaderId);
-
         return shaderId;
     }
 
@@ -148,8 +135,9 @@ namespace Mikoto {
                     KATE_CORE_LOGGER_ERROR("Error on shader program Linking");
                     KT_COLOR_PRINT_FORMATTED(KT_FMT_COLOR_RED, "\n{}", outStr);
                 }
-                else
+                else {
                     KATE_CORE_LOGGER_INFO("Shader program linking successful");
+                }
 
                 break;
         }
@@ -158,9 +146,10 @@ namespace Mikoto {
     auto OpenGLShader::SetUniformMat4(std::string_view name, const glm::mat4& value) -> void {
         Bind();
         auto ret{ glGetUniformLocation(GetProgram(), name.data()) };
-        if (ret == -1)
+        if (ret == -1) {
             KATE_CORE_LOGGER_ERROR("Error: [{}] is not a valid uniform name for this program shader", name);
-        else
+        }
+        else {
             /*
              * If transpose is GL_FALSE, each matrix is assumed to be supplied in column major order.
              * If transpose is GL_TRUE, each matrix is assumed to be supplied in row major order.
@@ -174,6 +163,7 @@ namespace Mikoto {
              * elements of the second row, and so on.
              * */
             glUniformMatrix4fv(ret, 1, GL_FALSE, glm::value_ptr(value));
+        }
     }
 
     auto OpenGLShader::SetUniformVec3(std::string_view name, const glm::vec3 &value) -> void {
@@ -232,18 +222,6 @@ namespace Mikoto {
         if (ret == -1)
             KATE_CORE_LOGGER_ERROR("Error: [{}] is not a valid uniform name for this program shader", name);
         else {
-            /*
-             * If transpose is GL_FALSE, each matrix is assumed to be supplied in column major order.
-             * If transpose is GL_TRUE, each matrix is assumed to be supplied in row major order.
-             * The count argument indicates the number of matrices to be passed. A count of 1
-             * should be used if modifying the value of a single matrix, and a count greater
-             * than 1 can be used to modify an array of matrices.
-             * from: https://docs.gl/gl4/glUniform
-             *
-             * we pass GL_FALSE because glm::mat4 has each row stored contiguously in memory by default,
-             * meaning the elements of the first row are stored first, followed by the
-             * elements of the second row, and so on.
-             * */
             glUniformMatrix3fv(ret, 1, GL_FALSE, glm::value_ptr(value));
         }
     }

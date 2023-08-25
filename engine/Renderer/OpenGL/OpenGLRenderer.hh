@@ -92,6 +92,7 @@ namespace Mikoto {
         * ***********************************************************/
         OpenGLVertexArray m_VertexArray{};
         OpenGLFrameBuffer m_DefaultFrameBuffer{};
+        std::vector<std::shared_ptr<DrawData>> m_DrawQueue{};
         std::shared_ptr<OpenGLDefaultMaterial> m_CurrentDefaultMaterial{};
     };
 }

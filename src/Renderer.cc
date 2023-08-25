@@ -102,7 +102,6 @@ namespace Mikoto {
         data->TransformData.ProjectionView = cameraViewProj;
         data->TransformData.Transform = transform;
 
-
         // Render
         Renderer::Submit(data);
     }

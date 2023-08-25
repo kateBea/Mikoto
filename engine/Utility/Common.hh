@@ -307,13 +307,13 @@ namespace Mikoto {
         }
     }
 
-    inline auto GetFileData(const Path_T& path) -> CharArray {
+    inline auto GetFileData(const Path_T& path) -> std::string {
         std::ifstream file{ path, std::ios::binary };
 
         if (!file.is_open())
             throw std::runtime_error("Failed to open SPR-V file");
 
-        return CharArray{ std::istreambuf_iterator<CharArray::value_type>(file), std::istreambuf_iterator<CharArray::value_type>() };
+        return std::string{ std::istreambuf_iterator<CharArray::value_type>(file), std::istreambuf_iterator<CharArray::value_type>() };
     }
 }
 

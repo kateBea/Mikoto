@@ -23,9 +23,7 @@ namespace Mikoto {
     }
 
     auto OpenGLDefaultMaterial::UploadShaders(const Path_T &vertexShader, const Path_T &fragmentShader) -> void {
-        m_DefaultVertexPixelShaders = std::dynamic_pointer_cast<OpenGLShader>(
-                Shader::CreateShader(vertexShader,
-                                         fragmentShader));
+        m_DefaultVertexPixelShaders = std::dynamic_pointer_cast<OpenGLShader>(Shader::CreateShader(vertexShader, fragmentShader));
     }
 
     auto OpenGLDefaultMaterial::SetTextureSampler(Int32_T value) -> void {

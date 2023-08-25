@@ -15,7 +15,6 @@
 // Projects Headers
 #include <Renderer/Model.hh>
 #include <Renderer/Material/Material.hh>
-#include <Renderer/Material/Texture.hh>
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
 #include <Renderer/Camera/Camera.hh>

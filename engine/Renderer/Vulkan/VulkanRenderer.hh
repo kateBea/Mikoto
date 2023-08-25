@@ -8,9 +8,9 @@
 
 // C++ Standard Library
 #include <array>
+#include <vector>
 #include <filesystem>
 #include <unordered_map>
-#include <vector>
 
 // Third-Party Library
 #include <volk.h>
@@ -75,7 +75,11 @@ namespace Mikoto {
         /*************************************************************
         * STRUCTURES
         * ***********************************************************/
-
+        enum ClearValueIndex {
+            COLOR_BUFFER = 0,
+            DEPTH_BUFFER = 1,
+            CLEAR_COUNT,
+        };
 
     private:
         /*************************************************************
@@ -95,6 +99,9 @@ namespace Mikoto {
 
         VkFormat m_ColorAttachmentFormat{};
         VkFormat m_DepthAttachmentFormat{};
+        VkViewport m_OffscreenViewport{};
+        VkRect2D m_OffscreenScissor{};
+        std::array<VkClearValue, CLEAR_COUNT> m_ClearValues{};
 
         bool m_OffscreenPrepareFinished{};
     private:
@@ -132,15 +139,6 @@ namespace Mikoto {
         std::vector<std::shared_ptr<DrawData>> m_DrawQueue{};
         std::shared_ptr<VulkanCommandPool> m_CommandPool{};
         VulkanCommandBuffer m_DrawCommandBuffer{};
-
-        // Temporary
-        // Index 0 represents clear values for color buffer
-        // Index 1 represents clear values for depth/stencil
-        std::array<VkClearValue, 2> m_ClearValues{};
-
-        VkViewport m_Viewport{};
-        VkRect2D m_Scissor{};
-
         std::vector<VkImage> m_DepthImages{};
         std::vector<VkDeviceMemory> m_DepthImageMemories{};
         std::vector<VkImageView> m_DepthImageViews{};

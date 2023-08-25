@@ -11,15 +11,14 @@
 
 // Project Headers
 #include <Core/Layer.hh>
+#include <Editor/Editor.hh>
+#include <Renderer/Model.hh>
+#include <Renderer/Camera/Camera.hh>
 #include <Renderer/Buffers/FrameBuffer.hh>
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
 #include <Renderer/Camera/OrthographicCamera.hh>
 #include <Renderer/Material/Shader.hh>
-#include <Renderer/Material/Texture.hh>
-#include <Renderer/Model.hh>
-#include <Renderer/Camera/Camera.hh>
-#include <Editor/Editor.hh>
 #include <Editor/Panels/HierarchyPanel.hh>
 #include <Editor/Panels/InspectorPanel.hh>
 #include <Editor/Panels/ScenePanel.hh>

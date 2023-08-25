@@ -7,11 +7,10 @@
 #define MIKOTO_MESH_HH
 
 // C++ Standard Library
-#include <vector>
-#include <cstdint>
 #include <span>
-#include <algorithm>
+#include <vector>
 #include <utility>
+#include <algorithm>
 
 // Project Libraries
 #include <Utility/Common.hh>
@@ -22,7 +21,7 @@
 namespace Mikoto {
     class MeshData {
     public:
-        MeshData() = default;
+        explicit MeshData() = default;
 
         MeshData(const MeshData& other) = default;
         MeshData(MeshData&& other)  noexcept
@@ -32,20 +31,27 @@ namespace Mikoto {
         MKT_NODISCARD auto GetVertices() const -> const std::shared_ptr<VertexBuffer>& { return m_Vertices; }
         MKT_NODISCARD auto GetIndices() const -> const std::shared_ptr<IndexBuffer>& { return m_Indices; }
         MKT_NODISCARD auto GetTextures() const -> const std::vector<std::shared_ptr<Texture2D>>& { return m_Textures; }
+        /**
+         * Returns the standard vertex buffer layout for all meshes
+         * @returns default vertex buffer layout
+         * */
+        MKT_NODISCARD static auto GetDefaultBufferLayout() -> const BufferLayout& { return s_Layout; }
 
         auto SetVertices(const std::shared_ptr<VertexBuffer>& vertices) -> void { m_Vertices = vertices; }
         auto SetIndices(const std::shared_ptr<IndexBuffer>& indices) -> void { m_Indices = indices; }
         auto SetTextures(std::vector<std::shared_ptr<Texture2D>>&& textures) -> void { m_Textures = std::move(textures); }
+        static auto SetDefaultBufferLayout(const BufferLayout& layout) -> void { s_Layout = layout; }
 
         auto operator=(MeshData&& other) noexcept -> MeshData& = default;
         auto operator=(const MeshData& other) -> MeshData& = default;
+
     private:
         // Specifies the default vertex buffer layout for Meshes
-        inline static const BufferLayout MeshLayout{
+        static inline BufferLayout s_Layout{
                 { ShaderDataType::FLOAT3_TYPE, "a_Position" },
                 { ShaderDataType::FLOAT3_TYPE, "a_Normal" },
-                { ShaderDataType::FLOAT2_TYPE, "a_TextureCoordinates" },
-                { ShaderDataType::FLOAT4_TYPE, "a_Color" }
+                { ShaderDataType::FLOAT3_TYPE, "a_Color" },
+                { ShaderDataType::FLOAT2_TYPE, "a_TextureCoordinates" }
         };
 
         std::shared_ptr<VertexBuffer> m_Vertices{};
@@ -61,36 +67,51 @@ namespace Mikoto {
         explicit Mesh() = default;
 
         /**
-         * Initializes this Mesh' vertex, index and texture objects with the
-         * data we pass ass parameters. The parameters data are moved
-         * @param vertices contains the vertex data for this mesh, like positions, texture coordinates, etc.
-         * @param indices contains the indices for indexed drawing
-         * @param textures contains the texture data for this mesh, see kT::Texture for more
+         * Initializes this mesh from the parameter data.
+         * @param data contains the required data to initialize this mesh
          * */
-        explicit Mesh(MeshData data);
+        explicit Mesh(const MeshData& data);
 
         /**
          * Constructs and initializes this mesh with the contents of the other
-         * mesh using move semantics, the other mesh is invalid after this operation
-         * @param other moved from Mesh
+         * mesh using move semantics, the other mesh is put into an invalid state after this operation
+         * @param other move from Mesh
          * */
         Mesh(Mesh&& other) noexcept;
 
         /**
          * Assigns to this mesh with the contents of the other
          * mesh using move semantics, the other mesh is invalid after this operation
-         * @param other moved from Mesh
-         * @returns *this
+         * @param other move from Mesh
+         * @returns </code>*this<code>
          * */
         auto operator=(Mesh&& other) noexcept -> Mesh&;
 
+        /**
+         * Returns the vertex buffer object from this mesh
+         * @returns vertex buffer
+         * */
         MKT_NODISCARD auto GetVertexBuffer() const -> const std::shared_ptr<VertexBuffer>& { return m_Data.GetVertices(); }
+        /**
+         * Returns the index buffer object from this mesh
+         * @returns index buffer
+         * */
         MKT_NODISCARD auto GetIndexBuffer() const -> const std::shared_ptr<IndexBuffer>& { return m_Data.GetIndices(); }
-        MKT_NODISCARD [[maybe_unused]] auto GetTextures() const -> const std::vector<std::shared_ptr<Texture2D>>& { return (m_Data.GetTextures()); }
+        /**
+         * Returns the set of textures of this mesh
+         * @returns set of textures
+         * */
+        MKT_NODISCARD auto GetTextures() const -> const std::vector<std::shared_ptr<Texture2D>>& { return (m_Data.GetTextures()); }
 
+        /**
+         * Default destructor
+         * */
         ~Mesh() = default;
         
     private:
+        /*************************************************************
+        * MEMBER VARIABLES
+        * ***********************************************************/
         MeshData m_Data{};
     };
 }

@@ -1,7 +1,7 @@
 /**
-* Renderer.hh
-* Created by kate on 6/5/23.
-* */
+ * Renderer.hh
+ * Created by kate on 6/5/23.
+ * */
 
 #ifndef MIKOTO_RENDERER_HH
 #define MIKOTO_RENDERER_HH
@@ -31,7 +31,7 @@ namespace Mikoto {
         static auto EndScene() -> void;
 
         static auto Submit(std::shared_ptr<DrawData> data) -> void;
-        static auto SubmitQuad(const glm::mat4 &transform, const glm::vec4 &color, std::shared_ptr<Material> material) -> void;
+        static auto SubmitQuad(const glm::mat4& transform, const glm::vec4& color, std::shared_ptr<Material> material) -> void;
 
         static auto Flush() -> void;
         static auto OnEvent(Event &event) -> void;

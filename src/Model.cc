@@ -1,3 +1,8 @@
+/**
+ * Model.cc
+ * Created by kate on 6/29/23.
+ * */
+
 // C++ Standard Library
 #include <filesystem>
 #include <stdexcept>
@@ -5,18 +10,16 @@
 #include <vector>
 
 // Third Party Libraries
-#include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/Importer.hpp>
 
 // Project Headers
 #include <Utility/Common.hh>
-
 #include <Renderer/Mesh.hh>
 #include <Renderer/Model.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
 #include <Renderer/Buffers/IndexBuffer.hh>
-#include <Renderer/Material/Texture.hh>
 
 namespace Mikoto {
     Model::Model(const Path_T &path, bool wantLoadTextures)
@@ -26,7 +29,7 @@ namespace Mikoto {
         Load(path, wantLoadTextures);
     }
 
-    auto Model::LoadFromFile(const Path_T &path, bool wantLoadTextures) -> void {
+    auto Model::LoadFromFile(const Path_T& path, bool wantLoadTextures) -> void {
         m_ModelDirectory = path.string().substr(0,  path.string().find_last_of('/'));
         m_ModelName = path.string().substr(path.string().find_last_of('/'),  path.string().size() - 1);
         Load(path, wantLoadTextures);
@@ -59,17 +62,17 @@ namespace Mikoto {
         ProcessNode(scene->mRootNode, scene, modelDirectory, wantLoadTextures);
     }
 
-    auto Model::ProcessNode(aiNode *root, const aiScene *scene, const Path_T &modelDirectory, bool wantLoadTextures) -> void {
+    auto Model::ProcessNode(aiNode* root, const aiScene* scene, const Path_T& modelDirectory, bool wantLoadTextures) -> void {
         // Process all the meshes from this node
-        for(std::size_t i{}; i < root->mNumMeshes; i++)
-            m_Meshes.emplace_back(ProcessMesh(scene->mMeshes[root->mMeshes[i]], scene, modelDirectory, false));
+        for(UInt64_T index{}; index < root->mNumMeshes; index++)
+            m_Meshes.emplace_back(ProcessMesh(scene->mMeshes[root->mMeshes[index]], scene, modelDirectory, wantLoadTextures));
 
         // then do the same for each of its children
-        for(std::size_t i {}; i < root->mNumChildren; i++)
-            ProcessNode(root->mChildren[i], scene, modelDirectory, false);
+        for(UInt64_T i {}; i < root->mNumChildren; i++)
+            ProcessNode(root->mChildren[i], scene, modelDirectory, wantLoadTextures);
     }
 
-    auto Model::ProcessMesh(aiMesh *mesh, const aiScene *scene, const Path_T &modelDirectory, bool wantLoadTextures) -> Mesh {
+    auto Model::ProcessMesh(aiMesh* mesh, const aiScene* scene, const Path_T& modelDirectory, bool wantLoadTextures) -> Mesh {
         std::vector<float> vertices{};
         std::vector<UInt32_T> indices{};
         std::vector<std::shared_ptr<Texture2D>> textures{};
@@ -129,9 +132,9 @@ namespace Mikoto {
         return Mesh{ meshData };
     }
 
-    auto Model::LoadTextures(aiMaterial *mat, aiTextureType type, Type tType, const aiScene *scene, const Path_T& modelDirectory) -> std::vector<std::shared_ptr<Texture2D>> {
+    auto Model::LoadTextures(aiMaterial* mat, aiTextureType type, Type tType, const aiScene* scene, const Path_T& modelDirectory) -> std::vector<std::shared_ptr<Texture2D>> {
         std::vector<std::shared_ptr<Texture2D>> textures{};
-        for(std::uint32_t i{}; i < mat->GetTextureCount(type); i++) {
+        for(UInt64_T i{}; i < mat->GetTextureCount(type); i++) {
             aiString str{};
             if (mat->GetTexture(type, i, &str) == AI_SUCCESS)
                 // TODO: temporary, assumes the textures are in the same directory as the model file
@@ -141,13 +144,11 @@ namespace Mikoto {
         return textures;
     }
 
-    Model::Model(Model &&other) noexcept
-        :   m_Meshes{ std::move(other.m_Meshes) }
-        ,   m_ModelDirectory{ std::move(other.m_ModelDirectory) }
+    Model::Model(Model&& other) noexcept
+        :   m_ModelDirectory{ std::move(other.m_ModelDirectory) }
+        ,   m_Meshes{ std::move(other.m_Meshes) }
         ,   m_ModelName{ std::move(other.m_ModelName) }
-    {
-
-    }
+    {}
 
     auto Model::operator=(Model&& other) noexcept -> Model& {
         m_Meshes = std::move(other.m_Meshes);

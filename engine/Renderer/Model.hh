@@ -3,8 +3,8 @@
 * Created by kate on 6/29/23.
 * */
 
-#ifndef KATE_ENGINE_MODEL_HH
-#define KATE_ENGINE_MODEL_HH
+#ifndef MIKOTO_MODEL_HH
+#define MIKOTO_MODEL_HH
 
 // C++ Standard Library
 #include <filesystem>
@@ -21,10 +21,8 @@
 
 // Project Libraries
 #include <Utility/Common.hh>
-
-#include <Renderer/Material/Texture.hh>
-#include <Renderer/Material/Texture2D.hh>
 #include <Renderer/Mesh.hh>
+#include <Renderer/Material/Texture2D.hh>
 
 namespace Mikoto {
     class Model {
@@ -32,31 +30,38 @@ namespace Mikoto {
         explicit Model() = default;
 
         /**
-         * Loads an object model from the given path. If the path is not valid
-         * this function raises an exception
+         * Loads an object model from the given path. If the path is not valid this function raises an exception
          * @param path path to the model to be loaded
          * @param wantLoadTextures tells whether we want to attempt to load this model's textures
          * @throws std::runtime_error if the file does not exist or the path is invalid
          * */
-        explicit Model(const Path_T &path, bool wantLoadTextures = false);
+        explicit Model(const Path_T& path, bool wantLoadTextures = false);
 
         /**
-         * Copy constructor disabled. Use the default constructor
-         * to load a new Model
+         * Returns the list of meshes from this model
+         * @returns list of meshes
          * */
-        Model(const Model& other) = delete;
-
         MKT_NODISCARD auto GetMeshes() const -> const std::vector<Mesh>& { return m_Meshes; }
+
+        /**
+         * Returns the absolute path to the directory where this model is located (doe not include the model's name)
+         * @returns absolute path to this model's directory
+         * */
         MKT_NODISCARD auto GetDirectory() const -> const Path_T& { return m_ModelDirectory; }
+
+        /**
+         * Returns the name of this model
+         * @returns this model's name
+         * */
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_ModelName; }
 
-        auto LoadFromFile(const Path_T& path, bool wantLoadTextures = false) -> void;
-
         /**
-         * Copy assigment disabled. Use the default constructor
-         * to load a new Model
+         * Loads an object model from the given path. If the path is not valid this function raises an exception
+         * @param path path to the model to be loaded
+         * @param wantLoadTextures tells whether we want to attempt to load this model's textures
+         * @throws std::runtime_error if the file does not exist or the path is invalid
          * */
-        auto operator=(const Model& other) -> Model& = delete;
+        auto LoadFromFile(const Path_T& path, bool wantLoadTextures = false) -> void;
 
         /**
          * Moves <code>other</code> model to the implicit parameter
@@ -71,7 +76,27 @@ namespace Mikoto {
          * */
         auto operator=(Model&& other) noexcept -> Model&;
 
+    public:
+        /*************************************************************
+        * DELETED OPERATIONS
+        * ***********************************************************/
+
+        /**
+         * Copy constructor disabled. Use the default constructor
+         * to load a new Model
+         * */
+        Model(const Model& other) = delete;
+
+        /**
+         * Copy assigment disabled. Use the default constructor
+         * to load a new Model
+         * */
+        auto operator=(const Model& other) -> Model& = delete;
     private:
+        /*************************************************************
+        * HELPERS
+        * ***********************************************************/
+
         /**
          * Helper function to load model resources from given path
          * @param path path to the model to be loaded
@@ -79,9 +104,6 @@ namespace Mikoto {
          * @throws std::runtime_error if the file does not exist or the path is invalid
          * */
         auto Load(const Path_T &path, bool wantLoadTextures = false) -> void;
-
-
-        // ASSIMP INTERFACE HELPER FUNCTIONS
 
         /**
          * Retrieves each one of the meshes contained within the scene
@@ -114,22 +136,13 @@ namespace Mikoto {
         static auto LoadTextures(aiMaterial *mat, aiTextureType type, Type tType, const aiScene *scene, const Path_T& modelDirectory) -> std::vector<std::shared_ptr<Texture2D>>;
 
     private:
-        static inline BufferLayout s_Layout{
-                { ShaderDataType::FLOAT3_TYPE, "a_Position" },
-                { ShaderDataType::FLOAT3_TYPE, "a_Normal" },
-                { ShaderDataType::FLOAT3_TYPE, "a_Color" },
-                { ShaderDataType::FLOAT2_TYPE, "a_TextureCoordinates" }
-        };
-
-        MKT_NODISCARD static auto GetDefaultBufferLayout() -> const BufferLayout& { return s_Layout; }
-        static auto SetDefaultBufferLayout(const BufferLayout& layout) -> void { s_Layout = layout; }
-
-    private:
+        /*************************************************************
+        * MEMBER VARIABLES
+        * ***********************************************************/
         Path_T m_ModelDirectory{};
         std::vector<Mesh> m_Meshes{};
         std::string m_ModelName{};
     };
-
 }
 
-#endif // KATE_ENGINE_MODEL_HH
+#endif // MIKOTO_MODEL_HH

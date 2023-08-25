@@ -87,7 +87,7 @@ namespace Mikoto {
             throw std::runtime_error("Failed to create Graphics pipeline");
     }
 
-    auto VulkanPipeline::CreateShaderModule(const CharArray& srcCode, VkShaderModule* shaderModule) -> void {
+    auto VulkanPipeline::CreateShaderModule(const std::string& srcCode, VkShaderModule* shaderModule) -> void {
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = srcCode.size();
@@ -141,8 +141,8 @@ namespace Mikoto {
         configInfo.ColorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
         configInfo.ColorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         configInfo.ColorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-        configInfo.ColorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        configInfo.ColorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        configInfo.ColorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        configInfo.ColorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         configInfo.ColorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
         configInfo.ColorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;

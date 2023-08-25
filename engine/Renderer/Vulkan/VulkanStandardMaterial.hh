@@ -18,7 +18,6 @@
 #include <Utility/Common.hh>
 #include <Renderer/Material/Material.hh>
 #include <Renderer/Material/Shader.hh>
-#include <Renderer/Material/Texture.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>
 #include <Renderer/Vulkan/VulkanShader.hh>
 #include <Renderer/Vulkan/VulkanBuffer.hh>

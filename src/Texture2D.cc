@@ -11,7 +11,6 @@
 #include <Core/Logger.hh>
 #include <Renderer/Renderer.hh>
 #include <Renderer/RenderingUtilities.hh>
-#include <Renderer/Material/Texture.hh>
 #include <Renderer/Material/Texture2D.hh>
 #include <Renderer/OpenGL/OpenGLTexture2D.hh>
 

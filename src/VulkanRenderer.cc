@@ -32,8 +32,8 @@ namespace Mikoto {
         KT_ASSERT(m_CommandPool, "Command Pool pointer is NULL");
         m_CommandPool->OnCreate(VkCommandPoolCreateInfo());
 
-        m_ClearValues[0].color = { { 0.2f, 0.2f, 0.2f, 1.0f } };
-        m_ClearValues[1].depthStencil = { 1.0f, 0 };
+        m_ClearValues[COLOR_BUFFER].color = { { 0.2f, 0.2f, 0.2f, 1.0f } };
+        m_ClearValues[DEPTH_BUFFER].depthStencil = { 1.0f, 0 };
 
         PrepareOffscreen();
         CreateCommandBuffers();
@@ -48,11 +48,11 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::SetClearColor(const glm::vec4 &color) -> void {
-        m_ClearValues[0].color = { { color.r, color.g, color.b, color.a } };
+        m_ClearValues[COLOR_BUFFER].color = { { color.r, color.g, color.b, color.a } };
     }
 
     auto VulkanRenderer::SetClearColor(float red, float green, float blue, float alpha) -> void {
-        m_ClearValues[0].color = { { red, green, blue, alpha } };
+        m_ClearValues[COLOR_BUFFER].color = { { red, green, blue, alpha } };
     }
 
     auto VulkanRenderer::SetViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void {
@@ -115,8 +115,8 @@ namespace Mikoto {
         vkCmdBeginRenderPass(m_DrawCommandBuffer.Get(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         // Set Viewport and Scissor
-        vkCmdSetViewport(m_DrawCommandBuffer.Get(), 0, 1, &m_Viewport);
-        vkCmdSetScissor(m_DrawCommandBuffer.Get(), 0, 1, &m_Scissor);
+        vkCmdSetViewport(m_DrawCommandBuffer.Get(), 0, 1, &m_OffscreenViewport);
+        vkCmdSetScissor(m_DrawCommandBuffer.Get(), 0, 1, &m_OffscreenScissor);
 
         // Bind material Pipeline and Descriptors
         m_MaterialInfo[m_ActiveDefaultMaterial->GetName()].Pipeline->Bind(m_DrawCommandBuffer.Get());
@@ -153,8 +153,8 @@ namespace Mikoto {
         renderPassInfo.pClearValues = m_ClearValues.data();
 
         // Set Viewport and Scissor
-        vkCmdSetViewport(m_DrawCommandBuffer.Get(), 0, 1, &m_Viewport);
-        vkCmdSetScissor(m_DrawCommandBuffer.Get(), 0, 1, &m_Scissor);
+        vkCmdSetViewport(m_DrawCommandBuffer.Get(), 0, 1, &m_OffscreenViewport);
+        vkCmdSetScissor(m_DrawCommandBuffer.Get(), 0, 1, &m_OffscreenScissor);
 
         // Begin Render pass commands recording
         vkCmdBeginRenderPass(m_DrawCommandBuffer.Get(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -258,9 +258,6 @@ namespace Mikoto {
         deptAttachmentDependency.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
 
-
-        // Temporary
-        // Use subpass dependencies for layout transitions
         std::array<VkSubpassDependency, 2> dependencies{};
 
         dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -280,8 +277,6 @@ namespace Mikoto {
         dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
 
-
-
         std::array<VkSubpassDependency, 2> attachmentDependencies{ colorAttachmentDependency, deptAttachmentDependency };
         std::array<VkAttachmentDescription, 2> attachmentDescriptions{ colorAttachmentDesc, depthAttachmentDesc };
 
@@ -290,8 +285,8 @@ namespace Mikoto {
         info.attachmentCount = static_cast<UInt32_T>(attachmentDescriptions.size());
         info.pAttachments = attachmentDescriptions.data();
 
-        info.dependencyCount = static_cast<UInt32_T>(dependencies.size());
-        info.pDependencies = dependencies.data();
+        info.dependencyCount = static_cast<UInt32_T>(attachmentDependencies.size());
+        info.pDependencies = attachmentDependencies.data();
 
         info.subpassCount = 1;
         info.pSubpasses = &subpass;
@@ -322,7 +317,7 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::UpdateViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void {
-        m_Viewport = {
+        m_OffscreenViewport = {
             .x = static_cast<float>(x),
             .y = static_cast<float>(y),
             .width = static_cast<float>(width),
@@ -333,7 +328,7 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::UpdateScissor(Int32_T x, Int32_T y, VkExtent2D extent) -> void {
-        m_Scissor = {
+        m_OffscreenScissor = {
             .offset{ x, y },
             .extent{ extent },
         };

@@ -13,15 +13,18 @@
 #include <glm/glm.hpp>
 
 // Projects Headers
-#include <Renderer/Model.hh>
-#include <Renderer/Material/Material.hh>
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
 #include <Renderer/Camera/Camera.hh>
+#include <Renderer/Material/Material.hh>
+#include <Renderer/Model.hh>
+#include <Scene/EditorCamera.hh>
+#include <Scene/SceneCamera.hh>
 
 namespace Mikoto {
     struct ScenePrepareData {
-        std::shared_ptr<Camera> SceneCamera{};
+        SceneCamera* RuntimeCamera{};
+        EditorCamera* StaticCamera{};
     };
 
     enum BufferBit {
@@ -79,7 +82,8 @@ namespace Mikoto {
     struct RendererDrawData {
         std::shared_ptr<VertexBuffer> VertexBufferData{};
         std::shared_ptr<IndexBuffer> IndexBufferData{};
-        std::shared_ptr<Camera> SceneCamera{};
+        SceneCamera*SceneRuntimeCamera{};
+        EditorCamera* SceneEditCamera{};
     };
 }
 

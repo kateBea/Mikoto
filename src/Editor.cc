@@ -1,7 +1,12 @@
-//
-// Created by kate on 6/23/23.
-//
+/**
+ * Editor.cc
+ * Created by kate on 6/23/23.
+ * */
 
+// Third-Party Libraries
+#include <imgui.h>
+
+// Project Headers
 #include <Editor/Editor.hh>
 
 namespace Mikoto::Editor {

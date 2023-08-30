@@ -33,7 +33,7 @@ namespace Mikoto {
             if (auto ptr{ other.m_Scene.lock() })
                 m_Scene = ptr;
             else
-                KATE_CORE_LOGGER_ERROR("Other entity's scene has expired and no longer exists! Failed on moving operation");
+                MKT_CORE_LOGGER_ERROR("Other entity's scene has expired and no longer exists!");
             return *this;
         }
 
@@ -49,7 +49,7 @@ namespace Mikoto {
                 return ptr->m_Registry.all_of<ComponentTypeList...>(m_EntityHandle);
             }
 
-            KATE_CORE_LOGGER_ERROR("This entity's scene has expired and no longer exists!");
+            MKT_CORE_LOGGER_ERROR("This entity's scene has expired and no longer exists!");
             return false;
         }
 
@@ -65,7 +65,7 @@ namespace Mikoto {
                 return ptr->m_Registry.any_of<ComponentTypeList...>(m_EntityHandle);
             }
 
-            KATE_CORE_LOGGER_ERROR("This entity's scene has expired and no longer exists!");
+            MKT_CORE_LOGGER_ERROR("This entity's scene has expired and no longer exists!");
             return false;
         }
 
@@ -80,7 +80,7 @@ namespace Mikoto {
                 return ptr->m_Registry.all_of<ComponentType>(m_EntityHandle);
             }
 
-            KATE_CORE_LOGGER_ERROR("This entity's scene has expired and no longer exists!");
+            MKT_CORE_LOGGER_ERROR("This entity's scene has expired and no longer exists!");
             return false;
         }
 
@@ -98,24 +98,35 @@ namespace Mikoto {
         template<typename ComponentType>
         auto GetComponent() -> decltype(auto) {
             if (!m_Scene.lock())
-                KATE_CORE_LOGGER_ERROR("This entity's scene has expired and no longer exists!");
+                MKT_CORE_LOGGER_ERROR("This entity's scene has expired and no longer exists!");
 
             return m_Scene.lock()->m_Registry.get<ComponentType>(m_EntityHandle);
         }
 
+        /**
+         * Returns the list of components specified as a tuple
+         * @returns list of specified components
+         * */
         template<typename... ComponentTypeList>
         auto GetComponentList() -> decltype(auto) {
             if (!m_Scene.lock())
-                KATE_CORE_LOGGER_ERROR("This entity's scene has expired and no longer exists!");
+                MKT_CORE_LOGGER_ERROR("This entity's scene has expired and no longer exists!");
 
             return std::forward_as_tuple(m_Scene.lock()->m_Registry.get<ComponentTypeList>(m_EntityHandle)...);
         }
 
+        /**
+         * Adds the specified components to this entity
+         * @retuns newly added component
+         * @param args pack containing the arguments to initialize the new component
+         * @tparam ComponentType type of the new component
+         * @tparam Args pack of types for the arguments required to initialize the new component
+         * */
         template<typename ComponentType, typename... Args>
         auto AddComponent(Args&&... args) -> decltype(auto) {
             std::shared_ptr<Scene> ptr{};
             if (!(ptr = m_Scene.lock()))
-                KATE_CORE_LOGGER_ERROR("This entity's scene has expired and no longer exists!");
+                MKT_CORE_LOGGER_ERROR("This entity's scene has expired and no longer exists!");
 
             ComponentType& newComponent{ ptr->m_Registry.emplace_or_replace<ComponentType>(m_EntityHandle, std::forward<Args>(args)...) };
             OnComponentAttach(newComponent);
@@ -123,8 +134,10 @@ namespace Mikoto {
             return newComponent;
         }
 
-        // drops the component if and only if it exists,
-        // otherwise it returns safely to the caller:
+        /**
+         * Removes the component if and only if it is part of this entity
+         * @tparam ComponentType type of the component to be added
+         * */
         template<typename ComponentType>
         auto RemoveComponent() -> void {
             if (auto ptr{ m_Scene.lock() }) {
@@ -132,16 +145,20 @@ namespace Mikoto {
                 // TODO: add OnComponentRemove similar to AddComponent
             }
             else
-                KATE_CORE_LOGGER_ERROR("This entity's scene has expired and no longer exists!");
+                MKT_CORE_LOGGER_ERROR("This entity's scene has expired and no longer exists!");
         }
 
-        // Returns true if the entity is valid for a given Scene
-        // If the scene is nullptr it will return true if this Entity is valid Entity for a scene
-        auto IsValidSceneEntity(const std::shared_ptr<Scene>& scene) {
+        /**
+         * Returns true if the entity is valid for a given Scene
+         * @returns true if this entity is valid within the given scene, false otherwise
+         * */
+        auto IsValidSceneEntity(const std::shared_ptr<Scene>& scene) -> decltype(auto) {
             return scene->m_Registry.valid(m_EntityHandle);
         }
 
-        auto operator==(const Entity& other) const -> bool { return m_EntityHandle == other.m_EntityHandle; /*&& m_Scene == other.m_Scene;*/ }
+        auto operator==(const Entity& other) const -> bool {
+            return m_EntityHandle == other.m_EntityHandle; /*&& m_Scene == other.m_Scene;*/
+        }
 
         auto Invalidate() -> void { m_EntityHandle = entt::null; }
 
@@ -161,16 +178,16 @@ namespace Mikoto {
             m_EntityHandle = handle;
         }
     private:
+        friend class Scene;
+        friend class ScenePanel;
         friend class HierarchyPanel;
         friend class InspectorPanel;
-        friend class ScenePanel;
 
-        friend class Scene;
         entt::entity m_EntityHandle{ entt::null };
 
         // The scene this entity belongs to
         // We do not use shared or unique pointers because the Scene
-        // is not part of the entity and shouldn't extend its lifetime
+        // is not part of the entity and the entity shouldn't extend the scene's lifetime
         std::weak_ptr<Scene> m_Scene{};
     };
 
@@ -181,45 +198,32 @@ namespace Mikoto {
 
     template<>
     inline auto Entity::OnComponentAttach<TagComponent>(TagComponent& newComponent) -> void {
-        KATE_CORE_LOGGER_INFO("Added new Tag Component");
+        MKT_CORE_LOGGER_INFO("Added new Tag Component");
     }
 
     template<>
     inline auto Entity::OnComponentAttach<TransformComponent>(TransformComponent& newComponent) -> void {
-        KATE_CORE_LOGGER_INFO("Added new Transform Component");
+        MKT_CORE_LOGGER_INFO("Added new Transform Component");
     }
 
     template<>
     inline auto Entity::OnComponentAttach<SpriteRendererComponent>(SpriteRendererComponent& newComponent) -> void {
-        KATE_CORE_LOGGER_INFO("Added new Sprite Renderer Component");
+        MKT_CORE_LOGGER_INFO("Added new Sprite Renderer Component");
     }
 
     template<>
     inline auto Entity::OnComponentAttach<CameraComponent>(CameraComponent& newComponent) -> void {
-        KATE_CORE_LOGGER_INFO("Added new Camera Component");
+        MKT_CORE_LOGGER_INFO("Added new Camera Component");
         std::shared_ptr<Scene> ptr{};
         if (!(ptr = m_Scene.lock()))
-            KATE_CORE_LOGGER_ERROR("This entity's scene has expired and no longer exists!");
+            MKT_CORE_LOGGER_ERROR("This entity's scene has expired and no longer exists!");
         newComponent.GetCameraPtr()->SetViewportSize(ptr->m_ViewportWidth, ptr->m_ViewportHeight);
     }
 
     template<>
     inline auto Entity::OnComponentAttach<NativeScriptComponent>(NativeScriptComponent& newComponent) -> void {
-        KATE_CORE_LOGGER_INFO("Added new Native Script Component");
+        MKT_CORE_LOGGER_INFO("Added new Native Script Component");
     }
-
-    class ScriptableEntity : public Entity {
-    public:
-        explicit ScriptableEntity() = default;
-        ~ScriptableEntity() = default;
-
-        ScriptableEntity(const ScriptableEntity& other) = default;
-        ScriptableEntity(ScriptableEntity&& other) = default;
-
-        auto operator=(const ScriptableEntity& other) -> ScriptableEntity& = default;
-        auto operator=(ScriptableEntity&& other) -> ScriptableEntity& = default;
-    };
-
 }
 
 #endif // MIKOTO_ENTITY_HH

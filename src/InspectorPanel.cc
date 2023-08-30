@@ -11,7 +11,6 @@
 
 // Third-Party Libraries
 #include <entt/entt.hpp>
-
 #include <glm/gtc/type_ptr.hpp>
 
 #include <imgui.h>
@@ -19,15 +18,62 @@
 
 // Project Headers
 #include <Core/Logger.hh>
-
 #include <Scene/Component.hh>
-
 #include <Editor/Panels/InspectorPanel.hh>
 
 namespace Mikoto {
+    /**
+     * Adds a button to insert components to an entity. This button is only added
+     * if the parameter is a valid entity, does nothing otherwise
+     * @param entity entity to adds components on
+     * */
+    static auto AddComponentButton(Entity& entity) {
+        if (entity.IsValid()) {
+            ImGui::SameLine();
+            ImGui::PushItemWidth(-1.0f);
+
+            if (ImGui::Button("Add component"))
+                ImGui::OpenPopup("AddComponentButtonPopup");
+
+            if (ImGui::BeginPopup("AddComponentButtonPopup")) {
+                const bool menuItemSelected{ false };
+                const char* menuItemShortcut{ nullptr }; // no shortcuts for now
+
+                // NOTE: MenuItem will remain disabled if the entity already has a specific component preventing from reapplying it
+
+                if (ImGui::MenuItem("Sprite", menuItemShortcut, menuItemSelected, !entity.HasComponent<SpriteRendererComponent>())) {
+                    entity.AddComponent<SpriteRendererComponent>();
+                    ImGui::CloseCurrentPopup();
+                }
+
+                if (ImGui::MenuItem("Material", menuItemShortcut, menuItemSelected, !entity.HasComponent<MaterialComponent>())) {
+                    entity.AddComponent<MaterialComponent>();
+                    ImGui::CloseCurrentPopup();
+                }
+
+                if (ImGui::MenuItem("Camera", menuItemShortcut, menuItemSelected, !entity.HasComponent<CameraComponent>())) {
+                    entity.AddComponent<CameraComponent>(std::make_shared<SceneCamera>());
+                    ImGui::CloseCurrentPopup();
+                }
+
+                if (ImGui::MenuItem("Script", menuItemShortcut, menuItemSelected, !entity.HasComponent<NativeScriptComponent>())) {
+                    entity.AddComponent<NativeScriptComponent>();
+                    ImGui::CloseCurrentPopup();
+                }
+
+                ImGui::EndPopup();
+            }
+            ImGui::PopItemWidth();
+        }
+    }
+
     InspectorPanel::InspectorPanel(const std::shared_ptr<HierarchyPanel> &hierarchy, const Path_T& iconPath)
-        :   Panel{ iconPath }, m_Hierarchy{ hierarchy }, m_Visible{ true }, m_Hovered{ false }, m_Focused{ false }
-    {}
+        :   Panel{ iconPath }, m_Hierarchy{ hierarchy }
+    {
+        m_PanelIsVisible = true;
+        m_PanelIsHovered = false;
+        m_PanelIsFocused = false;
+    }
 
     static auto DrawVec3Transform(std::string_view label, glm::vec3& data, double resetValue = 0.0 , double columWidth = 100.0) {
         ImGuiIO& io = ImGui::GetIO();
@@ -52,8 +98,10 @@ namespace Mikoto {
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.1f, 1.0f });
         ImGui::PushFont(boldFont);
+
         if (ImGui::Button("X", buttonSize))
             data.x = (float)resetValue;
+
         ImGui::PopFont();
 
         ImGui::SameLine();
@@ -66,8 +114,10 @@ namespace Mikoto {
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.25f, 1.0f });
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.1f, 1.0f });
         ImGui::PushFont(boldFont);
+
         if (ImGui::Button("Y", buttonSize))
             data.y = (float)resetValue;
+
         ImGui::PopFont();
 
         ImGui::SameLine();
@@ -80,8 +130,10 @@ namespace Mikoto {
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.25f, 0.3f, 0.9f, 1.0f });
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
         ImGui::PushFont(boldFont);
+
         if (ImGui::Button("Z", buttonSize))
             data.z = (float)resetValue;
+
         ImGui::PopFont();
 
         ImGui::SameLine();
@@ -108,6 +160,7 @@ namespace Mikoto {
             ImVec2 contentRegionAvailable{ ImGui::GetContentRegionAvail() };
 
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4.0f, 4.0f });
+
             // See ImGui implementation for button dimensions computation
             float lineHeight{ GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f };
             ImGui::Separator();
@@ -140,59 +193,24 @@ namespace Mikoto {
         }
     }
 
-    static auto AddComponentButtonForEntity(Entity& entity) {
-        if (entity.IsValid()) {
-            // This button should appear only when we have an
-            // entity selected
-            ImGui::SameLine();
-            ImGui::PushItemWidth(-1.0f);
-
-            if (ImGui::Button("Add component"))
-                ImGui::OpenPopup("AddComponentButtonPopup");
-
-            if (ImGui::BeginPopup("AddComponentButtonPopup")) {
-                const bool menuItemSelected{ false };
-                const char* menuItemShortcut{ nullptr }; // no shortcuts for now
-
-                // NOTE: Menu item will remain disabled if the entity already has a specific component preventing from reapplying it
-
-                if (ImGui::MenuItem("Sprite", menuItemShortcut, menuItemSelected, !entity.HasComponent<SpriteRendererComponent>())) {
-                    entity.AddComponent<SpriteRendererComponent>();
-                    ImGui::CloseCurrentPopup();
-                }
-                if (ImGui::MenuItem("Camera", menuItemShortcut, menuItemSelected, !entity.HasComponent<CameraComponent>())) {
-                    entity.AddComponent<CameraComponent>(std::make_shared<SceneCamera>());
-                    ImGui::CloseCurrentPopup();
-                }
-                if (ImGui::MenuItem("Script", menuItemShortcut, menuItemSelected, !entity.HasComponent<NativeScriptComponent>())) {
-                    entity.AddComponent<NativeScriptComponent>();
-                    ImGui::CloseCurrentPopup();
-                }
-
-                ImGui::EndPopup();
-
-            }
-
-            ImGui::PopItemWidth();
-        }
-    }
-
     auto InspectorPanel::OnUpdate() -> void {
-        if (IsVisible()) {
+        if (m_PanelIsVisible) {
             ImGui::Begin("Inspector");
 
+            // Check to see if the scene is still alive
             if (auto ptr{ m_Hierarchy->m_Context.lock() })
                 m_Hierarchy->m_ContextSelection.SetContext(ptr);
 
-            // Tag Component
             if (m_Hierarchy->m_ContextSelection.HasComponent<TagComponent>()) {
                 TagComponent& tag{ m_Hierarchy->m_ContextSelection.GetComponent<TagComponent>() };
+                static bool renderContextSelectionToScene{ true }; // tells whether we want the selection context to be rendered to the scene (not implemented yet)
+
                 std::string value{ tag.GetTag() };
-                static bool renderContextSelectionToScene{ true };
                 char contextSelectionTagName[1024]{};
                 std::copy(tag.GetTag().begin(), tag.GetTag().end(), contextSelectionTagName);
 
-                ImGui::Checkbox("##show", &renderContextSelectionToScene); ImGui::SameLine();
+                ImGui::Checkbox("##show", &renderContextSelectionToScene);
+                ImGui::SameLine();
 
                 if (ImGui::InputText("##Tag", contextSelectionTagName, std::size(contextSelectionTagName))) {
                     tag.SetTag(contextSelectionTagName);
@@ -200,9 +218,11 @@ namespace Mikoto {
 
             }
 
-            AddComponentButtonForEntity(m_Hierarchy->m_ContextSelection);
+            AddComponentButton(m_Hierarchy->m_ContextSelection);
 
-            constexpr bool transformHasPlusButton{ false };
+            // By default, all scene objects have a transform component which cannot be removed
+            constexpr bool TRANSFORM_HAS_PLUS_BUTTON{ false };
+
             DrawComponent<TransformComponent>("Transform", m_Hierarchy->m_ContextSelection,
                 [](auto& component) -> void {
                     auto translation{ component.GetTranslation() };
@@ -216,8 +236,8 @@ namespace Mikoto {
                     component.SetTranslation(translation);
                     component.SetRotation(rotation);
                     component.SetScale(scale);
-                }, transformHasPlusButton
-            );
+                },
+                    TRANSFORM_HAS_PLUS_BUTTON);
 
 
             DrawComponent<CameraComponent>("Camera", m_Hierarchy->m_ContextSelection,
@@ -285,13 +305,29 @@ namespace Mikoto {
                 component.SetColor(color);
             });
 
-            DrawComponent<NativeScriptComponent>("Script", m_Hierarchy->m_ContextSelection, [](auto& component) -> void { });
+            DrawComponent<MaterialComponent>("Material", m_Hierarchy->m_ContextSelection, [](auto& component) -> void {
+                ImGuiTreeNodeFlags flags{  ImGuiTreeNodeFlags_OpenOnArrow |  ImGuiTreeNodeFlags_SpanAvailWidth };
+
+                // TODO: temporary, need proper identifiers, no 83121231231
+                if (ImGui::TreeNodeEx((void*)83121231231, flags, "%s", "Diffuse texture")) {
+
+                    ImGui::TreePop();
+                }
+            });
+
+            DrawComponent<NativeScriptComponent>("Script", m_Hierarchy->m_ContextSelection, [](auto& component) -> void {
+                // Currently empty
+            });
 
             ImGui::End();
         }
     }
 
-    auto InspectorPanel::OnEvent(Event &event) -> void {
+    auto InspectorPanel::OnEvent(Event& event) -> void {
 
+    }
+
+    auto InspectorPanel::MakeVisible(bool value) -> void {
+        m_PanelIsVisible = value;
     }
 }

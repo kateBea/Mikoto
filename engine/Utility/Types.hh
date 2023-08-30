@@ -3,8 +3,8 @@
  * Created by kate on 8/5/2023.
  * */
 
-#ifndef KATE_ENGINE_TYPES_HH
-#define KATE_ENGINE_TYPES_HH
+#ifndef MIKOTO_TYPES_HH
+#define MIKOTO_TYPES_HH
 
 // C++ Standard Library
 #include <cstdint>
@@ -38,4 +38,4 @@ namespace Mikoto {
     using CharArray = std::vector<char>;
 }
 
-#endif //KATE_ENGINE_TYPES_HH
+#endif // MIKOTO_TYPES_HH

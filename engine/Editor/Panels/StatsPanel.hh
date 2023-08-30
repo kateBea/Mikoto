@@ -1,17 +1,21 @@
-//
-// Created by kate on 6/27/23.
-//
+/**
+ * StatsPanel.hh
+ * Created by kate on 6/27/23.
+ * */
 
-#ifndef KATE_ENGINE_STATS_PANEL_HH
-#define KATE_ENGINE_STATS_PANEL_HH
+#ifndef MIKOTO_STATS_PANEL_HH
+#define MIKOTO_STATS_PANEL_HH
 
+// C++ Standard Library
+#include <memory>
+
+// Project Headers
 #include <Utility/Common.hh>
-
 #include <Editor/Panels/PanelData.hh>
 #include <Editor/Panels/Panel.hh>
 
 namespace Mikoto {
-    class StatsPanel : public Panel {
+    class StatsPanel : public Panel<StatsPanel> {
     public:
         explicit StatsPanel() = default;
         explicit StatsPanel(const std::shared_ptr<StatsPanelData> &data, const Path_T &iconPath = {});
@@ -22,21 +26,14 @@ namespace Mikoto {
         auto operator=(const StatsPanel& other) -> StatsPanel& = default;
         auto operator=(StatsPanel&& other) -> StatsPanel& = default;
 
-        auto OnUpdate() -> void override;
-        auto OnEvent(Event& event) ->  void override;
-        auto MakeVisible(bool value) ->  void override { m_Visible = value; }
+        auto OnUpdate() -> void;
+        auto OnEvent(Event& event) ->  void;
+        auto MakeVisible(bool value) ->  void { m_PanelIsVisible = value; }
 
-        MKT_NODISCARD auto IsHovered() const -> bool override { return m_Hovered; }
-        MKT_NODISCARD auto IsFocused() const -> bool override { return m_Focused; }
-        MKT_NODISCARD auto IsVisible() const -> bool override { return m_Visible; }
     private:
-        bool m_Visible{};
-        bool m_Hovered{};
-        bool m_Focused{};
-
         std::shared_ptr<StatsPanelData> m_Data{};
     };
 }
 
 
-#endif//KATE_ENGINE_STATS_PANEL_HH
+#endif // MIKOTO_STATS_PANEL_HH

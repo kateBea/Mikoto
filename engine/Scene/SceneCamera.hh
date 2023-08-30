@@ -1,10 +1,15 @@
-//
-// Created by kate on 6/25/23.
-//
+/**
+ * SceneCamera.hh
+ * Created by kate on 6/25/23.
+ * */
 
-#ifndef KATE_ENGINE_SCENE_CAMERA_HH
-#define KATE_ENGINE_SCENE_CAMERA_HH
+#ifndef MIKOTO_SCENE_CAMERA_HH
+#define MIKOTO_SCENE_CAMERA_HH
 
+// Third-Party Libraries
+#include <glm/glm.hpp>
+
+// Project Headers
 #include <Utility/Common.hh>
 #include <Renderer/Camera/Camera.hh>
 
@@ -79,4 +84,4 @@ namespace Mikoto {
 
 
 
-#endif//KATE_ENGINE_SCENE_CAMERA_HH
+#endif // MIKOTO_SCENE_CAMERA_HH

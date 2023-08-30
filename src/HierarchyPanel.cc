@@ -20,7 +20,7 @@
 
 namespace Mikoto {
     auto HierarchyPanel::OnUpdate() -> void {
-        if (m_Visible) {
+        if (m_PanelIsVisible) {
             ImGui::Begin("Hierarchy");
             if (auto ptr{ m_Context.lock() }) {
                 auto view{ ptr->m_Registry.view<TagComponent>() };
@@ -36,7 +36,8 @@ namespace Mikoto {
 
                 BlankSpacePopupMenu();
             }
-            else KATE_CORE_LOGGER_ERROR("Panel context has expired and no longer exists!");
+            else
+                MKT_CORE_LOGGER_ERROR("Panel context has expired and no longer exists!");
             ImGui::End();
         }
     }
@@ -71,8 +72,8 @@ namespace Mikoto {
             ImGuiPopupFlags popupItemFlags{ ImGuiPopupFlags_MouseButtonRight };
             if (ImGui::BeginPopupContextItem(nullptr, popupItemFlags)) {
                 if (ImGui::BeginMenu("Add component")) {
-                    const bool menuItemSelected{ false };
-                    const char* menuItemShortcut{ nullptr }; // no shortcuts for now
+                    constexpr bool menuItemSelected{ false };    // these menu items should not display as selected
+                    constexpr const char* menuItemShortcut{ nullptr }; // no shortcuts for now
 
                     // NOTE: Menu item will remain disabled if the entity already has a specific component preventing from reapplying it
 
@@ -80,10 +81,17 @@ namespace Mikoto {
                         target.AddComponent<SpriteRendererComponent>();
                         ImGui::CloseCurrentPopup();
                     }
+
+                    if (ImGui::MenuItem("Material", menuItemShortcut, menuItemSelected, !target.HasComponent<MaterialComponent>())) {
+                        target.AddComponent<MaterialComponent>();
+                        ImGui::CloseCurrentPopup();
+                    }
+
                     if (ImGui::MenuItem("Camera", menuItemShortcut, menuItemSelected, !target.HasComponent<CameraComponent>())) {
                         target.AddComponent<CameraComponent>(std::make_shared<SceneCamera>());
                         ImGui::CloseCurrentPopup();
                     }
+
                     if (ImGui::MenuItem("Script", menuItemShortcut, menuItemSelected, !target.HasComponent<NativeScriptComponent>())) {
                         target.AddComponent<NativeScriptComponent>();
                         ImGui::CloseCurrentPopup();
@@ -92,13 +100,11 @@ namespace Mikoto {
                     ImGui::EndPopup();
                 }
 
-                if (ImGui::BeginMenu("Options")) {
-                    if (ImGui::MenuItem("Destroy entity")) {
-                        m_ContextSelectionScene->DestroyEntity(target);
-                        m_ContextSelection.Invalidate();
-                    }
-                    ImGui::EndMenu();
+                if (ImGui::MenuItem("Remove object")) {
+                    m_ContextSelectionScene->DestroyEntity(target);
+                    m_ContextSelection.Invalidate();
                 }
+
                 ImGui::EndPopup();
             }
         }
@@ -108,13 +114,44 @@ namespace Mikoto {
         if (auto ptr{ m_Context.lock() }) {
             ImGuiPopupFlags popupWindowFlags{ ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight };
             if (ImGui::BeginPopupContextWindow("##HierarchyMenuOptions", popupWindowFlags)) {
-                if (ImGui::BeginMenu("New")) {
-                    if (ImGui::MenuItem("Create entity")) {
-                        auto newEntity{ Scene::CreateEntity("Item", ptr) };
+                if (ImGui::MenuItem("Empty Object")) {
+                    static Size_T emptyObjectCounter{ 0 };
+                    auto newEntity{ Scene::CreateEmptyObject(fmt::format("Object {}", emptyObjectCounter), ptr) };
+                    ++emptyObjectCounter;
+                }
+
+                if (ImGui::BeginMenu("3D Object")) {
+                    if (ImGui::MenuItem("Cube")) {
+                        static Size_T cubeCounter{ 0 };
+                        auto ret{ Scene::CreatePrefabObject(fmt::format("Cube {}", cubeCounter), ptr) };
+                        MKT_CORE_LOGGER_INFO("Added cube to scene");
+                        ++cubeCounter;
+                    }
+
+                    if (ImGui::MenuItem("Sprite")) {
+                        static Size_T spriteCounter{ 0 };
+                        auto ret{ Scene::CreatePrefabObject(fmt::format("Sprite {}", spriteCounter), ptr) };
+                        MKT_CORE_LOGGER_INFO("Added Sprite to scene");
+                        ++spriteCounter;
+                    }
+
+                    if (ImGui::MenuItem("Triangle")) {
+                        static Size_T triangleCounter{ 0 };
+                        auto ret{ Scene::CreatePrefabObject(fmt::format("Triangle {}", triangleCounter), ptr) };
+                        MKT_CORE_LOGGER_INFO("Added Triangle to scene");
+                        ++triangleCounter;
+                    }
+
+                    if (ImGui::MenuItem("Cylinder")) {
+                        static Size_T cylinderCounter{ 0 };
+                        auto ret{ Scene::CreatePrefabObject(fmt::format("Cylinder {}", cylinderCounter), ptr) };
+                        MKT_CORE_LOGGER_INFO("Added Cylinder to scene");
+                        ++cylinderCounter;
                     }
 
                     ImGui::EndMenu();
                 }
+
                 ImGui::EndPopup();
             }
         }
@@ -125,8 +162,12 @@ namespace Mikoto {
     }
 
     HierarchyPanel::HierarchyPanel(const std::shared_ptr<Scene>& scene, const Path_T &iconPath)
-        :   Panel{ iconPath }, m_Visible{ true }, m_Hovered{ false }, m_Focused{ false }
+        :   Panel{ iconPath }
     {
+        m_PanelIsHovered = true;
+        m_PanelIsFocused = false;
+        m_PanelIsVisible = false;
+
         SetScene(scene);
     }
 

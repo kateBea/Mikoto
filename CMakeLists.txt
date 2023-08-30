@@ -86,7 +86,8 @@ set(EDITOR_SOURCES
         src/Editor.cc src/HierarchyPanel.cc src/InspectorPanel.cc src/SettingsPanel.cc src/ScenePanel.cc src/StatsPanel.cc)
 
 set(SCENE_SOURCES
-        src/Scene.cc src/SceneCamera.cc)
+        src/Scene.cc src/SceneCamera.cc
+        src/EditorCamera.cc)
 
 set(SOURCES
         ${CORE_SOURCES}
@@ -158,6 +159,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE VK_NO_PROTOTYPES)
 # range of 0.0 to 1.0 using the GLM_FORCE_DEPTH_ZERO_TO_ONE definition.
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE)
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_RADIANS)
+target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
 
 # If you fetch pointers to all Vulkan functions in a custom way, e.g. using some loader like Volk:
 # Define VMA_STATIC_VULKAN_FUNCTIONS and VMA_DYNAMIC_VULKAN_FUNCTIONS to 0.

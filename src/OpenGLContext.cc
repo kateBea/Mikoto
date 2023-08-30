@@ -23,9 +23,9 @@ namespace Mikoto {
         try {
             // We expect the native window for Linux Window to be a pointer to a GLFW window
             s_Handle = std::any_cast<GLFWwindow*>(windowHandle->GetNativeWindow());
-            KT_ASSERT(s_Handle, "Window handle for OpenGL context initialization is NULL");
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, KT_OPENGL_VERSION_MAJOR);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, KT_OPENGL_VERSION_MINOR);
+            MKT_ASSERT(s_Handle, "Window handle for OpenGL context initialization is NULL");
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, MKT_OPENGL_VERSION_MAJOR);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, MKT_OPENGL_VERSION_MINOR);
             glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
             glfwMakeContextCurrent(s_Handle);
@@ -34,16 +34,16 @@ namespace Mikoto {
             // Using temporal variable because KATE_CORE_LOGGER_ERROR gets stripped
             // in non-DEBUG builds, so glewInit() would not be executed
             s_GLEWInitSuccess = glewInit() == GLEW_OK;
-            KT_ASSERT(s_GLEWInitSuccess, "Failed to initialize GLEW");
+            MKT_ASSERT(s_GLEWInitSuccess, "Failed to initialize GLEW");
 
-            KATE_CORE_LOGGER_INFO("OpenGL target  {}.{}", KT_OPENGL_VERSION_MAJOR, KT_OPENGL_VERSION_MINOR);
-            KATE_CORE_LOGGER_INFO("OpenGL available {}", (const char*)glGetString(GL_VERSION));
-            KATE_CORE_LOGGER_INFO("OpenGL vendor {}", (const char*)glGetString(GL_VENDOR));
-            KATE_CORE_LOGGER_INFO("OpenGL renderer {}", (const char*)glGetString(GL_RENDERER));
+            MKT_CORE_LOGGER_INFO("OpenGL target  {}.{}", MKT_OPENGL_VERSION_MAJOR, MKT_OPENGL_VERSION_MINOR);
+            MKT_CORE_LOGGER_INFO("OpenGL available {}", (const char*)glGetString(GL_VERSION));
+            MKT_CORE_LOGGER_INFO("OpenGL vendor {}", (const char*)glGetString(GL_VENDOR));
+            MKT_CORE_LOGGER_INFO("OpenGL renderer {}", (const char*)glGetString(GL_RENDERER));
 
         }
         catch (const std::bad_any_cast& exception) {
-            KATE_APP_LOGGER_ERROR("Exception thrown std::any_cast at OpenGLContext::Init(). What: {}", exception.what());
+            MKT_APP_LOGGER_ERROR("Exception thrown std::any_cast at OpenGLContext::Init(). What: {}", exception.what());
         }
     }
 

@@ -1,49 +1,56 @@
-//
-// Created by kate on 6/25/23.
-//
+/**
+ * InspectorPanel.hh
+ * Created by kate on 6/25/23.
+ * */
 
 #ifndef MIKOTO_INSPECTOR_PANEL_HH
 #define MIKOTO_INSPECTOR_PANEL_HH
 
+// C++ Standard Library
 #include <memory>
 
+// Third-Party Libraries
 #include <entt/entt.hpp>
 
+// Project Headers
 #include <Utility/Common.hh>
-
 #include <Editor/Panels/HierarchyPanel.hh>
 #include <Editor/Panels/Panel.hh>
 #include <Scene/Scene.hh>
 
 namespace Mikoto {
-    class InspectorPanel : public Panel {
+    class InspectorPanel : public Panel<InspectorPanel> {
     public:
 
-        explicit InspectorPanel(const std::shared_ptr<HierarchyPanel> &hierarchy, const Path_T& iconPath = {});
-        ~InspectorPanel() override = default;
+        explicit InspectorPanel(const std::shared_ptr<HierarchyPanel>& hierarchy, const Path_T& iconPath = {});
 
-        InspectorPanel(const InspectorPanel& other) = default;
-        InspectorPanel(InspectorPanel&& other) = default;
-
-        auto operator=(const InspectorPanel& other) -> InspectorPanel& = default;
         auto operator=(InspectorPanel&& other) -> InspectorPanel& = default;
 
-        auto OnUpdate() -> void override;
-        auto OnEvent(Event& event) -> void override;
-        auto MakeVisible(bool value) -> void override { m_Visible = value; }
+        /**
+         * Updates the state of this panel
+         * */
+        auto OnUpdate() -> void;
 
-        MKT_NODISCARD auto IsHovered() const -> bool override { return m_Hovered; }
-        MKT_NODISCARD auto IsFocused() const -> bool override { return m_Focused; }
-        MKT_NODISCARD auto IsVisible() const -> bool override { return m_Visible; }
-    private:
-        // TODO: DrawInspectorComponent<ComponentType>(std::function);
+        /**
+         * Must be called everytime we want to propagate an event to
+         * this panel to be handled
+         * @param event event to be handled
+         * */
+        auto OnEvent(Event& event) ->  void;
+
+        /**
+         * Hides or reveals this panel in the docking space.
+         * @param value if false, hides this panel, otherwise it may always be visible
+         * */
+        auto MakeVisible(bool value) ->  void;
+
+        /**
+         * Destructor, defaulted
+         * */
+        ~InspectorPanel() = default;
 
     private:
         std::shared_ptr<HierarchyPanel> m_Hierarchy{};
-        bool m_Visible{};
-        bool m_Hovered;
-        bool m_Focused;
-
     };
 }
 

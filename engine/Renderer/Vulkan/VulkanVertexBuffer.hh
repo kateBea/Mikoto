@@ -1,7 +1,7 @@
 /**
-* VulkanVertexBuffer.hh
-* Created by kate on 6/17/23.
-* */
+ * VulkanVertexBuffer.hh
+ * Created by kate on 6/17/23.
+ * */
 
 #ifndef MIKOTO_VULKAN_VERTEX_BUFFER_HH
 #define MIKOTO_VULKAN_VERTEX_BUFFER_HH

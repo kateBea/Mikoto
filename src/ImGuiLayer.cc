@@ -24,8 +24,8 @@
 #include <Renderer/Renderer.hh>
 #include <Renderer/RenderingUtilities.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
-#include <Renderer/Vulkan/VulkanRenderer.hh>
 
+// TODO: split, imgui layer for vulkan and for opengl
 namespace Mikoto {
     ImGuiLayer::ImGuiLayer() noexcept
         :   Layer{"ImGuiLayer"} {}
@@ -70,7 +70,7 @@ namespace Mikoto {
                     m_UseVulkan = true;
                     break;
                 default:
-                    KATE_APP_LOGGER_ERROR("Unknown Graphics API for ImGui Layer init");
+                    MKT_APP_LOGGER_ERROR("Unknown Graphics API for ImGui Layer init");
             }
 
             if (m_UseOpenGL)
@@ -80,7 +80,7 @@ namespace Mikoto {
                 InitImGuiForVulkan(window);
         }
         catch (const std::bad_any_cast &exception) {
-            KATE_APP_LOGGER_CRITICAL("Exception thrown std::any_cast. What: {}", exception.what());
+            MKT_APP_LOGGER_CRITICAL("Exception thrown std::any_cast. What: {}", exception.what());
         }
     }
 
@@ -155,7 +155,7 @@ namespace Mikoto {
     auto ImGuiLayer::InitImGuiForOpenGL(GLFWwindow *window) -> void {
         // Setup Platform/Renderer backends
         ImGui_ImplGlfw_InitForOpenGL(window, true);
-        const std::string openglVersion{fmt::format("#version {}{}0", KT_OPENGL_VERSION_MAJOR, KT_OPENGL_VERSION_MINOR)};
+        const std::string openglVersion{fmt::format("#version {}{}0", MKT_OPENGL_VERSION_MAJOR, MKT_OPENGL_VERSION_MINOR)};
         ImGui_ImplOpenGL3_Init(openglVersion.c_str());
     }
 
@@ -376,7 +376,7 @@ namespace Mikoto {
 
     auto ImGuiLayer::CreateImGuiCommandPool() -> void {
         m_CommandPool = std::make_shared<VulkanCommandPool>();
-        KT_ASSERT(m_CommandPool, "Command Pool pointer is NULL");
+        MKT_ASSERT(m_CommandPool, "Command Pool pointer is NULL");
         m_CommandPool->OnCreate(VkCommandPoolCreateInfo() /* temporary to add more flexibility to command pool creation*/);
     }
 

@@ -375,19 +375,19 @@ namespace Mikoto {
         if (m_SwapChainDetails.VSyncEnable)
             return VK_PRESENT_MODE_FIFO_KHR;
         else {
-            for (const auto &availablePresentMode: availablePresentModes) {
+            for (const auto& availablePresentMode : availablePresentModes) {
                 if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
                     return availablePresentMode;
                 }
             }
 
             // if VK_PRESENT_MODE_MAILBOX_KHR is not supported
-            return VK_PRESENT_MODE_FIFO_KHR;
+            return VK_PRESENT_MODE_MAILBOX_KHR;
         }
     }
 
     auto VulkanSwapChain::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) -> VkExtent2D {
-        if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+        if (capabilities.currentExtent.width != std::numeric_limits<UInt32_T>::max()) {
             return capabilities.currentExtent;
         }
         else {

@@ -43,6 +43,7 @@ namespace Mikoto {
         * HELPERS
         * ***********************************************************/
         auto SetIndicesData(const std::vector<UInt32_T> &indices) -> void;
+
     private:
         /*************************************************************
         * MEMBER VARIABLES

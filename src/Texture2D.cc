@@ -22,7 +22,7 @@ namespace Mikoto {
             case GraphicsAPI::OPENGL_API:
                 return std::make_shared<OpenGLTexture2D>(path);
             default:
-                KATE_CORE_LOGGER_CRITICAL("Unsupported renderer API");
+                MKT_CORE_LOGGER_CRITICAL("Unsupported renderer API");
                 return nullptr;
         }
     }
@@ -32,7 +32,7 @@ namespace Mikoto {
             case GraphicsAPI::OPENGL_API:
                 return new OpenGLTexture2D(path);
             default:
-                KATE_CORE_LOGGER_CRITICAL("Unsupported renderer API");
+                MKT_CORE_LOGGER_CRITICAL("Unsupported renderer API");
                 return nullptr;
         }
     }
@@ -42,7 +42,7 @@ namespace Mikoto {
             case GraphicsAPI::OPENGL_API:
                 return std::make_shared<OpenGLTexture2D>(path);
             default:
-                KATE_CORE_LOGGER_CRITICAL("Unsupported renderer API");
+                MKT_CORE_LOGGER_CRITICAL("Unsupported renderer API");
                 return nullptr;
         }
     }

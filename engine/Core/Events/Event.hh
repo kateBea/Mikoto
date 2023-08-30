@@ -3,8 +3,8 @@
  * Created by kate on 5/25/23.
  * */
 
-#ifndef KATE_ENGINE_EVENT_HH
-#define KATE_ENGINE_EVENT_HH
+#ifndef MIKOTO_EVENT_HH
+#define MIKOTO_EVENT_HH
 
 // C++ Standard Library
 #include <iostream>
@@ -249,6 +249,6 @@ namespace Mikoto {
         return out << "Type: " << e.GetNameStr();
     }
 
-}   // END NAMESPACE Mikoto
+}
 
-#endif // KATE_ENGINE_EVENT_HH
+#endif // MIKOTO_EVENT_HH

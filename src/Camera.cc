@@ -1,6 +1,7 @@
-//
-// Created by kate on 6/24/23.
-//
+/**
+ * Camera.cc
+ * Created by kate on 6/24/23.
+ * */
 
 #include <Renderer/Camera/Camera.hh>
 

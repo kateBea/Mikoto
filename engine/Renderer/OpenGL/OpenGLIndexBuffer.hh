@@ -1,10 +1,10 @@
 /**
-* kateOpenGLVeo.hh
-* Created by kate on 6/4/23.
-* */
+ * OpenGLIndexBuffer.hh
+ * Created by kate on 6/4/23.
+ * */
 
-#ifndef KATE_ENGINE_VIB_HH
-#define KATE_ENGINE_VIB_HH
+#ifndef MIKOTO_OPENGL_INDEX_BUFFER_HH
+#define MIKOTO_OPENGL_INDEX_BUFFER_HH
 
 // C++ Standard Library
 #include <vector>
@@ -81,4 +81,4 @@ namespace Mikoto {
     };
 }
 
-#endif // KATE_ENGINE_VIB_HH
+#endif // MIKOTO_OPENGL_INDEX_BUFFER_HH

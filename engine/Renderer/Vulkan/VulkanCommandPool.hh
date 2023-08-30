@@ -3,8 +3,8 @@
  * Created by kate on 7/4/2023.
  * */
 
-#ifndef KATE_ENGINE_VULKAN_COMMAND_POOL_HH
-#define KATE_ENGINE_VULKAN_COMMAND_POOL_HH
+#ifndef MIKOTO_VULKAN_COMMAND_POOL_HH
+#define MIKOTO_VULKAN_COMMAND_POOL_HH
 
 // Third-Party Libraries
 #include <volk.h>
@@ -25,10 +25,11 @@ namespace Mikoto {
         auto EndSingleTimeCommands(VkCommandBuffer commandBuffer) const -> void;
 
         auto OnRelease() const -> void;
+
     private:
         VkCommandPool  m_CommandPool{};
     };
 }
 
 
-#endif //KATE_ENGINE_VULKAN_COMMAND_POOL_HH
+#endif // MIKOTO_VULKAN_COMMAND_POOL_HH

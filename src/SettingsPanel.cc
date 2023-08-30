@@ -1,25 +1,33 @@
-//
-// Created by kate on 6/27/23.
-//
+/**
+ * SettingsPanel.cc
+ * Created by kate on 6/27/23.
+ * */
 
-#include "imgui.h"
+// C++ Standard Library
+#include <memory>
 
-#include "glm/gtc/type_ptr.hpp"
+// Third-Party Libraries
+#include <imgui.h>
+#include <glm/gtc/type_ptr.hpp>
 
-#include "Core/Application.hh"
-#include "Editor/Panels/SettingsPanel.hh"
-#include "Renderer/RenderCommand.hh"
-#include "Renderer/RenderContext.hh"
+// Project Headers
+#include <Core/Application.hh>
+#include <Editor/Panels/SettingsPanel.hh>
+#include <Renderer/RenderCommand.hh>
+#include <Renderer/RenderContext.hh>
 
 
 namespace Mikoto {
-
     SettingsPanel::SettingsPanel(const std::shared_ptr<SettingsPanelData> &data, const Path_T &iconPath)
-        :   Panel{ iconPath }, m_Visible{ true }, m_Hovered{ false }, m_Focused{ false }, m_Data{ data }
-    {}
+        :   Panel{ iconPath }, m_Data{ data }
+    {
+        m_PanelIsVisible = true;
+        m_PanelIsHovered = false;
+        m_PanelIsFocused = false;
+    }
 
     auto SettingsPanel::OnUpdate() -> void {
-        if (m_Visible) {
+        if (m_PanelIsVisible) {
             ImGui::Begin("Settings");
             ImGui::ColorEdit3("Clear Color", glm::value_ptr(m_Data->ClearColor));
 

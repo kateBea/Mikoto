@@ -1,7 +1,7 @@
 /**
-* VulkanContext.hh
-* Created by kate on 7/3/23.
-* */
+ * VulkanContext.hh
+ * Created by kate on 7/3/23.
+ * */
 
 #ifndef MIKOTO_VULKAN_CONTEXT_HH
 #define MIKOTO_VULKAN_CONTEXT_HH
@@ -11,15 +11,15 @@
 #include <vector>
 
 // Third-Party Libraries
-#include <vk_mem_alloc.h>
 #include <volk.h>
+#include <vk_mem_alloc.h>
 
 // Project Headers
+#include <Utility/Common.hh>
+#include <Utility/Types.hh>
 #include <Platform/Window/MainWindow.hh>
 #include <Platform/Window/Window.hh>
 #include <Renderer/Vulkan/VulkanSwapChain.hh>
-#include <Utility/Common.hh>
-#include <Utility/Types.hh>
 
 namespace Mikoto::VulkanContext {
     /**

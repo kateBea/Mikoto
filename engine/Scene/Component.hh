@@ -146,21 +146,44 @@ namespace Mikoto {
     };
 
     /**
-     * Represents render-able objects
+     * Contains the material information of an entity
      * */
-    class Renderable {
+    class MaterialComponent {
     public:
-        explicit Renderable() = default;
+        explicit MaterialComponent() = default;
 
-        Renderable(const Renderable& other) = default;
-        Renderable(Renderable&& other) = default;
+        MaterialComponent(const MaterialComponent & other) = default;
+        MaterialComponent(MaterialComponent && other) = default;
 
-        auto operator=(const Renderable& other) -> Renderable& = default;
-        auto operator=(Renderable&& other) -> Renderable& = default;
+        auto operator=(const MaterialComponent & other) -> MaterialComponent & = default;
+        auto operator=(MaterialComponent && other) -> MaterialComponent & = default;
 
         auto GetDrawData() -> DrawData& { return m_DrawData; }
 
-        ~Renderable() = default;
+        ~MaterialComponent() = default;
+
+    private:
+        DrawData m_DrawData{};
+    };
+
+    /**
+     * This component will contain the data to render an object, such
+     * as vertex buffers, index buffers, although this component won't be visible
+     * in the editor UI
+     * */
+    class RenderComponent {
+    public:
+        explicit RenderComponent() = default;
+
+        RenderComponent(const RenderComponent & other) = default;
+        RenderComponent(RenderComponent && other) = default;
+
+        auto operator=(const RenderComponent & other) -> RenderComponent & = default;
+        auto operator=(RenderComponent && other) -> RenderComponent & = default;
+
+        auto GetDrawData() -> DrawData& { return m_DrawData; }
+
+        ~RenderComponent() = default;
 
     private:
         DrawData m_DrawData{};
@@ -171,7 +194,7 @@ namespace Mikoto {
         explicit CameraComponent(std::shared_ptr<SceneCamera> camera = nullptr, bool mainCam = true, bool fixedAspectRation = false)
             :   m_Camera{ camera ? std::make_shared<SceneCamera>() : std::move(camera) }, m_MainCam{ mainCam }, m_FixedAspectRatio{ fixedAspectRation }
         {
-            KT_ASSERT(m_Camera != nullptr, "Camera is NULL");
+            MKT_ASSERT(m_Camera != nullptr, "Camera is NULL");
         }
 
         CameraComponent(const CameraComponent& other) = default;
@@ -205,7 +228,7 @@ namespace Mikoto {
     concept HasOnCreate = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->OnCreate(); };
 
     template<typename ScriptableEntityType>
-    concept HasOnUpdate = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->OnUpdate(); };
+    concept HasOnUpdate = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->OnUpdate(0); };
 
     template<typename ScriptableEntityType>
     concept HasOnDestroy = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->OnDestroy(); };
@@ -229,7 +252,7 @@ namespace Mikoto {
                      HasOnDestroy<ScriptableEntityType>
         auto Bind() -> void {
             m_OnCreateFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->OnCreate(); };
-            m_OnUpdateFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->OnUpdate(); };
+            m_OnUpdateFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->OnUpdate(0); };
             m_OnDestroyFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->OnDestroy(); };
         }
 

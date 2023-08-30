@@ -2,8 +2,8 @@
  * Window.hh
  * Created by kate on 5/26/23.
  * */
-#ifndef KATE_ENGINE_WINDOW_HH
-#define KATE_ENGINE_WINDOW_HH
+#ifndef MIKOTO_WINDOW_HH
+#define MIKOTO_WINDOW_HH
 
 // C++ Standard Library
 #include <string>
@@ -40,12 +40,12 @@ namespace Mikoto {
     };
 
     /**
-    * General interface for desktop Windows. We may define different types of
-    * windows depending on the platform if extra platform support is necessary
+     * General interface for desktop Windows. We may define different types of
+     * windows depending on the platform if extra platform support is necessary
      * to create a context for a specific graphics API.
      *
      * Important to initialize and terminate the windows explicitly for now by explicit calls
-     * to <code>init()</code> and <code>ShutDown()</code>, this allows for more flexibility as to
+     * to <code>Init()</code> and <code>ShutDown()</code>, this allows for more flexibility as to
      * when an entity has to free its resources amongst other termination operations
      *
      * A single instance of Window manages a single window, hence why the copy
@@ -57,13 +57,12 @@ namespace Mikoto {
     public:
         using EventCallbackFunc_T = std::function<void(Event&)>;
 
-        explicit Window([[maybe_unused]] const WindowProperties& props = WindowProperties{})
-            :   m_WindowCreateSuccess{ false } {}
+        explicit Window(const WindowProperties& props = WindowProperties{})
+            :   m_Properties{ props }, m_WindowCreateSuccess{ false } {}
 
         MKT_NODISCARD virtual auto GetWidth() const -> Int32_T = 0;
         MKT_NODISCARD virtual auto GetHeight() const -> Int32_T = 0;
         MKT_NODISCARD virtual auto GetExtent() const -> std::pair<Int32_T, Int32_T> = 0;
-
         MKT_NODISCARD virtual auto GetNativeWindow() -> std::any = 0;
 
         virtual auto Init() -> void = 0;
@@ -82,7 +81,6 @@ namespace Mikoto {
         WindowProperties    m_Properties{};
         bool                m_WindowCreateSuccess{};
     };
+}
 
-}   // END NAMESPACE Mikoto
-
-#endif // KATE_ENGINE_WINDOW_HH
+#endif // MIKOTO_WINDOW_HH

@@ -1,13 +1,16 @@
-//
-// Created by kate on 6/24/23.
-//
+/**
+ * Camera.hh
+ * Created by kate on 6/24/23.
+ * */
 
-#ifndef KATE_ENGINE_CAMERA_HH
-#define KATE_ENGINE_CAMERA_HH
+#ifndef MIKOTO_CAMERA_HH
+#define MIKOTO_CAMERA_HH
 
+// Third-Party Libraries
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+// Project Headers
 #include <Utility/Common.hh>
 
 namespace Mikoto {
@@ -33,27 +36,25 @@ namespace Mikoto {
             m_Translation = position;
             m_Rotation = angles;
 
-            glm::mat4 rotationX{ glm::rotate(identMat, (float)glm::radians(m_Rotation[0]), xAxis) };
-            glm::mat4 rotationY{ glm::rotate(rotationX, (float)glm::radians(m_Rotation[1]), yAxis) };
-            glm::mat4 rotation{ glm::rotate(rotationY, (float)glm::radians(m_Rotation[2]), zAxis) };
+            glm::mat4 rotationX{ glm::rotate(IDENTITY_MATRIX, (float)glm::radians(m_Rotation[0]), X_AXIS) };
+            glm::mat4 rotationY{ glm::rotate(rotationX, (float)glm::radians(m_Rotation[1]), Y_AXIS) };
+            glm::mat4 rotation{ glm::rotate(rotationY, (float)glm::radians(m_Rotation[2]), Z_AXIS) };
 
-            m_Transform = glm::translate(identMat, position) * rotation;
+            m_Transform = glm::translate(IDENTITY_MATRIX, position) * rotation;
         }
 
         virtual ~Camera() = default;
 
     private:
-        // Constants
-        static constexpr glm::vec3 xAxis{ 1.0f, 0.0f, 0.0f };
-        static constexpr glm::vec3 yAxis{ 0.0f, 1.0f, 0.0f };
-        static constexpr glm::vec3 zAxis{ 0.0f, 0.0f, 1.0f };
-        static constexpr glm::mat4 identMat{ glm::mat4(1.0) };
-
-        glm::vec3 m_Translation{};
-        glm::vec3 m_Rotation{};
+        static constexpr glm::vec3 X_AXIS{ 1.0f, 0.0f, 0.0f };
+        static constexpr glm::vec3 Y_AXIS{ 0.0f, 1.0f, 0.0f };
+        static constexpr glm::vec3 Z_AXIS{ 0.0f, 0.0f, 1.0f };
+        static constexpr glm::mat4 IDENTITY_MATRIX{ glm::mat4(1.0) };
 
         glm::mat4 m_Projection{};
         glm::mat4 m_Transform{};
+        glm::vec3 m_Translation{};
+        glm::vec3 m_Rotation{};
     };
 }
 

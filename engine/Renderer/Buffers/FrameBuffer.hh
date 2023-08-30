@@ -20,9 +20,9 @@ namespace Mikoto {
 
         /**
          * NOTES:
-         * Vulkan does not have the concept of a "default framebuffer", hence it
-         * requires an infrastructure that will own the buffers we will render
-         * to before we visualize them on the screen.
+         * Vulkan does not have the concept of a "default framebuffer" as opposed to OpenGL, hence it
+         * requires an infrastructure that will own the buffers we will render before the final image
+         * is visualized on the screen.
          * */
 
         // If it's true, we render to the default frame buffer which is going to
@@ -40,8 +40,8 @@ namespace Mikoto {
 
         MKT_NODISCARD virtual auto GetFrameBufferProperties() const -> const FrameBufferCreateInfo& = 0;
 
-        MKT_NODISCARD static auto CreatFrameBuffer(const FrameBufferCreateInfo& properties) -> std::shared_ptr<FrameBuffer>;
-        MKT_NODISCARD static auto CreatFrameBufferRawPtr(const FrameBufferCreateInfo& properties) -> FrameBuffer*;
+        MKT_NODISCARD static auto Create(const FrameBufferCreateInfo& properties) -> std::shared_ptr<FrameBuffer>;
+        MKT_NODISCARD static auto CreateRawPtr(const FrameBufferCreateInfo& properties) -> FrameBuffer*;
     };
 }
 

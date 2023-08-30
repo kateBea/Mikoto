@@ -1,21 +1,21 @@
-//
-// Created by kate on 6/8/23.
-//
+/**
+ * OpenGLTexture2D.hh
+ * Created by kate on 6/8/23.
+ * */
 
+// Third-Party Libraries
 #include <GL/glew.h>
-
 #include <stb_image.h>
 
+// Project Headers
 #include <Utility/Common.hh>
-
 #include <Core/Logger.hh>
 #include <Core/Assert.hh>
-
 #include <Renderer/OpenGL/OpenGLTexture2D.hh>
 
 namespace Mikoto {
 
-    OpenGLTexture2D::OpenGLTexture2D(const Path_T &path, bool retainFileData)
+    OpenGLTexture2D::OpenGLTexture2D(const Path_T& path, bool retainFileData)
         :   m_RetainData{ retainFileData }
     {
         // STB image expects width and height and channel to be signed integers
@@ -44,7 +44,7 @@ namespace Mikoto {
 
     }
 
-    auto OpenGLTexture2D::Bind(UInt32_T slot) -> void {
+    auto OpenGLTexture2D::Bind(UInt32_T slot) const -> void {
         glBindTextureUnit(slot, m_Id);
     }
 
@@ -83,7 +83,7 @@ namespace Mikoto {
                 m_InternalFormat = GL_RGBA8;
                 break;
         }
-        KT_ASSERT(m_Format & m_InternalFormat, "Texture data format unsupported");
+        MKT_ASSERT(m_Format & m_InternalFormat, "Texture data format unsupported");
 
         glTextureStorage2D(m_Id, 1, m_InternalFormat, m_Width, m_Height);
 
@@ -97,7 +97,7 @@ namespace Mikoto {
     }
 
     OpenGLTexture2D::~OpenGLTexture2D() {
-        KATE_APP_LOGGER_INFO("Deleting OpenGLTexture2D. Id {}", GetId());
+        MKT_APP_LOGGER_INFO("Deleting OpenGLTexture2D. Id {}", GetId());
         glDeleteTextures(1, &m_Id);
     }
 

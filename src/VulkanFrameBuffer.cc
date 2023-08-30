@@ -8,7 +8,7 @@
 
 // Project Headers
 #include <Utility/Common.hh>
-
+#include <Utility/Types.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanFrameBuffer.hh>
 

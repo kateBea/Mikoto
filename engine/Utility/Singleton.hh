@@ -3,9 +3,10 @@
  * Created by kate on 5/28/23.
  * */
 
-#ifndef KATE_ENGINE_SINGLETON_HH
-#define KATE_ENGINE_SINGLETON_HH
+#ifndef MIKOTO_SINGLETON_HH
+#define MIKOTO_SINGLETON_HH
 
+// Project Headers
 #include <Core/Assert.hh>
 
 namespace Mikoto {
@@ -22,7 +23,7 @@ namespace Mikoto {
 
     public:
         explicit Singleton() {
-            KT_ASSERT(!s_Instance, "Singleton instance already exists!");
+            MKT_ASSERT(!s_Instance, "Singleton instance already exists!");
             s_Instance = static_cast<ValuePtr_T>(this);
         }
 
@@ -52,6 +53,6 @@ namespace Mikoto {
         inline static ValuePtr_T s_Instance;
     };
 
-}   // END NAMESPACE Mikoto
+}
 
-#endif // KATE_ENGINE_SINGLETON_HH
+#endif // MIKOTO_SINGLETON_HH

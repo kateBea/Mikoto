@@ -7,51 +7,70 @@
 #define MIKOTO_SCENE_PANEL_HH
 
 // C++ Standard Library
+#include <memory>
 
 // Third-Party Libraries
 #include <volk.h>
 
 // Project Headers
 #include <Utility/Common.hh>
-#include <Renderer/OpenGL/OpenGLRenderer.hh>
-#include <Renderer/Vulkan/VulkanRenderer.hh>
 #include <Editor/Panels/Panel.hh>
 #include <Editor/Panels/PanelData.hh>
 
-// TODO: specialize panels for eahc graphics API using CRTP
 namespace Mikoto {
-    class ScenePanel : public Panel {
+    /**
+     * Abstracts away the active ImGui render backend according
+     * to the currently active graphics API
+     * */
+    class ScenePanelInterface {
+    public:
+       virtual auto Init_Impl(std::shared_ptr<ScenePanelData> data) -> void = 0;
+       virtual auto OnUpdate_Impl() -> void = 0;
+       virtual auto OnEvent_Impl(Event& event) -> void = 0;
+
+       MKT_NODISCARD auto IsHovered() const -> bool { return m_Hovered; }
+       MKT_NODISCARD auto IsFocused() const -> bool { return m_Focused; }
+
+       virtual ~ScenePanelInterface() = default;
+
+    protected:
+        std::shared_ptr<ScenePanelData> m_Data{};
+        bool m_Hovered{};
+        bool m_Focused{};
+    };
+
+
+    class ScenePanel : public Panel<ScenePanel> {
     public:
         explicit ScenePanel() = default;
         explicit ScenePanel(const std::shared_ptr<ScenePanelData> &data, const Path_T& iconPath = {});
 
-        ScenePanel(const ScenePanel& other) = default;
-        ScenePanel(ScenePanel&& other) = default;
-
-        auto operator=(const ScenePanel& other) -> ScenePanel& = default;
         auto operator=(ScenePanel&& other) -> ScenePanel& = default;
 
-        auto OnUpdate() -> void override;
-        auto OnEvent(Event& event) ->  void override;
-        auto MakeVisible(bool value) ->  void override { m_Visible = value; }
+        /**
+         * Updates the state of this panel
+         * */
+        auto OnUpdate() -> void;
 
-        MKT_NODISCARD auto IsHovered() const -> bool override { return m_Hovered; }
-        MKT_NODISCARD auto IsFocused() const -> bool override { return m_Focused; }
-        MKT_NODISCARD auto IsVisible() const -> bool override { return m_Visible; }
-    private:
-        bool m_Visible{};
-        bool m_Hovered{};
-        bool m_Focused{};
+        /**
+         * Must be called everytime we want to propagate an event to
+         * this panel to be handled
+         * @param event event to be handled
+         * */
+        auto OnEvent(Event& event) ->  void;
 
-        std::shared_ptr<ScenePanelData> m_Data{};
+        /**
+         * Hides or reveals this panel in the docking space.
+         * @param value if false, hides this panel, otherwise it may always be visible
+         * */
+        auto MakeVisible(bool value) ->  void;
 
-    private:
-        VkSampler m_ColorAttachmentSampler{};
-        VkDescriptorSet m_DescriptorSet{};
-
-        // TODO: avoid dynamic casts and easily access renderer specific  functionality
-        VulkanRenderer* m_SceneRendererVk{};
-        OpenGLRenderer* m_SceneRendererOGL{};
+        /**
+         * Destructor, defaulted
+         * */
+        ~ScenePanel() = default;
+    protected:
+        std::shared_ptr<ScenePanelInterface> m_Implementation{};
     };
 }
 

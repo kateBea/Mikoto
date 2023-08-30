@@ -1,5 +1,10 @@
+// C++ Standard Library
 #include <vector>
 
+// Third-Party Libraries
+#include <GL/glew.h>
+
+// Project Headers
 #include <Utility/Common.hh>
 #include <Core/Logger.hh>
 #include <Renderer/OpenGL/OpenGLIndexBuffer.hh>
@@ -12,7 +17,7 @@ namespace Mikoto {
         if (m_ValidId)
             Upload(indices, flags);
         else
-            KATE_CORE_LOGGER_ERROR("Failed to create a valid OpenGL element buffer object");
+            MKT_CORE_LOGGER_ERROR("Failed to create a valid OpenGL element buffer object");
     }
 
     auto OpenGLIndexBuffer::Upload(const std::vector<UInt32_T>& indices, GLbitfield flags) -> void {
@@ -23,11 +28,11 @@ namespace Mikoto {
 
         if (!indices.empty() && m_ValidId) {
             m_Count = indices.size();
+            // See: https://docs.gl/gl4/glBufferStorage
             glNamedBufferStorage(m_Id, static_cast<GLsizeiptr>(m_Count * sizeof(UInt32_T)), indices.data(), flags);
-            // For more see: https://docs.gl/gl4/glBufferStorage
         }
         else
-            KATE_CORE_LOGGER_ERROR("No valid element buffer object to upload data");
+            MKT_CORE_LOGGER_ERROR("No valid element buffer object to upload data");
     }
 
     OpenGLIndexBuffer::OpenGLIndexBuffer(OpenGLIndexBuffer&& other) noexcept

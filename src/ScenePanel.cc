@@ -3,96 +3,52 @@
  * Created by kate on 6/27/23.
  * */
 
-// Third-Party Libraries
-#include <volk.h>
-#include <imgui.h>
-#include <backends/imgui_impl_vulkan.h>
+// C++ Standard Library
+#include <memory>
 
 // Project Headers
 #include <Core/Application.hh>
 #include <Editor/Panels/ScenePanel.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
+#include <Editor/Panels/ScenePanel_VulkanImpl.hh>
+#include <Editor/Panels/ScenePanel_OpenGLImpl.hh>
 
 namespace Mikoto {
 
     ScenePanel::ScenePanel(const std::shared_ptr<ScenePanelData>& data, const Path_T& iconPath)
-        :   Panel{ iconPath }, m_Visible{ true }, m_Hovered{ false }, m_Focused{ false }, m_Data{ data }
+        :   Panel{ iconPath }
     {
-        if (Renderer::GetActiveGraphicsAPI() == GraphicsAPI::VULKAN_API) {
-            m_SceneRendererVk = dynamic_cast<VulkanRenderer*>(Renderer::GetActiveGraphicsAPIPtr());
+        m_PanelIsVisible = true;
+        m_PanelIsHovered = false;
+        m_PanelIsFocused = false;
 
-            // Create Sampler
-            VkSamplerCreateInfo samplerCreateInfo{};
-            samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-            samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
-            samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
-            samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-            samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-            samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-            samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-
-            samplerCreateInfo.maxAnisotropy = 1.0f;
-            samplerCreateInfo.mipLodBias = 0.0f;
-            samplerCreateInfo.minLod = 0.0f;
-            samplerCreateInfo.maxLod = 1.0f;
-            samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
-
-            if (vkCreateSampler(VulkanContext::GetPrimaryLogicalDevice(), &samplerCreateInfo, nullptr, &m_ColorAttachmentSampler) != VK_SUCCESS)
-                throw std::runtime_error("Failed to create Vulkan Renderer sampler!");
-
-            m_DescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(m_ColorAttachmentSampler, m_SceneRendererVk->GetOffscreenColorAttachmentImage(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        // Set scene panel implementation
+        switch (Renderer::GetActiveGraphicsAPI()) {
+        case GraphicsAPI::OPENGL_API:
+            m_Implementation = std::make_shared<ScenePanel_OGLImpl>();
+            break;
+        case GraphicsAPI::VULKAN_API:
+            m_Implementation = std::make_shared<ScenePanel_VkImpl>();
+            break;
         }
-        else {
-            m_SceneRendererOGL = dynamic_cast<OpenGLRenderer*>(Renderer::GetActiveGraphicsAPIPtr());
-        }
+
+        // Initialize implementation
+        m_Implementation->Init_Impl(data);
     }
 
     auto ScenePanel::OnUpdate() -> void {
-        if (m_Visible) {
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0,0});
-            ImGui::Begin("Scene");
-            m_Focused = ImGui::IsWindowFocused();
-            m_Hovered = ImGui::IsWindowHovered();
+        if (m_PanelIsVisible)
+            m_Implementation->OnUpdate_Impl();
 
-            Application::GetPtr()->BlockImGuiLayerEvents(!m_Focused || !m_Hovered);
-
-            auto viewPortDimensions{ ImGui::GetContentRegionAvail() };
-
-            if (Renderer::GetActiveGraphicsAPI() == GraphicsAPI::VULKAN_API) {
-                if (m_Data->ViewPortWidth != viewPortDimensions.x || m_Data->ViewPortHeight != viewPortDimensions.y) {
-
-                    m_Data->ViewPortWidth = viewPortDimensions.x;
-                    m_Data->ViewPortHeight = viewPortDimensions.y;
-                    m_Data->Viewport->OnViewPortResize((UInt32_T)viewPortDimensions.x, (UInt32_T)viewPortDimensions.y);
-                    //m_SceneRendererVk->OnFramebufferResize((UInt32_T)m_Data->ViewPortWidth, (UInt32_T)m_Data->ViewPortHeight);
-                }
-
-                float frameWidth{ static_cast<float>(m_Data->ViewPortWidth) };
-                float frameHeight{ static_cast<float>(m_Data->ViewPortHeight) };
-                ImGui::Image((ImTextureID)m_DescriptorSet, ImVec2{ frameWidth, frameHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
-            }
-            else {
-                if (m_Data->ViewPortWidth != viewPortDimensions.x || m_Data->ViewPortHeight != viewPortDimensions.y) {
-                    m_SceneRendererOGL->GetColorAttachment().Resize((UInt32_T)viewPortDimensions.x, (UInt32_T)viewPortDimensions.y);
-
-                    m_Data->ViewPortWidth = viewPortDimensions.x;
-                    m_Data->ViewPortHeight = viewPortDimensions.y;
-                    m_Data->Viewport->OnViewPortResize((UInt32_T)viewPortDimensions.x, (UInt32_T)viewPortDimensions.y);
-                }
-
-                ImTextureID textId{ reinterpret_cast<ImTextureID>(m_SceneRendererOGL->GetColorAttachment().GetColorAttachmentId()) };
-                float frameWidth{ static_cast<float>(m_SceneRendererOGL->GetColorAttachment().GetFrameBufferProperties().width) };
-                float frameHeight{ static_cast<float>(m_SceneRendererOGL->GetColorAttachment().GetFrameBufferProperties().height) };
-                ImGui::Image((ImTextureID)textId, ImVec2{ frameWidth, frameHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
-            }
-
-            ImGui::End();
-            ImGui::PopStyleVar();
-        }
+        m_PanelIsHovered = m_Implementation->IsHovered();
+        m_PanelIsFocused = m_Implementation->IsFocused();
     }
 
     auto ScenePanel::OnEvent(Event& event) -> void {
+        m_Implementation->OnEvent_Impl(event);
+    }
 
+    auto ScenePanel::MakeVisible(bool value) -> void {
+        m_PanelIsVisible = value;
     }
 }

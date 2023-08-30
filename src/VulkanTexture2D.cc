@@ -13,6 +13,7 @@
 
 // Project Headers
 #include <Utility/Common.hh>
+#include <Utility/Types.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanTexture2D.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>

@@ -1,13 +1,15 @@
-//
-// Created by kate on 6/7/23.
-//
+/**
+ * OrthographicCamera.hh
+ * Created by kate on 6/7/23.
+ * */
 
-#ifndef KATE_ENGINE_ORTHOGRAPHIC_CAMERA_HH
-#define KATE_ENGINE_ORTHOGRAPHIC_CAMERA_HH
+#ifndef MIKOTO_ORTHOGRAPHIC_CAMERA_HH
+#define MIKOTO_ORTHOGRAPHIC_CAMERA_HH
 
-// Force radians always
+// Third-Party Libraries
 #include <glm/glm.hpp>
 
+// Project Headers
 #include <Platform/Window/Window.hh>
 #include <Utility/Common.hh>
 
@@ -37,16 +39,17 @@ namespace Mikoto {
         auto UpdateProjection(const std::shared_ptr<Window> &window, double zoom = 1.0) -> void;
     private:
         auto RecomputeViewMatrix() -> void;
+
     private:
-        static constexpr double s_DefaultNearPlane{ -1.0 };
-        static constexpr double s_DefaultFarPlane{ 1.0 };
+        static constexpr double DEFAULT_NEAR_PLANE{ -1.0 };
+        static constexpr double DEFAULT_FAR_PLANE{ 1.0 };
 
         glm::mat4 m_ViewMatrix{};
         glm::mat4 m_Projection{};
         glm::mat4 m_ProjectionMatrix{};
         glm::vec3 m_Position{};
 
-        // To avoid recomputing (projection * view) when it is not necessary
+        // To avoid recomputing (projection * view) unless necessary
         glm::mat4 m_ProjectionAndView{};
 
         double m_FieldOfView{};
@@ -57,4 +60,4 @@ namespace Mikoto {
     };
 }
 
-#endif//KATE_ENGINE_ORTHOGRAPHIC_CAMERA_HH
+#endif // MIKOTO_ORTHOGRAPHIC_CAMERA_HH

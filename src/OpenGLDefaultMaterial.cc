@@ -1,11 +1,15 @@
-//
-// Created by kate on 7/20/2023.
-//
+/**
+ * OpenGLDefaultMaterial.hh
+ * Created by kate on 7/20/2023.
+ * */
 
+// Third-Party Libraries
+#include <glm/glm.hpp>
+
+// Project Headers
 #include <Renderer/OpenGL/OpenGLDefaultMaterial.hh>
 
 namespace Mikoto {
-
     auto OpenGLDefaultMaterial::BindShader() -> void {
         m_DefaultVertexPixelShaders->Bind();
     }
@@ -23,7 +27,7 @@ namespace Mikoto {
     }
 
     auto OpenGLDefaultMaterial::UploadShaders(const Path_T &vertexShader, const Path_T &fragmentShader) -> void {
-        m_DefaultVertexPixelShaders = std::dynamic_pointer_cast<OpenGLShader>(Shader::CreateShader(vertexShader, fragmentShader));
+        m_DefaultVertexPixelShaders = std::dynamic_pointer_cast<OpenGLShader>(Shader::Create(vertexShader, fragmentShader));
     }
 
     auto OpenGLDefaultMaterial::SetTextureSampler(Int32_T value) -> void {

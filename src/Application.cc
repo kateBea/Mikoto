@@ -1,54 +1,62 @@
+/**
+ * Application.cc
+ * Created by kate on 5/25/23.
+ * */
+
 // C++ Standard Library
 #include <memory>
 #include <cmath>
 
 // Project headers
 #include <Utility/Common.hh>
-#include <Core/Events/AppEvents.hh>
 #include <Core/Logger.hh>
 #include <Core/Application.hh>
+#include <Renderer/Renderer.hh>
+#include <Core/Events/AppEvents.hh>
 #include <Core/ImGui/ImGuiLayer.hh>
 #include <Platform/InputManager.hh>
-#include <Platform/Window/MainWindow.hh>
-#include <Renderer/Renderer.hh>
 #include <Renderer/RenderCommand.hh>
+#include <Platform/Window/MainWindow.hh>
 
-
-// TODO: rename all constants to use upper cases
 namespace Mikoto {
     auto Application::Init() -> void {
+        // Initialize the time manager
         TimeManager::Init();
-        KATE_CORE_LOGGER_DEBUG("Initializing Mikoto Engine {}", TimeManager::ToString(TimeManager::GetTime()));
+
+        // Allocations
         m_MainWindow = std::make_shared<MainWindow>();
         m_LayerStack = std::make_unique<LayerStack>();
+        m_ImGuiLayer = std::make_shared<ImGuiLayer>();
 
+        // Initialize the main window
         m_MainWindow->Init();
-        m_MainWindow->SetEventCallback(KT_BIND_EVENT_FUNC(Application::OnEvent));
+        m_MainWindow->SetEventCallback(MKT_BIND_EVENT_FUNC(Application::OnEvent));
 
-        RenderContext::Init(m_MainWindow);
-        RenderContext::EnableVSync();
-
+        // Initialize the input manager
         InputManager::Init();
 
+        // Initialize rendering subsystems
+        RenderContext::Init(m_MainWindow);
+        RenderContext::EnableVSync();
         Renderer::Init();
 
+        // Initialize the GUI layer
         m_LayerStack->Init();
-        m_ImGuiLayer = std::make_shared<ImGuiLayer>();
         PushOverlay(m_ImGuiLayer);
 
-        KATE_CORE_LOGGER_DEBUG("Finished Mikoto Engine initialization {}", TimeManager::ToString(TimeManager::GetTime()));
+        MKT_CORE_LOGGER_DEBUG("Init time {}", TimeManager::GetTime());
     }
 
     // Should probably not be here
     auto Application::OnEvent(Event& event) -> void {
-        KATE_CORE_LOGGER_TRACE("{}", event.DisplayData());
+        MKT_CORE_LOGGER_TRACE("{}", event.DisplayData());
 
         EventDispatcher evDis{ event };
-        if (evDis.Forward<WindowCloseEvent>(KT_BIND_EVENT_FUNC(Application::OnWindowClose)))
-            KATE_CORE_LOGGER_TRACE("HANDLED {}", event.DisplayData());
+        if (evDis.Forward<WindowCloseEvent>(MKT_BIND_EVENT_FUNC(Application::OnWindowClose)))
+            MKT_CORE_LOGGER_TRACE("HANDLED {}", event.DisplayData());
 
-        if (evDis.Forward<WindowResizedEvent>(KT_BIND_EVENT_FUNC(Application::OnResizeEvent)))
-            KATE_CORE_LOGGER_TRACE("HANDLED {}", event.DisplayData());
+        if (evDis.Forward<WindowResizedEvent>(MKT_BIND_EVENT_FUNC(Application::OnResizeEvent)))
+            MKT_CORE_LOGGER_TRACE("HANDLED {}", event.DisplayData());
 
         Renderer::OnEvent(event);
 
@@ -83,13 +91,12 @@ namespace Mikoto {
     }
 
     auto Application::ShutDown() -> void {
-        KATE_CORE_LOGGER_INFO("Shutting down Mikoto Engine");
+        MKT_CORE_LOGGER_INFO("Shutting down Mikoto Engine");
 
         m_LayerStack->PopOverlay(m_ImGuiLayer);
         m_ImGuiLayer->OnDetach();
 
         InputManager::ShutDown();
-        RenderCommand::ShutDown();
         Renderer::ShutDown();
 
         m_LayerStack->ShutDown();
@@ -97,7 +104,7 @@ namespace Mikoto {
     }
 
     auto Application::GetMainWindow() -> Window& {
-        KT_ASSERT(m_MainWindow, "Application main window is NULL");
+        MKT_ASSERT(m_MainWindow, "Application main window is NULL");
         return *m_MainWindow;
     }
 

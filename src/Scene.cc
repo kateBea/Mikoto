@@ -11,11 +11,12 @@
 #include <entt/entt.hpp>
 
 // Project Headers
-#include <Scene/Scene.hh>
-#include <Scene/Entity.hh>
-#include <Scene/Component.hh>
+#include "Scene/EditorCamera.hh"
 #include <Renderer/Renderer.hh>
 #include <Renderer/RenderingUtilities.hh>
+#include <Scene/Component.hh>
+#include <Scene/Entity.hh>
+#include <Scene/Scene.hh>
 
 namespace Mikoto {
 
@@ -24,7 +25,7 @@ namespace Mikoto {
         m_Registry.emplace<TransformComponent>(entity, TransformComponent());
     }
 
-    auto Scene::OnUpdate() -> void {
+    auto Scene::OnUpdate(double ts) -> void {
         // Update scripts
         {
 
@@ -53,7 +54,7 @@ namespace Mikoto {
         if (sceneHasMainCam) {
             // Render stuff if the scene has a camera
             ScenePrepareData prepareData{};
-            prepareData.SceneCamera = mainCam;
+            prepareData.RuntimeCamera = &(*mainCam);
 
             // TODO: add filter Renderable and deprecate SpriteRendererComponent
             auto view{ m_Registry.view<TagComponent, TransformComponent, SpriteRendererComponent>() };
@@ -76,10 +77,22 @@ namespace Mikoto {
         }
     }
 
-    auto Scene::CreateEntity(std::string_view tagName, const std::shared_ptr<Scene>& scene) -> Entity {
+    auto Scene::CreateEmptyObject(std::string_view tagName, const std::shared_ptr<Scene>& scene) -> Entity {
         Entity result{ scene };
 
         // By default, all entities will have a transform component and a tag
+        result.AddComponent<TagComponent>(tagName);
+        result.AddComponent<TransformComponent>(glm::vec3{ 0.0, 0.0, 0.0 },  glm::vec3{ 1.0f, 1.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f });
+
+        return result;
+    }
+
+    auto Scene::CreatePrefabObject(std::string_view tagName, const std::shared_ptr<Scene>& scene) -> Entity {
+        Entity result{ scene };
+
+        // By default, all entities will have a transform component and a tag
+        result.AddComponent<RenderComponent>();
+        result.AddComponent<MaterialComponent>();
         result.AddComponent<TagComponent>(tagName);
         result.AddComponent<TransformComponent>(glm::vec3{ 0.0, 0.0, 0.0 },  glm::vec3{ 1.0f, 1.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f });
 
@@ -106,5 +119,29 @@ namespace Mikoto {
                 camera.GetCameraPtr()->SetViewportSize(width, height);
 
         }
+    }
+
+    auto Scene::OnEditorUpdate(double ts, EditorCamera& camera) -> void {
+        ScenePrepareData prepareData{};
+        prepareData.StaticCamera = &camera;
+
+        // TODO: add filter Renderable and deprecate SpriteRendererComponent
+        auto view{ m_Registry.view<TagComponent, TransformComponent, SpriteRendererComponent>() };
+
+        Renderer::BeginScene(prepareData);
+
+        for (const auto& entity : view) {
+            TagComponent& tag{ view.get<TagComponent>(entity) };
+            TransformComponent& transform{ view.get<TransformComponent>(entity) };
+            SpriteRendererComponent& sprite{ view.get<SpriteRendererComponent>(entity) };
+            DrawData& drawData{ sprite.GetDrawData() };
+
+            // TODO: fix rendering order for blending, objects that are nearer to the camera should be rendered first
+            // Right now if an object is on top of another but it is rendered after before blending does not work
+            Renderer::SubmitQuad(transform.GetTransform(), sprite.GetColor(), drawData.MaterialData);
+        }
+
+        Renderer::Flush();
+        Renderer::EndScene();
     }
 }

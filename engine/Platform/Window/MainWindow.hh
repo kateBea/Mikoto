@@ -3,8 +3,8 @@
  * Created by kate on 5/26/23.
  * */
 
-#ifndef KATE_ENGINE_LINUX_WINDOW_HH
-#define KATE_ENGINE_LINUX_WINDOW_HH
+#ifndef MIKOTO_MAIN_WINDOW_HH
+#define MIKOTO_MAIN_WINDOW_HH
 
 // C++ Standard Library
 #include <any>
@@ -15,9 +15,7 @@
 
 // Project Headers
 #include <Utility/Common.hh>
-
 #include <Platform/Window/Window.hh>
-
 #include <Renderer/RenderContext.hh>
 
 namespace Mikoto {
@@ -64,7 +62,6 @@ namespace Mikoto {
         EventCallbackFunc_T m_Callback{};
         bool m_CurrentGraphicsAPIIsOpenGL{ false };
     };
-
 }
 
-#endif // KATE_ENGINE_LINUX_WINDOW_HH
+#endif // MIKOTO_MAIN_WINDOW_HH

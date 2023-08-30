@@ -3,8 +3,8 @@
  * Created by kate on 5/26/23.
  * */
 
-#ifndef KATE_ENGINE_LAYER_HH
-#define KATE_ENGINE_LAYER_HH
+#ifndef MIKOTO_LAYER_HH
+#define MIKOTO_LAYER_HH
 
 // C++ Standard Library
 #include <string>
@@ -20,8 +20,6 @@ namespace Mikoto {
      * Describes a modular entity that helps encapsulate and organize
      * functionality of the engine, i.e. subsystems of our engine, e.g.:
      * Editor Layer which encapsulates elements like scene viewport, scene entities hierarchy, etc
-     *
-     * This class serves simply as a general interface for those Layers
      * */
     class Layer {
     public:
@@ -34,13 +32,12 @@ namespace Mikoto {
         virtual auto OnDetach() -> void = 0;
         virtual auto OnUpdate(double ts) -> void = 0;
 
-        // These functions are defined here because a layer may not need them,
-        // therefore, it should not provide a definition for them
-        virtual auto OnEvent([[maybe_unused]] Event& event) -> void {}
-        virtual auto OnImGuiRender()                        -> void {}
+        virtual auto OnEvent(Event& event) -> void {}
+        virtual auto OnImGuiRender() -> void {}
 
         /**
-         * For debugging purposes
+         * Returns this layer's name (mainly for debugging purposes)
+         * @returns this layer's name
          * */
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 
@@ -50,4 +47,4 @@ namespace Mikoto {
 
 }
 
-#endif // KATE_ENGINE_LAYER_HH
+#endif // MIKOTO_LAYER_HH

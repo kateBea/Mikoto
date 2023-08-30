@@ -3,22 +3,20 @@
  * Created by kate on 6/4/23.
  * */
 
-#ifndef KATE_ENGINE_OPENGL_CONTEXT_HH
-#define KATE_ENGINE_OPENGL_CONTEXT_HH
+#ifndef MIKOTO_OPENGL_CONTEXT_HH
+#define MIKOTO_OPENGL_CONTEXT_HH
 
 // C++ Standard Library
 #include <any>
 
 // Project Headers
 #include <Platform/Window/MainWindow.hh>
-
 #include <Renderer/RenderContext.hh>
 
+// TODO: convert into namespace
 namespace Mikoto {
     class OpenGLContext {
     public:
-        explicit OpenGLContext() = default;
-
         static auto Init(const std::shared_ptr<Window>& windowHandle) -> void;
         static auto ShutDown() -> void;
         static auto Present() -> void;
@@ -27,8 +25,6 @@ namespace Mikoto {
         static auto DisableVSync() -> void;
         static auto IsVSyncActive() -> bool { return s_VSync; }
 
-        ~OpenGLContext() = default;
-
     public:
         // Forbidden operations on Contexts
         OpenGLContext(const OpenGLContext&) = delete;
@@ -36,6 +32,7 @@ namespace Mikoto {
 
         OpenGLContext(OpenGLContext&&) = delete;
         auto operator=(OpenGLContext&&) -> OpenGLContext& = delete;
+
     private:
         inline static GLFWwindow* s_Handle{};
         inline static bool s_GLEWInitSuccess{ false };
@@ -44,4 +41,4 @@ namespace Mikoto {
 }
 
 
-#endif//KATE_ENGINE_OPENGL_CONTEXT_HH
+#endif // MIKOTO_OPENGL_CONTEXT_HH

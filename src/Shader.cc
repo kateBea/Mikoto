@@ -14,12 +14,12 @@
 
 namespace Mikoto {
 
-    auto Shader::CreateShader(const Path_T& vertStage, const Path_T& pixelStage) -> std::shared_ptr<Shader> {
+    auto Shader::Create(const Path_T& vertStage, const Path_T& pixelStage) -> std::shared_ptr<Shader> {
         switch(Renderer::GetActiveGraphicsAPI()) {
             case GraphicsAPI::OPENGL_API:
                 return std::make_shared<OpenGLShader>(vertStage, pixelStage);
             default:
-                KATE_CORE_LOGGER_CRITICAL("Unsupported renderer API");
+                MKT_CORE_LOGGER_CRITICAL("Unsupported renderer API");
                 return nullptr;
         }
     }

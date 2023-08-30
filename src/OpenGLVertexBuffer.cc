@@ -1,5 +1,13 @@
-#include <Utility/Common.hh>
+/**
+ * OpenGLVertexBuffer.cc
+ * Created by kate on 6/4/23.
+ * */
 
+// Third-Party Libraries
+#include <GL/glew.h>
+
+// Project Headers
+#include <Utility/Common.hh>
 #include <Renderer/OpenGL/OpenGLVertexBuffer.hh>
 
 namespace Mikoto {

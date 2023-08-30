@@ -3,8 +3,8 @@
  * Created by kate on 5/25/23.
  * */
 
-#ifndef KATE_ENGINE_ASSERT_HH
-#define KATE_ENGINE_ASSERT_HH
+#ifndef MIKOTO_ASSERT_HH
+#define MIKOTO_ASSERT_HH
 
 // C++ Standard Library
 #include <cstdlib>
@@ -16,21 +16,21 @@
     #define __PRETTY_FUNCTION__  __FUNCTION__
 #endif
 
-#if defined(NDEBUG) || defined(_DEBUG)
-    #define KT_ENABLE_ASSERTIONS
+#if !defined(NDEBUG) || defined(_DEBUG)
+    #define MKT_ENABLE_ASSERTIONS
 #else
-    #undef KT_ENABLE_ASSERTIONS
+    #undef MKT_ENABLE_ASSERTIONS
 #endif
 
-#if defined(KT_ENABLE_ASSERTIONS)
+#if defined(MKT_ENABLE_ASSERTIONS)
 
-/**
- * Print __MESSAGE and abort program execution if __EXPR evaluates to false
- */
-#define KT_ASSERT(__EXPR, __MESSAGE)                                      \
+    /**
+     * Print __MESSAGE and abort program execution if __EXPR evaluates to false
+     */
+    #define MKT_ASSERT(__EXPR, __MESSAGE)                                 \
     do {                                                                   \
-        if (!(__EXPR)) {                                                   \
-            KT_COLOR_PRINT_FORMATTED(KT_FMT_COLOR_RED, "MESSAGE: {}\n"   \
+        if (!(__EXPR)) {                                                 \
+            MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_RED, "MESSAGE: {}\n"   \
                                                       "FUNCTION: {}\n"     \
                                                       "SRC: {}\n"          \
                                                       "LINE: {}\n",        \
@@ -40,24 +40,21 @@
         }                                                                  \
     } while (false)
 
-#define KT_ASSERT_EXPR(__EXPR)                                                     \
-    do {                                                                   \
-        if (!(__EXPR)) {                                                   \
-            KT_COLOR_PRINT_FORMATTED(KT_FMT_COLOR_RED, "Condition: {} failed\n"   \
-                                                      "FUNCTION: {}\n"     \
-                                                      "SRC: {}\n"          \
-                                                      "LINE: {}\n",        \
-                                     #__EXPR, __PRETTY_FUNCTION__,       \
-                                     __FILE__, __LINE__);                  \
-            std::abort();                                                  \
-        }                                                                  \
+    #define MKT_ASSERT_EXPR(__EXPR)                                               \
+    do {                                                                            \
+        if (!(__EXPR)) {                                                         \
+            MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_RED, "Condition: {} failed\n"   \
+                                                      "FUNCTION: {}\n"              \
+                                                      "SRC: {}\n"                   \
+                                                      "LINE: {}\n",                 \
+                                     #__EXPR, __PRETTY_FUNCTION__,                  \
+                                     __FILE__, __LINE__);                           \
+            std::abort();                                                           \
+        }                                                                           \
     } while (false)
 #else
-    #define KT_ASSERT(__EXPR, __MESSAGE)
-    #define KT_ASSERT_EXPR(__EXPR)
+    #define MKT_ASSERT(__EXPR, __MESSAGE)
+    #define MKT_ASSERT_EXPR(__EXPR)
 #endif
 
-// TODO: add static assert
-
-
-#endif //KATE_ENGINE_ASSERT_HH
+#endif // MIKOTO_ASSERT_HH

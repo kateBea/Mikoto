@@ -23,7 +23,9 @@ namespace Mikoto {
             COUNT,
         };
 
-        explicit Material(std::string_view name = "Base Material", Type type = Type::STANDARD) : m_Type{ type }, m_Name{ name }{}
+        explicit Material(std::string_view name = "Base Material", Type type = Type::STANDARD)
+            :   m_Type{ type }, m_Name{ name }
+        {}
 
         Material(const Material& other) = default;
         Material(Material&& other) = default;

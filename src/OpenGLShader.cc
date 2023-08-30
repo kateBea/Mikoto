@@ -1,3 +1,7 @@
+/**
+ * Shader.cc
+ * Created by kate on 6/4/23.
+ * */
 
 // C++ Standard Libraries
 #include <filesystem>
@@ -8,19 +12,12 @@
 
 // Third-Party Libraries
 #include <GL/glew.h>
-
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
-#include <glm/mat3x3.hpp>
-#include <glm/mat4x4.hpp>
+#include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
 #include <fmt/core.h>
 
 // Project Libraries
 #include <Utility/Common.hh>
-
 #include <Core/Logger.hh>
 #include <Renderer/OpenGL/OpenGLShader.hh>
 
@@ -57,10 +54,10 @@ namespace Mikoto {
 
     auto OpenGLShader::Build(const char* vShader, const char* fShader) const -> void {
         UInt32_T vertexShaderID{ Compile(vShader, GL_VERTEX_SHADER) };
-        ShowShaderStatus(vertexShaderID, ShaderType::VERTEX_SHADER_TYPE, GL_COMPILE_STATUS);
+        ShowShaderStatus(vertexShaderID, ShaderStage::VERTEX_STAGE, GL_COMPILE_STATUS);
 
         UInt32_T pixelShaderID{ Compile(fShader, GL_FRAGMENT_SHADER) };
-        ShowShaderStatus(pixelShaderID, ShaderType::FRAGMENT_SHADER_TYPE, GL_COMPILE_STATUS);
+        ShowShaderStatus(pixelShaderID, ShaderStage::FRAGMENT_STAGE, GL_COMPILE_STATUS);
 
         // Create and link program against compiled Shader binaries
         glAttachShader(GetProgram(), vertexShaderID);
@@ -75,34 +72,34 @@ namespace Mikoto {
         glDeleteShader(pixelShaderID);
     }
 
-    auto OpenGLShader::SetUniformBool(std::string_view name, bool value) -> void {
+    auto OpenGLShader::SetUniformBool(std::string_view name, bool value) const -> void {
         Bind();
         auto ret{ glGetUniformLocation(GetProgram(), name.data()) };
         if (ret == -1)
-            KATE_CORE_LOGGER_ERROR("Error: [{}] is not a valid uniform name for this program shader", name);
+            MKT_CORE_LOGGER_ERROR("Error: [{}] is not a valid uniform name for this program shader", name);
         else
             glUniform1i(ret, static_cast<Int32_T>(value));
     }
 
-    auto OpenGLShader::SetUniformInt(std::string_view name, Int32_T value) -> void {
+    auto OpenGLShader::SetUniformInt(std::string_view name, Int32_T value) const -> void {
         Bind();
         auto ret{ glGetUniformLocation(GetProgram(), name.data()) };
         if (ret == -1)
-            KATE_CORE_LOGGER_ERROR("Error: [{}] is not a valid uniform name for this program shader", name);
+            MKT_CORE_LOGGER_ERROR("Error: [{}] is not a valid uniform name for this program shader", name);
         else
             glUniform1i(ret, value);
     }
 
-    auto OpenGLShader::SetUniformFloat(std::string_view name, float value) -> void {
+    auto OpenGLShader::SetUniformFloat(std::string_view name, float value) const -> void {
         Bind();
         auto ret{ glGetUniformLocation(GetProgram(), name.data()) };
         if (ret == -1)
-            KATE_CORE_LOGGER_ERROR("Error: [{}] is not a valid uniform name for this program shader", name);
+            MKT_CORE_LOGGER_ERROR("Error: [{}] is not a valid uniform name for this program shader", name);
         else
             glUniform1f(ret, value);
     }
 
-    auto OpenGLShader::ShowShaderStatus(UInt32_T objectId, ShaderType type, GLenum status) -> void {
+    auto OpenGLShader::ShowShaderStatus(UInt32_T objectId, ShaderStage type, GLenum status) -> void {
         Int32_T success{};
 
         glGetShaderiv(objectId, status, &success);
@@ -114,11 +111,11 @@ namespace Mikoto {
                     std::string outStr(length, '\0');
 
                     glGetShaderInfoLog(objectId, length, &length, outStr.data());
-                    KATE_CORE_LOGGER_ERROR("Error on {} shader compilation", GetShaderTypeStr(type));
-                    KT_COLOR_PRINT_FORMATTED(KT_FMT_COLOR_RED, "\n{}", outStr);
+                    MKT_CORE_LOGGER_ERROR("Error on {} shader compilation", GetShaderTypeStr(type));
+                    MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_RED, "\n{}", outStr);
                 }
                 else
-                    KT_COLOR_PRINT_FORMATTED(KT_FMT_COLOR_LIME_GREEN, "Shader compilation successful. Type: {}\n", GetShaderTypeStr(type));
+                    MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_LIME_GREEN, "Shader compilation successful. Type: {}\n", GetShaderTypeStr(type));
                 break;
         }
     }
@@ -132,22 +129,22 @@ namespace Mikoto {
             case GL_LINK_STATUS:
                 if (success == GL_FALSE) {
                     glGetProgramInfoLog(m_Id, outStr.size(), nullptr, outStr.data());
-                    KATE_CORE_LOGGER_ERROR("Error on shader program Linking");
-                    KT_COLOR_PRINT_FORMATTED(KT_FMT_COLOR_RED, "\n{}", outStr);
+                    MKT_CORE_LOGGER_ERROR("Error on shader program Linking");
+                    MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_RED, "\n{}", outStr);
                 }
                 else {
-                    KATE_CORE_LOGGER_INFO("Shader program linking successful");
+                    MKT_CORE_LOGGER_INFO("Shader program linking successful");
                 }
 
                 break;
         }
     }
 
-    auto OpenGLShader::SetUniformMat4(std::string_view name, const glm::mat4& value) -> void {
+    auto OpenGLShader::SetUniformMat4(std::string_view name, const glm::mat4& value) const -> void {
         Bind();
         auto ret{ glGetUniformLocation(GetProgram(), name.data()) };
         if (ret == -1) {
-            KATE_CORE_LOGGER_ERROR("Error: [{}] is not a valid uniform name for this program shader", name);
+            MKT_CORE_LOGGER_ERROR("Error: [{}] is not a valid uniform name for this program shader", name);
         }
         else {
             /*
@@ -166,23 +163,23 @@ namespace Mikoto {
         }
     }
 
-    auto OpenGLShader::SetUniformVec3(std::string_view name, const glm::vec3 &value) -> void {
+    auto OpenGLShader::SetUniformVec3(std::string_view name, const glm::vec3 &value) const -> void {
         Bind();
         auto ret{ glGetUniformLocation(GetProgram(), name.data()) };
         if (ret == -1)
-            KATE_CORE_LOGGER_ERROR("Error: [{}] is not a valid uniform name for this program shader", name);
+            MKT_CORE_LOGGER_ERROR("Error: [{}] is not a valid uniform name for this program shader", name);
         else {
             // we pass we 1 because the shader uniform is not expected to be an array
             glUniform3fv(ret, 1, glm::value_ptr(value));
         }
     }
 
-    auto OpenGLShader::SetUniformVec4(std::string_view name, const glm::vec4& value) -> void {
+    auto OpenGLShader::SetUniformVec4(std::string_view name, const glm::vec4& value) const -> void {
         Bind();
         auto ret{ glGetUniformLocation(GetProgram(), name.data()) };
 
         if (ret == -1)
-            KATE_CORE_LOGGER_ERROR("Error: [{}] is not a valid uniform name for this program shader", name);
+            MKT_CORE_LOGGER_ERROR("Error: [{}] is not a valid uniform name for this program shader", name);
         else {
             // we pass we 1 because the shader uniform is not expected to be an array
             glUniform4fv(ret, 1, glm::value_ptr(value));
@@ -203,24 +200,24 @@ namespace Mikoto {
         return *this;
     }
 
-    auto OpenGLShader::SetUniformVec2(std::string_view name, const glm::vec2 &vec) -> void {
+    auto OpenGLShader::SetUniformVec2(std::string_view name, const glm::vec2 &vec) const -> void {
         Bind();
         auto ret{ glGetUniformLocation(GetProgram(), name.data()) };
 
         if (ret == -1)
-            KATE_CORE_LOGGER_ERROR("Error: [{}] is not a valid uniform name for this program shader", name);
+            MKT_CORE_LOGGER_ERROR("Error: [{}] is not a valid uniform name for this program shader", name);
         else {
             // we pass we 1 because the shader uniform is not expected to be an array
             glUniform2fv(ret, 1, glm::value_ptr(vec));
         }
     }
 
-    auto OpenGLShader::SetUniformMat3(std::string_view name, const glm::mat3& value) -> void {
+    auto OpenGLShader::SetUniformMat3(std::string_view name, const glm::mat3& value) const -> void {
         Bind();
         auto ret{ glGetUniformLocation(GetProgram(), name.data()) };
 
         if (ret == -1)
-            KATE_CORE_LOGGER_ERROR("Error: [{}] is not a valid uniform name for this program shader", name);
+            MKT_CORE_LOGGER_ERROR("Error: [{}] is not a valid uniform name for this program shader", name);
         else {
             glUniformMatrix3fv(ret, 1, GL_FALSE, glm::value_ptr(value));
         }

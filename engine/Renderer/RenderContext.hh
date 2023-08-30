@@ -28,7 +28,6 @@ namespace Mikoto {
         static auto DisableVSync() -> void;
         static auto IsVSyncActive() -> bool;
 
-        virtual ~RenderContext() = default;
     public:
         RenderContext(const RenderContext&) = delete;
         auto operator=(const RenderContext&) -> RenderContext& = delete;
@@ -41,6 +40,5 @@ namespace Mikoto {
         inline static std::shared_ptr<Window> s_WindowHandle{};
     };
 }
-
 
 #endif // MIKOTO_RENDER_CONTEXT_HH

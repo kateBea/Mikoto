@@ -1,7 +1,7 @@
 /**
-* Model.hh
-* Created by kate on 6/29/23.
-* */
+ * Model.hh
+ * Created by kate on 6/29/23.
+ * */
 
 #ifndef MIKOTO_MODEL_HH
 #define MIKOTO_MODEL_HH

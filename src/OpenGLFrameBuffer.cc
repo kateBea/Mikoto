@@ -58,7 +58,7 @@ namespace Mikoto {
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_DepthAttachment, 0);
 
         bool result{ glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE };
-        KT_ASSERT(result, "FrameBuffer is not complete");
+        MKT_ASSERT(result, "FrameBuffer is not complete");
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 

@@ -29,10 +29,10 @@ namespace Mikoto {
     auto VulkanContext::Init(const std::shared_ptr<Window>& handle) -> void {
         VkResult ret{ volkInitialize() };
         s_ContextData.VOLKInitSuccess = ret == VK_SUCCESS;
-        KT_ASSERT(s_ContextData.VOLKInitSuccess, "Failed to initialize VOLK!");
+        MKT_ASSERT(s_ContextData.VOLKInitSuccess, "Failed to initialize VOLK!");
 
         s_ContextData.WindowHandle = std::dynamic_pointer_cast<MainWindow>(handle);
-        KT_ASSERT(s_ContextData.WindowHandle, "Window handle for Vulkan Context initialization is NULL");
+        MKT_ASSERT(s_ContextData.WindowHandle, "Window handle for Vulkan Context initialization is NULL");
 
         CreateInstance();
         SetupDebugMessenger();
@@ -69,10 +69,10 @@ namespace Mikoto {
         appInfo.applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
         appInfo.pEngineName = "Mikoto";
         appInfo.engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
-        appInfo.apiVersion = VK_MAKE_API_VERSION(KT_VULKAN_VERSION_VARIANT,
-                                                 KT_VULKAN_VERSION_MAJOR,
-                                                 KT_VULKAN_VERSION_MINOR,
-                                                 KT_VULKAN_VERSION_PATCH); // Patch version should always be set to zero, see Vulkan Spec
+        appInfo.apiVersion = VK_MAKE_API_VERSION(MKT_VULKAN_VERSION_VARIANT,
+                                                 MKT_VULKAN_VERSION_MAJOR,
+                                                 MKT_VULKAN_VERSION_MINOR,
+                                                 MKT_VULKAN_VERSION_PATCH); // Patch version should always be set to zero, see Vulkan Spec
 
         // Instance creation info
         VkInstanceCreateInfo createInfo{};
@@ -146,7 +146,7 @@ namespace Mikoto {
                VkDebugUtilsMessageTypeFlagsEXT messageType,
                const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) -> VKAPI_ATTR VkBool32
             {
-                KATE_CORE_LOGGER_ERROR("Validation layer: {}", pCallbackData->pMessage);
+            MKT_CORE_LOGGER_ERROR("Validation layer: {}", pCallbackData->pMessage);
                 return VK_FALSE;
             };
     }
@@ -157,17 +157,17 @@ namespace Mikoto {
         std::vector<VkExtensionProperties> extensions(extensionCount);
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-        KT_COLOR_PRINT_FORMATTED(KT_FMT_COLOR_AQUA, "Available extensions: \n");
+        MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_AQUA, "Available extensions: \n");
         std::unordered_set<std::string> available{};
         for (const auto& extension : extensions) {
-            KT_COLOR_PRINT_FORMATTED(KT_FMT_COLOR_GREEN_YELLOW, "\t{}\n", extension.extensionName);
+            MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_GREEN_YELLOW, "\t{}\n", extension.extensionName);
             available.insert(extension.extensionName);
         }
 
-        KT_COLOR_PRINT_FORMATTED(KT_FMT_COLOR_AQUA, "Required extensions: \n");
+        MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_AQUA, "Required extensions: \n");
         auto requiredExtensions{ GetGlfwRequiredExtensions() };
         for (const auto& required: requiredExtensions) {
-            KT_COLOR_PRINT_FORMATTED(KT_FMT_COLOR_ORANGE_RED, "\t{}\n", required);
+            MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_ORANGE_RED, "\t{}\n", required);
             if (available.find(required) == available.end()) {
                 throw std::runtime_error("Missing required GLFW extensions");
             }
@@ -217,7 +217,7 @@ namespace Mikoto {
             physicalDevice = VK_NULL_HANDLE;
 
         vkEnumeratePhysicalDevices(s_ContextData.Instance, &deviceCount, s_ContextData.PhysicalDevices.data());
-        KATE_CORE_LOGGER_DEBUG("Vulkan device count: {}", deviceCount);
+        MKT_CORE_LOGGER_DEBUG("Vulkan device count: {}", deviceCount);
 
         // Load physical device info
         UInt32_T deviceIndex{};
@@ -251,7 +251,7 @@ namespace Mikoto {
         vkGetPhysicalDeviceProperties(s_ContextData.PhysicalDevices[s_ContextData.PrimaryPhysicalDeviceIndex],
                                       &s_ContextData.PhysicalDeviceProperties[s_ContextData.PrimaryPhysicalDeviceIndex]);
 
-        KT_COLOR_PRINT_FORMATTED(KT_FMT_COLOR_GREEN_YELLOW, "Physical device: {}\n", s_ContextData.PhysicalDeviceProperties[s_ContextData.PrimaryPhysicalDeviceIndex].deviceName);
+        MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_GREEN_YELLOW, "Physical device: {}\n", s_ContextData.PhysicalDeviceProperties[s_ContextData.PrimaryPhysicalDeviceIndex].deviceName);
 #endif
     }
 
@@ -558,7 +558,7 @@ namespace Mikoto {
 
         // Setup VmaAllocator
         VmaAllocatorCreateInfo allocatorInfo{};
-        allocatorInfo.vulkanApiVersion = VK_MAKE_API_VERSION(KT_VULKAN_VERSION_VARIANT,KT_VULKAN_VERSION_MAJOR,KT_VULKAN_VERSION_MINOR, KT_VULKAN_VERSION_PATCH);
+        allocatorInfo.vulkanApiVersion = VK_MAKE_API_VERSION(MKT_VULKAN_VERSION_VARIANT, MKT_VULKAN_VERSION_MAJOR, MKT_VULKAN_VERSION_MINOR, MKT_VULKAN_VERSION_PATCH);
         allocatorInfo.physicalDevice = GetPrimaryPhysicalDevice();
         allocatorInfo.device = GetPrimaryLogicalDevice();
         allocatorInfo.instance = GetInstance();

@@ -1,11 +1,10 @@
 /**
-* kateOpenGLVertexBuffer.hh
-* Created by kate on 6/4/23.
-* */
+ * OpenGLVertexBuffer.hh
+ * Created by kate on 6/4/23.
+ * */
 
-
-#ifndef KATE_ENGINE_OPENGL_VERTEX_BUFFER_HH
-#define KATE_ENGINE_OPENGL_VERTEX_BUFFER_HH
+#ifndef MIKOTO_OPENGL_VERTEX_BUFFER_HH
+#define MIKOTO_OPENGL_VERTEX_BUFFER_HH
 
 // C++ Standard Library
 #include <vector>
@@ -64,18 +63,19 @@ namespace Mikoto {
 
         auto SetBufferLayout(const BufferLayout& layout) -> void override { m_Layout = layout; }
 
-        MKT_NODISCARD
-        auto GetBufferLayout() const -> const BufferLayout& override { return m_Layout; }
+        MKT_NODISCARD auto GetBufferLayout() const -> const BufferLayout& override { return m_Layout; }
         /**
          * Releases resources from this Vertex buffer
          * */
         ~OpenGLVertexBuffer() override { glDeleteBuffers(1, &m_Id); }
 
         auto OnRelease() const -> void override {}
+
     public:
         // Forbidden operations
         OpenGLVertexBuffer(const OpenGLVertexBuffer & other) = delete;
         auto operator=(const OpenGLVertexBuffer & other) -> OpenGLVertexBuffer & = delete;
+
     private:
         BufferLayout m_Layout{};
 
@@ -88,4 +88,4 @@ namespace Mikoto {
     };
 }
 
-#endif	// KATE_ENGINE_OPENGL_VERTEX_BUFFER_HH
+#endif	// MIKOTO_OPENGL_VERTEX_BUFFER_HH

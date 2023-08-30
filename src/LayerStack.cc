@@ -7,8 +7,8 @@
 #include <algorithm>
 
 // Project headers
-#include "Core/LayerStack.hh"
 #include <Core/Logger.hh>
+#include <Core/LayerStack.hh>
 
 namespace Mikoto {
     auto LayerStack::AddLayer(const std::shared_ptr<Layer>& layer) -> void {
@@ -38,7 +38,11 @@ namespace Mikoto {
     }
 
     auto LayerStack::Init() -> void {
-        KATE_CORE_LOGGER_INFO("Layer Stack initialization");
+        MKT_CORE_LOGGER_INFO("Layer Stack initialization");
+    }
+
+    auto LayerStack::ShutDown() -> void {
+
     }
 
 }

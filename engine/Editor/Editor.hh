@@ -1,18 +1,24 @@
-//
-// Created by kate on 6/22/23.
-//
+/**
+ * Editor.hh
+ * Created by kate on 6/22/23.
+ * */
 
-#ifndef KATE_ENGINE_EDITOR_HH
-#define KATE_ENGINE_EDITOR_HH
+#ifndef MIKOTO_EDITOR_HH
+#define MIKOTO_EDITOR_HH
 
+// C++ Standard Library
 #include <string_view>
 
+// Third-Party Library
 #include <imgui.h>
 
+// Project Headers
 #include <Utility/Common.hh>
 
 namespace Mikoto::Editor {
-
+    /*************************************************************
+    * STRUCTURES
+    * ***********************************************************/
     struct DockControlFlags {
         bool ApplicationCloseFlag{};
 
@@ -23,8 +29,15 @@ namespace Mikoto::Editor {
         bool StatsPanelVisible{ true };
     };
 
+    /*************************************************************
+    * VARIABLES
+    * ***********************************************************/
     inline DockControlFlags s_ControlFlags{};
 
+
+    /*************************************************************
+    * UTILITY FUNCTIONS
+    * ***********************************************************/
     auto ThemeDarkModeDefault() -> void;
     auto ThemeDarkModeAlt() -> void;
 
@@ -34,6 +47,5 @@ namespace Mikoto::Editor {
 
     MKT_NODISCARD inline auto GetControlFlags() -> const DockControlFlags& { return s_ControlFlags; }
 
-
 }
-#endif//KATE_ENGINE_EDITOR_HH
+#endif // MIKOTO_EDITOR_HH

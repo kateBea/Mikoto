@@ -3,8 +3,8 @@
  * Created by kate on 8/8/2023.
  * */
 
-#ifndef KATE_ENGINE_VULKAN_COMMAND_BUFFER_HH
-#define KATE_ENGINE_VULKAN_COMMAND_BUFFER_HH
+#ifndef MIKOTO_VULKAN_COMMAND_BUFFER_HH
+#define MIKOTO_VULKAN_COMMAND_BUFFER_HH
 
 // Third-Party Libraries
 #include <volk.h>
@@ -33,4 +33,4 @@ namespace Mikoto {
 }
 
 
-#endif//KATE_ENGINE_VULKAN_COMMAND_BUFFER_HH
+#endif // MIKOTO_VULKAN_COMMAND_BUFFER_HH

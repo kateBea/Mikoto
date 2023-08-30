@@ -1,11 +1,13 @@
-//
-// Created by kate on 6/15/23.
-//
+/**
+ * Timer.cc
+ * Created by kate on 6/15/23.
+ * */
 
+// C++ Standard Library
 #include <chrono>
 
+// Project Headers
 #include <Utility/Common.hh>
-
 #include <Core/TimeManager.hh>
 #include <Core/Timer.hh>
 
@@ -33,7 +35,7 @@ namespace Mikoto {
     }
 
     Timer::~Timer() {
-        KT_COLOR_PRINT_FORMATTED(KT_FMT_COLOR_SNOW, "{} took {} {}\n", m_Identifier, GetCurrentProgress(m_DefaultUnit), GetUnitStr(m_DefaultUnit));
+        MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_SNOW, "{} took {} {}\n", m_Identifier, GetCurrentProgress(m_DefaultUnit), GetUnitStr(m_DefaultUnit));
     }
     auto Timer::GetUnitStr(TimeUnit unit) -> std::string_view {
         switch (unit) {

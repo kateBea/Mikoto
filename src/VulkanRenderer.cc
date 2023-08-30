@@ -29,7 +29,7 @@
 namespace Mikoto {
     auto VulkanRenderer::Init() -> void {
         m_CommandPool = std::make_shared<VulkanCommandPool>();
-        KT_ASSERT(m_CommandPool, "Command Pool pointer is NULL");
+        MKT_ASSERT(m_CommandPool, "Command Pool pointer is NULL");
         m_CommandPool->OnCreate(VkCommandPoolCreateInfo());
 
         m_ClearValues[COLOR_BUFFER].color = { { 0.2f, 0.2f, 0.2f, 1.0f } };

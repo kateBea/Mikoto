@@ -3,15 +3,14 @@
  * Created by kate on 5/26/23.
  * */
 
-#ifndef KATE_ENGINE_LAYER_STACK_HH
-#define KATE_ENGINE_LAYER_STACK_HH
+#ifndef MIKOTO_LAYER_STACK_HH
+#define MIKOTO_LAYER_STACK_HH
 
 // C++ Standard Library
 #include <memory>
 
 // Project Headers
 #include <Utility/Common.hh>
-
 #include <Core/Layer.hh>
 
 namespace Mikoto {
@@ -20,8 +19,8 @@ namespace Mikoto {
      * This helps task to be done in their appropriate order.
      * It is not implemented as and std::stack as we would want to
      * insert elements not at one end, we could maybe use a std::priority_queue
-     * and implement a custom sorter, but to simplify things, and std::vector is used
-     * for now even tho is not very performant for insertions
+     * and implement a custom sorter, but to simplify things an std::vector is used
+     * for now even tho is not very performant for frequent insertions
      *
      * Layer stack is owned by the application but Layers are supposed to live
      * throughout the lifetime of our main application meaning if we pop a layer
@@ -33,7 +32,7 @@ namespace Mikoto {
         explicit LayerStack() = default;
 
         auto Init() -> void;
-        auto ShutDown() -> void { /*Empty for now */ }
+        auto ShutDown() -> void;
 
         auto AddLayer(const std::shared_ptr<Layer>& layer) -> void;
         auto AddOverlay(const std::shared_ptr<Layer>& overlay) -> void;
@@ -54,4 +53,4 @@ namespace Mikoto {
 
 }
 
-#endif // KATE_ENGINE_LAYER_STACK_HH
+#endif // MIKOTO_LAYER_STACK_HH

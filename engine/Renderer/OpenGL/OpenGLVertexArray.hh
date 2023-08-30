@@ -1,10 +1,10 @@
 /**
- * kateOpenGLVao.hh
+ * OpenGLVertexArray.hh
  * Created by kate on 6/4/23.
  * */
 
-#ifndef KATE_ENGINE_VAO_HH
-#define KATE_ENGINE_VAO_HH
+#ifndef MIKOTO_OPENGL_VERTEX_ARRAY_HH
+#define MIKOTO_OPENGL_VERTEX_ARRAY_HH
 
 // C++ Standard Library
 #include <cstdint>
@@ -12,20 +12,17 @@
 #include <memory>
 #include <deque>
 
-
 // Third-Party Libraries
 #include <GL/glew.h>
 
 // Project Libraries
 #include <Utility/Common.hh>
-
 #include <Renderer/Buffers/VertexBuffer.hh>
 
 namespace Mikoto {
     class OpenGLVertexArray {
     public:
         explicit OpenGLVertexArray() { glCreateVertexArrays(1, &m_Id); m_ValidId = m_Id != 0; }
-
         /**
          * Move constructor
          * @param other other Vao from which we move data
@@ -58,10 +55,12 @@ namespace Mikoto {
         auto UseVertexBuffer(const std::shared_ptr<VertexBuffer>& buffer) const -> void;
 
         ~OpenGLVertexArray() { glDeleteVertexArrays(1, &m_Id); }
+
     public:
         // Forbidden operations
         OpenGLVertexArray(const OpenGLVertexArray & other) = delete;
         auto operator=(const OpenGLVertexArray & other) -> OpenGLVertexArray & = delete;
+
     private:
         UInt32_T m_Id{ 0 };
 
@@ -73,4 +72,4 @@ namespace Mikoto {
     };
 }
 
-#endif	// KATE_ENGINE_VAO_HH
+#endif	// MIKOTO_OPENGL_VERTEX_ARRAY_HH

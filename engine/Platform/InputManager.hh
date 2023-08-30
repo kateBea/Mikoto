@@ -3,21 +3,19 @@
  * Created by kate on 5/30/23.
  * */
 
-#ifndef KATE_ENGINE_INPUT_MANAGER_HH
-#define KATE_ENGINE_INPUT_MANAGER_HH
+#ifndef MIKOTO_INPUT_MANAGER_HH
+#define MIKOTO_INPUT_MANAGER_HH
 
 // C++ Standard Library
 #include <memory>
 #include <utility>
 
 // Project Headers
-#include <Utility/Singleton.hh>
 #include <Utility/Common.hh>
-
+#include <Utility/Types.hh>
 #include <Core/Assert.hh>
 #include <Core/KeyCodes.hh>
 #include <Core/MouseButtons.hh>
-
 #include <Platform/Window/Window.hh>
 
 
@@ -37,5 +35,4 @@ namespace Mikoto::InputManager {
 
 }
 
-
-#endif// KATE_ENGINE_INPUT_MANAGER_HH
+#endif // MIKOTO_INPUT_MANAGER_HH

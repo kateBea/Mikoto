@@ -1,6 +1,7 @@
-//
-// Created by kate on 6/2/23.
-//
+/**
+ * VulkanPipeline.cc
+ * Created by kate on 6/2/23.
+ * */
 
 // C++ Standard Library
 #include <fstream>
@@ -23,8 +24,8 @@ namespace Mikoto {
     }
 
     auto VulkanPipeline::CreateGraphicsPipeline(const Path_T& vPath, const Path_T& fPath, const PipelineConfigInfo& config) -> void {
-        KT_ASSERT(config.PipelineLayout != VK_NULL_HANDLE, "Cannot create graphics pipeline. No Pipeline Layout in PipelineConfigInfo");
-        KT_ASSERT(config.RenderPass != VK_NULL_HANDLE, "Cannot create graphics pipeline. No Render Pass Layout in PipelineConfigInfo");
+        MKT_ASSERT(config.PipelineLayout != VK_NULL_HANDLE, "Cannot create graphics pipeline. No Pipeline Layout in PipelineConfigInfo");
+        MKT_ASSERT(config.RenderPass != VK_NULL_HANDLE, "Cannot create graphics pipeline. No Render Pass Layout in PipelineConfigInfo");
 
         auto vData{ GetFileData(vPath) };
         auto fData{ GetFileData(fPath) };
@@ -176,7 +177,7 @@ namespace Mikoto {
     }
 
     auto VulkanPipeline::Bind(VkCommandBuffer commandBuffer) const -> void {
-        KT_ASSERT(m_GraphicsPipeline, "Graphics pipeline is NULL");
+        MKT_ASSERT(m_GraphicsPipeline, "Graphics pipeline is NULL");
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
     }
 

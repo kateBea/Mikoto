@@ -2,13 +2,16 @@
 // Created by kate on 7/3/23.
 //
 
+// C++ Standard Library
 #include <filesystem>
 #include <fstream>
 
+// Third-Party Libraries
+#include <volk.h>
+
+// Project Headers
 #include <Utility/Common.hh>
-
 #include <Core/Logger.hh>
-
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanShader.hh>
 
@@ -20,7 +23,7 @@ namespace Mikoto {
     auto VulkanShader::Upload(const Path_T& src) -> void {
         const auto srcData{ GetFileData(src) };
         m_Data.SrcPath = std::string(srcData.begin(), srcData.end());
-        KATE_CORE_LOGGER_DEBUG("Loaded vertex shader data. Size {}", srcData.size());
+        MKT_CORE_LOGGER_DEBUG("Loaded vertex shader data. Size {}", srcData.size());
 
         VkShaderModule shaderModule{};
         CreateShaderModule(m_Data.SrcPath, shaderModule);

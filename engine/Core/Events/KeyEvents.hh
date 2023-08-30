@@ -3,8 +3,8 @@
  * Created by kate on 5/25/23.
  * */
 
-#ifndef KATE_ENGINE_KEY_EVENTS_HH
-#define KATE_ENGINE_KEY_EVENTS_HH
+#ifndef MIKOTO_KEY_EVENTS_HH
+#define MIKOTO_KEY_EVENTS_HH
 
 // C++ Standard Library
 #include <cstdint>
@@ -113,4 +113,4 @@ namespace Mikoto {
 
 }
 
-#endif //KATE_ENGINE_KEY_EVENTS_HH
+#endif // MIKOTO_KEY_EVENTS_HH

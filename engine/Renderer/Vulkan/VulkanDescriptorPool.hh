@@ -1,10 +1,10 @@
-//
-// Created by kate on 7/4/23.
-//
+/**
+ * VulkanDescriptorPool.hh
+ * Created by kate on 7/4/23.
+ * */
 
-#ifndef KATE_ENGINE_VULKAN_DESCRIPTOR_POOL_HH
-#define KATE_ENGINE_VULKAN_DESCRIPTOR_POOL_HH
-
+#ifndef MIKOTO_VULKAN_DESCRIPTOR_POOL_HH
+#define MIKOTO_VULKAN_DESCRIPTOR_POOL_HH
 
 namespace Mikoto {
     class VulkanDescriptorPool {
@@ -17,4 +17,4 @@ namespace Mikoto {
 }
 
 
-#endif //KATE_ENGINE_VULKAN_DESCRIPTOR_POOL_HH
+#endif // MIKOTO_VULKAN_DESCRIPTOR_POOL_HH

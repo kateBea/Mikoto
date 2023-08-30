@@ -35,22 +35,22 @@ namespace Mikoto {
     }
 
     auto MainWindow::Init() -> void {
-        KATE_CORE_LOGGER_INFO("Main Window initialization");
+        MKT_CORE_LOGGER_INFO("Main Window initialization");
         InitGLFW();
 
         switch(Renderer::GetActiveGraphicsAPI()) {
             case GraphicsAPI::OPENGL_API:
                 m_CurrentGraphicsAPIIsOpenGL = true;
-                m_Properties.SetTitle(fmt::format("Mikoto (OpenGL Version {}.{}.0)", KT_OPENGL_VERSION_MAJOR, KT_OPENGL_VERSION_MINOR));
+                m_Properties.SetTitle(fmt::format("Mikoto (OpenGL Version {}.{}.0)", MKT_OPENGL_VERSION_MAJOR, MKT_OPENGL_VERSION_MINOR));
                 break;
             case GraphicsAPI::VULKAN_API:
-                UInt32_T major{ KT_VULKAN_VERSION_MAJOR };
-                UInt32_T minor{ KT_VULKAN_VERSION_MINOR };
+                UInt32_T major{MKT_VULKAN_VERSION_MAJOR};
+                UInt32_T minor{MKT_VULKAN_VERSION_MINOR};
                 m_Properties.SetTitle(fmt::format("Mikoto (Vulkan Version {}.{})", major, minor));
                 break;
         }
 
-        KATE_CORE_LOGGER_INFO("Creating Window GLFW. Name '{}'. Dimensions [{}, {}]",
+        MKT_CORE_LOGGER_INFO("Creating Window GLFW. Name '{}'. Dimensions [{}, {}]",
                               m_Properties.GetName(), m_Properties.GetWidth(), m_Properties.GetHeight());
 
         if (!m_CurrentGraphicsAPIIsOpenGL) {
@@ -63,14 +63,14 @@ namespace Mikoto {
         
         m_Window = glfwCreateWindow(m_Properties.GetWidth(), m_Properties.GetHeight(), m_Properties.GetName().c_str(), nullptr, nullptr);
         m_WindowCreateSuccess = m_Window != nullptr;
-        KT_ASSERT(m_WindowCreateSuccess, "Failed to create the Window GLFW");
+        MKT_ASSERT(m_WindowCreateSuccess, "Failed to create the Window GLFW");
 
         SpawnOnCenter();
         SetCallbacks();
     }
 
     auto MainWindow::ShutDown() -> void {
-        KATE_CORE_LOGGER_DEBUG("Shutting down Window GLFW. Name '{}'. Dimensions [{}, {}]",
+        MKT_CORE_LOGGER_DEBUG("Shutting down Window GLFW. Name '{}'. Dimensions [{}, {}]",
                                m_Properties.GetName(), m_Properties.GetWidth(), m_Properties.GetHeight());
 
         // Might have an internal window counter If we want to spawn multiple windows,
@@ -122,7 +122,7 @@ namespace Mikoto {
                         break;
                     }
                     default: {
-                        KATE_CORE_LOGGER_WARN("Unknown Key action for key callback");
+                        MKT_CORE_LOGGER_WARN("Unknown Key action for key callback");
                         break;
                     }
                 }
@@ -176,7 +176,7 @@ namespace Mikoto {
     auto MainWindow::SpawnOnCenter() const -> void {
 #if !defined(NDEBUG)
         Int32_T count{};
-        KATE_CORE_LOGGER_INFO("Number of available monitors: {}", count);
+        MKT_CORE_LOGGER_INFO("Number of available monitors: {}", count);
 #endif
         // See: https://www.glfw.org/docs/3.3/monitor_guide.html
         // The primary monitor is returned by glfwGetPrimaryMonitor. It is the user's
@@ -191,11 +191,11 @@ namespace Mikoto {
     auto MainWindow::InitGLFW() -> void {
         if (!g_GLFWInitSuccess) {
             auto ret{ glfwInit() };
-            KT_ASSERT(ret == GLFW_TRUE, "Failed to initialized the GLFW library");
+            MKT_ASSERT(ret == GLFW_TRUE, "Failed to initialized the GLFW library");
 
             g_GLFWInitSuccess = true;
             glfwSetErrorCallback([](std::int32_t errCode, const char* desc) -> void {
-                    KATE_CORE_LOGGER_ERROR("GLFW error code: {} Description: {}", errCode, desc);
+                MKT_CORE_LOGGER_ERROR("GLFW error code: {} Description: {}", errCode, desc);
                 }
             );
         }

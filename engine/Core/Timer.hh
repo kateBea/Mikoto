@@ -1,29 +1,32 @@
-//
-// Created by kate on 6/15/23.
-//
+/**
+ * Timer.hh
+ * Created by kate on 6/15/23.
+ * */
 
-#ifndef KATE_ENGINE_TIMER_HH
-#define KATE_ENGINE_TIMER_HH
+#ifndef MIKOTO_TIMER_HH
+#define MIKOTO_TIMER_HH
 
+// C++ Standard Library
 #include <chrono>
 #include <string_view>
 
+// Project Headers
 #include <Core/TimeManager.hh>
-
 #include <Utility/Common.hh>
 
 namespace Mikoto {
     class Timer {
     public:
         explicit Timer(std::string_view id = "Unknown scope", TimeUnit defaultUnit = TimeUnit::MICROSECONDS);
-        ~Timer();
 
-        auto GetCurrentProgress(TimeUnit unit = TimeUnit::MICROSECONDS) -> double;
-
+        MKT_NODISCARD auto GetCurrentProgress(TimeUnit unit = TimeUnit::MICROSECONDS) -> double;
         auto Restart() -> void;
 
+        ~Timer();
+
     private:
-        static auto GetUnitStr(TimeUnit unit) -> std::string_view;
+        MKT_NODISCARD static auto GetUnitStr(TimeUnit unit) -> std::string_view;
+
     private:
         using Nano_T = std::chrono::duration<double, std::ratio<1, 1000000000>>;
         using Micro_T = std::chrono::duration<double, std::ratio<1, 1000000>>;
@@ -39,10 +42,9 @@ namespace Mikoto {
     };
 }
 
-// Call first at the beginning of the scope
-#if defined(NDEBUG) || defined(_DEBUG)
-    #define KT_PROFILE_SCOPE()  Timer _Timer{ ConcatStr(__LINE__, " @line ", __PRETTY_FUNCTION__) }
+#if !defined(NDEBUG) || defined(_DEBUG)
+    #define MKT_PROFILE_SCOPE()  Timer _Timer{ ConcatStr(__LINE__, " @line ", __PRETTY_FUNCTION__) }
 #endif
 
 
-#endif//KATE_ENGINE_TIMER_HH
+#endif // MIKOTO_TIMER_HH

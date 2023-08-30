@@ -1,5 +1,13 @@
-#include <Utility/Common.hh>
+/**
+ * OpenGLVertexArray.hh
+ * Created by kate on 6/4/23.
+ * */
 
+// Third-Party Libraries
+#include <GL/glew.h>
+
+// Project Headers
+#include <Utility/Common.hh>
 #include <Core/Logger.hh>
 #include <Core/Assert.hh>
 #include <Renderer/OpenGL/OpenGLVertexArray.hh>
@@ -16,8 +24,8 @@ namespace Mikoto {
     }
 
     auto OpenGLVertexArray::UseVertexBuffer(const std::shared_ptr<VertexBuffer>& buffer) const -> void {
-        KT_ASSERT(buffer, "Vertex Buffer is NULL");
-        KT_ASSERT(!buffer->IsEmpty(), "Vertex Buffer is empty");
+        MKT_ASSERT(buffer, "Vertex Buffer is NULL");
+        MKT_ASSERT(!buffer->IsEmpty(), "Vertex Buffer is empty");
         Bind();
         std::dynamic_pointer_cast<OpenGLVertexBuffer>(buffer)->Bind();
 

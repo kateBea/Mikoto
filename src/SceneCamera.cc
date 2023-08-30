@@ -1,8 +1,13 @@
-//
-// Created by kate on 6/25/23.
-//
+/**
+ * SceneCamera.cc
+ * Created by kate on 6/25/23.
+ * */
 
-#include "Scene/SceneCamera.hh"
+// Third-Party Libraries
+#include <glm/glm.hpp>
+
+// Project Headers
+#include <Scene/SceneCamera.hh>
 
 namespace Mikoto {
 

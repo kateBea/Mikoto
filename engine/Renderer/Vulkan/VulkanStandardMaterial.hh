@@ -16,6 +16,7 @@
 
 // Project Headers
 #include <Utility/Common.hh>
+#include <Utility/Types.hh>
 #include <Renderer/Material/Material.hh>
 #include <Renderer/Material/Shader.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>
@@ -99,6 +100,5 @@ namespace Mikoto {
         Size_T m_UniformDataStructureSize{}; // size of the UniformBufferData structure, with required padding for the device
     };
 }
-
 
 #endif // MIKOTO_STANDARD_MATERIAL_HH

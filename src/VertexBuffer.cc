@@ -29,7 +29,7 @@ namespace Mikoto {
             case GraphicsAPI::VULKAN_API:
                 return std::make_shared<VulkanVertexBuffer>(createInfo);
             default:
-                KATE_CORE_LOGGER_CRITICAL("Unsupported renderer API");
+                MKT_CORE_LOGGER_CRITICAL("Unsupported renderer API");
                 return nullptr;
         }
     }

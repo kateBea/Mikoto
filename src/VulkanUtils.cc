@@ -1,7 +1,7 @@
 /**
-* VulkanUtils.hh
-* Created by kate on 8/5/2023.
-* */
+ * VulkanUtils.hh
+ * Created by kate on 8/5/2023.
+ * */
 
 // C++ Standard Library
 #include <stdexcept>

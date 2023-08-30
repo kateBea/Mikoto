@@ -77,7 +77,7 @@ namespace Mikoto {
          * @param name name of the uniform
          * @param value value to be set
          * */
-        auto SetUniformBool(std::string_view name, bool value) -> void;
+        auto SetUniformBool(std::string_view name, bool value) const -> void;
 
         /**
          * Sets the given integer value to the uniform identified by "name",
@@ -87,7 +87,7 @@ namespace Mikoto {
          * @param name name of the uniform.
          * @param value value to be set
          * */
-        auto SetUniformInt(std::string_view name, Int32_T value) -> void;
+        auto SetUniformInt(std::string_view name, Int32_T value) const -> void;
 
         /**
          * Sets the given floating value to the uniform identified by "name",
@@ -97,7 +97,7 @@ namespace Mikoto {
          * @param name name of the uniform
          * @param value value to be set
          * */
-        auto SetUniformFloat(std::string_view name, float value) -> void;
+        auto SetUniformFloat(std::string_view name, float value) const -> void;
 
         /**
          * Sets the given 3D vector to the uniform specified by the name. This function
@@ -106,7 +106,7 @@ namespace Mikoto {
          * @param name name of the uniform
          * @param vec value for the uniform
          * */
-        auto SetUniformVec2(std::string_view name, const glm::vec2& vec) -> void;
+        auto SetUniformVec2(std::string_view name, const glm::vec2& vec) const -> void;
 
         /**
          * Sets the given 3D vector to the uniform specified by the name. This function
@@ -115,7 +115,7 @@ namespace Mikoto {
          * @param name name of the uniform
          * @param vec value for the uniform
          * */
-        auto SetUniformVec3(std::string_view name, const glm::vec3& vec) -> void;
+        auto SetUniformVec3(std::string_view name, const glm::vec3& vec) const -> void;
 
         /**
          * Sets the given 4D vector to the uniform specified by the name. This function
@@ -124,7 +124,7 @@ namespace Mikoto {
          * @param name name of the uniform
          * @param vec value for the uniform
          * */
-        auto SetUniformVec4(std::string_view name, const glm::vec4& vec) -> void;
+        auto SetUniformVec4(std::string_view name, const glm::vec4& vec) const -> void;
 
         /**
          * Sets the given matrix to the uniform matrix specified by the name. This function
@@ -133,7 +133,7 @@ namespace Mikoto {
          * @param name name of the uniform
          * @param mat value for the uniform
          * */
-        auto SetUniformMat3(std::string_view name, const glm::mat3& mat) -> void;
+        auto SetUniformMat3(std::string_view name, const glm::mat3& mat) const -> void;
 
         /**
          * Sets the given matrix to the uniform matrix specified by the name. This function
@@ -142,38 +142,13 @@ namespace Mikoto {
          * @param name name of the uniform
          * @param mat value for the uniform
          * */
-        auto SetUniformMat4(std::string_view name, const glm::mat4& mat) -> void;
+        auto SetUniformMat4(std::string_view name, const glm::mat4& mat) const -> void;
 
         ~OpenGLShader() override { glDeleteProgram(GetProgram()); }
     public:
         // Forbidden operations
         OpenGLShader(const OpenGLShader&) = delete;
         OpenGLShader & operator=(const OpenGLShader&) = delete;
-
-    private:
-        /**
-         * Identifies a type of shader.
-         * For internal usage
-         * */
-        enum class ShaderType {
-            NONE,
-            VERTEX_SHADER_TYPE,
-            FRAGMENT_SHADER_TYPE,
-            COUNT,
-        };
-    private:
-        /**
-         * Returns an error message indicating the type of shader
-         * This is a helper function for showing compilation status on Shader::compile()
-         * @param type type of shader
-         * */
-        static constexpr auto GetShaderTypeStr(ShaderType type) -> std::string_view {
-            switch (type) {
-                case ShaderType::VERTEX_SHADER_TYPE: return "VERTEX_SHADER_TYPE";
-                case ShaderType::FRAGMENT_SHADER_TYPE:  return "FRAGMENT_SHADER_TYPE";
-                default: return "Unknown type of shader";
-            }
-        }
 
         /**
          * Compiles the given shader and returns its corresponding identifier
@@ -196,7 +171,7 @@ namespace Mikoto {
          * @param str error message indicating the type of shader
          * @param status
          * */
-        static auto ShowShaderStatus(UInt32_T objectId, ShaderType type, GLenum status) -> void;
+        static auto ShowShaderStatus(UInt32_T objectId, ShaderStage type, GLenum status) -> void;
 
         /**
          * Helper function to retrieve program status

@@ -1,14 +1,16 @@
-//
-// Created by kate on 6/8/23.
-//
+/**
+ * OpenGLTexture2D.hh
+ * Created by kate on 6/8/23.
+ * */
 
-#ifndef KATE_ENGINE_OPENGL_TEXTURE2D_HH
-#define KATE_ENGINE_OPENGL_TEXTURE2D_HH
+#ifndef MIKOTO_OPENGL_TEXTURE2D_HH
+#define MIKOTO_OPENGL_TEXTURE2D_HH
 
+// Third-Party Libraries
 #include <stb_image.h>
 
+// Project Headers
 #include <Utility/Common.hh>
-
 #include <Renderer/Material/Texture2D.hh>
 
 namespace Mikoto {
@@ -42,7 +44,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetTextureFileData() const -> stbi_uc* { return m_TextureFileData; }
 
         auto Unbind() -> void;
-        auto Bind(UInt32_T slot) -> void;
+        auto Bind(UInt32_T slot) const -> void;
 
         ~OpenGLTexture2D();
     public:
@@ -64,4 +66,4 @@ namespace Mikoto {
 }
 
 
-#endif//KATE_ENGINE_OPENGL_TEXTURE2D_HH
+#endif // MIKOTO_OPENGL_TEXTURE2D_HH

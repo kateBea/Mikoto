@@ -77,7 +77,7 @@ namespace Mikoto {
 
         virtual auto Flush() -> void = 0;
 
-        virtual auto QueueForDrawing(std::shared_ptr<DrawData>) -> void = 0;
+        virtual auto QueueForDrawing(std::shared_ptr<DrawData> data) -> void = 0;
 
         /**
          * Default destructor.

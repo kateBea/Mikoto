@@ -1,13 +1,14 @@
-//
-// Created by kate on 8/5/2023.
-//
+/**
+ * OpenGLUtils.hh
+ * Created by kate on 8/5/2023.
+ * */
 
-#ifndef KATE_ENGINE_OPENGL_UTILS_HH
-#define KATE_ENGINE_OPENGL_UTILS_HH
+#ifndef MIKOTO_OPENGL_UTILS_HH
+#define MIKOTO_OPENGL_UTILS_HH
 
 namespace Mikoto {
 
 }
 
 
-#endif//KATE_ENGINE_OPENGL_UTILS_HH
+#endif // MIKOTO_OPENGL_UTILS_HH

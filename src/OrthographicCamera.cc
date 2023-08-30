@@ -1,15 +1,17 @@
-//
-// Created by kate on 6/7/23.
-//
+/**
+ * OrthographicCamera.cc
+ * Created by kate on 6/7/23.
+ * */
 
+// Third-Party Libraries
 #include <glm/gtc/matrix_transform.hpp>
 
+// Project Headers
 #include <Renderer/Camera/OrthographicCamera.hh>
 
 namespace Mikoto {
-
     OrthographicCamera::OrthographicCamera(double left, double right, double bottom, double top)
-        :   m_ViewMatrix{ 1.0f }, m_Projection{ glm::ortho(left, right, bottom, top, s_DefaultNearPlane, s_DefaultFarPlane) }
+        :   m_ViewMatrix{ 1.0f }, m_Projection{ glm::ortho(left, right, bottom, top, DEFAULT_NEAR_PLANE, DEFAULT_FAR_PLANE) }
     {
         m_ProjectionAndView = m_Projection * m_ViewMatrix;
     }
@@ -39,7 +41,7 @@ namespace Mikoto {
     }
 
     auto OrthographicCamera::SetProjection(double left, double right, double bottom, double top) -> void {
-        m_Projection = glm::ortho(left, right, bottom, top, s_DefaultNearPlane, s_DefaultFarPlane);
+        m_Projection = glm::ortho(left, right, bottom, top, DEFAULT_NEAR_PLANE, DEFAULT_FAR_PLANE);
         m_ProjectionAndView = m_Projection * m_ViewMatrix;
     }
 }

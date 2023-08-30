@@ -3,8 +3,8 @@
  * Created by kate on 8/9/2023.
  * */
 
-#ifndef KATE_ENGINE_VULKAN_IMAGE_HH
-#define KATE_ENGINE_VULKAN_IMAGE_HH
+#ifndef MIKOTO_VULKAN_IMAGE_HH
+#define MIKOTO_VULKAN_IMAGE_HH
 
 // Third-Party Libraries
 #include <volk.h>
@@ -39,4 +39,4 @@ namespace Mikoto {
 }
 
 
-#endif // KATE_ENGINE_VULKAN_IMAGE_HH
+#endif // MIKOTO_VULKAN_IMAGE_HH

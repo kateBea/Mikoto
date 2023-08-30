@@ -1,16 +1,20 @@
-//
-// Created by kate on 6/8/23.
-//
+/**
+ * TimeManager.hh
+ * Created by kate on 6/8/23.
+ * */
 
-#ifndef KATE_ENGINE_TIME_STEP_HH
-#define KATE_ENGINE_TIME_STEP_HH
+#ifndef MIKOTO_TIME_STEP_HH
+#define MIKOTO_TIME_STEP_HH
 
+// C++ Standard Library
 #include <ratio>
 #include <chrono>
 #include <string>
 
+// Third-Party Libraries
 #include <fmt/chrono.h>
 
+// Project Headers
 #include <Utility/Common.hh>
 
 namespace Mikoto {
@@ -100,5 +104,4 @@ namespace Mikoto {
     };
 }
 
-
-#endif//KATE_ENGINE_TIME_STEP_HH
+#endif // MIKOTO_TIME_STEP_HH

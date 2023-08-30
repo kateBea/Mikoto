@@ -3,8 +3,8 @@
  * Created by kate on 5/25/23.
  * */
 
-#ifndef KATE_ENGINE_MOUSE_EVENTS_HH
-#define KATE_ENGINE_MOUSE_EVENTS_HH
+#ifndef MIKOTO_MOUSE_EVENTS_HH
+#define MIKOTO_MOUSE_EVENTS_HH
 
 // C++ Standard Library
 #include <string_view>
@@ -133,4 +133,4 @@ namespace Mikoto {
 
 }
 
-#endif // KATE_ENGINE_MOUSE_EVENTS_HH
+#endif // MIKOTO_MOUSE_EVENTS_HH

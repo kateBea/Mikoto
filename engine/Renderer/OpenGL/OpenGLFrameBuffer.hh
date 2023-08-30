@@ -6,8 +6,8 @@
 #ifndef MIKOTO_OPENGL_FRAME_BUFFER_HH
 #define MIKOTO_OPENGL_FRAME_BUFFER_HH
 
-#include <Utility/Common.hh>
-
+// Project Headers
+#include <Utility/Types.hh>
 #include <Renderer/Buffers/FrameBuffer.hh>
 
 namespace Mikoto {
@@ -35,8 +35,6 @@ namespace Mikoto {
         UInt32_T m_DepthAttachment{};
         FrameBufferCreateInfo m_FrameBufferCreateInfo{};
     };
-
 }
-
 
 #endif // MIKOTO_OPENGL_FRAME_BUFFER_HH

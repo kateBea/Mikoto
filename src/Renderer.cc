@@ -19,7 +19,8 @@
 
 namespace Mikoto {
     auto Renderer::BeginScene(const ScenePrepareData& prepareData) -> void {
-        s_DrawData->SceneCamera = prepareData.SceneCamera;
+        s_DrawData->SceneRuntimeCamera = prepareData.RuntimeCamera;
+        s_DrawData->SceneEditCamera = prepareData.StaticCamera;
     }
 
     auto Renderer::Submit(std::shared_ptr<DrawData> data) -> void {
@@ -46,29 +47,10 @@ namespace Mikoto {
         PickGraphicsAPI();
         RenderCommand::Init(s_ActiveRendererAPI);
 
-        s_DrawData = std::make_unique<RendererDrawData>();
-        s_QuadData = std::make_unique<RendererDrawData>();
         s_RenderingStats    = std::make_unique<RenderingStats>();
         s_SavedSceneStats   = std::make_unique<RenderingStats>();
 
-        // Init Data for quad rendering
-        const std::vector<float> squareData {
-            // Positions            // Normals           // Colors                // Texture coordinates
-            -0.5f,  -0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f,        0.0f, 0.0f,   // bottom left
-             0.5f,  -0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,        1.0f, 0.0f,   // bottom right
-             0.5f,   0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,        1.0f, 1.0f,   // top right
-            -0.5f,   0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    0.8f, 0.3f, 0.4f,        0.0f, 1.0f,   // top left
-        };
-
-        s_QuadData->VertexBufferData = VertexBuffer::CreateBuffer(squareData);
-        s_QuadData->IndexBufferData = IndexBuffer::Create({0, 1, 2, 2, 3, 0});
-
-        s_QuadData->VertexBufferData->SetBufferLayout(BufferLayout{
-                { ShaderDataType::FLOAT3_TYPE, "a_Position" },
-                { ShaderDataType::FLOAT3_TYPE, "a_Normal" },
-                { ShaderDataType::FLOAT3_TYPE, "a_Color" },
-                { ShaderDataType::FLOAT2_TYPE, "a_TextureCoordinates" },
-        });
+        LoadPrefabs();
     }
 
     auto Renderer::PickGraphicsAPI() -> void {
@@ -82,7 +64,7 @@ namespace Mikoto {
                 s_ActiveRendererAPI->Init();
                 break;
             default:
-                KATE_CORE_LOGGER_CRITICAL("Unsupported renderer API");
+                MKT_CORE_LOGGER_CRITICAL("Unsupported renderer API");
                 break;
         }
     }
@@ -92,7 +74,7 @@ namespace Mikoto {
     }
 
     auto Renderer::SubmitQuad(const glm::mat4 &transform, const glm::vec4& color, std::shared_ptr<Material> material) -> void {
-        glm::mat4 cameraViewProj{ s_DrawData->SceneCamera->GetProjection() * s_DrawData->SceneCamera->GetTransform() };
+        glm::mat4 cameraViewProj{ s_DrawData->SceneEditCamera->GetViewProjection() };
 
         auto data{ std::make_shared<DrawData>() };
         data->Color = color;
@@ -108,5 +90,32 @@ namespace Mikoto {
 
     auto Renderer::OnEvent(Event& event) -> void {
         s_ActiveRendererAPI->OnEvent(event);
+    }
+
+    auto Renderer::LoadPrefabs() -> void {
+        Construct2DPlane();
+    }
+
+    auto Renderer::Construct2DPlane() -> void {
+        s_DrawData = std::make_unique<RendererDrawData>();
+        s_QuadData = std::make_unique<RendererDrawData>();
+
+        const std::vector<float> squareData {
+                // Positions            // Normals           // Colors                // Texture coordinates
+                -0.5f,  -0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f,        0.0f, 0.0f,   // bottom left
+                0.5f,  -0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,        1.0f, 0.0f,   // bottom right
+                0.5f,   0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,        1.0f, 1.0f,   // top right
+                -0.5f,   0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    0.8f, 0.3f, 0.4f,        0.0f, 1.0f,   // top left
+        };
+
+        s_QuadData->VertexBufferData = VertexBuffer::CreateBuffer(squareData);
+        s_QuadData->IndexBufferData = IndexBuffer::Create({0, 1, 2, 2, 3, 0});
+
+        s_QuadData->VertexBufferData->SetBufferLayout(BufferLayout{
+                { ShaderDataType::FLOAT3_TYPE, "a_Position" },
+                { ShaderDataType::FLOAT3_TYPE, "a_Normal" },
+                { ShaderDataType::FLOAT3_TYPE, "a_Color" },
+                { ShaderDataType::FLOAT2_TYPE, "a_TextureCoordinates" },
+        });
     }
 }

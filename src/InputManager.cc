@@ -1,7 +1,9 @@
-//
-// Created by kate on 6/9/23.
-//
+/**
+ * InputManager.cc
+ * Created by kate on 6/9/23.
+ * */
 
+// C++ Standard Library
 #include <any>
 #include <utility>
 
@@ -10,13 +12,13 @@
 
 // Project Headers
 #include <Utility/Common.hh>
-
+#include <Utility/Types.hh>
 #include <Core/Logger.hh>
 #include <Core/Application.hh>
-
 #include <Platform/InputManager.hh>
 
 namespace Mikoto::InputManager {
+    // USE GLFW INPUT HANDLING
 #if defined(USE_GLFW_INPUT)
     auto IsKeyPressed(Int32_T keyCode) -> bool {
         GLFWwindow* window{ nullptr };
@@ -29,7 +31,7 @@ namespace Mikoto::InputManager {
             return state == GLFW_PRESS;
         }
         catch (const std::bad_any_cast& exception) {
-            KATE_APP_LOGGER_ERROR("Exception thrown std::any_cast. What: {}", exception.what());
+            MKT_APP_LOGGER_ERROR("Exception thrown std::any_cast. What: {}", exception.what());
         }
 
         return false;
@@ -46,7 +48,7 @@ namespace Mikoto::InputManager {
             return state == GLFW_PRESS;
         }
         catch (const std::bad_any_cast& exception) {
-            KATE_APP_LOGGER_ERROR("Exception thrown std::any_cast. What: {}", exception.what());
+            MKT_APP_LOGGER_ERROR("Exception thrown std::any_cast. What: {}", exception.what());
         }
 
         return false;
@@ -63,7 +65,7 @@ namespace Mikoto::InputManager {
             glfwGetCursorPos(window, &posX, &posY);
         }
         catch (const std::bad_any_cast& exception) {
-            KATE_APP_LOGGER_ERROR("Exception thrown std::any_cast. What: {}", exception.what());
+            MKT_APP_LOGGER_ERROR("Exception thrown std::any_cast. What: {}", exception.what());
         }
 
         return std::make_pair(posX, posY);
@@ -81,20 +83,20 @@ namespace Mikoto::InputManager {
 #endif
 
     auto Init() -> void {
-        KATE_CORE_LOGGER_INFO("Mikoto Engine: Input Manager initialization");
+        MKT_CORE_LOGGER_INFO("Mikoto Engine: Input Manager initialization");
 
     }
 
     auto ShutDown() -> void {
-        KATE_CORE_LOGGER_INFO("Mikoto Engine: Input Manager shut down");
+        MKT_CORE_LOGGER_INFO("Mikoto Engine: Input Manager shut down");
     }
 
     auto PrintKey(KeyCode keycode) -> void {
-        KT_COLOR_PRINT_FORMATTED(KT_FMT_COLOR_LIME, "Key: {}\n", GetStringRepresentation(keycode));
+        MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_LIME, "Key: {}\n", GetStringRepresentation(keycode));
     }
 
     auto PrintButton(MouseButton button) -> void {
-        KT_COLOR_PRINT_FORMATTED(KT_FMT_COLOR_LIME, "Mouse button: {}\n", GetStringRepresentation(button));
+        MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_LIME, "Mouse button: {}\n", GetStringRepresentation(button));
     }
 
 }

@@ -39,7 +39,19 @@ namespace Mikoto {
         auto OnEvent(Event& event) -> void override;
         auto OnImGuiRender() -> void override;
     private:
-        std::shared_ptr<SceneCamera> m_MainCamera{};
+        /*************************************************************
+        * HELPERS
+        * ***********************************************************/
+        auto InitializePanels() -> void;
+        auto AddSceneTestEntities() -> void;
+        auto InitializeSceneCameras() -> void;
+
+    private:
+        /*************************************************************
+        * DATA MEMBERS
+        * ***********************************************************/
+        std::shared_ptr<SceneCamera> m_RuntimeCamera{};
+        std::shared_ptr<EditorCamera> m_EditorCamera{};
 
         // Panels
         std::shared_ptr<HierarchyPanel> m_HierarchyPanel{};
@@ -52,9 +64,6 @@ namespace Mikoto {
         std::shared_ptr<SettingsPanelData> m_SettingsPanelInfo{};
         std::shared_ptr<ScenePanelData> m_ScenePanelInfo{};
         std::shared_ptr<StatsPanelData> m_StatsPanelInfo{};
-
-        // For testing
-        Model m_TestModel{};
     };
 
 }

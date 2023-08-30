@@ -1,12 +1,19 @@
+/**
+ * Logger.cc
+ * Created by kate on 5/25/23.
+ * */
+
+// C++ Standard Library
 #include <memory>
 
+// Project Headers
 #include <Core/Logger.hh>
 #include <Core/Assert.hh>
 
 namespace Mikoto {
     auto Logger::Init() -> void {
-        m_CoreLogger = spdlog::stdout_color_mt("KATE_CORE_LOGGER");
-        m_AppLogger = spdlog::stdout_color_mt("KATE_APP_LOGGER");
+        m_CoreLogger = spdlog::stdout_color_mt("MIKOTO_CORE_LOGGER");
+        m_AppLogger = spdlog::stdout_color_mt("MIKOTO_APP_LOGGER");
 
         // Set m_CoreLogger pattern.
         // Check out the wiki for info about formatting
@@ -31,12 +38,12 @@ namespace Mikoto {
     }
 
     auto Logger::GetCoreLogger() -> const std::shared_ptr<spdlog::logger>& {
-        KT_ASSERT(m_CoreLogger, "Core Logger is NULL");
+        MKT_ASSERT(m_CoreLogger, "Core Logger is NULL");
         return m_CoreLogger;
     }
 
     auto Logger::GetAppLogger() -> const std::shared_ptr<spdlog::logger>& {
-        KT_ASSERT(m_AppLogger, "Application Logger is NULL");
+        MKT_ASSERT(m_AppLogger, "Application Logger is NULL");
         return m_AppLogger;
     }
 }

@@ -3,8 +3,8 @@
  * Created by kate on 5/25/23.
  * */
 
-#ifndef KATE_ENGINE_ENGINE_MANAGER_HH
-#define KATE_ENGINE_ENGINE_MANAGER_HH
+#ifndef MIKOTO_APPLICATION_HH
+#define MIKOTO_APPLICATION_HH
 
 // C++ Standard Library
 #include <memory>
@@ -88,4 +88,4 @@ namespace Mikoto {
 }
 
 
-#endif//KATE_ENGINE_ENGINE_MANAGER_HH
+#endif // MIKOTO_APPLICATION_HH

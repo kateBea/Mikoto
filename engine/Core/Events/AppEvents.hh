@@ -3,8 +3,8 @@
  * Created by kate on 5/26/23.
  * */
 
-#ifndef KATE_ENGINE_APP_EVENTS_HH
-#define KATE_ENGINE_APP_EVENTS_HH
+#ifndef MIKOTO_APP_EVENTS_HH
+#define MIKOTO_APP_EVENTS_HH
 
 // C++ Standard Library
 #include <string_view>
@@ -123,4 +123,4 @@ namespace Mikoto {
 
 }
 
-#endif // KATE_ENGINE_APP_EVENTS_HH
+#endif // MIKOTO_APP_EVENTS_HH

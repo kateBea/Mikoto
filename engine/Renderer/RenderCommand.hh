@@ -24,7 +24,6 @@ namespace Mikoto {
 	class RenderCommand {
 	public:
         static auto Init(RendererAPI* activeAPI) -> void;
-        static auto ShutDown() -> void;
 
         static auto EnableWireframeMode() -> void;
         static auto DisableWireframeMode() -> void;
@@ -32,7 +31,7 @@ namespace Mikoto {
         static auto SetClearColor(const glm::vec4& color) -> void;
         static auto SetClearColor(float red, float green, float blue, float alpha) -> void;
 
-        static auto AddToRenderQueue(std::shared_ptr<DrawData>) -> void;
+        static auto AddToRenderQueue(std::shared_ptr<DrawData> data) -> void;
         static auto Flush() -> void;
 
         static auto UpdateViewPort(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void;

@@ -3,8 +3,8 @@
  * Created by kate on 5/28/23.
  * */
 
-#ifndef KATE_ENGINE_IMGUI_LAYER_HH
-#define KATE_ENGINE_IMGUI_LAYER_HH
+#ifndef MIKOTO_IMGUI_LAYER_HH
+#define MIKOTO_IMGUI_LAYER_HH
 
 // Third-Party Libraries
 #include <imgui.h>
@@ -16,7 +16,6 @@
 #include <Core/Events/AppEvents.hh>
 #include <Core/Events/KeyEvents.hh>
 #include <Core/Events/MouseEvents.hh>
-
 #include <Renderer/Vulkan/VulkanCommandPool.hh>
 
 namespace Mikoto {
@@ -43,14 +42,14 @@ namespace Mikoto {
     private:
         /*************************************************************
         * OPENGL
-        * ********************************************************+ */
+        * ***********************************************************/
         auto InitImGuiForOpenGL(GLFWwindow* window) -> void;
         auto BeginImGuiFrameForOpenGL() -> void;
         auto EndImGuiFrameForOpenGL() -> void;
 
         /*************************************************************
         * VULKAN
-        * ********************************************************+ */
+        * ***********************************************************/
         auto InitImGuiForVulkan(GLFWwindow *window) -> void;
         auto BeginImGuiFrameForVulkan() -> void;
         auto EndImGuiFrameForVulkan() -> void;
@@ -82,4 +81,4 @@ namespace Mikoto {
 }
 
 
-#endif //KATE_ENGINE_IMGUI_LAYER_HH
+#endif // MIKOTO_IMGUI_LAYER_HH

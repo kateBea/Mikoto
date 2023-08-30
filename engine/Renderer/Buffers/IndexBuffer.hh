@@ -22,7 +22,8 @@ namespace Mikoto {
 
          MKT_NODISCARD virtual auto GetCount() const -> UInt32_T { return m_Count; }
 
-         static auto Create(const std::vector<UInt32_T>& data) -> std::shared_ptr<IndexBuffer>;
+         MKT_NODISCARD static auto Create(const std::vector<UInt32_T>& data) -> std::shared_ptr<IndexBuffer>;
+
      protected:
          explicit IndexBuffer(UInt32_T count = 0) : m_Count{ count } {}
 

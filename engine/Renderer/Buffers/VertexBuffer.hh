@@ -101,10 +101,11 @@ namespace Mikoto {
 
                 case ShaderDataType::NONE:
                 case ShaderDataType::COUNT: [[fallthrough]];
-                default: KT_ASSERT(false, "Invalid shader data type");
+                default:
+                    MKT_ASSERT(false, "Invalid shader data type");
             }
 
-            KT_ASSERT(false, "Invalid shader data type");
+            MKT_ASSERT(false, "Invalid shader data type");
         }
 
         /**
@@ -129,10 +130,11 @@ namespace Mikoto {
 
                 case ShaderDataType::NONE:
                 case ShaderDataType::COUNT: [[fallthrough]];
-                default: KT_ASSERT(false, "Invalid shader data type");
+                default:
+                    MKT_ASSERT(false, "Invalid shader data type");
             }
 
-            KT_ASSERT(false, "Invalid shader data type");
+            MKT_ASSERT(false, "Invalid shader data type");
         }
 
         static auto GetOpenGLTypeFromShaderDataType(ShaderDataType type) -> GLenum {
@@ -153,7 +155,8 @@ namespace Mikoto {
 
                 case ShaderDataType::NONE:
                 case ShaderDataType::COUNT: [[fallthrough]];
-                default: KT_ASSERT(false, "Invalid shader data type");
+                default:
+                    MKT_ASSERT(false, "Invalid shader data type");
             }
         }
 
@@ -186,7 +189,8 @@ namespace Mikoto {
 
                 case ShaderDataType::NONE:
                 case ShaderDataType::COUNT: [[fallthrough]];
-                default: KT_ASSERT(false, "Invalid shader data type");
+                default:
+                    MKT_ASSERT(false, "Invalid shader data type");
             }
         }
     };

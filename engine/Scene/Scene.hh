@@ -34,7 +34,7 @@ namespace Mikoto {
         auto OnViewPortResize(UInt32_T width, UInt32_T height) -> void;
 
         MKT_NODISCARD static auto CreateEmptyObject(std::string_view tagName, const std::shared_ptr<Scene>& scene) -> Entity;
-        MKT_NODISCARD static auto CreatePrefabObject(std::string_view tagName, const std::shared_ptr<Scene>& scene) -> Entity;
+        MKT_NODISCARD static auto CreatePrefabObject(std::string_view tagName, const std::shared_ptr<Scene> &scene, PrefabSceneObject type) -> Entity;
 
         ~Scene() = default;
     private:

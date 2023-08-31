@@ -40,13 +40,29 @@ namespace Mikoto {
     struct DrawData {
         std::shared_ptr<Model> ModelData{};
         std::shared_ptr<Camera> CameraData{};
-        glm::vec4 Color{};
-
-        // TODO: deleted eventually, already contained within the model
-        std::shared_ptr<VertexBuffer> VertexBufferData{};
-        std::shared_ptr<IndexBuffer> IndexBufferData{};
-
         std::shared_ptr<Material> MaterialData{};
+        UniformTransformData TransformData{};
+        glm::vec4 Color{};
+    };
+
+    enum class PrefabSceneObject {
+        NO_PREFAB_OBJECT,
+        SPRITE_PREFAB_OBJECT,
+        CUBE_PREFAB_OBJECT,
+        TRIANGLE_PREFAB_OBJECT,
+        CYLINDER_PREFAB_OBJECT,
+        COUNT_PREFAB_OBJECT,
+    };
+
+    struct SceneObjectData {
+        std::shared_ptr<Model> ModelData{};
+        glm::vec4 Color{};
+        PrefabSceneObject PrefabType{ PrefabSceneObject::NO_PREFAB_OBJECT };
+        bool IsPrefab{}; // If it is prefab, PrefabType contains the type otherwise PrefabType is NO_PREFAB_OBJECT
+    };
+
+    struct PrefabData {
+        std::shared_ptr<ModelPrefab> ModelData{};
         UniformTransformData TransformData{};
     };
 
@@ -82,7 +98,7 @@ namespace Mikoto {
     struct RendererDrawData {
         std::shared_ptr<VertexBuffer> VertexBufferData{};
         std::shared_ptr<IndexBuffer> IndexBufferData{};
-        SceneCamera*SceneRuntimeCamera{};
+        SceneCamera* SceneRuntimeCamera{};
         EditorCamera* SceneEditCamera{};
     };
 }

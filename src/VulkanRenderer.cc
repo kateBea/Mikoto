@@ -162,22 +162,25 @@ namespace Mikoto {
         for (const auto& drawObject : m_DrawQueue) {
             m_ActiveDefaultMaterial = std::dynamic_pointer_cast<VulkanStandardMaterial>(drawObject->MaterialData);
 
+            // TODO: should not be done here
             m_ActiveDefaultMaterial->SetProjectionView(drawObject->TransformData.ProjectionView);
             m_ActiveDefaultMaterial->SetTransform(drawObject->TransformData.Transform);
             m_ActiveDefaultMaterial->SetTiltingColor(drawObject->Color.r, drawObject->Color.g, drawObject->Color.b, drawObject->Color.a);
 
-            m_ActiveDefaultMaterial->UploadUniformBuffers();
+            for (const auto& mesh : drawObject->ModelData->GetMeshes()) {
+                m_ActiveDefaultMaterial->UploadUniformBuffers();
 
-            // Bind material Pipeline and Descriptors
-            m_MaterialInfo[m_ActiveDefaultMaterial->GetName()].Pipeline->Bind(m_DrawCommandBuffer.Get());
-            m_ActiveDefaultMaterial->BindDescriptorSet(m_DrawCommandBuffer.Get(), m_MaterialInfo[m_ActiveDefaultMaterial->GetName()].MaterialPipelineLayout);
+                // Bind material Pipeline and Descriptors
+                m_MaterialInfo[m_ActiveDefaultMaterial->GetName()].Pipeline->Bind(m_DrawCommandBuffer.Get());
+                m_ActiveDefaultMaterial->BindDescriptorSet(m_DrawCommandBuffer.Get(), m_MaterialInfo[m_ActiveDefaultMaterial->GetName()].MaterialPipelineLayout);
 
-            // Bind vertex and index buffers
-            std::dynamic_pointer_cast<VulkanVertexBuffer>(drawObject->VertexBufferData)->Bind(m_DrawCommandBuffer.Get());
-            std::dynamic_pointer_cast<VulkanIndexBuffer>(drawObject->IndexBufferData)->Bind(m_DrawCommandBuffer.Get());
+                // Bind vertex and index buffers
+                std::dynamic_pointer_cast<VulkanVertexBuffer>(mesh.GetVertexBuffer())->Bind(m_DrawCommandBuffer.Get());
+                std::dynamic_pointer_cast<VulkanIndexBuffer>(mesh.GetIndexBuffer())->Bind(m_DrawCommandBuffer.Get());
 
-            // Draw call command
-            vkCmdDrawIndexed(m_DrawCommandBuffer.Get(), std::dynamic_pointer_cast<VulkanIndexBuffer>(drawObject->IndexBufferData)->GetCount(), 1, 0, 0, 0);
+                // Draw call command
+                vkCmdDrawIndexed(m_DrawCommandBuffer.Get(), std::dynamic_pointer_cast<VulkanIndexBuffer>(mesh.GetIndexBuffer())->GetCount(), 1, 0, 0, 0);
+            }
         }
 
         // End Render pass commands recording

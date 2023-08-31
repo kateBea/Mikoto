@@ -123,28 +123,28 @@ namespace Mikoto {
                 if (ImGui::BeginMenu("3D Object")) {
                     if (ImGui::MenuItem("Cube")) {
                         static Size_T cubeCounter{ 0 };
-                        auto ret{ Scene::CreatePrefabObject(fmt::format("Cube {}", cubeCounter), ptr) };
+                        auto ret{ Scene::CreatePrefabObject(fmt::format("Cube {}", cubeCounter), ptr, PrefabSceneObject::CUBE_PREFAB_OBJECT)};
                         MKT_CORE_LOGGER_INFO("Added cube to scene");
                         ++cubeCounter;
                     }
 
                     if (ImGui::MenuItem("Sprite")) {
                         static Size_T spriteCounter{ 0 };
-                        auto ret{ Scene::CreatePrefabObject(fmt::format("Sprite {}", spriteCounter), ptr) };
+                        auto ret{ Scene::CreatePrefabObject(fmt::format("Sprite {}", spriteCounter), ptr, PrefabSceneObject::SPRITE_PREFAB_OBJECT) };
                         MKT_CORE_LOGGER_INFO("Added Sprite to scene");
                         ++spriteCounter;
                     }
 
                     if (ImGui::MenuItem("Triangle")) {
                         static Size_T triangleCounter{ 0 };
-                        auto ret{ Scene::CreatePrefabObject(fmt::format("Triangle {}", triangleCounter), ptr) };
+                        auto ret{Scene::CreatePrefabObject(fmt::format("Triangle {}", triangleCounter), ptr, PrefabSceneObject::TRIANGLE_PREFAB_OBJECT)};
                         MKT_CORE_LOGGER_INFO("Added Triangle to scene");
                         ++triangleCounter;
                     }
 
                     if (ImGui::MenuItem("Cylinder")) {
                         static Size_T cylinderCounter{ 0 };
-                        auto ret{ Scene::CreatePrefabObject(fmt::format("Cylinder {}", cylinderCounter), ptr) };
+                        auto ret{Scene::CreatePrefabObject(fmt::format("Cylinder {}", cylinderCounter), ptr, PrefabSceneObject::CYLINDER_PREFAB_OBJECT)};
                         MKT_CORE_LOGGER_INFO("Added Cylinder to scene");
                         ++cylinderCounter;
                     }

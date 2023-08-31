@@ -158,12 +158,17 @@ namespace Mikoto {
         auto operator=(const MaterialComponent & other) -> MaterialComponent & = default;
         auto operator=(MaterialComponent && other) -> MaterialComponent & = default;
 
-        auto GetDrawData() -> DrawData& { return m_DrawData; }
+        MKT_NODISCARD auto Get() -> std::shared_ptr<Material> { return m_Material; }
+        MKT_NODISCARD auto GetColor() const -> const glm::vec4& { return m_Color; }
+
+        auto SetColor(const glm::vec4& value) -> void { m_Color = value; }
+        auto SetMaterial(std::shared_ptr<Material> mat) -> void { m_Material = mat; }
 
         ~MaterialComponent() = default;
 
     private:
-        DrawData m_DrawData{};
+        std::shared_ptr<Material> m_Material{};
+        glm::vec4 m_Color{ 1.0f, 1.0f, 1.0f, 1.0f };
     };
 
     /**
@@ -181,12 +186,12 @@ namespace Mikoto {
         auto operator=(const RenderComponent & other) -> RenderComponent & = default;
         auto operator=(RenderComponent && other) -> RenderComponent & = default;
 
-        auto GetDrawData() -> DrawData& { return m_DrawData; }
+        auto GetObjectData() -> SceneObjectData& { return m_RenderableData; }
 
         ~RenderComponent() = default;
 
     private:
-        DrawData m_DrawData{};
+        SceneObjectData m_RenderableData{};
     };
 
     class CameraComponent {

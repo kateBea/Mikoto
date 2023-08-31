@@ -8,6 +8,7 @@
 
 // C++ Standard Library
 #include <memory>
+#include <unordered_map>
 
 // Third-Party Libraries
 #include <glm/glm.hpp>
@@ -31,6 +32,7 @@ namespace Mikoto {
         static auto EndScene() -> void;
 
         static auto Submit(std::shared_ptr<DrawData> data) -> void;
+        static auto Submit(const SceneObjectData& objectData, const glm::mat4& transform, std::shared_ptr<Material> material) -> void;
         static auto SubmitQuad(const glm::mat4& transform, const glm::vec4& color, std::shared_ptr<Material> material) -> void;
 
         static auto Flush() -> void;
@@ -44,15 +46,6 @@ namespace Mikoto {
         MKT_NODISCARD static auto QueryIndexCount() -> UInt32_T { return s_SavedSceneStats->GetIndexCount(); }
         MKT_NODISCARD static auto QueryVertexCount() -> UInt32_T { return s_SavedSceneStats->GetVertexCount(); }
 
-    public:
-        /*************************************************************
-        * DELETED OPERATIONS
-        * ***********************************************************/
-        Renderer(const Renderer&) = delete;
-        auto operator=(const Renderer&) -> Renderer& = delete;
-
-        Renderer(Renderer&&) = delete;
-        auto operator=(Renderer&&) -> Renderer& = delete;
     private:
         /*************************************************************
         * HELPERS
@@ -61,10 +54,11 @@ namespace Mikoto {
         static auto LoadPrefabs() -> void;
 
         /**
-         * Constructs a two dimensional sprite
-         * @deprecated would be used for debugging purposes
+         * Adds a 2D Sprite to the list of renderer prefabs
          * */
-        static auto Construct2DPlane() -> void;
+        static auto AddSpritePrefab() -> void;
+
+        MKT_NODISCARD static auto GetSpritePrefabName() -> const std::string& { static std::string name{ "Sprite" }; return name; }
 
     private:
         // States the active Graphics Rendering API for the current window.
@@ -76,7 +70,7 @@ namespace Mikoto {
         inline static RendererAPI* s_ActiveRendererAPI{ nullptr };
 
         inline static std::unique_ptr<RendererDrawData> s_DrawData{};
-        inline static std::unique_ptr<RendererDrawData> s_QuadData{};
+        inline static std::unordered_map<std::string, PrefabData> s_Prefabs{};
 
         inline static std::unique_ptr<RenderingStats>   s_RenderingStats{};
         inline static std::unique_ptr<RenderingStats>   s_SavedSceneStats{};

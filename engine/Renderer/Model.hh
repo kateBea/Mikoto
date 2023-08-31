@@ -135,13 +135,25 @@ namespace Mikoto {
          * */
         static auto LoadTextures(aiMaterial *mat, aiTextureType type, Type tType, const aiScene *scene, const Path_T& modelDirectory) -> std::vector<std::shared_ptr<Texture2D>>;
 
-    private:
+    protected:
         /*************************************************************
         * MEMBER VARIABLES
         * ***********************************************************/
         Path_T m_ModelDirectory{};
         std::vector<Mesh> m_Meshes{};
         std::string m_ModelName{};
+    };
+
+    class ModelPrefab : public Model {
+    public:
+        explicit ModelPrefab() = default;
+
+        /**
+         * Adds the given mesh to the list of meshes of this model
+         * @returns mesh to be added
+         * */
+        auto AddMesh(const MeshData& meshData) -> void { m_Meshes.emplace_back(meshData); }
+
     };
 }
 

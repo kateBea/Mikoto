@@ -21,7 +21,7 @@
 namespace Mikoto {
     auto EditorLayer::OnAttach() -> void {
         InitializePanels();
-        AddSceneTestEntities();
+        //AddSceneTestEntities();
         InitializeSceneCameras();
 
         {

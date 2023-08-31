@@ -60,9 +60,9 @@ namespace Mikoto {
                 std::dynamic_pointer_cast<OpenGLTexture2D>(m_CurrentDefaultMaterial->GetTexture())->Bind(0);
             }
 
-            if (drawData->IndexBufferData != nullptr) {
+            for (const auto& mesh : drawData->ModelData->GetMeshes()) {
                 m_CurrentDefaultMaterial->UploadUniformBuffersData();
-                DrawIndexed(drawData->VertexBufferData, drawData->IndexBufferData);
+                DrawIndexed(mesh.GetVertexBuffer(), mesh.GetIndexBuffer());
             }
         }
     }

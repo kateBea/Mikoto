@@ -47,8 +47,9 @@ namespace Mikoto {
         PickGraphicsAPI();
         RenderCommand::Init(s_ActiveRendererAPI);
 
-        s_RenderingStats    = std::make_unique<RenderingStats>();
-        s_SavedSceneStats   = std::make_unique<RenderingStats>();
+        s_DrawData = std::make_unique<RendererDrawData>();
+        s_RenderingStats = std::make_unique<RenderingStats>();
+        s_SavedSceneStats = std::make_unique<RenderingStats>();
 
         LoadPrefabs();
     }
@@ -73,18 +74,42 @@ namespace Mikoto {
         delete s_ActiveRendererAPI;
     }
 
-    auto Renderer::SubmitQuad(const glm::mat4 &transform, const glm::vec4& color, std::shared_ptr<Material> material) -> void {
+    auto Renderer::Submit(const SceneObjectData& objectData, const glm::mat4& transform, std::shared_ptr<Material> material) -> void {
+        auto data{ std::make_shared<DrawData>() };
         glm::mat4 cameraViewProj{ s_DrawData->SceneEditCamera->GetViewProjection() };
 
+        if (objectData.IsPrefab) {
+            // retrieve prefab type
+            switch (objectData.PrefabType) {
+                case PrefabSceneObject::SPRITE_PREFAB_OBJECT:
+                    auto& sprite{ s_Prefabs[GetSpritePrefabName()] };
+                    data->ModelData = sprite.ModelData;
+                    break;
+            }
+        }
+
+        data->Color = objectData.Color;
+        data->MaterialData = std::move(material);
+        data->TransformData.Transform = transform;
+        data->TransformData.ProjectionView = cameraViewProj;
+
+        // Rendering submission
+        Renderer::Submit(data);
+    }
+
+    auto Renderer::SubmitQuad(const glm::mat4 &transform, const glm::vec4& color, std::shared_ptr<Material> material) -> void {
+        glm::mat4 cameraViewProj{ s_DrawData->SceneEditCamera->GetViewProjection() };
+        auto& sprite{ s_Prefabs[GetSpritePrefabName()] };
+
+        // Setup rendering data
         auto data{ std::make_shared<DrawData>() };
         data->Color = color;
-        data->VertexBufferData = s_QuadData->VertexBufferData;
-        data->IndexBufferData = s_QuadData->IndexBufferData;
+        data->ModelData = sprite.ModelData;
         data->MaterialData = std::move(material);
-        data->TransformData.ProjectionView = cameraViewProj;
         data->TransformData.Transform = transform;
+        data->TransformData.ProjectionView = cameraViewProj;
 
-        // Render
+        // Rendering submission
         Renderer::Submit(data);
     }
 
@@ -93,13 +118,10 @@ namespace Mikoto {
     }
 
     auto Renderer::LoadPrefabs() -> void {
-        Construct2DPlane();
+        AddSpritePrefab();
     }
 
-    auto Renderer::Construct2DPlane() -> void {
-        s_DrawData = std::make_unique<RendererDrawData>();
-        s_QuadData = std::make_unique<RendererDrawData>();
-
+    auto Renderer::AddSpritePrefab() -> void {
         const std::vector<float> squareData {
                 // Positions            // Normals           // Colors                // Texture coordinates
                 -0.5f,  -0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f,        0.0f, 0.0f,   // bottom left
@@ -108,14 +130,30 @@ namespace Mikoto {
                 -0.5f,   0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    0.8f, 0.3f, 0.4f,        0.0f, 1.0f,   // top left
         };
 
-        s_QuadData->VertexBufferData = VertexBuffer::CreateBuffer(squareData);
-        s_QuadData->IndexBufferData = IndexBuffer::Create({0, 1, 2, 2, 3, 0});
+        // Set index and vertex buffers
+        auto vertexBuffer{ VertexBuffer::CreateBuffer(squareData) };
+        auto indexBuffer{ IndexBuffer::Create({0, 1, 2, 2, 3, 0}) };
 
-        s_QuadData->VertexBufferData->SetBufferLayout(BufferLayout{
+        // Set layout
+        vertexBuffer->SetBufferLayout(BufferLayout{
                 { ShaderDataType::FLOAT3_TYPE, "a_Position" },
                 { ShaderDataType::FLOAT3_TYPE, "a_Normal" },
                 { ShaderDataType::FLOAT3_TYPE, "a_Color" },
                 { ShaderDataType::FLOAT2_TYPE, "a_TextureCoordinates" },
         });
+
+        // Construct mesh and add it to the model
+        MeshData meshData{};
+        meshData.SetVertices(vertexBuffer);
+        meshData.SetIndices(indexBuffer);
+
+        PrefabData prefab{};
+        prefab.TransformData = {};
+        prefab.ModelData = std::make_shared<ModelPrefab>();
+
+        prefab.ModelData->AddMesh(meshData);
+
+        // Add model to the list of prefabs
+        s_Prefabs.emplace(GetSpritePrefabName(), prefab);
     }
 }

@@ -308,9 +308,12 @@ namespace Mikoto {
             DrawComponent<MaterialComponent>("Material", m_Hierarchy->m_ContextSelection, [](auto& component) -> void {
                 ImGuiTreeNodeFlags flags{  ImGuiTreeNodeFlags_OpenOnArrow |  ImGuiTreeNodeFlags_SpanAvailWidth };
 
+                glm::vec4 color{ component.GetColor() };
+                ImGui::ColorEdit4("Color", glm::value_ptr(color), ImGuiColorEditFlags_AlphaPreview | ImGuiColorEditFlags_AlphaBar);
+                component.SetColor(color);
+
                 // TODO: temporary, need proper identifiers, no 83121231231
                 if (ImGui::TreeNodeEx((void*)83121231231, flags, "%s", "Diffuse texture")) {
-
                     ImGui::TreePop();
                 }
             });

@@ -59,7 +59,7 @@ namespace Mikoto {
         auto Flush() -> void override;
         auto SetClearColor(const glm::vec4& color) -> void override;
         auto SetClearColor(float red, float green, float blue, float alpha) -> void override;
-        auto SetViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void override;
+        auto SetViewport(float x, float y, float width, float height) -> void override;
 
         auto GetColorAttachment() -> OpenGLFrameBuffer& { return m_DefaultFrameBuffer; }
 
@@ -88,7 +88,7 @@ namespace Mikoto {
 
     private:
         /*************************************************************
-        * MEMBER VARIABLES
+        * DATA MEMBERS
         * ***********************************************************/
         OpenGLVertexArray m_VertexArray{};
         OpenGLFrameBuffer m_DefaultFrameBuffer{};

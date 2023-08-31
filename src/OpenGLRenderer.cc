@@ -27,27 +27,25 @@ namespace Mikoto {
     auto OpenGLRenderer::SetClearColor(const glm::vec4 &color) -> void {
         m_DefaultFrameBuffer.Bind();
         glClearColor(color.r, color.g, color.b, color.a);
-        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
         m_DefaultFrameBuffer.Unbind();
     }
 
-    auto OpenGLRenderer::SetViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void {
+    auto OpenGLRenderer::SetViewport(float x, float y, float width, float height) -> void {
         glViewport((GLsizei)x, (GLsizei)y, (GLsizei)width, (GLsizei)height);
     }
 
     auto OpenGLRenderer::DrawIndexed(const std::shared_ptr<VertexBuffer> &vertexBuffer, const std::shared_ptr<IndexBuffer> &indexBuffer) -> void {
-        m_DefaultFrameBuffer.Bind();
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glEnable(GL_BLEND);
         m_CurrentDefaultMaterial->BindShader();
         m_VertexArray.UseVertexBuffer(vertexBuffer);
         std::dynamic_pointer_cast<OpenGLIndexBuffer>(indexBuffer)->Bind();
 
         glDrawElements(GL_TRIANGLES, (GLsizei)indexBuffer->GetCount(), GL_UNSIGNED_INT, nullptr);
-        m_DefaultFrameBuffer.Unbind();
     }
 
     auto OpenGLRenderer::Draw() -> void {
+        m_DefaultFrameBuffer.Bind();
+        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
         for (const auto& drawData : m_DrawQueue) {
             m_CurrentDefaultMaterial = std::dynamic_pointer_cast<OpenGLDefaultMaterial>(drawData->MaterialData);
 
@@ -65,9 +63,14 @@ namespace Mikoto {
                 DrawIndexed(mesh.GetVertexBuffer(), mesh.GetIndexBuffer());
             }
         }
+
+        m_DefaultFrameBuffer.Unbind();
     }
 
     auto OpenGLRenderer::Init() -> void {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
         CreateFrameBuffers();
     }
 

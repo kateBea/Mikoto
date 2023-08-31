@@ -55,7 +55,7 @@ namespace Mikoto {
         m_ClearValues[COLOR_BUFFER].color = { { red, green, blue, alpha } };
     }
 
-    auto VulkanRenderer::SetViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void {
+    auto VulkanRenderer::SetViewport(float x, float y, float width, float height) -> void {
         UpdateViewport(x, y, width, height);
     }
 
@@ -319,7 +319,7 @@ namespace Mikoto {
         m_OffscreenFrameBuffer.OnCreate(createInfo);
     }
 
-    auto VulkanRenderer::UpdateViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void {
+    auto VulkanRenderer::UpdateViewport(float x, float y, float width, float height) -> void {
         m_OffscreenViewport = {
             .x = static_cast<float>(x),
             .y = static_cast<float>(y),
@@ -432,7 +432,8 @@ namespace Mikoto {
         CreateAttachments();
         CreateFrameBuffers();
 
-        UpdateViewport(0, 0, m_OffscreenExtent.width, m_OffscreenExtent.height);
+        // https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport/
+        UpdateViewport(0, static_cast<float>(m_OffscreenExtent.height), static_cast<float>(m_OffscreenExtent.width), -static_cast<float>(m_OffscreenExtent.height));
         UpdateScissor(0, 0, { m_OffscreenExtent.width, m_OffscreenExtent.height });
 
         InitializeMaterialSpecificData();

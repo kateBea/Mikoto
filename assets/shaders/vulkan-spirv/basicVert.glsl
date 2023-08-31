@@ -22,8 +22,4 @@ void main() {
     vertexTexCoord = a_TextureCoordinates;
 
     gl_Position = UniformBufferData.ProjectionView * UniformBufferData.Transform * vec4(a_Position, 1.0);
-
-    // https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport/
-    gl_Position.y = -gl_Position.y;
-
 }

@@ -56,7 +56,7 @@ namespace Mikoto {
 
         auto SetClearColor(const glm::vec4& color) -> void override;
         auto SetClearColor(float red, float green, float blue, float alpha) -> void override;
-        auto SetViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void override;
+        auto SetViewport(float x, float y, float width, float height) -> void override;
 
         auto Flush() -> void override;
 
@@ -122,7 +122,7 @@ namespace Mikoto {
         auto DrawFrame(const Model &model) -> void;
         auto RecordMeshDrawCommands(const Mesh &mesh) -> void;
 
-        auto UpdateViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void;
+        auto UpdateViewport(float x, float y, float width, float height) -> void;
         auto UpdateScissor(Int32_T x, Int32_T y, VkExtent2D extent) -> void;
 
     private:

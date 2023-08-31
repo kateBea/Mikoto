@@ -200,6 +200,7 @@ namespace Mikoto::VulkanContext {
             // and shaders as in OpenGL, your scene will likely not display as you’d expect.
             // The viewport’s origin in OpenGL is in the lower left of the screen, with Y pointing up.
             // In Vulkan the origin is in the top left of the screen, with Y pointing downwards.
+            // Starting from Vulkan 1.1 though, this feature is part of core Vulkan, so checking for it is not really necessary
             // See: https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport/
             VK_KHR_MAINTENANCE1_EXTENSION_NAME,
 

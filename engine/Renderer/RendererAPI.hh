@@ -72,7 +72,7 @@ namespace Mikoto {
 
         virtual auto Draw() -> void = 0;
 
-		virtual auto SetViewport(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void = 0;
+		virtual auto SetViewport(float x, float y, float width, float height) -> void = 0;
         virtual auto OnEvent(Event& event) -> void = 0;
 
         virtual auto Flush() -> void = 0;

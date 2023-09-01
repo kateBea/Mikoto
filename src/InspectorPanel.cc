@@ -306,10 +306,16 @@ namespace Mikoto {
             });
 
             DrawComponent<MaterialComponent>("Material", m_Hierarchy->m_ContextSelection, [](auto& component) -> void {
-                ImGuiTreeNodeFlags flags{  ImGuiTreeNodeFlags_OpenOnArrow |  ImGuiTreeNodeFlags_SpanAvailWidth };
+                ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
+                                                 ImGuiTreeNodeFlags_AllowItemOverlap |
+                                                 ImGuiTreeNodeFlags_Framed |
+                                                 ImGuiTreeNodeFlags_SpanAvailWidth |
+                                                 ImGuiTreeNodeFlags_FramePadding };
+
+                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 5.0f, 9.0f });
 
                 // TODO: temporary, need proper identifiers, no 83121231232
-                if (ImGui::TreeNodeEx((void*)83121231232, flags, "%s", "Albedo")) {
+                if (ImGui::TreeNodeEx((void*)83121231232, treeNodeFlags, "%s", "Albedo")) {
                     glm::vec4 color{ component.GetColor() };
                     ImGui::ColorEdit4("Color", glm::value_ptr(color), ImGuiColorEditFlags_AlphaPreview | ImGuiColorEditFlags_AlphaBar);
                     component.SetColor(color);
@@ -317,9 +323,21 @@ namespace Mikoto {
                 }
 
                 // TODO: temporary, need proper identifiers, no 83121231231
-                if (ImGui::TreeNodeEx((void*)83121231231, flags, "%s", "Diffuse texture")) {
+                if (ImGui::TreeNodeEx((void*)83121231231, treeNodeFlags, "%s", "Specular")) {
                     ImGui::TreePop();
                 }
+
+                // TODO: temporary, need proper identifiers, no 83121231233
+                if (ImGui::TreeNodeEx((void*)83121231233, treeNodeFlags, "%s", "Metallic")) {
+                    ImGui::TreePop();
+                }
+
+                // TODO: temporary, need proper identifiers, no 83121231234
+                if (ImGui::TreeNodeEx((void*)83121231234, treeNodeFlags, "%s", "Roughness")) {
+                    ImGui::TreePop();
+                }
+
+                ImGui::PopStyleVar();
             });
 
             DrawComponent<NativeScriptComponent>("Script", m_Hierarchy->m_ContextSelection, [](auto& component) -> void {

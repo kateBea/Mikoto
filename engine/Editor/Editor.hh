@@ -40,6 +40,7 @@ namespace Mikoto::Editor {
     * ***********************************************************/
     auto ThemeDarkModeDefault() -> void;
     auto ThemeDarkModeAlt() -> void;
+    auto DrawAboutModalPopup() -> void;
 
     auto ShowDockingDisabledMessage() -> void;
     auto HelpMarker(std::string_view description) -> void;

@@ -82,11 +82,19 @@ namespace Mikoto {
             vertices.push_back(mesh->mVertices[index].y);
             vertices.push_back(mesh->mVertices[index].z);
 
+            // The way we construct the vertex buffer data is not guaranteed to follow
+            // the buffer layout, which is default for models. Which means if the if the mesh has no normals
+            // or texture coordinates we have to insert default initialized data to follow the default layout
+            // We also have to introduce default values for the color attribute
             if (mesh->HasNormals()) {
                 vertices.push_back(mesh->mNormals[index].x);
                 vertices.push_back(mesh->mNormals[index].y);
                 vertices.push_back(mesh->mNormals[index].z);
             }
+
+            vertices.emplace_back(0.0f);
+            vertices.emplace_back(0.0f);
+            vertices.emplace_back(0.0f);
 
             if (mesh->mTextureCoords[0] != nullptr) {
                 vertices.push_back(mesh->mTextureCoords[0][index].x);

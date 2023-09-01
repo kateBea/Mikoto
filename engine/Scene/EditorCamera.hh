@@ -25,7 +25,6 @@ namespace Mikoto {
         auto OnEvent(Event& event) -> void;
 
         auto SetDistance(float distance) -> void { m_Distance = distance; }
-
         auto SetViewportSize(float width, float height) -> void;
 
         MKT_NODISCARD auto GetViewMatrix() const -> const glm::mat4 & { return m_ViewMatrix; }
@@ -68,6 +67,8 @@ namespace Mikoto {
         glm::vec3 m_FocalPoint{ 0.0f, 0.0f, 0.0f };
 
         glm::vec2 m_InitialMousePosition{ 0.0f, 0.0f };
+
+        glm::vec2 m_InitialMovePosition{ 0.0f, 0.0f };
 
         float m_Distance{ 10.0f };
         float m_Pitch{ 0.0f };

@@ -17,9 +17,9 @@
 
 #include <Renderer/OpenGL/OpenGLContext.hh>
 
-namespace Mikoto {
+namespace Mikoto::OpenGLContext {
 
-    auto OpenGLContext::Init(const std::shared_ptr<Window>& windowHandle) -> void {
+    auto Init(const std::shared_ptr<Window>& windowHandle) -> void {
         try {
             // We expect the native window for Linux Window to be a pointer to a GLFW window
             s_Handle = std::any_cast<GLFWwindow*>(windowHandle->GetNativeWindow());
@@ -31,7 +31,7 @@ namespace Mikoto {
             glfwMakeContextCurrent(s_Handle);
             glewExperimental = GL_TRUE;
 
-            // Using temporal variable because KATE_CORE_LOGGER_ERROR gets stripped
+            // Using temporal variable because MKT_CORE_LOGGER_ERROR gets stripped
             // in non-DEBUG builds, so glewInit() would not be executed
             s_GLEWInitSuccess = glewInit() == GLEW_OK;
             MKT_ASSERT(s_GLEWInitSuccess, "Failed to initialize GLEW");
@@ -40,28 +40,31 @@ namespace Mikoto {
             MKT_CORE_LOGGER_INFO("OpenGL available {}", (const char*)glGetString(GL_VERSION));
             MKT_CORE_LOGGER_INFO("OpenGL vendor {}", (const char*)glGetString(GL_VENDOR));
             MKT_CORE_LOGGER_INFO("OpenGL renderer {}", (const char*)glGetString(GL_RENDERER));
-
         }
         catch (const std::bad_any_cast& exception) {
             MKT_APP_LOGGER_ERROR("Exception thrown std::any_cast at OpenGLContext::Init(). What: {}", exception.what());
         }
     }
 
-    auto OpenGLContext::EnableVSync() -> void {
+    auto EnableVSync() -> void {
         glfwSwapInterval(1);
         s_VSync = true;
     }
 
-    auto OpenGLContext::DisableVSync() -> void {
+    auto DisableVSync() -> void {
         glfwSwapInterval(0);
         s_VSync = false;
     }
 
-    auto OpenGLContext::ShutDown() -> void {
+    auto ShutDown() -> void {
 
     }
 
-    auto OpenGLContext::Present() -> void {
+    auto Present() -> void {
         glfwSwapBuffers(s_Handle);
+    }
+
+    auto IsVSyncActive() -> bool {
+        return s_VSync;
     }
 }

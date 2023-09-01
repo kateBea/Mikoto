@@ -148,6 +148,9 @@ namespace Mikoto {
     public:
         explicit ModelPrefab() = default;
 
+        explicit ModelPrefab(const Path_T& path, bool wantLoadTextures = false)
+            :   Model{ path, wantLoadTextures } {}
+
         /**
          * Adds the given mesh to the list of meshes of this model
          * @returns mesh to be added

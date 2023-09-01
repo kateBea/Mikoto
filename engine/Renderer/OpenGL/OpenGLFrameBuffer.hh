@@ -8,6 +8,7 @@
 
 // Project Headers
 #include <Utility/Types.hh>
+#include <Utility/Common.hh>
 #include <Renderer/Buffers/FrameBuffer.hh>
 
 namespace Mikoto {

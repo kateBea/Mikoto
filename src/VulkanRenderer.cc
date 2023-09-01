@@ -442,7 +442,6 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::SubmitToQueue() -> void {
-
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 

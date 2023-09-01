@@ -37,7 +37,7 @@ namespace Mikoto {
         return *this;
     }
 
-    auto OpenGLVertexBuffer::Upload(const std::vector<float> &vertices, GLenum usage) -> void {
+    auto OpenGLVertexBuffer::Upload(const std::vector<float>& vertices, GLenum usage) -> void {
         if (!m_ValidId) {
             glCreateBuffers(1, &m_Id);
             m_ValidId = m_Id != 0;

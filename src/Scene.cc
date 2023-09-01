@@ -19,57 +19,47 @@
 #include <Renderer/RenderingUtilities.hh>
 
 namespace Mikoto {
-
-    Scene::Scene() {
-        entt::entity entity{ m_Registry.create() };
-        m_Registry.emplace<TransformComponent>(entity, TransformComponent());
-    }
-
     auto Scene::OnUpdate(double ts) -> void {
-        // Update scripts
-        {
-
-        }
+        UpdateScripts();
 
         std::shared_ptr<SceneCamera> mainCam{};
         bool sceneHasMainCam{ false };
-        {
-            auto view{ m_Registry.view<TransformComponent, CameraComponent>() };
+        auto viewForCameraLookUp{ m_Registry.view<TransformComponent, CameraComponent>() };
 
-            for (const auto& entity : view) {
-                TransformComponent& transform{ view.get<TransformComponent>(entity) };
-                CameraComponent& camera{ view.get<CameraComponent>(entity) };
-                sceneHasMainCam = camera.IsMainCamera();
+        for (const auto& entity : viewForCameraLookUp) {
+            TransformComponent& transform{ viewForCameraLookUp.get<TransformComponent>(entity) };
+            CameraComponent& camera{ viewForCameraLookUp.get<CameraComponent>(entity) };
+            sceneHasMainCam = camera.IsMainCamera();
 
-                if (sceneHasMainCam) {
-                    mainCam = camera.GetCameraPtr();
+            if (sceneHasMainCam) {
+                mainCam = camera.GetCameraPtr();
 
-                    // The camera's position and rotation depends on its transform component
-                    mainCam->SetPosition(transform.GetTranslation(), transform.GetRotation());
-                    break;
-                }
+                // The camera's position and rotation depends on its transform component
+                mainCam->SetPosition(transform.GetTranslation(), transform.GetRotation());
+                break;
             }
         }
 
         if (sceneHasMainCam) {
-            // Render stuff if the scene has a camera
             ScenePrepareData prepareData{};
             prepareData.RuntimeCamera = &(*mainCam);
 
-            // TODO: add filter Renderable and deprecate SpriteRendererComponent
-            auto view{ m_Registry.view<TagComponent, TransformComponent, SpriteRendererComponent>() };
-
             Renderer::BeginScene(prepareData);
 
-            for (const auto& entity : view) {
-                TagComponent& tag{ view.get<TagComponent>(entity) };
-                TransformComponent& transform{ view.get<TransformComponent>(entity) };
-                SpriteRendererComponent& sprite{ view.get<SpriteRendererComponent>(entity) };
-                DrawData& drawData{ sprite.GetDrawData() };
+            auto view{ m_Registry.view<TagComponent, TransformComponent, RenderComponent, MaterialComponent>() };
+
+            for (auto& sceneObject: view) {
+                TagComponent& tag{ view.get<TagComponent>(sceneObject) };
+                TransformComponent& transform{ view.get<TransformComponent>(sceneObject) };
+                RenderComponent& renderComponent{ view.get<RenderComponent>(sceneObject) };
+                MaterialComponent& material{ view.get<MaterialComponent>(sceneObject) };
+
+                SceneObjectData& objectData{renderComponent.GetObjectData() };
+                objectData.Color = material.GetColor();
 
                 // TODO: fix rendering order for blending, objects that are nearer to the camera should be rendered first
                 // Right now if an object is on top of another but it is rendered after before blending does not work
-                Renderer::SubmitQuad(transform.GetTransform(), sprite.GetColor(), drawData.MaterialData);
+                Renderer::Submit(objectData, transform.GetTransform(), material.Get());
             }
 
             Renderer::Flush();
@@ -79,16 +69,21 @@ namespace Mikoto {
 
     auto Scene::CreateEmptyObject(std::string_view tagName, const std::shared_ptr<Scene>& scene) -> Entity {
         Entity result{ scene };
+        static constexpr glm::vec3 SIZE{ 1.0f, 1.0f, 1.0f };
+        static constexpr glm::vec3 POSITION{ 0.0, 0.0, 0.0 };
+        static constexpr glm::vec3 ROTATION{ 0.0f, 0.0f, 0.0f };
 
-        // By default, all entities will have a transform component and a tag
         result.AddComponent<TagComponent>(tagName);
-        result.AddComponent<TransformComponent>(glm::vec3{ 0.0, 0.0, 0.0 },  glm::vec3{ 1.0f, 1.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f });
+        result.AddComponent<TransformComponent>(POSITION, SIZE, ROTATION);
 
         return result;
     }
 
-    auto Scene::CreatePrefabObject(std::string_view tagName, const std::shared_ptr<Scene> &scene, PrefabSceneObject type) -> Entity {
+    auto Scene::CreatePrefabObject(std::string_view tagName, const std::shared_ptr<Scene>& scene, PrefabSceneObject type) -> Entity {
         Entity result{ scene };
+        static constexpr glm::vec3 SIZE{ 1.0f, 1.0f, 1.0f };
+        static constexpr glm::vec3 POSITION{ 0.0, 0.0, 0.0 };
+        static constexpr glm::vec3 ROTATION{ 0.0f, 0.0f, 0.0f };
 
         result.AddComponent<RenderComponent>();
         auto& renderData{ result.GetComponent<RenderComponent>() };
@@ -100,7 +95,7 @@ namespace Mikoto {
         materialData.SetMaterial(Material::Create(Material::Type::STANDARD));
 
         result.AddComponent<TagComponent>(tagName);
-        result.AddComponent<TransformComponent>(glm::vec3{ 0.0, 0.0, 0.0 },  glm::vec3{ 1.0f, 1.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f });
+        result.AddComponent<TransformComponent>(POSITION, SIZE, ROTATION);
 
         return result;
     }
@@ -151,5 +146,9 @@ namespace Mikoto {
 
         Renderer::Flush();
         Renderer::EndScene();
+    }
+
+    auto Scene::UpdateScripts() -> void {
+
     }
 }

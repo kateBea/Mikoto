@@ -79,11 +79,15 @@ namespace Mikoto {
         glm::mat4 cameraViewProj{ s_DrawData->SceneEditCamera->GetViewProjection() };
 
         if (objectData.IsPrefab) {
+            auto& sprite{ s_Prefabs[GetSpritePrefabName()] };
+            auto& cube{ s_Prefabs[GetCubePrefabName()] };
             // retrieve prefab type
             switch (objectData.PrefabType) {
                 case PrefabSceneObject::SPRITE_PREFAB_OBJECT:
-                    auto& sprite{ s_Prefabs[GetSpritePrefabName()] };
                     data->ModelData = sprite.ModelData;
+                    break;
+                case PrefabSceneObject::CUBE_PREFAB_OBJECT:
+                    data->ModelData = cube.ModelData;
                     break;
             }
         }
@@ -119,6 +123,7 @@ namespace Mikoto {
 
     auto Renderer::LoadPrefabs() -> void {
         AddSpritePrefab();
+        AddCubePrefab();
     }
 
     auto Renderer::AddSpritePrefab() -> void {
@@ -135,6 +140,7 @@ namespace Mikoto {
         auto indexBuffer{ IndexBuffer::Create({0, 1, 2, 2, 3, 0}) };
 
         // Set layout
+        // get layout from model since it is used later to create the model prefab
         vertexBuffer->SetBufferLayout(BufferLayout{
                 { ShaderDataType::FLOAT3_TYPE, "a_Position" },
                 { ShaderDataType::FLOAT3_TYPE, "a_Normal" },
@@ -155,5 +161,15 @@ namespace Mikoto {
 
         // Add model to the list of prefabs
         s_Prefabs.emplace(GetSpritePrefabName(), prefab);
+    }
+
+    auto Renderer::AddCubePrefab() -> void {
+        // Construct mesh and add it to the model
+        PrefabData prefab{};
+        prefab.TransformData = {};
+        prefab.ModelData = std::make_shared<ModelPrefab>("../assets/models/Prefabs/cube/source/cube.obj");
+
+        // Add model to the list of prefabs
+        s_Prefabs.emplace(GetCubePrefabName(), prefab);
     }
 }

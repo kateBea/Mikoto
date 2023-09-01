@@ -22,11 +22,15 @@
 #include <Scene/EditorCamera.hh>
 
 namespace Mikoto {
+    /**
+     * Forward declaration for return type and avoid
+     * header include dependency problems
+     * */
     class Entity;
 
     class Scene {
     public:
-        explicit Scene();
+        explicit Scene() = default;
 
         auto OnUpdate(double ts) -> void;
         auto DestroyEntity(Entity& entity) -> void;
@@ -34,7 +38,7 @@ namespace Mikoto {
         auto OnViewPortResize(UInt32_T width, UInt32_T height) -> void;
 
         MKT_NODISCARD static auto CreateEmptyObject(std::string_view tagName, const std::shared_ptr<Scene>& scene) -> Entity;
-        MKT_NODISCARD static auto CreatePrefabObject(std::string_view tagName, const std::shared_ptr<Scene> &scene, PrefabSceneObject type) -> Entity;
+        MKT_NODISCARD static auto CreatePrefabObject(std::string_view tagName, const std::shared_ptr<Scene>& scene, PrefabSceneObject type) -> Entity;
 
         ~Scene() = default;
     private:
@@ -42,6 +46,12 @@ namespace Mikoto {
         friend class ScenePanel;
         friend class HierarchyPanel;
         friend class InspectorPanel;
+
+    private:
+        /*************************************************************
+        * HELPERS
+        * ***********************************************************/
+        auto UpdateScripts() -> void;
 
     private:
         entt::registry m_Registry{};

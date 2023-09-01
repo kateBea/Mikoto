@@ -260,7 +260,7 @@ namespace Mikoto::Editor {
 
             if (ImGui::BeginMenu("Help")) {
                 if (ImGui::MenuItem("About"))
-                    ; // TODO: Display about engine info
+                    ImGui::OpenPopup("AboutPopUp11111");
 
                 ImGui::EndMenu();
             }
@@ -269,5 +269,23 @@ namespace Mikoto::Editor {
         }
 
         ImGui::End();
+    }
+
+    auto DrawAboutModalPopup() -> void {
+        // Always center this window when appearing
+        ImVec2 center{ ImGui::GetMainViewport()->GetCenter() };
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+        if (ImGui::BeginPopupModal("AboutPopUp11111", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("GPU");
+            ImGui::Text("Vendor");
+            ImGui::Text("Driver Version");
+
+            if (ImGui::Button("Accept", ImVec2(120, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
     }
 }

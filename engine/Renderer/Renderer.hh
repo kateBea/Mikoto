@@ -57,8 +57,10 @@ namespace Mikoto {
          * Adds a 2D Sprite to the list of renderer prefabs
          * */
         static auto AddSpritePrefab() -> void;
+        static auto AddCubePrefab() -> void;
 
         MKT_NODISCARD static auto GetSpritePrefabName() -> const std::string& { static std::string name{ "Sprite" }; return name; }
+        MKT_NODISCARD static auto GetCubePrefabName() -> const std::string& { static std::string name{ "Cube" }; return name; }
 
     private:
         // States the active Graphics Rendering API for the current window.

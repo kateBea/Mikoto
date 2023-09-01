@@ -13,31 +13,23 @@
 #include <Platform/Window/MainWindow.hh>
 #include <Renderer/RenderContext.hh>
 
-// TODO: convert into namespace
-namespace Mikoto {
-    class OpenGLContext {
-    public:
-        static auto Init(const std::shared_ptr<Window>& windowHandle) -> void;
-        static auto ShutDown() -> void;
-        static auto Present() -> void;
+namespace Mikoto::OpenGLContext {
+    /*************************************************************
+    * CONTEXT DATA
+    * ***********************************************************/
+    inline GLFWwindow* s_Handle{};
+    inline bool s_GLEWInitSuccess{ false };
+    inline bool s_VSync{};
 
-        static auto EnableVSync() -> void;
-        static auto DisableVSync() -> void;
-        static auto IsVSyncActive() -> bool { return s_VSync; }
-
-    public:
-        // Forbidden operations on Contexts
-        OpenGLContext(const OpenGLContext&) = delete;
-        auto operator=(const OpenGLContext&) -> OpenGLContext& = delete;
-
-        OpenGLContext(OpenGLContext&&) = delete;
-        auto operator=(OpenGLContext&&) -> OpenGLContext& = delete;
-
-    private:
-        inline static GLFWwindow* s_Handle{};
-        inline static bool s_GLEWInitSuccess{ false };
-        inline static bool s_VSync{};
-    };
+    /*************************************************************
+    * CONTEXT INTERFACE
+    * ***********************************************************/
+    auto Init(const std::shared_ptr<Window>& windowHandle) -> void;
+    auto ShutDown() -> void;
+    auto Present() -> void;
+    auto EnableVSync() -> void;
+    auto DisableVSync() -> void;
+    auto IsVSyncActive() -> bool;
 }
 
 

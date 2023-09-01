@@ -34,7 +34,7 @@ namespace Mikoto {
         glViewport((GLsizei)x, (GLsizei)y, (GLsizei)width, (GLsizei)height);
     }
 
-    auto OpenGLRenderer::DrawIndexed(const std::shared_ptr<VertexBuffer> &vertexBuffer, const std::shared_ptr<IndexBuffer> &indexBuffer) -> void {
+    auto OpenGLRenderer::DrawIndexed(const std::shared_ptr<VertexBuffer> &vertexBuffer, const std::shared_ptr<IndexBuffer>& indexBuffer) -> void {
         m_CurrentDefaultMaterial->BindShader();
         m_VertexArray.UseVertexBuffer(vertexBuffer);
         std::dynamic_pointer_cast<OpenGLIndexBuffer>(indexBuffer)->Bind();
@@ -68,8 +68,23 @@ namespace Mikoto {
     }
 
     auto OpenGLRenderer::Init() -> void {
+        // Blending
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        // Face culling
+        // Temporarily disabled
+#if false
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+#endif
+
+        // Stencil
+        // Temporarily disabled
+#if false
+        glEnable(GL_STENCIL_TEST);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+#endif
 
         CreateFrameBuffers();
     }

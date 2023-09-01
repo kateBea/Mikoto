@@ -2,7 +2,7 @@
 This is a simple engine written in modern C++. For now and quite some time 
 it will use OpenGL as its main rendering API, but the end goal is to integrate Vulkan.
 
-![Mikoto Engine](assets/image/img7.png)
+![Mikoto Engine](assets/image/img8.png)
 
 # Building
 

@@ -132,9 +132,14 @@ namespace Mikoto {
 
         MeshData meshData{};
 
+        auto vertexBuffer{ VertexBuffer::CreateBuffer(vertices)  };
+        vertexBuffer->SetBufferLayout(VertexBuffer::GetDefaultBufferLayout());
+
+        auto indexBuffer{ IndexBuffer::Create(indices) };
+
         // Setup mesh data structure from previously retrieved data
-        meshData.SetVertices(VertexBuffer::CreateBuffer(vertices));
-        meshData.SetIndices(IndexBuffer::Create(indices));
+        meshData.SetVertices(vertexBuffer);
+        meshData.SetIndices(indexBuffer);
 
         meshData.SetTextures(std::move(textures));
         return Mesh{ meshData };

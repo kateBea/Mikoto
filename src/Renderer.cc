@@ -167,7 +167,7 @@ namespace Mikoto {
         // Construct mesh and add it to the model
         PrefabData prefab{};
         prefab.TransformData = {};
-        prefab.ModelData = std::make_shared<ModelPrefab>("../assets/models/Prefabs/cube/source/cube.obj");
+        prefab.ModelData = std::make_shared<ModelPrefab>("../assets/models/Prefabs/cube/obj/cube.obj");
 
         // Add model to the list of prefabs
         s_Prefabs.emplace(GetCubePrefabName(), prefab);

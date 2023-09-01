@@ -53,9 +53,6 @@ namespace Mikoto {
         static auto PickGraphicsAPI() -> void;
         static auto LoadPrefabs() -> void;
 
-        /**
-         * Adds a 2D Sprite to the list of renderer prefabs
-         * */
         static auto AddSpritePrefab() -> void;
         static auto AddCubePrefab() -> void;
         static auto AddSpherePrefab() -> void;

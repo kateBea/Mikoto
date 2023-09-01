@@ -63,6 +63,6 @@ namespace Mikoto {
     OpenGLDefaultMaterial::OpenGLDefaultMaterial()
         :   Material{ "OpenGL Default Material" }
     {
-        UploadShaders("../assets/shaders/debugShaderVert.glsl", "../assets/shaders/debugShaderFrag.glsl");
+        UploadShaders("../assets/shaders/opengl-glsl/debugShaderVert.glsl", "../assets/shaders/opengl-glsl/debugShaderFrag.glsl");
     }
 }

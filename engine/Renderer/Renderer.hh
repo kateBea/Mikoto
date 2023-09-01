@@ -58,9 +58,15 @@ namespace Mikoto {
          * */
         static auto AddSpritePrefab() -> void;
         static auto AddCubePrefab() -> void;
+        static auto AddSpherePrefab() -> void;
+        static auto AddCylinderPrefab() -> void;
+        static auto AddConePrefab() -> void;
 
         MKT_NODISCARD static auto GetSpritePrefabName() -> const std::string& { static std::string name{ "Sprite" }; return name; }
         MKT_NODISCARD static auto GetCubePrefabName() -> const std::string& { static std::string name{ "Cube" }; return name; }
+        MKT_NODISCARD static auto GetSpherePrefabName() -> const std::string& { static std::string name{ "Sphere" }; return name; }
+        MKT_NODISCARD static auto GetCylinderPrefabName() -> const std::string& { static std::string name{ "Cylinder" }; return name; }
+        MKT_NODISCARD static auto GetConePrefabName() -> const std::string& { static std::string name{ "Cone" }; return name; }
 
     private:
         // States the active Graphics Rendering API for the current window.

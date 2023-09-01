@@ -135,18 +135,25 @@ namespace Mikoto {
                         ++spriteCounter;
                     }
 
-                    if (ImGui::MenuItem("Triangle")) {
-                        static Size_T triangleCounter{ 0 };
-                        auto ret{Scene::CreatePrefabObject(fmt::format("Triangle {}", triangleCounter), ptr, PrefabSceneObject::TRIANGLE_PREFAB_OBJECT)};
-                        MKT_CORE_LOGGER_INFO("Added Triangle to scene");
-                        ++triangleCounter;
+                    if (ImGui::MenuItem("Cone")) {
+                        static Size_T coneCounter{ 0 };
+                        auto ret{ Scene::CreatePrefabObject(fmt::format("Cone {}", coneCounter), ptr, PrefabSceneObject::CONE_PREFAB_OBJECT)};
+                        MKT_CORE_LOGGER_INFO("Added Cone to scene");
+                        ++coneCounter;
                     }
 
                     if (ImGui::MenuItem("Cylinder")) {
                         static Size_T cylinderCounter{ 0 };
-                        auto ret{Scene::CreatePrefabObject(fmt::format("Cylinder {}", cylinderCounter), ptr, PrefabSceneObject::CYLINDER_PREFAB_OBJECT)};
+                        auto ret{ Scene::CreatePrefabObject(fmt::format("Cylinder {}", cylinderCounter), ptr, PrefabSceneObject::CYLINDER_PREFAB_OBJECT)};
                         MKT_CORE_LOGGER_INFO("Added Cylinder to scene");
                         ++cylinderCounter;
+                    }
+
+                    if (ImGui::MenuItem("Sphere")) {
+                        static Size_T sphereCounter{ 0 };
+                        auto ret{ Scene::CreatePrefabObject(fmt::format("Sphere {}", sphereCounter), ptr, PrefabSceneObject::SPHERE_PREFAB_OBJECT)};
+                        MKT_CORE_LOGGER_INFO("Added Sphere to scene");
+                        ++sphereCounter;
                     }
 
                     ImGui::EndMenu();

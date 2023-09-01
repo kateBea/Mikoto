@@ -203,9 +203,10 @@ namespace Mikoto {
 
             if (m_Hierarchy->m_ContextSelection.HasComponent<TagComponent>()) {
                 TagComponent& tag{ m_Hierarchy->m_ContextSelection.GetComponent<TagComponent>() };
-                static bool renderContextSelectionToScene{ true }; // tells whether we want the selection context to be rendered to the scene (not implemented yet)
 
-                std::string value{ tag.GetTag() };
+                // tells whether we want the selection context to be visible int the scene (not implemented yet)
+                static bool renderContextSelectionToScene{ true };
+
                 char contextSelectionTagName[1024]{};
                 std::copy(tag.GetTag().begin(), tag.GetTag().end(), contextSelectionTagName);
 

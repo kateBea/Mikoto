@@ -91,6 +91,11 @@ namespace Mikoto {
                 vertices.push_back(mesh->mNormals[index].y);
                 vertices.push_back(mesh->mNormals[index].z);
             }
+            else {
+                vertices.emplace_back(0.0f);
+                vertices.emplace_back(0.0f);
+                vertices.emplace_back(0.0f);
+            }
 
             vertices.emplace_back(0.0f);
             vertices.emplace_back(0.0f);
@@ -99,6 +104,10 @@ namespace Mikoto {
             if (mesh->mTextureCoords[0] != nullptr) {
                 vertices.push_back(mesh->mTextureCoords[0][index].x);
                 vertices.push_back(mesh->mTextureCoords[0][index].y);
+            }
+            else {
+                vertices.emplace_back(0.0f);
+                vertices.emplace_back(0.0f);
             }
         }
 

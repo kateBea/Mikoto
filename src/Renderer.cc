@@ -81,6 +81,10 @@ namespace Mikoto {
         if (objectData.IsPrefab) {
             auto& sprite{ s_Prefabs[GetSpritePrefabName()] };
             auto& cube{ s_Prefabs[GetCubePrefabName()] };
+            auto& sphere{ s_Prefabs[GetSpherePrefabName()] };
+            auto& cylinder{ s_Prefabs[GetCylinderPrefabName()] };
+            auto& cone{ s_Prefabs[GetConePrefabName()] };
+
             // retrieve prefab type
             switch (objectData.PrefabType) {
                 case PrefabSceneObject::SPRITE_PREFAB_OBJECT:
@@ -88,6 +92,18 @@ namespace Mikoto {
                     break;
                 case PrefabSceneObject::CUBE_PREFAB_OBJECT:
                     data->ModelData = cube.ModelData;
+                    break;
+                case PrefabSceneObject::SPHERE_PREFAB_OBJECT:
+                    data->ModelData = sphere.ModelData;
+                    break;
+                case PrefabSceneObject::CYLINDER_PREFAB_OBJECT:
+                    data->ModelData = cylinder.ModelData;
+                    break;
+                case PrefabSceneObject::CONE_PREFAB_OBJECT:
+                    data->ModelData = cone.ModelData;
+                    break;
+                case PrefabSceneObject::COUNT_PREFAB_OBJECT:
+                    MKT_CORE_LOGGER_WARN("Unknown prefab");
                     break;
             }
         }
@@ -124,6 +140,9 @@ namespace Mikoto {
     auto Renderer::LoadPrefabs() -> void {
         AddSpritePrefab();
         AddCubePrefab();
+        AddSpherePrefab();
+        AddCylinderPrefab();
+        AddConePrefab();
     }
 
     auto Renderer::AddSpritePrefab() -> void {
@@ -171,5 +190,35 @@ namespace Mikoto {
 
         // Add model to the list of prefabs
         s_Prefabs.emplace(GetCubePrefabName(), prefab);
+    }
+
+    auto Renderer::AddSpherePrefab() -> void {
+        // Construct mesh and add it to the model
+        PrefabData prefab{};
+        prefab.TransformData = {};
+        prefab.ModelData = std::make_shared<ModelPrefab>("../assets/models/Prefabs/sphere/gltf/scene.gltf");
+
+        // Add model to the list of prefabs
+        s_Prefabs.emplace(GetSpherePrefabName(), prefab);
+    }
+
+    auto Renderer::AddCylinderPrefab() -> void {
+        // Construct mesh and add it to the model
+        PrefabData prefab{};
+        prefab.TransformData = {};
+        prefab.ModelData = std::make_shared<ModelPrefab>("../assets/models/Prefabs/cylinder/gltf/scene.gltf");
+
+        // Add model to the list of prefabs
+        s_Prefabs.emplace(GetCylinderPrefabName(), prefab);
+    }
+
+    auto Renderer::AddConePrefab() -> void {
+        // Construct mesh and add it to the model
+        PrefabData prefab{};
+        prefab.TransformData = {};
+        prefab.ModelData = std::make_shared<ModelPrefab>("../assets/models/Prefabs/cone/gltf/scene.gltf");
+
+        // Add model to the list of prefabs
+        s_Prefabs.emplace(GetConePrefabName(), prefab);
     }
 }

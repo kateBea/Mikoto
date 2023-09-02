@@ -10,6 +10,7 @@
 // Project headers
 #include <Utility/Common.hh>
 #include <Core/Logger.hh>
+#include <Core/GUIManager.hh>
 #include <Core/Application.hh>
 #include <Renderer/Renderer.hh>
 #include <Core/Events/AppEvents.hh>
@@ -19,6 +20,7 @@
 #include <Platform/Window/MainWindow.hh>
 
 namespace Mikoto {
+    // TODO: turn static classes into namespaces
     auto Application::Init() -> void {
         // Initialize the time manager
         TimeManager::Init();
@@ -26,7 +28,7 @@ namespace Mikoto {
         // Allocations
         m_MainWindow = std::make_shared<MainWindow>();
         m_LayerStack = std::make_unique<LayerStack>();
-        m_ImGuiLayer = std::make_shared<ImGuiLayer>();
+        m_ImGuiLayer = std::make_shared<ImGuiLayer>(); // This should not be done here, should be handled by the gui manager which has an implementation for the gui for opengl and another for vulkan
 
         // Initialize the main window
         m_MainWindow->Init();
@@ -41,6 +43,7 @@ namespace Mikoto {
         Renderer::Init();
 
         // Initialize the GUI layer
+        // TODO: turn layer manager into a namespace
         m_LayerStack->Init();
         PushOverlay(m_ImGuiLayer);
 

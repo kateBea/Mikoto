@@ -23,7 +23,9 @@ set(CORE_SOURCES
         src/OpenGLContext.cc
         src/InputManager.cc src/EditorLayer.cc src/Timer.cc
         src/VulkanUtils.cc
-        src/OpenGLUtils.cc)
+        src/OpenGLUtils.cc
+        src/GUIManager.cc
+        src/LayerManager.cc)
 
 set(PLATFORM_SOURCES
         src/Application.cc
@@ -97,7 +99,8 @@ set(SOURCES
         ${EDITOR_SOURCES}
         ${SCENE_SOURCES}
         src/Engine.cc src/stb_image.cc
-        src/vk_mem_alloc.h.cc)
+        src/vk_mem_alloc.h.cc
+        src/GUIManager.cc)
 
 # External dependencies
 add_subdirectory(${GLEW_CMAKE_DIR})

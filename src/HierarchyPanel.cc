@@ -156,6 +156,13 @@ namespace Mikoto {
                         ++sphereCounter;
                     }
 
+                    if (ImGui::MenuItem("Sponza")) {
+                        static Size_T sponzaCounter{ 0 };
+                        auto ret{ Scene::CreatePrefabObject(fmt::format("Sponza {}", sponzaCounter), ptr, PrefabSceneObject::SPONZA_PREFAB_OBJECT)};
+                        MKT_CORE_LOGGER_INFO("Added Sponza to scene");
+                        ++sponzaCounter;
+                    }
+
                     ImGui::EndMenu();
                 }
 

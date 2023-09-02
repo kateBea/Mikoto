@@ -139,14 +139,10 @@ namespace Mikoto {
             }
         }
 
-        MeshData meshData{};
-
-        auto vertexBuffer{ VertexBuffer::CreateBuffer(vertices)  };
-        vertexBuffer->SetBufferLayout(VertexBuffer::GetDefaultBufferLayout());
-
+        auto vertexBuffer{ VertexBuffer::Create(vertices, VertexBuffer::GetDefaultBufferLayout()) };
         auto indexBuffer{ IndexBuffer::Create(indices) };
 
-        // Setup mesh data structure from previously retrieved data
+        MeshData meshData{};
         meshData.SetVertices(vertexBuffer);
         meshData.SetIndices(indexBuffer);
 

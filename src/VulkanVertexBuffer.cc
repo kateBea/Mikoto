@@ -32,6 +32,8 @@ namespace Mikoto {
         if (createInfo.RetainData)
             m_RetainedData = createInfo.Data;
 
+        m_Layout = createInfo.Layout;
+
         SetVertexData(createInfo.Data);
     }
 

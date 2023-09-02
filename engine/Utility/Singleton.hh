@@ -28,19 +28,28 @@ namespace Mikoto {
         }
 
         /**
-         * Return a reference to the single instance
+         * Returns a reference to the single instance
          * @returns single instance
          * */
         static auto Get() -> ValueRef_T { static Value_T obj{}; return *s_Instance; }
 
         /**
-         * Return a pointer to the single instance
+         * Returns a pointer to the single instance
          * @returns pointer single instance
          * */
-        static auto GetPtr() -> ValuePtr_T { return s_Instance; }
+        static auto GetPtr() -> ValuePtr_T { if (!s_Instance) Get();  return s_Instance; }
+
+        /**
+         * Performs destruction on this singleton instance (defaulted)
+         * */
+        ~Singleton() = default;
 
     public:
-        // Forbidden operations for Singleton
+        /*************************************************************
+         * FORBIDDEN OPERATIONS
+         *
+         * Defines a list of operations not allowed for Singletons
+         * ***********************************************************/
         Singleton(const Singleton&) = delete;
         auto operator=(const Singleton&) -> ValueRef_T& = delete;
 
@@ -48,8 +57,13 @@ namespace Mikoto {
         auto operator=(Singleton&&) -> Singleton& = delete;
 
     protected:
-        virtual ~Singleton() = default;
+        /*************************************************************
+         * DATA MEMBERS
+         * ***********************************************************/
 
+        /**
+         * Pointer to the single instance allowed for Singleton objects
+         * */
         inline static ValuePtr_T s_Instance;
     };
 

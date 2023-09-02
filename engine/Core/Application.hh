@@ -11,13 +11,11 @@
 
 // Project Headers
 #include <Utility/Singleton.hh>
-
 #include <Core/ImGui/ImGuiLayer.hh>
 #include <Core/LayerStack.hh>
 #include <Core/Events/AppEvents.hh>
 #include <Core/Events/Event.hh>
 #include <Core/TimeManager.hh>
-
 #include <Platform/Window/Window.hh>
 
 namespace Mikoto {
@@ -47,6 +45,9 @@ namespace Mikoto {
 
 
     private:
+        /*************************************************************
+         * STRUCTURES
+         * ***********************************************************/
         /**
          * Represents the current state of this application
          * */
@@ -58,9 +59,10 @@ namespace Mikoto {
             COUNT,
         };
 
+    private:
         /*************************************************************
-         * APPLICATION EVENT HANDLERS -----------------------------
-         * ********************************************************+ */
+         * APPLICATION EVENT HANDLERS
+         * ***********************************************************/
 
         /**
          * Callback function for WindowClose event. For now
@@ -76,13 +78,17 @@ namespace Mikoto {
          * */
         bool OnResizeEvent(WindowResizedEvent &event);
 
-        // MEMBER VARIABLES ----------------------------
-        bool m_MainWindowMinimized{ false };
+    private:
+        /*************************************************************
+         * DATA MEMBERS
+         * ***********************************************************/
         State m_State{ State::RUNNING };
-
         std::shared_ptr<Window> m_MainWindow{};
+
+        // TODO: remove, use their namespaces
         std::unique_ptr<LayerStack> m_LayerStack{};
         std::shared_ptr<ImGuiLayer> m_ImGuiLayer{};
+        bool m_MainWindowMinimized{ false }; // remove, window should be able to know if it's minimized or not
 
     };
 }

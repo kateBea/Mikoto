@@ -33,7 +33,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetUpDirection() const -> glm::vec3;
         MKT_NODISCARD auto GetRightDirection() const -> glm::vec3;
         MKT_NODISCARD auto GetForwardDirection() const -> glm::vec3;
-        MKT_NODISCARD auto GetPosition() const -> const glm::vec3 & { return m_Position; }
+        MKT_NODISCARD auto GetPosition() const -> const glm::vec3& { return m_Position; }
         MKT_NODISCARD auto GetOrientation() const -> glm::quat;
 
         MKT_NODISCARD auto GetDistance() const -> float { return m_Distance; }

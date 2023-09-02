@@ -32,6 +32,7 @@ namespace Mikoto {
 
     auto EditorCamera::UpdateView() -> void {
         // m_Yaw = m_Pitch = 0.0f; // Lock the camera's rotation
+
         m_Position = CalculatePosition();
 
         glm::quat orientation{ GetOrientation() };
@@ -71,11 +72,11 @@ namespace Mikoto {
         if (InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Right)) {
             MousePan(delta);
         }
-        else if (InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Left)) {
-            MouseRotate(delta);
-        }
         else if (InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Middle)) {
             MouseZoom(delta.y);
+        }
+        else if (InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Left)) {
+            MouseRotate(delta);
         }
 
         UpdateView();

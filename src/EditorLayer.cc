@@ -37,7 +37,7 @@ namespace Mikoto {
 
     auto EditorLayer::OnUpdate(double ts) -> void {
         RenderCommand::SetClearColor(m_SettingsPanelInfo->ClearColor);
-        if (m_ScenePanel->IsFocused()) {
+        if (m_ScenePanel->IsFocused() && m_ScenePanel->IsHovered()) {
             m_EditorCamera->OnUpdate(ts);
         }
 
@@ -47,7 +47,9 @@ namespace Mikoto {
     }
 
     auto EditorLayer::OnEvent(Event& event) -> void {
-        m_EditorCamera->OnEvent(event);
+        if (m_ScenePanel->IsFocused() && m_ScenePanel->IsHovered()) {
+            m_EditorCamera->OnEvent(event);
+        }
 
         // Events for panels
         m_SettingsPanel->OnEvent(event);

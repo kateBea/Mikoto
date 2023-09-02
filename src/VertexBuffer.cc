@@ -16,12 +16,12 @@
 #include <Renderer/OpenGL/OpenGLVertexBuffer.hh>
 
 namespace Mikoto {
-    auto VertexBuffer::CreateBuffer(const std::vector<float>& data) -> std::shared_ptr<VertexBuffer> {
+    auto VertexBuffer::Create(const std::vector<float>& data, const BufferLayout& layout) -> std::shared_ptr<VertexBuffer> {
         VertexBufferCreateInfo createInfo{};
 
         createInfo.Data = data;
-        createInfo.RetainData = false;
-        createInfo.Layout = VertexBuffer::GetDefaultBufferLayout();
+        createInfo.RetainData = false; // for future use
+        createInfo.Layout = layout;
 
         switch(Renderer::GetActiveGraphicsAPI()) {
             case GraphicsAPI::OPENGL_API:

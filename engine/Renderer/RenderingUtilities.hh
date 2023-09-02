@@ -52,6 +52,7 @@ namespace Mikoto {
         CONE_PREFAB_OBJECT,
         CYLINDER_PREFAB_OBJECT,
         SPHERE_PREFAB_OBJECT,
+        SPONZA_PREFAB_OBJECT,
         COUNT_PREFAB_OBJECT,
     };
 

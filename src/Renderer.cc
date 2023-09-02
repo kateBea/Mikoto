@@ -84,6 +84,7 @@ namespace Mikoto {
             auto& sphere{ s_Prefabs[GetSpherePrefabName()] };
             auto& cylinder{ s_Prefabs[GetCylinderPrefabName()] };
             auto& cone{ s_Prefabs[GetConePrefabName()] };
+            auto& sponza{ s_Prefabs[GetSponzaPrefabName()] };
 
             // retrieve prefab type
             switch (objectData.PrefabType) {
@@ -101,6 +102,9 @@ namespace Mikoto {
                     break;
                 case PrefabSceneObject::CONE_PREFAB_OBJECT:
                     data->ModelData = cone.ModelData;
+                    break;
+                case PrefabSceneObject::SPONZA_PREFAB_OBJECT:
+                    data->ModelData = sponza.ModelData;
                     break;
                 case PrefabSceneObject::COUNT_PREFAB_OBJECT:
                     MKT_CORE_LOGGER_WARN("Unknown prefab");
@@ -143,6 +147,7 @@ namespace Mikoto {
         AddSpherePrefab();
         AddCylinderPrefab();
         AddConePrefab();
+        AddSponzaPrefab();
     }
 
     auto Renderer::AddSpritePrefab() -> void {
@@ -155,17 +160,8 @@ namespace Mikoto {
         };
 
         // Set index and vertex buffers
-        auto vertexBuffer{ VertexBuffer::CreateBuffer(squareData) };
+        auto vertexBuffer{ VertexBuffer::Create(squareData, VertexBuffer::GetDefaultBufferLayout()) };
         auto indexBuffer{ IndexBuffer::Create({0, 1, 2, 2, 3, 0}) };
-
-        // Set layout
-        // get layout from model since it is used later to create the model prefab
-        vertexBuffer->SetBufferLayout(BufferLayout{
-                { ShaderDataType::FLOAT3_TYPE, "a_Position" },
-                { ShaderDataType::FLOAT3_TYPE, "a_Normal" },
-                { ShaderDataType::FLOAT3_TYPE, "a_Color" },
-                { ShaderDataType::FLOAT2_TYPE, "a_TextureCoordinates" },
-        });
 
         // Construct mesh and add it to the model
         MeshData meshData{};
@@ -220,5 +216,15 @@ namespace Mikoto {
 
         // Add model to the list of prefabs
         s_Prefabs.emplace(GetConePrefabName(), prefab);
+    }
+
+    auto Renderer::AddSponzaPrefab() -> void {
+        // Construct mesh and add it to the model
+        PrefabData prefab{};
+        prefab.TransformData = {};
+        prefab.ModelData = std::make_shared<ModelPrefab>("../assets/models/Prefabs/sponza/glTF/Sponza.gltf");
+
+        // Add model to the list of prefabs
+        s_Prefabs.emplace(GetSponzaPrefabName(), prefab);
     }
 }

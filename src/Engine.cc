@@ -10,14 +10,14 @@
 #include <fmt/ranges.h>
 
 // Project Headers
-#include "Core/Engine.hh"
-#include <Core/Application.hh>
+#include <Core/Engine.hh>
 #include <Core/Logger.hh>
+#include <Core/Application.hh>
 #include <Editor/EditorLayer.hh>
 
 
 namespace Mikoto {
-    auto Engine::Run(Int32_T argc, char **argv) -> Int32_T {
+    auto Engine::Run(Int32_T argc, char** argv) -> Int32_T {
         auto& application{ Application::Get() };
 
         try {

@@ -282,7 +282,11 @@ namespace Mikoto {
          * */
         MKT_NODISCARD auto IsEmpty() const -> bool { return m_Size == 0; }
 
-        MKT_NODISCARD static auto CreateBuffer(const std::vector<float>& data) -> std::shared_ptr<VertexBuffer>;
+        /**
+         * Creates a vertex buffer with the specified layout
+         * @returns pointer to the newly created buffer
+         * */
+        MKT_NODISCARD static auto Create(const std::vector<float>& data, const BufferLayout& layout) -> std::shared_ptr<VertexBuffer>;
 
         /**
          * Releases the resources of this vertex buffer

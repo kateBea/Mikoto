@@ -41,10 +41,9 @@ namespace Mikoto {
         MKT_NODISCARD static auto GetActiveGraphicsAPI() -> GraphicsAPI { return s_ActiveAPI;  }
         MKT_NODISCARD static auto GetActiveGraphicsAPIPtr() -> RendererAPI* { return s_ActiveRendererAPI;  }
 
-        MKT_NODISCARD static auto QueryDrawCallsCount() -> UInt32_T { return s_SavedSceneStats->GetDrawCallsCount(); }
-        MKT_NODISCARD static auto QueryQuadCount() -> UInt32_T { return s_SavedSceneStats->GetQuadCount(); }
-        MKT_NODISCARD static auto QueryIndexCount() -> UInt32_T { return s_SavedSceneStats->GetIndexCount(); }
-        MKT_NODISCARD static auto QueryVertexCount() -> UInt32_T { return s_SavedSceneStats->GetVertexCount(); }
+        MKT_NODISCARD static auto QueryDrawCallsCount() -> UInt64_T { return s_SavedSceneStats->GetDrawCallsCount(); }
+        MKT_NODISCARD static auto QueryIndexCount() -> UInt64_T { return s_SavedSceneStats->GetIndexCount(); }
+        MKT_NODISCARD static auto QueryVertexCount() -> UInt64_T { return s_SavedSceneStats->GetVertexCount(); }
 
     private:
         /*************************************************************

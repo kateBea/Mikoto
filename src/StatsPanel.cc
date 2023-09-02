@@ -28,18 +28,64 @@ namespace Mikoto {
         if (m_PanelIsVisible) {
             ImGui::Begin("Statistics");
 
-            ImGui::Text("Elapsed: %s", TimeManager::ToString(TimeManager::GetTime()).c_str());
-            ImGui::Text("Draw calls count: %d", Renderer::QueryDrawCallsCount());
-            ImGui::Text("Quad count: %d", Renderer::QueryQuadCount());
-            ImGui::Text("Index count: %d", Renderer::QueryIndexCount());
-            ImGui::Text("Vertex count: %d", Renderer::QueryVertexCount());
-            ImGui::Text("Frame rate: %.1f", ImGui::GetIO().Framerate);
+            DrawStatisticsTable();
 
             ImGui::End();
         }
     }
 
-    auto StatsPanel::OnEvent(Event &event) -> void {
+    auto StatsPanel::DrawStatisticsTable() -> void {
+        static constexpr Int32_T COLUM_COUNT{ 2 };
+        static constexpr ImGuiTableFlags flags{ ImGuiTableFlags_SizingStretchSame |
+                                               ImGuiTableFlags_Resizable |
+                                               ImGuiTableFlags_BordersOuter |
+                                               ImGuiTableFlags_BordersV |
+                                               ImGuiTableFlags_ContextMenuInBody |
+                                               ImGuiTableFlags_Borders |
+                                               ImGuiTableFlags_RowBg };
+
+        if (ImGui::BeginTable("Stats", COLUM_COUNT, flags)) {
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("Elapsed");
+            ImGui::TableNextColumn();
+            ImGui::Text("%s", TimeManager::ToString(TimeManager::GetTime()).c_str());
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("Draw Calls");
+            ImGui::TableNextColumn();
+            ImGui::Text("%lu", Renderer::QueryDrawCallsCount());
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("Indices");
+            ImGui::TableNextColumn();
+            ImGui::Text("%lu", Renderer::QueryIndexCount());
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("Vertices");
+            ImGui::TableNextColumn();
+            ImGui::Text("%lu", Renderer::QueryVertexCount());
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("FPS");
+            ImGui::TableNextColumn();
+            ImGui::Text("%.1f", ImGui::GetIO().Framerate);
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::Text("Frame Time");
+            ImGui::TableNextColumn();
+            ImGui::Text("%.2f ms", TimeManager::GetDeltaTime(TimeUnit::MILLISECONDS));
+
+            ImGui::EndTable();
+        }
+    }
+
+    auto StatsPanel::OnEvent(Event& event) -> void {
 
     }
 }

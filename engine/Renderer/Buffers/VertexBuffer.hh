@@ -271,7 +271,7 @@ namespace Mikoto {
          * */
         MKT_NODISCARD auto GetSize() const -> Size_T { return m_Size; }
         /**
-         * Returns the total number of vertices contained within this vertex buffer
+         * Returns the total number of vertices within this vertex buffer
          * @return number of vertices
          * */
         MKT_NODISCARD virtual auto GetCount() const -> Size_T { return m_Count; }

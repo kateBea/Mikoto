@@ -76,25 +76,46 @@ namespace Mikoto {
     struct RenderingStats {
         explicit RenderingStats() = default;
         RenderingStats(const RenderingStats& other) = default;
+        auto operator=(const RenderingStats& other) -> RenderingStats& = default;
 
-        MKT_NODISCARD auto GetQuadCount() const -> UInt32_T { return m_QuadCount; }
-        MKT_NODISCARD auto GetDrawCallsCount() const -> UInt32_T { return m_DrawCallsCount; }
+        MKT_NODISCARD auto GetDrawCallsCount() const -> UInt64_T { return m_DrawCallsCount; }
 
-        // This value is fixed since all quads need four vertices at most
-        MKT_NODISCARD auto GetVertexCount() const -> UInt32_T { return m_QuadCount * 4; }
-        // This value is fixed since all quads need six indices at most
-        MKT_NODISCARD auto GetIndexCount() const -> UInt32_T { return m_QuadCount * 6; }
 
-        auto IncrementDrawCallCount(UInt32_T value) { m_DrawCallsCount += value; }
-        auto IncrementQuadCount(UInt32_T value) { m_QuadCount += value; }
+        MKT_NODISCARD auto GetVertexCount() const -> UInt64_T { return m_VertexCount; }
+        MKT_NODISCARD auto GetIndexCount() const -> UInt64_T { return m_IndexCount; }
+        MKT_NODISCARD auto GetDrawCallCount() const -> UInt64_T { return m_DrawCallsCount; }
 
+        /**
+         * Increments the total number of draw calls by the given amount
+         * @param value increment value
+         * */
+        auto IncrementDrawCallCount(UInt64_T value) { m_DrawCallsCount += value; }
+
+        /**
+         * Increments the total number of indices by the given amount
+         * @param value increment value
+         * */
+        auto IncrementIndexCount(UInt64_T value) { m_IndexCount += value; }
+
+        /**
+         * Increments the total number of vertices by the given amount
+         * @param value increment value
+         * */
+        auto IncrementVertexCount(UInt64_T value) { m_VertexCount += value; }
+
+        /**
+         * Sets the 0 the counters for vertices, indices and draw calls
+         * */
         auto Reset() -> void {
             m_DrawCallsCount = 0;
-            m_QuadCount = 0;
+            m_IndexCount = 0;
+            m_VertexCount = 0;
         }
 
-        UInt32_T m_DrawCallsCount{};
-        UInt32_T m_QuadCount{};
+    private:
+        UInt64_T m_DrawCallsCount{};
+        UInt64_T m_IndexCount{};
+        UInt64_T m_VertexCount{};
     };
 
     struct RendererDrawData {

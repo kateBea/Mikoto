@@ -24,18 +24,21 @@ namespace Mikoto {
     }
 
     auto Renderer::Submit(std::shared_ptr<DrawData> data) -> void {
+        // Compute render stats
+        for (const auto& mesh : data->ModelData->GetMeshes()) {
+            s_RenderingStats->IncrementIndexCount(mesh.GetIndexBuffer()->GetCount());
+            s_RenderingStats->IncrementVertexCount(mesh.GetVertexBuffer()->GetCount());
+        }
+
         RenderCommand::AddToRenderQueue(std::move(data));
 
-        // TODO: review
-        // Rendering Stats management
-        s_RenderingStats->IncrementQuadCount(1);
-        // We increment the number of draw calls because for now
-        // The RenderCommand directly flushes the draw call
+        // At the moment, we need a draw call per mesh because every
+        // mesh has a single vertex and index buffers which are used for rendering
         s_RenderingStats->IncrementDrawCallCount(1);
     }
 
     auto Renderer::EndScene() -> void {
-        s_SavedSceneStats = std::make_unique<RenderingStats>(*s_RenderingStats);
+        *s_SavedSceneStats = *s_RenderingStats;
         s_RenderingStats->Reset();
     }
 

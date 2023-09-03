@@ -14,6 +14,7 @@
 #include <Utility/Common.hh>
 #include <Core/KeyCodes.hh>
 #include <Core/MouseButtons.hh>
+#include <Core/Application.hh>
 #include <Scene/EditorCamera.hh>
 #include <Platform/InputManager.hh>
 
@@ -47,7 +48,7 @@ namespace Mikoto {
         float y = std::min(m_ViewportHeight / 1000.0f, 2.4f); // max = 2.4f
         float yFactor = 0.0366f * (y * y) - 0.1778f * y + 0.3021f;
 
-        return std::make_pair(xFactor, yFactor );
+        return std::make_pair(xFactor, yFactor);
     }
 
     auto EditorCamera::RotationSpeed() const -> float {

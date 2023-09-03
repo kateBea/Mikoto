@@ -129,6 +129,7 @@ namespace Mikoto {
             layer->OnImGuiRender();
         m_ImGuiLayer->EndFrame();
 
+
         m_MainWindow->OnUpdate();
     }
 

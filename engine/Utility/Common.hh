@@ -21,6 +21,9 @@
 #include <fmt/core.h>
 #include <fmt/ranges.h>
 
+// Project Headers
+#include <Utility/Types.hh>
+
 /*************************************************************
 * MACROS -----------------------------------------------------
 * ********************************************************+ */
@@ -233,39 +236,43 @@
     }
 
 
-/*************************************************************
-* TYPE ALIAS -------------------------------------------------
-* ********************************************************+ */
-
 namespace Mikoto {
-    using Path_T = std::filesystem::path;
-
-    using Int8_T = std::int8_t;
-    using Int16_T = std::int16_t;
-    using Int32_T = std::int32_t;
-    using Int64_T = std::int64_t;
-
-    using UInt8_T = std::uint8_t;
-    using UInt16_T = std::uint16_t;
-    using UInt32_T = std::uint32_t;
-    using UInt64_T = std::uint64_t;
-
-    using UShort_T = unsigned short;
-    using ULong_T = unsigned short;
-    using ULongLong_T = unsigned long long;
-
-    using Short_T = unsigned short;
-    using Long_T = unsigned long;
-    using LongLong_T = long long;
-
-    using Size_T = std::size_t;
-
-    using CharArray = std::vector<char>;
+    /*************************************************************
+     * UTILITY FUNCTIONS (HELPERS)
+     *
+     * List of convenient functions needed by some utility functions.
+     * Do not call these, they serve for internal usage only.
+     * ************************************************************/
 
     /**
-     * Transforms wide char strings to byte char strings. On Windows
-     * std::filesystem::string returns a string of wide char types (wchar_t),
-     * whereas on windows it returns a string of  char
+     * Returns a string which is the concatenation of the string
+     * representation of the given values.
+     * @see ConcatStr(...)
+     * */
+    template<typename T, typename... Args>
+    inline auto ConcatStr_H(const T& first, Args&&... args) -> std::string {
+        std::string result{};
+        result.append(fmt::to_string(first));
+
+        std::string expansion{};
+        if constexpr (sizeof...(args))
+            expansion = std::move(ConcatStr_(args...));
+
+        result.append(expansion);
+
+        return result;
+    }
+
+    /*************************************************************
+     * UTILITY FUNCTIONS
+     *
+     * List of convenient functions
+     * ************************************************************/
+
+    /**
+     * Transforms wide char strings to byte char strings. On Windows std::filesystem::string
+     * returns a string of wide char types (wchar_t), whereas on linux it returns a string of char
+     * @param path path to the file
      * @returns string of byte sized characters
      * */
     inline auto GetByteChar(const Path_T &path) -> std::string {
@@ -278,19 +285,22 @@ namespace Mikoto {
         return fileDir;
     }
 
-    // TODO: temporary, need to specify args in reversed order at the moment to get desired output
-    template<typename T, typename... Args>
-    inline auto ConcatStr(const T& first, Args... args) -> std::string {
-        std::string result{};
-
-        if constexpr (sizeof...(args))
-            result = std::move(ConcatStr(args...));
-
-        result.append(fmt::to_string(first));
-
-        return result;
+    /**
+     * Returns a string which is the concatenation of the string
+     * representation of the given values.
+     * @param args list of values
+     * @tparam Args types of the given values
+     * */
+    template<typename... Args>
+    inline auto ConcatStr(Args&&... args) -> decltype(auto) {
+        return ConcatStr_(std::forward<Args>(args)...);
     }
 
+    /**
+     * Prints a glm matrix to the standard output
+     * @param mat matrix to be printed
+     * @tparam GLMMatrixType matrix type
+     * */
     template<typename GLMMatrixType>
     inline auto PrintMatrix(const GLMMatrixType& mat) -> void {
         UInt32_T rowIdx{};
@@ -304,8 +314,14 @@ namespace Mikoto {
         }
     }
 
+    /**
+     * Returns a string containing the data from a file
+     * @param path path to the file
+     * @returns contents of the file
+     * */
     inline auto GetFileData(const Path_T& path) -> std::string {
         std::ifstream file{ path, std::ios::binary };
+
         if (!file.is_open())
             throw std::runtime_error("Failed to open file");
 

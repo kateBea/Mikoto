@@ -30,6 +30,8 @@ namespace Mikoto::InputManager {
 
     auto PrintKey(KeyCode keycode) -> void;
     auto PrintMouse(MouseButton button) -> void;
+    auto HideCursor() -> void;
+    auto ShowCursor() -> void;
 
     auto ShutDown() -> void;
 

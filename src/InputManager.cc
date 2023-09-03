@@ -80,6 +80,32 @@ namespace Mikoto::InputManager {
         auto [mouseX, mouseY]{ GetMousePos() };
         return mouseY;
     }
+
+    auto HideCursor() -> void {
+        GLFWwindow* window{ nullptr };
+
+        try {
+            // We expect the native window for Linux Window to be a GLFWwindow*
+            window = std::any_cast<GLFWwindow*>(Application::Get().GetMainWindow().GetNativeWindow());
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+        }
+        catch (const std::bad_any_cast& exception) {
+            MKT_APP_LOGGER_ERROR("Exception thrown std::any_cast. What: {}", exception.what());
+        }
+    }
+
+    auto ShowCursor() -> void {
+        GLFWwindow* window{ nullptr };
+
+        try {
+            // We expect the native window for Linux Window to be a GLFWwindow*
+            window = std::any_cast<GLFWwindow*>(Application::Get().GetMainWindow().GetNativeWindow());
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+        catch (const std::bad_any_cast& exception) {
+            MKT_APP_LOGGER_ERROR("Exception thrown std::any_cast. What: {}", exception.what());
+        }
+    }
 #endif
 
     auto Init() -> void {

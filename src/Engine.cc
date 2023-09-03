@@ -18,6 +18,8 @@
 
 namespace Mikoto {
     auto Engine::Run(Int32_T argc, char** argv) -> Int32_T {
+        ParseArguments(argc, argv);
+
         auto& application{ Application::Get() };
 
         try {
@@ -40,5 +42,11 @@ namespace Mikoto {
         }
 
         return 0;
+    }
+
+    auto Engine::ParseArguments(Int32_T argc, char **argv) -> void {
+        const auto LIMIT{ &argv[argc] };
+        for ( ; argv < LIMIT; ++argv)
+            m_CommandLineArgs.emplace_back(*argv);
     }
 }

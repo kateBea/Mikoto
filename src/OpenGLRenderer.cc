@@ -70,7 +70,11 @@ namespace Mikoto {
     auto OpenGLRenderer::Init() -> void {
         // Blending
         glEnable(GL_BLEND);
+        glBlendEquation(GL_FUNC_ADD);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        // Enable Depth testing
+        glEnable(GL_DEPTH_TEST);
 
         // Face culling
         // Temporarily disabled

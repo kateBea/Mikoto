@@ -47,14 +47,6 @@ namespace Mikoto {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, m_FrameBufferCreateInfo.width, m_FrameBufferCreateInfo.height, 0,
                      GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
 
-        // Enable Depth testing
-        glEnable(GL_DEPTH_TEST);
-
-        // Enable blending and setup blending function
-        glEnable(GL_BLEND);
-        glBlendEquation(GL_FUNC_ADD);  // Default blend equation
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  // Default blending factors
-
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_DepthAttachment, 0);
 
         bool result{ glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE };

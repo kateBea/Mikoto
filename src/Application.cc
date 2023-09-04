@@ -50,7 +50,6 @@ namespace Mikoto {
         MKT_CORE_LOGGER_DEBUG("Init time {}", TimeManager::GetTime());
     }
 
-    // Should probably not be here
     auto Application::OnEvent(Event& event) -> void {
         MKT_CORE_LOGGER_TRACE("{}", event.DisplayData());
 

@@ -91,6 +91,13 @@ set(SCENE_SOURCES
         src/Scene.cc src/SceneCamera.cc
         src/EditorCamera.cc)
 
+set(IMGUIZMO_SOURCES
+        vendor/ImGuizmo/ImGuizmo.cpp
+        vendor/ImGuizmo/GraphEditor.cpp
+        vendor/ImGuizmo/ImCurveEdit.cpp
+        vendor/ImGuizmo/ImGradient.cpp
+        vendor/ImGuizmo/ImSequencer.cpp)
+
 set(SOURCES
         ${CORE_SOURCES}
         ${PLATFORM_SOURCES}
@@ -98,6 +105,7 @@ set(SOURCES
         ${RENDERER_SOURCES}
         ${EDITOR_SOURCES}
         ${SCENE_SOURCES}
+        ${IMGUIZMO_SOURCES}
         src/Engine.cc src/stb_image.cc
         src/vk_mem_alloc.h.cc
         src/GUIManager.cc)
@@ -137,7 +145,7 @@ include_directories(vendor/entt/single_include)
 include_directories(vendor/volk)
 include_directories(vendor/assimp/include)
 include_directories(vendor/VulkanMemoryAllocator/include)
-
+include_directories(vendor/ImGuizmo)
 
 add_executable(${PROJECT_NAME} src/EntryPoint.cc ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBRARIES})

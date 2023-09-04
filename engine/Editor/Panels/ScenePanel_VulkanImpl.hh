@@ -19,6 +19,7 @@
 #include <Editor/Panels/ScenePanel.hh>
 #include <Renderer/RenderingUtilities.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
+#include <ImGuizmo.h>
 
 namespace Mikoto {
     class ScenePanel_VkImpl : public ScenePanelInterface {

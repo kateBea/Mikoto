@@ -256,7 +256,7 @@ namespace Mikoto {
 
         std::string expansion{};
         if constexpr (sizeof...(args))
-            expansion = std::move(ConcatStr_(args...));
+            expansion = std::move(ConcatStr_H(args...));
 
         result.append(expansion);
 
@@ -293,7 +293,7 @@ namespace Mikoto {
      * */
     template<typename... Args>
     inline auto ConcatStr(Args&&... args) -> decltype(auto) {
-        return ConcatStr_(std::forward<Args>(args)...);
+        return ConcatStr_H(std::forward<Args>(args)...);
     }
 
     /**

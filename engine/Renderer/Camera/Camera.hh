@@ -43,7 +43,7 @@ namespace Mikoto {
             m_Transform = glm::translate(IDENTITY_MATRIX, position) * rotation;
         }
 
-        virtual ~Camera() = default;
+        ~Camera() = default;
 
     private:
         static constexpr glm::vec3 X_AXIS{ 1.0f, 0.0f, 0.0f };

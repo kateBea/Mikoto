@@ -44,7 +44,7 @@ namespace Mikoto {
         /**
          * Updates the state of this panel
          * */
-        auto OnUpdate() -> void { static_cast<PanelType>(this)->OnUpdate(); }
+        auto OnUpdate() -> void { static_cast<PanelType>(this)->OnUpdate(0); }
 
         /**
          * Must be called everytime we want to propagate an event to

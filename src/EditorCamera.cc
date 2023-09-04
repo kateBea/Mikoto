@@ -23,6 +23,9 @@ namespace Mikoto {
         :   Camera{ glm::perspective(glm::radians(fov), aspectRatio, nearClip, farClip) }
         ,   m_FieldOfView{ fov }, m_AspectRatio{ aspectRatio }, m_NearClip{ nearClip }, m_FarClip{ farClip }
     {
+        m_ForwardVector = glm::vec3(0.0f, 0.0f, -10.0f);
+        m_Position = glm::vec3(0.0f, 0.0f, -5.0f);
+
         UpdateView();
     }
 
@@ -32,52 +35,58 @@ namespace Mikoto {
     }
 
     auto EditorCamera::UpdateView() -> void {
-        // m_Yaw = m_Pitch = 0.0f; // Lock the camera's rotation
-
-        m_Position = CalculatePosition();
-
-        glm::quat orientation{ GetOrientation() };
-        m_ViewMatrix = glm::translate(glm::mat4(1.0f), m_Position) * glm::toMat4(orientation);
+        m_ViewMatrix = glm::lookAt(m_Position, m_Position + m_ForwardVector, CAMERA_UP_VECTOR);
         m_ViewMatrix = glm::inverse(m_ViewMatrix);
     }
 
-    auto EditorCamera::PanSpeed() const -> std::pair<float, float> {
-        float x = std::min(m_ViewportWidth / 1000.0f, 2.4f); // max = 2.4f
-        float xFactor = 0.0366f * (x * x) - 0.1778f * x + 0.3021f;
+    auto EditorCamera::OnUpdate(double timeStep) -> void {
+        m_RightVector = glm::cross(m_ForwardVector, CAMERA_UP_VECTOR);
+        const glm::vec2 MOUSE_CURRENT_POSITION{ InputManager::GetMouseX(), InputManager::GetMouseY() };
+        glm::vec2 delta{ (MOUSE_CURRENT_POSITION - m_LastMousePosition) * 0.003f };
+        m_LastMousePosition = MOUSE_CURRENT_POSITION;
 
-        float y = std::min(m_ViewportHeight / 1000.0f, 2.4f); // max = 2.4f
-        float yFactor = 0.0366f * (y * y) - 0.1778f * y + 0.3021f;
-
-        return std::make_pair(xFactor, yFactor);
-    }
-
-    auto EditorCamera::RotationSpeed() const -> float {
-        return m_RotationSpeed;
-    }
-
-    auto EditorCamera::ZoomSpeed() const -> float {
-        float distance{ m_Distance * 0.2f };
-        distance = std::max(distance, 0.0f);
-
-        float speed = distance * distance;
-        speed = std::min(speed, 100.0f); // max speed = 100
-
-        return speed;
-    }
-
-    auto EditorCamera::OnUpdate(double ts) -> void {
-        const glm::vec2 mouse{ InputManager::GetMouseX(), InputManager::GetMouseY() };
-        glm::vec2 delta{ (mouse - m_InitialMousePosition) * 0.003f };
-        m_InitialMousePosition = mouse;
-
-        if (InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Right)) {
-            MousePan(delta);
+        if (!InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Left)) {
+            InputManager::SetCursorMode(InputManager::CursorInputMode::CURSOR_NORMAL);
+            return;
         }
-        else if (InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Middle)) {
-            MouseZoom(delta.y);
+
+        InputManager::SetCursorMode(InputManager::CursorInputMode::CURSOR_DISABLED);
+
+        if (InputManager::IsKeyPressed(KeyCode::Key_W)) {
+            m_Position -= m_ForwardVector * m_MovementSpeed * (float)timeStep;
         }
-        else if (InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Left)) {
-            MouseRotate(delta);
+
+        if (InputManager::IsKeyPressed(KeyCode::Key_A)) {
+            m_Position += m_RightVector * m_MovementSpeed * (float)timeStep;
+        }
+
+        if (InputManager::IsKeyPressed(KeyCode::Key_S)) {
+            m_Position += m_ForwardVector * m_MovementSpeed * (float)timeStep;
+        }
+
+        if (InputManager::IsKeyPressed(KeyCode::Key_D)) {
+            m_Position -= m_RightVector * m_MovementSpeed * (float)timeStep;
+        }
+
+        if (InputManager::IsKeyPressed(KeyCode::Key_Space) || InputManager::IsKeyPressed(KeyCode::Key_E)) {
+            m_Position.y -= m_MovementSpeed * (float)timeStep;
+        }
+
+        if (InputManager::IsKeyPressed(KeyCode::Key_Q)) {
+            m_Position.y += m_MovementSpeed * (float)timeStep;
+        }
+
+        // Perform rotation
+        if (delta.x != 0.0f || delta.y != 0.0f) {
+            // The Y offset of the mouse will dictate how much we rotate in the X axis
+            m_Pitch = delta.y * m_RotationSpeed * (float)timeStep;
+            // The X offset of the mouse will dictate how much we rotate in the Y axis
+            m_Yaw = delta.x * m_RotationSpeed * (float)timeStep;
+
+            const glm::quat quaternion{ glm::normalize(glm::cross(glm::angleAxis(-m_Pitch, glm::normalize(m_RightVector)),
+                                                                 glm::angleAxis(-m_Yaw, CAMERA_UP_VECTOR))) };
+
+            m_ForwardVector = glm::rotate(quaternion, m_ForwardVector);
         }
 
         UpdateView();
@@ -90,57 +99,14 @@ namespace Mikoto {
     }
 
     auto EditorCamera::OnMouseScroll(MouseScrollEvent& event) -> bool {
-        float delta{ (float)event.GetOffsetY() * 0.1f };
-
-        MouseZoom(delta);
         UpdateView();
-
         return false;
     }
 
-    auto EditorCamera::MousePan(const glm::vec2& delta) -> void {
-        auto [xSpeed, ySpeed]{ PanSpeed() };
-
-        m_FocalPoint += -GetRightDirection() * delta.x * xSpeed * m_Distance;
-        m_FocalPoint += GetUpDirection() * delta.y * ySpeed * m_Distance;
-    }
-
-    auto EditorCamera::MouseRotate(const glm::vec2 &delta) -> void {
-        float yawSign = GetUpDirection().y < 0 ? -1.0f : 1.0f;
-        m_Yaw += yawSign * delta.x * RotationSpeed();
-        m_Pitch += delta.y * RotationSpeed();
-    }
-
-    auto EditorCamera::MouseZoom(float delta) -> void {
-        m_Distance -= delta * ZoomSpeed();
-
-        if (m_Distance < 1.0f) {
-            m_FocalPoint += GetForwardDirection();
-            m_Distance = 1.0f;
-        }
-    }
-
-    auto EditorCamera::GetUpDirection() const -> glm::vec3 {
-        return glm::rotate(GetOrientation(), glm::vec3(0.0f, 1.0f, 0.0f));
-    }
-
-    auto EditorCamera::GetRightDirection() const -> glm::vec3 {
-        return glm::rotate(GetOrientation(), glm::vec3(1.0f, 0.0f, 0.0f));
-    }
-
-    auto EditorCamera::GetForwardDirection() const -> glm::vec3 {
-        return glm::rotate(GetOrientation(), glm::vec3(0.0f, 0.0f, -1.0f));
-    }
-
-    auto EditorCamera::CalculatePosition() const -> glm::vec3 {
-        return m_FocalPoint - GetForwardDirection() * m_Distance;
-    }
-
-    auto EditorCamera::GetOrientation() const -> glm::quat {
-        return { glm::vec3(-m_Pitch, -m_Yaw, 0.0f) };
-    }
-
     auto EditorCamera::SetViewportSize(float width, float height) -> void {
+        if (m_ViewportWidth == width && m_ViewportHeight == height)
+            return;
+
         m_ViewportWidth = width;
         m_ViewportHeight = height;
 

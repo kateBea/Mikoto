@@ -20,6 +20,15 @@
 
 
 namespace Mikoto::InputManager {
+    /*************************************************************
+    * STRUCTURES
+    * ***********************************************************/
+    enum CursorInputMode {
+        CURSOR_NORMAL = 0,
+        CURSOR_HIDDEN = 1,
+        CURSOR_DISABLED = 3,
+    };
+
     auto Init() -> void;
 
     auto IsKeyPressed(Int32_T keyCode) -> bool;
@@ -30,7 +39,7 @@ namespace Mikoto::InputManager {
 
     auto PrintKey(KeyCode keycode) -> void;
     auto PrintMouse(MouseButton button) -> void;
-    auto HideCursor() -> void;
+    auto SetCursorMode(CursorInputMode mode) -> void;
     auto ShowCursor() -> void;
 
     auto ShutDown() -> void;

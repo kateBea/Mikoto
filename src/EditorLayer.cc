@@ -21,7 +21,6 @@
 namespace Mikoto {
     auto EditorLayer::OnAttach() -> void {
         InitializePanels();
-        //AddSceneTestEntities();
         InitializeSceneCameras();
 
         {
@@ -36,11 +35,13 @@ namespace Mikoto {
     }
 
     auto EditorLayer::OnUpdate(double ts) -> void {
+        // Set color clearing
         RenderCommand::SetClearColor(m_SettingsPanelInfo->ClearColor);
-        if (m_ScenePanel->IsFocused() && m_ScenePanel->IsHovered()) {
+
+        // Update camera only if the viewport panel is active
+        if (m_ScenePanel->IsFocused()) {
             m_EditorCamera->OnUpdate(ts);
         }
-
 
         m_EditorCamera->SetViewportSize(m_ScenePanelInfo->ViewPortWidth, m_ScenePanelInfo->ViewPortHeight);
         m_ScenePanelInfo->Viewport->OnEditorUpdate(ts, *m_EditorCamera);
@@ -74,6 +75,9 @@ namespace Mikoto {
         m_InspectorPanel->OnUpdate();
         m_ScenePanel->OnUpdate();
         m_StatsPanel->OnUpdate();
+
+        m_EditorCamera->SetMovementSpeed(m_SettingsPanel->GetData().EditorCameraMovementSpeed);
+        m_EditorCamera->SetRotationSpeed(m_SettingsPanel->GetData().EditorCameraRotationSpeed);
 
         if (controlFlags.ApplicationCloseFlag)
             Application::Get().Stop();

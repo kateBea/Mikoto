@@ -20,12 +20,9 @@ namespace Mikoto {
         explicit SettingsPanel() = default;
         explicit SettingsPanel(const std::shared_ptr<SettingsPanelData> &data, const Path_T &iconPath = {});
 
-        SettingsPanel(const SettingsPanel& other) = default;
-        SettingsPanel(SettingsPanel&& other) = default;
-
-        auto operator=(const SettingsPanel& other) -> SettingsPanel& = default;
         auto operator=(SettingsPanel&& other) -> SettingsPanel& = default;
 
+        MKT_NODISCARD auto GetData() const -> const SettingsPanelData& { return *m_Data; }
         auto OnUpdate() -> void;
         auto OnEvent(Event& event) ->  void;
         auto MakeVisible(bool value) ->  void { m_PanelIsVisible = value; }

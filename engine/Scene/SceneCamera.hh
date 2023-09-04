@@ -57,7 +57,7 @@ namespace Mikoto {
             // call SetOrthographic() or SetPerspective() accordingly
         }
 
-        ~SceneCamera() override = default;
+        ~SceneCamera() = default;
 
         auto SetOrthographic(double nearPlane, double farPlane, double size) -> void;
         auto SetPerspective(double nearPlane, double farPlane, double fov) -> void;

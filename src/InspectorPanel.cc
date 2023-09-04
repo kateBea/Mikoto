@@ -213,7 +213,8 @@ namespace Mikoto {
                 ImGui::Checkbox("##show", &renderContextSelectionToScene);
                 ImGui::SameLine();
 
-                if (ImGui::InputText("##Tag", contextSelectionTagName, std::size(contextSelectionTagName))) {
+                const ImGuiTextFlags flags{};
+                if (ImGui::InputText("##Tag", contextSelectionTagName, std::size(contextSelectionTagName), flags)) {
                     tag.SetTag(contextSelectionTagName);
                 }
 

@@ -45,9 +45,13 @@ namespace Mikoto {
     auto HierarchyPanel::DrawEntityNode(Entity& target) -> void {
         TagComponent& tag{ target.GetComponent<TagComponent>() };
         bool thisEntityIsSelected{ target == m_ContextSelection };
-        ImGuiTreeNodeFlags flags{  (thisEntityIsSelected ? ImGuiTreeNodeFlags_Selected : 0) |
-                                 ImGuiTreeNodeFlags_OpenOnArrow |  ImGuiTreeNodeFlags_SpanAvailWidth };
-        ImGuiTreeNodeFlags childNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen };
+        const ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_AllowItemOverlap |
+                                         ImGuiTreeNodeFlags_Framed |
+                                         ImGuiTreeNodeFlags_SpanAvailWidth |
+                                         ImGuiTreeNodeFlags_FramePadding };
+
+        ImGuiTreeNodeFlags flags{  styleFlags | (thisEntityIsSelected ? ImGuiTreeNodeFlags_Selected : 0) };
+        ImGuiTreeNodeFlags childNodeFlags{ styleFlags | ImGuiTreeNodeFlags_DefaultOpen };
 
         bool expanded{ ImGui::TreeNodeEx((void*)(target.m_EntityHandle), flags, "%s", tag.GetTag().c_str()) };
         if (ImGui::IsItemClicked(ImGuiMouseButton_Left))

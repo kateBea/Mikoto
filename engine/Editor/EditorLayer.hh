@@ -43,7 +43,21 @@ namespace Mikoto {
         * HELPERS
         * ***********************************************************/
         auto InitializePanels() -> void;
+
+        /**
+         * Properly initializes and adds two sprites to the scene
+         * @deprecated Now we are able to add game objects within the editor
+         * */
         auto AddSceneTestEntities() -> void;
+
+        /**
+         * Properly initializes and adds two cameras to the scene. One of them
+         * is the editor camera which will be active when we are editing the scene.
+         * The other is the runtime camera which is active when we are in the "play mode"
+         * This last camera should generally be added at runtime since the user
+         * is responsible of having a view to the world when it is playing, if
+         * there's no runtime camera we see nothing when the scene is playing
+         * */
         auto InitializeSceneCameras() -> void;
 
     private:
@@ -61,6 +75,7 @@ namespace Mikoto {
         std::shared_ptr<StatsPanel> m_StatsPanel{};
 
         // Panels data
+        // TODO: these should be part of the actual panels and be accessed via getters/setters
         std::shared_ptr<SettingsPanelData> m_SettingsPanelInfo{};
         std::shared_ptr<ScenePanelData> m_ScenePanelInfo{};
         std::shared_ptr<StatsPanelData> m_StatsPanelInfo{};

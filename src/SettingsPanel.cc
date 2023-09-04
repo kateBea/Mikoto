@@ -46,6 +46,17 @@ namespace Mikoto {
                     RenderCommand::DisableWireframeMode();
             }
 
+            const ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_AllowItemOverlap |
+                                                ImGuiTreeNodeFlags_Framed |
+                                                ImGuiTreeNodeFlags_SpanAvailWidth |
+                                                ImGuiTreeNodeFlags_FramePadding };
+
+            if (ImGui::TreeNodeEx((void*)123213, styleFlags, "%s", "Editor Camera")) {
+                ImGui::SliderFloat("Movement Speed", &(m_Data->EditorCameraMovementSpeed), 2.0f, 10.0f);
+                ImGui::SliderFloat("Rotation Speed", &(m_Data->EditorCameraRotationSpeed), 2.0f, 10.0f);
+                ImGui::TreePop();
+            }
+
             ImGui::End();
         }
     }

@@ -20,6 +20,17 @@
 namespace Mikoto::InputManager {
     // USE GLFW INPUT HANDLING
 #if defined(USE_GLFW_INPUT)
+    /*************************************************************
+    * INTERNAL HELPERS
+    * ***********************************************************/
+    static auto GetMode(CursorInputMode mode) -> Int32_T {
+        switch (mode) {
+            case CURSOR_NORMAL: return GLFW_CURSOR_NORMAL;
+            case CURSOR_HIDDEN: return GLFW_CURSOR_HIDDEN;
+            case CURSOR_DISABLED: return GLFW_CURSOR_DISABLED;
+        }
+    }
+
     auto IsKeyPressed(Int32_T keyCode) -> bool {
         GLFWwindow* window{ nullptr };
 
@@ -81,31 +92,19 @@ namespace Mikoto::InputManager {
         return mouseY;
     }
 
-    auto HideCursor() -> void {
+    auto SetCursorMode(CursorInputMode mode) -> void {
         GLFWwindow* window{ nullptr };
 
         try {
             // We expect the native window for Linux Window to be a GLFWwindow*
             window = std::any_cast<GLFWwindow*>(Application::Get().GetMainWindow().GetNativeWindow());
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+            glfwSetInputMode(window, GLFW_CURSOR, GetMode(mode));
         }
         catch (const std::bad_any_cast& exception) {
             MKT_APP_LOGGER_ERROR("Exception thrown std::any_cast. What: {}", exception.what());
         }
     }
 
-    auto ShowCursor() -> void {
-        GLFWwindow* window{ nullptr };
-
-        try {
-            // We expect the native window for Linux Window to be a GLFWwindow*
-            window = std::any_cast<GLFWwindow*>(Application::Get().GetMainWindow().GetNativeWindow());
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        }
-        catch (const std::bad_any_cast& exception) {
-            MKT_APP_LOGGER_ERROR("Exception thrown std::any_cast. What: {}", exception.what());
-        }
-    }
 #endif
 
     auto Init() -> void {

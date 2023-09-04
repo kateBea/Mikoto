@@ -19,7 +19,8 @@ namespace Mikoto {
     /**
      * Describes a modular entity that helps encapsulate and organize
      * functionality of the engine, i.e. subsystems of our engine, e.g.:
-     * Editor Layer which encapsulates elements like scene viewport, scene entities hierarchy, etc
+     * Editor Layer which encapsulates elements like scene viewport, scene
+     * entities hierarchy, etc.
      * */
     class Layer {
     public:
@@ -32,7 +33,7 @@ namespace Mikoto {
         virtual auto OnDetach() -> void = 0;
         virtual auto OnUpdate(double ts) -> void = 0;
 
-        virtual auto OnEvent(Event& event) -> void {}
+        virtual auto OnEvent(Event& event) -> void { (void)event; }
         virtual auto OnImGuiRender() -> void {}
 
         /**
@@ -43,8 +44,8 @@ namespace Mikoto {
 
     private:
         std::string m_Name{};
-    };
 
+    };
 }
 
 #endif // MIKOTO_LAYER_HH

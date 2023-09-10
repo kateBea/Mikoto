@@ -23,6 +23,9 @@ namespace Mikoto {
         InitializePanels();
         InitializeSceneCameras();
 
+        m_EditorCamera->SetMovementSpeed(m_SettingsPanel->GetData().EditorCameraMovementSpeed);
+        m_EditorCamera->SetRotationSpeed(m_SettingsPanel->GetData().EditorCameraRotationSpeed);
+
         {
             // scripting test
             // TODO: does not compile

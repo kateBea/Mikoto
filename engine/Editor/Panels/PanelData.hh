@@ -23,8 +23,8 @@ namespace Mikoto {
         bool VerticalSyncEnabled{ true };
         bool RenderWireframeMode{ false };
 
-        float EditorCameraMovementSpeed{ 1.5f };
-        float EditorCameraRotationSpeed{ 7.8f };
+        float EditorCameraMovementSpeed{};
+        float EditorCameraRotationSpeed{};
     };
 
     struct ScenePanelData {

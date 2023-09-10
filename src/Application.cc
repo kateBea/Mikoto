@@ -6,6 +6,7 @@
 // C++ Standard Library
 #include <memory>
 #include <cmath>
+#include <utility>
 
 // Project headers
 #include <Utility/Common.hh>
@@ -20,13 +21,23 @@
 #include <Platform/Window/MainWindow.hh>
 
 namespace Mikoto {
-    // TODO: turn static classes into namespaces
-    auto Application::Init() -> void {
+    auto Application::Init(AppSpec&& appSpec) -> void {
+        m_Spec = std::move(appSpec);
+
+        MKT_APP_LOGGER_INFO("Program executable (absolute path): {}", m_Spec.Executable.string());
+        MKT_APP_LOGGER_INFO("Program current working directory (absolute path): {}", m_Spec.WorkingDirectory.string());
+
         // Initialize the time manager
         TimeManager::Init();
 
         // Allocations
-        m_MainWindow = std::make_shared<MainWindow>();
+        WindowProperties windowProperties{};
+        windowProperties.SetTitle(m_Spec.Name);
+        windowProperties.SetWidth(m_Spec.WindowWidth);
+        windowProperties.SetHeight(m_Spec.WindowHeight);
+        windowProperties.SetBackend(m_Spec.RenderingBackend);
+
+        m_MainWindow = std::make_shared<MainWindow>(std::move(windowProperties));
         m_LayerStack = std::make_unique<LayerStack>();
         m_ImGuiLayer = std::make_shared<ImGuiLayer>(); // This should not be done here, should be handled by the gui manager which has an implementation for the gui for opengl and another for vulkan
 
@@ -38,9 +49,16 @@ namespace Mikoto {
         InputManager::Init();
 
         // Initialize rendering subsystems
-        RenderContext::Init(m_MainWindow);
+        RendererSpec renderSpec{};
+        renderSpec.Backend = m_Spec.RenderingBackend;
+
+        RenderContextSpec contextSpec{};
+        contextSpec.Backend = renderSpec.Backend;
+        contextSpec.WindowHandle = GetMainWindowPtr();
+
+        RenderContext::Init(std::move(contextSpec));
         RenderContext::EnableVSync();
-        Renderer::Init();
+        Renderer::Init(renderSpec);
 
         // Initialize the GUI layer
         // TODO: turn layer manager into a namespace
@@ -136,6 +154,7 @@ namespace Mikoto {
         m_State = State::STOPPED;
     }
 
+    // TODO: review
     auto Application::BlockImGuiLayerEvents(bool value) -> void {
         m_ImGuiLayer->SetBlockEvents(value);
     }

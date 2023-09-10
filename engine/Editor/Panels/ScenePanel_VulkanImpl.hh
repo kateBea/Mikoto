@@ -10,6 +10,7 @@
 #include <volk.h>
 #include <imgui.h>
 #include <backends/imgui_impl_vulkan.h>
+#include <ImGuizmo.h>
 
 // Project Headers
 #include <Core/Application.hh>
@@ -19,7 +20,6 @@
 #include <Editor/Panels/ScenePanel.hh>
 #include <Renderer/RenderingUtilities.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
-#include <ImGuizmo.h>
 
 namespace Mikoto {
     class ScenePanel_VkImpl : public ScenePanelInterface {

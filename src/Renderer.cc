@@ -8,7 +8,6 @@
 #include <utility>
 
 // Third-Party Libraries
-#include <glm/glm.hpp>
 
 // Project Headers
 #include <Utility/Common.hh>
@@ -46,7 +45,9 @@ namespace Mikoto {
         RenderCommand::Flush();
     }
 
-    auto Renderer::Init() -> void {
+    auto Renderer::Init(const RendererSpec& spec) -> void {
+        s_ActiveAPI = spec.Backend;
+
         PickGraphicsAPI();
         RenderCommand::Init(s_ActiveRendererAPI);
 
@@ -60,56 +61,53 @@ namespace Mikoto {
     auto Renderer::PickGraphicsAPI() -> void {
         switch(GetActiveGraphicsAPI()) {
             case GraphicsAPI::OPENGL_API:
-                s_ActiveRendererAPI = new OpenGLRenderer();
-                s_ActiveRendererAPI->Init();
+                s_ActiveRendererAPI = new (std::nothrow) OpenGLRenderer();
                 break;
             case GraphicsAPI::VULKAN_API:
-                s_ActiveRendererAPI = new VulkanRenderer();
-                s_ActiveRendererAPI->Init();
+                s_ActiveRendererAPI = new (std::nothrow) VulkanRenderer();
                 break;
             default:
                 MKT_CORE_LOGGER_CRITICAL("Unsupported renderer API");
                 break;
         }
+
+        if (s_ActiveRendererAPI)
+            s_ActiveRendererAPI->Init();
     }
 
     auto Renderer::ShutDown() -> void {
+        if (s_ActiveRendererAPI)
+            s_ActiveRendererAPI->Shutdown();
+
         delete s_ActiveRendererAPI;
     }
 
     auto Renderer::Submit(const SceneObjectData& objectData, const glm::mat4& transform, std::shared_ptr<Material> material) -> void {
         auto data{ std::make_shared<DrawData>() };
-        glm::mat4 cameraViewProj{ s_DrawData->SceneEditCamera->GetViewProjection() };
 
         if (objectData.IsPrefab) {
-            auto& sprite{ s_Prefabs[GetSpritePrefabName()] };
-            auto& cube{ s_Prefabs[GetCubePrefabName()] };
-            auto& sphere{ s_Prefabs[GetSpherePrefabName()] };
-            auto& cylinder{ s_Prefabs[GetCylinderPrefabName()] };
-            auto& cone{ s_Prefabs[GetConePrefabName()] };
-            auto& sponza{ s_Prefabs[GetSponzaPrefabName()] };
-
-            // retrieve prefab type
             switch (objectData.PrefabType) {
                 case PrefabSceneObject::SPRITE_PREFAB_OBJECT:
-                    data->ModelData = sprite.ModelData;
+                    data->ModelData = s_Prefabs[GetSpritePrefabName()].ModelData;
                     break;
                 case PrefabSceneObject::CUBE_PREFAB_OBJECT:
-                    data->ModelData = cube.ModelData;
+                    data->ModelData = s_Prefabs[GetCubePrefabName()].ModelData;
                     break;
                 case PrefabSceneObject::SPHERE_PREFAB_OBJECT:
-                    data->ModelData = sphere.ModelData;
+                    data->ModelData = s_Prefabs[GetSpherePrefabName()].ModelData;
                     break;
                 case PrefabSceneObject::CYLINDER_PREFAB_OBJECT:
-                    data->ModelData = cylinder.ModelData;
+                    data->ModelData = s_Prefabs[GetCylinderPrefabName()].ModelData;
                     break;
                 case PrefabSceneObject::CONE_PREFAB_OBJECT:
-                    data->ModelData = cone.ModelData;
+                    data->ModelData = s_Prefabs[GetConePrefabName()].ModelData;
                     break;
                 case PrefabSceneObject::SPONZA_PREFAB_OBJECT:
-                    data->ModelData = sponza.ModelData;
+                    data->ModelData = s_Prefabs[GetSponzaPrefabName()].ModelData;
                     break;
                 case PrefabSceneObject::COUNT_PREFAB_OBJECT:
+                    [[fallthrough]];
+                case PrefabSceneObject::NO_PREFAB_OBJECT:
                     MKT_CORE_LOGGER_WARN("Unknown prefab");
                     break;
             }
@@ -118,14 +116,14 @@ namespace Mikoto {
         data->Color = objectData.Color;
         data->MaterialData = std::move(material);
         data->TransformData.Transform = transform;
-        data->TransformData.ProjectionView = cameraViewProj;
+        data->TransformData.Projection = s_DrawData->SceneEditCamera->GetProjection();
+        data->TransformData.View = s_DrawData->SceneEditCamera->GetViewMatrix();
 
         // Rendering submission
         Renderer::Submit(data);
     }
 
-    auto Renderer::SubmitQuad(const glm::mat4 &transform, const glm::vec4& color, std::shared_ptr<Material> material) -> void {
-        glm::mat4 cameraViewProj{ s_DrawData->SceneEditCamera->GetViewProjection() };
+    MKT_UNUSED_FUNC auto Renderer::SubmitQuad(const glm::mat4 &transform, const glm::vec4& color, std::shared_ptr<Material> material) -> void {
         auto& sprite{ s_Prefabs[GetSpritePrefabName()] };
 
         // Setup rendering data
@@ -134,7 +132,8 @@ namespace Mikoto {
         data->ModelData = sprite.ModelData;
         data->MaterialData = std::move(material);
         data->TransformData.Transform = transform;
-        data->TransformData.ProjectionView = cameraViewProj;
+        data->TransformData.Projection = s_DrawData->SceneEditCamera->GetProjection();
+        data->TransformData.View = s_DrawData->SceneEditCamera->GetViewMatrix();
 
         // Rendering submission
         Renderer::Submit(data);
@@ -155,11 +154,11 @@ namespace Mikoto {
 
     auto Renderer::AddSpritePrefab() -> void {
         const std::vector<float> squareData {
-                // Positions            // Normals           // Colors                // Texture coordinates
-                -0.5f,  -0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f,        0.0f, 0.0f,   // bottom left
-                0.5f,  -0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,        1.0f, 0.0f,   // bottom right
-                0.5f,   0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,        1.0f, 1.0f,   // top right
-                -0.5f,   0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    0.8f, 0.3f, 0.4f,        0.0f, 1.0f,   // top left
+                /* Positions    -       // Normals   -       // Colors    -       // Texture coordinates */
+                -0.5f,  -0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f,    0.0f, 0.0f,   // bottom left
+                 0.5f,  -0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,    1.0f, 0.0f,   // bottom right
+                 0.5f,   0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    0.0f, 0.0f, 1.0f,    1.0f, 1.0f,   // top right
+                -0.5f,   0.5f, 0.0f,    0.0f, 0.0f, 0.0f,    0.8f, 0.3f, 0.4f,    0.0f, 1.0f,   // top left
         };
 
         // Set index and vertex buffers

@@ -17,26 +17,34 @@
 // Project Headers
 #include <Utility/Common.hh>
 #include <Core/Events/Event.hh>
+#include <Renderer/RenderingUtilities.hh>
 
 namespace Mikoto {
+    struct WindowSpec{
+        GraphicsAPI Backend{};
+    };
+
     class WindowProperties {
     public:
-        explicit WindowProperties(std::string_view name = "Mikoto Engine", Int32_T width = 1920, Int32_T height = 1080)
-            :   m_Title{ name }, m_Width{ width }, m_Height{ height }
+        explicit WindowProperties(std::string_view name = "Mikoto Engine", GraphicsAPI backend = GraphicsAPI::VULKAN_API, Int32_T width = 1920, Int32_T height = 1080)
+            :   m_Title{ name }, m_Width{ width }, m_Height{ height }, m_Backend{ backend }
         {}
 
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Title; }
         MKT_NODISCARD auto GetWidth() const -> Int32_T { return m_Width; }
         MKT_NODISCARD auto GetHeight() const -> Int32_T { return m_Height; }
+        MKT_NODISCARD auto GetBackend() const -> GraphicsAPI { return m_Backend; }
 
         auto SetWidth(Int32_T width) -> void { m_Width = width; }
         auto SetHeight(Int32_T height) -> void { m_Height = height; }
         auto SetTitle(std::string_view name) -> void { m_Title = name; }
+        auto SetBackend(GraphicsAPI api) -> void { m_Backend = api; }
 
     private:
         std::string m_Title{};
-        Int32_T    m_Width{};
-        Int32_T    m_Height{};
+        Int32_T m_Width{};
+        Int32_T m_Height{};
+        GraphicsAPI m_Backend{};
     };
 
     /**
@@ -57,8 +65,8 @@ namespace Mikoto {
     public:
         using EventCallbackFunc_T = std::function<void(Event&)>;
 
-        explicit Window(const WindowProperties& props = WindowProperties{})
-            :   m_Properties{ props }, m_WindowCreateSuccess{ false } {}
+        explicit Window(WindowProperties&& props = WindowProperties{})
+            :   m_Properties{ std::move( props )}, m_WindowCreateSuccess{ false } {}
 
         MKT_NODISCARD virtual auto GetWidth() const -> Int32_T = 0;
         MKT_NODISCARD virtual auto GetHeight() const -> Int32_T = 0;
@@ -78,8 +86,8 @@ namespace Mikoto {
         Window(Window&&) = delete;
         auto operator=(Window&&) noexcept -> Window& = delete;
     protected:
-        WindowProperties    m_Properties{};
-        bool                m_WindowCreateSuccess{};
+        WindowProperties m_Properties{};
+        bool m_WindowCreateSuccess{};
     };
 }
 

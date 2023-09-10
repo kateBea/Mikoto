@@ -16,17 +16,21 @@
 #include <Platform/Window/Window.hh>
 
 namespace Mikoto {
+    struct RenderContextSpec {
+        GraphicsAPI Backend{};
+        std::shared_ptr<Window> WindowHandle{};
+    };
+
     class RenderContext {
     public:
-        explicit RenderContext() = default;
-
-        static auto Init(std::shared_ptr<Window> windowHandle) -> void;
+        static auto Init(RenderContextSpec&& spec) -> void;
         static auto ShutDown() -> void;
         static auto Present() -> void;
 
         static auto EnableVSync() -> void;
         static auto DisableVSync() -> void;
-        static auto IsVSyncActive() -> bool;
+
+        MKT_UNUSED_FUNC static auto IsVSyncActive() -> bool;
 
     public:
         RenderContext(const RenderContext&) = delete;
@@ -36,8 +40,7 @@ namespace Mikoto {
         auto operator=(RenderContext&&) -> RenderContext& = delete;
 
     private:
-        inline static GraphicsAPI s_ActiveAPI{ Renderer::GetActiveGraphicsAPI() };
-        inline static std::shared_ptr<Window> s_WindowHandle{};
+        inline static RenderContextSpec s_Spec{};
     };
 }
 

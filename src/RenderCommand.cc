@@ -28,9 +28,9 @@ namespace Mikoto {
     }
 
 
-    auto RenderCommand::UpdateViewPort(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void {
+    auto RenderCommand::UpdateViewPort(Int32_T x, Int32_T y, Int32_T width, Int32_T height) -> void {
         MKT_ASSERT(s_ActiveRendererAPI, "Render command active API is NULL");
-        s_ActiveRendererAPI->SetViewport(x, y, width, height);
+        s_ActiveRendererAPI->SetViewport((float)x, (float)y, (float)width, (float)height);
     }
 
     auto RenderCommand::EnableWireframeMode() -> void {

@@ -20,10 +20,21 @@ namespace Mikoto {
     auto Engine::Run(Int32_T argc, char** argv) -> Int32_T {
         ParseArguments(argc, argv);
 
+        AppSpec appSpec{};
+        appSpec.WindowWidth = 1920;
+        appSpec.WindowHeight = 1080;
+        appSpec.Name = "Mikoto Engine";
+        appSpec.WorkingDirectory = std::filesystem::current_path();
+        appSpec.Executable = m_CommandLineArgs[0];
+        appSpec.RenderingBackend = GraphicsAPI::OPENGL_API;
+        appSpec.CommandLineArguments =
+                std::unordered_set<std::string>{ m_CommandLineArgs.begin(), m_CommandLineArgs.end() };
+        appSpec.ShowGUI = true;
+
         auto& application{ Application::Get() };
 
         try {
-            application.Init();
+            application.Init(std::move(appSpec));
             application.PushLayer(std::make_shared<EditorLayer>());
 
             while (application.IsRunning()) {

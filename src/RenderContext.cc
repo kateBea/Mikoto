@@ -4,28 +4,27 @@
  * */
 
 // Project Headers
-#include <Renderer/Renderer.hh>
 #include <Renderer/RenderingUtilities.hh>
 #include <Renderer/RenderContext.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/OpenGL/OpenGLContext.hh>
 
 namespace Mikoto {
-    auto RenderContext::Init(std::shared_ptr<Window> windowHandle) -> void {
-        s_WindowHandle = std::move(windowHandle);
+    auto RenderContext::Init(RenderContextSpec&& spec) -> void {
+        s_Spec = std::move(spec);
 
-        switch (s_ActiveAPI) {
+        switch (s_Spec.Backend) {
             case GraphicsAPI::OPENGL_API:
-                OpenGLContext::Init(s_WindowHandle);
+                OpenGLContext::Init(s_Spec.WindowHandle);
                 break;
             case GraphicsAPI::VULKAN_API:
-                VulkanContext::Init(s_WindowHandle);
+                VulkanContext::Init(s_Spec.WindowHandle);
                 break;
         }
     }
 
     auto RenderContext::ShutDown() -> void {
-        switch (s_ActiveAPI) {
+        switch (s_Spec.Backend) {
             case GraphicsAPI::OPENGL_API:
                 OpenGLContext::ShutDown();
                 break;
@@ -36,7 +35,7 @@ namespace Mikoto {
     }
 
     auto RenderContext::Present() -> void {
-        switch (s_ActiveAPI) {
+        switch (s_Spec.Backend) {
             case GraphicsAPI::OPENGL_API:
                 OpenGLContext::Present();
                 break;
@@ -45,8 +44,9 @@ namespace Mikoto {
                 break;
         }
     }
-    auto RenderContext::IsVSyncActive() -> bool {
-        switch (s_ActiveAPI) {
+
+    MKT_UNUSED_FUNC auto RenderContext::IsVSyncActive() -> bool {
+        switch (s_Spec.Backend) {
             case GraphicsAPI::OPENGL_API:
                 return OpenGLContext::IsVSyncActive();
             case GraphicsAPI::VULKAN_API:
@@ -56,7 +56,7 @@ namespace Mikoto {
     }
 
     auto RenderContext::EnableVSync() -> void {
-        switch (s_ActiveAPI) {
+        switch (s_Spec.Backend) {
             case GraphicsAPI::OPENGL_API:
                 OpenGLContext::EnableVSync();
                 break;
@@ -67,7 +67,7 @@ namespace Mikoto {
     }
 
     auto RenderContext::DisableVSync() -> void {
-        switch (s_ActiveAPI) {
+        switch (s_Spec.Backend) {
             case GraphicsAPI::OPENGL_API:
                 OpenGLContext::DisableVSync();
                 break;

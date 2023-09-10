@@ -23,9 +23,13 @@
 #include <Renderer/Buffers/VertexBuffer.hh>
 
 namespace Mikoto {
+    struct RendererSpec{
+        GraphicsAPI Backend{};
+    };
+
     class Renderer {
     public:
-        static auto Init() -> void;
+        static auto Init(const RendererSpec& spec) -> void;
         static auto ShutDown() -> void;
 
         static auto BeginScene(const ScenePrepareData& prepareData) -> void;
@@ -33,10 +37,10 @@ namespace Mikoto {
 
         static auto Submit(std::shared_ptr<DrawData> data) -> void;
         static auto Submit(const SceneObjectData& objectData, const glm::mat4& transform, std::shared_ptr<Material> material) -> void;
-        static auto SubmitQuad(const glm::mat4& transform, const glm::vec4& color, std::shared_ptr<Material> material) -> void;
+        MKT_UNUSED_FUNC static auto SubmitQuad(const glm::mat4& transform, const glm::vec4& color, std::shared_ptr<Material> material) -> void;
 
         static auto Flush() -> void;
-        static auto OnEvent(Event &event) -> void;
+        static auto OnEvent(Event& event) -> void;
 
         MKT_NODISCARD static auto GetActiveGraphicsAPI() -> GraphicsAPI { return s_ActiveAPI;  }
         MKT_NODISCARD static auto GetActiveGraphicsAPIPtr() -> RendererAPI* { return s_ActiveRendererAPI;  }
@@ -67,19 +71,21 @@ namespace Mikoto {
         MKT_NODISCARD static auto GetSponzaPrefabName() -> const std::string& { static std::string name{ "Sponza" }; return name; }
 
     private:
-        // States the active Graphics Rendering API for the current window.
-        // For the time being, we only have one main window, therefore, this attribute is going
-        // to be static. In case we want to try different API at runtime, we may
-        // have more than one Renderer API specific active
-        inline static GraphicsAPI s_ActiveAPI{ GraphicsAPI::OPENGL_API };
+        // Graphics API currently active
+        inline static GraphicsAPI s_ActiveAPI{};
 
-        inline static RendererAPI* s_ActiveRendererAPI{ nullptr };
+        // Pointer to the currently active graphics backend
+        inline static RendererAPI* s_ActiveRendererAPI{};
 
-        inline static std::unique_ptr<RendererDrawData> s_DrawData{};
+        // List of prefab models
         inline static std::unordered_map<std::string, PrefabData> s_Prefabs{};
 
-        inline static std::unique_ptr<RenderingStats>   s_RenderingStats{};
-        inline static std::unique_ptr<RenderingStats>   s_SavedSceneStats{};
+        // Contains the data necessary to prepare a scene for rendering
+        inline static std::unique_ptr<RendererDrawData> s_DrawData{};
+
+        // Keep track of rendering stats such as number f vertices, number of indices, etc.
+        inline static std::unique_ptr<RenderingStats> s_RenderingStats{};
+        inline static std::unique_ptr<RenderingStats> s_SavedSceneStats{};
     };
 }
 

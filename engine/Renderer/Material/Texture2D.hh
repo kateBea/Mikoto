@@ -38,9 +38,9 @@ namespace Mikoto {
         Texture2D(UInt32_T width, UInt32_T height, UInt32_T channels) : m_Width{ width }, m_Height{ height }, m_Channels{ channels } {}
 
     protected:
-        UInt32_T    m_Width{};
-        UInt32_T    m_Height{};
-        UInt32_T    m_Channels{};
+        UInt32_T m_Width{};
+        UInt32_T m_Height{};
+        UInt32_T m_Channels{};
         Type m_Type{};
     };
 }

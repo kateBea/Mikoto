@@ -23,7 +23,8 @@ namespace Mikoto {
         return *this;
     }
 
-    auto OpenGLVertexArray::UseVertexBuffer(const std::shared_ptr<VertexBuffer>& buffer) const -> void {
+    // TODO: change to use opengl vertices instead because this class is only used with opengl renderer
+    auto OpenGLVertexArray::UseVertexBuffer(const std::shared_ptr<OpenGLVertexBuffer> &buffer) const -> void {
         MKT_ASSERT(buffer, "Vertex Buffer is NULL");
         MKT_ASSERT(!buffer->IsEmpty(), "Vertex Buffer is empty");
         Bind();

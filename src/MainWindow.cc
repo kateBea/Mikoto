@@ -18,14 +18,13 @@
 #include <Core/Events/AppEvents.hh>
 #include <Core/Events/KeyEvents.hh>
 #include <Core/Events/MouseEvents.hh>
-#include <Renderer/Renderer.hh>
-#include <Renderer/RenderingUtilities.hh>
 #include <Renderer/RenderContext.hh>
+#include <Renderer/RenderingUtilities.hh>
 #include <Platform/Window/MainWindow.hh>
 
 namespace Mikoto {
-    MainWindow::MainWindow(const WindowProperties& properties)
-        :   Window{ properties }, m_Window{ nullptr }, m_Callback{} {}
+    MainWindow::MainWindow(WindowProperties&& properties)
+        :   Window{ std::move(properties) }, m_Window{ nullptr }, m_Callback{} {}
 
     auto MainWindow::OnUpdate() -> void {
         glfwPollEvents();
@@ -38,26 +37,22 @@ namespace Mikoto {
         MKT_CORE_LOGGER_INFO("Main Window initialization");
         InitGLFW();
 
-        switch(Renderer::GetActiveGraphicsAPI()) {
+        switch(m_Properties.GetBackend()) {
             case GraphicsAPI::OPENGL_API:
-                m_CurrentGraphicsAPIIsOpenGL = true;
                 m_Properties.SetTitle(fmt::format("Mikoto (OpenGL Version {}.{}.0)", MKT_OPENGL_VERSION_MAJOR, MKT_OPENGL_VERSION_MINOR));
                 break;
             case GraphicsAPI::VULKAN_API:
-                UInt32_T major{MKT_VULKAN_VERSION_MAJOR};
-                UInt32_T minor{MKT_VULKAN_VERSION_MINOR};
+                UInt32_T major{ MKT_VULKAN_VERSION_MAJOR };
+                UInt32_T minor{ MKT_VULKAN_VERSION_MINOR };
                 m_Properties.SetTitle(fmt::format("Mikoto (Vulkan Version {}.{})", major, minor));
+
+                // Because GLFW was originally designed to create an OpenGL context,
+                // we need to tell it to not create an OpenGL context with a subsequent call
+                glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
                 break;
         }
 
-        MKT_CORE_LOGGER_INFO("Creating Window GLFW. Name '{}'. Dimensions [{}, {}]",
-                              m_Properties.GetName(), m_Properties.GetWidth(), m_Properties.GetHeight());
-
-        if (!m_CurrentGraphicsAPIIsOpenGL) {
-            // Because GLFW was originally designed to create an OpenGL context,
-            // we need to tell it to not create an OpenGL context with a subsequent call
-            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        }
+        MKT_CORE_LOGGER_INFO("Creating Window GLFW. Name '{}'. Dimensions [{}, {}]", m_Properties.GetName(), m_Properties.GetWidth(), m_Properties.GetHeight());
 
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
         
@@ -189,11 +184,11 @@ namespace Mikoto {
     }
 
     auto MainWindow::InitGLFW() -> void {
-        if (!g_GLFWInitSuccess) {
+        if (!s_GLFWInitSuccess) {
             auto ret{ glfwInit() };
             MKT_ASSERT(ret == GLFW_TRUE, "Failed to initialized the GLFW library");
 
-            g_GLFWInitSuccess = true;
+            s_GLFWInitSuccess = true;
             glfwSetErrorCallback([](std::int32_t errCode, const char* desc) -> void {
                 MKT_CORE_LOGGER_ERROR("GLFW error code: {} Description: {}", errCode, desc);
                 }

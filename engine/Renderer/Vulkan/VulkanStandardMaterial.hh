@@ -51,7 +51,8 @@ namespace Mikoto {
          * Sets the value of the projection and view matrix
          * @param projView new value for the the projection and view matrix
          * */
-        auto SetProjectionView(const glm::mat4& projView) -> void;
+        auto SetView(const glm::mat4& mat) -> void { m_UniformData.View = mat; }
+        auto SetProjection(const glm::mat4& mat) -> void { m_UniformData.Projection = mat; }
         /**
          * Sets the value of the transformation matrix
          * @param transform new value for the transformation matrix
@@ -74,7 +75,11 @@ namespace Mikoto {
         * STRUCTURES
         * ***********************************************************/
         struct UniformBufferData {
-            glm::mat4 ProjectionView{};
+            // Camera
+            glm::mat4 View{};
+            glm::mat4 Projection{};
+
+            // Object
             glm::mat4 Transform{};
             glm::vec4 Color{};
         };

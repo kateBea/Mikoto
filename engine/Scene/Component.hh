@@ -16,6 +16,8 @@
 
 // Project Headers
 #include <Utility/Common.hh>
+#include <Utility/Types.hh>
+#include <Utility/Constants.hh>
 #include <Core/Assert.hh>
 #include <Scene/SceneCamera.hh>
 #include <Renderer/Mesh.hh>
@@ -46,7 +48,6 @@ namespace Mikoto {
     class TransformComponent {
     public:
         explicit TransformComponent() = default;
-
         explicit TransformComponent(const glm::mat4& data) { m_Transform = data; }
 
         TransformComponent(const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3(0.0f)) {
@@ -64,44 +65,52 @@ namespace Mikoto {
         MKT_NODISCARD auto GetScale() const -> const glm::vec3& { return m_Scale; }
         MKT_NODISCARD auto GetTransform() const -> const glm::mat4& { return m_Transform; }
 
-        // "angles" specifies the rotation angle in degrees for each axis
+        /**
+         * Computes the model matrix for for this component according to the transform vectors
+         * @param position specifies the object translation value
+         * @param size specifies the object scaling value
+         * @param angles specifies Euler angles rotations (each component represents an angle in radians)
+         * */
         auto ComputeTransform(const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3(0.0f)) -> void {
             m_Translation = position;
-            m_Scale = size;
             m_Rotation = angles;
+            m_Scale = size;
 
-            // Matrix transformations
             RecomputeTransform();
         }
 
         auto SetTranslation(const glm::vec3& value) -> void { m_Translation = value; RecomputeTransform(); }
         auto SetRotation(const glm::vec3& value) -> void { m_Rotation = value; RecomputeTransform(); }
         auto SetScale(const glm::vec3& value) -> void { m_Scale = value; RecomputeTransform(); }
-        auto SetTransform(const glm::mat4& value) -> void { m_Transform = value; }
 
         ~TransformComponent() = default;
+
     private:
+        /**
+         * Computes the model matrix as in Translate * Ry * Rx * Rz * Scale (where R represents a
+         * rotation in the desired axis. Rotation convention uses Tait-Bryan angles with axis order
+         * Y(1), X(2), Z(3)
+         * */
         auto RecomputeTransform() -> void {
-            // Matrix transformations
-            glm::mat4 scale{ glm::scale(identMat, m_Scale) };
+            // Compute scale matrix
+            const glm::mat4 scale{ glm::scale(GLM_IDENTITY_MAT4, m_Scale) };
 
-            glm::mat4 rotationX{ glm::rotate(identMat, (float)glm::radians(m_Rotation[0]), xAxis) };
-            glm::mat4 rotationY{ glm::rotate(rotationX, (float)glm::radians(m_Rotation[1]), yAxis) };
-            glm::mat4 rotation{ glm::rotate(rotationY, (float)glm::radians(m_Rotation[2]), zAxis) };
+            // Compute rotation matrix
+            glm::mat4 rotation{ glm::rotate(GLM_IDENTITY_MAT4, (float)glm::radians(m_Rotation.y), GLM_UNIT_VECTOR_Y) };
+            rotation = glm::rotate(rotation, (float)glm::radians(m_Rotation.x), GLM_UNIT_VECTOR_X);
+            rotation = glm::rotate(rotation, (float)glm::radians(m_Rotation.z), GLM_UNIT_VECTOR_Z);
 
-            m_Transform =  glm::translate(identMat, m_Translation) * scale * rotation;
+            m_Transform =  glm::translate(GLM_IDENTITY_MAT4, m_Translation) * rotation * scale;
         }
 
-        // Constants
-        static constexpr glm::vec3 xAxis{ 1.0f, 0.0f, 0.0f };
-        static constexpr glm::vec3 yAxis{ 0.0f, 1.0f, 0.0f };
-        static constexpr glm::vec3 zAxis{ 0.0f, 0.0f, 1.0f };
-        static constexpr glm::mat4 identMat{ glm::mat4(1.0) };
     private:
+        // Transform vectors
         glm::vec3 m_Translation{};
         glm::vec3 m_Rotation{};
         glm::vec3 m_Scale{};
 
+        // Model matrix (defines object translation, rotation and scale
+        // according to the current transform values/vectors
         glm::mat4 m_Transform{};
     };
 

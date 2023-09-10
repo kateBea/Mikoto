@@ -25,7 +25,8 @@ set(CORE_SOURCES
         src/VulkanUtils.cc
         src/OpenGLUtils.cc
         src/GUIManager.cc
-        src/LayerManager.cc)
+        src/LayerManager.cc
+        engine/Core/JobSystem.cc)
 
 set(PLATFORM_SOURCES
         src/Application.cc

@@ -35,6 +35,7 @@
 #endif
 
 #define MKT_NODISCARD [[nodiscard]]
+#define MKT_UNUSED_FUNC [[maybe_unused]]
 
 // Set bit specified by the argument
 #define BIT_SET(N)              (1 << N)

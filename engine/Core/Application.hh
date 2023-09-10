@@ -8,6 +8,7 @@
 
 // C++ Standard Library
 #include <memory>
+#include <unordered_set>
 
 // Project Headers
 #include <Utility/Singleton.hh>
@@ -17,8 +18,24 @@
 #include <Core/Events/Event.hh>
 #include <Core/TimeManager.hh>
 #include <Platform/Window/Window.hh>
+#include <Renderer/RenderingUtilities.hh>
 
 namespace Mikoto {
+    /**
+     * Holds application initialization data. This
+     * struct is mostly relevant at application initialization
+     * */
+     struct AppSpec {
+         Int32_T WindowWidth{};
+         Int32_T WindowHeight{};
+         std::string Name{};
+         Path_T WorkingDirectory{};
+         Path_T Executable{};
+         GraphicsAPI RenderingBackend{};
+         std::unordered_set<std::string> CommandLineArguments{};
+         bool ShowGUI{};
+     };
+
     /**
      * This class is essentially a wrapper around all the subsystems of our
      * application, and it serves as a way of communicating the different
@@ -26,7 +43,7 @@ namespace Mikoto {
      * */
     class Application : public Singleton<Application> {
     public:
-        auto Init() -> void;
+        auto Init(AppSpec&& appSpec) -> void;
         auto ShutDown() -> void;
 
         auto OnEvent(Event& event) -> void;
@@ -42,7 +59,6 @@ namespace Mikoto {
 
         auto GetMainWindow() -> Window&;
         auto GetMainWindowPtr() -> std::shared_ptr<Window>;
-
 
     private:
         /*************************************************************
@@ -84,6 +100,7 @@ namespace Mikoto {
          * ***********************************************************/
         State m_State{ State::RUNNING };
         std::shared_ptr<Window> m_MainWindow{};
+        AppSpec m_Spec{};
 
         // TODO: remove, use their namespaces
         std::unique_ptr<LayerStack> m_LayerStack{};

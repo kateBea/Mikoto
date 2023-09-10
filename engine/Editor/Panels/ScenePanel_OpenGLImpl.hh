@@ -9,6 +9,7 @@
 // Third-Party Libraries
 #include <imgui.h>
 #include <backends/imgui_impl_opengl3.h>
+#include <ImGuizmo.h>
 
 // Project Headers
 #include <Core/Application.hh>
@@ -33,7 +34,6 @@ namespace Mikoto {
             m_Focused = ImGui::IsWindowFocused();
             m_Hovered = ImGui::IsWindowHovered();
 
-            // TODO: review
             Application::GetPtr()->BlockImGuiLayerEvents(!m_Focused || !m_Hovered);
             auto viewPortDimensions{ ImGui::GetContentRegionAvail() };
 

@@ -10,11 +10,11 @@
 #include <GL/glew.h>
 
 // Project Headers
-#include <Core/Application.hh>
 #include <Platform/Window/Window.hh>
 #include <Renderer/Buffers/FrameBuffer.hh>
 #include <Renderer/OpenGL/OpenGLRenderer.hh>
 #include <Renderer/OpenGL/OpenGLIndexBuffer.hh>
+#include <Renderer/OpenGL/OpenGLVertexBuffer.hh>
 
 namespace Mikoto {
     auto OpenGLRenderer::SetClearColor(float red, float green, float blue, float alpha) -> void {
@@ -34,33 +34,58 @@ namespace Mikoto {
         glViewport((GLsizei)x, (GLsizei)y, (GLsizei)width, (GLsizei)height);
     }
 
-    auto OpenGLRenderer::DrawIndexed(const std::shared_ptr<VertexBuffer> &vertexBuffer, const std::shared_ptr<IndexBuffer>& indexBuffer) -> void {
-        m_CurrentDefaultMaterial->BindShader();
+    auto OpenGLRenderer::DrawIndexed(const std::shared_ptr<OpenGLVertexBuffer>& vertexBuffer, const std::shared_ptr<OpenGLIndexBuffer>& indexBuffer) -> void {
+        m_CurrentDefaultMaterial->GetShader()->Bind();
         m_VertexArray.UseVertexBuffer(vertexBuffer);
         std::dynamic_pointer_cast<OpenGLIndexBuffer>(indexBuffer)->Bind();
 
-        glDrawElements(GL_TRIANGLES, (GLsizei)indexBuffer->GetCount(), GL_UNSIGNED_INT, nullptr);
+        glDrawElements(GL_TRIANGLES, (GLsizei)indexBuffer->GetCount(), indexBuffer->GetBufferDataType(), nullptr);
     }
 
     auto OpenGLRenderer::Draw() -> void {
         m_DefaultFrameBuffer.Bind();
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+        const auto maxTextureSlots{ OpenGLDefaultMaterial::GetMaxConcurrentSamplingTextures() };
 
         for (const auto& drawData : m_DrawQueue) {
             m_CurrentDefaultMaterial = std::dynamic_pointer_cast<OpenGLDefaultMaterial>(drawData->MaterialData);
 
             m_CurrentDefaultMaterial->SetTiltingColor(drawData->Color);
-            m_CurrentDefaultMaterial->SetProjectionView(drawData->TransformData.ProjectionView);
+            m_CurrentDefaultMaterial->SetProjection(drawData->TransformData.Projection);
+            m_CurrentDefaultMaterial->SetView(drawData->TransformData.View);
             m_CurrentDefaultMaterial->SetTransform(drawData->TransformData.Transform);
 
-            if (m_CurrentDefaultMaterial->GetTexture() != nullptr) {
-                m_CurrentDefaultMaterial->SetTextureSampler(0);
-                std::dynamic_pointer_cast<OpenGLTexture2D>(m_CurrentDefaultMaterial->GetTexture())->Bind(0);
-            }
-
             for (const auto& mesh : drawData->ModelData->GetMeshes()) {
+                // Setup textures
+                // The mesh may have multiple textures we want to sample from.
+                // Therefore, the texture should not be part of the material
+#if false
+                // TODO: pending of testing
+                UInt32_T samplerIndex{};
+
+                for (const auto& texture : mesh.GetTextures()) {
+                    if (samplerIndex < maxTextureSlots) {
+                        // TODO: dodgy
+                        OpenGLTexture2D* oglTexture{ (OpenGLTexture2D*)texture.get() };
+
+                        m_CurrentDefaultMaterial->SetTextureSampler(samplerIndex);
+                        oglTexture->Bind(samplerIndex);
+                        ++samplerIndex;
+                    }
+                    else {
+                        // No need to continue if we have used all texture slots
+                        break;
+                    }
+                }
+#endif
+
+                // Upload uniform data
                 m_CurrentDefaultMaterial->UploadUniformBuffersData();
-                DrawIndexed(mesh.GetVertexBuffer(), mesh.GetIndexBuffer());
+
+                // Draw command
+                const auto& vertexBuffer{ std::dynamic_pointer_cast<OpenGLVertexBuffer>(mesh.GetVertexBuffer()) };
+                const auto& indexBuffer{ std::dynamic_pointer_cast<OpenGLIndexBuffer>(mesh.GetIndexBuffer()) };
+                DrawIndexed(vertexBuffer, indexBuffer);
             }
         }
 
@@ -106,15 +131,13 @@ namespace Mikoto {
     }
 
     auto OpenGLRenderer::OnEvent(Event& event) -> void {
-
+        (void)event;
     }
 
     auto OpenGLRenderer::CreateFrameBuffers() -> void {
-        Window& window{ Application::Get().GetMainWindow() };
         FrameBufferCreateInfo createInfo{};
-
-        createInfo.width = window.GetWidth();
-        createInfo.height = window.GetHeight();
+        createInfo.width = 1920;
+        createInfo.height = 1080;
         createInfo.samples = 1;
 
         m_DefaultFrameBuffer.OnCreate(createInfo);

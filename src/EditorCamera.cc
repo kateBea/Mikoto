@@ -21,6 +21,7 @@
 #include <Core/MouseButtons.hh>
 #include <Scene/EditorCamera.hh>
 #include <Platform/InputManager.hh>
+#include <Renderer/Renderer.hh>
 
 namespace Mikoto {
     EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
@@ -40,7 +41,6 @@ namespace Mikoto {
                                    m_Position + m_ForwardVector,    // This is where the camera is looking at
                                    m_CameraUpVector);               // This is the camera's up vector (normalized, i.e., size between [0, 1])
 
-        //m_ViewMatrix = glm::inverse(m_ViewMatrix);
     }
 
     auto EditorCamera::ProcessMouseInput(double timeStep) -> void {
@@ -48,6 +48,12 @@ namespace Mikoto {
         const glm::vec2 MOUSE_CURRENT_POSITION{ InputManager::GetMouseX(), InputManager::GetMouseY() };
         glm::vec2 delta{ (MOUSE_CURRENT_POSITION - m_LastMousePosition) * 0.03f };
         m_LastMousePosition = MOUSE_CURRENT_POSITION;
+
+        // TODO: temporary (avoid camera jumping)
+        // Offset that indicates there will be a camera jump when rotating
+        static constexpr auto JUMP_THRESHOLD{ 8.0f };
+        if (std::abs(glm::length(delta)) > JUMP_THRESHOLD)
+            return;
 
         if (!InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Left))
             return;

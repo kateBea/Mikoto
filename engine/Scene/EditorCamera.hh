@@ -35,6 +35,12 @@ namespace Mikoto {
 
         auto SetMovementSpeed(float value) -> void { m_MovementSpeed = value; }
         auto SetRotationSpeed(float value) -> void { m_RotationSpeed = value; }
+
+        MKT_NODISCARD constexpr static auto GetMinMovementSpeed() -> float { return 5.0f; }
+        MKT_NODISCARD constexpr static auto GetMaxMovementSpeed() -> float { return 15.0f; }
+        MKT_NODISCARD constexpr static auto GetMinRotationSpeed() -> float { return 10.0f; }
+        MKT_NODISCARD constexpr static auto GetMaxRotationSpeed() -> float { return 30.0f; }
+
     private:
         auto UpdateProjection() -> void;
         auto UpdateViewMatrix() -> void;
@@ -70,8 +76,8 @@ namespace Mikoto {
         float m_ViewportWidth{ 1920 };
         float m_ViewportHeight{ 1080 };
 
-        float m_RotationSpeed{ 7.8f };
-        float m_MovementSpeed{ 1.5f };
+        float m_RotationSpeed{ GetMinRotationSpeed() };
+        float m_MovementSpeed{ GetMinMovementSpeed() };
     };
 }
 

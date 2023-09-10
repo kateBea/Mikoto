@@ -24,6 +24,9 @@ namespace Mikoto {
         m_PanelIsVisible = true;
         m_PanelIsHovered = false;
         m_PanelIsFocused = false;
+
+        m_Data->EditorCameraMovementSpeed = EditorCamera::GetMinMovementSpeed();
+        m_Data->EditorCameraRotationSpeed = EditorCamera::GetMinRotationSpeed();
     }
 
     auto SettingsPanel::OnUpdate() -> void {
@@ -36,8 +39,8 @@ namespace Mikoto {
                                                 ImGuiTreeNodeFlags_FramePadding };
 
             if (ImGui::TreeNodeEx((void*)123213, styleFlags, "%s", "Editor Camera")) {
-                ImGui::SliderFloat("Movement Speed", &(m_Data->EditorCameraMovementSpeed), 2.0f, 10.0f);
-                ImGui::SliderFloat("Rotation Speed", &(m_Data->EditorCameraRotationSpeed), 2.0f, 10.0f);
+                ImGui::SliderFloat("Movement Speed", &(m_Data->EditorCameraMovementSpeed), EditorCamera::GetMinMovementSpeed(), EditorCamera::GetMaxMovementSpeed());
+                ImGui::SliderFloat("Rotation Speed", &(m_Data->EditorCameraRotationSpeed), EditorCamera::GetMinRotationSpeed(), EditorCamera::GetMaxRotationSpeed());
                 ImGui::TreePop();
             }
 

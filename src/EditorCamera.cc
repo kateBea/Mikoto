@@ -8,8 +8,6 @@
 #include <utility>
 
 // Third-Party Libraries
-#define GLM_GTX_quaternion
-
 #include <glm/glm.hpp>
 // Quaternions with extensions
 #include <glm/gtx/quaternion.hpp>
@@ -21,7 +19,6 @@
 #include <Core/MouseButtons.hh>
 #include <Scene/EditorCamera.hh>
 #include <Platform/InputManager.hh>
-#include <Renderer/Renderer.hh>
 
 namespace Mikoto {
     EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
@@ -65,8 +62,7 @@ namespace Mikoto {
             // The X offset of the mouse will dictate how much we rotate in the Y axis
             m_Yaw = delta.x * m_RotationSpeed * (float)timeStep;
 
-            glm::quat q{ glm::normalize(glm::cross(glm::angleAxis(-m_Pitch, m_RightVector),
-                                                    glm::angleAxis(-m_Yaw, glm::vec3(0.f, 1.0f, 0.0f)))) };
+            glm::quat q{ glm::normalize(glm::cross(glm::angleAxis(-m_Pitch, m_RightVector), glm::angleAxis(-m_Yaw, GLM_UNIT_VECTOR_Y))) };
             m_ForwardVector = glm::rotate(q, m_ForwardVector);
 
         }

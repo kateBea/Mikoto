@@ -219,21 +219,21 @@
 #define MKT_FMT_STYLE_BOLD fmt::emphasis::bold
 #define MKT_FMT_STYLE_ITALIC fmt::emphasis::italic
 
-#define MKT_PRINT_CONTAINER(__CONTAINER)                     \
-    fmt::print("{}\n", __CONTAINER)
+#define MKT_PRINT_CONTAINER(CONTAINER)                     \
+    fmt::print("{}\n", CONTAINER)
 
 #define MKT_PRINT_FORMATTED(...)                             \
     fmt::print(__VA_ARGS__)
 
-#define MKT_COLOR_PRINT_FORMATTED(__COLOR, ...)              \
-    fmt::print(fmt::fg(__COLOR), __VA_ARGS__)
+#define MKT_COLOR_PRINT_FORMATTED(COLOR, ...)              \
+    fmt::print(fmt::fg(COLOR), __VA_ARGS__)
 
 #define MKT_COLOR_STYLE_PRINT_FORMATTED(__COLOR, __STYLE, ...)     \
     fmt::print(fmt::fg(__COLOR) | __STYLE, __VA_ARGS__)
 
-#define MKT_BIND_EVENT_FUNC(function) \
-    [this](auto&&... args) -> decltype(auto) { \
-        return this->function(std::forward<decltype(args)>(args)...); \
+#define MKT_BIND_EVENT_FUNC(function)                               \
+    [this]<typename... Args>(Args&&... args) -> decltype(auto) {    \
+        return this->function(std::forward<Args>(args)...);         \
     }
 
 

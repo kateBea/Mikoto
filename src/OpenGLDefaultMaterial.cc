@@ -10,22 +10,6 @@
 #include <Renderer/OpenGL/OpenGLDefaultMaterial.hh>
 
 namespace Mikoto {
-    auto OpenGLDefaultMaterial::BindShader() -> void {
-        m_DefaultVertexPixelShaders->Bind();
-    }
-
-    auto OpenGLDefaultMaterial::UnbindShader() -> void {
-        OpenGLShader::Unbind();
-    }
-
-    auto OpenGLDefaultMaterial::BindTexture() -> void {
-        m_Texture->Bind(0);
-    }
-
-    auto OpenGLDefaultMaterial::UnbindTexture() -> void {
-        m_Texture->Unbind();
-    }
-
     auto OpenGLDefaultMaterial::UploadShaders(const Path_T &vertexShader, const Path_T &fragmentShader) -> void {
         m_DefaultVertexPixelShaders = std::dynamic_pointer_cast<OpenGLShader>(Shader::Create(vertexShader, fragmentShader));
     }
@@ -45,17 +29,14 @@ namespace Mikoto {
         m_Color = color;
     }
 
-    auto OpenGLDefaultMaterial::SetProjectionView(const glm::mat4& mat) -> void {
-        m_ProjectionView = mat;
-    }
-
     auto OpenGLDefaultMaterial::SetTransform(const glm::mat4& mat) -> void {
         m_Transform = mat;
     }
 
     auto OpenGLDefaultMaterial::UploadUniformBuffersData() -> void {
         m_DefaultVertexPixelShaders->SetUniformMat4("u_Transform", m_Transform);
-        m_DefaultVertexPixelShaders->SetUniformMat4("u_ProjectionView", m_ProjectionView);
+        m_DefaultVertexPixelShaders->SetUniformMat4("u_Projection", m_ProjectionMatrix);
+        m_DefaultVertexPixelShaders->SetUniformMat4("u_View", m_ViewMatrix);
         m_DefaultVertexPixelShaders->SetUniformVec4("u_Color", m_Color);
 
     }

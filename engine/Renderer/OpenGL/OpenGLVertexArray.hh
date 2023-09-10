@@ -16,8 +16,9 @@
 #include <GL/glew.h>
 
 // Project Libraries
-#include <Utility/Common.hh>
+#include "Renderer/OpenGL/OpenGLVertexBuffer.hh"
 #include <Renderer/Buffers/VertexBuffer.hh>
+#include <Utility/Common.hh>
 
 namespace Mikoto {
     class OpenGLVertexArray {
@@ -52,7 +53,7 @@ namespace Mikoto {
          * */
         static auto Unbind() -> void { glBindVertexArray(0); }
 
-        auto UseVertexBuffer(const std::shared_ptr<VertexBuffer>& buffer) const -> void;
+        auto UseVertexBuffer(const std::shared_ptr<OpenGLVertexBuffer> &buffer) const -> void;
 
         ~OpenGLVertexArray() { glDeleteVertexArrays(1, &m_Id); }
 

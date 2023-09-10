@@ -28,7 +28,7 @@ namespace Mikoto {
 
         if (!indices.empty() && m_ValidId) {
             m_Count = indices.size();
-            // See: https://docs.gl/gl4/glBufferStorage
+            m_DataType = GL_UNSIGNED_INT; // same type as indices data (adjust in the future for more flexibility)
             glNamedBufferStorage(m_Id, static_cast<GLsizeiptr>(m_Count * sizeof(UInt32_T)), indices.data(), flags);
         }
         else

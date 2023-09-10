@@ -33,7 +33,8 @@ namespace Mikoto {
     };
 
     struct UniformTransformData {
-        glm::mat4 ProjectionView{};
+        glm::mat4 View{};
+        glm::mat4 Projection{};
         glm::mat4 Transform{};
     };
 

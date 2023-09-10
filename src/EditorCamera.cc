@@ -4,17 +4,21 @@
  * */
 
 // C++ Standard Library
+#include <cmath>
 #include <utility>
 
 // Third-Party Libraries
+#define GLM_GTX_quaternion
+
 #include <glm/glm.hpp>
+// Quaternions with extensions
 #include <glm/gtx/quaternion.hpp>
 
 // Project Headers
 #include <Utility/Common.hh>
+#include <Utility/Constants.hh>
 #include <Core/KeyCodes.hh>
 #include <Core/MouseButtons.hh>
-#include <Core/Application.hh>
 #include <Scene/EditorCamera.hh>
 #include <Platform/InputManager.hh>
 
@@ -23,10 +27,7 @@ namespace Mikoto {
         :   Camera{ glm::perspective(glm::radians(fov), aspectRatio, nearClip, farClip) }
         ,   m_FieldOfView{ fov }, m_AspectRatio{ aspectRatio }, m_NearClip{ nearClip }, m_FarClip{ farClip }
     {
-        m_ForwardVector = glm::vec3(0.0f, 0.0f, -10.0f);
-        m_Position = glm::vec3(0.0f, 0.0f, -5.0f);
-
-        UpdateView();
+        UpdateViewMatrix();
     }
 
     auto EditorCamera::UpdateProjection() -> void {
@@ -34,47 +35,22 @@ namespace Mikoto {
         SetProjection(glm::perspective(glm::radians(m_FieldOfView), m_AspectRatio, m_NearClip, m_FarClip));
     }
 
-    auto EditorCamera::UpdateView() -> void {
-        m_ViewMatrix = glm::lookAt(m_Position, m_Position + m_ForwardVector, CAMERA_UP_VECTOR);
-        m_ViewMatrix = glm::inverse(m_ViewMatrix);
+    auto EditorCamera::UpdateViewMatrix() -> void {
+        m_ViewMatrix = glm::lookAt(m_Position,                      // The camera is located here
+                                   m_Position + m_ForwardVector,    // This is where the camera is looking at
+                                   m_CameraUpVector);               // This is the camera's up vector (normalized, i.e., size between [0, 1])
+
+        //m_ViewMatrix = glm::inverse(m_ViewMatrix);
     }
 
-    auto EditorCamera::OnUpdate(double timeStep) -> void {
-        m_RightVector = glm::cross(m_ForwardVector, CAMERA_UP_VECTOR);
+    auto EditorCamera::ProcessMouseInput(double timeStep) -> void {
+        // Get mouse angle rotation values
         const glm::vec2 MOUSE_CURRENT_POSITION{ InputManager::GetMouseX(), InputManager::GetMouseY() };
-        glm::vec2 delta{ (MOUSE_CURRENT_POSITION - m_LastMousePosition) * 0.003f };
+        glm::vec2 delta{ (MOUSE_CURRENT_POSITION - m_LastMousePosition) * 0.03f };
         m_LastMousePosition = MOUSE_CURRENT_POSITION;
 
-        if (!InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Left)) {
-            InputManager::SetCursorMode(InputManager::CursorInputMode::CURSOR_NORMAL);
+        if (!InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Left))
             return;
-        }
-
-        InputManager::SetCursorMode(InputManager::CursorInputMode::CURSOR_DISABLED);
-
-        if (InputManager::IsKeyPressed(KeyCode::Key_W)) {
-            m_Position -= m_ForwardVector * m_MovementSpeed * (float)timeStep;
-        }
-
-        if (InputManager::IsKeyPressed(KeyCode::Key_A)) {
-            m_Position += m_RightVector * m_MovementSpeed * (float)timeStep;
-        }
-
-        if (InputManager::IsKeyPressed(KeyCode::Key_S)) {
-            m_Position += m_ForwardVector * m_MovementSpeed * (float)timeStep;
-        }
-
-        if (InputManager::IsKeyPressed(KeyCode::Key_D)) {
-            m_Position -= m_RightVector * m_MovementSpeed * (float)timeStep;
-        }
-
-        if (InputManager::IsKeyPressed(KeyCode::Key_Space) || InputManager::IsKeyPressed(KeyCode::Key_E)) {
-            m_Position.y -= m_MovementSpeed * (float)timeStep;
-        }
-
-        if (InputManager::IsKeyPressed(KeyCode::Key_Q)) {
-            m_Position.y += m_MovementSpeed * (float)timeStep;
-        }
 
         // Perform rotation
         if (delta.x != 0.0f || delta.y != 0.0f) {
@@ -83,13 +59,58 @@ namespace Mikoto {
             // The X offset of the mouse will dictate how much we rotate in the Y axis
             m_Yaw = delta.x * m_RotationSpeed * (float)timeStep;
 
-            const glm::quat quaternion{ glm::normalize(glm::cross(glm::angleAxis(-m_Pitch, glm::normalize(m_RightVector)),
-                                                                 glm::angleAxis(-m_Yaw, CAMERA_UP_VECTOR))) };
+            glm::quat q{ glm::normalize(glm::cross(glm::angleAxis(-m_Pitch, m_RightVector),
+                                                    glm::angleAxis(-m_Yaw, glm::vec3(0.f, 1.0f, 0.0f)))) };
+            m_ForwardVector = glm::rotate(q, m_ForwardVector);
 
-            m_ForwardVector = glm::rotate(quaternion, m_ForwardVector);
+        }
+    }
+
+    auto EditorCamera::ProcessKeyboardInput(double timeStep) -> void {
+        m_CameraUpVector = GLM_UNIT_VECTOR_Y;
+
+        if (!InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Left))
+            return;
+
+        // Move forward
+        if (InputManager::IsKeyPressed(KeyCode::Key_W)) {
+            m_Position += m_ForwardVector * m_MovementSpeed * (float)timeStep;
         }
 
-        UpdateView();
+        // Move backwards
+        if (InputManager::IsKeyPressed(KeyCode::Key_S)) {
+            m_Position -= m_ForwardVector * m_MovementSpeed * (float)timeStep;
+        }
+
+        // Move left
+        if (InputManager::IsKeyPressed(KeyCode::Key_A)) {
+            m_Position -= m_RightVector * m_MovementSpeed * (float)timeStep;
+        }
+
+        // Move right
+        if (InputManager::IsKeyPressed(KeyCode::Key_D)) {
+            m_Position += m_RightVector * m_MovementSpeed * (float)timeStep;
+        }
+
+        // Move up
+        if (InputManager::IsKeyPressed(KeyCode::Key_Space) || InputManager::IsKeyPressed(KeyCode::Key_E)) {
+            m_Position.y += m_MovementSpeed * (float)timeStep;
+        }
+
+        // Move down
+        if (InputManager::IsKeyPressed(KeyCode::Key_Q)) {
+            m_Position.y -= m_MovementSpeed * (float)timeStep;
+        }
+    }
+
+    auto EditorCamera::OnUpdate(double timeStep) -> void {
+        m_CameraUpVector = GLM_UNIT_VECTOR_Y;
+        m_RightVector = glm::cross(m_ForwardVector, m_CameraUpVector);
+
+        ProcessMouseInput(timeStep);
+        ProcessKeyboardInput(timeStep);
+
+        UpdateViewMatrix();
     }
 
     auto EditorCamera::OnEvent(Event& event) -> void {
@@ -99,7 +120,7 @@ namespace Mikoto {
     }
 
     auto EditorCamera::OnMouseScroll(MouseScrollEvent& event) -> bool {
-        UpdateView();
+        UpdateViewMatrix();
         return false;
     }
 

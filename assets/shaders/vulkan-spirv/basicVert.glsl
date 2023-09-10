@@ -1,7 +1,8 @@
 #version 450
 
 layout(set = 0, binding = 0) uniform UniformBufferObject {
-    mat4 ProjectionView;
+    mat4 View;
+    mat4 Projection;
     mat4 Transform;
     vec4 Color;
 } UniformBufferData;
@@ -21,5 +22,5 @@ void main() {
     vertexColor = UniformBufferData.Color;
     vertexTexCoord = a_TextureCoordinates;
 
-    gl_Position = UniformBufferData.ProjectionView * UniformBufferData.Transform * vec4(a_Position, 1.0);
+    gl_Position = UniformBufferData.Projection * UniformBufferData.View * UniformBufferData.Transform * vec4(a_Position, 1.0);
 }

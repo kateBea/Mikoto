@@ -163,7 +163,8 @@ namespace Mikoto {
             m_ActiveDefaultMaterial = std::dynamic_pointer_cast<VulkanStandardMaterial>(drawObject->MaterialData);
 
             // TODO: should not be done here
-            m_ActiveDefaultMaterial->SetProjectionView(drawObject->TransformData.ProjectionView);
+            m_ActiveDefaultMaterial->SetProjection(drawObject->TransformData.Projection);
+            m_ActiveDefaultMaterial->SetView(drawObject->TransformData.View);
             m_ActiveDefaultMaterial->SetTransform(drawObject->TransformData.Transform);
             m_ActiveDefaultMaterial->SetTiltingColor(drawObject->Color.r, drawObject->Color.g, drawObject->Color.b, drawObject->Color.a);
 

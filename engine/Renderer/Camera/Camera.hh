@@ -32,15 +32,18 @@ namespace Mikoto {
         MKT_NODISCARD auto GetTransform() -> glm::mat4& { return m_Transform; }
         auto SetTransform(const glm::mat4& transform = glm::mat4(1.0)) -> void { m_Transform = transform; }
 
-        auto SetPosition(const glm::vec3& position, const glm::vec3& angles = glm::vec3(0.0f)) -> void {
+        auto SetPosition(const glm::vec3& position) -> void {
             m_Translation = position;
+            m_Transform = glm::translate(m_Transform, m_Translation);
+        }
+
+        auto SetRotation(const glm::vec3& angles = glm::vec3(0.0f)) -> void {
             m_Rotation = angles;
 
-            glm::mat4 rotationX{ glm::rotate(IDENTITY_MATRIX, (float)glm::radians(m_Rotation[0]), X_AXIS) };
-            glm::mat4 rotationY{ glm::rotate(rotationX, (float)glm::radians(m_Rotation[1]), Y_AXIS) };
-            glm::mat4 rotation{ glm::rotate(rotationY, (float)glm::radians(m_Rotation[2]), Z_AXIS) };
+            m_Transform = glm::rotate(m_Transform, (float)glm::radians(m_Rotation[0]), X_AXIS);
+            m_Transform =  glm::rotate(m_Transform, (float)glm::radians(m_Rotation[1]), Y_AXIS);
+            m_Transform =  glm::rotate(m_Transform, (float)glm::radians(m_Rotation[2]), Z_AXIS);
 
-            m_Transform = glm::translate(IDENTITY_MATRIX, position) * rotation;
         }
 
         ~Camera() = default;

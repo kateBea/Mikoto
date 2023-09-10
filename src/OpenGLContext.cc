@@ -36,10 +36,10 @@ namespace Mikoto::OpenGLContext {
             s_GLEWInitSuccess = glewInit() == GLEW_OK;
             MKT_ASSERT(s_GLEWInitSuccess, "Failed to initialize GLEW");
 
-            MKT_CORE_LOGGER_INFO("OpenGL target  {}.{}", MKT_OPENGL_VERSION_MAJOR, MKT_OPENGL_VERSION_MINOR);
-            MKT_CORE_LOGGER_INFO("OpenGL available {}", (const char*)glGetString(GL_VERSION));
-            MKT_CORE_LOGGER_INFO("OpenGL vendor {}", (const char*)glGetString(GL_VENDOR));
-            MKT_CORE_LOGGER_INFO("OpenGL renderer {}", (const char*)glGetString(GL_RENDERER));
+            MKT_CORE_LOGGER_INFO("OpenGL Target Version:  {}.{}", MKT_OPENGL_VERSION_MAJOR, MKT_OPENGL_VERSION_MINOR);
+            MKT_CORE_LOGGER_INFO("OpenGL Drivers Version {}", (const char*)glGetString(GL_VERSION));
+            MKT_CORE_LOGGER_INFO("OpenGL Vendor {}", (const char*)glGetString(GL_VENDOR));
+            MKT_CORE_LOGGER_INFO("OpenGL Device {}", (const char*)glGetString(GL_RENDERER));
         }
         catch (const std::bad_any_cast& exception) {
             MKT_APP_LOGGER_ERROR("Exception thrown std::any_cast at OpenGLContext::Init(). What: {}", exception.what());

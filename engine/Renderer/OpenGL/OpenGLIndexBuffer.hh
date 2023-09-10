@@ -29,6 +29,7 @@ namespace Mikoto {
         explicit OpenGLIndexBuffer(const std::vector<UInt32_T> &indices, GLbitfield usage = GL_DYNAMIC_STORAGE_BIT);
 
         MKT_NODISCARD auto GetID() const -> UInt32_T { return m_Id; }
+        MKT_NODISCARD auto GetBufferDataType() const -> Int32_T { return m_DataType; }
 
         /**
          * Mark this Vertex index buffer as current
@@ -41,7 +42,7 @@ namespace Mikoto {
          * previously bound, and restores client memory usage for that buffer object
          * target (if supported for that target). See: https://docs.gl/gl4/glBindBuffer
          * */
-        auto Unbind() const -> void { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); }
+        static auto Unbind() -> void { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); }
 
         /**
          * Move constructor
@@ -73,6 +74,8 @@ namespace Mikoto {
 
     private:
         UInt32_T m_Id{};
+        Int32_T m_DataType{};
+
         /**
          * Tells whether this VAO holds a valid OpenGL shader program id.
          * For internal usage for now mainly

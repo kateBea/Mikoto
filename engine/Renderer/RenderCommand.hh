@@ -34,7 +34,7 @@ namespace Mikoto {
         static auto AddToRenderQueue(std::shared_ptr<DrawData> data) -> void;
         static auto Flush() -> void;
 
-        static auto UpdateViewPort(UInt32_T x, UInt32_T y, UInt32_T width, UInt32_T height) -> void;
+        static auto UpdateViewPort(Int32_T x, Int32_T y, Int32_T width, Int32_T height) -> void;
 
 	private:
         inline static RendererAPI* s_ActiveRendererAPI{ nullptr };

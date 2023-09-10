@@ -29,24 +29,8 @@ namespace Mikoto {
     auto SettingsPanel::OnUpdate() -> void {
         if (m_PanelIsVisible) {
             ImGui::Begin("Settings");
-            ImGui::ColorEdit3("Clear Color", glm::value_ptr(m_Data->ClearColor));
-
-            ImGui::Separator();
-            if (ImGui::Checkbox("VSync Enabled", &m_Data->VerticalSyncEnabled)) {
-                if (m_Data->VerticalSyncEnabled)
-                    RenderContext::EnableVSync();
-                else
-                    RenderContext::DisableVSync();
-            }
-
-            if (ImGui::Checkbox("Wireframe mode", &m_Data->RenderWireframeMode)) {
-                if (m_Data->RenderWireframeMode)
-                    RenderCommand::EnableWireframeMode();
-                else
-                    RenderCommand::DisableWireframeMode();
-            }
-
-            const ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_AllowItemOverlap |
+            const ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_DefaultOpen |
+                                                ImGuiTreeNodeFlags_AllowItemOverlap |
                                                 ImGuiTreeNodeFlags_Framed |
                                                 ImGuiTreeNodeFlags_SpanAvailWidth |
                                                 ImGuiTreeNodeFlags_FramePadding };
@@ -54,6 +38,29 @@ namespace Mikoto {
             if (ImGui::TreeNodeEx((void*)123213, styleFlags, "%s", "Editor Camera")) {
                 ImGui::SliderFloat("Movement Speed", &(m_Data->EditorCameraMovementSpeed), 2.0f, 10.0f);
                 ImGui::SliderFloat("Rotation Speed", &(m_Data->EditorCameraRotationSpeed), 2.0f, 10.0f);
+                ImGui::TreePop();
+            }
+
+            if (ImGui::TreeNodeEx((void*)123215, styleFlags, "%s", "Rendering")) {
+                if (ImGui::Checkbox("VSync Enabled", &m_Data->VerticalSyncEnabled)) {
+                    if (m_Data->VerticalSyncEnabled)
+                        RenderContext::EnableVSync();
+                    else
+                        RenderContext::DisableVSync();
+                }
+
+                if (ImGui::Checkbox("Wireframe mode", &m_Data->RenderWireframeMode)) {
+                    if (m_Data->RenderWireframeMode)
+                        RenderCommand::EnableWireframeMode();
+                    else
+                        RenderCommand::DisableWireframeMode();
+                }
+                ImGui::TreePop();
+            }
+
+            if (ImGui::TreeNodeEx((void*)123216, styleFlags, "%s", "Color")) {
+                const ImGuiColorEditFlags flags{ ImGuiColorEditFlags_None | ImGuiColorEditFlags_PickerHueWheel };
+                ImGui::ColorEdit4("Clear Color", glm::value_ptr(m_Data->ClearColor), flags);
                 ImGui::TreePop();
             }
 

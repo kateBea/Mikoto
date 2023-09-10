@@ -35,7 +35,8 @@ namespace Mikoto {
                 mainCam = camera.GetCameraPtr();
 
                 // The camera's position and rotation depends on its transform component
-                mainCam->SetPosition(transform.GetTranslation(), transform.GetRotation());
+                mainCam->SetPosition(transform.GetTranslation());
+                mainCam->SetRotation(transform.GetRotation());
                 break;
             }
         }

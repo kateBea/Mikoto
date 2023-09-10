@@ -29,16 +29,14 @@ namespace Mikoto {
         auto operator=(const OpenGLDefaultMaterial& other) -> OpenGLDefaultMaterial& = default;
         auto operator=(OpenGLDefaultMaterial&& other) -> OpenGLDefaultMaterial& = default;
 
-        auto BindShader() -> void;
-        static auto UnbindShader() -> void;
-
-        auto BindTexture() -> void;
-        auto UnbindTexture() -> void;
-
         auto UploadShaders(const Path_T& vertexShader, const Path_T& fragmentShader) -> void;
 
         MKT_NODISCARD auto GetShader() -> std::shared_ptr<OpenGLShader> { return m_DefaultVertexPixelShaders; }
-        MKT_NODISCARD auto GetTexture() -> std::shared_ptr<OpenGLTexture2D> { return m_Texture; }
+        /**
+         * This number tells how many textures can be bound to sample from. This is a device
+         * dependent property some allow to bind textures to up to 32 different slots.
+         * */
+        MKT_NODISCARD static auto GetMaxConcurrentSamplingTextures() -> UInt32_T { return 16; }
 
         auto SetTextureSampler(Int32_T value) -> void;
         auto SetTiltingColor(float red, float green, float blue, float alpha) -> void;
@@ -46,14 +44,18 @@ namespace Mikoto {
 
         auto UploadUniformBuffersData() -> void;
 
-        auto SetProjectionView(const glm::mat4& mat) -> void;
+        auto SetProjection(const glm::mat4& mat) -> void { m_ProjectionMatrix = mat; }
+        auto SetView(const glm::mat4& mat) -> void { m_ViewMatrix = mat; }
         auto SetTransform(const glm::mat4& mat) -> void;
 
     private:
-        std::shared_ptr<OpenGLTexture2D> m_Texture{};
         std::shared_ptr<OpenGLShader> m_DefaultVertexPixelShaders{};
 
-        glm::mat4 m_ProjectionView{};
+        // Camera
+        glm::mat4 m_ProjectionMatrix{};
+        glm::mat4 m_ViewMatrix{};
+
+        // Object
         glm::mat4 m_Transform{};
         glm::vec4 m_Color{};
     };

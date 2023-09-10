@@ -19,26 +19,17 @@
 #include <Renderer/RenderContext.hh>
 
 namespace Mikoto {
-    /**
-     * Tells whether the GLFW was initialized successfully.
-     * Needed before creating windows
-     * */
-    inline bool g_GLFWInitSuccess{ false };
-
-    /**
-     * Window specialization for Linux.
-     * */
     class MainWindow : public Window {
     public:
-        explicit MainWindow(const WindowProperties& properties = WindowProperties{});
+        explicit MainWindow(WindowProperties&& properties = WindowProperties{});
 
         MKT_NODISCARD auto GetWidth() const -> Int32_T override { return m_Properties.GetWidth(); }
         MKT_NODISCARD auto GetHeight() const -> Int32_T override { return m_Properties.GetHeight(); }
         MKT_NODISCARD auto GetExtent() const -> std::pair<Int32_T, Int32_T> override { return { GetWidth(), GetHeight() }; }
 
         /**
-         * Returns a pointer to a structure containing the
-         * native Window structure
+         * Returns a handle to the native Window
+         * @returns handle to implemented window
          * */
         MKT_NODISCARD auto GetNativeWindow() -> std::any override { return m_Window; }
 
@@ -46,8 +37,6 @@ namespace Mikoto {
         auto OnUpdate() -> void override;
         auto ShutDown() -> void override;
         auto SetEventCallback(EventCallbackFunc_T func) -> void override { m_Callback = func; }
-
-        MKT_NODISCARD auto IsVSyncEnabled() const -> bool { return RenderContext::IsVSyncActive(); }
 
         auto CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface) -> void;
 
@@ -58,9 +47,14 @@ namespace Mikoto {
         static auto InitGLFW() -> void;
 
     private:
+        /**
+         * Tells whether the GLFW was initialized successfully.
+         * Needed before creating windows
+         * */
+        inline static bool s_GLFWInitSuccess{ false };
+
         GLFWwindow* m_Window{};
         EventCallbackFunc_T m_Callback{};
-        bool m_CurrentGraphicsAPIIsOpenGL{ false };
     };
 }
 

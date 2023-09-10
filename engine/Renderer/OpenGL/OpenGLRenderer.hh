@@ -10,7 +10,7 @@
 #include <memory>
 
 // Third-Party Library
-#include <glm/vec4.hpp>
+#include <glm/glm.hpp>
 
 // Project Headers
 #include <Utility/Common.hh>
@@ -19,6 +19,8 @@
 #include <Renderer/Buffers/VertexBuffer.hh>
 #include <Renderer/OpenGL/OpenGLFrameBuffer.hh>
 #include <Renderer/OpenGL/OpenGLVertexArray.hh>
+#include <Renderer/OpenGL/OpenGLIndexBuffer.hh>
+#include <Renderer/OpenGL/OpenGLVertexBuffer.hh>
 #include <Renderer/OpenGL/OpenGLDefaultMaterial.hh>
 
 namespace Mikoto {
@@ -67,6 +69,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetDefaultFrameBuffer() -> OpenGLFrameBuffer& { return m_DefaultFrameBuffer; }
 
+
         ~OpenGLRenderer() override = default;
 
     public:
@@ -84,7 +87,7 @@ namespace Mikoto {
         * HELPERS
         * ***********************************************************/
         auto CreateFrameBuffers() -> void;
-        auto DrawIndexed(const std::shared_ptr<VertexBuffer> &vertexBuffer, const std::shared_ptr<IndexBuffer> &indexBuffer) -> void;
+        auto DrawIndexed(const std::shared_ptr<OpenGLVertexBuffer> &vertexBuffer, const std::shared_ptr<OpenGLIndexBuffer> &indexBuffer) -> void;
 
     private:
         /*************************************************************

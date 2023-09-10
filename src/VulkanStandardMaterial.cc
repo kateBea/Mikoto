@@ -125,11 +125,6 @@ namespace Mikoto {
         vkUpdateDescriptorSets(VulkanContext::GetPrimaryLogicalDevice(), static_cast<UInt32_T>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 
-
-    auto VulkanStandardMaterial::SetProjectionView(const glm::mat4 &projView) -> void {
-        m_UniformData.ProjectionView = projView;
-    }
-
     auto VulkanStandardMaterial::SetTransform(const glm::mat4&transform) -> void {
         m_UniformData.Transform = transform;
     }

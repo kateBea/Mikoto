@@ -26,7 +26,7 @@ set(CORE_SOURCES
         src/OpenGLUtils.cc
         src/GUIManager.cc
         src/LayerManager.cc
-        engine/Core/JobSystem.cc)
+        src/JobSystem.cc)
 
 set(PLATFORM_SOURCES
         src/Application.cc

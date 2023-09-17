@@ -31,6 +31,7 @@ namespace Mikoto {
 
         explicit TagComponent(std::string_view tag) {
             m_Tag = tag;
+            m_Visibility = true;
         }
 
         TagComponent(const TagComponent& other) = default;
@@ -39,10 +40,14 @@ namespace Mikoto {
         auto operator=(const TagComponent& other) -> TagComponent& = default;
         auto operator=(TagComponent&& other) -> TagComponent& = default;
 
+        MKT_NODISCARD auto IsVisible() const -> bool { return m_Visibility; }
         MKT_NODISCARD auto GetTag() const -> const std::string& { return m_Tag; }
+
         auto SetTag(std::string_view newName) -> void { m_Tag = newName; }
+        auto SetVisibility(bool value) -> void { m_Visibility = value; }
     private:
         std::string m_Tag{};
+        bool m_Visibility{};
     };
 
     class TransformComponent {

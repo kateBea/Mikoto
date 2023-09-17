@@ -203,16 +203,19 @@ namespace Mikoto {
             if (m_Hierarchy->m_ContextSelection.HasComponent<TagComponent>()) {
                 TagComponent& tag{ m_Hierarchy->m_ContextSelection.GetComponent<TagComponent>() };
 
-                // tells whether we want the selection context to be visible int the scene (not implemented yet)
-                static bool renderContextSelectionToScene{ true };
+                // Tells whether we want to visualize the selection or not (not yet implemented)
+                bool renderContextSelectionToScene{ tag.IsVisible() };
+                if (ImGui::Checkbox("##show", &renderContextSelectionToScene)) {
+                    tag.SetVisibility(!tag.IsVisible());
+                }
 
+                ImGui::SameLine();
+
+                // Process entity name change
+                const ImGuiTextFlags flags{};
                 char contextSelectionTagName[1024]{};
                 std::copy(tag.GetTag().begin(), tag.GetTag().end(), contextSelectionTagName);
 
-                ImGui::Checkbox("##show", &renderContextSelectionToScene);
-                ImGui::SameLine();
-
-                const ImGuiTextFlags flags{};
                 if (ImGui::InputText("##Tag", contextSelectionTagName, std::size(contextSelectionTagName), flags)) {
                     tag.SetTag(contextSelectionTagName);
                 }

@@ -59,6 +59,7 @@ namespace Mikoto {
             attribute.binding = 0;
 
         // Setup location, format and offset
+        // FIXME: sign comparison m_Layout.GetCount() should return a Size_T (this should generally be the case unless stuff like vertex buffer since there can be many they would be UInt64's instead)
         for (Size_T index{}; index < m_Layout.GetCount(); ++index) {
             m_AttributeDesc[index].location = index;
             m_AttributeDesc[index].format = m_Layout[index].GetVulkanAttributeDataType();

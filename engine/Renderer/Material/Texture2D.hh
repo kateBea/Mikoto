@@ -25,22 +25,19 @@ namespace Mikoto {
     public:
         explicit Texture2D() = default;
 
-        MKT_NODISCARD auto GetChannels() const -> UInt32_T { return m_Channels; }
-        MKT_NODISCARD auto GetWidth() const -> UInt32_T  { return m_Width; }
-        MKT_NODISCARD auto GetHeight() const -> UInt32_T { return m_Height; }
+        MKT_NODISCARD auto GetChannels() const -> Int32_T { return m_Channels; }
+        MKT_NODISCARD auto GetWidth() const -> Int32_T  { return m_Width; }
+        MKT_NODISCARD auto GetHeight() const -> Int32_T { return m_Height; }
 
-        static auto CreateTexture(const Path_T& path) -> std::shared_ptr<Texture2D>;
-        static auto CreateTextureRawPtr(const Path_T &path) -> Texture2D*;
-
-        static auto LoadFromFile(const Path_T &path, Type type) -> std::shared_ptr<Texture2D>;
+        static auto Create(const Path_T &path, Type type) -> std::shared_ptr<Texture2D>;
 
     protected:
-        Texture2D(UInt32_T width, UInt32_T height, UInt32_T channels) : m_Width{ width }, m_Height{ height }, m_Channels{ channels } {}
+        Texture2D(Int32_T width, Int32_T height, Int32_T channels) : m_Width{ width }, m_Height{ height }, m_Channels{ channels } {}
 
     protected:
-        UInt32_T m_Width{};
-        UInt32_T m_Height{};
-        UInt32_T m_Channels{};
+        Int32_T m_Width{};
+        Int32_T m_Height{};
+        Int32_T m_Channels{};
         Type m_Type{};
     };
 }

@@ -9,26 +9,26 @@
 #include <utility>
 
 // Project headers
-#include <Utility/Common.hh>
-#include <Core/Logger.hh>
-#include <Core/GUIManager.hh>
+#include "ImGui/ImGuiLayer.hh"
 #include <Core/Application.hh>
-#include <Renderer/Renderer.hh>
 #include <Core/Events/AppEvents.hh>
-#include <Core/ImGui/ImGuiLayer.hh>
+#include <Core/GUIManager.hh>
+#include <Core/Logger.hh>
 #include <Platform/InputManager.hh>
-#include <Renderer/RenderCommand.hh>
 #include <Platform/Window/MainWindow.hh>
+#include <Renderer/RenderCommand.hh>
+#include <Renderer/Renderer.hh>
+#include <Utility/Common.hh>
 
 namespace Mikoto {
     auto Application::Init(AppSpec&& appSpec) -> void {
+        // Initialize the time manager
+        TimeManager::Init();
+
         m_Spec = std::move(appSpec);
 
         MKT_APP_LOGGER_INFO("Program executable (absolute path): {}", m_Spec.Executable.string());
         MKT_APP_LOGGER_INFO("Program current working directory (absolute path): {}", m_Spec.WorkingDirectory.string());
-
-        // Initialize the time manager
-        TimeManager::Init();
 
         // Allocations
         WindowProperties windowProperties{};
@@ -43,6 +43,8 @@ namespace Mikoto {
 
         // Initialize the main window
         m_MainWindow->Init();
+
+        // Application::OnEvent will be called everytime there's an event from the window
         m_MainWindow->SetEventCallback(MKT_BIND_EVENT_FUNC(Application::OnEvent));
 
         // Initialize the input manager
@@ -60,9 +62,6 @@ namespace Mikoto {
         RenderContext::EnableVSync();
         Renderer::Init(renderSpec);
 
-        // Initialize the GUI layer
-        // TODO: turn layer manager into a namespace
-        m_LayerStack->Init();
         PushOverlay(m_ImGuiLayer);
 
         MKT_CORE_LOGGER_DEBUG("Init time {}", TimeManager::GetTime());
@@ -71,17 +70,20 @@ namespace Mikoto {
     auto Application::OnEvent(Event& event) -> void {
         MKT_CORE_LOGGER_TRACE("{}", event.DisplayData());
 
-        EventDispatcher evDis{ event };
-        if (evDis.Forward<WindowCloseEvent>(MKT_BIND_EVENT_FUNC(Application::OnWindowClose)))
+        EventDispatcher dispatcher{ event };
+        if (dispatcher.Forward<WindowCloseEvent>(MKT_BIND_EVENT_FUNC(Application::OnWindowClose)))
             MKT_CORE_LOGGER_TRACE("HANDLED {}", event.DisplayData());
 
-        if (evDis.Forward<WindowResizedEvent>(MKT_BIND_EVENT_FUNC(Application::OnResizeEvent)))
+        if (dispatcher.Forward<WindowResizedEvent>(MKT_BIND_EVENT_FUNC(Application::OnResizeEvent)))
             MKT_CORE_LOGGER_TRACE("HANDLED {}", event.DisplayData());
 
         Renderer::OnEvent(event);
 
         for (auto it{ m_LayerStack->rbegin() }; it != m_LayerStack->rend(); ++it) {
             (*it)->OnEvent(event);
+
+            // Do not propagate the event to the rest of layers
+            // if one of them marks it as handled
             if (event.IsHandled())
                 break;
         }
@@ -119,7 +121,6 @@ namespace Mikoto {
         InputManager::ShutDown();
         Renderer::ShutDown();
 
-        m_LayerStack->ShutDown();
         m_MainWindow->ShutDown();
     }
 
@@ -133,10 +134,10 @@ namespace Mikoto {
     }
 
     auto Application::UpdateState() -> void {
-        TimeManager::UpdateDeltaTime();
+        TimeManager::UpdateTimeStep();
 
         if (!m_MainWindowMinimized) {
-            auto ts{ TimeManager::GetDeltaTime() };
+            auto ts{ TimeManager::GetTimeStep() };
             for (auto& layer : *m_LayerStack)
                 layer->OnUpdate(ts);
         }
@@ -145,7 +146,6 @@ namespace Mikoto {
         for (auto& layer : *m_LayerStack)
             layer->OnImGuiRender();
         m_ImGuiLayer->EndFrame();
-
 
         m_MainWindow->OnUpdate();
     }

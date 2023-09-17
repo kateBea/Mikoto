@@ -54,10 +54,10 @@ namespace Mikoto {
 
     auto OpenGLShader::Build(const char* vShader, const char* fShader) const -> void {
         UInt32_T vertexShaderID{ Compile(vShader, GL_VERTEX_SHADER) };
-        ShowShaderStatus(vertexShaderID, ShaderStage::VERTEX_STAGE, GL_COMPILE_STATUS);
+        ShowShaderStatus(vertexShaderID, ShaderStage::SHADER_VERTEX_STAGE, GL_COMPILE_STATUS);
 
         UInt32_T pixelShaderID{ Compile(fShader, GL_FRAGMENT_SHADER) };
-        ShowShaderStatus(pixelShaderID, ShaderStage::FRAGMENT_STAGE, GL_COMPILE_STATUS);
+        ShowShaderStatus(pixelShaderID, ShaderStage::SHADER_FRAGMENT_STAGE, GL_COMPILE_STATUS);
 
         // Create and link program against compiled Shader binaries
         glAttachShader(GetProgram(), vertexShaderID);

@@ -37,13 +37,18 @@ namespace Mikoto {
         MKT_CORE_LOGGER_INFO("Main Window initialization");
         InitGLFW();
 
+        UInt32_T major{};
+        UInt32_T minor{};
+
         switch(m_Properties.GetBackend()) {
             case GraphicsAPI::OPENGL_API:
-                m_Properties.SetTitle(fmt::format("Mikoto (OpenGL Version {}.{}.0)", MKT_OPENGL_VERSION_MAJOR, MKT_OPENGL_VERSION_MINOR));
+                major = MKT_OPENGL_VERSION_MAJOR;
+                minor = MKT_OPENGL_VERSION_MINOR;
+                m_Properties.SetTitle(fmt::format("Mikoto (OpenGL Version {}.{}.0)", major, minor));
                 break;
             case GraphicsAPI::VULKAN_API:
-                UInt32_T major{ MKT_VULKAN_VERSION_MAJOR };
-                UInt32_T minor{ MKT_VULKAN_VERSION_MINOR };
+                major = MKT_VULKAN_VERSION_MAJOR;
+                minor = MKT_VULKAN_VERSION_MINOR;
                 m_Properties.SetTitle(fmt::format("Mikoto (Vulkan Version {}.{})", major, minor));
 
                 // Because GLFW was originally designed to create an OpenGL context,
@@ -52,29 +57,35 @@ namespace Mikoto {
                 break;
         }
 
-        MKT_CORE_LOGGER_INFO("Creating Window GLFW. Name '{}'. Dimensions [{}, {}]", m_Properties.GetName(), m_Properties.GetWidth(), m_Properties.GetHeight());
+        MKT_CORE_LOGGER_INFO("Creating GLFW Window with name '{}'", m_Properties.GetName());
+        MKT_CORE_LOGGER_INFO("GLFW Window dimensions are [{}, {}]", m_Properties.GetWidth(), m_Properties.GetHeight());
 
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
         
         m_Window = glfwCreateWindow(m_Properties.GetWidth(), m_Properties.GetHeight(), m_Properties.GetName().c_str(), nullptr, nullptr);
+
+        s_WindowsCount += 1;
         m_WindowCreateSuccess = m_Window != nullptr;
         MKT_ASSERT(m_WindowCreateSuccess, "Failed to create the Window GLFW");
 
         SpawnOnCenter();
-        SetCallbacks();
+        InstallCallbacks();
     }
 
     auto MainWindow::ShutDown() -> void {
-        MKT_CORE_LOGGER_DEBUG("Shutting down Window GLFW. Name '{}'. Dimensions [{}, {}]",
-                               m_Properties.GetName(), m_Properties.GetWidth(), m_Properties.GetHeight());
+        MKT_CORE_LOGGER_INFO("Shutting down GLFW Window with name '{}'", m_Properties.GetName());
+        MKT_CORE_LOGGER_INFO("GLFW Window dimensions are [{}, {}]", m_Properties.GetWidth(), m_Properties.GetHeight());
 
-        // Might have an internal window counter If we want to spawn multiple windows,
-        // so the last one alive shuts down the GLFW library
+        // Everytime we shut down a GLFW window, we decrease the number
+        // of active windows, the last GLFW window to be shutdown calls glfwTerminate()
         glfwDestroyWindow(m_Window);
-        glfwTerminate();
+        s_WindowsCount -= 1;
+
+        if (s_WindowsCount == 0)
+            glfwTerminate();
     }
 
-    auto MainWindow::SetCallbacks() -> void {
+    auto MainWindow::InstallCallbacks() -> void {
         glfwSetWindowUserPointer(m_Window, this);
 
         glfwSetWindowSizeCallback(m_Window,

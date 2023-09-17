@@ -73,6 +73,9 @@ namespace Mikoto {
         std::vector<float> m_RetainedData{};
         std::vector<VkVertexInputBindingDescription> m_BindingDesc{};
         std::vector<VkVertexInputAttributeDescription>  m_AttributeDesc{};
+
+        // TODO: implement usage of dynamic vertex buffers layout specification. See vkDynamicVertexEXT()
+        bool m_UseDynamicVertexBufferLayout{ false };
     };
 }
 

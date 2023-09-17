@@ -34,7 +34,7 @@ namespace Mikoto {
             if (sceneHasMainCam) {
                 mainCam = camera.GetCameraPtr();
 
-                // The camera's position and rotation depends on its transform component
+                // The camera's position and rotation depend on its transform component
                 mainCam->SetPosition(transform.GetTranslation());
                 mainCam->SetRotation(transform.GetRotation());
                 break;
@@ -70,21 +70,14 @@ namespace Mikoto {
 
     auto Scene::CreateEmptyObject(std::string_view tagName, const std::shared_ptr<Scene>& scene) -> Entity {
         Entity result{ scene };
-        static constexpr glm::vec3 SIZE{ 1.0f, 1.0f, 1.0f };
-        static constexpr glm::vec3 POSITION{ 0.0, 0.0, 0.0 };
-        static constexpr glm::vec3 ROTATION{ 0.0f, 0.0f, 0.0f };
-
         result.AddComponent<TagComponent>(tagName);
-        result.AddComponent<TransformComponent>(POSITION, SIZE, ROTATION);
+        result.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
 
         return result;
     }
 
     auto Scene::CreatePrefabObject(std::string_view tagName, const std::shared_ptr<Scene>& scene, PrefabSceneObject type) -> Entity {
         Entity result{ scene };
-        static constexpr glm::vec3 SIZE{ 1.0f, 1.0f, 1.0f };
-        static constexpr glm::vec3 POSITION{ 0.0, 0.0, 0.0 };
-        static constexpr glm::vec3 ROTATION{ 0.0f, 0.0f, 0.0f };
 
         result.AddComponent<RenderComponent>();
         auto& renderData{ result.GetComponent<RenderComponent>() };
@@ -96,7 +89,7 @@ namespace Mikoto {
         materialData.SetMaterial(Material::Create(Material::Type::STANDARD));
 
         result.AddComponent<TagComponent>(tagName);
-        result.AddComponent<TransformComponent>(POSITION, SIZE, ROTATION);
+        result.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
 
         return result;
     }
@@ -123,7 +116,7 @@ namespace Mikoto {
         }
     }
 
-    auto Scene::OnEditorUpdate(double ts, EditorCamera& camera) -> void {
+    auto Scene::OnEditorUpdate(double timeStep, const EditorCamera &camera) -> void {
         ScenePrepareData prepareData{};
         prepareData.StaticCamera = &camera;
 
@@ -131,13 +124,12 @@ namespace Mikoto {
 
         auto view{ m_Registry.view<TagComponent, TransformComponent, RenderComponent, MaterialComponent>() };
 
-        for (auto& sceneObject: view) {
-            TagComponent& tag{ view.get<TagComponent>(sceneObject) };
+        for (auto& sceneObject : view) {
             TransformComponent& transform{ view.get<TransformComponent>(sceneObject) };
             RenderComponent& renderComponent{ view.get<RenderComponent>(sceneObject) };
             MaterialComponent& material{ view.get<MaterialComponent>(sceneObject) };
 
-            SceneObjectData& objectData{renderComponent.GetObjectData() };
+            SceneObjectData& objectData{ renderComponent.GetObjectData() };
             objectData.Color = material.GetColor();
 
             // TODO: fix rendering order for blending, objects that are nearer to the camera should be rendered first

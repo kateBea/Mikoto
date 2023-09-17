@@ -23,7 +23,7 @@
 namespace Mikoto {
     class ScenePanel_OGLImpl : public ScenePanelInterface {
     private:
-        auto Init_Impl(std::shared_ptr<ScenePanelData> data) -> void override {
+        auto Init_Impl(ScenePanelData&& data) -> void override {
             m_Data = std::move(data);
             m_SceneRenderer = dynamic_cast<OpenGLRenderer*>(Renderer::GetActiveGraphicsAPIPtr());
         }
@@ -37,12 +37,12 @@ namespace Mikoto {
             Application::GetPtr()->BlockImGuiLayerEvents(!m_Focused || !m_Hovered);
             auto viewPortDimensions{ ImGui::GetContentRegionAvail() };
 
-            if (m_Data->ViewPortWidth != viewPortDimensions.x || m_Data->ViewPortHeight != viewPortDimensions.y) {
+            if (m_Data.ViewPortWidth != viewPortDimensions.x || m_Data.ViewPortHeight != viewPortDimensions.y) {
                 m_SceneRenderer->GetColorAttachment().Resize((UInt32_T)viewPortDimensions.x, (UInt32_T)viewPortDimensions.y);
 
-                m_Data->ViewPortWidth = viewPortDimensions.x;
-                m_Data->ViewPortHeight = viewPortDimensions.y;
-                m_Data->Viewport->OnViewPortResize((UInt32_T)viewPortDimensions.x, (UInt32_T)viewPortDimensions.y);
+                m_Data.ViewPortWidth = viewPortDimensions.x;
+                m_Data.ViewPortHeight = viewPortDimensions.y;
+                m_Data.Viewport->OnViewPortResize((UInt32_T)viewPortDimensions.x, (UInt32_T)viewPortDimensions.y);
             }
 
             ImTextureID textId{ reinterpret_cast<ImTextureID>(m_SceneRenderer->GetColorAttachment().GetColorAttachmentId()) };
@@ -55,10 +55,13 @@ namespace Mikoto {
         }
 
         auto OnEvent_Impl(Event& event) -> void override {
-
+            (void)event;
         }
 
     private:
+        /*************************************************************
+        * DATA MEMBERS
+        * ***********************************************************/
         OpenGLRenderer* m_SceneRenderer{};
     };
 }

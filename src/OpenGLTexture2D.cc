@@ -8,6 +8,7 @@
 #include <stb_image.h>
 
 // Project Headers
+#include <Utility/Types.hh>
 #include <Utility/Common.hh>
 #include <Core/Logger.hh>
 #include <Core/Assert.hh>
@@ -15,24 +16,21 @@
 
 namespace Mikoto {
 
-    OpenGLTexture2D::OpenGLTexture2D(const Path_T& path, bool retainFileData)
+    OpenGLTexture2D::OpenGLTexture2D(const Path_T &path, Type type, bool retainFileData)
         :   m_RetainData{ retainFileData }
     {
-        // STB image expects width and height and channel to be signed integers
-        Int32_T width{}, height{}, channels{};
+        // Texture type
+        m_Type = type;
 
         auto fileDir{ GetByteChar(path) };
         stbi_set_flip_vertically_on_load(true);
-        m_TextureFileData = stbi_load(fileDir.c_str(), &width, &height, &channels, 4);
+        m_TextureFileData = stbi_load(fileDir.c_str(), &m_Width, &m_Height, &m_Channels, 4);
 
         if (m_TextureFileData) {
-            m_Width = width;
-            m_Height = height;
-            m_Channels = channels;
-            glCreateTextures(GL_TEXTURE_2D, 1, &m_Id);
+            glCreateTextures(GL_TEXTURE_2D, 1, &m_ObjectID);
+
             SetupTexture(m_TextureFileData);
 
-            // free the data if we do not want to keep it
             if (!m_RetainData)
                 stbi_image_free(m_TextureFileData);
             else
@@ -45,17 +43,18 @@ namespace Mikoto {
     }
 
     auto OpenGLTexture2D::Bind(UInt32_T slot) const -> void {
-        glBindTextureUnit(slot, m_Id);
+        // TODO: reimplement. glBindTextureUnit requires more recent version of OpenGL
+        glBindTextureUnit(slot, m_ObjectID);
     }
 
     auto OpenGLTexture2D::operator=(OpenGLTexture2D&& other) noexcept -> OpenGLTexture2D& {
-        m_Id        = other.GetId();
+        m_ObjectID = other.GetId();
         m_Width     = other.GetWidth();
         m_Height    = other.GetHeight();
         m_Channels  = other.GetChannels();
         m_TextureFileData = other.m_TextureFileData;
 
-        other.m_Id          = 0;
+        other.m_ObjectID = 0;
         other.m_Width       = 0;
         other.m_Height      = 0;
         other.m_Channels    = 0;
@@ -64,9 +63,9 @@ namespace Mikoto {
     }
 
     OpenGLTexture2D::OpenGLTexture2D(OpenGLTexture2D &&other) noexcept
-        : Texture2D{ other.m_Width, other.m_Height, other.m_Channels }, m_Id{ other.GetId() }
+        : Texture2D{ other.m_Width, other.m_Height, other.m_Channels }, m_ObjectID{ other.GetId() }
     {
-        other.m_Id          = 0;
+        other.m_ObjectID = 0;
         other.m_Width       = 0;
         other.m_Height      = 0;
         other.m_Channels    = 0;
@@ -85,23 +84,19 @@ namespace Mikoto {
         }
         MKT_ASSERT(m_Format & m_InternalFormat, "Texture data format unsupported");
 
-        glTextureStorage2D(m_Id, 1, m_InternalFormat, m_Width, m_Height);
+        glTextureStorage2D(m_ObjectID, 1, m_InternalFormat, m_Width, m_Height);
 
-        glGenerateTextureMipmap(m_Id);
-        glTextureParameteri(m_Id, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTextureParameteri(m_Id, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glGenerateTextureMipmap(m_ObjectID);
+        glTextureParameteri(m_ObjectID, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTextureParameteri(m_ObjectID, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-        glTextureParameteri(m_Id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTextureParameteri(m_Id, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTextureSubImage2D(m_Id, 0, 0, 0, m_Width, m_Height, m_Format, GL_UNSIGNED_BYTE, data);
+        glTextureParameteri(m_ObjectID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTextureParameteri(m_ObjectID, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTextureSubImage2D(m_ObjectID, 0, 0, 0, m_Width, m_Height, m_Format, GL_UNSIGNED_BYTE, data);
     }
 
     OpenGLTexture2D::~OpenGLTexture2D() {
         MKT_APP_LOGGER_INFO("Deleting OpenGLTexture2D. Id {}", GetId());
-        glDeleteTextures(1, &m_Id);
-    }
-
-    auto OpenGLTexture2D::Unbind() -> void {
-        glBindTexture(GL_TEXTURE_2D, 0);
+        glDeleteTextures(1, &m_ObjectID);
     }
 }

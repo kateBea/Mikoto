@@ -14,16 +14,16 @@
 #include <backends/imgui_impl_vulkan.h>
 
 // Project Headers
-#include <Utility/Common.hh>
+#include "ImGui/ImGuiLayer.hh"
+#include <Core/Application.hh>
 #include <Core/KeyCodes.hh>
 #include <Core/Logger.hh>
-#include <Core/Application.hh>
-#include <Core/ImGui/ImGuiLayer.hh>
 #include <Editor/Editor.hh>
 #include <Platform/InputManager.hh>
 #include <Renderer/Renderer.hh>
 #include <Renderer/RenderingUtilities.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
+#include <Utility/Common.hh>
 
 // TODO: split, imgui layer for vulkan and for opengl
 namespace Mikoto {
@@ -250,7 +250,8 @@ namespace Mikoto {
         auto ret{ AcquireNextSwapChainImage(swapChainImageIndex) };
 
         if (ret == VK_ERROR_OUT_OF_DATE_KHR) {
-            VulkanContext::RecreateSwapChain();
+            VulkanSwapChainCreateInfo createInfo{ VulkanContext::GetSwapChain()->GetSwapChainCreateInfo() };
+            VulkanContext::RecreateSwapChain(std::move(createInfo));
             return;
         }
 
@@ -260,7 +261,8 @@ namespace Mikoto {
         RecordImGuiCommandBuffers(swapChainImageIndex);
         ret = SubmitImGuiCommandBuffers(swapChainImageIndex);
         if (ret == VK_ERROR_OUT_OF_DATE_KHR || ret == VK_SUBOPTIMAL_KHR) {
-            VulkanContext::RecreateSwapChain();
+            VulkanSwapChainCreateInfo createInfo{ VulkanContext::GetSwapChain()->GetSwapChainCreateInfo() };
+            VulkanContext::RecreateSwapChain(std::move(createInfo));
             return;
         }
 
@@ -269,7 +271,7 @@ namespace Mikoto {
 
     }
 
-    auto ImGuiLayer::AcquireNextSwapChainImage(UInt32_T &imageIndex) -> VkResult {
+    auto ImGuiLayer::AcquireNextSwapChainImage(UInt32_T& imageIndex) -> VkResult {
         return VulkanContext::GetSwapChain()->GetNextImage(&imageIndex);
     }
 

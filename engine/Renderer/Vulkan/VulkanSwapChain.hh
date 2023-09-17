@@ -19,22 +19,21 @@
 #include <Utility/Common.hh>
 
 namespace Mikoto {
+    /**
+     * This structure holds the data required to create a
+     * a VulkanSwapChain object
+     * */
     struct VulkanSwapChainCreateInfo {
+        VkSwapchainKHR OldSwapChain{}; // For use in future
         VkExtent2D Extent{};
         bool VSyncEnable{};
     };
 
-    /**
-     * Maximum number of frames that can be processed concurrently
-     * */
-    static constexpr Int32_T MAX_FRAMES_IN_FLIGHT{ 2 };
-
     class VulkanSwapChain {
     public:
         explicit VulkanSwapChain() = default;
-        explicit VulkanSwapChain(const VulkanSwapChainCreateInfo& createInfo);
 
-        auto OnCreate(const VulkanSwapChainCreateInfo& createInfo) -> void;
+        auto OnCreate(VulkanSwapChainCreateInfo&& createInfo) -> void;
 
         MKT_NODISCARD auto GetFrameBuffer(Size_T index) -> VkFramebuffer { return m_SwapChainFrameBuffers[index]; }
         MKT_NODISCARD auto GetRenderPass() const -> VkRenderPass { return m_RenderPass; }
@@ -42,6 +41,8 @@ namespace Mikoto {
         MKT_NODISCARD auto GetImageCount() -> Size_T { return m_SwapChainImages.size(); }
         MKT_NODISCARD auto GetSwapChainImageFormat() -> VkFormat { return m_SwapChainImageFormat; }
         MKT_NODISCARD auto GetSwapChainExtent() -> VkExtent2D { return m_SwapChainExtent; }
+        MKT_NODISCARD auto GetSwapChainKHR() const -> VkSwapchainKHR { return m_SwapChain; }
+        MKT_NODISCARD auto IsVsyncEnabled() const -> bool { return m_SwapChainDetails.VSyncEnable; }
 
         MKT_NODISCARD auto GetWidth() const -> UInt32_T { return m_SwapChainExtent.width; }
         MKT_NODISCARD auto GetHeight() const -> UInt32_T { return m_SwapChainExtent.height; }
@@ -55,7 +56,7 @@ namespace Mikoto {
         MKT_NODISCARD static auto FindDepthFormat() -> VkFormat;
         MKT_NODISCARD static auto GetDefaultCreateInfo() -> VulkanSwapChainCreateInfo;
 
-        auto OnRelease() const -> void;
+        auto OnRelease() -> void;
 
         ~VulkanSwapChain() = default;
     public:
@@ -70,17 +71,25 @@ namespace Mikoto {
         auto CreateRenderPass() -> void;
         auto CreateFrameBuffers() -> void;
         auto CreateSyncObjects() -> void;
-        auto OnCreate() -> void;
 
         MKT_NODISCARD static auto ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) -> VkSurfaceFormatKHR;
         MKT_NODISCARD auto ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) const -> VkPresentModeKHR;
         MKT_NODISCARD auto ChooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) -> VkExtent2D;
 
+        auto AcquireSwapchainImages(UInt32_T& imageCount) -> void;
+
         static auto CreateImageWithInfo(const VkImageCreateInfo &imageInfo, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) -> void;
     private:
-        // We may sometimes have to wait on the driver to complete internal operations
-        // before we can acquire another image to render to. Therefore, it is recommended
-        // to request at least one more image
+        /**
+         * Maximum number of frames that can be processed concurrently
+         * */
+        static constexpr Int32_T MAX_FRAMES_IN_FLIGHT{ 2 };
+
+        /**
+         * We may sometimes have to wait on the driver to complete internal operations
+         * before we can acquire another image to render to. Therefore, it is recommended
+         * to request at least one more image
+         * */
         const UInt32_T EXTRA_IMAGE_REQUEST{ 1 };
 
         VulkanSwapChainCreateInfo       m_SwapChainDetails{};

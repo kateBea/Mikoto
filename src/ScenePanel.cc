@@ -15,7 +15,7 @@
 
 namespace Mikoto {
 
-    ScenePanel::ScenePanel(const std::shared_ptr<ScenePanelData>& data, const Path_T& iconPath)
+    ScenePanel::ScenePanel(const Path_T &iconPath)
         :   Panel{ iconPath }
     {
         m_PanelIsVisible = true;
@@ -33,7 +33,11 @@ namespace Mikoto {
         }
 
         // Initialize implementation
-        m_Implementation->Init_Impl(data);
+        ScenePanelData data{};
+        data.Viewport = std::make_unique<Scene>();
+        data.ViewPortWidth = 1920;
+        data.ViewPortHeight = 1080;
+        m_Implementation->Init_Impl(std::move(data));
     }
 
     auto ScenePanel::OnUpdate() -> void {
@@ -46,9 +50,5 @@ namespace Mikoto {
 
     auto ScenePanel::OnEvent(Event& event) -> void {
         m_Implementation->OnEvent_Impl(event);
-    }
-
-    auto ScenePanel::MakeVisible(bool value) -> void {
-        m_PanelIsVisible = value;
     }
 }

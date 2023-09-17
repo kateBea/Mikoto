@@ -10,16 +10,15 @@
 #include <memory>
 
 // Third-Party Libraries
-#include <entt/entt.hpp>
 
 // Project Headers
 #include <Utility/Common.hh>
-#include <Editor/Panels/HierarchyPanel.hh>
-#include <Editor/Panels/Panel.hh>
 #include <Scene/Scene.hh>
+#include <Editor/Panels/Panel.hh>
+#include <Editor/Panels/HierarchyPanel.hh>
 
 namespace Mikoto {
-    class InspectorPanel : public Panel<InspectorPanel> {
+    class InspectorPanel : public Panel {
     public:
 
         explicit InspectorPanel(const std::shared_ptr<HierarchyPanel>& hierarchy, const Path_T& iconPath = {});
@@ -29,20 +28,14 @@ namespace Mikoto {
         /**
          * Updates the state of this panel
          * */
-        auto OnUpdate() -> void;
+        auto OnUpdate() -> void override;
 
         /**
          * Must be called everytime we want to propagate an event to
          * this panel to be handled
          * @param event event to be handled
          * */
-        auto OnEvent(Event& event) ->  void;
-
-        /**
-         * Hides or reveals this panel in the docking space.
-         * @param value if false, hides this panel, otherwise it may always be visible
-         * */
-        auto MakeVisible(bool value) ->  void;
+        auto OnEvent(Event& event) ->  void override;
 
         /**
          * Destructor, defaulted
@@ -50,6 +43,9 @@ namespace Mikoto {
         ~InspectorPanel() = default;
 
     private:
+        /*************************************************************
+        * DATA MEMBERS
+        * ***********************************************************/
         std::shared_ptr<HierarchyPanel> m_Hierarchy{};
     };
 }

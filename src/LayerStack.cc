@@ -36,13 +36,4 @@ namespace Mikoto {
             m_Layers.erase(targetIt);
 
     }
-
-    auto LayerStack::Init() -> void {
-        MKT_CORE_LOGGER_INFO("Layer Stack initialization");
-    }
-
-    auto LayerStack::ShutDown() -> void {
-
-    }
-
 }

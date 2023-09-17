@@ -19,7 +19,6 @@
 
 namespace Mikoto {
     struct VulkanShaderInfo {
-        ShaderStage Stage{};
         std::string EntryPoint{ "main" };
         std::string SrcPath{};
         VkPipelineShaderStageCreateInfo StageCreateInfo{};
@@ -34,9 +33,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto Get() const -> const VkShaderModule& { return m_Module; }
     private:
-
-        static auto CreateShaderModule(const std::string& srcCode, VkShaderModule& shaderModule) -> void;
-        static auto GetVulkanStageFromShaderStage(ShaderStage stage) -> VkShaderStageFlagBits;
+        static auto CreateModule(const std::string& srcCode, VkShaderModule& shaderModule) -> void;
 
     private:
         VulkanShaderInfo m_Data{};

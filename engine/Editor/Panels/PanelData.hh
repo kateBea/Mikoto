@@ -20,11 +20,15 @@
 namespace Mikoto {
     struct SettingsPanelData {
         glm::vec4 ClearColor{};
-        bool VerticalSyncEnabled{ true };
-        bool RenderWireframeMode{ false };
-
         float EditorCameraMovementSpeed{};
         float EditorCameraRotationSpeed{};
+        float NearPlane{ 0.1f };
+        float FarPlane{ 1000.0f };
+        float FieldOfView{ 45.0f };
+        bool WantXAxisRotation{ true };
+        bool WantYAxisRotation{ true };
+        bool VerticalSyncEnabled{ true };
+        bool RenderWireframeMode{ false };
     };
 
     struct ScenePanelData {
@@ -34,10 +38,6 @@ namespace Mikoto {
         std::shared_ptr<Scene> Viewport{};
         bool VerticalSyncEnabled{ true };
         bool RenderWireframeMode{ false };
-    };
-
-    struct StatsPanelData {
-
     };
 }
 

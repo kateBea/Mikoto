@@ -15,22 +15,26 @@
 #include <Editor/Panels/Panel.hh>
 
 namespace Mikoto {
-    class StatsPanel : public Panel<StatsPanel> {
+    class StatsPanel : public Panel {
     public:
-        explicit StatsPanel() = default;
-        explicit StatsPanel(const std::shared_ptr<StatsPanelData> &data, const Path_T &iconPath = {});
+        explicit StatsPanel(const Path_T &iconPath = {});
 
         auto operator=(StatsPanel&& other) -> StatsPanel& = default;
 
-        auto OnUpdate() -> void;
-        auto OnEvent(Event& event) ->  void;
-        auto MakeVisible(bool value) ->  void { m_PanelIsVisible = value; }
+        auto OnUpdate() -> void override;
+        auto OnEvent(Event& event) ->  void override;
 
     private:
+        /*************************************************************
+        * HELPERS
+        * ***********************************************************/
         auto DrawStatisticsTable() -> void;
 
     private:
-        std::shared_ptr<StatsPanelData> m_Data{};
+        /*************************************************************
+        * DATA MEMBERS
+        * ***********************************************************/
+
     };
 }
 

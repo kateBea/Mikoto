@@ -4,20 +4,19 @@
  * */
 
 // C++ Standard Library
-#include <memory>
 
 // Third-Party Libraries
 #include <imgui.h>
 
 // Project Headers
 #include <Core/TimeManager.hh>
-#include <Renderer/Renderer.hh>
 #include <Editor/Panels/StatsPanel.hh>
+#include <Renderer/Renderer.hh>
 
 namespace Mikoto {
 
-    StatsPanel::StatsPanel(const std::shared_ptr<StatsPanelData> &data, const Path_T &iconPath)
-        :   Panel{ iconPath }, m_Data{ data }
+    StatsPanel::StatsPanel(const Path_T &iconPath)
+        :   Panel{ iconPath }
     {
         m_PanelIsVisible = true;
         m_PanelIsHovered = false;
@@ -79,13 +78,13 @@ namespace Mikoto {
             ImGui::TableNextColumn();
             ImGui::Text("Frame Time");
             ImGui::TableNextColumn();
-            ImGui::Text("%.2f ms", TimeManager::GetDeltaTime(TimeUnit::MILLISECONDS));
+            ImGui::Text("%.2f ms", TimeManager::GetTimeStep(TimeUnit::MILLISECONDS));
 
             ImGui::EndTable();
         }
     }
 
     auto StatsPanel::OnEvent(Event& event) -> void {
-
+        (void)event;
     }
 }

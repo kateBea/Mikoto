@@ -23,14 +23,6 @@ namespace Mikoto {
     public:
         explicit MainWindow(WindowProperties&& properties = WindowProperties{});
 
-        MKT_NODISCARD auto GetWidth() const -> Int32_T override { return m_Properties.GetWidth(); }
-        MKT_NODISCARD auto GetHeight() const -> Int32_T override { return m_Properties.GetHeight(); }
-        MKT_NODISCARD auto GetExtent() const -> std::pair<Int32_T, Int32_T> override { return { GetWidth(), GetHeight() }; }
-
-        /**
-         * Returns a handle to the native Window
-         * @returns handle to implemented window
-         * */
         MKT_NODISCARD auto GetNativeWindow() -> std::any override { return m_Window; }
 
         auto Init() -> void override;
@@ -42,7 +34,7 @@ namespace Mikoto {
 
         ~MainWindow() override = default;
     private:
-        auto SetCallbacks() -> void;
+        auto InstallCallbacks() -> void;
         auto SpawnOnCenter() const -> void;
         static auto InitGLFW() -> void;
 
@@ -53,7 +45,19 @@ namespace Mikoto {
          * */
         inline static bool s_GLFWInitSuccess{ false };
 
+        /**
+         * Keeps track of the amount of active GLFW windows
+         * */
+        inline static UInt32_T s_WindowsCount{};
+
+        /**
+         * GLFW window handle
+         * */
         GLFWwindow* m_Window{};
+
+        /**
+         * Function called when and event is triggered
+         * */
         EventCallbackFunc_T m_Callback{};
     };
 }

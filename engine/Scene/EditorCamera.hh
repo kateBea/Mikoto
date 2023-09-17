@@ -27,24 +27,34 @@ namespace Mikoto {
 
         auto OnUpdate(double timeStep) -> void;
         auto OnEvent(Event& event) -> void;
-        auto SetViewportSize(float width, float height) -> void;
+        auto UpdateProjection() -> void;
+        auto UpdateViewMatrix() -> void;
 
         MKT_NODISCARD auto GetViewMatrix() const -> const glm::mat4& { return m_ViewMatrix; }
         MKT_NODISCARD auto GetViewProjection() const -> glm::mat4 { return GetProjection() * m_ViewMatrix; }
         MKT_NODISCARD auto GetPosition() const -> const glm::vec3& { return m_Position; }
 
+        auto SetViewportSize(float width, float height) -> void;
         auto SetMovementSpeed(float value) -> void { m_MovementSpeed = value; }
         auto SetRotationSpeed(float value) -> void { m_RotationSpeed = value; }
+        auto SetFieldOfView(float value) -> void { m_FieldOfView = value; }
+        auto SetFarPlane(float value) -> void { m_FarClip = value; }
+        auto SetNearPlane(float value) -> void { m_NearClip = value; }
 
         MKT_NODISCARD constexpr static auto GetMinMovementSpeed() -> float { return 5.0f; }
         MKT_NODISCARD constexpr static auto GetMaxMovementSpeed() -> float { return 15.0f; }
         MKT_NODISCARD constexpr static auto GetMinRotationSpeed() -> float { return 10.0f; }
         MKT_NODISCARD constexpr static auto GetMaxRotationSpeed() -> float { return 30.0f; }
 
-    private:
-        auto UpdateProjection() -> void;
-        auto UpdateViewMatrix() -> void;
+        MKT_NODISCARD constexpr static auto GetMaxNearClip() -> float { return 1.0f; }
+        MKT_NODISCARD constexpr static auto GetMinNearClip() -> float { return 0.01f; }
+        MKT_NODISCARD constexpr static auto GetMaxFarClip() -> float { return 10000.0f; }
+        MKT_NODISCARD constexpr static auto GetMinFarClip() -> float { return 1000.0f; }
 
+        MKT_NODISCARD constexpr static auto GetMaxFov() -> float { return 90.0f; }
+        MKT_NODISCARD constexpr static auto GetMinFov() -> float { return 15.0f; }
+
+    private:
         auto ProcessMouseInput(double timeStep) -> void;
         auto ProcessKeyboardInput(double timeStep) -> void;
 

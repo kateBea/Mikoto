@@ -24,52 +24,55 @@ namespace Mikoto {
      * */
     class ScenePanelInterface {
     public:
-       virtual auto Init_Impl(std::shared_ptr<ScenePanelData> data) -> void = 0;
+       virtual auto Init_Impl(ScenePanelData&& data) -> void = 0;
        virtual auto OnUpdate_Impl() -> void = 0;
        virtual auto OnEvent_Impl(Event& event) -> void = 0;
 
        MKT_NODISCARD auto IsHovered() const -> bool { return m_Hovered; }
        MKT_NODISCARD auto IsFocused() const -> bool { return m_Focused; }
+       MKT_NODISCARD auto GetData() const -> const ScenePanelData& { return m_Data; }
 
        virtual ~ScenePanelInterface() = default;
 
     protected:
-        std::shared_ptr<ScenePanelData> m_Data{};
+        /*************************************************************
+        * DATA MEMBERS
+        * ***********************************************************/
+        ScenePanelData m_Data{};
         bool m_Hovered{};
         bool m_Focused{};
     };
 
 
-    class ScenePanel : public Panel<ScenePanel> {
+    class ScenePanel : public Panel {
     public:
-        explicit ScenePanel() = default;
-        explicit ScenePanel(const std::shared_ptr<ScenePanelData> &data, const Path_T& iconPath = {});
+        explicit ScenePanel(const Path_T &iconPath = {});
 
         auto operator=(ScenePanel&& other) -> ScenePanel& = default;
+
+        MKT_NODISCARD auto GetData() const -> const ScenePanelData& { return m_Implementation->GetData(); }
 
         /**
          * Updates the state of this panel
          * */
-        auto OnUpdate() -> void;
+        auto OnUpdate() -> void override;
 
         /**
          * Must be called everytime we want to propagate an event to
          * this panel to be handled
          * @param event event to be handled
          * */
-        auto OnEvent(Event& event) ->  void;
-
-        /**
-         * Hides or reveals this panel in the docking space.
-         * @param value if false, hides this panel, otherwise it may always be visible
-         * */
-        auto MakeVisible(bool value) ->  void;
+        auto OnEvent(Event& event) ->  void override;
 
         /**
          * Destructor, defaulted
          * */
         ~ScenePanel() = default;
+
     protected:
+        /*************************************************************
+        * DATA MEMBERS
+        * ***********************************************************/
         std::shared_ptr<ScenePanelInterface> m_Implementation{};
     };
 }

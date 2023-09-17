@@ -15,6 +15,7 @@
 #include <any>
 
 // Project Headers
+#include <Utility/Types.hh>
 #include <Utility/Common.hh>
 #include <Core/Events/Event.hh>
 #include <Renderer/RenderingUtilities.hh>
@@ -68,11 +69,34 @@ namespace Mikoto {
         explicit Window(WindowProperties&& props = WindowProperties{})
             :   m_Properties{ std::move( props )}, m_WindowCreateSuccess{ false } {}
 
-        MKT_NODISCARD virtual auto GetWidth() const -> Int32_T = 0;
-        MKT_NODISCARD virtual auto GetHeight() const -> Int32_T = 0;
-        MKT_NODISCARD virtual auto GetExtent() const -> std::pair<Int32_T, Int32_T> = 0;
+        /**
+         * Returns the width of this window
+         * @returns the width of the implicit parameter
+         * */
+        MKT_NODISCARD auto GetWidth() const -> Int32_T { return m_Properties.GetWidth(); }
+
+        /**
+         * Returns the height of this window
+         * @returns the height of the implicit parameter
+         * */
+        MKT_NODISCARD auto GetHeight() const -> Int32_T { return m_Properties.GetHeight(); }
+
+        /**
+         * Returns the width and height of this window
+         * @returns the width and height of the implicit parameter
+         * */
+        MKT_NODISCARD auto GetExtent() const -> std::pair<Int32_T, Int32_T> { return { GetWidth(), GetHeight() }; }
+
+        /**
+         * Returns a handle to the native Window
+         * @returns handle to implemented window
+         * */
         MKT_NODISCARD virtual auto GetNativeWindow() -> std::any = 0;
 
+        /**
+         * Initializes this window along with its internal required structures.
+         * This function must be called once right after the window constructor has been created.
+         * */
         virtual auto Init() -> void = 0;
         virtual auto OnUpdate() -> void = 0;
         virtual auto ShutDown() -> void = 0;

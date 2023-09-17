@@ -14,18 +14,22 @@
 
 // Project Headers
 #include <Utility/Common.hh>
+#include <Utility/VulkanUtils.hh>
 #include <Core/Application.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanSwapChain.hh>
 
 namespace Mikoto {
-    VulkanSwapChain::VulkanSwapChain(const VulkanSwapChainCreateInfo& createInfo)
-        : m_SwapChainDetails{ createInfo }, m_WindowExtent{ createInfo.Extent }
-    {
-        OnCreate();
+    auto VulkanSwapChain::GetNextImage(UInt32_T* imageIndex) -> VkResult {
+        vkWaitForFences(VulkanContext::GetPrimaryLogicalDevice(), 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, std::numeric_limits<UInt64_T>::max());
+        // m_ImageAvailableSemaphores[m_CurrentFrame] must be a not signaled semaphore
+        VkResult result{ vkAcquireNextImageKHR(VulkanContext::GetPrimaryLogicalDevice(), m_SwapChain, std::numeric_limits<UInt32_T>::max(), m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, imageIndex) };
+        return result;
     }
 
-    auto VulkanSwapChain::OnCreate() -> void {
+    auto VulkanSwapChain::OnCreate(VulkanSwapChainCreateInfo&& createInfo) -> void {
+        m_SwapChainDetails = std::move(createInfo);
+        m_WindowExtent = m_SwapChainDetails.Extent;
         /**
          * [00:11:36] CORE LOG [thread 10211] Validation layer: Validation Error: [ VUID-VkSwapchainCreateInfoKHR-imageExtent-01274 ] Object 0:
          * handle = 0x62e000018450, type = VK_OBJECT_TYPE_DEVICE; | MessageID = 0x7cd0911d | vkCreateSwapchainKHR() called with imageExtent = (1494,921),
@@ -42,17 +46,6 @@ namespace Mikoto {
         CreateDepthResources();
         CreateFrameBuffers();
         CreateSyncObjects();
-    }
-
-    auto VulkanSwapChain::GetNextImage(UInt32_T* imageIndex) -> VkResult {
-        vkWaitForFences(VulkanContext::GetPrimaryLogicalDevice(), 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, std::numeric_limits<UInt64_T>::max());
-        // m_ImageAvailableSemaphores[m_CurrentFrame] must be a not signaled semaphore
-        VkResult result{ vkAcquireNextImageKHR(VulkanContext::GetPrimaryLogicalDevice(), m_SwapChain, std::numeric_limits<UInt32_T>::max(), m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, imageIndex) };
-        return result;
-    }
-
-    auto VulkanSwapChain::OnCreate(const VulkanSwapChainCreateInfo& createInfo) -> void {
-        // TODO: move ctor functionality here for more initialization control
     }
 
     auto VulkanSwapChain::SubmitCommandBuffers(const VkCommandBuffer* buffers, const UInt32_T imageIndex) -> VkResult {
@@ -105,17 +98,16 @@ namespace Mikoto {
     auto VulkanSwapChain::CreateSwapChain() -> void {
         auto swapChainSupport{ VulkanContext::GetPrimaryLogicalDeviceSwapChainSupport() };
 
-        VkSurfaceFormatKHR surfaceFormat{ ChooseSwapSurfaceFormat(swapChainSupport.Formats) };
-        VkPresentModeKHR presentMode{ ChooseSwapPresentMode(swapChainSupport.PresentModes) };
-        VkExtent2D extent{ ChooseSwapExtent(swapChainSupport.Capabilities) };
+        const VkSurfaceFormatKHR surfaceFormat{ ChooseSwapSurfaceFormat(swapChainSupport.Formats) };
+        const VkPresentModeKHR presentMode{ ChooseSwapPresentMode(swapChainSupport.PresentModes) };
+        const VkExtent2D extent{ ChooseSwapExtent(swapChainSupport.Capabilities) };
 
         UInt32_T imageCount{ swapChainSupport.Capabilities.minImageCount + EXTRA_IMAGE_REQUEST };
 
         if (swapChainSupport.Capabilities.maxImageCount > 0 && imageCount > swapChainSupport.Capabilities.maxImageCount)
             imageCount = swapChainSupport.Capabilities.maxImageCount;
 
-        VkSwapchainCreateInfoKHR createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        VkSwapchainCreateInfoKHR createInfo{ VulkanUtils::Initializers::SwapchainCreateInfoKHR() };
         createInfo.surface = VulkanContext::GetSurface();
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
@@ -138,35 +130,36 @@ namespace Mikoto {
 
         createInfo.preTransform = swapChainSupport.Capabilities.currentTransform;
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-
         createInfo.presentMode = presentMode;
         createInfo.clipped = VK_TRUE;
-
-        createInfo.oldSwapchain = VK_NULL_HANDLE;
-
-        auto result{ vkCreateSwapchainKHR(VulkanContext::GetPrimaryLogicalDevice(), &createInfo, nullptr, &m_SwapChain) };
-
-        if (result != VK_SUCCESS)
-            throw std::runtime_error("failed to create swap chain!");
-
-        // We only specified a minimum number of images in the swap chain, so the implementation is
-        // allowed to create a swap chain with more. That's why we'll first query the final number of
-        // images with vkGetSwapchainImagesKHR, then resize the container and finally call it again to
-        // retrieve the handles.
-        vkGetSwapchainImagesKHR(VulkanContext::GetPrimaryLogicalDevice(), m_SwapChain, &imageCount, nullptr);
-        m_SwapChainImages.resize(imageCount);
-        vkGetSwapchainImagesKHR(VulkanContext::GetPrimaryLogicalDevice(), m_SwapChain, &imageCount, m_SwapChainImages.data());
+        createInfo.oldSwapchain = VK_NULL_HANDLE; // pass old swapchain (needs debug current old swapchain becoming retired which can't be passed here)
 
         m_SwapChainImageFormat = surfaceFormat.format;
         m_SwapChainExtent = extent;
+
+        if (vkCreateSwapchainKHR(VulkanContext::GetPrimaryLogicalDevice(), &createInfo, nullptr, &m_SwapChain) != VK_SUCCESS)
+            throw std::runtime_error("Failed to create swap chain!");
+
+        AcquireSwapchainImages(imageCount);
+    }
+
+    auto VulkanSwapChain::AcquireSwapchainImages(UInt32_T& imageCount) -> void {
+        // We only specified a minimum number of images in the swap chain, even though the implementation is
+        // allowed to create a swap chain with more. That's why we'll first query the final number of
+        // images with vkGetSwapchainImagesKHR with the last parameter as nullptr, then resize the container and finally call it again to
+        // retrieve the handles.
+        vkGetSwapchainImagesKHR(VulkanContext::GetPrimaryLogicalDevice(), m_SwapChain, &imageCount, nullptr);
+
+        m_SwapChainImages = std::vector<VkImage>(imageCount);
+        vkGetSwapchainImagesKHR(VulkanContext::GetPrimaryLogicalDevice(), m_SwapChain, &imageCount, m_SwapChainImages.data());
     }
 
     auto VulkanSwapChain::CreateImageViews() -> void {
-        m_SwapChainImageViews.resize(m_SwapChainImages.size());
-        for (Size_T i{}; i < m_SwapChainImages.size(); i++) {
-            VkImageViewCreateInfo viewInfo{};
+        m_SwapChainImageViews = std::vector<VkImageView>(m_SwapChainImages.size());
 
-            viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        for (Size_T i{}; i < m_SwapChainImages.size(); i++) {
+            VkImageViewCreateInfo viewInfo{ VulkanUtils::Initializers::ImageViewCreateInfo() };
+
             viewInfo.image = m_SwapChainImages[i];
 
             viewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -186,7 +179,6 @@ namespace Mikoto {
 
             if (vkCreateImageView(VulkanContext::GetPrimaryLogicalDevice(), &viewInfo, nullptr, &m_SwapChainImageViews[i]) != VK_SUCCESS)
                 throw std::runtime_error("failed to create texture image view!");
-
         }
     }
 
@@ -244,7 +236,6 @@ namespace Mikoto {
 
         if (vkCreateRenderPass(VulkanContext::GetPrimaryLogicalDevice(), &renderPassInfo, nullptr, &m_RenderPass) != VK_SUCCESS)
             throw std::runtime_error("failed to create render pass!");
-
     }
 
     auto VulkanSwapChain::CreateFrameBuffers() -> void {
@@ -277,29 +268,28 @@ namespace Mikoto {
         VkMemoryRequirements memRequirements{};
         vkGetImageMemoryRequirements(VulkanContext::GetPrimaryLogicalDevice(), image, &memRequirements);
 
-        VkMemoryAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        VkMemoryAllocateInfo allocInfo{ VulkanUtils::Initializers::MemoryAllocateInfo() };
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = VulkanContext::FindMemoryType(memRequirements.memoryTypeBits, properties, VulkanContext::GetPrimaryPhysicalDevice());
 
         if (vkAllocateMemory(VulkanContext::GetPrimaryLogicalDevice(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
-            throw std::runtime_error("failed to allocate image memory!");
+            throw std::runtime_error("Failed to allocate image memory!");
 
         if (vkBindImageMemory(VulkanContext::GetPrimaryLogicalDevice(), image, imageMemory, 0) != VK_SUCCESS)
-            throw std::runtime_error("failed to bind image memory!");
+            throw std::runtime_error("Failed to bind image memory!");
     }
 
     auto VulkanSwapChain::CreateDepthResources() -> void {
-        VkFormat depthFormat = FindDepthFormat();
-        VkExtent2D swapChainExtent = GetSwapChainExtent();
+        VkFormat depthFormat{ FindDepthFormat() };
+        VkExtent2D swapChainExtent{ GetSwapChainExtent() };
 
-        m_DepthImages.resize(GetImageCount());
-        m_DepthImageMemories.resize(GetImageCount());
-        m_DepthImageViews.resize(GetImageCount());
+        m_DepthImages = std::vector<VkImage>(GetImageCount());
+        m_DepthImageMemories = std::vector<VkDeviceMemory>(GetImageCount());
+        m_DepthImageViews = std::vector<VkImageView>(GetImageCount());
 
-        for (std::size_t i{}; i < m_DepthImages.size(); i++) {
-            VkImageCreateInfo imageInfo{};
-            imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        for (Size_T index{}; index < m_DepthImages.size(); index++) {
+            VkImageCreateInfo imageInfo{ VulkanUtils::Initializers::ImageCreateInfo() };
+
             imageInfo.imageType = VK_IMAGE_TYPE_2D;
             imageInfo.extent.width = swapChainExtent.width;
             imageInfo.extent.height = swapChainExtent.height;
@@ -317,12 +307,12 @@ namespace Mikoto {
             CreateImageWithInfo(
                     imageInfo,
                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                    m_DepthImages[i],
-                    m_DepthImageMemories[i]);
+                    m_DepthImages[index],
+                    m_DepthImageMemories[index]);
 
-            VkImageViewCreateInfo viewInfo{};
-            viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            viewInfo.image = m_DepthImages[i];
+            VkImageViewCreateInfo viewInfo{ VulkanUtils::Initializers::ImageViewCreateInfo() };
+
+            viewInfo.image = m_DepthImages[index];
             viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
             viewInfo.format = depthFormat;
             viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -331,37 +321,40 @@ namespace Mikoto {
             viewInfo.subresourceRange.baseArrayLayer = 0;
             viewInfo.subresourceRange.layerCount = 1;
 
-            if (vkCreateImageView(VulkanContext::GetPrimaryLogicalDevice(), &viewInfo, nullptr, &m_DepthImageViews[i]) != VK_SUCCESS) {
-                throw std::runtime_error("failed to create texture image view!");
+            if (vkCreateImageView(VulkanContext::GetPrimaryLogicalDevice(), &viewInfo, nullptr, &m_DepthImageViews[index]) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create texture image view!");
             }
         }
     }
 
     auto VulkanSwapChain::CreateSyncObjects() -> void {
-        m_ImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-        m_RenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-        m_InFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-        m_ImagesInFlight.resize(GetImageCount(), VK_NULL_HANDLE);
+        m_ImageAvailableSemaphores = std::vector<VkSemaphore>(MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE);
+        m_RenderFinishedSemaphores = std::vector<VkSemaphore>(MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE);
+        m_InFlightFences = std::vector<VkFence>(MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE);
+        m_ImagesInFlight = std::vector<VkFence>(GetImageCount(), VK_NULL_HANDLE);
 
-        VkSemaphoreCreateInfo semaphoreInfo{};
-        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        VkSemaphoreCreateInfo semaphoreInfo{ VulkanUtils::Initializers::SemaphoreCreateInfo() };
 
-        VkFenceCreateInfo fenceInfo{};
-        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        VkFenceCreateInfo fenceInfo{ VulkanUtils::Initializers::FenceCreateInfo() };
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-        for (std::size_t i{}; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            if (vkCreateSemaphore(VulkanContext::GetPrimaryLogicalDevice(), &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]) != VK_SUCCESS ||
-                vkCreateSemaphore(VulkanContext::GetPrimaryLogicalDevice(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]) != VK_SUCCESS ||
-                vkCreateFence(VulkanContext::GetPrimaryLogicalDevice(), &fenceInfo, nullptr, &m_InFlightFences[i]) != VK_SUCCESS)
-            {
-                throw std::runtime_error("failed to create synchronization objects for a frame!");
+        for (Size_T index{}; index < MAX_FRAMES_IN_FLIGHT; index++) {
+            if (vkCreateSemaphore(VulkanContext::GetPrimaryLogicalDevice(), &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[index]) != VK_SUCCESS) {
+                throw std::runtime_error(fmt::format("Failed to create Vulkan Image Available Semaphore for frame index [{}]", index));
+            }
+
+            if (vkCreateSemaphore(VulkanContext::GetPrimaryLogicalDevice(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[index]) != VK_SUCCESS) {
+                throw std::runtime_error(fmt::format("Failed to create Vulkan Render Finished Semaphore for frame index [{}]", index));
+            }
+
+            if (vkCreateFence(VulkanContext::GetPrimaryLogicalDevice(), &fenceInfo, nullptr, &m_InFlightFences[index]) != VK_SUCCESS) {
+                throw std::runtime_error(fmt::format("Failed to create Vulkan in flight Fence for frame index [{}]", index));
             }
         }
     }
 
     auto VulkanSwapChain::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) -> VkSurfaceFormatKHR {
-        for (const auto& availableFormat: availableFormats) {
+        for (const auto& availableFormat : availableFormats) {
             if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM &&
                 availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
                 return availableFormat;
@@ -376,13 +369,12 @@ namespace Mikoto {
             return VK_PRESENT_MODE_FIFO_KHR;
         else {
             for (const auto& availablePresentMode : availablePresentModes) {
-                if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+                if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR || availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
                     return availablePresentMode;
                 }
             }
 
-            // if VK_PRESENT_MODE_MAILBOX_KHR is not supported
-            return VK_PRESENT_MODE_MAILBOX_KHR;
+            return VK_PRESENT_MODE_FIFO_KHR;
         }
     }
 
@@ -407,13 +399,13 @@ namespace Mikoto {
                 VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
     }
 
-    auto VulkanSwapChain::OnRelease() const -> void {
-        vkDeviceWaitIdle(VulkanContext::GetPrimaryLogicalDevice());
+    auto VulkanSwapChain::OnRelease() -> void {
+        // Wait on outstanding queue operations because there might be some objects still in use by the GPU
+        VulkanUtils::WaitOnDevice(VulkanContext::GetPrimaryLogicalDevice());
 
+        // Cleanup Image views
         for (auto imageView: m_SwapChainImageViews)
             vkDestroyImageView(VulkanContext::GetPrimaryLogicalDevice(), imageView, nullptr);
-
-        vkDestroySwapchainKHR(VulkanContext::GetPrimaryLogicalDevice(), m_SwapChain, nullptr);
 
         // Depth resources cleanup
         for (Size_T i{}; i < m_DepthImages.size(); i++) {
@@ -422,25 +414,39 @@ namespace Mikoto {
             vkFreeMemory(VulkanContext::GetPrimaryLogicalDevice(), m_DepthImageMemories[i], nullptr);
         }
 
+        // Cleanup frame buffers
         for (auto framebuffer: m_SwapChainFrameBuffers)
             vkDestroyFramebuffer(VulkanContext::GetPrimaryLogicalDevice(), framebuffer, nullptr);
 
-        vkDestroyRenderPass(VulkanContext::GetPrimaryLogicalDevice(), m_RenderPass, nullptr);
-
-        // cleanup synchronization objects
+        // Cleanup synchronization objects
         for (Size_T i{}; i < MAX_FRAMES_IN_FLIGHT; i++) {
             vkDestroySemaphore(VulkanContext::GetPrimaryLogicalDevice(), m_RenderFinishedSemaphores[i], nullptr);
             vkDestroySemaphore(VulkanContext::GetPrimaryLogicalDevice(), m_ImageAvailableSemaphores[i], nullptr);
             vkDestroyFence(VulkanContext::GetPrimaryLogicalDevice(), m_InFlightFences[i], nullptr);
         }
+
+        // Clear structures
+        m_SwapChainImageViews.clear();
+        m_DepthImages.clear();
+        m_SwapChainFrameBuffers.clear();
+        m_RenderFinishedSemaphores.clear();
+        m_ImageAvailableSemaphores.clear();
+        m_InFlightFences.clear();
+
+        // Destroy handles
+        vkDestroySwapchainKHR(VulkanContext::GetPrimaryLogicalDevice(), m_SwapChain, nullptr);
+        vkDestroyRenderPass(VulkanContext::GetPrimaryLogicalDevice(), m_RenderPass, nullptr);
     }
+
     auto VulkanSwapChain::GetDefaultCreateInfo() -> VulkanSwapChainCreateInfo {
-        auto appWindowExtent{ Application::Get().GetMainWindowPtr()->GetExtent() };
-        VkExtent2D extent{ (UInt32_T)appWindowExtent.first, (UInt32_T)appWindowExtent.second };
+        const auto windowExtent{ Application::Get().GetMainWindow().GetExtent() };
+
         VulkanSwapChainCreateInfo createInfo{
-                .Extent = extent,
+                .OldSwapChain = VK_NULL_HANDLE,
+                .Extent = { (UInt32_T)windowExtent.first, (UInt32_T)windowExtent.second },
                 .VSyncEnable = false,
         };
+
         return createInfo;
     }
 }

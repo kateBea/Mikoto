@@ -14,7 +14,9 @@
 #include <vk_mem_alloc.h>
 
 // Project Headers
+#include <Utility/Types.hh>
 #include <Utility/Common.hh>
+#include <Renderer/Material/Shader.hh>
 
 namespace Mikoto {
     struct BufferAllocateInfo {
@@ -82,7 +84,8 @@ namespace Mikoto::VulkanUtils {
     auto AllocateImage(ImageAllocateInfo& allocatedImageData) -> void;
 
     /**
-     * Wait on the host for the completion of outstanding queue operations for all queues the given device
+     * Wait on the host for the completion of outstanding queue
+     * operations for all queues of the given device
      * @param device logical device to wait on
      * */
     auto WaitOnDevice(VkDevice device) -> void;
@@ -121,6 +124,137 @@ namespace Mikoto::VulkanUtils {
      * */
     auto GetUniformBufferPadding(VkDeviceSize bufferOriginalSize, VkDeviceSize deviceMinOffsetAlignment) -> VkDeviceSize;
 
+    /**
+     * Returns the corresponding VkShaderStageFlagBits flag for the given stage
+     * @param stage shader module stage
+     * @returns corresponding flag
+     * */
+    auto GetVulkanShaderStageFlag(ShaderStage stage) -> VkShaderStageFlagBits;
+
+
 } // MIKOTO::VULKAN_UTILS
+
+namespace Mikoto::VulkanUtils::Initializers {
+    /**
+     * Returns a default initialized VkApplicationInfo structure
+     * @returns default initialized VkApplicationInfo
+     * */
+    inline auto ApplicationInfo() -> VkApplicationInfo {
+        VkApplicationInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkInstanceCreateInfo structure
+     * @returns default initialized VkInstanceCreateInfo
+     * */
+    inline auto InstanceCreateInfo() -> VkInstanceCreateInfo {
+        VkInstanceCreateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkDebugUtilsMessengerCreateInfoEXT structure
+     * @returns default initialized VkDebugUtilsMessengerCreateInfoEXT
+     * */
+    inline auto DebugUtilsMessengerCreateInfoEXT() -> VkDebugUtilsMessengerCreateInfoEXT {
+        VkDebugUtilsMessengerCreateInfoEXT ret{};
+        ret.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkDeviceCreateInfo structure
+     * @returns default initialized VkDeviceCreateInfo
+     * */
+    inline auto DeviceCreateInfo() -> VkDeviceCreateInfo {
+        VkDeviceCreateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkDeviceQueueCreateInfo structure
+     * @returns default initialized VkDeviceQueueCreateInfo
+     * */
+    inline auto DeviceQueueCreateInfo() -> VkDeviceQueueCreateInfo {
+        VkDeviceQueueCreateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkSwapchainCreateInfoKHR structure
+     * @returns default initialized VkSwapchainCreateInfoKHR
+     * */
+    inline auto SwapchainCreateInfoKHR() -> VkSwapchainCreateInfoKHR {
+        VkSwapchainCreateInfoKHR ret{};
+        ret.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkImageViewCreateInfo structure
+     * @returns default initialized VkImageViewCreateInfo
+     * */
+    inline auto ImageViewCreateInfo() -> VkImageViewCreateInfo {
+        VkImageViewCreateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkImageCreateInfo structure
+     * @returns default initialized VkImageCreateInfo
+     * */
+    inline auto ImageCreateInfo() -> VkImageCreateInfo {
+        VkImageCreateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkSemaphoreCreateInfo structure
+     * @returns default initialized VkSemaphoreCreateInfo
+     * */
+    inline auto SemaphoreCreateInfo() -> VkSemaphoreCreateInfo {
+        VkSemaphoreCreateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkFenceCreateInfo structure
+     * @returns default initialized VkFenceCreateInfo
+     * */
+    inline auto FenceCreateInfo() -> VkFenceCreateInfo {
+        VkFenceCreateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkMemoryAllocateInfo structure
+     * @returns default initialized VkMemoryAllocateInfo
+     * */
+    inline auto MemoryAllocateInfo() -> VkMemoryAllocateInfo {
+        VkMemoryAllocateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
+        return ret;
+    }
+}
 
 #endif // MIKOTO_VULKAN_UTILS_HH

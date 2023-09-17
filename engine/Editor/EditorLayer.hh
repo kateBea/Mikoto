@@ -73,12 +73,6 @@ namespace Mikoto {
         std::shared_ptr<SettingsPanel> m_SettingsPanel{};
         std::shared_ptr<ScenePanel> m_ScenePanel{};
         std::shared_ptr<StatsPanel> m_StatsPanel{};
-
-        // Panels data
-        // TODO: these should be part of the actual panels and be accessed via getters/setters
-        std::shared_ptr<SettingsPanelData> m_SettingsPanelInfo{};
-        std::shared_ptr<ScenePanelData> m_ScenePanelInfo{};
-        std::shared_ptr<StatsPanelData> m_StatsPanelInfo{};
     };
 
 }

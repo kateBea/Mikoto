@@ -31,9 +31,6 @@ namespace Mikoto {
     public:
         explicit LayerStack() = default;
 
-        auto Init() -> void;
-        auto ShutDown() -> void;
-
         auto AddLayer(const std::shared_ptr<Layer>& layer) -> void;
         auto AddOverlay(const std::shared_ptr<Layer>& overlay) -> void;
 

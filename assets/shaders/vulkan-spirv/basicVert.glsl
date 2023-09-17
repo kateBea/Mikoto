@@ -23,4 +23,7 @@ void main() {
     vertexTexCoord = a_TextureCoordinates;
 
     gl_Position = UniformBufferData.Projection * UniformBufferData.View * UniformBufferData.Transform * vec4(a_Position, 1.0);
+
+    // Temporary, match OpenGL Coordinate System
+    gl_Position.y *= -1;
 }

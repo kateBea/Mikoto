@@ -43,8 +43,8 @@ namespace Mikoto {
 
         MKT_NODISCARD constexpr static auto GetMinMovementSpeed() -> float { return 5.0f; }
         MKT_NODISCARD constexpr static auto GetMaxMovementSpeed() -> float { return 15.0f; }
-        MKT_NODISCARD constexpr static auto GetMinRotationSpeed() -> float { return 10.0f; }
-        MKT_NODISCARD constexpr static auto GetMaxRotationSpeed() -> float { return 30.0f; }
+        MKT_NODISCARD constexpr static auto GetMinRotationSpeed() -> float { return 30.0f; }
+        MKT_NODISCARD constexpr static auto GetMaxRotationSpeed() -> float { return 90.0f; }
 
         MKT_NODISCARD constexpr static auto GetMaxNearClip() -> float { return 1.0f; }
         MKT_NODISCARD constexpr static auto GetMinNearClip() -> float { return 0.01f; }

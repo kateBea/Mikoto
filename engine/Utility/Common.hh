@@ -44,10 +44,16 @@
 #define MKT_OPENGL_VERSION_MAJOR 4
 #define MKT_OPENGL_VERSION_MINOR 3
 
+// Vulkan version
 #define MKT_VULKAN_VERSION_VARIANT 0
 #define MKT_VULKAN_VERSION_MAJOR 1
 #define MKT_VULKAN_VERSION_MINOR 3
 #define MKT_VULKAN_VERSION_PATCH 0
+
+// Engine version
+#define MKT_ENGINE_VERSION_MAJOR 1
+#define MKT_ENGINE_VERSION_MINOR 0
+#define MKT_ENGINE_VERSION_PATCH 0
 
 /**
  * Follow up there is a list of macros to simplify formatted output.

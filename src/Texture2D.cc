@@ -7,7 +7,7 @@
 #include <memory>
 
 // Project Headers
-#include <Utility/Common.hh>
+#include <Utility/Types.hh>
 #include <Core/Logger.hh>
 #include <Renderer/Renderer.hh>
 #include <Renderer/RenderingUtilities.hh>
@@ -16,31 +16,10 @@
 
 
 namespace Mikoto {
-
-    auto Texture2D::CreateTexture(const Path_T &path) -> std::shared_ptr<Texture2D> {
+    auto Texture2D::Create(const Path_T &path, Type type) -> std::shared_ptr<Mikoto::Texture2D> {
         switch(Renderer::GetActiveGraphicsAPI()) {
             case GraphicsAPI::OPENGL_API:
-                return std::make_shared<OpenGLTexture2D>(path);
-            default:
-                MKT_CORE_LOGGER_CRITICAL("Unsupported renderer API");
-                return nullptr;
-        }
-    }
-
-    auto Texture2D::CreateTextureRawPtr(const Path_T &path) -> Texture2D* {
-        switch(Renderer::GetActiveGraphicsAPI()) {
-            case GraphicsAPI::OPENGL_API:
-                return new OpenGLTexture2D(path);
-            default:
-                MKT_CORE_LOGGER_CRITICAL("Unsupported renderer API");
-                return nullptr;
-        }
-    }
-
-    auto Texture2D::LoadFromFile(const Path_T &path, Type type) -> std::shared_ptr<Mikoto::Texture2D> {
-        switch(Renderer::GetActiveGraphicsAPI()) {
-            case GraphicsAPI::OPENGL_API:
-                return std::make_shared<OpenGLTexture2D>(path);
+                return std::make_shared<OpenGLTexture2D>(path, type);
             default:
                 MKT_CORE_LOGGER_CRITICAL("Unsupported renderer API");
                 return nullptr;

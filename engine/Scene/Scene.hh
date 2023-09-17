@@ -34,7 +34,7 @@ namespace Mikoto {
 
         auto OnUpdate(double ts) -> void;
         auto DestroyEntity(Entity& entity) -> void;
-        auto OnEditorUpdate(double ts, EditorCamera& camera) -> void;
+        auto OnEditorUpdate(double timeStep, const EditorCamera &camera) -> void;
         auto OnViewPortResize(UInt32_T width, UInt32_T height) -> void;
 
         MKT_NODISCARD static auto CreateEmptyObject(std::string_view tagName, const std::shared_ptr<Scene>& scene) -> Entity;
@@ -53,7 +53,14 @@ namespace Mikoto {
         * ***********************************************************/
         auto UpdateScripts() -> void;
 
+        static constexpr glm::vec3 ENTITY_INITIAL_SIZE{ 1.0f, 1.0f, 1.0f };
+        static constexpr glm::vec3 ENTITY_INITIAL_POSITION{ 0.0, 0.0, 0.0 };
+        static constexpr glm::vec3 ENTITY_INITIAL_ROTATION{ 0.0f, 0.0f, 0.0f };
+
     private:
+        /*************************************************************
+        * DATA MEMBERS
+        * ***********************************************************/
         entt::registry m_Registry{};
         UInt32_T m_ViewportWidth{};
         UInt32_T m_ViewportHeight{};

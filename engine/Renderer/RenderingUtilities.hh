@@ -23,8 +23,8 @@
 
 namespace Mikoto {
     struct ScenePrepareData {
-        SceneCamera* RuntimeCamera{};
-        EditorCamera* StaticCamera{};
+        const SceneCamera* RuntimeCamera{};
+        const EditorCamera* StaticCamera{};
     };
 
     enum BufferBit {
@@ -122,8 +122,8 @@ namespace Mikoto {
     struct RendererDrawData {
         std::shared_ptr<VertexBuffer> VertexBufferData{};
         std::shared_ptr<IndexBuffer> IndexBufferData{};
-        SceneCamera* SceneRuntimeCamera{};
-        EditorCamera* SceneEditCamera{};
+        const SceneCamera* SceneRuntimeCamera{};
+        const EditorCamera* SceneEditCamera{};
     };
 }
 

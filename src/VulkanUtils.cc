@@ -111,4 +111,16 @@ namespace Mikoto::VulkanUtils {
 
         return alignedSize;
     }
+
+    auto GetVulkanShaderStageFlag(ShaderStage stage) -> VkShaderStageFlagBits {
+        switch (stage) {
+            case ShaderStage::SHADER_VERTEX_STAGE: return VK_SHADER_STAGE_VERTEX_BIT;
+            case ShaderStage::SHADER_FRAGMENT_STAGE: return VK_SHADER_STAGE_FRAGMENT_BIT;
+
+            // TODO: temporary (unused stages)
+            case SHADER_GEOMETRY_STAGE:
+            case SHADER_TESSELATION_STAGE:
+            default: return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+        }
+    }
 }

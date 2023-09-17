@@ -18,8 +18,8 @@
 #include <fmt/format.h>
 
 // Project Headers
-#include <Utility/Singleton.hh>
 #include <Utility/Common.hh>
+#include <Utility/Singleton.hh>
 
 namespace Mikoto {
     /**
@@ -38,6 +38,7 @@ namespace Mikoto {
     private:
         auto Init() -> void;
 
+    private:
         std::shared_ptr<spdlog::logger> m_CoreLogger{};
         std::shared_ptr<spdlog::logger> m_AppLogger{};
     };

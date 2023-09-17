@@ -36,7 +36,7 @@ namespace Mikoto {
     }
 
     auto OrthographicCameraController::OnUpdate() -> void {
-        auto deltaTime{ (float)TimeManager::GetDeltaTime() };
+        auto deltaTime{ (float) TimeManager::GetTimeStep() };
 
         if (m_EnableRotation) {
             if (InputManager::IsKeyPressed(MKT_KEY_Q)) m_TargetCameraRotation += m_TargetCameraRotationSpeed * deltaTime;

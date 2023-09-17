@@ -11,14 +11,14 @@
 #include <unordered_set>
 
 // Project Headers
-#include <Utility/Singleton.hh>
-#include <Core/ImGui/ImGuiLayer.hh>
-#include <Core/LayerStack.hh>
+#include "ImGui/ImGuiLayer.hh"
 #include <Core/Events/AppEvents.hh>
 #include <Core/Events/Event.hh>
+#include <Core/LayerStack.hh>
 #include <Core/TimeManager.hh>
 #include <Platform/Window/Window.hh>
 #include <Renderer/RenderingUtilities.hh>
+#include <Utility/Singleton.hh>
 
 namespace Mikoto {
     /**

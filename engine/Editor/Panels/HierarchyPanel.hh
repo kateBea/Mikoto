@@ -10,7 +10,7 @@
 #include <memory>
 
 // Third-Party Libraries
-#include <entt/entt.hpp>
+
 
 // Project Headers
 #include <Utility/Common.hh>
@@ -19,31 +19,33 @@
 #include <Editor/Panels/Panel.hh>
 
 namespace Mikoto {
-    class HierarchyPanel : public Panel<HierarchyPanel> {
+    class HierarchyPanel : public Panel {
     public:
-        explicit HierarchyPanel(const std::shared_ptr<Scene>& scene, const Path_T &iconPath = {});
-        ~HierarchyPanel() = default;
+        explicit HierarchyPanel(const std::shared_ptr<Scene>& scene, const Path_T& iconPath = {});
 
-        HierarchyPanel(const HierarchyPanel & other) = default;
-        HierarchyPanel(HierarchyPanel && other) = default;
+        auto operator=(HierarchyPanel&& other) -> HierarchyPanel & = default;
 
-        auto operator=(const HierarchyPanel & other) -> HierarchyPanel & = default;
-        auto operator=(HierarchyPanel && other) -> HierarchyPanel & = default;
-
-        auto OnUpdate() -> void;
-        auto OnEvent(Event& event) -> void;
+        auto OnUpdate() -> void override;
+        auto OnEvent(Event& event) -> void override;
         auto SetScene(const std::shared_ptr<Scene>& scene) -> void;
-        auto MakeVisible(bool value) -> void { m_PanelIsVisible = value; }
+
+        ~HierarchyPanel() = default;
 
     private:
         friend class InspectorPanel;
 
     private:
-        // Helpers
+        /*************************************************************
+        * HELPERS
+        * ***********************************************************/
         auto DrawEntityNode(Entity& target) -> void;
         auto EntityPopupMenu(Entity& target) -> void;
         auto BlankSpacePopupMenu() -> void;
+
     private:
+        /*************************************************************
+        * DATA MEMBERS
+        * ***********************************************************/
         std::weak_ptr<Scene> m_Context{};
         Entity m_ContextSelection{};
     };

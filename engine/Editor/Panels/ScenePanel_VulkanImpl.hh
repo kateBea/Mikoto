@@ -24,7 +24,7 @@
 namespace Mikoto {
     class ScenePanel_VkImpl : public ScenePanelInterface {
     private:
-        auto Init_Impl(std::shared_ptr<ScenePanelData> data) -> void override {
+        auto Init_Impl(ScenePanelData &&data) -> void override {
             m_Data = std::move(data);
             m_SceneRenderer = dynamic_cast<VulkanRenderer*>(Renderer::GetActiveGraphicsAPIPtr());
 
@@ -63,16 +63,16 @@ namespace Mikoto {
             Application::GetPtr()->BlockImGuiLayerEvents(!m_Focused || !m_Hovered);
             auto viewPortDimensions{ ImGui::GetContentRegionAvail() };
 
-            if (m_Data->ViewPortWidth != viewPortDimensions.x || m_Data->ViewPortHeight != viewPortDimensions.y) {
+            if (m_Data.ViewPortWidth != viewPortDimensions.x || m_Data.ViewPortHeight != viewPortDimensions.y) {
 
-                m_Data->ViewPortWidth = viewPortDimensions.x;
-                m_Data->ViewPortHeight = viewPortDimensions.y;
-                m_Data->Viewport->OnViewPortResize((UInt32_T)viewPortDimensions.x, (UInt32_T)viewPortDimensions.y);
+                m_Data.ViewPortWidth = viewPortDimensions.x;
+                m_Data.ViewPortHeight = viewPortDimensions.y;
+                m_Data.Viewport->OnViewPortResize((UInt32_T)viewPortDimensions.x, (UInt32_T)viewPortDimensions.y);
                 //m_SceneRendererVk->OnFramebufferResize((UInt32_T)m_Data->ViewPortWidth, (UInt32_T)m_Data->ViewPortHeight);
             }
 
-            float frameWidth{ static_cast<float>(m_Data->ViewPortWidth) };
-            float frameHeight{ static_cast<float>(m_Data->ViewPortHeight) };
+            float frameWidth{ static_cast<float>(m_Data.ViewPortWidth) };
+            float frameHeight{ static_cast<float>(m_Data.ViewPortHeight) };
             ImGui::Image((ImTextureID)m_DescriptorSet, ImVec2{ frameWidth, frameHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
 
             ImGui::End();
@@ -80,10 +80,13 @@ namespace Mikoto {
         }
 
         auto OnEvent_Impl(Event& event) -> void override {
-
+            (void)event;
         }
 
     private:
+        /*************************************************************
+        * DATA MEMBERS
+        * ***********************************************************/
         VkSampler m_ColorAttachmentSampler{};
         VkDescriptorSet m_DescriptorSet{};
         VulkanRenderer* m_SceneRenderer{};

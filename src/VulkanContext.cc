@@ -5,11 +5,11 @@
 
 // C++ Standard Library
 #include <any>
+#include <set>
 #include <vector>
+#include <memory>
 #include <stdexcept>
 #include <unordered_set>
-#include <set>
-#include <memory>
 
 // Third-Party Libraries
 #include <volk.h>
@@ -17,6 +17,7 @@
 
 // Project Headers
 #include <Utility/Common.hh>
+#include <Utility/VulkanUtils.hh>
 #include <Core/Assert.hh>
 #include <Core/Logger.hh>
 #include <Core/Application.hh>
@@ -27,10 +28,12 @@
 
 namespace Mikoto {
     auto VulkanContext::Init(const std::shared_ptr<Window>& handle) -> void {
+        // Initialize the Volk library
         VkResult ret{ volkInitialize() };
         s_ContextData.VOLKInitSuccess = ret == VK_SUCCESS;
         MKT_ASSERT(s_ContextData.VOLKInitSuccess, "Failed to initialize VOLK!");
 
+        // At the moment, Vulkan works with GLFW windows on desktop
         s_ContextData.WindowHandle = std::dynamic_pointer_cast<MainWindow>(handle);
         MKT_ASSERT(s_ContextData.WindowHandle, "Window handle for Vulkan Context initialization is NULL");
 
@@ -50,12 +53,10 @@ namespace Mikoto {
             const VkAllocationCallbacks* pAllocator,
             VkDebugUtilsMessengerEXT* pDebugMessenger) -> VkResult
     {
-        PFN_vkCreateDebugUtilsMessengerEXT func { (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT") };
-
-        if (func != nullptr)
-            return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-        else
+        if (vkCreateDebugUtilsMessengerEXT == nullptr)
             return VK_ERROR_EXTENSION_NOT_PRESENT;
+
+        return vkCreateDebugUtilsMessengerEXT(instance, pCreateInfo, pAllocator, pDebugMessenger);
     }
 
     auto VulkanContext::CreateInstance() -> void {
@@ -63,20 +64,26 @@ namespace Mikoto {
             throw std::runtime_error("Validation layers requested, but not available!");
 
         // Setup application data
-        VkApplicationInfo appInfo{};
-        appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+        VkApplicationInfo appInfo{ VulkanUtils::Initializers::ApplicationInfo() };
+
         appInfo.pApplicationName = "Mikoto Engine";
-        appInfo.applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
+        appInfo.applicationVersion = VK_MAKE_API_VERSION(0,
+                                                         MKT_ENGINE_VERSION_MAJOR,
+                                                         MKT_ENGINE_VERSION_MINOR,
+                                                         MKT_ENGINE_VERSION_PATCH);
         appInfo.pEngineName = "Mikoto";
-        appInfo.engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
+        appInfo.engineVersion = VK_MAKE_API_VERSION(0,
+                                                    MKT_ENGINE_VERSION_MAJOR,
+                                                    MKT_ENGINE_VERSION_MINOR,
+                                                    MKT_ENGINE_VERSION_PATCH);
+
         appInfo.apiVersion = VK_MAKE_API_VERSION(MKT_VULKAN_VERSION_VARIANT,
                                                  MKT_VULKAN_VERSION_MAJOR,
                                                  MKT_VULKAN_VERSION_MINOR,
                                                  MKT_VULKAN_VERSION_PATCH); // Patch version should always be set to zero, see Vulkan Spec
 
-        // Instance creation info
-        VkInstanceCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+
+        VkInstanceCreateInfo createInfo{ VulkanUtils::Initializers::InstanceCreateInfo() };
         createInfo.pApplicationInfo = &appInfo;
 
         // Setup required extensions
@@ -89,13 +96,14 @@ namespace Mikoto {
         createInfo.ppEnabledExtensionNames = extensions.data();
 
         // Setup debug messenger utility
-        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{ VulkanUtils::Initializers::DebugUtilsMessengerCreateInfoEXT() };
+
         if (s_ContextData.EnableValidationLayers) {
             createInfo.enabledLayerCount = static_cast<UInt32_T>(s_ValidationLayers.size());
             createInfo.ppEnabledLayerNames = s_ValidationLayers.data();
 
             PopulateDebugMessengerCreateInfo(debugCreateInfo);
-            createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
+            createInfo.pNext = reinterpret_cast<VkDebugUtilsMessengerCreateInfoEXT*>(&debugCreateInfo);
         }
 
         if (vkCreateInstance(&createInfo, nullptr, &s_ContextData.Instance) != VK_SUCCESS)
@@ -112,18 +120,21 @@ namespace Mikoto {
     auto VulkanContext::GetGlfwRequiredExtensions() -> std::vector<const char*> {
         UInt32_T glfwExtensionCount{};
         const char** glfwExtensions{ glfwGetRequiredInstanceExtensions(&glfwExtensionCount) };
-        std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-        return extensions;
+
+        if (glfwExtensions == nullptr)
+            throw std::runtime_error("Vulkan is not available on this machine");
+
+        return { glfwExtensions, glfwExtensions + glfwExtensionCount };
     }
 
     auto VulkanContext::SetupDebugMessenger() -> void {
         if (!s_ContextData.EnableValidationLayers)
             return;
 
-        VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+        VkDebugUtilsMessengerCreateInfoEXT createInfo{ VulkanUtils::Initializers::DebugUtilsMessengerCreateInfoEXT() };
         PopulateDebugMessengerCreateInfo(createInfo);
         if (CreateDebugUtilsMessengerEXT(s_ContextData.Instance, &createInfo, nullptr, &s_ContextData.DebugMessenger) != VK_SUCCESS)
-            throw std::runtime_error("failed to set up debug messenger!");
+            throw std::runtime_error("Failed to set up debug messenger!");
     }
 
     auto VulkanContext::CreateSurface() -> void {
@@ -131,9 +142,6 @@ namespace Mikoto {
     }
 
     auto VulkanContext::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) -> void {
-        createInfo = {};
-        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-
         createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
                                      VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 
@@ -146,7 +154,12 @@ namespace Mikoto {
                VkDebugUtilsMessageTypeFlagsEXT messageType,
                const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) -> VKAPI_ATTR VkBool32
             {
-            MKT_CORE_LOGGER_ERROR("Validation layer: {}", pCallbackData->pMessage);
+                // Unused
+                (void)messageSeverity;
+                (void)messageType;
+                (void)pUserData;
+
+                MKT_CORE_LOGGER_ERROR("Validation layer: {}", pCallbackData->pMessage);
                 return VK_FALSE;
             };
     }
@@ -181,30 +194,24 @@ namespace Mikoto {
         std::vector<VkLayerProperties> availableLayers(layerCount);
         vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-        for (const char* layerName : s_ValidationLayers) {
-            bool layerFound{ false };
-            // TODO: use std algorithm helpers
-            for (const auto& layerProperties : availableLayers) {
-                if (std::string(layerName) == std::string(layerProperties.layerName)) {
-                    layerFound = true;
-                    break;
-                }
-            }
+        bool validationLayerFound{ false };
+        std::vector<VkLayerProperties>::size_type index{};
+        const std::string validationLayerTarget{ s_ValidationLayers[0] };
 
-            if (!layerFound)
-                return false;
+        while (index < availableLayers.size() && !validationLayerFound) {
+            validationLayerFound = validationLayerTarget == availableLayers[index].layerName;
+            ++index;
         }
 
-        return true;
+        return validationLayerFound;
     }
 
     auto VulkanContext::SetupPhysicalDevicesData() -> void {
         UInt32_T deviceCount {};
-        // First call to get the count of physical devices
         vkEnumeratePhysicalDevices(s_ContextData.Instance, &deviceCount, nullptr);
 
         if (deviceCount == 0)
-            throw std::runtime_error("failed to find GPUs with Vulkan support!");
+            throw std::runtime_error("Failed to find GPUs with Vulkan support!");
 
         s_ContextData.PhysicalDevices = std::vector<VkPhysicalDevice>(deviceCount);
         s_ContextData.PhysicalDeviceFeatures = std::vector<VkPhysicalDeviceFeatures>(deviceCount);
@@ -216,10 +223,14 @@ namespace Mikoto {
         for (auto& physicalDevice : s_ContextData.PhysicalDevices)
             physicalDevice = VK_NULL_HANDLE;
 
+        // Collect all physical devices available in the machine
         vkEnumeratePhysicalDevices(s_ContextData.Instance, &deviceCount, s_ContextData.PhysicalDevices.data());
         MKT_CORE_LOGGER_DEBUG("Vulkan device count: {}", deviceCount);
 
-        // Load physical device info
+        // Load physical device info.
+        // This is a direct mapping between physical devices position in s_ContextData.PhysicalDevices with
+        // the corresponding position in s_ContextData.PhysicalDeviceFeatures, s_ContextData.PhysicalDeviceProperties,
+        // s_ContextData.PhysicalDeviceMemoryProperties (physical device at index 0 has device properties at index 0, and so on)
         UInt32_T deviceIndex{};
         for (auto& physicalDevice : s_ContextData.PhysicalDevices) {
             vkGetPhysicalDeviceFeatures(physicalDevice, std::addressof(s_ContextData.PhysicalDeviceFeatures[deviceIndex]));
@@ -233,25 +244,23 @@ namespace Mikoto {
     auto VulkanContext::PickPrimaryPhysicalDevice() -> void {
         SetupPhysicalDevicesData();
 
-        UInt32_T index{};
         bool foundSuitablePrimaryGPU{ false };
+        decltype(s_ContextData.PhysicalDevices)::size_type index{};
 
         while (index < s_ContextData.PhysicalDevices.size() && !foundSuitablePrimaryGPU) {
             if (IsDeviceSuitable(s_ContextData.PhysicalDevices[index])) {
                 s_ContextData.PrimaryPhysicalDeviceIndex = index;
                 foundSuitablePrimaryGPU = true;
             }
+
+            ++index;
         }
 
         if (s_ContextData.PhysicalDevices[s_ContextData.PrimaryPhysicalDeviceIndex] == VK_NULL_HANDLE)
             throw std::runtime_error("Could not find a suitable GPU to use as primary physical device!");
 
 #if !defined(NDEBUG)
-        // Display primary physical device name
-        vkGetPhysicalDeviceProperties(s_ContextData.PhysicalDevices[s_ContextData.PrimaryPhysicalDeviceIndex],
-                                      &s_ContextData.PhysicalDeviceProperties[s_ContextData.PrimaryPhysicalDeviceIndex]);
-
-        MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_GREEN_YELLOW, "Physical device: {}\n", s_ContextData.PhysicalDeviceProperties[s_ContextData.PrimaryPhysicalDeviceIndex].deviceName);
+        MKT_CORE_LOGGER_DEBUG("Physical device: {}", GetPrimaryPhysicalDeviceProperties().deviceName);
 #endif
     }
 
@@ -336,6 +345,7 @@ namespace Mikoto {
         QueuesData indices{ FindQueueFamilies(device) };
         bool extensionsSupported{ CheckForDeviceRequiredExtensionSupport(device) };
         bool swapChainAdequate{};
+        (void)swapChainAdequate;
 
         if (extensionsSupported) {
             SwapChainSupportDetails swapChainSupport{ QuerySwapChainSupport(device) };
@@ -357,9 +367,8 @@ namespace Mikoto {
 
         constexpr float queuePriority{ 1.0f };
         for (UInt32_T queueFamily : uniqueQueueFamilies) {
-            VkDeviceQueueCreateInfo queueCreateInfo{};
+            VkDeviceQueueCreateInfo queueCreateInfo{ VulkanUtils::Initializers::DeviceQueueCreateInfo() };
 
-            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
             queueCreateInfo.queueFamilyIndex = queueFamily;
             queueCreateInfo.queueCount = 1;
             queueCreateInfo.pQueuePriorities = &queuePriority;
@@ -372,12 +381,10 @@ namespace Mikoto {
         deviceFeatures.samplerAnisotropy = VK_TRUE;
         deviceFeatures.fillModeNonSolid = VK_TRUE; // required for wireframe mode
 
-        VkDeviceCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        VkDeviceCreateInfo createInfo{ VulkanUtils::Initializers::DeviceCreateInfo() };
 
         createInfo.queueCreateInfoCount = static_cast<UInt32_T>(queueCreateInfos.size());
         createInfo.pQueueCreateInfos = queueCreateInfos.data();
-
         createInfo.pEnabledFeatures = &deviceFeatures;
         createInfo.enabledExtensionCount = static_cast<UInt32_T>(s_DeviceRequiredExtensions.size());
         createInfo.ppEnabledExtensionNames = s_DeviceRequiredExtensions.data();
@@ -393,24 +400,24 @@ namespace Mikoto {
             createInfo.enabledLayerCount = 0;
         }
 
-        // The app only uses one logical device for now which is going to be the main logical device
+        // The app only uses one logical device which is
+        // going to be the main logical device
         s_ContextData.PrimaryLogicalDeviceIndex = 0;
         s_ContextData.LogicalDevices = std::vector<VkDevice>(1);
 
-        if (vkCreateDevice(s_ContextData.PhysicalDevices[s_ContextData.PrimaryPhysicalDeviceIndex], &createInfo, nullptr, &s_ContextData.LogicalDevices[s_ContextData.PrimaryLogicalDeviceIndex]) != VK_SUCCESS)
-            throw std::runtime_error("failed to create logical device!");
+        if (vkCreateDevice(GetPrimaryPhysicalDevice(), &createInfo, nullptr, &s_ContextData.LogicalDevices[s_ContextData.PrimaryLogicalDeviceIndex]) != VK_SUCCESS)
+            throw std::runtime_error("Failed to create logical device!");
 
         /**
-         * If you use volk as described in the previous section, all device-related function calls, such as vkCmdDraw,
-         * will go through Vulkan loader dispatch code. This allows you to transparently support multiple VkDevice
-         * objects in the same application, but comes at a price of dispatch overhead which can be as high as
-         * 7% depending on the driver and application.
+         * [...] all device-related function calls, such as vkCmdDraw, will go through Vulkan loader dispatch code.
+         * This allows you to transparently support multiple VkDevice objects in the same application, but comes at
+         * a price of dispatch overhead which can be as high as 7% depending on the driver and application.
          *
          * To avoid this, For applications that use just one VkDevice object, load device-related
          * Vulkan entry-points directly from the driver with void volkLoadDevice(VkDevice device);
          * See: https://github.com/zeux/volk
          * */
-        volkLoadDevice(GetPrimaryLogicalDevice()); // Temporary. Our App only uses one VkDevice
+        volkLoadDevice(GetPrimaryLogicalDevice());
 
         vkGetDeviceQueue(s_ContextData.LogicalDevices[s_ContextData.PrimaryLogicalDeviceIndex],
                          s_QueueFamiliesData[s_ContextData.PrimaryPhysicalDeviceIndex].GraphicsFamilyIndex, 0, &s_QueueFamiliesData[s_ContextData.PrimaryPhysicalDeviceIndex].GraphicsQueue);
@@ -431,31 +438,21 @@ namespace Mikoto {
         throw std::runtime_error("failed to find suitable memory type!");
     }
 
-    static auto DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) -> void {
-        auto func{ (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT") };
-
-        if (func != nullptr)
-            func(instance, debugMessenger, pAllocator);
-    }
-
     auto VulkanContext::ShutDown() -> void {
-        vkDeviceWaitIdle(VulkanContext::GetPrimaryLogicalDevice());
+        VulkanUtils::WaitOnDevice(VulkanContext::GetPrimaryLogicalDevice());
 
-        if (s_ContextData.EnableValidationLayers)
-            DestroyDebugUtilsMessengerEXT(GetInstance(), s_ContextData.DebugMessenger, nullptr);
+        if (s_ContextData.EnableValidationLayers && vkDestroyDebugUtilsMessengerEXT != nullptr)
+            vkDestroyDebugUtilsMessengerEXT(GetInstance(), s_ContextData.DebugMessenger, nullptr);
 
-        vkDestroySurfaceKHR(GetInstance(), GetSurface(), nullptr);
         s_SwapChain->OnRelease();
+        vkDestroySurfaceKHR(GetInstance(), GetSurface(), nullptr);
 
-        // Perform destruction on a primary device only since there's
-        // only one for now, see Logical Device creation
         vkDestroyDevice(GetPrimaryLogicalDevice(), nullptr);
-
         vkDestroyInstance(GetInstance(), nullptr);
         vmaDestroyAllocator(s_DefaultAllocator);
     }
 
-    auto VulkanContext::IsExtensionAvailable(std::string_view targetExtensionName, VkPhysicalDevice device) -> bool {
+    MKT_UNUSED_FUNC auto VulkanContext::IsExtensionAvailable(std::string_view targetExtensionName, VkPhysicalDevice device) -> bool {
         UInt32_T extensionCount{};
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
         std::vector<VkExtensionProperties> availableExtensions(extensionCount);
@@ -484,34 +481,31 @@ namespace Mikoto {
         throw std::runtime_error("failed to find supported format!");
     }
 
-    auto VulkanContext::RecreateSwapChain(const VulkanSwapChainCreateInfo& info) -> void {
-        vkDeviceWaitIdle(VulkanContext::GetPrimaryLogicalDevice());
+    auto VulkanContext::RecreateSwapChain(VulkanSwapChainCreateInfo&& info) -> void {
         if (s_SwapChain)
             s_SwapChain->OnRelease();
 
-        s_SwapChain = std::make_shared<VulkanSwapChain>(info);
+        s_SwapChain->OnCreate(std::move(info));
     }
 
     auto VulkanContext::EnableVSync() -> void {
-        auto appWindowExtent{ Application::Get().GetMainWindowPtr()->GetExtent() };
-        VkExtent2D extent{ (UInt32_T)appWindowExtent.first, (UInt32_T)appWindowExtent.second };
-        VulkanSwapChainCreateInfo createInfo{
-                .Extent = extent,
-                .VSyncEnable = true,
-        };
-
-        RecreateSwapChain(createInfo);
+        SwitchVSync_H(true);
     }
 
     auto VulkanContext::DisableVSync() -> void {
-        auto appWindowExtent{ Application::Get().GetMainWindowPtr()->GetExtent() };
-        VkExtent2D extent{ (UInt32_T)appWindowExtent.first, (UInt32_T)appWindowExtent.second };
+        SwitchVSync_H(false);
+    }
+
+    auto VulkanContext::SwitchVSync_H(bool value) -> void {
+        const auto windowExtent{ Application::Get().GetMainWindow().GetExtent() };
+
         VulkanSwapChainCreateInfo createInfo{
-                .Extent = extent,
-                .VSyncEnable = false,
+                .OldSwapChain = s_SwapChain->GetSwapChainKHR(),
+                .Extent = { (UInt32_T)windowExtent.first, (UInt32_T)windowExtent.second },
+                .VSyncEnable = value,
         };
 
-        RecreateSwapChain(createInfo);
+        RecreateSwapChain(std::move(createInfo));
     }
 
     auto VulkanContext::IsVSyncActive() -> bool {
@@ -519,11 +513,13 @@ namespace Mikoto {
     }
 
     auto VulkanContext::Present() -> void {
-        // Present images from the swapchain
+        // Acquire the next image ready to be presented
+        // Present image to screen
     }
 
     auto VulkanContext::InitSwapChain() -> void {
-        RecreateSwapChain();
+        s_SwapChain = std::make_shared<VulkanSwapChain>();
+        s_SwapChain->OnCreate(VulkanSwapChain::GetDefaultCreateInfo());
     }
 
     auto VulkanContext::InitMemoryAllocator() -> void {
@@ -551,10 +547,10 @@ namespace Mikoto {
         vulkanFunctions.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2;             // Fetch "vkGetBufferMemoryRequirements2" on Vulkan >= 1.1, fetch "vkGetBufferMemoryRequirements2KHR" when using VK_KHR_dedicated_allocation extension.
         vulkanFunctions.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2;               // Fetch "vkGetImageMemoryRequirements2" on Vulkan >= 1.1, fetch "vkGetImageMemoryRequirements2KHR" when using VK_KHR_dedicated_allocation extension.
         vulkanFunctions.vkBindBufferMemory2KHR = vkBindBufferMemory2;                                   // Fetch "vkBindBufferMemory2" on Vulkan >= 1.1, fetch "vkBindBufferMemory2KHR" when using VK_KHR_bind_memory2 extension.
-        vulkanFunctions.vkBindImageMemory2KHR = vkBindImageMemory2;                                     //Fetch "vkBindImageMemory2" on Vulkan >= 1.1, fetch "vkBindImageMemory2KHR" when using VK_KHR_bind_memory2 extension.
+        vulkanFunctions.vkBindImageMemory2KHR = vkBindImageMemory2;                                     // Fetch "vkBindImageMemory2" on Vulkan >= 1.1, fetch "vkBindImageMemory2KHR" when using VK_KHR_bind_memory2 extension.
         vulkanFunctions.vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2;
-        vulkanFunctions.vkGetDeviceBufferMemoryRequirements = vkGetDeviceBufferMemoryRequirements;      //Fetch from "vkGetDeviceBufferMemoryRequirements" on Vulkan >= 1.3, but you can also fetch it from "vkGetDeviceBufferMemoryRequirementsKHR" if you enabled extension VK_KHR_maintenance4.
-        vulkanFunctions.vkGetDeviceImageMemoryRequirements = vkGetDeviceImageMemoryRequirements;        //Fetch from "vkGetDeviceImageMemoryRequirements" on Vulkan >= 1.3, but you can also fetch it from "vkGetDeviceImageMemoryRequirementsKHR" if you enabled extension VK_KHR_maintenance4.
+        vulkanFunctions.vkGetDeviceBufferMemoryRequirements = vkGetDeviceBufferMemoryRequirements;      // Fetch from "vkGetDeviceBufferMemoryRequirements" on Vulkan >= 1.3, but you can also fetch it from "vkGetDeviceBufferMemoryRequirementsKHR" if you enabled extension VK_KHR_maintenance4.
+        vulkanFunctions.vkGetDeviceImageMemoryRequirements = vkGetDeviceImageMemoryRequirements;        // Fetch from "vkGetDeviceImageMemoryRequirements" on Vulkan >= 1.3, but you can also fetch it from "vkGetDeviceImageMemoryRequirementsKHR" if you enabled extension VK_KHR_maintenance4.
 
         // Setup VmaAllocator
         VmaAllocatorCreateInfo allocatorInfo{};

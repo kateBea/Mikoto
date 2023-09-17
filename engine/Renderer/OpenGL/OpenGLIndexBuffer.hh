@@ -14,35 +14,17 @@
 #include <GL/glew.h>
 
 // Project Headers
+#include <Utility/Types.hh>
 #include <Utility/Common.hh>
 #include <Renderer/Buffers/IndexBuffer.hh>
 
 namespace Mikoto {
     class OpenGLIndexBuffer : public IndexBuffer {
     public:
+        /**
+         * Constructs an OpenGL index buffer
+         * */
         explicit OpenGLIndexBuffer() = default;
-        /**
-         * Creates a new Vertex index buffer and initializes it with the data
-         * from indices. If no data is provided simply creates a new index buffer object with a valid id
-         * @param indices buffer containing all the indices values
-         * */
-        explicit OpenGLIndexBuffer(const std::vector<UInt32_T> &indices, GLbitfield usage = GL_DYNAMIC_STORAGE_BIT);
-
-        MKT_NODISCARD auto GetID() const -> UInt32_T { return m_Id; }
-        MKT_NODISCARD auto GetBufferDataType() const -> Int32_T { return m_DataType; }
-
-        /**
-         * Mark this Vertex index buffer as current
-         * */
-        auto Bind() const -> void { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GetID()); }
-
-        /**
-         * Releases the currently bound Vertex element buffer.
-         * NOTE: Buffer set to zero effectively unbinds any buffer object
-         * previously bound, and restores client memory usage for that buffer object
-         * target (if supported for that target). See: https://docs.gl/gl4/glBindBuffer
-         * */
-        static auto Unbind() -> void { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); }
 
         /**
          * Move constructor
@@ -57,15 +39,43 @@ namespace Mikoto {
         auto operator=(OpenGLIndexBuffer&& other) noexcept -> OpenGLIndexBuffer&;
 
         /**
-         * Creates and initializes a buffer object's immutable data store. Firstly, if this OpenGL index buffer
-         * does not contain a valid identifier, it is created.
+         * Creates a new index buffer and initializes it with the data from <code>indices</code>.
+         * If no data is provided simply creates a new index buffer object with a valid id
+         * @param indices buffer containing all the indices values
+         * @param usage buffer usage
+         * @throws std::runtime_error if a valid object could not be created
          * */
-        auto Upload(const std::vector<UInt32_T>& indices, GLbitfield flags = GL_DYNAMIC_STORAGE_BIT) -> void;
+        explicit OpenGLIndexBuffer(const std::vector<UInt32_T>& indices, GLbitfield usage = GL_DYNAMIC_STORAGE_BIT);
 
         /**
-         * Releases resources from this Vertex index buffer
+         * Returns the object identifier of this index buffer
+         * @returns this index buffer identifier
          * */
-        ~OpenGLIndexBuffer() override { glDeleteBuffers(1, &m_Id); }
+        MKT_NODISCARD auto GetID() const -> UInt32_T { return m_ObjectID; }
+
+        /**
+         * Returns the type of the data within this vertex buffer. For simplicity
+         * sake now it going to be GL_UNSIGNED_INT for now
+         * @returns data type of the indices
+         * */
+        MKT_NODISCARD auto GetBufferDataType() const -> Int32_T { return m_DataType; }
+
+        /**
+         * Mark this index buffer as current
+         * */
+        auto Bind() const -> void { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GetID()); }
+
+        /**
+         * Releases the currently bound Vertex element buffer. Note that a call to this
+         * function also unbinds any previously bound buffer (including vertex buffers)
+         * @see https://docs.gl/gl4/glBindBuffer
+         * */
+        static auto Unbind() -> void { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); }
+
+        /**
+         * Releases resources from this index buffer
+         * */
+        ~OpenGLIndexBuffer() override { glDeleteBuffers(1, &m_ObjectID); }
 
     public:
         // Forbidden operations
@@ -73,14 +83,17 @@ namespace Mikoto {
         auto operator=(const OpenGLIndexBuffer&) -> OpenGLIndexBuffer& = delete;
 
     private:
-        UInt32_T m_Id{};
-        Int32_T m_DataType{};
-
         /**
-         * Tells whether this VAO holds a valid OpenGL shader program id.
-         * For internal usage for now mainly
+         * Creates and initializes a buffer object's immutable data store.
+         * @param indices buffer containing all the indices values
+         * @param usage buffer usage
+         * @throws std::runtime_error if the list of indices is empty
          * */
-        bool m_ValidId{};
+        auto Upload(const std::vector<UInt32_T>& indices, GLbitfield flags = GL_DYNAMIC_STORAGE_BIT) -> void;
+
+    private:
+        UInt32_T m_ObjectID{};
+        Int32_T m_DataType{};
     };
 }
 

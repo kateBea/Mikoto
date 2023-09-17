@@ -21,18 +21,20 @@
 #include <Platform/Window/Window.hh>
 #include <Renderer/Vulkan/VulkanSwapChain.hh>
 
+/**
+ * The Vulkan context space that exposes Vulkan related functionality
+ * and provide and interface to interact with the Vulkan API.
+ * This is a way to abstract away required data like Physical or Logical devices
+ * which is frequently required by objects like index buffers, vertex buffers, etc.
+ * */
 namespace Mikoto::VulkanContext {
     /**
-     * The Vulkan context space that exposes Vulkan related functionality
-     * and provide and interface to interact with the Vulkan API.
-     * This is a way to abstract away required data like Physical or Logical devices
-     * which is frequently required by objects like index buffers, vertex buffers, etc.
+     * Initializes the Vulkan API for usage and initializes the context with some
+     * commonly required objects like a physical device, logical device, a swapchain, etc.
+     * @param handle window handle required to create a valid context
      * */
+    auto Init(const std::shared_ptr<Window>& handle) -> void;
 
-    /*************************************************************
-    * PUBLIC INTERFACE
-    * ***********************************************************/
-    auto Init(const std::shared_ptr<Window> &handle) -> void;
     auto ShutDown() -> void;
     auto Present() -> void;
 
@@ -41,8 +43,8 @@ namespace Mikoto::VulkanContext {
     MKT_NODISCARD auto IsVSyncActive() -> bool;
 
     /*************************************************************
-        * STRUCTURES
-        * ***********************************************************/
+     * STRUCTURES
+     * ***********************************************************/
     struct ContextData {
         std::vector<VkPhysicalDevice> PhysicalDevices{};
         std::vector<VkDevice> LogicalDevices{};
@@ -84,8 +86,8 @@ namespace Mikoto::VulkanContext {
     };
 
     /*************************************************************
-    * CONTEXT DATA
-    * ***********************************************************/
+     * CONTEXT DATA
+     * ***********************************************************/
     inline ContextData s_ContextData {
         .PhysicalDevices{},
                 .LogicalDevices{},
@@ -119,24 +121,24 @@ namespace Mikoto::VulkanContext {
     inline std::vector<QueuesData> s_QueueFamiliesData{};
 
     /*************************************************************
-    * CONTEXT FUNCTIONS
-    * ***********************************************************/
+     * CONTEXT FUNCTIONS
+     * ***********************************************************/
     MKT_NODISCARD inline auto GetSurface() -> VkSurfaceKHR & { return s_ContextData.Surface; }
     MKT_NODISCARD inline auto GetInstance() -> VkInstance & { return s_ContextData.Instance; }
     MKT_NODISCARD inline auto GetGlfwRequiredExtensions() -> std::vector<const char *>;
     MKT_NODISCARD inline auto GetDefaultAllocator() -> VmaAllocator & { return s_DefaultAllocator; }
 
     /*************************************************************
-        * UTILITY FUNCTIONS
-        * ********************************************************+ */
+     * UTILITY FUNCTIONS
+     * ********************************************************+ */
     MKT_NODISCARD auto IsExtensionAvailable(std::string_view targetExtensionName, VkPhysicalDevice device) -> bool;
     MKT_NODISCARD auto QuerySwapChainSupport(VkPhysicalDevice device) -> SwapChainSupportDetails;
     MKT_NODISCARD auto IsDeviceSuitable(VkPhysicalDevice device) -> bool;
 
 
     /*************************************************************
-    * PRIMARY DEVICE FUNCTIONS
-    * ***********************************************************/
+     * PRIMARY LOGICAL DEVICE GETTERS
+     * ***********************************************************/
     MKT_NODISCARD inline auto GetPrimaryPhysicalDevice() -> VkPhysicalDevice { return s_ContextData.PhysicalDevices[s_ContextData.PrimaryPhysicalDeviceIndex]; };
     MKT_NODISCARD inline auto GetPrimaryLogicalDevice() -> VkDevice { return s_ContextData.LogicalDevices[s_ContextData.PrimaryLogicalDeviceIndex]; }
     MKT_NODISCARD inline auto GetPrimaryLogicalDeviceFeatures() -> VkPhysicalDeviceFeatures { return s_ContextData.PhysicalDeviceFeatures[s_ContextData.PrimaryLogicalDeviceIndex]; }
@@ -148,10 +150,18 @@ namespace Mikoto::VulkanContext {
     MKT_NODISCARD inline auto GetPrimaryLogicalDeviceSwapChainSupport() -> SwapChainSupportDetails { return QuerySwapChainSupport(s_ContextData.PhysicalDevices[s_ContextData.PrimaryLogicalDeviceIndex]); }
 
     /*************************************************************
-    * SWAPCHAIN
-    * ***********************************************************/
+     * PRIMARY PHYSICAL DEVICE GETTERS
+     * ***********************************************************/
+     MKT_NODISCARD inline auto GetPrimaryPhysicalDeviceFeatures() -> VkPhysicalDeviceFeatures { return s_ContextData.PhysicalDeviceFeatures[s_ContextData.PrimaryPhysicalDeviceIndex]; }
+     MKT_NODISCARD inline auto GetPrimaryPhysicalDeviceProperties() -> VkPhysicalDeviceProperties { return s_ContextData.PhysicalDeviceProperties[s_ContextData.PrimaryPhysicalDeviceIndex]; }
+     MKT_NODISCARD inline auto GetPrimaryPhysicalDeviceMemoryProperties() -> VkPhysicalDeviceMemoryProperties { return s_ContextData.PhysicalDeviceMemoryProperties[s_ContextData.PrimaryPhysicalDeviceIndex]; }
+
+
+    /*************************************************************
+     * SWAPCHAIN
+     * ***********************************************************/
     auto InitSwapChain() -> void;
-    auto RecreateSwapChain(const VulkanSwapChainCreateInfo &info = VulkanSwapChain::GetDefaultCreateInfo()) -> void;
+    auto RecreateSwapChain(VulkanSwapChainCreateInfo&& info) -> void;
     MKT_NODISCARD inline auto GetSwapChain() -> std::shared_ptr<VulkanSwapChain> { return s_SwapChain; }
 
     /**
@@ -176,24 +186,33 @@ namespace Mikoto::VulkanContext {
 
 
     /*************************************************************
-    * FOR INTERNAL USAGE
-    * ***********************************************************/
-    auto SetupPhysicalDevicesData() -> void;
+     * FOR INTERNAL USAGE
+     *
+     * This set of functions are used as helpers for Vulkan Context
+     * operations. Should never be called out of Vulkan Context scope.
+     * ***********************************************************/
+
+
+    /**
+     * Creates a new surface
+     * */
+    auto CreateSurface() -> void;
     auto CreateInstance() -> void;
     auto SetupDebugMessenger() -> void;
-    auto CreateSurface() -> void;
-    auto PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) -> void;
-    auto DisplayGflwRequiredInstanceExtensions() -> void;
-    auto CheckValidationLayerSupport() -> bool;
+    auto InitMemoryAllocator() -> void;
+    auto SetupPhysicalDevicesData() -> void;
     auto PickPrimaryPhysicalDevice() -> void;
     auto CreatePrimaryLogicalDevice() -> void;
-    auto InitMemoryAllocator() -> void;
+    auto CheckValidationLayerSupport() -> bool;
+    auto DisplayGflwRequiredInstanceExtensions() -> void;
+    auto PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) -> void;
+    auto SwitchVSync_H(bool value) -> void;
 
     /*************************************************************
-    * GENERAL DEVICE REQUIRED EXTENSIONS
-    * ***********************************************************/
-    inline const std::vector<const char *> s_ValidationLayers{"VK_LAYER_KHRONOS_validation"};
-    inline const std::vector<const char *> s_DeviceRequiredExtensions{
+     * GENERAL DEVICE REQUIRED EXTENSIONS
+     * ***********************************************************/
+    inline const std::vector<const char*> s_ValidationLayers{ "VK_LAYER_KHRONOS_validation" };
+    inline const std::vector<const char*> s_DeviceRequiredExtensions{
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 
             // Passing your vertex data jus like in OpenGL, using the same state (as the pipeline setup)

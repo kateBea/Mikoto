@@ -5,7 +5,6 @@
 
 // C++ Standard Library
 #include <array>
-#include <utility>
 #include <iterator>
 #include <algorithm>
 
@@ -85,7 +84,7 @@ namespace Mikoto {
         ImGui::PushID(label.data());
 
         ImGui::Columns(2);
-        ImGui::SetColumnWidth(0, columWidth);
+        ImGui::SetColumnWidth(0, (float)columWidth);
         ImGui::Text("%s", label.data());
         ImGui::NextColumn();
         ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
@@ -244,9 +243,9 @@ namespace Mikoto {
 
             DrawComponent<CameraComponent>("Camera", m_Hierarchy->m_ContextSelection,
                 [](auto& component) -> void {
-                    const std::array<std::string, 2> cameraProjectionTypes{ "Orthographic", "Perspective" };
-                    auto cameraCurrentProjectionType{ component.GetCameraPtr()->GetProjectionType() };
-                    auto currentProjectionTypeStr{ cameraProjectionTypes[cameraCurrentProjectionType] };
+                    static const std::array<std::string, 2> cameraProjectionTypes{ "Orthographic", "Perspective" };
+                    const auto cameraCurrentProjectionType{ component.GetCameraPtr()->GetProjectionType() };
+                    const auto& currentProjectionTypeStr{ cameraProjectionTypes[cameraCurrentProjectionType] };
 
                     if (ImGui::BeginCombo("Projection", currentProjectionTypeStr.c_str())) {
                         UInt32_T projectionIndex{};
@@ -254,7 +253,7 @@ namespace Mikoto {
                             bool isSelected{ projectionType == cameraProjectionTypes[cameraCurrentProjectionType] };
 
                             if (ImGui::Selectable(projectionType.c_str(), isSelected)) {
-                                currentProjectionTypeStr = projectionType;
+                                //currentProjectionTypeStr = projectionType;
                                 component.GetCameraPtr()->SetProjectionType((SceneCamera::ProjectionType) projectionIndex);
                             }
 
@@ -344,6 +343,7 @@ namespace Mikoto {
 
             DrawComponent<NativeScriptComponent>("Script", m_Hierarchy->m_ContextSelection, [](auto& component) -> void {
                 // Currently empty
+                (void)component;
             });
 
             ImGui::End();
@@ -351,10 +351,6 @@ namespace Mikoto {
     }
 
     auto InspectorPanel::OnEvent(Event& event) -> void {
-
-    }
-
-    auto InspectorPanel::MakeVisible(bool value) -> void {
-        m_PanelIsVisible = value;
+        (void)event;
     }
 }

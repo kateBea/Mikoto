@@ -15,20 +15,25 @@
 #include <Editor/Panels/Panel.hh>
 
 namespace Mikoto {
-    class SettingsPanel : public Panel<SettingsPanel> {
+    class SettingsPanel : public Panel {
     public:
-        explicit SettingsPanel() = default;
-        explicit SettingsPanel(const std::shared_ptr<SettingsPanelData> &data, const Path_T &iconPath = {});
+        explicit SettingsPanel(const Path_T& iconPath = {});
 
         auto operator=(SettingsPanel&& other) -> SettingsPanel& = default;
 
-        MKT_NODISCARD auto GetData() const -> const SettingsPanelData& { return *m_Data; }
-        auto OnUpdate() -> void;
-        auto OnEvent(Event& event) ->  void;
-        auto MakeVisible(bool value) ->  void { m_PanelIsVisible = value; }
+        auto OnUpdate() -> void override;
+        auto OnEvent(Event& event) ->  void override;
+
+        MKT_NODISCARD auto GetData() const -> const SettingsPanelData& { return m_Data; }
+
+        auto SetFieldOfView(float fov) { m_Data.FieldOfView = fov; }
+        auto SetColor(const glm::vec4& color) { m_Data.ClearColor = color; }
 
     private:
-        std::shared_ptr<SettingsPanelData> m_Data{};
+        /*************************************************************
+        * DATA MEMBERS
+        * ***********************************************************/
+        SettingsPanelData m_Data{};
     };
 }
 

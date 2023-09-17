@@ -156,7 +156,7 @@ namespace Mikoto {
             aiString str{};
             if (mat->GetTexture(type, i, &str) == AI_SUCCESS)
                 // TODO: temporary, assumes the textures are in the same directory as the model file
-                textures.push_back(Texture2D::LoadFromFile(modelDirectory.string() + '/' + str.C_Str(), tType));
+                textures.push_back(Texture2D::Create(modelDirectory.string() + '/' + str.C_Str(), tType));
         }
 
         return textures;

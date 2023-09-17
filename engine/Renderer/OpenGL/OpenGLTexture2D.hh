@@ -22,7 +22,7 @@ namespace Mikoto {
          * a valid Texture object with a valid id
          * @param path the path to the Texture file
          * */
-        explicit OpenGLTexture2D(const Path_T& path, bool retainFileData = false);
+        explicit OpenGLTexture2D(const Path_T& path, Type type, bool retainFileData = false);
 
         /**
          * Move constructor
@@ -40,10 +40,10 @@ namespace Mikoto {
          * Returns the identifier of this Texture
          * @return id of this object
          * */
-        MKT_NODISCARD auto GetId() const -> UInt32_T { return m_Id; }
+        MKT_NODISCARD auto GetId() const -> UInt32_T { return m_ObjectID; }
         MKT_NODISCARD auto GetTextureFileData() const -> stbi_uc* { return m_TextureFileData; }
 
-        auto Unbind() -> void;
+        static auto Unbind() -> void { glBindTexture(GL_TEXTURE_2D, 0); }
         auto Bind(UInt32_T slot) const -> void;
 
         ~OpenGLTexture2D();
@@ -56,12 +56,11 @@ namespace Mikoto {
         auto SetupTexture(const stbi_uc* data) -> void;
 
     private:
-        UInt32_T    m_Id{};
-        GLenum      m_InternalFormat{}; // Specifies the sized internal format to be used to store texture image data
-        GLenum      m_Format{};         // Specifies the format of the pixel data
-
-        bool m_RetainData{};
-        stbi_uc* m_TextureFileData{};
+        UInt32_T m_ObjectID{};          // Object identifier
+        GLenum m_InternalFormat{};      // Specifies the sized internal format to be used to store texture image data
+        GLenum m_Format{};              // Specifies the format of the pixel data
+        stbi_uc* m_TextureFileData{};   // Pointer to the texture buffer data
+        bool m_RetainData{};            // Tells whether we want to keep the texture data in the CPU memory or not
     };
 }
 

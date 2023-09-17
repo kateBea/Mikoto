@@ -109,7 +109,9 @@ set(SOURCES
         ${IMGUIZMO_SOURCES}
         src/Engine.cc src/stb_image.cc
         src/vk_mem_alloc.h.cc
-        src/GUIManager.cc)
+        src/GUIManager.cc
+        src/ImGuiVulkanBackend.cc
+        src/ImGuiOpenGLBackend.cc)
 
 # External dependencies
 add_subdirectory(${GLEW_CMAKE_DIR})

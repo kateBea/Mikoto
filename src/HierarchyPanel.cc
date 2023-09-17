@@ -11,7 +11,6 @@
 
 // Project Headers
 #include <Core/Logger.hh>
-
 #include <Scene/Scene.hh>
 #include <Scene/Entity.hh>
 #include <Scene/Component.hh>
@@ -36,8 +35,10 @@ namespace Mikoto {
 
                 BlankSpacePopupMenu();
             }
-            else
+            else {
                 MKT_CORE_LOGGER_ERROR("Panel context has expired and no longer exists!");
+            }
+
             ImGui::End();
         }
     }
@@ -176,7 +177,7 @@ namespace Mikoto {
     }
 
     auto HierarchyPanel::OnEvent(Event& event) -> void {
-
+        (void)event;
     }
 
     HierarchyPanel::HierarchyPanel(const std::shared_ptr<Scene>& scene, const Path_T &iconPath)

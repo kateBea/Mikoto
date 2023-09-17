@@ -111,8 +111,6 @@ namespace Mikoto {
 
         ProcessMouseInput(timeStep);
         ProcessKeyboardInput(timeStep);
-
-        UpdateViewMatrix();
     }
 
     auto EditorCamera::OnEvent(Event& event) -> void {

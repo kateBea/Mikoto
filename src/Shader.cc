@@ -23,4 +23,8 @@ namespace Mikoto {
                 return nullptr;
         }
     }
+
+    auto Shader::Create(const Path_T& src, ShaderStage stage) -> std::shared_ptr<Shader> {
+        return std::shared_ptr<Shader>();
+    }
 }

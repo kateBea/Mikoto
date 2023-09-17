@@ -19,8 +19,6 @@ namespace Mikoto {
      * can be dragged around our main window or simply dock
      * into our level editor dock space
      * */
-
-    template<typename PanelType>
     class Panel {
     public:
         /**
@@ -44,20 +42,20 @@ namespace Mikoto {
         /**
          * Updates the state of this panel
          * */
-        auto OnUpdate() -> void { static_cast<PanelType>(this)->OnUpdate(0); }
+        virtual auto OnUpdate() -> void = 0;
 
         /**
          * Must be called everytime we want to propagate an event to
          * this panel to be handled
          * @param event event to be handled
          * */
-        auto OnEvent(Event& event) -> void { static_cast<PanelType>(this)->OnEvent(event); }
+        virtual auto OnEvent(Event& event) -> void = 0;
 
         /**
          * Hides or reveals this panel in the docking space.
          * @param value if false, hides this panel, otherwise it may always be visible
          * */
-        auto MakeVisible(bool value) -> void { static_cast<PanelType>(this)->MakeVisible(value); }
+        auto MakeVisible(bool value) -> void { m_PanelIsVisible = value; }
 
         /**
          * Returns true if this panel is hovered, false otherwise
@@ -86,7 +84,7 @@ namespace Mikoto {
         /**
          * Destructor, defaulted
          * */
-        ~Panel() = default;
+        virtual ~Panel() = default;
 
     protected:
         /*************************************************************

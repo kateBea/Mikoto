@@ -9,16 +9,15 @@
 #include <utility>
 
 // Project headers
-#include "ImGui/ImGuiLayer.hh"
+#include <Utility/Common.hh>
+#include <Core/Logger.hh>
 #include <Core/Application.hh>
 #include <Core/Events/AppEvents.hh>
-#include <Core/GUIManager.hh>
-#include <Core/Logger.hh>
 #include <Platform/InputManager.hh>
 #include <Platform/Window/MainWindow.hh>
 #include <Renderer/RenderCommand.hh>
 #include <Renderer/Renderer.hh>
-#include <Utility/Common.hh>
+#include <Editor/EditorLayer.hh>
 
 namespace Mikoto {
     auto Application::Init(AppSpec&& appSpec) -> void {
@@ -39,7 +38,7 @@ namespace Mikoto {
 
         m_MainWindow = std::make_shared<MainWindow>(std::move(windowProperties));
         m_LayerStack = std::make_unique<LayerStack>();
-        m_ImGuiLayer = std::make_shared<ImGuiLayer>(); // This should not be done here, should be handled by the gui manager which has an implementation for the gui for opengl and another for vulkan
+        m_ImGuiLayer = std::make_shared<ImGuiLayer>();
 
         // Initialize the main window
         m_MainWindow->Init();
@@ -60,9 +59,12 @@ namespace Mikoto {
 
         RenderContext::Init(std::move(contextSpec));
         RenderContext::EnableVSync();
-        Renderer::Init(renderSpec);
+        Renderer::Init(std::move(renderSpec));
 
         PushOverlay(m_ImGuiLayer);
+
+        if (m_Spec.WantEditor)
+            PushLayer(std::make_shared<EditorLayer>());
 
         MKT_CORE_LOGGER_DEBUG("Init time {}", TimeManager::GetTime());
     }
@@ -79,32 +81,33 @@ namespace Mikoto {
 
         Renderer::OnEvent(event);
 
+        // Propagate events through all layers, starting from the most top one.
+        // If a given layer decides to set the event as handled, we no longer propagate it, breaking the loop
         for (auto it{ m_LayerStack->rbegin() }; it != m_LayerStack->rend(); ++it) {
             (*it)->OnEvent(event);
 
-            // Do not propagate the event to the rest of layers
-            // if one of them marks it as handled
             if (event.IsHandled())
                 break;
         }
     }
 
-    auto Application::OnWindowClose([[maybe_unused]] WindowCloseEvent& event) -> bool {
+    auto Application::OnWindowClose(WindowCloseEvent& event) -> bool {
         m_State = State::STOPPED;
-
-        // We don't want to propagate this event
-        return true;
+        event.SetHandled(true);
+        return event.IsHandled();
     }
 
     auto Application::OnResizeEvent(WindowResizedEvent& event) -> bool {
         m_MainWindowMinimized = event.GetWidth() == 0 || event.GetHeight() == 0;
         m_State = m_MainWindowMinimized ? State::IDLE : State::RUNNING;
         RenderCommand::UpdateViewPort(0, 0, event.GetWidth(), event.GetHeight());
-        return false;
+
+        return event.IsHandled();
     }
 
     auto Application::PushLayer(const std::shared_ptr<Layer>& layer) -> void {
         m_LayerStack->AddLayer(layer);
+        layer->OnAttach();
     }
 
     auto Application::PushOverlay(const std::shared_ptr<Layer>& overlay) -> void {

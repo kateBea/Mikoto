@@ -22,9 +22,9 @@ namespace Mikoto {
         auto OnCreate(const BufferAllocateInfo& allocInfo) -> void;
         auto OnRelease() const -> void;
 
-        MKT_NODISCARD auto Get() const -> const VkBuffer& { return m_AllocationInfo.Buffer; }
-        MKT_NODISCARD auto GetSize() const -> const VkDeviceSize& { return m_AllocationInfo.Size; }
-        MKT_NODISCARD auto GetVmaAllocation() const -> const VmaAllocation& { return m_AllocationInfo.Allocation; }
+        MKT_NODISCARD auto Get() const -> VkBuffer { return m_AllocationInfo.Buffer; }
+        MKT_NODISCARD auto GetSize() const -> VkDeviceSize { return m_AllocationInfo.Size; }
+        MKT_NODISCARD auto GetVmaAllocation() const -> VmaAllocation { return m_AllocationInfo.Allocation; }
 
     private:
         BufferAllocateInfo m_AllocationInfo{};

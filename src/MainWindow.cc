@@ -12,6 +12,7 @@
 #include <GLFW/glfw3.h>
 
 // Projects headers
+#include <Utility/Types.hh>
 #include <Utility/Common.hh>
 #include <Core/Logger.hh>
 #include <Core/Assert.hh>
@@ -29,7 +30,6 @@ namespace Mikoto {
     auto MainWindow::OnUpdate() -> void {
         glfwPollEvents();
 
-        // not be done when the window is minimized, it CPU waste
         RenderContext::Present();
     }
 

@@ -1,5 +1,5 @@
 /**
- * RenderCommand.hh
+ * RendererAPI.hh
  * Created by kate on 6/9/23.
  * */
 
@@ -45,6 +45,9 @@ namespace Mikoto {
          * */
         virtual auto Shutdown() -> void = 0;
 
+        virtual auto Draw() -> void = 0;
+        virtual auto Flush() -> void = 0;
+
         /**
          * Enables wireframe drawing
          * */
@@ -70,25 +73,31 @@ namespace Mikoto {
          * */
 		virtual auto SetClearColor(float red, float green, float blue, float alpha) -> void = 0;
 
-        virtual auto Draw() -> void = 0;
-
 		virtual auto SetViewport(float x, float y, float width, float height) -> void = 0;
-        virtual auto OnEvent(Event& event) -> void = 0;
-
-        virtual auto Flush() -> void = 0;
 
         virtual auto QueueForDrawing(std::shared_ptr<DrawData> data) -> void = 0;
 
-        /**
-         * Default destructor.
-         * */
-        virtual ~RendererAPI() = default;
-    public:
-        RendererAPI(const RendererAPI&) = delete;
-        auto operator=(const RendererAPI&) -> RendererAPI& = delete;
+        virtual auto OnEvent(Event& event) -> void = 0;
 
-        RendererAPI(RendererAPI&&) = delete;
-        auto operator=(RendererAPI&&) -> RendererAPI& = delete;
+        virtual ~RendererAPI() = default;
+
+        /**
+         * Creates a new graphics backend object and returns a pointer to it. If it fails to allocate
+         * returns a null pointer instead. The caller is responsible for freeing the memory via delete
+         * after it is no longer necessary
+         * @param backend api backend
+         * @returns pointer to allocated backend
+         * */
+        MKT_NODISCARD static auto Create(GraphicsAPI backend) -> RendererAPI*;
+    public:
+        /*************************************************************
+         * DELETED OPERATIONS
+         * ***********************************************************/
+        RendererAPI(const RendererAPI&)     = delete;
+        auto operator=(const RendererAPI&)  = delete;
+
+        RendererAPI(RendererAPI&&)          = delete;
+        auto operator=(RendererAPI&&)       = delete;
 	};
 }
 

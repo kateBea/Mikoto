@@ -11,7 +11,9 @@
 #include <Renderer/OpenGL/OpenGLVertexBuffer.hh>
 
 namespace Mikoto {
-    OpenGLVertexBuffer::OpenGLVertexBuffer(const VertexBufferCreateInfo& createInfo, GLenum usage) {
+    OpenGLVertexBuffer::OpenGLVertexBuffer(VertexBufferCreateInfo&& createInfo, GLenum usage)
+        :   VertexBuffer{ std::move(createInfo.Layout) }
+    {
         glCreateBuffers(1, &m_Id);
         m_ValidId = m_Id != 0;
 
@@ -20,8 +22,8 @@ namespace Mikoto {
     }
 
 
-    OpenGLVertexBuffer::OpenGLVertexBuffer(OpenGLVertexBuffer && other) noexcept
-        :   m_Layout{ std::move(other.m_Layout) }, m_ValidId{ other.m_ValidId }
+    OpenGLVertexBuffer::OpenGLVertexBuffer(OpenGLVertexBuffer&& other) noexcept
+        :   VertexBuffer{ std::move(other.m_Layout) }, m_ValidId{ other.m_ValidId }
     {
         m_Id = other.GetID();
 

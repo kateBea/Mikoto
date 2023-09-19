@@ -6,13 +6,13 @@
 #define MIKOTO_WINDOW_HH
 
 // C++ Standard Library
+#include <any>
 #include <string>
 #include <string_view>
 #include <cstdint>
 #include <functional>
 #include <memory>
 #include <utility>
-#include <any>
 
 // Project Headers
 #include <Utility/Types.hh>
@@ -21,10 +21,6 @@
 #include <Renderer/RenderingUtilities.hh>
 
 namespace Mikoto {
-    struct WindowSpec{
-        GraphicsAPI Backend{};
-    };
-
     class WindowProperties {
     public:
         explicit WindowProperties(std::string_view name = "Mikoto Engine", GraphicsAPI backend = GraphicsAPI::VULKAN_API, Int32_T width = 1920, Int32_T height = 1080)
@@ -104,12 +100,19 @@ namespace Mikoto {
 
         virtual ~Window() = default;
     public:
-        Window(const Window&) = delete;
-        auto operator=(const Window&) noexcept -> Window& = delete;
+        /*************************************************************
+         * DELETED OPERATIONS
+         * ***********************************************************/
+        Window(const Window&)           = delete;
+        auto operator=(const Window&)   = delete;
 
-        Window(Window&&) = delete;
-        auto operator=(Window&&) noexcept -> Window& = delete;
+        Window(Window&&)                = delete;
+        auto operator=(Window&&)        = delete;
+
     protected:
+        /*************************************************************
+         * DATA MEMBERS
+         * ***********************************************************/
         WindowProperties m_Properties{};
         bool m_WindowCreateSuccess{};
     };

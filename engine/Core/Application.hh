@@ -33,7 +33,8 @@ namespace Mikoto {
          Path_T Executable{};
          GraphicsAPI RenderingBackend{};
          std::unordered_set<std::string> CommandLineArguments{};
-         bool ShowGUI{};
+         bool WantGUI{};
+         bool WantEditor{};
      };
 
     /**

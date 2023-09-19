@@ -9,7 +9,7 @@
 // Project Headers
 #include <Core/Engine.hh>
 
-int main(int argc, char** argv) {
+auto main(int argc, char** argv) -> int {
     auto app { std::make_shared<Mikoto::Engine>() };
     auto ret{ app->Run(argc, argv) };
 

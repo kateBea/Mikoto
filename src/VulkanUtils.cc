@@ -54,7 +54,6 @@ namespace Mikoto::VulkanUtils {
     }
 
     auto UploadBuffer(BufferAllocateInfo& allocatedBufferData) -> void {
-
         auto result { vmaCreateBuffer(VulkanContext::GetDefaultAllocator(),
                             &allocatedBufferData.BufferCreateInfo,
                             &allocatedBufferData.AllocationCreateInfo,

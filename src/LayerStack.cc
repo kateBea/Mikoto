@@ -13,7 +13,6 @@
 namespace Mikoto {
     auto LayerStack::AddLayer(const std::shared_ptr<Layer>& layer) -> void {
         m_Layers.emplace(m_Layers.begin() + m_LayerIndex, layer);
-        layer->OnAttach();
         ++m_LayerIndex;
     }
 

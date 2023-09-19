@@ -28,7 +28,7 @@ namespace Mikoto {
          * buffer object with a valid id
          * @param vertices buffer containing all the vertices
          * */
-        explicit OpenGLVertexBuffer(const VertexBufferCreateInfo& createInfo, GLenum usage = GL_STATIC_DRAW);
+        explicit OpenGLVertexBuffer(VertexBufferCreateInfo &&createInfo, GLenum usage = GL_STATIC_DRAW);
 
         /**
          * Move constructor. If this operation is successful
@@ -61,9 +61,6 @@ namespace Mikoto {
 
         auto Upload(const std::vector<float>& vertices, GLenum usage = GL_STATIC_DRAW) -> void;
 
-        auto SetBufferLayout(const BufferLayout& layout) -> void override { m_Layout = layout; }
-
-        MKT_NODISCARD auto GetBufferLayout() const -> const BufferLayout& override { return m_Layout; }
         /**
          * Releases resources from this Vertex buffer
          * */
@@ -77,8 +74,6 @@ namespace Mikoto {
         auto operator=(const OpenGLVertexBuffer & other) -> OpenGLVertexBuffer & = delete;
 
     private:
-        BufferLayout m_Layout{};
-
         /**
          * Tells whether this VAO holds a valid OpenGL shader program id.
          * For internal usage for now mainly

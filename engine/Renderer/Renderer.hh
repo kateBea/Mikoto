@@ -29,7 +29,7 @@ namespace Mikoto {
 
     class Renderer {
     public:
-        static auto Init(const RendererSpec& spec) -> void;
+        static auto Init(RendererSpec&& spec) -> void;
         static auto ShutDown() -> void;
 
         static auto BeginScene(const ScenePrepareData& prepareData) -> void;
@@ -53,7 +53,6 @@ namespace Mikoto {
         /*************************************************************
         * HELPERS
         * ***********************************************************/
-        static auto PickGraphicsAPI() -> void;
         static auto LoadPrefabs() -> void;
 
         static auto AddSpritePrefab() -> void;
@@ -71,6 +70,9 @@ namespace Mikoto {
         MKT_NODISCARD static auto GetSponzaPrefabName() -> const std::string& { static std::string name{ "Sponza" }; return name; }
 
     private:
+        // Specifications for the renderer
+        inline static RendererSpec s_Spec{};
+
         // Graphics API currently active
         inline static GraphicsAPI s_ActiveAPI{};
 

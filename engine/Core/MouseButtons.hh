@@ -48,14 +48,14 @@ namespace Mikoto {
 
     MKT_NODISCARD inline auto GetStringRepresentation(MouseButton button) -> std::string_view {
         switch (button) {
-            case Mouse_Button_1:     return  MOUSE_BUTTON_STRING_REPRESENTATION(KT_MOUSE_BUTTON_1);
-            case Mouse_Button_2:     return  MOUSE_BUTTON_STRING_REPRESENTATION(KT_MOUSE_BUTTON_2);
-            case Mouse_Button_3:     return  MOUSE_BUTTON_STRING_REPRESENTATION(KT_MOUSE_BUTTON_3);
-            case Mouse_Button_4:     return  MOUSE_BUTTON_STRING_REPRESENTATION(KT_MOUSE_BUTTON_4);
-            case Mouse_Button_5:     return  MOUSE_BUTTON_STRING_REPRESENTATION(KT_MOUSE_BUTTON_5);
-            case Mouse_Button_6:     return  MOUSE_BUTTON_STRING_REPRESENTATION(KT_MOUSE_BUTTON_6);
-            case Mouse_Button_7:     return  MOUSE_BUTTON_STRING_REPRESENTATION(KT_MOUSE_BUTTON_7);
-            case Mouse_Button_8:     return  MOUSE_BUTTON_STRING_REPRESENTATION(KT_MOUSE_BUTTON_8);
+            case Mouse_Button_1:     return  MOUSE_BUTTON_STRING_REPRESENTATION(MKT_MOUSE_BUTTON_1);
+            case Mouse_Button_2:     return  MOUSE_BUTTON_STRING_REPRESENTATION(MKT_MOUSE_BUTTON_2);
+            case Mouse_Button_3:     return  MOUSE_BUTTON_STRING_REPRESENTATION(MKT_MOUSE_BUTTON_3);
+            case Mouse_Button_4:     return  MOUSE_BUTTON_STRING_REPRESENTATION(MKT_MOUSE_BUTTON_4);
+            case Mouse_Button_5:     return  MOUSE_BUTTON_STRING_REPRESENTATION(MKT_MOUSE_BUTTON_5);
+            case Mouse_Button_6:     return  MOUSE_BUTTON_STRING_REPRESENTATION(MKT_MOUSE_BUTTON_6);
+            case Mouse_Button_7:     return  MOUSE_BUTTON_STRING_REPRESENTATION(MKT_MOUSE_BUTTON_7);
+            case Mouse_Button_8:     return  MOUSE_BUTTON_STRING_REPRESENTATION(MKT_MOUSE_BUTTON_8);
             default:                 return "Unknown mouse button";
         }
     }

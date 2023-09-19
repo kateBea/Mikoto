@@ -23,12 +23,9 @@
 namespace Mikoto {
     class VulkanVertexBuffer : public VertexBuffer {
     public:
-        explicit VulkanVertexBuffer(const VertexBufferCreateInfo& createInfo);
+        explicit VulkanVertexBuffer(VertexBufferCreateInfo &&createInfo);
 
         auto Bind(VkCommandBuffer commandBuffer) const -> void;
-
-        MKT_NODISCARD auto GetBufferLayout() const -> const BufferLayout& override { return m_Layout; }
-        auto SetBufferLayout(const BufferLayout& layout) -> void override { m_Layout = layout; }
 
         MKT_NODISCARD auto GetBindingDescriptions() -> std::vector<VkVertexInputBindingDescription>& { return m_BindingDesc; }
         MKT_NODISCARD auto GetAttributeDescriptions() -> std::vector<VkVertexInputAttributeDescription>& { return m_AttributeDesc; }
@@ -51,6 +48,7 @@ namespace Mikoto {
 
         VulkanVertexBuffer(VulkanVertexBuffer&&) = delete;
         auto operator=(VulkanVertexBuffer&&) -> VulkanVertexBuffer& = delete;
+
     private:
         /*************************************************************
         * HELPERS
@@ -68,7 +66,6 @@ namespace Mikoto {
         /*************************************************************
         * MEMBER VARIABLES
         * ***********************************************************/
-        BufferLayout m_Layout{};
         VulkanBuffer m_Buffer{};
         std::vector<float> m_RetainedData{};
         std::vector<VkVertexInputBindingDescription> m_BindingDesc{};

@@ -23,8 +23,8 @@
 #include <Renderer/Vulkan/VulkanVertexBuffer.hh>
 
 namespace Mikoto {
-    VulkanVertexBuffer::VulkanVertexBuffer(const VertexBufferCreateInfo& createInfo)
-        :   m_Layout{ createInfo.Layout }
+    VulkanVertexBuffer::VulkanVertexBuffer(VertexBufferCreateInfo &&createInfo)
+        :   VertexBuffer{ std::move(createInfo.Layout) }
     {
         SetBindingDescriptions();
         SetAttributeDescriptions();

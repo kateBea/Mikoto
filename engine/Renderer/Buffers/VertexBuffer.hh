@@ -254,16 +254,22 @@ namespace Mikoto {
         explicit VertexBuffer() = default;
 
         /**
-         * Sets the buffer layout for the implicit parameter
-         * @param layout new layout for this vertex buffer
+         * Creates and initializes a new vertex buffer with the layout provided
+         * @param layout vertex buffer layout
          * */
-        virtual auto SetBufferLayout(const BufferLayout& layout) -> void = 0;
+        explicit VertexBuffer(BufferLayout&& layout) : m_Layout{ std::move(layout) } {}
 
         /**
          * Returns the data layout of this vertex buffer
          * @returns buffer layout of the implicit parameter
          * */
-        MKT_NODISCARD virtual auto GetBufferLayout() const -> const BufferLayout& = 0;
+        MKT_NODISCARD auto GetBufferLayout() const -> const BufferLayout& { return m_Layout; }
+
+        /**
+         * Sets the buffer layout for the implicit parameter
+         * @param layout new layout for this vertex buffer
+         * */
+        auto SetBufferLayout(const BufferLayout& layout) -> void { m_Layout = layout; }
 
         /**
          * Returns the total size in bytes of the contents of this Vertex buffer
@@ -274,7 +280,7 @@ namespace Mikoto {
          * Returns the total number of vertices within this vertex buffer
          * @return number of vertices
          * */
-        MKT_NODISCARD virtual auto GetCount() const -> Size_T { return m_Count; }
+        MKT_NODISCARD auto GetCount() const -> Size_T { return m_Count; }
 
         /**
          * Returns true if this vertex buffer contains data, false otherwise
@@ -313,6 +319,7 @@ namespace Mikoto {
     protected:
         UInt64_T m_Size{};
         UInt64_T m_Count{};
+        BufferLayout m_Layout{};
     };
 }
 

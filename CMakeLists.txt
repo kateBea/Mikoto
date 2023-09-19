@@ -24,7 +24,6 @@ set(CORE_SOURCES
         src/InputManager.cc src/EditorLayer.cc src/Timer.cc
         src/VulkanUtils.cc
         src/OpenGLUtils.cc
-        src/GUIManager.cc
         src/LayerManager.cc
         src/JobSystem.cc)
 
@@ -109,7 +108,6 @@ set(SOURCES
         ${IMGUIZMO_SOURCES}
         src/Engine.cc src/stb_image.cc
         src/vk_mem_alloc.h.cc
-        src/GUIManager.cc
         src/ImGuiVulkanBackend.cc
         src/ImGuiOpenGLBackend.cc)
 

@@ -36,7 +36,7 @@ namespace Mikoto {
     auto EditorCamera::UpdateViewMatrix() -> void {
         m_ViewMatrix = glm::lookAt(m_Position,                      // The camera is located here
                                    m_Position + m_ForwardVector,    // This is where the camera is looking at
-                                   m_CameraUpVector);               // This is the camera's up vector (normalized, i.e., size between [0, 1])
+                                   m_CameraUpVector);               // This is the camera's up vector (normalized)
 
     }
 

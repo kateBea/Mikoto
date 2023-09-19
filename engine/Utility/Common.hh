@@ -16,7 +16,6 @@
 #include <vector>
 
 // Third-Party Libraries
-#include <GL/glew.h>
 #include <fmt/color.h>
 #include <fmt/core.h>
 #include <fmt/ranges.h>
@@ -54,6 +53,26 @@
 #define MKT_ENGINE_VERSION_MAJOR 1
 #define MKT_ENGINE_VERSION_MINOR 0
 #define MKT_ENGINE_VERSION_PATCH 0
+
+#define MKT_PRINT_CONTAINER(CONTAINER)                                                                      \
+    fmt::print("{}\n", CONTAINER)
+
+#define MKT_PRINT_FORMATTED(...)                                                                            \
+    fmt::print(__VA_ARGS__)
+
+#define MKT_COLOR_PRINT_FORMATTED(COLOR, ...)                                                               \
+    fmt::print(fmt::fg(COLOR), __VA_ARGS__)
+
+#define MKT_COLOR_STYLE_PRINT_FORMATTED(COLOR, STYLE, ...)                                              \
+    fmt::print(fmt::fg(COLOR) | STYLE, __VA_ARGS__)
+
+#define MKT_BIND_EVENT_FUNC(function)                                                                       \
+    [this]<typename... Args>(Args&&... args) -> decltype(auto) {                                            \
+        return this->function(std::forward<Args>(args)...);                                                 \
+    }
+
+#define MKT_THROW_RUNTIME_ERROR(MESSAGE)                                                                    \
+    throw std::runtime_error(fmt::format("Except: {}\n@File: {}\n@Line: {}", MESSAGE, __FILE__, __LINE__))
 
 /**
  * Follow up there is a list of macros to simplify formatted output.
@@ -131,7 +150,7 @@
 #define MKT_FMT_COLOR_GOLDEN_ROD                 fmt::color::golden_rod
 #define MKT_FMT_COLOR_GRAY                       fmt::color::gray
 #define MKT_FMT_COLOR_GREEN                      fmt::color::green
-#define MKT_FMT_COLOR_GREEN_YELLOW fmt::color::green_yellow
+#define MKT_FMT_COLOR_GREEN_YELLOW               fmt::color::green_yellow
 #define MKT_FMT_COLOR_HONEY_DEW                  fmt::color::honey_dew
 #define MKT_FMT_COLOR_HOT_PINK                   fmt::color::hot_pink
 #define MKT_FMT_COLOR_INDIAN_RED                 fmt::color::indian_red
@@ -155,8 +174,8 @@
 #define MKT_FMT_COLOR_LIGHT_SLATE_GRAY           fmt::color::light_slate_gray
 #define MKT_FMT_COLOR_LIGHT_STEEL_BLUE           fmt::color::light_steel_blue
 #define MKT_FMT_COLOR_LIGHT_YELLOW               fmt::color::light_yellow
-#define MKT_FMT_COLOR_LIME fmt::color::lime
-#define MKT_FMT_COLOR_LIME_GREEN fmt::color::lime_green
+#define MKT_FMT_COLOR_LIME                       fmt::color::lime
+#define MKT_FMT_COLOR_LIME_GREEN                 fmt::color::lime_green
 #define MKT_FMT_COLOR_LINEN                      fmt::color::linen
 #define MKT_FMT_COLOR_MAGENTA                    fmt::color::magenta
 #define MKT_FMT_COLOR_MAROON                     fmt::color::maroon
@@ -179,7 +198,7 @@
 #define MKT_FMT_COLOR_OLIVE                      fmt::color::olive
 #define MKT_FMT_COLOR_OLIVE_DRAB                 fmt::color::olive_drab
 #define MKT_FMT_COLOR_ORANGE                     fmt::color::orange
-#define MKT_FMT_COLOR_ORANGE_RED fmt::color::orange_red
+#define MKT_FMT_COLOR_ORANGE_RED                 fmt::color::orange_red
 #define MKT_FMT_COLOR_ORCHID                     fmt::color::orchid
 #define MKT_FMT_COLOR_PALE_GOLDEN_ROD            fmt::color::pale_golden_rod
 #define MKT_FMT_COLOR_PALE_GREEN                 fmt::color::pale_green
@@ -224,24 +243,6 @@
 #define MKT_FMT_STYLE_UNDERLINE fmt::emphasis::underline
 #define MKT_FMT_STYLE_BOLD fmt::emphasis::bold
 #define MKT_FMT_STYLE_ITALIC fmt::emphasis::italic
-
-#define MKT_PRINT_CONTAINER(CONTAINER)                     \
-    fmt::print("{}\n", CONTAINER)
-
-#define MKT_PRINT_FORMATTED(...)                             \
-    fmt::print(__VA_ARGS__)
-
-#define MKT_COLOR_PRINT_FORMATTED(COLOR, ...)              \
-    fmt::print(fmt::fg(COLOR), __VA_ARGS__)
-
-#define MKT_COLOR_STYLE_PRINT_FORMATTED(__COLOR, __STYLE, ...)     \
-    fmt::print(fmt::fg(__COLOR) | __STYLE, __VA_ARGS__)
-
-#define MKT_BIND_EVENT_FUNC(function)                               \
-    [this]<typename... Args>(Args&&... args) -> decltype(auto) {    \
-        return this->function(std::forward<Args>(args)...);         \
-    }
-
 
 namespace Mikoto {
     /*************************************************************

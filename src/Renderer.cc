@@ -7,14 +7,10 @@
 #include <memory>
 #include <utility>
 
-// Third-Party Libraries
-
 // Project Headers
 #include <Utility/Common.hh>
 #include <Renderer/Renderer.hh>
 #include <Renderer/RenderCommand.hh>
-#include <Renderer/OpenGL/OpenGLRenderer.hh>
-#include <Renderer/Vulkan/VulkanRenderer.hh>
 
 namespace Mikoto {
     auto Renderer::BeginScene(const ScenePrepareData& prepareData) -> void {
@@ -45,10 +41,19 @@ namespace Mikoto {
         RenderCommand::Flush();
     }
 
-    auto Renderer::Init(const RendererSpec& spec) -> void {
-        s_ActiveAPI = spec.Backend;
+    auto Renderer::Init(RendererSpec&& spec) -> void {
+        s_Spec = std::move(spec);
 
-        PickGraphicsAPI();
+        s_ActiveAPI = s_Spec.Backend;
+        s_ActiveRendererAPI = RendererAPI::Create(s_ActiveAPI);
+
+        if (s_ActiveRendererAPI) {
+            s_ActiveRendererAPI->Init();
+        }
+        else {
+            MKT_THROW_RUNTIME_ERROR("Could not pick a valid render backend");
+        }
+
         RenderCommand::Init(s_ActiveRendererAPI);
 
         s_DrawData = std::make_unique<RendererDrawData>();
@@ -56,23 +61,6 @@ namespace Mikoto {
         s_SavedSceneStats = std::make_unique<RenderingStats>();
 
         LoadPrefabs();
-    }
-
-    auto Renderer::PickGraphicsAPI() -> void {
-        switch(GetActiveGraphicsAPI()) {
-            case GraphicsAPI::OPENGL_API:
-                s_ActiveRendererAPI = new (std::nothrow) OpenGLRenderer();
-                break;
-            case GraphicsAPI::VULKAN_API:
-                s_ActiveRendererAPI = new (std::nothrow) VulkanRenderer();
-                break;
-            default:
-                MKT_CORE_LOGGER_CRITICAL("Unsupported renderer API");
-                break;
-        }
-
-        if (s_ActiveRendererAPI)
-            s_ActiveRendererAPI->Init();
     }
 
     auto Renderer::ShutDown() -> void {

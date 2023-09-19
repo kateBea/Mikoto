@@ -25,9 +25,9 @@ namespace Mikoto {
 
         switch(Renderer::GetActiveGraphicsAPI()) {
             case GraphicsAPI::OPENGL_API:
-                return std::make_shared<OpenGLVertexBuffer>(createInfo);
+                return std::make_shared<OpenGLVertexBuffer>(std::move(createInfo));
             case GraphicsAPI::VULKAN_API:
-                return std::make_shared<VulkanVertexBuffer>(createInfo);
+                return std::make_shared<VulkanVertexBuffer>(std::move(createInfo));
             default:
                 MKT_CORE_LOGGER_CRITICAL("Unsupported renderer API");
                 return nullptr;

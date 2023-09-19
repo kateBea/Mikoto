@@ -25,6 +25,7 @@ namespace Mikoto {
         VmaAllocation Allocation{};
         VkBufferCreateInfo BufferCreateInfo{};
         VmaAllocationCreateInfo AllocationCreateInfo{};
+        bool GPUOnly{}; // Tells if we want to allocate the buffer in GPU exclusive memory (this provides better performance)
     };
 
     struct ImageAllocateInfo {
@@ -252,6 +253,17 @@ namespace Mikoto::VulkanUtils::Initializers {
     inline auto MemoryAllocateInfo() -> VkMemoryAllocateInfo {
         VkMemoryAllocateInfo ret{};
         ret.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkDescriptorPoolCreateInfo structure
+     * @returns default initialized VkDescriptorPoolCreateInfo
+     * */
+    inline auto DescriptorPoolCreateInfo() -> VkDescriptorPoolCreateInfo {
+        VkDescriptorPoolCreateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 
         return ret;
     }

@@ -13,7 +13,6 @@
 #include <Core/Engine.hh>
 #include <Core/Logger.hh>
 #include <Core/Application.hh>
-#include <Editor/EditorLayer.hh>
 
 namespace Mikoto {
     auto Engine::Run(Int32_T argc, char** argv) -> Int32_T {
@@ -28,13 +27,13 @@ namespace Mikoto {
         appSpec.RenderingBackend = GraphicsAPI::VULKAN_API;
         appSpec.CommandLineArguments =
                 std::unordered_set<std::string>{ m_CommandLineArgs.begin(), m_CommandLineArgs.end() };
-        appSpec.ShowGUI = true;
+        appSpec.WantGUI = true;
+        appSpec.WantEditor = true;
 
         auto& application{ Application::Get() };
 
         try {
             application.Init(std::move(appSpec));
-            application.PushLayer(std::make_shared<EditorLayer>());
 
             while (application.IsRunning()) {
                 application.UpdateState();
@@ -43,7 +42,7 @@ namespace Mikoto {
             application.ShutDown();
         }
         catch(const std::exception& exception) {
-            MKT_APP_LOGGER_CRITICAL("EXCEPT! Message: {}", exception.what());
+            MKT_APP_LOGGER_CRITICAL("EXCEPT! Message:\n{}", exception.what());
             return 1;
         }
         catch(...) {

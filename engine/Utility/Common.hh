@@ -72,7 +72,7 @@
     }
 
 #define MKT_THROW_RUNTIME_ERROR(MESSAGE)                                                                    \
-    throw std::runtime_error(fmt::format("Except: {}\n@File: {}\n@Line: {}", MESSAGE, __FILE__, __LINE__))
+    throw std::runtime_error(fmt::format("Except from: {}\n@File: {}\n@Line: {}", MESSAGE, __FILE__, __LINE__))
 
 /**
  * Follow up there is a list of macros to simplify formatted output.

@@ -132,6 +132,14 @@ namespace Mikoto::VulkanUtils {
      * */
     auto GetVulkanShaderStageFlag(ShaderStage stage) -> VkShaderStageFlagBits;
 
+    /**
+     * Submit a task to be executed in a device. This is for short lived commands
+     * such as transferring data from some buffers to others.
+     * @param task specifies the task to be executed
+     * @param device specifies the device in which we want to execute the task
+     * */
+    auto ImmediateSubmit(const std::function<void()>& task, VkDevice device) -> void;
+
 
 } // MIKOTO::VULKAN_UTILS
 
@@ -264,6 +272,105 @@ namespace Mikoto::VulkanUtils::Initializers {
     inline auto DescriptorPoolCreateInfo() -> VkDescriptorPoolCreateInfo {
         VkDescriptorPoolCreateInfo ret{};
         ret.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkCommandPoolCreateInfo structure
+     * @returns default initialized VkCommandPoolCreateInfo
+     * */
+    inline auto CommandPoolCreateInfo() -> VkCommandPoolCreateInfo {
+        VkCommandPoolCreateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkCommandBufferAllocateInfo structure
+     * @returns default initialized VkCommandBufferAllocateInfo
+     * */
+    inline auto CommandBufferAllocateInfo() -> VkCommandBufferAllocateInfo {
+        VkCommandBufferAllocateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkCommandBufferBeginInfo structure
+     * @returns default initialized VkCommandBufferBeginInfo
+     * */
+    inline auto CommandBufferBeginInfo() -> VkCommandBufferBeginInfo {
+        VkCommandBufferBeginInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkRenderPassBeginInfo structure
+     * @returns default initialized VkRenderPassBeginInfo
+     * */
+    inline auto RenderPassBeginInfo() -> VkRenderPassBeginInfo {
+        VkRenderPassBeginInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkRenderPassCreateInfo structure
+     * @returns default initialized VkRenderPassCreateInfo
+     * */
+    inline auto RenderPassCreateInfo() -> VkRenderPassCreateInfo {
+        VkRenderPassCreateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkFramebufferCreateInfo structure
+     * @returns default initialized VkFramebufferCreateInfo
+     * */
+    inline auto FramebufferCreateInfo() -> VkFramebufferCreateInfo {
+        VkFramebufferCreateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkDescriptorSetLayoutCreateInfo structure
+     * @returns default initialized VkDescriptorSetLayoutCreateInfo
+     * */
+    inline auto DescriptorSetLayoutCreateInfo() -> VkDescriptorSetLayoutCreateInfo {
+        VkDescriptorSetLayoutCreateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkPipelineLayoutCreateInfo structure
+     * @returns default initialized VkPipelineLayoutCreateInfo
+     * */
+    inline auto PipelineLayoutCreateInfo() -> VkPipelineLayoutCreateInfo {
+        VkPipelineLayoutCreateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkSubmitInfo structure
+     * @returns default initialized VkSubmitInfo
+     * */
+    inline auto SubmitInfo() -> VkSubmitInfo {
+        VkSubmitInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
         return ret;
     }

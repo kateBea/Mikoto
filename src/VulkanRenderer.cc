@@ -10,13 +10,10 @@
 
 // Third-Party Libraries
 #include <volk.h>
-#include <backends/imgui_impl_vulkan.h>
 
 // Project Headers
 #include <Utility/Common.hh>
 #include <Utility/VulkanUtils.hh>
-#include <Core/Assert.hh>
-#include <Core/Application.hh>
 #include <Renderer/Vulkan/VulkanImage.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
@@ -75,11 +72,10 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::CreateCommandBuffers() -> void {
-        // Right now there's only one command buffer which
+        // Right now there's only one command buffer
         constexpr UInt32_T COMMAND_BUFFERS_COUNT{ 1 };
 
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        VkCommandBufferAllocateInfo allocInfo{ VulkanUtils::Initializers::CommandBufferAllocateInfo() };
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandPool = m_CommandPool->GetCommandPool();
         allocInfo.commandBufferCount = COMMAND_BUFFERS_COUNT;
@@ -101,8 +97,7 @@ namespace Mikoto {
     auto VulkanRenderer::RecordMeshDrawCommands(const Mesh &mesh) -> void {
         m_DrawCommandBuffer.BeginRecording();
 
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        VkRenderPassBeginInfo renderPassInfo{ VulkanUtils::Initializers::RenderPassBeginInfo() };
         renderPassInfo.renderPass = m_OffscreenMainRenderPass;
         renderPassInfo.framebuffer = m_OffscreenFrameBuffer.Get();
         renderPassInfo.renderArea.offset = { 0, 0 };
@@ -115,6 +110,8 @@ namespace Mikoto {
         vkCmdBeginRenderPass(m_DrawCommandBuffer.Get(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         // Set Viewport and Scissor
+        UpdateViewport(0, static_cast<float>(m_OffscreenExtent.height), static_cast<float>(m_OffscreenExtent.width), -static_cast<float>(m_OffscreenExtent.height));
+        UpdateScissor(0, 0, { m_OffscreenExtent.width, m_OffscreenExtent.height });
         vkCmdSetViewport(m_DrawCommandBuffer.Get(), 0, 1, &m_OffscreenViewport);
         vkCmdSetScissor(m_DrawCommandBuffer.Get(), 0, 1, &m_OffscreenScissor);
 
@@ -139,11 +136,9 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::Draw() -> void {
-
         m_DrawCommandBuffer.BeginRecording();
 
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        VkRenderPassBeginInfo renderPassInfo{ VulkanUtils::Initializers::RenderPassBeginInfo() };
         renderPassInfo.renderPass = m_OffscreenMainRenderPass;
         renderPassInfo.framebuffer = m_OffscreenFrameBuffer.Get();
         renderPassInfo.renderArea.offset = { 0, 0 };
@@ -162,7 +157,7 @@ namespace Mikoto {
         for (const auto& drawObject : m_DrawQueue) {
             m_ActiveDefaultMaterial = std::dynamic_pointer_cast<VulkanStandardMaterial>(drawObject->MaterialData);
 
-            // TODO: should not be done here
+            // TODO: should probably not be done here
             m_ActiveDefaultMaterial->SetProjection(drawObject->TransformData.Projection);
             m_ActiveDefaultMaterial->SetView(drawObject->TransformData.View);
             m_ActiveDefaultMaterial->SetTransform(drawObject->TransformData.Transform);
@@ -173,6 +168,13 @@ namespace Mikoto {
 
                 // Bind material Pipeline and Descriptors
                 m_MaterialInfo[m_ActiveDefaultMaterial->GetName()].Pipeline->Bind(m_DrawCommandBuffer.Get());
+
+                // Set Viewport and Scissor
+                UpdateViewport(0, static_cast<float>(m_OffscreenExtent.height), static_cast<float>(m_OffscreenExtent.width), -static_cast<float>(m_OffscreenExtent.height));
+                UpdateScissor(0, 0, { m_OffscreenExtent.width, m_OffscreenExtent.height });
+                vkCmdSetViewport(m_DrawCommandBuffer.Get(), 0, 1, &m_OffscreenViewport);
+                vkCmdSetScissor(m_DrawCommandBuffer.Get(), 0, 1, &m_OffscreenScissor);
+
                 m_ActiveDefaultMaterial->BindDescriptorSet(m_DrawCommandBuffer.Get(), m_MaterialInfo[m_ActiveDefaultMaterial->GetName()].MaterialPipelineLayout);
 
                 // Bind vertex and index buffers
@@ -284,8 +286,7 @@ namespace Mikoto {
         std::array<VkSubpassDependency, 2> attachmentDependencies{ colorAttachmentDependency, deptAttachmentDependency };
         std::array<VkAttachmentDescription, 2> attachmentDescriptions{ colorAttachmentDesc, depthAttachmentDesc };
 
-        VkRenderPassCreateInfo info{};
-        info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        VkRenderPassCreateInfo info{ VulkanUtils::Initializers::RenderPassCreateInfo() };
         info.attachmentCount = static_cast<UInt32_T>(attachmentDescriptions.size());
         info.pAttachments = attachmentDescriptions.data();
 
@@ -295,8 +296,9 @@ namespace Mikoto {
         info.subpassCount = 1;
         info.pSubpasses = &subpass;
 
-        if (vkCreateRenderPass(VulkanContext::GetPrimaryLogicalDevice(), &info, nullptr, &m_OffscreenMainRenderPass) != VK_SUCCESS)
-            throw std::runtime_error("Failed to create render pass for the Vulkan Renderer!");
+        if (vkCreateRenderPass(VulkanContext::GetPrimaryLogicalDevice(), &info, nullptr, &m_OffscreenMainRenderPass) != VK_SUCCESS) {
+            MKT_THROW_RUNTIME_ERROR("Failed to create render pass for the Vulkan Renderer!");
+        }
     }
 
     auto VulkanRenderer::CreateFrameBuffers() -> void {
@@ -305,8 +307,7 @@ namespace Mikoto {
 
         std::array<VkImageView, 2> attachments{ m_OffscreenColorAttachment.GetView(), m_OffscreenDepthAttachment.GetView() };
 
-        VkFramebufferCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        VkFramebufferCreateInfo createInfo{ VulkanUtils::Initializers::FramebufferCreateInfo() };
         createInfo.pNext = nullptr;
         createInfo.renderPass = m_OffscreenMainRenderPass;
 
@@ -322,10 +323,10 @@ namespace Mikoto {
 
     auto VulkanRenderer::UpdateViewport(float x, float y, float width, float height) -> void {
         m_OffscreenViewport = {
-            .x = static_cast<float>(x),
-            .y = static_cast<float>(y),
-            .width = static_cast<float>(width),
-            .height = static_cast<float>(height),
+            .x = x,
+            .y = y,
+            .width = width,
+            .height = height,
             .minDepth = 0.0f,
             .maxDepth = 1.0f,
         };
@@ -345,8 +346,7 @@ namespace Mikoto {
         }
 
         // Color Buffer attachment
-        VkImageCreateInfo colorAttachmentCreateInfo{};
-        colorAttachmentCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        VkImageCreateInfo colorAttachmentCreateInfo{ VulkanUtils::Initializers::ImageCreateInfo() };
         colorAttachmentCreateInfo.pNext = nullptr;
         colorAttachmentCreateInfo.flags = 0;
         colorAttachmentCreateInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -360,11 +360,11 @@ namespace Mikoto {
         colorAttachmentCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
         colorAttachmentCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-        VkImageViewCreateInfo colorAttachmentViewCreateInfo{};
+        VkImageViewCreateInfo colorAttachmentViewCreateInfo{ VulkanUtils::Initializers::ImageViewCreateInfo() };
         colorAttachmentViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         colorAttachmentViewCreateInfo.pNext = nullptr;
         colorAttachmentViewCreateInfo.flags = 0;
-        colorAttachmentViewCreateInfo.image = m_OffscreenColorAttachment.Get();
+        colorAttachmentViewCreateInfo.image = VK_NULL_HANDLE; // Set by OnCreate()
         colorAttachmentViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         colorAttachmentViewCreateInfo.format = colorAttachmentCreateInfo.format; // match formats for simplicity
 
@@ -377,8 +377,7 @@ namespace Mikoto {
         m_OffscreenColorAttachment.OnCreate({ colorAttachmentCreateInfo , colorAttachmentViewCreateInfo });
 
         // Depth attachment
-        VkImageCreateInfo depthAttachmentCreateInfo{};
-        depthAttachmentCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        VkImageCreateInfo depthAttachmentCreateInfo{ VulkanUtils::Initializers::ImageCreateInfo() };
         depthAttachmentCreateInfo.pNext = nullptr;
         depthAttachmentCreateInfo.imageType = VK_IMAGE_TYPE_2D;
         depthAttachmentCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -393,12 +392,10 @@ namespace Mikoto {
         depthAttachmentCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         depthAttachmentCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 
-        VkImageViewCreateInfo depthAttachmentViewCreateInfo{};
-        depthAttachmentViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        depthAttachmentViewCreateInfo.pNext = nullptr;
-        
+        VkImageViewCreateInfo depthAttachmentViewCreateInfo{ VulkanUtils::Initializers::ImageViewCreateInfo() };
+
         depthAttachmentViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        depthAttachmentViewCreateInfo.image = m_OffscreenDepthAttachment.Get();
+        depthAttachmentViewCreateInfo.image = VK_NULL_HANDLE; // Set by OnCreate()
         depthAttachmentViewCreateInfo.format = depthAttachmentCreateInfo.format;
 
         depthAttachmentViewCreateInfo.flags = 0;
@@ -443,8 +440,7 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::SubmitToQueue() -> void {
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        VkSubmitInfo submitInfo{ VulkanUtils::Initializers::SubmitInfo() };
 
         std::array<VkCommandBuffer, 1> commandBuffers{ m_DrawCommandBuffer.Get() };
 
@@ -452,8 +448,9 @@ namespace Mikoto {
         submitInfo.commandBufferCount = static_cast<UInt32_T>(commandBuffers.size());
         submitInfo.pCommandBuffers = commandBuffers.data();
 
-        if (vkQueueSubmit(VulkanContext::GetPrimaryLogicalDeviceGraphicsQueue(), 1, &submitInfo, nullptr) != VK_SUCCESS)
-            throw std::runtime_error("failed to submit draw command buffer!");
+        if (vkQueueSubmit(VulkanContext::GetPrimaryLogicalDeviceGraphicsQueue(), 1, &submitInfo, nullptr) != VK_SUCCESS) {
+            MKT_THROW_RUNTIME_ERROR("Failed to submit draw command buffer!");
+        }
 
         VulkanUtils::WaitOnQueue(VulkanContext::GetPrimaryLogicalDeviceGraphicsQueue());
     }
@@ -465,8 +462,7 @@ namespace Mikoto {
         MaterialSharedSpecificData& defaultMaterial{ m_MaterialInfo[standardMaterialName] };
 
         // Pipeline layout
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VulkanUtils::Initializers::PipelineLayoutCreateInfo() };
         pipelineLayoutInfo.pushConstantRangeCount = 0;
         pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
@@ -475,8 +471,9 @@ namespace Mikoto {
         pipelineLayoutInfo.setLayoutCount = 1;
         pipelineLayoutInfo.pSetLayouts = &m_MaterialInfo[standardMaterialName].DescriptorSetLayout;
 
-        if (vkCreatePipelineLayout(VulkanContext::GetPrimaryLogicalDevice(), &pipelineLayoutInfo, nullptr, &defaultMaterial.MaterialPipelineLayout) != VK_SUCCESS)
-            throw std::runtime_error("Failed to create pipeline layout");
+        if (vkCreatePipelineLayout(VulkanContext::GetPrimaryLogicalDevice(), &pipelineLayoutInfo, nullptr, &defaultMaterial.MaterialPipelineLayout) != VK_SUCCESS) {
+            MKT_THROW_RUNTIME_ERROR("Failed to create pipeline layout");
+        }
 
         auto defaultMatPipelineConfig{ VulkanPipeline::GetDefaultPipelineConfigInfo() };
         defaultMatPipelineConfig.RenderPass = m_OffscreenMainRenderPass;
@@ -491,8 +488,7 @@ namespace Mikoto {
         MaterialSharedSpecificData& wireframeMaterial{ m_MaterialInfo[wireframeMaterialName] };
 
         // Pipeline layout
-        VkPipelineLayoutCreateInfo wireframePipelineLayoutInfo{};
-        wireframePipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        VkPipelineLayoutCreateInfo wireframePipelineLayoutInfo{ VulkanUtils::Initializers::PipelineLayoutCreateInfo() };
         wireframePipelineLayoutInfo.pushConstantRangeCount = 0;
         wireframePipelineLayoutInfo.pPushConstantRanges = nullptr;
 
@@ -501,8 +497,9 @@ namespace Mikoto {
         wireframePipelineLayoutInfo.setLayoutCount = 1;
         wireframePipelineLayoutInfo.pSetLayouts = &m_MaterialInfo[standardMaterialName].DescriptorSetLayout;
 
-        if (vkCreatePipelineLayout(VulkanContext::GetPrimaryLogicalDevice(), &wireframePipelineLayoutInfo, nullptr, &wireframeMaterial.MaterialPipelineLayout) != VK_SUCCESS)
-            throw std::runtime_error("Failed to create pipeline layout");
+        if (vkCreatePipelineLayout(VulkanContext::GetPrimaryLogicalDevice(), &wireframePipelineLayoutInfo, nullptr, &wireframeMaterial.MaterialPipelineLayout) != VK_SUCCESS) {
+            MKT_THROW_RUNTIME_ERROR("Failed to create pipeline layout");
+        }
 
         auto wireframePipelineConfig{ VulkanPipeline::GetDefaultPipelineConfigInfo() };
 
@@ -536,20 +533,18 @@ namespace Mikoto {
 
         std::array<VkDescriptorSetLayoutBinding, 2> bindings{ transformLayoutBinding, samplerLayoutBinding};
 
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        VkDescriptorSetLayoutCreateInfo layoutInfo{ VulkanUtils::Initializers::DescriptorSetLayoutCreateInfo() };
         layoutInfo.bindingCount = static_cast<UInt32_T>(bindings.size());
         layoutInfo.pBindings = bindings.data();
 
-        if (vkCreateDescriptorSetLayout(VulkanContext::GetPrimaryLogicalDevice(), &layoutInfo, nullptr, &standardMatInfo.DescriptorSetLayout) != VK_SUCCESS)
-            throw std::runtime_error("failed to create descriptor set layout!");
-
+        if (vkCreateDescriptorSetLayout(VulkanContext::GetPrimaryLogicalDevice(), &layoutInfo, nullptr, &standardMatInfo.DescriptorSetLayout) != VK_SUCCESS) {
+            MKT_THROW_RUNTIME_ERROR("Failed to create descriptor set layout!");
+        }
     }
 
     auto VulkanRenderer::Flush() -> void {
         Draw();
 
-        // submit commands for execution
         SubmitToQueue();
 
         m_DrawQueue.clear();

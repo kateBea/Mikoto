@@ -110,29 +110,7 @@ namespace Mikoto {
         io.DisplaySize = ImVec2{(float) window.GetWidth(), (float) window.GetHeight() };
 
         ImGui::Render();
-
-        UInt32_T swapChainImageIndex{};
-        auto ret{ AcquireNextSwapChainImage(swapChainImageIndex) };
-
-        if (ret == VK_ERROR_OUT_OF_DATE_KHR) {
-            VulkanSwapChainCreateInfo createInfo{ VulkanContext::GetSwapChain()->GetSwapChainCreateInfo() };
-            VulkanContext::RecreateSwapChain(std::move(createInfo));
-            return;
-        }
-
-        if (ret != VK_SUCCESS)
-            throw std::runtime_error("failed to acquire swap chain image!");
-
-        RecordImGuiCommandBuffers(swapChainImageIndex);
-        ret = SubmitImGuiCommandBuffers(swapChainImageIndex);
-        if (ret == VK_ERROR_OUT_OF_DATE_KHR || ret == VK_SUBOPTIMAL_KHR) {
-            VulkanSwapChainCreateInfo createInfo{ VulkanContext::GetSwapChain()->GetSwapChainCreateInfo() };
-            VulkanContext::RecreateSwapChain(std::move(createInfo));
-            return;
-        }
-
-        if (ret != VK_SUCCESS)
-            throw std::runtime_error("failed to submit imgui command buffers!");
+        BuildCommandBuffers();
 
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
             ImGui::UpdatePlatformWindows();
@@ -262,6 +240,31 @@ namespace Mikoto {
 
     auto ImGuiVulkanBackend::SubmitImGuiCommandBuffers(UInt32_T& imageIndex) -> VkResult {
         return VulkanContext::GetSwapChain()->SubmitCommandBuffers(&m_ImGuiCommandBuffers[imageIndex], imageIndex);
+    }
+
+    auto ImGuiVulkanBackend::BuildCommandBuffers() -> void {
+        UInt32_T swapChainImageIndex{};
+        auto ret{ AcquireNextSwapChainImage(swapChainImageIndex) };
+
+        if (ret == VK_ERROR_OUT_OF_DATE_KHR) {
+            VulkanSwapChainCreateInfo createInfo{ VulkanContext::GetSwapChain()->GetSwapChainCreateInfo() };
+            VulkanContext::RecreateSwapChain(std::move(createInfo));
+            return;
+        }
+
+        if (ret != VK_SUCCESS)
+            throw std::runtime_error("failed to acquire swap chain image!");
+
+        RecordImGuiCommandBuffers(swapChainImageIndex);
+        ret = SubmitImGuiCommandBuffers(swapChainImageIndex);
+        if (ret == VK_ERROR_OUT_OF_DATE_KHR || ret == VK_SUBOPTIMAL_KHR) {
+            VulkanSwapChainCreateInfo createInfo{ VulkanContext::GetSwapChain()->GetSwapChainCreateInfo() };
+            VulkanContext::RecreateSwapChain(std::move(createInfo));
+            return;
+        }
+
+        if (ret != VK_SUCCESS)
+            throw std::runtime_error("Failed to submit imgui command buffers!");
     }
 
 }

@@ -13,17 +13,17 @@
 #include <glm/vec4.hpp>
 
 // Project headers
-#include <Utility/Common.hh>
 #include <Core/Logger.hh>
-#include <Renderer/Renderer.hh>
-#include <Renderer/RendererAPI.hh>
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
+#include <Renderer/Renderer.hh>
+#include <Renderer/RendererBackend.hh>
+#include <Utility/Common.hh>
 
 namespace Mikoto {
 	class RenderCommand {
 	public:
-        static auto Init(RendererAPI* activeAPI) -> void;
+        static auto Init(RendererBackend * activeAPI) -> void;
 
         static auto EnableWireframeMode() -> void;
         static auto DisableWireframeMode() -> void;
@@ -37,7 +37,7 @@ namespace Mikoto {
         static auto UpdateViewPort(Int32_T x, Int32_T y, Int32_T width, Int32_T height) -> void;
 
 	private:
-        inline static RendererAPI* s_ActiveRendererAPI{ nullptr };
+        inline static RendererBackend * s_ActiveRendererAPI{ nullptr };
 	};
 }
 

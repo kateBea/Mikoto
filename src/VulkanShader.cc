@@ -1,6 +1,7 @@
-//
-// Created by kate on 7/3/23.
-//
+/**
+ * VulkanShader.cc
+ * Created by kate on 7/3/23.
+ * */
 
 // C++ Standard Library
 #include <filesystem>
@@ -10,6 +11,7 @@
 #include <volk.h>
 
 // Project Headers
+#include <Utility/Types.hh>
 #include <Utility/Common.hh>
 #include <Utility/VulkanUtils.hh>
 #include <Core/Logger.hh>
@@ -44,6 +46,7 @@ namespace Mikoto {
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = srcCode.size();
+
         // It seems this casts is valid since the default std::vector allocator
         // ensures the data satisfies the worst case alignment
         createInfo.pCode = reinterpret_cast<const UInt32_T*>(srcCode.data());

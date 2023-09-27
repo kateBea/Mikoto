@@ -11,6 +11,7 @@
 #include <volk.h>
 
 // Project Headers
+#include <Utility/Types.hh>
 #include <Utility/Common.hh>
 #include <Core/Logger.hh>
 #include <Renderer/Vulkan/VulkanVertexBuffer.hh>
@@ -19,7 +20,7 @@
 
 namespace Mikoto {
 
-    VulkanPipeline::VulkanPipeline(const Path_T &vPath, const Path_T &fPath, const PipelineConfigInfo& config) {
+    VulkanPipeline::VulkanPipeline(const Path_T& vPath, const Path_T& fPath, const PipelineConfigInfo& config) {
         CreateGraphicsPipeline(vPath, fPath, config);
     }
 

@@ -21,6 +21,8 @@
 /**
  * This namespace offers some convenient functions to generate random real numbers and
  * integers. There's still some testing to be done on them.
+ *
+ * TODO: review (thread safety, etc)
  * */
 namespace Mikoto::Random {
     /**

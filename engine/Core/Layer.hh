@@ -11,11 +11,10 @@
 #include <string_view>
 
 // Project Headers
-#include <Core/Events/Event.hh>
 #include <Utility/Common.hh>
+#include <Core/Events/Event.hh>
 
 namespace Mikoto {
-
     /**
      * Describes a modular entity that helps encapsulate and organize
      * functionality of the engine, i.e. subsystems of our engine, e.g.:
@@ -26,8 +25,6 @@ namespace Mikoto {
     public:
         explicit Layer(std::string_view name = "Base Layer")
             :   m_Name{ name } {}
-
-        virtual ~Layer() = default;
 
         virtual auto OnAttach() -> void = 0;
         virtual auto OnDetach() -> void = 0;
@@ -42,9 +39,18 @@ namespace Mikoto {
          * */
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 
+        /**
+         * Compare two Layers and returns true if they are the same or not. Two layers
+         * are the same if they have the same name.
+         * @param other layer to compare to
+         * @returns true if <code>other</code> and the implicit parameter are the same layer, false otherwise
+         * */
+        auto operator==(const Layer& other) const noexcept -> bool { return m_Name == other.GetName(); }
+
+        virtual ~Layer() = default;
+
     private:
         std::string m_Name{};
-
     };
 }
 

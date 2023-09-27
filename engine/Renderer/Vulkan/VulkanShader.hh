@@ -32,6 +32,7 @@ namespace Mikoto {
         auto OnRelease() const -> void;
 
         MKT_NODISCARD auto Get() const -> const VkShaderModule& { return m_Module; }
+
     private:
         static auto CreateModule(const std::string& srcCode, VkShaderModule& shaderModule) -> void;
 

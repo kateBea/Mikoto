@@ -122,4 +122,8 @@ namespace Mikoto::VulkanUtils {
             default: return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
         }
     }
+
+    auto ImmediateSubmit(const std::function<void()> &task, VkDevice device) -> void {
+
+    }
 }

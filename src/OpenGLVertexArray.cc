@@ -23,21 +23,23 @@ namespace Mikoto {
         return *this;
     }
 
-    // TODO: change to use opengl vertices instead because this class is only used with opengl renderer
-    auto OpenGLVertexArray::UseVertexBuffer(const std::shared_ptr<OpenGLVertexBuffer> &buffer) const -> void {
-        MKT_ASSERT(buffer, "Vertex Buffer is NULL");
-        MKT_ASSERT(!buffer->IsEmpty(), "Vertex Buffer is empty");
+    auto OpenGLVertexArray::Use(const OpenGLVertexBuffer& buffer) const -> void {
+#if !defined(NDEBUG)
+        if (buffer.IsEmpty())
+            MKT_CORE_LOGGER_WARN("OpenGL vertex buffer with ID ({}) is empty", buffer.GetID());
+#endif
+
         Bind();
-        std::dynamic_pointer_cast<OpenGLVertexBuffer>(buffer)->Bind();
+        buffer.Bind();
 
         UInt32_T attributeIndex{};
-        for (const auto& bufferElement : buffer->GetBufferLayout()) {
+        for (const auto& bufferElement : buffer.GetBufferLayout()) {
             glEnableVertexAttribArray(attributeIndex);
 
             Int32_T size{ static_cast<Int32_T>(bufferElement.GetAttributeCount()) };
             GLenum dataType{ bufferElement.GetOpenGLAttributeDataType() };
             GLenum normalized{ static_cast<GLenum>(!bufferElement.IsNormalized() ? GL_FALSE : GL_TRUE) };
-            GLsizei stride{ static_cast<GLsizei>(buffer->GetBufferLayout().GetStride()) };
+            GLsizei stride{ static_cast<GLsizei>(buffer.GetBufferLayout().GetStride()) };
             const void* pointer{ reinterpret_cast<const void*>(bufferElement.GetOffset()) };
 
             glVertexAttribPointer(attributeIndex, size, dataType, normalized, stride, pointer);

@@ -13,7 +13,6 @@
 
 // Third-Party Library
 #include <volk.h>
-#include <GLFW/glfw3.h>
 
 // Project Headers
 #include <Utility/Common.hh>
@@ -35,7 +34,6 @@ namespace Mikoto {
         UInt32_T Subpass{};
 
         std::vector<VkDynamicState> DynamicStateEnables{};
-        std::vector<VulkanShader> ShaderStages{};
     };
 
     class VulkanPipeline {
@@ -51,10 +49,10 @@ namespace Mikoto {
         ~VulkanPipeline() = default;
 
     public:
-        VulkanPipeline(const VulkanPipeline&) = delete;
-        auto operator=(const VulkanPipeline&) -> VulkanPipeline& = delete;
-        VulkanPipeline(VulkanPipeline &&) = delete;
-        VulkanPipeline &operator=(VulkanPipeline&&) = delete;
+        VulkanPipeline(const VulkanPipeline&)   = delete;
+        auto operator=(const VulkanPipeline&)   = delete;
+        VulkanPipeline(VulkanPipeline &&)       = delete;
+        auto operator=(VulkanPipeline&&)        = delete;
 
     private:
         static auto CreateShaderModule(const std::string& srcCode, VkShaderModule* shaderModule) -> void;
@@ -65,6 +63,7 @@ namespace Mikoto {
         VkShaderModule m_VertShaderModule{};
         VkShaderModule  m_FragShaderModule{};
         PipelineConfigInfo  m_ConfigInfo{};
+        std::vector<VulkanShader> m_ShaderStages{};
     };
 }
 

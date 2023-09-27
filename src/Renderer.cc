@@ -45,7 +45,7 @@ namespace Mikoto {
         s_Spec = std::move(spec);
 
         s_ActiveAPI = s_Spec.Backend;
-        s_ActiveRendererAPI = RendererAPI::Create(s_ActiveAPI);
+        s_ActiveRendererAPI = RendererBackend::Create(s_ActiveAPI);
 
         if (s_ActiveRendererAPI) {
             s_ActiveRendererAPI->Init();

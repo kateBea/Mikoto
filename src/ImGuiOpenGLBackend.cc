@@ -49,7 +49,7 @@ namespace Mikoto {
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-            GLFWwindow *backupCurrentContext{glfwGetCurrentContext()};
+            GLFWwindow *backupCurrentContext{ glfwGetCurrentContext()};
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
 

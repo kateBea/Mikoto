@@ -24,7 +24,7 @@ namespace Mikoto {
         appSpec.Name = "Mikoto Engine";
         appSpec.WorkingDirectory = std::filesystem::current_path();
         appSpec.Executable = Path_T{ m_CommandLineArgs[0] };
-        appSpec.RenderingBackend = GraphicsAPI::VULKAN_API;
+        appSpec.RenderingBackend = GraphicsAPI::OPENGL_API;
         appSpec.CommandLineArguments =
                 std::unordered_set<std::string>{ m_CommandLineArgs.begin(), m_CommandLineArgs.end() };
         appSpec.WantGUI = true;
@@ -42,11 +42,11 @@ namespace Mikoto {
             application.ShutDown();
         }
         catch(const std::exception& exception) {
-            MKT_APP_LOGGER_CRITICAL("EXCEPT! Message:\n{}", exception.what());
+            MKT_COLOR_STYLE_PRINT_FORMATTED(MKT_FMT_COLOR_RED, MKT_FMT_STYLE_BOLD, "EXCEPT! Message:\n{}", exception.what());
             return 1;
         }
         catch(...) {
-            MKT_APP_LOGGER_CRITICAL("EXCEPT! [UNKNOWN]");
+            MKT_COLOR_STYLE_PRINT_FORMATTED(MKT_FMT_COLOR_RED, MKT_FMT_STYLE_BOLD, "EXCEPT! [UNKNOWN]");
             return 1;
         }
 

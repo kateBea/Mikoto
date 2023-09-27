@@ -26,7 +26,7 @@ namespace Mikoto {
     public:
         /**
          * Returns the stage of this shader
-         * @returns shader module stage
+         * @returns this shader's stage
          * */
         MKT_NODISCARD auto GetStage() -> ShaderStage { return m_Stage; }
 
@@ -68,12 +68,9 @@ namespace Mikoto {
         virtual ~Shader() = default;
 
     protected:
-        /*************************************************************
-         * HELPERS
-         * ***********************************************************/
-
         /**
          * Default constructs this shader
+         * @param stage tells the stage this shader is part of
          * */
         explicit Shader(ShaderStage stage = ShaderStage::SHADER_VERTEX_STAGE) : m_Stage{ stage } {};
 

@@ -24,28 +24,35 @@
 
 namespace Mikoto {
     /**
-     * Describes a general Renderer interface for various graphic API
-     * which is the graphics API being used right now. Supported API's currently
-     * are Vulkan and OpenGL
+     * Describes a general Renderer interface for various graphic APIs. The engine
+     * currently offers support for OpenGL and Vulkan exclusively
      * */
-	class RendererAPI {
+	class RendererBackend {
 	public:
         /**
-         * Default construction
+         * Default construction. Creates and default
+         * initializes this RendererAPI
          * */
-        explicit RendererAPI() = default;
+        explicit RendererBackend() = default;
 
         /**
-         * Initializes renderer subsystems
+         * Initializes renderer subsystems. This functions has to be called
+         * after creating a Renderer backend, it makes sure all the subsystems
+         * of the render pipeline are initialized such as pipelines, shaders, etc.
          * */
         virtual auto Init() -> void = 0;
 
         /**
-         * Performs cleanup for renderer subsystems
+         * Performs cleanup for renderer subsystems. Call as the Renderer is no
+         * longer required to shut down all subsystems and perform cleanup
          * */
         virtual auto Shutdown() -> void = 0;
 
-        virtual auto Draw() -> void = 0;
+        /**
+         * Command to flush drawing calls that have to be executed. After a call to this
+         * function all enqueued objects are dispatched to be drawn, the draw queue is emptied after this
+         * operation.
+         * */
         virtual auto Flush() -> void = 0;
 
         /**
@@ -79,7 +86,7 @@ namespace Mikoto {
 
         virtual auto OnEvent(Event& event) -> void = 0;
 
-        virtual ~RendererAPI() = default;
+        virtual ~RendererBackend() = default;
 
         /**
          * Creates a new graphics backend object and returns a pointer to it. If it fails to allocate
@@ -88,16 +95,23 @@ namespace Mikoto {
          * @param backend api backend
          * @returns pointer to allocated backend
          * */
-        MKT_NODISCARD static auto Create(GraphicsAPI backend) -> RendererAPI*;
+        MKT_NODISCARD static auto Create(GraphicsAPI backend) -> RendererBackend *;
     public:
         /*************************************************************
          * DELETED OPERATIONS
          * ***********************************************************/
-        RendererAPI(const RendererAPI&)     = delete;
-        auto operator=(const RendererAPI&)  = delete;
+        RendererBackend(const RendererBackend &)     = delete;
+        auto operator=(const RendererBackend &)  = delete;
 
-        RendererAPI(RendererAPI&&)          = delete;
-        auto operator=(RendererAPI&&)       = delete;
+        RendererBackend(RendererBackend &&)          = delete;
+        auto operator=(RendererBackend &&)       = delete;
+
+    private:
+        /**
+         * Executes draw commands on the drawable objects that have been added
+         * to the queue of renderable objects.
+         * */
+        virtual auto Draw() -> void = 0;
 	};
 }
 

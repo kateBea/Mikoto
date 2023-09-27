@@ -17,19 +17,19 @@
 #include <glm/glm.hpp>
 
 // Project Headers
-#include <Utility/Common.hh>
-#include <Utility/VulkanUtils.hh>
-#include <Renderer/Model.hh>
-#include <Renderer/Renderer.hh>
-#include <Renderer/RendererAPI.hh>
-#include <Renderer/Material/Material.hh>
-#include <Renderer/Vulkan/VulkanImage.hh>
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
+#include <Renderer/Material/Material.hh>
+#include <Renderer/Model.hh>
+#include <Renderer/Renderer.hh>
+#include <Renderer/RendererBackend.hh>
+#include <Renderer/Vulkan/VulkanCommandBuffer.hh>
 #include <Renderer/Vulkan/VulkanCommandPool.hh>
 #include <Renderer/Vulkan/VulkanFrameBuffer.hh>
-#include <Renderer/Vulkan/VulkanCommandBuffer.hh>
+#include <Renderer/Vulkan/VulkanImage.hh>
 #include <Renderer/Vulkan/VulkanStandardMaterial.hh>
+#include <Utility/Common.hh>
+#include <Utility/VulkanUtils.hh>
 
 namespace Mikoto {
     /**
@@ -44,7 +44,7 @@ namespace Mikoto {
         std::shared_ptr<VulkanPipeline> Pipeline{};
     };
 
-    class VulkanRenderer : public RendererAPI {
+    class VulkanRenderer : public RendererBackend {
     public:
         explicit VulkanRenderer() = default;
 
@@ -122,7 +122,14 @@ namespace Mikoto {
         auto DrawFrame(const Model &model) -> void;
         auto RecordMeshDrawCommands(const Mesh &mesh) -> void;
 
+        /**
+         * Changes the values of the Offscreen Viewport to the values passed in
+         * */
         auto UpdateViewport(float x, float y, float width, float height) -> void;
+
+        /**
+         * Updates the values of the Offscreen Scissor to the values passed in
+         * */
         auto UpdateScissor(Int32_T x, Int32_T y, VkExtent2D extent) -> void;
 
     private:

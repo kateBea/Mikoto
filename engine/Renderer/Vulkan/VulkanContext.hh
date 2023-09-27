@@ -193,9 +193,6 @@ namespace Mikoto::VulkanContext {
      * ***********************************************************/
 
 
-    /**
-     * Creates a new surface
-     * */
     auto CreateSurface() -> void;
     auto CreateInstance() -> void;
     auto SetupDebugMessenger() -> void;
@@ -215,7 +212,7 @@ namespace Mikoto::VulkanContext {
     inline const std::vector<const char*> s_DeviceRequiredExtensions{
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 
-            // Passing your vertex data jus like in OpenGL, using the same state (as the pipeline setup)
+            // Passing your vertex data just like in OpenGL, using the same state (as the pipeline setup)
             // and shaders as in OpenGL, your scene will likely not display as you’d expect.
             // The viewport’s origin in OpenGL is in the lower left of the screen, with Y pointing up.
             // In Vulkan the origin is in the top left of the screen, with Y pointing downwards.

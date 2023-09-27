@@ -14,13 +14,13 @@
 #include <glm/glm.hpp>
 
 // Project headers
-#include <Utility/Common.hh>
-#include <Renderer/RendererAPI.hh>
-#include <Renderer/Camera/Camera.hh>
-#include <Renderer/Material/Material.hh>
-#include <Renderer/RenderingUtilities.hh>
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
+#include <Renderer/Camera/Camera.hh>
+#include <Renderer/Material/Material.hh>
+#include <Renderer/RendererBackend.hh>
+#include <Renderer/RenderingUtilities.hh>
+#include <Utility/Common.hh>
 
 namespace Mikoto {
     struct RendererSpec{
@@ -43,7 +43,7 @@ namespace Mikoto {
         static auto OnEvent(Event& event) -> void;
 
         MKT_NODISCARD static auto GetActiveGraphicsAPI() -> GraphicsAPI { return s_ActiveAPI;  }
-        MKT_NODISCARD static auto GetActiveGraphicsAPIPtr() -> RendererAPI* { return s_ActiveRendererAPI;  }
+        MKT_NODISCARD static auto GetActiveGraphicsAPIPtr() -> RendererBackend * { return s_ActiveRendererAPI;  }
 
         MKT_NODISCARD static auto QueryDrawCallsCount() -> UInt64_T { return s_SavedSceneStats->GetDrawCallsCount(); }
         MKT_NODISCARD static auto QueryIndexCount() -> UInt64_T { return s_SavedSceneStats->GetIndexCount(); }
@@ -77,7 +77,7 @@ namespace Mikoto {
         inline static GraphicsAPI s_ActiveAPI{};
 
         // Pointer to the currently active graphics backend
-        inline static RendererAPI* s_ActiveRendererAPI{};
+        inline static RendererBackend * s_ActiveRendererAPI{};
 
         // List of prefab models
         inline static std::unordered_map<std::string, PrefabData> s_Prefabs{};

@@ -13,15 +13,15 @@
 #include <glm/glm.hpp>
 
 // Project Headers
-#include <Utility/Common.hh>
-#include <Renderer/RendererAPI.hh>
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
-#include <Renderer/OpenGL/OpenGLFrameBuffer.hh>
-#include <Renderer/OpenGL/OpenGLVertexArray.hh>
-#include <Renderer/OpenGL/OpenGLIndexBuffer.hh>
-#include <Renderer/OpenGL/OpenGLVertexBuffer.hh>
 #include <Renderer/OpenGL/OpenGLDefaultMaterial.hh>
+#include <Renderer/OpenGL/OpenGLFrameBuffer.hh>
+#include <Renderer/OpenGL/OpenGLIndexBuffer.hh>
+#include <Renderer/OpenGL/OpenGLVertexArray.hh>
+#include <Renderer/OpenGL/OpenGLVertexBuffer.hh>
+#include <Renderer/RendererBackend.hh>
+#include <Utility/Common.hh>
 
 namespace Mikoto {
     /**
@@ -43,7 +43,7 @@ namespace Mikoto {
      * In compatibility mode, OpenGL already offers a default Vertex Array.
      * See: https://www.khronos.org/opengl/wiki/Vertex_Specification
      * */
-    class OpenGLRenderer : public RendererAPI {
+    class OpenGLRenderer : public RendererBackend {
     public:
         /*************************************************************
         * PUBLIC MEMBERS
@@ -87,7 +87,7 @@ namespace Mikoto {
         * HELPERS
         * ***********************************************************/
         auto CreateFrameBuffers() -> void;
-        auto DrawIndexed(const std::shared_ptr<OpenGLVertexBuffer> &vertexBuffer, const std::shared_ptr<OpenGLIndexBuffer> &indexBuffer) -> void;
+        auto DrawIndexed(const OpenGLVertexBuffer &vertexBuffer, const OpenGLIndexBuffer &indexBuffer) -> void;
 
     private:
         /*************************************************************

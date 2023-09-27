@@ -13,7 +13,7 @@
 #include <utility>
 
 namespace Mikoto {
-    auto RenderCommand::Init(RendererAPI* activeAPI) -> void {
+    auto RenderCommand::Init(RendererBackend * activeAPI) -> void {
         s_ActiveRendererAPI = activeAPI;
     }
 

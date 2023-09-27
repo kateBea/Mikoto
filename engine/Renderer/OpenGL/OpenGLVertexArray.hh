@@ -53,7 +53,7 @@ namespace Mikoto {
          * */
         static auto Unbind() -> void { glBindVertexArray(0); }
 
-        auto UseVertexBuffer(const std::shared_ptr<OpenGLVertexBuffer> &buffer) const -> void;
+        auto Use(const OpenGLVertexBuffer& buffer) const -> void;
 
         ~OpenGLVertexArray() { glDeleteVertexArrays(1, &m_Id); }
 

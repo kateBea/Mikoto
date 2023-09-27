@@ -20,7 +20,6 @@ namespace Mikoto {
     auto OpenGLRenderer::SetClearColor(float red, float green, float blue, float alpha) -> void {
         m_DefaultFrameBuffer.Bind();
         glClearColor(red, green, blue, alpha);
-        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
         m_DefaultFrameBuffer.Unbind();
     }
 
@@ -34,12 +33,12 @@ namespace Mikoto {
         glViewport((GLsizei)x, (GLsizei)y, (GLsizei)width, (GLsizei)height);
     }
 
-    auto OpenGLRenderer::DrawIndexed(const std::shared_ptr<OpenGLVertexBuffer>& vertexBuffer, const std::shared_ptr<OpenGLIndexBuffer>& indexBuffer) -> void {
+    auto OpenGLRenderer::DrawIndexed(const OpenGLVertexBuffer& vertexBuffer, const OpenGLIndexBuffer& indexBuffer) -> void {
         m_CurrentDefaultMaterial->GetShader()->Bind();
-        m_VertexArray.UseVertexBuffer(vertexBuffer);
-        std::dynamic_pointer_cast<OpenGLIndexBuffer>(indexBuffer)->Bind();
+        m_VertexArray.Use(vertexBuffer);
+        indexBuffer.Bind();
 
-        glDrawElements(GL_TRIANGLES, (GLsizei)indexBuffer->GetCount(), indexBuffer->GetBufferDataType(), nullptr);
+        glDrawElements(GL_TRIANGLES, (GLsizei)indexBuffer.GetCount(), indexBuffer.GetBufferDataType(), nullptr);
     }
 
     auto OpenGLRenderer::Draw() -> void {
@@ -85,7 +84,7 @@ namespace Mikoto {
                 // Draw command
                 const auto& vertexBuffer{ std::dynamic_pointer_cast<OpenGLVertexBuffer>(mesh.GetVertexBuffer()) };
                 const auto& indexBuffer{ std::dynamic_pointer_cast<OpenGLIndexBuffer>(mesh.GetIndexBuffer()) };
-                DrawIndexed(vertexBuffer, indexBuffer);
+                DrawIndexed(*vertexBuffer, *indexBuffer);
             }
         }
 

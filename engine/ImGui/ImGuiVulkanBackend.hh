@@ -28,12 +28,11 @@ namespace Mikoto {
         auto EndFrame() -> void override;
 
     private:
-        /*************************************************************
-        * HELPERS
-        * ***********************************************************/
         auto CreateImGuiRenderPass() -> void;
         auto CreateImGuiCommandPool() -> void;
         auto CreateImGuiCommandBuffers() -> void;
+
+        auto BuildCommandBuffers() -> void;
 
         static auto AcquireNextSwapChainImage(UInt32_T& imageIndex) -> VkResult;
         auto RecordImGuiCommandBuffers(UInt32_T imageIndex) -> void;

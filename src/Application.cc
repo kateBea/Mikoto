@@ -29,7 +29,6 @@ namespace Mikoto {
         MKT_APP_LOGGER_INFO("Program executable (absolute path): {}", m_Spec.Executable.string());
         MKT_APP_LOGGER_INFO("Program current working directory (absolute path): {}", m_Spec.WorkingDirectory.string());
 
-        // Allocations
         WindowProperties windowProperties{};
         windowProperties.SetTitle(m_Spec.Name);
         windowProperties.SetWidth(m_Spec.WindowWidth);
@@ -40,7 +39,6 @@ namespace Mikoto {
         m_LayerStack = std::make_unique<LayerStack>();
         m_ImGuiLayer = std::make_shared<ImGuiLayer>();
 
-        // Initialize the main window
         m_MainWindow->Init();
 
         // Application::OnEvent will be called everytime there's an event from the window
@@ -66,18 +64,18 @@ namespace Mikoto {
         if (m_Spec.WantEditor)
             PushLayer(std::make_shared<EditorLayer>());
 
-        MKT_CORE_LOGGER_DEBUG("Init time {}", TimeManager::GetTime());
+        MKT_APP_LOGGER_INFO("Init time {}", TimeManager::GetTime());
     }
 
     auto Application::OnEvent(Event& event) -> void {
-        MKT_CORE_LOGGER_TRACE("{}", event.DisplayData());
+        MKT_APP_LOGGER_TRACE("{}", event.DisplayData());
 
         EventDispatcher dispatcher{ event };
         if (dispatcher.Forward<WindowCloseEvent>(MKT_BIND_EVENT_FUNC(Application::OnWindowClose)))
-            MKT_CORE_LOGGER_TRACE("HANDLED {}", event.DisplayData());
+            MKT_APP_LOGGER_TRACE("HANDLED {}", event.DisplayData());
 
         if (dispatcher.Forward<WindowResizedEvent>(MKT_BIND_EVENT_FUNC(Application::OnResizeEvent)))
-            MKT_CORE_LOGGER_TRACE("HANDLED {}", event.DisplayData());
+            MKT_APP_LOGGER_TRACE("HANDLED {}", event.DisplayData());
 
         Renderer::OnEvent(event);
 
@@ -116,7 +114,7 @@ namespace Mikoto {
     }
 
     auto Application::ShutDown() -> void {
-        MKT_CORE_LOGGER_INFO("Shutting down Mikoto Engine");
+        MKT_APP_LOGGER_INFO("Shutting down Mikoto Engine");
 
         m_LayerStack->PopOverlay(m_ImGuiLayer);
         m_ImGuiLayer->OnDetach();

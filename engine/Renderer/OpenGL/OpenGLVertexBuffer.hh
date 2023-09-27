@@ -28,14 +28,14 @@ namespace Mikoto {
          * buffer object with a valid id
          * @param vertices buffer containing all the vertices
          * */
-        explicit OpenGLVertexBuffer(VertexBufferCreateInfo &&createInfo, GLenum usage = GL_STATIC_DRAW);
+        explicit OpenGLVertexBuffer(VertexBufferCreateInfo&& createInfo, GLenum usage = GL_STATIC_DRAW);
 
         /**
          * Move constructor. If this operation is successful
          * other becomes invalid and using it may result in undefined behaviour
          * @param other moved from Vertex buffer
          * */
-        OpenGLVertexBuffer(OpenGLVertexBuffer && other) noexcept;
+        OpenGLVertexBuffer(OpenGLVertexBuffer&& other) noexcept;
 
         /**
          * Move constructor assignment. If this operation is successful

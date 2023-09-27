@@ -21,7 +21,7 @@ namespace Mikoto {
      * */
     class ImGuiLayer : public Layer {
     public:
-        explicit ImGuiLayer() noexcept;
+        explicit ImGuiLayer();
 
         auto OnAttach() -> void override;
         auto OnDetach() -> void override;

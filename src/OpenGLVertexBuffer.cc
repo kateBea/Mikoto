@@ -17,7 +17,6 @@ namespace Mikoto {
         glCreateBuffers(1, &m_Id);
         m_ValidId = m_Id != 0;
 
-        m_Layout = createInfo.Layout;
         Upload(createInfo.Data, usage);
     }
 

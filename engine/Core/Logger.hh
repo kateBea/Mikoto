@@ -45,7 +45,7 @@ namespace Mikoto {
 }
 
 // Enable logging for debug builds exclusively
-#if !defined(NDEBUG) || defined(_DEBUG)
+#if !defined(NDEBUG)
     #define MKT_ENABLE_LOGGING
 #else
     #undef MKT_ENABLE_LOGGING
@@ -60,11 +60,11 @@ namespace Mikoto {
     #define MKT_CORE_LOGGER_DEBUG(...) Mikoto::Logger::Get().GetCoreLogger()->debug(fmt::format(__VA_ARGS__))
 
     #define MKT_APP_LOGGER_ERROR(...) Mikoto::Logger::Get().GetAppLogger()->error(fmt::format(__VA_ARGS__))
-    #define MKT_APP_LOGGER_WARN(...) kaTe::Logger::Get().GetAppLogger()->warn(fmt::format(__VA_ARGS__))
+    #define MKT_APP_LOGGER_WARN(...) Mikoto::Logger::Get().GetAppLogger()->warn(fmt::format(__VA_ARGS__))
     #define MKT_APP_LOGGER_CRITICAL(...) Mikoto::Logger::Get().GetAppLogger()->critical(fmt::format(__VA_ARGS__))
-    #define MKT_APP_LOGGER_TRACE(...) kaTe::Logger::Get().GetAppLogger()->trace(fmt::format(__VA_ARGS__))
+    #define MKT_APP_LOGGER_TRACE(...) Mikoto::Logger::Get().GetAppLogger()->trace(fmt::format(__VA_ARGS__))
     #define MKT_APP_LOGGER_INFO(...) Mikoto::Logger::Get().GetAppLogger()->info(fmt::format(__VA_ARGS__))
-    #define MKT_APP_LOGGER_DEBUG(...) kaTe::Logger::Get().GetAppLogger()->debug(fmt::format(__VA_ARGS__))
+    #define MKT_APP_LOGGER_DEBUG(...) Mikoto::Logger::Get().GetAppLogger()->debug(fmt::format(__VA_ARGS__))
 #else
     #define MKT_CORE_LOGGER_ERROR(...)
     #define MKT_CORE_LOGGER_WARN(...)

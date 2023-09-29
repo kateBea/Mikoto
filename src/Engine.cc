@@ -24,7 +24,7 @@ namespace Mikoto {
         appSpec.Name = "Mikoto Engine";
         appSpec.WorkingDirectory = std::filesystem::current_path();
         appSpec.Executable = Path_T{ m_CommandLineArgs[0] };
-        appSpec.RenderingBackend = GraphicsAPI::OPENGL_API;
+        appSpec.RenderingBackend = GraphicsAPI::VULKAN_API;
         appSpec.CommandLineArguments =
                 std::unordered_set<std::string>{ m_CommandLineArgs.begin(), m_CommandLineArgs.end() };
         appSpec.WantGUI = true;

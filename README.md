@@ -2,7 +2,14 @@
 This is a simple engine written in modern C++. For now and quite some time 
 it will use OpenGL as its main rendering API, but the end goal is to integrate Vulkan.
 
-![Mikoto Engine](assets/image/img8.png)
+![Mikoto Engine](assets/image/img9.png)
+
+# Requirements
+- Software Requirements:
+  1. CMake 3.21 (This is what the project uses, but an earlier version is most likely to work)
+  2. A compiler capable of C++20 (G++ 12.3.0 was used for the tests)
+  3. The Vulkan SDK
+  4. OpenGL library
 
 # Building
 
@@ -10,10 +17,25 @@ Clone the repository, at the moment I only tested building on Linux.
 The project already comes with a CMake file ready to use. 
 
 ```shell
-  git clone --recursive https://github.com/kateBea/Mikoto-Engine.git && cd Mikoto-Engine
-  mkdir build && cd build
+  # Clone the repository to your desired directory
+  git clone --recursive https://github.com/kateBea/Mikoto-Engine.git
+  
+  # Change directory to the repo folder
+  cd Mikoto-Engine
+  
+  # Make a build directory (preferable)
+  mkdir build 
+  
+  # and open the build directory
+  cd build
+  
+  # Run CMake on the CMake file from the repo root directory
   cmake ..
+  
+  # Finally build the project
   cmake --build .
+  
+  # and run the executable
   ./Mikoto
 ```
 
@@ -26,18 +48,14 @@ This project is done thanks to various third-party libraries:
 5. [ImGui (Graphical User interface Library for C++)](https://github.com/ocornut/imgui)
 6. [Spdlog (Fast C++ Logging Library)](https://github.com/gabime/spdlog)
 
-The following tools are required on Linux:
-
-1. G++ (GNU C++ Compiler)
-2. CMake (Cross platform build system)
-
 The GLFW library is not necessary to be installed on the system since it 
 is included as a submodule and build along with the project.
 
 # Goals
 
-The main goal is really just offer support for 3D and 2D graphics rendering. A the moment many configurations necessary for
-the engine are hardcoded in the translation units, the idea is to be able to load these configurations from ragular files.
+I spend my spare time on improving this project, which is mainly a way for me to learn software design and mostly 3D graphics programming.
+The main goal is really just offer support for 3D and 2D graphics rendering. At the moment, many configurations that are necessary for
+the engine are hardcoded in the translation units, the idea is to be able to load these configurations from regular files.
 
 # Special thanks and mentions to
   - Yan Chernikov for his [YouTube videos](https://www.youtube.com/@TheCherno) and live streams

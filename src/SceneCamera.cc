@@ -7,12 +7,12 @@
 #include <glm/glm.hpp>
 
 // Project Headers
-#include <Scene/SceneCamera.hh>
+#include "Renderer/Camera/SceneCamera.hh"
 
 namespace Mikoto {
 
     auto SceneCamera::SetOrthographic(double nearPlane, double farPlane, double size) -> void {
-        m_Projection = ProjectionType::ORTHOGRAPHIC;
+        SetProjectionType(ProjectionType::ORTHOGRAPHIC);
         m_OrthographicSize = size;
         m_OrthographicNearPlane = nearPlane;
         m_OrthographicFarPlane = farPlane;
@@ -20,7 +20,7 @@ namespace Mikoto {
     }
 
     auto SceneCamera::SetPerspective(double nearPlane, double farPlane, double fov) -> void {
-        m_Projection = ProjectionType::PERSPECTIVE;
+        SetProjectionType(ProjectionType::PERSPECTIVE);
         m_PerspectiveNearPlane = nearPlane;
         m_PerspectiveFarPlane = farPlane;
         m_PerspectiveFieldOfView = fov;
@@ -33,7 +33,7 @@ namespace Mikoto {
     }
 
     auto SceneCamera::RecomputeProjection() -> void {
-        if (m_Projection == ProjectionType::ORTHOGRAPHIC) {
+        if (GetProjectionType()  == ProjectionType::ORTHOGRAPHIC) {
             double zoom{ .5 };
             double orthographicLeft{ -m_OrthographicSize * m_AspectRatio * zoom };
             double orthographicRight{ m_OrthographicSize * m_AspectRatio * zoom };
@@ -42,7 +42,7 @@ namespace Mikoto {
             SetProjection(glm::ortho(orthographicLeft, orthographicRight, orthographicBottom,
                                      orthographicTop, m_OrthographicNearPlane, m_OrthographicFarPlane));
         }
-        else if (m_Projection == ProjectionType::PERSPECTIVE) {
+        else if (GetProjectionType() == ProjectionType::PERSPECTIVE) {
             SetProjection(glm::perspective(glm::radians(m_PerspectiveFieldOfView), m_AspectRatio, m_PerspectiveNearPlane, m_PerspectiveFarPlane));
         }
     }

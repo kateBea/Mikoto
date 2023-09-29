@@ -29,23 +29,28 @@ namespace Mikoto {
         auto OnEvent(Event& event) -> void override;
         auto SetScene(const std::shared_ptr<Scene>& scene) -> void;
 
-        ~HierarchyPanel() = default;
+        auto AddOnContextSelectCallback(const std::function<void(HierarchyPanel *)>& task) -> void;
+        auto AddOnContextDeselectCallback(const std::function<void(HierarchyPanel *)>& task) -> void;
+
+        MKT_NODISCARD auto GetContextSelection() const -> Entity  { return m_ContextSelection; }
+
+        ~HierarchyPanel() override = default;
 
     private:
         friend class InspectorPanel;
 
     private:
-        /*************************************************************
-        * HELPERS
-        * ***********************************************************/
         auto DrawEntityNode(Entity& target) -> void;
         auto EntityPopupMenu(Entity& target) -> void;
         auto BlankSpacePopupMenu() -> void;
 
+        auto RunContextSelectionCallbacks() -> void;
+        auto RunContextDeselectionCallbacks() -> void;
+
     private:
-        /*************************************************************
-        * DATA MEMBERS
-        * ***********************************************************/
+        std::vector<std::function<void(HierarchyPanel*)>> m_OnContextSelectCallbacks{};
+        std::vector<std::function<void(HierarchyPanel*)>> m_OnContextDeselectCallbacks{};
+
         std::weak_ptr<Scene> m_Context{};
         Entity m_ContextSelection{};
     };

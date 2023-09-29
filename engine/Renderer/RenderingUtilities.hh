@@ -13,13 +13,13 @@
 #include <glm/glm.hpp>
 
 // Projects Headers
+#include "Renderer/Camera/EditorCamera.hh"
+#include "Renderer/Camera/SceneCamera.hh"
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
 #include <Renderer/Camera/Camera.hh>
 #include <Renderer/Material/Material.hh>
 #include <Renderer/Model.hh>
-#include <Scene/EditorCamera.hh>
-#include <Scene/SceneCamera.hh>
 
 namespace Mikoto {
     struct ScenePrepareData {

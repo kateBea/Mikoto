@@ -8,8 +8,8 @@
 
 // Third-Party Libraries
 #include <imgui.h>
-#include <backends/imgui_impl_opengl3.h>
 #include <ImGuizmo.h>
+#include <backends/imgui_impl_opengl3.h>
 
 // Project Headers
 #include <Core/Application.hh>
@@ -49,6 +49,8 @@ namespace Mikoto {
             float frameWidth{ static_cast<float>(m_SceneRenderer->GetColorAttachment().GetFrameBufferProperties().width) };
             float frameHeight{ static_cast<float>(m_SceneRenderer->GetColorAttachment().GetFrameBufferProperties().height) };
             ImGui::Image((ImTextureID)textId, ImVec2{ frameWidth, frameHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+
+            HandleGuizmos();
 
             ImGui::End();
             ImGui::PopStyleVar();

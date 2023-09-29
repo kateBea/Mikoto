@@ -19,8 +19,10 @@
 
 namespace Mikoto {
     auto EditorLayer::OnAttach() -> void {
-        InitializePanels();
+        // Initialize cameras first, they are needed for some panels
         InitializeSceneCameras();
+
+        InitializePanels();
 
         m_EditorCamera->SetMovementSpeed(m_SettingsPanel->GetData().EditorCameraMovementSpeed);
         m_EditorCamera->SetRotationSpeed(m_SettingsPanel->GetData().EditorCameraRotationSpeed);
@@ -51,7 +53,7 @@ namespace Mikoto {
         // Field of view
         m_EditorCamera->SetFieldOfView(settingsPanelCurrentData.FieldOfView);
 
-        if (m_ScenePanel->IsFocused()) {
+        if (m_ScenePanel->IsHovered()) {
             m_EditorCamera->OnUpdate(ts);
         }
 
@@ -98,7 +100,10 @@ namespace Mikoto {
 
     auto EditorLayer::InitializePanels() -> void {
         // Panels setup
-        m_ScenePanel = std::make_shared<ScenePanel>();
+        ScenePanelCreateInfo scenePanelCreateInfo{};
+        scenePanelCreateInfo.EditorMainCamera = m_EditorCamera.get();
+
+        m_ScenePanel = std::make_shared<ScenePanel>(std::move( scenePanelCreateInfo ));
         const auto& sceneData{ m_ScenePanel->GetData() };
 
         m_HierarchyPanel = std::make_shared<HierarchyPanel>(sceneData.Viewport);
@@ -109,6 +114,9 @@ namespace Mikoto {
         // Panels post setup
         m_SettingsPanel->SetColor(glm::vec4(0.2f, 0.2f, 0.2f, 1.0f));
         m_SettingsPanel->SetFieldOfView(45.0f);
+
+        m_HierarchyPanel->AddOnContextSelectCallback(m_ScenePanel->GetCallbacks().EntitySelectionCallback);
+        m_HierarchyPanel->AddOnContextDeselectCallback(m_ScenePanel->GetCallbacks().EntityDeselectionCallback);
     }
 
     MKT_UNUSED_FUNC auto EditorLayer::AddSceneTestEntities() -> void {

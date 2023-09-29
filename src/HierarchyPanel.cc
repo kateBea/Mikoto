@@ -30,8 +30,11 @@ namespace Mikoto {
                     EntityPopupMenu(current);
                 }
 
-                if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered())
+                // Deselect the game object
+                if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered()) {
                     m_ContextSelection.Invalidate();
+                    RunContextDeselectionCallbacks();
+                }
 
                 BlankSpacePopupMenu();
             }
@@ -55,8 +58,11 @@ namespace Mikoto {
         ImGuiTreeNodeFlags childNodeFlags{ styleFlags | ImGuiTreeNodeFlags_DefaultOpen };
 
         bool expanded{ ImGui::TreeNodeEx((void*)(target.m_EntityHandle), flags, "%s", tag.GetTag().c_str()) };
-        if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
             m_ContextSelection = target;
+            RunContextSelectionCallbacks();
+        }
 
         if (expanded) {
             // Temporary just to test nested nodes
@@ -192,5 +198,23 @@ namespace Mikoto {
 
     auto HierarchyPanel::SetScene(const std::shared_ptr<Scene>& scene) -> void {
         m_Context = scene;
+    }
+
+    auto HierarchyPanel::RunContextSelectionCallbacks() -> void {
+        for (const auto& task : m_OnContextSelectCallbacks)
+            task(this);
+    }
+
+    auto HierarchyPanel::AddOnContextSelectCallback(const std::function<void(HierarchyPanel*)> &task) -> void {
+        m_OnContextSelectCallbacks.emplace_back(task);
+    }
+
+    auto HierarchyPanel::AddOnContextDeselectCallback(const std::function<void(HierarchyPanel*)> &task) -> void {
+        m_OnContextDeselectCallbacks.emplace_back(task);
+    }
+
+    auto HierarchyPanel::RunContextDeselectionCallbacks() -> void {
+        for (const auto& task : m_OnContextDeselectCallbacks)
+            task(this);
     }
 }

@@ -11,12 +11,12 @@
 #include <entt/entt.hpp>
 
 // Project Headers
-#include <Scene/Scene.hh>
-#include <Scene/Entity.hh>
-#include <Scene/Component.hh>
-#include <Scene/EditorCamera.hh>
+#include "Renderer/Camera/EditorCamera.hh"
 #include <Renderer/Renderer.hh>
 #include <Renderer/RenderingUtilities.hh>
+#include <Scene/Component.hh>
+#include <Scene/Entity.hh>
+#include <Scene/Scene.hh>
 
 namespace Mikoto {
     auto Scene::OnUpdate(double ts) -> void {

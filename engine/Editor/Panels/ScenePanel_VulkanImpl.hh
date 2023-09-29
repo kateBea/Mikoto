@@ -9,8 +9,8 @@
 // Third-Party Libraries
 #include <volk.h>
 #include <imgui.h>
-#include <backends/imgui_impl_vulkan.h>
 #include <ImGuizmo.h>
+#include <backends/imgui_impl_vulkan.h>
 
 // Project Headers
 #include <Core/Application.hh>
@@ -54,7 +54,7 @@ namespace Mikoto {
         }
 
         auto OnUpdate_Impl() -> void override {
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0,0});
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0,0 });
             ImGui::Begin("Scene");
             m_Focused = ImGui::IsWindowFocused();
             m_Hovered = ImGui::IsWindowHovered();
@@ -74,6 +74,8 @@ namespace Mikoto {
             float frameWidth{ static_cast<float>(m_Data.ViewPortWidth) };
             float frameHeight{ static_cast<float>(m_Data.ViewPortHeight) };
             ImGui::Image((ImTextureID)m_DescriptorSet, ImVec2{ frameWidth, frameHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+
+            HandleGuizmos();
 
             ImGui::End();
             ImGui::PopStyleVar();

@@ -9,6 +9,7 @@
 
 // Third-Party Libraries
 #include <imgui.h>
+#include <ImGuizmo.h>
 #include <GLFW/glfw3.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_vulkan.h>
@@ -102,6 +103,8 @@ namespace Mikoto {
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+
+        ImGuizmo::BeginFrame();
     }
 
     auto ImGuiVulkanBackend::EndFrame() -> void {

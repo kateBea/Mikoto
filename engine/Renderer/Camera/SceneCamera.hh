@@ -7,22 +7,17 @@
 #define MIKOTO_SCENE_CAMERA_HH
 
 // Third-Party Libraries
-#include <glm/glm.hpp>
+#include "glm/glm.hpp"
 
 // Project Headers
-#include <Utility/Common.hh>
-#include <Renderer/Camera/Camera.hh>
+#include "Camera.hh"
+#include "Utility/Common.hh"
 
 namespace Mikoto {
     class SceneCamera : public Camera {
     public:
-        enum ProjectionType {
-            ORTHOGRAPHIC = 0,
-            PERSPECTIVE = 1,
-        };
-
         explicit SceneCamera(const glm::mat4& projection = glm::mat4(1.0f), const glm::mat4& transform = glm::mat4(1.0f))
-            :   Camera{ projection, transform }, m_Projection{ ProjectionType::ORTHOGRAPHIC } {}
+            :   Camera{ projection, transform, ProjectionType::ORTHOGRAPHIC } {}
 
         SceneCamera(const SceneCamera& other) = default;
         SceneCamera(SceneCamera&& other) = default;
@@ -49,14 +44,6 @@ namespace Mikoto {
         MKT_NODISCARD auto GetPerspectiveFOV() const -> double;
         auto SetPerspectiveFOV(double value) -> void;
 
-
-        MKT_NODISCARD auto GetProjectionType() -> ProjectionType { return m_Projection; }
-        auto SetProjectionType(ProjectionType type) -> void {
-            m_Projection = type;
-
-            // call SetOrthographic() or SetPerspective() accordingly
-        }
-
         ~SceneCamera() = default;
 
         auto SetOrthographic(double nearPlane, double farPlane, double size) -> void;
@@ -64,10 +51,8 @@ namespace Mikoto {
         auto SetViewportSize(UInt32_T width, UInt32_T height) -> void;
     private:
         auto RecomputeProjection() -> void;
+
     private:
-
-        ProjectionType m_Projection{};
-
         // Orthographic camera info
         double m_OrthographicSize{ 3.5f };
         double m_OrthographicNearPlane{ -1.0f };

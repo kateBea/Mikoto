@@ -5,11 +5,13 @@ it will use OpenGL as its main rendering API, but the end goal is to integrate V
 ![Mikoto Engine](assets/image/img9.png)
 
 # Requirements
-- Software Requirements:
-  1. CMake 3.21 (This is what the project uses, but an earlier version is most likely to work)
-  2. A compiler capable of C++20 (G++ 12.3.0 was used for the tests)
-  3. The Vulkan SDK
-  4. OpenGL library
+<h3>Software Requirements:</h3>
+<ol type="1">
+  <li>CMake 3.21 (This is what the project uses, but an earlier version is most likely to work)</li>
+  <li>A compiler capable of C++20 (G++ 12.3.0 was used for the tests)</li>
+  <li>The Vulkan SDK</li>
+  <li>OpenGL library</li>
+</ol>
 
 # Building
 

@@ -246,18 +246,24 @@ namespace Mikoto {
 
             DrawComponent<CameraComponent>("Camera", m_Hierarchy->m_ContextSelection,
                 [](auto& component) -> void {
-                    static const std::array<std::string, 2> cameraProjectionTypes{ "Orthographic", "Perspective" };
+                    static const std::array<std::string, 2> CAMERA_PROJECTION_TYPE_NAMES{ "Orthographic", "Perspective" };
+
+                    // This is the camera's current projection type (enum)
                     const auto cameraCurrentProjectionType{ component.GetCameraPtr()->GetProjectionType() };
-                    const auto& currentProjectionTypeStr{ cameraProjectionTypes[cameraCurrentProjectionType] };
+
+                    // This is the camera's current projection type as a string
+                    const auto& currentProjectionTypeStr{CAMERA_PROJECTION_TYPE_NAMES[cameraCurrentProjectionType] };
 
                     if (ImGui::BeginCombo("Projection", currentProjectionTypeStr.c_str())) {
                         UInt32_T projectionIndex{};
-                        for (const auto& projectionType : cameraProjectionTypes) {
-                            bool isSelected{ projectionType == cameraProjectionTypes[cameraCurrentProjectionType] };
+                        for (const auto& projectionType : CAMERA_PROJECTION_TYPE_NAMES) {
+                            // Indicates if that we want to highlight this projection in the ImGui combo.
+                            // This will be the case if this projection type is the current one for this camera.
+                            bool isSelected{ projectionType == CAMERA_PROJECTION_TYPE_NAMES[cameraCurrentProjectionType] };
 
+                            // Create a selectable combo item for each perspective
                             if (ImGui::Selectable(projectionType.c_str(), isSelected)) {
-                                //currentProjectionTypeStr = projectionType;
-                                component.GetCameraPtr()->SetProjectionType((SceneCamera::ProjectionType) projectionIndex);
+                                component.GetCameraPtr()->SetProjectionType((Camera::ProjectionType) projectionIndex);
                             }
 
                             if (isSelected)

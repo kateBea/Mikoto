@@ -15,14 +15,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 // Project Headers
-#include <Utility/Common.hh>
-#include <Utility/Types.hh>
-#include <Utility/Constants.hh>
+#include "Renderer/Camera/SceneCamera.hh"
 #include <Core/Assert.hh>
-#include <Scene/SceneCamera.hh>
 #include <Renderer/Mesh.hh>
 #include <Renderer/Model.hh>
 #include <Renderer/RenderingUtilities.hh>
+#include <Utility/Common.hh>
+#include <Utility/Constants.hh>
+#include <Utility/Types.hh>
 
 namespace Mikoto {
     class TagComponent {
@@ -82,6 +82,13 @@ namespace Mikoto {
             m_Scale = size;
 
             RecomputeTransform();
+        }
+
+        auto SetTransform(const glm::mat4& transform) -> void {
+            m_Transform = transform;
+
+            // Update translation, rotation and scale accordingly
+            m_Translation = glm::vec3(m_Transform[3]);
         }
 
         auto SetTranslation(const glm::vec3& value) -> void { m_Translation = value; RecomputeTransform(); }

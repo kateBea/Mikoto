@@ -13,12 +13,12 @@
 #include <glm/gtx/quaternion.hpp>
 
 // Project Headers
-#include <Utility/Common.hh>
-#include <Utility/Constants.hh>
+#include "Renderer/Camera/EditorCamera.hh"
 #include <Core/KeyCodes.hh>
 #include <Core/MouseButtons.hh>
-#include <Scene/EditorCamera.hh>
 #include <Platform/InputManager.hh>
+#include <Utility/Common.hh>
+#include <Utility/Constants.hh>
 
 namespace Mikoto {
     EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
@@ -52,7 +52,7 @@ namespace Mikoto {
         if (std::abs(glm::length(delta)) > JUMP_THRESHOLD)
             return;
 
-        if (!InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Left))
+        if (!InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Right))
             return;
 
         // Perform rotation
@@ -71,7 +71,7 @@ namespace Mikoto {
     auto EditorCamera::ProcessKeyboardInput(double timeStep) -> void {
         m_CameraUpVector = GLM_UNIT_VECTOR_Y;
 
-        if (!InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Left))
+        if (!InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Right))
             return;
 
         // Move forward

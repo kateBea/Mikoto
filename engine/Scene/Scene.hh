@@ -14,12 +14,12 @@
 #include <entt/entt.hpp>
 
 // Project Headers
-#include <Utility/Common.hh>
-#include <Utility/Types.hh>
+#include "Renderer/Camera/EditorCamera.hh"
 #include <Core/Assert.hh>
 #include <Core/Logger.hh>
 #include <Scene/Component.hh>
-#include <Scene/EditorCamera.hh>
+#include <Utility/Common.hh>
+#include <Utility/Types.hh>
 
 namespace Mikoto {
     /**

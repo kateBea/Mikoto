@@ -41,10 +41,20 @@ namespace Mikoto {
 
        virtual ~ScenePanelInterface() = default;
 
+    private:
+        enum class ManipulationMode {
+            TRANSLATION,
+            ROTATION,
+            SCALE,
+        };
+
+        auto HandleManipulationMode() -> void;
+
     protected:
         ScenePanelData m_Data{};
         Entity m_CurrentContextSelection{};
         const EditorCamera* m_EditorMainCamera{};
+        ManipulationMode m_ActiveManipulationMode{ ManipulationMode::TRANSLATION };
         bool m_Hovered{};
         bool m_Focused{};
     };

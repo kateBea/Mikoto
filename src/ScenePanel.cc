@@ -74,9 +74,7 @@ namespace Mikoto {
     }
 
     auto ScenePanelInterface::HandleGuizmos() -> void {
-        if (m_CurrentContextSelection.IsValid()) {
-            MKT_CORE_LOGGER_INFO("We got valid context selection for Guizmos :)");
-
+        if (m_CurrentContextSelection.IsValid() && m_CurrentContextSelection.GetComponent<TagComponent>().IsVisible()) {
             ImGuizmo::SetOrthographic(m_EditorMainCamera->IsOrthographic());
             ImGuizmo::SetDrawlist();
 
@@ -84,16 +82,30 @@ namespace Mikoto {
             const auto windowDimensions{ ImGui::GetWindowSize() };
             ImGuizmo::SetRect(windowPosition.x, windowPosition.y, windowDimensions.x, windowDimensions.y);
 
-            TransformComponent& transformComponent{ m_CurrentContextSelection.GetComponent<TransformComponent>() };
-            const auto& cameraView{ m_EditorMainCamera->GetViewMatrix() };
-            const auto& cameraProjection{ m_EditorMainCamera->GetProjection() };
-            auto objectTransform{ transformComponent.GetTransform() };
+            HandleManipulationMode();
+        }
+    }
 
-            ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::MODE::LOCAL, glm::value_ptr(objectTransform));
+    auto ScenePanelInterface::HandleManipulationMode() -> void {
+        TransformComponent& transformComponent{ m_CurrentContextSelection.GetComponent<TransformComponent>() };
+        const auto& cameraView{ m_EditorMainCamera->GetViewMatrix() };
+        const auto& cameraProjection{ m_EditorMainCamera->GetProjection() };
+        auto objectTransform{ transformComponent.GetTransform() };
 
-            if (ImGuizmo::IsUsing()) {
-                transformComponent.SetTransform(objectTransform);
-            }
+        switch (m_ActiveManipulationMode) {
+            case ManipulationMode::TRANSLATION:
+                ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::MODE::LOCAL, glm::value_ptr(objectTransform));
+                break;
+            case ManipulationMode::ROTATION:
+                ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), ImGuizmo::OPERATION::ROTATE, ImGuizmo::MODE::LOCAL, glm::value_ptr(objectTransform));
+                break;
+            case ManipulationMode::SCALE:
+                ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), ImGuizmo::OPERATION::SCALE, ImGuizmo::MODE::LOCAL, glm::value_ptr(objectTransform));
+                break;
+        }
+
+        if (ImGuizmo::IsUsing()) {
+            transformComponent.SetTransform(objectTransform);
         }
     }
 }

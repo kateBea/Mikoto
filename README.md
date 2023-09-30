@@ -11,6 +11,7 @@ it will use OpenGL as its main rendering API, but the end goal is to integrate V
   <li>A compiler capable of C++20 (G++ 12.3.0 was used for the tests)</li>
   <li>The Vulkan SDK</li>
   <li>OpenGL library</li>
+  <li>GLSLC (The glsl compiler). This one is optional as there's precompiled binaries.</li>
 </ol>
 
 # Building

@@ -30,7 +30,7 @@ namespace Mikoto {
 
     class Scene {
     public:
-        explicit Scene() = default;
+        explicit Scene(std::string_view name = "Mikoto") : m_Name{ name } {}
 
         auto OnUpdate(double ts) -> void;
         auto DestroyEntity(Entity& entity) -> void;
@@ -48,7 +48,7 @@ namespace Mikoto {
         MKT_NODISCARD static auto CreateEmptyObject(std::string_view tagName, const std::shared_ptr<Scene>& scene) -> Entity;
         MKT_NODISCARD static auto CreatePrefabObject(std::string_view tagName, const std::shared_ptr<Scene>& scene, PrefabSceneObject type) -> Entity;
 
-        ~Scene() = default;
+        ~Scene();
     private:
         friend class Entity;
         friend class ScenePanel;
@@ -66,7 +66,7 @@ namespace Mikoto {
         entt::registry m_Registry{};
         UInt32_T m_ViewportWidth{};
         UInt32_T m_ViewportHeight{};
-        std::string m_Name{ "Mikoto" };
+        std::string m_Name{};
     };
 }
 

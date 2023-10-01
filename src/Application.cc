@@ -12,6 +12,7 @@
 #include <Utility/Common.hh>
 #include <Core/Logger.hh>
 #include <Core/Application.hh>
+#include <Core/Serializer.hh>
 #include <Core/Events/AppEvents.hh>
 #include <Platform/InputManager.hh>
 #include <Platform/Window/MainWindow.hh>
@@ -43,6 +44,9 @@ namespace Mikoto {
 
         // Application::OnEvent will be called everytime there's an event from the window
         m_MainWindow->SetEventCallback(MKT_BIND_EVENT_FUNC(Application::OnEvent));
+
+        // Serializer Init
+        Serializer::Init();
 
         // Initialize the input manager
         InputManager::Init();
@@ -124,6 +128,9 @@ namespace Mikoto {
 
         InputManager::ShutDown();
         Renderer::ShutDown();
+
+        // Serializer shutdown
+        Serializer::Shutdown();
 
         m_MainWindow->ShutDown();
     }

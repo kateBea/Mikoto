@@ -97,6 +97,11 @@ namespace Mikoto {
         auto OnEvent(Event& event) ->  void override;
 
         /**
+         * Clears the current scene and creates a new one
+         * */
+        auto MakeNewScene() -> void;
+
+        /**
          * Destructor, defaulted
          * */
         ~ScenePanel() override = default;

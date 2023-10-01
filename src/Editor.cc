@@ -201,6 +201,7 @@ namespace Mikoto::Editor {
             if (ImGui::BeginMenu("File")) {
                 // Disabling fullscreen would allow the window to be moved to the front of other windows,
                 // which we can't undo at the moment without finer window depth/z control.
+                if (ImGui::MenuItem("New scene")) { s_DockSpaceCallbacks.OnSceneNewCallback(); }
                 if (ImGui::MenuItem("Load scene")) { s_DockSpaceCallbacks.OnSceneLoadCallback(); }
                 if (ImGui::MenuItem("Save scene")) { s_DockSpaceCallbacks.OnSceneSaveCallback(); }
 

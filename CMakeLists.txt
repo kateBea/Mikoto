@@ -15,6 +15,7 @@ set(VOLK_CMAKE_DIR vendor/volk)
 set(ASSIMP_CMAKE_DIR vendor/assimp)
 set(VMA_CMAKE_DIR vendor/VulkanMemoryAllocator)
 set(YAML_CMAKE_DIR vendor/yaml-cpp)
+set(NFD_CMAKE_DIR vendor/nativefiledialog-extended)
 
 # Projects source files
 set(CORE_SOURCES
@@ -121,9 +122,10 @@ add_subdirectory(${ENTT_CMAKE_DIR})
 add_subdirectory(${VOLK_CMAKE_DIR})
 add_subdirectory(${ASSIMP_CMAKE_DIR})
 add_subdirectory(${YAML_CMAKE_DIR})
+add_subdirectory(${NFD_CMAKE_DIR})
 
 # Libraries to link against target
-set(LIBRARIES glfw glew_s fmt EnTT::EnTT volk assimp yaml-cpp)
+set(LIBRARIES glfw glew_s fmt EnTT::EnTT volk assimp yaml-cpp nfd)
 
 # Compiler flags
 if (MSVC)
@@ -151,6 +153,7 @@ include_directories(vendor/assimp/include)
 include_directories(vendor/VulkanMemoryAllocator/include)
 include_directories(vendor/ImGuizmo)
 include_directories(vendor/yaml-cpp/include)
+include_directories(vendor/nativefiledialog-extended/src/include)
 
 add_executable(${PROJECT_NAME} src/EntryPoint.cc ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBRARIES})

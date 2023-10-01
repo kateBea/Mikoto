@@ -7,13 +7,16 @@
 #include <memory>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 // Third-Party Libraries
+#include <nfd.hpp>
 #include <entt/entt.hpp>
 #include <yaml-cpp/yaml.h>
 
 // Project Headers
 #include <Core/Logger.hh>
+#include <Core/Assert.hh>
 #include <Core/Serializer.hh>
 #include <Scene/Entity.hh>
 
@@ -257,5 +260,85 @@ namespace Mikoto::Serializer {
         else {
             MKT_CORE_LOGGER_INFO("File opened '{}' but has no scene objects", saveFilePath.string());
         }
+    }
+
+    auto SaveDialog(const std::string& defaultName, const std::initializer_list<std::pair<std::string, std::string>>& filters) -> std::string {
+        std::string saveFilePath{};
+
+        // Process filters
+        std::vector<nfdfilteritem_t> filterItems{};
+
+        for (const auto& [filterName, filterExtensions] : filters) {
+            filterItems.emplace_back(nfdfilteritem_t{ filterName.data(), filterExtensions.data() });
+        }
+
+        // initialize NFD
+        NFD::Guard nfdGuard{};
+
+        // auto-freeing memory
+        NFD::UniquePath outPath{};
+
+        // show the dialog
+        nfdresult_t result{ NFD::SaveDialog(outPath, filterItems.data(), filterItems.size(), nullptr, defaultName.data()) };
+
+        if (result == NFD_OKAY) {
+            saveFilePath = outPath.get();
+        }
+        else if (result == NFD_CANCEL) {
+            MKT_CORE_LOGGER_INFO("User canceled File open dialog");
+        }
+        else {
+            MKT_CORE_LOGGER_ERROR("Error in  File open dialog: {}", NFD::GetError());
+        }
+
+        // NFD::Guard will automatically quit NFD.
+
+        return saveFilePath;
+    }
+
+    auto OpenDialog(const std::initializer_list<std::pair<std::string, std::string>>& filters) -> std::string {
+        std::string filePath{};
+
+        // Process filters
+        std::vector<nfdfilteritem_t> filterItems{};
+
+        for (const auto& [filterName, filterExtensions] : filters) {
+            filterItems.emplace_back(nfdfilteritem_t{ filterName.data(), filterExtensions.data() });
+        }
+
+        // initialize NFD
+        NFD::Guard nfdGuard;
+
+        // auto-freeing memory
+        NFD::UniquePath outPath;
+
+        // show the dialog
+        nfdresult_t result{ NFD::OpenDialog(outPath, filterItems.data(), filterItems.size()) };
+
+        if (result == NFD_OKAY) {
+            filePath = outPath.get();
+        }
+        else if (result == NFD_CANCEL) {
+            MKT_CORE_LOGGER_INFO("User canceled File open dialog");
+        }
+        else {
+            MKT_CORE_LOGGER_ERROR("Error in  File open dialog: {}", NFD::GetError());
+        }
+
+        // NFD::Guard will automatically quit NFD.
+
+        return filePath;
+    }
+
+    auto Init() -> void {
+        // NFD init successful
+        auto result{ NFD_Init() == NFD_OKAY };
+
+        // Assert if it fails to initialize
+        MKT_ASSERT(result, "Failed to initialized File dialog library NFD");
+    }
+
+    auto Shutdown() -> void {
+        NFD_Quit();
     }
 }

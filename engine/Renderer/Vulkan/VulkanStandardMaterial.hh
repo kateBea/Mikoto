@@ -70,10 +70,19 @@ namespace Mikoto {
 
         MKT_NODISCARD static auto GetStandardMaterialName() -> std::string_view { return "StandardMaterial"; }
 
+        /**
+         * Initializes the required shaders for all VulkanStandardMaterials.
+         * Must call this function before any VulkanStandardMaterials is created.
+         * */
+        static auto InitializeRequiredShaders() -> void;
+
+        /**
+         * Returns the set of shaders shared amongst all VulkanStandardMaterials
+         * @returns VulkanStandardMaterial shaders
+         * */
+        MKT_NODISCARD static auto GetShaders() -> const std::vector<VulkanShader>& { return s_Shaders; }
+
     private:
-        /*************************************************************
-        * STRUCTURES
-        * ***********************************************************/
         struct UniformBufferData {
             // Camera
             glm::mat4 View{};
@@ -85,9 +94,6 @@ namespace Mikoto {
         };
 
     private:
-        /*************************************************************
-        * HELPERS
-        * ***********************************************************/
         auto CreateUniformBuffer() -> void;
         auto CreateDescriptorPool() -> void;
         auto CreateDescriptorSet() -> void;
@@ -103,6 +109,8 @@ namespace Mikoto {
 
         UniformBufferData m_UniformData{};
         Size_T m_UniformDataStructureSize{}; // size of the UniformBufferData structure, with required padding for the device
+
+        static inline std::vector<VulkanShader> s_Shaders{};
     };
 }
 

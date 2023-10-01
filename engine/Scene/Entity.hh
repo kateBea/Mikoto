@@ -229,10 +229,9 @@ namespace Mikoto {
             m_Scene = context;
         }
 
+        ~Entity() = default;
+
     private:
-        /*************************************************************
-        * HELPERS
-        * ***********************************************************/
         template<typename ComponentType>
         auto OnComponentAttach(ComponentType& newComponent) -> void;
 

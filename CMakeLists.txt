@@ -14,6 +14,7 @@ set(FMT_CMAKE_DIR vendor/fmt)
 set(VOLK_CMAKE_DIR vendor/volk)
 set(ASSIMP_CMAKE_DIR vendor/assimp)
 set(VMA_CMAKE_DIR vendor/VulkanMemoryAllocator)
+set(YAML_CMAKE_DIR vendor/yaml-cpp)
 
 # Projects source files
 set(CORE_SOURCES
@@ -25,7 +26,8 @@ set(CORE_SOURCES
         src/VulkanUtils.cc
         src/OpenGLUtils.cc
         src/LayerManager.cc
-        src/JobSystem.cc)
+        src/JobSystem.cc
+        src/Serializer.cc)
 
 set(PLATFORM_SOURCES
         src/Application.cc
@@ -118,9 +120,10 @@ add_subdirectory(${FMT_CMAKE_DIR})
 add_subdirectory(${ENTT_CMAKE_DIR})
 add_subdirectory(${VOLK_CMAKE_DIR})
 add_subdirectory(${ASSIMP_CMAKE_DIR})
+add_subdirectory(${YAML_CMAKE_DIR})
 
 # Libraries to link against target
-set(LIBRARIES glfw glew_s fmt EnTT::EnTT volk assimp)
+set(LIBRARIES glfw glew_s fmt EnTT::EnTT volk assimp yaml-cpp)
 
 # Compiler flags
 if (MSVC)
@@ -147,6 +150,7 @@ include_directories(vendor/volk)
 include_directories(vendor/assimp/include)
 include_directories(vendor/VulkanMemoryAllocator/include)
 include_directories(vendor/ImGuizmo)
+include_directories(vendor/yaml-cpp/include)
 
 add_executable(${PROJECT_NAME} src/EntryPoint.cc ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBRARIES})

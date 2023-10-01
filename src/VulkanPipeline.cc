@@ -12,6 +12,7 @@
 
 // Project Headers
 #include <Utility/Types.hh>
+#include <Utility/VulkanUtils.hh>
 #include <Utility/Common.hh>
 #include <Core/Logger.hh>
 #include <Renderer/Vulkan/VulkanVertexBuffer.hh>
@@ -20,57 +21,31 @@
 
 namespace Mikoto {
 
-    VulkanPipeline::VulkanPipeline(const Path_T& vPath, const Path_T& fPath, const PipelineConfigInfo& config) {
-        CreateGraphicsPipeline(vPath, fPath, config);
+    VulkanPipeline::VulkanPipeline(const PipelineConfigInfo& config) {
+        CreateGraphicsPipeline(config);
     }
 
-    auto VulkanPipeline::CreateGraphicsPipeline(const Path_T& vPath, const Path_T& fPath, const PipelineConfigInfo& config) -> void {
+    auto VulkanPipeline::CreateGraphicsPipeline(const PipelineConfigInfo& config) -> void {
         MKT_ASSERT(config.PipelineLayout != VK_NULL_HANDLE, "Cannot create graphics pipeline. No Pipeline Layout in PipelineConfigInfo");
         MKT_ASSERT(config.RenderPass != VK_NULL_HANDLE, "Cannot create graphics pipeline. No Render Pass Layout in PipelineConfigInfo");
 
-        auto vData{ GetFileData(vPath) };
-        auto fData{ GetFileData(fPath) };
+        VkGraphicsPipelineCreateInfo pipelineInfo{ VulkanUtils::Initializers::GraphicsPipelineCreateInfo() };
 
-        CreateShaderModule(vData, &m_VertShaderModule);
-        CreateShaderModule(fData, &m_FragShaderModule);
+        // Setup shaders
+        pipelineInfo.stageCount = config.ShaderStages->size();
+        pipelineInfo.pStages =  config.ShaderStages->data();
 
-        std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
+        // Setup Vertex input
+        VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VulkanUtils::Initializers::PipelineVertexInputStateCreateInfo() };
 
-        shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-        shaderStages[0].module = m_VertShaderModule;
-        shaderStages[0].pName = "main";
-        shaderStages[0].flags = 0;
-        shaderStages[0].pNext = nullptr;
-        shaderStages[0].pSpecializationInfo = nullptr;
-
-        shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        shaderStages[1].module = m_FragShaderModule;
-        shaderStages[1].pName = "main";
-        shaderStages[1].flags = 0;
-        shaderStages[1].pNext = nullptr;
-        shaderStages[1].pSpecializationInfo = nullptr;
-
-        // Setup Vertex Input State Info
-        VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-
-        auto bindingDesc{ VulkanVertexBuffer::GetDefaultBindingDescriptions() };
-        auto attributeDesc{ VulkanVertexBuffer::GetDefaultAttributeDescriptions() };
-
+        const auto& bindingDesc{ VulkanVertexBuffer::GetDefaultBindingDescriptions() };
+        const auto& attributeDesc{ VulkanVertexBuffer::GetDefaultAttributeDescriptions() };
         vertexInputInfo.vertexBindingDescriptionCount = bindingDesc.size();
         vertexInputInfo.vertexAttributeDescriptionCount = attributeDesc.size();
-
         vertexInputInfo.pVertexAttributeDescriptions = attributeDesc.data();
         vertexInputInfo.pVertexBindingDescriptions = bindingDesc.data();
 
-        VkGraphicsPipelineCreateInfo pipelineInfo{};
-        pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-
-        pipelineInfo.stageCount = shaderStages.size();
-        pipelineInfo.pStages =  shaderStages.data();
-
+        // Pipeline create info submit
         pipelineInfo.pVertexInputState = &vertexInputInfo;
         pipelineInfo.pInputAssemblyState = &config.InputAssemblyInfo;
         pipelineInfo.pViewportState = &config.ViewportInfo;
@@ -85,22 +60,10 @@ namespace Mikoto {
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
         pipelineInfo.pDynamicState = &config.DynamicStateInfo;
 
-        if (vkCreateGraphicsPipelines(VulkanContext::GetPrimaryLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline) != VK_SUCCESS)
+        if (vkCreateGraphicsPipelines(VulkanContext::GetPrimaryLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create Graphics pipeline");
+        }
     }
-
-    auto VulkanPipeline::CreateShaderModule(const std::string& srcCode, VkShaderModule* shaderModule) -> void {
-        VkShaderModuleCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        createInfo.codeSize = srcCode.size();
-        // It seems this casts is valid since the default std::vector allocator
-        // ensures the data satisfies the worst case alignment
-        createInfo.pCode = reinterpret_cast<const UInt32_T*>(srcCode.data());
-
-        if (vkCreateShaderModule(VulkanContext::GetPrimaryLogicalDevice(), &createInfo, nullptr, shaderModule) != VK_SUCCESS)
-            throw std::runtime_error("Failed to create shader module");
-    }
-
 
     auto VulkanPipeline::GetDefaultPipelineConfigInfo() -> PipelineConfigInfo& {
         static PipelineConfigInfo configInfo{};
@@ -183,8 +146,6 @@ namespace Mikoto {
     }
 
     auto VulkanPipeline::OnRelease() const -> void {
-        vkDeviceWaitIdle(VulkanContext::GetPrimaryLogicalDevice());
-
         vkDestroyShaderModule(VulkanContext::GetPrimaryLogicalDevice(), m_VertShaderModule, nullptr);
         vkDestroyShaderModule(VulkanContext::GetPrimaryLogicalDevice(), m_FragShaderModule, nullptr);
         vkDestroyPipeline(VulkanContext::GetPrimaryLogicalDevice(), m_GraphicsPipeline, nullptr);

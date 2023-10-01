@@ -37,6 +37,12 @@ namespace Mikoto {
         auto OnEditorUpdate(double timeStep, const EditorCamera &camera) -> void;
         auto OnViewPortResize(UInt32_T width, UInt32_T height) -> void;
 
+        auto GetRegistry() -> entt::registry& { return m_Registry; }
+        MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
+
+        auto SetName(const std::string& name) { m_Name = name; }
+
+
         MKT_NODISCARD static auto CreateEmptyObject(std::string_view tagName, const std::shared_ptr<Scene>& scene) -> Entity;
         MKT_NODISCARD static auto CreatePrefabObject(std::string_view tagName, const std::shared_ptr<Scene>& scene, PrefabSceneObject type) -> Entity;
 
@@ -48,9 +54,6 @@ namespace Mikoto {
         friend class InspectorPanel;
 
     private:
-        /*************************************************************
-        * HELPERS
-        * ***********************************************************/
         auto UpdateScripts() -> void;
 
         static constexpr glm::vec3 ENTITY_INITIAL_SIZE{ 1.0f, 1.0f, 1.0f };
@@ -58,12 +61,10 @@ namespace Mikoto {
         static constexpr glm::vec3 ENTITY_INITIAL_ROTATION{ 0.0f, 0.0f, 0.0f };
 
     private:
-        /*************************************************************
-        * DATA MEMBERS
-        * ***********************************************************/
         entt::registry m_Registry{};
         UInt32_T m_ViewportWidth{};
         UInt32_T m_ViewportHeight{};
+        std::string m_Name{ "Mikoto" };
     };
 }
 

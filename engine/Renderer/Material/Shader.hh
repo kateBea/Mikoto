@@ -22,6 +22,11 @@ namespace Mikoto {
         SHADER_TESSELATION_STAGE    = BIT_SET(4),
     };
 
+    struct ShaderCreateInfo {
+        Path_T Directory{};
+        ShaderStage Stage{};
+    };
+
     class Shader {
     public:
         /**
@@ -75,9 +80,7 @@ namespace Mikoto {
         explicit Shader(ShaderStage stage = ShaderStage::SHADER_VERTEX_STAGE) : m_Stage{ stage } {};
 
     protected:
-        /*************************************************************
-         * DATA MEMBERS
-         * ***********************************************************/
+
         ShaderStage m_Stage{};
     };
 }

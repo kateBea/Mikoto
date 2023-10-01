@@ -374,6 +374,50 @@ namespace Mikoto::VulkanUtils::Initializers {
 
         return ret;
     }
+
+    /**
+     * Returns a default initialized VkShaderModuleCreateInfo structure
+     * @returns default initialized VkShaderModuleCreateInfo
+     * */
+    inline auto ShaderModuleCreateInfo() -> VkShaderModuleCreateInfo {
+        VkShaderModuleCreateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkPipelineShaderStageCreateInfo structure
+     * @returns default initialized VkPipelineShaderStageCreateInfo
+     * */
+    inline auto PipelineShaderStageCreateInfo() -> VkPipelineShaderStageCreateInfo {
+        VkPipelineShaderStageCreateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkGraphicsPipelineCreateInfo structure
+     * @returns default initialized VkGraphicsPipelineCreateInfo
+     * */
+    inline auto GraphicsPipelineCreateInfo() -> VkGraphicsPipelineCreateInfo {
+        VkGraphicsPipelineCreateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkPipelineVertexInputStateCreateInfo structure
+     * @returns default initialized VkPipelineVertexInputStateCreateInfo
+     * */
+    inline auto PipelineVertexInputStateCreateInfo() -> VkPipelineVertexInputStateCreateInfo {
+        VkPipelineVertexInputStateCreateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+
+        return ret;
+    }
 }
 
 #endif // MIKOTO_VULKAN_UTILS_HH

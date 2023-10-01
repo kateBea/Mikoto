@@ -26,6 +26,7 @@
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanSwapChain.hh>
 
+// TODO: implement vulkan delete queue
 namespace Mikoto {
     auto VulkanContext::Init(const std::shared_ptr<Window>& handle) -> void {
         // Initialize the Volk library

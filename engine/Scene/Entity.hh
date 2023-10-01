@@ -135,7 +135,15 @@ namespace Mikoto {
          * Returns true if this entity is valid, false otherwise
          * @returns true if the implicit parameter is a valid entity
          * */
-        MKT_NODISCARD auto IsValid() const -> bool { return m_EntityHandle != entt::null; }
+        MKT_NODISCARD auto IsValid() const -> bool {
+            if (auto ptr{ m_Scene.lock() }) {
+                return ptr->m_Registry.valid(m_EntityHandle);
+            }
+            else {
+                MKT_CORE_LOGGER_WARN("This entity's scene has expired and no longer exists!");
+                return false;
+            }
+        }
 
         /**
          * Returns the component with specified type

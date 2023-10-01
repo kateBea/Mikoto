@@ -73,6 +73,12 @@ namespace Mikoto {
         };
     }
 
+    auto ScenePanel::MakeNewScene() -> void {
+        m_Implementation->GetData().Viewport->Clear();
+
+        m_Implementation->GetData().Viewport = std::make_shared<Scene>();
+    }
+
     auto ScenePanelInterface::HandleGuizmos() -> void {
         if (m_CurrentContextSelection.IsValid()) {
             if (!m_CurrentContextSelection.GetComponent<TagComponent>().IsVisible()) {

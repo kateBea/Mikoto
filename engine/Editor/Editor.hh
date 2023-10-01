@@ -36,6 +36,9 @@ namespace Mikoto::Editor {
 
         // This function is called when we click on the Load scene of the File Menu
         std::function<void()> OnSceneLoadCallback{};
+
+        // This function is called when we click on the New scene of the File Menu
+        std::function<void()> OnSceneNewCallback{};
     };
 
     /*************************************************************

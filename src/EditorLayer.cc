@@ -37,19 +37,39 @@ namespace Mikoto {
         // Initialize Editor DockSpace
         auto& dockSpaceCallbacks{ Editor::GetDockSpaceCallbacks() };
 
+        dockSpaceCallbacks.OnSceneNewCallback =
+            [&]() -> void {
+                m_ScenePanel->MakeNewScene();
+                const auto& sceneData{ m_ScenePanel->GetData() };
+
+                m_HierarchyPanel->SetScene(sceneData.Viewport);
+            };
+
         dockSpaceCallbacks.OnSceneLoadCallback =
             [&]() -> void {
                 // We need to clear the scene before we load the serialized entities
                 m_ScenePanel->GetData().Viewport->Clear();
 
+                // prepare filters for the dialog
+                std::initializer_list<std::pair<std::string, std::string>> filters{
+                        { "Mikoto Scene files", "mkts,mktscene" },
+                        { "Mikoto Project Files", "mkt,mktp,mktproject" }
+                };
+
                 Serializer::SceneSerializer serializer{ m_ScenePanel->GetData().Viewport };
-                serializer.Deserialize("../scene_examples/just_cubes.mkt");
+                serializer.Deserialize(Serializer::OpenDialog(filters));
             };
 
         dockSpaceCallbacks.OnSceneSaveCallback =
             [&]() -> void {
+                // prepare filters for the dialog
+                std::initializer_list<std::pair<std::string, std::string>> filters{
+                        { "Mikoto Scene files", "mkts,mktscene" },
+                        { "Mikoto Project Files", "mkt,mktp,mktproject" }
+                };
+
                 Serializer::SceneSerializer serializer{ m_ScenePanel->GetData().Viewport };
-                serializer.Serialize("../scene_examples/just_cubes.mkt");
+                serializer.Serialize(Serializer::SaveDialog("Mikoto Scene", filters));
             };
     }
 
@@ -162,7 +182,9 @@ namespace Mikoto {
         // Initialize cameras
         auto& window{ Application::Get().GetMainWindow() };
         double aspect{ window.GetWidth() / (double)window.GetHeight() };
-        m_RuntimeCamera = std::make_shared<SceneCamera>(glm::ortho(-aspect, aspect, -1.0, 1.0)); (void)m_RuntimeCamera;
+        m_RuntimeCamera = std::make_shared<SceneCamera>(glm::ortho(-aspect, aspect, -1.0, 1.0));
+        (void)m_RuntimeCamera;
+
         m_EditorCamera = std::make_shared<EditorCamera>(fieldOfView, aspectRatio, nearPlane, farPlane);
     }
 }

@@ -149,8 +149,11 @@ namespace Mikoto {
     }
 
     auto Scene::Clear() -> void {
-        for (auto& entity : m_Registry.view<TagComponent>()) {
-            m_Registry.destroy(entity);
-        }
+        auto view{ m_Registry.view<TagComponent>() };
+        m_Registry.destroy(view.begin(), view.end());
+    }
+
+    Scene::~Scene() {
+        Clear();
     }
 }

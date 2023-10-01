@@ -35,6 +35,7 @@ namespace Mikoto {
        MKT_NODISCARD auto IsHovered() const -> bool { return m_Hovered; }
        MKT_NODISCARD auto IsFocused() const -> bool { return m_Focused; }
        MKT_NODISCARD auto GetData() const -> const ScenePanelData& { return m_Data; }
+       MKT_NODISCARD auto GetData() -> ScenePanelData& { return m_Data; }
 
        auto SetSceneCamera(const EditorCamera* camera) -> void { m_EditorMainCamera = camera; }
        auto SetContextSelection(const Entity& target) -> void { m_CurrentContextSelection = target; }
@@ -81,6 +82,7 @@ namespace Mikoto {
          * @returns this panel's data
          * */
         MKT_NODISCARD auto GetData() const -> const ScenePanelData& { return m_Implementation->GetData(); }
+        MKT_NODISCARD auto GetData() -> ScenePanelData& { return m_Implementation->GetData(); }
         MKT_NODISCARD auto GetCallbacks() const -> const ScenePanelCallbacks& { return m_Callbacks; }
 
         /**

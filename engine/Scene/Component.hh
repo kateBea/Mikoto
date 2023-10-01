@@ -208,6 +208,7 @@ namespace Mikoto {
         auto operator=(RenderComponent && other) -> RenderComponent & = default;
 
         auto GetObjectData() -> SceneObjectData& { return m_RenderableData; }
+        MKT_NODISCARD auto GetObjectData() const -> const SceneObjectData& { return m_RenderableData; }
 
         ~RenderComponent() = default;
 

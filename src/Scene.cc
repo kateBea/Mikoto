@@ -147,4 +147,10 @@ namespace Mikoto {
     auto Scene::UpdateScripts() -> void {
 
     }
+
+    auto Scene::Clear() -> void {
+        for (auto& entity : m_Registry.view<TagComponent>()) {
+            m_Registry.destroy(entity);
+        }
+    }
 }

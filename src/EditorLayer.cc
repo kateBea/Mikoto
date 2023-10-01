@@ -33,11 +33,28 @@ namespace Mikoto {
             // TODO: does not compile
             // m_MainCamEntity.GetComponent<NativeScriptComponent>().Bind<CameraController>();
         }
+
+        // Initialize Editor DockSpace
+        auto& dockSpaceCallbacks{ Editor::GetDockSpaceCallbacks() };
+
+        dockSpaceCallbacks.OnSceneLoadCallback =
+            [&]() -> void {
+                // We need to clear the scene before we load the serialized entities
+                m_ScenePanel->GetData().Viewport->Clear();
+
+                Serializer::SceneSerializer serializer{ m_ScenePanel->GetData().Viewport };
+                serializer.Deserialize("../scene_examples/just_cubes.mkt");
+            };
+
+        dockSpaceCallbacks.OnSceneSaveCallback =
+            [&]() -> void {
+                Serializer::SceneSerializer serializer{ m_ScenePanel->GetData().Viewport };
+                serializer.Serialize("../scene_examples/just_cubes.mkt");
+            };
     }
 
     auto EditorLayer::OnDetach() -> void {
-        Serializer::SceneSerializer serializer{ m_ScenePanel->GetData().Viewport };
-        serializer.SerializeScene("../scene_examples/just_cubes.mkt");
+
     }
 
     auto EditorLayer::OnUpdate(double ts) -> void {

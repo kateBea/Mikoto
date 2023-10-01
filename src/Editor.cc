@@ -151,7 +151,7 @@ namespace Mikoto::Editor {
         // because it would be confusing to have two docking targets within each others.
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
 
-        // Dockspace always takes the full screen
+        // Docks-pace always takes the full screen
         const ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(viewport->WorkPos);
         ImGui::SetNextWindowSize(viewport->WorkSize);
@@ -170,7 +170,7 @@ namespace Mikoto::Editor {
         // This is because we want to keep our DockSpace() active. If a DockSpace() is inactive,
         // all active windows docked into it will lose their parent and become undocked.
         // We cannot preserve the docking relationship between an active window and an inactive docking, otherwise
-        // any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
+        // any change of docks-pace/settings would lead to windows being stuck in limbo and never being visible.
         if (!optPadding)
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
         ImGui::Begin("DockSpace Demo", &s_ControlFlags.ApplicationCloseFlag, window_flags);
@@ -190,8 +190,9 @@ namespace Mikoto::Editor {
             ImGuiID dockSpaceId = ImGui::GetID("kaTeDockEditor");
             ImGui::DockSpace(dockSpaceId, ImVec2(0.0f, 0.0f), dockSpaceConfigFlags);
         }
-        else
+        else {
             ShowDockingDisabledMessage();
+        }
 
         style.WindowMinSize.x = minimumPanelsWidth;
 
@@ -200,9 +201,8 @@ namespace Mikoto::Editor {
             if (ImGui::BeginMenu("File")) {
                 // Disabling fullscreen would allow the window to be moved to the front of other windows,
                 // which we can't undo at the moment without finer window depth/z control.
-                ImGui::MenuItem("Open");
-                ImGui::MenuItem("Save");
-                ImGui::Separator();
+                if (ImGui::MenuItem("Load scene")) { s_DockSpaceCallbacks.OnSceneLoadCallback(); }
+                if (ImGui::MenuItem("Save scene")) { s_DockSpaceCallbacks.OnSceneSaveCallback(); }
 
                 ImGui::Separator();
 
@@ -276,6 +276,7 @@ namespace Mikoto::Editor {
         ImVec2 center{ ImGui::GetMainViewport()->GetCenter() };
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
+
         if (ImGui::BeginPopupModal("AboutPopUp11111", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::Text("GPU");
             ImGui::Text("Vendor");
@@ -287,5 +288,6 @@ namespace Mikoto::Editor {
 
             ImGui::EndPopup();
         }
+
     }
 }

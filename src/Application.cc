@@ -116,8 +116,11 @@ namespace Mikoto {
     auto Application::ShutDown() -> void {
         MKT_APP_LOGGER_INFO("Shutting down Mikoto Engine");
 
+        for (auto it{ m_LayerStack->rbegin() }; it != m_LayerStack->rend(); ++it) {
+            (*it)->OnDetach();
+        }
+
         m_LayerStack->PopOverlay(m_ImGuiLayer);
-        m_ImGuiLayer->OnDetach();
 
         InputManager::ShutDown();
         Renderer::ShutDown();

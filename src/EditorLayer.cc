@@ -16,6 +16,7 @@
 #include <Scene/Scene.hh>
 #include <Editor/Editor.hh>
 #include <Editor/EditorLayer.hh>
+#include <Core/Serializer.hh>
 
 namespace Mikoto {
     auto EditorLayer::OnAttach() -> void {
@@ -35,7 +36,8 @@ namespace Mikoto {
     }
 
     auto EditorLayer::OnDetach() -> void {
-
+        Serializer::SceneSerializer serializer{ m_ScenePanel->GetData().Viewport };
+        serializer.SerializeScene("../scene_examples/just_cubes.mkt");
     }
 
     auto EditorLayer::OnUpdate(double ts) -> void {

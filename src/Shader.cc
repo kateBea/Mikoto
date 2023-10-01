@@ -25,6 +25,14 @@ namespace Mikoto {
     }
 
     auto Shader::Create(const Path_T& src, ShaderStage stage) -> std::shared_ptr<Shader> {
-        return std::shared_ptr<Shader>();
+        switch(Renderer::GetActiveGraphicsAPI()) {
+        case GraphicsAPI::OPENGL_API:
+
+        case GraphicsAPI::VULKAN_API:
+
+        default:
+            MKT_CORE_LOGGER_CRITICAL("Unsupported renderer API");
+            return nullptr;
+        }
     }
 }

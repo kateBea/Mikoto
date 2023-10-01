@@ -13,6 +13,7 @@
 // Project Headers
 #include <Utility/VulkanUtils.hh>
 #include <Renderer/Renderer.hh>
+#include <Renderer/Material/Shader.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
 #include <Renderer/Vulkan/VulkanStandardMaterial.hh>
@@ -134,5 +135,21 @@ namespace Mikoto {
         m_UniformData.Color.g = green;
         m_UniformData.Color.b = blue;
         m_UniformData.Color.a = alpha;
+    }
+
+    auto VulkanStandardMaterial::InitializeRequiredShaders() -> void {
+        // Vertex shader
+        ShaderCreateInfo vertexStage{};
+        vertexStage.Directory = "../assets/shaders/vulkan-spirv/StandardVertexShader.sprv";
+        vertexStage.Stage = ShaderStage::SHADER_VERTEX_STAGE;
+
+        s_Shaders.emplace_back(vertexStage);
+
+        // Vertex shader
+        ShaderCreateInfo fragmentStage{};
+        fragmentStage.Directory = "../assets/shaders/vulkan-spirv/StandardFragmentShader.sprv";
+        fragmentStage.Stage = ShaderStage::SHADER_FRAGMENT_STAGE;
+
+        s_Shaders.emplace_back(fragmentStage);
     }
 }

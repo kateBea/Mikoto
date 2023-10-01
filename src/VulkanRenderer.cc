@@ -34,6 +34,9 @@ namespace Mikoto {
 
         PrepareOffscreen();
         CreateCommandBuffers();
+
+        InitializeMaterialShaders();
+        InitializeMaterialSpecificData();
     }
 
     auto VulkanRenderer::EnableWireframeMode() -> void {
@@ -434,8 +437,6 @@ namespace Mikoto {
         UpdateViewport(0, static_cast<float>(m_OffscreenExtent.height), static_cast<float>(m_OffscreenExtent.width), -static_cast<float>(m_OffscreenExtent.height));
         UpdateScissor(0, 0, { m_OffscreenExtent.width, m_OffscreenExtent.height });
 
-        InitializeMaterialSpecificData();
-
         m_OffscreenPrepareFinished = true;
     }
 
@@ -456,7 +457,13 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::InitializeMaterialSpecificData() -> void {
-        // DEFAULT MATERIAL DATA INITIALIZATION
+        // VkPipelineShaderStageCreateInfo pre-setup for Wireframe and Default material
+        std::vector<VkPipelineShaderStageCreateInfo> pipelineShaderStageCreateInfos{};
+        for (const auto& shader : VulkanStandardMaterial::GetShaders()) {
+            pipelineShaderStageCreateInfos.emplace_back(shader.GetPipelineStageCreateInfo());
+        }
+
+        //  DATA INITIALIZATION
         const std::string standardMaterialName{ VulkanStandardMaterial::GetStandardMaterialName() };
         m_MaterialInfo.insert(std::make_pair(standardMaterialName, MaterialSharedSpecificData{}));
         MaterialSharedSpecificData& defaultMaterial{ m_MaterialInfo[standardMaterialName] };
@@ -478,8 +485,9 @@ namespace Mikoto {
         auto defaultMatPipelineConfig{ VulkanPipeline::GetDefaultPipelineConfigInfo() };
         defaultMatPipelineConfig.RenderPass = m_OffscreenMainRenderPass;
         defaultMatPipelineConfig.PipelineLayout = defaultMaterial.MaterialPipelineLayout;
+        defaultMatPipelineConfig.ShaderStages = &pipelineShaderStageCreateInfos;
 
-        defaultMaterial.Pipeline = std::make_shared<VulkanPipeline>("../assets/shaders/vulkan-spirv/basicVert.sprv", "../assets/shaders/vulkan-spirv/basicFrag.sprv", defaultMatPipelineConfig);
+        defaultMaterial.Pipeline = std::make_shared<VulkanPipeline>(defaultMatPipelineConfig);
 
 
         // WIREFRAME MATERIAL DATA INITIALIZATION
@@ -510,8 +518,9 @@ namespace Mikoto {
 
         wireframePipelineConfig.RenderPass = m_OffscreenMainRenderPass;
         wireframePipelineConfig.PipelineLayout = wireframeMaterial.MaterialPipelineLayout;
+        wireframePipelineConfig.ShaderStages = &pipelineShaderStageCreateInfos;
 
-        wireframeMaterial.Pipeline = std::make_shared<VulkanPipeline>("../assets/shaders/vulkan-spirv/basicVert.sprv", "../assets/shaders/vulkan-spirv/basicFrag.sprv", wireframePipelineConfig);
+        wireframeMaterial.Pipeline = std::make_shared<VulkanPipeline>(wireframePipelineConfig);
     }
 
     auto VulkanRenderer::CreateGlobalDescriptorSetLayoutForStandardMaterial() -> void {
@@ -552,5 +561,9 @@ namespace Mikoto {
 
     auto VulkanRenderer::QueueForDrawing(std::shared_ptr<DrawData> data) -> void {
         m_DrawQueue.emplace_back(data);
+    }
+
+    auto VulkanRenderer::InitializeMaterialShaders() -> void {
+        VulkanStandardMaterial::InitializeRequiredShaders();
     }
 }

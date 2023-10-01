@@ -104,10 +104,9 @@ namespace Mikoto {
         std::array<VkClearValue, CLEAR_COUNT> m_ClearValues{};
 
         bool m_OffscreenPrepareFinished{};
+
     private:
-        /*************************************************************
-        * MATERIALS
-        * ***********************************************************/
+        static auto InitializeMaterialShaders() -> void;
         auto CreateGlobalDescriptorSetLayoutForStandardMaterial() -> void;
 
         std::unordered_map<std::string, MaterialSharedSpecificData> m_MaterialInfo{};

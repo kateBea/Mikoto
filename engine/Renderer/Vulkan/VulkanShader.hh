@@ -19,21 +19,28 @@
 
 namespace Mikoto {
     struct VulkanShaderInfo {
+        // Entry point to the shader program
         std::string EntryPoint{ "main" };
-        std::string SrcPath{};
+
+        // Contents of the loaded SPIR-V file
+        std::string Code{};
+
+        // Vulkan structure needed to create the shader module
         VkPipelineShaderStageCreateInfo StageCreateInfo{};
     };
 
     class VulkanShader : public Shader {
     public:
-        explicit VulkanShader(ShaderStage stage);
+        explicit VulkanShader(const ShaderCreateInfo& createInfo);
 
-        auto Upload(const Path_T& src) -> void;
         auto OnRelease() const -> void;
 
         MKT_NODISCARD auto Get() const -> const VkShaderModule& { return m_Module; }
+        MKT_NODISCARD static auto GetDefaultEntryPoint() -> std::string_view { return "main"; }
+        MKT_NODISCARD auto GetPipelineStageCreateInfo() const -> const VkPipelineShaderStageCreateInfo& { return m_Data.StageCreateInfo; }
 
     private:
+        auto Upload(const Path_T& src) -> void;
         static auto CreateModule(const std::string& srcCode, VkShaderModule& shaderModule) -> void;
 
     private:

@@ -1,0 +1,16 @@
+"Scene: ": Mikoto
+"Scene Objects: ":
+  - Tag Component:
+      "Name:": Cube 1
+      "Visibility:": true
+    Transform Component:
+      "Position:": [-2.21, -1.14, 0]
+      "Rotation:": [0, 0, 0]
+      "Scale:": [1, 1, 1]
+  - Tag Component:
+      "Name:": Cube 0
+      "Visibility:": true
+    Transform Component:
+      "Position:": [2.68, -1.02, -6.1e-05]
+      "Rotation:": [17.4, -52.3, -16.4]
+      "Scale:": [1, 1, 1]

@@ -74,7 +74,11 @@ namespace Mikoto {
     }
 
     auto ScenePanelInterface::HandleGuizmos() -> void {
-        if (m_CurrentContextSelection.IsValid() && m_CurrentContextSelection.GetComponent<TagComponent>().IsVisible()) {
+        if (m_CurrentContextSelection.IsValid()) {
+            if (!m_CurrentContextSelection.GetComponent<TagComponent>().IsVisible()) {
+                return;
+            }
+
             ImGuizmo::SetOrthographic(m_EditorMainCamera->IsOrthographic());
             ImGuizmo::SetDrawlist();
 

@@ -37,6 +37,8 @@ namespace Mikoto {
         auto OnEditorUpdate(double timeStep, const EditorCamera &camera) -> void;
         auto OnViewPortResize(UInt32_T width, UInt32_T height) -> void;
 
+        auto Clear() -> void;
+
         auto GetRegistry() -> entt::registry& { return m_Registry; }
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 

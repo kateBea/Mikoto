@@ -155,7 +155,7 @@ namespace Mikoto {
 
                     if (ImGui::MenuItem("Cylinder")) {
                         static Size_T cylinderCounter{ 0 };
-                        auto ret{ Scene::CreatePrefabObject(fmt::format("Cylinder {}", cylinderCounter), ptr, PrefabSceneObject::CYLINDER_PREFAB_OBJECT)};
+                        auto ret{ Scene::CreatePrefabObject(fmt::format("Cylinder {}", cylinderCounter), ptr, PrefabSceneObject::CYLINDER_PREFAB_OBJECT) };
                         MKT_CORE_LOGGER_INFO("Added Cylinder to scene");
                         ++cylinderCounter;
                     }

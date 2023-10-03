@@ -37,8 +37,6 @@ namespace Mikoto {
         float ViewPortHeight{};
         // TODO: look into making this unique_ptr?
         std::shared_ptr<Scene> Viewport{};
-        bool VerticalSyncEnabled{ true };
-        bool RenderWireframeMode{ false };
     };
 }
 

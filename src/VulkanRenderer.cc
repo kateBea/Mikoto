@@ -135,7 +135,6 @@ namespace Mikoto {
 
         // End command buffer recording
         m_DrawCommandBuffer.EndRecording();
-
     }
 
     auto VulkanRenderer::Draw() -> void {

@@ -32,7 +32,6 @@ namespace Mikoto {
     };
 
     struct ScenePanelData {
-        glm::vec4 ClearColor{};
         float ViewPortWidth{};
         float ViewPortHeight{};
         // TODO: look into making this unique_ptr?

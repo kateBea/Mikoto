@@ -307,10 +307,10 @@ namespace Mikoto::Serializer {
         }
 
         // initialize NFD
-        NFD::Guard nfdGuard;
+        NFD::Guard nfdGuard{};
 
         // auto-freeing memory
-        NFD::UniquePath outPath;
+        NFD::UniquePath outPath{};
 
         // show the dialog
         nfdresult_t result{ NFD::OpenDialog(outPath, filterItems.data(), filterItems.size()) };
@@ -332,13 +332,13 @@ namespace Mikoto::Serializer {
 
     auto Init() -> void {
         // NFD init successful
-        auto result{ NFD_Init() == NFD_OKAY };
+        auto result{ NFD::Init() == NFD_OKAY };
 
         // Assert if it fails to initialize
         MKT_ASSERT(result, "Failed to initialized File dialog library NFD");
     }
 
     auto Shutdown() -> void {
-        NFD_Quit();
+        NFD::Quit();
     }
 }

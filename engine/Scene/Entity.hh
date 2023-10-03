@@ -140,7 +140,6 @@ namespace Mikoto {
                 return ptr->m_Registry.valid(m_EntityHandle);
             }
             else {
-                MKT_CORE_LOGGER_WARN("This entity's scene has expired and no longer exists!");
                 return false;
             }
         }

@@ -9,6 +9,9 @@
 // C++ Standard Library
 #include <cstdlib>
 
+// Third-Party Libraries
+#include <fmt/format.h>
+
 // Project Headers
 #include <Utility/Common.hh>
 
@@ -26,23 +29,26 @@
 
     /**
      * Print __MESSAGE and abort program execution if __EXPR evaluates to false
-     */
+     * */
     #define MKT_ASSERT(__EXPR, __MESSAGE)                                 \
-    do {                                                                   \
-        if (!(__EXPR)) {                                                 \
-            MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_RED, "MESSAGE: {}\n"   \
-                                                      "FUNCTION: {}\n"     \
-                                                      "SRC: {}\n"          \
-                                                      "LINE: {}\n",        \
-                                     __MESSAGE, __PRETTY_FUNCTION__,       \
-                                     __FILE__, __LINE__);                  \
-            std::abort();                                                  \
-        }                                                                  \
+    do {                                                                  \
+        if (!(__EXPR)) {                                                  \
+            MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_RED, "MESSAGE: {}\n"  \
+                                                         "FUNCTION: {}\n" \
+                                                         "SRC: {}\n"      \
+                                                         "LINE: {}\n",    \
+                                      __MESSAGE, __PRETTY_FUNCTION__,     \
+                                      __FILE__, __LINE__);                \
+            std::abort();                                                 \
+        }                                                                 \
     } while (false)
 
-    #define MKT_ASSERT_EXPR(__EXPR)                                               \
+    /**
+     * Print __MESSAGE and abort program execution if __EXPR evaluates to false
+     * */
+    #define MKT_ASSERT_EXPR(__EXPR)                                                 \
     do {                                                                            \
-        if (!(__EXPR)) {                                                         \
+        if (!(__EXPR)) {                                                            \
             MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_RED, "Condition: {} failed\n"   \
                                                       "FUNCTION: {}\n"              \
                                                       "SRC: {}\n"                   \

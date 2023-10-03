@@ -16,8 +16,10 @@ it will use OpenGL as its main rendering API, but the end goal is to integrate V
 
 # Building
 
-Clone the repository, at the moment I only tested building on Linux. 
-The project already comes with a CMake file ready to use. 
+Clone the repository. The project already comes with a CMake file ready to use. At the moment I only tested building on 
+Linux, the process should be similar on Windows. If you have Visual Studio installed, CMake will generate VS project 
+files by default, open the solution file and build the project from there. In case you have CLion, you could also just 
+the CMake as a project and build just fine. The following steps just show how to build from a terminal.
 
 ```shell
   # Clone the repository to your desired directory
@@ -33,15 +35,16 @@ The project already comes with a CMake file ready to use.
   cd build
   
   # Run CMake on the CMake file from the repo root directory
-  cmake ..
+  cmake -S .. -B .
   
   # Finally build the project
-  cmake --build .
+  cmake --build . --config Release
   
-  # and run the executable
+  # and run the executable (if on Linux, the executable should be in build folder)
   ./Mikoto
 ```
 
+# Dependencies
 This project is done thanks to various third-party libraries:
 
 1. [FMT (Modern formatting library)](https://github.com/fmtlib/fmt)

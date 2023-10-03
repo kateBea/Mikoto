@@ -42,9 +42,10 @@ namespace Mikoto::VulkanContext {
     auto DisableVSync() -> void;
     MKT_NODISCARD auto IsVSyncActive() -> bool;
 
-    /*************************************************************
-     * STRUCTURES
-     * ***********************************************************/
+    /**
+     * This structure wraps all the data managed by the Vulkan Context, such as
+     * the physical devices, logical devices, control to whether we want validation layers or not.
+     * */
     struct ContextData {
         std::vector<VkPhysicalDevice> PhysicalDevices{};
         std::vector<VkDevice> LogicalDevices{};
@@ -72,6 +73,10 @@ namespace Mikoto::VulkanContext {
         std::vector<VkPresentModeKHR> PresentModes{};
     };
 
+    /**
+     * Queues indices
+     * TODO: implement with optionals
+     * */
     struct QueuesData {
         VkQueue GraphicsQueue{};
         UInt32_T GraphicsFamilyIndex{};

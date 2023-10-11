@@ -53,14 +53,8 @@ namespace Mikoto::Serializer {
      * */
     class SceneSerializer {
     public:
-
-        explicit SceneSerializer(std::shared_ptr<Scene> scene);
-
-        auto Serialize(const Path_T& saveFilePath) -> void;
-        auto Deserialize(const Path_T& saveFilePath) -> void;
-
-    private:
-        std::shared_ptr<Scene> m_Scene{};
+        static auto Serialize(Scene *scene, const Path_T &saveFilePath) -> void;
+        static auto Deserialize(const Path_T &saveFilePath, Scene &scene) -> void;
     };
 }
 

@@ -11,36 +11,38 @@
 
 // Project Headers
 #include <Core/Logger.hh>
-#include <Scene/Scene.hh>
 #include <Scene/Entity.hh>
 #include <Scene/Component.hh>
-
-#include <Editor/Panels/HierarchyPanel.hh>
+#include <Scene/SceneManager.hh>
+#include <Editor/HierarchyPanel.hh>
 
 namespace Mikoto {
+    HierarchyPanel::HierarchyPanel(const Path_T &iconPath)
+        :   Panel{ iconPath }
+    {
+
+    }
+
     auto HierarchyPanel::OnUpdate() -> void {
         if (m_PanelIsVisible) {
             ImGui::Begin("Hierarchy");
-            if (auto ptr{ m_Context.lock() }) {
-                auto view{ ptr->m_Registry.view<TagComponent>() };
 
-                for (const auto& entity : view) {
-                    Entity current{ entity, ptr };
-                    DrawEntityNode(current);
-                    EntityPopupMenu(current);
-                }
+            m_PanelIsHovered = ImGui::IsWindowHovered();
+            m_PanelIsFocused = ImGui::IsWindowFocused();
 
-                // Deselect the game object
-                if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered()) {
-                    m_ContextSelection.Invalidate();
-                    RunContextDeselectionCallbacks();
-                }
+            SceneManager::ForEachWithComponents<TagComponent>(
+                    [](Entity& entity) -> void {
+                        DrawEntityNode(entity);
+                        OnEntityRightClickMenu(entity);
+                    });
 
-                BlankSpacePopupMenu();
+            // Deselect the game object
+            if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered()) {
+                SceneManager::DisableCurrentlyActiveEntity();
             }
-            else {
-                MKT_CORE_LOGGER_ERROR("Panel context has expired and no longer exists!");
-            }
+
+            // Right click on blank space
+            BlankSpacePopupMenu();
 
             ImGui::End();
         }
@@ -48,20 +50,20 @@ namespace Mikoto {
 
     auto HierarchyPanel::DrawEntityNode(Entity& target) -> void {
         TagComponent& tag{ target.GetComponent<TagComponent>() };
-        bool thisEntityIsSelected{ target == m_ContextSelection };
-        const ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_AllowItemOverlap |
+
+        bool thisEntityIsSelected{ target == SceneManager::GetCurrentlySelectedEntity() };
+        static constexpr ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_AllowItemOverlap |
                                          ImGuiTreeNodeFlags_Framed |
                                          ImGuiTreeNodeFlags_SpanAvailWidth |
                                          ImGuiTreeNodeFlags_FramePadding };
 
-        ImGuiTreeNodeFlags flags{  styleFlags | (thisEntityIsSelected ? ImGuiTreeNodeFlags_Selected : 0) };
-        ImGuiTreeNodeFlags childNodeFlags{ styleFlags | ImGuiTreeNodeFlags_DefaultOpen };
+        static const ImGuiTreeNodeFlags flags{  styleFlags | (thisEntityIsSelected ? ImGuiTreeNodeFlags_Selected : 0) };
+        static constexpr ImGuiTreeNodeFlags childNodeFlags{ styleFlags | ImGuiTreeNodeFlags_DefaultOpen };
 
         bool expanded{ ImGui::TreeNodeEx((void*)(target.m_EntityHandle), flags, "%s", tag.GetTag().c_str()) };
 
         if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-            m_ContextSelection = target;
-            RunContextSelectionCallbacks();
+            SceneManager::SetCurrentlyActiveEntity(target);
         }
 
         if (expanded) {
@@ -76,145 +78,135 @@ namespace Mikoto {
 
     }
 
-    auto HierarchyPanel::EntityPopupMenu(Entity& target) -> void {
-        std::shared_ptr<Scene> m_ContextSelectionScene{ m_ContextSelection.m_Scene.lock() };
+    auto HierarchyPanel::OnEntityRightClickMenu(Entity& target) -> void {
+        static constexpr ImGuiPopupFlags popupItemFlags{ ImGuiPopupFlags_MouseButtonRight };
 
-        if (m_ContextSelectionScene) {
-            ImGuiPopupFlags popupItemFlags{ ImGuiPopupFlags_MouseButtonRight };
-            if (ImGui::BeginPopupContextItem(nullptr, popupItemFlags)) {
-                if (ImGui::BeginMenu("Add component")) {
-                    constexpr bool menuItemSelected{ false };    // these menu items should not display as selected
-                    constexpr const char* menuItemShortcut{ nullptr }; // no shortcuts for now
+        if (ImGui::BeginPopupContextItem(nullptr, popupItemFlags)) {
+            if (ImGui::BeginMenu("Add component")) {
+                constexpr bool menuItemSelected{ false };    // these menu items should not display as selected
+                constexpr const char* menuItemShortcut{ nullptr }; // no shortcuts for now
 
-                    // NOTE: Menu item will remain disabled if the entity already has a specific component preventing from reapplying it
+                // NOTE: Menu item will remain disabled if the entity already has a specific component preventing from reapplying it
 
-                    if (ImGui::MenuItem("Sprite", menuItemShortcut, menuItemSelected, !target.HasComponent<SpriteRendererComponent>())) {
-                        target.AddComponent<SpriteRendererComponent>();
-                        ImGui::CloseCurrentPopup();
-                    }
-
-                    if (ImGui::MenuItem("Material", menuItemShortcut, menuItemSelected, !target.HasComponent<MaterialComponent>())) {
-                        target.AddComponent<MaterialComponent>();
-                        ImGui::CloseCurrentPopup();
-                    }
-
-                    if (ImGui::MenuItem("Camera", menuItemShortcut, menuItemSelected, !target.HasComponent<CameraComponent>())) {
-                        target.AddComponent<CameraComponent>(std::make_shared<SceneCamera>());
-                        ImGui::CloseCurrentPopup();
-                    }
-
-                    if (ImGui::MenuItem("Script", menuItemShortcut, menuItemSelected, !target.HasComponent<NativeScriptComponent>())) {
-                        target.AddComponent<NativeScriptComponent>();
-                        ImGui::CloseCurrentPopup();
-                    }
-
-                    ImGui::EndPopup();
+                if (ImGui::MenuItem("Sprite", menuItemShortcut, menuItemSelected, !target.HasComponent<SpriteRendererComponent>())) {
+                    target.AddComponent<SpriteRendererComponent>();
+                    ImGui::CloseCurrentPopup();
                 }
 
-                if (ImGui::MenuItem("Remove object")) {
-                    m_ContextSelectionScene->DestroyEntity(target);
-                    m_ContextSelection.Invalidate();
+                if (ImGui::MenuItem("Material", menuItemShortcut, menuItemSelected, !target.HasComponent<MaterialComponent>())) {
+                    target.AddComponent<MaterialComponent>();
+                    ImGui::CloseCurrentPopup();
+                }
+
+                if (ImGui::MenuItem("Camera", menuItemShortcut, menuItemSelected, !target.HasComponent<CameraComponent>())) {
+                    target.AddComponent<CameraComponent>(std::make_shared<SceneCamera>());
+                    ImGui::CloseCurrentPopup();
+                }
+
+                if (ImGui::MenuItem("Script", menuItemShortcut, menuItemSelected, !target.HasComponent<NativeScriptComponent>())) {
+                    target.AddComponent<NativeScriptComponent>();
+                    ImGui::CloseCurrentPopup();
                 }
 
                 ImGui::EndPopup();
             }
+
+            if (ImGui::MenuItem("Remove object")) {
+                SceneManager::DestroyEntityFromCurrentlyActiveScene(target);
+            }
+
+            ImGui::EndPopup();
         }
     }
 
     auto HierarchyPanel::BlankSpacePopupMenu() -> void {
-        if (auto ptr{ m_Context.lock() }) {
-            ImGuiPopupFlags popupWindowFlags{ ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight };
-            if (ImGui::BeginPopupContextWindow("##HierarchyMenuOptions", popupWindowFlags)) {
-                if (ImGui::MenuItem("Empty Object")) {
-                    static Size_T emptyObjectCounter{ 0 };
-                    auto newEntity{ Scene::CreateEmptyObject(fmt::format("Object {}", emptyObjectCounter), ptr) };
-                    ++emptyObjectCounter;
-                }
+        static constexpr ImGuiPopupFlags popupWindowFlags{ ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight };
 
-                if (ImGui::BeginMenu("3D Object")) {
-                    if (ImGui::MenuItem("Cube")) {
-                        static Size_T cubeCounter{ 0 };
-                        auto ret{ Scene::CreatePrefabObject(fmt::format("Cube {}", cubeCounter), ptr, PrefabSceneObject::CUBE_PREFAB_OBJECT)};
-                        MKT_CORE_LOGGER_INFO("Added cube to scene");
-                        ++cubeCounter;
-                    }
+        if (ImGui::BeginPopupContextWindow("##HierarchyMenuOptions", popupWindowFlags)) {
+            EntityCreateInfo entityCreateInfo{};
 
-                    if (ImGui::MenuItem("Sprite")) {
-                        static Size_T spriteCounter{ 0 };
-                        auto ret{ Scene::CreatePrefabObject(fmt::format("Sprite {}", spriteCounter), ptr, PrefabSceneObject::SPRITE_PREFAB_OBJECT) };
-                        MKT_CORE_LOGGER_INFO("Added Sprite to scene");
-                        ++spriteCounter;
-                    }
+            if (ImGui::MenuItem("Empty Object")) {
+                static Size_T emptyObjectCounter{ 0 };
+                entityCreateInfo.Name = fmt::format("Empty Object {}", emptyObjectCounter);
+                entityCreateInfo.IsPrefab = false;
+                entityCreateInfo.PrefabType = PrefabSceneObject::NO_PREFAB_OBJECT;
+                SceneManager::AddEntity(entityCreateInfo);
 
-                    if (ImGui::MenuItem("Cone")) {
-                        static Size_T coneCounter{ 0 };
-                        auto ret{ Scene::CreatePrefabObject(fmt::format("Cone {}", coneCounter), ptr, PrefabSceneObject::CONE_PREFAB_OBJECT)};
-                        MKT_CORE_LOGGER_INFO("Added Cone to scene");
-                        ++coneCounter;
-                    }
-
-                    if (ImGui::MenuItem("Cylinder")) {
-                        static Size_T cylinderCounter{ 0 };
-                        auto ret{ Scene::CreatePrefabObject(fmt::format("Cylinder {}", cylinderCounter), ptr, PrefabSceneObject::CYLINDER_PREFAB_OBJECT) };
-                        MKT_CORE_LOGGER_INFO("Added Cylinder to scene");
-                        ++cylinderCounter;
-                    }
-
-                    if (ImGui::MenuItem("Sphere")) {
-                        static Size_T sphereCounter{ 0 };
-                        auto ret{ Scene::CreatePrefabObject(fmt::format("Sphere {}", sphereCounter), ptr, PrefabSceneObject::SPHERE_PREFAB_OBJECT)};
-                        MKT_CORE_LOGGER_INFO("Added Sphere to scene");
-                        ++sphereCounter;
-                    }
-
-                    if (ImGui::MenuItem("Sponza")) {
-                        static Size_T sponzaCounter{ 0 };
-                        auto ret{ Scene::CreatePrefabObject(fmt::format("Sponza {}", sponzaCounter), ptr, PrefabSceneObject::SPONZA_PREFAB_OBJECT)};
-                        MKT_CORE_LOGGER_INFO("Added Sponza to scene");
-                        ++sponzaCounter;
-                    }
-
-                    ImGui::EndMenu();
-                }
-
-                ImGui::EndPopup();
+                MKT_CORE_LOGGER_INFO("Added new empty object");
+                ++emptyObjectCounter;
             }
+
+            if (ImGui::BeginMenu("3D Object")) {
+                if (ImGui::MenuItem("Cube")) {
+                    static Size_T cubeCounter{ 0 };
+                    entityCreateInfo.Name = fmt::format("Cube Object {}", cubeCounter);
+                    entityCreateInfo.IsPrefab = true;
+                    entityCreateInfo.PrefabType = PrefabSceneObject::CUBE_PREFAB_OBJECT;
+                    SceneManager::AddEntity(entityCreateInfo);
+
+                    MKT_CORE_LOGGER_INFO("Added new cube prefab");
+                    ++cubeCounter;
+                }
+
+                if (ImGui::MenuItem("Sprite")) {
+                    static Size_T spriteCounter{ 0 };
+                    entityCreateInfo.Name = fmt::format("Sprite Object {}", spriteCounter);
+                    entityCreateInfo.IsPrefab = true;
+                    entityCreateInfo.PrefabType = PrefabSceneObject::SPRITE_PREFAB_OBJECT;
+                    SceneManager::AddEntity(entityCreateInfo);
+
+                    MKT_CORE_LOGGER_INFO("Added new sprite prefab");
+                    ++spriteCounter;
+                }
+
+                if (ImGui::MenuItem("Cone")) {
+                    static Size_T coneCounter{ 0 };
+                    entityCreateInfo.Name = fmt::format("Cone Object {}", coneCounter);
+                    entityCreateInfo.IsPrefab = true;
+                    entityCreateInfo.PrefabType = PrefabSceneObject::CONE_PREFAB_OBJECT;
+                    SceneManager::AddEntity(entityCreateInfo);
+
+                    MKT_CORE_LOGGER_INFO("Added new cone prefab");
+                    ++coneCounter;
+                }
+
+                if (ImGui::MenuItem("Cylinder")) {
+                    static Size_T cylinderCounter{ 0 };
+                    entityCreateInfo.Name = fmt::format("Cylinder Object {}", cylinderCounter);
+                    entityCreateInfo.IsPrefab = true;
+                    entityCreateInfo.PrefabType = PrefabSceneObject::CYLINDER_PREFAB_OBJECT;
+                    SceneManager::AddEntity(entityCreateInfo);
+
+                    MKT_CORE_LOGGER_INFO("Added new cylinder prefab");
+                    ++cylinderCounter;
+                }
+
+                if (ImGui::MenuItem("Sphere")) {
+                    static Size_T sphereCounter{ 0 };
+                    entityCreateInfo.Name = fmt::format("Sphere Object {}", sphereCounter);
+                    entityCreateInfo.IsPrefab = true;
+                    entityCreateInfo.PrefabType = PrefabSceneObject::SPHERE_PREFAB_OBJECT;
+                    SceneManager::AddEntity(entityCreateInfo);
+
+                    MKT_CORE_LOGGER_INFO("Added new sphere prefab");
+                    ++sphereCounter;
+                }
+
+                if (ImGui::MenuItem("Sponza")) {
+                    static Size_T sponzaCounter{ 0 };
+                    entityCreateInfo.Name = fmt::format("Sponza Object {}", sponzaCounter);
+                    entityCreateInfo.IsPrefab = true;
+                    entityCreateInfo.PrefabType = PrefabSceneObject::SPONZA_PREFAB_OBJECT;
+                    SceneManager::AddEntity(entityCreateInfo);
+
+                    MKT_CORE_LOGGER_INFO("Added new sponza prefab");
+                    ++sponzaCounter;
+                }
+
+                ImGui::EndMenu();
+            }
+
+            ImGui::EndPopup();
         }
-    }
-
-    auto HierarchyPanel::OnEvent(Event& event) -> void {
-        (void)event;
-    }
-
-    HierarchyPanel::HierarchyPanel(const std::shared_ptr<Scene>& scene, const Path_T &iconPath)
-        :   Panel{ iconPath }
-    {
-        m_PanelIsHovered = true;
-        m_PanelIsFocused = false;
-        m_PanelIsVisible = false;
-
-        SetScene(scene);
-    }
-
-    auto HierarchyPanel::SetScene(const std::shared_ptr<Scene>& scene) -> void {
-        m_Context = scene;
-    }
-
-    auto HierarchyPanel::RunContextSelectionCallbacks() -> void {
-        for (const auto& task : m_OnContextSelectCallbacks)
-            task(this);
-    }
-
-    auto HierarchyPanel::AddOnContextSelectCallback(const std::function<void(HierarchyPanel*)> &task) -> void {
-        m_OnContextSelectCallbacks.emplace_back(task);
-    }
-
-    auto HierarchyPanel::AddOnContextDeselectCallback(const std::function<void(HierarchyPanel*)> &task) -> void {
-        m_OnContextDeselectCallbacks.emplace_back(task);
-    }
-
-    auto HierarchyPanel::RunContextDeselectionCallbacks() -> void {
-        for (const auto& task : m_OnContextDeselectCallbacks)
-            task(this);
     }
 }

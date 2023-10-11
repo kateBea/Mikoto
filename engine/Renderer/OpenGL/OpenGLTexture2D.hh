@@ -22,7 +22,7 @@ namespace Mikoto {
          * a valid Texture object with a valid id
          * @param path the path to the Texture file
          * */
-        explicit OpenGLTexture2D(const Path_T& path, Type type, bool retainFileData = false);
+        explicit OpenGLTexture2D(const Path_T& path, MapType type, bool retainFileData = false);
 
         /**
          * Move constructor
@@ -35,6 +35,8 @@ namespace Mikoto {
          * @return *this
          * */
         auto operator=(OpenGLTexture2D&& other) noexcept -> OpenGLTexture2D&;
+
+        MKT_NODISCARD auto GetImGuiTextureHandle() const -> std::any { return m_ObjectID; }
 
         /**
          * Returns the identifier of this Texture

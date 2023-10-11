@@ -152,7 +152,7 @@ namespace Mikoto::Editor {
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
 
         // Docks-pace always takes the full screen
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        const ImGuiViewport* viewport{ ImGui::GetMainViewport() };
         ImGui::SetNextWindowPos(viewport->WorkPos);
         ImGui::SetNextWindowSize(viewport->WorkSize);
         ImGui::SetNextWindowViewport(viewport->ID);
@@ -171,20 +171,25 @@ namespace Mikoto::Editor {
         // all active windows docked into it will lose their parent and become undocked.
         // We cannot preserve the docking relationship between an active window and an inactive docking, otherwise
         // any change of docks-pace/settings would lead to windows being stuck in limbo and never being visible.
-        if (!optPadding)
+        if (!optPadding) {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        }
+
         ImGui::Begin("DockSpace Demo", &s_ControlFlags.ApplicationCloseFlag, window_flags);
-        if (!optPadding)
+
+        if (!optPadding) {
             ImGui::PopStyleVar();
+        }
 
         // DockSpace is always fullscreen
         ImGui::PopStyleVar(2);
 
         // Submit the DockSpace
-        ImGuiIO& io = ImGui::GetIO();
-        ImGuiStyle& style = ImGui::GetStyle();
+        ImGuiIO& io{ ImGui::GetIO() };
+        ImGuiStyle& style{ ImGui::GetStyle() };
 
-        float minimumPanelsWidth{ style.WindowMinSize.x }; // minimum imgui windows width (temporary)
+        // minimum imgui windows width (temporary)
+        const float minimumPanelsWidth{ style.WindowMinSize.x };
         style.WindowMinSize.x = 450;
         if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
             ImGuiID dockSpaceId = ImGui::GetID("kaTeDockEditor");
@@ -201,9 +206,9 @@ namespace Mikoto::Editor {
             if (ImGui::BeginMenu("File")) {
                 // Disabling fullscreen would allow the window to be moved to the front of other windows,
                 // which we can't undo at the moment without finer window depth/z control.
-                if (ImGui::MenuItem("New scene")) { s_DockSpaceCallbacks.OnSceneNewCallback(); }
-                if (ImGui::MenuItem("Load scene")) { s_DockSpaceCallbacks.OnSceneLoadCallback(); }
-                if (ImGui::MenuItem("Save scene")) { s_DockSpaceCallbacks.OnSceneSaveCallback(); }
+                if (ImGui::MenuItem("New scene", "Ctrl + N")) { s_DockSpaceCallbacks.OnSceneNewCallback(); }
+                if (ImGui::MenuItem("Open scene", "Ctrl + L")) { s_DockSpaceCallbacks.OnSceneLoadCallback(); }
+                if (ImGui::MenuItem("Save scene", "Ctrl + S")) { s_DockSpaceCallbacks.OnSceneSaveCallback(); }
 
                 ImGui::Separator();
 
@@ -231,6 +236,7 @@ namespace Mikoto::Editor {
                     if (ImGui::MenuItem("Scene", nullptr, s_ControlFlags.ScenePanelVisible))       s_ControlFlags.ScenePanelVisible = !s_ControlFlags.ScenePanelVisible;
                     if (ImGui::MenuItem("Settings", nullptr, s_ControlFlags.SettingPanelVisible))    s_ControlFlags.SettingPanelVisible = !s_ControlFlags.SettingPanelVisible;
                     if (ImGui::MenuItem("Statistics", nullptr, s_ControlFlags.StatsPanelVisible))    s_ControlFlags.StatsPanelVisible = !s_ControlFlags.StatsPanelVisible;
+                    if (ImGui::MenuItem("Content Browser", nullptr, s_ControlFlags.ContentBrowser))    s_ControlFlags.ContentBrowser = !s_ControlFlags.ContentBrowser;
                     ImGui::EndMenu();
                 }
 

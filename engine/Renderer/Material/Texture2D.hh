@@ -7,13 +7,14 @@
 #define MIKOTO_TEXTURE2D_HH
 
 // C++ Standard Library
+#include <any>
 #include <memory>
 
 // Project Headers
 #include <Utility/Common.hh>
 
 namespace Mikoto {
-    enum class Type {
+    enum class MapType {
         NONE,
         DIFFUSE,
         SPECULAR,
@@ -29,16 +30,19 @@ namespace Mikoto {
         MKT_NODISCARD auto GetWidth() const -> Int32_T  { return m_Width; }
         MKT_NODISCARD auto GetHeight() const -> Int32_T { return m_Height; }
 
-        static auto Create(const Path_T &path, Type type) -> std::shared_ptr<Texture2D>;
+        MKT_NODISCARD virtual auto GetImGuiTextureHandle() const -> std::any = 0;
+
+        static auto Create(const Path_T& path, MapType type) -> std::shared_ptr<Texture2D>;
 
     protected:
-        Texture2D(Int32_T width, Int32_T height, Int32_T channels) : m_Width{ width }, m_Height{ height }, m_Channels{ channels } {}
+        Texture2D(Int32_T width, Int32_T height, Int32_T channels)
+            :   m_Width{ width }, m_Height{ height }, m_Channels{ channels } {}
 
     protected:
         Int32_T m_Width{};
         Int32_T m_Height{};
         Int32_T m_Channels{};
-        Type m_Type{};
+        MapType m_Type{};
     };
 }
 

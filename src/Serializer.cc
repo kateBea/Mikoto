@@ -19,6 +19,7 @@
 #include <Core/Assert.hh>
 #include <Core/Serializer.hh>
 #include <Scene/Entity.hh>
+#include <Scene/SceneManager.hh>
 
 namespace YAML {
     template<>
@@ -127,7 +128,7 @@ namespace Mikoto::Serializer {
         emitter << YAML::BeginMap;
 
         emitter << YAML::Key << "Object";
-        emitter << YAML::Value << "12345678971"; // TODO: object ID goes here (it is a global unique identifier)
+        emitter << YAML::Value << std::to_string(reg.get<TagComponent>(entity).GetGUID()); // TODO: object ID goes here (it is a global unique identifier)
 
         // By default, all objects from a Scene have a Tag Component, no need to check if it exists
         emitter << YAML::Key << "TagComponent" << YAML::Value;
@@ -152,13 +153,7 @@ namespace Mikoto::Serializer {
         emitter << YAML::EndMap;
     }
 
-    SceneSerializer::SceneSerializer(std::shared_ptr<Scene> scene)
-        :   m_Scene{ std::move(scene) }
-    {
-
-    }
-
-    auto SceneSerializer::Serialize(const Path_T& saveFilePath) -> void {
+    auto SceneSerializer::Serialize(Scene *scene, const Path_T &saveFilePath) -> void {
         // YAML Emitter
         YAML::Emitter emitter{};
 
@@ -171,12 +166,12 @@ namespace Mikoto::Serializer {
         }
 
         emitter << YAML::BeginMap;
-        emitter << YAML::Key << "Scene" << YAML::Value << m_Scene->GetName();
+        emitter << YAML::Key << "Scene" << YAML::Value << scene->GetName();
         emitter << YAML::Key << "Objects" << YAML::Value << YAML::BeginSeq;
 
-        m_Scene->GetRegistry().each([&](auto entity) -> void {
+        scene->GetRegistry().each([&](auto entity) -> void {
             if (entity != entt::null) {
-                SerializeEntity(emitter, m_Scene->GetRegistry(), entity);
+                SerializeEntity(emitter, scene->GetRegistry(), entity);
             }
         });
 
@@ -186,7 +181,7 @@ namespace Mikoto::Serializer {
         outputFile << emitter.c_str();
     }
 
-    auto SceneSerializer::Deserialize(const Path_T& saveFilePath) -> void {
+    auto SceneSerializer::Deserialize(const Path_T& saveFilePath, Scene& scene) -> void {
         std::ifstream inputFile{ saveFilePath };
 
         if (!inputFile.is_open()) {
@@ -213,25 +208,30 @@ namespace Mikoto::Serializer {
         const auto sceneEntities{ data["Objects"] };
 
         if (!sceneEntities.IsNull()) {
+            EntityCreateInfo entityCreateInfo{};
+
             for (const auto& object : sceneEntities) {
                 Entity entity{};
 
                 // Get the entity ID
-                const std::string uuid{ object["Object"].as<std::string >() };
+                const std::string uuid{ object["Object"].as<std::string>() };
                 const std::string name{ object["TagComponent"]["Name"].as<std::string>() };
 
                 // Get Render component
                 if (!object["RenderComponent"].IsNull()) {
                     const bool isPrefab{ object["RenderComponent"]["IsPrefab"].as<bool>() };
-                    PrefabSceneObject type{};
+
+                    entityCreateInfo.Name = name;
+                    entityCreateInfo.IsPrefab = isPrefab;
+                    entityCreateInfo.PrefabType = PrefabSceneObject::NO_PREFAB_OBJECT;
+                    entityCreateInfo.EntityGuid = std::stoull(uuid);
 
                     if (isPrefab) {
-                        type = PrefabTypeFromName(object["RenderComponent"]["PrefabType"].as<std::string>());
-                        entity = Scene::CreatePrefabObject(name, m_Scene, type);
+                        // Get the type of prefab if it was one
+                        entityCreateInfo.PrefabType = PrefabTypeFromName(object["RenderComponent"]["PrefabType"].as<std::string>());
                     }
-                    else {
-                        entity = Scene::CreateEmptyObject(name, m_Scene);
-                    }
+
+                    entity = SceneManager::AddEntityToScene(scene, entityCreateInfo);
                 }
 
                 // Get Material component
@@ -332,7 +332,7 @@ namespace Mikoto::Serializer {
 
     auto Init() -> void {
         // NFD init successful
-        auto result{ NFD::Init() == NFD_OKAY };
+        const auto result{ NFD::Init() == NFD_OKAY };
 
         // Assert if it fails to initialize
         MKT_ASSERT(result, "Failed to initialized File dialog library NFD");

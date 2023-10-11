@@ -3,24 +3,21 @@
  * Created by kate on 6/27/23.
  * */
 
-// C++ Standard Library
-
 // Third-Party Libraries
 #include <imgui.h>
 
 // Project Headers
+#include <Utility/Types.hh>
 #include <Core/TimeManager.hh>
-#include <Editor/Panels/StatsPanel.hh>
 #include <Renderer/Renderer.hh>
+#include <Editor/StatsPanel.hh>
 
 namespace Mikoto {
 
     StatsPanel::StatsPanel(const Path_T &iconPath)
         :   Panel{ iconPath }
     {
-        m_PanelIsVisible = true;
-        m_PanelIsHovered = false;
-        m_PanelIsFocused = false;
+
     }
 
     auto StatsPanel::OnUpdate() -> void {
@@ -33,8 +30,7 @@ namespace Mikoto {
         }
     }
 
-    auto StatsPanel::DrawStatisticsTable() -> void {
-        static constexpr Int32_T COLUM_COUNT{ 2 };
+    auto StatsPanel::DrawStatisticsTable() const -> void {
         static constexpr ImGuiTableFlags flags{ ImGuiTableFlags_SizingStretchSame |
                                                ImGuiTableFlags_Resizable |
                                                ImGuiTableFlags_BordersOuter |
@@ -43,7 +39,7 @@ namespace Mikoto {
                                                ImGuiTableFlags_Borders |
                                                ImGuiTableFlags_RowBg };
 
-        if (ImGui::BeginTable("Stats", COLUM_COUNT, flags)) {
+        if (ImGui::BeginTable("Stats", m_ColumCount, flags)) {
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::Text("Elapsed");
@@ -82,9 +78,5 @@ namespace Mikoto {
 
             ImGui::EndTable();
         }
-    }
-
-    auto StatsPanel::OnEvent(Event& event) -> void {
-        (void)event;
     }
 }

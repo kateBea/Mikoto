@@ -22,7 +22,7 @@ namespace Mikoto {
     class ImGuiVulkanBackend : public BackendImplementation {
     public:
         auto Init(std::any windowHandle) -> void override;
-        auto ShutDown() -> void override;
+        auto Shutdown() -> void override;
 
         auto BeginFrame() -> void override;
         auto EndFrame() -> void override;

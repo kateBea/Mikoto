@@ -14,12 +14,12 @@
 #include <glm/vec4.hpp>
 
 // Project Headers
-#include <Utility/Common.hh>
-#include <Core/Events/Event.hh>
+#include "Core/Event.hh"
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
 #include <Renderer/Material/Shader.hh>
 #include <Renderer/RenderingUtilities.hh>
+#include <Utility/Common.hh>
 
 
 namespace Mikoto {
@@ -83,8 +83,6 @@ namespace Mikoto {
 		virtual auto SetViewport(float x, float y, float width, float height) -> void = 0;
 
         virtual auto QueueForDrawing(std::shared_ptr<DrawData> data) -> void = 0;
-
-        virtual auto OnEvent(Event& event) -> void = 0;
 
         virtual ~RendererBackend() = default;
 

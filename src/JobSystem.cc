@@ -22,7 +22,7 @@ namespace Mikoto::JobSystem {
         g_ThreadCount = ComputeTotalWorkerThreads();
 
         // Initialize worker threads
-        for (std::uint32_t countThreads{}; countThreads < g_ThreadCount; ++countThreads) {
+        for (UInt32_T countThreads{}; countThreads < g_ThreadCount; ++countThreads) {
             std::thread worker([]() -> void {
                 // the current job for the thread, it's empty at the start.
                 std::function<void()> job{};

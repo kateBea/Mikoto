@@ -11,23 +11,15 @@
 
 // Project Headers
 #include <Core/Layer.hh>
-#include <Editor/Editor.hh>
-#include <Renderer/Model.hh>
-#include <Renderer/Camera/Camera.hh>
-#include <Renderer/Buffers/FrameBuffer.hh>
-#include <Renderer/Buffers/IndexBuffer.hh>
-#include <Renderer/Buffers/VertexBuffer.hh>
-#include <Renderer/Camera/OrthographicCamera.hh>
-#include <Renderer/Material/Shader.hh>
-#include <Editor/Panels/HierarchyPanel.hh>
-#include <Editor/Panels/InspectorPanel.hh>
-#include <Editor/Panels/ScenePanel.hh>
-#include <Editor/Panels/SettingsPanel.hh>
-#include <Editor/Panels/StatsPanel.hh>
-#include <Editor/Panels/Panel.hh>
-#include <Editor/Panels/PanelData.hh>
+#include <Core/Event.hh>
 #include <Scene/Scene.hh>
-#include <Scene/Entity.hh>
+
+#include <Editor/ContentBrowserPanel.hh>
+#include <Editor/HierarchyPanel.hh>
+#include <Editor/InspectorPanel.hh>
+#include <Editor/ScenePanel.hh>
+#include <Editor/SettingsPanel.hh>
+#include <Editor/StatsPanel.hh>
 
 namespace Mikoto {
 
@@ -36,19 +28,9 @@ namespace Mikoto {
         auto OnAttach() -> void override;
         auto OnDetach() -> void override;
         auto OnUpdate(double ts) -> void override;
-        auto OnEvent(Event& event) -> void override;
-        auto OnImGuiRender() -> void override;
+        auto PushImGuiDrawItems() -> void override;
     private:
-        /*************************************************************
-        * HELPERS
-        * ***********************************************************/
         auto InitializePanels() -> void;
-
-        /**
-         * Properly initializes and adds two sprites to the scene
-         * @deprecated Now we are able to add game objects within the editor
-         * */
-        auto AddSceneTestEntities() -> void;
 
         /**
          * Properly initializes and adds two cameras to the scene. One of them
@@ -61,20 +43,18 @@ namespace Mikoto {
         auto InitializeSceneCameras() -> void;
 
     private:
-        /*************************************************************
-        * DATA MEMBERS
-        * ***********************************************************/
+        // Cameras
         std::shared_ptr<SceneCamera> m_RuntimeCamera{};
         std::shared_ptr<EditorCamera> m_EditorCamera{};
 
         // Panels
-        std::shared_ptr<HierarchyPanel> m_HierarchyPanel{};
-        std::shared_ptr<InspectorPanel> m_InspectorPanel{};
-        std::shared_ptr<SettingsPanel> m_SettingsPanel{};
-        std::shared_ptr<ScenePanel> m_ScenePanel{};
-        std::shared_ptr<StatsPanel> m_StatsPanel{};
+        std::unique_ptr<ContentBrowserPanel> m_ContentBrowserPanel{};
+        std::unique_ptr<HierarchyPanel> m_HierarchyPanel{};
+        std::unique_ptr<InspectorPanel> m_InspectorPanel{};
+        std::unique_ptr<SettingsPanel> m_SettingsPanel{};
+        std::unique_ptr<ScenePanel> m_ScenePanel{};
+        std::unique_ptr<StatsPanel> m_StatsPanel{};
     };
-
 }
 
 #endif // MIKOTO_EDITOR_LAYER_HH

@@ -22,7 +22,7 @@ namespace Mikoto {
     VulkanStandardMaterial::VulkanStandardMaterial(std::string_view name)
         :   Material{ name }
     {
-        m_Texture = std::make_shared<VulkanTexture2D>("../assets/textures/lava512x512.png");
+        m_Texture = std::make_shared<VulkanTexture2D>("../assets/textures/lava512x512.png", MapType::DIFFUSE);
 
         // UniformBuffer size padded
         auto minOffsetAlignment{ VulkanUtils::GetDeviceMinimumOffsetAlignment(VulkanContext::GetPrimaryPhysicalDevice()) };
@@ -41,7 +41,7 @@ namespace Mikoto {
         m_Texture->OnRelease();
     }
 
-    auto VulkanStandardMaterial::BindDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout) -> void {
+    auto VulkanStandardMaterial::BindDescriptorSet(const VkCommandBuffer& commandBuffer, const VkPipelineLayout& pipelineLayout) -> void {
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &m_DescriptorSet, 0, nullptr);
     }
 

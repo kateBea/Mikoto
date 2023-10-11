@@ -11,25 +11,25 @@
 #include <utility>
 
 // Project Headers
-#include <Utility/Common.hh>
-#include <Utility/Types.hh>
+#include "Window.hh"
 #include <Core/Assert.hh>
 #include <Core/KeyCodes.hh>
 #include <Core/MouseButtons.hh>
-#include <Platform/Window/Window.hh>
+#include <Utility/Common.hh>
+#include <Utility/Types.hh>
 
 
 namespace Mikoto::InputManager {
-    /*************************************************************
-    * STRUCTURES
-    * ***********************************************************/
     enum CursorInputMode {
         CURSOR_NORMAL = 0,
         CURSOR_HIDDEN = 1,
         CURSOR_DISABLED = 3,
     };
 
-    auto Init() -> void;
+    inline const Window* s_Handle{ nullptr };
+
+    auto Init(const Window* handle) -> void;
+    auto Shutdown() -> void;
 
     auto IsKeyPressed(Int32_T keyCode) -> bool;
     auto IsMouseKeyPressed(Int32_T button) -> bool;
@@ -42,7 +42,12 @@ namespace Mikoto::InputManager {
     auto SetCursorMode(CursorInputMode mode) -> void;
     auto ShowCursor() -> void;
 
-    auto ShutDown() -> void;
+    /**
+     * When the user clicks on another window we want to handle
+     * input from that newly focused window. Input is handled
+     * for a single window at once
+     * */
+    auto SetFocus(const Window* newHandle) -> void;
 
 }
 

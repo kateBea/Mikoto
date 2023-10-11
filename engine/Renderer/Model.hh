@@ -133,7 +133,7 @@ namespace Mikoto {
          * @param scene represents a complete scene, which contains aiNodes and the associated meshes, materials, etc.
          * @returns a list of textures from the given material of type <code>type</code>
          * */
-        static auto LoadTextures(aiMaterial *mat, aiTextureType type, Type tType, const aiScene *scene, const Path_T& modelDirectory) -> std::vector<std::shared_ptr<Texture2D>>;
+        static auto LoadTextures(aiMaterial *mat, aiTextureType type, MapType tType, const aiScene *scene, const Path_T& modelDirectory) -> std::vector<std::shared_ptr<Texture2D>>;
 
     protected:
         /*************************************************************

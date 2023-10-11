@@ -16,25 +16,25 @@
 #include <vk_mem_alloc.h>
 
 // Project Headers
-#include <Utility/Common.hh>
-#include <Utility/VulkanUtils.hh>
+#include "Platform/MainWindow.hh"
+#include "Platform/Window.hh"
+#include <Core/Application.hh>
 #include <Core/Assert.hh>
 #include <Core/Logger.hh>
-#include <Core/Application.hh>
-#include <Platform/Window/Window.hh>
-#include <Platform/Window/MainWindow.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanSwapChain.hh>
+#include <Utility/Common.hh>
+#include <Utility/VulkanUtils.hh>
 
 // TODO: implement vulkan delete queue
 namespace Mikoto {
     auto VulkanContext::Init(const std::shared_ptr<Window>& handle) -> void {
         // Initialize the Volk library
-        VkResult ret{ volkInitialize() };
+        const VkResult ret{ volkInitialize() };
         s_ContextData.VOLKInitSuccess = ret == VK_SUCCESS;
         MKT_ASSERT(s_ContextData.VOLKInitSuccess, "Failed to initialize VOLK!");
 
-        // At the moment, Vulkan works with GLFW windows on desktop
+        // At the moment, Vulkan is working with GLFW windows on desktops
         s_ContextData.WindowHandle = std::dynamic_pointer_cast<MainWindow>(handle);
         MKT_ASSERT(s_ContextData.WindowHandle, "Window handle for Vulkan Context initialization is NULL");
 
@@ -54,6 +54,7 @@ namespace Mikoto {
             const VkAllocationCallbacks* pAllocator,
             VkDebugUtilsMessengerEXT* pDebugMessenger) -> VkResult
     {
+        // Exposed by volk.h
         if (vkCreateDebugUtilsMessengerEXT == nullptr)
             return VK_ERROR_EXTENSION_NOT_PRESENT;
 
@@ -61,8 +62,9 @@ namespace Mikoto {
     }
 
     auto VulkanContext::CreateInstance() -> void {
-        if (s_ContextData.EnableValidationLayers && !CheckValidationLayerSupport())
-            throw std::runtime_error("Validation layers requested, but not available!");
+        if (s_ContextData.EnableValidationLayers && !CheckValidationLayerSupport()) {
+            MKT_THROW_RUNTIME_ERROR("Validation layers requested, but not available!");
+        }
 
         // Setup application data
         VkApplicationInfo appInfo{ VulkanUtils::Initializers::ApplicationInfo() };
@@ -90,8 +92,9 @@ namespace Mikoto {
         // Setup required extensions
         auto extensions{ GetGlfwRequiredExtensions() };
 
-        if (s_ContextData.EnableValidationLayers)
+        if (s_ContextData.EnableValidationLayers) {
             extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        }
 
         createInfo.enabledExtensionCount = static_cast<UInt32_T>(extensions.size());
         createInfo.ppEnabledExtensionNames = extensions.data();
@@ -107,10 +110,12 @@ namespace Mikoto {
             createInfo.pNext = reinterpret_cast<VkDebugUtilsMessengerCreateInfoEXT*>(&debugCreateInfo);
         }
 
-        if (vkCreateInstance(&createInfo, nullptr, &s_ContextData.Instance) != VK_SUCCESS)
-            throw std::runtime_error("failed to create instance!");
+        if (vkCreateInstance(&createInfo, nullptr, &s_ContextData.Instance) != VK_SUCCESS) {
+            MKT_THROW_RUNTIME_ERROR("failed to create instance!");
+        }
 
-        // load all required Vulkan entry-points, including all extensions
+        // load all required Vulkan entry-points,
+        // including all extensions
         volkLoadInstance(s_ContextData.Instance);
 
 #if !defined(NDEBUG)
@@ -211,8 +216,9 @@ namespace Mikoto {
         UInt32_T deviceCount {};
         vkEnumeratePhysicalDevices(s_ContextData.Instance, &deviceCount, nullptr);
 
-        if (deviceCount == 0)
-            throw std::runtime_error("Failed to find GPUs with Vulkan support!");
+        if (deviceCount == 0) {
+            MKT_THROW_RUNTIME_ERROR("Failed to find GPUs with Vulkan support!");
+        }
 
         s_ContextData.PhysicalDevices = std::vector<VkPhysicalDevice>(deviceCount);
         s_ContextData.PhysicalDeviceFeatures = std::vector<VkPhysicalDeviceFeatures>(deviceCount);
@@ -221,8 +227,9 @@ namespace Mikoto {
 
         s_QueueFamiliesData = std::vector<QueuesData>(deviceCount);
 
-        for (auto& physicalDevice : s_ContextData.PhysicalDevices)
+        for (auto& physicalDevice : s_ContextData.PhysicalDevices) {
             physicalDevice = VK_NULL_HANDLE;
+        }
 
         // Collect all physical devices available in the machine
         vkEnumeratePhysicalDevices(s_ContextData.Instance, &deviceCount, s_ContextData.PhysicalDevices.data());
@@ -257,8 +264,9 @@ namespace Mikoto {
             ++index;
         }
 
-        if (s_ContextData.PhysicalDevices[s_ContextData.PrimaryPhysicalDeviceIndex] == VK_NULL_HANDLE)
-            throw std::runtime_error("Could not find a suitable GPU to use as primary physical device!");
+        if (s_ContextData.PhysicalDevices[s_ContextData.PrimaryPhysicalDeviceIndex] == VK_NULL_HANDLE) {
+            MKT_THROW_RUNTIME_ERROR("Could not find a suitable GPU to use as primary physical device!");
+        }
 
 #if !defined(NDEBUG)
         MKT_CORE_LOGGER_DEBUG("Physical device: {}", GetPrimaryPhysicalDeviceProperties().deviceName);
@@ -278,7 +286,7 @@ namespace Mikoto {
 
         Int32_T i{};
         for (const auto& queueFamily : queueFamilies) {
-            if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            if ((queueFamily.queueCount > 0) && (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
                 indices.GraphicsFamilyIndex = i;
                 indices.GraphicsFamilyHasValue = true;
             }
@@ -343,10 +351,9 @@ namespace Mikoto {
     }
 
     auto VulkanContext::IsDeviceSuitable(VkPhysicalDevice device) -> bool {
-        QueuesData indices{ FindQueueFamilies(device) };
-        bool extensionsSupported{ CheckForDeviceRequiredExtensionSupport(device) };
-        bool swapChainAdequate{};
-        (void)swapChainAdequate;
+        const QueuesData indices{ FindQueueFamilies(device) };
+        const bool extensionsSupported{ CheckForDeviceRequiredExtensionSupport(device) };
+        bool swapChainAdequate{}; (void)swapChainAdequate;
 
         if (extensionsSupported) {
             SwapChainSupportDetails swapChainSupport{ QuerySwapChainSupport(device) };

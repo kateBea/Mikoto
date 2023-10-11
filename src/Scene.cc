@@ -11,15 +11,16 @@
 #include <entt/entt.hpp>
 
 // Project Headers
-#include "Renderer/Camera/EditorCamera.hh"
-#include <Renderer/Renderer.hh>
-#include <Renderer/RenderingUtilities.hh>
-#include <Scene/Component.hh>
+#include <Utility/Random.hh>
 #include <Scene/Entity.hh>
 #include <Scene/Scene.hh>
+#include <Scene/Component.hh>
+#include <Renderer/Renderer.hh>
+#include <Renderer/RenderingUtilities.hh>
+#include <Scene/Camera/EditorCamera.hh>
 
 namespace Mikoto {
-    auto Scene::OnUpdate(double ts) -> void {
+    auto Scene::OnRuntimeUpdate(double ts) -> void {
         UpdateScripts();
 
         std::shared_ptr<SceneCamera> mainCam{};
@@ -55,7 +56,7 @@ namespace Mikoto {
                 RenderComponent& renderComponent{ view.get<RenderComponent>(sceneObject) };
                 MaterialComponent& material{ view.get<MaterialComponent>(sceneObject) };
 
-                SceneObjectData& objectData{renderComponent.GetObjectData() };
+                SceneObjectData& objectData{ renderComponent.GetObjectData() };
                 objectData.Color = material.GetColor();
 
                 // TODO: fix rendering order for blending, objects that are nearer to the camera should be rendered first
@@ -68,16 +69,19 @@ namespace Mikoto {
         }
     }
 
-    auto Scene::CreateEmptyObject(std::string_view tagName, const std::shared_ptr<Scene>& scene) -> Entity {
-        Entity result{ scene };
-        result.AddComponent<TagComponent>(tagName);
+    auto Scene::AddEmptyObject(std::string_view tagName, UInt64_T guid) -> Entity {
+        Entity result{ m_Registry.create(), m_Registry };
+        result.AddComponent<TagComponent>(tagName, guid);
         result.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
 
         return result;
     }
 
-    auto Scene::CreatePrefabObject(std::string_view tagName, const std::shared_ptr<Scene>& scene, PrefabSceneObject type) -> Entity {
-        Entity result{ scene };
+    auto Scene::AddPrefabObject(std::string_view tagName, PrefabSceneObject type, UInt64_T guid) -> Entity {
+        Entity result{ m_Registry.create(), m_Registry };
+
+        result.AddComponent<TagComponent>(tagName, guid);
+        result.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
 
         result.AddComponent<RenderComponent>();
         auto& renderData{ result.GetComponent<RenderComponent>() };
@@ -87,9 +91,6 @@ namespace Mikoto {
         result.AddComponent<MaterialComponent>();
         auto& materialData{ result.GetComponent<MaterialComponent>() };
         materialData.SetMaterial(Material::Create(Material::Type::STANDARD));
-
-        result.AddComponent<TagComponent>(tagName);
-        result.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
 
         return result;
     }
@@ -149,11 +150,23 @@ namespace Mikoto {
     }
 
     auto Scene::Clear() -> void {
+        if (m_Registry.empty()) {
+            return;
+        }
+
         auto view{ m_Registry.view<TagComponent>() };
         m_Registry.destroy(view.begin(), view.end());
     }
 
     Scene::~Scene() {
         Clear();
+    }
+
+    auto Scene::GetActiveScene() -> Scene * {
+        return s_ActiveScene;
+    }
+
+    auto Scene::SetActiveScene(Scene& scene) -> void {
+        s_ActiveScene = std::addressof(scene);
     }
 }

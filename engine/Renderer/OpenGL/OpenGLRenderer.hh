@@ -65,8 +65,6 @@ namespace Mikoto {
 
         auto GetColorAttachment() -> OpenGLFrameBuffer& { return m_DefaultFrameBuffer; }
 
-        auto OnEvent(Event& event) -> void override;
-
         MKT_NODISCARD auto GetDefaultFrameBuffer() -> OpenGLFrameBuffer& { return m_DefaultFrameBuffer; }
 
 

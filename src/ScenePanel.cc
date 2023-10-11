@@ -7,81 +7,61 @@
 #include <memory>
 
 // Third-Party Libraries
-#include <glm/glm.hpp>
+#include <imgui.h>
+#include <ImGuizmo.h>
 #include <glm/gtc/type_ptr.hpp>
 
 // Project Headers
-#include <Core/Application.hh>
-#include <Editor/Panels/ScenePanel.hh>
-#include <Editor/Panels/HierarchyPanel.hh>
+#include <Editor/ScenePanel.hh>
+#include <Scene/SceneManager.hh>
+#include <Core/CoreEvents.hh>
+#include <Core/EventManager.hh>
+#include <Platform/InputManager.hh>
+#include <Editor/HierarchyPanel.hh>
+#include <Editor/ScenePanel_OpenGLImpl.hh>
+#include <Editor/ScenePanel_VulkanImpl.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
-#include <Editor/Panels/ScenePanel_VulkanImpl.hh>
-#include <Editor/Panels/ScenePanel_OpenGLImpl.hh>
 
 namespace Mikoto {
 
     ScenePanel::ScenePanel(ScenePanelCreateInfo&& createInfo, const Path_T &iconPath)
         :   Panel{ iconPath }, m_CreateInfo{ std::move( createInfo ) }
     {
-        m_PanelIsVisible = true;
-        m_PanelIsHovered = false;
-        m_PanelIsFocused = false;
-
         // Set scene panel implementation
         switch (Renderer::GetActiveGraphicsAPI()) {
         case GraphicsAPI::OPENGL_API:
-            m_Implementation = std::make_shared<ScenePanel_OGLImpl>();
+            m_Implementation = std::make_unique<ScenePanel_OGLImpl>();
             break;
         case GraphicsAPI::VULKAN_API:
-            m_Implementation = std::make_shared<ScenePanel_VkImpl>();
+            m_Implementation = std::make_unique<ScenePanel_VkImpl>();
             break;
         }
 
         // Initialize implementation
         ScenePanelData data{};
-        data.Viewport = std::make_unique<Scene>();
         data.ViewPortWidth = 1920;
         data.ViewPortHeight = 1080;
 
         m_Implementation->Init_Impl(std::move(data));
-        m_Implementation->SetSceneCamera(m_CreateInfo.EditorMainCamera);
-
-        CreateCallbacks();
+        m_Implementation->SetEditorCamera(m_CreateInfo.EditorMainCamera);
     }
 
     auto ScenePanel::OnUpdate() -> void {
-        if (m_PanelIsVisible)
+        if (m_PanelIsVisible) {
             m_Implementation->OnUpdate_Impl();
+        }
 
         m_PanelIsHovered = m_Implementation->IsHovered();
         m_PanelIsFocused = m_Implementation->IsFocused();
-    }
 
-    auto ScenePanel::OnEvent(Event& event) -> void {
-        m_Implementation->OnEvent_Impl(event);
-    }
-
-    auto ScenePanel::CreateCallbacks() -> void {
-        m_Callbacks.EntitySelectionCallback = [&](HierarchyPanel* hierarchy) -> void {
-            this->m_Implementation->SetContextSelection(hierarchy->GetContextSelection());
-        };
-
-        m_Callbacks.EntityDeselectionCallback = [&](HierarchyPanel* hierarchy) -> void {
-            // For now, it does basically the same as when we deselect, might not be the case
-            // in the future, for now we simply want to deselect the current game object
-            this->m_Implementation->SetContextSelection(hierarchy->GetContextSelection());
-        };
-    }
-
-    auto ScenePanel::MakeNewScene() -> void {
-        m_Implementation->GetData().Viewport->Clear();
-
-        m_Implementation->GetData().Viewport = std::make_shared<Scene>();
+        if (m_PanelIsHovered && InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Left)) {
+            EventManager::Trigger<CameraEnableRotation>();
+        }
     }
 
     auto ScenePanelInterface::HandleGuizmos() -> void {
-        if (m_CurrentContextSelection.IsValid()) {
-            if (!m_CurrentContextSelection.GetComponent<TagComponent>().IsVisible()) {
+        if (SceneManager::IsEntitySelected()) {
+            if (!SceneManager::GetCurrentlySelectedEntity().GetComponent<TagComponent>().IsVisible()) {
                 return;
             }
 
@@ -97,7 +77,7 @@ namespace Mikoto {
     }
 
     auto ScenePanelInterface::HandleManipulationMode() -> void {
-        TransformComponent& transformComponent{ m_CurrentContextSelection.GetComponent<TransformComponent>() };
+        TransformComponent& transformComponent{ SceneManager::GetCurrentlySelectedEntity().GetComponent<TransformComponent>() };
         const auto& cameraView{ m_EditorMainCamera->GetViewMatrix() };
         const auto& cameraProjection{ m_EditorMainCamera->GetProjection() };
         auto objectTransform{ transformComponent.GetTransform() };

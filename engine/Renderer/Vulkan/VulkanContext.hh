@@ -15,11 +15,11 @@
 #include <vk_mem_alloc.h>
 
 // Project Headers
+#include "Platform/MainWindow.hh"
+#include "Platform/Window.hh"
+#include <Renderer/Vulkan/VulkanSwapChain.hh>
 #include <Utility/Common.hh>
 #include <Utility/Types.hh>
-#include <Platform/Window/MainWindow.hh>
-#include <Platform/Window/Window.hh>
-#include <Renderer/Vulkan/VulkanSwapChain.hh>
 
 /**
  * The Vulkan context space that exposes Vulkan related functionality

@@ -10,15 +10,18 @@
 
 // Project headers
 #include <Utility/Common.hh>
-#include <Core/Logger.hh>
+#include <Core/CoreEvents.hh>
 #include <Core/Application.hh>
+#include <Core/Logger.hh>
 #include <Core/Serializer.hh>
-#include <Core/Events/AppEvents.hh>
 #include <Platform/InputManager.hh>
-#include <Platform/Window/MainWindow.hh>
 #include <Renderer/RenderCommand.hh>
 #include <Renderer/Renderer.hh>
 #include <Editor/EditorLayer.hh>
+#include <Platform/MainWindow.hh>
+#include <Scene/SceneManager.hh>
+#include <ImGui/ImGuiManager.hh>
+#include <Core/EventManager.hh>
 
 namespace Mikoto {
     auto Application::Init(AppSpec&& appSpec) -> void {
@@ -30,109 +33,97 @@ namespace Mikoto {
         MKT_APP_LOGGER_INFO("Program executable (absolute path): {}", m_Spec.Executable.string());
         MKT_APP_LOGGER_INFO("Program current working directory (absolute path): {}", m_Spec.WorkingDirectory.string());
 
+        // Initialize the main window
         WindowProperties windowProperties{};
         windowProperties.SetTitle(m_Spec.Name);
         windowProperties.SetWidth(m_Spec.WindowWidth);
         windowProperties.SetHeight(m_Spec.WindowHeight);
         windowProperties.SetBackend(m_Spec.RenderingBackend);
-
+        windowProperties.AllowResizing(true);
         m_MainWindow = std::make_shared<MainWindow>(std::move(windowProperties));
-        m_LayerStack = std::make_unique<LayerStack>();
-        m_ImGuiLayer = std::make_shared<ImGuiLayer>();
 
         m_MainWindow->Init();
 
-        // Application::OnEvent will be called everytime there's an event from the window
-        m_MainWindow->SetEventCallback(MKT_BIND_EVENT_FUNC(Application::OnEvent));
+        //m_SecondaryWindow->SetEventCallback(MKT_BIND_EVENT_FUNC(Application::OnEvent));
 
         // Serializer Init
         Serializer::Init();
 
         // Initialize the input manager
-        InputManager::Init();
+        InputManager::Init(std::addressof(*m_MainWindow));
 
-        // Initialize rendering subsystems
+        // Initialize rendering subsystems. To be done in the renderer layer
         RendererSpec renderSpec{};
         renderSpec.Backend = m_Spec.RenderingBackend;
 
         RenderContextSpec contextSpec{};
         contextSpec.Backend = renderSpec.Backend;
-        contextSpec.WindowHandle = GetMainWindowPtr();
+        contextSpec.WindowHandle = m_MainWindow;
 
         RenderContext::Init(std::move(contextSpec));
         RenderContext::EnableVSync();
         Renderer::Init(std::move(renderSpec));
 
-        PushOverlay(m_ImGuiLayer);
+        ImGuiManager::Init(m_MainWindow);
 
-        if (m_Spec.WantEditor)
-            PushLayer(std::make_shared<EditorLayer>());
+        InitializeLayers();
+
+        SceneManager::Init();
+
+        InstallEventCallbacks();
 
         MKT_APP_LOGGER_INFO("Init time {}", TimeManager::GetTime());
     }
 
-    auto Application::OnEvent(Event& event) -> void {
-        MKT_APP_LOGGER_TRACE("{}", event.DisplayData());
+    auto Application::InstallEventCallbacks() -> void {
+        EventManager::Subscribe(m_Guid.Get(),
+            EventType::APP_CLOSE_EVENT,
+            [this](Event& event) -> bool
+            {
+                m_State = State::STOPPED;
+                event.SetHandled(true);
+                MKT_CORE_LOGGER_WARN("Handled App Event close");
+                return false;
+            });
 
-        EventDispatcher dispatcher{ event };
-        if (dispatcher.Forward<WindowCloseEvent>(MKT_BIND_EVENT_FUNC(Application::OnWindowClose)))
-            MKT_APP_LOGGER_TRACE("HANDLED {}", event.DisplayData());
+        EventManager::Subscribe(m_Guid.Get(),
+            EventType::WINDOW_CLOSE_EVENT,
+            [this](Event& event) -> bool
+            {
+                m_State = State::STOPPED;
+                event.SetHandled(true);
+                MKT_CORE_LOGGER_WARN("Handled Window Event close");
+                return false;
+            });
 
-        if (dispatcher.Forward<WindowResizedEvent>(MKT_BIND_EVENT_FUNC(Application::OnResizeEvent)))
-            MKT_APP_LOGGER_TRACE("HANDLED {}", event.DisplayData());
+        EventManager::Subscribe(m_Guid.Get(),
+            EventType::WINDOW_RESIZE_EVENT,
+            [this](Event& event) -> bool
+            {
+                WindowResizedEvent* wre{ static_cast<WindowResizedEvent*>(std::addressof(event)) };
 
-        Renderer::OnEvent(event);
-
-        // Propagate events through all layers, starting from the most top one.
-        // If a given layer decides to set the event as handled, we no longer propagate it, breaking the loop
-        for (auto it{ m_LayerStack->rbegin() }; it != m_LayerStack->rend(); ++it) {
-            (*it)->OnEvent(event);
-
-            if (event.IsHandled())
-                break;
-        }
+                m_State = m_MainWindow->IsMinimized() ? State::IDLE : State::RUNNING;
+                RenderCommand::UpdateViewPort(0, 0, wre->GetWidth(), wre->GetHeight());
+                MKT_CORE_LOGGER_WARN("Handled Window Resize Event");
+                return false;
+            });
     }
 
-    auto Application::OnWindowClose(WindowCloseEvent& event) -> bool {
-        m_State = State::STOPPED;
-        event.SetHandled(true);
-        return event.IsHandled();
-    }
+    auto Application::Shutdown() -> void {
+        MKT_APP_LOGGER_INFO("Shutting down application. Cleanup...");
 
-    auto Application::OnResizeEvent(WindowResizedEvent& event) -> bool {
-        m_MainWindowMinimized = event.GetWidth() == 0 || event.GetHeight() == 0;
-        m_State = m_MainWindowMinimized ? State::IDLE : State::RUNNING;
-        RenderCommand::UpdateViewPort(0, 0, event.GetWidth(), event.GetHeight());
+        ImGuiManager::Shutdown();
 
-        return event.IsHandled();
-    }
+        // Release layers resources
+        ReleaseLayers();
 
-    auto Application::PushLayer(const std::shared_ptr<Layer>& layer) -> void {
-        m_LayerStack->AddLayer(layer);
-        layer->OnAttach();
-    }
-
-    auto Application::PushOverlay(const std::shared_ptr<Layer>& overlay) -> void {
-        m_LayerStack->AddOverlay(overlay);
-        overlay->OnAttach();
-    }
-
-    auto Application::ShutDown() -> void {
-        MKT_APP_LOGGER_INFO("Shutting down Mikoto Engine");
-
-        for (auto it{ m_LayerStack->rbegin() }; it != m_LayerStack->rend(); ++it) {
-            (*it)->OnDetach();
-        }
-
-        m_LayerStack->PopOverlay(m_ImGuiLayer);
-
-        InputManager::ShutDown();
-        Renderer::ShutDown();
-
-        // Serializer shutdown
+        // Shutdown subsystems
+        Renderer::Shutdown();
         Serializer::Shutdown();
+        InputManager::Shutdown();
+        EventManager::Shutdown();
 
-        m_MainWindow->ShutDown();
+        m_MainWindow->Shutdown();
     }
 
     auto Application::GetMainWindow() -> Window& {
@@ -144,33 +135,70 @@ namespace Mikoto {
         return m_State == State::RUNNING || m_State == State::IDLE;
     }
 
+    auto Application::ReleaseLayers() -> void {
+        m_EditorLayer->OnDetach();
+        m_GameLayer->OnDetach();
+        m_RendererLayer->OnDetach();
+    }
+
+    auto Application::InitializeLayers() -> void {
+        m_GameLayer = std::make_unique<GameLayer>();
+        m_RendererLayer = std::make_unique<RendererLayer>();
+
+        m_GameLayer->OnAttach();
+        m_RendererLayer->OnAttach();
+
+        if (m_Spec.WantEditor) {
+            m_EditorLayer = std::make_unique<EditorLayer>();
+            m_EditorLayer->OnAttach();
+        }
+    }
+
+    auto Application::UpdateLayers() -> void {
+        auto timeStep{ TimeManager::GetTimeStep() };
+
+        m_EditorLayer->OnUpdate(timeStep);
+        m_GameLayer->OnUpdate(timeStep);
+        m_RendererLayer->OnUpdate(timeStep);
+    }
+
+    auto Application::ImGuiFrameRender() -> void {
+        ImGuiManager::BeginFrame();
+
+        m_EditorLayer->PushImGuiDrawItems();
+        m_GameLayer->PushImGuiDrawItems();
+        m_RendererLayer->PushImGuiDrawItems();
+
+        ImGuiManager::EndFrame();
+    }
+
+    auto Application::ProcessEvents() -> void {
+        // Process events currently in the event queue
+        m_MainWindow->ProcessEvents();
+
+        EventManager::ProcessEvents();
+    }
+
     auto Application::UpdateState() -> void {
+        // Update the time step
         TimeManager::UpdateTimeStep();
 
-        if (!m_MainWindowMinimized) {
-            auto ts{ TimeManager::GetTimeStep() };
-            for (auto& layer : *m_LayerStack)
-                layer->OnUpdate(ts);
+        // Update the layers if the window is not minimized (save resources)
+        if (!m_MainWindow->IsMinimized()) {
+            m_MainWindow->BeginFrame();
+
+            UpdateLayers();
         }
 
-        m_ImGuiLayer->BeginFrame();
-        for (auto& layer : *m_LayerStack)
-            layer->OnImGuiRender();
-        m_ImGuiLayer->EndFrame();
-
-        m_MainWindow->OnUpdate();
+        // Push ImGui elements for render
+        ImGuiFrameRender();
     }
 
-    auto Application::Stop() -> void {
-        m_State = State::STOPPED;
-    }
+    auto Application::Present() -> void {
+        // End frame
+        m_MainWindow->EndFrame();
 
-    // TODO: review
-    auto Application::BlockImGuiLayerEvents(bool value) -> void {
-        m_ImGuiLayer->SetBlockEvents(value);
-    }
-
-    auto Application::GetMainWindowPtr() -> std::shared_ptr<Window> {
-        return m_MainWindow;
+        // Swap buffers for presentation
+        m_MainWindow->Present();
     }
 }

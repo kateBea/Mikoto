@@ -14,13 +14,13 @@
 #include <glm/glm.hpp>
 
 // Project headers
+#include <Utility/Common.hh>
+#include <Scene/Camera/Camera.hh>
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
-#include <Renderer/Camera/Camera.hh>
 #include <Renderer/Material/Material.hh>
 #include <Renderer/RendererBackend.hh>
 #include <Renderer/RenderingUtilities.hh>
-#include <Utility/Common.hh>
 
 namespace Mikoto {
     struct RendererSpec{
@@ -30,7 +30,7 @@ namespace Mikoto {
     class Renderer {
     public:
         static auto Init(RendererSpec&& spec) -> void;
-        static auto ShutDown() -> void;
+        static auto Shutdown() -> void;
 
         static auto BeginScene(const ScenePrepareData& prepareData) -> void;
         static auto EndScene() -> void;
@@ -40,7 +40,6 @@ namespace Mikoto {
         MKT_UNUSED_FUNC static auto SubmitQuad(const glm::mat4& transform, const glm::vec4& color, std::shared_ptr<Material> material) -> void;
 
         static auto Flush() -> void;
-        static auto OnEvent(Event& event) -> void;
 
         MKT_NODISCARD static auto GetActiveGraphicsAPI() -> GraphicsAPI { return s_ActiveAPI;  }
         MKT_NODISCARD static auto GetActiveGraphicsAPIPtr() -> RendererBackend * { return s_ActiveRendererAPI;  }
@@ -53,6 +52,8 @@ namespace Mikoto {
         /*************************************************************
         * HELPERS
         * ***********************************************************/
+
+        // TODO: move to some sort of assets manager that will keep track of meshes that are already loaded
         static auto LoadPrefabs() -> void;
 
         static auto AddSpritePrefab() -> void;

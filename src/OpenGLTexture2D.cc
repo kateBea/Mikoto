@@ -16,7 +16,7 @@
 
 namespace Mikoto {
 
-    OpenGLTexture2D::OpenGLTexture2D(const Path_T &path, Type type, bool retainFileData)
+    OpenGLTexture2D::OpenGLTexture2D(const Path_T &path, MapType type, bool retainFileData)
         :   m_RetainData{ retainFileData }
     {
         // Texture type

@@ -15,22 +15,25 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 // Project Headers
-#include "Renderer/Camera/SceneCamera.hh"
+#include <Utility/Types.hh>
+#include <Utility/Common.hh>
+#include <Utility/Random.hh>
+#include <Utility/Constants.hh>
+
 #include <Core/Assert.hh>
 #include <Renderer/Mesh.hh>
 #include <Renderer/Model.hh>
+#include <Scene/Camera/SceneCamera.hh>
 #include <Renderer/RenderingUtilities.hh>
-#include <Utility/Common.hh>
-#include <Utility/Constants.hh>
-#include <Utility/Types.hh>
 
 namespace Mikoto {
     class TagComponent {
     public:
         explicit TagComponent() = default;
 
-        explicit TagComponent(std::string_view tag) {
-            m_Tag = tag;
+        explicit TagComponent(std::string_view tag, UInt64_T guid)
+            :   m_GUID{ guid }, m_Tag{ tag }
+        {
             m_Visibility = true;
         }
 
@@ -42,10 +45,12 @@ namespace Mikoto {
 
         MKT_NODISCARD auto IsVisible() const -> bool { return m_Visibility; }
         MKT_NODISCARD auto GetTag() const -> const std::string& { return m_Tag; }
+        MKT_NODISCARD auto GetGUID() const -> UInt64_T { return m_GUID.Get(); }
 
         auto SetTag(std::string_view newName) -> void { m_Tag = newName; }
         auto SetVisibility(bool value) -> void { m_Visibility = value; }
     private:
+        Random::GUID::UUID m_GUID{};
         std::string m_Tag{};
         bool m_Visibility{};
     };
@@ -216,6 +221,26 @@ namespace Mikoto {
         SceneObjectData m_RenderableData{};
     };
 
+    /**
+     * Will contain the mesh, can be a prefab or a loaded mesh
+     * */
+    class MeshComponent {
+    public:
+        explicit MeshComponent() = default;
+
+        MeshComponent(const MeshComponent & other) = default;
+        MeshComponent(MeshComponent && other) = default;
+
+        auto operator=(const MeshComponent & other) -> MeshComponent & = default;
+        auto operator=(MeshComponent && other) -> MeshComponent & = default;
+
+        ~MeshComponent() = default;
+
+    private:
+        Path_T m_MeshFile{};
+        std::vector<Material> m_Materials{};
+    };
+
     class CameraComponent {
     public:
         explicit CameraComponent(std::shared_ptr<SceneCamera> camera = nullptr, bool mainCam = true, bool fixedAspectRation = false)
@@ -248,14 +273,14 @@ namespace Mikoto {
 
 
     /**
-     * Checks if a scriptable entity has an OnCreate, OnDestroy and OnUpdate function
+     * Checks if a scriptable entity has an OnCreate, OnDestroy and Present function
      * needed when binding and scriptable entity to the native script component
      * */
     template<typename ScriptableEntityType>
     concept HasOnCreate = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->OnCreate(); };
 
     template<typename ScriptableEntityType>
-    concept HasOnUpdate = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->OnUpdate(0); };
+    concept HasOnUpdate = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->Present(0); };
 
     template<typename ScriptableEntityType>
     concept HasOnDestroy = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->OnDestroy(); };
@@ -279,7 +304,7 @@ namespace Mikoto {
                      HasOnDestroy<ScriptableEntityType>
         auto Bind() -> void {
             m_OnCreateFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->OnCreate(); };
-            m_OnUpdateFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->OnUpdate(0); };
+            m_OnUpdateFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->Present(0); };
             m_OnDestroyFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->OnDestroy(); };
         }
 

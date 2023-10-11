@@ -10,7 +10,7 @@
 #include <any>
 
 // Project Headers
-#include <Platform/Window/MainWindow.hh>
+#include "Platform/MainWindow.hh"
 #include <Renderer/RenderContext.hh>
 
 namespace Mikoto::OpenGLContext {

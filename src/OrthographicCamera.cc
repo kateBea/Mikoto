@@ -7,7 +7,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 // Project Headers
-#include <Renderer/Camera/OrthographicCamera.hh>
+#include <Scene/Camera/OrthographicCamera.hh>
 
 namespace Mikoto {
     OrthographicCamera::OrthographicCamera(double left, double right, double bottom, double top)

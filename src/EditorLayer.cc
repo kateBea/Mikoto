@@ -10,13 +10,15 @@
 #include <glm/gtc/type_ptr.hpp>
 
 // Project Headers
-#include <Core/Application.hh>
-#include <Platform/InputManager.hh>
-#include <Renderer/RenderCommand.hh>
 #include <Scene/Scene.hh>
 #include <Editor/Editor.hh>
-#include <Editor/EditorLayer.hh>
 #include <Core/Serializer.hh>
+#include <Core/CoreEvents.hh>
+#include <Scene/SceneManager.hh>
+#include <Editor/EditorLayer.hh>
+#include <Core/EventManager.hh>
+#include <Platform/InputManager.hh>
+#include <Renderer/RenderCommand.hh>
 
 namespace Mikoto {
     auto EditorLayer::OnAttach() -> void {
@@ -39,16 +41,17 @@ namespace Mikoto {
 
         dockSpaceCallbacks.OnSceneNewCallback =
             [&]() -> void {
-                m_ScenePanel->MakeNewScene();
-                const auto& sceneData{ m_ScenePanel->GetData() };
-
-                m_HierarchyPanel->SetScene(sceneData.Viewport);
+                SceneManager::DestroyScene(SceneManager::GetActiveScene());
+                auto& newScene{ SceneManager::MakeNewScene("Empty Scene") };
+                SceneManager::SetActiveScene(newScene);
             };
 
         dockSpaceCallbacks.OnSceneLoadCallback =
             [&]() -> void {
                 // We need to clear the scene before we load the serialized entities
-                m_ScenePanel->GetData().Viewport->Clear();
+                SceneManager::DestroyScene(SceneManager::GetActiveScene());
+                auto& newScene{ SceneManager::MakeNewScene("Empty Scene") };
+                SceneManager::SetActiveScene(newScene);
 
                 // prepare filters for the dialog
                 std::initializer_list<std::pair<std::string, std::string>> filters{
@@ -56,8 +59,7 @@ namespace Mikoto {
                         { "Mikoto Project Files", "mkt,mktp,mktproject" }
                 };
 
-                Serializer::SceneSerializer serializer{ m_ScenePanel->GetData().Viewport };
-                serializer.Deserialize(Serializer::OpenDialog(filters));
+                Serializer::SceneSerializer::Deserialize(Serializer::OpenDialog(filters), newScene);
             };
 
         dockSpaceCallbacks.OnSceneSaveCallback =
@@ -68,8 +70,8 @@ namespace Mikoto {
                         { "Mikoto Project Files", "mkt,mktp,mktproject" }
                 };
 
-                Serializer::SceneSerializer serializer{ m_ScenePanel->GetData().Viewport };
-                serializer.Serialize(Serializer::SaveDialog("Mikoto Scene", filters));
+                Scene* activeScene{ std::addressof(SceneManager::GetActiveScene()) };
+                Serializer::SceneSerializer::Serialize(activeScene, Serializer::SaveDialog("Mikoto Scene", filters));
             };
     }
 
@@ -92,32 +94,18 @@ namespace Mikoto {
         // Field of view
         m_EditorCamera->SetFieldOfView(settingsPanelCurrentData.FieldOfView);
 
-        if (m_ScenePanel->IsHovered()) {
-            m_EditorCamera->OnUpdate(ts);
-        }
+        m_EditorCamera->OnUpdate(ts);
 
         const auto& sceneData{ m_ScenePanel->GetData() };
+        auto& activeScene{ SceneManager::GetActiveScene() };
 
         m_EditorCamera->UpdateViewMatrix();
         m_EditorCamera->UpdateProjection();
         m_EditorCamera->SetViewportSize(sceneData.ViewPortWidth, sceneData.ViewPortHeight);
-        sceneData.Viewport->OnEditorUpdate(ts, *m_EditorCamera);
+        activeScene.OnEditorUpdate(ts, *m_EditorCamera);
     }
 
-    auto EditorLayer::OnEvent(Event& event) -> void {
-        if (m_ScenePanel->IsFocused() && m_ScenePanel->IsHovered()) {
-            m_EditorCamera->OnEvent(event);
-        }
-
-        // Events for panels
-        m_SettingsPanel->OnEvent(event);
-        m_HierarchyPanel->OnEvent(event);
-        m_InspectorPanel->OnEvent(event);
-        m_ScenePanel->OnEvent(event);
-        m_StatsPanel->OnEvent(event);
-    }
-
-    auto EditorLayer::OnImGuiRender() -> void {
+    auto EditorLayer::PushImGuiDrawItems() -> void {
         Editor::OnDockSpaceUpdate();
         auto& controlFlags{ Editor::GetControlFlags() };
 
@@ -126,51 +114,34 @@ namespace Mikoto {
         m_InspectorPanel->MakeVisible(controlFlags.InspectorPanelVisible);
         m_ScenePanel->MakeVisible(controlFlags.ScenePanelVisible);
         m_StatsPanel->MakeVisible(controlFlags.StatsPanelVisible);
+        m_ContentBrowserPanel->MakeVisible(controlFlags.ContentBrowser);
 
         m_SettingsPanel->OnUpdate();
         m_HierarchyPanel->OnUpdate();
         m_InspectorPanel->OnUpdate();
         m_ScenePanel->OnUpdate();
         m_StatsPanel->OnUpdate();
+        m_ContentBrowserPanel->OnUpdate();
 
-        if (controlFlags.ApplicationCloseFlag)
-            Application::Get().Stop();
+
+        if (controlFlags.ApplicationCloseFlag) { EventManager::Trigger<AppClose>(); }
     }
 
     auto EditorLayer::InitializePanels() -> void {
         // Panels setup
+        m_StatsPanel = std::make_unique<StatsPanel>();
+        m_SettingsPanel = std::make_unique<SettingsPanel>();
+        m_HierarchyPanel = std::make_unique<HierarchyPanel>();
+        m_InspectorPanel = std::make_unique<InspectorPanel>();
+        m_ContentBrowserPanel = std::make_unique<ContentBrowserPanel>("../assets");
+
         ScenePanelCreateInfo scenePanelCreateInfo{};
         scenePanelCreateInfo.EditorMainCamera = m_EditorCamera.get();
-
-        m_ScenePanel = std::make_shared<ScenePanel>(std::move( scenePanelCreateInfo ));
-        const auto& sceneData{ m_ScenePanel->GetData() };
-
-        m_HierarchyPanel = std::make_shared<HierarchyPanel>(sceneData.Viewport);
-        m_InspectorPanel = std::make_shared<InspectorPanel>(m_HierarchyPanel);
-        m_SettingsPanel = std::make_shared<SettingsPanel>();
-        m_StatsPanel = std::make_shared<StatsPanel>();
+        m_ScenePanel = std::make_unique<ScenePanel>(std::move( scenePanelCreateInfo ));
 
         // Panels post setup
-        m_SettingsPanel->SetColor(glm::vec4(0.2f, 0.2f, 0.2f, 1.0f));
         m_SettingsPanel->SetFieldOfView(45.0f);
-
-        m_HierarchyPanel->AddOnContextSelectCallback(m_ScenePanel->GetCallbacks().EntitySelectionCallback);
-        m_HierarchyPanel->AddOnContextDeselectCallback(m_ScenePanel->GetCallbacks().EntityDeselectionCallback);
-    }
-
-    MKT_UNUSED_FUNC auto EditorLayer::AddSceneTestEntities() -> void {
-        const auto& sceneData{ m_ScenePanel->GetData() };
-
-        // Scene pre setup
-        auto ent1{ Scene::CreateEmptyObject("Sprite (Red)", sceneData.Viewport) };
-        ent1.AddComponent<SpriteRendererComponent>(glm::vec4{ 0.8f, 0.2f, 0.15f, 1.0f });
-        ent1.GetComponent<TransformComponent>().SetTranslation({ 0.0f, 0.0f, 0.0f });
-        ent1.GetComponent<TransformComponent>().SetRotation({ 0.0f, 0.0f, 45.0f });
-
-        auto ent2{ Scene::CreateEmptyObject("Sprite (Green)", sceneData.Viewport) };
-        ent2.GetComponent<TransformComponent>().SetTranslation({ 0.0f, 0.0f, 0.0f });
-        ent2.AddComponent<SpriteRendererComponent>(glm::vec4{ 0.2f, 0.8f, 0.25f, 0.5f });
-        ent2.GetComponent<TransformComponent>().SetRotation({ 0.0f, 0.0f, 1.0f });
+        m_SettingsPanel->SetColor(glm::vec4(0.2f, 0.2f, 0.2f, 1.0f));
     }
 
     auto EditorLayer::InitializeSceneCameras() -> void {
@@ -180,8 +151,7 @@ namespace Mikoto {
         constexpr float farPlane{ 1000.0f };
 
         // Initialize cameras
-        auto& window{ Application::Get().GetMainWindow() };
-        double aspect{ window.GetWidth() / (double)window.GetHeight() };
+        constexpr double aspect{ 1920.0 / 1080.0 };
         m_RuntimeCamera = std::make_shared<SceneCamera>(glm::ortho(-aspect, aspect, -1.0, 1.0));
         (void)m_RuntimeCamera;
 

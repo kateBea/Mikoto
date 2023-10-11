@@ -48,7 +48,7 @@ namespace Mikoto::JobSystem {
      * modifying the job queue is thread safe.
      * */
     auto EnqueueJob(const std::function<void()>& func) -> void {
-        // use lock
+        // use lock. STL containers are not guaranteed to be thread safe
 
         g_JobQueue.emplace_back(func);
     }

@@ -23,10 +23,6 @@
 // Project Headers
 #include <Utility/Types.hh>
 
-/*************************************************************
-* MACROS -----------------------------------------------------
-* ********************************************************+ */
-
 // Debug Break
 #if defined(WIN32) || defined(WIN64) && !defined(NDEBUG)
     #include <intrin.h>
@@ -75,23 +71,28 @@
     throw std::runtime_error(fmt::format("Except from: {}\n@File: {}\n@Line: {}", MESSAGE, __FILE__, __LINE__))
 
 /**
- * Follow up there is a list of macros to simplify formatted output.
- * They use fmt to print to the standard output a formatted string. The fmt syntax is:
- *
- * function("my_string replacement_field", args, ...)
- *
- * replacement_field ::=  "{" [arg_id] [":" (format_spec | chrono_format_spec)] "}"
- *
- * arg_id            ::=  integer | identifier
- * integer           ::=  digit+
- * digit             ::=  "0"..."9"
- * identifier        ::=  id_start id_continue*
- * id_start          ::=  "a"..."z" | "A"..."Z" | "_"
- * id_continue       ::=  id_start | digit
- *
- *
- * For more check out: https://fmt.dev/latest/syntax.html
+ * Disable copy constructor and operator, move constructor
+ * and operator for CLASS_NAME
  * */
+#define DISABLE_COPY_AND_MOVE_FOR(CLASS_NAME)       \
+    CLASS_NAME(const CLASS_NAME&)       = delete;   \
+    auto operator=(const CLASS_NAME&)   = delete;   \
+    CLASS_NAME(CLASS_NAME&&)            = delete;   \
+    auto operator=(CLASS_NAME&&)        = delete
+
+/**
+ * Disable COPY constructor and operator for CLASS_NAME
+ * */
+#define DELETE_COPY_FOR(CLASS_NAME)           \
+    CLASS_NAME(const CLASS_NAME&)       = delete;   \
+    auto operator=(const CLASS_NAME&)   = delete
+
+/**
+ * Disable MOVE constructor and operator for CLASS_NAME
+ * */
+#define DELETE_MOVE_FOR(CLASS_NAME)           \
+    CLASS_NAME(CLASS_NAME&&)            = delete;   \
+    auto operator=(CLASS_NAME&&)        = delete
 
 /**
  * Output colors. They can be mixed by using a bit OR when used with

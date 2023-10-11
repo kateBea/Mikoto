@@ -83,9 +83,11 @@ namespace Mikoto {
             vertices.push_back(mesh->mVertices[index].z);
 
             // The way we construct the vertex buffer data is not guaranteed to follow
-            // the buffer layout, which is default for models. Which means if the if the mesh has no normals
-            // or texture coordinates we have to insert default initialized data to follow the default layout
-            // We also have to introduce default values for the color attribute
+            // the buffer layout, which is default for models. Which means if the mesh
+            // has no normal or texture coordinates, we have to insert default initialized
+            // data to follow the default layout. We also have to introduce default
+            // values for the color attribute
+
             if (mesh->HasNormals()) {
                 vertices.push_back(mesh->mNormals[index].x);
                 vertices.push_back(mesh->mNormals[index].y);
@@ -115,8 +117,7 @@ namespace Mikoto {
         for(UInt64_T i{}; i < mesh->mNumFaces; i++) {
             auto face{ mesh->mFaces[i] };
 
-            for(UInt64_T index{}; index < face.mNumIndices; index++)
-                indices.emplace_back(face.mIndices[index]);
+            for(UInt64_T index{}; index < face.mNumIndices; index++) { indices.emplace_back(face.mIndices[index]); }
         }
 
         // process material
@@ -124,9 +125,9 @@ namespace Mikoto {
             auto material { scene->mMaterials[mesh->mMaterialIndex] };
 
             if (wantLoadTextures) {
-                auto diffuseMaps { LoadTextures(material, aiTextureType_DIFFUSE, Type::DIFFUSE, scene, modelDirectory) };
-                auto specularMaps { LoadTextures(material, aiTextureType_SPECULAR, Type::SPECULAR, scene, modelDirectory) };
-                auto normalMaps { LoadTextures(material, aiTextureType_NORMALS, Type::NORMAL, scene, modelDirectory) };
+                auto diffuseMaps { LoadTextures(material, aiTextureType_DIFFUSE, MapType::DIFFUSE, scene, modelDirectory) };
+                auto specularMaps { LoadTextures(material, aiTextureType_SPECULAR, MapType::SPECULAR, scene, modelDirectory) };
+                auto normalMaps { LoadTextures(material, aiTextureType_NORMALS, MapType::NORMAL, scene, modelDirectory) };
 
                 for (auto& item : diffuseMaps)
                     textures.push_back(std::move(item));
@@ -150,7 +151,7 @@ namespace Mikoto {
         return Mesh{ meshData };
     }
 
-    auto Model::LoadTextures(aiMaterial* mat, aiTextureType type, Type tType, const aiScene* scene, const Path_T& modelDirectory) -> std::vector<std::shared_ptr<Texture2D>> {
+    auto Model::LoadTextures(aiMaterial* mat, aiTextureType type, MapType tType, const aiScene* scene, const Path_T& modelDirectory) -> std::vector<std::shared_ptr<Texture2D>> {
         std::vector<std::shared_ptr<Texture2D>> textures{};
         for(UInt64_T i{}; i < mat->GetTextureCount(type); i++) {
             aiString str{};

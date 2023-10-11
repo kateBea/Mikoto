@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 
 // Project Headers
-#include "Renderer/Camera/SceneCamera.hh"
+#include <Scene/Camera/SceneCamera.hh>
 
 namespace Mikoto {
 

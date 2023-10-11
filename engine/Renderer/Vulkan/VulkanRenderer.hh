@@ -63,7 +63,6 @@ namespace Mikoto {
         auto Draw() -> void override;
         auto QueueForDrawing(std::shared_ptr<DrawData>) -> void override;
 
-        auto OnEvent(Event& event) -> void override;
         auto OnFramebufferResize(UInt32_T width, UInt32_T height) -> void;
 
         MKT_NODISCARD auto GetCommandPool() -> VulkanCommandPool& { return *m_CommandPool; }
@@ -148,6 +147,8 @@ namespace Mikoto {
         std::vector<VkImage> m_DepthImages{};
         std::vector<VkDeviceMemory> m_DepthImageMemories{};
         std::vector<VkImageView> m_DepthImageViews{};
+
+        bool m_UseWireframe{};
     };
 }
 

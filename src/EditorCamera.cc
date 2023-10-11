@@ -13,18 +13,44 @@
 #include <glm/gtx/quaternion.hpp>
 
 // Project Headers
-#include "Renderer/Camera/EditorCamera.hh"
+#include <Utility/Common.hh>
+#include <Utility/Constants.hh>
+#include <Utility/Math.hh>
+#include <Core/CoreEvents.hh>
+#include <Core/EventManager.hh>
 #include <Core/KeyCodes.hh>
 #include <Core/MouseButtons.hh>
 #include <Platform/InputManager.hh>
-#include <Utility/Common.hh>
-#include <Utility/Constants.hh>
+#include <Scene/Camera/EditorCamera.hh>
 
 namespace Mikoto {
     EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
         :   Camera{ glm::perspective(glm::radians(fov), aspectRatio, nearClip, farClip) }
         ,   m_FieldOfView{ fov }, m_AspectRatio{ aspectRatio }, m_NearClip{ nearClip }, m_FarClip{ farClip }
     {
+        EventManager::Subscribe(m_Guid.Get(),
+            EventType::MOUSE_BUTTON_RELEASED_EVENT,
+            [this](Event& event) -> bool
+            {
+                MouseButtonReleasedEvent* e{ static_cast<MouseButtonReleasedEvent*>(std::addressof(event)) };
+                InputManager::SetCursorMode(InputManager::CURSOR_NORMAL);
+
+                if (e->GetMouseButton() == MouseButton::Mouse_Button_Left) {
+                    SwitchRotation(false);
+                }
+
+                return false;
+            });
+
+        EventManager::Subscribe(m_Guid.Get(),
+            EventType::CAMERA_ENABLE_ROTATION,
+            [this](Event&) -> bool
+            {
+                InputManager::SetCursorMode(InputManager::CURSOR_DISABLED);
+                SwitchRotation(true);
+                return false;
+            });
+
         UpdateViewMatrix();
     }
 
@@ -52,9 +78,6 @@ namespace Mikoto {
         if (std::abs(glm::length(delta)) > JUMP_THRESHOLD)
             return;
 
-        if (!InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Right))
-            return;
-
         // Perform rotation
         if (delta.x != 0.0f || delta.y != 0.0f) {
             // The Y offset of the mouse will dictate how much we rotate in the X axis
@@ -70,9 +93,6 @@ namespace Mikoto {
 
     auto EditorCamera::ProcessKeyboardInput(double timeStep) -> void {
         m_CameraUpVector = GLM_UNIT_VECTOR_Y;
-
-        if (!InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Right))
-            return;
 
         // Move forward
         if (InputManager::IsKeyPressed(KeyCode::Key_W)) {
@@ -106,17 +126,15 @@ namespace Mikoto {
     }
 
     auto EditorCamera::OnUpdate(double timeStep) -> void {
+        if (!m_AllowCameraMovementAndRotation) {
+            return;
+        }
+
         m_CameraUpVector = GLM_UNIT_VECTOR_Y;
         m_RightVector = glm::cross(m_ForwardVector, m_CameraUpVector);
 
         ProcessMouseInput(timeStep);
         ProcessKeyboardInput(timeStep);
-    }
-
-    auto EditorCamera::OnEvent(Event& event) -> void {
-        EventDispatcher dispatcher{ event };
-        auto dispatch{ dispatcher.Forward<MouseScrollEvent>(MKT_BIND_EVENT_FUNC(EditorCamera::OnMouseScroll)) };
-        (void)dispatch;
     }
 
     auto EditorCamera::OnMouseScroll(MouseScrollEvent& event) -> bool {

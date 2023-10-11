@@ -10,10 +10,10 @@
 #include <GL/glew.h>
 
 // Project Headers
-#include <Platform/Window/Window.hh>
+#include "Platform/Window.hh"
 #include <Renderer/Buffers/FrameBuffer.hh>
-#include <Renderer/OpenGL/OpenGLRenderer.hh>
 #include <Renderer/OpenGL/OpenGLIndexBuffer.hh>
+#include <Renderer/OpenGL/OpenGLRenderer.hh>
 #include <Renderer/OpenGL/OpenGLVertexBuffer.hh>
 
 namespace Mikoto {
@@ -127,10 +127,6 @@ namespace Mikoto {
 
     auto OpenGLRenderer::DisableWireframeMode() -> void {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    }
-
-    auto OpenGLRenderer::OnEvent(Event& event) -> void {
-        (void)event;
     }
 
     auto OpenGLRenderer::CreateFrameBuffers() -> void {

@@ -18,7 +18,7 @@ namespace Mikoto {
     class BackendImplementation {
     public:
         virtual auto Init(std::any windowHandle) -> void = 0;
-        virtual auto ShutDown() -> void = 0;
+        virtual auto Shutdown() -> void = 0;
 
         virtual auto BeginFrame() -> void = 0;
         virtual auto EndFrame() -> void = 0;

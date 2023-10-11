@@ -13,11 +13,11 @@
 #include <glm/glm.hpp>
 
 // Projects Headers
-#include <Renderer/Camera/EditorCamera.hh>
-#include <Renderer/Camera/SceneCamera.hh>
+#include <Scene/Camera/EditorCamera.hh>
+#include <Scene/Camera/SceneCamera.hh>
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
-#include <Renderer/Camera/Camera.hh>
+#include <Scene/Camera/Camera.hh>
 #include <Renderer/Material/Material.hh>
 #include <Renderer/Model.hh>
 

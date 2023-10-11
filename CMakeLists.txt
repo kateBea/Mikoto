@@ -20,15 +20,18 @@ set(NFD_CMAKE_DIR vendor/nativefiledialog-extended)
 # Projects source files
 set(CORE_SOURCES
         src/Logger.cc
-        src/LayerStack.cc
-        src/ImGuiLayer.cc
+        src/ImGuiManager.cc
         src/OpenGLContext.cc
         src/InputManager.cc src/EditorLayer.cc src/Timer.cc
         src/VulkanUtils.cc
         src/OpenGLUtils.cc
         src/LayerManager.cc
         src/JobSystem.cc
-        src/Serializer.cc)
+        src/Serializer.cc
+        src/GameLayer.cc
+        engine/Core/GameLayer.hh
+        src/RendererLayer.cc
+        engine/Core/RendererLayer.hh)
 
 set(PLATFORM_SOURCES
         src/Application.cc
@@ -54,7 +57,6 @@ set(RENDERER_SOURCES
         src/Shader.cc
         src/FrameBuffer.cc
         src/OpenGLFrameBuffer.cc
-        src/Camera.cc
         src/VulkanContext.cc
         src/VulkanRenderer.cc
         src/Mesh.cc
@@ -92,7 +94,9 @@ set(EDITOR_SOURCES
 
 set(SCENE_SOURCES
         src/Scene.cc src/SceneCamera.cc
-        src/EditorCamera.cc)
+        src/EditorCamera.cc
+        src/SceneManager.cc
+        engine/Scene/SceneManager.hh)
 
 set(IMGUIZMO_SOURCES
         vendor/ImGuizmo/ImGuizmo.cpp
@@ -112,7 +116,10 @@ set(SOURCES
         src/Engine.cc src/stb_image.cc
         src/vk_mem_alloc.h.cc
         src/ImGuiVulkanBackend.cc
-        src/ImGuiOpenGLBackend.cc)
+        src/ImGuiOpenGLBackend.cc
+        src/EventManager.cc
+        src/ContentBrowserPanel.cc
+        engine/Editor/ContentBrowserPanel.hh)
 
 # External dependencies
 add_subdirectory(${GLEW_CMAKE_DIR})

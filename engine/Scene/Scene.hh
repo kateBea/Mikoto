@@ -12,41 +12,48 @@
 
 // Third-Party Libraries
 #include <entt/entt.hpp>
+#include <glm/glm.hpp>
 
 // Project Headers
-#include "Renderer/Camera/EditorCamera.hh"
-#include <Core/Assert.hh>
-#include <Core/Logger.hh>
-#include <Scene/Component.hh>
-#include <Utility/Common.hh>
 #include <Utility/Types.hh>
+#include <Utility/Common.hh>
+#include <Utility/Random.hh>
+#include <Renderer/RenderingUtilities.hh>
+#include <Scene/Camera/EditorCamera.hh>
 
 namespace Mikoto {
-    /**
-     * Forward declaration for return type and avoid
-     * header include dependency problems
-     * */
     class Entity;
 
     class Scene {
     public:
-        explicit Scene(std::string_view name = "Mikoto") : m_Name{ name } {}
+        explicit Scene(std::string_view name = "Mikoto")
+            :   m_Name{ name }
+        {
 
-        auto OnUpdate(double ts) -> void;
+        }
+
+        Scene(Scene&& other) = default;
+        auto operator=(Scene&& other) -> Scene& = default;
+
+        auto operator==(const Scene& other) noexcept -> bool { return m_Name == other.m_Name; }
+
+        auto OnRuntimeUpdate(double ts) -> void;
         auto DestroyEntity(Entity& entity) -> void;
         auto OnEditorUpdate(double timeStep, const EditorCamera &camera) -> void;
         auto OnViewPortResize(UInt32_T width, UInt32_T height) -> void;
 
-        auto Clear() -> void;
-
         auto GetRegistry() -> entt::registry& { return m_Registry; }
+        auto GetRegistry() const -> const entt::registry& { return m_Registry; }
+
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 
-        auto SetName(const std::string& name) { m_Name = name; }
+        auto AddEmptyObject(std::string_view tagName, UInt64_T guid = Random::GUID::GenerateGUID()) -> Entity;
+        auto AddPrefabObject(std::string_view tagName, PrefabSceneObject type, UInt64_T guid = Random::GUID::GenerateGUID()) -> Entity;
 
+        MKT_NODISCARD static auto GetActiveScene() -> Scene*;
+        static auto SetActiveScene(Scene& scene) -> void;
 
-        MKT_NODISCARD static auto CreateEmptyObject(std::string_view tagName, const std::shared_ptr<Scene>& scene) -> Entity;
-        MKT_NODISCARD static auto CreatePrefabObject(std::string_view tagName, const std::shared_ptr<Scene>& scene, PrefabSceneObject type) -> Entity;
+        auto Clear() -> void;
 
         ~Scene();
     private:
@@ -54,6 +61,8 @@ namespace Mikoto {
         friend class ScenePanel;
         friend class HierarchyPanel;
         friend class InspectorPanel;
+
+        static inline Scene* s_ActiveScene{ nullptr };
 
     private:
         auto UpdateScripts() -> void;
@@ -63,13 +72,11 @@ namespace Mikoto {
         static constexpr glm::vec3 ENTITY_INITIAL_ROTATION{ 0.0f, 0.0f, 0.0f };
 
     private:
-        entt::registry m_Registry{};
+        std::string m_Name{};
         UInt32_T m_ViewportWidth{};
         UInt32_T m_ViewportHeight{};
-        std::string m_Name{};
+        entt::registry m_Registry{};
     };
 }
-
-
 
 #endif // MIKOTO_SCENE_HH

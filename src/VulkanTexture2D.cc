@@ -10,6 +10,7 @@
 // Third-Party Libraries
 #include <volk.h>
 #include <stb_image.h>
+#include <imgui_impl_vulkan.h>
 
 // Project Headers
 #include <Utility/Common.hh>
@@ -19,7 +20,7 @@
 #include <Renderer/Vulkan/VulkanRenderer.hh>
 
 namespace Mikoto {
-    VulkanTexture2D::VulkanTexture2D(const Path_T& path, bool retainFileData) {
+    VulkanTexture2D::VulkanTexture2D(const Path_T &path, MapType type, bool retainFileData) {
         m_RetainData = retainFileData;
 
         LoadImageData(path);
@@ -27,6 +28,10 @@ namespace Mikoto {
         CreateTextureImage();
         CreateTextureImageView();
         CreateTextureSampler();
+
+        m_DescSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(m_TextureSampler,
+                                                                  m_TextureImageView,
+                                                                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 
     auto VulkanTexture2D::CreateTextureImageView() -> void {
@@ -83,6 +88,7 @@ namespace Mikoto {
         Int32_T channels{};
         auto filePath { GetByteChar(path) };
 
+        stbi_set_flip_vertically_on_load(true);
         m_TextureFileData = stbi_load(filePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
         m_Width = width;
         m_Height = height;

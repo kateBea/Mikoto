@@ -63,7 +63,7 @@ namespace Mikoto {
         LoadPrefabs();
     }
 
-    auto Renderer::ShutDown() -> void {
+    auto Renderer::Shutdown() -> void {
         if (s_ActiveRendererAPI)
             s_ActiveRendererAPI->Shutdown();
 
@@ -125,10 +125,6 @@ namespace Mikoto {
 
         // Rendering submission
         Renderer::Submit(data);
-    }
-
-    auto Renderer::OnEvent(Event& event) -> void {
-        s_ActiveRendererAPI->OnEvent(event);
     }
 
     auto Renderer::LoadPrefabs() -> void {

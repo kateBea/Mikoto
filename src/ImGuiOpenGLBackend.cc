@@ -31,7 +31,7 @@ namespace Mikoto {
         ImGui_ImplOpenGL3_Init(openglVersion.c_str());
     }
 
-    auto ImGuiOpenGLBackend::ShutDown() -> void {
+    auto ImGuiOpenGLBackend::Shutdown() -> void {
         ImGui_ImplOpenGL3_Shutdown();
     }
 
@@ -45,6 +45,9 @@ namespace Mikoto {
 
     auto ImGuiOpenGLBackend::EndFrame() -> void {
         ImGuiIO& io{ ImGui::GetIO() };
+
+        // we basically only need the current width and height of the window this is rendering to
+        // this could also be achieved via events
         Window& window{ Application::Get().GetMainWindow() };
         io.DisplaySize = ImVec2{ (float) window.GetWidth(), (float) window.GetHeight() };
 
@@ -52,7 +55,7 @@ namespace Mikoto {
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-            GLFWwindow *backupCurrentContext{ glfwGetCurrentContext()};
+            GLFWwindow* backupCurrentContext{ glfwGetCurrentContext()};
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
 

@@ -11,9 +11,10 @@
 #include <memory>
 
 // Project Headers
+#include "Platform/Window.hh"
 #include <Renderer/Renderer.hh>
 #include <Renderer/RenderingUtilities.hh>
-#include <Platform/Window/Window.hh>
+#include <Utility/Common.hh>
 
 namespace Mikoto {
     struct RenderContextSpec {
@@ -33,11 +34,7 @@ namespace Mikoto {
         MKT_UNUSED_FUNC static auto IsVSyncActive() -> bool;
 
     public:
-        RenderContext(const RenderContext&) = delete;
-        auto operator=(const RenderContext&) -> RenderContext& = delete;
-
-        RenderContext(RenderContext&&) = delete;
-        auto operator=(RenderContext&&) -> RenderContext& = delete;
+        DISABLE_COPY_AND_MOVE_FOR(RenderContext);
 
     private:
         inline static RenderContextSpec s_Spec{};

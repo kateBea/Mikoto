@@ -11,8 +11,8 @@
 #include <string_view>
 
 // Project Headers
+#include <Core/Event.hh>
 #include <Utility/Common.hh>
-#include <Core/Events/Event.hh>
 
 namespace Mikoto {
     /**
@@ -30,8 +30,9 @@ namespace Mikoto {
         virtual auto OnDetach() -> void = 0;
         virtual auto OnUpdate(double ts) -> void = 0;
 
+        // change Event& to Event*
         virtual auto OnEvent(Event& event) -> void { (void)event; }
-        virtual auto OnImGuiRender() -> void {}
+        virtual auto PushImGuiDrawItems() -> void {}
 
         /**
          * Returns this layer's name (mainly for debugging purposes)

@@ -18,11 +18,7 @@
 #include <Platform/InputManager.hh>
 
 namespace Mikoto::InputManager {
-    // USE GLFW INPUT HANDLING
 #if defined(USE_GLFW_INPUT)
-    /*************************************************************
-    * INTERNAL HELPERS
-    * ***********************************************************/
     static auto GetMode(CursorInputMode mode) -> Int32_T {
         switch (mode) {
             case CURSOR_NORMAL: return GLFW_CURSOR_NORMAL;
@@ -32,11 +28,8 @@ namespace Mikoto::InputManager {
     }
 
     auto IsKeyPressed(Int32_T keyCode) -> bool {
-        GLFWwindow* window{ nullptr };
-
         try {
-            // We expect the native window for Linux Window to be a GLFWwindow*
-            window = std::any_cast<GLFWwindow*>(Application::Get().GetMainWindow().GetNativeWindow());
+            auto window{ std::any_cast<GLFWwindow*>(s_Handle->GetNativeWindow()) };
             Int32_T state{ glfwGetKey(window, keyCode) };
 
             return state == GLFW_PRESS;
@@ -49,11 +42,8 @@ namespace Mikoto::InputManager {
     }
 
     auto IsMouseKeyPressed(Int32_T button) -> bool {
-        GLFWwindow* window{ nullptr };
-
         try {
-            // We expect the native window for Linux Window to be a GLFWwindow*
-            window = std::any_cast<GLFWwindow*>(Application::Get().GetMainWindow().GetNativeWindow());
+            auto window{ std::any_cast<GLFWwindow*>(s_Handle->GetNativeWindow()) };
             Int32_T state{ glfwGetMouseButton(window, button) };
 
             return state == GLFW_PRESS;
@@ -66,13 +56,10 @@ namespace Mikoto::InputManager {
     }
 
     auto GetMousePos() -> std::pair<double, double> {
-        double posX{};
-        double posY{};
-        GLFWwindow* window{ nullptr };
+        double posX{}, posY{};
 
         try {
-            // We expect the native window for Linux Window to be a GLFWwindow*
-            window = std::any_cast<GLFWwindow*>(Application::Get().GetMainWindow().GetNativeWindow());
+            auto window{ std::any_cast<GLFWwindow*>(s_Handle->GetNativeWindow()) };
             glfwGetCursorPos(window, &posX, &posY);
         }
         catch (const std::bad_any_cast& exception) {
@@ -83,21 +70,18 @@ namespace Mikoto::InputManager {
     }
 
     auto GetMouseX() -> double {
-        auto [mouseX, mouseY]{ GetMousePos() };
+        const auto [mouseX, mouseY]{ GetMousePos() };
         return mouseX;
     }
 
     auto GetMouseY() -> double {
-        auto [mouseX, mouseY]{ GetMousePos() };
+        const auto [mouseX, mouseY]{ GetMousePos() };
         return mouseY;
     }
 
     auto SetCursorMode(CursorInputMode mode) -> void {
-        GLFWwindow* window{ nullptr };
-
         try {
-            // We expect the native window for Linux Window to be a GLFWwindow*
-            window = std::any_cast<GLFWwindow*>(Application::Get().GetMainWindow().GetNativeWindow());
+            auto window{ std::any_cast<GLFWwindow*>(s_Handle->GetNativeWindow()) };
             glfwSetInputMode(window, GLFW_CURSOR, GetMode(mode));
         }
         catch (const std::bad_any_cast& exception) {
@@ -107,17 +91,36 @@ namespace Mikoto::InputManager {
 
 #endif
 
-    auto Init() -> void {
+    auto Init(const Window* handle) -> void {
         MKT_CORE_LOGGER_INFO("Mikoto Engine: Input Manager initialization");
 
+        s_Handle = handle;
     }
 
-    auto ShutDown() -> void {
+    auto Shutdown() -> void {
         MKT_CORE_LOGGER_INFO("Mikoto Engine: Input Manager shut down");
     }
 
     auto PrintKey(KeyCode keycode) -> void {
         MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_LIME, "Key: {}\n", GetStringRepresentation(keycode));
+    }
+
+    auto SetFocus(const Window* newHandle) -> void {
+        if (newHandle) {
+            s_Handle = newHandle;
+            MKT_CORE_LOGGER_INFO("Input handle focus on window '{}'", s_Handle->GetTitle());
+        }
+        else {
+            MKT_CORE_LOGGER_WARN("Attempted to set focus for input handling on null window handle. No operation done.");
+        }
+    }
+
+    auto PrintMouse(MouseButton button) -> void {
+
+    }
+
+    auto ShowCursor() -> void {
+
     }
 
     auto PrintButton(MouseButton button) -> void {

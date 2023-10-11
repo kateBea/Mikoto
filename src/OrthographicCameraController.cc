@@ -9,11 +9,11 @@
 
 // Project Headers
 #include <Utility/Common.hh>
+#include <Core/Event.hh>
 #include <Core/Logger.hh>
-#include <Core/Events/Event.hh>
 #include <Core/TimeManager.hh>
 #include <Platform/InputManager.hh>
-#include <Renderer/Camera/OrthographicCameraController.hh>
+#include <Scene/Camera/OrthographicCameraController.hh>
 
 namespace Mikoto {
     OrthographicCameraController::OrthographicCameraController(double aspectRatio, bool enableRotation, std::shared_ptr<OrthographicCamera> target)

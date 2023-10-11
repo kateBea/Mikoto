@@ -90,7 +90,7 @@ namespace Mikoto {
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
 
-    auto ImGuiVulkanBackend::ShutDown() -> void {
+    auto ImGuiVulkanBackend::Shutdown() -> void {
         VulkanUtils::WaitOnDevice(VulkanContext::GetPrimaryLogicalDevice());
 
         m_CommandPool->OnRelease();

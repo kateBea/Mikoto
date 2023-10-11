@@ -26,7 +26,7 @@ namespace Mikoto {
          * @param path the path to the Texture file
          * @param retainFileData whether we want to keep the texture data
          * */
-        explicit VulkanTexture2D(const Path_T& path, bool retainFileData = false);
+        explicit VulkanTexture2D(const Path_T &path, MapType type, bool retainFileData = false);
 
 
         MKT_NODISCARD auto GetFileData() const -> stbi_uc* { return m_TextureFileData; }
@@ -34,6 +34,8 @@ namespace Mikoto {
         MKT_NODISCARD auto GetImageView() const -> VkImageView { return m_TextureImageView; }
         MKT_NODISCARD auto GetImageSampler() const -> VkSampler { return m_TextureSampler; }
         MKT_NODISCARD auto GetImage() const -> VkImage { return m_TextureImage; }
+
+        MKT_NODISCARD auto GetImGuiTextureHandle() const -> std::any override { return m_DescSet; }
 
         auto OnRelease() const -> void;
     private:
@@ -55,6 +57,8 @@ namespace Mikoto {
         VkDeviceSize    m_ImageSize{};
         VkImageView     m_TextureImageView{};
         VkSampler       m_TextureSampler{};
+
+        VkDescriptorSet m_DescSet{};
 
         bool m_RetainData{};
     };

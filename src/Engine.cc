@@ -36,10 +36,17 @@ namespace Mikoto {
             application.Init(std::move(appSpec));
 
             while (application.IsRunning()) {
+                // Update application layers
                 application.UpdateState();
+
+                // Swap buffers and present to screen
+                application.Present();
+
+                // Process events in queue pending
+                application.ProcessEvents();
             }
 
-            application.ShutDown();
+            application.Shutdown();
         }
         catch(const std::exception& exception) {
             MKT_COLOR_STYLE_PRINT_FORMATTED(MKT_FMT_COLOR_RED, MKT_FMT_STYLE_BOLD, "EXCEPT! Message:\n{}", exception.what());

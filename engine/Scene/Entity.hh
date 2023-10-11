@@ -23,69 +23,19 @@ namespace Mikoto {
     public:
         explicit Entity() = default;
 
-        /**
-         * Constructs an entity as from the parameter using move operations
-         * The parameter entity is put into an invalid state after this operation.
-         * @param other moved from entity
-         * */
-        Entity(Entity&& other) noexcept {
-            m_EntityHandle = std::move(other.m_EntityHandle);
+        Entity(entt::entity handle, entt::registry& registry)
+            :   m_EntityHandle{ handle }, m_Registry{ std::addressof(registry) }
+        {
 
-            if (auto ptr{ other.m_Scene.lock() })
-                m_Scene = ptr;
-            else
-                MKT_CORE_LOGGER_WARN("Other entity's scene has expired and no longer exists!");
-
-            other.Invalidate();
         }
 
-        /**
-         * Constructs an entity as a copy of the parameter (defaulted)
-         * @param other copied from entity
-         * */
-        Entity(const Entity& other) {
-            m_EntityHandle = other.m_EntityHandle;
+        Entity(const Entity& other) = default;
+        Entity(Entity&& other) = default;
 
-            if (auto ptr{ other.m_Scene.lock() })
-                m_Scene = ptr;
-            else
-                MKT_CORE_LOGGER_WARN("Other entity's scene has expired and no longer exists!");
-        }
+        auto operator=(const Entity& entity) -> Entity& = default;
+        auto operator=(Entity&& entity) noexcept -> Entity& = default;
 
-        /**
-         * Assigns the implicit parameter to the parameter entity via copy operations
-         * @param other copied from entity
-         * @returns *this
-         * */
-        auto operator=(const Entity& other) -> Entity& {
-            m_EntityHandle = other.m_EntityHandle;
-
-            if (auto ptr{ other.m_Scene.lock() })
-                m_Scene = ptr;
-            else
-                MKT_CORE_LOGGER_WARN("Other entity's scene has expired and no longer exists!");
-
-            return *this;
-        };
-
-        /**
-         * Assigns the implicit parameter to the parameter entity via move operations.
-         * The parameter entity is put into an invalid state after this operation.
-         * @param other moved from entity
-         * @returns *this
-         * */
-        auto operator=(Entity&& other) noexcept -> Entity& {
-            m_EntityHandle = std::move(other.m_EntityHandle);
-
-            if (auto ptr{ other.m_Scene.lock() })
-                m_Scene = ptr;
-            else
-                MKT_CORE_LOGGER_WARN("Other entity's scene has expired and no longer exists!");
-
-            other.Invalidate();
-            return *this;
-        }
-
+        MKT_NODISCARD auto Get() const -> entt::entity { return m_EntityHandle; }
         /**
          * Returns true if this entity contains all of the components listed in the parameter pack
          * @returns true if this entity contains all of components of the parameter pack list
@@ -93,12 +43,7 @@ namespace Mikoto {
          * */
         template<typename... ComponentTypeList>
         MKT_NODISCARD auto HasAllComponents() -> bool {
-            if (auto ptr{ m_Scene.lock() }) {
-                return ptr->m_Registry.all_of<ComponentTypeList...>(m_EntityHandle);
-            }
-
-            MKT_CORE_LOGGER_WARN("This entity's scene has expired and no longer exists!");
-            return false;
+            return m_Registry->all_of<ComponentTypeList...>(m_EntityHandle);
         }
 
         /**
@@ -108,12 +53,7 @@ namespace Mikoto {
          * */
         template<typename... ComponentTypeList>
         MKT_NODISCARD auto HasAnyOfComponents() -> bool {
-            if (auto ptr{ m_Scene.lock() }) {
-                return ptr->m_Registry.any_of<ComponentTypeList...>(m_EntityHandle);
-            }
-
-            MKT_CORE_LOGGER_WARN("This entity's scene has expired and no longer exists!");
-            return false;
+            return m_Registry->any_of<ComponentTypeList...>(m_EntityHandle);
         }
 
         /**
@@ -123,12 +63,7 @@ namespace Mikoto {
          * */
         template<typename ComponentType>
         MKT_NODISCARD auto HasComponent() -> bool {
-            if (auto ptr{ m_Scene.lock() }) {
-                return ptr->m_Registry.all_of<ComponentType>(m_EntityHandle);
-            }
-
-            MKT_CORE_LOGGER_WARN("This entity's scene has expired and no longer exists!");
-            return false;
+            return HasAllComponents<ComponentType>();
         }
 
         /**
@@ -136,12 +71,15 @@ namespace Mikoto {
          * @returns true if the implicit parameter is a valid entity
          * */
         MKT_NODISCARD auto IsValid() const -> bool {
-            if (auto ptr{ m_Scene.lock() }) {
-                return ptr->m_Registry.valid(m_EntityHandle);
-            }
-            else {
-                return false;
-            }
+            return m_Registry != nullptr && m_Registry->valid(m_EntityHandle);
+        }
+
+        /**
+         * Tells if this entity is part of a given scene
+         * @returns true if this entity is part of a given scene, returns false otherwise
+         * */
+        MKT_NODISCARD auto BelongsTo(const Scene& scene) const -> bool {
+            return scene.m_Registry.valid(m_EntityHandle);
         }
 
         /**
@@ -151,10 +89,7 @@ namespace Mikoto {
          * */
         template<typename ComponentType>
         auto GetComponent() -> decltype(auto) {
-            if (!m_Scene.lock())
-                MKT_CORE_LOGGER_WARN("This entity's scene has expired and no longer exists!");
-
-            return m_Scene.lock()->m_Registry.get<ComponentType>(m_EntityHandle);
+            return m_Registry->get<ComponentType>(m_EntityHandle);
         }
 
         /**
@@ -163,10 +98,7 @@ namespace Mikoto {
          * */
         template<typename... ComponentTypeList>
         auto GetComponentList() -> decltype(auto) {
-            if (!m_Scene.lock())
-                MKT_CORE_LOGGER_WARN("This entity's scene has expired and no longer exists!");
-
-            return std::forward_as_tuple(m_Scene.lock()->m_Registry.get<ComponentTypeList>(m_EntityHandle)...);
+            return std::forward_as_tuple(m_Registry->get<ComponentTypeList...>(m_EntityHandle));
         }
 
         /**
@@ -178,11 +110,7 @@ namespace Mikoto {
          * */
         template<typename ComponentType, typename... Args>
         auto AddComponent(Args&&... args) -> decltype(auto) {
-            std::shared_ptr<Scene> ptr{};
-            if (!(ptr = m_Scene.lock()))
-                MKT_CORE_LOGGER_WARN("This entity's scene has expired and no longer exists!");
-
-            ComponentType& newComponent{ ptr->m_Registry.emplace_or_replace<ComponentType>(m_EntityHandle, std::forward<Args>(args)...) };
+            ComponentType& newComponent{ m_Registry->emplace_or_replace<ComponentType>(m_EntityHandle, std::forward<Args>(args)...) };
             OnComponentAttach(newComponent);
 
             return newComponent;
@@ -194,19 +122,15 @@ namespace Mikoto {
          * */
         template<typename ComponentType>
         auto RemoveComponent() -> void {
-            if (auto ptr{ m_Scene.lock() }) {
-                OnComponentDetach(GetComponent<ComponentType>());
-                ptr->m_Registry.remove<ComponentType>(m_EntityHandle);
-            }
-            else
-                MKT_CORE_LOGGER_WARN("This entity's scene has expired and no longer exists!");
+            OnComponentDetach(GetComponent<ComponentType>());
+            m_Registry->remove<ComponentType>(m_EntityHandle);
         }
 
         /**
          * Returns true if the entity is valid for a given Scene
          * @returns true if this entity is valid within the given scene, false otherwise
          * */
-        auto IsValidSceneEntity(const std::shared_ptr<Scene>& scene) -> decltype(auto) {
+        auto IsValidSceneEntity(const std::shared_ptr<Scene>& scene) -> bool {
             return scene->m_Registry.valid(m_EntityHandle);
         }
 
@@ -225,16 +149,10 @@ namespace Mikoto {
          * in undefined behaviour. This entity can be validated again via move or copy assigment
          * */
         auto Invalidate() -> void {
+            m_Registry = nullptr;
             m_EntityHandle = entt::null;
         }
 
-        /**
-         * Establishes the scene this entity scene this entity belongs to
-         * @param context scene this entity belongs to
-         * */
-        auto SetContext(const std::weak_ptr<Scene>& context) {
-            m_Scene = context;
-        }
 
         ~Entity() = default;
 
@@ -245,41 +163,15 @@ namespace Mikoto {
         template<typename ComponentType>
         auto OnComponentDetach(ComponentType& newComponent) -> void;
 
-        /**
-         * Construct this entity as part of the given scene. Hidden because this constructor is only useful
-         * for the friend classes, especially for the Scene class which is the only one that should be creating entities
-         * @param scene scene this entity is part of
-         * */
-        explicit Entity(const std::shared_ptr<Scene>& scene) {
-            m_Scene = scene;
-            m_EntityHandle = scene->m_Registry.create();
-        }
-
-        /**
-         * Construct this entity as part of the given scene and entity handle. Hidden because this constructor is only useful
-         * for the friend classes, especially for the Scene class which is the only one that should be creating entities
-         * @param handle handle for this entity
-         * @param scene scene this entity is part of
-         * */
-        explicit Entity(entt::entity handle, const std::shared_ptr<Scene>& scene) {
-            m_Scene = scene;
-            m_EntityHandle = handle;
-        }
     private:
         friend class Scene;
         friend class ScenePanel;
         friend class HierarchyPanel;
         friend class InspectorPanel;
 
+    private:
         entt::entity m_EntityHandle{ entt::null };
-
-        /**
-         * The scene this entity belongs to.
-         *
-         * We do not use shared or unique pointers because the Scene is not
-         * part of the entity and the entity shouldn't extend the scene's lifetime
-         * */
-        std::weak_ptr<Scene> m_Scene{};
+        entt::registry* m_Registry{ nullptr };
     };
 
     template<typename ComponentType>
@@ -305,10 +197,7 @@ namespace Mikoto {
     template<>
     inline auto Entity::OnComponentAttach<CameraComponent>(CameraComponent& newComponent) -> void {
         MKT_CORE_LOGGER_INFO("Added new Camera Component");
-        std::shared_ptr<Scene> ptr{};
-        if (!(ptr = m_Scene.lock()))
-            MKT_CORE_LOGGER_ERROR("This entity's scene has expired and no longer exists!");
-        newComponent.GetCameraPtr()->SetViewportSize(ptr->m_ViewportWidth, ptr->m_ViewportHeight);
+        //newComponent.GetCameraPtr()->SetViewportSize(scene->m_ViewportWidth, scene->m_ViewportHeight);
     }
 
     template<>

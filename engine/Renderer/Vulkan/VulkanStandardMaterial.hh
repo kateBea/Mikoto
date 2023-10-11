@@ -61,7 +61,7 @@ namespace Mikoto {
 
         auto SetTiltingColor(float red, float green, float blue, float alpha) -> void;
 
-        auto BindDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout) -> void;
+        auto BindDescriptorSet(const VkCommandBuffer &commandBuffer, const VkPipelineLayout &pipelineLayout) -> void;
 
         /**
          * Sends the transform data to the mapped GPU block of memory

@@ -40,11 +40,11 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::EnableWireframeMode() -> void {
-
+        m_UseWireframe = true;
     }
 
     auto VulkanRenderer::DisableWireframeMode() -> void {
-
+        m_UseWireframe = false;
     }
 
     auto VulkanRenderer::SetClearColor(const glm::vec4 &color) -> void {
@@ -146,6 +146,10 @@ namespace Mikoto {
         renderPassInfo.renderArea.offset = { 0, 0 };
         renderPassInfo.renderArea.extent = m_OffscreenExtent;
 
+        if (m_UseWireframe) {
+            SetClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        }
+
         renderPassInfo.clearValueCount = static_cast<UInt32_T>(m_ClearValues.size());
         renderPassInfo.pClearValues = m_ClearValues.data();
 
@@ -156,6 +160,15 @@ namespace Mikoto {
         // Begin Render pass commands recording
         vkCmdBeginRenderPass(m_DrawCommandBuffer.Get(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+        const VulkanPipeline* pipeline{ nullptr };
+        const VkPipelineLayout* pipelineLayout{ nullptr };
+
+        // Set Viewport and Scissor
+        UpdateViewport(0, static_cast<float>(m_OffscreenExtent.height), static_cast<float>(m_OffscreenExtent.width), -static_cast<float>(m_OffscreenExtent.height));
+        UpdateScissor(0, 0, { m_OffscreenExtent.width, m_OffscreenExtent.height });
+        vkCmdSetViewport(m_DrawCommandBuffer.Get(), 0, 1, &m_OffscreenViewport);
+        vkCmdSetScissor(m_DrawCommandBuffer.Get(), 0, 1, &m_OffscreenScissor);
+
         for (const auto& drawObject : m_DrawQueue) {
             m_ActiveDefaultMaterial = std::dynamic_pointer_cast<VulkanStandardMaterial>(drawObject->MaterialData);
 
@@ -163,21 +176,25 @@ namespace Mikoto {
             m_ActiveDefaultMaterial->SetProjection(drawObject->TransformData.Projection);
             m_ActiveDefaultMaterial->SetView(drawObject->TransformData.View);
             m_ActiveDefaultMaterial->SetTransform(drawObject->TransformData.Transform);
-            m_ActiveDefaultMaterial->SetTiltingColor(drawObject->Color.r, drawObject->Color.g, drawObject->Color.b, drawObject->Color.a);
+
+            if (!m_UseWireframe) {
+                pipelineLayout = std::addressof(m_MaterialInfo[m_ActiveDefaultMaterial->GetName()].MaterialPipelineLayout);
+                pipeline = std::addressof(*m_MaterialInfo[m_ActiveDefaultMaterial->GetName()].Pipeline);
+                m_ActiveDefaultMaterial->SetTiltingColor(drawObject->Color.r, drawObject->Color.g, drawObject->Color.b, drawObject->Color.a);
+            }
+            else {
+                m_ActiveDefaultMaterial->SetTiltingColor(0.0f, 0.0f, 0.0f, 1.0f);
+                pipelineLayout = std::addressof(m_MaterialInfo["WireframeMaterial"].MaterialPipelineLayout);
+                // TODO: no hardcoded string
+                pipeline = std::addressof(*m_MaterialInfo["WireframeMaterial"].Pipeline);
+            }
 
             for (const auto& mesh : drawObject->ModelData->GetMeshes()) {
                 m_ActiveDefaultMaterial->UploadUniformBuffers();
 
                 // Bind material Pipeline and Descriptors
-                m_MaterialInfo[m_ActiveDefaultMaterial->GetName()].Pipeline->Bind(m_DrawCommandBuffer.Get());
-
-                // Set Viewport and Scissor
-                UpdateViewport(0, static_cast<float>(m_OffscreenExtent.height), static_cast<float>(m_OffscreenExtent.width), -static_cast<float>(m_OffscreenExtent.height));
-                UpdateScissor(0, 0, { m_OffscreenExtent.width, m_OffscreenExtent.height });
-                vkCmdSetViewport(m_DrawCommandBuffer.Get(), 0, 1, &m_OffscreenViewport);
-                vkCmdSetScissor(m_DrawCommandBuffer.Get(), 0, 1, &m_OffscreenScissor);
-
-                m_ActiveDefaultMaterial->BindDescriptorSet(m_DrawCommandBuffer.Get(), m_MaterialInfo[m_ActiveDefaultMaterial->GetName()].MaterialPipelineLayout);
+                pipeline->Bind(m_DrawCommandBuffer.Get());
+                m_ActiveDefaultMaterial->BindDescriptorSet(m_DrawCommandBuffer.Get(), *pipelineLayout);
 
                 // Bind vertex and index buffers
                 std::dynamic_pointer_cast<VulkanVertexBuffer>(mesh.GetVertexBuffer())->Bind(m_DrawCommandBuffer.Get());
@@ -203,10 +220,6 @@ namespace Mikoto {
 
         CreateAttachments();
         CreateFrameBuffers();
-    }
-
-    auto VulkanRenderer::OnEvent(Event& event) -> void {
-
     }
 
     auto VulkanRenderer::CreateRenderPass() -> void {

@@ -11,14 +11,18 @@
 #include <unordered_set>
 
 // Project Headers
-#include "ImGui/ImGuiLayer.hh"
-#include <Core/Events/AppEvents.hh>
-#include <Core/Events/Event.hh>
-#include <Core/LayerStack.hh>
-#include <Core/TimeManager.hh>
-#include <Platform/Window/Window.hh>
-#include <Renderer/RenderingUtilities.hh>
+#include <Utility/Random.hh>
 #include <Utility/Singleton.hh>
+
+#include <Core/Event.hh>
+#include <Platform/Window.hh>
+#include <Renderer/RenderingUtilities.hh>
+
+#include <Core/TimeManager.hh>
+
+#include <Core/GameLayer.hh>
+#include <Core/RendererLayer.hh>
+#include <Editor/EditorLayer.hh>
 
 namespace Mikoto {
     /**
@@ -37,77 +41,52 @@ namespace Mikoto {
          bool WantEditor{};
      };
 
-    /**
-     * This class is essentially a wrapper around all the subsystems of our
-     * application, and it serves as a way of communicating the different
-     * components of ours engine
-     * */
     class Application : public Singleton<Application> {
     public:
+        explicit Application() = default;
+
         auto Init(AppSpec&& appSpec) -> void;
-        auto ShutDown() -> void;
+        auto Shutdown() -> void;
 
-        auto OnEvent(Event& event) -> void;
-
-        auto PushLayer(const std::shared_ptr<Layer>& layer) -> void;
-        auto PushOverlay(const std::shared_ptr<Layer>& overlay) -> void;
-
-        auto BlockImGuiLayerEvents(bool value) -> void;
+        auto ProcessEvents() -> void;
 
         auto UpdateState() -> void;
         auto IsRunning() -> bool;
-        auto Stop() -> void;
+        auto Present() -> void;
 
         auto GetMainWindow() -> Window&;
-        auto GetMainWindowPtr() -> std::shared_ptr<Window>;
+
+        ~Application() = default;
 
     private:
-        /*************************************************************
-         * STRUCTURES
-         * ***********************************************************/
-        /**
-         * Represents the current state of this application
-         * */
         enum class State {
-            NONE,
             RUNNING,
             STOPPED,
-            IDLE,  // can be used when we minimize the main window
-            COUNT,
+            IDLE,
         };
 
     private:
-        /*************************************************************
-         * APPLICATION EVENT HANDLERS
-         * ***********************************************************/
-
-        /**
-         * Callback function for WindowClose event. For now
-         * it always returns true as we have no needs to
-         * forward this event any further and handler it right away
-         * */
-        bool OnWindowClose(WindowCloseEvent &event);
-
-        /**
-         * Callback function for WindowResizedEvent event. For now
-         * it always returns true as we have no needs to
-         * forward this event any further and handler it right away
-         * */
-        bool OnResizeEvent(WindowResizedEvent &event);
+        auto InitializeLayers() -> void;
+        auto ReleaseLayers() -> void;
+        auto UpdateLayers() -> void;
+        auto ImGuiFrameRender() -> void;
+        auto InstallEventCallbacks() -> void;
 
     private:
-        /*************************************************************
-         * DATA MEMBERS
-         * ***********************************************************/
+        Random::GUID::UUID m_Guid{};
+
+        // Layers
+        std::unique_ptr<GameLayer> m_GameLayer{};
+        std::unique_ptr<EditorLayer> m_EditorLayer{};
+        std::unique_ptr<RendererLayer> m_RendererLayer{};
+
+        // State data
+        AppSpec m_Spec{};
         State m_State{ State::RUNNING };
         std::shared_ptr<Window> m_MainWindow{};
-        AppSpec m_Spec{};
 
-        // TODO: remove, use their namespaces
-        std::unique_ptr<LayerStack> m_LayerStack{};
-        std::shared_ptr<ImGuiLayer> m_ImGuiLayer{};
-        bool m_MainWindowMinimized{ false }; // remove, window should be able to know if it's minimized or not
-
+        // TODO: Temporary window for testing
+        std::shared_ptr<Window> m_SecondaryWindow{};
     };
 }
 

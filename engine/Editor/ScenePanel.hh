@@ -69,10 +69,10 @@ namespace Mikoto {
 
     class ScenePanel : public Panel {
     public:
-        explicit ScenePanel(ScenePanelCreateInfo&& createInfo, const Path_T &iconPath = {});
+        explicit ScenePanel(ScenePanelCreateInfo&& createInfo);
         auto operator=(ScenePanel&& other) -> ScenePanel& = default;
 
-        auto OnUpdate() -> void override;
+        auto OnUpdate(float ts) -> void override;
 
         MKT_NODISCARD auto GetData() const -> const ScenePanelData& { return m_Implementation->GetData(); }
         MKT_NODISCARD auto GetData() -> ScenePanelData& { return m_Implementation->GetData(); }

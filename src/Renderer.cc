@@ -60,6 +60,8 @@ namespace Mikoto {
         s_RenderingStats = std::make_unique<RenderingStats>();
         s_SavedSceneStats = std::make_unique<RenderingStats>();
 
+
+        // TODO: Move to assets manager
         LoadPrefabs();
     }
 

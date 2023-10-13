@@ -3,7 +3,9 @@
 //
 
 #include <entt/entt.hpp>
+#include <fmt/format.h>
 
+#include <Editor/ConsoleManager.hh>
 #include <Scene/SceneManager.hh>
 
 namespace Mikoto {
@@ -89,8 +91,13 @@ namespace Mikoto {
     auto SceneManager::SetActiveScene(Scene& scene) -> void {
         Scene::SetActiveScene(std::addressof(scene));
     }
+
     auto SceneManager::AddEntityToScene(Scene& scene, const EntityCreateInfo& createInfo) -> Entity {
         Entity result{};
+
+        ConsoleManager::PushMessage(ConsoleLogLevel::INFO, fmt::format("Adding new game object '{}' to scene '{}'",
+                                                                       createInfo.Name,
+                                                                       scene.GetName()));
 
         if (!createInfo.IsPrefab) {
             result = scene.AddEmptyObject(createInfo.Name);

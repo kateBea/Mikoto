@@ -32,7 +32,7 @@ namespace Mikoto {
         explicit SettingsPanel();
         auto operator=(SettingsPanel&& other) -> SettingsPanel& = default;
 
-        auto OnUpdate() -> void override;
+        auto OnUpdate(float timeStep) -> void override;
         auto SetColor(const glm::vec4& color) { m_Data.ClearColor = color; }
         auto SetFieldOfView(float fov) { m_Data.FieldOfView = fov; }
 

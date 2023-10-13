@@ -15,9 +15,12 @@ namespace Mikoto {
         explicit ConsolePanel();
         auto operator=(ConsolePanel && other) -> ConsolePanel& = default;
 
-        auto OnUpdate() -> void override;
+        auto OnUpdate(float timeStep) -> void override;
 
         ~ConsolePanel() override = default;
+
+    private:
+        auto DisplayMessages() -> void;
 
     private:
         ImGuiTextFilter m_SearchFilter{};

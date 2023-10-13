@@ -13,7 +13,7 @@
 #include <Utility/Types.hh>
 #include <Utility/Common.hh>
 
-namespace Mikoto {
+namespace Mikoto::StringUtils {
     /**
      * Returns a string which is the concatenation of the string
      * representation of the given values.

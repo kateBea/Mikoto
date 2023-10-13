@@ -22,7 +22,7 @@ namespace Mikoto {
         explicit ContentBrowserPanel(Path_T&& root);
         auto operator=(ContentBrowserPanel && other) -> ContentBrowserPanel & = default;
 
-        auto OnUpdate() -> void override;
+        auto OnUpdate(float timeStep) -> void override;
 
         ~ContentBrowserPanel() override = default;
 

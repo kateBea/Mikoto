@@ -48,10 +48,11 @@ namespace Mikoto {
         Editor::ThemeDarkModeDefault();
 
         const float baseFontSize{ 17.5f };
-        const float iconFontSize{ 20.0f };
+        const float iconFontSize{ 18.0f };
 
         // Load fonts
-        io.FontDefault = io.Fonts->AddFontFromFileTTF("../assets/Fonts/Open_Sans/OpenSans-VariableFont.ttf", baseFontSize);
+        s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF("../assets/Fonts/JetBrainsMono/fonts/ttf/JetBrainsMonoNL-Light.ttf", 22.0f));
+        s_Fonts.emplace_back(io.FontDefault = io.Fonts->AddFontFromFileTTF("../assets/Fonts/Open_Sans/OpenSans-VariableFont.ttf", baseFontSize));
         // FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly
 
         const std::string fontPath{ "../assets/Fonts/" };
@@ -77,7 +78,7 @@ namespace Mikoto {
         ImFontConfig config{};
         config.MergeMode = true;
         config.PixelSnapH = true;
-        config.GlyphOffset.y = 5.0f;
+        config.GlyphOffset.y = 4.0f;
         config.GlyphOffset.x = 0.0f;
         config.OversampleH = config.OversampleV = 3.0f;
         config.GlyphMinAdvanceX = 4.0f;

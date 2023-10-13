@@ -22,7 +22,7 @@ namespace Mikoto {
         explicit InspectorPanel();
         auto operator=(InspectorPanel&& other) -> InspectorPanel& = default;
 
-        auto OnUpdate() -> void override;
+        auto OnUpdate(float ts) -> void override;
 
         ~InspectorPanel() override = default;
 

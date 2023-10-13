@@ -33,7 +33,7 @@ namespace Mikoto {
     {
         m_CurrentDirectory = m_Root;
         m_ForwardDirectory = Path_T{};
-        m_PanelHeaderName = MakePanelName(ICON_MD_DNS, GetContentBrowserName());
+        m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_DNS, GetContentBrowserName());
 
         Size_T entryCount{};
         for (const auto& entry : std::filesystem::directory_iterator(m_Root)) { ++entryCount; }
@@ -100,7 +100,7 @@ namespace Mikoto {
             }
 
             ImGui::PushFont(ImGuiManager::GetFonts()[2]);
-            if (ImGui::Button(fmt::format("{}", ICON_MD_ARROW_BACK_IOS_NEW).c_str())) {
+            if (ImGui::Button(fmt::format("{}", ICON_MD_ARROW_BACK).c_str())) {
                 m_CurrentDirectory = m_CurrentDirectory.parent_path();
             }
             if (ImGui::IsItemHovered()) {
@@ -125,7 +125,7 @@ namespace Mikoto {
                 ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
             }
 
-            if (ImGui::Button(fmt::format("{}", ICON_MD_ARROW_FORWARD_IOS).c_str())) {
+            if (ImGui::Button(fmt::format("{}", ICON_MD_ARROW_FORWARD).c_str())) {
                 // update forward directory
             }
             if (ImGui::IsItemHovered()) {
@@ -203,7 +203,7 @@ namespace Mikoto {
     }
 
 
-    auto ContentBrowserPanel::OnUpdate() -> void {
+    auto ContentBrowserPanel::OnUpdate(float timeStep) -> void {
         if (m_PanelIsVisible) {
             static constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar };
             static constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_Resizable | ImGuiTableFlags_ContextMenuInBody | ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_SizingFixedSame };
@@ -301,6 +301,7 @@ namespace Mikoto {
     }
 
     auto ContentBrowserPanel::OnRightClick() -> void {
+        ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 1.0f);
         if (ImGui::BeginPopupContextWindow("ContentBrowserPopup")) {
 
             if (ImGui::MenuItem("Cut", "Ctrl + X")) {}
@@ -338,8 +339,8 @@ namespace Mikoto {
             if (ImGui::MenuItem("Rename", "F5")) {}
             if (ImGui::MenuItem("Delete", "Delete")) {}
 
-
             ImGui::EndPopup();
         }
+        ImGui::PopStyleVar();
     }
 }

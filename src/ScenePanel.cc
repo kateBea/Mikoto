@@ -34,10 +34,10 @@ namespace Mikoto {
         return "Scene";
     }
 
-    ScenePanel::ScenePanel(ScenePanelCreateInfo&& createInfo, const Path_T &iconPath)
-        :   Panel{ iconPath }, m_CreateInfo{ std::move( createInfo ) }
+    ScenePanel::ScenePanel(ScenePanelCreateInfo&& createInfo)
+        :   Panel{}, m_CreateInfo{ std::move( createInfo ) }
     {
-        m_PanelHeaderName = MakePanelName(ICON_MD_IMAGE, GetSceneName());
+        m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_IMAGE, GetSceneName());
 
         // Set scene panel implementation
         switch (Renderer::GetActiveGraphicsAPI()) {
@@ -58,7 +58,7 @@ namespace Mikoto {
         m_Implementation->SetEditorCamera(m_CreateInfo.EditorMainCamera);
     }
 
-    auto ScenePanel::OnUpdate() -> void {
+    auto ScenePanel::OnUpdate(float ts) -> void {
         if (m_PanelIsVisible) {
             ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible));
 

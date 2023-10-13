@@ -21,6 +21,7 @@
 #include <Core/Application.hh>
 #include <Core/Assert.hh>
 #include <Core/Logger.hh>
+#include <Renderer/Renderer.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanSwapChain.hh>
 #include <Utility/Common.hh>
@@ -46,6 +47,12 @@ namespace Mikoto {
 
         InitSwapChain();
         InitMemoryAllocator();
+
+        auto& rendererInfo{ Renderer::GetRendererData() };
+        rendererInfo.GPUName = GetPrimaryPhysicalDeviceProperties().deviceName;
+        rendererInfo.CPUName = "AMD Ryzen 7 5800X"; // TODO:query this info
+        rendererInfo.DriverVersion = std::to_string(GetPrimaryPhysicalDeviceProperties().driverVersion);
+        rendererInfo.VRAMSize = (double)GetPrimaryPhysicalDeviceMemoryProperties().memoryHeaps[0].size / 1'000'000;
     }
 
     auto CreateDebugUtilsMessengerEXT(

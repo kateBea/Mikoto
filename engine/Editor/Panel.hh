@@ -26,9 +26,8 @@ namespace Mikoto {
          * Constructs this panel with the icon from the given path
          * @param iconPath absolute or relative path to the icon of this panel
          * */
-        explicit Panel(Path_T iconPath = {})
-            :   m_IconDirectory{ std::move( iconPath ) }
-            ,   m_PanelIsHovered{ false }
+        explicit Panel()
+            :   m_PanelIsHovered{ false }
             ,   m_PanelIsFocused{ false }
             ,   m_PanelIsVisible{ true }
             ,   m_Guid{ }
@@ -52,7 +51,7 @@ namespace Mikoto {
         /**
          * Updates the state of this panel.
          * */
-        virtual auto OnUpdate() -> void = 0;
+        virtual auto OnUpdate(float timeStep) -> void = 0;
 
 
         /**
@@ -80,12 +79,6 @@ namespace Mikoto {
         MKT_NODISCARD auto IsVisible() const -> bool { return m_PanelIsVisible; }
 
         /**
-         * Returns true the absolute path to the icon from this panel
-         * @returns path to the icon from this panel
-         * */
-        MKT_UNUSED_FUNC MKT_NODISCARD auto GetIconPath() const -> const Path_T& { return m_IconDirectory; }
-
-        /**
          * Returns the universally unique identifier of this panel
          * @returns this panel's GUID
          * */
@@ -97,7 +90,6 @@ namespace Mikoto {
         virtual ~Panel() = default;
 
     protected:
-        Path_T m_IconDirectory{};
         bool m_PanelIsHovered{};
         bool m_PanelIsFocused{};
         bool m_PanelIsVisible{};

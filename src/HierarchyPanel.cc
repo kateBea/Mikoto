@@ -27,13 +27,13 @@ namespace Mikoto {
         return "Hierarchy";
     }
 
-    HierarchyPanel::HierarchyPanel(const Path_T &iconPath)
-        :   Panel{ iconPath }
+    HierarchyPanel::HierarchyPanel()
+        :   Panel{}
     {
-        m_PanelHeaderName = MakePanelName(ICON_MD_MERGE, GetHierarchyName());
+        m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_MERGE, GetHierarchyName());
     }
 
-    auto HierarchyPanel::OnUpdate() -> void {
+    auto HierarchyPanel::OnUpdate(float ts) -> void {
         if (m_PanelIsVisible) {
             ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible));
 
@@ -70,7 +70,7 @@ namespace Mikoto {
         static const ImGuiTreeNodeFlags flags{  styleFlags | (thisEntityIsSelected ? ImGuiTreeNodeFlags_Selected : 0) };
         static constexpr ImGuiTreeNodeFlags childNodeFlags{ styleFlags | ImGuiTreeNodeFlags_DefaultOpen };
 
-        bool expanded{ ImGui::TreeNodeEx((void*)(target.m_EntityHandle), flags, "%s", tag.GetTag().c_str()) };
+        bool expanded{ ImGui::TreeNodeEx((void*)(target.m_EntityHandle), flags, "%s", fmt::format(" {} {}", ICON_MD_WIDGETS, tag.GetTag()).c_str()) };
 
         if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
             SceneManager::SetCurrentlyActiveEntity(target);

@@ -90,7 +90,9 @@ set(IMGUI_SOURCES
         vendor/imgui/backends/imgui_impl_vulkan.cpp)
 
 set(EDITOR_SOURCES
-        src/Editor.cc src/HierarchyPanel.cc src/InspectorPanel.cc src/SettingsPanel.cc src/ScenePanel.cc src/StatsPanel.cc)
+        src/Editor.cc src/HierarchyPanel.cc src/InspectorPanel.cc src/SettingsPanel.cc src/ScenePanel.cc src/StatsPanel.cc
+        src/ConsolePanel.cc
+        src/ConsoleManager.cc)
 
 set(SCENE_SOURCES
         src/Scene.cc src/SceneCamera.cc

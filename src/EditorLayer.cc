@@ -17,7 +17,6 @@
 #include <Scene/SceneManager.hh>
 #include <Editor/EditorLayer.hh>
 #include <Core/EventManager.hh>
-#include <Platform/InputManager.hh>
 #include <Renderer/RenderCommand.hh>
 
 namespace Mikoto {
@@ -49,9 +48,11 @@ namespace Mikoto {
         dockSpaceCallbacks.OnSceneLoadCallback =
             [&]() -> void {
                 // We need to clear the scene before we load the serialized entities
-                SceneManager::DestroyScene(SceneManager::GetActiveScene());
+                SceneManager::DestroyActiveScene();
                 auto& newScene{ SceneManager::MakeNewScene("Empty Scene") };
                 SceneManager::SetActiveScene(newScene);
+
+                SceneManager::DisableTargetEntity();
 
                 // prepare filters for the dialog
                 std::initializer_list<std::pair<std::string, std::string>> filters{
@@ -115,6 +116,7 @@ namespace Mikoto {
         m_ScenePanel->MakeVisible(controlFlags.ScenePanelVisible);
         m_StatsPanel->MakeVisible(controlFlags.StatsPanelVisible);
         m_ContentBrowserPanel->MakeVisible(controlFlags.ContentBrowser);
+        m_ConsolePanel->MakeVisible(controlFlags.ConsolePanel);
 
         m_SettingsPanel->OnUpdate();
         m_HierarchyPanel->OnUpdate();
@@ -122,6 +124,7 @@ namespace Mikoto {
         m_ScenePanel->OnUpdate();
         m_StatsPanel->OnUpdate();
         m_ContentBrowserPanel->OnUpdate();
+        m_ConsolePanel->OnUpdate();
 
 
         if (controlFlags.ApplicationCloseFlag) { EventManager::Trigger<AppClose>(); }
@@ -134,6 +137,7 @@ namespace Mikoto {
         m_HierarchyPanel = std::make_unique<HierarchyPanel>();
         m_InspectorPanel = std::make_unique<InspectorPanel>();
         m_ContentBrowserPanel = std::make_unique<ContentBrowserPanel>("../assets");
+        m_ConsolePanel = std::make_unique<ConsolePanel>();
 
         ScenePanelCreateInfo scenePanelCreateInfo{};
         scenePanelCreateInfo.EditorMainCamera = m_EditorCamera.get();

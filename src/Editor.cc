@@ -237,6 +237,7 @@ namespace Mikoto::Editor {
                     if (ImGui::MenuItem("Settings", nullptr, s_ControlFlags.SettingPanelVisible))    s_ControlFlags.SettingPanelVisible = !s_ControlFlags.SettingPanelVisible;
                     if (ImGui::MenuItem("Statistics", nullptr, s_ControlFlags.StatsPanelVisible))    s_ControlFlags.StatsPanelVisible = !s_ControlFlags.StatsPanelVisible;
                     if (ImGui::MenuItem("Content Browser", nullptr, s_ControlFlags.ContentBrowser))    s_ControlFlags.ContentBrowser = !s_ControlFlags.ContentBrowser;
+                    if (ImGui::MenuItem("Console", nullptr, s_ControlFlags.ConsolePanel))    s_ControlFlags.ConsolePanel = !s_ControlFlags.ConsolePanel;
                     ImGui::EndMenu();
                 }
 
@@ -266,8 +267,30 @@ namespace Mikoto::Editor {
             HelpMarker("This help is temporary. This menu helps to change window stuff like the theme");
 
             if (ImGui::BeginMenu("Help")) {
-                if (ImGui::MenuItem("About"))
-                    ImGui::OpenPopup("AboutPopUp11111");
+                const ImGuiPopupFlags popUpFlags{ ImGuiPopupFlags_None };
+                if (ImGui::Button("About"))
+                    ImGui::OpenPopup("About", popUpFlags);
+
+                // Always center this window when appearing
+                ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+                ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+                if (ImGui::BeginPopupModal("About", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+                {
+                    ImGui::Text("Mikoto is an open source 3D graphics\n"
+                                "engine currently on development\n"
+                                "\nContributors:\n"
+                                "kateBea: github.com/kateBea");
+
+                    ImGui::Separator();
+
+                    if (ImGui::Button("Accept", ImVec2{ 120, 0 })) {
+                        ImGui::CloseCurrentPopup();
+                    }
+
+                    ImGui::SetItemDefaultFocus();
+                    ImGui::EndPopup();
+                }
 
                 ImGui::EndMenu();
             }

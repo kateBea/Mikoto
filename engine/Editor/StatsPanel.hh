@@ -16,7 +16,7 @@
 namespace Mikoto {
     class StatsPanel : public Panel {
     public:
-        explicit StatsPanel(const Path_T &iconPath = {});
+        explicit StatsPanel();
         auto operator=(StatsPanel&& other) -> StatsPanel& = default;
 
         auto OnUpdate() -> void override;

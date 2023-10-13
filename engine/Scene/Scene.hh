@@ -51,7 +51,7 @@ namespace Mikoto {
         auto AddPrefabObject(std::string_view tagName, PrefabSceneObject type, UInt64_T guid = Random::GUID::GenerateGUID()) -> Entity;
 
         MKT_NODISCARD static auto GetActiveScene() -> Scene*;
-        static auto SetActiveScene(Scene& scene) -> void;
+        static auto SetActiveScene(Scene *scene) -> void;
 
         auto Clear() -> void;
 

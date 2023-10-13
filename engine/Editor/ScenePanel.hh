@@ -46,8 +46,6 @@ namespace Mikoto {
             m_EditorMainCamera = camera;
         }
 
-        MKT_NODISCARD auto IsHovered() const -> bool { return m_Hovered; }
-        MKT_NODISCARD auto IsFocused() const -> bool { return m_Focused; }
         MKT_NODISCARD auto GetData() const -> const ScenePanelData& { return m_Data; }
         MKT_NODISCARD auto GetData() -> ScenePanelData& { return m_Data; }
 
@@ -63,8 +61,6 @@ namespace Mikoto {
         auto HandleManipulationMode() -> void;
 
     protected:
-        bool m_Hovered{};
-        bool m_Focused{};
         ScenePanelData m_Data{};
         const EditorCamera* m_EditorMainCamera{};
         ManipulationMode m_ActiveManipulationMode{};

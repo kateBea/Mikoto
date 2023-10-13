@@ -69,6 +69,8 @@ namespace Mikoto {
         static auto GetActiveScene() -> Scene&;
 
 
+        static auto DisableTargetEntity() -> void;
+
         static auto SetActiveScene(Scene& scene) -> void;
 
         /**
@@ -114,6 +116,8 @@ namespace Mikoto {
          * @param scene scene to be destroyed
          * */
         static auto DestroyScene(const Scene& scene) -> void;
+
+        static auto DestroyActiveScene() -> void;
 
         /**
          * Creates an entity on the currently active scene.

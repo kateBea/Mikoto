@@ -37,7 +37,7 @@ namespace Mikoto {
     }
 
     auto SceneManager::IsEntitySelected() -> bool {
-        return false;
+        return s_CurrentlySelectedEntity.IsValid();
     }
 
     auto SceneManager::GetCurrentlySelectedEntity() -> Entity& {
@@ -80,8 +80,14 @@ namespace Mikoto {
         }
     }
 
+    auto SceneManager::DestroyActiveScene() -> void {
+        DestroyScene(GetActiveScene());
+
+        Scene::SetActiveScene(nullptr);
+    }
+
     auto SceneManager::SetActiveScene(Scene& scene) -> void {
-        Scene::SetActiveScene(scene);
+        Scene::SetActiveScene(std::addressof(scene));
     }
     auto SceneManager::AddEntityToScene(Scene& scene, const EntityCreateInfo& createInfo) -> Entity {
         Entity result{};
@@ -94,5 +100,9 @@ namespace Mikoto {
         }
 
         return result;
+    }
+
+    auto SceneManager::DisableTargetEntity() -> void {
+        s_CurrentlySelectedEntity.Invalidate();
     }
 }

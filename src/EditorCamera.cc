@@ -35,7 +35,7 @@ namespace Mikoto {
                 MouseButtonReleasedEvent* e{ static_cast<MouseButtonReleasedEvent*>(std::addressof(event)) };
                 InputManager::SetCursorMode(InputManager::CURSOR_NORMAL);
 
-                if (e->GetMouseButton() == MouseButton::Mouse_Button_Left) {
+                if (e->GetMouseButton() == MouseButton::Mouse_Button_Right) {
                     SwitchRotation(false);
                 }
 

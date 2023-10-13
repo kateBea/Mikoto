@@ -19,7 +19,7 @@
 namespace Mikoto {
     class InspectorPanel : public Panel {
     public:
-        explicit InspectorPanel(const Path_T& iconPath = {});
+        explicit InspectorPanel();
         auto operator=(InspectorPanel&& other) -> InspectorPanel& = default;
 
         auto OnUpdate() -> void override;

@@ -51,7 +51,7 @@ namespace Mikoto {
         MKT_NODISCARD constexpr static auto GetMaxNearClip() -> float { return 1.0f; }
         MKT_NODISCARD constexpr static auto GetMinNearClip() -> float { return 0.01f; }
         MKT_NODISCARD constexpr static auto GetMaxFarClip() -> float { return 10000.0f; }
-        MKT_NODISCARD constexpr static auto GetMinFarClip() -> float { return 1000.0f; }
+        MKT_NODISCARD constexpr static auto GetMinFarClip() -> float { return 2500.0f; }
 
         MKT_NODISCARD constexpr static auto GetMaxFov() -> float { return 90.0f; }
         MKT_NODISCARD constexpr static auto GetMinFov() -> float { return 15.0f; }

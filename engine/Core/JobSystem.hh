@@ -25,6 +25,7 @@
  * Will not be available for some time in the core engine
  * */
 namespace Mikoto::JobSystem {
+    // TODO: turn into static class
     inline UInt32_T g_ThreadCount{};                   // Count of working threads
     inline std::deque<std::function<void()>> g_JobQueue{};       // Queue of pending jobs
     inline std::condition_variable g_WakeCondition{};                  // used in conjunction with the wakeMutex below. Worker threads just sleep when there is no job, and the main thread can wake them up

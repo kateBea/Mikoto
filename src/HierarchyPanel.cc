@@ -10,22 +10,32 @@
 #include <imgui.h>
 
 // Project Headers
+#include <Utility/StringUtils.hh>
+
 #include <Core/Logger.hh>
 #include <Scene/Entity.hh>
 #include <Scene/Component.hh>
 #include <Scene/SceneManager.hh>
 #include <Editor/HierarchyPanel.hh>
 
+#include <ImGui/IconsFontAwesome5.h>
+#include <ImGui/IconsMaterialDesign.h>
+#include <ImGui/IconsMaterialDesignIcons.h>
+
 namespace Mikoto {
+    static constexpr auto GetHierarchyName() -> std::string_view {
+        return "Hierarchy";
+    }
+
     HierarchyPanel::HierarchyPanel(const Path_T &iconPath)
         :   Panel{ iconPath }
     {
-
+        m_PanelHeaderName = MakePanelName(ICON_MD_MERGE, GetHierarchyName());
     }
 
     auto HierarchyPanel::OnUpdate() -> void {
         if (m_PanelIsVisible) {
-            ImGui::Begin("Hierarchy");
+            ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible));
 
             m_PanelIsHovered = ImGui::IsWindowHovered();
             m_PanelIsFocused = ImGui::IsWindowFocused();

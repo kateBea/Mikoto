@@ -37,3 +37,6 @@
 [submodule "vendor/nativefiledialog-extended"]
 	path = vendor/nativefiledialog-extended
 	url = https://github.com/btzy/nativefiledialog-extended.git
+[submodule "vendor/JoltPhysics"]
+	path = vendor/JoltPhysics
+	url = https://github.com/jrouwe/JoltPhysics.git

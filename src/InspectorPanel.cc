@@ -117,7 +117,7 @@ namespace Mikoto {
     InspectorPanel::InspectorPanel()
         :   Panel{}
     {
-        m_PanelHeaderName = MakePanelName(ICON_MD_DEVICE_HUB, GetInspectorPanelName());
+        m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_DEVICE_HUB, GetInspectorPanelName());
 
         for (Size_T count{}; count < REQUIRED_IDS; ++count) {
             m_Guids.emplace_back();
@@ -386,7 +386,7 @@ namespace Mikoto {
         });
     }
 
-    auto InspectorPanel::OnUpdate() -> void {
+    auto InspectorPanel::OnUpdate(float ts) -> void {
         if (m_PanelIsVisible) {
             ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible));
 

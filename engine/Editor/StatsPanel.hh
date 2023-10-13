@@ -19,12 +19,17 @@ namespace Mikoto {
         explicit StatsPanel();
         auto operator=(StatsPanel&& other) -> StatsPanel& = default;
 
-        auto OnUpdate() -> void override;
+        auto OnUpdate(float timeStep) -> void override;
 
     private:
-        auto DrawStatisticsTable() const -> void;
+        auto DrawPerformance() -> void;
+        auto DrawSystemInfo() -> void;
+        auto DrawActiveSceneInfo() const -> void;
+        auto DrawLightInfo() -> void;
 
     private:
+        float m_FrameRate{};
+        float m_FrameTime{};
         Int32_T m_ColumCount{ 2 };
     };
 }

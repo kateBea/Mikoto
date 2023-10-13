@@ -18,10 +18,10 @@
 namespace Mikoto {
     class HierarchyPanel : public Panel {
     public:
-        explicit HierarchyPanel(const Path_T& iconPath = {});
+        explicit HierarchyPanel();
         auto operator=(HierarchyPanel&& other) -> HierarchyPanel & = default;
 
-        auto OnUpdate() -> void override;
+        auto OnUpdate(float ts) -> void override;
 
         ~HierarchyPanel() override = default;
 

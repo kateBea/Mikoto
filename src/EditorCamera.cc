@@ -14,6 +14,7 @@
 
 // Project Headers
 #include <Utility/Common.hh>
+#include <Utility/Math.hh>
 #include <Utility/Constants.hh>
 #include <Utility/Math.hh>
 #include <Core/CoreEvents.hh>
@@ -87,7 +88,6 @@ namespace Mikoto {
 
             glm::quat q{ glm::normalize(glm::cross(glm::angleAxis(-m_Pitch, m_RightVector), glm::angleAxis(-m_Yaw, GLM_UNIT_VECTOR_Y))) };
             m_ForwardVector = glm::rotate(q, m_ForwardVector);
-
         }
     }
 

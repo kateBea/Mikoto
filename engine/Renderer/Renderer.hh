@@ -27,6 +27,14 @@ namespace Mikoto {
         GraphicsAPI Backend{};
     };
 
+    struct RendererData {
+        std::string GPUName{ "Unknown" };
+        std::string CPUName{ "Unknown" };
+        std::string DriverVersion{ "Unknown" };
+        double RAMSize{ 0.0f }; // in MB
+        double VRAMSize{ 0.0f }; // in MB
+    };
+
     class Renderer {
     public:
         static auto Init(RendererSpec&& spec) -> void;
@@ -47,6 +55,8 @@ namespace Mikoto {
         MKT_NODISCARD static auto QueryDrawCallsCount() -> UInt64_T { return s_SavedSceneStats->GetDrawCallsCount(); }
         MKT_NODISCARD static auto QueryIndexCount() -> UInt64_T { return s_SavedSceneStats->GetIndexCount(); }
         MKT_NODISCARD static auto QueryVertexCount() -> UInt64_T { return s_SavedSceneStats->GetVertexCount(); }
+
+        MKT_NODISCARD static auto GetRendererData() -> RendererData& { return s_RendererData; }
 
     private:
         /*************************************************************
@@ -89,6 +99,8 @@ namespace Mikoto {
         // Keep track of rendering stats such as number f vertices, number of indices, etc.
         inline static std::unique_ptr<RenderingStats> s_RenderingStats{};
         inline static std::unique_ptr<RenderingStats> s_SavedSceneStats{};
+
+        inline static RendererData s_RendererData{};
     };
 }
 

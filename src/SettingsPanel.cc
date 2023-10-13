@@ -29,17 +29,20 @@ namespace Mikoto {
     SettingsPanel::SettingsPanel()
         :   Panel{}
     {
-        m_PanelHeaderName = MakePanelName(ICON_MD_CONSTRUCTION, GetSettingsPanelName());
+        m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_CONSTRUCTION, GetSettingsPanelName());
 
         m_Data.EditorCameraMovementSpeed = EditorCamera::GetMinMovementSpeed();
         m_Data.EditorCameraRotationSpeed = EditorCamera::GetMinRotationSpeed();
+
+        m_Data.NearPlane = EditorCamera::GetMinNearClip();
+        m_Data.FarPlane = 2500.0f;
 
         for (Size_T count{}; count < REQUIRED_IDS; ++count) {
             m_Guids.emplace_back();
         }
     }
 
-    auto SettingsPanel::OnUpdate() -> void {
+    auto SettingsPanel::OnUpdate(float timeStep) -> void {
         if (m_PanelIsVisible) {
             ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible));
 

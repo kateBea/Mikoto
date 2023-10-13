@@ -18,6 +18,7 @@
 #include <Editor/EditorLayer.hh>
 #include <Core/EventManager.hh>
 #include <Renderer/RenderCommand.hh>
+#include <Core/TimeManager.hh>
 
 namespace Mikoto {
     auto EditorLayer::OnAttach() -> void {
@@ -110,6 +111,8 @@ namespace Mikoto {
         Editor::OnDockSpaceUpdate();
         auto& controlFlags{ Editor::GetControlFlags() };
 
+        const auto ts{ (float)TimeManager::GetTimeStep(TimeUnit::SECONDS) };
+
         m_SettingsPanel->MakeVisible(controlFlags.SettingPanelVisible);
         m_HierarchyPanel->MakeVisible(controlFlags.HierarchyPanelVisible);
         m_InspectorPanel->MakeVisible(controlFlags.InspectorPanelVisible);
@@ -118,13 +121,13 @@ namespace Mikoto {
         m_ContentBrowserPanel->MakeVisible(controlFlags.ContentBrowser);
         m_ConsolePanel->MakeVisible(controlFlags.ConsolePanel);
 
-        m_SettingsPanel->OnUpdate();
-        m_HierarchyPanel->OnUpdate();
-        m_InspectorPanel->OnUpdate();
-        m_ScenePanel->OnUpdate();
-        m_StatsPanel->OnUpdate();
-        m_ContentBrowserPanel->OnUpdate();
-        m_ConsolePanel->OnUpdate();
+        m_SettingsPanel->OnUpdate(ts);
+        m_HierarchyPanel->OnUpdate(ts);
+        m_InspectorPanel->OnUpdate(ts);
+        m_ScenePanel->OnUpdate(ts);
+        m_StatsPanel->OnUpdate(ts);
+        m_ContentBrowserPanel->OnUpdate(ts);
+        m_ConsolePanel->OnUpdate(ts);
 
 
         if (controlFlags.ApplicationCloseFlag) { EventManager::Trigger<AppClose>(); }

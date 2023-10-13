@@ -13,7 +13,7 @@
 #include <Utility/Types.hh>
 #include <Utility/Common.hh>
 
-namespace Mikoto {
+namespace Mikoto::Math {
     /**
      * Defines a position vector
      * */

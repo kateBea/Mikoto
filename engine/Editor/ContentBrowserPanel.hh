@@ -6,8 +6,11 @@
 #define MIKOTO_CONTENT_BROWSER_HH
 
 #include <memory>
+#include <stack>
 #include <filesystem>
 #include <unordered_map>
+
+#include <imgui.h>
 
 #include <Utility/Random.hh>
 #include <Editor/Panel.hh>
@@ -16,7 +19,7 @@
 namespace Mikoto {
     class ContentBrowserPanel : public Panel {
     public:
-        explicit ContentBrowserPanel(Path_T&& root, const Path_T &iconPath = {});
+        explicit ContentBrowserPanel(Path_T&& root);
         auto operator=(ContentBrowserPanel && other) -> ContentBrowserPanel & = default;
 
         auto OnUpdate() -> void override;
@@ -24,8 +27,14 @@ namespace Mikoto {
         ~ContentBrowserPanel() override = default;
 
     private:
+        auto DrawHeader() -> void;
+        auto DrawSideView() -> void;
+        auto DrawMainBody() -> void;
+
+        auto OnRightClick() -> void;
+
         auto DrawProjectDirTree(const Path_T& root) -> void;
-        auto DrawCurrentDirItems(const Path_T& currentDir) -> Path_T;
+        auto DrawCurrentDirItems() -> void;
 
     private:
         static constexpr Size_T REQUIRED_IDS{ 1 };
@@ -34,9 +43,15 @@ namespace Mikoto {
         std::shared_ptr<Texture2D> m_FolderIcon{};
         std::shared_ptr<Texture2D> m_FileIcon{};
 
+        ImGuiTextFilter m_SearchFilter{};
+
+        float m_ThumbnailSize{ 100.0f };
+
         Path_T m_Root{};
         Path_T m_CurrentDirectory{};
         Path_T m_ForwardDirectory{};
+
+        std::stack<Path_T> m_DirectoryStack{};
     };
 }
 

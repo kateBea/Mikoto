@@ -29,7 +29,7 @@ namespace Mikoto {
 
     class SettingsPanel : public Panel {
     public:
-        explicit SettingsPanel(const Path_T& iconPath = {});
+        explicit SettingsPanel();
         auto operator=(SettingsPanel&& other) -> SettingsPanel& = default;
 
         auto OnUpdate() -> void override;

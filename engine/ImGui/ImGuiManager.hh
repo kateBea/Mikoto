@@ -34,12 +34,16 @@ namespace Mikoto {
          * */
         static auto EndFrame() -> void;
 
+        static auto GetFonts() -> std::vector<ImFont*>& { return s_Fonts; }
+
         /**
          * Destroys ImGui context
          * */
         static auto Shutdown() -> void;
 
     private:
+        static auto AddIconFont(float fontSize, const std::string &path, const std::array<ImWchar, 3> &iconRanges) -> void;
+
         /**
          * Initializes the underlying implementation. Must call after OnAttach,
          * currently the implementation supports Vulkan and OpenGL, but both
@@ -51,6 +55,7 @@ namespace Mikoto {
         static auto InitImplementation(const std::shared_ptr<Window>& window) -> void;
 
     private:
+        inline static std::vector<ImFont*> s_Fonts{};
         inline static std::unique_ptr<BackendImplementation> m_Implementation{ nullptr };
     };
 }

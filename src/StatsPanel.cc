@@ -7,22 +7,31 @@
 #include <imgui.h>
 
 // Project Headers
+#include <Utility/StringUtils.hh>
+
 #include <Utility/Types.hh>
 #include <Core/TimeManager.hh>
 #include <Renderer/Renderer.hh>
 #include <Editor/StatsPanel.hh>
 
+#include <ImGui/IconsFontAwesome5.h>
+#include <ImGui/IconsMaterialDesign.h>
+#include <ImGui/IconsMaterialDesignIcons.h>
+
 namespace Mikoto {
+    static constexpr auto GetStatsPanelName() -> std::string_view {
+        return "Statistics";
+    }
 
-    StatsPanel::StatsPanel(const Path_T &iconPath)
-        :   Panel{ iconPath }
+    StatsPanel::StatsPanel()
+        :   Panel{}
     {
-
+        m_PanelHeaderName = MakePanelName(ICON_MD_MONITOR_HEART, GetStatsPanelName());
     }
 
     auto StatsPanel::OnUpdate() -> void {
         if (m_PanelIsVisible) {
-            ImGui::Begin("Statistics");
+            ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible));
 
             DrawStatisticsTable();
 

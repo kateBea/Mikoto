@@ -57,11 +57,6 @@ namespace Mikoto {
         auto OnUpdate_Impl() -> void override {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f, 0.0f });
 
-            ImGui::Begin("Scene");
-
-            m_Focused = ImGui::IsWindowFocused();
-            m_Hovered = ImGui::IsWindowHovered();
-
             auto viewPortDimensions{ ImGui::GetContentRegionAvail() };
             auto& currentlyActiveScene{ SceneManager::GetActiveScene() };
             if (m_Data.ViewPortWidth != viewPortDimensions.x || m_Data.ViewPortHeight != viewPortDimensions.y) {
@@ -78,7 +73,6 @@ namespace Mikoto {
 
             HandleGuizmos();
 
-            ImGui::End();
             ImGui::PopStyleVar();
         }
 

@@ -15,9 +15,13 @@
 
 // Project Headers
 #include <Utility/Types.hh>
+#include <Utility/StringUtils.hh>
 #include <Scene/Component.hh>
 #include <Scene/SceneManager.hh>
 #include <Editor/InspectorPanel.hh>
+#include <ImGui/IconsFontAwesome5.h>
+#include <ImGui/IconsMaterialDesign.h>
+#include <ImGui/IconsMaterialDesignIcons.h>
 
 namespace Mikoto {
     static auto MaterialComponentEditor(MaterialComponent& material) -> void {
@@ -33,8 +37,9 @@ namespace Mikoto {
 
             ImGui::TableNextColumn();
             static float mixing{};
+            static constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
             glm::vec4 color{ material.GetColor()};
-            if (ImGui::ColorEdit3("Color", glm::value_ptr(color))) {
+            if (ImGui::ColorEdit4("Color", glm::value_ptr(color), colorEditFlags)) {
                 material.SetColor(color);
             }
             ImGui::SliderFloat("Mix", std::addressof(mixing), 0.0f, 1.0f);
@@ -105,9 +110,15 @@ namespace Mikoto {
         }
     }
 
-    InspectorPanel::InspectorPanel(const Path_T &iconPath)
-        :   Panel{ iconPath }
+    static constexpr auto GetInspectorPanelName() -> std::string_view {
+        return "Inspector";
+    }
+
+    InspectorPanel::InspectorPanel()
+        :   Panel{}
     {
+        m_PanelHeaderName = MakePanelName(ICON_MD_DEVICE_HUB, GetInspectorPanelName());
+
         for (Size_T count{}; count < REQUIRED_IDS; ++count) {
             m_Guids.emplace_back();
         }
@@ -377,7 +388,7 @@ namespace Mikoto {
 
     auto InspectorPanel::OnUpdate() -> void {
         if (m_PanelIsVisible) {
-            ImGui::Begin("Inspector");
+            ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible));
 
             auto& currentlyActiveEntity{ SceneManager::GetCurrentlySelectedEntity() };
 

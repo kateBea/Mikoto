@@ -7,12 +7,14 @@
 #define MIKOTO_CORE_EVENTS_HH
 
 // C++ Standard Library
+#include <array>
 #include <string_view>
 
 // Third-Party Libraries
 #include <fmt/core.h>
 
 // Project Headers
+#include <Utility/Types.hh>
 #include <Utility/Common.hh>
 #include <Core/Event.hh>
 

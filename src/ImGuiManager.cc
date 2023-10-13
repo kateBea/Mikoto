@@ -13,6 +13,7 @@
 #include <Editor/Editor.hh>
 #include <ImGui/IconsFontAwesome5.h>
 #include <ImGui/IconsMaterialDesign.h>
+#include <ImGui/IconsMaterialDesignIcons.h>
 #include <ImGui/ImGuiOpenGLBackend.hh>
 #include <ImGui/ImGuiVulkanBackend.hh>
 #include <Renderer/Renderer.hh>
@@ -47,25 +48,46 @@ namespace Mikoto {
         Editor::ThemeDarkModeDefault();
 
         const float baseFontSize{ 17.5f };
+        const float iconFontSize{ 20.0f };
 
         // Load fonts
         io.FontDefault = io.Fonts->AddFontFromFileTTF("../assets/Fonts/Open_Sans/OpenSans-VariableFont.ttf", baseFontSize);
         // FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly
-        const float iconFontSize{ baseFontSize * 2.0f/3.0f };
+
+        const std::string fontPath{ "../assets/Fonts/" };
+
+        // First font
+        static const std::array<ImWchar, 3> iconRanges1{ ICON_MIN_MDI, ICON_MAX_16_MDI, 0 };
+        AddIconFont(iconFontSize, (fontPath + FONT_ICON_FILE_NAME_FAR), iconRanges1);
+
+        // Second Font
+        static const std::array<ImWchar, 3> iconRanges2{ ICON_MIN_MD, ICON_MAX_16_MD, 0 };
+        AddIconFont(iconFontSize, (fontPath + FONT_ICON_FILE_NAME_MD), iconRanges2);
+
+        // Third font
+        static const std::array<ImWchar, 3> iconRanges3{ ICON_MIN_MDI, ICON_MAX_16_MDI, 0 };
+        AddIconFont(iconFontSize, (fontPath + FONT_ICON_FILE_NAME_MDI), iconRanges3);
+
+        InitImplementation(window);
+    }
+
+    auto ImGuiManager::AddIconFont(float fontSize, const std::string &path, const std::array<ImWchar, 3> &iconRanges) -> void {
+        auto& io{ ImGui::GetIO() };
 
         ImFontConfig config{};
         config.MergeMode = true;
         config.PixelSnapH = true;
-        config.GlyphMinAdvanceX = iconFontSize;
+        config.GlyphOffset.y = 5.0f;
+        config.GlyphOffset.x = 0.0f;
+        config.OversampleH = config.OversampleV = 3.0f;
+        config.GlyphMinAdvanceX = 4.0f;
+        config.SizePixels = 12.0f;
 
-        // TODO: has to be static
-        static const std::array<ImWchar, 3> iconRanges1{ ICON_MIN_FA, ICON_MAX_16_FA, 0 };
-        static const std::array<ImWchar, 3> iconRanges2{ ICON_MIN_MD, ICON_MAX_16_MD, 0 };
-
-        io.Fonts->AddFontFromFileTTF("../assets/Fonts/fa-regular-400.ttf", iconFontSize, &config, iconRanges1.data());
-        io.Fonts->AddFontFromFileTTF("../assets/Fonts/MaterialIcons-Regular.ttf", iconFontSize, &config, iconRanges2.data());
-
-        InitImplementation(window);
+        s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF(
+                path.c_str(),
+                fontSize,
+                &config,
+                iconRanges.data()));
     }
 
     auto ImGuiManager::InitImplementation(const std::shared_ptr<Window>& window) -> void {

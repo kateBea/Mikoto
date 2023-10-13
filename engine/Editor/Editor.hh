@@ -29,6 +29,7 @@ namespace Mikoto::Editor {
         bool SettingPanelVisible{ true };
         bool StatsPanelVisible{ true };
         bool ContentBrowser{ true };
+        bool ConsolePanel{ true };
     };
 
     struct DockSpaceCallbacks {

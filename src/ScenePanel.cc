@@ -12,6 +12,8 @@
 #include <glm/gtc/type_ptr.hpp>
 
 // Project Headers
+#include <Utility/StringUtils.hh>
+
 #include <Editor/ScenePanel.hh>
 #include <Scene/SceneManager.hh>
 #include <Core/CoreEvents.hh>
@@ -22,11 +24,21 @@
 #include <Editor/ScenePanel_VulkanImpl.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 
+
+#include <ImGui/IconsFontAwesome5.h>
+#include <ImGui/IconsMaterialDesign.h>
+#include <ImGui/IconsMaterialDesignIcons.h>
+
 namespace Mikoto {
+    static constexpr auto GetSceneName() -> std::string_view {
+        return "Scene";
+    }
 
     ScenePanel::ScenePanel(ScenePanelCreateInfo&& createInfo, const Path_T &iconPath)
         :   Panel{ iconPath }, m_CreateInfo{ std::move( createInfo ) }
     {
+        m_PanelHeaderName = MakePanelName(ICON_MD_IMAGE, GetSceneName());
+
         // Set scene panel implementation
         switch (Renderer::GetActiveGraphicsAPI()) {
         case GraphicsAPI::OPENGL_API:
@@ -48,13 +60,17 @@ namespace Mikoto {
 
     auto ScenePanel::OnUpdate() -> void {
         if (m_PanelIsVisible) {
+            ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible));
+
+            m_PanelIsFocused = ImGui::IsWindowFocused();
+            m_PanelIsHovered = ImGui::IsWindowHovered();
+
             m_Implementation->OnUpdate_Impl();
+
+            ImGui::End();
         }
 
-        m_PanelIsHovered = m_Implementation->IsHovered();
-        m_PanelIsFocused = m_Implementation->IsFocused();
-
-        if (m_PanelIsHovered && InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Left)) {
+        if (m_PanelIsHovered && InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Right)) {
             EventManager::Trigger<CameraEnableRotation>();
         }
     }

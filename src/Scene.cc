@@ -162,11 +162,11 @@ namespace Mikoto {
         Clear();
     }
 
-    auto Scene::GetActiveScene() -> Scene * {
+    auto Scene::GetActiveScene() -> Scene* {
         return s_ActiveScene;
     }
 
-    auto Scene::SetActiveScene(Scene& scene) -> void {
-        s_ActiveScene = std::addressof(scene);
+    auto Scene::SetActiveScene(Scene* scene) -> void {
+        s_ActiveScene = scene;
     }
 }

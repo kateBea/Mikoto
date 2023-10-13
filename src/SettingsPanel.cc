@@ -11,14 +11,26 @@
 #include <glm/gtc/type_ptr.hpp>
 
 // Project Headers
+#include <Utility/StringUtils.hh>
+
 #include <Editor/SettingsPanel.hh>
 #include <Renderer/RenderCommand.hh>
 #include <Renderer/RenderContext.hh>
 
+#include <ImGui/IconsFontAwesome5.h>
+#include <ImGui/IconsMaterialDesign.h>
+#include <ImGui/IconsMaterialDesignIcons.h>
+
 namespace Mikoto {
-    SettingsPanel::SettingsPanel(const Path_T& iconPath)
-        :   Panel{ iconPath }
+    static constexpr auto GetSettingsPanelName() -> std::string_view {
+        return "Settings";
+    }
+
+    SettingsPanel::SettingsPanel()
+        :   Panel{}
     {
+        m_PanelHeaderName = MakePanelName(ICON_MD_CONSTRUCTION, GetSettingsPanelName());
+
         m_Data.EditorCameraMovementSpeed = EditorCamera::GetMinMovementSpeed();
         m_Data.EditorCameraRotationSpeed = EditorCamera::GetMinRotationSpeed();
 
@@ -29,7 +41,7 @@ namespace Mikoto {
 
     auto SettingsPanel::OnUpdate() -> void {
         if (m_PanelIsVisible) {
-            ImGui::Begin("Settings");
+            ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible));
 
             static constexpr ImGuiTreeNodeFlags styleFlags{ImGuiTreeNodeFlags_DefaultOpen |
                                                            ImGuiTreeNodeFlags_AllowItemOverlap |

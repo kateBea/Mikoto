@@ -102,6 +102,8 @@ namespace Mikoto {
         bool m_PanelIsFocused{};
         bool m_PanelIsVisible{};
 
+        std::string m_PanelHeaderName{};
+
         // Uniquely identifies this panel
         // Cna be used to subscribe this panel to events
         Random::GUID::UUID m_Guid{};

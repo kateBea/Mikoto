@@ -54,7 +54,7 @@ namespace Mikoto::Serializer {
     class SceneSerializer {
     public:
         static auto Serialize(Scene *scene, const Path_T &saveFilePath) -> void;
-        static auto Deserialize(const Path_T &saveFilePath, Scene &scene) -> void;
+        static auto Deserialize(const Path_T &saveFilePath) -> void;
     };
 }
 

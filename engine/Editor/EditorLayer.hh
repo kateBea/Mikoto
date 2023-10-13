@@ -21,6 +21,7 @@
 #include <Editor/SettingsPanel.hh>
 #include <Editor/StatsPanel.hh>
 #include <Editor/ConsolePanel.hh>
+#include <Editor/RendererPanel.hh>
 
 namespace Mikoto {
 
@@ -56,6 +57,7 @@ namespace Mikoto {
         std::unique_ptr<ScenePanel> m_ScenePanel{};
         std::unique_ptr<StatsPanel> m_StatsPanel{};
         std::unique_ptr<ConsolePanel> m_ConsolePanel{};
+        std::unique_ptr<RendererPanel> m_RendererPanel{};
     };
 }
 

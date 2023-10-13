@@ -19,6 +19,7 @@
 #include <Core/EventManager.hh>
 #include <Renderer/RenderCommand.hh>
 #include <Core/TimeManager.hh>
+#include <Editor/ConsoleManager.hh>
 
 namespace Mikoto {
     auto EditorLayer::OnAttach() -> void {
@@ -41,6 +42,7 @@ namespace Mikoto {
 
         dockSpaceCallbacks.OnSceneNewCallback =
             [&]() -> void {
+                // TODO: programs exits with 1 when we create a scene, save it and try to load another
                 SceneManager::DestroyScene(SceneManager::GetActiveScene());
                 auto& newScene{ SceneManager::MakeNewScene("Empty Scene") };
                 SceneManager::SetActiveScene(newScene);
@@ -48,20 +50,26 @@ namespace Mikoto {
 
         dockSpaceCallbacks.OnSceneLoadCallback =
             [&]() -> void {
-                // We need to clear the scene before we load the serialized entities
-                SceneManager::DestroyActiveScene();
-                auto& newScene{ SceneManager::MakeNewScene("Empty Scene") };
-                SceneManager::SetActiveScene(newScene);
-
-                SceneManager::DisableTargetEntity();
-
                 // prepare filters for the dialog
                 std::initializer_list<std::pair<std::string, std::string>> filters{
                         { "Mikoto Scene files", "mkts,mktscene" },
                         { "Mikoto Project Files", "mkt,mktp,mktproject" }
                 };
 
-                Serializer::SceneSerializer::Deserialize(Serializer::OpenDialog(filters), newScene);
+                auto sceneFilePath{ Serializer::OpenDialog(filters) };
+
+                // user canceled file dialog
+                if (sceneFilePath.empty()) {
+                    ConsoleManager::PushMessage(ConsoleLogLevel::WARNING, "User canceled open dialog");
+                    return;
+                }
+
+                // We need to clear the scene before we load the serialized entities
+                SceneManager::DestroyActiveScene();
+                SceneManager::DisableTargetEntity();
+
+                Serializer::SceneSerializer::Deserialize(sceneFilePath);
+                ConsoleManager::PushMessage(ConsoleLogLevel::DEBUG, fmt::format("Loaded new scene [{}]", SceneManager::GetActiveScene().GetName()));
             };
 
         dockSpaceCallbacks.OnSceneSaveCallback =
@@ -73,7 +81,9 @@ namespace Mikoto {
                 };
 
                 Scene* activeScene{ std::addressof(SceneManager::GetActiveScene()) };
-                Serializer::SceneSerializer::Serialize(activeScene, Serializer::SaveDialog("Mikoto Scene", filters));
+                auto path{ Serializer::SaveDialog("Mikoto Scene", filters) };
+                Serializer::SceneSerializer::Serialize(activeScene, path);
+                ConsoleManager::PushMessage(ConsoleLogLevel::WARNING, fmt::format("Saved scene to [{}]", path));
             };
     }
 
@@ -120,6 +130,7 @@ namespace Mikoto {
         m_StatsPanel->MakeVisible(controlFlags.StatsPanelVisible);
         m_ContentBrowserPanel->MakeVisible(controlFlags.ContentBrowser);
         m_ConsolePanel->MakeVisible(controlFlags.ConsolePanel);
+        m_RendererPanel->MakeVisible(controlFlags.RendererPanel);
 
         m_SettingsPanel->OnUpdate(ts);
         m_HierarchyPanel->OnUpdate(ts);
@@ -128,6 +139,7 @@ namespace Mikoto {
         m_StatsPanel->OnUpdate(ts);
         m_ContentBrowserPanel->OnUpdate(ts);
         m_ConsolePanel->OnUpdate(ts);
+        m_RendererPanel->OnUpdate(ts);
 
 
         if (controlFlags.ApplicationCloseFlag) { EventManager::Trigger<AppClose>(); }
@@ -141,6 +153,7 @@ namespace Mikoto {
         m_InspectorPanel = std::make_unique<InspectorPanel>();
         m_ContentBrowserPanel = std::make_unique<ContentBrowserPanel>("../assets");
         m_ConsolePanel = std::make_unique<ConsolePanel>();
+        m_RendererPanel = std::make_unique<RendererPanel>();
 
         ScenePanelCreateInfo scenePanelCreateInfo{};
         scenePanelCreateInfo.EditorMainCamera = m_EditorCamera.get();

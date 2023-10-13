@@ -29,7 +29,7 @@ namespace Mikoto {
         if (m_PanelIsVisible) {
             ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible));
 
-            if (ImGui::Button(fmt::format("{}", ICON_MD_CLEAR).c_str())) {
+            if (ImGui::Button(fmt::format("{} Clear", ICON_MD_DELETE).c_str())) {
                 ConsoleManager::ClearMessages();
             }
             if (ImGui::IsItemHovered()) {
@@ -50,6 +50,10 @@ namespace Mikoto {
                 ImGui::PopStyleColor();
             }
 
+            ImGui::Spacing();
+            ImGui::Spacing();
+
+            // TODO: refresh when there's new messages instead of every single loop
             DisplayMessages();
 
             ImGui::End();

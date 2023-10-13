@@ -40,6 +40,9 @@ namespace Mikoto {
             m_PanelIsHovered = ImGui::IsWindowHovered();
             m_PanelIsFocused = ImGui::IsWindowFocused();
 
+            // table with entity label, entity type and visibility
+
+            // each entity (and its nodes) make a row
             SceneManager::ForEachWithComponents<TagComponent>(
                     [](Entity& entity) -> void {
                         DrawEntityNode(entity);

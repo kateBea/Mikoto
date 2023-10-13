@@ -20,6 +20,7 @@
 #include <Core/Serializer.hh>
 #include <Scene/Entity.hh>
 #include <Scene/SceneManager.hh>
+#include <Editor/ConsoleManager.hh>
 
 namespace YAML {
     template<>
@@ -181,7 +182,7 @@ namespace Mikoto::Serializer {
         outputFile << emitter.c_str();
     }
 
-    auto SceneSerializer::Deserialize(const Path_T& saveFilePath, Scene& scene) -> void {
+    auto SceneSerializer::Deserialize(const Path_T &saveFilePath) -> void {
         std::ifstream inputFile{ saveFilePath };
 
         if (!inputFile.is_open()) {
@@ -195,16 +196,26 @@ namespace Mikoto::Serializer {
         YAML::Node data{ YAML::Load(stream.str()) };
 
         if (data.IsNull()) {
-            MKT_CORE_LOGGER_WARN("File opened '{}' but contains no data for deserialization", saveFilePath.string());
+            auto message{ fmt::format("File opened '{}' but contains no data for deserialization", saveFilePath.string()) };
+
+            ConsoleManager::PushMessage(ConsoleLogLevel::ERROR, message);
+            MKT_CORE_LOGGER_WARN("{}", message);
             return;
         }
 
         if (data["Scene"].IsNull()) {
-            MKT_CORE_LOGGER_WARN("File opened '{}' but contains Scene Node", saveFilePath.string());
+            auto message{ fmt::format("File opened [{}] but contains Scene Node", saveFilePath.string()) };
+
+            ConsoleManager::PushMessage(ConsoleLogLevel::ERROR, message);
+            MKT_CORE_LOGGER_WARN("{}", message);
             return;
         }
 
+        // Recreate a new scene on top of which we are going to deserialize
         const std::string sceneName{ data["Scene"].as<std::string>() };
+        auto& newScene{ SceneManager::MakeNewScene(sceneName) };
+        SceneManager::SetActiveScene(newScene);
+
         const auto sceneEntities{ data["Objects"] };
 
         if (!sceneEntities.IsNull()) {
@@ -231,7 +242,7 @@ namespace Mikoto::Serializer {
                         entityCreateInfo.PrefabType = PrefabTypeFromName(object["RenderComponent"]["PrefabType"].as<std::string>());
                     }
 
-                    entity = SceneManager::AddEntityToScene(scene, entityCreateInfo);
+                    entity = SceneManager::AddEntityToScene(newScene, entityCreateInfo);
                 }
 
                 // Get Material component

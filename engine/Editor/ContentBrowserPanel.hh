@@ -51,7 +51,10 @@ namespace Mikoto {
         Path_T m_CurrentDirectory{};
         Path_T m_ForwardDirectory{};
 
-        std::stack<Path_T> m_DirectoryStack{};
+        bool m_ShowFoldersOnlyInDirectoryTree{};
+        bool m_ShowFileTypeHint{};
+
+        std::vector<Path_T> m_DirectoryStack{};
     };
 }
 

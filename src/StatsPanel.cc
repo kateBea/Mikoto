@@ -90,13 +90,13 @@ namespace Mikoto {
                         ImGui::TableNextColumn();
                         ImGui::TextUnformatted("Frame-time");
                         ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(": {:.2f}", m_FrameTime).c_str());
+                        ImGui::TextUnformatted(fmt::format(": {:.2f} ms", m_FrameTime * 1000.0f).c_str());
 
                         ImGui::EndTable();
                     }
 
                     const auto overlay{ fmt::format("{:.2f}", m_FrameRate) };
-                    ImGui::PlotLines("##FPS", frameRateGraphCachedValues.data(), frameRateGraphCachedValues.size(), 0, overlay.c_str(), 0.0f, maxFps, ImVec2(0, 80.0f));
+                    ImGui::PlotLines("##FPS", frameRateGraphCachedValues.data(), frameRateGraphCachedValues.size(), 100, overlay.c_str(), 0.0f, maxFps, ImVec2(0, 80.0f));
 
                     ++index;
                     if (index == frameRateGraphCachedValues.size()) {

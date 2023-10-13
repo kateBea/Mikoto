@@ -238,6 +238,7 @@ namespace Mikoto::Editor {
                     if (ImGui::MenuItem("Statistics", nullptr, s_ControlFlags.StatsPanelVisible))    s_ControlFlags.StatsPanelVisible = !s_ControlFlags.StatsPanelVisible;
                     if (ImGui::MenuItem("Content Browser", nullptr, s_ControlFlags.ContentBrowser))    s_ControlFlags.ContentBrowser = !s_ControlFlags.ContentBrowser;
                     if (ImGui::MenuItem("Console", nullptr, s_ControlFlags.ConsolePanel))    s_ControlFlags.ConsolePanel = !s_ControlFlags.ConsolePanel;
+                    if (ImGui::MenuItem("Renderer", nullptr, s_ControlFlags.RendererPanel))    s_ControlFlags.RendererPanel = !s_ControlFlags.RendererPanel;
                     ImGui::EndMenu();
                 }
 

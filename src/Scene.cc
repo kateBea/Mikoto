@@ -59,8 +59,6 @@ namespace Mikoto {
                 SceneObjectData& objectData{ renderComponent.GetObjectData() };
                 objectData.Color = material.GetColor();
 
-                // TODO: fix rendering order for blending, objects that are nearer to the camera should be rendered first
-                // Right now if an object is on top of another but it is rendered after before blending does not work
                 Renderer::Submit(objectData, transform.GetTransform(), material.Get());
             }
 
@@ -119,7 +117,7 @@ namespace Mikoto {
 
     auto Scene::OnEditorUpdate(double timeStep, const EditorCamera& camera) -> void {
         ScenePrepareData prepareData{};
-        prepareData.StaticCamera = &camera;
+        prepareData.StaticCamera = std::addressof(camera);
 
         Renderer::BeginScene(prepareData);
 
@@ -134,8 +132,6 @@ namespace Mikoto {
             SceneObjectData& objectData{ renderComponent.GetObjectData() };
             objectData.Color = material.GetColor();
 
-            // TODO: fix rendering order for blending, objects that are nearer to the camera should be rendered first
-            // Right now if an object is on top of another but it is rendered after before blending does not work
             if (tag.IsVisible()) {
                 Renderer::Submit(objectData, transform.GetTransform(), material.Get());
             }

@@ -43,7 +43,7 @@ namespace Mikoto {
         auto OnViewPortResize(UInt32_T width, UInt32_T height) -> void;
 
         auto GetRegistry() -> entt::registry& { return m_Registry; }
-        auto GetRegistry() const -> const entt::registry& { return m_Registry; }
+        MKT_NODISCARD auto GetRegistry() const -> const entt::registry& { return m_Registry; }
 
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 

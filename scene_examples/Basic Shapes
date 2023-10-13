@@ -1,0 +1,54 @@
+Scene: Empty Scene
+Objects:
+  - Object: 9093468627576006414
+    TagComponent:
+      Name: Cube Object 1
+      Visibility: true
+    TransformComponent:
+      Position: [0, -4.1002841, 0]
+      Rotation: [0, 0, 0]
+      Scale: [-12.3000002, 0.200000003, 12.1999998]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: CUBE_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [0.146017671, 0.132449657, 0.132449657, 1]
+  - Object: 1110920804478510498
+    TagComponent:
+      Name: Cylinder Object 0
+      Visibility: true
+    TransformComponent:
+      Position: [4.78988123, 0, 5.10100889]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: CYLINDER_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [0.964601755, 0.402112544, 0.0298770294, 1]
+  - Object: 13924411577948902469
+    TagComponent:
+      Name: Cone Object 0
+      Visibility: true
+    TransformComponent:
+      Position: [-4.19999981, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: CONE_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [0.120173886, 0.815899312, 0.876106203, 1]
+  - Object: 5370990339950005301
+    TagComponent:
+      Name: Cube Object 0
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, -3.02711439]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: CUBE_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [0.350332707, 0.876106203, 0.124050438, 1]

@@ -53,9 +53,11 @@ namespace Mikoto {
         if (ImGui::Button(fmt::format("{}", ICON_MD_BUILD).c_str())) {
             ImGui::OpenPopup("HeaderSettingsPopup");
         }
+
         if (ImGui::IsItemHovered()) {
             ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
         }
+
         if (ImGui::BeginPopup("HeaderSettingsPopup")) {
             if (ImGui::Button(fmt::format("{}", ICON_MD_RESTORE).c_str())) {
                 m_ThumbnailSize = 128.0f;
@@ -66,6 +68,31 @@ namespace Mikoto {
             ImGui::SameLine();
             ImGui::Text("Browser thumbnail size");
             ImGui::SliderFloat("##HeaderSettingsPopupThumnailSize", std::addressof(m_ThumbnailSize),90.0f, 256.0f, "%.2f");
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+            }
+
+            ImGui::Spacing();
+            ImGui::Separator();
+
+            // Show folders only in the side tree?
+            ImGui::Checkbox("##ShowDirectoriesOnly", std::addressof(m_ShowFoldersOnlyInDirectoryTree));
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+            }
+            ImGui::SameLine();
+            ImGui::Text("Show directories only in side view");
+
+            ImGui::Spacing();
+            ImGui::Separator();
+
+            // Show a file hint (small text under file name)
+            ImGui::Checkbox("##ShowFileTypeHint", std::addressof(m_ShowFileTypeHint));
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+            }
+            ImGui::SameLine();
+            ImGui::Text("Show file type hint in explorer");
 
             ImGui::EndPopup();
         }
@@ -101,8 +128,12 @@ namespace Mikoto {
 
             ImGui::PushFont(ImGuiManager::GetFonts()[2]);
             if (ImGui::Button(fmt::format("{}", ICON_MD_ARROW_BACK).c_str())) {
-                m_CurrentDirectory = m_CurrentDirectory.parent_path();
+                m_ForwardDirectory = m_DirectoryStack[m_DirectoryStack.size() - 1];
+                m_DirectoryStack.pop_back();
+
+                m_CurrentDirectory = m_DirectoryStack[m_DirectoryStack.size() - 1];
             }
+
             if (ImGui::IsItemHovered()) {
                 ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
             }
@@ -127,7 +158,12 @@ namespace Mikoto {
 
             if (ImGui::Button(fmt::format("{}", ICON_MD_ARROW_FORWARD).c_str())) {
                 // update forward directory
+                m_DirectoryStack.emplace_back(m_ForwardDirectory);
+                m_CurrentDirectory = m_ForwardDirectory;
+
+                m_ForwardDirectory = Path_T {};
             }
+
             if (ImGui::IsItemHovered()) {
                 ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
             }
@@ -144,6 +180,10 @@ namespace Mikoto {
         {
             if (ImGui::Button(fmt::format("{}", ICON_MD_HOME).c_str())) {
                 m_CurrentDirectory = m_Root;
+                m_ForwardDirectory = Path_T {};
+
+                m_DirectoryStack.clear();
+                m_DirectoryStack.push_back(m_Root);
             }
             if (ImGui::IsItemHovered()) {
                 ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
@@ -159,28 +199,30 @@ namespace Mikoto {
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.0f, 0.0f, 0.0f, 0.0f });
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.0f, 0.0f, 0.0f, 0.0f });
 
-        // TODO:
-        ImGui::SameLine();
-        ImGui::Button("Dir1");
-        if (ImGui::IsItemHovered()) {
-            ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-        }
-        ImGui::SameLine();
-        ImGui::TextUnformatted("/");
+        bool wantOpenDir{ false };
+        auto pathIt{ m_DirectoryStack.begin() };
 
-        ImGui::SameLine();
-        ImGui::Button("Dir2");
-        if (ImGui::IsItemHovered()) {
-            ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-        }
-        ImGui::SameLine();
-        ImGui::TextUnformatted("/");
+        for ( ; pathIt != m_DirectoryStack.end(); ++pathIt) {
+            ImGui::SameLine();
+            if (ImGui::Button(pathIt->stem().string().c_str())) {
+                m_CurrentDirectory = *pathIt;
+                m_ForwardDirectory = Path_T {};
+                wantOpenDir = true;
+            }
 
-        ImGui::SameLine();
-        ImGui::Button("Dir3");
-        if (ImGui::IsItemHovered()) {
-            ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+            }
+
+            ImGui::SameLine();
+            ImGui::Text("/");
+
+            if(wantOpenDir)
+                break;
         }
+
+        m_DirectoryStack.erase(pathIt, m_DirectoryStack.end());
+        if (m_DirectoryStack.empty()) m_DirectoryStack.push_back(m_Root);
 
         ImGui::PopStyleColor(3);
         ImGui::PopStyleVar();
@@ -192,9 +234,17 @@ namespace Mikoto {
         constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_FramePadding |
                                                    ImGuiTreeNodeFlags_SpanFullWidth };
 
-        if (ImGui::TreeNodeEx(m_Root.string().c_str(), treeNodeFlags, "Assets")) {
+        for (auto& entry : std::filesystem::directory_iterator(m_CurrentDirectory)) {
+            if (entry.is_directory()) {
+                if (ImGui::TreeNodeEx(entry.path().string().c_str(), treeNodeFlags, "%s", fmt::format("{} {}", ICON_MD_FOLDER, entry.path().stem().string()).c_str())) {
 
-            ImGui::TreePop();
+                    ImGui::TreePop();
+                }
+
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+                }
+            }
         }
     }
 
@@ -257,7 +307,7 @@ namespace Mikoto {
     auto ContentBrowserPanel::DrawCurrentDirItems() -> void {
         Path_T directoryToOpen{ m_CurrentDirectory };
 
-        static float padding{ 16.0f };
+        static const float padding{ 15.0f };
         float cellSize = m_ThumbnailSize + padding;
 
         float panelWidth = ImGui::GetContentRegionAvail().x;
@@ -273,7 +323,18 @@ namespace Mikoto {
             for (auto& entry : std::filesystem::directory_iterator(m_CurrentDirectory)) {
                 ImGui::TableNextColumn();
 
-                const auto& icon{ entry.is_directory() ? m_FolderIcon : m_FileIcon };
+                const Texture2D* icon{ nullptr };
+                std::string fileType{};
+
+                if (entry.is_directory()) {
+                    icon = m_FolderIcon.get();
+                    fileType = "Folder";
+                }
+                else {
+                    // find type (texture, material, text file) file now for simplicity
+                    icon = m_FileIcon.get();
+                    fileType = "File";
+                }
 
                 ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
                 switch (Renderer::GetActiveGraphicsAPI()) {
@@ -285,13 +346,27 @@ namespace Mikoto {
                         break;
                 }
 
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+                }
+
                 // Save the directory we want to open
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-                    if (entry.is_directory()) { directoryToOpen = entry.path(); }
+                    if (entry.is_directory()) {
+                        directoryToOpen = entry.path();
+                        if (m_DirectoryStack.empty()) m_DirectoryStack.emplace_back(m_Root);
+                        m_DirectoryStack.emplace_back(entry.path());
+                    }
                 }
 
                 ImGui::PopStyleColor();
                 ImGui::TextWrapped("%s", entry.path().stem().c_str());
+
+                if (m_ShowFileTypeHint) {
+                    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255,255,255,128));
+                    ImGui::TextUnformatted(fileType.c_str());
+                    ImGui::PopStyleColor();
+                }
             }
 
             ImGui::EndTable();

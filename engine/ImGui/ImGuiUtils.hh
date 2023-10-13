@@ -8,7 +8,18 @@
 // C++ Standard Library
 #include <any>
 
+#include <imgui.h>
+
+#include <Utility/Types.hh>
+#include <Utility/Common.hh>
 namespace Mikoto {
+    struct ColorValues {
+        Int32_T Red{};
+        Int32_T Green{};
+        Int32_T Blue{};
+        Int32_T Alpha{};
+    };
+
     /**
      * This class encapsulates backend implementation specific details. ImGui is a graphics API
      * agnostic GUI library and provides several implementations, each for a specific graphics backend.
@@ -25,6 +36,10 @@ namespace Mikoto {
 
         virtual ~BackendImplementation() = default;
     };
+
+    inline auto DrawColoredText(std::string_view text, ColorValues color) -> void {
+        // TODO:
+    }
 }
 
 #endif // MIKOTO_IMGUI_UTILS_HH

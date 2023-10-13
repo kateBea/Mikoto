@@ -47,6 +47,7 @@ namespace Mikoto {
     class VulkanRenderer : public RendererBackend {
     public:
         explicit VulkanRenderer() = default;
+        ~VulkanRenderer() override = default;
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
@@ -61,7 +62,7 @@ namespace Mikoto {
         auto Flush() -> void override;
 
         auto Draw() -> void override;
-        auto QueueForDrawing(std::shared_ptr<DrawData>) -> void override;
+        auto QueueForDrawing(std::shared_ptr<DrawData> data) -> void override;
 
         auto OnFramebufferResize(UInt32_T width, UInt32_T height) -> void;
 
@@ -69,11 +70,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetOffscreenColorAttachmentImage() const -> VkImageView { return m_OffscreenColorAttachment.GetView(); }
         MKT_NODISCARD auto GetMaterialInfo() -> std::unordered_map<std::string, MaterialSharedSpecificData>& { return m_MaterialInfo; }
 
-        ~VulkanRenderer() override = default;
     private:
-        /*************************************************************
-        * STRUCTURES
-        * ***********************************************************/
         enum ClearValueIndex {
             COLOR_BUFFER = 0,
             DEPTH_BUFFER = 1,
@@ -81,9 +78,6 @@ namespace Mikoto {
         };
 
     private:
-        /*************************************************************
-        * HELPERS (Setup for offscreen rendering)
-        * ***********************************************************/
         auto PrepareOffscreen() -> void;
         auto CreateRenderPass() -> void;
         auto CreateAttachments() -> void;
@@ -100,6 +94,7 @@ namespace Mikoto {
         VkFormat m_DepthAttachmentFormat{};
         VkViewport m_OffscreenViewport{};
         VkRect2D m_OffscreenScissor{};
+
         std::array<VkClearValue, CLEAR_COUNT> m_ClearValues{};
 
         bool m_OffscreenPrepareFinished{};
@@ -114,9 +109,6 @@ namespace Mikoto {
         std::shared_ptr<VulkanStandardMaterial> m_ActiveWireframeMaterial{};
 
     private:
-        /*************************************************************
-        * HELPERS (For geometry drawing)
-        * ***********************************************************/
         auto DrawFrame(const Model &model) -> void;
         auto RecordMeshDrawCommands(const Mesh &mesh) -> void;
 
@@ -131,16 +123,10 @@ namespace Mikoto {
         auto UpdateScissor(Int32_T x, Int32_T y, VkExtent2D extent) -> void;
 
     private:
-        /*************************************************************
-        * HELPERS (Renderer Initialization)
-        * ***********************************************************/
         auto CreateCommandBuffers() -> void;
         auto SubmitToQueue() -> void;
 
     private:
-        /*************************************************************
-        * PRIVATE MEMBERS
-        * ***********************************************************/
         std::vector<std::shared_ptr<DrawData>> m_DrawQueue{};
         std::shared_ptr<VulkanCommandPool> m_CommandPool{};
         VulkanCommandBuffer m_DrawCommandBuffer{};

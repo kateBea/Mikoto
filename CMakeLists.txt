@@ -92,7 +92,8 @@ set(IMGUI_SOURCES
 set(EDITOR_SOURCES
         src/Editor.cc src/HierarchyPanel.cc src/InspectorPanel.cc src/SettingsPanel.cc src/ScenePanel.cc src/StatsPanel.cc
         src/ConsolePanel.cc
-        src/ConsoleManager.cc)
+        src/ConsoleManager.cc
+        src/RendererPanel.cc)
 
 set(SCENE_SOURCES
         src/Scene.cc src/SceneCamera.cc

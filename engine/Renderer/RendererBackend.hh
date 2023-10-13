@@ -14,12 +14,11 @@
 #include <glm/vec4.hpp>
 
 // Project Headers
-#include "Core/Event.hh"
+#include <Utility/Common.hh>
 #include <Renderer/Buffers/IndexBuffer.hh>
 #include <Renderer/Buffers/VertexBuffer.hh>
 #include <Renderer/Material/Shader.hh>
 #include <Renderer/RenderingUtilities.hh>
-#include <Utility/Common.hh>
 
 
 namespace Mikoto {
@@ -34,6 +33,11 @@ namespace Mikoto {
          * initializes this RendererAPI
          * */
         explicit RendererBackend() = default;
+
+        /**
+         * Releases all the resources held by this backend
+         * */
+        virtual ~RendererBackend() = default;
 
         /**
          * Initializes renderer subsystems. This functions has to be called
@@ -84,8 +88,6 @@ namespace Mikoto {
 
         virtual auto QueueForDrawing(std::shared_ptr<DrawData> data) -> void = 0;
 
-        virtual ~RendererBackend() = default;
-
         /**
          * Creates a new graphics backend object and returns a pointer to it. If it fails to allocate
          * returns a null pointer instead. The caller is responsible for freeing the memory via delete
@@ -93,16 +95,10 @@ namespace Mikoto {
          * @param backend api backend
          * @returns pointer to allocated backend
          * */
-        MKT_NODISCARD static auto Create(GraphicsAPI backend) -> RendererBackend *;
-    public:
-        /*************************************************************
-         * DELETED OPERATIONS
-         * ***********************************************************/
-        RendererBackend(const RendererBackend &)     = delete;
-        auto operator=(const RendererBackend &)  = delete;
+        MKT_NODISCARD static auto Create(GraphicsAPI backend) -> RendererBackend*;
 
-        RendererBackend(RendererBackend &&)          = delete;
-        auto operator=(RendererBackend &&)       = delete;
+    public:
+        DISABLE_COPY_AND_MOVE_FOR(RendererBackend);
 
     private:
         /**

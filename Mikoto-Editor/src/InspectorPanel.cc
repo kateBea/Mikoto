@@ -130,7 +130,7 @@ namespace Mikoto {
     InspectorPanel::InspectorPanel()
         :   Panel{}
     {
-        m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_DEVICE_HUB, GetInspectorPanelName());
+        m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_ERROR_OUTLINE, GetInspectorPanelName());
 
         for (Size_T count{}; count < REQUIRED_IDS; ++count) {
             m_Guids.emplace_back();
@@ -345,7 +345,7 @@ namespace Mikoto {
 
             ImGui::Unindent();
             ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-            ImGui::Button(fmt::format(" {} Source ", ICON_MD_ADD_LINK).c_str());
+            ImGui::Button(fmt::format(" {} Source ", ICON_MD_SOURCE).c_str());
             ImGui::PopItemFlag();
 
             ImGui::SameLine();

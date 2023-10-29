@@ -58,10 +58,10 @@ namespace Mikoto {
     }
 
     auto ContentBrowserPanel::DrawHeader() -> void {
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.2f); // Rounded Buttons
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 1.5f); // Rounded Buttons
 
         // Settings for the content browser
-        if (ImGui::Button(fmt::format("{}", ICON_MD_BUILD).c_str())) {
+        if (ImGui::Button(fmt::format("{}", ICON_MD_PRECISION_MANUFACTURING).c_str())) {
             ImGui::OpenPopup("HeaderSettingsPopup");
         }
 
@@ -138,7 +138,7 @@ namespace Mikoto {
             }
 
             ImGui::PushFont(ImGuiManager::GetFonts()[2]);
-            if (ImGui::Button(fmt::format("{}", ICON_MD_ARROW_BACK).c_str())) {
+            if (ImGui::Button(fmt::format("{}", ICON_MD_CHEVRON_LEFT).c_str())) {
                 m_ForwardDirectory = m_DirectoryStack[m_DirectoryStack.size() - 1];
                 m_DirectoryStack.pop_back();
 
@@ -167,7 +167,7 @@ namespace Mikoto {
                 ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
             }
 
-            if (ImGui::Button(fmt::format("{}", ICON_MD_ARROW_FORWARD).c_str())) {
+            if (ImGui::Button(fmt::format("{}", ICON_MD_CHEVRON_RIGHT).c_str())) {
                 // update forward directory
                 m_DirectoryStack.emplace_back(m_ForwardDirectory);
                 m_CurrentDirectory = m_ForwardDirectory;

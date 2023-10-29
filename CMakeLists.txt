@@ -6,107 +6,103 @@ project(${PROJECT_NAME})
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Silence warnings on cmake 3.11+
+set(OpenGL_GL_PREFERENCE LEGACY)
+
 # Libraries
-set(GLEW_CMAKE_DIR vendor/glew/build/cmake)
-set(GLFW_CMAKE_DIR vendor/glfw)
-set(ENTT_CMAKE_DIR vendor/entt)
-set(FMT_CMAKE_DIR vendor/fmt)
-set(VOLK_CMAKE_DIR vendor/volk)
-set(ASSIMP_CMAKE_DIR vendor/assimp)
-set(VMA_CMAKE_DIR vendor/VulkanMemoryAllocator)
-set(YAML_CMAKE_DIR vendor/yaml-cpp)
-set(NFD_CMAKE_DIR vendor/nativefiledialog-extended)
+set(GLEW_CMAKE_DIR Third-Party/glew/build/cmake)
+set(GLFW_CMAKE_DIR Third-Party/glfw)
+set(ENTT_CMAKE_DIR Third-Party/entt)
+set(FMT_CMAKE_DIR Third-Party/fmt)
+set(VOLK_CMAKE_DIR Third-Party/volk)
+set(ASSIMP_CMAKE_DIR Third-Party/assimp)
+set(VMA_CMAKE_DIR Third-Party/VulkanMemoryAllocator)
+set(YAML_CMAKE_DIR Third-Party/yaml-cpp)
+set(NFD_CMAKE_DIR Third-Party/nativefiledialog-extended)
 
 # Projects source files
 set(CORE_SOURCES
-        src/Logger.cc
-        src/ImGuiManager.cc
-        src/OpenGLContext.cc
-        src/InputManager.cc src/EditorLayer.cc src/Timer.cc
-        src/VulkanUtils.cc
-        src/OpenGLUtils.cc
-        src/LayerManager.cc
-        src/JobSystem.cc
-        src/Serializer.cc
-        src/GameLayer.cc
-        engine/Core/GameLayer.hh
-        src/RendererLayer.cc
-        engine/Core/RendererLayer.hh)
+        Mikoto-Engine/src/Logger.cc
+        Mikoto-Engine/src/ImGuiManager.cc
+        Mikoto-Engine/src/OpenGLContext.cc
+        Mikoto-Engine/src/InputManager.cc Mikoto-Editor/src/EditorLayer.cc Mikoto-Engine/src/Timer.cc
+        Mikoto-Engine/src/VulkanUtils.cc
+        Mikoto-Engine/src/OpenGLUtils.cc
+        Mikoto-Engine/src/Serializer.cc
+        Mikoto-Runtime/src/GameLayer.cc
+        Mikoto-Runtime/GameLayer.hh
+        Mikoto-Engine/src/AssetsManager.cc
+        Mikoto-Engine/src/VulkanWireframeMaterial.cc
+        Mikoto-Engine/src/VulkanColoredMaterial.cc)
 
 set(PLATFORM_SOURCES
-        src/Application.cc
-        src/MainWindow.cc
+        Mikoto-Engine/src/Application.cc
+        Mikoto-Engine/src/GlfwWindow.cc
         )
 
 set(RENDERER_SOURCES
-        src/VulkanVertexBuffer.cc
-        src/OpenGLVertexArray.cc
-        src/OpenGLVertexBuffer.cc
-        src/OpenGLIndexBuffer.cc
-        src/Renderer.cc
-        src/VertexBuffer.cc
-        src/IndexBuffer.cc
-        src/OpenGLShader.cc
-        src/OpenGLRenderer.cc
-        src/RendererAPI.cc
-        src/OrthographicCamera.cc
-        src/Texture2D.cc
-        src/OpenGLTexture2D.cc
-        src/RenderCommand.cc
-        src/OrthographicCameraController.cc
-        src/Shader.cc
-        src/FrameBuffer.cc
-        src/OpenGLFrameBuffer.cc
-        src/VulkanContext.cc
-        src/VulkanRenderer.cc
-        src/Mesh.cc
-        src/Model.cc
-        src/Texture.cc
-        src/Material.cc
-        src/VulkanStandardMaterial.cc
-        src/VulkanFrameBuffer.cc
-        src/VulkanIndexBuffer.cc
-        src/VulkanShader.cc
-        src/VulkanCommandPool.cc
-        src/VulkanTexture2D.cc
-        src/VulkanDescriptorPool.cc
-        src/VulkanPipeline.cc
-        src/VulkanSwapChain.cc src/RenderContext.cc src/OpenGLDefaultMaterial.cc
-        src/VulkanCommandBuffer.cc
-        src/VulkanDescriptorSet.cc
-        src/VulkanRenderPass.cc
-        src/VulkanImage.cc
-        src/VulkanImage.cc
-        src/VulkanBuffer.cc)
+        Mikoto-Engine/src/VulkanVertexBuffer.cc
+        Mikoto-Engine/src/OpenGLVertexArray.cc
+        Mikoto-Engine/src/OpenGLVertexBuffer.cc
+        Mikoto-Engine/src/OpenGLIndexBuffer.cc
+        Mikoto-Engine/src/Renderer.cc
+        Mikoto-Engine/src/VertexBuffer.cc
+        Mikoto-Engine/src/IndexBuffer.cc
+        Mikoto-Engine/src/OpenGLShader.cc
+        Mikoto-Engine/src/OpenGLRenderer.cc
+        Mikoto-Engine/src/RendererAPI.cc
+        Mikoto-Engine/src/OrthographicCamera.cc
+        Mikoto-Engine/src/Texture2D.cc
+        Mikoto-Engine/src/OpenGLTexture2D.cc
+        Mikoto-Engine/src/RenderCommand.cc
+        Mikoto-Engine/src/Shader.cc
+        Mikoto-Engine/src/FrameBuffer.cc
+        Mikoto-Engine/src/OpenGLFrameBuffer.cc
+        Mikoto-Engine/src/VulkanContext.cc
+        Mikoto-Engine/src/VulkanRenderer.cc
+        Mikoto-Engine/src/Mesh.cc
+        Mikoto-Engine/src/Model.cc
+        Mikoto-Engine/src/Material.cc
+        Mikoto-Engine/src/VulkanStandardMaterial.cc
+        Mikoto-Engine/src/VulkanFrameBuffer.cc
+        Mikoto-Engine/src/VulkanIndexBuffer.cc
+        Mikoto-Engine/src/VulkanShader.cc
+        Mikoto-Engine/src/VulkanCommandPool.cc
+        Mikoto-Engine/src/VulkanTexture2D.cc
+        Mikoto-Engine/src/VulkanPipeline.cc
+        Mikoto-Engine/src/VulkanSwapChain.cc Mikoto-Engine/src/RenderContext.cc Mikoto-Engine/src/OpenGLDefaultMaterial.cc
+        Mikoto-Engine/src/VulkanImage.cc
+        Mikoto-Engine/src/VulkanImage.cc
+        Mikoto-Engine/src/VulkanBuffer.cc)
 
 set(IMGUI_SOURCES
-        vendor/imgui/imgui.cpp
-        vendor/imgui/backends/imgui_impl_glfw.cpp
-        vendor/imgui/imgui_widgets.cpp
-        vendor/imgui/imgui_draw.cpp
-        vendor/imgui/imgui_tables.cpp
-        vendor/imgui/imgui_demo.cpp
-        vendor/imgui/backends/imgui_impl_opengl3.cpp
-        vendor/imgui/backends/imgui_impl_vulkan.cpp)
+        Third-Party/imgui/imgui.cpp
+        Third-Party/imgui/backends/imgui_impl_glfw.cpp
+        Third-Party/imgui/imgui_widgets.cpp
+        Third-Party/imgui/imgui_draw.cpp
+        Third-Party/imgui/imgui_tables.cpp
+        Third-Party/imgui/imgui_demo.cpp
+        Third-Party/imgui/backends/imgui_impl_opengl3.cpp
+        Third-Party/imgui/backends/imgui_impl_vulkan.cpp)
 
 set(EDITOR_SOURCES
-        src/Editor.cc src/HierarchyPanel.cc src/InspectorPanel.cc src/SettingsPanel.cc src/ScenePanel.cc src/StatsPanel.cc
-        src/ConsolePanel.cc
-        src/ConsoleManager.cc
-        src/RendererPanel.cc)
+        Mikoto-Editor/src/Editor.cc Mikoto-Editor/src/HierarchyPanel.cc Mikoto-Editor/src/InspectorPanel.cc Mikoto-Editor/src/SettingsPanel.cc Mikoto-Editor/src/ScenePanel.cc Mikoto-Editor/src/StatsPanel.cc
+        Mikoto-Editor/src/ConsolePanel.cc
+        Mikoto-Editor/src/ConsoleManager.cc
+        Mikoto-Engine/src/RendererPanel.cc)
 
 set(SCENE_SOURCES
-        src/Scene.cc src/SceneCamera.cc
-        src/EditorCamera.cc
-        src/SceneManager.cc
-        engine/Scene/SceneManager.hh)
+        Mikoto-Engine/src/Scene.cc Mikoto-Engine/src/SceneCamera.cc
+        Mikoto-Editor/src/EditorCamera.cc
+        Mikoto-Engine/src/SceneManager.cc
+        Mikoto-Engine/Scene/SceneManager.hh)
 
 set(IMGUIZMO_SOURCES
-        vendor/ImGuizmo/ImGuizmo.cpp
-        vendor/ImGuizmo/GraphEditor.cpp
-        vendor/ImGuizmo/ImCurveEdit.cpp
-        vendor/ImGuizmo/ImGradient.cpp
-        vendor/ImGuizmo/ImSequencer.cpp)
+        Third-Party/ImGuizmo/ImGuizmo.cpp
+        Third-Party/ImGuizmo/GraphEditor.cpp
+        Third-Party/ImGuizmo/ImCurveEdit.cpp
+        Third-Party/ImGuizmo/ImGradient.cpp
+        Third-Party/ImGuizmo/ImSequencer.cpp)
 
 set(SOURCES
         ${CORE_SOURCES}
@@ -116,13 +112,13 @@ set(SOURCES
         ${EDITOR_SOURCES}
         ${SCENE_SOURCES}
         ${IMGUIZMO_SOURCES}
-        src/Engine.cc src/stb_image.cc
-        src/vk_mem_alloc.h.cc
-        src/ImGuiVulkanBackend.cc
-        src/ImGuiOpenGLBackend.cc
-        src/EventManager.cc
-        src/ContentBrowserPanel.cc
-        engine/Editor/ContentBrowserPanel.hh)
+        Mikoto-Engine/src/Engine.cc Mikoto-Engine/src/stb_image.cc
+        Mikoto-Engine/src/vk_mem_alloc.h.cc
+        Mikoto-Engine/src/ImGuiVulkanBackend.cc
+        Mikoto-Engine/src/ImGuiOpenGLBackend.cc
+        Mikoto-Engine/src/EventManager.cc
+        Mikoto-Editor/src/ContentBrowserPanel.cc
+        Mikoto-Editor/Panels/ContentBrowserPanel.hh)
 
 # External dependencies
 add_subdirectory(${GLEW_CMAKE_DIR})
@@ -137,6 +133,9 @@ add_subdirectory(${NFD_CMAKE_DIR})
 # Libraries to link against target
 set(LIBRARIES glfw glew_s fmt EnTT::EnTT volk assimp yaml-cpp nfd)
 
+# for tests only. -ltbb was required to use std::execution::par on linux
+# set(LIBRARIES glfw glew_s fmt EnTT::EnTT volk assimp yaml-cpp nfd tbb)
+
 # Compiler flags
 if (MSVC)
     # Compile commands for Windows
@@ -150,22 +149,27 @@ endif()
 
 # Header files directories
 include_directories(engine/)
-include_directories(vendor/spdlog/include)
-include_directories(vendor/glfw/include)
-include_directories(vendor/glew/include)
-include_directories(vendor/imgui)
-include_directories(vendor/imgui/backends)
-include_directories(vendor/glm/)
-include_directories(vendor/stb/)
-include_directories(vendor/entt/single_include)
-include_directories(vendor/volk)
-include_directories(vendor/assimp/include)
-include_directories(vendor/VulkanMemoryAllocator/include)
-include_directories(vendor/ImGuizmo)
-include_directories(vendor/yaml-cpp/include)
-include_directories(vendor/nativefiledialog-extended/src/include)
 
-add_executable(${PROJECT_NAME} src/EntryPoint.cc ${SOURCES})
+include_directories(Mikoto-Editor)
+include_directories(Mikoto-Engine)
+include_directories(Mikoto-Runtime)
+
+include_directories(Third-Party/spdlog/include)
+include_directories(Third-Party/glfw/include)
+include_directories(Third-Party/glew/include)
+include_directories(Third-Party/imgui)
+include_directories(Third-Party/imgui/backends)
+include_directories(Third-Party/glm/)
+include_directories(Third-Party/stb/)
+include_directories(Third-Party/entt/single_include)
+include_directories(Third-Party/volk)
+include_directories(Third-Party/assimp/include)
+include_directories(Third-Party/VulkanMemoryAllocator/include)
+include_directories(Third-Party/ImGuizmo)
+include_directories(Third-Party/yaml-cpp/include)
+include_directories(Third-Party/nativefiledialog-extended/src/include)
+
+add_executable(${PROJECT_NAME} Mikoto-Engine/src/EntryPoint.cc ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBRARIES})
 
 # Avoid GLFW including OpenGL headers

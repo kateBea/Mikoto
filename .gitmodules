@@ -1,42 +1,42 @@
-[submodule "vendor/glfw"]
-	path = vendor/glfw
+[submodule "Third-Party/glfw"]
+	path = Third-Party/glfw
 	url = https://github.com/glfw/glfw.git
-[submodule "vendor/imgui"]
-	path = vendor/imgui
+[submodule "Third-Party/imgui"]
+	path = Third-Party/imgui
 	url = https://github.com/ocornut/imgui.git
-[submodule "vendor/glm"]
-	path = vendor/glm
-	url = https://github.com/g-truc/glm
-[submodule "vendor/stb"]
-	path = vendor/stb
+[submodule "Third-Party/glm"]
+	path = Third-Party/glm
+	url = https://github.com/g-truc/glm.git
+[submodule "Third-Party/stb"]
+	path = Third-Party/stb
 	url = https://github.com/nothings/stb.git
-[submodule "vendor/fmt"]
-	path = vendor/fmt
+[submodule "Third-Party/fmt"]
+	path = Third-Party/fmt
 	url = https://github.com/fmtlib/fmt.git
-[submodule "vendor/spdlog"]
-	path = vendor/spdlog
+[submodule "Third-Party/spdlog"]
+	path = Third-Party/spdlog
 	url = https://github.com/gabime/spdlog.git
-[submodule "vendor/entt"]
-	path = vendor/entt
+[submodule "Third-Party/entt"]
+	path = Third-Party/entt
 	url = https://github.com/skypjack/entt.git
-[submodule "vendor/volk"]
-	path = vendor/volk
+[submodule "Third-Party/volk"]
+	path = Third-Party/volk
 	url = https://github.com/zeux/volk.git
-[submodule "vendor/assimp"]
-	path = vendor/assimp
+[submodule "Third-Party/assimp"]
+	path = Third-Party/assimp
 	url = https://github.com/assimp/assimp.git
-[submodule "vendor/VulkanMemoryAllocator"]
-	path = vendor/VulkanMemoryAllocator
+[submodule "Third-Party/VulkanMemoryAllocator"]
+	path = Third-Party/VulkanMemoryAllocator
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
-[submodule "vendor/ImGuizmo"]
-	path = vendor/ImGuizmo
+[submodule "Third-Party/ImGuizmo"]
+	path = Third-Party/ImGuizmo
 	url = https://github.com/CedricGuillemet/ImGuizmo.git
-[submodule "vendor/yaml-cpp"]
-	path = vendor/yaml-cpp
+[submodule "Third-Party/yaml-cpp"]
+	path = Third-Party/yaml-cpp
 	url = https://github.com/jbeder/yaml-cpp.git
-[submodule "vendor/nativefiledialog-extended"]
-	path = vendor/nativefiledialog-extended
+[submodule "Third-Party/nativefiledialog-extended"]
+	path = Third-Party/nativefiledialog-extended
 	url = https://github.com/btzy/nativefiledialog-extended.git
-[submodule "vendor/JoltPhysics"]
-	path = vendor/JoltPhysics
+[submodule "Third-Party/JoltPhysics"]
+	path = Third-Party/JoltPhysics
 	url = https://github.com/jrouwe/JoltPhysics.git

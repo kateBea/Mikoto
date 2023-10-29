@@ -2,7 +2,7 @@
 This is a simple engine written in modern C++. For now and quite some time 
 it will use OpenGL as its main rendering API, but the end goal is to integrate Vulkan.
 
-![Mikoto Engine](assets/image/img11.png)
+![Mikoto Engine](Assets/image/img13.png)
 
 # Requirements
 <h3>Software Requirements:</h3>
@@ -11,8 +11,15 @@ it will use OpenGL as its main rendering API, but the end goal is to integrate V
   <li>A compiler capable of C++20 (G++ 12.3.0 was used for the tests)</li>
   <li>The Vulkan SDK</li>
   <li>OpenGL library</li>
-  <li>GLSLC (The glsl compiler). This one is optional as there's precompiled binaries.</li>
+  <li>GLSL-C (The glsl compiler). This one is optional as there's precompiled binaries.</li>
 </ol>
+
+<h3>Folder structure</h3>
+- Assets:
+- Common:
+- Mikoto-Engine:
+- Mikoto-Editor:
+- Mikoto-Runtime:
 
 # Building
 

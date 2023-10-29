@@ -1,0 +1,93 @@
+Scene: Empty Scene
+Objects:
+  - Object: 3265065307440481471
+    TagComponent:
+      Name: Cyan
+      Visibility: true
+    TransformComponent:
+      Position: [4.67441034, -3.1647644, 1.55072021]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: CUBE_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [0.0544678457, 0.946902633, 0.852130711, 1]
+  - Object: 5304598545649584346
+    TagComponent:
+      Name: Forest
+      Visibility: true
+    TransformComponent:
+      Position: [2.34738755, 0, -9.95368099]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: CUBE_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [0.425444216, 0.769911528, 0.098793976, 1]
+  - Object: 2533616082514625035
+    TagComponent:
+      Name: Pinkky
+      Visibility: true
+    TransformComponent:
+      Position: [-3.79999995, 0, -10.8000002]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: CUBE_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [0.805309713, 0.0890829489, 0.602484703, 1]
+  - Object: 2018013957846667764
+    TagComponent:
+      Name: Magenta
+      Visibility: true
+    TransformComponent:
+      Position: [-4.19177008, 0, 4.80000019]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: CUBE_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [0.623568296, 0.06578435, 0.92920351, 1]
+  - Object: 5039701353291322082
+    TagComponent:
+      Name: Orangeish
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: CUBE_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [0.774336278, 0.279498488, 0.0753778964, 1]
+  - Object: 17213055695659277144
+    TagComponent:
+      Name: Ground
+      Visibility: true
+    TransformComponent:
+      Position: [3.5520401, -6.00366402, 0]
+      Rotation: [0, 0, 0]
+      Scale: [16.7999992, 0.200000003, 44.7000008]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: CUBE_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [0.128318608, 0.116395198, 0.116395198, 1]
+  - Object: 4141906038826775988
+    TagComponent:
+      Name: Sun
+      Visibility: true
+    TransformComponent:
+      Position: [7.54737854, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: CUBE_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [0.814159274, 0.802235961, 0.140496492, 1]

@@ -1,0 +1,210 @@
+Scene: Empty Scene
+Objects:
+  - Object: 2171955794122588912
+    TagComponent:
+      Name: Sponza Object 15
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, -3126.12646]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: SPONZA_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [1, 1, 1, 1]
+  - Object: 6477876488792111550
+    TagComponent:
+      Name: Sponza Object 14
+      Visibility: true
+    TransformComponent:
+      Position: [-388.935089, 70.1934662, 2699.08838]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: SPONZA_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [1, 1, 1, 1]
+  - Object: 10158456756929799234
+    TagComponent:
+      Name: Sponza Object 13
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: SPONZA_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [1, 1, 1, 1]
+  - Object: 15926306827986102159
+    TagComponent:
+      Name: Sponza Object 12
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: SPONZA_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [1, 1, 1, 1]
+  - Object: 7840465595260741141
+    TagComponent:
+      Name: Sponza Object 11
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: SPONZA_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [1, 1, 1, 1]
+  - Object: 7136749439632703058
+    TagComponent:
+      Name: Sponza Object 10
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: SPONZA_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [1, 1, 1, 1]
+  - Object: 2588361280968478947
+    TagComponent:
+      Name: Sponza Object 9
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: SPONZA_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [1, 1, 1, 1]
+  - Object: 9221525755020696548
+    TagComponent:
+      Name: Sponza Object 8
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: SPONZA_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [1, 1, 1, 1]
+  - Object: 8630433717801572040
+    TagComponent:
+      Name: Sponza Object 7
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: SPONZA_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [1, 1, 1, 1]
+  - Object: 3531240836549749843
+    TagComponent:
+      Name: Sponza Object 6
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: SPONZA_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [1, 1, 1, 1]
+  - Object: 5488379082507941068
+    TagComponent:
+      Name: Sponza Object 5
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: SPONZA_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [1, 1, 1, 1]
+  - Object: 102765007590934142
+    TagComponent:
+      Name: Sponza Object 4
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: SPONZA_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [1, 1, 1, 1]
+  - Object: 2305870453052975490
+    TagComponent:
+      Name: Sponza Object 3
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: SPONZA_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [1, 1, 1, 1]
+  - Object: 8515529087823063759
+    TagComponent:
+      Name: Sponza Object 2
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: SPONZA_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [1, 1, 1, 1]
+  - Object: 8665682930674793063
+    TagComponent:
+      Name: Sponza Object 1
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: SPONZA_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [1, 1, 1, 1]
+  - Object: 10807629462798360304
+    TagComponent:
+      Name: Sponza Object 0
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderComponent:
+      IsPrefab: true
+      PrefabType: SPONZA_PREFAB_OBJECT
+    MaterialComponent:
+      Color: [1, 1, 1, 1]

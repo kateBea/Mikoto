@@ -19,6 +19,7 @@ namespace Mikoto {
         TEXTURE_2D_INVALID,
         TEXTURE_2D_DIFFUSE,
         TEXTURE_2D_SPECULAR,
+        TEXTURE_2D_EMISSIVE,
         TEXTURE_2D_NORMAL,
         TEXTURE_2D_COUNT,
     };

@@ -2,7 +2,7 @@
  * @file Panel.hh
  * @brief Definition of the Panel class
  * @details Defines an interface for the editor dock-space panels
- * @date Created on 6/23/23.
+ * @date 6/23/23.
  * @author kate
  * */
 

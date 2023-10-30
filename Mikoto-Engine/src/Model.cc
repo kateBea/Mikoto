@@ -139,6 +139,7 @@ namespace Mikoto {
                 std::vector<std::shared_ptr<Texture2D>> diffuseMaps{ LoadTextures(material, aiTextureType_DIFFUSE, MapType::TEXTURE_2D_DIFFUSE, scene, modelDirectory) };
                 std::vector<std::shared_ptr<Texture2D>> specularMaps{ LoadTextures(material, aiTextureType_SPECULAR, MapType::TEXTURE_2D_SPECULAR, scene, modelDirectory)};
                 std::vector<std::shared_ptr<Texture2D>> normalMaps{ LoadTextures(material, aiTextureType_NORMALS, MapType::TEXTURE_2D_NORMAL, scene, modelDirectory) };
+                std::vector<std::shared_ptr<Texture2D>> emissiveMaps{ LoadTextures(material, aiTextureType_EMISSIVE, MapType::TEXTURE_2D_EMISSIVE, scene, modelDirectory) };
 
                 for (auto& item : diffuseMaps)
                     textures.push_back(std::move(item));
@@ -147,6 +148,9 @@ namespace Mikoto {
                     textures.push_back(std::move(item));
 
                 for (auto& item : normalMaps)
+                    textures.push_back(std::move(item));
+
+                for (auto& item : emissiveMaps)
                     textures.push_back(std::move(item));
             }
         }

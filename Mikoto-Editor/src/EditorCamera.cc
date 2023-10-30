@@ -8,35 +8,43 @@
 #include <utility>
 
 // Third-Party Libraries
-#include "glm/glm.hpp"
+#include <glm/glm.hpp>
+
 // Quaternions with extensions
-#include "glm/gtx/quaternion.hpp"
+#include <glm/gtx/quaternion.hpp>
 
 // Project Headers
-#include "Common/Common.hh"
-#include "Common/Constants.hh"
-#include "Common/Math.hh"
-#include "Core/CoreEvents.hh"
-#include "Core/EventManager.hh"
-#include "Core/KeyCodes.hh"
-#include "Core/MouseButtons.hh"
-#include "EditorCamera.hh"
-#include "Platform/InputManager.hh"
+#include <Common/Types.hh>
+#include <Common/Common.hh>
+#include <Common/Constants.hh>
+#include <Common/Math.hh>
+
+#include <Core/KeyCodes.hh>
+#include <Core/CoreEvents.hh>
+#include <Core/EventManager.hh>
+#include <Core/MouseButtons.hh>
+
+#include <EditorCamera.hh>
+
+#include <Platform/InputManager.hh>
 
 namespace Mikoto {
     EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
         :   Camera{ glm::perspective(glm::radians(fov), aspectRatio, nearClip, farClip) }
-        ,   m_FieldOfView{ fov }, m_AspectRatio{ aspectRatio }, m_NearClip{ nearClip }, m_FarClip{ farClip }
+        ,   m_NearClip{ nearClip }
+        ,   m_FarClip{ farClip }
+        ,   m_FieldOfView{ fov }
+        ,   m_AspectRatio{ aspectRatio }
     {
         EventManager::Subscribe(m_Guid.Get(),
             EventType::MOUSE_BUTTON_RELEASED_EVENT,
             [this](Event& event) -> bool
             {
-                MouseButtonReleasedEvent* e{ static_cast<MouseButtonReleasedEvent*>(std::addressof(event)) };
+                MouseButtonReleasedEvent* e{ dynamic_cast<MouseButtonReleasedEvent*>(std::addressof(event)) };
                 InputManager::SetCursorMode(CursorInputMode::CURSOR_NORMAL);
 
                 if (e->GetMouseButton() == MouseButton::Mouse_Button_Right) {
-                    SwitchRotation(false);
+                    EnableCamera(false);
                 }
 
                 return false;
@@ -47,7 +55,7 @@ namespace Mikoto {
             [this](Event&) -> bool
             {
                 InputManager::SetCursorMode(CursorInputMode::CURSOR_DISABLED);
-                SwitchRotation(true);
+                EnableCamera(true);
                 return false;
             });
 
@@ -134,11 +142,6 @@ namespace Mikoto {
 
         ProcessMouseInput(timeStep);
         ProcessKeyboardInput(timeStep);
-    }
-
-    auto EditorCamera::OnMouseScroll(MouseScrollEvent& event) -> bool {
-        UpdateViewMatrix();
-        return false;
     }
 
     auto EditorCamera::SetViewportSize(float width, float height) -> void {

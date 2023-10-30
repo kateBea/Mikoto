@@ -10,8 +10,30 @@
 
 #include "imgui.h"
 
-#include "Common/Common.hh"
-#include "Common/Types.hh"
+#include <Common/Types.hh>
+#include <Common/Common.hh>
+#include <Common/RenderingUtils.hh>
+
+#include <Renderer/Renderer.hh>
+#include <Renderer/Material/Texture2D.hh>
+
+namespace Mikoto::ImGuiUtils {
+    inline auto PushImageButton(const Texture2D *texture, ImVec2 size, ImVec2 uv1 = ImVec2{ 0, 1 }, ImVec2 uv2 = ImVec2{ 1, 0 }) -> void {
+        ImTextureID icon{};
+
+        switch (Renderer::GetActiveGraphicsAPI()) {
+            case GraphicsAPI::OPENGL_API:
+                icon = reinterpret_cast<ImTextureID>(std::any_cast<UInt32_T>(texture->GetImGuiTextureHandle()));
+                break;
+            case GraphicsAPI::VULKAN_API:
+                icon = (ImTextureID)std::any_cast<VkDescriptorSet>(texture->GetImGuiTextureHandle());
+                break;
+        }
+
+        ImGui::ImageButton(icon, size, uv1, uv2);
+    }
+}
+
 namespace Mikoto {
     struct ColorValues {
         Int32_T Red{};

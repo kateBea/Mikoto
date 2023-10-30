@@ -84,6 +84,10 @@ namespace Mikoto {
         // If the mesh is not a prefab, we will have its path and name
         Path_T ModelPath{};
         std::string ModelName{};
+
+        // For usage in the inspector panel. It tells which mesh is currently selected
+        // No mesh is selected until we actually do so, hence why it's initialized to -1
+        Int32_T MeshSelectedIndex{ -1 };
     };
 
     /**

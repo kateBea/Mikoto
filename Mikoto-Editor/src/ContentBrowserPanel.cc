@@ -382,16 +382,32 @@ namespace Mikoto {
         ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 1.0f);
         if (ImGui::BeginPopupContextWindow("ContentBrowserPopup")) {
 
-            if (ImGui::MenuItem("Cut", "Ctrl + X")) {}
-            if (ImGui::MenuItem("Copy", "Ctrl + C")) {}
-            if (ImGui::MenuItem("Paste", "Ctrl + P")) {}
+            ImGui::Spacing();
+            if (ImGui::MenuItem(fmt::format("{} Cut", ICON_MD_CONTENT_CUT).c_str(), "Ctrl + X")) {}
+            if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
+            ImGui::Spacing();
+            if (ImGui::MenuItem(fmt::format("{} Copy", ICON_MD_CONTENT_COPY).c_str(), "Ctrl + C")) {}
+            if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+            ImGui::Spacing();
+            if (ImGui::MenuItem(fmt::format("{} Paste", ICON_MD_CONTENT_PASTE).c_str(), "Ctrl + P")) {}
+            if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+            ImGui::Spacing();
             ImGui::Separator();
 
+
+            ImGui::Spacing();
             if (ImGui::BeginMenu("Add new...")) {
+
+                ImGui::Spacing();
                 if (ImGui::MenuItem("Folder")) {
                     ImGui::OpenPopup("ContentBrowserPopupAddNewFolder");
                 }
+
+                if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
 
                 if (ImGui::BeginPopupModal("ContentBrowserPopupAddNewFolder")) {
                     ImGui::Text("%s Name:", ICON_FA_SEARCH);
@@ -401,24 +417,48 @@ namespace Mikoto {
                         std::filesystem::create_directory(m_CurrentDirectory / Path_T{ buffer.data() });
                     }
 
-                    if (ImGui::Button("Ok"))
+                    if (ImGui::Button("Ok")) {
                         ImGui::CloseCurrentPopup();
+                    }
+
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
                     ImGui::EndPopup();
                 }
 
+
+                ImGui::Spacing();
                 if (ImGui::MenuItem("Material")) {}
+                if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+
+                ImGui::Spacing();
                 if (ImGui::MenuItem("Regular file")) {}
+                if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+
                 ImGui::EndMenu();
             }
 
+
+            ImGui::Spacing();
             ImGui::Separator();
 
-            if (ImGui::MenuItem("Rename", "F5")) {}
-            if (ImGui::MenuItem("Delete", "Delete")) {}
 
+            ImGui::Spacing();
+            if (ImGui::MenuItem(fmt::format("{} Rename", ICON_MD_DRIVE_FILE_RENAME_OUTLINE).c_str(), "F5")) {}
+            if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+
+            ImGui::Spacing();
+            if (ImGui::MenuItem(fmt::format("{} Rename", ICON_MD_DELETE_SWEEP).c_str(), "Delete")) {}
+            if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+
+            ImGui::Spacing();
             ImGui::EndPopup();
         }
+
         ImGui::PopStyleVar();
     }
 }

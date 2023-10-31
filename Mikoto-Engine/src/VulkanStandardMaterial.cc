@@ -70,8 +70,8 @@ namespace Mikoto {
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         poolSizes[1].descriptorCount = 1;
 
-        VkDescriptorPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        VkDescriptorPoolCreateInfo poolInfo{ VulkanUtils::Initializers::DescriptorPoolCreateInfo() };
+        poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
         poolInfo.poolSizeCount = static_cast<UInt32_T>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
         poolInfo.maxSets = 1000;

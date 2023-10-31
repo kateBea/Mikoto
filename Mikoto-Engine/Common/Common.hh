@@ -305,10 +305,12 @@ namespace Mikoto {
         std::string line{};
         std::string cpuName{ "Unknown" };
 
+        std::ifstream cpuInfoFile{};
+
 #if __linux__
         const Path_T cpuInfoPath{ "/proc/cpuinfo" };
 
-        std::ifstream cpuInfoFile{ cpuInfoPath };
+        cpuInfoFile.open(cpuInfoPath);
 
         if (cpuInfoFile.is_open()) {
             bool found{ false };

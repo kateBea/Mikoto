@@ -50,7 +50,6 @@ namespace Mikoto {
         PickPrimaryPhysicalDevice();
         CreatePrimaryLogicalDevice();
 
-
         InitSwapChain();
         InitMemoryAllocator();
 
@@ -63,22 +62,20 @@ namespace Mikoto {
         CreatePrimaryLogicalDeviceCommandPools();
         CreatePrimaryLogicalDeviceCommandBuffers();
         CreateSynchronizationPrimitives();
+    }
 
-        DeletionQueue::Push([=]() -> void {
-            // Clear main draw command buffers
-            vkFreeCommandBuffers(GetPrimaryLogicalDevice(),
-                                 s_MainCommandPool.Get(),
-                                 static_cast<UInt32_T>(s_RenderCommandBufferHandles.size()),
-                                 s_RenderCommandBufferHandles.data());
+    auto VulkanContext::Shutdown() -> void {
+        if (s_ContextData.EnableValidationLayers && vkDestroyDebugUtilsMessengerEXT != nullptr) {
+            vkDestroyDebugUtilsMessengerEXT(GetInstance(), s_ContextData.DebugMessenger, nullptr);
+        }
 
-            // Immediate submit context objects release
-            vkFreeCommandBuffers(GetPrimaryLogicalDevice(),
-                                 s_ImmediateSubmitContext.CommandPool.Get(),
-                                 1,
-                                 std::addressof(s_ImmediateSubmitContext.CommandBuffer));
+        s_SwapChain->OnRelease();
+        vkDestroySurfaceKHR(GetInstance(), GetSurface(), nullptr);
 
-            vkDestroyFence(GetPrimaryLogicalDevice(), s_ImmediateSubmitContext.UploadFence, nullptr);
-        });
+        vmaDestroyAllocator(s_DefaultAllocator);
+
+        vkDestroyDevice(GetPrimaryLogicalDevice(), nullptr);
+        vkDestroyInstance(GetInstance(), nullptr);
     }
 
     auto CreateDebugUtilsMessengerEXT(
@@ -469,27 +466,15 @@ namespace Mikoto {
 
     auto VulkanContext::FindMemoryType(UInt32_T typeFilter, VkMemoryPropertyFlags properties, VkPhysicalDevice device) -> UInt32_T {
         VkPhysicalDeviceMemoryProperties memProperties{};
-        vkGetPhysicalDeviceMemoryProperties(device, &memProperties);
+        vkGetPhysicalDeviceMemoryProperties(device, std::addressof(memProperties));
 
-        for (UInt32_T i{}; i < memProperties.memoryTypeCount; i++) {
-            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
-                return i;
+        for (UInt32_T index{}; index < memProperties.memoryTypeCount; index++) {
+            if ((typeFilter & (1 << index )) && (memProperties.memoryTypes[index].propertyFlags & properties) == properties) {
+                return index;
+            }
         }
 
-        throw std::runtime_error("failed to find suitable memory type!");
-    }
-
-    auto VulkanContext::ShutDown() -> void {
-        if (s_ContextData.EnableValidationLayers && vkDestroyDebugUtilsMessengerEXT != nullptr)
-            vkDestroyDebugUtilsMessengerEXT(GetInstance(), s_ContextData.DebugMessenger, nullptr);
-
-        vkDestroySurfaceKHR(GetInstance(), GetSurface(), nullptr);
-
-        s_SwapChain->OnRelease();
-
-        vkDestroyDevice(GetPrimaryLogicalDevice(), nullptr);
-        vkDestroyInstance(GetInstance(), nullptr);
-        vmaDestroyAllocator(s_DefaultAllocator);
+        MKT_THROW_RUNTIME_ERROR("failed to find suitable memory type!");
     }
 
     MKT_UNUSED_FUNC auto VulkanContext::IsExtensionAvailable(std::string_view targetExtensionName, VkPhysicalDevice device) -> bool {
@@ -596,7 +581,7 @@ namespace Mikoto {
         allocatorInfo.instance = GetInstance();
         allocatorInfo.pVulkanFunctions = &vulkanFunctions;
 
-        vmaCreateAllocator(&allocatorInfo, &s_DefaultAllocator);
+        vmaCreateAllocator(std::addressof(allocatorInfo), std::addressof(s_DefaultAllocator));
     }
 
     auto VulkanContext::GetDetailedStatistics() -> const VmaTotalStatistics& {
@@ -632,6 +617,8 @@ namespace Mikoto {
         allocInfo.commandPool = s_MainCommandPool.Get();
         allocInfo.commandBufferCount = 1;
 
+        // Allocation ----------------------
+
         for (Size_T count{}; count < commandBuffersCount; ++count) {
             VkCommandBuffer cmd{};
 
@@ -652,6 +639,23 @@ namespace Mikoto {
         vkAllocateCommandBuffers(VulkanContext::GetPrimaryLogicalDevice(),
                                  std::addressof(immediateSubmitAllocInfo),
                                  std::addressof(s_ImmediateSubmitContext.CommandBuffer));
+
+
+        // Cleanup via delete queue ----------------------
+
+        DeletionQueue::Push([=]() -> void {
+            // Clear main draw command buffers
+            vkFreeCommandBuffers(GetPrimaryLogicalDevice(),
+                                  s_MainCommandPool.Get(),
+                                  static_cast<UInt32_T>(s_RenderCommandBufferHandles.size()),
+                                  s_RenderCommandBufferHandles.data());
+
+            // Immediate submit context objects release
+            vkFreeCommandBuffers(GetPrimaryLogicalDevice(),
+                                  s_ImmediateSubmitContext.CommandPool.Get(),
+                                  1,
+                                  std::addressof(s_ImmediateSubmitContext.CommandBuffer));
+        });
     }
 
     auto VulkanContext::PrepareFrame() -> void {
@@ -684,6 +688,7 @@ namespace Mikoto {
 
         SubmitToQueue(submitInfo);
 
+        // We are not responsible for freeing the command buffers held by this array
         s_BatchedGraphicQueueCommands.clear();
     }
 
@@ -721,9 +726,11 @@ namespace Mikoto {
     }
 
     auto VulkanContext::CreateSynchronizationPrimitives() -> void {
+        // Allocation fence ----------------------
+
         VkFenceCreateInfo fenceInfo{ VulkanUtils::Initializers::FenceCreateInfo() };
 
-        //we want to create the fence with the Create Signaled flag, so we
+        // We want to create the fence with the Create Signaled flag, so we
         // can wait on it before using it on a GPU command (for the first frame)
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
@@ -731,26 +738,54 @@ namespace Mikoto {
                           std::addressof(fenceInfo),
                           nullptr,
                           std::addressof(s_SwapChainSyncObjects.RenderFence)) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR(fmt::format("Failed to create Vulkan render fence!"));
+            MKT_THROW_RUNTIME_ERROR(fmt::format("Failed to create swap chain render fence!"));
         }
 
-        VkSemaphoreCreateInfo semaphoreCreateInfo{ VulkanUtils::Initializers::SemaphoreCreateInfo() };
+        // Deletion fence via delete queue ----------------------
 
+        DeletionQueue::Push([]() -> void {
+            vkDestroyFence(GetPrimaryLogicalDevice(), s_SwapChainSyncObjects.RenderFence, nullptr);
+        });
+
+
+        // Allocation semaphore ----------------------
+
+        VkSemaphoreCreateInfo semaphoreCreateInfo{ VulkanUtils::Initializers::SemaphoreCreateInfo() };
         if (vkCreateSemaphore(VulkanContext::GetPrimaryLogicalDevice(),
                               std::addressof(semaphoreCreateInfo),
                               nullptr,
                               std::addressof(s_SwapChainSyncObjects.PresentSemaphore)) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR(fmt::format("Failed to create Vulkan present semaphore"));
+            MKT_THROW_RUNTIME_ERROR(fmt::format("Failed to create swap chain present semaphore"));
         }
+
+        // Deletion via delete queue ----------------------
+
+        DeletionQueue::Push([]() -> void {
+            vkDestroySemaphore(GetPrimaryLogicalDevice(), s_SwapChainSyncObjects.PresentSemaphore, nullptr);
+        });
+
+
+        // Allocation semaphore ----------------------
 
         if (vkCreateSemaphore(VulkanContext::GetPrimaryLogicalDevice(),
                               std::addressof(semaphoreCreateInfo),
                               nullptr,
                               std::addressof(s_SwapChainSyncObjects.RenderSemaphore)) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR(fmt::format("Failed to create Vulkan render semaphore"));
+            MKT_THROW_RUNTIME_ERROR(fmt::format("Failed to create swap chain render semaphore"));
         }
 
+        // Deletion via delete queue ----------------------
+
+        DeletionQueue::Push([]() -> void {
+            vkDestroySemaphore(GetPrimaryLogicalDevice(), s_SwapChainSyncObjects.RenderSemaphore, nullptr);
+        });
+
+
+
         // Immediate submit synchronization primitives
+
+        // Allocation ----------------------
+
         VkFenceCreateInfo immediateSubmitFenceInfo{ VulkanUtils::Initializers::FenceCreateInfo() };
 
         if (vkCreateFence(VulkanContext::GetPrimaryLogicalDevice(),
@@ -759,6 +794,12 @@ namespace Mikoto {
                           std::addressof(s_ImmediateSubmitContext.UploadFence)) != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR(fmt::format("Failed to create Vulkan immediate submit fence!"));
         }
+
+        // Deletion via delete queue ----------------------
+
+        DeletionQueue::Push([]() -> void {
+            vkDestroyFence(GetPrimaryLogicalDevice(), s_ImmediateSubmitContext.UploadFence, nullptr);
+        });
     }
 
     auto VulkanContext::SubmitToQueue(const QueueSubmitInfo& submitInfo) -> void {
@@ -790,6 +831,9 @@ namespace Mikoto {
     }
 
     auto VulkanContext::BatchCommandBuffer(VkCommandBuffer cmd) -> void {
+        // TODO: Thread safety
+        // Senders are responsible of freeing the command buffers packed into
+        // this array once these command buffers are no longer needed.
         s_BatchedGraphicQueueCommands.emplace_back(cmd);
     }
 

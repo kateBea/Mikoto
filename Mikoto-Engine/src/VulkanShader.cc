@@ -34,6 +34,10 @@ namespace Mikoto {
 
         CreateModule(m_Data.Code, m_Module);
 
+        DeletionQueue::Push([moduleHandle = m_Module]() -> void {
+            vkDestroyShaderModule(VulkanContext::GetPrimaryLogicalDevice(), moduleHandle, nullptr);
+        });
+
         // This data is needed later within the pipeline
         m_Data.StageCreateInfo = VulkanUtils::Initializers::PipelineShaderStageCreateInfo();
         m_Data.StageCreateInfo.stage = VulkanUtils::GetVulkanShaderStageFlag(m_Stage);
@@ -42,10 +46,6 @@ namespace Mikoto {
         m_Data.StageCreateInfo.flags = 0;
         m_Data.StageCreateInfo.pNext = nullptr;
         m_Data.StageCreateInfo.pSpecializationInfo = nullptr;
-
-        DeletionQueue::Push([&]() -> void {
-            vkDestroyShaderModule(VulkanContext::GetPrimaryLogicalDevice(), m_Module, nullptr);
-        });
     }
 
     auto VulkanShader::CreateModule(const std::string& srcCode, VkShaderModule& shaderModule) -> void {
@@ -57,7 +57,7 @@ namespace Mikoto {
         createInfo.pCode = reinterpret_cast<const UInt32_T*>(srcCode.data());
 
         if (vkCreateShaderModule(VulkanContext::GetPrimaryLogicalDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create shader module");
+            MKT_THROW_RUNTIME_ERROR("Failed to create shader module");
         }
     }
 }

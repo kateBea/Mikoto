@@ -28,7 +28,6 @@ namespace Mikoto {
         auto EndFrame() -> void override;
 
     private:
-        auto CreateImGuiRenderPass() -> void;
 
         auto BuildCommandBuffers() -> void;
         auto RecordImGuiCommandBuffers(UInt32_T imageIndex) -> void;

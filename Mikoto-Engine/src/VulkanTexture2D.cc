@@ -29,8 +29,11 @@ namespace Mikoto {
         :   Texture2D{ type }
     {
         LoadImageData(path);
+
         CreateImage();
+
         CreateImageView();
+
         CreateSampler();
 
         // TODO: proper descriptor sets and pools management
@@ -39,8 +42,9 @@ namespace Mikoto {
                                                                   m_View,
                                                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-        DeletionQueue::Push([=, this]() -> void {
-            vmaDestroyImage(VulkanContext::GetDefaultAllocator(), m_ImageInfo.Image, m_ImageInfo.Allocation);
+        DeletionQueue::Push([imageHandle = m_ImageInfo.Image, allocation = m_ImageInfo.Allocation, textureDescSet = m_DescSet]() -> void {
+            ImGui_ImplVulkan_RemoveTexture(textureDescSet);
+            vmaDestroyImage(VulkanContext::GetDefaultAllocator(), imageHandle, allocation);
         });
 
         if (!retainFileData) {
@@ -66,6 +70,7 @@ namespace Mikoto {
     }
 
     auto VulkanTexture2D::CreateDescriptorSet() -> void {
+        // UNUSED FOR NOW. NEED BETTER DESCRIPTOR SET/POOL MANAGEMENT
         auto& singleTextureSetLayout { dynamic_cast<VulkanRenderer*>(Renderer::GetActiveGraphicsAPIPtr())->GetSingleTextureSetLayout() };
 
         VkDescriptorSetAllocateInfo allocInfo{};
@@ -213,6 +218,10 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR("Failed to create Vulkan image view!");
         }
 
+        DeletionQueue::Push([imageView = m_View]() -> void {
+            vkDestroyImageView(VulkanContext::GetPrimaryLogicalDevice(), imageView, nullptr);
+        });
+
         MKT_CORE_LOGGER_DEBUG("Vulkan image view created successfully");
     }
 
@@ -244,5 +253,9 @@ namespace Mikoto {
         if (vkCreateSampler(VulkanContext::GetPrimaryLogicalDevice(), &samplerInfo, nullptr, &m_TextureSampler) != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("Failed to create texture sampler!");
         }
+
+        DeletionQueue::Push([sampler = m_TextureSampler]() -> void {
+            vkDestroySampler(VulkanContext::GetPrimaryLogicalDevice(), sampler, nullptr);
+        });
     }
 }

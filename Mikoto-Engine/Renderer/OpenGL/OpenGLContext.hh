@@ -25,7 +25,7 @@ namespace Mikoto::OpenGLContext {
     * CONTEXT INTERFACE
     * ***********************************************************/
     auto Init(const std::shared_ptr<Window>& windowHandle) -> void;
-    auto ShutDown() -> void;
+    auto Shutdown() -> void;
     auto Present() -> void;
     auto EnableVSync() -> void;
     auto DisableVSync() -> void;

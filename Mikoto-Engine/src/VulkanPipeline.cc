@@ -59,13 +59,11 @@ namespace Mikoto {
         pipelineInfo.pDynamicState = &config.DynamicStateInfo;
 
         if (vkCreateGraphicsPipelines(VulkanContext::GetPrimaryLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create Graphics pipeline");
+            MKT_THROW_RUNTIME_ERROR("Failed to create Graphics pipeline");
         }
 
-        DeletionQueue::Push([=, this]() -> void {
-            vkDestroyShaderModule(VulkanContext::GetPrimaryLogicalDevice(), m_VertShaderModule, nullptr);
-            vkDestroyShaderModule(VulkanContext::GetPrimaryLogicalDevice(), m_FragShaderModule, nullptr);
-            vkDestroyPipeline(VulkanContext::GetPrimaryLogicalDevice(), m_GraphicsPipeline, nullptr);
+        DeletionQueue::Push([pipeline = m_GraphicsPipeline]() -> void {
+            vkDestroyPipeline(VulkanContext::GetPrimaryLogicalDevice(), pipeline, nullptr);
         });
     }
 

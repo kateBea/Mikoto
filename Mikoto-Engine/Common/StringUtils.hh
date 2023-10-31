@@ -17,7 +17,7 @@
 
 namespace Mikoto::StringUtils {
     /**
-     * Returns a string which is the concatenation of the string
+     * @brief Returns a string which is the concatenation of the string.
      * representation of the given values.
      * @see ConcatStr(...)
      * */
@@ -36,10 +36,10 @@ namespace Mikoto::StringUtils {
     }
 
     /**
-     * Returns a string which is the concatenation of the string
+     * @brief Returns a string which is the concatenation of the string
      * representation of the given values.
-     * @param args list of values
-     * @tparam Args types of the given values
+     * @param args list of values.
+     * @tparam Args types of the given values.
      * */
     template<typename... Args>
     inline auto ConcatStr(Args&&... args) -> decltype(auto) {
@@ -51,9 +51,9 @@ namespace Mikoto::StringUtils {
     }
 
     /**
-     * Remove any leading white spaces from str, from both ends.
-     * @param str string to be trimmed
-     * @returns copy of str without leading whitespaces from both ends
+     * @brief Remove any leading white spaces from str, from both ends.
+     * @param str string to be trimmed.
+     * @returns copy of str without leading whitespaces from both ends.
      * */
     MKT_NODISCARD inline auto Trim(std::string_view str) -> std::string {
         auto leftCharIt{ str.begin() };
@@ -71,13 +71,18 @@ namespace Mikoto::StringUtils {
     }
 
     /**
-     * Returns true if two character sequences are equal
-     * @param str1 null terminated string to compare
-     * @param str2 null terminated string to compare
-     * @returns true if both string are the same, false otherwise
+     * @brief Returns true if two character sequences are equal.
+     * @param str1 Null terminated string to compare.
+     * @param str2 Null terminated string to compare.
+     * @returns True if both string are the same, false otherwise.
      * */
     MKT_NODISCARD inline constexpr auto Equal(std::string_view str1, std::string_view str2) -> bool {
         return str1.compare(str2) == 0;
+    }
+
+    template<typename CharType>
+    inline constexpr auto ReplaceWith(std::string& str, CharType oldVal, CharType newVal) -> void {
+        std::replace(str.begin(), str.end(), oldVal, newVal);
     }
 }
 

@@ -36,6 +36,7 @@ namespace Mikoto {
     public:
         /**
          * @brief Initializes the RenderContext with provided specifications.
+         * The render context is also responsible of initializing the GUI.
          * @param spec The specifications for initializing the RenderContext.
          * */
         static auto Init(RenderContextSpec&& spec) -> void;

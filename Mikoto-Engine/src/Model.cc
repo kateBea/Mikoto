@@ -10,33 +10,32 @@
 #include <vector>
 
 // Third Party Libraries
-#include "assimp/Importer.hpp"
-#include "assimp/postprocess.h"
-#include "assimp/scene.h"
+#include <assimp/scene.h>
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
 
 // Project Headers
 #include <Common/Types.hh>
 #include <Common/Common.hh>
-#include <Common/RenderingUtils.hh>
+#include <Common/StringUtils.hh>
 
 #include <Core/Logger.hh>
 
 #include <Threading/TaskManager.hh>
 
-#include <Renderer/Renderer.hh>
-
-#include "Renderer/Buffers/IndexBuffer.hh"
-#include "Renderer/Buffers/VertexBuffer.hh"
-#include "Renderer/Mesh.hh"
-#include "Renderer/Model.hh"
+#include <Renderer/Mesh.hh>
+#include <Renderer/Model.hh>
+#include <Renderer/Buffers/IndexBuffer.hh>
+#include <Renderer/Buffers/VertexBuffer.hh>
 
 namespace Mikoto {
-    Model::Model(const Path_T& path, bool wantLoadTextures)
-        :   m_ModelDirectory{ path }
-        ,   m_ModelName{ path.stem().string() }
+    Model::Model(const ModelLoadInfo& info)
+        :   m_ModelDirectory{ info.ModelPath }
+        ,   m_ModelName{ info.ModelPath.stem().string() }
+        ,   m_InvertedY{ info.InvertedY }
     {
         m_ModelDirectory.remove_filename();
-        Load(path, wantLoadTextures);
+        Load(info.ModelPath, info.WantTextures);
     }
 
     auto Model::Load(const Path_T& path, bool wantLoadTextures) -> void {
@@ -85,7 +84,6 @@ namespace Mikoto {
         std::vector<float> vertices{};
         std::vector<UInt32_T> indices{};
         std::vector<std::shared_ptr<Texture2D>> textures{};
-        static const bool vulkanActive{ Renderer::GetActiveGraphicsAPI() == GraphicsAPI::VULKAN_API };
 
         for(UInt64_T index{}; index < mesh->mNumVertices; index++) {
             vertices.push_back(mesh->mVertices[index].x);
@@ -116,7 +114,7 @@ namespace Mikoto {
             if (mesh->mTextureCoords[0] != nullptr) {
                 vertices.push_back(mesh->mTextureCoords[0][index].x);
 
-                vertices.push_back(vulkanActive ? -mesh->mTextureCoords[0][index].y : mesh->mTextureCoords[0][index].y);
+                vertices.push_back(m_InvertedY ? -mesh->mTextureCoords[0][index].y : mesh->mTextureCoords[0][index].y);
             }
             else {
                 vertices.emplace_back(0.0f);
@@ -177,10 +175,19 @@ namespace Mikoto {
 
             if (mat->GetTexture(type, index, std::addressof(texturePath)) == AI_SUCCESS) {
                 // Assumes the textures are in the same directory as the model files
-                // TODO: aiScene::GetEmbeddedTexture() for embedded textures
                 Path_T path{ modelDirectory.string() / Path_T{ texturePath.C_Str() } };
 
-                textures.push_back(Texture2D::Create(path, tType));
+                // remove backslashes if any
+                std::string pathStr{ path.string() };
+                StringUtils::ReplaceWith(pathStr, '\\', '/');
+
+                path = Path_T{ pathStr };
+
+                auto ptr{ Texture2D::Create(path, tType) };
+
+                if (ptr) {
+                    textures.push_back(ptr);
+                }
             }
 
             auto result{ scene->GetEmbeddedTextureAndIndex(texturePath.C_Str()) };

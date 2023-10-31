@@ -35,6 +35,8 @@ namespace Mikoto {
             UInt32_T GroupIndex;
         };
 
+
+
         /**
          * Add job to job queue.
          * This helper exists because we are using a standard library container as job queue,
@@ -47,6 +49,8 @@ namespace Mikoto {
 
             return true;
         }
+
+
 
         /**
          * Remove job to job queue.
@@ -63,6 +67,8 @@ namespace Mikoto {
             }
         }
 
+
+
         static auto Init() -> void {
             // Initialize the worker execution state to 0
             s_FinishedLabel.store(0);
@@ -75,6 +81,8 @@ namespace Mikoto {
             // Initialize worker threads
             for (Size_T threadCount{}; threadCount < s_ThreadCount; ++threadCount) {
                 s_Workers.emplace_back([]() -> void {
+                    // TODO: run thread preparation stuff it may need to init some thread_local structures, etc
+
                     // the current job for the thread, it's empty at the start.
                     std::function<void()> task{};
 
@@ -100,9 +108,13 @@ namespace Mikoto {
                             s_WakeCondition.wait(lock);
                         }
                     }
+
+                    // TODO: thread local cleanup if needed
                 });
             }
         }
+
+
 
         static auto Shutdown() -> void {
             s_Done = true;
@@ -114,6 +126,8 @@ namespace Mikoto {
                 worker.join();
             }
         }
+
+
 
         /**
          * Add a job to execute asynchronously. Any worker (thread) idling will execute this task.
@@ -144,6 +158,8 @@ namespace Mikoto {
             // wake one thread
             s_WakeCondition.notify_one();
         }
+
+
 
         /**
          * Divide a job into multiple jobs and execute in parallel
@@ -192,6 +208,8 @@ namespace Mikoto {
             }
         }
 
+
+
         /**
          * Returns true if there's thread executing any work, not necessarily idle.
          * @returns true if there's at least one thread doing some work, false otherwise
@@ -202,6 +220,8 @@ namespace Mikoto {
             return s_FinishedLabel.load() < s_CurrentLabel || !s_JobQueue.empty();
         }
 
+
+
         /**
          * Wait until all threads have finished doing their work
          * */
@@ -211,9 +231,14 @@ namespace Mikoto {
             }
         }
 
+
+
         MKT_NODISCARD static auto GetWorkersCount() -> UInt32_T { return s_Workers.size(); }
 
+
+
     private:
+
         /**
          * Returns total working numCores for given hardware cores
          * @param numCores count of cores (including hyper-threaded virtual cores)
@@ -224,6 +249,8 @@ namespace Mikoto {
             return std::max(1u, numCores);
         }
 
+
+
         /**
          * This helper will not let the system to be deadlocked
          * while the main thread is waiting for something
@@ -233,29 +260,39 @@ namespace Mikoto {
             std::this_thread::yield();      // allow this thread to be rescheduled
         }
 
+
     private:
+
         static inline bool s_Done{ false };
 
+
         static inline std::vector<std::thread> s_Workers{};
+
 
         // Count of working threads
         inline static UInt32_T s_ThreadCount{};
 
+
         // Queue of pending jobs
         static inline std::deque<std::function<void()>> s_JobQueue{};
 
+
         // For enqueueing and removing jobs
         inline static std::mutex s_JobQueueLock{};
+
 
         // used in conjunction with the wakeMutex below. Worker threads
         // just sleep when there is no job, and the main thread can wake them up
         inline static std::condition_variable s_WakeCondition{};
 
+
         // used in conjunction with the wakeCondition above
         inline static std::mutex s_WakeMutex{};
 
+
         // tracks the state of execution of the main thread
         inline static UInt32_T s_CurrentLabel{};
+
 
         // track the state of execution across background worker threads
         inline static std::atomic<UInt64_T> s_FinishedLabel{};

@@ -33,7 +33,9 @@ namespace Mikoto {
         m_Layout = createInfo.Layout;
 
         SetVertexData(createInfo.Data);
-        DeletionQueue::Push([=, this]() -> void { vmaDestroyBuffer(VulkanContext::GetDefaultAllocator(), m_Buffer.Get(), m_Buffer.GetVmaAllocation()); });
+        DeletionQueue::Push([bufferHandle = m_Buffer.Get(), allocation = m_Buffer.GetVmaAllocation()]() -> void {
+            vmaDestroyBuffer(VulkanContext::GetDefaultAllocator(), bufferHandle, allocation);
+        });
     }
 
     auto VulkanVertexBuffer::Bind(VkCommandBuffer commandBuffer) const -> void {
@@ -147,7 +149,7 @@ namespace Mikoto {
 
         BufferAllocateInfo stagingBuffer{};
 
-        // Allocate the buffer
+        // Allocate staging buffer
         if (vmaCreateBuffer(vmaAllocator,
                             std::addressof(stagingBufferInfo),
                             std::addressof(vmaStagingAllocationCreateInfo),

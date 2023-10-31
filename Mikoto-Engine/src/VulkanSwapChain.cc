@@ -417,6 +417,8 @@ namespace Mikoto {
                 VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
     }
 
+
+    // Not pushed to deletion queue for now. To be handled still
     auto VulkanSwapChain::OnRelease() -> void {
         // Wait on outstanding queue operations because there might be some objects still in use by the GPU
         VulkanUtils::WaitOnDevice(VulkanContext::GetPrimaryLogicalDevice());
@@ -433,7 +435,7 @@ namespace Mikoto {
         }
 
         // Cleanup frame buffers
-        for (auto framebuffer: m_SwapChainFrameBuffers)
+        for (auto framebuffer : m_SwapChainFrameBuffers)
             vkDestroyFramebuffer(VulkanContext::GetPrimaryLogicalDevice(), framebuffer, nullptr);
 
         // Cleanup synchronization objects

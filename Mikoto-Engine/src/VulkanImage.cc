@@ -33,9 +33,9 @@ namespace Mikoto {
         if (vkCreateImageView(VulkanContext::GetPrimaryLogicalDevice(), &m_ImageViewCreateInfo, nullptr, &m_ImageView) != VK_SUCCESS)
             throw std::runtime_error("Failed to create the Vulkan Image View!");
 
-        DeletionQueue::Push([=, this]() -> void {
-            vkDestroyImageView(VulkanContext::GetPrimaryLogicalDevice(), m_ImageView, nullptr);
-            vmaDestroyImage(VulkanContext::GetDefaultAllocator(), m_AllocInfo.Image, m_AllocInfo.Allocation);
+        DeletionQueue::Push([imageView = m_ImageView, imageHandle = m_AllocInfo.Image, allocation = m_AllocInfo.Allocation]() -> void {
+            vkDestroyImageView(VulkanContext::GetPrimaryLogicalDevice(), imageView, nullptr);
+            vmaDestroyImage(VulkanContext::GetDefaultAllocator(), imageHandle, allocation);
         });
     }
 }

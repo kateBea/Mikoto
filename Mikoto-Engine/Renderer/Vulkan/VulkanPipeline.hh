@@ -62,10 +62,7 @@ namespace Mikoto {
 
     private:
         VkPipeline m_GraphicsPipeline{};
-        PipelineConfigInfo  m_ConfigInfo{};
-
-        VkShaderModule m_VertShaderModule{};
-        VkShaderModule  m_FragShaderModule{};
+        PipelineConfigInfo m_ConfigInfo{};
     };
 }
 

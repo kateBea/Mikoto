@@ -67,6 +67,7 @@ namespace Mikoto {
         ImGui::SliderFloat("Reflection", std::addressof(reflection), 0.0f, 1.0f);
     }
 
+
     /**
      * Adds a button to insert components to an entity. This button is only added
      * if the parameter is a valid entity, does nothing otherwise
@@ -115,9 +116,13 @@ namespace Mikoto {
         }
     }
 
+
+
     static constexpr auto GetInspectorPanelName() -> std::string_view {
         return "Inspector";
     }
+
+
 
     InspectorPanel::InspectorPanel()
         :   Panel{}
@@ -128,6 +133,8 @@ namespace Mikoto {
             m_Guids.emplace_back();
         }
     }
+
+
 
     static auto DrawVec3Transform(std::string_view label, glm::vec3& data, double resetValue = 0.0 , double columWidth = 100.0) {
 
@@ -214,6 +221,8 @@ namespace Mikoto {
         ImGui::PopID();
     }
 
+
+
     template<typename ComponentType, typename UIFunction>
     static auto DrawComponent(std::string_view componentLabel, Entity& entity, UIFunction uiFunc, bool hasRemoveButton = true) {
         static constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
@@ -276,6 +285,8 @@ namespace Mikoto {
         }
     }
 
+
+
     static auto DrawVisibilityCheckBox(Entity& entity) {
         if (!entity.IsValid()) {
             return;
@@ -289,6 +300,8 @@ namespace Mikoto {
             tag.SetVisibility(!tag.IsVisible());
         }
     }
+
+
 
     static auto DrawNameTextInput(Entity& entity) -> void {
         if (!entity.IsValid()) {
@@ -307,6 +320,8 @@ namespace Mikoto {
             tag.SetTag(contextSelectionTagName);
         }
     }
+
+
 
     static auto DrawComponents() -> void {
         auto& currentlyActiveEntity{ SceneManager::GetCurrentlySelectedEntity() };
@@ -367,6 +382,7 @@ namespace Mikoto {
             if (ImGui::Button(fmt::format(" {} Load ", ICON_MD_SEARCH).c_str())) {
                 // prepare filters for the dialog
                 std::initializer_list<std::pair<std::string, std::string>> filters{
+                    { "Model files", "obj, gltf, fbx" },
                     { "OBJ files", "obj" },
                     { "glTF files", "gltf" },
                     { "FBX files", "fbx" }
@@ -378,7 +394,12 @@ namespace Mikoto {
                     const Path_T modelPath{ path };
 
                     // Load the model
-                    AssetsManager::LoadModel(modelPath);
+                    ModelLoadInfo modelLoadInfo{};
+                    modelLoadInfo.ModelPath = modelPath;
+                    modelLoadInfo.InvertedY = Renderer::GetActiveGraphicsAPI() == GraphicsAPI::VULKAN_API;
+                    modelLoadInfo.WantTextures = true;
+
+                    AssetsManager::LoadModel(modelLoadInfo);
 
                     objData.ModelPath = modelPath;
                     objData.ModelName = modelPath.stem();
@@ -440,7 +461,7 @@ namespace Mikoto {
             ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
 
 
-            if (ImGui::BeginCombo("Mesh index", renderData.MeshSelectedIndex == -1 ? "No mesh selected yet" : fmt::format("mesh {}", renderData.MeshSelectedIndex).c_str())) {
+            if (ImGui::BeginCombo("##MeshIndex", renderData.MeshSelectedIndex == -1 ? "No mesh selected yet" : fmt::format("mesh {}", renderData.MeshSelectedIndex).c_str())) {
 
                 // Every object that can be rendered is made out of meshes.
                 // Each mesh has its own material and list of textures.
@@ -462,7 +483,6 @@ namespace Mikoto {
 
                 ImGui::EndCombo();
             }
-
 
             if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
@@ -678,6 +698,8 @@ namespace Mikoto {
            }
         );
     }
+
+
 
     auto InspectorPanel::OnUpdate(MKT_UNUSED_VAR float timeStep) -> void {
         if (m_PanelIsVisible) {

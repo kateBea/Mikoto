@@ -27,6 +27,10 @@ namespace Mikoto {
         VmaAllocation Allocation{};
         VkBufferCreateInfo BufferCreateInfo{};
         VmaAllocationCreateInfo AllocationCreateInfo{};
+
+        // True if the allocation was mapped, false otherwise.
+        // Allocation must unmapped before destruction.
+        bool IsMapped{};
     };
 
     struct ImageAllocateInfo {
@@ -87,16 +91,6 @@ namespace Mikoto::VulkanUtils {
      * @deprecated Prefer allocating memory buffers via VMA with the default allocator, number of allocations is pretty limited even in modern hardware
      * */
     auto CreateBuffer(VkBuffer& buffer, VkDeviceMemory& bufferMemory, VkDeviceSize size, VkMemoryPropertyFlags properties, VkBufferUsageFlags usage) -> void;
-
-    /**
-     * Copies a block of data to a different location
-     * @param srcBuffer
-     * @param dstBuffer
-     * @param size
-     * @param commandBuffer
-     * @deprecated Previously used in conjunction with Create() to create staging buffers
-     * */
-    auto CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkCommandBuffer commandBuffer) -> void;
 
     /**
      * Uploads CPU accessible data to GPU readable memory

@@ -55,7 +55,7 @@ namespace Mikoto {
          *
          * @param modelPath The path to the model to load.
          * */
-        static auto LoadModel(const Path_T& modelPath) -> void;
+        static auto LoadModel(const ModelLoadInfo& modelPath) -> void;
 
 
     private:

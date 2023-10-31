@@ -18,6 +18,7 @@
 #include "Common/RenderingUtils.hh"
 #include "Core/Event.hh"
 #include "Renderer/Renderer.hh"
+#include "Renderer/Vulkan/DeletionQueue.hh"
 #include "Renderer/Vulkan/VulkanContext.hh"
 #include "Renderer/Vulkan/VulkanRenderer.hh"
 #include "Scene/SceneManager.hh"
@@ -51,7 +52,15 @@ namespace Mikoto {
                 MKT_THROW_RUNTIME_ERROR("Failed to create Vulkan sampler!");
             }
 
+            DeletionQueue::Push([sampler = m_ColorAttachmentSampler]() -> void {
+                vkDestroySampler(VulkanContext::GetPrimaryLogicalDevice(), sampler, nullptr);
+            });
+
             m_ColorAttachmentDescriptorSet = ImGui_ImplVulkan_AddTexture(m_ColorAttachmentSampler, m_SceneRenderer->GetOffscreenColorAttachmentImage(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+            DeletionQueue::Push([descSet = m_ColorAttachmentDescriptorSet]() -> void {
+                ImGui_ImplVulkan_RemoveTexture(descSet);
+            });
         }
 
         auto OnUpdate_Impl() -> void override {

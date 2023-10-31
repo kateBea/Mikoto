@@ -55,6 +55,8 @@ namespace Mikoto {
         bool m_Visibility{};
     };
 
+
+
     class TransformComponent {
     public:
         explicit TransformComponent() = default;
@@ -131,6 +133,8 @@ namespace Mikoto {
         glm::mat4 m_Transform{};
     };
 
+
+
     /**
      * Contains the material information of an entity
      * */
@@ -157,6 +161,8 @@ namespace Mikoto {
         glm::vec4 m_Color{ 1.0f, 1.0f, 1.0f, 1.0f };
     };
 
+
+
     /**
      * This component will contain the data to render an object, such
      * as vertex buffers, index buffers, although this component won't be visible
@@ -181,6 +187,8 @@ namespace Mikoto {
         SceneObjectData m_RenderableData{};
     };
 
+
+
     class LightComponent {
     public:
         explicit LightComponent() = default;
@@ -193,26 +201,34 @@ namespace Mikoto {
 
         ~LightComponent() = default;
 
+    private:
+
+
     };
 
-    class Physics {
+
+
+    class PhysicsComponent {
     public:
-        explicit Physics() = default;
+        explicit PhysicsComponent() = default;
 
-        Physics(const Physics & other) = default;
-        Physics(Physics && other) = default;
+        PhysicsComponent(const PhysicsComponent & other) = default;
+        PhysicsComponent(PhysicsComponent && other) = default;
 
-        auto operator=(const Physics & other) -> Physics & = default;
-        auto operator=(Physics && other) -> Physics & = default;
+        auto operator=(const PhysicsComponent & other) -> PhysicsComponent & = default;
+        auto operator=(PhysicsComponent && other) -> PhysicsComponent & = default;
 
-        ~Physics() = default;
+        ~PhysicsComponent() = default;
     };
+
+
 
     class CameraComponent {
     public:
         explicit CameraComponent(std::shared_ptr<SceneCamera> camera = nullptr, bool mainCam = true, bool fixedAspectRation = false)
             :   m_Camera{ camera ? std::make_shared<SceneCamera>() : std::move(camera) }, m_MainCam{ mainCam }, m_FixedAspectRatio{ fixedAspectRation }
         {
+            // This should not assert. Just a temporary sanity check
             MKT_ASSERT(m_Camera != nullptr, "Camera is NULL");
         }
 
@@ -239,6 +255,10 @@ namespace Mikoto {
     };
 
 
+    // ====== Section pending of review =======
+    // Scripting is not supported yet.
+
+
     /**
      * Checks if a scriptable entity has an OnCreate, OnDestroy and Present function
      * needed when binding and scriptable entity to the native script component
@@ -252,7 +272,7 @@ namespace Mikoto {
     template<typename ScriptableEntityType>
     concept HasOnDestroy = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->OnDestroy(); };
 
-    // support for C+++ which is the native engine language
+    // support for C++ scripting which is the native engine language
     class ScriptableEntity;
 
     class NativeScriptComponent {

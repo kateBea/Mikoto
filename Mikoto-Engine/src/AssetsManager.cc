@@ -4,9 +4,14 @@
  * */
 
 // Project Headers
+#include <Common/Types.hh>
+#include <Common/RenderingUtils.hh>
+
 #include <Threading/TaskManager.hh>
 
 #include <Assets/AssetsManager.hh>
+
+#include <Renderer/Renderer.hh>
 
 namespace Mikoto {
 
@@ -21,22 +26,28 @@ namespace Mikoto {
     }
 
     auto AssetsManager::LoadPrefabs() -> void {
-#if 0
-        TaskManager::Execute([&]() -> void {
-            AddSpritePrefab();
-            s_LoadedPrefabModels.emplace(GetSponzaPrefabName(),   std::filesystem::absolute(s_Spec.AssetRootDirectory / "models/Prefabs/sponza/glTF/Sponza.gltf"));
-            s_LoadedPrefabModels.emplace(GetCubePrefabName(),     std::filesystem::absolute(s_Spec.AssetRootDirectory / "models/Prefabs/cube/obj/cube.obj"));
-            s_LoadedPrefabModels.emplace(GetSpherePrefabName(),   std::filesystem::absolute(s_Spec.AssetRootDirectory / "models/Prefabs/sphere/gltf/scene.gltf"));
-            s_LoadedPrefabModels.emplace(GetCylinderPrefabName(), std::filesystem::absolute(s_Spec.AssetRootDirectory / "models/Prefabs/cylinder/gltf/scene.gltf"));
-            s_LoadedPrefabModels.emplace(GetConePrefabName(),     std::filesystem::absolute(s_Spec.AssetRootDirectory / "models/Prefabs/cone/gltf/scene.gltf"));
-        });
-#endif
         AddSpritePrefab();
-        s_LoadedPrefabModels.emplace(GetSponzaPrefabName(),   std::filesystem::absolute(s_Spec.AssetRootDirectory / "models/Prefabs/sponza/glTF/Sponza.gltf"));
-        s_LoadedPrefabModels.emplace(GetCubePrefabName(),     std::filesystem::absolute(s_Spec.AssetRootDirectory / "models/Prefabs/cube/obj/cube.obj"));
-        s_LoadedPrefabModels.emplace(GetSpherePrefabName(),   std::filesystem::absolute(s_Spec.AssetRootDirectory / "models/Prefabs/sphere/gltf/scene.gltf"));
-        s_LoadedPrefabModels.emplace(GetCylinderPrefabName(), std::filesystem::absolute(s_Spec.AssetRootDirectory / "models/Prefabs/cylinder/gltf/scene.gltf"));
-        s_LoadedPrefabModels.emplace(GetConePrefabName(),     std::filesystem::absolute(s_Spec.AssetRootDirectory / "models/Prefabs/cone/gltf/scene.gltf"));
+
+        ModelLoadInfo modelLoadInfo{};
+        const bool invertedY{ Renderer::GetActiveGraphicsAPI() == GraphicsAPI::VULKAN_API };
+
+        modelLoadInfo.InvertedY = invertedY;
+        modelLoadInfo.WantTextures = true;
+
+        modelLoadInfo.ModelPath = s_Spec.AssetRootDirectory / "models/Prefabs/sponza/glTF/Sponza.gltf";
+        s_LoadedPrefabModels.emplace(GetSponzaPrefabName(), modelLoadInfo);
+
+        modelLoadInfo.ModelPath = s_Spec.AssetRootDirectory / "models/Prefabs/cube/obj/cube.obj";
+        s_LoadedPrefabModels.emplace(GetCubePrefabName(), modelLoadInfo);
+
+        modelLoadInfo.ModelPath = s_Spec.AssetRootDirectory / "models/Prefabs/sphere/gltf/scene.gltf";
+        s_LoadedPrefabModels.emplace(GetSpherePrefabName(), modelLoadInfo);
+
+        modelLoadInfo.ModelPath = s_Spec.AssetRootDirectory / "models/Prefabs/cylinder/gltf/scene.gltf";
+        s_LoadedPrefabModels.emplace(GetCylinderPrefabName(), modelLoadInfo);
+
+        modelLoadInfo.ModelPath = s_Spec.AssetRootDirectory / "models/Prefabs/cone/gltf/scene.gltf";
+        s_LoadedPrefabModels.emplace(GetConePrefabName(), modelLoadInfo);
 
     }
 
@@ -82,25 +93,32 @@ namespace Mikoto {
         }
     }
     auto AssetsManager::GetModel(const Path_T& modelPath) -> const Model * {
-        std::string modelFullPath{ std::filesystem::absolute(modelPath).string() };
+        auto modelFullPath{ std::filesystem::absolute(modelPath) };
 
-        auto it{ s_LoadedModels.find(modelFullPath) };
+        // The key to the model will be its full path converted to a string
+        auto key{ modelFullPath.string() };
 
-        if (it != s_LoadedModels.end()) {
+        auto it{ s_LoadedModels.find(key) };
+
+        if ( it != s_LoadedModels.end() ) {
             return std::addressof(it->second);
         }
 
         return nullptr;
     }
 
-    auto AssetsManager::LoadModel(const Path_T& modelPath) -> void {
-        std::string modelFullPath{ std::filesystem::absolute(modelPath).string() };
+    auto AssetsManager::LoadModel(const ModelLoadInfo& info) -> void {
+        ModelLoadInfo modelLoadInfo{ info };
+        modelLoadInfo.ModelPath = std::filesystem::absolute(info.ModelPath);
 
-        if (!s_LoadedPrefabModels.contains(modelFullPath)) {
-            s_LoadedModels.emplace(modelFullPath, modelPath);
+        if (!s_LoadedPrefabModels.contains(modelLoadInfo.ModelPath.string())) {
+            // The key to the model will be its full path converted to a string
+            auto key{ modelLoadInfo.ModelPath.string() };
+
+            s_LoadedModels.emplace(key, modelLoadInfo);
         }
         else {
-            MKT_CORE_LOGGER_INFO("Model [{}] already exists!", modelFullPath);
+            MKT_CORE_LOGGER_INFO("Model [{}] already exists!", modelLoadInfo.ModelPath.string());
         }
     }
 }

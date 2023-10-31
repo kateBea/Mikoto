@@ -33,7 +33,15 @@ namespace Mikoto {
 
         MKT_NODISCARD virtual auto GetImGuiTextureHandle() const -> std::any = 0;
 
+        /**
+         * @brief Creates a new texture
+         * Creates a Texture2D based on the active graphics API (Vulkan or OpenGL) from the provided file path and MapType.
+         * @param path The path to the texture file.
+         * @param type The MapType for the texture.
+         * @return A shared pointer to the created Texture2D. If creation fails, returns a null pointer.
+         * */
         static auto Create(const Path_T& path, MapType type) -> std::shared_ptr<Texture2D>;
+
 
         virtual ~Texture2D() = default;
     protected:

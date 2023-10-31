@@ -46,16 +46,6 @@ namespace Mikoto {
 
         // Initialize material required structures
         InitializeMaterialSpecificData();
-
-        DeletionQueue::Push([=, this]() -> void {
-            for (auto& [materialName, materialData] : m_MaterialInfo) {
-                vkDestroyDescriptorSetLayout(VulkanContext::GetPrimaryLogicalDevice(), materialData.DescriptorSetLayout, nullptr);
-                vkDestroyPipelineLayout(VulkanContext::GetPrimaryLogicalDevice(), materialData.MaterialPipelineLayout, nullptr);
-            }
-
-            std::vector<VkCommandBuffer> cmdBuffers{ m_DrawCommandBuffer };
-            vkFreeCommandBuffers(VulkanContext::GetPrimaryLogicalDevice(), m_CommandPool.Get(), cmdBuffers.size(), cmdBuffers.data());
-        });
     }
 
     auto VulkanRenderer::EnableWireframeMode() -> void {
@@ -94,6 +84,10 @@ namespace Mikoto {
         if (vkAllocateCommandBuffers(VulkanContext::GetPrimaryLogicalDevice(), &allocInfo, &m_DrawCommandBuffer) != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("Failed to allocate command buffer");
         }
+
+        DeletionQueue::Push([cmdPoolHandle = m_CommandPool.Get(), cmdHandle = m_DrawCommandBuffer]() -> void {
+            vkFreeCommandBuffers(VulkanContext::GetPrimaryLogicalDevice(), cmdPoolHandle, 1, std::addressof(cmdHandle));
+        });
     }
 
     auto VulkanRenderer::Draw() -> void {
@@ -285,6 +279,10 @@ namespace Mikoto {
         if (vkCreateRenderPass(VulkanContext::GetPrimaryLogicalDevice(), &info, nullptr, &m_OffscreenMainRenderPass) != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("Failed to create render pass for the Vulkan Renderer!");
         }
+
+        DeletionQueue::Push([renderPass = m_OffscreenMainRenderPass]() -> void {
+            vkDestroyRenderPass(VulkanContext::GetPrimaryLogicalDevice(), renderPass, nullptr);
+        });
     }
 
     auto VulkanRenderer::CreateFrameBuffers() -> void {
@@ -476,6 +474,12 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR("Failed to create colored pipeline layout");
         }
 
+        DeletionQueue::Push([descSetLayout = coloredMaterialData.DescriptorSetLayout,
+                            pipelineLayout = coloredMaterialData.MaterialPipelineLayout]() -> void {
+            vkDestroyDescriptorSetLayout(VulkanContext::GetPrimaryLogicalDevice(), descSetLayout, nullptr);
+            vkDestroyPipelineLayout(VulkanContext::GetPrimaryLogicalDevice(), pipelineLayout, nullptr);
+        });
+
         // Create the pipeline
         auto defaultMatPipelineConfig{ VulkanPipeline::GetDefaultPipelineConfigInfo() };
         defaultMatPipelineConfig.RenderPass = m_OffscreenMainRenderPass;
@@ -552,6 +556,12 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR("Failed to create pipeline layout");
         }
 
+        DeletionQueue::Push([descSetLayout = defaultMaterial.DescriptorSetLayout,
+                              pipelineLayout = defaultMaterial.MaterialPipelineLayout]() -> void {
+            vkDestroyDescriptorSetLayout(VulkanContext::GetPrimaryLogicalDevice(), descSetLayout, nullptr);
+            vkDestroyPipelineLayout(VulkanContext::GetPrimaryLogicalDevice(), pipelineLayout, nullptr);
+        });
+
         // Create pipeline
         auto defaultMatPipelineConfig{ VulkanPipeline::GetDefaultPipelineConfigInfo() };
         defaultMatPipelineConfig.RenderPass = m_OffscreenMainRenderPass;
@@ -616,6 +626,12 @@ namespace Mikoto {
         if (vkCreatePipelineLayout(VulkanContext::GetPrimaryLogicalDevice(), std::addressof(pipelineLayoutInfo), nullptr, std::addressof(wireframeMaterial.MaterialPipelineLayout)) != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("Failed to create colored pipeline layout");
         }
+
+        DeletionQueue::Push([descSetLayout = wireframeMaterial.DescriptorSetLayout,
+                              pipelineLayout = wireframeMaterial.MaterialPipelineLayout]() -> void {
+            vkDestroyDescriptorSetLayout(VulkanContext::GetPrimaryLogicalDevice(), descSetLayout, nullptr);
+            vkDestroyPipelineLayout(VulkanContext::GetPrimaryLogicalDevice(), pipelineLayout, nullptr);
+        });
 
         // Create the pipeline
         auto wireframePipelineConfig{ VulkanPipeline::GetDefaultPipelineConfigInfo() };

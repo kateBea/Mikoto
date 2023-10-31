@@ -117,7 +117,7 @@ namespace Mikoto {
 
 
         static auto Shutdown() -> void {
-            s_Done = true;
+            s_Done.store(true);
 
             // notify all threads we are shutting down
             s_WakeCondition.notify_all();
@@ -263,7 +263,7 @@ namespace Mikoto {
 
     private:
 
-        static inline bool s_Done{ false };
+        static inline std::atomic_bool s_Done{ false };
 
 
         static inline std::vector<std::thread> s_Workers{};

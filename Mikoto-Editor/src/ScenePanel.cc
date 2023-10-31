@@ -62,7 +62,11 @@ namespace Mikoto {
 
     auto ScenePanel::OnUpdate(float ts) -> void {
         if (m_PanelIsVisible) {
-            ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible));
+            constexpr ImGuiWindowFlags windowFlags{  };
+
+            ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible), windowFlags);
+
+            //DrawScenePlayButtons();
 
             m_PanelIsFocused = ImGui::IsWindowFocused();
             m_PanelIsHovered = ImGui::IsWindowHovered();
@@ -75,6 +79,17 @@ namespace Mikoto {
         if (m_PanelIsHovered && InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Right)) {
             EventManager::Trigger<CameraEnableRotation>();
         }
+    }
+
+    auto ScenePanel::DrawScenePlayButtons() -> void {
+        if (ImGui::Button(fmt::format("{}", ICON_MD_PLAY_ARROW).c_str())) {}
+        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+
+        ImGui::SameLine();
+
+        if (ImGui::Button(fmt::format("{}", ICON_MD_STOP).c_str())) {}
+        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
     }
 
     auto ScenePanelInterface::HandleGuizmos() -> void {

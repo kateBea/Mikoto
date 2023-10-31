@@ -53,25 +53,30 @@ namespace Mikoto {
 
         const float baseFontSize{ 17.5f };
         const float iconFontSize{ 18.0f };
-
-        // Load fonts
-        s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF("../Assets/Fonts/JetBrainsMono/fonts/ttf/JetBrainsMonoNL-Light.ttf", 22.0f));
-        s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF("../Assets/Fonts/JetBrainsMono/fonts/ttf/JetBrainsMonoNL-Light.ttf", 17.0f));
-
-        s_Fonts.emplace_back(io.FontDefault = io.Fonts->AddFontFromFileTTF("../Assets/Fonts/Open_Sans/OpenSans-VariableFont.ttf", baseFontSize));
-        // FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly
-
         const std::string fontPath{ "../Assets/Fonts/" };
 
-        // First font
-        static const std::array<ImWchar, 3> iconRanges1{ ICON_MIN_MDI, ICON_MAX_16_MDI, 0 };
+
+        // NOTE: FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly
+
+
+        // Font 0
+        s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF("../Assets/Fonts/JetBrainsMono/fonts/ttf/JetBrainsMonoNL-Light.ttf", 22.0f));
+
+        // Font 1
+        s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF("../Assets/Fonts/JetBrainsMono/fonts/ttf/JetBrainsMonoNL-Light.ttf", 17.0f));
+
+        // Font 2
+        s_Fonts.emplace_back(io.FontDefault = io.Fonts->AddFontFromFileTTF("../Assets/Fonts/Open_Sans/OpenSans-VariableFont.ttf", baseFontSize));
+
+        // Font 3
+        static const std::array<ImWchar, 3> iconRanges1{ ICON_MIN_FA, ICON_MAX_16_FA, 0 };
         AddIconFont(iconFontSize, (fontPath + FONT_ICON_FILE_NAME_FAR), iconRanges1);
 
-        // Second Font
+        // Font 4
         static const std::array<ImWchar, 3> iconRanges2{ ICON_MIN_MD, ICON_MAX_16_MD, 0 };
         AddIconFont(iconFontSize, (fontPath + FONT_ICON_FILE_NAME_MD), iconRanges2);
 
-        // Third font
+        // Font 5
         static const std::array<ImWchar, 3> iconRanges3{ ICON_MIN_MDI, ICON_MAX_16_MDI, 0 };
         AddIconFont(iconFontSize, (fontPath + FONT_ICON_FILE_NAME_MDI), iconRanges3);
 

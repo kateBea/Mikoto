@@ -79,6 +79,9 @@ namespace Mikoto {
 
         ~ScenePanel() override = default;
 
+    private:
+        auto DrawScenePlayButtons() -> void;
+
     protected:
         ScenePanelCreateInfo m_CreateInfo{};
 

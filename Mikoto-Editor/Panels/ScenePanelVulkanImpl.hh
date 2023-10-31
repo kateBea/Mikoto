@@ -68,6 +68,9 @@ namespace Mikoto {
 
             auto viewPortDimensions{ ImGui::GetContentRegionAvail() };
             auto& currentlyActiveScene{ SceneManager::GetActiveScene() };
+
+
+            // If the window size has changed, we need to resize the scene viewport
             if (m_Data.ViewPortWidth != viewPortDimensions.x || m_Data.ViewPortHeight != viewPortDimensions.y) {
 
                 m_Data.ViewPortWidth = viewPortDimensions.x;

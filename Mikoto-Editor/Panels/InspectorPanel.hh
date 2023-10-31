@@ -27,8 +27,14 @@ namespace Mikoto {
         ~InspectorPanel() override = default;
 
     private:
+        auto DrawComponents() -> void;
+        auto MaterialComponentEditor(MaterialComponent& material) -> void;
+
+    private:
         static constexpr Size_T REQUIRED_IDS{ 4 };
         std::vector<Random::GUID::UUID> m_Guids{};
+
+        std::shared_ptr<Texture2D> m_EmptyTexturePlaceHolder{};
     };
 }
 

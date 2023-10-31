@@ -35,36 +35,95 @@
 #include "GUI/ImGuiUtils.hh"
 
 namespace Mikoto {
-    static auto MaterialComponentEditor(MaterialComponent& material) -> void {
-        // Albedo material
-        ImGui::SeparatorText("Albedo");
-        static constexpr Int32_T columnCount{ 2 };
-        static constexpr ImGuiTableFlags flags{ ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_PreciseWidths };
+    auto InspectorPanel::MaterialComponentEditor(MaterialComponent& material) -> void {
 
-        static constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
-        glm::vec4 color{ material.GetColor()};
-        if (ImGui::ColorEdit4("Color", glm::value_ptr(color), colorEditFlags)) {
-            material.SetColor(color);
+        // Standard Material ----------------
+
+        // If mesh has standard material. That one requires a diffuse map and a specular map
+        ImGui::TextUnformatted(fmt::format("{}", ICON_MD_TEXTURE).c_str());
+
+        ImGui::SameLine();
+
+        ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+        ImGui::TextUnformatted(" Albedo");
+        ImGui::PopFont();
+
+        // For now we are not loading the material textures, we have to retrieve this data from the currently selected mesh in the renderer component
+        Texture2D* texture2DAlbedo{ m_EmptyTexturePlaceHolder.get() };
+        ImGuiUtils::PushImageButton(texture2DAlbedo, ImVec2{ 128, 128 });
+
+        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+        ImGui::SameLine();
+        // Table to control albedo mix color and ambient value
+        // Table has two rows and one colum
+        constexpr auto columnIndex{ 0 };
+
+        constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_None };
+        ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+
+        if (ImGui::BeginTable("AlbedoEditContentsTable", 1, tableFlags)) {
+            // First row
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(columnIndex);
+
+            static constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
+            glm::vec4 color{ material.GetColor()};
+            if (ImGui::ColorEdit4("Color", glm::value_ptr(color), colorEditFlags)) {
+                material.SetColor(color);
+            }
+            if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+            // Second row
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(columnIndex);
+            static float mixing{};
+            ImGui::SliderFloat("Mix", std::addressof(mixing), 0.0f, 1.0f);
+            if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+            ImGui::EndTable();
         }
-        static float mixing{};
-        ImGui::SliderFloat("Mix", std::addressof(mixing), 0.0f, 1.0f);
 
-        // Specular material
-        ImGui::SeparatorText("Specular");
-        static float shininess{};
-        static glm::vec3 specular{};
-        ImGui::ColorEdit3("Channels", glm::value_ptr(specular));
-        ImGui::SliderFloat("Shininess", std::addressof(shininess), 0.0f, 1.0f);
+        ImGui::PopFont();
 
-        // Roughness material
-        ImGui::SeparatorText("Roughness");
-        static float smoothness{};
-        ImGui::SliderFloat("Smoothness", std::addressof(smoothness), 0.0f, 1.0f);
 
-        // Metallic material
-        ImGui::SeparatorText("Metalness");
-        static float reflection{};
-        ImGui::SliderFloat("Reflection", std::addressof(reflection), 0.0f, 1.0f);
+
+        // Specular component ------------------
+
+        ImGui::Spacing();
+        ImGui::TextUnformatted(fmt::format("{}", ICON_MD_TEXTURE).c_str());
+
+        ImGui::SameLine();
+
+        ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+        ImGui::TextUnformatted(" Specular");
+        ImGui::PopFont();
+        Texture2D* texture2DSpecular{ m_EmptyTexturePlaceHolder.get() };
+        ImGuiUtils::PushImageButton(texture2DSpecular, ImVec2{ 128, 128 });
+
+        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+        ImGui::SameLine();
+        // Table to control specular component
+        // Table has one row and one colum
+        constexpr auto columnCount{ 1 };
+        constexpr auto columnIndexSpecular{ 0 };
+
+        constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
+        ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+
+        if (ImGui::BeginTable("SpecularEditContentsTable", columnCount, specularTableFlags)) {
+            // First row
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(columnIndexSpecular);
+            static float strength{};
+            ImGui::SliderFloat("Strength", std::addressof(strength), 0.0f, 32.0f);
+            if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+            ImGui::EndTable();
+        }
+
+        ImGui::PopFont();
     }
 
 
@@ -128,6 +187,12 @@ namespace Mikoto {
         :   Panel{}
     {
         m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_ERROR_OUTLINE, GetInspectorPanelName());
+
+        m_EmptyTexturePlaceHolder = Texture2D::Create("../Assets/Icons/emptyTexture.png", MapType::TEXTURE_2D_DIFFUSE);
+
+        if (!m_EmptyTexturePlaceHolder) {
+            MKT_CORE_LOGGER_ERROR("Could not load empty texture placeholder for inspector channel!");
+        }
 
         for (Size_T count{}; count < REQUIRED_IDS; ++count) {
             m_Guids.emplace_back();
@@ -323,7 +388,7 @@ namespace Mikoto {
 
 
 
-    static auto DrawComponents() -> void {
+    auto InspectorPanel::DrawComponents() -> void {
         auto& currentlyActiveEntity{ SceneManager::GetCurrentlySelectedEntity() };
 
         if (!currentlyActiveEntity.IsValid()) {
@@ -353,6 +418,9 @@ namespace Mikoto {
             auto& objData{ component.GetObjectData() };
 
             ImGui::Unindent();
+
+            ImGui::Spacing();
+
             ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
             ImGui::Button(fmt::format(" {} Source ", ICON_MD_ARCHIVE).c_str());
             ImGui::PopItemFlag();
@@ -445,20 +513,25 @@ namespace Mikoto {
                 ImGui::PopStyleVar();
             }
 
-            ImGui::Indent();
-        });
 
-        DrawComponent<MaterialComponent>(fmt::format("{} Material", ICON_MD_INSIGHTS), currentlyActiveEntity, [&currentlyActiveEntity](auto& component) -> void {
-            ImGui::Unindent();
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
 
 
-            auto& renderData{ currentlyActiveEntity.GetComponent<RenderComponent>().GetObjectData() };
+            // Show mesh components (textures, ...) -------------
+
+            auto& renderData{ component.GetObjectData() };
 
 
             ImGui::Spacing();
 
 
             ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+
+
+            ImGui::TextUnformatted("Mesh list");
+            ImGui::Spacing();
 
 
             if (ImGui::BeginCombo("##MeshIndex", renderData.MeshSelectedIndex == -1 ? "No mesh selected yet" : fmt::format("mesh {}", renderData.MeshSelectedIndex).c_str())) {
@@ -491,7 +564,6 @@ namespace Mikoto {
 
 
             ImGui::Spacing();
-            ImGui::Separator();
             ImGui::Spacing();
 
             // Show the selected mesh contents
@@ -535,6 +607,9 @@ namespace Mikoto {
                 // Diffuse
                 if ( diffuseIndex != -1 ) {
                     ImGui::Spacing();
+                    ImGui::Separator();
+
+                    ImGui::Spacing();
                     ImGui::TextUnformatted(fmt::format("{} ", ICON_MD_PANORAMA).c_str());
                     ImGui::SameLine();
                     ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
@@ -544,11 +619,6 @@ namespace Mikoto {
 
                     ImGui::Spacing();
                     ImGuiUtils::PushImageButton(std::addressof(*mesh.GetTextures()[diffuseIndex]), ImVec2{ 128, 128 });
-
-
-                    ImGui::Spacing();
-                    ImGui::Separator();
-                    ImGui::Spacing();
                 }
 
                 if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
@@ -556,6 +626,9 @@ namespace Mikoto {
                 // Specular
                 if (specularIndex != -1 ) {
                     ImGui::Spacing();
+                    ImGui::Separator();
+                    ImGui::Spacing();
+
                     ImGui::TextUnformatted(fmt::format("{} ", ICON_MD_PANORAMA).c_str());
                     ImGui::SameLine();
                     ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
@@ -565,11 +638,6 @@ namespace Mikoto {
 
                     ImGui::Spacing();
                     ImGuiUtils::PushImageButton(std::addressof(*mesh.GetTextures()[specularIndex]), ImVec2{ 128, 128 });
-
-
-                    ImGui::Spacing();
-                    ImGui::Separator();
-                    ImGui::Spacing();
                 }
 
                 if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
@@ -577,6 +645,9 @@ namespace Mikoto {
                 // Emissive
                 if ( emmissiveIndex != -1 ) {
                     ImGui::Spacing();
+                    ImGui::Separator();
+                    ImGui::Spacing();
+
                     ImGui::TextUnformatted(fmt::format("{} ", ICON_MD_PANORAMA).c_str());
                     ImGui::SameLine();
                     ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
@@ -586,11 +657,6 @@ namespace Mikoto {
 
                     ImGui::Spacing();
                     ImGuiUtils::PushImageButton(std::addressof(*mesh.GetTextures()[emmissiveIndex]), ImVec2{ 128, 128 });
-
-
-                    ImGui::Spacing();
-                    ImGui::Separator();
-                    ImGui::Spacing();
                 }
 
                 if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
@@ -598,6 +664,9 @@ namespace Mikoto {
                 // Normal
                 if ( normalIndex != -1 ) {
                     ImGui::Spacing();
+                    ImGui::Separator();
+                    ImGui::Spacing();
+
                     ImGui::TextUnformatted(fmt::format("{} ", ICON_MD_PANORAMA).c_str());
                     ImGui::SameLine();
                     ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
@@ -607,20 +676,19 @@ namespace Mikoto {
 
                     ImGui::Spacing();
                     ImGuiUtils::PushImageButton(std::addressof(*mesh.GetTextures()[normalIndex]), ImVec2{ 128, 128 });
-
-
-                    ImGui::Spacing();
-                    ImGui::Separator();
-                    ImGui::Spacing();
                 }
 
                 if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
             }
 
+            ImGui::Indent();
+        });
+
+        DrawComponent<MaterialComponent>(fmt::format("{} Material", ICON_MD_INSIGHTS), currentlyActiveEntity, [&](auto& component) -> void {
+            ImGui::Unindent();
 
             MaterialComponentEditor(component);
-
 
             ImGui::Indent();
         });

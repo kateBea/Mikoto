@@ -22,17 +22,13 @@ namespace Mikoto {
 
     VulkanIndexBuffer::VulkanIndexBuffer(const std::vector<UInt32_T>& indices) {
         SetIndicesData(indices);
-
-        DeletionQueue::Push([=, this]() -> void {
-            vmaDestroyBuffer(VulkanContext::GetDefaultAllocator(), m_Buffer.Get(), m_Buffer.GetVmaAllocation());
-        });
     }
 
     auto VulkanIndexBuffer::Bind(VkCommandBuffer commandBuffer) const -> void {
         vkCmdBindIndexBuffer(commandBuffer, m_Buffer.Get(), 0, VK_INDEX_TYPE_UINT32);
     }
 
-    auto VulkanIndexBuffer::SetIndicesData(const std::vector<UInt32_T> &indices) -> void {
+    auto VulkanIndexBuffer::SetIndicesData(const std::vector<UInt32_T>& indices) -> void {
         m_Count = indices.size();
         BufferAllocateInfo allocaInfo{};
         allocaInfo.Size = m_Count * sizeof(UInt32_T);
@@ -45,8 +41,9 @@ namespace Mikoto {
 
         // Copy data to CPU readable memory
         void* data{};
-        if (vmaMapMemory(VulkanContext::GetDefaultAllocator(), m_Buffer.GetVmaAllocation(), &data) != VK_SUCCESS)
-            throw std::runtime_error("Failed to map memory for index buffer!");
+        if (vmaMapMemory(VulkanContext::GetDefaultAllocator(), m_Buffer.GetVmaAllocation(), &data) != VK_SUCCESS) {
+            MKT_THROW_RUNTIME_ERROR("Failed to map memory for index buffer!");
+        }
 
         std::memcpy(data, static_cast<const void*>(indices.data()), static_cast<Size_T>(m_Buffer.GetSize()));
         vmaUnmapMemory(VulkanContext::GetDefaultAllocator(), m_Buffer.GetVmaAllocation());

@@ -41,7 +41,7 @@ namespace Mikoto {
          * @param handle window handle required to create a valid context
          * */
         static auto Init(const std::shared_ptr<Window>& handle) -> void;
-        static auto ShutDown() -> void;
+        static auto Shutdown() -> void;
 
         static auto Present() -> void;
         static auto PrepareFrame() -> void;

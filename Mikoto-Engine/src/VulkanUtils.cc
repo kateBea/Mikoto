@@ -47,10 +47,6 @@ namespace Mikoto::VulkanUtils {
         vkBindBufferMemory(VulkanContext::GetPrimaryLogicalDevice(), buffer, bufferMemory, 0);
     }
 
-    auto CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkCommandBuffer commandBuffer) -> void {
-        //TODO:
-    }
-
     auto UploadBuffer(BufferAllocateInfo& allocatedBufferData) -> void {
         auto result { vmaCreateBuffer(VulkanContext::GetDefaultAllocator(),
                             &allocatedBufferData.BufferCreateInfo,

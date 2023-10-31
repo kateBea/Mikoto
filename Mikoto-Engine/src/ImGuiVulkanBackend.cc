@@ -21,6 +21,7 @@
 #include "Core/Application.hh"
 #include "Core/Logger.hh"
 #include "GUI/ImGuiVulkanBackend.hh"
+#include <Renderer/Vulkan/DeletionQueue.hh>
 #include "Renderer/Vulkan/VulkanContext.hh"
 
 namespace Mikoto {
@@ -59,6 +60,10 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR("Failed to create descriptor pool for ImGui!");
         }
 
+        DeletionQueue::Push([descriptorPool = m_ImGuiDescriptorPool]() -> void {
+            vkDestroyDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), descriptorPool, nullptr);
+        });
+
         ImGui_ImplVulkan_LoadFunctions(
                 [](const char *functionName, void *vulkanInstance) {
                     return vkGetInstanceProcAddr(*(reinterpret_cast<VkInstance*>(vulkanInstance)), functionName);
@@ -76,8 +81,9 @@ namespace Mikoto {
         initInfo.ImageCount = 3;
         initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
-        if (!ImGui_ImplVulkan_Init(&initInfo, VulkanContext::GetSwapChain()->GetRenderPass()/*m_ImGuiRenderPass*/))
-            throw std::runtime_error("Failed to initialize Vulkan for ImGui");
+        if (!ImGui_ImplVulkan_Init(&initInfo, VulkanContext::GetSwapChain()->GetRenderPass()/*m_ImGuiRenderPass*/)) {
+            MKT_THROW_RUNTIME_ERROR("Failed to initialize Vulkan for ImGui");
+        }
 
         // execute a gpu command to upload imgui font textures
         VulkanContext::ImmediateSubmit(ImGui_ImplVulkan_CreateFontsTexture);
@@ -91,8 +97,6 @@ namespace Mikoto {
 
     auto ImGuiVulkanBackend::Shutdown() -> void {
         VulkanUtils::WaitOnDevice(VulkanContext::GetPrimaryLogicalDevice());
-
-        vkDestroyDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), m_ImGuiDescriptorPool, nullptr);
 
         ImGui_ImplVulkan_Shutdown();
     }
@@ -114,47 +118,6 @@ namespace Mikoto {
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
-        }
-    }
-
-    auto ImGuiVulkanBackend::CreateImGuiRenderPass() -> void {
-        VkAttachmentDescription attachment{};
-        attachment.format = VulkanContext::GetSwapChain()->GetSwapChainImageFormat();
-        attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-        VkAttachmentReference colorAttachment{};
-        colorAttachment.attachment = 0;
-        colorAttachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkSubpassDescription subpass{};
-        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = 1;
-        subpass.pColorAttachments = &colorAttachment;
-
-        VkSubpassDependency dependency{};
-        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.srcAccessMask = 0;// or VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-        VkRenderPassCreateInfo info{ VulkanUtils::Initializers::RenderPassCreateInfo() };
-        info.attachmentCount = 1;
-        info.pAttachments = &attachment;
-        info.subpassCount = 1;
-        info.pSubpasses = &subpass;
-        info.dependencyCount = 1;
-        info.pDependencies = &dependency;
-
-        if (vkCreateRenderPass(VulkanContext::GetPrimaryLogicalDevice(), &info, nullptr, &m_ImGuiRenderPass) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("Failed to create render pass!");
         }
     }
 

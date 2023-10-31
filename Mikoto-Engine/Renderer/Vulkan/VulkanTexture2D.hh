@@ -34,6 +34,7 @@ namespace Mikoto {
          * @param path The path to the image file.
          * @param type The mapping type of the texture.
          * @param retainFileData Flag indicating whether to retain file data (if true) in CPU memory after loading.
+         * @throws std::runtime_error If the path is not valid.
          * */
         explicit VulkanTexture2D(const Path_T& path, MapType type, bool retainFileData = false);
 

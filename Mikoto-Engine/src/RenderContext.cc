@@ -8,6 +8,8 @@
 
 #include <Core/EventManager.hh>
 
+#include <GUI/ImGuiManager.hh>
+
 #include <Renderer/RenderContext.hh>
 #include <Renderer/OpenGL/OpenGLContext.hh>
 #include <Renderer/Vulkan/DeletionQueue.hh>
@@ -26,13 +28,29 @@ namespace Mikoto {
                 break;
         }
 
+        // Initialize rendering subsystems.
+        RendererSpec renderSpec{};
+        renderSpec.Backend = s_Spec.Backend;
+
+        // Initialize the renderer
+        Renderer::Init(std::move(renderSpec));
+
+        // Initialize the GUI manager
+        ImGuiManager::Init(s_Spec.WindowHandle);
+
         SetEventHandles();
     }
 
     auto RenderContext::Shutdown() -> void {
+        // Renderer shutdown
+        Renderer::Shutdown();
+
         switch (s_Spec.Backend) {
             case GraphicsAPI::OPENGL_API:
-                OpenGLContext::ShutDown();
+                // Imgui manager shutdown
+                ImGuiManager::Shutdown();
+
+                OpenGLContext::Shutdown();
                 break;
             case GraphicsAPI::VULKAN_API:
                 // Wait for remaining operations
@@ -41,8 +59,13 @@ namespace Mikoto {
                 // Delete remaining vulkan objects
                 DeletionQueue::Flush();
 
+                // Imgui manager shutdown. Imgui is shut down after flushing the delete queue
+                // because some descriptor sets allocated from imgui may need the device to
+                // still be alive amongst some other structures
+                ImGuiManager::Shutdown();
+
                 // Shut down the context
-                VulkanContext::ShutDown();
+                VulkanContext::Shutdown();
                 break;
         }
     }

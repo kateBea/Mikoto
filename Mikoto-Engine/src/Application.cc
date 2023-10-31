@@ -59,29 +59,19 @@ namespace Mikoto {
         // Initialize the input manager
         InputManager::Init(std::addressof(*m_MainWindow));
 
-        // Initialize rendering subsystems. To be done in the renderer layer
-        RendererSpec renderSpec{};
-        renderSpec.Backend = m_Spec.RenderingBackend;
-
         RenderContextSpec contextSpec{};
-        contextSpec.Backend = renderSpec.Backend;
+        contextSpec.Backend = m_Spec.RenderingBackend;
         contextSpec.WindowHandle = m_MainWindow;
 
         // Initialize the render context
         RenderContext::Init(std::move(contextSpec));
         RenderContext::EnableVSync();
 
-        // Initialize the renderer
-        Renderer::Init(std::move(renderSpec));
-
         // For multithreading test purposes
         TaskManager::Execute(
                 []() -> void {
                     MKT_APP_LOGGER_DEBUG("Hello there I'm another thread, press E to spawn this message again but is probably not going to be me again. We are {} workers in total", TaskManager::GetWorkersCount());
                 });
-
-        // Initialize the GUI manager
-        ImGuiManager::Init(m_MainWindow);
 
         // Initialize the scene manager
         SceneManager::Init();
@@ -138,12 +128,6 @@ namespace Mikoto {
 
         // Scene manager shutdown
         SceneManager::Shutdown();
-
-        // Imgui manager shutdown
-        ImGuiManager::Shutdown();
-
-        // Renderer shutdown
-        Renderer::Shutdown();
 
         // Renderer Context shutdown
         RenderContext::Shutdown();

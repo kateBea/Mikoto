@@ -30,6 +30,8 @@ namespace Mikoto {
             s_DeleteTasks.emplace_back(function);
         }
 
+
+
         /**
          * @brief Flushes the deletion queue, executing deletion tasks.
          *
@@ -42,6 +44,8 @@ namespace Mikoto {
             }
             s_DeleteTasks.clear();
         }
+
+
 
     private:
         static inline std::mutex                        s_PushMutex{};     /**< Mutex for synchronized deletion task addition. */

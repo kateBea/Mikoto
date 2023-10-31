@@ -6,6 +6,7 @@
 // C++ Standard Library
 #include <memory>
 #include <stdexcept>
+#include <cstdlib>
 
 // Project Headers
 #include <Core/Engine.hh>
@@ -31,7 +32,7 @@ namespace Mikoto {
         auto& application{ Application::Get() };
 
         try {
-            application.Init(std::move(appSpec));
+            application.Init( std::move(appSpec) );
 
             while (application.IsRunning()) {
                 // Update application layers
@@ -46,21 +47,22 @@ namespace Mikoto {
 
             application.Shutdown();
         }
-        catch(const std::exception& exception) {
-            MKT_COLOR_STYLE_PRINT_FORMATTED(MKT_FMT_COLOR_RED, MKT_FMT_STYLE_BOLD, "EXCEPT! Message:\n{}", exception.what());
-            return 1;
+        catch( const std::exception& exception ) {
+            MKT_COLOR_STYLE_PRINT_FORMATTED(MKT_FMT_COLOR_RED, MKT_FMT_STYLE_BOLD, "Exception! {}", exception.what());
+            return EXIT_FAILURE;
         }
         catch(...) {
-            MKT_COLOR_STYLE_PRINT_FORMATTED(MKT_FMT_COLOR_RED, MKT_FMT_STYLE_BOLD, "EXCEPT! [UNKNOWN]");
-            return 1;
+            MKT_COLOR_STYLE_PRINT_FORMATTED(MKT_FMT_COLOR_RED, MKT_FMT_STYLE_BOLD, "Unknown exception!");
+            return EXIT_FAILURE;
         }
 
-        return 0;
+        return EXIT_SUCCESS;
     }
 
     auto Engine::ParseArguments(Int32_T argc, char** argv) -> void {
         const auto limit{ std::addressof(argv[argc]) };
-        for ( ; argv < limit; ++argv)
+        for ( ; argv < limit; ++argv) {
             m_CommandLineArgs.emplace_back(*argv);
+        }
     }
 }

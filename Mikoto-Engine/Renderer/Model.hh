@@ -15,16 +15,23 @@
 #include <vector>
 
 // Third Party Libraries
-#include "assimp/Importer.hpp"
-#include "assimp/postprocess.h"
-#include "assimp/scene.h"
+#include <assimp/scene.h>
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
 
 // Project Libraries
-#include "Common/Common.hh"
-#include "Mesh.hh"
-#include "Renderer/Material/Texture2D.hh"
+#include <Common/Common.hh>
+
+#include <Renderer/Mesh.hh>
+#include <Renderer/Material/Texture2D.hh>
 
 namespace Mikoto {
+    struct ModelLoadInfo {
+        Path_T ModelPath{};
+        bool InvertedY{}; // Y down (for vulkan)
+        bool WantTextures{ true };
+    };
+
     class Model {
     public:
         explicit Model() = default;
@@ -35,7 +42,7 @@ namespace Mikoto {
          * @param wantLoadTextures tells whether we want to attempt to load this model's textures
          * @throws std::runtime_error if the file does not exist or the path is invalid
          * */
-        explicit Model(const Path_T& path, bool wantLoadTextures = true);
+        explicit Model(const ModelLoadInfo& info);
 
         /**
          * Returns the list of meshes from this model
@@ -109,7 +116,7 @@ namespace Mikoto {
          * @param wantLoadTextures tells whether we want to attempt to load this model's textures
          * @returns mesh containing the retrieved data
          * */
-        static auto ProcessMesh(aiMesh *node, const aiScene *scene, const Path_T &modelDirectory, bool wantLoadTextures) -> Mesh;
+        auto ProcessMesh(aiMesh *node, const aiScene *scene, const Path_T &modelDirectory, bool wantLoadTextures) -> Mesh;
 
         /**
          * Retrieves texture materials from the given aiMaterial
@@ -128,6 +135,8 @@ namespace Mikoto {
 
         UInt64_T m_TotalVertices{};
         UInt64_T m_TotalIndices{};
+
+        bool m_InvertedY{}; // Y points Down (suits vulkan coordinate system)
     };
 }
 

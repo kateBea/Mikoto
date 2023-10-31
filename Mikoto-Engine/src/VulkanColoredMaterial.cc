@@ -23,11 +23,6 @@ namespace Mikoto {
         CreateUniformBuffer();
         CreateDescriptorPool();
         CreateDescriptorSet();
-
-        DeletionQueue::Push([=, this]() -> void {
-            vkDestroyDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), m_DescriptorPool, nullptr);
-            vmaUnmapMemory(VulkanContext::GetDefaultAllocator(), m_UniformBuffer.GetVmaAllocation());
-        });
     }
 
     auto VulkanColoredMaterial::BindDescriptorSet(const VkCommandBuffer& commandBuffer, const VkPipelineLayout& pipelineLayout) -> void {
@@ -38,11 +33,12 @@ namespace Mikoto {
         BufferAllocateInfo allocInfo{};
         allocInfo.Size = m_UniformDataStructureSize;
 
-        allocInfo.BufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        allocInfo.BufferCreateInfo = VulkanUtils::Initializers::BufferCreateInfo();
         allocInfo.BufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         allocInfo.BufferCreateInfo.size = allocInfo.Size;
 
         allocInfo.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+        allocInfo.IsMapped = true;
 
         m_UniformBuffer.OnCreate(allocInfo);
 
@@ -69,6 +65,10 @@ namespace Mikoto {
         if (vkCreateDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), &poolInfo, nullptr, &m_DescriptorPool) != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("Failed to create descriptor pool!");
         }
+
+        DeletionQueue::Push([descPool = m_DescriptorPool]() -> void {
+            vkDestroyDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), descPool, nullptr);
+        });
     }
 
     auto VulkanColoredMaterial::CreateDescriptorSet() -> void {
@@ -99,6 +99,14 @@ namespace Mikoto {
         descriptorWrites[0].pBufferInfo = &bufferInfo;
 
         vkUpdateDescriptorSets(VulkanContext::GetPrimaryLogicalDevice(), static_cast<UInt32_T>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+
+        DeletionQueue::Push([descPool = m_DescriptorPool, descSet = m_DescriptorSet]() -> void {
+            // The descriptor pool is pushed before to the deleting queue
+            // because it must be freed after the descriptor set. The deleting queue
+            // runs the deletors in reversed order, newer objects get deleted first
+            std::array<VkDescriptorSet, 1> descSets{ descSet };
+            vkFreeDescriptorSets(VulkanContext::GetPrimaryLogicalDevice(), descPool, static_cast<UInt32_T>(descSets.size()), descSets.data());
+        });
     }
 
     auto VulkanColoredMaterial::SetTransform(const glm::mat4&transform) -> void {

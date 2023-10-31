@@ -56,7 +56,7 @@ namespace Mikoto::OpenGLContext {
         s_VSync = false;
     }
 
-    auto ShutDown() -> void {
+    auto Shutdown() -> void {
 
     }
 

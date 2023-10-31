@@ -24,8 +24,8 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR("Failed to create command pool!");
         }
 
-        DeletionQueue::Push([=, this]() -> void {
-            vkDestroyCommandPool(VulkanContext::GetPrimaryLogicalDevice(), m_CommandPool, nullptr);
+        DeletionQueue::Push([cmdPool = m_CommandPool]() -> void {
+            vkDestroyCommandPool(VulkanContext::GetPrimaryLogicalDevice(), cmdPool, nullptr);
         });
     }
 }

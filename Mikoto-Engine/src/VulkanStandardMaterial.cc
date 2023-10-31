@@ -34,11 +34,6 @@ namespace Mikoto {
         CreateUniformBuffer();
         CreateDescriptorPool();
         CreateDescriptorSet();
-
-        DeletionQueue::Push([=, this]() -> void {
-            vkDestroyDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), m_DescriptorPool, nullptr);
-            vmaUnmapMemory(VulkanContext::GetDefaultAllocator(), m_UniformBuffer.GetVmaAllocation());
-        });
     }
 
     auto VulkanStandardMaterial::BindDescriptorSet(const VkCommandBuffer& commandBuffer, const VkPipelineLayout& pipelineLayout) -> void {
@@ -54,6 +49,7 @@ namespace Mikoto {
         allocInfo.BufferCreateInfo.size = allocInfo.Size;
 
         allocInfo.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+        allocInfo.IsMapped = true;
 
         m_UniformBuffer.OnCreate(allocInfo);
 
@@ -83,6 +79,10 @@ namespace Mikoto {
         if (vkCreateDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), &poolInfo, nullptr, &m_DescriptorPool) != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("Failed to create descriptor pool!");
         }
+
+        DeletionQueue::Push([descPool = m_DescriptorPool]() -> void {
+            vkDestroyDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), descPool, nullptr);
+        });
     }
 
     auto VulkanStandardMaterial::CreateDescriptorSet() -> void {
@@ -97,6 +97,11 @@ namespace Mikoto {
         if (vkAllocateDescriptorSets(VulkanContext::GetPrimaryLogicalDevice(), &allocInfo, &m_DescriptorSet) != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("failed to allocate descriptor sets!");
         }
+
+        DeletionQueue::Push([descPool = m_DescriptorPool, descSet = m_DescriptorSet]() -> void {
+            std::array<VkDescriptorSet, 1> descSets{ descSet };
+            vkFreeDescriptorSets(VulkanContext::GetPrimaryLogicalDevice(), descPool, static_cast<UInt32_T>(descSets.size()), descSets.data());
+        });
 
         UpdateDescriptorSets();
     }

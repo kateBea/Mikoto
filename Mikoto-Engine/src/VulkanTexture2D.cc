@@ -60,6 +60,7 @@ namespace Mikoto {
         poolSizes[0].descriptorCount = 1;
 
         VkDescriptorPoolCreateInfo poolInfo{ VulkanUtils::Initializers::DescriptorPoolCreateInfo() };
+        poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
         poolInfo.poolSizeCount = static_cast<UInt32_T>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
         poolInfo.maxSets = 4000; // TODO: WILL FAIL IF TRY TO ALLOCATE MORE
@@ -67,6 +68,10 @@ namespace Mikoto {
         if (vkCreateDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), std::addressof(poolInfo), nullptr, std::addressof(s_DescriptorPool)) != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("Failed to create descriptor pool for Texture2D!");
         }
+
+        DeletionQueue::Push([descPool = s_DescriptorPool]() -> void {
+            vkDestroyDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), descPool, nullptr);
+        });
     }
 
     auto VulkanTexture2D::CreateDescriptorSet() -> void {

@@ -73,6 +73,7 @@ namespace Mikoto {
         AddIconFont(iconFontSize, (fontPath + FONT_ICON_FILE_NAME_FAR), iconRanges1);
 
         // Font 4
+        // See https://react-icons.github.io/react-icons/icons?name=md for icon previews
         static const std::array<ImWchar, 3> iconRanges2{ ICON_MIN_MD, ICON_MAX_16_MD, 0 };
         AddIconFont(iconFontSize, (fontPath + FONT_ICON_FILE_NAME_MD), iconRanges2);
 

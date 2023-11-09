@@ -30,11 +30,17 @@ namespace Mikoto {
         auto DrawComponents() -> void;
         auto MaterialComponentEditor(MaterialComponent& material) -> void;
 
+        auto OpenMaterialEditor() -> void;
+
     private:
         static constexpr Size_T REQUIRED_IDS{ 4 };
         std::vector<Random::GUID::UUID> m_Guids{};
 
+        bool m_OpenMaterialEditor{};
+        std::shared_ptr<Material> m_TargetMaterialForMaterialEditor{ nullptr };
+
         std::shared_ptr<Texture2D> m_EmptyTexturePlaceHolder{};
+        std::shared_ptr<Texture2D> m_EmptyMaterialPreviewPlaceHolder{};
     };
 }
 

@@ -32,8 +32,7 @@ set(CORE_SOURCES
         Mikoto-Runtime/src/GameLayer.cc
         Mikoto-Runtime/GameLayer.hh
         Mikoto-Engine/src/AssetsManager.cc
-        Mikoto-Engine/src/VulkanWireframeMaterial.cc
-        Mikoto-Engine/src/VulkanColoredMaterial.cc)
+)
 
 set(PLATFORM_SOURCES
         Mikoto-Engine/src/Application.cc
@@ -73,7 +72,8 @@ set(RENDERER_SOURCES
         Mikoto-Engine/src/VulkanSwapChain.cc Mikoto-Engine/src/RenderContext.cc Mikoto-Engine/src/OpenGLDefaultMaterial.cc
         Mikoto-Engine/src/VulkanImage.cc
         Mikoto-Engine/src/VulkanImage.cc
-        Mikoto-Engine/src/VulkanBuffer.cc)
+        Mikoto-Engine/src/VulkanBuffer.cc
+        Mikoto-Engine/src/DescriptorManager.cc)
 
 set(IMGUI_SOURCES
         Third-Party/imgui/imgui.cpp

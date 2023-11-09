@@ -31,8 +31,8 @@ namespace Mikoto {
         MKT_NODISCARD auto GetViewCreateInfo() const -> const VkImageViewCreateInfo& { return m_ImageViewCreateInfo; }
 
     private:
-        ImageAllocateInfo m_AllocInfo{};
         VkImageView m_ImageView{};
+        ImageAllocateInfo m_AllocInfo{};
         VkImageViewCreateInfo m_ImageViewCreateInfo{};
     };
 }

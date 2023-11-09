@@ -34,10 +34,6 @@ namespace Mikoto {
         return *newScenePtr;
     }
 
-    auto SceneManager::IsSceneValidEntity(const Scene& scene, const Entity& entity) -> bool {
-        return entity.BelongsTo(scene);
-    }
-
     auto SceneManager::IsEntitySelected() -> bool {
         return s_CurrentlySelectedEntity.IsValid();
     }

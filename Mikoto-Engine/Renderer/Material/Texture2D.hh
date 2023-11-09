@@ -24,12 +24,21 @@ namespace Mikoto {
         TEXTURE_2D_COUNT,
     };
 
+    enum class TextureFileType {
+        UNKNOWN_IMAGER_TYPE,
+        PNG_IMAGE_TYPE,
+        JPEG_IMAGE_TYPE,
+        JPG_IMAGE_TYPE,
+    };
+
     class Texture2D {
     public:
         MKT_NODISCARD auto GetChannels() const -> Int32_T { return m_Channels; }
         MKT_NODISCARD auto GetWidth() const -> Int32_T  { return m_Width; }
         MKT_NODISCARD auto GetHeight() const -> Int32_T { return m_Height; }
         MKT_NODISCARD auto GetType() const -> MapType { return m_Type; }
+        MKT_NODISCARD auto GetFileType() const -> TextureFileType { return m_FileType; }
+        MKT_NODISCARD auto GetSize() const -> double { return m_Size; }
 
         MKT_NODISCARD virtual auto GetImGuiTextureHandle() const -> std::any = 0;
 
@@ -42,7 +51,14 @@ namespace Mikoto {
          * */
         static auto Create(const Path_T& path, MapType type) -> std::shared_ptr<Texture2D>;
 
-
+        static constexpr auto GetFileTypeStr(TextureFileType type) -> std::string_view {
+            switch ( type ) {
+                case TextureFileType::UNKNOWN_IMAGER_TYPE:  return "Unknown";
+                case TextureFileType::PNG_IMAGE_TYPE:       return "PNG Image";
+                case TextureFileType::JPEG_IMAGE_TYPE:      return "JPEG Image";
+                case TextureFileType::JPG_IMAGE_TYPE:       return "JPG Image";
+            }
+        }
         virtual ~Texture2D() = default;
     protected:
         explicit Texture2D(MapType map)
@@ -62,6 +78,10 @@ namespace Mikoto {
         Int32_T m_Height{};
         Int32_T m_Channels{};
         MapType m_Type{};
+
+        double m_Size{}; // in MB
+
+        TextureFileType m_FileType{ TextureFileType::UNKNOWN_IMAGER_TYPE };
     };
 }
 

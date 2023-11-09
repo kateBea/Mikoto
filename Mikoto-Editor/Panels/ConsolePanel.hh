@@ -5,9 +5,9 @@
 #ifndef MIKOTO_CONSOLE_PANEL_HH
 #define MIKOTO_CONSOLE_PANEL_HH
 
-#include "imgui.h"
+#include <imgui.h>
 
-#include "Panel.hh"
+#include <Panel.hh>
 
 namespace Mikoto {
     class ConsolePanel : public Panel {

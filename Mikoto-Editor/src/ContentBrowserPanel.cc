@@ -347,7 +347,9 @@ namespace Mikoto {
                 }
 
                 ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-                ImGui::ImageButton(icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+                if (ImGui::ImageButton(icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 })) {
+
+                }
 
                 if (ImGui::IsItemHovered()) {
                     ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);

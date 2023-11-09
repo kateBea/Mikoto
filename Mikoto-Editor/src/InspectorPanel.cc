@@ -9,121 +9,392 @@
 #include <algorithm>
 
 // Third-Party Libraries
-#include "imgui.h"
-#include "imgui_internal.h"
-#include "glm/gtc/type_ptr.hpp"
+#include <imgui.h>
+#include <imgui_internal.h>
+#include <glm/gtc/type_ptr.hpp>
 
 // Project Headers
-#include "Common/StringUtils.hh"
-#include "Common/Types.hh"
-
-#include <Assets/AssetsManager.hh>
+#include <Common/Types.hh>
+#include <Common/Common.hh>
+#include <Common/StringUtils.hh>
 
 #include <Core/Serializer.hh>
 
-#include "Scene/Component.hh"
-#include "Scene/SceneManager.hh"
+#include <Assets/AssetsManager.hh>
 
-#include "Panels/InspectorPanel.hh"
+#include <Renderer/Renderer.hh>
+#include <Renderer/Vulkan/VulkanStandardMaterial.hh>
 
-#include "Renderer/Renderer.hh"
+#include <Scene/Entity.hh>
+#include <Scene/Component.hh>
+#include <Scene/SceneManager.hh>
 
-#include "GUI/IconsFontAwesome5.h"
-#include "GUI/IconsMaterialDesign.h"
-#include "GUI/IconsMaterialDesignIcons.h"
-#include "GUI/ImGuiManager.hh"
-#include "GUI/ImGuiUtils.hh"
+#include <Panels/InspectorPanel.hh>
+
+#include <GUI/ImGuiUtils.hh>
+#include <GUI/ImGuiManager.hh>
+#include <GUI/IconsMaterialDesign.h>
 
 namespace Mikoto {
-    auto InspectorPanel::MaterialComponentEditor(MaterialComponent& material) -> void {
+    static auto GetDiffuseMapFromStandardMaterial(Material& mat) -> Texture2D* {
+        switch (Renderer::GetActiveGraphicsAPI()) {
+            case GraphicsAPI::OPENGL_API: return nullptr;
+            case GraphicsAPI::VULKAN_API: return static_cast<VulkanStandardMaterial*>(std::addressof(mat))->GetDiffuseMap().get();
+        }
+    }
 
-        // Standard Material ----------------
+    template<LightType, typename UIFunc>
+    static auto DrawLightTypeOptions(UIFunc&& func, LightComponent& lightComponent) -> void {
+        func(lightComponent);
+    }
 
-        // If mesh has standard material. That one requires a diffuse map and a specular map
-        ImGui::TextUnformatted(fmt::format("{}", ICON_MD_TEXTURE).c_str());
+    auto InspectorPanel::OpenMaterialEditor() -> void {
+        // Sanity check:
+        // You only open this window if you have a material
+        // since it is the only way to click on the button to edit one
+        if (!m_TargetMaterialForMaterialEditor || !m_OpenMaterialEditor) {
+            return;
+        }
 
-        ImGui::SameLine();
+        ImGui::Begin(fmt::format("{} Material editor", ICON_MD_EDIT_SQUARE).c_str(), std::addressof(m_OpenMaterialEditor));
 
-        ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
-        ImGui::TextUnformatted(" Albedo");
-        ImGui::PopFont();
+        if (m_TargetMaterialForMaterialEditor->GetType() == Material::Type::MATERIAL_TYPE_STANDARD) {
+            // Standard Material ----------------
 
-        // For now we are not loading the material textures, we have to retrieve this data from the currently selected mesh in the renderer component
-        Texture2D* texture2DAlbedo{ m_EmptyTexturePlaceHolder.get() };
-        ImGuiUtils::PushImageButton(texture2DAlbedo, ImVec2{ 128, 128 });
+            // If mesh has standard material. That one requires a diffuse map and a specular map
+            ImGui::TextUnformatted(fmt::format("{}", ICON_MD_TEXTURE).c_str());
 
-        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+            ImGui::SameLine();
 
-        ImGui::SameLine();
-        // Table to control albedo mix color and ambient value
-        // Table has two rows and one colum
-        constexpr auto columnIndex{ 0 };
+            ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+            ImGui::TextUnformatted(" Albedo");
+            ImGui::PopFont();
 
-        constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_None };
-        ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+            // For now, we are not loading the material textures, we have to retrieve this data from the currently selected mesh in the renderer component
+            Texture2D* texture2DAlbedo{ GetDiffuseMapFromStandardMaterial(*m_TargetMaterialForMaterialEditor) };
+            ImGuiUtils::PushImageButton(texture2DAlbedo, ImVec2{ 128, 128 });
 
-        if (ImGui::BeginTable("AlbedoEditContentsTable", 1, tableFlags)) {
-            // First row
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(columnIndex);
+            if (ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
+                ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
 
-            static constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
-            glm::vec4 color{ material.GetColor()};
-            if (ImGui::ColorEdit4("Color", glm::value_ptr(color), colorEditFlags)) {
-                material.SetColor(color);
+                ImGuiUtils::PushImageButton(texture2DAlbedo, ImVec2{ 256, 256 });
+
+                ImGui::SameLine();
+
+                // Table showings texture properties
+                constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
+
+                if (ImGui::BeginTable("MaterialEditorDiffusePropertiesTable", 2, tableFlags)) {
+                    // First row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Dimensions");
+
+                    // First row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    UInt32_T width{ static_cast<UInt32_T>(texture2DAlbedo->GetWidth()) };
+                    UInt32_T height{ static_cast<UInt32_T>(texture2DAlbedo->GetHeight()) };
+                    ImGui::TextUnformatted(fmt::format("{} x {}", width, height).c_str());
+
+                    // Second row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Type");
+
+                    // Second row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::TextUnformatted(Texture2D::GetFileTypeStr(texture2DAlbedo->GetFileType()).data());
+
+                    // Third row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("File size");
+
+                    // Third row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::TextUnformatted(fmt::format("{:.2f} MB", texture2DAlbedo->GetSize()).c_str());
+
+                    ImGui::EndTable();
+                }
+
+                ImGui::PopFont();
+                ImGui::EndTooltip();
             }
+
             if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
-            // Second row
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(columnIndex);
-            static float mixing{};
-            ImGui::SliderFloat("Mix", std::addressof(mixing), 0.0f, 1.0f);
+            ImGui::SameLine();
+            // Table to control albedo mix color and ambient value
+            // Table has two rows and one colum
+            constexpr auto columnIndex{ 0 };
+
+            constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_None };
+            ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+
+            if (ImGui::BeginTable("AlbedoEditContentsTable", 1, tableFlags)) {
+                // First row
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(columnIndex);
+
+                static constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
+                static glm::vec4 color{};
+                if (ImGui::ColorEdit4("Color", glm::value_ptr(color), colorEditFlags)) { }
+                if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                // Second row
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(columnIndex);
+                static float mixing{};
+                ImGui::SliderFloat("Mix", std::addressof(mixing), 0.0f, 1.0f);
+                if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                ImGui::EndTable();
+            }
+
+            ImGui::PopFont();
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            // Specular component ------------------
+
+            ImGui::Spacing();
+            ImGui::TextUnformatted(fmt::format("{}", ICON_MD_TEXTURE).c_str());
+
+            ImGui::SameLine();
+
+            ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+            ImGui::TextUnformatted(" Specular");
+            ImGui::PopFont();
+            Texture2D* texture2DSpecular{ m_EmptyTexturePlaceHolder.get() };
+            ImGuiUtils::PushImageButton(texture2DSpecular, ImVec2{ 128, 128 });
+
             if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
-            ImGui::EndTable();
+            ImGui::SameLine();
+            // Table to control specular component
+            // Table has one row and one colum
+            constexpr auto columnCount{ 1 };
+            constexpr auto columnIndexSpecular{ 0 };
+
+            constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
+            ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+
+            if (ImGui::BeginTable("SpecularEditContentsTable", columnCount, specularTableFlags)) {
+                // First row
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(columnIndexSpecular);
+                static float strength{};
+                ImGui::SliderFloat("Strength", std::addressof(strength), 0.0f, 32.0f);
+                if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                ImGui::EndTable();
+            }
+
+            ImGui::PopFont();
         }
 
-        ImGui::PopFont();
+        ImGui::End();
+    }
 
+    auto InspectorPanel::MaterialComponentEditor(MaterialComponent& material) -> void {
+        constexpr ImGuiTableFlags matTableFlags{ ImGuiTableFlags_None };
 
+        for (auto& mat : material.GetMaterialList()) {
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
 
-        // Specular component ------------------
+            ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
 
-        ImGui::Spacing();
-        ImGui::TextUnformatted(fmt::format("{}", ICON_MD_TEXTURE).c_str());
+            ImGui::TextUnformatted("Material type: ");
 
-        ImGui::SameLine();
+            ImGui::SameLine();
 
-        ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
-        ImGui::TextUnformatted(" Specular");
-        ImGui::PopFont();
-        Texture2D* texture2DSpecular{ m_EmptyTexturePlaceHolder.get() };
-        ImGuiUtils::PushImageButton(texture2DSpecular, ImVec2{ 128, 128 });
+            ImGui::TextUnformatted(fmt::format("{}", Material::GetTypeStr(mat->GetType())).c_str());
 
-        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+            static char matName[1024]{};
+            ImGui::InputText("##MeshName", matName, std::size(matName));
 
-        ImGui::SameLine();
-        // Table to control specular component
-        // Table has one row and one colum
-        constexpr auto columnCount{ 1 };
-        constexpr auto columnIndexSpecular{ 0 };
+            ImGui::PopFont();
 
-        constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
-        ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+            ImGui::Spacing();
 
-        if (ImGui::BeginTable("SpecularEditContentsTable", columnCount, specularTableFlags)) {
-            // First row
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(columnIndexSpecular);
-            static float strength{};
-            ImGui::SliderFloat("Strength", std::addressof(strength), 0.0f, 32.0f);
-            if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+            // Display info for standard material
+            if (mat->GetType() == Material::Type::MATERIAL_TYPE_STANDARD) {
+                // Standard Material ----------------
 
-            ImGui::EndTable();
+                // If mesh has standard material. That one requires a diffuse map and a specular map
+                ImGui::TextUnformatted(fmt::format("{}", ICON_MD_TEXTURE).c_str());
+
+                ImGui::SameLine();
+
+                ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+                ImGui::TextUnformatted(" Albedo");
+                ImGui::PopFont();
+
+                // For now, we are not loading the material textures, we have to retrieve this data from the currently selected mesh in the renderer component
+                Texture2D* texture2DAlbedo{ GetDiffuseMapFromStandardMaterial(*mat) };
+                ImGuiUtils::PushImageButton(texture2DAlbedo, ImVec2{ 128, 128 });
+
+                if (ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
+                    ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+
+                    ImGuiUtils::PushImageButton(texture2DAlbedo, ImVec2{ 256, 256 });
+
+                    ImGui::SameLine();
+
+                    // Table showings texture properties
+                    constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
+
+                    if (ImGui::BeginTable("MaterialEditorDiffusePropertiesTable", 2, tableFlags)) {
+                        // First row - first colum
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::TextUnformatted("Dimensions");
+
+                        // First row - second colum
+                        ImGui::TableSetColumnIndex(1);
+                        UInt32_T width{ static_cast<UInt32_T>(texture2DAlbedo->GetWidth()) };
+                        UInt32_T height{ static_cast<UInt32_T>(texture2DAlbedo->GetHeight()) };
+                        ImGui::TextUnformatted(fmt::format("{} x {}", width, height).c_str());
+
+                        // Second row - first colum
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::TextUnformatted("Type");
+
+                        // Second row - second colum
+                        ImGui::TableSetColumnIndex(1);
+                        ImGui::TextUnformatted(Texture2D::GetFileTypeStr(texture2DAlbedo->GetFileType()).data());
+
+                        // Third row - first colum
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::TextUnformatted("File size");
+
+                        // Third row - second colum
+                        ImGui::TableSetColumnIndex(1);
+                        ImGui::TextUnformatted(fmt::format("{:.2f} MB", texture2DAlbedo->GetSize()).c_str());
+
+                        ImGui::EndTable();
+                    }
+
+                    ImGui::PopFont();
+                    ImGui::EndTooltip();
+                }
+
+                if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                ImGui::SameLine();
+                // Table to control albedo mix color and ambient value
+                // Table has two rows and one colum
+                constexpr auto columnIndex{ 0 };
+
+                constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_None };
+                ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+
+                if (ImGui::BeginTable("AlbedoEditContentsTable", 1, tableFlags)) {
+                    // First row
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(columnIndex);
+
+                    static constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
+                    glm::vec4 color{ material.GetColor() };
+                    if (ImGui::ColorEdit4("Color", glm::value_ptr(color), colorEditFlags)) {
+                        material.SetColor(color);
+                    }
+
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                    // Second row
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(columnIndex);
+                    static float mixing{};
+                    ImGui::SliderFloat("Mix", std::addressof(mixing), 0.0f, 1.0f);
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                    ImGui::EndTable();
+                }
+
+                ImGui::PopFont();
+
+                ImGui::Spacing();
+                ImGui::Separator();
+                ImGui::Spacing();
+
+                // Specular component ------------------
+
+                ImGui::Spacing();
+                ImGui::TextUnformatted(fmt::format("{}", ICON_MD_TEXTURE).c_str());
+
+                ImGui::SameLine();
+
+                ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+                ImGui::TextUnformatted(" Specular");
+                ImGui::PopFont();
+                Texture2D* texture2DSpecular{ m_EmptyTexturePlaceHolder.get() };
+                ImGuiUtils::PushImageButton(texture2DSpecular, ImVec2{ 128, 128 });
+
+                if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                ImGui::SameLine();
+                // Table to control specular component
+                // Table has one row and one colum
+                constexpr auto columnCount{ 1 };
+                constexpr auto columnIndexSpecular{ 0 };
+
+                constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
+                ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+
+                if (ImGui::BeginTable("SpecularEditContentsTable", columnCount, specularTableFlags)) {
+                    // First row
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(columnIndexSpecular);
+                    static float strength{};
+                    ImGui::SliderFloat("Strength", std::addressof(strength), 0.0f, 32.0f);
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                    ImGui::EndTable();
+                }
+
+                ImGui::PopFont();
+            }
+
+            // Table to display a single material
+            // Table has two rows and one colum
+            constexpr auto columnIndex{ 0 };
+            if (ImGui::BeginTable("AlbedoEditContentsTable", 1, matTableFlags)) {
+                // First row
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(columnIndex);
+                ImGui::Spacing();
+                if (ImGui::Button(fmt::format("{} Edit material", ICON_MD_EDIT_ATTRIBUTES).c_str())) {
+                    m_TargetMaterialForMaterialEditor = mat;
+                    m_OpenMaterialEditor = true;
+                }
+
+                if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                // Second row
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(columnIndex);
+                // TODO: handle properly
+                static bool useMaterial{ true };
+                ImGui::Checkbox("##UseMaterial", std::addressof(useMaterial));
+                if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                ImGui::SameLine();
+                ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+                ImGui::TextUnformatted("Apply material");
+                ImGui::PopFont();
+
+                ImGui::EndTable();
+            }
         }
 
-        ImGui::PopFont();
+        OpenMaterialEditor();
     }
 
 
@@ -158,14 +429,30 @@ namespace Mikoto {
                     entity.AddComponent<RenderComponent>();
 
                     // TODO: Temporary, required to filter renderables, see Scene update
-                    entity.AddComponent<MaterialComponent>();
-                    auto& materialData{ entity.GetComponent<MaterialComponent>() };
+                    if (!entity.HasComponent<MaterialComponent>()) {
+                        entity.AddComponent<MaterialComponent>();
+                    }
 
                     ImGui::CloseCurrentPopup();
                 }
 
                 if (ImGui::MenuItem("Camera", menuItemShortcut, menuItemSelected, !entity.HasComponent<CameraComponent>())) {
                     entity.AddComponent<CameraComponent>(std::make_shared<SceneCamera>());
+                    ImGui::CloseCurrentPopup();
+                }
+
+                if (ImGui::MenuItem("Lighting", menuItemShortcut, menuItemSelected, !entity.HasComponent<LightComponent>())) {
+                    entity.AddComponent<LightComponent>();
+                    ImGui::CloseCurrentPopup();
+                }
+
+                if (ImGui::MenuItem("Physics", menuItemShortcut, menuItemSelected, !entity.HasComponent<PhysicsComponent>())) {
+                    entity.AddComponent<PhysicsComponent>();
+                    ImGui::CloseCurrentPopup();
+                }
+
+                if (ImGui::MenuItem("Audio", menuItemShortcut, menuItemSelected, !entity.HasComponent<AudioComponent>())) {
+                    entity.AddComponent<AudioComponent>();
                     ImGui::CloseCurrentPopup();
                 }
 
@@ -192,6 +479,12 @@ namespace Mikoto {
 
         if (!m_EmptyTexturePlaceHolder) {
             MKT_CORE_LOGGER_ERROR("Could not load empty texture placeholder for inspector channel!");
+        }
+
+        m_EmptyMaterialPreviewPlaceHolder = Texture2D::Create("../Assets/Icons/PngItem_1004186.png", MapType::TEXTURE_2D_DIFFUSE);
+
+        if (!m_EmptyMaterialPreviewPlaceHolder) {
+            MKT_CORE_LOGGER_ERROR("Could not load empty material texture placeholder for inspector channel!");
         }
 
         for (Size_T count{}; count < REQUIRED_IDS; ++count) {
@@ -289,7 +582,7 @@ namespace Mikoto {
 
 
     template<typename ComponentType, typename UIFunction>
-    static auto DrawComponent(std::string_view componentLabel, Entity& entity, UIFunction uiFunc, bool hasRemoveButton = true) {
+    static auto DrawComponent(std::string_view componentLabel, Entity& entity, UIFunction&& uiFunc, bool hasRemoveButton = true) {
         static constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
                                          ImGuiTreeNodeFlags_AllowItemOverlap |
                                          ImGuiTreeNodeFlags_Framed |
@@ -333,6 +626,7 @@ namespace Mikoto {
 
             if (componentNodeOpen) {
                 ComponentType& component{ entity.GetComponent<ComponentType>() };
+
                 uiFunc(component);
 
                 ImGui::TreePop();
@@ -461,7 +755,6 @@ namespace Mikoto {
                 if (!path.empty()) {
                     const Path_T modelPath{ path };
 
-                    // Load the model
                     ModelLoadInfo modelLoadInfo{};
                     modelLoadInfo.ModelPath = modelPath;
                     modelLoadInfo.InvertedY = Renderer::GetActiveGraphicsAPI() == GraphicsAPI::VULKAN_API;
@@ -479,26 +772,27 @@ namespace Mikoto {
                     // Add a material for each one of the meshes of this model
                     auto modelPtr{ AssetsManager::GetModel(modelPath) };
 
-                    for (auto& mesh : modelPtr->GetMeshes()) {
+                    for ( auto& mesh: modelPtr->GetMeshes() ) {
                         // Emplace mesh metadata, mesh and material
                         MeshMetaData meshMetaData{};
-                        meshMetaData.ModelMesh = std::addressof(mesh);
+                        meshMetaData.ModelMesh = std::addressof( mesh );
 
-                        auto it{ std::find_if(mesh.GetTextures().begin(), mesh.GetTextures().end(),
-                                              [](const std::shared_ptr<Texture2D> &texture) -> bool { return texture->GetType() == MapType::TEXTURE_2D_DIFFUSE; }) };
-
-                        if (it != mesh.GetTextures().end()) {
-                            // If this mesh has got a diffuse map, we can use it with the standard material,
-                            // otherwise we have to apply a base material which only allows to change base aspects like the color
+                        // Diffuse map and specular map
+                        {
                             DefaultMaterialCreateSpec spec{};
-                            spec.DiffuseMap = it != mesh.GetTextures().end() ? *it : nullptr;
+                            for ( auto textureIt{ mesh.GetTextures().begin() }; textureIt != mesh.GetTextures().end(); ++textureIt ) {
+                                // we assume there is only one specular and one diffuse
+                                if ( ( *textureIt )->GetType() == MapType::TEXTURE_2D_DIFFUSE ) {
+                                    spec.DiffuseMap = *textureIt;
+                                }
 
-                            meshMetaData.MeshMaterial = Material::CreateStandardMaterial(spec);
-                            component.GetObjectData().MeshMeta.push_back(std::move(meshMetaData));
-                        } else {
-                            // Apply base material
-                            meshMetaData.MeshMaterial = Material::CreateColoredMaterial();
-                            component.GetObjectData().MeshMeta.push_back(std::move(meshMetaData));
+                                if ( ( *textureIt )->GetType() == MapType::TEXTURE_2D_SPECULAR ) {
+                                    spec.SpecularMap = *textureIt;
+                                }
+                            }
+
+                            meshMetaData.MeshMaterial = Material::CreateStandardMaterial( spec );
+                            component.GetObjectData().MeshMeta.push_back( std::move( meshMetaData ) );
                         }
                     }
                 }
@@ -531,10 +825,10 @@ namespace Mikoto {
 
 
             ImGui::TextUnformatted("Mesh list");
-            ImGui::Spacing();
 
+            ImGui::SameLine();
 
-            if (ImGui::BeginCombo("##MeshIndex", renderData.MeshSelectedIndex == -1 ? "No mesh selected yet" : fmt::format("mesh {}", renderData.MeshSelectedIndex).c_str())) {
+            if (ImGui::BeginCombo("##MeshIndex", renderData.MeshSelectedIndex == SceneObjectData::NO_MESH_SELECTED_INDEX ? "No mesh selected yet" : fmt::format("mesh {}", renderData.MeshSelectedIndex).c_str())) {
 
                 // Every object that can be rendered is made out of meshes.
                 // Each mesh has its own material and list of textures.
@@ -567,7 +861,7 @@ namespace Mikoto {
             ImGui::Spacing();
 
             // Show the selected mesh contents
-            if ( renderData.MeshSelectedIndex != -1 ) {
+            if ( renderData.MeshSelectedIndex != SceneObjectData::NO_MESH_SELECTED_INDEX ) {
 
                 // Assumes we have one type of each map for a single mesh! A mesh cannot have more than one diffuse map, for example.
                 Int32_T diffuseIndex{ -1 }, specularIndex{ -1 }, emmissiveIndex{ -1 }, normalIndex{ -1 };
@@ -688,6 +982,22 @@ namespace Mikoto {
         DrawComponent<MaterialComponent>(fmt::format("{} Material", ICON_MD_INSIGHTS), currentlyActiveEntity, [&](auto& component) -> void {
             ImGui::Unindent();
 
+            // If the currently selected mesh has a material,
+            // we update the one in the material display
+            if (currentlyActiveEntity.HasComponent<RenderComponent>()) {
+                auto& renderData{ currentlyActiveEntity.GetComponent<RenderComponent>() };
+
+                // we only want to add the selected mesh materials once
+                const bool wantPushMats{ component.GetMaterialList().empty() };
+
+                // Add the materials to the list of materials, so they can be visualized and edited
+                if ((renderData.GetObjectData().MeshSelectedIndex != SceneObjectData::NO_MESH_SELECTED_INDEX) && wantPushMats) {
+                    auto ptr{ renderData.GetObjectData().MeshMeta[renderData.GetObjectData().MeshSelectedIndex].MeshMaterial };
+                    component.Add(std::move(ptr));
+                }
+
+            }
+
             MaterialComponentEditor(component);
 
             ImGui::Indent();
@@ -697,76 +1007,598 @@ namespace Mikoto {
             (void)component;
         });
 
-        DrawComponent<CameraComponent>(fmt::format("{} Camera", ICON_MD_CAMERA_ALT), currentlyActiveEntity,
-           [](auto& component) -> void {
-               static const std::array<std::string, 2> CAMERA_PROJECTION_TYPE_NAMES{ "Orthographic", "Perspective" };
 
-               // This is the camera's current projection type
-               const auto cameraCurrentProjectionType{ component.GetCameraPtr()->GetProjectionType() };
+        DrawComponent<LightComponent>(fmt::format("{} Lighting", ICON_MD_LIGHT), currentlyActiveEntity, [](auto& component) -> void {
+            static constexpr std::array<std::string_view, 3> lightTypes{ "Directional light", "Point light", "Spot light" };
 
-               // This is the camera's current projection type as a string
-               const auto& currentProjectionTypeStr{CAMERA_PROJECTION_TYPE_NAMES[cameraCurrentProjectionType] };
+            auto lightType{ component.GetType() };
 
-               if (ImGui::BeginCombo("Projection", currentProjectionTypeStr.c_str())) {
-                   UInt32_T projectionIndex{};
-                   for (const auto& projectionType : CAMERA_PROJECTION_TYPE_NAMES) {
-                       // Indicates if that we want to highlight this projection in the ImGui combo.
-                       // This will be the case if this projection type is the current one for this camera.
-                       bool isSelected{ projectionType == CAMERA_PROJECTION_TYPE_NAMES[cameraCurrentProjectionType] };
+            // In here we create lambdas to draw the options for each type of light according to the selected type of light in this component
 
-                       // Create a selectable combo item for each perspective
-                       if (ImGui::Selectable(projectionType.c_str(), isSelected)) {
-                           component.GetCameraPtr()->SetProjectionType((Camera::ProjectionType) projectionIndex);
-                       }
+            // Directional light type -----------
+            auto directionalLightOptions{ [](LightComponent& lightComponent) -> void {
+                constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
 
-                       if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+                if (ImGui::BeginTable("DirectionalLightEditTable", 2, tableFlags)) {
+                    // First row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Color");
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
-                       if (isSelected)
-                           ImGui::SetItemDefaultFocus();
+                    // First row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    static constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
 
-                       ++projectionIndex;
-                   }
+                    glm::vec4 color{ lightComponent.GetColor() };
+                    if (ImGui::ColorEdit4("##Color", glm::value_ptr(color), colorEditFlags)) {
+                        lightComponent.SetColor(color);
+                    }
 
-                   ImGui::EndCombo();
-               }
+                    // Second row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Intensity");
 
-               if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+                    // Second row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    static float intensity{};
+                    ImGui::SliderFloat("##DirectionalLightIntensity", std::addressof(intensity), 0.0f, 1.0f);
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
-               if (component.GetCameraPtr()->GetProjectionType() == SceneCamera::ProjectionType::ORTHOGRAPHIC) {
-                   float size{ (float)component.GetCameraPtr()->GetOrthographicSize() };
-                   if (ImGui::SliderFloat("Orthographic Size", &size, 2.0f, 10.0f))
-                       component.GetCameraPtr()->SetOrthographicSize(size);
+                    // Third row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Cast shadows");
 
-                   float nearPlane{ (float)component.GetCameraPtr()->GetOrthographicNearPlane() };
-                   if (ImGui::SliderFloat("Orthographic Near", &nearPlane, -5.0, -1.0))
-                       component.GetCameraPtr()->SetOrthographicNearPlane(nearPlane);
+                    // Third row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    static bool castShadows{};
+                    ImGui::Checkbox("##DirectionalLightSahdows", std::addressof(castShadows));
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
-                   float farPlane{ (float)component.GetCameraPtr()->GetOrthographicFarPlane() };
-                   if (ImGui::SliderFloat("Orthographic Far", &farPlane, 1.0, 5.0))
-                       component.GetCameraPtr()->SetOrthographicFarPlane(farPlane);
+                    ImGui::EndTable();
+                }
+            } };
 
-                   component.GetCameraPtr()->SetOrthographic(nearPlane, farPlane, size);
-               }
 
-               if (component.GetCameraPtr()->GetProjectionType() == SceneCamera::ProjectionType::PERSPECTIVE) {
-                   float fov{ (float)component.GetCameraPtr()->GetPerspectiveFOV() };
-                   if (ImGui::SliderFloat("Perspective FOV", &fov, 45.0f, 90.0f))
-                       component.GetCameraPtr()->SetPerspectiveFOV(fov);
+            // Point light type -----------------
+            auto pointLightOptions{ [](LightComponent& lightComponent) -> void {
+                constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
 
-                   float nearPlane{ (float)component.GetCameraPtr()->GetPerspectiveNearPlane() };
-                   if (ImGui::SliderFloat("Perspective Near", &nearPlane, 0.001f, 1.0))
-                       component.GetCameraPtr()->SetPerspectiveNearPlane(nearPlane);
+                // Main table containing two rows, the option's name and its value (checkbox, drag float, etc.)
+                if (ImGui::BeginTable("PointLightMainTable", 2, tableFlags)) {
+                    auto& pointLightData{ lightComponent.GetPointLightData() };
 
-                   float farPlane{ (float)component.GetCameraPtr()->GetPerspectiveFarPlane() };
-                   if (ImGui::SliderFloat("Perspective Far", &farPlane, 100.0f, 10000.0f))
-                       component.GetCameraPtr()->SetPerspectiveFarPlane(farPlane);
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Ambient");
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
-                   component.GetCameraPtr()->SetPerspective(nearPlane, farPlane, fov);
-               }
-           }
-        );
+                    ImGui::TableSetColumnIndex(1);
+                    static constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
+
+                    glm::vec4 ambientComponent{ pointLightData.Ambient };
+                    if (ImGui::ColorEdit3("##PointAmbientComponent", glm::value_ptr( ambientComponent ), colorEditFlags)) {
+                        pointLightData.Ambient = ambientComponent;
+                    }
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Diffuse");
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                    ImGui::TableSetColumnIndex(1);
+
+                    glm::vec4 diffuseComponent{ pointLightData.Diffuse };
+                    if (ImGui::ColorEdit3("##PointDiffuseComponent", glm::value_ptr( diffuseComponent ), colorEditFlags)) {
+                        pointLightData.Diffuse = diffuseComponent;
+                    }
+                    
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Specular");
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                    // First row - second colum
+                    ImGui::TableSetColumnIndex(1);
+
+                    glm::vec4 specularComponent{ pointLightData.Specular };
+                    if (ImGui::ColorEdit3("##PointSpecularComponent", glm::value_ptr( specularComponent ), colorEditFlags)) {
+                        pointLightData.Specular = specularComponent;
+                    }
+
+
+                    // Constants
+                    {
+                        // First row - first colum
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::TextUnformatted("Constant");
+                        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                        // First row - second colum
+                        ImGui::TableSetColumnIndex(1);
+
+                        float constant{ pointLightData.Components.x };
+                        if (ImGui::SliderFloat("##PointConstantComponent", std::addressof(constant), 0.0f, 1.0f)) {
+                            pointLightData.Components.x = constant;
+                        }
+
+                        // First row - first colum
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::TextUnformatted("Linear");
+                        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                        // First row - second colum
+                        ImGui::TableSetColumnIndex(1);
+
+                        float linear{ pointLightData.Components.y };
+                        if (ImGui::SliderFloat("##PointLinearComponent", std::addressof(linear), 0.0f, 1.0f)) {
+                            pointLightData.Components.y = linear;
+                        }
+
+                        // First row - first colum
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::TextUnformatted("Quadratic");
+                        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                        // First row - second colum
+                        ImGui::TableSetColumnIndex(1);
+
+                        float quadratic{ pointLightData.Components.z };
+                        if (ImGui::SliderFloat("##PointQuadraticComponent", std::addressof(quadratic), 0.0f, 1.0f)) {
+                            pointLightData.Components.z = quadratic;
+                        }
+                    }
+
+                    // Second row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Intensity");
+
+                    // Second row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    static float intensity{};
+                    ImGui::SliderFloat("##PointLightIntensity", std::addressof(intensity), 0.0f, 1.0f);
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                    // Third row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Range");
+
+                    // Third row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    float range{ pointLightData.Components.w };
+                    if (ImGui::SliderFloat("##PointLightRange", std::addressof(range), 1, 10.0f)) {
+                        pointLightData.Components.w = range;
+                    }
+
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                    // Fourth row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Fall-off");
+
+                    // Fourth row - second colum
+                    ImGui::TableSetColumnIndex(1);
+
+                    // TODO: review
+                    static Size_T index{};
+                    static constexpr std::array<std::string_view, 3> fallOffType{ "Constant", "Linear", "Square" };
+
+                    Size_T selectedFallOff{};
+                    if (ImGui::BeginCombo("##FallOffType", fallOffType[index].data())) {
+                        for (const auto& currentType : fallOffType) {
+                            bool isSelected{ currentType == fallOffType[index] };
+
+                            if (ImGui::Selectable(currentType.data(), isSelected)) {
+                                index = selectedFallOff;
+                            }
+
+                            if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                            if (isSelected) {
+                                ImGui::SetItemDefaultFocus();
+                            }
+
+                            ++selectedFallOff;
+                        }
+
+                        ImGui::EndCombo();
+                    }
+
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                    // Fifth row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Attenuation");
+
+                    // Fifth row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    static float attenuation{};
+                    ImGui::SliderFloat("##PointLightAttenuation", std::addressof(attenuation), 0.0f, 1.0f);
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                    // Fifth row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Shininess");
+
+                    // Fifth row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    float shininess{ };
+                    if (ImGui::SliderFloat("##PointLightShininess", std::addressof(shininess), 2.0f, 256.0f)) {
+
+                    }
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                    // Sixth row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Cast shadows");
+
+                    // Sixth row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    static bool castShadows{};
+                    ImGui::Checkbox("##PointLightSahdows", std::addressof(castShadows));
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                    ImGui::EndTable();
+                }
+            } };
+
+
+            // Spotlight type -------------------
+            auto spotLightLightOptions{ [](LightComponent& lightComponent) -> void {
+                constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
+
+                if (ImGui::BeginTable("SpotLightEditTable", 2, tableFlags)) {
+                    // First row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Color");
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                    // First row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    static constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
+
+                    glm::vec4 color{ lightComponent.GetColor() };
+                    if (ImGui::ColorEdit4("##Color", glm::value_ptr(color), colorEditFlags)) {
+                        lightComponent.SetColor(color);
+                    }
+
+                    // Second row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Intensity");
+
+                    // Second row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    static float intensity{};
+                    ImGui::SliderFloat("##SpotLightIntensity", std::addressof(intensity), 0.0f, 1.0f);
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                    // Third row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Range");
+
+                    // Third row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    static float range{};
+                    ImGui::SliderFloat("##SpotLightRange", std::addressof(range), 0.0f, 1.0f);
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                    // Fourth row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("SpotRange");
+
+                    // Fourth row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    static float spotRange{};
+                    ImGui::SliderFloat("##SpotLightSpotRange", std::addressof(spotRange), 0.0f, 1.0f);
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                    // Fifth row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Cast shadows");
+
+                    // Fifth row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    static bool castShadows{};
+                    ImGui::Checkbox("##SpotLightSahdows", std::addressof(castShadows));
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                    ImGui::EndTable();
+                }
+            } };
+
+            ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+
+            ImGui::TextUnformatted("Light type ");
+
+            ImGui::SameLine();
+
+            if (ImGui::BeginCombo("##LighType", lightTypes[(Size_T)lightType].data())) {
+                Size_T lightTypeIndex{};
+                for (const auto& currentType : lightTypes) {
+                    // Indicates if that we want to highlight this light type in the ImGui combo.
+                    // This will be the case if the current type of light is the same as the component
+                    bool isSelected{ currentType == lightTypes[(Size_T)lightType] };
+
+                    // This cast is valid because lightTypeIndex is always in the range [0, 2]
+                    // where each index indicates a type of light, see LightType definition.
+                    LightType selectedType{ (LightType)lightTypeIndex };
+
+                    // Create a selectable combo item for each light type
+                    if (ImGui::Selectable(currentType.data(), isSelected)) {
+                        // Display options for the currently selected type of light
+
+                        // Update the type of light for this component
+                        component.SetType(selectedType);
+
+                    }
+
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                    if (isSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+
+                    ++lightTypeIndex;
+                }
+
+                ImGui::EndCombo();
+            }
+
+            if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+            switch ( component.GetType() ) {
+                case LightType::DIRECTIONAL_LIGHT_TYPE:
+                    // display options for a directional light
+                    DrawLightTypeOptions<LightType::DIRECTIONAL_LIGHT_TYPE>(directionalLightOptions, component);
+                    break;
+
+                case LightType::POINT_LIGHT_TYPE:
+                    // display options for a point light
+                    DrawLightTypeOptions<LightType::POINT_LIGHT_TYPE>(pointLightOptions, component);
+                    break;
+
+                case LightType::SPOT_LIGHT_TYPE:
+                    // display options for a spotlight
+                    DrawLightTypeOptions<LightType::SPOT_LIGHT_TYPE>(spotLightLightOptions, component);
+                    break;
+            }
+
+            ImGui::PopFont();
+        });
+
+
+        DrawComponent<PhysicsComponent>(fmt::format("{} Physics", ICON_MD_FITNESS_CENTER), currentlyActiveEntity, [](auto& component) -> void {
+            (void)component;
+        });
+
+
+        DrawComponent<AudioComponent>(fmt::format("{} Audio", ICON_MD_AUDIOTRACK), currentlyActiveEntity, [](auto& component) -> void {
+            ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+
+            constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
+
+            if (ImGui::BeginTable("MaterialEditorDiffusePropertiesTable", 2, tableFlags)) {
+                // First row - first colum
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Audio clip");
+
+                // First row - second colum
+                ImGui::TableSetColumnIndex(1);
+                std::string path{ component.GetSourcePath().string() };
+                ImGui::InputText("##AudioClipSource", path.data(), path.size(), ImGuiInputTextFlags_ReadOnly);
+
+                // Second row - first colum
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Muted");
+
+                // Second row - second colum
+                ImGui::TableSetColumnIndex(1);
+                bool isMuted{ component.IsMuted() };
+                if (ImGui::Checkbox("##IsMutedAudio", std::addressof(isMuted))) {
+                    component.Mute(isMuted);
+                }
+
+                if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
+
+                // Third row - first colum
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Loop");
+
+                // Third row - second colum
+                ImGui::TableSetColumnIndex(1);
+                bool isLooping{ component.IsLooping() };
+                if (ImGui::Checkbox("##IsLoopingAudio", std::addressof(isLooping))) {
+                    component.SetLooping(isLooping);
+                }
+
+                if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
+
+                ImGui::EndTable();
+            }
+
+            ImGui::PopFont();
+        });
+
+
+        DrawComponent<CameraComponent>(fmt::format("{} Camera", ICON_MD_CAMERA_ALT), currentlyActiveEntity, [](auto& component) -> void {
+            ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+
+            static const std::array<std::string, 2> CAMERA_PROJECTION_TYPE_NAMES{ "Orthographic", "Perspective" };
+
+            // This is the camera's current projection type
+            const auto cameraCurrentProjectionType{ component.GetCameraPtr()->GetProjectionType() };
+
+            constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_SizingStretchSame };
+
+            if (ImGui::BeginTable("DirectionalLightEditTable", 2, tableFlags)) {
+                // First row - first colum
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Projection Type");
+                if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                // First row - second colum
+                ImGui::TableSetColumnIndex(1);
+                // This is the camera's current projection type as a string
+                const auto& currentProjectionTypeStr{ CAMERA_PROJECTION_TYPE_NAMES[cameraCurrentProjectionType] };
+
+                if ( ImGui::BeginCombo( "##Projection", currentProjectionTypeStr.c_str() ) ) {
+                    UInt32_T projectionIndex{};
+                    for ( const auto& projectionType: CAMERA_PROJECTION_TYPE_NAMES ) {
+                        // Indicates if that we want to highlight this projection in the ImGui combo.
+                        // This will be the case if this projection type is the current one for this camera.
+                        bool isSelected{ projectionType == CAMERA_PROJECTION_TYPE_NAMES[cameraCurrentProjectionType] };
+
+                        // Create a selectable combo item for each perspective
+                        if ( ImGui::Selectable( projectionType.c_str(), isSelected ) ) {
+                            component.GetCameraPtr()->SetProjectionType( ( Camera::ProjectionType )projectionIndex );
+                        }
+
+                        if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
+
+                        if ( isSelected )
+                            ImGui::SetItemDefaultFocus();
+
+                        ++projectionIndex;
+                    }
+
+                    ImGui::EndCombo();
+                }
+
+                if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
+
+                ImGui::EndTable();
+            }
+
+            if ( component.GetCameraPtr()->GetProjectionType() == SceneCamera::ProjectionType::ORTHOGRAPHIC ) {
+
+                if (ImGui::BeginTable( "##OrthographicProjControl", 2, tableFlags )) {
+
+                    // First row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Orthographic Size");
+
+                    // First row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    float size{ ( float )component.GetCameraPtr()->GetOrthographicSize() };
+                    if ( ImGui::SliderFloat( "##Orthographic Size", &size, 2.0f, 10.0f ) ) {
+                        component.GetCameraPtr()->SetOrthographicSize( size );
+                    }
+
+                    if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
+
+
+                    // Second row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Orthographic Near");
+
+                    // Second row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    float nearPlane{ ( float )component.GetCameraPtr()->GetOrthographicNearPlane() };
+                    if ( ImGui::SliderFloat( "##Orthographic Near", &nearPlane, -5.0, -1.0 ) )
+                        component.GetCameraPtr()->SetOrthographicNearPlane( nearPlane );
+
+                    if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
+
+
+                    // Third row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Orthographic Far");
+
+                    // Third row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    float farPlane{ ( float )component.GetCameraPtr()->GetOrthographicFarPlane() };
+                    if ( ImGui::SliderFloat( "##Orthographic Far", &farPlane, 1.0, 5.0 ) )
+                        component.GetCameraPtr()->SetOrthographicFarPlane( farPlane );
+
+                    if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
+
+                    component.GetCameraPtr()->SetOrthographic( nearPlane, farPlane, size );
+
+                    ImGui::EndTable();
+                }
+            }
+
+
+            if ( component.GetCameraPtr()->GetProjectionType() == SceneCamera::ProjectionType::PERSPECTIVE ) {
+
+                if (ImGui::BeginTable( "##PerspectiveProjControl", 2, tableFlags )) {
+
+                    // First row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Perspective FOV");
+
+                    // First row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    float fov{ ( float )component.GetCameraPtr()->GetPerspectiveFOV() };
+                    if ( ImGui::SliderFloat( "##Perspective FOV", &fov, 45.0f, 90.0f ) ) {
+                        component.GetCameraPtr()->SetPerspectiveFOV( fov );
+                    }
+
+                    if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
+
+
+                    // Second row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Perspective Near");
+
+                    // Second row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    float nearPlane{ ( float )component.GetCameraPtr()->GetPerspectiveNearPlane() };
+                    if ( ImGui::SliderFloat( "##Perspective Near", &nearPlane, 0.001f, 1.0 ) ) {
+                        component.GetCameraPtr()->SetPerspectiveNearPlane( nearPlane );
+                    }
+
+                    if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
+
+
+                    // Third row - first colum
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Perspective Far");
+
+                    // Third row - second colum
+                    ImGui::TableSetColumnIndex(1);
+                    float farPlane{ ( float )component.GetCameraPtr()->GetPerspectiveFarPlane() };
+                    if ( ImGui::SliderFloat( "##Perspective Far", &farPlane, 100.0f, 10000.0f ) ) {
+                        component.GetCameraPtr()->SetPerspectiveFarPlane( farPlane );
+                    }
+
+                    if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
+
+                    component.GetCameraPtr()->SetPerspective( nearPlane, farPlane, fov );
+
+                    ImGui::EndTable();
+                }
+            }
+
+            ImGui::PopFont();
+        });
     }
-
 
 
     auto InspectorPanel::OnUpdate(MKT_UNUSED_VAR float timeStep) -> void {

@@ -30,15 +30,6 @@ namespace Mikoto {
         static auto MakeNewScene(std::string_view name) -> Scene &;
 
         /**
-         * Returns true if the entity is a valid entity
-         * for the given scene, returns false otherwise
-         * @param scene scene to to be inspected
-         * @param entity to be inspected
-         * @returns true if the entity belongs to given scene
-         * */
-        static auto IsSceneValidEntity(const Scene& scene, const Entity& entity) -> bool;
-
-        /**
          * Tells if there's an entity currently targeted in the scene
          * @returns true if there's an entity selected in the scene, false otherwise
          * */

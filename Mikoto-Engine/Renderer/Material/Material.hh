@@ -18,7 +18,8 @@
 
 namespace Mikoto {
     struct DefaultMaterialCreateSpec {
-        std::shared_ptr<Texture2D> DiffuseMap{};
+        std::shared_ptr<Texture2D> DiffuseMap{ nullptr };
+        std::shared_ptr<Texture2D> SpecularMap{ nullptr };
     };
 
     class Material {
@@ -26,7 +27,6 @@ namespace Mikoto {
         enum class Type {
             MATERIAL_TYPE_UNKNOWN,
             MATERIAL_TYPE_STANDARD,
-            MATERIAL_TYPE_COLORED,
             COUNT,
         };
 
@@ -46,8 +46,14 @@ namespace Mikoto {
         MKT_NODISCARD auto GetType() const -> Type { return m_Type; }
         auto SetName(std::string_view newName) -> void { m_Name = newName; }
 
+        MKT_NODISCARD static constexpr auto GetTypeStr(Type type) -> std::string_view {
+            switch(type) {
+                case Type::MATERIAL_TYPE_UNKNOWN:   return "MATERIAL_TYPE_UNKNOWN";
+                case Type::MATERIAL_TYPE_STANDARD:  return "MATERIAL_TYPE_STANDARD";
+                case Type::COUNT:                   return "Unknown";
+            }
+        }
 
-        MKT_NODISCARD static auto CreateColoredMaterial() -> std::shared_ptr<Material>;
         MKT_NODISCARD static auto CreateStandardMaterial(const DefaultMaterialCreateSpec& spec) -> std::shared_ptr<Material>;
 
         virtual ~Material() = default;

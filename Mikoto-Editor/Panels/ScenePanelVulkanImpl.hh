@@ -56,7 +56,7 @@ namespace Mikoto {
                 vkDestroySampler(VulkanContext::GetPrimaryLogicalDevice(), sampler, nullptr);
             });
 
-            m_ColorAttachmentDescriptorSet = ImGui_ImplVulkan_AddTexture(m_ColorAttachmentSampler, m_SceneRenderer->GetOffscreenColorAttachmentImage(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            m_ColorAttachmentDescriptorSet = ImGui_ImplVulkan_AddTexture(m_ColorAttachmentSampler, m_SceneRenderer->GetFinalImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
             DeletionQueue::Push([descSet = m_ColorAttachmentDescriptorSet]() -> void {
                 ImGui_ImplVulkan_RemoveTexture(descSet);

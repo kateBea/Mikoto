@@ -9,20 +9,20 @@
 #include <stdexcept>
 
 // Third-Party Libraries
-#include "backends/imgui_impl_vulkan.h"
-#include "stb_image.h"
-#include "volk.h"
+#include <volk.h>
+#include <stb_image.h>
+#include <backends/imgui_impl_vulkan.h>
 
 // Project Headers
-#include "../Common/Common.hh"
-#include "../Common/Types.hh"
+#include <Common/Types.hh>
+#include <Common/Common.hh>
 #include <Common/VulkanUtils.hh>
 
 #include <Renderer/Vulkan/DeletionQueue.hh>
-#include "Renderer/Vulkan/VulkanBuffer.hh"
-#include "Renderer/Vulkan/VulkanContext.hh"
-#include "Renderer/Vulkan/VulkanRenderer.hh"
-#include "Renderer/Vulkan/VulkanTexture2D.hh"
+#include <Renderer/Vulkan/VulkanBuffer.hh>
+#include <Renderer/Vulkan/VulkanContext.hh>
+#include <Renderer/Vulkan/VulkanRenderer.hh>
+#include <Renderer/Vulkan/VulkanTexture2D.hh>
 
 namespace Mikoto {
     VulkanTexture2D::VulkanTexture2D(const Path_T& path, MapType type, bool retainFileData)
@@ -36,8 +36,6 @@ namespace Mikoto {
 
         CreateSampler();
 
-        // TODO: proper descriptor sets and pools management
-        // https://vkguide.dev/docs/extra-chapter/abstracting_descriptors/
         m_DescSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(m_TextureSampler,
                                                                   m_View,
                                                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -53,59 +51,6 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanTexture2D::CreateDescriptorPool() -> void {
-        std::array<VkDescriptorPoolSize, 1> poolSizes{};
-
-        poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[0].descriptorCount = 1;
-
-        VkDescriptorPoolCreateInfo poolInfo{ VulkanUtils::Initializers::DescriptorPoolCreateInfo() };
-        poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-        poolInfo.poolSizeCount = static_cast<UInt32_T>(poolSizes.size());
-        poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = 4000; // TODO: WILL FAIL IF TRY TO ALLOCATE MORE
-
-        if (vkCreateDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), std::addressof(poolInfo), nullptr, std::addressof(s_DescriptorPool)) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("Failed to create descriptor pool for Texture2D!");
-        }
-
-        DeletionQueue::Push([descPool = s_DescriptorPool]() -> void {
-            vkDestroyDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), descPool, nullptr);
-        });
-    }
-
-    auto VulkanTexture2D::CreateDescriptorSet() -> void {
-        // UNUSED FOR NOW. NEED BETTER DESCRIPTOR SET/POOL MANAGEMENT
-        auto& singleTextureSetLayout { dynamic_cast<VulkanRenderer*>(Renderer::GetActiveGraphicsAPIPtr())->GetSingleTextureSetLayout() };
-
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = s_DescriptorPool;
-        allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = &singleTextureSetLayout;
-
-        if (vkAllocateDescriptorSets(VulkanContext::GetPrimaryLogicalDevice(), &allocInfo, &m_DescSet) != VK_SUCCESS)
-            MKT_THROW_RUNTIME_ERROR("failed to allocate descriptor sets!");
-
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-        imageInfo.imageView = GetImageView();
-        imageInfo.sampler = GetImageSampler();
-
-        std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
-
-        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[0].dstSet = m_DescSet;
-        descriptorWrites[0].dstBinding = 0;
-        descriptorWrites[0].dstArrayElement = 0;
-        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[0].descriptorCount = 1;
-        descriptorWrites[0].pImageInfo = &imageInfo;
-
-        vkUpdateDescriptorSets(VulkanContext::GetPrimaryLogicalDevice(), static_cast<UInt32_T>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-    }
-
     auto VulkanTexture2D::LoadImageData(const Path_T& path) -> void {
         auto filePath { GetByteChar(path) };
         stbi_set_flip_vertically_on_load(true);
@@ -117,9 +62,21 @@ namespace Mikoto {
 
         m_ImageSize = m_Width  * m_Height * channelCount;
 
+
+        const auto kbPerMb{ 1'000.0 };
+
+        // Store size in MB
+        m_Size = GetFileSize(path) / kbPerMb;
+
         if (!m_TextureFileData) {
             MKT_THROW_RUNTIME_ERROR(fmt::format("Failed to load texture image! Error file [{}]", path.string()));
         }
+
+        const std::string extension{ path.extension().string() };
+
+        if (extension == ".png") { m_FileType = TextureFileType::PNG_IMAGE_TYPE; }
+        else if (extension == ".jpeg") { m_FileType = TextureFileType::JPEG_IMAGE_TYPE; }
+        else if (extension == ".jpg") { m_FileType = TextureFileType::JPG_IMAGE_TYPE; }
     }
 
     auto VulkanTexture2D::CreateImage() -> void {

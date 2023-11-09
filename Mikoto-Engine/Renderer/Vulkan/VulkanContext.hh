@@ -31,8 +31,39 @@
  * which is frequently required by objects like index buffers, vertex buffers, etc.
  * */
 
-// TODO: turn into static class for better organization
 namespace Mikoto {
+    /**
+     * This structure wraps all the data managed by the Vulkan Context, such as
+     * the physical devices, logical devices, control to whether we want validation layers or not.
+     * */
+    struct ContextData {
+        std::vector<VkPhysicalDevice> PhysicalDevices{};
+        std::vector<VkDevice> LogicalDevices{};
+
+        UInt32_T PrimaryPhysicalDeviceIndex{};
+        UInt32_T PrimaryLogicalDeviceIndex{};
+
+        std::vector<VkPhysicalDeviceFeatures> PhysicalDeviceFeatures{};
+        std::vector<VkPhysicalDeviceProperties> PhysicalDeviceProperties{};
+        std::vector<VkPhysicalDeviceMemoryProperties> PhysicalDeviceMemoryProperties{};
+
+        VkInstance Instance{};
+        VkSurfaceKHR Surface{};
+        VkDebugUtilsMessengerEXT DebugMessenger{};
+
+        bool VOLKInitSuccess{};
+
+        std::shared_ptr<GlfwWindow> WindowHandle{};// Vulkan window uses a MainWindow for now
+        const bool EnableValidationLayers{};
+    };
+
+    // Used for short-lived commands
+    struct ImmediateSubmitContext {
+        VkFence UploadFence{};            // Notify the host a task has finished executing
+        VulkanCommandPool CommandPool{};  // Command pool to allocate command buffer from
+        VkCommandBuffer CommandBuffer{};  // Command buffer to submit work to
+    };
+
     class VulkanContext {
     public:
         /**
@@ -50,39 +81,6 @@ namespace Mikoto {
         static auto EnableVSync() -> void;
         static auto DisableVSync() -> void;
         MKT_NODISCARD static auto IsVSyncActive() -> bool;
-
-        /**
-         * This structure wraps all the data managed by the Vulkan Context, such as
-         * the physical devices, logical devices, control to whether we want validation layers or not.
-         * */
-        struct ContextData {
-            std::vector<VkPhysicalDevice> PhysicalDevices{};
-            std::vector<VkDevice> LogicalDevices{};
-
-            UInt32_T PrimaryPhysicalDeviceIndex{};
-            UInt32_T PrimaryLogicalDeviceIndex{};
-
-            std::vector<VkPhysicalDeviceFeatures> PhysicalDeviceFeatures{};
-            std::vector<VkPhysicalDeviceProperties> PhysicalDeviceProperties{};
-            std::vector<VkPhysicalDeviceMemoryProperties> PhysicalDeviceMemoryProperties{};
-
-            VkInstance Instance{};
-            VkSurfaceKHR Surface{};
-            VkDebugUtilsMessengerEXT DebugMessenger{};
-
-            bool VOLKInitSuccess{};
-
-            std::shared_ptr<GlfwWindow> WindowHandle{};// Vulkan window uses a MainWindow for now
-            const bool EnableValidationLayers{};
-        };
-
-        // Used for short-lived commands
-        struct ImmediateSubmitContext {
-            VkFence UploadFence{};            // Notify the host a task has finished executing
-            VulkanCommandPool CommandPool{};  // Command pool to allocate command buffer from
-            VkCommandBuffer CommandBuffer{};  // Command buffer to submit work to
-        };
-
 
         /*************************************************************
          * CONTEXT FUNCTIONS
@@ -110,9 +108,6 @@ namespace Mikoto {
          * */
         MKT_NODISCARD static auto GetDetailedStatistics() -> const VmaTotalStatistics &;
 
-        /*************************************************************
-         * UTILITY FUNCTIONS
-         * ********************************************************+ */
         MKT_NODISCARD static auto IsExtensionAvailable(std::string_view targetExtensionName, VkPhysicalDevice device) -> bool;
         MKT_NODISCARD static auto QuerySwapChainSupport(VkPhysicalDevice device) -> SwapChainSupportDetails;
         MKT_NODISCARD static auto IsDeviceSuitable(VkPhysicalDevice device) -> bool;
@@ -120,9 +115,6 @@ namespace Mikoto {
         static auto ImmediateSubmit(const std::function<void(VkCommandBuffer)>& task, VkQueue queue = GetPrimaryLogicalDeviceGraphicsQueue()) -> void;
 
 
-        /*************************************************************
-         * PRIMARY LOGICAL DEVICE GETTERS
-         * ***********************************************************/
         MKT_NODISCARD static inline auto GetPrimaryPhysicalDevice() -> VkPhysicalDevice { return s_ContextData.PhysicalDevices[s_ContextData.PrimaryPhysicalDeviceIndex]; };
         MKT_NODISCARD static inline auto GetPrimaryLogicalDevice() -> VkDevice { return s_ContextData.LogicalDevices[s_ContextData.PrimaryLogicalDeviceIndex]; }
         MKT_NODISCARD static inline auto GetPrimaryLogicalDeviceFeatures() -> VkPhysicalDeviceFeatures { return s_ContextData.PhysicalDeviceFeatures[s_ContextData.PrimaryLogicalDeviceIndex]; }
@@ -133,36 +125,20 @@ namespace Mikoto {
         MKT_NODISCARD static inline auto GetPrimaryLogicalDeviceQueuesData() -> QueuesData { return s_QueueFamiliesData[s_ContextData.PrimaryLogicalDeviceIndex]; }
         MKT_NODISCARD static inline auto GetPrimaryLogicalDeviceSwapChainSupport() -> SwapChainSupportDetails { return QuerySwapChainSupport(s_ContextData.PhysicalDevices[s_ContextData.PrimaryLogicalDeviceIndex]); }
 
-        /*************************************************************
-         * PRIMARY PHYSICAL DEVICE GETTERS
-         * ***********************************************************/
         MKT_NODISCARD static inline auto GetPrimaryPhysicalDeviceFeatures() -> VkPhysicalDeviceFeatures { return s_ContextData.PhysicalDeviceFeatures[s_ContextData.PrimaryPhysicalDeviceIndex]; }
         MKT_NODISCARD static inline auto GetPrimaryPhysicalDeviceProperties() -> VkPhysicalDeviceProperties { return s_ContextData.PhysicalDeviceProperties[s_ContextData.PrimaryPhysicalDeviceIndex]; }
         MKT_NODISCARD static inline auto GetPrimaryPhysicalDeviceMemoryProperties() -> VkPhysicalDeviceMemoryProperties { return s_ContextData.PhysicalDeviceMemoryProperties[s_ContextData.PrimaryPhysicalDeviceIndex]; }
 
-
-        /*************************************************************
-         * SWAPCHAIN
-         * ***********************************************************/
-        static auto InitSwapChain() -> void;
         static auto RecreateSwapChain(VulkanSwapChainCreateInfo &&info) -> void;
         MKT_NODISCARD static inline auto GetSwapChain() -> std::shared_ptr<VulkanSwapChain> { return s_SwapChain; }
 
-        /**
-         * returns true if the device supports all the listed extensions in s_DeviceRequiredExtensions
-         * */
+        static auto InitSwapChain() -> void;
         MKT_NODISCARD static auto CheckForDeviceRequiredExtensionSupport(VkPhysicalDevice device) -> bool;
 
-        /**
-         * Returns the indices for the Graphics Queue family and Present queue family
-         * */
         MKT_NODISCARD static auto FindQueueFamilies(VkPhysicalDevice device) -> QueuesData;
         MKT_NODISCARD static auto FindMemoryType(UInt32_T typeFilter, VkMemoryPropertyFlags properties, VkPhysicalDevice device) -> UInt32_T;
         MKT_NODISCARD static auto FindSupportedFormat(VkPhysicalDevice device, const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features) -> VkFormat;
 
-        /**
-         * Will return true if at least one of the operations specified by flags is supported by the queue family
-         * */
         MKT_NODISCARD static inline auto QueueFamilySupportsOperation(VkQueueFamilyProperties queueFamily, VkQueueFlagBits flags) -> bool { return queueFamily.queueFlags & flags; }
         MKT_NODISCARD static inline auto QueueFamilySupportsGraphicsOperations(VkQueueFamilyProperties queueFamily, VkQueueFlagBits flags) -> bool { return queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT; }
         MKT_NODISCARD static inline auto QueueFamilySupportsComputeOperations(VkQueueFamilyProperties queueFamily, VkQueueFlagBits flags) -> bool { return queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT; }

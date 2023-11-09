@@ -14,9 +14,9 @@
 #include <unordered_set>
 
 // Third-Party Libraries
+#include "volk.h"
 #include "fmt/format.h"
 #include "vk_mem_alloc.h"
-#include "volk.h"
 
 // Project Headers
 #include "Common/Common.hh"

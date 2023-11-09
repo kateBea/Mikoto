@@ -251,6 +251,13 @@
 #define MKT_FMT_STYLE_ITALIC fmt::emphasis::italic
 
 namespace Mikoto {
+    struct SystemInfo {
+        Int64_T TotalRam;  // Total usable main memory size in kB
+        Int64_T FreeRam;   // Available memory size in kB
+        Int64_T SharedRam; // Amount of shared memory in kB
+    };
+
+
     /**
      * @brief Make a a path to a char string
      *
@@ -287,6 +294,7 @@ namespace Mikoto {
         }
     }
 
+
     /**
      * Returns a string containing the data from a file
      * @param path path to the file
@@ -295,12 +303,17 @@ namespace Mikoto {
     inline auto GetFileData(const Path_T& path) -> std::string {
         std::ifstream file{ path, std::ios::binary };
 
-        if (!file.is_open())
-            throw std::runtime_error("Failed to open file");
+        if (!file.is_open()) {
+            MKT_THROW_RUNTIME_ERROR(fmt::format("Failed to open file [ {} ]!", path.string()));
+        }
 
         return std::string{ std::istreambuf_iterator<CharArray::value_type>(file), std::istreambuf_iterator<CharArray::value_type>() };
     }
 
+
+    /**
+     *
+     * */
     MKT_NODISCARD inline auto GetCPUName() -> std::string {
         std::string line{};
         std::string cpuName{ "Unknown" };
@@ -330,12 +343,10 @@ namespace Mikoto {
         return cpuName;
     }
 
-    struct SystemInfo {
-        Int64_T TotalRam;  // Total usable main memory size in kB
-        Int64_T FreeRam;   // Available memory size in kB
-        Int64_T SharedRam; // Amount of shared memory in kB
-    };
 
+    /**
+     *
+     * */
     MKT_NODISCARD inline auto GetSystemCurrentInfo() -> SystemInfo {
         SystemInfo result{};
 
@@ -383,6 +394,22 @@ namespace Mikoto {
 
         return result;
     }
+
+
+    /**
+     * @brief Determines the size of a file.
+     * @param path Absolute or relative path to the file.
+     * @returns Size in KB of the given file, -1 if the file is not valid (not a directory or does not exist).
+     * */
+     MKT_NODISCARD inline auto GetFileSize(const Path_T& path) -> Int64_T {
+        std::ifstream file{ path };
+
+        if (!file.is_open()) {
+            return -1;
+        }
+
+        return ( Int64_T )std::distance( std::istreambuf_iterator<char>( file ), std::istreambuf_iterator<char>() ) / 1'000;
+     }
 }
 
 #endif // MIKOTO_COMMON_HH

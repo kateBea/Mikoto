@@ -2,7 +2,11 @@
 This is a simple engine written in modern C++. For now and quite some time 
 it will use OpenGL as its main rendering API, but the end goal is to integrate Vulkan.
 
-![Mikoto Engine](Assets/image/img13.png)
+![Mikoto Engine](Assets/image/img14.png)
+
+# Implemented features
+
+# Supported platforms
 
 # Requirements
 <h3>Software Requirements:</h3>
@@ -14,12 +18,12 @@ it will use OpenGL as its main rendering API, but the end goal is to integrate V
   <li>GLSL-C (The glsl compiler). This one is optional as there's precompiled binaries.</li>
 </ol>
 
-<h3>Folder structure</h3>
-- Assets:
-- Common:
-- Mikoto-Engine:
-- Mikoto-Editor:
-- Mikoto-Runtime:
+# Folder structure
+- <b>Assets:</b> Contains core engine/editor utilities, prefabs, and essential assets such as shaders.
+- <b>Common:</b> Common development utilities, definitions of structures, data types, etc.
+- <b>Mikoto-Engine:</b> The core engine project which powers Mikoto Game Engine.
+- <b>Mikoto-Editor:</b> The editor project featuring the game scenes' editor.
+- <b>Mikoto-Runtime: A sample game showcasing the capabilities of Mikoto Game Engine.</b>
 
 # Building
 
@@ -66,9 +70,8 @@ is included as a submodule and build along with the project.
 
 # Goals
 
-I spend my spare time on improving this project, which is mainly a way for me to learn software design and mostly 3D graphics programming.
-The main goal is really just offer support for 3D and 2D graphics rendering. At the moment, many configurations that are necessary for
-the engine are hardcoded in the translation units, the idea is to be able to load these configurations from regular files.
+This project serves as a way for me to learn 3D graphics programming with modern rendering techniques, as such I intend 
+to integrate the things I learn along the way.
 
 # Special thanks and mentions to
   - Yan Chernikov for his [YouTube videos](https://www.youtube.com/@TheCherno) and live streams

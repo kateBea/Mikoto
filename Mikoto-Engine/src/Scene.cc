@@ -175,6 +175,8 @@ namespace Mikoto {
                 }
             }
 
+            Renderer::SetActiveLightsCount(0);
+
             Renderer::Flush();
             Renderer::EndScene();
         }

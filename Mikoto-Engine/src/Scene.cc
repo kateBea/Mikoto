@@ -9,10 +9,10 @@
 #include <algorithm>
 
 // Third-Party Libraries
-#include "entt/entt.hpp"
+#include <entt/entt.hpp>
 
 // Project Headers
-#include "../Common/Random.hh"
+#include <Common/Random.hh>
 
 #include <Assets/AssetsManager.hh>
 
@@ -21,8 +21,8 @@
 #include "Scene/Entity.hh"
 #include "Scene/Scene.hh"
 
-#include "Common/RenderingUtils.hh"
-#include "Renderer/Renderer.hh"
+#include <Common/RenderingUtils.hh>
+#include <Renderer/Renderer.hh>
 
 namespace Mikoto {
     auto Scene::OnRuntimeUpdate(double ts) -> void {
@@ -101,21 +101,22 @@ namespace Mikoto {
             MeshMetaData meshMetaData{};
             meshMetaData.ModelMesh = std::addressof(mesh);
 
-            auto it{ std::find_if(mesh.GetTextures().begin(), mesh.GetTextures().end(),
-                                  [](const std::shared_ptr<Texture2D>& texture) -> bool { return texture->GetType() == MapType::TEXTURE_2D_DIFFUSE; }) };
-
-            if (it != mesh.GetTextures().end()) {
-                // If this mesh has got a diffuse map we can use it with the standard material
-                // otherwise we have to apply a base material which only allowes to change base aspects like the color
+            // Diffuse map and specular map
+            // By default we add and standard material
+            {
                 DefaultMaterialCreateSpec spec{};
-                spec.DiffuseMap = it != mesh.GetTextures().end() ? *it : nullptr;
+                for (auto textureIt{ mesh.GetTextures().begin() }; textureIt != mesh.GetTextures().end(); ++textureIt) {
+                    // we assume there is only one specular and one diffuse
+                    if ((*textureIt)->GetType() == MapType::TEXTURE_2D_DIFFUSE) {
+                        spec.DiffuseMap = *textureIt;
+                    }
+
+                    if ((*textureIt)->GetType() == MapType::TEXTURE_2D_SPECULAR) {
+                        spec.SpecularMap = *textureIt;
+                    }
+                }
 
                 meshMetaData.MeshMaterial = Material::CreateStandardMaterial(spec);
-                renderData.GetObjectData().MeshMeta.push_back(std::move(meshMetaData));
-            }
-            else {
-                // Apply base material
-                meshMetaData.MeshMaterial = Material::CreateColoredMaterial();
                 renderData.GetObjectData().MeshMeta.push_back(std::move(meshMetaData));
             }
         }
@@ -155,24 +156,62 @@ namespace Mikoto {
 
         Renderer::BeginScene(prepareData);
 
-        auto view{ m_Registry.view<TagComponent, TransformComponent, RenderComponent, MaterialComponent>() };
 
-        for (auto& sceneObject : view) {
-            TagComponent& tag{ view.get<TagComponent>(sceneObject) };
-            TransformComponent& transform{ view.get<TransformComponent>(sceneObject) };
-            RenderComponent& renderComponent{ view.get<RenderComponent>(sceneObject) };
-            MaterialComponent& material{ view.get<MaterialComponent>(sceneObject) };
+        // If the scene has no lights
+        if (m_Registry.view<LightComponent>().empty()) {
+            auto view{ m_Registry.view<TagComponent, TransformComponent, RenderComponent, MaterialComponent>() };
 
-            SceneObjectData& objectData{ renderComponent.GetObjectData() };
-            objectData.Color = material.GetColor();
+            for (auto& sceneObject : view) {
+                TagComponent& tag{ view.get<TagComponent>(sceneObject) };
+                TransformComponent& transform{ view.get<TransformComponent>(sceneObject) };
+                RenderComponent& renderComponent{ view.get<RenderComponent>(sceneObject) };
+                MaterialComponent& material{ view.get<MaterialComponent>(sceneObject) };
 
-            if (tag.IsVisible() && !objectData.MeshMeta.empty()) {
-                Renderer::Submit(objectData, transform.GetTransform());
+                SceneObjectData& objectData{ renderComponent.GetObjectData() };
+                objectData.Color = material.GetColor();
+
+                if (tag.IsVisible() && !objectData.MeshMeta.empty()) {
+                    Renderer::Submit(objectData, transform.GetTransform());
+                }
             }
-        }
 
-        Renderer::Flush();
-        Renderer::EndScene();
+            Renderer::Flush();
+            Renderer::EndScene();
+        }
+        else {
+            // Forward render lights.
+            Size_T index{};
+            Renderer::SetLightViewPos(glm::vec4{ camera.GetPosition(), 1.0f });
+
+            for (auto& lightSource : m_Registry.view<LightComponent>()) {
+                LightComponent& lightComponent{ m_Registry.get<LightComponent>(lightSource) };
+
+
+                // Compute light affecting each game object
+                auto view{ m_Registry.view<TagComponent, TransformComponent, RenderComponent, MaterialComponent>() };
+                for (auto& sceneObject : view) {
+                    TagComponent& tag{ view.get<TagComponent>(sceneObject) };
+                    TransformComponent& transform{ view.get<TransformComponent>(sceneObject) };
+                    RenderComponent& renderComponent{ view.get<RenderComponent>(sceneObject) };
+                    MaterialComponent& material{ view.get<MaterialComponent>(sceneObject) };
+
+                    SceneObjectData& objectData{ renderComponent.GetObjectData() };
+                    objectData.Color = material.GetColor();
+
+                    lightComponent.GetPointLightData().Position = glm::vec4{ m_Registry.get<TransformComponent>(lightSource).GetTranslation(), 1.0f };
+                    Renderer::SetPointLightInfo( lightComponent.GetPointLightData(), index );
+
+                    if (tag.IsVisible() && !objectData.MeshMeta.empty()) {
+                        Renderer::Submit(objectData, transform.GetTransform());
+                    }
+                }
+
+                Renderer::SetActiveLightsCount(++index);
+            }
+
+            Renderer::Flush();
+            Renderer::EndScene();
+        }
     }
 
     auto Scene::UpdateScripts() -> void {
@@ -207,5 +246,42 @@ namespace Mikoto {
 
     auto Scene::SetActiveScene(Scene* scene) -> void {
         s_ActiveScene = scene;
+    }
+
+    auto Scene::FetchSceneMetaData() -> SceneMetaData& {
+        // Game objects
+        m_MetaData.EntityCount = m_Registry.view<TagComponent>().size();
+
+        // Lighting
+        auto viewLights{ m_Registry.view<LightComponent>() };
+        m_MetaData.LightsCount = viewLights.size();
+
+        for (auto& light : viewLights) {
+            LightComponent& lightComponent{ m_Registry.get<LightComponent>(light) };
+            // increment active lights
+
+
+            // Directional light count
+            if (lightComponent.GetType() == LightType::DIRECTIONAL_LIGHT_TYPE) {
+                m_MetaData.DirLightsCount += 1;
+                m_MetaData.DirActiveLightCount += lightComponent.IsActive() ? 1 : 0;
+            }
+
+
+            // Point light count
+            if (lightComponent.GetType() == LightType::POINT_LIGHT_TYPE) {
+                m_MetaData.PointLightsCount += 1;
+                m_MetaData.PointActiveLightCount += lightComponent.IsActive() ? 1 : 0;
+            }
+
+
+            // Spot-light count
+            if (lightComponent.GetType() == LightType::SPOT_LIGHT_TYPE) {
+                m_MetaData.SpotLightsCount += 1;
+                m_MetaData.SpotActiveLightCount += lightComponent.IsActive() ? 1 : 0;
+            }
+        }
+
+        m_MetaData.ActiveLightCount = m_MetaData.DirActiveLightCount + m_MetaData.PointActiveLightCount + m_MetaData.SpotActiveLightCount;
     }
 }

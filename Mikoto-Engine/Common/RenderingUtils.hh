@@ -40,6 +40,12 @@ namespace Mikoto {
         glm::mat4 Transform{};
     };
 
+    enum class LightType {
+        DIRECTIONAL_LIGHT_TYPE  = 0,
+        POINT_LIGHT_TYPE        = 1,
+        SPOT_LIGHT_TYPE         = 2,
+    };
+
     enum class PrefabSceneObject {
         NO_PREFAB_OBJECT,
         SPRITE_PREFAB_OBJECT,
@@ -53,7 +59,33 @@ namespace Mikoto {
 
     struct MeshMetaData {
         const Mesh* ModelMesh{};
+
+        // Temporary. Assumes a mesh can only have one material
         std::shared_ptr<Material> MeshMaterial{};
+    };
+
+    struct DirectionalLight {
+
+    };
+
+    // Point lights for now
+    struct PointLight {
+        glm::vec4 Position{ 0.0f, 0.0f, 0.0f, 1.0f };
+
+        glm::vec4 Ambient{ 1.0f, 1.0f, 1.0f, 0.1f };
+        glm::vec4 Diffuse{ 1.0f, 1.0f, 1.0f, 0.1f };
+        glm::vec4 Specular{ 1.0f, 1.0f, 1.0f, 0.1f };
+
+        // Using vec4s for now to avoid dealing with alignment issues for now
+        // x=constant, y=linear, y=quadratic, w=range
+        glm::vec4 Components{ 1.0f, 0.09f, 0.032f, 0.1f };
+
+        // x=ambient, rest unused for now
+        glm::vec4 Intensity{};
+    };
+
+    struct SpotLight {
+
     };
 
     struct DrawData {
@@ -65,6 +97,10 @@ namespace Mikoto {
 
         // We have a single color for the whole model
         glm::vec4 Color{};
+
+        // [Light info]
+        PointLight LightInfo{};
+        glm::vec4 ViewPosition{};
     };
 
     struct SceneObjectData {
@@ -87,7 +123,32 @@ namespace Mikoto {
 
         // For usage in the inspector panel. It tells which mesh is currently selected
         // No mesh is selected until we actually do so, hence why it's initialized to -1
-        Int32_T MeshSelectedIndex{ -1 };
+        Int32_T MeshSelectedIndex{ NO_MESH_SELECTED_INDEX };
+
+        // Index indicating no mesh is yet active for editing
+        static constexpr auto NO_MESH_SELECTED_INDEX{ -1 };
+
+
+        // [Lighting]
+        // just one for now
+        PointLight Light{};
+    };
+
+    /**
+     * @brief Holds light related information.
+     * Contains the relevant data specific for the three types of light:
+     * directional light, spot light, point light. Used to store light informatio
+     * in the light component.
+     * */
+    struct LightData {
+        // Directional light
+        DirectionalLight DireLightData{};
+
+        // Point light
+        PointLight PointLightDat{};
+
+        // Spotlight
+        SpotLight SpotLightData{};
     };
 
     /**

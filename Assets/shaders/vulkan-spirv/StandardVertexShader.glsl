@@ -14,13 +14,17 @@ layout(location = 2) in vec3 a_Color;
 layout(location = 3) in vec2 a_TextureCoordinates;
 
 // For usage in fragment shader
-layout(location = 0) out vec4 vertexColor;
-layout(location = 1) out vec2 vertexTexCoord;
+layout(location = 0) out vec3 fragmentPos;
+layout(location = 1) out vec4 objectsColor;
+layout(location = 2) out vec3 vertexNormals;
+layout(location = 3) out vec2 vertexTexCoord;
 
 void main() {
     // Setup frament shader expected data
-    vertexColor = UniformBufferData.Color;
+    objectsColor = UniformBufferData.Color;
     vertexTexCoord = a_TextureCoordinates;
+    vertexNormals = a_Normal;
+    fragmentPos = vec3(UniformBufferData.Transform * vec4(a_Position, 1.0));
 
     gl_Position = UniformBufferData.Projection * UniformBufferData.View * UniformBufferData.Transform * vec4(a_Position, 1.0);
 

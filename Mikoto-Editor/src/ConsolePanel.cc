@@ -63,7 +63,7 @@ namespace Mikoto {
     auto ConsolePanel::DisplayMessages() -> void {
         const auto& messages{ ConsoleManager::GetMessages() };
 
-        ImGui::PushFont(ImGuiManager::GetFonts()[0]);
+        ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::ImGuiManagerFont::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
 
         for (const auto& [level, message] : messages) {
             switch (level) {

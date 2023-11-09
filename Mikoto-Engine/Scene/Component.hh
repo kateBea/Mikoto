@@ -11,23 +11,44 @@
 #include <string>
 
 // Third-Party Libraries
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 // Project Headers
-#include "Common/Common.hh"
-#include "Common/Constants.hh"
-#include "Common/Random.hh"
-#include "Common/Types.hh"
+#include <Common/Types.hh>
+#include <Common/Common.hh>
+#include <Common/Random.hh>
+#include <Common/Constants.hh>
+#include <Common/RenderingUtils.hh>
 
-#include "Common/RenderingUtils.hh"
-#include "Core/Assert.hh"
-#include "Renderer/Mesh.hh"
-#include "Renderer/Model.hh"
-#include "SceneCamera.hh"
+#include <Core/Assert.hh>
+
+#include <Renderer/Mesh.hh>
+#include <Renderer/Model.hh>
+
+#include <Scene/SceneCamera.hh>
 
 namespace Mikoto {
-    class TagComponent {
+    template<typename ComponentType>
+    class BaseComponent {
+    public:
+        explicit BaseComponent() = default;
+
+        BaseComponent(const BaseComponent & other) = default;
+        BaseComponent(BaseComponent && other) = default;
+
+        auto operator=(const BaseComponent & other) -> BaseComponent & = default;
+        auto operator=(BaseComponent && other) -> BaseComponent & = default;
+
+        ~BaseComponent() = default;
+
+        auto OnCreate() -> void { static_cast<ComponentType*>(this)->OnComponentAttach(); }
+        auto OnUpdate() -> void { static_cast<ComponentType*>(this)->OnComponentUpdate(); }
+        auto OnRemove() -> void { static_cast<ComponentType*>(this)->OnComponentRemoved(); }
+    };
+
+
+    class TagComponent : public BaseComponent<TagComponent> {
     public:
         explicit TagComponent() = default;
 
@@ -49,6 +70,10 @@ namespace Mikoto {
 
         auto SetTag(std::string_view newName) -> void { m_Tag = newName; }
         auto SetVisibility(bool value) -> void { m_Visibility = value; }
+
+        auto OnComponentAttach() -> void { MKT_APP_LOGGER_DEBUG("Added component TAG_COMPONENT"); }
+        auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component TAG_COMPONENT"); }
+        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component TAG_COMPONENT"); }
     private:
         Random::GUID::UUID m_GUID{};
         std::string m_Tag{};
@@ -57,7 +82,7 @@ namespace Mikoto {
 
 
 
-    class TransformComponent {
+    class TransformComponent : public BaseComponent<TransformComponent> {
     public:
         explicit TransformComponent() = default;
         explicit TransformComponent(const glm::mat4& data) { m_Transform = data; }
@@ -104,6 +129,10 @@ namespace Mikoto {
 
         ~TransformComponent() = default;
 
+        auto OnComponentAttach() -> void { MKT_APP_LOGGER_DEBUG("Added component TRANSFORM_COMPONENT"); }
+        auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component TRANSFORM_COMPONENT"); }
+        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component TRANSFORM_COMPONENT"); }
+
     private:
         /**
          * Computes the model matrix as in Translate * Ry * Rx * Rz * Scale (where R represents a
@@ -138,7 +167,7 @@ namespace Mikoto {
     /**
      * Contains the material information of an entity
      * */
-    class MaterialComponent {
+    class MaterialComponent : public BaseComponent<MaterialComponent> {
     public:
         explicit MaterialComponent() = default;
 
@@ -150,14 +179,24 @@ namespace Mikoto {
 
         MKT_NODISCARD auto Get() -> Material& { return *m_Material; }
         MKT_NODISCARD auto GetColor() const -> const glm::vec4& { return m_Color; }
+        MKT_NODISCARD auto GetMaterialList() -> std::vector<std::shared_ptr<Material>>& { return m_MaterialList; }
 
         auto SetColor(const glm::vec4& value) -> void { m_Color = value; }
         auto SetMaterial(std::shared_ptr<Material> mat) -> void { m_Material = mat; }
 
+        auto Add(std::shared_ptr<Material>&& mat) -> void { m_MaterialList.emplace_back(mat); }
+
         ~MaterialComponent() = default;
+
+        auto OnComponentAttach() -> void { MKT_APP_LOGGER_DEBUG("Added component MATERIAL_COMPONENT"); }
+        auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component MATERIAL_COMPONENT"); }
+        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component MATERIAL_COMPONENT"); }
 
     private:
         std::shared_ptr<Material> m_Material{};
+
+        std::vector<std::shared_ptr<Material>> m_MaterialList{};
+
         glm::vec4 m_Color{ 1.0f, 1.0f, 1.0f, 1.0f };
     };
 
@@ -168,7 +207,7 @@ namespace Mikoto {
      * as vertex buffers, index buffers, although this component won't be visible
      * in the editor UI
      * */
-    class RenderComponent {
+    class RenderComponent : public BaseComponent<RenderComponent> {
     public:
         explicit RenderComponent() = default;
 
@@ -178,10 +217,14 @@ namespace Mikoto {
         auto operator=(const RenderComponent & other) -> RenderComponent & = default;
         auto operator=(RenderComponent && other) -> RenderComponent & = default;
 
+        ~RenderComponent() = default;
+
         auto GetObjectData() -> SceneObjectData& { return m_RenderableData; }
         MKT_NODISCARD auto GetObjectData() const -> const SceneObjectData& { return m_RenderableData; }
 
-        ~RenderComponent() = default;
+        auto OnComponentAttach() -> void { MKT_APP_LOGGER_DEBUG("Added component RENDERER_COMPONENT"); }
+        auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component RENDERER_COMPONENT"); }
+        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component RENDERER_COMPONENT"); }
 
     private:
         SceneObjectData m_RenderableData{};
@@ -189,7 +232,7 @@ namespace Mikoto {
 
 
 
-    class LightComponent {
+    class LightComponent : public BaseComponent<LightComponent> {
     public:
         explicit LightComponent() = default;
 
@@ -201,14 +244,70 @@ namespace Mikoto {
 
         ~LightComponent() = default;
 
+        MKT_NODISCARD auto GetColor() const -> const glm::vec4& { return m_Color; }
+        MKT_NODISCARD auto GetType() const -> LightType { return m_Type; }
+        MKT_NODISCARD auto GetData() const -> const LightData&{ return m_Data; }
+        MKT_NODISCARD auto GetData() -> LightData&{ return m_Data; }
+
+        // temporary
+        MKT_NODISCARD auto GetPointLightData() -> PointLight& { return m_Data.PointLightDat; }
+
+        MKT_NODISCARD auto IsActive() const -> bool { return m_Active; }
+
+        auto SetType(LightType type) -> void { m_Type = type; }
+        auto SetColor(const glm::vec4& color) -> void { m_Color = color; }
+        auto SetActive(bool value) -> void { m_Active = value; }
+
+        auto OnComponentAttach() -> void { MKT_APP_LOGGER_DEBUG("Added component LIGHT_COMPONENT"); }
+        auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component LIGHT_COMPONENT"); }
+        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component LIGHT_COMPONENT"); }
+
     private:
+        LightData m_Data{};
+        LightType m_Type{ LightType::POINT_LIGHT_TYPE };
+        glm::vec4 m_Color{};
 
-
+        bool m_Active{};
     };
 
 
 
-    class PhysicsComponent {
+
+    class AudioComponent : public BaseComponent<AudioComponent> {
+    public:
+        explicit AudioComponent() = default;
+
+        AudioComponent(const AudioComponent & other) = default;
+        AudioComponent(AudioComponent && other) = default;
+
+        auto operator=(const AudioComponent & other) -> AudioComponent & = default;
+        auto operator=(AudioComponent && other) -> AudioComponent & = default;
+
+        ~AudioComponent() = default;
+
+        MKT_NODISCARD auto GetVolume() const -> float { return m_Volume; }
+        MKT_NODISCARD auto GetSourcePath() const -> const Path_T& { return m_Clip; }
+        MKT_NODISCARD auto IsMuted() const -> bool { return m_Muted; }
+        MKT_NODISCARD auto IsLooping() const -> bool { return m_Loop; }
+
+        auto Mute(bool value) -> void { m_Muted = value; }
+        auto SetVolume(float volume) -> void { m_Volume = (volume > 0.0f) ? volume : m_Volume; }
+        auto SetLooping(bool value) -> void { m_Loop = value; }
+
+        auto OnComponentAttach() -> void { MKT_APP_LOGGER_DEBUG("Added component AUDIO_COMPONENT"); }
+        auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component AUDIO_COMPONENT"); }
+        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component AUDIO_COMPONENT"); }
+
+    private:
+        Path_T m_Clip{ "No clip file loaded (MP3, WAV...) " };
+        float m_Volume{};
+        bool m_Muted{};
+        bool m_Loop{};
+    };
+
+
+
+    class PhysicsComponent : public BaseComponent<PhysicsComponent> {
     public:
         explicit PhysicsComponent() = default;
 
@@ -219,11 +318,22 @@ namespace Mikoto {
         auto operator=(PhysicsComponent && other) -> PhysicsComponent & = default;
 
         ~PhysicsComponent() = default;
+
+        auto GetMass() const -> float { return m_Mass; }
+
+        auto OnComponentAttach() -> void { MKT_APP_LOGGER_DEBUG("Added component PHYSICS_COMPONENT"); }
+        auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component PHYSICS_COMPONENT"); }
+        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component PHYSICS_COMPONENT"); }
+
+    private:
+        float m_Mass{};
+
+        bool m_CollisionDetection{};
+        bool m_UseGravity{};
     };
 
 
-
-    class CameraComponent {
+    class CameraComponent : public BaseComponent<CameraComponent> {
     public:
         explicit CameraComponent(std::shared_ptr<SceneCamera> camera = nullptr, bool mainCam = true, bool fixedAspectRation = false)
             :   m_Camera{ camera ? std::make_shared<SceneCamera>() : std::move(camera) }, m_MainCam{ mainCam }, m_FixedAspectRatio{ fixedAspectRation }
@@ -248,6 +358,14 @@ namespace Mikoto {
         auto DisableFixedAspectRatio() -> void { m_FixedAspectRatio = false; }
 
         ~CameraComponent() = default;
+
+        auto OnComponentAttach() -> void {
+            // newComponent.GetCameraPtr()->SetViewportSize(scene->m_ViewportWidth, scene->m_ViewportHeight);
+            MKT_APP_LOGGER_DEBUG("Added component CAMERA_COMPONENT");
+        }
+
+        auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component CAMERA_COMPONENT"); }
+        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component CAMERA_COMPONENT"); }
     private:
         std::shared_ptr<SceneCamera> m_Camera{};
         bool m_MainCam{ true };
@@ -275,7 +393,7 @@ namespace Mikoto {
     // support for C++ scripting which is the native engine language
     class ScriptableEntity;
 
-    class NativeScriptComponent {
+    class NativeScriptComponent : public BaseComponent<NativeScriptComponent> {
     public:
         explicit NativeScriptComponent() = default;
 
@@ -294,6 +412,10 @@ namespace Mikoto {
             m_OnUpdateFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->Present(0, nullptr); };
             m_OnDestroyFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->OnDestroy(); };
         }
+
+        auto OnComponentAttach() -> void { MKT_APP_LOGGER_DEBUG("Added component NATIVE_SCRIPT_COMPONENT"); }
+        auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component NATIVE_SCRIPT_COMPONENT"); }
+        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component NATIVE_SCRIPT_COMPONENT"); }
 
     private:
         std::function<void(std::shared_ptr<ScriptableEntity> scriptable)> m_OnCreateFunc{};

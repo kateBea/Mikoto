@@ -11,27 +11,48 @@
 #include <volk.h>
 
 // Project Headers
-#include "../Common/VulkanUtils.hh"
-#include "Renderer/Material/Shader.hh"
+#include <Common/VulkanUtils.hh>
+
 #include "Renderer/Renderer.hh"
+#include "Renderer/Material/Shader.hh"
 
 #include <Renderer/Vulkan/DeletionQueue.hh>
 #include "Renderer/Vulkan/VulkanContext.hh"
 #include "Renderer/Vulkan/VulkanRenderer.hh"
 #include "Renderer/Vulkan/VulkanStandardMaterial.hh"
 
+#define LIGHT_HAS_SPECULAR_MAP      1
+#define LIGHT_HAS_NO_SPECULAR_MAP   0
+
+#define LIGHT_HAS_DIFFUSE_MAP      1
+#define LIGHT_HAS_NO_DIFFUSE_MAP   0
+
 namespace Mikoto {
     VulkanStandardMaterial::VulkanStandardMaterial(const DefaultMaterialCreateSpec& spec, std::string_view name)
         :   Material{ name, Type::MATERIAL_TYPE_STANDARD }
     {
-        m_DiffuseTexture = std::dynamic_pointer_cast<VulkanTexture2D>(spec.DiffuseMap);
+        // Create shared empty texture
+        // is just a placeholder for when a mesh has no specific map
+        if (!s_EmptyTexture) {
+            s_EmptyTexture = std::dynamic_pointer_cast<VulkanTexture2D>( Texture2D::Create( "../Assets/Icons/emptyTexture.png", MapType::TEXTURE_2D_DIFFUSE ) );
+        }
 
-        // UniformBuffer size padded
-        auto minOffsetAlignment{ VulkanUtils::GetDeviceMinimumOffsetAlignment(VulkanContext::GetPrimaryPhysicalDevice()) };
-        auto paddedSize{ VulkanUtils::GetUniformBufferPadding(sizeof(m_UniformData), minOffsetAlignment) };
+        m_HasSpecular = spec.SpecularMap != nullptr;
+        m_HasDiffuse = spec.DiffuseMap != nullptr;
+
+        m_SpecularTexture = std::dynamic_pointer_cast<VulkanTexture2D>( HasSpecularMap() ? spec.SpecularMap : s_EmptyTexture );
+        m_DiffuseTexture = std::dynamic_pointer_cast<VulkanTexture2D>(HasDiffuseMap() ? spec.DiffuseMap : s_EmptyTexture);
+
+        // UniformBuffer size padded. Vertex shader
+        const auto minOffsetAlignment{ VulkanUtils::GetDeviceMinimumOffsetAlignment(VulkanContext::GetPrimaryPhysicalDevice()) };
+        auto paddedSize{ VulkanUtils::GetUniformBufferPadding(sizeof( m_VertexUniformData ), minOffsetAlignment) };
         m_UniformDataStructureSize = paddedSize;
 
-        CreateUniformBuffer();
+        // UniformBuffer size padded. Fragment shader
+        auto fragmentPaddedSize{ VulkanUtils::GetUniformBufferPadding(sizeof(LightsUniformData), minOffsetAlignment) };
+        m_FragmentUniformDataStructureSize = fragmentPaddedSize;
+
+        CreateUniformBuffers();
         CreateDescriptorPool();
         CreateDescriptorSet();
     }
@@ -40,7 +61,8 @@ namespace Mikoto {
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &m_DescriptorSet, 0, nullptr);
     }
 
-    auto VulkanStandardMaterial::CreateUniformBuffer() -> void {
+    auto VulkanStandardMaterial::CreateUniformBuffers() -> void {
+        // [Vertex shader uniform buffer]
         BufferAllocateInfo allocInfo{};
         allocInfo.Size = m_UniformDataStructureSize;
 
@@ -49,17 +71,53 @@ namespace Mikoto {
         allocInfo.BufferCreateInfo.size = allocInfo.Size;
 
         allocInfo.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-        allocInfo.IsMapped = true;
+        allocInfo.IsMapped = true; // using vmaMapMemory
 
-        m_UniformBuffer.OnCreate(allocInfo);
+        m_VertexUniformBuffer.OnCreate(allocInfo);
 
-        if (vmaMapMemory(VulkanContext::GetDefaultAllocator(), m_UniformBuffer.GetVmaAllocation(), &m_UniformBuffersMapped) != VK_SUCCESS) {
+        if (vmaMapMemory(VulkanContext::GetDefaultAllocator(), m_VertexUniformBuffer.GetVmaAllocation(), &m_VertexUniformBuffersMapped ) != VK_SUCCESS) {
+            MKT_THROW_RUNTIME_ERROR("Failed to map memory for uniform buffer in default material!");
+        }
+
+
+        // [Fragment shader uniform buffer]
+        BufferAllocateInfo fragmentAllocInfo{};
+        fragmentAllocInfo.Size = m_FragmentUniformDataStructureSize;
+
+        fragmentAllocInfo.BufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        fragmentAllocInfo.BufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        fragmentAllocInfo.BufferCreateInfo.size = fragmentAllocInfo.Size;
+
+        fragmentAllocInfo.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+        fragmentAllocInfo.IsMapped = true; // using vmaMapMemory
+
+        m_FragmentUniformBuffer.OnCreate(fragmentAllocInfo);
+
+        if (vmaMapMemory(VulkanContext::GetDefaultAllocator(), m_FragmentUniformBuffer.GetVmaAllocation(), &m_FragmentUniformBuffersMapped) != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("Failed to map memory for uniform buffer in default material!");
         }
     }
 
     auto VulkanStandardMaterial::UploadUniformBuffers() -> void {
-        std::memcpy(m_UniformBuffersMapped, &m_UniformData, sizeof(m_UniformData));
+        if ( HasDiffuseMap() ) {
+            m_FragmentUniformLightsData.LightMeta.y = LIGHT_HAS_DIFFUSE_MAP;
+        }
+        else {
+            m_FragmentUniformLightsData.LightMeta.y = LIGHT_HAS_NO_DIFFUSE_MAP;
+        }
+
+        if ( HasSpecularMap() ) {
+            m_FragmentUniformLightsData.LightMeta.z = LIGHT_HAS_SPECULAR_MAP;
+        }
+        else {
+            m_FragmentUniformLightsData.LightMeta.z = LIGHT_HAS_NO_SPECULAR_MAP;
+        }
+
+        // TODO: rework. The shininess is an material/object property that specifies how an objects should reflect the light or scatter it over its surface
+        m_FragmentUniformLightsData.LightMeta.w = 32.0f;
+
+        std::memcpy( m_VertexUniformBuffersMapped, &m_VertexUniformData, sizeof( m_VertexUniformData ) );
+        std::memcpy( m_FragmentUniformBuffersMapped, &m_FragmentUniformLightsData, sizeof( m_FragmentUniformLightsData ) );
     }
 
     auto VulkanStandardMaterial::CreateDescriptorPool() -> void {
@@ -109,16 +167,25 @@ namespace Mikoto {
     auto VulkanStandardMaterial::UpdateDescriptorSets() -> void {
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
         imageInfo.imageView = m_DiffuseTexture->GetImageView();
         imageInfo.sampler = m_DiffuseTexture->GetImageSampler();
 
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = m_UniformBuffer.Get();
-        bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(m_UniformData);
+        VkDescriptorImageInfo specularImageInfo{};
+        specularImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        specularImageInfo.imageView = m_SpecularTexture->GetImageView();
+        specularImageInfo.sampler = m_SpecularTexture->GetImageSampler();
 
-        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = m_VertexUniformBuffer.Get();
+        bufferInfo.offset = 0;
+        bufferInfo.range = m_VertexUniformBuffer.GetSize();
+
+        VkDescriptorBufferInfo fragmentBufferInfo{};
+        fragmentBufferInfo.buffer = m_FragmentUniformBuffer.Get();
+        fragmentBufferInfo.offset = 0;
+        fragmentBufferInfo.range = m_FragmentUniformBuffer.GetSize();
+
+        std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = m_DescriptorSet;
         descriptorWrites[0].dstBinding = 0;
@@ -135,17 +202,43 @@ namespace Mikoto {
         descriptorWrites[1].descriptorCount = 1;
         descriptorWrites[1].pImageInfo = &imageInfo;
 
+        descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[2].dstSet = m_DescriptorSet;
+        descriptorWrites[2].dstBinding = 2;
+        descriptorWrites[2].dstArrayElement = 0;
+        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[2].descriptorCount = 1;
+        descriptorWrites[2].pBufferInfo = &fragmentBufferInfo;
+
+        descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[3].dstSet = m_DescriptorSet;
+        descriptorWrites[3].dstBinding = 3;
+        descriptorWrites[3].dstArrayElement = 0;
+        descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[3].descriptorCount = 1;
+        descriptorWrites[3].pImageInfo = &specularImageInfo;
+
         vkUpdateDescriptorSets(VulkanContext::GetPrimaryLogicalDevice(), static_cast<UInt32_T>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 
     auto VulkanStandardMaterial::SetTransform(const glm::mat4&transform) -> void {
-        m_UniformData.Transform = transform;
+        m_VertexUniformData.Transform = transform;
+    }
+
+    auto VulkanStandardMaterial::SetLights( PointLight* lights, Size_T count) -> void {
+        Size_T index{};
+
+        for ( ; index < count; ++index) {
+            m_FragmentUniformLightsData.PointLights[index] = lights[index];
+        }
+
+        m_FragmentUniformLightsData.LightMeta.x = count;
     }
 
     auto VulkanStandardMaterial::SetTiltingColor(float red, float green, float blue, float alpha) -> void {
-        m_UniformData.Color.r = red;
-        m_UniformData.Color.g = green;
-        m_UniformData.Color.b = blue;
-        m_UniformData.Color.a = alpha;
+        m_VertexUniformData.Color.r = red;
+        m_VertexUniformData.Color.g = green;
+        m_VertexUniformData.Color.b = blue;
+        m_VertexUniformData.Color.a = alpha;
     }
 }

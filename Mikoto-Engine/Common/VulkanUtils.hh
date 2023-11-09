@@ -29,14 +29,14 @@ namespace Mikoto {
         VmaAllocationCreateInfo AllocationCreateInfo{};
 
         // True if the allocation was mapped, false otherwise.
-        // Allocation must unmapped before destruction.
+        // Allocation must be unmapped before destruction.
         bool IsMapped{};
     };
 
     struct ImageAllocateInfo {
         VkImage Image{};
-        VkImageCreateInfo ImageCreateInfo{};
         VmaAllocation Allocation{};
+        VkImageCreateInfo ImageCreateInfo{};
         VmaAllocationCreateInfo AllocationCreateInfo{};
     };
 
@@ -44,6 +44,18 @@ namespace Mikoto {
         VkSurfaceCapabilitiesKHR Capabilities{};
         std::vector<VkSurfaceFormatKHR> Formats{};
         std::vector<VkPresentModeKHR> PresentModes{};
+    };
+
+
+    struct FramebufferAttachmentCreateInfo {
+        UInt32_T Width{};
+        UInt32_T Height{};
+        UInt32_T LayerCount{};
+
+        VkFormat Format{};
+
+        VkImageUsageFlags Usage{};
+        VkSampleCountFlagBits ImageSampleCount{ VK_SAMPLE_COUNT_1_BIT };
     };
 
     /**

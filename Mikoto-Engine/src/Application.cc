@@ -18,6 +18,7 @@
 #include <Core/Application.hh>
 #include <Core/TimeManager.hh>
 #include <Core/EventManager.hh>
+#include <Core/FileManager.hh>
 
 #include <Assets/AssetsManager.hh>
 
@@ -26,7 +27,6 @@
 #include <Platform/GlfwWindow.hh>
 #include <Platform/InputManager.hh>
 
-#include <Renderer/Renderer.hh>
 #include <Renderer/RenderContext.hh>
 
 #include <Scene/SceneManager.hh>
@@ -37,6 +37,9 @@ namespace Mikoto {
     auto Application::Init(AppSpec&& appSpec) -> void {
         // Initialize the time manager
         TimeManager::Init();
+
+        // Set the assets root path (this path contains import files like shaders, prefabs, etc)
+        FileManager::SetAssetsRootPath("../Assets");
 
         // Initialize workers
         TaskManager::Init();

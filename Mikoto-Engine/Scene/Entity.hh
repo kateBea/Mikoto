@@ -10,13 +10,14 @@
 #include <utility>
 
 // Third-Party Libraries
-#include "entt/entt.hpp"
+#include <entt/entt.hpp>
 
 // Project Headers
-#include "Common/Common.hh"
-#include "Component.hh"
-#include "Core/Logger.hh"
-#include "Scene.hh"
+#include <Common/Common.hh>
+
+#include <Core/Logger.hh>
+
+#include <Scene/Component.hh>
 
 namespace Mikoto {
     class Entity {
@@ -75,20 +76,12 @@ namespace Mikoto {
         }
 
         /**
-         * Tells if this entity is part of a given scene
-         * @returns true if this entity is part of a given scene, returns false otherwise
-         * */
-        MKT_NODISCARD auto BelongsTo(const Scene& scene) const -> bool {
-            return scene.m_Registry.valid(m_EntityHandle);
-        }
-
-        /**
          * Returns the component with specified type
          * @returns specified component
          * @tparam ComponentType type of the component to be looked for
          * */
         template<typename ComponentType>
-        auto GetComponent() -> decltype(auto) {
+        auto GetComponent() -> ComponentType& {
             return m_Registry->get<ComponentType>(m_EntityHandle);
         }
 
@@ -109,9 +102,10 @@ namespace Mikoto {
          * @tparam Args pack of types for the arguments required to initialize the new component
          * */
         template<typename ComponentType, typename... Args>
-        auto AddComponent(Args&&... args) -> decltype(auto) {
+        auto AddComponent(Args&&... args) -> ComponentType& {
             ComponentType& newComponent{ m_Registry->emplace_or_replace<ComponentType>(m_EntityHandle, std::forward<Args>(args)...) };
-            OnComponentAttach(newComponent);
+
+            newComponent.OnComponentAttach();
 
             return newComponent;
         }
@@ -122,16 +116,12 @@ namespace Mikoto {
          * */
         template<typename ComponentType>
         auto RemoveComponent() -> void {
-            OnComponentDetach(GetComponent<ComponentType>());
-            m_Registry->remove<ComponentType>(m_EntityHandle);
-        }
+            if ( !HasComponent<ComponentType>()) {
+                return;
+            }
 
-        /**
-         * Returns true if the entity is valid for a given Scene
-         * @returns true if this entity is valid within the given scene, false otherwise
-         * */
-        auto IsValidSceneEntity(const std::shared_ptr<Scene>& scene) -> bool {
-            return scene->m_Registry.valid(m_EntityHandle);
+            GetComponent<ComponentType>().OnComponentRemoved();
+            m_Registry->remove<ComponentType>(m_EntityHandle);
         }
 
         /**
@@ -157,13 +147,6 @@ namespace Mikoto {
         ~Entity() = default;
 
     private:
-        template<typename ComponentType>
-        auto OnComponentAttach(ComponentType& newComponent) -> void;
-
-        template<typename ComponentType>
-        auto OnComponentDetach(ComponentType& newComponent) -> void;
-
-    private:
         friend class Scene;
         friend class ScenePanel;
         friend class HierarchyPanel;
@@ -171,62 +154,8 @@ namespace Mikoto {
 
     private:
         entt::entity m_EntityHandle{ entt::null };
-        entt::registry* m_Registry{ nullptr };
+        entt::registry* m_Registry{ nullptr };  // TODO: change to a shared pointer
     };
-
-    template<typename ComponentType>
-    inline auto Entity::OnComponentAttach(ComponentType& newComponent) -> void {
-        static_assert("Invalid Component Type for OnComponentAttach");
-    }
-
-    template<>
-    inline auto Entity::OnComponentAttach<TagComponent>(TagComponent& newComponent) -> void {
-        MKT_CORE_LOGGER_INFO("Added new Tag Component");
-    }
-
-    template<>
-    inline auto Entity::OnComponentAttach<TransformComponent>(TransformComponent& newComponent) -> void {
-        MKT_CORE_LOGGER_INFO("Added new Transform Component");
-    }
-
-
-    template<>
-    inline auto Entity::OnComponentAttach<CameraComponent>(CameraComponent& newComponent) -> void {
-        MKT_CORE_LOGGER_INFO("Added new Camera Component");
-        //newComponent.GetCameraPtr()->SetViewportSize(scene->m_ViewportWidth, scene->m_ViewportHeight);
-    }
-
-    template<>
-    inline auto Entity::OnComponentAttach<NativeScriptComponent>(NativeScriptComponent& newComponent) -> void {
-        MKT_CORE_LOGGER_INFO("Removed new Native Script Component");
-    }
-
-    template<typename ComponentType>
-    inline auto Entity::OnComponentDetach(ComponentType& newComponent) -> void {
-        static_assert("Invalid Component Type for OnComponentDetach");
-    }
-
-    template<>
-    inline auto Entity::OnComponentDetach<TagComponent>(TagComponent& newComponent) -> void {
-        MKT_CORE_LOGGER_INFO("Removed Tag Component");
-    }
-
-    template<>
-    inline auto Entity::OnComponentDetach<TransformComponent>(TransformComponent& newComponent) -> void {
-        MKT_CORE_LOGGER_INFO("Removed Transform Component");
-    }
-
-    template<>
-    inline auto Entity::OnComponentDetach<CameraComponent>(CameraComponent& newComponent) -> void {
-        MKT_CORE_LOGGER_INFO("Removed Camera Component");
-        std::shared_ptr<Scene> ptr{};
-
-    }
-
-    template<>
-    inline auto Entity::OnComponentDetach<NativeScriptComponent>(NativeScriptComponent& newComponent) -> void {
-        MKT_CORE_LOGGER_INFO("Removed Native Script Component");
-    }
 }
 
 #endif // MIKOTO_ENTITY_HH

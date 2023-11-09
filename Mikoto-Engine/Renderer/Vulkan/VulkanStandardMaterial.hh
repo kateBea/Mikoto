@@ -36,19 +36,24 @@ namespace Mikoto {
         auto operator=(const VulkanStandardMaterial & other) -> VulkanStandardMaterial & = default;
         auto operator=(VulkanStandardMaterial && other) -> VulkanStandardMaterial & = default;
 
+
+        MKT_NODISCARD auto GetDiffuseMap() -> std::shared_ptr<VulkanTexture2D> { return m_DiffuseTexture; }
+
+
         auto UpdateDescriptorSets() -> void;
 
         /**
          * Sets the value of the projection and view matrix
          * @param projView new value for the the projection and view matrix
          * */
-        auto SetView(const glm::mat4& mat) -> void { m_UniformData.View = mat; }
-        auto SetProjection(const glm::mat4& mat) -> void { m_UniformData.Projection = mat; }
+        auto SetView(const glm::mat4& mat) -> void { m_VertexUniformData.View = mat; }
+        auto SetProjection(const glm::mat4& mat) -> void { m_VertexUniformData.Projection = mat; }
         /**
          * Sets the value of the transformation matrix
          * @param transform new value for the transformation matrix
          * */
         auto SetTransform(const glm::mat4& transform) -> void;
+
 
         auto SetTiltingColor(float red, float green, float blue, float alpha) -> void;
 
@@ -62,7 +67,18 @@ namespace Mikoto {
         MKT_NODISCARD static auto GetStandardMaterialName() -> std::string_view { return "StandardMaterial"; }
 
 
+
+        // Temporary for lights
+        auto SetLights( PointLight* lights, Size_T count) -> void;
+        auto SetViewPosition(const glm::vec4& pos) -> void { m_FragmentUniformLightsData.ViewPosition = pos; }
+
+        MKT_NODISCARD auto HasSpecularMap() const -> bool { return m_HasSpecular; }
+        MKT_NODISCARD auto HasDiffuseMap() const -> bool { return m_HasDiffuse; }
+
+
+
     private:
+        // stick to mat4s and vec4s for now for simplicity
         struct UniformBufferData {
             // Camera
             glm::mat4 View{};
@@ -71,24 +87,52 @@ namespace Mikoto {
             // Object
             glm::mat4 Transform{};
             glm::vec4 Color{};
+
+            // Lights
+            glm::vec4 LightPosition{};
+            glm::vec4 LightColor{};
+        };
+
+        struct LightsUniformData {
+            PointLight PointLights[5];
+
+            glm::vec4 ViewPosition{};
+
+            // Stores x=lights count, y=has diffuse, z=has specular, w=shininess
+            glm::vec4 LightMeta{};
         };
 
     private:
-        auto CreateUniformBuffer() -> void;
+        auto CreateUniformBuffers() -> void;
         auto CreateDescriptorPool() -> void;
         auto CreateDescriptorSet() -> void;
 
     private:
-        VulkanBuffer m_UniformBuffer{};
-        void* m_UniformBuffersMapped{};
+        // Vertex shader uniform buffer
+        VulkanBuffer m_VertexUniformBuffer{};
+        void* m_VertexUniformBuffersMapped{};
+        UniformBufferData m_VertexUniformData{};
 
+        // Fragment shader uniform buffer
+        VulkanBuffer m_FragmentUniformBuffer{};
+        void* m_FragmentUniformBuffersMapped{};
+        LightsUniformData m_FragmentUniformLightsData{};
+
+        // Descriptors
         VkDescriptorPool m_DescriptorPool{};
         VkDescriptorSet m_DescriptorSet{};
 
         std::shared_ptr<VulkanTexture2D> m_DiffuseTexture{};
+        std::shared_ptr<VulkanTexture2D> m_SpecularTexture{};
 
-        UniformBufferData m_UniformData{};
+
+        static inline std::shared_ptr<VulkanTexture2D> s_EmptyTexture{};
+
         Size_T m_UniformDataStructureSize{}; // size of the UniformBufferData structure, with required padding for the device
+        Size_T m_FragmentUniformDataStructureSize{}; // size of the UniformBufferData structure, with required padding for the device for fragment shader
+
+        bool m_HasDiffuse{ false };
+        bool m_HasSpecular{ false };
     };
 }
 

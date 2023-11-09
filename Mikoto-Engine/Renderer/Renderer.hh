@@ -133,6 +133,18 @@ namespace Mikoto {
          * */
         MKT_NODISCARD static auto GetRendererStatistics() -> const RendererStatistics&;
 
+
+
+
+        // Temporary API for light handling
+        static auto SetLightViewPos(const glm::vec4& viewPos) -> void;
+        static auto SetPointLightInfo( PointLight& info, Size_T index ) -> void;
+        static auto SetActiveLightsCount( Size_T count ) -> void { s_ActiveLightCount = count; }
+
+        static auto GetLights() -> std::array<PointLight, 5>& { return  s_Lights; }
+        static auto GetLightsView() -> const glm::vec4& { return  s_LightViewPos; }
+        static auto GetActiveLightsCount() -> Size_T { return  s_ActiveLightCount; }
+
     private:
 
         /**
@@ -151,6 +163,11 @@ namespace Mikoto {
 
         static inline RendererData                                  s_RendererData{};         /**< Information about renderer resources */
         static inline RendererStatistics                            s_Statistics{};           /**< Information about renderer resources' real-time usage */
+
+        // supporting only 10 lights atm
+        static inline Size_T s_ActiveLightCount{};
+        static inline glm::vec4 s_LightViewPos{};
+        static inline std::array<PointLight, 5> s_Lights{};
 
     };
 

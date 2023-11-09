@@ -105,19 +105,7 @@ namespace Mikoto {
          * */
         auto LoadImageData(const Path_T& path) -> void;
 
-        /**
-         * @brief Creates the Vulkan descriptor set for the texture.
-         */
-        auto CreateDescriptorSet() -> void;
-
-        /**
-         * @brief Creates the Vulkan descriptor pool if it doesn't exist.
-         */
-        static auto CreateDescriptorPool() -> void;
-
     private:
-        static inline VkDescriptorPool  s_DescriptorPool{};   /**< Vulkan descriptor pool for managing descriptor sets. */
-
         stbi_uc*                        m_TextureFileData{};  /**< Texture file data, represented in STB image format. */
         VkDeviceSize                    m_ImageSize{};        /**< Size of the image in Vulkan format. */
 

@@ -23,7 +23,7 @@ it will use OpenGL as its main rendering API, but the end goal is to integrate V
 - <b>Common:</b> Common development utilities, definitions of structures, data types, etc.
 - <b>Mikoto-Engine:</b> The core engine project which powers Mikoto Game Engine.
 - <b>Mikoto-Editor:</b> The editor project featuring the game scenes' editor.
-- <b>Mikoto-Runtime: A sample game showcasing the capabilities of Mikoto Game Engine.</b>
+- <b>Mikoto-Runtime:</b> A sample game showcasing the capabilities of Mikoto Game Engine.
 
 # Building
 

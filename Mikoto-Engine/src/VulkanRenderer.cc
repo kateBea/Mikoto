@@ -137,8 +137,8 @@ namespace Mikoto {
                             m_ActiveDefaultMaterial->SetProjection(drawObject.TransformData.Projection);
                             m_ActiveDefaultMaterial->SetView(drawObject.TransformData.View);
                             m_ActiveDefaultMaterial->SetTransform(drawObject.TransformData.Transform);
-                            m_ActiveDefaultMaterial->SetLights(Renderer::GetLights().data(), Renderer::GetActiveLightsCount());
-                            m_ActiveDefaultMaterial->SetViewPosition(Renderer::GetLightsView());
+                            m_ActiveDefaultMaterial->UpdateLightsInfo();
+
                             m_ActiveDefaultMaterial->UploadUniformBuffers();
 
                             pipeline = std::addressof(m_MaterialInfo[m_ActiveDefaultMaterial->GetName()].Pipeline);

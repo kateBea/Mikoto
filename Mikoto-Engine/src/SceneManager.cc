@@ -31,6 +31,19 @@ namespace Mikoto {
             it->second.Clear();
         }
 
+#if 0
+        // setup new scene
+        newScenePtr->AddPrefabObject("Floor", PrefabSceneObject::CUBE_PREFAB_OBJECT);
+
+        // directional light
+        auto directionalLight{ newScenePtr->AddEmptyObject("Directional light") };
+        directionalLight.AddComponent<LightComponent>();
+
+        // scene camera
+        auto mainCam{ newScenePtr->AddEmptyObject("Camera") };
+        mainCam.AddComponent<CameraComponent>(std::make_shared<SceneCamera>());
+#endif
+
         return *newScenePtr;
     }
 
@@ -52,10 +65,6 @@ namespace Mikoto {
 
     auto SceneManager::GetActiveScene() -> Scene& {
         return *Scene::GetActiveScene();
-    }
-
-    auto SceneManager::DestroyEntityFromScene(Scene& scene, Entity& entity) -> void {
-        scene.DestroyEntity(entity);
     }
 
     auto SceneManager::DestroyEntityFromCurrentlyActiveScene(Entity &entity) -> void {

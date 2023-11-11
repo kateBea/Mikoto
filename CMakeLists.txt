@@ -73,7 +73,8 @@ set(RENDERER_SOURCES
         Mikoto-Engine/src/VulkanImage.cc
         Mikoto-Engine/src/VulkanImage.cc
         Mikoto-Engine/src/VulkanBuffer.cc
-        Mikoto-Engine/src/DescriptorManager.cc)
+        Mikoto-Engine/src/DescriptorManager.cc
+        Mikoto-Engine/src/PhysicallyBasedMaterial.cc)
 
 set(IMGUI_SOURCES
         Third-Party/imgui/imgui.cpp

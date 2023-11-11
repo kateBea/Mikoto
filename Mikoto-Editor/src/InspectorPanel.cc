@@ -23,6 +23,8 @@
 #include <Assets/AssetsManager.hh>
 
 #include <Renderer/Renderer.hh>
+#include <Renderer/Material/DefaultMaterial.hh>
+#include <Renderer/Material/PhysicallyBasedMaterial.hh>
 #include <Renderer/Vulkan/VulkanStandardMaterial.hh>
 
 #include <Scene/Entity.hh>
@@ -763,7 +765,7 @@ namespace Mikoto {
                     AssetsManager::LoadModel(modelLoadInfo);
 
                     objData.ModelPath = modelPath;
-                    objData.ModelName = modelPath.stem();
+                    objData.ModelName = GetByteChar(modelPath.stem());
 
                     // Setup renderer component
                     component.GetObjectData().IsPrefab = false;
@@ -1020,30 +1022,64 @@ namespace Mikoto {
                 constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
 
                 if (ImGui::BeginTable("DirectionalLightEditTable", 2, tableFlags)) {
-                    // First row - first colum
+                    constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
+
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
-                    ImGui::TextUnformatted("Color");
+                    ImGui::TextUnformatted("Direction");
+
+                    ImGui::SameLine();
+
+                    HelpMarker("In the case of the fourth component having a value of 1.0f\n"
+                            "we do light calculations using the light's position instead\n"
+                            "which is the position of the game object.");
+
+                    ImGui::TableSetColumnIndex(1);
+
+                    glm::vec4 direction{ lightComponent.GetDirLightData().Direction };
+                    if (ImGui::DragFloat4("##DirectionalLightDirection", glm::value_ptr(direction), 0.1f, 0.0f, 512.0f, "%.2f")) {
+                        lightComponent.GetDirLightData().Direction = direction;
+                    }
                     if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
-                    // First row - second colum
-                    ImGui::TableSetColumnIndex(1);
-                    static constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
 
-                    glm::vec4 color{ lightComponent.GetColor() };
-                    if (ImGui::ColorEdit4("##Color", glm::value_ptr(color), colorEditFlags)) {
-                        lightComponent.SetColor(color);
-                    }
-
-                    // Second row - first colum
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
-                    ImGui::TextUnformatted("Intensity");
+                    ImGui::TextUnformatted("Ambient");
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
-                    // Second row - second colum
                     ImGui::TableSetColumnIndex(1);
-                    static float intensity{};
-                    ImGui::SliderFloat("##DirectionalLightIntensity", std::addressof(intensity), 0.0f, 1.0f);
+
+                    glm::vec4 ambient{ lightComponent.GetDirLightData().Ambient };
+                    if (ImGui::ColorEdit4("##DirectionalLightAmbient", glm::value_ptr(ambient), colorEditFlags)) {
+                        lightComponent.GetDirLightData().Ambient = ambient;
+                    }
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Diffuse");
+
+                    ImGui::TableSetColumnIndex(1);
+
+                    glm::vec4 diffuse{ lightComponent.GetDirLightData().Diffuse };
+                    if (ImGui::ColorEdit4("##DirectionalLightDiffuse", glm::value_ptr(diffuse), colorEditFlags)) {
+                        lightComponent.GetDirLightData().Diffuse = diffuse;
+                    }
+                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted("Specular");
+
+                    ImGui::TableSetColumnIndex(1);
+
+                    glm::vec4 specular{ lightComponent.GetDirLightData().Specular };
+                    if (ImGui::ColorEdit4("##DirectionalLightSpecular", glm::value_ptr(specular), colorEditFlags)) {
+                        lightComponent.GetDirLightData().Specular = specular;
+                    }
                     if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
                     // Third row - first colum
@@ -1121,7 +1157,7 @@ namespace Mikoto {
                         ImGui::TableSetColumnIndex(1);
 
                         float constant{ pointLightData.Components.x };
-                        if (ImGui::SliderFloat("##PointConstantComponent", std::addressof(constant), 0.0f, 1.0f)) {
+                        if (ImGui::SliderFloat("##PointConstantComponent", std::addressof(constant), 0.1f, 1.0f)) {
                             pointLightData.Components.x = constant;
                         }
 
@@ -1135,7 +1171,7 @@ namespace Mikoto {
                         ImGui::TableSetColumnIndex(1);
 
                         float linear{ pointLightData.Components.y };
-                        if (ImGui::SliderFloat("##PointLinearComponent", std::addressof(linear), 0.0f, 1.0f)) {
+                        if (ImGui::SliderFloat("##PointLinearComponent", std::addressof(linear), 0.0f, 2.0f)) {
                             pointLightData.Components.y = linear;
                         }
 
@@ -1154,89 +1190,10 @@ namespace Mikoto {
                         }
                     }
 
-                    // Second row - first colum
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex(0);
-                    ImGui::TextUnformatted("Intensity");
-
-                    // Second row - second colum
-                    ImGui::TableSetColumnIndex(1);
-                    static float intensity{};
-                    ImGui::SliderFloat("##PointLightIntensity", std::addressof(intensity), 0.0f, 1.0f);
                     if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
-
-                    // Third row - first colum
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex(0);
-                    ImGui::TextUnformatted("Range");
-
-                    // Third row - second colum
-                    ImGui::TableSetColumnIndex(1);
-                    float range{ pointLightData.Components.w };
-                    if (ImGui::SliderFloat("##PointLightRange", std::addressof(range), 1, 10.0f)) {
-                        pointLightData.Components.w = range;
-                    }
-
-                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
-
-                    // Fourth row - first colum
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex(0);
-                    ImGui::TextUnformatted("Fall-off");
 
                     // Fourth row - second colum
                     ImGui::TableSetColumnIndex(1);
-
-                    // TODO: review
-                    static Size_T index{};
-                    static constexpr std::array<std::string_view, 3> fallOffType{ "Constant", "Linear", "Square" };
-
-                    Size_T selectedFallOff{};
-                    if (ImGui::BeginCombo("##FallOffType", fallOffType[index].data())) {
-                        for (const auto& currentType : fallOffType) {
-                            bool isSelected{ currentType == fallOffType[index] };
-
-                            if (ImGui::Selectable(currentType.data(), isSelected)) {
-                                index = selectedFallOff;
-                            }
-
-                            if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
-
-                            if (isSelected) {
-                                ImGui::SetItemDefaultFocus();
-                            }
-
-                            ++selectedFallOff;
-                        }
-
-                        ImGui::EndCombo();
-                    }
-
-                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
-
-                    // Fifth row - first colum
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex(0);
-                    ImGui::TextUnformatted("Attenuation");
-
-                    // Fifth row - second colum
-                    ImGui::TableSetColumnIndex(1);
-                    static float attenuation{};
-                    ImGui::SliderFloat("##PointLightAttenuation", std::addressof(attenuation), 0.0f, 1.0f);
-                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
-
-                    // Fifth row - first colum
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex(0);
-                    ImGui::TextUnformatted("Shininess");
-
-                    // Fifth row - second colum
-                    ImGui::TableSetColumnIndex(1);
-                    float shininess{ };
-                    if (ImGui::SliderFloat("##PointLightShininess", std::addressof(shininess), 2.0f, 256.0f)) {
-
-                    }
-                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
                     // Sixth row - first colum
                     ImGui::TableNextRow();
@@ -1259,60 +1216,143 @@ namespace Mikoto {
                 constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
 
                 if (ImGui::BeginTable("SpotLightEditTable", 2, tableFlags)) {
-                    // First row - first colum
+                    auto& spotLightData{ lightComponent.GetSpotLightData() };
+
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
-                    ImGui::TextUnformatted("Color");
+                    ImGui::TextUnformatted("Direction");
+
+                    ImGui::SameLine();
+
+                    HelpMarker("The spot position is determined by the objects position.");
+
+                    ImGui::TableSetColumnIndex(1);
+
+                    glm::vec4 direction{ spotLightData.Direction };
+                    if (ImGui::DragFloat3("##SpotLightDirection", glm::value_ptr(direction), 0.01f, -1.0f, 1.0f, "%.2f")) {
+                        spotLightData.Direction = direction;
+                    }
                     if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
-                    // First row - second colum
-                    ImGui::TableSetColumnIndex(1);
-                    static constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
+                    // Constants
+                    {
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::TextUnformatted("Constant");
+                        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
-                    glm::vec4 color{ lightComponent.GetColor() };
-                    if (ImGui::ColorEdit4("##Color", glm::value_ptr(color), colorEditFlags)) {
-                        lightComponent.SetColor(color);
+                        ImGui::TableSetColumnIndex(1);
+
+                        float constant{ spotLightData.Components.x };
+                        if (ImGui::SliderFloat("##SpotConstantComponent", std::addressof(constant), 0.1f, 1.0f, "%.6f")) {
+                            spotLightData.Components.x = constant;
+                        }
+
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::TextUnformatted("Linear");
+                        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                        ImGui::TableSetColumnIndex(1);
+
+                        float linear{ spotLightData.Components.y };
+                        if (ImGui::SliderFloat("##SpotLinearComponent", std::addressof(linear), 0.0014f, 1.8f, "%.6f")) {
+                            spotLightData.Components.y = linear;
+                        }
+
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::TextUnformatted("Quadratic");
+                        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                        ImGui::TableSetColumnIndex(1);
+
+                        float quadratic{ spotLightData.Components.z };
+                        if (ImGui::SliderFloat("##SpotQuadraticComponent", std::addressof(quadratic), 0.000007f, 1.8f, "%.6f")) {
+                            spotLightData.Components.z = quadratic;
+                        }
                     }
 
-                    // Second row - first colum
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex(0);
-                    ImGui::TextUnformatted("Intensity");
+                    // Components
+                    {
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::TextUnformatted("Ambient");
 
-                    // Second row - second colum
-                    ImGui::TableSetColumnIndex(1);
-                    static float intensity{};
-                    ImGui::SliderFloat("##SpotLightIntensity", std::addressof(intensity), 0.0f, 1.0f);
-                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+                        ImGui::TableSetColumnIndex(1);
+                        static constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
 
-                    // Third row - first colum
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex(0);
-                    ImGui::TextUnformatted("Range");
+                        glm::vec4 ambientComponent{ spotLightData.Ambient };
+                        if (ImGui::ColorEdit3("##SpotAmbientComponent", glm::value_ptr( ambientComponent ), colorEditFlags)) {
+                            spotLightData.Ambient = ambientComponent;
+                        }
 
-                    // Third row - second colum
-                    ImGui::TableSetColumnIndex(1);
-                    static float range{};
-                    ImGui::SliderFloat("##SpotLightRange", std::addressof(range), 0.0f, 1.0f);
-                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::TextUnformatted("Diffuse");
+                        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
-                    // Fourth row - first colum
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex(0);
-                    ImGui::TextUnformatted("SpotRange");
+                        ImGui::TableSetColumnIndex(1);
 
-                    // Fourth row - second colum
-                    ImGui::TableSetColumnIndex(1);
-                    static float spotRange{};
-                    ImGui::SliderFloat("##SpotLightSpotRange", std::addressof(spotRange), 0.0f, 1.0f);
-                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+                        glm::vec4 diffuseComponent{ spotLightData.Diffuse };
+                        if (ImGui::ColorEdit3("##SpotDiffuseComponent", glm::value_ptr( diffuseComponent ), colorEditFlags)) {
+                            spotLightData.Diffuse = diffuseComponent;
+                        }
 
-                    // Fifth row - first colum
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::TextUnformatted("Specular");
+                        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                        ImGui::TableSetColumnIndex(1);
+
+                        glm::vec4 specularComponent{ spotLightData.Specular };
+                        if (ImGui::ColorEdit3("##SpotSpecularComponent", glm::value_ptr( specularComponent ), colorEditFlags)) {
+                            spotLightData.Specular = specularComponent;
+                        }
+                    }
+
+                    // angles
+                    {
+                        // Cut-off
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::TextUnformatted("Cut-off");
+
+                        ImGui::SameLine();
+                        HelpMarker("Angles in degrees");
+
+                        // Second row - second colum
+                        ImGui::TableSetColumnIndex(1);
+                        float cutOff{ glm::degrees(spotLightData.CutOffValues.x) };
+                        if (ImGui::SliderFloat("##SpotLightCutoff", std::addressof(cutOff), 0.0f, 360.0f, "%.1f")) {
+                            spotLightData.CutOffValues.x = glm::radians(cutOff);
+                        }
+
+                        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+
+                        //Outer cut-off
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::TextUnformatted("Outer cut-off");
+
+                        ImGui::SameLine();
+                        HelpMarker("Angles in degrees");
+
+                        // Second row - second colum
+                        ImGui::TableSetColumnIndex(1);
+                        float outerCutOff{ glm::degrees(spotLightData.CutOffValues.y) };
+                        if (ImGui::SliderFloat("##SpotLightOuterCutOff", std::addressof(outerCutOff), 0.0f, 360.0f, "%.1f")) {
+                            spotLightData.CutOffValues.y = glm::radians(outerCutOff);
+                        }
+                        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+                    }
+
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
                     ImGui::TextUnformatted("Cast shadows");
 
-                    // Fifth row - second colum
                     ImGui::TableSetColumnIndex(1);
                     static bool castShadows{};
                     ImGui::Checkbox("##SpotLightSahdows", std::addressof(castShadows));
@@ -1612,9 +1652,7 @@ namespace Mikoto {
             AddComponentButtonFor(currentlyActiveEntity);
 
             ImGui::Spacing();
-
             ImGui::Separator();
-
             ImGui::Spacing();
 
             DrawComponents();

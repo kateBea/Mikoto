@@ -27,6 +27,8 @@
 
 #include <Scene/Camera.hh>
 
+#define MAX_LIGHTS_PER_SCENE 5
+
 namespace Mikoto {
     /**
      * @brief Represents the specifications required to initialize the Renderer.
@@ -137,13 +139,30 @@ namespace Mikoto {
 
 
         // Temporary API for light handling
-        static auto SetLightViewPos(const glm::vec4& viewPos) -> void;
-        static auto SetPointLightInfo( PointLight& info, Size_T index ) -> void;
-        static auto SetActiveLightsCount( Size_T count ) -> void { s_ActiveLightCount = count; }
-
-        static auto GetLights() -> std::array<PointLight, 5>& { return  s_Lights; }
         static auto GetLightsView() -> const glm::vec4& { return  s_LightViewPos; }
-        static auto GetActiveLightsCount() -> Size_T { return  s_ActiveLightCount; }
+        static auto SetLightsViewPos(const glm::vec4& viewPos) -> void;
+
+        // Point
+        static auto SetPointLightInfo( PointLight& info, Size_T index ) -> void;
+        static auto SetActivePointLightsCount( Size_T count ) -> void { s_ActivePointLightCount = count; }
+
+        static auto GetPointLights() -> std::array<PointLight, 5>& { return s_PointLights; }
+        static auto GetActivePointLightsCount() -> Size_T { return s_ActivePointLightCount; }
+
+        // Directional light
+        static auto SetDirLightInfo( DirectionalLight& info, Size_T index ) -> void;
+        static auto SetActiveDirLightsCount( Size_T count ) -> void { s_ActiveDirLightCount = count; }
+
+        static auto GetDirLights() -> std::array<DirectionalLight, 5>& { return s_DirectionalLights; }
+        static auto GetActiveDirLightsCount() -> Size_T { return s_ActiveDirLightCount; }
+
+        // Spotlights
+        static auto SetSpotLightInfo( SpotLight& info, Size_T index ) -> void;
+        static auto SetActiveSpotLightsCount( Size_T count ) -> void { s_ActiveSpotLightCount = count; }
+
+        static auto GetSpotLights() -> std::array<SpotLight, 5>& { return s_SpotLights; }
+        static auto GetActiveSpotLightsCount() -> Size_T { return s_ActiveSpotLightCount; }
+
 
     private:
 
@@ -164,10 +183,20 @@ namespace Mikoto {
         static inline RendererData                                  s_RendererData{};         /**< Information about renderer resources */
         static inline RendererStatistics                            s_Statistics{};           /**< Information about renderer resources' real-time usage */
 
-        // supporting only 10 lights atm
-        static inline Size_T s_ActiveLightCount{};
+        // supporting only five lights atm
         static inline glm::vec4 s_LightViewPos{};
-        static inline std::array<PointLight, 5> s_Lights{};
+
+        // point
+        static inline Size_T s_ActivePointLightCount{};
+        static inline std::array<PointLight, MAX_LIGHTS_PER_SCENE> s_PointLights{};
+
+        // directional
+        static inline Size_T s_ActiveDirLightCount{};
+        static inline std::array<DirectionalLight, MAX_LIGHTS_PER_SCENE> s_DirectionalLights{};
+
+        // spot
+        static inline Size_T s_ActiveSpotLightCount{};
+        static inline std::array<SpotLight, MAX_LIGHTS_PER_SCENE> s_SpotLights{};
 
     };
 

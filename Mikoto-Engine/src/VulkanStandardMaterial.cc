@@ -13,13 +13,14 @@
 // Project Headers
 #include <Common/VulkanUtils.hh>
 
-#include "Renderer/Renderer.hh"
-#include "Renderer/Material/Shader.hh"
+#include <Core/FileManager.hh>
 
+#include <Renderer/Renderer.hh>
+#include <Renderer/Material/Shader.hh>
 #include <Renderer/Vulkan/DeletionQueue.hh>
-#include "Renderer/Vulkan/VulkanContext.hh"
-#include "Renderer/Vulkan/VulkanRenderer.hh"
-#include "Renderer/Vulkan/VulkanStandardMaterial.hh"
+#include <Renderer/Vulkan/VulkanContext.hh>
+#include <Renderer/Vulkan/VulkanRenderer.hh>
+#include <Renderer/Vulkan/VulkanStandardMaterial.hh>
 
 #define LIGHT_HAS_SPECULAR_MAP      1
 #define LIGHT_HAS_NO_SPECULAR_MAP   0
@@ -34,7 +35,7 @@ namespace Mikoto {
         // Create shared empty texture
         // is just a placeholder for when a mesh has no specific map
         if (!s_EmptyTexture) {
-            s_EmptyTexture = std::dynamic_pointer_cast<VulkanTexture2D>( Texture2D::Create( "../Assets/Icons/emptyTexture.png", MapType::TEXTURE_2D_DIFFUSE ) );
+            s_EmptyTexture = std::dynamic_pointer_cast<VulkanTexture2D>( Texture2D::Create( FileManager::GetAssetsRootPath() / "Icons/emptyTexture.png", MapType::TEXTURE_2D_DIFFUSE ) );
         }
 
         m_HasSpecular = spec.SpecularMap != nullptr;
@@ -225,14 +226,39 @@ namespace Mikoto {
         m_VertexUniformData.Transform = transform;
     }
 
-    auto VulkanStandardMaterial::SetLights( PointLight* lights, Size_T count) -> void {
-        Size_T index{};
+    auto VulkanStandardMaterial::UpdateLightsInfo() -> void {
+        m_FragmentUniformLightsData.ViewPosition = Renderer::GetLightsView();
 
-        for ( ; index < count; ++index) {
-            m_FragmentUniformLightsData.PointLights[index] = lights[index];
+        // [Upload point lights info]
+        Size_T index{};
+        const auto& pointLightsData{ Renderer::GetPointLights() };
+        const auto activePointLights{ Renderer::GetActivePointLightsCount() };
+        for ( ; index < activePointLights; ++index) {
+            m_FragmentUniformLightsData.PointLights[index] = pointLightsData[index];
         }
 
-        m_FragmentUniformLightsData.LightMeta.x = count;
+        // count of point lights
+        m_FragmentUniformLightsData.LightMeta.x = static_cast<float>(activePointLights);
+        m_FragmentUniformLightsData.LightTypesCount.y = static_cast<float>(activePointLights);
+
+
+        // [Upload directional light info]
+        const auto& dirLightsData{ Renderer::GetDirLights() };
+        const auto activeDirLights{ Renderer::GetActiveDirLightsCount() };
+        for (index = 0; index < activeDirLights; ++index) {
+            m_FragmentUniformLightsData.DirectionalLights[index] = dirLightsData[index];
+        }
+
+        m_FragmentUniformLightsData.LightTypesCount.x = static_cast<float>(activeDirLights);
+
+        // [Upload spotlight info]
+        const auto& spotLightsData{ Renderer::GetSpotLights() };
+        const auto activeSpotLights{ Renderer::GetActiveSpotLightsCount() };
+        for (index = 0; index < activeSpotLights; ++index) {
+            m_FragmentUniformLightsData.SpotLights[index] = spotLightsData[index];
+        }
+
+        m_FragmentUniformLightsData.LightTypesCount.z = static_cast<float>(activeSpotLights);
     }
 
     auto VulkanStandardMaterial::SetTiltingColor(float red, float green, float blue, float alpha) -> void {

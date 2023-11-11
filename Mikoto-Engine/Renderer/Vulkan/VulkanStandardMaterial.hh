@@ -69,8 +69,7 @@ namespace Mikoto {
 
 
         // Temporary for lights
-        auto SetLights( PointLight* lights, Size_T count) -> void;
-        auto SetViewPosition(const glm::vec4& pos) -> void { m_FragmentUniformLightsData.ViewPosition = pos; }
+        auto UpdateLightsInfo() -> void;
 
         MKT_NODISCARD auto HasSpecularMap() const -> bool { return m_HasSpecular; }
         MKT_NODISCARD auto HasDiffuseMap() const -> bool { return m_HasDiffuse; }
@@ -94,12 +93,18 @@ namespace Mikoto {
         };
 
         struct LightsUniformData {
+            SpotLight SpotLights[5];
             PointLight PointLights[5];
+            DirectionalLight DirectionalLights[5];
 
             glm::vec4 ViewPosition{};
 
             // Stores x=lights count, y=has diffuse, z=has specular, w=shininess
             glm::vec4 LightMeta{};
+
+            // holds count of each type of light
+            // x=dir, y=point, z=spot
+            glm::vec4 LightTypesCount{};
         };
 
     private:

@@ -249,7 +249,8 @@ namespace Mikoto {
         MKT_NODISCARD auto GetData() const -> const LightData&{ return m_Data; }
         MKT_NODISCARD auto GetData() -> LightData&{ return m_Data; }
 
-        // temporary
+        MKT_NODISCARD auto GetDirLightData() -> DirectionalLight& { return m_Data.DireLightData; }
+        MKT_NODISCARD auto GetSpotLightData() -> SpotLight& { return m_Data.SpotLightData; }
         MKT_NODISCARD auto GetPointLightData() -> PointLight& { return m_Data.PointLightDat; }
 
         MKT_NODISCARD auto IsActive() const -> bool { return m_Active; }
@@ -335,7 +336,7 @@ namespace Mikoto {
 
     class CameraComponent : public BaseComponent<CameraComponent> {
     public:
-        explicit CameraComponent(std::shared_ptr<SceneCamera> camera = nullptr, bool mainCam = true, bool fixedAspectRation = false)
+        explicit CameraComponent(std::shared_ptr<SceneCamera> camera, bool mainCam = true, bool fixedAspectRation = false)
             :   m_Camera{ camera ? std::make_shared<SceneCamera>() : std::move(camera) }, m_MainCam{ mainCam }, m_FixedAspectRatio{ fixedAspectRation }
         {
             // This should not assert. Just a temporary sanity check

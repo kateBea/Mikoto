@@ -4,19 +4,26 @@ it will use OpenGL as its main rendering API, but the end goal is to integrate V
 
 ![Mikoto Engine](Assets/image/img14.png)
 
-# Implemented features
+# Features
+- Blinn-Phong lighting
+- Entity component system
+- Model loading
+- Image loading
+- Game object serialization (WIP)
 
 # Supported platforms
 
+- Linux
+- Windows (WIP)
+
 # Requirements
-<h3>Software Requirements:</h3>
-<ol type="1">
-  <li>CMake 3.21 (This is what the project uses, but an earlier version is most likely to work)</li>
-  <li>A compiler capable of C++20 (G++ 12.3.0 was used for the tests)</li>
-  <li>The Vulkan SDK</li>
-  <li>OpenGL library</li>
-  <li>GLSL-C (The glsl compiler). This one is optional as there's precompiled binaries.</li>
-</ol>
+- Software Requirements
+  - CMake 3.21 (This is what the project uses, but an earlier version is most likely to work)
+  - A compiler capable of C++20 (G++ 12.3.0 was used for the tests)
+  - The Vulkan SDK
+  - OpenGL library
+  - GLSL-C (The glsl compiler). This one is optional as there's precompiled binaries.
+
 
 # Folder structure
 - <b>Assets:</b> Contains core engine/editor utilities, prefabs, and essential assets such as shaders.
@@ -51,7 +58,7 @@ the CMake as a project and build just fine. The following steps just show how to
   # Finally build the project
   cmake --build . --config Release
   
-  # and run the executable (if on Linux, the executable should be in build folder)
+  # and run the executable (on Linux, the executable should be in build folder)
   ./Mikoto
 ```
 

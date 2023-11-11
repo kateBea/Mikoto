@@ -154,66 +154,59 @@ namespace Mikoto {
         ScenePrepareData prepareData{};
         prepareData.StaticCamera = std::addressof(camera);
 
-        Renderer::BeginScene(prepareData);
+        Renderer::BeginScene( prepareData );
 
+        // Setup lighting information
+        Size_T dirIndexCount{};
+        Size_T spotIndexCount{};
+        Size_T pointIndexCount{};
+        Renderer::SetLightsViewPos( glm::vec4{ camera.GetPosition(), 1.0f } );
+        for ( auto& lightSource: m_Registry.view<LightComponent>() ) {
+            LightComponent& lightComponent{ m_Registry.get<LightComponent>( lightSource ) };
 
-        // If the scene has no lights
-        if (m_Registry.view<LightComponent>().empty()) {
-            auto view{ m_Registry.view<TagComponent, TransformComponent, RenderComponent, MaterialComponent>() };
+            switch ( lightComponent.GetType() ) {
+                case LightType::DIRECTIONAL_LIGHT_TYPE:
+                    lightComponent.GetDirLightData().Position = glm::vec4{ m_Registry.get<TransformComponent>( lightSource ).GetTranslation(), 1.0f };
 
-            for (auto& sceneObject : view) {
-                TagComponent& tag{ view.get<TagComponent>(sceneObject) };
-                TransformComponent& transform{ view.get<TransformComponent>(sceneObject) };
-                RenderComponent& renderComponent{ view.get<RenderComponent>(sceneObject) };
-                MaterialComponent& material{ view.get<MaterialComponent>(sceneObject) };
+                    Renderer::SetDirLightInfo( lightComponent.GetDirLightData(), dirIndexCount++ );
+                    break;
+                case LightType::POINT_LIGHT_TYPE:
+                    lightComponent.GetPointLightData().Position = glm::vec4{ m_Registry.get<TransformComponent>( lightSource ).GetTranslation(), 1.0f };
 
-                SceneObjectData& objectData{ renderComponent.GetObjectData() };
-                objectData.Color = material.GetColor();
+                    Renderer::SetPointLightInfo( lightComponent.GetPointLightData(), pointIndexCount++ );
+                    break;
+                case LightType::SPOT_LIGHT_TYPE:
+                    lightComponent.GetSpotLightData().Position = glm::vec4{ m_Registry.get<TransformComponent>( lightSource ).GetTranslation(), 1.0f };
 
-                if (tag.IsVisible() && !objectData.MeshMeta.empty()) {
-                    Renderer::Submit(objectData, transform.GetTransform());
-                }
+                    Renderer::SetSpotLightInfo( lightComponent.GetSpotLightData(), spotIndexCount++ );
+                    break;
             }
 
-            Renderer::SetActiveLightsCount(0);
-
-            Renderer::Flush();
-            Renderer::EndScene();
+            // To real time update the lights in the scene
+            Renderer::SetActivePointLightsCount( pointIndexCount );
+            Renderer::SetActiveDirLightsCount( dirIndexCount );
+            Renderer::SetActiveSpotLightsCount( spotIndexCount );
         }
-        else {
-            // Forward render lights.
-            Size_T index{};
-            Renderer::SetLightViewPos(glm::vec4{ camera.GetPosition(), 1.0f });
 
-            for (auto& lightSource : m_Registry.view<LightComponent>()) {
-                LightComponent& lightComponent{ m_Registry.get<LightComponent>(lightSource) };
+        // Push meshes to render queue
+        auto view{ m_Registry.view<TagComponent, TransformComponent, RenderComponent, MaterialComponent>() };
+        for ( auto& sceneObject: view ) {
+            TagComponent& tag{ view.get<TagComponent>( sceneObject ) };
+            TransformComponent& transform{ view.get<TransformComponent>( sceneObject ) };
+            RenderComponent& renderComponent{ view.get<RenderComponent>( sceneObject ) };
+            MaterialComponent& material{ view.get<MaterialComponent>( sceneObject ) };
 
+            SceneObjectData& objectData{ renderComponent.GetObjectData() };
+            objectData.Color = material.GetColor();
 
-                // Compute light affecting each game object
-                auto view{ m_Registry.view<TagComponent, TransformComponent, RenderComponent, MaterialComponent>() };
-                for (auto& sceneObject : view) {
-                    TagComponent& tag{ view.get<TagComponent>(sceneObject) };
-                    TransformComponent& transform{ view.get<TransformComponent>(sceneObject) };
-                    RenderComponent& renderComponent{ view.get<RenderComponent>(sceneObject) };
-                    MaterialComponent& material{ view.get<MaterialComponent>(sceneObject) };
-
-                    SceneObjectData& objectData{ renderComponent.GetObjectData() };
-                    objectData.Color = material.GetColor();
-
-                    lightComponent.GetPointLightData().Position = glm::vec4{ m_Registry.get<TransformComponent>(lightSource).GetTranslation(), 1.0f };
-                    Renderer::SetPointLightInfo( lightComponent.GetPointLightData(), index );
-
-                    if (tag.IsVisible() && !objectData.MeshMeta.empty()) {
-                        Renderer::Submit(objectData, transform.GetTransform());
-                    }
-                }
-
-                Renderer::SetActiveLightsCount(++index);
+            if ( tag.IsVisible() && !objectData.MeshMeta.empty() ) {
+                Renderer::Submit( objectData, transform.GetTransform() );
             }
-
-            Renderer::Flush();
-            Renderer::EndScene();
         }
+
+        Renderer::EndScene();
+
+        Renderer::Flush();
     }
 
     auto Scene::UpdateScripts() -> void {
@@ -285,5 +278,7 @@ namespace Mikoto {
         }
 
         m_MetaData.ActiveLightCount = m_MetaData.DirActiveLightCount + m_MetaData.PointActiveLightCount + m_MetaData.SpotActiveLightCount;
+
+        return m_MetaData;
     }
 }

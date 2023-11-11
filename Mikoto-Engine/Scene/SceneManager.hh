@@ -27,6 +27,7 @@ namespace Mikoto {
     public:
         static auto Init() -> void;
 
+        // will make it so that it sets the scene as active
         static auto MakeNewScene(std::string_view name) -> Scene &;
 
         /**
@@ -84,15 +85,6 @@ namespace Mikoto {
         static auto ForEachWithComponents(const std::function<void(Entity&)>& task) -> void {
             ForEachWithComponentsOnScene<ComponentTypes...>(GetActiveScene(), task);
         }
-
-        /**
-         * Destroys the given entity from the given scene. After this operation
-         * entity is no longer valid for the the given scene and all of the entities
-         * resources are released.
-         * @param scene scene from which we have to remove the entity
-         * @param entity entity to be removed
-         * */
-        static auto DestroyEntityFromScene(Scene& scene, Entity& entity) -> void;
 
         /**
          * Same as DestroyEntityFromScene(Scene&, Entity&) but the scene provided

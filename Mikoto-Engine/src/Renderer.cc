@@ -119,11 +119,19 @@ namespace Mikoto {
         }
     }
 
-    auto Renderer::SetLightViewPos( const glm::vec4& viewPos ) -> void {
+    auto Renderer::SetLightsViewPos( const glm::vec4& viewPos ) -> void {
         s_LightViewPos = viewPos;
     }
 
     auto Renderer::SetPointLightInfo( PointLight& info, Size_T index ) -> void {
-        s_Lights[index] = info;
+        s_PointLights[index] = info;
+    }
+
+    auto Renderer::SetDirLightInfo( DirectionalLight& info, Size_T index ) -> void {
+        s_DirectionalLights[index] = info;
+    }
+
+    auto Renderer::SetSpotLightInfo( SpotLight& info, Size_T index ) -> void {
+        s_SpotLights[index] = info;
     }
 }

@@ -39,9 +39,55 @@ namespace Mikoto {
         // Ground
         auto result{ AddEntityToScene(*newScenePtr, entityCreateInfo) };
         TransformComponent& transformComponent{ result.GetComponent<TransformComponent>() };
-        MaterialComponent& materialComponent{ result.GetComponent<MaterialComponent>() };
         transformComponent.SetScale( { 10.0f, 0.2f, 10.0f } );
         transformComponent.SetTranslation( { 0.0f, -5.0f, 1.0f } );
+
+        // Sphere
+        entityCreateInfo.Name = "Sphere";
+        entityCreateInfo.IsPrefab = true;
+        entityCreateInfo.PrefabType = PrefabSceneObject::SPHERE_PREFAB_OBJECT;
+        auto sphere{ AddEntityToScene(*newScenePtr, entityCreateInfo) };
+        TransformComponent& sphereTransformComponent{ sphere.GetComponent<TransformComponent>() };
+        sphereTransformComponent.SetScale( { 0.2f, 0.2f, 0.2f } );
+        sphereTransformComponent.SetTranslation( { 0.0f, 0.0f, 8.0f } );
+
+        auto& sphereRenderData{ sphere.GetComponent<RenderComponent>().GetObjectData() };
+
+        for (auto& mesh : sphereRenderData.ObjectModel->GetMeshes()) {
+            mesh.GetMaterialList().clear();
+
+            PBRMaterialCreateSpec spec{};
+            for (auto& texture : mesh.GetTextures()) {
+                switch ( texture->GetType() ) {
+                    case MapType::TEXTURE_2D_DIFFUSE:
+                        spec.AlbedoMap = texture;
+                        break;
+
+                    case MapType::TEXTURE_2D_NORMAL:
+                        spec.NormalMap = texture;
+                        break;
+
+                    case MapType::TEXTURE_2D_ROUGHNESS:
+                        spec.RoughnessMap = texture;
+                        break;
+
+                    case MapType::TEXTURE_2D_METALLIC:
+                        spec.MetallicMap = texture;
+                        break;
+
+                    case MapType::TEXTURE_2D_AMBIENT_OCCLUSION:
+                        spec.AlbedoMap = texture;
+                        break;
+
+                    case MapType::TEXTURE_2D_COUNT:
+                    case MapType::TEXTURE_2D_INVALID:
+                        MKT_CORE_LOGGER_WARN("Unknown type of texture");
+                        break;
+                }
+            }
+
+            mesh.AddMaterial(Material::CreatePBRMaterial(spec));
+        }
 
 
         // directional light

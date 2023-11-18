@@ -62,6 +62,11 @@ namespace Mikoto {
         CreatePrimaryLogicalDeviceCommandPools();
         CreatePrimaryLogicalDeviceCommandBuffers();
         CreateSynchronizationPrimitives();
+
+#if !defined(NDEBUG)
+        // show some device relevant info
+        MKT_CORE_LOGGER_INFO("maxUniformBufferRange for primary device is {} bytes", VulkanContext::GetPrimaryLogicalDeviceProperties().limits.maxUniformBufferRange);
+#endif
     }
 
     auto VulkanContext::Shutdown() -> void {

@@ -13,6 +13,7 @@
 #include "Renderer/Material/Material.hh"
 #include "Renderer/OpenGL/OpenGLDefaultMaterial.hh"
 #include "Renderer/Vulkan/VulkanStandardMaterial.hh"
+#include "Renderer/Vulkan/VulkanPBRMaterial.hh"
 
 namespace Mikoto {
 
@@ -20,6 +21,14 @@ namespace Mikoto {
         switch (Renderer::GetActiveGraphicsAPI()) {
             case GraphicsAPI::VULKAN_API: return std::make_shared<VulkanStandardMaterial>(spec);
             case GraphicsAPI::OPENGL_API: return std::make_shared<OpenGLDefaultMaterial>();
+        }
+    }
+    auto Material::CreatePBRMaterial( const PBRMaterialCreateSpec& spec ) -> std::shared_ptr<Material> {
+        switch (Renderer::GetActiveGraphicsAPI()) {
+            case GraphicsAPI::VULKAN_API: return std::make_shared<VulkanPBRMaterial>(spec);
+            case GraphicsAPI::OPENGL_API:
+                MKT_CORE_LOGGER_WARN("PBR materials not supported for OpenGL for now");
+                return nullptr;
         }
     }
 }

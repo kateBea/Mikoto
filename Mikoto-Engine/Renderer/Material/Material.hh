@@ -22,10 +22,19 @@ namespace Mikoto {
         std::shared_ptr<Texture2D> SpecularMap{ nullptr };
     };
 
+    struct PBRMaterialCreateSpec {
+        std::shared_ptr<Texture2D> AlbedoMap{ nullptr };
+        std::shared_ptr<Texture2D> NormalMap{ nullptr };
+        std::shared_ptr<Texture2D> MetallicMap{ nullptr };
+        std::shared_ptr<Texture2D> RoughnessMap{ nullptr };
+        std::shared_ptr<Texture2D> AmbientOcclusionMap{ nullptr };
+    };
+
     class Material {
     public:
         enum class Type {
             MATERIAL_TYPE_UNKNOWN,
+            MATERIAL_TYPE_PBR,
             MATERIAL_TYPE_STANDARD,
             COUNT,
         };
@@ -44,7 +53,10 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
         MKT_NODISCARD auto GetType() const -> Type { return m_Type; }
+        MKT_NODISCARD auto IsActive() const -> bool { return m_Apply; }
+
         auto SetName(std::string_view newName) -> void { m_Name = newName; }
+        auto SetActive(bool value) { m_Apply = value; }
 
         MKT_NODISCARD static constexpr auto GetTypeStr(Type type) -> std::string_view {
             switch(type) {
@@ -55,12 +67,15 @@ namespace Mikoto {
         }
 
         MKT_NODISCARD static auto CreateStandardMaterial(const DefaultMaterialCreateSpec& spec) -> std::shared_ptr<Material>;
+        MKT_NODISCARD static auto CreatePBRMaterial(const PBRMaterialCreateSpec& spec) -> std::shared_ptr<Material>;
 
         virtual ~Material() = default;
 
     private:
         Type m_Type{};
         std::string m_Name{};
+
+        bool m_Apply{ true };
     };
 }
 

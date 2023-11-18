@@ -36,6 +36,8 @@ namespace Mikoto {
          * */
         MKT_NODISCARD static auto GetModelPrefabByType(PrefabSceneObject type) -> const Model&;
 
+        MKT_NODISCARD static auto GetModifiableModelPrefabByType(PrefabSceneObject type) -> Model&;
+
         /**
          * @brief Retrieves the model by the given path and name.
          *
@@ -46,6 +48,8 @@ namespace Mikoto {
          * @return A pointer to the Model object found.
          * */
         MKT_NODISCARD static auto GetModel(const Path_T &modelPath) -> const Model *;
+
+        auto static GetModifiableModel(const Path_T& modelPath) -> Model *;
 
         /**
          * @brief Loads a model from the provided path.

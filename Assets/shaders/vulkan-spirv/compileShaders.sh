@@ -11,3 +11,7 @@ glslc -O -fshader-stage='vertex' DeferredVertexShader.glsl -o DeferredVertexShad
 glslc -O -fshader-stage='fragment' DeferredFragmentShader.glsl -o DeferredFragmentShader.sprv
 glslc -O -fshader-stage='vertex' MultipleRenderTargetsVert.glsl -o MultipleRenderTargetsVert.sprv
 glslc -O -fshader-stage='fragment' MultipleRenderTargetsFrag.glsl -o MultipleRenderTargetsFrag.sprv
+
+# PBR
+glslc -O -fshader-stage='vertex' PhysicallyBasedMatVertex.glsl -o PhysicallyBasedMatVertex.sprv
+glslc -O -fshader-stage='fragment' PhysicallyBasedMatFragment.glsl -o PhysicallyBasedMatFragment.sprv

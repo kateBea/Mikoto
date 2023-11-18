@@ -21,6 +21,9 @@ namespace Mikoto {
         TEXTURE_2D_SPECULAR,
         TEXTURE_2D_EMISSIVE,
         TEXTURE_2D_NORMAL,
+        TEXTURE_2D_ROUGHNESS,
+        TEXTURE_2D_METALLIC,
+        TEXTURE_2D_AMBIENT_OCCLUSION,
         TEXTURE_2D_COUNT,
     };
 

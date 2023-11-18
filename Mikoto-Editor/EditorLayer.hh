@@ -33,10 +33,12 @@ namespace Mikoto {
          * */
         auto OnAttach() -> void override;
 
+
         /**
          * @brief Performs cleanup for this layer
          * */
         auto OnDetach() -> void override;
+
 
         /**
          * @brief Updates the layer state. Must be called once per frame.
@@ -45,13 +47,16 @@ namespace Mikoto {
          * */
         auto OnUpdate(double ts) -> void override;
 
+
         /**
          * @brief Pushes ImGui draw items.
          * */
         auto PushImGuiDrawItems() -> void override;
 
+
     private:
         auto InitializePanels() -> void;
+
 
         /**
          * @breif Properly initializes and adds two cameras to the scene.
@@ -64,12 +69,13 @@ namespace Mikoto {
          * */
         auto InitializeSceneCameras() -> void;
 
+
     private:
-        // Cameras
+        // [Cameras]
         std::shared_ptr<SceneCamera> m_RuntimeCamera{};
         std::shared_ptr<EditorCamera> m_EditorCamera{};
 
-        // Panels
+        // [Panels]
         std::unique_ptr<ScenePanel> m_ScenePanel{};
         std::unique_ptr<StatsPanel> m_StatsPanel{};
         std::unique_ptr<ConsolePanel> m_ConsolePanel{};

@@ -15,8 +15,10 @@
 #include "volk.h"
 
 // Project Headers
-#include "ImGuiUtils.hh"
-#include "Renderer/Vulkan/VulkanCommandPool.hh"
+#include <GUI/ImGuiUtils.hh>
+#include <Renderer/Vulkan/VulkanImage.hh>
+#include <Renderer/Vulkan/VulkanFrameBuffer.hh>
+#include <Renderer/Vulkan/VulkanCommandPool.hh>
 
 namespace Mikoto {
     class ImGuiVulkanBackend : public BackendImplementation {
@@ -28,13 +30,27 @@ namespace Mikoto {
         auto EndFrame() -> void override;
 
     private:
-
+        auto PrepareForRender() -> void;
+        auto CreateRenderPass() -> void;
+        auto CreateImages() -> void;
+        auto CreateFrameBuffer() -> void;
         auto BuildCommandBuffers() -> void;
         auto RecordImGuiCommandBuffers(UInt32_T imageIndex) -> void;
 
+        auto DrawImGui( VkCommandBuffer cmd, VkImage currentSwapChainImage ) -> void;
     private:
         VkRenderPass m_ImGuiRenderPass{};
         VkDescriptorPool m_ImGuiDescriptorPool{};
+
+        VulkanImage m_ColorImage{};
+        VulkanImage m_DepthImage{};
+        VulkanFrameBuffer m_DrawFrameBuffer{};
+
+        VkFormat m_ColorAttachmentFormat{};
+        VkFormat m_DepthAttachmentFormat{};
+
+        VkExtent2D m_Extent2D{ 2560, 1440 };
+        VkExtent3D m_Extent3D{ 2560, 1440, 1 };
     };
 }
 

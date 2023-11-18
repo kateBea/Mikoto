@@ -207,9 +207,10 @@ namespace Mikoto {
 
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
         ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.0f, 0.0f, 0.0f, 0.0f });
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.16f, 0.16f, 0.16f, 0.5f });
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.0f, 0.0f, 0.0f, 0.0f });
 
+        // Directory buttons
         bool wantOpenDir{ false };
         auto pathIt{ m_DirectoryStack.begin() };
 

@@ -19,6 +19,7 @@ set(ASSIMP_CMAKE_DIR Third-Party/assimp)
 set(VMA_CMAKE_DIR Third-Party/VulkanMemoryAllocator)
 set(YAML_CMAKE_DIR Third-Party/yaml-cpp)
 set(NFD_CMAKE_DIR Third-Party/nativefiledialog-extended)
+set(JSON_CMAKE_DIR Third-Party/json)
 
 # Projects source files
 set(CORE_SOURCES
@@ -74,7 +75,8 @@ set(RENDERER_SOURCES
         Mikoto-Engine/src/VulkanImage.cc
         Mikoto-Engine/src/VulkanBuffer.cc
         Mikoto-Engine/src/DescriptorManager.cc
-        Mikoto-Engine/src/PhysicallyBasedMaterial.cc)
+        Mikoto-Engine/src/PhysicallyBasedMaterial.cc
+        Mikoto-Engine/src/VulkanPBRMaterial.cc)
 
 set(IMGUI_SOURCES
         Third-Party/imgui/imgui.cpp
@@ -90,7 +92,9 @@ set(EDITOR_SOURCES
         Mikoto-Editor/src/Editor.cc Mikoto-Editor/src/HierarchyPanel.cc Mikoto-Editor/src/InspectorPanel.cc Mikoto-Editor/src/SettingsPanel.cc Mikoto-Editor/src/ScenePanel.cc Mikoto-Editor/src/StatsPanel.cc
         Mikoto-Editor/src/ConsolePanel.cc
         Mikoto-Editor/src/ConsoleManager.cc
-        Mikoto-Engine/src/RendererPanel.cc)
+        Mikoto-Engine/src/RendererPanel.cc
+        Mikoto-Editor/src/AssetsManagerPanel.cc
+        Mikoto-Editor/src/MaterialEditorPanel.cc)
 
 set(SCENE_SOURCES
         Mikoto-Engine/src/Scene.cc Mikoto-Engine/src/SceneCamera.cc
@@ -119,7 +123,8 @@ set(SOURCES
         Mikoto-Engine/src/ImGuiOpenGLBackend.cc
         Mikoto-Engine/src/EventManager.cc
         Mikoto-Editor/src/ContentBrowserPanel.cc
-        Mikoto-Editor/Panels/ContentBrowserPanel.hh)
+        Mikoto-Editor/Panels/ContentBrowserPanel.hh
+        Mikoto-Runtime/src/Sandbox.cc)
 
 # External dependencies
 add_subdirectory(${GLEW_CMAKE_DIR})
@@ -130,9 +135,10 @@ add_subdirectory(${VOLK_CMAKE_DIR})
 add_subdirectory(${ASSIMP_CMAKE_DIR})
 add_subdirectory(${YAML_CMAKE_DIR})
 add_subdirectory(${NFD_CMAKE_DIR})
+add_subdirectory(${JSON_CMAKE_DIR})
 
 # Libraries to link against target
-set(LIBRARIES glfw glew_s fmt EnTT::EnTT volk assimp yaml-cpp nfd)
+set(LIBRARIES glfw glew_s fmt EnTT::EnTT volk assimp yaml-cpp nfd nlohmann_json::nlohmann_json)
 
 # for tests only. -ltbb was required to use std::execution::par on linux
 # set(LIBRARIES glfw glew_s fmt EnTT::EnTT volk assimp yaml-cpp nfd tbb)

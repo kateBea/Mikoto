@@ -18,40 +18,31 @@
 #include <Common/Common.hh>
 #include <Common/StringUtils.hh>
 
-#include <Core/Serializer.hh>
+#include <Core/FileManager.hh>
 
 #include <Assets/AssetsManager.hh>
-
-#include <Renderer/Renderer.hh>
-#include <Renderer/Material/DefaultMaterial.hh>
-#include <Renderer/Material/PhysicallyBasedMaterial.hh>
-#include <Renderer/Vulkan/VulkanStandardMaterial.hh>
-
-#include <Scene/Entity.hh>
-#include <Scene/Component.hh>
-#include <Scene/SceneManager.hh>
-
-#include <Panels/InspectorPanel.hh>
 
 #include <GUI/ImGuiUtils.hh>
 #include <GUI/ImGuiManager.hh>
 #include <GUI/IconsMaterialDesign.h>
 
-namespace Mikoto {
-    static auto GetDiffuseMapFromStandardMaterial(Material& mat) -> Texture2D* {
-        switch (Renderer::GetActiveGraphicsAPI()) {
-            case GraphicsAPI::OPENGL_API: return nullptr;
-            case GraphicsAPI::VULKAN_API: return static_cast<VulkanStandardMaterial*>(std::addressof(mat))->GetDiffuseMap().get();
-        }
-    }
+#include <Panels/InspectorPanel.hh>
 
+#include <Renderer/Renderer.hh>
+#include <Renderer/Material/StandardMaterial.hh>
+#include <Renderer/Material/PhysicallyBasedMaterial.hh>
+
+#include <Scene/Entity.hh>
+#include <Scene/Component.hh>
+#include <Scene/SceneManager.hh>
+
+namespace Mikoto {
     template<LightType, typename UIFunc>
     static auto DrawLightTypeOptions(UIFunc&& func, LightComponent& lightComponent) -> void {
         func(lightComponent);
     }
 
     auto InspectorPanel::OpenMaterialEditor() -> void {
-        // Sanity check:
         // You only open this window if you have a material
         // since it is the only way to click on the button to edit one
         if (!m_TargetMaterialForMaterialEditor || !m_OpenMaterialEditor) {
@@ -73,7 +64,7 @@ namespace Mikoto {
             ImGui::PopFont();
 
             // For now, we are not loading the material textures, we have to retrieve this data from the currently selected mesh in the renderer component
-            Texture2D* texture2DAlbedo{ GetDiffuseMapFromStandardMaterial(*m_TargetMaterialForMaterialEditor) };
+            Texture2D* texture2DAlbedo{ std::dynamic_pointer_cast<StandardMaterial>(m_TargetMaterialForMaterialEditor)->GetDiffuseMap().get() };
             ImGuiUtils::PushImageButton(texture2DAlbedo, ImVec2{ 128, 128 });
 
             if (ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
@@ -200,181 +191,106 @@ namespace Mikoto {
         ImGui::End();
     }
 
-    auto InspectorPanel::MaterialComponentEditor(MaterialComponent& material) -> void {
-        constexpr ImGuiTableFlags matTableFlags{ ImGuiTableFlags_None };
 
-        for (auto& mat : material.GetMaterialList()) {
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Spacing();
-
+    static auto ShowTextureHoverTooltip(Texture2D* texture) -> void {
+        if (ImGui::IsItemHovered() && ImGui::BeginTooltip() /** && has albedo map, otherwise it display info about the */) {
             ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
 
-            ImGui::TextUnformatted("Material type: ");
+            ImGuiUtils::PushImageButton(texture, ImVec2{ 128, 128 });
 
             ImGui::SameLine();
 
-            ImGui::TextUnformatted(fmt::format("{}", Material::GetTypeStr(mat->GetType())).c_str());
+            // Table showings texture properties
+            constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
 
-            static char matName[1024]{};
-            ImGui::InputText("##MeshName", matName, std::size(matName));
+            if (ImGui::BeginTable("MaterialEditorDiffusePropertiesTable", 2, tableFlags)) {
+                // First row - first colum
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Dimensions");
 
-            ImGui::PopFont();
+                // First row - second colum
+                ImGui::TableSetColumnIndex(1);
+                UInt32_T width{ static_cast<UInt32_T>(texture->GetWidth()) };
+                UInt32_T height{ static_cast<UInt32_T>(texture->GetHeight()) };
+                ImGui::TextUnformatted(fmt::format("{} x {}", width, height).c_str());
 
-            ImGui::Spacing();
+                // Second row - first colum
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("Type");
 
-            // Display info for standard material
-            if (mat->GetType() == Material::Type::MATERIAL_TYPE_STANDARD) {
-                // Standard Material ----------------
+                // Second row - second colum
+                ImGui::TableSetColumnIndex(1);
+                ImGui::TextUnformatted(Texture2D::GetFileTypeStr(texture->GetFileType()).data());
 
-                // If mesh has standard material. That one requires a diffuse map and a specular map
-                ImGui::TextUnformatted(fmt::format("{}", ICON_MD_TEXTURE).c_str());
+                // Third row - first colum
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted("File size");
 
-                ImGui::SameLine();
+                // Third row - second colum
+                ImGui::TableSetColumnIndex(1);
+                ImGui::TextUnformatted(fmt::format("{:.2f} MB", texture->GetSize()).c_str());
 
-                ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
-                ImGui::TextUnformatted(" Albedo");
-                ImGui::PopFont();
-
-                // For now, we are not loading the material textures, we have to retrieve this data from the currently selected mesh in the renderer component
-                Texture2D* texture2DAlbedo{ GetDiffuseMapFromStandardMaterial(*mat) };
-                ImGuiUtils::PushImageButton(texture2DAlbedo, ImVec2{ 128, 128 });
-
-                if (ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
-                    ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
-
-                    ImGuiUtils::PushImageButton(texture2DAlbedo, ImVec2{ 256, 256 });
-
-                    ImGui::SameLine();
-
-                    // Table showings texture properties
-                    constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
-
-                    if (ImGui::BeginTable("MaterialEditorDiffusePropertiesTable", 2, tableFlags)) {
-                        // First row - first colum
-                        ImGui::TableNextRow();
-                        ImGui::TableSetColumnIndex(0);
-                        ImGui::TextUnformatted("Dimensions");
-
-                        // First row - second colum
-                        ImGui::TableSetColumnIndex(1);
-                        UInt32_T width{ static_cast<UInt32_T>(texture2DAlbedo->GetWidth()) };
-                        UInt32_T height{ static_cast<UInt32_T>(texture2DAlbedo->GetHeight()) };
-                        ImGui::TextUnformatted(fmt::format("{} x {}", width, height).c_str());
-
-                        // Second row - first colum
-                        ImGui::TableNextRow();
-                        ImGui::TableSetColumnIndex(0);
-                        ImGui::TextUnformatted("Type");
-
-                        // Second row - second colum
-                        ImGui::TableSetColumnIndex(1);
-                        ImGui::TextUnformatted(Texture2D::GetFileTypeStr(texture2DAlbedo->GetFileType()).data());
-
-                        // Third row - first colum
-                        ImGui::TableNextRow();
-                        ImGui::TableSetColumnIndex(0);
-                        ImGui::TextUnformatted("File size");
-
-                        // Third row - second colum
-                        ImGui::TableSetColumnIndex(1);
-                        ImGui::TextUnformatted(fmt::format("{:.2f} MB", texture2DAlbedo->GetSize()).c_str());
-
-                        ImGui::EndTable();
-                    }
-
-                    ImGui::PopFont();
-                    ImGui::EndTooltip();
-                }
-
-                if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
-
-                ImGui::SameLine();
-                // Table to control albedo mix color and ambient value
-                // Table has two rows and one colum
-                constexpr auto columnIndex{ 0 };
-
-                constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_None };
-                ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
-
-                if (ImGui::BeginTable("AlbedoEditContentsTable", 1, tableFlags)) {
-                    // First row
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex(columnIndex);
-
-                    static constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
-                    glm::vec4 color{ material.GetColor() };
-                    if (ImGui::ColorEdit4("Color", glm::value_ptr(color), colorEditFlags)) {
-                        material.SetColor(color);
-                    }
-
-                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
-
-                    // Second row
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex(columnIndex);
-                    static float mixing{};
-                    ImGui::SliderFloat("Mix", std::addressof(mixing), 0.0f, 1.0f);
-                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
-
-                    ImGui::EndTable();
-                }
-
-                ImGui::PopFont();
-
-                ImGui::Spacing();
-                ImGui::Separator();
-                ImGui::Spacing();
-
-                // Specular component ------------------
-
-                ImGui::Spacing();
-                ImGui::TextUnformatted(fmt::format("{}", ICON_MD_TEXTURE).c_str());
-
-                ImGui::SameLine();
-
-                ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
-                ImGui::TextUnformatted(" Specular");
-                ImGui::PopFont();
-                Texture2D* texture2DSpecular{ m_EmptyTexturePlaceHolder.get() };
-                ImGuiUtils::PushImageButton(texture2DSpecular, ImVec2{ 128, 128 });
-
-                if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
-
-                ImGui::SameLine();
-                // Table to control specular component
-                // Table has one row and one colum
-                constexpr auto columnCount{ 1 };
-                constexpr auto columnIndexSpecular{ 0 };
-
-                constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
-                ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
-
-                if (ImGui::BeginTable("SpecularEditContentsTable", columnCount, specularTableFlags)) {
-                    // First row
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex(columnIndexSpecular);
-                    static float strength{};
-                    ImGui::SliderFloat("Strength", std::addressof(strength), 0.0f, 32.0f);
-                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
-
-                    ImGui::EndTable();
-                }
-
-                ImGui::PopFont();
+                ImGui::EndTable();
             }
 
-            // Table to display a single material
+            ImGui::PopFont();
+            ImGui::EndTooltip();
+        }
+        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+    }
+
+
+    static auto EditStandardMaterial(StandardMaterial& standardMat) -> void {
+        static constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
+                                                           ImGuiTreeNodeFlags_AllowItemOverlap |
+                                                           ImGuiTreeNodeFlags_Framed |
+                                                           ImGuiTreeNodeFlags_SpanAvailWidth |
+                                                           ImGuiTreeNodeFlags_FramePadding };
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        if ( ImGui::TreeNodeEx( ( void* )"EditStandardMaterialDiffuseTreeNode", treeNodeFlags, "Diffuse" ) ) {
+            // We use the standard default font with FONT_ICON_FILE_NAME_MD font icons
+            // since the other fonts don't correctly display these icons
+            ImGui::TextUnformatted(fmt::format("{}", ICON_MD_TEXTURE).c_str());
+
+            ImGui::SameLine();
+
+            ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+            ImGui::TextUnformatted(" Albedo");
+            ImGui::PopFont();
+
+            Texture2D* diffuseMap{ standardMat.GetDiffuseMap().get() };
+            ImGuiUtils::PushImageButton(diffuseMap, ImVec2{ 128, 128 });
+            if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+            // Tooltip to display texture info
+            if (standardMat.HasDiffuseMap()) {
+                ShowTextureHoverTooltip(diffuseMap);
+            }
+
+            ImGui::SameLine();
+
+            // Table to control albedo mix color and ambient value
             // Table has two rows and one colum
             constexpr auto columnIndex{ 0 };
-            if (ImGui::BeginTable("AlbedoEditContentsTable", 1, matTableFlags)) {
+
+            constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_None };
+            ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+
+            if (ImGui::BeginTable("DiffuseEditContentsTable", 1, tableFlags)) {
                 // First row
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(columnIndex);
-                ImGui::Spacing();
-                if (ImGui::Button(fmt::format("{} Edit material", ICON_MD_EDIT_ATTRIBUTES).c_str())) {
-                    m_TargetMaterialForMaterialEditor = mat;
-                    m_OpenMaterialEditor = true;
+
+                static constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
+                glm::vec4 color{ standardMat.GetColor() };
+                if (ImGui::ColorEdit4("Color", glm::value_ptr(color), colorEditFlags)) {
+                    standardMat.SetColor(color);
                 }
 
                 if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
@@ -382,15 +298,271 @@ namespace Mikoto {
                 // Second row
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(columnIndex);
-                // TODO: handle properly
-                static bool useMaterial{ true };
-                ImGui::Checkbox("##UseMaterial", std::addressof(useMaterial));
+                static float mixing{ }; // mix between color and texture values
+                ImGui::SliderFloat("Mix", std::addressof(mixing), 0.0f, 1.0f);
                 if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
-                ImGui::SameLine();
-                ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
-                ImGui::TextUnformatted("Apply material");
-                ImGui::PopFont();
+                ImGui::EndTable();
+            }
+
+            ImGui::PopFont();
+
+            ImGui::TreePop();
+        }
+        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+        ImGui::Spacing();
+
+        if ( ImGui::TreeNodeEx( ( void* )"EditStandardMaterialSpecularTreeNode", treeNodeFlags, "Specular" ) ) {
+            ImGui::TextUnformatted(fmt::format("{}", ICON_MD_TEXTURE).c_str());
+
+            ImGui::SameLine();
+
+            ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+            ImGui::TextUnformatted(" Specular");
+            ImGui::PopFont();
+
+            Texture2D* specularMap{ standardMat.GetSpecularMap().get() };
+            ImGuiUtils::PushImageButton( specularMap, ImVec2{ 128, 128 });
+            if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+            // Tooltip to display texture info
+            if (standardMat.HasSpecularMap()) {
+                ShowTextureHoverTooltip(specularMap);
+            }
+
+            ImGui::SameLine();
+            // Table to control specular component
+            // Table has one row and one colum
+            constexpr auto columnCount{ 1 };
+            constexpr auto columnIndexSpecular{ 0 };
+
+            constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
+            ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+
+            if (ImGui::BeginTable("SpecularEditContentsTable", columnCount, specularTableFlags)) {
+                // First row
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(columnIndexSpecular);
+                static float strength{};
+                ImGui::SliderFloat("Strength", std::addressof(strength), 0.0f, 32.0f);
+                if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                ImGui::EndTable();
+            }
+
+            ImGui::PopFont();
+
+            ImGui::TreePop();
+        }
+        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+    }
+
+    static auto EditPBRMaterial(PhysicallyBasedMaterial& pbrMat) -> void {
+        static constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
+                                                           ImGuiTreeNodeFlags_AllowItemOverlap |
+                                                           ImGuiTreeNodeFlags_Framed |
+                                                           ImGuiTreeNodeFlags_SpanAvailWidth |
+                                                           ImGuiTreeNodeFlags_FramePadding };
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+
+        // albedo control
+        if (ImGui::TreeNodeEx((void*) pbrMat.GetAlbedoMap().get(), treeNodeFlags, "Albedo")) {
+            ImGuiUtils::PushImageButton(pbrMat.GetAlbedoMap().get(), ImVec2{ 128, 128 });
+            if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+            ImGui::SameLine();
+
+            // Table showings texture properties
+            constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
+
+            if (ImGui::BeginTable("PBRMatAlbedoEditTable", 2, tableFlags)) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                static bool applyAlbedoMap{ true };
+                if (ImGui::Checkbox("Apply", std::addressof(applyAlbedoMap))) {
+
+                }
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                static glm::vec3 albedoEdit{};
+                if (ImGui::ColorEdit3("Value", glm::value_ptr(albedoEdit))) {
+
+                }
+
+                ImGui::EndTable();
+            }
+
+            ImGui::TreePop();
+        }
+
+        // metallic control
+        if (ImGui::TreeNodeEx((void*) pbrMat.GetMetallic().get(), treeNodeFlags, "Metallic")) {
+            ImGuiUtils::PushImageButton(pbrMat.GetMetallic().get(), ImVec2{ 128, 128 });
+            if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+            ImGui::SameLine();
+
+            // Table showings texture properties
+            constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
+
+            if (ImGui::BeginTable("PBRMatMetalnessEditTable", 2, tableFlags)) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                static bool applyMetalMap{ true };
+                if (ImGui::Checkbox("Apply", std::addressof(applyMetalMap))) {
+
+                }
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                static float value{};
+                if (ImGui::SliderFloat("Metalness", std::addressof(value), 0.0f, 10.0f)) {
+
+                }
+
+                ImGui::EndTable();
+            }
+
+            ImGui::TreePop();
+        }
+
+        // roughness control
+        if (ImGui::TreeNodeEx((void*) pbrMat.GetRoughness().get(), treeNodeFlags, "Roughness")) {
+            ImGuiUtils::PushImageButton(pbrMat.GetRoughness().get(), ImVec2{ 128, 128 });
+            if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+            ImGui::SameLine();
+
+            // Table showings texture properties
+            constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
+
+            if (ImGui::BeginTable("PBRMatRoughnessEditTable", 2, tableFlags)) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                static bool applyRoughnessMap{ true };
+                if (ImGui::Checkbox("Apply", std::addressof(applyRoughnessMap))) {
+
+                }
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                static float value{};
+                if (ImGui::SliderFloat("Roughness", std::addressof(value), 0.0f, 10.0f)) {
+
+                }
+
+                ImGui::EndTable();
+            }
+
+            ImGui::TreePop();
+        }
+
+        // ao control
+        if (ImGui::TreeNodeEx((void*) pbrMat.GetAO().get(), treeNodeFlags, "Ambient Occlusion")) {
+            ImGuiUtils::PushImageButton(pbrMat.GetAO().get(), ImVec2{ 128, 128 });
+            if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+            ImGui::SameLine();
+
+            // Table showings texture properties
+            constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
+
+            if (ImGui::BeginTable("PBRMatAOEditTable", 2, tableFlags)) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                static bool applyAoMap{ true };
+                if (ImGui::Checkbox("Apply", std::addressof(applyAoMap))) {
+
+                }
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                static float value{};
+                if (ImGui::SliderFloat("Value", std::addressof(value), 0.0f, 10.0f)) {
+
+                }
+
+                ImGui::EndTable();
+            }
+
+            ImGui::TreePop();
+        }
+
+        ImGui::PopFont();
+    }
+
+    auto InspectorPanel::DrawMaterialComponentEditor( MaterialComponent& material ) -> void {
+        constexpr ImGuiTableFlags matTableFlags{ ImGuiTableFlags_None };
+
+        // For now a mesh only has one material, but here we
+        // assume it can have more displaying them in the inspector panel.
+        for ( auto& mat : material.GetTargetMesh()->GetMaterialList() ) {
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
+
+            ImGui::TextUnformatted( "Material type: " );
+
+            ImGui::SameLine();
+
+            ImGui::TextUnformatted( fmt::format( "{}", Material::GetTypeStr( mat->GetType() ) ).c_str() );
+
+            static char matName[1024]{};
+            if ( ImGui::InputText( "##MeshName", matName, std::size( matName ) ) ) {
+                // use matName
+            }
+
+            ImGui::PopFont();
+
+            ImGui::Spacing();
+
+            // Display info for standard material
+            if ( mat->GetType() == Material::Type::MATERIAL_TYPE_STANDARD ) {
+                EditStandardMaterial( *std::dynamic_pointer_cast<StandardMaterial>( mat ) );
+            }
+
+
+            if ( mat->GetType() == Material::Type::MATERIAL_TYPE_PBR ) {
+                EditPBRMaterial( *std::dynamic_pointer_cast<PhysicallyBasedMaterial>( mat ) );
+            }
+
+            // common
+            {
+                constexpr auto columnIndex{ 0 };
+                if ( ImGui::BeginTable( "EditTable", 1, matTableFlags ) ) {
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex( columnIndex );
+                    ImGui::Spacing();
+                    if ( ImGui::Button( fmt::format( "{} Edit material", ICON_MD_EDIT_ATTRIBUTES ).c_str() ) ) {
+                        m_TargetMaterialForMaterialEditor = mat;
+                        m_OpenMaterialEditor = true;
+                    }
+
+                    if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
+
+                    // Second row
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex( columnIndex );
+                    bool useMaterial{ mat->IsActive() };
+                    if ( ImGui::Checkbox( "##UseMaterial", std::addressof( useMaterial ) ) ) {
+                        mat->SetActive( useMaterial );
+                    }
+                    if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
+
+                    ImGui::SameLine();
+                    ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
+                    ImGui::TextUnformatted( "Apply material" );
+                    ImGui::PopFont();
+                }
 
                 ImGui::EndTable();
             }
@@ -401,17 +573,19 @@ namespace Mikoto {
 
 
     /**
-     * Adds a button to insert components to an entity. This button is only added
-     * if the parameter is a valid entity, does nothing otherwise
-     * @param entity entity to adds components on
+     * @brief Adds a button to insert components to an entity. This button is only added
+     * if the parameter is a valid entity, does nothing otherwise.
+     *
+     * @param entity Entity to adds components on.
      * */
-    static auto AddComponentButtonFor(Entity& entity) {
+    static auto DrawComponentButton(Entity& entity) {
         if (entity.IsValid()) {
             ImGui::SameLine();
             ImGui::PushItemWidth(-1.0f);
 
-            if (ImGui::Button("Add component"))
+            if (ImGui::Button("Add component")) {
                 ImGui::OpenPopup("AddComponentButtonPopup");
+            }
 
             if (ImGui::BeginPopup("AddComponentButtonPopup")) {
                 const bool menuItemSelected{ false };
@@ -465,11 +639,9 @@ namespace Mikoto {
     }
 
 
-
     static constexpr auto GetInspectorPanelName() -> std::string_view {
         return "Inspector";
     }
-
 
 
     InspectorPanel::InspectorPanel()
@@ -477,23 +649,18 @@ namespace Mikoto {
     {
         m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_ERROR_OUTLINE, GetInspectorPanelName());
 
-        m_EmptyTexturePlaceHolder = Texture2D::Create("../Assets/Icons/emptyTexture.png", MapType::TEXTURE_2D_DIFFUSE);
+        m_EmptyTexturePlaceHolder = Texture2D::Create(FileManager::Assets::GetRootPath() / "Icons/emptyTexture.png", MapType::TEXTURE_2D_DIFFUSE);
 
         if (!m_EmptyTexturePlaceHolder) {
             MKT_CORE_LOGGER_ERROR("Could not load empty texture placeholder for inspector channel!");
         }
 
-        m_EmptyMaterialPreviewPlaceHolder = Texture2D::Create("../Assets/Icons/PngItem_1004186.png", MapType::TEXTURE_2D_DIFFUSE);
+        m_EmptyMaterialPreviewPlaceHolder = Texture2D::Create(FileManager::Assets::GetRootPath() / "Icons/PngItem_1004186.png", MapType::TEXTURE_2D_DIFFUSE);
 
         if (!m_EmptyMaterialPreviewPlaceHolder) {
             MKT_CORE_LOGGER_ERROR("Could not load empty material texture placeholder for inspector channel!");
         }
-
-        for (Size_T count{}; count < REQUIRED_IDS; ++count) {
-            m_Guids.emplace_back();
-        }
     }
-
 
 
     static auto DrawVec3Transform(std::string_view label, glm::vec3& data, double resetValue = 0.0 , double columWidth = 100.0) {
@@ -582,7 +749,6 @@ namespace Mikoto {
     }
 
 
-
     template<typename ComponentType, typename UIFunction>
     static auto DrawComponent(std::string_view componentLabel, Entity& entity, UIFunction&& uiFunc, bool hasRemoveButton = true) {
         static constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
@@ -647,7 +813,6 @@ namespace Mikoto {
     }
 
 
-
     static auto DrawVisibilityCheckBox(Entity& entity) {
         if (!entity.IsValid()) {
             return;
@@ -663,9 +828,8 @@ namespace Mikoto {
     }
 
 
-
-    static auto DrawNameTextInput(Entity& entity) -> void {
-        if (!entity.IsValid()) {
+    static auto DrawNameTextInput( Entity& entity ) -> void {
+        if ( !entity.IsValid() ) {
             return;
         }
 
@@ -675,13 +839,12 @@ namespace Mikoto {
         // Input text to change target's name
         static constexpr ImGuiTextFlags flags{};
         char contextSelectionTagName[1024]{};
-        std::copy(tag.GetTag().begin(), tag.GetTag().end(), contextSelectionTagName);
+        std::copy( tag.GetTag().begin(), tag.GetTag().end(), contextSelectionTagName );
 
-        if (ImGui::InputText("##Tag", contextSelectionTagName, std::size(contextSelectionTagName), flags)) {
-            tag.SetTag(contextSelectionTagName);
+        if ( ImGui::InputText( "##DrawNameTextInputTag", contextSelectionTagName, std::size( contextSelectionTagName ), flags ) ) {
+            tag.SetTag( contextSelectionTagName );
         }
     }
-
 
 
     auto InspectorPanel::DrawComponents() -> void {
@@ -714,7 +877,6 @@ namespace Mikoto {
             auto& objData{ component.GetObjectData() };
 
             ImGui::Unindent();
-
             ImGui::Spacing();
 
             ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
@@ -730,7 +892,7 @@ namespace Mikoto {
             }
 
             if (!objData.ModelPath.empty() && !objData.ModelName.empty()) {
-                path = objData.ModelPath;
+                path = objData.ModelPath.string();
             }
 
             ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
@@ -744,7 +906,6 @@ namespace Mikoto {
             }
 
             if (ImGui::Button(fmt::format(" {} Load ", ICON_MD_SEARCH).c_str())) {
-                // prepare filters for the dialog
                 std::initializer_list<std::pair<std::string, std::string>> filters{
                     { "Model files", "obj, gltf, fbx" },
                     { "OBJ files", "obj" },
@@ -752,7 +913,7 @@ namespace Mikoto {
                     { "FBX files", "fbx" }
                 };
 
-                path = Serializer::OpenDialog(filters);
+                path = FileManager::OpenDialog(filters);
 
                 if (!path.empty()) {
                     const Path_T modelPath{ path };
@@ -772,31 +933,26 @@ namespace Mikoto {
                     component.GetObjectData().PrefabType = PrefabSceneObject::NO_PREFAB_OBJECT;
 
                     // Add a material for each one of the meshes of this model
-                    auto modelPtr{ AssetsManager::GetModel(modelPath) };
+                    auto modelPtr{ AssetsManager::GetModifiableModel(modelPath) };
 
                     for ( auto& mesh: modelPtr->GetMeshes() ) {
-                        // Emplace mesh metadata, mesh and material
-                        MeshMetaData meshMetaData{};
-                        meshMetaData.ModelMesh = std::addressof( mesh );
-
-                        // Diffuse map and specular map
-                        {
-                            DefaultMaterialCreateSpec spec{};
-                            for ( auto textureIt{ mesh.GetTextures().begin() }; textureIt != mesh.GetTextures().end(); ++textureIt ) {
-                                // we assume there is only one specular and one diffuse
-                                if ( ( *textureIt )->GetType() == MapType::TEXTURE_2D_DIFFUSE ) {
-                                    spec.DiffuseMap = *textureIt;
-                                }
-
-                                if ( ( *textureIt )->GetType() == MapType::TEXTURE_2D_SPECULAR ) {
-                                    spec.SpecularMap = *textureIt;
-                                }
+                        DefaultMaterialCreateSpec spec{};
+                        for (auto& texture : mesh.GetTextures()) {
+                            switch ( texture->GetType() ) {
+                                case MapType::TEXTURE_2D_DIFFUSE:
+                                    spec.DiffuseMap = texture;
+                                    break;
+                                case MapType::TEXTURE_2D_SPECULAR:
+                                    spec.SpecularMap = texture;
+                                    break;
                             }
-
-                            meshMetaData.MeshMaterial = Material::CreateStandardMaterial( spec );
-                            component.GetObjectData().MeshMeta.push_back( std::move( meshMetaData ) );
                         }
+
+                        mesh.AddMaterial(Material::CreateStandardMaterial(spec));
                     }
+
+                    objData.ObjectModel = modelPtr;
+
                 }
             }
 
@@ -809,7 +965,6 @@ namespace Mikoto {
                 ImGui::PopStyleVar();
             }
 
-
             ImGui::Spacing();
             ImGui::Separator();
             ImGui::Spacing();
@@ -819,191 +974,224 @@ namespace Mikoto {
 
             auto& renderData{ component.GetObjectData() };
 
+            if (renderData.ObjectModel) {
+                ImGui::Spacing();
 
-            ImGui::Spacing();
+                ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
 
+                ImGui::TextUnformatted("Mesh list");
 
-            ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+                ImGui::SameLine();
 
+                auto& meshList{ renderData.ObjectModel->GetMeshes() };
 
-            ImGui::TextUnformatted("Mesh list");
+                if (ImGui::BeginCombo("##MeshIndex", renderData.MeshSelectedIndex == SceneObjectData::NO_MESH_SELECTED_INDEX ? "No mesh selected" : fmt::format("Mesh {}", renderData.MeshSelectedIndex).c_str())) {
+                    // Every object that can be rendered is made out of meshes.
+                    // Each mesh has its own material and list of textures.
+                    // We can use this combo list to select the mesh we want its contents to be displayed.
+                    for (Int32_T meshIndex{}; meshIndex < (Int32_T)meshList.size(); ++meshIndex) {
+                        // Create a selectable combo item for each perspective
+                        if (ImGui::Selectable(fmt::format("Index {}", meshIndex).c_str(), meshIndex == renderData.MeshSelectedIndex)) {
 
-            ImGui::SameLine();
+                            renderData.MeshSelectedIndex = meshIndex;
+                        }
 
-            if (ImGui::BeginCombo("##MeshIndex", renderData.MeshSelectedIndex == SceneObjectData::NO_MESH_SELECTED_INDEX ? "No mesh selected yet" : fmt::format("mesh {}", renderData.MeshSelectedIndex).c_str())) {
+                        if (meshIndex == renderData.MeshSelectedIndex) {
+                            ImGui::SetItemDefaultFocus();
+                        }
 
-                // Every object that can be rendered is made out of meshes.
-                // Each mesh has its own material and list of textures.
-                // We can use this combo list to select the mesh we want its contents to be displayed
-                for (Int32_T meshIndex{}; meshIndex < (Int32_T)renderData.MeshMeta.size(); ++meshIndex) {
-                    // Create a selectable combo item for each perspective
-                    if (ImGui::Selectable(fmt::format("Index {}", meshIndex).c_str(), meshIndex == renderData.MeshSelectedIndex)) {
+                        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
-                        renderData.MeshSelectedIndex = meshIndex;
                     }
 
-                    if (meshIndex == renderData.MeshSelectedIndex) {
-                        ImGui::SetItemDefaultFocus();
+                    ImGui::EndCombo();
+                }
+
+                if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
+
+                ImGui::PopFont();
+
+                ImGui::Spacing();
+                ImGui::Spacing();
+
+                // Show the selected mesh contents
+                if ( renderData.MeshSelectedIndex != SceneObjectData::NO_MESH_SELECTED_INDEX ) {
+
+                    // Assumes we have one type of each map for a single mesh! A mesh cannot have more than one diffuse map, for example.
+                    Int32_T diffuseIndex{ -1 }, specularIndex{ -1 }, emmissiveIndex{ -1 }, normalIndex{ -1 }, roughnessIndex{ -1 }, metallicIndex{ -1 }, aoIndex{ -1 };
+                    const Mesh& mesh{ meshList[renderData.MeshSelectedIndex] };
+
+                    // Get the texture indices
+                    for (Int32_T index{ }; index < (Int32_T)mesh.GetTextures().size(); ++index) {
+                        switch (mesh.GetTextures()[index]->GetType()) {
+
+                            case MapType::TEXTURE_2D_DIFFUSE:
+                                diffuseIndex = index;
+                                break;
+
+                            case MapType::TEXTURE_2D_SPECULAR:
+                                specularIndex = index;
+                                break;
+
+                            case MapType::TEXTURE_2D_EMISSIVE:
+                                emmissiveIndex = index;
+                                break;
+
+                            case MapType::TEXTURE_2D_NORMAL:
+                                normalIndex = index;
+                                break;
+
+
+                            case MapType::TEXTURE_2D_ROUGHNESS:
+                                roughnessIndex = index;
+                                break;
+
+                            case MapType::TEXTURE_2D_METALLIC:
+                                metallicIndex = index;
+                                break;
+
+                            case MapType::TEXTURE_2D_AMBIENT_OCCLUSION:
+                                aoIndex = index;
+                                break;
+
+                            case MapType::TEXTURE_2D_INVALID:
+                            case MapType::TEXTURE_2D_COUNT:
+                                MKT_CORE_LOGGER_ERROR("Error type of texture not valid for displaying!");
+                                break;
+                        }
                     }
 
-                    if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
-                }
+                    auto displayMapInformation {
+                        [](const Texture2D* map, std::string_view mapName) -> void {
+                            ImGui::Spacing();
+                            ImGui::Separator();
+                            ImGui::Spacing();
 
-                ImGui::EndCombo();
-            }
-
-            if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
-
-
-            ImGui::PopFont();
-
-
-            ImGui::Spacing();
-            ImGui::Spacing();
-
-            // Show the selected mesh contents
-            if ( renderData.MeshSelectedIndex != SceneObjectData::NO_MESH_SELECTED_INDEX ) {
-
-                // Assumes we have one type of each map for a single mesh! A mesh cannot have more than one diffuse map, for example.
-                Int32_T diffuseIndex{ -1 }, specularIndex{ -1 }, emmissiveIndex{ -1 }, normalIndex{ -1 };
-                const Mesh& mesh{ *renderData.MeshMeta[renderData.MeshSelectedIndex].ModelMesh };
-
-                // Get the texture indices
-                for (Int32_T index{ }; index < (Int32_T)mesh.GetTextures().size(); ++index) {
-                    switch (mesh.GetTextures()[index]->GetType()) {
-
-                        case MapType::TEXTURE_2D_DIFFUSE:
-                            diffuseIndex = index;
-                            break;
+                            ImGui::TextUnformatted(fmt::format("{} ", ICON_MD_PANORAMA).c_str());
+                            ImGui::SameLine();
+                            ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+                            ImGui::TextUnformatted(mapName.data());
 
 
-                        case MapType::TEXTURE_2D_SPECULAR:
-                            specularIndex = index;
-                            break;
+                            ImGui::Spacing();
 
 
-                        case MapType::TEXTURE_2D_EMISSIVE:
-                            emmissiveIndex = index;
-                            break;
+                            ImGuiUtils::PushImageButton(map, ImVec2{ 128, 128 });
+                            if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
+                            ImGui::SameLine();
 
-                        case MapType::TEXTURE_2D_NORMAL:
-                            normalIndex = index;
-                            break;
+                            // Table showings texture properties
+                            constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
 
-                        case MapType::TEXTURE_2D_INVALID:
-                        case MapType::TEXTURE_2D_COUNT:
-                            MKT_CORE_LOGGER_WARN("Error type of texture not valid for displaying!");
-                            break;
+                            if (ImGui::BeginTable("MaterialEditorDiffusePropertiesTable", 2, tableFlags)) {
+                                // First row - first colum
+                                ImGui::TableNextRow();
+                                ImGui::TableSetColumnIndex(0);
+                                ImGui::TextUnformatted("Dimensions");
+
+                                // First row - second colum
+                                ImGui::TableSetColumnIndex(1);
+                                UInt32_T width{ static_cast<UInt32_T>(map->GetWidth()) };
+                                UInt32_T height{ static_cast<UInt32_T>(map->GetHeight()) };
+                                ImGui::TextUnformatted(fmt::format("{} x {}", width, height).c_str());
+
+                                // Second row - first colum
+                                ImGui::TableNextRow();
+                                ImGui::TableSetColumnIndex(0);
+                                ImGui::TextUnformatted("Type");
+
+                                // Second row - second colum
+                                ImGui::TableSetColumnIndex(1);
+                                ImGui::TextUnformatted(Texture2D::GetFileTypeStr(map->GetFileType()).data());
+
+                                // Third row - first colum
+                                ImGui::TableNextRow();
+                                ImGui::TableSetColumnIndex(0);
+                                ImGui::TextUnformatted("File size");
+
+                                // Third row - second colum
+                                ImGui::TableSetColumnIndex(1);
+                                ImGui::TextUnformatted(fmt::format("{:.2f} MB", map->GetSize()).c_str());
+
+                                ImGui::TableNextRow();
+                                ImGui::TableSetColumnIndex(0);
+                                ImGui::TextUnformatted("Channels");
+
+                                // Third row - second colum
+                                ImGui::TableSetColumnIndex(1);
+                                ImGui::TextUnformatted(fmt::format("{}", map->GetChannels()).c_str());
+
+                                ImGui::EndTable();
+                            }
+
+                            ImGui::PopFont();
+
+                        }
+                    };
+
+                    // Diffuse
+                    if ( diffuseIndex != -1 ) {
+                        displayMapInformation(mesh.GetTextures()[diffuseIndex].get(), "Albedo");
                     }
+
+                    // Specular
+                    if (specularIndex != -1 ) {
+                        displayMapInformation(mesh.GetTextures()[specularIndex].get(), "Specular");
+                    }
+
+                    // Normal
+                    if ( normalIndex != -1 ) {
+                        displayMapInformation(mesh.GetTextures()[normalIndex].get(), "Normal");
+                    }
+
+                    // Emissive
+                    if ( emmissiveIndex != -1 ) {
+                        displayMapInformation(mesh.GetTextures()[emmissiveIndex].get(), "Emmissive");
+                    }
+
+                    // Roughness
+                    if ( roughnessIndex != -1 ) {
+                        displayMapInformation(mesh.GetTextures()[roughnessIndex].get(), "Roughness");
+                    }
+
+                    // Metallic
+                    if ( metallicIndex != -1 ) {
+                        displayMapInformation(mesh.GetTextures()[metallicIndex].get(), "Metal");
+                    }
+
+                    // Ao
+                    if ( aoIndex != -1 ) {
+                        displayMapInformation(mesh.GetTextures()[aoIndex].get(), "Ambient Occlusion");
+                    }
+
                 }
-
-
-                // Diffuse
-                if ( diffuseIndex != -1 ) {
-                    ImGui::Spacing();
-                    ImGui::Separator();
-
-                    ImGui::Spacing();
-                    ImGui::TextUnformatted(fmt::format("{} ", ICON_MD_PANORAMA).c_str());
-                    ImGui::SameLine();
-                    ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
-                    ImGui::TextUnformatted("Diffuse map");
-                    ImGui::PopFont();
-
-
-                    ImGui::Spacing();
-                    ImGuiUtils::PushImageButton(std::addressof(*mesh.GetTextures()[diffuseIndex]), ImVec2{ 128, 128 });
-                }
-
-                if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
-
-                // Specular
-                if (specularIndex != -1 ) {
-                    ImGui::Spacing();
-                    ImGui::Separator();
-                    ImGui::Spacing();
-
-                    ImGui::TextUnformatted(fmt::format("{} ", ICON_MD_PANORAMA).c_str());
-                    ImGui::SameLine();
-                    ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
-                    ImGui::TextUnformatted("Specular map");
-                    ImGui::PopFont();
-
-
-                    ImGui::Spacing();
-                    ImGuiUtils::PushImageButton(std::addressof(*mesh.GetTextures()[specularIndex]), ImVec2{ 128, 128 });
-                }
-
-                if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
-
-                // Emissive
-                if ( emmissiveIndex != -1 ) {
-                    ImGui::Spacing();
-                    ImGui::Separator();
-                    ImGui::Spacing();
-
-                    ImGui::TextUnformatted(fmt::format("{} ", ICON_MD_PANORAMA).c_str());
-                    ImGui::SameLine();
-                    ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
-                    ImGui::TextUnformatted("Emmissive map");
-                    ImGui::PopFont();
-
-
-                    ImGui::Spacing();
-                    ImGuiUtils::PushImageButton(std::addressof(*mesh.GetTextures()[emmissiveIndex]), ImVec2{ 128, 128 });
-                }
-
-                if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
-
-                // Normal
-                if ( normalIndex != -1 ) {
-                    ImGui::Spacing();
-                    ImGui::Separator();
-                    ImGui::Spacing();
-
-                    ImGui::TextUnformatted(fmt::format("{} ", ICON_MD_PANORAMA).c_str());
-                    ImGui::SameLine();
-                    ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
-                    ImGui::TextUnformatted("Normal map");
-                    ImGui::PopFont();
-
-
-                    ImGui::Spacing();
-                    ImGuiUtils::PushImageButton(std::addressof(*mesh.GetTextures()[normalIndex]), ImVec2{ 128, 128 });
-                }
-
-                if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
-
             }
 
             ImGui::Indent();
         });
 
-        DrawComponent<MaterialComponent>(fmt::format("{} Material", ICON_MD_INSIGHTS), currentlyActiveEntity, [&](auto& component) -> void {
+        DrawComponent<MaterialComponent>( fmt::format( "{} Material", ICON_MD_INSIGHTS ), currentlyActiveEntity, [&]( auto& component ) -> void {
             ImGui::Unindent();
 
             // If the currently selected mesh has a material,
             // we update the one in the material display
-            if (currentlyActiveEntity.HasComponent<RenderComponent>()) {
+            if ( currentlyActiveEntity.HasComponent<RenderComponent>() ) {
                 auto& renderData{ currentlyActiveEntity.GetComponent<RenderComponent>() };
+                std::vector<Mesh>& meshList{ renderData.GetObjectData().ObjectModel->GetMeshes() };
 
-                // we only want to add the selected mesh materials once
-                const bool wantPushMats{ component.GetMaterialList().empty() };
-
-                // Add the materials to the list of materials, so they can be visualized and edited
-                if ((renderData.GetObjectData().MeshSelectedIndex != SceneObjectData::NO_MESH_SELECTED_INDEX) && wantPushMats) {
-                    auto ptr{ renderData.GetObjectData().MeshMeta[renderData.GetObjectData().MeshSelectedIndex].MeshMaterial };
-                    component.Add(std::move(ptr));
+                if ( ( renderData.GetObjectData().MeshSelectedIndex != SceneObjectData::NO_MESH_SELECTED_INDEX ) ) {
+                    component.Set( meshList[renderData.GetObjectData().MeshSelectedIndex] );
                 }
-
             }
 
-            MaterialComponentEditor(component);
+            if (component.GetTargetMesh()) {
+                DrawMaterialComponentEditor( component );
+            }
 
             ImGui::Indent();
-        });
+        } );
 
         DrawComponent<NativeScriptComponent>(fmt::format("{} Script", ICON_MD_CODE), currentlyActiveEntity, [](auto& component) -> void {
             (void)component;
@@ -1014,13 +1202,12 @@ namespace Mikoto {
             static constexpr std::array<std::string_view, 3> lightTypes{ "Directional light", "Point light", "Spot light" };
 
             auto lightType{ component.GetType() };
+            constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_SizingFixedFit };
 
             // In here we create lambdas to draw the options for each type of light according to the selected type of light in this component
 
             // Directional light type -----------
             auto directionalLightOptions{ [](LightComponent& lightComponent) -> void {
-                constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
-
                 if (ImGui::BeginTable("DirectionalLightEditTable", 2, tableFlags)) {
                     constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
 
@@ -1100,8 +1287,6 @@ namespace Mikoto {
 
             // Point light type -----------------
             auto pointLightOptions{ [](LightComponent& lightComponent) -> void {
-                constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
-
                 // Main table containing two rows, the option's name and its value (checkbox, drag float, etc.)
                 if (ImGui::BeginTable("PointLightMainTable", 2, tableFlags)) {
                     auto& pointLightData{ lightComponent.GetPointLightData() };
@@ -1213,8 +1398,6 @@ namespace Mikoto {
 
             // Spotlight type -------------------
             auto spotLightLightOptions{ [](LightComponent& lightComponent) -> void {
-                constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
-
                 if (ImGui::BeginTable("SpotLightEditTable", 2, tableFlags)) {
                     auto& spotLightData{ lightComponent.GetSpotLightData() };
 
@@ -1434,22 +1617,18 @@ namespace Mikoto {
             constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
 
             if (ImGui::BeginTable("MaterialEditorDiffusePropertiesTable", 2, tableFlags)) {
-                // First row - first colum
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
                 ImGui::TextUnformatted("Audio clip");
 
-                // First row - second colum
                 ImGui::TableSetColumnIndex(1);
                 std::string path{ component.GetSourcePath().string() };
                 ImGui::InputText("##AudioClipSource", path.data(), path.size(), ImGuiInputTextFlags_ReadOnly);
 
-                // Second row - first colum
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
                 ImGui::TextUnformatted("Muted");
 
-                // Second row - second colum
                 ImGui::TableSetColumnIndex(1);
                 bool isMuted{ component.IsMuted() };
                 if (ImGui::Checkbox("##IsMutedAudio", std::addressof(isMuted))) {
@@ -1458,12 +1637,10 @@ namespace Mikoto {
 
                 if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
 
-                // Third row - first colum
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
                 ImGui::TextUnformatted("Loop");
 
-                // Third row - second colum
                 ImGui::TableSetColumnIndex(1);
                 bool isLooping{ component.IsLooping() };
                 if (ImGui::Checkbox("##IsLoopingAudio", std::addressof(isLooping))) {
@@ -1641,15 +1818,18 @@ namespace Mikoto {
     }
 
 
-    auto InspectorPanel::OnUpdate(MKT_UNUSED_VAR float timeStep) -> void {
-        if (m_PanelIsVisible) {
-            ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible));
+    auto InspectorPanel::OnUpdate( MKT_UNUSED_VAR float timeStep ) -> void {
+        if ( m_PanelIsVisible ) {
+            ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ) );
 
             auto& currentlyActiveEntity{ SceneManager::GetCurrentlySelectedEntity() };
-            DrawVisibilityCheckBox(currentlyActiveEntity);
+
+            DrawVisibilityCheckBox( currentlyActiveEntity );
+
             ImGui::SameLine();
-            DrawNameTextInput(currentlyActiveEntity);
-            AddComponentButtonFor(currentlyActiveEntity);
+
+            DrawNameTextInput( currentlyActiveEntity );
+            DrawComponentButton( currentlyActiveEntity );
 
             ImGui::Spacing();
             ImGui::Separator();

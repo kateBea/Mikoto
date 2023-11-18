@@ -17,54 +17,58 @@
 #include "Renderer/OpenGL/OpenGLVertexBuffer.hh"
 
 namespace Mikoto {
-    auto OpenGLRenderer::SetClearColor(float red, float green, float blue, float alpha) -> void {
+    auto OpenGLRenderer::SetClearColor( float red, float green, float blue, float alpha ) -> void {
         m_DefaultFrameBuffer.Bind();
-        glClearColor(red, green, blue, alpha);
+        glClearColor( red, green, blue, alpha );
         m_DefaultFrameBuffer.Unbind();
     }
 
-    auto OpenGLRenderer::SetClearColor(const glm::vec4 &color) -> void {
+    auto OpenGLRenderer::SetClearColor( const glm::vec4& color ) -> void {
         m_DefaultFrameBuffer.Bind();
-        glClearColor(color.r, color.g, color.b, color.a);
+        glClearColor( color.r, color.g, color.b, color.a );
         m_DefaultFrameBuffer.Unbind();
     }
 
-    auto OpenGLRenderer::SetViewport(float x, float y, float width, float height) -> void {
-        glViewport((GLsizei)x, (GLsizei)y, (GLsizei)width, (GLsizei)height);
+    auto OpenGLRenderer::SetViewport( float x, float y, float width, float height ) -> void {
+        glViewport( ( GLsizei )x, ( GLsizei )y, ( GLsizei )width, ( GLsizei )height );
     }
 
-    auto OpenGLRenderer::DrawIndexed(const OpenGLVertexBuffer& vertexBuffer, const OpenGLIndexBuffer& indexBuffer) -> void {
+    auto OpenGLRenderer::DrawIndexed( const OpenGLVertexBuffer& vertexBuffer, const OpenGLIndexBuffer& indexBuffer ) -> void {
         m_CurrentDefaultMaterial->GetShader().Bind();
-        m_VertexArray.Use(vertexBuffer);
+        m_VertexArray.Use( vertexBuffer );
         indexBuffer.Bind();
 
-        glDrawElements(GL_TRIANGLES, (GLsizei)indexBuffer.GetCount(), indexBuffer.GetBufferDataType(), nullptr);
+        glDrawElements( GL_TRIANGLES, ( GLsizei )indexBuffer.GetCount(), indexBuffer.GetBufferDataType(), nullptr );
     }
 
     auto OpenGLRenderer::Draw() -> void {
         m_DefaultFrameBuffer.Bind();
-        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+        glClear( GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT );
         const auto maxTextureSlots{ OpenGLDefaultMaterial::GetMaxConcurrentSamplingTextures() };
 
-        for (const auto& drawData : m_DrawQueue) {
-            for (const auto& meshMeta : *drawData.MeshMeta) {
-                auto& materialRef{ *meshMeta.MeshMaterial };
-                m_CurrentDefaultMaterial = dynamic_cast<OpenGLDefaultMaterial*>(std::addressof(materialRef));
-
-                m_CurrentDefaultMaterial->SetTiltingColor(drawData.Color);
-                m_CurrentDefaultMaterial->SetProjection(drawData.TransformData.Projection);
-                m_CurrentDefaultMaterial->SetView(drawData.TransformData.View);
-                m_CurrentDefaultMaterial->SetTransform(drawData.TransformData.Transform);
-
-                // Upload uniform data
-                m_CurrentDefaultMaterial->UploadUniformBuffersData();
-
-                // Draw command
-                const auto& vertexBuffer{ std::dynamic_pointer_cast<OpenGLVertexBuffer>(meshMeta.ModelMesh->GetVertexBuffer()) };
-                const auto& indexBuffer{ std::dynamic_pointer_cast<OpenGLIndexBuffer>(meshMeta.ModelMesh->GetIndexBuffer()) };
-                DrawIndexed(*vertexBuffer, *indexBuffer);
+        for ( const auto& drawData: m_DrawQueue ) {
+            if ( !drawData.ObjectModel ) {
+                MKT_CORE_LOGGER_WARN( "Model is null for OpenGL renderer" );
             }
+            else {
+                for ( const auto& meshMeta: drawData.ObjectModel->GetMeshes() ) {
+                    auto& materialRef{ *meshMeta.GetMaterial() };
+                    m_CurrentDefaultMaterial = dynamic_cast<OpenGLDefaultMaterial*>( std::addressof( materialRef ) );
 
+                    m_CurrentDefaultMaterial->SetTiltingColor( drawData.Color );
+                    m_CurrentDefaultMaterial->SetProjection( drawData.TransformData.Projection );
+                    m_CurrentDefaultMaterial->SetView( drawData.TransformData.View );
+                    m_CurrentDefaultMaterial->SetTransform( drawData.TransformData.Transform );
+
+                    // Upload uniform data
+                    m_CurrentDefaultMaterial->UploadUniformBuffersData();
+
+                    // Draw command
+                    const auto& vertexBuffer{ std::dynamic_pointer_cast<OpenGLVertexBuffer>( meshMeta.GetVertexBuffer() ) };
+                    const auto& indexBuffer{ std::dynamic_pointer_cast<OpenGLIndexBuffer>( meshMeta.GetIndexBuffer() ) };
+                    DrawIndexed( *vertexBuffer, *indexBuffer );
+                }
+            }
 #if false
             for (const auto& mesh : drawData.ModelData->GetMeshes()) {
                 // Setup textures
@@ -95,12 +99,12 @@ namespace Mikoto {
 
     auto OpenGLRenderer::Init() -> void {
         // Blending
-        glEnable(GL_BLEND);
-        glBlendEquation(GL_FUNC_ADD);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable( GL_BLEND );
+        glBlendEquation( GL_FUNC_ADD );
+        glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
         // Enable Depth testing
-        glEnable(GL_DEPTH_TEST);
+        glEnable( GL_DEPTH_TEST );
 
         // Face culling
         // Temporarily disabled
@@ -124,11 +128,11 @@ namespace Mikoto {
     }
 
     auto OpenGLRenderer::EnableWireframeMode() -> void {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
     }
 
     auto OpenGLRenderer::DisableWireframeMode() -> void {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
     }
 
     auto OpenGLRenderer::CreateFrameBuffers() -> void {
@@ -137,7 +141,7 @@ namespace Mikoto {
         createInfo.height = 1080;
         createInfo.samples = 1;
 
-        m_DefaultFrameBuffer.OnCreate(createInfo);
+        m_DefaultFrameBuffer.OnCreate( createInfo );
     }
 
     auto OpenGLRenderer::Flush() -> void {
@@ -145,8 +149,8 @@ namespace Mikoto {
         m_DrawQueue.clear();
     }
 
-    auto OpenGLRenderer::QueueForDrawing(std::shared_ptr<DrawData> &&data) -> void {
-        m_DrawQueue.emplace_back(data->MeshMeta, data->TransformData, data->Color);
+    auto OpenGLRenderer::QueueForDrawing( std::shared_ptr<DrawData>&& data ) -> void {
+        m_DrawQueue.emplace_back( data->ObjectModel, data->TransformData, data->Color );
     }
 
-}
+}// namespace Mikoto

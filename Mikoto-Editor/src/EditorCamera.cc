@@ -59,6 +59,12 @@ namespace Mikoto {
                 return false;
             });
 
+        // Starting value for forward is the opposite of the
+        // position to make the camera look at the center.
+        // Forward vector must be normalized as it starts with
+        // the position value which represents a position in world space
+        m_ForwardVector = glm::normalize(m_ForwardVector);
+
         UpdateViewMatrix();
     }
 

@@ -38,6 +38,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetRenderPass() const -> VkRenderPass { return m_RenderPass; }
         MKT_NODISCARD auto GetImageCount() -> Size_T { return m_SwapChainImages.size(); }
+        MKT_NODISCARD auto GetCurrentImage(Size_T index) -> VkImage { return m_SwapChainImages[index]; }
         MKT_NODISCARD auto GetSwapChainImageFormat() -> VkFormat { return m_SwapChainImageFormat; }
         MKT_NODISCARD auto GetSwapChainExtent() -> VkExtent2D { return m_SwapChainExtent; }
         MKT_NODISCARD auto GetSwapChainKHR() const -> VkSwapchainKHR { return m_SwapChain; }

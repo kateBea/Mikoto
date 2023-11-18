@@ -13,7 +13,7 @@
 #include "ConsoleManager.hh"
 #include "Core/CoreEvents.hh"
 #include "Core/EventManager.hh"
-#include "Core/Serializer.hh"
+#include "Core/FileManager.hh"
 #include "Core/TimeManager.hh"
 #include "Editor.hh"
 #include "EditorLayer.hh"
@@ -56,7 +56,7 @@ namespace Mikoto {
                         { "Mikoto Project Files", "mkt,mktp,mktproject" }
                 };
 
-                auto sceneFilePath{ Serializer::OpenDialog(filters) };
+                auto sceneFilePath{ FileManager::OpenDialog(filters) };
 
                 // user canceled file dialog
                 if (sceneFilePath.empty()) {
@@ -68,7 +68,7 @@ namespace Mikoto {
                 SceneManager::DestroyActiveScene();
                 SceneManager::DisableTargetEntity();
 
-                Serializer::SceneSerializer::Deserialize(sceneFilePath);
+                FileManager::SceneSerializer::Deserialize(sceneFilePath);
                 ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_DEBUG, fmt::format("Loaded new scene [{}]", SceneManager::GetActiveScene().GetName()));
             };
 
@@ -81,8 +81,8 @@ namespace Mikoto {
                 };
 
                 Scene* activeScene{ std::addressof(SceneManager::GetActiveScene()) };
-                auto path{ Serializer::SaveDialog("Mikoto Scene", filters) };
-                Serializer::SceneSerializer::Serialize(activeScene, path);
+                auto path{ FileManager::SaveDialog("Mikoto Scene", filters) };
+                FileManager::SceneSerializer::Serialize(activeScene, path);
                 ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_WARNING, fmt::format("Saved scene to [{}]", path));
             };
     }

@@ -23,6 +23,8 @@
 #include "Scene/Camera.hh"
 #include "Scene/SceneCamera.hh"
 
+#define MAX_LIGHTS_PER_SCENE 200
+
 namespace Mikoto {
     struct ScenePrepareData {
         const SceneCamera* RuntimeCamera{};
@@ -55,13 +57,6 @@ namespace Mikoto {
         SPHERE_PREFAB_OBJECT,
         SPONZA_PREFAB_OBJECT,
         COUNT_PREFAB_OBJECT,
-    };
-
-    struct MeshMetaData {
-        const Mesh* ModelMesh{};
-
-        // Temporary. Assumes a mesh can only have one material
-        std::shared_ptr<Material> MeshMaterial{};
     };
 
     struct DirectionalLight {
@@ -111,22 +106,17 @@ namespace Mikoto {
 
     struct DrawData {
         // Mesh details
-        const std::vector<MeshMetaData>* MeshMeta{};
+        const Model* ObjectModel{};
 
         // The transform of this object applies to all of its meshes for now
         UniformTransformData TransformData{};
 
         // We have a single color for the whole model
         glm::vec4 Color{};
-
-        // [Light info]
-        PointLight LightInfo{};
-        glm::vec4 ViewPosition{};
     };
 
     struct SceneObjectData {
-        // Mesh details
-        std::vector<MeshMetaData> MeshMeta{};
+        Model* ObjectModel{};
 
         // Objects Color
         glm::vec4 Color{};
@@ -148,11 +138,6 @@ namespace Mikoto {
 
         // Index indicating no mesh is yet active for editing
         static constexpr auto NO_MESH_SELECTED_INDEX{ -1 };
-
-
-        // [Lighting]
-        // just one for now
-        PointLight Light{};
     };
 
     /**

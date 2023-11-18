@@ -138,6 +138,9 @@ namespace Mikoto {
                 std::vector<std::shared_ptr<Texture2D>> specularMaps{ LoadTextures(material, aiTextureType_SPECULAR, MapType::TEXTURE_2D_SPECULAR, scene, modelDirectory)};
                 std::vector<std::shared_ptr<Texture2D>> normalMaps{ LoadTextures(material, aiTextureType_NORMALS, MapType::TEXTURE_2D_NORMAL, scene, modelDirectory) };
                 std::vector<std::shared_ptr<Texture2D>> emissiveMaps{ LoadTextures(material, aiTextureType_EMISSIVE, MapType::TEXTURE_2D_EMISSIVE, scene, modelDirectory) };
+                std::vector<std::shared_ptr<Texture2D>> metallic{ LoadTextures(material, aiTextureType_METALNESS, MapType::TEXTURE_2D_ROUGHNESS, scene, modelDirectory) };
+                std::vector<std::shared_ptr<Texture2D>> roughness{ LoadTextures(material, aiTextureType_DIFFUSE_ROUGHNESS, MapType::TEXTURE_2D_METALLIC, scene, modelDirectory) };
+                std::vector<std::shared_ptr<Texture2D>> ao{ LoadTextures(material, aiTextureType_AMBIENT_OCCLUSION, MapType::TEXTURE_2D_AMBIENT_OCCLUSION, scene, modelDirectory) };
 
                 for (auto& item : diffuseMaps)
                     textures.push_back(std::move(item));
@@ -149,6 +152,15 @@ namespace Mikoto {
                     textures.push_back(std::move(item));
 
                 for (auto& item : emissiveMaps)
+                    textures.push_back(std::move(item));
+
+                for (auto& item : metallic)
+                    textures.push_back(std::move(item));
+
+                for (auto& item : roughness)
+                    textures.push_back(std::move(item));
+
+                for (auto& item : ao)
                     textures.push_back(std::move(item));
             }
         }
@@ -164,7 +176,7 @@ namespace Mikoto {
 
         meshData.SetTextures(std::move(textures));
 
-        return Mesh{ meshData };
+        return Mesh{ std::move(meshData) };
     }
 
     auto Model::LoadTextures(aiMaterial* mat, aiTextureType type, MapType tType, const aiScene* scene, const Path_T& modelDirectory) -> std::vector<std::shared_ptr<Texture2D>> {

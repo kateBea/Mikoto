@@ -26,15 +26,16 @@ namespace Mikoto {
 
     auto Renderer::Submit(std::shared_ptr<DrawData>&& data) -> void {
         // Compute render stats
-        if (data->MeshMeta) {
-            for (auto& meta : *data->MeshMeta) {
-                s_RenderingStats->IncrementVertexCount(meta.ModelMesh->GetVertexBuffer()->GetCount());
-                s_RenderingStats->IncrementIndexCount(meta.ModelMesh->GetIndexBuffer()->GetCount());
+        if (data->ObjectModel) {
+            for (const auto& mesh : data->ObjectModel->GetMeshes()) {
+                s_RenderingStats->IncrementVertexCount(mesh.GetVertexBuffer()->GetCount());
+                s_RenderingStats->IncrementIndexCount(mesh.GetIndexBuffer()->GetCount());
 
-                s_RenderingStats->IncrementModelsCount(1);
                 s_RenderingStats->IncrementObjectsCount(1);
-                s_RenderingStats->IncrementMeshesCount(data->MeshMeta->size());
             }
+
+            s_RenderingStats->IncrementModelsCount(1);
+            s_RenderingStats->IncrementMeshesCount(data->ObjectModel->GetMeshes().size());
         }
 
         RenderCommand::AddToRenderQueue(std::move(data));
@@ -98,12 +99,11 @@ namespace Mikoto {
         auto data{ std::make_shared<DrawData>() };
 
         data->Color = objectData.Color;
-        data->MeshMeta = std::addressof(objectData.MeshMeta);
+        data->ObjectModel = objectData.ObjectModel;
         data->TransformData.Transform = transform;
         data->TransformData.Projection = s_DrawData->SceneEditCamera->GetProjection();
         data->TransformData.View = s_DrawData->SceneEditCamera->GetViewMatrix();
 
-        // Rendering submission
         Renderer::Submit(std::move(data));
     }
 

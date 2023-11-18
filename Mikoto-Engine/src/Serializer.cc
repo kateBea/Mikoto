@@ -18,12 +18,10 @@
 #include <yaml-cpp/yaml.h>
 
 // Project Headers
-#include <Core/Assert.hh>
-#include <Core/Logger.hh>
-#include <Core/Serializer.hh>
-
 #include <ConsoleManager.hh>
-
+#include <Core/Assert.hh>
+#include <Core/FileManager.hh>
+#include <Core/Logger.hh>
 #include <Scene/Entity.hh>
 #include <Scene/SceneManager.hh>
 
@@ -77,7 +75,7 @@ namespace YAML {
     };
 }
 
-namespace Mikoto::Serializer {
+namespace Mikoto::FileManager {
     static auto operator<<(YAML::Emitter& out, const glm::vec4& v) -> YAML::Emitter& {
         out << YAML::Flow;
         out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
@@ -125,7 +123,7 @@ namespace Mikoto::Serializer {
 
     static auto SerializeEntityComponent(const MaterialComponent& material, YAML::Emitter& emitter) -> void {
         emitter << YAML::BeginMap;
-        emitter << YAML::Key << "Color" << YAML::Value << material.GetColor();
+
         emitter << YAML::EndMap;
     }
 
@@ -254,7 +252,6 @@ namespace Mikoto::Serializer {
                 // Get Material component
                 if (!object["MaterialComponent"].IsNull()) {
                     const auto color{ object["MaterialComponent"]["Color"].as<glm::vec4>() };
-                    entity.GetComponent<MaterialComponent>().SetColor(color);
                 }
 
                 // Get the Tag component

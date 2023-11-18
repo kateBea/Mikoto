@@ -7,28 +7,28 @@
 #define MIKOTO_MODEL_HH
 
 // C++ Standard Library
-#include <filesystem>
-#include <string_view>
-#include <stdexcept>
 #include <cstdint>
+#include <filesystem>
+#include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 // Third Party Libraries
-#include <assimp/scene.h>
-#include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
+#include <assimp/scene.h>
+
+#include <assimp/Importer.hpp>
 
 // Project Libraries
 #include <Common/Common.hh>
-
-#include <Renderer/Mesh.hh>
 #include <Renderer/Material/Texture2D.hh>
+#include <Renderer/Mesh.hh>
 
 namespace Mikoto {
     struct ModelLoadInfo {
         Path_T ModelPath{};
-        bool InvertedY{}; // Y down (for vulkan)
+        bool InvertedY{};// Y down (for vulkan)
         bool WantTextures{ true };
     };
 
@@ -42,25 +42,27 @@ namespace Mikoto {
          * @param wantLoadTextures tells whether we want to attempt to load this model's textures
          * @throws std::runtime_error if the file does not exist or the path is invalid
          * */
-        explicit Model(const ModelLoadInfo& info);
+        explicit Model( const ModelLoadInfo &info );
 
         /**
          * Returns the list of meshes from this model
          * @returns list of meshes
          * */
-        MKT_NODISCARD auto GetMeshes() const -> const std::vector<Mesh>& { return m_Meshes; }
+        MKT_NODISCARD auto GetMeshes() const -> const std::vector<Mesh> & { return m_Meshes; }
+
+        MKT_NODISCARD auto GetMeshes() -> std::vector<Mesh> & { return m_Meshes; }
 
         /**
          * Returns the absolute path to the directory where this model is located (doe not include the model's name)
          * @returns absolute path to this model's directory
          * */
-        MKT_NODISCARD auto GetDirectory() const -> const Path_T& { return m_ModelDirectory; }
+        MKT_NODISCARD auto GetDirectory() const -> const Path_T & { return m_ModelDirectory; }
 
         /**
          * Returns the name of this model
          * @returns this model's name
          * */
-        MKT_NODISCARD auto GetName() const -> const std::string& { return m_ModelName; }
+        MKT_NODISCARD auto GetName() const -> const std::string & { return m_ModelName; }
 
 
         MKT_NODISCARD auto GetVertexCount() const -> UInt64_T { return m_TotalVertices; }
@@ -70,24 +72,24 @@ namespace Mikoto {
          * Moves <code>other</code> model to the implicit parameter
          * @param other moved from Model
          * */
-        Model(Model&& other) noexcept;
+        Model( Model &&other ) noexcept;
 
         /**
          * Moves other model to the implicit parameter
          * @param other moved from Model
          * @returns *this
          * */
-        auto operator=(Model&& other) noexcept -> Model&;
+        auto operator=( Model &&other ) noexcept -> Model &;
 
         /**
          * Adds the given mesh to the list of meshes of this model.
-         * This function is mainly only for the sprite atm xd, will be deprecated some time soon.
+         * This function is mainly only for the sprite atm xd, will be deprecated some time soon and finally deleted. See assets manager loading prefabs
          * @returns mesh to be added
          * */
-        auto AddMesh(const MeshData& meshData) -> void { m_Meshes.emplace_back(meshData); }
+        auto AddMesh( MeshData &&meshData ) -> void { m_Meshes.emplace_back( std::move( meshData ) ); }
 
     public:
-        DELETE_COPY_FOR(Model);
+        DELETE_COPY_FOR( Model );
 
     private:
         /**
@@ -96,7 +98,7 @@ namespace Mikoto {
          * @param wantLoadTextures tells whether we want to attempt to load this model's textures
          * @throws std::runtime_error if the file does not exist or the path is invalid
          * */
-        auto Load(const Path_T &path, bool wantLoadTextures = false) -> void;
+        auto Load( const Path_T &path, bool wantLoadTextures = false ) -> void;
 
         /**
          * Retrieves each one of the meshes contained within the scene
@@ -106,7 +108,7 @@ namespace Mikoto {
          * @param scene represents a complete scene, which contains aiNodes and the associated meshes, materials, etc.
          * @param wantLoadTextures tells whether we want to attempt to load this model's textures
          * */
-        auto ProcessNode(aiNode *root, const aiScene *scene, const Path_T &modelDirectory, bool wantLoadTextures) -> void;
+        auto ProcessNode( aiNode *root, const aiScene *scene, const Path_T &modelDirectory, bool wantLoadTextures ) -> void;
 
         /**
          * Retrieves the components of the Mesh contained within
@@ -116,7 +118,7 @@ namespace Mikoto {
          * @param wantLoadTextures tells whether we want to attempt to load this model's textures
          * @returns mesh containing the retrieved data
          * */
-        auto ProcessMesh(aiMesh *node, const aiScene *scene, const Path_T &modelDirectory, bool wantLoadTextures) -> Mesh;
+        auto ProcessMesh( aiMesh *node, const aiScene *scene, const Path_T &modelDirectory, bool wantLoadTextures ) -> Mesh;
 
         /**
          * Retrieves texture materials from the given aiMaterial
@@ -126,7 +128,7 @@ namespace Mikoto {
          * @param scene represents a complete scene, which contains aiNodes and the associated meshes, materials, etc.
          * @returns a list of textures from the given material of type <code>type</code>
          * */
-        static auto LoadTextures(aiMaterial *mat, aiTextureType type, MapType tType, const aiScene *scene, const Path_T& modelDirectory) -> std::vector<std::shared_ptr<Texture2D>>;
+        static auto LoadTextures( aiMaterial *mat, aiTextureType type, MapType tType, const aiScene *scene, const Path_T &modelDirectory ) -> std::vector<std::shared_ptr<Texture2D>>;
 
     protected:
         Path_T m_ModelDirectory{};
@@ -136,8 +138,8 @@ namespace Mikoto {
         UInt64_T m_TotalVertices{};
         UInt64_T m_TotalIndices{};
 
-        bool m_InvertedY{}; // Y points Down (suits vulkan coordinate system)
+        bool m_InvertedY{};// Y points Down (suits vulkan coordinate system)
     };
 }
 
-#endif // MIKOTO_MODEL_HH
+#endif// MIKOTO_MODEL_HH

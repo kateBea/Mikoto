@@ -62,7 +62,6 @@ namespace Mikoto {
                 MaterialComponent& material{ view.get<MaterialComponent>(sceneObject) };
 
                 SceneObjectData& objectData{ renderComponent.GetObjectData() };
-                objectData.Color = material.GetColor();
 
                 Renderer::Submit(objectData, transform.GetTransform());
             }
@@ -72,7 +71,7 @@ namespace Mikoto {
         }
     }
 
-    auto Scene::AddEmptyObject(std::string_view tagName, UInt64_T guid) -> Entity {
+    auto Scene::CreateEmptyObject(std::string_view tagName, UInt64_T guid) -> Entity {
         Entity result{ m_Registry.create(), m_Registry };
         result.AddComponent<TagComponent>(tagName, guid);
         result.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
@@ -80,12 +79,16 @@ namespace Mikoto {
         return result;
     }
 
-    auto Scene::AddPrefabObject(std::string_view tagName, PrefabSceneObject type, UInt64_T guid) -> Entity {
+    auto Scene::CreatePrefab(std::string_view tagName, PrefabSceneObject type, UInt64_T guid) -> Entity {
         Entity result{ m_Registry.create(), m_Registry };
 
         // Setup tag and transform
         result.AddComponent<TagComponent>(tagName, guid);
         result.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
+
+        // Setup material component
+        result.AddComponent<MaterialComponent>();
+        auto& materialComponent{ result.GetComponent<MaterialComponent>() };
 
         // Setup renderer component
         result.AddComponent<RenderComponent>();
@@ -94,36 +97,25 @@ namespace Mikoto {
         renderData.GetObjectData().PrefabType = type;
 
         // Add a material for each one of the meshes of this model
-        auto& model{ AssetsManager::GetModelPrefabByType(type) };
+        auto& model{ AssetsManager::GetModifiableModelPrefabByType(type) };
 
         for (auto& mesh : model.GetMeshes()) {
-            // Emplace mesh metadata, mesh and material
-            MeshMetaData meshMetaData{};
-            meshMetaData.ModelMesh = std::addressof(mesh);
-
-            // Diffuse map and specular map
-            // By default we add and standard material
-            {
-                DefaultMaterialCreateSpec spec{};
-                for (auto textureIt{ mesh.GetTextures().begin() }; textureIt != mesh.GetTextures().end(); ++textureIt) {
-                    // we assume there is only one specular and one diffuse
-                    if ((*textureIt)->GetType() == MapType::TEXTURE_2D_DIFFUSE) {
+            DefaultMaterialCreateSpec spec{};
+            for (auto textureIt{ mesh.GetTextures().begin() }; textureIt != mesh.GetTextures().end(); ++textureIt) {
+                switch ( (*textureIt)->GetType() ) {
+                    case MapType::TEXTURE_2D_DIFFUSE:
                         spec.DiffuseMap = *textureIt;
-                    }
-
-                    if ((*textureIt)->GetType() == MapType::TEXTURE_2D_SPECULAR) {
+                        break;
+                    case MapType::TEXTURE_2D_SPECULAR:
                         spec.SpecularMap = *textureIt;
-                    }
+                        break;
                 }
-
-                meshMetaData.MeshMaterial = Material::CreateStandardMaterial(spec);
-                renderData.GetObjectData().MeshMeta.push_back(std::move(meshMetaData));
             }
+
+            mesh.AddMaterial(Material::CreateStandardMaterial(spec));
         }
 
-        // Setup material component
-        result.AddComponent<MaterialComponent>();
-        auto& materialData{ result.GetComponent<MaterialComponent>() };
+        renderData.GetObjectData().ObjectModel = std::addressof(model);
 
         return result;
     }
@@ -150,7 +142,7 @@ namespace Mikoto {
         }
     }
 
-    auto Scene::OnEditorUpdate(double timeStep, const EditorCamera& camera) -> void {
+    auto Scene::OnEditorUpdate(MKT_UNUSED_VAR double timeStep, const EditorCamera& camera) -> void {
         ScenePrepareData prepareData{};
         prepareData.StaticCamera = std::addressof(camera);
 
@@ -197,9 +189,9 @@ namespace Mikoto {
             MaterialComponent& material{ view.get<MaterialComponent>( sceneObject ) };
 
             SceneObjectData& objectData{ renderComponent.GetObjectData() };
-            objectData.Color = material.GetColor();
+            auto modelPtr{ objectData.ObjectModel };
 
-            if ( tag.IsVisible() && !objectData.MeshMeta.empty() ) {
+            if ( tag.IsVisible() && modelPtr ) {
                 Renderer::Submit( objectData, transform.GetTransform() );
             }
         }

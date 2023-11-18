@@ -189,10 +189,10 @@ namespace Mikoto {
         glm::mat4 m_ProjectionMatrix{};
 
         // [Vectors]
-        glm::vec3 m_Position{ 0.0f, 0.0f, 5.0f };
+        glm::vec3 m_Position{ -15.0f, 5.0f, 30.0f };
         glm::vec3 m_RightVector{ 1.0f, 0.0f, 0.0f };
         glm::vec3 m_CameraUpVector{ 0.0f, 1.0f, 0.0f };
-        glm::vec3 m_ForwardVector{ 0.0f, 0.0f, -1.0f };
+        glm::vec3 m_ForwardVector{ 15.0f, -5.0f, -30.0f };
 
         // [Rotations]
         float m_Yaw{ 0.0f };

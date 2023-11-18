@@ -24,7 +24,7 @@ layout(set = 0, binding = 3) uniform sampler2D specTexSampler;
 
 /**  Constants */
 
-#define MAX_LIGHTS 5
+#define MAX_LIGHTS 200
 #define LIGHT_HAS_SPECULAR_MAP      1
 #define LIGHT_HAS_NO_SPECULAR_MAP   0
 

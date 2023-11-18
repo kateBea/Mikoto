@@ -165,7 +165,9 @@ namespace Mikoto {
 
 
     /**
-     * Contains the material information of an entity
+     * Contains the material information of an entity.
+     * This component simply allows us to modify a material of a target mesh,
+     * from the list of meshes an object may have, which are stored in the RendererComponent
      * */
     class MaterialComponent : public BaseComponent<MaterialComponent> {
     public:
@@ -177,14 +179,10 @@ namespace Mikoto {
         auto operator=(const MaterialComponent & other) -> MaterialComponent & = default;
         auto operator=(MaterialComponent && other) -> MaterialComponent & = default;
 
-        MKT_NODISCARD auto Get() -> Material& { return *m_Material; }
-        MKT_NODISCARD auto GetColor() const -> const glm::vec4& { return m_Color; }
-        MKT_NODISCARD auto GetMaterialList() -> std::vector<std::shared_ptr<Material>>& { return m_MaterialList; }
+        MKT_NODISCARD auto GetTargetMesh() -> Mesh* { return m_TargetMesh; }
 
-        auto SetColor(const glm::vec4& value) -> void { m_Color = value; }
-        auto SetMaterial(std::shared_ptr<Material> mat) -> void { m_Material = mat; }
 
-        auto Add(std::shared_ptr<Material>&& mat) -> void { m_MaterialList.emplace_back(mat); }
+        auto Set(Mesh& mesh) -> void { m_TargetMesh = std::addressof(mesh); }
 
         ~MaterialComponent() = default;
 
@@ -193,11 +191,7 @@ namespace Mikoto {
         auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component MATERIAL_COMPONENT"); }
 
     private:
-        std::shared_ptr<Material> m_Material{};
-
-        std::vector<std::shared_ptr<Material>> m_MaterialList{};
-
-        glm::vec4 m_Color{ 1.0f, 1.0f, 1.0f, 1.0f };
+        Mesh* m_TargetMesh{};
     };
 
 

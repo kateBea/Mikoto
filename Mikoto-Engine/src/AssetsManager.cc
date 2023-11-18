@@ -72,7 +72,7 @@ namespace Mikoto {
             meshData.SetVertices(vertexBuffer);
             meshData.SetIndices(indexBuffer);
 
-            result.first->second.AddMesh(meshData);
+            result.first->second.AddMesh(std::move(meshData));
         }
 
     }
@@ -92,7 +92,40 @@ namespace Mikoto {
                 break;
         }
     }
+
+    auto AssetsManager::GetModifiableModelPrefabByType(PrefabSceneObject type) -> Model& {
+        switch (type) {
+            case PrefabSceneObject::SPRITE_PREFAB_OBJECT: return s_LoadedPrefabModels[GetSpritePrefabName()];
+            case PrefabSceneObject::CUBE_PREFAB_OBJECT:   return s_LoadedPrefabModels[GetCubePrefabName()];
+            case PrefabSceneObject::SPHERE_PREFAB_OBJECT: return s_LoadedPrefabModels[GetSpherePrefabName()];
+            case PrefabSceneObject::CYLINDER_PREFAB_OBJECT: return s_LoadedPrefabModels[GetCylinderPrefabName()];
+            case PrefabSceneObject::CONE_PREFAB_OBJECT: return s_LoadedPrefabModels[GetConePrefabName()];
+            case PrefabSceneObject::SPONZA_PREFAB_OBJECT: return s_LoadedPrefabModels[GetSponzaPrefabName()];
+            case PrefabSceneObject::COUNT_PREFAB_OBJECT:
+                [[fallthrough]];
+            case PrefabSceneObject::NO_PREFAB_OBJECT:
+                MKT_CORE_LOGGER_WARN("Unknown prefab");
+                break;
+        }
+    }
+
+
     auto AssetsManager::GetModel(const Path_T& modelPath) -> const Model * {
+        auto modelFullPath{ std::filesystem::absolute(modelPath) };
+
+        // The key to the model will be its full path converted to a string
+        auto key{ modelFullPath.string() };
+
+        auto it{ s_LoadedModels.find(key) };
+
+        if ( it != s_LoadedModels.end() ) {
+            return std::addressof(it->second);
+        }
+
+        return nullptr;
+    }
+
+    auto AssetsManager::GetModifiableModel(const Path_T& modelPath) -> Model * {
         auto modelFullPath{ std::filesystem::absolute(modelPath) };
 
         // The key to the model will be its full path converted to a string

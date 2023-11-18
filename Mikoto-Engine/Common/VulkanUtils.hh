@@ -12,13 +12,13 @@
 #include <string_view>
 
 // Third-Party Libraries
-#include "vk_mem_alloc.h"
-#include "volk.h"
+#include <volk.h>
+#include <vk_mem_alloc.h>
 
 // Project Headers
-#include "Common.hh"
-#include "Renderer/Material/Shader.hh"
-#include "Types.hh"
+#include <Common/Common.hh>
+#include <Common/Types.hh>
+#include <Renderer/Material/Shader.hh>
 
 namespace Mikoto {
     struct BufferAllocateInfo {
@@ -29,8 +29,10 @@ namespace Mikoto {
         VmaAllocationCreateInfo AllocationCreateInfo{};
 
         // True if the allocation was mapped, false otherwise.
+        // This is only used at the moment of creation of the buffer,
+        // not to keep track of whether the buffer is mapped or not.
         // Allocation must be unmapped before destruction.
-        bool IsMapped{};
+        bool WantMapping{};
     };
 
     struct ImageAllocateInfo {
@@ -241,7 +243,11 @@ namespace Mikoto::VulkanUtils {
     auto PerformImageLayoutTransition(VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandBuffer cmd) -> void;
 
     MKT_NODISCARD auto CreateDescriptorSetLayoutBinding(VkDescriptorType type, VkShaderStageFlags stageFlags, UInt32_T binding) -> VkDescriptorSetLayoutBinding;
+
+    auto CopyImageToImage(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent3D imageSize) -> void;
+
 } // MIKOTO::VULKAN_UTILS
+
 
 namespace Mikoto::VulkanUtils::Initializers {
     /**

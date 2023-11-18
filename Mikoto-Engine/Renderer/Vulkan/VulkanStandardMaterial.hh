@@ -19,25 +19,22 @@
 #include "Common/Types.hh"
 #include "Common/RenderingUtils.hh"
 #include "Renderer/Material/Material.hh"
-#include "Renderer/Material/Shader.hh"
+#include "Renderer/Material/StandardMaterial.hh"
 #include "VulkanBuffer.hh"
 #include "VulkanPipeline.hh"
 #include "VulkanShader.hh"
 #include "VulkanTexture2D.hh"
 
 namespace Mikoto {
-    class VulkanStandardMaterial : public Material {
+    class VulkanStandardMaterial : public StandardMaterial {
     public:
-        explicit VulkanStandardMaterial(const DefaultMaterialCreateSpec& spec, std::string_view name = GetStandardMaterialName());
+        explicit VulkanStandardMaterial(const DefaultMaterialCreateSpec& spec, std::string_view name = GetName());
 
         VulkanStandardMaterial(const VulkanStandardMaterial& other) = default;
         VulkanStandardMaterial(VulkanStandardMaterial && other) = default;
 
         auto operator=(const VulkanStandardMaterial & other) -> VulkanStandardMaterial & = default;
         auto operator=(VulkanStandardMaterial && other) -> VulkanStandardMaterial & = default;
-
-
-        MKT_NODISCARD auto GetDiffuseMap() -> std::shared_ptr<VulkanTexture2D> { return m_DiffuseTexture; }
 
 
         auto UpdateDescriptorSets() -> void;
@@ -47,15 +44,15 @@ namespace Mikoto {
          * @param projView new value for the the projection and view matrix
          * */
         auto SetView(const glm::mat4& mat) -> void { m_VertexUniformData.View = mat; }
-        auto SetProjection(const glm::mat4& mat) -> void { m_VertexUniformData.Projection = mat; }
+
+
         /**
          * Sets the value of the transformation matrix
          * @param transform new value for the transformation matrix
          * */
-        auto SetTransform(const glm::mat4& transform) -> void;
+        auto SetTransform(const glm::mat4& transform) -> void { m_VertexUniformData.Transform = transform; }
 
-
-        auto SetTiltingColor(float red, float green, float blue, float alpha) -> void;
+        auto SetProjection(const glm::mat4& mat) -> void { m_VertexUniformData.Projection = mat; }
 
         auto BindDescriptorSet(const VkCommandBuffer &commandBuffer, const VkPipelineLayout &pipelineLayout) -> void;
 
@@ -64,16 +61,7 @@ namespace Mikoto {
          * */
         auto UploadUniformBuffers() -> void;
 
-        MKT_NODISCARD static auto GetStandardMaterialName() -> std::string_view { return "StandardMaterial"; }
-
-
-
-        // Temporary for lights
         auto UpdateLightsInfo() -> void;
-
-        MKT_NODISCARD auto HasSpecularMap() const -> bool { return m_HasSpecular; }
-        MKT_NODISCARD auto HasDiffuseMap() const -> bool { return m_HasDiffuse; }
-
 
 
     private:
@@ -86,16 +74,12 @@ namespace Mikoto {
             // Object
             glm::mat4 Transform{};
             glm::vec4 Color{};
-
-            // Lights
-            glm::vec4 LightPosition{};
-            glm::vec4 LightColor{};
         };
 
         struct LightsUniformData {
-            SpotLight SpotLights[5];
-            PointLight PointLights[5];
-            DirectionalLight DirectionalLights[5];
+            SpotLight SpotLights[MAX_LIGHTS_PER_SCENE];
+            PointLight PointLights[MAX_LIGHTS_PER_SCENE];
+            DirectionalLight DirectionalLights[MAX_LIGHTS_PER_SCENE];
 
             glm::vec4 ViewPosition{};
 
@@ -115,29 +99,20 @@ namespace Mikoto {
     private:
         // Vertex shader uniform buffer
         VulkanBuffer m_VertexUniformBuffer{};
-        void* m_VertexUniformBuffersMapped{};
         UniformBufferData m_VertexUniformData{};
 
         // Fragment shader uniform buffer
         VulkanBuffer m_FragmentUniformBuffer{};
-        void* m_FragmentUniformBuffersMapped{};
         LightsUniformData m_FragmentUniformLightsData{};
 
         // Descriptors
         VkDescriptorPool m_DescriptorPool{};
         VkDescriptorSet m_DescriptorSet{};
 
-        std::shared_ptr<VulkanTexture2D> m_DiffuseTexture{};
-        std::shared_ptr<VulkanTexture2D> m_SpecularTexture{};
-
-
         static inline std::shared_ptr<VulkanTexture2D> s_EmptyTexture{};
 
         Size_T m_UniformDataStructureSize{}; // size of the UniformBufferData structure, with required padding for the device
         Size_T m_FragmentUniformDataStructureSize{}; // size of the UniformBufferData structure, with required padding for the device for fragment shader
-
-        bool m_HasDiffuse{ false };
-        bool m_HasSpecular{ false };
     };
 }
 

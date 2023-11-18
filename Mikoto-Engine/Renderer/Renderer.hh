@@ -27,8 +27,6 @@
 
 #include <Scene/Camera.hh>
 
-#define MAX_LIGHTS_PER_SCENE 5
-
 namespace Mikoto {
     /**
      * @brief Represents the specifications required to initialize the Renderer.
@@ -146,21 +144,21 @@ namespace Mikoto {
         static auto SetPointLightInfo( PointLight& info, Size_T index ) -> void;
         static auto SetActivePointLightsCount( Size_T count ) -> void { s_ActivePointLightCount = count; }
 
-        static auto GetPointLights() -> std::array<PointLight, 5>& { return s_PointLights; }
+        static auto GetPointLights() -> std::array<PointLight, MAX_LIGHTS_PER_SCENE>& { return s_PointLights; }
         static auto GetActivePointLightsCount() -> Size_T { return s_ActivePointLightCount; }
 
         // Directional light
         static auto SetDirLightInfo( DirectionalLight& info, Size_T index ) -> void;
         static auto SetActiveDirLightsCount( Size_T count ) -> void { s_ActiveDirLightCount = count; }
 
-        static auto GetDirLights() -> std::array<DirectionalLight, 5>& { return s_DirectionalLights; }
+        static auto GetDirLights() -> std::array<DirectionalLight, MAX_LIGHTS_PER_SCENE>& { return s_DirectionalLights; }
         static auto GetActiveDirLightsCount() -> Size_T { return s_ActiveDirLightCount; }
 
         // Spotlights
         static auto SetSpotLightInfo( SpotLight& info, Size_T index ) -> void;
         static auto SetActiveSpotLightsCount( Size_T count ) -> void { s_ActiveSpotLightCount = count; }
 
-        static auto GetSpotLights() -> std::array<SpotLight, 5>& { return s_SpotLights; }
+        static auto GetSpotLights() -> std::array<SpotLight, MAX_LIGHTS_PER_SCENE>& { return s_SpotLights; }
         static auto GetActiveSpotLightsCount() -> Size_T { return s_ActiveSpotLightCount; }
 
 

@@ -191,4 +191,41 @@ namespace Mikoto::VulkanUtils {
 
         return layoutBinding;
     }
+
+    auto CopyImageToImage( VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent3D imageSize ) -> void {
+        VkImageBlit2 blitRegion{};
+        blitRegion.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
+        blitRegion.pNext = nullptr;
+
+        blitRegion.srcOffsets[1].x = imageSize.width;
+        blitRegion.srcOffsets[1].y = imageSize.height;
+        blitRegion.srcOffsets[1].z = 1;
+
+        blitRegion.dstOffsets[1].x = imageSize.width;
+        blitRegion.dstOffsets[1].y = imageSize.height;
+        blitRegion.dstOffsets[1].z = 1;
+
+        blitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        blitRegion.srcSubresource.baseArrayLayer = 0;
+        blitRegion.srcSubresource.layerCount = 1;
+        blitRegion.srcSubresource.mipLevel = 0;
+
+        blitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        blitRegion.dstSubresource.baseArrayLayer = 0;
+        blitRegion.dstSubresource.layerCount = 1;
+        blitRegion.dstSubresource.mipLevel = 0;
+
+        VkBlitImageInfo2 blitInfo{};
+        blitInfo.sType = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2;
+        blitInfo.pNext = nullptr;
+        blitInfo.dstImage = destination;
+        blitInfo.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        blitInfo.srcImage = source;
+        blitInfo.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        blitInfo.filter = VK_FILTER_NEAREST;
+        blitInfo.regionCount = 1;
+        blitInfo.pRegions = &blitRegion;
+
+        vkCmdBlitImage2(cmd, &blitInfo);
+    }
 }

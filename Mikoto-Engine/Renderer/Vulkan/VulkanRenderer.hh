@@ -29,6 +29,7 @@
 #include "VulkanFrameBuffer.hh"
 #include "VulkanImage.hh"
 #include "VulkanStandardMaterial.hh"
+#include <Renderer/Vulkan/VulkanPBRMaterial.hh>
 
 namespace Mikoto {
     /**
@@ -225,6 +226,9 @@ namespace Mikoto {
         auto InitializeWireFramePipeline() -> void;
 
 
+        auto InitializePBRPipeline() -> void;
+
+
         /**
          * Initializes the pipeline for rendering a single texture.
          * */
@@ -296,6 +300,7 @@ namespace Mikoto {
         // [Materials]
         std::unordered_map<std::string, PipelineInfo> m_MaterialInfo{};
         VulkanStandardMaterial* m_ActiveDefaultMaterial{};
+        VulkanPBRMaterial* m_ActivePBRMaterial{};
         VulkanStandardMaterial* m_ActiveWireframeMaterial{};
 
         // [Renderer]

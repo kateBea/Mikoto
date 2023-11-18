@@ -5,6 +5,7 @@
 #include "entt/entt.hpp"
 #include "fmt/format.h"
 
+#include <Renderer/Material/StandardMaterial.hh>
 #include "ConsoleManager.hh"
 #include "Scene/SceneManager.hh"
 
@@ -21,28 +22,43 @@ namespace Mikoto {
         auto it{ s_Scenes.find(std::string(name)) };
 
         const std::string sceneName{ name };
-        Scene* newScenePtr{ nullptr };
+        Scene* newScenePtr{};
 
-        if (it == s_Scenes.end()) {
-            // scene with given name is not loaded
-            newScenePtr = std::addressof(s_Scenes.emplace(std::make_pair(sceneName, Scene{ sceneName })).first->second);
-        }
-        else {
-            it->second.Clear();
+        if (it != s_Scenes.end()) {
+            s_Scenes.erase(it);
         }
 
-#if 0
+        newScenePtr = std::addressof(s_Scenes.emplace(sceneName, Scene{ sceneName }).first->second);
+
         // setup new scene
-        newScenePtr->AddPrefabObject("Floor", PrefabSceneObject::CUBE_PREFAB_OBJECT);
+        EntityCreateInfo entityCreateInfo{};
+        entityCreateInfo.Name = "Ground";
+        entityCreateInfo.IsPrefab = true;
+        entityCreateInfo.PrefabType = PrefabSceneObject::CUBE_PREFAB_OBJECT;
+
+        // Ground
+        auto result{ AddEntityToScene(*newScenePtr, entityCreateInfo) };
+        TransformComponent& transformComponent{ result.GetComponent<TransformComponent>() };
+        MaterialComponent& materialComponent{ result.GetComponent<MaterialComponent>() };
+        transformComponent.SetScale( { 10.0f, 0.2f, 10.0f } );
+        transformComponent.SetTranslation( { 0.0f, -5.0f, 1.0f } );
+
 
         // directional light
-        auto directionalLight{ newScenePtr->AddEmptyObject("Directional light") };
-        directionalLight.AddComponent<LightComponent>();
+        entityCreateInfo.Name = "Point light";
+        entityCreateInfo.IsPrefab = false;
+        entityCreateInfo.PrefabType = PrefabSceneObject::NO_PREFAB_OBJECT;
+        auto directionalLight{ AddEntityToScene(*newScenePtr, entityCreateInfo) };
+        auto light{ directionalLight.AddComponent<LightComponent>() };
+        light.SetType(LightType::POINT_LIGHT_TYPE);
+
 
         // scene camera
-        auto mainCam{ newScenePtr->AddEmptyObject("Camera") };
+        entityCreateInfo.Name = "Camera";
+        entityCreateInfo.IsPrefab = false;
+        entityCreateInfo.PrefabType = PrefabSceneObject::NO_PREFAB_OBJECT;
+        auto mainCam{ AddEntityToScene(*newScenePtr, entityCreateInfo) };
         mainCam.AddComponent<CameraComponent>(std::make_shared<SceneCamera>());
-#endif
 
         return *newScenePtr;
     }
@@ -109,10 +125,10 @@ namespace Mikoto {
                                                                        scene.GetName()));
 
         if (!createInfo.IsPrefab) {
-            result = scene.AddEmptyObject(createInfo.Name);
+            result = scene.CreateEmptyObject( createInfo.Name );
         }
         else {
-            result = scene.AddPrefabObject(createInfo.Name, createInfo.PrefabType);
+            result = scene.CreatePrefab( createInfo.Name, createInfo.PrefabType );
         }
 
         return result;

@@ -29,8 +29,6 @@ namespace Mikoto {
         }
 
         auto OnUpdate_Impl() -> void override {
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f,0.0f });
-
             const auto viewPortDimensions{ ImGui::GetContentRegionAvail() };
             auto& currentlyActiveScene{ SceneManager::GetActiveScene() };
 
@@ -48,8 +46,6 @@ namespace Mikoto {
             ImGui::Image(textId, ImVec2{ frameWidth, frameHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
 
             HandleGuizmos();
-
-            ImGui::PopStyleVar();
         }
 
     private:

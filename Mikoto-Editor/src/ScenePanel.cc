@@ -60,10 +60,12 @@ namespace Mikoto {
         m_Implementation->SetEditorCamera(m_CreateInfo.EditorMainCamera);
     }
 
-    auto ScenePanel::OnUpdate(float ts) -> void {
+    auto ScenePanel::OnUpdate(MKT_UNUSED_VAR float ts) -> void {
         if (m_PanelIsVisible) {
-            constexpr ImGuiWindowFlags windowFlags{  };
+            constexpr ImGuiWindowFlags windowFlags{};
 
+            // Expand scene view to window bounds (no padding)
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f,0.0f });
             ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible), windowFlags);
 
             //DrawScenePlayButtons();
@@ -74,6 +76,8 @@ namespace Mikoto {
             m_Implementation->OnUpdate_Impl();
 
             ImGui::End();
+
+            ImGui::PopStyleVar();
         }
 
         if (m_PanelIsHovered && InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Right)) {
@@ -118,7 +122,7 @@ namespace Mikoto {
         auto objectTransform{ transformComponent.GetTransform() };
 
         if (currentSelectionContext.HasComponent<RenderComponent>() &&
-                !currentSelectionContext.GetComponent<RenderComponent>().GetObjectData().MeshMeta.empty()) {
+                currentSelectionContext.GetComponent<RenderComponent>().GetObjectData().ObjectModel != nullptr) {
             // Show guizmos when there's content to manipulate
             // There may bo contents, for example, when we create a
             // new renderable but the actual model is not loaded

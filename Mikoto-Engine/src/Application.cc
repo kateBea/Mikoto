@@ -9,29 +9,21 @@
 #include <utility>
 
 // Project headers
-#include <Common/Types.hh>
+#include <Assets/AssetsManager.hh>
 #include <Common/Common.hh>
-
-#include <Core/Logger.hh>
-#include <Core/CoreEvents.hh>
-#include <Core/Serializer.hh>
+#include <Common/Types.hh>
 #include <Core/Application.hh>
-#include <Core/TimeManager.hh>
+#include <Core/CoreEvents.hh>
 #include <Core/EventManager.hh>
 #include <Core/FileManager.hh>
-
-#include <Assets/AssetsManager.hh>
-
-#include <Threading/TaskManager.hh>
-
+#include <Core/Logger.hh>
+#include <Core/TimeManager.hh>
+#include <GUI/ImGuiManager.hh>
 #include <Platform/GlfwWindow.hh>
 #include <Platform/InputManager.hh>
-
 #include <Renderer/RenderContext.hh>
-
 #include <Scene/SceneManager.hh>
-
-#include <GUI/ImGuiManager.hh>
+#include <Threading/TaskManager.hh>
 
 namespace Mikoto {
     auto Application::Init(AppSpec&& appSpec) -> void {
@@ -39,7 +31,7 @@ namespace Mikoto {
         TimeManager::Init();
 
         // Set the assets root path (this path contains import files like shaders, prefabs, etc)
-        FileManager::SetAssetsRootPath("../Assets");
+        FileManager::Assets::SetRootPath("../Assets");
 
         // Initialize workers
         TaskManager::Init();
@@ -57,7 +49,7 @@ namespace Mikoto {
         m_MainWindow->Init();
 
         // Serializer Init
-        Serializer::Init();
+        FileManager::Init();
 
         // Initialize the input manager
         InputManager::Init(std::addressof(*m_MainWindow));
@@ -76,15 +68,15 @@ namespace Mikoto {
                     MKT_APP_LOGGER_DEBUG("Hello there I'm another thread, press E to spawn this message again but is probably not going to be me again. We are {} workers in total", TaskManager::GetWorkersCount());
                 });
 
-        // Initialize the scene manager
-        SceneManager::Init();
-
         // Initialize the assets' manager. Important to do at the end
         // as it loads some prefabs which require to have a render context ready.
         AssetsManagerSpec assetsManagerSpec{};
         assetsManagerSpec.AssetRootDirectory = "../Assets";
 
         AssetsManager::Init(std::move(assetsManagerSpec));
+
+        // Initialize the scene manager
+        SceneManager::Init();
 
         InitializeLayers();
 
@@ -142,7 +134,7 @@ namespace Mikoto {
         EventManager::Shutdown();
 
         // Serializer manager shutdown
-        Serializer::Shutdown();
+        FileManager::Shutdown();
 
         // Timer manager shutdown - Not needed for now
 

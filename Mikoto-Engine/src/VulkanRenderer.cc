@@ -835,7 +835,7 @@ namespace Mikoto {
                                                                     m_DepthDeferredAttachment.ImageViewCreateInfo };
 
         UInt32_T maxLayers{};
-        for ( auto attachment: attachmentsImageViews ) {
+        for ( const auto& attachment : attachmentsImageViews ) {
             if ( attachment.subresourceRange.layerCount > maxLayers ) {
                 maxLayers = attachment.subresourceRange.layerCount;
             }

@@ -51,7 +51,7 @@ namespace Mikoto {
         ImGui::StyleColorsDark();
         Editor::ThemeDarkModeDefault();
 
-        const float baseFontSize{ 17.5f };
+        const float baseFontSize{ 16.5f };
         const float iconFontSize{ 18.0f };
         const std::string fontPath{ "../Assets/Fonts/" };
 
@@ -66,7 +66,7 @@ namespace Mikoto {
         s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF("../Assets/Fonts/JetBrainsMono/fonts/ttf/JetBrainsMonoNL-Light.ttf", 17.0f));
 
         // Font 2
-        s_Fonts.emplace_back(io.FontDefault = io.Fonts->AddFontFromFileTTF("../Assets/Fonts/Open_Sans/OpenSans-VariableFont.ttf", baseFontSize));
+        s_Fonts.emplace_back(io.FontDefault = io.Fonts->AddFontFromFileTTF("../Assets/Fonts/Inter/static/Inter-Light.ttf", baseFontSize));
 
         // Font 3
         static const std::array<ImWchar, 3> iconRanges1{ ICON_MIN_FA, ICON_MAX_16_FA, 0 };

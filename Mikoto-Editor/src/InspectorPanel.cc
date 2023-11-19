@@ -15,24 +15,24 @@
 #include <glm/gtc/type_ptr.hpp>
 
 // Project Headers
+#include <Common/Types.hh>
+#include <Common/Common.hh>
+#include <Common/StringUtils.hh>
+#include <Common/RenderingUtils.hh>
+
+#include <Core/FileManager.hh>
+
+#include <GUI/ImGuiUtils.hh>
+#include <GUI/ImGuiManager.hh>
 #include <GUI/IconsMaterialDesign.h>
 
 #include <Assets/AssetsManager.hh>
 
-#include <Common/Common.hh>
-#include <Common/StringUtils.hh>
-#include <Common/Types.hh>
-
-#include <Core/FileManager.hh>
-
-#include <GUI/ImGuiManager.hh>
-#include <GUI/ImGuiUtils.hh>
-
 #include <Panels/InspectorPanel.hh>
 
-#include <Renderer/Material/PhysicallyBasedMaterial.hh>
-#include <Renderer/Material/StandardMaterial.hh>
 #include <Renderer/Renderer.hh>
+#include <Renderer/Material/StandardMaterial.hh>
+#include <Renderer/Material/PhysicallyBasedMaterial.hh>
 
 #include <Scene/Entity.hh>
 #include <Scene/Component.hh>
@@ -61,16 +61,13 @@ namespace Mikoto {
 
             ImGui::SameLine();
 
-            ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
             ImGui::TextUnformatted( " Albedo" );
-            ImGui::PopFont();
 
             // For now, we are not loading the material textures, we have to retrieve this data from the currently selected mesh in the renderer component
             Texture2D* texture2DAlbedo{ std::dynamic_pointer_cast<StandardMaterial>( m_TargetMaterialForMaterialEditor )->GetDiffuseMap().get() };
             ImGuiUtils::PushImageButton( texture2DAlbedo, ImVec2{ 128, 128 } );
 
             if ( ImGui::IsItemHovered() && ImGui::BeginTooltip() ) {
-                ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
 
                 ImGuiUtils::PushImageButton( texture2DAlbedo, ImVec2{ 256, 256 } );
 
@@ -112,7 +109,6 @@ namespace Mikoto {
                     ImGui::EndTable();
                 }
 
-                ImGui::PopFont();
                 ImGui::EndTooltip();
             }
 
@@ -124,7 +120,6 @@ namespace Mikoto {
             constexpr auto columnIndex{ 0 };
 
             constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_None };
-            ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
 
             if ( ImGui::BeginTable( "AlbedoEditContentsTable", 1, tableFlags ) ) {
                 // First row
@@ -146,8 +141,6 @@ namespace Mikoto {
                 ImGui::EndTable();
             }
 
-            ImGui::PopFont();
-
             ImGui::Spacing();
             ImGui::Separator();
             ImGui::Spacing();
@@ -159,9 +152,7 @@ namespace Mikoto {
 
             ImGui::SameLine();
 
-            ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
             ImGui::TextUnformatted( " Specular" );
-            ImGui::PopFont();
             Texture2D* texture2DSpecular{ m_EmptyTexturePlaceHolder.get() };
             ImGuiUtils::PushImageButton( texture2DSpecular, ImVec2{ 128, 128 } );
 
@@ -174,7 +165,6 @@ namespace Mikoto {
             constexpr auto columnIndexSpecular{ 0 };
 
             constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
-            ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
 
             if ( ImGui::BeginTable( "SpecularEditContentsTable", columnCount, specularTableFlags ) ) {
                 // First row
@@ -186,8 +176,6 @@ namespace Mikoto {
 
                 ImGui::EndTable();
             }
-
-            ImGui::PopFont();
         }
 
         ImGui::End();
@@ -196,7 +184,6 @@ namespace Mikoto {
 
     static auto ShowTextureHoverTooltip( Texture2D* texture ) -> void {
         if ( ImGui::IsItemHovered() && ImGui::BeginTooltip() /** && has albedo map, otherwise it display info about the */ ) {
-            ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
 
             ImGuiUtils::PushImageButton( texture, ImVec2{ 128, 128 } );
 
@@ -238,7 +225,6 @@ namespace Mikoto {
                 ImGui::EndTable();
             }
 
-            ImGui::PopFont();
             ImGui::EndTooltip();
         }
         if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
@@ -262,9 +248,7 @@ namespace Mikoto {
 
             ImGui::SameLine();
 
-            ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
             ImGui::TextUnformatted( " Albedo" );
-            ImGui::PopFont();
 
             Texture2D* diffuseMap{ standardMat.GetDiffuseMap().get() };
             ImGuiUtils::PushImageButton( diffuseMap, ImVec2{ 64, 64 } );
@@ -282,7 +266,6 @@ namespace Mikoto {
             constexpr auto columnIndex{ 0 };
 
             constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_None };
-            ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
 
             if ( ImGui::BeginTable( "DiffuseEditContentsTable", 1, tableFlags ) ) {
                 // First row
@@ -307,8 +290,6 @@ namespace Mikoto {
                 ImGui::EndTable();
             }
 
-            ImGui::PopFont();
-
             ImGui::TreePop();
         }
         if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
@@ -320,9 +301,7 @@ namespace Mikoto {
 
             ImGui::SameLine();
 
-            ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
             ImGui::TextUnformatted( " Specular" );
-            ImGui::PopFont();
 
             Texture2D* specularMap{ standardMat.GetSpecularMap().get() };
             ImGuiUtils::PushImageButton( specularMap, ImVec2{ 64, 64 } );
@@ -340,7 +319,6 @@ namespace Mikoto {
             constexpr auto columnIndexSpecular{ 0 };
 
             constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
-            ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
 
             if ( ImGui::BeginTable( "SpecularEditContentsTable", columnCount, specularTableFlags ) ) {
                 // First row
@@ -352,8 +330,6 @@ namespace Mikoto {
 
                 ImGui::EndTable();
             }
-
-            ImGui::PopFont();
 
             ImGui::TreePop();
         }
@@ -371,7 +347,6 @@ namespace Mikoto {
         ImGui::Separator();
         ImGui::Spacing();
 
-        ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
 
         // albedo control
         if ( ImGui::TreeNodeEx( ( void* )"EditPBRMaterialAlbedoTreeNode", treeNodeFlags, "Albedo" ) ) {
@@ -488,8 +463,6 @@ namespace Mikoto {
 
             ImGui::TreePop();
         }
-
-        ImGui::PopFont();
     }
 
     auto InspectorPanel::DrawMaterialComponentEditor( MaterialComponent& material ) -> void {
@@ -502,20 +475,17 @@ namespace Mikoto {
             ImGui::Separator();
             ImGui::Spacing();
 
-            ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
 
             ImGui::TextUnformatted( "Material type: " );
 
             ImGui::SameLine();
 
-            ImGui::TextUnformatted( fmt::format( "{}", Material::GetTypeStr( mat->GetType() ) ).c_str() );
+            ImGui::Text( "%s", fmt::format( "{}", Material::GetTypeStr( mat->GetType() ) ).c_str() );
 
-            static char matName[1024]{};
-            if ( ImGui::InputText( "##MeshName", matName, std::size( matName ) ) ) {
+            std::string materialPath{ "Path to the material here" };
+            if ( ImGui::InputText( "##MeshName", materialPath.data(), materialPath.size() , ImGuiInputTextFlags_ReadOnly) ) {
                 // use matName
             }
-
-            ImGui::PopFont();
 
             ImGui::Spacing();
 
@@ -553,9 +523,7 @@ namespace Mikoto {
                     if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
 
                     ImGui::SameLine();
-                    ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
                     ImGui::TextUnformatted( "Apply material" );
-                    ImGui::PopFont();
                 }
 
                 ImGui::EndTable();
@@ -657,10 +625,6 @@ namespace Mikoto {
 
 
     static auto DrawVec3Transform( std::string_view label, glm::vec3& data, double resetValue = 0.0, double columWidth = 100.0 ) {
-
-        // See ImGuiManager for font loading order
-        auto buttonFont{ ImGuiManager::GetFonts()[1] };
-
         // Group is part of a unique label
         ImGui::PushID( label.data() );
 
@@ -673,8 +637,6 @@ namespace Mikoto {
 
         const float lineHeight{ GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f };
         const ImVec2 buttonSize{ lineHeight + 3.0f, lineHeight };
-
-        ImGui::PushFont( buttonFont );
 
         ImGui::PushStyleColor( ImGuiCol_Button, ImVec4{ 0.8f, 0.1f, 0.1f, 1.0f } );
         ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f } );
@@ -734,7 +696,6 @@ namespace Mikoto {
         ImGui::PopItemWidth();
 
         ImGui::PopStyleVar();
-        ImGui::PopFont();
 
         ImGui::Columns( 1 );
 
@@ -889,9 +850,7 @@ namespace Mikoto {
                 path = objData.ModelPath.string();
             }
 
-            ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
             ImGui::InputText( "##PathToModel", path.data(), path.size(), ImGuiInputTextFlags_ReadOnly );
-            ImGui::PopFont();
 
             ImGui::SameLine();
             if ( objData.IsPrefab ) {
@@ -970,8 +929,6 @@ namespace Mikoto {
             if ( renderData.ObjectModel ) {
                 ImGui::Spacing();
 
-                ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
-
                 ImGui::TextUnformatted( "Mesh list" );
 
                 ImGui::SameLine();
@@ -1000,8 +957,6 @@ namespace Mikoto {
                 }
 
                 if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
-
-                ImGui::PopFont();
 
                 ImGui::Spacing();
                 ImGui::Spacing();
@@ -1062,7 +1017,6 @@ namespace Mikoto {
 
                             ImGui::TextUnformatted( fmt::format( "{} ", ICON_MD_PANORAMA ).c_str() );
                             ImGui::SameLine();
-                            ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
                             ImGui::TextUnformatted( mapName.data() );
 
 
@@ -1117,8 +1071,6 @@ namespace Mikoto {
 
                                 ImGui::EndTable();
                             }
-
-                            ImGui::PopFont();
                         }
                     };
 
@@ -1536,7 +1488,6 @@ namespace Mikoto {
                 }
             } };
 
-            ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
 
             ImGui::TextUnformatted( "Light type " );
 
@@ -1591,8 +1542,6 @@ namespace Mikoto {
                     DrawLightTypeOptions<LightType::SPOT_LIGHT_TYPE>( spotLightLightOptions, component );
                     break;
             }
-
-            ImGui::PopFont();
         } );
 
 
@@ -1602,7 +1551,6 @@ namespace Mikoto {
 
 
         DrawComponent<AudioComponent>( fmt::format( "{} Audio", ICON_MD_AUDIOTRACK ), currentlyActiveEntity, []( auto& component ) -> void {
-            ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
 
             constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
 
@@ -1641,13 +1589,10 @@ namespace Mikoto {
 
                 ImGui::EndTable();
             }
-
-            ImGui::PopFont();
         } );
 
 
         DrawComponent<CameraComponent>( fmt::format( "{} Camera", ICON_MD_CAMERA_ALT ), currentlyActiveEntity, []( auto& component ) -> void {
-            ImGui::PushFont( ImGuiManager::GetFonts()[ImGuiManager::IMGUI_MANAGER_FONT_JET_BRAINS_17] );
 
             static const std::array<std::string, 2> CAMERA_PROJECTION_TYPE_NAMES{ "Orthographic", "Perspective" };
 
@@ -1802,8 +1747,6 @@ namespace Mikoto {
                     ImGui::EndTable();
                 }
             }
-
-            ImGui::PopFont();
         } );
     }
 

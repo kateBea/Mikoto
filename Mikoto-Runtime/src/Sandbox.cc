@@ -14,5 +14,7 @@ namespace Mikoto {
 
     auto Sandbox::Run(Int32_T argc, char** argv) -> Int32_T {
         ParseArguments(argc, argv);
+
+        return 0;
     }
 }

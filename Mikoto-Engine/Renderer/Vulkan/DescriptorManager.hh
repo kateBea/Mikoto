@@ -5,6 +5,10 @@
 #ifndef MIKOTO_DESCRIPTOR_MANAGER_HH
 #define MIKOTO_DESCRIPTOR_MANAGER_HH
 
+// C++ Standard Libraries
+#include <vector>
+#include <unordered_map>
+
 // Third-Party Libraries
 #include <volk.h>
 
@@ -20,10 +24,33 @@ namespace Mikoto {
      * */
     class DescriptorAllocator {
     public:
-        auto Init() -> void;
-        auto Allocate() -> void;
+        auto Allocate(VkDescriptorSet& set, VkDescriptorSetLayout layout) -> bool;
         auto ResetPools() -> void;
         auto Cleanup() -> void;
+
+        struct PoolSizes {
+            std::vector<std::pair<VkDescriptorType, Size_T>> sizes{
+                { VK_DESCRIPTOR_TYPE_SAMPLER, 1 },
+                { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4 },
+                { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 4 },
+                { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 },
+                { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1 },
+                { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1 },
+                { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2 },
+                { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1 },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1 },
+                { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1 }
+            };
+        };
+    private:
+        auto GrabPool() -> VkDescriptorPool;
+
+        VkDescriptorPool m_CurrentPool{ VK_NULL_HANDLE };
+        PoolSizes m_DescriptorSizes;
+
+        std::vector<VkDescriptorPool> m_UsedPools;
+        std::vector<VkDescriptorPool> m_FreePools;
 
     };
 
@@ -34,9 +61,30 @@ namespace Mikoto {
      * */
     class DescriptorLayoutCache {
     public:
-        auto Init() -> void;
         auto Cleanup() -> void;
-        auto CreateDescriptorLayout() -> void;
+        auto CreateDescriptorLayout(VkDescriptorSetLayoutCreateInfo* info) -> VkDescriptorSetLayout;
+
+        struct DescriptorLayoutInfo {
+            //good idea to turn this into a inlined array
+            std::vector<VkDescriptorSetLayoutBinding> Bindings{};
+
+            auto operator==(const DescriptorLayoutInfo& other) const -> bool;
+
+            MKT_NODISCARD auto hash() const -> Size_T;
+        };
+
+
+
+    private:
+
+        struct DescriptorLayoutHasher {
+
+            auto operator()(const DescriptorLayoutInfo& key) const -> Size_T {
+                return key.hash();
+            }
+        };
+
+        std::unordered_map<DescriptorLayoutInfo, VkDescriptorSetLayout, DescriptorLayoutHasher> m_LayoutCache{};
     };
 
 
@@ -53,6 +101,14 @@ namespace Mikoto {
 
         MKT_NODISCARD auto Build( VkDescriptorSet& set, VkDescriptorSetLayout& layout ) -> bool;
         MKT_NODISCARD auto Build( VkDescriptorSet& set ) -> bool;
+
+    private:
+
+        std::vector<VkWriteDescriptorSet> m_Writes{};
+        std::vector<VkDescriptorSetLayoutBinding> m_Bindings{};
+
+        DescriptorLayoutCache* cache{};
+        DescriptorAllocator* alloc{};
     };
 }
 

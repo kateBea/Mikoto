@@ -9,6 +9,7 @@
 #include <string>
 #include <unordered_map>
 #include <string_view>
+#include <optional>
 
 #include "Common/Random.hh"
 #include "Common/Types.hh"
@@ -38,6 +39,7 @@ namespace Mikoto {
 
         /**
          * Returns the currently focused entity in the editor viewport.
+         * TODO: to be deleted
          * @returns currently targeted entity
          * */
         static auto GetCurrentlySelectedEntity() -> Entity&;
@@ -48,6 +50,8 @@ namespace Mikoto {
          * */
         static auto SetCurrentlyActiveEntity(const Entity& entity) -> void;
 
+        static auto GetCurrentSelection() -> std::optional<std::reference_wrapper<Entity>>;
+
         /**
          * Disables the currently active entity
          * */
@@ -56,12 +60,14 @@ namespace Mikoto {
         /**
          * Returns the currently active scene. The currently active
          * is the one currently being edited on the main Viewport panel.
+         * There's always going to be an active scene in the editor, that is why
+         * we return a reference to it.
          * @returns reference to the active scene
          * */
         static auto GetActiveScene() -> Scene&;
 
 
-        static auto DisableTargetEntity() -> void;
+        static auto DisableTargetedEntity() -> void;
 
         static auto SetActiveScene(Scene& scene) -> void;
 

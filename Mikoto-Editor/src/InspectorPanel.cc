@@ -801,13 +801,7 @@ namespace Mikoto {
     }
 
 
-    auto InspectorPanel::DrawComponents() -> void {
-        auto& currentlyActiveEntity{ SceneManager::GetCurrentlySelectedEntity() };
-
-        if ( !currentlyActiveEntity.IsValid() ) {
-            return;
-        }
-
+    auto InspectorPanel::DrawComponents( Entity& currentlyActiveEntity ) -> void {
         // By default, all scene objects have a transform component which cannot be removed
         constexpr bool TRANSFORM_HAS_PLUS_BUTTON{ false };
         DrawComponent<TransformComponent>(
@@ -1755,20 +1749,22 @@ namespace Mikoto {
         if ( m_PanelIsVisible ) {
             ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ) );
 
-            auto& currentlyActiveEntity{ SceneManager::GetCurrentlySelectedEntity() };
+            auto currentlyActiveEntity{ SceneManager::GetCurrentSelection() };
 
-            DrawVisibilityCheckBox( currentlyActiveEntity );
+            if (currentlyActiveEntity.has_value()) {
+                DrawVisibilityCheckBox( currentlyActiveEntity->get() );
 
-            ImGui::SameLine();
+                ImGui::SameLine();
 
-            DrawNameTextInput( currentlyActiveEntity );
-            DrawComponentButton( currentlyActiveEntity );
+                DrawNameTextInput( currentlyActiveEntity->get() );
+                DrawComponentButton( currentlyActiveEntity->get() );
 
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Spacing();
+                ImGui::Spacing();
+                ImGui::Separator();
+                ImGui::Spacing();
 
-            DrawComponents();
+                DrawComponents( currentlyActiveEntity->get() );
+            }
 
             ImGui::End();
         }

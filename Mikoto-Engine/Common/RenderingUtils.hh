@@ -143,7 +143,7 @@ namespace Mikoto {
     /**
      * @brief Holds light related information.
      * Contains the relevant data specific for the three types of light:
-     * directional light, spot light, point light. Used to store light informatio
+     * directional light, spot light, point light. Used to store light information
      * in the light component.
      * */
     struct LightData {

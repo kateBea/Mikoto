@@ -238,7 +238,6 @@ namespace Mikoto {
 
         ~LightComponent() = default;
 
-        MKT_NODISCARD auto GetColor() const -> const glm::vec4& { return m_Color; }
         MKT_NODISCARD auto GetType() const -> LightType { return m_Type; }
         MKT_NODISCARD auto GetData() const -> const LightData&{ return m_Data; }
         MKT_NODISCARD auto GetData() -> LightData&{ return m_Data; }
@@ -250,7 +249,6 @@ namespace Mikoto {
         MKT_NODISCARD auto IsActive() const -> bool { return m_Active; }
 
         auto SetType(LightType type) -> void { m_Type = type; }
-        auto SetColor(const glm::vec4& color) -> void { m_Color = color; }
         auto SetActive(bool value) -> void { m_Active = value; }
 
         auto OnComponentAttach() -> void { MKT_APP_LOGGER_DEBUG("Added component LIGHT_COMPONENT"); }
@@ -260,7 +258,6 @@ namespace Mikoto {
     private:
         LightData m_Data{};
         LightType m_Type{ LightType::POINT_LIGHT_TYPE };
-        glm::vec4 m_Color{};
 
         bool m_Active{};
     };

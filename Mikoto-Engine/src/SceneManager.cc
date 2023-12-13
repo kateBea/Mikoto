@@ -19,16 +19,16 @@ namespace Mikoto {
     }
 
     auto SceneManager::MakeNewScene(std::string_view name) -> Scene& {
-        auto it{ s_Scenes.find(std::string(name)) };
-
         const std::string sceneName{ name };
-        Scene* newScenePtr{};
+
+        auto it{ s_Scenes.find(sceneName) };
 
         if (it != s_Scenes.end()) {
+            MKT_CORE_LOGGER_INFO("Scene with name {} already existed!", name);
             s_Scenes.erase(it);
         }
 
-        newScenePtr = std::addressof(s_Scenes.emplace(sceneName, Scene{ sceneName }).first->second);
+        Scene& newScene{ s_Scenes.emplace(sceneName, Scene{ sceneName }).first->second };
 
         // setup new scene
         EntityCreateInfo entityCreateInfo{};
@@ -37,7 +37,7 @@ namespace Mikoto {
         entityCreateInfo.PrefabType = PrefabSceneObject::CUBE_PREFAB_OBJECT;
 
         // Ground
-        auto result{ AddEntityToScene(*newScenePtr, entityCreateInfo) };
+        auto result{ AddEntityToScene(newScene, entityCreateInfo) };
         TransformComponent& transformComponent{ result.GetComponent<TransformComponent>() };
         transformComponent.SetScale( { 10.0f, 0.2f, 10.0f } );
         transformComponent.SetTranslation( { 0.0f, -5.0f, 1.0f } );
@@ -46,7 +46,7 @@ namespace Mikoto {
         entityCreateInfo.Name = "Sphere";
         entityCreateInfo.IsPrefab = true;
         entityCreateInfo.PrefabType = PrefabSceneObject::SPHERE_PREFAB_OBJECT;
-        auto sphere{ AddEntityToScene(*newScenePtr, entityCreateInfo) };
+        auto sphere{ AddEntityToScene(newScene, entityCreateInfo) };
         TransformComponent& sphereTransformComponent{ sphere.GetComponent<TransformComponent>() };
         sphereTransformComponent.SetScale( { 0.2f, 0.2f, 0.2f } );
         sphereTransformComponent.SetTranslation( { 0.0f, 0.0f, 8.0f } );
@@ -79,6 +79,11 @@ namespace Mikoto {
                         spec.AlbedoMap = texture;
                         break;
 
+                    case MapType::TEXTURE_2D_SPECULAR:
+                    case MapType::TEXTURE_2D_EMISSIVE:
+                        // Unused for now
+                        break;
+
                     case MapType::TEXTURE_2D_COUNT:
                     case MapType::TEXTURE_2D_INVALID:
                         MKT_CORE_LOGGER_WARN("Unknown type of texture");
@@ -94,7 +99,7 @@ namespace Mikoto {
         entityCreateInfo.Name = "Point light";
         entityCreateInfo.IsPrefab = false;
         entityCreateInfo.PrefabType = PrefabSceneObject::NO_PREFAB_OBJECT;
-        auto directionalLight{ AddEntityToScene(*newScenePtr, entityCreateInfo) };
+        auto directionalLight{ AddEntityToScene(newScene, entityCreateInfo) };
         auto light{ directionalLight.AddComponent<LightComponent>() };
         light.SetType(LightType::POINT_LIGHT_TYPE);
 
@@ -103,10 +108,10 @@ namespace Mikoto {
         entityCreateInfo.Name = "Camera";
         entityCreateInfo.IsPrefab = false;
         entityCreateInfo.PrefabType = PrefabSceneObject::NO_PREFAB_OBJECT;
-        auto mainCam{ AddEntityToScene(*newScenePtr, entityCreateInfo) };
+        auto mainCam{ AddEntityToScene(newScene, entityCreateInfo) };
         mainCam.AddComponent<CameraComponent>(std::make_shared<SceneCamera>());
 
-        return *newScenePtr;
+        return newScene;
     }
 
     auto SceneManager::IsEntitySelected() -> bool {
@@ -149,8 +154,6 @@ namespace Mikoto {
         if (it != s_Scenes.end()) {
             s_Scenes.erase(it);
         }
-
-        // TODO: validate active scene, erase invalidates all iterators and pointers to elements of the container
     }
 
     auto SceneManager::DestroyActiveScene() -> void {
@@ -180,7 +183,15 @@ namespace Mikoto {
         return result;
     }
 
-    auto SceneManager::DisableTargetEntity() -> void {
+    auto SceneManager::DisableTargetedEntity() -> void {
         s_CurrentlySelectedEntity.Invalidate();
+    }
+
+    auto SceneManager::GetCurrentSelection() -> std::optional<std::reference_wrapper<Entity>> {
+        if (s_CurrentlySelectedEntity.IsValid()) {
+            return { s_CurrentlySelectedEntity };
+        }
+
+        return {};
     }
 }

@@ -12,13 +12,15 @@
 #include <vector>
 
 // Third-Party Libraries
-#include "volk.h"
+#include <volk.h>
 
 // Project Headers
+#include <vulkan/vulkan_core.h>
+
 #include <GUI/ImGuiUtils.hh>
-#include <Renderer/Vulkan/VulkanImage.hh>
-#include <Renderer/Vulkan/VulkanFrameBuffer.hh>
 #include <Renderer/Vulkan/VulkanCommandPool.hh>
+#include <Renderer/Vulkan/VulkanFrameBuffer.hh>
+#include <Renderer/Vulkan/VulkanImage.hh>
 
 namespace Mikoto {
     class ImGuiVulkanBackend : public BackendImplementation {
@@ -35,7 +37,7 @@ namespace Mikoto {
         auto CreateImages() -> void;
         auto CreateFrameBuffer() -> void;
         auto BuildCommandBuffers() -> void;
-        auto RecordImGuiCommandBuffers(UInt32_T imageIndex) -> void;
+        auto RecordImGuiCommandBuffers( VkCommandBuffer cmd ) -> void;
 
         auto DrawImGui( VkCommandBuffer cmd, VkImage currentSwapChainImage ) -> void;
     private:

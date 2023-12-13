@@ -199,19 +199,19 @@ namespace Mikoto {
         /**
          * Creates the render pass necessary for this Vulkan renderer.
          * */
-        auto CreateRenderPass() -> void;
+        auto CreateOffscreenRenderPass() -> void;
 
 
         /**
          * Creates attachments required for rendering.
          * */
-        auto CreateAttachments() -> void;
+        auto CreateOffscreenAttachments() -> void;
 
 
         /**
          * Creates frame buffers to be used for rendering.
          * */
-        auto CreateFrameBuffers() -> void;
+        auto CreateOffscreenFramebuffers() -> void;
 
 
         /**

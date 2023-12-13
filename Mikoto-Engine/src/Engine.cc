@@ -35,14 +35,14 @@ namespace Mikoto {
             application.Init( std::move(appSpec) );
 
             while (application.IsRunning()) {
+                // Process events in queue pending
+                application.ProcessEvents();
+
                 // Update application layers
                 application.UpdateState();
 
                 // Swap buffers and present to screen
                 application.Present();
-
-                // Process events in queue pending
-                application.ProcessEvents();
             }
 
             application.Shutdown();

@@ -1,4 +1,5 @@
 /**
+ * ImGuiUtils.hh
  * Created by kate on 9/17/23.
  * */
 
@@ -8,7 +9,7 @@
 // C++ Standard Library
 #include <any>
 
-#include "imgui.h"
+#include <imgui.h>
 
 #include <Common/Types.hh>
 #include <Common/Common.hh>
@@ -35,13 +36,6 @@ namespace Mikoto::ImGuiUtils {
 }
 
 namespace Mikoto {
-    struct ColorValues {
-        Int32_T Red{};
-        Int32_T Green{};
-        Int32_T Blue{};
-        Int32_T Alpha{};
-    };
-
     /**
      * This class encapsulates backend implementation specific details. ImGui is a graphics API
      * agnostic GUI library and provides several implementations, each for a specific graphics backend.
@@ -58,10 +52,6 @@ namespace Mikoto {
 
         virtual ~BackendImplementation() = default;
     };
-
-    inline auto DrawColoredText(std::string_view text, ColorValues color) -> void {
-        // TODO:
-    }
 
     inline auto HelpMarker(std::string_view description, std::string_view placeHolder = "(?)") -> void {
         ImGui::TextDisabled("%s", placeHolder.data());

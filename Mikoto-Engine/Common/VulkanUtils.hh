@@ -236,11 +236,24 @@ namespace Mikoto::VulkanUtils {
         }
     }
 
+    MKT_NODISCARD inline auto ImageSubresourceRange(VkImageAspectFlags aspectMask) -> VkImageSubresourceRange {
+        VkImageSubresourceRange subImage {};
+        subImage.aspectMask = aspectMask;
+        subImage.baseMipLevel = 0;
+        subImage.levelCount = 1;
+        subImage.baseArrayLayer = 0;
+        subImage.layerCount = 1;
+
+        return subImage;
+    }
+
     MKT_NODISCARD auto CommandBufferBeginInfo(VkCommandBufferUsageFlags flags = 0) -> VkCommandBufferBeginInfo;
 
     MKT_NODISCARD auto SubmitInfo(VkCommandBuffer& command) -> VkSubmitInfo;
 
     auto PerformImageLayoutTransition(VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandBuffer cmd) -> void;
+
+    auto TransitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout) -> void;
 
     MKT_NODISCARD auto CreateDescriptorSetLayoutBinding(VkDescriptorType type, VkShaderStageFlags stageFlags, UInt32_T binding) -> VkDescriptorSetLayoutBinding;
 
@@ -565,6 +578,50 @@ namespace Mikoto::VulkanUtils::Initializers {
     inline auto ImageMemoryBarrier() -> VkImageMemoryBarrier {
         VkImageMemoryBarrier ret{};
         ret.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkDescriptorSetAllocateInfo structure
+     * @returns default initialized VkDescriptorSetAllocateInfo
+     * */
+    inline auto DescriptorSetAllocateInfo() -> VkDescriptorSetAllocateInfo {
+        VkDescriptorSetAllocateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkWriteDescriptorSet structure
+     * @returns default initialized VkWriteDescriptorSet
+     * */
+    inline auto WriteDescriptorSet() -> VkWriteDescriptorSet {
+        VkWriteDescriptorSet ret{};
+        ret.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkPhysicalDeviceVulkan13Features structure
+     * @returns default initialized VkPhysicalDeviceVulkan13Features
+     * */
+    inline auto PhysicalDeviceVulkan13Features() -> VkPhysicalDeviceVulkan13Features {
+        VkPhysicalDeviceVulkan13Features ret{};
+        ret.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkPhysicalDeviceFeatures2 structure
+     * @returns default initialized VkPhysicalDeviceFeatures2
+     * */
+    inline auto PhysicalDeviceFeatures2() -> VkPhysicalDeviceFeatures2 {
+        VkPhysicalDeviceFeatures2 ret{};
+        ret.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 
         return ret;
     }

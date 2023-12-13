@@ -57,17 +57,29 @@ namespace Mikoto::StringUtils {
      * */
     MKT_NODISCARD inline auto Trim(std::string_view str) -> std::string {
         auto leftCharIt{ str.begin() };
-        auto rightCharIt{ std::prev(str.end()) };
+        auto rightCharIt{ str.rbegin() };
 
-        while (leftCharIt != str.end() && std::isspace(*leftCharIt)) {
-            leftCharIt = std::next(leftCharIt);
+        while (leftCharIt != str.end()) {
+            if (std::isspace(*leftCharIt)) {
+                leftCharIt = std::next(leftCharIt);
+            }
+            else {
+                break;
+            }
         }
 
-        while (rightCharIt != std::prev(str.begin()) && std::isspace(*rightCharIt)) {
-            rightCharIt = std::prev(rightCharIt);
+        while (rightCharIt != str.rend()) {
+            if (std::isspace(*rightCharIt)) {
+                rightCharIt = std::next(rightCharIt);
+            }
+            else {
+                break;
+            }
         }
 
-        return std::string{ str.substr(leftCharIt - str.begin(), rightCharIt - str.begin() + 1) };
+        auto right{  rightCharIt.base() };
+
+        return std::string{ str.substr(leftCharIt - str.begin(), right - leftCharIt) };
     }
 
     /**

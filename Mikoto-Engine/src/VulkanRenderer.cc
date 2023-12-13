@@ -15,7 +15,9 @@
 #include <Common/Common.hh>
 #include <Common/Types.hh>
 #include <Common/VulkanUtils.hh>
+
 #include <Core/FileManager.hh>
+
 #include <Renderer/Vulkan/DeletionQueue.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanIndexBuffer.hh>
@@ -196,7 +198,7 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanRenderer::CreateRenderPass() -> void {
+    auto VulkanRenderer::CreateOffscreenRenderPass() -> void {
         // Color Attachment
         VkAttachmentDescription colorAttachmentDesc{};
         colorAttachmentDesc.format = m_ColorAttachmentFormat;
@@ -275,7 +277,7 @@ namespace Mikoto {
         } );
     }
 
-    auto VulkanRenderer::CreateFrameBuffers() -> void {
+    auto VulkanRenderer::CreateOffscreenFramebuffers() -> void {
         std::array<VkImageView, 2> attachments{ m_OffscreenColorAttachment.GetView(), m_OffscreenDepthAttachment.GetView() };
 
         VkFramebufferCreateInfo createInfo{ VulkanUtils::Initializers::FramebufferCreateInfo() };
@@ -310,11 +312,9 @@ namespace Mikoto {
         };
     }
 
-    auto VulkanRenderer::CreateAttachments() -> void {
+    auto VulkanRenderer::CreateOffscreenAttachments() -> void {
         // Color Buffer attachment
         VkImageCreateInfo colorAttachmentCreateInfo{ VulkanUtils::Initializers::ImageCreateInfo() };
-        colorAttachmentCreateInfo.pNext = nullptr;
-        colorAttachmentCreateInfo.flags = 0;
         colorAttachmentCreateInfo.imageType = VK_IMAGE_TYPE_2D;
         colorAttachmentCreateInfo.format = m_ColorAttachmentFormat;
         colorAttachmentCreateInfo.extent.width = m_OffscreenExtent.width;
@@ -327,9 +327,6 @@ namespace Mikoto {
         colorAttachmentCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
         VkImageViewCreateInfo colorAttachmentViewCreateInfo{ VulkanUtils::Initializers::ImageViewCreateInfo() };
-        colorAttachmentViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        colorAttachmentViewCreateInfo.pNext = nullptr;
-        colorAttachmentViewCreateInfo.flags = 0;
         colorAttachmentViewCreateInfo.image = VK_NULL_HANDLE;// Set by OnCreate()
         colorAttachmentViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         colorAttachmentViewCreateInfo.format = colorAttachmentCreateInfo.format;// match formats for simplicity
@@ -344,7 +341,6 @@ namespace Mikoto {
 
         // Depth attachment
         VkImageCreateInfo depthAttachmentCreateInfo{ VulkanUtils::Initializers::ImageCreateInfo() };
-        depthAttachmentCreateInfo.pNext = nullptr;
         depthAttachmentCreateInfo.imageType = VK_IMAGE_TYPE_2D;
         depthAttachmentCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
@@ -363,9 +359,6 @@ namespace Mikoto {
         depthAttachmentViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         depthAttachmentViewCreateInfo.image = VK_NULL_HANDLE;// Set by OnCreate()
         depthAttachmentViewCreateInfo.format = depthAttachmentCreateInfo.format;
-
-        depthAttachmentViewCreateInfo.flags = 0;
-        depthAttachmentViewCreateInfo.subresourceRange = {};
         depthAttachmentViewCreateInfo.subresourceRange.baseMipLevel = 0;
         depthAttachmentViewCreateInfo.subresourceRange.levelCount = 1;
         depthAttachmentViewCreateInfo.subresourceRange.baseArrayLayer = 0;
@@ -392,9 +385,9 @@ namespace Mikoto {
                 VK_IMAGE_TILING_OPTIMAL,
                 VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT );
 
-        CreateRenderPass();
-        CreateAttachments();
-        CreateFrameBuffers();
+        CreateOffscreenRenderPass();
+        CreateOffscreenAttachments();
+        CreateOffscreenFramebuffers();
 
         // https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport/
         UpdateViewport( 0, static_cast<float>( m_OffscreenExtent.height ), static_cast<float>( m_OffscreenExtent.width ), -static_cast<float>( m_OffscreenExtent.height ) );

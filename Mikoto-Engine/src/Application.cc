@@ -202,15 +202,16 @@ namespace Mikoto {
             RenderContext::PrepareFrame();
             UpdateLayers();
 
-            // For multithreading test purposes
+            // [ DEBUG: Multithreading ]
             if (InputManager::IsKeyPressed(KeyCode::Key_E)) {
                 TaskManager::Execute(
                         []() -> void {
-                            MKT_APP_LOGGER_DEBUG("Hello there I'm another thread, press E to spawn this message again but is probably not going to be me again. We are {} workers in total", TaskManager::GetWorkersCount());
+                            MKT_APP_LOGGER_DEBUG("Hello thread. Count: {}", TaskManager::GetWorkersCount());
                         });
             }
         }
 
+        // Draw overlays
         ImGuiFrameRender();
 
         RenderContext::SubmitFrame();

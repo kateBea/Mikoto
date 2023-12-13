@@ -424,13 +424,21 @@ namespace Mikoto {
         deviceFeatures.samplerAnisotropy = VK_TRUE;
         deviceFeatures.fillModeNonSolid = VK_TRUE; // required for wireframe mode
 
-        VkDeviceCreateInfo createInfo{ VulkanUtils::Initializers::DeviceCreateInfo() };
+        // TODO: Required Vulkan 1.3 features
+        VkPhysicalDeviceVulkan13Features vulkan13Features{ VulkanUtils::Initializers::PhysicalDeviceVulkan13Features() };
+        vulkan13Features.synchronization2 = VK_TRUE;
 
+        VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{ VulkanUtils::Initializers::PhysicalDeviceFeatures2() };
+        physicalDeviceFeatures2.features = deviceFeatures;
+        physicalDeviceFeatures2.pNext = std::addressof(vulkan13Features);
+
+        VkDeviceCreateInfo createInfo{ VulkanUtils::Initializers::DeviceCreateInfo() };
         createInfo.queueCreateInfoCount = static_cast<UInt32_T>(queueCreateInfos.size());
         createInfo.pQueueCreateInfos = queueCreateInfos.data();
-        createInfo.pEnabledFeatures = &deviceFeatures;
+        createInfo.pEnabledFeatures = nullptr;
         createInfo.enabledExtensionCount = static_cast<UInt32_T>(s_DeviceRequiredExtensions.size());
         createInfo.ppEnabledExtensionNames = s_DeviceRequiredExtensions.data();
+        createInfo.pNext = std::addressof(physicalDeviceFeatures2);
 
         // might not be necessary anymore because device-specific validation layers have been deprecated
         // even tho recommended for some backwards compatibility as they are required for some Vulkan implementations
@@ -448,8 +456,9 @@ namespace Mikoto {
         s_ContextData.PrimaryLogicalDeviceIndex = 0;
         s_ContextData.LogicalDevices = std::vector<VkDevice>(1);
 
-        if (vkCreateDevice(GetPrimaryPhysicalDevice(), &createInfo, nullptr, &s_ContextData.LogicalDevices[s_ContextData.PrimaryLogicalDeviceIndex]) != VK_SUCCESS)
-            throw std::runtime_error("Failed to create logical device!");
+        if (vkCreateDevice(GetPrimaryPhysicalDevice(), std::addressof(createInfo), nullptr, std::addressof(s_ContextData.LogicalDevices[s_ContextData.PrimaryLogicalDeviceIndex])) != VK_SUCCESS) {
+            MKT_THROW_RUNTIME_ERROR("Failed to create primary logical device!");
+        }
 
         /**
          * [...] all device-related function calls, such as vkCmdDraw, will go through Vulkan loader dispatch code.
@@ -467,6 +476,11 @@ namespace Mikoto {
 
         vkGetDeviceQueue(s_ContextData.LogicalDevices[s_ContextData.PrimaryLogicalDeviceIndex],
                          s_QueueFamiliesData[s_ContextData.PrimaryPhysicalDeviceIndex].PresentFamilyIndex, 0, &s_QueueFamiliesData[s_ContextData.PrimaryPhysicalDeviceIndex].PresentQueue);
+
+#if !defined(NDEBUG)
+        // check enabled features
+
+#endif
     }
 
     auto VulkanContext::FindMemoryType(UInt32_T typeFilter, VkMemoryPropertyFlags properties, VkPhysicalDevice device) -> UInt32_T {

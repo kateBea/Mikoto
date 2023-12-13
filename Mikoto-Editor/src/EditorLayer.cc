@@ -41,15 +41,21 @@ namespace Mikoto {
         auto& dockSpaceCallbacks{ Editor::GetDockSpaceCallbacks() };
 
         dockSpaceCallbacks.OnSceneNewCallback =
-            [&]() -> void {
-                // TODO: programs exits with 1 when we create a scene, save it and try to load another
-                SceneManager::DestroyScene(SceneManager::GetActiveScene());
+            []() -> void {
+                // destroy the currently active scene, for now we will
+                // not prompt the user with a window to save changes
+                SceneManager::DestroyActiveScene();
+                SceneManager::DisableTargetedEntity();
+
+                // create a new empty scene
                 auto& newScene{ SceneManager::MakeNewScene("Empty Scene") };
+
+                // make the newly created scene the active one
                 SceneManager::SetActiveScene(newScene);
             };
 
         dockSpaceCallbacks.OnSceneLoadCallback =
-            [&]() -> void {
+            []() -> void {
                 // prepare filters for the dialog
                 std::initializer_list<std::pair<std::string, std::string>> filters{
                         { "Mikoto Scene files", "mkts,mktscene" },
@@ -66,7 +72,7 @@ namespace Mikoto {
 
                 // We need to clear the scene before we load the serialized entities
                 SceneManager::DestroyActiveScene();
-                SceneManager::DisableTargetEntity();
+                SceneManager::DisableTargetedEntity();
 
                 FileManager::SceneSerializer::Deserialize(sceneFilePath);
                 ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_DEBUG, fmt::format("Loaded new scene [{}]", SceneManager::GetActiveScene().GetName()));

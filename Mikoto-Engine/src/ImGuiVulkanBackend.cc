@@ -8,33 +8,30 @@
 #include <array>
 
 // Third-Party Libraries
-#include "GLFW/glfw3.h"
-#include "imgui.h"
-#include "backends/imgui_impl_glfw.h"
-#include "backends/imgui_impl_vulkan.h"
+#include <GLFW/glfw3.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_vulkan.h>
+#include <imgui.h>
+#include <volk.h>
 
 // Important to include after imgui
-#include "ImGuizmo.h"
-
-// Project Headers
-#include <vulkan/vulkan_core.h>
+#include <ImGuizmo.h>
 
 #include <Common/VulkanUtils.hh>
+#include <Core/Logger.hh>
+#include <GUI/ImGuiVulkanBackend.hh>
 #include <Renderer/Vulkan/DeletionQueue.hh>
-
-#include "Core/Logger.hh"
-#include "GUI/ImGuiVulkanBackend.hh"
-#include "Renderer/Vulkan/VulkanContext.hh"
+#include <Renderer/Vulkan/VulkanContext.hh>
 
 namespace Mikoto {
-    auto ImGuiVulkanBackend::Init(std::any windowHandle) -> void {
+    auto ImGuiVulkanBackend::Init( std::any windowHandle ) -> void {
         // At the moment we are using Vulkan with GLFW windows
         GLFWwindow* window{ nullptr };
 
         try {
-            window = std::any_cast<GLFWwindow*>(windowHandle);
-        } catch (const std::bad_any_cast& e) {
-            MKT_CORE_LOGGER_ERROR("Failed on any cast std::any windowHandle to GLFWwindow* for ImGuiVulkanBackend::Init. what(): {}", e.what());
+            window = std::any_cast<GLFWwindow*>( windowHandle );
+        } catch ( const std::bad_any_cast& e ) {
+            MKT_CORE_LOGGER_ERROR( "Failed on any cast std::any windowHandle to GLFWwindow* for ImGuiVulkanBackend::Init. what(): {}", e.what() );
             return;
         }
 
@@ -57,23 +54,24 @@ namespace Mikoto {
         VkDescriptorPoolCreateInfo poolCreateInfo{ VulkanUtils::Initializers::DescriptorPoolCreateInfo() };
         poolCreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
         poolCreateInfo.maxSets = 1000;
-        poolCreateInfo.poolSizeCount = static_cast<UInt32_T>(poolSizes.size());
+        poolCreateInfo.poolSizeCount = static_cast<UInt32_T>( poolSizes.size() );
         poolCreateInfo.pPoolSizes = poolSizes.data();
 
-        if (vkCreateDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), &poolCreateInfo, nullptr, &m_ImGuiDescriptorPool) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("Failed to create descriptor pool for ImGui!");
+        if ( vkCreateDescriptorPool( VulkanContext::GetPrimaryLogicalDevice(), &poolCreateInfo, nullptr, &m_ImGuiDescriptorPool ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "Failed to create descriptor pool for ImGui!" );
         }
 
-        DeletionQueue::Push([descriptorPool = m_ImGuiDescriptorPool]() -> void {
-            vkDestroyDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), descriptorPool, nullptr);
-        });
+        DeletionQueue::Push( [descriptorPool = m_ImGuiDescriptorPool]() -> void {
+            vkDestroyDescriptorPool( VulkanContext::GetPrimaryLogicalDevice(), descriptorPool, nullptr );
+        } );
 
         ImGui_ImplVulkan_LoadFunctions(
-                [](const char *functionName, void *vulkanInstance) {
-                    return vkGetInstanceProcAddr(*(reinterpret_cast<VkInstance*>(vulkanInstance)), functionName);
-                }, std::addressof(VulkanContext::GetInstance()));
+                []( const char* functionName, void* vulkanInstance ) {
+                    return vkGetInstanceProcAddr( *( reinterpret_cast<VkInstance*>( vulkanInstance ) ), functionName );
+                },
+                std::addressof( VulkanContext::GetInstance() ) );
 
-        ImGui_ImplGlfw_InitForVulkan(window, true);
+        ImGui_ImplGlfw_InitForVulkan( window, true );
 
         ImGui_ImplVulkan_InitInfo initInfo{};
         initInfo.Instance = VulkanContext::GetInstance();
@@ -85,20 +83,20 @@ namespace Mikoto {
         initInfo.ImageCount = 3;
         initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
-        if (!ImGui_ImplVulkan_Init(&initInfo, m_ImGuiRenderPass)) {
-            MKT_THROW_RUNTIME_ERROR("Failed to initialize Vulkan for ImGui");
+        if ( !ImGui_ImplVulkan_Init( &initInfo, m_ImGuiRenderPass ) ) {
+            MKT_THROW_RUNTIME_ERROR( "Failed to initialize Vulkan for ImGui" );
         }
 
         // execute a gpu command to upload imgui font textures
-        VulkanContext::ImmediateSubmit(ImGui_ImplVulkan_CreateFontsTexture);
+        VulkanContext::ImmediateSubmit( ImGui_ImplVulkan_CreateFontsTexture );
 
         // clear font textures from gpu
-        VulkanUtils::WaitOnDevice(VulkanContext::GetPrimaryLogicalDevice());
+        VulkanUtils::WaitOnDevice( VulkanContext::GetPrimaryLogicalDevice() );
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
 
     auto ImGuiVulkanBackend::Shutdown() -> void {
-        VulkanUtils::WaitOnDevice(VulkanContext::GetPrimaryLogicalDevice());
+        VulkanUtils::WaitOnDevice( VulkanContext::GetPrimaryLogicalDevice() );
 
         ImGui_ImplVulkan_Shutdown();
     }
@@ -112,12 +110,12 @@ namespace Mikoto {
     }
 
     auto ImGuiVulkanBackend::EndFrame() -> void {
-        ImGuiIO& io{ ImGui::GetIO()};
+        ImGuiIO& io{ ImGui::GetIO() };
 
         ImGui::Render();
         BuildCommandBuffers();
 
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        if ( io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
         }
@@ -126,28 +124,28 @@ namespace Mikoto {
     auto ImGuiVulkanBackend::RecordImGuiCommandBuffers( VkCommandBuffer cmd ) -> void {
         // Begin ImGui-specific render pass
         VkRenderPassBeginInfo renderPassInfo{ VulkanUtils::Initializers::RenderPassBeginInfo() };
-        renderPassInfo.renderPass = m_ImGuiRenderPass; // Use the render pass for ImGui
+        renderPassInfo.renderPass = m_ImGuiRenderPass;// Use the render pass for ImGui
         renderPassInfo.framebuffer = m_DrawFrameBuffer.Get();
         renderPassInfo.renderArea.offset = { 0, 0 };
         renderPassInfo.renderArea.extent = m_Extent2D;
 
-        std::array<VkClearValue, 2> clearValues{};                                  // Only one clear value for the color attachment
-        clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};   // Clear color for ImGui
+        std::array<VkClearValue, 2> clearValues{};            // Only one clear value for the color attachment
+        clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };// Clear color for ImGui
         clearValues[1].depthStencil = { 1.0f, 0 };
 
-        renderPassInfo.clearValueCount = static_cast<UInt32_T>(clearValues.size());
+        renderPassInfo.clearValueCount = static_cast<UInt32_T>( clearValues.size() );
         renderPassInfo.pClearValues = clearValues.data();
-        renderPassInfo.clearValueCount = static_cast<UInt32_T>(clearValues.size());
+        renderPassInfo.clearValueCount = static_cast<UInt32_T>( clearValues.size() );
         renderPassInfo.pClearValues = clearValues.data();
 
-        vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass( cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE );
 
         // Set Viewport and Scissor
         VkViewport viewport{
             .x = 0.0f,
             .y = 0.0f,
-            .width = static_cast<float>(VulkanContext::GetSwapChain()->GetSwapChainExtent().width),
-            .height = static_cast<float>(VulkanContext::GetSwapChain()->GetSwapChainExtent().height),
+            .width = static_cast<float>( VulkanContext::GetSwapChain()->GetSwapChainExtent().width ),
+            .height = static_cast<float>( VulkanContext::GetSwapChain()->GetSwapChainExtent().height ),
             .minDepth = 0.0f,
             .maxDepth = 1.0f,
         };
@@ -157,13 +155,13 @@ namespace Mikoto {
             .extent{ VulkanContext::GetSwapChain()->GetSwapChainExtent() },
         };
 
-        vkCmdSetViewport(cmd, 0, 1, std::addressof(viewport));
-        vkCmdSetScissor(cmd, 0, 1, std::addressof(scissor));
+        vkCmdSetViewport( cmd, 0, 1, std::addressof( viewport ) );
+        vkCmdSetScissor( cmd, 0, 1, std::addressof( scissor ) );
 
-        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+        ImGui_ImplVulkan_RenderDrawData( ImGui::GetDrawData(), cmd );
 
         // End ImGui-specific render pass
-        vkCmdEndRenderPass(cmd);
+        vkCmdEndRenderPass( cmd );
     }
 
     auto ImGuiVulkanBackend::BuildCommandBuffers() -> void {
@@ -172,10 +170,10 @@ namespace Mikoto {
         auto& cmdHandles{ VulkanContext::GetDrawCommandBuffersHandles() };
 
         // Record draw commands
-        DrawImGui(cmdHandles[swapChainImageIndex], VulkanContext::GetSwapChain()->GetCurrentImage( swapChainImageIndex ));
+        DrawImGui( cmdHandles[swapChainImageIndex], VulkanContext::GetSwapChain()->GetCurrentImage( swapChainImageIndex ) );
 
         // Submit commands for execution
-        VulkanContext::BatchCommandBuffer(cmdHandles[swapChainImageIndex]);
+        VulkanContext::BatchCommandBuffer( cmdHandles[swapChainImageIndex] );
     }
 
     auto ImGuiVulkanBackend::PrepareForRender() -> void {
@@ -183,13 +181,13 @@ namespace Mikoto {
                 VulkanContext::GetPrimaryPhysicalDevice(),
                 { VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_D32_SFLOAT, VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_SRGB },
                 VK_IMAGE_TILING_OPTIMAL,
-                VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT);
+                VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT );
 
         m_DepthAttachmentFormat = VulkanContext::FindSupportedFormat(
                 VulkanContext::GetPrimaryPhysicalDevice(),
                 { VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT },
                 VK_IMAGE_TILING_OPTIMAL,
-                VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+                VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT );
 
         CreateImages();
         CreateRenderPass();
@@ -206,7 +204,7 @@ namespace Mikoto {
         colorAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         colorAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         colorAttachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;// VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkAttachmentReference colorAttachmentRef{};
         colorAttachmentRef.attachment = 0;
@@ -257,22 +255,22 @@ namespace Mikoto {
         std::array<VkAttachmentDescription, 2> attachmentDescriptions{ colorAttachmentDesc, depthAttachmentDesc };
 
         VkRenderPassCreateInfo info{ VulkanUtils::Initializers::RenderPassCreateInfo() };
-        info.attachmentCount = static_cast<UInt32_T>(attachmentDescriptions.size());
+        info.attachmentCount = static_cast<UInt32_T>( attachmentDescriptions.size() );
         info.pAttachments = attachmentDescriptions.data();
 
-        info.dependencyCount = static_cast<UInt32_T>(attachmentDependencies.size());
+        info.dependencyCount = static_cast<UInt32_T>( attachmentDependencies.size() );
         info.pDependencies = attachmentDependencies.data();
 
         info.subpassCount = 1;
         info.pSubpasses = &subpass;
 
-        if (vkCreateRenderPass(VulkanContext::GetPrimaryLogicalDevice(), &info, nullptr, std::addressof(m_ImGuiRenderPass)) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("Failed to create render pass for the Vulkan Renderer!");
+        if ( vkCreateRenderPass( VulkanContext::GetPrimaryLogicalDevice(), &info, nullptr, std::addressof( m_ImGuiRenderPass ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "Failed to create render pass for the Vulkan Renderer!" );
         }
 
-        DeletionQueue::Push([renderPass = m_ImGuiRenderPass]() -> void {
-            vkDestroyRenderPass(VulkanContext::GetPrimaryLogicalDevice(), renderPass, nullptr);
-        });
+        DeletionQueue::Push( [renderPass = m_ImGuiRenderPass]() -> void {
+            vkDestroyRenderPass( VulkanContext::GetPrimaryLogicalDevice(), renderPass, nullptr );
+        } );
     }
 
     auto ImGuiVulkanBackend::CreateFrameBuffer() -> void {
@@ -311,9 +309,9 @@ namespace Mikoto {
         VkImageViewCreateInfo colorAttachmentViewCreateInfo{ VulkanUtils::Initializers::ImageViewCreateInfo() };
         colorAttachmentViewCreateInfo.pNext = nullptr;
         colorAttachmentViewCreateInfo.flags = 0;
-        colorAttachmentViewCreateInfo.image = VK_NULL_HANDLE; // Set by OnCreate()
+        colorAttachmentViewCreateInfo.image = VK_NULL_HANDLE;// Set by OnCreate()
         colorAttachmentViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        colorAttachmentViewCreateInfo.format = colorAttachmentCreateInfo.format; // match formats for simplicity
+        colorAttachmentViewCreateInfo.format = colorAttachmentCreateInfo.format;// match formats for simplicity
 
         colorAttachmentViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         colorAttachmentViewCreateInfo.subresourceRange.baseMipLevel = 0;
@@ -321,7 +319,7 @@ namespace Mikoto {
         colorAttachmentViewCreateInfo.subresourceRange.baseArrayLayer = 0;
         colorAttachmentViewCreateInfo.subresourceRange.layerCount = 1;
 
-        m_ColorImage.OnCreate({ colorAttachmentCreateInfo , colorAttachmentViewCreateInfo });
+        m_ColorImage.OnCreate( { colorAttachmentCreateInfo, colorAttachmentViewCreateInfo } );
 
         // Depth attachment
         VkImageCreateInfo depthAttachmentCreateInfo{ VulkanUtils::Initializers::ImageCreateInfo() };
@@ -342,7 +340,7 @@ namespace Mikoto {
         VkImageViewCreateInfo depthAttachmentViewCreateInfo{ VulkanUtils::Initializers::ImageViewCreateInfo() };
 
         depthAttachmentViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        depthAttachmentViewCreateInfo.image = VK_NULL_HANDLE; // Set by OnCreate()
+        depthAttachmentViewCreateInfo.image = VK_NULL_HANDLE;// Set by OnCreate()
         depthAttachmentViewCreateInfo.format = depthAttachmentCreateInfo.format;
 
         depthAttachmentViewCreateInfo.flags = 0;
@@ -352,17 +350,17 @@ namespace Mikoto {
         depthAttachmentViewCreateInfo.subresourceRange.baseArrayLayer = 0;
         depthAttachmentViewCreateInfo.subresourceRange.layerCount = 1;
         depthAttachmentViewCreateInfo.subresourceRange.aspectMask =
-                depthAttachmentCreateInfo.format < VK_FORMAT_D16_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT : (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+                depthAttachmentCreateInfo.format < VK_FORMAT_D16_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT : ( VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT );
 
-        m_DepthImage.OnCreate({ depthAttachmentCreateInfo , depthAttachmentViewCreateInfo });
+        m_DepthImage.OnCreate( { depthAttachmentCreateInfo, depthAttachmentViewCreateInfo } );
     }
 
     auto ImGuiVulkanBackend::DrawImGui( VkCommandBuffer cmd, VkImage currentSwapChainImage ) -> void {
         // Begin recording command buffer
         VkCommandBufferBeginInfo beginInfo{ VulkanUtils::Initializers::CommandBufferBeginInfo() };
 
-        if (vkBeginCommandBuffer(cmd, &beginInfo) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("Failed to begin recording ImGui command buffer");
+        if ( vkBeginCommandBuffer( cmd, std::addressof( beginInfo ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "Failed to begin recording ImGui command buffer" );
         }
 
         // Record imgui draw commands
@@ -370,8 +368,8 @@ namespace Mikoto {
 
 
         // the transition the draw image and the swapchain image into their correct transfer layouts
-        VulkanUtils::TransitionImage(cmd, m_ColorImage.Get(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-        VulkanUtils::TransitionImage(cmd, currentSwapChainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        VulkanUtils::TransitionImage( cmd, m_ColorImage.Get(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL );
+        VulkanUtils::TransitionImage( cmd, currentSwapChainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL );
 
         VkExtent3D extent{};
         extent.height = VulkanContext::GetSwapChain()->GetSwapChainExtent().height;
@@ -379,17 +377,17 @@ namespace Mikoto {
         extent.depth = 1;
 
         // execute a copy from the draw image into the swapchain
-        VulkanUtils::CopyImageToImage(cmd, m_ColorImage.Get(), currentSwapChainImage, extent);
+        VulkanUtils::CopyImageToImage( cmd, m_ColorImage.Get(), currentSwapChainImage, extent );
 
         // convert color image to original layout
-        VulkanUtils::TransitionImage(cmd, m_ColorImage.Get(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        VulkanUtils::TransitionImage( cmd, m_ColorImage.Get(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
         // set swapchain image layout to Present, so we can show it on the screen
-        VulkanUtils::TransitionImage(cmd, currentSwapChainImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+        VulkanUtils::TransitionImage( cmd, currentSwapChainImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR );
 
         // End recording command buffer
-        if (vkEndCommandBuffer(cmd) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("Failed to record ImGui command buffer!");
+        if ( vkEndCommandBuffer( cmd ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "Failed to record ImGui command buffer!" );
         }
     }
-}
+}// namespace Mikoto

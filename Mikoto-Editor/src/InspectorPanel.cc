@@ -541,63 +541,66 @@ namespace Mikoto {
      * @param entity Entity to adds components on.
      * */
     static auto DrawComponentButton( Entity& entity ) {
-        if ( entity.IsValid() ) {
-            ImGui::SameLine();
-            ImGui::PushItemWidth( -1.0f );
-
-            if ( ImGui::Button( "Add component" ) ) {
-                ImGui::OpenPopup( "AddComponentButtonPopup" );
-            }
-
-            if ( ImGui::BeginPopup( "AddComponentButtonPopup" ) ) {
-                const bool menuItemSelected{ false };
-                const char* menuItemShortcut{ nullptr };// no shortcuts for now
-
-                if ( ImGui::MenuItem( "Material", menuItemShortcut, menuItemSelected, !entity.HasComponent<MaterialComponent>() ) ) {
-                    entity.AddComponent<MaterialComponent>();
-                    ImGui::CloseCurrentPopup();
-                }
-
-                if ( ImGui::MenuItem( "Script", menuItemShortcut, menuItemSelected, !entity.HasComponent<NativeScriptComponent>() ) ) {
-                    entity.AddComponent<NativeScriptComponent>();
-                    ImGui::CloseCurrentPopup();
-                }
-
-                if ( ImGui::MenuItem( "Mesh", menuItemShortcut, menuItemSelected, !entity.HasComponent<RenderComponent>() ) ) {
-                    entity.AddComponent<RenderComponent>();
-
-                    // TODO: Temporary, required to filter renderables, see Scene update
-                    if ( !entity.HasComponent<MaterialComponent>() ) {
-                        entity.AddComponent<MaterialComponent>();
-                    }
-
-                    ImGui::CloseCurrentPopup();
-                }
-
-                if ( ImGui::MenuItem( "Camera", menuItemShortcut, menuItemSelected, !entity.HasComponent<CameraComponent>() ) ) {
-                    entity.AddComponent<CameraComponent>( std::make_shared<SceneCamera>() );
-                    ImGui::CloseCurrentPopup();
-                }
-
-                if ( ImGui::MenuItem( "Lighting", menuItemShortcut, menuItemSelected, !entity.HasComponent<LightComponent>() ) ) {
-                    entity.AddComponent<LightComponent>();
-                    ImGui::CloseCurrentPopup();
-                }
-
-                if ( ImGui::MenuItem( "Physics", menuItemShortcut, menuItemSelected, !entity.HasComponent<PhysicsComponent>() ) ) {
-                    entity.AddComponent<PhysicsComponent>();
-                    ImGui::CloseCurrentPopup();
-                }
-
-                if ( ImGui::MenuItem( "Audio", menuItemShortcut, menuItemSelected, !entity.HasComponent<AudioComponent>() ) ) {
-                    entity.AddComponent<AudioComponent>();
-                    ImGui::CloseCurrentPopup();
-                }
-
-                ImGui::EndPopup();
-            }
-            ImGui::PopItemWidth();
+        if ( !entity.IsValid() ) {
+            return;
         }
+
+        ImGui::SameLine();
+        ImGui::PushItemWidth( -1.0f );
+
+        if ( ImGui::Button( "Add component" ) ) {
+            ImGui::OpenPopup( "AddComponentButtonPopup" );
+        }
+
+        if ( ImGui::BeginPopup( "AddComponentButtonPopup" ) ) {
+            const bool menuItemSelected{ false };
+            const char* menuItemShortcut{ nullptr };// no shortcuts for now
+
+            if ( ImGui::MenuItem( "Material", menuItemShortcut, menuItemSelected, !entity.HasComponent<MaterialComponent>() ) ) {
+                entity.AddComponent<MaterialComponent>();
+                ImGui::CloseCurrentPopup();
+            }
+
+            if ( ImGui::MenuItem( "Script", menuItemShortcut, menuItemSelected, !entity.HasComponent<NativeScriptComponent>() ) ) {
+                entity.AddComponent<NativeScriptComponent>();
+                ImGui::CloseCurrentPopup();
+            }
+
+            if ( ImGui::MenuItem( "Mesh", menuItemShortcut, menuItemSelected, !entity.HasComponent<RenderComponent>() ) ) {
+                entity.AddComponent<RenderComponent>();
+
+                // TODO: Temporary, required to filter renderables, see Scene update
+                if ( !entity.HasComponent<MaterialComponent>() ) {
+                    entity.AddComponent<MaterialComponent>();
+                }
+
+                ImGui::CloseCurrentPopup();
+            }
+
+            if ( ImGui::MenuItem( "Camera", menuItemShortcut, menuItemSelected, !entity.HasComponent<CameraComponent>() ) ) {
+                entity.AddComponent<CameraComponent>( std::make_shared<SceneCamera>() );
+                ImGui::CloseCurrentPopup();
+            }
+
+            if ( ImGui::MenuItem( "Lighting", menuItemShortcut, menuItemSelected, !entity.HasComponent<LightComponent>() ) ) {
+                entity.AddComponent<LightComponent>();
+                ImGui::CloseCurrentPopup();
+            }
+
+            if ( ImGui::MenuItem( "Physics", menuItemShortcut, menuItemSelected, !entity.HasComponent<PhysicsComponent>() ) ) {
+                entity.AddComponent<PhysicsComponent>();
+                ImGui::CloseCurrentPopup();
+            }
+
+            if ( ImGui::MenuItem( "Audio", menuItemShortcut, menuItemSelected, !entity.HasComponent<AudioComponent>() ) ) {
+                entity.AddComponent<AudioComponent>();
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+
+        ImGui::PopItemWidth();
     }
 
 
@@ -801,11 +804,15 @@ namespace Mikoto {
     }
 
 
-    auto InspectorPanel::DrawComponents( Entity& currentlyActiveEntity ) -> void {
+    auto InspectorPanel::DrawComponents( Entity& entity ) -> void {
+        if ( !entity.IsValid() ) {
+            return;
+        }
+
         // By default, all scene objects have a transform component which cannot be removed
         constexpr bool TRANSFORM_HAS_PLUS_BUTTON{ false };
         DrawComponent<TransformComponent>(
-                fmt::format( "{} Transform", ICON_MD_DEVICE_HUB ), currentlyActiveEntity,
+                fmt::format( "{} Transform", ICON_MD_DEVICE_HUB ), entity,
                 []( auto& component ) -> void {
                     auto translation{ component.GetTranslation() };
                     auto rotation{ component.GetRotation() };
@@ -822,7 +829,7 @@ namespace Mikoto {
                 },
                 TRANSFORM_HAS_PLUS_BUTTON );
 
-        DrawComponent<RenderComponent>( fmt::format( "{} Mesh", ICON_MD_VIEW_IN_AR ), currentlyActiveEntity, []( auto& component ) -> void {
+        DrawComponent<RenderComponent>( fmt::format( "{} Mesh", ICON_MD_VIEW_IN_AR ), entity, []( auto& component ) -> void {
             auto& objData{ component.GetObjectData() };
 
             ImGui::Unindent();
@@ -1108,13 +1115,13 @@ namespace Mikoto {
             ImGui::Indent();
         } );
 
-        DrawComponent<MaterialComponent>( fmt::format( "{} Material", ICON_MD_INSIGHTS ), currentlyActiveEntity, [&]( auto& component ) -> void {
+        DrawComponent<MaterialComponent>( fmt::format( "{} Material", ICON_MD_INSIGHTS ), entity, [&]( auto& component ) -> void {
             ImGui::Unindent();
 
             // If the currently selected mesh has a material,
             // we update the one in the material display
-            if ( currentlyActiveEntity.HasComponent<RenderComponent>() ) {
-                auto& renderData{ currentlyActiveEntity.GetComponent<RenderComponent>() };
+            if ( entity.HasComponent<RenderComponent>() ) {
+                auto& renderData{ entity.GetComponent<RenderComponent>() };
                 std::vector<Mesh>& meshList{ renderData.GetObjectData().ObjectModel->GetMeshes() };
 
                 if ( ( renderData.GetObjectData().MeshSelectedIndex != SceneObjectData::NO_MESH_SELECTED_INDEX ) ) {
@@ -1129,12 +1136,12 @@ namespace Mikoto {
             ImGui::Indent();
         } );
 
-        DrawComponent<NativeScriptComponent>( fmt::format( "{} Script", ICON_MD_CODE ), currentlyActiveEntity, []( auto& component ) -> void {
+        DrawComponent<NativeScriptComponent>( fmt::format( "{} Script", ICON_MD_CODE ), entity, []( auto& component ) -> void {
             ( void )component;
         } );
 
 
-        DrawComponent<LightComponent>( fmt::format( "{} Lighting", ICON_MD_LIGHT ), currentlyActiveEntity, []( auto& component ) -> void {
+        DrawComponent<LightComponent>( fmt::format( "{} Lighting", ICON_MD_LIGHT ), entity, []( auto& component ) -> void {
             static constexpr std::array<std::string_view, 3> lightTypes{ "Directional light", "Point light", "Spot light" };
 
             auto lightType{ component.GetType() };
@@ -1539,12 +1546,12 @@ namespace Mikoto {
         } );
 
 
-        DrawComponent<PhysicsComponent>( fmt::format( "{} Physics", ICON_MD_FITNESS_CENTER ), currentlyActiveEntity, []( auto& component ) -> void {
+        DrawComponent<PhysicsComponent>( fmt::format( "{} Physics", ICON_MD_FITNESS_CENTER ), entity, []( auto& component ) -> void {
             ( void )component;
         } );
 
 
-        DrawComponent<AudioComponent>( fmt::format( "{} Audio", ICON_MD_AUDIOTRACK ), currentlyActiveEntity, []( auto& component ) -> void {
+        DrawComponent<AudioComponent>( fmt::format( "{} Audio", ICON_MD_AUDIOTRACK ), entity, []( auto& component ) -> void {
 
             constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
 
@@ -1586,7 +1593,7 @@ namespace Mikoto {
         } );
 
 
-        DrawComponent<CameraComponent>( fmt::format( "{} Camera", ICON_MD_CAMERA_ALT ), currentlyActiveEntity, []( auto& component ) -> void {
+        DrawComponent<CameraComponent>( fmt::format( "{} Camera", ICON_MD_CAMERA_ALT ), entity, []( auto& component ) -> void {
 
             static const std::array<std::string, 2> CAMERA_PROJECTION_TYPE_NAMES{ "Orthographic", "Perspective" };
 

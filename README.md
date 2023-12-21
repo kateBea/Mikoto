@@ -81,8 +81,9 @@ This project serves as a way for me to learn 3D graphics programming with modern
 to integrate the things I learn along the way.
 
 # Special thanks and mentions to
-  - Yan Chernikov for his [YouTube videos](https://www.youtube.com/@TheCherno) and live streams
-  - Cem Yuksel for his [YouTube videos](https://www.youtube.com/@cem_yuksel/videos) about graphics programing
-  - Jason Gregory for the [Game Engine Architecture](https://www.gameenginebook.com/) book
-  - Matt Pharr, Wenzel Jakob, Greg Humphreys for the [Physically Based Rendering: From Theory to Implementation](https://www.pbr-book.org/)
-  - Sascha Willems for the [Vulkan examples](https://github.com/SaschaWillems/Vulkan)
+  - Joey De Vries for the [LearnOpenGL](https://learnopengl.com/) articles. 
+  - Yan Chernikov for his [YouTube videos](https://www.youtube.com/@TheCherno) and live streams.
+  - Cem Yuksel for his [YouTube videos](https://www.youtube.com/@cem_yuksel/videos) about graphics programing.
+  - Jason Gregory for the [Game Engine Architecture](https://www.gameenginebook.com/) book.
+  - Matt Pharr, Wenzel Jakob, Greg Humphreys for the [Physically Based Rendering: From Theory to Implementation](https://www.pbr-book.org/).
+  - Sascha Willems for the [Vulkan examples](https://github.com/SaschaWillems/Vulkan).

@@ -62,7 +62,7 @@ namespace Mikoto {
                         { "Mikoto Project Files", "mkt,mktp,mktproject" }
                 };
 
-                auto sceneFilePath{ FileManager::OpenDialog(filters) };
+                std::string sceneFilePath{ FileManager::OpenDialog(filters) };
 
                 // user canceled file dialog
                 if (sceneFilePath.empty()) {

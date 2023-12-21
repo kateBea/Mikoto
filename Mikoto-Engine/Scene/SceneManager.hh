@@ -31,11 +31,13 @@ namespace Mikoto {
         // will make it so that it sets the scene as active
         static auto MakeNewScene(std::string_view name) -> Scene &;
 
+
         /**
          * Tells if there's an entity currently targeted in the scene
          * @returns true if there's an entity selected in the scene, false otherwise
          * */
         static auto IsEntitySelected() -> bool;
+
 
         /**
          * Returns the currently focused entity in the editor viewport.
@@ -44,18 +46,22 @@ namespace Mikoto {
          * */
         static auto GetCurrentlySelectedEntity() -> Entity&;
 
+
         /**
          * Establishes the currently active entity in the viewport
          * @param entity currently active entity
          * */
         static auto SetCurrentlyActiveEntity(const Entity& entity) -> void;
 
+
         static auto GetCurrentSelection() -> std::optional<std::reference_wrapper<Entity>>;
+
 
         /**
          * Disables the currently active entity
          * */
         static auto DisableCurrentlyActiveEntity() -> void;
+
 
         /**
          * Returns the currently active scene. The currently active
@@ -67,9 +73,12 @@ namespace Mikoto {
         static auto GetActiveScene() -> Scene&;
 
 
+
         static auto DisableTargetedEntity() -> void;
 
+
         static auto SetActiveScene(Scene& scene) -> void;
+
 
         /**
          * Execute a function for all entities with the given components
@@ -84,6 +93,7 @@ namespace Mikoto {
             }
         }
 
+
         /**
          * Execute a function for all entities with the given components
          * */
@@ -91,6 +101,7 @@ namespace Mikoto {
         static auto ForEachWithComponents(const std::function<void(Entity&)>& task) -> void {
             ForEachWithComponentsOnScene<ComponentTypes...>(GetActiveScene(), task);
         }
+
 
         /**
          * Same as DestroyEntityFromScene(Scene&, Entity&) but the scene provided
@@ -106,7 +117,9 @@ namespace Mikoto {
          * */
         static auto DestroyScene(const Scene& scene) -> void;
 
+
         static auto DestroyActiveScene() -> void;
+
 
         /**
          * Creates an entity on the currently active scene.
@@ -114,6 +127,7 @@ namespace Mikoto {
          * @returns newly created entity
          * */
         static auto AddEntity(const EntityCreateInfo& createInfo) -> Entity;
+
 
         static auto AddEntityToScene(Scene &scene, const EntityCreateInfo& createInfo) -> Entity;
 

@@ -27,7 +27,7 @@ namespace Mikoto {
         ~InspectorPanel() override = default;
 
     private:
-        auto DrawComponents( Entity& currentlyActiveEntity ) -> void;
+        auto DrawComponents( Entity& entity ) -> void;
         auto DrawMaterialComponentEditor(MaterialComponent& material) -> void;
 
         auto OpenMaterialEditor() -> void;

@@ -15,13 +15,13 @@
 #include <entt/entt.hpp>
 
 // Project Headers
-#include <Common/Types.hh>
 #include <Common/Common.hh>
 #include <Common/Random.hh>
 #include <Common/RenderingUtils.hh>
-
-#include <EditorCamera.hh>
+#include <Common/Types.hh>
 #include <Scene/Entity.hh>
+
+#include "EditorCamera.hh"
 
 namespace Mikoto {
     struct SceneMetaData {
@@ -57,12 +57,6 @@ namespace Mikoto {
          * Move constructor for a Scene object.
          * */
         Scene( Scene&& other ) = default;
-
-
-        /**
-         * Destructor for the Scene.
-         * */
-        ~Scene();
 
 
         /**
@@ -181,6 +175,12 @@ namespace Mikoto {
          * Clears the scene, removing all entities and components.
          * */
         auto Clear() -> void;
+
+
+        /**
+         * Default destructor.
+         * */
+        ~Scene() = default;
 
     private:
         // [Friends]

@@ -34,6 +34,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetVertices() const -> const std::shared_ptr<VertexBuffer>& { return m_Vertices; }
         MKT_NODISCARD auto GetIndices() const -> const std::shared_ptr<IndexBuffer>& { return m_Indices; }
         MKT_NODISCARD auto GetTextures() const -> const std::vector<std::shared_ptr<Texture2D>>& { return m_Textures; }
+
         /**
          * Returns the standard vertex buffer layout for all meshes
          * @returns default vertex buffer layout

@@ -62,8 +62,7 @@ namespace Mikoto {
 
         if (s_ActiveRendererAPI) {
             s_ActiveRendererAPI->Init();
-        }
-        else {
+        } else {
             MKT_THROW_RUNTIME_ERROR("Could not pick a valid render backend");
         }
 
@@ -74,12 +73,14 @@ namespace Mikoto {
         s_SavedSceneStats = std::make_unique<RenderingStats>();
     }
 
+
     auto Renderer::Shutdown() -> void {
         if (s_ActiveRendererAPI)
             s_ActiveRendererAPI->Shutdown();
 
         delete s_ActiveRendererAPI;
     }
+
 
     auto Renderer::GetRendererStatistics() -> const RendererStatistics& {
         // Update this data every 5 seconds
@@ -95,6 +96,7 @@ namespace Mikoto {
         return s_Statistics;
     }
 
+
     auto Renderer::Submit(const SceneObjectData& objectData, const glm::mat4& transform) -> void {
         auto data{ std::make_shared<DrawData>() };
 
@@ -107,10 +109,11 @@ namespace Mikoto {
         Renderer::Submit(std::move(data));
     }
 
+
     auto Renderer::UpdateRendererStatistics() -> void {
         switch (s_Spec.Backend) {
             case GraphicsAPI::OPENGL_API:
-                // TODO: get statistics
+                // TODO:
                 break;
             case GraphicsAPI::VULKAN_API:
                 auto& stats{ VulkanContext::GetDetailedStatistics() };
@@ -119,19 +122,24 @@ namespace Mikoto {
         }
     }
 
+
     auto Renderer::SetLightsViewPos( const glm::vec4& viewPos ) -> void {
         s_LightViewPos = viewPos;
     }
+
 
     auto Renderer::SetPointLightInfo( PointLight& info, Size_T index ) -> void {
         s_PointLights[index] = info;
     }
 
+
     auto Renderer::SetDirLightInfo( DirectionalLight& info, Size_T index ) -> void {
         s_DirectionalLights[index] = info;
     }
 
+
     auto Renderer::SetSpotLightInfo( SpotLight& info, Size_T index ) -> void {
         s_SpotLights[index] = info;
     }
+
 }

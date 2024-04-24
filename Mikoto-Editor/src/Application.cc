@@ -4,22 +4,17 @@
  * */
 
 // C++ Standard Library
-#include <memory>
 #include <cmath>
 #include <utility>
 
 // Project headers
+#include <Application.hh>
 #include <Assets/AssetsManager.hh>
-#include <Common/Common.hh>
-#include <Common/Types.hh>
-#include <Core/Application.hh>
 #include <Core/CoreEvents.hh>
 #include <Core/EventManager.hh>
 #include <Core/FileManager.hh>
-#include <Core/Logger.hh>
 #include <Core/TimeManager.hh>
 #include <GUI/ImGuiManager.hh>
-#include <Platform/GlfwWindow.hh>
 #include <Platform/InputManager.hh>
 #include <Renderer/RenderContext.hh>
 #include <Scene/SceneManager.hh>
@@ -27,32 +22,41 @@
 
 namespace Mikoto {
     auto Application::Init(AppSpec&& appSpec) -> void {
-        // Initialize the time manager
+        m_Spec = std::move(appSpec);
         TimeManager::Init();
 
-        // Set the assets root path (this path contains import files like shaders, prefabs, etc)
+        // Set the assets root path (this path contains import files like shaders, prefabs, etc.)
         FileManager::Assets::SetRootPath("../Assets");
 
-        // Initialize workers
         TaskManager::Init();
 
-        m_Spec = std::move(appSpec);
+        MKT_APP_LOGGER_INFO("=================================================================");
+        MKT_APP_LOGGER_INFO("Executable                : {}", m_Spec.Executable.string());
+        MKT_APP_LOGGER_INFO("Current working directory : {}", m_Spec.WorkingDirectory.string());
+        MKT_APP_LOGGER_INFO("=================================================================");
 
-        MKT_APP_LOGGER_INFO("Program executable (absolute path)                 : {}", m_Spec.Executable.string());
-        MKT_APP_LOGGER_INFO("Program current working directory (absolute path)  : {}", m_Spec.WorkingDirectory.string());
+        WindowProperties windowProperties{
+            m_Spec.Name,
+            m_Spec.RenderingBackend,
+            m_Spec.WindowWidth,
+            m_Spec.WindowHeight
+        };
 
-        // Initialize the main window
-        WindowProperties windowProperties{ m_Spec.Name, m_Spec.RenderingBackend, m_Spec.WindowWidth, m_Spec.WindowHeight };
         windowProperties.AllowResizing(true);
 
-        m_MainWindow = std::make_shared<GlfwWindow>(std::move(windowProperties));
-        m_MainWindow->Init();
+        m_MainWindow = Window::Create(std::move(windowProperties));
+
+        if (m_MainWindow) {
+            m_MainWindow->Init();
+        } else {
+            MKT_THROW_RUNTIME_ERROR("Could not create application main window!");
+        }
 
         // Serializer Init
         FileManager::Init();
 
         // Initialize the input manager
-        InputManager::Init(std::addressof(*m_MainWindow));
+        InputManager::Init(m_MainWindow.get());
 
         RenderContextSpec contextSpec{};
         contextSpec.Backend = m_Spec.RenderingBackend;
@@ -61,12 +65,6 @@ namespace Mikoto {
         // Initialize the render context
         RenderContext::Init(std::move(contextSpec));
         RenderContext::EnableVSync();
-
-        // For multithreading test purposes
-        TaskManager::Execute(
-                []() -> void {
-                    MKT_APP_LOGGER_DEBUG("Hello there I'm another thread, press E to spawn this message again but is probably not going to be me again. We are {} workers in total", TaskManager::GetWorkersCount());
-                });
 
         // Initialize the assets' manager. Important to do at the end
         // as it loads some prefabs which require to have a render context ready.
@@ -82,7 +80,9 @@ namespace Mikoto {
 
         InstallEventCallbacks();
 
-        MKT_APP_LOGGER_INFO("Init time {}", TimeManager::GetTime());
+        MKT_APP_LOGGER_INFO("=================================================================");
+        MKT_APP_LOGGER_INFO("Init time {} seconds", TimeManager::GetTime());
+        MKT_APP_LOGGER_INFO("=================================================================");
     }
 
     auto Application::InstallEventCallbacks() -> void {
@@ -114,39 +114,20 @@ namespace Mikoto {
     }
 
     auto Application::Shutdown() -> void {
+        MKT_APP_LOGGER_INFO("=====================================");
         MKT_APP_LOGGER_INFO("Shutting down application. Cleanup...");
+        MKT_APP_LOGGER_INFO("=====================================");
         // Release layers resources
         ReleaseLayers();
-
-        // Assets manager shutdown
         AssetsManager::Shutdown();
-
-        // Scene manager shutdown
         SceneManager::Shutdown();
-
-        // Renderer Context shutdown
         RenderContext::Shutdown();
-
-        // Input Manager shutdown
         InputManager::Shutdown();
-
-        // Event manager shutdown
         EventManager::Shutdown();
-
-        // Serializer manager shutdown
         FileManager::Shutdown();
 
-        // Timer manager shutdown - Not needed for now
-
         m_MainWindow->Shutdown();
-
-        // Terminate workers and other threads
         TaskManager::Shutdown();
-    }
-
-    auto Application::GetMainWindow() -> Window& {
-        MKT_ASSERT(m_MainWindow, "Application main window is NULL");
-        return *m_MainWindow;
     }
 
     auto Application::IsRunning() -> bool {
@@ -155,32 +136,23 @@ namespace Mikoto {
 
     auto Application::ReleaseLayers() -> void {
         m_EditorLayer->OnDetach();
-        m_GameLayer->OnDetach();
     }
 
     auto Application::InitializeLayers() -> void {
-        m_GameLayer = std::make_unique<GameLayer>();
-
-        m_GameLayer->OnAttach();
-
-        if (m_Spec.WantEditor) {
-            m_EditorLayer = std::make_unique<EditorLayer>();
-            m_EditorLayer->OnAttach();
-        }
+        m_EditorLayer = std::make_unique<EditorLayer>();
+        m_EditorLayer->OnAttach();
     }
 
     auto Application::UpdateLayers() -> void {
         auto timeStep{ TimeManager::GetTimeStep() };
 
         m_EditorLayer->OnUpdate(timeStep);
-        m_GameLayer->OnUpdate(timeStep);
     }
 
     auto Application::ImGuiFrameRender() -> void {
         ImGuiManager::BeginFrame();
 
         m_EditorLayer->PushImGuiDrawItems();
-        m_GameLayer->PushImGuiDrawItems();
 
         ImGuiManager::EndFrame();
     }

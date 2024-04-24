@@ -24,6 +24,7 @@ namespace Mikoto {
         }
     }
 
+
     auto Shader::Create(const Path_T& src, ShaderStage stage) -> std::shared_ptr<Shader> {
         switch(Renderer::GetActiveGraphicsAPI()) {
         case GraphicsAPI::OPENGL_API:

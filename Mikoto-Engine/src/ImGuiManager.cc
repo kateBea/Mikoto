@@ -15,7 +15,6 @@
 
 #include <Renderer/Renderer.hh>
 
-#include <Editor.hh>
 
 #include <GUI/ImGuiManager.hh>
 #include <GUI/ImGuiOpenGLBackend.hh>
@@ -49,7 +48,7 @@ namespace Mikoto {
 
         // Configure ImGui Style
         ImGui::StyleColorsDark();
-        Editor::ThemeDarkModeDefault();
+        ImGuiUtils::ThemeDarkModeDefault();
 
         const float baseFontSize{ 16.5f };
         const float iconFontSize{ 18.0f };

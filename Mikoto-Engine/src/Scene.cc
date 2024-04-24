@@ -12,17 +12,15 @@
 #include <entt/entt.hpp>
 
 // Project Headers
-#include <Common/Random.hh>
-
 #include <Assets/AssetsManager.hh>
-
-#include "EditorCamera.hh"
-#include "Scene/Component.hh"
-#include "Scene/Entity.hh"
-#include "Scene/Scene.hh"
-
+#include <Common/Random.hh>
 #include <Common/RenderingUtils.hh>
 #include <Renderer/Renderer.hh>
+
+#include "Scene/Component.hh"
+#include "Scene/EditorCamera.hh"
+#include "Scene/Entity.hh"
+#include "Scene/Scene.hh"
 
 namespace Mikoto {
     auto Scene::OnRuntimeUpdate(double ts) -> void {
@@ -101,10 +99,13 @@ namespace Mikoto {
 
         for (auto& mesh : model.GetMeshes()) {
             DefaultMaterialCreateSpec spec{};
+            PBRMaterialCreateSpec specPbr{};
+
             for (auto textureIt{ mesh.GetTextures().begin() }; textureIt != mesh.GetTextures().end(); ++textureIt) {
                 switch ( (*textureIt)->GetType() ) {
                     case MapType::TEXTURE_2D_DIFFUSE:
                         spec.DiffuseMap = *textureIt;
+                        specPbr.AlbedoMap = *textureIt;
                         break;
                     case MapType::TEXTURE_2D_SPECULAR:
                         spec.SpecularMap = *textureIt;
@@ -113,6 +114,7 @@ namespace Mikoto {
             }
 
             mesh.AddMaterial(Material::CreateStandardMaterial(spec));
+            //mesh.AddMaterial(Material::CreatePBRMaterial(specPbr));
         }
 
         renderData.GetObjectData().ObjectModel = std::addressof(model);
@@ -143,38 +145,39 @@ namespace Mikoto {
     }
 
     auto Scene::OnEditorUpdate(MKT_UNUSED_VAR double timeStep, const EditorCamera& camera) -> void {
+        // Prepare scene data
         ScenePrepareData prepareData{};
         prepareData.StaticCamera = std::addressof(camera);
 
+        // Begin scene
         Renderer::BeginScene( prepareData );
 
-        // Setup lighting information
-        Size_T dirIndexCount{};
-        Size_T spotIndexCount{};
-        Size_T pointIndexCount{};
+        // Setup lighting data
+        Size_T dirIndexCount{}, spotIndexCount{}, pointIndexCount{};
+
         Renderer::SetLightsViewPos( glm::vec4{ camera.GetPosition(), 1.0f } );
+
         for ( auto& lightSource: m_Registry.view<LightComponent>() ) {
             LightComponent& lightComponent{ m_Registry.get<LightComponent>( lightSource ) };
 
             switch ( lightComponent.GetType() ) {
                 case LightType::DIRECTIONAL_LIGHT_TYPE:
-                    lightComponent.GetDirLightData().Position = glm::vec4{ m_Registry.get<TransformComponent>( lightSource ).GetTranslation(), 1.0f };
-
+                    lightComponent.GetDirLightData().Position =
+                            glm::vec4{ m_Registry.get<TransformComponent>( lightSource ).GetTranslation(), 1.0f };
                     Renderer::SetDirLightInfo( lightComponent.GetDirLightData(), dirIndexCount++ );
                     break;
                 case LightType::POINT_LIGHT_TYPE:
-                    lightComponent.GetPointLightData().Position = glm::vec4{ m_Registry.get<TransformComponent>( lightSource ).GetTranslation(), 1.0f };
-
+                    lightComponent.GetPointLightData().Position =
+                            glm::vec4{ m_Registry.get<TransformComponent>( lightSource ).GetTranslation(), 1.0f };
                     Renderer::SetPointLightInfo( lightComponent.GetPointLightData(), pointIndexCount++ );
                     break;
                 case LightType::SPOT_LIGHT_TYPE:
-                    lightComponent.GetSpotLightData().Position = glm::vec4{ m_Registry.get<TransformComponent>( lightSource ).GetTranslation(), 1.0f };
-
+                    lightComponent.GetSpotLightData().Position =
+                            glm::vec4{ m_Registry.get<TransformComponent>( lightSource ).GetTranslation(), 1.0f };
                     Renderer::SetSpotLightInfo( lightComponent.GetSpotLightData(), spotIndexCount++ );
                     break;
             }
 
-            // To real time update the lights in the scene
             Renderer::SetActivePointLightsCount( pointIndexCount );
             Renderer::SetActiveDirLightsCount( dirIndexCount );
             Renderer::SetActiveSpotLightsCount( spotIndexCount );
@@ -189,15 +192,15 @@ namespace Mikoto {
             MaterialComponent& material{ view.get<MaterialComponent>( sceneObject ) };
 
             SceneObjectData& objectData{ renderComponent.GetObjectData() };
-            auto modelPtr{ objectData.ObjectModel };
 
-            if ( tag.IsVisible() && modelPtr ) {
+            if ( tag.IsVisible() && objectData.ObjectModel  ) {
                 Renderer::Submit( objectData, transform.GetTransform() );
             }
         }
 
         Renderer::EndScene();
 
+        // Flush draw commands
         Renderer::Flush();
     }
 
@@ -215,16 +218,8 @@ namespace Mikoto {
     }
 
     auto Scene::Clear() -> void {
-        if (m_Registry.empty()) {
-            return;
-        }
-
         auto view{ m_Registry.view<TagComponent>() };
         m_Registry.destroy(view.begin(), view.end());
-    }
-
-    Scene::~Scene() {
-        Clear();
     }
 
     auto Scene::GetActiveScene() -> Scene* {

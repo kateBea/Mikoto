@@ -5,11 +5,8 @@
 
 // Project Headers
 #include <Common/RenderingUtils.hh>
-
 #include <Core/EventManager.hh>
-
 #include <GUI/ImGuiManager.hh>
-
 #include <Renderer/RenderContext.hh>
 #include <Renderer/OpenGL/OpenGLContext.hh>
 #include <Renderer/Vulkan/DeletionQueue.hh>
@@ -32,14 +29,12 @@ namespace Mikoto {
         RendererSpec renderSpec{};
         renderSpec.Backend = s_Spec.Backend;
 
-        // Initialize the renderer
         Renderer::Init(std::move(renderSpec));
-
-        // Initialize the GUI manager
         ImGuiManager::Init(s_Spec.WindowHandle);
 
         SetEventHandles();
     }
+
 
     auto RenderContext::Shutdown() -> void {
         // Renderer shutdown
@@ -70,6 +65,7 @@ namespace Mikoto {
         }
     }
 
+
     auto RenderContext::Present() -> void {
         switch (s_Spec.Backend) {
             case GraphicsAPI::OPENGL_API:
@@ -81,6 +77,7 @@ namespace Mikoto {
         }
     }
 
+
     MKT_UNUSED_FUNC auto RenderContext::IsVSyncActive() -> bool {
         switch (s_Spec.Backend) {
             case GraphicsAPI::OPENGL_API:
@@ -90,6 +87,7 @@ namespace Mikoto {
             default: return false;
         }
     }
+
 
     auto RenderContext::EnableVSync() -> void {
         switch (s_Spec.Backend) {
@@ -102,6 +100,7 @@ namespace Mikoto {
         }
     }
 
+
     auto RenderContext::DisableVSync() -> void {
         switch (s_Spec.Backend) {
             case GraphicsAPI::OPENGL_API:
@@ -113,6 +112,7 @@ namespace Mikoto {
         }
     }
 
+
     auto RenderContext::PrepareFrame() -> void {
         switch (s_Spec.Backend) {
             case GraphicsAPI::VULKAN_API:
@@ -121,6 +121,7 @@ namespace Mikoto {
         }
     }
 
+
     auto RenderContext::SubmitFrame() -> void {
         switch (s_Spec.Backend) {
             case GraphicsAPI::VULKAN_API:
@@ -128,6 +129,7 @@ namespace Mikoto {
                 break;
         }
     }
+
 
     auto RenderContext::SetEventHandles() -> void {
         EventManager::Subscribe(s_Guid.Get(),

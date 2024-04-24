@@ -4,9 +4,7 @@
  * */
 
 // C++ Standard Library
-#include <algorithm>
 #include <array>
-#include <memory>
 
 // Third-Party Libraries
 #include <volk.h>
@@ -44,7 +42,7 @@ namespace Mikoto {
         m_ClearValues[ClearValueIndex::DEPTH_BUFFER].depthStencil = { 1.0f, 0 };
 
         // Prepare deferred
-        PrepareDeferred();
+        // PrepareDeferred();
 
         // Prepare offscreen rendering
         PrepareOffscreen();
@@ -133,7 +131,12 @@ namespace Mikoto {
             }
             else {
                 for ( const auto& mesh : drawObject.ObjectModel->GetMeshes() ) {
+
+                    // TODO: NOOOO the material cant be part of the mesh, how do you deal with meshes
+                    // that shouldnt have duplicates like prefabs 4head
                     auto& materialRef{ *mesh.GetMaterial() };
+
+
                     switch ( materialRef.GetType() ) {
                         case Material::Type::MATERIAL_TYPE_STANDARD:
                             m_ActiveDefaultMaterial = dynamic_cast<VulkanStandardMaterial*>( std::addressof( materialRef ) );

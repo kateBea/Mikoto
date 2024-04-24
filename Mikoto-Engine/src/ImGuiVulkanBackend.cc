@@ -82,17 +82,17 @@ namespace Mikoto {
         initInfo.MinImageCount = 3;
         initInfo.ImageCount = 3;
         initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+        initInfo.RenderPass = m_ImGuiRenderPass;
 
-        if ( !ImGui_ImplVulkan_Init( &initInfo, m_ImGuiRenderPass ) ) {
+        if ( !ImGui_ImplVulkan_Init( &initInfo ) ) {
             MKT_THROW_RUNTIME_ERROR( "Failed to initialize Vulkan for ImGui" );
         }
 
-        // execute a gpu command to upload imgui font textures
-        VulkanContext::ImmediateSubmit( ImGui_ImplVulkan_CreateFontsTexture );
-
-        // clear font textures from gpu
-        VulkanUtils::WaitOnDevice( VulkanContext::GetPrimaryLogicalDevice() );
-        ImGui_ImplVulkan_DestroyFontUploadObjects();
+        if (ImGui_ImplVulkan_CreateFontsTexture()) {
+            MKT_CORE_LOGGER_DEBUG("Successfully created ImGui fonts!");
+        } else {
+            MKT_THROW_RUNTIME_ERROR("Error creating ImGui fonts!");
+        }
     }
 
     auto ImGuiVulkanBackend::Shutdown() -> void {

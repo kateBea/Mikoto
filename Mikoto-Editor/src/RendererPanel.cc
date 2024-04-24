@@ -2,19 +2,17 @@
 // Created by kate on 10/13/23.
 //
 
-#include "imgui.h"
-#include "imgui_internal.h"
+#include "Panels/RendererPanel.hh"
 
-
-#include "../Common/StringUtils.hh"
 #include "Common/RenderingUtils.hh"
-#include "GUI/ImGuiManager.hh"
-#include "Renderer/Renderer.hh"
-
+#include "Common/StringUtils.hh"
 #include "GUI/IconsFontAwesome5.h"
 #include "GUI/IconsMaterialDesign.h"
 #include "GUI/IconsMaterialDesignIcons.h"
-#include "Panels/RendererPanel.hh"
+#include "GUI/ImGuiManager.hh"
+#include "Renderer/Renderer.hh"
+#include "imgui.h"
+#include "imgui_internal.h"
 
 namespace Mikoto {
     static constexpr auto GetRendererPanel() -> std::string_view {

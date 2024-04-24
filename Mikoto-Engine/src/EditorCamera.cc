@@ -8,25 +8,22 @@
 #include <utility>
 
 // Third-Party Libraries
-#include <glm/glm.hpp>
+#include "glm/glm.hpp"
 
 // Quaternions with extensions
-#include <glm/gtx/quaternion.hpp>
+#include "glm/gtx/quaternion.hpp"
 
 // Project Headers
-#include <Common/Types.hh>
-#include <Common/Common.hh>
-#include <Common/Constants.hh>
-#include <Common/Math.hh>
-
-#include <Core/KeyCodes.hh>
-#include <Core/CoreEvents.hh>
-#include <Core/EventManager.hh>
-#include <Core/MouseButtons.hh>
-
-#include <EditorCamera.hh>
-
-#include <Platform/InputManager.hh>
+#include "Common/Common.hh"
+#include "Common/Constants.hh"
+#include "Common/Math.hh"
+#include "Common/Types.hh"
+#include "Core/CoreEvents.hh"
+#include "Core/EventManager.hh"
+#include "Core/KeyCodes.hh"
+#include "Core/MouseButtons.hh"
+#include "Platform/InputManager.hh"
+#include "Scene/EditorCamera.hh"
 
 namespace Mikoto {
     EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)

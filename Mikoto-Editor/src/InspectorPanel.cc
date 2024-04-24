@@ -15,27 +15,22 @@
 #include <glm/gtc/type_ptr.hpp>
 
 // Project Headers
-#include <Common/Types.hh>
-#include <Common/Common.hh>
-#include <Common/StringUtils.hh>
-#include <Common/RenderingUtils.hh>
-
-#include <Core/FileManager.hh>
-
-#include <GUI/ImGuiUtils.hh>
-#include <GUI/ImGuiManager.hh>
 #include <GUI/IconsMaterialDesign.h>
 
 #include <Assets/AssetsManager.hh>
-
+#include <Common/Common.hh>
+#include <Common/RenderingUtils.hh>
+#include <Common/StringUtils.hh>
+#include <Common/Types.hh>
+#include <Core/FileManager.hh>
+#include <GUI/ImGuiManager.hh>
+#include <GUI/ImGuiUtils.hh>
 #include <Panels/InspectorPanel.hh>
-
-#include <Renderer/Renderer.hh>
-#include <Renderer/Material/StandardMaterial.hh>
 #include <Renderer/Material/PhysicallyBasedMaterial.hh>
-
-#include <Scene/Entity.hh>
+#include <Renderer/Material/StandardMaterial.hh>
+#include <Renderer/Renderer.hh>
 #include <Scene/Component.hh>
+#include <Scene/Entity.hh>
 #include <Scene/SceneManager.hh>
 
 namespace Mikoto {
@@ -483,7 +478,7 @@ namespace Mikoto {
             ImGui::Text( "%s", fmt::format( "{}", Material::GetTypeStr( mat->GetType() ) ).c_str() );
 
             std::string materialPath{ "Path to the material here" };
-            if ( ImGui::InputText( "##MeshName", materialPath.data(), materialPath.size() , ImGuiInputTextFlags_ReadOnly) ) {
+            if ( ImGui::InputText( "##MeshName", materialPath.data(), materialPath.size(), ImGuiInputTextFlags_ReadOnly ) ) {
                 // use matName
             }
 
@@ -811,14 +806,17 @@ namespace Mikoto {
 
         // By default, all scene objects have a transform component which cannot be removed
         constexpr bool TRANSFORM_HAS_PLUS_BUTTON{ false };
+
         DrawComponent<TransformComponent>(
-                fmt::format( "{} Transform", ICON_MD_DEVICE_HUB ), entity,
+                fmt::format( "{} Transform", ICON_MD_DEVICE_HUB ),
+                entity,
                 []( auto& component ) -> void {
                     auto translation{ component.GetTranslation() };
                     auto rotation{ component.GetRotation() };
                     auto scale{ component.GetScale() };
 
                     ImGui::Spacing();
+
                     DrawVec3Transform( "Translation", translation );
                     DrawVec3Transform( "Rotation", rotation );
                     DrawVec3Transform( "Scale", scale, 1.0 );
@@ -829,291 +827,294 @@ namespace Mikoto {
                 },
                 TRANSFORM_HAS_PLUS_BUTTON );
 
-        DrawComponent<RenderComponent>( fmt::format( "{} Mesh", ICON_MD_VIEW_IN_AR ), entity, []( auto& component ) -> void {
-            auto& objData{ component.GetObjectData() };
+        DrawComponent<RenderComponent>(
+                fmt::format( "{} Mesh", ICON_MD_VIEW_IN_AR ),
+                entity,
+                []( auto& component ) -> void {
+                    auto& objData{ component.GetObjectData() };
 
-            ImGui::Unindent();
-            ImGui::Spacing();
+                    ImGui::Unindent();
+                    ImGui::Spacing();
 
-            ImGui::PushItemFlag( ImGuiItemFlags_Disabled, true );
-            ImGui::Button( fmt::format( " {} Source ", ICON_MD_ARCHIVE ).c_str() );
-            ImGui::PopItemFlag();
+                    ImGui::PushItemFlag( ImGuiItemFlags_Disabled, true );
+                    ImGui::Button( fmt::format( " {} Source ", ICON_MD_ARCHIVE ).c_str() );
+                    ImGui::PopItemFlag();
 
-            ImGui::SameLine();
+                    ImGui::SameLine();
 
-            std::string path{ "No model loaded" };
+                    std::string path{ "No model loaded" };
 
-            if ( objData.IsPrefab ) {
-                path = AssetsManager::GetModelPrefabByType( objData.PrefabType ).GetDirectory().string();
-            }
-
-            if ( !objData.ModelPath.empty() && !objData.ModelName.empty() ) {
-                path = objData.ModelPath.string();
-            }
-
-            ImGui::InputText( "##PathToModel", path.data(), path.size(), ImGuiInputTextFlags_ReadOnly );
-
-            ImGui::SameLine();
-            if ( objData.IsPrefab ) {
-                ImGui::PushItemFlag( ImGuiItemFlags_Disabled, true );
-                ImGui::PushStyleVar( ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f );
-            }
-
-            if ( ImGui::Button( fmt::format( " {} Load ", ICON_MD_SEARCH ).c_str() ) ) {
-                std::initializer_list<std::pair<std::string, std::string>> filters{
-                    { "Model files", "obj, gltf, fbx" },
-                    { "OBJ files", "obj" },
-                    { "glTF files", "gltf" },
-                    { "FBX files", "fbx" }
-                };
-
-                path = FileManager::OpenDialog( filters );
-
-                if ( !path.empty() ) {
-                    const Path_T modelPath{ path };
-
-                    ModelLoadInfo modelLoadInfo{};
-                    modelLoadInfo.ModelPath = modelPath;
-                    modelLoadInfo.InvertedY = Renderer::GetActiveGraphicsAPI() == GraphicsAPI::VULKAN_API;
-                    modelLoadInfo.WantTextures = true;
-
-                    AssetsManager::LoadModel( modelLoadInfo );
-
-                    objData.ModelPath = modelPath;
-                    objData.ModelName = GetByteChar( modelPath.stem() );
-
-                    // Setup renderer component
-                    component.GetObjectData().IsPrefab = false;
-                    component.GetObjectData().PrefabType = PrefabSceneObject::NO_PREFAB_OBJECT;
-
-                    // Add a material for each one of the meshes of this model
-                    auto modelPtr{ AssetsManager::GetModifiableModel( modelPath ) };
-
-                    for ( auto& mesh: modelPtr->GetMeshes() ) {
-                        DefaultMaterialCreateSpec spec{};
-                        for ( auto& texture: mesh.GetTextures() ) {
-                            switch ( texture->GetType() ) {
-                                case MapType::TEXTURE_2D_DIFFUSE:
-                                    spec.DiffuseMap = texture;
-                                    break;
-                                case MapType::TEXTURE_2D_SPECULAR:
-                                    spec.SpecularMap = texture;
-                                    break;
-                            }
-                        }
-
-                        mesh.AddMaterial( Material::CreateStandardMaterial( spec ) );
+                    if ( objData.IsPrefab ) {
+                        path = AssetsManager::GetModelPrefabByType( objData.PrefabType ).GetDirectory().string();
                     }
 
-                    objData.ObjectModel = modelPtr;
-                }
-            }
+                    if ( !objData.ModelPath.empty() && !objData.ModelName.empty() ) {
+                        path = objData.ModelPath.string();
+                    }
 
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-            }
+                    ImGui::InputText( "##PathToModel", path.data(), path.size(), ImGuiInputTextFlags_ReadOnly );
 
-            if ( objData.IsPrefab ) {
-                ImGui::PopItemFlag();
-                ImGui::PopStyleVar();
-            }
+                    ImGui::SameLine();
+                    if ( objData.IsPrefab ) {
+                        ImGui::PushItemFlag( ImGuiItemFlags_Disabled, true );
+                        ImGui::PushStyleVar( ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f );
+                    }
 
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Spacing();
+                    if ( ImGui::Button( fmt::format( " {} Load ", ICON_MD_SEARCH ).c_str() ) ) {
+                        std::initializer_list<std::pair<std::string, std::string>> filters{
+                            { "Model files", "obj, gltf, fbx" },
+                            { "OBJ files", "obj" },
+                            { "glTF files", "gltf" },
+                            { "FBX files", "fbx" }
+                        };
 
+                        path = FileManager::OpenDialog( filters );
 
-            // Show mesh components (textures, ...) -------------
+                        if ( !path.empty() ) {
+                            const Path_T modelPath{ path };
 
-            auto& renderData{ component.GetObjectData() };
+                            ModelLoadInfo modelLoadInfo{};
+                            modelLoadInfo.ModelPath = modelPath;
+                            modelLoadInfo.InvertedY = Renderer::GetActiveGraphicsAPI() == GraphicsAPI::VULKAN_API;
+                            modelLoadInfo.WantTextures = true;
 
-            if ( renderData.ObjectModel ) {
-                ImGui::Spacing();
+                            AssetsManager::LoadModel( modelLoadInfo );
 
-                ImGui::TextUnformatted( "Mesh list" );
+                            objData.ModelPath = modelPath;
+                            objData.ModelName = GetByteChar( modelPath.stem() );
 
-                ImGui::SameLine();
+                            // Setup renderer component
+                            component.GetObjectData().IsPrefab = false;
+                            component.GetObjectData().PrefabType = PrefabSceneObject::NO_PREFAB_OBJECT;
 
-                auto& meshList{ renderData.ObjectModel->GetMeshes() };
+                            // Add a material for each one of the meshes of this model
+                            auto modelPtr{ AssetsManager::GetModifiableModel( modelPath ) };
 
-                if ( ImGui::BeginCombo( "##MeshIndex", renderData.MeshSelectedIndex == SceneObjectData::NO_MESH_SELECTED_INDEX ? "No mesh selected" : fmt::format( "Mesh {}", renderData.MeshSelectedIndex ).c_str() ) ) {
-                    // Every object that can be rendered is made out of meshes.
-                    // Each mesh has its own material and list of textures.
-                    // We can use this combo list to select the mesh we want its contents to be displayed.
-                    for ( Int32_T meshIndex{}; meshIndex < ( Int32_T )meshList.size(); ++meshIndex ) {
-                        // Create a selectable combo item for each perspective
-                        if ( ImGui::Selectable( fmt::format( "Index {}", meshIndex ).c_str(), meshIndex == renderData.MeshSelectedIndex ) ) {
+                            for ( auto& mesh: modelPtr->GetMeshes() ) {
+                                DefaultMaterialCreateSpec spec{};
+                                for ( auto& texture: mesh.GetTextures() ) {
+                                    switch ( texture->GetType() ) {
+                                        case MapType::TEXTURE_2D_DIFFUSE:
+                                            spec.DiffuseMap = texture;
+                                            break;
+                                        case MapType::TEXTURE_2D_SPECULAR:
+                                            spec.SpecularMap = texture;
+                                            break;
+                                    }
+                                }
 
-                            renderData.MeshSelectedIndex = meshIndex;
+                                mesh.AddMaterial( Material::CreateStandardMaterial( spec ) );
+                            }
+
+                            objData.ObjectModel = modelPtr;
                         }
+                    }
 
-                        if ( meshIndex == renderData.MeshSelectedIndex ) {
-                            ImGui::SetItemDefaultFocus();
+                    if ( ImGui::IsItemHovered() ) {
+                        ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+                    }
+
+                    if ( objData.IsPrefab ) {
+                        ImGui::PopItemFlag();
+                        ImGui::PopStyleVar();
+                    }
+
+                    ImGui::Spacing();
+                    ImGui::Separator();
+                    ImGui::Spacing();
+
+
+                    // Show mesh components (textures, ...) -------------
+
+                    auto& renderData{ component.GetObjectData() };
+
+                    if ( renderData.ObjectModel ) {
+                        ImGui::Spacing();
+
+                        ImGui::TextUnformatted( "Mesh list" );
+
+                        ImGui::SameLine();
+
+                        auto& meshList{ renderData.ObjectModel->GetMeshes() };
+
+                        if ( ImGui::BeginCombo( "##MeshIndex", renderData.MeshSelectedIndex == SceneObjectData::NO_MESH_SELECTED_INDEX ? "No mesh selected" : fmt::format( "Mesh {}", renderData.MeshSelectedIndex ).c_str() ) ) {
+                            // Every object that can be rendered is made out of meshes.
+                            // Each mesh has its own material and list of textures.
+                            // We can use this combo list to select the mesh we want its contents to be displayed.
+                            for ( Int32_T meshIndex{}; meshIndex < ( Int32_T )meshList.size(); ++meshIndex ) {
+                                // Create a selectable combo item for each perspective
+                                if ( ImGui::Selectable( fmt::format( "Index {}", meshIndex ).c_str(), meshIndex == renderData.MeshSelectedIndex ) ) {
+
+                                    renderData.MeshSelectedIndex = meshIndex;
+                                }
+
+                                if ( meshIndex == renderData.MeshSelectedIndex ) {
+                                    ImGui::SetItemDefaultFocus();
+                                }
+
+                                if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
+                            }
+
+                            ImGui::EndCombo();
                         }
 
                         if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
-                    }
 
-                    ImGui::EndCombo();
-                }
+                        ImGui::Spacing();
+                        ImGui::Spacing();
 
-                if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
+                        // Show the selected mesh contents
+                        if ( renderData.MeshSelectedIndex != SceneObjectData::NO_MESH_SELECTED_INDEX ) {
 
-                ImGui::Spacing();
-                ImGui::Spacing();
+                            // Assumes we have one type of each map for a single mesh! A mesh cannot have more than one diffuse map, for example.
+                            Int32_T diffuseIndex{ -1 }, specularIndex{ -1 }, emmissiveIndex{ -1 }, normalIndex{ -1 }, roughnessIndex{ -1 }, metallicIndex{ -1 }, aoIndex{ -1 };
+                            const Mesh& mesh{ meshList[renderData.MeshSelectedIndex] };
 
-                // Show the selected mesh contents
-                if ( renderData.MeshSelectedIndex != SceneObjectData::NO_MESH_SELECTED_INDEX ) {
+                            // Get the texture indices
+                            for ( Int32_T index{}; index < ( Int32_T )mesh.GetTextures().size(); ++index ) {
+                                switch ( mesh.GetTextures()[index]->GetType() ) {
 
-                    // Assumes we have one type of each map for a single mesh! A mesh cannot have more than one diffuse map, for example.
-                    Int32_T diffuseIndex{ -1 }, specularIndex{ -1 }, emmissiveIndex{ -1 }, normalIndex{ -1 }, roughnessIndex{ -1 }, metallicIndex{ -1 }, aoIndex{ -1 };
-                    const Mesh& mesh{ meshList[renderData.MeshSelectedIndex] };
+                                    case MapType::TEXTURE_2D_DIFFUSE:
+                                        diffuseIndex = index;
+                                        break;
 
-                    // Get the texture indices
-                    for ( Int32_T index{}; index < ( Int32_T )mesh.GetTextures().size(); ++index ) {
-                        switch ( mesh.GetTextures()[index]->GetType() ) {
+                                    case MapType::TEXTURE_2D_SPECULAR:
+                                        specularIndex = index;
+                                        break;
 
-                            case MapType::TEXTURE_2D_DIFFUSE:
-                                diffuseIndex = index;
-                                break;
+                                    case MapType::TEXTURE_2D_EMISSIVE:
+                                        emmissiveIndex = index;
+                                        break;
 
-                            case MapType::TEXTURE_2D_SPECULAR:
-                                specularIndex = index;
-                                break;
-
-                            case MapType::TEXTURE_2D_EMISSIVE:
-                                emmissiveIndex = index;
-                                break;
-
-                            case MapType::TEXTURE_2D_NORMAL:
-                                normalIndex = index;
-                                break;
+                                    case MapType::TEXTURE_2D_NORMAL:
+                                        normalIndex = index;
+                                        break;
 
 
-                            case MapType::TEXTURE_2D_ROUGHNESS:
-                                roughnessIndex = index;
-                                break;
+                                    case MapType::TEXTURE_2D_ROUGHNESS:
+                                        roughnessIndex = index;
+                                        break;
 
-                            case MapType::TEXTURE_2D_METALLIC:
-                                metallicIndex = index;
-                                break;
+                                    case MapType::TEXTURE_2D_METALLIC:
+                                        metallicIndex = index;
+                                        break;
 
-                            case MapType::TEXTURE_2D_AMBIENT_OCCLUSION:
-                                aoIndex = index;
-                                break;
+                                    case MapType::TEXTURE_2D_AMBIENT_OCCLUSION:
+                                        aoIndex = index;
+                                        break;
 
-                            case MapType::TEXTURE_2D_INVALID:
-                            case MapType::TEXTURE_2D_COUNT:
-                                MKT_CORE_LOGGER_ERROR( "Error type of texture not valid for displaying!" );
-                                break;
-                        }
-                    }
-
-
-                    auto displayMapInformation{
-                        []( const Texture2D* map, std::string_view mapName ) -> void {
-                            ImGui::Spacing();
-                            ImGui::Separator();
-                            ImGui::Spacing();
-
-                            ImGui::TextUnformatted( fmt::format( "{} ", ICON_MD_PANORAMA ).c_str() );
-                            ImGui::SameLine();
-                            ImGui::TextUnformatted( mapName.data() );
+                                    case MapType::TEXTURE_2D_INVALID:
+                                    case MapType::TEXTURE_2D_COUNT:
+                                        MKT_CORE_LOGGER_ERROR( "Error type of texture not valid for displaying!" );
+                                        break;
+                                }
+                            }
 
 
-                            ImGui::Spacing();
+                            auto displayMapInformation{
+                                []( const Texture2D* map, std::string_view mapName ) -> void {
+                                    ImGui::Spacing();
+                                    ImGui::Separator();
+                                    ImGui::Spacing();
+
+                                    ImGui::TextUnformatted( fmt::format( "{} ", ICON_MD_PANORAMA ).c_str() );
+                                    ImGui::SameLine();
+                                    ImGui::TextUnformatted( mapName.data() );
 
 
-                            ImGuiUtils::PushImageButton( map, ImVec2{ 64, 64 } );
-                            if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
+                                    ImGui::Spacing();
 
-                            ImGui::SameLine();
 
-                            // Table showings texture properties
-                            constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
+                                    ImGuiUtils::PushImageButton( map, ImVec2{ 64, 64 } );
+                                    if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
 
-                            if ( ImGui::BeginTable( "MaterialEditorDiffusePropertiesTable", 2, tableFlags ) ) {
-                                // First row - first colum
-                                ImGui::TableNextRow();
-                                ImGui::TableSetColumnIndex( 0 );
-                                ImGui::TextUnformatted( "Dimensions" );
+                                    ImGui::SameLine();
 
-                                // First row - second colum
-                                ImGui::TableSetColumnIndex( 1 );
-                                UInt32_T width{ static_cast<UInt32_T>( map->GetWidth() ) };
-                                UInt32_T height{ static_cast<UInt32_T>( map->GetHeight() ) };
-                                ImGui::TextUnformatted( fmt::format( "{} x {}", width, height ).c_str() );
+                                    // Table showings texture properties
+                                    constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
 
-                                // Second row - first colum
-                                ImGui::TableNextRow();
-                                ImGui::TableSetColumnIndex( 0 );
-                                ImGui::TextUnformatted( "Type" );
+                                    if ( ImGui::BeginTable( "MaterialEditorDiffusePropertiesTable", 2, tableFlags ) ) {
+                                        // First row - first colum
+                                        ImGui::TableNextRow();
+                                        ImGui::TableSetColumnIndex( 0 );
+                                        ImGui::TextUnformatted( "Dimensions" );
 
-                                // Second row - second colum
-                                ImGui::TableSetColumnIndex( 1 );
-                                ImGui::TextUnformatted( Texture2D::GetFileTypeStr( map->GetFileType() ).data() );
+                                        // First row - second colum
+                                        ImGui::TableSetColumnIndex( 1 );
+                                        UInt32_T width{ static_cast<UInt32_T>( map->GetWidth() ) };
+                                        UInt32_T height{ static_cast<UInt32_T>( map->GetHeight() ) };
+                                        ImGui::TextUnformatted( fmt::format( "{} x {}", width, height ).c_str() );
 
-                                // Third row - first colum
-                                ImGui::TableNextRow();
-                                ImGui::TableSetColumnIndex( 0 );
-                                ImGui::TextUnformatted( "File size" );
+                                        // Second row - first colum
+                                        ImGui::TableNextRow();
+                                        ImGui::TableSetColumnIndex( 0 );
+                                        ImGui::TextUnformatted( "Type" );
 
-                                // Third row - second colum
-                                ImGui::TableSetColumnIndex( 1 );
-                                ImGui::TextUnformatted( fmt::format( "{:.2f} MB", map->GetSize() ).c_str() );
+                                        // Second row - second colum
+                                        ImGui::TableSetColumnIndex( 1 );
+                                        ImGui::TextUnformatted( Texture2D::GetFileTypeStr( map->GetFileType() ).data() );
 
-                                ImGui::TableNextRow();
-                                ImGui::TableSetColumnIndex( 0 );
-                                ImGui::TextUnformatted( "Channels" );
+                                        // Third row - first colum
+                                        ImGui::TableNextRow();
+                                        ImGui::TableSetColumnIndex( 0 );
+                                        ImGui::TextUnformatted( "File size" );
 
-                                // Third row - second colum
-                                ImGui::TableSetColumnIndex( 1 );
-                                ImGui::TextUnformatted( fmt::format( "{}", map->GetChannels() ).c_str() );
+                                        // Third row - second colum
+                                        ImGui::TableSetColumnIndex( 1 );
+                                        ImGui::TextUnformatted( fmt::format( "{:.2f} MB", map->GetSize() ).c_str() );
 
-                                ImGui::EndTable();
+                                        ImGui::TableNextRow();
+                                        ImGui::TableSetColumnIndex( 0 );
+                                        ImGui::TextUnformatted( "Channels" );
+
+                                        // Third row - second colum
+                                        ImGui::TableSetColumnIndex( 1 );
+                                        ImGui::TextUnformatted( fmt::format( "{}", map->GetChannels() ).c_str() );
+
+                                        ImGui::EndTable();
+                                    }
+                                }
+                            };
+
+                            // Diffuse
+                            if ( diffuseIndex != -1 ) {
+                                displayMapInformation( mesh.GetTextures()[diffuseIndex].get(), "Albedo" );
+                            }
+
+                            // Specular
+                            if ( specularIndex != -1 ) {
+                                displayMapInformation( mesh.GetTextures()[specularIndex].get(), "Specular" );
+                            }
+
+                            // Normal
+                            if ( normalIndex != -1 ) {
+                                displayMapInformation( mesh.GetTextures()[normalIndex].get(), "Normal" );
+                            }
+
+                            // Emissive
+                            if ( emmissiveIndex != -1 ) {
+                                displayMapInformation( mesh.GetTextures()[emmissiveIndex].get(), "Emmissive" );
+                            }
+
+                            // Roughness
+                            if ( roughnessIndex != -1 ) {
+                                displayMapInformation( mesh.GetTextures()[roughnessIndex].get(), "Roughness" );
+                            }
+
+                            // Metallic
+                            if ( metallicIndex != -1 ) {
+                                displayMapInformation( mesh.GetTextures()[metallicIndex].get(), "Metal" );
+                            }
+
+                            // Ao
+                            if ( aoIndex != -1 ) {
+                                displayMapInformation( mesh.GetTextures()[aoIndex].get(), "Ambient Occlusion" );
                             }
                         }
-                    };
-
-                    // Diffuse
-                    if ( diffuseIndex != -1 ) {
-                        displayMapInformation( mesh.GetTextures()[diffuseIndex].get(), "Albedo" );
                     }
 
-                    // Specular
-                    if ( specularIndex != -1 ) {
-                        displayMapInformation( mesh.GetTextures()[specularIndex].get(), "Specular" );
-                    }
-
-                    // Normal
-                    if ( normalIndex != -1 ) {
-                        displayMapInformation( mesh.GetTextures()[normalIndex].get(), "Normal" );
-                    }
-
-                    // Emissive
-                    if ( emmissiveIndex != -1 ) {
-                        displayMapInformation( mesh.GetTextures()[emmissiveIndex].get(), "Emmissive" );
-                    }
-
-                    // Roughness
-                    if ( roughnessIndex != -1 ) {
-                        displayMapInformation( mesh.GetTextures()[roughnessIndex].get(), "Roughness" );
-                    }
-
-                    // Metallic
-                    if ( metallicIndex != -1 ) {
-                        displayMapInformation( mesh.GetTextures()[metallicIndex].get(), "Metal" );
-                    }
-
-                    // Ao
-                    if ( aoIndex != -1 ) {
-                        displayMapInformation( mesh.GetTextures()[aoIndex].get(), "Ambient Occlusion" );
-                    }
-                }
-            }
-
-            ImGui::Indent();
-        } );
+                    ImGui::Indent();
+                } );
 
         DrawComponent<MaterialComponent>( fmt::format( "{} Material", ICON_MD_INSIGHTS ), entity, [&]( auto& component ) -> void {
             ImGui::Unindent();
@@ -1552,7 +1553,6 @@ namespace Mikoto {
 
 
         DrawComponent<AudioComponent>( fmt::format( "{} Audio", ICON_MD_AUDIOTRACK ), entity, []( auto& component ) -> void {
-
             constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
 
             if ( ImGui::BeginTable( "MaterialEditorDiffusePropertiesTable", 2, tableFlags ) ) {
@@ -1594,7 +1594,6 @@ namespace Mikoto {
 
 
         DrawComponent<CameraComponent>( fmt::format( "{} Camera", ICON_MD_CAMERA_ALT ), entity, []( auto& component ) -> void {
-
             static const std::array<std::string, 2> CAMERA_PROJECTION_TYPE_NAMES{ "Orthographic", "Perspective" };
 
             // This is the camera's current projection type
@@ -1758,7 +1757,7 @@ namespace Mikoto {
 
             auto currentlyActiveEntity{ SceneManager::GetCurrentSelection() };
 
-            if (currentlyActiveEntity.has_value()) {
+            if ( currentlyActiveEntity.has_value() ) {
                 DrawVisibilityCheckBox( currentlyActiveEntity->get() );
 
                 ImGui::SameLine();
@@ -1776,4 +1775,4 @@ namespace Mikoto {
             ImGui::End();
         }
     }
-}
+}// namespace Mikoto

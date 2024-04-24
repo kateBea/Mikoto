@@ -22,10 +22,12 @@ namespace Mikoto {
         SHADER_TESSELATION_STAGE    = BIT_SET(4),
     };
 
+
     struct ShaderCreateInfo {
         Path_T Directory{};
         ShaderStage Stage{};
     };
+
 
     class Shader {
     public:
@@ -34,6 +36,7 @@ namespace Mikoto {
          * @returns this shader's stage
          * */
         MKT_NODISCARD auto GetStage() -> ShaderStage { return m_Stage; }
+
 
         /**
          * Creates a Shader module from the given paths.
@@ -44,6 +47,7 @@ namespace Mikoto {
          * */
         MKT_NODISCARD static auto Create(const Path_T& vertStage, const Path_T& pixelStage) -> std::shared_ptr<Shader>;
 
+
         /**
          * Creates a Shader module for the specified stage using the source code from the given path
          * @param src path to the file containing the source code of the shader
@@ -51,6 +55,7 @@ namespace Mikoto {
          * @returns pointer to newly created shader module
          * */
         MKT_NODISCARD static auto Create(const Path_T& src, ShaderStage stage) -> std::shared_ptr<Shader>;
+
 
         /**
          * Returns an error message indicating the type of shader
@@ -66,6 +71,7 @@ namespace Mikoto {
                 default: return "Unknown type of shader";
             }
         }
+
 
         /**
          * Destroy this shader

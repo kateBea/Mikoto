@@ -1,10 +1,10 @@
 //
 // Created by kate on 10/12/23.
 
-#include "fmt/format.h"
+#include "Core/ConsoleManager.hh"
 
-#include "ConsoleManager.hh"
 #include "Core/TimeManager.hh"
+#include "fmt/format.h"
 
 namespace Mikoto {
     static constexpr auto GetLevelStr(ConsoleLogLevel level) -> std::string_view {

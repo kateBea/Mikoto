@@ -13,63 +13,66 @@
 // Project Headers
 #include <Common/Common.hh>
 #include <Common/RenderingUtils.hh>
-
 #include <Platform/Window.hh>
-
 #include <Renderer/Renderer.hh>
 
 namespace Mikoto {
     /**
      * @brief Represents the specifications required to initialize the rendering context.
-     * This struct encapsulates the necessary specifications for initializing a RenderContext,
-     * including the graphics backend and a shared pointer to a Window for rendering.
      * */
     struct RenderContextSpec {
         GraphicsAPI Backend{};                  /**< Graphics backend for the render context. */
         std::shared_ptr<Window> WindowHandle{}; /**< Shared pointer to the window for rendering. */
     };
 
+
     /**
-     * @brief A class managing rendering functionality and the RenderContext lifecycle.
+     * @brief A class managing the render context lifecycle.
      * */
     class RenderContext {
     public:
         /**
          * @brief Initializes the RenderContext with provided specifications.
-         * The render context is also responsible of initializing the GUI.
-         * @param spec The specifications for initializing the RenderContext.
+         * @param spec The specifications for initializing the render context.
          * */
         static auto Init(RenderContextSpec&& spec) -> void;
 
+
         /**
-         * @brief Shuts down the RenderContext.
+         * @brief Shuts down the render context.
          * */
         static auto Shutdown() -> void;
 
+
         /**
-         * @brief Presents the ready-to-present frame to the screen.
+         * @brief Exposes the ready-to-present frame to the screen.
          * */
         static auto Present() -> void;
 
+
         /**
-         * @brief Enables vertical synchronization for rendering.
+         * @brief Enables vertical synchronization.
          * */
         static auto EnableVSync() -> void;
 
+
         /**
-         * @brief Disables vertical synchronization for rendering.
+         * @brief Disables vertical synchronization.
          * */
         static auto DisableVSync() -> void;
+
 
         /**
          * @brief Prepares the frame for rendering.
          * */
         static auto PrepareFrame() -> void;
 
+
         /**
          * @brief Submits the rendered frame for presentation.
          * */
         static auto SubmitFrame() -> void;
+
 
         /**
          * @brief Checks if vertical synchronization is active.
@@ -77,16 +80,17 @@ namespace Mikoto {
          * */
         MKT_UNUSED_FUNC static auto IsVSyncActive() -> bool;
 
+
     public:
         DISABLE_COPY_AND_MOVE_FOR(RenderContext);
 
         /**
-         * @brief Sets event handles for the RenderContext.
+         * @brief Sets event handles for the render context.
          * */
         static auto SetEventHandles() -> void;
 
     private:
-        inline static Random::GUID::UUID s_Guid{};  /**< Globally unique identifier for the RenderContext. */
+        inline static Random::GUID::UUID s_Guid{};  /**< Globally unique identifier for the render context. */
         inline static RenderContextSpec s_Spec{};   /**< Specifications for the RenderContext. */
     };
 

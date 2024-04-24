@@ -22,7 +22,7 @@
 /**
  * Implements a simple job system.
  * This subsystem is still a WIP.
- * Will not be available for some time in the core engine
+ * Will not be available/operative for some time in the engine.
  * */
 namespace Mikoto {
     class TaskManager {

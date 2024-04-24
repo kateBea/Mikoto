@@ -9,11 +9,9 @@
 #include "imgui.h"
 
 // Important to include after imgui
-#include "ImGuizmo.h"
-
-#include "Core/Application.hh"
 #include "Core/Logger.hh"
 #include "GUI/ImGuiOpenGLBackend.hh"
+#include "ImGuizmo.h"
 
 namespace Mikoto {
     auto ImGuiOpenGLBackend::Init(std::any windowHandle) -> void {

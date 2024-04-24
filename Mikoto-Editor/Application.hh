@@ -13,15 +13,12 @@
 // Project Headers
 #include <Common/Random.hh>
 #include <Common/Singleton.hh>
-
 #include <Core/Event.hh>
-
+#include <EditorLayer.hh>
 #include <Platform/Window.hh>
 
-#include <EditorLayer.hh>
-#include <GameLayer.hh>
-
 namespace Mikoto {
+
     /**
      * @brief Holds application initialization data.
      * This struct is mostly relevant at application initialization.
@@ -38,13 +35,13 @@ namespace Mikoto {
         GraphicsAPI RenderingBackend{}; /**< The selected graphics rendering backend. */
 
         bool WantGUI{};     /**< Flag indicating if GUI is wanted. */
-        bool WantEditor{};  /**< Flag indicating if an editor is wanted. */
 
         std::unordered_set<std::string> CommandLineArguments{}; /**< Command-line arguments. */
     };
 
+
     /**
-     * @brief Manages the application lifecycle.
+     * @brief Manages the editor application lifecycle.
      * */
     class Application : public Singleton<Application> {
     public:
@@ -53,55 +50,54 @@ namespace Mikoto {
          * */
         explicit Application() = default;
 
+
         /**
          * @brief Destructs this application after exiting its scope.
          * */
         ~Application() = default;
 
+
         /**
-         * @brief Initializes this application.
-         * Must call once when the application is created. This operation
-         * is responsible of initializing the application internal structures
-         * like required layers amongst other subsystems.
-         *
+         * @brief Initializes this application. Must call once when
+         * the application is created. This operation is responsible
+         * of initializing the application internal structures like
+         * required layers amongst other subsystems.
          * @param appSpec Specification for application initialization.
          * */
         auto Init(AppSpec&& appSpec) -> void;
 
+
         /**
-         * @brief Shuts down this application.
+         * @brief Shuts down this application. Call once
+         * to terminate the application and free all of its
+         * resources.
          * */
         auto Shutdown() -> void;
 
+
         /**
-         * @brief Processes application events.
+         * @brief Processes and handles application pending events.
          * */
         auto ProcessEvents() -> void;
+
 
         /**
          * @brief Updates the application state.
          * */
         auto UpdateState() -> void;
 
+
         /**
          * @brief Checks if the application is running.
-         *
          * @returns True if the application is running, false otherwise.
          * */
         auto IsRunning() -> bool;
 
-        /**
-         * @brief Presents the current rendered contents
-         * to the main window.
-         * */
-        auto Present() -> void;
 
         /**
-         * @brief Retrieves the main window of the application.
-         *
-         * @returns Reference to the main application window.
+         * @brief Presents the current rendered contents to the main window.
          * */
-        auto GetMainWindow() -> Window&;
+        auto Present() -> void;
 
     private:
         /**
@@ -119,20 +115,24 @@ namespace Mikoto {
          * */
         auto InitializeLayers() -> void;
 
+
         /**
          * @brief Releases layers of the application.
          * */
         auto ReleaseLayers() -> void;
+
 
         /**
          * @brief Updates layers of the application.
          * */
         auto UpdateLayers() -> void;
 
+
         /**
          * @brief Renders the ImGui frame.
          * */
         auto ImGuiFrameRender() -> void;
+
 
         /**
          * @brief Installs event callbacks for the application.
@@ -141,8 +141,6 @@ namespace Mikoto {
 
     private:
         Random::GUID::UUID           m_Guid{};                   /**< Globally unique identifier for the application. Mostly needed to subscribe to events. */
-
-        std::unique_ptr<GameLayer>   m_GameLayer{};              /**< Pointer to the game layer. */
         std::unique_ptr<EditorLayer> m_EditorLayer{};            /**< Pointer to the editor layer. */
 
         std::shared_ptr<Window>      m_MainWindow{};             /**< Pointer to the main window. */
@@ -150,7 +148,6 @@ namespace Mikoto {
         AppSpec                      m_Spec{};                   /**< Specification for application initialization. */
         State                        m_State{ State::RUNNING };  /**< Current state of the application. */
     };
-
 }
 
 

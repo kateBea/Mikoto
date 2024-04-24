@@ -5,6 +5,8 @@
 #include <utility>
 #include <filesystem>
 
+#include <fmt/format.h>
+
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "volk.h"

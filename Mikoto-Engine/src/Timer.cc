@@ -7,9 +7,9 @@
 #include <chrono>
 
 // Project Headers
-#include "../Common/Common.hh"
-#include "Core/TimeManager.hh"
-#include "Profiling/Timer.hh"
+#include <Common/Common.hh>
+#include <Core/TimeManager.hh>
+#include <Profiling/Timer.hh>
 
 namespace Mikoto {
 
@@ -23,10 +23,6 @@ namespace Mikoto {
             case TimeUnit::MILLISECONDS:    return std::chrono::duration_cast<Milli_T>(Clock_T::now() - m_TimeSinceStart).count();
             case TimeUnit::MICROSECONDS:    return std::chrono::duration_cast<Micro_T>(Clock_T::now() - m_TimeSinceStart).count();
             case TimeUnit::NANOSECONDS:     return std::chrono::duration_cast<Nano_T>(Clock_T::now() - m_TimeSinceStart).count();
-
-            case TimeUnit::NONE:            [[fallthrough]];
-            case TimeUnit::COUNT:           [[fallthrough]];
-            default:                        return -1;
         }
     }
 
@@ -43,10 +39,6 @@ namespace Mikoto {
             case TimeUnit::MILLISECONDS:    return "ms";
             case TimeUnit::MICROSECONDS:    return "µs";
             case TimeUnit::NANOSECONDS:     return "ns";
-
-            case TimeUnit::NONE:            [[fallthrough]];
-            case TimeUnit::COUNT:           [[fallthrough]];
-            default:                        return "";
         }
     }
 }

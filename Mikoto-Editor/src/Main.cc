@@ -7,10 +7,10 @@
 #include <memory>
 
 // Project Headers
-#include <Core/Engine.hh>
+#include <EditorRunner.hh>
 
 auto main(int argc, char** argv) -> int {
-    auto app { std::make_unique<Mikoto::Engine>() };
+    auto app { std::make_unique<Mikoto::EditorRunner>() };
     auto ret{ app->Run(argc, argv) };
 
     return ret;

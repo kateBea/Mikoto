@@ -13,15 +13,15 @@
 #include "glm/glm.hpp"
 
 // Projects Headers
-#include "Common/Common.hh"
-#include "Common/Types.hh"
-#include "EditorCamera.hh"
+#include "Common.hh"
 #include "Renderer/Buffers/IndexBuffer.hh"
 #include "Renderer/Buffers/VertexBuffer.hh"
 #include "Renderer/Material/Material.hh"
 #include "Renderer/Model.hh"
 #include "Scene/Camera.hh"
+#include "Scene/EditorCamera.hh"
 #include "Scene/SceneCamera.hh"
+#include "Types.hh"
 
 #define MAX_LIGHTS_PER_SCENE 200
 

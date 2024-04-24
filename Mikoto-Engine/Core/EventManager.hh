@@ -23,6 +23,7 @@ namespace Mikoto::EventManager {
     template<typename EventClassType>
     concept HasStaticGetType = requires (EventClassType) { EventClassType::GetStaticType(); };
 
+
     /**
      * EventClassType must be derived from the base Event class
      * */
@@ -44,9 +45,9 @@ namespace Mikoto::EventManager {
     class EventHandlerWrapper {
     public:
         EventHandlerWrapper(EventType type, EventHandler_T&& func)
-            :   m_Handler{ std::move(func) }
-            ,   m_Type{ type }
+            :   m_Type{ type }
             ,   m_Category{ GetCategoryFromType(type) }
+            ,   m_Handler{ std::move(func) }
         {
 
         }
@@ -81,14 +82,17 @@ namespace Mikoto::EventManager {
     // List of events handlers
     using Handlers_T = std::vector<EventHandlerWrapper>;
 
+
     // Holds all the event subscribers with the corresponding event handler for each type of event.
     // Subscribers are differentiated by their universally unique identifier (uuid for short).
     // When a subscriber wants to receive some type of event, it is added to this map, and when that
     // event has been triggered, the event handler will be run.
     using Subscribers_T = std::unordered_map<UInt64_T, std::vector<EventHandlerWrapper>>;
 
+
     // Represents an event queue
     using EventQueue_T = std::vector<std::unique_ptr<Event>>;
+
 
     /**
      * Returns the queue of pending events
@@ -99,6 +103,7 @@ namespace Mikoto::EventManager {
         return eventQueue;
     }
 
+
     /**
      * Returns the set of event subscribers
      * @returns event subscribers
@@ -107,6 +112,7 @@ namespace Mikoto::EventManager {
         static Subscribers_T subscribers{};
         return subscribers;
     }
+
 
     /**
      * Subscribes an object to be notified when a type of event has happened.
@@ -129,6 +135,7 @@ namespace Mikoto::EventManager {
         }
     }
 
+
     /**
      * Unsubscribes the object with the given id from the event type specified.
      * When that type of event is triggered, the specified handler will no longer be run.
@@ -136,6 +143,7 @@ namespace Mikoto::EventManager {
      * @param type type of event to unsubscribe from
      * */
     auto Unsubscribe(UInt64_T subId, EventType type) -> void;
+
 
     /**
      * Unsubscribes the object with the given id from the event category.
@@ -146,6 +154,7 @@ namespace Mikoto::EventManager {
      * */
     auto Unsubscribe(UInt64_T subId, EventCategory category) -> void;
 
+
     /**
      * Adds the given event to the queue of unhandled events
      * @param event event to be added
@@ -153,6 +162,7 @@ namespace Mikoto::EventManager {
     inline auto QueueEvent(std::unique_ptr<Event>&& event) -> void {
         GetEventQueue().push_back(std::move(event));
     }
+
 
     /**
      * Can be executed by a publisher to notify a type of event has happened.
@@ -163,13 +173,15 @@ namespace Mikoto::EventManager {
         QueueEvent(MakeEvent<EventType>(std::forward<Args>(args)...));
     }
 
+
     /**
-     * Execute event handlers
+     * Execute event handlers.
      * */
     auto ProcessEvents() -> void;
 
+
     /**
-     * Cleanup
+     * Cleanup.
      * */
     auto Shutdown() -> void;
 }

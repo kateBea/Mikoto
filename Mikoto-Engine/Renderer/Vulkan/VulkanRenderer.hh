@@ -57,7 +57,7 @@ namespace Mikoto {
 
 
         /**
-         * Destructor for internal structures
+         * @brief Default destructor
          * */
         ~VulkanRenderer() override = default;
 
@@ -180,8 +180,9 @@ namespace Mikoto {
         auto PrepareOffscreen() -> void;
 
 
-
         auto PrepareDeferred() -> void;
+
+
         /**
          * Prepares deferred rendering context.
          * */

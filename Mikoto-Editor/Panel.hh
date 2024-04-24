@@ -29,8 +29,7 @@ namespace Mikoto {
          * @brief Constructs this panel with the icon from the given path.
          * */
         explicit Panel()
-            :   m_Guid{}
-            ,   m_PanelHeaderName{ "Panel" }
+            :   m_PanelHeaderName{ "Panel" }
             ,   m_PanelIsHovered{ false }
             ,   m_PanelIsFocused{ false }
             ,   m_PanelIsVisible{ true }
@@ -90,21 +89,12 @@ namespace Mikoto {
 
 
         /**
-         * @brief Returns the universally unique identifier of this panel.
-         * @returns this panel's globally unique identifier.
-         * */
-        MKT_UNUSED_FUNC MKT_NODISCARD auto GetGuid() const -> UInt64_T { return m_Guid.Get(); }
-
-
-        /**
          * Destructor, defaulted
          * */
         virtual ~Panel() = default;
 
 
     protected:
-        Random::GUID::UUID m_Guid{};     /**< This panels globally unique identifier. */
-
         std::string m_PanelHeaderName{}; /**< Panel title. */
 
         bool m_PanelIsHovered{}; /**< Tells whether this panel is hovered (true) or not. */

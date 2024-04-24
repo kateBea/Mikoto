@@ -4,17 +4,20 @@
  * */
 
 // C++ Standard Library
-#include <memory>
 #include <stdexcept>
 #include <cstdlib>
 
 // Project Headers
-#include <Core/Engine.hh>
+#include <Application.hh>
 #include <Core/Logger.hh>
-#include <Core/Application.hh>
+
+#include <EditorRunner.hh>
 
 namespace Mikoto {
-    auto Engine::Run(Int32_T argc, char** argv) -> Int32_T {
+
+    auto EditorRunner::Run(Int32_T argc, char** argv) -> Int32_T {
+        Int32_T exitCode{ EXIT_SUCCESS };
+
         ParseArguments(argc, argv);
 
         AppSpec appSpec{};
@@ -27,7 +30,6 @@ namespace Mikoto {
         appSpec.CommandLineArguments =
                 std::unordered_set<std::string>{ m_CommandLineArgs.begin(), m_CommandLineArgs.end() };
         appSpec.WantGUI = true;
-        appSpec.WantEditor = true;
 
         auto& application{ Application::Get() };
 
@@ -45,21 +47,25 @@ namespace Mikoto {
                 application.Present();
             }
 
+            // Terminate the application
             application.Shutdown();
-        }
-        catch( const std::exception& exception ) {
-            MKT_COLOR_STYLE_PRINT_FORMATTED(MKT_FMT_COLOR_RED, MKT_FMT_STYLE_BOLD, "Exception! {}", exception.what());
-            return EXIT_FAILURE;
-        }
-        catch(...) {
-            MKT_COLOR_STYLE_PRINT_FORMATTED(MKT_FMT_COLOR_RED, MKT_FMT_STYLE_BOLD, "Unknown exception!");
-            return EXIT_FAILURE;
+
+        } catch( const std::exception& exception ) {
+            MKT_COLOR_STYLE_PRINT_FORMATTED(
+                MKT_FMT_COLOR_RED,
+                MKT_FMT_STYLE_BOLD,
+                "Exception! {}",
+                exception.what()
+            );
+
+            exitCode = EXIT_FAILURE;
         }
 
-        return EXIT_SUCCESS;
+        return exitCode;
     }
 
-    auto Engine::ParseArguments(Int32_T argc, char** argv) -> void {
+
+    auto EditorRunner::ParseArguments(Int32_T argc, char** argv) -> void {
         const auto limit{ std::addressof(argv[argc]) };
         for ( ; argv < limit; ++argv) {
             m_CommandLineArgs.emplace_back(*argv);

@@ -11,28 +11,30 @@
 #include <vector>
 
 // Project Headers
-#include "Common/Random.hh"
-#include "Common/Types.hh"
-#include "HierarchyPanel.hh"
-#include "Panel.hh"
+#include <Common/Random.hh>
+#include <Common/Types.hh>
+
+#include <Panel.hh>
+#include <Panels/HierarchyPanel.hh>
 
 namespace Mikoto {
     class InspectorPanel : public Panel {
     public:
         explicit InspectorPanel();
-        auto operator=(InspectorPanel&& other) -> InspectorPanel& = default;
+        auto operator=( InspectorPanel&& other ) -> InspectorPanel& = default;
 
-        auto OnUpdate(float timeStep) -> void override;
+        auto OnUpdate( float timeStep ) -> void override;
 
         ~InspectorPanel() override = default;
 
     private:
         auto DrawComponents( Entity& entity ) -> void;
-        auto DrawMaterialComponentEditor(MaterialComponent& material) -> void;
+        auto DrawMaterialComponentEditor( MaterialComponent& material ) -> void;
 
         auto OpenMaterialEditor() -> void;
 
     private:
+        // TODO: move to material editor window/panel
         bool m_OpenMaterialEditor{};
         std::shared_ptr<Material> m_TargetMaterialForMaterialEditor{};
 
@@ -41,5 +43,4 @@ namespace Mikoto {
     };
 }
 
-
-#endif // MIKOTO_INSPECTOR_PANEL_HH
+#endif// MIKOTO_INSPECTOR_PANEL_HH

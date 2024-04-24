@@ -3,8 +3,8 @@
  * Created by kate on 9/30/23.
  * */
 
-#ifndef MIKOTO_FILEMANAGER_HH
-#define MIKOTO_FILEMANAGER_HH
+#ifndef MIKOTO_FILE_MANAGER_HH
+#define MIKOTO_FILE_MANAGER_HH
 
 // C++ Standard Library
 #include <memory>
@@ -12,8 +12,8 @@
 #include <initializer_list>
 
 // Project Headers
-#include "Common/Types.hh"
-#include "Scene/Scene.hh"
+#include <Common/Types.hh>
+#include <Scene/Scene.hh>
 
 namespace Mikoto::FileManager {
     class Assets {
@@ -46,11 +46,13 @@ namespace Mikoto::FileManager {
      * */
     auto Init() -> void;
 
+
     /**
      * Releases resources from the Serializer namespace and shuts down
      * associated libraries.
      * */
     auto Shutdown() -> void;
+
 
     /**
      * Opens a save file dialog with the given filters. Every filter has a name
@@ -62,6 +64,7 @@ namespace Mikoto::FileManager {
      * */
     auto SaveDialog(const std::string& filename, const std::initializer_list<std::pair<std::string, std::string>>& filters) -> std::string;
 
+
     /**
      * Opens a file dialog with the given filters. Every filter has a name
      * followed by the extension for that filter (coma separated). An
@@ -70,16 +73,17 @@ namespace Mikoto::FileManager {
      * */
     auto OpenDialog(const std::initializer_list<std::pair<std::string, std::string>>& filters) -> std::string;
 
+
     /**
-     * Serializer object for Scenes. We pass in a Scene on construction
-     * and we can serialize the scene to a given file or load it from a file.
+     * Serializer object for Scenes. Can load a scene from a file
+     * and serialize it too.
      * */
     class SceneSerializer {
     public:
-        static auto Serialize(Scene *scene, const Path_T &saveFilePath) -> void;
-        static auto Deserialize(const Path_T &saveFilePath) -> void;
+        static auto Serialize( Scene& scene, const Path_T& saveFilePath ) -> void;
+        static auto Deserialize( const Path_T& saveFilePath ) -> void;
     };
 }
 
 
-#endif// MIKOTO_FILEMANAGER_HH
+#endif// MIKOTO_FILE_MANAGER_HH

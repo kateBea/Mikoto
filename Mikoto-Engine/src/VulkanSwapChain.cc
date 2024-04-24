@@ -145,8 +145,9 @@ namespace Mikoto {
 
 
     auto VulkanSwapChain::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) const -> VkPresentModeKHR {
-        if (m_SwapChainDetails.VSyncEnable)
+        if (m_SwapChainDetails.VSyncEnable) {
             return VK_PRESENT_MODE_FIFO_KHR;
+        }
         else {
             for (const auto& availablePresentMode : availablePresentModes) {
                 if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR || availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {

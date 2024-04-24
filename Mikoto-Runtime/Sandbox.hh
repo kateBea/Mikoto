@@ -7,7 +7,7 @@
 
 #include <Common/Types.hh>
 
-#include <Core/Application.hh>
+#include "Application.hh"
 
 namespace Mikoto {
     class Sandbox : public Application {

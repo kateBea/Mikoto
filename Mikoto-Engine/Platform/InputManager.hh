@@ -13,11 +13,9 @@
 // Project Headers
 #include <Common/Types.hh>
 #include <Common/Common.hh>
-
 #include <Core/Assert.hh>
 #include <Core/KeyCodes.hh>
 #include <Core/MouseButtons.hh>
-
 #include <Platform/Window.hh>
 
 namespace Mikoto {
@@ -42,10 +40,12 @@ namespace Mikoto {
          * */
         static auto Init(const Window* handle) -> void;
 
+
         /**
          * @brief Shuts down the input manager.
          * */
         static auto Shutdown() -> void;
+
 
         /**
          * @brief Checks if a key is currently pressed.
@@ -55,6 +55,7 @@ namespace Mikoto {
          * */
         MKT_NODISCARD static auto IsKeyPressed(Int32_T keyCode) -> bool;
 
+
         /**
          * @brief Checks if a mouse button is currently pressed.
          *
@@ -63,12 +64,14 @@ namespace Mikoto {
          * */
         MKT_NODISCARD static auto IsMouseKeyPressed(Int32_T button) -> bool;
 
+
         /**
          * @brief Retrieves the X-coordinate of the mouse position.
          *
          * @returns The X-coordinate of the mouse position.
          * */
         MKT_NODISCARD static auto GetMouseX() -> double;
+
 
         /**
          * @brief Retrieves the Y-coordinate of the mouse position.
@@ -77,6 +80,7 @@ namespace Mikoto {
          * */
         MKT_NODISCARD static auto GetMouseY() -> double;
 
+
         /**
          * @brief Retrieves the current mouse position as a pair of (X, Y) coordinates.
          *
@@ -84,12 +88,6 @@ namespace Mikoto {
          * */
         MKT_NODISCARD static auto GetMousePos() -> std::pair<double, double>;
 
-        /**
-         * @brief Prints the key code of a keyboard key.
-         *
-         * @param keycode The key code to print.
-         * */
-        static auto PrintKey(KeyCode keycode) -> void;
 
         /**
          * @brief Prints the mouse button.
@@ -99,18 +97,28 @@ namespace Mikoto {
         static auto PrintMouse(MouseButton button) -> void;
 
         /**
+         * @brief Prints the key code of a keyboard key.
+         * For debugging purposes.
+         * @param keycode The key code to print.
+         * */
+        MKT_UNUSED_FUNC static auto PrintKey(KeyCode keycode) -> void;
+
+
+        /**
          * @brief Prints the mouse button.
-         *
+         * For debugging purposes.
          * @param button The mouse button to print.
          * */
-        static auto PrintButton(MouseButton button) -> void;
+        MKT_UNUSED_FUNC static auto PrintButton(MouseButton button) -> void;
+
 
         /**
          * @brief Sets the cursor input mode.
-         *
+         * For debugging purposes.
          * @param mode The mode to set for the cursor.
          * */
-        static auto SetCursorMode(CursorInputMode mode) -> void;
+        MKT_UNUSED_FUNC static auto SetCursorMode(CursorInputMode mode) -> void;
+
 
         /**
          * @brief Sets focus to a newly focused window for input handling.

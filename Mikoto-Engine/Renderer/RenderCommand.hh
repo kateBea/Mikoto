@@ -13,12 +13,15 @@
 #include "glm/vec4.hpp"
 
 // Project headers
-#include "Common/Common.hh"
-#include "Core/Logger.hh"
-#include "Renderer.hh"
-#include "Renderer/Buffers/IndexBuffer.hh"
-#include "Renderer/Buffers/VertexBuffer.hh"
-#include "RendererBackend.hh"
+#include <Common/Common.hh>
+#include <Common/Types.hh>
+
+#include <Core/Logger.hh>
+
+#include <Renderer/Renderer.hh>
+#include <Renderer/RendererBackend.hh>
+#include <Renderer/Buffers/IndexBuffer.hh>
+#include <Renderer/Buffers/VertexBuffer.hh>
 
 namespace Mikoto {
 	class RenderCommand {
@@ -31,8 +34,8 @@ namespace Mikoto {
         static auto SetClearColor(const glm::vec4& color) -> void;
         static auto SetClearColor(float red, float green, float blue, float alpha) -> void;
 
-        static auto AddToRenderQueue(std::shared_ptr<DrawData> &&data) -> void;
         static auto Flush() -> void;
+        static auto AddToRenderQueue(std::shared_ptr<DrawData> &&data) -> void;
 
         static auto UpdateViewPort(Int32_T x, Int32_T y, Int32_T width, Int32_T height) -> void;
 

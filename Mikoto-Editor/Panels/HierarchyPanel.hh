@@ -19,9 +19,9 @@ namespace Mikoto {
     class HierarchyPanel : public Panel {
     public:
         explicit HierarchyPanel();
-        auto operator=(HierarchyPanel&& other) -> HierarchyPanel & = default;
+        auto operator=( HierarchyPanel&& other ) -> HierarchyPanel& = default;
 
-        auto OnUpdate(float ts) -> void override;
+        auto OnUpdate( float ts ) -> void override;
 
         ~HierarchyPanel() override = default;
 
@@ -29,10 +29,10 @@ namespace Mikoto {
         friend class InspectorPanel;
 
     private:
-        static auto DrawEntityNode(Entity& target) -> void;
-        static auto OnEntityRightClickMenu(Entity& target) -> void;
+        static auto DrawEntityNode( Entity& target ) -> void;
+        static auto OnEntityRightClickMenu( Entity& target ) -> void;
         static auto BlankSpacePopupMenu() -> void;
     };
 }
 
-#endif // MIKOTO_HIERARCHY_PANEL_HH
+#endif// MIKOTO_HIERARCHY_PANEL_HH

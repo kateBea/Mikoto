@@ -2,19 +2,19 @@
 // Created by kate on 10/12/23.
 //
 
+#include "Panels/ConsolePanel.hh"
+
 #include <memory>
 #include <string_view>
 
-#include "imgui.h"
-
 #include "Common/Common.hh"
 #include "Common/StringUtils.hh"
-#include "ConsoleManager.hh"
+#include "Core/ConsoleManager.hh"
 #include "GUI/IconsFontAwesome5.h"
 #include "GUI/IconsMaterialDesign.h"
 #include "GUI/IconsMaterialDesignIcons.h"
 #include "GUI/ImGuiManager.hh"
-#include "Panels/ConsolePanel.hh"
+#include "imgui.h"
 
 namespace Mikoto {
     static constexpr auto GetConsolePanelName() -> std::string_view {

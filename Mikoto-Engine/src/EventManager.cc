@@ -19,6 +19,7 @@ namespace Mikoto::EventManager {
     concept HasEraseMember = std::random_access_iterator<Iterator> &&
                             requires (Container cont, Iterator it) { cont.erase(it); };
 
+
     /**
      * Erase elements from a container that meets the Unary predicate "filter".
      * Container must be iterable and offer erase() operation which takes an iterator and returns
@@ -36,6 +37,7 @@ namespace Mikoto::EventManager {
         }
     }
 
+
     auto Unsubscribe(UInt64_T subId, EventType type) -> void {
         auto& subscribers{ GetSubscribers() };
 
@@ -46,6 +48,7 @@ namespace Mikoto::EventManager {
         }
     }
 
+
     auto Unsubscribe(UInt64_T subId, EventCategory category) -> void {
         auto& subscribers{ GetSubscribers() };
 
@@ -55,6 +58,7 @@ namespace Mikoto::EventManager {
             EraseWithFilter(it->second, [&](const EventHandlerWrapper& wrapper) -> bool { return wrapper.GetCategory() == category; });
         }
     }
+
 
     auto ProcessEvents() -> void {
         auto& subscribers{ GetSubscribers() };
@@ -76,6 +80,7 @@ namespace Mikoto::EventManager {
 
         eventQueue.clear();
     }
+
 
     auto Shutdown() -> void {
         GetEventQueue().clear();

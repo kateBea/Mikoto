@@ -23,13 +23,12 @@ namespace Mikoto {
      * @brief Enum class representing different time units.
      * */
     enum class TimeUnit {
-        NONE,            /**< No specific time unit. */
         SECONDS,         /**< Time unit in seconds. */
         MILLISECONDS,    /**< Time unit in milliseconds. */
         MICROSECONDS,    /**< Time unit in microseconds. */
         NANOSECONDS,     /**< Time unit in nanoseconds. */
-        COUNT,           /**< Placeholder for the number of time units. */
     };
+
 
     /**
      * @brief A utility class managing time-related operations.
@@ -38,21 +37,23 @@ namespace Mikoto {
     public:
         /**
          * @brief Initializes the time manager.
-         * This function sets the initial time point used for calculating time differences.
+         * This function sets an initial time point.
          * */
         static auto Init() {
             s_InitTimePoint = Clock_T::now();
         }
 
+
         /**
          * @brief Updates the time step.
-         * This function should be called at the beginning of each frame to update the time step value.
+         * This function must be called at the beginning of each frame to update the time step value.
          * */
         static auto UpdateTimeStep() -> void {
             TimePoint_T now{ Clock_T::now() };
             s_TimeStep = std::chrono::duration_cast<Sec_T>(now - s_LastFrameTime).count();
             s_LastFrameTime = now;
         }
+
 
         /**
          * @brief Returns the time step.
@@ -66,11 +67,9 @@ namespace Mikoto {
                 case TimeUnit::MILLISECONDS:    return s_TimeStep * secToMilli;
                 case TimeUnit::MICROSECONDS:    return s_TimeStep * secToMicro;
                 case TimeUnit::NANOSECONDS:     return s_TimeStep * secToNano;
-                case TimeUnit::NONE:
-                case TimeUnit::COUNT:
-                default:                        return -1;
             }
         }
+
 
         /**
          * @brief Returns the time since the first call to Init().
@@ -84,11 +83,9 @@ namespace Mikoto {
                 case TimeUnit::MILLISECONDS:    return std::chrono::duration_cast<Milli_T>(Clock_T::now() - s_InitTimePoint).count();
                 case TimeUnit::MICROSECONDS:    return std::chrono::duration_cast<Micro_T>(Clock_T::now() - s_InitTimePoint).count();
                 case TimeUnit::NANOSECONDS:     return std::chrono::duration_cast<Nano_T>(Clock_T::now() - s_InitTimePoint).count();
-                case TimeUnit::NONE:
-                case TimeUnit::COUNT:
-                default:                        return -1;
             }
         }
+
 
         /**
          * @brief Returns a formatted string representing the time.
@@ -110,7 +107,7 @@ namespace Mikoto {
             return fmt::format("{:%H:%M:%S}", hours + minutes + seconds);
         }
 
-    public:
+
         /**
          * @brief Converts time to seconds.
          * @param time The time to be converted.

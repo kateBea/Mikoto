@@ -56,8 +56,6 @@ namespace Mikoto::Editor {
     /*************************************************************
     * UTILITY FUNCTIONS
     * ***********************************************************/
-    auto ThemeDarkModeDefault() -> void;
-    auto ThemeDarkModeAlt() -> void;
     auto DrawAboutModalPopup() -> void;
 
     auto ShowDockingDisabledMessage() -> void;

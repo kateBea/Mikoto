@@ -3,21 +3,20 @@
  * Created by kate on 6/7/23.
  * */
 
-#ifndef MIKOTO_ENGINE_HH
-#define MIKOTO_ENGINE_HH
+#ifndef MIKOTO_EDITOR_RUNNER_HH
+#define MIKOTO_EDITOR_RUNNER_HH
 
 // C++ Standard Library
 #include <vector>
 
 // Project Headers
-#include "Common/Types.hh"
-#include "Application.hh"
+#include <Common/Types.hh>
 
 namespace Mikoto {
-    class Engine {
+    class EditorRunner {
     public:
         /**
-         * @brief Initializes the engine subsystems and runs the main loop.
+         * @brief Creates and initializes the editor app and runs the main loop.
          * @param argc argument count.
          * @param argv list of null terminated c-strings command line arguments.
          * */
@@ -37,4 +36,4 @@ namespace Mikoto {
     };
 }
 
-#endif // MIKOTO_ENGINE_HH
+#endif// MIKOTO_EDITOR_RUNNER_HH

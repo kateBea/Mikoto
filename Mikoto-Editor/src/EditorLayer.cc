@@ -10,7 +10,7 @@
 #include "glm/gtc/type_ptr.hpp"
 
 // Project Headers
-#include "ConsoleManager.hh"
+#include "Core/ConsoleManager.hh"
 #include "Core/CoreEvents.hh"
 #include "Core/EventManager.hh"
 #include "Core/FileManager.hh"
@@ -88,7 +88,7 @@ namespace Mikoto {
 
                 Scene* activeScene{ std::addressof(SceneManager::GetActiveScene()) };
                 auto path{ FileManager::SaveDialog("Mikoto Scene", filters) };
-                FileManager::SceneSerializer::Serialize(activeScene, path);
+                FileManager::SceneSerializer::Serialize(*activeScene, path);
                 ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_WARNING, fmt::format("Saved scene to [{}]", path));
             };
     }

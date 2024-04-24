@@ -88,7 +88,7 @@
 /**
  * Disable COPY constructor and operator for CLASS_NAME
  * */
-#define DELETE_COPY_FOR(CLASS_NAME)           \
+#define DELETE_COPY_FOR(CLASS_NAME)                 \
     CLASS_NAME(const CLASS_NAME&)       = delete;   \
     auto operator=(const CLASS_NAME&)   = delete
 

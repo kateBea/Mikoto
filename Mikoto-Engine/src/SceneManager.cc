@@ -2,12 +2,13 @@
 // Created by kate on 10/8/23.
 //
 
-#include "entt/entt.hpp"
-#include "fmt/format.h"
+#include "Scene/SceneManager.hh"
 
 #include <Renderer/Material/StandardMaterial.hh>
-#include "ConsoleManager.hh"
-#include "Scene/SceneManager.hh"
+
+#include "Core/ConsoleManager.hh"
+#include "entt/entt.hpp"
+#include "fmt/format.h"
 
 namespace Mikoto {
     auto SceneManager::Init() -> void {

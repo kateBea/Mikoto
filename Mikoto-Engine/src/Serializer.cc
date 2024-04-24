@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include <algorithm>
 #include <initializer_list>
 
 // Third-Party Libraries
@@ -18,12 +19,13 @@
 #include <yaml-cpp/yaml.h>
 
 // Project Headers
-#include <ConsoleManager.hh>
 #include <Core/Assert.hh>
 #include <Core/FileManager.hh>
 #include <Core/Logger.hh>
 #include <Scene/Entity.hh>
 #include <Scene/SceneManager.hh>
+
+#include "Core/ConsoleManager.hh"
 
 namespace YAML {
     template<>
@@ -157,7 +159,7 @@ namespace Mikoto::FileManager {
         emitter << YAML::EndMap;
     }
 
-    auto SceneSerializer::Serialize(Scene *scene, const Path_T &saveFilePath) -> void {
+    auto SceneSerializer::Serialize(Scene& scene, const Path_T &saveFilePath) -> void {
         // YAML Emitter
         YAML::Emitter emitter{};
 
@@ -170,15 +172,14 @@ namespace Mikoto::FileManager {
         }
 
         emitter << YAML::BeginMap;
-        emitter << YAML::Key << "Scene" << YAML::Value << scene->GetName();
+        emitter << YAML::Key << "Scene" << YAML::Value << scene.GetName();
         emitter << YAML::Key << "Objects" << YAML::Value << YAML::BeginSeq;
 
-        // TODO: 'each<(lambda at Mikoto-Engine/src/Serializer.cc:178:35)>' is deprecated: use .storage<Entity>().each() instead
-        scene->GetRegistry().each([&](auto entity) -> void {
-            if (entity != entt::null) {
-                SerializeEntity(emitter, scene->GetRegistry(), entity);
+        for (const auto& [entityId, storage] : scene.GetRegistry().storage()) {
+            if (entityId != entt::null) {
+                SerializeEntity(emitter, scene.GetRegistry(), static_cast<const entt::entity>( entityId ) );
             }
-        });
+        }
 
         emitter << YAML::EndSeq;
         emitter << YAML::EndMap;

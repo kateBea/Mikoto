@@ -5,34 +5,31 @@
 
 // C++ Standard Library
 #include <any>
-#include <memory>
 
 // Third-Party Libraries
-#include "volk.h"
-#include "GLFW/glfw3.h"
+#include <volk.h>
+#include <GLFW/glfw3.h>
 
 // Projects headers
-#include "Common/Common.hh"
-#include "Common/RenderingUtils.hh"
-#include "Common/Types.hh"
-
-#include "Core/Assert.hh"
-#include "Core/CoreEvents.hh"
-#include "Core/EventManager.hh"
-#include "Core/Logger.hh"
-
-#include "Platform/GlfwWindow.hh"
-#include "Platform/InputManager.hh"
+#include <Common/Common.hh>
+#include <Common/RenderingUtils.hh>
+#include <Common/Types.hh>
+#include <Core/Assert.hh>
+#include <Core/CoreEvents.hh>
+#include <Core/EventManager.hh>
+#include <Core/Logger.hh>
+#include <Platform/InputManager.hh>
+#include <Platform/XPWindow.hh>
 
 namespace Mikoto {
-    GlfwWindow::GlfwWindow(WindowProperties&& properties)
+    XPWindow::XPWindow( WindowProperties&& properties )
         :   Window{ std::move(properties) }, m_Window{ nullptr }
     {
         AllowResizing(IsResizable());
     }
 
-    auto GlfwWindow::Init() -> void {
-        MKT_CORE_LOGGER_INFO("Main Window initialization");
+    auto XPWindow::Init() -> void {
+        MKT_CORE_LOGGER_INFO("Initializing new XPWindow");
 
         // Initialize GLFW Library
         InitGLFW();
@@ -81,19 +78,21 @@ namespace Mikoto {
         InstallCallbacks();
     }
 
-    auto GlfwWindow::Shutdown() -> void {
+
+    auto XPWindow::Shutdown() -> void {
         MKT_CORE_LOGGER_INFO("Shutting down GLFW Window with name '{}'", GetTitle());
         MKT_CORE_LOGGER_INFO("GLFW Window dimensions are [{}, {}]", GetWidth(), GetHeight());
 
         DestroyGLFWWindow(m_Window);
     }
 
-    auto GlfwWindow::InstallCallbacks() -> void {
+
+    auto XPWindow::InstallCallbacks() -> void {
         glfwSetWindowUserPointer(m_Window, this);
 
         glfwSetWindowSizeCallback(m_Window,
-            [](GLFWwindow* window, Int32_T width, Int32_T height) -> void {
-                GlfwWindow* data{ static_cast<GlfwWindow*>(glfwGetWindowUserPointer(window)) };
+            [](GLFWwindow* window, int width, int height) -> void {
+                                       XPWindow* data{ static_cast<XPWindow*>(glfwGetWindowUserPointer(window)) };
                 data->m_Properties.SetWidth(width);
                 data->m_Properties.SetHeight(height);
 
@@ -108,7 +107,7 @@ namespace Mikoto {
         );
 
         glfwSetKeyCallback(m_Window,
-            [](MKT_UNUSED_VAR GLFWwindow* window, Int32_T key, MKT_UNUSED_VAR Int32_T scancode, Int32_T action, Int32_T mods) -> void {
+            [](MKT_UNUSED_VAR GLFWwindow* window, int key, MKT_UNUSED_VAR int scancode, int action, int mods) -> void {
                 switch (action) {
                     case GLFW_PRESS: {
                         EventManager::Trigger<KeyPressedEvent>(key, false, mods);
@@ -131,7 +130,7 @@ namespace Mikoto {
         );
 
         glfwSetMouseButtonCallback(m_Window,
-            [](MKT_UNUSED_VAR GLFWwindow* window, Int32_T button, Int32_T action, Int32_T mods) -> void {
+            [](MKT_UNUSED_VAR GLFWwindow* window, int button, int action, int mods) -> void {
                 switch (action) {
                     case GLFW_PRESS: {
                         EventManager::Trigger<MouseButtonPressedEvent>(button, mods);
@@ -166,19 +165,20 @@ namespace Mikoto {
             }
         );
 
-        // This function will be called when this window gets focus
         glfwSetWindowFocusCallback(m_Window,
             [](GLFWwindow* window, int focus) -> void {
-                const GlfwWindow* data{ static_cast<GlfwWindow *>(glfwGetWindowUserPointer(window)) };
+                const XPWindow* data{ static_cast<XPWindow*>(glfwGetWindowUserPointer(window)) };
                 if (focus == GLFW_TRUE) {
                     InputManager::SetFocus(data);
                 }
             });
     }
 
-    auto GlfwWindow::SpawnOnCenter() const -> void {
+
+    auto XPWindow::SpawnOnCenter() const -> void {
 #if !defined(NDEBUG)
         Int32_T count{};
+        glfwGetMonitors(std::addressof(count));
         MKT_CORE_LOGGER_INFO("Number of available monitors: {}", count);
 #endif
         // See: https://www.glfw.org/docs/3.3/monitor_guide.html
@@ -188,11 +188,12 @@ namespace Mikoto {
         Int32_T monitorHeight{};
         GLFWmonitor* primary{ glfwGetPrimaryMonitor() };
 
-        glfwGetMonitorWorkarea(primary, nullptr, nullptr, &monitorWidth, &monitorHeight);
+        glfwGetMonitorWorkarea(primary, nullptr, nullptr, std::addressof(monitorWidth), std::addressof(monitorHeight));
         glfwSetWindowPos(m_Window, monitorWidth / 10, monitorHeight / 10);
     }
 
-    auto GlfwWindow::InitGLFW() -> void {
+
+    auto XPWindow::InitGLFW() -> void {
         if (!s_GLFWInitSuccess) {
             auto ret{ glfwInit() };
             MKT_ASSERT(ret == GLFW_TRUE, "Failed to initialized the GLFW library");
@@ -205,20 +206,22 @@ namespace Mikoto {
         }
     }
 
-    auto GlfwWindow::CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface) -> void {
+
+    auto XPWindow::CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface) -> void {
         if (glfwCreateWindowSurface(instance, m_Window, nullptr, surface) != VK_SUCCESS)
             throw std::runtime_error("Failed to create Vulkan Surface");
     }
 
-    auto GlfwWindow::ProcessEvents() -> void {
+
+    auto XPWindow::ProcessEvents() -> void {
         glfwPollEvents();
     }
 
-    auto GlfwWindow::DestroyGLFWWindow(GLFWwindow* window) -> void {
+
+    auto XPWindow::DestroyGLFWWindow(GLFWwindow* window) -> void {
         // Everytime we shut down a GLFW window, we decrease the number
         // of active windows, the last GLFW window to be shutdown calls glfwTerminate()
         glfwDestroyWindow(window);
-        // TODO: thread safety
         s_WindowsCount -= 1;
 
         if (s_WindowsCount == 0) {
@@ -226,11 +229,9 @@ namespace Mikoto {
         }
     }
 
-    auto GlfwWindow::CreateGLFWWindow(const GLFWWindowCreateSpec& spec) -> GLFWwindow* {
-        // TODO: thread safety?
 
-        GLFWwindow* window{};
-        window = glfwCreateWindow(spec.Width, spec.Height, spec.Title.data(), nullptr, nullptr);
+    auto XPWindow::CreateGLFWWindow(const GLFWWindowCreateSpec& spec) -> GLFWwindow* {
+        GLFWwindow* window{ glfwCreateWindow(spec.Width, spec.Height, spec.Title.data(), nullptr, nullptr) };
         s_WindowsCount += 1;
 
         return window;

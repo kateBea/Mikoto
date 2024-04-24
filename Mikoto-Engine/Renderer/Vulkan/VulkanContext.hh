@@ -15,12 +15,12 @@
 #include "volk.h"
 
 // Project Headers
-#include "Common/Common.hh"
-#include "Common/Types.hh"
 #include <Common/VulkanUtils.hh>
 
-#include "Platform/GlfwWindow.hh"
+#include "Common/Common.hh"
+#include "Common/Types.hh"
 #include "Platform/Window.hh"
+#include "Platform/XPWindow.hh"
 #include "VulkanCommandPool.hh"
 #include "VulkanSwapChain.hh"
 
@@ -53,7 +53,7 @@ namespace Mikoto {
 
         bool VOLKInitSuccess{};
 
-        std::shared_ptr<GlfwWindow> WindowHandle{};// Vulkan window uses a MainWindow for now
+        std::shared_ptr<XPWindow> WindowHandle{};// Vulkan window uses a MainWindow for now
         const bool EnableValidationLayers{};
     };
 

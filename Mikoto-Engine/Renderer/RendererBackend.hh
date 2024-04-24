@@ -46,7 +46,7 @@ namespace Mikoto {
         /**
          * @brief Initializes renderer subsystems. This function must be called
          * after creating a Renderer backend. It ensures initialization of all the
-         * subsystems of the render pipeline, such as pipelines, shaders, etc.
+         * subsystems of the render pipeline.
          * */
         virtual auto Init() -> void = 0;
 
@@ -60,8 +60,7 @@ namespace Mikoto {
 
         /**
          * @brief Command to flush drawing calls that need to be executed.
-         * After a call to this function, all enqueued objects are dispatched to be drawn,
-         * and the draw queue is emptied after this operation.
+         * After a call to this function, all enqueued objects are dispatched to be drawn.
          * */
         virtual auto Flush() -> void = 0;
 
@@ -128,7 +127,8 @@ namespace Mikoto {
 
     private:
         /**
-         * @brief Executes draw commands on the drawable objects that have been added to the queue of renderable objects.
+         * @brief Executes draw commands on the drawable objects that have been
+         * added to the queue of renderable objects.
          * */
         virtual auto Draw() -> void = 0;
 

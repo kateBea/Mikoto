@@ -10,13 +10,12 @@
 #define MIKOTO_EDITOR_CAMERA_HH
 
 // Third-Party Libraries
-#include <glm/glm.hpp>
+#include "glm/glm.hpp"
 
 // Project Headers
-#include <Common/Common.hh>
-#include <Common/Random.hh>
-
-#include <Scene/Camera.hh>
+#include "Camera.hh"
+#include "Common/Common.hh"
+#include "Common/Random.hh"
 
 namespace Mikoto {
     /**

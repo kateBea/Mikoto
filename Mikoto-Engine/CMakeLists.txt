@@ -1,129 +1,52 @@
-cmake_minimum_required(VERSION 3.18)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.18)
 
-set (PROJECT_NAME MikotoEngine)
-project(${PROJECT_NAME})
+PROJECT(MikotoEngine)
 
 # CXX Lang Requirements
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+SET(CMAKE_CXX_STANDARD 20)
+SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Silence warnings on cmake 3.11+
-set(OpenGL_GL_PREFERENCE LEGACY)
+SET(OpenGL_GL_PREFERENCE LEGACY)
 
 # Libraries
+SET( CURRENT_PATH ${CMAKE_CURRENT_SOURCE_DIR} )
+CMAKE_PATH(GET CURRENT_PATH PARENT_PATH P_PATH)
 
-set( cur_path ${CMAKE_CURRENT_SOURCE_DIR} )
-cmake_path(GET cur_path PARENT_PATH parent_path)
+SET(GLEW_CMAKE_DIR ${P_PATH}/Third-Party/glew/build/cmake)
+SET(GLFW_CMAKE_DIR ${P_PATH}/Third-Party/glfw)
+SET(ENTT_CMAKE_DIR ${P_PATH}/Third-Party/entt)
+SET(FMT_CMAKE_DIR ${P_PATH}/Third-Party/fmt)
+SET(VOLK_CMAKE_DIR ${P_PATH}/Third-Party/volk)
+SET(ASSIMP_CMAKE_DIR ${P_PATH}/Third-Party/assimp)
+SET(VMA_CMAKE_DIR ${P_PATH}/Third-Party/VulkanMemoryAllocator)
+SET(YAML_CMAKE_DIR ${P_PATH}/Third-Party/yaml-cpp)
+SET(NFD_CMAKE_DIR ${P_PATH}/Third-Party/nativefiledialog-extended)
+SET(JSON_CMAKE_DIR ${P_PATH}/Third-Party/json)
 
-set(GLEW_CMAKE_DIR ${parent_path}/Third-Party/glew/build/cmake)
-set(GLFW_CMAKE_DIR ${parent_path}/Third-Party/glfw)
-set(ENTT_CMAKE_DIR ${parent_path}/Third-Party/entt)
-set(FMT_CMAKE_DIR ${parent_path}/Third-Party/fmt)
-set(VOLK_CMAKE_DIR ${parent_path}/Third-Party/volk)
-set(ASSIMP_CMAKE_DIR ${parent_path}/Third-Party/assimp)
-set(VMA_CMAKE_DIR ${parent_path}/Third-Party/VulkanMemoryAllocator)
-set(YAML_CMAKE_DIR ${parent_path}/Third-Party/yaml-cpp)
-set(NFD_CMAKE_DIR ${parent_path}/Third-Party/nativefiledialog-extended)
-set(JSON_CMAKE_DIR ${parent_path}/Third-Party/json)
+# Setup Mikoto Engine source file
+FILE(GLOB_RECURSE SOURCE_FILES  "./src/*.cc")
+SOURCE_GROUP(MIKOTO_SOURCES FILES ${SOURCE_FILES})
 
-set(CORE_SOURCES
-        src/Logger.cc
-        src/ImGuiManager.cc
-        src/OpenGLContext.cc
-        src/InputManager.cc
-        src/Timer.cc
-        src/VulkanUtils.cc
-        src/OpenGLUtils.cc
-        src/Serializer.cc
-        src/AssetsManager.cc
-        src/Window.cc
-)
+# Setup third party source files
+SET(IMGUI_SOURCES
+    ${P_PATH}/Third-Party/imgui/imgui.cpp
+    ${P_PATH}/Third-Party/imgui/imgui_draw.cpp
+    ${P_PATH}/Third-Party/imgui/imgui_demo.cpp
+    ${P_PATH}/Third-Party/imgui/imgui_tables.cpp
+    ${P_PATH}/Third-Party/imgui/imgui_widgets.cpp
+    ${P_PATH}/Third-Party/imgui/backends/imgui_impl_glfw.cpp
+    ${P_PATH}/Third-Party/imgui/backends/imgui_impl_vulkan.cpp
+    ${P_PATH}/Third-Party/imgui/backends/imgui_impl_opengl3.cpp)
 
-set(PLATFORM_SOURCES
-        src/XPWindow.cc
-)
+SET(IMGUIZMO_SOURCES
+    ${P_PATH}/Third-Party/ImGuizmo/ImGuizmo.cpp
+    ${P_PATH}/Third-Party/ImGuizmo/GraphEditor.cpp
+    ${P_PATH}/Third-Party/ImGuizmo/ImCurveEdit.cpp
+    ${P_PATH}/Third-Party/ImGuizmo/ImGradient.cpp
+    ${P_PATH}/Third-Party/ImGuizmo/ImSequencer.cpp)
 
-set(RENDERER_SOURCES
-        src/VulkanVertexBuffer.cc
-        src/OpenGLVertexArray.cc
-        src/OpenGLVertexBuffer.cc
-        src/OpenGLIndexBuffer.cc
-        src/Renderer.cc
-        src/VertexBuffer.cc
-        src/IndexBuffer.cc
-        src/OpenGLShader.cc
-        src/ConsoleManager.cc
-        src/OpenGLRenderer.cc
-        src/RendererAPI.cc
-        src/OrthographicCamera.cc
-        src/Texture2D.cc
-        src/OpenGLTexture2D.cc
-        src/RenderCommand.cc
-        src/Shader.cc
-        src/FrameBuffer.cc
-        src/OpenGLFrameBuffer.cc
-        src/VulkanContext.cc
-        src/VulkanRenderer.cc
-        src/Mesh.cc
-        src/Model.cc
-        src/Material.cc
-        src/VulkanStandardMaterial.cc
-        src/VulkanFrameBuffer.cc
-        src/VulkanIndexBuffer.cc
-        src/VulkanShader.cc
-        src/VulkanCommandPool.cc
-        src/VulkanTexture2D.cc
-        src/VulkanPipeline.cc
-        src/VulkanSwapChain.cc
-        src/RenderContext.cc
-        src/OpenGLDefaultMaterial.cc
-        src/VulkanImage.cc
-        src/VulkanImage.cc
-        src/VulkanBuffer.cc
-        src/DescriptorManager.cc
-        src/PhysicallyBasedMaterial.cc
-        src/VulkanPBRMaterial.cc
-)
-
-set(IMGUI_SOURCES
-        ${parent_path}/Third-Party/imgui/imgui.cpp
-        ${parent_path}/Third-Party/imgui/backends/imgui_impl_glfw.cpp
-        ${parent_path}/Third-Party/imgui/imgui_widgets.cpp
-        ${parent_path}/Third-Party/imgui/imgui_draw.cpp
-        ${parent_path}/Third-Party/imgui/imgui_tables.cpp
-        ${parent_path}/Third-Party/imgui/imgui_demo.cpp
-        ${parent_path}/Third-Party/imgui/backends/imgui_impl_opengl3.cpp
-        ${parent_path}/Third-Party/imgui/backends/imgui_impl_vulkan.cpp
-)
-
-set(SCENE_SOURCES
-        src/Scene.cc
-        src/SceneCamera.cc
-        src/EditorCamera.cc
-        src/SceneManager.cc
-)
-
-set(IMGUIZMO_SOURCES
-        ${parent_path}/Third-Party/ImGuizmo/ImGuizmo.cpp
-        ${parent_path}/Third-Party/ImGuizmo/GraphEditor.cpp
-        ${parent_path}/Third-Party/ImGuizmo/ImCurveEdit.cpp
-        ${parent_path}/Third-Party/ImGuizmo/ImGradient.cpp
-        ${parent_path}/Third-Party/ImGuizmo/ImSequencer.cpp)
-
-set(SOURCES
-        ${CORE_SOURCES}
-        ${PLATFORM_SOURCES}
-        ${IMGUI_SOURCES}
-        ${RENDERER_SOURCES}
-        ${EDITOR_SOURCES}
-        ${SCENE_SOURCES}
-        ${IMGUIZMO_SOURCES}
-        src/stb_image.cc
-        src/vk_mem_alloc.h.cc
-        src/ImGuiVulkanBackend.cc
-        src/ImGuiOpenGLBackend.cc
-        src/EventManager.cc
-)
+SET(SOURCES ${IMGUI_SOURCES} ${IMGUIZMO_SOURCES})
 
 # External dependencies
 add_subdirectory(${GLEW_CMAKE_DIR} ./build/glew)
@@ -142,38 +65,40 @@ set(LIBRARIES glfw glew_s fmt EnTT::EnTT volk assimp yaml-cpp nfd nlohmann_json:
 # for tests only. -ltbb was required to use std::execution::par on linux
 # set(LIBRARIES glfw glew_s fmt EnTT::EnTT volk assimp yaml-cpp nfd tbb)
 
-# Compiler flags
-if (MSVC)
+# Compiler specific flags
+if (WIN32)
     # Compile commands for Windows
-
-else()
+    set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
+elseif(LINUX)
     # Compile commands for Linux
     add_compile_options(-fsanitize=address -D_DEBUG -Wall -Wextra -Wpedantic)
+
     # Sanitize
     add_link_options(-fsanitize=address)
 endif()
 
 # Header files directories
-include_directories(.)
 
-include_directories(${parent_path}/Third-Party/spdlog/include)
-include_directories(${parent_path}/Third-Party/glfw/include)
-include_directories(${parent_path}/Third-Party/glew/include)
-include_directories(${parent_path}/Third-Party/imgui)
-include_directories(${parent_path}/Third-Party/imgui/backends)
-include_directories(${parent_path}/Third-Party/glm/)
-include_directories(${parent_path}/Third-Party/stb/)
-include_directories(${parent_path}/Third-Party/entt/single_include)
-include_directories(${parent_path}/Third-Party/volk)
-include_directories(${parent_path}/Third-Party/fmt/include)
-include_directories(${parent_path}/Third-Party/assimp/include)
-include_directories(${parent_path}/Third-Party/VulkanMemoryAllocator/include)
-include_directories(${parent_path}/Third-Party/ImGuizmo)
-include_directories(${parent_path}/Third-Party/yaml-cpp/include)
-include_directories(${parent_path}/Third-Party/nativefiledialog-extended/src/include)
+ADD_LIBRARY(${PROJECT_NAME} STATIC ${SOURCES})
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
-target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBRARIES})
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC ${LIBRARIES})
+
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC  .)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/spdlog/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/glfw/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/glew/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/imgui)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/imgui/backends)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/glm/)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/stb/)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/entt/single_include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/volk)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/fmt/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/assimp/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/VulkanMemoryAllocator/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/ImGuizmo)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/yaml-cpp/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/nativefiledialog-extended/src/include)
 
 # Avoid GLFW including OpenGL headers
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLFW_INCLUDE_NONE)

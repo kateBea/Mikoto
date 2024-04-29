@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 
-set (PROJECT_NAME MikotoEditor)
-project(${PROJECT_NAME})
-
+project(MikotoEditor)
 
 # CXX Lang Requirements
 set(CMAKE_CXX_STANDARD 20)
@@ -11,27 +9,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set( cur_path ${CMAKE_CURRENT_SOURCE_DIR} )
 cmake_path(GET cur_path PARENT_PATH parent_path)
 
-# Projects source files
-set(SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/Main.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/Application.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/Editor.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/EditorLayer.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/EditorRunner.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/HierarchyPanel.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/InspectorPanel.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/SettingsPanel.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ScenePanel.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/StatsPanel.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/RendererPanel.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ConsolePanel.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ContentBrowserPanel.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/AssetsManagerPanel.cc
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/MaterialEditorPanel.cc)
-
-
-# External dependencies
-add_subdirectory(${parent_path}/Mikoto-Engine ./build/engine) # mikoto-engine
+# Setup Mikoto Engine source file
+FILE(GLOB_RECURSE SOURCE_FILES "")
+SOURCE_GROUP(MIKOTO_SOURCES FILES ${SOURCE_FILES})
 
 # Libraries to link against target
 set(LIBRARIES MikotoEngine)
@@ -47,28 +27,27 @@ else()
     add_link_options(-fsanitize=address)
 endif()
 
-# Header files directories
-include_directories(.)
-include_directories(${parent_path}/Mikoto-Engine)
-include_directories(${parent_path}/Third-Party/fmt/include)
-include_directories(${parent_path}/Third-Party/spdlog/include)
-include_directories(${parent_path}/Third-Party/entt/single_include)
-include_directories(${parent_path}/Third-Party/volk)
-include_directories(${parent_path}/Third-Party/imgui)
-include_directories(${parent_path}/Third-Party/glfw/include)
-include_directories(${parent_path}/Third-Party/glew/include)
-include_directories(${parent_path}/Third-Party/imgui/backends)
-include_directories(${parent_path}/Third-Party/glm/)
-include_directories(${parent_path}/Third-Party/stb/)
-include_directories(${parent_path}/Third-Party/VulkanMemoryAllocator/include)
-include_directories(${parent_path}/Third-Party/ImGuizmo)
-include_directories(${parent_path}/Third-Party/yaml-cpp/include)
-include_directories(${parent_path}/Third-Party/nativefiledialog-extended/src/include)
-
-add_executable(${PROJECT_NAME} ${SOURCES})
+add_executable(${PROJECT_NAME} ${MIKOTO_SOURCES})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBRARIES})
 
-
+# Header files directories
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC .)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${parent_path}/Mikoto-Engine)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${parent_path}/Third-Party/spdlog/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${parent_path}/Third-Party/glfw/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${parent_path}/Third-Party/glew/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${parent_path}/Third-Party/imgui)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${parent_path}/Third-Party/imgui/backends)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${parent_path}/Third-Party/glm/)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${parent_path}/Third-Party/stb/)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${parent_path}/Third-Party/entt/single_include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${parent_path}/Third-Party/volk)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${parent_path}/Third-Party/fmt/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${parent_path}/Third-Party/assimp/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${parent_path}/Third-Party/VulkanMemoryAllocator/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${parent_path}/Third-Party/ImGuizmo)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${parent_path}/Third-Party/yaml-cpp/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${parent_path}/Third-Party/nativefiledialog-extended/src/include)
 
 
 # Needed if we want to use FMT as an external library and not the

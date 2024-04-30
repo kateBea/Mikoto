@@ -25,8 +25,7 @@ SET(NFD_CMAKE_DIR ${P_PATH}/Third-Party/nativefiledialog-extended)
 SET(JSON_CMAKE_DIR ${P_PATH}/Third-Party/json)
 
 # Setup Mikoto Engine source file
-FILE(GLOB_RECURSE SOURCE_FILES  "./src/*.cc")
-SOURCE_GROUP(MIKOTO_SOURCES FILES ${SOURCE_FILES})
+FILE(GLOB SOURCE_FILES  ../Mikoto-Engine/src/*.cc)
 
 # Setup third party source files
 SET(IMGUI_SOURCES
@@ -46,7 +45,7 @@ SET(IMGUIZMO_SOURCES
     ${P_PATH}/Third-Party/ImGuizmo/ImGradient.cpp
     ${P_PATH}/Third-Party/ImGuizmo/ImSequencer.cpp)
 
-SET(SOURCES ${IMGUI_SOURCES} ${IMGUIZMO_SOURCES})
+SET(SOURCES ${IMGUI_SOURCES} ${IMGUIZMO_SOURCES} ${SOURCE_FILES})
 
 # External dependencies
 add_subdirectory(${GLEW_CMAKE_DIR} ./build/glew)

@@ -10,8 +10,7 @@ set( cur_path ${CMAKE_CURRENT_SOURCE_DIR} )
 cmake_path(GET cur_path PARENT_PATH parent_path)
 
 # Setup Mikoto Engine source file
-FILE(GLOB_RECURSE SOURCE_FILES "")
-SOURCE_GROUP(MIKOTO_SOURCES FILES ${SOURCE_FILES})
+FILE(GLOB SOURCE_FILES ../Mikoto-Editor/src/*.cc)
 
 # Libraries to link against target
 set(LIBRARIES MikotoEngine)
@@ -27,7 +26,7 @@ else()
     add_link_options(-fsanitize=address)
 endif()
 
-add_executable(${PROJECT_NAME} ${MIKOTO_SOURCES})
+add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBRARIES})
 
 # Header files directories

@@ -44,7 +44,7 @@ the CMake as a project and build just fine. The following steps just show how to
   git clone --recursive https://github.com/kateBea/Mikoto-Engine.git
   
   # Change directory to the repo folder
-  cd Mikoto-Engine
+  cd Mikoto
   
   # Make a build directory (preferable)
   mkdir build 

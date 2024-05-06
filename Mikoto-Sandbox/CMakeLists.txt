@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 
-PROJECT(MikotoEditor)
+PROJECT(MikotoSandbox)
 
 # CXX Lang Requirements
 SET(CMAKE_CXX_STANDARD 20)
@@ -10,7 +10,7 @@ SET( CUR_PATH ${CMAKE_CURRENT_SOURCE_DIR} )
 CMAKE_PATH(GET CUR_PATH PARENT_PATH P_PATH)
 
 # Setup Mikoto Engine source file
-FILE(GLOB SOURCE_FILES ../Mikoto-Editor/src/*.cc)
+FILE(GLOB SOURCE_FILES ../Mikoto-Sandbox/src/*.cc)
 
 # Libraries to link against target
 SET(LIBRARIES Mikoto)

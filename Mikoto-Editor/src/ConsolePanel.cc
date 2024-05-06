@@ -9,11 +9,11 @@
 
 #include "Common/Common.hh"
 #include "Common/StringUtils.hh"
-#include "Core/ConsoleManager.hh"
 #include "GUI/IconsFontAwesome5.h"
 #include "GUI/IconsMaterialDesign.h"
 #include "GUI/IconsMaterialDesignIcons.h"
 #include "GUI/ImGuiManager.hh"
+#include "Tools/ConsoleManager.hh"
 #include "imgui.h"
 
 namespace Mikoto {

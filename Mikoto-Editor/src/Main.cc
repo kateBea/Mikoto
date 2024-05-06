@@ -4,14 +4,17 @@
  * */
 
 // C++ Standard Library
+#include <cstdlib>
 #include <memory>
 
 // Project Headers
-#include <EditorRunner.hh>
+#include <EditorApp.hh>
 
 auto main(int argc, char** argv) -> int {
-    auto app { std::make_unique<Mikoto::EditorRunner>() };
-    auto ret{ app->Run(argc, argv) };
+    using namespace Mikoto;
+
+    auto app { std::make_unique<EditorApp>() };
+    auto ret{ app ? app->Run(argc, argv) : EXIT_FAILURE };
 
     return ret;
 }

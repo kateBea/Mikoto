@@ -13,9 +13,9 @@
 // Project Headers
 #include <Common/Random.hh>
 #include <Common/Types.hh>
-
-#include <Panel.hh>
 #include <Panels/HierarchyPanel.hh>
+
+#include "Panel.hh"
 
 namespace Mikoto {
     class InspectorPanel : public Panel {

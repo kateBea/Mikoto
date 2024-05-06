@@ -7,7 +7,7 @@
 
 #include <imgui.h>
 
-#include <Panel.hh>
+#include "Panel.hh"
 
 namespace Mikoto {
     class ConsolePanel : public Panel {

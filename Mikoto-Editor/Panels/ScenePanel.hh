@@ -24,10 +24,12 @@ namespace Mikoto {
         const EditorCamera* EditorMainCamera{};
     };
 
+
     struct ScenePanelData {
         float ViewPortWidth{};
         float ViewPortHeight{};
     };
+
 
     /**
      * Abstracts away the active ImGui render backend according
@@ -37,7 +39,7 @@ namespace Mikoto {
     public:
         explicit ScenePanelInterface() = default;
 
-        virtual auto Init_Impl(ScenePanelData&& data) -> void = 0;
+        virtual auto Init_Impl( const ScenePanelData& data) -> void = 0;
         virtual auto OnUpdate_Impl() -> void = 0;
 
         auto HandleGuizmos() -> void;
@@ -80,7 +82,7 @@ namespace Mikoto {
         ~ScenePanel() override = default;
 
     private:
-        auto DrawScenePlayButtons() -> void;
+        static auto DrawScenePlayButtons() -> void;
 
     protected:
         ScenePanelCreateInfo m_CreateInfo{};

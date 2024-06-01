@@ -17,19 +17,20 @@
 #include "volk.h"
 
 // Project Headers
+#include <Renderer/Vulkan/VulkanPBRMaterial.hh>
+
 #include "Common/Common.hh"
 #include "Common/VulkanUtils.hh"
-#include "Renderer/Buffers/IndexBuffer.hh"
-#include "Renderer/Buffers/VertexBuffer.hh"
+#include "Renderer/IndexBuffer.hh"
 #include "Renderer/Material/Material.hh"
 #include "Renderer/Model.hh"
 #include "Renderer/Renderer.hh"
 #include "Renderer/RendererBackend.hh"
+#include "Renderer/VertexBuffer.hh"
 #include "VulkanCommandPool.hh"
 #include "VulkanFrameBuffer.hh"
 #include "VulkanImage.hh"
 #include "VulkanStandardMaterial.hh"
-#include <Renderer/Vulkan/VulkanPBRMaterial.hh>
 
 namespace Mikoto {
     /**

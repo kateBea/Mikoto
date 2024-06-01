@@ -24,6 +24,8 @@ namespace Mikoto {
             case TimeUnit::MICROSECONDS:    return std::chrono::duration_cast<Micro_T>(Clock_T::now() - m_TimeSinceStart).count();
             case TimeUnit::NANOSECONDS:     return std::chrono::duration_cast<Nano_T>(Clock_T::now() - m_TimeSinceStart).count();
         }
+
+        return -1.0;
     }
 
     auto Timer::Restart() -> void {
@@ -40,5 +42,7 @@ namespace Mikoto {
             case TimeUnit::MICROSECONDS:    return "µs";
             case TimeUnit::NANOSECONDS:     return "ns";
         }
+
+        return "";
     }
 }

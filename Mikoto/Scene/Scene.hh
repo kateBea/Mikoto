@@ -132,7 +132,7 @@ namespace Mikoto {
          * @param guid The globally unique ID for the object.
          * @return The created entity in the scene.
          * */
-        auto CreateEmptyObject( std::string_view tagName, UInt64_T guid = Random::GUID::GenerateGUID() ) -> Entity;
+        auto CreateEmptyObject( std::string_view tagName, UInt64_T guid = GenerateGUID() ) -> Entity;
 
 
         /**
@@ -142,7 +142,7 @@ namespace Mikoto {
          * @param guid The globally unique ID for the object.
          * @return The created entity in the scene.
          * */
-        auto CreatePrefab( std::string_view tagName, PrefabSceneObject type, UInt64_T guid = Random::GUID::GenerateGUID() ) -> Entity;
+        auto CreatePrefab( std::string_view tagName, PrefabSceneObject type, UInt64_T guid = GenerateGUID() ) -> Entity;
 
 
         /**

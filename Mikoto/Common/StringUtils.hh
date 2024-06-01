@@ -18,11 +18,12 @@
 namespace Mikoto::StringUtils {
     /**
      * @brief Returns a string which is the concatenation of the string.
-     * representation of the given values.
+     * representation of the given values. Use ConcatStr, methods with *_H are
+     * designated as helpers for internal usage.
      * @see ConcatStr(...)
      * */
     template<typename T, typename... Args>
-    inline auto ConcatStr_H(const T& first, Args&&... args) -> std::string {
+    inline static auto ConcatStr_H(const T& first, Args&&... args) -> std::string {
         std::string result{};
         result.append(fmt::to_string(first));
 
@@ -35,6 +36,7 @@ namespace Mikoto::StringUtils {
         return result;
     }
 
+
     /**
      * @brief Returns a string which is the concatenation of the string
      * representation of the given values.
@@ -46,9 +48,16 @@ namespace Mikoto::StringUtils {
         return ConcatStr_H(std::forward<Args>(args)...);
     }
 
+    /**
+     * Utility function to make panel names for ImGui windows.
+     * @param panelIcon Panel's icon value.
+     * @param panelName Name of the panel.
+     * @returns The panel's name including the icon.
+     * */
     MKT_NODISCARD inline auto MakePanelName(std::string_view panelIcon, std::string_view panelName) -> std::string {
         return fmt::format("{} {}", panelIcon, panelName);
     }
+
 
     /**
      * @brief Remove any leading white spaces from str, from both ends.
@@ -82,6 +91,7 @@ namespace Mikoto::StringUtils {
         return std::string{ str.substr(leftCharIt - str.begin(), right - leftCharIt) };
     }
 
+
     /**
      * @brief Returns true if two character sequences are equal.
      * @param str1 Null terminated string to compare.
@@ -92,10 +102,12 @@ namespace Mikoto::StringUtils {
         return str1.compare(str2) == 0;
     }
 
+
     template<typename CharType>
     inline constexpr auto ReplaceWith(std::string& str, CharType oldVal, CharType newVal) -> void {
         std::replace(str.begin(), str.end(), oldVal, newVal);
     }
+
 
     /**
      *

@@ -8,11 +8,13 @@
 #include <stdexcept>
 #include <utility>
 #include <array>
+#include <algorithm>
 
 // Third-Party Libraries
 #include <volk.h>
 
 // Project Headers
+#include <Common/Types.hh>
 #include <Common/Common.hh>
 #include <Common/VulkanUtils.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
@@ -23,10 +25,10 @@ namespace Mikoto {
         //if (fence == VK_NULL_HANDLE) { fence = m_InFlightFences[m_CurrentFrame]; }
         // if (imageAvailable == VK_NULL_HANDLE) { imageAvailable = m_ImageAvailableSemaphores[m_CurrentFrame]; }
 
-        vkWaitForFences(VulkanContext::GetPrimaryLogicalDevice(), 1, &fence, VK_TRUE, std::numeric_limits<UInt64_T>::max());
+        vkWaitForFences(VulkanContext::GetPrimaryLogicalDevice(), 1, &fence, VK_TRUE, (std::numeric_limits<std::uint64_t>::max)());
         vkResetFences(VulkanContext::GetPrimaryLogicalDevice(), 1, &fence);
 
-        return vkAcquireNextImageKHR(VulkanContext::GetPrimaryLogicalDevice(), m_SwapChain, std::numeric_limits<UInt32_T>::max(), imageAvailable, VK_NULL_HANDLE, std::addressof(imageIndex));
+        return vkAcquireNextImageKHR(VulkanContext::GetPrimaryLogicalDevice(), m_SwapChain, (std::numeric_limits<UInt64_T>::max)(), imageAvailable, VK_NULL_HANDLE, std::addressof(imageIndex));
     }
 
 
@@ -161,13 +163,13 @@ namespace Mikoto {
 
 
     auto VulkanSwapChain::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) -> VkExtent2D {
-        if (capabilities.currentExtent.width != std::numeric_limits<UInt32_T>::max()) {
+        if (capabilities.currentExtent.width != (std::numeric_limits<UInt32_T>::max)()) {
             return capabilities.currentExtent;
         }
         else {
             VkExtent2D actualExtent{ m_WindowExtent };
-            actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
-            actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
+            actualExtent.width = (std::max)(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
+            actualExtent.height = (std::max)(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
 
             return actualExtent;
         }

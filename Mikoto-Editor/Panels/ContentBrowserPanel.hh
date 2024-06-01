@@ -45,7 +45,7 @@ namespace Mikoto {
 
     private:
         static constexpr Size_T REQUIRED_IDS{ 1 };
-        std::vector<Random::GUID::UUID> m_Guids{};
+        std::vector<UUID> m_Guids{};
 
         std::shared_ptr<Texture2D> m_FolderIcon{};
         std::shared_ptr<Texture2D> m_FileIcon{};

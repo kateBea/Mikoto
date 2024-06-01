@@ -16,15 +16,12 @@
 #include <Renderer/Renderer.hh>
 #include <Renderer/Material/Texture2D.hh>
 #include <Renderer/Vulkan/VulkanTexture2D.hh>
-#include <Renderer/OpenGL/OpenGLTexture2D.hh>
 
 
 namespace Mikoto {
     auto Texture2D::Create(const Path_T& path, MapType type) -> std::shared_ptr<Texture2D> {
         try {
             switch(Renderer::GetActiveGraphicsAPI()) {
-                case GraphicsAPI::OPENGL_API:
-                    return std::make_shared<OpenGLTexture2D>(path, type);
                 case GraphicsAPI::VULKAN_API:
                     return std::make_shared<VulkanTexture2D>(path, type);
                 default:

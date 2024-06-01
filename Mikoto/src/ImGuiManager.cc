@@ -112,9 +112,6 @@ namespace Mikoto {
 
         // Create implementation
         switch (Renderer::GetActiveGraphicsAPI()) {
-            case GraphicsAPI::OPENGL_API:
-                m_Implementation = std::make_unique<ImGuiOpenGLBackend>();
-                break;
             case GraphicsAPI::VULKAN_API:
                 m_Implementation = std::make_unique<ImGuiVulkanBackend>();
                 break;

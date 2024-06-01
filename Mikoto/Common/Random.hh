@@ -17,11 +17,11 @@
 #include "fmt/format.h"
 
 // Project Headers
+#include "Types.hh"
 #include "Common.hh"
 #include "Core/Logger.hh"
-#include "Types.hh"
 
-namespace Mikoto::Random {
+namespace Mikoto {
     /**
      * Returns a seed for random number generation
      * @returns seed
@@ -31,31 +31,34 @@ namespace Mikoto::Random {
         return seed;
     }
 
+
     /**
      * Returns a random 64-bit integer
      * @return random 64-bit integer
      * */
-    MKT_NODISCARD inline auto GetRandomUInt64(auto& seed = GetSeed()) -> UInt64_T {
+    MKT_NODISCARD inline auto GetRandomUInt64(std::random_device& seed = GetSeed()) -> UInt64_T {
         thread_local std::mt19937_64 mt{ seed() };
 
         return std::uniform_int_distribution<UInt64_T>{
-                std::numeric_limits<UInt64_T>::min(),
-                std::numeric_limits<UInt64_T>::max(),
+                (std::numeric_limits<UInt64_T>::min)(),
+                (std::numeric_limits<UInt64_T>::max)(),
         }(mt);
     }
+
 
     /**
      * Returns a random integer
      * @return random integer
      * */
-    MKT_NODISCARD inline auto GetRandomUInt32(auto& seed = GetSeed()) -> UInt32_T {
+    MKT_NODISCARD inline auto GetRandomUInt32(std::random_device& seed = GetSeed()) -> UInt32_T {
         thread_local std::mt19937 mt{ seed() };
 
         return std::uniform_int_distribution<UInt32_T>{
-                std::numeric_limits<UInt32_T>::min(),
-                std::numeric_limits<UInt32_T>::max(),
+                (std::numeric_limits<UInt32_T>::min)(),
+            (std::numeric_limits<UInt32_T>::max)(),
         }(mt);
     }
+
 
     /**
      * Returns a random integer in the range given by the parameters.
@@ -71,6 +74,7 @@ namespace Mikoto::Random {
         return std::uniform_int_distribution{ lowerBound, upperbound }(mt);
     }
 
+
     /**
      * Returns a random real number in the range given by the parameters.
      * Throws if the range is ill-formed
@@ -85,6 +89,7 @@ namespace Mikoto::Random {
         return std::uniform_real_distribution{ lowerBound, upperbound }(mt);
     }
 
+
     MKT_NODISCARD inline auto GetRandomIntNumberList(Size_T length, Int32_T lowerBound = -1000, Int32_T upperbound = 1000, auto& seed = GetSeed()) -> std::vector<Int32_T> {
         std::vector<Int32_T> result{};
 
@@ -96,6 +101,7 @@ namespace Mikoto::Random {
         return result;
     }
 
+
     MKT_NODISCARD inline auto GetRandomRealNumberList(Size_T length, double lowerBound = -1000.0, double upperbound = 1000.0, auto& seed = GetSeed()) -> std::vector<double> {
         std::vector<double> result{};
 
@@ -106,10 +112,8 @@ namespace Mikoto::Random {
 
         return result;
     }
-}
 
-// TODO: think about prebatching bunch of random guids in some sort of pool and give them out as they are needed, create more when the pool gets empty
-namespace Mikoto::Random::GUID {
+
     inline auto GetGUIDs() -> std::unordered_set<UInt64_T>& {
         static std::unordered_set<UInt64_T> guids{};
 

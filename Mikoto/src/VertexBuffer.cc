@@ -10,9 +10,8 @@
 // Project Headers
 #include "Common/RenderingUtils.hh"
 #include "Core/Logger.hh"
-#include "Renderer/Buffers/VertexBuffer.hh"
-#include "Renderer/OpenGL/OpenGLVertexBuffer.hh"
 #include "Renderer/Renderer.hh"
+#include "Renderer/VertexBuffer.hh"
 #include "Renderer/Vulkan/VulkanVertexBuffer.hh"
 
 namespace Mikoto {
@@ -24,8 +23,6 @@ namespace Mikoto {
         createInfo.Layout = layout;
 
         switch(Renderer::GetActiveGraphicsAPI()) {
-            case GraphicsAPI::OPENGL_API:
-                return std::make_shared<OpenGLVertexBuffer>(std::move(createInfo));
             case GraphicsAPI::VULKAN_API:
                 return std::make_shared<VulkanVertexBuffer>(std::move(createInfo));
             default:

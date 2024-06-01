@@ -14,14 +14,12 @@
 
 // Projects Headers
 #include "Common.hh"
-#include "Renderer/Buffers/IndexBuffer.hh"
-#include "Renderer/Buffers/VertexBuffer.hh"
+#include "Types.hh"
 #include "Renderer/Material/Material.hh"
 #include "Renderer/Model.hh"
 #include "Scene/Camera.hh"
 #include "Scene/EditorCamera.hh"
 #include "Scene/SceneCamera.hh"
-#include "Types.hh"
 
 #define MAX_LIGHTS_PER_SCENE 200
 
@@ -157,6 +155,9 @@ namespace Mikoto {
         SpotLight SpotLightData{};
     };
 
+
+
+
     /**
      * Returns the string representing the name of a given prefab type
      * @returns string representation of a prefab type
@@ -191,7 +192,6 @@ namespace Mikoto {
     }
 
     enum class GraphicsAPI {
-        OPENGL_API,
         VULKAN_API,
     };
 
@@ -201,7 +201,6 @@ namespace Mikoto {
         auto operator=(const RenderingStats& other) -> RenderingStats& = default;
 
         MKT_NODISCARD auto GetDrawCallsCount() const -> UInt64_T { return m_DrawCallsCount; }
-
 
         MKT_NODISCARD auto GetVertexCount() const -> UInt64_T { return m_VertexCount; }
         MKT_NODISCARD auto GetIndexCount() const -> UInt64_T { return m_IndexCount; }

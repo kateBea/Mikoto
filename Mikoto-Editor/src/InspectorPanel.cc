@@ -331,135 +331,6 @@ namespace Mikoto {
         if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
     }
 
-    static auto EditPBRMaterial( PhysicallyBasedMaterial& pbrMat ) -> void {
-        static constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
-                                                           ImGuiTreeNodeFlags_AllowItemOverlap |
-                                                           ImGuiTreeNodeFlags_Framed |
-                                                           ImGuiTreeNodeFlags_SpanAvailWidth |
-                                                           ImGuiTreeNodeFlags_FramePadding };
-
-        ImGui::Spacing();
-        ImGui::Separator();
-        ImGui::Spacing();
-
-
-        // albedo control
-        if ( ImGui::TreeNodeEx( ( void* )"EditPBRMaterialAlbedoTreeNode", treeNodeFlags, "Albedo" ) ) {
-            ImGuiUtils::PushImageButton( pbrMat.GetAlbedoMap().get(), ImVec2{ 64, 64 } );
-            if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
-
-            ImGui::SameLine();
-
-            // Table showings texture properties
-            constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
-
-            if ( ImGui::BeginTable( "PBRMatAlbedoEditTable", 2, tableFlags ) ) {
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
-                static bool applyAlbedoMap{ true };
-                if ( ImGui::Checkbox( "Apply", std::addressof( applyAlbedoMap ) ) ) {
-                }
-
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
-                static glm::vec3 albedoEdit{};
-                if ( ImGui::ColorEdit3( "Value", glm::value_ptr( albedoEdit ) ) ) {
-                }
-
-                ImGui::EndTable();
-            }
-
-            ImGui::TreePop();
-        }
-
-        // metallic control
-        if ( ImGui::TreeNodeEx( ( void* )( void* )"EditPBRMaterialMetallicTreeNode", treeNodeFlags, "Metallic" ) ) {
-            ImGuiUtils::PushImageButton( pbrMat.GetMetallic().get(), ImVec2{ 64, 64 } );
-            if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
-
-            ImGui::SameLine();
-
-            // Table showings texture properties
-            constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
-
-            if ( ImGui::BeginTable( "PBRMatMetalnessEditTable", 2, tableFlags ) ) {
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
-                static bool applyMetalMap{ true };
-                if ( ImGui::Checkbox( "Apply", std::addressof( applyMetalMap ) ) ) {
-                }
-
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
-                static float value{};
-                if ( ImGui::SliderFloat( "Metalness", std::addressof( value ), 0.0f, 10.0f ) ) {
-                }
-
-                ImGui::EndTable();
-            }
-
-            ImGui::TreePop();
-        }
-
-        // roughness control
-        if ( ImGui::TreeNodeEx( ( void* )( void* )"EditPBRMaterialRoughnessTreeNode", treeNodeFlags, "Roughness" ) ) {
-            ImGuiUtils::PushImageButton( pbrMat.GetRoughness().get(), ImVec2{ 64, 64 } );
-            if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
-
-            ImGui::SameLine();
-
-            // Table showings texture properties
-            constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
-
-            if ( ImGui::BeginTable( "PBRMatRoughnessEditTable", 2, tableFlags ) ) {
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
-                static bool applyRoughnessMap{ true };
-                if ( ImGui::Checkbox( "Apply", std::addressof( applyRoughnessMap ) ) ) {
-                }
-
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
-                static float value{};
-                if ( ImGui::SliderFloat( "Roughness", std::addressof( value ), 0.0f, 10.0f ) ) {
-                }
-
-                ImGui::EndTable();
-            }
-
-            ImGui::TreePop();
-        }
-
-        // ao control
-        if ( ImGui::TreeNodeEx( ( void* )( void* )"EditPBRMaterialAmbientOcclusionTreeNode", treeNodeFlags, "Ambient Occlusion" ) ) {
-            ImGuiUtils::PushImageButton( pbrMat.GetAO().get(), ImVec2{ 64, 64 } );
-            if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
-
-            ImGui::SameLine();
-
-            // Table showings texture properties
-            constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
-
-            if ( ImGui::BeginTable( "PBRMatAOEditTable", 2, tableFlags ) ) {
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
-                static bool applyAoMap{ true };
-                if ( ImGui::Checkbox( "Apply", std::addressof( applyAoMap ) ) ) {
-                }
-
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
-                static float value{};
-                if ( ImGui::SliderFloat( "Value", std::addressof( value ), 0.0f, 10.0f ) ) {
-                }
-
-                ImGui::EndTable();
-            }
-
-            ImGui::TreePop();
-        }
-    }
-
     auto InspectorPanel::DrawMaterialComponentEditor( MaterialComponent& material ) -> void {
         constexpr ImGuiTableFlags matTableFlags{ ImGuiTableFlags_None };
 
@@ -488,44 +359,7 @@ namespace Mikoto {
             if ( mat->GetType() == Material::Type::MATERIAL_TYPE_STANDARD ) {
                 EditStandardMaterial( *std::dynamic_pointer_cast<StandardMaterial>( mat ) );
             }
-
-
-            if ( mat->GetType() == Material::Type::MATERIAL_TYPE_PBR ) {
-                EditPBRMaterial( *std::dynamic_pointer_cast<PhysicallyBasedMaterial>( mat ) );
-            }
-
-            // common
-            {
-                constexpr auto columnIndex{ 0 };
-                if ( ImGui::BeginTable( "EditTable", 1, matTableFlags ) ) {
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex( columnIndex );
-                    ImGui::Spacing();
-                    if ( ImGui::Button( fmt::format( "{} Edit material", ICON_MD_EDIT_ATTRIBUTES ).c_str() ) ) {
-                        m_TargetMaterialForMaterialEditor = mat;
-                        m_OpenMaterialEditor = true;
-                    }
-
-                    if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
-
-                    // Second row
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex( columnIndex );
-                    bool useMaterial{ mat->IsActive() };
-                    if ( ImGui::Checkbox( "##UseMaterial", std::addressof( useMaterial ) ) ) {
-                        mat->SetActive( useMaterial );
-                    }
-                    if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
-
-                    ImGui::SameLine();
-                    ImGui::TextUnformatted( "Apply material" );
-                }
-
-                ImGui::EndTable();
-            }
         }
-
-        OpenMaterialEditor();
     }
 
 
@@ -623,7 +457,7 @@ namespace Mikoto {
 
 
     static auto DrawVec3Transform( std::string_view label, glm::vec3& data, double resetValue = 0.0, double columWidth = 100.0 ) {
-        // Group is part of a unique label
+        // This Group is part of a unique label
         ImGui::PushID( label.data() );
 
         ImGui::Columns( 2 );
@@ -774,7 +608,7 @@ namespace Mikoto {
         TagComponent& tag{ entity.GetComponent<TagComponent>() };
 
         bool wantToRenderActiveEntity{ tag.IsVisible() };
-        if ( ImGui::Checkbox( "##show", &wantToRenderActiveEntity ) ) {
+        if ( ImGui::Checkbox( "##DrawVisibilityCheckBox::Checkbox", std::addressof(wantToRenderActiveEntity) ) ) {
             tag.SetVisibility( !tag.IsVisible() );
         }
     }
@@ -789,12 +623,12 @@ namespace Mikoto {
         TagComponent& tag{ entity.GetComponent<TagComponent>() };
 
         // Input text to change target's name
-        static constexpr ImGuiTextFlags flags{};
-        char contextSelectionTagName[1024]{};
-        std::copy( tag.GetTag().begin(), tag.GetTag().end(), contextSelectionTagName );
+        constexpr ImGuiTextFlags flags{};
+        std::array<char, 1024> contextSelectionTagName{};
+        std::copy( tag.GetTag().begin(), tag.GetTag().end(), contextSelectionTagName.data() );
 
-        if ( ImGui::InputText( "##DrawNameTextInputTag", contextSelectionTagName, std::size( contextSelectionTagName ), flags ) ) {
-            tag.SetTag( contextSelectionTagName );
+        if ( ImGui::InputText( "##DrawNameTextInputTag", contextSelectionTagName.data(), std::size( contextSelectionTagName ), flags ) ) {
+            tag.SetTag( contextSelectionTagName.data() );
         }
     }
 

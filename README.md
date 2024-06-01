@@ -1,14 +1,15 @@
 # Mikoto Engine
-This is a simple engine written in modern C++. For now and quite some time 
-it will use OpenGL as its main rendering API, but the end goal is to integrate Vulkan.
+Mikoto is an open-source Vulkan-based C++ engine developed by me for 
+educational purposes. It is designed to provide a hands-on learning experience 
+in graphics programming, focusing on the Vulkan API.
 
 ![Mikoto Engine](Assets/image/img14.png)
 
 # Features
-- Blinn-Phong lighting
-- Entity component system
 - Model loading
 - Image loading
+- Blinn-Phong lighting
+- Entity component system
 - Game object serialization (WIP)
 
 # Supported platforms
@@ -18,10 +19,9 @@ it will use OpenGL as its main rendering API, but the end goal is to integrate V
 
 # Requirements
 - Software Requirements
-  - CMake 3.21 (This is what the project uses, but an earlier version is most likely to work)
-  - A compiler capable of C++20 (G++ 12.3.0 was used for the tests)
+  - CMake 3.18
   - The Vulkan SDK
-  - OpenGL library
+  - A compiler capable of C++20 (G++ 12.3.0 was used for the tests)
   - GLSL-C (The glsl compiler). This one is optional as there's precompiled binaries.
 
 
@@ -59,7 +59,7 @@ the CMake as a project and build just fine. The following steps just show how to
   cmake --build . --config Release
   
   # and run the executable (on Linux, the executable should be in build folder)
-  ./Mikoto
+  ./Mikoto-Editor/Mikoto-Editor
 ```
 
 # Dependencies
@@ -78,7 +78,7 @@ is included as a submodule and build along with the project.
 # Goals
 
 This project serves as a way for me to learn 3D graphics programming with modern rendering techniques, as such I intend 
-to integrate the things I learn along the way.
+to implement the features I learn along the way.
 
 # Special thanks and mentions to
   - Joey De Vries for the [LearnOpenGL](https://learnopengl.com/) articles. 

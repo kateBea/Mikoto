@@ -25,12 +25,13 @@ namespace Mikoto {
 
     auto RendererPanel::OnUpdate(float timeStep) -> void {
         if (m_PanelIsVisible) {
-            static constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar };
+            static constexpr ImGuiWindowFlags windowFlags{
+                ImGuiWindowFlags_NoScrollWithMouse |
+                ImGuiWindowFlags_NoScrollbar };
 
             ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible), windowFlags);
 
-
-             ImGui::End();
+            ImGui::End();
         }
     }
 }

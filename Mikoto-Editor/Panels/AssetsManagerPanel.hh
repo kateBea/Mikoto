@@ -14,4 +14,4 @@ namespace Mikoto {
 }
 
 
-#endif//MIKOTO_ASSETSMANAGERPANEL_HH
+#endif//MIKOTO_ASSETS_MANAGER_PANEL_HH

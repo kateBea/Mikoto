@@ -15,13 +15,12 @@
 // Project headers
 #include <Common/Common.hh>
 #include <Common/Types.hh>
-
 #include <Core/Logger.hh>
-
 #include <Renderer/Renderer.hh>
 #include <Renderer/RendererBackend.hh>
-#include <Renderer/Buffers/IndexBuffer.hh>
-#include <Renderer/Buffers/VertexBuffer.hh>
+
+#include "IndexBuffer.hh"
+#include "VertexBuffer.hh"
 
 namespace Mikoto {
 	class RenderCommand {

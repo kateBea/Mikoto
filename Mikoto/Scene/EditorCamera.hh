@@ -199,7 +199,7 @@ namespace Mikoto {
         float m_Pitch{ 0.0f };
 
         // [Misc]
-        Random::GUID::UUID m_Guid{};
+        UUID m_Guid{};
 
         float m_ViewportWidth{ 1920 };
         float m_ViewportHeight{ 1080 };

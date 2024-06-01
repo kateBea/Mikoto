@@ -17,7 +17,7 @@
 // Project Headers
 #include "Common/Common.hh"
 #include "Common/VulkanUtils.hh"
-#include "Renderer/Buffers/VertexBuffer.hh"
+#include "Renderer/VertexBuffer.hh"
 #include "VulkanBuffer.hh"
 
 namespace Mikoto {

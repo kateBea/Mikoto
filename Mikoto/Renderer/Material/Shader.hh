@@ -39,25 +39,6 @@ namespace Mikoto {
 
 
         /**
-         * Creates a Shader module from the given paths.
-         * @param vertStage path to the file containing the source code of the vertex shader
-         * @param pixelStage path to the file containing the source code of the fragment/pixel shader
-         * @returns pointer to newly created shader module
-         * @deprecated this function was first created for easy usage with the OpenGL backend
-         * */
-        MKT_NODISCARD static auto Create(const Path_T& vertStage, const Path_T& pixelStage) -> std::shared_ptr<Shader>;
-
-
-        /**
-         * Creates a Shader module for the specified stage using the source code from the given path
-         * @param src path to the file containing the source code of the shader
-         * @param stage shader module stage
-         * @returns pointer to newly created shader module
-         * */
-        MKT_NODISCARD static auto Create(const Path_T& src, ShaderStage stage) -> std::shared_ptr<Shader>;
-
-
-        /**
          * Returns an error message indicating the type of shader
          * This is a helper function for showing compilation status on Shader::compile()
          * @param type type of shader

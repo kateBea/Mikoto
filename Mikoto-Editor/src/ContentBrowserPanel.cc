@@ -48,10 +48,6 @@ namespace Mikoto {
         m_FileIcon = Texture2D::Create("../Assets/Icons/file4.png", MapType::TEXTURE_2D_DIFFUSE);
 
         switch (Renderer::GetActiveGraphicsAPI()) {
-            case GraphicsAPI::OPENGL_API:
-                m_ContentBrowserImTextureIDHandles.emplace(std::make_pair(ContentBrowserTextureIcon::FILE, reinterpret_cast<ImTextureID>(std::any_cast<UInt32_T>(m_FileIcon->GetImGuiTextureHandle()))));
-                m_ContentBrowserImTextureIDHandles.emplace(std::make_pair(ContentBrowserTextureIcon::FOLDER, reinterpret_cast<ImTextureID>((std::any_cast<UInt32_T>(m_FolderIcon->GetImGuiTextureHandle())))));
-                break;
             case GraphicsAPI::VULKAN_API:
                 m_ContentBrowserImTextureIDHandles.emplace(std::make_pair(ContentBrowserTextureIcon::FILE, (ImTextureID)std::any_cast<VkDescriptorSet>(m_FileIcon->GetImGuiTextureHandle())));
                 m_ContentBrowserImTextureIDHandles.emplace(std::make_pair(ContentBrowserTextureIcon::FOLDER, (ImTextureID)std::any_cast<VkDescriptorSet>(m_FolderIcon->GetImGuiTextureHandle())));

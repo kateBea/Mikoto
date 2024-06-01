@@ -14,6 +14,8 @@ namespace Mikoto {
             case ConsoleLogLevel::CONSOLE_DEBUG: return "DEBUG";
             case ConsoleLogLevel::CONSOLE_WARNING: return "WARNING";
         }
+
+        return "";
     }
 
     auto ConsoleManager::PushMessage(ConsoleLogLevel level, std::string_view message) -> void {

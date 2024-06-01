@@ -39,11 +39,6 @@ namespace Mikoto {
         UInt32_T minor{};
 
         switch(m_Properties.GetBackend()) {
-            case GraphicsAPI::OPENGL_API:
-                major = MKT_OPENGL_VERSION_MAJOR;
-                minor = MKT_OPENGL_VERSION_MINOR;
-                m_Properties.SetTitle(fmt::format("Mikoto (OpenGL Version {}.{}.0)", major, minor));
-                break;
             case GraphicsAPI::VULKAN_API:
                 major = MKT_VULKAN_VERSION_MAJOR;
                 minor = MKT_VULKAN_VERSION_MINOR;

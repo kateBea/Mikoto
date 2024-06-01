@@ -21,7 +21,6 @@ namespace Mikoto {
         std::string Name{};
         bool IsPrefab{};
         PrefabSceneObject PrefabType{};
-        UInt64_T EntityGuid{};
     };
 
     class SceneManager {

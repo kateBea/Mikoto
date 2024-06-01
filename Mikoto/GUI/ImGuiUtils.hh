@@ -23,9 +23,6 @@ namespace Mikoto::ImGuiUtils {
         ImTextureID icon{};
 
         switch (Renderer::GetActiveGraphicsAPI()) {
-            case GraphicsAPI::OPENGL_API:
-                icon = reinterpret_cast<ImTextureID>(std::any_cast<UInt32_T>(texture->GetImGuiTextureHandle()));
-                break;
             case GraphicsAPI::VULKAN_API:
                 icon = (ImTextureID)std::any_cast<VkDescriptorSet>(texture->GetImGuiTextureHandle());
                 break;

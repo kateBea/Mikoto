@@ -38,9 +38,11 @@ namespace Mikoto {
         }
     }
 
+
     static constexpr auto GetStatsPanelName() -> std::string_view {
         return "Statistics";
     }
+
 
     StatsPanel::StatsPanel()
         :   Panel{}
@@ -48,6 +50,7 @@ namespace Mikoto {
         m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_MONITOR_HEART, GetStatsPanelName());
         m_IntervalUpdate = (float)TimeManager::GetTime();
     }
+
 
     auto StatsPanel::UpdateStatsInfo(float timeStep) -> void {
         m_FrameTime =  timeStep;
@@ -59,6 +62,7 @@ namespace Mikoto {
             m_LastTimeUpdate = (float)timeElapsed;
         }
     }
+
 
     auto StatsPanel::OnUpdate(float timeStep) -> void {
         if (m_PanelIsVisible) {
@@ -90,7 +94,7 @@ namespace Mikoto {
                     "RAM, VRAM usage, etc. This is specially costly\n"
                     "in the case of Vulkan as fetching statistics from the\n"
                     "default allocator is slow and the retrieved data can\n"
-                    "be not really coherent as there is more concurrency."
+                    "be not really consistent as there is more concurrency."
                     );
 
             ImGui::Spacing();
@@ -107,6 +111,7 @@ namespace Mikoto {
             ImGui::End();
         }
     }
+
 
     auto StatsPanel::DrawPerformance() -> void {
         static std::array<float, 90> frameRateGraphCachedValues{};
@@ -164,9 +169,6 @@ namespace Mikoto {
                     const auto& rendererStats{ Renderer::GetRendererData() };
 
                     switch (Renderer::GetActiveGraphicsAPI()) {
-                        case GraphicsAPI::OPENGL_API:
-                            apiStr = fmt::format("Open GL");
-                            break;
                         case GraphicsAPI::VULKAN_API:
                             apiStr = fmt::format("Vulkan");
                             break;
@@ -237,6 +239,7 @@ namespace Mikoto {
 
         const auto func{
             [&]() -> void {
+                // TODO: use tables
                     auto& sceneRenderStats{ Renderer::GetSceneRenderStats() };
                     if (ImGui::BeginTable("ActiveSceneInfoTable", m_ColumCount, flags)) {
                         ImGui::TableNextRow();

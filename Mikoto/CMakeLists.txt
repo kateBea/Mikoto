@@ -13,7 +13,6 @@ SET(OpenGL_GL_PREFERENCE LEGACY)
 SET( CURRENT_PATH ${CMAKE_CURRENT_SOURCE_DIR} )
 CMAKE_PATH(GET CURRENT_PATH PARENT_PATH P_PATH)
 
-SET(GLEW_CMAKE_DIR ${P_PATH}/Third-Party/glew/build/cmake)
 SET(GLFW_CMAKE_DIR ${P_PATH}/Third-Party/glfw)
 SET(ENTT_CMAKE_DIR ${P_PATH}/Third-Party/entt)
 SET(FMT_CMAKE_DIR ${P_PATH}/Third-Party/fmt)
@@ -48,7 +47,6 @@ SET(IMGUIZMO_SOURCES
 SET(SOURCES ${IMGUI_SOURCES} ${IMGUIZMO_SOURCES} ${SOURCE_FILES})
 
 # External dependencies
-ADD_SUBDIRECTORY(${GLEW_CMAKE_DIR} build/glew)
 ADD_SUBDIRECTORY(${GLFW_CMAKE_DIR} build/glfw)
 ADD_SUBDIRECTORY(${FMT_CMAKE_DIR} build/fmt)
 ADD_SUBDIRECTORY(${ENTT_CMAKE_DIR} build/entt)
@@ -59,7 +57,7 @@ ADD_SUBDIRECTORY(${NFD_CMAKE_DIR} build/nfd)
 ADD_SUBDIRECTORY(${JSON_CMAKE_DIR} build/json)
 
 # Libraries to link against target
-SET(LIBRARIES glfw glew_s fmt EnTT::EnTT volk assimp yaml-cpp nfd nlohmann_json::nlohmann_json)
+SET(LIBRARIES glfw fmt EnTT::EnTT volk assimp yaml-cpp nfd nlohmann_json::nlohmann_json)
 
 # for tests only. -ltbb was required to use std::execution::par on linux
 # set(LIBRARIES glfw glew_s fmt EnTT::EnTT volk assimp yaml-cpp nfd tbb)

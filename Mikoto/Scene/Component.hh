@@ -75,7 +75,7 @@ namespace Mikoto {
         auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component TAG_COMPONENT"); }
         auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component TAG_COMPONENT"); }
     private:
-        Random::GUID::UUID m_GUID{};
+        UUID m_GUID{};
         std::string m_Tag{};
         bool m_Visibility{};
     };

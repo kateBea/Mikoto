@@ -35,7 +35,7 @@ namespace Mikoto {
          * */
         MKT_NODISCARD static auto GetModelPrefabByType(PrefabSceneObject type) -> const Model&;
 
-        MKT_NODISCARD static auto GetModifiableModelPrefabByType(PrefabSceneObject type) -> Model&;
+        MKT_NODISCARD static auto GetModifiableModelPrefabByType(PrefabSceneObject type) -> Model*;
 
         /**
          * @brief Retrieves the model by the given path and name.

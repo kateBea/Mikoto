@@ -34,8 +34,6 @@ namespace Mikoto {
     using LongLong_T = long long;
 
     using Size_T = std::size_t;
-
-    using CharArray = std::vector<char>;
 }
 
 #endif // MIKOTO_TYPES_HH

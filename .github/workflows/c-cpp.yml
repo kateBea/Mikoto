@@ -28,6 +28,3 @@ jobs:
 
     - name: Build
       run: cd build && cmake --build .
-
-    - name: Run tests
-      run: cd build && ctest

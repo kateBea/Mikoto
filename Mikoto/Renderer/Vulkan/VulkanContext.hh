@@ -22,15 +22,8 @@
 #include <Renderer/Vulkan/VulkanCommandPool.hh>
 #include <Renderer/Vulkan/VulkanSwapChain.hh>
 
-/**
- * The Vulkan context exposes Vulkan related functionality
- * and provide and interface to interact with the Vulkan API.
- * */
 
 namespace Mikoto {
-    /**
-     * This structure wraps all the data managed by the Vulkan Context.
-     * */
     struct ContextData {
         UInt32_T PrimaryLogicalDeviceIndex{};
         UInt32_T PrimaryPhysicalDeviceIndex{};
@@ -97,9 +90,9 @@ namespace Mikoto {
         MKT_NODISCARD static inline auto GetDrawCommandBuffersHandles() -> std::vector<VkCommandBuffer> & { return s_RenderCommandBufferHandles; }
 
         // [Physical device data getters]
-        MKT_NODISCARD static inline auto GetPrimaryPhysicalDeviceFeatures() -> VkPhysicalDeviceFeatures { return s_ContextData.PhysicalDeviceFeatures[s_ContextData.PrimaryPhysicalDeviceIndex]; }
-        MKT_NODISCARD static inline auto GetPrimaryPhysicalDeviceProperties() -> VkPhysicalDeviceProperties { return s_ContextData.PhysicalDeviceProperties[s_ContextData.PrimaryPhysicalDeviceIndex]; }
-        MKT_NODISCARD static inline auto GetPrimaryPhysicalDevice() -> VkPhysicalDevice { return s_ContextData.PhysicalDevices[s_ContextData.PrimaryPhysicalDeviceIndex]; };
+        MKT_NODISCARD static inline auto GetPrimaryPhysicalDeviceFeatures()         -> VkPhysicalDeviceFeatures         { return s_ContextData.PhysicalDeviceFeatures[s_ContextData.PrimaryPhysicalDeviceIndex]; }
+        MKT_NODISCARD static inline auto GetPrimaryPhysicalDeviceProperties()       -> VkPhysicalDeviceProperties       { return s_ContextData.PhysicalDeviceProperties[s_ContextData.PrimaryPhysicalDeviceIndex]; }
+        MKT_NODISCARD static inline auto GetPrimaryPhysicalDevice()                 -> VkPhysicalDevice                 { return s_ContextData.PhysicalDevices[s_ContextData.PrimaryPhysicalDeviceIndex]; };
         MKT_NODISCARD static inline auto GetPrimaryPhysicalDeviceMemoryProperties() -> VkPhysicalDeviceMemoryProperties { return s_ContextData.PhysicalDeviceMemoryProperties[s_ContextData.PrimaryPhysicalDeviceIndex]; }
 
 

@@ -33,13 +33,11 @@ namespace Mikoto {
     class Material {
     public:
         enum class Type {
-            MATERIAL_TYPE_UNKNOWN,
             MATERIAL_TYPE_PBR,
             MATERIAL_TYPE_STANDARD,
-            COUNT,
         };
 
-        explicit Material(std::string_view name = "Base Material", Type type = Type::MATERIAL_TYPE_UNKNOWN)
+        explicit Material(std::string_view name = "Base Material", Type type = Type::MATERIAL_TYPE_STANDARD)
             :   m_Type{ type }, m_Name{ name }
         {
 
@@ -60,14 +58,11 @@ namespace Mikoto {
 
         MKT_NODISCARD static constexpr auto GetTypeStr(Type type) -> std::string_view {
             switch(type) {
-                case Type::MATERIAL_TYPE_UNKNOWN:   return "MATERIAL_TYPE_UNKNOWN";
                 case Type::MATERIAL_TYPE_STANDARD:  return "MATERIAL_TYPE_STANDARD";
-                case Type::COUNT:                   return "Unknown";
             }
         }
 
         MKT_NODISCARD static auto CreateStandardMaterial(const DefaultMaterialCreateSpec& spec) -> std::shared_ptr<Material>;
-        MKT_NODISCARD static auto CreatePBRMaterial(const PBRMaterialCreateSpec& spec) -> std::shared_ptr<Material>;
 
         virtual ~Material() = default;
 

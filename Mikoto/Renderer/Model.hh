@@ -22,8 +22,8 @@
 
 // Project Libraries
 #include <Common/Common.hh>
-#include <Renderer/Material/Texture2D.hh>
 #include <Renderer/Mesh.hh>
+#include <Renderer/Material/Texture2D.hh>
 
 namespace Mikoto {
     struct ModelLoadInfo {

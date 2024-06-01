@@ -10,8 +10,8 @@
 #include <utility>
 
 // Project headers
+#include <Common/Constants.hh>
 #include <EditorApp.hh>
-#include <Common/Application.hh>
 #include <Assets/AssetsManager.hh>
 #include <Core/CoreEvents.hh>
 #include <Core/EventManager.hh>

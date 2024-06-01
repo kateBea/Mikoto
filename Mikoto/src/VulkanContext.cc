@@ -788,9 +788,10 @@ namespace Mikoto {
     }
 
     auto VulkanContext::SubmitToQueue( const QueueSubmitInfo& submitInfo ) -> void {
-        // Prepare the submission to the queue
-        // We want to wait on the present semaphore, which is signaled when the swapchain is ready (there's image available to render to)
-        // We will signal the render semaphore, to signal that rendering has finished
+        // Prepare the submission to the queue. We want to wait on
+        // the present semaphore, which is signaled when the swapchain
+        // is ready (there's image available to render to). We will
+        // signal the render semaphore, to signal that rendering has finished
 
         VkSubmitInfo submit{ VulkanUtils::Initializers::SubmitInfo() };
         submit.pNext = nullptr;

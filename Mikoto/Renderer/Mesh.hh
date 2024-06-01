@@ -16,9 +16,9 @@
 #include <Renderer/Material/Material.hh>
 
 #include "Common/Common.hh"
-#include "Renderer/Buffers/IndexBuffer.hh"
-#include "Renderer/Buffers/VertexBuffer.hh"
+#include "IndexBuffer.hh"
 #include "Renderer/Material/Texture2D.hh"
+#include "VertexBuffer.hh"
 
 namespace Mikoto {
     class MeshData {

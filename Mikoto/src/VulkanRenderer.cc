@@ -155,10 +155,8 @@ namespace Mikoto {
                             }
 
                             break;
-                        case Material::Type::MATERIAL_TYPE_UNKNOWN:
                         case Material::Type::MATERIAL_TYPE_PBR:
-                        case Material::Type::COUNT:
-                            MKT_THROW_RUNTIME_ERROR( "Not a valid type of material" );
+                            MKT_THROW_RUNTIME_ERROR( "Not yet supported" );
                             break;
                     }
 

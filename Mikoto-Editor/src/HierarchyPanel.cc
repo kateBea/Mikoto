@@ -16,9 +16,7 @@
 
 #include <Core/Logger.hh>
 
-#include <GUI/IconsFontAwesome5.h>
 #include <GUI/IconsMaterialDesign.h>
-#include <GUI/IconsMaterialDesignIcons.h>
 
 #include <Panels/HierarchyPanel.hh>
 
@@ -30,6 +28,7 @@ namespace Mikoto {
     static constexpr auto GetHierarchyName() -> std::string_view {
         return "Hierarchy";
     }
+
 
     HierarchyPanel::HierarchyPanel()
         :   Panel{}
@@ -55,7 +54,6 @@ namespace Mikoto {
                 SceneManager::DisableCurrentlyActiveEntity();
             }
 
-            // Right click on blank space
             BlankSpacePopupMenu();
 
             ImGui::End();
@@ -133,7 +131,10 @@ namespace Mikoto {
 
 
     auto HierarchyPanel::BlankSpacePopupMenu() -> void {
-        constexpr ImGuiPopupFlags popupWindowFlags{ ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight };
+        constexpr ImGuiPopupFlags popupWindowFlags{
+            ImGuiPopupFlags_NoOpenOverItems |
+            ImGuiPopupFlags_MouseButtonRight
+        };
 
         ImGui::PushStyleVar( ImGuiStyleVar_PopupBorderSize, 1.0f );
 

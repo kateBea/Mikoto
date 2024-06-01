@@ -33,8 +33,8 @@ namespace Mikoto {
         auto operator=(SettingsPanel&& other) -> SettingsPanel& = default;
 
         auto OnUpdate(float timeStep) -> void override;
-        auto SetColor(const glm::vec4& color) { m_Data.ClearColor = color; }
-        auto SetFieldOfView(float fov) { m_Data.FieldOfView = fov; }
+        auto SetRenderBackgroundColor(const glm::vec4& color) { m_Data.ClearColor = color; }
+        auto SetRenderFieldOfView(float fov) { m_Data.FieldOfView = fov; }
 
         MKT_NODISCARD auto GetData() const -> const SettingsPanelData& { return m_Data; }
 
@@ -42,7 +42,6 @@ namespace Mikoto {
         static constexpr Size_T REQUIRED_IDS{ 3 };
 
         SettingsPanelData m_Data{};
-        std::vector<Random::GUID::UUID> m_Guids{};
     };
 }
 

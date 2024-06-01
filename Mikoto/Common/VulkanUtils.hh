@@ -17,6 +17,7 @@
 
 // Project Headers
 #include "Common.hh"
+#include "Renderer/VertexBuffer.hh"
 #include "Renderer/Material/Shader.hh"
 #include "Types.hh"
 
@@ -214,6 +215,40 @@ namespace Mikoto::VulkanUtils {
     MKT_NODISCARD MKT_UNUSED_FUNC static inline auto QueueFamilySupportsGraphicsOperations(VkQueueFamilyProperties queueFamily, VkQueueFlagBits flags) -> bool { return queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT; }
     MKT_NODISCARD MKT_UNUSED_FUNC static inline auto QueueFamilySupportsComputeOperations(VkQueueFamilyProperties queueFamily, VkQueueFlagBits flags) -> bool { return queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT; }
     MKT_NODISCARD MKT_UNUSED_FUNC static inline auto QueueFamilySupportsTransferOperations(VkQueueFamilyProperties queueFamily, VkQueueFlagBits flags) -> bool { return queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT; }
+
+    /**
+         * Returns the VkFormat corresponding to the shader data type as follows:
+         * float: VK_FORMAT_R32_SFLOAT
+         * vec2: VK_FORMAT_R32G32_SFLOAT
+         * vec3: VK_FORMAT_R32G32B32_SFLOAT
+         * vec4: VK_FORMAT_R32G32B32A32_SFLOAT
+         * ivec2: VK_FORMAT_R32G32_SINT, a 2-component vector of 32-bit signed integers
+         * uvec4: VK_FORMAT_R32G32B32A32_UINT, a 4-component vector of 32-bit unsigned integers
+         * double: VK_FORMAT_R64_SFLOAT, a double-precision (64-bit) float
+         * @param type represents the shader data type
+         * */
+    MKT_NODISCARD inline auto GetVulkanAttributeDataType(ShaderDataType type) -> VkFormat {
+        switch(type) {
+            case ShaderDataType::FLOAT_TYPE: return VK_FORMAT_R32_SFLOAT;
+            case ShaderDataType::FLOAT2_TYPE: return VK_FORMAT_R32G32_SFLOAT;
+            case ShaderDataType::FLOAT3_TYPE: return VK_FORMAT_R32G32B32_SFLOAT;
+            case ShaderDataType::FLOAT4_TYPE: return VK_FORMAT_R32G32B32A32_SFLOAT;
+
+            case ShaderDataType::MAT3_TYPE: return VK_FORMAT_UNDEFINED; //temporary
+            case ShaderDataType::MAT4_TYPE: return VK_FORMAT_UNDEFINED; //temporary
+
+            case ShaderDataType::INT_TYPE:  return VK_FORMAT_R32_SINT;
+            case ShaderDataType::INT2_TYPE: return VK_FORMAT_R32G32_SINT;
+            case ShaderDataType::INT3_TYPE: return VK_FORMAT_R32G32B32_SINT;
+            case ShaderDataType::INT4_TYPE: return VK_FORMAT_R32G32B32A32_SINT;
+            case ShaderDataType::BOOL_TYPE: return VK_FORMAT_R32_SINT;
+
+            case ShaderDataType::NONE:
+            case ShaderDataType::COUNT: [[fallthrough]];
+            default:
+                MKT_ASSERT(false, "Invalid shader data type");
+        }
+    }
 
 } // MIKOTO::VULKAN_UTILS
 

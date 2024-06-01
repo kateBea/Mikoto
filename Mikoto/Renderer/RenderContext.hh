@@ -89,7 +89,7 @@ namespace Mikoto {
         static auto SetEventHandles() -> void;
 
     private:
-        inline static Random::GUID::UUID s_Guid{};  /**< Globally unique identifier for the render context. */
+        inline static UUID s_Guid{};  /**< Globally unique identifier for the render context. */
         inline static RenderContextSpec s_Spec{};   /**< Specifications for the RenderContext. */
     };
 

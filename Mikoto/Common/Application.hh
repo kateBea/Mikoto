@@ -100,7 +100,7 @@ namespace Mikoto {
         };
 
         /**< Globally unique identifier for the application. Used to subscribe to events. */
-        Random::GUID::UUID m_Guid{};
+        UUID m_Guid{};
 
         /**< Pointer to the main window. */
         std::shared_ptr<Window> m_MainWindow{};

@@ -164,8 +164,8 @@ namespace Mikoto {
         m_ScenePanel = std::make_unique<ScenePanel>(std::move( scenePanelCreateInfo ));
 
         // Panels post setup
-        m_SettingsPanel->SetFieldOfView(45.0f);
-        m_SettingsPanel->SetColor(glm::vec4(0.2f, 0.2f, 0.2f, 1.0f));
+        m_SettingsPanel->SetRenderFieldOfView( 45.0f );
+        m_SettingsPanel->SetRenderBackgroundColor( glm::vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
     }
 
     auto EditorLayer::InitializeSceneCameras() -> void {

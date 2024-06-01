@@ -10,9 +10,9 @@
 #include <utility>
 
 // Project Header
-#include "Common/Common.hh"
-#include "Common/Random.hh"
-#include "Common/Types.hh"
+#include <Common/Types.hh>
+#include <Common/Common.hh>
+#include <Common/Random.hh>
 
 namespace Mikoto {
     /**

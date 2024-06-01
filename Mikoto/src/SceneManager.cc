@@ -118,9 +118,8 @@ namespace Mikoto {
     auto SceneManager::AddEntityToScene(Scene& scene, const EntityCreateInfo& createInfo) -> Entity {
         Entity result{};
 
-        ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_INFO, fmt::format("Adding new game object '{}' to scene '{}'",
-                                                                       createInfo.Name,
-                                                                       scene.GetName()));
+        ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_INFO,
+                                     fmt::format("Adding new game object '{}' to scene '{}'", createInfo.Name, scene.GetName()));
 
         if (!createInfo.IsPrefab) {
             result = scene.CreateEmptyObject( createInfo.Name );

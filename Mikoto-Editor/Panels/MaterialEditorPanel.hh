@@ -17,4 +17,4 @@ namespace Mikoto {
 
 }
 
-#endif//MIKOTO_MATERIALEDITORPANEL_HH
+#endif//MIKOTO_MATERIAL_EDITOR_PANEL_HH

@@ -19,10 +19,10 @@
 // Project Headers
 #include <Common/Common.hh>
 #include <Common/RenderingUtils.hh>
-
 #include <Renderer/Material/Shader.hh>
-#include <Renderer/Buffers/IndexBuffer.hh>
-#include <Renderer/Buffers/VertexBuffer.hh>
+
+#include "IndexBuffer.hh"
+#include "VertexBuffer.hh"
 
 namespace Mikoto {
     /**

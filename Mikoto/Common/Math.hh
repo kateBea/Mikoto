@@ -17,14 +17,14 @@ namespace Mikoto::Math {
     /**
      * Defines a position vector
      * */
-    MKT_NODISCARD inline auto MakePos(float x, float y, float z) -> glm::vec4 {
+    MKT_UNUSED_FUNC MKT_NODISCARD inline auto MakePos(float x, float y, float z) -> glm::vec4 {
         return { x, y, z, 1.0f };
     }
 
     /**
      * Defines a direction vector
      * */
-    MKT_NODISCARD inline auto MakeDir(float x, float y, float z) -> glm::vec4 {
+    MKT_UNUSED_FUNC MKT_NODISCARD inline auto MakeDir(float x, float y, float z) -> glm::vec4 {
         return { x, y, z, .0f };
     }
 }

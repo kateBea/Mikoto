@@ -38,6 +38,7 @@ namespace Mikoto {
         auto InstallEventCallbacks() -> void;
 
         auto ParseArguments(Int32_T argc, char **argv) -> void;
+
     private:
         /**< Holds the command line arguments. */
         std::vector<std::string> m_CommandLineArgs{};

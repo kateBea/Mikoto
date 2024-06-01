@@ -11,17 +11,22 @@
 
 // Project Headers
 #include "Common/Common.hh"
-#include "Renderer/Buffers/FrameBuffer.hh"
 
 namespace Mikoto {
-    class VulkanFrameBuffer : public FrameBuffer {
+    struct FrameBufferCreateInfo {
+        Int32_T width{};
+        Int32_T height{};
+        UInt32_T samples{};
+    };
+
+    class VulkanFrameBuffer {
     public:
         explicit VulkanFrameBuffer() = default;
 
         auto OnCreate(const VkFramebufferCreateInfo& createInfo) -> void;
 
-        auto Resize(UInt32_T width, UInt32_T height) -> void override;
-        MKT_NODISCARD auto GetFrameBufferProperties() const -> const FrameBufferCreateInfo& override { return m_CreateInfo; }
+        auto Resize(UInt32_T width, UInt32_T height) -> void;
+        MKT_NODISCARD auto GetFrameBufferProperties() const -> const FrameBufferCreateInfo& { return m_CreateInfo; }
         MKT_NODISCARD auto Get() const -> const VkFramebuffer& { return m_FrameBuffer; }
 
     private:

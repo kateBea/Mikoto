@@ -110,9 +110,6 @@ namespace Mikoto {
 
     auto Renderer::UpdateRendererStatistics() -> void {
         switch (s_Spec.Backend) {
-            case GraphicsAPI::OPENGL_API:
-                // TODO:
-                break;
             case GraphicsAPI::VULKAN_API:
                 auto& stats{ VulkanContext::GetDetailedStatistics() };
                 s_Statistics.VRAMUsage = stats.total.statistics.allocationBytes;

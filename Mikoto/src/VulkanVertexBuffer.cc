@@ -63,7 +63,7 @@ namespace Mikoto {
         // FIXME: sign comparison m_Layout.GetCount() should return a Size_T (this should generally be the case unless stuff like vertex buffer since there can be many they would be UInt64's instead)
         for (Size_T index{}; index < m_Layout.GetCount(); ++index) {
             m_AttributeDesc[index].location = index;
-            m_AttributeDesc[index].format = m_Layout[index].GetVulkanAttributeDataType();
+            m_AttributeDesc[index].format = VulkanUtils::GetVulkanAttributeDataType(m_Layout[index].GetType());
             m_AttributeDesc[index].offset = m_Layout[index].GetOffset();
         }
     }
@@ -99,28 +99,28 @@ namespace Mikoto {
         s_AttributeDesc[0] = {};
         s_AttributeDesc[0].binding = 0;
         s_AttributeDesc[0].location = 0;
-        s_AttributeDesc[0].format = s_DefaultBufferLayout[0].GetVulkanAttributeDataType();
+        s_AttributeDesc[0].format = VulkanUtils::GetVulkanAttributeDataType(s_DefaultBufferLayout[0].GetType());
         s_AttributeDesc[0].offset = s_DefaultBufferLayout[0].GetOffset();
 
         // Normal
         s_AttributeDesc[1] = {};
         s_AttributeDesc[1].binding = 0;
         s_AttributeDesc[1].location = 1;
-        s_AttributeDesc[1].format = s_DefaultBufferLayout[1].GetVulkanAttributeDataType();
+        s_AttributeDesc[1].format = VulkanUtils::GetVulkanAttributeDataType(s_DefaultBufferLayout[1].GetType());
         s_AttributeDesc[1].offset = s_DefaultBufferLayout[1].GetOffset();
 
         // Color
         s_AttributeDesc[2] = {};
         s_AttributeDesc[2].binding = 0;
         s_AttributeDesc[2].location = 2;
-        s_AttributeDesc[2].format = s_DefaultBufferLayout[2].GetVulkanAttributeDataType();
+        s_AttributeDesc[2].format = VulkanUtils::GetVulkanAttributeDataType(s_DefaultBufferLayout[2].GetType());
         s_AttributeDesc[2].offset = s_DefaultBufferLayout[2].GetOffset();
 
         // Texture Coordinates
         s_AttributeDesc[3] = {};
         s_AttributeDesc[3].binding = 0;
         s_AttributeDesc[3].location = 3;
-        s_AttributeDesc[3].format = s_DefaultBufferLayout[3].GetVulkanAttributeDataType();
+        s_AttributeDesc[3].format = VulkanUtils::GetVulkanAttributeDataType(s_DefaultBufferLayout[3].GetType());
         s_AttributeDesc[3].offset = s_DefaultBufferLayout[3].GetOffset();
 
         return s_AttributeDesc;

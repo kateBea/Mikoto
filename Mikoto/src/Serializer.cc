@@ -240,7 +240,6 @@ namespace Mikoto::FileManager {
                     entityCreateInfo.Name = name;
                     entityCreateInfo.IsPrefab = isPrefab;
                     entityCreateInfo.PrefabType = PrefabSceneObject::NO_PREFAB_OBJECT;
-                    entityCreateInfo.EntityGuid = std::stoull(uuid);
 
                     if (isPrefab) {
                         // Get the type of prefab if it was one

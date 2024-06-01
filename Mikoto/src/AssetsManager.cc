@@ -91,20 +91,22 @@ namespace Mikoto {
         }
     }
 
-    auto AssetsManager::GetModifiableModelPrefabByType(PrefabSceneObject type) -> Model& {
+    auto AssetsManager::GetModifiableModelPrefabByType(PrefabSceneObject type) -> Model* {
         switch (type) {
-            case PrefabSceneObject::SPRITE_PREFAB_OBJECT: return s_LoadedPrefabModels[GetSpritePrefabName()];
-            case PrefabSceneObject::CUBE_PREFAB_OBJECT:   return s_LoadedPrefabModels[GetCubePrefabName()];
-            case PrefabSceneObject::SPHERE_PREFAB_OBJECT: return s_LoadedPrefabModels[GetSpherePrefabName()];
-            case PrefabSceneObject::CYLINDER_PREFAB_OBJECT: return s_LoadedPrefabModels[GetCylinderPrefabName()];
-            case PrefabSceneObject::CONE_PREFAB_OBJECT: return s_LoadedPrefabModels[GetConePrefabName()];
-            case PrefabSceneObject::SPONZA_PREFAB_OBJECT: return s_LoadedPrefabModels[GetSponzaPrefabName()];
+            case PrefabSceneObject::SPRITE_PREFAB_OBJECT: return std::addressof(s_LoadedPrefabModels[GetSpritePrefabName()]);
+            case PrefabSceneObject::CUBE_PREFAB_OBJECT:   return std::addressof(s_LoadedPrefabModels[GetCubePrefabName()]);
+            case PrefabSceneObject::SPHERE_PREFAB_OBJECT: return std::addressof(s_LoadedPrefabModels[GetSpherePrefabName()]);
+            case PrefabSceneObject::CYLINDER_PREFAB_OBJECT: return std::addressof(s_LoadedPrefabModels[GetCylinderPrefabName()]);
+            case PrefabSceneObject::CONE_PREFAB_OBJECT: return std::addressof(s_LoadedPrefabModels[GetConePrefabName()]);
+            case PrefabSceneObject::SPONZA_PREFAB_OBJECT: return std::addressof(s_LoadedPrefabModels[GetSponzaPrefabName()]);
+
             case PrefabSceneObject::COUNT_PREFAB_OBJECT:
-                [[fallthrough]];
             case PrefabSceneObject::NO_PREFAB_OBJECT:
                 MKT_CORE_LOGGER_WARN("Unknown prefab");
                 break;
         }
+
+        return nullptr;
     }
 
 

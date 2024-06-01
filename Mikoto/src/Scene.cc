@@ -77,6 +77,7 @@ namespace Mikoto {
         return result;
     }
 
+
     auto Scene::CreatePrefab(std::string_view tagName, PrefabSceneObject type, UInt64_T guid) -> Entity {
         Entity result{ m_Registry.create(), m_Registry };
 
@@ -86,7 +87,6 @@ namespace Mikoto {
 
         // Setup material component
         result.AddComponent<MaterialComponent>();
-        auto& materialComponent{ result.GetComponent<MaterialComponent>() };
 
         // Setup renderer component
         result.AddComponent<RenderComponent>();
@@ -95,29 +95,39 @@ namespace Mikoto {
         renderData.GetObjectData().PrefabType = type;
 
         // Add a material for each one of the meshes of this model
-        auto& model{ AssetsManager::GetModifiableModelPrefabByType(type) };
+        auto model{ AssetsManager::GetModifiableModelPrefabByType(type) };
 
-        for (auto& mesh : model.GetMeshes()) {
-            DefaultMaterialCreateSpec spec{};
-            PBRMaterialCreateSpec specPbr{};
+        if (model) {
+            for (auto& mesh : model->GetMeshes()) {
+                DefaultMaterialCreateSpec spec{};
+                PBRMaterialCreateSpec specPbr{};
 
-            for (auto textureIt{ mesh.GetTextures().begin() }; textureIt != mesh.GetTextures().end(); ++textureIt) {
-                switch ( (*textureIt)->GetType() ) {
-                    case MapType::TEXTURE_2D_DIFFUSE:
-                        spec.DiffuseMap = *textureIt;
-                        specPbr.AlbedoMap = *textureIt;
-                        break;
-                    case MapType::TEXTURE_2D_SPECULAR:
-                        spec.SpecularMap = *textureIt;
-                        break;
+                for (auto& textureIt: mesh.GetTextures()) {
+                    switch ( (textureIt)->GetType() ) {
+                        case MapType::TEXTURE_2D_DIFFUSE:
+                            spec.DiffuseMap = textureIt;
+                            specPbr.AlbedoMap = textureIt;
+                            break;
+                        case MapType::TEXTURE_2D_SPECULAR:
+                            spec.SpecularMap = textureIt;
+                            break;
+
+                        case MapType::TEXTURE_2D_INVALID:
+                        case MapType::TEXTURE_2D_EMISSIVE:
+                        case MapType::TEXTURE_2D_NORMAL:
+                        case MapType::TEXTURE_2D_ROUGHNESS:
+                        case MapType::TEXTURE_2D_METALLIC:
+                        case MapType::TEXTURE_2D_AMBIENT_OCCLUSION:
+                        case MapType::TEXTURE_2D_COUNT:
+                            MKT_APP_LOGGER_INFO("Unused type");
+                    }
                 }
+
+                mesh.AddMaterial(Material::CreateStandardMaterial(spec));
             }
 
-            mesh.AddMaterial(Material::CreateStandardMaterial(spec));
-            //mesh.AddMaterial(Material::CreatePBRMaterial(specPbr));
+            renderData.GetObjectData().ObjectModel = model;
         }
-
-        renderData.GetObjectData().ObjectModel = std::addressof(model);
 
         return result;
     }

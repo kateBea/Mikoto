@@ -15,18 +15,16 @@
 #include <assimp/postprocess.h>
 
 // Project Headers
-#include <Common/Types.hh>
 #include <Common/Common.hh>
 #include <Common/StringUtils.hh>
-
+#include <Common/Types.hh>
 #include <Core/Logger.hh>
-
-#include <Threading/TaskManager.hh>
-
 #include <Renderer/Mesh.hh>
 #include <Renderer/Model.hh>
-#include <Renderer/Buffers/IndexBuffer.hh>
-#include <Renderer/Buffers/VertexBuffer.hh>
+#include <Threading/TaskManager.hh>
+
+#include "Renderer/IndexBuffer.hh"
+#include "Renderer/VertexBuffer.hh"
 
 namespace Mikoto {
     Model::Model(const ModelLoadInfo& info)

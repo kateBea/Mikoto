@@ -11,6 +11,7 @@
 #include "imgui.h"
 
 // Important to include after imgui
+#include <volk.h>
 #include "ImGuizmo.h"
 
 // Project Headers
@@ -20,32 +21,105 @@
 #include "Core/EventManager.hh"
 #include "Panels/HierarchyPanel.hh"
 #include "Panels/ScenePanel.hh"
-#include "Panels/ScenePanelOpenGLImpl.hh"
-#include "Panels/ScenePanelVulkanImpl.hh"
 #include "Platform/InputManager.hh"
 #include "Renderer/Vulkan/VulkanContext.hh"
 #include "Scene/SceneManager.hh"
 
 
-#include "GUI/IconsFontAwesome5.h"
 #include "GUI/IconsMaterialDesign.h"
-#include "GUI/IconsMaterialDesignIcons.h"
+
+// Third-Party Libraries
+#include "backends/imgui_impl_vulkan.h"
+#include "volk.h"
+
+// Project Headers
+#include "Common/Common.hh"
+#include "Common/VulkanUtils.hh"
+#include "Common/RenderingUtils.hh"
+#include "Renderer/Renderer.hh"
+#include "Renderer/Vulkan/DeletionQueue.hh"
+#include "Renderer/Vulkan/VulkanRenderer.hh"
 
 namespace Mikoto {
+
+    class ScenePanel_VkImpl : public ScenePanelInterface {
+    private:
+        auto Init_Impl( const ScenePanelData& data) -> void override {
+            m_Data = data;
+            m_SceneRenderer = dynamic_cast<VulkanRenderer*>(Renderer::GetActiveGraphicsAPIPtr());
+            m_ActiveManipulationMode = ManipulationMode::TRANSLATION;
+
+            // Create Sampler
+            VkSamplerCreateInfo samplerCreateInfo{ VulkanUtils::Initializers::SamplerCreateInfo() };
+            samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
+            samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
+            samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+            samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+
+            samplerCreateInfo.maxAnisotropy = 1.0f;
+            samplerCreateInfo.mipLodBias = 0.0f;
+            samplerCreateInfo.minLod = 0.0f;
+            samplerCreateInfo.maxLod = 1.0f;
+            samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+
+            if (vkCreateSampler(VulkanContext::GetPrimaryLogicalDevice(), &samplerCreateInfo, nullptr, &m_ColorAttachmentSampler) != VK_SUCCESS) {
+                MKT_THROW_RUNTIME_ERROR("Failed to create Vulkan sampler!");
+            }
+
+            DeletionQueue::Push([sampler = m_ColorAttachmentSampler]() -> void {
+                vkDestroySampler(VulkanContext::GetPrimaryLogicalDevice(), sampler, nullptr);
+            });
+
+            m_ColorAttachmentDescriptorSet = ImGui_ImplVulkan_AddTexture(m_ColorAttachmentSampler, m_SceneRenderer->GetFinalImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+            DeletionQueue::Push([descSet = m_ColorAttachmentDescriptorSet]() -> void {
+                ImGui_ImplVulkan_RemoveTexture(descSet);
+            });
+        }
+
+        auto OnUpdate_Impl() -> void override {
+            auto viewPortDimensions{ ImGui::GetContentRegionAvail() };
+            auto& currentlyActiveScene{ SceneManager::GetActiveScene() };
+
+
+            // If the window size has changed, we need to resize the scene viewport
+            if (m_Data.ViewPortWidth != viewPortDimensions.x || m_Data.ViewPortHeight != viewPortDimensions.y) {
+
+                m_Data.ViewPortWidth = viewPortDimensions.x;
+                m_Data.ViewPortHeight = viewPortDimensions.y;
+                currentlyActiveScene.OnViewPortResize((UInt32_T)viewPortDimensions.x, (UInt32_T)viewPortDimensions.y);
+                //m_SceneRendererVk->OnFramebufferResize((UInt32_T)m_Data->ViewPortWidth, (UInt32_T)m_Data->ViewPortHeight);
+            }
+
+            float frameWidth{ static_cast<float>(m_Data.ViewPortWidth) };
+            float frameHeight{ static_cast<float>(m_Data.ViewPortHeight) };
+            ImGui::Image((ImTextureID) m_ColorAttachmentDescriptorSet, ImVec2{ frameWidth, frameHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+
+            HandleGuizmos();
+        }
+
+    private:
+        VkSampler m_ColorAttachmentSampler{};
+        VkDescriptorSet m_ColorAttachmentDescriptorSet{};
+        VulkanRenderer* m_SceneRenderer{};
+
+    };
+
+
     static constexpr auto GetSceneName() -> std::string_view {
         return "Scene";
     }
 
     ScenePanel::ScenePanel(ScenePanelCreateInfo&& createInfo)
-        :   Panel{}, m_CreateInfo{ std::move( createInfo ) }
+        :   Panel{}, m_CreateInfo{ createInfo }
     {
         m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_IMAGE, GetSceneName());
 
         // Set scene panel implementation
         switch (Renderer::GetActiveGraphicsAPI()) {
-        case GraphicsAPI::OPENGL_API:
-            m_Implementation = std::make_unique<ScenePanel_OGLImpl>();
-            break;
         case GraphicsAPI::VULKAN_API:
             m_Implementation = std::make_unique<ScenePanel_VkImpl>();
             break;
@@ -56,7 +130,7 @@ namespace Mikoto {
         data.ViewPortWidth = 1920;
         data.ViewPortHeight = 1080;
 
-        m_Implementation->Init_Impl(std::move(data));
+        m_Implementation->Init_Impl(data);
         m_Implementation->SetEditorCamera(m_CreateInfo.EditorMainCamera);
     }
 

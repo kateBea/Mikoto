@@ -2,60 +2,48 @@
 // Created by kate on 10/8/23.
 //
 
-#include "Scene/SceneManager.hh"
-
-#include <Renderer/Material/StandardMaterial.hh>
-
-#include "../../Mikoto-Editor/Tools/ConsoleManager.hh"
 #include "entt/entt.hpp"
 #include "fmt/format.h"
 
+#include "Scene/SceneManager.hh"
+#include <Assets/AssetsManager.hh>
+
 namespace Mikoto {
     auto SceneManager::Init() -> void {
-        // Add an empty scene on which we can start working
-        // They usually come with various game objects already set
-        // directional light (sunlight sort of), a simple mesh and a scene camera
-        auto& newScene{ MakeNewScene("Empty Scene") };
-        SetActiveScene(newScene);
+
     }
 
     auto SceneManager::MakeNewScene(std::string_view name) -> Scene& {
         const std::string sceneName{ name };
+        EntityCreateInfo entityCreateInfo{};
 
         auto it{ s_Scenes.find(sceneName) };
-
         if (it != s_Scenes.end()) {
             MKT_CORE_LOGGER_INFO("Scene with name {} already existed!", name);
-            s_Scenes.erase(it);
+            return it->second;
         }
 
         Scene& newScene{ s_Scenes.emplace(sceneName, Scene{ sceneName }).first->second };
 
-        // setup new scene
-        EntityCreateInfo entityCreateInfo{};
-        entityCreateInfo.Name = "Ground";
-        entityCreateInfo.IsPrefab = true;
-        entityCreateInfo.PrefabType = PrefabSceneObject::CUBE_PREFAB_OBJECT;
-
         // Ground
+        entityCreateInfo.Name = "Ground";
+        entityCreateInfo.PrefabType = PrefabSceneObject::CUBE_PREFAB_OBJECT;
         auto result{ AddEntityToScene(newScene, entityCreateInfo) };
         TransformComponent& transformComponent{ result.GetComponent<TransformComponent>() };
         transformComponent.SetScale( { 10.0f, 0.2f, 10.0f } );
         transformComponent.SetTranslation( { 0.0f, -5.0f, 1.0f } );
 
 
-        // directional light
-        entityCreateInfo.Name = "Point light";
-        entityCreateInfo.IsPrefab = false;
+        // Point light
+        entityCreateInfo.Name = "Light";
         entityCreateInfo.PrefabType = PrefabSceneObject::NO_PREFAB_OBJECT;
         auto directionalLight{ AddEntityToScene(newScene, entityCreateInfo) };
         auto light{ directionalLight.AddComponent<LightComponent>() };
         light.SetType(LightType::POINT_LIGHT_TYPE);
 
 
-        // scene camera
+        // Scene camera
         entityCreateInfo.Name = "Camera";
-        entityCreateInfo.IsPrefab = false;
         entityCreateInfo.PrefabType = PrefabSceneObject::NO_PREFAB_OBJECT;
         auto mainCam{ AddEntityToScene(newScene, entityCreateInfo) };
         mainCam.AddComponent<CameraComponent>(std::make_shared<SceneCamera>());
@@ -63,28 +51,20 @@ namespace Mikoto {
         return newScene;
     }
 
-    auto SceneManager::IsEntitySelected() -> bool {
-        return s_CurrentlySelectedEntity.IsValid();
+    auto SceneManager::SetCurrentSelection(const Entity& entity) -> void {
+        s_TargetEntity = Entity{entity.Get(), GetActiveScene().GetRegistry() };
     }
 
-    auto SceneManager::GetCurrentlySelectedEntity() -> Entity& {
-        return s_CurrentlySelectedEntity;
-    }
-
-    auto SceneManager::SetCurrentlyActiveEntity(const Entity& entity) -> void {
-        s_CurrentlySelectedEntity = Entity{ entity.Get(), GetActiveScene().GetRegistry() };
-    }
-
-    auto SceneManager::DisableCurrentlyActiveEntity() -> void {
-        s_CurrentlySelectedEntity.Invalidate();
+    auto SceneManager::DisableActiveSelection() -> void {
+        s_TargetEntity.Invalidate();
     }
 
     auto SceneManager::GetActiveScene() -> Scene& {
         return *Scene::GetActiveScene();
     }
 
-    auto SceneManager::DestroyEntityFromCurrentlyActiveScene(Entity &entity) -> void {
-        GetActiveScene().DestroyEntity(entity);
+    auto SceneManager::DestroyEntity(Scene &scene, Entity &target) -> void {
+        scene.DestroyEntity(target);
     }
 
     auto SceneManager::AddEntity(const EntityCreateInfo &createInfo) -> Entity {
@@ -92,6 +72,7 @@ namespace Mikoto {
     }
 
     auto SceneManager::Shutdown() -> void {
+        DisableActiveSelection();
         Scene::SetActiveScene(nullptr);
 
         s_Scenes.clear();
@@ -103,13 +84,13 @@ namespace Mikoto {
         if (it != s_Scenes.end()) {
             s_Scenes.erase(it);
         }
+#if !defined(NDEBUG)
+        else {
+            MKT_CORE_LOGGER_INFO("Scene with name {} does not exist", scene.GetName());
+        }
+#endif
     }
 
-    auto SceneManager::DestroyActiveScene() -> void {
-        DestroyScene(GetActiveScene());
-
-        Scene::SetActiveScene(nullptr);
-    }
 
     auto SceneManager::SetActiveScene(Scene& scene) -> void {
         Scene::SetActiveScene(std::addressof(scene));
@@ -118,28 +99,22 @@ namespace Mikoto {
     auto SceneManager::AddEntityToScene(Scene& scene, const EntityCreateInfo& createInfo) -> Entity {
         Entity result{};
 
-        ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_INFO,
-                                     fmt::format("Adding new game object '{}' to scene '{}'", createInfo.Name, scene.GetName()));
-
-        if (!createInfo.IsPrefab) {
+        if (!createInfo.IsPrefab()) {
             result = scene.CreateEmptyObject( createInfo.Name );
         }
         else {
-            result = scene.CreatePrefab( createInfo.Name, createInfo.PrefabType );
+            result = scene.CreatePrefab(createInfo.Name, AssetsManager::GetPrefabModel(createInfo.PrefabType));
         }
 
         return result;
     }
 
-    auto SceneManager::DisableTargetedEntity() -> void {
-        s_CurrentlySelectedEntity.Invalidate();
-    }
 
-    auto SceneManager::GetCurrentSelection() -> std::optional<std::reference_wrapper<Entity>> {
-        if (s_CurrentlySelectedEntity.IsValid()) {
-            return { s_CurrentlySelectedEntity };
+    auto SceneManager::GetCurrentSelection() -> EntityOpt_T {
+        if (s_TargetEntity.IsValid()) {
+            return EntityOpt_T{ s_TargetEntity };
         }
 
-        return {};
+        return EntityOpt_T{};
     }
 }

@@ -6,7 +6,6 @@
 // C++ Standard Library
 #include <stdexcept>
 #include <cstdlib>
-#include <cmath>
 #include <utility>
 
 // Project headers
@@ -23,27 +22,28 @@
 #include <Scene/SceneManager.hh>
 #include <Threading/TaskManager.hh>
 
+
 namespace Mikoto {
 
-    static auto GetApplicationSpec(const std::vector<std::string>& args) -> AppSpec {
+    static auto GetApplicationSpec(const std::vector<std::string> &args) -> AppSpec {
         return {
-            .WindowWidth = 1920,
-            .WindowHeight = 1080,
-            .Name = "Mikoto Editor",
-            .WorkingDirectory = std::filesystem::current_path(),
-            .Executable = Path_T{ args[0] },
-            .RenderingBackend = GraphicsAPI::VULKAN_API,
-            .CommandLineArguments = { args.begin(), args.end() },
+                .WindowWidth = 1920,
+                .WindowHeight = 1080,
+                .Name = "Mikoto Editor",
+                .WorkingDirectory = std::filesystem::current_path(),
+                .Executable = Path_T{args[0]},
+                .RenderingBackend = GraphicsAPI::VULKAN_API,
+                .CommandLineArguments = {args.begin(), args.end()},
         };
     }
 
-    auto EditorApp::Run(Int32_T argc, char** argv) -> Int32_T {
+    auto EditorApp::Run(Int32_T argc, char **argv) -> Int32_T {
         ParseArguments(argc, argv);
 
-        Int32_T exitCode{ EXIT_SUCCESS };
-        auto appSpecs{ GetApplicationSpec(m_CommandLineArgs) };
+        Int32_T exitCode{EXIT_SUCCESS};
+        AppSpec appSpecs{GetApplicationSpec(m_CommandLineArgs)};
 
-        if (Init( std::move(appSpecs) )) {
+        if (Init(std::move(appSpecs))) {
             try {
 
                 while (IsRunning()) {
@@ -55,7 +55,7 @@ namespace Mikoto {
 
                 Shutdown();
 
-            } catch( const std::exception& exception ) {
+            } catch (const std::exception &exception) {
                 MKT_COLOR_STYLE_PRINT_FORMATTED(MKT_FMT_COLOR_RED, MKT_FMT_STYLE_BOLD, "Exception! {}", exception.what());
                 exitCode = EXIT_FAILURE;
             }
@@ -64,14 +64,14 @@ namespace Mikoto {
         return exitCode;
     }
 
-    auto EditorApp::ParseArguments(Int32_T argc, char** argv) -> void {
-        const auto limit{ std::addressof(argv[argc]) };
-        for ( ; argv < limit; ++argv) {
+    auto EditorApp::ParseArguments(Int32_T argc, char **argv) -> void {
+        const auto limit{std::addressof(argv[argc])};
+        for (; argv < limit; ++argv) {
             m_CommandLineArgs.emplace_back(*argv);
         }
     }
 
-    auto EditorApp::Init(AppSpec&& appSpec) -> bool {
+    auto EditorApp::Init(AppSpec &&appSpec) -> bool {
         TimeManager::Init();
 
         m_Spec = std::move(appSpec);
@@ -86,7 +86,8 @@ namespace Mikoto {
         MKT_APP_LOGGER_INFO("Current working directory : {}", m_Spec.WorkingDirectory.string());
         MKT_APP_LOGGER_INFO("=================================================================");
 
-        WindowProperties windowProperties{ m_Spec.Name, m_Spec.RenderingBackend, m_Spec.WindowWidth, m_Spec.WindowHeight };
+        WindowProperties windowProperties{m_Spec.Name, m_Spec.RenderingBackend, m_Spec.WindowWidth,
+                                          m_Spec.WindowHeight};
         windowProperties.AllowResizing(true);
 
         m_MainWindow = Window::Create(std::move(windowProperties));
@@ -98,7 +99,7 @@ namespace Mikoto {
         }
 
 
-        // THESE BELOW SHOULD BE INITIALIZED BY THE ENGINE ITSELF
+        // THESE BELOW SHOULD BE INITIALIZED BY THE ENGINE ITSELF,
         // NOT THE APPLICATION.
 
         // Serializer Init
@@ -116,7 +117,7 @@ namespace Mikoto {
         RenderContext::EnableVSync();
 
         // Initialize the assets' manager. Important to do at the end
-        // as it loads some prefabs which require to have a render context ready.
+        // as it loads some prefabs that require having a render context ready.
         AssetsManagerSpec assetsManagerSpec{};
         assetsManagerSpec.AssetRootDirectory = "../Assets";
 
@@ -138,30 +139,30 @@ namespace Mikoto {
 
     auto EditorApp::InstallEventCallbacks() -> void {
         EventManager::Subscribe(m_Guid.Get(),
-                                 EventType::APP_CLOSE_EVENT,
-                                 [this](Event& event) -> bool {
-                                     m_State = Status::STOPPED;
-                                     event.SetHandled(true);
-                                     MKT_APP_LOGGER_WARN("Handled App Event close");
-                                     return false;
-                                 });
+                                EventType::APP_CLOSE_EVENT,
+                                [this](Event &event) -> bool {
+                                    m_State = Status::STOPPED;
+                                    event.SetHandled(true);
+                                    MKT_APP_LOGGER_WARN("Handled App Event close");
+                                    return false;
+                                });
 
         EventManager::Subscribe(m_Guid.Get(),
-                                 EventType::WINDOW_CLOSE_EVENT,
-                                 [this](Event& event) -> bool {
-                                     m_State = Status::STOPPED;
-                                     event.SetHandled(true);
-                                     MKT_APP_LOGGER_WARN("Handled Window Event close");
-                                     return false;
-                                 });
+                                EventType::WINDOW_CLOSE_EVENT,
+                                [this](Event &event) -> bool {
+                                    m_State = Status::STOPPED;
+                                    event.SetHandled(true);
+                                    MKT_APP_LOGGER_WARN("Handled Window Event close");
+                                    return false;
+                                });
 
         EventManager::Subscribe(m_Guid.Get(),
-                                 EventType::WINDOW_RESIZE_EVENT,
-                                 [this](Event&) -> bool {
-                                     m_State = m_MainWindow->IsMinimized() ? Status::IDLE : Status::RUNNING;
-                                     MKT_APP_LOGGER_WARN("Handled Window Resize Event");
-                                     return false;
-                                 });
+                                EventType::WINDOW_RESIZE_EVENT,
+                                [this](Event &) -> bool {
+                                    m_State = m_MainWindow->IsMinimized() ? Status::IDLE : Status::RUNNING;
+                                    MKT_APP_LOGGER_WARN("Handled Window Resize Event");
+                                    return false;
+                                });
     }
 
     auto EditorApp::Shutdown() -> void {
@@ -191,7 +192,7 @@ namespace Mikoto {
     }
 
     auto EditorApp::UpdateLayers() -> void {
-        auto timeStep{ TimeManager::GetTimeStep() };
+        auto timeStep{TimeManager::GetTimeStep()};
         m_EditorLayer->OnUpdate(timeStep);
     }
 
@@ -213,6 +214,7 @@ namespace Mikoto {
             RenderContext::PrepareFrame();
             UpdateLayers();
 
+#if !(NDEBUG)
             // [ DEBUG: Multithreading ]
             if (InputManager::IsKeyPressed(KeyCode::Key_E)) {
                 TaskManager::Execute(
@@ -221,6 +223,7 @@ namespace Mikoto {
                         });
             }
         }
+#endif
 
         RenderImGuiFrame();
         RenderContext::SubmitFrame();

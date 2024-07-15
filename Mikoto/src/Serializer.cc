@@ -114,11 +114,6 @@ namespace Mikoto::FileManager {
 
         const auto& renderData{ renderComponent.GetObjectData() };
 
-        emitter << YAML::Key << "IsPrefab" << YAML::Value << renderData.IsPrefab;
-
-        if (renderData.IsPrefab) {
-            emitter << YAML::Key << "PrefabType" << YAML::Value << PrefabTypeStr(renderData.PrefabType).data();
-        }
 
         emitter << YAML::EndMap;
     }
@@ -238,7 +233,6 @@ namespace Mikoto::FileManager {
                     const bool isPrefab{ object["RenderComponent"]["IsPrefab"].as<bool>() };
 
                     entityCreateInfo.Name = name;
-                    entityCreateInfo.IsPrefab = isPrefab;
                     entityCreateInfo.PrefabType = PrefabSceneObject::NO_PREFAB_OBJECT;
 
                     if (isPrefab) {
@@ -246,7 +240,7 @@ namespace Mikoto::FileManager {
                         entityCreateInfo.PrefabType = PrefabTypeFromName(object["RenderComponent"]["PrefabType"].as<std::string>());
                     }
 
-                    entity = SceneManager::AddEntityToScene(newScene, entityCreateInfo);
+                    //SceneManager::AddEntityToScene(newScene, entityCreateInfo);
                 }
 
                 // Get Material component

@@ -22,21 +22,17 @@ namespace Mikoto {
         s_DrawData->SceneEditCamera = prepareData.StaticCamera;
     }
 
-    auto Renderer::Submit(std::shared_ptr<DrawData>&& data) -> void {
-        // Compute render stats
-        if (data->ObjectModel) {
-            for (const auto& mesh : data->ObjectModel->GetMeshes()) {
-                s_RenderingStats->IncrementVertexCount(mesh.GetVertexBuffer()->GetCount());
-                s_RenderingStats->IncrementIndexCount(mesh.GetIndexBuffer()->GetCount());
+    auto Renderer::Submit(RenderSubmitInfo &&info) -> void {
+        if (info.Data->MeshData.Data) {
+            s_RenderingStats->IncrementVertexCount(info.Data->MeshData.Data->GetVertexBuffer()->GetCount());
+            s_RenderingStats->IncrementIndexCount(info.Data->MeshData.Data->GetIndexBuffer()->GetCount());
 
-                s_RenderingStats->IncrementObjectsCount(1);
-            }
+            s_RenderingStats->IncrementObjectsCount(1);
 
-            s_RenderingStats->IncrementModelsCount(1);
-            s_RenderingStats->IncrementMeshesCount(data->ObjectModel->GetMeshes().size());
+            s_RenderingStats->IncrementMeshesCount(1);
         }
 
-        RenderCommand::AddToRenderQueue(std::move(data));
+        RenderCommand::AddToRenderQueue(info.Id, std::move(info.Data), std::move(info.MatInfo));
 
         // At the moment, we need a draw call per mesh because every
         // mesh has a single vertex and index buffers which are used for rendering
@@ -95,16 +91,28 @@ namespace Mikoto {
     }
 
 
-    auto Renderer::Submit(const SceneObjectData& objectData, const glm::mat4& transform) -> void {
-        auto data{ std::make_shared<DrawData>() };
+    auto Renderer::Submit(const std::string &id, const GameObject &objectData, const glm::mat4 &transform,
+                          std::shared_ptr<Material> &material) -> void {
+        auto data{ std::make_shared<GameObject>() };
 
+        data->ModelName = objectData.ModelName;
+        data->ModelPath = objectData.ModelPath;
         data->Color = objectData.Color;
-        data->ObjectModel = objectData.ObjectModel;
-        data->TransformData.Transform = transform;
-        data->TransformData.Projection = s_DrawData->SceneEditCamera->GetProjection();
-        data->TransformData.View = s_DrawData->SceneEditCamera->GetViewMatrix();
 
-        Renderer::Submit(std::move(data));
+        // The transform parameter comes from the entity's Transform component
+        data->Transform.Transform = transform;
+        data->MeshData = objectData.MeshData;
+
+        data->Transform.Projection = s_DrawData->SceneEditCamera->GetProjection();
+        data->Transform.View = s_DrawData->SceneEditCamera->GetViewMatrix();
+
+        Renderer::Submit(
+            std::move(RenderSubmitInfo{
+                .Id = id,
+                .Data = data,
+                .MatInfo = material,
+            })
+        );
     }
 
 

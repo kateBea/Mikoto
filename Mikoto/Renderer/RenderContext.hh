@@ -22,8 +22,8 @@ namespace Mikoto {
      * @brief Represents the specifications required to initialize the rendering context.
      * */
     struct RenderContextSpec {
-        GraphicsAPI Backend{};                  /**< Graphics backend for the render context. */
-        std::shared_ptr<Window> WindowHandle{}; /**< Shared pointer to the window for rendering. */
+        GraphicsAPI Backend{};                  /** Graphics backend for the render context. */
+        std::shared_ptr<Window> WindowHandle{}; /** Shared pointer to the window for rendering. */
     };
 
 

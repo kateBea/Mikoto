@@ -40,10 +40,10 @@ namespace Mikoto {
         auto ParseArguments(Int32_T argc, char **argv) -> void;
 
     private:
-        /**< Holds the command line arguments. */
+        /** Stores the command line arguments. */
         std::vector<std::string> m_CommandLineArgs{};
 
-        /**< Holds the editor layer. */
+        /** Holds the editor layer. */
         std::unique_ptr<EditorLayer> m_EditorLayer{};
     };
 }

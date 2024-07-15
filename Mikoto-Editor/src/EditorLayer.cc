@@ -43,8 +43,8 @@ namespace Mikoto {
             []() -> void {
                 // destroy the currently active scene, for now we will
                 // not prompt the user with a window to save changes
-                SceneManager::DestroyActiveScene();
-                SceneManager::DisableTargetedEntity();
+                SceneManager::DestroyScene(SceneManager::GetActiveScene());
+                SceneManager::DisableActiveSelection();
 
                 // create a new empty scene
                 auto& newScene{ SceneManager::MakeNewScene("Empty Scene") };
@@ -70,8 +70,8 @@ namespace Mikoto {
                 }
 
                 // We need to clear the scene before we load the serialized entities
-                SceneManager::DestroyActiveScene();
-                SceneManager::DisableTargetedEntity();
+                SceneManager::DestroyScene(SceneManager::GetActiveScene());
+                SceneManager::DisableActiveSelection();
 
                 FileManager::SceneSerializer::Deserialize(sceneFilePath);
                 ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_DEBUG, fmt::format("Loaded new scene [{}]", SceneManager::GetActiveScene().GetName()));
@@ -90,6 +90,8 @@ namespace Mikoto {
                 FileManager::SceneSerializer::Serialize(*activeScene, path);
                 ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_WARNING, fmt::format("Saved scene to [{}]", path));
             };
+
+        SceneManager::SetActiveScene(SceneManager::MakeNewScene("Empty Scene"));
     }
 
     auto EditorLayer::OnDetach() -> void {

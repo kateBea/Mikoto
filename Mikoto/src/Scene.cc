@@ -59,9 +59,9 @@ namespace Mikoto {
                 RenderComponent& renderComponent{ view.get<RenderComponent>(sceneObject) };
                 MaterialComponent& material{ view.get<MaterialComponent>(sceneObject) };
 
-                SceneObjectData& objectData{ renderComponent.GetObjectData() };
+                GameObject& objectData{renderComponent.GetObjectData() };
 
-                Renderer::Submit(objectData, transform.GetTransform());
+                Renderer::Submit(std::to_string(tag.GetGUID()), objectData, transform.GetTransform(), material.GetMaterialInfo().MeshMat);
             }
 
             Renderer::Flush();
@@ -78,35 +78,30 @@ namespace Mikoto {
     }
 
 
-    auto Scene::CreatePrefab(std::string_view tagName, PrefabSceneObject type, UInt64_T guid) -> Entity {
-        Entity result{ m_Registry.create(), m_Registry };
-
-        // Setup tag and transform
-        result.AddComponent<TagComponent>(tagName, guid);
-        result.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
-
-        // Setup material component
-        result.AddComponent<MaterialComponent>();
-
-        // Setup renderer component
-        result.AddComponent<RenderComponent>();
-        auto& renderData{ result.GetComponent<RenderComponent>() };
-        renderData.GetObjectData().IsPrefab = true;
-        renderData.GetObjectData().PrefabType = type;
-
-        // Add a material for each one of the meshes of this model
-        auto model{ AssetsManager::GetModifiableModelPrefabByType(type) };
+    auto Scene::CreatePrefab(std::string_view tagName, Model *model, UInt64_T guid) -> Entity {
+        Entity result{};
 
         if (model) {
+            // The default behavior is to treat each mesh as an individual game object
             for (auto& mesh : model->GetMeshes()) {
+                result = { m_Registry.create(), m_Registry };
+
+                // Setup tag and transform
+                result.AddComponent<TagComponent>(tagName, guid);
+                result.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
+
+                // Setup material component
+                auto& material{ result.AddComponent<MaterialComponent>() };
+
+                // Setup renderer component
+                auto& renderData{ result.AddComponent<RenderComponent>() };
+
                 DefaultMaterialCreateSpec spec{};
-                PBRMaterialCreateSpec specPbr{};
 
                 for (auto& textureIt: mesh.GetTextures()) {
                     switch ( (textureIt)->GetType() ) {
                         case MapType::TEXTURE_2D_DIFFUSE:
                             spec.DiffuseMap = textureIt;
-                            specPbr.AlbedoMap = textureIt;
                             break;
                         case MapType::TEXTURE_2D_SPECULAR:
                             spec.SpecularMap = textureIt;
@@ -123,10 +118,9 @@ namespace Mikoto {
                     }
                 }
 
-                mesh.AddMaterial(Material::CreateStandardMaterial(spec));
+                renderData.GetObjectData().MeshData.Data = std::addressof(mesh);
+                material.GetMaterialInfo().MeshMat = Material::CreateStandardMaterial(spec);
             }
-
-            renderData.GetObjectData().ObjectModel = model;
         }
 
         return result;
@@ -156,7 +150,7 @@ namespace Mikoto {
         ScenePrepareData prepareData{};
         prepareData.StaticCamera = std::addressof(camera);
 
-        // Begin scene
+        // Begin the scene
         Renderer::BeginScene( prepareData );
 
         // Setup lighting data
@@ -190,7 +184,6 @@ namespace Mikoto {
             Renderer::SetActiveSpotLightsCount( spotIndexCount );
         }
 
-        // Push meshes to render queue
         auto view{ m_Registry.view<TagComponent, TransformComponent, RenderComponent, MaterialComponent>() };
         for ( auto& sceneObject: view ) {
             TagComponent& tag{ view.get<TagComponent>( sceneObject ) };
@@ -198,10 +191,10 @@ namespace Mikoto {
             RenderComponent& renderComponent{ view.get<RenderComponent>( sceneObject ) };
             MaterialComponent& material{ view.get<MaterialComponent>( sceneObject ) };
 
-            SceneObjectData& objectData{ renderComponent.GetObjectData() };
+            GameObject& objectData{ renderComponent.GetObjectData() };
 
-            if ( tag.IsVisible() && objectData.ObjectModel  ) {
-                Renderer::Submit( objectData, transform.GetTransform() );
+            if ( tag.IsVisible() && objectData.MeshData.Data != nullptr ) {
+                Renderer::Submit(std::to_string(tag.GetGUID()), objectData, transform.GetTransform(), material.GetMaterialInfo().MeshMat);
             }
         }
 

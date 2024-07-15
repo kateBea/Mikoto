@@ -65,8 +65,8 @@ namespace Mikoto {
         MKT_NODISCARD auto GetName() const -> const std::string & { return m_ModelName; }
 
 
-        MKT_NODISCARD auto GetVertexCount() const -> UInt64_T { return m_TotalVertices; }
-        MKT_NODISCARD auto GetIndexCount() const -> UInt64_T { return m_TotalIndices; }
+        MKT_NODISCARD MKT_UNUSED_FUNC auto GetVertexCount() const -> UInt64_T { return m_TotalVertices; }
+        MKT_NODISCARD MKT_UNUSED_FUNC auto GetIndexCount() const -> UInt64_T { return m_TotalIndices; }
 
         /**
          * Moves <code>other</code> model to the implicit parameter

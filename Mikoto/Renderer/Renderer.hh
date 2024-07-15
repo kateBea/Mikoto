@@ -1,8 +1,6 @@
 /**
  * @file Renderer.hh
- * @brief Definition of the Renderer class and related structures.
- * @details Includes declarations of rendering functionality and specifications for the Renderer.
- * @date Created on 6/5/23.
+ * @date 6/5/23.
  * @author kate
  * */
 
@@ -83,11 +81,6 @@ namespace Mikoto {
          * */
         static auto EndScene() -> void;
 
-        /**
-         * @brief Submits data for rendering.
-         * @param data Shared pointer to the DrawData to be rendered.
-         * */
-        static auto Submit(std::shared_ptr<DrawData> &&data) -> void;
 
         /**
          * @brief Submits an object for rendering with specific transformation and material.
@@ -95,7 +88,8 @@ namespace Mikoto {
          * @param transform Transformation matrix for the object.
          * @param material Material properties for rendering the object.
          * */
-        static auto Submit(const SceneObjectData& objectData, const glm::mat4& transform) -> void;
+        static auto Submit(const std::string &id, const GameObject &objectData, const glm::mat4 &transform,
+                           std::shared_ptr<Material> &material) -> void;
 
         /**
          * @brief Flushes the queued draw data to be drawn.
@@ -160,6 +154,12 @@ namespace Mikoto {
         static auto GetSpotLights() -> std::array<SpotLight, MAX_LIGHTS_PER_SCENE>& { return s_SpotLights; }
         static auto GetActiveSpotLightsCount() -> Size_T { return s_ActiveSpotLightCount; }
 
+    private:
+        struct RenderSubmitInfo {
+            std::string Id{};
+            std::shared_ptr<GameObject> Data{};
+            std::shared_ptr<Material> MatInfo{};
+        };
 
     private:
 
@@ -167,6 +167,12 @@ namespace Mikoto {
          * @brief Updates the renderer statistics such as VRAM usage, etc.
          * */
         static auto UpdateRendererStatistics() -> void;
+
+        /**
+         * @brief Submits data for rendering.
+         * @param data Shared pointer to the DrawData to be rendered.
+         * */
+        static auto Submit(RenderSubmitInfo &&info) -> void;
 
     private:
         static inline RendererSpec                                  s_Spec{};                 /**< Specifications for the renderer */

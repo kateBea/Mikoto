@@ -129,7 +129,7 @@ namespace Mikoto {
          * Queues provided data for drawing.
          * @param data The shared pointer to the DrawData to be queued.
          * */
-        auto QueueForDrawing(std::shared_ptr<DrawData>&& data) -> void override;
+        auto QueueForDrawing(const std::string &id, std::shared_ptr<GameObject> &&data, std::shared_ptr<Material> &&material) -> void override;
 
 
         /**
@@ -159,6 +159,11 @@ namespace Mikoto {
             COLOR_BUFFER,
             DEPTH_BUFFER,
             CLEAR_COUNT,
+        };
+
+        struct MeshRenderInfo {
+            std::shared_ptr<GameObject> Data{};
+            std::shared_ptr<VulkanStandardMaterial> MaterialData{};
         };
 
     private:
@@ -262,7 +267,9 @@ namespace Mikoto {
 
         VulkanCommandPool m_CommandPool{};
         VkCommandBuffer m_DrawCommandBuffer{};
-        std::vector<DrawData> m_DrawQueue{};
+
+        std::unordered_map<std::string, MeshRenderInfo> m_DrawQueue{};
+
         std::vector<VkImage> m_DepthImages{};
         std::vector<VkDeviceMemory> m_DepthImageMemories{};
         std::vector<VkImageView> m_DepthImageViews{};

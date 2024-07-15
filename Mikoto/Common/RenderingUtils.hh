@@ -34,7 +34,7 @@ namespace Mikoto {
         DEPTH_BUFFER_BIT = BIT_SET(2),
     };
 
-    struct UniformTransformData {
+    struct TransformData {
         glm::mat4 View{};
         glm::mat4 Projection{};
         glm::mat4 Transform{};
@@ -50,6 +50,7 @@ namespace Mikoto {
         NO_PREFAB_OBJECT,
         SPRITE_PREFAB_OBJECT,
         CUBE_PREFAB_OBJECT,
+        CUSTOM_MODEL_PREFAB_OBJECT,
         CONE_PREFAB_OBJECT,
         CYLINDER_PREFAB_OBJECT,
         SPHERE_PREFAB_OBJECT,
@@ -102,40 +103,22 @@ namespace Mikoto {
         glm::vec4 Components{ 1.0f, 0.7f, 1.8f, 0.0f };
     };
 
-    struct DrawData {
-        // Mesh details
-        const Model* ObjectModel{};
-
-        // The transform of this object applies to all of its meshes for now
-        UniformTransformData TransformData{};
-
-        // We have a single color for the whole model
-        glm::vec4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };
+    struct MaterialInfo {
+        std::shared_ptr<Material> MeshMat;
     };
 
-    struct SceneObjectData {
-        Model* ObjectModel{};
+    struct MeshInfo {
+        const Mesh* Data;
+        const Model* ModelSource;
+    };
 
-        // Objects Color
-        glm::vec4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };
-
-        // Type of prefab
-        PrefabSceneObject PrefabType{ PrefabSceneObject::NO_PREFAB_OBJECT };
-
-        // If it is prefab, PrefabType contains
-        // the type otherwise PrefabType is NO_PREFAB_OBJECT
-        bool IsPrefab{};
-
-        // If the mesh is not a prefab, we will have its path and name
+    struct GameObject {
         Path_T ModelPath{};
         std::string ModelName{};
+        TransformData Transform{};
+        glm::vec4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };
 
-        // For usage in the inspector panel. It tells which mesh is currently selected
-        // No mesh is selected until we actually do so, hence why it's initialized to -1
-        Int32_T MeshSelectedIndex{ NO_MESH_SELECTED_INDEX };
-
-        // Index indicating no mesh is yet active for editing
-        static constexpr auto NO_MESH_SELECTED_INDEX{ -1 };
+        MeshInfo MeshData{};
     };
 
     /**
@@ -164,7 +147,6 @@ namespace Mikoto {
      * */
     inline constexpr auto PrefabTypeStr(PrefabSceneObject type) -> std::string_view {
         switch (type) {
-            case PrefabSceneObject::NO_PREFAB_OBJECT:           return "NO_PREFAB_OBJECT";
             case PrefabSceneObject::SPRITE_PREFAB_OBJECT:       return "SPRITE_PREFAB_OBJECT";
             case PrefabSceneObject::CUBE_PREFAB_OBJECT:         return "CUBE_PREFAB_OBJECT";
             case PrefabSceneObject::CONE_PREFAB_OBJECT:         return "CONE_PREFAB_OBJECT";
@@ -172,7 +154,9 @@ namespace Mikoto {
             case PrefabSceneObject::SPHERE_PREFAB_OBJECT:       return "SPHERE_PREFAB_OBJECT";
             case PrefabSceneObject::SPONZA_PREFAB_OBJECT:       return "SPONZA_PREFAB_OBJECT";
             case PrefabSceneObject::COUNT_PREFAB_OBJECT:        return "COUNT_PREFAB_OBJECT";
+            default: return "NO_PREFAB_OBJECT";
         }
+
     }
 
     /**
@@ -181,7 +165,6 @@ namespace Mikoto {
      * @returns PrefabSceneObject representation of a prefab name
      * */
     inline auto PrefabTypeFromName(std::string_view name) -> PrefabSceneObject {
-        if (name == PrefabTypeStr(PrefabSceneObject::NO_PREFAB_OBJECT))         return PrefabSceneObject::NO_PREFAB_OBJECT;
         if (name == PrefabTypeStr(PrefabSceneObject::SPRITE_PREFAB_OBJECT))     return PrefabSceneObject::SPRITE_PREFAB_OBJECT;
         if (name == PrefabTypeStr(PrefabSceneObject::CUBE_PREFAB_OBJECT))       return PrefabSceneObject::CUBE_PREFAB_OBJECT;
         if (name == PrefabTypeStr(PrefabSceneObject::CONE_PREFAB_OBJECT))       return PrefabSceneObject::CONE_PREFAB_OBJECT;
@@ -189,6 +172,8 @@ namespace Mikoto {
         if (name == PrefabTypeStr(PrefabSceneObject::SPHERE_PREFAB_OBJECT))     return PrefabSceneObject::SPHERE_PREFAB_OBJECT;
         if (name == PrefabTypeStr(PrefabSceneObject::SPONZA_PREFAB_OBJECT))     return PrefabSceneObject::SPONZA_PREFAB_OBJECT;
         if (name == PrefabTypeStr(PrefabSceneObject::COUNT_PREFAB_OBJECT))      return PrefabSceneObject::COUNT_PREFAB_OBJECT;
+
+        return PrefabSceneObject::NO_PREFAB_OBJECT;
     }
 
     enum class GraphicsAPI {

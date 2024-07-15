@@ -28,8 +28,7 @@ namespace Mikoto {
         ~InspectorPanel() override = default;
 
     private:
-        auto DrawComponents( Entity& entity ) -> void;
-        auto DrawMaterialComponentEditor( MaterialComponent& material ) -> void;
+        static auto DrawComponents( Entity& entity ) -> void;
 
         auto OpenMaterialEditor() -> void;
 
@@ -39,7 +38,6 @@ namespace Mikoto {
         std::shared_ptr<Material> m_TargetMaterialForMaterialEditor{};
 
         std::shared_ptr<Texture2D> m_EmptyTexturePlaceHolder{};
-        std::shared_ptr<Texture2D> m_EmptyMaterialPreviewPlaceHolder{};
     };
 }
 

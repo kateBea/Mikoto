@@ -94,21 +94,21 @@ namespace Mikoto {
          * @brief Represents the current state of this application.
          * */
         enum class Status {
-            RUNNING,  /**< Application is running. */
-            STOPPED,  /**< Application has stopped. */
-            IDLE,     /**< Application is idle. */
+            RUNNING,  /** Application is running. */
+            STOPPED,  /** Application has stopped. */
+            IDLE,     /** Application is idle. */
         };
 
-        /**< Globally unique identifier for the application. Used to subscribe to events. */
+        /** Globally unique identifier for the application. Used to subscribe to events. */
         UUID m_Guid{};
 
-        /**< Pointer to the main window. */
+        /** Pointer to the main window. */
         std::shared_ptr<Window> m_MainWindow{};
 
-        /**< Specification for application initialization. */
+        /** Specification for application initialization. */
         AppSpec m_Spec{};
 
-        /**< Current state of the application. */
+        /** Current state of the application. */
         Status m_State{ Status::RUNNING };
     };
 }

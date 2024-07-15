@@ -179,10 +179,7 @@ namespace Mikoto {
         auto operator=(const MaterialComponent & other) -> MaterialComponent & = default;
         auto operator=(MaterialComponent && other) -> MaterialComponent & = default;
 
-        MKT_NODISCARD auto GetTargetMesh() -> Mesh* { return m_TargetMesh; }
-
-
-        auto Set(Mesh& mesh) -> void { m_TargetMesh = std::addressof(mesh); }
+        MKT_NODISCARD auto GetMaterialInfo() -> MaterialInfo& { return m_MaterialInfo; }
 
         ~MaterialComponent() = default;
 
@@ -191,7 +188,7 @@ namespace Mikoto {
         auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component MATERIAL_COMPONENT"); }
 
     private:
-        Mesh* m_TargetMesh{};
+        MaterialInfo m_MaterialInfo;
     };
 
 
@@ -213,15 +210,15 @@ namespace Mikoto {
 
         ~RenderComponent() = default;
 
-        auto GetObjectData() -> SceneObjectData& { return m_RenderableData; }
-        MKT_NODISCARD auto GetObjectData() const -> const SceneObjectData& { return m_RenderableData; }
+        auto GetObjectData() -> GameObject& { return m_Data; }
+        MKT_NODISCARD auto GetObjectData() const -> const GameObject& { return m_Data; }
 
         auto OnComponentAttach() -> void { MKT_APP_LOGGER_DEBUG("Added component RENDERER_COMPONENT"); }
         auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component RENDERER_COMPONENT"); }
         auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component RENDERER_COMPONENT"); }
 
     private:
-        SceneObjectData m_RenderableData{};
+        GameObject m_Data{};
     };
 
 

@@ -171,8 +171,9 @@ namespace Mikoto {
     }
 
     auto ScenePanelInterface::HandleGuizmos() -> void {
-        if (SceneManager::IsEntitySelected()) {
-            if (!SceneManager::GetCurrentlySelectedEntity().GetComponent<TagComponent>().IsVisible()) {
+        auto currentSelection{ SceneManager::GetCurrentSelection() };
+        if (currentSelection.has_value()) {
+            if (!currentSelection->get().GetComponent<TagComponent>().IsVisible()) {
                 return;
             }
 
@@ -188,15 +189,15 @@ namespace Mikoto {
     }
 
     auto ScenePanelInterface::HandleManipulationMode() -> void {
-        auto& currentSelectionContext{ SceneManager::GetCurrentlySelectedEntity() };
-        TransformComponent& transformComponent{ SceneManager::GetCurrentlySelectedEntity().GetComponent<TransformComponent>() };
+        auto& currentSelectionContext{ SceneManager::GetCurrentSelection()->get() };
+        TransformComponent& transformComponent{ currentSelectionContext.GetComponent<TransformComponent>() };
 
         const auto& cameraView{ m_EditorMainCamera->GetViewMatrix() };
         const auto& cameraProjection{ m_EditorMainCamera->GetProjection() };
         auto objectTransform{ transformComponent.GetTransform() };
 
         if (currentSelectionContext.HasComponent<RenderComponent>() &&
-                currentSelectionContext.GetComponent<RenderComponent>().GetObjectData().ObjectModel != nullptr) {
+                currentSelectionContext.GetComponent<RenderComponent>().GetObjectData().MeshData.Data != nullptr) {
             // Show guizmos when there's content to manipulate
             // There may bo contents, for example, when we create a
             // new renderable but the actual model is not loaded

@@ -34,7 +34,7 @@ namespace Mikoto {
         static auto SetClearColor(float red, float green, float blue, float alpha) -> void;
 
         static auto Flush() -> void;
-        static auto AddToRenderQueue(std::shared_ptr<DrawData> &&data) -> void;
+        static auto AddToRenderQueue(const std::string &id, std::shared_ptr<GameObject> &&data, std::shared_ptr<Material> &&material) -> void;
 
         static auto UpdateViewPort(Int32_T x, Int32_T y, Int32_T width, Int32_T height) -> void;
 

@@ -159,7 +159,7 @@ namespace Mikoto {
      * @returns universally unique integer
      * */
     MKT_NODISCARD inline auto GenerateGUID() -> UInt64_T {
-        thread_local auto& seed{ GetGUIDSeed() };
+        static auto& seed{ GetGUIDSeed() };
 
         UInt64_T result{ 0 };
 

@@ -10,7 +10,6 @@
 #include <memory>
 
 // Project Headers
-#include "Core/Event.hh"
 #include "Core/Layer.hh"
 #include "Panels/ConsolePanel.hh"
 #include "Panels/ContentBrowserPanel.hh"
@@ -20,7 +19,6 @@
 #include "Panels/ScenePanel.hh"
 #include "Panels/SettingsPanel.hh"
 #include "Panels/StatsPanel.hh"
-#include "Scene/Scene.hh"
 
 namespace Mikoto {
 

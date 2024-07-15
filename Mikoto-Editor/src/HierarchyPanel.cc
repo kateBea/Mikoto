@@ -51,7 +51,7 @@ namespace Mikoto {
                     } );
 
             if ( ImGui::IsMouseDown( ImGuiMouseButton_Left ) && ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered() ) {
-                SceneManager::DisableCurrentlyActiveEntity();
+                SceneManager::DisableActiveSelection();
             }
 
             BlankSpacePopupMenu();
@@ -63,20 +63,21 @@ namespace Mikoto {
 
     auto HierarchyPanel::DrawEntityNode( Entity& target ) -> void {
         TagComponent& tag{ target.GetComponent<TagComponent>() };
+        auto ent{ SceneManager::GetCurrentSelection() };
 
-        bool thisEntityIsSelected{ target == SceneManager::GetCurrentlySelectedEntity() };
+        bool thisEntityIsSelected{ ent.has_value() && ent->get() == target };
         static constexpr ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_AllowItemOverlap |
                                                         ImGuiTreeNodeFlags_Framed |
                                                         ImGuiTreeNodeFlags_SpanAvailWidth |
                                                         ImGuiTreeNodeFlags_FramePadding };
 
-        static const ImGuiTreeNodeFlags flags{ styleFlags | ( thisEntityIsSelected ? ImGuiTreeNodeFlags_Selected : 0 ) };
-        static constexpr ImGuiTreeNodeFlags childNodeFlags{ styleFlags | ImGuiTreeNodeFlags_DefaultOpen };
+        const ImGuiTreeNodeFlags flags{ styleFlags | ( thisEntityIsSelected ? ImGuiTreeNodeFlags_Selected : 0 ) };
+        constexpr ImGuiTreeNodeFlags childNodeFlags{ styleFlags | ImGuiTreeNodeFlags_DefaultOpen };
 
         bool expanded{ ImGui::TreeNodeEx( ( void* )( target.m_EntityHandle ), flags, "%s", fmt::format( " {} {}", ICON_MD_WIDGETS, tag.GetTag() ).c_str() ) };
 
         if ( ImGui::IsItemClicked( ImGuiMouseButton_Left ) ) {
-            SceneManager::SetCurrentlyActiveEntity( target );
+            SceneManager::SetCurrentSelection(target);
         }
 
         if ( expanded ) {
@@ -120,7 +121,7 @@ namespace Mikoto {
             }
 
             if ( ImGui::MenuItem( "Remove object" ) ) {
-                SceneManager::DestroyEntityFromCurrentlyActiveScene( target );
+                SceneManager::DestroyEntity(SceneManager::GetActiveScene(), target);
             }
 
             ImGui::EndPopup();
@@ -143,7 +144,6 @@ namespace Mikoto {
 
             if ( ImGui::MenuItem( "Empty Object" ) ) {
                 entityCreateInfo.Name = "Empty Object";
-                entityCreateInfo.IsPrefab = false;
                 entityCreateInfo.PrefabType = PrefabSceneObject::NO_PREFAB_OBJECT;
                 SceneManager::AddEntity( entityCreateInfo );
 
@@ -153,7 +153,6 @@ namespace Mikoto {
             if ( ImGui::BeginMenu( "3D Object" ) ) {
                 if ( ImGui::MenuItem( "Cube" ) ) {
                     entityCreateInfo.Name = "Cube Object";
-                    entityCreateInfo.IsPrefab = true;
                     entityCreateInfo.PrefabType = PrefabSceneObject::CUBE_PREFAB_OBJECT;
                     SceneManager::AddEntity( entityCreateInfo );
 
@@ -162,7 +161,6 @@ namespace Mikoto {
 
                 if ( ImGui::MenuItem( "Sprite" ) ) {
                     entityCreateInfo.Name = "Sprite Object";
-                    entityCreateInfo.IsPrefab = true;
                     entityCreateInfo.PrefabType = PrefabSceneObject::SPRITE_PREFAB_OBJECT;
                     SceneManager::AddEntity( entityCreateInfo );
 
@@ -171,7 +169,6 @@ namespace Mikoto {
 
                 if ( ImGui::MenuItem( "Cone" ) ) {
                     entityCreateInfo.Name = "Cone Object";
-                    entityCreateInfo.IsPrefab = true;
                     entityCreateInfo.PrefabType = PrefabSceneObject::CONE_PREFAB_OBJECT;
                     SceneManager::AddEntity( entityCreateInfo );
 
@@ -180,7 +177,6 @@ namespace Mikoto {
 
                 if ( ImGui::MenuItem( "Cylinder" ) ) {
                     entityCreateInfo.Name = "Cylinder Object";
-                    entityCreateInfo.IsPrefab = true;
                     entityCreateInfo.PrefabType = PrefabSceneObject::CYLINDER_PREFAB_OBJECT;
                     SceneManager::AddEntity( entityCreateInfo );
 
@@ -189,7 +185,6 @@ namespace Mikoto {
 
                 if ( ImGui::MenuItem( "Sphere" ) ) {
                     entityCreateInfo.Name = "Sphere Object";
-                    entityCreateInfo.IsPrefab = true;
                     entityCreateInfo.PrefabType = PrefabSceneObject::SPHERE_PREFAB_OBJECT;
                     SceneManager::AddEntity( entityCreateInfo );
 
@@ -198,7 +193,6 @@ namespace Mikoto {
 
                 if ( ImGui::MenuItem( "Sponza" ) ) {
                     entityCreateInfo.Name = "Sponza Object";
-                    entityCreateInfo.IsPrefab = true;
                     entityCreateInfo.PrefabType = PrefabSceneObject::SPONZA_PREFAB_OBJECT;
                     SceneManager::AddEntity( entityCreateInfo );
 

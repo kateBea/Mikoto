@@ -108,7 +108,7 @@ namespace Mikoto {
          * @brief Queues data for drawing.
          * @param data Shared pointer to the data to be drawn.
          * */
-        virtual auto QueueForDrawing(std::shared_ptr<DrawData>&& data) -> void = 0;
+        virtual auto QueueForDrawing(const std::string &id, std::shared_ptr<GameObject> &&data, std::shared_ptr<Material> &&material) -> void = 0;
 
 
         /**

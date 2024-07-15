@@ -28,14 +28,8 @@ namespace Mikoto {
 
         MKT_NODISCARD static auto GetAssetRootDirectory() -> const Path_T& { return s_Spec.AssetRootDirectory; }
 
-        /**
-         * @brief Retrieves the model prefab corresponding to a specific type.
-         * @param type The type of prefab scene object.
-         * @returns Const reference to the corresponding ModelPrefab.
-         * */
-        MKT_NODISCARD static auto GetModelPrefabByType(PrefabSceneObject type) -> const Model&;
 
-        MKT_NODISCARD static auto GetModifiableModelPrefabByType(PrefabSceneObject type) -> Model*;
+        MKT_NODISCARD static auto GetPrefabModel(PrefabSceneObject type) -> Model*;
 
         /**
          * @brief Retrieves the model by the given path and name.
@@ -56,9 +50,9 @@ namespace Mikoto {
          * This method loads and processes a model from the specified path. It handles loading the model's data and storing it within
          * the assets manager, enabling access to the model throughout the application.
          *
-         * @param modelPath The path to the model to load.
+         * @param info The path to the model to load.
          * */
-        static auto LoadModel(const ModelLoadInfo& modelPath) -> void;
+        static auto LoadModel(const ModelLoadInfo& info) -> Model *;
 
 
     private:

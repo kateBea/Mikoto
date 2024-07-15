@@ -13,53 +13,61 @@
 
 #include "Common/Random.hh"
 #include "Common/Types.hh"
-#include "Entity.hh"
+#include <Scene/Entity.hh>
 #include "Scene.hh"
 
 namespace Mikoto {
     struct EntityCreateInfo {
         std::string Name{};
-        bool IsPrefab{};
         PrefabSceneObject PrefabType{};
+
+        MKT_NODISCARD inline auto IsPrefab() const -> bool {
+            return PrefabType != PrefabSceneObject::NO_PREFAB_OBJECT;
+        }
+
+        MKT_NODISCARD inline auto IsCustomModel() const -> bool {
+            return PrefabType == PrefabSceneObject::CUSTOM_MODEL_PREFAB_OBJECT;
+        }
     };
 
     class SceneManager {
     public:
+        /**
+         * Optional to the an entity reference wrapper
+         * */
+        using EntityOpt_T = std::optional<std::reference_wrapper<Entity>>;
+
+        /**
+         *
+         * */
         static auto Init() -> void;
 
-        // will make it so that it sets the scene as active
-        static auto MakeNewScene(std::string_view name) -> Scene &;
-
 
         /**
-         * Tells if there's an entity currently targeted in the scene
-         * @returns true if there's an entity selected in the scene, false otherwise
+         *
          * */
-        static auto IsEntitySelected() -> bool;
-
-
-        /**
-         * Returns the currently focused entity in the editor viewport.
-         * TODO: to be deleted
-         * @returns currently targeted entity
-         * */
-        static auto GetCurrentlySelectedEntity() -> Entity&;
+        static auto MakeNewScene(std::string_view name) -> Scene&;
 
 
         /**
          * Establishes the currently active entity in the viewport
          * @param entity currently active entity
          * */
-        static auto SetCurrentlyActiveEntity(const Entity& entity) -> void;
-
-
-        static auto GetCurrentSelection() -> std::optional<std::reference_wrapper<Entity>>;
+        static auto SetCurrentSelection(const Entity& entity) -> void;
 
 
         /**
-         * Disables the currently active entity
+         * Returns the currently selected entity. If there is no selected
+         * entity the optional is empty.
+         * @returns Currently active entity.
          * */
-        static auto DisableCurrentlyActiveEntity() -> void;
+        static auto GetCurrentSelection() -> EntityOpt_T;
+
+
+        /**
+         * Disables the currently active entity.
+         * */
+        static auto DisableActiveSelection() -> void;
 
 
         /**
@@ -72,42 +80,29 @@ namespace Mikoto {
         static auto GetActiveScene() -> Scene&;
 
 
-
-        static auto DisableTargetedEntity() -> void;
-
-
+        /**
+         *
+         * */
         static auto SetActiveScene(Scene& scene) -> void;
 
 
         /**
          * Execute a function for all entities with the given components
-         * */
-        template<typename... ComponentTypes>
-        static auto ForEachWithComponentsOnScene(Scene& scene, const std::function<void(Entity&)>& task) -> void {
-            auto view{ scene.GetRegistry().view<ComponentTypes...>() };
-
-            for (auto& entityHandle : view) {
-                Entity current{ entityHandle, GetActiveScene().GetRegistry() };
-                task(current);
-            }
-        }
-
-
-        /**
-         * Execute a function for all entities with the given components
+         * on the currently active scene.
          * */
         template<typename... ComponentTypes>
         static auto ForEachWithComponents(const std::function<void(Entity&)>& task) -> void {
-            ForEachWithComponentsOnScene<ComponentTypes...>(GetActiveScene(), task);
+            ForEachWithComponents<ComponentTypes...>(GetActiveScene(), task);
         }
 
 
         /**
          * Same as DestroyEntityFromScene(Scene&, Entity&) but the scene provided
          * is the currently active scene.
-         * @param entity entity to be removed
+         * @param target entity to be removed
+         * @returns True if the deletion was successful, false otherwise
          * */
-        static auto DestroyEntityFromCurrentlyActiveScene(Entity& entity) -> void;
+        static auto DestroyEntity(Scene &scene, Entity &target) -> void;
 
 
         /**
@@ -115,9 +110,6 @@ namespace Mikoto {
          * @param scene scene to be destroyed
          * */
         static auto DestroyScene(const Scene& scene) -> void;
-
-
-        static auto DestroyActiveScene() -> void;
 
 
         /**
@@ -128,13 +120,35 @@ namespace Mikoto {
         static auto AddEntity(const EntityCreateInfo& createInfo) -> Entity;
 
 
-        static auto AddEntityToScene(Scene &scene, const EntityCreateInfo& createInfo) -> Entity;
-
-
+        /**
+         *
+         * */
         static auto Shutdown() -> void;
 
     private:
-        static inline Entity s_CurrentlySelectedEntity{};
+        /**
+         *
+         * @param scene
+         * @param createInfo
+         * @returns
+         * */
+        static auto AddEntityToScene(Scene &scene, const EntityCreateInfo& createInfo) -> Entity;
+
+        /**
+         * Execute a function for all entities with the given components
+         * */
+        template<typename... ComponentTypes>
+        static auto ForEachWithComponents(Scene& scene, const std::function<void(Entity&)>& task) -> void {
+            auto view{ scene.GetRegistry().view<ComponentTypes...>() };
+
+            for (auto& entityHandle : view) {
+                Entity current{ entityHandle, GetActiveScene().GetRegistry() };
+                task(current);
+            }
+        }
+
+    private:
+        static inline Entity s_TargetEntity{};
         static inline std::unordered_map<std::string, Scene> s_Scenes{};
     };
 }

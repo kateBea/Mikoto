@@ -45,8 +45,8 @@ namespace Mikoto {
         s_ActiveRendererAPI->Flush();
     }
 
-    auto RenderCommand::AddToRenderQueue(std::shared_ptr<DrawData> &&data) -> void {
-        s_ActiveRendererAPI->QueueForDrawing(std::move(data));
+    auto RenderCommand::AddToRenderQueue(const std::string &id, std::shared_ptr<GameObject> &&data, std::shared_ptr<Material> &&material) -> void {
+        s_ActiveRendererAPI->QueueForDrawing(id, std::move(data), std::move(material));
     }
 
 }

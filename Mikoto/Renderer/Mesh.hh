@@ -39,12 +39,13 @@ namespace Mikoto {
          * Returns the standard vertex buffer layout for all meshes
          * @returns default vertex buffer layout
          * */
-        MKT_NODISCARD static auto GetDefaultBufferLayout() -> const BufferLayout& { return s_Layout; }
+        MKT_NODISCARD MKT_UNUSED_FUNC static auto GetDefaultBufferLayout() -> const BufferLayout& { return s_Layout; }
 
         auto SetVertices( const std::shared_ptr<VertexBuffer>& vertices ) -> void { m_Vertices = vertices; }
         auto SetIndices( const std::shared_ptr<IndexBuffer>& indices ) -> void { m_Indices = indices; }
         auto SetTextures( std::vector<std::shared_ptr<Texture2D>>&& textures ) -> void { m_Textures = std::move( textures ); }
-        static auto SetDefaultBufferLayout( const BufferLayout& layout ) -> void { s_Layout = layout; }
+
+        MKT_UNUSED_FUNC static auto SetDefaultBufferLayout( const BufferLayout& layout ) -> void { s_Layout = layout; }
 
         auto operator=( MeshData&& other ) noexcept -> MeshData& = default;
         auto operator=( const MeshData& other ) -> MeshData& = default;
@@ -113,24 +114,12 @@ namespace Mikoto {
          * */
         MKT_NODISCARD auto GetTextures() const -> const std::vector<std::shared_ptr<Texture2D>>& { return ( m_Data.GetTextures() ); }
 
-        // these exist because we are just working with one material per emesh for now
-        MKT_NODISCARD auto GetMaterial() -> std::shared_ptr<Material>& { return m_Materials[0]; }
-        MKT_NODISCARD auto GetMaterial() const -> const std::shared_ptr<Material>& { return m_Materials[0]; }
-
-        MKT_NODISCARD auto GetMaterialList() const -> const std::vector<std::shared_ptr<Material>>& { return m_Materials; }
-        MKT_NODISCARD auto GetMaterialList() -> std::vector<std::shared_ptr<Material>>& { return m_Materials; }
-
-        auto AddMaterial( const std::shared_ptr<Material>& material ) -> void { m_Materials.emplace_back( material ); }
-
-
         /**
          * Default destructor
          * */
         ~Mesh() = default;
 
     private:
-        std::vector<std::shared_ptr<Material>> m_Materials{};
-
         MeshData m_Data{};
     };
 }

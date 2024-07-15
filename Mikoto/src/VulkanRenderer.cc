@@ -113,63 +113,57 @@ namespace Mikoto {
         UpdateScissor( 0, 0, { m_OffscreenExtent.width, m_OffscreenExtent.height } );
 
         // Set Viewport and Scissor
-        vkCmdSetViewport( m_DrawCommandBuffer, 0, 1, &m_OffscreenViewport );
-        vkCmdSetScissor( m_DrawCommandBuffer, 0, 1, &m_OffscreenScissor );
+        vkCmdSetViewport( m_DrawCommandBuffer, 0, 1, std::addressof(m_OffscreenViewport) );
+        vkCmdSetScissor( m_DrawCommandBuffer, 0, 1, std::addressof(m_OffscreenScissor) );
 
         // Begin Render pass commands recording
-        vkCmdBeginRenderPass( m_DrawCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE );
+        vkCmdBeginRenderPass( m_DrawCommandBuffer, std::addressof(renderPassInfo), VK_SUBPASS_CONTENTS_INLINE );
 
         const VulkanPipeline* pipeline{ nullptr };
         const VkPipelineLayout* pipelineLayout{ nullptr };
 
-        for ( const auto& drawObject: m_DrawQueue ) {
-            // Process each mesh of the current renderable
-            if (!drawObject.ObjectModel) {
-                MKT_CORE_LOGGER_WARN("Model is null for vulkan renderer");
+        for ( const auto& [objectId, meshRenderInfo]: m_DrawQueue ) {
+            if (!meshRenderInfo.Data) {
+                MKT_CORE_LOGGER_WARN("Object data for {} is null", objectId);
             }
             else {
-                for ( const auto& mesh : drawObject.ObjectModel->GetMeshes() ) {
+                const auto& meshInfo{ *meshRenderInfo.Data };
+                auto& materialRef{ *meshRenderInfo.MaterialData };
 
-                    // TODO: NOOOO the material cant be part of the mesh, how do you deal with meshes
-                    // that shouldnt have duplicates like prefabs 4head
-                    auto& materialRef{ *mesh.GetMaterial() };
+                switch ( materialRef.GetType() ) {
+                    case Material::Type::MATERIAL_TYPE_STANDARD:
+                        m_ActiveDefaultMaterial = dynamic_cast<VulkanStandardMaterial*>( std::addressof( materialRef ) );
 
+                        {
+                            // Ideally would want to take the transform from this mesh and not from the model
+                            m_ActiveDefaultMaterial->SetProjection(meshRenderInfo.Data->Transform.Projection );
+                            m_ActiveDefaultMaterial->SetView(meshRenderInfo.Data->Transform.View );
+                            m_ActiveDefaultMaterial->SetTransform(meshRenderInfo.Data->Transform.Transform );
+                            m_ActiveDefaultMaterial->UpdateLightsInfo();
 
-                    switch ( materialRef.GetType() ) {
-                        case Material::Type::MATERIAL_TYPE_STANDARD:
-                            m_ActiveDefaultMaterial = dynamic_cast<VulkanStandardMaterial*>( std::addressof( materialRef ) );
+                            m_ActiveDefaultMaterial->UploadUniformBuffers();
 
-                            {
-                                m_ActiveDefaultMaterial->SetProjection( drawObject.TransformData.Projection );
-                                m_ActiveDefaultMaterial->SetView( drawObject.TransformData.View );
-                                m_ActiveDefaultMaterial->SetTransform( drawObject.TransformData.Transform );
-                                m_ActiveDefaultMaterial->UpdateLightsInfo();
+                            pipeline = std::addressof( m_MaterialInfo[StandardMaterial::GetName()].Pipeline );
+                            pipelineLayout = std::addressof( m_MaterialInfo[StandardMaterial::GetName()].MaterialPipelineLayout );
 
-                                m_ActiveDefaultMaterial->UploadUniformBuffers();
+                            m_ActiveDefaultMaterial->BindDescriptorSet( m_DrawCommandBuffer, *pipelineLayout );
+                        }
 
-                                pipeline = std::addressof( m_MaterialInfo[StandardMaterial::GetName()].Pipeline );
-                                pipelineLayout = std::addressof( m_MaterialInfo[StandardMaterial::GetName()].MaterialPipelineLayout );
-
-                                // Bind material descriptors sets
-                                m_ActiveDefaultMaterial->BindDescriptorSet( m_DrawCommandBuffer, *pipelineLayout );
-                            }
-
-                            break;
-                        case Material::Type::MATERIAL_TYPE_PBR:
-                            MKT_THROW_RUNTIME_ERROR( "Not yet supported" );
-                            break;
-                    }
-
-                    // Bind material pipeline
-                    pipeline->Bind( m_DrawCommandBuffer );
-
-                    // Bind vertex and index buffers
-                    std::dynamic_pointer_cast<VulkanVertexBuffer>( mesh.GetVertexBuffer() )->Bind( m_DrawCommandBuffer );
-                    std::dynamic_pointer_cast<VulkanIndexBuffer>( mesh.GetIndexBuffer() )->Bind( m_DrawCommandBuffer );
-
-                    // Draw call command
-                    vkCmdDrawIndexed( m_DrawCommandBuffer, std::dynamic_pointer_cast<VulkanIndexBuffer>( mesh.GetIndexBuffer() )->GetCount(), 1, 0, 0, 0 );
+                        break;
+                    case Material::Type::MATERIAL_TYPE_PBR:
+                        MKT_THROW_RUNTIME_ERROR( "Not yet supported" );
+                        break;
                 }
+
+                // Bind material pipeline
+                pipeline->Bind( m_DrawCommandBuffer );
+
+                // Bind vertex and index buffers
+                std::dynamic_pointer_cast<VulkanVertexBuffer>(meshRenderInfo.Data->MeshData.Data->GetVertexBuffer() )->Bind(m_DrawCommandBuffer );
+                std::dynamic_pointer_cast<VulkanIndexBuffer>(meshRenderInfo.Data->MeshData.Data->GetIndexBuffer() )->Bind(m_DrawCommandBuffer );
+
+                // Draw call command
+                vkCmdDrawIndexed(m_DrawCommandBuffer, std::dynamic_pointer_cast<VulkanIndexBuffer>(meshRenderInfo.Data->MeshData.Data->GetIndexBuffer() )->GetCount(), 1, 0, 0, 0 );
             }
         }
 
@@ -566,18 +560,20 @@ namespace Mikoto {
 
         // Submit recorded commands
         SubmitToQueue();
-
-        // Clear draw queue
-        m_DrawQueue.clear();
     }
 
-    auto VulkanRenderer::QueueForDrawing( std::shared_ptr<DrawData>&& data ) -> void {
-        if ( !data ) {
-            // Should not really happen
-            MKT_CORE_LOGGER_WARN( "Null pointer passed to VulkanRenderer::QueueForDrawing(...)" );
-            return;
-        }
+    auto VulkanRenderer::QueueForDrawing(const std::string &id, std::shared_ptr<GameObject> &&data, std::shared_ptr<Material> &&material) -> void {
+        auto it{ m_DrawQueue.find(id) };
+        MeshRenderInfo info{
+            .Data = data,
+            .MaterialData = std::dynamic_pointer_cast<VulkanStandardMaterial>(material),
+        };
 
-        m_DrawQueue.emplace_back( data->ObjectModel, data->TransformData, data->Color );
+        if (it != m_DrawQueue.end()) {
+            it->second = info;
+
+        } else {
+            m_DrawQueue.emplace( id, info );
+        }
     }
 }

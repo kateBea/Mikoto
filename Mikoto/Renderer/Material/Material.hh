@@ -71,6 +71,7 @@ namespace Mikoto {
         std::string m_Name{};
 
         bool m_Apply{ true };
+        glm::vec4 m_Color{ 1.0f, 1.0f, 1.0f, 1.0f };
     };
 }
 

@@ -5,11 +5,7 @@
 
 // Project Headers
 #include "../Assets/AssetsManager.hh"
-
-#include "Common/RenderingUtils.hh"
-#include "Common/Types.hh"
 #include "Renderer/Renderer.hh"
-#include "Threading/TaskManager.hh"
 
 namespace Mikoto {
 
@@ -75,38 +71,29 @@ namespace Mikoto {
 
     }
 
-    auto AssetsManager::GetModelPrefabByType(PrefabSceneObject type) -> const Model& {
-        switch (type) {
-            case PrefabSceneObject::SPRITE_PREFAB_OBJECT: return s_LoadedPrefabModels[GetSpritePrefabName()];
-            case PrefabSceneObject::CUBE_PREFAB_OBJECT:   return s_LoadedPrefabModels[GetCubePrefabName()];
-            case PrefabSceneObject::SPHERE_PREFAB_OBJECT: return s_LoadedPrefabModels[GetSpherePrefabName()];
-            case PrefabSceneObject::CYLINDER_PREFAB_OBJECT: return s_LoadedPrefabModels[GetCylinderPrefabName()];
-            case PrefabSceneObject::CONE_PREFAB_OBJECT: return s_LoadedPrefabModels[GetConePrefabName()];
-            case PrefabSceneObject::SPONZA_PREFAB_OBJECT: return s_LoadedPrefabModels[GetSponzaPrefabName()];
-            case PrefabSceneObject::COUNT_PREFAB_OBJECT:
-                [[fallthrough]];
-            case PrefabSceneObject::NO_PREFAB_OBJECT:
-                MKT_CORE_LOGGER_WARN("Unknown prefab");
-                break;
-        }
-    }
+    auto AssetsManager::GetPrefabModel(PrefabSceneObject type) -> Model* {
+        Model* result{ nullptr };
+        auto it{ s_LoadedPrefabModels.end() };
 
-    auto AssetsManager::GetModifiableModelPrefabByType(PrefabSceneObject type) -> Model* {
         switch (type) {
-            case PrefabSceneObject::SPRITE_PREFAB_OBJECT: return std::addressof(s_LoadedPrefabModels[GetSpritePrefabName()]);
-            case PrefabSceneObject::CUBE_PREFAB_OBJECT:   return std::addressof(s_LoadedPrefabModels[GetCubePrefabName()]);
-            case PrefabSceneObject::SPHERE_PREFAB_OBJECT: return std::addressof(s_LoadedPrefabModels[GetSpherePrefabName()]);
-            case PrefabSceneObject::CYLINDER_PREFAB_OBJECT: return std::addressof(s_LoadedPrefabModels[GetCylinderPrefabName()]);
-            case PrefabSceneObject::CONE_PREFAB_OBJECT: return std::addressof(s_LoadedPrefabModels[GetConePrefabName()]);
-            case PrefabSceneObject::SPONZA_PREFAB_OBJECT: return std::addressof(s_LoadedPrefabModels[GetSponzaPrefabName()]);
+            case PrefabSceneObject::SPRITE_PREFAB_OBJECT: it = s_LoadedPrefabModels.find(GetSpritePrefabName()); break;
+            case PrefabSceneObject::CUBE_PREFAB_OBJECT:   it = s_LoadedPrefabModels.find(GetCubePrefabName()); break;
+            case PrefabSceneObject::SPHERE_PREFAB_OBJECT: it = s_LoadedPrefabModels.find(GetSpherePrefabName()); break;
+            case PrefabSceneObject::CYLINDER_PREFAB_OBJECT: it = s_LoadedPrefabModels.find(GetCylinderPrefabName()); break;
+            case PrefabSceneObject::CONE_PREFAB_OBJECT: it = s_LoadedPrefabModels.find(GetConePrefabName()); break;
+            case PrefabSceneObject::SPONZA_PREFAB_OBJECT: it = s_LoadedPrefabModels.find(GetSponzaPrefabName()); break;
 
             case PrefabSceneObject::COUNT_PREFAB_OBJECT:
             case PrefabSceneObject::NO_PREFAB_OBJECT:
-                MKT_CORE_LOGGER_WARN("Unknown prefab");
+                it = s_LoadedPrefabModels.end();
                 break;
         }
 
-        return nullptr;
+        if (it != s_LoadedPrefabModels.end()) {
+            result = std::addressof(it->second);
+        }
+
+        return result;
     }
 
 
@@ -140,18 +127,19 @@ namespace Mikoto {
         return nullptr;
     }
 
-    auto AssetsManager::LoadModel(const ModelLoadInfo& info) -> void {
+    auto AssetsManager::LoadModel(const ModelLoadInfo& info) -> Model * {
+        Model* result{ nullptr };
         ModelLoadInfo modelLoadInfo{ info };
         modelLoadInfo.ModelPath = std::filesystem::absolute(info.ModelPath);
 
         if (!s_LoadedPrefabModels.contains(modelLoadInfo.ModelPath.string())) {
-            // The key to the model will be its full path converted to a string
             auto key{ modelLoadInfo.ModelPath.string() };
-
-            s_LoadedModels.emplace(key, modelLoadInfo);
+            result = std::addressof(s_LoadedModels.emplace(key, modelLoadInfo).first->second);
         }
         else {
             MKT_CORE_LOGGER_INFO("Model [{}] already exists!", modelLoadInfo.ModelPath.string());
         }
+
+        return result;
     }
 }

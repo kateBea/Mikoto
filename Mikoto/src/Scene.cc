@@ -23,6 +23,11 @@
 #include "Scene/Scene.hh"
 
 namespace Mikoto {
+
+    static auto DestroyEntity(entt::registry reg, entt::entity ent) {
+
+    }
+
     auto Scene::OnRuntimeUpdate(double ts) -> void {
         UpdateScripts();
 
@@ -69,32 +74,85 @@ namespace Mikoto {
         }
     }
 
-    auto Scene::CreateEmptyObject(std::string_view tagName, UInt64_T guid) -> Entity {
-        Entity result{ m_Registry.create(), m_Registry };
-        result.AddComponent<TagComponent>(tagName, guid);
-        result.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
+    auto Scene::CreateEmptyObject(std::string_view tagName, Entity *root, UInt64_T guid) -> Entity {
+        Entity newEntity{m_Registry.create(), m_Registry };
+        newEntity.AddComponent<TagComponent>(tagName, guid);
+        newEntity.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
 
-        return result;
+        // if root != nullptr, this entity must be children of the node that has
+        // root as a root entity; a first step is to find the given node
+        // We start the lookup from the very first node from the hierarchy
+        EntityNode* rootNode{ nullptr };
+        if (root && !m_Hierarchy.empty()) {
+            for (auto& node : m_Hierarchy) {
+                rootNode = FindNode(node, *root);
+
+                if (rootNode) {
+                    break;
+                }
+            }
+
+            if (rootNode) {
+                rootNode->Children.emplace_back(EntityNode{
+                        .Root{ newEntity.Get() , m_Registry },
+                        .Children{}
+                });
+            }
+        } else {
+            m_Hierarchy.push_back(EntityNode{
+                    .Root{newEntity.Get() , m_Registry },
+                    .Children{},
+            });
+        }
+
+#if !defined(NDEBUG)
+        MKT_CORE_LOGGER_INFO("{} as children of {}", tagName, rootNode ?
+            rootNode->Root.GetComponent<TagComponent>().GetTag() : tagName);
+#endif
+
+        return newEntity;
     }
 
 
-    auto Scene::CreatePrefab(std::string_view tagName, Model *model, UInt64_T guid) -> Entity {
-        Entity result{};
+    auto Scene::CreatePrefab(std::string_view tagName, Model *model, Entity *root, UInt64_T guid) -> Entity {
+        Entity child{};
 
         if (model) {
+            EntityNode rootNode{};
+            EntityNode* rootNodeLookupResult{ nullptr };
+            if (root && !m_Hierarchy.empty()) {
+                rootNodeLookupResult = FindNode(m_Hierarchy[0], *root);
+
+                rootNode = {
+                        .Root{ rootNodeLookupResult->Root.Get(), *rootNodeLookupResult->Root.m_Registry },
+                        .Children{},
+                };
+            } else {
+                // Create an entity for the model. The model serves as a rootEntity entity for all of its children
+                // which are separated meshes
+                Entity rootEntity{ m_Registry.create(), m_Registry };
+                rootEntity.AddComponent<TagComponent>(tagName, guid);
+                rootEntity.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
+
+                rootNode = {
+                        .Root{ rootEntity.Get(), m_Registry },
+                        .Children{},
+                };
+            }
+
             // The default behavior is to treat each mesh as an individual game object
             for (auto& mesh : model->GetMeshes()) {
-                result = { m_Registry.create(), m_Registry };
+                child = { m_Registry.create(), m_Registry };
 
                 // Setup tag and transform
-                result.AddComponent<TagComponent>(tagName, guid);
-                result.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
+                child.AddComponent<TagComponent>(mesh.GetName(), GenerateGUID());
+                child.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
 
                 // Setup material component
-                auto& material{ result.AddComponent<MaterialComponent>() };
+                auto& material{ child.AddComponent<MaterialComponent>() };
 
                 // Setup renderer component
-                auto& renderData{ result.AddComponent<RenderComponent>() };
+                auto& renderData{ child.AddComponent<RenderComponent>() };
 
                 DefaultMaterialCreateSpec spec{};
 
@@ -120,15 +178,103 @@ namespace Mikoto {
 
                 renderData.GetObjectData().MeshData.Data = std::addressof(mesh);
                 material.GetMaterialInfo().MeshMat = Material::CreateStandardMaterial(spec);
+
+                rootNode.Children.emplace_back( EntityNode{
+                    .Root { child.Get(), m_Registry },
+                    .Children{},
+                });
+            }
+
+            m_Hierarchy.emplace_back(std::move(rootNode));
+        }
+
+        return child;
+    }
+
+
+    auto Scene::FindNode(EntityNode &root, Entity &target) -> EntityNode* {
+        if (root.Root == target) {
+            return std::addressof(root);
+        }
+
+        for (auto& node : root.Children) {
+            auto result{ FindNode(node, target) };
+
+            if (result) {
+                return result;
             }
         }
 
-        return result;
+        return nullptr;
     }
 
-    auto Scene::DestroyEntity(Entity& entity) -> void {
-        m_Registry.destroy(entity.m_EntityHandle);
-        entity.Invalidate();
+    auto Scene::HierarchyLookup(Entity& target) -> EntityNode* {
+        EntityNode* root{};
+        for (auto& node : m_Hierarchy) {
+            root = FindNode(node, target);
+
+            if (root){
+                break;
+            }
+        }
+
+        return root;
+    }
+
+    auto Scene::FindNodeIterator(std::vector<EntityNode>::iterator root, Entity &target) -> std::vector<EntityNode>::iterator {
+        // TODO: vector iterator incompatibility
+
+        if (root != m_Hierarchy.end() && root->Root == target) {
+            return root;
+        }
+
+        for (auto node{ root->Children.begin() }; node != root->Children.end(); ++node) {
+            auto result{ FindNodeIterator(node, target) };
+
+            if (result != root->Children.end()) {
+                return result;
+            }
+        }
+
+        return m_Hierarchy.end();
+    }
+
+
+    auto Scene::DestroyEntity(Entity& entity) -> bool {
+        EntityNode* root{ HierarchyLookup(entity) };
+
+        if (root) {
+            DestroyRecursive(*root);
+
+            // HOTFIX: Temporary, delete the root node. Not the best container for this kind of operation
+            auto it{ FindNodeIterator(m_Hierarchy.begin(), entity) };
+            if (it != m_Hierarchy.end()) {
+                m_Hierarchy.erase(it);
+            }
+        }
+#if !defined(NDEBUG)
+        else {
+            MKT_CORE_LOGGER_WARN("Did not find root entity to start deletion from");
+        }
+#endif
+        return true;
+    }
+
+    auto Scene::DestroyRecursive( EntityNode& root ) -> void {
+        auto node{ root.Children.begin() };
+
+        while (node != root.Children.end()) {
+            DestroyRecursive(*node);
+            node = root.Children.erase(node);
+
+            // Not increment past the end iterator
+            if (node != root.Children.end()) {
+                ++node;
+            }
+        }
+
+        m_Registry.destroy(root.Root.Get());
+        root.Root.Invalidate();
     }
 
     auto Scene::OnViewPortResize(UInt32_T width, UInt32_T height) -> void {

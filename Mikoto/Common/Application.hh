@@ -109,7 +109,7 @@ namespace Mikoto {
         AppSpec m_Spec{};
 
         /** Current state of the application. */
-        Status m_State{ Status::RUNNING };
+        Status m_State{ Status::STOPPED };
     };
 }
 

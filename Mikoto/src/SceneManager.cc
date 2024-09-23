@@ -63,8 +63,12 @@ namespace Mikoto {
         return *Scene::GetActiveScene();
     }
 
-    auto SceneManager::DestroyEntity(Scene &scene, Entity &target) -> void {
-        scene.DestroyEntity(target);
+    auto SceneManager::DestroyEntity(Entity &target) -> void {
+        DeleteEntityFromScene(GetActiveScene(), target);
+    }
+
+    auto SceneManager::DeleteEntityFromScene(Scene &scene, Entity& target) -> bool {
+        return scene.DestroyEntity(target);
     }
 
     auto SceneManager::AddEntity(const EntityCreateInfo &createInfo) -> Entity {
@@ -100,10 +104,10 @@ namespace Mikoto {
         Entity result{};
 
         if (!createInfo.IsPrefab()) {
-            result = scene.CreateEmptyObject( createInfo.Name );
+            result = scene.CreateEmptyObject(createInfo.Name, createInfo.Root);
         }
         else {
-            result = scene.CreatePrefab(createInfo.Name, AssetsManager::GetPrefabModel(createInfo.PrefabType));
+            result = scene.CreatePrefab(createInfo.Name, AssetsManager::GetPrefabModel(createInfo.PrefabType), createInfo.Root);
         }
 
         return result;

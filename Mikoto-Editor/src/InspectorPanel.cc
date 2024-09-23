@@ -678,7 +678,7 @@ namespace Mikoto {
     static auto ShowGameObjectMaterialInfo(GameObject& gameObject) {
         if (gameObject.MeshData.Data != nullptr) {
             ImGui::Spacing();
-            ImGui::TextUnformatted("Mesh list");
+            ImGui::TextUnformatted("Mesh Info");
             ImGui::SameLine();
 
             auto& meshTarget{ *gameObject.MeshData.Data };

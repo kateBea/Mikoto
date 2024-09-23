@@ -19,6 +19,7 @@
 namespace Mikoto {
     struct EntityCreateInfo {
         std::string Name{};
+        Entity* Root{ nullptr };
         PrefabSceneObject PrefabType{};
 
         MKT_NODISCARD inline auto IsPrefab() const -> bool {
@@ -33,7 +34,7 @@ namespace Mikoto {
     class SceneManager {
     public:
         /**
-         * Optional to the an entity reference wrapper
+         * Optional to an entity reference wrapper
          * */
         using EntityOpt_T = std::optional<std::reference_wrapper<Entity>>;
 
@@ -102,7 +103,7 @@ namespace Mikoto {
          * @param target entity to be removed
          * @returns True if the deletion was successful, false otherwise
          * */
-        static auto DestroyEntity(Scene &scene, Entity &target) -> void;
+        static auto DestroyEntity(Entity &target) -> void;
 
 
         /**
@@ -133,6 +134,14 @@ namespace Mikoto {
          * @returns
          * */
         static auto AddEntityToScene(Scene &scene, const EntityCreateInfo& createInfo) -> Entity;
+
+        /**
+         *
+         * @param scene
+         * @param target
+         * @returns
+         * */
+        static auto DeleteEntityFromScene(Scene &scene, Entity& target) -> bool;
 
         /**
          * Execute a function for all entities with the given components

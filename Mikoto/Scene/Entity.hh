@@ -24,7 +24,7 @@ namespace Mikoto {
     public:
         explicit Entity() = default;
 
-        Entity(entt::entity handle, entt::registry& registry)
+        Entity(const entt::entity &handle, entt::registry& registry)
             :   m_EntityHandle{ handle }, m_Registry{ std::addressof(registry) }
         {
 
@@ -36,7 +36,7 @@ namespace Mikoto {
         auto operator=(const Entity& entity) -> Entity& = default;
         auto operator=(Entity&& entity) noexcept -> Entity& = default;
 
-        MKT_NODISCARD auto Get() const -> entt::entity { return m_EntityHandle; }
+        MKT_NODISCARD auto Get() const -> const entt::entity& { return m_EntityHandle; }
         /**
          * Returns true if this entity contains all of the components listed in the parameter pack
          * @returns true if this entity contains all of components of the parameter pack list

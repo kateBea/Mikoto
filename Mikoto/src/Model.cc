@@ -70,8 +70,10 @@ namespace Mikoto {
 
     auto Model::ProcessNode(aiNode* root, const aiScene* scene, const Path_T& modelDirectory, bool wantLoadTextures) -> void {
         // Process all the meshes from this node
-        for(UInt64_T index{}; index < root->mNumMeshes; index++)
-            m_Meshes.emplace_back(ProcessMesh(scene->mMeshes[root->mMeshes[index]], scene, modelDirectory, wantLoadTextures));
+        for(UInt64_T index{}; index < root->mNumMeshes; index++) {
+            auto result{ ProcessMesh(scene->mMeshes[root->mMeshes[index]], scene, modelDirectory, wantLoadTextures) };
+            m_Meshes.emplace_back(std::move(result));
+        }
 
         // then do the same for each of its children
         for(UInt64_T i {}; i < root->mNumChildren; i++)
@@ -169,10 +171,10 @@ namespace Mikoto {
         MeshData meshData{};
         meshData.SetVertices(vertexBuffer);
         meshData.SetIndices(indexBuffer);
+        meshData.SetName(mesh->mName.C_Str());
+        meshData.SetTextures(std::move(textures));
 
         MKT_CORE_LOGGER_DEBUG("Texture count for mesh {}, model is {}", textures.size(), modelDirectory.string());
-
-        meshData.SetTextures(std::move(textures));
 
         return Mesh{ std::move(meshData) };
     }

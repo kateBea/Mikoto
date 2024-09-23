@@ -53,7 +53,13 @@ namespace Mikoto {
         explicit TagComponent() = default;
 
         explicit TagComponent(std::string_view tag, UInt64_T guid)
-            :   m_GUID{ guid }, m_Tag{ tag }
+            :   m_GUID{ guid }, m_RootEntity{ guid }, m_Tag{ tag }
+        {
+            m_Visibility = true;
+        }
+
+        explicit TagComponent(std::string_view tag, UInt64_T guid, UInt64_T root)
+                :   m_GUID{ guid }, m_RootEntity{ root }, m_Tag{ tag }
         {
             m_Visibility = true;
         }
@@ -68,6 +74,16 @@ namespace Mikoto {
         MKT_NODISCARD auto GetTag() const -> const std::string& { return m_Tag; }
         MKT_NODISCARD auto GetGUID() const -> UInt64_T { return m_GUID.Get(); }
 
+
+
+        MKT_NODISCARD auto IsRoot() const -> bool { return m_RootEntity == m_GUID.Get(); }
+        MKT_NODISCARD auto GetRoot() const -> const UInt64_T& { return m_RootEntity; }
+        MKT_NODISCARD auto GetChildren() const -> const std::unordered_set<UInt64_T>& { return m_ChildEntities; }
+
+        auto AddChild(UInt64_T id) -> void { m_ChildEntities.insert(id); }
+        auto RemoveChild(UInt64_T id) -> void { m_ChildEntities.erase( id ); }
+        auto UpdateRoot(UInt64_T id) -> void { m_RootEntity = id; }
+
         auto SetTag(std::string_view newName) -> void { m_Tag = newName; }
         auto SetVisibility(bool value) -> void { m_Visibility = value; }
 
@@ -78,6 +94,9 @@ namespace Mikoto {
         UUID m_GUID{};
         std::string m_Tag{};
         bool m_Visibility{};
+
+        UInt64_T m_RootEntity{};
+        std::unordered_set<UInt64_T> m_ChildEntities{};
     };
 
 

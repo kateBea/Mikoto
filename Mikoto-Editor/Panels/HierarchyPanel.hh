@@ -8,6 +8,7 @@
 
 // C++ Standard Library
 #include <memory>
+#include <unordered_set>
 
 // Project Headers
 #include "Common/Common.hh"
@@ -16,6 +17,7 @@
 #include "Scene/Scene.hh"
 
 namespace Mikoto {
+
     class HierarchyPanel : public Panel {
     public:
         explicit HierarchyPanel();
@@ -26,12 +28,12 @@ namespace Mikoto {
         ~HierarchyPanel() override = default;
 
     private:
-        friend class InspectorPanel;
-
-    private:
-        static auto DrawEntityNode( Entity& target ) -> void;
+        static auto DrawNodeTree(EntityNode &target ) -> void;
         static auto OnEntityRightClickMenu( Entity& target ) -> void;
         static auto BlankSpacePopupMenu() -> void;
+
+    private:
+        std::vector<EntityNode> m_Nodes{};
     };
 }
 

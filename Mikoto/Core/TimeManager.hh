@@ -57,7 +57,7 @@ namespace Mikoto {
 
         /**
          * @brief Returns the time step.
-         * @param unit The time step units.
+         * @param unit The time step unit of the returned value, default unit is seconds.
          * @returns Time step value in the specified time unit.
          * This function allows conversion of the time step value to different time units.
          * */
@@ -75,8 +75,8 @@ namespace Mikoto {
 
         /**
          * @brief Returns the time since the first call to Init().
-         * This function calculates the time difference from the initial time point set by Init().
-         * @param unit The time unit.
+         * This function computes the time difference from the initial time point set by Init().
+         * @param unit The time unit of the returned value, default unit is seconds.
          * @returns The amount of time passed since the first call to Init().
          * */
         static auto GetTime(TimeUnit unit = TimeUnit::SECONDS) -> double {

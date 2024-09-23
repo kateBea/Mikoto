@@ -9,6 +9,7 @@
 // C++ Standard Library
 #include <memory>
 #include <string_view>
+#include <unordered_set>
 
 // Third-Party Libraries
 #include <glm/glm.hpp>
@@ -35,6 +36,10 @@ namespace Mikoto {
         UInt64_T PointActiveLightCount{};
     };
 
+    struct EntityNode {
+        Entity Root{};
+        std::vector<EntityNode> Children{};
+    };
 
     /**
      * @brief Scene wrapper for game objects (entities)
@@ -109,7 +114,7 @@ namespace Mikoto {
          * Destroys an entity within the scene.
          * @param entity The entity to be destroyed.
          * */
-        auto DestroyEntity( Entity& entity ) -> void;
+        auto DestroyEntity( Entity& entity ) -> bool;
 
 
         /**
@@ -126,13 +131,16 @@ namespace Mikoto {
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 
 
+        MKT_NODISCARD auto GetHierarchy() -> std::vector<EntityNode>& { return m_Hierarchy; }
+
+
         /**
          * Adds an empty object to the scene.
          * @param tagName The tag name of the object.
          * @param guid The globally unique ID for the object.
          * @return The created entity in the scene.
          * */
-        auto CreateEmptyObject( std::string_view tagName, UInt64_T guid = GenerateGUID() ) -> Entity;
+        auto CreateEmptyObject(std::string_view tagName, Entity *root = nullptr, UInt64_T guid = GenerateGUID()) -> Entity;
 
 
         /**
@@ -142,7 +150,8 @@ namespace Mikoto {
          * @param guid The globally unique ID for the object.
          * @return The created entity in the scene.
          * */
-        auto CreatePrefab( std::string_view tagName, Model *model, UInt64_T guid = GenerateGUID() ) -> Entity;
+        auto CreatePrefab(std::string_view tagName, Model *model, Entity *root = nullptr,
+                          UInt64_T guid = GenerateGUID()) -> Entity;
 
 
         /**
@@ -170,6 +179,9 @@ namespace Mikoto {
          * */
         static auto SetActiveScene( Scene* scene ) -> void;
 
+    public:
+
+
     private:
         friend class Entity;
         friend class ScenePanel;
@@ -182,6 +194,27 @@ namespace Mikoto {
          * */
         auto UpdateScripts() -> void;
 
+
+        /**
+         * Looks up the root node for the target entity within the hierarchy.
+         * @param root Root node from where look uo starts.
+         * @param target Target entity to look for.
+         * @returns nullptr if this node does not contain the target entity, non-null pointer to the node otherwise.
+         * */
+        MKT_NODISCARD static auto FindNode(EntityNode &root, Entity &target) -> EntityNode*;
+
+        auto HierarchyLookup(Entity& target) -> EntityNode*;
+
+        auto FindNodeIterator(std::vector<EntityNode>::iterator root, Entity &target) -> std::vector<EntityNode>::iterator;
+
+        /**
+         * Destroys an entity within the scene.
+         * @param root The entity to be destroyed.
+         * */
+        auto DestroyRecursive( EntityNode& root ) -> void;
+
+    private:
+
         // Currently active scene in the editor.
         static inline Scene* s_ActiveScene{ nullptr };
 
@@ -193,6 +226,8 @@ namespace Mikoto {
     private:
         std::string m_Name{};       // The name of the scene
         entt::registry m_Registry{};// Entity registry for the scene
+
+        std::vector<EntityNode> m_Hierarchy{};
 
         SceneMetaData m_MetaData{};
     };

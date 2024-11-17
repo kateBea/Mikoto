@@ -40,25 +40,24 @@ namespace Mikoto {
     auto EditorApp::Run(Int32_T argc, char **argv) -> Int32_T {
         ParseArguments(argc, argv);
 
-        Int32_T exitCode{EXIT_SUCCESS};
-        AppSpec appSpecs{GetApplicationSpec(m_CommandLineArgs)};
+        Int32_T exitCode{ EXIT_SUCCESS };
+        AppSpec appSpecs{ GetApplicationSpec(m_CommandLineArgs) };
 
-        if (Init(std::move(appSpecs))) {
-            try {
+        try {
 
-                while (IsRunning()) {
-                    ProcessEvents();
-                    UpdateState();
+            Init(std::move(appSpecs));
 
-                    RenderContext::Present();
-                }
-
-                Shutdown();
-
-            } catch (const std::exception &exception) {
-                MKT_COLOR_STYLE_PRINT_FORMATTED(MKT_FMT_COLOR_RED, MKT_FMT_STYLE_BOLD, "Exception! {}", exception.what());
-                exitCode = EXIT_FAILURE;
+            while (IsRunning()) {
+                ProcessEvents();
+                UpdateState();
+                Present();
             }
+
+            Shutdown();
+
+        } catch (const std::exception& exception) {
+            MKT_COLOR_STYLE_PRINT_FORMATTED( MKT_FMT_COLOR_RED, MKT_FMT_STYLE_BOLD, "{}", exception.what() );
+            exitCode = EXIT_FAILURE;
         }
 
         return exitCode;
@@ -71,70 +70,48 @@ namespace Mikoto {
         }
     }
 
-    auto EditorApp::Init(AppSpec &&appSpec) -> bool {
+    auto EditorApp::Init(AppSpec &&appSpec) -> void {
         TimeManager::Init();
-
-        m_Spec = std::move(appSpec);
-
-        // Set the assets root path (this path contains import files like shaders, prefabs, etc.)
-        FileManager::Assets::SetRootPath("..\\Assets");
-
         TaskManager::Init();
+
+        m_State = Status::RUNNING;
+        m_Spec = std::move(appSpec);
 
         MKT_APP_LOGGER_INFO("=================================================================");
         MKT_APP_LOGGER_INFO("Executable                : {}", m_Spec.Executable.string());
         MKT_APP_LOGGER_INFO("Current working directory : {}", m_Spec.WorkingDirectory.string());
         MKT_APP_LOGGER_INFO("=================================================================");
 
-        WindowProperties windowProperties{m_Spec.Name, m_Spec.RenderingBackend, m_Spec.WindowWidth,
-                                          m_Spec.WindowHeight};
-        windowProperties.AllowResizing(true);
+        FileManager::Assets::SetRootPath("..\\Assets");
 
+        WindowProperties windowProperties{ m_Spec.Name, m_Spec.RenderingBackend, m_Spec.WindowWidth, m_Spec.WindowHeight };
+        windowProperties.AllowResizing(true);
         m_MainWindow = Window::Create(std::move(windowProperties));
 
         if (m_MainWindow) {
             m_MainWindow->Init();
         } else {
-            MKT_THROW_RUNTIME_ERROR("Could not create application main window!");
+            MKT_THROW_RUNTIME_ERROR("Could not create application main window.");
         }
 
-
-        // THESE BELOW SHOULD BE INITIALIZED BY THE ENGINE ITSELF,
-        // NOT THE APPLICATION.
-
-        // Serializer Init
         FileManager::Init();
-
-        // Initialize the input manager
         InputManager::Init(m_MainWindow.get());
+        RenderContextSpec contextSpec{ .Backend = m_Spec.RenderingBackend, .WindowHandle = m_MainWindow };
 
-        RenderContextSpec contextSpec{};
-        contextSpec.Backend = m_Spec.RenderingBackend;
-        contextSpec.WindowHandle = m_MainWindow;
-
-        // Initialize the render context
         RenderContext::Init(std::move(contextSpec));
-        RenderContext::EnableVSync();
 
-        // Initialize the assets' manager. Important to do at the end
-        // as it loads some prefabs that require having a render context ready.
-        AssetsManagerSpec assetsManagerSpec{};
-        assetsManagerSpec.AssetRootDirectory = "../Assets";
-
-        AssetsManager::Init(std::move(assetsManagerSpec));
-
-        // Initialize the scene manager
+        // Initialize the assets' manager.
+        // Important to do after initializing the renderer loads
+        // some prefabs that require having a render context ready.
+        AssetsManager::Init(AssetsManagerSpec{ .AssetRootDirectory = "../Assets" });
         SceneManager::Init();
 
-        CreateLayers();
-
+        InitLayers();
         InstallEventCallbacks();
 
         MKT_APP_LOGGER_INFO("=================================================================");
         MKT_APP_LOGGER_INFO("Init time {} seconds", TimeManager::GetTime());
         MKT_APP_LOGGER_INFO("=================================================================");
-
-        return true;
     }
 
     auto EditorApp::InstallEventCallbacks() -> void {
@@ -186,7 +163,7 @@ namespace Mikoto {
         m_EditorLayer->OnDetach();
     }
 
-    auto EditorApp::CreateLayers() -> void {
+    auto EditorApp::InitLayers() -> void {
         m_EditorLayer = std::make_unique<EditorLayer>();
         m_EditorLayer->OnAttach();
     }
@@ -227,5 +204,9 @@ namespace Mikoto {
 
         RenderImGuiFrame();
         RenderContext::SubmitFrame();
+    }
+
+    auto EditorApp::Present() -> void {
+        RenderContext::Present();
     }
 }

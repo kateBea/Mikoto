@@ -56,10 +56,10 @@ namespace Mikoto {
 
 
         /**
-         * @brief Returns the time step.
+         * @brief Returns the time step. Allows conversion
+         * of the time step value to different time units.
          * @param unit The time step unit of the returned value, default unit is seconds.
          * @returns Time step value in the specified time unit.
-         * This function allows conversion of the time step value to different time units.
          * */
         static auto GetTimeStep(TimeUnit unit = TimeUnit::SECONDS) -> double {
             switch (unit) {
@@ -75,7 +75,6 @@ namespace Mikoto {
 
         /**
          * @brief Returns the time since the first call to Init().
-         * This function computes the time difference from the initial time point set by Init().
          * @param unit The time unit of the returned value, default unit is seconds.
          * @returns The amount of time passed since the first call to Init().
          * */
@@ -94,7 +93,7 @@ namespace Mikoto {
         /**
          * @brief Returns a formatted string representing the time.
          * @param time The time to be represented.
-         * @param unit The time unit.
+         * @param unit The time unit. Specifies the unit for the first argument.
          * @returns A string representing the time in HH:MM:SS format.
          * */
         static auto ToString(double time, TimeUnit unit = TimeUnit::SECONDS) -> std::string {
@@ -129,6 +128,7 @@ namespace Mikoto {
         // Conversion constants
         static constexpr UInt32_T SECONDS_PER_HOUR{ 3'600 };        /**< Seconds per hour. */
         static constexpr UInt32_T SECONDS_PER_MINUTE{ 60 };         /**< Minutes per second. */
+
         static constexpr UInt32_T MILLISECONDS_PER_SECOND{ 1'000 };            /**< Milliseconds per second. */
         static constexpr UInt32_T MICROSECONDS_PER_SECOND{ 1'000'000 };        /**< Microseconds per second. */
         static constexpr UInt32_T NANOSECONDS_PER_SECOND{ 1'000'000'000 };     /**< Nanoseconds per second. */

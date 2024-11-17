@@ -15,7 +15,8 @@ namespace Mikoto {
 
     auto RendererBackend::Create(GraphicsAPI backend) -> RendererBackend * {
         switch(backend) {
-            case GraphicsAPI::VULKAN_API: return new (std::nothrow) VulkanRenderer();
+            case GraphicsAPI::VULKAN_API:
+                return new (std::nothrow) VulkanRenderer();
             default:
                 MKT_CORE_LOGGER_CRITICAL("Unsupported renderer API!");
                 break;

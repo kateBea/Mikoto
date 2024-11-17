@@ -82,12 +82,6 @@ namespace Mikoto {
         MKT_UNUSED_FUNC static auto IsVSyncActive() -> bool;
 
 
-    public:
-        /**
-         * @brief Sets event handles for the render context.
-         * */
-        static auto SetEventHandles() -> void;
-
     private:
         inline static UUID s_Guid{};  /**< Globally unique identifier for the render context. */
         inline static RenderContextSpec s_Spec{};   /**< Specifications for the RenderContext. */

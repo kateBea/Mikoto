@@ -19,7 +19,7 @@ namespace Mikoto {
         auto Run(Int32_T argc, char** argv) -> Int32_T;
 
     protected:
-        auto Init(AppSpec&& appSpec) -> bool override;
+        auto Init(AppSpec&& appSpec) -> void override;
         auto Shutdown() -> void override;
         auto ProcessEvents() -> void override;
         auto UpdateState() -> void override;

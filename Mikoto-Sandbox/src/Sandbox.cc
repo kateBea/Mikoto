@@ -37,18 +37,17 @@ namespace Mikoto {
         Int32_T exitCode{ EXIT_SUCCESS };
         auto appSpecs{ GetApplicationSpec(m_CommandLineArgs) };
 
-        if (Init( std::move(appSpecs) )) {
-            // TODO: run logic
-            while (IsRunning()) {
-                ProcessEvents();
-                UpdateState();
-            }
+        Init( std::move(appSpecs) );
+
+        while (IsRunning()) {
+            ProcessEvents();
+            UpdateState();
         }
 
         return exitCode;
     }
 
-    auto SandboxApp::Init( AppSpec&& appSpec ) -> bool {
+    auto SandboxApp::Init( AppSpec&& appSpec ) -> void {
         m_Spec = std::move(appSpec);
         TimeManager::Init();
 
@@ -83,8 +82,6 @@ namespace Mikoto {
         MKT_APP_LOGGER_INFO("=================================================================");
         MKT_APP_LOGGER_INFO("Init time {} seconds", TimeManager::GetTime());
         MKT_APP_LOGGER_INFO("=================================================================");
-
-        return true;
     }
 
     auto SandboxApp::InstallEventCallbacks() -> void {

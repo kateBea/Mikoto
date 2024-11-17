@@ -25,13 +25,14 @@ namespace Mikoto {
         auto Run(Int32_T argc, char** argv) -> Int32_T;
 
     protected:
-        auto Init(AppSpec&& appSpec) -> bool override;
+        auto Init(AppSpec&& appSpec) -> void override;
         auto Shutdown() -> void override;
         auto ProcessEvents() -> void override;
         auto UpdateState() -> void override;
+        auto Present() -> void override;
 
     private:
-        auto CreateLayers() -> void;
+        auto InitLayers() -> void;
         auto DestroyLayers() -> void;
         auto UpdateLayers() -> void;
         auto RenderImGuiFrame() -> void;
@@ -40,10 +41,10 @@ namespace Mikoto {
         auto ParseArguments(Int32_T argc, char **argv) -> void;
 
     private:
-        /** Stores the command line arguments. */
+        // Stores the command line arguments.
         std::vector<std::string> m_CommandLineArgs{};
 
-        /** Holds the editor layer. */
+        // Holds the editor layer.
         std::unique_ptr<EditorLayer> m_EditorLayer{};
     };
 }

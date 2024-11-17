@@ -58,7 +58,7 @@ namespace Mikoto {
          * required layers amongst other subsystems.
          * @param appSpec Specification for application initialization.
          * */
-        virtual auto Init(AppSpec&& appSpec) -> bool = 0;
+        virtual auto Init(AppSpec&& appSpec) -> void = 0;
 
 
         /**
@@ -79,6 +79,12 @@ namespace Mikoto {
          * @brief Updates the application state.
          * */
         virtual auto UpdateState() -> void = 0;
+
+        /**
+         * @brief Present if applications needs it. Override with
+         * proper behaviour.
+         * */
+        virtual auto Present() -> void {}
 
 
         /**

@@ -21,14 +21,8 @@ namespace Mikoto {
                 break;
         }
 
-        // Initialize rendering subsystems.
-        RendererSpec renderSpec{};
-        renderSpec.Backend = s_Spec.Backend;
-
-        Renderer::Init(std::move(renderSpec));
+        Renderer::Init(RendererSpec{ .Backend = s_Spec.Backend });
         ImGuiManager::Init(s_Spec.WindowHandle);
-
-        SetEventHandles();
     }
 
 
@@ -76,7 +70,6 @@ namespace Mikoto {
 
     auto RenderContext::EnableVSync() -> void {
         switch (s_Spec.Backend) {
-                break;
             case GraphicsAPI::VULKAN_API:
                 VulkanContext::EnableVSync();
                 break;
@@ -108,16 +101,5 @@ namespace Mikoto {
                 VulkanContext::SubmitFrame();
                 break;
         }
-    }
-
-
-    // TODO: remove if not needed
-    auto RenderContext::SetEventHandles() -> void {
-        EventManager::Subscribe(s_Guid.Get(),
-            EventType::WINDOW_RESIZE_EVENT,
-            [](Event&) -> bool {
-                MKT_APP_LOGGER_INFO("Handled Window Resize Event for RenderContext");
-                return false;
-            });
     }
 }

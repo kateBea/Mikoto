@@ -582,7 +582,7 @@ namespace Mikoto {
         createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         createInfo.queueFamilyIndex = queueFamilyData.GraphicsFamilyIndex;
 
-        s_MainCommandPool.OnCreate( createInfo );
+        s_MainCommandPool.Create( createInfo );
 
         // Immediate submit command pull
         // default command pool we will use for immediate submission
@@ -590,7 +590,7 @@ namespace Mikoto {
         immediateSubmitCreateInfo.queueFamilyIndex = queueFamilyData.GraphicsFamilyIndex;
         immediateSubmitCreateInfo.flags = 0;
 
-        s_ImmediateSubmitContext.CommandPool.OnCreate( immediateSubmitCreateInfo );
+        s_ImmediateSubmitContext.CommandPool.Create( immediateSubmitCreateInfo );
     }
 
     auto VulkanContext::CreatePrimaryLogicalDeviceCommandBuffers() -> void {

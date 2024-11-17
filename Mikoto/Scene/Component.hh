@@ -65,7 +65,7 @@ namespace Mikoto {
         }
 
         TagComponent(const TagComponent& other) = default;
-        TagComponent(TagComponent&& other) = default;
+        TagComponent(TagComponent&& other) noexcept = default;
 
         auto operator=(const TagComponent& other) -> TagComponent& = default;
         auto operator=(TagComponent&& other) -> TagComponent& = default;

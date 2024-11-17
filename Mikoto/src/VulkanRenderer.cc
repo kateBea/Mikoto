@@ -26,26 +26,8 @@
 namespace Mikoto {
 
     auto VulkanRenderer::Init() -> void {
-        // Create command pool to allocate draw command renderer command buffers from
-        VkCommandPoolCreateInfo createInfo{ VulkanUtils::Initializers::CommandPoolCreateInfo() };
-
-        createInfo.flags = 0;
-        createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        createInfo.queueFamilyIndex = VulkanUtils::FindQueueFamilies( VulkanContext::GetPrimaryPhysicalDevice() , VulkanContext::GetSurface() ).GraphicsFamilyIndex;
-
-        m_CommandPool.OnCreate( createInfo );
-
-        // Create command buffers
-        CreateCommandBuffers();
-
-        // Adjust initial clearing colors
-        m_ClearValues[ClearValueIndex::COLOR_BUFFER].color = { { 0.2f, 0.2f, 0.2f, 1.0f } };
-        m_ClearValues[ClearValueIndex::DEPTH_BUFFER].depthStencil = { 1.0f, 0 };
-
-        // Prepare offscreen rendering
-        PrepareOffscreen();
-
-        // Initialize material required structures
+        InitializeCommands();
+        PrepareOffscreenRender();
         InitializePipelinesData();
     }
 
@@ -73,8 +55,7 @@ namespace Mikoto {
         VulkanUtils::WaitOnDevice( VulkanContext::GetPrimaryLogicalDevice() );
     }
 
-    auto VulkanRenderer::CreateCommandBuffers() -> void {
-        // Right now there's only one command buffer
+    auto VulkanRenderer::InitCommandBuffers() -> void {
         constexpr UInt32_T COMMAND_BUFFERS_COUNT{ 1 };
 
         VkCommandBufferAllocateInfo allocInfo{ VulkanUtils::Initializers::CommandBufferAllocateInfo() };
@@ -82,7 +63,11 @@ namespace Mikoto {
         allocInfo.commandPool = m_CommandPool.Get();
         allocInfo.commandBufferCount = COMMAND_BUFFERS_COUNT;
 
-        if ( vkAllocateCommandBuffers( VulkanContext::GetPrimaryLogicalDevice(), &allocInfo, &m_DrawCommandBuffer ) != VK_SUCCESS ) {
+        if ( vkAllocateCommandBuffers(
+                VulkanContext::GetPrimaryLogicalDevice(),
+                std::addressof(allocInfo),
+                std::addressof(m_DrawCommandBuffer) ) != VK_SUCCESS )
+        {
             MKT_THROW_RUNTIME_ERROR( "Failed to allocate command buffer" );
         }
 
@@ -223,7 +208,8 @@ namespace Mikoto {
         colorAttachmentDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
         // Add a new subpass dependency that synchronizes accesses to depth attachments.
-        // This dependency tells Vulkan that the depth attachment in a renderpass cannot be used before previous render-passes have finished using it.
+        // This dependency tells Vulkan that the depth attachment in a renderpass cannot
+        // be used before previous render-passes have finished using it.
         VkSubpassDependency deptAttachmentDependency{};
         deptAttachmentDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
         deptAttachmentDependency.dstSubpass = 0;
@@ -347,9 +333,11 @@ namespace Mikoto {
         m_OffscreenDepthAttachment.OnCreate( { depthAttachmentCreateInfo, depthAttachmentViewCreateInfo } );
     }
 
-    auto VulkanRenderer::PrepareOffscreen() -> void {
+    auto VulkanRenderer::PrepareOffscreenRender() -> void {
         m_OffscreenExtent.width = 1920;
         m_OffscreenExtent.height = 1032;
+        m_ClearValues[ClearValueIndex::COLOR_BUFFER].color = { { 0.2f, 0.2f, 0.2f, 1.0f } };
+        m_ClearValues[ClearValueIndex::DEPTH_BUFFER].depthStencil = { 1.0f, 0 };
 
         m_ColorAttachmentFormat = VulkanContext::FindSupportedFormat(
                 VulkanContext::GetPrimaryPhysicalDevice(),
@@ -547,7 +535,6 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::InitializePipelinesData() -> void {
-        // Create the textured pipeline
         InitializeDefaultPipeline();
 
         // Create the wireframe pipeline
@@ -575,5 +562,16 @@ namespace Mikoto {
         } else {
             m_DrawQueue.emplace( id, info );
         }
+    }
+
+    auto VulkanRenderer::InitializeCommands() -> void {
+        VkCommandPoolCreateInfo createInfo{ VulkanUtils::Initializers::CommandPoolCreateInfo() };
+        createInfo.flags = 0;
+        createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        createInfo.queueFamilyIndex = VulkanUtils::FindQueueFamilies( VulkanContext::GetPrimaryPhysicalDevice() , VulkanContext::GetSurface() ).GraphicsFamilyIndex;
+
+        m_CommandPool.Create( createInfo );
+
+        InitCommandBuffers();
     }
 }

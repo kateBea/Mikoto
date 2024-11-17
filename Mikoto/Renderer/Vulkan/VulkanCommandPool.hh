@@ -7,24 +7,20 @@
 #define MIKOTO_VULKAN_COMMAND_POOL_HH
 
 // Third-Party Libraries
-#include "volk.h"
+#include <volk.h>
 
 // Project Headers
-#include "Common/Common.hh"
+#include <Common/Common.hh>
+#include <Renderer/Vulkan/VulkanObject.hh>
 
 namespace Mikoto {
-    class VulkanCommandPool {
+    class VulkanCommandPool : public VulkanObject<VkCommandPool, VkCommandPoolCreateInfo> {
     public:
         explicit VulkanCommandPool() = default;
         ~VulkanCommandPool() = default;
 
-        auto OnCreate(const VkCommandPoolCreateInfo& createInfo) -> void;
-
-        MKT_NODISCARD auto Get() const -> VkCommandPool { return m_CommandPool; }
-
-    private:
-        VkCommandPool  m_CommandPool{};
-        VkCommandPoolCreateInfo m_CreateInfo{};
+        auto Create(const VkCommandPoolCreateInfo& createInfo) -> void override;
+        auto Release() -> void override;
     };
 }
 

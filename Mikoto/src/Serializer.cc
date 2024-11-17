@@ -339,11 +339,10 @@ namespace Mikoto::FileManager {
     }
 
     auto Init() -> void {
-        // NFD init successful
         const auto result{ NFD::Init() == NFD_OKAY };
-
-        // Assert if it fails to initialize
-        MKT_ASSERT(result, "Failed to initialized File dialog library NFD");
+        if (!result) {
+            MKT_THROW_RUNTIME_ERROR("Failed to initialized File dialog library NFD");
+        }
     }
 
     auto Shutdown() -> void {

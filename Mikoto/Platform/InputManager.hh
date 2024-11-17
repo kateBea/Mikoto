@@ -35,7 +35,6 @@ namespace Mikoto {
     public:
         /**
          * @brief Initializes the input manager with a given window handle.
-         *
          * @param handle Pointer to the Window object to handle input for.
          * */
         static auto Init(const Window* handle) -> void;
@@ -49,7 +48,6 @@ namespace Mikoto {
 
         /**
          * @brief Checks if a key is currently pressed.
-         *
          * @param keyCode The code of the key to check.
          * @returns True if the key is pressed, false otherwise.
          * */
@@ -58,7 +56,6 @@ namespace Mikoto {
 
         /**
          * @brief Checks if a mouse button is currently pressed.
-         *
          * @param button The code of the mouse button to check.
          * @returns True if the mouse button is pressed, false otherwise.
          * */
@@ -67,7 +64,6 @@ namespace Mikoto {
 
         /**
          * @brief Retrieves the X-coordinate of the mouse position.
-         *
          * @returns The X-coordinate of the mouse position.
          * */
         MKT_NODISCARD static auto GetMouseX() -> double;
@@ -75,7 +71,6 @@ namespace Mikoto {
 
         /**
          * @brief Retrieves the Y-coordinate of the mouse position.
-         *
          * @returns The Y-coordinate of the mouse position.
          * */
         MKT_NODISCARD static auto GetMouseY() -> double;
@@ -83,7 +78,6 @@ namespace Mikoto {
 
         /**
          * @brief Retrieves the current mouse position as a pair of (X, Y) coordinates.
-         *
          * @returns The current mouse position as a pair of (X, Y) coordinates.
          * */
         MKT_NODISCARD static auto GetMousePos() -> std::pair<double, double>;
@@ -91,22 +85,19 @@ namespace Mikoto {
 
         /**
          * @brief Prints the mouse button.
-         *
          * @param button The mouse button to print.
          * */
         static auto PrintMouse(MouseButton button) -> void;
 
         /**
-         * @brief Prints the key code of a keyboard key.
-         * For debugging purposes.
+         * @brief Prints the key code of a keyboard key. For debugging purposes.
          * @param keycode The key code to print.
          * */
         MKT_UNUSED_FUNC static auto PrintKey(KeyCode keycode) -> void;
 
 
         /**
-         * @brief Prints the mouse button.
-         * For debugging purposes.
+         * @brief Prints the mouse button. For debugging purposes.
          * @param button The mouse button to print.
          * */
         MKT_UNUSED_FUNC static auto PrintButton(MouseButton button) -> void;
@@ -123,7 +114,6 @@ namespace Mikoto {
         /**
          * @brief Sets focus to a newly focused window for input handling.
          * Input is handled for a single window at a time.
-         *
          * @param newHandle Pointer to the newly focused Window object.
          * */
         static auto SetFocus(const Window* newHandle) -> void;

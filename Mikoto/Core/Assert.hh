@@ -44,7 +44,7 @@
     } while (false)
 
     /**
-     * Print __MESSAGE and abort program execution if __EXPR evaluates to false
+     * Print __EXPR and abort program execution if __EXPR evaluates to false
      * */
     #define MKT_ASSERT_EXPR(__EXPR)                                                 \
     do {                                                                            \

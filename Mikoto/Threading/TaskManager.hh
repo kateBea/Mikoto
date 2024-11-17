@@ -81,7 +81,6 @@ namespace Mikoto {
             // Initialize worker threads
             for (Size_T threadCount{}; threadCount < s_ThreadCount; ++threadCount) {
                 s_Workers.emplace_back([]() -> void {
-                    // TODO: run thread preparation stuff it may need to init some thread_local structures, etc
 
                     // the current job for the thread, it's empty at the start.
                     std::function<void()> task{};
@@ -109,7 +108,6 @@ namespace Mikoto {
                         }
                     }
 
-                    // TODO: thread local cleanup if needed
                 });
             }
         }

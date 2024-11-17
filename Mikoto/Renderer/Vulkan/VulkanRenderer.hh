@@ -176,7 +176,7 @@ namespace Mikoto {
         /**
          * Prepares the offscreen rendering by creating necessary render passes, attachments, and frame buffers.
          * */
-        auto PrepareOffscreen() -> void;
+        auto PrepareOffscreenRender() -> void;
 
 
         /**
@@ -200,7 +200,9 @@ namespace Mikoto {
         /**
          * Creates command buffers for drawing.
          * */
-        auto CreateCommandBuffers() -> void;
+        auto InitCommandBuffers() -> void;
+
+        auto InitializeCommands() -> void;
 
 
         /**

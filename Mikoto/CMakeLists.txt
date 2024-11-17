@@ -21,7 +21,6 @@ SET(ASSIMP_CMAKE_DIR ${P_PATH}/Third-Party/assimp)
 SET(VMA_CMAKE_DIR ${P_PATH}/Third-Party/VulkanMemoryAllocator)
 SET(YAML_CMAKE_DIR ${P_PATH}/Third-Party/yaml-cpp)
 SET(NFD_CMAKE_DIR ${P_PATH}/Third-Party/nativefiledialog-extended)
-SET(JSON_CMAKE_DIR ${P_PATH}/Third-Party/json)
 
 # Setup Mikoto Engine source file
 FILE(GLOB SOURCE_FILES src/*.cc)
@@ -54,10 +53,9 @@ ADD_SUBDIRECTORY(${VOLK_CMAKE_DIR} build/volk)
 ADD_SUBDIRECTORY(${ASSIMP_CMAKE_DIR} build/assimp)
 ADD_SUBDIRECTORY(${YAML_CMAKE_DIR} build/yaml)
 ADD_SUBDIRECTORY(${NFD_CMAKE_DIR} build/nfd)
-ADD_SUBDIRECTORY(${JSON_CMAKE_DIR} build/json)
 
 # Libraries to link against target
-SET(LIBRARIES glfw fmt EnTT::EnTT volk assimp yaml-cpp nfd nlohmann_json::nlohmann_json)
+SET(LIBRARIES glfw fmt EnTT::EnTT volk assimp yaml-cpp nfd)
 
 # for tests only. -ltbb was required to use std::execution::par on linux
 # set(LIBRARIES glfw glew_s fmt EnTT::EnTT volk assimp yaml-cpp nfd tbb)

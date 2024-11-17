@@ -49,7 +49,7 @@ namespace Mikoto {
     }
 
     auto Renderer::Init(RendererSpec&& spec) -> void {
-        s_Spec = std::move(spec);
+        s_Spec = spec;
 
         s_ActiveAPI = s_Spec.Backend;
         s_ActiveRendererAPI = RendererBackend::Create(s_ActiveAPI);
@@ -62,6 +62,7 @@ namespace Mikoto {
 
         RenderCommand::Init(s_ActiveRendererAPI);
 
+        // Initialize rendering structures
         s_DrawData = std::make_unique<RendererDrawData>();
         s_RenderingStats = std::make_unique<RenderingStats>();
         s_SavedSceneStats = std::make_unique<RenderingStats>();

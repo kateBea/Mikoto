@@ -11,11 +11,12 @@ namespace Mikoto {
     class VulkanObject {
     public:
         using Value_T = T;
+        using Const_ValueRef_T = const T&;
 
         virtual auto Create(const InitDataT& data) -> void = 0;
         virtual auto Release() -> void = 0;
 
-        auto Get() const -> const Value_T& { return m_Obj; }
+        auto Get() const -> Const_ValueRef_T { return m_Obj; }
     protected:
         Value_T m_Obj;
         InitDataT m_CreateInfo;

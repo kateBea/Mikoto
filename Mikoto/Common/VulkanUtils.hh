@@ -36,6 +36,7 @@ namespace Mikoto {
         bool WantMapping{};
     };
 
+    // TODO: move to VulkanImage.hh
     struct ImageAllocateInfo {
         VkImage Image{};
         VmaAllocation Allocation{};
@@ -43,22 +44,11 @@ namespace Mikoto {
         VmaAllocationCreateInfo AllocationCreateInfo{};
     };
 
+    // TODO: move to swap chain file
     struct SwapChainSupportDetails {
         VkSurfaceCapabilitiesKHR Capabilities{};
         std::vector<VkSurfaceFormatKHR> Formats{};
         std::vector<VkPresentModeKHR> PresentModes{};
-    };
-
-
-    struct FramebufferAttachmentCreateInfo {
-        UInt32_T Width{};
-        UInt32_T Height{};
-        UInt32_T LayerCount{};
-
-        VkFormat Format{};
-
-        VkImageUsageFlags Usage{};
-        VkSampleCountFlagBits ImageSampleCount{ VK_SAMPLE_COUNT_1_BIT };
     };
 
     /**
@@ -95,18 +85,6 @@ namespace Mikoto {
 } // NAMESPACE MIKOTO
 
 namespace Mikoto::VulkanUtils {
-
-    /**
-     * Allocates a block of memory in the device's heap memory and binds given block to the given buffer
-     * @param buffer
-     * @param bufferMemory
-     * @param size
-     * @param properties
-     * @param usage
-     * @deprecated Prefer allocating memory buffers via VMA with the default allocator, number of allocations is pretty limited even in modern hardware
-     * */
-    auto CreateBuffer(VkBuffer& buffer, VkDeviceMemory& bufferMemory, VkDeviceSize size, VkMemoryPropertyFlags properties, VkBufferUsageFlags usage) -> void;
-
     /**
      * Uploads CPU accessible data to GPU readable memory
      * @param allocatedBufferData
@@ -125,12 +103,6 @@ namespace Mikoto::VulkanUtils {
      * @param device logical device to wait on
      * */
     auto WaitOnDevice(VkDevice device) -> void;
-
-    /**
-     * Wait on the specified queue to finish commands execution
-     * @param device queue to wait on
-     * */
-    auto WaitOnQueue(VkQueue queue) -> void;
 
     /**
      *  Returns the minimum required alignment, in bytes, for the offset member of the

@@ -42,7 +42,7 @@ namespace Mikoto {
         /**
          * Performs destruction on this singleton instance (defaulted)
          * */
-        ~Singleton() = default;
+        virtual ~Singleton() = default;
 
     public:
         /*************************************************************

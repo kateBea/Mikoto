@@ -50,8 +50,8 @@ namespace Mikoto {
         ImGui::StyleColorsDark();
         ImGuiUtils::ThemeDarkModeDefault();
 
-        const float baseFontSize{ 16.5f };
-        const float iconFontSize{ 18.0f };
+        constexpr float baseFontSize{ 16.5f };
+        constexpr float iconFontSize{ 18.0f };
         const std::string fontPath{ "../Assets/Fonts/" };
 
 

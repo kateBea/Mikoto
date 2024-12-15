@@ -7,14 +7,12 @@
 #define MIKOTO_RENDER_CONTEXT_HH
 
 // C++ Standard Library
-#include <any>
 #include <memory>
 
 // Project Headers
 #include <Common/Common.hh>
 #include <Common/RenderingUtils.hh>
 #include <Platform/Window.hh>
-#include <Renderer/Renderer.hh>
 
 namespace Mikoto {
 
@@ -22,8 +20,11 @@ namespace Mikoto {
      * @brief Represents the specifications required to initialize the rendering context.
      * */
     struct RenderContextSpec {
-        GraphicsAPI Backend{};                  /** Graphics backend for the render context. */
-        std::shared_ptr<Window> WindowHandle{}; /** Shared pointer to the window for rendering. */
+        /** Graphics backend for the render context. */
+        GraphicsAPI TargetAPI{};
+
+        /** Shared pointer to the window for rendering. */
+        std::shared_ptr<Window> Handle{};
     };
 
 
@@ -36,7 +37,7 @@ namespace Mikoto {
          * @brief Initializes the RenderContext with provided specifications.
          * @param spec The specifications for initializing the render context.
          * */
-        static auto Init(RenderContextSpec&& spec) -> void;
+        static auto Init( RenderContextSpec&& spec ) -> void;
 
 
         /**
@@ -83,8 +84,11 @@ namespace Mikoto {
 
 
     private:
-        inline static UUID s_Guid{};  /**< Globally unique identifier for the render context. */
-        inline static RenderContextSpec s_Spec{};   /**< Specifications for the RenderContext. */
+        /** Globally unique identifier for the render context. */
+        inline static UUID s_Guid{};
+
+        /** Specifications for the RenderContext. */
+        inline static RenderContextSpec s_Spec{};
     };
 
 }

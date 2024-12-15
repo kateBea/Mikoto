@@ -15,7 +15,7 @@
 #include <Layers/EditorLayer.hh>
 
 namespace Mikoto {
-    class EditorApp : public Application {
+    class EditorApp final : public Application {
     public:
         /**
          * @brief Creates and initializes the editor app and runs the main loop.
@@ -41,10 +41,10 @@ namespace Mikoto {
         auto ParseArguments(Int32_T argc, char **argv) -> void;
 
     private:
-        // Stores the command line arguments.
+        /** Stores the command line arguments. */
         std::vector<std::string> m_CommandLineArgs{};
 
-        // Holds the editor layer.
+        /** Holds the editor layer. */
         std::unique_ptr<EditorLayer> m_EditorLayer{};
     };
 }

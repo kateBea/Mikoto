@@ -98,30 +98,30 @@ namespace Mikoto {
 
     }
 
-    auto EditorLayer::OnUpdate(double ts) -> void {
-        RenderCommand::SetClearColor(m_SettingsPanel->GetData().ClearColor);
+    auto EditorLayer::OnUpdate( double ts ) -> void {
+        RenderCommand::SetClearColor( m_SettingsPanel->GetData().ClearColor );
 
         // Move and rotation speeds
         const auto& settingsPanelCurrentData{ m_SettingsPanel->GetData() };
-        m_EditorCamera->SetMovementSpeed(settingsPanelCurrentData.EditorCameraMovementSpeed);
-        m_EditorCamera->SetRotationSpeed(settingsPanelCurrentData.EditorCameraRotationSpeed);
+        m_EditorCamera->SetMovementSpeed( settingsPanelCurrentData.EditorCameraMovementSpeed );
+        m_EditorCamera->SetRotationSpeed( settingsPanelCurrentData.EditorCameraRotationSpeed );
 
         // Clip planes
-        m_EditorCamera->SetFarPlane(settingsPanelCurrentData.FarPlane);
-        m_EditorCamera->SetNearPlane(settingsPanelCurrentData.NearPlane);
+        m_EditorCamera->SetFarPlane( settingsPanelCurrentData.FarPlane );
+        m_EditorCamera->SetNearPlane( settingsPanelCurrentData.NearPlane );
 
         // Field of view
-        m_EditorCamera->SetFieldOfView(settingsPanelCurrentData.FieldOfView);
+        m_EditorCamera->SetFieldOfView( settingsPanelCurrentData.FieldOfView );
 
-        m_EditorCamera->OnUpdate(ts);
+        m_EditorCamera->OnUpdate( ts );
 
-        const auto& sceneData{ m_ScenePanel->GetData() };
         auto& activeScene{ SceneManager::GetActiveScene() };
+        const auto& [viewPortWidth, viewPortHeight]{ m_ScenePanel->GetData() };
 
         m_EditorCamera->UpdateViewMatrix();
         m_EditorCamera->UpdateProjection();
-        m_EditorCamera->SetViewportSize(sceneData.ViewPortWidth, sceneData.ViewPortHeight);
-        activeScene.OnEditorUpdate(ts, *m_EditorCamera);
+        m_EditorCamera->SetViewportSize( viewPortWidth, viewPortHeight );
+        activeScene.OnEditorUpdate( ts, *m_EditorCamera );
     }
 
     auto EditorLayer::PushImGuiDrawItems() -> void {

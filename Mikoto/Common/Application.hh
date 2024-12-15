@@ -11,10 +11,11 @@
 #include <unordered_set>
 
 // Project Headers
-#include "Core/Event.hh"
-#include "Platform/Window.hh"
-#include "Random.hh"
-#include "Singleton.hh"
+#include <Core/Event.hh>
+#include <Models/Enums.h>
+#include <Platform/Window.hh>
+#include <Common/Random.hh>
+#include <Common/Singleton.hh>
 
 namespace Mikoto {
 
@@ -47,7 +48,7 @@ namespace Mikoto {
         /**
          * @brief Destructs this application after exiting its scope.
          * */
-        ~Application() = default;
+        ~Application() override = default;
 
 
     protected:
@@ -91,20 +92,11 @@ namespace Mikoto {
          * @brief Checks if the application is running.
          * @returns True if the application is running, false otherwise.
          * */
-        auto IsRunning() -> bool {
+        auto IsRunning() const -> bool {
             return m_State == Status::RUNNING || m_State == Status::IDLE;
         }
 
     protected:
-        /**
-         * @brief Represents the current state of this application.
-         * */
-        enum class Status {
-            RUNNING,  /** Application is running. */
-            STOPPED,  /** Application has stopped. */
-            IDLE,     /** Application is idle. */
-        };
-
         /** Globally unique identifier for the application. Used to subscribe to events. */
         UUID m_Guid{};
 

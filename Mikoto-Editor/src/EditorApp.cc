@@ -22,32 +22,31 @@
 #include <Scene/SceneManager.hh>
 #include <Threading/TaskManager.hh>
 
-
 namespace Mikoto {
 
-    static auto GetApplicationSpec(const std::vector<std::string> &args) -> AppSpec {
+    static auto GetApplicationSpec( const std::vector<std::string> &args ) -> AppSpec {
         return {
-                .WindowWidth = 1920,
-                .WindowHeight = 1080,
-                .Name = "Mikoto Editor",
-                .WorkingDirectory = std::filesystem::current_path(),
-                .Executable = Path_T{args[0]},
-                .RenderingBackend = GraphicsAPI::VULKAN_API,
-                .CommandLineArguments = {args.begin(), args.end()},
+            .WindowWidth = 1920,
+            .WindowHeight = 1080,
+            .Name = "Mikoto Editor",
+            .WorkingDirectory = std::filesystem::current_path(),
+            .Executable = Path_T{ args[0] },
+            .RenderingBackend = GraphicsAPI::VULKAN_API,
+            .CommandLineArguments = { args.begin(), args.end() },
         };
     }
 
-    auto EditorApp::Run(Int32_T argc, char **argv) -> Int32_T {
-        ParseArguments(argc, argv);
+    auto EditorApp::Run( const Int32_T argc, char **argv ) -> Int32_T {
+        ParseArguments( argc, argv );
 
-        Int32_T exitCode{ EXIT_SUCCESS };
-        AppSpec appSpecs{ GetApplicationSpec(m_CommandLineArgs) };
+        auto exitCode{ EXIT_SUCCESS };
+        auto appSpecs{ GetApplicationSpec( m_CommandLineArgs ) };
 
         try {
 
-            Init(std::move(appSpecs));
+            Init( std::move( appSpecs ) );
 
-            while (IsRunning()) {
+            while ( IsRunning() ) {
                 ProcessEvents();
                 UpdateState();
                 Present();
@@ -55,7 +54,7 @@ namespace Mikoto {
 
             Shutdown();
 
-        } catch (const std::exception& exception) {
+        } catch ( const std::exception &exception ) {
             MKT_COLOR_STYLE_PRINT_FORMATTED( MKT_FMT_COLOR_RED, MKT_FMT_STYLE_BOLD, "{}", exception.what() );
             exitCode = EXIT_FAILURE;
         }
@@ -63,10 +62,11 @@ namespace Mikoto {
         return exitCode;
     }
 
-    auto EditorApp::ParseArguments(Int32_T argc, char **argv) -> void {
-        const auto limit{std::addressof(argv[argc])};
-        for (; argv < limit; ++argv) {
-            m_CommandLineArgs.emplace_back(*argv);
+    auto EditorApp::ParseArguments( const Int32_T argc, char **argv ) -> void {
+        const auto limit{ std::addressof( argv[argc] ) };
+
+        for ( ; argv != limit; ++argv ) {
+            m_CommandLineArgs.emplace_back( *argv );
         }
     }
 
@@ -82,7 +82,7 @@ namespace Mikoto {
         MKT_APP_LOGGER_INFO("Current working directory : {}", m_Spec.WorkingDirectory.string());
         MKT_APP_LOGGER_INFO("=================================================================");
 
-        FileManager::Assets::SetRootPath("..\\Assets");
+        FileManager::Assets::SetRootPath("../Assets");
 
         WindowProperties windowProperties{ m_Spec.Name, m_Spec.RenderingBackend, m_Spec.WindowWidth, m_Spec.WindowHeight };
         windowProperties.AllowResizing(true);
@@ -96,7 +96,7 @@ namespace Mikoto {
 
         FileManager::Init();
         InputManager::Init(m_MainWindow.get());
-        RenderContextSpec contextSpec{ .Backend = m_Spec.RenderingBackend, .WindowHandle = m_MainWindow };
+        RenderContextSpec contextSpec{ .TargetAPI = m_Spec.RenderingBackend, .Handle = m_MainWindow };
 
         RenderContext::Init(std::move(contextSpec));
 
@@ -169,8 +169,8 @@ namespace Mikoto {
     }
 
     auto EditorApp::UpdateLayers() -> void {
-        auto timeStep{TimeManager::GetTimeStep()};
-        m_EditorLayer->OnUpdate(timeStep);
+        const auto timeStep{ TimeManager::GetTimeStep() };
+        m_EditorLayer->OnUpdate( timeStep );
     }
 
     auto EditorApp::RenderImGuiFrame() -> void {

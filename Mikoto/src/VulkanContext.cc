@@ -875,7 +875,6 @@ namespace Mikoto {
 
 
     auto VulkanContext::InitContext( const std::shared_ptr<Window>& ptr ) -> void {
-        // Initialize the Volk library
         const VkResult ret{ volkInitialize() };
         s_ContextData.VOLKInitSuccess = ret == VK_SUCCESS;
         MKT_ASSERT( s_ContextData.VOLKInitSuccess, "Failed to initialize VOLK!" );

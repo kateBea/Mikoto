@@ -370,14 +370,14 @@ namespace Mikoto {
         ShaderCreateInfo vertexStage{};
 
         // TODO: path join util
-        vertexStage.Directory = FileManager::Assets::GetRootPath() / "shaders\\vulkan-spirv\\StandardVertexShader.sprv";
+        vertexStage.Directory = FileManager::Assets::GetRootPath() / "shaders/vulkan-spirv/StandardVertexShader.sprv";
         vertexStage.Stage = ShaderStage::SHADER_VERTEX_STAGE;
 
         VulkanShader vertexShader{ vertexStage };
 
         // Vertex shader
         ShaderCreateInfo fragmentStage{};
-        fragmentStage.Directory = FileManager::Assets::GetRootPath() / "shaders\\vulkan-spirv\\StandardFragmentShader.sprv";
+        fragmentStage.Directory = FileManager::Assets::GetRootPath() / "shaders/vulkan-spirv/StandardFragmentShader.sprv";
         fragmentStage.Stage = ShaderStage::SHADER_FRAGMENT_STAGE;
 
         VulkanShader fragmentShader{ fragmentStage };

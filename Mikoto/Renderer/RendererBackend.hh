@@ -121,7 +121,6 @@ namespace Mikoto {
         MKT_NODISCARD static auto Create(GraphicsAPI backend) -> RendererBackend*;
 
 
-    public:
         DISABLE_COPY_AND_MOVE_FOR(RendererBackend);
 
 

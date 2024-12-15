@@ -11,8 +11,8 @@
 #include <string_view>
 
 // Project Headers
-#include "Common/Common.hh"
-#include "Event.hh"
+#include <Common/Common.hh>
+#include <Core/Event.hh>
 
 namespace Mikoto {
     /**
@@ -30,7 +30,6 @@ namespace Mikoto {
         virtual auto OnDetach() -> void = 0;
         virtual auto OnUpdate(double ts) -> void = 0;
 
-        // change Event& to Event*
         virtual auto OnEvent(Event& event) -> void { (void)event; }
         virtual auto PushImGuiDrawItems() -> void {}
 
@@ -52,6 +51,7 @@ namespace Mikoto {
 
     private:
         std::string m_Name{};
+
     };
 }
 

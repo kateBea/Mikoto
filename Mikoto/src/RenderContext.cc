@@ -15,14 +15,14 @@ namespace Mikoto {
     auto RenderContext::Init(RenderContextSpec&& spec) -> void {
         s_Spec = std::move(spec);
 
-        switch (s_Spec.Backend) {
+        switch (s_Spec.TargetAPI) {
             case GraphicsAPI::VULKAN_API:
-                VulkanContext::Init(s_Spec.WindowHandle);
+                VulkanContext::Init(s_Spec.Handle);
                 break;
         }
 
-        Renderer::Init(RendererSpec{ .Backend = s_Spec.Backend });
-        ImGuiManager::Init(s_Spec.WindowHandle);
+        Renderer::Init(RendererSpec{ .Backend = s_Spec.TargetAPI });
+        ImGuiManager::Init(s_Spec.Handle);
     }
 
 
@@ -30,7 +30,7 @@ namespace Mikoto {
         // Renderer shutdown
         Renderer::Shutdown();
 
-        switch (s_Spec.Backend) {
+        switch (s_Spec.TargetAPI) {
             case GraphicsAPI::VULKAN_API:
                 // Wait for remaining operations
                 VulkanUtils::WaitOnDevice(VulkanContext::GetPrimaryLogicalDevice());
@@ -51,7 +51,7 @@ namespace Mikoto {
 
 
     auto RenderContext::Present() -> void {
-        switch (s_Spec.Backend) {
+        switch (s_Spec.TargetAPI) {
             case GraphicsAPI::VULKAN_API:
                 VulkanContext::Present();
                 break;
@@ -60,7 +60,7 @@ namespace Mikoto {
 
 
     MKT_UNUSED_FUNC auto RenderContext::IsVSyncActive() -> bool {
-        switch (s_Spec.Backend) {
+        switch (s_Spec.TargetAPI) {
             case GraphicsAPI::VULKAN_API:
                 return VulkanContext::IsVSyncActive();
             default: return false;
@@ -69,7 +69,7 @@ namespace Mikoto {
 
 
     auto RenderContext::EnableVSync() -> void {
-        switch (s_Spec.Backend) {
+        switch (s_Spec.TargetAPI) {
             case GraphicsAPI::VULKAN_API:
                 VulkanContext::EnableVSync();
                 break;
@@ -78,7 +78,7 @@ namespace Mikoto {
 
 
     auto RenderContext::DisableVSync() -> void {
-        switch (s_Spec.Backend) {
+        switch (s_Spec.TargetAPI) {
             case GraphicsAPI::VULKAN_API:
                 VulkanContext::DisableVSync();
                 break;
@@ -87,7 +87,7 @@ namespace Mikoto {
 
 
     auto RenderContext::PrepareFrame() -> void {
-        switch (s_Spec.Backend) {
+        switch (s_Spec.TargetAPI) {
             case GraphicsAPI::VULKAN_API:
                 VulkanContext::PrepareFrame();
                 break;
@@ -96,7 +96,7 @@ namespace Mikoto {
 
 
     auto RenderContext::SubmitFrame() -> void {
-        switch (s_Spec.Backend) {
+        switch (s_Spec.TargetAPI) {
             case GraphicsAPI::VULKAN_API:
                 VulkanContext::SubmitFrame();
                 break;

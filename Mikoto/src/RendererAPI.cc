@@ -7,21 +7,21 @@
 #include <new>
 
 // Project Headers
-#include "Core/Logger.hh"
-#include "Renderer/RendererBackend.hh"
-#include "Renderer/Vulkan/VulkanRenderer.hh"
+#include <Core/Logger.hh>
+#include <Renderer/RendererBackend.hh>
+#include <Renderer/Vulkan/VulkanRenderer.hh>
 
 namespace Mikoto {
 
-    auto RendererBackend::Create(GraphicsAPI backend) -> RendererBackend * {
-        switch(backend) {
+    auto RendererBackend::Create( const GraphicsAPI backend ) -> RendererBackend * {
+        switch ( backend ) {
             case GraphicsAPI::VULKAN_API:
-                return new (std::nothrow) VulkanRenderer();
+                return new ( std::nothrow ) VulkanRenderer();
             default:
-                MKT_CORE_LOGGER_CRITICAL("Unsupported renderer API!");
+                MKT_CORE_LOGGER_CRITICAL( "Unsupported renderer API!" );
                 break;
         }
 
         return nullptr;
     }
-}
+}// namespace Mikoto

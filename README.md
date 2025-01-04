@@ -118,7 +118,6 @@ The development of Mikoto Engine is made possible thanks to these fantastic thir
 | **yaml-cpp**                  | YAML parser and emitter for C++              | [jbeder/yaml-cpp](https://github.com/jbeder/yaml-cpp)                                                               |
 | **nativefiledialog-extended** | File dialog library for native UIs           | [btzy/nativefiledialog-extended](https://github.com/btzy/nativefiledialog-extended)                                 |
 | **JoltPhysics**               | Physics engine library                       | [jrouwe/JoltPhysics](https://github.com/jrouwe/JoltPhysics)                                                         |
-| **JSON for Modern C++**       | JSON library for C++                         | [nlohmann/json](https://github.com/nlohmann/json)                                                                   |
 | **tomlplusplus**              | TOML configuration file parser for C++       | [marzer/tomlplusplus](https://github.com/marzer/tomlplusplus)                                                       |
 > **Note**: The required libraries are included as a submodules in the project and do not require separate installation, just need to clone the repository with ``--recursive`` flag.
 

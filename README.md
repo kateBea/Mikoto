@@ -146,3 +146,14 @@ The development of Mikoto has been inspired by the work of the following:
 
 Mikoto Engine is still in its early stages, and additional features and optimizations will be added over time.
 Feedback is always welcome!
+
+---
+
+## License
+
+This project is licensed under the **Apache License 2.0**.
+
+You are free to use, modify, and distribute this software under the terms of the Apache License 2.0. A copy of the license is included in the repository.
+
+For the full license text, see the [LICENSE](LICENSE) file in the repository.
+

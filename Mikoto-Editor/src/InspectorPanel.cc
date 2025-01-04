@@ -20,15 +20,12 @@
 #include <Assets/AssetsManager.hh>
 #include <Common/Common.hh>
 #include <Common/RenderingUtils.hh>
-#include <Common/StringUtils.hh>
-#include <Common/Types.hh>
 #include <Core/FileManager.hh>
 #include <GUI/ImGuiManager.hh>
 #include <GUI/ImGuiUtils.hh>
+#include <Material/Material/StandardMaterial.hh>
 #include <Panels/InspectorPanel.hh>
-#include <Renderer/Material/PhysicallyBasedMaterial.hh>
-#include <Renderer/Material/StandardMaterial.hh>
-#include <Renderer/Renderer.hh>
+#include <STL/Filesystem/FileUtilities.hh>
 #include <Scene/Component.hh>
 #include <Scene/Entity.hh>
 #include <Scene/SceneManager.hh>
@@ -49,7 +46,7 @@ namespace Mikoto {
         ImGui::Begin(fmt::format("{} Material editor", ICON_MD_EDIT_SQUARE).c_str(),
                      std::addressof(m_OpenMaterialEditor));
 
-        if (m_TargetMaterialForMaterialEditor->GetType() == Material::Type::MATERIAL_TYPE_STANDARD) {
+        if (m_TargetMaterialForMaterialEditor->GetType() == Type::MATERIAL_TYPE_STANDARD) {
             // Standard Material ----------------
 
             // If mesh has standard material. That one requires a diffuse map and a specular map
@@ -523,43 +520,45 @@ namespace Mikoto {
 
 
     template<typename ComponentType, typename UIFunction>
-    static auto
-    DrawComponent(std::string_view componentLabel, Entity &entity, UIFunction &&uiFunc, bool hasRemoveButton = true) {
+    static auto DrawComponent( const std::string_view componentLabel, Entity &entity, UIFunction &&uiFunc, const bool hasRemoveButton = true ) -> void {
         static constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
-                                                          ImGuiTreeNodeFlags_AllowItemOverlap |
-                                                          ImGuiTreeNodeFlags_Framed |
-                                                          ImGuiTreeNodeFlags_SpanAvailWidth |
-                                                          ImGuiTreeNodeFlags_FramePadding };
+                                                           ImGuiTreeNodeFlags_AllowItemOverlap |
+                                                           ImGuiTreeNodeFlags_Framed |
+                                                           ImGuiTreeNodeFlags_SpanAvailWidth |
+                                                           ImGuiTreeNodeFlags_FramePadding };
 
-        if (entity.HasComponent<ComponentType>()) {
-            bool removeComponent{false};
-            const ImVec2 contentRegionAvailable{ImGui::GetContentRegionAvail()};
+        if ( entity.HasComponent<ComponentType>() ) {
+            bool removeComponent{ false };
+            const ImVec2 contentRegionAvailable{ ImGui::GetContentRegionAvail() };
 
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{4.0f, 4.0f});
+            ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2{ 4.0f, 4.0f } );
 
             // See ImGui implementation for button dimensions computation
-            const float lineHeight{GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f};
+            const float lineHeight{ GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f };
 
             const bool componentNodeOpen{
-                    ImGui::TreeNodeEx((void *) typeid(ComponentType).hash_code(), treeNodeFlags, "%s",
-                                      componentLabel.data())};
-            if (ImGui::IsItemHovered()) {
-                ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+                ImGui::TreeNodeEx( reinterpret_cast<void *>( typeid( ComponentType ).hash_code() ), treeNodeFlags, "%s",
+                                   componentLabel.data() )
+            };
+
+            if ( ImGui::IsItemHovered() ) {
+                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
             }
 
             ImGui::PopStyleVar();
-            if (hasRemoveButton) {
-                ImGui::SameLine(contentRegionAvailable.x - lineHeight * 0.5f);
-                if (ImGui::Button(fmt::format("{}", ICON_MD_SETTINGS).c_str(), ImVec2{lineHeight, lineHeight})) {
-                    ImGui::OpenPopup("ComponentSettingsButton");
+
+            if ( hasRemoveButton ) {
+                ImGui::SameLine( contentRegionAvailable.x - lineHeight * 0.5f );
+                if ( ImGui::Button( fmt::format( "{}", ICON_MD_SETTINGS ).c_str(), ImVec2{ lineHeight, lineHeight } ) ) {
+                    ImGui::OpenPopup( "ComponentSettingsButton" );
                 }
 
-                if (ImGui::IsItemHovered()) {
-                    ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+                if ( ImGui::IsItemHovered() ) {
+                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
                 }
 
-                if (ImGui::BeginPopup("ComponentSettingsButton")) {
-                    if (ImGui::MenuItem("Remove Component")) {
+                if ( ImGui::BeginPopup( "ComponentSettingsButton" ) ) {
+                    if ( ImGui::MenuItem( "Remove Component" ) ) {
                         removeComponent = true;
                         ImGui::CloseCurrentPopup();
                     }
@@ -568,15 +567,15 @@ namespace Mikoto {
                 }
             }
 
-            if (componentNodeOpen) {
-                ComponentType &component{entity.GetComponent<ComponentType>()};
+            if ( componentNodeOpen ) {
+                ComponentType &component{ entity.GetComponent<ComponentType>() };
 
-                uiFunc(component);
+                uiFunc( component );
 
                 ImGui::TreePop();
             }
 
-            if (removeComponent) {
+            if ( removeComponent ) {
                 entity.RemoveComponent<ComponentType>();
             }
 
@@ -619,6 +618,7 @@ namespace Mikoto {
             tag.SetTag(selectionName.data());
         }
     }
+
 
     static auto AddTransformComponentTab(Entity& entity) {
         // By default, all scene objects have a transform component which cannot be removed
@@ -850,7 +850,7 @@ namespace Mikoto {
                 ImGui::SameLine();
 
                 if (ImGui::Button(fmt::format(" {} Load ", ICON_MD_SEARCH).c_str())) {
-                    std::initializer_list<std::pair<std::string, std::string>> filters{
+                    const std::initializer_list<std::pair<std::string, std::string>> filters{
                             { "Model files", "obj, gltf, fbx" },
                             { "OBJ files",   "obj" },
                             { "glTF files",  "gltf" },
@@ -862,19 +862,21 @@ namespace Mikoto {
                     if (!path.empty()) {
                         const Path_T modelPath{ path };
                         objData.ModelPath = modelPath;
-                        objData.ModelName = GetByteChar(modelPath.stem());
+                        objData.ModelName = StringUtils::GetByteChar( modelPath.stem() );
 
-                        ModelLoadInfo modelLoadInfo{};
-                        modelLoadInfo.ModelPath = modelPath;
-                        modelLoadInfo.InvertedY = Renderer::GetActiveGraphicsAPI() == GraphicsAPI::VULKAN_API;
-                        modelLoadInfo.WantTextures = true;
+                        const ModelLoadInfo modelLoadInfo{
+                            .ModelPath = modelPath,
+                            .InvertedY = Renderer::GetActiveGraphicsAPI() == GraphicsAPI::VULKAN_API,
+                            .WantTextures = true,
+                        };
 
-                        EntityCreateInfo entityCreateInfo{};
-                        entityCreateInfo.Name = objData.ModelName;
-                        entityCreateInfo.PrefabType = PrefabSceneObject::CUSTOM_MODEL_PREFAB_OBJECT;
+                        EntityCreateInfo entityCreateInfo{
+                            .Name = objData.ModelName,
+                            .PrefabType = PrefabSceneObject::CUSTOM_MODEL_PREFAB_OBJECT,
+                        };
 
                         Model* model{ AssetsManager::LoadModel(modelLoadInfo) };
-                        SceneManager::GetActiveScene().CreatePrefab(objData.ModelName, model);
+                        SceneManager::GetActiveScene().CreatePrefabEntity(objData.ModelName, model);
                     }
                 }
 

@@ -11,15 +11,15 @@
 #include <string_view>
 
 // Third-Party Libraries
-#include "fmt/core.h"
+#include <fmt/core.h>
 
 // Project Headers
-#include "Common/Common.hh"
-#include "Common/Types.hh"
-#include "Event.hh"
+#include <Common/Common.hh>
+#include <STL/Utility/Types.hh>
+#include <Core/Event.hh>
 
 namespace Mikoto {
-    class WindowResizedEvent : public Event {
+    class WindowResizedEvent final : public Event {
     public:
         WindowResizedEvent(Int32_T newWidth, Int32_T newHeight)
             :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
@@ -46,7 +46,7 @@ namespace Mikoto {
         Int32_T m_Height{};
     };
 
-    class WindowCloseEvent: public Event {
+    class WindowCloseEvent final : public Event {
     public:
         explicit WindowCloseEvent()
             :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
@@ -66,7 +66,7 @@ namespace Mikoto {
         MKT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
     };
 
-    class AppTick : public Event {
+    class AppTick final : public Event {
     public:
         explicit AppTick()
             :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
@@ -86,7 +86,7 @@ namespace Mikoto {
         MKT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
     };
 
-    class CameraEnableRotation : public Event {
+    class CameraEnableRotation final : public Event {
     public:
         explicit CameraEnableRotation()
             :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
@@ -106,7 +106,7 @@ namespace Mikoto {
         MKT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
     };
 
-    class AppClose : public Event {
+    class AppClose final : public Event {
     public:
         explicit AppClose()
             :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
@@ -126,7 +126,7 @@ namespace Mikoto {
         MKT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
     };
 
-    class AppUpdate : public Event {
+    class AppUpdate final : public Event {
     public:
         explicit AppUpdate()
             :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
@@ -146,7 +146,7 @@ namespace Mikoto {
         MKT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
     };
 
-    class AppRender: public Event {
+    class AppRender final : public Event {
     public:
         explicit AppRender()
             :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
@@ -182,7 +182,7 @@ namespace Mikoto {
         Int32_T m_KeyCode{};
     };
 
-    class KeyPressedEvent : public KeyEvent {
+    class KeyPressedEvent final : public KeyEvent {
     public:
         KeyPressedEvent(Int32_T keyCode, bool repeated, Int32_T modifiers = 0)
             :   KeyEvent{ GetStaticType(), keyCode }
@@ -209,7 +209,7 @@ namespace Mikoto {
         Int32_T m_Modifiers{};
     };
 
-    class KeyReleasedEvent : public KeyEvent {
+    class KeyReleasedEvent final : public KeyEvent {
     public:
         explicit KeyReleasedEvent(Int32_T code)
             :   KeyEvent{ GetStaticType(), code }
@@ -228,7 +228,7 @@ namespace Mikoto {
         MKT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
     };
 
-    class KeyCharEvent : public Event {
+    class KeyCharEvent final : public Event {
     public:
         explicit KeyCharEvent(UInt32_T charCode)
             :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
@@ -251,7 +251,7 @@ namespace Mikoto {
         UInt32_T m_KeyChar{};
     };
 
-    class MouseMovedEvent : public Event {
+    class MouseMovedEvent final : public Event {
     public:
         MouseMovedEvent(double x, double y)
             :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
@@ -287,7 +287,7 @@ namespace Mikoto {
         }
     };
 
-    class MouseButtonPressedEvent : public MouseEvent {
+    class MouseButtonPressedEvent final : public MouseEvent {
     public:
         explicit MouseButtonPressedEvent(Int32_T button, Int32_T modifiers = 0)
             :   MouseEvent{ GetStaticType() }
@@ -315,7 +315,7 @@ namespace Mikoto {
         Int32_T m_Modifiers{};
     };
 
-    class MouseButtonReleasedEvent : public MouseEvent {
+    class MouseButtonReleasedEvent final : public MouseEvent {
     public:
         explicit MouseButtonReleasedEvent(Int32_T button)
             :   MouseEvent{ GetStaticType() }
@@ -339,7 +339,7 @@ namespace Mikoto {
         Int32_T m_Button{};
     };
 
-    class MouseScrollEvent : public MouseEvent {
+    class MouseScrollEvent final : public MouseEvent {
     public:
         MouseScrollEvent(double xOffset, double yOffset)
             :   MouseEvent{ GetStaticType() }

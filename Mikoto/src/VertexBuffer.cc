@@ -8,10 +8,11 @@
 #include <memory>
 
 // Project Headers
+#include <Renderer/Core/Renderer.hh>
+
 #include "Common/RenderingUtils.hh"
 #include "Core/Logger.hh"
-#include "Renderer/Renderer.hh"
-#include "Renderer/VertexBuffer.hh"
+#include "Models/VertexBufferCreateInfo.hh"
 #include "Renderer/Vulkan/VulkanVertexBuffer.hh"
 
 namespace Mikoto {

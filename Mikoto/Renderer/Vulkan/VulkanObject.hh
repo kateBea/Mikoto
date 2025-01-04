@@ -10,6 +10,8 @@ namespace Mikoto {
     template <typename T, typename InitDataT>
     class VulkanObject {
     public:
+        virtual ~VulkanObject() = default;
+
         using Value_T = T;
         using Const_ValueRef_T = const T&;
 

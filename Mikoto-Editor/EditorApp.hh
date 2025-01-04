@@ -10,7 +10,7 @@
 #include <vector>
 
 // Project Headers
-#include <Common/Types.hh>
+#include <STL/Utility/Types.hh>
 #include <Common/Application.hh>
 #include <Layers/EditorLayer.hh>
 
@@ -25,7 +25,7 @@ namespace Mikoto {
         auto Run(Int32_T argc, char** argv) -> Int32_T;
 
     protected:
-        auto Init(AppSpec&& appSpec) -> void override;
+        auto Init(ApplicationData&& appSpec) -> void override;
         auto Shutdown() -> void override;
         auto ProcessEvents() -> void override;
         auto UpdateState() -> void override;

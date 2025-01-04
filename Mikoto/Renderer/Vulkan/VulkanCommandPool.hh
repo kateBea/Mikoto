@@ -14,10 +14,10 @@
 #include <Renderer/Vulkan/VulkanObject.hh>
 
 namespace Mikoto {
-    class VulkanCommandPool : public VulkanObject<VkCommandPool, VkCommandPoolCreateInfo> {
+    class VulkanCommandPool final : public VulkanObject<VkCommandPool, VkCommandPoolCreateInfo> {
     public:
         explicit VulkanCommandPool() = default;
-        ~VulkanCommandPool() = default;
+        ~VulkanCommandPool() override = default;
 
         auto Create(const VkCommandPoolCreateInfo& createInfo) -> void override;
         auto Release() -> void override;

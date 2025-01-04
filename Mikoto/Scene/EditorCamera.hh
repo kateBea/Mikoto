@@ -15,11 +15,11 @@
 // Project Headers
 #include "Camera.hh"
 #include "Common/Common.hh"
-#include "Common/Random.hh"
+#include "STL/Random/Random.hh"
 
 namespace Mikoto {
     /**
-     * @class Editor Camera. Camera used for editing scenes.
+     * @class EditorCamera. Camera used for editing scenes.
      * @brief This camera is based off OpenGL coordinate system which is right handed
      * Will eventually be changed so that it is adjusted properly to the Vulkan backend
      * */

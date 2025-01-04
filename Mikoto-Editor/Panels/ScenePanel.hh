@@ -14,7 +14,7 @@
 
 // Project Headers
 #include "Common/Common.hh"
-#include "Common/Types.hh"
+#include "STL/Utility/Types.hh"
 #include "HierarchyPanel.hh"
 #include "Panel.hh"
 

@@ -14,13 +14,15 @@
 #include "volk.h"
 
 // Project Headers
+#include <Renderer/Buffer/IndexBuffer.hh>
+
 #include "Common/Common.hh"
-#include "Common/VulkanUtils.hh"
-#include "Renderer/IndexBuffer.hh"
+#include "Renderer/Vulkan/VulkanUtils.hh"
+#include "Renderer/Buffer/IndexBuffer.hh"
 #include "VulkanBuffer.hh"
 
 namespace Mikoto {
-    class VulkanIndexBuffer : public IndexBuffer {
+    class VulkanIndexBuffer final : public IndexBuffer {
     public:
         /**
          * Creates and initializes this index buffer.

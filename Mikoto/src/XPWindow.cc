@@ -13,13 +13,14 @@
 // Projects headers
 #include <Common/Common.hh>
 #include <Common/RenderingUtils.hh>
-#include <Common/Types.hh>
 #include <Core/Assert.hh>
 #include <Core/CoreEvents.hh>
 #include <Core/EventManager.hh>
 #include <Core/Logger.hh>
-#include <Platform/InputManager.hh>
-#include <Platform/XPWindow.hh>
+#include <Platform/Input/InputManager.hh>
+#include <Platform/Window/XPWindow.hh>
+#include <Renderer/Vulkan/VulkanUtils.hh>
+#include <STL/Utility/Types.hh>
 
 namespace Mikoto {
     XPWindow::XPWindow( WindowProperties&& properties )

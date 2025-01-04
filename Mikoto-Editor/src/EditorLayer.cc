@@ -15,7 +15,7 @@
 #include "Core/FileManager.hh"
 #include "Core/TimeManager.hh"
 #include "Layers/EditorLayer.hh"
-#include "Renderer/RenderCommand.hh"
+#include "Renderer/Core/RenderCommand.hh"
 #include "Scene/SceneManager.hh"
 #include "Tools/ConsoleManager.hh"
 #include "GUI/ImGuiUtils.hh"

@@ -18,7 +18,7 @@
 
 namespace Mikoto {
 
-    class HierarchyPanel : public Panel {
+    class HierarchyPanel final : public Panel {
     public:
         explicit HierarchyPanel();
         auto operator=( HierarchyPanel&& other ) -> HierarchyPanel& = default;
@@ -28,12 +28,9 @@ namespace Mikoto {
         ~HierarchyPanel() override = default;
 
     private:
-        static auto DrawNodeTree(EntityNode &target ) -> void;
+        static auto DrawNodeTree(GenTree<Entity>& hierarchy) -> void;
         static auto OnEntityRightClickMenu( Entity& target ) -> void;
         static auto BlankSpacePopupMenu() -> void;
-
-    private:
-        std::vector<EntityNode> m_Nodes{};
     };
 }
 

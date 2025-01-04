@@ -11,7 +11,7 @@
 
 // Project Headers
 #include "Common/Common.hh"
-#include "Platform/Window.hh"
+#include "Platform/Window/Window.hh"
 
 namespace Mikoto {
     class OrthographicCamera {

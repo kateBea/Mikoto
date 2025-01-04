@@ -3,3 +3,7 @@
 //
 
 #include "Panels/MaterialEditorPanel.hh"
+
+namespace Mikoto {
+
+}

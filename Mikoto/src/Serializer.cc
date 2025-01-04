@@ -23,7 +23,6 @@
 #include <Core/FileManager.hh>
 #include <Core/Logger.hh>
 #include <Scene/Entity.hh>
-#include <Scene/SceneManager.hh>
 
 #include "../../Mikoto-Editor/Tools/ConsoleManager.hh"
 
@@ -212,6 +211,7 @@ namespace Mikoto::FileManager {
             return;
         }
 
+#if false // disable for now
         // Recreate a new scene on top of which we are going to deserialize
         const std::string sceneName{ data["Scene"].as<std::string>() };
         auto& newScene{ SceneManager::MakeNewScene(sceneName) };
@@ -269,6 +269,8 @@ namespace Mikoto::FileManager {
         else {
             MKT_CORE_LOGGER_INFO("File opened '{}' but has no scene objects", saveFilePath.string());
         }
+#endif
+
     }
 
     auto SaveDialog(const std::string& defaultName, const std::initializer_list<std::pair<std::string, std::string>>& filters) -> std::string {
@@ -340,9 +342,8 @@ namespace Mikoto::FileManager {
     }
 
     auto Init() -> void {
-        const auto result{ NFD::Init() == NFD_OKAY };
-        if (!result) {
-            MKT_THROW_RUNTIME_ERROR("Failed to initialized File dialog library NFD");
+        if ( const auto result{ NFD::Init() == NFD_OKAY }; !result) {
+            MKT_THROW_RUNTIME_ERROR("FileManager - Failed to initialized File dialog library NFD.");
         }
     }
 

@@ -11,7 +11,7 @@
 #include "volk.h"
 
 // Project Header
-#include "../Common/VulkanUtils.hh"
+#include "Renderer/Vulkan/VulkanUtils.hh"
 #include "Renderer/Vulkan/VulkanContext.hh"
 
 namespace Mikoto::VulkanUtils {

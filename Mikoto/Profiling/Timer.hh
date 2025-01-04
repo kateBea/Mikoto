@@ -15,7 +15,7 @@
 #include "Core/TimeManager.hh"
 
 namespace Mikoto {
-    class Timer {
+    class Timer final {
     public:
         explicit Timer(std::string_view id = "Unknown scope", TimeUnit defaultUnit = TimeUnit::MICROSECONDS);
 

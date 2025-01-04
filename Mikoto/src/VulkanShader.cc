@@ -11,10 +11,9 @@
 #include "volk.h"
 
 // Project Headers
-#include "../Common/Common.hh"
-#include "../Common/Types.hh"
-#include "../Common/VulkanUtils.hh"
+#include "Common/Common.hh"
 #include "Core/Logger.hh"
+#include <STL/Filesystem/FileUtilities.hh>
 #include <Renderer/Vulkan/DeletionQueue.hh>
 #include "Renderer/Vulkan/VulkanContext.hh"
 #include "Renderer/Vulkan/VulkanShader.hh"
@@ -27,7 +26,7 @@ namespace Mikoto {
     }
 
     auto VulkanShader::Upload(const Path_T& src) -> void {
-        const auto srcData{ GetFileData(src) };
+        const auto srcData{ FileUtilities::GetFileData(src) };
 
         m_Data.Code = std::string(srcData.begin(), srcData.end());
         MKT_CORE_LOGGER_DEBUG("Loaded SPIR-V. Size {}", srcData.size());

@@ -12,9 +12,9 @@
 
 #include "imgui.h"
 
-#include "Common/Random.hh"
+#include "STL/Random/Random.hh"
 #include "Panel.hh"
-#include "Renderer/Material/Texture2D.hh"
+#include "Material/Texture/Texture2D.hh"
 
 namespace Mikoto {
     class ContentBrowserPanel : public Panel {

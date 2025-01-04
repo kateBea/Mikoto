@@ -14,15 +14,15 @@
 #include <backends/imgui_impl_vulkan.h>
 
 // Project Headers
-#include <Common/Types.hh>
 #include <Common/Common.hh>
-#include <Common/VulkanUtils.hh>
-
 #include <Renderer/Vulkan/DeletionQueue.hh>
 #include <Renderer/Vulkan/VulkanBuffer.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
 #include <Renderer/Vulkan/VulkanTexture2D.hh>
+#include <Renderer/Vulkan/VulkanUtils.hh>
+#include <STL/Filesystem/FileUtilities.hh>
+#include <STL/Utility/Types.hh>
 
 namespace Mikoto {
     VulkanTexture2D::VulkanTexture2D(const Path_T& path, MapType type, bool retainFileData)
@@ -52,7 +52,7 @@ namespace Mikoto {
     }
 
     auto VulkanTexture2D::LoadImageData(const Path_T& path) -> void {
-        auto filePath { GetByteChar(path) };
+        auto filePath { StringUtils::GetByteChar(path) };
         stbi_set_flip_vertically_on_load(true);
         m_TextureFileData = stbi_load(filePath.c_str(), std::addressof(m_Width), std::addressof(m_Height), std::addressof(m_Channels), STBI_rgb_alpha);
 
@@ -66,7 +66,7 @@ namespace Mikoto {
         const auto kbPerMb{ 1'000.0 };
 
         // Store size in MB
-        m_Size = GetFileSize(path) / kbPerMb;
+        m_Size = FileUtilities::GetFileSize(path) / kbPerMb;
 
         if (!m_TextureFileData) {
             MKT_THROW_RUNTIME_ERROR(fmt::format("Failed to load texture image! Error file [{}]", path.string()));

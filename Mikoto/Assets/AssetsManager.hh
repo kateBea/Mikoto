@@ -11,10 +11,11 @@
 #include <unordered_map>
 
 // Project Headers
+#include <Models/Enums.hh>
+
+#include "Assets/Model.hh"
 #include "Common/Common.hh"
 #include "Common/RenderingUtils.hh"
-#include "Common/Types.hh"
-#include "Renderer/Model.hh"
 
 namespace Mikoto {
     struct AssetsManagerSpec {
@@ -57,7 +58,7 @@ namespace Mikoto {
 
     private:
         /**
-         * @brief Loads prefab models for rendering.
+         * @brief Loads prefab Models for rendering.
          * */
         static auto LoadPrefabs() -> void;
 
@@ -104,8 +105,8 @@ namespace Mikoto {
 
     private:
         static inline AssetsManagerSpec                      s_Spec{};               /**< Assets manager specification. */
-        static inline std::unordered_map<std::string, Model> s_LoadedPrefabModels{}; /**< List of loaded models. Includes prefabs which are loaded at initialization */
-        static inline std::unordered_map<std::string, Model> s_LoadedModels{};       /**< List of arbitrary models loaded by the user */
+        static inline std::unordered_map<std::string, Model> s_LoadedPrefabModels{}; /**< List of loaded Models. Includes prefabs which are loaded at initialization */
+        static inline std::unordered_map<std::string, Model> s_LoadedModels{};       /**< List of arbitrary Models loaded by the user */
 
     };
 }

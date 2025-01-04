@@ -15,7 +15,7 @@
 
 // Project Headers
 #include "Common/Common.hh"
-#include "Common/VulkanUtils.hh"
+#include "Renderer/Vulkan/VulkanUtils.hh"
 
 namespace Mikoto {
     class VulkanBuffer {

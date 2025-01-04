@@ -27,7 +27,7 @@ namespace Mikoto {
         bool RenderWireframeMode{ false };
     };
 
-    class SettingsPanel : public Panel {
+    class SettingsPanel final : public Panel {
     public:
         explicit SettingsPanel();
         auto operator=(SettingsPanel&& other) -> SettingsPanel& = default;

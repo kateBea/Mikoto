@@ -7,7 +7,7 @@
 
 #include <volk.h>
 
-#include <Common/VulkanUtils.hh>
+#include <Renderer/Vulkan/VulkanUtils.hh>
 
 #include <Renderer/Vulkan/DescriptorManager.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>

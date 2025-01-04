@@ -11,12 +11,12 @@
 #include <volk.h>
 
 // Project Headers
-#include <Common/VulkanUtils.hh>
+#include <Renderer/Vulkan/VulkanUtils.hh>
 
 #include <Core/FileManager.hh>
 
-#include <Renderer/Renderer.hh>
-#include <Renderer/Material/Shader.hh>
+#include <Renderer/Core/Renderer.hh>
+#include <Material/Core/Shader.hh>
 #include <Renderer/Vulkan/DeletionQueue.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
@@ -29,7 +29,7 @@
 #define LIGHT_HAS_NO_DIFFUSE_MAP   0
 
 namespace Mikoto {
-    VulkanStandardMaterial::VulkanStandardMaterial(const DefaultMaterialCreateSpec& spec, std::string_view name)
+    VulkanStandardMaterial::VulkanStandardMaterial(const StandardMaterialCreateData& spec, std::string_view name)
         :   StandardMaterial{ name }
     {
         // Create shared empty texture

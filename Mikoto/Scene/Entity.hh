@@ -38,22 +38,22 @@ namespace Mikoto {
 
         MKT_NODISCARD auto Get() const -> const entt::entity& { return m_EntityHandle; }
         /**
-         * Returns true if this entity contains all of the components listed in the parameter pack
-         * @returns true if this entity contains all of components of the parameter pack list
+         * Returns true if this entity contains all the components listed in the parameter pack
+         * @returns true if this entity contains all components of the parameter pack list
          * @tparam ComponentTypeList parameter pack containing all of the components to be checked
          * */
         template<typename... ComponentTypeList>
-        MKT_NODISCARD auto HasAllComponents() -> bool {
+        MKT_NODISCARD auto HasAllComponents() const -> bool {
             return m_Registry->all_of<ComponentTypeList...>(m_EntityHandle);
         }
 
         /**
          * Returns true if this entity contains at least one of the components listed in the parameter pack
          * @returns true if this entity contains at least one of components of the parameter pack list
-         * @tparam ComponentTypeList parameter pack containing all of the components to be checked
+         * @tparam ComponentTypeList parameter pack containing all the components to be checked
          * */
         template<typename... ComponentTypeList>
-        MKT_NODISCARD auto HasAnyOfComponents() -> bool {
+        MKT_NODISCARD auto HasAnyOfComponents() const -> bool {
             return m_Registry->any_of<ComponentTypeList...>(m_EntityHandle);
         }
 
@@ -63,7 +63,7 @@ namespace Mikoto {
          * @tparam ComponentType component to be checked
          * */
         template<typename ComponentType>
-        MKT_NODISCARD auto HasComponent() -> bool {
+        MKT_NODISCARD auto HasComponent() const -> bool {
             return HasAllComponents<ComponentType>();
         }
 
@@ -154,7 +154,7 @@ namespace Mikoto {
 
     private:
         entt::entity m_EntityHandle{ entt::null };
-        entt::registry* m_Registry{ nullptr };  // TODO: change to a shared pointer
+        entt::registry* m_Registry{ nullptr };  // TODO: change to a shared pointer?
     };
 }
 

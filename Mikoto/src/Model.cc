@@ -16,15 +16,15 @@
 
 // Project Headers
 #include <Common/Common.hh>
-#include <Common/StringUtils.hh>
-#include <Common/Types.hh>
+#include <STL/String/String.hh>
+#include <STL/Utility/Types.hh>
 #include <Core/Logger.hh>
-#include <Renderer/Mesh.hh>
-#include <Renderer/Model.hh>
+#include <Assets//Mesh.hh>
+#include <Assets/Model.hh>
 #include <Threading/TaskManager.hh>
 
-#include "Renderer/IndexBuffer.hh"
-#include "Renderer/VertexBuffer.hh"
+#include "Renderer/Buffer/IndexBuffer.hh"
+#include "Renderer/Buffer/VertexBuffer.hh"
 
 namespace Mikoto {
     Model::Model(const ModelLoadInfo& info)
@@ -40,7 +40,7 @@ namespace Mikoto {
         if (!path.has_filename())
             throw std::runtime_error("Not valid path for model object");
 
-        auto fileDir{ GetByteChar(path) };
+        auto fileDir{ StringUtils::GetByteChar(path) };
 
         Assimp::Importer importer{};
 
@@ -91,7 +91,7 @@ namespace Mikoto {
             vertices.push_back(mesh->mVertices[index].z);
 
             // The way we construct the vertex buffer data is not guaranteed to follow
-            // the buffer layout, which is default for models. Which means if the mesh
+            // the buffer layout, which is default for Models. Which means if the mesh
             // has no normal or texture coordinates, we have to insert default initialized
             // data to follow the default layout. We also have to introduce default
             // values for the color attribute

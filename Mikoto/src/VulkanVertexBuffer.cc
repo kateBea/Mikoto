@@ -13,10 +13,10 @@
 #include "volk.h"
 
 // Project Headers
-#include "Common/Common.hh"
-#include "Common/VulkanUtils.hh"
-
 #include <Renderer/Vulkan/DeletionQueue.hh>
+
+#include "Common/Common.hh"
+#include "Models/VertexBufferCreateInfo.hh"
 #include "Renderer/Vulkan/VulkanContext.hh"
 #include "Renderer/Vulkan/VulkanVertexBuffer.hh"
 

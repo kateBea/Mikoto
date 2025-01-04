@@ -15,17 +15,17 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 // Project Headers
-#include <Common/Types.hh>
+#include <Assets/Mesh.hh>
+#include <Assets/Model.hh>
 #include <Common/Common.hh>
-#include <Common/Random.hh>
 #include <Common/Constants.hh>
 #include <Common/RenderingUtils.hh>
-
 #include <Core/Assert.hh>
-
-#include <Renderer/Mesh.hh>
-#include <Renderer/Model.hh>
-
+#include <Models/GameObjectData.hh>
+#include <Models/LightRenderData.hh>
+#include <Models/LightTypeData.hh>
+#include <STL/Random/Random.hh>
+#include <STL/Utility/Types.hh>
 #include <Scene/SceneCamera.hh>
 
 namespace Mikoto {

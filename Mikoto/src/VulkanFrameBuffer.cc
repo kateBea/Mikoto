@@ -7,8 +7,8 @@
 #include "volk.h"
 
 // Project Headers
-#include "../Common/Common.hh"
-#include "../Common/Types.hh"
+#include "Common/Common.hh"
+#include "STL/Utility/Types.hh"
 
 #include <Renderer/Vulkan/DeletionQueue.hh>
 #include "Renderer/Vulkan/VulkanContext.hh"

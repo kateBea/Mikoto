@@ -11,17 +11,15 @@
 
 // Project Headers
 #include <Common/Common.hh>
-#include <Common/StringUtils.hh>
-#include <Common/VulkanUtils.hh>
-
 #include <Core/FileManager.hh>
-
 #include <Renderer/Vulkan/DeletionQueue.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanIndexBuffer.hh>
 #include <Renderer/Vulkan/VulkanPBRMaterial.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
 #include <Renderer/Vulkan/VulkanVertexBuffer.hh>
+
+#include "STL/Filesystem/PathBuilder.hh"
 
 namespace Mikoto {
 
@@ -116,7 +114,7 @@ namespace Mikoto {
                 auto& materialRef{ *meshRenderInfo.MaterialData };
 
                 switch ( materialRef.GetType() ) {
-                    case Material::Type::MATERIAL_TYPE_STANDARD:
+                    case Type::MATERIAL_TYPE_STANDARD:
                         m_ActiveDefaultMaterial = dynamic_cast<VulkanStandardMaterial*>( std::addressof( materialRef ) );
 
                         {
@@ -135,7 +133,7 @@ namespace Mikoto {
                         }
 
                         break;
-                    case Material::Type::MATERIAL_TYPE_PBR:
+                    case Type::MATERIAL_TYPE_PBR:
                         MKT_THROW_RUNTIME_ERROR( "Not yet supported" );
                         break;
                 }
@@ -360,26 +358,30 @@ namespace Mikoto {
         UpdateScissor( 0, 0, { m_OffscreenExtent.width, m_OffscreenExtent.height } );
     }
 
-    auto VulkanRenderer::SubmitToQueue() -> void {
+    auto VulkanRenderer::SubmitToQueue() const -> void {
         VulkanContext::BatchCommandBuffer( m_DrawCommandBuffer );
     }
 
     auto VulkanRenderer::InitializeDefaultPipeline() -> void {
-        // Shaders for this pipeline
         // Vertex shader
-        ShaderCreateInfo vertexStage{};
+        ShaderCreateInfo vertexStage{
+            .Stage = SHADER_VERTEX_STAGE,
+            .Directory = PathBuilder()
+                                 .WithPath( FileManager::Assets::GetRootPath().string() )
+                                 .WithPath( "Shaders/vulkan-spirv/StandardVertexShader.sprv" )
+                                 .Build(),
+        };
 
-        // TODO: path join util
-        vertexStage.Directory = FileManager::Assets::GetRootPath() / "shaders/vulkan-spirv/StandardVertexShader.sprv";
-        vertexStage.Stage = ShaderStage::SHADER_VERTEX_STAGE;
+        // Vertex shader
+        ShaderCreateInfo fragmentStage{
+            .Stage = SHADER_FRAGMENT_STAGE,
+            .Directory = PathBuilder()
+                                 .WithPath( FileManager::Assets::GetRootPath().string() )
+                                 .WithPath( "Shaders/vulkan-spirv/StandardFragmentShader.sprv" )
+                                 .Build(),
+        };
 
         VulkanShader vertexShader{ vertexStage };
-
-        // Vertex shader
-        ShaderCreateInfo fragmentStage{};
-        fragmentStage.Directory = FileManager::Assets::GetRootPath() / "shaders/vulkan-spirv/StandardFragmentShader.sprv";
-        fragmentStage.Stage = ShaderStage::SHADER_FRAGMENT_STAGE;
-
         VulkanShader fragmentShader{ fragmentStage };
 
         // VkPipelineShaderStageCreateInfo pre-setup for the colored pipeline
@@ -461,14 +463,14 @@ namespace Mikoto {
         // Shaders for this pipeline
         // Vertex shader
         ShaderCreateInfo vertexStage{};
-        vertexStage.Directory = FileManager::Assets::GetRootPath() / "shaders\\vulkan-spirv\\StandardVertexShader.sprv";
+        vertexStage.Directory = FileManager::Assets::GetRootPath() / "Shaders\\vulkan-spirv\\StandardVertexShader.sprv";
         vertexStage.Stage = ShaderStage::SHADER_VERTEX_STAGE;
 
         VulkanShader vertexShader{ vertexStage };
 
         // Vertex shader
         ShaderCreateInfo fragmentStage{};
-        fragmentStage.Directory = FileManager::Assets::GetRootPath() / "shaders\\vulkan-spirv\\ColoredFragmentShader.sprv";
+        fragmentStage.Directory = FileManager::Assets::GetRootPath() / "Shaders\\vulkan-spirv\\ColoredFragmentShader.sprv";
         fragmentStage.Stage = ShaderStage::SHADER_FRAGMENT_STAGE;
 
         VulkanShader fragmentShader{ fragmentStage };

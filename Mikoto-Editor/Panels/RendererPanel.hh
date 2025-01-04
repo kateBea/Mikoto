@@ -8,7 +8,7 @@
 #include "Panel.hh"
 
 namespace Mikoto {
-    class RendererPanel : public Panel {
+    class RendererPanel final : public Panel {
     public:
         explicit RendererPanel();
         auto operator=(RendererPanel && other) -> RendererPanel & = default;

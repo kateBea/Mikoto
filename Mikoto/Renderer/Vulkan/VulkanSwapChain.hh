@@ -107,7 +107,7 @@ namespace Mikoto {
          * @param imageAvailable The semaphore for signaling image availability, if provided (default is VK_NULL_HANDLE).
          * @return The VulkanResult indicating the success or failure of the operation.
          * */
-        MKT_NODISCARD auto GetNextImageIndex(UInt32_T &imageIndex, VkFence fence = VK_NULL_HANDLE, VkSemaphore imageAvailable = VK_NULL_HANDLE) -> VkResult;
+        MKT_NODISCARD auto GetNextImageIndex(UInt32_T &imageIndex, VkFence fence = VK_NULL_HANDLE, VkSemaphore imageAvailable = VK_NULL_HANDLE ) const -> VkResult;
 
 
         /**

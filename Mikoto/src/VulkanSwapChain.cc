@@ -14,14 +14,14 @@
 #include <volk.h>
 
 // Project Headers
-#include <Common/Types.hh>
+#include <STL/Utility/Types.hh>
 #include <Common/Common.hh>
-#include <Common/VulkanUtils.hh>
+#include <Renderer/Vulkan/VulkanUtils.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanSwapChain.hh>
 
 namespace Mikoto {
-    auto VulkanSwapChain::GetNextImageIndex(UInt32_T &imageIndex, VkFence fence, VkSemaphore imageAvailable) -> VkResult {
+    auto VulkanSwapChain::GetNextImageIndex(UInt32_T &imageIndex, VkFence fence, VkSemaphore imageAvailable ) const -> VkResult {
         //if (fence == VK_NULL_HANDLE) { fence = m_InFlightFences[m_CurrentFrame]; }
         // if (imageAvailable == VK_NULL_HANDLE) { imageAvailable = m_ImageAvailableSemaphores[m_CurrentFrame]; }
 

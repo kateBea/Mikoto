@@ -8,8 +8,6 @@
 
 // Project Headers
 #include "Core/Logger.hh"
-#include "Renderer/Material/Shader.hh"
-#include "Renderer/Renderer.hh"
 
 namespace Mikoto {
 

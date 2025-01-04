@@ -12,12 +12,12 @@
 #include "volk.h"
 
 
-#include "Common/StringUtils.hh"
+#include <STL/String/String.hh>
 
 #include "Common/RenderingUtils.hh"
 #include "Panels/ContentBrowserPanel.hh"
-#include "Renderer/Material/Texture2D.hh"
-#include "Renderer/Renderer.hh"
+#include "Material/Texture/Texture2D.hh"
+#include "Renderer/Core/Renderer.hh"
 
 #include "GUI/ImGuiManager.hh"
 

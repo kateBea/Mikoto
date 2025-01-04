@@ -4,11 +4,8 @@
 
 #include <cstring>
 
-#include <Common/VulkanUtils.hh>
-
 #include <Core/FileManager.hh>
 
-#include <Renderer/Renderer.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
 #include <Renderer/Vulkan/DeletionQueue.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>

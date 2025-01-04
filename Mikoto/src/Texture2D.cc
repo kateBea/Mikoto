@@ -8,13 +8,13 @@
 #include <stdexcept>
 
 // Project Headers
-#include <Common/Types.hh>
+#include <STL/Utility/Types.hh>
 #include <Common/RenderingUtils.hh>
 
 #include <Core/Logger.hh>
 
-#include <Renderer/Renderer.hh>
-#include <Renderer/Material/Texture2D.hh>
+#include <Renderer/Core/Renderer.hh>
+#include <Material/Texture/Texture2D.hh>
 #include <Renderer/Vulkan/VulkanTexture2D.hh>
 
 

@@ -17,14 +17,14 @@
 #include <Core/FileManager.hh>
 #include <Core/TimeManager.hh>
 #include <GUI/ImGuiManager.hh>
-#include <Platform/InputManager.hh>
-#include <Renderer/RenderContext.hh>
+#include <Platform/Input/InputManager.hh>
+#include <Renderer/Core/RenderContext.hh>
 #include <Scene/SceneManager.hh>
 #include <Threading/TaskManager.hh>
 
 namespace Mikoto {
 
-    static auto GetApplicationSpec( const std::vector<std::string> &args ) -> AppSpec {
+    static auto GetApplicationSpec( const std::vector<std::string> &args ) -> ApplicationData {
         return {
             .WindowWidth = 1920,
             .WindowHeight = 1080,
@@ -63,14 +63,12 @@ namespace Mikoto {
     }
 
     auto EditorApp::ParseArguments( const Int32_T argc, char **argv ) -> void {
-        const auto limit{ std::addressof( argv[argc] ) };
-
-        for ( ; argv != limit; ++argv ) {
+        for ( const auto limit{ std::addressof( argv[argc] ) }; argv != limit; ++argv ) {
             m_CommandLineArgs.emplace_back( *argv );
         }
     }
 
-    auto EditorApp::Init(AppSpec &&appSpec) -> void {
+    auto EditorApp::Init(ApplicationData &&appSpec) -> void {
         TimeManager::Init();
         TaskManager::Init();
 
@@ -91,14 +89,15 @@ namespace Mikoto {
         if (m_MainWindow) {
             m_MainWindow->Init();
         } else {
-            MKT_THROW_RUNTIME_ERROR("Could not create application main window.");
+            MKT_THROW_RUNTIME_ERROR("EditorApp - Could not create application main window.");
         }
 
         FileManager::Init();
         InputManager::Init(m_MainWindow.get());
-        RenderContextSpec contextSpec{ .TargetAPI = m_Spec.RenderingBackend, .Handle = m_MainWindow };
+        RenderContextData contextSpec{ .TargetAPI = m_Spec.RenderingBackend, .Handle = m_MainWindow };
 
         RenderContext::Init(std::move(contextSpec));
+        ImGuiManager::Init(m_MainWindow);
 
         // Initialize the assets' manager.
         // Important to do after initializing the renderer loads
@@ -120,7 +119,7 @@ namespace Mikoto {
                                 [this](Event &event) -> bool {
                                     m_State = Status::STOPPED;
                                     event.SetHandled(true);
-                                    MKT_APP_LOGGER_WARN("Handled App Event close");
+                                    MKT_APP_LOGGER_WARN("EditorApp::EventManager - Handled App Event close");
                                     return false;
                                 });
 
@@ -129,7 +128,7 @@ namespace Mikoto {
                                 [this](Event &event) -> bool {
                                     m_State = Status::STOPPED;
                                     event.SetHandled(true);
-                                    MKT_APP_LOGGER_WARN("Handled Window Event close");
+                                    MKT_APP_LOGGER_WARN("EditorApp::EventManager - Handled Window Event close");
                                     return false;
                                 });
 
@@ -137,7 +136,7 @@ namespace Mikoto {
                                 EventType::WINDOW_RESIZE_EVENT,
                                 [this](Event &) -> bool {
                                     m_State = m_MainWindow->IsMinimized() ? Status::IDLE : Status::RUNNING;
-                                    MKT_APP_LOGGER_WARN("Handled Window Resize Event");
+                                    MKT_APP_LOGGER_WARN("EditorApp::EventManager - Handled Window Resize Event");
                                     return false;
                                 });
     }
@@ -150,6 +149,11 @@ namespace Mikoto {
         DestroyLayers();
         AssetsManager::Shutdown();
         SceneManager::Shutdown();
+
+        // ImGui requires the Context to be alive so
+        // it is shutdown after the context is deleted.
+        ImGuiManager::Shutdown();
+
         RenderContext::Shutdown();
         InputManager::Shutdown();
         EventManager::Shutdown();
@@ -207,6 +211,6 @@ namespace Mikoto {
     }
 
     auto EditorApp::Present() -> void {
-        RenderContext::Present();
+        RenderContext::PresentFrame();
     }
 }

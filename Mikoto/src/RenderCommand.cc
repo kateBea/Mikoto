@@ -7,10 +7,10 @@
 #include "glm/glm.hpp"
 
 // Project Headers
-#include "Core/Assert.hh"
-#include "Renderer/RenderCommand.hh"
-#include "Renderer/Renderer.hh"
+#include <Renderer/Core/RenderCommand.hh>
 #include <utility>
+
+#include "Core/Assert.hh"
 
 namespace Mikoto {
     auto RenderCommand::Init(RendererBackend * activeAPI) -> void {

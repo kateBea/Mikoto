@@ -15,21 +15,11 @@
 #include <fmt/chrono.h>
 
 // Project Headers
-#include <Common/Types.hh>
+#include <STL/Utility/Types.hh>
+#include <Models/Enums.hh>
 #include <Common/Common.hh>
 
 namespace Mikoto {
-
-    /**
-     * @brief Time units.
-     * */
-    enum class TimeUnit {
-        SECONDS,         /**< Time unit in seconds. */
-        MILLISECONDS,    /**< Time unit in milliseconds. */
-        MICROSECONDS,    /**< Time unit in microseconds. */
-        NANOSECONDS,     /**< Time unit in nanoseconds. */
-    };
-
 
     /**
      * @brief A utility class to manage time-related operations.
@@ -49,7 +39,7 @@ namespace Mikoto {
          * @brief Updates the time step. Call once per loop.
          * */
         static auto UpdateTimeStep() -> void {
-            TimePoint_T now{ Clock_T::now() };
+            const auto now{ Clock_T::now() };
             s_TimeStep = std::chrono::duration_cast<Sec_T>(now - s_LastFrameTime).count();
             s_LastFrameTime = now;
         }

@@ -12,11 +12,11 @@
 #include "imgui.h"
 
 // Project Headers
-#include "Common/StringUtils.hh"
-#include "Common/Types.hh"
+#include <STL/String/String.hh>
+#include "STL/Utility/Types.hh"
 #include "Core/TimeManager.hh"
 #include "Panels/StatsPanel.hh"
-#include "Renderer/Renderer.hh"
+#include "Renderer/Core/Renderer.hh"
 
 #include "GUI/ImGuiUtils.hh"
 
@@ -25,22 +25,22 @@
 #include "GUI/IconsMaterialDesignIcons.h"
 
 namespace Mikoto {
-    template<typename FuncType, typename... Args>
-    static auto DrawStatsSection(std::string_view title, FuncType&& func, Args&&... args) -> void {
-        static constexpr ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_AllowItemOverlap |
-                                                       ImGuiTreeNodeFlags_Framed |
-                                                       ImGuiTreeNodeFlags_SpanAvailWidth |
-                                                       ImGuiTreeNodeFlags_FramePadding };
-
-        if (ImGui::TreeNodeEx((void*)typeid(func).hash_code(), styleFlags, "%s", title.data())) {
-            func(std::forward<Args>(args)...);
-            ImGui::TreePop();
-        }
-    }
-
 
     static constexpr auto GetStatsPanelName() -> std::string_view {
         return "Statistics";
+    }
+
+    template<typename FuncType, typename... Args>
+    static auto DrawStatsSection( const std::string_view title, FuncType&& func, Args&&... args ) -> void {
+        static constexpr ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_AllowItemOverlap |
+                                                        ImGuiTreeNodeFlags_Framed |
+                                                        ImGuiTreeNodeFlags_SpanAvailWidth |
+                                                        ImGuiTreeNodeFlags_FramePadding };
+
+        if ( ImGui::TreeNodeEx( reinterpret_cast<void*>( typeid( func ).hash_code() ), styleFlags, "%s", title.data() ) ) {
+            func( std::forward<Args>( args )... );
+            ImGui::TreePop();
+        }
     }
 
 
@@ -48,18 +48,19 @@ namespace Mikoto {
         :   Panel{}
     {
         m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_MONITOR_HEART, GetStatsPanelName());
-        m_IntervalUpdate = (float)TimeManager::GetTime();
+        m_IntervalUpdate = static_cast<float>( TimeManager::GetTime() );
     }
 
 
-    auto StatsPanel::UpdateStatsInfo(float timeStep) -> void {
-        m_FrameTime =  timeStep;
+    auto StatsPanel::UpdateStatsInfo( float timeStep ) -> void {
+        m_FrameTime = timeStep;
         m_FrameRate = 1.0f / m_FrameTime;
 
-        auto timeElapsed{ TimeManager::GetTime() };
-        if ((timeElapsed - m_LastTimeUpdate) >= m_IntervalUpdate) {
+        const auto timeElapsed{ TimeManager::GetTime() };
+
+        if ( ( timeElapsed - m_LastTimeUpdate ) >= m_IntervalUpdate ) {
             m_SysInfo = GetSystemCurrentInfo();
-            m_LastTimeUpdate = (float)timeElapsed;
+            m_LastTimeUpdate = static_cast<float>( timeElapsed );
         }
     }
 
@@ -79,8 +80,8 @@ namespace Mikoto {
 
             ImGui::SameLine();
 
-            const float minUpdate{ 0.0f };
-            const float maxUpdate{ 10.0f };
+            constexpr float minUpdate{ 0.0f };
+            constexpr float maxUpdate{ 10.0f };
             ImGui::SliderFloat("##StatisticsRefreshInterval", std::addressof(m_IntervalUpdate), minUpdate, maxUpdate, "%.2f");
 
             if (ImGui::IsItemHovered()) {

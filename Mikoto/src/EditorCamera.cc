@@ -16,13 +16,12 @@
 // Project Headers
 #include "Common/Common.hh"
 #include "Common/Constants.hh"
-#include "Common/Math.hh"
-#include "Common/Types.hh"
+#include "STL/Utility/Types.hh"
 #include "Core/CoreEvents.hh"
 #include "Core/EventManager.hh"
 #include "Core/KeyCodes.hh"
 #include "Core/MouseButtons.hh"
-#include "Platform/InputManager.hh"
+#include "Platform/Input/InputManager.hh"
 #include "Scene/EditorCamera.hh"
 
 namespace Mikoto {

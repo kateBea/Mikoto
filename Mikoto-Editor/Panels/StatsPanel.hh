@@ -14,7 +14,7 @@
 #include "Panel.hh"
 
 namespace Mikoto {
-    class StatsPanel : public Panel {
+    class StatsPanel final : public Panel {
     public:
         explicit StatsPanel();
         auto operator=(StatsPanel&& other) -> StatsPanel& = default;

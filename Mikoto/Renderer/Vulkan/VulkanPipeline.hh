@@ -16,7 +16,7 @@
 
 // Project Headers
 #include <Common/Common.hh>
-#include <Common/VulkanUtils.hh>
+#include <Renderer/Vulkan/VulkanUtils.hh>
 #include <Renderer/Vulkan/VulkanShader.hh>
 
 namespace Mikoto {

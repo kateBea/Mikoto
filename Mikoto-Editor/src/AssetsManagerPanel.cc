@@ -3,3 +3,7 @@
 //
 
 #include "Panels/AssetsManagerPanel.hh"
+
+namespace Mikoto {
+
+}

@@ -11,9 +11,9 @@
 #include <volk.h>
 
 // Project Headers
-#include <Common/Types.hh>
+#include <STL/Utility/Types.hh>
 #include <Common/Common.hh>
-#include <Common/VulkanUtils.hh>
+#include <Renderer/Vulkan/VulkanUtils.hh>
 
 #include <Core/Logger.hh>
 
@@ -29,7 +29,7 @@ namespace Mikoto {
 
         VkGraphicsPipelineCreateInfo pipelineInfo{ VulkanUtils::Initializers::GraphicsPipelineCreateInfo() };
 
-        // Setup shaders
+        // Setup Shaders
         pipelineInfo.stageCount = config.ShaderStages->size();
         pipelineInfo.pStages =  config.ShaderStages->data();
 

@@ -8,17 +8,12 @@
 
 // C++ Standard Library
 #include <memory>
-#include <vector>
 
 // Project Headers
-#include <Common/Random.hh>
-#include <Common/Types.hh>
-#include <Panels/HierarchyPanel.hh>
-
-#include "Panel.hh"
+#include <Panels/Panel.hh>
 
 namespace Mikoto {
-    class InspectorPanel : public Panel {
+    class InspectorPanel final : public Panel {
     public:
         explicit InspectorPanel();
         auto operator=( InspectorPanel&& other ) -> InspectorPanel& = default;

@@ -8,11 +8,11 @@
 #include <vector>
 
 // Project Headers
+#include <Renderer/Core/Renderer.hh>
+
 #include "Common/Common.hh"
 #include "Common/RenderingUtils.hh"
 #include "Core/Logger.hh"
-#include "Renderer/IndexBuffer.hh"
-#include "Renderer/Renderer.hh"
 #include "Renderer/Vulkan/VulkanIndexBuffer.hh"
 
 namespace Mikoto {

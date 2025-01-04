@@ -14,8 +14,9 @@
 
 // Project Headers
 #include "Common/Common.hh"
-#include "Common/Types.hh"
-#include "Renderer/Material/Shader.hh"
+#include "Material/Core/Shader.hh"
+#include "Models/ShaderCreateInfo.hh"
+#include "STL/Utility/Types.hh"
 
 namespace Mikoto {
     struct VulkanShaderInfo {

@@ -16,19 +16,19 @@
 
 // Project Headers
 #include "Common/Common.hh"
-#include "Common/Types.hh"
+#include "STL/Utility/Types.hh"
 #include "Common/RenderingUtils.hh"
-#include "Renderer/Material/Material.hh"
-#include "Renderer/Material/StandardMaterial.hh"
+#include "Material/Core/Material.hh"
+#include "Material/Material/StandardMaterial.hh"
 #include "VulkanBuffer.hh"
 #include "VulkanPipeline.hh"
 #include "VulkanShader.hh"
 #include "VulkanTexture2D.hh"
 
 namespace Mikoto {
-    class VulkanStandardMaterial : public StandardMaterial {
+    class VulkanStandardMaterial final : public StandardMaterial {
     public:
-        explicit VulkanStandardMaterial(const DefaultMaterialCreateSpec& spec, std::string_view name = GetName());
+        explicit VulkanStandardMaterial(const StandardMaterialCreateData& spec, std::string_view name = GetName());
 
         VulkanStandardMaterial(const VulkanStandardMaterial& other) = default;
         VulkanStandardMaterial(VulkanStandardMaterial && other) = default;

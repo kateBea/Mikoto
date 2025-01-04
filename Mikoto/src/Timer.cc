@@ -8,8 +8,10 @@
 
 // Project Headers
 #include <Common/Common.hh>
+#include <Common/Constants.hh>
 #include <Core/TimeManager.hh>
 #include <Profiling/Timer.hh>
+#include <STL/String/String.hh>
 
 namespace Mikoto {
 

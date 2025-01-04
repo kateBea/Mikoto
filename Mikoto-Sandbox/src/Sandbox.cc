@@ -10,7 +10,7 @@
 
 namespace Mikoto {
 
-    static auto GetApplicationSpec(const std::vector<std::string>& args) -> AppSpec {
+    static auto GetApplicationSpec(const std::vector<std::string>& args) -> ApplicationData {
         return {
             .WindowWidth = 1920,
             .WindowHeight = 1080,
@@ -47,11 +47,11 @@ namespace Mikoto {
         return exitCode;
     }
 
-    auto SandboxApp::Init( AppSpec&& appSpec ) -> void {
+    auto SandboxApp::Init( ApplicationData&& appSpec ) -> void {
         m_Spec = std::move(appSpec);
         TimeManager::Init();
 
-        // Set the assets root path (this path contains import files like shaders, prefabs, etc.)
+        // Set the assets root path (this path contains import files like Shaders, prefabs, etc.)
 
         TaskManager::Init();
 

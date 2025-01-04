@@ -21,13 +21,13 @@
 
 // Project Headers
 #include <Common/Common.hh>
-#include <Common/StringUtils.hh>
-#include <Common/VulkanUtils.hh>
+#include <STL/String/String.hh>
+#include <Renderer/Vulkan/VulkanUtils.hh>
 #include <Core/Assert.hh>
 #include <Core/Logger.hh>
-#include <Platform/Window.hh>
-#include <Platform/XPWindow.hh>
-#include <Renderer/Renderer.hh>
+#include <Platform/Window/Window.hh>
+#include <Platform/Window/XPWindow.hh>
+#include <Renderer/Core/Renderer.hh>
 #include <Renderer/Vulkan/DeletionQueue.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 

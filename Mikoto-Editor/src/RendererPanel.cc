@@ -5,16 +5,17 @@
 #include "Panels/RendererPanel.hh"
 
 #include "Common/RenderingUtils.hh"
-#include "Common/StringUtils.hh"
+#include <STL/String/String.hh>
 #include "GUI/IconsFontAwesome5.h"
 #include "GUI/IconsMaterialDesign.h"
 #include "GUI/IconsMaterialDesignIcons.h"
 #include "GUI/ImGuiManager.hh"
-#include "Renderer/Renderer.hh"
+#include "Renderer/Core/Renderer.hh"
 #include "imgui.h"
 #include "imgui_internal.h"
 
 namespace Mikoto {
+    // TODO: move to single place and reuse in other panels the same way
     static constexpr auto GetRendererPanel() -> std::string_view {
         return "Renderer";
     }

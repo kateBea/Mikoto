@@ -19,7 +19,7 @@
  * */
 #define MKT_FMT_COLOR_ALICE_BLUE                 fmt::color::alice_blue
 #define MKT_FMT_COLOR_ANTIQUE_WHITE              fmt::color::antique_white
-#define MKT_FMT_COLOR_AQUA fmt::color::aqua
+#define MKT_FMT_COLOR_AQUA                       fmt::color::aqua
 #define MKT_FMT_COLOR_AQUAMARINE                 fmt::color::aquamarine
 #define MKT_FMT_COLOR_AZURE                      fmt::color::azure
 #define MKT_FMT_COLOR_BEIGE                      fmt::color::beige
@@ -167,7 +167,13 @@ namespace Mikoto {
     constexpr glm::vec3 GLM_UNIT_VECTOR_X{ 1.0f, 0.0f, 0.0f };
     constexpr glm::vec3 GLM_UNIT_VECTOR_Y{ 0.0f, 1.0f, 0.0f };
     constexpr glm::vec3 GLM_UNIT_VECTOR_Z{ 0.0f, 0.0f, 1.0f };
-    constexpr glm::mat4 GLM_IDENTITY_MAT4{ glm::mat4(1.0) };
+
+    // [Constants for default entity parameters]
+    constexpr glm::vec3 ENTITY_INITIAL_SIZE{ 1.0f, 1.0f, 1.0f };
+    constexpr glm::vec3 ENTITY_INITIAL_POSITION{ 0.0, 0.0, 0.0 };
+    constexpr glm::vec3 ENTITY_INITIAL_ROTATION{ 0.0f, 0.0f, 0.0f };
+
+    constexpr auto GLM_IDENTITY_MAT4{ glm::mat4(1.0) };
 
 }
 

@@ -20,13 +20,13 @@
 #include <Renderer/Vulkan/VulkanPBRMaterial.hh>
 
 #include "Common/Common.hh"
-#include "Common/VulkanUtils.hh"
-#include "Renderer/IndexBuffer.hh"
-#include "Renderer/Material/Material.hh"
-#include "Renderer/Model.hh"
-#include "Renderer/Renderer.hh"
-#include "Renderer/RendererBackend.hh"
-#include "Renderer/VertexBuffer.hh"
+#include "Renderer/Vulkan/VulkanUtils.hh"
+#include "Renderer/Buffer/IndexBuffer.hh"
+#include "Material/Core/Material.hh"
+#include "Assets/Model.hh"
+#include "Renderer/Core/Renderer.hh"
+#include "Renderer/Core/RendererBackend.hh"
+#include "Renderer/Buffer/VertexBuffer.hh"
 #include "VulkanCommandPool.hh"
 #include "VulkanFrameBuffer.hh"
 #include "VulkanImage.hh"
@@ -49,7 +49,7 @@ namespace Mikoto {
         auto operator=( PipelineInfo&& ) noexcept -> PipelineInfo& = default;
     };
 
-    class VulkanRenderer : public RendererBackend {
+    class VulkanRenderer final : public RendererBackend {
     public:
         /**
          * Default constructs this renderer.
@@ -247,7 +247,7 @@ namespace Mikoto {
          * For now the recorded commands are submitted to
          * the graphics queue of the main logical device.
          * */
-        auto SubmitToQueue() -> void;
+        auto SubmitToQueue() const -> void;
 
 
     private:

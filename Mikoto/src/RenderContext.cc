@@ -6,13 +6,14 @@
 // Project Headers
 #include <Common/RenderingUtils.hh>
 #include <Core/EventManager.hh>
-#include <GUI/ImGuiManager.hh>
-#include <Renderer/RenderContext.hh>
+#include <Renderer/Core/RenderContext.hh>
+#include <Renderer/Core/Renderer.hh>
 #include <Renderer/Vulkan/DeletionQueue.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
+#include <Renderer/Vulkan/VulkanUtils.hh>
 
 namespace Mikoto {
-    auto RenderContext::Init(RenderContextSpec&& spec) -> void {
+    auto RenderContext::Init(RenderContextData&& spec) -> void {
         s_Spec = std::move(spec);
 
         switch (s_Spec.TargetAPI) {
@@ -22,7 +23,6 @@ namespace Mikoto {
         }
 
         Renderer::Init(RendererSpec{ .Backend = s_Spec.TargetAPI });
-        ImGuiManager::Init(s_Spec.Handle);
     }
 
 
@@ -38,11 +38,6 @@ namespace Mikoto {
                 // Delete remaining vulkan objects
                 DeletionQueue::Flush();
 
-                // Imgui manager shutdown. Imgui is shut down after flushing the delete queue
-                // because some descriptor sets allocated from imgui may need the device to
-                // still be alive amongst some other structures
-                ImGuiManager::Shutdown();
-
                 // Shut down the context
                 VulkanContext::Shutdown();
                 break;
@@ -50,7 +45,7 @@ namespace Mikoto {
     }
 
 
-    auto RenderContext::Present() -> void {
+    auto RenderContext::PresentFrame() -> void {
         switch (s_Spec.TargetAPI) {
             case GraphicsAPI::VULKAN_API:
                 VulkanContext::Present();

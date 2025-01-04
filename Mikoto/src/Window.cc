@@ -7,8 +7,10 @@
 #include <memory>
 
 // Project Headers
-#include <Platform/Window.hh>
-#include <Platform/XPWindow.hh>
+#include <Platform/Window/Window.hh>
+#include <Platform/Window/XPWindow.hh>
+
+#include "Models/WindowProperties.hh"
 
 namespace Mikoto {
 

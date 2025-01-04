@@ -8,7 +8,7 @@
 #include <string_view>
 
 #include "Common/Common.hh"
-#include "Common/StringUtils.hh"
+#include <STL/String/String.hh>
 #include "GUI/IconsFontAwesome5.h"
 #include "GUI/IconsMaterialDesign.h"
 #include "GUI/IconsMaterialDesignIcons.h"
@@ -32,6 +32,7 @@ namespace Mikoto {
             if (ImGui::Button(fmt::format("{} Clear", ICON_MD_DELETE).c_str())) {
                 ConsoleManager::ClearMessages();
             }
+
             if (ImGui::IsItemHovered()) {
                 ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
             }

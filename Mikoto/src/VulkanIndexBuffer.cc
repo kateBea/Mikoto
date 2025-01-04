@@ -11,8 +11,8 @@
 #include "volk.h"
 
 // Project Headers
-#include "../Common/Common.hh"
-#include "../Common/VulkanUtils.hh"
+#include "Common/Common.hh"
+#include "Renderer/Vulkan/VulkanUtils.hh"
 
 #include <Renderer/Vulkan/DeletionQueue.hh>
 #include "Renderer/Vulkan/VulkanContext.hh"

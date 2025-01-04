@@ -10,9 +10,8 @@
 #include <utility>
 
 // Project Header
-#include <Common/Types.hh>
 #include <Common/Common.hh>
-#include <Common/Random.hh>
+#include <STL/Random/Random.hh>
 
 namespace Mikoto {
     /**
@@ -26,12 +25,7 @@ namespace Mikoto {
          * @brief Constructs this panel with the icon from the given path.
          * */
         explicit Panel()
-            :   m_PanelHeaderName{ "Panel" }
-            ,   m_PanelIsHovered{ false }
-            ,   m_PanelIsFocused{ false }
-            ,   m_PanelIsVisible{ true }
-        {
-
+            : m_PanelHeaderName{ "Panel" }, m_PanelIsHovered{ false }, m_PanelIsFocused{ false }, m_PanelIsVisible{ true } {
         }
 
 
@@ -39,7 +33,7 @@ namespace Mikoto {
          * @brief Constructs this panel using move semantics, defaulted.
          * @param other Moved from panel.
          * */
-        Panel(Panel&& other) = default;
+        Panel( Panel&& other ) = default;
 
 
         /**
@@ -47,21 +41,21 @@ namespace Mikoto {
          * @param other Moved from panel.
          * @returns *this
          * */
-        auto operator=(Panel&& other) -> Panel& = default;
+        auto operator=( Panel&& other ) -> Panel& = default;
 
 
         /**
          * @brief Updates the state of this panel.
          * @param timeStep time elapsed since last frame.
          * */
-        virtual auto OnUpdate(float timeStep) -> void = 0;
+        virtual auto OnUpdate( float timeStep ) -> void = 0;
 
 
         /**
          * @brief Hides or reveals this panel in the docking space.
          * @param value if false, hides this panel, otherwise it will always be visible.
          * */
-        auto MakeVisible(bool value) -> void { m_PanelIsVisible = value; }
+        auto MakeVisible( const bool value ) -> void { m_PanelIsVisible = value; }
 
 
         /**
@@ -92,12 +86,18 @@ namespace Mikoto {
 
 
     protected:
-        std::string m_PanelHeaderName{}; /**< Panel title. */
+        /** Panel title. */
+        std::string m_PanelHeaderName{};
 
-        bool m_PanelIsHovered{}; /**< Tells whether this panel is hovered (true) or not. */
-        bool m_PanelIsFocused{}; /**< Tells whether this panel is focused (true) or note. */
-        bool m_PanelIsVisible{}; /**< Tells whether this panel is visible (true) or not. */
+        /** Tells whether this panel is hovered (true) or not. */
+        bool m_PanelIsHovered{};
+
+        /** Tells whether this panel is focused (true) or note. */
+        bool m_PanelIsFocused{};
+
+        /** Tells whether this panel is visible (true) or not. */
+        bool m_PanelIsVisible{};
     };
-}
+}// namespace Mikoto
 
 #endif // MIKOTO_PANEL_HH

@@ -15,7 +15,8 @@ FILE(GLOB SOURCE_FILES ../Mikoto-Editor/src/*.cc)
 # Libraries to link against target
 SET(LIBRARIES Mikoto)
 
-ADD_EXECUTABLE(${PROJECT_NAME} ${SOURCE_FILES})
+ADD_EXECUTABLE(${PROJECT_NAME} ${SOURCE_FILES}
+        Models/EntityCreateInfo.hh)
 
 # Specify target link libraries
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE ${LIBRARIES})

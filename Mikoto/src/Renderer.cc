@@ -9,17 +9,15 @@
 
 // Project Headers
 #include <Common/Common.hh>
-
 #include <Core/TimeManager.hh>
-
-#include <Renderer/Renderer.hh>
-#include <Renderer/RenderCommand.hh>
+#include <Renderer/Core/RenderCommand.hh>
+#include <Renderer/Core/Renderer.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 
 namespace Mikoto {
     auto Renderer::BeginScene(const ScenePrepareData& prepareData) -> void {
-        s_DrawData->SceneRuntimeCamera = prepareData.RuntimeCamera;
-        s_DrawData->SceneEditCamera = prepareData.StaticCamera;
+        s_DrawData->RuntimeCamera = prepareData.RuntimeCamera;
+        s_DrawData->StaticCamera = prepareData.StaticCamera;
     }
 
     auto Renderer::Submit(RenderSubmitInfo &&info) -> void {
@@ -104,8 +102,8 @@ namespace Mikoto {
         data->Transform.Transform = transform;
         data->MeshData = objectData.MeshData;
 
-        data->Transform.Projection = s_DrawData->SceneEditCamera->GetProjection();
-        data->Transform.View = s_DrawData->SceneEditCamera->GetViewMatrix();
+        data->Transform.Projection = s_DrawData->StaticCamera->GetProjection();
+        data->Transform.View = s_DrawData->StaticCamera->GetViewMatrix();
 
         Renderer::Submit(
             std::move(RenderSubmitInfo{

@@ -8,15 +8,17 @@
 #include <volk.h>
 
 #include <Common/RenderingUtils.hh>
-#include <Renderer/Material/Material.hh>
-#include <Renderer/Material/PhysicallyBasedMaterial.hh>
+#include <Material/Core/Material.hh>
+#include <Material/Material/PhysicallyBasedMaterial.hh>
 #include <Renderer/Vulkan/VulkanBuffer.hh>
 #include <glm/glm.hpp>
 
 #include "VulkanTexture2D.hh"
+#include <Models/LightTypeData.hh>
+#include <Models/LightRenderData.hh>
 
 namespace Mikoto {
-    class VulkanPBRMaterial : public PhysicallyBasedMaterial {
+    class VulkanPBRMaterial final : public PhysicallyBasedMaterial {
     public:
         explicit VulkanPBRMaterial(const PBRMaterialCreateSpec& spec, std::string_view name = GetName());
 

@@ -43,3 +43,6 @@
 [submodule "Third-Party/json"]
 	path = Third-Party/json
 	url = https://github.com/nlohmann/json.git
+[submodule "Third-Party/tomlplusplus"]
+	path = Third-Party/tomlplusplus
+	url = https://github.com/marzer/tomlplusplus.git

@@ -11,11 +11,11 @@
 #include "imgui.h"
 
 // Project Headers
-#include "Common/StringUtils.hh"
+#include "STL/String/String.hh"
 
 #include "Panels/SettingsPanel.hh"
-#include "Renderer/RenderCommand.hh"
-#include "Renderer/RenderContext.hh"
+#include "Renderer/Core/RenderCommand.hh"
+#include "Renderer/Core/RenderContext.hh"
 
 #include "GUI/IconsFontAwesome5.h"
 #include "GUI/IconsMaterialDesign.h"

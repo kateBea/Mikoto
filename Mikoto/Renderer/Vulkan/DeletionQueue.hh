@@ -13,16 +13,14 @@ namespace Mikoto {
     /**
      * @class DeletionQueue
      * @brief Manages a deletion queue for deferred cleanup of resources.
-     *
      * This class allows for deferring the deletion of resources by pushing deletion tasks
      * into a queue and later executing these tasks to perform cleanup. The deletion tasks
      * can be flushed, ensuring older objects get deleted first.
      * */
-    class DeletionQueue {
+    class DeletionQueue final {
     public:
         /**
          * @brief Pushes a deletion task into the queue.
-         *
          * @param function The deletion function to be added to the queue.
          * */
         static auto Push(std::function<void()>&& function) -> void {
@@ -34,7 +32,6 @@ namespace Mikoto {
 
         /**
          * @brief Flushes the deletion queue, executing deletion tasks.
-         *
          * Reversely iterates through the deletion queue to execute the deletion tasks,
          * ensuring older objects get deleted first. After execution, the queue is cleared.
          * */
@@ -48,8 +45,11 @@ namespace Mikoto {
 
 
     private:
-        static inline std::mutex                        s_PushMutex{};     /**< Mutex for synchronized deletion task addition. */
-        static inline std::deque<std::function<void()>> s_DeleteTasks{};   /**< Queue of deletion tasks. */
+        /** Mutex for synchronized deletion task addition. */
+        static inline std::mutex s_PushMutex{};
+
+        /** Queue of deletion tasks. */
+        static inline std::deque<std::function<void()>> s_DeleteTasks{};
     };
 }
 

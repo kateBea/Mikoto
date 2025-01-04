@@ -11,14 +11,15 @@
 #include <vector>
 
 // Third-Party Libraries
-#include "vk_mem_alloc.h"
-#include "volk.h"
+#include <vk_mem_alloc.h>
+#include <volk.h>
 
 // Project Headers
 #include <Common/Common.hh>
-#include <Common/Types.hh>
-#include <Common/VulkanUtils.hh>
-#include <Platform/XPWindow.hh>
+#include <STL/Utility/Types.hh>
+#include <Renderer/Vulkan/VulkanUtils.hh>
+#include <Platform/Window/XPWindow.hh>
+#include <Platform/Window/Window.hh>
 #include <Renderer/Vulkan/VulkanCommandPool.hh>
 #include <Renderer/Vulkan/VulkanSwapChain.hh>
 
@@ -185,7 +186,7 @@ namespace Mikoto {
         // Contains all command buffers to be submitted to a graphics queue
         inline static std::vector<VkCommandBuffer> s_BatchedGraphicQueueCommands{};
 
-        // Index to an valid swap chain image we can render to
+        // Index to a valid swap chain image we can render to
         inline static UInt32_T s_CurrentImageIndex{};
 
         // Main command pool
@@ -210,7 +211,7 @@ namespace Mikoto {
                 VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 
                 // Passing your vertex data just like in OpenGL, using the same state (as the pipeline setup)
-                // and shaders as in OpenGL, your scene will likely not display as you’d expect.
+                // and Shaders as in OpenGL, your scene will likely not display as you’d expect.
                 // The viewport’s origin in OpenGL is in the lower left of the screen, with Y pointing up.
                 // In Vulkan the origin is in the top left of the screen, with Y pointing downwards.
                 // Starting from Vulkan 1.1 though, this feature is part of core Vulkan, so checking for it is not really necessary

@@ -14,9 +14,9 @@
 
 // Project Headers
 #include <Common/Common.hh>
-#include <Common/Types.hh>
-#include <Common/VulkanUtils.hh>
-#include <Renderer/Material/Texture2D.hh>
+#include <STL/Utility/Types.hh>
+#include <Renderer/Vulkan/VulkanUtils.hh>
+#include <Material/Texture/Texture2D.hh>
 
 namespace Mikoto {
     /**

@@ -9,54 +9,34 @@
 // C++ Standard Library
 #include <memory>
 #include <string_view>
-#include <unordered_set>
 
 // Third-Party Libraries
-#include <glm/glm.hpp>
 #include <entt/entt.hpp>
 
 // Project Headers
 #include <Common/Common.hh>
-#include <Common/Random.hh>
-#include <Common/RenderingUtils.hh>
-#include <Common/Types.hh>
-#include <Scene/Entity.hh>
+#include <Models/SceneMetaData.hh>
+#include <STL/DataStructures/GenTree.hh>
+#include <STL/Random/Random.hh>
+#include <STL/Utility/Types.hh>
 #include <Scene/EditorCamera.hh>
+#include <Scene/Entity.hh>
 
 namespace Mikoto {
-    struct SceneMetaData {
-        UInt64_T EntityCount{};
-        UInt64_T LightsCount{};
-        UInt64_T ActiveLightCount{};
-        UInt64_T DirLightsCount{};
-        UInt64_T DirActiveLightCount{};
-        UInt64_T SpotLightsCount{};
-        UInt64_T SpotActiveLightCount{};
-        UInt64_T PointLightsCount{};
-        UInt64_T PointActiveLightCount{};
-    };
-
-    struct EntityNode {
-        Entity Root{};
-        std::vector<EntityNode> Children{};
-    };
 
     /**
      * @brief Scene wrapper for game objects (entities)
      * Represents a scene, manages entities and their components
      * using an entity-component system (ECS).
      * */
-    class Scene {
+    class Scene final {
     public:
         /**
          * Constructs a scene with a given name.
          * @param name The name of the scene.
          * */
-        explicit Scene( std::string_view name = "Mikoto" )
-            :   m_Name{ name }
-        {
-
-        }
+        explicit Scene( const std::string_view name = "Mikoto" )
+            : m_Name{ name } {}
 
 
         /**
@@ -76,7 +56,7 @@ namespace Mikoto {
          * @param other The Scene object to compare.
          * @return Returns true if the Scenes have the same name.
          * */
-        auto operator==( const Scene& other ) noexcept -> bool { return m_Name == other.m_Name; }
+        auto operator==( const Scene& other ) const noexcept -> bool { return m_Name == other.m_Name; }
 
 
         /**
@@ -109,20 +89,11 @@ namespace Mikoto {
          * */
         auto GetRegistry() -> entt::registry& { return m_Registry; }
 
-
         /**
-         * Destroys an entity within the scene.
-         * @param entity The entity to be destroyed.
+         * Retrieves the entity registry.
+         * @return A reference to the entity registry.
          * */
-        auto DestroyEntity( Entity& entity ) -> bool;
-
-
-        /**
-         * Retrieves updated information about this scene.
-         * @return This scene's meta data.
-         * */
-        MKT_NODISCARD auto FetchSceneMetaData() -> SceneMetaData&;
-
+        auto GetHierarchy() -> GenTree<Entity>& { return m_Hierarchy; }
 
         /**
          * Retrieves the name of the scene.
@@ -131,27 +102,39 @@ namespace Mikoto {
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 
 
-        MKT_NODISCARD auto GetHierarchy() -> std::vector<EntityNode>& { return m_Hierarchy; }
+        /**
+         * Retrieves updated information about this scene.
+         * @return This scene's meta data.
+         * */
+        MKT_NODISCARD auto GetSceneMetaData() -> SceneMetaData&;
+
+        /**
+         * Destroys an entity within the scene.
+         * @param target The entity to be destroyed.
+         * */
+        auto DestroyEntity( Entity& target ) -> bool;
 
 
         /**
          * Adds an empty object to the scene.
          * @param tagName The tag name of the object.
+         * @param root Parent entity
          * @param guid The globally unique ID for the object.
          * @return The created entity in the scene.
          * */
-        auto CreateEmptyObject(std::string_view tagName, Entity *root = nullptr, UInt64_T guid = GenerateGUID()) -> Entity;
+        auto CreateEmptyEntity( std::string_view tagName, const Entity* root = nullptr, UInt64_T guid = GenerateGUID() ) -> Entity;
 
 
         /**
          * Adds a prefab object to the scene.
          * @param tagName The tag name of the object.
-         * @param type The PrefabSceneObject type.
+         * @param model Model from which we create the prefab
+         * @param root New entity's parent
          * @param guid The globally unique ID for the object.
          * @return The created entity in the scene.
          * */
-        auto CreatePrefab(std::string_view tagName, Model *model, Entity *root = nullptr,
-                          UInt64_T guid = GenerateGUID()) -> Entity;
+        auto CreatePrefabEntity( std::string_view tagName, Model* model, Entity* root = nullptr,
+                           UInt64_T guid = GenerateGUID() ) -> Entity;
 
 
         /**
@@ -165,72 +148,19 @@ namespace Mikoto {
          * */
         ~Scene() = default;
 
-
-        /**
-         * Retrieves the currently active scene.
-         * @return A pointer to the currently active Scene.
-         * */
-        MKT_NODISCARD static auto GetActiveScene() -> Scene*;
-
-
-        /**
-         * Sets the active scene.
-         * @param scene The Scene to set as active.
-         * */
-        static auto SetActiveScene( Scene* scene ) -> void;
-
-    public:
-
-
-    private:
-        friend class Entity;
-        friend class ScenePanel;
-        friend class HierarchyPanel;
-        friend class InspectorPanel;
-
     private:
         /**
          * Updates scripts associated with entities in the scene.
          * */
         auto UpdateScripts() -> void;
 
-
-        /**
-         * Looks up the root node for the target entity within the hierarchy.
-         * @param root Root node from where look uo starts.
-         * @param target Target entity to look for.
-         * @returns nullptr if this node does not contain the target entity, non-null pointer to the node otherwise.
-         * */
-        MKT_NODISCARD static auto FindNode(EntityNode &root, Entity &target) -> EntityNode*;
-
-        auto HierarchyLookup(Entity& target) -> EntityNode*;
-
-        auto FindNodeIterator(std::vector<EntityNode>::iterator root, Entity &target) -> std::vector<EntityNode>::iterator;
-
-        /**
-         * Destroys an entity within the scene.
-         * @param root The entity to be destroyed.
-         * */
-        auto DestroyRecursive( EntityNode& root ) -> void;
-
     private:
+        GenTree<Entity> m_Hierarchy{};
 
-        // Currently active scene in the editor.
-        static inline Scene* s_ActiveScene{ nullptr };
-
-        // [Constants for default entity parameters]
-        static constexpr glm::vec3 ENTITY_INITIAL_SIZE{ 1.0f, 1.0f, 1.0f };
-        static constexpr glm::vec3 ENTITY_INITIAL_POSITION{ 0.0, 0.0, 0.0 };
-        static constexpr glm::vec3 ENTITY_INITIAL_ROTATION{ 0.0f, 0.0f, 0.0f };
-
-    private:
-        std::string m_Name{};       // The name of the scene
-        entt::registry m_Registry{};// Entity registry for the scene
-
-        std::vector<EntityNode> m_Hierarchy{};
-
+        std::string m_Name{};
+        entt::registry m_Registry{};
         SceneMetaData m_MetaData{};
     };
-}
+}// namespace Mikoto
 
-#endif // MIKOTO_SCENE_HH
+#endif// MIKOTO_SCENE_HH

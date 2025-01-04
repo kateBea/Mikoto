@@ -15,102 +15,9 @@
 
 // Project Headers
 #include "Common/Common.hh"
+#include <Models/Enums.hh>
 
 namespace Mikoto {
-    /**
-     * Simply specifies the type of an Event
-     * */
-    enum class EventType {
-        EMPTY_EVENT,
-
-        // Window events.
-        // Category [WINDOW_EVENT_CATEGORY]
-        WINDOW_RESIZE_EVENT,
-        WINDOW_CLOSE_EVENT,
-        WINDOW_MOVED_EVENT,
-
-        // Application events.
-        // Category [APPLICATION_EVENT_CATEGORY]
-        APP_RENDER_EVENT,
-        APP_UPDATE_EVENT,
-        APP_TICK_EVENT,
-        APP_CLOSE_EVENT,
-
-        // Key Events.
-        // Category [KEYBOARD_EVENT_CATEGORY]
-        KEY_PRESSED_EVENT,
-        KEY_RELEASED_EVENT,
-        KEY_CHAR_EVENT,
-
-        // Mouse button events.
-        // Category [MOUSE_EVENT_CATEGORY]
-        MOUSE_BUTTON_PRESSED_EVENT,
-        MOUSE_BUTTON_RELEASED_EVENT,
-
-        // Mouse events.
-        // Category [MOUSE_BUTTON_EVENT_CATEGORY]
-        MOUSE_MOVED_EVENT,
-        MOUSE_SCROLLED_EVENT,
-
-        // Panels Events
-        // Category [PANEL_EVENT_CATEGORY]
-        CAMERA_ENABLE_ROTATION,
-
-        EVENT_TYPE_COUNT,
-    };
-
-    /**
-     * Specifies the group of an event. This is defined
-     * if and event handler may need to filter certain events,
-     * this is an easy way to group all of our events into one set.
-     * Bear in mind an event can be of different categories at the same time,
-     * for this purpose we may want to query the category flags later by using a
-     * bit wise OR which is supported by integers, for simplicity sake, this structure
-     * is not declared as an enum class
-     * */
-    enum EventCategory : UInt32_T {
-        EMPTY_EVENT_CATEGORY            =  BIT_SET(0),
-
-        APPLICATION_EVENT_CATEGORY      =  BIT_SET(1),
-        INPUT_EVENT_CATEGORY            =  BIT_SET(2),
-        WINDOW_EVENT_CATEGORY           =  BIT_SET(3),
-        KEY_EVENT_CATEGORY              =  BIT_SET(4),
-        MOUSE_EVENT_CATEGORY            =  BIT_SET(5),
-        MOUSE_BUTTON_EVENT_CATEGORY     =  BIT_SET(6),
-        PANEL_EVENT_CATEGORY            = BIT_SET(8),
-
-        EVENT_CATEGORY_COUNT            =  BIT_SET(9),
-    };
-
-    MKT_NODISCARD inline auto GetCategoryFromType(EventType type) -> EventCategory {
-        switch (type) {
-            case EventType::EMPTY_EVENT: return EventCategory::EMPTY_EVENT_CATEGORY;
-
-            case EventType::WINDOW_RESIZE_EVENT:
-            case EventType::WINDOW_CLOSE_EVENT:
-            case EventType::WINDOW_MOVED_EVENT: return EventCategory(WINDOW_EVENT_CATEGORY);
-
-            case EventType::APP_CLOSE_EVENT:
-            case EventType::APP_RENDER_EVENT:
-            case EventType::APP_UPDATE_EVENT:
-            case EventType::APP_TICK_EVENT: return EventCategory::APPLICATION_EVENT_CATEGORY;
-
-            case EventType::KEY_PRESSED_EVENT:
-            case EventType::KEY_RELEASED_EVENT:
-            case EventType::KEY_CHAR_EVENT: return EventCategory(KEY_EVENT_CATEGORY | INPUT_EVENT_CATEGORY);
-
-            case EventType::MOUSE_BUTTON_PRESSED_EVENT:
-            case EventType::MOUSE_BUTTON_RELEASED_EVENT: return EventCategory(INPUT_EVENT_CATEGORY | MOUSE_EVENT_CATEGORY | MOUSE_BUTTON_EVENT_CATEGORY);
-
-            case EventType::MOUSE_MOVED_EVENT:
-            case EventType::MOUSE_SCROLLED_EVENT: return EventCategory(INPUT_EVENT_CATEGORY | MOUSE_BUTTON_EVENT_CATEGORY);
-
-            case EventType::CAMERA_ENABLE_ROTATION: return EventCategory::PANEL_EVENT_CATEGORY;
-
-            default: return EventCategory::EMPTY_EVENT_CATEGORY;
-        }
-    }
-
 
     /**
      * Defines the general interface for all types of events.
@@ -239,6 +146,41 @@ namespace Mikoto {
     };
 
     /**
+     * Returns the event category from the given event. The event could be part of
+     * different categories simultaneously.
+     * @returns Event category for the given type
+     * */
+    MKT_NODISCARD constexpr auto GetCategoryFromType( const EventType type) -> EventCategory {
+        switch (type) {
+            case EventType::EMPTY_EVENT: return EMPTY_EVENT_CATEGORY;
+
+            case EventType::WINDOW_RESIZE_EVENT:
+            case EventType::WINDOW_CLOSE_EVENT:
+            case EventType::WINDOW_MOVED_EVENT: return WINDOW_EVENT_CATEGORY;
+
+            case EventType::APP_CLOSE_EVENT:
+            case EventType::APP_RENDER_EVENT:
+            case EventType::APP_UPDATE_EVENT:
+            case EventType::APP_TICK_EVENT: return APPLICATION_EVENT_CATEGORY;
+
+            case EventType::KEY_PRESSED_EVENT:
+            case EventType::KEY_RELEASED_EVENT:
+            case EventType::KEY_CHAR_EVENT: return static_cast<EventCategory>( KEY_EVENT_CATEGORY | INPUT_EVENT_CATEGORY );
+
+            case EventType::MOUSE_BUTTON_PRESSED_EVENT:
+            case EventType::MOUSE_BUTTON_RELEASED_EVENT: return static_cast<EventCategory>( INPUT_EVENT_CATEGORY | MOUSE_EVENT_CATEGORY | MOUSE_BUTTON_EVENT_CATEGORY );
+
+            case EventType::MOUSE_MOVED_EVENT:
+            case EventType::MOUSE_SCROLLED_EVENT: return static_cast<EventCategory>( INPUT_EVENT_CATEGORY | MOUSE_BUTTON_EVENT_CATEGORY );
+
+            case EventType::CAMERA_ENABLE_ROTATION: return PANEL_EVENT_CATEGORY;
+
+            default: return EMPTY_EVENT_CATEGORY;
+        }
+    }
+
+
+    /**
      * Returns the exact string representation of the given EventType enum
      * @returns EventType string representation
      * */
@@ -284,13 +226,13 @@ namespace Mikoto {
         }
     }
 
+
     /**
      * Helper to print an Event to console
      * */
     inline auto operator<<(std::ostream& out, const Event& e) -> std::ostream& {
         return out << "Type: " << e.GetNameStr();
     }
-
 }
 
 #endif // MIKOTO_EVENT_HH

@@ -6,7 +6,7 @@
 // C++ Standard Library
 
 // Project Headers
-#include <Renderer/Mesh.hh>
+#include <Assets//Mesh.hh>
 #include <utility>
 
 namespace Mikoto {

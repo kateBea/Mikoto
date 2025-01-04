@@ -23,6 +23,7 @@ SET(ASSIMP_CMAKE_DIR ${P_PATH}/Third-Party/assimp)
 SET(VMA_CMAKE_DIR ${P_PATH}/Third-Party/VulkanMemoryAllocator)
 SET(YAML_CMAKE_DIR ${P_PATH}/Third-Party/yaml-cpp)
 SET(NFD_CMAKE_DIR ${P_PATH}/Third-Party/nativefiledialog-extended)
+SET(TOML_CPP ${P_PATH}/Third-Party/tomlplusplus)
 
 # Setup Mikoto Engine source file
 FILE(GLOB SOURCE_FILES src/*.cc)
@@ -46,7 +47,21 @@ SET(IMGUIZMO_SOURCES
     ${P_PATH}/Third-Party/ImGuizmo/ImSequencer.cpp)
 
 SET(SOURCES ${IMGUI_SOURCES} ${IMGUIZMO_SOURCES} ${SOURCE_FILES}
-        Models/Enums.h)
+        Models/SystemData.hh
+        Models/RenderContextData.hh
+        Models/RendererDrawData.hh
+        Models/MeshData.hh
+        Models/ModelLoadInfo.hh
+        Models/ApplicationData.hh
+        Models/ShaderCreateInfo.hh
+        Models/WindowProperties.hh
+        Models/BufferLayout.hh
+        Models/BufferElement.hh
+        Models/VertexBufferCreateInfo.hh
+        Models/StandardMaterialCreateData.hh
+        Common/ConfigLoader.hh
+        Models/ConfigOptions.hh
+)
 
 # External dependencies
 ADD_SUBDIRECTORY(${GLFW_CMAKE_DIR} build/glfw)
@@ -86,6 +101,7 @@ TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/VulkanMe
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/ImGuizmo)
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/yaml-cpp/include)
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/nativefiledialog-extended/src/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/tomlplusplus/include)
 
 # Avoid GLFW including OpenGL headers
 TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLFW_INCLUDE_NONE)

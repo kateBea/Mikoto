@@ -7,9 +7,11 @@
 #define MIKOTO_SINGLETON_HH
 
 // Project Headers
-#include "Core/Assert.hh"
+#include <Core/Assert.hh>
+#include <Common/Constants.hh>
 
 namespace Mikoto {
+
     /**
      * Defines a general interface for classes that require global single instance.
      * @tparam Derived The type that requires a single instance
@@ -23,7 +25,7 @@ namespace Mikoto {
 
     public:
         explicit Singleton() {
-            MKT_ASSERT(!s_Instance, "Singleton instance already exists!");
+            MKT_ASSERT(!s_Instance, "Singleton - Instance already exists.");
             s_Instance = static_cast<ValuePtr_T>(this);
         }
 
@@ -33,14 +35,16 @@ namespace Mikoto {
          * */
         static auto Get() -> ValueRef_T { static Value_T obj{}; return *s_Instance; }
 
+
         /**
          * Returns a pointer to the single instance
          * @returns pointer single instance
          * */
         static auto GetPtr() -> ValuePtr_T { if (!s_Instance) Get();  return s_Instance; }
 
+
         /**
-         * Performs destruction on this singleton instance (defaulted)
+         * Performs destruction on this singleton instance
          * */
         virtual ~Singleton() = default;
 
@@ -57,10 +61,6 @@ namespace Mikoto {
         auto operator=(Singleton&&) -> Singleton& = delete;
 
     protected:
-        /*************************************************************
-         * DATA MEMBERS
-         * ***********************************************************/
-
         /**
          * Pointer to the single instance allowed for Singleton objects
          * */

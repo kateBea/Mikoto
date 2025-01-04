@@ -10,10 +10,10 @@
 #include <cstdlib>
 
 // Third-Party Libraries
-#include "fmt/format.h"
+#include <fmt/format.h>
 
 // Project Headers
-#include "Common/Common.hh"
+#include <STL/String/String.hh>
 
 #if defined(_WIN32) || defined(_WIN64)
     #define __PRETTY_FUNCTION__  __FUNCTION__

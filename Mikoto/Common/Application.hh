@@ -8,31 +8,17 @@
 
 // C++ Standard Library
 #include <memory>
-#include <unordered_set>
 
 // Project Headers
-#include <Core/Event.hh>
-#include <Models/Enums.h>
-#include <Platform/Window.hh>
-#include <Common/Random.hh>
+#include <Models/Enums.hh>
+
 #include <Common/Singleton.hh>
+#include <Core/Event.hh>
+#include <Platform/Window/Window.hh>
+#include <STL/Random/Random.hh>
+#include <Models/ApplicationData.hh>
 
 namespace Mikoto {
-
-    /**
-     * @brief Holds application initialization data.
-     * This struct is mostly relevant at application initialization.
-     * */
-    struct AppSpec {
-        Int32_T WindowWidth{};      /**< The width of the application window. */
-        Int32_T WindowHeight{};     /**< The height of the application window. */
-        std::string Name{};         /**< The name of the application. */
-        Path_T WorkingDirectory{};  /**< The path to the working directory. */
-        Path_T Executable{};        /**< The path to the executable. */
-        GraphicsAPI RenderingBackend{}; /**< The selected graphics rendering backend. */
-        std::vector<std::string> CommandLineArguments{}; /**< Command-line arguments. */
-    };
-
 
     /**
      * @brief Manages the editor application lifecycle.
@@ -55,11 +41,11 @@ namespace Mikoto {
         /**
          * @brief Initializes this application. Must call once when
          * the application is created. This operation is responsible
-         * of initializing the application internal structures like
+         * from initializing the application internal structures like
          * required layers amongst other subsystems.
          * @param appSpec Specification for application initialization.
          * */
-        virtual auto Init(AppSpec&& appSpec) -> void = 0;
+        virtual auto Init(ApplicationData&& appSpec) -> void = 0;
 
 
         /**
@@ -92,7 +78,7 @@ namespace Mikoto {
          * @brief Checks if the application is running.
          * @returns True if the application is running, false otherwise.
          * */
-        auto IsRunning() const -> bool {
+        MKT_NODISCARD auto IsRunning() const -> bool {
             return m_State == Status::RUNNING || m_State == Status::IDLE;
         }
 
@@ -104,7 +90,7 @@ namespace Mikoto {
         std::shared_ptr<Window> m_MainWindow{};
 
         /** Specification for application initialization. */
-        AppSpec m_Spec{};
+        ApplicationData m_Spec{};
 
         /** Current state of the application. */
         Status m_State{ Status::STOPPED };

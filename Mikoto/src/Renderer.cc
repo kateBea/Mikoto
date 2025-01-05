@@ -90,8 +90,8 @@ namespace Mikoto {
     }
 
 
-    auto Renderer::Submit(const std::string &id, const GameObject &objectData, const glm::mat4 &transform,
-                          std::shared_ptr<Material> &material) -> void {
+    auto Renderer::Submit( const std::string& id, const GameObject& objectData, const glm::mat4& transform,
+                           std::shared_ptr<Material>& material ) -> void {
         auto data{ std::make_shared<GameObject>() };
 
         data->ModelName = objectData.ModelName;
@@ -105,13 +105,15 @@ namespace Mikoto {
         data->Transform.Projection = s_DrawData->StaticCamera->GetProjection();
         data->Transform.View = s_DrawData->StaticCamera->GetViewMatrix();
 
-        Renderer::Submit(
-            std::move(RenderSubmitInfo{
-                .Id = id,
-                .Data = data,
-                .MatInfo = material,
-            })
-        );
+        Submit(
+                std::move( RenderSubmitInfo{
+                        .Id = id,
+                        .Data = data,
+                        .MatInfo = material,
+                } ) );
+    }
+    auto Renderer::RemoveFromDrawQueue(const std::string& id) -> bool {
+        return RenderCommand::RemoveFromRenderQueue(id);
     }
 
 

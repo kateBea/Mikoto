@@ -91,19 +91,6 @@ namespace Mikoto {
 
     auto Scene::CreatePrefabEntity(std::string_view tagName, Model *model, Entity *root, UInt64_T guid) -> Entity {
         if (model) {
-            Entity rootEntity{ m_Registry.create(), m_Registry };
-            rootEntity.AddComponent<TagComponent>(tagName, guid);
-            rootEntity.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
-
-            if (root == nullptr) {
-                m_Hierarchy.Insert( rootEntity.m_EntityHandle, m_Registry );
-            } else {
-                m_Hierarchy.InsertChild([&root](const auto& parent) -> bool {
-                    parent.Get() == root->Get();
-                },
-                rootEntity.m_EntityHandle, m_Registry );
-            }
-
             std::vector<Entity> children{};
             // We treat each mesh as an individual game object
             for (auto& mesh : model->GetMeshes()) {
@@ -147,10 +134,22 @@ namespace Mikoto {
                 children.emplace_back(child);
             }
 
-            m_Hierarchy.InsertMultiple( [&rootEntity](const auto& ent) { return ent == rootEntity; },
+            if (root == nullptr) {
+                Entity rootEntity = { m_Registry.create(), m_Registry };
+                rootEntity.AddComponent<TagComponent>(tagName, guid);
+                rootEntity.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
+                m_Hierarchy.Insert( rootEntity.m_EntityHandle, m_Registry );
+
+                m_Hierarchy.InsertMultiple( [&rootEntity](const auto& ent) { return ent == rootEntity; },
                 children.begin(), children.end());
 
-            return rootEntity;
+                return rootEntity;
+            } else {
+                m_Hierarchy.InsertMultiple( [&root](const auto& ent) { return ent == *root; },
+                children.begin(), children.end());
+
+                return *root;
+            }
         }
 
         return Entity{};
@@ -162,8 +161,17 @@ namespace Mikoto {
         std::vector<entt::entity> children{};
 
         children.emplace_back( target.Get() );
+
+        // Remove parent and children from drawing queue
+        auto& tagComponent{ target.GetComponent<TagComponent>() };
+        auto removed{ Renderer::RemoveFromDrawQueue(std::to_string(tagComponent.GetGUID())) };
         m_Hierarchy.ForAllChildren(
-            [&children](const auto& ent) { children.emplace_back(ent.Get()); },
+            [&children](auto& ent) {
+                auto& tagComponent{ ent.template GetComponent<TagComponent>() };
+                auto isRemoved{ Renderer::RemoveFromDrawQueue(std::to_string(tagComponent.GetGUID())) };
+
+                children.emplace_back(ent.Get());
+            },
             [&target](const auto& ent) { return ent == target; } );
 
         // Erase node and its children from the hierarchy
@@ -200,7 +208,6 @@ namespace Mikoto {
         ScenePrepareData prepareData{};
         prepareData.StaticCamera = std::addressof(camera);
 
-        // Begin the scene
         Renderer::BeginScene( prepareData );
 
         // Setup lighting data
@@ -209,8 +216,7 @@ namespace Mikoto {
         Renderer::SetLightsViewPos( glm::vec4{ camera.GetPosition(), 1.0f } );
 
         for ( auto& lightSource: m_Registry.view<LightComponent>() ) {
-            LightComponent& lightComponent{ m_Registry.get<LightComponent>( lightSource ) };
-
+            auto& lightComponent{ m_Registry.get<LightComponent>( lightSource ) };
             switch ( lightComponent.GetType() ) {
                 case LightType::DIRECTIONAL_LIGHT_TYPE:
                     lightComponent.GetDirLightData().Position =
@@ -234,15 +240,14 @@ namespace Mikoto {
             Renderer::SetActiveSpotLightsCount( spotIndexCount );
         }
 
-        auto view{ m_Registry.view<TagComponent, TransformComponent, RenderComponent, MaterialComponent>() };
-        for ( auto& sceneObject: view ) {
-            TagComponent& tag{ view.get<TagComponent>( sceneObject ) };
-            TransformComponent& transform{ view.get<TransformComponent>( sceneObject ) };
-            RenderComponent& renderComponent{ view.get<RenderComponent>( sceneObject ) };
-            MaterialComponent& material{ view.get<MaterialComponent>( sceneObject ) };
+        auto renderableObjectsView{ m_Registry.view<TagComponent, TransformComponent, RenderComponent, MaterialComponent>() };
+        for ( auto& sceneObject: renderableObjectsView ) {
+            TagComponent& tag{ renderableObjectsView.get<TagComponent>( sceneObject ) };
+            TransformComponent& transform{ renderableObjectsView.get<TransformComponent>( sceneObject ) };
+            RenderComponent& renderComponent{ renderableObjectsView.get<RenderComponent>( sceneObject ) };
+            MaterialComponent& material{ renderableObjectsView.get<MaterialComponent>( sceneObject ) };
 
             GameObject& objectData{ renderComponent.GetObjectData() };
-
             if ( tag.IsVisible() && objectData.MeshData.Data != nullptr ) {
                 Renderer::Submit(std::to_string(tag.GetGUID()), objectData, transform.GetTransform(), material.GetMaterialInfo().MeshMat);
             }

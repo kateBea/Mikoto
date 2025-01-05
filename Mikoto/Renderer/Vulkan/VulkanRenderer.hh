@@ -130,6 +130,7 @@ namespace Mikoto {
          * @param data The shared pointer to the DrawData to be queued.
          * */
         auto QueueForDrawing(const std::string &id, std::shared_ptr<GameObject> &&data, std::shared_ptr<Material> &&material) -> void override;
+        auto RemoveFromRenderQueue(const std::string &id) -> bool override;
 
 
         /**

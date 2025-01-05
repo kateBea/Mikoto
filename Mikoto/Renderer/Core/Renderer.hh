@@ -97,10 +97,13 @@ namespace Mikoto {
         static auto Submit(const std::string &id, const GameObject &objectData, const glm::mat4 &transform,
                            std::shared_ptr<Material> &material) -> void;
 
+        static auto RemoveFromDrawQueue(const std::string& id) -> bool;
+
         /**
          * @brief Flushes the queued draw data to be drawn.
          * */
         static auto Flush() -> void;
+
 
         /**
          * @brief Retrieves the active graphics API.

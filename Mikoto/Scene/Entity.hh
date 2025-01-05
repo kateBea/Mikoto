@@ -144,9 +144,14 @@ namespace Mikoto {
         }
 
 
-        ~Entity() = default;
+        ~Entity() {
+            m_Registry = nullptr;
+            m_EntityHandle = entt::null;
+        }
 
     private:
+
+        // TODO: REMOVE
         friend class Scene;
         friend class ScenePanel;
         friend class HierarchyPanel;

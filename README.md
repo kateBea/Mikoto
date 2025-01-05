@@ -33,10 +33,9 @@
 
 ---
 
->**Legend:**
->- ✅ - Fully supported
->- ⚠️ - Partially supported
->- ❌ - Not supported
+- ✅ - Fully supported
+- ⚠️ - Partially supported
+- ❌ - Not supported
 ---
 
 ## Supported Platforms
@@ -70,9 +69,7 @@
 ## Building Mikoto Engine
 
 Follow the steps below to build Mikoto Engine.
-Currently, the building process has been tested on Linux and Windows.  On Windows, after the fourth step,
-you may open the resulting solution file (if you use the default build system on windows with VS)
-and build and run the project from the editor.
+Currently, the building process has been tested on Linux and Windows.
 
 ### Steps:
 

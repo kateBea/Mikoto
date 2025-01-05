@@ -37,9 +37,9 @@ namespace Mikoto {
         }
 
         // Initialize Editor DockSpace
-        auto& dockSpaceCallbacks{ GetDockSpaceCallbacks() };
+        auto& [OnSceneSaveCallback, OnSceneLoadCallback, OnSceneNewCallback]{ GetDockSpaceCallbacks() };
 
-        dockSpaceCallbacks.OnSceneNewCallback =
+        OnSceneNewCallback =
             []() -> void {
                 // destroy the currently active scene, for now we will
                 // not prompt the user with a window to save changes
@@ -53,7 +53,7 @@ namespace Mikoto {
                 SceneManager::SetActiveScene(newScene);
             };
 
-        dockSpaceCallbacks.OnSceneLoadCallback =
+        OnSceneLoadCallback =
             []() -> void {
                 // prepare filters for the dialog
                 std::initializer_list<std::pair<std::string, std::string>> filters{
@@ -77,7 +77,7 @@ namespace Mikoto {
                 ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_DEBUG, fmt::format("Loaded new scene [{}]", SceneManager::GetActiveScene().GetName()));
             };
 
-        dockSpaceCallbacks.OnSceneSaveCallback =
+        OnSceneSaveCallback =
             [&]() -> void {
                 // prepare filters for the dialog
                 std::initializer_list<std::pair<std::string, std::string>> filters{

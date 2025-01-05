@@ -551,19 +551,32 @@ namespace Mikoto {
         SubmitToQueue();
     }
 
-    auto VulkanRenderer::QueueForDrawing(const std::string &id, std::shared_ptr<GameObject> &&data, std::shared_ptr<Material> &&material) -> void {
-        auto it{ m_DrawQueue.find(id) };
+    auto VulkanRenderer::QueueForDrawing( const std::string& id, std::shared_ptr<GameObject>&& data, std::shared_ptr<Material>&& material ) -> void {
+        auto it{ m_DrawQueue.find( id ) };
         MeshRenderInfo info{
             .Data = data,
-            .MaterialData = std::dynamic_pointer_cast<VulkanStandardMaterial>(material),
+            .MaterialData = std::dynamic_pointer_cast<VulkanStandardMaterial>( material ),
         };
 
-        if (it != m_DrawQueue.end()) {
+        if ( it != m_DrawQueue.end() ) {
             it->second = info;
 
         } else {
             m_DrawQueue.emplace( id, info );
         }
+    }
+    auto VulkanRenderer::RemoveFromRenderQueue( const std::string& id ) -> bool {
+        auto result{ false };
+
+        try {
+            const auto eraseCount{ m_DrawQueue.erase( id ) };
+            result = eraseCount != 0;
+
+        } catch ( std::exception& exception ) {
+            MKT_THROW_RUNTIME_ERROR( fmt::format( "VulkanRenderer - {}", exception.what() ) );
+        }
+
+        return result;
     }
 
     auto VulkanRenderer::InitializeCommands() -> void {

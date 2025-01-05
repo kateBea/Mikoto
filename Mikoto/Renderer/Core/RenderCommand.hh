@@ -30,6 +30,8 @@ namespace Mikoto {
         static auto EnableWireframeMode() -> void;
         static auto DisableWireframeMode() -> void;
 
+        static auto RemoveFromRenderQueue(const std::string& id) -> bool;
+
         static auto SetClearColor(const glm::vec4& color) -> void;
         static auto SetClearColor(float red, float green, float blue, float alpha) -> void;
 

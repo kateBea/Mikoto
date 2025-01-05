@@ -110,6 +110,10 @@ namespace Mikoto {
 
 
     auto HierarchyPanel::DrawNodeTree( const std::unique_ptr<GenTree<Entity>::Node>& node ) -> void {
+        if (!node || !node->data.IsValid()) {
+            return;
+        }
+
         const auto& tag{ node->data.GetComponent<TagComponent>() };
         const auto ent{ SceneManager::GetCurrentSelection() };
 

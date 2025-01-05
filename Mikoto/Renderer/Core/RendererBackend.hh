@@ -111,6 +111,8 @@ namespace Mikoto {
          * */
         virtual auto QueueForDrawing(const std::string &id, std::shared_ptr<GameObject> &&data, std::shared_ptr<Material> &&material) -> void = 0;
 
+        virtual auto RemoveFromRenderQueue(const std::string &id) -> bool = 0;
+
 
         /**
          * @brief Creates a new graphics backend object and returns a pointer to it. If

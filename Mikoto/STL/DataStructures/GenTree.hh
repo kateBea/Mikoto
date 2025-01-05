@@ -74,7 +74,6 @@ namespace Mikoto {
 
         template<typename UnaryPred, typename... Args>
         auto InsertChild(UnaryPred&& pred, Args&&... args) -> bool {
-            auto found{ false };
             size_t index{ 0 };
 
             std::unique_ptr<Node>* parentPtr{ nullptr };
@@ -229,7 +228,7 @@ namespace Mikoto {
                     node->children.erase(node->children.begin() + index);
                 }
 
-                return false;
+                return found;
             }
         }
 

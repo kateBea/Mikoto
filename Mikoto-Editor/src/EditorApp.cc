@@ -23,7 +23,12 @@
 #include <Threading/TaskManager.hh>
 
 namespace Mikoto {
-
+    /**
+     * GetApplicationSpec
+     * @param args
+     * @deprecated Will use config loader with TOML
+     * @return App specs
+     * */
     static auto GetApplicationSpec( const std::vector<std::string> &args ) -> ApplicationData {
         return {
             .WindowWidth = 1920,
@@ -35,6 +40,7 @@ namespace Mikoto {
             .CommandLineArguments = { args.begin(), args.end() },
         };
     }
+
 
     auto EditorApp::Run( const Int32_T argc, char **argv ) -> Int32_T {
         ParseArguments( argc, argv );
@@ -197,7 +203,7 @@ namespace Mikoto {
 
 #if !(NDEBUG)
             // [ DEBUG: Multithreading ]
-            if (InputManager::IsKeyPressed(KeyCode::Key_E)) {
+            if (InputManager::IsKeyPressed(Key_E)) {
                 TaskManager::Execute(
                         []() -> void {
                             MKT_APP_LOGGER_DEBUG("Hello thread. Count: {}", TaskManager::GetWorkersCount());

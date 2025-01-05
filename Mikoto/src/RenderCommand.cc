@@ -40,6 +40,9 @@ namespace Mikoto {
     auto RenderCommand::DisableWireframeMode() -> void {
         s_ActiveRendererAPI->DisableWireframeMode();
     }
+    auto RenderCommand::RemoveFromRenderQueue( const std::string &id ) -> bool {
+        return s_ActiveRendererAPI->RemoveFromRenderQueue(id);
+    }
 
     auto RenderCommand::Flush() -> void {
         s_ActiveRendererAPI->Flush();

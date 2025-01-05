@@ -18,6 +18,26 @@ namespace Mikoto {
         using value_type = T;
         using reference_type = T;
 
+    public:
+        struct Node {
+            template<typename... Args>
+            explicit Node(Args&&... args)
+                :   data{ std::forward<Args>(args)... }
+            {
+
+            }
+
+            Node(const Node&) = default;
+            Node(Node&&) = default;
+
+            value_type data;
+            std::vector<std::unique_ptr<Node>> children;
+        };
+
+        using tree_t = std::vector<std::unique_ptr<Node>>;
+
+    public:
+
         template<typename... Args>
         auto Insert(Args&&... args) -> bool {
             auto result{ std::make_unique<Node>(std::forward<Args>(args)...) };
@@ -100,6 +120,10 @@ namespace Mikoto {
             return (*parentPtr)->data;
         }
 
+        auto GetNodes() -> tree_t& {
+            return m_Nodes;
+        }
+
         template<typename UnaryFunc>
         auto ForAll(UnaryFunc&& func) -> void {
 
@@ -153,21 +177,6 @@ namespace Mikoto {
         }
 
     private:
-        struct Node {
-            template<typename... Args>
-            Node(Args&&... args)
-                :   data{ std::forward<Args>(args)... }
-            {
-
-            }
-
-            Node(const Node&) = default;
-            Node(Node&&) = default;
-
-            value_type data;
-            std::vector<std::unique_ptr<Node>> children;
-        };
-
         template<typename UnaryPred>
         auto Find(UnaryPred&& func, std::unique_ptr<Node>& node) -> std::unique_ptr<Node>* {
             if (func(node->data)) {
@@ -237,7 +246,7 @@ namespace Mikoto {
 
 
     private:
-        std::vector<std::unique_ptr<Node>> m_Nodes{};
+        tree_t m_Nodes{};
     };
 }
 #endif //GENTREE_HH

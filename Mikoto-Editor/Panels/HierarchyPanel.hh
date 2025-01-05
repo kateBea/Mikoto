@@ -15,6 +15,7 @@
 #include "Panel.hh"
 #include "Scene/Entity.hh"
 #include "Scene/Scene.hh"
+#include <STL/DataStructures/GenTree.hh>
 
 namespace Mikoto {
 
@@ -28,7 +29,7 @@ namespace Mikoto {
         ~HierarchyPanel() override = default;
 
     private:
-        static auto DrawNodeTree(GenTree<Entity>& hierarchy) -> void;
+        static auto DrawNodeTree( const std::unique_ptr<GenTree<Entity>::Node>& node) -> void;
         static auto OnEntityRightClickMenu( Entity& target ) -> void;
         static auto BlankSpacePopupMenu() -> void;
     };

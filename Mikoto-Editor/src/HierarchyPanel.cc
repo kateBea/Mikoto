@@ -82,9 +82,7 @@ namespace Mikoto {
         }
     }
 
-    HierarchyPanel::HierarchyPanel()
-        :   Panel{}
-    {
+    HierarchyPanel::HierarchyPanel() {
         m_PanelHeaderName = StringUtils::MakePanelName( ICON_MD_MERGE, GetHierarchyName() );
     }
 
@@ -96,7 +94,9 @@ namespace Mikoto {
             m_PanelIsHovered = ImGui::IsWindowHovered();
             m_PanelIsFocused = ImGui::IsWindowFocused();
 
-            DrawNodeTree( SceneManager::GetActiveScene().GetHierarchy() );
+            for ( auto& hierarchy{ SceneManager::GetActiveScene().GetHierarchy() }; auto& entityNode : hierarchy.GetNodes()) {
+                DrawNodeTree( entityNode );
+            }
 
             if ( ImGui::IsMouseDown( ImGuiMouseButton_Left ) && ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered() ) {
                 SceneManager::DisableActiveSelection();
@@ -109,36 +109,35 @@ namespace Mikoto {
     }
 
 
-    auto HierarchyPanel::DrawNodeTree( GenTree<Entity>& hierarchy ) -> void {
-        hierarchy.ForAll( [&]( Entity& node ) {
-            const TagComponent& tag{ node.GetComponent<TagComponent>() };
-            const auto ent{ SceneManager::GetCurrentSelection() };
-            const auto thisEntityIsSelected{ ent.has_value() && ent->get() == node };
-            constexpr ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_AllowItemOverlap |
-                                                     ImGuiTreeNodeFlags_Framed |
-                                                     ImGuiTreeNodeFlags_SpanAvailWidth |
-                                                     ImGuiTreeNodeFlags_FramePadding };
+    auto HierarchyPanel::DrawNodeTree( const std::unique_ptr<GenTree<Entity>::Node>& node ) -> void {
+        const auto& tag{ node->data.GetComponent<TagComponent>() };
+        const auto ent{ SceneManager::GetCurrentSelection() };
 
-            const ImGuiTreeNodeFlags flags{ styleFlags | ( thisEntityIsSelected ? ImGuiTreeNodeFlags_Selected : 0 ) };
-            const bool expanded{ ImGui::TreeNodeEx( ( void* )( node.GetComponent<TagComponent>().GetGUID() ), flags, "%s", fmt::format( " {} {}", ICON_MD_WIDGETS, tag.GetTag() ).c_str() ) };
+        const auto thisEntityIsSelected{ ent.has_value() && ent->get() == node->data };
+        static constexpr ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_AllowItemOverlap |
+                                                        ImGuiTreeNodeFlags_Framed |
+                                                        ImGuiTreeNodeFlags_SpanAvailWidth |
+                                                        ImGuiTreeNodeFlags_FramePadding };
 
-            if ( ImGui::IsItemClicked( ImGuiMouseButton_Left ) ) {
-                SceneManager::SetCurrentSelection( node );
+        const ImGuiTreeNodeFlags flags{ styleFlags | ( thisEntityIsSelected ? ImGuiTreeNodeFlags_Selected : 0 ) };
+        const auto expanded{ ImGui::TreeNodeEx( reinterpret_cast<void*>( node->data.GetComponent<TagComponent>().GetGUID() ), flags, "%s", fmt::format( " {} {}", ICON_MD_WIDGETS, tag.GetTag() ).c_str() ) };
+
+        if ( ImGui::IsItemClicked( ImGuiMouseButton_Left ) ) {
+            SceneManager::SetCurrentSelection(node->data);
+        }
+
+        OnEntityRightClickMenu( node->data );
+
+        if ( expanded ) {
+            ImGui::Indent();
+
+            for (auto& child : node->children) {
+                DrawNodeTree(child);
             }
 
-            OnEntityRightClickMenu( node );
-
-            if ( expanded ) {
-
-                ImGui::Indent();
-
-                // TODO:
-
-                ImGui::Unindent();
-
-                ImGui::TreePop();
-            }
-        } );
+            ImGui::Unindent();
+            ImGui::TreePop();
+        }
     }
 
 

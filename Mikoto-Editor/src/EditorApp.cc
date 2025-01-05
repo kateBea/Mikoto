@@ -80,7 +80,7 @@ namespace Mikoto {
         MKT_APP_LOGGER_INFO("Current working directory : {}", m_Spec.WorkingDirectory.string());
         MKT_APP_LOGGER_INFO("=================================================================");
 
-        FileManager::Assets::SetRootPath("../Assets");
+        FileManager::Assets::SetRootPath("../Resources");
 
         WindowProperties windowProperties{ m_Spec.Name, m_Spec.RenderingBackend, m_Spec.WindowWidth, m_Spec.WindowHeight };
         windowProperties.AllowResizing(true);
@@ -102,7 +102,7 @@ namespace Mikoto {
         // Initialize the assets' manager.
         // Important to do after initializing the renderer loads
         // some prefabs that require having a render context ready.
-        AssetsManager::Init(AssetsManagerSpec{ .AssetRootDirectory = "../Assets" });
+        AssetsManager::Init(AssetsManagerSpec{ .AssetRootDirectory = "../Resources" });
         SceneManager::Init();
 
         InitLayers();

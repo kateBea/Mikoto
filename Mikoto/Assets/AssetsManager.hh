@@ -104,7 +104,7 @@ namespace Mikoto {
         MKT_NODISCARD static auto GetSponzaPrefabName() -> const std::string& { static std::string name{ "Sponza" }; return name; }
 
     private:
-        static inline AssetsManagerSpec                      s_Spec{};               /**< Assets manager specification. */
+        static inline AssetsManagerSpec                      s_Spec{};               /**< Resources manager specification. */
         static inline std::unordered_map<std::string, Model> s_LoadedPrefabModels{}; /**< List of loaded Models. Includes prefabs which are loaded at initialization */
         static inline std::unordered_map<std::string, Model> s_LoadedModels{};       /**< List of arbitrary Models loaded by the user */
 

@@ -47,20 +47,20 @@ namespace Mikoto {
 
         constexpr float baseFontSize{ 16.5f };
         constexpr float iconFontSize{ 18.0f };
-        const std::string fontPath{ "../Assets/Fonts/" };
+        const std::string fontPath{ "../Resources/Fonts/" };
 
 
         // NOTE: FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly
 
 
         // Font 0
-        s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF("../Assets/Fonts/JetBrainsMono/fonts/ttf/JetBrainsMonoNL-Light.ttf", 22.0f));
+        s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF("../Resources/Fonts/JetBrainsMono/fonts/ttf/JetBrainsMonoNL-Light.ttf", 22.0f));
 
         // Font 1
-        s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF("../Assets/Fonts/JetBrainsMono/fonts/ttf/JetBrainsMonoNL-Light.ttf", 17.0f));
+        s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF("../Resources/Fonts/JetBrainsMono/fonts/ttf/JetBrainsMonoNL-Light.ttf", 17.0f));
 
         // Font 2
-        s_Fonts.emplace_back(io.FontDefault = io.Fonts->AddFontFromFileTTF("../Assets/Fonts/Inter/static/Inter-Regular.ttf", baseFontSize));
+        s_Fonts.emplace_back(io.FontDefault = io.Fonts->AddFontFromFileTTF("../Resources/Fonts/Inter/static/Inter-Regular.ttf", baseFontSize));
 
         // Font 3
         static const std::array<ImWchar, 3> iconRanges1{ ICON_MIN_FA, ICON_MAX_16_FA, 0 };
@@ -103,7 +103,7 @@ namespace Mikoto {
         ImGuiIO& io{ ImGui::GetIO() };
 
         // Load ini file
-        io.IniFilename = "../Assets/imgui/imgui.ini";
+        io.IniFilename = "../Resources/imgui/imgui.ini";
 
         // Create implementation
         switch (Renderer::GetActiveGraphicsAPI()) {

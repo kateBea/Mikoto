@@ -157,7 +157,7 @@ namespace Mikoto {
         m_SettingsPanel = std::make_unique<SettingsPanel>();
         m_HierarchyPanel = std::make_unique<HierarchyPanel>();
         m_InspectorPanel = std::make_unique<InspectorPanel>();
-        m_ContentBrowserPanel = std::make_unique<ContentBrowserPanel>("../Assets");
+        m_ContentBrowserPanel = std::make_unique<ContentBrowserPanel>("../Resources");
         m_ConsolePanel = std::make_unique<ConsolePanel>();
         m_RendererPanel = std::make_unique<RendererPanel>();
 

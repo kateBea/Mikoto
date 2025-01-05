@@ -44,8 +44,8 @@ namespace Mikoto {
             m_Guids.emplace_back();
         }
 
-        m_FolderIcon = Texture2D::Create("../Assets/Icons/folder0.png", MapType::TEXTURE_2D_DIFFUSE);
-        m_FileIcon = Texture2D::Create("../Assets/Icons/file4.png", MapType::TEXTURE_2D_DIFFUSE);
+        m_FolderIcon = Texture2D::Create("../Resources/Icons/folder0.png", MapType::TEXTURE_2D_DIFFUSE);
+        m_FileIcon = Texture2D::Create("../Resources/Icons/file4.png", MapType::TEXTURE_2D_DIFFUSE);
 
         switch (Renderer::GetActiveGraphicsAPI()) {
             case GraphicsAPI::VULKAN_API:

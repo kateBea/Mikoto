@@ -17,21 +17,35 @@
 
 ---
 
-## Key Features
+### Supported Features
 
-- **Model Loading**: Handling of 3D model assets.
-- **Image Loading**: Integration for texture assets.
-- **Blinn-Phong Lighting**: Real-time lighting with Blinn-Phong shading.
-- **Entity Component System (ECS)**: Lightweight and modular design for entity management.
-- **Game Object Serialization**: Work-in-progress support for saving/loading game states.
+| **Feature Name**          | **Feature Description**                           | **Supported** |
+|---------------------------|---------------------------------------------------|---------------|
+| Model Loading             | Ability to load 3D models from various file types | ✅             |
+| Image Loading             | Support for loading and using textures/images     | ✅             |
+| Blinn-Phong Lighting      | Basic lighting model implementation               | ✅             |
+| Entity Component System   | Management of scene game objects through ECS      | ✅             |
+| Game Object Serialization | Save and load objects to/from disk                | ⚠️            |
+| Particle System           | Visual particle effects like smoke, fire, etc.    | ❌             |
+| Vulkan Ray Tracing        | Support for Vulkan RayTracing                     | ❌             |
+| Physics Integration       | Basic collision detection and response            | ❌             |
+| UI Integration (ImGui)    | Immediate mode GUI for runtime/editor UI          | ✅             |
+| Animation System          | Skeletal animation and keyframe interpolation     | ❌             |
+| Audio Support             | Load and play sound effects and background music  | ❌             |
 
+---
+
+>**Legend:**
+>- ✅ - Fully supported
+>- ⚠️ - Partially supported
+>- ❌ - Not supported
 ---
 
 ## Supported Platforms
 
-| Platform | Status        |
-|----------|---------------|
-| Linux    | Supported     |
+| Platform | Status                 |
+|----------|------------------------|
+| Linux    | Supported              |
 | Windows  | Work-in-Progress (WIP) |
 
 ---
@@ -48,7 +62,6 @@
 
 ## Folder Structure
 
-- **`Assets/`**: Core utilities, prefabs, shaders, and essential engine assets.
 - **`Mikoto-Engine/`**: The core engine that powers the Mikoto Game Engine.
 - **`Mikoto-Editor/`**: The editor project for creating and managing game scenes.
 - **`Mikoto-Runtime/`**: A sample project that demonstrates the engine's features.

@@ -156,9 +156,11 @@ namespace Mikoto {
         AssetsManager::Shutdown();
         SceneManager::Shutdown();
 
-        // ImGui requires the Context to be alive so
-        // it is shutdown after the context is deleted.
-        ImGuiManager::Shutdown();
+        RenderContext::PushShutdownCallback([]() -> void {
+            // ImGui requires the Context to be alive so
+            // it is shutdown after the context is deleted.
+            ImGuiManager::Shutdown();
+        });
 
         RenderContext::Shutdown();
         InputManager::Shutdown();

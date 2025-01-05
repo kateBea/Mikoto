@@ -35,6 +35,10 @@ namespace Mikoto {
                 // Wait for remaining operations
                 VulkanUtils::WaitOnDevice(VulkanContext::GetPrimaryLogicalDevice());
 
+                for (const auto& func : s_ShutdownCallbacks) {
+                    func();
+                }
+
                 // Delete remaining vulkan objects
                 DeletionQueue::Flush();
 
@@ -73,11 +77,14 @@ namespace Mikoto {
 
 
     auto RenderContext::DisableVSync() -> void {
-        switch (s_Spec.TargetAPI) {
+        switch ( s_Spec.TargetAPI ) {
             case GraphicsAPI::VULKAN_API:
                 VulkanContext::DisableVSync();
                 break;
         }
+    }
+    auto RenderContext::PushShutdownCallback(const std::function<void()>& func) -> void {
+        s_ShutdownCallbacks.emplace_back(func);
     }
 
 

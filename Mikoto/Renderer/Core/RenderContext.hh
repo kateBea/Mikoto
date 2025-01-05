@@ -63,6 +63,8 @@ namespace Mikoto {
          * */
         static auto DisableVSync() -> void;
 
+        static auto PushShutdownCallback(const std::function<void()>& func) -> void;
+
 
         /**
          * @brief Checks if vertical synchronization is active.
@@ -77,6 +79,8 @@ namespace Mikoto {
 
         /** Specifications for the RenderContext. */
         inline static RenderContextData s_Spec{};
+
+     inline static std::vector<std::function<void()>> s_ShutdownCallbacks{};
     };
 
 }

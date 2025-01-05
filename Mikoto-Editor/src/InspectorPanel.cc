@@ -660,7 +660,10 @@ namespace Mikoto {
                                              ImGui::Unindent();
 
                                              MaterialInfo& matInfo{ component.GetMaterialInfo() };
-                                             EditStandardMaterial( *std::dynamic_pointer_cast<StandardMaterial>(matInfo.MeshMat) );
+
+                                             if (matInfo.MeshMat) {
+                                                 EditStandardMaterial( *std::dynamic_pointer_cast<StandardMaterial>(matInfo.MeshMat) );
+                                             }
 
                                              ImGui::Indent();
                                          });
@@ -827,7 +830,7 @@ namespace Mikoto {
         DrawComponent<RenderComponent>(
             fmt::format("{} Mesh", ICON_MD_VIEW_IN_AR),
             entity,
-            [](auto& component) -> void {
+            [&entity](auto& component) -> void {
                 GameObject& objData{ component.GetObjectData() };
 
                 ImGui::Unindent();
@@ -876,7 +879,7 @@ namespace Mikoto {
                         };
 
                         Model* model{ AssetsManager::LoadModel(modelLoadInfo) };
-                        SceneManager::GetActiveScene().CreatePrefabEntity(objData.ModelName, model);
+                        SceneManager::GetActiveScene().CreatePrefabEntity(objData.ModelName, model, std::addressof(entity));
                     }
                 }
 
@@ -1594,9 +1597,9 @@ namespace Mikoto {
 
     auto InspectorPanel::OnUpdate(MKT_UNUSED_VAR float timeStep) -> void {
         if (m_PanelIsVisible) {
-            ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible));
+            ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ) );
 
-            auto activeEntity{ SceneManager::GetCurrentSelection() };
+            const auto activeEntity{ SceneManager::GetCurrentSelection() };
             if (activeEntity.has_value()) {
                 DrawVisibilityCheckBox(activeEntity->get());
 

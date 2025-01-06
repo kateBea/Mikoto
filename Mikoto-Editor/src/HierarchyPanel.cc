@@ -89,7 +89,7 @@ namespace Mikoto {
 
     auto HierarchyPanel::OnUpdate( MKT_UNUSED_VAR float ts ) -> void {
         if ( m_PanelIsVisible ) {
-            ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ) );
+            ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), ImGuiWindowFlags_NoCollapse );
 
             m_PanelIsHovered = ImGui::IsWindowHovered();
             m_PanelIsFocused = ImGui::IsWindowFocused();

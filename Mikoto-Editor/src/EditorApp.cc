@@ -171,7 +171,7 @@ namespace Mikoto {
         TaskManager::Shutdown();
     }
 
-    auto EditorApp::DestroyLayers() -> void {
+    auto EditorApp::DestroyLayers() const -> void {
         m_EditorLayer->OnDetach();
     }
 
@@ -180,12 +180,12 @@ namespace Mikoto {
         m_EditorLayer->OnAttach();
     }
 
-    auto EditorApp::UpdateLayers() -> void {
+    auto EditorApp::UpdateLayers() const -> void {
         const auto timeStep{ TimeManager::GetTimeStep() };
         m_EditorLayer->OnUpdate( timeStep );
     }
 
-    auto EditorApp::RenderImGuiFrame() -> void {
+    auto EditorApp::RenderImGuiFrame() const -> void {
         ImGuiManager::BeginFrame();
         m_EditorLayer->PushImGuiDrawItems();
         ImGuiManager::EndFrame();

@@ -19,16 +19,16 @@
 #include <Material/Texture/Texture2D.hh>
 
 namespace Mikoto::ImGuiUtils {
-    inline auto PushImageButton(const Texture2D *texture, ImVec2 size, ImVec2 uv1 = ImVec2{ 0, 1 }, ImVec2 uv2 = ImVec2{ 1, 0 }) -> void {
+    inline auto PushImageButton(const Texture2D *texture, const ImVec2 size, const ImVec2 uv1 = ImVec2{ 0, 1 }, const ImVec2 uv2 = ImVec2{ 1, 0 }) -> void {
         ImTextureID icon{};
 
         switch (Renderer::GetActiveGraphicsAPI()) {
             case GraphicsAPI::VULKAN_API:
-                icon = (ImTextureID)std::any_cast<VkDescriptorSet>(texture->GetImGuiTextureHandle());
+                icon = reinterpret_cast<ImTextureID>( std::any_cast<VkDescriptorSet>( texture->GetImGuiTextureHandle() ) );
                 break;
         }
 
-        ImGui::ImageButton(icon, size, uv1, uv2);
+        ImGui::ImageButton( std::to_string( texture->GetID().Get() ).c_str(), icon, size, uv1, uv2);
     }
 
 

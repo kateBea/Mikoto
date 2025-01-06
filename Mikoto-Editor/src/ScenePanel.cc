@@ -134,7 +134,7 @@ namespace Mikoto {
 
     auto ScenePanel::OnUpdate(MKT_UNUSED_VAR float ts) -> void {
         if (m_PanelIsVisible) {
-            constexpr ImGuiWindowFlags windowFlags{};
+            constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_NoCollapse };
 
             // Expand scene view to window bounds (no padding)
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f,0.0f });

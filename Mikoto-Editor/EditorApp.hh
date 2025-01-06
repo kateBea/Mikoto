@@ -33,9 +33,9 @@ namespace Mikoto {
 
     private:
         auto InitLayers() -> void;
-        auto DestroyLayers() -> void;
-        auto UpdateLayers() -> void;
-        auto RenderImGuiFrame() -> void;
+        auto DestroyLayers() const -> void;
+        auto UpdateLayers() const -> void;
+        auto RenderImGuiFrame() const -> void;
         auto InstallEventCallbacks() -> void;
 
         auto ParseArguments(Int32_T argc, char **argv) -> void;

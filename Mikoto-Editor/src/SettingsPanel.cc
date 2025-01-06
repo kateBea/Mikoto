@@ -40,7 +40,7 @@ namespace Mikoto {
 
     auto SettingsPanel::OnUpdate(float timeStep) -> void {
         if (m_PanelIsVisible) {
-            ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible));
+            ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible), ImGuiWindowFlags_NoCollapse);
 
             static constexpr ImGuiTreeNodeFlags styleFlags{ImGuiTreeNodeFlags_DefaultOpen |
                                                            ImGuiTreeNodeFlags_AllowItemOverlap |

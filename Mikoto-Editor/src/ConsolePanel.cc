@@ -27,7 +27,7 @@ namespace Mikoto {
 
     auto ConsolePanel::OnUpdate(float timeStep) -> void {
         if (m_PanelIsVisible) {
-            ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible));
+            ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible), ImGuiWindowFlags_NoCollapse);
 
             if (ImGui::Button(fmt::format("{} Clear", ICON_MD_DELETE).c_str())) {
                 ConsoleManager::ClearMessages();

@@ -14,11 +14,11 @@
 #include "Core/EventManager.hh"
 #include "Core/FileManager.hh"
 #include "Core/TimeManager.hh"
+#include "GUI/ImGuiUtils.hh"
 #include "Layers/EditorLayer.hh"
 #include "Renderer/Core/RenderCommand.hh"
 #include "Scene/SceneManager.hh"
 #include "Tools/ConsoleManager.hh"
-#include "GUI/ImGuiUtils.hh"
 
 namespace Mikoto {
     auto EditorLayer::OnAttach() -> void {
@@ -27,8 +27,8 @@ namespace Mikoto {
 
         InitializePanels();
 
-        m_EditorCamera->SetMovementSpeed(m_SettingsPanel->GetData().EditorCameraMovementSpeed);
-        m_EditorCamera->SetRotationSpeed(m_SettingsPanel->GetData().EditorCameraRotationSpeed);
+        m_EditorCamera->SetMovementSpeed( m_SettingsPanel->GetData().EditorCameraMovementSpeed );
+        m_EditorCamera->SetRotationSpeed( m_SettingsPanel->GetData().EditorCameraRotationSpeed );
 
         {
             // scripting test
@@ -37,68 +37,67 @@ namespace Mikoto {
         }
 
         // Initialize Editor DockSpace
-        auto& [OnSceneSaveCallback, OnSceneLoadCallback, OnSceneNewCallback]{ GetDockSpaceCallbacks() };
+        auto& [OnSceneSaveCallback, OnSceneLoadCallback, OnSceneNewCallback]{ m_DockSpaceCallbacks };
 
         OnSceneNewCallback =
-            []() -> void {
-                // destroy the currently active scene, for now we will
-                // not prompt the user with a window to save changes
-                SceneManager::DestroyScene(SceneManager::GetActiveScene());
-                SceneManager::DisableActiveSelection();
+                []() -> void {
+            // destroy the currently active scene, for now we will
+            // not prompt the user with a window to save changes
+            SceneManager::DestroyScene( SceneManager::GetActiveScene() );
+            SceneManager::DisableActiveSelection();
 
-                // create a new empty scene
-                auto& newScene{ SceneManager::MakeNewScene("Empty Scene") };
+            // create a new empty scene
+            auto& newScene{ SceneManager::MakeNewScene( "Empty Scene" ) };
 
-                // make the newly created scene the active one
-                SceneManager::SetActiveScene(newScene);
-            };
+            // make the newly created scene the active one
+            SceneManager::SetActiveScene( newScene );
+        };
 
         OnSceneLoadCallback =
-            []() -> void {
-                // prepare filters for the dialog
-                std::initializer_list<std::pair<std::string, std::string>> filters{
-                        { "Mikoto Scene files", "mkts,mktscene" },
-                        { "Mikoto Project Files", "mkt,mktp,mktproject" }
-                };
-
-                std::string sceneFilePath{ FileManager::OpenDialog(filters) };
-
-                // user canceled file dialog
-                if (sceneFilePath.empty()) {
-                    ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_WARNING, "User canceled open dialog");
-                    return;
-                }
-
-                // We need to clear the scene before we load the serialized entities
-                SceneManager::DestroyScene(SceneManager::GetActiveScene());
-                SceneManager::DisableActiveSelection();
-
-                FileManager::SceneSerializer::Deserialize(sceneFilePath);
-                ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_DEBUG, fmt::format("Loaded new scene [{}]", SceneManager::GetActiveScene().GetName()));
+                []() -> void {
+            // prepare filters for the dialog
+            std::initializer_list<std::pair<std::string, std::string>> filters{
+                { "Mikoto Scene files", "mkts,mktscene" },
+                { "Mikoto Project Files", "mkt,mktp,mktproject" }
             };
+
+            std::string sceneFilePath{ FileManager::OpenDialog( filters ) };
+
+            // user canceled file dialog
+            if ( sceneFilePath.empty() ) {
+                ConsoleManager::PushMessage( ConsoleLogLevel::CONSOLE_WARNING, "User canceled open dialog" );
+                return;
+            }
+
+            // We need to clear the scene before we load the serialized entities
+            SceneManager::DestroyScene( SceneManager::GetActiveScene() );
+            SceneManager::DisableActiveSelection();
+
+            FileManager::SceneSerializer::Deserialize( sceneFilePath );
+            ConsoleManager::PushMessage( ConsoleLogLevel::CONSOLE_DEBUG, fmt::format( "Loaded new scene [{}]", SceneManager::GetActiveScene().GetName() ) );
+        };
 
         OnSceneSaveCallback =
-            [&]() -> void {
-                // prepare filters for the dialog
-                std::initializer_list<std::pair<std::string, std::string>> filters{
-                        { "Mikoto Scene files", "mkts,mktscene" },
-                        { "Mikoto Project Files", "mkt,mktp,mktproject" }
-                };
-
-                Scene* activeScene{ std::addressof(SceneManager::GetActiveScene()) };
-                auto path{ FileManager::SaveDialog("Mikoto Scene", filters) };
-                FileManager::SceneSerializer::Serialize(*activeScene, path);
-                ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_WARNING, fmt::format("Saved scene to [{}]", path));
+                [&]() -> void {
+            // prepare filters for the dialog
+            std::initializer_list<std::pair<std::string, std::string>> filters{
+                { "Mikoto Scene files", "mkts,mktscene" },
+                { "Mikoto Project Files", "mkt,mktp,mktproject" }
             };
 
-        SceneManager::SetActiveScene(SceneManager::MakeNewScene("Empty Scene"));
+            Scene* activeScene{ std::addressof( SceneManager::GetActiveScene() ) };
+            auto path{ FileManager::SaveDialog( "Mikoto Scene", filters ) };
+            FileManager::SceneSerializer::Serialize( *activeScene, path );
+            ConsoleManager::PushMessage( ConsoleLogLevel::CONSOLE_WARNING, fmt::format( "Saved scene to [{}]", path ) );
+        };
+
+        SceneManager::SetActiveScene( SceneManager::MakeNewScene( "Empty Scene" ) );
     }
 
     auto EditorLayer::OnDetach() -> void {
-
     }
 
-    auto EditorLayer::OnUpdate( double ts ) -> void {
+    auto EditorLayer::OnUpdate( const double ts ) -> void {
         RenderCommand::SetClearColor( m_SettingsPanel->GetData().ClearColor );
 
         // Move and rotation speeds
@@ -126,29 +125,40 @@ namespace Mikoto {
 
     auto EditorLayer::PushImGuiDrawItems() -> void {
         OnDockSpaceUpdate();
-        auto& controlFlags{ GetControlFlags() };
 
-        m_SettingsPanel->MakeVisible(controlFlags.SettingPanelVisible);
-        m_HierarchyPanel->MakeVisible(controlFlags.HierarchyPanelVisible);
-        m_InspectorPanel->MakeVisible(controlFlags.InspectorPanelVisible);
-        m_ScenePanel->MakeVisible(controlFlags.ScenePanelVisible);
-        m_StatsPanel->MakeVisible(controlFlags.StatsPanelVisible);
-        m_ContentBrowserPanel->MakeVisible(controlFlags.ContentBrowser);
-        m_ConsolePanel->MakeVisible(controlFlags.ConsolePanel);
-        m_RendererPanel->MakeVisible(controlFlags.RendererPanel);
+        auto& [applicationCloseFlag,
+               hierarchyPanelVisible,
+               inspectorPanelVisible,
+               scenePanelVisible,
+               settingPanelVisible,
+               statsPanelVisible,
+               contentBrowser,
+               consolePanel,
+               rendererPanel]{ m_ControlFlags };
 
-        const auto ts{ (float)TimeManager::GetTimeStep(TimeUnit::SECONDS) };
+        m_SettingsPanel->MakeVisible( settingPanelVisible );
+        m_HierarchyPanel->MakeVisible( hierarchyPanelVisible );
+        m_InspectorPanel->MakeVisible( inspectorPanelVisible );
+        m_ScenePanel->MakeVisible( scenePanelVisible );
+        m_StatsPanel->MakeVisible( statsPanelVisible );
+        m_ContentBrowserPanel->MakeVisible( contentBrowser );
+        m_ConsolePanel->MakeVisible( consolePanel );
+        m_RendererPanel->MakeVisible( rendererPanel );
 
-        m_SettingsPanel->OnUpdate(ts);
-        m_HierarchyPanel->OnUpdate(ts);
-        m_InspectorPanel->OnUpdate(ts);
-        m_ScenePanel->OnUpdate(ts);
-        m_StatsPanel->OnUpdate(ts);
-        m_ContentBrowserPanel->OnUpdate(ts);
-        m_ConsolePanel->OnUpdate(ts);
-        m_RendererPanel->OnUpdate(ts);
+        const auto timeStep{ static_cast<float>( TimeManager::GetTimeStep( TimeUnit::SECONDS ) ) };
 
-        if (controlFlags.ApplicationCloseFlag) { EventManager::Trigger<AppClose>(); }
+        m_SettingsPanel->OnUpdate( timeStep );
+        m_HierarchyPanel->OnUpdate( timeStep );
+        m_InspectorPanel->OnUpdate( timeStep );
+        m_ScenePanel->OnUpdate( timeStep );
+        m_StatsPanel->OnUpdate( timeStep );
+        m_ContentBrowserPanel->OnUpdate( timeStep );
+        m_ConsolePanel->OnUpdate( timeStep );
+        m_RendererPanel->OnUpdate( timeStep );
+
+        if ( applicationCloseFlag ) {
+            EventManager::Trigger<AppClose>();
+        }
     }
 
     auto EditorLayer::InitializePanels() -> void {
@@ -157,13 +167,15 @@ namespace Mikoto {
         m_SettingsPanel = std::make_unique<SettingsPanel>();
         m_HierarchyPanel = std::make_unique<HierarchyPanel>();
         m_InspectorPanel = std::make_unique<InspectorPanel>();
-        m_ContentBrowserPanel = std::make_unique<ContentBrowserPanel>("../Resources");
+        m_ContentBrowserPanel = std::make_unique<ContentBrowserPanel>( "../Resources" );
         m_ConsolePanel = std::make_unique<ConsolePanel>();
         m_RendererPanel = std::make_unique<RendererPanel>();
 
-        ScenePanelCreateInfo scenePanelCreateInfo{};
-        scenePanelCreateInfo.EditorMainCamera = m_EditorCamera.get();
-        m_ScenePanel = std::make_unique<ScenePanel>(std::move( scenePanelCreateInfo ));
+        ScenePanelCreateInfo scenePanelCreateInfo{
+            .EditorMainCamera = m_EditorCamera.get()
+        };
+
+        m_ScenePanel = std::make_unique<ScenePanel>( std::move( scenePanelCreateInfo ) );
 
         // Panels post setup
         m_SettingsPanel->SetRenderFieldOfView( 45.0f );
@@ -178,22 +190,25 @@ namespace Mikoto {
 
         // Initialize cameras
         constexpr double aspect{ 1920.0 / 1080.0 };
-        m_RuntimeCamera = std::make_shared<SceneCamera>(glm::ortho(-aspect, aspect, -1.0, 1.0));
-        (void)m_RuntimeCamera;
+        m_RuntimeCamera = std::make_shared<SceneCamera>( glm::ortho( -aspect, aspect, -1.0, 1.0 ) );
+        ( void )m_RuntimeCamera;
 
-        m_EditorCamera = std::make_shared<EditorCamera>(fieldOfView, aspectRatio, nearPlane, farPlane);
+        m_EditorCamera = std::make_shared<EditorCamera>( fieldOfView, aspectRatio, nearPlane, farPlane );
     }
 
-    auto ShowDockingDisabledMessage() -> void {
-        ImGuiIO& io = ImGui::GetIO();
-        ImGui::Text("ERROR: Docking is not enabled! See Demo > Configuration.");
-        ImGui::Text("Set io.ConfigFlags |= ImGuiConfigFlags_DockingEnable in your code, or ");
-        ImGui::SameLine(0.0f, 0.0f);
-        if (ImGui::SmallButton("click here"))
+    auto EditorLayer::ShowDockingDisabledMessage() -> void {
+        ImGuiIO& io{ ImGui::GetIO() };
+
+        ImGui::Text( "ERROR: Docking is not enabled! See Demo > Configuration." );
+        ImGui::Text( "Set io.ConfigFlags |= ImGuiConfigFlags_DockingEnable in your code" );
+        ImGui::SameLine( 0.0f, 0.0f );
+
+        if ( ImGui::SmallButton( "Click here" ) ) {
             io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+        }
     }
 
-    auto OnDockSpaceUpdate() -> void {
+    auto EditorLayer::OnDockSpaceUpdate() -> void {
         // If you strip some features of, this demo is pretty much equivalent to calling DockSpaceOverViewport()!
         // In most cases you should be able to just call DockSpaceOverViewport() and ignore all the code below!
         // In this specific demo, we are not using DockSpaceOverViewport() because:
@@ -207,150 +222,161 @@ namespace Mikoto {
         //         ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
         //     }
 
-        static bool optPadding{ false };
-        static ImGuiDockNodeFlags dockSpaceConfigFlags = ImGuiDockNodeFlags_None;
+        constexpr auto optPadding{ false };
+        constexpr ImGuiDockNodeFlags dockSpaceConfigFlags{ ImGuiDockNodeFlags_None };
 
         // We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
         // because it would be confusing to have two docking targets within each others.
-        ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+        ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking };
 
         // Docks-pace always takes the full screen
         const ImGuiViewport* viewport{ ImGui::GetMainViewport() };
-        ImGui::SetNextWindowPos(viewport->WorkPos);
-        ImGui::SetNextWindowSize(viewport->WorkSize);
-        ImGui::SetNextWindowViewport(viewport->ID);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-        window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+        ImGui::SetNextWindowPos( viewport->WorkPos );
+        ImGui::SetNextWindowSize( viewport->WorkSize );
+        ImGui::SetNextWindowViewport( viewport->ID );
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 0.0f );
+        windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+        windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
         // When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background
         // and handle the pass-thru hole, so we ask Begin() to not render a background.
-        if (dockSpaceConfigFlags & ImGuiDockNodeFlags_PassthruCentralNode)
-            window_flags |= ImGuiWindowFlags_NoBackground;
+        if constexpr ( dockSpaceConfigFlags & ImGuiDockNodeFlags_PassthruCentralNode ) {
+            windowFlags |= ImGuiWindowFlags_NoBackground;
+        }
 
         // Important: note that we proceed even if Begin() returns false (aka window is collapsed).
         // This is because we want to keep our DockSpace() active. If a DockSpace() is inactive,
         // all active windows docked into it will lose their parent and become undocked.
         // We cannot preserve the docking relationship between an active window and an inactive docking, otherwise
         // any change of docks-pace/settings would lead to windows being stuck in limbo and never being visible.
-        if (!optPadding) {
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        if constexpr ( !optPadding ) {
+            ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0.0f, 0.0f ) );
         }
 
-        ImGui::Begin("DockSpace Demo", &s_ControlFlags.ApplicationCloseFlag, window_flags);
+        ImGui::Begin( "DockSpace Demo", std::addressof( m_ControlFlags.ApplicationCloseFlag ), windowFlags );
 
-        if (!optPadding) {
+        if constexpr ( !optPadding ) {
             ImGui::PopStyleVar();
         }
 
         // DockSpace is always fullscreen
-        ImGui::PopStyleVar(2);
+        ImGui::PopStyleVar( 2 );
 
         // Submit the DockSpace
-        ImGuiIO& io{ ImGui::GetIO() };
+        const ImGuiIO& io{ ImGui::GetIO() };
         ImGuiStyle& style{ ImGui::GetStyle() };
-
-        // minimum imgui windows width (temporary)
-        const float minimumPanelsWidth{ style.WindowMinSize.x };
         style.WindowMinSize.x = 450;
-        if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
-            ImGuiID dockSpaceId = ImGui::GetID("kaTeDockEditor");
-            ImGui::DockSpace(dockSpaceId, ImVec2(0.0f, 0.0f), dockSpaceConfigFlags);
-        }
-        else {
+
+        // minimum imgui windows width to avoid making them flat
+        const float minimumPanelsWidth{ style.WindowMinSize.x };
+        if ( io.ConfigFlags & ImGuiConfigFlags_DockingEnable ) {
+            const ImGuiID dockSpaceId = ImGui::GetID( "MikotoDockEditor" );
+            ImGui::DockSpace( dockSpaceId, ImVec2( 0.0f, 0.0f ), dockSpaceConfigFlags );
+        } else {
             ShowDockingDisabledMessage();
         }
 
         style.WindowMinSize.x = minimumPanelsWidth;
 
-        if (ImGui::BeginMenuBar()) {
-            ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 1.0f);
+        if ( ImGui::BeginMenuBar() ) {
+            ImGui::PushStyleVar( ImGuiStyleVar_PopupBorderSize, 1.0f );
 
-            // File menubar. Need to extract to separated function
-            if (ImGui::BeginMenu("File")) {
+            if ( ImGui::BeginMenu( "File" ) ) {
                 // Disabling fullscreen would allow the window to be moved to the front of other windows,
                 // which we can't undo at the moment without finer window depth/z control.
-                if (ImGui::MenuItem("New scene", "Ctrl + N")) { s_DockSpaceCallbacks.OnSceneNewCallback(); }
-                if (ImGui::MenuItem("Open scene", "Ctrl + L")) { s_DockSpaceCallbacks.OnSceneLoadCallback(); }
-                if (ImGui::MenuItem("Save scene", "Ctrl + S")) { s_DockSpaceCallbacks.OnSceneSaveCallback(); }
+                if ( ImGui::MenuItem( "New scene", "Ctrl + N" ) ) { m_DockSpaceCallbacks.OnSceneNewCallback(); }
+                if ( ImGui::MenuItem( "Open scene", "Ctrl + L" ) ) { m_DockSpaceCallbacks.OnSceneLoadCallback(); }
+                if ( ImGui::MenuItem( "Save scene", "Ctrl + S" ) ) { m_DockSpaceCallbacks.OnSceneSaveCallback(); }
 
                 ImGui::Separator();
 
-                if (ImGui::MenuItem("Close", nullptr, false))
-                    s_ControlFlags.ApplicationCloseFlag = true;
+                if ( ImGui::MenuItem( "Close", nullptr, false ) ) {
+                    m_ControlFlags.ApplicationCloseFlag = true;
+                }
 
                 ImGui::EndMenu();
             }
 
             HelpMarker(
-                    "When docking is enabled, you can ALWAYS dock MOST window into another! Try it now!" "\n"
-                    "- Drag from window title bar or their tab to dock/undock." "\n"
-                    "- Drag from window menu button (upper-left button) to undock an entire node (all windows)." "\n"
-                    "- Hold SHIFT to disable docking (if io.ConfigDockingWithShift == false, default)" "\n"
-                    "- Hold SHIFT to enable docking (if io.ConfigDockingWithShift == true)" "\n"
-                    "This demo app has nothing to do with enabling docking!" "\n\n"
-                    "This demo app only demonstrate the use of ImGui::DockSpace() which allows you to manually create a docking node _within_ another window." "\n\n"
-                    "Read comments in ShowExampleAppDockSpace() for more details.");
+                    "When docking is enabled, you can ALWAYS dock MOST window into another! Try it now!"
+                    "\n"
+                    "- Drag from window title bar or their tab to dock/undock."
+                    "\n"
+                    "- Drag from window menu button (upper-left button) to undock an entire node (all windows)."
+                    "\n"
+                    "- Hold SHIFT to disable docking (if io.ConfigDockingWithShift == false, default)"
+                    "\n"
+                    "- Hold SHIFT to enable docking (if io.ConfigDockingWithShift == true)"
+                    "\n"
+                    "This demo app has nothing to do with enabling docking!"
+                    "\n\n"
+                    "This demo app only demonstrate the use of ImGui::DockSpace() which allows you to manually create a docking node _within_ another window."
+                    "\n\n"
+                    "Read comments in ShowExampleAppDockSpace() for more details." );
 
-            // Window. Need to extract to separated function
-            if (ImGui::BeginMenu("Window")) {
-                if (ImGui::BeginMenu("Panels")) {
-                    if (ImGui::MenuItem("Hierarchy", nullptr, s_ControlFlags.HierarchyPanelVisible))   s_ControlFlags.HierarchyPanelVisible = !s_ControlFlags.HierarchyPanelVisible;
-                    if (ImGui::MenuItem("Inspector", nullptr, s_ControlFlags.InspectorPanelVisible))   s_ControlFlags.InspectorPanelVisible = !s_ControlFlags.InspectorPanelVisible;
-                    if (ImGui::MenuItem("Scene", nullptr, s_ControlFlags.ScenePanelVisible))       s_ControlFlags.ScenePanelVisible = !s_ControlFlags.ScenePanelVisible;
-                    if (ImGui::MenuItem("Settings", nullptr, s_ControlFlags.SettingPanelVisible))    s_ControlFlags.SettingPanelVisible = !s_ControlFlags.SettingPanelVisible;
-                    if (ImGui::MenuItem("Statistics", nullptr, s_ControlFlags.StatsPanelVisible))    s_ControlFlags.StatsPanelVisible = !s_ControlFlags.StatsPanelVisible;
-                    if (ImGui::MenuItem("Content Browser", nullptr, s_ControlFlags.ContentBrowser))    s_ControlFlags.ContentBrowser = !s_ControlFlags.ContentBrowser;
-                    if (ImGui::MenuItem("Console", nullptr, s_ControlFlags.ConsolePanel))    s_ControlFlags.ConsolePanel = !s_ControlFlags.ConsolePanel;
-                    if (ImGui::MenuItem("Renderer", nullptr, s_ControlFlags.RendererPanel))    s_ControlFlags.RendererPanel = !s_ControlFlags.RendererPanel;
+            if ( ImGui::BeginMenu( "Window" ) ) {
+                if ( ImGui::BeginMenu( "Panels" ) ) {
+                    if ( ImGui::MenuItem( "Hierarchy", nullptr, m_ControlFlags.HierarchyPanelVisible ) ) m_ControlFlags.HierarchyPanelVisible = !m_ControlFlags.HierarchyPanelVisible;
+                    if ( ImGui::MenuItem( "Inspector", nullptr, m_ControlFlags.InspectorPanelVisible ) ) m_ControlFlags.InspectorPanelVisible = !m_ControlFlags.InspectorPanelVisible;
+                    if ( ImGui::MenuItem( "Scene", nullptr, m_ControlFlags.ScenePanelVisible ) ) m_ControlFlags.ScenePanelVisible = !m_ControlFlags.ScenePanelVisible;
+                    if ( ImGui::MenuItem( "Settings", nullptr, m_ControlFlags.SettingPanelVisible ) ) m_ControlFlags.SettingPanelVisible = !m_ControlFlags.SettingPanelVisible;
+                    if ( ImGui::MenuItem( "Statistics", nullptr, m_ControlFlags.StatsPanelVisible ) ) m_ControlFlags.StatsPanelVisible = !m_ControlFlags.StatsPanelVisible;
+                    if ( ImGui::MenuItem( "Content Browser", nullptr, m_ControlFlags.ContentBrowser ) ) m_ControlFlags.ContentBrowser = !m_ControlFlags.ContentBrowser;
+                    if ( ImGui::MenuItem( "Console", nullptr, m_ControlFlags.ConsolePanel ) ) m_ControlFlags.ConsolePanel = !m_ControlFlags.ConsolePanel;
+                    if ( ImGui::MenuItem( "Renderer", nullptr, m_ControlFlags.RendererPanel ) ) m_ControlFlags.RendererPanel = !m_ControlFlags.RendererPanel;
+
                     ImGui::EndMenu();
                 }
 
-                if (ImGui::BeginMenu("Theme")) {
-                    if (ImGui::MenuItem("Classic")) {
+                if ( ImGui::BeginMenu( "Theme" ) ) {
+                    if ( ImGui::MenuItem( "Classic" ) ) {
                         ImGui::StyleColorsClassic();
                     }
-                    if (ImGui::MenuItem("Dark Default")) {
+                    if ( ImGui::MenuItem( "Dark Default" ) ) {
                         ImGui::StyleColorsDark();
                         ImGuiUtils::ThemeDarkModeDefault();
                     }
-                    if (ImGui::MenuItem("Dark Alternative")) {
+                    if ( ImGui::MenuItem( "Dark Alternative" ) ) {
                         ImGui::StyleColorsDark();
                         ImGuiUtils::ThemeDarkModeAlt();
                     }
-                    if (ImGui::MenuItem("Focused")) {
+                    if ( ImGui::MenuItem( "Focused" ) ) {
                         ImGui::StyleColorsDark();
                     }
-                    if (ImGui::MenuItem("Blindness")) {
+                    if ( ImGui::MenuItem( "Blindness" ) ) {
                         ImGui::StyleColorsLight();
                     }
+
                     ImGui::EndMenu();
                 }
+
                 ImGui::EndMenu();
             }
 
-            HelpMarker("This help is temporary. This menu helps to change window stuff like the theme");
+            HelpMarker( "This menu helps to change window stuff like the theme" );
 
-            if (ImGui::BeginMenu("Help")) {
-                const ImGuiPopupFlags popUpFlags{ ImGuiPopupFlags_None };
-                if (ImGui::Button("About"))
-                    ImGui::OpenPopup("About", popUpFlags);
+            if ( ImGui::BeginMenu( "Help" ) ) {
+                constexpr ImGuiPopupFlags popUpFlags{ ImGuiPopupFlags_None };
+
+                if ( ImGui::Button( "About" ) ) {
+                    ImGui::OpenPopup( "About", popUpFlags );
+                }
 
                 // Always center this window when appearing
-                ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-                ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+                const ImVec2 center{ ImGui::GetMainViewport()->GetCenter() };
+                ImGui::SetNextWindowPos( center, ImGuiCond_Appearing, ImVec2( 0.5f, 0.5f ) );
 
-                if (ImGui::BeginPopupModal("About", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-                {
-                    ImGui::Text("Mikoto is an open source 3D graphics\n"
-                            "engine currently on development\n"
+                if ( ImGui::BeginPopupModal( "About", nullptr, ImGuiWindowFlags_AlwaysAutoResize ) ) {
+                    ImGui::Text(
+                            "Mikoto is an open source 3D graphics\n"
+                            "engine currently on development.\n"
                             "\nContributors:\n"
-                            "kateBea: github.com/kateBea");
+                            "kateBea: github.com/kateBea" );
 
                     ImGui::Separator();
 
-                    if (ImGui::Button("Accept", ImVec2{ 120, 0 })) {
+                    if ( ImGui::Button( "Accept", ImVec2{ 120, 0 } ) ) {
                         ImGui::CloseCurrentPopup();
                     }
 
@@ -362,30 +388,9 @@ namespace Mikoto {
             }
 
             ImGui::EndMenuBar();
-
             ImGui::PopStyleVar();
         }
 
         ImGui::End();
-    }
-
-    auto DrawAboutModalPopup() -> void {
-        // Always center this window when appearing
-        ImVec2 center{ ImGui::GetMainViewport()->GetCenter() };
-        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-
-
-        if (ImGui::BeginPopupModal("AboutPopUp11111", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text("GPU");
-            ImGui::Text("Vendor");
-            ImGui::Text("Driver Version");
-
-            if (ImGui::Button("Accept", ImVec2(120, 0))) {
-                ImGui::CloseCurrentPopup();
-            }
-
-            ImGui::EndPopup();
-        }
-
     }
 }

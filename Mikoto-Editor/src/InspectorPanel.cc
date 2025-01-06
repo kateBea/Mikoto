@@ -1597,7 +1597,7 @@ namespace Mikoto {
 
     auto InspectorPanel::OnUpdate(MKT_UNUSED_VAR float timeStep) -> void {
         if (m_PanelIsVisible) {
-            ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ) );
+            ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), ImGuiWindowFlags_NoCollapse );
 
             const auto activeEntity{ SceneManager::GetCurrentSelection() };
             if (activeEntity.has_value()) {

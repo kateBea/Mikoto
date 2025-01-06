@@ -266,7 +266,7 @@ namespace Mikoto {
     auto ContentBrowserPanel::OnUpdate(float timeStep) -> void {
         if (m_PanelIsVisible) {
             static constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_None };
-            static constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_Resizable | ImGuiTableFlags_ContextMenuInBody | ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_SizingFixedSame };
+            static constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_Resizable | ImGuiWindowFlags_NoCollapse | ImGuiTableFlags_ContextMenuInBody | ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_SizingFixedSame };
 
             ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible), windowFlags);
 
@@ -346,7 +346,7 @@ namespace Mikoto {
                 }
 
                 ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-                if (ImGui::ImageButton(icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 })) {
+                if (ImGui::ImageButton("ContentBrowserTextureIcon", icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 })) {
 
                 }
 

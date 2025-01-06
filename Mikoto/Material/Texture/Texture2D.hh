@@ -11,6 +11,8 @@
 #include <memory>
 
 // Project Headers
+#include <STL/Random/Random.hh>
+
 #include "Common/Common.hh"
 #include "STL/Utility/Types.hh"
 
@@ -42,6 +44,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetType() const -> MapType { return m_Type; }
         MKT_NODISCARD auto GetFileType() const -> TextureFileType { return m_FileType; }
         MKT_NODISCARD auto GetSize() const -> double { return m_Size; }
+        MKT_NODISCARD auto GetID() const -> UUID { return m_UUID; }
 
         MKT_NODISCARD virtual auto GetImGuiTextureHandle() const -> std::any = 0;
 
@@ -64,13 +67,13 @@ namespace Mikoto {
         }
         virtual ~Texture2D() = default;
     protected:
-        explicit Texture2D(MapType map)
-            :   m_Width{}, m_Height{}, m_Channels{}, m_Type{ map }
+        explicit Texture2D( const MapType map)
+            :   m_Width{}, m_Height{}, m_Channels{}, m_Type{ map }, m_UUID{ GenerateGUID() }
         {
 
         }
 
-        Texture2D(Int32_T width, Int32_T height, Int32_T channels)
+        Texture2D( const Int32_T width, const Int32_T height, const Int32_T channels)
             :   m_Width{ width }, m_Height{ height }, m_Channels{ channels }
         {
 
@@ -81,6 +84,8 @@ namespace Mikoto {
         Int32_T m_Height{};
         Int32_T m_Channels{};
         MapType m_Type{};
+
+        UUID m_UUID{};
 
         double m_Size{}; // in MB
 

@@ -16,7 +16,9 @@ FILE(GLOB SOURCE_FILES ../Mikoto-Editor/src/*.cc)
 SET(LIBRARIES Mikoto)
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${SOURCE_FILES}
-        Models/EntityCreateInfo.hh)
+        Models/EntityCreateInfo.hh
+        Models/DockSpaceControlFlags.hh
+        Models/DockSPaceCallbacks.hh)
 
 # Specify target link libraries
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE ${LIBRARIES})

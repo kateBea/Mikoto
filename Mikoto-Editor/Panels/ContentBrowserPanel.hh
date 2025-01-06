@@ -17,7 +17,7 @@
 #include "Material/Texture/Texture2D.hh"
 
 namespace Mikoto {
-    class ContentBrowserPanel : public Panel {
+    class ContentBrowserPanel final : public Panel {
     public:
         explicit ContentBrowserPanel(Path_T&& root);
         auto operator=(ContentBrowserPanel && other) -> ContentBrowserPanel & = default;

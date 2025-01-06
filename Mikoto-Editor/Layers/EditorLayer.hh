@@ -11,6 +11,8 @@
 
 // Project Headers
 #include "Core/Layer.hh"
+#include "Models/DockSPaceCallbacks.hh"
+#include "Models/DockSpaceControlFlags.hh"
 #include "Panels/ConsolePanel.hh"
 #include "Panels/ContentBrowserPanel.hh"
 #include "Panels/HierarchyPanel.hh"
@@ -21,44 +23,7 @@
 #include "Panels/StatsPanel.hh"
 
 namespace Mikoto {
-
-    struct DockControlFlags {
-        bool ApplicationCloseFlag{};
-
-        bool HierarchyPanelVisible{ true };
-        bool InspectorPanelVisible{ true };
-        bool ScenePanelVisible{ true };
-        bool SettingPanelVisible{ true };
-        bool StatsPanelVisible{ true };
-        bool ContentBrowser{ true };
-        bool ConsolePanel{ true };
-        bool RendererPanel{ true };
-    };
-
-    struct DockSpaceCallbacks {
-        // This function is called when we click on the Save scene of the File Menu
-        std::function<void()> OnSceneSaveCallback{};
-
-        // This function is called when we click on the Load scene of the File Menu
-        std::function<void()> OnSceneLoadCallback{};
-
-        // This function is called when we click on the New scene of the File Menu
-        std::function<void()> OnSceneNewCallback{};
-    };
-
-    inline DockControlFlags s_ControlFlags{};
-    inline DockSpaceCallbacks s_DockSpaceCallbacks{};
-
-
-    auto DrawAboutModalPopup() -> void;
-
-    auto ShowDockingDisabledMessage() -> void;
-    auto OnDockSpaceUpdate() -> void;
-
-    MKT_NODISCARD inline auto GetControlFlags() -> DockControlFlags& { return s_ControlFlags; }
-    MKT_NODISCARD inline auto GetDockSpaceCallbacks() -> DockSpaceCallbacks& { return s_DockSpaceCallbacks; }
-
-    class EditorLayer : public Layer {
+    class EditorLayer final : public Layer {
     public:
         /**
          * @brief Initializes this layer.
@@ -77,7 +42,7 @@ namespace Mikoto {
          *
          * @param ts Time elapsed since the last frame.
          * */
-        auto OnUpdate(double ts) -> void override;
+        auto OnUpdate(const double ts) -> void override;
 
 
         /**
@@ -101,8 +66,15 @@ namespace Mikoto {
          * */
         auto InitializeSceneCameras() -> void;
 
+        auto OnDockSpaceUpdate() -> void;
+        auto ShowDockingDisabledMessage() -> void;
+
 
     private:
+        // [Control flags]
+        DockControlFlags m_ControlFlags{};
+        DockSpaceCallbacks m_DockSpaceCallbacks{};
+
         // [Cameras]
         std::shared_ptr<SceneCamera> m_RuntimeCamera{};
         std::shared_ptr<EditorCamera> m_EditorCamera{};

@@ -80,7 +80,7 @@ namespace Mikoto {
             m_Hierarchy.Insert( newEntity.m_EntityHandle, m_Registry );
         } else {
             m_Hierarchy.InsertChild([&root](const auto& parent) -> bool {
-                parent.Get() == root->Get();
+                return parent.Get() == root->Get();
             },
             newEntity.m_EntityHandle, m_Registry );
         }

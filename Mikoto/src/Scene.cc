@@ -27,8 +27,6 @@
 namespace Mikoto {
 
     auto Scene::OnRuntimeUpdate(double ts) -> void {
-        UpdateScripts();
-
         std::shared_ptr<SceneCamera> mainCam{};
         auto sceneHasMainCam{ false };
 
@@ -49,7 +47,7 @@ namespace Mikoto {
 
         if (sceneHasMainCam) {
             ScenePrepareData prepareData{};
-            prepareData.RuntimeCamera = &(*mainCam);
+            prepareData.RuntimeCamera = mainCam.get();
 
             Renderer::BeginScene(prepareData);
 
@@ -80,7 +78,7 @@ namespace Mikoto {
             m_Hierarchy.Insert( newEntity.m_EntityHandle, m_Registry );
         } else {
             m_Hierarchy.InsertChild([&root](const auto& parent) -> bool {
-                parent.Get() == root->Get();
+                return parent.Get() == root->Get();
             },
             newEntity.m_EntityHandle, m_Registry );
         }
@@ -92,18 +90,16 @@ namespace Mikoto {
     auto Scene::CreatePrefabEntity(std::string_view tagName, Model *model, Entity *root, UInt64_T guid) -> Entity {
         if (model) {
             std::vector<Entity> children{};
-            // We treat each mesh as an individual game object
+            
             for (auto& mesh : model->GetMeshes()) {
+                // We treat each mesh as an individual game object
                 Entity child{ m_Registry.create(), m_Registry };
 
                 // Setup tag and transform
                 child.AddComponent<TagComponent>(mesh.GetName(), GenerateGUID());
                 child.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
 
-                // Setup material component
                 auto& material{ child.AddComponent<MaterialComponent>() };
-
-                // Setup renderer component
                 auto& renderData{ child.AddComponent<RenderComponent>() };
 
                 StandardMaterialCreateData spec{};
@@ -116,14 +112,7 @@ namespace Mikoto {
                         case MapType::TEXTURE_2D_SPECULAR:
                             spec.SpecularMap = textureIt;
                             break;
-
-                        case MapType::TEXTURE_2D_INVALID:
-                        case MapType::TEXTURE_2D_EMISSIVE:
-                        case MapType::TEXTURE_2D_NORMAL:
-                        case MapType::TEXTURE_2D_ROUGHNESS:
-                        case MapType::TEXTURE_2D_METALLIC:
-                        case MapType::TEXTURE_2D_AMBIENT_OCCLUSION:
-                        case MapType::TEXTURE_2D_COUNT:
+                        default:
                             MKT_APP_LOGGER_INFO("Unused type");
                     }
                 }
@@ -204,9 +193,9 @@ namespace Mikoto {
 
 
     auto Scene::OnEditorUpdate(MKT_UNUSED_VAR double timeStep, const EditorCamera& camera) -> void {
-        // Prepare scene data
-        ScenePrepareData prepareData{};
-        prepareData.StaticCamera = std::addressof(camera);
+        ScenePrepareData prepareData{
+            .StaticCamera{ std::addressof(camera) },
+        };
 
         Renderer::BeginScene( prepareData );
 
@@ -256,21 +245,6 @@ namespace Mikoto {
         Renderer::EndScene();
         Renderer::Flush();
     }
-
-    auto Scene::UpdateScripts() -> void {
-        for ( const auto view{ m_Registry.view<TagComponent, TransformComponent, NativeScriptComponent>() }; const auto& entity : view) {
-            TagComponent& tag{ view.get<TagComponent>(entity) };
-            TransformComponent& transform{ view.get<TransformComponent>(entity) };
-            NativeScriptComponent& script{ view.get<NativeScriptComponent>(entity) };
-
-            // Update scripts
-            {
-
-            }
-
-        }
-    }
-
 
     auto Scene::Clear() -> void {
         const auto view{ m_Registry.view<TagComponent>() };

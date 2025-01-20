@@ -149,12 +149,6 @@ namespace Mikoto {
         ~Scene() = default;
 
     private:
-        /**
-         * Updates scripts associated with entities in the scene.
-         * */
-        auto UpdateScripts() -> void;
-
-    private:
         GenTree<Entity> m_Hierarchy{};
 
         std::string m_Name{};

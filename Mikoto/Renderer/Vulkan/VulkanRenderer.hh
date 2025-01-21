@@ -30,6 +30,7 @@
 #include "VulkanCommandPool.hh"
 #include "VulkanFrameBuffer.hh"
 #include "VulkanImage.hh"
+#include <Renderer/Core/RenderQueue.hh>
 #include "VulkanStandardMaterial.hh"
 
 namespace Mikoto {

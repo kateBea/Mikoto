@@ -86,7 +86,7 @@ namespace Mikoto {
         MKT_APP_LOGGER_INFO("Current working directory : {}", m_Spec.WorkingDirectory.string());
         MKT_APP_LOGGER_INFO("=================================================================");
 
-        FileManager::Assets::SetRootPath("../Resources");
+        FileManager::Assets::SetRootPath("Resources");
 
         WindowProperties windowProperties{ m_Spec.Name, m_Spec.RenderingBackend, m_Spec.WindowWidth, m_Spec.WindowHeight };
         windowProperties.AllowResizing(true);

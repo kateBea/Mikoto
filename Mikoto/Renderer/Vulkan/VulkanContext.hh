@@ -90,6 +90,7 @@ namespace Mikoto {
         MKT_NODISCARD static inline auto GetCurrentImageIndex() -> UInt32_T { return s_CurrentImageIndex; }
         MKT_NODISCARD static inline auto GetDrawCommandBuffersHandles() -> std::vector<VkCommandBuffer> & { return s_RenderCommandBufferHandles; }
 
+
         // [Physical device data getters]
         MKT_NODISCARD static inline auto GetPrimaryPhysicalDeviceFeatures()         -> VkPhysicalDeviceFeatures         { return s_ContextData.PhysicalDeviceFeatures[s_ContextData.PrimaryPhysicalDeviceIndex]; }
         MKT_NODISCARD static inline auto GetPrimaryPhysicalDeviceProperties()       -> VkPhysicalDeviceProperties       { return s_ContextData.PhysicalDeviceProperties[s_ContextData.PrimaryPhysicalDeviceIndex]; }
@@ -116,11 +117,6 @@ namespace Mikoto {
         // [Internal usage]
         static auto InitSwapChain() -> void;
         static auto InitContext( const std::shared_ptr<Window>& ptr ) -> void;
-
-        // TODO: delete if not needed
-        static auto SubmitCommands( const VkCommandBuffer *commands, const UInt32_T count ) -> void;
-
-        // TODO: delete if not needed
         static auto SubmitToQueue(const QueueSubmitInfo &submitInfo) -> void;
 
         MKT_NODISCARD static auto IsDeviceSuitable(VkPhysicalDevice device) -> bool;
@@ -137,7 +133,7 @@ namespace Mikoto {
         static auto CreateSurface() -> void;
         static auto CreateInstance() -> void;
         static auto CreateDebugMessenger() -> void;
-        static auto InitRenderer() -> void;
+        static auto InitRenderContextInfo() -> void;
         static auto InitMemoryAllocator() -> void;
         static auto FetchPhysicalDeviceSpec() -> void;
         static auto PickPrimaryPhysicalDevice() -> void;

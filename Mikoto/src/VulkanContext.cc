@@ -103,8 +103,9 @@ namespace Mikoto {
 
         InitSwapChain();
         InitMemoryAllocator();
-        InitRenderer();
+        InitRenderContextInfo();
 
+        // Immadiate submit command buffers
         CreatePrimaryLogicalDeviceCommandPools();
         CreatePrimaryLogicalDeviceCommandBuffers();
         CreateSynchronizationPrimitives();
@@ -602,8 +603,6 @@ namespace Mikoto {
         allocInfo.commandPool = s_MainCommandPool.Get();
         allocInfo.commandBufferCount = 1;
 
-        // Allocation ----------------------
-
         for ( Size_T count{}; count < commandBuffersCount; ++count ) {
             VkCommandBuffer cmd{};
 
@@ -625,8 +624,6 @@ namespace Mikoto {
                                   std::addressof( immediateSubmitAllocInfo ),
                                   std::addressof( s_ImmediateSubmitContext.CommandBuffer ) );
 
-
-        // Cleanup via delete queue ----------------------
 
         DeletionQueue::Push( [=]() -> void {
             // Clear main draw command buffers
@@ -675,23 +672,6 @@ namespace Mikoto {
 
         // We are not responsible for freeing the command buffers held by this array
         s_BatchedGraphicQueueCommands.clear();
-    }
-
-    // TODO: delete if not needed
-    auto VulkanContext::SubmitCommands( const VkCommandBuffer* commands, const UInt32_T count ) -> void {
-        QueueSubmitInfo submitInfo{};
-
-        // Specify present and render semaphores
-        submitInfo.SyncObjects.RenderFence = s_SwapChainSyncObjects.RenderFence;
-        submitInfo.SyncObjects.RenderSemaphore = s_SwapChainSyncObjects.RenderSemaphore;
-        submitInfo.SyncObjects.PresentSemaphore = s_SwapChainSyncObjects.PresentSemaphore;
-
-        // Setup commands and specify queue
-        submitInfo.CommandsCount = count;
-        submitInfo.Commands = commands;
-        submitInfo.Queue = GetPrimaryLogicalDeviceGraphicsQueue();
-
-        SubmitToQueue( submitInfo );
     }
 
     auto VulkanContext::Present() -> void {
@@ -831,23 +811,19 @@ namespace Mikoto {
         VkCommandBufferBeginInfo cmdBeginInfo{ VulkanUtils::CommandBufferBeginInfo( VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT ) };
 
         if ( vkBeginCommandBuffer( cmd, &cmdBeginInfo ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "Error on vkBeginCommandBuffer on ImmediateSubmit" );
+            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkBeginCommandBuffer on ImmediateSubmit" );
         }
 
-        // execute the function
         task( cmd );
 
         if ( vkEndCommandBuffer( cmd ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "Error on vkBeginCommandBuffer on ImmediateSubmit" );
+            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkBeginCommandBuffer on ImmediateSubmit" );
         }
 
         VkSubmitInfo submitInfo{ VulkanUtils::SubmitInfo( cmd ) };
 
-
-        // Submit command buffer to the queue and execute it.
-        // UploadFence will now block until the graphic commands finish execution
         if ( vkQueueSubmit( queue, 1, std::addressof( submitInfo ), s_ImmediateSubmitContext.UploadFence ) ) {
-            MKT_THROW_RUNTIME_ERROR( "Error on vkQueueSubmit on ImmediateSubmit" );
+            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkQueueSubmit on ImmediateSubmit" );
         }
 
         vkWaitForFences( GetPrimaryLogicalDevice(), 1, std::addressof( s_ImmediateSubmitContext.UploadFence ), true, 9999999999 );
@@ -865,7 +841,7 @@ namespace Mikoto {
     }
 
 
-    auto VulkanContext::InitRenderer() -> void {
+    auto VulkanContext::InitRenderContextInfo() -> void {
         auto& rendererInfo{ Renderer::GetRendererData() };
         rendererInfo.GPUName = GetPrimaryPhysicalDeviceProperties().deviceName;
         rendererInfo.CPUName = StringUtils::Trim( GetCPUName() );

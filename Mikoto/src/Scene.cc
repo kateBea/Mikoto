@@ -163,12 +163,12 @@ namespace Mikoto {
         children.emplace_back( target.Get() );
 
         // Remove parent and children from drawing queue
-        auto& tagComponent{ target.GetComponent<TagComponent>() };
-        auto removed{ Renderer::RemoveFromDrawQueue(std::to_string(tagComponent.GetGUID())) };
+        auto& tag{ target.GetComponent<TagComponent>() };
+        Renderer::RemoveFromDrawQueue(std::to_string(tag.GetGUID()));
         m_Hierarchy.ForAllChildren(
-            [&children](auto& ent) {
-                auto& tagComponent{ ent.template GetComponent<TagComponent>() };
-                auto isRemoved{ Renderer::RemoveFromDrawQueue(std::to_string(tagComponent.GetGUID())) };
+            [&children](Entity& ent) {
+                const auto& tagComponent{ ent.GetComponent<TagComponent>() };
+                Renderer::RemoveFromDrawQueue(std::to_string(tagComponent.GetGUID()));
 
                 children.emplace_back(ent.Get());
             },
@@ -189,7 +189,7 @@ namespace Mikoto {
         return result;
     }
 
-    auto Scene::OnViewPortResize(UInt32_T width, UInt32_T height) -> void {
+    auto Scene::OnViewPortResize( const UInt32_T width, const UInt32_T height) -> void {
         // Resize non-fixed aspect ratio cameras
 
         for ( const auto view{ m_Registry.view<TransformComponent, CameraComponent>() }; const auto& entity : view) {
@@ -216,28 +216,42 @@ namespace Mikoto {
         Renderer::SetLightsViewPos( glm::vec4{ camera.GetPosition(), 1.0f } );
 
         for ( auto& lightSource: m_Registry.view<LightComponent>() ) {
-            auto& lightComponent{ m_Registry.get<LightComponent>( lightSource ) };
-            switch ( lightComponent.GetType() ) {
-                case LightType::DIRECTIONAL_LIGHT_TYPE:
-                    lightComponent.GetDirLightData().Position =
-                            glm::vec4{ m_Registry.get<TransformComponent>( lightSource ).GetTranslation(), 1.0f };
-                    Renderer::SetDirLightInfo( lightComponent.GetDirLightData(), dirIndexCount++ );
-                    break;
-                case LightType::POINT_LIGHT_TYPE:
-                    lightComponent.GetPointLightData().Position =
-                            glm::vec4{ m_Registry.get<TransformComponent>( lightSource ).GetTranslation(), 1.0f };
-                    Renderer::SetPointLightInfo( lightComponent.GetPointLightData(), pointIndexCount++ );
-                    break;
-                case LightType::SPOT_LIGHT_TYPE:
-                    lightComponent.GetSpotLightData().Position =
-                            glm::vec4{ m_Registry.get<TransformComponent>( lightSource ).GetTranslation(), 1.0f };
-                    Renderer::SetSpotLightInfo( lightComponent.GetSpotLightData(), spotIndexCount++ );
-                    break;
-            }
+            Entity entity{ lightSource, m_Registry };
+            auto& lightComponent{ entity.GetComponent<LightComponent>() };
+            auto& tagComponent{ entity.GetComponent<TagComponent>() };
+            auto& lightData{ lightComponent.GetData() };
 
-            Renderer::SetActivePointLightsCount( pointIndexCount );
-            Renderer::SetActiveDirLightsCount( dirIndexCount );
-            Renderer::SetActiveSpotLightsCount( spotIndexCount );
+            LightRenderInfo info{
+                .Id = std::to_string( tagComponent.GetGUID() ),
+                .Type{ lightComponent.GetType() },
+                .Data{ lightComponent.GetData() },
+                .IsActive{ tagComponent.IsVisible() }
+            };
+
+            Renderer::AddLightObject(info);
+
+            //
+            // switch ( lightComponent.GetType() ) {
+            //     case LightType::DIRECTIONAL_LIGHT_TYPE:
+            //         lightComponent.GetDirLightData().Position =
+            //                 glm::vec4{ m_Registry.get<TransformComponent>( lightSource ).GetTranslation(), 1.0f };
+            //         Renderer::SetDirLightInfo( lightComponent.GetDirLightData(), dirIndexCount++ );
+            //         break;
+            //     case LightType::POINT_LIGHT_TYPE:
+            //         lightComponent.GetPointLightData().Position =
+            //                 glm::vec4{ m_Registry.get<TransformComponent>( lightSource ).GetTranslation(), 1.0f };
+            //         Renderer::SetPointLightInfo( lightComponent.GetPointLightData(), pointIndexCount++ );
+            //         break;
+            //     case LightType::SPOT_LIGHT_TYPE:
+            //         lightComponent.GetSpotLightData().Position =
+            //                 glm::vec4{ m_Registry.get<TransformComponent>( lightSource ).GetTranslation(), 1.0f };
+            //         Renderer::SetSpotLightInfo( lightComponent.GetSpotLightData(), spotIndexCount++ );
+            //         break;
+            // }
+            //
+            // Renderer::SetActivePointLightsCount( pointIndexCount );
+            // Renderer::SetActiveDirLightsCount( dirIndexCount );
+            // Renderer::SetActiveSpotLightsCount( spotIndexCount );
         }
 
         auto renderableObjectsView{ m_Registry.view<TagComponent, TransformComponent, RenderComponent, MaterialComponent>() };

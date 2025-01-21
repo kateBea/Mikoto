@@ -368,7 +368,9 @@ namespace Mikoto {
             .Stage = SHADER_VERTEX_STAGE,
             .Directory = PathBuilder()
                                  .WithPath( FileManager::Assets::GetRootPath().string() )
-                                 .WithPath( "Shaders/vulkan-spirv/StandardVertexShader.sprv" )
+                                 .WithPath( "Shaders" )
+                                 .WithPath( "vulkan-spirv" )
+                                 .WithPath( "StandardVertexShader.sprv" )
                                  .Build(),
         };
 
@@ -377,7 +379,9 @@ namespace Mikoto {
             .Stage = SHADER_FRAGMENT_STAGE,
             .Directory = PathBuilder()
                                  .WithPath( FileManager::Assets::GetRootPath().string() )
-                                 .WithPath( "Shaders/vulkan-spirv/StandardFragmentShader.sprv" )
+                                 .WithPath( "Shaders" )
+                                 .WithPath( "vulkan-spirv" )
+                                 .WithPath( "StandardFragmentShader.sprv" )
                                  .Build(),
         };
 

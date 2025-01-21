@@ -135,9 +135,6 @@ namespace Mikoto {
          * */
         MKT_NODISCARD static auto GetRendererStatistics() -> const RendererStatistics&;
 
-
-
-
         // Temporary API for light handling
         static auto GetLightsView() -> const glm::vec4& { return  s_LightViewPos; }
         static auto SetLightsViewPos(const glm::vec4& viewPos) -> void;

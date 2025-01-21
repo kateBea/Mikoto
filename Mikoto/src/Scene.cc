@@ -86,7 +86,6 @@ namespace Mikoto {
         return newEntity;
     }
 
-
     auto Scene::CreatePrefabEntity(std::string_view tagName, Model *model, Entity *root, UInt64_T guid) -> Entity {
         if (model) {
             std::vector<Entity> children{};
@@ -144,7 +143,6 @@ namespace Mikoto {
         return Entity{};
     }
 
-
     auto Scene::DestroyEntity(Entity& target) -> bool {
         // Contains all the nodes that have to be deleted (the target and all of its children)
         std::vector<entt::entity> children{};
@@ -190,7 +188,6 @@ namespace Mikoto {
 
         }
     }
-
 
     auto Scene::OnEditorUpdate(MKT_UNUSED_VAR double timeStep, const EditorCamera& camera) -> void {
         ScenePrepareData prepareData{
@@ -250,7 +247,6 @@ namespace Mikoto {
         const auto view{ m_Registry.view<TagComponent>() };
         m_Registry.destroy(view.begin(), view.end());
     }
-
 
     auto Scene::GetSceneMetaData() -> SceneMetaData& {
         m_MetaData.EntityCount = m_Registry.view<TagComponent>().size();

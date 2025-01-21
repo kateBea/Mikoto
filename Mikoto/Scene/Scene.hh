@@ -155,6 +155,6 @@ namespace Mikoto {
         entt::registry m_Registry{};
         SceneMetaData m_MetaData{};
     };
-}// namespace Mikoto
+}
 
 #endif// MIKOTO_SCENE_HH

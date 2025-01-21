@@ -21,44 +21,15 @@
 #include <Models/GameObjectData.hh>
 #include <Models/LightRenderData.hh>
 #include <Models/LightTypeData.hh>
+#include <Models/RendererDrawData.hh>
 #include <Models/RenderingStats.hh>
 #include <Models/ScenePrepareData.hh>
-#include <Renderer/Buffer/VertexBuffer.hh>
 #include <Renderer/Core/RendererBackend.hh>
 #include <Scene/Camera.hh>
 
-#include <Models/RendererDrawData.hh>
+#include "Models/RenderInfo.hh"
 
 namespace Mikoto {
-    /**
-     * @brief Represents the specifications required to initialize the Renderer.
-     * This struct encapsulates the necessary specifications for initializing a Renderer,
-     * for now it just includes the graphics backend to be used.
-     * */
-    struct RendererSpec {
-        GraphicsAPI Backend{}; /**< Graphics backend for the renderer. */
-    };
-
-    /**
-     * @brief Contains information about the renderer resources.
-     * This struct holds data related to the resources available to the renderer.
-     * */
-    struct RendererData {
-        std::string GPUName{ "Unknown" };        /**< Name of the GPU used. */
-        std::string CPUName{ "Unknown" };        /**< Name of the CPU used. */
-        std::string DriverVersion{ "Unknown" };  /**< Version of the driver. */
-        double RAMSize{ 0.0f };                  /**< Amount of RAM available in MB. */
-        double VRAMSize{ 0.0f };                 /**< Amount of VRAM available in MB. */
-    };
-
-    /**
-     * @brief Contains real-time usage information about the renderer resources.
-     * This struct holds statistics related to the real-time usage of renderer resources.
-     * */
-    struct RendererStatistics {
-        UInt64_T VRAMUsage{}; /**< Amount of VRAM used in bytes. */
-    };
-
     /**
      * @brief Manages rendering functionality and the Renderer's lifecycle.
      * */
@@ -135,37 +106,33 @@ namespace Mikoto {
          * */
         MKT_NODISCARD static auto GetRendererStatistics() -> const RendererStatistics&;
 
-        // Temporary API for light handling
+        static auto AddLightObject(const LightRenderInfo& info) -> void;
+        static auto RemoveLightObject(const std::string& id) -> void;
+        static auto GetLightObjects() -> const std::unordered_map<std::string, LightRenderInfo>& { return s_LightObjects; }
         static auto GetLightsView() -> const glm::vec4& { return  s_LightViewPos; }
         static auto SetLightsViewPos(const glm::vec4& viewPos) -> void;
+
+        // active lights
+        static auto GetActivePointLightsCount() -> Size_T { return s_ActivePointLightCount; }
+        static auto GetActiveDirLightsCount() -> Size_T { return s_ActiveDirLightCount; }
+        static auto GetActiveSpotLightsCount() -> Size_T { return s_ActiveSpotLightCount; }
 
         // Point
         static auto SetPointLightInfo( PointLight& info, Size_T index ) -> void;
         static auto SetActivePointLightsCount( Size_T count ) -> void { s_ActivePointLightCount = count; }
 
         static auto GetPointLights() -> std::array<PointLight, MAX_LIGHTS_PER_SCENE>& { return s_PointLights; }
-        static auto GetActivePointLightsCount() -> Size_T { return s_ActivePointLightCount; }
 
-        // Directional light
+
         static auto SetDirLightInfo( DirectionalLight& info, Size_T index ) -> void;
         static auto SetActiveDirLightsCount( Size_T count ) -> void { s_ActiveDirLightCount = count; }
 
         static auto GetDirLights() -> std::array<DirectionalLight, MAX_LIGHTS_PER_SCENE>& { return s_DirectionalLights; }
-        static auto GetActiveDirLightsCount() -> Size_T { return s_ActiveDirLightCount; }
-
-        // Spotlights
         static auto SetSpotLightInfo( SpotLight& info, Size_T index ) -> void;
         static auto SetActiveSpotLightsCount( Size_T count ) -> void { s_ActiveSpotLightCount = count; }
 
         static auto GetSpotLights() -> std::array<SpotLight, MAX_LIGHTS_PER_SCENE>& { return s_SpotLights; }
-        static auto GetActiveSpotLightsCount() -> Size_T { return s_ActiveSpotLightCount; }
 
-    private:
-        struct RenderSubmitInfo {
-            std::string Id{};
-            std::shared_ptr<GameObject> Data{};
-            std::shared_ptr<Material> MatInfo{};
-        };
 
     private:
 
@@ -192,8 +159,8 @@ namespace Mikoto {
         static inline RendererData                                  s_RendererData{};         /**< Information about renderer resources */
         static inline RendererStatistics                            s_Statistics{};           /**< Information about renderer resources' real-time usage */
 
-        // supporting only five lights atm
         static inline glm::vec4 s_LightViewPos{};
+        static inline std::unordered_map<std::string, LightRenderInfo> s_LightObjects{};
 
         // point
         static inline Size_T s_ActivePointLightCount{};

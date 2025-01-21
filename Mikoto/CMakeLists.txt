@@ -61,6 +61,7 @@ SET(SOURCES ${IMGUI_SOURCES} ${IMGUIZMO_SOURCES} ${SOURCE_FILES}
         Models/StandardMaterialCreateData.hh
         Common/ConfigLoader.hh
         Models/ConfigOptions.hh
+        Models/RenderInfo.hh
 )
 
 # External dependencies

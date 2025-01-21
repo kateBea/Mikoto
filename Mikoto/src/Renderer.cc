@@ -81,12 +81,20 @@ namespace Mikoto {
         static constexpr double updateInterval{ 5.0 };
         static double lastTimeUpdate{ elapsed };
 
-        if ((elapsed - lastTimeUpdate) >= updateInterval) {
+        if ( ( elapsed - lastTimeUpdate ) >= updateInterval ) {
             UpdateRendererStatistics();
             lastTimeUpdate = elapsed;
         }
 
         return s_Statistics;
+    }
+
+    auto Renderer::AddLightObject( const LightRenderInfo& info ) -> void {
+
+    }
+
+    auto Renderer::RemoveLightObject( const std::string& id ) -> void {
+
     }
 
 

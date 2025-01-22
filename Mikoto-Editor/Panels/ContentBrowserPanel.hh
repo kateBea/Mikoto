@@ -40,7 +40,7 @@ namespace Mikoto {
 
         auto OnRightClick() -> void;
 
-        auto DrawProjectDirTree(const Path_T& root) -> void;
+        auto DrawProjectDirTree(const Path_T& root ) const -> void;
         auto DrawCurrentDirItems() -> void;
 
     private:

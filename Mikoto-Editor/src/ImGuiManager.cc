@@ -47,54 +47,59 @@ namespace Mikoto {
         ImGui::StyleColorsDark();
         ImGuiUtils::ThemeDarkModeDefault();
 
-        constexpr float baseFontSize{ 16.5f };
+        io.Fonts->AddFontDefault();
+        constexpr float baseFontSize{ 18.0f };
+        //constexpr float iconFontSize = baseFontSize * 2.0f / 3.0f; // FontAwesome fonts need to have their sizes
         constexpr float iconFontSize{ 18.0f };
         const std::string fontPath{ PathBuilder().WithPath( FileManager::Assets::GetRootPath().string() ).WithPath( "Fonts" ).Build().string() };
 
 
         // NOTE: FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly
 
-        // Font 0
-        s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF(PathBuilder()
+        // // Font 0
+        s_Fonts.emplace_back(io.FontDefault = io.Fonts->AddFontFromFileTTF(PathBuilder()
                                  .WithPath( FileManager::Assets::GetRootPath().string() )
                                  .WithPath( "Fonts" )
                                  .WithPath( "Inter" )
                                  .WithPath( "static" )
                                  .WithPath( "Inter-Regular.ttf" )
                                  .Build().string().c_str(), baseFontSize));
-        // Font 1
-        s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF(PathBuilder()
-                                 .WithPath( FileManager::Assets::GetRootPath().string() )
-                                 .WithPath( "Fonts" )
-                                 .WithPath( "JetBrainsMono" )
-                                 .WithPath( "fonts" )
-                                 .WithPath( "ttf" )
-                                 .WithPath( "JetBrainsMonoNL-Light.ttf" )
-                                 .Build().string().c_str(), 22.0f));
-
-        // Font 1
-        s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF(PathBuilder()
-                                 .WithPath( FileManager::Assets::GetRootPath().string() )
-                                 .WithPath( "Fonts" )
-                                 .WithPath( "JetBrainsMono" )
-                                 .WithPath( "fonts" )
-                                 .WithPath( "ttf" )
-                                 .WithPath( "JetBrainsMonoNL-Light.ttf" )
-                                 .Build().string().c_str(), 27.0f));
+        // // Font 1
+        // s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF(PathBuilder()
+        //                          .WithPath( FileManager::Assets::GetRootPath().string() )
+        //                          .WithPath( "Fonts" )
+        //                          .WithPath( "JetBrainsMono" )
+        //                          .WithPath( "fonts" )
+        //                          .WithPath( "ttf" )
+        //                          .WithPath( "JetBrainsMonoNL-Light.ttf" )
+        //                          .Build().string().c_str(), 22.0f));
+        //
+        // // Font 1
+        // s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF(PathBuilder()
+        //                          .WithPath( FileManager::Assets::GetRootPath().string() )
+        //                          .WithPath( "Fonts" )
+        //                          .WithPath( "JetBrainsMono" )
+        //                          .WithPath( "fonts" )
+        //                          .WithPath( "ttf" )
+        //                          .WithPath( "JetBrainsMonoNL-Light.ttf" )
+        //                          .Build().string().c_str(), 27.0f));
 
 
         // Font 3
         static constexpr std::array<ImWchar, 3> iconRanges1{ ICON_MIN_FA, ICON_MAX_16_FA, 0 };
-        AddIconFont(iconFontSize, PathBuilder().WithPath( fontPath ).WithPath( FONT_ICON_FILE_NAME_FAR ).Build().string(), iconRanges1);
+        static const auto faRegular{ PathBuilder().WithPath( fontPath ).WithPath( FONT_ICON_FILE_NAME_FAS ).Build() };
+        AddIconFont(iconFontSize, faRegular.string(), iconRanges1);
 
         // Font 4
         // See https://react-icons.github.io/react-icons/icons?name=md for icon previews
         static constexpr std::array<ImWchar, 3> iconRanges2{ ICON_MIN_MD, ICON_MAX_16_MD, 0 };
-        AddIconFont(iconFontSize, PathBuilder().WithPath( fontPath ).WithPath( FONT_ICON_FILE_NAME_MD ).Build().string(), iconRanges2);
+        static const auto materialIconsRegular{ PathBuilder().WithPath( fontPath ).WithPath( FONT_ICON_FILE_NAME_MD ).Build() };
+        AddIconFont(iconFontSize, materialIconsRegular.string(), iconRanges2);
 
         // Font 5
         static constexpr std::array<ImWchar, 3> iconRanges3{ ICON_MIN_MDI, ICON_MAX_16_MDI, 0 };
-        AddIconFont(iconFontSize, PathBuilder().WithPath( fontPath ).WithPath( FONT_ICON_FILE_NAME_MDI ).Build().string(), iconRanges3);
+        static const auto materialDesign{ PathBuilder().WithPath( fontPath ).WithPath( FONT_ICON_FILE_NAME_MDI ).Build() };
+        AddIconFont(iconFontSize, materialDesign.string(), iconRanges3);
 
         InitImplementation(window);
     }
@@ -104,11 +109,11 @@ namespace Mikoto {
 
         ImFontConfig config{};
         config.MergeMode = true;
+        config.GlyphMinAdvanceX = 4.0f;
         config.PixelSnapH = true;
         config.GlyphOffset.y = 4.0f;
         config.GlyphOffset.x = 0.0f;
         config.OversampleH = config.OversampleV = 3.0f;
-        config.GlyphMinAdvanceX = 4.0f;
         config.SizePixels = 12.0f;
 
         auto font{ io.Fonts->AddFontFromFileTTF(

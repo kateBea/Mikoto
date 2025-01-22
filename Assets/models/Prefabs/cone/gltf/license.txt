@@ -1,0 +1,11 @@
+Model Information:
+* title:	Cone
+* source:	https://sketchfab.com/3d-models/cone-7bb3431c6da344b9a4648cb84b59199e
+* author:	sebamart.14 (https://sketchfab.com/sebamart.14)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Cone" (https://sketchfab.com/3d-models/cone-7bb3431c6da344b9a4648cb84b59199e) by sebamart.14 (https://sketchfab.com/sebamart.14) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

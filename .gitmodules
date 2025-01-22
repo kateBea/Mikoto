@@ -46,3 +46,6 @@
 [submodule "Third-Party/tomlplusplus"]
 	path = Third-Party/tomlplusplus
 	url = https://github.com/marzer/tomlplusplus.git
+[submodule "Third-Party/IconFontCppHeaders"]
+	path = Third-Party/IconFontCppHeaders
+	url = https://github.com/juliettef/IconFontCppHeaders.git

@@ -9,6 +9,7 @@
 #include <string>
 
 #include "GameObjectData.hh"
+#include "LightRenderData.hh"
 
 namespace Mikoto {
     /**
@@ -47,9 +48,9 @@ namespace Mikoto {
     };
 
     struct LightRenderInfo {
-        std::string Id{ "Unknown" };
         LightType Type{};
         LightData Data{};
+        glm::vec4 Position{};
         bool IsActive{};
     };
 }

@@ -50,18 +50,12 @@ namespace Mikoto {
         auto operator=( PipelineInfo&& ) noexcept -> PipelineInfo& = default;
     };
 
-    class VulkanRenderer final : public RendererBackend {
+    class VulkanRenderer final : public IRendererBackend {
     public:
         /**
          * Default constructs this renderer.
          * */
         explicit VulkanRenderer() = default;
-
-
-        /**
-         * @brief Default destructor
-         * */
-        ~VulkanRenderer() override = default;
 
 
         /**
@@ -130,7 +124,7 @@ namespace Mikoto {
          * Queues provided data for drawing.
          * @param data The shared pointer to the DrawData to be queued.
          * */
-        auto QueueForDrawing(const std::string &id, std::shared_ptr<GameObject> &&data, std::shared_ptr<Material> &&material) -> void override;
+        auto QueueForDrawing(const std::string &id, const GameObject* data, Material* material) -> void override;
         auto RemoveFromRenderQueue(const std::string &id) -> bool override;
 
 
@@ -151,6 +145,10 @@ namespace Mikoto {
             return m_MaterialInfo;
         }
 
+        /**
+         * @brief Default destructor
+         * */
+        ~VulkanRenderer() override = default;
 
     private:
         /**
@@ -164,15 +162,15 @@ namespace Mikoto {
         };
 
         struct MeshRenderInfo {
-            std::shared_ptr<GameObject> Data{};
-            std::shared_ptr<VulkanStandardMaterial> MaterialData{};
+            const GameObject* Data{};
+            VulkanStandardMaterial* MaterialData{};
         };
 
     private:
         /**
          * Draws the scene. Responsible for recording draw commands.
          * */
-        auto Draw() -> void override;
+        auto RecordCommands() -> void;
 
 
         /**
@@ -249,7 +247,7 @@ namespace Mikoto {
          * For now the recorded commands are submitted to
          * the graphics queue of the main logical device.
          * */
-        auto SubmitToQueue() const -> void;
+        auto SubmitCommands() const -> void;
 
 
     private:
@@ -273,10 +271,6 @@ namespace Mikoto {
         VkCommandBuffer m_DrawCommandBuffer{};
 
         std::unordered_map<std::string, MeshRenderInfo> m_DrawQueue{};
-
-        std::vector<VkImage> m_DepthImages{};
-        std::vector<VkDeviceMemory> m_DepthImageMemories{};
-        std::vector<VkImageView> m_DepthImageViews{};
 
         bool m_UseWireframe{};
     };

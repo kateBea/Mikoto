@@ -103,9 +103,9 @@ namespace Mikoto {
 
         InitSwapChain();
         InitMemoryAllocator();
-        InitRenderContextInfo();
+        //InitRenderContextInfo();
 
-        // Immadiate submit command buffers
+        // Immediate submit command buffers
         CreatePrimaryLogicalDeviceCommandPools();
         CreatePrimaryLogicalDeviceCommandBuffers();
         CreateSynchronizationPrimitives();
@@ -796,7 +796,7 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanContext::BatchCommandBuffer( VkCommandBuffer cmd ) -> void {
+    auto VulkanContext::PushCommandBuffer( VkCommandBuffer cmd ) -> void {
         // TODO: Thread safety
         // Senders are responsible of freeing the command buffers packed into
         // this array once these command buffers are no longer needed.
@@ -841,13 +841,13 @@ namespace Mikoto {
     }
 
 
-    auto VulkanContext::InitRenderContextInfo() -> void {
-        auto& rendererInfo{ Renderer::GetRendererData() };
-        rendererInfo.GPUName = GetPrimaryPhysicalDeviceProperties().deviceName;
-        rendererInfo.CPUName = StringUtils::Trim( GetCPUName() );
-        rendererInfo.DriverVersion = std::to_string( GetPrimaryPhysicalDeviceProperties().driverVersion );
-        rendererInfo.VRAMSize = static_cast<double>(GetPrimaryPhysicalDeviceMemoryProperties().memoryHeaps[0].size) / 1'000'000;
-    }
+    // auto VulkanContext::InitRenderContextInfo() -> void {
+    //     auto& rendererInfo{ Renderer::GetRendererData() };
+    //     rendererInfo.GPUName = GetPrimaryPhysicalDeviceProperties().deviceName;
+    //     rendererInfo.CPUName = StringUtils::Trim( GetCPUName() );
+    //     rendererInfo.DriverVersion = std::to_string( GetPrimaryPhysicalDeviceProperties().driverVersion );
+    //     rendererInfo.VRAMSize = static_cast<double>(GetPrimaryPhysicalDeviceMemoryProperties().memoryHeaps[0].size) / 1'000'000;
+    // }
 
 
     auto VulkanContext::InitContext( const std::shared_ptr<Window>& ptr ) -> void {

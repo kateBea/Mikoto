@@ -8,6 +8,7 @@
 #include <Core/Logger.hh>
 #include <Renderer/Buffer/IndexBuffer.hh>
 #include <Renderer/Core/Renderer.hh>
+#include <STL/Filesystem/PathBuilder.hh>
 
 namespace Mikoto {
 
@@ -18,30 +19,66 @@ namespace Mikoto {
     }
 
     auto AssetsManager::Shutdown() -> void {
+
     }
 
     auto AssetsManager::LoadPrefabs() -> void {
         AddSpritePrefab();
 
-        ModelLoadInfo modelLoadInfo{};
         const bool invertedY{ Renderer::GetActiveGraphicsAPI() == GraphicsAPI::VULKAN_API };
 
+        ModelLoadInfo modelLoadInfo{};
         modelLoadInfo.InvertedY = invertedY;
         modelLoadInfo.WantTextures = true;
 
-        modelLoadInfo.ModelPath = s_Spec.AssetRootDirectory / "Models/Prefabs/sponza/glTF/Sponza.gltf";
+        modelLoadInfo.ModelPath = PathBuilder()
+            .WithPath( GetAssetRootDirectory().string() )
+            .WithPath( "Models" )
+            .WithPath( "Prefabs" )
+            .WithPath( "sponza" )
+            .WithPath( "glTF" )
+            .WithPath( "Sponza.gltf" )
+            .Build();
         s_LoadedPrefabModels.emplace( GetSponzaPrefabName(), modelLoadInfo );
 
-        modelLoadInfo.ModelPath = s_Spec.AssetRootDirectory / "Models/Prefabs/cube/obj/cube.obj";
+        modelLoadInfo.ModelPath = PathBuilder()
+            .WithPath( GetAssetRootDirectory().string() )
+            .WithPath( "Models" )
+            .WithPath( "Prefabs" )
+            .WithPath( "cube" )
+            .WithPath( "gltf" )
+            .WithPath( "scene.gltf" )
+            .Build();
         s_LoadedPrefabModels.emplace( GetCubePrefabName(), modelLoadInfo );
 
-        modelLoadInfo.ModelPath = s_Spec.AssetRootDirectory / "Models/Prefabs/sphere/gltf/scene.gltf";
+        modelLoadInfo.ModelPath = PathBuilder()
+            .WithPath( GetAssetRootDirectory().string() )
+            .WithPath( "Models" )
+            .WithPath( "Prefabs" )
+            .WithPath( "sphere" )
+            .WithPath( "gltf" )
+            .WithPath( "scene.gltf" )
+            .Build();
         s_LoadedPrefabModels.emplace( GetSpherePrefabName(), modelLoadInfo );
 
-        modelLoadInfo.ModelPath = s_Spec.AssetRootDirectory / "Models/Prefabs/cylinder/gltf/scene.gltf";
+        modelLoadInfo.ModelPath = PathBuilder()
+            .WithPath( GetAssetRootDirectory().string() )
+            .WithPath( "Models" )
+            .WithPath( "Prefabs" )
+            .WithPath( "cylinder" )
+            .WithPath( "gltf" )
+            .WithPath( "scene.gltf" )
+            .Build();
         s_LoadedPrefabModels.emplace( GetCylinderPrefabName(), modelLoadInfo );
 
-        modelLoadInfo.ModelPath = s_Spec.AssetRootDirectory / "Models/Prefabs/cone/gltf/scene.gltf";
+        modelLoadInfo.ModelPath = PathBuilder()
+            .WithPath( GetAssetRootDirectory().string() )
+            .WithPath( "Models" )
+            .WithPath( "Prefabs" )
+            .WithPath( "cone" )
+            .WithPath( "gltf" )
+            .WithPath( "scene.gltf" )
+            .Build();
         s_LoadedPrefabModels.emplace( GetConePrefabName(), modelLoadInfo );
     }
 
@@ -105,7 +142,6 @@ namespace Mikoto {
 
         return result;
     }
-
 
     auto AssetsManager::GetModel( const Path_T& modelPath ) -> const Model* {
         const auto modelFullPath{ absolute( modelPath ) };

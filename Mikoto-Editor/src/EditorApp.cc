@@ -9,26 +9,22 @@
 #include <utility>
 
 // Project headers
-#include <Common/Constants.hh>
-#include <EditorApp.hh>
 #include <Assets/AssetsManager.hh>
+#include <Common/Constants.hh>
 #include <Core/CoreEvents.hh>
 #include <Core/EventManager.hh>
 #include <Core/FileManager.hh>
 #include <Core/TimeManager.hh>
+#include <EditorApp.hh>
 #include <GUI/ImGuiManager.hh>
 #include <Platform/Input/InputManager.hh>
 #include <Renderer/Core/RenderContext.hh>
+#include <STL/Filesystem/PathBuilder.hh>
 #include <Scene/SceneManager.hh>
 #include <Threading/TaskManager.hh>
 
 namespace Mikoto {
-    /**
-     * GetApplicationSpec
-     * @param args
-     * @deprecated Will use config loader with TOML
-     * @return App specs
-     * */
+
     static auto GetApplicationSpec( const std::vector<std::string> &args ) -> ApplicationData {
         return {
             .WindowWidth = 1920,
@@ -40,7 +36,6 @@ namespace Mikoto {
             .CommandLineArguments = { args.begin(), args.end() },
         };
     }
-
 
     auto EditorApp::Run( const Int32_T argc, char **argv ) -> Int32_T {
         ParseArguments( argc, argv );
@@ -86,7 +81,11 @@ namespace Mikoto {
         MKT_APP_LOGGER_INFO("Current working directory : {}", m_Spec.WorkingDirectory.string());
         MKT_APP_LOGGER_INFO("=================================================================");
 
-        FileManager::Assets::SetRootPath("Resources");
+        FileManager::Assets::SetRootPath(
+            PathBuilder()
+            .WithPath( m_Spec.WorkingDirectory.string() )
+            .WithPath( "Resources" )
+            .Build());
 
         WindowProperties windowProperties{ m_Spec.Name, m_Spec.RenderingBackend, m_Spec.WindowWidth, m_Spec.WindowHeight };
         windowProperties.AllowResizing(true);
@@ -108,7 +107,12 @@ namespace Mikoto {
         // Initialize the assets' manager.
         // Important to do after initializing the renderer loads
         // some prefabs that require having a render context ready.
-        AssetsManager::Init(AssetsManagerSpec{ .AssetRootDirectory = "../Resources" });
+        AssetsManager::Init(AssetsManagerSpec{ .AssetRootDirectory {
+            PathBuilder()
+            .WithPath( m_Spec.WorkingDirectory.string() )
+            .WithPath( "Resources" )
+            .Build() }
+        });
         SceneManager::Init();
 
         InitLayers();
@@ -157,7 +161,7 @@ namespace Mikoto {
         SceneManager::Shutdown();
 
         RenderContext::PushShutdownCallback([]() -> void {
-            // ImGui requires the Context to be alive so
+            // ImGui requires the Context to be alive, so
             // it is shutdown after the context is deleted.
             ImGuiManager::Shutdown();
         });

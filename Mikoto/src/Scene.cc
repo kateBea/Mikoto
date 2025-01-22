@@ -15,6 +15,7 @@
 #include <Assets/AssetsManager.hh>
 #include <Common/Constants.hh>
 #include <Common/RenderingUtils.hh>
+#include <Renderer/Core/RenderQueue.hh>
 #include <Renderer/Core/Renderer.hh>
 #include <STL/Random/Random.hh>
 
@@ -27,15 +28,17 @@
 namespace Mikoto {
 
     auto Scene::OnRuntimeUpdate(double ts) -> void {
-        std::shared_ptr<SceneCamera> mainCam{};
         auto sceneHasMainCam{ false };
+        std::shared_ptr<SceneCamera> mainCam{};
 
-        for ( const auto viewForCameraLookUp{ m_Registry.view<TransformComponent, CameraComponent>() }; const auto& entity : viewForCameraLookUp) {
+        const auto viewForCameraLookUp{ m_Registry.view<TransformComponent, CameraComponent>() };
+        for ( const auto& entity : viewForCameraLookUp) {
             const auto& transform{ viewForCameraLookUp.get<TransformComponent>(entity) };
             CameraComponent& camera{ viewForCameraLookUp.get<CameraComponent>(entity) };
             sceneHasMainCam = camera.IsMainCamera();
 
-            if (sceneHasMainCam) {
+            if (camera.IsMainCamera()) {
+                sceneHasMainCam = true;
                 mainCam = camera.GetCameraPtr();
 
                 // The camera's position and rotation depend on its transform component
@@ -61,12 +64,62 @@ namespace Mikoto {
 
                 GameObject& objectData{renderComponent.GetObjectData() };
 
-                Renderer::Submit(std::to_string(tag.GetGUID()), objectData, transform.GetTransform(), material.GetMaterialInfo().MeshMat);
+                objectData.Transform.Transform = transform.GetTransform();
+
+                RenderQueue::Submit(std::make_unique<RenderCommandPushDraw>( std::to_string(tag.GetGUID()), objectData, *material.GetMaterialInfo().MeshMat));
             }
 
-            Renderer::Flush();
             Renderer::EndScene();
         }
+    }
+
+    auto Scene::Render(const SceneRenderData& data ) -> void {
+        const ScenePrepareData prepareData{
+            .StaticCamera{ data.Camera },
+            .CameraPosition{ glm::vec4{ data.Camera->GetPosition(), 1.0f } }
+        };
+
+        Renderer::BeginScene( prepareData );
+
+        RenderQueue::Submit( std::make_unique<RenderCommandSetClearColor>( data.ClearColor ) );
+
+        // Register models
+        for ( auto& sceneObject: m_Registry.view<RenderComponent>() ) {
+            Entity entity{ sceneObject, m_Registry };
+            auto& tagComponent{ entity.GetComponent<TagComponent>() };
+            auto& transformComponent{ entity.GetComponent<TransformComponent>() };
+            auto& renderComponent{ entity.GetComponent<RenderComponent>() };
+            auto& materialComponent{ entity.GetComponent<MaterialComponent>() };
+
+            auto& objectData{ renderComponent.GetObjectData() };
+            if ( tagComponent.IsVisible() && objectData.MeshData.Data != nullptr ) {
+                objectData.Transform.Transform = transformComponent.GetTransform();
+                objectData.Transform.View = prepareData.StaticCamera->GetViewMatrix();
+                objectData.Transform.Projection = prepareData.StaticCamera->GetProjection();
+
+                RenderQueue::Submit(std::make_unique<RenderCommandPushDraw>( std::to_string(tagComponent.GetGUID()), objectData, *materialComponent.GetMaterialInfo().MeshMat));
+            }
+        }
+
+        // Register Lights
+        for ( auto& lightSource: m_Registry.view<LightComponent>() ) {
+            Entity lightEntity{ lightSource, m_Registry };
+
+            auto& lightComponent{ lightEntity.GetComponent<LightComponent>() };
+            auto& tagComponent{ lightEntity.GetComponent<TagComponent>() };
+            auto& transformComponent{ lightEntity.GetComponent<TransformComponent>() };
+
+            LightRenderInfo info{
+                .Type{ lightComponent.GetType() },
+                .Data{ lightComponent.GetData() },
+                .Position = glm::vec4{ transformComponent.GetTranslation(), 1.0f },
+                .IsActive{ tagComponent.IsVisible() }
+            };
+
+            Renderer::AddLightObject(std::to_string( tagComponent.GetGUID() ), info);
+        }
+
+        Renderer::EndScene();
     }
 
     auto Scene::CreateEmptyEntity(std::string_view tagName, const Entity *root, UInt64_T guid) -> Entity {
@@ -87,9 +140,9 @@ namespace Mikoto {
     }
 
     auto Scene::CreatePrefabEntity(std::string_view tagName, Model *model, Entity *root, UInt64_T guid) -> Entity {
-        if (model) {
+        if (model != nullptr) {
             std::vector<Entity> children{};
-            
+
             for (auto& mesh : model->GetMeshes()) {
                 // We treat each mesh as an individual game object
                 Entity child{ m_Registry.create(), m_Registry };
@@ -112,7 +165,7 @@ namespace Mikoto {
                             spec.SpecularMap = textureIt;
                             break;
                         default:
-                            MKT_APP_LOGGER_INFO("Unused type");
+                            MKT_CORE_LOGGER_INFO("Scene - Request not present type of texture.");
                     }
                 }
 
@@ -144,18 +197,29 @@ namespace Mikoto {
     }
 
     auto Scene::DestroyEntity(Entity& target) -> bool {
+        auto destroyIfLight{
+            [](Entity& ent) {
+                if (ent.HasComponent<LightComponent>()) {
+                    Renderer::RemoveLightObject( std::to_string( ent.GetComponent<TagComponent>().GetGUID() ) );
+                }
+            }
+        };
+
+        destroyIfLight(target);
+
         // Contains all the nodes that have to be deleted (the target and all of its children)
         std::vector<entt::entity> children{};
 
         children.emplace_back( target.Get() );
 
         // Remove parent and children from drawing queue
-        auto& tag{ target.GetComponent<TagComponent>() };
-        Renderer::RemoveFromDrawQueue(std::to_string(tag.GetGUID()));
+        const auto& tag{ target.GetComponent<TagComponent>() };
+        RenderQueue::Submit( std::make_unique<RenderCommandPopDraw>( std::to_string(tag.GetGUID() ) ) );
         m_Hierarchy.ForAllChildren(
-            [&children](Entity& ent) {
+            [&children, &destroyIfLight](Entity& ent) {
                 const auto& tagComponent{ ent.GetComponent<TagComponent>() };
-                Renderer::RemoveFromDrawQueue(std::to_string(tagComponent.GetGUID()));
+                destroyIfLight(ent);
+                RenderQueue::Submit( std::make_unique<RenderCommandPopDraw>( std::to_string(tagComponent.GetGUID()) ) );
 
                 children.emplace_back(ent.Get());
             },
@@ -189,77 +253,8 @@ namespace Mikoto {
         }
     }
 
-    auto Scene::OnEditorUpdate(MKT_UNUSED_VAR double timeStep, const EditorCamera& camera) -> void {
-        ScenePrepareData prepareData{
-            .StaticCamera{ std::addressof(camera) },
-        };
-
-        Renderer::BeginScene( prepareData );
-
-        // Setup lighting data
-        Size_T dirIndexCount{}, spotIndexCount{}, pointIndexCount{};
-
-        Renderer::SetLightsViewPos( glm::vec4{ camera.GetPosition(), 1.0f } );
-
-        for ( auto& lightSource: m_Registry.view<LightComponent>() ) {
-            Entity entity{ lightSource, m_Registry };
-            auto& lightComponent{ entity.GetComponent<LightComponent>() };
-            auto& tagComponent{ entity.GetComponent<TagComponent>() };
-            auto& lightData{ lightComponent.GetData() };
-
-            LightRenderInfo info{
-                .Id = std::to_string( tagComponent.GetGUID() ),
-                .Type{ lightComponent.GetType() },
-                .Data{ lightComponent.GetData() },
-                .IsActive{ tagComponent.IsVisible() }
-            };
-
-            Renderer::AddLightObject(info);
-
-            //
-            // switch ( lightComponent.GetType() ) {
-            //     case LightType::DIRECTIONAL_LIGHT_TYPE:
-            //         lightComponent.GetDirLightData().Position =
-            //                 glm::vec4{ m_Registry.get<TransformComponent>( lightSource ).GetTranslation(), 1.0f };
-            //         Renderer::SetDirLightInfo( lightComponent.GetDirLightData(), dirIndexCount++ );
-            //         break;
-            //     case LightType::POINT_LIGHT_TYPE:
-            //         lightComponent.GetPointLightData().Position =
-            //                 glm::vec4{ m_Registry.get<TransformComponent>( lightSource ).GetTranslation(), 1.0f };
-            //         Renderer::SetPointLightInfo( lightComponent.GetPointLightData(), pointIndexCount++ );
-            //         break;
-            //     case LightType::SPOT_LIGHT_TYPE:
-            //         lightComponent.GetSpotLightData().Position =
-            //                 glm::vec4{ m_Registry.get<TransformComponent>( lightSource ).GetTranslation(), 1.0f };
-            //         Renderer::SetSpotLightInfo( lightComponent.GetSpotLightData(), spotIndexCount++ );
-            //         break;
-            // }
-            //
-            // Renderer::SetActivePointLightsCount( pointIndexCount );
-            // Renderer::SetActiveDirLightsCount( dirIndexCount );
-            // Renderer::SetActiveSpotLightsCount( spotIndexCount );
-        }
-
-        auto renderableObjectsView{ m_Registry.view<TagComponent, TransformComponent, RenderComponent, MaterialComponent>() };
-        for ( auto& sceneObject: renderableObjectsView ) {
-            TagComponent& tag{ renderableObjectsView.get<TagComponent>( sceneObject ) };
-            TransformComponent& transform{ renderableObjectsView.get<TransformComponent>( sceneObject ) };
-            RenderComponent& renderComponent{ renderableObjectsView.get<RenderComponent>( sceneObject ) };
-            MaterialComponent& material{ renderableObjectsView.get<MaterialComponent>( sceneObject ) };
-
-            GameObject& objectData{ renderComponent.GetObjectData() };
-            if ( tag.IsVisible() && objectData.MeshData.Data != nullptr ) {
-                Renderer::Submit(std::to_string(tag.GetGUID()), objectData, transform.GetTransform(), material.GetMaterialInfo().MeshMat);
-            }
-        }
-
-        Renderer::EndScene();
-        Renderer::Flush();
-    }
-
-    auto Scene::Clear() -> void {
-        const auto view{ m_Registry.view<TagComponent>() };
-        m_Registry.destroy(view.begin(), view.end());
+    auto Scene::DestroyAllEntities() -> void {
+        m_Registry.clear();
     }
 
     auto Scene::GetSceneMetaData() -> SceneMetaData& {

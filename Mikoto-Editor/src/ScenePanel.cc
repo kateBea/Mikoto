@@ -40,7 +40,7 @@
 
 namespace Mikoto {
 
-    class ScenePanel_VkImpl : public ScenePanelInterface {
+    class ScenePanel_VkImpl final : public ScenePanelInterface {
     private:
         auto Init_Impl( const ScenePanelData& data) -> void override {
             m_Data = data;
@@ -194,8 +194,7 @@ namespace Mikoto {
         const auto& cameraProjection{ m_EditorMainCamera->GetProjection() };
         auto objectTransform{ transformComponent.GetTransform() };
 
-        if (currentSelectionContext.HasComponent<RenderComponent>() &&
-                currentSelectionContext.GetComponent<RenderComponent>().GetObjectData().MeshData.Data != nullptr) {
+        if (currentSelectionContext.IsValid()) {
             // Show guizmos when there's content to manipulate
             // There may bo contents, for example, when we create a
             // new renderable but the actual model is not loaded

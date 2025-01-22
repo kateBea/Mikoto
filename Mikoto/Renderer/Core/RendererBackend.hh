@@ -1,7 +1,5 @@
 /**
- * @file RendererAPI.hh
- * @brief Provides the abstract RendererAPI interface for various graphic APIs. The engine currently supports OpenGL and Vulkan exclusively.
- * @details This file contains the definition of the RendererBackend class, an abstract interface for various graphic APIs including OpenGL and Vulkan.
+ * @file RendererBackend.hh
  * @date 6/9/23
  * @author kate
  * */
@@ -26,22 +24,23 @@
 #include "Renderer/Buffer/VertexBuffer.hh"
 
 namespace Mikoto {
+
     /**
      * @brief Describes a general Renderer interface for various graphic APIs.
      * The engine currently offers support for OpenGL and Vulkan exclusively.
      * */
-    class RendererBackend {
+    class IRendererBackend {
     public:
         /**
          * @brief Default constructor. Creates and default initializes this RendererAPI.
          * */
-        explicit RendererBackend() = default;
+        explicit IRendererBackend() = default;
 
 
         /**
          * @brief Default base destructor
          * */
-        virtual ~RendererBackend() = default;
+        virtual ~IRendererBackend() = default;
 
 
         /**
@@ -105,11 +104,8 @@ namespace Mikoto {
         virtual auto SetViewport(float x, float y, float width, float height) -> void = 0;
 
 
-        /**
-         * @brief Queues data for drawing.
-         * @param data Shared pointer to the data to be drawn.
-         * */
-        virtual auto QueueForDrawing(const std::string &id, std::shared_ptr<GameObject> &&data, std::shared_ptr<Material> &&material) -> void = 0;
+
+        virtual auto QueueForDrawing(const std::string &id, const GameObject*data, Material* material) -> void = 0;
 
         virtual auto RemoveFromRenderQueue(const std::string &id) -> bool = 0;
 
@@ -121,19 +117,10 @@ namespace Mikoto {
          * @param backend API backend.
          * @returns Pointer to allocated backend.
          * */
-        MKT_NODISCARD static auto Create(GraphicsAPI backend) -> RendererBackend*;
+        MKT_NODISCARD static auto Create(GraphicsAPI backend) -> IRendererBackend*;
 
 
-        DISABLE_COPY_AND_MOVE_FOR(RendererBackend);
-
-
-    private:
-        /**
-         * @brief Executes draw commands on the drawable objects that have been
-         * added to the queue of renderable objects.
-         * */
-        virtual auto Draw() -> void = 0;
-
+        DISABLE_COPY_AND_MOVE_FOR(IRendererBackend);
     };
 }
 

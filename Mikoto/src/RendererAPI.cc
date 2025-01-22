@@ -13,7 +13,7 @@
 
 namespace Mikoto {
 
-    auto RendererBackend::Create( const GraphicsAPI backend ) -> RendererBackend * {
+    auto IRendererBackend::Create( const GraphicsAPI backend ) -> IRendererBackend * {
         switch ( backend ) {
             case GraphicsAPI::VULKAN_API:
                 return new ( std::nothrow ) VulkanRenderer();

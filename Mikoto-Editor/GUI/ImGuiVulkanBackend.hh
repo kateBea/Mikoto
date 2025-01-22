@@ -32,14 +32,15 @@ namespace Mikoto {
         auto EndFrame() -> void override;
 
     private:
-        auto PrepareForRender() -> void;
+        auto InitializeImGuiRender() -> void;
         auto CreateRenderPass() -> void;
         auto CreateImages() -> void;
         auto CreateFrameBuffer() -> void;
-        auto BuildCommandBuffers() -> void;
-        auto RecordImGuiCommandBuffers( VkCommandBuffer cmd ) -> void;
+        auto PrepareMainRenderPass( VkCommandBuffer cmd ) const -> void;
+        auto InitCommandBuffers() -> void;
+        auto InitializeCommands() -> void;
 
-        auto DrawImGui( VkCommandBuffer cmd, VkImage currentSwapChainImage ) -> void;
+        auto RecordCommands( VkCommandBuffer cmd, VkImage currentSwapChainImage ) const -> void;
     private:
         VkRenderPass m_ImGuiRenderPass{};
         VkDescriptorPool m_ImGuiDescriptorPool{};
@@ -47,6 +48,9 @@ namespace Mikoto {
         VulkanImage m_ColorImage{};
         VulkanImage m_DepthImage{};
         VulkanFrameBuffer m_DrawFrameBuffer{};
+
+        VulkanCommandPool m_CommandPool{};
+        VkCommandBuffer m_DrawCommandBuffer{};
 
         VkFormat m_ColorAttachmentFormat{};
         VkFormat m_DepthAttachmentFormat{};

@@ -76,7 +76,7 @@ namespace Mikoto {
         static auto CreatePrimaryLogicalDeviceCommandBuffers() -> void;
         static auto CreateSynchronizationPrimitives() -> void;
 
-        static auto BatchCommandBuffer(VkCommandBuffer cmd) -> void;
+        static auto PushCommandBuffer(VkCommandBuffer cmd) -> void;
 
         MKT_NODISCARD static auto GetDetailedStatistics() -> const VmaTotalStatistics&;
         MKT_NODISCARD static auto QuerySwapChainSupport(VkPhysicalDevice device) -> SwapChainSupportDetails;
@@ -133,7 +133,6 @@ namespace Mikoto {
         static auto CreateSurface() -> void;
         static auto CreateInstance() -> void;
         static auto CreateDebugMessenger() -> void;
-        static auto InitRenderContextInfo() -> void;
         static auto InitMemoryAllocator() -> void;
         static auto FetchPhysicalDeviceSpec() -> void;
         static auto PickPrimaryPhysicalDevice() -> void;

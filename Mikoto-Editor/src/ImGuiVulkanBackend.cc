@@ -25,14 +25,10 @@
 
 namespace Mikoto {
     auto ImGuiVulkanBackend::Init( const std::any handle ) -> bool {
-        // At the moment we are using Vulkan with GLFW windows
-        GLFWwindow* window{ nullptr };
-
         try {
-            window = std::any_cast<GLFWwindow*>( handle );
+            InitializeImGuiRender();
 
-            PrepareForRender();
-
+            const auto window { std::any_cast<GLFWwindow*>( handle ) };
             std::array<VkDescriptorPoolSize, 11> poolSizes{};
 
             poolSizes[0] = { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 };
@@ -95,6 +91,9 @@ namespace Mikoto {
             } else {
                 MKT_THROW_RUNTIME_ERROR("Error creating ImGui fonts!");
             }
+
+            InitializeCommands();
+
         } catch ( const std::exception& e ) {
             MKT_CORE_LOGGER_ERROR( "Failed on any cast std::any windowHandle to GLFWwindow* for ImGuiVulkanBackend::Init. what(): {}", e.what() );
             return false;
@@ -118,18 +117,21 @@ namespace Mikoto {
     }
 
     auto ImGuiVulkanBackend::EndFrame() -> void {
-        ImGuiIO& io{ ImGui::GetIO() };
-
         ImGui::Render();
-        BuildCommandBuffers();
 
+        const UInt32_T swapChainImageIndex{ VulkanContext::GetCurrentImageIndex() };
+        const auto& cmdHandles{ VulkanContext::GetDrawCommandBuffersHandles() };
+        RecordCommands( m_DrawCommandBuffer, VulkanContext::GetSwapChain()->GetCurrentImage( swapChainImageIndex ) );
+        VulkanContext::PushCommandBuffer( m_DrawCommandBuffer );
+
+        ImGuiIO& io{ ImGui::GetIO() };
         if ( io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
         }
     }
 
-    auto ImGuiVulkanBackend::RecordImGuiCommandBuffers( const VkCommandBuffer cmd ) -> void {
+    auto ImGuiVulkanBackend::PrepareMainRenderPass( const VkCommandBuffer cmd ) const -> void {
         // Begin ImGui-specific render pass
         VkRenderPassBeginInfo renderPassInfo{ VulkanUtils::Initializers::RenderPassBeginInfo() };
         renderPassInfo.renderPass = m_ImGuiRenderPass;// Use the render pass for ImGui
@@ -172,19 +174,7 @@ namespace Mikoto {
         vkCmdEndRenderPass( cmd );
     }
 
-    auto ImGuiVulkanBackend::BuildCommandBuffers() -> void {
-        UInt32_T swapChainImageIndex{ VulkanContext::GetCurrentImageIndex() };
-
-        auto& cmdHandles{ VulkanContext::GetDrawCommandBuffersHandles() };
-
-        // Record draw commands
-        DrawImGui( cmdHandles[swapChainImageIndex], VulkanContext::GetSwapChain()->GetCurrentImage( swapChainImageIndex ) );
-
-        // Submit commands for execution
-        VulkanContext::BatchCommandBuffer( cmdHandles[swapChainImageIndex] );
-    }
-
-    auto ImGuiVulkanBackend::PrepareForRender() -> void {
+    auto ImGuiVulkanBackend::InitializeImGuiRender() -> void {
         m_ColorAttachmentFormat = VulkanContext::FindSupportedFormat(
                 VulkanContext::GetPrimaryPhysicalDevice(),
                 { VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_D32_SFLOAT, VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_SRGB },
@@ -259,8 +249,8 @@ namespace Mikoto {
         deptAttachmentDependency.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
 
-        std::array<VkSubpassDependency, 2> attachmentDependencies{ colorAttachmentDependency, deptAttachmentDependency };
-        std::array<VkAttachmentDescription, 2> attachmentDescriptions{ colorAttachmentDesc, depthAttachmentDesc };
+        std::array attachmentDependencies{ colorAttachmentDependency, deptAttachmentDependency };
+        std::array attachmentDescriptions{ colorAttachmentDesc, depthAttachmentDesc };
 
         VkRenderPassCreateInfo info{ VulkanUtils::Initializers::RenderPassCreateInfo() };
         info.attachmentCount = static_cast<UInt32_T>( attachmentDescriptions.size() );
@@ -282,7 +272,7 @@ namespace Mikoto {
     }
 
     auto ImGuiVulkanBackend::CreateFrameBuffer() -> void {
-        std::array<VkImageView, 2> attachments{ m_ColorImage.GetView(), m_DepthImage.GetView() };
+        const std::array attachments{ m_ColorImage.GetView(), m_DepthImage.GetView() };
 
         VkFramebufferCreateInfo createInfo{ VulkanUtils::Initializers::FramebufferCreateInfo() };
         createInfo.pNext = nullptr;
@@ -363,7 +353,7 @@ namespace Mikoto {
         m_DepthImage.OnCreate( { depthAttachmentCreateInfo, depthAttachmentViewCreateInfo } );
     }
 
-    auto ImGuiVulkanBackend::DrawImGui( VkCommandBuffer cmd, VkImage currentSwapChainImage ) -> void {
+    auto ImGuiVulkanBackend::RecordCommands( const VkCommandBuffer cmd, const VkImage currentSwapChainImage ) const -> void {
         // Begin recording command buffer
         VkCommandBufferBeginInfo beginInfo{ VulkanUtils::Initializers::CommandBufferBeginInfo() };
 
@@ -372,8 +362,7 @@ namespace Mikoto {
         }
 
         // Record imgui draw commands
-        RecordImGuiCommandBuffers( cmd );
-
+        PrepareMainRenderPass( cmd );
 
         // the transition the draw image and the swapchain image into their correct transfer layouts
         VulkanUtils::TransitionImage( cmd, m_ColorImage.Get(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL );
@@ -398,4 +387,40 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR( "Failed to record ImGui command buffer!" );
         }
     }
-}// namespace Mikoto
+
+    auto ImGuiVulkanBackend::InitializeCommands() -> void {
+        const auto queueFamily{
+            VulkanUtils::FindQueueFamilies( VulkanContext::GetPrimaryPhysicalDevice() , VulkanContext::GetSurface() )
+        };
+
+        VkCommandPoolCreateInfo createInfo{ VulkanUtils::Initializers::CommandPoolCreateInfo() };
+        createInfo.flags = 0;
+        createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        createInfo.queueFamilyIndex = queueFamily.GraphicsFamilyIndex;
+
+        m_CommandPool.Create( createInfo );
+
+        InitCommandBuffers();
+    }
+
+    auto ImGuiVulkanBackend::InitCommandBuffers() -> void {
+        constexpr UInt32_T COMMAND_BUFFERS_COUNT{ 1 };
+
+        VkCommandBufferAllocateInfo allocInfo{ VulkanUtils::Initializers::CommandBufferAllocateInfo() };
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandPool = m_CommandPool.Get();
+        allocInfo.commandBufferCount = COMMAND_BUFFERS_COUNT;
+
+        if ( vkAllocateCommandBuffers(
+                VulkanContext::GetPrimaryLogicalDevice(),
+                std::addressof(allocInfo),
+                std::addressof(m_DrawCommandBuffer) ) != VK_SUCCESS )
+        {
+            MKT_THROW_RUNTIME_ERROR( "Failed to allocate command buffer" );
+        }
+
+        DeletionQueue::Push( [cmdPoolHandle = m_CommandPool.Get(), cmdHandle = m_DrawCommandBuffer]() -> void {
+            vkFreeCommandBuffers( VulkanContext::GetPrimaryLogicalDevice(), cmdPoolHandle, 1, std::addressof( cmdHandle ) );
+        } );
+    }
+}

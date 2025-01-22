@@ -10,38 +10,75 @@
 #include <memory>
 
 // Third-Party Libraries
-#include "glm/vec4.hpp"
+#include <glm/vec4.hpp>
 
 // Project headers
-#include <Common/Common.hh>
 #include <STL/Utility/Types.hh>
-#include <Core/Logger.hh>
 #include <Renderer/Core/Renderer.hh>
 #include <Renderer/Core/RendererBackend.hh>
-
-#include <Renderer/Buffer/IndexBuffer.hh>
-#include <Renderer/Buffer/VertexBuffer.hh>
 
 namespace Mikoto {
 	class RenderCommand {
 	public:
-        static auto Init(RendererBackend * activeAPI) -> void;
+		virtual auto Execute() -> void = 0;
+		virtual ~RenderCommand() = default;
 
-        static auto EnableWireframeMode() -> void;
-        static auto DisableWireframeMode() -> void;
+	protected:
+		explicit RenderCommand() {
+			m_ActiveRendererAPI = Renderer::GetActiveGraphicsAPIPtr();
+		}
 
-        static auto RemoveFromRenderQueue(const std::string& id) -> bool;
+        IRendererBackend* m_ActiveRendererAPI{ nullptr };
+	};
 
-        static auto SetClearColor(const glm::vec4& color) -> void;
-        static auto SetClearColor(float red, float green, float blue, float alpha) -> void;
+	class RenderCommandSetClearColor final : public RenderCommand {
+	public:
+        explicit RenderCommandSetClearColor( const float red, const float green, const float blue, const float alpha)
+            : m_Color{ red, green, blue, alpha }
+        {}
 
-        static auto Flush() -> void;
-        static auto AddToRenderQueue(const std::string &id, std::shared_ptr<GameObject> &&data, std::shared_ptr<Material> &&material) -> void;
+		explicit RenderCommandSetClearColor( const glm::vec4& color )
+            : m_Color{ color }
+        {}
 
-        static auto UpdateViewPort(Int32_T x, Int32_T y, Int32_T width, Int32_T height) -> void;
+		auto Execute() -> void override {
+        	m_ActiveRendererAPI->SetClearColor(m_Color);
+        }
 
 	private:
-        inline static RendererBackend * s_ActiveRendererAPI{ nullptr };
+		glm::vec4 m_Color{};
+	};
+
+	class RenderCommandPushDraw final : public RenderCommand {
+	public:
+        explicit RenderCommandPushDraw( const std::string_view id, const GameObject& data, Material& material )
+            : m_Id{ id }, m_Data{ std::addressof( data ) }, m_Material{ std::addressof( material ) } {}
+
+		auto Execute() -> void override {
+        	m_ActiveRendererAPI->QueueForDrawing(m_Id, m_Data, m_Material);
+        }
+
+        ~RenderCommandPushDraw() override = default;
+
+    private:
+        std::string m_Id{};
+        const GameObject* m_Data{};
+		Material* m_Material{};
+    };
+
+	class RenderCommandPopDraw final : public RenderCommand {
+	public:
+		explicit RenderCommandPopDraw( const std::string_view id)
+		    : m_Id{ id } {}
+
+		auto Execute() -> void override {
+			m_ActiveRendererAPI->RemoveFromRenderQueue(m_Id);
+		}
+
+		~RenderCommandPopDraw() override = default;
+
+	private:
+		std::string m_Id{};
 	};
 }
 

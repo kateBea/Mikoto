@@ -13,7 +13,6 @@
 #include <Models/Enums.hh>
 
 #include <Common/Singleton.hh>
-#include <Core/Event.hh>
 #include <Platform/Window/Window.hh>
 #include <STL/Random/Random.hh>
 #include <Models/ApplicationData.hh>
@@ -40,10 +39,8 @@ namespace Mikoto {
     protected:
         /**
          * @brief Initializes this application. Must call once when
-         * the application is created. This operation is responsible
-         * from initializing the application internal structures like
-         * required layers amongst other subsystems.
-         * @param appSpec Specification for application initialization.
+         * the application is created. Initializes the app.
+         * @param appSpec Specification for application startup.
          * */
         virtual auto Init(ApplicationData&& appSpec) -> void = 0;
 
@@ -66,12 +63,6 @@ namespace Mikoto {
          * @brief Updates the application state.
          * */
         virtual auto UpdateState() -> void = 0;
-
-        /**
-         * @brief Present if applications needs it. Override with
-         * proper behaviour.
-         * */
-        virtual auto Present() -> void {}
 
 
         /**

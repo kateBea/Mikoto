@@ -60,7 +60,7 @@ namespace Mikoto {
          * Returns the absolute path to the directory where this model is located (does not include the model's name)
          * @returns absolute path to this model's directory
          * */
-        MKT_NODISCARD auto GetDirectory() const -> const Path_T & { return m_ModelDirectory; }
+        MKT_NODISCARD auto GetDirectory() const -> const Path_T & { return m_ModelAbsolutePath; }
 
 
         /**
@@ -112,11 +112,10 @@ namespace Mikoto {
     private:
         /**
          * Helper function to load model resources from given path
-         * @param path path to the model to be loaded
          * @param wantLoadTextures tells whether we want to attempt to load this model's textures
          * @throws std::runtime_error if the file does not exist or the path is invalid
          * */
-        auto Load( const Path_T &path, bool wantLoadTextures = false ) -> void;
+        auto Load( bool wantLoadTextures = false ) -> void;
 
 
         /**
@@ -155,7 +154,7 @@ namespace Mikoto {
         static auto LoadTextures( aiMaterial *mat, aiTextureType type, MapType tType, const aiScene *scene, const Path_T &modelDirectory ) -> std::vector<std::shared_ptr<Texture2D>>;
 
     protected:
-        Path_T m_ModelDirectory{};
+        Path_T m_ModelAbsolutePath{};
         std::vector<Mesh> m_Meshes{};
         std::string m_ModelName{};
 

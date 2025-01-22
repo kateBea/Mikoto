@@ -15,8 +15,10 @@
 #include <../../Mikoto/Common/Common.hh>
 #include <../../Mikoto/Common/RenderingUtils.hh>
 #include <../../Mikoto/Core/Logger.hh>
+#include <Core/FileManager.hh>
 #include <GUI/ImGuiManager.hh>
 #include <GUI/ImGuiVulkanBackend.hh>
+#include <STL/Filesystem/PathBuilder.hh>
 
 namespace Mikoto {
     auto ImGuiManager::Init(const std::shared_ptr<Window>& window) -> void {
@@ -47,39 +49,58 @@ namespace Mikoto {
 
         constexpr float baseFontSize{ 16.5f };
         constexpr float iconFontSize{ 18.0f };
-        const std::string fontPath{ "../Resources/Fonts/" };
+        const std::string fontPath{ PathBuilder().WithPath( FileManager::Assets::GetRootPath().string() ).WithPath( "Fonts" ).Build().string() };
 
 
         // NOTE: FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly
 
-
         // Font 0
-        s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF("../Resources/Fonts/JetBrainsMono/fonts/ttf/JetBrainsMonoNL-Light.ttf", 22.0f));
+        s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF(PathBuilder()
+                                 .WithPath( FileManager::Assets::GetRootPath().string() )
+                                 .WithPath( "Fonts" )
+                                 .WithPath( "Inter" )
+                                 .WithPath( "static" )
+                                 .WithPath( "Inter-Regular.ttf" )
+                                 .Build().string().c_str(), baseFontSize));
+        // Font 1
+        s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF(PathBuilder()
+                                 .WithPath( FileManager::Assets::GetRootPath().string() )
+                                 .WithPath( "Fonts" )
+                                 .WithPath( "JetBrainsMono" )
+                                 .WithPath( "fonts" )
+                                 .WithPath( "ttf" )
+                                 .WithPath( "JetBrainsMonoNL-Light.ttf" )
+                                 .Build().string().c_str(), 22.0f));
 
         // Font 1
-        s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF("../Resources/Fonts/JetBrainsMono/fonts/ttf/JetBrainsMonoNL-Light.ttf", 17.0f));
+        s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF(PathBuilder()
+                                 .WithPath( FileManager::Assets::GetRootPath().string() )
+                                 .WithPath( "Fonts" )
+                                 .WithPath( "JetBrainsMono" )
+                                 .WithPath( "fonts" )
+                                 .WithPath( "ttf" )
+                                 .WithPath( "JetBrainsMonoNL-Light.ttf" )
+                                 .Build().string().c_str(), 27.0f));
 
-        // Font 2
-        s_Fonts.emplace_back(io.FontDefault = io.Fonts->AddFontFromFileTTF("../Resources/Fonts/Inter/static/Inter-Regular.ttf", baseFontSize));
 
         // Font 3
-        static const std::array<ImWchar, 3> iconRanges1{ ICON_MIN_FA, ICON_MAX_16_FA, 0 };
-        AddIconFont(iconFontSize, (fontPath + FONT_ICON_FILE_NAME_FAR), iconRanges1);
+        static constexpr std::array<ImWchar, 3> iconRanges1{ ICON_MIN_FA, ICON_MAX_16_FA, 0 };
+        AddIconFont(iconFontSize, PathBuilder().WithPath( fontPath ).WithPath( FONT_ICON_FILE_NAME_FAR ).Build().string(), iconRanges1);
 
         // Font 4
         // See https://react-icons.github.io/react-icons/icons?name=md for icon previews
-        static const std::array<ImWchar, 3> iconRanges2{ ICON_MIN_MD, ICON_MAX_16_MD, 0 };
-        AddIconFont(iconFontSize, (fontPath + FONT_ICON_FILE_NAME_MD), iconRanges2);
+        static constexpr std::array<ImWchar, 3> iconRanges2{ ICON_MIN_MD, ICON_MAX_16_MD, 0 };
+        AddIconFont(iconFontSize, PathBuilder().WithPath( fontPath ).WithPath( FONT_ICON_FILE_NAME_MD ).Build().string(), iconRanges2);
 
         // Font 5
-        static const std::array<ImWchar, 3> iconRanges3{ ICON_MIN_MDI, ICON_MAX_16_MDI, 0 };
-        AddIconFont(iconFontSize, (fontPath + FONT_ICON_FILE_NAME_MDI), iconRanges3);
+        static constexpr std::array<ImWchar, 3> iconRanges3{ ICON_MIN_MDI, ICON_MAX_16_MDI, 0 };
+        AddIconFont(iconFontSize, PathBuilder().WithPath( fontPath ).WithPath( FONT_ICON_FILE_NAME_MDI ).Build().string(), iconRanges3);
 
         InitImplementation(window);
     }
 
-    auto ImGuiManager::AddIconFont(float fontSize, const std::string &path, const std::array<ImWchar, 3> &iconRanges) -> void {
-        auto& io{ ImGui::GetIO() };
+    auto ImGuiManager::AddIconFont( const float fontSize, const std::string &path, const std::array<ImWchar, 3> &iconRanges) -> void {
+        const auto& io{ ImGui::GetIO() };
 
         ImFontConfig config{};
         config.MergeMode = true;
@@ -90,11 +111,13 @@ namespace Mikoto {
         config.GlyphMinAdvanceX = 4.0f;
         config.SizePixels = 12.0f;
 
-        s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF(
+        auto font{ io.Fonts->AddFontFromFileTTF(
                 path.c_str(),
                 fontSize,
                 std::addressof(config),
-                iconRanges.data()));
+                iconRanges.data()) };
+
+        s_Fonts.emplace_back(font);
     }
 
     auto ImGuiManager::InitImplementation(const std::shared_ptr<Window>& window) -> void {
@@ -102,8 +125,17 @@ namespace Mikoto {
 
         ImGuiIO& io{ ImGui::GetIO() };
 
-        // Load ini file
-        io.IniFilename = "../Resources/imgui/imgui.ini";
+        // Load ini file (static because IniFilename is const char*)
+        // it will not extend iniFilePath lifetime
+        static const auto iniFilePath{
+            PathBuilder()
+            .WithPath( FileManager::Assets::GetRootPath().string() )
+            .WithPath( "imgui" )
+            .WithPath( "imgui.ini" )
+            .Build().string()
+        };
+
+        io.IniFilename = iniFilePath.c_str();
 
         // Create implementation
         switch (Renderer::GetActiveGraphicsAPI()) {

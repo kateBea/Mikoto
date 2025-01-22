@@ -678,7 +678,7 @@ namespace Mikoto {
     }
 
 
-    static auto ShowGameObjectMaterialInfo(GameObject& gameObject) {
+    static auto ShowGameObjectMaterialInfo( const GameObject & gameObject) {
         if (gameObject.MeshData.Data != nullptr) {
             ImGui::Spacing();
             ImGui::TextUnformatted("Mesh Info");
@@ -705,7 +705,7 @@ namespace Mikoto {
             Int32_T aoIndex{ -1 };
 
             // Get the texture indices
-            for (Int32_T index{}; index < (Int32_T) meshTarget.GetTextures().size(); ++index) {
+            for (Int32_T index{}; index < static_cast<Int32_T>( meshTarget.GetTextures().size() ); ++index) {
                 switch (meshTarget.GetTextures()[index]->GetType()) {
                     case MapType::TEXTURE_2D_DIFFUSE: diffuseIndex = index; break;
                     case MapType::TEXTURE_2D_SPECULAR: specularIndex = index; break;
@@ -724,7 +724,7 @@ namespace Mikoto {
 
             // Tooltip displaying texture details
             auto displayMapInformation{
-                    [](const Texture2D *map, std::string_view mapName) -> void {
+                    [](const Texture2D *map, const std::string_view mapName) -> void {
                         ImGui::Spacing();
                         ImGui::Separator();
                         ImGui::Spacing();

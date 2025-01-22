@@ -37,7 +37,6 @@ namespace Mikoto {
             vkDestroyShaderModule(VulkanContext::GetPrimaryLogicalDevice(), moduleHandle, nullptr);
         });
 
-        // This data is needed later within the pipeline
         m_Data.StageCreateInfo = VulkanUtils::Initializers::PipelineShaderStageCreateInfo();
         m_Data.StageCreateInfo.stage = VulkanUtils::GetVulkanShaderStageFlag(m_Stage);
         m_Data.StageCreateInfo.module = m_Module;
@@ -55,7 +54,9 @@ namespace Mikoto {
         // ensures the data satisfies the worst case alignment
         createInfo.pCode = reinterpret_cast<const UInt32_T*>(srcCode.data());
 
-        if (vkCreateShaderModule(VulkanContext::GetPrimaryLogicalDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+        if (vkCreateShaderModule(VulkanContext::GetPrimaryLogicalDevice(),
+            std::addressof( createInfo ),
+            nullptr, std::addressof( shaderModule )) != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("Failed to create shader module");
         }
     }

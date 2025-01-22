@@ -58,7 +58,7 @@ namespace Mikoto {
         CreateDescriptorSet();
     }
 
-    auto VulkanStandardMaterial::BindDescriptorSet(const VkCommandBuffer& commandBuffer, const VkPipelineLayout& pipelineLayout) -> void {
+    auto VulkanStandardMaterial::BindDescriptorSet(const VkCommandBuffer& commandBuffer, const VkPipelineLayout& pipelineLayout) const -> void {
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &m_DescriptorSet, 0, nullptr);
     }
 
@@ -136,7 +136,7 @@ namespace Mikoto {
         poolInfo.maxSets = 1000;
 
         if (vkCreateDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), &poolInfo, nullptr, &m_DescriptorPool) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("Failed to create descriptor pool!");
+            MKT_THROW_RUNTIME_ERROR("VulkanStandardMaterial - Failed to create descriptor pool!");
         }
 
         DeletionQueue::Push([descPool = m_DescriptorPool]() -> void {
@@ -158,7 +158,7 @@ namespace Mikoto {
         }
 
         DeletionQueue::Push([descPool = m_DescriptorPool, descSet = m_DescriptorSet]() -> void {
-            std::array<VkDescriptorSet, 1> descSets{ descSet };
+            std::array descSets{ descSet };
             vkFreeDescriptorSets(VulkanContext::GetPrimaryLogicalDevice(), descPool, static_cast<UInt32_T>(descSets.size()), descSets.data());
         });
 
@@ -223,37 +223,35 @@ namespace Mikoto {
     }
 
     auto VulkanStandardMaterial::UpdateLightsInfo() -> void {
-        m_FragmentUniformLightsData.ViewPosition = Renderer::GetLightsView();
+        m_FragmentUniformLightsData.ViewPosition = Renderer::GetCameraPosition();
 
-        // [Upload point lights info]
-        Size_T index{};
-        const auto& pointLightsData{ Renderer::GetPointLights() };
-        const auto activePointLights{ Renderer::GetActivePointLightsCount() };
-        for ( ; index < activePointLights; ++index) {
-            m_FragmentUniformLightsData.PointLights[index] = pointLightsData[index];
+        const auto& lights{ Renderer::GetLightObjects() };
+
+        Size_T pointLightIndex{};
+        Size_T dirLightIndex{};
+        Size_T spotLightIndex{};
+
+        for ( const auto& lightInfo: lights | std::views::values ) {
+
+            if (lightInfo.IsActive) {
+                switch ( lightInfo.Type ) {
+                    case LightType::DIRECTIONAL_LIGHT_TYPE:
+                        m_FragmentUniformLightsData.DirectionalLights[dirLightIndex++] = lightInfo.Data.DireLightData;
+                    break;
+                    case LightType::POINT_LIGHT_TYPE:
+                        m_FragmentUniformLightsData.PointLights[pointLightIndex++] = lightInfo.Data.PointLightDat;
+                    break;
+                    case LightType::SPOT_LIGHT_TYPE:
+                        m_FragmentUniformLightsData.SpotLights[spotLightIndex++] = lightInfo.Data.SpotLightData;
+                    break;
+                }
+            }
         }
 
-        // count of point lights
-        m_FragmentUniformLightsData.LightMeta.x = static_cast<float>(activePointLights);
-        m_FragmentUniformLightsData.LightTypesCount.y = static_cast<float>(activePointLights);
+        m_FragmentUniformLightsData.LightMeta.x = static_cast<float>(dirLightIndex + dirLightIndex + spotLightIndex);
 
-
-        // [Upload directional light info]
-        const auto& dirLightsData{ Renderer::GetDirLights() };
-        const auto activeDirLights{ Renderer::GetActiveDirLightsCount() };
-        for (index = 0; index < activeDirLights; ++index) {
-            m_FragmentUniformLightsData.DirectionalLights[index] = dirLightsData[index];
-        }
-
-        m_FragmentUniformLightsData.LightTypesCount.x = static_cast<float>(activeDirLights);
-
-        // [Upload spotlight info]
-        const auto& spotLightsData{ Renderer::GetSpotLights() };
-        const auto activeSpotLights{ Renderer::GetActiveSpotLightsCount() };
-        for (index = 0; index < activeSpotLights; ++index) {
-            m_FragmentUniformLightsData.SpotLights[index] = spotLightsData[index];
-        }
-
-        m_FragmentUniformLightsData.LightTypesCount.z = static_cast<float>(activeSpotLights);
+        m_FragmentUniformLightsData.LightTypesCount.x = static_cast<float>(dirLightIndex);
+        m_FragmentUniformLightsData.LightTypesCount.y = static_cast<float>(pointLightIndex);
+        m_FragmentUniformLightsData.LightTypesCount.z = static_cast<float>(spotLightIndex);
     }
 }

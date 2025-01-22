@@ -10,6 +10,8 @@
 #include "glm/gtc/type_ptr.hpp"
 
 // Project Headers
+#include <Renderer/Core/RenderQueue.hh>
+
 #include "Core/CoreEvents.hh"
 #include "Core/EventManager.hh"
 #include "Core/FileManager.hh"
@@ -98,8 +100,6 @@ namespace Mikoto {
     }
 
     auto EditorLayer::OnUpdate( const double ts ) -> void {
-        RenderCommand::SetClearColor( m_SettingsPanel->GetData().ClearColor );
-
         // Move and rotation speeds
         const auto& settingsPanelCurrentData{ m_SettingsPanel->GetData() };
         m_EditorCamera->SetMovementSpeed( settingsPanelCurrentData.EditorCameraMovementSpeed );
@@ -120,7 +120,12 @@ namespace Mikoto {
         m_EditorCamera->UpdateViewMatrix();
         m_EditorCamera->UpdateProjection();
         m_EditorCamera->SetViewportSize( viewPortWidth, viewPortHeight );
-        activeScene.OnEditorUpdate( ts, *m_EditorCamera );
+        activeScene.Render(
+            SceneRenderData{
+                .TimeStep{ ts },
+                .Camera { m_EditorCamera.get() },
+                .ClearColor{ m_SettingsPanel->GetData().ClearColor }
+            });
     }
 
     auto EditorLayer::PushImGuiDrawItems() -> void {
@@ -167,7 +172,7 @@ namespace Mikoto {
         m_SettingsPanel = std::make_unique<SettingsPanel>();
         m_HierarchyPanel = std::make_unique<HierarchyPanel>();
         m_InspectorPanel = std::make_unique<InspectorPanel>();
-        m_ContentBrowserPanel = std::make_unique<ContentBrowserPanel>( "../Resources" );
+        m_ContentBrowserPanel = std::make_unique<ContentBrowserPanel>( FileManager::Assets::GetRootPath().string() );
         m_ConsolePanel = std::make_unique<ConsolePanel>();
         m_RendererPanel = std::make_unique<RendererPanel>();
 

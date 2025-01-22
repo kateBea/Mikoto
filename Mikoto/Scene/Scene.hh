@@ -24,6 +24,12 @@
 
 namespace Mikoto {
 
+    struct SceneRenderData {
+        double TimeStep{};
+        EditorCamera* Camera{};
+        glm::vec4 ClearColor{};
+    };
+
     /**
      * @brief Scene wrapper for game objects (entities)
      * Represents a scene, manages entities and their components
@@ -60,18 +66,11 @@ namespace Mikoto {
 
 
         /**
-         * Updates the scene during runtime (scene not being edited).
-         * @param ts The time step for the update.
-         * */
-        auto OnRuntimeUpdate( double ts ) -> void;
-
-
-        /**
          * Updates the scene in the editor.
          * @param timeStep The time step for the update.
          * @param camera The EditorCamera used in the scene.
          * */
-        auto OnEditorUpdate( double timeStep, const EditorCamera& camera ) -> void;
+        auto Render( const SceneRenderData& data ) -> void;
 
 
         /**
@@ -140,7 +139,7 @@ namespace Mikoto {
         /**
          * Clears the scene, removing all entities and components.
          * */
-        auto Clear() -> void;
+        auto DestroyAllEntities() -> void;
 
 
         /**
@@ -149,6 +148,13 @@ namespace Mikoto {
         ~Scene() = default;
 
     private:
+
+     /**
+      * Updates the scene during runtime (scene not being edited).
+      * @param ts The time step for the update.
+      * */
+     auto OnRuntimeUpdate( double ts ) -> void;
+
         GenTree<Entity> m_Hierarchy{};
 
         std::string m_Name{};

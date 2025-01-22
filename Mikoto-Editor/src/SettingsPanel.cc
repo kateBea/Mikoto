@@ -74,10 +74,7 @@ namespace Mikoto {
                 }
 
                 if (ImGui::Checkbox("Wireframe mode", std::addressof(m_Data.RenderWireframeMode))) {
-                    if (m_Data.RenderWireframeMode)
-                        RenderCommand::EnableWireframeMode();
-                    else
-                        RenderCommand::DisableWireframeMode();
+                    // TODO: manage through events??
                 }
                 ImGui::TreePop();
             }

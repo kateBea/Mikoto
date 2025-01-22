@@ -29,7 +29,7 @@ namespace Mikoto {
         auto Shutdown() -> void override;
         auto ProcessEvents() -> void override;
         auto UpdateState() -> void override;
-        auto Present() -> void override;
+        auto Present() -> void;
 
     private:
         auto InitLayers() -> void;

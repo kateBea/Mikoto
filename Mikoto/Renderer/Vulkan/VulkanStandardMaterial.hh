@@ -54,7 +54,7 @@ namespace Mikoto {
 
         auto SetProjection(const glm::mat4& mat) -> void { m_VertexUniformData.Projection = mat; }
 
-        auto BindDescriptorSet(const VkCommandBuffer &commandBuffer, const VkPipelineLayout &pipelineLayout) -> void;
+        auto BindDescriptorSet(const VkCommandBuffer &commandBuffer, const VkPipelineLayout &pipelineLayout) const -> void;
 
         /**
          * Sends the transform data to the mapped GPU block of memory

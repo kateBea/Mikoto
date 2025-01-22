@@ -2,28 +2,26 @@
 // Created by kate on 10/8/23.
 //
 
-#include <utility>
-#include <filesystem>
+#include "Panels/ContentBrowserPanel.hh"
 
 #include <fmt/format.h>
 
-#include "imgui.h"
-#include "imgui_internal.h"
-#include "volk.h"
-
-
+#include <Core/FileManager.hh>
+#include <STL/Filesystem/PathBuilder.hh>
 #include <STL/String/String.hh>
+#include <filesystem>
+#include <utility>
 
 #include "Common/RenderingUtils.hh"
-#include "Panels/ContentBrowserPanel.hh"
-#include "Material/Texture/Texture2D.hh"
-#include "Renderer/Core/Renderer.hh"
-
-#include "GUI/ImGuiManager.hh"
-
 #include "GUI/IconsFontAwesome5.h"
 #include "GUI/IconsMaterialDesign.h"
 #include "GUI/IconsMaterialDesignIcons.h"
+#include "GUI/ImGuiManager.hh"
+#include "Material/Texture/Texture2D.hh"
+#include "Renderer/Core/Renderer.hh"
+#include "imgui.h"
+#include "imgui_internal.h"
+#include "volk.h"
 
 namespace Mikoto {
     static constexpr auto GetContentBrowserName() -> std::string_view {
@@ -44,8 +42,19 @@ namespace Mikoto {
             m_Guids.emplace_back();
         }
 
-        m_FolderIcon = Texture2D::Create("../Resources/Icons/folder0.png", MapType::TEXTURE_2D_DIFFUSE);
-        m_FileIcon = Texture2D::Create("../Resources/Icons/file4.png", MapType::TEXTURE_2D_DIFFUSE);
+        m_FolderIcon = Texture2D::Create(
+            PathBuilder()
+            .WithPath( FileManager::Assets::GetRootPath().string() )
+            .WithPath( "Icons" )
+            .WithPath( "folder0.png" )
+            .Build(), MapType::TEXTURE_2D_DIFFUSE);
+
+        m_FileIcon = Texture2D::Create(
+            PathBuilder()
+            .WithPath( FileManager::Assets::GetRootPath().string() )
+            .WithPath( "Icons" )
+            .WithPath( "file4.png" )
+            .Build(), MapType::TEXTURE_2D_DIFFUSE);
 
         switch (Renderer::GetActiveGraphicsAPI()) {
             case GraphicsAPI::VULKAN_API:

@@ -23,6 +23,9 @@
 // Set bit specified by the argument
 #define BIT_SET(N)              (1 << N)
 
+// Stringify
+#define MKT_STRINGIFY(x) #x
+
 // Engine version
 #define MKT_ENGINE_VERSION_MAJOR 1
 #define MKT_ENGINE_VERSION_MINOR 0

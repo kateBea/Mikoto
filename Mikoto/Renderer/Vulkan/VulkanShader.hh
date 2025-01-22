@@ -30,7 +30,7 @@ namespace Mikoto {
         VkPipelineShaderStageCreateInfo StageCreateInfo{};
     };
 
-    class VulkanShader : public Shader {
+    class VulkanShader final : public Shader {
     public:
         explicit VulkanShader(const ShaderCreateInfo& createInfo);
 

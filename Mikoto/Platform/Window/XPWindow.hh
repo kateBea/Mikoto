@@ -24,7 +24,7 @@ namespace Mikoto {
     /**
      * @brief Represents a platform-agnostic window using GLFW.
      * */
-    class XPWindow : public Window {
+    class XPWindow final : public Window {
     public:
         /**
          * @brief Constructs a GLFW window with given properties.

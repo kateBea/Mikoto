@@ -15,7 +15,4 @@ namespace Mikoto {
     {
 
     }
-
-    Mesh::Mesh( Mesh&& other ) noexcept = default;
-    auto Mesh::operator=( Mesh&& other ) noexcept -> Mesh& = default;
 }

@@ -12,6 +12,7 @@ namespace Mikoto {
     struct ScenePrepareData {
         const SceneCamera* RuntimeCamera{};
         const EditorCamera* StaticCamera{};
+        glm::vec4 CameraPosition{};
     };
 }
 #endif //SCENEPREPAREDATA_HH

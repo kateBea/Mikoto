@@ -33,9 +33,9 @@ namespace Mikoto {
         CreateImageView();
         CreateSampler();
 
-        m_DescSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(m_TextureSampler,
-                                                                  m_View,
-                                                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        m_DescSet = ImGui_ImplVulkan_AddTexture( m_TextureSampler,
+                                                 m_View,
+                                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
         DeletionQueue::Push([imageHandle = m_ImageInfo.Image, allocation = m_ImageInfo.Allocation, textureDescSet = m_DescSet]() -> void {
             ImGui_ImplVulkan_RemoveTexture(textureDescSet);

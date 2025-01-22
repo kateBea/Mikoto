@@ -31,13 +31,6 @@
 | Animation System          | Skeletal animation and keyframe interpolation     | ❌             |
 | Audio Support             | Load and play sound effects and background music  | ❌             |
 
----
-
-- ✅ - Fully supported
-- ⚠️ - Partially supported
-- ❌ - Not supported
----
-
 ## Supported Platforms
 
 | Platform | Status                 |
@@ -75,7 +68,7 @@ Currently, the building process has been tested on Linux and Windows.
 
 1. **Clone the repository**:
    ```shell
-   git clone --recursive https://github.com/kateBea/Mikoto-Engine.git
+   git clone --recursive https://github.com/kateBea/Mikoto.git
    ```
 
 2. **Navigate to the project directory**:

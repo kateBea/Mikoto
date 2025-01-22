@@ -167,7 +167,6 @@ namespace Mikoto {
 
                     std::string apiStr{};
 
-                    const auto& rendererStats{ Renderer::GetRendererData() };
 
                     switch (Renderer::GetActiveGraphicsAPI()) {
                         case GraphicsAPI::VULKAN_API:
@@ -186,7 +185,7 @@ namespace Mikoto {
                         ImGui::TableNextColumn();
                         ImGui::TextUnformatted("CPU");
                         ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", rendererStats.CPUName).c_str());
+                        ImGui::TextUnformatted(fmt::format(":    {}", "CPUNAMEGOESHERE").c_str());
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
@@ -210,7 +209,7 @@ namespace Mikoto {
                         ImGui::TableNextColumn();
                         ImGui::TextUnformatted("GPU");
                         ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", rendererStats.GPUName).c_str());
+                        ImGui::TextUnformatted(fmt::format(":    {}", "GPUNAMEGOESHERE").c_str());
 
 
                         ImGui::TableNextRow();
@@ -241,49 +240,48 @@ namespace Mikoto {
         const auto func{
             [&]() -> void {
                 // TODO: use tables
-                    auto& sceneRenderStats{ Renderer::GetSceneRenderStats() };
                     if (ImGui::BeginTable("ActiveSceneInfoTable", m_ColumCount, flags)) {
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
                         ImGui::TextUnformatted("Draw Calls");
                         ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", sceneRenderStats.GetDrawCallCount()).c_str());
+                        ImGui::TextUnformatted(fmt::format(":    {}", 1).c_str());
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
                         ImGui::TextUnformatted("Indices");
                         ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", sceneRenderStats.GetIndexCount()).c_str());
+                        ImGui::TextUnformatted(fmt::format(":    {}", 2).c_str());
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
                         ImGui::TextUnformatted("Vertices");
                         ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", sceneRenderStats.GetVertexCount()).c_str());
+                        ImGui::TextUnformatted(fmt::format(":    {}", 2).c_str());
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
                         ImGui::TextUnformatted("Models");
                         ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", sceneRenderStats.GetModelsCount()).c_str());
+                        ImGui::TextUnformatted(fmt::format(":    {}", 2).c_str());
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
                         ImGui::TextUnformatted("Meshes");
                         ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", sceneRenderStats.GetMeshesCount()).c_str());
+                        ImGui::TextUnformatted(fmt::format(":    {}", 1).c_str());
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
                         ImGui::TextUnformatted("Objects");
                         ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", sceneRenderStats.GetObjectsCount()).c_str());
+                        ImGui::TextUnformatted(fmt::format(":    {}", 1).c_str());
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
                         ImGui::TextUnformatted("Cameras");
                         ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", sceneRenderStats.GetSceneCamerasCount()).c_str());
+                        ImGui::TextUnformatted(fmt::format(":    {}", 1).c_str());
 
                         ImGui::EndTable();
                     }

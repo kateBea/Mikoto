@@ -305,16 +305,15 @@ namespace Mikoto {
         }
     }
 
-    auto ContentBrowserPanel::DrawProjectDirTree(const Path_T& root) -> void {
-        const ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_None };
+    auto ContentBrowserPanel::DrawProjectDirTree(const Path_T& root ) const -> void {
+        constexpr ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_None };
+        constexpr ImGuiTreeNodeFlags childNodeFlags{ styleFlags | ImGuiTreeNodeFlags_DefaultOpen };
 
-        ImGuiTreeNodeFlags childNodeFlags{ styleFlags | ImGuiTreeNodeFlags_DefaultOpen };
-
-        if (ImGui::TreeNodeEx((void*)m_Guids[0].Get(), childNodeFlags, "%s", root.stem().c_str())) {
+        if (ImGui::TreeNodeEx( reinterpret_cast<void*>( m_Guids[0].Get() ), childNodeFlags, "%s", root.stem().c_str())) {
             Size_T count{ 1 };
             for (auto& entry : std::filesystem::directory_iterator(root)) {
                 if (entry.is_directory()) {
-                    if (ImGui::TreeNodeEx((void*)m_Guids[count++].Get(), childNodeFlags, "%s", entry.path().stem().c_str())) { ImGui::TreePop(); }
+                    if (ImGui::TreeNodeEx( reinterpret_cast<void*>( m_Guids[count++].Get() ), childNodeFlags, "%s", entry.path().stem().c_str())) { ImGui::TreePop(); }
                 }
             }
 
@@ -326,10 +325,10 @@ namespace Mikoto {
         Path_T directoryToOpen{ m_CurrentDirectory };
 
         static const float padding{ 15.0f };
-        float cellSize = m_ThumbnailSize + padding;
+        const float cellSize{ m_ThumbnailSize + padding };
 
         float panelWidth = ImGui::GetContentRegionAvail().x;
-        int columnCount{ (int)(panelWidth / cellSize) };
+        int columnCount{ static_cast<int>( panelWidth / cellSize ) };
         if (columnCount < 1)
             columnCount = 1;
 
@@ -372,12 +371,14 @@ namespace Mikoto {
                     }
                 }
 
+                // File name
                 ImGui::PopStyleColor();
-                ImGui::TextWrapped("%s", entry.path().stem().c_str());
+                ImGui::TextWrapped(fmt::format( "{}", entry.path().stem().string()).c_str());
 
+                // Type of file
                 if (m_ShowFileTypeHint) {
                     ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255,255,255,128));
-                    ImGui::TextUnformatted(fileType.c_str());
+                    ImGui::TextUnformatted(fmt::format( "{}", fileType.c_str()).c_str());
                     ImGui::PopStyleColor();
                 }
             }

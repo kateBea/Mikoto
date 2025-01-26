@@ -583,7 +583,7 @@ namespace Mikoto {
         createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         createInfo.queueFamilyIndex = queueFamilyData.GraphicsFamilyIndex;
 
-        s_MainCommandPool.Create( createInfo );
+        s_MainCommandPool = VulkanCommandPool::Create( createInfo );
 
         // Immediate submit command pull
         // default command pool we will use for immediate submission
@@ -591,7 +591,7 @@ namespace Mikoto {
         immediateSubmitCreateInfo.queueFamilyIndex = queueFamilyData.GraphicsFamilyIndex;
         immediateSubmitCreateInfo.flags = 0;
 
-        s_ImmediateSubmitContext.CommandPool.Create( immediateSubmitCreateInfo );
+        s_ImmediateSubmitContext.CommandPool = VulkanCommandPool::Create( immediateSubmitCreateInfo );
     }
 
     auto VulkanContext::CreatePrimaryLogicalDeviceCommandBuffers() -> void {
@@ -600,13 +600,13 @@ namespace Mikoto {
 
         VkCommandBufferAllocateInfo allocInfo{ VulkanUtils::Initializers::CommandBufferAllocateInfo() };
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = s_MainCommandPool.Get();
+        allocInfo.commandPool = s_MainCommandPool->Get();
         allocInfo.commandBufferCount = 1;
 
         for ( Size_T count{}; count < commandBuffersCount; ++count ) {
             VkCommandBuffer cmd{};
 
-            if ( vkAllocateCommandBuffers( VulkanContext::GetPrimaryLogicalDevice(), &allocInfo, std::addressof( cmd ) ) != VK_SUCCESS ) {
+            if ( vkAllocateCommandBuffers( GetPrimaryLogicalDevice(), &allocInfo, std::addressof( cmd ) ) != VK_SUCCESS ) {
                 MKT_THROW_RUNTIME_ERROR( "Failed to allocate command buffer" );
             }
 
@@ -616,11 +616,11 @@ namespace Mikoto {
         // Immediate submit command buffers
         VkCommandBufferAllocateInfo immediateSubmitAllocInfo{ VulkanUtils::Initializers::CommandBufferAllocateInfo() };
         immediateSubmitAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        immediateSubmitAllocInfo.commandPool = s_ImmediateSubmitContext.CommandPool.Get();
+        immediateSubmitAllocInfo.commandPool = s_ImmediateSubmitContext.CommandPool->Get();
         immediateSubmitAllocInfo.commandBufferCount = 1;
 
         // default command buffer we will use for immediate submission
-        vkAllocateCommandBuffers( VulkanContext::GetPrimaryLogicalDevice(),
+        vkAllocateCommandBuffers( GetPrimaryLogicalDevice(),
                                   std::addressof( immediateSubmitAllocInfo ),
                                   std::addressof( s_ImmediateSubmitContext.CommandBuffer ) );
 
@@ -628,26 +628,26 @@ namespace Mikoto {
         DeletionQueue::Push( [=]() -> void {
             // Clear main draw command buffers
             vkFreeCommandBuffers( GetPrimaryLogicalDevice(),
-                                  s_MainCommandPool.Get(),
+                                  s_MainCommandPool->Get(),
                                   static_cast<UInt32_T>( s_RenderCommandBufferHandles.size() ),
                                   s_RenderCommandBufferHandles.data() );
 
             // Immediate submit context objects release
             vkFreeCommandBuffers( GetPrimaryLogicalDevice(),
-                                  s_ImmediateSubmitContext.CommandPool.Get(),
+                                  s_ImmediateSubmitContext.CommandPool->Get(),
                                   1,
                                   std::addressof( s_ImmediateSubmitContext.CommandBuffer ) );
         } );
     }
 
     auto VulkanContext::PrepareFrame() -> void {
-        auto ret{ GetSwapChain()->GetNextImageIndex( s_CurrentImageIndex,
+        const auto ret{ GetSwapChain()->GetNextRenderableImage( s_CurrentImageIndex,
                                                      s_SwapChainSyncObjects.RenderFence,
                                                      s_SwapChainSyncObjects.PresentSemaphore ) };
 
         if ( ret == VK_ERROR_OUT_OF_DATE_KHR ) {
-            VulkanSwapChainCreateInfo createInfo{ VulkanContext::GetSwapChain()->GetSwapChainCreateInfo() };
-            VulkanContext::RecreateSwapChain( std::move( createInfo ) );
+            VulkanSwapChainCreateInfo createInfo{ GetSwapChain()->GetSwapChainCreateInfo() };
+            RecreateSwapChain( std::move( createInfo ) );
         }
 
         if ( ret != VK_SUCCESS ) {
@@ -830,7 +830,7 @@ namespace Mikoto {
         vkResetFences( GetPrimaryLogicalDevice(), 1, std::addressof( s_ImmediateSubmitContext.UploadFence ) );
 
         // reset the command buffers inside the command pool
-        vkResetCommandPool( GetPrimaryLogicalDevice(), s_ImmediateSubmitContext.CommandPool.Get(), 0 );
+        vkResetCommandPool( GetPrimaryLogicalDevice(), s_ImmediateSubmitContext.CommandPool->Get(), 0 );
     }
 
 
@@ -839,15 +839,6 @@ namespace Mikoto {
         MKT_CORE_LOGGER_DEBUG( "Physical device: {}", GetPrimaryPhysicalDeviceProperties().deviceName );
         MKT_CORE_LOGGER_INFO( "maxUniformBufferRange for primary device is {} bytes", VulkanContext::GetPrimaryLogicalDeviceProperties().limits.maxUniformBufferRange );
     }
-
-
-    // auto VulkanContext::InitRenderContextInfo() -> void {
-    //     auto& rendererInfo{ Renderer::GetRendererData() };
-    //     rendererInfo.GPUName = GetPrimaryPhysicalDeviceProperties().deviceName;
-    //     rendererInfo.CPUName = StringUtils::Trim( GetCPUName() );
-    //     rendererInfo.DriverVersion = std::to_string( GetPrimaryPhysicalDeviceProperties().driverVersion );
-    //     rendererInfo.VRAMSize = static_cast<double>(GetPrimaryPhysicalDeviceMemoryProperties().memoryHeaps[0].size) / 1'000'000;
-    // }
 
 
     auto VulkanContext::InitContext( const std::shared_ptr<Window>& ptr ) -> void {

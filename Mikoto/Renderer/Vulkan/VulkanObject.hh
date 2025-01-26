@@ -5,23 +5,24 @@
 #ifndef MIKOTO_VULKAN_OBJECT_HH
 #define MIKOTO_VULKAN_OBJECT_HH
 
+#include <Common/Common.hh>
+
 namespace Mikoto {
 
-    template <typename T, typename InitDataT>
     class VulkanObject {
     public:
+        explicit VulkanObject() = default;
         virtual ~VulkanObject() = default;
 
-        using Value_T = T;
-        using Const_ValueRef_T = const T&;
+        auto Invalidate() -> void { m_IsReleased = true; }
+        MKT_NODISCARD auto IsReleased() const -> bool { return m_IsReleased; }
+        MKT_NODISCARD auto ShouldRelease() const -> bool { return m_ShouldRelease; }
 
-        virtual auto Create(const InitDataT& data) -> void = 0;
         virtual auto Release() -> void = 0;
 
-        auto Get() const -> Const_ValueRef_T { return m_Obj; }
     protected:
-        Value_T m_Obj;
-        InitDataT m_CreateInfo;
+        bool m_IsReleased{ false };
+        bool m_ShouldRelease{ false };
     };
 }
 

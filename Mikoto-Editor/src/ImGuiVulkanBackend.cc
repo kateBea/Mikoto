@@ -120,8 +120,7 @@ namespace Mikoto {
         ImGui::Render();
 
         const UInt32_T swapChainImageIndex{ VulkanContext::GetCurrentImageIndex() };
-        const auto& cmdHandles{ VulkanContext::GetDrawCommandBuffersHandles() };
-        RecordCommands( m_DrawCommandBuffer, VulkanContext::GetSwapChain()->GetCurrentImage( swapChainImageIndex ) );
+        RecordCommands( m_DrawCommandBuffer, VulkanContext::GetSwapChain()->GetImage( swapChainImageIndex ) );
         VulkanContext::PushCommandBuffer( m_DrawCommandBuffer );
 
         ImGuiIO& io{ ImGui::GetIO() };
@@ -398,7 +397,7 @@ namespace Mikoto {
         createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         createInfo.queueFamilyIndex = queueFamily.GraphicsFamilyIndex;
 
-        m_CommandPool.Create( createInfo );
+        m_CommandPool = VulkanCommandPool::Create( createInfo );
 
         InitCommandBuffers();
     }
@@ -408,7 +407,7 @@ namespace Mikoto {
 
         VkCommandBufferAllocateInfo allocInfo{ VulkanUtils::Initializers::CommandBufferAllocateInfo() };
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = m_CommandPool.Get();
+        allocInfo.commandPool = m_CommandPool->Get();
         allocInfo.commandBufferCount = COMMAND_BUFFERS_COUNT;
 
         if ( vkAllocateCommandBuffers(
@@ -419,7 +418,7 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR( "Failed to allocate command buffer" );
         }
 
-        DeletionQueue::Push( [cmdPoolHandle = m_CommandPool.Get(), cmdHandle = m_DrawCommandBuffer]() -> void {
+        DeletionQueue::Push( [cmdPoolHandle = m_CommandPool->Get(), cmdHandle = m_DrawCommandBuffer]() -> void {
             vkFreeCommandBuffers( VulkanContext::GetPrimaryLogicalDevice(), cmdPoolHandle, 1, std::addressof( cmdHandle ) );
         } );
     }

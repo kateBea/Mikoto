@@ -59,8 +59,6 @@ namespace Mikoto {
         DELETE_COPY_FOR(VulkanPipeline);
 
     private:
-
-    private:
         VkPipeline m_GraphicsPipeline{};
         PipelineConfigInfo m_ConfigInfo{};
     };

@@ -16,12 +16,12 @@
 #include "Common/Common.hh"
 #include "STL/Utility/Types.hh"
 #include "HierarchyPanel.hh"
-#include "Panel.hh"
+#include <Panels/Panel.hh>
 
 namespace Mikoto {
     struct ScenePanelCreateInfo {
         // This camera is holds the eye to the world (the scene we are editing)
-        const EditorCamera* EditorMainCamera{};
+        const SceneCamera* EditorMainCamera{};
     };
 
 
@@ -44,7 +44,7 @@ namespace Mikoto {
 
         auto HandleGuizmos() -> void;
 
-        auto SetEditorCamera(const EditorCamera* camera) -> void {
+        auto SetEditorCamera(const SceneCamera* camera) -> void {
             m_EditorMainCamera = camera;
         }
 
@@ -60,11 +60,11 @@ namespace Mikoto {
             SCALE,
         };
 
-        auto HandleManipulationMode() -> void;
+        auto HandleManipulationMode() const -> void;
 
     protected:
         ScenePanelData m_Data{};
-        const EditorCamera* m_EditorMainCamera{};
+        const SceneCamera* m_EditorMainCamera{};
         ManipulationMode m_ActiveManipulationMode{};
     };
 
@@ -80,9 +80,6 @@ namespace Mikoto {
         MKT_NODISCARD auto GetData() -> ScenePanelData& { return m_Implementation->GetData(); }
 
         ~ScenePanel() override = default;
-
-    private:
-        static auto DrawScenePlayButtons() -> void;
 
     protected:
         ScenePanelCreateInfo m_CreateInfo{};

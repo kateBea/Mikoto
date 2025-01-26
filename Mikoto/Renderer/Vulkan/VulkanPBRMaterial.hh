@@ -10,12 +10,11 @@
 #include <Common/RenderingUtils.hh>
 #include <Material/Core/Material.hh>
 #include <Material/Material/PhysicallyBasedMaterial.hh>
+#include <Models/LightData.hh>
 #include <Renderer/Vulkan/VulkanBuffer.hh>
 #include <glm/glm.hpp>
 
 #include "VulkanTexture2D.hh"
-#include <Models/LightTypeData.hh>
-#include <Models/LightRenderData.hh>
 
 namespace Mikoto {
     class VulkanPBRMaterial final : public PhysicallyBasedMaterial {

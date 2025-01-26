@@ -18,15 +18,13 @@
 #include <Renderer/Core/RenderQueue.hh>
 #include <Renderer/Core/Renderer.hh>
 #include <STL/Random/Random.hh>
+#include <Scene/Entity/Scene.hh>
 
 #include "Models/StandardMaterialCreateData.hh"
-#include "Scene/Component.hh"
-#include "Scene/EditorCamera.hh"
-#include "Scene/Entity.hh"
-#include "Scene/Scene.hh"
 
 namespace Mikoto {
 
+#if false // NOT USED YET
     auto Scene::OnRuntimeUpdate(double ts) -> void {
         auto sceneHasMainCam{ false };
         std::shared_ptr<SceneCamera> mainCam{};
@@ -72,6 +70,7 @@ namespace Mikoto {
             Renderer::EndScene();
         }
     }
+#endif
 
     auto Scene::Render(const SceneRenderData& data ) -> void {
         const ScenePrepareData prepareData{
@@ -112,9 +111,12 @@ namespace Mikoto {
             LightRenderInfo info{
                 .Type{ lightComponent.GetType() },
                 .Data{ lightComponent.GetData() },
-                .Position = glm::vec4{ transformComponent.GetTranslation(), 1.0f },
                 .IsActive{ tagComponent.IsVisible() }
             };
+
+            info.Data.DireLightData.Position = glm::vec4{ transformComponent.GetTranslation(), 1.0f };
+            info.Data.SpotLightData.Position = glm::vec4{ transformComponent.GetTranslation(), 1.0f };
+            info.Data.PointLightDat.Position = glm::vec4{ transformComponent.GetTranslation(), 1.0f };
 
             Renderer::AddLightObject(std::to_string( tagComponent.GetGUID() ), info);
         }
@@ -157,7 +159,7 @@ namespace Mikoto {
                 StandardMaterialCreateData spec{};
 
                 for (auto& textureIt: mesh.GetTextures()) {
-                    switch ( (textureIt)->GetType() ) {
+                    switch ( textureIt->GetType() ) {
                         case MapType::TEXTURE_2D_DIFFUSE:
                             spec.DiffuseMap = textureIt;
                             break;
@@ -165,7 +167,7 @@ namespace Mikoto {
                             spec.SpecularMap = textureIt;
                             break;
                         default:
-                            MKT_CORE_LOGGER_INFO("Scene - Request not present type of texture.");
+                            MKT_CORE_LOGGER_INFO("Scene::CreatePrefabEntity - Mesh has no data for the requested texture type.");
                     }
                 }
 
@@ -240,7 +242,7 @@ namespace Mikoto {
         return result;
     }
 
-    auto Scene::OnViewPortResize( const UInt32_T width, const UInt32_T height) -> void {
+    auto Scene::ResizeViewport( const UInt32_T width, const UInt32_T height) -> void {
         // Resize non-fixed aspect ratio cameras
 
         for ( const auto view{ m_Registry.view<TransformComponent, CameraComponent>() }; const auto& entity : view) {
@@ -253,8 +255,12 @@ namespace Mikoto {
         }
     }
 
-    auto Scene::DestroyAllEntities() -> void {
+    auto Scene::Clear() -> void {
         m_Registry.clear();
+    }
+
+    Scene::~Scene() {
+
     }
 
     auto Scene::GetSceneMetaData() -> SceneMetaData& {

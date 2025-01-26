@@ -5,13 +5,12 @@
 #ifndef SCENEPREPAREDATA_HH
 #define SCENEPREPAREDATA_HH
 
-#include "Scene/EditorCamera.hh"
-#include "Scene/SceneCamera.hh"
+#include <Scene/Camera/SceneCamera.hh>
 
 namespace Mikoto {
     struct ScenePrepareData {
         const SceneCamera* RuntimeCamera{};
-        const EditorCamera* StaticCamera{};
+        const SceneCamera* StaticCamera{};
         glm::vec4 CameraPosition{};
     };
 }

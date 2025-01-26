@@ -52,7 +52,7 @@ namespace Mikoto {
          * Retrieves the number of images in the swap chain.
          * @return The number of images in the swap chain.
          * */
-        MKT_NODISCARD auto GetImageCount() -> Size_T { return m_SwapChainImages.size(); }
+        MKT_NODISCARD auto GetImageCount() const -> Size_T { return m_SwapChainImages.size(); }
 
 
         /**
@@ -60,14 +60,14 @@ namespace Mikoto {
          * @param index The index of the image to retrieve.
          * @return The Vulkan image at the specified index.
          * */
-        MKT_NODISCARD auto GetCurrentImage(Size_T index) -> VkImage { return m_SwapChainImages[index]; }
+        MKT_NODISCARD auto GetImage( const Size_T index ) const -> VkImage { return m_SwapChainImages[index]; }
 
 
         /**
          * Retrieves the extent (width and height) of the swap chain.
          * @return The extent of the swap chain.
          * */
-        MKT_NODISCARD auto GetSwapChainExtent() -> VkExtent2D { return m_SwapChainExtent; }
+        MKT_NODISCARD auto GetSwapChainExtent() const -> VkExtent2D { return m_SwapChainExtent; }
 
 
         /**
@@ -101,13 +101,13 @@ namespace Mikoto {
 
 
         /**
-         * Acquires the index of the next image to be rendered, along with optional synchronization objects.
+         * Acquires the index of the next image that we can render to, along with optional synchronization objects. Necessary as there's no guarantee what image is available for it.
          * @param imageIndex Reference to store the acquired image index.
          * @param fence The fence to wait on, if provided (default is VK_NULL_HANDLE).
          * @param imageAvailable The semaphore for signaling image availability, if provided (default is VK_NULL_HANDLE).
          * @return The VulkanResult indicating the success or failure of the operation.
          * */
-        MKT_NODISCARD auto GetNextImageIndex(UInt32_T &imageIndex, VkFence fence = VK_NULL_HANDLE, VkSemaphore imageAvailable = VK_NULL_HANDLE ) const -> VkResult;
+        MKT_NODISCARD auto GetNextRenderableImage(UInt32_T &imageIndex, VkFence fence = VK_NULL_HANDLE, VkSemaphore imageAvailable = VK_NULL_HANDLE ) const -> VkResult;
 
 
         /**

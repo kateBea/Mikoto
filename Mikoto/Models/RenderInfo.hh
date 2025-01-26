@@ -9,7 +9,7 @@
 #include <string>
 
 #include "GameObjectData.hh"
-#include "LightRenderData.hh"
+#include <Models/LightData.hh>
 
 namespace Mikoto {
     /**
@@ -28,18 +28,6 @@ namespace Mikoto {
     };
 
     /**
-     * @brief Contains information about the renderer resources.
-     * This struct holds data related to the resources available to the renderer.
-     * */
-    struct RendererData {
-        std::string GPUName{ "Unknown" };        /**< Name of the GPU used. */
-        std::string CPUName{ "Unknown" };        /**< Name of the CPU used. */
-        std::string DriverVersion{ "Unknown" };  /**< Version of the driver. */
-        double RAMSize{ 0.0f };                  /**< Amount of RAM available in MB. */
-        double VRAMSize{ 0.0f };                 /**< Amount of VRAM available in MB. */
-    };
-
-    /**
      * @brief Contains real-time usage information about the renderer resources.
      * This struct holds statistics related to the real-time usage of renderer resources.
      * */
@@ -50,7 +38,6 @@ namespace Mikoto {
     struct LightRenderInfo {
         LightType Type{};
         LightData Data{};
-        glm::vec4 Position{};
         bool IsActive{};
     };
 }

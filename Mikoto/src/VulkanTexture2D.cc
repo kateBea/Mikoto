@@ -4,14 +4,14 @@
  * */
 
 // C++ Standard Library
-#include <memory>
 #include <filesystem>
+#include <memory>
 #include <stdexcept>
 
 // Third-Party Libraries
-#include <volk.h>
-#include <stb_image.h>
 #include <backends/imgui_impl_vulkan.h>
+#include <stb_image.h>
+#include <volk.h>
 
 // Project Headers
 #include <Common/Common.hh>
@@ -23,12 +23,17 @@
 #include <Renderer/Vulkan/VulkanUtils.hh>
 #include <STL/Filesystem/FileUtilities.hh>
 #include <STL/Utility/Types.hh>
+#include <codecvt>
 
 namespace Mikoto {
-    VulkanTexture2D::VulkanTexture2D(const Path_T& path, MapType type, bool retainFileData)
-        :   Texture2D{ type }
+    VulkanTexture2D::VulkanTexture2D( const Path_T& path, const MapType type, const bool retainFileData )
+        : Texture2D{ type }
     {
-        LoadImageData(path);
+        Create( VulkanTexture2DCreateInfo{ path, type, retainFileData } );
+    }
+
+    auto VulkanTexture2D::Create( const VulkanTexture2DCreateInfo& data ) -> void {
+        LoadImageData( data.Path );
         CreateImage();
         CreateImageView();
         CreateSampler();
@@ -37,44 +42,53 @@ namespace Mikoto {
                                                  m_View,
                                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
-        DeletionQueue::Push([imageHandle = m_ImageInfo.Image, allocation = m_ImageInfo.Allocation, textureDescSet = m_DescSet]() -> void {
-            ImGui_ImplVulkan_RemoveTexture(textureDescSet);
-            vmaDestroyImage(VulkanContext::GetDefaultAllocator(), imageHandle, allocation);
-        });
-
-        if (!retainFileData) {
-            stbi_image_free(m_TextureFileData);
+        if ( !data.RetainFileData ) {
+            stbi_image_free( m_TextureFileData );
             m_TextureFileData = nullptr;
         }
     }
-    
 
-    auto VulkanTexture2D::LoadImageData(const Path_T& path) -> void {
-        auto filePath { StringUtils::GetByteChar(path) };
-        stbi_set_flip_vertically_on_load(true);
-        m_TextureFileData = stbi_load(filePath.c_str(), std::addressof(m_Width), std::addressof(m_Height), std::addressof(m_Channels), STBI_rgb_alpha);
+    auto VulkanTexture2D::Release() -> void {
+        // Request deletion queue to remove the texture
+        DeletionQueue::Push( [imageHandle = m_ImageInfo.Image, allocation = m_ImageInfo.Allocation, textureDescSet = m_DescSet]() -> void {
+            ImGui_ImplVulkan_RemoveTexture( textureDescSet );
+            vmaDestroyImage( VulkanContext::GetDefaultAllocator(), imageHandle, allocation );
+        } );
+    }
+
+    VulkanTexture2D::~VulkanTexture2D() {
+        Release();
+    }
+
+    auto VulkanTexture2D::LoadImageData( const Path_T& path ) -> void {
+        const auto filePath{ StringUtils::GetByteChar( path ) };
+        stbi_set_flip_vertically_on_load( true );
+        m_TextureFileData = stbi_load( path.string().c_str(), std::addressof( m_Width ), std::addressof( m_Height ), std::addressof( m_Channels ), STBI_rgb_alpha );
 
         // since we use STBI_rgb_alpha, stb will load the image with four
         // channels which matches the format we are going to be using for now
         constexpr UInt32_T channelCount{ 4 };
         constexpr double kbPerMb{ 1'000.0 };
 
-        m_ImageSize = m_Width  * m_Height * channelCount;
+        m_ImageSize = m_Width * m_Height * channelCount;
 
         // Store size in MB
-        m_Size = FileUtilities::GetFileSize(path) / kbPerMb;
+        m_Size = FileUtilities::GetFileSize( path ) / kbPerMb;
 
-        if (!m_TextureFileData) {
-            MKT_THROW_RUNTIME_ERROR(fmt::format("VulkanTexture2D - Failed to load texture image! File: [{}]", path.string()));
+        if ( !m_TextureFileData ) {
+            MKT_THROW_RUNTIME_ERROR( fmt::format( "VulkanTexture2D - Failed to load texture image! File: [{}]", path.string() ) );
         }
 
         const std::string extension{ path.extension().string() };
 
-        if (extension == ".png") { m_FileType = TextureFileType::PNG_IMAGE_TYPE; }
-        else if (extension == ".jpeg") { m_FileType = TextureFileType::JPEG_IMAGE_TYPE; }
-        else if (extension == ".jpg") { m_FileType = TextureFileType::JPG_IMAGE_TYPE; }
+        if ( extension == ".png" ) {
+            m_FileType = TextureFileType::PNG_IMAGE_TYPE;
+        } else if ( extension == ".jpeg" ) {
+            m_FileType = TextureFileType::JPEG_IMAGE_TYPE;
+        } else if ( extension == ".jpg" ) {
+            m_FileType = TextureFileType::JPG_IMAGE_TYPE;
+        }
     }
-
 
     auto VulkanTexture2D::CreateImage() -> void {
         auto& vmaAllocator{ VulkanContext::GetDefaultAllocator() };
@@ -91,24 +105,23 @@ namespace Mikoto {
         BufferAllocateInfo stagingBuffer{};
 
         // Allocate the buffer
-        if (vmaCreateBuffer(vmaAllocator,
-                            std::addressof(stagingBufferInfo),
-                            std::addressof(vmaStagingAllocationCreateInfo),
-                            std::addressof(stagingBuffer.Buffer),
-                            std::addressof(stagingBuffer.Allocation),
-                            nullptr) != VK_SUCCESS)
-        {
-            MKT_THROW_RUNTIME_ERROR("VulkanTexture2D - Failed to create VMA staging buffer for Vulkan vertex buffer");
+        if ( vmaCreateBuffer( vmaAllocator,
+                              std::addressof( stagingBufferInfo ),
+                              std::addressof( vmaStagingAllocationCreateInfo ),
+                              std::addressof( stagingBuffer.Buffer ),
+                              std::addressof( stagingBuffer.Allocation ),
+                              nullptr ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanTexture2D - Failed to create VMA staging buffer for Vulkan vertex buffer" );
         }
 
         // Copy vertex data to staging buffer
         void* stagingBufferData{};
-        vmaMapMemory(vmaAllocator, stagingBuffer.Allocation, std::addressof(stagingBufferData));
-        std::memcpy(stagingBufferData, static_cast<const void*>(m_TextureFileData), m_ImageSize);
-        vmaUnmapMemory(vmaAllocator, stagingBuffer.Allocation);
+        vmaMapMemory( vmaAllocator, stagingBuffer.Allocation, std::addressof( stagingBufferData ) );
+        std::memcpy( stagingBufferData, static_cast<const void*>( m_TextureFileData ), m_ImageSize );
+        vmaUnmapMemory( vmaAllocator, stagingBuffer.Allocation );
 
         // Allocate image
-        const VkExtent3D extent{ static_cast<UInt32_T>(m_Width), static_cast<UInt32_T>(m_Height), static_cast<UInt32_T>(1) };
+        const VkExtent3D extent{ static_cast<UInt32_T>( m_Width ), static_cast<UInt32_T>( m_Height ), static_cast<UInt32_T>( 1 ) };
 
         m_ImageInfo.ImageCreateInfo = VulkanUtils::Initializers::ImageCreateInfo();
 
@@ -126,10 +139,10 @@ namespace Mikoto {
         m_ImageInfo.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
         m_ImageInfo.AllocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-        VulkanUtils::AllocateImage(m_ImageInfo);
+        VulkanUtils::AllocateImage( m_ImageInfo );
 
-        VulkanContext::ImmediateSubmit([&](VkCommandBuffer cmd) -> void {
-            VulkanUtils::PerformImageLayoutTransition(m_ImageInfo.Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmd);
+        VulkanContext::ImmediateSubmit( [&]( VkCommandBuffer cmd ) -> void {
+            VulkanUtils::PerformImageLayoutTransition( m_ImageInfo.Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmd );
 
             // Copy from staging buffer to image buffer
             VkBufferImageCopy copyRegion{};
@@ -144,20 +157,19 @@ namespace Mikoto {
             copyRegion.imageExtent = extent;
 
             //copy the buffer into the image
-            vkCmdCopyBufferToImage(cmd, stagingBuffer.Buffer, m_ImageInfo.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, std::addressof(copyRegion));
-        });
+            vkCmdCopyBufferToImage( cmd, stagingBuffer.Buffer, m_ImageInfo.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, std::addressof( copyRegion ) );
+        } );
 
-        VulkanContext::ImmediateSubmit([&](VkCommandBuffer cmd) -> void {
+        VulkanContext::ImmediateSubmit( [&]( VkCommandBuffer cmd ) -> void {
             // Perform second transition for the descriptor set creation
-            VulkanUtils::PerformImageLayoutTransition(m_ImageInfo.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd);
-        });
+            VulkanUtils::PerformImageLayoutTransition( m_ImageInfo.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd );
+        } );
 
         // destroy staging buffer
-        vmaDestroyBuffer(vmaAllocator, stagingBuffer.Buffer, stagingBuffer.Allocation);
+        vmaDestroyBuffer( vmaAllocator, stagingBuffer.Buffer, stagingBuffer.Allocation );
 
-        MKT_CORE_LOGGER_INFO("VulkanTexture2D - Texture loaded successfully");
+        MKT_CORE_LOGGER_INFO( "VulkanTexture2D - Texture loaded successfully" );
     }
-
 
     auto VulkanTexture2D::CreateImageView() -> void {
         VkImageViewCreateInfo imageViewCreateInfo{ VulkanUtils::Initializers::ImageViewCreateInfo() };
@@ -174,17 +186,16 @@ namespace Mikoto {
         imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
         imageViewCreateInfo.subresourceRange.layerCount = 1;
 
-        if (vkCreateImageView(VulkanContext::GetPrimaryLogicalDevice(), std::addressof(imageViewCreateInfo), nullptr, std::addressof(m_View)) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("VulkanTexture2D - Failed to create Vulkan image view!");
+        if ( vkCreateImageView( VulkanContext::GetPrimaryLogicalDevice(), std::addressof( imageViewCreateInfo ), nullptr, std::addressof( m_View ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanTexture2D - Failed to create Vulkan image view!" );
         }
 
-        DeletionQueue::Push([imageView = m_View]() -> void {
-            vkDestroyImageView(VulkanContext::GetPrimaryLogicalDevice(), imageView, nullptr);
-        });
+        DeletionQueue::Push( [imageView = m_View]() -> void {
+            vkDestroyImageView( VulkanContext::GetPrimaryLogicalDevice(), imageView, nullptr );
+        } );
 
-        MKT_CORE_LOGGER_INFO("VulkanTexture2D - Vulkan image view created successfully");
+        MKT_CORE_LOGGER_INFO( "VulkanTexture2D - Vulkan image view created successfully" );
     }
-
 
     auto VulkanTexture2D::CreateSampler() -> void {
         VkSamplerCreateInfo samplerInfo{ VulkanUtils::Initializers::SamplerCreateInfo() };
@@ -211,12 +222,12 @@ namespace Mikoto {
         samplerInfo.minLod = 0.0f;
         samplerInfo.maxLod = 0.0f;
 
-        if (vkCreateSampler(VulkanContext::GetPrimaryLogicalDevice(), &samplerInfo, nullptr, &m_TextureSampler) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("Failed to create texture sampler!");
+        if ( vkCreateSampler( VulkanContext::GetPrimaryLogicalDevice(), &samplerInfo, nullptr, &m_TextureSampler ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "Failed to create texture sampler!" );
         }
 
-        DeletionQueue::Push([sampler = m_TextureSampler]() -> void {
-            vkDestroySampler(VulkanContext::GetPrimaryLogicalDevice(), sampler, nullptr);
-        });
+        DeletionQueue::Push( [sampler = m_TextureSampler]() -> void {
+            vkDestroySampler( VulkanContext::GetPrimaryLogicalDevice(), sampler, nullptr );
+        } );
     }
 }

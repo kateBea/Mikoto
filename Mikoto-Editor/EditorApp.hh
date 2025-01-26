@@ -1,5 +1,5 @@
 /**
- * Engine.hh
+ * EngineSystem.hh
  * Created by kate on 6/7/23.
  * */
 
@@ -41,11 +41,8 @@ namespace Mikoto {
         auto ParseArguments(Int32_T argc, char **argv) -> void;
 
     private:
-        /** Stores the command line arguments. */
-        std::vector<std::string> m_CommandLineArgs{};
-
-        /** Holds the editor layer. */
-        std::unique_ptr<EditorLayer> m_EditorLayer{};
+        Scope_T<EditorLayer> m_EditorLayer{};
+        Ref_T<CommandLineParser> m_CommandLineParser{};
     };
 }
 

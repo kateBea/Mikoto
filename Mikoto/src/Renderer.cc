@@ -23,30 +23,18 @@ namespace Mikoto {
         s_DrawData->CameraPosition = prepareData.CameraPosition;
     }
 
-    // auto Renderer::Submit(RenderSubmitInfo &&info) -> void {
-    //     if (info.Data->MeshData.Data) {
-    //         s_RenderingStats->IncrementVertexCount(info.Data->MeshData.Data->GetVertexBuffer()->GetCount());
-    //         s_RenderingStats->IncrementIndexCount(info.Data->MeshData.Data->GetIndexBuffer()->GetCount());
-    //
-    //         s_RenderingStats->IncrementObjectsCount(1);
-    //
-    //         s_RenderingStats->IncrementMeshesCount(1);
-    //     }
-    //
-    //     RenderCommand::AddToRenderQueue(info.Id, std::move(info.Data), std::move(info.MatInfo));
-    //
-    //     // At the moment, we need a draw call per mesh because every
-    //     // mesh has a single vertex and index buffers which are used for rendering
-    //     s_RenderingStats->IncrementDrawCallCount(1);
-    // }
-
     auto Renderer::EndScene() -> void {
         Flush();
     }
 
     auto Renderer::Flush() -> void {
+        // Execute all the commands, render commands can include stuff not directly related to the API
+        // For instance if we want to change the size of the viewport that is not a command
+        // that is directly related to the API, but it is a command that is necessary for rendering
+        // Even tho it is later needed to determine the size of the image we render to
         RenderQueue::Flush();
 
+        // Request active API to flush all of its commands
         s_ActiveRendererAPI->Flush();
     }
 
@@ -79,7 +67,7 @@ namespace Mikoto {
         constexpr double UPDATE_INTERVAL{ 5.0 };
         static double lastTimeUpdate{ elapsed };
 
-        if ( ( elapsed - lastTimeUpdate ) >= UPDATE_INTERVAL ) {
+        if ( elapsed - lastTimeUpdate >= UPDATE_INTERVAL ) {
             UpdateRendererStatistics();
             lastTimeUpdate = elapsed;
         }
@@ -90,11 +78,7 @@ namespace Mikoto {
     auto Renderer::AddLightObject( const std::string& id, const LightRenderInfo& info ) -> void {
         auto [itLightInfo, inserted]{ s_LightObjects.try_emplace( id, info ) };
 
-        if (itLightInfo != s_LightObjects.end()) {
-            itLightInfo->second.Data.DireLightData.Position = info.Position;
-            itLightInfo->second.Data.SpotLightData.Position = info.Position;
-            itLightInfo->second.Data.PointLightDat.Position = info.Position;
-        }
+        itLightInfo->second = info;
 
         if (inserted) {
 

@@ -17,19 +17,23 @@
 #include <Renderer/Vulkan/VulkanCommandPool.hh>
 
 namespace Mikoto {
-    auto VulkanCommandPool::Create(const VkCommandPoolCreateInfo& createInfo) -> void {
+    VulkanCommandPool::VulkanCommandPool( const VkCommandPoolCreateInfo& createInfo ) {
         m_CreateInfo = createInfo;
 
-        if (vkCreateCommandPool(VulkanContext::GetPrimaryLogicalDevice(), std::addressof(m_CreateInfo), nullptr, std::addressof(m_Obj)) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("Failed to create command pool!");
+        if ( vkCreateCommandPool( VulkanContext::GetPrimaryLogicalDevice(), std::addressof( m_CreateInfo ), nullptr, std::addressof( m_CommandPool ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanCommandPool::Create - ailed to create command pool!" );
         }
+    }
 
-        DeletionQueue::Push([cmdPool = m_Obj]() -> void {
-            vkDestroyCommandPool(VulkanContext::GetPrimaryLogicalDevice(), cmdPool, nullptr);
-        });
+    auto VulkanCommandPool::Create(const VkCommandPoolCreateInfo& createInfo) -> Ref_T<VulkanCommandPool> {
+        auto result{ CreateRef<VulkanCommandPool>( createInfo ) };
+        DeletionQueue::Register( result );
+        return result;
     }
 
     auto VulkanCommandPool::Release() -> void {
-
+        DeletionQueue::Push([cmdPool = m_CommandPool]() -> void {
+            vkDestroyCommandPool(VulkanContext::GetPrimaryLogicalDevice(), cmdPool, nullptr);
+        });
     }
 }

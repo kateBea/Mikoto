@@ -22,9 +22,7 @@
 #include <Core/Assert.hh>
 #include <Core/FileManager.hh>
 #include <Core/Logger.hh>
-#include <Scene/Entity.hh>
-
-#include "../../Mikoto-Editor/Tools/ConsoleManager.hh"
+#include <Scene/Entity/Entity.hh>
 
 namespace YAML {
     template<>
@@ -197,7 +195,6 @@ namespace Mikoto::FileManager {
         if (data.IsNull()) {
             auto message{ fmt::format("File opened '{}' but contains no data for deserialization", saveFilePath.string()) };
 
-            ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_ERROR, message);
             MKT_CORE_LOGGER_WARN("{}", message);
             return;
         }
@@ -205,8 +202,6 @@ namespace Mikoto::FileManager {
         if (data["Scene"].IsNull()) {
             auto message{ fmt::format("File opened [{}] but contains Scene Node", saveFilePath.string()) };
 
-            // TODO: remove from here, this is part of the editor. As an alternative you can notify this push as an event an use the engine event system
-            ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_ERROR, message);
             MKT_CORE_LOGGER_WARN("{}", message);
             return;
         }

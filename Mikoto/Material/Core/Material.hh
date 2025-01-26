@@ -23,14 +23,14 @@ namespace Mikoto {
 
     class Material {
     public:
-        explicit Material(const std::string_view name = "Base Material", const Type type = Type::MATERIAL_TYPE_STANDARD)
+        explicit Material(const std::string_view name = "Base Material", const MaterialType type = MaterialType::STANDARD)
             :   m_Type{ type }, m_Name{ name }
         {
 
         }
 
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
-        MKT_NODISCARD auto GetType() const -> Type { return m_Type; }
+        MKT_NODISCARD auto GetType() const -> MaterialType { return m_Type; }
         MKT_NODISCARD auto IsActive() const -> bool { return m_Apply; }
 
         auto SetName(const std::string_view newName) -> void {
@@ -41,11 +41,11 @@ namespace Mikoto {
             m_Apply = value;
         }
 
-        MKT_NODISCARD static constexpr auto GetTypeStr(Type type) -> std::string_view {
+        MKT_NODISCARD static constexpr auto GetTypeStr(MaterialType type) -> std::string_view {
             switch(type) {
-                case Type::MATERIAL_TYPE_STANDARD:
+                case MaterialType::STANDARD:
                     return MKT_STRINGIFY(MATERIAL_TYPE_STANDARD);
-                case Type::MATERIAL_TYPE_PBR:
+                case MaterialType::PBR:
                     return MKT_STRINGIFY(MATERIAL_TYPE_PBR);
             }
 
@@ -57,7 +57,7 @@ namespace Mikoto {
         virtual ~Material() = default;
 
     private:
-        Type m_Type{};
+        MaterialType m_Type{};
         std::string m_Name{};
 
         bool m_Apply{ true };

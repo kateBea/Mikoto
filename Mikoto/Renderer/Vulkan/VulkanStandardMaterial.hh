@@ -21,9 +21,9 @@
 #include "Material/Core/Material.hh"
 #include "Material/Material/StandardMaterial.hh"
 #include "VulkanBuffer.hh"
-#include "VulkanPipeline.hh"
 #include "VulkanShader.hh"
 #include "VulkanTexture2D.hh"
+#include <Renderer/Vulkan/VulkanRenderer.hh>
 
 namespace Mikoto {
     class VulkanStandardMaterial final : public StandardMaterial {
@@ -36,33 +36,19 @@ namespace Mikoto {
         auto operator=(const VulkanStandardMaterial & other) -> VulkanStandardMaterial & = default;
         auto operator=(VulkanStandardMaterial && other) -> VulkanStandardMaterial & = default;
 
+        auto UpdateDescriptorSets() const -> void;
 
-        auto UpdateDescriptorSets() -> void;
-
-        /**
-         * Sets the value of the projection and view matrix
-         * @param projView new value for the the projection and view matrix
-         * */
         auto SetView(const glm::mat4& mat) -> void { m_VertexUniformData.View = mat; }
 
-
-        /**
-         * Sets the value of the transformation matrix
-         * @param transform new value for the transformation matrix
-         * */
         auto SetTransform(const glm::mat4& transform) -> void { m_VertexUniformData.Transform = transform; }
 
         auto SetProjection(const glm::mat4& mat) -> void { m_VertexUniformData.Projection = mat; }
 
         auto BindDescriptorSet(const VkCommandBuffer &commandBuffer, const VkPipelineLayout &pipelineLayout) const -> void;
 
-        /**
-         * Sends the transform data to the mapped GPU block of memory
-         * */
         auto UploadUniformBuffers() -> void;
 
         auto UpdateLightsInfo() -> void;
-
 
     private:
         // stick to mat4s and vec4s for now for simplicity
@@ -108,6 +94,8 @@ namespace Mikoto {
         // Descriptors
         VkDescriptorPool m_DescriptorPool{};
         VkDescriptorSet m_DescriptorSet{};
+
+        PipelineInfo* m_PipelineInfo{};
 
         static inline std::shared_ptr<VulkanTexture2D> s_EmptyTexture{};
 

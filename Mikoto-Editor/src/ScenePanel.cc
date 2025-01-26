@@ -79,22 +79,22 @@ namespace Mikoto {
         }
 
         auto OnUpdate_Impl() -> void override {
-            auto viewPortDimensions{ ImGui::GetContentRegionAvail() };
+            const auto viewPortDimensions{ ImGui::GetContentRegionAvail() };
             auto& currentlyActiveScene{ SceneManager::GetActiveScene() };
 
 
             // If the window size has changed, we need to resize the scene viewport
-            if (m_Data.ViewPortWidth != viewPortDimensions.x || m_Data.ViewPortHeight != viewPortDimensions.y) {
+            if ( m_Data.ViewPortWidth != viewPortDimensions.x || m_Data.ViewPortHeight != viewPortDimensions.y ) {
 
                 m_Data.ViewPortWidth = viewPortDimensions.x;
                 m_Data.ViewPortHeight = viewPortDimensions.y;
-                currentlyActiveScene.OnViewPortResize((UInt32_T)viewPortDimensions.x, (UInt32_T)viewPortDimensions.y);
+                currentlyActiveScene.ResizeViewport( static_cast<UInt32_T>( viewPortDimensions.x ), static_cast<UInt32_T>( viewPortDimensions.y ) );
                 //m_SceneRendererVk->OnFramebufferResize((UInt32_T)m_Data->ViewPortWidth, (UInt32_T)m_Data->ViewPortHeight);
             }
 
-            float frameWidth{ static_cast<float>(m_Data.ViewPortWidth) };
-            float frameHeight{ static_cast<float>(m_Data.ViewPortHeight) };
-            ImGui::Image((ImTextureID) m_ColorAttachmentDescriptorSet, ImVec2{ frameWidth, frameHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+            const float frameWidth{ ( m_Data.ViewPortWidth ) };
+            const float frameHeight{ ( m_Data.ViewPortHeight ) };
+            ImGui::Image( reinterpret_cast<ImTextureID>( m_ColorAttachmentDescriptorSet ), ImVec2{ frameWidth, frameHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
 
             HandleGuizmos();
         }
@@ -112,7 +112,7 @@ namespace Mikoto {
     }
 
     ScenePanel::ScenePanel(ScenePanelCreateInfo&& createInfo)
-        :   Panel{}, m_CreateInfo{ createInfo }
+        : m_CreateInfo{ createInfo }
     {
         m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_IMAGE, GetSceneName());
 
@@ -134,7 +134,7 @@ namespace Mikoto {
 
     auto ScenePanel::OnUpdate(MKT_UNUSED_VAR float ts) -> void {
         if (m_PanelIsVisible) {
-            constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_NoCollapse };
+            constexpr ImGuiWindowFlags windowFlags{};
 
             // Expand scene view to window bounds (no padding)
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f,0.0f });
@@ -152,20 +152,9 @@ namespace Mikoto {
             ImGui::PopStyleVar();
         }
 
-        if (m_PanelIsHovered && InputManager::IsMouseKeyPressed(MouseButton::Mouse_Button_Right)) {
+        if (m_PanelIsHovered && InputManager::IsMouseKeyPressed(Mouse_Button_Right)) {
             EventManager::Trigger<CameraEnableRotation>();
         }
-    }
-
-    auto ScenePanel::DrawScenePlayButtons() -> void {
-        if (ImGui::Button(fmt::format("{}", ICON_MD_PLAY_ARROW).c_str())) {}
-        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
-
-
-        ImGui::SameLine();
-
-        if (ImGui::Button(fmt::format("{}", ICON_MD_STOP).c_str())) {}
-        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
     }
 
     auto ScenePanelInterface::HandleGuizmos() -> void {
@@ -186,7 +175,7 @@ namespace Mikoto {
         }
     }
 
-    auto ScenePanelInterface::HandleManipulationMode() -> void {
+    auto ScenePanelInterface::HandleManipulationMode() const -> void {
         auto& currentSelectionContext{ SceneManager::GetCurrentSelection()->get() };
         TransformComponent& transformComponent{ currentSelectionContext.GetComponent<TransformComponent>() };
 

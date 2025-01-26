@@ -7,10 +7,10 @@
 #define MIKOTO_TYPES_HH
 
 // C++ Standard Library
-#include <cstdint>
 #include <cstddef>
-#include <vector>
+#include <cstdint>
 #include <filesystem>
+#include <memory>
 
 namespace Mikoto {
     using Path_T = std::filesystem::path;
@@ -34,6 +34,36 @@ namespace Mikoto {
     using LongLong_T = long long;
 
     using Size_T = std::size_t;
+
+    template<typename T>
+    using Scope_T = std::unique_ptr<T>;
+
+    template<typename T>
+    using Ref_T = std::shared_ptr<T>;
+
+    /**
+     * @brief Creates a unique pointer to the given type.
+     * @tparam T type of the object to create a unique pointer to.
+     * @tparam Args types of the arguments to pass to the constructor of the object.
+     * @param args arguments to pass to the constructor of the object.
+     * @return a unique pointer to the object.
+     * */
+    template<typename T, typename... Args>
+    constexpr auto CreateScope( Args &&...args ) -> Scope_T<T> {
+        return std::make_unique<T>( std::forward<Args>( args )... );
+    }
+
+    /**
+     * @brief Creates a shared pointer to the given type.
+     * @tparam T type of the object to create a shared pointer to.
+     * @tparam Args types of the arguments to pass to the constructor of the object.
+     * @param args arguments to pass to the constructor of the object.
+     * @return a shared pointer to the object.
+     * */
+    template<typename T, typename... Args>
+    constexpr auto CreateRef( Args &&...args ) -> Ref_T<T> {
+        return std::make_shared<T>( std::forward<Args>( args )... );
+    }
 }
 
-#endif // MIKOTO_TYPES_HH
+#endif// MIKOTO_TYPES_HH

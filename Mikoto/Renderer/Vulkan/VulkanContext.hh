@@ -46,7 +46,7 @@ namespace Mikoto {
         bool VOLKInitSuccess{};
 
         // The Vulkan context works with XPWindow's for now
-        std::shared_ptr<XPWindow> WindowHandle{};
+        Ref_T<XPWindow> WindowHandle{};
 
         const bool EnableValidationLayers{};
     };
@@ -54,8 +54,8 @@ namespace Mikoto {
     // Used for short-lived commands
     struct ImmediateSubmitContext {
         VkFence UploadFence{};            // Notify the host a task has finished executing
-        VulkanCommandPool CommandPool{};  // Command pool to allocate command buffer from
         VkCommandBuffer CommandBuffer{};  // Command buffer to submit work to
+        Ref_T<VulkanCommandPool> CommandPool{};// Command pool to allocate command buffer from
     };
 
     class VulkanContext {
@@ -185,18 +185,18 @@ namespace Mikoto {
         inline static UInt32_T s_CurrentImageIndex{};
 
         // Main command pool
-        inline static VulkanCommandPool s_MainCommandPool{};
+        inline static Ref_T<VulkanCommandPool> s_MainCommandPool{};
 
         // Single swap chain
-        inline static std::shared_ptr<VulkanSwapChain> s_SwapChain{};
+        inline static Ref_T<VulkanSwapChain> s_SwapChain{};
 
         // Synchronization primitives to synchronize rendering and presentation operations
-        inline static FrameSynchronizationPrimitives s_SwapChainSyncObjects{ VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE};
+        inline static FrameSynchronizationPrimitives s_SwapChainSyncObjects{ };
 
         // Contains the actual VkCommandBuffer handles, easier to pass to Vulkan structures such as VkSubmitInfo
         inline static std::vector<VkCommandBuffer> s_RenderCommandBufferHandles{};
 
-        inline static ImmediateSubmitContext s_ImmediateSubmitContext{ VK_NULL_HANDLE, VulkanCommandPool{}, VK_NULL_HANDLE };
+        inline static ImmediateSubmitContext s_ImmediateSubmitContext{  };
 
         // Target validation layers
         inline static const std::vector<const char *> s_ValidationLayers{ "VK_LAYER_KHRONOS_validation" };

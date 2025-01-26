@@ -25,9 +25,8 @@
 #include <GUI/ImGuiUtils.hh>
 #include <Material/Material/StandardMaterial.hh>
 #include <Panels/InspectorPanel.hh>
-#include <STL/Filesystem/FileUtilities.hh>
-#include <Scene/Component.hh>
-#include <Scene/Entity.hh>
+#include <Scene/Entity/Component.hh>
+#include <Scene/Entity/Entity.hh>
 #include <Scene/SceneManager.hh>
 
 namespace Mikoto {
@@ -46,7 +45,7 @@ namespace Mikoto {
         ImGui::Begin(fmt::format("{} Material editor", ICON_MD_EDIT_SQUARE).c_str(),
                      std::addressof(m_OpenMaterialEditor));
 
-        if (m_TargetMaterialForMaterialEditor->GetType() == Type::MATERIAL_TYPE_STANDARD) {
+        if (m_TargetMaterialForMaterialEditor->GetType() == MaterialType::STANDARD) {
             // Standard Material ----------------
 
             // If mesh has standard material. That one requires a diffuse map and a specular map
@@ -659,7 +658,7 @@ namespace Mikoto {
                                          [&](auto &component) -> void {
                                              ImGui::Unindent();
 
-                                             MaterialInfo& matInfo{ component.GetMaterialInfo() };
+                                              const MaterialInfo & matInfo{ component.GetMaterialInfo() };
 
                                              if (matInfo.MeshMat) {
                                                  EditStandardMaterial( *std::dynamic_pointer_cast<StandardMaterial>(matInfo.MeshMat) );
@@ -1418,7 +1417,8 @@ namespace Mikoto {
                static const std::array<std::string, 2> CAMERA_PROJECTION_TYPE_NAMES{
                        "Orthographic", "Perspective" };
 
-               const auto cameraCurrentProjectionType{ component.GetCameraPtr()->GetProjectionType() };
+                SceneCamera& sceneCamera{ *component.GetCameraPtr() };
+               const auto cameraCurrentProjectionType{ sceneCamera.GetProjectionType() };
 
                constexpr ImGuiTableFlags tableFlags{
                        ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_SizingStretchSame };
@@ -1445,7 +1445,7 @@ namespace Mikoto {
 
                            // Create a selectable combo item for each perspective
                            if (ImGui::Selectable(projectionType.c_str(), isSelected)) {
-                               component.GetCameraPtr()->SetProjectionType((Camera::ProjectionType) projectionIndex);
+                               sceneCamera.SetProjectionType( static_cast<ProjectionType>( projectionIndex ) );
                            }
 
                            if (ImGui::IsItemHovered()) {
@@ -1469,61 +1469,7 @@ namespace Mikoto {
                    ImGui::EndTable();
                }
 
-               if (component.GetCameraPtr()->GetProjectionType() == SceneCamera::ProjectionType::ORTHOGRAPHIC) {
-
-                   if (ImGui::BeginTable("##OrthographicProjControl", 2, tableFlags)) {
-
-                       ImGui::TableNextRow();
-                       ImGui::TableSetColumnIndex(0);
-                       ImGui::TextUnformatted("Orthographic Size");
-
-                       ImGui::TableSetColumnIndex(1);
-                       float size{ (float) component.GetCameraPtr()->GetOrthographicSize() };
-                       if (ImGui::SliderFloat("##Orthographic Size", &size, 2.0f, 10.0f)) {
-                           component.GetCameraPtr()->SetOrthographicSize(size);
-                       }
-
-                       if (ImGui::IsItemHovered()) {
-                           ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-                       }
-
-
-                       ImGui::TableNextRow();
-                       ImGui::TableSetColumnIndex(0);
-                       ImGui::TextUnformatted("Orthographic Near");
-
-                       ImGui::TableSetColumnIndex(1);
-                       float nearPlane{ (float) component.GetCameraPtr()->GetOrthographicNearPlane() };
-
-                       if (ImGui::SliderFloat("##Orthographic Near", &nearPlane, -5.0, -1.0)) {
-                           component.GetCameraPtr()->SetOrthographicNearPlane(nearPlane);
-                       }
-
-                       if (ImGui::IsItemHovered()) {
-                           ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-                       }
-
-                       ImGui::TableNextRow();
-                       ImGui::TableSetColumnIndex(0);
-                       ImGui::TextUnformatted("Orthographic Far");
-
-                       ImGui::TableSetColumnIndex(1);
-                       float farPlane{ (float) component.GetCameraPtr()->GetOrthographicFarPlane() };
-                       if (ImGui::SliderFloat("##Orthographic Far", &farPlane, 1.0, 5.0)) {
-                           component.GetCameraPtr()->SetOrthographicFarPlane(farPlane);
-                       }
-
-                       if (ImGui::IsItemHovered()) {
-                           ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-                       }
-
-                       component.GetCameraPtr()->SetOrthographic(nearPlane, farPlane, size);
-
-                       ImGui::EndTable();
-                   }
-               }
-
-               if (component.GetCameraPtr()->GetProjectionType() == SceneCamera::ProjectionType::PERSPECTIVE) {
+               if (sceneCamera.GetProjectionType() == PERSPECTIVE) {
 
                    if (ImGui::BeginTable("##PerspectiveProjControl", 2, tableFlags)) {
 
@@ -1532,9 +1478,9 @@ namespace Mikoto {
                        ImGui::TextUnformatted("Perspective FOV");
 
                        ImGui::TableSetColumnIndex(1);
-                       float fov{ (float) component.GetCameraPtr()->GetPerspectiveFOV() };
+                       float fov{ sceneCamera.GetFOV() };
                        if (ImGui::SliderFloat("##Perspective FOV", std::addressof(fov), 45.0f, 90.0f)) {
-                           component.GetCameraPtr()->SetPerspectiveFOV(fov);
+                           sceneCamera.SetFieldOfView(fov);
                        }
 
                        if (ImGui::IsItemHovered()) {
@@ -1546,10 +1492,9 @@ namespace Mikoto {
                        ImGui::TextUnformatted("Perspective Near");
 
                        ImGui::TableSetColumnIndex(1);
-                       float nearPlane{
-                               (float) component.GetCameraPtr()->GetPerspectiveNearPlane()};
+                       float nearPlane{ sceneCamera.GetNearPlane() };
                        if (ImGui::SliderFloat("##Perspective Near", std::addressof(nearPlane), 0.001f, 1.0)) {
-                           component.GetCameraPtr()->SetPerspectiveNearPlane(nearPlane);
+                           sceneCamera.SetNearPlane(nearPlane);
                        }
 
                        if (ImGui::IsItemHovered()) {
@@ -1561,16 +1506,16 @@ namespace Mikoto {
                        ImGui::TextUnformatted("Perspective Far");
 
                        ImGui::TableSetColumnIndex(1);
-                       float farPlane{ (float) component.GetCameraPtr()->GetPerspectiveFarPlane() };
+                       float farPlane{ ( sceneCamera.GetFarPlane() ) };
                        if (ImGui::SliderFloat("##Perspective Far", &farPlane, 100.0f, 10000.0f)) {
-                           component.GetCameraPtr()->SetPerspectiveFarPlane(farPlane);
+                           sceneCamera.SetFarPlane(farPlane);
                        }
 
                        if (ImGui::IsItemHovered()) {
                            ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
                        }
 
-                       component.GetCameraPtr()->SetPerspective(nearPlane, farPlane, fov);
+                       //component.GetCameraPtr()->SetPerspective(nearPlane, farPlane, fov);
 
                        ImGui::EndTable();
                    }

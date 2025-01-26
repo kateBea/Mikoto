@@ -22,7 +22,7 @@ namespace Mikoto {
     class StandardMaterial : public Material {
     public:
         explicit StandardMaterial( std::string_view name = "Material - Standard" )
-            :   Material{ name, Type::MATERIAL_TYPE_STANDARD }
+            :   Material{ name, MaterialType::STANDARD }
         {
 
         }

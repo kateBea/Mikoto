@@ -5,7 +5,6 @@
 #ifndef GAMEOBJECTDATA_HH
 #define GAMEOBJECTDATA_HH
 
-#include <memory>
 #include <Material/Core/Material.hh>
 #include <Assets/Mesh.hh>
 #include <Assets/Model.hh>
@@ -13,7 +12,8 @@
 
 namespace Mikoto {
     struct MaterialInfo {
-        std::shared_ptr<Material> MeshMat;
+        glm::vec4 Color{ };
+        std::shared_ptr<Material> MeshMat{ nullptr };
     };
 
     struct MeshInfo {
@@ -25,8 +25,6 @@ namespace Mikoto {
         Path_T ModelPath{};
         std::string ModelName{};
         TransformData Transform{};
-        glm::vec4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };
-
         MeshInfo MeshData{};
     };
 }

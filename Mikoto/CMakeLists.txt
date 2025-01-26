@@ -46,23 +46,7 @@ SET(IMGUIZMO_SOURCES
     ${P_PATH}/Third-Party/ImGuizmo/ImGradient.cpp
     ${P_PATH}/Third-Party/ImGuizmo/ImSequencer.cpp)
 
-SET(SOURCES ${IMGUI_SOURCES} ${IMGUIZMO_SOURCES} ${SOURCE_FILES}
-        Models/SystemData.hh
-        Models/RenderContextData.hh
-        Models/RendererDrawData.hh
-        Models/MeshData.hh
-        Models/ModelLoadInfo.hh
-        Models/ApplicationData.hh
-        Models/ShaderCreateInfo.hh
-        Models/WindowProperties.hh
-        Models/BufferLayout.hh
-        Models/BufferElement.hh
-        Models/VertexBufferCreateInfo.hh
-        Models/StandardMaterialCreateData.hh
-        Common/ConfigLoader.hh
-        Models/ConfigOptions.hh
-        Models/RenderInfo.hh
-)
+SET(SOURCES ${IMGUI_SOURCES} ${IMGUIZMO_SOURCES} ${SOURCE_FILES})
 
 # External dependencies
 ADD_SUBDIRECTORY(${GLFW_CMAKE_DIR} build/glfw)

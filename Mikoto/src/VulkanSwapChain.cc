@@ -21,12 +21,9 @@
 #include <Renderer/Vulkan/VulkanSwapChain.hh>
 
 namespace Mikoto {
-    auto VulkanSwapChain::GetNextImageIndex(UInt32_T &imageIndex, VkFence fence, VkSemaphore imageAvailable ) const -> VkResult {
-        //if (fence == VK_NULL_HANDLE) { fence = m_InFlightFences[m_CurrentFrame]; }
-        // if (imageAvailable == VK_NULL_HANDLE) { imageAvailable = m_ImageAvailableSemaphores[m_CurrentFrame]; }
-
-        vkWaitForFences(VulkanContext::GetPrimaryLogicalDevice(), 1, &fence, VK_TRUE, (std::numeric_limits<std::uint64_t>::max)());
-        vkResetFences(VulkanContext::GetPrimaryLogicalDevice(), 1, &fence);
+    auto VulkanSwapChain::GetNextRenderableImage(UInt32_T &imageIndex, const VkFence fence, const VkSemaphore imageAvailable ) const -> VkResult {
+        vkWaitForFences(VulkanContext::GetPrimaryLogicalDevice(), 1, std::addressof( fence ), VK_TRUE, (std::numeric_limits<std::uint64_t>::max)());
+        vkResetFences(VulkanContext::GetPrimaryLogicalDevice(), 1, std::addressof( fence ));
 
         return vkAcquireNextImageKHR(VulkanContext::GetPrimaryLogicalDevice(), m_SwapChain, (std::numeric_limits<UInt64_T>::max)(), imageAvailable, VK_NULL_HANDLE, std::addressof(imageIndex));
     }

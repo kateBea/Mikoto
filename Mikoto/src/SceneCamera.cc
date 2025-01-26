@@ -1,102 +1,158 @@
 /**
- * SceneCamera.cc
- * Created by kate on 6/25/23.
+ * EditorCamera.hh
+ * Created by kate on 8/29/23.
  * */
+
+// C++ Standard Library
+#include <cmath>
+#include <utility>
 
 // Third-Party Libraries
 #include "glm/glm.hpp"
 
+// Quaternions with extensions
+#include "glm/gtx/quaternion.hpp"
+
 // Project Headers
-#include "Scene/SceneCamera.hh"
+#include "Common/Common.hh"
+#include "Common/Constants.hh"
+#include "STL/Utility/Types.hh"
+#include "Core/CoreEvents.hh"
+#include "Core/EventManager.hh"
+#include "Core/KeyCodes.hh"
+#include "Core/MouseButtons.hh"
+#include "Platform/Input/InputManager.hh"
+#include "Scene/Camera/SceneCamera.hh"
 
 namespace Mikoto {
+    SceneCamera::SceneCamera(float fov, float aspectRatio, float nearClip, float farClip)
+        :   Camera{ glm::perspective(glm::radians(fov), aspectRatio, nearClip, farClip) }
+        ,   m_NearClip{ nearClip }
+        ,   m_FarClip{ farClip }
+        ,   m_FieldOfView{ fov }
+        ,   m_AspectRatio{ aspectRatio }
+    {
+        EventManager::Subscribe(m_Guid.Get(),
+            EventType::MOUSE_BUTTON_RELEASED_EVENT,
+            [this](Event& event) -> bool
+            {
+                MouseButtonReleasedEvent* e{ dynamic_cast<MouseButtonReleasedEvent*>(std::addressof(event)) };
+                InputManager::SetCursorMode(CursorInputMode::CURSOR_NORMAL);
 
-    auto SceneCamera::SetOrthographic(double nearPlane, double farPlane, double size) -> void {
-        SetProjectionType(ProjectionType::ORTHOGRAPHIC);
-        m_OrthographicSize = size;
-        m_OrthographicNearPlane = nearPlane;
-        m_OrthographicFarPlane = farPlane;
-        RecomputeProjection();
+                if (e->GetMouseButton() == MouseButton::Mouse_Button_Right) {
+                    EnableCamera(false);
+                }
+
+                return false;
+            });
+
+        EventManager::Subscribe(m_Guid.Get(),
+            EventType::CAMERA_ENABLE_ROTATION,
+            [this](Event&) -> bool
+            {
+                InputManager::SetCursorMode(CursorInputMode::CURSOR_DISABLED);
+                EnableCamera(true);
+                return false;
+            });
+
+        // Starting value for forward is the opposite of the
+        // position to make the camera look at the center.
+        // Forward vector must be normalized as it starts with
+        // the position value which represents a position in world space
+        m_ForwardVector = glm::normalize(m_ForwardVector);
+
+        UpdateViewMatrix();
     }
 
-    auto SceneCamera::SetPerspective(double nearPlane, double farPlane, double fov) -> void {
-        SetProjectionType(ProjectionType::PERSPECTIVE);
-        m_PerspectiveNearPlane = nearPlane;
-        m_PerspectiveFarPlane = farPlane;
-        m_PerspectiveFieldOfView = fov;
-        RecomputeProjection();
+    auto SceneCamera::UpdateProjection() -> void {
+        m_AspectRatio = m_ViewportWidth / m_ViewportHeight;
+        SetProjection(glm::perspective(glm::radians(m_FieldOfView), m_AspectRatio, m_NearClip, m_FarClip));
     }
 
-    auto SceneCamera::SetViewportSize(UInt32_T width, UInt32_T height) -> void {
-        m_AspectRatio = width / (double)height;
-        RecomputeProjection();
+    auto SceneCamera::UpdateViewMatrix() -> void {
+        m_ViewMatrix = glm::lookAt(m_Position,                      // The camera is located here
+                                   m_Position + m_ForwardVector,    // This is where the camera is looking at
+                                   m_CameraUpVector);               // This is the camera's up vector (normalized)
+
     }
 
-    auto SceneCamera::RecomputeProjection() -> void {
-        if (GetProjectionType()  == ProjectionType::ORTHOGRAPHIC) {
-            double zoom{ .5 };
-            double orthographicLeft{ -m_OrthographicSize * m_AspectRatio * zoom };
-            double orthographicRight{ m_OrthographicSize * m_AspectRatio * zoom };
-            double orthographicBottom{ -m_OrthographicSize * zoom };
-            double orthographicTop{ m_OrthographicSize * zoom };
-            SetProjection(glm::ortho(orthographicLeft, orthographicRight, orthographicBottom,
-                                     orthographicTop, m_OrthographicNearPlane, m_OrthographicFarPlane));
+    auto SceneCamera::ProcessMouseInput(double timeStep) -> void {
+        // Get mouse angle rotation values
+        const glm::vec2 MOUSE_CURRENT_POSITION{ InputManager::GetMouseX(), InputManager::GetMouseY() };
+        glm::vec2 delta{ (MOUSE_CURRENT_POSITION - m_LastMousePosition) * 0.03f };
+        m_LastMousePosition = MOUSE_CURRENT_POSITION;
+
+        // TODO: temporary (avoid camera jumping)
+        // Offset that indicates there will be a camera jump when rotating
+        static constexpr auto JUMP_THRESHOLD{ 8.0f };
+        if (std::abs(glm::length(delta)) > JUMP_THRESHOLD)
+            return;
+
+        // Perform rotation
+        if (delta.x != 0.0f || delta.y != 0.0f) {
+            // The Y offset of the mouse will dictate how much we rotate in the X axis
+            m_Pitch = delta.y * m_RotationSpeed * (float)timeStep;
+            // The X offset of the mouse will dictate how much we rotate in the Y axis
+            m_Yaw = delta.x * m_RotationSpeed * (float)timeStep;
+
+            glm::quat q{ glm::normalize(glm::cross(glm::angleAxis(-m_Pitch, m_RightVector), glm::angleAxis(-m_Yaw, GLM_UNIT_VECTOR_Y))) };
+            m_ForwardVector = glm::rotate(q, m_ForwardVector);
         }
-        else if (GetProjectionType() == ProjectionType::PERSPECTIVE) {
-            SetProjection(glm::perspective(glm::radians(m_PerspectiveFieldOfView), m_AspectRatio, m_PerspectiveNearPlane, m_PerspectiveFarPlane));
+    }
+
+    auto SceneCamera::ProcessKeyboardInput(double timeStep) -> void {
+        m_CameraUpVector = GLM_UNIT_VECTOR_Y;
+
+        // Move forward
+        if (InputManager::IsKeyPressed(KeyCode::Key_W)) {
+            m_Position += m_ForwardVector * m_MovementSpeed * (float)timeStep;
+        }
+
+        // Move backwards
+        if (InputManager::IsKeyPressed(KeyCode::Key_S)) {
+            m_Position -= m_ForwardVector * m_MovementSpeed * (float)timeStep;
+        }
+
+        // Move left
+        if (InputManager::IsKeyPressed(KeyCode::Key_A)) {
+            m_Position -= m_RightVector * m_MovementSpeed * (float)timeStep;
+        }
+
+        // Move right
+        if (InputManager::IsKeyPressed(KeyCode::Key_D)) {
+            m_Position += m_RightVector * m_MovementSpeed * (float)timeStep;
+        }
+
+        // Move up
+        if (InputManager::IsKeyPressed(KeyCode::Key_Space) || InputManager::IsKeyPressed(KeyCode::Key_E)) {
+            m_Position.y += m_MovementSpeed * (float)timeStep;
+        }
+
+        // Move down
+        if (InputManager::IsKeyPressed(KeyCode::Key_Q)) {
+            m_Position.y -= m_MovementSpeed * (float)timeStep;
         }
     }
 
-    auto SceneCamera::GetOrthographicSize() const -> double {
-        return m_OrthographicSize;
-    }
-    auto SceneCamera::SetOrthographicSize(double value) -> void {
-        m_OrthographicSize = value;
-        RecomputeProjection();
+    auto SceneCamera::OnUpdate(double timeStep) -> void {
+        if (!m_AllowCameraMovementAndRotation) {
+            return;
+        }
+
+        m_CameraUpVector = GLM_UNIT_VECTOR_Y;
+        m_RightVector = glm::cross(m_ForwardVector, m_CameraUpVector);
+
+        ProcessMouseInput(timeStep);
+        ProcessKeyboardInput(timeStep);
     }
 
-    auto SceneCamera::GetOrthographicFarPlane() const -> double {
-        return m_OrthographicFarPlane;
-    }
+    auto SceneCamera::SetViewportSize(float width, float height) -> void {
+        if (m_ViewportWidth == width && m_ViewportHeight == height)
+            return;
 
-    auto SceneCamera::SetOrthographicFarPlane(double value) -> void {
-        m_OrthographicFarPlane = value;
-        RecomputeProjection();
-    }
+        m_ViewportWidth = width;
+        m_ViewportHeight = height;
 
-    auto SceneCamera::GetOrthographicNearPlane() const -> double {
-        return m_OrthographicNearPlane;
-    }
-
-    auto SceneCamera::SetOrthographicNearPlane(double value) -> void {
-        m_OrthographicNearPlane = value;
-        RecomputeProjection();
-    }
-
-    auto SceneCamera::GetPerspectiveFarPlane() const -> double {
-        return m_PerspectiveFarPlane;
-    }
-
-    auto SceneCamera::SetPerspectiveFarPlane(double value) -> void {
-        m_PerspectiveFarPlane = value;
-        RecomputeProjection();
-    }
-
-    auto SceneCamera::GetPerspectiveNearPlane() const -> double {
-        return m_PerspectiveNearPlane;
-    }
-
-    auto SceneCamera::SetPerspectiveNearPlane(double value) -> void {
-        m_PerspectiveNearPlane = value;
-        RecomputeProjection();
-    }
-
-    auto SceneCamera::GetPerspectiveFOV() const -> double {
-        return m_PerspectiveFieldOfView;
-    }
-
-    auto SceneCamera::SetPerspectiveFOV(double value) -> void {
-        m_PerspectiveFieldOfView = value;
-        RecomputeProjection();
+        UpdateProjection();
     }
 }

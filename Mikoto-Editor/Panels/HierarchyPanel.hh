@@ -8,14 +8,11 @@
 
 // C++ Standard Library
 #include <memory>
-#include <unordered_set>
 
 // Project Headers
-#include "Common/Common.hh"
-#include "Panel.hh"
-#include "Scene/Entity.hh"
-#include "Scene/Scene.hh"
-#include <STL/DataStructures/GenTree.hh>
+#include <Panels/Panel.hh>
+#include <Scene/Entity/Entity.hh>
+#include <STL/Data/GenTree.hh>
 
 namespace Mikoto {
 

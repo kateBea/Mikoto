@@ -21,13 +21,16 @@
 #include "Renderer/Core/RenderCommand.hh"
 #include "Scene/SceneManager.hh"
 #include "Tools/ConsoleManager.hh"
+#include <Scene/Entity/Scene.hh>
+#include <Scene/Camera/SceneCamera.hh>
+#include <Scene/Camera/SceneCamera.hh>
 
 namespace Mikoto {
     auto EditorLayer::OnAttach() -> void {
         // Initialize cameras first, they are needed for some panels
-        InitializeSceneCameras();
+        CreateCameras();
 
-        InitializePanels();
+        CreatePanels();
 
         m_EditorCamera->SetMovementSpeed( m_SettingsPanel->GetData().EditorCameraMovementSpeed );
         m_EditorCamera->SetRotationSpeed( m_SettingsPanel->GetData().EditorCameraRotationSpeed );
@@ -97,6 +100,7 @@ namespace Mikoto {
     }
 
     auto EditorLayer::OnDetach() -> void {
+
     }
 
     auto EditorLayer::OnUpdate( const double ts ) -> void {
@@ -129,7 +133,7 @@ namespace Mikoto {
     }
 
     auto EditorLayer::PushImGuiDrawItems() -> void {
-        OnDockSpaceUpdate();
+        UpdateDockSpace();
 
         auto& [applicationCloseFlag,
                hierarchyPanelVisible,
@@ -161,12 +165,21 @@ namespace Mikoto {
         m_ConsolePanel->OnUpdate( timeStep );
         m_RendererPanel->OnUpdate( timeStep );
 
+        hierarchyPanelVisible = m_HierarchyPanel->IsVisible();
+        inspectorPanelVisible = m_InspectorPanel->IsVisible();
+        scenePanelVisible = m_ScenePanel->IsVisible();
+        settingPanelVisible = m_SettingsPanel->IsVisible();
+        statsPanelVisible = m_StatsPanel->IsVisible();
+        contentBrowser = m_ContentBrowserPanel->IsVisible();
+        consolePanel = m_ConsolePanel->IsVisible();
+        rendererPanel = m_RendererPanel->IsVisible();
+
         if ( applicationCloseFlag ) {
             EventManager::Trigger<AppClose>();
         }
     }
 
-    auto EditorLayer::InitializePanels() -> void {
+    auto EditorLayer::CreatePanels() -> void {
         // Panels setup
         m_StatsPanel = std::make_unique<StatsPanel>();
         m_SettingsPanel = std::make_unique<SettingsPanel>();
@@ -187,18 +200,15 @@ namespace Mikoto {
         m_SettingsPanel->SetRenderBackgroundColor( glm::vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
     }
 
-    auto EditorLayer::InitializeSceneCameras() -> void {
+    auto EditorLayer::CreateCameras() -> void {
         constexpr float fieldOfView{ 45.0f };
-        constexpr float aspectRatio{ 1.778f };
+        constexpr float aspectRatio{ 1920.0 / 1080.0 }; // 1.778
         constexpr float nearPlane{ 0.1f };
         constexpr float farPlane{ 1000.0f };
 
         // Initialize cameras
-        constexpr double aspect{ 1920.0 / 1080.0 };
-        m_RuntimeCamera = std::make_shared<SceneCamera>( glm::ortho( -aspect, aspect, -1.0, 1.0 ) );
-        ( void )m_RuntimeCamera;
-
-        m_EditorCamera = std::make_shared<EditorCamera>( fieldOfView, aspectRatio, nearPlane, farPlane );
+        m_RuntimeCamera = std::make_shared<SceneCamera>( fieldOfView, aspectRatio, nearPlane, farPlane );
+        m_EditorCamera = std::make_shared<SceneCamera>( fieldOfView, aspectRatio, nearPlane, farPlane );
     }
 
     auto EditorLayer::ShowDockingDisabledMessage() -> void {
@@ -213,7 +223,7 @@ namespace Mikoto {
         }
     }
 
-    auto EditorLayer::OnDockSpaceUpdate() -> void {
+    auto EditorLayer::UpdateDockSpace() -> void {
         // If you strip some features of, this demo is pretty much equivalent to calling DockSpaceOverViewport()!
         // In most cases you should be able to just call DockSpaceOverViewport() and ignore all the code below!
         // In this specific demo, we are not using DockSpaceOverViewport() because:

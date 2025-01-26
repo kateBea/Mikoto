@@ -22,7 +22,7 @@
 #include <Models/RenderingStats.hh>
 #include <Models/ScenePrepareData.hh>
 #include <Renderer/Core/RendererBackend.hh>
-#include <Scene/Camera.hh>
+#include <Scene/Camera/Camera.hh>
 
 #include "Models/RenderInfo.hh"
 

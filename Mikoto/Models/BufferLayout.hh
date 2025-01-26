@@ -14,7 +14,7 @@ namespace Mikoto {
     class BufferLayout {
     public:
         BufferLayout( std::initializer_list<BufferElement>&& items)
-            :    m_Stride{ 0 }, m_Items(std::forward<std::initializer_list<BufferElement>>(items))
+            : m_Items(std::forward<std::initializer_list<BufferElement>>(items))
         {
             ComputeOffsetAndStride();
         }

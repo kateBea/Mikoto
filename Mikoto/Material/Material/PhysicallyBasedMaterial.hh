@@ -24,7 +24,7 @@ namespace Mikoto {
     class PhysicallyBasedMaterial : public Material {
     public:
         explicit PhysicallyBasedMaterial( std::string_view name = "PBR" )
-            :   Material{ name, Type::MATERIAL_TYPE_PBR }
+            :   Material{ name, MaterialType::PBR }
         {
 
         }

@@ -17,21 +17,16 @@
 #include "volk.h"
 
 // Project Headers
-#include <Renderer/Vulkan/VulkanPBRMaterial.hh>
+#include <Renderer/Core/RenderQueue.hh>
 
 #include "Common/Common.hh"
-#include "Renderer/Vulkan/VulkanUtils.hh"
-#include "Renderer/Buffer/IndexBuffer.hh"
 #include "Material/Core/Material.hh"
-#include "Assets/Model.hh"
 #include "Renderer/Core/Renderer.hh"
 #include "Renderer/Core/RendererBackend.hh"
-#include "Renderer/Buffer/VertexBuffer.hh"
-#include "VulkanCommandPool.hh"
-#include "VulkanFrameBuffer.hh"
-#include "VulkanImage.hh"
-#include <Renderer/Core/RenderQueue.hh>
-#include "VulkanStandardMaterial.hh"
+#include "Renderer/Vulkan/VulkanCommandPool.hh"
+#include "Renderer/Vulkan/VulkanFrameBuffer.hh"
+#include "Renderer/Vulkan/VulkanImage.hh"
+#include "Renderer/Vulkan/VulkanPipeline.hh"
 
 namespace Mikoto {
     /**
@@ -44,10 +39,6 @@ namespace Mikoto {
         VulkanPipeline Pipeline{};
         VkPipelineLayout MaterialPipelineLayout{};
         VkDescriptorSetLayout DescriptorSetLayout{};
-
-        explicit PipelineInfo() = default;
-        PipelineInfo( PipelineInfo&& ) = default;
-        auto operator=( PipelineInfo&& ) noexcept -> PipelineInfo& = default;
     };
 
     class VulkanRenderer final : public IRendererBackend {
@@ -163,7 +154,7 @@ namespace Mikoto {
 
         struct MeshRenderInfo {
             const GameObject* Data{};
-            VulkanStandardMaterial* MaterialData{};
+            Material* MaterialData{};
         };
 
     private:
@@ -264,12 +255,10 @@ namespace Mikoto {
         VkRect2D m_OffscreenScissor{};
         std::array<VkClearValue, CLEAR_COUNT> m_ClearValues{};
 
-        std::unordered_map<std::string, PipelineInfo> m_MaterialInfo{};
-        VulkanStandardMaterial* m_ActiveDefaultMaterial{};
-
-        VulkanCommandPool m_CommandPool{};
+        Ref_T<VulkanCommandPool> m_CommandPool{};
         VkCommandBuffer m_DrawCommandBuffer{};
 
+        std::unordered_map<std::string, PipelineInfo> m_MaterialInfo{};
         std::unordered_map<std::string, MeshRenderInfo> m_DrawQueue{};
 
         bool m_UseWireframe{};

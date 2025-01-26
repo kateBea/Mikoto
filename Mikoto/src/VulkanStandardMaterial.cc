@@ -11,16 +11,15 @@
 #include <volk.h>
 
 // Project Headers
-#include <Renderer/Vulkan/VulkanUtils.hh>
-
 #include <Core/FileManager.hh>
-
-#include <Renderer/Core/Renderer.hh>
 #include <Material/Core/Shader.hh>
+#include <Renderer/Core/Renderer.hh>
 #include <Renderer/Vulkan/DeletionQueue.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
 #include <Renderer/Vulkan/VulkanStandardMaterial.hh>
+#include <Renderer/Vulkan/VulkanUtils.hh>
+#include <STL/Filesystem/PathBuilder.hh>
 
 #define LIGHT_HAS_SPECULAR_MAP      1
 #define LIGHT_HAS_NO_SPECULAR_MAP   0
@@ -35,7 +34,12 @@ namespace Mikoto {
         // Create shared empty texture
         // is just a placeholder for when a mesh has no specific map
         if (!s_EmptyTexture) {
-            s_EmptyTexture = std::dynamic_pointer_cast<VulkanTexture2D>( Texture2D::Create( FileManager::Assets::GetRootPath() / "Icons/emptyTexture.png", MapType::TEXTURE_2D_DIFFUSE ) );
+            s_EmptyTexture = std::dynamic_pointer_cast<VulkanTexture2D>( Texture2D::Create(
+                PathBuilder()
+                .WithPath( FileManager::Assets::GetRootPath().string() )
+                .WithPath( "Icons" )
+                .WithPath( "emptyTexture.png" )
+                .Build(), MapType::TEXTURE_2D_DIFFUSE ) );
         }
 
         m_HasSpecular = spec.SpecularMap != nullptr;
@@ -145,7 +149,8 @@ namespace Mikoto {
     }
 
     auto VulkanStandardMaterial::CreateDescriptorSet() -> void {
-        auto& standardMaterial {dynamic_cast<VulkanRenderer*>(Renderer::GetActiveGraphicsAPIPtr())->GetMaterialInfo()[std::string( GetName())] };
+        // FIXME: This is a temporary solution. We need to find a way to get the material info from the renderer
+        auto& standardMaterial { dynamic_cast<VulkanRenderer*>(Renderer::GetActiveGraphicsAPIPtr())->GetMaterialInfo()[std::string( GetName())] };
 
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -165,7 +170,7 @@ namespace Mikoto {
         UpdateDescriptorSets();
     }
 
-    auto VulkanStandardMaterial::UpdateDescriptorSets() -> void {
+    auto VulkanStandardMaterial::UpdateDescriptorSets() const -> void {
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfo.imageView = std::dynamic_pointer_cast<VulkanTexture2D>(m_DiffuseTexture)->GetImageView();

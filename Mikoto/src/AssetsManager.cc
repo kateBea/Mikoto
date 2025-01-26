@@ -14,15 +14,14 @@ namespace Mikoto {
 
     auto AssetsManager::Init( AssetsManagerSpec&& spec ) -> void {
         s_Spec = std::move( spec );
-
-        LoadPrefabs();
     }
 
     auto AssetsManager::Shutdown() -> void {
-
+        s_Models.clear();
     }
 
     auto AssetsManager::LoadPrefabs() -> void {
+        // Move to the app it is the editor that needs these at the start
         AddSpritePrefab();
 
         const bool invertedY{ Renderer::GetActiveGraphicsAPI() == GraphicsAPI::VULKAN_API };
@@ -83,7 +82,7 @@ namespace Mikoto {
     }
 
     auto AssetsManager::AddSpritePrefab() -> void {
-        const std::vector<float> squareData{
+        const std::vector squareData{
             /* Positions    -       // Normals   -       // Colors    -       // Texture coordinates */
             -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,// bottom left
             0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // bottom right

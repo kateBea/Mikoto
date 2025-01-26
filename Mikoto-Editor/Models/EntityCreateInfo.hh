@@ -5,7 +5,7 @@
 #ifndef MIKOTO_SCENE_ENTITY_CREATE_INFO_HH
 #define MIKOTO_SCENE_ENTITY_CREATE_INFO_HH
 
-#include <Scene/Entity.hh>
+#include <Scene/Entity/Entity.hh>
 
 namespace Mikoto {
     struct EntityCreateInfo {

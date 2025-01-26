@@ -37,9 +37,14 @@ namespace Mikoto {
         COUNT,
     };
 
-    enum class Type {
-        MATERIAL_TYPE_PBR,
-        MATERIAL_TYPE_STANDARD,
+    enum class MaterialType {
+        PBR,
+        STANDARD,
+    };
+
+    enum ProjectionType {
+        ORTHOGRAPHIC    = 0,
+        PERSPECTIVE     = 1,
     };
 
     /**

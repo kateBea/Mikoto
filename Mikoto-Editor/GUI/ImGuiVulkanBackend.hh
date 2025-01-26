@@ -49,7 +49,7 @@ namespace Mikoto {
         VulkanImage m_DepthImage{};
         VulkanFrameBuffer m_DrawFrameBuffer{};
 
-        VulkanCommandPool m_CommandPool{};
+        Ref_T<VulkanCommandPool> m_CommandPool{};
         VkCommandBuffer m_DrawCommandBuffer{};
 
         VkFormat m_ColorAttachmentFormat{};

@@ -199,9 +199,9 @@ namespace Mikoto {
                 }
             }
 
-            auto result{ scene->GetEmbeddedTextureAndIndex( texturePath.C_Str() ) };
-            if ( result.second != -1 ) {
-                MKT_CORE_LOGGER_DEBUG( "Texture is embedded! Index is {}", result.second );
+            auto [embeddedTexturePtr, embeddedTextureIndex]{ scene->GetEmbeddedTextureAndIndex( texturePath.C_Str() ) };
+            if ( embeddedTextureIndex != -1 ) {
+                MKT_CORE_LOGGER_DEBUG( "Texture is embedded! Index is {}", embeddedTextureIndex );
             }
         }
 

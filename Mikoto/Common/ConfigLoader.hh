@@ -12,6 +12,10 @@
 #include "Models/ConfigOptions.hh"
 
 namespace Mikoto {
+    class ConfigOptions {
+
+    };
+    
     class ConfigLoader final {
     public:
         static auto LoadFromFile(const Path_T& path) -> void {

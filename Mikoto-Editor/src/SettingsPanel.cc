@@ -16,10 +16,7 @@
 #include "Panels/SettingsPanel.hh"
 #include "Renderer/Core/RenderCommand.hh"
 #include "Renderer/Core/RenderContext.hh"
-
-#include "GUI/IconsFontAwesome5.h"
 #include "GUI/IconsMaterialDesign.h"
-#include "GUI/IconsMaterialDesignIcons.h"
 
 namespace Mikoto {
     static constexpr auto GetSettingsPanelName() -> std::string_view {
@@ -31,10 +28,10 @@ namespace Mikoto {
     {
         m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_CONSTRUCTION, GetSettingsPanelName());
 
-        m_Data.EditorCameraMovementSpeed = EditorCamera::GetMinMovementSpeed();
-        m_Data.EditorCameraRotationSpeed = EditorCamera::GetMinRotationSpeed();
+        m_Data.EditorCameraMovementSpeed = SceneCamera::GetMinMovementSpeed();
+        m_Data.EditorCameraRotationSpeed = SceneCamera::GetMinRotationSpeed();
 
-        m_Data.NearPlane = EditorCamera::GetMinNearClip();
+        m_Data.NearPlane = SceneCamera::GetMinNearClip();
         m_Data.FarPlane = 2500.0f;
     }
 
@@ -50,13 +47,13 @@ namespace Mikoto {
 
             if (ImGui::TreeNodeEx((void *) 21332323, styleFlags, "%s", "Editor Camera")) {
                 // Movement
-                ImGui::SliderFloat("Movement Speed", std::addressof(m_Data.EditorCameraMovementSpeed), EditorCamera::GetMinMovementSpeed(), EditorCamera::GetMaxMovementSpeed());
-                ImGui::SliderFloat("Rotation Speed", std::addressof(m_Data.EditorCameraRotationSpeed), EditorCamera::GetMinRotationSpeed(), EditorCamera::GetMaxRotationSpeed());
+                ImGui::SliderFloat("Movement Speed", std::addressof(m_Data.EditorCameraMovementSpeed), SceneCamera::GetMinMovementSpeed(), SceneCamera::GetMaxMovementSpeed());
+                ImGui::SliderFloat("Rotation Speed", std::addressof(m_Data.EditorCameraRotationSpeed), SceneCamera::GetMinRotationSpeed(), SceneCamera::GetMaxRotationSpeed());
 
                 // Planes
-                ImGui::SliderFloat("Near Plane", std::addressof(m_Data.NearPlane), EditorCamera::GetMinNearClip(), EditorCamera::GetMaxNearClip());
-                ImGui::SliderFloat("Far Plane", std::addressof(m_Data.FarPlane), EditorCamera::GetMinFarClip(), EditorCamera::GetMaxFarClip());
-                ImGui::SliderFloat("Field of view", std::addressof(m_Data.FieldOfView), EditorCamera::GetMinFov(), EditorCamera::GetMaxFov());
+                ImGui::SliderFloat("Near Plane", std::addressof(m_Data.NearPlane), SceneCamera::GetMinNearClip(), SceneCamera::GetMaxNearClip());
+                ImGui::SliderFloat("Far Plane", std::addressof(m_Data.FarPlane), SceneCamera::GetMinFarClip(), SceneCamera::GetMaxFarClip());
+                ImGui::SliderFloat("Field of view", std::addressof(m_Data.FieldOfView), SceneCamera::GetMinFov(), SceneCamera::GetMaxFov());
 
                 // Rotation
                 ImGui::Checkbox("Lock X Rotation", std::addressof(m_Data.WantXAxisRotation));

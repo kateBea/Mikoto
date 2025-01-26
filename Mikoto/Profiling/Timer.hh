@@ -17,15 +17,15 @@
 namespace Mikoto {
     class Timer final {
     public:
-        explicit Timer(std::string_view id = "Unknown scope", TimeUnit defaultUnit = TimeUnit::MICROSECONDS);
+        explicit Timer(std::string_view startMessage);
 
-        MKT_NODISCARD auto GetCurrentProgress(TimeUnit unit = TimeUnit::MICROSECONDS) -> double;
+        MKT_NODISCARD auto GetCurrentProgress(TimeUnit defaultUnit = TimeUnit::SECONDS) const -> double;
         auto Restart() -> void;
 
         ~Timer();
 
     private:
-        MKT_NODISCARD static auto GetUnitStr(TimeUnit unit) -> std::string_view;
+        MKT_NODISCARD static auto GetUnitStr(TimeUnit defaultUnit = TimeUnit::SECONDS) -> std::string_view;
 
     private:
         using Nano_T = std::chrono::duration<double, std::ratio<1, 1000000000>>;
@@ -36,14 +36,12 @@ namespace Mikoto {
         using Clock_T = std::chrono::high_resolution_clock;
         using TimePoint_T = std::chrono::time_point<Clock_T>;
 
-        std::string m_Identifier{};
         TimePoint_T m_TimeSinceStart{};
-        TimeUnit m_DefaultUnit{};
     };
 }
 
 #if !defined(NDEBUG) || defined(_DEBUG)
-    #define MKT_PROFILE_SCOPE()  Timer _Timer{ ConcatStr(__LINE__, " @line ", __PRETTY_FUNCTION__) }
+    #define MKT_PROFILE_SCOPE()  Timer _Timer{ StringUtils::ConcatStr(__PRETTY_FUNCTION__, "@line: [", __LINE__, "] Start profiling." ) }
 #endif
 
 

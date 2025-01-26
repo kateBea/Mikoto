@@ -18,14 +18,16 @@
 #include <EditorApp.hh>
 #include <GUI/ImGuiManager.hh>
 #include <Platform/Input/InputManager.hh>
+#include <Profiling/Timer.hh>
 #include <Renderer/Core/RenderContext.hh>
 #include <STL/Filesystem/PathBuilder.hh>
 #include <Scene/SceneManager.hh>
 #include <Threading/TaskManager.hh>
+#include <Core/EngineSystem.hh>
 
 namespace Mikoto {
 
-    static auto GetApplicationSpec( const std::vector<std::string> &args ) -> ApplicationData {
+    static auto GetApplicationSpec( char** args, int count ) -> ApplicationData {
         return {
             .WindowWidth = 1920,
             .WindowHeight = 1080,
@@ -33,7 +35,7 @@ namespace Mikoto {
             .WorkingDirectory = std::filesystem::current_path(),
             .Executable = Path_T{ args[0] },
             .RenderingBackend = GraphicsAPI::VULKAN_API,
-            .CommandLineArguments = { args.begin(), args.end() },
+            .CommandLineArguments = { std::addressof( args[0] ), std::addressof( args[count] )  },
         };
     }
 
@@ -41,7 +43,7 @@ namespace Mikoto {
         ParseArguments( argc, argv );
 
         auto exitCode{ EXIT_SUCCESS };
-        auto appSpecs{ GetApplicationSpec( m_CommandLineArgs ) };
+        auto appSpecs{ GetApplicationSpec( argv, argc ) };
 
         try {
 
@@ -63,15 +65,28 @@ namespace Mikoto {
         return exitCode;
     }
 
-    auto EditorApp::ParseArguments( const Int32_T argc, char **argv ) -> void {
-        for ( const auto limit{ std::addressof( argv[argc] ) }; argv != limit; ++argv ) {
-            m_CommandLineArgs.emplace_back( *argv );
+    static auto GetCommandDescription(const std::string_view command) -> std::string {
+        if ( command == "-h" || command == "--help" ) {
+            return "Displays the help menu.";
         }
+
+        return "Unknown command.";
+    }
+
+    auto EditorApp::ParseArguments( const Int32_T argc, char **argv ) -> void {
+        m_CommandLineParser = CreateRef<CommandLineParser>();
+
+        for ( const auto limit{ std::addressof( argv[argc] ) }; argv != limit; ++argv ) {
+            m_CommandLineParser->Insert( *argv, GetCommandDescription(*argv), []() -> void {
+                MKT_APP_LOGGER_DEBUG( "Running command" );
+            } );
+        }
+
+        m_CommandLineParser->ExecuteAll();
     }
 
     auto EditorApp::Init(ApplicationData &&appSpec) -> void {
-        TimeManager::Init();
-        TaskManager::Init();
+        MKT_PROFILE_SCOPE();
 
         m_State = Status::RUNNING;
         m_Spec = std::move(appSpec);
@@ -80,12 +95,6 @@ namespace Mikoto {
         MKT_APP_LOGGER_INFO("Executable                : {}", m_Spec.Executable.string());
         MKT_APP_LOGGER_INFO("Current working directory : {}", m_Spec.WorkingDirectory.string());
         MKT_APP_LOGGER_INFO("=================================================================");
-
-        FileManager::Assets::SetRootPath(
-            PathBuilder()
-            .WithPath( m_Spec.WorkingDirectory.string() )
-            .WithPath( "Resources" )
-            .Build());
 
         WindowProperties windowProperties{ m_Spec.Name, m_Spec.RenderingBackend, m_Spec.WindowWidth, m_Spec.WindowHeight };
         windowProperties.AllowResizing(true);
@@ -96,6 +105,12 @@ namespace Mikoto {
         } else {
             MKT_THROW_RUNTIME_ERROR("EditorApp - Could not create application main window.");
         }
+
+        FileManager::Assets::SetRootPath(
+            PathBuilder()
+            .WithPath( m_Spec.WorkingDirectory.string() )
+            .WithPath( "Resources" )
+            .Build());
 
         FileManager::Init();
         InputManager::Init(m_MainWindow.get());
@@ -117,10 +132,6 @@ namespace Mikoto {
 
         InitLayers();
         InstallEventCallbacks();
-
-        MKT_APP_LOGGER_INFO("=================================================================");
-        MKT_APP_LOGGER_INFO("Init time {} seconds", TimeManager::GetTime());
-        MKT_APP_LOGGER_INFO("=================================================================");
     }
 
     auto EditorApp::InstallEventCallbacks() -> void {

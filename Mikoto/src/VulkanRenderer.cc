@@ -17,6 +17,7 @@
 #include <Renderer/Vulkan/VulkanIndexBuffer.hh>
 #include <Renderer/Vulkan/VulkanPBRMaterial.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
+#include <Renderer/Vulkan/VulkanStandardMaterial.hh>
 #include <Renderer/Vulkan/VulkanVertexBuffer.hh>
 
 #include "STL/Filesystem/PathBuilder.hh"
@@ -24,9 +25,13 @@
 namespace Mikoto {
 
     auto VulkanRenderer::Init() -> void {
+        MKT_CORE_LOGGER_INFO( "VulkanRenderer::Init - Initializing Vulkan Renderer." );
+
         InitializeCommands();
         PrepareOffscreenRender();
         InitializePipelinesData();
+
+        MKT_CORE_LOGGER_INFO( "VulkanRenderer::Init - Exiting Vulkan Renderer initialization." );
     }
 
     auto VulkanRenderer::EnableWireframeMode() -> void {
@@ -58,7 +63,7 @@ namespace Mikoto {
 
         VkCommandBufferAllocateInfo allocInfo{ VulkanUtils::Initializers::CommandBufferAllocateInfo() };
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = m_CommandPool.Get();
+        allocInfo.commandPool = m_CommandPool->Get();
         allocInfo.commandBufferCount = COMMAND_BUFFERS_COUNT;
 
         if ( vkAllocateCommandBuffers(
@@ -66,10 +71,10 @@ namespace Mikoto {
                 std::addressof(allocInfo),
                 std::addressof(m_DrawCommandBuffer) ) != VK_SUCCESS )
         {
-            MKT_THROW_RUNTIME_ERROR( "Failed to allocate command buffer" );
+            MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::InitCommandBuffers - Failed to allocate command buffer" );
         }
 
-        DeletionQueue::Push( [cmdPoolHandle = m_CommandPool.Get(), cmdHandle = m_DrawCommandBuffer]() -> void {
+        DeletionQueue::Push( [cmdPoolHandle = m_CommandPool->Get(), cmdHandle = m_DrawCommandBuffer]() -> void {
             vkFreeCommandBuffers( VulkanContext::GetPrimaryLogicalDevice(), cmdPoolHandle, 1, std::addressof( cmdHandle ) );
         } );
     }
@@ -106,33 +111,31 @@ namespace Mikoto {
 
         for ( const auto& [objectId, meshRenderInfo] : m_DrawQueue ) {
             if (!meshRenderInfo.Data) {
-                MKT_CORE_LOGGER_WARN("VulkanRenderer - Object data for {} is null.", objectId);
+                MKT_CORE_LOGGER_WARN("VulkanRenderer::RecordCommands - Object data for {} is null.", objectId);
             }
             else {
-                auto& materialRef{ *meshRenderInfo.MaterialData };
+                auto& materialRef{ *dynamic_cast<VulkanStandardMaterial*>( meshRenderInfo.MaterialData ) };
 
                 switch ( materialRef.GetType() ) {
-                    case Type::MATERIAL_TYPE_STANDARD:
-                        m_ActiveDefaultMaterial = std::addressof( materialRef );
+                    case MaterialType::STANDARD:
+                        materialRef.SetProjection(meshRenderInfo.Data->Transform.Projection );
+                        materialRef.SetView(meshRenderInfo.Data->Transform.View );
+                        materialRef.SetTransform(meshRenderInfo.Data->Transform.Transform );
+                        materialRef.UpdateLightsInfo();
 
-                        m_ActiveDefaultMaterial->SetProjection(meshRenderInfo.Data->Transform.Projection );
-                        m_ActiveDefaultMaterial->SetView(meshRenderInfo.Data->Transform.View );
-                        m_ActiveDefaultMaterial->SetTransform(meshRenderInfo.Data->Transform.Transform );
-                        m_ActiveDefaultMaterial->UpdateLightsInfo();
-
-                        m_ActiveDefaultMaterial->UploadUniformBuffers();
+                        materialRef.UploadUniformBuffers();
 
                         pipeline = std::addressof( m_MaterialInfo[StandardMaterial::GetName()].Pipeline );
                         pipelineLayout = std::addressof( m_MaterialInfo[StandardMaterial::GetName()].MaterialPipelineLayout );
 
-                        m_ActiveDefaultMaterial->BindDescriptorSet( m_DrawCommandBuffer, *pipelineLayout );
+                        materialRef.BindDescriptorSet( m_DrawCommandBuffer, *pipelineLayout );
                         break;
-                    case Type::MATERIAL_TYPE_PBR:
-                        MKT_THROW_RUNTIME_ERROR( "VulkanRenderer - Material not yet supported" );
+                    case MaterialType::PBR:
+                        MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::RecordCommands - Material not yet supported" );
                 }
 
                 if (pipeline == nullptr || pipelineLayout == nullptr ) {
-                    MKT_THROW_RUNTIME_ERROR( "VulkanRenderer - Pipeline objects are null." );
+                    MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::RecordCommands - Pipeline objects are null." );
                 }
 
                 pipeline->Bind( m_DrawCommandBuffer );
@@ -146,7 +149,7 @@ namespace Mikoto {
         vkCmdEndRenderPass( m_DrawCommandBuffer );
 
         if ( vkEndCommandBuffer( m_DrawCommandBuffer ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "Failed to record command buffer" );
+            MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::RecordCommands - Failed to record command buffer" );
         }
     }
 
@@ -591,7 +594,7 @@ namespace Mikoto {
         createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         createInfo.queueFamilyIndex = queueFamily.GraphicsFamilyIndex;
 
-        m_CommandPool.Create( createInfo );
+        m_CommandPool = VulkanCommandPool::Create( createInfo );
 
         InitCommandBuffers();
     }

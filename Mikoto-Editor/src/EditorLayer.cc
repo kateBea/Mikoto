@@ -12,100 +12,84 @@
 // Project Headers
 #include <Renderer/Core/RenderQueue.hh>
 
-#include "Core/CoreEvents.hh"
-#include "Core/EventManager.hh"
-#include "Core/FileManager.hh"
-#include "Core/TimeManager.hh"
-#include "GUI/ImGuiUtils.hh"
-#include "Layers/EditorLayer.hh"
-#include "Renderer/Core/RenderCommand.hh"
-#include "Scene/SceneManager.hh"
-#include "Tools/ConsoleManager.hh"
-#include <Scene/Entity/Scene.hh>
+#include <Core/Events/Event.hh>
+#include <Core/System/EventSystem.hh>
+#include <Core/System/FileSystem.hh>
+#include <Core/System/TimeSystem.hh>
+#include <GUI/ImGuiUtils.hh>
+#include <Layers/EditorLayer.hh>
+#include <Scene/Scene/Scene.hh>
 #include <Scene/Camera/SceneCamera.hh>
-#include <Scene/Camera/SceneCamera.hh>
+#include <Panels/Panel.hh>
+#include <Panels/ConsolePanel.hh>
+#include <Panels/ContentBrowserPanel.hh>
+#include <Panels/HierarchyPanel.hh>
+#include <Panels/InspectorPanel.hh>
+#include <Panels/RendererPanel.hh>
+#include <Panels/ScenePanel.hh>
+#include <Panels/SettingsPanel.hh>
+#include <Panels/StatsPanel.hh>
+#include <Core/Engine.hh>
+#include <Core/Events/CoreEvents.hh>
+#include <Models/Enums.hh>
+#include <EditorModels/Enums.hh>
+#include <Library/Filesystem/PathBuilder.hh>
+#include <Core/System/AssetsSystem.hh>
+#include <Library/Random/Random.hh>
 
 namespace Mikoto {
+    EditorLayer::EditorLayer(const EditorLayerCreateInfo& createInfo)
+        : Layer{ "EditorLayer" },
+        m_AssetsRootDirectory{ createInfo.AssetsRootDirectory },
+        m_GraphicsAPI{ createInfo.GraphicsAPI },
+    m_Window{ createInfo.TargetWindow }
+    {
+    }
+
     auto EditorLayer::OnAttach() -> void {
-        // Initialize cameras first, they are needed for some panels
         CreateCameras();
+        PrepareSerialization();
+
+        LoadPrefabModels();
+
+        PrepareNewScene();
+
+        // Need to pass in other stuff to the renderer like (wireframe on startup, the device, etc)
+        m_EditorRenderer = RendererBackend::Create( RendererCreateInfo{
+            .ViewportWidth{ static_cast<UInt32_T>(m_Window->GetWidth()) },
+            .ViewportHeight{ static_cast<UInt32_T>(m_Window->GetHeight()) },
+            .Api{ m_GraphicsAPI },
+        } );
+
+        if (m_EditorRenderer) {
+            m_EditorRenderer->Init();
+        } else {
+            MKT_APP_LOGGER_ERROR( "EditorLayer::OnAttach - Failed to create the editor renderer." );
+        }
 
         CreatePanels();
 
-        m_EditorCamera->SetMovementSpeed( m_SettingsPanel->GetData().EditorCameraMovementSpeed );
-        m_EditorCamera->SetRotationSpeed( m_SettingsPanel->GetData().EditorCameraRotationSpeed );
-
-        {
-            // scripting test
-            // TODO: does not compile
-            // m_MainCamEntity.GetComponent<NativeScriptComponent>().Bind<CameraController>();
-        }
-
-        // Initialize Editor DockSpace
-        auto& [OnSceneSaveCallback, OnSceneLoadCallback, OnSceneNewCallback]{ m_DockSpaceCallbacks };
-
-        OnSceneNewCallback =
-                []() -> void {
-            // destroy the currently active scene, for now we will
-            // not prompt the user with a window to save changes
-            SceneManager::DestroyScene( SceneManager::GetActiveScene() );
-            SceneManager::DisableActiveSelection();
-
-            // create a new empty scene
-            auto& newScene{ SceneManager::MakeNewScene( "Empty Scene" ) };
-
-            // make the newly created scene the active one
-            SceneManager::SetActiveScene( newScene );
-        };
-
-        OnSceneLoadCallback =
-                []() -> void {
-            // prepare filters for the dialog
-            std::initializer_list<std::pair<std::string, std::string>> filters{
-                { "Mikoto Scene files", "mkts,mktscene" },
-                { "Mikoto Project Files", "mkt,mktp,mktproject" }
-            };
-
-            std::string sceneFilePath{ FileManager::OpenDialog( filters ) };
-
-            // user canceled file dialog
-            if ( sceneFilePath.empty() ) {
-                ConsoleManager::PushMessage( ConsoleLogLevel::CONSOLE_WARNING, "User canceled open dialog" );
-                return;
-            }
-
-            // We need to clear the scene before we load the serialized entities
-            SceneManager::DestroyScene( SceneManager::GetActiveScene() );
-            SceneManager::DisableActiveSelection();
-
-            FileManager::SceneSerializer::Deserialize( sceneFilePath );
-            ConsoleManager::PushMessage( ConsoleLogLevel::CONSOLE_DEBUG, fmt::format( "Loaded new scene [{}]", SceneManager::GetActiveScene().GetName() ) );
-        };
-
-        OnSceneSaveCallback =
-                [&]() -> void {
-            // prepare filters for the dialog
-            std::initializer_list<std::pair<std::string, std::string>> filters{
-                { "Mikoto Scene files", "mkts,mktscene" },
-                { "Mikoto Project Files", "mkt,mktp,mktproject" }
-            };
-
-            Scene* activeScene{ std::addressof( SceneManager::GetActiveScene() ) };
-            auto path{ FileManager::SaveDialog( "Mikoto Scene", filters ) };
-            FileManager::SceneSerializer::Serialize( *activeScene, path );
-            ConsoleManager::PushMessage( ConsoleLogLevel::CONSOLE_WARNING, fmt::format( "Saved scene to [{}]", path ) );
-        };
-
-        SceneManager::SetActiveScene( SceneManager::MakeNewScene( "Empty Scene" ) );
+        m_EditorCamera->SetMovementSpeed( m_PanelRegistry.Get<SettingsPanel>()->GetData().EditorCameraMovementSpeed );
+        m_EditorCamera->SetRotationSpeed( m_PanelRegistry.Get<SettingsPanel>()->GetData().EditorCameraRotationSpeed );
     }
 
     auto EditorLayer::OnDetach() -> void {
+        m_ActiveScene = nullptr;
+        m_ActiveScene = nullptr;
 
+        m_EditorCamera = nullptr;
+        m_SceneSerializer = nullptr;
+
+        m_Project = nullptr;
+
+        m_PanelRegistry.Clear();
     }
 
-    auto EditorLayer::OnUpdate( const double ts ) -> void {
+    auto EditorLayer::OnUpdate( const double timeStep ) -> void {
         // Move and rotation speeds
-        const auto& settingsPanelCurrentData{ m_SettingsPanel->GetData() };
+        const SettingsPanel& settingsPanel{ *m_PanelRegistry.Get<SettingsPanel>() };
+        const SettingsPanelData& settingsPanelCurrentData{ settingsPanel.GetData() };
+
         m_EditorCamera->SetMovementSpeed( settingsPanelCurrentData.EditorCameraMovementSpeed );
         m_EditorCamera->SetRotationSpeed( settingsPanelCurrentData.EditorCameraRotationSpeed );
 
@@ -115,21 +99,21 @@ namespace Mikoto {
 
         // Field of view
         m_EditorCamera->SetFieldOfView( settingsPanelCurrentData.FieldOfView );
+        //m_EditorCamera->UpdateState( timeStep );
 
-        m_EditorCamera->OnUpdate( ts );
+        const ScenePanel& scenePanel{ *m_PanelRegistry.Get<ScenePanel>() };
 
-        auto& activeScene{ SceneManager::GetActiveScene() };
-        const auto& [viewPortWidth, viewPortHeight]{ m_ScenePanel->GetData() };
-
+        // Camera
         m_EditorCamera->UpdateViewMatrix();
         m_EditorCamera->UpdateProjection();
-        m_EditorCamera->SetViewportSize( viewPortWidth, viewPortHeight );
-        activeScene.Render(
-            SceneRenderData{
-                .TimeStep{ ts },
-                .Camera { m_EditorCamera.get() },
-                .ClearColor{ m_SettingsPanel->GetData().ClearColor }
-            });
+        m_EditorCamera->SetViewportSize( scenePanel.GetViewportWidth(), scenePanel.GetViewportHeight() );
+        m_EditorCamera->UpdateState( timeStep );
+
+        // Scene render
+        m_EditorRenderer->SetClearColor( settingsPanel.GetData().ClearColor );
+        m_ActiveScene->SetCamera( *m_EditorCamera );
+        m_ActiveScene->SetRenderer( *m_EditorRenderer );
+        m_ActiveScene->Update( timeStep );
     }
 
     auto EditorLayer::PushImGuiDrawItems() -> void {
@@ -141,77 +125,214 @@ namespace Mikoto {
                scenePanelVisible,
                settingPanelVisible,
                statsPanelVisible,
-               contentBrowser,
-               consolePanel,
-               rendererPanel]{ m_ControlFlags };
+               contentBrowserVisible,
+               consolePanelVisible,
+               rendererPanelVisible]{ m_ControlFlags };
 
-        m_SettingsPanel->MakeVisible( settingPanelVisible );
-        m_HierarchyPanel->MakeVisible( hierarchyPanelVisible );
-        m_InspectorPanel->MakeVisible( inspectorPanelVisible );
-        m_ScenePanel->MakeVisible( scenePanelVisible );
-        m_StatsPanel->MakeVisible( statsPanelVisible );
-        m_ContentBrowserPanel->MakeVisible( contentBrowser );
-        m_ConsolePanel->MakeVisible( consolePanel );
-        m_RendererPanel->MakeVisible( rendererPanel );
+        auto& settingsPanel{ *m_PanelRegistry.Get<SettingsPanel>() };
+        auto& hierarchyPanel{ *m_PanelRegistry.Get<HierarchyPanel>() };
+        auto& inspectorPanel{ *m_PanelRegistry.Get<InspectorPanel>() };
+        auto& scenePanel{ *m_PanelRegistry.Get<ScenePanel>() };
+        auto& statsPanel{ *m_PanelRegistry.Get<StatsPanel>() };
+        auto& contentsBrowserPanel{ *m_PanelRegistry.Get<ContentBrowserPanel>() };
+        auto& consolePanel{ *m_PanelRegistry.Get<ConsolePanel>() };
+        auto& rendererPanel{ *m_PanelRegistry.Get<RendererPanel>() };
 
-        const auto timeStep{ static_cast<float>( TimeManager::GetTimeStep( TimeUnit::SECONDS ) ) };
+        settingsPanel.MakeVisible( settingPanelVisible );
+        hierarchyPanel.MakeVisible( hierarchyPanelVisible );
+        inspectorPanel.MakeVisible( inspectorPanelVisible );
+        scenePanel.MakeVisible( scenePanelVisible );
+        statsPanel.MakeVisible( statsPanelVisible );
+        contentsBrowserPanel.MakeVisible( contentBrowserVisible );
+        consolePanel.MakeVisible( consolePanelVisible );
+        rendererPanel.MakeVisible( rendererPanelVisible );
 
-        m_SettingsPanel->OnUpdate( timeStep );
-        m_HierarchyPanel->OnUpdate( timeStep );
-        m_InspectorPanel->OnUpdate( timeStep );
-        m_ScenePanel->OnUpdate( timeStep );
-        m_StatsPanel->OnUpdate( timeStep );
-        m_ContentBrowserPanel->OnUpdate( timeStep );
-        m_ConsolePanel->OnUpdate( timeStep );
-        m_RendererPanel->OnUpdate( timeStep );
+        const auto& timeSystem{ Engine::GetSystem<TimeSystem>() };
+        const auto timeStep{ static_cast<float>( timeSystem.GetTimeStep( TimeUnit::SECONDS ) ) };
 
-        hierarchyPanelVisible = m_HierarchyPanel->IsVisible();
-        inspectorPanelVisible = m_InspectorPanel->IsVisible();
-        scenePanelVisible = m_ScenePanel->IsVisible();
-        settingPanelVisible = m_SettingsPanel->IsVisible();
-        statsPanelVisible = m_StatsPanel->IsVisible();
-        contentBrowser = m_ContentBrowserPanel->IsVisible();
-        consolePanel = m_ConsolePanel->IsVisible();
-        rendererPanel = m_RendererPanel->IsVisible();
+        settingsPanel.OnUpdate( timeStep );
+        hierarchyPanel.OnUpdate( timeStep );
+        inspectorPanel.OnUpdate( timeStep );
+        scenePanel.OnUpdate( timeStep );
+        statsPanel.OnUpdate( timeStep );
+        contentsBrowserPanel.OnUpdate( timeStep );
+        consolePanel.OnUpdate( timeStep );
+        rendererPanel.OnUpdate( timeStep );
 
+        hierarchyPanelVisible = hierarchyPanel.IsVisible();
+        inspectorPanelVisible = inspectorPanel.IsVisible();
+        scenePanelVisible = scenePanel.IsVisible();
+        settingPanelVisible = settingsPanel.IsVisible();
+        statsPanelVisible = statsPanel.IsVisible();
+        contentBrowserVisible = contentsBrowserPanel.IsVisible();
+        consolePanelVisible = consolePanel.IsVisible();
+        rendererPanelVisible = rendererPanel.IsVisible();
+
+        auto& eventSystem{ Engine::GetSystem<EventSystem>() };
         if ( applicationCloseFlag ) {
-            EventManager::Trigger<AppClose>();
+            eventSystem.Trigger<AppClose>();
         }
     }
 
     auto EditorLayer::CreatePanels() -> void {
-        // Panels setup
-        m_StatsPanel = std::make_unique<StatsPanel>();
-        m_SettingsPanel = std::make_unique<SettingsPanel>();
-        m_HierarchyPanel = std::make_unique<HierarchyPanel>();
-        m_InspectorPanel = std::make_unique<InspectorPanel>();
-        m_ContentBrowserPanel = std::make_unique<ContentBrowserPanel>( FileManager::Assets::GetRootPath().string() );
-        m_ConsolePanel = std::make_unique<ConsolePanel>();
-        m_RendererPanel = std::make_unique<RendererPanel>();
-
         ScenePanelCreateInfo scenePanelCreateInfo{
-            .EditorMainCamera = m_EditorCamera.get()
+            .Width{ static_cast<UInt32_T>(m_Window->GetWidth()) },
+            .Height{ static_cast<UInt32_T>(m_Window->GetHeight()) },
+            .TargetScene{ m_ActiveScene.get() },
+            .Renderer{ m_EditorRenderer.get() },
+            .EditorMainCamera{ m_EditorCamera.get() },
+
+            .GetActiveEntityCallback{
+                [&]() -> Entity* {
+                    return m_SelectedEntity;
+                }
+            }
         };
 
-        m_ScenePanel = std::make_unique<ScenePanel>( std::move( scenePanelCreateInfo ) );
+        SettingsPanelCreateInfo settingsPanelCreateInfo{
+            .Data{
+                .ClearColor{ glm::vec4( 0.2f, 0.2f, 0.2f, 1.0f ) },
+                .FieldOfView{ 45.0f },
+            },
+        };
 
-        // Panels post setup
-        m_SettingsPanel->SetRenderFieldOfView( 45.0f );
-        m_SettingsPanel->SetRenderBackgroundColor( glm::vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
+        HierarchyPanelCreateInfo hierarchyPanelCreateInfo{
+            .TargetScene{ m_ActiveScene.get() },
+            .GetActiveEntityCallback{
+                [&]() -> Entity* {
+                    return m_SelectedEntity;
+                }
+            },
+            .SetActiveEntityCallback{
+                [&](Entity* target) -> void {
+                    m_SelectedEntity = target;
+                }
+            },
+            .AssetsRootPath{ m_AssetsRootDirectory },
+        };
+
+        InspectorPanelCreateInfo inspectorPanelCreateInfo{
+            .TargetScene{ m_ActiveScene.get() },
+            .GetActiveEntityCallback{
+                [&]() -> Entity* {
+                    return m_SelectedEntity;
+                }
+            },
+            .SetActiveEntityCallback{
+                [&](Entity* target) -> void {
+                    m_SelectedEntity = target;
+                }
+            },
+        };
+
+        m_PanelRegistry.Register<StatsPanel>();
+        m_PanelRegistry.Register<ConsolePanel>();
+        m_PanelRegistry.Register<RendererPanel>();
+        m_PanelRegistry.Register<HierarchyPanel>(hierarchyPanelCreateInfo);
+        m_PanelRegistry.Register<SettingsPanel>( settingsPanelCreateInfo );
+        m_PanelRegistry.Register<InspectorPanel>(inspectorPanelCreateInfo);
+        m_PanelRegistry.Register<ContentBrowserPanel>( std::move( Path_T{ m_AssetsRootDirectory } ) );
+        m_PanelRegistry.Register<ScenePanel>(scenePanelCreateInfo);
     }
 
     auto EditorLayer::CreateCameras() -> void {
-        constexpr float fieldOfView{ 45.0f };
-        constexpr float aspectRatio{ 1920.0 / 1080.0 }; // 1.778
-        constexpr float nearPlane{ 0.1f };
-        constexpr float farPlane{ 1000.0f };
+        constexpr float NEAR_PLANE{ 0.1f };
+        constexpr float FAR_PLANE{ 1000.0f };
+        constexpr float FIELD_OF_VIEW{ 45.0f };
+        constexpr float ASPECT_RATIO{ 1920.0 / 1080.0 };
 
-        // Initialize cameras
-        m_RuntimeCamera = std::make_shared<SceneCamera>( fieldOfView, aspectRatio, nearPlane, farPlane );
-        m_EditorCamera = std::make_shared<SceneCamera>( fieldOfView, aspectRatio, nearPlane, farPlane );
+        m_EditorCamera = CreateScope<SceneCamera>( FIELD_OF_VIEW, ASPECT_RATIO, NEAR_PLANE, FAR_PLANE );
     }
 
-    auto EditorLayer::ShowDockingDisabledMessage() -> void {
+    auto EditorLayer::PrepareNewScene() -> void {
+        CreateScene( "Sandbox" );
+    }
+
+    auto EditorLayer::PrepareSerialization() -> void {
+        m_SceneSerializer = CreateScope<SceneSerializer>();
+    }
+
+    auto EditorLayer::SaveScene() const -> void {
+        // prepare filters for the dialog
+        std::initializer_list<std::pair<std::string, std::string>> filters{
+                    { "Mikoto Scene files", "mkts,mktscene" },
+                    { "Mikoto Project Files", "mkt,mktp,mktproject" }
+        };
+
+        auto& fileSystem{ Engine::GetSystem<FileSystem>() };
+        const Path_T sceneLoadPath{ fileSystem.SaveDialog( "Mikoto Scene", filters ) };
+        m_SceneSerializer->Serialize(*m_ActiveScene, sceneLoadPath );
+    }
+
+    auto EditorLayer::LoadScene() -> void {
+        // prepare filters for the dialog
+        std::initializer_list<std::pair<std::string, std::string>> filters{
+                    { "Mikoto Scene files", "mkts,mktscene" },
+                    { "Mikoto Project Files", "mkt,mktp,mktproject" }
+        };
+
+        auto& fileSystem{ Engine::GetSystem<FileSystem>() };
+        const Path_T sceneSavePath{ fileSystem.OpenDialog( filters ) };
+
+        m_SelectedEntity = nullptr;
+        m_ActiveScene = m_SceneSerializer->Deserialize( sceneSavePath );
+    }
+
+    auto EditorLayer::CreateScene(const std::string_view name) -> void {
+        m_SelectedEntity = nullptr;
+        m_ActiveScene = CreateScope<Scene>( name );
+
+        AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
+
+        // Ground
+        Entity* groundObject{ m_ActiveScene->CreateEntity( {
+            .Name{ "Ground" },
+            .Root{ nullptr },
+            .ModelMesh{ assetsSystem.GetModel( GetCubePrefabName() ) },
+        } )};
+
+        TransformComponent& transformComponent{ groundObject->GetComponent<TransformComponent>() };
+        transformComponent.SetScale( { 10.0f, 0.2f, 10.0f } );
+        transformComponent.SetTranslation( { 0.0f, -5.0f, 1.0f } );
+
+        // Point light
+        Entity* lightObject{ m_ActiveScene->CreateEntity( {
+            .Name{ "Light" },
+            .Root{ nullptr },
+            .ModelMesh{ nullptr },
+        } )};
+
+        LightComponent& light{ lightObject->AddComponent<LightComponent>() };
+        light.SetType(LightType::POINT_LIGHT_TYPE);
+
+        // Scene camera
+        Entity* cameraObject{ m_ActiveScene->CreateEntity( {
+            .Name{ "Camera" },
+            .Root{ nullptr },
+            .ModelMesh{ nullptr },
+        } )};
+
+        constexpr float NEAR_PLANE{ 0.1f };
+        constexpr float FAR_PLANE{ 1000.0f };
+        constexpr float FIELD_OF_VIEW{ 45.0f };
+        constexpr float ASPECT_RATIO{ 1920.0 / 1080.0 };
+
+        cameraObject->AddComponent<CameraComponent>( CreateScope<SceneCamera>( FIELD_OF_VIEW, ASPECT_RATIO, NEAR_PLANE, FAR_PLANE ) );
+    }
+
+    auto EditorLayer::SaveProject() -> void {
+        MKT_APP_LOGGER_INFO( "EditorLayer::SaveProject - Saving project" );
+    }
+
+    auto EditorLayer::OpenProject() -> void {
+        MKT_APP_LOGGER_INFO( "EditorLayer::OpenProject - Saving project" );
+    }
+
+    auto EditorLayer::CreateProject() -> void {
+        MKT_APP_LOGGER_INFO( "EditorLayer::CreateProject - Saving project" );
+    }
+
+    static auto ShowDockingDisabledMessage() -> void {
         ImGuiIO& io{ ImGui::GetIO() };
 
         ImGui::Text( "ERROR: Docking is not enabled! See Demo > Configuration." );
@@ -300,9 +421,12 @@ namespace Mikoto {
             if ( ImGui::BeginMenu( "File" ) ) {
                 // Disabling fullscreen would allow the window to be moved to the front of other windows,
                 // which we can't undo at the moment without finer window depth/z control.
-                if ( ImGui::MenuItem( "New scene", "Ctrl + N" ) ) { m_DockSpaceCallbacks.OnSceneNewCallback(); }
-                if ( ImGui::MenuItem( "Open scene", "Ctrl + L" ) ) { m_DockSpaceCallbacks.OnSceneLoadCallback(); }
-                if ( ImGui::MenuItem( "Save scene", "Ctrl + S" ) ) { m_DockSpaceCallbacks.OnSceneSaveCallback(); }
+                if ( ImGui::MenuItem( "New scene", "Ctrl + N" ) ) { CreateScene( "Sandbox3D" ); }
+                if ( ImGui::MenuItem( "Open scene", "Ctrl + L" ) ) { LoadScene(); }
+                if ( ImGui::MenuItem( "Save scene", "Ctrl + S" ) ) { SaveScene(); }
+                if ( ImGui::MenuItem( "New project", "Ctrl + P" ) ) { CreateProject(); }
+                if ( ImGui::MenuItem( "Open project", "Ctrl + P" ) ) { OpenProject(); }
+                if ( ImGui::MenuItem( "Save project", "Ctrl + G" ) ) { SaveProject(); }
 
                 ImGui::Separator();
 
@@ -313,7 +437,7 @@ namespace Mikoto {
                 ImGui::EndMenu();
             }
 
-            HelpMarker(
+            ImGuiUtils::HelpMarker(
                     "When docking is enabled, you can ALWAYS dock MOST window into another! Try it now!"
                     "\n"
                     "- Drag from window title bar or their tab to dock/undock."
@@ -369,7 +493,7 @@ namespace Mikoto {
                 ImGui::EndMenu();
             }
 
-            HelpMarker( "This menu helps to change window stuff like the theme" );
+            ImGuiUtils::HelpMarker( "This menu helps to change window stuff like the theme" );
 
             if ( ImGui::BeginMenu( "Help" ) ) {
                 constexpr ImGuiPopupFlags popUpFlags{ ImGuiPopupFlags_None };
@@ -407,5 +531,99 @@ namespace Mikoto {
         }
 
         ImGui::End();
+    }
+
+    static auto EnsureModelLoaded( const Model* model, const Path_T& path) -> void {
+        if (model == nullptr) {
+            MKT_THROW_RUNTIME_ERROR( fmt::format("EnsureModelLoad - Erro model [{}] was not loaded.", path.string()) );
+        }
+    }
+
+    auto EditorLayer::LoadPrefabModels() const -> void {
+        AssetsSystem& assetsManager{ Engine::GetSystem<AssetsSystem>() };
+        FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
+
+        const bool invertedY{ m_GraphicsAPI == GraphicsAPI::VULKAN_API };
+
+        ModelLoadInfo modelLoadInfo{
+            .InvertedY{ invertedY },
+            .WantTextures{ true }
+        };
+
+        modelLoadInfo.Path = GetSponzaPrefabName(PathBuilder()
+            .WithPath( fileSystem.GetAssetsRootPath().string() )
+            .WithPath( "Prefabs" )
+            .WithPath( "sponza" )
+            .WithPath( "glTF" )
+            .WithPath( "Sponza.gltf" )
+            .Build().string());
+        EnsureModelLoaded(assetsManager.LoadModel(modelLoadInfo), GetSponzaPrefabName(modelLoadInfo.Path.string()));
+
+        modelLoadInfo.Path = GetCubePrefabName(PathBuilder()
+            .WithPath( fileSystem.GetAssetsRootPath().string() )
+            .WithPath( "Prefabs" )
+            .WithPath( "cube" )
+            .WithPath( "gltf" )
+            .WithPath( "scene.gltf" )
+            .Build().string());
+        EnsureModelLoaded(assetsManager.LoadModel(modelLoadInfo), GetCubePrefabName(modelLoadInfo.Path.string()));
+
+        modelLoadInfo.Path = GetSpherePrefabName(PathBuilder()
+            .WithPath( fileSystem.GetAssetsRootPath().string() )
+            .WithPath( "Prefabs" )
+            .WithPath( "sphere" )
+            .WithPath( "gltf" )
+            .WithPath( "scene.gltf" )
+            .Build().string());
+        EnsureModelLoaded(assetsManager.LoadModel(modelLoadInfo), GetSpherePrefabName(modelLoadInfo.Path.string()));
+
+        modelLoadInfo.Path = GetCylinderPrefabName(PathBuilder()
+            .WithPath( fileSystem.GetAssetsRootPath().string() )
+            .WithPath( "Prefabs" )
+            .WithPath( "cylinder" )
+            .WithPath( "gltf" )
+            .WithPath( "scene.gltf" )
+            .Build().string());
+        EnsureModelLoaded(assetsManager.LoadModel(modelLoadInfo), GetCylinderPrefabName(modelLoadInfo.Path.string()));
+
+        modelLoadInfo.Path = GetConePrefabName(PathBuilder()
+            .WithPath( fileSystem.GetAssetsRootPath().string() )
+            .WithPath( "Prefabs" )
+            .WithPath( "cone" )
+            .WithPath( "gltf" )
+            .WithPath( "scene.gltf" )
+            .Build().string());
+        EnsureModelLoaded(assetsManager.LoadModel(modelLoadInfo), GetConePrefabName(modelLoadInfo.Path.string()));
+    }
+
+    auto EditorLayer::GetPrefabModel( const PrefabSceneObject type ) -> Model* {
+        Model* result{ nullptr };
+        auto& assetsManager{ Engine::GetSystem<AssetsSystem>() };
+
+        switch ( type ) {
+            case PrefabSceneObject::SPRITE_PREFAB_OBJECT:
+                result = assetsManager.GetModel( GetSpritePrefabName() );
+                break;
+            case PrefabSceneObject::CUBE_PREFAB_OBJECT:
+                result = assetsManager.GetModel( GetCubePrefabName() );
+                break;
+            case PrefabSceneObject::SPHERE_PREFAB_OBJECT:
+                result = assetsManager.GetModel( GetSpherePrefabName() );
+                break;
+            case PrefabSceneObject::CYLINDER_PREFAB_OBJECT:
+                result = assetsManager.GetModel( GetCylinderPrefabName() );
+                break;
+            case PrefabSceneObject::CONE_PREFAB_OBJECT:
+                result = assetsManager.GetModel( GetConePrefabName() );
+                break;
+            case PrefabSceneObject::SPONZA_PREFAB_OBJECT:
+                result = assetsManager.GetModel( GetSponzaPrefabName() );
+                break;
+            default:
+                MKT_APP_LOGGER_WARN( "EditorLayer::GetPrefabModel - Attempting to get prefab model not loaded/non existent." );
+                break;
+        }
+
+        return result;
     }
 }

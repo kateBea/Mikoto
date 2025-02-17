@@ -49,3 +49,6 @@
 [submodule "Third-Party/IconFontCppHeaders"]
 	path = Third-Party/IconFontCppHeaders
 	url = https://github.com/juliettef/IconFontCppHeaders.git
+[submodule "Third-Party/cpptrace"]
+	path = Third-Party/cpptrace
+	url = https://github.com/jeremy-rifkin/cpptrace.git

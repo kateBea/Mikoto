@@ -12,46 +12,48 @@
 #include <glm/glm.hpp>
 
 #include <Common/Common.hh>
-#include <STL/Utility/Types.hh>
-#include <Material/Core/Material.hh>
+#include <Library/Utility/Types.hh>
 #include <Material/Texture/Texture2D.hh>
-#include <Models/StandardMaterialCreateData.hh>
+#include <Material/Core/Material.hh>
 
 namespace Mikoto {
 
+    struct StandardMaterialCreateInfo {
+        std::string name{};
+
+        Texture2D* DiffuseMap{ nullptr };
+        Texture2D* SpecularMap{ nullptr };
+    };
+
     class StandardMaterial : public Material {
     public:
-        explicit StandardMaterial( std::string_view name = "Material - Standard" )
-            :   Material{ name, MaterialType::STANDARD }
+
+        MKT_NODISCARD auto GetShininess() const -> float { return m_Shininess; }
+        MKT_NODISCARD auto GetDiffuseMap() const -> Texture2D* { return m_DiffuseTexture; }
+        MKT_NODISCARD auto GetSpecularMap() const -> Texture2D* { return m_SpecularTexture; }
+
+        MKT_NODISCARD auto HasSpecularMap() const -> bool { return m_SpecularTexture != nullptr; }
+        MKT_NODISCARD auto HasDiffuseMap() const -> bool { return m_DiffuseTexture != nullptr; }
+
+        auto SetShininess( const float value ) -> void { if (value > 0.0f) { m_Shininess = value; } }
+        auto SetColor(auto&&... args) -> void { m_Color = glm::vec4(std::forward<decltype(args)>(args)...); }
+
+        MKT_NODISCARD static auto Create(const StandardMaterialCreateInfo& createInfo) -> Scope_T<StandardMaterial>;
+
+    protected:
+        explicit StandardMaterial( const StandardMaterialCreateInfo& createInfo )
+            :   Material{ createInfo.name, MaterialType::STANDARD },
+                m_DiffuseTexture{ createInfo.DiffuseMap },
+                m_SpecularTexture{ createInfo.SpecularMap }
         {
 
         }
 
-        MKT_NODISCARD auto GetShininess() const -> float { return m_Shininess; }
-        MKT_NODISCARD auto GetColor() const -> const glm::vec4& { return m_Color; }
-        MKT_NODISCARD auto GetDiffuseMap() -> std::shared_ptr<Texture2D> { return m_DiffuseTexture; }
-        MKT_NODISCARD auto GetSpecularMap() -> std::shared_ptr<Texture2D> { return m_SpecularTexture; }
-
-        MKT_NODISCARD auto HasSpecularMap() const -> bool { return m_HasSpecular; }
-        MKT_NODISCARD auto HasDiffuseMap() const -> bool { return m_HasDiffuse; }
-
-        auto SetShininess(float value) -> void { if (value > 0.0f) { m_Shininess = value; } }
-        auto SetColor(auto&&... args) -> void { m_Color = glm::vec4(std::forward<decltype(args)>(args)...); }
-
-        MKT_NODISCARD static auto GetName() -> const std::string& {
-            static std::string result{ "StandardMaterial" };
-            return result;
-        }
-
     protected:
-        glm::vec4 m_Color{ 0.20f, 0.20f, 0.20f, 1.0f };
-        std::shared_ptr<Texture2D> m_DiffuseTexture{};
-        std::shared_ptr<Texture2D> m_SpecularTexture{};
+        Texture2D* m_DiffuseTexture{};
+        Texture2D* m_SpecularTexture{};
 
-        bool m_HasDiffuse{ false };
-        bool m_HasSpecular{ false };
-
-        float m_Shininess{};
+        float m_Shininess{ 32.0f };
     };
 }
 

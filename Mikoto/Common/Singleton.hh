@@ -7,7 +7,7 @@
 #define MIKOTO_SINGLETON_HH
 
 // Project Headers
-#include <Core/Assert.hh>
+#include <Core/Logging/Assert.hh>
 #include <Common/Constants.hh>
 
 namespace Mikoto {
@@ -33,8 +33,9 @@ namespace Mikoto {
          * Returns a reference to the single instance
          * @returns single instance
          * */
-        static auto Get() -> ValueRef_T { static Value_T obj{}; return *s_Instance; }
-
+        static auto Get() -> ValueRef_T {
+            return *s_Instance;
+        }
 
         /**
          * Returns a pointer to the single instance
@@ -42,18 +43,12 @@ namespace Mikoto {
          * */
         static auto GetPtr() -> ValuePtr_T { if (!s_Instance) Get();  return s_Instance; }
 
-
         /**
          * Performs destruction on this singleton instance
          * */
         virtual ~Singleton() = default;
 
     public:
-        /*************************************************************
-         * FORBIDDEN OPERATIONS
-         *
-         * Defines a list of operations not allowed for Singletons
-         * ***********************************************************/
         Singleton(const Singleton&) = delete;
         auto operator=(const Singleton&) -> ValueRef_T& = delete;
 

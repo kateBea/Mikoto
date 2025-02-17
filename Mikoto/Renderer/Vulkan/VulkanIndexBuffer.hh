@@ -9,37 +9,41 @@
 // C++ Standard Library
 #include <memory>
 #include <vector>
+#include <span>
 
 // Third-Party Libraries
-#include "volk.h"
+#include <volk.h>
 
 // Project Headers
 #include <Renderer/Buffer/IndexBuffer.hh>
 
-#include "Common/Common.hh"
-#include "Renderer/Vulkan/VulkanUtils.hh"
-#include "Renderer/Buffer/IndexBuffer.hh"
-#include "VulkanBuffer.hh"
+#include <Common/Common.hh>
+#include <Renderer/Vulkan/VulkanObject.hh>
+#include <Renderer/Vulkan/VulkanBuffer.hh>
 
 namespace Mikoto {
-    class VulkanIndexBuffer final : public IndexBuffer {
-    public:
-        /**
-         * Creates and initializes this index buffer.
-         * */
-        explicit VulkanIndexBuffer(const std::vector<UInt32_T>& indices);
+    struct VulkanIndexBufferCreateInfo {
+        std::span<const UInt32_T> Indices{};
+    };
 
-        /**
-         * Binds this index buffer to the given command buffer
-         * @param commandBuffer command buffer to bind the implicit parameter to
-         * */
+    class VulkanIndexBuffer final : public IndexBuffer, public VulkanObject {
+    public:
+
+        explicit VulkanIndexBuffer(const VulkanIndexBufferCreateInfo& createInfo);
+
         auto Bind(VkCommandBuffer commandBuffer) const -> void;
 
-    private:
-        auto SetIndicesData(const std::vector<UInt32_T> &indices) -> void;
+        auto Release() -> void override;
+
+        ~VulkanIndexBuffer() override;
+
+        MKT_NODISCARD static auto Create(const VulkanIndexBufferCreateInfo& createInfo) -> Scope_T<VulkanIndexBuffer>;
 
     private:
-        VulkanBuffer m_Buffer{};
+        auto LoadIndices(const std::span<const UInt32_T> &indices) -> void;
+
+    private:
+        Scope_T<VulkanBuffer> m_Buffer{};
     };
 }
 

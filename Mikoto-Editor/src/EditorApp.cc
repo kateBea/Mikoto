@@ -9,63 +9,22 @@
 #include <utility>
 
 // Project headers
-#include <Assets/AssetsManager.hh>
 #include <Common/Constants.hh>
-#include <Core/CoreEvents.hh>
-#include <Core/EventManager.hh>
-#include <Core/FileManager.hh>
-#include <Core/TimeManager.hh>
+#include <Core/Engine.hh>
+#include <Core/System/EventSystem.hh>
+#include <Core/System/InputSystem.hh>
+#include <Core/System/TaskSystem.hh>
+#include <Core/System/TimeSystem.hh>
 #include <EditorApp.hh>
 #include <GUI/ImGuiManager.hh>
-#include <Platform/Input/InputManager.hh>
+#include <Layers/EditorLayer.hh>
+#include <Library/Filesystem/PathBuilder.hh>
 #include <Profiling/Timer.hh>
-#include <Renderer/Core/RenderContext.hh>
-#include <STL/Filesystem/PathBuilder.hh>
-#include <Scene/SceneManager.hh>
-#include <Threading/TaskManager.hh>
-#include <Core/EngineSystem.hh>
+#include <Core/Logging/StackTrace.hh>
 
 namespace Mikoto {
 
-    static auto GetApplicationSpec( char** args, int count ) -> ApplicationData {
-        return {
-            .WindowWidth = 1920,
-            .WindowHeight = 1080,
-            .Name = "Mikoto Editor",
-            .WorkingDirectory = std::filesystem::current_path(),
-            .Executable = Path_T{ args[0] },
-            .RenderingBackend = GraphicsAPI::VULKAN_API,
-            .CommandLineArguments = { std::addressof( args[0] ), std::addressof( args[count] )  },
-        };
-    }
-
-    auto EditorApp::Run( const Int32_T argc, char **argv ) -> Int32_T {
-        ParseArguments( argc, argv );
-
-        auto exitCode{ EXIT_SUCCESS };
-        auto appSpecs{ GetApplicationSpec( argv, argc ) };
-
-        try {
-
-            Init( std::move( appSpecs ) );
-
-            while ( IsRunning() ) {
-                ProcessEvents();
-                UpdateState();
-                Present();
-            }
-
-            Shutdown();
-
-        } catch ( const std::exception &exception ) {
-            MKT_COLOR_STYLE_PRINT_FORMATTED( MKT_FMT_COLOR_RED, MKT_FMT_STYLE_BOLD, "{}", exception.what() );
-            exitCode = EXIT_FAILURE;
-        }
-
-        return exitCode;
-    }
-
-    static auto GetCommandDescription(const std::string_view command) -> std::string {
+    static auto GetCommandDescription( const std::string_view command ) -> std::string {
         if ( command == "-h" || command == "--help" ) {
             return "Displays the help menu.";
         }
@@ -73,69 +32,87 @@ namespace Mikoto {
         return "Unknown command.";
     }
 
-    auto EditorApp::ParseArguments( const Int32_T argc, char **argv ) -> void {
-        m_CommandLineParser = CreateRef<CommandLineParser>();
+    auto EditorApp::Run( const Int32_T argc, char **argv ) -> Int32_T {
+        auto exitCode{ EXIT_SUCCESS };
 
-        for ( const auto limit{ std::addressof( argv[argc] ) }; argv != limit; ++argv ) {
-            m_CommandLineParser->Insert( *argv, GetCommandDescription(*argv), []() -> void {
-                MKT_APP_LOGGER_DEBUG( "Running command" );
-            } );
+        ParseCommandLineArgs( argc, argv );
+
+        try {
+
+            Init();
+
+            while ( IsRunning() ) {
+                ProcessEvents();
+                UpdateState();
+            }
+
+            Shutdown();
+
+        } catch ( const std::exception &exception ) {
+            MKT_COLOR_STYLE_PRINT_FORMATTED( MKT_FMT_COLOR_RED, MKT_FMT_STYLE_BOLD, "Stack Trace ------ ");
+
+            MKT_STACK_TRACE();
+
+            MKT_COLOR_STYLE_PRINT_FORMATTED( MKT_FMT_COLOR_RED, MKT_FMT_STYLE_BOLD, "{}", exception.what() );
+            exitCode = EXIT_FAILURE;
         }
 
-        m_CommandLineParser->ExecuteAll();
+        return exitCode;
     }
 
-    auto EditorApp::Init(ApplicationData &&appSpec) -> void {
+    auto EditorApp::ParseCommandLineArgs( const Int32_T argc, char **argv ) -> void {
+        m_CommandLineParser = CreateScope<CommandLineParser>();
+
+        // The first argument is generally the program's executable path
+        for ( const auto limit{ argv + argc }; argv < limit; ++argv ) {
+            m_CommandLineParser->Insert( *argv, GetCommandDescription(*argv), [argv]() -> void {
+                MKT_APP_LOGGER_DEBUG( "Running command {}", *argv);
+            } );
+        }
+    }
+
+    auto EditorApp::Init() -> void {
         MKT_PROFILE_SCOPE();
 
-        m_State = Status::RUNNING;
-        m_Spec = std::move(appSpec);
+        const auto configFilePath{ PathBuilder()
+            .WithPath( std::filesystem::current_path().string() )
+            .WithPath( "engine-config.toml" )
+            .Build()
+        };
 
-        MKT_APP_LOGGER_INFO("=================================================================");
-        MKT_APP_LOGGER_INFO("Executable                : {}", m_Spec.Executable.string());
-        MKT_APP_LOGGER_INFO("Current working directory : {}", m_Spec.WorkingDirectory.string());
-        MKT_APP_LOGGER_INFO("=================================================================");
+        const auto options{ ConfigLoader::LoadFromFile( configFilePath ) };
 
-        WindowProperties windowProperties{ m_Spec.Name, m_Spec.RenderingBackend, m_Spec.WindowWidth, m_Spec.WindowHeight };
-        windowProperties.AllowResizing(true);
-        m_MainWindow = Window::Create(std::move(windowProperties));
+        m_MainWindow = Window::Create({
+            .Title{ options->EngineName },
+            .Width{ options->WindowWidth },
+            .Height{ options->WindowHeight },
+            .Backend{ options->RendererAPI },
+            .Resizable{ options->AllowWindowResizing }
+        });
 
-        if (m_MainWindow) {
+        if ( m_MainWindow ) {
             m_MainWindow->Init();
         } else {
-            MKT_THROW_RUNTIME_ERROR("EditorApp - Could not create application main window.");
+            MKT_THROW_RUNTIME_ERROR( "EditorApp::Init - Could not create application window." );
         }
 
-        FileManager::Assets::SetRootPath(
-            PathBuilder()
-            .WithPath( m_Spec.WorkingDirectory.string() )
-            .WithPath( "Resources" )
-            .Build());
+        const EngineConfig config{
+            .Options{ *options },
+            .TargetWindow{ m_MainWindow.get() },
+        };
 
-        FileManager::Init();
-        InputManager::Init(m_MainWindow.get());
-        RenderContextData contextSpec{ .TargetAPI = m_Spec.RenderingBackend, .Handle = m_MainWindow };
+        Engine::Init( config );
 
-        RenderContext::Init(std::move(contextSpec));
-        ImGuiManager::Init(m_MainWindow);
-
-        // Initialize the assets' manager.
-        // Important to do after initializing the renderer loads
-        // some prefabs that require having a render context ready.
-        AssetsManager::Init(AssetsManagerSpec{ .AssetRootDirectory {
-            PathBuilder()
-            .WithPath( m_Spec.WorkingDirectory.string() )
-            .WithPath( "Resources" )
-            .Build() }
-        });
-        SceneManager::Init();
+        ImGuiManager::Init( m_MainWindow.get() );
 
         InitLayers();
+
         InstallEventCallbacks();
     }
 
     auto EditorApp::InstallEventCallbacks() -> void {
-        EventManager::Subscribe(m_Guid.Get(),
+        auto& eventManager{ Engine::GetSystem<EventSystem>() };
+        eventManager.Subscribe(m_Guid.Get(),
                                 EventType::APP_CLOSE_EVENT,
                                 [this](Event &event) -> bool {
                                     m_State = Status::STOPPED;
@@ -144,7 +121,7 @@ namespace Mikoto {
                                     return false;
                                 });
 
-        EventManager::Subscribe(m_Guid.Get(),
+        eventManager.Subscribe(m_Guid.Get(),
                                 EventType::WINDOW_CLOSE_EVENT,
                                 [this](Event &event) -> bool {
                                     m_State = Status::STOPPED;
@@ -153,7 +130,7 @@ namespace Mikoto {
                                     return false;
                                 });
 
-        EventManager::Subscribe(m_Guid.Get(),
+        eventManager.Subscribe(m_Guid.Get(),
                                 EventType::WINDOW_RESIZE_EVENT,
                                 [this](Event &) -> bool {
                                     m_State = m_MainWindow->IsMinimized() ? Status::IDLE : Status::RUNNING;
@@ -168,72 +145,76 @@ namespace Mikoto {
         MKT_APP_LOGGER_INFO("=====================================");
 
         DestroyLayers();
-        AssetsManager::Shutdown();
-        SceneManager::Shutdown();
-
-        RenderContext::PushShutdownCallback([]() -> void {
-            // ImGui requires the Context to be alive, so
-            // it is shutdown after the context is deleted.
-            ImGuiManager::Shutdown();
-        });
-
-        RenderContext::Shutdown();
-        InputManager::Shutdown();
-        EventManager::Shutdown();
-        FileManager::Shutdown();
 
         m_MainWindow->Shutdown();
-        TaskManager::Shutdown();
+
+        Engine::Shutdown();
     }
 
-    auto EditorApp::DestroyLayers() const -> void {
-        m_EditorLayer->OnDetach();
+    auto EditorApp::DestroyLayers() -> void {
+        for ( const auto& layer: m_LayerRegistry | std::views::values ) {
+            layer->OnDetach();
+        }
+
+        m_LayerRegistry.Clear();
     }
 
     auto EditorApp::InitLayers() -> void {
-        m_EditorLayer = std::make_unique<EditorLayer>();
-        m_EditorLayer->OnAttach();
+        const auto& [Options, TargetWindow]{ Engine::GetConfig() };
+
+        EditorLayerCreateInfo editorLayerCreateInfo{
+            .TargetWindow{ m_MainWindow.get() },
+            .GraphicsAPI{ Options.RendererAPI },
+            .AssetsRootDirectory{ Options.WorkingDirectory },
+        };
+
+        m_LayerRegistry.Register<EditorLayer>( editorLayerCreateInfo );
+
+        for ( const auto& layer: m_LayerRegistry | std::views::values ) {
+            layer->OnAttach();
+        }
     }
 
     auto EditorApp::UpdateLayers() const -> void {
-        const auto timeStep{ TimeManager::GetTimeStep() };
-        m_EditorLayer->OnUpdate( timeStep );
-    }
+        const auto & timeManager{ Engine::GetSystem<TimeSystem>() };
+        const auto timeStep{ timeManager.GetTimeStep() };
 
-    auto EditorApp::RenderImGuiFrame() const -> void {
-        ImGuiManager::BeginFrame();
-        m_EditorLayer->PushImGuiDrawItems();
-        ImGuiManager::EndFrame();
+        for ( auto& layer: m_LayerRegistry | std::views::values ) {
+            layer->OnUpdate(timeStep);
+        }
     }
 
     auto EditorApp::ProcessEvents() -> void {
         m_MainWindow->ProcessEvents();
-        EventManager::ProcessEvents();
     }
 
     auto EditorApp::UpdateState() -> void {
-        TimeManager::UpdateTimeStep();
-
         if (!m_MainWindow->IsMinimized()) {
-            RenderContext::PrepareFrame();
+            Engine::StartFrame();
+
             UpdateLayers();
 
-#if !(NDEBUG)
-            // [ DEBUG: Multithreading ]
-            if (InputManager::IsKeyPressed(Key_E)) {
-                TaskManager::Execute(
-                        []() -> void {
-                            MKT_APP_LOGGER_DEBUG("Hello thread. Count: {}", TaskManager::GetWorkersCount());
+            // Imgui
+            auto& editorLayer{ *m_LayerRegistry.Get<EditorLayer>() };
+
+            ImGuiManager::BeginFrame();
+            editorLayer.PushImGuiDrawItems();
+            ImGuiManager::EndFrame();
+
+#if !( NDEBUG )
+            const auto& inputSystem{ Engine::GetSystem<InputSystem>() };
+            auto& taskSystem{ Engine::GetSystem<TaskSystem>() };
+            if (inputSystem.IsKeyPressed(Key_E, m_MainWindow.get())) {
+                taskSystem.Execute(
+                        [&]() -> void {
+                            MKT_APP_LOGGER_DEBUG("Hello thread. Count: {}", taskSystem.GetWorkersCount());
                         });
             }
-        }
 #endif
 
-        RenderImGuiFrame();
-        RenderContext::SubmitFrame();
-    }
+            Engine::UpdateState();
 
-    auto EditorApp::Present() -> void {
-        RenderContext::PresentFrame();
+            Engine::EndFrame();
+        }
     }
 }

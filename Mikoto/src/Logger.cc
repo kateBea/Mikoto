@@ -6,9 +6,12 @@
 // C++ Standard Library
 #include <memory>
 
+#include "spdlog/sinks/stdout_color_sinks.h"
+
 // Project Headers
-#include "Core/Assert.hh"
-#include "Core/Logger.hh"
+#include <Core/Logging/Assert.hh>
+#include <Core/Logging/Logger.hh>
+
 
 namespace Mikoto {
     auto Logger::Init() -> void {
@@ -37,12 +40,12 @@ namespace Mikoto {
         spdlog::flush_on(spdlog::level::debug);
     }
 
-    auto Logger::GetCoreLogger() -> const std::shared_ptr<spdlog::logger>& {
+    auto Logger::GetCoreLogger() -> const Ref_T<spdlog::logger>& {
         MKT_ASSERT(m_CoreLogger, "Core Logger is NULL");
         return m_CoreLogger;
     }
 
-    auto Logger::GetAppLogger() -> const std::shared_ptr<spdlog::logger>& {
+    auto Logger::GetAppLogger() -> const Ref_T<spdlog::logger>& {
         MKT_ASSERT(m_AppLogger, "Application Logger is NULL");
         return m_AppLogger;
     }

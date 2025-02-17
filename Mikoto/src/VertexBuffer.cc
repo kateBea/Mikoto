@@ -1,5 +1,5 @@
 /**
- * VertexBuffer.cc
+* VertexBuffer.cc
  * Created by kate on 6/5/23.
  * */
 
@@ -8,27 +8,27 @@
 #include <memory>
 
 // Project Headers
-#include <Renderer/Core/Renderer.hh>
-
-#include "Common/RenderingUtils.hh"
-#include "Core/Logger.hh"
-#include "Models/VertexBufferCreateInfo.hh"
-#include "Renderer/Vulkan/VulkanVertexBuffer.hh"
+#include <Core/Logging/Logger.hh>
+#include <Core/System/RenderSystem.hh>
+#include <Renderer/Buffer/VertexBuffer.hh>
+#include <Renderer/Vulkan/VulkanVertexBuffer.hh>
 
 namespace Mikoto {
-    auto VertexBuffer::Create(const std::vector<float>& data, const BufferLayout& layout) -> std::shared_ptr<VertexBuffer> {
-        VertexBufferCreateInfo createInfo{};
+    auto VertexBuffer::Create(const std::vector<float>& data, const BufferLayout& layout) -> Scope_T<VertexBuffer> {
+        auto& renderSystem{ Engine::GetSystem<RenderSystem>() };
 
-        createInfo.Data = data;
-        createInfo.RetainData = false; // for future use
-        createInfo.Layout = layout;
+        VertexBufferCreateInfo createInfo{
+            .Data{ data },
+            .Layout{ layout },
+            .RetainData{ false },
+        };
 
-        switch(Renderer::GetActiveGraphicsAPI()) {
+        switch(renderSystem.GetDefaultApi()) {
             case GraphicsAPI::VULKAN_API:
-                return std::make_shared<VulkanVertexBuffer>(std::move(createInfo));
+                return CreateScope<VulkanVertexBuffer>( createInfo );
             default:
-                MKT_CORE_LOGGER_CRITICAL("Unsupported renderer API");
-                return nullptr;
+                MKT_CORE_LOGGER_CRITICAL("VertexBuffer::Create - Unsupported renderer API");
+            return nullptr;
         }
     }
 }

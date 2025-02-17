@@ -18,20 +18,35 @@
 #include <vulkan/vulkan_core.h>
 
 #include <GUI/ImGuiUtils.hh>
+#include <GUI/BackendImplementation.hh>
+#include <Platform/Window/Window.hh>
 #include <Renderer/Vulkan/VulkanCommandPool.hh>
 #include <Renderer/Vulkan/VulkanFrameBuffer.hh>
 #include <Renderer/Vulkan/VulkanImage.hh>
 
 namespace Mikoto {
+
     class ImGuiVulkanBackend final : public BackendImplementation {
     public:
-        auto Init(std::any handle) -> bool override;
+        explicit ImGuiVulkanBackend( const ImGuiBackendCreateInfo& createInfo )
+            : BackendImplementation{ createInfo }, m_Extent2D{
+                  .width{ static_cast<UInt32_T>( createInfo.Handle->GetWidth() ) },
+                  .height{ static_cast<UInt32_T>( createInfo.Handle->GetWidth() ) }
+              },
+              m_Extent3D{
+                  .width{ static_cast<UInt32_T>( createInfo.Handle->GetWidth() ) },
+                  .height{ static_cast<UInt32_T>( createInfo.Handle->GetWidth() ) }, .depth{ 1 }
+              }
+        {}
+
+        auto Init() -> bool override;
         auto Shutdown() -> void override;
 
         auto BeginFrame() -> void override;
         auto EndFrame() -> void override;
 
     private:
+        auto InitImGuiForVulkan() -> void;
         auto InitializeImGuiRender() -> void;
         auto CreateRenderPass() -> void;
         auto CreateImages() -> void;
@@ -41,13 +56,14 @@ namespace Mikoto {
         auto InitializeCommands() -> void;
 
         auto RecordCommands( VkCommandBuffer cmd, VkImage currentSwapChainImage ) const -> void;
+
     private:
         VkRenderPass m_ImGuiRenderPass{};
         VkDescriptorPool m_ImGuiDescriptorPool{};
 
-        VulkanImage m_ColorImage{};
-        VulkanImage m_DepthImage{};
-        VulkanFrameBuffer m_DrawFrameBuffer{};
+        Scope_T<VulkanImage> m_ColorImage{};
+        Scope_T<VulkanImage> m_DepthImage{};
+        Scope_T<VulkanFrameBuffer> m_DrawFrameBuffer{};
 
         Ref_T<VulkanCommandPool> m_CommandPool{};
         VkCommandBuffer m_DrawCommandBuffer{};
@@ -58,7 +74,7 @@ namespace Mikoto {
         VkExtent2D m_Extent2D{ 2560, 1440 };
         VkExtent3D m_Extent3D{ 2560, 1440, 1 };
     };
-}
+}// namespace Mikoto
 
 
 #endif // MIKOTO_IMGUI_VULKAN_BACKEND_HH

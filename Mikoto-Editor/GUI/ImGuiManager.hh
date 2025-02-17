@@ -11,8 +11,9 @@
 
 // Project Headers
 #include <GUI/ImGuiUtils.hh>
-
 #include <Platform/Window/Window.hh>
+
+#include <GUI/ImGuiVulkanBackend.hh>
 
 namespace Mikoto {
     /**
@@ -38,7 +39,7 @@ namespace Mikoto {
          * @brief Initializes the ImGuiManager with the provided window.
          * @param window Shared pointer to the window to associate with ImGui.
          * */
-        static auto Init(const std::shared_ptr<Window>& window) -> void;
+        static auto Init(const Window* window) -> void;
 
         /**
          * @brief Starts a new ImGui frame. Must be called before submitting any ImGui item.
@@ -77,11 +78,11 @@ namespace Mikoto {
          * The behavior is undefined if the window's native handle is not of GLFW.
          * @param window Shared pointer to the window handle.
          * */
-        static auto InitImplementation(const std::shared_ptr<Window>& window) -> void;
+        static auto InitImplementation(const Window* window) -> void;
 
     private:
         inline static std::vector<ImFont*>                   s_Fonts{};                   /**< Vector storing ImGui fonts. */
-        inline static std::unique_ptr<BackendImplementation> m_Implementation{ nullptr }; /**< Pointer to the backend implementation. */
+        inline static Scope_T<BackendImplementation> m_Implementation{ nullptr }; /**< Pointer to the backend implementation. */
     };
 }
 

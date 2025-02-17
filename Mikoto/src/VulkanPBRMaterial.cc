@@ -4,10 +4,7 @@
 
 #include <cstring>
 
-#include <Core/FileManager.hh>
-
 #include <Renderer/Vulkan/VulkanRenderer.hh>
-#include <Renderer/Vulkan/DeletionQueue.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanPBRMaterial.hh>
 
@@ -32,7 +29,7 @@
 #define LIGHT_HAS_NO_AO_MAP    0
 
 namespace Mikoto {
-
+#if false
     VulkanPBRMaterial::VulkanPBRMaterial( const PBRMaterialCreateSpec &spec, std::string_view name )
         :   PhysicallyBasedMaterial{ name }
     {
@@ -57,12 +54,12 @@ namespace Mikoto {
         // [Setup padded sizes]
 
         // vertex shader uniform buffer size padded
-        const auto minOffsetAlignment{ VulkanUtils::GetDeviceMinimumOffsetAlignment(VulkanContext::GetPrimaryPhysicalDevice()) };
-        auto paddedSize{ VulkanUtils::GetUniformBufferPadding(sizeof( VertexUniformBuffer ), minOffsetAlignment) };
+        const auto minOffsetAlignment{ VulkanHelpers::GetDeviceMinimumOffsetAlignment(VulkanContext::GetPrimaryPhysicalDevice()) };
+        auto paddedSize{ VulkanHelpers::GetUniformBufferPadding(sizeof( VertexUniformBuffer ), minOffsetAlignment) };
         m_VertexShaderUniformPaddedSize = paddedSize;
 
         // fragment shader  uniform buffer size padded
-        auto fragmentPaddedSize{ VulkanUtils::GetUniformBufferPadding(sizeof(FragmentUniformBufferData), minOffsetAlignment) };
+        auto fragmentPaddedSize{ VulkanHelpers::GetUniformBufferPadding(sizeof(FragmentUniformBufferData), minOffsetAlignment) };
         m_FragmentShaderUniformPaddedSize = fragmentPaddedSize;
 
         CreateUniformBuffers();
@@ -128,23 +125,23 @@ namespace Mikoto {
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         poolSizes[1].descriptorCount = 1;
 
-        VkDescriptorPoolCreateInfo poolInfo{ VulkanUtils::Initializers::DescriptorPoolCreateInfo() };
+        VkDescriptorPoolCreateInfo poolInfo{ VulkanHelpers::Initializers::DescriptorPoolCreateInfo() };
         poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
         poolInfo.poolSizeCount = static_cast<UInt32_T>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
         poolInfo.maxSets = 1000;
 
-        if (vkCreateDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), &poolInfo, nullptr, &m_DescriptorPool) != VK_SUCCESS) {
+        if (vkCreateDescriptorPool(VulkanContext::GetDevice(), &poolInfo, nullptr, &m_DescriptorPool) != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("Failed to create descriptor pool!");
         }
 
         DeletionQueue::Push([descPool = m_DescriptorPool]() -> void {
-            vkDestroyDescriptorPool(VulkanContext::GetPrimaryLogicalDevice(), descPool, nullptr);
+            vkDestroyDescriptorPool(VulkanContext::GetDevice(), descPool, nullptr);
         });
     }
 
     auto VulkanPBRMaterial::CreateDescriptorSet() -> void {
-        auto&pbrMaterialInfo{ dynamic_cast<VulkanRenderer*>(Renderer::GetActiveGraphicsAPIPtr())->GetMaterialInfo()[std::string(GetName())] };
+        auto&pbrMaterialInfo{ dynamic_cast<VulkanRenderer*>(RendererSystem::GetActiveGraphicsAPIPtr())->GetMaterialInfo()[std::string(GetName())] };
 
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -152,13 +149,13 @@ namespace Mikoto {
         allocInfo.descriptorSetCount = 1;
         allocInfo.pSetLayouts = &pbrMaterialInfo.DescriptorSetLayout;
 
-        if (vkAllocateDescriptorSets(VulkanContext::GetPrimaryLogicalDevice(), &allocInfo, &m_DescriptorSet) != VK_SUCCESS) {
+        if (vkAllocateDescriptorSets(VulkanContext::GetDevice(), &allocInfo, &m_DescriptorSet) != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("failed to allocate descriptor sets!");
         }
 
         DeletionQueue::Push([descPool = m_DescriptorPool, descSet = m_DescriptorSet]() -> void {
             std::array<VkDescriptorSet, 1> descSets{ descSet };
-            vkFreeDescriptorSets(VulkanContext::GetPrimaryLogicalDevice(), descPool, static_cast<UInt32_T>(descSets.size()), descSets.data());
+            vkFreeDescriptorSets(VulkanContext::GetDevice(), descPool, static_cast<UInt32_T>(descSets.size()), descSets.data());
         });
 
         UpdateDescriptorSets();
@@ -254,6 +251,9 @@ namespace Mikoto {
         descriptorWrites[6].descriptorCount = 1;
         descriptorWrites[6].pBufferInfo = &fragmentUbo;
 
-        vkUpdateDescriptorSets(VulkanContext::GetPrimaryLogicalDevice(), static_cast<UInt32_T>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+        vkUpdateDescriptorSets(VulkanContext::GetDevice(), static_cast<UInt32_T>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
+
+#endif
+
 }

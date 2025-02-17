@@ -16,11 +16,15 @@
 
 // Project Headers
 #include <Common/Common.hh>
-#include <Renderer/Vulkan/VulkanUtils.hh>
+#include <Renderer/Vulkan/VulkanObject.hh>
 #include <Renderer/Vulkan/VulkanShader.hh>
 
 namespace Mikoto {
-    struct PipelineConfigInfo {
+    struct VulkanPipelineCreateInfo {
+        UInt32_T Subpass{};
+        VkRenderPass RenderPass{};
+        VkPipelineLayout PipelineLayout{};
+
         VkPipelineViewportStateCreateInfo ViewportInfo{};
         VkPipelineInputAssemblyStateCreateInfo InputAssemblyInfo{};
         VkPipelineRasterizationStateCreateInfo RasterizationInfo{};
@@ -29,38 +33,32 @@ namespace Mikoto {
         VkPipelineColorBlendStateCreateInfo ColorBlendInfo{};
         VkPipelineDepthStencilStateCreateInfo DepthStencilInfo{};
         VkPipelineDynamicStateCreateInfo DynamicStateInfo{};
-        VkPipelineLayout PipelineLayout{};
-        VkRenderPass RenderPass{};
-        UInt32_T Subpass{};
 
-        std::vector<VkDynamicState> DynamicStateEnables{};
-        std::vector<VkPipelineShaderStageCreateInfo>* ShaderStages{ nullptr };
+        std::span<const VkDynamicState> DynamicStateEnables{};
+        std::span<const VkPipelineShaderStageCreateInfo> ShaderStages{};
     };
 
-    class VulkanPipeline {
+    class VulkanPipeline final : public VulkanObject {
     public:
-        explicit VulkanPipeline() = default;
+        explicit VulkanPipeline(const VulkanPipelineCreateInfo& config);
 
-        VulkanPipeline(VulkanPipeline&&) = default;
-        auto operator=(VulkanPipeline&&) noexcept -> VulkanPipeline& = default;
+        auto Init() -> void;
 
-        auto operator==(const VulkanPipeline& other) const -> bool { return m_GraphicsPipeline == other.m_GraphicsPipeline; }
-
-        auto CreateGraphicsPipeline(const PipelineConfigInfo& config) -> void;
-
+        auto Release() -> void override;
         auto Bind(VkCommandBuffer commandBuffer) const -> void;
 
         MKT_NODISCARD auto Get() const -> const VkPipeline& { return m_GraphicsPipeline; }
-        MKT_NODISCARD static auto GetDefaultPipelineConfigInfo() -> PipelineConfigInfo &;
+        MKT_NODISCARD auto GetLayout() const -> const VkPipelineLayout& { return m_PipelineLayout; }
 
-        ~VulkanPipeline() = default;
+        ~VulkanPipeline() override;
 
     public:
         DELETE_COPY_FOR(VulkanPipeline);
 
     private:
         VkPipeline m_GraphicsPipeline{};
-        PipelineConfigInfo m_ConfigInfo{};
+        VkPipelineLayout m_PipelineLayout{};
+        VulkanPipelineCreateInfo m_ConfigInfo{};
     };
 }
 

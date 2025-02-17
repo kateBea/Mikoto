@@ -14,8 +14,11 @@
 
 // Project Headers
 #include <Common/Common.hh>
-#include <STL/Utility/Types.hh>
-#include <Renderer/Vulkan/VulkanUtils.hh>
+#include <Library/Utility/Types.hh>
+#include <Library/Filesystem/File.hh>
+#include <Renderer/Vulkan/VulkanHelpers.hh>
+#include <Renderer/Vulkan/VulkanImage.hh>
+#include <Renderer/Vulkan/VulkanObject.hh>
 #include <Material/Texture/Texture2D.hh>
 
 namespace Mikoto {
@@ -33,38 +36,36 @@ namespace Mikoto {
      * Extends the Texture2D class for Vulkan-specific texture functionality. It manages loading and handling
      * 2D textures for Vulkan rendering, including creating images, image views, samplers, and descriptor sets.
      * */
-    class VulkanTexture2D final : public Texture2D {
+    class VulkanTexture2D final : public VulkanObject, public Texture2D {
     public:
 
-        explicit VulkanTexture2D(const Path_T& path, MapType type, bool retainFileData = false);
+        explicit VulkanTexture2D(const VulkanTexture2DCreateInfo& data);
 
-        MKT_UNUSED_FUNC MKT_NODISCARD auto GetFileData() const -> stbi_uc* { return m_TextureFileData; }
-        MKT_UNUSED_FUNC MKT_NODISCARD auto GetImage() const -> VkImage { return m_ImageInfo.Image; }
-        MKT_NODISCARD auto GetImageView() const -> VkImageView { return m_View; }
-        MKT_NODISCARD auto GetImageSampler() const -> VkSampler { return m_TextureSampler; }
-        MKT_NODISCARD auto GetDescriptorSet() const -> VkDescriptorSet { return m_DescSet; }
-        MKT_NODISCARD auto GetImGuiTextureHandle() const -> std::any override { return m_DescSet; }
+        MKT_NODISCARD auto GetFileData() const -> stbi_uc* { return m_FileData; }
+        MKT_NODISCARD auto GetImage() -> VulkanImage& { return *m_Image; }
+        MKT_NODISCARD auto GetImage() const -> const VulkanImage& { return *m_Image; }
+        MKT_NODISCARD auto GetSampler() const -> const VkSampler& { return m_Sampler; }
+
+        auto Release() -> void override;
 
         ~VulkanTexture2D() override;
 
-    private:
-        auto Create(const VulkanTexture2DCreateInfo& data) -> void;
-        auto Release() -> void;
+        static auto Create(const VulkanTexture2DCreateInfo& data) -> Scope_T<VulkanTexture2D>;
 
     private:
         auto CreateImage() -> void;
-        auto CreateImageView() -> void;
         auto CreateSampler() -> void;
         auto LoadImageData(const Path_T& path) -> void;
 
     private:
-        stbi_uc*                        m_TextureFileData{};  /**< Texture file data, represented in STB image format. */
-        Size_T                    m_ImageSize{};        /**< Size of the image in Vulkan format. */
+        Size_T m_FileSize{ 0 };
+        stbi_uc* m_FileData{ nullptr };
 
-        VkSampler                       m_TextureSampler{};   /**< Vulkan sampler associated with the texture. */
-        VkImageView                     m_View{};             /**< Vulkan image view associated with the texture. */
-        VkDescriptorSet                 m_DescSet{};          /**< Vulkan descriptor set associated with the texture. */
-        ImageAllocateInfo               m_ImageInfo{};        /**< Vulkan image information. */
+        VkSampler m_Sampler{ VK_NULL_HANDLE };
+
+        Ref_T<VulkanImage> m_Image{ nullptr };
+
+        const File* m_File{ nullptr };
     };
 }
 

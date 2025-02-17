@@ -23,7 +23,7 @@
 | Image Loading             | Support for loading and using textures/images     | ✅             |
 | Blinn-Phong Lighting      | Basic lighting model implementation               | ✅             |
 | Entity Component System   | Management of scene game objects through ECS      | ✅             |
-| Game Object Serialization | Save and load objects to/from disk                | ⚠️            |
+| Game Object Serialization | Save and load objects to/from disk                | ❌            |
 | Particle System           | Visual particle effects like smoke, fire, etc.    | ❌             |
 | Vulkan Ray Tracing        | Support for Vulkan RayTracing                     | ❌             |
 | Physics Integration       | Basic collision detection and response            | ❌             |
@@ -33,10 +33,10 @@
 
 ## Supported Platforms
 
-| Platform | Status                 |
-|----------|------------------------|
-| Linux    | Supported              |
-| Windows  | Work-in-Progress (WIP) |
+| Platform | Status    |
+|----------|-----------|
+| Linux    | Supported |
+| Windows  | Supported |
 
 ---
 
@@ -97,6 +97,7 @@ Currently, the building process has been tested on Linux and Windows.
    ```
 
 For Visual Studio users, CMake will generate `.sln` files by default. Simply open the solution in Visual Studio and build from there. CLion users can open the project directly and build it without extra steps.
+Before you run the editor program you need to copy `engine-config.toml` file to the where you have your working directory; yo also need to copy both the Resources folders to the same directory.
 
 ---
 

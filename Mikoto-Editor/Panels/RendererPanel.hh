@@ -5,13 +5,12 @@
 #ifndef MIKOTO_RENDERER_PANEL_HH
 #define MIKOTO_RENDERER_PANEL_HH
 
-#include "Panel.hh"
+#include <Panels/Panel.hh>
 
 namespace Mikoto {
     class RendererPanel final : public Panel {
     public:
         explicit RendererPanel();
-        auto operator=(RendererPanel && other) -> RendererPanel & = default;
 
         auto OnUpdate(float timeStep) -> void override;
 

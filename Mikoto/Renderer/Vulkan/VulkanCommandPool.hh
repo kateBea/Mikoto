@@ -10,24 +10,30 @@
 #include <volk.h>
 
 // Project Headers
-#include <STL/Utility/Types.hh>
+#include <Library/Utility/Types.hh>
 #include <Renderer/Vulkan/VulkanObject.hh>
 
 namespace Mikoto {
+
+    struct VulkanCommandPoolCreateInfo {
+        VkCommandPoolCreateInfo CreateInfo{};
+    };
+
     class VulkanCommandPool final : public VulkanObject {
     public:
-        explicit VulkanCommandPool( const VkCommandPoolCreateInfo& createInfo );
+        explicit VulkanCommandPool( const VulkanCommandPoolCreateInfo& createInfo);
 
-        auto Get() const -> VkCommandPool { return m_CommandPool; }
+        auto Get() -> VkCommandPool& { return m_CommandPool; }
+        auto GetCreateInfo() -> VkCommandPoolCreateInfo& { return m_CreateInfo; }
+
         auto Release() -> void override;
 
-        static auto Create(const VkCommandPoolCreateInfo& createInfo) -> Ref_T<VulkanCommandPool>;
+        MKT_NODISCARD static auto Create(const VulkanCommandPoolCreateInfo& createInfo) -> Scope_T<VulkanCommandPool>;
 
-        ~VulkanCommandPool() override {
-            Release();
-        }
+        ~VulkanCommandPool() override;
 
         DISABLE_COPY_AND_MOVE_FOR(VulkanCommandPool);
+
     private:
         VkCommandPool m_CommandPool{ VK_NULL_HANDLE };
         VkCommandPoolCreateInfo m_CreateInfo{};

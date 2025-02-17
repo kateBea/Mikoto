@@ -10,8 +10,9 @@
 #include <memory>
 
 // Project Headers
-#include "Common/Common.hh"
-#include "Panel.hh"
+#include <Common/Common.hh>
+#include <Panels/Panel.hh>
+#include <Library/Utility/Types.hh>
 
 namespace Mikoto {
     struct SettingsPanelData {
@@ -27,10 +28,14 @@ namespace Mikoto {
         bool RenderWireframeMode{ false };
     };
 
+    struct SettingsPanelCreateInfo {
+        SettingsPanelData Data{};
+    };
+
     class SettingsPanel final : public Panel {
     public:
         explicit SettingsPanel();
-        auto operator=(SettingsPanel&& other) -> SettingsPanel& = default;
+        explicit SettingsPanel(const SettingsPanelCreateInfo& data);
 
         auto OnUpdate(float timeStep) -> void override;
         auto SetRenderBackgroundColor(const glm::vec4& color) { m_Data.ClearColor = color; }
@@ -39,8 +44,6 @@ namespace Mikoto {
         MKT_NODISCARD auto GetData() const -> const SettingsPanelData& { return m_Data; }
 
     private:
-        static constexpr Size_T REQUIRED_IDS{ 3 };
-
         SettingsPanelData m_Data{};
     };
 }

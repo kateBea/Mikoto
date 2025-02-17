@@ -11,33 +11,36 @@
 #include <vector>
 
 // Third-Party Libraries
-#include "glm/glm.hpp"
-#include "volk.h"
+#include <volk.h>
 
 // Project Headers
-#include "Common/Common.hh"
-#include "Renderer/Vulkan/VulkanUtils.hh"
-#include "Renderer/Buffer/VertexBuffer.hh"
-#include "VulkanBuffer.hh"
-#include <Models/VertexBufferCreateInfo.hh>
+#include <Common/Common.hh>
+#include <Renderer/Vulkan/VulkanObject.hh>
+#include <Renderer/Vulkan/VulkanHelpers.hh>
+#include <Renderer/Vulkan/VulkanBuffer.hh>
+#include <Renderer/Buffer/VertexBuffer.hh>
 
 namespace Mikoto {
-    class VulkanVertexBuffer : public VertexBuffer {
+    class VulkanVertexBuffer final : public VertexBuffer, public VulkanObject {
     public:
-        explicit VulkanVertexBuffer(VertexBufferCreateInfo&& createInfo);
+        explicit VulkanVertexBuffer(const VertexBufferCreateInfo& createInfo);
 
         auto Bind(VkCommandBuffer commandBuffer) const -> void;
 
-        MKT_NODISCARD auto GetBindingDescriptions() -> std::vector<VkVertexInputBindingDescription>& { return m_BindingDesc; }
-        MKT_NODISCARD auto GetAttributeDescriptions() -> std::vector<VkVertexInputAttributeDescription>& { return m_AttributeDesc; }
-
+#ifdef VULKAN_EXTENDED_DYNAMIC_EXTENSION
         auto SetBindingDescriptions() -> void;
         auto SetAttributeDescriptions() -> void;
+        MKT_NODISCARD auto GetBindingDescriptions() -> std::vector<VkVertexInputBindingDescription>& { return m_BindingDesc; }
+        MKT_NODISCARD auto GetAttributeDescriptions() -> std::vector<VkVertexInputAttributeDescription>& { return m_AttributeDesc; }
+#endif
 
-        static auto GetDefaultBindingDescriptions() -> std::vector<VkVertexInputBindingDescription>&;
-        static auto GetDefaultAttributeDescriptions() -> std::vector<VkVertexInputAttributeDescription>&;
+        MKT_NODISCARD static auto GetDefaultBindingDescriptions() -> std::vector<VkVertexInputBindingDescription>&;
+        MKT_NODISCARD static auto GetDefaultAttributeDescriptions() -> std::vector<VkVertexInputAttributeDescription>&;
 
-        ~VulkanVertexBuffer() override = default;
+        auto Release() -> void override;
+
+        ~VulkanVertexBuffer() override;
+
     public:
         DISABLE_COPY_AND_MOVE_FOR(VulkanVertexBuffer);
 
@@ -45,17 +48,21 @@ namespace Mikoto {
         auto SetVertexData(const std::vector<float>& vertices) -> void;
 
     private:
+#ifndef VULKAN_EXTENDED_DYNAMIC_EXTENSION
         inline static std::vector<VkVertexInputBindingDescription> s_BindingDesc{};
         inline static std::vector<VkVertexInputAttributeDescription> s_AttributeDesc{};
+#endif
 
-    private:
-        VulkanBuffer m_Buffer{};
+        Scope_T<VulkanBuffer> m_Buffer{};
         std::vector<float> m_RetainedData{};
-        std::vector<VkVertexInputBindingDescription> m_BindingDesc{};
-        std::vector<VkVertexInputAttributeDescription>  m_AttributeDesc{};
 
+#ifdef VULKAN_EXTENDED_DYNAMIC_EXTENSION
         // TODO: implement usage of dynamic vertex buffers layout specification. See vkDynamicVertexEXT()
         bool m_UseDynamicVertexBufferLayout{ false };
+        std::vector<VkVertexInputBindingDescription> m_BindingDesc{};
+        std::vector<VkVertexInputAttributeDescription>  m_AttributeDesc{};
+#endif
+
     };
 }
 

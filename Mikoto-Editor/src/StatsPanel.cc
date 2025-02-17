@@ -12,17 +12,16 @@
 #include "imgui.h"
 
 // Project Headers
-#include <STL/String/String.hh>
-#include "STL/Utility/Types.hh"
-#include "Core/TimeManager.hh"
-#include "Panels/StatsPanel.hh"
-#include "Renderer/Core/Renderer.hh"
-
-#include "GUI/ImGuiUtils.hh"
+#include <Core/System/RenderSystem.hh>
+#include <Core/System/TimeSystem.hh>
+#include <Library/String/String.hh>
 
 #include "GUI/IconsFontAwesome5.h"
 #include "GUI/IconsMaterialDesign.h"
 #include "GUI/IconsMaterialDesignIcons.h"
+#include "GUI/ImGuiUtils.hh"
+#include "Library/Utility/Types.hh"
+#include "Panels/StatsPanel.hh"
 
 namespace Mikoto {
 
@@ -43,24 +42,32 @@ namespace Mikoto {
         }
     }
 
+    static auto DrawSystemInformation(/* system info object*/) -> void {
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::TextUnformatted("Graphics API");
+        ImGui::TableNextColumn();
+        ImGui::TextUnformatted(fmt::format(":    ").c_str());
+    }
+
 
     StatsPanel::StatsPanel()
         :   Panel{}
     {
+        TimeSystem& timeSystem{ Engine::GetSystem<TimeSystem>() };
+
         m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_MONITOR_HEART, GetStatsPanelName());
-        m_IntervalUpdate = static_cast<float>( TimeManager::GetTime() );
+        m_IntervalUpdate = static_cast<float>( timeSystem.GetTime() );
     }
 
-
     auto StatsPanel::UpdateStatsInfo( float timeStep ) -> void {
+
         m_FrameTime = timeStep;
         m_FrameRate = 1.0f / m_FrameTime;
 
-        const auto timeElapsed{ TimeManager::GetTime() };
-
-        if ( ( timeElapsed - m_LastTimeUpdate ) >= m_IntervalUpdate ) {
+        if ( ( m_FrameTime - m_LastTimeUpdate ) >= m_IntervalUpdate ) {
             m_SysInfo = GetSystemCurrentInfo();
-            m_LastTimeUpdate = static_cast<float>( timeElapsed );
+            m_LastTimeUpdate = m_FrameTime;
         }
     }
 
@@ -89,7 +96,7 @@ namespace Mikoto {
             }
 
             ImGui::SameLine();
-            HelpMarker(
+            ImGuiUtils::HelpMarker(
                     "Tells how often we want to refresh system stats,\n"
                     "updating information such as RAM usage, available\n"
                     "RAM, VRAM usage, etc. This is specially costly\n"
@@ -167,14 +174,23 @@ namespace Mikoto {
 
                     std::string apiStr{};
 
+                    RenderSystem& renderSystem{ Engine::GetSystem<RenderSystem>() };
+                    TimeSystem& timeSystem{ Engine::GetSystem<TimeSystem>() };
 
-                    switch (Renderer::GetActiveGraphicsAPI()) {
+                    switch (renderSystem.GetDefaultApi()) {
                         case GraphicsAPI::VULKAN_API:
                             apiStr = fmt::format("Vulkan");
                             break;
                     }
 
                     if (ImGui::BeginTable("DrawPerformanceTable", m_ColumCount, flags)) {
+
+                        // For each system info object in system info list
+                        // draw system info
+
+                        DrawSystemInformation();
+
+
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
                         ImGui::TextUnformatted("Graphics API");
@@ -216,14 +232,13 @@ namespace Mikoto {
                         ImGui::TableNextColumn();
                         ImGui::TextUnformatted("VRAM");
                         ImGui::TableNextColumn();
-                        auto& vram{ Renderer::GetRendererStatistics() };
-                        ImGui::TextUnformatted(fmt::format(":    {} MB", vram.VRAMUsage / 1'000'000).c_str());
+                        ImGui::TextUnformatted(fmt::format(":    {} MB", 0 / 1'000'000).c_str());
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
                         ImGui::TextUnformatted("Elapsed");
                         ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", TimeManager::ToString(TimeManager::GetTime())).c_str());
+                        ImGui::TextUnformatted(fmt::format(":    {}", timeSystem.ToString(timeSystem.GetTime())).c_str());
 
                         ImGui::EndTable();
                     }

@@ -10,8 +10,8 @@
 #include <memory>
 
 // Project Headers
-#include "Common/Common.hh"
-#include "STL/Utility/Types.hh"
+#include <Common/Common.hh>
+#include <Library/Utility/Types.hh>
 
 namespace Mikoto {
     class IndexBuffer {
@@ -33,14 +33,13 @@ namespace Mikoto {
           * */
         MKT_NODISCARD auto GetSize() const -> UInt64_T { return m_Size; }
 
-
         /**
          * Creates and initializes and index buffer object valid for the current
          * graphics API backend using from the data passed in
          * @param data index buffer indices
          * @returns a pointer to the newly created index buffer
          * */
-        MKT_NODISCARD static auto Create(const std::vector<UInt32_T>& data) -> std::shared_ptr<IndexBuffer>;
+        MKT_NODISCARD static auto Create(const std::vector<UInt32_T>& data) -> Scope_T<IndexBuffer>;
 
     protected:
         /**
@@ -48,7 +47,8 @@ namespace Mikoto {
          * @param count count of indices
          * @param size size in bytes of the buffer
          * */
-        explicit IndexBuffer(UInt64_T count = 0U, UInt64_T size = 0U) : m_Count{ count }, m_Size{ size } {}
+        explicit IndexBuffer( const UInt64_T count = 0U, const UInt64_T size = 0U)
+          : m_Count{ count }, m_Size{ size } {}
 
     protected:
         UInt64_T m_Count{};

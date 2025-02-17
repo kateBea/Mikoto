@@ -4,32 +4,46 @@
  * */
 
 // Project Headers
-#include <Renderer/Vulkan/DeletionQueue.hh>
 #include <Renderer/Vulkan/VulkanBuffer.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
+#include <Renderer/Vulkan/VulkanDeletionQueue.hh>
 
 namespace Mikoto {
 
-    auto VulkanBuffer::OnCreate(const BufferAllocateInfo& allocInfo) -> void {
-        m_AllocationInfo = allocInfo;
-        VulkanUtils::UploadBuffer(m_AllocationInfo);
+    auto VulkanBuffer::Release() -> void {
+        PersistentUnmap();
 
-        if (m_AllocationInfo.WantMapping) {
+        auto& device{ VulkanContext::Get().GetDevice() };
+        vmaDestroyBuffer( device.GetAllocator(), m_Buffer, m_VmaAllocation );
+    }
+
+    VulkanBuffer::~VulkanBuffer() {
+        if ( !m_IsReleased ) {
+            Release();
+            Invalidate();
+        }
+    }
+
+    VulkanBuffer::VulkanBuffer( const VulkanBufferCreateInfo& createInfo )
+        : m_Size{ createInfo.BufferCreateInfo.size },
+        m_BufferCreateInfo{ createInfo.BufferCreateInfo },
+        m_AllocationCreateInfo{ createInfo.AllocationCreateInfo }
+    {
+        VulkanDevice& device{ VulkanContext::Get().GetDevice() };
+        device.CreateBuffer( createInfo, m_Buffer, m_VmaAllocation, m_VmaAllocationInfo );
+
+        if ( createInfo.WantMapping ) {
             PersistentMap();
         }
+    }
 
-        DeletionQueue::Push([isMapped = m_IsMapped, vulkanBufferHandle = m_AllocationInfo.Buffer, allocationHandle =  m_AllocationInfo.Allocation]() -> void {
-            if (isMapped) {
-                // We get validation errors if we destroy a buffer that is mapped
-                vmaUnmapMemory(VulkanContext::GetDefaultAllocator(), allocationHandle);
-            }
-
-            vmaDestroyBuffer(VulkanContext::GetDefaultAllocator(), vulkanBufferHandle, allocationHandle);
-        });
+    auto VulkanBuffer::Create( const VulkanBufferCreateInfo& createInfo ) -> Scope_T<VulkanBuffer> {
+        return CreateScope<VulkanBuffer>( createInfo );
     }
 
     auto VulkanBuffer::PersistentMap() -> void {
-        if (vmaMapMemory(VulkanContext::GetDefaultAllocator(), m_AllocationInfo.Allocation, &m_MappedAddress ) != VK_SUCCESS) {
+        VulkanDevice& device{ VulkanContext::Get().GetDevice() };
+        if (vmaMapMemory(device.GetAllocator(), m_VmaAllocation, std::addressof( m_MappedAddress ) ) != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("Failed to map memory for uniform buffer in default material!");
         }
 
@@ -37,8 +51,11 @@ namespace Mikoto {
     }
 
     auto VulkanBuffer::PersistentUnmap() -> void {
-        vmaUnmapMemory(VulkanContext::GetDefaultAllocator(), m_AllocationInfo.Allocation);
+        VulkanDevice& device{ VulkanContext::Get().GetDevice() };
 
-        m_IsMapped = false;
+        if (m_IsMapped) {
+            vmaUnmapMemory(device.GetAllocator(), m_VmaAllocation);
+            m_IsMapped = false;
+        }
     }
 }

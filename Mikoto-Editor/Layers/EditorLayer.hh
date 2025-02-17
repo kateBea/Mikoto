@@ -10,61 +10,88 @@
 #include <memory>
 
 // Project Headers
+#include <Layer.hh>
+#include <Assets/Model.hh>
+#include <Core/Serialization/SceneSerializer.hh>
+#include <EditorModels/DockSpaceControlFlags.hh>
+#include <EditorModels/Enums.hh>
+#include <Models/Enums.hh>
+#include <Panels/Panel.hh>
+#include <Project/Project.hh>
 #include <Scene/Camera/SceneCamera.hh>
-
-#include "Core/Layer.hh"
-#include "Models/DockSPaceCallbacks.hh"
-#include "Models/DockSpaceControlFlags.hh"
-#include "Panels/ConsolePanel.hh"
-#include "Panels/ContentBrowserPanel.hh"
-#include "Panels/HierarchyPanel.hh"
-#include "Panels/InspectorPanel.hh"
-#include "Panels/RendererPanel.hh"
-#include "Panels/ScenePanel.hh"
-#include "Panels/SettingsPanel.hh"
-#include "Panels/StatsPanel.hh"
-
-#include <Core/CommandLineParser.hh>
+#include <Scene/Scene/Scene.hh>
+#include <Project/ProjectSerializer.hh>
+#include <Renderer/Core/RendererBackend.hh>
 
 namespace Mikoto {
+    struct EditorLayerCreateInfo {
+        Window* TargetWindow{ nullptr };
+        GraphicsAPI GraphicsAPI{};
+        Path_T AssetsRootDirectory{};
+    };
+
     class EditorLayer final : public Layer {
     public:
+        explicit EditorLayer() = default;
+        explicit EditorLayer(const EditorLayerCreateInfo& createInfo);
+
         auto OnAttach() -> void override;
         auto OnDetach() -> void override;
-        auto OnUpdate(double ts) -> void override;
+        auto OnUpdate(double timeStep) -> void override;
         auto PushImGuiDrawItems() -> void override;
 
     private:
-        auto SaveScene() -> void;
+        auto SaveScene() const -> void;
         auto LoadScene() -> void;
+        auto CreateScene(std::string_view name) -> void;
 
         auto SaveProject() -> void;
-        auto LoadProject() -> void;
+        auto OpenProject() -> void;
+        auto CreateProject() -> void;
 
         auto CreatePanels() -> void;
         auto CreateCameras() -> void;
         auto UpdateDockSpace() -> void;
 
-        static auto ShowDockingDisabledMessage() -> void;
+        auto PrepareNewScene() -> void;
+        auto PrepareSerialization() -> void;
+
+        auto LoadPrefabModels() const -> void;
+        auto GetPrefabModel( PrefabSceneObject type ) -> Model*;
 
     private:
-        Ref_T<Entity> m_SelectedEntity{};
-        Ref_T<Scene> m_ActiveScene{};
+        MKT_NODISCARD static auto GetSpritePrefabName(const std::string_view path = "") -> const std::string& { static std::string value{ path }; return value; }
+        MKT_NODISCARD static auto GetCubePrefabName(const std::string_view path = "") -> const std::string& { static std::string value{ path }; return value; }
+        MKT_NODISCARD static auto GetSpherePrefabName(const std::string_view path = "") -> const std::string& { static std::string value{ path }; return value; }
+        MKT_NODISCARD static auto GetCylinderPrefabName(const std::string_view path = "") -> const std::string& { static std::string value{ path }; return value; }
+        MKT_NODISCARD static auto GetConePrefabName(const std::string_view path = "") -> const std::string& { static std::string value{ path }; return value; }
+        MKT_NODISCARD static auto GetSponzaPrefabName(const std::string_view path = "") -> const std::string& { static std::string value{ path }; return value; }
+
+    private:
+        Window* m_Window{ nullptr };
 
         DockControlFlags m_ControlFlags{};
-        DockSpaceCallbacks m_DockSpaceCallbacks{};
 
-        std::shared_ptr<SceneCamera> m_RuntimeCamera{};
-        std::shared_ptr<SceneCamera> m_EditorCamera{};
+        Entity* m_SelectedEntity{};
 
-        std::unique_ptr<ScenePanel> m_ScenePanel{};
-        std::unique_ptr<StatsPanel> m_StatsPanel{};
-        std::unique_ptr<ConsolePanel> m_ConsolePanel{};
-        std::unique_ptr<RendererPanel> m_RendererPanel{};
-        std::unique_ptr<SettingsPanel> m_SettingsPanel{};
-        std::unique_ptr<HierarchyPanel> m_HierarchyPanel{};
-        std::unique_ptr<InspectorPanel> m_InspectorPanel{};
-        std::unique_ptr<ContentBrowserPanel> m_ContentBrowserPanel{};
+        Scope_T<Scene> m_ActiveScene{};
+
+        Scope_T<SceneCamera> m_EditorCamera{};
+        Scope_T<SceneSerializer> m_SceneSerializer{};
+
+        Scope_T<Project> m_Project{};
+        Scope_T<ProjectSerializer> m_ProjectSerializer{};
+
+        Path_T m_AssetsRootDirectory{};
+
+        GraphicsAPI m_GraphicsAPI{};
+
+        Scope_T<RendererBackend> m_EditorRenderer{};
+
+        // Tells hierarchy between game objects
+        //SceneGraph m_SceneGraph{};
+
+        Registry<Panel> m_PanelRegistry{};
     };
 }
 

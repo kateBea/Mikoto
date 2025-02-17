@@ -37,6 +37,25 @@ namespace Mikoto {
         COUNT,
     };
 
+    enum class MapType {
+        TEXTURE_2D_INVALID,
+        TEXTURE_2D_DIFFUSE,
+        TEXTURE_2D_SPECULAR,
+        TEXTURE_2D_EMISSIVE,
+        TEXTURE_2D_NORMAL,
+        TEXTURE_2D_ROUGHNESS,
+        TEXTURE_2D_METALLIC,
+        TEXTURE_2D_AMBIENT_OCCLUSION,
+        TEXTURE_2D_COUNT,
+    };
+
+    enum class FileType {
+        UNKNOWN_IMAGE_TYPE,
+        PNG_IMAGE_TYPE,
+        JPEG_IMAGE_TYPE,
+        JPG_IMAGE_TYPE,
+    };
+
     enum class MaterialType {
         PBR,
         STANDARD,
@@ -69,21 +88,9 @@ namespace Mikoto {
         SPOT_LIGHT_TYPE         = 2,
     };
 
-
-    enum class PrefabSceneObject {
-        NO_PREFAB_OBJECT,
-        SPRITE_PREFAB_OBJECT,
-        CUBE_PREFAB_OBJECT,
-        CUSTOM_MODEL_PREFAB_OBJECT,
-        CONE_PREFAB_OBJECT,
-        CYLINDER_PREFAB_OBJECT,
-        SPHERE_PREFAB_OBJECT,
-        SPONZA_PREFAB_OBJECT,
-        COUNT_PREFAB_OBJECT,
-    };
-
     enum class GraphicsAPI {
         VULKAN_API,
+        UNKNOWN,
     };
 
     /**
@@ -161,10 +168,10 @@ namespace Mikoto {
     };
 
     enum ShaderStage {
-        SHADER_VERTEX_STAGE         = BIT_SET(1),
-        SHADER_FRAGMENT_STAGE       = BIT_SET(2),
-        SHADER_GEOMETRY_STAGE       = BIT_SET(3),
-        SHADER_TESSELATION_STAGE    = BIT_SET(4),
+        VERTEX_STAGE         = BIT_SET(1),
+        FRAGMENT_STAGE       = BIT_SET(2),
+        GEOMETRY       = BIT_SET(3),
+        TESSELATION    = BIT_SET(4),
     };
 }
 

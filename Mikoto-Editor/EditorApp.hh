@@ -6,13 +6,13 @@
 #ifndef MIKOTO_EDITOR_RUNNER_HH
 #define MIKOTO_EDITOR_RUNNER_HH
 
-// C++ Standard Library
-#include <vector>
-
 // Project Headers
-#include <STL/Utility/Types.hh>
+#include <Layer.hh>
+#include <Common/Registry.hh>
 #include <Common/Application.hh>
-#include <Layers/EditorLayer.hh>
+#include <Platform/Window/Window.hh>
+#include <Core/CommandLineParser.hh>
+#include <Library/Utility/Types.hh>
 
 namespace Mikoto {
     class EditorApp final : public Application {
@@ -25,24 +25,23 @@ namespace Mikoto {
         auto Run(Int32_T argc, char** argv) -> Int32_T;
 
     protected:
-        auto Init(ApplicationData&& appSpec) -> void override;
+        auto Init() -> void override;
         auto Shutdown() -> void override;
         auto ProcessEvents() -> void override;
         auto UpdateState() -> void override;
-        auto Present() -> void;
 
     private:
         auto InitLayers() -> void;
-        auto DestroyLayers() const -> void;
+        auto DestroyLayers() -> void;
         auto UpdateLayers() const -> void;
-        auto RenderImGuiFrame() const -> void;
         auto InstallEventCallbacks() -> void;
-
-        auto ParseArguments(Int32_T argc, char **argv) -> void;
+        auto ParseCommandLineArgs(Int32_T argc, char **argv) -> void;
 
     private:
-        Scope_T<EditorLayer> m_EditorLayer{};
-        Ref_T<CommandLineParser> m_CommandLineParser{};
+        Registry<Layer> m_LayerRegistry{};
+
+        Scope_T<Window> m_MainWindow{};
+        Scope_T<CommandLineParser> m_CommandLineParser{};
     };
 }
 

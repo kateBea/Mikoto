@@ -8,7 +8,7 @@
 #include <initializer_list>
 #include <utility>
 
-#include "Models/BufferElement.hh"
+#include <Models/BufferElement.hh>
 
 namespace Mikoto {
     class BufferLayout {

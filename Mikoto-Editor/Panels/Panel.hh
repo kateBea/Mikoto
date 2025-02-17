@@ -11,7 +11,7 @@
 
 // Project Header
 #include <Common/Common.hh>
-#include <STL/Random/Random.hh>
+#include <Library/Random/Random.hh>
 
 namespace Mikoto {
     /**

@@ -8,11 +8,9 @@
 
 // C++ Standard Library
 #include <chrono>
-#include <string_view>
 
 // Project Headers
-#include "Common/Common.hh"
-#include "Core/TimeManager.hh"
+#include <Common/Common.hh>
 
 namespace Mikoto {
     class Timer final {

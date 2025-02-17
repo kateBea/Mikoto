@@ -17,11 +17,6 @@ layout (location = 3) in vec2 inTexCoord;
 // Output variables
 layout (location = 0) out vec4 outColor;
 
-// Uniform variables
-layout(set = 0, binding = 1) uniform sampler2D texSampler;
-layout(set = 0, binding = 3) uniform sampler2D specTexSampler;
-
-
 /**  Constants */
 
 #define MAX_LIGHTS 200
@@ -77,7 +72,9 @@ struct SpotLight {
     vec4 Components;
 };
 
-layout(set = 0, binding = 2) uniform UniformBufferObject {
+layout(set = 0, binding = 1) uniform sampler2D diffuseSampler;
+layout(set = 0, binding = 2) uniform sampler2D specularSampler;
+layout(set = 0, binding = 3) uniform UniformBufferObject {
     SpotLight SpotLights[MAX_LIGHTS];
     PointLight PointLights[MAX_LIGHTS];
     DirectionalLight DirectionalLights[MAX_LIGHTS];
@@ -122,8 +119,8 @@ vec4 CalcDirLight(DirectionalLight light, vec3 normal, vec3 fragPos, vec3 viewDi
     const int hasDiffuse = int(UniformBufferData.ObjectLightInfo.y);
     switch (hasDiffuse) {
         case LIGHT_HAS_DIFFUSE_MAP:
-        ambient = light.Ambient * texture(texSampler, inTexCoord);
-        diffuse = light.Diffuse * diff * texture(texSampler, inTexCoord);
+        ambient = light.Ambient * texture(diffuseSampler, inTexCoord);
+        diffuse = light.Diffuse * diff * texture(diffuseSampler, inTexCoord);
         break;
 
         case LIGHT_HAS_NO_DIFFUSE_MAP:
@@ -137,7 +134,7 @@ vec4 CalcDirLight(DirectionalLight light, vec3 normal, vec3 fragPos, vec3 viewDi
     const float energyConservation = ( 8.0 + shininess ) / ( 8.0 * C_PI );
     switch (hasSpecular) {
         case LIGHT_HAS_SPECULAR_MAP:
-        specular = light.Specular * spec * texture(specTexSampler, inTexCoord);
+        specular = light.Specular * spec * texture(specularSampler, inTexCoord);
         break;
 
         case LIGHT_HAS_NO_SPECULAR_MAP:
@@ -175,8 +172,8 @@ vec4 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     const int hasDiffuse = int(UniformBufferData.ObjectLightInfo.y);
     switch (hasDiffuse) {
         case LIGHT_HAS_DIFFUSE_MAP:
-        ambient = light.Ambient * texture(texSampler, inTexCoord);
-        diffuse = light.Diffuse * diff * texture(texSampler, inTexCoord);
+        ambient = light.Ambient * texture(diffuseSampler, inTexCoord);
+        diffuse = light.Diffuse * diff * texture(diffuseSampler, inTexCoord);
         break;
 
         case LIGHT_HAS_NO_DIFFUSE_MAP:
@@ -189,7 +186,7 @@ vec4 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     const int hasSpecular = int( UniformBufferData.ObjectLightInfo.z );
     switch (hasSpecular) {
         case LIGHT_HAS_SPECULAR_MAP:
-        specular = light.Specular * spec * texture(specTexSampler, inTexCoord);
+        specular = light.Specular * spec * texture(specularSampler, inTexCoord);
         break;
 
         case LIGHT_HAS_NO_SPECULAR_MAP:
@@ -241,8 +238,8 @@ vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     const int hasDiffuse = int(UniformBufferData.ObjectLightInfo.y);
     switch (hasDiffuse) {
         case LIGHT_HAS_DIFFUSE_MAP:
-        ambient = light.ambient * texture(texSampler, inTexCoord);
-        diffuse = light.diffuse * diff * texture(texSampler, inTexCoord);
+        ambient = light.ambient * texture(diffuseSampler, inTexCoord);
+        diffuse = light.diffuse * diff * texture(diffuseSampler, inTexCoord);
         break;
 
         case LIGHT_HAS_NO_DIFFUSE_MAP:
@@ -256,7 +253,7 @@ vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     const float energyConservation = ( 8.0 + shininess ) / ( 8.0 * C_PI );
     switch (hasSpecular) {
         case LIGHT_HAS_SPECULAR_MAP:
-            specular = light.specular * spec * texture(specTexSampler, inTexCoord);
+            specular = light.specular * spec * texture(specularSampler, inTexCoord);
             break;
 
         case LIGHT_HAS_NO_SPECULAR_MAP:
@@ -286,7 +283,7 @@ void main() {
     const int hasDiffuse = int(UniformBufferData.ObjectLightInfo.y);
     switch (hasDiffuse) {
     case LIGHT_HAS_DIFFUSE_MAP:
-        const vec4 resultTextureSampling = texture(texSampler, inTexCoord);
+        const vec4 resultTextureSampling = texture(diffuseSampler, inTexCoord);
         result = vec4(resultTextureSampling.rgb * defaulAmbientIntensity, resultTextureSampling.a);
         break;
 

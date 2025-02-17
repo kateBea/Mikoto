@@ -6,19 +6,19 @@
 #define MIKOTO_CONTENT_BROWSER_HH
 
 #include <memory>
-#include <stack>
 #include <filesystem>
 #include <unordered_map>
 
-#include "imgui.h"
+#include <imgui.h>
 
-#include "STL/Random/Random.hh"
-#include "Panel.hh"
-#include "Material/Texture/Texture2D.hh"
+#include <Panels/Panel.hh>
+#include <Library/Random/Random.hh>
+#include <Material/Texture/Texture2D.hh>
 
 namespace Mikoto {
     class ContentBrowserPanel final : public Panel {
     public:
+
         explicit ContentBrowserPanel(Path_T&& root);
         auto operator=(ContentBrowserPanel && other) -> ContentBrowserPanel & = default;
 
@@ -34,6 +34,7 @@ namespace Mikoto {
             MATERIAL,
         };
 
+        auto LoadIconsTexturesHandles() -> void;
         auto DrawHeader() -> void;
         auto DrawSideView() -> void;
         auto DrawMainBody() -> void;
@@ -44,22 +45,19 @@ namespace Mikoto {
         auto DrawCurrentDirItems() -> void;
 
     private:
-        static constexpr Size_T REQUIRED_IDS{ 1 };
-        std::vector<UUID> m_Guids{};
-
-        std::shared_ptr<Texture2D> m_FolderIcon{};
-        std::shared_ptr<Texture2D> m_FileIcon{};
+        Texture2D* m_FolderIcon{};
+        Texture2D* m_FileIcon{};
 
         ImGuiTextFilter m_SearchFilter{};
 
         float m_ThumbnailSize{ 100.0f };
 
-        Path_T m_Root{};
+        Path_T m_AssetsRoot{};
         Path_T m_CurrentDirectory{};
         Path_T m_ForwardDirectory{};
 
-        bool m_ShowFoldersOnlyInDirectoryTree{};
         bool m_ShowFileTypeHint{};
+        bool m_ShowFoldersOnlyInDirectoryTree{};
 
         std::vector<Path_T> m_DirectoryStack{};
 

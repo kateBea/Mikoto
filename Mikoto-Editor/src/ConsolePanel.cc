@@ -7,14 +7,15 @@
 #include <memory>
 #include <string_view>
 
-#include "Common/Common.hh"
-#include <STL/String/String.hh>
-#include "GUI/IconsFontAwesome5.h"
-#include "GUI/IconsMaterialDesign.h"
-#include "GUI/IconsMaterialDesignIcons.h"
-#include "GUI/ImGuiManager.hh"
-#include "Tools/ConsoleManager.hh"
-#include "imgui.h"
+#include <imgui.h>
+
+#include <Common/Common.hh>
+#include <Library/String/String.hh>
+#include <GUI/IconsFontAwesome5.h>
+#include <GUI/IconsMaterialDesign.h>
+#include <GUI/IconsMaterialDesignIcons.h>
+#include <GUI/ImGuiManager.hh>
+#include <Tools/ConsoleManager.hh>
 
 namespace Mikoto {
     static constexpr auto GetConsolePanelName() -> std::string_view {

@@ -7,10 +7,10 @@
 
 #include <imgui.h>
 
-#include "Panel.hh"
+#include <Panels/Panel.hh>
 
 namespace Mikoto {
-    class ConsolePanel : public Panel {
+    class ConsolePanel final : public Panel {
     public:
         explicit ConsolePanel();
         auto operator=(ConsolePanel && other) -> ConsolePanel& = default;

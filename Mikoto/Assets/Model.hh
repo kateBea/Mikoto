@@ -22,9 +22,13 @@
 #include <Assets/Mesh.hh>
 #include <Common/Common.hh>
 #include <Material/Texture/Texture2D.hh>
-#include <Models/ModelLoadInfo.hh>
 
 namespace Mikoto {
+    struct ModelLoadInfo {
+        Path_T Path{};
+        bool InvertedY{};// Y down (for vulkan)
+        bool WantTextures{ true };
+    };
 
     class Model final {
     public:
@@ -46,14 +50,14 @@ namespace Mikoto {
          * Returns the list of meshes from this model
          * @returns non-mutable list of meshes
          * */
-        MKT_NODISCARD auto GetMeshes() const -> const std::vector<Mesh> & { return m_Meshes; }
+        MKT_NODISCARD auto GetMeshes() const -> const std::vector<Scope_T<Mesh>> & { return m_Meshes; }
 
 
         /**
          * Returns the list of meshes from this model
          * @returns mutable list of meshes
          * */
-        MKT_NODISCARD auto GetMeshes() -> std::vector<Mesh> & { return m_Meshes; }
+        MKT_NODISCARD auto GetMeshes() -> std::vector<Scope_T<Mesh>> & { return m_Meshes; }
 
 
         /**
@@ -99,13 +103,6 @@ namespace Mikoto {
         auto operator=( Model &&other ) noexcept -> Model &;
 
 
-        /**
-         * Adds the given mesh to the list of meshes of this model.
-         * This function is mainly only for the sprite atm xd, will be deprecated some time soon and finally deleted. See assets manager loading prefabs
-         * @returns mesh to be added
-         * */
-        auto AddMesh( MeshData &&meshData ) -> void { m_Meshes.emplace_back( std::move( meshData ) ); }
-
     public:
         DELETE_COPY_FOR( Model );
 
@@ -127,7 +124,7 @@ namespace Mikoto {
          * @param modelDirectory The model's directory
          * @param wantLoadTextures tells whether we want to attempt to load this model's textures
          * */
-        auto ProcessNode( aiNode *root, const aiScene *scene, const Path_T &modelDirectory, bool wantLoadTextures ) -> void;
+        auto ProcessNode( const aiNode *root, const aiScene *scene, const Path_T &modelDirectory, bool wantLoadTextures ) -> void;
 
 
         /**
@@ -139,7 +136,7 @@ namespace Mikoto {
          * @param wantLoadTextures Tells whether we want to attempt to load this model's textures
          * @returns mesh containing the retrieved data
          * */
-        auto ProcessMesh( aiMesh *node, const aiScene *scene, const Path_T &modelDirectory, bool wantLoadTextures ) -> Mesh;
+        auto ProcessMesh( const aiMesh *node, const aiScene *scene, const Path_T &modelDirectory, bool wantLoadTextures ) const -> Scope_T<Mesh>;
 
 
         /**
@@ -151,11 +148,11 @@ namespace Mikoto {
          * @param modelDirectory The model's directory
          * @returns A list of textures from the given material of type
          * */
-        static auto LoadTextures( aiMaterial *mat, aiTextureType type, MapType tType, const aiScene *scene, const Path_T &modelDirectory ) -> std::vector<std::shared_ptr<Texture2D>>;
+        static auto LoadTextures( const aiMaterial *mat, aiTextureType type, MapType tType, const aiScene *scene, const Path_T &modelDirectory ) -> std::vector<Scope_T<Texture2D>>;
 
     protected:
         Path_T m_ModelAbsolutePath{};
-        std::vector<Mesh> m_Meshes{};
+        std::vector<Scope_T<Mesh>> m_Meshes{};
         std::string m_ModelName{};
 
         UInt64_T m_TotalVertices{};
@@ -164,6 +161,6 @@ namespace Mikoto {
         /** Y points Down (suits vulkan coordinate system) */
         bool m_InvertedY{};
     };
-}
+}// namespace Mikoto
 
 #endif// MIKOTO_MODEL_HH

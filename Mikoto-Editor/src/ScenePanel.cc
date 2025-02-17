@@ -15,15 +15,13 @@
 #include "ImGuizmo.h"
 
 // Project Headers
-#include <STL/String/String.hh>
+#include <Library/String/String.hh>
 
-#include "Core/CoreEvents.hh"
-#include "Core/EventManager.hh"
+#include "Core/Events/CoreEvents.hh"
+#include "Core/System/EventSystem.hh"
 #include "Panels/HierarchyPanel.hh"
 #include "Panels/ScenePanel.hh"
-#include "Platform/Input/InputManager.hh"
 #include "Renderer/Vulkan/VulkanContext.hh"
-#include "Scene/SceneManager.hh"
 
 
 #include "GUI/IconsMaterialDesign.h"
@@ -33,22 +31,28 @@
 #include "volk.h"
 
 // Project Headers
+#include <Core/Input/MouseCodes.hh>
+#include <Core/System/InputSystem.hh>
+
 #include "Common/Common.hh"
-#include "Common/RenderingUtils.hh"
-#include "Renderer/Vulkan/DeletionQueue.hh"
+#include "Renderer/Vulkan/VulkanDeletionQueue.hh"
 #include "Renderer/Vulkan/VulkanRenderer.hh"
+
+#include <Scene/Scene/Scene.hh>
 
 namespace Mikoto {
 
-    class ScenePanel_VkImpl final : public ScenePanelInterface {
-    private:
-        auto Init_Impl( const ScenePanelData& data) -> void override {
-            m_Data = data;
-            m_SceneRenderer = dynamic_cast<VulkanRenderer*>(Renderer::GetActiveGraphicsAPIPtr());
-            m_ActiveManipulationMode = ManipulationMode::TRANSLATION;
+    class ScenePanel_VkImpl final : public ScenePanelApi {
+    public:
+        explicit ScenePanel_VkImpl( const SceneApiCreateInfo& createInfo)
+            : ScenePanelApi{ createInfo }
+        {}
 
-            // Create Sampler
-            VkSamplerCreateInfo samplerCreateInfo{ VulkanUtils::Initializers::SamplerCreateInfo() };
+        auto Init() -> void override {
+            m_ActiveManipulationMode = GuizmoManipulationMode::TRANSLATION;
+
+            // Create a Sampler for the texture we will display in the viewport
+            VkSamplerCreateInfo samplerCreateInfo{ VulkanHelpers::Initializers::SamplerCreateInfo() };
             samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
             samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
             samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
@@ -63,47 +67,47 @@ namespace Mikoto {
             samplerCreateInfo.maxLod = 1.0f;
             samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
 
-            if (vkCreateSampler(VulkanContext::GetPrimaryLogicalDevice(), &samplerCreateInfo, nullptr, &m_ColorAttachmentSampler) != VK_SUCCESS) {
+            if (vkCreateSampler(VulkanContext::Get().GetDevice().GetLogicalDevice(), &samplerCreateInfo, nullptr, &m_ColorAttachmentSampler) != VK_SUCCESS) {
                 MKT_THROW_RUNTIME_ERROR("Failed to create Vulkan sampler!");
             }
 
-            DeletionQueue::Push([sampler = m_ColorAttachmentSampler]() -> void {
-                vkDestroySampler(VulkanContext::GetPrimaryLogicalDevice(), sampler, nullptr);
+            VulkanDeletionQueue::Push([sampler = m_ColorAttachmentSampler]() -> void {
+                vkDestroySampler(VulkanContext::Get().GetDevice().GetLogicalDevice(), sampler, nullptr);
             });
 
-            m_ColorAttachmentDescriptorSet = ImGui_ImplVulkan_AddTexture(m_ColorAttachmentSampler, m_SceneRenderer->GetFinalImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            // Create the Descriptor set for the texture displayed in the ImGuiWindow scene
 
-            DeletionQueue::Push([descSet = m_ColorAttachmentDescriptorSet]() -> void {
+            const VulkanRenderer* vulkanSceneRenderer{ dynamic_cast<const VulkanRenderer*>( m_Renderer ) };
+
+            m_ColorAttachmentDescriptorSet =
+                ImGui_ImplVulkan_AddTexture(m_ColorAttachmentSampler, vulkanSceneRenderer->GetFinalImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+            VulkanDeletionQueue::Push([descSet = m_ColorAttachmentDescriptorSet]() -> void {
                 ImGui_ImplVulkan_RemoveTexture(descSet);
             });
         }
 
-        auto OnUpdate_Impl() -> void override {
-            const auto viewPortDimensions{ ImGui::GetContentRegionAvail() };
-            auto& currentlyActiveScene{ SceneManager::GetActiveScene() };
-
+        auto OnUpdate() -> void override {
+            const ImVec2 viewPortDimensions{ ImGui::GetContentRegionAvail() };
 
             // If the window size has changed, we need to resize the scene viewport
-            if ( m_Data.ViewPortWidth != viewPortDimensions.x || m_Data.ViewPortHeight != viewPortDimensions.y ) {
-
-                m_Data.ViewPortWidth = viewPortDimensions.x;
-                m_Data.ViewPortHeight = viewPortDimensions.y;
-                currentlyActiveScene.ResizeViewport( static_cast<UInt32_T>( viewPortDimensions.x ), static_cast<UInt32_T>( viewPortDimensions.y ) );
-                //m_SceneRendererVk->OnFramebufferResize((UInt32_T)m_Data->ViewPortWidth, (UInt32_T)m_Data->ViewPortHeight);
+            if ( m_ViewPortWidth != viewPortDimensions.x || m_ViewPortHeight != viewPortDimensions.y ) {
+                m_ViewPortWidth = viewPortDimensions.x;
+                m_ViewPortHeight = viewPortDimensions.y;
+                m_TargetScene->OnViewPortResize( viewPortDimensions.x, viewPortDimensions.y );
             }
 
-            const float frameWidth{ ( m_Data.ViewPortWidth ) };
-            const float frameHeight{ ( m_Data.ViewPortHeight ) };
-            ImGui::Image( reinterpret_cast<ImTextureID>( m_ColorAttachmentDescriptorSet ), ImVec2{ frameWidth, frameHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+            ImGui::Image( reinterpret_cast<ImTextureID>( m_ColorAttachmentDescriptorSet ),
+                ImVec2{ m_ViewPortWidth, m_ViewPortHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
 
-            HandleGuizmos();
+            SetupGuizmos();
+
+            HandleManipulationMode();
         }
 
     private:
         VkSampler m_ColorAttachmentSampler{};
         VkDescriptorSet m_ColorAttachmentDescriptorSet{};
-        VulkanRenderer* m_SceneRenderer{};
-
     };
 
 
@@ -111,25 +115,28 @@ namespace Mikoto {
         return "Scene";
     }
 
-    ScenePanel::ScenePanel(ScenePanelCreateInfo&& createInfo)
-        : m_CreateInfo{ createInfo }
+    ScenePanel::ScenePanel(const ScenePanelCreateInfo& createInfo)
     {
         m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_IMAGE, GetSceneName());
 
-        // Set scene panel implementation
-        switch (Renderer::GetActiveGraphicsAPI()) {
-        case GraphicsAPI::VULKAN_API:
-            m_Implementation = std::make_unique<ScenePanel_VkImpl>();
-            break;
-        }
-
         // Initialize implementation
-        ScenePanelData data{};
-        data.ViewPortWidth = 1920;
-        data.ViewPortHeight = 1080;
+        SceneApiCreateInfo sceneApiCreateInfo{
+            .ViewportWidth{ createInfo.Width },
+            .ViewportHeight{ createInfo.Height },
+            .TargetScene{ createInfo.TargetScene },
+            .Renderer{ createInfo.Renderer },
+            .EditorMainCamera{ createInfo.EditorMainCamera },
+            .GetActiveEntityCallback{ createInfo.GetActiveEntityCallback },
+        };
 
-        m_Implementation->Init_Impl(data);
-        m_Implementation->SetEditorCamera(m_CreateInfo.EditorMainCamera);
+        // Set scene panel implementation
+        m_Implementation = CreateScope<ScenePanel_VkImpl>(sceneApiCreateInfo);
+
+        if (m_Implementation != nullptr) {
+            m_Implementation->Init();
+        } else {
+            MKT_APP_LOGGER_ERROR( "ScenePanel::ScenePanel - Failed to create Scene Panel ImGui implementation." );
+        }
     }
 
     auto ScenePanel::OnUpdate(MKT_UNUSED_VAR float ts) -> void {
@@ -145,64 +152,63 @@ namespace Mikoto {
             m_PanelIsFocused = ImGui::IsWindowFocused();
             m_PanelIsHovered = ImGui::IsWindowHovered();
 
-            m_Implementation->OnUpdate_Impl();
+            m_Implementation->OnUpdate();
 
             ImGui::End();
 
             ImGui::PopStyleVar();
         }
 
-        if (m_PanelIsHovered && InputManager::IsMouseKeyPressed(Mouse_Button_Right)) {
-            EventManager::Trigger<CameraEnableRotation>();
+        InputSystem& inputSystem{ Engine::GetSystem<InputSystem>() };
+        EventSystem& eventSystem{ Engine::GetSystem<EventSystem>() };
+
+        if (m_PanelIsHovered && inputSystem.IsMouseKeyPressed(Mouse_Button_Right)) {
+            eventSystem.Trigger<CameraEnableRotation>();
         }
     }
 
-    auto ScenePanelInterface::HandleGuizmos() -> void {
-        auto currentSelection{ SceneManager::GetCurrentSelection() };
-        if (currentSelection.has_value()) {
-            if (!currentSelection->get().GetComponent<TagComponent>().IsVisible()) {
+    auto ScenePanelApi::SetupGuizmos() const -> void {
+        Entity* currentSelection{ m_GetActiveEntityCallback() };
+        if (currentSelection->IsValid()) {
+            if (!currentSelection->GetComponent<TagComponent>().IsVisible()) {
                 return;
             }
 
             ImGuizmo::SetOrthographic(m_EditorMainCamera->IsOrthographic());
             ImGuizmo::SetDrawlist();
 
-            const auto windowPosition{ ImGui::GetWindowPos() };
-            const auto windowDimensions{ ImGui::GetWindowSize() };
+            const ImVec2 windowPosition{ ImGui::GetWindowPos() };
+            const ImVec2 windowDimensions{ ImGui::GetWindowSize() };
             ImGuizmo::SetRect(windowPosition.x, windowPosition.y, windowDimensions.x, windowDimensions.y);
-
-            HandleManipulationMode();
         }
     }
 
-    auto ScenePanelInterface::HandleManipulationMode() const -> void {
-        auto& currentSelectionContext{ SceneManager::GetCurrentSelection()->get() };
-        TransformComponent& transformComponent{ currentSelectionContext.GetComponent<TransformComponent>() };
+    auto ScenePanelApi::HandleManipulationMode() const -> void {
+        Entity* currentSelection{ m_GetActiveEntityCallback() };
+        if (currentSelection == nullptr || !currentSelection->IsValid()) {
+            return;
+        }
 
-        const auto& cameraView{ m_EditorMainCamera->GetViewMatrix() };
-        const auto& cameraProjection{ m_EditorMainCamera->GetProjection() };
-        auto objectTransform{ transformComponent.GetTransform() };
+        TransformComponent& transformComponent{ currentSelection->GetComponent<TransformComponent>() };
 
-        if (currentSelectionContext.IsValid()) {
-            // Show guizmos when there's content to manipulate
-            // There may bo contents, for example, when we create a
-            // new renderable but the actual model is not loaded
+        const glm::mat4& cameraView{ m_EditorMainCamera->GetViewMatrix() };
+        const glm::mat4& cameraProjection{ m_EditorMainCamera->GetProjection() };
+        glm::mat4 objectTransform{ transformComponent.GetTransform() };
 
-            switch (m_ActiveManipulationMode) {
-                case ManipulationMode::TRANSLATION:
-                    ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::MODE::LOCAL, glm::value_ptr(objectTransform));
-                    break;
-                case ManipulationMode::ROTATION:
-                    ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), ImGuizmo::OPERATION::ROTATE, ImGuizmo::MODE::LOCAL, glm::value_ptr(objectTransform));
-                    break;
-                case ManipulationMode::SCALE:
-                    ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), ImGuizmo::OPERATION::SCALE, ImGuizmo::MODE::LOCAL, glm::value_ptr(objectTransform));
-                    break;
-            }
+        switch (m_ActiveManipulationMode) {
+            case GuizmoManipulationMode::TRANSLATION:
+                ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::MODE::LOCAL, glm::value_ptr(objectTransform));
+            break;
+            case GuizmoManipulationMode::ROTATION:
+                ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), ImGuizmo::OPERATION::ROTATE, ImGuizmo::MODE::LOCAL, glm::value_ptr(objectTransform));
+            break;
+            case GuizmoManipulationMode::SCALE:
+                ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), ImGuizmo::OPERATION::SCALE, ImGuizmo::MODE::LOCAL, glm::value_ptr(objectTransform));
+            break;
+        }
 
-            if (ImGuizmo::IsUsing()) {
-                transformComponent.SetTransform(objectTransform);
-            }
+        if (ImGuizmo::IsUsing()) {
+            transformComponent.SetTransform(objectTransform);
         }
     }
 }

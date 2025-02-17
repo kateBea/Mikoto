@@ -13,38 +13,37 @@
 #include "volk.h"
 
 // Project Headers
-#include "Common/Common.hh"
-#include "Material/Core/Shader.hh"
-#include "Models/ShaderCreateInfo.hh"
-#include "STL/Utility/Types.hh"
+#include <Common/Common.hh>
+#include <Material/Core/Shader.hh>
+#include <Library/Utility/Types.hh>
+#include <Renderer/Vulkan/VulkanObject.hh>
 
 namespace Mikoto {
-    struct VulkanShaderInfo {
-        // Entry point to the shader program
-        std::string EntryPoint{ "main" };
 
-        // Contents of the loaded SPIR-V file
-        std::string Code{};
-
-        // Vulkan structure needed to create the shader module
-        VkPipelineShaderStageCreateInfo StageCreateInfo{};
+    struct VulkanShaderCreateInfo {
+        Path_T FilePath{};
+        ShaderStage Stage{ VERTEX_STAGE };
     };
 
-    class VulkanShader final : public Shader {
+    class VulkanShader final : public VulkanObject, public Shader {
     public:
-        explicit VulkanShader(const ShaderCreateInfo& createInfo);
+        explicit VulkanShader(const VulkanShaderCreateInfo& createInfo);
 
         MKT_NODISCARD auto Get() const -> const VkShaderModule& { return m_Module; }
-        MKT_NODISCARD static auto GetDefaultEntryPoint() -> std::string_view { return "main"; }
-        MKT_NODISCARD auto GetPipelineStageCreateInfo() const -> const VkPipelineShaderStageCreateInfo& { return m_Data.StageCreateInfo; }
+        MKT_NODISCARD auto GetPipelineStageCreateInfo() const -> const VkPipelineShaderStageCreateInfo& { return m_StageCreateInfo; }
+
+        auto Release() -> void override;
+
+        ~VulkanShader() override;
 
     private:
-        auto Upload(const Path_T& src) -> void;
-        static auto CreateModule(const std::string& srcCode, VkShaderModule& shaderModule) -> void;
+        auto Upload(const VulkanShaderCreateInfo& createInfo) -> void;
 
     private:
-        VulkanShaderInfo m_Data{};
+        std::string m_Code{};
+        std::string m_EntryPoint{};
         VkShaderModule m_Module{};
+        VkPipelineShaderStageCreateInfo m_StageCreateInfo{};
     };
 }
 

@@ -8,19 +8,49 @@
 #include <unordered_map>
 
 #include <Common/ConfigLoader.hh>
-#include <Core/System/EngineSystem.hh>
+#include <Common/Registry.hh>
 
 namespace Mikoto {
+    class IEngineSystem {
+    public:
+        virtual ~IEngineSystem() = default;
+
+        virtual auto Init() -> void = 0;
+        virtual auto Shutdown() -> void = 0;
+        virtual auto Update() -> void = 0;
+    };
+
+    struct EngineConfig {
+        ConfigOptions Options{};
+        const Window* TargetWindow{};
+    };
+
     class Engine final {
     public:
-        using Registry_T = std::unordered_map<Size_T, Scope_T<IEngineSystem>>;
 
-        static auto Init(const ConfigOptions& options) -> void;
+        template<typename SystemType>
+        static auto GetSystem() -> SystemType& {
+            auto systemPtr{ s_Registry.Get<SystemType>() };
+
+            if (!systemPtr) {
+                MKT_THROW_RUNTIME_ERROR("Engine::GetSystems - Error system not found.");
+            }
+
+            return *systemPtr;
+        }
+
+        static auto StartFrame() -> void;
+        static auto EndFrame() -> void;
+
+        static auto Init(const EngineConfig& options) -> void;
+        static auto UpdateState() -> void;
         static auto Shutdown() -> void;
 
-    private:
+        static auto GetConfig() -> const EngineConfig& { return s_Options; }
 
-        static inline Registry_T s_Registry;
+    private:
+        static inline EngineConfig s_Options{};
+        static inline Registry<IEngineSystem> s_Registry;
     };
 }
 

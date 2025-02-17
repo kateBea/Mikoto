@@ -8,13 +8,11 @@
 
 // Project Headers
 #include <Platform/Window/Window.hh>
-#include <Platform/Window/XPWindow.hh>
-
-#include "Models/WindowProperties.hh"
+#include <Platform/Window/MainWindow.hh>
 
 namespace Mikoto {
 
-    auto Window::Create( WindowProperties &&properties ) -> std::shared_ptr<Window> {
-        return std::make_shared<XPWindow>(std::move(properties));
+    auto Window::Create( const WindowProperties &properties ) -> Scope_T<Window> {
+        return CreateScope<MainWindow>( properties );
     }
 }

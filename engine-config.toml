@@ -4,40 +4,34 @@
 
 [engine]
 name = "Mikoto - Engine"           # Name of the engine
-version = "1.0.0"                  # Engine version
+version_major = 1                  # Engine version major
+version_minor = 1                  # Engine version minor
+version_patch = 0                  # Engine version patch
+
+# Paths are relative to the process current working directory
 
 [paths]
-assets = ""                # Path to the assets folder
-shaders = ""       # Path to the shaders folder
-textures = "."     # Path to the textures folder
-imgui_config = "" # Path to the ImGui configuration file
-shaders = "" # Path to the shaders
-icons = "" # Path to the icons
-fonts = "" # Path to the fonts
-logs = ""                    # Path to store log files
+root = "Resources"
+assets = "Models"                # Path to the assets folder
+shaders = "Shaders"       # Path to the shaders folder
+textures = "Textures"     # Path to the textures folder
+imgui_config = "Imgui" # Path to the ImGui configuration file
+icons = "Icons" # Path to the icons
+fonts = "Fonts" # Path to the fonts
+logs = "Logs" # Path to the fonts
 
 [renderer]
 api = "vulkan"                     # Rendering API (vulkan)
 vsync = true                       # Enable/disable VSync
 
-[window]
+[application]
 title = "Mikoto - Engine Vulkan"         # Window title
 width = 1920                       # Window width in pixels
 height = 1080                       # Window height in pixels
 resizable = true                   # Allow resizing the window (true/false)
 
-[imgui]
-enable = true                      # Enable or disable ImGui (true/false)
-theme = "dark"                     # ImGui theme (dark, light, classic), used for startup
-
-[resources]
-
 [logging]
-
-[input]
-mouse_translate_sensitivity = 1.0            # Mouse sensitivity (movement)
-mouse_rotate_sensitivity = 1.0            # Mouse sensitivity (rotation)
-invert_y_axis = false              # Invert Y-axis for the camera (true/false)
+logs = "mikoto-trace.log"                    # If it doesn't exist, it will create a new log file
 
 [debug]
 show_fps = true                    # Show FPS counter on the screen

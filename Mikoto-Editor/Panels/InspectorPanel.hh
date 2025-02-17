@@ -11,28 +11,33 @@
 
 // Project Headers
 #include <Panels/Panel.hh>
+#include <Scene/Scene/Entity.hh>
 
 namespace Mikoto {
+    struct InspectorPanelCreateInfo {
+        Scene* TargetScene{ nullptr };
+        std::function<Entity*()> GetActiveEntityCallback{};
+        std::function<void(Entity*)> SetActiveEntityCallback{};
+    };
+
     class InspectorPanel final : public Panel {
     public:
-        explicit InspectorPanel();
-        auto operator=( InspectorPanel&& other ) -> InspectorPanel& = default;
+        explicit InspectorPanel(const InspectorPanelCreateInfo& createInfo);
 
         auto OnUpdate( float timeStep ) -> void override;
 
         ~InspectorPanel() override = default;
 
     private:
-        static auto DrawComponents( Entity& entity ) -> void;
-
-        auto OpenMaterialEditor() -> void;
+        auto DrawComponents( Entity& entity ) -> void;
 
     private:
-        // TODO: move to material editor window/panel
-        bool m_OpenMaterialEditor{};
-        std::shared_ptr<Material> m_TargetMaterialForMaterialEditor{};
+        Scene* m_TargetScene{ nullptr };
 
-        std::shared_ptr<Texture2D> m_EmptyTexturePlaceHolder{};
+        Texture2D* m_EmptyTexturePlaceHolder{};
+
+        std::function<Entity*()> m_GetActiveEntityCallback{};
+        std::function<void(Entity*)> m_SetActiveEntityCallback{};
     };
 }
 

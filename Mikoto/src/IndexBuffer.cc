@@ -1,30 +1,28 @@
-/**
- * IndexBuffer.cc
- * Created by kate on 6/5/23.
- * */
-
-// C++ Standard Library
-#include <memory>
-#include <vector>
+//
+// Created by zanet on 2/16/2025.
+//
 
 // Project Headers
-#include <Renderer/Core/Renderer.hh>
-
-#include "Common/Common.hh"
-#include "Common/RenderingUtils.hh"
-#include "Core/Logger.hh"
-#include "Renderer/Vulkan/VulkanIndexBuffer.hh"
+#include <Core/Logging/Logger.hh>
+#include <Core/System/RenderSystem.hh>
+#include <Renderer/Buffer/IndexBuffer.hh>
+#include <Renderer/Vulkan/VulkanIndexBuffer.hh>
 
 namespace Mikoto {
-    auto IndexBuffer::Create(const std::vector<UInt32_T>& data) -> std::shared_ptr<IndexBuffer> {
-        switch(Renderer::GetActiveGraphicsAPI()) {
+
+    auto IndexBuffer::Create( const std::vector<UInt32_T>& data ) -> Scope_T<IndexBuffer> {
+        auto& renderSystem{ Engine::GetSystem<RenderSystem>() };
+
+        VulkanIndexBufferCreateInfo createInfo{
+            .Indices{ data },
+        };
+
+        switch ( renderSystem.GetDefaultApi() ) {
             case GraphicsAPI::VULKAN_API:
-                return std::make_shared<VulkanIndexBuffer>(data);
+                return CreateScope<VulkanIndexBuffer>( createInfo );
             default:
-                MKT_CORE_LOGGER_CRITICAL("Unsupported renderer API");
-                return nullptr;
+                MKT_CORE_LOGGER_CRITICAL( "VertexBuffer::Create - Unsupported renderer API" );
+            return nullptr;
         }
     }
-}
-
-
+}// namespace Mikoto

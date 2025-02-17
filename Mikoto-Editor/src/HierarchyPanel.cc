@@ -10,79 +10,121 @@
 #include <imgui.h>
 
 // Project Headers
-#include <STL/Utility/Types.hh>
-#include <Common/Common.hh>
-#include <STL/String/String.hh>
-
-#include <Core/Logger.hh>
 #include <GUI/IconsMaterialDesign.h>
+
+#include <Common/Common.hh>
+#include <Core/Logging/Logger.hh>
+#include <Core/System/AssetsSystem.hh>
+#include <Library/Filesystem/PathBuilder.hh>
+#include <Library/String/String.hh>
+#include <Library/Utility/Types.hh>
 #include <Panels/HierarchyPanel.hh>
-#include <Scene/SceneManager.hh>
+#include <Scene/Scene/Scene.hh>
 
 namespace Mikoto {
     static constexpr auto GetHierarchyName() -> std::string_view {
         return "Hierarchy";
     }
 
-    static auto DrawPrefabMenu(Entity* root = nullptr) {
-        EntityCreateInfo entityCreateInfo{};
+    auto HierarchyPanel::DrawPrefabMenu( const Entity* root ) const -> void {
+        EntityCreateInfo entityCreateInfo{
+            .Name{},
+            .Root{ root },
+            .ModelMesh{ nullptr }
+        };
 
         entityCreateInfo.Root = root;
 
         if ( ImGui::BeginMenu( "3D Object" ) ) {
+            AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
+
+            Entity* newEntity{ nullptr };
+
             if ( ImGui::MenuItem( "Cube" ) ) {
-                entityCreateInfo.Name = "Cube Object";
-                entityCreateInfo.PrefabType = PrefabSceneObject::CUBE_PREFAB_OBJECT;
-                SceneManager::AddEntity( entityCreateInfo );
+                entityCreateInfo.Name = "Cube";
+                entityCreateInfo.ModelMesh = assetsSystem.GetModel( PathBuilder()
+                    .WithPath( m_AssetsRootDirectory.string() )
+                    .WithPath( "Models" )
+                    .WithPath( "Prefabs" )
+                    .WithPath( "cube" )
+                    .WithPath( "gltf" )
+                    .WithPath( "scene.gltf" )
+                    .Build().string());
 
-                MKT_CORE_LOGGER_INFO( "Added new cube prefab" );
-            }
-
-            if ( ImGui::MenuItem( "Sprite" ) ) {
-                entityCreateInfo.Name = "Sprite Object";
-                entityCreateInfo.PrefabType = PrefabSceneObject::SPRITE_PREFAB_OBJECT;
-                SceneManager::AddEntity( entityCreateInfo );
-
-                MKT_CORE_LOGGER_INFO( "Added new sprite prefab" );
+                newEntity = m_TargetScene->CreateEntity( entityCreateInfo );
             }
 
             if ( ImGui::MenuItem( "Cone" ) ) {
-                entityCreateInfo.Name = "Cone Object";
-                entityCreateInfo.PrefabType = PrefabSceneObject::CONE_PREFAB_OBJECT;
-                SceneManager::AddEntity( entityCreateInfo );
+                entityCreateInfo.Name = "Cone";
+                entityCreateInfo.ModelMesh = assetsSystem.GetModel( PathBuilder()
+                    .WithPath( m_AssetsRootDirectory.string() )
+                    .WithPath( "Models" )
+                    .WithPath( "Prefabs" )
+                    .WithPath( "cone" )
+                    .WithPath( "gltf" )
+                    .WithPath( "scene.gltf" )
+                    .Build().string());
 
-                MKT_CORE_LOGGER_INFO( "Added new cone prefab" );
+                newEntity = m_TargetScene->CreateEntity( entityCreateInfo );
             }
 
             if ( ImGui::MenuItem( "Cylinder" ) ) {
-                entityCreateInfo.Name = "Cylinder Object";
-                entityCreateInfo.PrefabType = PrefabSceneObject::CYLINDER_PREFAB_OBJECT;
-                SceneManager::AddEntity( entityCreateInfo );
+                entityCreateInfo.Name = "Cylinder";
+                entityCreateInfo.ModelMesh = assetsSystem.GetModel( PathBuilder()
+                    .WithPath( m_AssetsRootDirectory.string() )
+                    .WithPath( "Models" )
+                    .WithPath( "Prefabs" )
+                    .WithPath( "cylinder" )
+                    .WithPath( "gltf" )
+                    .WithPath( "scene.gltf" )
+                    .Build().string());
 
-                MKT_CORE_LOGGER_INFO( "Added new cylinder prefab" );
+                newEntity = m_TargetScene->CreateEntity( entityCreateInfo );
             }
 
             if ( ImGui::MenuItem( "Sphere" ) ) {
-                entityCreateInfo.Name = "Sphere Object";
-                entityCreateInfo.PrefabType = PrefabSceneObject::SPHERE_PREFAB_OBJECT;
-                SceneManager::AddEntity( entityCreateInfo );
+                entityCreateInfo.Name = "Sphere";
+                entityCreateInfo.ModelMesh = assetsSystem.GetModel( PathBuilder()
+                    .WithPath( m_AssetsRootDirectory.string() )
+                    .WithPath( "Models" )
+                    .WithPath( "Prefabs" )
+                    .WithPath( "sphere" )
+                    .WithPath( "gltf" )
+                    .WithPath( "scene.gltf" )
+                    .Build().string());
 
-                MKT_CORE_LOGGER_INFO( "Added new sphere prefab" );
+                newEntity = m_TargetScene->CreateEntity( entityCreateInfo );
+
             }
 
             if ( ImGui::MenuItem( "Sponza" ) ) {
-                entityCreateInfo.Name = "Sponza Object";
-                entityCreateInfo.PrefabType = PrefabSceneObject::SPONZA_PREFAB_OBJECT;
-                SceneManager::AddEntity( entityCreateInfo );
+                entityCreateInfo.Name = "Sponza";
+                entityCreateInfo.ModelMesh = assetsSystem.GetModel( PathBuilder()
+                    .WithPath( m_AssetsRootDirectory.string() )
+                    .WithPath( "Models" )
+                    .WithPath( "Prefabs" )
+                    .WithPath( "sponza" )
+                    .WithPath( "glTF" )
+                    .WithPath( "Sponza.gltf" )
+                    .Build().string());
 
-                MKT_CORE_LOGGER_INFO( "Added new sponza prefab" );
+                newEntity = m_TargetScene->CreateEntity( entityCreateInfo );
+            }
+
+            if (newEntity != nullptr) {
+                MKT_APP_LOGGER_INFO( "Created new entity: {}", newEntity->GetComponent<TagComponent>().GetTag() );
             }
 
             ImGui::EndMenu();
         }
     }
 
-    HierarchyPanel::HierarchyPanel() {
+    HierarchyPanel::HierarchyPanel(const HierarchyPanelCreateInfo& createInfo)
+        :   m_AssetsRootDirectory{ createInfo.AssetsRootPath },
+            m_TargetScene{ createInfo.TargetScene },
+            m_GetActiveEntityCallback{ createInfo.GetActiveEntityCallback },
+            m_SetActiveEntityCallback{ createInfo.SetActiveEntityCallback }
+    {
         m_PanelHeaderName = StringUtils::MakePanelName( ICON_MD_MERGE, GetHierarchyName() );
     }
 
@@ -94,12 +136,14 @@ namespace Mikoto {
             m_PanelIsHovered = ImGui::IsWindowHovered();
             m_PanelIsFocused = ImGui::IsWindowFocused();
 
-            for ( auto& hierarchy{ SceneManager::GetActiveScene().GetHierarchy() }; auto& entityNode : hierarchy.GetNodes()) {
-                DrawNodeTree( entityNode );
+            auto& hierarchy{ m_TargetScene->GetHierarchy() };
+            for (auto& entityNode : hierarchy.GetNodes()) {
+                DrawNodeTree( *entityNode );
             }
 
             if ( ImGui::IsMouseDown( ImGuiMouseButton_Left ) && ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered() ) {
-                SceneManager::DisableActiveSelection();
+                // No entity es selected
+                m_SetActiveEntityCallback(nullptr);
             }
 
             BlankSpacePopupMenu();
@@ -109,34 +153,40 @@ namespace Mikoto {
     }
 
 
-    auto HierarchyPanel::DrawNodeTree( const std::unique_ptr<GenTree<Entity>::Node>& node ) -> void {
-        if (!node || !node->data.IsValid()) {
+    auto HierarchyPanel::DrawNodeTree( const GenTree<Entity*>::Node& node ) -> void {
+        if (!node.data->IsValid()) {
             return;
         }
 
-        const auto& tag{ node->data.GetComponent<TagComponent>() };
-        const auto ent{ SceneManager::GetCurrentSelection() };
+        Entity& current{ *node.data };
+        Entity& currentSelection{ *m_GetActiveEntityCallback() };
 
-        const auto thisEntityIsSelected{ ent.has_value() && ent->get() == node->data };
+
+        const auto& tagCurrent{ current.GetComponent<TagComponent>() };
+        const auto& tagSelected{ currentSelection.GetComponent<TagComponent>() };
+
+
+
+        const auto thisEntityIsSelected{ tagCurrent.GetGUID() == tagSelected.GetGUID() };
         static constexpr ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_AllowItemOverlap |
                                                         ImGuiTreeNodeFlags_Framed |
                                                         ImGuiTreeNodeFlags_SpanAvailWidth |
                                                         ImGuiTreeNodeFlags_FramePadding };
 
         const ImGuiTreeNodeFlags flags{ styleFlags | ( thisEntityIsSelected ? ImGuiTreeNodeFlags_Selected : 0 ) };
-        const auto expanded{ ImGui::TreeNodeEx( reinterpret_cast<void*>( node->data.GetComponent<TagComponent>().GetGUID() ), flags, "%s", fmt::format( " {} {}", ICON_MD_WIDGETS, tag.GetTag() ).c_str() ) };
+        const auto expanded{ ImGui::TreeNodeEx( reinterpret_cast<void*>( tagCurrent.GetGUID() ), flags, "%s", fmt::format( " {} {}", ICON_MD_WIDGETS, tagCurrent.GetTag() ).c_str() ) };
 
         if ( ImGui::IsItemClicked( ImGuiMouseButton_Left ) ) {
-            SceneManager::SetCurrentSelection(node->data);
+            m_SetActiveEntityCallback(node.data);
         }
 
-        OnEntityRightClickMenu( node->data );
+        OnEntityRightClickMenu( current );
 
         if ( expanded ) {
             ImGui::Indent();
 
-            for (auto& child : node->children) {
-                DrawNodeTree(child);
+            for (auto& child : node.children) {
+                DrawNodeTree(*child);
             }
 
             ImGui::Unindent();
@@ -161,7 +211,7 @@ namespace Mikoto {
                 }
 
                 if ( ImGui::MenuItem( "Camera", menuItemShortcut, menuItemSelected, !target.HasComponent<CameraComponent>() ) ) {
-                    target.AddComponent<CameraComponent>( std::make_shared<SceneCamera>() );
+                    target.AddComponent<CameraComponent>();
                     ImGui::CloseCurrentPopup();
                 }
 
@@ -174,16 +224,16 @@ namespace Mikoto {
             }
 
             if ( ImGui::MenuItem( "Remove object" ) ) {
-                SceneManager::DestroyEntity(target);
+                m_TargetScene->DestroyEntity( target.GetComponent<TagComponent>().GetGUID() );
             }
 
             if ( ImGui::MenuItem( "Create empty object" ) ) {
                 EntityCreateInfo createInfo{};
                 createInfo.Root = std::addressof(target);
                 createInfo.Name = "Empty Object";
-                createInfo.PrefabType = PrefabSceneObject::NO_PREFAB_OBJECT;
+                createInfo.ModelMesh = nullptr;
 
-                SceneManager::AddEntity(createInfo);
+                m_TargetScene->CreateEntity( createInfo );
             }
 
             DrawPrefabMenu(std::addressof(target));
@@ -204,17 +254,20 @@ namespace Mikoto {
         ImGui::PushStyleVar( ImGuiStyleVar_PopupBorderSize, 1.0f );
 
         if ( ImGui::BeginPopupContextWindow( "##HierarchyMenuOptions", popupWindowFlags ) ) {
-            EntityCreateInfo entityCreateInfo{};
 
             if ( ImGui::MenuItem( "Empty Object" ) ) {
-                entityCreateInfo.Name = "Empty Object";
-                entityCreateInfo.PrefabType = PrefabSceneObject::NO_PREFAB_OBJECT;
-                SceneManager::AddEntity( entityCreateInfo );
+                constexpr EntityCreateInfo createInfo{
+                    .Name{ "Empty Object" },
+                    .Root{ nullptr },
+                    .ModelMesh{ nullptr },
+                };
+
+                m_TargetScene->CreateEntity( createInfo );
 
                 MKT_CORE_LOGGER_INFO( "Added new empty object" );
             }
 
-            DrawPrefabMenu();
+            DrawPrefabMenu(m_GetActiveEntityCallback());
 
             ImGui::EndPopup();
         }

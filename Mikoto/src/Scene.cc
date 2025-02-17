@@ -12,287 +12,244 @@
 #include <entt/entt.hpp>
 
 // Project Headers
-#include <Assets/AssetsManager.hh>
 #include <Common/Constants.hh>
-#include <Common/RenderingUtils.hh>
+#include <Library/Random/Random.hh>
+#include <Material/Material/StandardMaterial.hh>
 #include <Renderer/Core/RenderQueue.hh>
-#include <Renderer/Core/Renderer.hh>
-#include <STL/Random/Random.hh>
-#include <Scene/Entity/Scene.hh>
-
-#include "Models/StandardMaterialCreateData.hh"
+#include <Scene/Scene/Scene.hh>
 
 namespace Mikoto {
 
-#if false // NOT USED YET
-    auto Scene::OnRuntimeUpdate(double ts) -> void {
-        auto sceneHasMainCam{ false };
-        std::shared_ptr<SceneCamera> mainCam{};
-
-        const auto viewForCameraLookUp{ m_Registry.view<TransformComponent, CameraComponent>() };
-        for ( const auto& entity : viewForCameraLookUp) {
-            const auto& transform{ viewForCameraLookUp.get<TransformComponent>(entity) };
-            CameraComponent& camera{ viewForCameraLookUp.get<CameraComponent>(entity) };
-            sceneHasMainCam = camera.IsMainCamera();
-
-            if (camera.IsMainCamera()) {
-                sceneHasMainCam = true;
-                mainCam = camera.GetCameraPtr();
-
-                // The camera's position and rotation depend on its transform component
-                mainCam->SetPosition(transform.GetTranslation());
-                mainCam->SetRotation(transform.GetRotation());
-                break;
-            }
-        }
-
-        if (sceneHasMainCam) {
-            ScenePrepareData prepareData{};
-            prepareData.RuntimeCamera = mainCam.get();
-
-            Renderer::BeginScene(prepareData);
-
-            for ( const auto view{ m_Registry.view<TagComponent, TransformComponent, RenderComponent, MaterialComponent>() };
-                auto& sceneObject: view)
-            {
-                TagComponent& tag{ view.get<TagComponent>(sceneObject) };
-                TransformComponent& transform{ view.get<TransformComponent>(sceneObject) };
-                RenderComponent& renderComponent{ view.get<RenderComponent>(sceneObject) };
-                MaterialComponent& material{ view.get<MaterialComponent>(sceneObject) };
-
-                GameObject& objectData{renderComponent.GetObjectData() };
-
-                objectData.Transform.Transform = transform.GetTransform();
-
-                RenderQueue::Submit(std::make_unique<RenderCommandPushDraw>( std::to_string(tag.GetGUID()), objectData, *material.GetMaterialInfo().MeshMat));
-            }
-
-            Renderer::EndScene();
-        }
-    }
-#endif
-
-    auto Scene::Render(const SceneRenderData& data ) -> void {
-        const ScenePrepareData prepareData{
-            .StaticCamera{ data.Camera },
-            .CameraPosition{ glm::vec4{ data.Camera->GetPosition(), 1.0f } }
-        };
-
-        Renderer::BeginScene( prepareData );
-
-        RenderQueue::Submit( std::make_unique<RenderCommandSetClearColor>( data.ClearColor ) );
+    auto Scene::Update( double deltaTime ) -> void {
+        m_SceneRenderer->BeginFrame();
+        m_SceneRenderer->SetCamera( *m_SceneCamera );
+        m_SceneRenderer->SetProjection( m_SceneCamera->GetProjection() );
 
         // Register models
-        for ( auto& sceneObject: m_Registry.view<RenderComponent>() ) {
-            Entity entity{ sceneObject, m_Registry };
-            auto& tagComponent{ entity.GetComponent<TagComponent>() };
-            auto& transformComponent{ entity.GetComponent<TransformComponent>() };
-            auto& renderComponent{ entity.GetComponent<RenderComponent>() };
-            auto& materialComponent{ entity.GetComponent<MaterialComponent>() };
+        const auto renderObjectsView{ m_Registry.view<TagComponent, TransformComponent, RenderComponent, MaterialComponent>() };
+        for ( const entt::entity& entity: renderObjectsView ) {
+            TagComponent& tagComponent{ m_Registry.get<TagComponent>( entity ) };
+            RenderComponent& renderComponent{ m_Registry.get<RenderComponent>( entity ) };
+            MaterialComponent& materialComponent{ m_Registry.get<MaterialComponent>( entity ) };
+            TransformComponent& transformComponent{ m_Registry.get<TransformComponent>( entity ) };
 
-            auto& objectData{ renderComponent.GetObjectData() };
-            if ( tagComponent.IsVisible() && objectData.MeshData.Data != nullptr ) {
-                objectData.Transform.Transform = transformComponent.GetTransform();
-                objectData.Transform.View = prepareData.StaticCamera->GetViewMatrix();
-                objectData.Transform.Projection = prepareData.StaticCamera->GetProjection();
-
-                RenderQueue::Submit(std::make_unique<RenderCommandPushDraw>( std::to_string(tagComponent.GetGUID()), objectData, *materialComponent.GetMaterialInfo().MeshMat));
+            if ( tagComponent.IsVisible() && renderComponent.HasMesh() ) {
+                m_SceneRenderer->AddToDrawQueue(
+                    tagComponent.GetGUID(),
+                    *renderComponent.GetMesh(),
+                    transformComponent.GetTransform(),
+                    materialComponent.GetMaterial());
             }
         }
 
         // Register Lights
-        for ( auto& lightSource: m_Registry.view<LightComponent>() ) {
-            Entity lightEntity{ lightSource, m_Registry };
+        const auto lightObjectsView{ m_Registry.view<TagComponent, TransformComponent, RenderComponent, MaterialComponent>() };
+        for ( const entt::entity& entity: lightObjectsView ) {
+            TagComponent& tagComponent{ m_Registry.get<TagComponent>( entity ) };
+            LightComponent& lightComponent{ m_Registry.get<LightComponent>( entity ) };
+            TransformComponent& transformComponent{ m_Registry.get<TransformComponent>( entity ) };
 
-            auto& lightComponent{ lightEntity.GetComponent<LightComponent>() };
-            auto& tagComponent{ lightEntity.GetComponent<TagComponent>() };
-            auto& transformComponent{ lightEntity.GetComponent<TransformComponent>() };
-
-            LightRenderInfo info{
-                .Type{ lightComponent.GetType() },
-                .Data{ lightComponent.GetData() },
-                .IsActive{ tagComponent.IsVisible() }
-            };
-
-            info.Data.DireLightData.Position = glm::vec4{ transformComponent.GetTranslation(), 1.0f };
-            info.Data.SpotLightData.Position = glm::vec4{ transformComponent.GetTranslation(), 1.0f };
-            info.Data.PointLightDat.Position = glm::vec4{ transformComponent.GetTranslation(), 1.0f };
-
-            Renderer::AddLightObject(std::to_string( tagComponent.GetGUID() ), info);
+            if (tagComponent.IsVisible()) {
+                m_SceneRenderer->AddLight(
+                    tagComponent.GetGUID(),
+                    lightComponent.GetData(),
+                    lightComponent.GetType(),
+                    glm::vec4{ transformComponent.GetTranslation(), 1.0f });
+            }
         }
 
-        Renderer::EndScene();
+        m_SceneRenderer->EndFrame();
     }
 
-    auto Scene::CreateEmptyEntity(std::string_view tagName, const Entity *root, UInt64_T guid) -> Entity {
-        Entity newEntity{m_Registry.create(), m_Registry };
-        newEntity.AddComponent<TagComponent>(tagName, guid);
-        newEntity.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
+    auto Scene::SetupEntityBaseProperties(Entity& entity, const std::string_view name) -> void {
+        // [Constants for default entity parameters]
+        constexpr glm::vec3 ENTITY_INITIAL_SIZE{ 1.0f, 1.0f, 1.0f };
+        constexpr glm::vec3 ENTITY_INITIAL_POSITION{ 0.0, 0.0, 0.0 };
+        constexpr glm::vec3 ENTITY_INITIAL_ROTATION{ 0.0f, 0.0f, 0.0f };
 
-        if (root == nullptr) {
-            m_Hierarchy.Insert( newEntity.m_EntityHandle, m_Registry );
+        entity.AddComponent<TagComponent>(name);
+        entity.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
+    }
+
+    auto Scene::AddEmptyEntity( const std::string_view tagName, const Entity* root) -> Entity* {
+        Scope_T<Entity> newEntity{ CreateScope<Entity>( m_Registry ) };
+
+        SetupEntityBaseProperties( *newEntity, tagName );
+
+        if ( root == nullptr ) {
+            m_Hierarchy.Insert( newEntity.get() );
         } else {
-            m_Hierarchy.InsertChild([&root](const auto& parent) -> bool {
-                return parent.Get() == root->Get();
-            },
-            newEntity.m_EntityHandle, m_Registry );
+            m_Hierarchy.InsertChild( [&root]( const Entity* parent ) -> bool { return parent->Get() == root->Get(); }, newEntity.get() );
         }
 
-        return newEntity;
+        m_Entities.emplace_back( std::move( newEntity ) );
+        return m_Entities.back().get();
     }
 
-    auto Scene::CreatePrefabEntity(std::string_view tagName, Model *model, Entity *root, UInt64_T guid) -> Entity {
-        if (model != nullptr) {
-            std::vector<Entity> children{};
+    auto Scene::RemoveFromLights( const UInt64_T uniqueID ) -> void {
+        m_SceneRenderer->RemoveLight( uniqueID );
 
-            for (auto& mesh : model->GetMeshes()) {
-                // We treat each mesh as an individual game object
-                Entity child{ m_Registry.create(), m_Registry };
+        const auto result{ std::ranges::find_if(m_Lights, [&](Entity* entity) -> bool {
+                    return entity->GetComponent<TagComponent>().GetGUID() == uniqueID;
+                }) };
 
-                // Setup tag and transform
-                child.AddComponent<TagComponent>(mesh.GetName(), GenerateGUID());
-                child.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
-
-                auto& material{ child.AddComponent<MaterialComponent>() };
-                auto& renderData{ child.AddComponent<RenderComponent>() };
-
-                StandardMaterialCreateData spec{};
-
-                for (auto& textureIt: mesh.GetTextures()) {
-                    switch ( textureIt->GetType() ) {
-                        case MapType::TEXTURE_2D_DIFFUSE:
-                            spec.DiffuseMap = textureIt;
-                            break;
-                        case MapType::TEXTURE_2D_SPECULAR:
-                            spec.SpecularMap = textureIt;
-                            break;
-                        default:
-                            MKT_CORE_LOGGER_INFO("Scene::CreatePrefabEntity - Mesh has no data for the requested texture type.");
-                    }
-                }
-
-                renderData.GetObjectData().MeshData.Data = std::addressof(mesh);
-                material.GetMaterialInfo().MeshMat = Material::CreateStandardMaterial(spec);
-
-                children.emplace_back(child);
-            }
-
-            if (root == nullptr) {
-                Entity rootEntity = { m_Registry.create(), m_Registry };
-                rootEntity.AddComponent<TagComponent>(tagName, guid);
-                rootEntity.AddComponent<TransformComponent>(ENTITY_INITIAL_POSITION, ENTITY_INITIAL_SIZE, ENTITY_INITIAL_ROTATION);
-                m_Hierarchy.Insert( rootEntity.m_EntityHandle, m_Registry );
-
-                m_Hierarchy.InsertMultiple( [&rootEntity](const auto& ent) { return ent == rootEntity; },
-                children.begin(), children.end());
-
-                return rootEntity;
-            } else {
-                m_Hierarchy.InsertMultiple( [&root](const auto& ent) { return ent == *root; },
-                children.begin(), children.end());
-
-                return *root;
-            }
+        if (result != m_Lights.end()) {
+            m_Lights.erase( result );
         }
-
-        return Entity{};
     }
 
-    auto Scene::DestroyEntity(Entity& target) -> bool {
-        auto destroyIfLight{
-            [](Entity& ent) {
-                if (ent.HasComponent<LightComponent>()) {
-                    Renderer::RemoveLightObject( std::to_string( ent.GetComponent<TagComponent>().GetGUID() ) );
-                }
-            }
+    auto Scene::RemoveFromEntities( const UInt64_T uniqueID ) -> Scope_T<Entity> {
+        const auto result{ std::ranges::find_if(m_Entities, [&](const Scope_T<Entity>& entity) -> bool {
+                    return entity->GetComponent<TagComponent>().GetGUID() == uniqueID;
+                }) };
+
+        Scope_T<Entity> entity{
+            result != m_Entities.end() ?
+                std::move( *result ) : nullptr
         };
 
-        destroyIfLight(target);
+        return entity;
+    }
 
-        // Contains all the nodes that have to be deleted (the target and all of its children)
-        std::vector<entt::entity> children{};
+    auto Scene::RemoveFromHierarchy( Entity& target ) -> void {
+        // List of entities to erase from hierarchy
+        std::vector<entt::entity> entitiesToErase{};
 
-        children.emplace_back( target.Get() );
+        // we add the root node
+        entitiesToErase.emplace_back( target.Get() );
 
-        // Remove parent and children from drawing queue
-        const auto& tag{ target.GetComponent<TagComponent>() };
-        RenderQueue::Submit( std::make_unique<RenderCommandPopDraw>( std::to_string(tag.GetGUID() ) ) );
+        // If they are lights erase them
         m_Hierarchy.ForAllChildren(
-            [&children, &destroyIfLight](Entity& ent) {
-                const auto& tagComponent{ ent.GetComponent<TagComponent>() };
-                destroyIfLight(ent);
-                RenderQueue::Submit( std::make_unique<RenderCommandPopDraw>( std::to_string(tagComponent.GetGUID()) ) );
+            [&](Entity* ent) {
+                if (ent->HasComponent<LightComponent>()) {
+                    RemoveFromLights( ent->GetComponent<TagComponent>().GetGUID() );
+                }
 
-                children.emplace_back(ent.Get());
+                // Add children to be erased
+                entitiesToErase.emplace_back( ent->Get() );
             },
-            [&target](const auto& ent) { return ent == target; } );
+            [&target](Entity* ent) {
+                return ent->GetComponent<TagComponent>().GetGUID() ==
+                    target.GetComponent<TagComponent>().GetGUID();
+            } );
 
         // Erase node and its children from the hierarchy
         const auto result{ m_Hierarchy.Erase(
-            [&target](const auto& ent) {
-                return target == ent;
+            [&target](Entity* ent) {
+                return ent->GetComponent<TagComponent>().GetGUID() ==
+                    target.GetComponent<TagComponent>().GetGUID();
             } )
         };
 
-        // Erase node and its children from the registry
-        for ( const auto& child : children) {
-            m_Registry.destroy( child );
+        if (result) {
+            // Erase entities from entt structures
+            for (const entt::entity& entity : entitiesToErase) {
+                m_Registry.destroy( entity );
+            }
         }
-
-        return result;
     }
 
-    auto Scene::ResizeViewport( const UInt32_T width, const UInt32_T height) -> void {
-        // Resize non-fixed aspect ratio cameras
+    auto Scene::DestroyEntity( const UInt64_T uniqueID ) -> bool {
+        const Scope_T<Entity> target{ RemoveFromEntities( uniqueID ) };
 
-        for ( const auto view{ m_Registry.view<TransformComponent, CameraComponent>() }; const auto& entity : view) {
-            TransformComponent& transform{ view.get<TransformComponent>(entity) };
-            CameraComponent& camera{ view.get<CameraComponent>(entity) };
-
-            if (!camera.IsAspectRatioFixed())
-                camera.GetCameraPtr()->SetViewportSize(width, height);
-
+        if (target == nullptr) {
+            return  false;
         }
+
+        RemoveFromLights( uniqueID );
+        RemoveFromHierarchy( *target );
+
+        return true;
+    }
+
+    auto Scene::FindEntity( const UInt64_T uniqueID ) -> Entity* {
+
+        const auto result{ std::ranges::find_if(m_Entities, [&](const Scope_T<Entity>& entity) -> bool {
+            return entity->GetComponent<TagComponent>().GetGUID() == uniqueID;
+        }) };
+
+        return result == m_Entities.end() ?
+            nullptr : result->get();
+    }
+
+    auto Scene::CreateEntity( const EntityCreateInfo& createInfo ) -> Entity* {
+        if (createInfo.ModelMesh == nullptr) {
+            return AddEmptyEntity( createInfo.Name, createInfo.Root );
+        }
+
+        // For each mesh from the model we create an entity,
+        // The idea later is to be able to construct one mesh from individual meshes
+        // and not split them as it is right now
+        Entity* newEntityRoot{ AddEmptyEntity(createInfo.Name, createInfo.Root) };
+
+        for (auto& mesh : createInfo.ModelMesh->GetMeshes()) {
+            Entity* child{ AddEmptyEntity(createInfo.Name, newEntityRoot) };
+
+            MaterialComponent& materialComponent{ child->AddComponent<MaterialComponent>() };
+            RenderComponent& renderComponent{ child->AddComponent<RenderComponent>() };
+
+            Texture2D* diffuse{ nullptr };
+            Texture2D* specular{ nullptr };
+
+            for (auto& textureIt: mesh->GetTextures()) {
+                switch ( textureIt->GetType() ) {
+                    case MapType::TEXTURE_2D_DIFFUSE:
+                        diffuse = textureIt.get();
+                        break;
+                    case MapType::TEXTURE_2D_SPECULAR:
+                        specular = textureIt.get();
+                        break;
+                    default:
+                        MKT_CORE_LOGGER_INFO("Scene::CreatePrefabEntity - Mesh has no data for the requested texture type.");
+                }
+            }
+
+            renderComponent.SetMesh(mesh.get());
+
+            StandardMaterialCreateInfo spec{
+                .name{ fmt::format( "Material standard - {}", mesh->GetName() ) },
+                .DiffuseMap{ diffuse },
+                .SpecularMap{ specular },
+            };
+            materialComponent.SetMaterial(StandardMaterial::Create(spec));
+        }
+
+        return newEntityRoot;
     }
 
     auto Scene::Clear() -> void {
+        // Remove entities from draw queue
+        for ( const auto& entity: m_Entities ) {
+            TagComponent& tagComponent{ entity->GetComponent<TagComponent>() };
+            DestroyEntity( tagComponent.GetGUID() );
+        }
+
+        // Clear entt registry
         m_Registry.clear();
     }
 
-    Scene::~Scene() {
-
+    auto Scene::SetCamera( const SceneCamera& camera ) -> void {
+        m_SceneCamera = std::addressof( camera );
+    }
+    auto Scene::SetRenderer( RendererBackend& renderer ) -> void {
+        m_SceneRenderer = std::addressof( renderer );
     }
 
-    auto Scene::GetSceneMetaData() -> SceneMetaData& {
-        m_MetaData.EntityCount = m_Registry.view<TagComponent>().size();
+    auto Scene::OnViewPortResize( const float width, const float height ) -> void {
+        // Resize non-fixed aspect ratio cameras
+        const auto view{ m_Registry.view<TransformComponent, CameraComponent>() };
 
-        const auto viewLights{ m_Registry.view<LightComponent>() };
-        m_MetaData.LightsCount = viewLights.size();
+        for (const auto& entity : view) {
+            TransformComponent& transformComponent{ view.get<TransformComponent>(entity) };
+            CameraComponent& cameraComponent{ view.get<CameraComponent>(entity) };
 
-        for (auto& light : viewLights) {
-            LightComponent& lightComponent{ m_Registry.get<LightComponent>(light) };
-
-            // Directional light count
-            if (lightComponent.GetType() == LightType::DIRECTIONAL_LIGHT_TYPE) {
-                m_MetaData.DirLightsCount += 1;
-                m_MetaData.DirActiveLightCount += lightComponent.IsActive() ? 1 : 0;
-            }
-
-            // Point light count
-            if (lightComponent.GetType() == LightType::POINT_LIGHT_TYPE) {
-                m_MetaData.PointLightsCount += 1;
-                m_MetaData.PointActiveLightCount += lightComponent.IsActive() ? 1 : 0;
-            }
-
-            // Spot-light count
-            if (lightComponent.GetType() == LightType::SPOT_LIGHT_TYPE) {
-                m_MetaData.SpotLightsCount += 1;
-                m_MetaData.SpotActiveLightCount += lightComponent.IsActive() ? 1 : 0;
+            if (!cameraComponent.IsAspectRatioFixed()) {
+                cameraComponent.GetCamera().SetViewportSize(width, height);
             }
         }
+    }
 
-        m_MetaData.ActiveLightCount = m_MetaData.DirActiveLightCount + m_MetaData.PointActiveLightCount + m_MetaData.SpotActiveLightCount;
-
-        return m_MetaData;
+    Scene::~Scene() {
+        Clear();
     }
 }

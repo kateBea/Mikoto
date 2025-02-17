@@ -15,43 +15,33 @@
 #include "glm/glm.hpp"
 
 // Project Headers
-#include "Common/Common.hh"
-#include "STL/Utility/Types.hh"
-#include "Common/RenderingUtils.hh"
-#include "Material/Core/Material.hh"
-#include "Material/Material/StandardMaterial.hh"
-#include "VulkanBuffer.hh"
-#include "VulkanShader.hh"
-#include "VulkanTexture2D.hh"
-#include <Renderer/Vulkan/VulkanRenderer.hh>
+#include <Common/Common.hh>
+#include <Library/Utility/Types.hh>
+#include <Material/Material/StandardMaterial.hh>
+#include <Renderer/Vulkan/VulkanBuffer.hh>
+#include <Renderer/Vulkan/VulkanDescriptorManager.hh>
+#include <Renderer/Vulkan/VulkanTexture2D.hh>
 
 namespace Mikoto {
+
     class VulkanStandardMaterial final : public StandardMaterial {
     public:
-        explicit VulkanStandardMaterial(const StandardMaterialCreateData& spec, std::string_view name = GetName());
+        explicit VulkanStandardMaterial(const StandardMaterialCreateInfo& spec);
 
-        VulkanStandardMaterial(const VulkanStandardMaterial& other) = default;
-        VulkanStandardMaterial(VulkanStandardMaterial && other) = default;
-
-        auto operator=(const VulkanStandardMaterial & other) -> VulkanStandardMaterial & = default;
-        auto operator=(VulkanStandardMaterial && other) -> VulkanStandardMaterial & = default;
-
-        auto UpdateDescriptorSets() const -> void;
+        auto UpdateDescriptorSets() -> void;
 
         auto SetView(const glm::mat4& mat) -> void { m_VertexUniformData.View = mat; }
-
-        auto SetTransform(const glm::mat4& transform) -> void { m_VertexUniformData.Transform = transform; }
-
         auto SetProjection(const glm::mat4& mat) -> void { m_VertexUniformData.Projection = mat; }
+        auto SetTransform(const glm::mat4& transform) -> void { m_VertexUniformData.Transform = transform; }
 
         auto BindDescriptorSet(const VkCommandBuffer &commandBuffer, const VkPipelineLayout &pipelineLayout) const -> void;
 
         auto UploadUniformBuffers() -> void;
 
-        auto UpdateLightsInfo() -> void;
+        auto ResetLights() -> void;
+        auto UpdateLightsInfo(const LightData& lightData, LightType type) -> void;
 
     private:
-        // stick to mat4s and vec4s for now for simplicity
         struct UniformBufferData {
             // Camera
             glm::mat4 View{};
@@ -69,35 +59,45 @@ namespace Mikoto {
 
             glm::vec4 ViewPosition{};
 
-            // Stores x=lights count, y=has diffuse, z=has specular, w=shininess
+            // x = Total number of lights
+            // y = Has a diffuse map (1 if true, 0 if false)
+            // z = Has a specular map (1 if true, 0 if false)
+            // w = Shininess factor
             glm::vec4 LightMeta{};
 
-            // holds count of each type of light
-            // x=dir, y=point, z=spot
+            // x = Number of directional lights
+            // y = Number of point lights
+            // z = Number of spotlights
+            // w = unused component
             glm::vec4 LightTypesCount{};
         };
 
     private:
+        auto SetupTextures() -> void;
         auto CreateUniformBuffers() -> void;
         auto CreateDescriptorPool() -> void;
         auto CreateDescriptorSet() -> void;
 
     private:
+        Size_T m_LightsCount{};
+        Size_T m_DirLightIndex{};
+        Size_T m_SpotLightIndex{};
+        Size_T m_PointLightIndex{};
+
+        VulkanDescriptorWriter m_DescriptorWriter{};
+
         // Vertex shader uniform buffer
-        VulkanBuffer m_VertexUniformBuffer{};
+        Scope_T<VulkanBuffer> m_VertexUniformBuffer{};
         UniformBufferData m_VertexUniformData{};
 
         // Fragment shader uniform buffer
-        VulkanBuffer m_FragmentUniformBuffer{};
+        Scope_T<VulkanBuffer> m_FragmentUniformBuffer{};
         LightsUniformData m_FragmentUniformLightsData{};
 
         // Descriptors
-        VkDescriptorPool m_DescriptorPool{};
         VkDescriptorSet m_DescriptorSet{};
 
-        PipelineInfo* m_PipelineInfo{};
-
-        static inline std::shared_ptr<VulkanTexture2D> s_EmptyTexture{};
+        static inline VulkanTexture2D* s_EmptyTexture{};
 
         Size_T m_UniformDataStructureSize{}; // size of the UniformBufferData structure, with required padding for the device
         Size_T m_FragmentUniformDataStructureSize{}; // size of the UniformBufferData structure, with required padding for the device for fragment shader

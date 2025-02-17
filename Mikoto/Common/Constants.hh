@@ -168,11 +168,6 @@ namespace Mikoto {
     constexpr glm::vec3 GLM_UNIT_VECTOR_Y{ 0.0f, 1.0f, 0.0f };
     constexpr glm::vec3 GLM_UNIT_VECTOR_Z{ 0.0f, 0.0f, 1.0f };
 
-    // [Constants for default entity parameters]
-    constexpr glm::vec3 ENTITY_INITIAL_SIZE{ 1.0f, 1.0f, 1.0f };
-    constexpr glm::vec3 ENTITY_INITIAL_POSITION{ 0.0, 0.0, 0.0 };
-    constexpr glm::vec3 ENTITY_INITIAL_ROTATION{ 0.0f, 0.0f, 0.0f };
-
     constexpr auto GLM_IDENTITY_MAT4{ glm::mat4(1.0) };
 
 }

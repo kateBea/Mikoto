@@ -8,49 +8,52 @@
 #include <utility>
 
 // Third-Party Libraries
-#include "glm/glm.hpp"
+#include <glm/glm.hpp>
 
 // Quaternions with extensions
-#include "glm/gtx/quaternion.hpp"
+#include <glm/gtx/quaternion.hpp>
 
 // Project Headers
-#include "Common/Common.hh"
-#include "Common/Constants.hh"
-#include "STL/Utility/Types.hh"
-#include "Core/CoreEvents.hh"
-#include "Core/EventManager.hh"
-#include "Core/KeyCodes.hh"
-#include "Core/MouseButtons.hh"
-#include "Platform/Input/InputManager.hh"
-#include "Scene/Camera/SceneCamera.hh"
+#include <Common/Common.hh>
+#include <Common/Constants.hh>
+#include <Core/Events/CoreEvents.hh>
+#include <Core/Input/KeyCodes.hh>
+#include <Core/Input/MouseCodes.hh>
+#include <Core/System/EventSystem.hh>
+#include <Core/System/InputSystem.hh>
+#include <Library/Utility/Types.hh>
+#include <Scene/Camera/SceneCamera.hh>
 
 namespace Mikoto {
-    SceneCamera::SceneCamera(float fov, float aspectRatio, float nearClip, float farClip)
+    SceneCamera::SceneCamera( const float fov, const float aspectRatio, const float nearClip, const float farClip)
         :   Camera{ glm::perspective(glm::radians(fov), aspectRatio, nearClip, farClip) }
         ,   m_NearClip{ nearClip }
         ,   m_FarClip{ farClip }
         ,   m_FieldOfView{ fov }
         ,   m_AspectRatio{ aspectRatio }
     {
-        EventManager::Subscribe(m_Guid.Get(),
-            EventType::MOUSE_BUTTON_RELEASED_EVENT,
-            [this](Event& event) -> bool
-            {
-                MouseButtonReleasedEvent* e{ dynamic_cast<MouseButtonReleasedEvent*>(std::addressof(event)) };
-                InputManager::SetCursorMode(CursorInputMode::CURSOR_NORMAL);
+        EventSystem& eventSystem{ Engine::GetSystem<EventSystem>() };
+        InputSystem& inputSystem{ Engine::GetSystem<InputSystem>() };
 
-                if (e->GetMouseButton() == MouseButton::Mouse_Button_Right) {
+        eventSystem.Subscribe(m_Guid.Get(),
+            EventType::MOUSE_BUTTON_RELEASED_EVENT,
+            [&](Event& event) -> bool
+            {
+                                     const MouseButtonReleasedEvent* e{ dynamic_cast<MouseButtonReleasedEvent*>(std::addressof(event)) };
+                inputSystem.SetCursorMode(CURSOR_NORMAL);
+
+                if (e->GetMouseButton() == Mouse_Button_Right) {
                     EnableCamera(false);
                 }
 
                 return false;
             });
 
-        EventManager::Subscribe(m_Guid.Get(),
+        eventSystem.Subscribe(m_Guid.Get(),
             EventType::CAMERA_ENABLE_ROTATION,
-            [this](Event&) -> bool
+            [&](Event&) -> bool
             {
-                InputManager::SetCursorMode(CursorInputMode::CURSOR_DISABLED);
+                inputSystem.SetCursorMode(CURSOR_DISABLED);
                 EnableCamera(true);
                 return false;
             });
@@ -59,7 +62,7 @@ namespace Mikoto {
         // position to make the camera look at the center.
         // Forward vector must be normalized as it starts with
         // the position value which represents a position in world space
-        m_ForwardVector = glm::normalize(m_ForwardVector);
+        m_ForwardVector = normalize(m_ForwardVector);
 
         UpdateViewMatrix();
     }
@@ -70,22 +73,24 @@ namespace Mikoto {
     }
 
     auto SceneCamera::UpdateViewMatrix() -> void {
-        m_ViewMatrix = glm::lookAt(m_Position,                      // The camera is located here
+        m_ViewMatrix = lookAt(m_Position,                      // The camera is located here
                                    m_Position + m_ForwardVector,    // This is where the camera is looking at
                                    m_CameraUpVector);               // This is the camera's up vector (normalized)
 
     }
 
-    auto SceneCamera::ProcessMouseInput(double timeStep) -> void {
+    auto SceneCamera::ProcessMouseInput( const double timeStep) -> void {
+        static InputSystem& inputSystem{ Engine::GetSystem<InputSystem>() };
+
         // Get mouse angle rotation values
-        const glm::vec2 MOUSE_CURRENT_POSITION{ InputManager::GetMouseX(), InputManager::GetMouseY() };
+        const glm::vec2 MOUSE_CURRENT_POSITION{ inputSystem.GetMouseX(), inputSystem.GetMouseY() };
         glm::vec2 delta{ (MOUSE_CURRENT_POSITION - m_LastMousePosition) * 0.03f };
         m_LastMousePosition = MOUSE_CURRENT_POSITION;
 
         // TODO: temporary (avoid camera jumping)
         // Offset that indicates there will be a camera jump when rotating
         static constexpr auto JUMP_THRESHOLD{ 8.0f };
-        if (std::abs(glm::length(delta)) > JUMP_THRESHOLD)
+        if (std::abs(length(delta)) > JUMP_THRESHOLD)
             return;
 
         // Perform rotation
@@ -101,40 +106,42 @@ namespace Mikoto {
     }
 
     auto SceneCamera::ProcessKeyboardInput(double timeStep) -> void {
+        static InputSystem& inputSystem{ Engine::GetSystem<InputSystem>() };
+
         m_CameraUpVector = GLM_UNIT_VECTOR_Y;
 
         // Move forward
-        if (InputManager::IsKeyPressed(KeyCode::Key_W)) {
-            m_Position += m_ForwardVector * m_MovementSpeed * (float)timeStep;
+        if (inputSystem.IsKeyPressed(Key_W)) {
+            m_Position += m_ForwardVector * m_MovementSpeed * static_cast<float>( timeStep );
         }
 
         // Move backwards
-        if (InputManager::IsKeyPressed(KeyCode::Key_S)) {
-            m_Position -= m_ForwardVector * m_MovementSpeed * (float)timeStep;
+        if (inputSystem.IsKeyPressed(Key_S)) {
+            m_Position -= m_ForwardVector * m_MovementSpeed * static_cast<float>( timeStep );
         }
 
         // Move left
-        if (InputManager::IsKeyPressed(KeyCode::Key_A)) {
-            m_Position -= m_RightVector * m_MovementSpeed * (float)timeStep;
+        if (inputSystem.IsKeyPressed(Key_A)) {
+            m_Position -= m_RightVector * m_MovementSpeed * static_cast<float>( timeStep );
         }
 
         // Move right
-        if (InputManager::IsKeyPressed(KeyCode::Key_D)) {
-            m_Position += m_RightVector * m_MovementSpeed * (float)timeStep;
+        if (inputSystem.IsKeyPressed(Key_D)) {
+            m_Position += m_RightVector * m_MovementSpeed * static_cast<float>( timeStep );
         }
 
         // Move up
-        if (InputManager::IsKeyPressed(KeyCode::Key_Space) || InputManager::IsKeyPressed(KeyCode::Key_E)) {
-            m_Position.y += m_MovementSpeed * (float)timeStep;
+        if (inputSystem.IsKeyPressed(Key_Space) || inputSystem.IsKeyPressed(Key_E)) {
+            m_Position.y += m_MovementSpeed * static_cast<float>( timeStep );
         }
 
         // Move down
-        if (InputManager::IsKeyPressed(KeyCode::Key_Q)) {
-            m_Position.y -= m_MovementSpeed * (float)timeStep;
+        if (inputSystem.IsKeyPressed(Key_Q)) {
+            m_Position.y -= m_MovementSpeed * static_cast<float>( timeStep );
         }
     }
 
-    auto SceneCamera::OnUpdate(double timeStep) -> void {
+    auto SceneCamera::UpdateState( const double timeStep) -> void {
         if (!m_AllowCameraMovementAndRotation) {
             return;
         }
@@ -146,7 +153,7 @@ namespace Mikoto {
         ProcessKeyboardInput(timeStep);
     }
 
-    auto SceneCamera::SetViewportSize(float width, float height) -> void {
+    auto SceneCamera::SetViewportSize( const float width, const float height) -> void {
         if (m_ViewportWidth == width && m_ViewportHeight == height)
             return;
 

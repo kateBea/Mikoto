@@ -10,16 +10,16 @@
 #include <memory>
 
 // Third-Party Libraries
-#include "spdlog/sinks/stdout_color_sinks.h"
-#include "spdlog/spdlog.h"
+#include <spdlog/spdlog.h>
 
 // Spdlog already has fmt bundled, but we are using it
 // as an external library
-#include "fmt/format.h"
+#include <fmt/format.h>
 
 // Project Headers
-#include "Common/Common.hh"
-#include "Common/Singleton.hh"
+#include <Common/Common.hh>
+#include <Common/Singleton.hh>
+#include <Library/Utility/Types.hh>
 
 namespace Mikoto {
     /**
@@ -28,20 +28,24 @@ namespace Mikoto {
      * The APP logger logs information about the current state of the Application,
      * which manages and serves as a central Hub for our engine
      * */
-    class Logger : public Singleton<Logger> {
+    class Logger final : public Singleton<Logger> {
     public:
-        Logger() : m_CoreLogger{ nullptr }, m_AppLogger{ nullptr }  { Init(); }
+        explicit Logger()
+            : m_CoreLogger{ nullptr }, m_AppLogger{ nullptr }  { Init(); }
 
-        auto GetCoreLogger() -> const std::shared_ptr<spdlog::logger>&;
-        auto GetAppLogger() -> const std::shared_ptr<spdlog::logger>&;
+        auto GetCoreLogger() -> const Ref_T<spdlog::logger>&;
+        auto GetAppLogger() -> const Ref_T<spdlog::logger>&;
 
     private:
         auto Init() -> void;
 
     private:
-        std::shared_ptr<spdlog::logger> m_CoreLogger{};
-        std::shared_ptr<spdlog::logger> m_AppLogger{};
+        Ref_T<spdlog::logger> m_CoreLogger{};
+        Ref_T<spdlog::logger> m_AppLogger{};
     };
+
+    // Global instance for logging
+    inline Logger globalLoger{};
 }
 
 // Enable logging for debug builds exclusively

@@ -13,7 +13,8 @@
 #include <fmt/format.h>
 
 // Project Headers
-#include <STL/String/String.hh>
+#include <Common/Constants.hh>
+#include <Library/String/String.hh>
 
 #if defined(_WIN32) || defined(_WIN64)
     #define __PRETTY_FUNCTION__  __FUNCTION__

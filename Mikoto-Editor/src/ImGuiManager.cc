@@ -12,16 +12,17 @@
 #include <GUI/IconsMaterialDesign.h>
 #include <GUI/IconsMaterialDesignIcons.h>
 
-#include <../../Mikoto/Common/Common.hh>
-#include <../../Mikoto/Common/RenderingUtils.hh>
-#include <../../Mikoto/Core/Logger.hh>
-#include <Core/FileManager.hh>
+#include <Common/Common.hh>
+#include <Core/Engine.hh>
+#include <Core/Logging/Logger.hh>
+#include <Core/System/FileSystem.hh>
+#include <Core/System/RenderSystem.hh>
 #include <GUI/ImGuiManager.hh>
 #include <GUI/ImGuiVulkanBackend.hh>
-#include <STL/Filesystem/PathBuilder.hh>
+#include <Library/Filesystem/PathBuilder.hh>
 
 namespace Mikoto {
-    auto ImGuiManager::Init(const std::shared_ptr<Window>& window) -> void {
+    auto ImGuiManager::Init(const Window* window) -> void {
         MKT_CORE_LOGGER_INFO("Initializing ImGui manager");
 
         // Setup Dear ImGui context
@@ -49,40 +50,25 @@ namespace Mikoto {
 
         io.Fonts->AddFontDefault();
         constexpr float baseFontSize{ 18.0f };
-        //constexpr float iconFontSize = baseFontSize * 2.0f / 3.0f; // FontAwesome fonts need to have their sizes
         constexpr float iconFontSize{ 18.0f };
-        const std::string fontPath{ PathBuilder().WithPath( FileManager::Assets::GetRootPath().string() ).WithPath( "Fonts" ).Build().string() };
+
+        FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
+
+        const std::string fontPath{
+            PathBuilder()
+            .WithPath( fileSystem.GetFontsRootPath().string() )
+            .Build().string() };
 
 
         // NOTE: FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly
 
         // // Font 0
         s_Fonts.emplace_back(io.FontDefault = io.Fonts->AddFontFromFileTTF(PathBuilder()
-                                 .WithPath( FileManager::Assets::GetRootPath().string() )
-                                 .WithPath( "Fonts" )
+                                 .WithPath( fileSystem.GetFontsRootPath().string() )
                                  .WithPath( "Inter" )
                                  .WithPath( "static" )
                                  .WithPath( "Inter-Regular.ttf" )
                                  .Build().string().c_str(), baseFontSize));
-        // // Font 1
-        // s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF(PathBuilder()
-        //                          .WithPath( FileManager::Assets::GetRootPath().string() )
-        //                          .WithPath( "Fonts" )
-        //                          .WithPath( "JetBrainsMono" )
-        //                          .WithPath( "fonts" )
-        //                          .WithPath( "ttf" )
-        //                          .WithPath( "JetBrainsMonoNL-Light.ttf" )
-        //                          .Build().string().c_str(), 22.0f));
-        //
-        // // Font 1
-        // s_Fonts.emplace_back(io.Fonts->AddFontFromFileTTF(PathBuilder()
-        //                          .WithPath( FileManager::Assets::GetRootPath().string() )
-        //                          .WithPath( "Fonts" )
-        //                          .WithPath( "JetBrainsMono" )
-        //                          .WithPath( "fonts" )
-        //                          .WithPath( "ttf" )
-        //                          .WithPath( "JetBrainsMonoNL-Light.ttf" )
-        //                          .Build().string().c_str(), 27.0f));
 
 
         // Font 3
@@ -125,16 +111,18 @@ namespace Mikoto {
         s_Fonts.emplace_back(font);
     }
 
-    auto ImGuiManager::InitImplementation(const std::shared_ptr<Window>& window) -> void {
+    auto ImGuiManager::InitImplementation(const Window* window) -> void {
         MKT_CORE_LOGGER_INFO("Initializing ImGui implementation");
 
         ImGuiIO& io{ ImGui::GetIO() };
+
+        FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
 
         // Load ini file (static because IniFilename is const char*)
         // it will not extend iniFilePath lifetime
         static const auto iniFilePath{
             PathBuilder()
-            .WithPath( FileManager::Assets::GetRootPath().string() )
+            .WithPath( fileSystem.GetAssetsRootPath().string() )
             .WithPath( "imgui" )
             .WithPath( "imgui.ini" )
             .Build().string()
@@ -142,16 +130,19 @@ namespace Mikoto {
 
         io.IniFilename = iniFilePath.c_str();
 
+        RenderSystem& renderSystem{ Engine::GetSystem<RenderSystem>() };
+
         // Create implementation
-        switch (Renderer::GetActiveGraphicsAPI()) {
-            case GraphicsAPI::VULKAN_API:
-                m_Implementation = std::make_unique<ImGuiVulkanBackend>();
-                break;
-        }
+        ImGuiBackendCreateInfo imGuiVulkanBackendCreateInfo{
+            .Handle{ window },
+            .API{ renderSystem.GetDefaultApi() }
+        };
+
+        m_Implementation = CreateScope<ImGuiVulkanBackend>(imGuiVulkanBackendCreateInfo);
 
         // Initialize the implementation
         if (m_Implementation) {
-            m_Implementation->Init(window->GetNativeWindow());
+            m_Implementation->Init();
         }
         else {
             MKT_CORE_LOGGER_ERROR("Failed to initialize an ImGui backend!");

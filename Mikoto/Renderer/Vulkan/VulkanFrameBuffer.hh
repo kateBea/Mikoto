@@ -7,32 +7,33 @@
 #define MIKOTO_VULKAN_FRAMEBUFFER_HH
 
 // Third-Party Library
-#include "volk.h"
+#include <volk.h>
 
 // Project Headers
-#include "Common/Common.hh"
+#include <Common/Common.hh>
+#include <Renderer/Vulkan/VulkanObject.hh>
 
 namespace Mikoto {
-    struct FrameBufferCreateInfo {
-        Int32_T width{};
-        Int32_T height{};
-        UInt32_T samples{};
+    struct VulkanFrameBufferCreateInfo {
+        VkFramebufferCreateInfo CreateInfo{};
     };
 
-    class VulkanFrameBuffer {
+    class VulkanFrameBuffer final : public VulkanObject {
     public:
-        explicit VulkanFrameBuffer() = default;
+        explicit VulkanFrameBuffer(const VulkanFrameBufferCreateInfo& createInfo);
 
-        auto OnCreate(const VkFramebufferCreateInfo& createInfo) -> void;
-
-        auto Resize(UInt32_T width, UInt32_T height) -> void;
-        MKT_NODISCARD auto GetFrameBufferProperties() const -> const FrameBufferCreateInfo& { return m_CreateInfo; }
         MKT_NODISCARD auto Get() const -> const VkFramebuffer& { return m_FrameBuffer; }
+        MKT_NODISCARD auto GetCreateInfo() const -> const VkFramebufferCreateInfo& { return m_CreateInfo; }
+
+        MKT_NODISCARD static auto Create(const VulkanFrameBufferCreateInfo& createInfo) -> Scope_T<VulkanFrameBuffer>;
+
+        auto Release() -> void override;
+
+        ~VulkanFrameBuffer() override;
 
     private:
-        FrameBufferCreateInfo m_CreateInfo{};
-        VkFramebufferCreateInfo m_VkCreateInfo{};
         VkFramebuffer m_FrameBuffer{};
+        VkFramebufferCreateInfo m_CreateInfo{};
     };
 }
 

@@ -9,26 +9,18 @@
 // C++ Standard Library
 #include <any>
 
+#include <volk.h>
 #include <imgui.h>
 
-#include <STL/Utility/Types.hh>
 #include <Common/Common.hh>
-#include <Common/RenderingUtils.hh>
-
-#include <Renderer/Core/Renderer.hh>
+#include <Library/Utility/Types.hh>
+#include <Library/String/String.hh>
 #include <Material/Texture/Texture2D.hh>
 
 namespace Mikoto::ImGuiUtils {
-    inline auto PushImageButton(const Texture2D *texture, const ImVec2 size, const ImVec2 uv1 = ImVec2{ 0, 1 }, const ImVec2 uv2 = ImVec2{ 1, 0 }) -> void {
-        ImTextureID icon{};
-
-        switch (Renderer::GetActiveGraphicsAPI()) {
-            case GraphicsAPI::VULKAN_API:
-                icon = reinterpret_cast<ImTextureID>( std::any_cast<VkDescriptorSet>( texture->GetImGuiTextureHandle() ) );
-                break;
-        }
-
-        ImGui::ImageButton( std::to_string( texture->GetID().Get() ).c_str(), icon, size, uv1, uv2);
+    inline auto PushImageButton(UInt64_T textureId, const VkDescriptorSet textureHandle, const ImVec2 size) -> void {
+        const ImTextureID icon{ reinterpret_cast<ImTextureID>( textureHandle ) };
+        ImGui::ImageButton( StringUtils::ToString( textureId ).c_str(), icon, size, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
     }
 
 
@@ -135,27 +127,8 @@ namespace Mikoto::ImGuiUtils {
         style.ScrollbarRounding = .5f;
         style.TabRounding = .5f;
     }
-}
 
-namespace Mikoto {
-    /**
-     * This class encapsulates backend implementation specific details. ImGui is a graphics API
-     * agnostic GUI library and provides several implementations, each for a specific graphics backend.
-     * This class serves as a general abstraction over the currently active backend in use in the application
-     * that will also be used with ImGui
-     * */
-    class BackendImplementation {
-    public:
-        virtual auto Init(std::any windowHandle) -> bool = 0;
-        virtual auto Shutdown() -> void = 0;
-
-        virtual auto BeginFrame() -> void = 0;
-        virtual auto EndFrame() -> void = 0;
-
-        virtual ~BackendImplementation() = default;
-    };
-
-    inline auto HelpMarker(std::string_view description, std::string_view placeHolder = "(?)") -> void {
+    inline auto HelpMarker( const std::string_view description, const std::string_view placeHolder = "(?)") -> void {
         ImGui::TextDisabled("%s", placeHolder.data());
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && ImGui::BeginTooltip()) {
             ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);

@@ -6,4 +6,7 @@
 
 namespace Mikoto {
 
-}
+    auto AssetsManagerPanel::OnUpdate( float timeStep ) -> void {
+
+    }
+}// namespace Mikoto

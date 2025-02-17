@@ -5,7 +5,7 @@
 #ifndef MIKOTO_SANDBOX_APP_HH
 #define MIKOTO_SANDBOX_APP_HH
 
-#include <STL/Utility/Types.hh>
+#include <Library/Utility/Types.hh>
 #include <Common/Application.hh>
 
 namespace Mikoto {
@@ -19,7 +19,7 @@ namespace Mikoto {
         auto Run(Int32_T argc, char** argv) -> Int32_T;
 
     protected:
-        auto Init(ApplicationData&& appSpec) -> void override;
+        auto Init() -> void override;
         auto Shutdown() -> void override;
         auto ProcessEvents() -> void override;
         auto UpdateState() -> void override;

@@ -13,253 +13,113 @@
 #include <unordered_map>
 
 // Third-Party Library
-#include "glm/glm.hpp"
-#include "volk.h"
+#include <glm/glm.hpp>
+#include <volk.h>
 
 // Project Headers
-#include <Renderer/Core/RenderQueue.hh>
-
-#include "Common/Common.hh"
-#include "Material/Core/Material.hh"
-#include "Renderer/Core/Renderer.hh"
-#include "Renderer/Core/RendererBackend.hh"
-#include "Renderer/Vulkan/VulkanCommandPool.hh"
-#include "Renderer/Vulkan/VulkanFrameBuffer.hh"
-#include "Renderer/Vulkan/VulkanImage.hh"
-#include "Renderer/Vulkan/VulkanPipeline.hh"
+#include <Common/Common.hh>
+#include <Assets/Mesh.hh>
+#include <Material/Core/Material.hh>
+#include <Renderer/Core/RendererBackend.hh>
+#include <Renderer/Vulkan/VulkanCommandPool.hh>
+#include <Renderer/Vulkan/VulkanFrameBuffer.hh>
+#include <Renderer/Vulkan/VulkanImage.hh>
+#include <Renderer/Vulkan/VulkanPipeline.hh>
 
 namespace Mikoto {
-    /**
-     * This structure will hold data that is necessary for the different types of
-     * materials, but is not necessary to have a duplicate for each one of them. For example,
-     * the pipeline for the default material will be shared amongst all default material since
-     * pipelines are expensive to create and makes no sense to have one per material
-     * */
-    struct PipelineInfo {
-        VulkanPipeline Pipeline{};
-        VkPipelineLayout MaterialPipelineLayout{};
-        VkDescriptorSetLayout DescriptorSetLayout{};
+    struct VulkanRendererCreateInfo {
+        RendererCreateInfo Info{};
     };
 
-    class VulkanRenderer final : public IRendererBackend {
+    class VulkanRenderer final : public RendererBackend {
     public:
-        /**
-         * Default constructs this renderer.
-         * */
-        explicit VulkanRenderer() = default;
+        explicit VulkanRenderer(const VulkanRendererCreateInfo& createInfo);
 
-
-        /**
-         * Initializes the Vulkan renderer by setting up necessary components and
-         * preparing the rendering environment. This function creates the command pool,
-         * command buffers, adjusts clearing colors, prepares for offscreen rendering,
-         * and initializes material-specific data structures required for the rendering pipeline.
-         * Must call once after creating an instance of this object and before any call to any other function.
-         * */
-        auto Init() -> void override;
-
-
-        /**
-         * Shuts down the Vulkan renderer releasing all of its resources.
-         * */
+        auto Init() -> bool override;
         auto Shutdown() -> void override;
 
+        auto BeginFrame() -> void override;
+        auto EndFrame() -> void override;
 
-        /**
-         * Enables wireframe mode for rendering.
-         * */
-        auto EnableWireframeMode() -> void override;
+        auto EnableWireframe( bool enable ) -> void override;
 
+        auto RemoveFromDrawQueue( UInt64_T id ) -> bool override;
+        auto AddToDrawQueue( UInt64_T id, const Mesh&data, const glm::mat4& transform, Material &material ) -> bool override;
 
-        /**
-         * Disables wireframe mode for rendering.
-         * */
-        auto DisableWireframeMode() -> void override;
+        auto SetViewport( float x, float y, float width, float height ) -> void override;
 
+        auto RemoveLight( UInt64_T id ) -> bool override;
+        auto AddLight( UInt64_T id, const LightData& data, LightType activeType, const glm::vec4& position ) -> bool override;
 
-        /**
-         * Sets the color to clear the color buffer.
-         * @param color The color vector to set as the clear color.
-         * */
-        auto SetClearColor(const glm::vec4& color) -> void override;
+        MKT_NODISCARD auto GetFinalImage() const -> const VulkanImage& { return *m_OffscreenColorAttachment; }
 
-
-        /**
-         * Sets the color to clear the color buffer.
-         * @param red The red component of the clear color.
-         * @param green The green component of the clear color.
-         * @param blue The blue component of the clear color.
-         * @param alpha The alpha component of the clear color.
-         * */
-        auto SetClearColor(float red, float green, float blue, float alpha) -> void override;
-
-
-        /**
-         * Sets the viewport for rendering.
-         * @param x The x-coordinate of the viewport.
-         * @param y The y-coordinate of the viewport.
-         * @param width The width of the viewport.
-         * @param height The height of the viewport.
-         * */
-        auto SetViewport(float x, float y, float width, float height) -> void override;
-
-
-        /**
-         * Flushes the rendering queue. Records the appropriate commands
-         * to draw currently enqueued objects.
-         * */
-        auto Flush() -> void override;
-
-
-        /**
-         * Queues provided data for drawing.
-         * @param data The shared pointer to the DrawData to be queued.
-         * */
-        auto QueueForDrawing(const std::string &id, const GameObject* data, Material* material) -> void override;
-        auto RemoveFromRenderQueue(const std::string &id) -> bool override;
-
-
-        /**
-         * Retrieves the Vulkan image representing the final output.
-         * @return VulkanImage representing the final color attachment.
-         * */
-        MKT_NODISCARD auto GetFinalImage() const -> VulkanImage {
-            return m_OffscreenColorAttachment;
-        }
-
-
-        /**
-         * Retrieves a reference to the material-specific data information maintained by the renderer.
-         * @return Reference to an unordered map containing the material-specific data for rendering.
-         * */
-        MKT_NODISCARD auto GetMaterialInfo() -> std::unordered_map<std::string, PipelineInfo>& {
-            return m_MaterialInfo;
-        }
-
-        /**
-         * @brief Default destructor
-         * */
         ~VulkanRenderer() override = default;
 
     private:
-        /**
-         * @brief Signals the type of buffer we want to clear.
-         * Serves as an index to the array containing the clear values.
-         * */
-        enum ClearValueIndex {
-            COLOR_BUFFER,
-            DEPTH_BUFFER,
-            CLEAR_COUNT,
-        };
-
         struct MeshRenderInfo {
-            const GameObject* Data{};
+            const Mesh* Object{};
+            glm::mat4 Transform{};
+            // For now we assume the
+            // mesh has only one material
             Material* MaterialData{};
         };
 
+        struct LightRenderInfo {
+            glm::vec4 Position{};
+            const LightData* Data{};
+            LightType ActiveType{};
+        };
+
     private:
-        /**
-         * Draws the scene. Responsible for recording draw commands.
-         * */
+        auto CreateCommandPools() -> void;
+        auto CreateCommandBuffers() -> void;
+
         auto RecordCommands() -> void;
-
-
-        /**
-         * Prepares the offscreen rendering by creating necessary render passes, attachments, and frame buffers.
-         * */
         auto PrepareOffscreenRender() -> void;
 
-
-        /**
-         * Creates the render pass necessary for this Vulkan renderer.
-         * */
         auto CreateOffscreenRenderPass() -> void;
-
-
-        /**
-         * Creates attachments required for rendering.
-         * */
         auto CreateOffscreenAttachments() -> void;
-
-
-        /**
-         * Creates frame buffers to be used for rendering.
-         * */
         auto CreateOffscreenFramebuffers() -> void;
 
 
-        /**
-         * Creates command buffers for drawing.
-         * */
-        auto InitCommandBuffers() -> void;
-
-        auto InitializeCommands() -> void;
-
-
-        /**
-         * Initializes the wireframe pipeline for rendering.
-         * */
         auto InitializeWireFramePipeline() -> void;
 
-
-        /**
-         * Initializes the pipeline for rendering a single texture.
-         * */
         auto InitializeDefaultPipeline() -> void;
+        auto CreateRendererPipelines() -> void;
 
-
-        /**
-         * Initializes the data necessary for rendering materials.
-         * */
-        auto InitializePipelinesData() -> void;
-
-
-        /**
-         * Updates the viewport dimensions for rendering.
-         * @param x X-coordinate of the viewport.
-         * @param y Y-coordinate of the viewport.
-         * @param width Width of the viewport.
-         * @param height Height of the viewport.
-         * */
         auto UpdateViewport(float x, float y, float width, float height) -> void;
 
-
-        /**
-         * @brief Updates the scissor region for rendering.
-         * @param x X-coordinate of the scissor.
-         * @param y Y-coordinate of the scissor.
-         * @param extent The extent of the scissor region.
-         */
         auto UpdateScissor(Int32_T x, Int32_T y, VkExtent2D extent) -> void;
 
-
-        /**
-         * @brief Submits recorded commands to be executed.
-         * For now the recorded commands are submitted to
-         * the graphics queue of the main logical device.
-         * */
         auto SubmitCommands() const -> void;
 
+        auto Flush() -> void;
 
     private:
+        bool m_WireframeEnable{ false };
+
+        VulkanDevice* m_Device{};
+
         VkRenderPass m_OffscreenMainRenderPass{};
-        VulkanImage m_OffscreenColorAttachment{};
-        VulkanImage m_OffscreenDepthAttachment{};
-        VulkanFrameBuffer m_OffscreenFrameBuffer{};
+        Scope_T<VulkanImage> m_OffscreenColorAttachment{};
+        Scope_T<VulkanImage> m_OffscreenDepthAttachment{};
+        Scope_T<VulkanFrameBuffer> m_OffscreenFrameBuffer{};
 
         VkFormat m_ColorAttachmentFormat{};
         VkFormat m_DepthAttachmentFormat{};
-
         VkExtent2D m_OffscreenExtent{};
         VkViewport m_OffscreenViewport{};
         VkRect2D m_OffscreenScissor{};
-        std::array<VkClearValue, CLEAR_COUNT> m_ClearValues{};
 
-        Ref_T<VulkanCommandPool> m_CommandPool{};
+        std::array<VkClearValue, 2> m_ClearValues{};
+
+        Scope_T<VulkanCommandPool> m_CommandPool{};
         VkCommandBuffer m_DrawCommandBuffer{};
 
-        std::unordered_map<std::string, PipelineInfo> m_MaterialInfo{};
-        std::unordered_map<std::string, MeshRenderInfo> m_DrawQueue{};
+        std::unordered_map<UInt64_T, LightRenderInfo> m_Lights{};
+
+        std::unordered_map<std::string, VulkanPipeline> m_Pipelines{};
+        std::unordered_map<UInt64_T, MeshRenderInfo> m_DrawQueue{};
 
         bool m_UseWireframe{};
     };

@@ -14,24 +14,27 @@
 #include <volk.h>
 
 // Project Headers
-#include <STL/Utility/Types.hh>
 #include <Common/Common.hh>
-#include <Renderer/Vulkan/VulkanUtils.hh>
+#include <Library/Utility/Types.hh>
+#include <Renderer/Vulkan/VulkanHelpers.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanSwapChain.hh>
 
 namespace Mikoto {
-    auto VulkanSwapChain::GetNextRenderableImage(UInt32_T &imageIndex, const VkFence fence, const VkSemaphore imageAvailable ) const -> VkResult {
-        vkWaitForFences(VulkanContext::GetPrimaryLogicalDevice(), 1, std::addressof( fence ), VK_TRUE, (std::numeric_limits<std::uint64_t>::max)());
-        vkResetFences(VulkanContext::GetPrimaryLogicalDevice(), 1, std::addressof( fence ));
 
-        return vkAcquireNextImageKHR(VulkanContext::GetPrimaryLogicalDevice(), m_SwapChain, (std::numeric_limits<UInt64_T>::max)(), imageAvailable, VK_NULL_HANDLE, std::addressof(imageIndex));
+    VulkanSwapChain::VulkanSwapChain( const VulkanSwapChainCreateInfo& createInfo )
+        :   m_Extent{ createInfo.Extent },
+            m_OldSwapChain{ createInfo.OldSwapChain },
+            m_Surface{ createInfo.Surface },
+            m_IsVsyncEnabled{ createInfo.EnableVsync }
+    {
+
     }
 
-
-    auto VulkanSwapChain::OnCreate(VulkanSwapChainCreateInfo&& createInfo) -> void {
-        m_SwapChainDetails = std::move(createInfo);
-        m_WindowExtent = m_SwapChainDetails.Extent;
+    auto VulkanSwapChain::Init() -> void {
+        if (m_Surface == nullptr) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanSwapChain::Init - Error the surface for the swapchain is null." );
+        }
 
         /**
          * [00:11:36] CORE LOG [thread 10211] Validation layer: Validation Error: [ VUID-VkSwapchainCreateInfoKHR-imageExtent-01274 ] Object 0:
@@ -44,14 +47,138 @@ namespace Mikoto {
          * this validation error is triggered at times when resizing the main window (GLFW window)
          * */
         CreateSwapChain();
+
+        AcquireSwapchainImages();
     }
 
+    auto VulkanSwapChain::CreateSwapChain() -> void {
+        VulkanDevice& device{ VulkanContext::Get().GetDevice() };
 
-    auto VulkanSwapChain::Present(UInt32_T imageIndex, VkSemaphore renderFinished) -> VkResult {
-        std::array<VkSwapchainKHR, 1> swapChains{ m_SwapChain };
-        std::array<VkSemaphore, 1> signalSemaphores{ renderFinished };
+        const auto [Capabilities, Formats, PresentModes] {
+            VulkanHelpers::GetSwapChainSupport(device.GetPhysicalDevice(), *m_Surface)
+        };
 
-        VkPresentInfoKHR presentInfo{ VulkanUtils::Initializers::PresentInfoKHR() };
+        const auto [format, colorSpace]{ ChooseSurfaceFormat(Formats) };
+        const VkPresentModeKHR presentMode{ ChoosePresentMode(PresentModes) };
+        const VkExtent2D extent{ ChooseExtent(Capabilities) };
+
+        // Save for later use
+        m_SwapchainInfo.Format = format;
+        m_SwapchainInfo.PresentMode = presentMode;
+
+        /**
+         * We may sometimes have to wait on the driver to complete internal operations
+         * before we can acquire another image to render to. Therefore, it is recommended
+         * to request at least one more image, hence why we add 1. Likely the image count
+         * results in the maximum swap chain image count so we do the check and clamp the resulting image count
+         * */
+        UInt32_T imageCount{ Capabilities.minImageCount + 1 };
+        if (Capabilities.maxImageCount > 0 && imageCount > Capabilities.maxImageCount) {
+            imageCount = Capabilities.maxImageCount;
+        }
+
+        VkSwapchainCreateInfoKHR createInfo{ VulkanHelpers::Initializers::SwapchainCreateInfoKHR() };
+        createInfo.surface = *m_Surface;
+        createInfo.minImageCount = imageCount;
+        createInfo.imageFormat = format;
+        createInfo.imageColorSpace = colorSpace;
+        createInfo.imageExtent = extent;
+        createInfo.imageArrayLayers = 1;
+
+        // Only the GUI is directly rendering to the swapchain images at the moment.
+        // Generally, the renderer is drawing to a texture which can then be copied to a
+        // swap chain image ready for render and then be presented
+        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+        const auto& [Present, Graphics] {
+            device.GetLogicalDeviceQueues()
+        };
+
+        // Let swapchain to share images between queues or not. We need to account for it
+        // in the case the present queue and the graphics queue are not actually the same
+        const std::array queueFamilyIndices{ Graphics->FamilyIndex, Present->FamilyIndex };
+        if (Graphics->FamilyIndex != Present->FamilyIndex) {
+            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+            createInfo.queueFamilyIndexCount = queueFamilyIndices.size();
+            createInfo.pQueueFamilyIndices = queueFamilyIndices.data();
+        }
+        else {
+            createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            createInfo.queueFamilyIndexCount = 0;
+            createInfo.pQueueFamilyIndices = nullptr;
+        }
+
+        createInfo.preTransform = Capabilities.currentTransform; // Image transform ot perform on swapchain images
+        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR; // Handle blending, just draw as it is (perform no blending)
+        createInfo.presentMode = presentMode;
+        createInfo.clipped = VK_TRUE;
+        createInfo.oldSwapchain = VK_NULL_HANDLE; // TODO: pass old swapchain (need debug currently old swapchain becoming retired which can't be passed here)
+
+        if (vkCreateSwapchainKHR(device.GetLogicalDevice(), std::addressof( createInfo ), nullptr, std::addressof( m_Swapchain ) ) != VK_SUCCESS) {
+            MKT_THROW_RUNTIME_ERROR("VulkanSwapChain::CreateSwapChain - Failed to create swap chain.");
+        }
+    }
+
+    auto VulkanSwapChain::CreateSwapchainImageViewCreateInfo( const VkImage& image, const VkFormat& format ) -> VkImageViewCreateInfo {
+        VkImageViewCreateInfo createInfo{ VulkanHelpers::Initializers::ImageViewCreateInfo() };
+        createInfo.image = image;
+        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        createInfo.format = format;
+        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        createInfo.subresourceRange.layerCount = 1;
+        createInfo.subresourceRange.levelCount = 1;
+        createInfo.subresourceRange.baseArrayLayer = 0;
+        createInfo.subresourceRange.baseMipLevel = 0;
+
+        return createInfo;
+    }
+
+    auto VulkanSwapChain::AcquireSwapchainImages() -> void {
+        static VulkanDevice& device{ VulkanContext::Get().GetDevice() };
+
+        UInt32_T imageCount{};
+
+        // We only specified a minimum number of images in the swap chain, even though the implementation is
+        // allowed to create a swap chain with more. That's why we'll first query the final number of
+        // images with vkGetSwapchainImagesKHR with the last parameter as nullptr, then resize the container and finally call it again to
+        // retrieve the handles.
+        vkGetSwapchainImagesKHR(device.GetLogicalDevice(), m_Swapchain, std::addressof( imageCount ), nullptr);
+
+        auto images{ std::vector<VkImage>(imageCount) };
+        vkGetSwapchainImagesKHR(device.GetLogicalDevice(), m_Swapchain, std::addressof( imageCount ), images.data());
+
+        for (const VkImage& image : images) {
+            VulkanImageCreateInfo createInfo{
+                .Image{ image },
+                .ImageViewCreateInfo{ CreateSwapchainImageViewCreateInfo(image, m_SwapchainInfo.Format) },
+            };
+
+            m_Images.emplace_back( VulkanImage::Create( createInfo ) );
+        }
+    }
+
+    auto VulkanSwapChain::GetNextRenderableImage( UInt32_T &imageIndex, const VkFence fence, const VkSemaphore imageAvailable ) const -> VkResult {
+        static VulkanDevice& device{ VulkanContext::Get().GetDevice() };
+
+        // For simplicity, parenthesize std::numeric_limits<std::uint64_t>::max because windows has a macro literally called max that causes conflicts
+        vkWaitForFences( device.GetLogicalDevice(), 1, std::addressof( fence ), VK_TRUE, ( std::numeric_limits<std::uint64_t>::max )() );
+        vkResetFences( device.GetLogicalDevice(), 1, std::addressof( fence ) );
+
+        return vkAcquireNextImageKHR( device.GetLogicalDevice(), m_Swapchain, ( std::numeric_limits<UInt64_T>::max )(), imageAvailable, VK_NULL_HANDLE, std::addressof( imageIndex ) );
+    }
+
+    auto VulkanSwapChain::Present( const UInt32_T imageIndex, const VkSemaphore& renderFinished ) -> VkResult {
+        static VulkanDevice& device{ VulkanContext::Get().GetDevice() };
+
+        const std::array swapChains{ m_Swapchain };
+        const std::array signalSemaphores{ renderFinished };
+
+        VkPresentInfoKHR presentInfo{ VulkanHelpers::Initializers::PresentInfoKHR() };
 
         presentInfo.swapchainCount = swapChains.size();
         presentInfo.pSwapchains = swapChains.data();
@@ -62,79 +189,19 @@ namespace Mikoto {
         presentInfo.waitSemaphoreCount = signalSemaphores.size();
         presentInfo.pWaitSemaphores = signalSemaphores.data();
 
-        m_CurrentFrame = (m_CurrentFrame + EXTRA_IMAGE_REQUEST) % MAX_FRAMES_IN_FLIGHT;
+        // Only the GUI is directly rendering to the swapchain images at the moment.
+        // Generally, the renderer is drawing to a texture which can then be copied to a
+        // swap chain image ready for render and then be presented
+        m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
-        return vkQueuePresentKHR(VulkanContext::GetPrimaryLogicalDevicePresentQueue(), &presentInfo);
+        const auto& [Present, Graphics]{ device.GetLogicalDeviceQueues() };
+        return vkQueuePresentKHR(Present->Queue, std::addressof( presentInfo ) );
     }
 
-
-    auto VulkanSwapChain::CreateSwapChain() -> void {
-        auto swapChainSupport{ VulkanContext::QuerySwapChainSupport(VulkanContext::GetPrimaryPhysicalDevice())};
-
-        const VkSurfaceFormatKHR surfaceFormat{ ChooseSwapSurfaceFormat(swapChainSupport.Formats) };
-        const VkPresentModeKHR presentMode{ ChooseSwapPresentMode(swapChainSupport.PresentModes) };
-        const VkExtent2D extent{ ChooseSwapExtent(swapChainSupport.Capabilities) };
-
-        UInt32_T imageCount{ swapChainSupport.Capabilities.minImageCount + EXTRA_IMAGE_REQUEST };
-
-        if (swapChainSupport.Capabilities.maxImageCount > 0 && imageCount > swapChainSupport.Capabilities.maxImageCount)
-            imageCount = swapChainSupport.Capabilities.maxImageCount;
-
-        VkSwapchainCreateInfoKHR createInfo{ VulkanUtils::Initializers::SwapchainCreateInfoKHR() };
-        createInfo.surface = VulkanContext::GetSurface();
-        createInfo.minImageCount = imageCount;
-        createInfo.imageFormat = surfaceFormat.format;
-        createInfo.imageColorSpace = surfaceFormat.colorSpace;
-        createInfo.imageExtent = extent;
-        createInfo.imageArrayLayers = 1;
-        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; // we want to copy rendered images to this one (we don't render directly to the swapchain images)
-
-        auto indices{ VulkanContext::GetPrimaryLogicalDeviceQueuesData() };
-        std::array<UInt32_T, 2> queueFamilyIndices{ indices.GraphicsFamilyIndex, indices.PresentFamilyIndex };
-
-        if (indices.GraphicsFamilyIndex != indices.PresentFamilyIndex) {
-            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-            createInfo.queueFamilyIndexCount = queueFamilyIndices.size();
-            createInfo.pQueueFamilyIndices = queueFamilyIndices.data();
-        }
-        else {
-            createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        }
-
-        createInfo.preTransform = swapChainSupport.Capabilities.currentTransform;
-        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-        createInfo.presentMode = presentMode;
-        createInfo.clipped = VK_TRUE;
-        createInfo.oldSwapchain = VK_NULL_HANDLE; // pass old swapchain (needs debug current old swapchain becoming retired which can't be passed here)
-
-        m_SwapChainExtent = extent;
-
-        if (vkCreateSwapchainKHR(VulkanContext::GetPrimaryLogicalDevice(), &createInfo, nullptr, &m_SwapChain) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("Failed to create swap chain!");
-        }
-
-        AcquireSwapchainImages();
-    }
-
-
-    auto VulkanSwapChain::AcquireSwapchainImages() -> void {
-        UInt32_T imageCount{};
-
-        // We only specified a minimum number of images in the swap chain, even though the implementation is
-        // allowed to create a swap chain with more. That's why we'll first query the final number of
-        // images with vkGetSwapchainImagesKHR with the last parameter as nullptr, then resize the container and finally call it again to
-        // retrieve the handles.
-        vkGetSwapchainImagesKHR(VulkanContext::GetPrimaryLogicalDevice(), m_SwapChain, &imageCount, nullptr);
-
-        m_SwapChainImages = std::vector<VkImage>(imageCount);
-        vkGetSwapchainImagesKHR(VulkanContext::GetPrimaryLogicalDevice(), m_SwapChain, &imageCount, m_SwapChainImages.data());
-    }
-
-
-    auto VulkanSwapChain::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) -> VkSurfaceFormatKHR {
+    auto VulkanSwapChain::ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) -> VkSurfaceFormatKHR {
+        // NOTE: if we only have one format, and it is VK_FORMAT_UNDEFINED it means the surface supports all formats
         for (const auto& availableFormat : availableFormats) {
-            if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM &&
-                availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+            if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
                 return availableFormat;
             }
         }
@@ -142,55 +209,63 @@ namespace Mikoto {
         return availableFormats[0];
     }
 
-
-    auto VulkanSwapChain::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) const -> VkPresentModeKHR {
-        if (m_SwapChainDetails.VSyncEnable) {
+    auto VulkanSwapChain::ChoosePresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) const -> VkPresentModeKHR {
+        if (m_IsVsyncEnabled) {
             return VK_PRESENT_MODE_FIFO_KHR;
         }
-        else {
-            for (const auto& availablePresentMode : availablePresentModes) {
-                if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR || availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
-                    return availablePresentMode;
-                }
+
+        for (const auto& availablePresentMode : availablePresentModes) {
+            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR || availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+                return availablePresentMode;
             }
-
-            return VK_PRESENT_MODE_FIFO_KHR;
         }
+
+        // We return this one because if we do not find the present mode we are looking for,
+        // VK_PRESENT_MODE_FIFO_KHR is guaranteed to be always available
+        return VK_PRESENT_MODE_FIFO_KHR;
     }
 
+    auto VulkanSwapChain::ChooseExtent( const VkSurfaceCapabilitiesKHR& capabilities ) const -> VkExtent2D {
+        // Determine if the currentExtent is set to a special value indicating that the surface size is undefined.
+        // This special value is (std::numeric_limits<UInt32_T>::max)(). If the currentExtent width is equal to
+        // this value, it means the surface size can be defined by the application, otherwise, the currentExtent
+        // provided by the surface capabilities should be used.
 
-    auto VulkanSwapChain::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) -> VkExtent2D {
-        if (capabilities.currentExtent.width != (std::numeric_limits<UInt32_T>::max)()) {
+        // If capabilities.currentExtent.width is not equal to the maximum unsigned integer, it means the surface
+        // size is defined, and you should use currentExtent.
+        // If it is equal to the maximum unsigned integer, you need to define the extent yourself within the bounds
+        // of minImageExtent and maxImageExtent.
+
+        if ( capabilities.currentExtent.width != ( std::numeric_limits<UInt32_T>::max )() ) {
             return capabilities.currentExtent;
         }
-        else {
-            VkExtent2D actualExtent{ m_WindowExtent };
-            actualExtent.width = (std::max)(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
-            actualExtent.height = (std::max)(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
 
-            return actualExtent;
+        const VkExtent2D actualExtent{
+            .width{ ( std::max )( capabilities.minImageExtent.width, std::min( capabilities.maxImageExtent.width, m_Extent.width ) ) },
+            .height{ ( std::max )( capabilities.minImageExtent.height, std::min( capabilities.maxImageExtent.height, m_Extent.height ) ) },
+        };
+
+        return actualExtent;
+    }
+
+    VulkanSwapChain::~VulkanSwapChain() {
+        if (!m_IsReleased) {
+            Release();
+            Invalidate();
         }
     }
 
+    auto VulkanSwapChain::Release() -> void {
+        VulkanDevice& device{ VulkanContext::Get().GetDevice() };
 
-    auto VulkanSwapChain::OnRelease() -> void {
         // Wait on outstanding queue operations because there might be some objects still in use by the GPU
-        VulkanUtils::WaitOnDevice(VulkanContext::GetPrimaryLogicalDevice());
+        device.WaitIdle();
+
+        m_Surface = nullptr;
 
         // Destroy handles
-        vkDestroySwapchainKHR(VulkanContext::GetPrimaryLogicalDevice(), m_SwapChain, nullptr);
+        // The device is owned by the context and is destroyed before the instance and after any object is
+        // created from it has finished being used
+        vkDestroySwapchainKHR( device.GetLogicalDevice(), m_Swapchain, nullptr );
     }
-
-
-    auto VulkanSwapChain::GetDefaultCreateInfo() -> VulkanSwapChainCreateInfo {
-        const auto windowExtent{ std::make_pair(1920, 1080) };
-
-        VulkanSwapChainCreateInfo createInfo{
-                .OldSwapChain = VK_NULL_HANDLE,
-                .Extent = { (UInt32_T)windowExtent.first, (UInt32_T)windowExtent.second },
-                .VSyncEnable = false,
-        };
-
-        return createInfo;
-    }
-}
+}// namespace Mikoto

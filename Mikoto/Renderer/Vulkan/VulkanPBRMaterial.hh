@@ -7,7 +7,6 @@
 
 #include <volk.h>
 
-#include <Common/RenderingUtils.hh>
 #include <Material/Core/Material.hh>
 #include <Material/Material/PhysicallyBasedMaterial.hh>
 #include <Models/LightData.hh>
@@ -104,12 +103,12 @@ namespace Mikoto {
         static inline std::shared_ptr<VulkanTexture2D> s_EmptyTexture{ nullptr };
 
         // Vertex shader uniform buffers
-        VulkanBuffer m_VertexUniformBuffer{};
+        Scope_T<VulkanBuffer> m_VertexUniformBuffer{};
         Size_T m_VertexShaderUniformPaddedSize{};
         VertexUniformBuffer m_VertexUniformData{};
 
         // Fragment shader uniform buffers
-        VulkanBuffer m_FragmentUniformBuffer{};
+        Scope_T<VulkanBuffer> m_FragmentUniformBuffer{};
         Size_T m_FragmentShaderUniformPaddedSize{};
         FragmentUniformBufferData m_FragmentUniformData{};
 

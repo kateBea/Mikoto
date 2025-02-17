@@ -18,7 +18,7 @@ namespace Mikoto {
             }
         }
 
-        static auto Submit( std::unique_ptr<RenderCommand>&& cmd) -> void {
+        static auto Submit( Scope_T<RenderCommand>&& cmd) -> void {
             m_Commands.emplace( std::move( cmd ) );
         }
 
@@ -34,7 +34,7 @@ namespace Mikoto {
             }
         }
 
-        inline static std::queue<std::unique_ptr<RenderCommand>> m_Commands;
+        inline static std::queue<Scope_T<RenderCommand>> m_Commands;
     };
 }
 

@@ -1,5 +1,5 @@
 /**
- * Material.hh
+ * StandardMaterial.hh
  * Created by kate on 6/30/23.
  * */
 
@@ -31,17 +31,14 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
         MKT_NODISCARD auto GetType() const -> MaterialType { return m_Type; }
+        MKT_NODISCARD auto GetColor() const -> const glm::vec4& { return m_Color; }
         MKT_NODISCARD auto IsActive() const -> bool { return m_Apply; }
 
-        auto SetName(const std::string_view newName) -> void {
-            m_Name = newName;
-        }
+        auto SetActive(const bool value) -> void { m_Apply = value; }
+        auto SetName(const std::string_view newName) -> void { m_Name = newName; }
+        auto SetColor(auto&&... args) -> void { m_Color = glm::vec4(std::forward<decltype(args)>(args)...); }
 
-        auto SetActive(const bool value) {
-            m_Apply = value;
-        }
-
-        MKT_NODISCARD static constexpr auto GetTypeStr(MaterialType type) -> std::string_view {
+        MKT_NODISCARD static constexpr auto GetTypeStr( const MaterialType type) -> std::string_view {
             switch(type) {
                 case MaterialType::STANDARD:
                     return MKT_STRINGIFY(MATERIAL_TYPE_STANDARD);
@@ -52,11 +49,9 @@ namespace Mikoto {
             return "UNKNOWN_MATERIAL_TYPE";
         }
 
-        MKT_NODISCARD static auto CreateStandardMaterial(const std::any& spec) -> std::shared_ptr<Material>;
-
         virtual ~Material() = default;
 
-    private:
+    protected:
         MaterialType m_Type{};
         std::string m_Name{};
 

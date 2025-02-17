@@ -10,118 +10,75 @@
 // C++ Standard Library
 #include <any>
 #include <memory>
+#include <utility>
 
 // Third-Party Libraries
-#include <glm/vec4.hpp>
+#include <glm/glm.hpp>
 
 // Project Headers
 #include <Common/Common.hh>
-#include <Common/RenderingUtils.hh>
-#include <Material/Core/Shader.hh>
-#include <Models/GameObjectData.hh>
-
-#include "Renderer/Buffer/IndexBuffer.hh"
-#include "Renderer/Buffer/VertexBuffer.hh"
+#include <Assets/Mesh.hh>
+#include <Material/Core/Material.hh>
+#include <Models/LightData.hh>
+#include <Scene/Camera/SceneCamera.hh>
 
 namespace Mikoto {
+    struct RendererCreateInfo {
+        UInt32_T ViewportWidth{};
+        UInt32_T ViewportHeight{};
 
-    /**
-     * @brief Describes a general Renderer interface for various graphic APIs.
-     * The engine currently offers support for OpenGL and Vulkan exclusively.
-     * */
-    class IRendererBackend {
+        GraphicsAPI Api{ GraphicsAPI::VULKAN_API };
+    };
+
+    class RendererBackend {
     public:
-        /**
-         * @brief Default constructor. Creates and default initializes this RendererAPI.
-         * */
-        explicit IRendererBackend() = default;
+        virtual ~RendererBackend() = default;
 
-
-        /**
-         * @brief Default base destructor
-         * */
-        virtual ~IRendererBackend() = default;
-
-
-        /**
-         * @brief Initializes renderer subsystems. This function must be called
-         * after creating a Renderer backend. It ensures initialization of all the
-         * subsystems of the render pipeline.
-         * */
-        virtual auto Init() -> void = 0;
-
-
-        /**
-         * @brief Performs cleanup for renderer subsystems. Call as the Renderer is no
-         * longer required to shut down all subsystems and perform cleanup.
-         * */
+        // Initializes and shuts down the renderer
+        virtual auto Init() -> bool = 0;
         virtual auto Shutdown() -> void = 0;
 
+        // Handles per-frame rendering
+        virtual auto BeginFrame() -> void = 0;
+        virtual auto EndFrame() -> void = 0;
 
-        /**
-         * @brief Command to flush drawing calls that need to be executed.
-         * After a call to this function, all enqueued objects are dispatched to be drawn.
-         * */
-        virtual auto Flush() -> void = 0;
+        // Queues a game object for rendering
+        virtual auto RemoveFromDrawQueue( UInt64_T id ) -> bool = 0;
+        virtual auto AddToDrawQueue( UInt64_T id, const Mesh&data, const glm::mat4& transform, Material &material ) -> bool = 0;
 
+        virtual auto RemoveLight( UInt64_T id ) -> bool = 0;
+        virtual auto AddLight( UInt64_T id, const LightData& data, LightType activeType, const glm::vec4& position ) -> bool = 0;
 
-        /**
-         * @brief Enables wireframe drawing.
-         * */
-        virtual auto EnableWireframeMode() -> void = 0;
+        // Camera & Viewport
+        template<typename... Args>
+        auto SetProjection( Args &&...args ) -> void {
+            m_Projection = glm::mat4{ std::forward<Args>( args )... };
+        }
 
+        auto SetCamera( const SceneCamera &camera ) -> void {
+            m_Camera = std::addressof( camera );
+        }
 
-        /**
-         * @brief Disables wireframe drawing.
-         * */
-        virtual auto DisableWireframeMode() -> void = 0;
+        virtual auto SetViewport( float x, float y, float width, float height ) -> void = 0;
 
+        // Post-processing effects
+        virtual auto EnableWireframe( bool enable ) -> void = 0;
 
-        /**
-         * @brief Specifies the red, green, blue, and alpha values used to clear the color buffers.
-         * @param color Contains the value for color channels.
-         * */
-        virtual auto SetClearColor(const glm::vec4& color) -> void = 0;
+        template<typename... Args>
+        auto SetClearColor( Args &&...args ) -> void {
+            m_ClearColor = glm::vec4{ std::forward<Args>( args )... };
+        }
 
+        // Factory method to create a renderer instance
+        static auto Create( const RendererCreateInfo& createInfo ) -> Scope_T<RendererBackend>;
 
-        /**
-         * @brief Specifies the red, green, blue, and alpha values used to clear the color buffers.
-         * @param red Value for the red channel.
-         * @param green Value for the green channel.
-         * @param blue Value for the blue channel.
-         * @param alpha Value for the alpha channel.
-         * */
-        virtual auto SetClearColor(float red, float green, float blue, float alpha) -> void = 0;
+    protected:
+        glm::mat4 m_Projection{};
+        glm::vec4 m_ClearColor{};
 
+        const SceneCamera* m_Camera{ nullptr };
 
-        /**
-         * @brief Sets the viewport for rendering.
-         * @param x X-coordinate of the viewport.
-         * @param y Y-coordinate of the viewport.
-         * @param width Width of the viewport.
-         * @param height Height of the viewport.
-         * */
-        virtual auto SetViewport(float x, float y, float width, float height) -> void = 0;
-
-
-
-        virtual auto QueueForDrawing(const std::string &id, const GameObject*data, Material* material) -> void = 0;
-
-        virtual auto RemoveFromRenderQueue(const std::string &id) -> bool = 0;
-
-
-        /**
-         * @brief Creates a new graphics backend object and returns a pointer to it. If
-         * it fails to allocate, it returns a null pointer instead. The caller is responsible
-         * for freeing the memory via delete when it's no longer necessary.
-         * @param backend API backend.
-         * @returns Pointer to allocated backend.
-         * */
-        MKT_NODISCARD static auto Create(GraphicsAPI backend) -> IRendererBackend*;
-
-
-        DISABLE_COPY_AND_MOVE_FOR(IRendererBackend);
     };
-}
+}// namespace Mikoto
 
-#endif // MIKOTO_RENDERER_API_HH
+#endif// MIKOTO_RENDERER_API_HH

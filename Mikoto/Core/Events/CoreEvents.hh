@@ -15,8 +15,8 @@
 
 // Project Headers
 #include <Common/Common.hh>
-#include <STL/Utility/Types.hh>
-#include <Core/Event.hh>
+#include <Library/Utility/Types.hh>
+#include <Core/Events/Event.hh>
 
 namespace Mikoto {
     class WindowResizedEvent final : public Event {

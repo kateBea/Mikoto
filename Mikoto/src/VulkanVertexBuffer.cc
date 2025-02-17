@@ -13,43 +13,49 @@
 #include "volk.h"
 
 // Project Headers
-#include <Renderer/Vulkan/DeletionQueue.hh>
+#include <Renderer/Vulkan/VulkanDeletionQueue.hh>
 
 #include "Common/Common.hh"
-#include "Models/VertexBufferCreateInfo.hh"
 #include "Renderer/Vulkan/VulkanContext.hh"
 #include "Renderer/Vulkan/VulkanVertexBuffer.hh"
 
 namespace Mikoto {
-    VulkanVertexBuffer::VulkanVertexBuffer(VertexBufferCreateInfo &&createInfo)
-        :   VertexBuffer{ std::move(createInfo.Layout) }
+    VulkanVertexBuffer::VulkanVertexBuffer(const VertexBufferCreateInfo& createInfo)
+        :   VertexBuffer{ createInfo.Layout }
     {
+#ifdef VULKAN_EXTENDED_DYNAMIC_EXTENSION
         SetBindingDescriptions();
         SetAttributeDescriptions();
+#endif
 
-        if (createInfo.RetainData)
+        if (createInfo.RetainData) {
             m_RetainedData = createInfo.Data;
-
-        m_Layout = createInfo.Layout;
+        }
 
         SetVertexData(createInfo.Data);
-        DeletionQueue::Push([bufferHandle = m_Buffer.Get(), allocation = m_Buffer.GetVmaAllocation()]() -> void {
-            vmaDestroyBuffer(VulkanContext::GetDefaultAllocator(), bufferHandle, allocation);
-        });
     }
 
-    auto VulkanVertexBuffer::Bind(VkCommandBuffer commandBuffer) const -> void {
-        std::array<VkBuffer, 1> buffers{ m_Buffer.Get() };
-        std::array<VkDeviceSize, 1> offsets{ 0 };
+    auto VulkanVertexBuffer::Bind( const VkCommandBuffer commandBuffer ) const -> void {
+        const std::array buffers{ m_Buffer->Get() };
+        constexpr std::array<VkDeviceSize, 1> offsets{};
 
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffers.data(), offsets.data());
+        vkCmdBindVertexBuffers( commandBuffer, 0, 1, buffers.data(), offsets.data() );
     }
 
+    VulkanVertexBuffer::~VulkanVertexBuffer() {
+        if (!m_IsReleased) {
+            Release();
+            Invalidate();
+        }
+    }
+
+#ifdef VULKAN_EXTENDED_DYNAMIC_EXTENSION
     auto VulkanVertexBuffer::SetBindingDescriptions() -> void {
         m_BindingDesc = std::vector<VkVertexInputBindingDescription>(1);
         m_BindingDesc[0].binding = 0;
         m_BindingDesc[0].stride = m_Layout.GetStride();
         m_BindingDesc[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
     }
 
     auto VulkanVertexBuffer::SetAttributeDescriptions() -> void {
@@ -65,8 +71,10 @@ namespace Mikoto {
             m_AttributeDesc[index].location = index;
             m_AttributeDesc[index].format = VulkanUtils::GetVulkanAttributeDataType(m_Layout[index].GetType());
             m_AttributeDesc[index].offset = m_Layout[index].GetOffset();
+
         }
     }
+#endif
 
     auto VulkanVertexBuffer::GetDefaultBindingDescriptions() -> std::vector<VkVertexInputBindingDescription>& {
         // All of our per-vertex data is packed together in one array, so we're only going to have one binding.
@@ -83,7 +91,7 @@ namespace Mikoto {
     }
 
     auto VulkanVertexBuffer::GetDefaultAttributeDescriptions() -> std::vector<VkVertexInputAttributeDescription>& {
-        s_AttributeDesc = std::vector<VkVertexInputAttributeDescription>(s_DefaultBufferLayout.GetCount());
+        s_AttributeDesc = std::vector<VkVertexInputAttributeDescription>( s_DefaultBufferLayout.GetCount() );
 
         /**
          * The binding parameter tells Vulkan from which binding the per-vertex data comes.
@@ -93,51 +101,72 @@ namespace Mikoto {
          *
          * See: https://vulkan-tutorial.com/Vertex_buffers/Vertex_input_description
          * */
-        auto layout{ s_DefaultBufferLayout };
+
+#if false // TO TEST
+
+        // The index refers to how the vertex attributes are laid out according to s_DefaultBufferLayout
+        // so index 0 -> s_DefaultBufferLayout first attribute,
+        // index 1 -> s_DefaultBufferLayout second attribute and so on
+        for (Size_T index{}; index < s_AttributeDesc.size(); ++index) {
+            s_AttributeDesc[index] = {};
+            s_AttributeDesc[index].binding = 0;
+            s_AttributeDesc[index].location = index;
+            s_AttributeDesc[index].format = VulkanHelpers::GetVulkanAttributeDataType( s_DefaultBufferLayout[index].GetType() );
+            s_AttributeDesc[index].offset = s_DefaultBufferLayout[index].GetOffset();
+        }
+
+#endif
+
 
         // Position
         s_AttributeDesc[0] = {};
         s_AttributeDesc[0].binding = 0;
         s_AttributeDesc[0].location = 0;
-        s_AttributeDesc[0].format = VulkanUtils::GetVulkanAttributeDataType(s_DefaultBufferLayout[0].GetType());
+        s_AttributeDesc[0].format = VulkanHelpers::GetVulkanAttributeDataType( s_DefaultBufferLayout[0].GetType() );
         s_AttributeDesc[0].offset = s_DefaultBufferLayout[0].GetOffset();
 
         // Normal
         s_AttributeDesc[1] = {};
         s_AttributeDesc[1].binding = 0;
         s_AttributeDesc[1].location = 1;
-        s_AttributeDesc[1].format = VulkanUtils::GetVulkanAttributeDataType(s_DefaultBufferLayout[1].GetType());
+        s_AttributeDesc[1].format = VulkanHelpers::GetVulkanAttributeDataType( s_DefaultBufferLayout[1].GetType() );
         s_AttributeDesc[1].offset = s_DefaultBufferLayout[1].GetOffset();
 
         // Color
         s_AttributeDesc[2] = {};
         s_AttributeDesc[2].binding = 0;
         s_AttributeDesc[2].location = 2;
-        s_AttributeDesc[2].format = VulkanUtils::GetVulkanAttributeDataType(s_DefaultBufferLayout[2].GetType());
+        s_AttributeDesc[2].format = VulkanHelpers::GetVulkanAttributeDataType( s_DefaultBufferLayout[2].GetType() );
         s_AttributeDesc[2].offset = s_DefaultBufferLayout[2].GetOffset();
 
         // Texture Coordinates
         s_AttributeDesc[3] = {};
         s_AttributeDesc[3].binding = 0;
         s_AttributeDesc[3].location = 3;
-        s_AttributeDesc[3].format = VulkanUtils::GetVulkanAttributeDataType(s_DefaultBufferLayout[3].GetType());
+        s_AttributeDesc[3].format = VulkanHelpers::GetVulkanAttributeDataType( s_DefaultBufferLayout[3].GetType() );
         s_AttributeDesc[3].offset = s_DefaultBufferLayout[3].GetOffset();
 
         return s_AttributeDesc;
     }
 
+    auto VulkanVertexBuffer::Release() -> void {
+        VulkanDevice& device{ VulkanContext::Get().GetDevice() };
+        vmaDestroyBuffer(device.GetAllocator() , m_Buffer->Get(), m_Buffer->GetVmaAllocation());
+    }
+
     auto VulkanVertexBuffer::SetVertexData(const std::vector<float>& vertices) -> void {
+
         m_Count = vertices.size();
         m_Size = m_Count * sizeof(float);
 
-        auto& vmaAllocator{ VulkanContext::GetDefaultAllocator() };
+        VulkanDevice& device{ VulkanContext::Get().GetDevice() };
 
         // Create staging buffer with VK_BUFFER_USAGE_TRANSFER_SRC_BIT usage flag.
         // This flag tells Vulkan that this buffer will only be used as a source for transfer commands.
         // We won’t be using the staging buffer for rendering.
 
         // allocate staging buffer
-        VkBufferCreateInfo stagingBufferInfo{ VulkanUtils::Initializers::BufferCreateInfo() };
+        VkBufferCreateInfo stagingBufferInfo{ VulkanHelpers::Initializers::BufferCreateInfo() };
         stagingBufferInfo.pNext = nullptr;
 
         stagingBufferInfo.size = m_Size;
@@ -145,32 +174,24 @@ namespace Mikoto {
 
         //let the VMA library know that this data should be on CPU RAM
         VmaAllocationCreateInfo vmaStagingAllocationCreateInfo{};
-        vmaStagingAllocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+        vmaStagingAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+        vmaStagingAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-        BufferAllocateInfo stagingBuffer{};
+        const VulkanBufferCreateInfo stagingBufferBufferCreateInfo{
+            .BufferCreateInfo{ stagingBufferInfo },
+            .AllocationCreateInfo{ vmaStagingAllocationCreateInfo },
+            .WantMapping{ true }
+        };
 
-        // Allocate staging buffer
-        if (vmaCreateBuffer(vmaAllocator,
-                            std::addressof(stagingBufferInfo),
-                            std::addressof(vmaStagingAllocationCreateInfo),
-                            std::addressof(stagingBuffer.Buffer),
-                            std::addressof(stagingBuffer.Allocation),
-                            nullptr) != VK_SUCCESS)
-        {
-            MKT_THROW_RUNTIME_ERROR("Failed to create VMA staging buffer for Vulkan vertex buffer");
-        }
+        Scope_T<VulkanBuffer> stagingBuffer{ VulkanBuffer::Create( stagingBufferBufferCreateInfo ) };
 
         // Copy vertex data to staging buffer
-        void* stagingBufferData{};
-        vmaMapMemory(vmaAllocator, stagingBuffer.Allocation, std::addressof(stagingBufferData));
-        std::memcpy(stagingBufferData, static_cast<const void*>(vertices.data()), m_Size);
-        vmaUnmapMemory(vmaAllocator, stagingBuffer.Allocation);
+        std::memcpy(stagingBuffer->GetVmaAllocationInfo().pMappedData, vertices.data(), stagingBuffer->GetSize());
 
-
-        // Create the actual GPU side buffer
+        stagingBuffer->PersistentUnmap();
 
         // Allocate vertex buffer
-        VkBufferCreateInfo vertexBufferInfo{ VulkanUtils::Initializers::BufferCreateInfo() };
+        VkBufferCreateInfo vertexBufferInfo{ VulkanHelpers::Initializers::BufferCreateInfo() };
         vertexBufferInfo.pNext = nullptr;
 
         //this is the total size, in bytes, of the buffer we are allocating (same as staging buffer)
@@ -181,31 +202,29 @@ namespace Mikoto {
 
         // Let the VMA library know that this data should be GPU native
         VmaAllocationCreateInfo vmaAllocationCreateInfo{};
-        vmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+        vmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+        vmaAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+        vmaAllocationCreateInfo.priority = 1.0f;
 
         // Allocate the buffer
-        auto& bufferAllocationInfo{ m_Buffer.GetAllocationInfo() };
+        const VulkanBufferCreateInfo vertexBufferCreateInfo{
+            .BufferCreateInfo{ vertexBufferInfo },
+            .AllocationCreateInfo{ vmaAllocationCreateInfo },
+            .WantMapping{ false }
+        };
 
-        if (vmaCreateBuffer(vmaAllocator,
-                            std::addressof(vertexBufferInfo),
-                            std::addressof(vmaAllocationCreateInfo),
-                            std::addressof(bufferAllocationInfo.Buffer),
-                            std::addressof(bufferAllocationInfo.Allocation),
-                            nullptr) != VK_SUCCESS)
-        {
-            MKT_THROW_RUNTIME_ERROR("Failed to create VMA staging buffer for Vulkan vertex buffer");
-        }
+        m_Buffer = VulkanBuffer::Create( vertexBufferCreateInfo );
 
-        VulkanContext::ImmediateSubmit([&](VkCommandBuffer cmd) -> void {
-            VkBufferCopy copy{};
-            copy.dstOffset = 0;
-            copy.srcOffset = 0;
-            copy.size = m_Size;
+        device.ImmediateSubmitToGraphicsQueue([&]( const VkCommandBuffer cmd) -> void {
+            VkBufferCopy copy{
+                .srcOffset{ 0 },
+                .dstOffset{ 0 },
+                .size{ m_Size },
+            };
 
-            vkCmdCopyBuffer(cmd, stagingBuffer.Buffer, bufferAllocationInfo.Buffer, 1, std::addressof(copy));
+            vkCmdCopyBuffer(cmd, stagingBuffer->Get(), m_Buffer->Get(), 1, std::addressof(copy));
         });
 
-        // Delete staging buffer as we are done with it
-        vmaDestroyBuffer(vmaAllocator, stagingBuffer.Buffer, stagingBuffer.Allocation);
+        stagingBuffer = nullptr;
     }
 }

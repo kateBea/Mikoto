@@ -14,15 +14,14 @@ namespace Mikoto {
         explicit VulkanObject() = default;
         virtual ~VulkanObject() = default;
 
-        auto Invalidate() -> void { m_IsReleased = true; }
         MKT_NODISCARD auto IsReleased() const -> bool { return m_IsReleased; }
-        MKT_NODISCARD auto ShouldRelease() const -> bool { return m_ShouldRelease; }
 
         virtual auto Release() -> void = 0;
 
     protected:
+        auto Invalidate() -> void { m_IsReleased = true; }
+
         bool m_IsReleased{ false };
-        bool m_ShouldRelease{ false };
     };
 }
 

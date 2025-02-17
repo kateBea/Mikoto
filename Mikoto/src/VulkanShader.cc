@@ -11,53 +11,61 @@
 #include "volk.h"
 
 // Project Headers
-#include "Common/Common.hh"
-#include "Core/Logger.hh"
-#include <STL/Filesystem/FileUtilities.hh>
-#include <Renderer/Vulkan/DeletionQueue.hh>
-#include "Renderer/Vulkan/VulkanContext.hh"
-#include "Renderer/Vulkan/VulkanShader.hh"
+#include <Common/Common.hh>
+#include <Core/Engine.hh>
+#include <Core/Logging/Logger.hh>
+#include <Core/System/FileSystem.hh>
+#include <Renderer/Vulkan/VulkanContext.hh>
+#include <Renderer/Vulkan/VulkanDeletionQueue.hh>
+#include <Renderer/Vulkan/VulkanShader.hh>
 
 namespace Mikoto {
-    VulkanShader::VulkanShader(const ShaderCreateInfo& createInfo)
-        :   Shader{ createInfo.Stage }, m_Data{ }
-    {
-        Upload(createInfo.Directory);
+    VulkanShader::VulkanShader( const VulkanShaderCreateInfo& createInfo )
+        : Shader{ createInfo.Stage }, m_EntryPoint{ "main" } {
+        Upload( createInfo );
     }
 
-    auto VulkanShader::Upload(const Path_T& src) -> void {
-        const auto srcData{ FileUtilities::GetFileData(src) };
+    auto VulkanShader::Upload( const VulkanShaderCreateInfo& createInfo ) -> void {
+        FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
+        const File* shaderFile{ fileSystem.LoadFile( createInfo.FilePath ) };
 
-        m_Data.Code = std::string(srcData.begin(), srcData.end());
-        MKT_CORE_LOGGER_DEBUG("Loaded SPIR-V. Size {}", srcData.size());
+        if (shaderFile == nullptr) {
+            MKT_CORE_LOGGER_ERROR( "VulkanShader::Upload - Failed to load shader file." );
+            return;
+        }
 
-        CreateModule(m_Data.Code, m_Module);
+        MKT_CORE_LOGGER_DEBUG( "VulkanShader::Upload - Loaded SPIR-V. Size {}", shaderFile->GetFileContents().size() );
 
-        DeletionQueue::Push([moduleHandle = m_Module]() -> void {
-            vkDestroyShaderModule(VulkanContext::GetPrimaryLogicalDevice(), moduleHandle, nullptr);
-        });
+        VkShaderModuleCreateInfo moduleCreateInfo{ VulkanHelpers::Initializers::ShaderModuleCreateInfo() };
+        moduleCreateInfo.codeSize = shaderFile->GetFileContents().size();
+        moduleCreateInfo.pCode = reinterpret_cast<const UInt32_T*>( shaderFile->GetFileContents().data() );
 
-        m_Data.StageCreateInfo = VulkanUtils::Initializers::PipelineShaderStageCreateInfo();
-        m_Data.StageCreateInfo.stage = VulkanUtils::GetVulkanShaderStageFlag(m_Stage);
-        m_Data.StageCreateInfo.module = m_Module;
-        m_Data.StageCreateInfo.pName = GetDefaultEntryPoint().data();
-        m_Data.StageCreateInfo.flags = 0;
-        m_Data.StageCreateInfo.pNext = nullptr;
-        m_Data.StageCreateInfo.pSpecializationInfo = nullptr;
+        VulkanDevice& device{ VulkanContext::Get().GetDevice() };
+
+        if ( vkCreateShaderModule( device.GetLogicalDevice(),
+                                   std::addressof( moduleCreateInfo ),
+                                   nullptr,
+                                   std::addressof( m_Module ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanShader::CreateModule - Failed to create shader module" );
+        }
+
+        m_StageCreateInfo = VulkanHelpers::Initializers::PipelineShaderStageCreateInfo();
+        m_StageCreateInfo.stage = VulkanHelpers::GetVkStageFromShaderStage( m_Stage );
+        m_StageCreateInfo.module = m_Module;
+        m_StageCreateInfo.pName = m_EntryPoint.c_str();
+        m_StageCreateInfo.flags = 0;
+        m_StageCreateInfo.pNext = nullptr;
+        m_StageCreateInfo.pSpecializationInfo = nullptr;
     }
 
-    auto VulkanShader::CreateModule(const std::string& srcCode, VkShaderModule& shaderModule) -> void {
-        VkShaderModuleCreateInfo createInfo{ VulkanUtils::Initializers::ShaderModuleCreateInfo() };
-        createInfo.codeSize = srcCode.size();
+    auto VulkanShader::Release() -> void {
+        vkDestroyShaderModule( VulkanContext::Get().GetDevice().GetLogicalDevice(), m_Module, nullptr );
+    }
 
-        // It seems this casts is valid since the default std::vector allocator
-        // ensures the data satisfies the worst case alignment
-        createInfo.pCode = reinterpret_cast<const UInt32_T*>(srcCode.data());
-
-        if (vkCreateShaderModule(VulkanContext::GetPrimaryLogicalDevice(),
-            std::addressof( createInfo ),
-            nullptr, std::addressof( shaderModule )) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("Failed to create shader module");
+    VulkanShader::~VulkanShader() {
+        if ( !m_IsReleased ) {
+            Release();
+            Invalidate();
         }
     }
 }

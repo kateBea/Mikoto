@@ -8,21 +8,30 @@
 
 // C++ Standard Library
 #include <any>
-#include <string>
-#include <string_view>
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <string>
+#include <string_view>
 #include <utility>
 
 // Project Headers
 #include <Common/Common.hh>
-#include <Common/RenderingUtils.hh>
-#include <STL/Utility/Types.hh>
-
-#include "Models/WindowProperties.hh"
+#include <Library/Utility/Types.hh>
+#include <Models/Enums.hh>
 
 namespace Mikoto {
+
+    struct WindowProperties {
+        std::string Title{};   /**< The title of the window. */
+
+        Int32_T Width{};       /**< The width of the window. */
+        Int32_T Height{};      /**< The height of the window. */
+
+        GraphicsAPI Backend{}; /**< The graphics backend for the window. */
+
+        bool Resizable{};      /**< Indicates if the window is resizable. */
+    };
 
     /**
      * General interface for desktop Windows. We may define different types of
@@ -42,33 +51,27 @@ namespace Mikoto {
          * @brief Constructs this Window with the specified properties.
          * @param props Properties for the window.
          * */
-        explicit Window(WindowProperties&& props = WindowProperties{})
-            :   m_Properties{ std::move(props) }
-        {
-
+        explicit Window( const WindowProperties& props = WindowProperties{} )
+            : m_Properties{ props } {
         }
-
 
         /**
          * @brief Returns the width of this window.
          * @returns The width of the window.
          * */
-        MKT_NODISCARD auto GetWidth() const -> Int32_T { return m_Properties.GetWidth(); }
-
+        MKT_NODISCARD auto GetWidth() const -> Int32_T { return m_Properties.Width; }
 
         /**
          * @brief Returns the height of this window.
          * @returns The height of the window.
          * */
-        MKT_NODISCARD auto GetHeight() const -> Int32_T { return m_Properties.GetHeight(); }
-
+        MKT_NODISCARD auto GetHeight() const -> Int32_T { return m_Properties.Height; }
 
         /**
          * @brief Returns the title of this window.
          * @returns The title of the window.
          * */
-        MKT_NODISCARD auto GetTitle() const -> const std::string& { return m_Properties.GetName(); }
-
+        MKT_NODISCARD auto GetTitle() const -> const std::string& { return m_Properties.Title; }
 
         /**
          * @brief Checks if the window is minimized.
@@ -76,27 +79,23 @@ namespace Mikoto {
          * */
         MKT_NODISCARD auto IsMinimized() const -> bool { return GetWidth() == 0 || GetHeight() == 0; }
 
-
         /**
          * @brief Returns a handle to the native Window structure.
          * @returns Handle to the implemented native window.
          * */
         MKT_NODISCARD virtual auto GetNativeWindow() const -> std::any = 0;
 
-
         /**
          * @brief Checks if the window is resizable.
          * @returns A boolean indicating if the window is resizable.
          * */
-        MKT_NODISCARD auto IsResizable() const -> bool { return m_Properties.IsResizable(); }
-
+        MKT_NODISCARD auto IsResizable() const -> bool { return m_Properties.Resizable; }
 
         /**
          * @brief Allows or disallows resizing of the window.
          * @param value The value indicating whether the window should be resizable.
          * */
-        auto AllowResizing(bool value) -> void { m_Properties.AllowResizing(value); }
-
+        auto AllowResizing( const bool value ) -> void {m_Properties.Resizable = value; }
 
         /**
          * @brief Initializes this window along with its internal required structures.
@@ -104,26 +103,22 @@ namespace Mikoto {
          * */
         virtual auto Init() -> void = 0;
 
-
         /**
          * @brief Shuts down this window and releases its associated resources.
          * */
         virtual auto Shutdown() -> void = 0;
-
 
         /**
          * @brief Processes pending events for this window.
          * */
         virtual auto ProcessEvents() -> void = 0;
 
-
         /**
          * @brief Creates a Window for the currently active platform.
          * @param properties Determines the properties of the window to be created.
          * @returns A pointer to the newly created window.
          * */
-        static auto Create( WindowProperties&& properties ) -> std::shared_ptr<Window>;
-
+        static auto Create( const WindowProperties &properties ) -> Scope_T<Window>;
 
         /**
          * @brief Default virtual destructor for this Window.
@@ -131,12 +126,11 @@ namespace Mikoto {
         virtual ~Window() = default;
 
     public:
-        DELETE_COPY_FOR(Window);
+        DELETE_COPY_FOR( Window );
 
     protected:
         WindowProperties m_Properties{}; /**< Properties for this window. */
-
     };
-}
+}// namespace Mikoto
 
-#endif // MIKOTO_WINDOW_HH
+#endif// MIKOTO_WINDOW_HH

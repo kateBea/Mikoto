@@ -12,8 +12,10 @@
 #include <string>
 #include <array>
 
+#include <fmt/format.h>
+
 // Project Headers
-#include <STL/Utility/Types.hh>
+#include <Library/Utility/Types.hh>
 #include <Models/SystemData.hh>
 
 #define MKT_NODISCARD [[nodiscard]]
@@ -76,6 +78,9 @@ namespace Mikoto {
                 }
             }
         }
+#elif WIN32
+        // TODO:
+
 #endif
 
         cpuInfoFile.close();
@@ -91,7 +96,7 @@ namespace Mikoto {
     MKT_NODISCARD inline auto GetSystemCurrentInfo() -> SystemInfo {
         SystemInfo result{};
 
-        MKT_UNUSED_VAR auto parseLongFromLine{
+        auto parseLongFromLine{
                 [](const std::string& line) -> Int64_T {
                     std::stringstream ss{ line };
                     Int64_T parsedInteger{};

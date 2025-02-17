@@ -7,45 +7,64 @@
 #include <vector>
 
 // Third-Party Library
-#include "vk_mem_alloc.h"
-#include "volk.h"
+#include <volk.h>
+#include <vk_mem_alloc.h>
 
 // Project Headers
-#include "Common/Common.hh"
-#include "Renderer/Vulkan/VulkanUtils.hh"
-
-#include <Renderer/Vulkan/DeletionQueue.hh>
-#include "Renderer/Vulkan/VulkanContext.hh"
-#include "Renderer/Vulkan/VulkanIndexBuffer.hh"
+#include <Common/Common.hh>
+#include <Renderer/Vulkan/VulkanHelpers.hh>
+#include <Renderer/Vulkan/VulkanDeletionQueue.hh>
+#include <Renderer/Vulkan/VulkanContext.hh>
+#include <Renderer/Vulkan/VulkanIndexBuffer.hh>
 
 namespace Mikoto {
 
-    VulkanIndexBuffer::VulkanIndexBuffer(const std::vector<UInt32_T>& indices) {
-        SetIndicesData(indices);
+    VulkanIndexBuffer::VulkanIndexBuffer(const VulkanIndexBufferCreateInfo& createInfo)
+    {
+        LoadIndices(createInfo.Indices);
     }
 
-    auto VulkanIndexBuffer::Bind(VkCommandBuffer commandBuffer) const -> void {
-        vkCmdBindIndexBuffer(commandBuffer, m_Buffer.Get(), 0, VK_INDEX_TYPE_UINT32);
+    auto VulkanIndexBuffer::Bind( const VkCommandBuffer commandBuffer ) const -> void {
+        // VK_INDEX_TYPE_UINT32 because the indices are created from UInt32_T types
+        vkCmdBindIndexBuffer( commandBuffer, m_Buffer->Get(), 0, VK_INDEX_TYPE_UINT32 );
     }
 
-    auto VulkanIndexBuffer::SetIndicesData(const std::vector<UInt32_T>& indices) -> void {
+    auto VulkanIndexBuffer::Release() -> void {
+        m_Buffer = nullptr;
+    }
+
+    VulkanIndexBuffer::~VulkanIndexBuffer() {
+        if ( !m_IsReleased ) {
+            Release();
+            Invalidate();
+        }
+    }
+
+    auto VulkanIndexBuffer::Create( const VulkanIndexBufferCreateInfo& createInfo ) -> Scope_T<VulkanIndexBuffer> {
+        return CreateScope<VulkanIndexBuffer>( createInfo );
+    }
+
+    auto VulkanIndexBuffer::LoadIndices(const std::span<const UInt32_T>& indices) -> void {
         m_Count = indices.size();
-        BufferAllocateInfo allocaInfo{};
-        allocaInfo.Size = m_Count * sizeof(UInt32_T);
-        allocaInfo.BufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        allocaInfo.BufferCreateInfo.size = allocaInfo.Size;
-        allocaInfo.BufferCreateInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-        allocaInfo.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;          // Buffer is writeable by host but readable by device
 
-        m_Buffer.OnCreate(allocaInfo);
+        const VulkanBufferCreateInfo allocaInfo{
+            .BufferCreateInfo{
+                .sType{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO },
+                .size{ m_Count * sizeof(UInt32_T) },
+                .usage{ VK_BUFFER_USAGE_INDEX_BUFFER_BIT }
+            },
+            .AllocationCreateInfo{
+                // Buffer is writeable by host and readable by device
+                // DEPRECATED: look docs for details
+                .usage{ VMA_MEMORY_USAGE_CPU_TO_GPU },
+            },
+            .WantMapping{ true },
+        };
+
+        m_Buffer = VulkanBuffer::Create( allocaInfo );
 
         // Copy data to CPU readable memory
-        void* data{};
-        if (vmaMapMemory(VulkanContext::GetDefaultAllocator(), m_Buffer.GetVmaAllocation(), &data) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("Failed to map memory for index buffer!");
-        }
-
-        std::memcpy(data, static_cast<const void*>(indices.data()), static_cast<Size_T>(m_Buffer.GetSize()));
-        vmaUnmapMemory(VulkanContext::GetDefaultAllocator(), m_Buffer.GetVmaAllocation());
+        std::memcpy(m_Buffer->GetMappedPtr(), indices.data(), m_Buffer->GetSize() );
+        m_Buffer->PersistentUnmap();
     }
 }

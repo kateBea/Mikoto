@@ -8,12 +8,12 @@
 
 // Project Headers
 #include <Common/Common.hh>
+#include <Models/Enums.hh>
 #include <Common/Constants.hh>
-#include <Core/Assert.hh>
-#include <Core/Logger.hh>
-#include <Core/TimeManager.hh>
+#include <Core/Logging/Assert.hh>
+#include <Core/Logging/Logger.hh>
 #include <Profiling/Timer.hh>
-#include <STL/String/String.hh>
+#include <Library/String/String.hh>
 
 namespace Mikoto {
 
@@ -39,7 +39,7 @@ namespace Mikoto {
     }
 
     Timer::~Timer() {
-        MKT_CORE_LOGGER_DEBUG("{} End Profiling. Elapsed {} {}\n", __PRETTY_FUNCTION__, GetCurrentProgress(), GetUnitStr());
+        MKT_CORE_LOGGER_DEBUG("{} End Profiling. Elapsed {} {} ms(s)\n", __PRETTY_FUNCTION__, GetCurrentProgress(), GetUnitStr(TimeUnit::MILLISECONDS));
     }
 
     auto Timer::GetUnitStr( const TimeUnit defaultUnit ) -> std::string_view {

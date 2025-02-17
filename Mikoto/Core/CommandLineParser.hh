@@ -5,6 +5,8 @@
 #ifndef COMMANDLINEPARSER_HH
 #define COMMANDLINEPARSER_HH
 
+#include <ranges>
+
 #include <Common/Common.hh>
 
 namespace Mikoto {
@@ -25,12 +27,6 @@ namespace Mikoto {
         auto Execute(const std::string_view command) -> void {
             if ( auto commandIt{ m_Commands.find( command.data() ) }; commandIt != m_Commands.end() ) {
                 commandIt->second.CommandFunction();
-            }
-        }
-
-        auto ExecuteAll() -> void {
-            for ( const auto &[CommandDescription, CommandFunction]: m_Commands | std::views::values ) {
-                CommandFunction();
             }
         }
 

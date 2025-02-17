@@ -17,7 +17,7 @@ namespace Mikoto {
         CONSOLE_WARNING,
     };
 
-    struct Node {
+    struct ConsoleMessage {
         ConsoleLogLevel Level{};
         std::string Message{};
     };
@@ -25,11 +25,11 @@ namespace Mikoto {
     class ConsoleManager {
     public:
         static auto ClearMessages() -> void;
-        static auto GetMessages() -> const std::vector<Node>&;
+        static auto GetMessages() -> const std::vector<ConsoleMessage>&;
         static auto PushMessage(ConsoleLogLevel level, std::string_view message) -> void;
 
     private:
-        inline static std::vector<Node> s_Messages{};
+        inline static std::vector<ConsoleMessage> s_Messages{};
     };
 }
 

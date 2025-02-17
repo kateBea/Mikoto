@@ -14,7 +14,7 @@
 #include <string>
 
 // Project Headers
-#include "Common/Common.hh"
+#include <Common/Common.hh>
 #include <Models/Enums.hh>
 
 namespace Mikoto {
@@ -32,7 +32,7 @@ namespace Mikoto {
         /**
          * Creates a new event. The event is not handled on creation.
          * */
-        Event(EventType type, EventCategory categories)
+        Event( const EventType type, const EventCategory categories)
             :   m_Type{ type }, m_Categories{ categories }, m_Handled{ false } {}
 
 
@@ -49,7 +49,7 @@ namespace Mikoto {
          * Returns the string representation of this Event.
          * Mainly for debugging purposes
          * */
-        MKT_NODISCARD auto GetNameStr() const -> std::string_view { return ToString(); };
+        MKT_NODISCARD auto GetNameStr() const -> std::string_view { return ToString(); }
 
         /**
          * Tells whether this event has been handled or not
@@ -64,7 +64,7 @@ namespace Mikoto {
          * */
         MKT_NODISCARD virtual auto DisplayData() const -> std::string = 0;
 
-        auto SetHandled(bool value) -> void { m_Handled = value; }
+        auto SetHandled( const bool value) -> void { m_Handled = value; }
 
         virtual ~Event() = default;
     private:
@@ -102,6 +102,12 @@ namespace Mikoto {
      * */
     template<typename EventClassType>
     concept HasStaticGetType = requires (EventClassType) { EventClassType::GetStaticType(); };
+
+    /**
+     * Alias for event function. The function is supposed to return true if the
+     * event has been handled successfully, false otherwise.
+     * */
+    using EventHandler_T = std::function<bool(Event&)>;
 
     /**
      * This a mechanism that handles the distribution and routing of events

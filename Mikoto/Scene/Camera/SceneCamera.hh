@@ -15,7 +15,7 @@
 // Project Headers
 #include "Camera.hh"
 #include "Common/Common.hh"
-#include "STL/Random/Random.hh"
+#include "Library/Random/Random.hh"
 
 namespace Mikoto {
     /**
@@ -23,7 +23,7 @@ namespace Mikoto {
      * @brief This camera is based off OpenGL coordinate system which is right handed
      * Will eventually be changed so that it is adjusted properly to the Vulkan backend
      * */
-    class SceneCamera : public Camera {
+    class SceneCamera final : public Camera {
     public:
         /**
          * @brief Default constructor. Initializes an instance of EditorCamera with default values.
@@ -47,7 +47,7 @@ namespace Mikoto {
          *
          * @param timeStep Elapsed time since the last frame.
          * */
-        auto OnUpdate(double timeStep) -> void;
+        auto UpdateState(double timeStep) -> void;
 
 
         /**
@@ -196,7 +196,7 @@ namespace Mikoto {
         float m_Pitch{ 0.0f };
 
         // [Misc]
-        UUID m_Guid{};
+        GlobalUniqueID m_Guid{};
 
         float m_ViewportWidth{ 1920 };
         float m_ViewportHeight{ 1080 };
@@ -206,7 +206,7 @@ namespace Mikoto {
         float m_RotationSpeed{ GetMinRotationSpeed() };
         float m_MovementSpeed{ GetMinMovementSpeed() };
 
-        bool m_AllowCameraMovementAndRotation{ false };
+        bool m_AllowCameraMovementAndRotation{ true };
     };
 }
 

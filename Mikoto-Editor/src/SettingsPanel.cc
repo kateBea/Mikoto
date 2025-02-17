@@ -11,12 +11,13 @@
 #include "imgui.h"
 
 // Project Headers
-#include "STL/String/String.hh"
+#include <Core/System/RenderSystem.hh>
 
+#include "GUI/IconsMaterialDesign.h"
+#include "Library/String/String.hh"
 #include "Panels/SettingsPanel.hh"
 #include "Renderer/Core/RenderCommand.hh"
 #include "Renderer/Core/RenderContext.hh"
-#include "GUI/IconsMaterialDesign.h"
 
 namespace Mikoto {
     static constexpr auto GetSettingsPanelName() -> std::string_view {
@@ -24,7 +25,6 @@ namespace Mikoto {
     }
 
     SettingsPanel::SettingsPanel()
-        :   Panel{}
     {
         m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_CONSTRUCTION, GetSettingsPanelName());
 
@@ -33,6 +33,12 @@ namespace Mikoto {
 
         m_Data.NearPlane = SceneCamera::GetMinNearClip();
         m_Data.FarPlane = 2500.0f;
+    }
+
+    SettingsPanel::SettingsPanel(const SettingsPanelCreateInfo& data)
+        :   m_Data{ data.Data }
+    {
+        m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_CONSTRUCTION, GetSettingsPanelName());
     }
 
     auto SettingsPanel::OnUpdate(float timeStep) -> void {
@@ -45,7 +51,7 @@ namespace Mikoto {
                                                            ImGuiTreeNodeFlags_SpanAvailWidth |
                                                            ImGuiTreeNodeFlags_FramePadding};
 
-            if (ImGui::TreeNodeEx((void *) 21332323, styleFlags, "%s", "Editor Camera")) {
+            if (ImGui::TreeNodeEx( reinterpret_cast<void *>( 21332323 ), styleFlags, "%s", "Editor Camera")) {
                 // Movement
                 ImGui::SliderFloat("Movement Speed", std::addressof(m_Data.EditorCameraMovementSpeed), SceneCamera::GetMinMovementSpeed(), SceneCamera::GetMaxMovementSpeed());
                 ImGui::SliderFloat("Rotation Speed", std::addressof(m_Data.EditorCameraRotationSpeed), SceneCamera::GetMinRotationSpeed(), SceneCamera::GetMaxRotationSpeed());
@@ -61,13 +67,15 @@ namespace Mikoto {
                 ImGui::TreePop();
             }
 
-            if (ImGui::TreeNodeEx((void *) 1231213, styleFlags, "%s", "Rendering")) {
-                // TODO: manage through events?? since for Vulkan the swapchain has to be recreated
+            if (ImGui::TreeNodeEx( reinterpret_cast<void *>( 1231213 ), styleFlags, "%s", "Rendering")) {
                 if (ImGui::Checkbox("Lock Framerate (VSync)", std::addressof(m_Data.VerticalSyncEnabled))) {
-                    if (m_Data.VerticalSyncEnabled)
-                        RenderContext::EnableVSync();
-                    else
-                        RenderContext::DisableVSync();
+                    RenderSystem& renderSystem{ Engine::GetSystem<RenderSystem>() };
+
+                    if (m_Data.VerticalSyncEnabled) {
+                        renderSystem.GetContext()->EnableVSync();
+                    } else {
+                        renderSystem.GetContext()->DisableVSync();
+                    }
                 }
 
                 if (ImGui::Checkbox("Wireframe mode", std::addressof(m_Data.RenderWireframeMode))) {
@@ -76,9 +84,9 @@ namespace Mikoto {
                 ImGui::TreePop();
             }
 
-            if (ImGui::TreeNodeEx((void *) 3225252, styleFlags, "%s", "Color")) {
+            if (ImGui::TreeNodeEx( reinterpret_cast<void *>( 3225252 ), styleFlags, "%s", "Color")) {
                 static constexpr ImGuiColorEditFlags flags{ImGuiColorEditFlags_None | ImGuiColorEditFlags_PickerHueWheel};
-                ImGui::ColorEdit4("Clear Color", glm::value_ptr(m_Data.ClearColor), flags);
+                ImGui::ColorEdit4("Clear Color", value_ptr(m_Data.ClearColor), flags);
                 ImGui::TreePop();
             }
 

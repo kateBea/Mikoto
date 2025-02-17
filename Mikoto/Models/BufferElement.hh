@@ -7,7 +7,7 @@
 
 #include <Common/Common.hh>
 #include <Common/Constants.hh>
-#include <Core/Assert.hh>
+#include <Core/Logging/Assert.hh>
 #include <Models/Enums.hh>
 
 namespace Mikoto {

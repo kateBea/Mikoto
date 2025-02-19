@@ -8,7 +8,7 @@
 namespace Mikoto {
 
     auto RenderContext::Create( const RenderContextCreateInfo& config ) -> Scope_T<RenderContext> {
-        switch (config.GraphicsAPI) {
+        switch (config.Backend) {
             case GraphicsAPI::VULKAN_API:
                 return CreateScope<VulkanContext>( config );
             default:;

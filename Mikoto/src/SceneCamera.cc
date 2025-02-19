@@ -35,29 +35,6 @@ namespace Mikoto {
         EventSystem& eventSystem{ Engine::GetSystem<EventSystem>() };
         InputSystem& inputSystem{ Engine::GetSystem<InputSystem>() };
 
-        eventSystem.Subscribe(m_Guid.Get(),
-            EventType::MOUSE_BUTTON_RELEASED_EVENT,
-            [&](Event& event) -> bool
-            {
-                                     const MouseButtonReleasedEvent* e{ dynamic_cast<MouseButtonReleasedEvent*>(std::addressof(event)) };
-                inputSystem.SetCursorMode(CURSOR_NORMAL);
-
-                if (e->GetMouseButton() == Mouse_Button_Right) {
-                    EnableCamera(false);
-                }
-
-                return false;
-            });
-
-        eventSystem.Subscribe(m_Guid.Get(),
-            EventType::CAMERA_ENABLE_ROTATION,
-            [&](Event&) -> bool
-            {
-                inputSystem.SetCursorMode(CURSOR_DISABLED);
-                EnableCamera(true);
-                return false;
-            });
-
         // Starting value for forward is the opposite of the
         // position to make the camera look at the center.
         // Forward vector must be normalized as it starts with

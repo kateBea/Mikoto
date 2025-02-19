@@ -193,6 +193,7 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::CreateCommandBuffers() -> void {
+        // Create as many as images we have to render
         constexpr UInt32_T COMMAND_BUFFERS_COUNT{ 1 };
 
         VkCommandBufferAllocateInfo allocInfo{ VulkanHelpers::Initializers::CommandBufferAllocateInfo() };

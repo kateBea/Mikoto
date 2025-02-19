@@ -32,7 +32,7 @@ namespace Mikoto {
         m_Data.EditorCameraRotationSpeed = SceneCamera::GetMinRotationSpeed();
 
         m_Data.NearPlane = SceneCamera::GetMinNearClip();
-        m_Data.FarPlane = 2500.0f;
+        m_Data.FarPlane = SceneCamera::GetMaxNearClip();;
     }
 
     SettingsPanel::SettingsPanel(const SettingsPanelCreateInfo& data)

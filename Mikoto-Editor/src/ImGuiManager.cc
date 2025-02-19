@@ -122,8 +122,7 @@ namespace Mikoto {
         // it will not extend iniFilePath lifetime
         static const auto iniFilePath{
             PathBuilder()
-            .WithPath( fileSystem.GetAssetsRootPath().string() )
-            .WithPath( "imgui" )
+            .WithPath( fileSystem.GetImGuiDir().string() )
             .WithPath( "imgui.ini" )
             .Build().string()
         };

@@ -19,7 +19,7 @@ namespace Mikoto {
     auto RenderSystem::Init() -> void {
         const RenderContextCreateInfo createInfo{
             .TargetWindow{ m_Options.TargetWindow },
-            .GraphicsAPI{ m_Options.Options.RendererAPI }
+            .Backend{ m_Options.Options.RendererAPI }
         };
 
         m_Context = RenderContext::Create(createInfo);

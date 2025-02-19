@@ -61,6 +61,7 @@ namespace Mikoto {
                 .Type{ MapType::TEXTURE_2D_DIFFUSE }
             };
 
+            m_HasDiffuseTexture = false;
             m_DiffuseTexture = dynamic_cast<Texture2D *>( assetsSystem.LoadTexture( textureLoadInfo ) );
         }
 
@@ -70,6 +71,7 @@ namespace Mikoto {
                 .Type{ MapType::TEXTURE_2D_DIFFUSE }
             };
 
+            m_HasSpecularTexture = false;
             m_SpecularTexture = dynamic_cast<Texture2D *>( assetsSystem.LoadTexture( textureLoadInfo ) );
         }
     }

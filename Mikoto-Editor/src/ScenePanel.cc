@@ -169,7 +169,7 @@ namespace Mikoto {
 
     auto ScenePanelApi::SetupGuizmos() const -> void {
         Entity* currentSelection{ m_GetActiveEntityCallback() };
-        if (currentSelection->IsValid()) {
+        if (currentSelection != nullptr && currentSelection->IsValid()) {
             if (!currentSelection->GetComponent<TagComponent>().IsVisible()) {
                 return;
             }

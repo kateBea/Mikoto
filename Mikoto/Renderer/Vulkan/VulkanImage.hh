@@ -34,8 +34,11 @@ namespace Mikoto {
 
         MKT_NODISCARD auto HasExternalImage() const -> bool { return m_IsImageExternal; }
 
+        MKT_NODISCARD auto GetCurrentLayout() const -> VkImageLayout { return m_CurrentLayout; }
         MKT_NODISCARD auto GetCreateInfo() const -> const VkImageCreateInfo& { return m_AllocInfo.ImageCreateInfo; }
         MKT_NODISCARD auto GetViewCreateInfo() const -> const VkImageViewCreateInfo& { return m_ImageViewCreateInfo; }
+
+        auto LayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd ) -> void;
 
         MKT_NODISCARD static auto Create(const VulkanImageCreateInfo& createInfo) -> Scope_T<VulkanImage>;
 
@@ -47,6 +50,8 @@ namespace Mikoto {
 
         VkImage m_Image{};
         VkImageView m_ImageView{};
+
+        VkImageLayout m_CurrentLayout{ };
 
         ImageAllocateInfo m_AllocInfo{};
         VkImageViewCreateInfo m_ImageViewCreateInfo{};

@@ -42,7 +42,6 @@ namespace Mikoto {
             Init();
 
             while ( IsRunning() ) {
-                ProcessEvents();
                 UpdateState();
             }
 
@@ -182,10 +181,6 @@ namespace Mikoto {
         for ( auto& layer: m_LayerRegistry | std::views::values ) {
             layer->OnUpdate(timeStep);
         }
-    }
-
-    auto EditorApp::ProcessEvents() -> void {
-        m_MainWindow->ProcessEvents();
     }
 
     auto EditorApp::UpdateState() -> void {

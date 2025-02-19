@@ -173,7 +173,7 @@ namespace Mikoto {
         glfwSetWindowFocusCallback(m_Window,
             [](GLFWwindow* window, int focus) -> void {
                 auto& inputSystem{ Engine::GetSystem<InputSystem>() };
-                const MainWindow* data{ static_cast<MainWindow*>(glfwGetWindowUserPointer(window)) };
+                MainWindow* data{ static_cast<MainWindow*>(glfwGetWindowUserPointer(window)) };
                 if (focus == GLFW_TRUE) {
                     inputSystem.SetFocus(data);
                 }

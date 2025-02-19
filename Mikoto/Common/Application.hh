@@ -48,11 +48,6 @@ namespace Mikoto {
         virtual auto Shutdown() -> void = 0;
 
         /**
-         * @brief Processes and handles application pending events.
-         * */
-        virtual auto ProcessEvents() -> void = 0;
-
-        /**
          * @brief Updates the application state.
          * */
         virtual auto UpdateState() -> void = 0;

@@ -47,7 +47,7 @@ namespace Mikoto {
         virtual auto AddToDrawQueue( UInt64_T id, const Mesh&data, const glm::mat4& transform, Material &material ) -> bool = 0;
 
         virtual auto RemoveLight( UInt64_T id ) -> bool = 0;
-        virtual auto AddLight( UInt64_T id, const LightData& data, LightType activeType, const glm::vec4& position ) -> bool = 0;
+        virtual auto AddLight( UInt64_T id, const LightData& data, LightType activeType) -> bool = 0;
 
         // Camera & Viewport
         template<typename... Args>

@@ -151,6 +151,9 @@ namespace Mikoto {
 
         ProcessMouseInput(timeStep);
         ProcessKeyboardInput(timeStep);
+
+        UpdateViewMatrix();
+        UpdateProjection();
     }
 
     auto SceneCamera::SetViewportSize( const float width, const float height) -> void {

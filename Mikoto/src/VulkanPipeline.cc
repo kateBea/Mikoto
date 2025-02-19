@@ -64,6 +64,9 @@ namespace Mikoto {
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
         pipelineInfo.pDynamicState = &m_ConfigInfo.DynamicStateInfo;
 
+        // Save the pipeline layout
+        m_PipelineLayout = m_ConfigInfo.PipelineLayout;
+
         VulkanDevice& device{ VulkanContext::Get().GetDevice() };
 
         if ( vkCreateGraphicsPipelines( device.GetLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline ) != VK_SUCCESS ) {

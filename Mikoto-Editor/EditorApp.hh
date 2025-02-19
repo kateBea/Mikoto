@@ -27,7 +27,6 @@ namespace Mikoto {
     protected:
         auto Init() -> void override;
         auto Shutdown() -> void override;
-        auto ProcessEvents() -> void override;
         auto UpdateState() -> void override;
 
     private:

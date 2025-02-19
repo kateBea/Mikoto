@@ -81,7 +81,8 @@ namespace Mikoto {
     }
 
     auto EventSystem::Update() -> void {
-
+        // Process pending events if any
+        ProcessEvents();
     }
 
     auto EventSystem::Shutdown() -> void {

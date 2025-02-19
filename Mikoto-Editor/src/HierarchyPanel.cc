@@ -159,22 +159,20 @@ namespace Mikoto {
         }
 
         Entity& current{ *node.data };
-        Entity& currentSelection{ *m_GetActiveEntityCallback() };
+        Entity* currentSelection{ m_GetActiveEntityCallback() };
 
 
         const auto& tagCurrent{ current.GetComponent<TagComponent>() };
-        const auto& tagSelected{ currentSelection.GetComponent<TagComponent>() };
 
 
-
-        const auto thisEntityIsSelected{ tagCurrent.GetGUID() == tagSelected.GetGUID() };
+        const auto thisEntityIsSelected{ currentSelection != nullptr && tagCurrent.GetGUID() == currentSelection->GetComponent<TagComponent>().GetGUID() };
         static constexpr ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_AllowItemOverlap |
                                                         ImGuiTreeNodeFlags_Framed |
                                                         ImGuiTreeNodeFlags_SpanAvailWidth |
                                                         ImGuiTreeNodeFlags_FramePadding };
 
         const ImGuiTreeNodeFlags flags{ styleFlags | ( thisEntityIsSelected ? ImGuiTreeNodeFlags_Selected : 0 ) };
-        const auto expanded{ ImGui::TreeNodeEx( reinterpret_cast<void*>( tagCurrent.GetGUID() ), flags, "%s", fmt::format( " {} {}", ICON_MD_WIDGETS, tagCurrent.GetTag() ).c_str() ) };
+        const bool expanded{ ImGui::TreeNodeEx( reinterpret_cast<void*>( tagCurrent.GetGUID() ), flags, "%s", fmt::format( " {} {}", ICON_MD_WIDGETS, tagCurrent.GetTag() ).c_str() ) };
 
         if ( ImGui::IsItemClicked( ImGuiMouseButton_Left ) ) {
             m_SetActiveEntityCallback(node.data);
@@ -195,7 +193,7 @@ namespace Mikoto {
     }
 
 
-    auto HierarchyPanel::OnEntityRightClickMenu( Entity& target ) -> void {
+    auto HierarchyPanel::OnEntityRightClickMenu( Entity& target ) const -> void {
         static constexpr ImGuiPopupFlags popupItemFlags{ ImGuiPopupFlags_MouseButtonRight };
 
         ImGui::PushStyleVar( ImGuiStyleVar_PopupBorderSize, 1.0f );
@@ -245,7 +243,7 @@ namespace Mikoto {
     }
 
 
-    auto HierarchyPanel::BlankSpacePopupMenu() -> void {
+    auto HierarchyPanel::BlankSpacePopupMenu() const -> void {
         constexpr ImGuiPopupFlags popupWindowFlags{
             ImGuiPopupFlags_NoOpenOverItems |
             ImGuiPopupFlags_MouseButtonRight

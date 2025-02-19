@@ -30,12 +30,14 @@ layout(location = 0) out vec3 out_FragmentPos;
 layout(location = 1) out vec4 out_ObjectsColor;
 layout(location = 2) out vec3 out_VertexNormals;
 layout(location = 3) out vec2 out_VertexTexCoord;
+layout(location = 4) out vec3 out_VertexColor;
 
 void main() {
     // Setup frament shader expected data
     out_VertexNormals = a_Normal;
     out_VertexTexCoord = a_TextureCoordinates;
     out_ObjectsColor = UniformBufferData.Color;
+    out_VertexColor = a_Color;
     out_FragmentPos = vec3(UniformBufferData.Transform * vec4(a_Position, 1.0));
 
     gl_Position = UniformBufferData.Projection * UniformBufferData.View * UniformBufferData.Transform * vec4(a_Position, 1.0);

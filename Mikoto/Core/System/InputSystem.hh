@@ -102,7 +102,7 @@ namespace Mikoto {
          * Input is handled for a single window at a time.
          * @param newHandle Pointer to the newly focused Window object.
          * */
-        auto SetFocus( const Window* newHandle ) -> void;
+        auto SetFocus( Window* newHandle ) -> void;
 
 
         /**
@@ -127,7 +127,7 @@ namespace Mikoto {
 
     private:
         /**< Pointer to the current window being handled. */
-        const Window* m_Handle{ nullptr };
+        Window* m_Handle{ nullptr };
     };
 }// namespace Mikoto
 

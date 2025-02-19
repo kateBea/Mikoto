@@ -13,6 +13,7 @@ layout (location = 0) in vec3 fragmentPos;
 layout (location = 1) in vec4 inColor;
 layout (location = 2) in vec3 inNormals;
 layout (location = 3) in vec2 inTexCoord;
+layout (location = 4) in vec2 inVertexColor;
 
 // Output variables
 layout (location = 0) out vec4 outColor;
@@ -270,6 +271,10 @@ vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
 }
 
 void main() {
+    // Avoid warning meshes generally have this attribute but not used rn
+    // as we pass the color via a uniform buffer
+    inVertexColor;
+
     // [Constant properties]
     const vec3 norm = normalize(inNormals);
     const vec3 viewDir = normalize(vec3(UniformBufferData.ViewPosition) - fragmentPos);

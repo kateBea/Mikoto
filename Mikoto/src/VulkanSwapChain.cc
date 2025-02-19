@@ -195,7 +195,14 @@ namespace Mikoto {
         m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
         const auto& [Present, Graphics]{ device.GetLogicalDeviceQueues() };
-        return vkQueuePresentKHR(Present->Queue, std::addressof( presentInfo ) );
+        VkQueue presentQueue{ Graphics->Queue };
+
+        // Present and graphics queue may have same index
+        if (Present.has_value() && Present->Queue != VK_NULL_HANDLE) {
+            presentQueue = Present->Queue;
+        }
+
+        return vkQueuePresentKHR(presentQueue, std::addressof( presentInfo ) );
     }
 
     auto VulkanSwapChain::ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) -> VkSurfaceFormatKHR {

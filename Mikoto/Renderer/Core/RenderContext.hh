@@ -22,7 +22,6 @@ namespace Mikoto {
             const Window* TargetWindow{ nullptr };
 
             GraphicsAPI GraphicsAPI{ GraphicsAPI::VULKAN_API };
-            Scope_T<RendererBackend> DefaultRenderer{ nullptr };
         };
 
     public:

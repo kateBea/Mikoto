@@ -48,6 +48,7 @@ namespace Mikoto {
 
     auto EditorLayer::OnAttach() -> void {
         CreateCameras();
+
         PrepareSerialization();
 
         LoadPrefabModels();
@@ -104,10 +105,9 @@ namespace Mikoto {
         const ScenePanel& scenePanel{ *m_PanelRegistry.Get<ScenePanel>() };
 
         // Camera
-        m_EditorCamera->UpdateViewMatrix();
-        m_EditorCamera->UpdateProjection();
-        m_EditorCamera->SetViewportSize( scenePanel.GetViewportWidth(), scenePanel.GetViewportHeight() );
         m_EditorCamera->UpdateState( timeStep );
+
+        m_EditorCamera->SetViewportSize( scenePanel.GetViewportWidth(), scenePanel.GetViewportHeight() );
 
         // Scene render
         m_EditorRenderer->SetClearColor( settingsPanel.GetData().ClearColor );

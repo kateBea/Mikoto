@@ -98,8 +98,9 @@ namespace Mikoto {
         // VK_DYNAMIC_STATE_VERTEX_INPUT_EXT can reduce the amount of pipelines the application needs to create
         // because it allows for vertex input binding and attribute descriptions to be dynamic. This is, of course, not a
         // core feature as of Vulkan 1.3 and requires to be enabled when creating the device on which this pipeline will be created
+        // Make it static because pDynamicStates does not persist the value beyond this scope
 
-        constexpr std::array dynamicStates{ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH, /*VK_DYNAMIC_STATE_VERTEX_INPUT_EXT*/ };
+        static constexpr std::array dynamicStates{ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH, /*VK_DYNAMIC_STATE_VERTEX_INPUT_EXT*/ };
         configInfo.DynamicStateEnables = dynamicStates;
         configInfo.DynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
         configInfo.DynamicStateInfo.pDynamicStates = configInfo.DynamicStateEnables.data();
@@ -169,20 +170,18 @@ namespace Mikoto {
         return count != 0;
     }
 
-    auto VulkanRenderer::AddLight( const UInt64_T id, const LightData& data, LightType activeType, const glm::vec4& position ) -> bool {
+    auto VulkanRenderer::AddLight( const UInt64_T id, const LightData& data, LightType activeType) -> bool {
         const auto itFind{ m_Lights.find( id ) };
 
         if (itFind != m_Lights.end()) {
             itFind->second.Data = std::addressof( data );
             itFind->second.ActiveType = activeType;
-            itFind->second.Position = position;
 
             return true;
         }
 
         auto [it, success] {
             m_Lights.try_emplace( id, LightRenderInfo{
-                .Position{ position },
                 .Data{ std::addressof( data ) },
                 .ActiveType{ activeType }
             } )
@@ -563,6 +562,8 @@ namespace Mikoto {
         auto [it, success]{ m_Pipelines.try_emplace( MKT_STRINGIFY(StandardMaterial), defaultMatPipelineConfig ) };
         if ( !success ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::InitializeDefaultPipeline - Failed to create standard pipeline." );
+        } else {
+            it->second.Init();
         }
     }
 
@@ -582,7 +583,7 @@ namespace Mikoto {
             .FilePath{ PathBuilder()
                                .WithPath( fileSystem.GetShadersRootPath().string() )
                                .WithPath( "vulkan-spirv" )
-                               .WithPath( "StandardFragmentShader.sprv" )
+                               .WithPath( "WireframeFragmentShader.sprv" )
                                .Build() },
             .Stage{ FRAGMENT_STAGE },
         };
@@ -630,6 +631,8 @@ namespace Mikoto {
         auto [it, success]{ m_Pipelines.try_emplace( MKT_STRINGIFY(WireframeMaterial), wireframePipelineConfig ) };
         if ( !success ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::InitializeDefaultPipeline - Failed to create standard pipeline." );
+        } else {
+            it->second.Init();
         }
     }
 

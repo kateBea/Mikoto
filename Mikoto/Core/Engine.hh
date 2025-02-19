@@ -22,7 +22,7 @@ namespace Mikoto {
 
     struct EngineConfig {
         ConfigOptions Options{};
-        const Window* TargetWindow{};
+        Window* TargetWindow{};
     };
 
     class Engine final {

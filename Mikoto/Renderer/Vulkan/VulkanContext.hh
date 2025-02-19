@@ -85,7 +85,6 @@ namespace Mikoto {
 
         auto InitVolk() -> void;
         auto LoadVmaRequiredFunctions() -> void;
-        auto InitDefaultRenderer() -> void;
 
         auto CreateDefaultDescriptorLayouts() -> void;
         auto InitDescriptorAllocator() -> void;

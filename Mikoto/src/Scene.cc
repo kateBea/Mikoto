@@ -21,9 +21,10 @@
 namespace Mikoto {
 
     auto Scene::Update( double deltaTime ) -> void {
-        m_SceneRenderer->BeginFrame();
         m_SceneRenderer->SetCamera( *m_SceneCamera );
         m_SceneRenderer->SetProjection( m_SceneCamera->GetProjection() );
+
+        m_SceneRenderer->BeginFrame();
 
         // Register models
         const auto renderObjectsView{ m_Registry.view<TagComponent, TransformComponent, RenderComponent, MaterialComponent>() };
@@ -43,18 +44,19 @@ namespace Mikoto {
         }
 
         // Register Lights
-        const auto lightObjectsView{ m_Registry.view<TagComponent, TransformComponent, RenderComponent, MaterialComponent>() };
+        const auto lightObjectsView{ m_Registry.view<TagComponent, TransformComponent, LightComponent>() };
         for ( const entt::entity& entity: lightObjectsView ) {
             TagComponent& tagComponent{ m_Registry.get<TagComponent>( entity ) };
             LightComponent& lightComponent{ m_Registry.get<LightComponent>( entity ) };
             TransformComponent& transformComponent{ m_Registry.get<TransformComponent>( entity ) };
 
+            lightComponent.UpdatePosition(glm::vec4{ transformComponent.GetTranslation(), 1.0f });
+
             if (tagComponent.IsVisible()) {
                 m_SceneRenderer->AddLight(
                     tagComponent.GetGUID(),
                     lightComponent.GetData(),
-                    lightComponent.GetType(),
-                    glm::vec4{ transformComponent.GetTranslation(), 1.0f });
+                    lightComponent.GetType());
             }
         }
 

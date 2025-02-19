@@ -107,8 +107,6 @@ namespace Mikoto {
 
             CreateDefaultDescriptorLayouts();
 
-            InitDefaultRenderer();
-
             InitDescriptorAllocator();
 
         } catch (MKT_UNUSED_VAR const std::exception& exception) {
@@ -312,22 +310,6 @@ namespace Mikoto {
         m_VulkanData.VulkanVMAFunctions.vkGetDeviceImageMemoryRequirements = vkGetDeviceImageMemoryRequirements;  // Fetch from "vkGetDeviceImageMemoryRequirements" on Vulkan >= 1.3, but you can also fetch it from "vkGetDeviceImageMemoryRequirementsKHR" if you enabled extension VK_KHR_maintenance4.
     }
 
-    auto VulkanContext::InitDefaultRenderer() -> void {
-        const RendererCreateInfo createInfo{
-            .ViewportWidth{ static_cast<UInt32_T>( m_ContextData.TargetWindow->GetWidth() ) },
-            .ViewportHeight{ static_cast<UInt32_T>( m_ContextData.TargetWindow->GetHeight() ) },
-            .Api{ m_ContextData.GraphicsAPI }
-        };
-
-        m_ContextData.DefaultRenderer = RendererBackend::Create( createInfo );
-
-        MKT_ASSERT( m_ContextData.DefaultRenderer, "VulkanContext::InitDefaultRenderer - Failed to create the default renderer." );
-
-        if ( !m_ContextData.DefaultRenderer->Init() ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanContext::InitDefaultRenderer - Failed to initialize the default renderer." );
-        }
-    }
-
     auto VulkanContext::CreateDefaultDescriptorLayouts() -> void {
 
         DescriptorLayoutBuilder baseShaderDescriptorLayoutBuilder{};
@@ -342,7 +324,7 @@ namespace Mikoto {
         m_DescriptorSetLayouts.try_emplace( DESCRIPTOR_SET_LAYOUT_BASE_SHADER, descLayout );
 
         VkDescriptorSetLayout descLayoutWireframe{ baseShaderWireframeDescriptorLayoutBuilder
-                                               .WithBinding( 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
+                                                .WithBinding( 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
                                                .Build( m_VulkanData.Device->GetLogicalDevice() ) };
         m_DescriptorSetLayouts.try_emplace( DESCRIPTOR_SET_LAYOUT_BASE_SHADER_WIREFRAME, descLayoutWireframe );
 

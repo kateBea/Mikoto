@@ -15,6 +15,7 @@
 #include <Common/Common.hh>
 #include <Core/Logging/Logger.hh>
 #include <Core/System/AssetsSystem.hh>
+#include <Core/System/FileSystem.hh>
 #include <Library/Filesystem/PathBuilder.hh>
 #include <Library/String/String.hh>
 #include <Library/Utility/Types.hh>
@@ -37,14 +38,15 @@ namespace Mikoto {
 
         if ( ImGui::BeginMenu( "3D Object" ) ) {
             AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
+            FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
+
 
             Entity* newEntity{ nullptr };
 
             if ( ImGui::MenuItem( "Cube" ) ) {
                 entityCreateInfo.Name = "Cube";
                 entityCreateInfo.ModelMesh = assetsSystem.GetModel( PathBuilder()
-                    .WithPath( m_AssetsRootDirectory.string() )
-                    .WithPath( "Models" )
+                    .WithPath( fileSystem.GetAssetsRootPath().string() )
                     .WithPath( "Prefabs" )
                     .WithPath( "cube" )
                     .WithPath( "gltf" )
@@ -57,8 +59,7 @@ namespace Mikoto {
             if ( ImGui::MenuItem( "Cone" ) ) {
                 entityCreateInfo.Name = "Cone";
                 entityCreateInfo.ModelMesh = assetsSystem.GetModel( PathBuilder()
-                    .WithPath( m_AssetsRootDirectory.string() )
-                    .WithPath( "Models" )
+                    .WithPath( fileSystem.GetAssetsRootPath().string() )
                     .WithPath( "Prefabs" )
                     .WithPath( "cone" )
                     .WithPath( "gltf" )
@@ -71,8 +72,7 @@ namespace Mikoto {
             if ( ImGui::MenuItem( "Cylinder" ) ) {
                 entityCreateInfo.Name = "Cylinder";
                 entityCreateInfo.ModelMesh = assetsSystem.GetModel( PathBuilder()
-                    .WithPath( m_AssetsRootDirectory.string() )
-                    .WithPath( "Models" )
+                    .WithPath( fileSystem.GetAssetsRootPath().string() )
                     .WithPath( "Prefabs" )
                     .WithPath( "cylinder" )
                     .WithPath( "gltf" )
@@ -85,8 +85,7 @@ namespace Mikoto {
             if ( ImGui::MenuItem( "Sphere" ) ) {
                 entityCreateInfo.Name = "Sphere";
                 entityCreateInfo.ModelMesh = assetsSystem.GetModel( PathBuilder()
-                    .WithPath( m_AssetsRootDirectory.string() )
-                    .WithPath( "Models" )
+                    .WithPath( fileSystem.GetAssetsRootPath().string() )
                     .WithPath( "Prefabs" )
                     .WithPath( "sphere" )
                     .WithPath( "gltf" )
@@ -100,8 +99,7 @@ namespace Mikoto {
             if ( ImGui::MenuItem( "Sponza" ) ) {
                 entityCreateInfo.Name = "Sponza";
                 entityCreateInfo.ModelMesh = assetsSystem.GetModel( PathBuilder()
-                    .WithPath( m_AssetsRootDirectory.string() )
-                    .WithPath( "Models" )
+                    .WithPath( fileSystem.GetAssetsRootPath().string() )
                     .WithPath( "Prefabs" )
                     .WithPath( "sponza" )
                     .WithPath( "glTF" )

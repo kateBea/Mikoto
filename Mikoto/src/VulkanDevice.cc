@@ -121,13 +121,13 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanDevice::AllocateImage(ImageAllocateInfo& allocatedImageData ) const -> void {
+    auto VulkanDevice::CreateImage(const VulkanImageCreateInfo& createInfo, const VmaAllocationCreateInfo& allocCreateInfo, VkImage& image, VmaAllocation& allocation, VmaAllocationInfo& allocationInf ) const -> void {
         const auto result{ vmaCreateImage(m_DefaultAllocator,
-                                     &allocatedImageData.ImageCreateInfo,
-                                     &allocatedImageData.AllocationCreateInfo,
-                                     &allocatedImageData.Image,
-                                     &allocatedImageData.Allocation,
-                                     nullptr) };
+                                     std::addressof( createInfo.ImageCreateInfo ),
+                                     std::addressof( allocCreateInfo ),
+                                     std::addressof( image ),
+                                     std::addressof( allocation ),
+                                     std::addressof( allocationInf ) ) };
 
         if (result != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("VulkanDevice::AllocateImage - Failed to allocate VMA Image!");

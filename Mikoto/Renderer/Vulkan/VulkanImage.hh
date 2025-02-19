@@ -12,9 +12,16 @@
 // Project Headers
 #include <Common/Common.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
-#include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Vulkan/VulkanObject.hh>
 
 namespace Mikoto {
+    struct ImageAllocateInfo {
+        VkImage Image{};
+        VmaAllocation Allocation{};
+        VkImageCreateInfo ImageCreateInfo{};
+        VmaAllocationCreateInfo AllocationCreateInfo{};
+    };
+
     struct VulkanImageCreateInfo {
         // We can create an image passing in a valid VkImage handle
         // this could be the case for swapchain images in which case this should not be a null handle
@@ -35,7 +42,7 @@ namespace Mikoto {
         MKT_NODISCARD auto HasExternalImage() const -> bool { return m_IsImageExternal; }
 
         MKT_NODISCARD auto GetCurrentLayout() const -> VkImageLayout { return m_CurrentLayout; }
-        MKT_NODISCARD auto GetCreateInfo() const -> const VkImageCreateInfo& { return m_AllocInfo.ImageCreateInfo; }
+        MKT_NODISCARD auto GetCreateInfo() const -> const VkImageCreateInfo& { return m_ImageCreateInfo; }
         MKT_NODISCARD auto GetViewCreateInfo() const -> const VkImageViewCreateInfo& { return m_ImageViewCreateInfo; }
 
         auto LayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd ) -> void;
@@ -53,7 +60,9 @@ namespace Mikoto {
 
         VkImageLayout m_CurrentLayout{ };
 
-        ImageAllocateInfo m_AllocInfo{};
+        VmaAllocation m_Allocation{};
+        VmaAllocationInfo m_AllocationInfo{};
+        VkImageCreateInfo m_ImageCreateInfo{};
         VkImageViewCreateInfo m_ImageViewCreateInfo{};
     };
 }

@@ -141,6 +141,8 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::SetViewport(const float x, const float y, const float width, const float height ) -> void {
+        // We need to update the viewport and scissor for the offscreen render
+        // If the values are out of range for the current render images we might need to recreate the offscreen render images and framebuffers
         UpdateViewport( x, y, width, height );
     }
 

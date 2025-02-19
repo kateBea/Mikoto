@@ -292,8 +292,8 @@ namespace Mikoto {
         } )};
 
         TransformComponent& transformComponent{ groundObject->GetComponent<TransformComponent>() };
-        transformComponent.SetScale( { 10.0f, 0.2f, 10.0f } );
-        transformComponent.SetTranslation( { 0.0f, -5.0f, 1.0f } );
+        transformComponent.SetScale( { -33.43f, -41.91f, -20.21f } );
+        transformComponent.SetTranslation( { 7.4f, 0.5f, 5.7f } );
 
         // Point light
         Entity* lightObject{ m_ActiveScene->CreateEntity( {

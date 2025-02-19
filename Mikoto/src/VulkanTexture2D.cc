@@ -170,7 +170,7 @@ namespace Mikoto {
         m_Image = VulkanImage::Create( vulkanImageCreateInfo );
 
         device.ImmediateSubmitToGraphicsQueue( [&]( const VkCommandBuffer& cmd ) -> void {
-            VulkanHelpers::ExecuteImageLayoutTransition( m_Image->Get(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmd );
+            m_Image->LayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmd );
 
             // Copy from staging buffer to image buffer
             VkBufferImageCopy copyRegion{};
@@ -190,7 +190,7 @@ namespace Mikoto {
 
         device.ImmediateSubmitToGraphicsQueue( [&]( VkCommandBuffer cmd ) -> void {
             // Perform second transition for the descriptor set creation
-            VulkanHelpers::ExecuteImageLayoutTransition( m_Image->Get(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd );
+            m_Image->LayoutTransition(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd);
         } );
 
         // destroy staging buffer

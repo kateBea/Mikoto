@@ -8,12 +8,13 @@
 #include <functional>
 #include <unordered_map>
 
-#include <volk.h>
 #include <vk_mem_alloc.h>
+#include <volk.h>
 
 #include <Renderer/Vulkan/VulkanBuffer.hh>
 #include <Renderer/Vulkan/VulkanCommandPool.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
+#include <Renderer/Vulkan/VulkanImage.hh>
 
 namespace Mikoto {
     // Used for short-lived commands
@@ -54,7 +55,7 @@ namespace Mikoto {
         auto WaitIdle() const -> void;
 
         auto CreateBuffer(const VulkanBufferCreateInfo & createInfo, VkBuffer& buffer, VmaAllocation& allocation, VmaAllocationInfo& allocationInfo ) const -> void;
-        auto AllocateImage(ImageAllocateInfo& allocatedImageData ) const -> void;
+        auto CreateImage(const VulkanImageCreateInfo& createInfo, const VmaAllocationCreateInfo& allocCreateInfo, VkImage& image, VmaAllocation& allocation, VmaAllocationInfo& allocationInf  ) const -> void;
 
         auto GetDeviceMinimumOffsetAlignment() const -> VkDeviceSize;
 

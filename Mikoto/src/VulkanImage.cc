@@ -25,15 +25,17 @@ namespace Mikoto {
 
         // The image has not been allocated, and we need to allocate it on the given device
         if ( createInfo.Image == VK_NULL_HANDLE ) {
-            m_AllocInfo = {};
-            m_AllocInfo.ImageCreateInfo = createInfo.ImageCreateInfo;
 
-            m_AllocInfo.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-            m_AllocInfo.AllocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+            VmaAllocationCreateInfo allocCreateInfo{
+                .usage = VMA_MEMORY_USAGE_GPU_ONLY,
+                .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            };
 
-            device.AllocateImage( m_AllocInfo );
-            m_Image = m_AllocInfo.Image;
-            m_ImageViewCreateInfo.image = m_AllocInfo.Image;
+            device.CreateImage( createInfo, allocCreateInfo, m_Image, m_Allocation, m_AllocationInfo );
+
+            // Save the created image into the view create info
+            // required to create the image view
+            m_ImageViewCreateInfo.image = m_Image;
 
         } else {
             m_Image = createInfo.Image;
@@ -52,7 +54,7 @@ namespace Mikoto {
             vkDestroyImageView( device.GetLogicalDevice(), m_ImageView, nullptr );
 
             if ( !m_IsImageExternal ) {
-                vmaDestroyImage( device.GetAllocator(), m_AllocInfo.Image, m_AllocInfo.Allocation );
+                vmaDestroyImage( device.GetAllocator(), m_Image, m_Allocation );
             }
         } );
     }
@@ -97,7 +99,7 @@ namespace Mikoto {
         vkDestroyImageView( device.GetLogicalDevice(), m_ImageView, nullptr );
 
         if (!m_IsImageExternal) {
-            vmaDestroyImage( device.GetAllocator(), m_AllocInfo.Image, m_AllocInfo.Allocation );
+            vmaDestroyImage( device.GetAllocator(), m_Image, m_Allocation );
         }
     }
 

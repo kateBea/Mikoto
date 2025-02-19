@@ -25,6 +25,7 @@
 #include <Renderer/Vulkan/VulkanFrameBuffer.hh>
 #include <Renderer/Vulkan/VulkanImage.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>
+#include <Renderer/Vulkan/VulkanDevice.hh>
 
 namespace Mikoto {
     struct VulkanRendererCreateInfo {

@@ -30,13 +30,6 @@
 
 namespace Mikoto {
 
-    struct ImageAllocateInfo {
-        VkImage Image{};
-        VmaAllocation Allocation{};
-        VkImageCreateInfo ImageCreateInfo{};
-        VmaAllocationCreateInfo AllocationCreateInfo{};
-    };
-
     struct SwapChainSupportDetails {
         VkSurfaceCapabilitiesKHR Capabilities{};
         std::vector<VkSurfaceFormatKHR> Formats{};
@@ -67,8 +60,6 @@ namespace Mikoto::VulkanHelpers {
     MKT_NODISCARD auto SetupDeviceQueueCreateInfo(const std::set<UInt32_T>& uniqueQueueFamilies) -> std::vector<VkDeviceQueueCreateInfo>;
 
     auto CopyImageToImage(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent3D imageSize) -> void;
-    auto ExecuteImageLayoutTransition(VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandBuffer cmd) -> void;
-    auto ExecuteImageLayoutTransitionDependency( VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandBuffer cmd ) -> void;
 
     MKT_NODISCARD auto GetSwapChainSupport( const VkPhysicalDevice& device, const VkSurfaceKHR& surface ) -> SwapChainSupportDetails;
     MKT_NODISCARD auto GetVulkanAttributeDataType(ShaderDataType type) -> VkFormat;

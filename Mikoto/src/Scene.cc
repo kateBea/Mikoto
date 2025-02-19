@@ -164,14 +164,38 @@ namespace Mikoto {
         return true;
     }
 
-    auto Scene::FindEntity( const UInt64_T uniqueID ) -> Entity* {
+    auto Scene::FindEntityByID( const UInt64_T uniqueID ) -> Entity* {
 
-        const auto result{ std::ranges::find_if(m_Entities, [&](const Scope_T<Entity>& entity) -> bool {
+        const auto result{ std::ranges::find_if( m_Entities, [&]( const Scope_T<Entity>& entity ) -> bool {
             return entity->GetComponent<TagComponent>().GetGUID() == uniqueID;
-        }) };
+        } ) };
 
-        return result == m_Entities.end() ?
-            nullptr : result->get();
+        return result == m_Entities.end() ? nullptr : result->get();
+    }
+
+    auto Scene::FindFirstEntityByName( const std::string_view name ) -> Entity* {
+        const auto result{
+            std::ranges::find_if( m_Entities,
+                                  [&]( const Scope_T<Entity>& entity ) -> bool {
+                                      return entity->GetComponent<TagComponent>().GetTag() == name;
+                                  } )
+        };
+
+        return result == m_Entities.end() ? nullptr : result->get();
+    }
+
+    auto Scene::FindChildrenByID( UInt64_T uniqueID ) -> std::vector<Entity*> {
+        std::vector<Entity*> children{};
+
+        m_Hierarchy.ForAllChildren(
+            [&](Entity* entity) {
+                children.emplace_back( entity );
+            },
+            [&uniqueID](Entity* entity) {
+                return entity->GetComponent<TagComponent>().GetGUID() == uniqueID;
+            } );
+
+        return children;
     }
 
     auto Scene::CreateEntity( const EntityCreateInfo& createInfo ) -> Entity* {

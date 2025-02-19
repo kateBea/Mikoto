@@ -125,7 +125,7 @@ namespace Mikoto {
          *
          * @param value If true, camera movement and rotation are allowed; otherwise, they are not.
          * */
-        auto EnableCamera(bool value) { m_AllowCameraMovementAndRotation = value; }
+        auto EnableCamera( const bool value ) { m_AllowCameraMovementAndRotation = value; }
 
 
         MKT_NODISCARD constexpr static auto GetMinMovementSpeed() -> float { return 15.0f; }
@@ -134,7 +134,7 @@ namespace Mikoto {
         MKT_NODISCARD constexpr static auto GetMinRotationSpeed() -> float { return 15.0f; }
         MKT_NODISCARD constexpr static auto GetMaxRotationSpeed() -> float { return 250.0f; }
 
-        MKT_NODISCARD constexpr static auto GetMaxNearClip() -> float { return 1.0f; }
+        MKT_NODISCARD constexpr static auto GetMaxNearClip() -> float { return 2500.0f; }
         MKT_NODISCARD constexpr static auto GetMinNearClip() -> float { return 0.01f; }
 
         MKT_NODISCARD constexpr static auto GetMaxFarClip() -> float { return 10000.0f; }
@@ -205,7 +205,7 @@ namespace Mikoto {
         float m_RotationSpeed{ GetMinRotationSpeed() };
         float m_MovementSpeed{ GetMinMovementSpeed() };
 
-        bool m_AllowCameraMovementAndRotation{ true };
+        bool m_AllowCameraMovementAndRotation{ false };
     };
 }
 

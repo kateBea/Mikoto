@@ -38,7 +38,11 @@ namespace Mikoto {
         auto Update( double deltaTime ) -> void;
 
         auto DestroyEntity( UInt64_T uniqueID ) -> bool;
-        auto FindEntity( UInt64_T uniqueID ) -> Entity*;
+
+        auto FindEntityByID( UInt64_T uniqueID ) -> Entity*;
+        auto FindFirstEntityByName( std::string_view name ) -> Entity*;
+        auto FindChildrenByID( UInt64_T uniqueID ) -> std::vector<Entity*>;
+
         auto CreateEntity( const EntityCreateInfo& createInfo ) -> Entity*;
 
         auto Clear() -> void;

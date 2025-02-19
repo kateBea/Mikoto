@@ -36,7 +36,7 @@ namespace Mikoto {
         Path_T ShadersPath{};
         Path_T LogFilePath{};
         Path_T TexturesPath{};
-        Path_T ImGuiConfigFile{};
+        Path_T ImGuiConfigDir{};
         Path_T IconsPath{};
         Path_T FontsPath{};
 
@@ -92,7 +92,7 @@ namespace Mikoto {
                 .ShadersPath{ PathBuilder().WithPath(assetsRoot.string()).WithPath(paths->at("shaders").value_or("")).Build() },
                 .LogFilePath{ PathBuilder().WithPath(std::filesystem::current_path().string()).WithPath(paths->at("logs").value_or("")).Build() },
                 .TexturesPath{ PathBuilder().WithPath(assetsRoot.string()).WithPath(paths->at("textures").value_or("")).Build() },
-                .ImGuiConfigFile{ PathBuilder().WithPath(assetsRoot.string()).WithPath(paths->at("imgui_config").value_or("")).Build() },
+                .ImGuiConfigDir{ PathBuilder().WithPath(assetsRoot.string()).WithPath(paths->at("imgui_config").value_or("")).Build() },
                 .IconsPath{ PathBuilder().WithPath(assetsRoot.string()).WithPath(paths->at("icons").value_or("")).Build() },
                 .FontsPath{ PathBuilder().WithPath(assetsRoot.string()).WithPath(paths->at("fonts").value_or("")).Build() },
 

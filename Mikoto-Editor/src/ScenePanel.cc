@@ -158,13 +158,6 @@ namespace Mikoto {
 
             ImGui::PopStyleVar();
         }
-
-        InputSystem& inputSystem{ Engine::GetSystem<InputSystem>() };
-        EventSystem& eventSystem{ Engine::GetSystem<EventSystem>() };
-
-        if (m_PanelIsHovered && inputSystem.IsMouseKeyPressed(Mouse_Button_Right)) {
-            eventSystem.Trigger<CameraEnableRotation>();
-        }
     }
 
     auto ScenePanelApi::SetupGuizmos() const -> void {

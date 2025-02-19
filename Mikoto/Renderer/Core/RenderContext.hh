@@ -13,7 +13,7 @@
 namespace Mikoto {
     struct RenderContextCreateInfo {
         const Window* TargetWindow{ nullptr };
-        GraphicsAPI GraphicsAPI{ GraphicsAPI::VULKAN_API };
+        GraphicsAPI Backend{ GraphicsAPI::VULKAN_API };
     };
 
     class RenderContext {
@@ -21,7 +21,7 @@ namespace Mikoto {
         struct RenderContextData {
             const Window* TargetWindow{ nullptr };
 
-            GraphicsAPI GraphicsAPI{ GraphicsAPI::VULKAN_API };
+            GraphicsAPI Backend{ GraphicsAPI::VULKAN_API };
         };
 
     public:
@@ -47,7 +47,7 @@ namespace Mikoto {
         explicit RenderContext() = default;
 
         explicit RenderContext(const RenderContextCreateInfo& createInfo)
-            :   m_ContextData{ .TargetWindow{ createInfo.TargetWindow }, .GraphicsAPI{ createInfo.GraphicsAPI } }
+            :   m_ContextData{ .TargetWindow{ createInfo.TargetWindow }, .Backend{ createInfo.Backend } }
         { }
 
     protected:

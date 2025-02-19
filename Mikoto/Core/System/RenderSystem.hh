@@ -29,7 +29,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetContext() -> RenderContext* { return m_Context.get(); }
         MKT_NODISCARD auto GetContext() const -> const RenderContext* { return m_Context.get(); }
-        MKT_NODISCARD auto GetDefaultApi() const -> GraphicsAPI { return m_Context->GetContextData().GraphicsAPI; }
+        MKT_NODISCARD auto GetDefaultApi() const -> GraphicsAPI { return m_Context->GetContextData().Backend; }
 
     private:
         auto Flush() const -> void;

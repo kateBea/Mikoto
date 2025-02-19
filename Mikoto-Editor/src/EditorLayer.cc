@@ -10,32 +10,32 @@
 #include "glm/gtc/type_ptr.hpp"
 
 // Project Headers
-#include <Renderer/Core/RenderQueue.hh>
-
+#include <Core/Engine.hh>
+#include <Core/Events/CoreEvents.hh>
 #include <Core/Events/Event.hh>
+#include <Core/System/AssetsSystem.hh>
 #include <Core/System/EventSystem.hh>
 #include <Core/System/FileSystem.hh>
+#include <Core/System/InputSystem.hh>
 #include <Core/System/TimeSystem.hh>
+#include <EditorModels/Enums.hh>
 #include <GUI/ImGuiUtils.hh>
 #include <Layers/EditorLayer.hh>
-#include <Scene/Scene/Scene.hh>
-#include <Scene/Camera/SceneCamera.hh>
-#include <Panels/Panel.hh>
+#include <Library/Filesystem/PathBuilder.hh>
+#include <Library/Random/Random.hh>
+#include <Models/Enums.hh>
 #include <Panels/ConsolePanel.hh>
 #include <Panels/ContentBrowserPanel.hh>
 #include <Panels/HierarchyPanel.hh>
 #include <Panels/InspectorPanel.hh>
+#include <Panels/Panel.hh>
 #include <Panels/RendererPanel.hh>
 #include <Panels/ScenePanel.hh>
 #include <Panels/SettingsPanel.hh>
 #include <Panels/StatsPanel.hh>
-#include <Core/Engine.hh>
-#include <Core/Events/CoreEvents.hh>
-#include <Models/Enums.hh>
-#include <EditorModels/Enums.hh>
-#include <Library/Filesystem/PathBuilder.hh>
-#include <Core/System/AssetsSystem.hh>
-#include <Library/Random/Random.hh>
+#include <Renderer/Core/RenderQueue.hh>
+#include <Scene/Camera/SceneCamera.hh>
+#include <Scene/Scene/Scene.hh>
 
 namespace Mikoto {
     EditorLayer::EditorLayer(const EditorLayerCreateInfo& createInfo)
@@ -87,32 +87,35 @@ namespace Mikoto {
     }
 
     auto EditorLayer::OnUpdate( const double timeStep ) -> void {
-        // Move and rotation speeds
         const SettingsPanel& settingsPanel{ *m_PanelRegistry.Get<SettingsPanel>() };
         const SettingsPanelData& settingsPanelCurrentData{ settingsPanel.GetData() };
 
         m_EditorCamera->SetMovementSpeed( settingsPanelCurrentData.EditorCameraMovementSpeed );
         m_EditorCamera->SetRotationSpeed( settingsPanelCurrentData.EditorCameraRotationSpeed );
 
-        // Clip planes
         m_EditorCamera->SetFarPlane( settingsPanelCurrentData.FarPlane );
         m_EditorCamera->SetNearPlane( settingsPanelCurrentData.NearPlane );
 
-        // Field of view
         m_EditorCamera->SetFieldOfView( settingsPanelCurrentData.FieldOfView );
-        //m_EditorCamera->UpdateState( timeStep );
 
         const ScenePanel& scenePanel{ *m_PanelRegistry.Get<ScenePanel>() };
-
-        // Camera
-        m_EditorCamera->UpdateState( timeStep );
-
         m_EditorCamera->SetViewportSize( scenePanel.GetViewportWidth(), scenePanel.GetViewportHeight() );
 
-        // Scene render
+        InputSystem& inputSystem{ Engine::GetSystem<InputSystem>() };
+
+        if (scenePanel.IsHovered() && inputSystem.IsMouseKeyPressed( Mouse_Button_Right )) {
+            m_EditorCamera->EnableCamera( true );
+        } else {
+            m_EditorCamera->EnableCamera( false );
+        }
+
+        m_EditorCamera->UpdateState( timeStep );
+
         m_EditorRenderer->SetClearColor( settingsPanel.GetData().ClearColor );
+
         m_ActiveScene->SetCamera( *m_EditorCamera );
         m_ActiveScene->SetRenderer( *m_EditorRenderer );
+
         m_ActiveScene->Update( timeStep );
     }
 
@@ -285,15 +288,25 @@ namespace Mikoto {
         AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
 
         // Ground
-        Entity* groundObject{ m_ActiveScene->CreateEntity( {
+        Entity* groundObjectHolder{ m_ActiveScene->CreateEntity( {
             .Name{ "Ground" },
             .Root{ nullptr },
             .ModelMesh{ assetsSystem.GetModel( GetCubePrefabName() ) },
         } )};
 
-        TransformComponent& transformComponent{ groundObject->GetComponent<TransformComponent>() };
-        transformComponent.SetScale( { -33.43f, -41.91f, -20.21f } );
-        transformComponent.SetTranslation( { 7.4f, 0.5f, 5.7f } );
+
+        // Because models usually have multiple meshes, we need to create a child entity for each mesh
+        // And the way Mikoto works right now is that if a model has multipled meshes, it will create a child entity for each mesh
+        auto groundObjectHolderChildren{ m_ActiveScene->FindChildrenByID( groundObjectHolder->GetComponent<TagComponent>().GetGUID() ) };
+
+        // sanity check
+        if (!groundObjectHolderChildren.empty()) {
+            Entity* groundObject{ groundObjectHolderChildren[0] };
+
+            TransformComponent& transformComponent{ groundObject->GetComponent<TransformComponent>() };
+            transformComponent.SetScale( { 5.0f, 0.5f, 5.00f } );
+            transformComponent.SetTranslation( { 0.0f, 0.0f, 0.0f } );
+        }
 
         // Point light
         Entity* lightObject{ m_ActiveScene->CreateEntity( {

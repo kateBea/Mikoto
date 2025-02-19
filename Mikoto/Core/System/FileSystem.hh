@@ -20,7 +20,8 @@ namespace Mikoto {
         m_FontsRootPath( options.Options.FontsPath ),
         m_IconsRootPath( options.Options.IconsPath ),
         m_LogFilePath( options.Options.LogFilePath ),
-        m_AssetsRootPath{ options.Options.AssetsRootPath}
+        m_AssetsRootPath{ options.Options.AssetsRootPath},
+        m_ImGuiDir{ options.Options.ImGuiConfigDir}
 
         {
             if (m_ShadersRootPath.empty()) {
@@ -42,6 +43,10 @@ namespace Mikoto {
             if (m_AssetsRootPath.empty()) {
                 MKT_CORE_LOGGER_WARN("FileSystem::FileSystem - Root folder for assets is empty.");
             }
+
+            if (m_ImGuiDir.empty()) {
+                MKT_CORE_LOGGER_WARN("FileSystem::FileSystem - Root folder for ImGui files is empty.");
+            }
         }
 
         ~FileSystem() override = default;
@@ -58,6 +63,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetIconsRootPath() const -> const Path_T& { return m_IconsRootPath; }
         MKT_NODISCARD auto GetLogFilePath() const -> const Path_T& { return m_LogFilePath; }
         MKT_NODISCARD auto GetAssetsRootPath() const -> const Path_T& { return m_AssetsRootPath; }
+        MKT_NODISCARD auto GetImGuiDir() const -> const Path_T& { return m_ImGuiDir; }
 
         /**
          * Releases resources from the Serializer namespace and shuts down
@@ -92,6 +98,7 @@ namespace Mikoto {
         Path_T m_IconsRootPath{};
         Path_T m_LogFilePath{};
         Path_T m_AssetsRootPath{};
+        Path_T m_ImGuiDir{};
 
         std::unordered_map<std::string, Scope_T<File>> m_Files{};
     };

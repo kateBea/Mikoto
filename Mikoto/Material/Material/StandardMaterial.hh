@@ -32,8 +32,9 @@ namespace Mikoto {
         MKT_NODISCARD auto GetDiffuseMap() const -> Texture2D* { return m_DiffuseTexture; }
         MKT_NODISCARD auto GetSpecularMap() const -> Texture2D* { return m_SpecularTexture; }
 
-        MKT_NODISCARD auto HasSpecularMap() const -> bool { return m_SpecularTexture != nullptr; }
-        MKT_NODISCARD auto HasDiffuseMap() const -> bool { return m_DiffuseTexture != nullptr; }
+        // Textures may use an empty texture as a placeholder
+        MKT_NODISCARD auto HasSpecularMap() const -> bool { return m_HasSpecularTexture; }
+        MKT_NODISCARD auto HasDiffuseMap() const -> bool { return m_HasDiffuseTexture; }
 
         auto SetShininess( const float value ) -> void { if (value > 0.0f) { m_Shininess = value; } }
         auto SetColor(auto&&... args) -> void { m_Color = glm::vec4(std::forward<decltype(args)>(args)...); }
@@ -52,6 +53,9 @@ namespace Mikoto {
     protected:
         Texture2D* m_DiffuseTexture{};
         Texture2D* m_SpecularTexture{};
+
+        bool m_HasSpecularTexture{ true };
+        bool m_HasDiffuseTexture{ true };
 
         float m_Shininess{ 32.0f };
     };

@@ -51,18 +51,6 @@ namespace Mikoto {
 
 
         /**
-         * @brief Updates the projection matrix based on stored parameters.
-         * */
-        auto UpdateProjection() -> void;
-
-
-        /**
-         * @brief Updates the view matrix of the camera.
-         * */
-        auto UpdateViewMatrix() -> void;
-
-
-        /**
          * @brief Retrieve the position of the camera.
          * @return The position of the camera.
          * */
@@ -157,6 +145,17 @@ namespace Mikoto {
 
 
     private:
+     /**
+         * @brief Updates the projection matrix based on stored parameters.
+         * */
+     auto UpdateProjection() -> void;
+
+
+     /**
+      * @brief Updates the view matrix of the camera.
+      * */
+     auto UpdateViewMatrix() -> void;
+
         /**
          * @brief Processes mouse input to update the camera's state.
          *

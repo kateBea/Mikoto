@@ -68,10 +68,10 @@ namespace Mikoto {
         ImGui::Render();
 
         const UInt32_T swapChainImageIndex{ VulkanContext::Get().GetCurrentRenderableImageIndex() };
-        RecordCommands( m_DrawCommandBuffer, VulkanContext::Get().GetSwapChain().GetImage( swapChainImageIndex ) );
+        RecordCommands( m_DrawCommandBuffers[swapChainImageIndex], VulkanContext::Get().GetSwapChain().GetImage( swapChainImageIndex ) );
 
         VulkanDevice& device{ VulkanContext::Get().GetDevice() };
-        device.RegisterCommand( m_DrawCommandBuffer );
+        device.RegisterCommand( m_DrawCommandBuffers[swapChainImageIndex]);
 
         ImGuiIO& io{ ImGui::GetIO() };
         if ( io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {
@@ -115,7 +115,8 @@ namespace Mikoto {
             vkDestroyDescriptorPool( device, descriptorPool, nullptr );
         } );
 
-        ImGui_ImplVulkan_LoadFunctions(
+        // TODO: fetch api from somehwre else
+        ImGui_ImplVulkan_LoadFunctions(VK_API_VERSION_1_3,
                 []( const char* functionName, void* vulkanInstance ) {
                     return vkGetInstanceProcAddr( *static_cast<VkInstance*>( vulkanInstance ), functionName );
                 },
@@ -319,6 +320,7 @@ namespace Mikoto {
         colorAttachmentCreateInfo.arrayLayers = 1;
         colorAttachmentCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         colorAttachmentCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        colorAttachmentCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         colorAttachmentCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
         VkImageViewCreateInfo colorAttachmentViewCreateInfo{ VulkanHelpers::Initializers::ImageViewCreateInfo() };
@@ -380,7 +382,7 @@ namespace Mikoto {
         m_DepthImage = VulkanImage::Create( depthImageCreateInfo );
     }
 
-    auto ImGuiVulkanBackend::RecordCommands( const VkCommandBuffer cmd, const VkImage currentSwapChainImage ) const -> void {
+    auto ImGuiVulkanBackend::RecordCommands( const VkCommandBuffer cmd, VulkanImage& currentSwapChainImage ) const -> void {
         // Begin recording command buffer
         VkCommandBufferBeginInfo beginInfo{ VulkanHelpers::Initializers::CommandBufferBeginInfo() };
 
@@ -392,8 +394,9 @@ namespace Mikoto {
         PrepareMainRenderPass( cmd );
 
         // the transition the draw image and the swapchain image into their correct transfer layouts
-        VulkanHelpers::ExecuteImageLayoutTransitionDependency( m_ColorImage->Get(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, cmd );
-        VulkanHelpers::ExecuteImageLayoutTransitionDependency( currentSwapChainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmd );
+        // the first time we enter here the layouts are undefined
+        m_ColorImage->LayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, cmd );
+        currentSwapChainImage.LayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmd );
 
         VulkanSwapChain& swapChain{ VulkanContext::Get().GetSwapChain() };
 
@@ -403,13 +406,11 @@ namespace Mikoto {
         extent.depth = 1;
 
         // execute a copy from the draw image into the swapchain
-        VulkanHelpers::CopyImageToImage( cmd, m_ColorImage->Get(), currentSwapChainImage, extent );
+        VulkanHelpers::CopyImageToImage( cmd, m_ColorImage->Get(), currentSwapChainImage.Get(), extent );
 
-        // convert color image to original layout
-        VulkanHelpers::ExecuteImageLayoutTransitionDependency( m_ColorImage->Get(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd );
-
-        // set swapchain image layout to Present, so we can show it on the screen
-        VulkanHelpers::ExecuteImageLayoutTransitionDependency( currentSwapChainImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, cmd );
+        // Reset layouts
+        m_ColorImage->LayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd );
+        currentSwapChainImage.LayoutTransition( VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, cmd );
 
         // End recording command buffer
         if ( vkEndCommandBuffer( cmd ) != VK_SUCCESS ) {
@@ -429,25 +430,31 @@ namespace Mikoto {
     }
 
     auto ImGuiVulkanBackend::InitCommandBuffers() -> void {
-        constexpr UInt32_T COMMAND_BUFFERS_COUNT{ 1 };
-
-        VkCommandBufferAllocateInfo allocInfo{ VulkanHelpers::Initializers::CommandBufferAllocateInfo() };
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = m_CommandPool->Get();
-        allocInfo.commandBufferCount = COMMAND_BUFFERS_COUNT;
-
         const VulkanDevice& device{ VulkanContext::Get().GetDevice() };
+        const VulkanSwapChain& swapChain{ VulkanContext::Get().GetSwapChain() };
 
-        if ( vkAllocateCommandBuffers(
-                device.GetLogicalDevice(),
-                std::addressof(allocInfo),
-                std::addressof(m_DrawCommandBuffer) ) != VK_SUCCESS )
-        {
-            MKT_THROW_RUNTIME_ERROR( "Failed to allocate command buffer" );
+        Size_T swapchainImagesCount{ swapChain.GetImageCount() };
+
+        for (Size_T count{}; count < swapchainImagesCount; ++count) {
+            VkCommandBufferAllocateInfo allocInfo{ VulkanHelpers::Initializers::CommandBufferAllocateInfo() };
+            allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            allocInfo.commandPool = m_CommandPool->Get();
+            allocInfo.commandBufferCount = 1;
+
+            VkCommandBuffer commandBuffer{};
+            if ( vkAllocateCommandBuffers(
+                    device.GetLogicalDevice(),
+                    std::addressof(allocInfo),
+                    std::addressof(commandBuffer) ) != VK_SUCCESS )
+            {
+                MKT_THROW_RUNTIME_ERROR( "ImGuiVulkanBackend::InitCommandBuffers - Failed to allocate command buffer" );
+            }
+
+            m_DrawCommandBuffers.emplace_back( commandBuffer );
+
+            VulkanDeletionQueue::Push( [cmdPoolHandle = m_CommandPool->Get(), cmdHandle = commandBuffer, device = device.GetLogicalDevice()]() -> void {
+                vkFreeCommandBuffers( device, cmdPoolHandle, 1, std::addressof( cmdHandle ) );
+            } );
         }
-
-        VulkanDeletionQueue::Push( [cmdPoolHandle = m_CommandPool->Get(), cmdHandle = m_DrawCommandBuffer, device = device.GetLogicalDevice()]() -> void {
-            vkFreeCommandBuffers( device, cmdPoolHandle, 1, std::addressof( cmdHandle ) );
-        } );
     }
 }

@@ -190,7 +190,7 @@ namespace Mikoto::VulkanHelpers {
         }
     }
 
-    auto CopyImageToImage( VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent3D imageSize ) -> void {
+    auto CopyImageToImage( const VkCommandBuffer cmd, const VkImage source, const VkImage destination, const VkExtent3D imageSize ) -> void {
         VkImageBlit2 blitRegion{};
         blitRegion.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
         blitRegion.pNext = nullptr;

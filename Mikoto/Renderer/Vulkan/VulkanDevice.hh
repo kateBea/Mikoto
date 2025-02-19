@@ -76,7 +76,7 @@ namespace Mikoto {
         auto ImmediateSubmitToGraphicsQueue(const std::function<void(const VkCommandBuffer&)>& task) -> void;
 
         // Queues
-        auto SubmitCommands(const FrameSynchronizationPrimitives& syncPrimitives ) const -> void;
+        auto SubmitCommands(const FrameSynchronizationPrimitives& syncPrimitives ) -> void;
 
         auto Release() -> void override;
 

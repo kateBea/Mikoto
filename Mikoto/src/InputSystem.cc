@@ -115,10 +115,13 @@ namespace Mikoto {
     }
 
     auto InputSystem::Update() -> void {
-
+        if (m_Handle != nullptr) {
+            // Poll events
+            m_Handle->ProcessEvents();
+        }
     }
 
-    auto InputSystem::SetFocus( const Window* newHandle ) -> void {
+    auto InputSystem::SetFocus( Window* newHandle ) -> void {
         if ( newHandle ) {
             m_Handle = newHandle;
             MKT_CORE_LOGGER_INFO( "InputManager - Input focus switch to '{}'", m_Handle->GetTitle() );

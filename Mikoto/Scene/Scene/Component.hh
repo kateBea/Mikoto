@@ -114,8 +114,10 @@ namespace Mikoto {
         auto SetTransform(const glm::mat4& transform) -> void {
             m_Transform = transform;
 
-            // Update translation, rotation and scale accordingly
+            // Update translation,
             m_Translation = glm::vec3(m_Transform[3]);
+
+            //TODO:rotation and scale accordingly
         }
 
         auto SetTranslation(const glm::vec3& value) -> void { m_Translation = value; RecomputeTransform(); }
@@ -233,6 +235,12 @@ namespace Mikoto {
 
         ~LightComponent() = default;
 
+        auto UpdatePosition(auto&&... args) {
+            m_Data.DireLightData.Position = { std::forward<decltype(args)>(args)... };
+            m_Data.SpotLightData.Position = { std::forward<decltype(args)>(args)... };
+            m_Data.PointLightDat.Position = { std::forward<decltype(args)>(args)... };
+        }
+
         MKT_NODISCARD auto GetType() const -> LightType { return m_Type; }
         MKT_NODISCARD auto GetData() const -> const LightData&{ return m_Data; }
         MKT_NODISCARD auto GetData() -> LightData& { return m_Data; }
@@ -246,7 +254,7 @@ namespace Mikoto {
 
         auto OnComponentAttach() -> void { MKT_APP_LOGGER_DEBUG("Added component LIGHT_COMPONENT"); }
         auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component LIGHT_COMPONENT"); }
-        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component LIGHT_COMPONENT"); }
+        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG( "Removed component LIGHT_COMPONENT" ); }
 
     private:
         LightData m_Data{};

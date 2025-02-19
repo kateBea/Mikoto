@@ -2,9 +2,10 @@
 // Created by kate on 1/26/2025.
 //
 #include <Core/Logging/Logger.hh>
-#include <Renderer/Vulkan/VulkanDevice.hh>
-#include <Renderer/Vulkan/VulkanDeletionQueue.hh>
+#include <Core/Logging/StackTrace.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
+#include <Renderer/Vulkan/VulkanDeletionQueue.hh>
+#include <Renderer/Vulkan/VulkanDevice.hh>
 
 namespace Mikoto {
 
@@ -27,8 +28,14 @@ namespace Mikoto {
 
     auto VulkanDevice::Init() -> void {
         GetPrimaryPhysicalDevice();
+
         CreatePrimaryLogicalDevice();
+
+        // Queue handles require a valid logical device so they are created after we have a logical device created
+        GetDeviceQueues( m_LogicalDevice, m_QueueFamiliesData );
+
         InitMemoryAllocator();
+
         PrepareImmediateSubmit();
     }
 
@@ -247,9 +254,6 @@ namespace Mikoto {
          * See: https://github.com/zeux/volk
          * */
         volkLoadDevice( m_LogicalDevice );
-
-        // Queue handles require a valid logical device so they are created after we have a logical device created
-        GetDeviceQueues( m_LogicalDevice, m_QueueFamiliesData );
     }
 
     auto VulkanDevice::GetAllocatorStats() -> const VmaTotalStatistics& {
@@ -264,7 +268,7 @@ namespace Mikoto {
         m_SubmitCommands.emplace_back( cmd );
     }
 
-    auto VulkanDevice::SubmitCommands( const FrameSynchronizationPrimitives& syncPrimitives ) const -> void {
+    auto VulkanDevice::SubmitCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void {
         // Prepare the submission to the queue. We want to wait on
         // the present semaphore, which is signaled when the swapchain
         // is ready (there's image available to render to). We will
@@ -291,6 +295,8 @@ namespace Mikoto {
         if ( vkQueueSubmit( m_QueueFamiliesData.Graphics->Queue, 1, std::addressof( submit ), syncPrimitives.RenderFence ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanDevice::SubmitCommand - Error trying to submit commands." );
         }
+
+        m_SubmitCommands.clear();
     }
 
     auto VulkanDevice::Release() -> void {

@@ -25,9 +25,12 @@ namespace Mikoto {
         /**
          * @brief Pushes a deletion task into the queue.
          * @param function The deletion function to be added to the queue.
+         * @param immediateFlush
          * */
-        static auto Push(std::function<void()>&& function) -> void {
+        static auto Push(std::function<void()>&& function, bool immediateFlush = false) -> void {
             std::scoped_lock lock{ s_PushMutex };
+
+            // TODO: Logic to delete elements whever Release is called no matter what
             s_DeleteTasks.emplace_back(function);
         }
 

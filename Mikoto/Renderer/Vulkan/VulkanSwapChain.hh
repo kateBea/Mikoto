@@ -38,7 +38,8 @@ namespace Mikoto {
         MKT_NODISCARD auto Present( UInt32_T imageIndex, const VkSemaphore &renderFinished ) -> VkResult;
 
         MKT_NODISCARD auto GetImageCount() const -> Size_T { return m_Images.size(); }
-        MKT_NODISCARD auto GetImage( const Size_T index ) const -> VkImage { return m_Images[index]->Get(); }
+        MKT_NODISCARD auto GetImage( const Size_T index ) -> VulkanImage& { return *m_Images[index]; }
+        MKT_NODISCARD auto GetImage( const Size_T index ) const -> const VulkanImage& { return *m_Images[index]; }
         MKT_NODISCARD auto GetSwapChainKHR() const -> VkSwapchainKHR { return m_Swapchain; }
         MKT_NODISCARD auto GetExtent() const -> VkExtent2D { return m_Extent; }
         MKT_NODISCARD auto IsVsyncEnabled() const -> bool { return m_IsVsyncEnabled; }

@@ -49,7 +49,7 @@ namespace Mikoto {
         auto SetViewport( float x, float y, float width, float height ) -> void override;
 
         auto RemoveLight( UInt64_T id ) -> bool override;
-        auto AddLight( UInt64_T id, const LightData& data, LightType activeType, const glm::vec4& position ) -> bool override;
+        auto AddLight( UInt64_T id, const LightData& data, LightType activeType) -> bool override;
 
         MKT_NODISCARD auto GetFinalImage() const -> const VulkanImage& { return *m_OffscreenColorAttachment; }
 
@@ -65,7 +65,6 @@ namespace Mikoto {
         };
 
         struct LightRenderInfo {
-            glm::vec4 Position{};
             const LightData* Data{};
             LightType ActiveType{};
         };

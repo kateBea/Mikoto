@@ -16,7 +16,7 @@ namespace Mikoto {
         VkDescriptorSetLayoutBinding newBinding{
             .binding{ binding },
             .descriptorType{ type },
-            .descriptorCount{ 1 } ,
+            .descriptorCount{ 1 }, // always one descriptor, not an array
             .stageFlags{ shaderStages },
             .pImmutableSamplers{}
         };

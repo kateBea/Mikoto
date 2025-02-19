@@ -24,7 +24,6 @@ namespace Mikoto {
         Init( );
 
         while (IsRunning()) {
-            ProcessEvents();
             UpdateState();
         }
 
@@ -40,10 +39,6 @@ namespace Mikoto {
     }
 
     auto SandboxApp::Shutdown() -> void {
-    }
-
-    auto SandboxApp::ProcessEvents() -> void {
-
     }
 
     auto SandboxApp::UpdateState() -> void {

@@ -55,7 +55,7 @@ namespace Mikoto {
         auto InitCommandBuffers() -> void;
         auto InitializeCommands() -> void;
 
-        auto RecordCommands( VkCommandBuffer cmd, VkImage currentSwapChainImage ) const -> void;
+        auto RecordCommands( VkCommandBuffer cmd, VulkanImage& currentSwapchainImage ) const -> void;
 
     private:
         VkRenderPass m_ImGuiRenderPass{};
@@ -66,7 +66,7 @@ namespace Mikoto {
         Scope_T<VulkanFrameBuffer> m_DrawFrameBuffer{};
 
         Ref_T<VulkanCommandPool> m_CommandPool{};
-        VkCommandBuffer m_DrawCommandBuffer{};
+        std::vector<VkCommandBuffer> m_DrawCommandBuffers{};
 
         VkFormat m_ColorAttachmentFormat{};
         VkFormat m_DepthAttachmentFormat{};

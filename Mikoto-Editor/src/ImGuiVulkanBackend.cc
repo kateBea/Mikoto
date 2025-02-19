@@ -65,9 +65,22 @@ namespace Mikoto {
     }
 
     auto ImGuiVulkanBackend::EndFrame() -> void {
+        // If the swapchain has been resized we need to recreate the framebuffers and images
+        VulkanSwapChain& swapChain{ VulkanContext::Get().GetSwapChain() };
+        if ( swapChain.GetExtent().width != m_Extent2D.width ||
+             swapChain.GetExtent().height != m_Extent2D.height )
+        {
+            m_Extent2D = swapChain.GetExtent();
+            m_Extent3D = { m_Extent2D.width, m_Extent2D.height, 1 };
+
+            CreateImages();
+            CreateFrameBuffer();
+        }
+
         ImGui::Render();
 
         const UInt32_T swapChainImageIndex{ VulkanContext::Get().GetCurrentRenderableImageIndex() };
+
         RecordCommands( m_DrawCommandBuffers[swapChainImageIndex], VulkanContext::Get().GetSwapChain().GetImage( swapChainImageIndex ) );
 
         VulkanDevice& device{ VulkanContext::Get().GetDevice() };

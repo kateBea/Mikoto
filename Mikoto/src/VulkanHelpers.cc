@@ -58,48 +58,6 @@ namespace Mikoto::VulkanHelpers {
         }
     }
 
-    auto ExecuteImageLayoutTransition(VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandBuffer cmd) -> void {
-        VkImageSubresourceRange range{};
-        range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        range.baseMipLevel = 0;
-        range.levelCount = 1;
-        range.baseArrayLayer = 0;
-        range.layerCount = 1;
-
-        VkImageMemoryBarrier imageBarrierToTransfer{ Initializers::ImageMemoryBarrier() };
-        imageBarrierToTransfer.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        imageBarrierToTransfer.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        imageBarrierToTransfer.oldLayout = oldLayout;
-        imageBarrierToTransfer.newLayout = newLayout;
-        imageBarrierToTransfer.image = image;
-        imageBarrierToTransfer.subresourceRange = range;
-
-        VkPipelineStageFlags sourceStage{};
-        VkPipelineStageFlags destinationStage{};
-
-        if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-        {
-            imageBarrierToTransfer.srcAccessMask = 0;
-            imageBarrierToTransfer.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-            sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-            destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        }
-        else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-        {
-            imageBarrierToTransfer.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            imageBarrierToTransfer.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-            sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        }
-        else {
-            MKT_THROW_RUNTIME_ERROR("Unsupported layout transition!");
-        }
-
-        vkCmdPipelineBarrier(cmd, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, std::addressof(imageBarrierToTransfer));
-    }
-
     auto GetSwapChainSupport( const VkPhysicalDevice& device, const VkSurfaceKHR& surface ) -> SwapChainSupportDetails {
         SwapChainSupportDetails details{};
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR( device, surface, std::addressof( details.Capabilities ) );
@@ -119,33 +77,6 @@ namespace Mikoto::VulkanHelpers {
         }
 
         return details;
-    }
-
-    auto ExecuteImageLayoutTransitionDependency( VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandBuffer cmd ) -> void {
-        VkImageMemoryBarrier2 imageBarrier {};
-        imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-        imageBarrier.pNext = nullptr;
-
-        imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-        imageBarrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
-        imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-        imageBarrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
-
-        imageBarrier.oldLayout = oldLayout;
-        imageBarrier.newLayout = newLayout;
-
-        VkImageAspectFlags aspectMask = (newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
-        imageBarrier.subresourceRange = Initializers::ImageSubresourceRange(aspectMask);
-        imageBarrier.image = image;
-
-        VkDependencyInfo depInfo {};
-        depInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-        depInfo.pNext = nullptr;
-
-        depInfo.imageMemoryBarrierCount = 1;
-        depInfo.pImageMemoryBarriers = std::addressof(imageBarrier);
-
-        vkCmdPipelineBarrier2(cmd, std::addressof(depInfo));
     }
 
     auto HasGraphicsQueue( const VkQueueFamilyProperties& queueFamily ) -> bool {

@@ -31,11 +31,11 @@ namespace Mikoto {
         explicit ImGuiVulkanBackend( const ImGuiBackendCreateInfo& createInfo )
             : BackendImplementation{ createInfo }, m_Extent2D{
                   .width{ static_cast<UInt32_T>( createInfo.Handle->GetWidth() ) },
-                  .height{ static_cast<UInt32_T>( createInfo.Handle->GetWidth() ) }
+                  .height{ static_cast<UInt32_T>( createInfo.Handle->GetHeight() ) }
               },
               m_Extent3D{
                   .width{ static_cast<UInt32_T>( createInfo.Handle->GetWidth() ) },
-                  .height{ static_cast<UInt32_T>( createInfo.Handle->GetWidth() ) }, .depth{ 1 }
+                  .height{ static_cast<UInt32_T>( createInfo.Handle->GetHeight() ) }, .depth{ 1 }
               }
         {}
 

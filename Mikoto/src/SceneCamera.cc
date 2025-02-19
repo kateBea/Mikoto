@@ -142,6 +142,9 @@ namespace Mikoto {
     }
 
     auto SceneCamera::UpdateState( const double timeStep) -> void {
+        UpdateViewMatrix();
+        UpdateProjection();
+
         if (!m_AllowCameraMovementAndRotation) {
             return;
         }
@@ -151,9 +154,6 @@ namespace Mikoto {
 
         ProcessMouseInput(timeStep);
         ProcessKeyboardInput(timeStep);
-
-        UpdateViewMatrix();
-        UpdateProjection();
     }
 
     auto SceneCamera::SetViewportSize( const float width, const float height) -> void {

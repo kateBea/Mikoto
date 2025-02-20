@@ -33,7 +33,7 @@ namespace Mikoto {
     }
 
     auto EditorApp::Run( const Int32_T argc, char **argv ) -> Int32_T {
-        auto exitCode{ EXIT_SUCCESS };
+        Int32_T exitCode{ EXIT_SUCCESS };
 
         ParseCommandLineArgs( argc, argv );
 

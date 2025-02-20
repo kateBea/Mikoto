@@ -61,23 +61,17 @@ namespace Mikoto {
 
         // Get mouse angle rotation values
         const glm::vec2 MOUSE_CURRENT_POSITION{ inputSystem.GetMouseX(), inputSystem.GetMouseY() };
-        glm::vec2 delta{ (MOUSE_CURRENT_POSITION - m_LastMousePosition) * 0.03f };
+        const glm::vec2 delta{ (MOUSE_CURRENT_POSITION - m_LastMousePosition) * 0.03f };
+
         m_LastMousePosition = MOUSE_CURRENT_POSITION;
 
-        // TODO: temporary (avoid camera jumping)
-        // Offset that indicates there will be a camera jump when rotating
-        static constexpr auto JUMP_THRESHOLD{ 8.0f };
-        if (std::abs(length(delta)) > JUMP_THRESHOLD)
-            return;
-
-        // Perform rotation
         if (delta.x != 0.0f || delta.y != 0.0f) {
             // The Y offset of the mouse will dictate how much we rotate in the X axis
-            m_Pitch = delta.y * m_RotationSpeed * (float)timeStep;
+            m_Pitch = delta.y * m_RotationSpeed * static_cast<float>( timeStep );
             // The X offset of the mouse will dictate how much we rotate in the Y axis
-            m_Yaw = delta.x * m_RotationSpeed * (float)timeStep;
+            m_Yaw = delta.x * m_RotationSpeed * static_cast<float>( timeStep );
 
-            glm::quat q{ glm::normalize(glm::cross(glm::angleAxis(-m_Pitch, m_RightVector), glm::angleAxis(-m_Yaw, GLM_UNIT_VECTOR_Y))) };
+            const glm::quat q{ glm::normalize(glm::cross(glm::angleAxis(-m_Pitch, m_RightVector), glm::angleAxis(-m_Yaw, GLM_UNIT_VECTOR_Y))) };
             m_ForwardVector = glm::rotate(q, m_ForwardVector);
         }
     }
@@ -123,6 +117,9 @@ namespace Mikoto {
         UpdateProjection();
 
         if (!m_AllowCameraMovementAndRotation) {
+            static InputSystem& inputSystem{ Engine::GetSystem<InputSystem>() };
+            const glm::vec2 MOUSE_CURRENT_POSITION{ inputSystem.GetMouseX(), inputSystem.GetMouseY() };
+            m_LastMousePosition = MOUSE_CURRENT_POSITION;
             return;
         }
 

@@ -23,13 +23,14 @@ namespace Mikoto {
         Texture2D* AmbientOcclusionMap{ nullptr };
     };
 
-    class PhysicallyBasedMaterial : public Material {
+    class PBRMaterial : public Material {
     public:
-        explicit PhysicallyBasedMaterial( const std::string_view name = "PBR" )
-            :   Material{ name, MaterialType::PBR }
-        {
-
+        explicit PBRMaterial( const std::string_view name = "PBR" )
+            : Material{ name, MaterialType::PBR } {
         }
+
+        PBRMaterial( const PBRMaterial& other ) = default;
+        auto operator=( const PBRMaterial& other ) -> PBRMaterial& = default;
 
         MKT_NODISCARD auto HasAlbedoMap() const -> bool { return m_AlbedoMap != nullptr; }
         MKT_NODISCARD auto HasNormalMap() const -> bool { return m_NormalMap != nullptr; }
@@ -43,16 +44,21 @@ namespace Mikoto {
         MKT_NODISCARD auto GetRoughness() const -> Texture2D* { return m_RoughnessMap; }
         MKT_NODISCARD auto GetAO() const -> Texture2D* { return m_AmbientOcclusionMap; }
 
-        ~PhysicallyBasedMaterial() override = default;
+        MKT_NODISCARD static auto Create( const PBRMaterialCreateSpec& createInfo ) -> Scope_T<PBRMaterial>;
+
+        ~PBRMaterial() override = default;
 
     protected:
+        bool m_HasSpecularTexture{ true };
+        bool m_HasDiffuseTexture{ true };
+
         Texture2D* m_AlbedoMap{};
         Texture2D* m_NormalMap{};
         Texture2D* m_MetallicMap{};
         Texture2D* m_RoughnessMap{};
         Texture2D* m_AmbientOcclusionMap{};
     };
-}
+}// namespace Mikoto
 
 
 #endif//MIKOTO_PHYSICALLY_BASED_MATERIAL_HH

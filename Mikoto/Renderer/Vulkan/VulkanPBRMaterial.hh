@@ -6,22 +6,23 @@
 #define MIKOTO_VULKAN_PBR_MATERIAL_HH
 
 #include <volk.h>
+#include <glm/glm.hpp>
 
 #include <Material/Core/Material.hh>
-#include <Material/Material/PhysicallyBasedMaterial.hh>
+#include <Material/Material/PBRMaterial.hh>
 #include <Models/LightData.hh>
 #include <Renderer/Vulkan/VulkanBuffer.hh>
-#include <glm/glm.hpp>
+#include <Renderer/Vulkan/VulkanDescriptorManager.hh>
 
 #include "VulkanTexture2D.hh"
 
 namespace Mikoto {
-    class VulkanPBRMaterial final : public PhysicallyBasedMaterial {
+    class VulkanPBRMaterial final : public PBRMaterial {
     public:
         explicit VulkanPBRMaterial(const PBRMaterialCreateSpec& spec, std::string_view name = GetName());
 
         VulkanPBRMaterial(const VulkanPBRMaterial& other) = default;
-        VulkanPBRMaterial(VulkanPBRMaterial && other) = default;
+        VulkanPBRMaterial(VulkanPBRMaterial && other)  noexcept = default;
 
         auto operator=(const VulkanPBRMaterial & other) -> VulkanPBRMaterial & = default;
         auto operator=(VulkanPBRMaterial && other) -> VulkanPBRMaterial & = default;
@@ -39,7 +40,7 @@ namespace Mikoto {
         MKT_NODISCARD static auto GetName() -> std::string_view { return "PBRMaterial"; }
 
     private:
-        struct VertexUniformBuffer {
+        struct VertexUniformBufferData {
             // Camera
             glm::mat4 View{};
             glm::mat4 Projection{};
@@ -100,21 +101,28 @@ namespace Mikoto {
         auto CreateDescriptorSet() -> void;
 
     private:
-        static inline std::shared_ptr<VulkanTexture2D> s_EmptyTexture{ nullptr };
+        Size_T m_LightsCount{};
+        Size_T m_DirLightIndex{};
+        Size_T m_SpotLightIndex{};
+        Size_T m_PointLightIndex{};
 
-        // Vertex shader uniform buffers
+        VulkanDescriptorWriter m_DescriptorWriter{};
+
+        // Vertex shader uniform buffer
         Scope_T<VulkanBuffer> m_VertexUniformBuffer{};
-        Size_T m_VertexShaderUniformPaddedSize{};
-        VertexUniformBuffer m_VertexUniformData{};
+        VertexUniformBufferData m_VertexUniformData{};
 
-        // Fragment shader uniform buffers
+        // Fragment shader uniform buffer
         Scope_T<VulkanBuffer> m_FragmentUniformBuffer{};
-        Size_T m_FragmentShaderUniformPaddedSize{};
-        FragmentUniformBufferData m_FragmentUniformData{};
+        FragmentUniformBufferData m_FragmentUniformLightsData{};
 
         // Descriptors
-        VkDescriptorPool m_DescriptorPool{};
         VkDescriptorSet m_DescriptorSet{};
+
+        static inline VulkanTexture2D* s_EmptyTexture{};
+
+        Size_T m_UniformDataStructureSize{}; // size of the UniformBufferData structure, with required padding for the device
+        Size_T m_FragmentUniformDataStructureSize{}; // size of the UniformBufferData structure, with required padding for the device for fragment shader
     };
 }
 

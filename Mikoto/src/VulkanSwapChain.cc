@@ -270,6 +270,8 @@ namespace Mikoto {
 
         m_Surface = nullptr;
 
+        m_Images.clear();
+
         // Destroy handles
         // The device is owned by the context and is destroyed before the instance and after any object is
         // created from it has finished being used

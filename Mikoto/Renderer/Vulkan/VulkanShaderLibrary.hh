@@ -13,6 +13,9 @@
 namespace Mikoto {
     class VulkanShaderLibrary {
     public:
+        static auto Init() -> void;
+        static auto Shutdown() -> void;
+
         static auto GetShader( const Path_T &filePath ) -> VulkanShader *;
         static auto LoadShader( const VulkanShaderCreateInfo &loadInfo ) -> VulkanShader *;
 

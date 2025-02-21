@@ -148,7 +148,7 @@ namespace Mikoto {
          * @param modelDirectory The model's directory
          * @returns A list of textures from the given material of type
          * */
-        static auto LoadTextures( const aiMaterial *mat, aiTextureType type, MapType tType, const aiScene *scene, const Path_T &modelDirectory ) -> std::vector<Scope_T<Texture2D>>;
+        static auto LoadTextures( const aiMaterial *mat, aiTextureType type, MapType tType, const aiScene *scene, const Path_T &modelDirectory ) -> std::vector<Texture2D*>;
 
     protected:
         Path_T m_ModelAbsolutePath{};

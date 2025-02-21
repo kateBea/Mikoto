@@ -102,8 +102,6 @@ namespace Mikoto {
          * See: https://vulkan-tutorial.com/Vertex_buffers/Vertex_input_description
          * */
 
-#if false // TO TEST
-
         // The index refers to how the vertex attributes are laid out according to s_DefaultBufferLayout
         // so index 0 -> s_DefaultBufferLayout first attribute,
         // index 1 -> s_DefaultBufferLayout second attribute and so on
@@ -115,43 +113,12 @@ namespace Mikoto {
             s_AttributeDesc[index].offset = s_DefaultBufferLayout[index].GetOffset();
         }
 
-#endif
-
-
-        // Position
-        s_AttributeDesc[0] = {};
-        s_AttributeDesc[0].binding = 0;
-        s_AttributeDesc[0].location = 0;
-        s_AttributeDesc[0].format = VulkanHelpers::GetVulkanAttributeDataType( s_DefaultBufferLayout[0].GetType() );
-        s_AttributeDesc[0].offset = s_DefaultBufferLayout[0].GetOffset();
-
-        // Normal
-        s_AttributeDesc[1] = {};
-        s_AttributeDesc[1].binding = 0;
-        s_AttributeDesc[1].location = 1;
-        s_AttributeDesc[1].format = VulkanHelpers::GetVulkanAttributeDataType( s_DefaultBufferLayout[1].GetType() );
-        s_AttributeDesc[1].offset = s_DefaultBufferLayout[1].GetOffset();
-
-        // Color
-        s_AttributeDesc[2] = {};
-        s_AttributeDesc[2].binding = 0;
-        s_AttributeDesc[2].location = 2;
-        s_AttributeDesc[2].format = VulkanHelpers::GetVulkanAttributeDataType( s_DefaultBufferLayout[2].GetType() );
-        s_AttributeDesc[2].offset = s_DefaultBufferLayout[2].GetOffset();
-
-        // Texture Coordinates
-        s_AttributeDesc[3] = {};
-        s_AttributeDesc[3].binding = 0;
-        s_AttributeDesc[3].location = 3;
-        s_AttributeDesc[3].format = VulkanHelpers::GetVulkanAttributeDataType( s_DefaultBufferLayout[3].GetType() );
-        s_AttributeDesc[3].offset = s_DefaultBufferLayout[3].GetOffset();
-
         return s_AttributeDesc;
     }
 
     auto VulkanVertexBuffer::Release() -> void {
-        VulkanDevice& device{ VulkanContext::Get().GetDevice() };
-        vmaDestroyBuffer(device.GetAllocator() , m_Buffer->Get(), m_Buffer->GetVmaAllocation());
+        m_Buffer = nullptr;
+        m_RetainedData.clear();
     }
 
     auto VulkanVertexBuffer::SetVertexData(const std::vector<float>& vertices) -> void {
@@ -215,7 +182,7 @@ namespace Mikoto {
 
         m_Buffer = VulkanBuffer::Create( vertexBufferCreateInfo );
 
-        device.ImmediateSubmitToGraphicsQueue([&]( const VkCommandBuffer cmd) -> void {
+        VulkanContext::Get().ImmediateSubmit([&]( const VkCommandBuffer cmd) -> void {
             VkBufferCopy copy{
                 .srcOffset{ 0 },
                 .dstOffset{ 0 },

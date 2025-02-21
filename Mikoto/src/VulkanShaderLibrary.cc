@@ -5,6 +5,12 @@
 #include <Renderer/Vulkan/VulkanShaderLibrary.hh>
 
 namespace Mikoto {
+    auto VulkanShaderLibrary::Init() -> void {
+    }
+    auto VulkanShaderLibrary::Shutdown() -> void {
+        s_Shaders.clear();
+    }
+
     auto VulkanShaderLibrary::GetShader( const Path_T &filePath ) -> VulkanShader * {
         auto it{ s_Shaders.find( filePath.string() ) };
 

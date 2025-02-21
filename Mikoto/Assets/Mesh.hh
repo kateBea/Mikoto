@@ -32,7 +32,7 @@ namespace Mikoto {
         * Initializes this mesh from the parameter data.
         * @param data contains the required data to initialize this mesh
         * */
-        explicit Mesh( std::string_view name, Scope_T<VertexBuffer>&& vertices, Scope_T<IndexBuffer>&& indices, std::vector<Scope_T<Texture2D>>&& textures, const Path_T& path );
+        explicit Mesh( std::string_view name, Scope_T<VertexBuffer>&& vertices, Scope_T<IndexBuffer>&& indices, std::vector<Texture2D*>&& textures, const Path_T& path );
 
 
         /**
@@ -74,7 +74,7 @@ namespace Mikoto {
          * Returns the set of textures of this mesh
          * @returns set of textures
          * */
-        MKT_NODISCARD auto GetTextures() const -> const std::vector<Scope_T<Texture2D>>& { return m_Textures; }
+        MKT_NODISCARD auto GetTextures() const -> const std::vector<Texture2D*>& { return m_Textures; }
 
         /**
          * Returns the name of this mesh
@@ -85,7 +85,7 @@ namespace Mikoto {
         /**
          * Default destructor
          * */
-        ~Mesh() = default;
+        ~Mesh();
 
     private:
         Path_T m_ModelAbsolutePath{};
@@ -93,7 +93,7 @@ namespace Mikoto {
         std::string m_Name{};
         Scope_T<VertexBuffer> m_Vertices{};
         Scope_T<IndexBuffer> m_Indices{};
-        std::vector<Scope_T<Texture2D>> m_Textures{};
+        std::vector<Texture2D*> m_Textures{};
     };
 }// namespace Mikoto
 

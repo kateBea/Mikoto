@@ -18,6 +18,7 @@
 #include <Renderer/Vulkan/VulkanContext.hh>
 
 namespace Mikoto {
+
     VulkanImage::VulkanImage( const VulkanImageCreateInfo& createInfo ) {
         VulkanDevice& device{ VulkanContext::Get().GetDevice() };
 
@@ -32,15 +33,14 @@ namespace Mikoto {
             };
 
             device.CreateImage( createInfo, allocCreateInfo, m_Image, m_Allocation, m_AllocationInfo );
-
-            // Save the created image into the view create info
-            // required to create the image view
-            m_ImageViewCreateInfo.image = m_Image;
-
         } else {
             m_Image = createInfo.Image;
             m_IsImageExternal = true;
         }
+
+        // Save the created image into the view create info
+        // required to create the image view
+        m_ImageViewCreateInfo.image = m_Image;
 
         // Here we always create the image view;
         // the caller can optionally pass a valid image because this VulkanImage is supposed be
@@ -49,14 +49,6 @@ namespace Mikoto {
         if ( vkCreateImageView( device.GetLogicalDevice(), std::addressof( m_ImageViewCreateInfo ), nullptr, std::addressof( m_ImageView ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanImage::VulkanImage - Failed to create the Vulkan Image View!" );
         }
-
-        VulkanDeletionQueue::Push( [&]() -> void {
-            vkDestroyImageView( device.GetLogicalDevice(), m_ImageView, nullptr );
-
-            if ( !m_IsImageExternal ) {
-                vmaDestroyImage( device.GetAllocator(), m_Image, m_Allocation );
-            }
-        } );
     }
 
     auto VulkanImage::LayoutTransition( const VkImageLayout newLayout, const VkCommandBuffer cmd ) -> void {
@@ -95,6 +87,8 @@ namespace Mikoto {
 
     auto VulkanImage::Release() -> void {
         VulkanDevice& device{ VulkanContext::Get().GetDevice() };
+
+        device.WaitIdle();
 
         vkDestroyImageView( device.GetLogicalDevice(), m_ImageView, nullptr );
 

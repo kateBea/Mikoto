@@ -35,8 +35,6 @@ namespace Mikoto {
         GetDeviceQueues( m_LogicalDevice, m_QueueFamiliesData );
 
         InitMemoryAllocator();
-
-        PrepareImmediateSubmit();
     }
 
     VulkanDevice::~VulkanDevice() {
@@ -78,34 +76,6 @@ namespace Mikoto {
         }
 
         return physicalDeviceSupportsAllRequiredExtensions;
-    }
-
-    auto VulkanDevice::PrepareImmediateSubmit() -> void {
-        // Command pool for immediate submission
-        VkCommandPoolCreateInfo immediateSubmitCreateInfo{ VulkanHelpers::Initializers::CommandPoolCreateInfo() };
-        immediateSubmitCreateInfo.queueFamilyIndex = m_QueueFamiliesData.Graphics->FamilyIndex;
-        immediateSubmitCreateInfo.flags = 0;
-
-        m_ImmediateSubmitContext.CommandPool = VulkanCommandPool::Create( VulkanCommandPoolCreateInfo{ .CreateInfo { immediateSubmitCreateInfo } } );
-
-        // Immediate submit command buffers
-        VkCommandBufferAllocateInfo immediateSubmitAllocInfo{ VulkanHelpers::Initializers::CommandBufferAllocateInfo() };
-        immediateSubmitAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        immediateSubmitAllocInfo.commandPool = m_ImmediateSubmitContext.CommandPool->Get();
-        immediateSubmitAllocInfo.commandBufferCount = 1;
-        vkAllocateCommandBuffers( m_LogicalDevice,
-                                  std::addressof( immediateSubmitAllocInfo ),
-                                  std::addressof( m_ImmediateSubmitContext.CommandBuffer ) );
-
-        // Fence for immediate submission
-        VkFenceCreateInfo immediateSubmitFenceInfo{ VulkanHelpers::Initializers::FenceCreateInfo() };
-
-        if ( vkCreateFence( m_LogicalDevice,
-                            std::addressof( immediateSubmitFenceInfo ),
-                            nullptr,
-                            std::addressof( m_ImmediateSubmitContext.UploadFence ) ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( fmt::format( "VulkanDevice::PrepareImmediateSubmit - Failed to create Vulkan immediate submit fence!" ) );
-        }
     }
 
     auto VulkanDevice::CreateBuffer(const VulkanBufferCreateInfo & createInfo, VkBuffer& buffer, VmaAllocation& allocation, VmaAllocationInfo& allocationInfo ) const -> void {
@@ -304,13 +274,8 @@ namespace Mikoto {
             return;
         }
 
-        // Immediate submit context objects release
-        vkFreeCommandBuffers( m_LogicalDevice, m_ImmediateSubmitContext.CommandPool->Get(), 1, std::addressof( m_ImmediateSubmitContext.CommandBuffer ) );
-        vkDestroyFence( m_LogicalDevice, m_ImmediateSubmitContext.UploadFence, nullptr );
-
-        m_ImmediateSubmitContext.CommandPool = nullptr;
-
         vmaDestroyAllocator( m_DefaultAllocator );
+
         vkDestroyDevice( m_LogicalDevice, nullptr );
 
         Invalidate();
@@ -326,48 +291,6 @@ namespace Mikoto {
         };
 
         vmaCreateAllocator( std::addressof( allocatorInfo ), std::addressof( m_DefaultAllocator ) );
-    }
-
-    auto VulkanDevice::ImmediateSubmitToGraphicsQueue( const std::function<void( const VkCommandBuffer& )>& task) -> void {
-        VkCommandBuffer cmd{ m_ImmediateSubmitContext.CommandBuffer };
-
-        // Begin the command buffer recording. We will use this command buffer exactly
-        // once before resetting, so we tell vulkan that
-        VkCommandBufferBeginInfo cmdBeginInfo{ VulkanHelpers::Initializers::CommandBufferBeginInfo() };
-        cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        cmdBeginInfo.pNext = nullptr;
-        cmdBeginInfo.pInheritanceInfo = nullptr;
-        cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-        if ( vkBeginCommandBuffer( cmd, std::addressof( cmdBeginInfo ) ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkBeginCommandBuffer on ImmediateSubmit" );
-        }
-
-        task( cmd );
-
-        if ( vkEndCommandBuffer( cmd ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkBeginCommandBuffer on ImmediateSubmit" );
-        }
-
-        VkSubmitInfo submitInfo{ VulkanHelpers::Initializers::SubmitInfo() };
-        submitInfo.pNext = nullptr;
-        submitInfo.pWaitDstStageMask = nullptr;
-        submitInfo.waitSemaphoreCount = 0;
-        submitInfo.pWaitSemaphores = nullptr;
-        submitInfo.signalSemaphoreCount = 0;
-        submitInfo.pSignalSemaphores = nullptr;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = std::addressof(cmd);
-
-        if ( vkQueueSubmit( m_QueueFamiliesData.Graphics->Queue, 1, std::addressof( submitInfo ), m_ImmediateSubmitContext.UploadFence ) ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkQueueSubmit on ImmediateSubmit" );
-        }
-
-        vkWaitForFences( m_LogicalDevice, 1, std::addressof( m_ImmediateSubmitContext.UploadFence ), true, 9999999999 );
-        vkResetFences( m_LogicalDevice, 1, std::addressof( m_ImmediateSubmitContext.UploadFence ) );
-
-        // reset the command buffers inside the command pool
-        vkResetCommandPool( m_LogicalDevice, m_ImmediateSubmitContext.CommandPool->Get(), 0 );
     }
 
     auto VulkanDevice::FindSupportedFormat( const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features ) const -> VkFormat {

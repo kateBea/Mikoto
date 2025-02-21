@@ -63,7 +63,7 @@ namespace Mikoto {
 
         VkSampler m_Sampler{ VK_NULL_HANDLE };
 
-        Ref_T<VulkanImage> m_Image{ nullptr };
+        Scope_T<VulkanImage> m_Image{ nullptr };
 
         const File* m_File{ nullptr };
     };

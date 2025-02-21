@@ -175,6 +175,10 @@ namespace Mikoto {
             return erased;
         }
 
+        auto Clear() -> void {
+            m_Nodes.clear();
+        }
+
     private:
         template<typename UnaryPred>
         auto Find(UnaryPred&& func, std::unique_ptr<Node>& node) -> std::unique_ptr<Node>* {

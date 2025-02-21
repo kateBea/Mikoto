@@ -11,9 +11,9 @@
 
 // Project Headers
 #include <GUI/ImGuiUtils.hh>
-#include <Platform/Window/Window.hh>
-
 #include <GUI/ImGuiVulkanBackend.hh>
+#include <Platform/Window/Window.hh>
+#include <deque>
 
 namespace Mikoto {
     /**
@@ -57,6 +57,11 @@ namespace Mikoto {
          * */
         static auto GetFonts() -> std::vector<ImFont*>& { return s_Fonts; }
 
+      template<typename... Args>
+      static auto AddShutdownCallback(Args&&... args) -> void {
+          s_ShutdownCallbacks.emplace_back(std::forward<Args>(args)...);
+        }
+
         /**
          * @brief Destroys the ImGui context.
          * */
@@ -81,7 +86,8 @@ namespace Mikoto {
         static auto InitImplementation(const Window* window) -> void;
 
     private:
-        inline static std::vector<ImFont*>                   s_Fonts{};                   /**< Vector storing ImGui fonts. */
+      inline static std::deque < std::function<void()>> s_ShutdownCallbacks{}; /**< Queue for deleting objects */
+      inline static std::vector<ImFont*> s_Fonts{};                   /**< Vector storing ImGui fonts. */
         inline static Scope_T<BackendImplementation> m_Implementation{ nullptr }; /**< Pointer to the backend implementation. */
     };
 }

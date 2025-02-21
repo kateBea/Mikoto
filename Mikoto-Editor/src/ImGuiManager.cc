@@ -11,6 +11,7 @@
 #include <GUI/IconsFontAwesome5.h>
 #include <GUI/IconsMaterialDesign.h>
 #include <GUI/IconsMaterialDesignIcons.h>
+#include <imgui_impl_vulkan.h>
 
 #include <Common/Common.hh>
 #include <Core/Engine.hh>
@@ -150,6 +151,12 @@ namespace Mikoto {
 
     auto ImGuiManager::Shutdown() -> void {
         MKT_CORE_LOGGER_INFO("Shutting down ImGui");
+
+        for (auto& func : s_ShutdownCallbacks) {
+            func();
+        }
+
+        s_ShutdownCallbacks.clear();
 
         m_Implementation->Shutdown();
 

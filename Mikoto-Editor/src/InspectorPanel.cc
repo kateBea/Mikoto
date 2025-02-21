@@ -91,8 +91,8 @@ namespace Mikoto {
             if (success) {
                 result = itInsert->second;
 
-                VulkanDeletionQueue::Push( [texture = itInsert->second]() -> void {
-                    ImGui_ImplVulkan_RemoveTexture( texture );
+                ImGuiManager::AddShutdownCallback( [textureDset = itInsert->second]() -> void {
+                    ImGui_ImplVulkan_RemoveTexture( textureDset );
                 } );
             }
         } else {
@@ -525,37 +525,37 @@ namespace Mikoto {
 
         // Diffuse
         if ( diffuseIndex != -1 ) {
-            DisplayMapInformation( meshTarget.GetTextures()[diffuseIndex].get(), "Albedo" );
+            DisplayMapInformation( meshTarget.GetTextures()[diffuseIndex], "Albedo" );
         }
 
         // Specular
         if ( specularIndex != -1 ) {
-            DisplayMapInformation( meshTarget.GetTextures()[specularIndex].get(), "Specular" );
+            DisplayMapInformation( meshTarget.GetTextures()[specularIndex], "Specular" );
         }
 
         // Normal
         if ( normalIndex != -1 ) {
-            DisplayMapInformation( meshTarget.GetTextures()[normalIndex].get(), "Normal" );
+            DisplayMapInformation( meshTarget.GetTextures()[normalIndex], "Normal" );
         }
 
         // Emissive
         if ( emissionIndex != -1 ) {
-            DisplayMapInformation( meshTarget.GetTextures()[emissionIndex].get(), "Emmissive" );
+            DisplayMapInformation( meshTarget.GetTextures()[emissionIndex], "Emmissive" );
         }
 
         // Roughness
         if ( roughnessIndex != -1 ) {
-            DisplayMapInformation( meshTarget.GetTextures()[roughnessIndex].get(), "Roughness" );
+            DisplayMapInformation( meshTarget.GetTextures()[roughnessIndex], "Roughness" );
         }
 
         // Metallic
         if ( metallicIndex != -1 ) {
-            DisplayMapInformation( meshTarget.GetTextures()[metallicIndex].get(), "Metal" );
+            DisplayMapInformation( meshTarget.GetTextures()[metallicIndex], "Metal" );
         }
 
         // Ao
         if ( aoIndex != -1 ) {
-            DisplayMapInformation( meshTarget.GetTextures()[aoIndex].get(), "Ambient Occlusion" );
+            DisplayMapInformation( meshTarget.GetTextures()[aoIndex], "Ambient Occlusion" );
         }
     }
 

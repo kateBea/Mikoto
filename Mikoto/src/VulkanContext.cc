@@ -30,6 +30,7 @@
 #include <Renderer/Vulkan/VulkanDeletionQueue.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
+#include <Renderer/Vulkan/VulkanShaderLibrary.hh>
 #include <ranges>
 
 namespace Mikoto {
@@ -102,6 +103,9 @@ namespace Mikoto {
             LoadVmaRequiredFunctions();
 
             CreateDevice();
+
+            PrepareImmediateSubmit();
+
             RecreateSwapChain();
             CreateSynchronizationPrimitives();
 
@@ -109,8 +113,10 @@ namespace Mikoto {
 
             InitDescriptorAllocator();
 
+            VulkanShaderLibrary::Init();
+
         } catch (MKT_UNUSED_VAR const std::exception& exception) {
-            MKT_THROW_RUNTIME_ERROR( fmt::format( "VulkanContext::Init - Error initializing Vulkan Context. {}", exception.what() ) );
+            MKT_CORE_LOGGER_ERROR( "VulkanContext::Init - Error initializing Vulkan Context. {}", exception.what() );
             success = false;
         }
 
@@ -132,12 +138,89 @@ namespace Mikoto {
         m_VulkanData.Device->Init();
     }
 
+    auto VulkanContext::PrepareImmediateSubmit() -> void {
+        // Command pool for immediate submission
+        VkCommandPoolCreateInfo immediateSubmitCreateInfo{ VulkanHelpers::Initializers::CommandPoolCreateInfo() };
+        immediateSubmitCreateInfo.queueFamilyIndex = m_VulkanData.Device->GetLogicalDeviceQueues().Graphics->FamilyIndex;
+        immediateSubmitCreateInfo.flags = 0;
+
+        m_ImmediateSubmitContext.CommandPool = VulkanCommandPool::Create( VulkanCommandPoolCreateInfo{ .CreateInfo { immediateSubmitCreateInfo } } );
+
+        // Immediate submit command buffers
+        VkCommandBufferAllocateInfo immediateSubmitAllocInfo{ VulkanHelpers::Initializers::CommandBufferAllocateInfo() };
+        immediateSubmitAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        immediateSubmitAllocInfo.commandPool = m_ImmediateSubmitContext.CommandPool->Get();
+        immediateSubmitAllocInfo.commandBufferCount = 1;
+
+        m_ImmediateSubmitContext.CommandBuffer = *m_ImmediateSubmitContext.CommandPool->AllocateCommandBuffer( immediateSubmitAllocInfo );
+
+        // Fence for immediate submission
+        VkFenceCreateInfo immediateSubmitFenceInfo{ VulkanHelpers::Initializers::FenceCreateInfo() };
+
+        if ( vkCreateFence( m_VulkanData.Device->GetLogicalDevice(),
+                            std::addressof( immediateSubmitFenceInfo ),
+                            nullptr,
+                            std::addressof( m_ImmediateSubmitContext.UploadFence ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( fmt::format( "VulkanDevice::PrepareImmediateSubmit - Failed to create Vulkan immediate submit fence!" ) );
+                            }
+    }
+
+    auto VulkanContext::ImmediateSubmit( const std::function<void( const VkCommandBuffer& )>& task) -> void {
+        VkCommandBuffer cmd{ m_ImmediateSubmitContext.CommandBuffer };
+
+        // Begin the command buffer recording. We will use this command buffer exactly
+        // once before resetting, so we tell vulkan that
+        VkCommandBufferBeginInfo cmdBeginInfo{ VulkanHelpers::Initializers::CommandBufferBeginInfo() };
+        cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        cmdBeginInfo.pNext = nullptr;
+        cmdBeginInfo.pInheritanceInfo = nullptr;
+        cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+        if ( vkBeginCommandBuffer( cmd, std::addressof( cmdBeginInfo ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkBeginCommandBuffer on ImmediateSubmit" );
+        }
+
+        task( cmd );
+
+        if ( vkEndCommandBuffer( cmd ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkBeginCommandBuffer on ImmediateSubmit" );
+        }
+
+        VkSubmitInfo submitInfo{ VulkanHelpers::Initializers::SubmitInfo() };
+        submitInfo.pNext = nullptr;
+        submitInfo.pWaitDstStageMask = nullptr;
+        submitInfo.waitSemaphoreCount = 0;
+        submitInfo.pWaitSemaphores = nullptr;
+        submitInfo.signalSemaphoreCount = 0;
+        submitInfo.pSignalSemaphores = nullptr;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = std::addressof(cmd);
+
+        const QueuesData& queuesData{ m_VulkanData.Device->GetLogicalDeviceQueues() };
+
+        if ( vkQueueSubmit( queuesData.Graphics->Queue, 1, std::addressof( submitInfo ), m_ImmediateSubmitContext.UploadFence ) ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkQueueSubmit on ImmediateSubmit" );
+        }
+
+        vkWaitForFences( m_VulkanData.Device->GetLogicalDevice() , 1, std::addressof( m_ImmediateSubmitContext.UploadFence ), true, 9999999999 );
+        vkResetFences( m_VulkanData.Device->GetLogicalDevice(), 1, std::addressof( m_ImmediateSubmitContext.UploadFence ) );
+
+        // reset the command buffers inside the command pool
+        vkResetCommandPool( m_VulkanData.Device->GetLogicalDevice(), m_ImmediateSubmitContext.CommandPool->Get(), 0 );
+    }
+
     auto VulkanContext::Shutdown() -> void {
         // Wait for remaining operations to finish
         m_VulkanData.Device->WaitIdle();
 
         // Clean remaining objects
         VulkanDeletionQueue::Flush();
+
+        VulkanShaderLibrary::Shutdown();
+
+        m_ImmediateSubmitContext.CommandPool = nullptr;
+
+        vkDestroyFence( m_VulkanData.Device->GetLogicalDevice(), m_ImmediateSubmitContext.UploadFence, nullptr );
 
         if ( m_VulkanData.EnableValidationLayers && vkDestroyDebugUtilsMessengerEXT != nullptr ) {
             vkDestroyDebugUtilsMessengerEXT( GetInstance(), m_VulkanData.DebugMessenger, nullptr );
@@ -147,7 +230,10 @@ namespace Mikoto {
             vkDestroyDescriptorSetLayout( m_VulkanData.Device->GetLogicalDevice(), descLayout, nullptr );
         }
 
-        m_SwapChain->Release();
+        m_DescriptorAllocator.DestroyPools( m_VulkanData.Device->GetLogicalDevice() );
+
+        m_SwapChain = nullptr;
+
         vkDestroySurfaceKHR( GetInstance(), GetSurface(), nullptr );
 
         m_VulkanData.Device = nullptr;

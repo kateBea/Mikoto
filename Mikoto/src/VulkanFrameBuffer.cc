@@ -20,10 +20,6 @@ namespace Mikoto {
         if ( vkCreateFramebuffer( device.GetLogicalDevice(), std::addressof( m_CreateInfo ), nullptr, std::addressof( m_FrameBuffer ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "Failed to create framebuffer!" );
         }
-
-        VulkanDeletionQueue::Push( [device = device.GetLogicalDevice(), frameBufferHandle = m_FrameBuffer]() -> void {
-            vkDestroyFramebuffer( device, frameBufferHandle, nullptr );
-        } );
     }
 
     auto VulkanFrameBuffer::Create( const VulkanFrameBufferCreateInfo &createInfo ) -> Scope_T<VulkanFrameBuffer> {
@@ -32,6 +28,8 @@ namespace Mikoto {
 
     auto VulkanFrameBuffer::Release() -> void {
         VulkanDevice& device{ VulkanContext::Get().GetDevice() };
+
+        device.WaitIdle();
 
         vkDestroyFramebuffer( device.GetLogicalDevice(), m_FrameBuffer, nullptr );
     }

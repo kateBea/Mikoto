@@ -145,6 +145,8 @@ namespace Mikoto {
 
         DestroyLayers();
 
+        ImGuiManager::Shutdown();
+
         m_MainWindow->Shutdown();
 
         Engine::Shutdown();

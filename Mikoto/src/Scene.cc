@@ -105,10 +105,12 @@ namespace Mikoto {
                     return entity->GetComponent<TagComponent>().GetGUID() == uniqueID;
                 }) };
 
-        Scope_T<Entity> entity{
-            result != m_Entities.end() ?
-                std::move( *result ) : nullptr
-        };
+        Scope_T<Entity> entity{ nullptr };
+
+        if (result != m_Entities.end()) {
+            entity = std::move( *result );
+            m_Entities.erase( result );
+        }
 
         return entity;
     }
@@ -158,6 +160,22 @@ namespace Mikoto {
             return  false;
         }
 
+        // Erase children from hierarchy, entities and lights
+        auto children{ FindChildrenByID( uniqueID ) };
+
+        // Temporarily hold the children to remove them from lights
+        std::vector<Scope_T<Entity>> childrenPtrs{};
+
+        for (Entity* child : children) {
+            // Hold the pointer otherwise it gets deleted and then we can't remove it from lights because it's not valid
+            childrenPtrs.emplace_back( RemoveFromEntities( child->GetComponent<TagComponent>().GetGUID() ) );
+
+            if (childrenPtrs.back()->HasComponent<LightComponent>()) {
+                RemoveFromLights( child->GetComponent<TagComponent>().GetGUID() );
+            }
+        }
+
+        // Erase parent (which erases children too)
         RemoveFromLights( uniqueID );
         RemoveFromHierarchy( *target );
 
@@ -220,10 +238,10 @@ namespace Mikoto {
             for (auto& textureIt: mesh->GetTextures()) {
                 switch ( textureIt->GetType() ) {
                     case MapType::TEXTURE_2D_DIFFUSE:
-                        diffuse = textureIt.get();
+                        diffuse = textureIt;
                         break;
                     case MapType::TEXTURE_2D_SPECULAR:
-                        specular = textureIt.get();
+                        specular = textureIt;
                         break;
                     default:
                         MKT_CORE_LOGGER_INFO("Scene::CreatePrefabEntity - Mesh has no data for the requested texture type.");
@@ -245,13 +263,25 @@ namespace Mikoto {
 
     auto Scene::Clear() -> void {
         // Remove entities from draw queue
-        for ( const auto& entity: m_Entities ) {
-            TagComponent& tagComponent{ entity->GetComponent<TagComponent>() };
-            DestroyEntity( tagComponent.GetGUID() );
+        for (const auto& entity : m_Entities) {
+            if (entity->HasComponent<RenderComponent>()) {
+                m_SceneRenderer->RemoveFromDrawQueue( entity->GetComponent<TagComponent>().GetGUID() );
+            }
+
+            if (entity->HasComponent<LightComponent>()) {
+                RemoveFromLights( entity->GetComponent<TagComponent>().GetGUID() );
+            }
         }
+
+        m_Lights.clear();
+        m_Hierarchy.Clear();
+        m_Entities.clear();
 
         // Clear entt registry
         m_Registry.clear();
+
+        m_SceneCamera = nullptr;
+        m_SceneRenderer = nullptr;
     }
 
     auto Scene::SetCamera( const SceneCamera& camera ) -> void {

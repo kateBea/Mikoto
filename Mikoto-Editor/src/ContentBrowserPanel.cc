@@ -114,7 +114,7 @@ namespace Mikoto {
         VkDescriptorSet fileDs{ ImGui_ImplVulkan_AddTexture(fileSampler, dynamic_cast<VulkanTexture2D*>(m_FileIcon)->GetImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) };
         VkDescriptorSet folderDs{ ImGui_ImplVulkan_AddTexture(folderSampler, dynamic_cast<VulkanTexture2D*>(m_FolderIcon)->GetImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) };
 
-        VulkanDeletionQueue::Push( [fileDs, folderDs]() -> void {
+        ImGuiManager::AddShutdownCallback( [fileDs, folderDs]() -> void {
             ImGui_ImplVulkan_RemoveTexture( fileDs );
             ImGui_ImplVulkan_RemoveTexture( folderDs );
         } );

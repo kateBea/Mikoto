@@ -33,12 +33,12 @@
 // Project Headers
 #include <Core/Input/MouseCodes.hh>
 #include <Core/System/InputSystem.hh>
+#include <GUI/ImGuiManager.hh>
+#include <Scene/Scene/Scene.hh>
 
 #include "Common/Common.hh"
 #include "Renderer/Vulkan/VulkanDeletionQueue.hh"
 #include "Renderer/Vulkan/VulkanRenderer.hh"
-
-#include <Scene/Scene/Scene.hh>
 
 namespace Mikoto {
 
@@ -82,9 +82,9 @@ namespace Mikoto {
             m_ColorAttachmentDescriptorSet =
                 ImGui_ImplVulkan_AddTexture(m_ColorAttachmentSampler, vulkanSceneRenderer->GetFinalImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-            VulkanDeletionQueue::Push([descSet = m_ColorAttachmentDescriptorSet]() -> void {
-                ImGui_ImplVulkan_RemoveTexture(descSet);
-            });
+            ImGuiManager::AddShutdownCallback( [ds = m_ColorAttachmentDescriptorSet]() -> void {
+                ImGui_ImplVulkan_RemoveTexture(ds);
+                } );
         }
 
         auto OnUpdate() -> void override {

@@ -33,6 +33,8 @@ namespace Mikoto {
 
     auto RenderSystem::Shutdown() -> void {
         m_Context->Shutdown();
+
+        m_Context = nullptr;
     }
 
     auto RenderSystem::Update() -> void {

@@ -58,9 +58,9 @@ namespace Mikoto {
 
         auto Init(VkDevice device, UInt32_T initialSets, std::span<PoolSizeRatio> poolRatios) -> void;
         auto ClearPools(VkDevice device) -> void;
-        auto DestroyPool(VkDevice device) -> void;
+        auto DestroyPools(VkDevice device) -> void;
 
-        auto Allocate(VkDevice device, VkDescriptorSetLayout layout, const void* pNext = nullptr) -> VkDescriptorSet;
+        auto Allocate(VkDevice device, VkDescriptorSetLayout layout, const void* pNext = nullptr) -> VkDescriptorSet*;
 
     private:
         auto GetPool(VkDevice device) -> VkDescriptorPool;
@@ -75,6 +75,8 @@ namespace Mikoto {
 
         // how many sets we allocate per pool
         std::vector<PoolSizeRatio> m_Ratios{};
+
+        std::vector<std::pair<VkDescriptorSet, VkDescriptorPool>> m_AllocatedSets{};
 
         // contains the pools we know we cant allocate from anymore
         std::vector<VkDescriptorPool> m_FullPools{};

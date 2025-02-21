@@ -54,7 +54,6 @@ namespace Mikoto {
         // Ask file manager if this is a valid file
 
         if (!info.Path.is_absolute()) {
-            MKT_CORE_LOGGER_ERROR( "AssetsSystem::LoadModel - Model path [{}] is not absolute!", info.Path.string() );
             return result;
         }
 
@@ -65,13 +64,9 @@ namespace Mikoto {
 
             if ( insertSuccess ) {
                 result = insertIt->second.get();
-                MKT_CORE_LOGGER_INFO( "AssetsSystem::LoadModel - Model [{}] loaded successfully!", info.Path.string() );
-            } else {
-                MKT_CORE_LOGGER_ERROR( "AssetsSystem::LoadModel - Model [{}] failed to load!", info.Path.string() );
             }
         } else {
             result = itFind->second.get();
-            MKT_CORE_LOGGER_INFO( "AssetsSystem::LoadModel - Model [{}] already exists!", info.Path.string() );
         }
 
         return result;
@@ -81,7 +76,6 @@ namespace Mikoto {
         Texture* result{ nullptr };
 
         if (!info.Path.is_absolute()) {
-            MKT_CORE_LOGGER_ERROR( "AssetsSystem::LoadTexture - Texture path [{}] is not absolute!", info.Path.string() );
             return result;
         }
 
@@ -93,13 +87,9 @@ namespace Mikoto {
 
             if ( insertSuccess ) {
                 result = insertIt->second.get();
-                MKT_CORE_LOGGER_INFO( "AssetsSystem::LoadTexture - Model [{}] loaded successfully!", info.Path.string() );
-            } else {
-                MKT_CORE_LOGGER_ERROR( "AssetsSystem::LoadTexture - Model [{}] failed to load!", info.Path.string() );
             }
         } else {
             result = itFind->second.get();
-            MKT_CORE_LOGGER_INFO( "AssetsSystem::LoadTexture - Model [{}] already exists!", info.Path.string() );
         }
 
         return result;

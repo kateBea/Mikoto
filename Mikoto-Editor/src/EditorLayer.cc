@@ -83,6 +83,9 @@ namespace Mikoto {
 
         m_Project = nullptr;
 
+        m_EditorRenderer->Shutdown();
+        m_EditorRenderer = nullptr;
+
         m_PanelRegistry.Clear();
     }
 

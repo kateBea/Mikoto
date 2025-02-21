@@ -59,8 +59,7 @@ namespace Mikoto {
         m_FileSize = 0;
         m_FileData = nullptr;
 
-        // TODO: properly destroy these handles
-        m_Sampler = VK_NULL_HANDLE;
+        vkDestroySampler( device.GetLogicalDevice(), m_Sampler, nullptr );
 
         m_File = nullptr;
 
@@ -169,7 +168,7 @@ namespace Mikoto {
 
         m_Image = VulkanImage::Create( vulkanImageCreateInfo );
 
-        device.ImmediateSubmitToGraphicsQueue( [&]( const VkCommandBuffer& cmd ) -> void {
+        VulkanContext::Get().ImmediateSubmit( [&]( const VkCommandBuffer& cmd ) -> void {
             m_Image->LayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmd );
 
             // Copy from staging buffer to image buffer
@@ -188,7 +187,7 @@ namespace Mikoto {
             vkCmdCopyBufferToImage( cmd, stagingBuffer->Get(), m_Image->Get(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, std::addressof( copyRegion ) );
         } );
 
-        device.ImmediateSubmitToGraphicsQueue( [&]( VkCommandBuffer cmd ) -> void {
+        VulkanContext::Get().ImmediateSubmit( [&]( VkCommandBuffer cmd ) -> void {
             // Perform second transition for the descriptor set creation
             m_Image->LayoutTransition(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd);
         } );
@@ -228,9 +227,5 @@ namespace Mikoto {
         if ( vkCreateSampler( device.GetLogicalDevice(), &samplerInfo, nullptr, &m_Sampler ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "Failed to create texture sampler!" );
         }
-
-        VulkanDeletionQueue::Push( [sampler = m_Sampler, device = device.GetLogicalDevice()]() -> void {
-            vkDestroySampler( device, sampler, nullptr );
-        } );
     }
 }

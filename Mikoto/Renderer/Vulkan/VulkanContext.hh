@@ -30,6 +30,14 @@ namespace Mikoto {
         DESCRIPTOR_SET_LAYOUT_BASE_SHADER_WIREFRAME,
     };
 
+    // Used for short-lived commands
+    struct ImmediateSubmitContext {
+        VkFence UploadFence{};            // Notify the host a task has finished executing
+        VkCommandBuffer CommandBuffer{};  // Command buffer to submit work to
+        Scope_T<VulkanCommandPool> CommandPool{};// Command pool to allocate command buffer from
+    };
+
+
     struct VulkanContextData {
         VkInstance Instance{};
         VkSurfaceKHR Surface{};
@@ -64,6 +72,8 @@ namespace Mikoto {
         MKT_NODISCARD auto IsVSyncActive() const -> bool { return m_SwapChain->IsVsyncEnabled(); }
         MKT_NODISCARD auto GetSwapChain() const -> VulkanSwapChain& { return *m_SwapChain; }
 
+        auto ImmediateSubmit(const std::function<void(const VkCommandBuffer&)>& task) -> void;
+
         // [General getters]
         MKT_NODISCARD auto GetSurface() const -> const VkSurfaceKHR& { return m_VulkanData.Surface; }
         MKT_NODISCARD auto GetDescriptorAllocator() -> VulkanDescriptorAllocator& { return m_DescriptorAllocator; }
@@ -82,6 +92,8 @@ namespace Mikoto {
         // [Internal usage]
         auto SubmitCommands() const -> void;
         auto PresentToSwapchain() -> void;
+
+        auto PrepareImmediateSubmit() -> void;
 
         auto InitVolk() -> void;
         auto LoadVmaRequiredFunctions() -> void;
@@ -119,6 +131,9 @@ namespace Mikoto {
 #endif
             .ValidationLayers{ "VK_LAYER_KHRONOS_validation" }
         };
+
+        // Short-lived commands
+        ImmediateSubmitContext m_ImmediateSubmitContext{};
 
         // Swapchain manipulation data
         Scope_T<VulkanSwapChain> m_SwapChain{};

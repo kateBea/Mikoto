@@ -72,10 +72,6 @@ namespace Mikoto {
         if ( vkCreateGraphicsPipelines( device.GetLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanPipeline::Init - Failed to create Graphics pipeline" );
         }
-
-        VulkanDeletionQueue::Push( [device = device.GetLogicalDevice(), pipeline = m_GraphicsPipeline]() -> void {
-            vkDestroyPipeline( device, pipeline, nullptr );
-        } );
     }
 
     auto VulkanPipeline::Release() -> void {

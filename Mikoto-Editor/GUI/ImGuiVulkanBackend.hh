@@ -65,7 +65,7 @@ namespace Mikoto {
         Scope_T<VulkanImage> m_DepthImage{};
         Scope_T<VulkanFrameBuffer> m_DrawFrameBuffer{};
 
-        Ref_T<VulkanCommandPool> m_CommandPool{};
+        Scope_T<VulkanCommandPool> m_CommandPool{};
         std::vector<VkCommandBuffer> m_DrawCommandBuffers{};
 
         VkFormat m_ColorAttachmentFormat{};

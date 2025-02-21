@@ -148,6 +148,9 @@ namespace Mikoto {
 
     auto VulkanRenderer::Shutdown() -> void {
         m_Device->WaitIdle();
+
+        m_OffscreenColorAttachment = nullptr;
+        m_OffscreenDepthAttachment = nullptr;
     }
 
     auto VulkanRenderer::BeginFrame() -> void {
@@ -172,21 +175,20 @@ namespace Mikoto {
         return count != 0;
     }
 
-    auto VulkanRenderer::AddLight( const UInt64_T id, const LightData& data, LightType activeType) -> bool {
+    auto VulkanRenderer::AddLight( const UInt64_T id, const LightData& data, LightType activeType ) -> bool {
         const auto itFind{ m_Lights.find( id ) };
 
-        if (itFind != m_Lights.end()) {
+        if ( itFind != m_Lights.end() ) {
             itFind->second.Data = std::addressof( data );
             itFind->second.ActiveType = activeType;
 
             return true;
         }
 
-        auto [it, success] {
+        auto [it, success]{
             m_Lights.try_emplace( id, LightRenderInfo{
-                .Data{ std::addressof( data ) },
-                .ActiveType{ activeType }
-            } )
+                                              .Data{ std::addressof( data ) },
+                                              .ActiveType{ activeType } } )
         };
 
         return success;
@@ -201,16 +203,7 @@ namespace Mikoto {
         allocInfo.commandPool = m_CommandPool->Get();
         allocInfo.commandBufferCount = COMMAND_BUFFERS_COUNT;
 
-        if ( vkAllocateCommandBuffers(
-                     m_Device->GetLogicalDevice(),
-                     std::addressof( allocInfo ),
-                     std::addressof( m_DrawCommandBuffer ) ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::InitCommandBuffers - Failed to allocate command buffer" );
-        }
-
-        VulkanDeletionQueue::Push( [device = m_Device->GetLogicalDevice(), cmdPoolHandle = m_CommandPool->Get(), cmdHandle = m_DrawCommandBuffer]() -> void {
-            vkFreeCommandBuffers( device, cmdPoolHandle, 1, std::addressof( cmdHandle ) );
-        } );
+        m_DrawCommandBuffer = *m_CommandPool->AllocateCommandBuffer( allocInfo );
     }
 
     auto VulkanRenderer::RecordCommands() -> void {

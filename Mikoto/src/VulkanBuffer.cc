@@ -10,14 +10,18 @@
 
 namespace Mikoto {
 
+
     auto VulkanBuffer::Release() -> void {
         PersistentUnmap();
 
         auto& device{ VulkanContext::Get().GetDevice() };
+        device.WaitIdle();
+
         vmaDestroyBuffer( device.GetAllocator(), m_Buffer, m_VmaAllocation );
     }
 
     VulkanBuffer::~VulkanBuffer() {
+
         if ( !m_IsReleased ) {
             Release();
             Invalidate();

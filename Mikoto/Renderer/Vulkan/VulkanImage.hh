@@ -11,6 +11,7 @@
 
 // Project Headers
 #include <Common/Common.hh>
+#include <Library/Random/Random.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
 #include <Renderer/Vulkan/VulkanObject.hh>
 

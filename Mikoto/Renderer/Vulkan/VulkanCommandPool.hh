@@ -26,6 +26,10 @@ namespace Mikoto {
         auto Get() -> VkCommandPool& { return m_CommandPool; }
         auto GetCreateInfo() -> VkCommandPoolCreateInfo& { return m_CreateInfo; }
 
+        auto AllocateCommandBuffer( const VkCommandBufferAllocateInfo& allocateInfo) -> VkCommandBuffer*;
+
+        auto GetCommandBuffers() -> std::vector<VkCommandBuffer>& { return m_CommandBuffers; }
+
         auto Release() -> void override;
 
         MKT_NODISCARD static auto Create(const VulkanCommandPoolCreateInfo& createInfo) -> Scope_T<VulkanCommandPool>;
@@ -37,6 +41,8 @@ namespace Mikoto {
     private:
         VkCommandPool m_CommandPool{ VK_NULL_HANDLE };
         VkCommandPoolCreateInfo m_CreateInfo{};
+
+        std::vector<VkCommandBuffer> m_CommandBuffers{};
     };
 }
 

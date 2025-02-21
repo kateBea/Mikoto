@@ -140,7 +140,7 @@ namespace Mikoto {
         const VulkanDevice& device{ VulkanContext::Get().GetDevice() };
         VulkanDescriptorAllocator& descriptorAllocator{ VulkanContext::Get().GetDescriptorAllocator() };
 
-        m_DescriptorSet = descriptorAllocator.Allocate( device.GetLogicalDevice(), descriptorSetLayout );
+        m_DescriptorSet = *descriptorAllocator.Allocate( device.GetLogicalDevice(), descriptorSetLayout );
     }
 
     auto VulkanStandardMaterial::UpdateDescriptorSets() -> void {

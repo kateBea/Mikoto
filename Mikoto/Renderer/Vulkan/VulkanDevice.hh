@@ -17,12 +17,6 @@
 #include <Renderer/Vulkan/VulkanImage.hh>
 
 namespace Mikoto {
-    // Used for short-lived commands
-    struct ImmediateSubmitContext {
-        VkFence UploadFence{};            // Notify the host a task has finished executing
-        VkCommandBuffer CommandBuffer{};  // Command buffer to submit work to
-        Scope_T<VulkanCommandPool> CommandPool{};// Command pool to allocate command buffer from
-    };
 
     struct VulkanDeviceCreateInfo {
         VkInstance* Instance{};
@@ -74,7 +68,6 @@ namespace Mikoto {
 
         // Commands
         auto RegisterCommand( VkCommandBuffer cmd ) -> void;
-        auto ImmediateSubmitToGraphicsQueue(const std::function<void(const VkCommandBuffer&)>& task) -> void;
 
         // Queues
         auto SubmitCommands(const FrameSynchronizationPrimitives& syncPrimitives ) -> void;
@@ -105,7 +98,6 @@ namespace Mikoto {
 
     private:
         // [Internal usage]
-        auto PrepareImmediateSubmit() -> void;
         auto InitMemoryAllocator() -> void;
         auto GetPrimaryPhysicalDevice() -> void;
         auto CreatePrimaryLogicalDevice() -> void;
@@ -131,9 +123,6 @@ namespace Mikoto {
         PhysicalDeviceInfo m_PhysicalDeviceInfo{};
 
         std::vector<VkCommandBuffer> m_SubmitCommands{};
-
-        // Short-lived commands
-        ImmediateSubmitContext m_ImmediateSubmitContext{};
 
         std::vector<CStr_T> m_ValidationsLayers{};
         std::vector<CStr_T> m_RequestedExtensions{};

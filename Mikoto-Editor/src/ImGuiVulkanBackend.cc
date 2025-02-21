@@ -53,7 +53,17 @@ namespace Mikoto {
         // Wait for remaining operations to complete
         device.WaitIdle();
 
+        m_ColorImage = nullptr;
+        m_DepthImage = nullptr;
+
+        m_DrawFrameBuffer = nullptr;
+
+        m_CommandPool = nullptr;
+
         ImGui_ImplVulkan_Shutdown();
+
+        vkDestroyRenderPass( device.GetLogicalDevice(), m_ImGuiRenderPass, nullptr );
+        vkDestroyDescriptorPool( device.GetLogicalDevice(), m_ImGuiDescriptorPool, nullptr );
     }
 
     auto ImGuiVulkanBackend::BeginFrame() -> void {
@@ -123,10 +133,6 @@ namespace Mikoto {
                                      std::addressof( m_ImGuiDescriptorPool ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "ImGuiVulkanBackend::Init - Failed to create descriptor pool for ImGui." );
         }
-
-        VulkanDeletionQueue::Push( [descriptorPool = m_ImGuiDescriptorPool, device = device.GetLogicalDevice()]() -> void {
-            vkDestroyDescriptorPool( device, descriptorPool, nullptr );
-        } );
 
         // TODO: fetch api from somehwre else
         ImGui_ImplVulkan_LoadFunctions(VK_API_VERSION_1_3,
@@ -296,10 +302,6 @@ namespace Mikoto {
         if ( vkCreateRenderPass( device.GetLogicalDevice(), &info, nullptr, std::addressof( m_ImGuiRenderPass ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "Failed to create render pass for the Vulkan Renderer!" );
         }
-
-        VulkanDeletionQueue::Push( [renderPass = m_ImGuiRenderPass, device = device.GetLogicalDevice()]() -> void {
-            vkDestroyRenderPass( device, renderPass, nullptr );
-        } );
     }
 
     auto ImGuiVulkanBackend::CreateFrameBuffer() -> void {
@@ -443,7 +445,6 @@ namespace Mikoto {
     }
 
     auto ImGuiVulkanBackend::InitCommandBuffers() -> void {
-        const VulkanDevice& device{ VulkanContext::Get().GetDevice() };
         const VulkanSwapChain& swapChain{ VulkanContext::Get().GetSwapChain() };
 
         Size_T swapchainImagesCount{ swapChain.GetImageCount() };
@@ -454,20 +455,9 @@ namespace Mikoto {
             allocInfo.commandPool = m_CommandPool->Get();
             allocInfo.commandBufferCount = 1;
 
-            VkCommandBuffer commandBuffer{};
-            if ( vkAllocateCommandBuffers(
-                    device.GetLogicalDevice(),
-                    std::addressof(allocInfo),
-                    std::addressof(commandBuffer) ) != VK_SUCCESS )
-            {
-                MKT_THROW_RUNTIME_ERROR( "ImGuiVulkanBackend::InitCommandBuffers - Failed to allocate command buffer" );
-            }
+            VkCommandBuffer commandBuffer{ *m_CommandPool->AllocateCommandBuffer( allocInfo ) };
 
             m_DrawCommandBuffers.emplace_back( commandBuffer );
-
-            VulkanDeletionQueue::Push( [cmdPoolHandle = m_CommandPool->Get(), cmdHandle = commandBuffer, device = device.GetLogicalDevice()]() -> void {
-                vkFreeCommandBuffers( device, cmdPoolHandle, 1, std::addressof( cmdHandle ) );
-            } );
         }
     }
 }

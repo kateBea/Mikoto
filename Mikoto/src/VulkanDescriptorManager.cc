@@ -139,7 +139,11 @@ namespace Mikoto {
         m_FullPools.clear();
     }
 
-    auto VulkanDescriptorAllocator::DestroyPool( const VkDevice device ) -> void {
+    auto VulkanDescriptorAllocator::DestroyPools( const VkDevice device ) -> void {
+        for (const auto& [descriptorSet, descriptorPool] : m_AllocatedSets) {
+            vkFreeDescriptorSets(device, descriptorPool, 1, std::addressof(descriptorSet));
+        }
+
         for (const auto& pool : m_ReadyPools) {
             vkDestroyDescriptorPool(device, pool, nullptr);
         }
@@ -151,7 +155,7 @@ namespace Mikoto {
         m_FullPools.clear();
     }
 
-    auto VulkanDescriptorAllocator::Allocate( const VkDevice device, const VkDescriptorSetLayout layout, const void *pNext ) -> VkDescriptorSet {
+    auto VulkanDescriptorAllocator::Allocate( const VkDevice device, const VkDescriptorSetLayout layout, const void *pNext ) -> VkDescriptorSet* {
         //get or create a pool to allocate from
         VkDescriptorPool poolToUse{ GetPool(device) };
 
@@ -159,6 +163,7 @@ namespace Mikoto {
         allocInfo.pNext = pNext;
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         allocInfo.descriptorPool = poolToUse;
+        allocInfo.descriptorSetCount = 1;
         allocInfo.descriptorSetCount = 1;
         allocInfo.pSetLayouts = std::addressof( layout );
 
@@ -179,7 +184,8 @@ namespace Mikoto {
         }
 
         m_ReadyPools.push_back(poolToUse);
-        return descriptorSet;
+        m_AllocatedSets.emplace_back(std::make_pair( descriptorSet, poolToUse ));
+        return std::addressof( m_AllocatedSets.back().first );
     }
 
     // The allocation logic will first grab a pool from readyPools, and try to allocate from it.
@@ -217,7 +223,7 @@ namespace Mikoto {
         }
 
         VkDescriptorPoolCreateInfo poolInfo{ VulkanHelpers::Initializers::DescriptorPoolCreateInfo() };
-        poolInfo.flags = 0;
+        poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
         poolInfo.maxSets = setCount;
         poolInfo.poolSizeCount = static_cast<UInt32_T>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();

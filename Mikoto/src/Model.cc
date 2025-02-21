@@ -20,6 +20,7 @@
 #include <Assets/Model.hh>
 #include <Common/Common.hh>
 #include <Core/Logging/Logger.hh>
+#include <Core/System/AssetsSystem.hh>
 #include <Library/Filesystem/PathBuilder.hh>
 #include <Library/String/String.hh>
 #include <Library/Utility/Types.hh>
@@ -83,7 +84,7 @@ namespace Mikoto {
     auto Model::ProcessMesh( const aiMesh* mesh, const aiScene* scene, const Path_T& modelDirectory, const bool wantLoadTextures ) const -> Scope_T<Mesh> {
         std::vector<float> vertices{};
         std::vector<UInt32_T> indices{};
-        std::vector<Scope_T<Texture2D>> textures{};
+        std::vector<Texture2D*> textures{};
 
         // The way we construct the vertex buffer data is not guaranteed to follow
         // the buffer layout, which is default for Models. Which means if the mesh
@@ -183,8 +184,9 @@ namespace Mikoto {
                 m_ModelAbsolutePath);
     }
 
-    auto Model::LoadTextures( const aiMaterial* mat, const aiTextureType type, const MapType tType, const aiScene* scene, const Path_T& modelDirectory ) -> std::vector<Scope_T<Texture2D>> {
-        std::vector<Scope_T<Texture2D>> textures{};
+    auto Model::LoadTextures( const aiMaterial* mat, const aiTextureType type, const MapType tType, const aiScene* scene, const Path_T& modelDirectory ) -> std::vector<Texture2D*>  {
+        std::vector<Texture2D*> textures{};
+        AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
 
         for ( Size_T index{}; index < mat->GetTextureCount( type ); index++ ) {
             aiString texturePath{};
@@ -196,8 +198,11 @@ namespace Mikoto {
                     .WithPath( texturePath.C_Str() )
                     .Build() };
 
-                if ( auto ptr{ Texture2D::Create( path, tType ) } ) {
-                    textures.emplace_back( std::move( ptr ) );
+                if ( auto ptr{ assetsSystem.LoadTexture ( TextureLoadInfo{
+                    .Path{ path },
+                    .Type{ tType },
+                } ) } ) {
+                    textures.emplace_back( dynamic_cast<Texture2D*>( ptr ) );
                 }
             }
 

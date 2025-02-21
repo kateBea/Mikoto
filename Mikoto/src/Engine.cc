@@ -63,9 +63,30 @@ namespace Mikoto {
     auto Engine::Shutdown() -> void {
         // It is appropriate to shut down the systems in reverse order
 
-        for ( const auto& system: s_Registry | std::views::values ) {
-            system->Shutdown();
-        }
+        AssetsSystem& assetsSystem{ *s_Registry.Get<AssetsSystem>() };
+        RenderSystem& renderSystem{ *s_Registry.Get<RenderSystem>() };
+        AudioSystem& audioSystem{ *s_Registry.Get<AudioSystem>() };
+        PhysicsSystem& physicsSystem{ *s_Registry.Get<PhysicsSystem>() };
+        GUISystem& guiSystem{ *s_Registry.Get<GUISystem>() };
+        InputSystem& inputSystem{ *s_Registry.Get<InputSystem>() };
+        FileSystem& fileSystem{ *s_Registry.Get<FileSystem>() };
+        TimeSystem& timeSystem{ *s_Registry.Get<TimeSystem>() };
+        TaskSystem& taskSystem{ *s_Registry.Get<TaskSystem>() };
+        EventSystem& eventSystem{ *s_Registry.Get<EventSystem>() };
+
+        // Shut down assets first to release resources
+        assetsSystem.Shutdown();
+
+        renderSystem.Shutdown();
+
+        audioSystem.Shutdown();
+        physicsSystem.Shutdown();
+        guiSystem.Shutdown();
+        inputSystem.Shutdown();
+        fileSystem.Shutdown();
+        timeSystem.Shutdown();
+        taskSystem.Shutdown();
+        eventSystem.Shutdown();
 
         s_Registry.Clear();
     }

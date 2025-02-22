@@ -156,15 +156,16 @@ namespace Mikoto {
         Entity& current{ *node.data };
         Entity* currentSelection{ m_GetActiveEntityCallback() };
 
-
         const auto& tagCurrent{ current.GetComponent<TagComponent>() };
 
 
         const auto thisEntityIsSelected{ currentSelection != nullptr && tagCurrent.GetGUID() == currentSelection->GetComponent<TagComponent>().GetGUID() };
-        static constexpr ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_AllowItemOverlap |
+        ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_AllowItemOverlap |
                                                         ImGuiTreeNodeFlags_Framed |
                                                         ImGuiTreeNodeFlags_SpanAvailWidth |
                                                         ImGuiTreeNodeFlags_FramePadding };
+
+        styleFlags |= node.children.empty() ? ImGuiTreeNodeFlags_Leaf : 0;
 
         const ImGuiTreeNodeFlags flags{ styleFlags | ( thisEntityIsSelected ? ImGuiTreeNodeFlags_Selected : 0 ) };
         const bool expanded{ ImGui::TreeNodeEx( reinterpret_cast<void*>( tagCurrent.GetGUID() ), flags, "%s", fmt::format( " {} {}", ICON_MD_WIDGETS, tagCurrent.GetTag() ).c_str() ) };
@@ -245,8 +246,10 @@ namespace Mikoto {
         };
 
         ImGui::PushStyleVar( ImGuiStyleVar_PopupBorderSize, 1.0f );
+        ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, { 11.0f, 11.0f  } );
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, { 12.0f, 12.0f  } );
 
-        if ( ImGui::BeginPopupContextWindow( "##HierarchyMenuOptions", popupWindowFlags ) ) {
+        if ( ImGui::BeginPopupContextWindow( "##HierarchyPanel::BlankSpacePopupMenu:HierarchyMenuOptions", popupWindowFlags ) ) {
 
             if ( ImGui::MenuItem( "Empty Object" ) ) {
                 constexpr EntityCreateInfo createInfo{
@@ -265,6 +268,6 @@ namespace Mikoto {
             ImGui::EndPopup();
         }
 
-        ImGui::PopStyleVar();
+        ImGui::PopStyleVar(3);
     }
 }

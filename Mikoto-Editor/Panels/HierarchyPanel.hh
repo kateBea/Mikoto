@@ -19,8 +19,6 @@ namespace Mikoto {
         Scene* TargetScene{ nullptr };
         std::function<Entity*()> GetActiveEntityCallback{};
         std::function<void(Entity*)> SetActiveEntityCallback{};
-
-        Path_T AssetsRootPath{};
     };
 
     class HierarchyPanel final : public Panel {

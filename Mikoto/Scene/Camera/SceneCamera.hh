@@ -176,33 +176,6 @@ namespace Mikoto {
 
 
     private:
-        // [Projection Data]
-        float m_NearClip{ 0.1f };
-        float m_FarClip{ 1000.0f };
-        float m_FieldOfView{ 45.0f };
-        float m_AspectRatio{ 1.778f }; // 1920 / 1080
-
-        // [Matrices]
-        glm::mat4 m_ViewMatrix{};
-        glm::mat4 m_ProjectionMatrix{};
-
-        // [Vectors]
-        glm::vec3 m_Position{ -15.0f, 5.0f, 30.0f };
-        glm::vec3 m_RightVector{ 1.0f, 0.0f, 0.0f };
-        glm::vec3 m_CameraUpVector{ 0.0f, 1.0f, 0.0f };
-        glm::vec3 m_ForwardVector{ 15.0f, -5.0f, -30.0f };
-
-        // [Rotations]
-        float m_Yaw{ 0.0f };
-        float m_Roll{ 0.0f };
-        float m_Pitch{ 0.0f };
-
-        // [Misc]
-        GlobalUniqueID m_Guid{};
-
-        float m_ViewportWidth{ 1920 };
-        float m_ViewportHeight{ 1080 };
-
         bool m_WantCameraRotationX{ true };
         bool m_WantCameraRotationY{ true };
 

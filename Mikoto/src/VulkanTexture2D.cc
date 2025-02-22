@@ -85,10 +85,18 @@ namespace Mikoto {
         const File* textureFile{ nullptr };
 
         if (path.extension() == ".tif") {
-            // Look for the PNG version instead
-            Path_T pngVersion{ path };
-            pngVersion.replace_extension( ".png" );
-            textureFile = fileSystem.LoadFile( pngVersion );
+
+            // traverse possible alternative extensions
+            for (const auto& extension : { ".png", ".jpg", ".jpeg" }) {
+                // Look for the PNG version instead
+                Path_T pngVersion{ path };
+                pngVersion.replace_extension( extension );
+                textureFile = fileSystem.LoadFile( pngVersion );
+
+                if (textureFile != nullptr) {
+                    break;
+                }
+            }
         } else {
             textureFile = fileSystem.LoadFile( path );
         }

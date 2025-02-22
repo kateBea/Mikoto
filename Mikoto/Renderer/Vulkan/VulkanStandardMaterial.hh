@@ -41,6 +41,8 @@ namespace Mikoto {
         auto ResetLights() -> void;
         auto UpdateLightsInfo(const LightData& lightData, LightType type) -> void;
 
+        DISABLE_COPY_AND_MOVE_FOR(VulkanStandardMaterial);
+
     private:
         struct UniformBufferData {
             // Camera

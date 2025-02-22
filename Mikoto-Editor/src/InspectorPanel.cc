@@ -1433,8 +1433,6 @@ namespace Mikoto {
                     ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
                 }
 
-                //component.GetCameraPtr()->SetPerspective(nearPlane, farPlane, fov);
-
                 ImGui::EndTable();
             }
         }

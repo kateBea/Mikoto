@@ -204,6 +204,7 @@ namespace Mikoto {
             .Data{
                 .ClearColor{ glm::vec4( 0.2f, 0.2f, 0.2f, 1.0f ) },
                 .FieldOfView{ 45.0f },
+                .EditorCamera{ m_EditorCamera.get() }
             },
         };
 

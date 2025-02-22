@@ -236,9 +236,17 @@ namespace Mikoto {
             },
         };
 
+        RendererPanelCreateInfo rendererPanelCreateInfo{
+            .Width{ static_cast<UInt32_T>(m_Window->GetWidth()) },
+            .Height{ static_cast<UInt32_T>(m_Window->GetHeight()) },
+            .TargetScene{ m_ActiveScene.get() },
+            .Renderer{ m_EditorRenderer.get() },
+            .EditorMainCamera{ m_EditorCamera.get() },
+        };
+
         m_PanelRegistry.Register<StatsPanel>();
         m_PanelRegistry.Register<ConsolePanel>();
-        m_PanelRegistry.Register<RendererPanel>();
+        m_PanelRegistry.Register<RendererPanel>(rendererPanelCreateInfo);
         m_PanelRegistry.Register<HierarchyPanel>(hierarchyPanelCreateInfo);
         m_PanelRegistry.Register<SettingsPanel>( settingsPanelCreateInfo );
         m_PanelRegistry.Register<InspectorPanel>(inspectorPanelCreateInfo);

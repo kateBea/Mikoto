@@ -165,7 +165,7 @@ namespace Mikoto {
                                                         ImGuiTreeNodeFlags_SpanAvailWidth |
                                                         ImGuiTreeNodeFlags_FramePadding };
 
-        styleFlags |= node.children.empty() ? ImGuiTreeNodeFlags_Leaf : 0;
+        styleFlags |= node.IsLeaf() ? ImGuiTreeNodeFlags_Leaf : 0;
 
         const ImGuiTreeNodeFlags flags{ styleFlags | ( thisEntityIsSelected ? ImGuiTreeNodeFlags_Selected : 0 ) };
         const bool expanded{ ImGui::TreeNodeEx( reinterpret_cast<void*>( tagCurrent.GetGUID() ), flags, "%s", fmt::format( " {} {}", ICON_MD_WIDGETS, tagCurrent.GetTag() ).c_str() ) };

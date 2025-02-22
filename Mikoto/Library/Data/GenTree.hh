@@ -32,6 +32,10 @@ namespace Mikoto {
 
             value_type data;
             std::vector<std::unique_ptr<Node>> children;
+
+            auto IsLeaf() const -> bool {
+                return children.empty();
+            }
         };
 
         using tree_t = std::vector<std::unique_ptr<Node>>;

@@ -16,6 +16,7 @@
 #include <Core/Logging/Logger.hh>
 #include <Core/System/AssetsSystem.hh>
 #include <Core/System/FileSystem.hh>
+#include <Core/System/RenderSystem.hh>
 #include <Library/Filesystem/PathBuilder.hh>
 #include <Library/String/String.hh>
 #include <Library/Utility/Types.hh>
@@ -27,7 +28,7 @@ namespace Mikoto {
         return "Hierarchy";
     }
 
-    auto HierarchyPanel::DrawPrefabMenu( const Entity* root ) const -> void {
+    auto HierarchyPanel::DrawPrefabMenuItems( const Entity* root ) const -> void {
         EntityCreateInfo entityCreateInfo{
             .Name{},
             .Root{ root },
@@ -223,14 +224,14 @@ namespace Mikoto {
 
             if ( ImGui::MenuItem( "Create empty object" ) ) {
                 EntityCreateInfo createInfo{};
-                createInfo.Root = std::addressof(target);
+                createInfo.Root = std::addressof( target );
                 createInfo.Name = "Empty Object";
                 createInfo.ModelMesh = nullptr;
 
                 m_TargetScene->CreateEntity( createInfo );
             }
 
-            DrawPrefabMenu(std::addressof(target));
+            DrawPrefabMenuItems( std::addressof( target ) );
 
             ImGui::EndPopup();
         }
@@ -238,6 +239,40 @@ namespace Mikoto {
         ImGui::PopStyleVar();
     }
 
+    auto HierarchyPanel::DrawModelLoadMenuItem() const -> void {
+        if ( ImGui::MenuItem( "Load model" ) ) {
+            FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
+            RenderSystem& renderSystem{ Engine::GetSystem<RenderSystem>() };
+            AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
+
+            const std::initializer_list<std::pair<std::string, std::string>> filters{
+                { "Model files", "obj, gltf, fbx" },
+                { "OBJ files", "obj" },
+                { "glTF files", "gltf" },
+                { "FBX files", "fbx" }
+            };
+
+            const Path_T path{ fileSystem.OpenDialog( filters )};
+
+            if ( !path.empty() ) {
+                const ModelLoadInfo modelLoadInfo{
+                    .Path = path,
+                    .InvertedY = renderSystem.GetDefaultApi() == GraphicsAPI::VULKAN_API,
+                    .WantTextures = true,
+                };
+
+                const Model* model{ assetsSystem.LoadModel( modelLoadInfo ) };
+
+                const EntityCreateInfo entityCreateInfo{
+                    .Name = path.stem().string(),
+                    .Root = nullptr,
+                    .ModelMesh = model,
+                };
+
+                m_TargetScene->CreateEntity( entityCreateInfo );
+            }
+        }
+    }
 
     auto HierarchyPanel::BlankSpacePopupMenu() const -> void {
         constexpr ImGuiPopupFlags popupWindowFlags{
@@ -252,7 +287,7 @@ namespace Mikoto {
         if ( ImGui::BeginPopupContextWindow( "##HierarchyPanel::BlankSpacePopupMenu:HierarchyMenuOptions", popupWindowFlags ) ) {
 
             if ( ImGui::MenuItem( "Empty Object" ) ) {
-                constexpr EntityCreateInfo createInfo{
+                EntityCreateInfo createInfo{
                     .Name{ "Empty Object" },
                     .Root{ nullptr },
                     .ModelMesh{ nullptr },
@@ -263,7 +298,9 @@ namespace Mikoto {
 
             // We do not have the cursor on top of any entity
             // the new entity will have no root
-            DrawPrefabMenu(nullptr );
+            DrawPrefabMenuItems(nullptr );
+
+            DrawModelLoadMenuItem();
 
             ImGui::EndPopup();
         }

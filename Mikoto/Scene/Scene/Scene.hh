@@ -25,7 +25,7 @@
 namespace Mikoto {
 
     struct EntityCreateInfo {
-        std::string_view Name{};
+        std::string Name{};
         const Entity* Root{};
         const Model* ModelMesh{};
     };

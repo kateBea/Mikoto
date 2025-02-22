@@ -199,10 +199,10 @@ namespace Mikoto {
 #if !( NDEBUG )
             const auto& inputSystem{ Engine::GetSystem<InputSystem>() };
             auto& taskSystem{ Engine::GetSystem<TaskSystem>() };
-            if (inputSystem.IsKeyPressed(Key_E, m_MainWindow.get())) {
+            if (inputSystem.IsKeyPressed(Key_Left_Alt, m_MainWindow.get())) {
                 taskSystem.Execute(
                         [&]() -> void {
-                            MKT_APP_LOGGER_DEBUG("Hello thread. Count: {}", taskSystem.GetWorkersCount());
+                            MKT_APP_LOGGER_DEBUG("You pressed Key_Left_Alt. Hi :) Count workers: {}", taskSystem.GetWorkersCount());
                         });
             }
 #endif

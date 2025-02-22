@@ -53,6 +53,7 @@ namespace Mikoto {
         auto AddLight( UInt64_T id, const LightData& data, LightType activeType) -> bool override;
 
         MKT_NODISCARD auto GetFinalImage() const -> const VulkanImage& { return *m_OffscreenColorAttachment; }
+        MKT_NODISCARD auto GetDepthImage() const -> const VulkanImage& { return *m_OffscreenDepthAttachment; }
 
         ~VulkanRenderer() override = default;
 

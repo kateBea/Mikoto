@@ -220,7 +220,6 @@ namespace Mikoto {
                     m_SelectedEntity = target;
                 }
             },
-            .AssetsRootPath{ m_AssetsRootDirectory },
         };
 
         InspectorPanelCreateInfo inspectorPanelCreateInfo{

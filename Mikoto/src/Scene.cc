@@ -230,7 +230,7 @@ namespace Mikoto {
             // If there is only one child, and we already have a root entity,
             // There's no need to create a new root entity for this single child mesh
             Entity* child{ createInfo.ModelMesh->GetMeshes().size() == 1 && createInfo.Root != nullptr ?
-                newEntityRoot : AddEmptyEntity(createInfo.Name, newEntityRoot) };
+                newEntityRoot : AddEmptyEntity(mesh->GetName(), newEntityRoot) };
 
             MaterialComponent& materialComponent{ child->AddComponent<MaterialComponent>() };
             RenderComponent& renderComponent{ child->AddComponent<RenderComponent>() };

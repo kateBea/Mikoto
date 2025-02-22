@@ -217,6 +217,31 @@ namespace Mikoto {
         if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
     }
 
+    static auto UpdateMaterialTexture( StandardMaterial& standardMat, MapType mapType ) -> void {
+        // Load a new texture
+        FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
+        AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
+
+        const std::initializer_list<std::pair<std::string, std::string>> filters{
+            { "Textures", "jpg, jpeg, png" },
+            { "JPG", "jpg" },
+            { "JPEG", "jpeg" },
+            { "PNG", "png" }
+        };
+
+        const Path_T path{ fileSystem.OpenDialog( filters ) };
+
+        if ( !path.empty() ) {
+            Texture* loadedTexture{ assetsSystem.LoadTexture( TextureLoadInfo{
+                    .Path{ path },
+                    .Type{ mapType },
+            } ) };
+
+            if ( loadedTexture != nullptr ) {
+                standardMat.SetDiffuseMap( dynamic_cast<Texture2D*>( loadedTexture ), mapType );
+            }
+        }
+    }
     static auto EditStandardMaterial( StandardMaterial& standardMat ) -> void {
         static constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
                                                            ImGuiTreeNodeFlags_AllowItemOverlap |
@@ -237,7 +262,9 @@ namespace Mikoto {
             // TODO: will need to update descriptor sets with new texture handles same for specular map because we use the same desc set
             // or temporarily make this function a member of inspector channel and create an map with texture id and its descriptor set
             Texture2D* diffuseMap{ standardMat.GetDiffuseMap() };
-            ImGuiUtils::PushImageButton( diffuseMap->GetID().Get(), GetDescriptorSetById( diffuseMap ), ImVec2{ 64, 64 } );
+            if (ImGuiUtils::PushImageButton( diffuseMap->GetID().Get(), GetDescriptorSetById( diffuseMap ), ImVec2{ 64, 64 } ) ) {
+                UpdateMaterialTexture( standardMat, MapType::TEXTURE_2D_DIFFUSE );
+            }
 
             if ( ImGui::IsItemHovered() ) {
                 ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -298,7 +325,9 @@ namespace Mikoto {
 
             Texture2D* specularMap{ standardMat.GetSpecularMap() };
 
-            ImGuiUtils::PushImageButton( specularMap->GetID().Get(), GetDescriptorSetById( specularMap ), ImVec2{ 64, 64 } );
+            if ( ImGuiUtils::PushImageButton( specularMap->GetID().Get(), GetDescriptorSetById( specularMap ), ImVec2{ 64, 64 } ) ) {
+                UpdateMaterialTexture( standardMat, MapType::TEXTURE_2D_SPECULAR );
+            }
 
             if ( ImGui::IsItemHovered() ) {
                 ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );

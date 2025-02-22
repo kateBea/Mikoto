@@ -19,9 +19,9 @@
 
 
 namespace Mikoto::ImGuiUtils {
-    inline auto PushImageButton(UInt64_T textureId, const VkDescriptorSet textureHandle, const ImVec2 size) -> void {
+    MKT_NODISCARD inline auto PushImageButton(UInt64_T textureId, const VkDescriptorSet textureHandle, const ImVec2 size) -> bool {
         const ImTextureID icon{ reinterpret_cast<ImTextureID>( textureHandle ) };
-        ImGui::ImageButton( StringUtils::ToString( textureId ).c_str(), icon, size, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+        return ImGui::ImageButton( StringUtils::ToString( textureId ).c_str(), icon, size, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
     }
 
     inline auto ThemeDarkModeAlt() -> void {

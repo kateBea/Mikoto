@@ -34,12 +34,15 @@ namespace Mikoto {
         auto SetProjection(const glm::mat4& mat) -> void { m_VertexUniformData.Projection = mat; }
         auto SetTransform(const glm::mat4& transform) -> void { m_VertexUniformData.Transform = transform; }
 
-        auto BindDescriptorSet(const VkCommandBuffer &commandBuffer, const VkPipelineLayout &pipelineLayout) const -> void;
+        auto BindDescriptorSet(const VkCommandBuffer &commandBuffer, const VkPipelineLayout &pipelineLayout ) -> void;
 
         auto UploadUniformBuffers() -> void;
 
         auto ResetLights() -> void;
         auto UpdateLightsInfo(const LightData& lightData, LightType type) -> void;
+
+        auto SetDiffuseMap( Texture2D* map, MapType type ) -> void override;
+        auto RemoveMap( MapType type ) -> void override;
 
         DISABLE_COPY_AND_MOVE_FOR(VulkanStandardMaterial);
 
@@ -98,6 +101,8 @@ namespace Mikoto {
 
         // Descriptors
         VkDescriptorSet m_DescriptorSet{};
+
+        bool m_WantDescriptorUpdate{ false };
 
         static inline VulkanTexture2D* s_EmptyTexture{};
 

@@ -28,27 +28,14 @@ namespace Mikoto {
         auto Init() -> void override {
 
             // Create a Sampler for the texture we will display in the viewport
-            VkSamplerCreateInfo samplerCreateInfo{ VulkanHelpers::Initializers::SamplerCreateInfo() };
-            samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
-            samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
-            samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+            VkSamplerCreateInfo colorSamplerCreateInfo{ GetDefaultSamplerCreateInfo() };
 
-            samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-            samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-            samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-
-            samplerCreateInfo.maxAnisotropy = 1.0f;
-            samplerCreateInfo.mipLodBias = 0.0f;
-            samplerCreateInfo.minLod = 0.0f;
-            samplerCreateInfo.maxLod = 1.0f;
-            samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
-
-            if ( vkCreateSampler( VulkanContext::Get().GetDevice().GetLogicalDevice(), &samplerCreateInfo, nullptr, &m_ColorAttachmentSampler ) != VK_SUCCESS ) {
-                MKT_THROW_RUNTIME_ERROR( "Failed to create Vulkan sampler!" );
+            if ( vkCreateSampler( VulkanContext::Get().GetDevice().GetLogicalDevice(), &colorSamplerCreateInfo, nullptr, &m_ColorAttachmentSampler ) != VK_SUCCESS ) {
+                MKT_THROW_RUNTIME_ERROR( "RenderPanelViewport_VkImpl:Init - Failed to create color Vulkan sampler!" );
             }
 
-            VulkanDeletionQueue::Push( [sampler = m_ColorAttachmentSampler]() -> void {
-                vkDestroySampler( VulkanContext::Get().GetDevice().GetLogicalDevice(), sampler, nullptr );
+            VulkanDeletionQueue::Push( [colorSampler = m_ColorAttachmentSampler]() -> void {
+                vkDestroySampler( VulkanContext::Get().GetDevice().GetLogicalDevice(), colorSampler, nullptr );
             } );
 
             // Create the Descriptor set for the texture displayed in the ImGuiWindow scene
@@ -58,8 +45,8 @@ namespace Mikoto {
             m_ColorAttachmentDescriptorSet =
                     ImGui_ImplVulkan_AddTexture( m_ColorAttachmentSampler, vulkanSceneRenderer->GetFinalImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
-            ImGuiManager::AddShutdownCallback( [ds = m_ColorAttachmentDescriptorSet]() -> void {
-                ImGui_ImplVulkan_RemoveTexture( ds );
+            ImGuiManager::AddShutdownCallback( [colorDs = m_ColorAttachmentDescriptorSet]() -> void {
+                ImGui_ImplVulkan_RemoveTexture( colorDs );
             } );
         }
 
@@ -138,6 +125,27 @@ namespace Mikoto {
         }
 
     private:
+        static auto GetDefaultSamplerCreateInfo() -> VkSamplerCreateInfo {
+            VkSamplerCreateInfo samplerCreateInfo{ VulkanHelpers::Initializers::SamplerCreateInfo() };
+
+            samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
+            samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
+            samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+            samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+
+            samplerCreateInfo.maxAnisotropy = 1.0f;
+            samplerCreateInfo.mipLodBias = 0.0f;
+            samplerCreateInfo.minLod = 0.0f;
+            samplerCreateInfo.maxLod = 1.0f;
+            samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+
+            return samplerCreateInfo;
+        }
+
+    private:
         static constexpr  std::array s_ImageCompositions{
             "Final output", "Color pass", "Shadow pass", "Depth pass"
         };
@@ -145,6 +153,7 @@ namespace Mikoto {
         Size_T m_CurrentPassSelectionIndex{ 0 };
 
         VkSampler m_ColorAttachmentSampler{};
+
         VkDescriptorSet m_ColorAttachmentDescriptorSet{};
     };
 

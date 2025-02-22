@@ -76,7 +76,13 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanStandardMaterial::BindDescriptorSet( const VkCommandBuffer& commandBuffer, const VkPipelineLayout& pipelineLayout ) const -> void {
+    auto VulkanStandardMaterial::BindDescriptorSet( const VkCommandBuffer& commandBuffer, const VkPipelineLayout& pipelineLayout ) -> void {
+        // if needed update before use
+        if (m_WantDescriptorUpdate) {
+            UpdateDescriptorSets();
+            m_WantDescriptorUpdate = false;
+        }
+
         // It is here that we specify which desc set we bind to, always 0 for now
         constexpr Size_T firstSet{ 0 };
         vkCmdBindDescriptorSets( commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, firstSet, 1, &m_DescriptorSet, 0, nullptr );
@@ -141,6 +147,31 @@ namespace Mikoto {
         VulkanDescriptorAllocator& descriptorAllocator{ VulkanContext::Get().GetDescriptorAllocator() };
 
         m_DescriptorSet = *descriptorAllocator.Allocate( device.GetLogicalDevice(), descriptorSetLayout );
+    }
+
+    auto VulkanStandardMaterial::SetDiffuseMap( Texture2D* map, const MapType type ) -> void {
+        if ( map ) {
+
+            switch ( type ) {
+                case MapType::TEXTURE_2D_DIFFUSE:
+                    m_DiffuseTexture = map;
+                    m_HasDiffuseTexture = true;
+                    break;
+                case MapType::TEXTURE_2D_SPECULAR:
+                    m_SpecularTexture = map;
+                    m_HasSpecularTexture = true;
+                    break;
+                default:
+                    break;
+            }
+
+            // Deffer descriptor set update until we bound them again
+            m_WantDescriptorUpdate = true;
+        }
+    }
+
+    auto VulkanStandardMaterial::RemoveMap( MapType type ) -> void {
+
     }
 
     auto VulkanStandardMaterial::UpdateDescriptorSets() -> void {

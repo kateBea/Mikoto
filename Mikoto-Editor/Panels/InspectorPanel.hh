@@ -29,12 +29,10 @@ namespace Mikoto {
         ~InspectorPanel() override = default;
 
     private:
-        auto DrawComponents( Entity& entity ) -> void;
+        auto DrawComponents( Entity& entity ) const -> void;
 
     private:
         Scene* m_TargetScene{ nullptr };
-
-        Texture2D* m_EmptyTexturePlaceHolder{};
 
         std::function<Entity*()> m_GetActiveEntityCallback{};
         std::function<void(Entity*)> m_SetActiveEntityCallback{};

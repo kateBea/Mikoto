@@ -19,7 +19,7 @@ namespace Mikoto {
     class ContentBrowserPanel final : public Panel {
     public:
 
-        explicit ContentBrowserPanel(Path_T&& root);
+        explicit ContentBrowserPanel();
         auto operator=(ContentBrowserPanel && other) -> ContentBrowserPanel & = default;
 
         auto OnUpdate(float timeStep) -> void override;

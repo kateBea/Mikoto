@@ -36,6 +36,8 @@ namespace Mikoto {
             // to open the same file it might fail
             if ( m_FileStream.is_open() ) {
                 m_FileStream.close();
+
+                m_FileStream = {};
             }
         }
 

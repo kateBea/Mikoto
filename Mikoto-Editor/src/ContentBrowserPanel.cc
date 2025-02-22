@@ -75,8 +75,11 @@ namespace Mikoto {
         return sampler;
     }
 
-    ContentBrowserPanel::ContentBrowserPanel( Path_T&& root )
-        : m_AssetsRoot{ std::move( root ) } {
+    ContentBrowserPanel::ContentBrowserPanel()
+    {
+        FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
+        m_AssetsRoot = fileSystem.GetAssetsRootPath();
+
         LoadIconsTexturesHandles();
 
         m_CurrentDirectory = m_AssetsRoot;
@@ -91,7 +94,7 @@ namespace Mikoto {
         const TextureLoadInfo file1TextLoadInfo{
             .Path{ PathBuilder()
                         .WithPath( fileSystem.GetIconsRootPath().string() )
-                        .WithPath( "folder0.png" )
+                        .WithPath( "file4.png" )
                         .Build() },
             .Type{ MapType::TEXTURE_2D_DIFFUSE },
         };
@@ -101,7 +104,7 @@ namespace Mikoto {
         const TextureLoadInfo folder1TextLoadInfo{
             .Path{ PathBuilder()
                         .WithPath( fileSystem.GetIconsRootPath().string() )
-                        .WithPath( "file4.png" )
+                        .WithPath( "folder0.png" )
                         .Build() },
             .Type{ MapType::TEXTURE_2D_DIFFUSE },
         };

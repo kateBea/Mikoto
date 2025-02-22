@@ -187,6 +187,7 @@ namespace Mikoto {
         const glm::mat4& cameraView{ m_EditorMainCamera->GetViewMatrix() };
         const glm::mat4& cameraProjection{ m_EditorMainCamera->GetProjection() };
         glm::mat4 objectTransform{ transformComponent.GetTransform() };
+        glm::vec3 oldTranslation{ transformComponent.GetTranslation() };
 
         switch (m_ActiveManipulationMode) {
             case GuizmoManipulationMode::TRANSLATION:
@@ -202,6 +203,21 @@ namespace Mikoto {
 
         if (ImGuizmo::IsUsing()) {
             transformComponent.SetTransform(objectTransform);
+
+            // Apply the transformation to the children
+            // For now Guizmos only change translation so thats the only thing we handle in the children
+
+            glm::vec3 offsetTranslation{ transformComponent.GetTranslation() - oldTranslation };
+            auto& hierarchy{ m_TargetScene->GetHierarchy() };
+            hierarchy.ForAllChildren( [offsetTranslation]( Entity* child ) -> void {
+                TransformComponent& childTransform{ child->GetComponent<TransformComponent>() };
+
+                childTransform.SetTranslation( childTransform.GetTranslation() + offsetTranslation );
+
+            } , [&](Entity* target) -> bool {
+                return target->GetComponent<TagComponent>().GetGUID() ==
+                    currentSelection->GetComponent<TagComponent>().GetGUID();
+            });
         }
     }
 }

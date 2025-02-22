@@ -42,10 +42,17 @@
 
 namespace Mikoto {
 
-    class ScenePanel_VkImpl final : public ScenePanelApi {
+    struct ScenePanelViewport_VKImplCreateInfo {
+        RenderViewportCreateInfo ViewportCreateInfo{};
+
+        std::function<Entity*()> GetActiveEntityCallback{};
+    };
+
+    class ScenePanelViewport_VKImpl final : public RenderViewport {
     public:
-        explicit ScenePanel_VkImpl( const SceneApiCreateInfo& createInfo)
-            : ScenePanelApi{ createInfo }
+        explicit ScenePanelViewport_VKImpl( const ScenePanelViewport_VKImplCreateInfo& createInfo)
+            : RenderViewport{ createInfo.ViewportCreateInfo },
+        m_GetActiveEntityCallback{ createInfo.GetActiveEntityCallback }
         {}
 
         auto Init() -> void override {
@@ -87,6 +94,22 @@ namespace Mikoto {
                 } );
         }
 
+        auto SetupGuizmos() const -> void {
+            Entity* currentSelection{ m_GetActiveEntityCallback() };
+            if (currentSelection != nullptr && currentSelection->IsValid()) {
+                if (!currentSelection->GetComponent<TagComponent>().IsVisible()) {
+                    return;
+                }
+
+                ImGuizmo::SetOrthographic(m_EditorMainCamera->IsOrthographic());
+                ImGuizmo::SetDrawlist();
+
+                const ImVec2 windowPosition{ ImGui::GetWindowPos() };
+                const ImVec2 windowDimensions{ ImGui::GetWindowSize() };
+                ImGuizmo::SetRect(windowPosition.x, windowPosition.y, windowDimensions.x, windowDimensions.y);
+            }
+        }
+
         auto OnUpdate() -> void override {
             const ImVec2 viewPortDimensions{ ImGui::GetContentRegionAvail() };
 
@@ -106,78 +129,8 @@ namespace Mikoto {
         }
 
     private:
-        VkSampler m_ColorAttachmentSampler{};
-        VkDescriptorSet m_ColorAttachmentDescriptorSet{};
-    };
-
-
-    static constexpr auto GetSceneName() -> std::string_view {
-        return "Scene";
-    }
-
-    ScenePanel::ScenePanel(const ScenePanelCreateInfo& createInfo)
-    {
-        m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_IMAGE, GetSceneName());
-
-        // Initialize implementation
-        SceneApiCreateInfo sceneApiCreateInfo{
-            .ViewportWidth{ createInfo.Width },
-            .ViewportHeight{ createInfo.Height },
-            .TargetScene{ createInfo.TargetScene },
-            .Renderer{ createInfo.Renderer },
-            .EditorMainCamera{ createInfo.EditorMainCamera },
-            .GetActiveEntityCallback{ createInfo.GetActiveEntityCallback },
-        };
-
-        // Set scene panel implementation
-        m_Implementation = CreateScope<ScenePanel_VkImpl>(sceneApiCreateInfo);
-
-        if (m_Implementation != nullptr) {
-            m_Implementation->Init();
-        } else {
-            MKT_APP_LOGGER_ERROR( "ScenePanel::ScenePanel - Failed to create Scene Panel ImGui implementation." );
-        }
-    }
-
-    auto ScenePanel::OnUpdate(MKT_UNUSED_VAR float ts) -> void {
-        if (m_PanelIsVisible) {
-            constexpr ImGuiWindowFlags windowFlags{};
-
-            // Expand scene view to window bounds (no padding)
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f,0.0f });
-            ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible), windowFlags);
-
-            //DrawScenePlayButtons();
-
-            m_PanelIsFocused = ImGui::IsWindowFocused();
-            m_PanelIsHovered = ImGui::IsWindowHovered();
-
-            m_Implementation->OnUpdate();
-
-            ImGui::End();
-
-            ImGui::PopStyleVar();
-        }
-    }
-
-    auto ScenePanelApi::SetupGuizmos() const -> void {
-        Entity* currentSelection{ m_GetActiveEntityCallback() };
-        if (currentSelection != nullptr && currentSelection->IsValid()) {
-            if (!currentSelection->GetComponent<TagComponent>().IsVisible()) {
-                return;
-            }
-
-            ImGuizmo::SetOrthographic(m_EditorMainCamera->IsOrthographic());
-            ImGuizmo::SetDrawlist();
-
-            const ImVec2 windowPosition{ ImGui::GetWindowPos() };
-            const ImVec2 windowDimensions{ ImGui::GetWindowSize() };
-            ImGuizmo::SetRect(windowPosition.x, windowPosition.y, windowDimensions.x, windowDimensions.y);
-        }
-    }
-
-    auto ScenePanelApi::HandleManipulationMode() const -> void {
-        Entity* currentSelection{ m_GetActiveEntityCallback() };
+        auto HandleManipulationMode() const -> void {
+            Entity* currentSelection{ m_GetActiveEntityCallback() };
         if (currentSelection == nullptr || !currentSelection->IsValid()) {
             return;
         }
@@ -218,6 +171,66 @@ namespace Mikoto {
                 return target->GetComponent<TagComponent>().GetGUID() ==
                     currentSelection->GetComponent<TagComponent>().GetGUID();
             });
+        }
+        }
+
+    private:
+        GuizmoManipulationMode m_ActiveManipulationMode{};
+        std::function<Entity*()> m_GetActiveEntityCallback{};
+
+        VkSampler m_ColorAttachmentSampler{};
+        VkDescriptorSet m_ColorAttachmentDescriptorSet{};
+    };
+
+
+    static constexpr auto GetSceneName() -> std::string_view {
+        return "Scene";
+    }
+
+    ScenePanel::ScenePanel(const ScenePanelCreateInfo& createInfo)
+    {
+        m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_IMAGE, GetSceneName());
+
+        // Initialize implementation
+        ScenePanelViewport_VKImplCreateInfo sceneApiCreateInfo{
+            .ViewportCreateInfo{
+                .ViewportWidth{ createInfo.Width },
+                .ViewportHeight{ createInfo.Height },
+                .TargetScene{ createInfo.TargetScene },
+                .Renderer{ createInfo.Renderer },
+                .MainCamera{ createInfo.EditorMainCamera },
+            },
+            .GetActiveEntityCallback{ createInfo.GetActiveEntityCallback },
+        };
+
+        // Set scene panel implementation
+        m_Implementation = CreateScope<ScenePanelViewport_VKImpl>(sceneApiCreateInfo);
+
+        if (m_Implementation != nullptr) {
+            m_Implementation->Init();
+        } else {
+            MKT_APP_LOGGER_ERROR( "ScenePanel::ScenePanel - Failed to create Scene Panel ImGui implementation." );
+        }
+    }
+
+    auto ScenePanel::OnUpdate(MKT_UNUSED_VAR float ts) -> void {
+        if (m_PanelIsVisible) {
+            constexpr ImGuiWindowFlags windowFlags{};
+
+            // Expand scene view to window bounds (no padding)
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f,0.0f });
+            ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible), windowFlags);
+
+            //DrawScenePlayButtons();
+
+            m_PanelIsFocused = ImGui::IsWindowFocused();
+            m_PanelIsHovered = ImGui::IsWindowHovered();
+
+            m_Implementation->OnUpdate();
+
+            ImGui::End();
+
+            ImGui::PopStyleVar();
         }
     }
 }

@@ -113,8 +113,6 @@ namespace Mikoto {
 
             DrawPerformance();
             DrawSystemInfo();
-            DrawActiveSceneInfo();
-            DrawLightInfo();
 
             ImGui::End();
         }
@@ -247,105 +245,5 @@ namespace Mikoto {
         };
 
         DrawStatsSection("System", func);
-    }
-
-    auto StatsPanel::DrawActiveSceneInfo() const -> void {
-        static constexpr ImGuiTableFlags flags{ ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_SizingStretchProp };
-
-        const auto func{
-            [&]() -> void {
-                // TODO: use tables
-                    if (ImGui::BeginTable("ActiveSceneInfoTable", m_ColumCount, flags)) {
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Draw Calls");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", 1).c_str());
-
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Indices");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", 2).c_str());
-
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Vertices");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", 2).c_str());
-
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Models");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", 2).c_str());
-
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Meshes");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", 1).c_str());
-
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Objects");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", 1).c_str());
-
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Cameras");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", 1).c_str());
-
-                        ImGui::EndTable();
-                    }
-            }
-        };
-
-        DrawStatsSection("Scene", func);
-    }
-
-    auto StatsPanel::DrawLightInfo() -> void {
-        static constexpr ImGuiTableFlags flags{ ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_SizingStretchProp };
-
-        const auto func{
-                [&]() -> void {
-                    if (ImGui::BeginTable("DrawLightInfoTable1", m_ColumCount, flags)) {
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Active / Total");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {} / {}", 1, 1).c_str());
-                        ImGui::EndTable();
-                    }
-
-                    ImGui::Separator();
-
-                    if (ImGui::BeginTable("DrawLightInfoTable2", m_ColumCount, flags)) {
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Spot lights");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {} / {}", 1, 1).c_str());
-
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Point lights");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {} / {}", 1, 1).c_str());
-
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Directional lights");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {} / {}", 1, 1).c_str());
-
-                        ImGui::EndTable();
-                    }
-                }
-        };
-
-        DrawStatsSection("Lights", func);
     }
 }

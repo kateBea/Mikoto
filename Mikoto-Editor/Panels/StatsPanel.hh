@@ -24,8 +24,6 @@ namespace Mikoto {
         auto UpdateStatsInfo(float timeStep) -> void;
         auto DrawPerformance() -> void;
         auto DrawSystemInfo() -> void;
-        auto DrawActiveSceneInfo() const -> void;
-        auto DrawLightInfo() -> void;
 
     private:
         float m_FrameRate{};

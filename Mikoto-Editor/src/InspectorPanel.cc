@@ -267,6 +267,7 @@ namespace Mikoto {
             }
 
             if ( ImGui::IsItemHovered() ) {
+                ImGuiUtils::ToolTip( "Click me to load a texture." );
                 ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
             }
 
@@ -330,6 +331,7 @@ namespace Mikoto {
             }
 
             if ( ImGui::IsItemHovered() ) {
+                ImGuiUtils::ToolTip( "Click me to load a texture." );
                 ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
             }
 

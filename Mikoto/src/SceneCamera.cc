@@ -27,13 +27,14 @@
 namespace Mikoto {
     SceneCamera::SceneCamera( const float fov, const float aspectRatio, const float nearClip, const float farClip)
         :   Camera{ glm::perspective(glm::radians(fov), aspectRatio, nearClip, farClip) }
-        ,   m_NearClip{ nearClip }
-        ,   m_FarClip{ farClip }
-        ,   m_FieldOfView{ fov }
-        ,   m_AspectRatio{ aspectRatio }
     {
-        EventSystem& eventSystem{ Engine::GetSystem<EventSystem>() };
-        InputSystem& inputSystem{ Engine::GetSystem<InputSystem>() };
+        m_NearClip = nearClip;
+        m_FarClip = farClip;
+        m_FieldOfView = fov;
+        m_AspectRatio = aspectRatio;
+
+        m_Position = glm::vec3{ -31.07f, 48.06f, 100.0f };
+        m_ForwardVector = glm::vec3{ 15.0f, -10.0f, -30.0f };
 
         // Starting value for forward is the opposite of the
         // position to make the camera look at the center.
@@ -46,7 +47,8 @@ namespace Mikoto {
 
     auto SceneCamera::UpdateProjection() -> void {
         m_AspectRatio = m_ViewportWidth / m_ViewportHeight;
-        SetProjection(glm::perspective(glm::radians(m_FieldOfView), m_AspectRatio, m_NearClip, m_FarClip));
+
+        SetProjectionFromType();
     }
 
     auto SceneCamera::UpdateViewMatrix() -> void {
@@ -124,6 +126,10 @@ namespace Mikoto {
             static InputSystem& inputSystem{ Engine::GetSystem<InputSystem>() };
             const glm::vec2 MOUSE_CURRENT_POSITION{ inputSystem.GetMouseX(), inputSystem.GetMouseY() };
             m_LastMousePosition = MOUSE_CURRENT_POSITION;
+            return;
+        }
+
+        if (m_ProjectionType != PERSPECTIVE) {
             return;
         }
 

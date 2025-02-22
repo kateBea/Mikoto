@@ -53,23 +53,75 @@ namespace Mikoto {
                                                            ImGuiTreeNodeFlags_SpanAvailWidth |
                                                            ImGuiTreeNodeFlags_FramePadding};
 
+            static const std::array<std::string, 2> cameraProjectionTypesStr{
+                "Orthographic", "Perspective"
+            };
+
+            SceneCamera& sceneCamera{ *m_Data.EditorCamera };
+            const auto cameraCurrentProjectionType{ sceneCamera.GetProjectionType() };
+
             if (ImGui::TreeNodeEx( reinterpret_cast<const void *>( "SettingsPanel::OnUpdate::EditorCam" ), styleFlags, "%s", "Camera")) {
-                // Movement
+                // Perspective
+                const std::string& currentProjectionTypeStr{ cameraProjectionTypesStr[cameraCurrentProjectionType] };
+
+                // Handle type of projection
                 ImGui::Spacing();
-                ImGui::SliderFloat("Movement Speed", std::addressof(m_Data.EditorCameraMovementSpeed), SceneCamera::GetMinMovementSpeed(), SceneCamera::GetMaxMovementSpeed());
+                if ( ImGui::BeginCombo( "##SettingsPanel::OnUpdate::EditorCam:Projection",currentProjectionTypeStr.c_str() ) ) {
+                    UInt32_T projectionIndex{};
+
+                    for ( const std::string& projectionType : cameraProjectionTypesStr ) {
+                        const bool isSelected{ projectionType == cameraProjectionTypesStr[cameraCurrentProjectionType] };
+
+                        if ( ImGui::Selectable( fmt::format( " {}", projectionType ).c_str(), isSelected ) ) {
+                            sceneCamera.SetProjectionType( static_cast<ProjectionType>( projectionIndex ) );
+                        }
+
+                        if ( ImGui::IsItemHovered() ) {
+                            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+                        }
+
+                        if ( isSelected ) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+
+                        ++projectionIndex;
+                    }
+
+                    ImGui::EndCombo();
+                                        }
+
+                if ( ImGui::IsItemHovered() ) {
+                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+                }
+
+                // Manage perspective settings
+                if (sceneCamera.GetProjectionType() == PERSPECTIVE) {
+                    // Movement
+                ImGui::Spacing();
+                ImGui::SliderFloat("##SettingsPanel::OnUpdate::CameraSpeed", std::addressof(m_Data.EditorCameraMovementSpeed), SceneCamera::GetMinMovementSpeed(), SceneCamera::GetMaxMovementSpeed());
+                ImGui::SameLine(  );
+                ImGuiUtils::HelpMarker( "Adjust camera movement speed" );
 
                 ImGui::Spacing();
-                ImGui::SliderFloat("Rotation Speed", std::addressof(m_Data.EditorCameraRotationSpeed), SceneCamera::GetMinRotationSpeed(), SceneCamera::GetMaxRotationSpeed());
+                ImGui::SliderFloat("##SettingsPanel::OnUpdate::RotationSpeed", std::addressof(m_Data.EditorCameraRotationSpeed), SceneCamera::GetMinRotationSpeed(), SceneCamera::GetMaxRotationSpeed());
+                ImGui::SameLine(  );
+                ImGuiUtils::HelpMarker( "Adjust camera rotation speed." );
 
                 // Planes
                 ImGui::Spacing();
-                ImGui::SliderFloat("Near Plane", std::addressof(m_Data.NearPlane), SceneCamera::GetMinNearClip(), SceneCamera::GetMaxNearClip());
+                ImGui::SliderFloat("##SettingsPanel::OnUpdate::NearClip", std::addressof(m_Data.NearPlane), SceneCamera::GetMinNearClip(), SceneCamera::GetMaxNearClip());
+                ImGui::SameLine(  );
+                ImGuiUtils::HelpMarker( "Adjust camera near plane." );
 
                 ImGui::Spacing();
-                ImGui::SliderFloat("Far Plane", std::addressof(m_Data.FarPlane), SceneCamera::GetMinFarClip(), SceneCamera::GetMaxFarClip());
+                ImGui::SliderFloat("##SettingsPanel::OnUpdate::FarClip", std::addressof(m_Data.FarPlane), SceneCamera::GetMinFarClip(), SceneCamera::GetMaxFarClip());
+                ImGui::SameLine(  );
+                ImGuiUtils::HelpMarker( "Adjust camera far clip." );
 
                 ImGui::Spacing();
-                ImGui::SliderFloat("Field of view", std::addressof(m_Data.FieldOfView), SceneCamera::GetMinFov(), SceneCamera::GetMaxFov());
+                ImGui::SliderFloat("##SettingsPanel::OnUpdate::FieldOfView", std::addressof(m_Data.FieldOfView), SceneCamera::GetMinFov(), SceneCamera::GetMaxFov());
+                ImGui::SameLine(  );
+                ImGuiUtils::HelpMarker( "Adjust camera field of view." );
 
                 // Rotation
                 ImGui::Spacing();
@@ -81,6 +133,11 @@ namespace Mikoto {
                 ImGui::Checkbox("Lock Rotation ( Y )", std::addressof(m_Data.WantYAxisRotation));
                 ImGui::SameLine();
                 ImGuiUtils::HelpMarker( "Lock rotation in the X axis. Cannot look from left to right and viceversa." );
+                }
+
+                if (sceneCamera.GetProjectionType() == ORTHOGRAPHIC) {
+
+                }
 
                 ImGui::TreePop();
             }

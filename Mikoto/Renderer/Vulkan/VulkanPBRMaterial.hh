@@ -21,12 +21,6 @@ namespace Mikoto {
     public:
         explicit VulkanPBRMaterial(const PBRMaterialCreateSpec& spec, std::string_view name = GetName());
 
-        VulkanPBRMaterial(const VulkanPBRMaterial& other) = default;
-        VulkanPBRMaterial(VulkanPBRMaterial && other)  noexcept = default;
-
-        auto operator=(const VulkanPBRMaterial & other) -> VulkanPBRMaterial & = default;
-        auto operator=(VulkanPBRMaterial && other) -> VulkanPBRMaterial & = default;
-
         auto SetView(const glm::mat4& mat) -> void { m_VertexUniformData.View = mat; }
         auto SetProjection(const glm::mat4& mat) -> void { m_VertexUniformData.Projection = mat; }
         auto SetTransform(const glm::mat4& transform) -> void { m_VertexUniformData.Transform = transform; }

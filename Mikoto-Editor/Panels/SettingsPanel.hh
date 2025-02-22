@@ -26,6 +26,8 @@ namespace Mikoto {
         bool WantYAxisRotation{ true };
         bool VerticalSyncEnabled{ true };
         bool RenderWireframeMode{ false };
+
+        SceneCamera* EditorCamera{ nullptr };
     };
 
     struct SettingsPanelCreateInfo {

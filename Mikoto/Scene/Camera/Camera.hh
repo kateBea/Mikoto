@@ -14,11 +14,12 @@
 #include "Common/Common.hh"
 #include "Common/Constants.hh"
 #include <Models/Enums.hh>
+#include <Library/Random/Random.hh>
 
 namespace Mikoto {
     class Camera {
     public:
-        explicit Camera(const glm::mat4& projection = glm::mat4(1.0f), const glm::mat4& transform = glm::mat4(1.0f), ProjectionType projectionType = ProjectionType::PERSPECTIVE)
+        explicit Camera(const glm::mat4& projection = glm::mat4(1.0f), const glm::mat4& transform = glm::mat4(1.0f), ProjectionType projectionType = PERSPECTIVE)
             :   m_Projection{ projection }, m_Transform{ transform }, m_ProjectionType{ projectionType }
         {
             SetProjectionType(m_ProjectionType);
@@ -32,7 +33,6 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetProjection() const -> const glm::mat4& { return m_Projection; }
 
-        // TODO: review
         auto SetProjection(const glm::mat4& projection = glm::mat4(1.0)) -> void { m_Projection = projection; }
 
         MKT_NODISCARD auto GetTransform() const -> const glm::mat4& { return m_Transform; }
@@ -55,33 +55,62 @@ namespace Mikoto {
         MKT_NODISCARD auto GetProjectionType() const -> ProjectionType { return m_ProjectionType; }
         MKT_NODISCARD auto IsOrthographic() const -> bool { return m_ProjectionType == ORTHOGRAPHIC; }
 
-        auto SetProjectionType(ProjectionType type) -> void {
+        auto SetProjectionType( const ProjectionType type ) -> void {
             m_ProjectionType = type;
 
-#if false
-            // TODO: set perspective properly (no hard-coding values)
-            switch(type) {
-                case ORTHOGRAPHIC:
-                    // 1920 / 1080 = 1.778
-                    SetProjection(glm::ortho(-1.778, 1.778, -1.0, 1.0));
-                    break;
-                case PERSPECTIVE:
-                    SetProjection(glm::perspective(glm::radians(45.0), 1.778, 1.0, 1000.0));
-                    break;
-            }
-#endif
+            SetProjectionFromType();
         }
 
         ~Camera() = default;
 
-    private:
+    protected:
+        auto SetProjectionFromType() -> void {
+
+            switch(m_ProjectionType) {
+                case ORTHOGRAPHIC:
+                    SetProjection(glm::ortho(-(m_ViewportWidth / m_ViewportHeight), (m_ViewportWidth / m_ViewportHeight), -1.0f, 1.0f));
+                break;
+                case PERSPECTIVE:
+                    SetProjection(glm::perspective(glm::radians(m_FieldOfView), m_AspectRatio, m_NearClip, m_FarClip));
+                break;
+            }
+        }
+
+    protected:
+        float m_ViewportWidth{ 1920 };
+        float m_ViewportHeight{ 1080 };
+
+        // [Projection Data]
+        float m_NearClip{ 0.1f };
+        float m_FarClip{ 1000.0f };
+        float m_FieldOfView{ 45.0f };
+        float m_AspectRatio{ m_ViewportWidth / m_ViewportHeight };
+
+        // [Matrices]
+        glm::mat4 m_ViewMatrix{};
+        glm::mat4 m_ProjectionMatrix{};
+
+        // [Vectors]
+        glm::vec3 m_Position{ -15.0f, 5.0f, 30.0f };
+        glm::vec3 m_RightVector{ 1.0f, 0.0f, 0.0f };
+        glm::vec3 m_CameraUpVector{ 0.0f, 1.0f, 0.0f };
+        glm::vec3 m_ForwardVector{ 15.0f, -5.0f, -30.0f };
+
+        // [Rotations]
+        float m_Yaw{ 0.0f };
+        float m_Roll{ 0.0f };
+        float m_Pitch{ 0.0f };
+
+        // [Misc]
+        GlobalUniqueID m_Guid{};
+
         glm::mat4 m_Projection{};
         glm::mat4 m_Transform{};
 
         glm::vec3 m_Translation{};
         glm::vec3 m_Rotation{};
 
-        ProjectionType m_ProjectionType{};
+        ProjectionType m_ProjectionType{ PERSPECTIVE };
     };
 }
 

@@ -38,8 +38,6 @@ namespace Mikoto {
         auto DrawPrefabMenu( const Entity* root ) const -> void;
 
     private:
-        Path_T m_AssetsRootDirectory{};
-
         Scene* m_TargetScene{ nullptr };
 
         std::function<Entity*()> m_GetActiveEntityCallback{};

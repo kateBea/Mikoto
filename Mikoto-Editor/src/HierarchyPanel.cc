@@ -118,14 +118,11 @@ namespace Mikoto {
     }
 
     HierarchyPanel::HierarchyPanel(const HierarchyPanelCreateInfo& createInfo)
-        :   m_AssetsRootDirectory{ createInfo.AssetsRootPath },
+        :   Panel{ StringUtils::MakePanelName( ICON_MD_MERGE, GetHierarchyName() ) },
             m_TargetScene{ createInfo.TargetScene },
             m_GetActiveEntityCallback{ createInfo.GetActiveEntityCallback },
             m_SetActiveEntityCallback{ createInfo.SetActiveEntityCallback }
-    {
-        m_PanelHeaderName = StringUtils::MakePanelName( ICON_MD_MERGE, GetHierarchyName() );
-    }
-
+    {}
 
     auto HierarchyPanel::OnUpdate( MKT_UNUSED_VAR float ts ) -> void {
         if ( m_PanelIsVisible ) {
@@ -259,11 +256,11 @@ namespace Mikoto {
                 };
 
                 m_TargetScene->CreateEntity( createInfo );
-
-                MKT_CORE_LOGGER_INFO( "Added new empty object" );
             }
 
-            DrawPrefabMenu(m_GetActiveEntityCallback());
+            // We do not have the cursor on top of any entity
+            // the new entity will have no root
+            DrawPrefabMenu(nullptr );
 
             ImGui::EndPopup();
         }

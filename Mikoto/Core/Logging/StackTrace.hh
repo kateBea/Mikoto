@@ -7,7 +7,12 @@
 
 #include <cpptrace/cpptrace.hpp>
 
-#define MKT_STACK_TRACE() cpptrace::generate_trace().print()
+
+#if !defined(NDEBUG) || defined(_DEBUG)
+    #define MKT_STACK_TRACE() cpptrace::generate_trace().print()
+#else
+    #define MKT_STACK_TRACE()
+#endif
 
 namespace Mikoto {
 

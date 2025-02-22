@@ -30,7 +30,8 @@ namespace Mikoto::VulkanHelpers {
     auto SetupDeviceQueueCreateInfo(const std::set<UInt32_T>& uniqueQueueFamilies) -> std::vector<VkDeviceQueueCreateInfo> {
         std::vector<VkDeviceQueueCreateInfo> result{};
 
-        constexpr float queuePriority{ 1.0f };
+        // static because pQueuePriorities is a pointer to a float
+        static constexpr float queuePriority{ 1.0f };
         for ( const UInt32_T queueFamily : uniqueQueueFamilies ) {
             VkDeviceQueueCreateInfo queueCreateInfo{ Initializers::DeviceQueueCreateInfo() };
 

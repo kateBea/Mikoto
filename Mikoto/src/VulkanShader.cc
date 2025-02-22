@@ -34,11 +34,11 @@ namespace Mikoto {
             return;
         }
 
-        MKT_CORE_LOGGER_DEBUG( "VulkanShader::Upload - Loaded SPIR-V. Size {}", shaderFile->GetFileContents().size() );
+        m_File = shaderFile;
 
         VkShaderModuleCreateInfo moduleCreateInfo{ VulkanHelpers::Initializers::ShaderModuleCreateInfo() };
-        moduleCreateInfo.codeSize = shaderFile->GetFileContents().size();
-        moduleCreateInfo.pCode = reinterpret_cast<const UInt32_T*>( shaderFile->GetFileContents().data() );
+        moduleCreateInfo.codeSize = m_File->GetFileContents().size();
+        moduleCreateInfo.pCode = reinterpret_cast<const UInt32_T*>( m_File->GetFileContents().data() );
 
         VulkanDevice& device{ VulkanContext::Get().GetDevice() };
 

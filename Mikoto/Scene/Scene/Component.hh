@@ -66,9 +66,9 @@ namespace Mikoto {
         auto SetTag( const std::string_view newName) -> void { m_Tag = newName; }
         auto SetVisibility( const bool value) -> void { m_Visibility = value; }
 
-        auto OnComponentAttach() -> void { MKT_APP_LOGGER_DEBUG("Added component TAG_COMPONENT"); }
-        auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component TAG_COMPONENT"); }
-        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component TAG_COMPONENT"); }
+        auto OnComponentAttach() -> void {  }
+        auto OnComponentUpdate() -> void {  }
+        auto OnComponentRemoved() -> void {  }
     private:
         std::string m_Tag{};
         bool m_Visibility{};
@@ -126,9 +126,9 @@ namespace Mikoto {
 
         ~TransformComponent() = default;
 
-        auto OnComponentAttach() -> void { MKT_APP_LOGGER_DEBUG("Added component TRANSFORM_COMPONENT"); }
-        auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component TRANSFORM_COMPONENT"); }
-        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component TRANSFORM_COMPONENT"); }
+        auto OnComponentAttach() -> void {  }
+        auto OnComponentUpdate() -> void {  }
+        auto OnComponentRemoved() -> void {  }
 
     private:
         /**
@@ -180,9 +180,9 @@ namespace Mikoto {
 
         ~MaterialComponent() = default;
 
-        auto OnComponentAttach() -> void { MKT_APP_LOGGER_DEBUG("Added component MATERIAL_COMPONENT"); }
-        auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component MATERIAL_COMPONENT"); }
-        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component MATERIAL_COMPONENT"); }
+        auto OnComponentAttach() -> void {  }
+        auto OnComponentUpdate() -> void {  }
+        auto OnComponentRemoved() -> void {  }
 
     private:
         Scope_T<Material> m_Material{};
@@ -212,9 +212,9 @@ namespace Mikoto {
         MKT_NODISCARD auto GetPath() const -> const Path_T& { return m_Path; }
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 
-        auto OnComponentAttach() -> void { MKT_APP_LOGGER_DEBUG("Added component RENDERER_COMPONENT"); }
-        auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component RENDERER_COMPONENT"); }
-        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component RENDERER_COMPONENT"); }
+        auto OnComponentAttach() -> void {  }
+        auto OnComponentUpdate() -> void {  }
+        auto OnComponentRemoved() -> void {  }
 
     private:
         const Mesh* m_Mesh{};
@@ -252,9 +252,9 @@ namespace Mikoto {
         auto SetType( const LightType type) -> void { m_Type = type; }
         auto SetData( const LightData& data) -> void { m_Data = data; }
 
-        auto OnComponentAttach() -> void { MKT_APP_LOGGER_DEBUG("Added component LIGHT_COMPONENT"); }
-        auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component LIGHT_COMPONENT"); }
-        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG( "Removed component LIGHT_COMPONENT" ); }
+        auto OnComponentAttach() -> void {  }
+        auto OnComponentUpdate() -> void {  }
+        auto OnComponentRemoved() -> void {  }
 
     private:
         LightData m_Data{};
@@ -285,9 +285,9 @@ namespace Mikoto {
         auto SetVolume(float volume) -> void { m_Volume = (volume > 0.0f) ? volume : m_Volume; }
         auto SetLooping(bool value) -> void { m_Loop = value; }
 
-        auto OnComponentAttach() -> void { MKT_APP_LOGGER_DEBUG("Added component AUDIO_COMPONENT"); }
-        auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component AUDIO_COMPONENT"); }
-        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component AUDIO_COMPONENT"); }
+        auto OnComponentAttach() -> void {  }
+        auto OnComponentUpdate() -> void {  }
+        auto OnComponentRemoved() -> void {  }
 
     private:
         Path_T m_Clip{ "No clip file loaded (MP3, WAV...) " };
@@ -310,11 +310,11 @@ namespace Mikoto {
 
         ~PhysicsComponent() = default;
 
-        auto GetMass() const -> float { return m_Mass; }
+        MKT_NODISCARD auto GetMass() const -> float { return m_Mass; }
 
-        auto OnComponentAttach() -> void { MKT_APP_LOGGER_DEBUG("Added component PHYSICS_COMPONENT"); }
-        auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component PHYSICS_COMPONENT"); }
-        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component PHYSICS_COMPONENT"); }
+        auto OnComponentAttach() -> void {  }
+        auto OnComponentUpdate() -> void {  }
+        auto OnComponentRemoved() -> void {  }
 
     private:
         float m_Mass{};
@@ -349,13 +349,9 @@ namespace Mikoto {
 
         ~CameraComponent() = default;
 
-        auto OnComponentAttach() -> void {
-            // newComponent.GetCameraPtr()->SetViewportSize(scene->m_ViewportWidth, scene->m_ViewportHeight);
-            MKT_APP_LOGGER_DEBUG("Added component CAMERA_COMPONENT");
-        }
-
-        auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component CAMERA_COMPONENT"); }
-        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component CAMERA_COMPONENT"); }
+        auto OnComponentAttach() -> void {  }
+        auto OnComponentUpdate() -> void {  }
+        auto OnComponentRemoved() -> void {  }
     private:
         Scope_T<SceneCamera> m_Camera{};
 
@@ -401,9 +397,9 @@ namespace Mikoto {
             m_OnDestroyFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->OnDestroy(); };
         }
 
-        auto OnComponentAttach() -> void { MKT_APP_LOGGER_DEBUG("Added component NATIVE_SCRIPT_COMPONENT"); }
-        auto OnComponentUpdate() -> void { MKT_APP_LOGGER_DEBUG("Updated component NATIVE_SCRIPT_COMPONENT"); }
-        auto OnComponentRemoved() -> void { MKT_APP_LOGGER_DEBUG("Removed component NATIVE_SCRIPT_COMPONENT"); }
+        auto OnComponentAttach() -> void {  }
+        auto OnComponentUpdate() -> void {  }
+        auto OnComponentRemoved() -> void {  }
 
     private:
         std::function<void(/* ScriptableEntity* scriptable */)> m_OnCreateFunc{};

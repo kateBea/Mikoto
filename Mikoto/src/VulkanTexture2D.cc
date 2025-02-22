@@ -16,7 +16,6 @@
 // Project Headers
 #include <Common/Common.hh>
 #include <Core/System/FileSystem.hh>
-#include <Library/Filesystem/FileUtilities.hh>
 #include <Library/Utility/Types.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDeletionQueue.hh>
@@ -40,7 +39,7 @@ namespace Mikoto {
             }
         } catch (const std::exception& exception) {
             m_FileData = nullptr;
-            m_FileSize = 0;
+            m_BufferSize = 0;
             m_Image = nullptr;
             m_Sampler = VK_NULL_HANDLE;
 
@@ -56,7 +55,7 @@ namespace Mikoto {
     auto VulkanTexture2D::Release() -> void {
         VulkanDevice& device{ VulkanContext::Get().GetDevice() };
 
-        m_FileSize = 0;
+        m_BufferSize = 0;
         m_FileData = nullptr;
 
         vkDestroySampler( device.GetLogicalDevice(), m_Sampler, nullptr );
@@ -87,7 +86,7 @@ namespace Mikoto {
         stbi_set_flip_vertically_on_load( true );
 
         m_FileData = stbi_load(
-            path.string().c_str(),
+            textureFile->GetPathCStr(),
             std::addressof( m_Width ),
             std::addressof( m_Height ),
             std::addressof( m_Channels ),
@@ -100,7 +99,7 @@ namespace Mikoto {
         // since we use STBI_rgb_alpha, stb will load the image with four
         // channels which matches the format we are going to be using for now
         constexpr auto channelCount{ 4 };
-        m_FileSize = m_Width * m_Height * channelCount;
+        m_BufferSize = m_Width * m_Height * channelCount;
     }
 
     auto VulkanTexture2D::CreateImage() -> void {
@@ -110,7 +109,7 @@ namespace Mikoto {
         VkBufferCreateInfo stagingBufferInfo{ VulkanHelpers::Initializers::BufferCreateInfo() };
         stagingBufferInfo.pNext = nullptr;
 
-        stagingBufferInfo.size = m_FileSize;
+        stagingBufferInfo.size = m_BufferSize;
         stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
         //let the VMA library know that this data should be on CPU RAM
@@ -127,7 +126,7 @@ namespace Mikoto {
         Scope_T<VulkanBuffer> stagingBuffer{ VulkanBuffer::Create( stagingBufferBufferCreateInfo ) };
 
         // Copy vertex data to staging buffer
-        std::memcpy(stagingBuffer->GetVmaAllocationInfo().pMappedData, m_FileData, m_FileSize);
+        std::memcpy(stagingBuffer->GetVmaAllocationInfo().pMappedData, m_FileData, m_BufferSize);
 
         stagingBuffer->PersistentUnmap();
 
@@ -146,6 +145,11 @@ namespace Mikoto {
         vkImageCreateInfo.arrayLayers = 1;
         vkImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         vkImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        vkImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        // The image will only be used by one queue family: the one that supports graphics (and therefore also) transfer operations.
+        vkImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        vkImageCreateInfo.flags = 0;
 
         VkImageViewCreateInfo imageViewCreateInfo{ VulkanHelpers::Initializers::ImageViewCreateInfo() };
 
@@ -184,7 +188,7 @@ namespace Mikoto {
             copyRegion.imageExtent = extent;
 
             //copy the buffer into the image
-            vkCmdCopyBufferToImage( cmd, stagingBuffer->Get(), m_Image->Get(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, std::addressof( copyRegion ) );
+            vkCmdCopyBufferToImage( cmd, stagingBuffer->Get(), m_Image->Get(), m_Image->GetCurrentLayout(), 1, std::addressof( copyRegion ) );
         } );
 
         VulkanContext::Get().ImmediateSubmit( [&]( VkCommandBuffer cmd ) -> void {

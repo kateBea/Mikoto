@@ -27,13 +27,18 @@ namespace Mikoto {
         // The image has not been allocated, and we need to allocate it on the given device
         if ( createInfo.Image == VK_NULL_HANDLE ) {
 
+            m_CurrentLayout = m_ImageCreateInfo.initialLayout;
+
             VmaAllocationCreateInfo allocCreateInfo{
                 .usage = VMA_MEMORY_USAGE_GPU_ONLY,
-                .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
             };
 
             device.CreateImage( createInfo, allocCreateInfo, m_Image, m_Allocation, m_AllocationInfo );
         } else {
+            m_CurrentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            m_ImageCreateInfo.initialLayout = m_CurrentLayout;
+
             m_Image = createInfo.Image;
             m_IsImageExternal = true;
         }

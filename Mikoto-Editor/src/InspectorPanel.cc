@@ -198,7 +198,7 @@ namespace Mikoto {
 
                 // Second row - second colum
                 ImGui::TableSetColumnIndex( 1 );
-                ImGui::TextUnformatted( Texture2D::GetFileTypeStr( texture->GetFileType() ).data() );
+                ImGui::TextUnformatted( GetFileExtensionName( texture->GetFile()->GetType() ).data() );
 
                 // Third row - first colum
                 ImGui::TableNextRow();
@@ -445,7 +445,7 @@ namespace Mikoto {
 
             // Second row - second colum
             ImGui::TableSetColumnIndex( 1 );
-            ImGui::TextUnformatted( Texture2D::GetFileTypeStr( map->GetFileType() ).data() );
+            ImGui::TextUnformatted( GetFileExtensionName( map->GetFile()->GetType() ).data() );
 
             // Third row - first colum
             ImGui::TableNextRow();

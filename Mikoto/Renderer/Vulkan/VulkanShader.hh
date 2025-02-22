@@ -16,6 +16,7 @@
 #include <Common/Common.hh>
 #include <Material/Core/Shader.hh>
 #include <Library/Utility/Types.hh>
+#include <Library/Filesystem/File.hh>
 #include <Renderer/Vulkan/VulkanObject.hh>
 
 namespace Mikoto {
@@ -40,6 +41,8 @@ namespace Mikoto {
         auto Upload(const VulkanShaderCreateInfo& createInfo) -> void;
 
     private:
+        const File* m_File{ nullptr };
+
         std::string m_Code{};
         std::string m_EntryPoint{};
         VkShaderModule m_Module{};

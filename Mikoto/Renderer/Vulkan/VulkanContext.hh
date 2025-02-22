@@ -68,7 +68,8 @@ namespace Mikoto {
 
         // [Swapchain manipulation]
         auto EnableVSync() -> void override { SwitchSyncMode( true ); }
-        auto DisableVSync() -> void { SwitchSyncMode( false ); }
+        auto DisableVSync() -> void override { SwitchSyncMode( false ); }
+
         MKT_NODISCARD auto IsVSyncActive() const -> bool { return m_SwapChain->IsVsyncEnabled(); }
         MKT_NODISCARD auto GetSwapChain() const -> VulkanSwapChain& { return *m_SwapChain; }
 

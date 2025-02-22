@@ -14,8 +14,6 @@
 
 // Project Headers
 #include <Renderer/Vulkan/VulkanDeletionQueue.hh>
-
-#include "Common/Common.hh"
 #include "Renderer/Vulkan/VulkanContext.hh"
 #include "Renderer/Vulkan/VulkanVertexBuffer.hh"
 
@@ -23,11 +21,6 @@ namespace Mikoto {
     VulkanVertexBuffer::VulkanVertexBuffer(const VertexBufferCreateInfo& createInfo)
         :   VertexBuffer{ createInfo.Layout }
     {
-#ifdef VULKAN_EXTENDED_DYNAMIC_EXTENSION
-        SetBindingDescriptions();
-        SetAttributeDescriptions();
-#endif
-
         if (createInfo.RetainData) {
             m_RetainedData = createInfo.Data;
         }
@@ -49,49 +42,22 @@ namespace Mikoto {
         }
     }
 
-#ifdef VULKAN_EXTENDED_DYNAMIC_EXTENSION
-    auto VulkanVertexBuffer::SetBindingDescriptions() -> void {
-        m_BindingDesc = std::vector<VkVertexInputBindingDescription>(1);
-        m_BindingDesc[0].binding = 0;
-        m_BindingDesc[0].stride = m_Layout.GetStride();
-        m_BindingDesc[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-    }
-
-    auto VulkanVertexBuffer::SetAttributeDescriptions() -> void {
-        m_AttributeDesc = std::vector<VkVertexInputAttributeDescription>(m_Layout.GetCount());
-
-        // Setup attribute binding
-        for (auto attribute : m_AttributeDesc)
-            attribute.binding = 0;
-
-        // Setup location, format and offset
-        // FIXME: sign comparison m_Layout.GetCount() should return a Size_T (this should generally be the case unless stuff like vertex buffer since there can be many they would be UInt64's instead)
-        for (Size_T index{}; index < m_Layout.GetCount(); ++index) {
-            m_AttributeDesc[index].location = index;
-            m_AttributeDesc[index].format = VulkanUtils::GetVulkanAttributeDataType(m_Layout[index].GetType());
-            m_AttributeDesc[index].offset = m_Layout[index].GetOffset();
-
-        }
-    }
-#endif
-
-    auto VulkanVertexBuffer::GetDefaultBindingDescriptions() -> std::vector<VkVertexInputBindingDescription>& {
+    auto VulkanVertexBuffer::GetDefaultBindingDescriptions() -> std::vector<VkVertexInputBindingDescription> {
         // All of our per-vertex data is packed together in one array, so we're only going to have one binding.
         // See: https://vulkan-tutorial.com/Vertex_buffers/Vertex_input_description
 
-        s_BindingDesc = std::vector<VkVertexInputBindingDescription>(1);
+        auto bindingDescriptions{ std::vector<VkVertexInputBindingDescription>(1) };
 
-        s_BindingDesc[0] = {};
-        s_BindingDesc[0].binding = 0;
-        s_BindingDesc[0].stride = s_DefaultBufferLayout.GetStride();
-        s_BindingDesc[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // not using instanced rendering, so we'll stick to per-vertex data.
+        bindingDescriptions[0] = {};
+        bindingDescriptions[0].binding = 0;
+        bindingDescriptions[0].stride = s_DefaultBufferLayout.GetStride();
+        bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // not using instanced rendering, so we'll stick to per-vertex data.
 
-        return s_BindingDesc;
+        return bindingDescriptions;
     }
 
-    auto VulkanVertexBuffer::GetDefaultAttributeDescriptions() -> std::vector<VkVertexInputAttributeDescription>& {
-        s_AttributeDesc = std::vector<VkVertexInputAttributeDescription>( s_DefaultBufferLayout.GetCount() );
+    auto VulkanVertexBuffer::GetDefaultAttributeDescriptions() -> std::vector<VkVertexInputAttributeDescription> {
+        auto attributeDescriptions{ std::vector<VkVertexInputAttributeDescription>( s_DefaultBufferLayout.GetCount() ) };
 
         /**
          * The binding parameter tells Vulkan from which binding the per-vertex data comes.
@@ -105,15 +71,19 @@ namespace Mikoto {
         // The index refers to how the vertex attributes are laid out according to s_DefaultBufferLayout
         // so index 0 -> s_DefaultBufferLayout first attribute,
         // index 1 -> s_DefaultBufferLayout second attribute and so on
-        for (Size_T index{}; index < s_AttributeDesc.size(); ++index) {
-            s_AttributeDesc[index] = {};
-            s_AttributeDesc[index].binding = 0;
-            s_AttributeDesc[index].location = index;
-            s_AttributeDesc[index].format = VulkanHelpers::GetVulkanAttributeDataType( s_DefaultBufferLayout[index].GetType() );
-            s_AttributeDesc[index].offset = s_DefaultBufferLayout[index].GetOffset();
+        for ( Size_T index{}; index < attributeDescriptions.size(); ++index ) {
+            attributeDescriptions[index] = {};
+            attributeDescriptions[index].binding = 0;
+            attributeDescriptions[index].location = index;
+            attributeDescriptions[index].format = VulkanHelpers::GetVulkanAttributeDataType( s_DefaultBufferLayout[index].GetType() );
+            attributeDescriptions[index].offset = s_DefaultBufferLayout[index].GetOffset();
         }
 
-        return s_AttributeDesc;
+        return attributeDescriptions;
+    }
+
+    auto VulkanVertexBuffer::Create( const VertexBufferCreateInfo& createInfo ) -> Scope_T<VulkanVertexBuffer> {
+        return CreateScope<VulkanVertexBuffer>( createInfo );
     }
 
     auto VulkanVertexBuffer::Release() -> void {
@@ -153,9 +123,7 @@ namespace Mikoto {
         Scope_T<VulkanBuffer> stagingBuffer{ VulkanBuffer::Create( stagingBufferBufferCreateInfo ) };
 
         // Copy vertex data to staging buffer
-        std::memcpy(stagingBuffer->GetVmaAllocationInfo().pMappedData, vertices.data(), stagingBuffer->GetSize());
-
-        stagingBuffer->PersistentUnmap();
+        std::memcpy(stagingBuffer->GetMappedPtr(), vertices.data(), m_Size);
 
         // Allocate vertex buffer
         VkBufferCreateInfo vertexBufferInfo{ VulkanHelpers::Initializers::BufferCreateInfo() };

@@ -27,6 +27,7 @@
 
 
 namespace Mikoto::StringUtils {
+
     /**
      * @brief Returns a string which is the concatenation of the string.
      * representation of the given values. Use ConcatStr, methods with *_H are

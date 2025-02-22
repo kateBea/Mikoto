@@ -8,6 +8,7 @@
 
 // C++ Standard Library
 #include <utility>
+#include <string_view>
 
 // Project Header
 #include <Common/Common.hh>
@@ -24,8 +25,8 @@ namespace Mikoto {
         /**
          * @brief Constructs this panel with the icon from the given path.
          * */
-        explicit Panel()
-            : m_PanelHeaderName{ "Panel" }, m_PanelIsHovered{ false }, m_PanelIsFocused{ false }, m_PanelIsVisible{ true } {
+        explicit Panel(const std::string_view name = "Panel")
+            : m_PanelHeaderName{ name }, m_PanelIsHovered{ false }, m_PanelIsFocused{ false }, m_PanelIsVisible{ true } {
         }
 
 

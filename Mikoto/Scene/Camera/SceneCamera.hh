@@ -104,6 +104,9 @@ namespace Mikoto {
         auto SetFieldOfView(float value) -> void { m_FieldOfView = value; }
 
 
+        auto WantRotation( bool xAxis, bool yAxis) -> void;
+
+
         /**
          * @brief Sets the far clipping plane distance of the camera.
          *
@@ -199,6 +202,9 @@ namespace Mikoto {
 
         float m_ViewportWidth{ 1920 };
         float m_ViewportHeight{ 1080 };
+
+        bool m_WantCameraRotationX{ true };
+        bool m_WantCameraRotationY{ true };
 
         glm::vec2 m_LastMousePosition{ 0.0f, 0.0f };
 

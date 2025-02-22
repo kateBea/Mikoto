@@ -58,14 +58,12 @@ namespace Mikoto {
         auto LoadImageData(const Path_T& path) -> void;
 
     private:
-        Size_T m_FileSize{ 0 };
+        Size_T m_BufferSize{ 0 };
         stbi_uc* m_FileData{ nullptr };
 
         VkSampler m_Sampler{ VK_NULL_HANDLE };
 
         Scope_T<VulkanImage> m_Image{ nullptr };
-
-        const File* m_File{ nullptr };
     };
 }
 

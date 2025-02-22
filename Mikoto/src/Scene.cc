@@ -244,7 +244,7 @@ namespace Mikoto {
                         specular = textureIt;
                         break;
                     default:
-                        MKT_CORE_LOGGER_INFO("Scene::CreatePrefabEntity - Mesh has no data for the requested texture type.");
+                        MKT_CORE_LOGGER_INFO("Scene::CreatePrefabEntity - Mesh has no data for the requested texture type. {}", (int)textureIt->GetType());
                 }
             }
 

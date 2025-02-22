@@ -184,9 +184,8 @@ namespace Mikoto {
         deviceFeatures.samplerAnisotropy = VK_TRUE;
         deviceFeatures.fillModeNonSolid = VK_TRUE;// required for wireframe mode
 
-        // TODO: Required Vulkan 1.3 features
         VkPhysicalDeviceVulkan13Features vulkan13Features{ VulkanHelpers::Initializers::PhysicalDeviceVulkan13Features() };
-        vulkan13Features.synchronization2 = VK_TRUE;
+        vulkan13Features.synchronization2 = VK_TRUE; // required for vkCmdPipelineBarrier2 used when image transitions
 
         VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{ VulkanHelpers::Initializers::PhysicalDeviceFeatures2() };
         physicalDeviceFeatures2.features = deviceFeatures;

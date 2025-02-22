@@ -71,8 +71,12 @@ namespace Mikoto {
             // The X offset of the mouse will dictate how much we rotate in the Y axis
             m_Yaw = delta.x * m_RotationSpeed * static_cast<float>( timeStep );
 
-            const glm::quat q{ glm::normalize(glm::cross(glm::angleAxis(-m_Pitch, m_RightVector), glm::angleAxis(-m_Yaw, GLM_UNIT_VECTOR_Y))) };
-            m_ForwardVector = glm::rotate(q, m_ForwardVector);
+            // We can optionally rotate the camera on the X and Y axis
+            m_Pitch = m_WantCameraRotationX ? m_Pitch : 0.0f;
+            m_Yaw = m_WantCameraRotationY ? m_Yaw : 0.0f;
+
+            const glm::quat quat{ glm::normalize(glm::cross(glm::angleAxis(-m_Pitch, m_RightVector), glm::angleAxis(-m_Yaw, GLM_UNIT_VECTOR_Y))) };
+            m_ForwardVector = glm::rotate(quat, m_ForwardVector);
         }
     }
 
@@ -130,8 +134,8 @@ namespace Mikoto {
         ProcessKeyboardInput(timeStep);
     }
 
-    auto SceneCamera::SetViewportSize( const float width, const float height) -> void {
-        if (m_ViewportWidth == width && m_ViewportHeight == height)
+    auto SceneCamera::SetViewportSize( const float width, const float height ) -> void {
+        if ( m_ViewportWidth == width && m_ViewportHeight == height )
             return;
 
         m_ViewportWidth = width;
@@ -139,4 +143,8 @@ namespace Mikoto {
 
         UpdateProjection();
     }
-}
+    auto SceneCamera::WantRotation( const bool xAxis, const bool yAxis ) -> void {
+        m_WantCameraRotationX = xAxis;
+        m_WantCameraRotationY = yAxis;
+    }
+}// namespace Mikoto

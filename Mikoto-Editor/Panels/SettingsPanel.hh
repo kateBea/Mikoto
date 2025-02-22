@@ -17,10 +17,10 @@
 namespace Mikoto {
     struct SettingsPanelData {
         glm::vec4 ClearColor{};
-        float EditorCameraMovementSpeed{ 30 };
+        float EditorCameraMovementSpeed{ 70 };
         float EditorCameraRotationSpeed{ 30 };
         float NearPlane{ 0.1f };
-        float FarPlane{ 1000.0f };
+        float FarPlane{ 2000.0f };
         float FieldOfView{ 45.0f };
         bool WantXAxisRotation{ true };
         bool WantYAxisRotation{ true };
@@ -39,12 +39,13 @@ namespace Mikoto {
 
         auto OnUpdate(float timeStep) -> void override;
         auto SetRenderBackgroundColor(const glm::vec4& color) { m_Data.ClearColor = color; }
-        auto SetRenderFieldOfView(float fov) { m_Data.FieldOfView = fov; }
+        auto SetRenderFieldOfView( const float fov) -> void { m_Data.FieldOfView = fov; }
 
         MKT_NODISCARD auto GetData() const -> const SettingsPanelData& { return m_Data; }
 
     private:
         SettingsPanelData m_Data{};
+
     };
 }
 

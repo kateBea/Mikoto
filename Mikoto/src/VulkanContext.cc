@@ -351,7 +351,7 @@ namespace Mikoto {
 
     auto VulkanContext::SwitchSyncMode( const bool enable ) -> void {
         // Return if we want to enable and VSync is already enabled
-        if (enable && m_SwapChain->IsVsyncEnabled()) {
+        if (enable == m_SwapChain->IsVsyncEnabled()) {
             return;
         }
 

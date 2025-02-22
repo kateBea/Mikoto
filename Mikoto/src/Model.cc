@@ -93,6 +93,8 @@ namespace Mikoto {
         // values for the color attribute
 
         for ( UInt64_T index{}; index < mesh->mNumVertices; index++ ) {
+            // This must follow the order of the default buffer layout
+
             // Vertices -----
             vertices.push_back( mesh->mVertices[index].x );
             vertices.push_back( mesh->mVertices[index].y );
@@ -121,7 +123,7 @@ namespace Mikoto {
             }
 
             // Texture coordinates -----
-            if ( mesh->HasTextureCoords( index ) && mesh->mTextureCoords[0] != nullptr ) {
+            if ( mesh->mTextureCoords[0] != nullptr ) {
                 vertices.push_back( mesh->mTextureCoords[0][index].x );
 
                 vertices.push_back( m_InvertedY ? -mesh->mTextureCoords[0][index].y : mesh->mTextureCoords[0][index].y );

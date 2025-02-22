@@ -21,19 +21,19 @@ namespace Mikoto {
 
     enum class ShaderDataType {
         NONE,
-        FLOAT_TYPE,     // Represents a single float data type
-        FLOAT2_TYPE,    // Represents a two float data type
-        FLOAT3_TYPE,    // Represents a three float data type
-        FLOAT4_TYPE,    // Represents a four float data type
+        FLOAT_TYPE, // Represents a single float data type
+        FLOAT2_TYPE,// Represents a two float data type
+        FLOAT3_TYPE,// Represents a three float data type
+        FLOAT4_TYPE,// Represents a four float data type
 
-        MAT3_TYPE,      // Represents 3x3 float matrix data type
-        MAT4_TYPE,      // Represents 4x4 float matrix data type
+        MAT3_TYPE,// Represents 3x3 float matrix data type
+        MAT4_TYPE,// Represents 4x4 float matrix data type
 
-        INT_TYPE,       // Represents a single int data type
-        INT2_TYPE,      // Represents a two int data type
-        INT3_TYPE,      // Represents a three int data type
-        INT4_TYPE,      // Represents a four int data type
-        BOOL_TYPE,      // Represents a single boolean data type
+        INT_TYPE, // Represents a single int data type
+        INT2_TYPE,// Represents a two int data type
+        INT3_TYPE,// Represents a three int data type
+        INT4_TYPE,// Represents a four int data type
+        BOOL_TYPE,// Represents a single boolean data type
         COUNT,
     };
 
@@ -51,9 +51,27 @@ namespace Mikoto {
 
     enum class FileType {
         UNKNOWN_IMAGE_TYPE,
+
         PNG_IMAGE_TYPE,
         JPEG_IMAGE_TYPE,
         JPG_IMAGE_TYPE,
+        BMP_IMAGE_TYPE,
+        GIF_IMAGE_TYPE,
+        TIFF_IMAGE_TYPE,
+        WEBP_IMAGE_TYPE,
+        ICO_IMAGE_TYPE,
+        SVG_VECTOR_IMAGE_TYPE,
+
+        PDF_DOCUMENT_TYPE,
+        TEXT_DOCUMENT_TYPE,
+
+
+        MP3_AUDIO_TYPE,
+        WAV_AUDIO_TYPE,
+        OGG_AUDIO_TYPE,
+        FLAC_AUDIO_TYPE,
+        AAC_AUDIO_TYPE,
+        WMA_AUDIO_TYPE,
     };
 
     enum class MaterialType {
@@ -62,30 +80,30 @@ namespace Mikoto {
     };
 
     enum ProjectionType {
-        ORTHOGRAPHIC    = 0,
-        PERSPECTIVE     = 1,
+        ORTHOGRAPHIC = 0,
+        PERSPECTIVE = 1,
     };
 
     /**
      * @brief Time units.
      * */
     enum class TimeUnit {
-        SECONDS,         /**< Time unit in seconds. */
-        MILLISECONDS,    /**< Time unit in milliseconds. */
-        MICROSECONDS,    /**< Time unit in microseconds. */
-        NANOSECONDS,     /**< Time unit in nanoseconds. */
+        SECONDS,      /**< Time unit in seconds. */
+        MILLISECONDS, /**< Time unit in milliseconds. */
+        MICROSECONDS, /**< Time unit in microseconds. */
+        NANOSECONDS,  /**< Time unit in nanoseconds. */
     };
 
     enum BufferBit {
-        COLOR_BUFFER_BIT = BIT_SET(1),
-        DEPTH_BUFFER_BIT = BIT_SET(2),
+        COLOR_BUFFER_BIT = BIT_SET( 1 ),
+        DEPTH_BUFFER_BIT = BIT_SET( 2 ),
     };
 
 
     enum class LightType {
-        DIRECTIONAL_LIGHT_TYPE  = 0,
-        POINT_LIGHT_TYPE        = 1,
-        SPOT_LIGHT_TYPE         = 2,
+        DIRECTIONAL_LIGHT_TYPE = 0,
+        POINT_LIGHT_TYPE = 1,
+        SPOT_LIGHT_TYPE = 2,
     };
 
     enum class GraphicsAPI {
@@ -97,8 +115,8 @@ namespace Mikoto {
      * @brief Enum defining cursor input modes.
      * */
     enum CursorInputMode {
-        CURSOR_NORMAL   = 0, /**< The default cursor mode. */
-        CURSOR_HIDDEN   = 1, /**< The hidden cursor mode. */
+        CURSOR_NORMAL = 0,   /**< The default cursor mode. */
+        CURSOR_HIDDEN = 1,   /**< The hidden cursor mode. */
         CURSOR_DISABLED = 2, /**< The disabled cursor mode. */
     };
 
@@ -154,25 +172,25 @@ namespace Mikoto {
      * is not declared as an enum class
      * */
     enum EventCategory : UInt32_T {
-        EMPTY_EVENT_CATEGORY            =  BIT_SET(0),
+        EMPTY_EVENT_CATEGORY = BIT_SET( 0 ),
 
-        APPLICATION_EVENT_CATEGORY      =  BIT_SET(1),
-        INPUT_EVENT_CATEGORY            =  BIT_SET(2),
-        WINDOW_EVENT_CATEGORY           =  BIT_SET(3),
-        KEY_EVENT_CATEGORY              =  BIT_SET(4),
-        MOUSE_EVENT_CATEGORY            =  BIT_SET(5),
-        MOUSE_BUTTON_EVENT_CATEGORY     =  BIT_SET(6),
-        PANEL_EVENT_CATEGORY            = BIT_SET(8),
+        APPLICATION_EVENT_CATEGORY = BIT_SET( 1 ),
+        INPUT_EVENT_CATEGORY = BIT_SET( 2 ),
+        WINDOW_EVENT_CATEGORY = BIT_SET( 3 ),
+        KEY_EVENT_CATEGORY = BIT_SET( 4 ),
+        MOUSE_EVENT_CATEGORY = BIT_SET( 5 ),
+        MOUSE_BUTTON_EVENT_CATEGORY = BIT_SET( 6 ),
+        PANEL_EVENT_CATEGORY = BIT_SET( 8 ),
 
-        EVENT_CATEGORY_COUNT            =  BIT_SET(9),
+        EVENT_CATEGORY_COUNT = BIT_SET( 9 ),
     };
 
     enum ShaderStage {
-        VERTEX_STAGE         = BIT_SET(1),
-        FRAGMENT_STAGE       = BIT_SET(2),
-        GEOMETRY       = BIT_SET(3),
-        TESSELATION    = BIT_SET(4),
+        VERTEX_STAGE = BIT_SET( 1 ),
+        FRAGMENT_STAGE = BIT_SET( 2 ),
+        GEOMETRY = BIT_SET( 3 ),
+        TESSELATION = BIT_SET( 4 ),
     };
-}
+}// namespace Mikoto
 
-#endif //MIKOTO_EDITOR_ENUMS_H
+#endif//MIKOTO_EDITOR_ENUMS_H

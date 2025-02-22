@@ -9,8 +9,9 @@
 #include <unordered_map>
 
 #include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
 #include <Models/Enums.hh>
+#include <Library/Utility/Types.hh>
+#include <Library/Random/Random.hh>
 
 namespace Mikoto {
     struct TextureLoadInfo {

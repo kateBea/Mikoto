@@ -27,6 +27,7 @@ namespace Mikoto {
     using UInt64_T = std::uint64_t;
 
     using UShort_T = unsigned short;
+    using UChar_T = unsigned char;
     using ULong_T = unsigned short;
     using ULongLong_T = unsigned long long;
 

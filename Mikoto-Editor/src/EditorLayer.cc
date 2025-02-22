@@ -93,11 +93,14 @@ namespace Mikoto {
         const SettingsPanel& settingsPanel{ *m_PanelRegistry.Get<SettingsPanel>() };
         const SettingsPanelData& settingsPanelCurrentData{ settingsPanel.GetData() };
 
+        // Setup camera
         m_EditorCamera->SetMovementSpeed( settingsPanelCurrentData.EditorCameraMovementSpeed );
         m_EditorCamera->SetRotationSpeed( settingsPanelCurrentData.EditorCameraRotationSpeed );
 
         m_EditorCamera->SetFarPlane( settingsPanelCurrentData.FarPlane );
         m_EditorCamera->SetNearPlane( settingsPanelCurrentData.NearPlane );
+
+        m_EditorCamera->WantRotation( settingsPanelCurrentData.WantXAxisRotation, settingsPanelCurrentData.WantYAxisRotation );
 
         m_EditorCamera->SetFieldOfView( settingsPanelCurrentData.FieldOfView );
 
@@ -114,8 +117,10 @@ namespace Mikoto {
 
         m_EditorCamera->UpdateState( timeStep );
 
+        // Setup editor
         m_EditorRenderer->SetClearColor( settingsPanel.GetData().ClearColor );
 
+        // Setup scene
         m_ActiveScene->SetCamera( *m_EditorCamera );
         m_ActiveScene->SetRenderer( *m_EditorRenderer );
 

@@ -319,6 +319,5 @@ void main() {
     }
 
     // [Final pixel output color]
-    const int hasSpecular = int( UniformBufferData.ObjectLightInfo.z );
     outColor = result;
 }

@@ -17,7 +17,7 @@ namespace Mikoto {
     auto VertexBuffer::Create(const std::vector<float>& data, const BufferLayout& layout) -> Scope_T<VertexBuffer> {
         auto& renderSystem{ Engine::GetSystem<RenderSystem>() };
 
-        VertexBufferCreateInfo createInfo{
+        const VertexBufferCreateInfo createInfo{
             .Data{ data },
             .Layout{ layout },
             .RetainData{ false },
@@ -25,7 +25,7 @@ namespace Mikoto {
 
         switch(renderSystem.GetDefaultApi()) {
             case GraphicsAPI::VULKAN_API:
-                return CreateScope<VulkanVertexBuffer>( createInfo );
+                return VulkanVertexBuffer::Create( createInfo );
             default:
                 MKT_CORE_LOGGER_CRITICAL("VertexBuffer::Create - Unsupported renderer API");
             return nullptr;

@@ -77,18 +77,18 @@ namespace Mikoto {
         return sampler;
     }
 
-    static auto GetDescriptorSetById(const Texture2D* texture) -> VkDescriptorSet {
+    static auto GetDescriptorSetById( const Texture2D* texture ) -> VkDescriptorSet {
         static std::unordered_map<UInt32_T, VkDescriptorSet> dsets{};
 
         VkDescriptorSet result{ VK_NULL_HANDLE };
 
         auto itFind{ dsets.find( texture->GetID().Get() ) };
 
-        if (itFind == dsets.end()) {
-           auto [itInsert, success]{ dsets.try_emplace( texture->GetID().Get(),
-           ImGui_ImplVulkan_AddTexture( CreateBasicSampler(), dynamic_cast<const VulkanTexture2D*>(texture)->GetImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) ) };
+        if ( itFind == dsets.end() ) {
+            auto [itInsert, success]{ dsets.try_emplace( texture->GetID().Get(),
+                                                         ImGui_ImplVulkan_AddTexture( CreateBasicSampler(), dynamic_cast<const VulkanTexture2D*>( texture )->GetImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ) ) };
 
-            if (success) {
+            if ( success ) {
                 result = itInsert->second;
 
                 ImGuiManager::AddShutdownCallback( [textureDset = itInsert->second]() -> void {
@@ -168,7 +168,7 @@ namespace Mikoto {
         }
     }
 
-    static auto ShowTextureHoverTooltip( Texture2D* texture) -> void {
+    static auto ShowTextureHoverTooltip( Texture2D* texture ) -> void {
         if ( ImGui::IsItemHovered() &&
              ImGui::BeginTooltip() /** && has albedo map, otherwise it display info about the */ ) {
 
@@ -217,7 +217,7 @@ namespace Mikoto {
         if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
     }
 
-    static auto EditStandardMaterial( StandardMaterial& standardMat) -> void {
+    static auto EditStandardMaterial( StandardMaterial& standardMat ) -> void {
         static constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
                                                            ImGuiTreeNodeFlags_AllowItemOverlap |
                                                            ImGuiTreeNodeFlags_Framed |
@@ -237,7 +237,7 @@ namespace Mikoto {
             // TODO: will need to update descriptor sets with new texture handles same for specular map because we use the same desc set
             // or temporarily make this function a member of inspector channel and create an map with texture id and its descriptor set
             Texture2D* diffuseMap{ standardMat.GetDiffuseMap() };
-            ImGuiUtils::PushImageButton( diffuseMap->GetID().Get(), GetDescriptorSetById(diffuseMap), ImVec2{ 64, 64 } );
+            ImGuiUtils::PushImageButton( diffuseMap->GetID().Get(), GetDescriptorSetById( diffuseMap ), ImVec2{ 64, 64 } );
 
             if ( ImGui::IsItemHovered() ) {
                 ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -298,7 +298,7 @@ namespace Mikoto {
 
             Texture2D* specularMap{ standardMat.GetSpecularMap() };
 
-            ImGuiUtils::PushImageButton( specularMap->GetID().Get(), GetDescriptorSetById(specularMap), ImVec2{ 64, 64 } );
+            ImGuiUtils::PushImageButton( specularMap->GetID().Get(), GetDescriptorSetById( specularMap ), ImVec2{ 64, 64 } );
 
             if ( ImGui::IsItemHovered() ) {
                 ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -366,8 +366,12 @@ namespace Mikoto {
                 ImGui::CloseCurrentPopup();
             }
 
-            if ( ImGui::MenuItem( "Mesh", menuItemShortcut, menuItemSelected, !entity.HasComponent<RenderComponent>() ) ) {
+            if ( ImGui::MenuItem( "Mesh", menuItemShortcut, menuItemSelected,
+                !entity.HasComponent<RenderComponent>() ) ) {
                 entity.AddComponent<RenderComponent>();
+
+                // If we add a render component, we also need to add a material component
+                // which determines how this objects will be rendered
 
                 if ( !entity.HasComponent<MaterialComponent>() ) {
                     entity.AddComponent<MaterialComponent>();
@@ -468,7 +472,7 @@ namespace Mikoto {
         }
     }
 
-    static auto ShowGameObjectMaterialInfo( const Mesh& meshTarget) -> void {
+    static auto ShowGameObjectMaterialInfo( const Mesh& meshTarget ) -> void {
         ImGui::Spacing();
         ImGui::TextUnformatted( "Mesh Info" );
         ImGui::SameLine();
@@ -672,12 +676,16 @@ namespace Mikoto {
         }
     }
 
-    static auto SetupTransformComponentTab( Entity& entity ) -> void {
+    static auto SetupTransformComponentTab( Entity& entity, Scene* scene ) -> void {
         TransformComponent& transformComponent{ entity.GetComponent<TransformComponent>() };
 
         glm::vec3 translation{ transformComponent.GetTranslation() };
         glm::vec3 rotation{ transformComponent.GetRotation() };
         glm::vec3 scale{ transformComponent.GetScale() };
+
+        const glm::vec3 oldTranslation{ transformComponent.GetTranslation() };
+        const glm::vec3 oldScale{ transformComponent.GetScale() };
+        const glm::vec3 oldRotation{ transformComponent.GetRotation() };
 
         ImGui::Spacing();
 
@@ -688,21 +696,45 @@ namespace Mikoto {
         transformComponent.SetTranslation( translation );
         transformComponent.SetRotation( rotation );
         transformComponent.SetScale( scale );
+
+        // Apply the transformation to the children
+        // For now Guizmos only change translation so thats the only thing we handle in the children
+
+        glm::vec3 offsetTranslation{ transformComponent.GetTranslation() - oldTranslation };
+        glm::vec3 offsetRotation{ transformComponent.GetRotation() - oldRotation };
+        glm::vec3 offsetScale{ transformComponent.GetScale() - oldScale };
+
+        auto& hierarchy{ scene->GetHierarchy() };
+        hierarchy.ForAllChildren( [&]( Entity* child ) -> void {
+            TransformComponent& childTransform{ child->GetComponent<TransformComponent>() };
+
+            childTransform.SetTranslation( childTransform.GetTranslation() + offsetTranslation );
+            childTransform.SetRotation( childTransform.GetRotation() + offsetRotation );
+            childTransform.SetScale( childTransform.GetScale() + offsetScale );
+
+        } , [&](Entity* target) -> bool {
+            return target->GetComponent<TagComponent>().GetGUID() ==
+                entity.GetComponent<TagComponent>().GetGUID();
+        });
+
     }
 
     static auto SetupNativeScriptingComponentTab( Entity& entity ) -> void {
     }
 
-    static auto SetupMaterialComponentTab( Entity& entity) -> void {
+    static auto SetupMaterialComponentTab( Entity& entity ) -> void {
         // ImGui by default will indent because the items in this function are supposed to be
         // within a Tree Node, items within a tree node appear indented by default when you expand it
         ImGui::Unindent();
 
+
         MaterialComponent& materialComponent{ entity.GetComponent<MaterialComponent>() };
 
-        Material& material{ materialComponent.GetMaterial() };
+        if (materialComponent.HasMaterial()) {
+            Material& material{ materialComponent.GetMaterial() };
 
-        EditStandardMaterial( dynamic_cast<StandardMaterial&>( material ) );
+            EditStandardMaterial( dynamic_cast<StandardMaterial&>( material ) );
+        }
 
         ImGui::Indent();
     }
@@ -776,7 +808,9 @@ namespace Mikoto {
         ImGui::Separator();
         ImGui::Spacing();
 
-        ShowGameObjectMaterialInfo( *mesh );
+        if (mesh != nullptr) {
+            ShowGameObjectMaterialInfo( *mesh );
+        }
 
         ImGui::Indent();
     }
@@ -1411,51 +1445,21 @@ namespace Mikoto {
     }
 
     InspectorPanel::InspectorPanel( const InspectorPanelCreateInfo& createInfo )
-        : m_TargetScene{ createInfo.TargetScene },
+        : Panel{ StringUtils::MakePanelName( ICON_MD_ERROR_OUTLINE, GetInspectorPanelName() ) },
+          m_TargetScene{ createInfo.TargetScene },
           m_GetActiveEntityCallback{ createInfo.GetActiveEntityCallback },
-          m_SetActiveEntityCallback{ createInfo.SetActiveEntityCallback } {
-        m_PanelHeaderName = StringUtils::MakePanelName( ICON_MD_ERROR_OUTLINE, GetInspectorPanelName() );
+          m_SetActiveEntityCallback{ createInfo.SetActiveEntityCallback }
+    {}
 
-        AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
-        FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
-
-        TextureLoadInfo textureLoadInfo{
-            .Path{ PathBuilder()
-                           .WithPath( fileSystem.GetIconsRootPath().string() )
-                           .WithPath( "emptyTexture.png" )
-                           .Build()
-                           .string() },
-            .Type{ MapType::TEXTURE_2D_DIFFUSE }
-        };
-
-        Texture2D* emptyTexture = dynamic_cast<Texture2D*>( assetsSystem.LoadTexture( textureLoadInfo ) );
-
-        if ( emptyTexture != nullptr ) {
-            m_EmptyTexturePlaceHolder = emptyTexture;
-        }
-
-        if ( !m_EmptyTexturePlaceHolder ) {
-            MKT_CORE_LOGGER_ERROR( "InspectorPanel::InspectorPanel - Could not load empty texture placeholder for inspector channel!" );
-        }
-    }
-
-    auto InspectorPanel::DrawComponents( Entity& entity ) -> void {
+    auto InspectorPanel::DrawComponents( Entity& entity ) const -> void {
         if ( !entity.IsValid() ) {
             return;
         }
 
-        // TODO: Some functions need to display textures as images with ImGui and ImGui expects VkDescriptorSet for texture IDs in Vulkan
-        VkDescriptorSet displayTexturesDescriptorSet{ /* Cache in the inspector panel and fech here*/};
-
-        // TODO: alternatively we can creatre the dsets within this map calling ImGuiAdd_texture(dont forget to call the destroy one)
-        // and pass this map. The textures have their own map id so we can easily identiy them
-        // this makes it easy to not update descriptor sets and write them evry frame
-        // see: GetDescriptorSetById( id );
-
-        DrawComponent<TransformComponent>( fmt::format( "{} Transform", ICON_MD_DEVICE_HUB ), entity, SetupTransformComponentTab, false );
+        DrawComponent<TransformComponent>( fmt::format( "{} Transform", ICON_MD_DEVICE_HUB ), entity, [&]( Entity& target ) -> void { SetupTransformComponentTab( target, m_TargetScene ); }, false );
         DrawComponent<MaterialComponent>( fmt::format( "{} Material", ICON_MD_INSIGHTS ), entity, SetupMaterialComponentTab );
         DrawComponent<PhysicsComponent>( fmt::format( "{} Physics", ICON_MD_FITNESS_CENTER ), entity, SetupPhysicsComponentTab );
-        DrawComponent<RenderComponent>( fmt::format( "{} Mesh", ICON_MD_VIEW_IN_AR ), entity, [&](Entity& target) -> void{  SetupRenderComponentTab(target, m_TargetScene); }, false );
+        DrawComponent<RenderComponent>( fmt::format( "{} Mesh", ICON_MD_VIEW_IN_AR ), entity, [&]( Entity& target ) -> void { SetupRenderComponentTab( target, m_TargetScene ); }, false );
         DrawComponent<LightComponent>( fmt::format( "{} Light", ICON_MD_LIGHT ), entity, SetupLightComponentTab );
         DrawComponent<AudioComponent>( fmt::format( "{} Audio", ICON_MD_AUDIOTRACK ), entity, SetupAudioComponentTab );
         DrawComponent<CameraComponent>( fmt::format( "{} Camera", ICON_MD_CAMERA_ALT ), entity, SetupCameraComponentTab );
@@ -1486,4 +1490,4 @@ namespace Mikoto {
             ImGui::End();
         }
     }
-}
+}// namespace Mikoto

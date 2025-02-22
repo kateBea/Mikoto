@@ -173,6 +173,7 @@ namespace Mikoto {
         MaterialComponent(MaterialComponent&&) = default;
         auto operator=(MaterialComponent&&) -> MaterialComponent& = default;
 
+        MKT_NODISCARD auto HasMaterial() const -> bool { return m_Material != nullptr; }
         MKT_NODISCARD auto GetMaterial() -> Material& { return *m_Material; }
         MKT_NODISCARD auto GetMaterial() const -> const Material& { return *m_Material; }
 

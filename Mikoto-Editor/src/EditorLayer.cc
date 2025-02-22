@@ -242,7 +242,7 @@ namespace Mikoto {
         m_PanelRegistry.Register<HierarchyPanel>(hierarchyPanelCreateInfo);
         m_PanelRegistry.Register<SettingsPanel>( settingsPanelCreateInfo );
         m_PanelRegistry.Register<InspectorPanel>(inspectorPanelCreateInfo);
-        m_PanelRegistry.Register<ContentBrowserPanel>( std::move( Path_T{ m_AssetsRootDirectory } ) );
+        m_PanelRegistry.Register<ContentBrowserPanel>();
         m_PanelRegistry.Register<ScenePanel>(scenePanelCreateInfo);
     }
 

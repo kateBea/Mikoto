@@ -49,7 +49,14 @@ namespace Mikoto {
     }
 
     auto VulkanTexture2D::Create( const VulkanTexture2DCreateInfo& data ) -> Scope_T<VulkanTexture2D> {
-        return CreateScope<VulkanTexture2D>( data );
+        auto result{ CreateScope<VulkanTexture2D>( data ) };
+
+        // Could not create a valid texture
+        if (result == nullptr || result->m_Image == nullptr) {
+            return nullptr;
+        }
+
+        return std::move( result );
     }
 
     auto VulkanTexture2D::Release() -> void {
@@ -74,11 +81,20 @@ namespace Mikoto {
 
     auto VulkanTexture2D::LoadImageData( const Path_T& path ) -> void {
         FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
-        const File* textureFile{ fileSystem.LoadFile( path ) };
+
+        const File* textureFile{ nullptr };
+
+        if (path.extension() == ".tif") {
+            // Look for the PNG version instead
+            Path_T pngVersion{ path };
+            pngVersion.replace_extension( ".png" );
+            textureFile = fileSystem.LoadFile( pngVersion );
+        } else {
+            textureFile = fileSystem.LoadFile( path );
+        }
 
         if (textureFile == nullptr) {
-            MKT_CORE_LOGGER_ERROR( "VulkanTexture2D::LoadImageData - Failed to load texture file." );
-            return;
+            MKT_THROW_RUNTIME_ERROR( "VulkanTexture2D::LoadImageData - Failed to load texture file." );
         }
 
         m_File = textureFile;
@@ -86,14 +102,14 @@ namespace Mikoto {
         stbi_set_flip_vertically_on_load( true );
 
         m_FileData = stbi_load(
-            textureFile->GetPathCStr(),
+            m_File->GetPathCStr(),
             std::addressof( m_Width ),
             std::addressof( m_Height ),
             std::addressof( m_Channels ),
             STBI_rgb_alpha );
 
         if ( !m_FileData ) {
-            MKT_THROW_RUNTIME_ERROR( fmt::format( "VulkanTexture2D - Failed to load texture image! File: [{}]", path.string() ) );
+            MKT_THROW_RUNTIME_ERROR( fmt::format( "VulkanTexture2D - Failed to load texture image! File: [{}]", m_File->GetPathCStr() ) );
         }
 
         // since we use STBI_rgb_alpha, stb will load the image with four

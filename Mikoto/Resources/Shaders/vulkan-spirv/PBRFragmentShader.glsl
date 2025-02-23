@@ -17,9 +17,9 @@ layout (location = 3) in vec2 inTexCoord;
 layout (location = 4) in vec2 inVertexColor;
 
 // Output variables
-layout (location = 0) out vec4 fragmentColor;
+layout (location = 0) out vec4 outColor;
 
 void main() {
 
-    fragmentColor = vec4(inColor.rgb, 1.0);
+    outColor = vec4(inColor.rgb, 1.0);
 }

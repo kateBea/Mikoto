@@ -38,6 +38,7 @@ namespace Mikoto {
         auto Update( double deltaTime ) -> void;
 
         auto DestroyEntity( UInt64_T uniqueID ) -> bool;
+        auto RemoveEntity( UInt64_T uniqueID ) -> void;
 
         auto FindEntityByID( UInt64_T uniqueID ) -> Entity*;
         auto FindFirstEntityByName( std::string_view name ) -> Entity*;
@@ -68,6 +69,8 @@ namespace Mikoto {
         auto RemoveFromEntities( UInt64_T uniqueID ) -> Scope_T<Entity>;
         auto RemoveFromHierarchy( Entity& target ) -> void;
 
+        auto RemoveQueuedEntities() -> void;
+
     private:
         std::string m_Name{};
         entt::registry m_Registry{};
@@ -77,6 +80,10 @@ namespace Mikoto {
         // useful if we want to recursively apply transformations for instance starting from a root
         // node down to its children in the hierarchy
         GenTree<Entity*> m_Hierarchy{};
+
+        // We can queue entities to be removed from the scene
+        // And remove them when we see fit.
+        std::vector<UInt64_T> m_ToRemoveEntities{};
 
         std::vector<Entity*> m_Lights{};
         std::vector<Scope_T<Entity>> m_Entities{};

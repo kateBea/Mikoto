@@ -150,6 +150,21 @@ namespace Mikoto::ImGuiUtils {
 
         ImGui::PopStyleVar();
     }
+
+    inline auto ToolTip( const std::function<void()>& func, const bool enable ) -> void {
+        ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 1.0f);
+
+        if (enable && ImGui::BeginTooltip()) {
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+
+            func();
+
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+        }
+
+        ImGui::PopStyleVar();
+    }
 }
 
 #endif // MIKOTO_IMGUI_UTILS_HH

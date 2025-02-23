@@ -45,7 +45,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetExtension() const -> const std::string& { return m_Extension; }
         MKT_NODISCARD auto GetPathCStr() const -> CStr_T { return m_Path.c_str(); }
         MKT_NODISCARD auto GetFileContents() const -> const std::string& { return m_Contents; }
-        MKT_NODISCARD auto GetSize() const -> Size_T { return m_Size / 1'000; }
+        MKT_NODISCARD auto GetSize() const -> double { return static_cast<double>(m_Size) / 1'000'000.0; }
         MKT_NODISCARD auto GetType() const -> FileType { return m_Type; }
         MKT_NODISCARD auto GetSizBytes() const -> Size_T { return m_Size; }
         MKT_NODISCARD auto IsDirectory() const -> bool { return std::filesystem::is_directory( m_Path ); }

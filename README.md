@@ -23,11 +23,12 @@
 | Image Loading             | Support for loading and using textures/images     | ✅             |
 | Blinn-Phong Lighting      | Basic lighting model implementation               | ✅             |
 | Entity Component System   | Management of scene game objects through ECS      | ✅             |
-| Game Object Serialization | Save and load objects to/from disk                | ❌            |
+| Game Object Serialization | Save and load objects to/from disk                | ❌             |
 | Particle System           | Visual particle effects like smoke, fire, etc.    | ❌             |
 | Vulkan Ray Tracing        | Support for Vulkan RayTracing                     | ❌             |
 | Physics Integration       | Basic collision detection and response            | ❌             |
 | UI Integration (ImGui)    | Immediate mode GUI for runtime/editor UI          | ✅             |
+| Texture loading           | Support for loading texture images                | ✅             |
 | Animation System          | Skeletal animation and keyframe interpolation     | ❌             |
 | Audio Support             | Load and play sound effects and background music  | ❌             |
 

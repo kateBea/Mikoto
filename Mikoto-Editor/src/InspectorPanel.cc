@@ -25,6 +25,7 @@
 #include <GUI/ImGuiManager.hh>
 #include <GUI/ImGuiUtils.hh>
 #include <Library/Filesystem/PathBuilder.hh>
+#include <Library/Math/Math.hh>
 #include <Material/Material/StandardMaterial.hh>
 #include <Panels/InspectorPanel.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
@@ -168,52 +169,47 @@ namespace Mikoto {
         }
     }
 
-    static auto ShowTextureHoverTooltip( Texture2D* texture ) -> void {
-        if ( ImGui::IsItemHovered() &&
-             ImGui::BeginTooltip() /** && has albedo map, otherwise it display info about the */ ) {
+    static auto ShowTextureHoverTooltip( const Texture2D* texture ) -> void {
+        ImGuiUtils::PushImageButton( texture->GetID().Get(), GetDescriptorSetById( texture ), ImVec2{ 128, 128 } );
 
-            ImGuiUtils::PushImageButton( texture->GetID().Get(), GetDescriptorSetById( texture ), ImVec2{ 128, 128 } );
+        ImGui::SameLine();
 
-            ImGui::SameLine();
+        // Table showings texture properties
+        constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
 
-            // Table showings texture properties
-            constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
+        if ( ImGui::BeginTable( "MaterialEditorDiffusePropertiesTable", 2, tableFlags ) ) {
+            // First row - first colum
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+            ImGui::TextUnformatted( "Dimensions" );
 
-            if ( ImGui::BeginTable( "MaterialEditorDiffusePropertiesTable", 2, tableFlags ) ) {
-                // First row - first colum
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
-                ImGui::TextUnformatted( "Dimensions" );
+            // First row - second colum
+            ImGui::TableSetColumnIndex( 1 );
+            UInt32_T width{ static_cast<UInt32_T>( texture->GetWidth() ) };
+            UInt32_T height{ static_cast<UInt32_T>( texture->GetHeight() ) };
+            ImGui::TextUnformatted( fmt::format( "{} x {}", width, height ).c_str() );
 
-                // First row - second colum
-                ImGui::TableSetColumnIndex( 1 );
-                UInt32_T width{ static_cast<UInt32_T>( texture->GetWidth() ) };
-                UInt32_T height{ static_cast<UInt32_T>( texture->GetHeight() ) };
-                ImGui::TextUnformatted( fmt::format( "{} x {}", width, height ).c_str() );
+            // Second row - first colum
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+            ImGui::TextUnformatted( "Type" );
 
-                // Second row - first colum
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
-                ImGui::TextUnformatted( "Type" );
+            // Second row - second colum
+            ImGui::TableSetColumnIndex( 1 );
+            ImGui::TextUnformatted( GetFileExtensionName( texture->GetFile()->GetType() ).data() );
 
-                // Second row - second colum
-                ImGui::TableSetColumnIndex( 1 );
-                ImGui::TextUnformatted( GetFileExtensionName( texture->GetFile()->GetType() ).data() );
+            // Third row - first colum
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+            ImGui::TextUnformatted( "File size" );
 
-                // Third row - first colum
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
-                ImGui::TextUnformatted( "File size" );
+            // Third row - second colum
+            ImGui::TableSetColumnIndex( 1 );
+            ImGui::TextUnformatted( fmt::format( "{} MB", Math::Round( texture->GetFile()->GetSize(), 2 ) ).c_str() );
 
-                // Third row - second colum
-                ImGui::TableSetColumnIndex( 1 );
-                ImGui::TextUnformatted( fmt::format( "{:.2f} MB", 0.0f /* TODO */ ).c_str() );
-
-                ImGui::EndTable();
-            }
-
-            ImGui::EndTooltip();
+            ImGui::EndTable();
         }
+
         if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
     }
 
@@ -266,13 +262,19 @@ namespace Mikoto {
                 UpdateMaterialTexture( standardMat, MapType::TEXTURE_2D_DIFFUSE );
             }
 
-            if ( ImGui::IsItemHovered() ) {
-                ImGuiUtils::ToolTip( "Click me to load a texture." );
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+            if ( standardMat.HasDiffuseMap() ) {
+                ImGuiUtils::ToolTip( [&]() -> void {
+                    ShowTextureHoverTooltip( diffuseMap );
+                }, ImGui::IsItemHovered() );
             }
 
-            if ( standardMat.HasDiffuseMap() ) {
-                ShowTextureHoverTooltip( diffuseMap );
+            if ( ImGui::IsItemHovered()) {
+
+                if ( !standardMat.HasDiffuseMap() ) {
+                    ImGuiUtils::ToolTip( "Click me to load a texture." );
+                }
+
+                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
             }
 
             ImGui::SameLine();
@@ -330,13 +332,19 @@ namespace Mikoto {
                 UpdateMaterialTexture( standardMat, MapType::TEXTURE_2D_SPECULAR );
             }
 
-            if ( ImGui::IsItemHovered() ) {
-                ImGuiUtils::ToolTip( "Click me to load a texture." );
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+            if ( standardMat.HasSpecularMap() ) {
+                ImGuiUtils::ToolTip( [&]() -> void {
+                    ShowTextureHoverTooltip( specularMap );
+                }, ImGui::IsItemHovered() );
             }
 
-            if ( standardMat.HasSpecularMap() ) {
-                ShowTextureHoverTooltip( specularMap );
+            if ( ImGui::IsItemHovered()) {
+
+                if (!standardMat.HasSpecularMap()) {
+                    ImGuiUtils::ToolTip( "Click me to load a texture." );
+                }
+
+                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
             }
 
             ImGui::SameLine();

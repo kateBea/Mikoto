@@ -6,6 +6,8 @@
 #ifndef MIKOTO_MATH_HH
 #define MIKOTO_MATH_HH
 
+#include <cmath>
+
 // Third-Party Libraries
 #include "glm/glm.hpp"
 
@@ -26,6 +28,11 @@ namespace Mikoto::Math {
      * */
     MKT_UNUSED_FUNC MKT_NODISCARD inline auto MakeDir(float x, float y, float z) -> glm::vec4 {
         return { x, y, z, .0f };
+    }
+
+    MKT_NODISCARD inline auto Round( const double value, const Size_T decimalsCount) -> double {
+        const double factor{ std::pow(10, decimalsCount) };
+        return std::round( value * factor ) / factor;
     }
 }
 

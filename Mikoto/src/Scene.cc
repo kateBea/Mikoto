@@ -253,8 +253,8 @@ namespace Mikoto {
 
         // For each mesh from the model we create an entity,
         // The idea later is to be able to construct one mesh from individual meshes
-        // and not split them as it is right now
-        Entity* newEntityRoot{ AddEmptyEntity(createInfo.Name, createInfo.Root) };
+        // and not split them as it is right now. Although if the root is not empty
+        Entity* newEntityRoot{  AddEmptyEntity(createInfo.Name, createInfo.Root) };
 
         for (auto& mesh : createInfo.ModelMesh->GetMeshes()) {
             // If there is only one child, and we already have a root entity,

@@ -836,7 +836,7 @@ namespace Mikoto {
 
         ImGui::SameLine();
 
-        Path_T path{ "Empty" };
+        Path_T path{ "" };
 
         const Mesh* mesh{ component.GetMesh() };
 
@@ -844,8 +844,14 @@ namespace Mikoto {
             path = mesh->GetDirectory().string();
         }
 
-        std::string formatedPath{ fmt::format( "{}", path.string() ) };
-        ImGui::InputText( "##PathToModel", formatedPath.data(), formatedPath.size(), ImGuiInputTextFlags_ReadOnly );
+        // Imgui Will need this later, so the buffer must still exist
+        // can't be made a with automatic storage duration
+        static std::string formatedPath{  };
+        formatedPath = fmt::format( "{}", path.string());
+
+        // See imgui assert on the size of the buffer
+        // formatedPath.size() already includes the terminator
+        ImGui::InputText( "##PathToModel", formatedPath.data(), formatedPath.size() + 1, ImGuiInputTextFlags_ReadOnly );
 
         ImGui::SameLine();
 
@@ -873,7 +879,7 @@ namespace Mikoto {
                 const Model* model{ assetsSystem.LoadModel( modelLoadInfo ) };
 
                 const EntityCreateInfo entityCreateInfo{
-                    .Name = component.GetName(),
+                    .Name = path.stem().string(),
                     .Root = std::addressof( entity ),
                     .ModelMesh = model,
                 };

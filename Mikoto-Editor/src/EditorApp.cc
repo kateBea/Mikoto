@@ -51,6 +51,7 @@ namespace Mikoto {
             MKT_STACK_TRACE();
 
             MKT_COLOR_STYLE_PRINT_FORMATTED( MKT_FMT_COLOR_RED, MKT_FMT_STYLE_BOLD, "{}", exception.what() );
+
             exitCode = EXIT_FAILURE;
         }
 
@@ -198,17 +199,6 @@ namespace Mikoto {
             // Update the layers. We determine the state of the application
             // In the Editor layer we will update the scene, the camera, and the renderer
             UpdateLayers();
-
-#if !( NDEBUG )
-            const auto& inputSystem{ Engine::GetSystem<InputSystem>() };
-            auto& taskSystem{ Engine::GetSystem<TaskSystem>() };
-            if (inputSystem.IsKeyPressed(Key_Left_Alt, m_MainWindow.get())) {
-                taskSystem.Execute(
-                        [&]() -> void {
-                            MKT_APP_LOGGER_DEBUG("You pressed Key_Left_Alt. Hi :) Count workers: {}", taskSystem.GetWorkersCount());
-                        });
-            }
-#endif
 
             Engine::UpdateState();
 

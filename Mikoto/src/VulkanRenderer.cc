@@ -644,13 +644,13 @@ namespace Mikoto {
         SubmitCommands();
     }
 
-    auto VulkanRenderer::AddToDrawQueue( const UInt64_T id, const Mesh&data, const glm::mat4& transform, Material &material ) -> bool {
-        const auto it{ m_DrawQueue.find( id ) };
+    auto VulkanRenderer::AddToDrawQueue(  const EntityQueueInfo& queueInfo ) -> bool {
+        const auto it{ m_DrawQueue.find( queueInfo.Tag.GetGUID() ) };
 
         MeshRenderInfo info{
-            .Object = std::addressof( data ),
-            .Transform{ transform },
-            .MaterialData = dynamic_cast<VulkanStandardMaterial*>( std::addressof( material ) ),
+            .Object = queueInfo.Render.GetMesh(),
+            .Transform{ queueInfo.Transform.GetTransform() },
+            .MaterialData = dynamic_cast<VulkanStandardMaterial*>( std::addressof( queueInfo.Material.GetMaterial() ) ),
         };
 
         if ( it != m_DrawQueue.end() ) {
@@ -659,7 +659,7 @@ namespace Mikoto {
         }
 
         auto [insertIt, success] {
-            m_DrawQueue.try_emplace( id, info )
+            m_DrawQueue.try_emplace( queueInfo.Tag.GetGUID(), info )
         };
 
         return success;

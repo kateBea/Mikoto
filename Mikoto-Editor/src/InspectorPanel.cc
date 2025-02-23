@@ -497,7 +497,7 @@ namespace Mikoto {
 
             // Third row - second colum
             ImGui::TableSetColumnIndex( 1 );
-            ImGui::TextUnformatted( fmt::format( "{:.2f} MB", 0.0f /* TODO:*/ ).c_str() );
+            ImGui::TextUnformatted( fmt::format( "{} MB", Math::Round( map->GetFile()->GetSize(), 2 ) ).c_str() );
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
@@ -602,11 +602,13 @@ namespace Mikoto {
         }
     }
 
-    static auto DrawVec3Transform( const std::string_view label, glm::vec3& data, const double resetValue = 0.0, const double columWidth = 100.0 ) -> void {
+    static auto DrawVec3Transform( const std::string_view label, glm::vec3& data, const double resetValue = 0.0, const double columWidth = 100.0, bool uniform = false ) -> void {
         // This Group is part of a unique label
         const std::string labelId{ fmt::format( "{}:{}", MKT_STRINGIFY( DrawVec3Transform ), label.data() ) };
 
         ImGui::PushID( labelId.data() );
+
+        glm::vec3 oldValue{ data };
 
         ImGui::Columns( 2 );
         ImGui::SetColumnWidth( 0, static_cast<float>( columWidth ) );
@@ -629,7 +631,6 @@ namespace Mikoto {
         if ( ImGui::IsItemHovered() ) {
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
         }
-
 
         ImGui::SameLine();
         ImGui::DragFloat( "##X", &data.x, 0.1f, 0.0f, 0.0f, "%.2f" );
@@ -671,6 +672,38 @@ namespace Mikoto {
 
         ImGui::SameLine();
         ImGui::DragFloat( "##Z", &data.z, 0.1f, 0.0f, 0.0f, "%.2f" );
+
+        // We take the offset from the first component that has changed to compute the end values for the other two components
+        // if the end result and the start result are different, we set the other two components to the same value
+        // TODO: review
+        if ( uniform ) {
+            float offSetX{ 0 };
+            float offSetY{ 0 };
+            float offSetZ{ 0 };
+
+            if ( data.x != oldValue.x ) {
+                offSetX = oldValue.x - data.x;
+            } else if ( data.y != oldValue.y ) {
+                offSetY = oldValue.y - data.y;
+            } else if ( data.z != oldValue.z ) {
+                offSetZ = oldValue.z - data.z;
+            }
+
+            if (offSetX != 0) {
+                data.y += offSetX;
+                data.z += offSetX;
+            }
+
+            if (offSetY != 0) {
+                data.x += offSetY;
+                data.z += offSetY;
+            }
+
+            if (offSetZ != 0) {
+                data.x += offSetZ;
+                data.y += offSetZ;
+            }
+        }
 
         ImGui::PopStyleColor( 3 );
         ImGui::PopItemWidth();
@@ -730,7 +763,17 @@ namespace Mikoto {
 
         DrawVec3Transform( "Translation", translation );
         DrawVec3Transform( "Rotation", rotation );
-        DrawVec3Transform( "Scale", scale, 1.0 );
+
+        static bool uniformScale{ false };
+        DrawVec3Transform( "Scale", scale, 1.0, 100.0, uniformScale );
+        ImGui::SameLine(  );
+        ImGui::Checkbox( "##SetupTransformComponentTab:UniformScale", std::addressof( uniformScale ) );
+
+        if (ImGui::IsItemHovered(  )) {
+            ImGuiUtils::ToolTip( "Enable uniform scaling" );
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
 
         transformComponent.SetTranslation( translation );
         transformComponent.SetRotation( rotation );

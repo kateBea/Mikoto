@@ -50,7 +50,6 @@ namespace Mikoto {
             } );
         }
 
-
         auto ShowPasses( ImGuiTreeNodeFlags treeNodeFlags ) -> void {
 
             if (ImGui::TreeNodeEx( reinterpret_cast<const void *>( "RenderPanelViewport_VkImpl::ShowPasses" ), treeNodeFlags, "%s", "Passes")) {
@@ -95,6 +94,14 @@ namespace Mikoto {
                 // Index 0 is the final output
                 if (m_CurrentPassSelectionIndex == 0) {
                     ImGui::Spacing();
+
+
+                    // Reduce the output image to not take the whole window
+                    m_ViewPortHeight *= 0.8f;
+                    m_ViewPortWidth *= 0.8f;
+
+                    m_ViewPortWidth = std::max( m_ViewPortWidth, m_ViewPortHeight / m_EditorMainCamera->GetAspectRatio() );
+
                     ImGui::Image( reinterpret_cast<ImTextureID>( m_ColorAttachmentDescriptorSet ),
                     ImVec2{ m_ViewPortWidth, m_ViewPortHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
                 }

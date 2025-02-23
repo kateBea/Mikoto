@@ -58,6 +58,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetFOV() const -> float { return m_FieldOfView; }
         MKT_NODISCARD auto GetNearPlane() const -> float { return m_NearClip; }
         MKT_NODISCARD auto GetFarPlane() const -> float { return m_FarClip; }
+        MKT_NODISCARD auto GetAspectRatio() const -> float { return m_ViewportWidth / m_ViewportHeight; }
 
 
         /**

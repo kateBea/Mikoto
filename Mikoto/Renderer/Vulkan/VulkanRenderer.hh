@@ -45,7 +45,7 @@ namespace Mikoto {
         auto EnableWireframe( bool enable ) -> void override;
 
         auto RemoveFromDrawQueue( UInt64_T id ) -> bool override;
-        auto AddToDrawQueue( UInt64_T id, const Mesh&data, const glm::mat4& transform, Material &material ) -> bool override;
+        auto AddToDrawQueue(  const EntityQueueInfo& queueInfo ) -> bool override;
 
         auto SetViewport( float x, float y, float width, float height ) -> void override;
 
@@ -60,7 +60,11 @@ namespace Mikoto {
     private:
         struct MeshRenderInfo {
             const Mesh* Object{};
+
             glm::mat4 Transform{};
+
+            bool IsRendered{ false };
+
             // For now we assume the
             // mesh has only one material
             Material* MaterialData{};

@@ -25,13 +25,6 @@ namespace Mikoto {
 
     class PBRMaterial : public Material {
     public:
-        explicit PBRMaterial( const std::string_view name = "PBR" )
-            : Material{ name, MaterialType::PBR } {
-        }
-
-        PBRMaterial( const PBRMaterial& other ) = default;
-        auto operator=( const PBRMaterial& other ) -> PBRMaterial& = default;
-
         MKT_NODISCARD auto HasAlbedoMap() const -> bool { return m_AlbedoMap != nullptr; }
         MKT_NODISCARD auto HasNormalMap() const -> bool { return m_NormalMap != nullptr; }
         MKT_NODISCARD auto HasMetallicMap() const -> bool { return m_MetallicMap != nullptr; }
@@ -49,8 +42,17 @@ namespace Mikoto {
         ~PBRMaterial() override = default;
 
     protected:
+        explicit PBRMaterial( const std::string_view name = "PBR" )
+            : Material{ name, MaterialType::PBR } {
+        }
+
+    protected:
+        bool m_HasAlbedoTexture{ true };
         bool m_HasSpecularTexture{ true };
-        bool m_HasDiffuseTexture{ true };
+        bool m_HasNormalTexture{ true };
+        bool m_HasMetallicTexture{ true };
+        bool m_HasRoughnessTexture{ true };
+        bool m_HasAmbientOcclusionTexture{ true };
 
         Texture2D* m_AlbedoMap{};
         Texture2D* m_NormalMap{};

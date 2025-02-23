@@ -27,8 +27,8 @@ namespace Mikoto {
 
         auto Bind(VkCommandBuffer commandBuffer) const -> void;
 
-        MKT_NODISCARD static auto GetDefaultBindingDescriptions() -> std::vector<VkVertexInputBindingDescription>;
-        MKT_NODISCARD static auto GetDefaultAttributeDescriptions() -> std::vector<VkVertexInputAttributeDescription>;
+        MKT_NODISCARD static auto GetDefaultBindingDescriptions(const BufferLayout& layout = GetDefaultBufferLayout()) -> std::vector<VkVertexInputBindingDescription>;
+        MKT_NODISCARD static auto GetDefaultAttributeDescriptions(const BufferLayout& layout = GetDefaultBufferLayout()) -> std::vector<VkVertexInputAttributeDescription>;
 
         MKT_NODISCARD static auto Create(const VertexBufferCreateInfo& createInfo) -> Scope_T<VulkanVertexBuffer>;
 

@@ -42,7 +42,7 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanVertexBuffer::GetDefaultBindingDescriptions() -> std::vector<VkVertexInputBindingDescription> {
+    auto VulkanVertexBuffer::GetDefaultBindingDescriptions(const BufferLayout& layout ) -> std::vector<VkVertexInputBindingDescription> {
         // All of our per-vertex data is packed together in one array, so we're only going to have one binding.
         // See: https://vulkan-tutorial.com/Vertex_buffers/Vertex_input_description
 
@@ -50,14 +50,14 @@ namespace Mikoto {
 
         bindingDescriptions[0] = {};
         bindingDescriptions[0].binding = 0;
-        bindingDescriptions[0].stride = s_DefaultBufferLayout.GetStride();
+        bindingDescriptions[0].stride = layout.GetStride();
         bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // not using instanced rendering, so we'll stick to per-vertex data.
 
         return bindingDescriptions;
     }
 
-    auto VulkanVertexBuffer::GetDefaultAttributeDescriptions() -> std::vector<VkVertexInputAttributeDescription> {
-        auto attributeDescriptions{ std::vector<VkVertexInputAttributeDescription>( s_DefaultBufferLayout.GetCount() ) };
+    auto VulkanVertexBuffer::GetDefaultAttributeDescriptions(const BufferLayout& layout ) -> std::vector<VkVertexInputAttributeDescription> {
+        auto attributeDescriptions{ std::vector<VkVertexInputAttributeDescription>( layout.GetCount() ) };
 
         /**
          * The binding parameter tells Vulkan from which binding the per-vertex data comes.
@@ -75,8 +75,8 @@ namespace Mikoto {
             attributeDescriptions[index] = {};
             attributeDescriptions[index].binding = 0;
             attributeDescriptions[index].location = index;
-            attributeDescriptions[index].format = VulkanHelpers::GetVulkanAttributeDataType( s_DefaultBufferLayout[index].GetType() );
-            attributeDescriptions[index].offset = s_DefaultBufferLayout[index].GetOffset();
+            attributeDescriptions[index].format = VulkanHelpers::GetVulkanAttributeDataType( layout[index].GetType() );
+            attributeDescriptions[index].offset = layout[index].GetOffset();
         }
 
         return attributeDescriptions;

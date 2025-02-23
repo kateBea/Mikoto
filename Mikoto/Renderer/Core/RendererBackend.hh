@@ -21,6 +21,7 @@
 #include <Material/Core/Material.hh>
 #include <Models/LightData.hh>
 #include <Scene/Camera/SceneCamera.hh>
+#include <Scene/Scene/Component.hh>
 
 namespace Mikoto {
     struct RendererCreateInfo {
@@ -28,6 +29,13 @@ namespace Mikoto {
         UInt32_T ViewportHeight{};
 
         GraphicsAPI Api{ GraphicsAPI::VULKAN_API };
+    };
+
+    struct EntityQueueInfo {
+        TagComponent& Tag;
+        RenderComponent& Render;
+        MaterialComponent& Material;
+        TransformComponent& Transform;
     };
 
     class RendererBackend {
@@ -44,7 +52,7 @@ namespace Mikoto {
 
         // Queues a game object for rendering
         virtual auto RemoveFromDrawQueue( UInt64_T id ) -> bool = 0;
-        virtual auto AddToDrawQueue( UInt64_T id, const Mesh&data, const glm::mat4& transform, Material &material ) -> bool = 0;
+        virtual auto AddToDrawQueue( const EntityQueueInfo& queueInfo ) -> bool = 0;
 
         virtual auto RemoveLight( UInt64_T id ) -> bool = 0;
         virtual auto AddLight( UInt64_T id, const LightData& data, LightType activeType) -> bool = 0;

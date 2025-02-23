@@ -13,13 +13,13 @@
 #include <Models/LightData.hh>
 #include <Renderer/Vulkan/VulkanBuffer.hh>
 #include <Renderer/Vulkan/VulkanDescriptorManager.hh>
-
-#include "VulkanTexture2D.hh"
+#include <Renderer/Vulkan/VulkanTexture2D.hh>
 
 namespace Mikoto {
+
     class VulkanPBRMaterial final : public PBRMaterial {
     public:
-        explicit VulkanPBRMaterial(const PBRMaterialCreateSpec& spec, std::string_view name = GetName());
+        explicit VulkanPBRMaterial(const PBRMaterialCreateSpec& spec);
 
         auto SetView(const glm::mat4& mat) -> void { m_VertexUniformData.View = mat; }
         auto SetProjection(const glm::mat4& mat) -> void { m_VertexUniformData.Projection = mat; }
@@ -30,8 +30,6 @@ namespace Mikoto {
         auto UpdateLightsInfo() -> void;
         auto UploadUniformBuffers() -> void;
         auto UpdateDescriptorSets() -> void;
-
-        MKT_NODISCARD static auto GetName() -> std::string_view { return "PBRMaterial"; }
 
     private:
         struct VertexUniformBufferData {

@@ -35,11 +35,12 @@ namespace Mikoto {
             TransformComponent& transformComponent{ m_Registry.get<TransformComponent>( entity ) };
 
             if ( tagComponent.IsVisible() && renderComponent.HasMesh() ) {
-                m_SceneRenderer->AddToDrawQueue(
-                    tagComponent.GetGUID(),
-                    *renderComponent.GetMesh(),
-                    transformComponent.GetTransform(),
-                    materialComponent.GetMaterial());
+                m_SceneRenderer->AddToDrawQueue({
+                    .Tag{ tagComponent },
+                    .Render{ renderComponent },
+                    .Material{ materialComponent },
+                    .Transform{ transformComponent }
+                });
             }
         }
 

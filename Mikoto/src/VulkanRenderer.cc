@@ -225,7 +225,7 @@ namespace Mikoto {
         renderPassInfo.clearValueCount = static_cast<UInt32_T>( m_ClearValues.size() );
         renderPassInfo.pClearValues = m_ClearValues.data();
 
-        UpdateViewport( 0, static_cast<float>( m_OffscreenExtent.height ), static_cast<float>( m_OffscreenExtent.width ), -static_cast<float>( m_OffscreenExtent.height ) );
+        UpdateViewport( 0, 0, static_cast<float>( m_OffscreenExtent.width ), static_cast<float>( m_OffscreenExtent.height ) );
         UpdateScissor( 0, 0, { m_OffscreenExtent.width, m_OffscreenExtent.height } );
 
         vkCmdSetViewport( m_DrawCommandBuffer, 0, 1, std::addressof(m_OffscreenViewport) );
@@ -387,6 +387,9 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::UpdateViewport(const float x, const float y, const float width, const float height ) -> void {
+        // https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport/
+        // As the engine uses Vulkan 1.3, VK_KHR_MAINTENANCE1  is not required since its part of the Core Api since 1.1
+
         m_OffscreenViewport = {
             .x = x,
             .y = y,
@@ -491,8 +494,7 @@ namespace Mikoto {
         CreateOffscreenAttachments();
         CreateOffscreenFramebuffers();
 
-        // https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport/
-        UpdateViewport( 0, static_cast<float>( m_OffscreenExtent.height ), static_cast<float>( m_OffscreenExtent.width ), -static_cast<float>( m_OffscreenExtent.height ) );
+        UpdateViewport( 0, 0, static_cast<float>( m_OffscreenExtent.width ), static_cast<float>( m_OffscreenExtent.height ) );
         UpdateScissor( 0, 0, { m_OffscreenExtent.width, m_OffscreenExtent.height } );
     }
 

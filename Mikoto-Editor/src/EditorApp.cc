@@ -187,14 +187,17 @@ namespace Mikoto {
         if (!m_MainWindow->IsMinimized()) {
             Engine::StartFrame();
 
-            UpdateLayers();
-
-            // Imgui
+            // Handle GUI Logic, this does not render the GUI
+            // Simply updates the GUI state
             auto& editorLayer{ *m_LayerRegistry.Get<EditorLayer>() };
 
             ImGuiManager::BeginFrame();
             editorLayer.PushImGuiDrawItems();
             ImGuiManager::EndFrame();
+
+            // Update the layers. We determine the state of the application
+            // In the Editor layer we will update the scene, the camera, and the renderer
+            UpdateLayers();
 
 #if !( NDEBUG )
             const auto& inputSystem{ Engine::GetSystem<InputSystem>() };

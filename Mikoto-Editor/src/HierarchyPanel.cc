@@ -150,7 +150,7 @@ namespace Mikoto {
 
 
     auto HierarchyPanel::DrawNodeTree( const GenTree<Entity*>::Node& node ) -> void {
-        if (!node.data->IsValid()) {
+        if (node.data != nullptr && !node.data->IsValid()) {
             return;
         }
 
@@ -219,7 +219,10 @@ namespace Mikoto {
             }
 
             if ( ImGui::MenuItem( "Remove object" ) ) {
-                m_TargetScene->DestroyEntity( target.GetComponent<TagComponent>().GetGUID() );
+                m_TargetScene->RemoveEntity( target.GetComponent<TagComponent>().GetGUID() );
+
+                // Deselect the entity
+                m_SetActiveEntityCallback(nullptr);
             }
 
             if ( ImGui::MenuItem( "Create empty object" ) ) {

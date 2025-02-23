@@ -21,6 +21,8 @@
 namespace Mikoto {
 
     auto Scene::Update( double deltaTime ) -> void {
+        RemoveQueuedEntities();
+
         m_SceneRenderer->SetCamera( *m_SceneCamera );
         m_SceneRenderer->SetProjection( m_SceneCamera->GetProjection() );
 
@@ -125,40 +127,51 @@ namespace Mikoto {
 
         // If they are lights erase them
         m_Hierarchy.ForAllChildren(
-            [&](Entity* ent) {
-                if (ent->HasComponent<LightComponent>()) {
-                    RemoveFromLights( ent->GetComponent<TagComponent>().GetGUID() );
-                }
+                [&]( Entity* ent ) {
+                    if ( ent->HasComponent<LightComponent>() ) {
+                        RemoveFromLights( ent->GetComponent<TagComponent>().GetGUID() );
+                    }
 
-                // Add children to be erased
-                entitiesToErase.emplace_back( ent->Get() );
-            },
-            [&target](Entity* ent) {
-                return ent->GetComponent<TagComponent>().GetGUID() ==
-                    target.GetComponent<TagComponent>().GetGUID();
-            } );
+                    // Add children to be erased
+                    entitiesToErase.emplace_back( ent->Get() );
+                },
+                [&target]( Entity* ent ) {
+                    return ent->GetComponent<TagComponent>().GetGUID() ==
+                           target.GetComponent<TagComponent>().GetGUID();
+                } );
 
         // Erase node and its children from the hierarchy
         const auto result{ m_Hierarchy.Erase(
-            [&target](Entity* ent) {
-                return ent->GetComponent<TagComponent>().GetGUID() ==
-                    target.GetComponent<TagComponent>().GetGUID();
-            } )
-        };
+                [&target]( Entity* ent ) {
+                    return ent->GetComponent<TagComponent>().GetGUID() ==
+                           target.GetComponent<TagComponent>().GetGUID();
+                } ) };
 
-        if (result) {
+        if ( result ) {
             // Erase entities from entt structures
-            for (const entt::entity& entity : entitiesToErase) {
+            for ( const entt::entity& entity: entitiesToErase ) {
                 m_Registry.destroy( entity );
             }
         }
     }
 
+    auto Scene::RemoveQueuedEntities() -> void {
+        if (m_ToRemoveEntities.empty()) {
+            return;
+        }
+
+        for ( const UInt64_T entityID: m_ToRemoveEntities ) {
+            DestroyEntity( entityID );
+        }
+
+        m_ToRemoveEntities.clear();
+    }
+
     auto Scene::DestroyEntity( const UInt64_T uniqueID ) -> bool {
         const Scope_T<Entity> target{ RemoveFromEntities( uniqueID ) };
 
-        if (target == nullptr) {
-            return  false;
+        if ( target == nullptr ) {
+            return false;
         }
 
         // Erase children from hierarchy, entities and lights
@@ -167,13 +180,25 @@ namespace Mikoto {
         // Temporarily hold the children to remove them from lights
         std::vector<Scope_T<Entity>> childrenPtrs{};
 
-        for (Entity* child : children) {
+        for ( Entity* child: children ) {
             // Hold the pointer otherwise it gets deleted and then we can't remove it from lights because it's not valid
             childrenPtrs.emplace_back( RemoveFromEntities( child->GetComponent<TagComponent>().GetGUID() ) );
 
-            if (childrenPtrs.back()->HasComponent<LightComponent>()) {
+            if ( childrenPtrs.back()->HasComponent<LightComponent>() ) {
                 RemoveFromLights( child->GetComponent<TagComponent>().GetGUID() );
             }
+        }
+
+        // Erase children from draw queue
+        for ( const auto& child: children ) {
+            if ( child->HasComponent<RenderComponent>() ) {
+                m_SceneRenderer->RemoveFromDrawQueue( child->GetComponent<TagComponent>().GetGUID() );
+            }
+        }
+
+        // Erase parent from draw queue
+        if ( target->HasComponent<RenderComponent>() ) {
+            m_SceneRenderer->RemoveFromDrawQueue( uniqueID );
         }
 
         // Erase parent (which erases children too)
@@ -181,6 +206,10 @@ namespace Mikoto {
         RemoveFromHierarchy( *target );
 
         return true;
+    }
+
+    auto Scene::RemoveEntity( UInt64_T uniqueID ) -> void {
+        m_ToRemoveEntities.emplace_back( uniqueID );
     }
 
     auto Scene::FindEntityByID( const UInt64_T uniqueID ) -> Entity* {

@@ -3,3 +3,9 @@
 //
 
 #include "Panels/MaterialEditorPanel.hh"
+
+namespace Mikoto {
+
+    auto MaterialEditorPanel::OnUpdate( float timeStep ) -> void {
+    }
+}// namespace Mikoto

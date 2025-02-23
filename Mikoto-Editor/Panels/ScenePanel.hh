@@ -10,83 +10,59 @@
 #include <memory>
 
 // Third-Party Libraries
-#include "volk.h"
+#include <volk.h>
 
 // Project Headers
-#include "Common/Common.hh"
-#include "Common/Types.hh"
-#include "HierarchyPanel.hh"
-#include "Panel.hh"
+#include <Common/Common.hh>
+#include <Library/Utility/Types.hh>
+#include <Panels/Panel.hh>
+#include <Renderer/Core/RendererBackend.hh>
+#include <Scene/Scene/Scene.hh>
+#include <GUI/RenderViewport.hh>
 
 namespace Mikoto {
+
+    struct SceneApiCreateInfo {
+        UInt32_T ViewportWidth{};
+        UInt32_T ViewportHeight{};
+
+        Scene* TargetScene{};
+        const RendererBackend* Renderer{};
+
+        const SceneCamera* EditorMainCamera{};
+        std::function<Entity*()> GetActiveEntityCallback{};
+    };
+
+    enum class GuizmoManipulationMode {
+        TRANSLATION,
+        ROTATION,
+        SCALE,
+    };
+
     struct ScenePanelCreateInfo {
-        // This camera is holds the eye to the world (the scene we are editing)
-        const EditorCamera* EditorMainCamera{};
+        UInt32_T Width{};
+        UInt32_T Height{};
+
+        Scene* TargetScene{};
+        const RendererBackend* Renderer{};
+        const SceneCamera* EditorMainCamera{};
+
+        std::function<Entity*()> GetActiveEntityCallback{};
     };
 
-    struct ScenePanelData {
-        float ViewPortWidth{};
-        float ViewPortHeight{};
-    };
-
-    /**
-     * Abstracts away the active ImGui render backend according
-     * to the currently active graphics API.
-     * */
-    class ScenePanelInterface {
+    class ScenePanel final : public Panel {
     public:
-        explicit ScenePanelInterface() = default;
-
-        virtual auto Init_Impl(ScenePanelData&& data) -> void = 0;
-        virtual auto OnUpdate_Impl() -> void = 0;
-
-        auto HandleGuizmos() -> void;
-
-        auto SetEditorCamera(const EditorCamera* camera) -> void {
-            m_EditorMainCamera = camera;
-        }
-
-        MKT_NODISCARD auto GetData() const -> const ScenePanelData& { return m_Data; }
-        MKT_NODISCARD auto GetData() -> ScenePanelData& { return m_Data; }
-
-        virtual ~ScenePanelInterface() = default;
-
-    protected:
-        enum class ManipulationMode {
-            TRANSLATION,
-            ROTATION,
-            SCALE,
-        };
-
-        auto HandleManipulationMode() -> void;
-
-    protected:
-        ScenePanelData m_Data{};
-        const EditorCamera* m_EditorMainCamera{};
-        ManipulationMode m_ActiveManipulationMode{};
-    };
-
-
-    class ScenePanel : public Panel {
-    public:
-        explicit ScenePanel(ScenePanelCreateInfo&& createInfo);
-        auto operator=(ScenePanel&& other) -> ScenePanel& = default;
+        explicit ScenePanel(const ScenePanelCreateInfo& createInfo);
 
         auto OnUpdate(float ts) -> void override;
 
-        MKT_NODISCARD auto GetData() const -> const ScenePanelData& { return m_Implementation->GetData(); }
-        MKT_NODISCARD auto GetData() -> ScenePanelData& { return m_Implementation->GetData(); }
+        MKT_NODISCARD auto GetViewportWidth() const -> float { return m_Implementation->GetViewportWidth(); }
+        MKT_NODISCARD auto GetViewportHeight() const -> float { return m_Implementation->GetViewportHeight(); }
 
         ~ScenePanel() override = default;
 
-    private:
-        auto DrawScenePlayButtons() -> void;
-
     protected:
-        ScenePanelCreateInfo m_CreateInfo{};
-
-        // Contains the ImGui implementation for the currently active graphics backend
-        std::unique_ptr<ScenePanelInterface> m_Implementation{};
+        Scope_T<RenderViewport> m_Implementation{};
     };
 }
 

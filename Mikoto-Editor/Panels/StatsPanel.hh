@@ -10,14 +10,13 @@
 #include <memory>
 
 // Project Headers
-#include "Common/Common.hh"
-#include "Panel.hh"
+#include <Common/Common.hh>
+#include <Panels/Panel.hh>
 
 namespace Mikoto {
-    class StatsPanel : public Panel {
+    class StatsPanel final : public Panel {
     public:
         explicit StatsPanel();
-        auto operator=(StatsPanel&& other) -> StatsPanel& = default;
 
         auto OnUpdate(float timeStep) -> void override;
 
@@ -25,8 +24,6 @@ namespace Mikoto {
         auto UpdateStatsInfo(float timeStep) -> void;
         auto DrawPerformance() -> void;
         auto DrawSystemInfo() -> void;
-        auto DrawActiveSceneInfo() const -> void;
-        auto DrawLightInfo() -> void;
 
     private:
         float m_FrameRate{};

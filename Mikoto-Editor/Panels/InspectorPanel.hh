@@ -8,38 +8,35 @@
 
 // C++ Standard Library
 #include <memory>
-#include <vector>
 
 // Project Headers
-#include "Common/Random.hh"
-#include "Common/Types.hh"
-#include "HierarchyPanel.hh"
-#include "Panel.hh"
+#include <Panels/Panel.hh>
+#include <Scene/Scene/Entity.hh>
 
 namespace Mikoto {
-    class InspectorPanel : public Panel {
-    public:
-        explicit InspectorPanel();
-        auto operator=(InspectorPanel&& other) -> InspectorPanel& = default;
+    struct InspectorPanelCreateInfo {
+        Scene* TargetScene{ nullptr };
+        std::function<Entity*()> GetActiveEntityCallback{};
+        std::function<void(Entity*)> SetActiveEntityCallback{};
+    };
 
-        auto OnUpdate(float timeStep) -> void override;
+    class InspectorPanel final : public Panel {
+    public:
+        explicit InspectorPanel(const InspectorPanelCreateInfo& createInfo);
+
+        auto OnUpdate( float timeStep ) -> void override;
 
         ~InspectorPanel() override = default;
 
     private:
-        auto DrawComponents( Entity& entity ) -> void;
-        auto DrawMaterialComponentEditor(MaterialComponent& material) -> void;
-
-        auto OpenMaterialEditor() -> void;
+        auto DrawComponents( Entity& entity ) const -> void;
 
     private:
-        bool m_OpenMaterialEditor{};
-        std::shared_ptr<Material> m_TargetMaterialForMaterialEditor{};
+        Scene* m_TargetScene{ nullptr };
 
-        std::shared_ptr<Texture2D> m_EmptyTexturePlaceHolder{};
-        std::shared_ptr<Texture2D> m_EmptyMaterialPreviewPlaceHolder{};
+        std::function<Entity*()> m_GetActiveEntityCallback{};
+        std::function<void(Entity*)> m_SetActiveEntityCallback{};
     };
 }
 
-
-#endif // MIKOTO_INSPECTOR_PANEL_HH
+#endif// MIKOTO_INSPECTOR_PANEL_HH

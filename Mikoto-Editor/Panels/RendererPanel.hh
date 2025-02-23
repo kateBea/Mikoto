@@ -5,19 +5,31 @@
 #ifndef MIKOTO_RENDERER_PANEL_HH
 #define MIKOTO_RENDERER_PANEL_HH
 
-#include "Panel.hh"
+#include <GUI/RenderViewport.hh>
+#include <Panels/Panel.hh>
+#include <Scene/Scene/Scene.hh>
 
 namespace Mikoto {
-    class RendererPanel : public Panel {
+    struct RendererPanelCreateInfo {
+        UInt32_T Width{};
+        UInt32_T Height{};
+
+        Scene* TargetScene{};
+        RendererBackend* Renderer{};
+        SceneCamera* EditorMainCamera{};
+    };
+
+    class RendererPanel final : public Panel {
     public:
-        explicit RendererPanel();
-        auto operator=(RendererPanel && other) -> RendererPanel & = default;
+        explicit RendererPanel(const RendererPanelCreateInfo& createInfo);
 
         auto OnUpdate(float timeStep) -> void override;
 
-        ~RendererPanel() override = default;
+        ~RendererPanel() override;
     private:
+        Scope_T<RenderViewport> m_Implementation{};
 
+        Scene* m_TargetScene{};
 
     };
 }

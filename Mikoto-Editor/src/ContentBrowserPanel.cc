@@ -2,59 +2,128 @@
 // Created by kate on 10/8/23.
 //
 
-#include <utility>
-#include <filesystem>
-
-#include "imgui.h"
-#include "imgui_internal.h"
-#include "volk.h"
-
-
-#include "Common/StringUtils.hh"
-
-#include "Common/RenderingUtils.hh"
 #include "Panels/ContentBrowserPanel.hh"
-#include "Renderer/Material/Texture2D.hh"
-#include "Renderer/Renderer.hh"
 
-#include "GUI/ImGuiManager.hh"
+#include <GUI/IconsMaterialDesignIcons.h>
+#include <fmt/format.h>
+#include <imgui.h>
+#include <imgui_impl_vulkan.h>
+#include <imgui_internal.h>
+#include <volk.h>
+
+#include <Core/Engine.hh>
+#include <Core/System/AssetsSystem.hh>
+#include <Core/System/FileSystem.hh>
+#include <Core/System/RenderSystem.hh>
+#include <Library/Filesystem/PathBuilder.hh>
+#include <Library/String/String.hh>
+#include <Renderer/Vulkan/VulkanContext.hh>
+#include <Renderer/Vulkan/VulkanDeletionQueue.hh>
+#include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Vulkan/VulkanTexture2D.hh>
+#include <filesystem>
+#include <utility>
 
 #include "GUI/IconsFontAwesome5.h"
 #include "GUI/IconsMaterialDesign.h"
-#include "GUI/IconsMaterialDesignIcons.h"
+#include "GUI/ImGuiManager.hh"
+#include "Material/Texture/Texture2D.hh"
 
 namespace Mikoto {
     static constexpr auto GetContentBrowserName() -> std::string_view {
         return "Project";
     }
 
-    ContentBrowserPanel::ContentBrowserPanel(Path_T&& root)
-        :   m_Root{ std::move( root ) }
+    static auto CreateSampler() -> VkSampler {
+        const VulkanDevice& device{ VulkanContext::Get().GetDevice() };
+
+        VkSamplerCreateInfo samplerInfo{ VulkanHelpers::Initializers::SamplerCreateInfo() };
+        samplerInfo.magFilter = VK_FILTER_LINEAR;
+        samplerInfo.minFilter = VK_FILTER_LINEAR;
+
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
+        const VkPhysicalDeviceProperties& properties{ device.GetPhysicalDeviceProperties() };
+
+        samplerInfo.anisotropyEnable = VK_TRUE;
+        samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+
+        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+
+        samplerInfo.unnormalizedCoordinates = VK_FALSE;
+
+        samplerInfo.compareEnable = VK_FALSE;
+        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+
+        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        samplerInfo.mipLodBias = 0.0f;
+        samplerInfo.minLod = 0.0f;
+        samplerInfo.maxLod = 0.0f;
+
+        VkSampler sampler{};
+
+        if ( vkCreateSampler( device.GetLogicalDevice(), &samplerInfo, nullptr, &sampler ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "Failed to create texture sampler!" );
+        }
+
+        VulkanDeletionQueue::Push( [sampler = sampler, device = device.GetLogicalDevice()]() -> void {
+            vkDestroySampler( device, sampler, nullptr );
+        } );
+
+        return sampler;
+    }
+
+    ContentBrowserPanel::ContentBrowserPanel()
     {
-        m_CurrentDirectory = m_Root;
+        FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
+        m_AssetsRoot = fileSystem.GetAssetsRootPath();
+
+        LoadIconsTexturesHandles();
+
+        m_CurrentDirectory = m_AssetsRoot;
         m_ForwardDirectory = Path_T{};
-        m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_DNS, GetContentBrowserName());
+        m_PanelHeaderName = StringUtils::MakePanelName( ICON_MD_DNS, GetContentBrowserName() );
+    }
 
-        Size_T entryCount{};
-        for (const auto& entry : std::filesystem::directory_iterator(m_Root)) { ++entryCount; }
+    auto ContentBrowserPanel::LoadIconsTexturesHandles() -> void {
+        FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
+        AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
 
-        for (Size_T count{}; count < REQUIRED_IDS + entryCount; ++count) {
-            m_Guids.emplace_back();
-        }
+        const TextureLoadInfo file1TextLoadInfo{
+            .Path{ PathBuilder()
+                        .WithPath( fileSystem.GetIconsRootPath().string() )
+                        .WithPath( "file4.png" )
+                        .Build() },
+            .Type{ MapType::TEXTURE_2D_DIFFUSE },
+        };
 
-        m_FolderIcon = Texture2D::Create("../Assets/Icons/folder0.png", MapType::TEXTURE_2D_DIFFUSE);
-        m_FileIcon = Texture2D::Create("../Assets/Icons/file4.png", MapType::TEXTURE_2D_DIFFUSE);
+        m_FileIcon = dynamic_cast<Texture2D*>( assetsSystem.LoadTexture( file1TextLoadInfo ) );
 
-        switch (Renderer::GetActiveGraphicsAPI()) {
-            case GraphicsAPI::OPENGL_API:
-                m_ContentBrowserImTextureIDHandles.emplace(std::make_pair(ContentBrowserTextureIcon::FILE, reinterpret_cast<ImTextureID>(std::any_cast<UInt32_T>(m_FileIcon->GetImGuiTextureHandle()))));
-                m_ContentBrowserImTextureIDHandles.emplace(std::make_pair(ContentBrowserTextureIcon::FOLDER, reinterpret_cast<ImTextureID>((std::any_cast<UInt32_T>(m_FolderIcon->GetImGuiTextureHandle())))));
-                break;
-            case GraphicsAPI::VULKAN_API:
-                m_ContentBrowserImTextureIDHandles.emplace(std::make_pair(ContentBrowserTextureIcon::FILE, (ImTextureID)std::any_cast<VkDescriptorSet>(m_FileIcon->GetImGuiTextureHandle())));
-                m_ContentBrowserImTextureIDHandles.emplace(std::make_pair(ContentBrowserTextureIcon::FOLDER, (ImTextureID)std::any_cast<VkDescriptorSet>(m_FolderIcon->GetImGuiTextureHandle())));
-                break;
-        }
+        const TextureLoadInfo folder1TextLoadInfo{
+            .Path{ PathBuilder()
+                        .WithPath( fileSystem.GetIconsRootPath().string() )
+                        .WithPath( "folder0.png" )
+                        .Build() },
+            .Type{ MapType::TEXTURE_2D_DIFFUSE },
+        };
+
+        m_FolderIcon = dynamic_cast<Texture2D*>( assetsSystem.LoadTexture( folder1TextLoadInfo ) );
+
+        const VkSampler fileSampler{ CreateSampler() };
+        const VkSampler folderSampler{ CreateSampler() };
+
+        VkDescriptorSet fileDs{ ImGui_ImplVulkan_AddTexture(fileSampler, dynamic_cast<VulkanTexture2D*>(m_FileIcon)->GetImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) };
+        VkDescriptorSet folderDs{ ImGui_ImplVulkan_AddTexture(folderSampler, dynamic_cast<VulkanTexture2D*>(m_FolderIcon)->GetImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) };
+
+        ImGuiManager::AddShutdownCallback( [fileDs, folderDs]() -> void {
+            ImGui_ImplVulkan_RemoveTexture( fileDs );
+            ImGui_ImplVulkan_RemoveTexture( folderDs );
+        } );
+
+        m_ContentBrowserImTextureIDHandles.emplace( std::make_pair( ContentBrowserTextureIcon::FILE, reinterpret_cast<ImTextureID>( fileDs ) ) );
+        m_ContentBrowserImTextureIDHandles.emplace( std::make_pair( ContentBrowserTextureIcon::FOLDER, reinterpret_cast<ImTextureID>( folderDs ) ) );
     }
 
     auto ContentBrowserPanel::DrawHeader() -> void {
@@ -129,7 +198,7 @@ namespace Mikoto {
         // Back button
         {
             bool disabledBackButton{ false };
-            if (m_CurrentDirectory == m_Root)
+            if (m_CurrentDirectory == m_AssetsRoot)
                 disabledBackButton = true;
 
             if (disabledBackButton) {
@@ -190,11 +259,11 @@ namespace Mikoto {
         // Home directory
         {
             if (ImGui::Button(fmt::format("{}", ICON_MD_HOME).c_str())) {
-                m_CurrentDirectory = m_Root;
+                m_CurrentDirectory = m_AssetsRoot;
                 m_ForwardDirectory = Path_T {};
 
                 m_DirectoryStack.clear();
-                m_DirectoryStack.push_back(m_Root);
+                m_DirectoryStack.push_back(m_AssetsRoot);
             }
             if (ImGui::IsItemHovered()) {
                 ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
@@ -234,7 +303,7 @@ namespace Mikoto {
         }
 
         m_DirectoryStack.erase(pathIt, m_DirectoryStack.end());
-        if (m_DirectoryStack.empty()) m_DirectoryStack.push_back(m_Root);
+        if (m_DirectoryStack.empty()) m_DirectoryStack.push_back(m_AssetsRoot);
 
         ImGui::PopStyleColor(3);
         ImGui::PopStyleVar();
@@ -268,7 +337,7 @@ namespace Mikoto {
     auto ContentBrowserPanel::OnUpdate(float timeStep) -> void {
         if (m_PanelIsVisible) {
             static constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_None };
-            static constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_Resizable | ImGuiTableFlags_ContextMenuInBody | ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_SizingFixedSame };
+            static constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_Resizable | ImGuiWindowFlags_NoCollapse | ImGuiTableFlags_ContextMenuInBody | ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_SizingFixedSame };
 
             ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible), windowFlags);
 
@@ -298,16 +367,17 @@ namespace Mikoto {
         }
     }
 
-    auto ContentBrowserPanel::DrawProjectDirTree(const Path_T& root) -> void {
-        const ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_None };
+    auto ContentBrowserPanel::DrawProjectDirTree(const Path_T& root ) const -> void {
+        constexpr ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_None };
+        constexpr ImGuiTreeNodeFlags childNodeFlags{ styleFlags | ImGuiTreeNodeFlags_DefaultOpen };
 
-        ImGuiTreeNodeFlags childNodeFlags{ styleFlags | ImGuiTreeNodeFlags_DefaultOpen };
-
-        if (ImGui::TreeNodeEx((void*)m_Guids[0].Get(), childNodeFlags, "%s", root.stem().c_str())) {
-            Size_T count{ 1 };
-            for (auto& entry : std::filesystem::directory_iterator(root)) {
+        if (ImGui::TreeNodeEx( reinterpret_cast<const void*>( root.string().c_str() ), childNodeFlags, "%s", root.stem().c_str())) {
+            for (const auto& entry : std::filesystem::directory_iterator(root)) {
                 if (entry.is_directory()) {
-                    if (ImGui::TreeNodeEx((void*)m_Guids[count++].Get(), childNodeFlags, "%s", entry.path().stem().c_str())) { ImGui::TreePop(); }
+                    if (ImGui::TreeNodeEx( reinterpret_cast<const void*>( entry.path().string().c_str() ), childNodeFlags, "%s", entry.path().stem().c_str())) {
+
+                        ImGui::TreePop();
+                    }
                 }
             }
 
@@ -318,16 +388,16 @@ namespace Mikoto {
     auto ContentBrowserPanel::DrawCurrentDirItems() -> void {
         Path_T directoryToOpen{ m_CurrentDirectory };
 
-        static const float padding{ 15.0f };
-        float cellSize = m_ThumbnailSize + padding;
+        constexpr float padding{ 15.0f };
+        const float cellSize{ m_ThumbnailSize + padding };
 
-        float panelWidth = ImGui::GetContentRegionAvail().x;
-        int columnCount{ (int)(panelWidth / cellSize) };
-        if (columnCount < 1)
+        const float panelWidth = ImGui::GetContentRegionAvail().x;
+        int columnCount{ static_cast<int>( panelWidth / cellSize ) };
+        if (columnCount < 1) {
             columnCount = 1;
+        }
 
-
-        static constexpr ImGuiTableFlags flags{ ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_SizingFixedFit };
+        constexpr ImGuiTableFlags flags{ ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_SizingFixedFit };
 
         if (ImGui::BeginTable("ContentBrowserCurrentDir", columnCount, flags)) {
             ImGui::TableNextRow();
@@ -348,7 +418,7 @@ namespace Mikoto {
                 }
 
                 ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-                if (ImGui::ImageButton(icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 })) {
+                if (ImGui::ImageButton("ContentBrowserTextureIcon", icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 })) {
 
                 }
 
@@ -360,17 +430,19 @@ namespace Mikoto {
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                     if (entry.is_directory()) {
                         directoryToOpen = entry.path();
-                        if (m_DirectoryStack.empty()) m_DirectoryStack.emplace_back(m_Root);
+                        if (m_DirectoryStack.empty()) m_DirectoryStack.emplace_back(m_AssetsRoot);
                         m_DirectoryStack.emplace_back(entry.path());
                     }
                 }
 
+                // File name
                 ImGui::PopStyleColor();
-                ImGui::TextWrapped("%s", entry.path().stem().c_str());
+                ImGui::TextWrapped(fmt::format( "{}", entry.path().stem().string()).c_str());
 
+                // Type of file
                 if (m_ShowFileTypeHint) {
                     ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255,255,255,128));
-                    ImGui::TextUnformatted(fileType.c_str());
+                    ImGui::TextUnformatted(fmt::format( "{}", fileType.c_str()).c_str());
                     ImGui::PopStyleColor();
                 }
             }

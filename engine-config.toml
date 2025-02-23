@@ -1,0 +1,38 @@
+# Engine Configuration File for Mikoto
+# This file contains settings and configurations for the engine.
+# All paths MUST BE RELATIVE to the executable path.
+
+[engine]
+name = "Mikoto - Engine"           # Name of the engine
+version_major = 1                  # Engine version major
+version_minor = 1                  # Engine version minor
+version_patch = 0                  # Engine version patch
+
+# Paths are relative to the process current working directory
+
+[paths]
+root = "Resources"
+assets = "Models"                # Path to the assets folder
+shaders = "Shaders"       # Path to the shaders folder
+textures = "Textures"     # Path to the textures folder
+imgui_config = "Imgui" # Path to the ImGui configuration file
+icons = "Icons" # Path to the icons
+fonts = "Fonts" # Path to the fonts
+logs = "Logs" # Path to the fonts
+
+[renderer]
+api = "vulkan"                     # Rendering API (vulkan)
+vsync = true                       # Enable/disable VSync
+
+[application]
+title = "Mikoto - Engine Vulkan"         # Window title
+width = 1920                       # Window width in pixels
+height = 1080                       # Window height in pixels
+resizable = true                   # Allow resizing the window (true/false)
+
+[logging]
+logs = "mikoto-trace.log"                    # If it doesn't exist, it will create a new log file
+
+[debug]
+show_fps = true                    # Show FPS counter on the screen
+draw_debug_overlay = false         # Draw debug overlay

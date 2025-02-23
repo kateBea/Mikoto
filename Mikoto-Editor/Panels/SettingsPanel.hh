@@ -10,39 +10,44 @@
 #include <memory>
 
 // Project Headers
-#include "Common/Common.hh"
-#include "Panel.hh"
+#include <Common/Common.hh>
+#include <Panels/Panel.hh>
+#include <Library/Utility/Types.hh>
 
 namespace Mikoto {
     struct SettingsPanelData {
         glm::vec4 ClearColor{};
-        float EditorCameraMovementSpeed{};
-        float EditorCameraRotationSpeed{};
+        float EditorCameraMovementSpeed{ 70 };
+        float EditorCameraRotationSpeed{ 30 };
         float NearPlane{ 0.1f };
-        float FarPlane{ 1000.0f };
+        float FarPlane{ 2000.0f };
         float FieldOfView{ 45.0f };
         bool WantXAxisRotation{ true };
         bool WantYAxisRotation{ true };
         bool VerticalSyncEnabled{ true };
         bool RenderWireframeMode{ false };
+
+        SceneCamera* EditorCamera{ nullptr };
     };
 
-    class SettingsPanel : public Panel {
+    struct SettingsPanelCreateInfo {
+        SettingsPanelData Data{};
+    };
+
+    class SettingsPanel final : public Panel {
     public:
         explicit SettingsPanel();
-        auto operator=(SettingsPanel&& other) -> SettingsPanel& = default;
+        explicit SettingsPanel(const SettingsPanelCreateInfo& data);
 
         auto OnUpdate(float timeStep) -> void override;
-        auto SetColor(const glm::vec4& color) { m_Data.ClearColor = color; }
-        auto SetFieldOfView(float fov) { m_Data.FieldOfView = fov; }
+        auto SetRenderBackgroundColor(const glm::vec4& color) { m_Data.ClearColor = color; }
+        auto SetRenderFieldOfView( const float fov) -> void { m_Data.FieldOfView = fov; }
 
         MKT_NODISCARD auto GetData() const -> const SettingsPanelData& { return m_Data; }
 
     private:
-        static constexpr Size_T REQUIRED_IDS{ 3 };
-
         SettingsPanelData m_Data{};
-        std::vector<Random::GUID::UUID> m_Guids{};
+
     };
 }
 

@@ -12,53 +12,65 @@
 #include "imgui.h"
 
 // Project Headers
-#include "Common/StringUtils.hh"
-#include "Common/Types.hh"
-#include "Core/TimeManager.hh"
-#include "Panels/StatsPanel.hh"
-#include "Renderer/Renderer.hh"
-
-#include "GUI/ImGuiUtils.hh"
+#include <Core/System/RenderSystem.hh>
+#include <Core/System/TimeSystem.hh>
+#include <Library/String/String.hh>
 
 #include "GUI/IconsFontAwesome5.h"
 #include "GUI/IconsMaterialDesign.h"
 #include "GUI/IconsMaterialDesignIcons.h"
+#include "GUI/ImGuiUtils.hh"
+#include "Library/Utility/Types.hh"
+#include "Panels/StatsPanel.hh"
 
 namespace Mikoto {
-    template<typename FuncType, typename... Args>
-    static auto DrawStatsSection(std::string_view title, FuncType&& func, Args&&... args) -> void {
-        static constexpr ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_AllowItemOverlap |
-                                                       ImGuiTreeNodeFlags_Framed |
-                                                       ImGuiTreeNodeFlags_SpanAvailWidth |
-                                                       ImGuiTreeNodeFlags_FramePadding };
-
-        if (ImGui::TreeNodeEx((void*)typeid(func).hash_code(), styleFlags, "%s", title.data())) {
-            func(std::forward<Args>(args)...);
-            ImGui::TreePop();
-        }
-    }
 
     static constexpr auto GetStatsPanelName() -> std::string_view {
         return "Statistics";
     }
 
+    template<typename FuncType, typename... Args>
+    static auto DrawStatsSection( const std::string_view title, FuncType&& func, Args&&... args ) -> void {
+        static constexpr ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_AllowItemOverlap |
+                                                        ImGuiTreeNodeFlags_Framed |
+                                                        ImGuiTreeNodeFlags_SpanAvailWidth |
+                                                        ImGuiTreeNodeFlags_FramePadding };
+
+        if ( ImGui::TreeNodeEx( reinterpret_cast<void*>( typeid( func ).hash_code() ), styleFlags, "%s", title.data() ) ) {
+            func( std::forward<Args>( args )... );
+            ImGui::TreePop();
+        }
+    }
+
+    static auto DrawSystemInformation(/* system info object*/) -> void {
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::TextUnformatted("Graphics API");
+        ImGui::TableNextColumn();
+        ImGui::TextUnformatted(fmt::format(":    ").c_str());
+    }
+
+
     StatsPanel::StatsPanel()
         :   Panel{}
     {
+        TimeSystem& timeSystem{ Engine::GetSystem<TimeSystem>() };
+
         m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_MONITOR_HEART, GetStatsPanelName());
-        m_IntervalUpdate = (float)TimeManager::GetTime();
+        m_IntervalUpdate = static_cast<float>( timeSystem.GetTime() );
     }
 
-    auto StatsPanel::UpdateStatsInfo(float timeStep) -> void {
-        m_FrameTime =  timeStep;
+    auto StatsPanel::UpdateStatsInfo( float timeStep ) -> void {
+
+        m_FrameTime = timeStep;
         m_FrameRate = 1.0f / m_FrameTime;
 
-        auto timeElapsed{ TimeManager::GetTime() };
-        if ((timeElapsed - m_LastTimeUpdate) >= m_IntervalUpdate) {
+        if ( ( m_FrameTime - m_LastTimeUpdate ) >= m_IntervalUpdate ) {
             m_SysInfo = GetSystemCurrentInfo();
-            m_LastTimeUpdate = (float)timeElapsed;
+            m_LastTimeUpdate = m_FrameTime;
         }
     }
+
 
     auto StatsPanel::OnUpdate(float timeStep) -> void {
         if (m_PanelIsVisible) {
@@ -75,8 +87,8 @@ namespace Mikoto {
 
             ImGui::SameLine();
 
-            const float minUpdate{ 0.0f };
-            const float maxUpdate{ 10.0f };
+            constexpr float minUpdate{ 0.0f };
+            constexpr float maxUpdate{ 10.0f };
             ImGui::SliderFloat("##StatisticsRefreshInterval", std::addressof(m_IntervalUpdate), minUpdate, maxUpdate, "%.2f");
 
             if (ImGui::IsItemHovered()) {
@@ -84,13 +96,13 @@ namespace Mikoto {
             }
 
             ImGui::SameLine();
-            HelpMarker(
+            ImGuiUtils::HelpMarker(
                     "Tells how often we want to refresh system stats,\n"
                     "updating information such as RAM usage, available\n"
                     "RAM, VRAM usage, etc. This is specially costly\n"
                     "in the case of Vulkan as fetching statistics from the\n"
                     "default allocator is slow and the retrieved data can\n"
-                    "be not really coherent as there is more concurrency."
+                    "be not really consistent as there is more concurrency."
                     );
 
             ImGui::Spacing();
@@ -101,12 +113,11 @@ namespace Mikoto {
 
             DrawPerformance();
             DrawSystemInfo();
-            DrawActiveSceneInfo();
-            DrawLightInfo();
 
             ImGui::End();
         }
     }
+
 
     auto StatsPanel::DrawPerformance() -> void {
         static std::array<float, 90> frameRateGraphCachedValues{};
@@ -161,18 +172,23 @@ namespace Mikoto {
 
                     std::string apiStr{};
 
-                    const auto& rendererStats{ Renderer::GetRendererData() };
+                    RenderSystem& renderSystem{ Engine::GetSystem<RenderSystem>() };
+                    TimeSystem& timeSystem{ Engine::GetSystem<TimeSystem>() };
 
-                    switch (Renderer::GetActiveGraphicsAPI()) {
-                        case GraphicsAPI::OPENGL_API:
-                            apiStr = fmt::format("Open GL");
-                            break;
+                    switch (renderSystem.GetDefaultApi()) {
                         case GraphicsAPI::VULKAN_API:
                             apiStr = fmt::format("Vulkan");
                             break;
                     }
 
                     if (ImGui::BeginTable("DrawPerformanceTable", m_ColumCount, flags)) {
+
+                        // For each system info object in system info list
+                        // draw system info
+
+                        DrawSystemInformation();
+
+
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
                         ImGui::TextUnformatted("Graphics API");
@@ -183,7 +199,7 @@ namespace Mikoto {
                         ImGui::TableNextColumn();
                         ImGui::TextUnformatted("CPU");
                         ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", rendererStats.CPUName).c_str());
+                        ImGui::TextUnformatted(fmt::format(":    {}", "CPUNAMEGOESHERE").c_str());
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
@@ -207,21 +223,20 @@ namespace Mikoto {
                         ImGui::TableNextColumn();
                         ImGui::TextUnformatted("GPU");
                         ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", rendererStats.GPUName).c_str());
+                        ImGui::TextUnformatted(fmt::format(":    {}", "GPUNAMEGOESHERE").c_str());
 
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
                         ImGui::TextUnformatted("VRAM");
                         ImGui::TableNextColumn();
-                        auto& vram{ Renderer::GetRendererStatistics() };
-                        ImGui::TextUnformatted(fmt::format(":    {} MB", vram.VRAMUsage / 1'000'000).c_str());
+                        ImGui::TextUnformatted(fmt::format(":    {} MB", 0 / 1'000'000).c_str());
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
                         ImGui::TextUnformatted("Elapsed");
                         ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", TimeManager::ToString(TimeManager::GetTime())).c_str());
+                        ImGui::TextUnformatted(fmt::format(":    {}", timeSystem.ToString(timeSystem.GetTime())).c_str());
 
                         ImGui::EndTable();
                     }
@@ -230,105 +245,5 @@ namespace Mikoto {
         };
 
         DrawStatsSection("System", func);
-    }
-
-    auto StatsPanel::DrawActiveSceneInfo() const -> void {
-        static constexpr ImGuiTableFlags flags{ ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_SizingStretchProp };
-
-        const auto func{
-            [&]() -> void {
-                    auto& sceneRenderStats{ Renderer::GetSceneRenderStats() };
-                    if (ImGui::BeginTable("ActiveSceneInfoTable", m_ColumCount, flags)) {
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Draw Calls");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", sceneRenderStats.GetDrawCallCount()).c_str());
-
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Indices");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", sceneRenderStats.GetIndexCount()).c_str());
-
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Vertices");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", sceneRenderStats.GetVertexCount()).c_str());
-
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Models");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", sceneRenderStats.GetModelsCount()).c_str());
-
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Meshes");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", sceneRenderStats.GetMeshesCount()).c_str());
-
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Objects");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", sceneRenderStats.GetObjectsCount()).c_str());
-
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Cameras");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {}", sceneRenderStats.GetSceneCamerasCount()).c_str());
-
-                        ImGui::EndTable();
-                    }
-            }
-        };
-
-        DrawStatsSection("Scene", func);
-    }
-
-    auto StatsPanel::DrawLightInfo() -> void {
-        static constexpr ImGuiTableFlags flags{ ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_SizingStretchProp };
-
-        const auto func{
-                [&]() -> void {
-                    if (ImGui::BeginTable("DrawLightInfoTable1", m_ColumCount, flags)) {
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Active / Total");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {} / {}", 1, 1).c_str());
-                        ImGui::EndTable();
-                    }
-
-                    ImGui::Separator();
-
-                    if (ImGui::BeginTable("DrawLightInfoTable2", m_ColumCount, flags)) {
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Spot lights");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {} / {}", 1, 1).c_str());
-
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Point lights");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {} / {}", 1, 1).c_str());
-
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted("Directional lights");
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(fmt::format(":    {} / {}", 1, 1).c_str());
-
-                        ImGui::EndTable();
-                    }
-                }
-        };
-
-        DrawStatsSection("Lights", func);
     }
 }

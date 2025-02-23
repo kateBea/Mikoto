@@ -2,19 +2,20 @@
 // Created by kate on 10/12/23.
 //
 
+#include "Panels/ConsolePanel.hh"
+
 #include <memory>
 #include <string_view>
 
-#include "imgui.h"
+#include <imgui.h>
 
-#include "Common/Common.hh"
-#include "Common/StringUtils.hh"
-#include "ConsoleManager.hh"
-#include "GUI/IconsFontAwesome5.h"
-#include "GUI/IconsMaterialDesign.h"
-#include "GUI/IconsMaterialDesignIcons.h"
-#include "GUI/ImGuiManager.hh"
-#include "Panels/ConsolePanel.hh"
+#include <Common/Common.hh>
+#include <Library/String/String.hh>
+#include <GUI/IconsFontAwesome5.h>
+#include <GUI/IconsMaterialDesign.h>
+#include <GUI/IconsMaterialDesignIcons.h>
+#include <GUI/ImGuiManager.hh>
+#include <Tools/ConsoleManager.hh>
 
 namespace Mikoto {
     static constexpr auto GetConsolePanelName() -> std::string_view {
@@ -27,11 +28,12 @@ namespace Mikoto {
 
     auto ConsolePanel::OnUpdate(float timeStep) -> void {
         if (m_PanelIsVisible) {
-            ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible));
+            ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible), ImGuiWindowFlags_NoCollapse);
 
             if (ImGui::Button(fmt::format("{} Clear", ICON_MD_DELETE).c_str())) {
                 ConsoleManager::ClearMessages();
             }
+
             if (ImGui::IsItemHovered()) {
                 ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
             }

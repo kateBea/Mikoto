@@ -22,6 +22,7 @@ namespace Mikoto {
         float NearPlane{ 0.1f };
         float FarPlane{ 2000.0f };
         float FieldOfView{ 45.0f };
+        float DampingFactor{ SceneCamera::GetMinDampingFactor() * 1.5f };
         bool WantXAxisRotation{ true };
         bool WantYAxisRotation{ true };
         bool VerticalSyncEnabled{ true };

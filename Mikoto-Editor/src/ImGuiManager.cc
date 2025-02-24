@@ -51,7 +51,7 @@ namespace Mikoto {
 
         io.Fonts->AddFontDefault();
         constexpr float baseFontSize{ 18.0f };
-        constexpr float iconFontSize{ 18.0f };
+        constexpr float iconFontSize{ baseFontSize * 1.1f }; // FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly };
 
         FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
 

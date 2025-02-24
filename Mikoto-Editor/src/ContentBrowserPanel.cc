@@ -442,12 +442,12 @@ namespace Mikoto {
 
                 // File name
                 ImGui::PopStyleColor();
-                ImGui::TextWrapped(fmt::format( "{}", entry.path().stem().string()).c_str());
+                ImGuiUtils::CenteredText(fmt::format( "{}", entry.path().stem().string()).c_str(), m_ThumbnailSize);
 
                 // Type of file
                 if (m_ShowFileTypeHint) {
                     ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255,255,255,128));
-                    ImGui::TextUnformatted(fmt::format( "{}", fileType.c_str()).c_str());
+                    ImGuiUtils::CenteredText( fmt::format( "{}", fileType.c_str() ).c_str(), m_ThumbnailSize);
                     ImGui::PopStyleColor();
                 }
             }

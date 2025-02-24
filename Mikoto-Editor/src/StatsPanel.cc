@@ -16,9 +16,9 @@
 #include <Core/System/TimeSystem.hh>
 #include <Library/String/String.hh>
 
-#include "GUI/IconsFontAwesome5.h"
-#include "GUI/IconsMaterialDesign.h"
-#include "GUI/IconsMaterialDesignIcons.h"
+#include "GUI/Icons/IconsFontAwesome5.h"
+#include "GUI/Icons/IconsMaterialDesign.h"
+#include "GUI/Icons/IconsMaterialDesignIcons.h"
 #include "GUI/ImGuiUtils.hh"
 #include "Library/Utility/Types.hh"
 #include "Panels/StatsPanel.hh"

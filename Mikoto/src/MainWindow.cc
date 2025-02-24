@@ -68,22 +68,18 @@ namespace Mikoto {
 
         m_Window = Create(spec);
 
-        MKT_ASSERT(m_Window != nullptr, "XPWindow::Init - Failed to create the Window GLFW");
-        MKT_CORE_LOGGER_INFO("Created GLFW Window with name '{}' and Dimensions [{}, {}]", GetTitle(), GetWidth(), GetHeight());
+        MKT_ASSERT(m_Window != nullptr, "MainWindow::Init - Failed to create the Window GLFW");
+        MKT_CORE_LOGGER_INFO("Created MainWindow '{}' [{} x {}]", GetTitle(), GetWidth(), GetHeight());
 
         MoveToMonitorCenter();
 
         InstallCallbacks();
     }
 
-
     auto MainWindow::Shutdown() -> void {
-        MKT_CORE_LOGGER_INFO("Shutting down GLFW Window with name '{}'", GetTitle());
-        MKT_CORE_LOGGER_INFO("GLFW Window dimensions are [{}, {}]", GetWidth(), GetHeight());
-
+        MKT_CORE_LOGGER_INFO("Shutting MainWindow '{}'", GetTitle());
         DestroyGLFWWindow(m_Window);
     }
-
 
     auto MainWindow::InstallCallbacks() -> void {
         glfwSetWindowUserPointer(m_Window, this);
@@ -180,7 +176,6 @@ namespace Mikoto {
             });
     }
 
-
     auto MainWindow::MoveToMonitorCenter() const -> void {
         // See: https://www.glfw.org/docs/3.3/monitor_guide.html
         // The primary monitor is returned by glfwGetPrimaryMonitor. It is the user's
@@ -201,11 +196,10 @@ namespace Mikoto {
         glfwSetWindowPos(m_Window, monitorWidth / 2 - m_Properties.Width / 2, monitorHeight / 2 - m_Properties.Height / 2);
     }
 
-
     auto MainWindow::InitGLFW() -> void {
         if (!s_GLFWInitSuccess) {
             const auto ret{ glfwInit() };
-            MKT_ASSERT(ret == GLFW_TRUE, "MainWindow::InitGLFW - Failed to initialized the GLFW library");
+            MKT_ASSERT(ret == GLFW_TRUE, "MainWindow::InitGLFW - Failed to initialized the GLFW library.");
 
             s_GLFWInitSuccess = true;
 
@@ -215,7 +209,6 @@ namespace Mikoto {
             );
         }
     }
-
 
     auto MainWindow::ProcessEvents() -> void {
         glfwPollEvents();
@@ -274,7 +267,6 @@ namespace Mikoto {
         }
     }
 
-
     auto MainWindow::DestroyGLFWWindow(GLFWwindow* window) -> void {
         // Everytime we shut down a GLFW window, we decrease the number
         // of active windows, the last GLFW window to be shutdown calls glfwTerminate()
@@ -285,7 +277,6 @@ namespace Mikoto {
             glfwTerminate();
         }
     }
-
 
     auto MainWindow::Create(const MainWindowCreateSpec& spec) -> GLFWwindow* {
         // All windows are created in non-fullscreen mode because the monitor we pass is null, see docs for glfwCreateWindow

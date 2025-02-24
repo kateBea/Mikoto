@@ -4,7 +4,7 @@
 
 #include "Panels/ContentBrowserPanel.hh"
 
-#include <GUI/IconsMaterialDesignIcons.h>
+#include <GUI/Icons/IconsMaterialDesignIcons.h>
 #include <fmt/format.h>
 #include <imgui.h>
 #include <imgui_impl_vulkan.h>
@@ -14,7 +14,9 @@
 #include <Core/Engine.hh>
 #include <Core/System/AssetsSystem.hh>
 #include <Core/System/FileSystem.hh>
+#include <Core/System/GUISystem.hh>
 #include <Core/System/RenderSystem.hh>
+#include <GUI/ImGuiUtils.hh>
 #include <Library/Filesystem/PathBuilder.hh>
 #include <Library/String/String.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
@@ -24,9 +26,8 @@
 #include <filesystem>
 #include <utility>
 
-#include "GUI/IconsFontAwesome5.h"
-#include "GUI/IconsMaterialDesign.h"
-#include "GUI/ImGuiManager.hh"
+#include "GUI/Icons/IconsFontAwesome5.h"
+#include "GUI/Icons/IconsMaterialDesign.h"
 #include "Material/Texture/Texture2D.hh"
 
 namespace Mikoto {
@@ -117,7 +118,9 @@ namespace Mikoto {
         VkDescriptorSet fileDs{ ImGui_ImplVulkan_AddTexture(fileSampler, dynamic_cast<VulkanTexture2D*>(m_FileIcon)->GetImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) };
         VkDescriptorSet folderDs{ ImGui_ImplVulkan_AddTexture(folderSampler, dynamic_cast<VulkanTexture2D*>(m_FolderIcon)->GetImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) };
 
-        ImGuiManager::AddShutdownCallback( [fileDs, folderDs]() -> void {
+        GUISystem& guiSystem{ Engine::GetSystem<GUISystem>() };
+
+        guiSystem.AddShutdownCallback( [fileDs, folderDs]() -> void {
             ImGui_ImplVulkan_RemoveTexture( fileDs );
             ImGui_ImplVulkan_RemoveTexture( folderDs );
         } );
@@ -208,7 +211,9 @@ namespace Mikoto {
                 ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
             }
 
-            ImGui::PushFont(ImGuiManager::GetFonts()[2]);
+            GUISystem& guiSystem{ Engine::GetSystem<GUISystem>() };
+
+            ImGui::PushFont(guiSystem.GetFonts()[2]);
             if (ImGui::Button(fmt::format("{}", ICON_MD_CHEVRON_LEFT).c_str())) {
                 m_ForwardDirectory = m_DirectoryStack[m_DirectoryStack.size() - 1];
                 m_DirectoryStack.pop_back();

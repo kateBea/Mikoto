@@ -4,15 +4,15 @@
 
 #include "Panels/RendererPanel.hh"
 
-#include "imgui.h"
-
+#include <Core/System/GUISystem.hh>
+#include <GUI/ImGuiUtils.hh>
 #include <GUI/RenderViewport.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDeletionQueue.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
 
-#include "GUI/IconsMaterialDesign.h"
-#include "GUI/ImGuiManager.hh"
+#include "GUI/Icons/IconsMaterialDesign.h"
+#include "imgui.h"
 
 namespace Mikoto {
     struct RenderPanelViewport_VkImplCreateInfo {
@@ -45,7 +45,9 @@ namespace Mikoto {
             m_ColorAttachmentDescriptorSet =
                     ImGui_ImplVulkan_AddTexture( m_ColorAttachmentSampler, vulkanSceneRenderer->GetFinalImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
-            ImGuiManager::AddShutdownCallback( [colorDs = m_ColorAttachmentDescriptorSet]() -> void {
+            GUISystem& guiSystem{ Engine::GetSystem<GUISystem>() };
+
+            guiSystem.AddShutdownCallback( [colorDs = m_ColorAttachmentDescriptorSet]() -> void {
                 ImGui_ImplVulkan_RemoveTexture( colorDs );
             } );
         }

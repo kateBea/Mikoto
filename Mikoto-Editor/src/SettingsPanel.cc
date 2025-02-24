@@ -14,7 +14,7 @@
 #include <Core/System/RenderSystem.hh>
 #include <GUI/ImGuiUtils.hh>
 
-#include "GUI/IconsMaterialDesign.h"
+#include "GUI/Icons/IconsMaterialDesign.h"
 #include "Library/String/String.hh"
 #include "Panels/SettingsPanel.hh"
 #include "Renderer/Core/RenderCommand.hh"

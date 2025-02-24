@@ -4,18 +4,17 @@
 
 #include "Panels/ConsolePanel.hh"
 
-#include <memory>
-#include <string_view>
-
+#include <GUI/Icons/IconsFontAwesome5.h>
+#include <GUI/Icons/IconsMaterialDesign.h>
+#include <GUI/Icons/IconsMaterialDesignIcons.h>
 #include <imgui.h>
 
 #include <Common/Common.hh>
+#include <Core/System/GUISystem.hh>
 #include <Library/String/String.hh>
-#include <GUI/IconsFontAwesome5.h>
-#include <GUI/IconsMaterialDesign.h>
-#include <GUI/IconsMaterialDesignIcons.h>
-#include <GUI/ImGuiManager.hh>
 #include <Tools/ConsoleManager.hh>
+#include <memory>
+#include <string_view>
 
 namespace Mikoto {
     static constexpr auto GetConsolePanelName() -> std::string_view {
@@ -65,7 +64,9 @@ namespace Mikoto {
     auto ConsolePanel::DisplayMessages() -> void {
         const auto& messages{ ConsoleManager::GetMessages() };
 
-        ImGui::PushFont(ImGuiManager::GetFonts()[ImGuiManager::ImGuiManagerFont::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+        GUISystem& guiSystem{ Engine::GetSystem<GUISystem>() };
+
+        ImGui::PushFont(guiSystem.GetFonts()[GUISystem::GUIFonts::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
 
         for (const auto& [level, message] : messages) {
             switch (level) {

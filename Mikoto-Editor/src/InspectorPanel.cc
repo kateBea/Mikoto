@@ -15,14 +15,14 @@
 #include <glm/gtc/type_ptr.hpp>
 
 // Project Headers
-#include <GUI/IconsMaterialDesign.h>
+#include <GUI/Icons/IconsMaterialDesign.h>
 #include <imgui_impl_vulkan.h>
 
 #include <Common/Common.hh>
 #include <Core/System/AssetsSystem.hh>
 #include <Core/System/FileSystem.hh>
+#include <Core/System/GUISystem.hh>
 #include <Core/System/RenderSystem.hh>
-#include <GUI/ImGuiManager.hh>
 #include <GUI/ImGuiUtils.hh>
 #include <Library/Filesystem/PathBuilder.hh>
 #include <Library/Math/Math.hh>
@@ -92,7 +92,9 @@ namespace Mikoto {
             if ( success ) {
                 result = itInsert->second;
 
-                ImGuiManager::AddShutdownCallback( [textureDset = itInsert->second]() -> void {
+                GUISystem& guiSystem{ Engine::GetSystem<GUISystem>() };
+
+                guiSystem.AddShutdownCallback( [textureDset = itInsert->second]() -> void {
                     ImGui_ImplVulkan_RemoveTexture( textureDset );
                 } );
             }

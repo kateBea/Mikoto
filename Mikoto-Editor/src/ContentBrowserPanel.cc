@@ -76,6 +76,7 @@ namespace Mikoto {
     }
 
     ContentBrowserPanel::ContentBrowserPanel()
+        : Panel{ StringUtils::MakePanelName( ICON_MD_DNS, GetContentBrowserName() ) }
     {
         FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
         m_AssetsRoot = fileSystem.GetAssetsRootPath();
@@ -84,7 +85,6 @@ namespace Mikoto {
 
         m_CurrentDirectory = m_AssetsRoot;
         m_ForwardDirectory = Path_T{};
-        m_PanelHeaderName = StringUtils::MakePanelName( ICON_MD_DNS, GetContentBrowserName() );
     }
 
     auto ContentBrowserPanel::LoadIconsTexturesHandles() -> void {
@@ -130,7 +130,7 @@ namespace Mikoto {
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 1.5f); // Rounded Buttons
 
         // Settings for the content browser
-        if (ImGui::Button(fmt::format("{}", ICON_MD_PRECISION_MANUFACTURING).c_str())) {
+        if (ImGui::Button(fmt::format("{}", ICON_MD_SETTINGS_APPLICATIONS).c_str())) {
             ImGui::OpenPopup("HeaderSettingsPopup");
         }
 
@@ -194,6 +194,8 @@ namespace Mikoto {
 
         ImGui::Spacing();
         ImGui::Spacing();
+
+        ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.0f };
 
         // Back button
         {
@@ -311,7 +313,7 @@ namespace Mikoto {
         ImGui::PopStyleVar();  // Rounded Buttons
     }
 
-    auto ContentBrowserPanel::DrawSideView() -> void {
+    auto ContentBrowserPanel::DrawSideView() const -> void {
         constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_FramePadding |
                                                    ImGuiTreeNodeFlags_SpanFullWidth };
 
@@ -418,7 +420,7 @@ namespace Mikoto {
                 }
 
                 ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-                if (ImGui::ImageButton("ContentBrowserTextureIcon", icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 })) {
+                if (ImGui::ImageButton(entry.path().string().c_str(), icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 })) {
 
                 }
 
@@ -430,7 +432,10 @@ namespace Mikoto {
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                     if (entry.is_directory()) {
                         directoryToOpen = entry.path();
-                        if (m_DirectoryStack.empty()) m_DirectoryStack.emplace_back(m_AssetsRoot);
+                        if (m_DirectoryStack.empty()) {
+                            m_DirectoryStack.emplace_back(m_AssetsRoot);
+                        }
+
                         m_DirectoryStack.emplace_back(entry.path());
                     }
                 }
@@ -453,7 +458,7 @@ namespace Mikoto {
         m_CurrentDirectory = directoryToOpen;
     }
 
-    auto ContentBrowserPanel::OnRightClick() -> void {
+    auto ContentBrowserPanel::OnRightClick() const -> void {
         ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 1.0f);
         if (ImGui::BeginPopupContextWindow("ContentBrowserPopup")) {
 

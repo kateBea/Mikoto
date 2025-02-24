@@ -36,10 +36,10 @@ namespace Mikoto {
 
         auto LoadIconsTexturesHandles() -> void;
         auto DrawHeader() -> void;
-        auto DrawSideView() -> void;
+        auto DrawSideView() const -> void;
         auto DrawMainBody() -> void;
 
-        auto OnRightClick() -> void;
+        auto OnRightClick() const -> void;
 
         auto DrawProjectDirTree(const Path_T& root ) const -> void;
         auto DrawCurrentDirItems() -> void;

@@ -309,6 +309,14 @@ namespace Mikoto {
                     ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
                 }
 
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex( columnIndex );
+                ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+                ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+                if (ImGui::Button( "Remove Texture" )) {
+                    standardMat.RemoveMap( MapType::TEXTURE_2D_DIFFUSE );
+                }
+
                 ImGui::EndTable();
             }
 
@@ -361,6 +369,18 @@ namespace Mikoto {
                 static float strength{};
 
                 ImGui::SliderFloat( "Strength", std::addressof( strength ), 0.0f, 32.0f );
+
+                if ( ImGui::IsItemHovered() ) {
+                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+                }
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex( columnIndexSpecular );
+                ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+                ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+                if (ImGui::Button( "Remove Texture" )) {
+                    standardMat.RemoveMap( MapType::TEXTURE_2D_SPECULAR );
+                }
 
                 if ( ImGui::IsItemHovered() ) {
                     ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );

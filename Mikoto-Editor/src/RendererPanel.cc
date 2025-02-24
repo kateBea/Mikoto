@@ -102,6 +102,7 @@ namespace Mikoto {
 
                     m_ViewPortWidth = std::max( m_ViewPortWidth, m_ViewPortHeight / m_EditorMainCamera->GetAspectRatio() );
 
+                    ImGuiUtils::ImGuiScopedStyleVar frameBorderSize{ ImGuiStyleVar_FrameBorderSize, 3.5f };
                     ImGui::Image( reinterpret_cast<ImTextureID>( m_ColorAttachmentDescriptorSet ),
                     ImVec2{ m_ViewPortWidth, m_ViewPortHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
                 }

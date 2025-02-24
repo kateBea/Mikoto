@@ -92,14 +92,13 @@ namespace Mikoto {
     }
 
     auto Scene::RemoveFromLights( const UInt64_T uniqueID ) -> void {
-        m_SceneRenderer->RemoveLight( uniqueID );
-
         const auto result{ std::ranges::find_if(m_Lights, [&](Entity* entity) -> bool {
                     return entity->GetComponent<TagComponent>().GetGUID() == uniqueID;
                 }) };
 
         if (result != m_Lights.end()) {
             m_Lights.erase( result );
+            m_SceneRenderer->RemoveLight( uniqueID );
         }
     }
 
@@ -113,6 +112,10 @@ namespace Mikoto {
         if (result != m_Entities.end()) {
             entity = std::move( *result );
             m_Entities.erase( result );
+
+            if ( entity->HasComponent<RenderComponent>() ) {
+                m_SceneRenderer->RemoveFromDrawQueue( entity->GetComponent<TagComponent>().GetGUID() );
+            }
         }
 
         return entity;
@@ -187,18 +190,6 @@ namespace Mikoto {
             if ( childrenPtrs.back()->HasComponent<LightComponent>() ) {
                 RemoveFromLights( child->GetComponent<TagComponent>().GetGUID() );
             }
-        }
-
-        // Erase children from draw queue
-        for ( const auto& child: children ) {
-            if ( child->HasComponent<RenderComponent>() ) {
-                m_SceneRenderer->RemoveFromDrawQueue( child->GetComponent<TagComponent>().GetGUID() );
-            }
-        }
-
-        // Erase parent from draw queue
-        if ( target->HasComponent<RenderComponent>() ) {
-            m_SceneRenderer->RemoveFromDrawQueue( uniqueID );
         }
 
         // Erase parent (which erases children too)

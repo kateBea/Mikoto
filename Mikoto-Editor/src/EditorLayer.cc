@@ -339,6 +339,8 @@ namespace Mikoto {
             .ModelMesh{ nullptr },
         } )};
 
+        // TODO: the scene does not know this entity is a light
+        // or rather does not have it registered as a light
         LightComponent& light{ lightObject->AddComponent<LightComponent>() };
         light.SetType(LightType::POINT_LIGHT_TYPE);
 

@@ -107,6 +107,13 @@ namespace Mikoto {
                 ImGui::SameLine(  );
                 ImGuiUtils::HelpMarker( "Adjust camera rotation speed." );
 
+                ImGui::Spacing();
+                if (ImGui::SliderFloat("##SettingsPanel::OnUpdate::Damping", std::addressof(m_Data.DampingFactor), SceneCamera::GetMinDampingFactor(), SceneCamera::GetMaxDampingFactor())) {
+                    m_Data.EditorCamera->SetDampingFactor(m_Data.DampingFactor);
+                }
+                ImGui::SameLine(  );
+                ImGuiUtils::HelpMarker( "Adjust camera smooth damping factor." );
+
                 // Planes
                 ImGui::Spacing();
                 ImGui::SliderFloat("##SettingsPanel::OnUpdate::NearClip", std::addressof(m_Data.NearPlane), SceneCamera::GetMinNearClip(), SceneCamera::GetMaxNearClip());

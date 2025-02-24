@@ -171,6 +171,38 @@ namespace Mikoto {
     }
 
     auto VulkanStandardMaterial::RemoveMap( MapType type ) -> void {
+        FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
+        AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
+
+        Path_T emptyTexturePath{
+            PathBuilder()
+                .WithPath( fileSystem.GetIconsRootPath().string() )
+                .WithPath( "emptyTexture.png" )
+                .Build()
+        };
+
+        const TextureLoadInfo textureLoadInfo{
+            .Path{ emptyTexturePath },
+            .Type{ MapType::TEXTURE_2D_DIFFUSE }
+        };
+
+        Texture2D* emptyTexturePlaceholder{ dynamic_cast<Texture2D *>( assetsSystem.LoadTexture( textureLoadInfo ) ) };
+
+        switch ( type ) {
+            case MapType::TEXTURE_2D_DIFFUSE:
+                m_DiffuseTexture = emptyTexturePlaceholder;
+                m_HasDiffuseTexture = false;
+            break;
+            case MapType::TEXTURE_2D_SPECULAR:
+                m_SpecularTexture = emptyTexturePlaceholder;
+                m_HasSpecularTexture = false;
+            break;
+            default:
+                break;
+        }
+
+        // Deffer descriptor set update until we bound them again
+        m_WantDescriptorUpdate = true;
 
     }
 

@@ -165,6 +165,19 @@ namespace Mikoto::ImGuiUtils {
 
         ImGui::PopStyleVar();
     }
+
+    class ImGuiScopedStyleVar {
+    public:
+
+        template<typename... Args>
+        explicit ImGuiScopedStyleVar( Args&&... args ) {
+            ImGui::PushStyleVar(std::forward<Args>(args)...);
+        }
+
+        ~ImGuiScopedStyleVar() {
+            ImGui::PopStyleVar();
+        }
+    };
 }
 
 #endif // MIKOTO_IMGUI_UTILS_HH

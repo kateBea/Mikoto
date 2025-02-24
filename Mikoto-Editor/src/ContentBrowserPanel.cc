@@ -4,7 +4,7 @@
 
 #include "Panels/ContentBrowserPanel.hh"
 
-#include <GUI/IconsMaterialDesignIcons.h>
+#include <GUI/Icons/IconsMaterialDesignIcons.h>
 #include <fmt/format.h>
 #include <imgui.h>
 #include <imgui_impl_vulkan.h>
@@ -14,7 +14,9 @@
 #include <Core/Engine.hh>
 #include <Core/System/AssetsSystem.hh>
 #include <Core/System/FileSystem.hh>
+#include <Core/System/GUISystem.hh>
 #include <Core/System/RenderSystem.hh>
+#include <GUI/ImGuiUtils.hh>
 #include <Library/Filesystem/PathBuilder.hh>
 #include <Library/String/String.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
@@ -24,9 +26,8 @@
 #include <filesystem>
 #include <utility>
 
-#include "GUI/IconsFontAwesome5.h"
-#include "GUI/IconsMaterialDesign.h"
-#include "GUI/ImGuiManager.hh"
+#include "GUI/Icons/IconsFontAwesome5.h"
+#include "GUI/Icons/IconsMaterialDesign.h"
 #include "Material/Texture/Texture2D.hh"
 
 namespace Mikoto {
@@ -76,6 +77,7 @@ namespace Mikoto {
     }
 
     ContentBrowserPanel::ContentBrowserPanel()
+        : Panel{ StringUtils::MakePanelName( ICON_MD_DNS, GetContentBrowserName() ) }
     {
         FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
         m_AssetsRoot = fileSystem.GetAssetsRootPath();
@@ -84,7 +86,6 @@ namespace Mikoto {
 
         m_CurrentDirectory = m_AssetsRoot;
         m_ForwardDirectory = Path_T{};
-        m_PanelHeaderName = StringUtils::MakePanelName( ICON_MD_DNS, GetContentBrowserName() );
     }
 
     auto ContentBrowserPanel::LoadIconsTexturesHandles() -> void {
@@ -117,7 +118,9 @@ namespace Mikoto {
         VkDescriptorSet fileDs{ ImGui_ImplVulkan_AddTexture(fileSampler, dynamic_cast<VulkanTexture2D*>(m_FileIcon)->GetImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) };
         VkDescriptorSet folderDs{ ImGui_ImplVulkan_AddTexture(folderSampler, dynamic_cast<VulkanTexture2D*>(m_FolderIcon)->GetImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) };
 
-        ImGuiManager::AddShutdownCallback( [fileDs, folderDs]() -> void {
+        GUISystem& guiSystem{ Engine::GetSystem<GUISystem>() };
+
+        guiSystem.AddShutdownCallback( [fileDs, folderDs]() -> void {
             ImGui_ImplVulkan_RemoveTexture( fileDs );
             ImGui_ImplVulkan_RemoveTexture( folderDs );
         } );
@@ -130,7 +133,7 @@ namespace Mikoto {
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 1.5f); // Rounded Buttons
 
         // Settings for the content browser
-        if (ImGui::Button(fmt::format("{}", ICON_MD_PRECISION_MANUFACTURING).c_str())) {
+        if (ImGui::Button(fmt::format("{}", ICON_MD_SETTINGS_APPLICATIONS).c_str())) {
             ImGui::OpenPopup("HeaderSettingsPopup");
         }
 
@@ -195,6 +198,8 @@ namespace Mikoto {
         ImGui::Spacing();
         ImGui::Spacing();
 
+        ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.0f };
+
         // Back button
         {
             bool disabledBackButton{ false };
@@ -206,7 +211,9 @@ namespace Mikoto {
                 ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
             }
 
-            ImGui::PushFont(ImGuiManager::GetFonts()[2]);
+            GUISystem& guiSystem{ Engine::GetSystem<GUISystem>() };
+
+            ImGui::PushFont(guiSystem.GetFonts()[2]);
             if (ImGui::Button(fmt::format("{}", ICON_MD_CHEVRON_LEFT).c_str())) {
                 m_ForwardDirectory = m_DirectoryStack[m_DirectoryStack.size() - 1];
                 m_DirectoryStack.pop_back();
@@ -311,7 +318,7 @@ namespace Mikoto {
         ImGui::PopStyleVar();  // Rounded Buttons
     }
 
-    auto ContentBrowserPanel::DrawSideView() -> void {
+    auto ContentBrowserPanel::DrawSideView() const -> void {
         constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_FramePadding |
                                                    ImGuiTreeNodeFlags_SpanFullWidth };
 
@@ -418,7 +425,7 @@ namespace Mikoto {
                 }
 
                 ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-                if (ImGui::ImageButton("ContentBrowserTextureIcon", icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 })) {
+                if (ImGui::ImageButton(entry.path().string().c_str(), icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 })) {
 
                 }
 
@@ -430,19 +437,22 @@ namespace Mikoto {
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                     if (entry.is_directory()) {
                         directoryToOpen = entry.path();
-                        if (m_DirectoryStack.empty()) m_DirectoryStack.emplace_back(m_AssetsRoot);
+                        if (m_DirectoryStack.empty()) {
+                            m_DirectoryStack.emplace_back(m_AssetsRoot);
+                        }
+
                         m_DirectoryStack.emplace_back(entry.path());
                     }
                 }
 
                 // File name
                 ImGui::PopStyleColor();
-                ImGui::TextWrapped(fmt::format( "{}", entry.path().stem().string()).c_str());
+                ImGuiUtils::CenteredText(fmt::format( "{}", entry.path().stem().string()).c_str(), m_ThumbnailSize);
 
                 // Type of file
                 if (m_ShowFileTypeHint) {
                     ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255,255,255,128));
-                    ImGui::TextUnformatted(fmt::format( "{}", fileType.c_str()).c_str());
+                    ImGuiUtils::CenteredText( fmt::format( "{}", fileType.c_str() ).c_str(), m_ThumbnailSize);
                     ImGui::PopStyleColor();
                 }
             }
@@ -453,7 +463,7 @@ namespace Mikoto {
         m_CurrentDirectory = directoryToOpen;
     }
 
-    auto ContentBrowserPanel::OnRightClick() -> void {
+    auto ContentBrowserPanel::OnRightClick() const -> void {
         ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 1.0f);
         if (ImGui::BeginPopupContextWindow("ContentBrowserPopup")) {
 

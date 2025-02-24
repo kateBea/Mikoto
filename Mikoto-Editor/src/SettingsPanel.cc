@@ -14,7 +14,7 @@
 #include <Core/System/RenderSystem.hh>
 #include <GUI/ImGuiUtils.hh>
 
-#include "GUI/IconsMaterialDesign.h"
+#include "GUI/Icons/IconsMaterialDesign.h"
 #include "Library/String/String.hh"
 #include "Panels/SettingsPanel.hh"
 #include "Renderer/Core/RenderCommand.hh"
@@ -106,6 +106,13 @@ namespace Mikoto {
                 ImGui::SliderFloat("##SettingsPanel::OnUpdate::RotationSpeed", std::addressof(m_Data.EditorCameraRotationSpeed), SceneCamera::GetMinRotationSpeed(), SceneCamera::GetMaxRotationSpeed());
                 ImGui::SameLine(  );
                 ImGuiUtils::HelpMarker( "Adjust camera rotation speed." );
+
+                ImGui::Spacing();
+                if (ImGui::SliderFloat("##SettingsPanel::OnUpdate::Damping", std::addressof(m_Data.DampingFactor), SceneCamera::GetMinDampingFactor(), SceneCamera::GetMaxDampingFactor())) {
+                    m_Data.EditorCamera->SetDampingFactor(m_Data.DampingFactor);
+                }
+                ImGui::SameLine(  );
+                ImGuiUtils::HelpMarker( "Adjust camera smooth damping factor." );
 
                 // Planes
                 ImGui::Spacing();

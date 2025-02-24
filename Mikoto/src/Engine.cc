@@ -37,10 +37,11 @@ namespace Mikoto {
         timeSystem.Init();
         fileSystem.Init();
         inputSystem.Init();
-        guiSystem.Init();
         physicsSystem.Init();
         audioSystem.Init();
+
         renderSystem.Init();
+        guiSystem.Init();
         assetsSystem.Init();
     }
 
@@ -52,11 +53,17 @@ namespace Mikoto {
 
     auto Engine::StartFrame() -> void {
         const auto& renderSystem{ *s_Registry.Get<RenderSystem>() };
+        const auto& guiSystem{ *s_Registry.Get<GUISystem>() };
+
+        guiSystem.PrepareFrame();
         renderSystem.PrepareFrame();
     }
 
     auto Engine::EndFrame() -> void {
         const auto& renderSystem{ *s_Registry.Get<RenderSystem>() };
+        const auto& guiSystem{ *s_Registry.Get<GUISystem>() };
+
+        guiSystem.EndFrame();
         renderSystem.EndFrame();
     }
 
@@ -77,11 +84,12 @@ namespace Mikoto {
         // Shut down assets first to release resources
         assetsSystem.Shutdown();
 
+        guiSystem.Shutdown();
+
         renderSystem.Shutdown();
 
         audioSystem.Shutdown();
         physicsSystem.Shutdown();
-        guiSystem.Shutdown();
         inputSystem.Shutdown();
         fileSystem.Shutdown();
         timeSystem.Shutdown();

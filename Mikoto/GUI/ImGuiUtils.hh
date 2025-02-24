@@ -9,6 +9,7 @@
 // C++ Standard Library
 #include <imgui.h>
 #include <imgui_impl_vulkan.h>
+#include <imgui_internal.h>
 #include <volk.h>
 
 #include <Common/Common.hh>
@@ -108,8 +109,8 @@ namespace Mikoto::ImGuiUtils {
         style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
         style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.16f, 0.16f, 0.16f, 1.0f);
 
-        style.Colors[ImGuiCol_WindowBg] = ImVec4(0.10f, 0.10f, 0.10f, 0.94f);
-        style.Colors[ImGuiCol_ChildBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+        style.Colors[ImGuiCol_WindowBg] = ImVec4(0.124f, 0.124f, 0.124f, 1.0f);
+        style.Colors[ImGuiCol_ChildBg] = ImVec4(0.184f, 0.184f, 0.184f, 0.00f);
         style.Colors[ImGuiCol_CheckMark] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
 
 
@@ -152,10 +153,10 @@ namespace Mikoto::ImGuiUtils {
     }
 
     inline auto ToolTip( const std::function<void()>& func, const bool enable ) -> void {
-        ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 1.0f);
+        ImGui::PushStyleVar( ImGuiStyleVar_PopupBorderSize, 1.0f );
 
-        if (enable && ImGui::BeginTooltip()) {
-            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        if ( enable && ImGui::BeginTooltip() ) {
+            ImGui::PushTextWrapPos( ImGui::GetFontSize() * 35.0f );
 
             func();
 
@@ -165,6 +166,44 @@ namespace Mikoto::ImGuiUtils {
 
         ImGui::PopStyleVar();
     }
+
+    inline auto CenteredText(const char* label, const float width, float height = 20.0f) -> void {
+        // https://github.com/phicore/ImGuiStylingTricks/wiki/Custom-MessageBox#step-5-removed-title-bar-and-homemade-centered-text
+
+        ImGuiContext& g = *GImGui;
+        const ImGuiStyle& style{ g.Style };
+
+        const ImVec2 textSize{ width, height };
+        const ImGuiWindow* window{ ImGui::GetCurrentWindow() };
+
+        const ImVec2 labelSize{ ImGui::CalcTextSize(label, nullptr, true) };
+
+        const ImVec2 minCursorPos{ window->DC.CursorPos };
+        const ImVec2 itemSize{ ImGui::CalcItemSize(textSize, labelSize.x + style.FramePadding.x * 2.0f, labelSize.y + style.FramePadding.y * 2.0f) };
+
+        const ImVec2 maxCursorPos{ ImVec2(minCursorPos.x + itemSize.x, minCursorPos.y + itemSize.y) };
+        const ImRect alignment{ minCursorPos, maxCursorPos };
+
+        ImGui::ItemSize(itemSize, style.FramePadding.y);
+
+        const ImVec2 posMin{ ImVec2( alignment.Min.x + style.FramePadding.x, alignment.Min.y + style.FramePadding.y ) };
+        const ImVec2 posMax{ ImVec2( alignment.Max.x - style.FramePadding.x, alignment.Max.y - style.FramePadding.y ) };
+
+        ImGui::RenderTextClipped(posMin, posMax, label, nullptr, &labelSize, style.ButtonTextAlign, &alignment);
+    }
+
+    class ImGuiScopedStyleVar {
+    public:
+
+        template<typename... Args>
+        explicit ImGuiScopedStyleVar( Args&&... args ) {
+            ImGui::PushStyleVar(std::forward<Args>(args)...);
+        }
+
+        ~ImGuiScopedStyleVar() {
+            ImGui::PopStyleVar();
+        }
+    };
 }
 
 #endif // MIKOTO_IMGUI_UTILS_HH

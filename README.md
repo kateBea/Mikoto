@@ -67,38 +67,23 @@ Currently, the building process has been tested on Linux and Windows.
 
 ### Steps:
 
-1. **Clone the repository**:
-   ```shell
+```shell
+  # Fetch the repository. Recurse to pull the submodules
    git clone --recursive https://github.com/kateBea/Mikoto.git
-   ```
-
-2. **Navigate to the project directory**:
-   ```shell
    cd Mikoto
-   ```
-
-3. **Create a build directory**:
-   ```shell
+   
+   # Generate platform specific build system files
    mkdir build && cd build
-   ```
-
-4. **Run CMake**:
-   ```shell
    cmake -S .. -B .
-   ```
-
-5. **Build the project**:
-   ```shell
+   
+   # Build the application
    cmake --build . --config Release
+   
    ```
+---
 
-6. **Run the executable**:
-   ```shell
-   ./Mikoto-Editor/Mikoto-Editor
-   ```
-
-For Visual Studio users, CMake will generate `.sln` files by default. Simply open the solution in Visual Studio and build from there. CLion users can open the project directly and build it without extra steps.
-Before you run the editor program you need to copy `engine-config.toml` file to the where you have your working directory; yo also need to copy both the Resources folders to the same directory.
+For Visual Studio users, CMake will generate `.sln` files by default. Open the solution in Visual Studio and build from there. CLion users can open the project directly and build it without extra steps.
+Before you run the editor program, you need to copy `engine-config.toml` file and the `Mikoto-Editor\Resources` folder to the working directory from which you are running the application.
 
 ---
 

@@ -84,6 +84,12 @@ namespace Mikoto {
         PERSPECTIVE = 1,
     };
 
+    enum ScreenMode {
+        FULLSCREEN = 0,
+        WINDOWED = 1,
+        BORDERLESS = 2,
+    };
+
     /**
      * @brief Time units.
      * */

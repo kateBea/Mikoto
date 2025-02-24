@@ -68,22 +68,18 @@ namespace Mikoto {
 
         m_Window = Create(spec);
 
-        MKT_ASSERT(m_Window != nullptr, "XPWindow::Init - Failed to create the Window GLFW");
-        MKT_CORE_LOGGER_INFO("Created GLFW Window with name '{}' and Dimensions [{}, {}]", GetTitle(), GetWidth(), GetHeight());
+        MKT_ASSERT(m_Window != nullptr, "MainWindow::Init - Failed to create the Window GLFW");
+        MKT_CORE_LOGGER_INFO("Created MainWindow '{}' [{} x {}]", GetTitle(), GetWidth(), GetHeight());
 
-        SpawnOnCenter();
+        MoveToMonitorCenter();
 
         InstallCallbacks();
     }
 
-
     auto MainWindow::Shutdown() -> void {
-        MKT_CORE_LOGGER_INFO("Shutting down GLFW Window with name '{}'", GetTitle());
-        MKT_CORE_LOGGER_INFO("GLFW Window dimensions are [{}, {}]", GetWidth(), GetHeight());
-
+        MKT_CORE_LOGGER_INFO("Shutting MainWindow '{}'", GetTitle());
         DestroyGLFWWindow(m_Window);
     }
-
 
     auto MainWindow::InstallCallbacks() -> void {
         glfwSetWindowUserPointer(m_Window, this);
@@ -180,29 +176,30 @@ namespace Mikoto {
             });
     }
 
-
-    auto MainWindow::SpawnOnCenter() const -> void {
-#if !defined(NDEBUG)
-        Int32_T count{};
-        glfwGetMonitors(std::addressof(count));
-        MKT_CORE_LOGGER_INFO("Number of available monitors: {}", count);
-#endif
+    auto MainWindow::MoveToMonitorCenter() const -> void {
         // See: https://www.glfw.org/docs/3.3/monitor_guide.html
         // The primary monitor is returned by glfwGetPrimaryMonitor. It is the user's
         // preferred monitor and is usually the one with global UI elements like task bar or menu bar.
         Int32_T monitorWidth{};
         Int32_T monitorHeight{};
-        GLFWmonitor* primary{ glfwGetPrimaryMonitor() };
 
-        glfwGetMonitorWorkarea(primary, nullptr, nullptr, std::addressof(monitorWidth), std::addressof(monitorHeight));
-        glfwSetWindowPos(m_Window, monitorWidth / 10, monitorHeight / 10);
+        Int32_T monitorX{};
+        Int32_T monitorY{};
+
+        GLFWmonitor* primary{ glfwGetWindowMonitor( m_Window ) };
+
+        if (primary == nullptr) {
+            primary = glfwGetPrimaryMonitor();
+        }
+
+        glfwGetMonitorWorkarea(primary, std::addressof( monitorX  ), std::addressof( monitorY  ), std::addressof(monitorWidth), std::addressof(monitorHeight));
+        glfwSetWindowPos(m_Window, monitorWidth / 2 - m_Properties.Width / 2, monitorHeight / 2 - m_Properties.Height / 2);
     }
-
 
     auto MainWindow::InitGLFW() -> void {
         if (!s_GLFWInitSuccess) {
             const auto ret{ glfwInit() };
-            MKT_ASSERT(ret == GLFW_TRUE, "MainWindow::InitGLFW - Failed to initialized the GLFW library");
+            MKT_ASSERT(ret == GLFW_TRUE, "MainWindow::InitGLFW - Failed to initialized the GLFW library.");
 
             s_GLFWInitSuccess = true;
 
@@ -213,11 +210,62 @@ namespace Mikoto {
         }
     }
 
-
     auto MainWindow::ProcessEvents() -> void {
         glfwPollEvents();
     }
 
+    auto MainWindow::SetScreenMode( const ScreenMode mode ) -> void {
+        m_ScreenMode = mode;
+
+        switch (m_ScreenMode) {
+            case FULLSCREEN: {
+                // Get the primary monitor
+                GLFWmonitor* monitor{ glfwGetPrimaryMonitor() };
+                const GLFWvidmode* videoMode{ glfwGetVideoMode(monitor) };
+
+                m_WidthPreFullScreen = m_Properties.Width;
+                m_HeightPreFullScreen = m_Properties.Height;
+
+                glfwSetWindowMonitor(m_Window, monitor, 0, 0, videoMode->width, videoMode->height, videoMode->refreshRate);
+                break;
+            }
+            case WINDOWED: {
+                // Get the primary monitor
+                GLFWmonitor* monitor{ glfwGetPrimaryMonitor() };
+                const GLFWvidmode* videoMode{ glfwGetVideoMode(monitor) };
+
+                m_Properties.Width = m_WidthPreFullScreen;
+                m_Properties.Height = m_HeightPreFullScreen;
+
+                glfwSetWindowMonitor(m_Window, nullptr, 0, 0, videoMode->width, videoMode->height, videoMode->refreshRate);
+                glfwSetWindowSize( m_Window,m_WidthPreFullScreen, m_HeightPreFullScreen );
+
+                MoveToMonitorCenter();
+
+                break;
+            }
+
+            case BORDERLESS: {
+                // Get the primary monitor
+                Int32_T monitorWidth{};
+                Int32_T monitorHeight{};
+
+                Int32_T monitorX{};
+                Int32_T monitorY{};
+
+                GLFWmonitor* monitor{ glfwGetPrimaryMonitor() };
+
+                glfwGetMonitorWorkarea(monitor, std::addressof( monitorX  ), std::addressof( monitorY  ), std::addressof(monitorWidth), std::addressof(monitorHeight));
+
+                const GLFWvidmode* videoMode{ glfwGetVideoMode(monitor) };
+
+                glfwSetWindowSize( m_Window, monitorWidth, monitorHeight );
+
+                glfwSetWindowMonitor(m_Window, monitor, 0, 0, videoMode->width, videoMode->height, videoMode->refreshRate);
+                break;
+            }
+        }
+    }
 
     auto MainWindow::DestroyGLFWWindow(GLFWwindow* window) -> void {
         // Everytime we shut down a GLFW window, we decrease the number
@@ -230,8 +278,8 @@ namespace Mikoto {
         }
     }
 
-
     auto MainWindow::Create(const MainWindowCreateSpec& spec) -> GLFWwindow* {
+        // All windows are created in non-fullscreen mode because the monitor we pass is null, see docs for glfwCreateWindow
         GLFWwindow* window{ glfwCreateWindow(spec.Width, spec.Height, spec.Title.data(), nullptr, nullptr) };
         s_WindowsCount += 1;
         return window;

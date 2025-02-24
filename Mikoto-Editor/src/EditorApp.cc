@@ -16,7 +16,6 @@
 #include <Core/System/TaskSystem.hh>
 #include <Core/System/TimeSystem.hh>
 #include <EditorApp.hh>
-#include <GUI/ImGuiManager.hh>
 #include <Layers/EditorLayer.hh>
 #include <Library/Filesystem/PathBuilder.hh>
 #include <Profiling/Timer.hh>
@@ -51,6 +50,7 @@ namespace Mikoto {
             MKT_STACK_TRACE();
 
             MKT_COLOR_STYLE_PRINT_FORMATTED( MKT_FMT_COLOR_RED, MKT_FMT_STYLE_BOLD, "{}", exception.what() );
+
             exitCode = EXIT_FAILURE;
         }
 
@@ -100,8 +100,6 @@ namespace Mikoto {
 
         Engine::Init( config );
 
-        ImGuiManager::Init( m_MainWindow.get() );
-
         InitLayers();
 
         InstallEventCallbacks();
@@ -141,13 +139,14 @@ namespace Mikoto {
         MKT_APP_LOGGER_INFO("Shutting down application. Cleanup...");
         MKT_APP_LOGGER_INFO("=====================================");
 
+        // Shutdown layers
         DestroyLayers();
 
-        ImGuiManager::Shutdown();
-
-        m_MainWindow->Shutdown();
-
+        // Shutdown systems
         Engine::Shutdown();
+
+        // Shutdown the main window
+        m_MainWindow->Shutdown();
     }
 
     auto EditorApp::DestroyLayers() -> void {
@@ -190,25 +189,11 @@ namespace Mikoto {
             // Handle GUI Logic, this does not render the GUI
             // Simply updates the GUI state
             auto& editorLayer{ *m_LayerRegistry.Get<EditorLayer>() };
-
-            ImGuiManager::BeginFrame();
             editorLayer.PushImGuiDrawItems();
-            ImGuiManager::EndFrame();
 
             // Update the layers. We determine the state of the application
             // In the Editor layer we will update the scene, the camera, and the renderer
             UpdateLayers();
-
-#if !( NDEBUG )
-            const auto& inputSystem{ Engine::GetSystem<InputSystem>() };
-            auto& taskSystem{ Engine::GetSystem<TaskSystem>() };
-            if (inputSystem.IsKeyPressed(Key_Left_Alt, m_MainWindow.get())) {
-                taskSystem.Execute(
-                        [&]() -> void {
-                            MKT_APP_LOGGER_DEBUG("You pressed Key_Left_Alt. Hi :) Count workers: {}", taskSystem.GetWorkersCount());
-                        });
-            }
-#endif
 
             Engine::UpdateState();
 

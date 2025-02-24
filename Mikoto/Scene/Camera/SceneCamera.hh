@@ -96,6 +96,7 @@ namespace Mikoto {
          * @param value The new rotation speed value to set.
          * */
         auto SetRotationSpeed(float value) -> void { m_RotationSpeed = value; }
+        auto SetDampingFactor(float value) -> void { m_DampingFactor = value; }
 
 
         /**
@@ -147,6 +148,9 @@ namespace Mikoto {
         MKT_NODISCARD constexpr static auto GetMaxFov() -> float { return 90.0f; }
         MKT_NODISCARD constexpr static auto GetMinFov() -> float { return 15.0f; }
 
+        MKT_NODISCARD constexpr static auto GetMaxDampingFactor() -> float { return 5.0f; }
+        MKT_NODISCARD constexpr static auto GetMinDampingFactor() -> float { return 1.0f; }
+
 
     private:
      /**
@@ -177,6 +181,12 @@ namespace Mikoto {
 
 
     private:
+     glm::vec3 m_TargetPosition{ 0.0f, 0.0f, 0.0f };
+     glm::vec3 m_TargetForwardVector{ 0.0f, 0.0f, -1.0f };
+
+     // Controls how quickly the camera moves towards the target. Higher values mean faster smoothing.
+     float m_DampingFactor{ 5.0f };
+
         bool m_WantCameraRotationX{ true };
         bool m_WantCameraRotationY{ true };
 

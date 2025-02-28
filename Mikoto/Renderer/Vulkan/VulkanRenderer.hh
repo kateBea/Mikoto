@@ -82,6 +82,7 @@ namespace Mikoto {
         auto CreateCommandBuffers() -> void;
 
         auto RecordCommands() -> void;
+        auto RecordComputeCommands() -> void;
         auto PrepareOffscreenRender() -> void;
 
         auto CreateOffscreenRenderPass() -> void;
@@ -90,6 +91,7 @@ namespace Mikoto {
 
 
         auto InitializePBRWireFramePipeline() -> void;
+        auto InitializeComputePipelines() -> void;
 
         auto InitializeDefaultPipeline() -> void;
         auto InitializePBRPipeline() -> void;
@@ -123,8 +125,9 @@ namespace Mikoto {
 
         std::array<VkClearValue, 2> m_ClearValues{};
 
-        Scope_T<VulkanCommandPool> m_CommandPool{};
         VkCommandBuffer m_DrawCommandBuffer{};
+        VkCommandBuffer m_ComputeCommandBuffer{};
+        Scope_T<VulkanCommandPool> m_CommandPool{};
 
         std::unordered_map<UInt64_T, LightRenderInfo> m_Lights{};
 

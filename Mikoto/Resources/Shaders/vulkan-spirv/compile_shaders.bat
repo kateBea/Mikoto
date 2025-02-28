@@ -4,3 +4,5 @@ glslc -O -fshader-stage="fragment" WireframeFragmentShader.glsl -o WireframeFrag
 
 glslc -O -fshader-stage="fragment" PBRFragmentShader.glsl -o PBRFragmentShader.sprv
 glslc -O -fshader-stage="vertex" PBRVertexShader.glsl -o PBRVertexShader.sprv
+
+glslc -O -fshader-stage="compute" Compute_Shader_Test.glsl -o Compute_Shader_Test.sprv

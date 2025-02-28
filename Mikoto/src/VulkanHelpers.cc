@@ -49,11 +49,12 @@ namespace Mikoto::VulkanHelpers {
         switch (stage) {
             case VERTEX_STAGE:
                 return VK_SHADER_STAGE_VERTEX_BIT;
+            case COMPUTE_STAGE:
+                return VK_SHADER_STAGE_COMPUTE_BIT;
             case FRAGMENT_STAGE:
                 return VK_SHADER_STAGE_FRAGMENT_BIT;
-
-            case GEOMETRY:
-            case TESSELATION:
+            case GEOMETRY_STAGE:
+            case TESSELATION_STAGE:
             default:
                 return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
         }
@@ -82,6 +83,10 @@ namespace Mikoto::VulkanHelpers {
 
     auto HasGraphicsQueue( const VkQueueFamilyProperties& queueFamily ) -> bool {
         return queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT;
+    }
+
+    auto HasComputeQueue( const VkQueueFamilyProperties& queueFamily ) -> bool {
+        return queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT;
     }
 
     auto HasPresentQueue( const VkPhysicalDevice& device, const UInt32_T queueFamilyIndex,  const VkSurfaceKHR& surface, const VkQueueFamilyProperties& queueFamilyProperties  ) -> bool {

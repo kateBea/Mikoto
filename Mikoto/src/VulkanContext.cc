@@ -397,7 +397,7 @@ namespace Mikoto {
     }
 
     auto VulkanContext::CreateDefaultDescriptorLayouts() -> void {
-
+        // -----------------------------------------------------------
         DescriptorLayoutBuilder baseShaderDescriptorLayoutBuilder{};
         VkDescriptorSetLayout descLayout{ baseShaderDescriptorLayoutBuilder
                                        .WithBinding( 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
@@ -408,12 +408,14 @@ namespace Mikoto {
 
         m_DescriptorSetLayouts.try_emplace( DESCRIPTOR_SET_LAYOUT_BASE_SHADER, descLayout );
 
+        // -----------------------------------------------------------
         DescriptorLayoutBuilder baseShaderWireframeDescriptorLayoutBuilder{};
         VkDescriptorSetLayout descLayoutWireframe{ baseShaderWireframeDescriptorLayoutBuilder
                                                 .WithBinding( 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
                                                .Build( m_VulkanData.Device->GetLogicalDevice() ) };
         m_DescriptorSetLayouts.try_emplace( DESCRIPTOR_SET_LAYOUT_BASE_SHADER_WIREFRAME, descLayoutWireframe );
 
+        // -----------------------------------------------------------
         DescriptorLayoutBuilder pbrShadersDescriptorLayoutBuilder{};
         VkDescriptorSetLayout descLayoutPbr{ pbrShadersDescriptorLayoutBuilder
                                        .WithBinding( 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
@@ -425,6 +427,12 @@ namespace Mikoto {
                                        .WithBinding( 6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT )
                                        .Build( m_VulkanData.Device->GetLogicalDevice() ) };
         m_DescriptorSetLayouts.try_emplace( DESCRIPTOR_SET_LAYOUT_PBR_SHADER, descLayoutPbr );
+
+        // -----------------------------------------------------------
+        DescriptorLayoutBuilder computeShaderSimpleLayoutCreateInfo{};
+        VkDescriptorSetLayout compShaderSimple{ computeShaderSimpleLayoutCreateInfo
+                                               .Build( m_VulkanData.Device->GetLogicalDevice() ) };
+        m_DescriptorSetLayouts.try_emplace( DESCRIPTOR_SET_LAYOUT_COMPUTE_PIPELINE, compShaderSimple );
     }
 
     auto VulkanContext::RecreateSwapChain( const bool enableVsync ) -> void {
@@ -467,7 +475,11 @@ namespace Mikoto {
         submitInfo.RenderSemaphore = m_SwapChainSyncObjects.RenderSemaphore;
         submitInfo.PresentSemaphore = m_SwapChainSyncObjects.PresentSemaphore;
 
-        m_VulkanData.Device->SubmitCommands( submitInfo );
+        m_VulkanData.Device->SubmitCommandsGraphicsQueue( submitInfo );
+
+        ComputeSynchronizationPrimitives computeSubmitInfo{};
+
+        m_VulkanData.Device->SubmitCommandsComputeQueue( computeSubmitInfo );
     }
 
     auto VulkanContext::PresentToSwapchain() -> void {

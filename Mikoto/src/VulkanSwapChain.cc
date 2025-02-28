@@ -90,7 +90,7 @@ namespace Mikoto {
         // swap chain image ready for render and then be presented
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-        const auto& [Present, Graphics] {
+        const auto& [Present, Graphics, Compute] {
             device.GetLogicalDeviceQueues()
         };
 
@@ -194,12 +194,16 @@ namespace Mikoto {
         // swap chain image ready for render and then be presented
         m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
-        const auto& [Present, Graphics]{ device.GetLogicalDeviceQueues() };
-        VkQueue presentQueue{ Graphics->Queue };
+        const auto& [Present, Graphics, Compute]{ device.GetLogicalDeviceQueues() };
+        VkQueue presentQueue{ VK_NULL_HANDLE };
 
-        // Present and graphics queue may have same index
         if (Present.has_value() && Present->Queue != VK_NULL_HANDLE) {
             presentQueue = Present->Queue;
+        } else if (Present.has_value() && Present->Queue != VK_NULL_HANDLE) {
+            // Present and graphics queue may have the same index
+            presentQueue = Graphics->Queue;
+        } else {
+            MKT_CORE_LOGGER_ERROR( "VulkanSwapChain::Present - No presentation queue available." );
         }
 
         return vkQueuePresentKHR(presentQueue, std::addressof( presentInfo ) );

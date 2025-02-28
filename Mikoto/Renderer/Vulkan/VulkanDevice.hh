@@ -67,10 +67,12 @@ namespace Mikoto {
         MKT_NODISCARD auto GetAllocator() const -> const VmaAllocator& { return m_DefaultAllocator; }
 
         // Commands
-        auto RegisterCommand( VkCommandBuffer cmd ) -> void;
+        auto RegisterGraphicsCommand( VkCommandBuffer cmd ) -> void;
+        auto RegisterComputeCommand( VkCommandBuffer cmd ) -> void;
 
         // Queues
-        auto SubmitCommands(const FrameSynchronizationPrimitives& syncPrimitives ) -> void;
+        auto SubmitCommandsGraphicsQueue(const FrameSynchronizationPrimitives& syncPrimitives ) -> void;
+        auto SubmitCommandsComputeQueue(const ComputeSynchronizationPrimitives& syncPrimitives ) -> void;
 
         auto Release() -> void override;
 
@@ -122,7 +124,8 @@ namespace Mikoto {
 
         PhysicalDeviceInfo m_PhysicalDeviceInfo{};
 
-        std::vector<VkCommandBuffer> m_SubmitCommands{};
+        std::vector<VkCommandBuffer> m_GraphicsSubmitCommands{};
+        std::vector<VkCommandBuffer> m_ComputeSubmitCommands{};
 
         std::vector<CStr_T> m_ValidationsLayers{};
         std::vector<CStr_T> m_RequestedExtensions{};

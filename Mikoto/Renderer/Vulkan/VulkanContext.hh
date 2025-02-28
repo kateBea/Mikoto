@@ -29,6 +29,7 @@ namespace Mikoto {
         DESCRIPTOR_SET_LAYOUT_BASE_SHADER,
         DESCRIPTOR_SET_LAYOUT_PBR_SHADER,
         DESCRIPTOR_SET_LAYOUT_BASE_SHADER_WIREFRAME,
+        DESCRIPTOR_SET_LAYOUT_COMPUTE_PIPELINE
     };
 
     // Used for short-lived commands

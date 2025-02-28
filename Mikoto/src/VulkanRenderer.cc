@@ -26,7 +26,7 @@
 
 namespace Mikoto {
 
-    static auto GetDefaultPipelineConfigInfo() -> VulkanPipelineCreateInfo {
+    static auto GetDefaultGraphicsPipelineConfigInfo() -> VulkanPipelineCreateInfo {
         VulkanPipelineCreateInfo configInfo{};
 
         // [Input assembly]
@@ -109,6 +109,15 @@ namespace Mikoto {
 
         return configInfo;
     }
+
+    static auto GetDefaultComputePipelineConfigInfo() -> VulkanPipelineCreateInfo {
+        const VulkanPipelineCreateInfo configInfo{};
+
+        VkComputePipelineCreateInfo pipelineInfo{ VulkanHelpers::Initializers::ComputePipelineCreateInfo() };
+
+        return configInfo;
+    }
+
 
     VulkanRenderer::VulkanRenderer( const VulkanRendererCreateInfo& createInfo )
         : m_OffscreenExtent{
@@ -205,6 +214,9 @@ namespace Mikoto {
         allocInfo.commandBufferCount = COMMAND_BUFFERS_COUNT;
 
         m_DrawCommandBuffer = *m_CommandPool->AllocateCommandBuffer( allocInfo );
+
+        // Compute command buffer
+        m_ComputeCommandBuffer = *m_CommandPool->AllocateCommandBuffer( allocInfo );
     }
 
     auto VulkanRenderer::RecordCommands() -> void {
@@ -271,7 +283,7 @@ namespace Mikoto {
                     VulkanPBRMaterial* pbrMaterial{ dynamic_cast<VulkanPBRMaterial*>( meshRenderInfo.MaterialData ) };
 
                     // Setup render mode
-                    pbrMaterial->SetRenderMode(m_RenderMode);
+                    pbrMaterial->SetRenderMode( m_RenderMode );
                     pbrMaterial->EnableWireframe( m_WireframeEnable ? MKT_SHADER_TRUE : MKT_SHADER_FALSE );
 
                     // The material will store its passes so we dont have to do the switch stamentnt below
@@ -313,6 +325,28 @@ namespace Mikoto {
 
         if ( vkEndCommandBuffer( m_DrawCommandBuffer ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::RecordCommands - Failed to end recording command buffer" );
+        }
+    }
+
+    auto VulkanRenderer::RecordComputeCommands() -> void {
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+        if (vkBeginCommandBuffer(m_ComputeCommandBuffer, &beginInfo) != VK_SUCCESS) {
+            MKT_THROW_RUNTIME_ERROR("VulkanRenderer::RecordComputeCommands - Failed to begin recording command buffer!");
+        }
+
+        auto findIt{ m_Pipelines.find( MATERIAL_PASS_COMPUTE ) };
+
+        const VulkanPipeline* computePipeline{ findIt == m_Pipelines.end() ? nullptr : std::addressof( findIt->second ) };
+
+        vkCmdBindPipeline(m_ComputeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->Get());
+        //vkCmdBindDescriptorSets(m_ComputeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->GetLayout(), 0, 0, nullptr, 0, 0);
+
+        vkCmdDispatch(m_ComputeCommandBuffer, 33, 1, 1);
+
+        if (vkEndCommandBuffer(m_ComputeCommandBuffer) != VK_SUCCESS) {
+            MKT_THROW_RUNTIME_ERROR("VulkanRenderer::RecordComputeCommands - Failed to record compute commands");
         }
     }
 
@@ -529,7 +563,8 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::SubmitCommands() const -> void {
-        m_Device->RegisterCommand( m_DrawCommandBuffer );
+        m_Device->RegisterComputeCommand( m_ComputeCommandBuffer );
+        m_Device->RegisterGraphicsCommand( m_DrawCommandBuffer );
     }
 
     auto VulkanRenderer::InitializeDefaultPipeline() -> void {
@@ -581,7 +616,7 @@ namespace Mikoto {
         } );
 
         // Create the pipeline
-        auto defaultMatPipelineConfig{ GetDefaultPipelineConfigInfo() };
+        auto defaultMatPipelineConfig{ GetDefaultGraphicsPipelineConfigInfo() };
 
         defaultMatPipelineConfig.PipelineLayout = layout;
         defaultMatPipelineConfig.RenderPass = m_OffscreenMainRenderPass;
@@ -651,7 +686,7 @@ namespace Mikoto {
         } );
 
         // Create the pipeline
-        auto defaultMatPipelineConfig{ GetDefaultPipelineConfigInfo() };
+        auto defaultMatPipelineConfig{ GetDefaultGraphicsPipelineConfigInfo() };
 
         defaultMatPipelineConfig.PipelineLayout = layout;
         defaultMatPipelineConfig.RenderPass = m_OffscreenMainRenderPass;
@@ -715,7 +750,7 @@ namespace Mikoto {
 
 
         // Create the pipeline
-        auto wireframePipelineConfig{ GetDefaultPipelineConfigInfo() };
+        auto wireframePipelineConfig{ GetDefaultGraphicsPipelineConfigInfo() };
 
         constexpr float GPU_STANDARD_LINE_WIDTH{ 1.0f };
         wireframePipelineConfig.RasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
@@ -734,16 +769,75 @@ namespace Mikoto {
         }
     }
 
+    auto VulkanRenderer::InitializeComputePipelines() -> void {
+        const auto& fileSystem{ Engine::GetSystem<FileSystem>() };
+
+        const VulkanShaderCreateInfo lightCullingComputeShaderCreateInfo{
+            .FilePath{ PathBuilder()
+                               .WithPath( fileSystem.GetShadersRootPath().string() )
+                               .WithPath( "vulkan-spirv" )
+                               .WithPath( "Compute_Shader_Test.sprv" )
+                               .Build() },
+            .Stage{ COMPUTE_STAGE },
+        };
+
+
+        const VulkanShader* lightCullingComputeShader{ VulkanShaderLibrary::LoadShader( lightCullingComputeShaderCreateInfo ) };
+
+        const std::array pipelineShaderStageCreateInfos{
+            lightCullingComputeShader->GetPipelineStageCreateInfo(),
+        };
+
+        const std::array descLayouts{ VulkanContext::Get().GetDescriptorSetLayouts( DESCRIPTOR_SET_LAYOUT_COMPUTE_PIPELINE ) };
+
+        // Create the pipeline layout
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VulkanHelpers::Initializers::PipelineLayoutCreateInfo() };
+        pipelineLayoutInfo.pushConstantRangeCount = 0;
+        pipelineLayoutInfo.pPushConstantRanges = nullptr;
+        pipelineLayoutInfo.setLayoutCount = static_cast<UInt32_T>( descLayouts.size() );
+        pipelineLayoutInfo.pSetLayouts = descLayouts.data();
+
+        VkPipelineLayout layout{};
+        if ( vkCreatePipelineLayout( m_Device->GetLogicalDevice(), std::addressof( pipelineLayoutInfo ), nullptr, std::addressof( layout ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::InitializeComputePipelines - Failed to create pipeline layout" );
+        }
+
+        VulkanDeletionQueue::Push( [device = m_Device->GetLogicalDevice(), pipelineLayout = layout]() -> void {
+            vkDestroyPipelineLayout( device, pipelineLayout, nullptr );
+        } );
+
+        // Create the pipeline
+        auto computePipelineCreateInfo{ GetDefaultComputePipelineConfigInfo() };
+        computePipelineCreateInfo.Type = PipelineType::VULKAN_COMPUTE_PIPELINE;
+
+        computePipelineCreateInfo.PipelineLayout = layout;
+        computePipelineCreateInfo.ShaderStages = pipelineShaderStageCreateInfos;
+
+        auto [it, success]{ m_Pipelines.try_emplace( MATERIAL_PASS_COMPUTE, computePipelineCreateInfo ) };
+        if ( !success ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::InitializeDefaultPipeline - Failed to create standard pipeline." );
+        } else {
+            it->second.Init();
+        }
+    }
+
     auto VulkanRenderer::CreateRendererPipelines() -> void {
         InitializeDefaultPipeline();
 
         InitializePBRWireFramePipeline();
 
         InitializePBRPipeline();
+
+        InitializeComputePipelines();
     }
 
     auto VulkanRenderer::Flush() -> void {
+        RecordComputeCommands();
+
         RecordCommands();
+
+        // NOTE: Compute, Graphics and Present queues might be the same
+        // Watch-out to properly sync operations between command buffers and commands
         SubmitCommands();
     }
 
@@ -783,7 +877,7 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::CreateCommandPools() -> void {
-        const auto& [Present, Graphics]{
+        const auto& [Present, Graphics, Compute]{
             m_Device->GetLogicalDeviceQueues()
         };
 

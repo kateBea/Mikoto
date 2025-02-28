@@ -94,7 +94,7 @@ namespace Mikoto {
         RecordCommands( m_DrawCommandBuffers[swapChainImageIndex], VulkanContext::Get().GetSwapChain().GetImage( swapChainImageIndex ) );
 
         VulkanDevice& device{ VulkanContext::Get().GetDevice() };
-        device.RegisterCommand( m_DrawCommandBuffers[swapChainImageIndex]);
+        device.RegisterGraphicsCommand( m_DrawCommandBuffers[swapChainImageIndex]);
 
         ImGuiIO& io{ ImGui::GetIO() };
         if ( io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {

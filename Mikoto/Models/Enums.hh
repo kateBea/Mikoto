@@ -54,6 +54,7 @@ namespace Mikoto {
         MATERIAL_PASS_COLOR = 1,
         MATERIAL_PASS_PBR = 2,
         MATERIAL_PASS_WIREFRAME = 3,
+        MATERIAL_PASS_COMPUTE = 4,
     };
 
     enum class FileType {
@@ -201,8 +202,9 @@ namespace Mikoto {
     enum ShaderStage {
         VERTEX_STAGE = BIT_SET( 1 ),
         FRAGMENT_STAGE = BIT_SET( 2 ),
-        GEOMETRY = BIT_SET( 3 ),
-        TESSELATION = BIT_SET( 4 ),
+        GEOMETRY_STAGE = BIT_SET( 3 ),
+        TESSELATION_STAGE = BIT_SET( 4 ),
+        COMPUTE_STAGE = BIT_SET( 5 ),
     };
 }// namespace Mikoto
 

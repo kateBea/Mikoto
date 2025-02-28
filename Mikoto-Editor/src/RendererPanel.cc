@@ -113,6 +113,43 @@ namespace Mikoto {
             }
         }
 
+        auto ShowRenderModes( ImGuiTreeNodeFlags treeNodeFlags  ) -> void {
+            if ( ImGui::TreeNodeEx( reinterpret_cast<const void*>( "RenderPanelViewport_VkImpl::ShowRenderModes" ), treeNodeFlags, "%s", "Render Mode" ) ) {
+
+                // Handle type of projection
+                ImGui::Spacing();
+                if ( ImGui::BeginCombo( "##RenderPanelViewport_VkImpl::ShowRenderModes", s_RenderModes[m_CurrentRenderModeSelectionIndex].c_str() ) ) {
+
+                    for ( const auto& [renderMode, name] : s_RenderModes ) {
+                        const bool isSelected{ m_CurrentRenderModeSelectionIndex == renderMode };
+
+                        if ( ImGui::Selectable( fmt::format( " {}", name ).c_str(), isSelected ) ) {
+                            m_CurrentRenderModeSelectionIndex = renderMode;
+                            m_Renderer->SetRenderMode(m_CurrentRenderModeSelectionIndex);
+                        }
+
+                        if ( ImGui::IsItemHovered() ) {
+                            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+                        }
+
+                        if ( isSelected ) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+
+                    ImGui::EndCombo();
+                }
+
+                if ( ImGui::IsItemHovered() ) {
+                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+                }
+
+
+
+                ImGui::TreePop();
+            }
+        }
+
         auto OnUpdate() -> void override {
             constexpr ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_DefaultOpen |
                                                            ImGuiTreeNodeFlags_AllowItemOverlap |
@@ -131,6 +168,8 @@ namespace Mikoto {
 
             ImGui::Spacing();
             ShowPasses(styleFlags);
+
+            ShowRenderModes(styleFlags);
 
         }
 
@@ -160,7 +199,16 @@ namespace Mikoto {
             "Final output", "Color pass", "Shadow pass", "Depth pass"
         };
 
+        static inline  std::unordered_map<Size_T, std::string> s_RenderModes{
+            { DISPLAY_NORMAL, "Normals" },
+            { DISPLAY_COLOR, "Color" },
+            { DISPLAY_AO, "Ambient Occlusion" },
+            { DISPLAY_ROUGH, "Roughness" },
+            { DISPLAY_METAL, "Metalness" },
+        };
+
         Size_T m_CurrentPassSelectionIndex{ 0 };
+        Size_T m_CurrentRenderModeSelectionIndex{ DISPLAY_COLOR };
 
         VkSampler m_ColorAttachmentSampler{};
 

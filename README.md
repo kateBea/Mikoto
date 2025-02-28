@@ -2,7 +2,10 @@
 
 **Mikoto** is an open-source, Vulkan-based game engine written in modern C++. Developed as an educational project, the engine aims to provide hands-on learning experiences in graphics programming while helping me explore the capabilities of the Vulkan API.
 
+![Mikoto Engine](Resources/image/img15.png)
+
 ---
+
 ![Mikoto Engine](Resources/image/img12.png)
 
 ---

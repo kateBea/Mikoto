@@ -133,7 +133,7 @@ namespace Mikoto {
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 1.5f); // Rounded Buttons
 
         // Settings for the content browser
-        if (ImGui::Button(fmt::format("{}", ICON_MD_SETTINGS_APPLICATIONS).c_str())) {
+        if (ImGuiUtils::ButtonTextIcon(ICON_MD_SETTINGS_APPLICATIONS)) {
             ImGui::OpenPopup("HeaderSettingsPopup");
         }
 
@@ -142,27 +142,19 @@ namespace Mikoto {
         }
 
         if (ImGui::BeginPopup("HeaderSettingsPopup")) {
-            if (ImGui::Button(fmt::format("{}", ICON_MD_RESTORE).c_str())) {
+            if (ImGuiUtils::ButtonTextIcon(ICON_MD_RESTORE)) {
                 m_ThumbnailSize = 128.0f;
             }
-            if (ImGui::IsItemHovered()) {
-                ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-            }
+
             ImGui::SameLine();
             ImGui::Text("Browser thumbnail size");
-            ImGui::SliderFloat("##HeaderSettingsPopupThumnailSize", std::addressof(m_ThumbnailSize),90.0f, 256.0f, "%.2f");
-            if (ImGui::IsItemHovered()) {
-                ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-            }
+            ImGuiUtils::Slider("##HeaderSettingsPopupThumbnailSize", m_ThumbnailSize,{ 90.0f, 256.0f });
 
             ImGui::Spacing();
             ImGui::Separator();
 
             // Show folders only in the side tree?
-            ImGui::Checkbox("##ShowDirectoriesOnly", std::addressof(m_ShowFoldersOnlyInDirectoryTree));
-            if (ImGui::IsItemHovered()) {
-                ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-            }
+            ImGuiUtils::CheckBox("##ShowDirectoriesOnly", m_ShowFoldersOnlyInDirectoryTree);
             ImGui::SameLine();
             ImGui::Text("Show directories only in side view");
 
@@ -170,10 +162,7 @@ namespace Mikoto {
             ImGui::Separator();
 
             // Show a file hint (small text under file name)
-            ImGui::Checkbox("##ShowFileTypeHint", std::addressof(m_ShowFileTypeHint));
-            if (ImGui::IsItemHovered()) {
-                ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-            }
+            ImGuiUtils::CheckBox("##ShowFileTypeHint", m_ShowFileTypeHint);
             ImGui::SameLine();
             ImGui::Text("Show file type hint in explorer");
 

@@ -119,6 +119,7 @@ namespace Mikoto {
 
         // Setup editor
         m_EditorRenderer->SetClearColor( settingsPanel.GetData().ClearColor );
+        m_EditorRenderer->EnableWireframe( settingsPanel.GetData().RenderWireframeMode );
 
         // Setup scene
         m_ActiveScene->SetCamera( *m_EditorCamera );
@@ -467,6 +468,27 @@ namespace Mikoto {
                 if ( ImGui::MenuItem( "Open project", "Ctrl + P" ) ) { OpenProject(); }
                 if ( ImGui::MenuItem( "Save project", "Ctrl + G" ) ) { SaveProject(); }
 
+                static GuizmoManipulationMode manipulation{ GuizmoManipulationMode::TRANSLATION };
+
+                if ( ImGui::BeginMenu( "Manipulation Mode" ) ) {
+                    if ( ImGui::MenuItem( "Translate", nullptr, manipulation == GuizmoManipulationMode::TRANSLATION ) ) {
+                        manipulation = GuizmoManipulationMode::TRANSLATION;
+                    }
+
+                    if ( ImGui::MenuItem( "Rotate",  nullptr, manipulation == GuizmoManipulationMode::ROTATION ) ) {
+                        manipulation = GuizmoManipulationMode::ROTATION;
+                    }
+
+                    if ( ImGui::MenuItem( "Scale",  nullptr, manipulation == GuizmoManipulationMode::SCALE ) ) {
+                        manipulation = GuizmoManipulationMode::SCALE;
+                    }
+
+                    ScenePanel& scenePanel{ *m_PanelRegistry.Get<ScenePanel>() };
+                    scenePanel.SetGuizmoManipulationMode( manipulation );
+
+                    ImGui::EndMenu();
+                }
+
                 // Screen mode
                 static std::string screenMode{ };
 
@@ -599,8 +621,7 @@ namespace Mikoto {
             .WithPath( fileSystem.GetAssetsRootPath().string() )
             .WithPath( "Prefabs" )
             .WithPath( "sponza" )
-            .WithPath( "glTF" )
-            .WithPath( "Sponza.gltf" )
+            .WithPath( "sponza.obj" )
             .Build().string());
         EnsureModelLoaded(assetsManager.LoadModel(modelLoadInfo), GetSponzaPrefabName(modelLoadInfo.Path.string()));
 

@@ -27,6 +27,7 @@
 namespace Mikoto {
     enum DescriptorSetLayoutType {
         DESCRIPTOR_SET_LAYOUT_BASE_SHADER,
+        DESCRIPTOR_SET_LAYOUT_PBR_SHADER,
         DESCRIPTOR_SET_LAYOUT_BASE_SHADER_WIREFRAME,
     };
 

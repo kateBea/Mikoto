@@ -14,6 +14,10 @@
 
 
 namespace Mikoto {
+
+    // Global instance for logging
+    inline static Logger g_Logger{};
+
     auto Logger::Init() -> void {
         m_CoreLogger = spdlog::stdout_color_mt("MIKOTO_CORE_LOGGER");
         m_AppLogger = spdlog::stdout_color_mt("MIKOTO_APP_LOGGER");

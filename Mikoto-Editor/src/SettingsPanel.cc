@@ -98,17 +98,17 @@ namespace Mikoto {
                 if (sceneCamera.GetProjectionType() == PERSPECTIVE) {
                     // Movement
                 ImGui::Spacing();
-                ImGui::SliderFloat("##SettingsPanel::OnUpdate::CameraSpeed", std::addressof(m_Data.EditorCameraMovementSpeed), SceneCamera::GetMinMovementSpeed(), SceneCamera::GetMaxMovementSpeed());
+                ImGuiUtils::Slider("##SettingsPanel::OnUpdate::CameraSpeed", m_Data.EditorCameraMovementSpeed, { SceneCamera::GetMinMovementSpeed(), SceneCamera::GetMaxMovementSpeed() });
                 ImGui::SameLine(  );
                 ImGuiUtils::HelpMarker( "Adjust camera movement speed" );
 
                 ImGui::Spacing();
-                ImGui::SliderFloat("##SettingsPanel::OnUpdate::RotationSpeed", std::addressof(m_Data.EditorCameraRotationSpeed), SceneCamera::GetMinRotationSpeed(), SceneCamera::GetMaxRotationSpeed());
+                ImGuiUtils::Slider("##SettingsPanel::OnUpdate::RotationSpeed", m_Data.EditorCameraRotationSpeed, { SceneCamera::GetMinRotationSpeed(), SceneCamera::GetMaxRotationSpeed() });
                 ImGui::SameLine(  );
                 ImGuiUtils::HelpMarker( "Adjust camera rotation speed." );
 
                 ImGui::Spacing();
-                if (ImGui::SliderFloat("##SettingsPanel::OnUpdate::Damping", std::addressof(m_Data.DampingFactor), SceneCamera::GetMinDampingFactor(), SceneCamera::GetMaxDampingFactor())) {
+                if (ImGuiUtils::Slider("##SettingsPanel::OnUpdate::Damping", m_Data.DampingFactor, { SceneCamera::GetMinDampingFactor(), SceneCamera::GetMaxDampingFactor() })) {
                     m_Data.EditorCamera->SetDampingFactor(m_Data.DampingFactor);
                 }
                 ImGui::SameLine(  );
@@ -116,28 +116,28 @@ namespace Mikoto {
 
                 // Planes
                 ImGui::Spacing();
-                ImGui::SliderFloat("##SettingsPanel::OnUpdate::NearClip", std::addressof(m_Data.NearPlane), SceneCamera::GetMinNearClip(), SceneCamera::GetMaxNearClip());
+                ImGuiUtils::Slider("##SettingsPanel::OnUpdate::NearClip", m_Data.NearPlane, { SceneCamera::GetMinNearClip(), SceneCamera::GetMaxNearClip() });
                 ImGui::SameLine(  );
                 ImGuiUtils::HelpMarker( "Adjust camera near plane." );
 
                 ImGui::Spacing();
-                ImGui::SliderFloat("##SettingsPanel::OnUpdate::FarClip", std::addressof(m_Data.FarPlane), SceneCamera::GetMinFarClip(), SceneCamera::GetMaxFarClip());
+                ImGuiUtils::Slider("##SettingsPanel::OnUpdate::FarClip", m_Data.FarPlane, { SceneCamera::GetMinFarClip(), SceneCamera::GetMaxFarClip() });
                 ImGui::SameLine(  );
                 ImGuiUtils::HelpMarker( "Adjust camera far clip." );
 
                 ImGui::Spacing();
-                ImGui::SliderFloat("##SettingsPanel::OnUpdate::FieldOfView", std::addressof(m_Data.FieldOfView), SceneCamera::GetMinFov(), SceneCamera::GetMaxFov());
+                ImGuiUtils::Slider("##SettingsPanel::OnUpdate::FieldOfView", m_Data.FieldOfView, { SceneCamera::GetMinFov(), SceneCamera::GetMaxFov() });
                 ImGui::SameLine(  );
                 ImGuiUtils::HelpMarker( "Adjust camera field of view." );
 
                 // Rotation
                 ImGui::Spacing();
-                ImGui::Checkbox("Lock Rotation ( X )", std::addressof(m_Data.WantXAxisRotation));
+                ImGuiUtils::CheckBox("Lock Rotation ( X )", m_Data.WantXAxisRotation);
                 ImGui::SameLine();
                 ImGuiUtils::HelpMarker( "Lock rotation in the X axis. Cannot look from top to bottom and viceversa." );
 
                 ImGui::Spacing();
-                ImGui::Checkbox("Lock Rotation ( Y )", std::addressof(m_Data.WantYAxisRotation));
+                ImGuiUtils::CheckBox("Lock Rotation ( Y )", m_Data.WantYAxisRotation);
                 ImGui::SameLine();
                 ImGuiUtils::HelpMarker( "Lock rotation in the X axis. Cannot look from left to right and viceversa." );
                 }
@@ -153,7 +153,7 @@ namespace Mikoto {
             if (ImGui::TreeNodeEx( reinterpret_cast<const void *>( "SettingsPanel::OnUpdate::Rendering" ), styleFlags, "%s", "Rendering")) {
 
                 ImGui::Spacing();
-                if (ImGui::Checkbox("Enable Vsync", std::addressof(m_Data.VerticalSyncEnabled))) {
+                if (ImGuiUtils::CheckBox("Vertical Sync", m_Data.VerticalSyncEnabled)) {
                     RenderSystem& renderSystem{ Engine::GetSystem<RenderSystem>() };
 
                     if (m_Data.VerticalSyncEnabled) {
@@ -164,15 +164,7 @@ namespace Mikoto {
                 }
 
                 ImGui::Spacing();
-                if (ImGui::Checkbox("Wireframe mode", std::addressof(m_Data.RenderWireframeMode))) {
-                    RenderContext& renderContext{ *Engine::GetSystem<RenderSystem>().GetContext() };
-
-                    if (m_Data.RenderWireframeMode) {
-                        renderContext.EnableVSync();
-                    } else {
-                        renderContext.DisableVSync();
-                    }
-                }
+                ImGuiUtils::CheckBox("Wireframe render", m_Data.RenderWireframeMode);
 
                 ImGui::TreePop();
             }

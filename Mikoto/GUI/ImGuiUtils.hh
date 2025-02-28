@@ -17,9 +17,24 @@
 #include <Library/Utility/Types.hh>
 #include <Material/Texture/Texture2D.hh>
 #include <any>
+#include <glm/gtc/type_ptr.hpp>
 
 
 namespace Mikoto::ImGuiUtils {
+
+    class ImGuiScopedStyleVar {
+    public:
+
+        template<typename... Args>
+        explicit ImGuiScopedStyleVar( Args&&... args ) {
+            ImGui::PushStyleVar(std::forward<Args>(args)...);
+        }
+
+        ~ImGuiScopedStyleVar() {
+            ImGui::PopStyleVar();
+        }
+    };
+
     MKT_NODISCARD inline auto PushImageButton(UInt64_T textureId, const VkDescriptorSet textureHandle, const ImVec2 size) -> bool {
         const ImTextureID icon{ reinterpret_cast<ImTextureID>( textureHandle ) };
         return ImGui::ImageButton( StringUtils::ToString( textureId ).c_str(), icon, size, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
@@ -139,6 +154,19 @@ namespace Mikoto::ImGuiUtils {
         }
     }
 
+    inline auto CheckBox( const CStr_T label, bool& value) -> bool{
+        ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+        ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 3.5f };
+
+        bool active{ ImGui::Checkbox( label, std::addressof( value ) ) };
+
+        if ( ImGui::IsItemHovered() ) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        return active;
+    }
+
     inline auto ToolTip( const std::string_view description) -> void {
         ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 1.0f);
 
@@ -167,6 +195,68 @@ namespace Mikoto::ImGuiUtils {
         ImGui::PopStyleVar();
     }
 
+    inline auto DragFloat4(const CStr_T label, const CStr_T format,  glm::vec4& vect, float speed, float minVal, float maxVal) -> bool {
+        ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+        ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 3.5f };
+        ImGuiScopedStyleVar spacing{ ImGuiStyleVar_ItemInnerSpacing, ImVec2{ 5.0f, 5.0f } };
+
+        bool active{ ImGui::DragFloat4( label, value_ptr( vect ), speed, minVal, maxVal, format ) };
+
+        if ( ImGui::IsItemHovered() ) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        return active;
+    }
+
+    inline auto ColorEdit4(const CStr_T label, glm::vec4& vect) -> bool {
+        constexpr ImGuiColorEditFlags colorEditFlags{
+            ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_PickerHueBar
+        };
+
+        ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+        ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
+        ImGuiScopedStyleVar spacing{ ImGuiStyleVar_ItemInnerSpacing, ImVec2{ 5.0f, 5.0f } };
+
+        bool active{ ImGui::ColorEdit4( label, value_ptr( vect ), colorEditFlags ) };
+
+        if ( ImGui::IsItemHovered() ) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        return active;
+    }
+
+    inline auto Slider(const CStr_T label, float& value, const glm::vec2& bounds, std::string_view format = "%.2f") -> bool {
+        constexpr ImGuiSliderFlags flags{ ImGuiSliderFlags_None };
+
+        ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
+        ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
+
+        const bool active{ ImGui::SliderFloat( label, std::addressof( value ), bounds.x, bounds.y, format.data(), flags ) };
+
+        if ( ImGui::IsItemHovered() ) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        return active;
+    }
+
+    inline auto ButtonTextIcon(const CStr_T icon, ImVec2 size = { 0.0f, 0.0f }) -> bool {
+        ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
+        ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
+        ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemInnerSpacing, ImVec2  { 0.0f, 0.0f } };
+        ImGuiScopedStyleVar framePadding{ ImGuiStyleVar_FramePadding, ImVec2  { 4.0f, 4.0f } };
+
+        const bool active{ ImGui::Button(fmt::format("{}", icon).c_str()) };
+
+        if ( ImGui::IsItemHovered() ) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        return active;
+    }
+
     inline auto CenteredText(const char* label, const float width, float height = 20.0f) -> void {
         // https://github.com/phicore/ImGuiStylingTricks/wiki/Custom-MessageBox#step-5-removed-title-bar-and-homemade-centered-text
 
@@ -191,19 +281,6 @@ namespace Mikoto::ImGuiUtils {
 
         ImGui::RenderTextClipped(posMin, posMax, label, nullptr, &labelSize, style.ButtonTextAlign, &alignment);
     }
-
-    class ImGuiScopedStyleVar {
-    public:
-
-        template<typename... Args>
-        explicit ImGuiScopedStyleVar( Args&&... args ) {
-            ImGui::PushStyleVar(std::forward<Args>(args)...);
-        }
-
-        ~ImGuiScopedStyleVar() {
-            ImGui::PopStyleVar();
-        }
-    };
 }
 
 #endif // MIKOTO_IMGUI_UTILS_HH

@@ -263,6 +263,14 @@ namespace Mikoto {
         m_EditorCamera = CreateScope<SceneCamera>( FIELD_OF_VIEW, ASPECT_RATIO, NEAR_PLANE, FAR_PLANE );
     }
 
+    auto EditorLayer::HandleWindowScreenMode() const -> void {
+        if (!m_Window->IsMaximized()) {
+            m_Window->SetScreenMode( FULLSCREEN );
+        } else {
+            m_Window->SetScreenMode( WINDOWED );
+        }
+    }
+
     auto EditorLayer::PrepareNewScene() -> void {
         CreateScene( "Sandbox" );
     }
@@ -331,6 +339,8 @@ namespace Mikoto {
             .ModelMesh{ nullptr },
         } )};
 
+        // TODO: the scene does not know this entity is a light
+        // or rather does not have it registered as a light
         LightComponent& light{ lightObject->AddComponent<LightComponent>() };
         light.SetType(LightType::POINT_LIGHT_TYPE);
 
@@ -456,6 +466,12 @@ namespace Mikoto {
                 if ( ImGui::MenuItem( "New project", "Ctrl + P" ) ) { CreateProject(); }
                 if ( ImGui::MenuItem( "Open project", "Ctrl + P" ) ) { OpenProject(); }
                 if ( ImGui::MenuItem( "Save project", "Ctrl + G" ) ) { SaveProject(); }
+
+                // Screen mode
+                static std::string screenMode{ };
+
+                screenMode = m_Window->IsMaximized() ? "Windowed" : "Fullscreen";
+                if ( ImGui::MenuItem( screenMode.c_str(), "Windows + H" ) ) { HandleWindowScreenMode(); }
 
                 ImGui::Separator();
 

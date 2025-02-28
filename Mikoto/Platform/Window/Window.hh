@@ -73,11 +73,14 @@ namespace Mikoto {
          * */
         MKT_NODISCARD auto GetTitle() const -> const std::string& { return m_Properties.Title; }
 
+        MKT_NODISCARD auto GetScreenMode() const -> ScreenMode { return m_ScreenMode; }
+
         /**
          * @brief Checks if the window is minimized.
          * @returns A boolean indicating if the window is minimized.
          * */
         MKT_NODISCARD auto IsMinimized() const -> bool { return GetWidth() == 0 || GetHeight() == 0; }
+        MKT_NODISCARD auto IsMaximized() const -> bool { return m_ScreenMode == ScreenMode::FULLSCREEN; }
 
         /**
          * @brief Returns a handle to the native Window structure.
@@ -96,6 +99,8 @@ namespace Mikoto {
          * @param value The value indicating whether the window should be resizable.
          * */
         auto AllowResizing( const bool value ) -> void {m_Properties.Resizable = value; }
+
+      virtual auto SetScreenMode( ScreenMode mode ) -> void = 0;
 
         /**
          * @brief Initializes this window along with its internal required structures.
@@ -129,6 +134,7 @@ namespace Mikoto {
         DELETE_COPY_FOR( Window );
 
     protected:
+      ScreenMode m_ScreenMode{ WINDOWED }; /**< The current screen mode for this window. */
         WindowProperties m_Properties{}; /**< Properties for this window. */
     };
 }// namespace Mikoto

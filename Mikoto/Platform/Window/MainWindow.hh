@@ -56,6 +56,8 @@ namespace Mikoto {
          * */
         auto ProcessEvents() -> void override;
 
+        auto SetScreenMode( ScreenMode mode ) -> void override;
+
 
         /**
          * @brief Retrieves the native window as std::any.
@@ -87,7 +89,7 @@ namespace Mikoto {
         /**
          * @brief Spawns the window at the center of the screen.
          * */
-        auto SpawnOnCenter() const -> void;
+        auto MoveToMonitorCenter() const -> void;
 
 
         /**
@@ -114,6 +116,9 @@ namespace Mikoto {
     private:
         static inline std::atomic_uint32_t s_WindowsCount{ 0 };
         static inline std::atomic_bool s_GLFWInitSuccess{ false };
+
+        Int32_T m_WidthPreFullScreen{};
+        Int32_T m_HeightPreFullScreen{};
 
         GLFWwindow* m_Window{};
     };

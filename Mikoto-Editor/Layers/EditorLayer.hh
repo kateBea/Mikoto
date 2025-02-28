@@ -51,6 +51,7 @@ namespace Mikoto {
 
         auto CreatePanels() -> void;
         auto CreateCameras() -> void;
+        auto HandleWindowScreenMode() const -> void;
         auto UpdateDockSpace() -> void;
 
         auto PrepareNewScene() -> void;

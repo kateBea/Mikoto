@@ -10,7 +10,7 @@
 #include <imgui.h>
 
 // Project Headers
-#include <GUI/IconsMaterialDesign.h>
+#include <GUI/Icons/IconsMaterialDesign.h>
 
 #include <Common/Common.hh>
 #include <Core/Logging/Logger.hh>

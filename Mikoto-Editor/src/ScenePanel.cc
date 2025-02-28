@@ -24,7 +24,7 @@
 #include "Renderer/Vulkan/VulkanContext.hh"
 
 
-#include "GUI/IconsMaterialDesign.h"
+#include "GUI/Icons/IconsMaterialDesign.h"
 
 // Third-Party Libraries
 #include "backends/imgui_impl_vulkan.h"
@@ -32,8 +32,8 @@
 
 // Project Headers
 #include <Core/Input/MouseCodes.hh>
+#include <Core/System/GUISystem.hh>
 #include <Core/System/InputSystem.hh>
-#include <GUI/ImGuiManager.hh>
 #include <Scene/Scene/Scene.hh>
 
 #include "Common/Common.hh"
@@ -89,7 +89,9 @@ namespace Mikoto {
             m_ColorAttachmentDescriptorSet =
                 ImGui_ImplVulkan_AddTexture(m_ColorAttachmentSampler, vulkanSceneRenderer->GetFinalImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-            ImGuiManager::AddShutdownCallback( [ds = m_ColorAttachmentDescriptorSet]() -> void {
+            GUISystem& guiSystem{ Engine::GetSystem<GUISystem>() };
+
+            guiSystem.AddShutdownCallback( [ds = m_ColorAttachmentDescriptorSet]() -> void {
                 ImGui_ImplVulkan_RemoveTexture(ds);
                 } );
         }

@@ -14,9 +14,6 @@
 // Third-Party Libraries
 #include <volk.h>
 
-// Project Headers
-#include <vulkan/vulkan_core.h>
-
 #include <GUI/ImGuiUtils.hh>
 #include <GUI/BackendImplementation.hh>
 #include <Platform/Window/Window.hh>

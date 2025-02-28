@@ -92,14 +92,13 @@ namespace Mikoto {
     }
 
     auto Scene::RemoveFromLights( const UInt64_T uniqueID ) -> void {
-        m_SceneRenderer->RemoveLight( uniqueID );
-
         const auto result{ std::ranges::find_if(m_Lights, [&](Entity* entity) -> bool {
                     return entity->GetComponent<TagComponent>().GetGUID() == uniqueID;
                 }) };
 
         if (result != m_Lights.end()) {
             m_Lights.erase( result );
+            m_SceneRenderer->RemoveLight( uniqueID );
         }
     }
 
@@ -113,6 +112,10 @@ namespace Mikoto {
         if (result != m_Entities.end()) {
             entity = std::move( *result );
             m_Entities.erase( result );
+
+            if ( entity->HasComponent<RenderComponent>() ) {
+                m_SceneRenderer->RemoveFromDrawQueue( entity->GetComponent<TagComponent>().GetGUID() );
+            }
         }
 
         return entity;
@@ -189,18 +192,6 @@ namespace Mikoto {
             }
         }
 
-        // Erase children from draw queue
-        for ( const auto& child: children ) {
-            if ( child->HasComponent<RenderComponent>() ) {
-                m_SceneRenderer->RemoveFromDrawQueue( child->GetComponent<TagComponent>().GetGUID() );
-            }
-        }
-
-        // Erase parent from draw queue
-        if ( target->HasComponent<RenderComponent>() ) {
-            m_SceneRenderer->RemoveFromDrawQueue( uniqueID );
-        }
-
         // Erase parent (which erases children too)
         RemoveFromLights( uniqueID );
         RemoveFromHierarchy( *target );
@@ -253,8 +244,8 @@ namespace Mikoto {
 
         // For each mesh from the model we create an entity,
         // The idea later is to be able to construct one mesh from individual meshes
-        // and not split them as it is right now
-        Entity* newEntityRoot{ AddEmptyEntity(createInfo.Name, createInfo.Root) };
+        // and not split them as it is right now. Although if the root is not empty
+        Entity* newEntityRoot{  AddEmptyEntity(createInfo.Name, createInfo.Root) };
 
         for (auto& mesh : createInfo.ModelMesh->GetMeshes()) {
             // If there is only one child, and we already have a root entity,

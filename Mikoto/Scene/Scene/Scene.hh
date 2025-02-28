@@ -37,7 +37,6 @@ namespace Mikoto {
 
         auto Update( double deltaTime ) -> void;
 
-        auto DestroyEntity( UInt64_T uniqueID ) -> bool;
         auto RemoveEntity( UInt64_T uniqueID ) -> void;
 
         auto FindEntityByID( UInt64_T uniqueID ) -> Entity*;
@@ -61,6 +60,7 @@ namespace Mikoto {
         ~Scene();
 
     private:
+        auto DestroyEntity( UInt64_T uniqueID ) -> bool;
         static auto SetupEntityBaseProperties(Entity& entity, std::string_view name) -> void;
 
         auto AddEmptyEntity(std::string_view tagName, const Entity *root) -> Entity*;

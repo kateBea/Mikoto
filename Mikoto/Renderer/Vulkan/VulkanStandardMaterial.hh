@@ -36,15 +36,19 @@ namespace Mikoto {
 
         auto BindDescriptorSet(const VkCommandBuffer &commandBuffer, const VkPipelineLayout &pipelineLayout ) -> void;
 
+        MKT_NODISCARD auto GetPass() const -> MaterialPass { return m_MaterialPass; }
+
         auto UploadUniformBuffers() -> void;
 
         auto ResetLights() -> void;
         auto UpdateLightsInfo(const LightData& lightData, LightType type) -> void;
 
-        auto SetDiffuseMap( Texture2D* map, MapType type ) -> void override;
+        auto SetTexture( Texture* map, MapType type ) -> void override;
         auto RemoveMap( MapType type ) -> void override;
 
-        DISABLE_COPY_AND_MOVE_FOR(VulkanStandardMaterial);
+        auto SetViewPosition(const glm::vec3 viewPos ) -> void { m_FragmentUniformLightsData.ViewPosition = glm::vec4{ viewPos, 1.0f }; }
+
+        DISABLE_COPY_AND_MOVE_FOR( VulkanStandardMaterial );
 
     private:
         struct UniformBufferData {
@@ -91,6 +95,8 @@ namespace Mikoto {
 
         VulkanDescriptorWriter m_DescriptorWriter{};
 
+        MaterialPass m_MaterialPass{ MATERIAL_PASS_COLOR };
+
         // Vertex shader uniform buffer
         Scope_T<VulkanBuffer> m_VertexUniformBuffer{};
         UniformBufferData m_VertexUniformData{};
@@ -103,8 +109,6 @@ namespace Mikoto {
         VkDescriptorSet m_DescriptorSet{};
 
         bool m_WantDescriptorUpdate{ false };
-
-        static inline VulkanTexture2D* s_EmptyTexture{};
 
         Size_T m_UniformDataStructureSize{}; // size of the UniformBufferData structure, with required padding for the device
         Size_T m_FragmentUniformDataStructureSize{}; // size of the UniformBufferData structure, with required padding for the device for fragment shader

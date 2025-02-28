@@ -44,7 +44,7 @@ namespace Mikoto {
         UInt32_T Height{};
 
         Scene* TargetScene{};
-        const RendererBackend* Renderer{};
+        RendererBackend* Renderer{};
         const SceneCamera* EditorMainCamera{};
 
         std::function<Entity*()> GetActiveEntityCallback{};
@@ -55,6 +55,8 @@ namespace Mikoto {
         explicit ScenePanel(const ScenePanelCreateInfo& createInfo);
 
         auto OnUpdate(float ts) -> void override;
+
+        auto SetGuizmoManipulationMode(GuizmoManipulationMode mode ) const -> void;
 
         MKT_NODISCARD auto GetViewportWidth() const -> float { return m_Implementation->GetViewportWidth(); }
         MKT_NODISCARD auto GetViewportHeight() const -> float { return m_Implementation->GetViewportHeight(); }

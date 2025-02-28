@@ -12,6 +12,8 @@
 
 // Third-Party Libraries
 #include <glm/glm.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 // Project Headers
@@ -96,6 +98,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetRotation() const -> const glm::vec3& { return m_Rotation; }
         MKT_NODISCARD auto GetScale() const -> const glm::vec3& { return m_Scale; }
         MKT_NODISCARD auto GetTransform() const -> const glm::mat4& { return m_Transform; }
+        MKT_NODISCARD auto HasUniformScale() const -> bool { return m_HasUniformScale; }
 
         /**
          * Computes the model matrix for for this component according to the transform vectors
@@ -115,14 +118,37 @@ namespace Mikoto {
             m_Transform = transform;
 
             // Update translation,
-            m_Translation = glm::vec3(m_Transform[3]);
-
-            //TODO:rotation and scale accordingly
+            m_Translation = GetTranslationFromMat4(transform);
+            //m_Rotation = GetRotationFromMat4(transform);
+            //m_Scale = GetScaleFromMat4(transform);
         }
 
         auto SetTranslation(const glm::vec3& value) -> void { m_Translation = value; RecomputeTransform(); }
         auto SetRotation(const glm::vec3& value) -> void { m_Rotation = value; RecomputeTransform(); }
-        auto SetScale(const glm::vec3& value) -> void { m_Scale = value; RecomputeTransform(); }
+        auto SetScale(const glm::vec3& value) -> void {
+            if (!m_HasUniformScale) {
+                m_Scale = value;
+            } else {
+                float offSet{ 0 };
+
+                if ( value.x != m_Scale.x ) {
+                    offSet = value.x - m_Scale.x;
+                } else if ( value.y != m_Scale.y ) {
+                    offSet = value.y - m_Scale.y;
+                } else if ( value.z != m_Scale.z ) {
+                    offSet = value.z - m_Scale.z;
+                }
+
+                if (offSet != 0) {
+                    m_Scale.x += offSet;
+                    m_Scale.y += offSet;
+                    m_Scale.z += offSet;
+                }
+            }
+
+            RecomputeTransform();
+        }
+        auto WantUniformSale(const bool value) -> void { m_HasUniformScale = value; }
 
         ~TransformComponent() = default;
 
@@ -131,6 +157,18 @@ namespace Mikoto {
         auto OnComponentRemoved() -> void {  }
 
     private:
+        static auto GetRotationFromMat4(const glm::mat4& matrix) -> glm::vec3 {
+            return {};
+        }
+
+        static auto GetTranslationFromMat4(const glm::mat4& matrix) -> glm::vec3 {
+            return glm::vec3(matrix[3]);
+        }
+
+        static auto GetScaleFromMat4(const glm::mat4& matrix) -> glm::vec3 {
+            return {};
+        }
+
         /**
          * Computes the model matrix as in Translate * Ry * Rx * Rz * Scale (where R represents a
          * rotation in the desired axis. Rotation convention uses Tait-Bryan angles with axis order
@@ -157,6 +195,8 @@ namespace Mikoto {
         // Model matrix (defines object translation, rotation and scale
         // according to the current transform values/vectors
         glm::mat4 m_Transform{};
+
+        bool m_HasUniformScale{};
     };
 
 

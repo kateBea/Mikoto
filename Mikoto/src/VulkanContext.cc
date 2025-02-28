@@ -406,14 +406,25 @@ namespace Mikoto {
                                        .WithBinding( 3, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT )
                                        .Build( m_VulkanData.Device->GetLogicalDevice() ) };
 
-        DescriptorLayoutBuilder baseShaderWireframeDescriptorLayoutBuilder{};
         m_DescriptorSetLayouts.try_emplace( DESCRIPTOR_SET_LAYOUT_BASE_SHADER, descLayout );
 
+        DescriptorLayoutBuilder baseShaderWireframeDescriptorLayoutBuilder{};
         VkDescriptorSetLayout descLayoutWireframe{ baseShaderWireframeDescriptorLayoutBuilder
                                                 .WithBinding( 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
                                                .Build( m_VulkanData.Device->GetLogicalDevice() ) };
         m_DescriptorSetLayouts.try_emplace( DESCRIPTOR_SET_LAYOUT_BASE_SHADER_WIREFRAME, descLayoutWireframe );
 
+        DescriptorLayoutBuilder pbrShadersDescriptorLayoutBuilder{};
+        VkDescriptorSetLayout descLayoutPbr{ pbrShadersDescriptorLayoutBuilder
+                                       .WithBinding( 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
+                                       .WithBinding( 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT )
+                                       .WithBinding( 2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT )
+                                       .WithBinding( 3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT )
+                                       .WithBinding( 4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT )
+                                       .WithBinding( 5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT )
+                                       .WithBinding( 6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT )
+                                       .Build( m_VulkanData.Device->GetLogicalDevice() ) };
+        m_DescriptorSetLayouts.try_emplace( DESCRIPTOR_SET_LAYOUT_PBR_SHADER, descLayoutPbr );
     }
 
     auto VulkanContext::RecreateSwapChain( const bool enableVsync ) -> void {

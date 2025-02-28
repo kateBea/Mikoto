@@ -385,6 +385,16 @@ namespace Mikoto::VulkanHelpers::Initializers {
         return ret;
     }
 
+    inline auto PushConstantRange(VkShaderStageFlags stageFlags, UInt32_T size, UInt32_T offset) -> VkPushConstantRange {
+        const VkPushConstantRange pushConstantRange {
+            .stageFlags{ stageFlags },
+            .offset{ offset },
+            .size{ size }
+        };
+
+        return pushConstantRange;
+    }
+
     /**
      * Returns a default initialized VkPresentInfoKHR structure
      * @returns default initialized VkPresentInfoKHR

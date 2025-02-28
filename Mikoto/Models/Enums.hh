@@ -49,6 +49,13 @@ namespace Mikoto {
         TEXTURE_2D_COUNT,
     };
 
+
+    enum MaterialPass {
+        MATERIAL_PASS_COLOR = 1,
+        MATERIAL_PASS_PBR = 2,
+        MATERIAL_PASS_WIREFRAME = 3,
+    };
+
     enum class FileType {
         UNKNOWN_IMAGE_TYPE,
 

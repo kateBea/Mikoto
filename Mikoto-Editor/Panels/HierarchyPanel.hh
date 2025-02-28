@@ -35,6 +35,7 @@ namespace Mikoto {
         auto DrawModelLoadMenuItem() const -> void;
         auto BlankSpacePopupMenu() const -> void;
         auto DrawPrefabMenuItems( const Entity* root ) const -> void;
+        auto DrawLightMenuItems( const Entity* root ) const -> void;
 
     private:
         Scene* m_TargetScene{ nullptr };

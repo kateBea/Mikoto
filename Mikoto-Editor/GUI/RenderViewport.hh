@@ -19,7 +19,7 @@ namespace Mikoto {
     UInt32_T ViewportHeight{};
 
     Scene* TargetScene{};
-    const RendererBackend* Renderer{};
+    RendererBackend* Renderer{};
 
     const SceneCamera* MainCamera{};
   };
@@ -56,7 +56,7 @@ namespace Mikoto {
 
     Scene* m_TargetScene{};
 
-    const RendererBackend* m_Renderer{};
+    RendererBackend* m_Renderer{};
 
     const SceneCamera* m_EditorMainCamera{};
   };

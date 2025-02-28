@@ -14,7 +14,6 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
     mat4 View;
     mat4 Projection;
     mat4 Transform;
-    vec4 Color;
 } UniformBufferData;
 
 // [Vertex Buffer elements]
@@ -26,22 +25,18 @@ layout(location = 3) in vec2 a_TextureCoordinates;
 // [Output data]
 
 // For usage in fragment shader
-layout(location = 0) out vec3 out_FragmentPos;
-layout(location = 1) out vec4 out_ObjectsColor;
-layout(location = 2) out vec3 out_VertexNormals;
-layout(location = 3) out vec2 out_VertexTexCoord;
-layout(location = 4) out vec3 out_VertexColor;
+layout(location = 0) out vec3 outFragmentPos;
+layout(location = 1) out vec3 outVertexNormals;
+layout(location = 2) out vec2 outVertexTexCoord;
+layout(location = 3) out vec3 outVertexColor;
 
 void main() {
     // Setup frament shader expected data
-    out_VertexNormals = a_Normal;
-    out_VertexTexCoord = a_TextureCoordinates;
-    out_ObjectsColor = UniformBufferData.Color;
-    out_VertexColor = a_Color;
-    out_FragmentPos = vec3(UniformBufferData.Transform * vec4(a_Position, 1.0));
+    outVertexTexCoord = a_TextureCoordinates;
+    outVertexColor = a_Color;
+
+    outVertexNormals = mat3(UniformBufferData.Transform) * a_Normal;
+    outFragmentPos = vec3(UniformBufferData.Transform * vec4(a_Position, 1.0));
 
     gl_Position = UniformBufferData.Projection * UniformBufferData.View * UniformBufferData.Transform * vec4(a_Position, 1.0);
-
-    // Temporary, fix coordinate system
-    gl_Position.y *= -1;
 }

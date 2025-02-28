@@ -14,6 +14,7 @@
 // Project Headers
 #include <Common/Constants.hh>
 #include <Library/Random/Random.hh>
+#include <Material/Material/PBRMaterial.hh>
 #include <Material/Material/StandardMaterial.hh>
 #include <Renderer/Core/RenderQueue.hh>
 #include <Scene/Scene/Scene.hh>
@@ -55,6 +56,9 @@ namespace Mikoto {
 
             lightComponent.UpdatePosition(glm::vec4{ transformComponent.GetTranslation(), 1.0f });
 
+            lightComponent.GetData().SpotLightData.Direction = glm::vec4{ transformComponent.GetRotation(), 1.0f };
+            lightComponent.GetData().DireLightData.Direction = glm::vec4{ transformComponent.GetRotation(), 1.0f };
+
             if (tagComponent.IsVisible()) {
                 m_SceneRenderer->AddLight(
                     tagComponent.GetGUID(),
@@ -92,13 +96,12 @@ namespace Mikoto {
     }
 
     auto Scene::RemoveFromLights( const UInt64_T uniqueID ) -> void {
-        const auto result{ std::ranges::find_if(m_Lights, [&](Entity* entity) -> bool {
+        const auto findLightsIt{ std::ranges::find_if(m_Lights, [&](Entity* entity) -> bool {
                     return entity->GetComponent<TagComponent>().GetGUID() == uniqueID;
                 }) };
 
-        if (result != m_Lights.end()) {
-            m_Lights.erase( result );
-            m_SceneRenderer->RemoveLight( uniqueID );
+        if (findLightsIt != m_Lights.end()) {
+            m_Lights.erase( findLightsIt );
         }
     }
 
@@ -115,6 +118,10 @@ namespace Mikoto {
 
             if ( entity->HasComponent<RenderComponent>() ) {
                 m_SceneRenderer->RemoveFromDrawQueue( entity->GetComponent<TagComponent>().GetGUID() );
+            }
+
+            if ( entity->HasComponent<LightComponent>() ) {
+                m_SceneRenderer->RemoveLight( uniqueID );
             }
         }
 
@@ -178,7 +185,7 @@ namespace Mikoto {
         }
 
         // Erase children from hierarchy, entities and lights
-        auto children{ FindChildrenByID( uniqueID ) };
+        const auto children{ FindChildrenByID( uniqueID ) };
 
         // Temporarily hold the children to remove them from lights
         std::vector<Scope_T<Entity>> childrenPtrs{};
@@ -193,7 +200,10 @@ namespace Mikoto {
         }
 
         // Erase parent (which erases children too)
-        RemoveFromLights( uniqueID );
+        if (target->HasComponent<LightComponent>()) {
+            RemoveFromLights( uniqueID );
+        }
+
         RemoveFromHierarchy( *target );
 
         return true;
@@ -259,14 +269,30 @@ namespace Mikoto {
             Texture2D* diffuse{ nullptr };
             Texture2D* specular{ nullptr };
 
+            PBRMaterialCreateSpec pbrMaterialCreateSpec{
+                .Name{ fmt::format( "Material standard - {}", mesh->GetName() ) }
+            };
+
             for (auto& textureIt: mesh->GetTextures()) {
                 switch ( textureIt->GetType() ) {
                     case MapType::TEXTURE_2D_DIFFUSE:
-                        diffuse = textureIt;
-                        break;
+                        pbrMaterialCreateSpec.AlbedoMap = textureIt;
                     case MapType::TEXTURE_2D_SPECULAR:
-                        specular = textureIt;
+                        //pbrMaterialCreateSpec.AlbedoMap = textureIt;
                         break;
+                    case MapType::TEXTURE_2D_NORMAL:
+                        pbrMaterialCreateSpec.NormalMap = textureIt;
+                    break;
+                    case MapType::TEXTURE_2D_METALLIC:
+                        pbrMaterialCreateSpec.MetallicMap = textureIt;
+                    break;
+                    case MapType::TEXTURE_2D_ROUGHNESS:
+                        pbrMaterialCreateSpec.RoughnessMap = textureIt;
+                    break;
+                    case MapType::TEXTURE_2D_AMBIENT_OCCLUSION:
+                        pbrMaterialCreateSpec.AmbientOcclusionMap = textureIt;
+                    break;
+
                     default:
                         MKT_CORE_LOGGER_INFO("Scene::CreatePrefabEntity - Mesh has no data for the requested texture type. {}", (int)textureIt->GetType());
                 }
@@ -279,7 +305,9 @@ namespace Mikoto {
                 .DiffuseMap{ diffuse },
                 .SpecularMap{ specular },
             };
-            materialComponent.SetMaterial(StandardMaterial::Create(spec));
+            //materialComponent.SetMaterial(StandardMaterial::Create(spec));
+
+            materialComponent.SetMaterial(PBRMaterial::Create(pbrMaterialCreateSpec));
         }
 
         return newEntityRoot;

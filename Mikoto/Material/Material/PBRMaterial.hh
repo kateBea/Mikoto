@@ -25,34 +25,53 @@ namespace Mikoto {
 
     class PBRMaterial : public Material {
     public:
-        MKT_NODISCARD auto HasAlbedoMap() const -> bool { return m_AlbedoMap != nullptr; }
-        MKT_NODISCARD auto HasNormalMap() const -> bool { return m_NormalMap != nullptr; }
-        MKT_NODISCARD auto HasMetallicMap() const -> bool { return m_MetallicMap != nullptr; }
-        MKT_NODISCARD auto HasRoughnessMap() const -> bool { return m_RoughnessMap != nullptr; }
-        MKT_NODISCARD auto HasAmbientOcclusionMap() const -> bool { return m_AmbientOcclusionMap != nullptr; }
+        MKT_NODISCARD virtual auto HasAlbedoMap() const -> bool = 0;
+        MKT_NODISCARD virtual auto HasNormalMap() const -> bool = 0;
+        MKT_NODISCARD virtual auto HasMetallicMap() const -> bool = 0;
+        MKT_NODISCARD virtual auto HasRoughnessMap() const -> bool  = 0;
+        MKT_NODISCARD virtual auto HasAmbientOcclusionMap() const -> bool = 0;
 
         MKT_NODISCARD auto GetAlbedoMap() const -> Texture2D* { return m_AlbedoMap; }
-        MKT_NODISCARD auto GetNormal() const -> Texture2D* { return m_NormalMap; }
-        MKT_NODISCARD auto GetMetallic() const -> Texture2D* { return m_MetallicMap; }
-        MKT_NODISCARD auto GetRoughness() const -> Texture2D* { return m_RoughnessMap; }
-        MKT_NODISCARD auto GetAO() const -> Texture2D* { return m_AmbientOcclusionMap; }
+        MKT_NODISCARD auto GetNormalMap() const -> Texture2D* { return m_NormalMap; }
+        MKT_NODISCARD auto GetMetallicMap() const -> Texture2D* { return m_MetallicMap; }
+        MKT_NODISCARD auto GetRoughnessMap() const -> Texture2D* { return m_RoughnessMap; }
+        MKT_NODISCARD auto GetAOMap() const -> Texture2D* { return m_AmbientOcclusionMap; }
+
+        MKT_NODISCARD auto GetMetallicFactor() const -> float { return m_Metallic; }
+        MKT_NODISCARD auto GetAlbedoFactors() const -> const glm::vec4& { return m_Color; }
+        MKT_NODISCARD auto GetRoughnessFactor() const -> float { return m_Roughness; }
+        MKT_NODISCARD auto GetAmbientOcclusionFactor() const -> float { return m_AmbientOcclusion; }
+
+        MKT_NODISCARD auto SetMetallicFactor(const float value) -> void { m_Metallic = value; }
+        MKT_NODISCARD auto SetAlbedoFactors(const glm::vec4& value) -> void { m_Color = value; }
+        MKT_NODISCARD auto SetRoughnessFactor(const float value) -> void { m_Roughness = value; }
+        MKT_NODISCARD auto SetAmbientOcclusionFactor(const float value) -> void { m_AmbientOcclusion = value; }
+
+        virtual auto RemoveMap( MapType type ) -> void = 0;
 
         MKT_NODISCARD static auto Create( const PBRMaterialCreateSpec& createInfo ) -> Scope_T<PBRMaterial>;
 
         ~PBRMaterial() override = default;
 
     protected:
+        explicit PBRMaterial( const PBRMaterialCreateSpec& createInfo )
+            : Material{ createInfo.Name, MaterialType::PBR },
+              m_AlbedoMap{ createInfo.AlbedoMap },
+              m_NormalMap{ createInfo.NormalMap },
+              m_MetallicMap{ createInfo.MetallicMap },
+              m_RoughnessMap{ createInfo.RoughnessMap },
+              m_AmbientOcclusionMap{ createInfo.AmbientOcclusionMap }
+        {}
+
         explicit PBRMaterial( const std::string_view name = "PBR" )
             : Material{ name, MaterialType::PBR } {
         }
 
     protected:
-        bool m_HasAlbedoTexture{ true };
-        bool m_HasSpecularTexture{ true };
-        bool m_HasNormalTexture{ true };
-        bool m_HasMetallicTexture{ true };
-        bool m_HasRoughnessTexture{ true };
-        bool m_HasAmbientOcclusionTexture{ true };
+
+        float m_Metallic{ 0.2f };
+        float m_Roughness{ 0.4f };
+        float m_AmbientOcclusion{ 0.4f };
 
         Texture2D* m_AlbedoMap{};
         Texture2D* m_NormalMap{};

@@ -49,6 +49,8 @@ namespace Mikoto {
 
         auto SetViewport( float x, float y, float width, float height ) -> void override;
 
+        auto SetRenderMode( Size_T mode ) -> void override;
+
         auto RemoveLight( UInt64_T id ) -> bool override;
         auto AddLight( UInt64_T id, const LightData& data, LightType activeType) -> bool override;
 
@@ -87,9 +89,10 @@ namespace Mikoto {
         auto CreateOffscreenFramebuffers() -> void;
 
 
-        auto InitializeWireFramePipeline() -> void;
+        auto InitializePBRWireFramePipeline() -> void;
 
         auto InitializeDefaultPipeline() -> void;
+        auto InitializePBRPipeline() -> void;
         auto CreateRendererPipelines() -> void;
 
         auto UpdateViewport(float x, float y, float width, float height) -> void;
@@ -104,6 +107,8 @@ namespace Mikoto {
         bool m_WireframeEnable{ false };
 
         VulkanDevice* m_Device{};
+
+        Size_T m_RenderMode{ DISPLAY_COLOR };
 
         VkRenderPass m_OffscreenMainRenderPass{};
         Scope_T<VulkanImage> m_OffscreenColorAttachment{};
@@ -123,7 +128,7 @@ namespace Mikoto {
 
         std::unordered_map<UInt64_T, LightRenderInfo> m_Lights{};
 
-        std::unordered_map<std::string, VulkanPipeline> m_Pipelines{};
+        std::unordered_map<Size_T, VulkanPipeline> m_Pipelines{};
         std::unordered_map<UInt64_T, MeshRenderInfo> m_DrawQueue{};
 
         bool m_UseWireframe{};

@@ -26,6 +26,7 @@
 #include <Renderer/Vulkan/VulkanImage.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Vulkan/VulkanTextureCubeMap.hh>
 
 namespace Mikoto {
     struct VulkanRendererCreateInfo {
@@ -54,6 +55,8 @@ namespace Mikoto {
         auto RemoveLight( UInt64_T id ) -> bool override;
         auto AddLight( UInt64_T id, const LightData& data, LightType activeType) -> bool override;
 
+        auto SetupCubeMap(const TextureCubeMap* cubeMap) -> void override;
+
         MKT_NODISCARD auto GetFinalImage() const -> const VulkanImage& { return *m_OffscreenColorAttachment; }
         MKT_NODISCARD auto GetDepthImage() const -> const VulkanImage& { return *m_OffscreenDepthAttachment; }
 
@@ -80,21 +83,25 @@ namespace Mikoto {
     private:
         auto CreateCommandPools() -> void;
         auto CreateCommandBuffers() -> void;
+        auto SetupObjectOutline(const MeshRenderInfo& meshRenderInfo) -> void;
 
         auto RecordCommands() -> void;
         auto RecordComputeCommands() -> void;
+        auto RecordComputeCommandsDEBUG() -> void;
         auto PrepareOffscreenRender() -> void;
 
         auto CreateOffscreenRenderPass() -> void;
         auto CreateOffscreenAttachments() -> void;
         auto CreateOffscreenFramebuffers() -> void;
 
-
         auto InitializePBRWireFramePipeline() -> void;
         auto InitializeComputePipelines() -> void;
 
         auto InitializeDefaultPipeline() -> void;
         auto InitializePBRPipeline() -> void;
+
+        auto InitializeOutlinePipeline() -> void;
+
         auto CreateRendererPipelines() -> void;
 
         auto UpdateViewport(float x, float y, float width, float height) -> void;
@@ -111,6 +118,8 @@ namespace Mikoto {
         VulkanDevice* m_Device{};
 
         Size_T m_RenderMode{ DISPLAY_COLOR };
+
+        const VulkanTextureCubeMap* m_CubeMap{};
 
         VkRenderPass m_OffscreenMainRenderPass{};
         Scope_T<VulkanImage> m_OffscreenColorAttachment{};

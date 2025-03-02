@@ -5,5 +5,13 @@
 #include "Assets/Font.hh"
 
 namespace Mikoto {
-    
+
+    Font::Font( const FontLoadInfo &loadInfo ) {
+
+    }
+
+    auto Font::Create( const FontLoadInfo &loadInfo ) {
+
+    }
+
 }

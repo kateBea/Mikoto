@@ -22,6 +22,7 @@
 #include <Scene/Scene/Scene.hh>
 #include <Project/ProjectSerializer.hh>
 #include <Renderer/Core/RendererBackend.hh>
+#include <Material/Texture/TextureCubeMap.hh>
 
 namespace Mikoto {
     struct EditorLayerCreateInfo {
@@ -76,6 +77,8 @@ namespace Mikoto {
         Entity* m_SelectedEntity{};
 
         Scope_T<Scene> m_ActiveScene{};
+
+        TextureCubeMap* m_TextureCubeMap{};
 
         Scope_T<SceneCamera> m_EditorCamera{};
         Scope_T<SceneSerializer> m_SceneSerializer{};

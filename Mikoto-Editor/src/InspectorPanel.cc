@@ -173,7 +173,9 @@ namespace Mikoto {
     }
 
     static auto ShowTextureHoverTooltip( const Texture2D* texture ) -> void {
-        ImGuiUtils::PushImageButton( texture->GetID().Get(), GetDescriptorSetById( texture ), ImVec2{ 128, 128 } );
+        if (ImGuiUtils::PushImageButton( texture->GetID().Get(), GetDescriptorSetById( texture ), ImVec2{ 128, 128 } )) {
+
+        }
 
         ImGui::SameLine();
 
@@ -771,7 +773,7 @@ namespace Mikoto {
 
             if ( ImGui::MenuItem( "Script", menuItemShortcut, menuItemSelected,
                                   !entity.HasComponent<NativeScriptComponent>() ) ) {
-                entity.AddComponent<NativeScriptComponent>();
+                entity.AddComponent<NativeScriptComponent>("TODO: PATH");
                 ImGui::CloseCurrentPopup();
             }
 
@@ -812,6 +814,17 @@ namespace Mikoto {
                 ImGui::CloseCurrentPopup();
             }
 
+            if ( ImGui::MenuItem( "Text", menuItemShortcut, menuItemSelected, !entity.HasComponent<TextComponent>() ) ) {
+                TextComponent& textComponent{ entity.AddComponent<TextComponent>() };
+
+                textComponent.LoadFont( "TODO" );
+                textComponent.SetFontSize( 12 );
+                textComponent.SetTextContent( "Example" );
+                textComponent.SetLetterSpacing( 1 );
+
+                ImGui::CloseCurrentPopup();
+            }
+
             ImGui::EndPopup();
         }
 
@@ -829,10 +842,8 @@ namespace Mikoto {
 
         ImGui::Spacing();
 
-        ImGuiUtils::PushImageButton( map->GetID().Get(), GetDescriptorSetById( map ), ImVec2{ 64, 64 } );
+        if (ImGuiUtils::PushImageButton( map->GetID().Get(), GetDescriptorSetById( map ), ImVec2{ 64, 64 } )) {
 
-        if ( ImGui::IsItemHovered() ) {
-            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
         }
 
         ImGui::SameLine();
@@ -1495,6 +1506,18 @@ namespace Mikoto {
         }
     }
 
+    static auto SetupTextComponentTab(Entity& entity) -> void {
+        TextComponent& textComponent{ entity.GetComponent<TextComponent>() };
+
+        std::string content( '0', 4096 );
+
+        std::ranges::copy(textComponent.GetTextContent(), content.begin());
+
+        if (ImGuiUtils::TextArea( content )) {
+            textComponent.SetTextContent( content );
+        }
+    }
+
     static auto SetupAudioComponentTab( Entity& entity ) -> void {
         AudioComponent& audioComponent{ entity.GetComponent<AudioComponent>() };
 
@@ -1675,6 +1698,7 @@ namespace Mikoto {
         DrawComponent<RenderComponent>( fmt::format( "{} Mesh", ICON_MD_VIEW_IN_AR ), entity, [&]( Entity& target ) -> void { SetupRenderComponentTab( target, m_TargetScene ); }, false );
         DrawComponent<LightComponent>( fmt::format( "{} Light", ICON_MD_LIGHT ), entity, SetupLightComponentTab );
         DrawComponent<AudioComponent>( fmt::format( "{} Audio", ICON_MD_AUDIOTRACK ), entity, SetupAudioComponentTab );
+        DrawComponent<TextComponent>( fmt::format( "{} Text", ICON_MD_MESSAGE ), entity, SetupTextComponentTab );
         DrawComponent<CameraComponent>( fmt::format( "{} Camera", ICON_MD_CAMERA_ALT ), entity, SetupCameraComponentTab );
         DrawComponent<NativeScriptComponent>( fmt::format( "{} Script", ICON_MD_CODE ), entity, SetupNativeScriptingComponentTab );
     }

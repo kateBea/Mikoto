@@ -16,9 +16,10 @@
 #include <glm/glm.hpp>
 
 // Project Headers
-#include <Common/Common.hh>
 #include <Assets/Mesh.hh>
+#include <Common/Common.hh>
 #include <Material/Core/Material.hh>
+#include <Material/Texture/TextureCubeMap.hh>
 #include <Models/LightData.hh>
 #include <Scene/Camera/SceneCamera.hh>
 #include <Scene/Scene/Component.hh>
@@ -65,6 +66,8 @@ namespace Mikoto {
 
         virtual auto RemoveLight( UInt64_T id ) -> bool = 0;
         virtual auto AddLight( UInt64_T id, const LightData& data, LightType activeType) -> bool = 0;
+
+        virtual auto SetupCubeMap(const TextureCubeMap* cubeMap) -> void = 0;
 
         // Camera & Viewport
         template<typename... Args>

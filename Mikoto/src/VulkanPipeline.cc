@@ -23,7 +23,7 @@
 namespace Mikoto {
 
     VulkanPipeline::VulkanPipeline( const VulkanPipelineCreateInfo& config )
-        : m_ConfigInfo{ config }
+        : m_ConfigInfo{ config }, m_PipelineLayout{ config.PipelineLayout }
     {
 
     }

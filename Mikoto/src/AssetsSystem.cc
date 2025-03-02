@@ -13,15 +13,36 @@
 #include <Core/System/AssetsSystem.hh>
 #include <Assets/Model.hh>
 #include <Assets/Texture.hh>
+#include <Material/Texture/TextureCubeMap.hh>
+
 
 namespace Mikoto {
 
     auto AssetsSystem::Init( ) -> void {
 
+        // Init Free Ttype Library
+        const auto FTInit_Result{ FT_Init_FreeType(std::addressof( m_FreeTypeLibrary )) };
+
+        if (FTInit_Result != 0) {
+            MKT_CORE_LOGGER_ERROR( "ERROR::FREETYPE: Could not init FreeType Library");
+            return;
+        }
+
     }
 
-    auto AssetsSystem::Update( ) -> void {
+    auto AssetsSystem::Update() -> void {
+    }
 
+    auto AssetsSystem::CreateTextureFromType( const TextureLoadInfo& info ) -> Texture* {
+
+        switch ( info.Type ) {
+            case MapType::TEXTURE_CUBE:
+                return TextureCubeMap::Create( { .TexturePath{ info.Path } } ).release();
+            default:
+                return Texture2D::Create( info.Path, info.Type ).release();
+        }
+
+        return nullptr;
     }
 
     auto AssetsSystem::Shutdown() -> void {
@@ -39,7 +60,7 @@ namespace Mikoto {
 
     }
 
-    auto AssetsSystem::GetTexture( const std::string_view uri) -> Texture* {
+    auto AssetsSystem::GetTexture( const std::string_view uri ) -> Texture* {
         const std::string key{ uri };
         if ( const auto it{ m_Textures.find( key ) }; it != m_Textures.end() ) {
             return it->second.get();
@@ -48,10 +69,16 @@ namespace Mikoto {
         return nullptr;
     }
 
+    auto AssetsSystem::GetFont( std::string_view uri ) -> Texture* {
+        return nullptr;
+    }
+
+    auto AssetsSystem::LoadFont( const FontLoadInfo& info ) -> Font* {
+        return nullptr;
+    }
+
     auto AssetsSystem::LoadModel(const ModelLoadInfo& info) -> Model* {
         Model* result{ nullptr };
-
-        // Ask file manager if this is a valid file
 
         if (!info.Path.is_absolute()) {
             return result;
@@ -79,14 +106,18 @@ namespace Mikoto {
             return result;
         }
 
-        // TODO: Assumes texture 2D for now
         auto itFind{ m_Textures.find( info.Path.string() ) };
         if ( itFind == m_Textures.end() ) {
             const std::string key{ info.Path.string() };
-            auto [insertIt, insertSuccess]{ m_Textures.try_emplace( key, std::move( Texture2D::Create( info.Path, info.Type ) ) ) };
 
-            if ( insertSuccess ) {
-                result = insertIt->second.get();
+            Texture* createTextureResult{ CreateTextureFromType(info) };
+
+            if (createTextureResult) {
+                auto [insertIt, insertSuccess]{ m_Textures.try_emplace( key, createTextureResult ) };
+
+                if ( insertSuccess ) {
+                    result = insertIt->second.get();
+                }
             }
         } else {
             result = itFind->second.get();

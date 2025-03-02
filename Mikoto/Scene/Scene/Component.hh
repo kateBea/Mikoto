@@ -401,26 +401,46 @@ namespace Mikoto {
     };
 
 
-    // ====== Section pending of review =======
-    // Scripting is not supported yet.
+    class TextComponent : public BaseComponent<TextComponent> {
+    public:
+        explicit TextComponent() = default;
 
+        TextComponent(const TextComponent& other) = default;
+        TextComponent(TextComponent&& other) = default;
 
-    /**
-     * Checks if a scriptable entity has an OnCreate, OnDestroy and Present function
-     * needed when binding and scriptable entity to the native script component
-     * */
-    template<typename ScriptableEntityType>
-    concept HasOnCreate = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->OnCreate(); };
+        auto operator=(const TextComponent& other) -> TextComponent& = default;
+        auto operator=(TextComponent&& other) -> TextComponent& = default;
 
-    template<typename ScriptableEntityType>
-    concept HasOnUpdate = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->Present(0, nullptr); };
+        MKT_NODISCARD auto GetFontPath() const -> const Path_T& { return m_FontPath; }
+        MKT_NODISCARD auto GetTextContent() const -> const std::string& { return m_TextContent; }
+        MKT_NODISCARD auto GetFontSize() const -> Size_T { return m_FontSize; }
+        MKT_NODISCARD auto GetLetterSpacing() const -> Size_T { return m_LetterSpacing; }
 
-    template<typename ScriptableEntityType>
-    concept HasOnDestroy = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->OnDestroy(); };
+        auto LoadFont(const Path_T& fontPath) -> void {
+
+        }
+
+        MKT_NODISCARD auto SetTextContent(const std::string_view content ) -> void { m_TextContent = content.data(); }
+        MKT_NODISCARD auto SetFontSize(const Size_T size ) -> void { m_FontSize = size; }
+        MKT_NODISCARD auto SetLetterSpacing(const Size_T spacing ) -> void  { m_LetterSpacing = spacing; }
+
+        auto OnComponentAttach() -> void {  }
+        auto OnComponentUpdate() -> void {  }
+        auto OnComponentRemoved() -> void {  }
+
+    private:
+        std::string m_TextContent{};
+
+        Path_T m_FontPath{};
+        Size_T m_FontSize{};
+        Size_T m_LetterSpacing{};
+    };
 
     class NativeScriptComponent : public BaseComponent<NativeScriptComponent> {
     public:
-        explicit NativeScriptComponent() = default;
+        explicit NativeScriptComponent(const Path_T& script)
+            : m_ScriptPath{ script }
+        {}
 
         NativeScriptComponent(const NativeScriptComponent& other) = default;
         NativeScriptComponent(NativeScriptComponent&& other) = default;
@@ -428,24 +448,16 @@ namespace Mikoto {
         auto operator=(const NativeScriptComponent& other) -> NativeScriptComponent& = default;
         auto operator=(NativeScriptComponent&& other) -> NativeScriptComponent& = default;
 
-        template<typename ScriptableEntityType>
-            requires HasOnCreate<ScriptableEntityType> &&
-                     HasOnUpdate<ScriptableEntityType> &&
-                     HasOnDestroy<ScriptableEntityType>
-        auto Bind() -> void {
-            m_OnCreateFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->OnCreate(); };
-            m_OnUpdateFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->Present(0, nullptr); };
-            m_OnDestroyFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->OnDestroy(); };
-        }
-
         auto OnComponentAttach() -> void {  }
         auto OnComponentUpdate() -> void {  }
         auto OnComponentRemoved() -> void {  }
 
+        ~NativeScriptComponent() = default;
+
     private:
-        std::function<void(/* ScriptableEntity* scriptable */)> m_OnCreateFunc{};
-        std::function<void(/* ScriptableEntity* scriptable */)> m_OnUpdateFunc{};
-        std::function<void(/* ScriptableEntity* scriptable */)> m_OnDestroyFunc{};
+
+        Path_T m_ScriptPath{};
+
     };
 }
 

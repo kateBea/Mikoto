@@ -149,7 +149,7 @@ namespace Mikoto {
         MKT_NODISCARD constexpr static auto GetMaxFov() -> float { return 90.0f; }
         MKT_NODISCARD constexpr static auto GetMinFov() -> float { return 15.0f; }
 
-        MKT_NODISCARD constexpr static auto GetMaxDampingFactor() -> float { return 5.0f; }
+        MKT_NODISCARD constexpr static auto GetMaxDampingFactor() -> float { return 20.0f; }
         MKT_NODISCARD constexpr static auto GetMinDampingFactor() -> float { return 1.0f; }
 
 

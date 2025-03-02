@@ -47,6 +47,8 @@ namespace Mikoto {
         TEXTURE_2D_METALLIC,
         TEXTURE_2D_AMBIENT_OCCLUSION,
         TEXTURE_2D_COUNT,
+
+        TEXTURE_CUBE,
     };
 
 
@@ -55,6 +57,7 @@ namespace Mikoto {
         MATERIAL_PASS_PBR = 2,
         MATERIAL_PASS_WIREFRAME = 3,
         MATERIAL_PASS_COMPUTE = 4,
+        MATERIAL_PASS_OUTLINE = 5,
     };
 
     enum class FileType {

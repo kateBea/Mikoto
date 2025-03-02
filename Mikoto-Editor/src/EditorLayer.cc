@@ -72,6 +72,8 @@ namespace Mikoto {
 
         m_EditorCamera->SetMovementSpeed( m_PanelRegistry.Get<SettingsPanel>()->GetData().EditorCameraMovementSpeed );
         m_EditorCamera->SetRotationSpeed( m_PanelRegistry.Get<SettingsPanel>()->GetData().EditorCameraRotationSpeed );
+
+        m_EditorRenderer->SetupCubeMap( m_TextureCubeMap );
     }
 
     auto EditorLayer::OnDetach() -> void {
@@ -117,7 +119,7 @@ namespace Mikoto {
 
         m_EditorCamera->UpdateState( timeStep );
 
-        // Setup editor
+        // Setup renderer
         m_EditorRenderer->SetClearColor( settingsPanel.GetData().ClearColor );
         m_EditorRenderer->EnableWireframe( settingsPanel.GetData().RenderWireframeMode );
 
@@ -358,6 +360,16 @@ namespace Mikoto {
         constexpr float ASPECT_RATIO{ 1920.0 / 1080.0 };
 
         cameraObject->AddComponent<CameraComponent>( CreateScope<SceneCamera>( FIELD_OF_VIEW, ASPECT_RATIO, NEAR_PLANE, FAR_PLANE ) );
+
+        // Load environment map
+        TextureCubeMapCreateInfo cubeMapCreateInfo{};
+
+        TextureLoadInfo loadInfo{
+            .Path{},
+            .Type{ MapType::TEXTURE_CUBE }
+        };
+
+        m_TextureCubeMap = dynamic_cast<TextureCubeMap*>( assetsSystem.LoadTexture( loadInfo ) );
     }
 
     auto EditorLayer::SaveProject() -> void {

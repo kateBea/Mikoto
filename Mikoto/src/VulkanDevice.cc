@@ -246,6 +246,10 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::SubmitCommandsGraphicsQueue( const FrameSynchronizationPrimitives& syncPrimitives ) -> void {
+        if (m_GraphicsSubmitCommands.empty()) {
+            return;
+        }
+
         // Prepare the submission to the queue. We want to wait on
         // the present semaphore, which is signaled when the swapchain
         // is ready (there's image available to render to). We will
@@ -277,6 +281,10 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::SubmitCommandsComputeQueue( const ComputeSynchronizationPrimitives& syncPrimitives ) -> void {
+        if (m_ComputeSubmitCommands.empty()) {
+            return;
+        }
+
         // Prepare the submission to the queue. We want to wait on
         // the present semaphore, which is signaled when the swapchain
         // is ready (there's image available to render to). We will

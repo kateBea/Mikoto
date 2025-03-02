@@ -7,13 +7,15 @@
 
 #version 450
 
-// Binding for the Storage Buffer
-//layout(std430, binding = 0) buffer DataBuffer {  uint data[]; };
+layout(set = 0, binding = 0) buffer RandomBuffer {
+    float values[];
+};
+
+layout(local_size_x = 256) in;
 
 void main() {
-    // Get the index of the current work item
-    uint index = gl_GlobalInvocationID.x;
+    uint id = gl_GlobalInvocationID.x;
 
-    // Store the random number in the buffer
-    //data[index] = index + 1;
+    // For testing
+    values[1] = values[0];
 }

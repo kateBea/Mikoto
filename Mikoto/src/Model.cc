@@ -131,6 +131,12 @@ namespace Mikoto {
                 vertices.emplace_back( 0.0f );
                 vertices.emplace_back( 0.0f );
             }
+
+            // Tangents and Bitangents
+            if (mesh->HasTangentsAndBitangents()) {
+                auto tangent{ mesh->mTangents[index] };
+                auto bitangent{ mesh->mBitangents[index] };
+            }
         }
 
         // Retrieve mesh indices

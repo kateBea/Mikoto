@@ -431,6 +431,7 @@ namespace Mikoto {
         // -----------------------------------------------------------
         DescriptorLayoutBuilder computeShaderSimpleLayoutCreateInfo{};
         VkDescriptorSetLayout compShaderSimple{ computeShaderSimpleLayoutCreateInfo
+                                                .WithBinding( 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT )
                                                .Build( m_VulkanData.Device->GetLogicalDevice() ) };
         m_DescriptorSetLayouts.try_emplace( DESCRIPTOR_SET_LAYOUT_COMPUTE_PIPELINE, compShaderSimple );
     }

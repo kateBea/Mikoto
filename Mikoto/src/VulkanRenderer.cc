@@ -12,6 +12,7 @@
 // Project Headers
 #include <Common/Common.hh>
 #include <Core/System/FileSystem.hh>
+#include <Core/System/TimeSystem.hh>
 #include <Library/Filesystem/PathBuilder.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDeletionQueue.hh>
@@ -88,12 +89,15 @@ namespace Mikoto {
         configInfo.DepthStencilInfo.depthWriteEnable = VK_TRUE;
         configInfo.DepthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
         configInfo.DepthStencilInfo.depthBoundsTestEnable = VK_FALSE;
-        configInfo.DepthStencilInfo.minDepthBounds = 0.0f;
-        configInfo.DepthStencilInfo.maxDepthBounds = 1.0f;
-        configInfo.DepthStencilInfo.stencilTestEnable = VK_FALSE;
-        configInfo.DepthStencilInfo.front = {};
-        configInfo.DepthStencilInfo.back = {};
-        configInfo.DepthStencilInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;
+        configInfo.DepthStencilInfo.stencilTestEnable = VK_TRUE;  // Enable stencil test
+        configInfo.DepthStencilInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;  // Always pass
+        configInfo.DepthStencilInfo.back.failOp = VK_STENCIL_OP_REPLACE;
+        configInfo.DepthStencilInfo.back.depthFailOp = VK_STENCIL_OP_REPLACE;
+        configInfo.DepthStencilInfo.back.passOp = VK_STENCIL_OP_REPLACE;  // Write stencil value
+        configInfo.DepthStencilInfo.back.reference = 1;  // Stencil value to write
+        configInfo.DepthStencilInfo.back.compareMask = 0xFF;
+        configInfo.DepthStencilInfo.back.writeMask = 0xFF;
+        configInfo.DepthStencilInfo.front = configInfo.DepthStencilInfo.back;  // Use default settings for front faces
 
         // VK_DYNAMIC_STATE_VERTEX_INPUT_EXT can reduce the amount of pipelines the application needs to create
         // because it allows for vertex input binding and attribute descriptions to be dynamic. This is, of course, not a
@@ -204,6 +208,11 @@ namespace Mikoto {
         return success;
     }
 
+    auto VulkanRenderer::SetupCubeMap( const TextureCubeMap* cubeMap ) -> void {
+        // Preferably dynamic cast, but base class is not polymorphic (not single virtual method) for now
+        m_CubeMap = static_cast<const VulkanTextureCubeMap *>( cubeMap );
+    }
+
     auto VulkanRenderer::CreateCommandBuffers() -> void {
         // Create as many as images we have to render
         constexpr UInt32_T COMMAND_BUFFERS_COUNT{ 1 };
@@ -219,6 +228,47 @@ namespace Mikoto {
         m_ComputeCommandBuffer = *m_CommandPool->AllocateCommandBuffer( allocInfo );
     }
 
+    void VulkanRenderer::SetupObjectOutline(const MeshRenderInfo& meshRenderInfo) {
+        const VulkanPipeline* pipeline{ nullptr };
+
+        VulkanPBRMaterial* pbrMaterial{ dynamic_cast<VulkanPBRMaterial*>( meshRenderInfo.MaterialData ) };
+
+        // Setup render mode
+        pbrMaterial->SetRenderMode( m_RenderMode );
+        pbrMaterial->EnableWireframe( m_WireframeEnable ? MKT_SHADER_TRUE : MKT_SHADER_FALSE );
+
+        // The material will store its passes so we dont have to do the switch stamentnt below
+        auto findIt{ m_Pipelines.find( MATERIAL_PASS_OUTLINE ) };
+
+        pipeline = findIt != m_Pipelines.end() ? std::addressof( findIt->second ) : nullptr;
+        if ( pipeline == nullptr ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::RecordCommands - Pipeline objects are null." );
+        }
+
+        pbrMaterial->SetProjection( m_Camera->GetProjection() );
+        pbrMaterial->SetView( m_Camera->GetViewMatrix() );
+        pbrMaterial->SetTransform( meshRenderInfo.MeshRenderInfo::Transform );
+        pbrMaterial->SetViewPosition( m_Camera->GetPosition() );
+
+        pbrMaterial->ResetLights();
+
+        for ( const auto& lightInfo: m_Lights | std::views::values ) {
+            pbrMaterial->UpdateLightsInfo( *lightInfo.Data, lightInfo.ActiveType );
+        }
+
+        pbrMaterial->UploadUniformBuffers();
+        pbrMaterial->BindDescriptorSet( m_DrawCommandBuffer, pipeline->GetLayout() );
+
+        pipeline->Bind( m_DrawCommandBuffer );
+
+        const VulkanVertexBuffer* vulkanVertexBuffer{ dynamic_cast<const VulkanVertexBuffer*>( meshRenderInfo.Object->GetVertexBuffer() ) };
+        const VulkanIndexBuffer* vulkanIndexBuffer{ dynamic_cast<const VulkanIndexBuffer*>( meshRenderInfo.Object->GetIndexBuffer() ) };
+
+        vulkanVertexBuffer->Bind( m_DrawCommandBuffer );
+        vulkanIndexBuffer->Bind( m_DrawCommandBuffer );
+
+        vkCmdDrawIndexed( m_DrawCommandBuffer, vulkanIndexBuffer->GetCount(), 1, 0, 0, 0 );
+    }
     auto VulkanRenderer::RecordCommands() -> void {
         VkCommandBufferBeginInfo beginInfo{ VulkanHelpers::Initializers::CommandBufferBeginInfo() };
 
@@ -248,13 +298,13 @@ namespace Mikoto {
 
         for ( const auto& [objectId, meshRenderInfo]: m_DrawQueue ) {
 
-            const VulkanPipeline* pipeline{ nullptr };
-
             if ( !meshRenderInfo.Object ) {
                 MKT_CORE_LOGGER_WARN( "VulkanRenderer::RecordCommands - Object data for {} is null.", objectId );
 
             } else {
                 if ( meshRenderInfo.MaterialData->GetType() == MaterialType::STANDARD ) {
+                    const VulkanPipeline* pipeline{ nullptr };
+
                     VulkanStandardMaterial* standardMaterial{ dynamic_cast<VulkanStandardMaterial*>( meshRenderInfo.MaterialData ) };
 
                     // The material will store its passes so we dont have to do the switch stamentnt below
@@ -279,7 +329,19 @@ namespace Mikoto {
 
                     standardMaterial->UploadUniformBuffers();
                     standardMaterial->BindDescriptorSet( m_DrawCommandBuffer, pipeline->GetLayout() );
+
+                    pipeline->Bind( m_DrawCommandBuffer );
+
+                    const VulkanVertexBuffer* vulkanVertexBuffer{ dynamic_cast<const VulkanVertexBuffer*>( meshRenderInfo.Object->GetVertexBuffer() ) };
+                    const VulkanIndexBuffer* vulkanIndexBuffer{ dynamic_cast<const VulkanIndexBuffer*>( meshRenderInfo.Object->GetIndexBuffer() ) };
+
+                    vulkanVertexBuffer->Bind( m_DrawCommandBuffer );
+                    vulkanIndexBuffer->Bind( m_DrawCommandBuffer );
+
+                    vkCmdDrawIndexed( m_DrawCommandBuffer, vulkanIndexBuffer->GetCount(), 1, 0, 0, 0 );
                 } else if ( meshRenderInfo.MaterialData->GetType() == MaterialType::PBR ) {
+                    const VulkanPipeline* pipeline{ nullptr };
+
                     VulkanPBRMaterial* pbrMaterial{ dynamic_cast<VulkanPBRMaterial*>( meshRenderInfo.MaterialData ) };
 
                     // Setup render mode
@@ -307,17 +369,19 @@ namespace Mikoto {
 
                     pbrMaterial->UploadUniformBuffers();
                     pbrMaterial->BindDescriptorSet( m_DrawCommandBuffer, pipeline->GetLayout() );
+
+                    pipeline->Bind( m_DrawCommandBuffer );
+
+                    const VulkanVertexBuffer* vulkanVertexBuffer{ dynamic_cast<const VulkanVertexBuffer*>( meshRenderInfo.Object->GetVertexBuffer() ) };
+                    const VulkanIndexBuffer* vulkanIndexBuffer{ dynamic_cast<const VulkanIndexBuffer*>( meshRenderInfo.Object->GetIndexBuffer() ) };
+
+                    vulkanVertexBuffer->Bind( m_DrawCommandBuffer );
+                    vulkanIndexBuffer->Bind( m_DrawCommandBuffer );
+
+                    vkCmdDrawIndexed( m_DrawCommandBuffer, vulkanIndexBuffer->GetCount(), 1, 0, 0, 0 );
                 }
 
-                pipeline->Bind( m_DrawCommandBuffer );
-
-                const VulkanVertexBuffer* vulkanVertexBuffer{ dynamic_cast<const VulkanVertexBuffer*>( meshRenderInfo.Object->GetVertexBuffer() ) };
-                const VulkanIndexBuffer* vulkanIndexBuffer{ dynamic_cast<const VulkanIndexBuffer*>( meshRenderInfo.Object->GetIndexBuffer() ) };
-
-                vulkanVertexBuffer->Bind( m_DrawCommandBuffer );
-                vulkanIndexBuffer->Bind( m_DrawCommandBuffer );
-
-                vkCmdDrawIndexed( m_DrawCommandBuffer, vulkanIndexBuffer->GetCount(), 1, 0, 0, 0 );
+                //SetupObjectOutline(meshRenderInfo);
             }
         }
 
@@ -329,6 +393,68 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::RecordComputeCommands() -> void {
+        //RecordComputeCommandsDEBUG();
+    }
+
+    auto VulkanRenderer::RecordComputeCommandsDEBUG() -> void {
+        // This serves as an example on how to record compute shader commands at its simple level
+        // This everything needed for this function is in this scope declared with static storage to
+        // the objects being destroyed. We are simply reading from the buffer as can be seen below
+        // with no synchronization whether the operations are completed just for the example sake
+
+        // VMA will probaly complain as the buffer here has storage duration and is last to get destroyed
+
+        // Compute pipelines consist of one stage, the compute shader, therefore they take one shader stage on construction
+        // Compute shaders operate independently, with no user-defined inputs or outputs,
+        // meaning there’s no direct way for consecutive compute shaders to communicate within
+        // a single pipeline. Each dispatch runs a single compute shader stage, and that’s it.
+        // If you need multiple compute shaders in sequence, you must create separate pipelines
+        // for each shader and use proper synchronization to manage data transfer between them
+
+        // DEBUG
+        static std::vector<float> values(10);
+
+        VkBufferCreateInfo stagingBufferInfo{ VulkanHelpers::Initializers::BufferCreateInfo() };
+        stagingBufferInfo.pNext = nullptr;
+
+        stagingBufferInfo.size = static_cast<UInt32_T>( values.size() * sizeof(float));
+        stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+
+        //let the VMA library know that this data should be on CPU RAM
+        VmaAllocationCreateInfo vmaStagingAllocationCreateInfo{};
+        vmaStagingAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+        vmaStagingAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+        const VulkanBufferCreateInfo stagingBufferBufferCreateInfo{
+            .BufferCreateInfo{ stagingBufferInfo },
+            .AllocationCreateInfo{ vmaStagingAllocationCreateInfo },
+            .WantMapping{ true }
+        };
+
+        static Scope_T<VulkanBuffer> stagingBuffer{ VulkanBuffer::Create( stagingBufferBufferCreateInfo ) };
+        static bool first{ true };
+        static VkDescriptorSet s_DescriptorSet{};
+        static TimeSystem& timeSystem{ Engine::GetSystem<TimeSystem>() };
+
+        if (first) {
+            const VkDescriptorSetLayout& descriptorSetLayout{ VulkanContext::Get().GetDescriptorSetLayouts( DESCRIPTOR_SET_LAYOUT_COMPUTE_PIPELINE ) };
+
+            const VulkanDevice& device{ VulkanContext::Get().GetDevice() };
+            VulkanDescriptorAllocator& descriptorAllocator{ VulkanContext::Get().GetDescriptorAllocator() };
+
+            s_DescriptorSet = *descriptorAllocator.Allocate( device.GetLogicalDevice(), descriptorSetLayout );
+
+            VulkanDescriptorWriter descWriters{};
+
+            descWriters
+                .WriteBuffer( 0, stagingBuffer->Get(), stagingBuffer->GetSize(), 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                .UpdateSet( device.GetLogicalDevice(), s_DescriptorSet );
+
+            first = false;
+        } else {
+            std::memcpy(values.data(), stagingBuffer->GetMappedPtr(), stagingBuffer->GetSize());
+        }
+
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -341,9 +467,9 @@ namespace Mikoto {
         const VulkanPipeline* computePipeline{ findIt == m_Pipelines.end() ? nullptr : std::addressof( findIt->second ) };
 
         vkCmdBindPipeline(m_ComputeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->Get());
-        //vkCmdBindDescriptorSets(m_ComputeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->GetLayout(), 0, 0, nullptr, 0, 0);
+        vkCmdBindDescriptorSets(m_ComputeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->GetLayout(), 0, 1, std::addressof( s_DescriptorSet ), 0, 0);
 
-        vkCmdDispatch(m_ComputeCommandBuffer, 33, 1, 1);
+        vkCmdDispatch(m_ComputeCommandBuffer, 10, 0, 0);
 
         if (vkEndCommandBuffer(m_ComputeCommandBuffer) != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("VulkanRenderer::RecordComputeCommands - Failed to record compute commands");
@@ -563,7 +689,8 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::SubmitCommands() const -> void {
-        m_Device->RegisterComputeCommand( m_ComputeCommandBuffer );
+        //m_Device->RegisterComputeCommand( m_ComputeCommandBuffer );
+
         m_Device->RegisterGraphicsCommand( m_DrawCommandBuffer );
     }
 
@@ -700,6 +827,83 @@ namespace Mikoto {
         }
     }
 
+    auto VulkanRenderer::InitializeOutlinePipeline() -> void {
+const auto& fileSystem{ Engine::GetSystem<FileSystem>() };
+
+        const VulkanShaderCreateInfo vertexStage{
+            .FilePath{ PathBuilder()
+                               .WithPath( fileSystem.GetShadersRootPath().string() )
+                               .WithPath( "vulkan-spirv" )
+                               .WithPath( "Outline_Vert.sprv" )
+                               .Build() },
+            .Stage{ VERTEX_STAGE },
+        };
+
+        const VulkanShaderCreateInfo fragmentStage{
+            .FilePath{ PathBuilder()
+                               .WithPath( fileSystem.GetShadersRootPath().string() )
+                               .WithPath( "vulkan-spirv" )
+                               .WithPath( "Outline_Frag.sprv" )
+                               .Build() },
+            .Stage{ FRAGMENT_STAGE },
+        };
+
+        const VulkanShader* fragmentShader = VulkanShaderLibrary::LoadShader( fragmentStage );
+        const VulkanShader* vertexShader = VulkanShaderLibrary::LoadShader( vertexStage );
+
+        const std::array pipelineShaderStageCreateInfos{
+            vertexShader->GetPipelineStageCreateInfo(),
+            fragmentShader->GetPipelineStageCreateInfo()
+        };
+
+        // Set layout
+        const std::array descLayouts{ VulkanContext::Get().GetDescriptorSetLayouts( DESCRIPTOR_SET_LAYOUT_PBR_SHADER ) };
+
+        // Push constants. See push constants in frag shader
+        // First data is 12 bytes is which size sizeof(glm::vec3) using floats for the vec3
+        std::array pushConstantRanges{
+            VulkanHelpers::Initializers::PushConstantRange( VK_SHADER_STAGE_FRAGMENT_BIT, 32, sizeof( glm::vec4 ) ),
+        };
+
+        // Create the pipeline layout
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VulkanHelpers::Initializers::PipelineLayoutCreateInfo() };
+        pipelineLayoutInfo.pushConstantRangeCount = 0;
+        pipelineLayoutInfo.pPushConstantRanges = nullptr;
+        pipelineLayoutInfo.setLayoutCount = static_cast<UInt32_T>( descLayouts.size() );
+        pipelineLayoutInfo.pSetLayouts = descLayouts.data();
+
+        VkPipelineLayout layout{};
+        if ( vkCreatePipelineLayout( m_Device->GetLogicalDevice(), std::addressof( pipelineLayoutInfo ), nullptr, std::addressof( layout ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "Failed to create pipeline layout" );
+        }
+
+        VulkanDeletionQueue::Push( [device = m_Device->GetLogicalDevice(),
+                                    pipelineLayout = layout]() -> void {
+            vkDestroyPipelineLayout( device, pipelineLayout, nullptr );
+        } );
+
+        // Create the pipeline
+        auto defaultMatPipelineConfig{ GetDefaultGraphicsPipelineConfigInfo() };
+
+        defaultMatPipelineConfig.DepthStencilInfo.back.compareOp = VK_COMPARE_OP_NOT_EQUAL;  // Draw where stencil != 1
+        defaultMatPipelineConfig.DepthStencilInfo.back.failOp = VK_STENCIL_OP_KEEP;
+        defaultMatPipelineConfig.DepthStencilInfo.back.depthFailOp = VK_STENCIL_OP_KEEP;
+        defaultMatPipelineConfig.DepthStencilInfo.back.passOp = VK_STENCIL_OP_REPLACE;
+        defaultMatPipelineConfig.DepthStencilInfo.front = defaultMatPipelineConfig.DepthStencilInfo.back;
+        defaultMatPipelineConfig.DepthStencilInfo.depthTestEnable = VK_FALSE;
+
+        defaultMatPipelineConfig.PipelineLayout = layout;
+        defaultMatPipelineConfig.RenderPass = m_OffscreenMainRenderPass;
+        defaultMatPipelineConfig.ShaderStages = pipelineShaderStageCreateInfos;
+
+        auto [it, success]{ m_Pipelines.try_emplace( MATERIAL_PASS_OUTLINE, defaultMatPipelineConfig ) };
+        if ( !success ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::InitializeDefaultPipeline - Failed to create standard pipeline." );
+        } else {
+            it->second.Init();
+        }
+    }
+
     auto VulkanRenderer::InitializePBRWireFramePipeline() -> void {
         const auto& fileSystem{ Engine::GetSystem<FileSystem>() };
 
@@ -772,11 +976,12 @@ namespace Mikoto {
     auto VulkanRenderer::InitializeComputePipelines() -> void {
         const auto& fileSystem{ Engine::GetSystem<FileSystem>() };
 
+        // Compute pipeline only takes one shader stage
         const VulkanShaderCreateInfo lightCullingComputeShaderCreateInfo{
             .FilePath{ PathBuilder()
                                .WithPath( fileSystem.GetShadersRootPath().string() )
                                .WithPath( "vulkan-spirv" )
-                               .WithPath( "Compute_Shader_Test.sprv" )
+                               .WithPath( "Compute_Shader.sprv" )
                                .Build() },
             .Stage{ COMPUTE_STAGE },
         };
@@ -829,6 +1034,8 @@ namespace Mikoto {
         InitializePBRPipeline();
 
         InitializeComputePipelines();
+
+        InitializeOutlinePipeline();
     }
 
     auto VulkanRenderer::Flush() -> void {
@@ -838,7 +1045,14 @@ namespace Mikoto {
 
         // NOTE: Compute, Graphics and Present queues might be the same
         // Watch-out to properly sync operations between command buffers and commands
+        // If Graphics queue and Compute queue are the same queue they will share index
+        // so might consider for this specific case to use pipeline barriers between these two commands buffers
         SubmitCommands();
+
+        // For light culling we want to:
+        // submit depth pre-pass command buffer
+        // submit light culling command buffer
+        // Submitting final composition command buffer
     }
 
     auto VulkanRenderer::AddToDrawQueue( const EntityQueueInfo& queueInfo ) -> bool {
@@ -891,5 +1105,7 @@ namespace Mikoto {
         };
 
         m_CommandPool = VulkanCommandPool::Create( vulkanCommandPoolCreateInfo );
+
+        // TODO create command pool to alllocate compute command buffers
     }
 }// namespace Mikoto

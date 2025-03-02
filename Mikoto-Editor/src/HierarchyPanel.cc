@@ -281,7 +281,7 @@ namespace Mikoto {
                 }
 
                 if ( ImGui::MenuItem( "Script", menuItemShortcut, menuItemSelected, !target.HasComponent<NativeScriptComponent>() ) ) {
-                    target.AddComponent<NativeScriptComponent>();
+                    target.AddComponent<NativeScriptComponent>("TODO: PATH");
                     ImGui::CloseCurrentPopup();
                 }
 

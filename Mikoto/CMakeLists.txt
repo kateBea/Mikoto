@@ -29,6 +29,7 @@ SET(YAML_CMAKE_DIR ${P_PATH}/Third-Party/yaml-cpp)
 SET(NFD_CMAKE_DIR ${P_PATH}/Third-Party/nativefiledialog-extended)
 SET(TOML_CPP ${P_PATH}/Third-Party/tomlplusplus)
 SET(CPP_TRACE ${P_PATH}/Third-Party/cpptrace)
+SET(FREE_TYPE ${P_PATH}/Third-Party/freetype)
 
 # Setup Mikoto Engine source file
 FILE(GLOB SOURCE_FILES src/*.cc)
@@ -50,7 +51,8 @@ SET(IMGUIZMO_SOURCES
     ${P_PATH}/Third-Party/ImGuizmo/ImGradient.cpp
     ${P_PATH}/Third-Party/ImGuizmo/ImSequencer.cpp)
 
-SET(SOURCES ${IMGUI_SOURCES} ${IMGUIZMO_SOURCES} ${SOURCE_FILES})
+SET(SOURCES ${IMGUI_SOURCES} ${IMGUIZMO_SOURCES} ${SOURCE_FILES}
+        src/TextureCubeMap.cc)
 
 # External dependencies
 ADD_SUBDIRECTORY(${GLFW_CMAKE_DIR} build/glfw)
@@ -61,9 +63,10 @@ ADD_SUBDIRECTORY(${ASSIMP_CMAKE_DIR} build/assimp)
 ADD_SUBDIRECTORY(${YAML_CMAKE_DIR} build/yaml)
 ADD_SUBDIRECTORY(${NFD_CMAKE_DIR} build/nfd)
 ADD_SUBDIRECTORY(${CPP_TRACE} build/cpptrace)
+ADD_SUBDIRECTORY(${FREE_TYPE} build/freetype)
 
 # Libraries to link against target
-SET(LIBRARIES glfw fmt EnTT::EnTT volk assimp yaml-cpp nfd cpptrace::cpptrace)
+SET(LIBRARIES glfw fmt EnTT::EnTT volk assimp yaml-cpp nfd cpptrace::cpptrace freetype)
 
 # for tests only. -ltbb was required to use std::execution::par on linux
 # set(LIBRARIES glfw glew_s fmt EnTT::EnTT volk assimp yaml-cpp nfd tbb)

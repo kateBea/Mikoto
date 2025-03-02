@@ -257,6 +257,23 @@ namespace Mikoto::ImGuiUtils {
         return active;
     }
 
+    inline auto TextArea(std::string& contents) -> bool {
+        ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
+        ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
+
+        constexpr  ImGuiInputTextFlags flags{ ImGuiInputTextFlags_AllowTabInput };
+
+        ImVec2 windowSize{ ImGui::GetWindowSize() };
+
+        const bool active{ ImGui::InputTextMultiline("##TextInput", contents.data(), contents.size(), ImVec2(windowSize.x * 0.5f, ImGui::GetTextLineHeight() * 5), flags) };
+
+        if ( ImGui::IsItemHovered() ) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_TextInput );
+        }
+
+        return active;
+    }
+
     inline auto CenteredText(const char* label, const float width, float height = 20.0f) -> void {
         // https://github.com/phicore/ImGuiStylingTricks/wiki/Custom-MessageBox#step-5-removed-title-bar-and-homemade-centered-text
 

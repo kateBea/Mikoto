@@ -11,6 +11,7 @@
 #include <vector>
 #include <memory>
 #include <string_view>
+#include <optional>
 
 // Third-Party Libraries
 #include "vk_mem_alloc.h"

@@ -12,6 +12,7 @@
 // Project Headers
 #include <Panels/Panel.hh>
 #include <Scene/Scene/Entity.hh>
+#include <Scene/Scene/Scene.hh>
 #include <Library/Data/GenTree.hh>
 
 namespace Mikoto {

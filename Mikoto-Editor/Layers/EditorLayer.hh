@@ -27,7 +27,7 @@
 namespace Mikoto {
     struct EditorLayerCreateInfo {
         Window* TargetWindow{ nullptr };
-        GraphicsAPI GraphicsAPI{};
+        GraphicsAPI Backend{};
         Path_T AssetsRootDirectory{};
     };
 

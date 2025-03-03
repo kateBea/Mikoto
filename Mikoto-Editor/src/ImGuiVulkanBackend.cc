@@ -134,12 +134,20 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR( "ImGuiVulkanBackend::Init - Failed to create descriptor pool for ImGui." );
         }
 
-        // TODO: fetch api from somehwre else
-        ImGui_ImplVulkan_LoadFunctions(VK_API_VERSION_1_3,
+#if __linux__
+        ImGui_ImplVulkan_LoadFunctions(
                 []( const char* functionName, void* vulkanInstance ) {
                     return vkGetInstanceProcAddr( *static_cast<VkInstance*>( vulkanInstance ), functionName );
                 },
                 std::addressof( VulkanContext::Get().GetInstance() ) );
+#else
+        ImGui_ImplVulkan_LoadFunctions(VK_API_VERSION_1_3,
+                    []( const char* functionName, void* vulkanInstance ) {
+                        return vkGetInstanceProcAddr( *static_cast<VkInstance*>( vulkanInstance ), functionName );
+                    },
+                    std::addressof( VulkanContext::Get().GetInstance() ) );
+#endif
+
 
         ImGui_ImplGlfw_InitForVulkan( window, true );
 

@@ -162,7 +162,7 @@ namespace Mikoto {
 
         EditorLayerCreateInfo editorLayerCreateInfo{
             .TargetWindow{ m_MainWindow.get() },
-            .GraphicsAPI{ Options.RendererAPI },
+            .Backend{ Options.RendererAPI },
             .AssetsRootDirectory{ Options.WorkingDirectory },
         };
 

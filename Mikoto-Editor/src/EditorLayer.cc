@@ -41,7 +41,7 @@ namespace Mikoto {
     EditorLayer::EditorLayer(const EditorLayerCreateInfo& createInfo)
         : Layer{ "EditorLayer" },
         m_AssetsRootDirectory{ createInfo.AssetsRootDirectory },
-        m_GraphicsAPI{ createInfo.GraphicsAPI },
+        m_GraphicsAPI{ createInfo.Backend },
     m_Window{ createInfo.TargetWindow }
     {
     }

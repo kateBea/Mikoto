@@ -44,7 +44,7 @@ namespace Mikoto {
 
         /**
          * Returns true if this entity contains at least one of the components listed in the parameter pack
-         * @returns true if this entity contains at least one of components of the parameter pack list
+         * @returns true if this entity contains at least one of the components of the parameter pack list
          * @tparam ComponentTypeList parameter pack containing all the components to be checked
          * */
         template<typename... ComponentTypeList>
@@ -124,8 +124,9 @@ namespace Mikoto {
             if ( !HasComponent<ComponentType>()) {
                 return;
             }
-            auto& component{ GetComponent<ComponentType>() };
-            component.OnComponentRemoved();
+
+            GetComponent<ComponentType>().OnComponentRemoved();
+
             m_Registry->remove<ComponentType>(m_Handle);
         }
 
@@ -135,7 +136,7 @@ namespace Mikoto {
          * @param other entity to compare the implicit parameter to
          * */
         auto operator==(const Entity& other) const -> bool {
-            return m_Handle == other.m_Handle; /*&& m_Scene == other.m_Scene;*/
+            return m_Handle == other.m_Handle && m_Registry == other.m_Registry;
         }
 
         /**
@@ -149,8 +150,7 @@ namespace Mikoto {
         }
 
         ~Entity() {
-            m_Registry = nullptr;
-            m_Handle = entt::null;
+            Invalidate();
         }
 
     private:

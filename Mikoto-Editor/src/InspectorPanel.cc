@@ -1327,7 +1327,7 @@ namespace Mikoto {
 
             float intensity{ pointLightData.AttenuationParams.x };
 
-            if ( ImGuiUtils::Slider( "Intensity", intensity, { 1.0f, 	3000.0f } ) ) {
+            if ( ImGuiUtils::Slider( "Intensity", intensity, { 1.0f, 	30000.0f } ) ) {
                 pointLightData.AttenuationParams.x = intensity;
             }
 
@@ -1390,7 +1390,7 @@ namespace Mikoto {
 
             float intensity{ spotLightData.Params.z };
 
-            if ( ImGuiUtils::Slider( "Intensity", intensity, { 1.0f, 	3000.0f } ) ) {
+            if ( ImGuiUtils::Slider( "Intensity", intensity, { 1.0f, 	30000.0f } ) ) {
                 spotLightData.Params.z = intensity;
             }
 
@@ -1693,13 +1693,21 @@ namespace Mikoto {
         }
 
         DrawComponent<TransformComponent>( fmt::format( "{} Transform", ICON_MD_DEVICE_HUB ), entity, [&]( Entity& target ) -> void { SetupTransformComponentTab( target, m_TargetScene ); }, false );
+
         DrawComponent<MaterialComponent>( fmt::format( "{} Material", ICON_MD_INSIGHTS ), entity, SetupMaterialComponentTab );
+
         DrawComponent<PhysicsComponent>( fmt::format( "{} Physics", ICON_MD_FITNESS_CENTER ), entity, SetupPhysicsComponentTab );
+
         DrawComponent<RenderComponent>( fmt::format( "{} Mesh", ICON_MD_VIEW_IN_AR ), entity, [&]( Entity& target ) -> void { SetupRenderComponentTab( target, m_TargetScene ); }, false );
+
         DrawComponent<LightComponent>( fmt::format( "{} Light", ICON_MD_LIGHT ), entity, SetupLightComponentTab );
+
         DrawComponent<AudioComponent>( fmt::format( "{} Audio", ICON_MD_AUDIOTRACK ), entity, SetupAudioComponentTab );
+
         DrawComponent<TextComponent>( fmt::format( "{} Text", ICON_MD_MESSAGE ), entity, SetupTextComponentTab );
+
         DrawComponent<CameraComponent>( fmt::format( "{} Camera", ICON_MD_CAMERA_ALT ), entity, SetupCameraComponentTab );
+
         DrawComponent<NativeScriptComponent>( fmt::format( "{} Script", ICON_MD_CODE ), entity, SetupNativeScriptingComponentTab );
     }
 

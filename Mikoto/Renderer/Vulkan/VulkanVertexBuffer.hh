@@ -42,6 +42,8 @@ namespace Mikoto {
         auto SetVertexData(const std::vector<float>& vertices) -> void;
 
         Scope_T<VulkanBuffer> m_Buffer{};
+        Scope_T<VulkanBuffer> m_StagingBuffer{};
+
         std::vector<float> m_RetainedData{};
     };
 }

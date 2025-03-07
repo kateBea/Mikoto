@@ -166,47 +166,7 @@ namespace Mikoto {
     }
 
     auto VulkanContext::ImmediateSubmit( const std::function<void( const VkCommandBuffer& )>& task) -> void {
-        VkCommandBuffer cmd{ m_ImmediateSubmitContext.CommandBuffer };
-
-        // Begin the command buffer recording. We will use this command buffer exactly
-        // once before resetting, so we tell vulkan that
-        VkCommandBufferBeginInfo cmdBeginInfo{ VulkanHelpers::Initializers::CommandBufferBeginInfo() };
-        cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        cmdBeginInfo.pNext = nullptr;
-        cmdBeginInfo.pInheritanceInfo = nullptr;
-        cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-        if ( vkBeginCommandBuffer( cmd, std::addressof( cmdBeginInfo ) ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkBeginCommandBuffer on ImmediateSubmit" );
-        }
-
-        task( cmd );
-
-        if ( vkEndCommandBuffer( cmd ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkBeginCommandBuffer on ImmediateSubmit" );
-        }
-
-        VkSubmitInfo submitInfo{ VulkanHelpers::Initializers::SubmitInfo() };
-        submitInfo.pNext = nullptr;
-        submitInfo.pWaitDstStageMask = nullptr;
-        submitInfo.waitSemaphoreCount = 0;
-        submitInfo.pWaitSemaphores = nullptr;
-        submitInfo.signalSemaphoreCount = 0;
-        submitInfo.pSignalSemaphores = nullptr;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = std::addressof(cmd);
-
-        const QueuesData& queuesData{ m_VulkanData.Device->GetLogicalDeviceQueues() };
-
-        if ( vkQueueSubmit( queuesData.Graphics->Queue, 1, std::addressof( submitInfo ), m_ImmediateSubmitContext.UploadFence ) ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkQueueSubmit on ImmediateSubmit" );
-        }
-
-        vkWaitForFences( m_VulkanData.Device->GetLogicalDevice() , 1, std::addressof( m_ImmediateSubmitContext.UploadFence ), true, 9999999999 );
-        vkResetFences( m_VulkanData.Device->GetLogicalDevice(), 1, std::addressof( m_ImmediateSubmitContext.UploadFence ) );
-
-        // reset the command buffers inside the command pool
-        vkResetCommandPool( m_VulkanData.Device->GetLogicalDevice(), m_ImmediateSubmitContext.CommandPool->Get(), 0 );
+        m_ImmediateSubmitTasks.emplace_back( task );
     }
 
     auto VulkanContext::Shutdown() -> void {
@@ -361,9 +321,60 @@ namespace Mikoto {
     auto VulkanContext::CreateSwapChain( const VulkanSwapChainCreateInfo& createInfo ) -> void {
         m_SwapChain = CreateScope<VulkanSwapChain>( createInfo );
 
-        if (m_SwapChain != nullptr) {
+        if ( m_SwapChain != nullptr ) {
             m_SwapChain->Init();
         }
+    }
+    auto VulkanContext::FlushImmediateSubmitTasks() -> void {
+        if (m_ImmediateSubmitTasks.empty()) {
+            return;
+        }
+
+        VkCommandBuffer cmd{ m_ImmediateSubmitContext.CommandBuffer };
+
+        // Begin the command buffer recording. We will use this command buffer exactly
+        // once before resetting, so we tell vulkan that
+        VkCommandBufferBeginInfo cmdBeginInfo{ VulkanHelpers::Initializers::CommandBufferBeginInfo() };
+        cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        cmdBeginInfo.pNext = nullptr;
+        cmdBeginInfo.pInheritanceInfo = nullptr;
+        cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+        if ( vkBeginCommandBuffer( cmd, std::addressof( cmdBeginInfo ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkBeginCommandBuffer on ImmediateSubmit" );
+        }
+
+        for (const auto& task : m_ImmediateSubmitTasks) {
+            task( cmd );
+        }
+
+        if ( vkEndCommandBuffer( cmd ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkBeginCommandBuffer on ImmediateSubmit" );
+        }
+
+        VkSubmitInfo submitInfo{ VulkanHelpers::Initializers::SubmitInfo() };
+        submitInfo.pNext = nullptr;
+        submitInfo.pWaitDstStageMask = nullptr;
+        submitInfo.waitSemaphoreCount = 0;
+        submitInfo.pWaitSemaphores = nullptr;
+        submitInfo.signalSemaphoreCount = 0;
+        submitInfo.pSignalSemaphores = nullptr;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = std::addressof(cmd);
+
+        const QueuesData& queuesData{ m_VulkanData.Device->GetLogicalDeviceQueues() };
+
+        if ( vkQueueSubmit( queuesData.Graphics->Queue, 1, std::addressof( submitInfo ), m_ImmediateSubmitContext.UploadFence ) ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkQueueSubmit on ImmediateSubmit" );
+        }
+
+        vkWaitForFences( m_VulkanData.Device->GetLogicalDevice() , 1, std::addressof( m_ImmediateSubmitContext.UploadFence ), true, 9999999999 );
+        vkResetFences( m_VulkanData.Device->GetLogicalDevice(), 1, std::addressof( m_ImmediateSubmitContext.UploadFence ) );
+
+        // reset the command buffers inside the command pool
+        vkResetCommandPool( m_VulkanData.Device->GetLogicalDevice(), m_ImmediateSubmitContext.CommandPool->Get(), 0 );
+
+        m_ImmediateSubmitTasks.clear();
     }
 
     auto VulkanContext::LoadVmaRequiredFunctions() -> void {
@@ -468,7 +479,9 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanContext::SubmitCommands() const -> void {
+    auto VulkanContext::SubmitCommands() -> void {
+        FlushImmediateSubmitTasks();
+
         FrameSynchronizationPrimitives submitInfo{};
 
         // Specify present and render semaphores

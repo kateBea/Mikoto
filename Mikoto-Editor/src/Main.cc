@@ -9,13 +9,13 @@
 
 // Project Headers
 #include <EditorApp.hh>
-#include <Common/Constants.hh>
 
 auto main( const int argc, char** argv ) -> int {
     using namespace Mikoto;
 
-    const auto app{ CreateScope<EditorApp>() };
-    const auto ret{ app ? app->Run( argc, argv ) : EXIT_FAILURE };
+    EditorApp app{ };
+
+    const auto ret{ app.Run( argc, argv ) };
 
     return ret;
 }

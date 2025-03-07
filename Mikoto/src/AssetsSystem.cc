@@ -46,6 +46,10 @@ namespace Mikoto {
     }
 
     auto AssetsSystem::Shutdown() -> void {
+        if (FT_Done_FreeType(m_FreeTypeLibrary) != 0) {
+            MKT_CORE_LOGGER_ERROR( "AssetsSystem::Shutdown - Failed to destroy free type library" );
+        }
+
         m_Models.clear();
         m_Textures.clear();
     }

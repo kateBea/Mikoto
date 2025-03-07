@@ -122,7 +122,6 @@ namespace Mikoto {
         return configInfo;
     }
 
-
     VulkanRenderer::VulkanRenderer( const VulkanRendererCreateInfo& createInfo )
         : m_OffscreenExtent{
               .width{ createInfo.Info.ViewportWidth },
@@ -157,7 +156,8 @@ namespace Mikoto {
         // If the values are out of range for the current render images we might need to recreate the offscreen render images and framebuffers
         UpdateViewport( x, y, width, height );
     }
-    void VulkanRenderer::SetRenderMode( Size_T mode ) {
+
+    void VulkanRenderer::SetRenderMode( const Size_T mode ) {
         m_RenderMode = mode;
     }
 
@@ -219,16 +219,24 @@ namespace Mikoto {
 
         VkCommandBufferAllocateInfo allocInfo{ VulkanHelpers::Initializers::CommandBufferAllocateInfo() };
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = m_CommandPool->Get();
+        allocInfo.commandPool = m_GraphicsCommandPool->Get();
         allocInfo.commandBufferCount = COMMAND_BUFFERS_COUNT;
 
-        m_DrawCommandBuffer = *m_CommandPool->AllocateCommandBuffer( allocInfo );
+        m_DrawCommandBuffer = *m_GraphicsCommandPool->AllocateCommandBuffer( allocInfo );
 
         // Compute command buffer
-        m_ComputeCommandBuffer = *m_CommandPool->AllocateCommandBuffer( allocInfo );
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandPool = m_ComputeCommandPool->Get();
+        allocInfo.commandBufferCount = COMMAND_BUFFERS_COUNT;
+        m_ComputeCommandBuffer = *m_ComputeCommandPool->AllocateCommandBuffer( allocInfo );
     }
 
-    void VulkanRenderer::SetupObjectOutline(const MeshRenderInfo& meshRenderInfo) {
+    auto VulkanRenderer::SetupObjectOutline( const MeshRenderInfo& meshRenderInfo ) -> void {
+        // TODO: fix outline
+        if (true) {
+            return;
+        }
+
         const VulkanPipeline* pipeline{ nullptr };
 
         VulkanPBRMaterial* pbrMaterial{ dynamic_cast<VulkanPBRMaterial*>( meshRenderInfo.MaterialData ) };
@@ -269,6 +277,88 @@ namespace Mikoto {
 
         vkCmdDrawIndexed( m_DrawCommandBuffer, vulkanIndexBuffer->GetCount(), 1, 0, 0, 0 );
     }
+
+    auto VulkanRenderer::SetupPBRPass( const MeshRenderInfo& meshRenderInfo ) -> void {
+        const VulkanPipeline* pipeline{ nullptr };
+
+        VulkanPBRMaterial* pbrMaterial{ dynamic_cast<VulkanPBRMaterial*>( meshRenderInfo.MaterialData ) };
+
+        // Setup render mode
+        pbrMaterial->SetRenderMode( m_RenderMode );
+        pbrMaterial->EnableWireframe( m_WireframeEnable ? MKT_SHADER_TRUE : MKT_SHADER_FALSE );
+
+        // The material will store its passes so we dont have to do the switch stamentnt below
+        auto findIt{ m_Pipelines.find( m_WireframeEnable ? MATERIAL_PASS_WIREFRAME : pbrMaterial->GetPass() ) };
+
+        pipeline = findIt != m_Pipelines.end() ? std::addressof( findIt->second ) : nullptr;
+        if ( pipeline == nullptr ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::RecordCommands - Pipeline objects are null." );
+        }
+
+        pbrMaterial->SetProjection( m_Camera->GetProjection() );
+        pbrMaterial->SetView( m_Camera->GetViewMatrix() );
+        pbrMaterial->SetTransform( meshRenderInfo.Transform );
+        pbrMaterial->SetViewPosition( m_Camera->GetPosition() );
+
+        pbrMaterial->ResetLights();
+
+        for ( const auto& lightInfo: m_Lights | std::views::values ) {
+            pbrMaterial->UpdateLightsInfo( *lightInfo.Data, lightInfo.ActiveType );
+        }
+
+        pbrMaterial->UploadUniformBuffers();
+        pbrMaterial->BindDescriptorSet( m_DrawCommandBuffer, pipeline->GetLayout() );
+
+        pipeline->Bind( m_DrawCommandBuffer );
+
+        const VulkanVertexBuffer* vulkanVertexBuffer{ dynamic_cast<const VulkanVertexBuffer*>( meshRenderInfo.Object->GetVertexBuffer() ) };
+        const VulkanIndexBuffer* vulkanIndexBuffer{ dynamic_cast<const VulkanIndexBuffer*>( meshRenderInfo.Object->GetIndexBuffer() ) };
+
+        vulkanVertexBuffer->Bind( m_DrawCommandBuffer );
+        vulkanIndexBuffer->Bind( m_DrawCommandBuffer );
+
+        vkCmdDrawIndexed( m_DrawCommandBuffer, vulkanIndexBuffer->GetCount(), 1, 0, 0, 0 );
+    }
+
+    auto VulkanRenderer::SetupDefaultPass( const MeshRenderInfo& meshRenderInfo ) -> void {
+        const VulkanPipeline* pipeline{ nullptr };
+
+        VulkanStandardMaterial* standardMaterial{ dynamic_cast<VulkanStandardMaterial*>( meshRenderInfo.MaterialData ) };
+
+        // The material will store its passes so we dont have to do the switch stamentnt below
+        auto findIt{ m_Pipelines.find( standardMaterial->GetPass() ) };
+
+        pipeline = findIt != m_Pipelines.end() ? std::addressof( findIt->second ) : nullptr;
+        if ( pipeline == nullptr ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::RecordCommands - Pipeline objects are null." );
+        }
+
+        standardMaterial->SetProjection( m_Camera->GetProjection() );
+        standardMaterial->SetView( m_Camera->GetViewMatrix() );
+        standardMaterial->SetTransform( meshRenderInfo.Transform );
+
+        standardMaterial->SetViewPosition( m_Camera->GetPosition() );
+
+        standardMaterial->ResetLights();
+
+        for ( const auto& lightInfo: m_Lights | std::views::values ) {
+            standardMaterial->UpdateLightsInfo( *lightInfo.Data, lightInfo.ActiveType );
+        }
+
+        standardMaterial->UploadUniformBuffers();
+        standardMaterial->BindDescriptorSet( m_DrawCommandBuffer, pipeline->GetLayout() );
+
+        pipeline->Bind( m_DrawCommandBuffer );
+
+        const VulkanVertexBuffer* vulkanVertexBuffer{ dynamic_cast<const VulkanVertexBuffer*>( meshRenderInfo.Object->GetVertexBuffer() ) };
+        const VulkanIndexBuffer* vulkanIndexBuffer{ dynamic_cast<const VulkanIndexBuffer*>( meshRenderInfo.Object->GetIndexBuffer() ) };
+
+        vulkanVertexBuffer->Bind( m_DrawCommandBuffer );
+        vulkanIndexBuffer->Bind( m_DrawCommandBuffer );
+
+        vkCmdDrawIndexed( m_DrawCommandBuffer, vulkanIndexBuffer->GetCount(), 1, 0, 0, 0 );
+    }
+
     auto VulkanRenderer::RecordCommands() -> void {
         VkCommandBufferBeginInfo beginInfo{ VulkanHelpers::Initializers::CommandBufferBeginInfo() };
 
@@ -296,93 +386,23 @@ namespace Mikoto {
 
         vkCmdBeginRenderPass( m_DrawCommandBuffer, std::addressof( renderPassInfo ), VK_SUBPASS_CONTENTS_INLINE );
 
-        for ( const auto& [objectId, meshRenderInfo]: m_DrawQueue ) {
+        for ( const auto& meshRenderInfo : m_DrawQueue | std::views::values ) {
 
-            if ( !meshRenderInfo.Object ) {
-                MKT_CORE_LOGGER_WARN( "VulkanRenderer::RecordCommands - Object data for {} is null.", objectId );
+            if ( meshRenderInfo.Object ) {
+                switch (meshRenderInfo.MaterialData->GetType()) {
 
-            } else {
-                if ( meshRenderInfo.MaterialData->GetType() == MaterialType::STANDARD ) {
-                    const VulkanPipeline* pipeline{ nullptr };
+                    case MaterialType::PBR:
+                        SetupPBRPass( meshRenderInfo );
+                        break;
 
-                    VulkanStandardMaterial* standardMaterial{ dynamic_cast<VulkanStandardMaterial*>( meshRenderInfo.MaterialData ) };
-
-                    // The material will store its passes so we dont have to do the switch stamentnt below
-                    auto findIt{ m_Pipelines.find( standardMaterial->GetPass() ) };
-
-                    pipeline = findIt != m_Pipelines.end() ? std::addressof( findIt->second ) : nullptr;
-                    if ( pipeline == nullptr ) {
-                        MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::RecordCommands - Pipeline objects are null." );
-                    }
-
-                    standardMaterial->SetProjection( m_Camera->GetProjection() );
-                    standardMaterial->SetView( m_Camera->GetViewMatrix() );
-                    standardMaterial->SetTransform( meshRenderInfo.Transform );
-
-                    standardMaterial->SetViewPosition( m_Camera->GetPosition() );
-
-                    standardMaterial->ResetLights();
-
-                    for ( const auto& lightInfo: m_Lights | std::views::values ) {
-                        standardMaterial->UpdateLightsInfo( *lightInfo.Data, lightInfo.ActiveType );
-                    }
-
-                    standardMaterial->UploadUniformBuffers();
-                    standardMaterial->BindDescriptorSet( m_DrawCommandBuffer, pipeline->GetLayout() );
-
-                    pipeline->Bind( m_DrawCommandBuffer );
-
-                    const VulkanVertexBuffer* vulkanVertexBuffer{ dynamic_cast<const VulkanVertexBuffer*>( meshRenderInfo.Object->GetVertexBuffer() ) };
-                    const VulkanIndexBuffer* vulkanIndexBuffer{ dynamic_cast<const VulkanIndexBuffer*>( meshRenderInfo.Object->GetIndexBuffer() ) };
-
-                    vulkanVertexBuffer->Bind( m_DrawCommandBuffer );
-                    vulkanIndexBuffer->Bind( m_DrawCommandBuffer );
-
-                    vkCmdDrawIndexed( m_DrawCommandBuffer, vulkanIndexBuffer->GetCount(), 1, 0, 0, 0 );
-                } else if ( meshRenderInfo.MaterialData->GetType() == MaterialType::PBR ) {
-                    const VulkanPipeline* pipeline{ nullptr };
-
-                    VulkanPBRMaterial* pbrMaterial{ dynamic_cast<VulkanPBRMaterial*>( meshRenderInfo.MaterialData ) };
-
-                    // Setup render mode
-                    pbrMaterial->SetRenderMode( m_RenderMode );
-                    pbrMaterial->EnableWireframe( m_WireframeEnable ? MKT_SHADER_TRUE : MKT_SHADER_FALSE );
-
-                    // The material will store its passes so we dont have to do the switch stamentnt below
-                    auto findIt{ m_Pipelines.find( m_WireframeEnable ? MATERIAL_PASS_WIREFRAME : pbrMaterial->GetPass() ) };
-
-                    pipeline = findIt != m_Pipelines.end() ? std::addressof( findIt->second ) : nullptr;
-                    if ( pipeline == nullptr ) {
-                        MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::RecordCommands - Pipeline objects are null." );
-                    }
-
-                    pbrMaterial->SetProjection( m_Camera->GetProjection() );
-                    pbrMaterial->SetView( m_Camera->GetViewMatrix() );
-                    pbrMaterial->SetTransform( meshRenderInfo.Transform );
-                    pbrMaterial->SetViewPosition( m_Camera->GetPosition() );
-
-                    pbrMaterial->ResetLights();
-
-                    for ( const auto& lightInfo: m_Lights | std::views::values ) {
-                        pbrMaterial->UpdateLightsInfo( *lightInfo.Data, lightInfo.ActiveType );
-                    }
-
-                    pbrMaterial->UploadUniformBuffers();
-                    pbrMaterial->BindDescriptorSet( m_DrawCommandBuffer, pipeline->GetLayout() );
-
-                    pipeline->Bind( m_DrawCommandBuffer );
-
-                    const VulkanVertexBuffer* vulkanVertexBuffer{ dynamic_cast<const VulkanVertexBuffer*>( meshRenderInfo.Object->GetVertexBuffer() ) };
-                    const VulkanIndexBuffer* vulkanIndexBuffer{ dynamic_cast<const VulkanIndexBuffer*>( meshRenderInfo.Object->GetIndexBuffer() ) };
-
-                    vulkanVertexBuffer->Bind( m_DrawCommandBuffer );
-                    vulkanIndexBuffer->Bind( m_DrawCommandBuffer );
-
-                    vkCmdDrawIndexed( m_DrawCommandBuffer, vulkanIndexBuffer->GetCount(), 1, 0, 0, 0 );
+                    case MaterialType::STANDARD:
+                        SetupDefaultPass( meshRenderInfo );
+                        break;
                 }
 
-                //SetupObjectOutline(meshRenderInfo);
+                SetupObjectOutline(meshRenderInfo);
             }
+
         }
 
         vkCmdEndRenderPass( m_DrawCommandBuffer );
@@ -828,7 +848,7 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::InitializeOutlinePipeline() -> void {
-const auto& fileSystem{ Engine::GetSystem<FileSystem>() };
+        const auto& fileSystem{ Engine::GetSystem<FileSystem>() };
 
         const VulkanShaderCreateInfo vertexStage{
             .FilePath{ PathBuilder()
@@ -858,12 +878,6 @@ const auto& fileSystem{ Engine::GetSystem<FileSystem>() };
 
         // Set layout
         const std::array descLayouts{ VulkanContext::Get().GetDescriptorSetLayouts( DESCRIPTOR_SET_LAYOUT_PBR_SHADER ) };
-
-        // Push constants. See push constants in frag shader
-        // First data is 12 bytes is which size sizeof(glm::vec3) using floats for the vec3
-        std::array pushConstantRanges{
-            VulkanHelpers::Initializers::PushConstantRange( VK_SHADER_STAGE_FRAGMENT_BIT, 32, sizeof( glm::vec4 ) ),
-        };
 
         // Create the pipeline layout
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VulkanHelpers::Initializers::PipelineLayoutCreateInfo() };
@@ -899,9 +913,9 @@ const auto& fileSystem{ Engine::GetSystem<FileSystem>() };
         auto [it, success]{ m_Pipelines.try_emplace( MATERIAL_PASS_OUTLINE, defaultMatPipelineConfig ) };
         if ( !success ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::InitializeDefaultPipeline - Failed to create standard pipeline." );
-        } else {
-            it->second.Init();
         }
+
+        it->second.Init();
     }
 
     auto VulkanRenderer::InitializePBRWireFramePipeline() -> void {
@@ -1095,17 +1109,28 @@ const auto& fileSystem{ Engine::GetSystem<FileSystem>() };
             m_Device->GetLogicalDeviceQueues()
         };
 
-        VkCommandPoolCreateInfo createInfo{ VulkanHelpers::Initializers::CommandPoolCreateInfo() };
-        createInfo.flags = 0;
-        createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        createInfo.queueFamilyIndex = Graphics->FamilyIndex;
+        // Command pool to allocate command buffers for graphics queue operations
+        VkCommandPoolCreateInfo graphicsQueueCmdPoolCreateInfo{ VulkanHelpers::Initializers::CommandPoolCreateInfo() };
+        graphicsQueueCmdPoolCreateInfo.flags = 0;
+        graphicsQueueCmdPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        graphicsQueueCmdPoolCreateInfo.queueFamilyIndex = Graphics->FamilyIndex;
 
-        VulkanCommandPoolCreateInfo vulkanCommandPoolCreateInfo{
-            .CreateInfo{ createInfo },
+        const VulkanCommandPoolCreateInfo vulkanGraphicsQueueCommandPoolCreateInfo{
+            .CreateInfo{ graphicsQueueCmdPoolCreateInfo },
         };
 
-        m_CommandPool = VulkanCommandPool::Create( vulkanCommandPoolCreateInfo );
+        m_GraphicsCommandPool = VulkanCommandPool::Create( vulkanGraphicsQueueCommandPoolCreateInfo );
 
-        // TODO create command pool to alllocate compute command buffers
+        // Command pool to allocate command buffers for compute queue operations
+        VkCommandPoolCreateInfo computeQueueCmdPoolCreateInfo{ VulkanHelpers::Initializers::CommandPoolCreateInfo() };
+        graphicsQueueCmdPoolCreateInfo.flags = 0;
+        graphicsQueueCmdPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        graphicsQueueCmdPoolCreateInfo.queueFamilyIndex = Compute->FamilyIndex;
+
+        const VulkanCommandPoolCreateInfo vulkanComputeQueueCommandPoolCreateInfo{
+            .CreateInfo{ computeQueueCmdPoolCreateInfo },
+        };
+
+        m_ComputeCommandPool = VulkanCommandPool::Create( vulkanComputeQueueCommandPoolCreateInfo );
     }
 }// namespace Mikoto

@@ -4,6 +4,7 @@
  * */
 
 // C++ Standard Library
+#include <set>
 #include <stdexcept>
 
 // Third-Party Libraries
@@ -11,7 +12,6 @@
 #include "volk.h"
 
 // Project Header
-#include <set>
 
 #include "Renderer/Vulkan/VulkanContext.hh"
 #include "Renderer/Vulkan/VulkanHelpers.hh"

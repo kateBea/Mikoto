@@ -120,10 +120,10 @@ namespace Mikoto {
             .WantMapping{ true }
         };
 
-        Scope_T<VulkanBuffer> stagingBuffer{ VulkanBuffer::Create( stagingBufferBufferCreateInfo ) };
+        m_StagingBuffer = VulkanBuffer::Create( stagingBufferBufferCreateInfo );
 
         // Copy vertex data to staging buffer
-        std::memcpy(stagingBuffer->GetMappedPtr(), vertices.data(), m_Size);
+        std::memcpy(m_StagingBuffer->GetMappedPtr(), vertices.data(), m_Size);
 
         // Allocate vertex buffer
         VkBufferCreateInfo vertexBufferInfo{ VulkanHelpers::Initializers::BufferCreateInfo() };
@@ -157,9 +157,7 @@ namespace Mikoto {
                 .size{ m_Size },
             };
 
-            vkCmdCopyBuffer(cmd, stagingBuffer->Get(), m_Buffer->Get(), 1, std::addressof(copy));
+            vkCmdCopyBuffer(cmd, m_StagingBuffer->Get(), m_Buffer->Get(), 1, std::addressof(copy));
         });
-
-        stagingBuffer = nullptr;
     }
 }

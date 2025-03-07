@@ -70,7 +70,7 @@ namespace Mikoto {
 
             bool IsRendered{ false };
 
-            // For now we assume the
+            // For now, we assume the
             // mesh has only one material
             Material* MaterialData{};
         };
@@ -84,6 +84,9 @@ namespace Mikoto {
         auto CreateCommandPools() -> void;
         auto CreateCommandBuffers() -> void;
         auto SetupObjectOutline(const MeshRenderInfo& meshRenderInfo) -> void;
+
+        auto SetupPBRPass(const MeshRenderInfo& meshRenderInfo) -> void;
+        auto SetupDefaultPass(const MeshRenderInfo& meshRenderInfo) -> void;
 
         auto RecordCommands() -> void;
         auto RecordComputeCommands() -> void;
@@ -136,7 +139,9 @@ namespace Mikoto {
 
         VkCommandBuffer m_DrawCommandBuffer{};
         VkCommandBuffer m_ComputeCommandBuffer{};
-        Scope_T<VulkanCommandPool> m_CommandPool{};
+
+        Scope_T<VulkanCommandPool> m_GraphicsCommandPool{};
+        Scope_T<VulkanCommandPool> m_ComputeCommandPool{};
 
         std::unordered_map<UInt64_T, LightRenderInfo> m_Lights{};
 

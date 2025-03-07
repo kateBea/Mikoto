@@ -173,20 +173,20 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreatePrimaryLogicalDevice() -> void {
-        m_QueueFamiliesData = GetQueueFamilyIndices(m_PhysicalDevice, m_Surface);
+        m_QueueFamiliesData = GetQueueFamilyIndices( m_PhysicalDevice, m_Surface );
 
         const auto graphicsQueueFamilyIndex{ m_QueueFamiliesData.Graphics->FamilyIndex };
         const auto presentQueueFamilyIndex{ m_QueueFamiliesData.Present->FamilyIndex };
 
-        const auto queueCreateInfos{ VulkanHelpers::SetupDeviceQueueCreateInfo({ graphicsQueueFamilyIndex, presentQueueFamilyIndex}) };
+        const auto queueCreateInfos{ VulkanHelpers::SetupDeviceQueueCreateInfo( { graphicsQueueFamilyIndex, presentQueueFamilyIndex } ) };
 
         // Requested device features
-        VkPhysicalDeviceFeatures deviceFeatures{ };
+        VkPhysicalDeviceFeatures deviceFeatures{};
         deviceFeatures.samplerAnisotropy = VK_TRUE;
         deviceFeatures.fillModeNonSolid = VK_TRUE;// required for wireframe mode
 
         VkPhysicalDeviceVulkan13Features vulkan13Features{ VulkanHelpers::Initializers::PhysicalDeviceVulkan13Features() };
-        vulkan13Features.synchronization2 = VK_TRUE; // required for vkCmdPipelineBarrier2 used when image transitions
+        vulkan13Features.synchronization2 = VK_TRUE;// required for vkCmdPipelineBarrier2 used when image transitions
 
         VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{ VulkanHelpers::Initializers::PhysicalDeviceFeatures2() };
         physicalDeviceFeatures2.features = deviceFeatures;
@@ -225,6 +225,7 @@ namespace Mikoto {
          * */
         volkLoadDevice( m_LogicalDevice );
     }
+
 
     auto VulkanDevice::GetAllocatorStats() -> const VmaTotalStatistics& {
         vmaCalculateStatistics( m_DefaultAllocator, std::addressof( m_AllocatorStats ) );

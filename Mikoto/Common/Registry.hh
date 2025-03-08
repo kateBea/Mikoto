@@ -18,17 +18,17 @@ namespace Mikoto {
     public:
         using Registry_T = std::unordered_map<size_t, Scope_T<BaseType>>;
 
-        template<typename SystemType, typename... Args>
-        auto Register( Args&&... args ) -> SystemType* {
-            const Size_T typeName{ typeid( SystemType ).hash_code() };
+        template<typename RegisteredType, typename... Args>
+        auto Register( Args&&... args ) -> RegisteredType* {
+            const Size_T typeName{ typeid( RegisteredType ).hash_code() };
 
             MKT_ASSERT( !m_Registry.contains( typeName ), "Registry::Register - Error registering system more than once." );
 
-            auto system{ CreateScope<SystemType>( std::forward<Args>( args )... ) };
+            auto system{ CreateScope<RegisteredType>( std::forward<Args>( args )... ) };
             const auto [itInsert, success]{ m_Registry.try_emplace( typeName, std::move( system ) ) };
 
             if (success) {
-                return dynamic_cast<SystemType*>(itInsert->second.get());
+                return dynamic_cast<RegisteredType*>(itInsert->second.get());
             }
 
             return nullptr;

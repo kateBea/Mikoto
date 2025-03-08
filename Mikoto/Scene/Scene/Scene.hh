@@ -56,6 +56,7 @@ namespace Mikoto {
         // Getters
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
         MKT_NODISCARD auto GetHierarchy() -> GenTree<Entity*>& { return m_Hierarchy; }
+        MKT_NODISCARD auto GetHierarchy() const -> const GenTree<Entity*>& { return m_Hierarchy; }
 
         ~Scene();
 

@@ -72,7 +72,7 @@ namespace Mikoto {
         auto Shutdown() -> void override;
         auto Update() -> void override;
 
-        auto LoadFile( const Path_T& path ) -> File*;
+        auto LoadFile( const Path_T& path, FileMode mode = MKT_FILE_OPEN_MODE_NONE ) -> File*;
 
         /**
          * Opens a save file dialog with the given filters. Every filter has a name

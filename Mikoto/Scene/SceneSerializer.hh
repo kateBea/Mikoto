@@ -1,5 +1,5 @@
 //
-// Created by zanet on 1/26/2025.
+// Created by kate on 1/26/2025.
 //
 
 #ifndef SCENESERIALIZER_HH
@@ -9,6 +9,7 @@
 #include <Core/Serialization/Serializer.hh>
 
 namespace Mikoto {
+
     /**
     * Serializer object for Scenes. Can load a scene from a file
     * and serialize it too.

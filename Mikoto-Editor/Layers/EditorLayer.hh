@@ -12,7 +12,7 @@
 // Project Headers
 #include <Layer.hh>
 #include <Assets/Model.hh>
-#include <Core/Serialization/SceneSerializer.hh>
+#include <Scene/SceneSerializer.hh>
 #include <EditorModels/DockSpaceControlFlags.hh>
 #include <EditorModels/Enums.hh>
 #include <Models/Enums.hh>
@@ -85,8 +85,6 @@ namespace Mikoto {
 
         Scope_T<Project> m_Project{};
         Scope_T<ProjectSerializer> m_ProjectSerializer{};
-
-        Path_T m_AssetsRootDirectory{};
 
         GraphicsAPI m_GraphicsAPI{};
 

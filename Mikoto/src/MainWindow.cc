@@ -218,7 +218,7 @@ namespace Mikoto {
         m_ScreenMode = mode;
 
         switch (m_ScreenMode) {
-            case FULLSCREEN: {
+            case MKT_WINDOW_MODE_FULLSCREEN: {
                 // Get the primary monitor
                 GLFWmonitor* monitor{ glfwGetPrimaryMonitor() };
                 const GLFWvidmode* videoMode{ glfwGetVideoMode(monitor) };
@@ -229,7 +229,7 @@ namespace Mikoto {
                 glfwSetWindowMonitor(m_Window, monitor, 0, 0, videoMode->width, videoMode->height, videoMode->refreshRate);
                 break;
             }
-            case WINDOWED: {
+            case MKT_WINDOW_MODE_WINDOWED: {
                 // Get the primary monitor
                 GLFWmonitor* monitor{ glfwGetPrimaryMonitor() };
                 const GLFWvidmode* videoMode{ glfwGetVideoMode(monitor) };
@@ -245,7 +245,7 @@ namespace Mikoto {
                 break;
             }
 
-            case BORDERLESS: {
+            case MKT_WINDOW_MODE_BORDERLESS: {
                 // Get the primary monitor
                 Int32_T monitorWidth{};
                 Int32_T monitorHeight{};

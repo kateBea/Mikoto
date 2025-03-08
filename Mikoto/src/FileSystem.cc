@@ -107,7 +107,7 @@ namespace Mikoto {
 
     }
 
-    auto FileSystem::LoadFile( const Path_T& path ) -> File* {
+    auto FileSystem::LoadFile( const Path_T& path, const FileMode mode ) -> File* {
         File* result{ nullptr };
 
         const auto findIt{ m_Files.find( path.string() ) };
@@ -115,7 +115,7 @@ namespace Mikoto {
         if (findIt != m_Files.end()) {
             result = findIt->second.get();
         } else {
-            const auto[insertIt, success]{ m_Files.try_emplace( path.string(), CreateScope<File>( path ) ) };
+            const auto[insertIt, success]{ m_Files.try_emplace( path.string(), CreateScope<File>( path, mode ) ) };
 
             if (success) {
                 result = insertIt->second.get();

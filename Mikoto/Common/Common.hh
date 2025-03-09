@@ -16,7 +16,6 @@
 
 // Project Headers
 #include <Library/Utility/Types.hh>
-#include <Models/SystemData.hh>
 
 #define MKT_NODISCARD [[nodiscard]]
 #define MKT_UNUSED_FUNC [[maybe_unused]]
@@ -54,6 +53,12 @@
     auto operator=(const CLASS_NAME&)   = delete
 
 namespace Mikoto {
+
+    struct SystemInfo {
+        Int64_T TotalRam{};  // Total usable main memory size in kB
+        Int64_T FreeRam{};   // Available memory size in kB
+        Int64_T SharedRam{}; // Amount of shared memory in kB
+    };
 
     /**
      * Fetches the name of the CPU in the current platform.

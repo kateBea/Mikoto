@@ -73,12 +73,35 @@ namespace Mikoto {
         return nullptr;
     }
 
-    auto AssetsSystem::GetFont( std::string_view uri ) -> Texture* {
+    auto AssetsSystem::GetFont( const std::string_view uri ) -> Font* {
+        const std::string key{ uri };
+        if ( const auto it{ m_Fonts.find( key ) }; it != m_Fonts.end() ) {
+            return it->second.get();
+        }
+
         return nullptr;
     }
 
     auto AssetsSystem::LoadFont( const FontLoadInfo& info ) -> Font* {
-        return nullptr;
+        Font* result{ nullptr };
+
+        if (!info.Path.is_absolute()) {
+            return result;
+        }
+
+        auto itFind{ m_Fonts.find( info.Path.string() ) };
+        if ( itFind == m_Fonts.end() ) {
+            const std::string key{ info.Path.string() };
+            auto [insertIt, insertSuccess]{ m_Fonts.try_emplace( key, Font::Create( info ) ) };
+
+            if ( insertSuccess ) {
+                result = insertIt->second.get();
+            }
+        } else {
+            result = itFind->second.get();
+        }
+
+        return result;
     }
 
     auto AssetsSystem::LoadModel(const ModelLoadInfo& info) -> Model* {

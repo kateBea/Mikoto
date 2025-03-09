@@ -147,12 +147,12 @@ namespace Mikoto {
             .WantMapping{ true }
         };
 
-        Scope_T<VulkanBuffer> stagingBuffer{ VulkanBuffer::Create( stagingBufferBufferCreateInfo ) };
+         m_StagingBuffer = VulkanBuffer::Create( stagingBufferBufferCreateInfo );
 
         // Copy vertex data to staging buffer
-        std::memcpy(stagingBuffer->GetVmaAllocationInfo().pMappedData, m_FileData, m_BufferSize);
+        std::memcpy(m_StagingBuffer->GetVmaAllocationInfo().pMappedData, m_FileData, m_BufferSize);
 
-        stagingBuffer->PersistentUnmap();
+        m_StagingBuffer->PersistentUnmap();
 
         // Allocate image
         const VkExtent3D extent{ static_cast<UInt32_T>( m_Width ), static_cast<UInt32_T>( m_Height ), 1 };
@@ -196,7 +196,7 @@ namespace Mikoto {
 
         m_Image = VulkanImage::Create( vulkanImageCreateInfo );
 
-        VulkanContext::Get().ImmediateSubmit( [&]( const VkCommandBuffer& cmd ) -> void {
+        VulkanContext::Get().ImmediateSubmit( [&, extent]( const VkCommandBuffer& cmd ) -> void {
             m_Image->LayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmd );
 
             // Copy from staging buffer to image buffer
@@ -212,16 +212,13 @@ namespace Mikoto {
             copyRegion.imageExtent = extent;
 
             //copy the buffer into the image
-            vkCmdCopyBufferToImage( cmd, stagingBuffer->Get(), m_Image->Get(), m_Image->GetCurrentLayout(), 1, std::addressof( copyRegion ) );
+            vkCmdCopyBufferToImage( cmd, m_StagingBuffer->Get(), m_Image->Get(), m_Image->GetCurrentLayout(), 1, std::addressof( copyRegion ) );
         } );
 
         VulkanContext::Get().ImmediateSubmit( [&]( VkCommandBuffer cmd ) -> void {
             // Perform second transition for the descriptor set creation
             m_Image->LayoutTransition(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd);
         } );
-
-        // destroy staging buffer
-        stagingBuffer = nullptr;
     }
 
     auto VulkanTexture2D::CreateSampler() -> void {

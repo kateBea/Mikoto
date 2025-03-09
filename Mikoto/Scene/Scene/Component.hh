@@ -12,6 +12,8 @@
 
 // Third-Party Libraries
 #include <glm/glm.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 // Project Headers
@@ -96,6 +98,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetRotation() const -> const glm::vec3& { return m_Rotation; }
         MKT_NODISCARD auto GetScale() const -> const glm::vec3& { return m_Scale; }
         MKT_NODISCARD auto GetTransform() const -> const glm::mat4& { return m_Transform; }
+        MKT_NODISCARD auto HasUniformScale() const -> bool { return m_HasUniformScale; }
 
         /**
          * Computes the model matrix for for this component according to the transform vectors
@@ -115,14 +118,37 @@ namespace Mikoto {
             m_Transform = transform;
 
             // Update translation,
-            m_Translation = glm::vec3(m_Transform[3]);
-
-            //TODO:rotation and scale accordingly
+            m_Translation = GetTranslationFromMat4(transform);
+            //m_Rotation = GetRotationFromMat4(transform);
+            //m_Scale = GetScaleFromMat4(transform);
         }
 
         auto SetTranslation(const glm::vec3& value) -> void { m_Translation = value; RecomputeTransform(); }
         auto SetRotation(const glm::vec3& value) -> void { m_Rotation = value; RecomputeTransform(); }
-        auto SetScale(const glm::vec3& value) -> void { m_Scale = value; RecomputeTransform(); }
+        auto SetScale(const glm::vec3& value) -> void {
+            if (!m_HasUniformScale) {
+                m_Scale = value;
+            } else {
+                float offSet{ 0 };
+
+                if ( value.x != m_Scale.x ) {
+                    offSet = value.x - m_Scale.x;
+                } else if ( value.y != m_Scale.y ) {
+                    offSet = value.y - m_Scale.y;
+                } else if ( value.z != m_Scale.z ) {
+                    offSet = value.z - m_Scale.z;
+                }
+
+                if (offSet != 0) {
+                    m_Scale.x += offSet;
+                    m_Scale.y += offSet;
+                    m_Scale.z += offSet;
+                }
+            }
+
+            RecomputeTransform();
+        }
+        auto WantUniformSale(const bool value) -> void { m_HasUniformScale = value; }
 
         ~TransformComponent() = default;
 
@@ -131,6 +157,18 @@ namespace Mikoto {
         auto OnComponentRemoved() -> void {  }
 
     private:
+        static auto GetRotationFromMat4(const glm::mat4& matrix) -> glm::vec3 {
+            return {};
+        }
+
+        static auto GetTranslationFromMat4(const glm::mat4& matrix) -> glm::vec3 {
+            return glm::vec3(matrix[3]);
+        }
+
+        static auto GetScaleFromMat4(const glm::mat4& matrix) -> glm::vec3 {
+            return {};
+        }
+
         /**
          * Computes the model matrix as in Translate * Ry * Rx * Rz * Scale (where R represents a
          * rotation in the desired axis. Rotation convention uses Tait-Bryan angles with axis order
@@ -157,6 +195,8 @@ namespace Mikoto {
         // Model matrix (defines object translation, rotation and scale
         // according to the current transform values/vectors
         glm::mat4 m_Transform{};
+
+        bool m_HasUniformScale{};
     };
 
 
@@ -361,26 +401,46 @@ namespace Mikoto {
     };
 
 
-    // ====== Section pending of review =======
-    // Scripting is not supported yet.
+    class TextComponent : public BaseComponent<TextComponent> {
+    public:
+        explicit TextComponent() = default;
 
+        TextComponent(const TextComponent& other) = default;
+        TextComponent(TextComponent&& other) = default;
 
-    /**
-     * Checks if a scriptable entity has an OnCreate, OnDestroy and Present function
-     * needed when binding and scriptable entity to the native script component
-     * */
-    template<typename ScriptableEntityType>
-    concept HasOnCreate = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->OnCreate(); };
+        auto operator=(const TextComponent& other) -> TextComponent& = default;
+        auto operator=(TextComponent&& other) -> TextComponent& = default;
 
-    template<typename ScriptableEntityType>
-    concept HasOnUpdate = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->Present(0, nullptr); };
+        MKT_NODISCARD auto GetFontPath() const -> const Path_T& { return m_FontPath; }
+        MKT_NODISCARD auto GetTextContent() const -> const std::string& { return m_TextContent; }
+        MKT_NODISCARD auto GetFontSize() const -> Size_T { return m_FontSize; }
+        MKT_NODISCARD auto GetLetterSpacing() const -> Size_T { return m_LetterSpacing; }
 
-    template<typename ScriptableEntityType>
-    concept HasOnDestroy = requires (std::shared_ptr<ScriptableEntityType> scriptable) { scriptable->OnDestroy(); };
+        auto LoadFont(const Path_T& fontPath) -> void {
+
+        }
+
+        MKT_NODISCARD auto SetTextContent(const std::string_view content ) -> void { m_TextContent = content.data(); }
+        MKT_NODISCARD auto SetFontSize(const Size_T size ) -> void { m_FontSize = size; }
+        MKT_NODISCARD auto SetLetterSpacing(const Size_T spacing ) -> void  { m_LetterSpacing = spacing; }
+
+        auto OnComponentAttach() -> void {  }
+        auto OnComponentUpdate() -> void {  }
+        auto OnComponentRemoved() -> void {  }
+
+    private:
+        std::string m_TextContent{};
+
+        Path_T m_FontPath{};
+        Size_T m_FontSize{};
+        Size_T m_LetterSpacing{};
+    };
 
     class NativeScriptComponent : public BaseComponent<NativeScriptComponent> {
     public:
-        explicit NativeScriptComponent() = default;
+        explicit NativeScriptComponent(const Path_T& script)
+            : m_ScriptPath{ script }
+        {}
 
         NativeScriptComponent(const NativeScriptComponent& other) = default;
         NativeScriptComponent(NativeScriptComponent&& other) = default;
@@ -388,24 +448,16 @@ namespace Mikoto {
         auto operator=(const NativeScriptComponent& other) -> NativeScriptComponent& = default;
         auto operator=(NativeScriptComponent&& other) -> NativeScriptComponent& = default;
 
-        template<typename ScriptableEntityType>
-            requires HasOnCreate<ScriptableEntityType> &&
-                     HasOnUpdate<ScriptableEntityType> &&
-                     HasOnDestroy<ScriptableEntityType>
-        auto Bind() -> void {
-            m_OnCreateFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->OnCreate(); };
-            m_OnUpdateFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->Present(0, nullptr); };
-            m_OnDestroyFunc = [](std::shared_ptr<ScriptableEntityType> scriptable) -> void { scriptable->OnDestroy(); };
-        }
-
         auto OnComponentAttach() -> void {  }
         auto OnComponentUpdate() -> void {  }
         auto OnComponentRemoved() -> void {  }
 
+        ~NativeScriptComponent() = default;
+
     private:
-        std::function<void(/* ScriptableEntity* scriptable */)> m_OnCreateFunc{};
-        std::function<void(/* ScriptableEntity* scriptable */)> m_OnUpdateFunc{};
-        std::function<void(/* ScriptableEntity* scriptable */)> m_OnDestroyFunc{};
+
+        Path_T m_ScriptPath{};
+
     };
 }
 

@@ -4,40 +4,100 @@
 
 #ifndef FILE_HH
 #define FILE_HH
-#include <unordered_map>
-#include <vector>
-#include <fstream>
-#include <filesystem>
-#include <utility>
-#include <ranges>
-
 #include <Core/Logging/Logger.hh>
 #include <Library/Utility/Types.hh>
+#include <filesystem>
+#include <fstream>
+#include <ranges>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace Mikoto {
 
+    enum FileMode {
+        // Open for read and write operations
+        MKT_FILE_OPEN_MODE_NONE = 0,
 
+        MKT_FILE_OPEN_MODE_READ = BIT_SET( 0 ),
+        MKT_FILE_OPEN_MODE_WRITE = BIT_SET( 1 ),
+
+        MKT_FILE_OPEN_MODE_TRUNCATE = BIT_SET( 2 ),
+        MKT_FILE_OPEN_MODE_APPEND = BIT_SET( 3 ),
+    };
+
+    MKT_NODISCARD static auto IsModeSet( const FileMode modes, const FileMode searchMode ) -> bool {
+        return modes & searchMode;
+    }
+
+    MKT_NODISCARD constexpr auto GetFileExtensionName( const FileType type ) -> std::string_view {
+        switch ( type ) {
+            case FileType::PNG_IMAGE_TYPE:
+                return "png";
+            case FileType::JPEG_IMAGE_TYPE:
+                return "jpeg";
+            case FileType::JPG_IMAGE_TYPE:
+                return "jpg";
+            case FileType::BMP_IMAGE_TYPE:
+                return "bmp";
+            case FileType::GIF_IMAGE_TYPE:
+                return "gif";
+            case FileType::TIFF_IMAGE_TYPE:
+                return "tiff";
+            case FileType::WEBP_IMAGE_TYPE:
+                return "webp";
+            case FileType::ICO_IMAGE_TYPE:
+                return "ico";
+            case FileType::SVG_VECTOR_IMAGE_TYPE:
+                return "svg";
+
+            case FileType::PDF_DOCUMENT_TYPE:
+                return "pdf";
+            case FileType::TEXT_DOCUMENT_TYPE:
+                return "txt";
+
+            case FileType::MP3_AUDIO_TYPE:
+                return "mp3";
+            case FileType::WAV_AUDIO_TYPE:
+                return "wav";
+            case FileType::OGG_AUDIO_TYPE:
+                return "ogg";
+            case FileType::FLAC_AUDIO_TYPE:
+                return "flac";
+            case FileType::AAC_AUDIO_TYPE:
+                return "aac";
+            case FileType::WMA_AUDIO_TYPE:
+                return "wma";
+
+            case FileType::UNKNOWN_IMAGE_TYPE:
+            default:
+                return "unknown";
+        }
+    }
 
     class File final {
     public:
-        explicit File( const Path_T& path )
-            : m_Path{ path.string().c_str() } {
+        explicit File( const Path_T& path, const FileMode openMode = MKT_FILE_OPEN_MODE_NONE )
+            : m_Path{ path.string().c_str() }, m_OpenMode{ openMode } {
 
-            m_FileStream = std::move( std::fstream{ path, std::ios::binary | std::ios::in | std::ios::out } );
+            if ( std::filesystem::is_regular_file( m_Path ) ) {
+                // Open the file once to import metadata and its contents
+                m_FileStream = std::move( std::fstream{ path, std::ios::binary | std::ios::in | std::ios::out } );
 
-            LoadContents();
-            SetFileSize();
+                LoadContents();
+                SetFileSize();
 
-            m_Extension = GetExtensionFromFileSignature( m_Contents );
-            m_Type = SetType( m_Extension );
+                // Close the file after we have finished
+                // fetching its contents, if any other external library attempts
+                // to open the same file it might fail
+                if ( m_FileStream.is_open() ) {
+                    m_FileStream.close();
 
-            // Close the file after we have finished
-            // fetching its contents, if any other external library attempts
-            // to open the same file it might fail
-            if ( m_FileStream.is_open() ) {
-                m_FileStream.close();
+                    m_FileStream = {};
+                }
 
-                m_FileStream = {};
+                m_Extension = GetExtensionFromFileSignature( m_Contents );
+                m_Type = SetType( m_Extension );
             }
         }
 
@@ -45,11 +105,42 @@ namespace Mikoto {
         MKT_NODISCARD auto GetExtension() const -> const std::string& { return m_Extension; }
         MKT_NODISCARD auto GetPathCStr() const -> CStr_T { return m_Path.c_str(); }
         MKT_NODISCARD auto GetFileContents() const -> const std::string& { return m_Contents; }
-        MKT_NODISCARD auto GetSize() const -> double { return static_cast<double>(m_Size) / 1'000'000.0; }
+        MKT_NODISCARD auto GetSize() const -> double { return static_cast<double>( m_Size ) / 1'000'000.0; }
         MKT_NODISCARD auto GetType() const -> FileType { return m_Type; }
         MKT_NODISCARD auto GetSizBytes() const -> Size_T { return m_Size; }
         MKT_NODISCARD auto IsDirectory() const -> bool { return std::filesystem::is_directory( m_Path ); }
         MKT_NODISCARD auto IsFile() const -> bool { return std::filesystem::is_directory( m_Path ); }
+
+        auto FlushContents( const CStr_T contents, const FileMode mode = MKT_FILE_OPEN_MODE_TRUNCATE ) -> void {
+            if ( !IsModeSet( m_OpenMode, MKT_FILE_OPEN_MODE_WRITE ) ) {
+                MKT_CORE_LOGGER_WARN( "File::FlushContents - File was not opened for writing." );
+                return;
+            }
+
+            m_Contents = contents;
+
+            auto openMode{ std::ios_base::out };
+
+            switch ( mode ) {
+
+                case MKT_FILE_OPEN_MODE_TRUNCATE:
+                    openMode |= std::ios_base::trunc;
+                    break;
+                case MKT_FILE_OPEN_MODE_APPEND:
+                    openMode |= std::ios_base::app;
+                    break;
+                default:
+                    break;
+            }
+
+            m_FileStream = std::move( std::fstream{ m_Path, openMode } );
+
+            if ( m_FileStream.is_open() ) {
+                m_FileStream << m_Contents;
+
+                m_FileStream.close();
+            }
+        }
 
     private:
         /**
@@ -145,7 +236,7 @@ namespace Mikoto {
                 return CompareSignature( fileContent, pair.second );
             } ) };
 
-            if (itResult != signatureMap.end()) {
+            if ( itResult != signatureMap.end() ) {
                 return itResult->first;
             }
 
@@ -162,34 +253,9 @@ namespace Mikoto {
 
         FileType m_Type{ FileType::UNKNOWN_IMAGE_TYPE };
         std::string m_Contents{};
+
+        FileMode m_OpenMode{ MKT_FILE_OPEN_MODE_NONE };
     };
-
-    constexpr auto GetFileExtensionName(const FileType type) -> std::string_view {
-        switch (type) {
-            case FileType::PNG_IMAGE_TYPE:           return "png";
-            case FileType::JPEG_IMAGE_TYPE:          return "jpeg";
-            case FileType::JPG_IMAGE_TYPE:           return "jpg";
-            case FileType::BMP_IMAGE_TYPE:           return "bmp";
-            case FileType::GIF_IMAGE_TYPE:           return "gif";
-            case FileType::TIFF_IMAGE_TYPE:          return "tiff";
-            case FileType::WEBP_IMAGE_TYPE:          return "webp";
-            case FileType::ICO_IMAGE_TYPE:           return "ico";
-            case FileType::SVG_VECTOR_IMAGE_TYPE:    return "svg";
-
-            case FileType::PDF_DOCUMENT_TYPE:        return "pdf";
-            case FileType::TEXT_DOCUMENT_TYPE:       return "txt";
-
-            case FileType::MP3_AUDIO_TYPE:           return "mp3";
-            case FileType::WAV_AUDIO_TYPE:           return "wav";
-            case FileType::OGG_AUDIO_TYPE:           return "ogg";
-            case FileType::FLAC_AUDIO_TYPE:          return "flac";
-            case FileType::AAC_AUDIO_TYPE:           return "aac";
-            case FileType::WMA_AUDIO_TYPE:           return "wma";
-
-            case FileType::UNKNOWN_IMAGE_TYPE:
-                default:                                 return "unknown";
-        }
-    }
 
 }// namespace Mikoto
 #endif//FILE_HH

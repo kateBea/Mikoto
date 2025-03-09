@@ -149,16 +149,16 @@ namespace Mikoto {
         m_DescriptorSet = *descriptorAllocator.Allocate( device.GetLogicalDevice(), descriptorSetLayout );
     }
 
-    auto VulkanStandardMaterial::SetDiffuseMap( Texture2D* map, const MapType type ) -> void {
+    auto VulkanStandardMaterial::SetTexture( Texture* map, const MapType type ) -> void {
         if ( map ) {
 
             switch ( type ) {
                 case MapType::TEXTURE_2D_DIFFUSE:
-                    m_DiffuseTexture = map;
+                    m_DiffuseTexture = dynamic_cast<Texture2D *>(map);
                     m_HasDiffuseTexture = true;
                     break;
                 case MapType::TEXTURE_2D_SPECULAR:
-                    m_SpecularTexture = map;
+                    m_SpecularTexture = dynamic_cast<Texture2D *>(map);
                     m_HasSpecularTexture = true;
                     break;
                 default:

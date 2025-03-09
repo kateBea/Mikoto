@@ -1,5 +1,5 @@
 /**
- * RenderCommand.cc
+ * RenderCommand.hh
  * Created by kate on 6/9/23.
  * */
 

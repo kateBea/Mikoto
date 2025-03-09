@@ -118,7 +118,7 @@ namespace Mikoto {
 
         // Verify queue support (Present is needed if the surface is not null)
         // For now I always want a graphics queue by default for the device
-        const auto& [Present, Graphics] { GetQueueFamilyIndices( device, requirements.Surface ) };
+        const auto& [Present, Graphics, Compute] { GetQueueFamilyIndices( device, requirements.Surface ) };
         const bool deviceSupportsRequiredQueues{ Graphics.has_value() && (requirements.Surface != nullptr && Present.has_value()) };
 
         // Check swapchain support
@@ -173,19 +173,20 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreatePrimaryLogicalDevice() -> void {
-        m_QueueFamiliesData = GetQueueFamilyIndices(m_PhysicalDevice, m_Surface);
+        m_QueueFamiliesData = GetQueueFamilyIndices( m_PhysicalDevice, m_Surface );
+
         const auto graphicsQueueFamilyIndex{ m_QueueFamiliesData.Graphics->FamilyIndex };
         const auto presentQueueFamilyIndex{ m_QueueFamiliesData.Present->FamilyIndex };
 
-        const auto queueCreateInfos{ VulkanHelpers::SetupDeviceQueueCreateInfo({ graphicsQueueFamilyIndex, presentQueueFamilyIndex}) };
+        const auto queueCreateInfos{ VulkanHelpers::SetupDeviceQueueCreateInfo( { graphicsQueueFamilyIndex, presentQueueFamilyIndex } ) };
 
         // Requested device features
-        VkPhysicalDeviceFeatures deviceFeatures{ };
+        VkPhysicalDeviceFeatures deviceFeatures{};
         deviceFeatures.samplerAnisotropy = VK_TRUE;
         deviceFeatures.fillModeNonSolid = VK_TRUE;// required for wireframe mode
 
         VkPhysicalDeviceVulkan13Features vulkan13Features{ VulkanHelpers::Initializers::PhysicalDeviceVulkan13Features() };
-        vulkan13Features.synchronization2 = VK_TRUE; // required for vkCmdPipelineBarrier2 used when image transitions
+        vulkan13Features.synchronization2 = VK_TRUE;// required for vkCmdPipelineBarrier2 used when image transitions
 
         VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{ VulkanHelpers::Initializers::PhysicalDeviceFeatures2() };
         physicalDeviceFeatures2.features = deviceFeatures;
@@ -225,19 +226,31 @@ namespace Mikoto {
         volkLoadDevice( m_LogicalDevice );
     }
 
+
     auto VulkanDevice::GetAllocatorStats() -> const VmaTotalStatistics& {
         vmaCalculateStatistics( m_DefaultAllocator, std::addressof( m_AllocatorStats ) );
         return m_AllocatorStats;
     }
 
-    auto VulkanDevice::RegisterCommand( VkCommandBuffer cmd ) -> void {
+    auto VulkanDevice::RegisterGraphicsCommand( VkCommandBuffer cmd ) -> void {
         // TODO: Thread safety
         // Senders are responsible of freeing the command buffers packed into
         // this array once these command buffers are no longer needed.
-        m_SubmitCommands.emplace_back( cmd );
+        m_GraphicsSubmitCommands.emplace_back( cmd );
     }
 
-    auto VulkanDevice::SubmitCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void {
+    auto VulkanDevice::RegisterComputeCommand( VkCommandBuffer cmd ) -> void {
+        // TODO: Thread safety
+        // Senders are responsible of freeing the command buffers packed into
+        // this array once these command buffers are no longer needed.
+        m_ComputeSubmitCommands.emplace_back( cmd );
+    }
+
+    auto VulkanDevice::SubmitCommandsGraphicsQueue( const FrameSynchronizationPrimitives& syncPrimitives ) -> void {
+        if (m_GraphicsSubmitCommands.empty()) {
+            return;
+        }
+
         // Prepare the submission to the queue. We want to wait on
         // the present semaphore, which is signaled when the swapchain
         // is ready (there's image available to render to). We will
@@ -258,14 +271,49 @@ namespace Mikoto {
         submit.pSignalSemaphores = std::addressof( syncPrimitives.RenderSemaphore );
 
         // Command buffers
-        submit.commandBufferCount = m_SubmitCommands.size();
-        submit.pCommandBuffers = m_SubmitCommands.data();
+        submit.commandBufferCount = m_GraphicsSubmitCommands.size();
+        submit.pCommandBuffers = m_GraphicsSubmitCommands.data();
 
         if ( vkQueueSubmit( m_QueueFamiliesData.Graphics->Queue, 1, std::addressof( submit ), syncPrimitives.RenderFence ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanDevice::SubmitCommand - Error trying to submit commands." );
         }
 
-        m_SubmitCommands.clear();
+        m_GraphicsSubmitCommands.clear();
+    }
+
+    auto VulkanDevice::SubmitCommandsComputeQueue( const ComputeSynchronizationPrimitives& syncPrimitives ) -> void {
+        if (m_ComputeSubmitCommands.empty()) {
+            return;
+        }
+
+        // Prepare the submission to the queue. We want to wait on
+        // the present semaphore, which is signaled when the swapchain
+        // is ready (there's image available to render to). We will
+        // signal the render semaphore to signal that rendering has finished
+
+        VkPipelineStageFlags waitStage{ VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT };
+        VkSubmitInfo submit{ VulkanHelpers::Initializers::SubmitInfo() };
+        submit.pNext = nullptr;
+
+        submit.pWaitDstStageMask = std::addressof( waitStage );
+
+        // Wait-on semaphores
+        submit.waitSemaphoreCount = static_cast<UInt32_T>( syncPrimitives.WaitSemaphores.size() );
+        submit.pWaitSemaphores = syncPrimitives.WaitSemaphores.data();
+
+        // Completion signal semaphores
+        submit.signalSemaphoreCount = static_cast<UInt32_T>( syncPrimitives.SignalSemaphores.size() );
+        submit.pSignalSemaphores = syncPrimitives.SignalSemaphores.data();
+
+        // Command buffers
+        submit.commandBufferCount = m_ComputeSubmitCommands.size();
+        submit.pCommandBuffers = m_ComputeSubmitCommands.data();
+
+        if ( vkQueueSubmit( m_QueueFamiliesData.Compute->Queue, 1, std::addressof( submit ), syncPrimitives.Fence ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanDevice::SubmitCommand - Error trying to submit commands." );
+        }
+
+        m_ComputeSubmitCommands.clear();
     }
 
     auto VulkanDevice::Release() -> void {
@@ -320,7 +368,7 @@ namespace Mikoto {
         UInt32_T queueFamilyIndex{};
         for ( const auto& queueFamilyProperties : queueFamilies ) {
             // Check graphics queue support
-            if ( VulkanHelpers::HasGraphicsQueue(queueFamilyProperties) ) {
+            if (!result.Graphics.has_value() && VulkanHelpers::HasGraphicsQueue(queueFamilyProperties) ) {
                 result.Graphics = std::make_optional( VulkanQueueData{
                     .Queue{ VK_NULL_HANDLE },
                     .FamilyIndex{ queueFamilyIndex },
@@ -328,19 +376,19 @@ namespace Mikoto {
             }
 
             // Check present queue support
-            if (surface != nullptr && VulkanHelpers::HasPresentQueue( device, queueFamilyIndex, *surface, queueFamilyProperties )) {
+            if (!result.Present.has_value() && surface != nullptr && VulkanHelpers::HasPresentQueue( device, queueFamilyIndex, *surface, queueFamilyProperties )) {
                 result.Present = std::make_optional( VulkanQueueData{
                     .Queue{ VK_NULL_HANDLE },
                     .FamilyIndex{ queueFamilyIndex },
                 } );
             }
 
-            // We are done when we find the Graphics queue family index and at least one queue of that type,
-            // and a Present queue family index with at least one family of that type.
-            // If the surface is null, that means we only want a graphics Queue, and we do not need to look for
-            // a Present queue; the Graphics queue generally supports most of the operations.
-            if (result.Graphics.has_value() && (surface == nullptr || result.Present.has_value())) {
-                break;
+            // Check compute queue
+            if (!result.Compute.has_value() && VulkanHelpers::HasComputeQueue(queueFamilyProperties)) {
+                result.Compute = std::make_optional( VulkanQueueData{
+                    .Queue{ VK_NULL_HANDLE },
+                    .FamilyIndex{ queueFamilyIndex },
+                } );
             }
 
             ++queueFamilyIndex;
@@ -355,7 +403,11 @@ namespace Mikoto {
         }
 
         if (queues.Present.has_value()) {
-            vkGetDeviceQueue( device, queues.Present->FamilyIndex, 0, std::addressof(queues.Graphics->Queue) );
+            vkGetDeviceQueue( device, queues.Present->FamilyIndex, 0, std::addressof(queues.Present->Queue) );
+        }
+
+        if (queues.Compute.has_value()) {
+            vkGetDeviceQueue( device, queues.Compute->FamilyIndex, 0, std::addressof(queues.Compute->Queue) );
         }
     }
 }

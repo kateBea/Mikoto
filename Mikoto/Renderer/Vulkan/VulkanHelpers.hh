@@ -11,6 +11,7 @@
 #include <vector>
 #include <memory>
 #include <string_view>
+#include <optional>
 
 // Third-Party Libraries
 #include "vk_mem_alloc.h"
@@ -44,12 +45,19 @@ namespace Mikoto {
     struct QueuesData {
         std::optional<VulkanQueueData> Present{};
         std::optional<VulkanQueueData> Graphics{};
+        std::optional<VulkanQueueData> Compute{};
     };
 
     struct FrameSynchronizationPrimitives {
         VkSemaphore PresentSemaphore{ VK_NULL_HANDLE };
         VkSemaphore RenderSemaphore{ VK_NULL_HANDLE };
         VkFence RenderFence{ VK_NULL_HANDLE };
+    };
+
+    struct ComputeSynchronizationPrimitives {
+        std::vector<VkSemaphore> WaitSemaphores{};
+        std::vector<VkSemaphore> SignalSemaphores{};
+        VkFence Fence{ VK_NULL_HANDLE };
     };
 
 
@@ -64,6 +72,7 @@ namespace Mikoto::VulkanHelpers {
     MKT_NODISCARD auto GetSwapChainSupport( const VkPhysicalDevice& device, const VkSurfaceKHR& surface ) -> SwapChainSupportDetails;
     MKT_NODISCARD auto GetVulkanAttributeDataType(ShaderDataType type) -> VkFormat;
     MKT_NODISCARD auto HasGraphicsQueue( const VkQueueFamilyProperties& queueFamily ) -> bool;
+    MKT_NODISCARD auto HasComputeQueue( const VkQueueFamilyProperties& queueFamily ) -> bool;
     MKT_NODISCARD auto HasPresentQueue( const VkPhysicalDevice& device, UInt32_T queueFamilyIndex, const VkSurfaceKHR& surface, const VkQueueFamilyProperties& queueFamilyProperties ) -> bool;
     MKT_NODISCARD auto GetVkStageFromShaderStage(ShaderStage stage) -> VkShaderStageFlagBits;
     MKT_NODISCARD auto GetUniformBufferPadding(VkDeviceSize bufferOriginalSize, VkDeviceSize deviceMinOffsetAlignment) -> VkDeviceSize;
@@ -106,6 +115,17 @@ namespace Mikoto::VulkanHelpers::Initializers {
     inline auto ApplicationInfo() -> VkApplicationInfo {
         VkApplicationInfo ret{};
         ret.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkApplicationInfo structure
+     * @returns default initialized VkApplicationInfo
+     * */
+    inline auto ComputePipelineCreateInfo() -> VkComputePipelineCreateInfo {
+        VkComputePipelineCreateInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
 
         return ret;
     }
@@ -383,6 +403,16 @@ namespace Mikoto::VulkanHelpers::Initializers {
         ret.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 
         return ret;
+    }
+
+    inline auto PushConstantRange(VkShaderStageFlags stageFlags, UInt32_T size, UInt32_T offset) -> VkPushConstantRange {
+        const VkPushConstantRange pushConstantRange {
+            .stageFlags{ stageFlags },
+            .offset{ offset },
+            .size{ size }
+        };
+
+        return pushConstantRange;
     }
 
     /**

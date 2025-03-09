@@ -16,12 +16,22 @@
 #include <glm/glm.hpp>
 
 // Project Headers
-#include <Common/Common.hh>
 #include <Assets/Mesh.hh>
+#include <Common/Common.hh>
 #include <Material/Core/Material.hh>
+#include <Material/Texture/TextureCubeMap.hh>
 #include <Models/LightData.hh>
 #include <Scene/Camera/SceneCamera.hh>
 #include <Scene/Scene/Component.hh>
+
+#define DISPLAY_NORMAL 1
+#define DISPLAY_COLOR 2
+#define DISPLAY_METAL 3
+#define DISPLAY_AO 4
+#define DISPLAY_ROUGH 5
+
+#define MKT_SHADER_TRUE 1
+#define MKT_SHADER_FALSE 0
 
 namespace Mikoto {
     struct RendererCreateInfo {
@@ -57,6 +67,8 @@ namespace Mikoto {
         virtual auto RemoveLight( UInt64_T id ) -> bool = 0;
         virtual auto AddLight( UInt64_T id, const LightData& data, LightType activeType) -> bool = 0;
 
+        virtual auto SetupCubeMap(const TextureCubeMap* cubeMap) -> void = 0;
+
         // Camera & Viewport
         template<typename... Args>
         auto SetProjection( Args &&...args ) -> void {
@@ -73,9 +85,11 @@ namespace Mikoto {
         virtual auto EnableWireframe( bool enable ) -> void = 0;
 
         template<typename... Args>
-        auto SetClearColor( Args &&...args ) -> void {
+        auto SetClearColor( Args&&... args ) -> void {
             m_ClearColor = glm::vec4{ std::forward<Args>( args )... };
         }
+
+        virtual auto SetRenderMode( Size_T mode ) -> void = 0;
 
         // Factory method to create a renderer instance
         static auto Create( const RendererCreateInfo& createInfo ) -> Scope_T<RendererBackend>;

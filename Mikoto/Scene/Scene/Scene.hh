@@ -37,7 +37,6 @@ namespace Mikoto {
 
         auto Update( double deltaTime ) -> void;
 
-        auto DestroyEntity( UInt64_T uniqueID ) -> bool;
         auto RemoveEntity( UInt64_T uniqueID ) -> void;
 
         auto FindEntityByID( UInt64_T uniqueID ) -> Entity*;
@@ -57,10 +56,12 @@ namespace Mikoto {
         // Getters
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
         MKT_NODISCARD auto GetHierarchy() -> GenTree<Entity*>& { return m_Hierarchy; }
+        MKT_NODISCARD auto GetHierarchy() const -> const GenTree<Entity*>& { return m_Hierarchy; }
 
         ~Scene();
 
     private:
+        auto DestroyEntity( UInt64_T uniqueID ) -> bool;
         static auto SetupEntityBaseProperties(Entity& entity, std::string_view name) -> void;
 
         auto AddEmptyEntity(std::string_view tagName, const Entity *root) -> Entity*;

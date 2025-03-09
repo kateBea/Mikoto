@@ -127,6 +127,10 @@ namespace Mikoto {
             return m_Nodes;
         }
 
+        auto GetNodes() const -> const tree_t& {
+            return m_Nodes;
+        }
+
         template<typename UnaryFunc>
         auto ForAll(UnaryFunc&& func) -> void {
 

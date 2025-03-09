@@ -23,12 +23,36 @@
 namespace Mikoto {
 
     VulkanPipeline::VulkanPipeline( const VulkanPipelineCreateInfo& config )
-        : m_ConfigInfo{ config }
+        : m_ConfigInfo{ config }, m_PipelineLayout{ config.PipelineLayout }
     {
 
     }
 
     auto VulkanPipeline::Init() -> void {
+        switch (m_ConfigInfo.Type ) {
+            case PipelineType::VULKAN_COMPUTE_PIPELINE:
+                InitializePipelinesCompute();
+                break;
+            case PipelineType::VULKAN_GRAPHICS_PIPELINE:
+                InitializePipelinesGraphics();
+                break;
+        }
+    }
+
+    auto VulkanPipeline::Release() -> void {
+        VulkanDevice& device{ VulkanContext::Get().GetDevice() };
+
+        vkDestroyPipeline( device.GetLogicalDevice(), m_GraphicsPipeline, nullptr );
+    }
+
+    VulkanPipeline::~VulkanPipeline() {
+        if ( !m_IsReleased ) {
+            Release();
+            Invalidate();
+        }
+    }
+
+    auto VulkanPipeline::InitializePipelinesGraphics() -> void {
         MKT_ASSERT( m_ConfigInfo.PipelineLayout != VK_NULL_HANDLE, "VulkanPipeline::Init - Cannot create graphics pipeline. No Pipeline Layout in PipelineConfigInfo" );
         MKT_ASSERT( m_ConfigInfo.RenderPass != VK_NULL_HANDLE, "VulkanPipeline::Init - Cannot create graphics pipeline. No Render Pass Layout in PipelineConfigInfo" );
 
@@ -74,16 +98,17 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanPipeline::Release() -> void {
+    auto VulkanPipeline::InitializePipelinesCompute() -> void {
+        VkComputePipelineCreateInfo computePipelineCreateInfo{ VulkanHelpers::Initializers::ComputePipelineCreateInfo() };
+
+        computePipelineCreateInfo.layout = m_ConfigInfo.PipelineLayout;
+        computePipelineCreateInfo.stage = m_ConfigInfo.ShaderStages.front();
+
         VulkanDevice& device{ VulkanContext::Get().GetDevice() };
 
-        vkDestroyPipeline( device.GetLogicalDevice(), m_GraphicsPipeline, nullptr );
-    }
-
-    VulkanPipeline::~VulkanPipeline() {
-        if (!m_IsReleased) {
-            Release();
-            Invalidate();
+        if ( vkCreateComputePipelines( device.GetLogicalDevice(), VK_NULL_HANDLE, 1,
+            std::addressof( computePipelineCreateInfo ), nullptr, std::addressof( m_GraphicsPipeline ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanPipeline::Init - Failed to create Graphics pipeline" );
         }
     }
 

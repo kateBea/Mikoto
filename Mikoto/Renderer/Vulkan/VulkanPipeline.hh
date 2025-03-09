@@ -20,10 +20,17 @@
 #include <Renderer/Vulkan/VulkanShader.hh>
 
 namespace Mikoto {
+    enum class PipelineType {
+        VULKAN_GRAPHICS_PIPELINE,
+        VULKAN_COMPUTE_PIPELINE,
+    };
+
     struct VulkanPipelineCreateInfo {
         UInt32_T Subpass{};
         VkRenderPass RenderPass{};
         VkPipelineLayout PipelineLayout{};
+
+        PipelineType Type{ PipelineType::VULKAN_GRAPHICS_PIPELINE };
 
         VkPipelineViewportStateCreateInfo ViewportInfo{};
         VkPipelineInputAssemblyStateCreateInfo InputAssemblyInfo{};
@@ -54,6 +61,10 @@ namespace Mikoto {
 
     public:
         DELETE_COPY_FOR(VulkanPipeline);
+
+    private:
+        auto InitializePipelinesGraphics() -> void;
+        auto InitializePipelinesCompute() -> void;
 
     private:
         VkPipeline m_GraphicsPipeline{};

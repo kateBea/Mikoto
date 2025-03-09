@@ -12,7 +12,7 @@
 // Project Headers
 #include <Layer.hh>
 #include <Assets/Model.hh>
-#include <Core/Serialization/SceneSerializer.hh>
+#include <Scene/SceneSerializer.hh>
 #include <EditorModels/DockSpaceControlFlags.hh>
 #include <EditorModels/Enums.hh>
 #include <Models/Enums.hh>
@@ -22,11 +22,12 @@
 #include <Scene/Scene/Scene.hh>
 #include <Project/ProjectSerializer.hh>
 #include <Renderer/Core/RendererBackend.hh>
+#include <Material/Texture/TextureCubeMap.hh>
 
 namespace Mikoto {
     struct EditorLayerCreateInfo {
         Window* TargetWindow{ nullptr };
-        GraphicsAPI GraphicsAPI{};
+        GraphicsAPI Backend{};
         Path_T AssetsRootDirectory{};
     };
 
@@ -77,13 +78,13 @@ namespace Mikoto {
 
         Scope_T<Scene> m_ActiveScene{};
 
+        TextureCubeMap* m_TextureCubeMap{};
+
         Scope_T<SceneCamera> m_EditorCamera{};
         Scope_T<SceneSerializer> m_SceneSerializer{};
 
         Scope_T<Project> m_Project{};
         Scope_T<ProjectSerializer> m_ProjectSerializer{};
-
-        Path_T m_AssetsRootDirectory{};
 
         GraphicsAPI m_GraphicsAPI{};
 

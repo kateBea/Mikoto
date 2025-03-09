@@ -27,7 +27,9 @@
 namespace Mikoto {
     enum DescriptorSetLayoutType {
         DESCRIPTOR_SET_LAYOUT_BASE_SHADER,
+        DESCRIPTOR_SET_LAYOUT_PBR_SHADER,
         DESCRIPTOR_SET_LAYOUT_BASE_SHADER_WIREFRAME,
+        DESCRIPTOR_SET_LAYOUT_COMPUTE_PIPELINE
     };
 
     // Used for short-lived commands
@@ -91,7 +93,7 @@ namespace Mikoto {
 
     private:
         // [Internal usage]
-        auto SubmitCommands() const -> void;
+        auto SubmitCommands() -> void;
         auto PresentToSwapchain() -> void;
 
         auto PrepareImmediateSubmit() -> void;
@@ -110,6 +112,8 @@ namespace Mikoto {
         auto CreateDebugMessenger() -> void;
         auto CreateSynchronizationPrimitives() -> void;
         auto CreateSwapChain( const VulkanSwapChainCreateInfo& createInfo ) -> void;
+
+        auto FlushImmediateSubmitTasks() -> void;
 
         auto SwitchSyncMode( bool enable ) -> void;
         MKT_NODISCARD auto CheckValidationLayerSupport() const -> bool;
@@ -135,6 +139,8 @@ namespace Mikoto {
 
         // Short-lived commands
         ImmediateSubmitContext m_ImmediateSubmitContext{};
+
+        std::vector<std::function<void(const VkCommandBuffer& cmd)>> m_ImmediateSubmitTasks{};
 
         // Swapchain manipulation data
         Scope_T<VulkanSwapChain> m_SwapChain{};

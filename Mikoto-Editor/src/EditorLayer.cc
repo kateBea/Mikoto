@@ -38,13 +38,10 @@
 #include <Scene/Scene/Scene.hh>
 
 namespace Mikoto {
-    EditorLayer::EditorLayer(const EditorLayerCreateInfo& createInfo)
+    EditorLayer::EditorLayer( const EditorLayerCreateInfo& createInfo )
         : Layer{ "EditorLayer" },
-        m_AssetsRootDirectory{ createInfo.AssetsRootDirectory },
-        m_GraphicsAPI{ createInfo.GraphicsAPI },
-    m_Window{ createInfo.TargetWindow }
-    {
-    }
+          m_Window{ createInfo.TargetWindow },
+          m_GraphicsAPI{ createInfo.Backend } {}
 
     auto EditorLayer::OnAttach() -> void {
         CreateCameras();
@@ -55,14 +52,13 @@ namespace Mikoto {
 
         PrepareNewScene();
 
-        // Need to pass in other stuff to the renderer like (wireframe on startup, the device, etc)
         m_EditorRenderer = RendererBackend::Create( RendererCreateInfo{
-            .ViewportWidth{ static_cast<UInt32_T>(m_Window->GetWidth()) },
-            .ViewportHeight{ static_cast<UInt32_T>(m_Window->GetHeight()) },
-            .Api{ m_GraphicsAPI },
+                .ViewportWidth{ static_cast<UInt32_T>( m_Window->GetWidth() ) },
+                .ViewportHeight{ static_cast<UInt32_T>( m_Window->GetHeight() ) },
+                .Api{ m_GraphicsAPI },
         } );
 
-        if (m_EditorRenderer) {
+        if ( m_EditorRenderer ) {
             m_EditorRenderer->Init();
         } else {
             MKT_APP_LOGGER_ERROR( "EditorLayer::OnAttach - Failed to create the editor renderer." );
@@ -72,6 +68,8 @@ namespace Mikoto {
 
         m_EditorCamera->SetMovementSpeed( m_PanelRegistry.Get<SettingsPanel>()->GetData().EditorCameraMovementSpeed );
         m_EditorCamera->SetRotationSpeed( m_PanelRegistry.Get<SettingsPanel>()->GetData().EditorCameraRotationSpeed );
+
+        m_EditorRenderer->SetupCubeMap( m_TextureCubeMap );
     }
 
     auto EditorLayer::OnDetach() -> void {
@@ -109,7 +107,7 @@ namespace Mikoto {
 
         InputSystem& inputSystem{ Engine::GetSystem<InputSystem>() };
 
-        if (scenePanel.IsHovered() && inputSystem.IsMouseKeyPressed( Mouse_Button_Right )) {
+        if ( scenePanel.IsHovered() && inputSystem.IsMouseKeyPressed( Mouse_Button_Right ) ) {
             m_EditorCamera->EnableCamera( true );
         } else {
             m_EditorCamera->EnableCamera( false );
@@ -117,8 +115,9 @@ namespace Mikoto {
 
         m_EditorCamera->UpdateState( timeStep );
 
-        // Setup editor
+        // Setup renderer
         m_EditorRenderer->SetClearColor( settingsPanel.GetData().ClearColor );
+        m_EditorRenderer->EnableWireframe( settingsPanel.GetData().RenderWireframeMode );
 
         // Setup scene
         m_ActiveScene->SetCamera( *m_EditorCamera );
@@ -187,58 +186,52 @@ namespace Mikoto {
 
     auto EditorLayer::CreatePanels() -> void {
         ScenePanelCreateInfo scenePanelCreateInfo{
-            .Width{ static_cast<UInt32_T>(m_Window->GetWidth()) },
-            .Height{ static_cast<UInt32_T>(m_Window->GetHeight()) },
+            .Width{ static_cast<UInt32_T>( m_Window->GetWidth() ) },
+            .Height{ static_cast<UInt32_T>( m_Window->GetHeight() ) },
             .TargetScene{ m_ActiveScene.get() },
             .Renderer{ m_EditorRenderer.get() },
             .EditorMainCamera{ m_EditorCamera.get() },
 
             .GetActiveEntityCallback{
-                [&]() -> Entity* {
-                    return m_SelectedEntity;
-                }
-            }
+                    [&]() -> Entity* {
+                        return m_SelectedEntity;
+                    } }
         };
 
         SettingsPanelCreateInfo settingsPanelCreateInfo{
             .Data{
-                .ClearColor{ glm::vec4( 0.2f, 0.2f, 0.2f, 1.0f ) },
-                .FieldOfView{ 45.0f },
-                .EditorCamera{ m_EditorCamera.get() }
-            },
+                    .ClearColor{ glm::vec4( 0.2f, 0.2f, 0.2f, 1.0f ) },
+                    .FieldOfView{ 45.0f },
+                    .EditorCamera{ m_EditorCamera.get() } },
         };
 
         HierarchyPanelCreateInfo hierarchyPanelCreateInfo{
             .TargetScene{ m_ActiveScene.get() },
             .GetActiveEntityCallback{
-                [&]() -> Entity* {
-                    return m_SelectedEntity;
-                }
-            },
+                    [&]() -> Entity* {
+                        return m_SelectedEntity;
+                    } },
             .SetActiveEntityCallback{
-                [&](Entity* target) -> void {
-                    m_SelectedEntity = target;
-                }
-            },
+                    [&]( Entity* target ) -> void {
+                        m_SelectedEntity = target;
+                    } },
         };
 
         InspectorPanelCreateInfo inspectorPanelCreateInfo{
             .TargetScene{ m_ActiveScene.get() },
             .GetActiveEntityCallback{
-                [&]() -> Entity* {
-                    return m_SelectedEntity;
-                }
-            },
+                    [&]() -> Entity* {
+                        return m_SelectedEntity;
+                    } },
             .SetActiveEntityCallback{
-                [&](Entity* target) -> void {
-                    m_SelectedEntity = target;
-                }
-            },
+                    [&]( Entity* target ) -> void {
+                        m_SelectedEntity = target;
+                    } },
         };
 
         RendererPanelCreateInfo rendererPanelCreateInfo{
-            .Width{ static_cast<UInt32_T>(m_Window->GetWidth()) },
-            .Height{ static_cast<UInt32_T>(m_Window->GetHeight()) },
+            .Width{ static_cast<UInt32_T>( m_Window->GetWidth() ) },
+            .Height{ static_cast<UInt32_T>( m_Window->GetHeight() ) },
             .TargetScene{ m_ActiveScene.get() },
             .Renderer{ m_EditorRenderer.get() },
             .EditorMainCamera{ m_EditorCamera.get() },
@@ -246,28 +239,30 @@ namespace Mikoto {
 
         m_PanelRegistry.Register<StatsPanel>();
         m_PanelRegistry.Register<ConsolePanel>();
-        m_PanelRegistry.Register<RendererPanel>(rendererPanelCreateInfo);
-        m_PanelRegistry.Register<HierarchyPanel>(hierarchyPanelCreateInfo);
+        m_PanelRegistry.Register<RendererPanel>( rendererPanelCreateInfo );
+        m_PanelRegistry.Register<HierarchyPanel>( hierarchyPanelCreateInfo );
         m_PanelRegistry.Register<SettingsPanel>( settingsPanelCreateInfo );
-        m_PanelRegistry.Register<InspectorPanel>(inspectorPanelCreateInfo);
+        m_PanelRegistry.Register<InspectorPanel>( inspectorPanelCreateInfo );
         m_PanelRegistry.Register<ContentBrowserPanel>();
-        m_PanelRegistry.Register<ScenePanel>(scenePanelCreateInfo);
+        m_PanelRegistry.Register<ScenePanel>( scenePanelCreateInfo );
     }
 
     auto EditorLayer::CreateCameras() -> void {
         constexpr float NEAR_PLANE{ 0.1f };
         constexpr float FAR_PLANE{ 1000.0f };
         constexpr float FIELD_OF_VIEW{ 45.0f };
-        constexpr float ASPECT_RATIO{ 1920.0 / 1080.0 };
+        const float ASPECT_RATIO{
+            static_cast<float>( m_Window->GetWidth() ) / static_cast<float>( m_Window->GetHeight() )
+        };
 
         m_EditorCamera = CreateScope<SceneCamera>( FIELD_OF_VIEW, ASPECT_RATIO, NEAR_PLANE, FAR_PLANE );
     }
 
     auto EditorLayer::HandleWindowScreenMode() const -> void {
-        if (!m_Window->IsMaximized()) {
-            m_Window->SetScreenMode( FULLSCREEN );
+        if ( !m_Window->IsMaximized() ) {
+            m_Window->SetScreenMode( MKT_WINDOW_MODE_FULLSCREEN );
         } else {
-            m_Window->SetScreenMode( WINDOWED );
+            m_Window->SetScreenMode( MKT_WINDOW_MODE_WINDOWED );
         }
     }
 
@@ -280,32 +275,34 @@ namespace Mikoto {
     }
 
     auto EditorLayer::SaveScene() const -> void {
-        // prepare filters for the dialog
         std::initializer_list<std::pair<std::string, std::string>> filters{
-                    { "Mikoto Scene files", "mkts,mktscene" },
-                    { "Mikoto Project Files", "mkt,mktp,mktproject" }
+            { "Mikoto Scene files", "mkts,mktscene" },
+            { "Mikoto Project Files", "mkt,mktp,mktproject" }
         };
 
-        auto& fileSystem{ Engine::GetSystem<FileSystem>() };
-        const Path_T sceneLoadPath{ fileSystem.SaveDialog( "Mikoto Scene", filters ) };
-        m_SceneSerializer->Serialize(*m_ActiveScene, sceneLoadPath );
+        FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
+
+        const Path_T savePath{ fileSystem.SaveDialog( "Mikoto Scene", filters ) };
+
+        m_SceneSerializer->Serialize( *m_ActiveScene, savePath );
     }
 
     auto EditorLayer::LoadScene() -> void {
         // prepare filters for the dialog
         std::initializer_list<std::pair<std::string, std::string>> filters{
-                    { "Mikoto Scene files", "mkts,mktscene" },
-                    { "Mikoto Project Files", "mkt,mktp,mktproject" }
+            { "Mikoto Scene files", "mkts,mktscene" },
+            { "Mikoto Project Files", "mkt,mktp,mktproject" }
         };
 
         auto& fileSystem{ Engine::GetSystem<FileSystem>() };
         const Path_T sceneSavePath{ fileSystem.OpenDialog( filters ) };
 
         m_SelectedEntity = nullptr;
-        m_ActiveScene = m_SceneSerializer->Deserialize( sceneSavePath );
+        //m_ActiveScene = m_SceneSerializer->Deserialize( sceneSavePath );
+        const auto sss = m_SceneSerializer->Deserialize( sceneSavePath );
     }
 
-    auto EditorLayer::CreateScene(const std::string_view name) -> void {
+    auto EditorLayer::CreateScene( const std::string_view name ) -> void {
         m_SelectedEntity = nullptr;
         m_ActiveScene = CreateScope<Scene>( name );
 
@@ -313,10 +310,10 @@ namespace Mikoto {
 
         // Ground
         Entity* groundObjectHolder{ m_ActiveScene->CreateEntity( {
-            .Name{ "Ground" },
-            .Root{ nullptr },
-            .ModelMesh{ assetsSystem.GetModel( GetCubePrefabName() ) },
-        } )};
+                .Name{ "Ground" },
+                .Root{ nullptr },
+                .ModelMesh{ assetsSystem.GetModel( GetCubePrefabName() ) },
+        } ) };
 
 
         // Because models usually have multiple meshes, we need to create a child entity for each mesh
@@ -324,7 +321,7 @@ namespace Mikoto {
         auto groundObjectHolderChildren{ m_ActiveScene->FindChildrenByID( groundObjectHolder->GetComponent<TagComponent>().GetGUID() ) };
 
         // sanity check
-        if (!groundObjectHolderChildren.empty()) {
+        if ( !groundObjectHolderChildren.empty() ) {
             Entity* groundObject{ groundObjectHolderChildren[0] };
 
             TransformComponent& transformComponent{ groundObject->GetComponent<TransformComponent>() };
@@ -334,22 +331,22 @@ namespace Mikoto {
 
         // Point light
         Entity* lightObject{ m_ActiveScene->CreateEntity( {
-            .Name{ "Light" },
-            .Root{ nullptr },
-            .ModelMesh{ nullptr },
-        } )};
+                .Name{ "Light" },
+                .Root{ nullptr },
+                .ModelMesh{ nullptr },
+        } ) };
 
         // TODO: the scene does not know this entity is a light
         // or rather does not have it registered as a light
         LightComponent& light{ lightObject->AddComponent<LightComponent>() };
-        light.SetType(LightType::POINT_LIGHT_TYPE);
+        light.SetType( LightType::POINT_LIGHT_TYPE );
 
         // Scene camera
         Entity* cameraObject{ m_ActiveScene->CreateEntity( {
-            .Name{ "Camera" },
-            .Root{ nullptr },
-            .ModelMesh{ nullptr },
-        } )};
+                .Name{ "Camera" },
+                .Root{ nullptr },
+                .ModelMesh{ nullptr },
+        } ) };
 
         constexpr float NEAR_PLANE{ 0.1f };
         constexpr float FAR_PLANE{ 1000.0f };
@@ -357,6 +354,16 @@ namespace Mikoto {
         constexpr float ASPECT_RATIO{ 1920.0 / 1080.0 };
 
         cameraObject->AddComponent<CameraComponent>( CreateScope<SceneCamera>( FIELD_OF_VIEW, ASPECT_RATIO, NEAR_PLANE, FAR_PLANE ) );
+
+        // Load environment map
+        TextureCubeMapCreateInfo cubeMapCreateInfo{};
+
+        TextureLoadInfo loadInfo{
+            .Path{},
+            .Type{ MapType::TEXTURE_CUBE }
+        };
+
+        m_TextureCubeMap = dynamic_cast<TextureCubeMap*>( assetsSystem.LoadTexture( loadInfo ) );
     }
 
     auto EditorLayer::SaveProject() -> void {
@@ -467,8 +474,29 @@ namespace Mikoto {
                 if ( ImGui::MenuItem( "Open project", "Ctrl + P" ) ) { OpenProject(); }
                 if ( ImGui::MenuItem( "Save project", "Ctrl + G" ) ) { SaveProject(); }
 
+                static GuizmoManipulationMode manipulation{ GuizmoManipulationMode::TRANSLATION };
+
+                if ( ImGui::BeginMenu( "Manipulation Mode" ) ) {
+                    if ( ImGui::MenuItem( "Translate", nullptr, manipulation == GuizmoManipulationMode::TRANSLATION ) ) {
+                        manipulation = GuizmoManipulationMode::TRANSLATION;
+                    }
+
+                    if ( ImGui::MenuItem( "Rotate", nullptr, manipulation == GuizmoManipulationMode::ROTATION ) ) {
+                        manipulation = GuizmoManipulationMode::ROTATION;
+                    }
+
+                    if ( ImGui::MenuItem( "Scale", nullptr, manipulation == GuizmoManipulationMode::SCALE ) ) {
+                        manipulation = GuizmoManipulationMode::SCALE;
+                    }
+
+                    ScenePanel& scenePanel{ *m_PanelRegistry.Get<ScenePanel>() };
+                    scenePanel.SetGuizmoManipulationMode( manipulation );
+
+                    ImGui::EndMenu();
+                }
+
                 // Screen mode
-                static std::string screenMode{ };
+                static std::string screenMode{};
 
                 screenMode = m_Window->IsMaximized() ? "Windowed" : "Fullscreen";
                 if ( ImGui::MenuItem( screenMode.c_str(), "Windows + H" ) ) { HandleWindowScreenMode(); }
@@ -578,9 +606,9 @@ namespace Mikoto {
         ImGui::End();
     }
 
-    static auto EnsureModelLoaded( const Model* model, const Path_T& path) -> void {
-        if (model == nullptr) {
-            MKT_THROW_RUNTIME_ERROR( fmt::format("EnsureModelLoad - Erro model [{}] was not loaded.", path.string()) );
+    static auto EnsureModelLoaded( const Model* model, const Path_T& path ) -> void {
+        if ( model == nullptr ) {
+            MKT_THROW_RUNTIME_ERROR( fmt::format( "EnsureModelLoad - Erro model [{}] was not loaded.", path.string() ) );
         }
     }
 
@@ -595,50 +623,54 @@ namespace Mikoto {
             .WantTextures{ true }
         };
 
-        modelLoadInfo.Path = GetSponzaPrefabName(PathBuilder()
-            .WithPath( fileSystem.GetAssetsRootPath().string() )
-            .WithPath( "Prefabs" )
-            .WithPath( "sponza" )
-            .WithPath( "glTF" )
-            .WithPath( "Sponza.gltf" )
-            .Build().string());
-        EnsureModelLoaded(assetsManager.LoadModel(modelLoadInfo), GetSponzaPrefabName(modelLoadInfo.Path.string()));
+        modelLoadInfo.Path = GetSponzaPrefabName( PathBuilder()
+                                                          .WithPath( fileSystem.GetAssetsRootPath().string() )
+                                                          .WithPath( "Prefabs" )
+                                                          .WithPath( "sponza" )
+                                                          .WithPath( "sponza.obj" )
+                                                          .Build()
+                                                          .string() );
+        EnsureModelLoaded( assetsManager.LoadModel( modelLoadInfo ), GetSponzaPrefabName( modelLoadInfo.Path.string() ) );
 
-        modelLoadInfo.Path = GetCubePrefabName(PathBuilder()
-            .WithPath( fileSystem.GetAssetsRootPath().string() )
-            .WithPath( "Prefabs" )
-            .WithPath( "cube" )
-            .WithPath( "gltf" )
-            .WithPath( "scene.gltf" )
-            .Build().string());
-        EnsureModelLoaded(assetsManager.LoadModel(modelLoadInfo), GetCubePrefabName(modelLoadInfo.Path.string()));
+        modelLoadInfo.Path = GetCubePrefabName( PathBuilder()
+                                                        .WithPath( fileSystem.GetAssetsRootPath().string() )
+                                                        .WithPath( "Prefabs" )
+                                                        .WithPath( "cube" )
+                                                        .WithPath( "gltf" )
+                                                        .WithPath( "scene.gltf" )
+                                                        .Build()
+                                                        .string() );
+        EnsureModelLoaded( assetsManager.LoadModel( modelLoadInfo ), GetCubePrefabName( modelLoadInfo.Path.string() ) );
 
-        modelLoadInfo.Path = GetSpherePrefabName(PathBuilder()
-            .WithPath( fileSystem.GetAssetsRootPath().string() )
-            .WithPath( "Prefabs" )
-            .WithPath( "sphere" )
-            .WithPath( "gltf" )
-            .WithPath( "scene.gltf" )
-            .Build().string());
-        EnsureModelLoaded(assetsManager.LoadModel(modelLoadInfo), GetSpherePrefabName(modelLoadInfo.Path.string()));
+        modelLoadInfo.Path = GetSpherePrefabName( PathBuilder()
+                                                          .WithPath( fileSystem.GetAssetsRootPath().string() )
+                                                          .WithPath( "Prefabs" )
+                                                          .WithPath( "sphere" )
+                                                          .WithPath( "gltf" )
+                                                          .WithPath( "scene.gltf" )
+                                                          .Build()
+                                                          .string() );
+        EnsureModelLoaded( assetsManager.LoadModel( modelLoadInfo ), GetSpherePrefabName( modelLoadInfo.Path.string() ) );
 
-        modelLoadInfo.Path = GetCylinderPrefabName(PathBuilder()
-            .WithPath( fileSystem.GetAssetsRootPath().string() )
-            .WithPath( "Prefabs" )
-            .WithPath( "cylinder" )
-            .WithPath( "gltf" )
-            .WithPath( "scene.gltf" )
-            .Build().string());
-        EnsureModelLoaded(assetsManager.LoadModel(modelLoadInfo), GetCylinderPrefabName(modelLoadInfo.Path.string()));
+        modelLoadInfo.Path = GetCylinderPrefabName( PathBuilder()
+                                                            .WithPath( fileSystem.GetAssetsRootPath().string() )
+                                                            .WithPath( "Prefabs" )
+                                                            .WithPath( "cylinder" )
+                                                            .WithPath( "gltf" )
+                                                            .WithPath( "scene.gltf" )
+                                                            .Build()
+                                                            .string() );
+        EnsureModelLoaded( assetsManager.LoadModel( modelLoadInfo ), GetCylinderPrefabName( modelLoadInfo.Path.string() ) );
 
-        modelLoadInfo.Path = GetConePrefabName(PathBuilder()
-            .WithPath( fileSystem.GetAssetsRootPath().string() )
-            .WithPath( "Prefabs" )
-            .WithPath( "cone" )
-            .WithPath( "gltf" )
-            .WithPath( "scene.gltf" )
-            .Build().string());
-        EnsureModelLoaded(assetsManager.LoadModel(modelLoadInfo), GetConePrefabName(modelLoadInfo.Path.string()));
+        modelLoadInfo.Path = GetConePrefabName( PathBuilder()
+                                                        .WithPath( fileSystem.GetAssetsRootPath().string() )
+                                                        .WithPath( "Prefabs" )
+                                                        .WithPath( "cone" )
+                                                        .WithPath( "gltf" )
+                                                        .WithPath( "scene.gltf" )
+                                                        .Build()
+                                                        .string() );
+        EnsureModelLoaded( assetsManager.LoadModel( modelLoadInfo ), GetConePrefabName( modelLoadInfo.Path.string() ) );
     }
 
     auto EditorLayer::GetPrefabModel( const PrefabSceneObject type ) -> Model* {
@@ -671,4 +703,4 @@ namespace Mikoto {
 
         return result;
     }
-}
+}// namespace Mikoto

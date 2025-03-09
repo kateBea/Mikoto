@@ -68,7 +68,7 @@ namespace Mikoto {
 
             switch(m_ProjectionType) {
                 case ORTHOGRAPHIC:
-                    SetProjection(glm::ortho(-(m_ViewportWidth / m_ViewportHeight), (m_ViewportWidth / m_ViewportHeight), -1.0f, 1.0f));
+                    SetProjection(glm::ortho(0.0f, m_ViewportWidth, 0.0f, m_ViewportHeight));
                 break;
                 case PERSPECTIVE:
                     SetProjection(glm::perspective(glm::radians(m_FieldOfView), m_AspectRatio, m_NearClip, m_FarClip));

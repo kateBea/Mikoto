@@ -22,15 +22,21 @@
 
 namespace Mikoto {
 
-    struct WindowProperties {
-        std::string Title{};   /**< The title of the window. */
+    enum ScreenMode {
+        MKT_WINDOW_MODE_FULLSCREEN = 0,
+        MKT_WINDOW_MODE_WINDOWED = 1,
+        MKT_WINDOW_MODE_BORDERLESS = 2,
+    };
 
-        Int32_T Width{};       /**< The width of the window. */
-        Int32_T Height{};      /**< The height of the window. */
+    struct WindowProperties {
+        std::string Title{}; /**< The title of the window. */
+
+        Int32_T Width{};  /**< The width of the window. */
+        Int32_T Height{}; /**< The height of the window. */
 
         GraphicsAPI Backend{}; /**< The graphics backend for the window. */
 
-        bool Resizable{};      /**< Indicates if the window is resizable. */
+        bool Resizable{}; /**< Indicates if the window is resizable. */
     };
 
     /**
@@ -40,7 +46,7 @@ namespace Mikoto {
      *
      * Important to initialize and terminate the windows explicitly by explicit calls
      * to <code>Init()</code> and <code>Shutdown()</code>, this allows for more flexibility
-     * as to when we want to destroy a window or simply hide it and fully dispose of it.
+     * as to when we want to destroy a window or just hide it and fully dispose of it.
      *
      * A single instance of Window manages a single window, hence why the copy
      * operations are disabled and move semantics are enabled.
@@ -80,7 +86,7 @@ namespace Mikoto {
          * @returns A boolean indicating if the window is minimized.
          * */
         MKT_NODISCARD auto IsMinimized() const -> bool { return GetWidth() == 0 || GetHeight() == 0; }
-        MKT_NODISCARD auto IsMaximized() const -> bool { return m_ScreenMode == ScreenMode::FULLSCREEN; }
+        MKT_NODISCARD auto IsMaximized() const -> bool { return m_ScreenMode == ScreenMode::MKT_WINDOW_MODE_FULLSCREEN; }
 
         /**
          * @brief Returns a handle to the native Window structure.
@@ -98,9 +104,9 @@ namespace Mikoto {
          * @brief Allows or disallows resizing of the window.
          * @param value The value indicating whether the window should be resizable.
          * */
-        auto AllowResizing( const bool value ) -> void {m_Properties.Resizable = value; }
+        auto AllowResizing( const bool value ) -> void { m_Properties.Resizable = value; }
 
-      virtual auto SetScreenMode( ScreenMode mode ) -> void = 0;
+        virtual auto SetScreenMode( ScreenMode mode ) -> void = 0;
 
         /**
          * @brief Initializes this window along with its internal required structures.
@@ -123,7 +129,7 @@ namespace Mikoto {
          * @param properties Determines the properties of the window to be created.
          * @returns A pointer to the newly created window.
          * */
-        static auto Create( const WindowProperties &properties ) -> Scope_T<Window>;
+        static auto Create( const WindowProperties& properties ) -> Scope_T<Window>;
 
         /**
          * @brief Default virtual destructor for this Window.
@@ -134,8 +140,8 @@ namespace Mikoto {
         DELETE_COPY_FOR( Window );
 
     protected:
-      ScreenMode m_ScreenMode{ WINDOWED }; /**< The current screen mode for this window. */
-        WindowProperties m_Properties{}; /**< Properties for this window. */
+        ScreenMode m_ScreenMode{ MKT_WINDOW_MODE_WINDOWED }; /**< The current screen mode for this window. */
+        WindowProperties m_Properties{};                     /**< Properties for this window. */
     };
 }// namespace Mikoto
 

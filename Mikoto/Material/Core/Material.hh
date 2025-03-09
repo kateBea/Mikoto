@@ -38,6 +38,8 @@ namespace Mikoto {
         auto SetName(const std::string_view newName) -> void { m_Name = newName; }
         auto SetColor(auto&&... args) -> void { m_Color = glm::vec4(std::forward<decltype(args)>(args)...); }
 
+        virtual auto SetTexture( Texture* map, MapType type ) -> void = 0;
+
         MKT_NODISCARD static constexpr auto GetTypeStr( const MaterialType type) -> std::string_view {
             switch(type) {
                 case MaterialType::STANDARD:

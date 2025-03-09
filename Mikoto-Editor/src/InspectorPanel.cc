@@ -26,6 +26,7 @@
 #include <GUI/ImGuiUtils.hh>
 #include <Library/Filesystem/PathBuilder.hh>
 #include <Library/Math/Math.hh>
+#include <Material/Material/PBRMaterial.hh>
 #include <Material/Material/StandardMaterial.hh>
 #include <Panels/InspectorPanel.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
@@ -172,7 +173,9 @@ namespace Mikoto {
     }
 
     static auto ShowTextureHoverTooltip( const Texture2D* texture ) -> void {
-        ImGuiUtils::PushImageButton( texture->GetID().Get(), GetDescriptorSetById( texture ), ImVec2{ 128, 128 } );
+        if (ImGuiUtils::PushImageButton( texture->GetID().Get(), GetDescriptorSetById( texture ), ImVec2{ 128, 128 } )) {
+
+        }
 
         ImGui::SameLine();
 
@@ -215,7 +218,7 @@ namespace Mikoto {
         if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
     }
 
-    static auto UpdateMaterialTexture( StandardMaterial& standardMat, MapType mapType ) -> void {
+    static auto UpdateMaterialTexture( Material& standardMat, MapType mapType ) -> void {
         // Load a new texture
         FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
         AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
@@ -236,10 +239,11 @@ namespace Mikoto {
             } ) };
 
             if ( loadedTexture != nullptr ) {
-                standardMat.SetDiffuseMap( dynamic_cast<Texture2D*>( loadedTexture ), mapType );
+                standardMat.SetTexture( loadedTexture, mapType );
             }
         }
     }
+
     static auto EditStandardMaterial( StandardMaterial& standardMat ) -> void {
         static constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
                                                            ImGuiTreeNodeFlags_AllowItemOverlap |
@@ -399,6 +403,352 @@ namespace Mikoto {
         }
     }
 
+    static auto DisplayTextureEditTreeNode(std::string_view title, PBRMaterial& standardMat, const std::function<void(PBRMaterial& standardMat)>& func) -> void {
+        constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
+                                                           ImGuiTreeNodeFlags_AllowItemOverlap |
+                                                           ImGuiTreeNodeFlags_Framed |
+                                                           ImGuiTreeNodeFlags_SpanAvailWidth |
+                                                           ImGuiTreeNodeFlags_FramePadding };
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        if ( ImGui::TreeNodeEx( fmt::format( "##{}:{}", "DisplayTextureEditTreeNode", title.data()).c_str(), treeNodeFlags, title.data() ) ) {
+
+            func(standardMat);
+
+            ImGui::TreePop();
+        }
+
+        if ( ImGui::IsItemHovered() ) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+    }
+
+    static auto EditPBRMaterial_AlbedoMap(PBRMaterial& material) -> void {
+        // We use the standard default font with FONT_ICON_FILE_NAME_MD font icons
+            // since the other fonts don't correctly display these icons
+            ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
+            ImGui::SameLine();
+            ImGui::TextUnformatted( " Albedo" );
+
+            Texture2D* diffuseMap{ material.GetAlbedoMap() };
+            if (ImGuiUtils::PushImageButton( diffuseMap->GetID().Get(), GetDescriptorSetById( diffuseMap ), ImVec2{ 64, 64 } ) ) {
+                UpdateMaterialTexture( material, MapType::TEXTURE_2D_DIFFUSE );
+            }
+
+            if ( material.HasAlbedoMap() ) {
+                ImGuiUtils::ToolTip( [&]() -> void {
+                    ShowTextureHoverTooltip( diffuseMap );
+                }, ImGui::IsItemHovered() );
+            }
+
+            if ( ImGui::IsItemHovered()) {
+
+                if ( !material.HasAlbedoMap() ) {
+                    ImGuiUtils::ToolTip( "Click me to load a texture." );
+                }
+
+                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+            }
+
+            ImGui::SameLine();
+
+            // Table to control albedo mix color and ambient value
+            // Table has two rows and one colum
+            constexpr auto columnIndex{ 0 };
+            constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_None };
+
+            if ( ImGui::BeginTable( "AlbedoMapEditContentsTable", 1, tableFlags ) ) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex( columnIndex );
+
+                glm::vec4 color{ material.GetAlbedoFactors() };
+                constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
+
+                if ( ImGui::ColorEdit4( "Color", glm::value_ptr( color ), colorEditFlags ) ) {
+                    material.SetAlbedoFactors( color );
+                }
+
+                if ( ImGui::IsItemHovered() ) {
+                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+                }
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex( columnIndex );
+
+                float mixing{};
+                if (ImGuiUtils::Slider( "Mix", mixing, { 0.0f, 1.0f } ) ) {
+
+                }
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex( columnIndex );
+
+                ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+                ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+
+                if (ImGui::Button( "Remove Texture" )) {
+                    material.RemoveMap( MapType::TEXTURE_2D_DIFFUSE );
+                }
+
+                ImGui::EndTable();
+            }
+    }
+
+    static auto EditPBRMaterial_MetallicMap( PBRMaterial& material ) -> void {
+        ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
+        ImGui::SameLine();
+        ImGui::TextUnformatted( " Metallic" );
+
+        Texture2D* metallicMap{ material.GetMetallicMap() };
+
+        if ( ImGuiUtils::PushImageButton( metallicMap->GetID().Get(), GetDescriptorSetById( metallicMap ), ImVec2{ 64, 64 } ) ) {
+            UpdateMaterialTexture( material, MapType::TEXTURE_2D_METALLIC );
+        }
+
+        if ( material.HasMetallicMap() ) {
+            ImGuiUtils::ToolTip( [&]() -> void {
+                ShowTextureHoverTooltip( metallicMap );
+            },ImGui::IsItemHovered() );
+        }
+
+        if ( ImGui::IsItemHovered() ) {
+
+            if ( !material.HasMetallicMap() ) {
+                ImGuiUtils::ToolTip( "Click me to load a texture." );
+            }
+
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        ImGui::SameLine();
+        // Table to control specular component
+        // Table has one row and one colum
+        constexpr auto columnCount{ 1 };
+        constexpr auto columnIndexSpecular{ 0 };
+        constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
+
+        if ( ImGui::BeginTable( "MetallicMapEditContentsTable", columnCount, specularTableFlags ) ) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( columnIndexSpecular );
+
+            float strength{ material.GetMetallicFactor() };
+
+            if (ImGuiUtils::Slider( "Metal factor", strength, { 0.0f, 10.0f } )) {
+                material.SetMetallicFactor( strength );
+            }
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( columnIndexSpecular );
+
+            ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+
+            if ( ImGui::Button( "Remove Texture" ) ) {
+                material.RemoveMap( MapType::TEXTURE_2D_METALLIC );
+            }
+
+            if ( ImGui::IsItemHovered() ) {
+                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
+    static auto EditPBRMaterial_NormalMap( PBRMaterial& material ) -> void {
+        ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
+        ImGui::SameLine();
+        ImGui::TextUnformatted( " Normal" );
+
+        Texture2D* normalMap{ material.GetNormalMap() };
+
+        if ( ImGuiUtils::PushImageButton( normalMap->GetID().Get(), GetDescriptorSetById( normalMap ), ImVec2{ 64, 64 } ) ) {
+            UpdateMaterialTexture( material, MapType::TEXTURE_2D_NORMAL );
+        }
+
+        if ( material.HasNormalMap() ) {
+            ImGuiUtils::ToolTip( [&]() -> void {
+                ShowTextureHoverTooltip( normalMap );
+            },
+                                 ImGui::IsItemHovered() );
+        }
+
+        if ( ImGui::IsItemHovered() ) {
+
+            if ( !material.HasNormalMap() ) {
+                ImGuiUtils::ToolTip( "Click me to load a texture." );
+            }
+
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        ImGui::SameLine();
+        // Table to control specular component
+        // Table has one row and one colum
+        constexpr auto columnCount{ 1 };
+        constexpr auto columnIndexSpecular{ 0 };
+        constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
+
+        if ( ImGui::BeginTable( "NormalMapEditContentsTable", columnCount, specularTableFlags ) ) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( columnIndexSpecular );
+
+            float strength{ /* TODO */ };
+
+            if (ImGuiUtils::Slider( "Strength", strength, { 0.0f, 10.0f } )) {
+
+            }
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( columnIndexSpecular );
+            ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+            if ( ImGui::Button( "Remove Texture" ) ) {
+                material.RemoveMap( MapType::TEXTURE_2D_NORMAL );
+            }
+
+            if ( ImGui::IsItemHovered() ) {
+                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
+    static auto EditPBRMaterial_RoughnessMap( PBRMaterial& material ) -> void {
+        ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
+        ImGui::SameLine();
+        ImGui::TextUnformatted( " Roughness" );
+
+        Texture2D* roughnessMap{ material.GetRoughnessMap() };
+
+        if ( ImGuiUtils::PushImageButton( roughnessMap->GetID().Get(), GetDescriptorSetById( roughnessMap ), ImVec2{ 64, 64 } ) ) {
+            UpdateMaterialTexture( material, MapType::TEXTURE_2D_ROUGHNESS );
+        }
+
+        if ( material.HasRoughnessMap() ) {
+            ImGuiUtils::ToolTip( [&]() -> void {
+                ShowTextureHoverTooltip( roughnessMap );
+            },
+                                 ImGui::IsItemHovered() );
+        }
+
+        if ( ImGui::IsItemHovered() ) {
+
+            if ( !material.HasRoughnessMap() ) {
+                ImGuiUtils::ToolTip( "Click me to load a texture." );
+            }
+
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        ImGui::SameLine();
+        // Table to control specular component
+        // Table has one row and one colum
+        constexpr auto columnCount{ 1 };
+        constexpr auto columnIndexSpecular{ 0 };
+        constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
+
+        if ( ImGui::BeginTable( "RoughnessMapEditContentsTable", columnCount, specularTableFlags ) ) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( columnIndexSpecular );
+
+            float strength{ material.GetRoughnessFactor() };
+
+            if (ImGuiUtils::Slider( "Roughness factor", strength, { 0.0f, 10.0f } ) ) {
+                material.SetRoughnessFactor( strength );
+            }
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( columnIndexSpecular );
+
+            ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+
+            if ( ImGui::Button( "Remove Texture" ) ) {
+                material.RemoveMap( MapType::TEXTURE_2D_ROUGHNESS );
+            }
+
+            if ( ImGui::IsItemHovered() ) {
+                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
+    static auto EditPBRMaterial_AmbientOcclusion( PBRMaterial& material ) -> void {
+        ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
+        ImGui::SameLine();
+        ImGui::TextUnformatted( " Ambient Occlusion" );
+
+        Texture2D* specularMap{ material.GetAOMap() };
+
+        if ( ImGuiUtils::PushImageButton( specularMap->GetID().Get(), GetDescriptorSetById( specularMap ), ImVec2{ 64, 64 } ) ) {
+            UpdateMaterialTexture( material, MapType::TEXTURE_2D_AMBIENT_OCCLUSION );
+        }
+
+        if ( material.HasAmbientOcclusionMap() ) {
+            ImGuiUtils::ToolTip( [&]() -> void {
+                ShowTextureHoverTooltip( specularMap );
+            },
+                                 ImGui::IsItemHovered() );
+        }
+
+        if ( ImGui::IsItemHovered() ) {
+
+            if ( !material.HasAmbientOcclusionMap() ) {
+                ImGuiUtils::ToolTip( "Click me to load a texture." );
+            }
+
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        ImGui::SameLine();
+        // Table to control specular component
+        // Table has one row and one colum
+        constexpr auto columnCount{ 1 };
+        constexpr auto columnIndexSpecular{ 0 };
+        constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
+
+        if ( ImGui::BeginTable( "AmbientOccEditContentsTable", columnCount, specularTableFlags ) ) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( columnIndexSpecular );
+
+            float strength{ material.GetAmbientOcclusionFactor() };
+
+            if (ImGuiUtils::Slider( "Strength", strength, { 0.0f, 10.0f } ) ) {
+                material.SetAmbientOcclusionFactor( strength );
+            }
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( columnIndexSpecular );
+
+            ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+
+            if ( ImGui::Button( "Remove Texture" ) ) {
+                material.RemoveMap( MapType::TEXTURE_2D_AMBIENT_OCCLUSION );
+            }
+
+            if ( ImGui::IsItemHovered() ) {
+                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
+    static auto EditPBRMaterial( PBRMaterial& material ) -> void {
+        DisplayTextureEditTreeNode( "Albedo", material, EditPBRMaterial_AlbedoMap );
+        DisplayTextureEditTreeNode( "Metallic", material, EditPBRMaterial_MetallicMap );
+        DisplayTextureEditTreeNode( "Roughness", material, EditPBRMaterial_RoughnessMap );
+        DisplayTextureEditTreeNode( "Ambient Occlusion", material, EditPBRMaterial_AmbientOcclusion );
+        DisplayTextureEditTreeNode( "Normal", material, EditPBRMaterial_NormalMap );
+    }
+
     static auto DrawComponentButton( Entity& entity ) -> void {
         if ( !entity.IsValid() ) {
             return;
@@ -423,7 +773,7 @@ namespace Mikoto {
 
             if ( ImGui::MenuItem( "Script", menuItemShortcut, menuItemSelected,
                                   !entity.HasComponent<NativeScriptComponent>() ) ) {
-                entity.AddComponent<NativeScriptComponent>();
+                entity.AddComponent<NativeScriptComponent>("TODO: PATH");
                 ImGui::CloseCurrentPopup();
             }
 
@@ -464,6 +814,17 @@ namespace Mikoto {
                 ImGui::CloseCurrentPopup();
             }
 
+            if ( ImGui::MenuItem( "Text", menuItemShortcut, menuItemSelected, !entity.HasComponent<TextComponent>() ) ) {
+                TextComponent& textComponent{ entity.AddComponent<TextComponent>() };
+
+                textComponent.LoadFont( "TODO" );
+                textComponent.SetFontSize( 12 );
+                textComponent.SetTextContent( "Example" );
+                textComponent.SetLetterSpacing( 1 );
+
+                ImGui::CloseCurrentPopup();
+            }
+
             ImGui::EndPopup();
         }
 
@@ -481,10 +842,8 @@ namespace Mikoto {
 
         ImGui::Spacing();
 
-        ImGuiUtils::PushImageButton( map->GetID().Get(), GetDescriptorSetById( map ), ImVec2{ 64, 64 } );
+        if (ImGuiUtils::PushImageButton( map->GetID().Get(), GetDescriptorSetById( map ), ImVec2{ 64, 64 } )) {
 
-        if ( ImGui::IsItemHovered() ) {
-            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
         }
 
         ImGui::SameLine();
@@ -630,9 +989,6 @@ namespace Mikoto {
 
         ImGui::PushID( labelId.data() );
 
-        glm::vec3 oldValue{ data };
-
-
         ImGui::Columns( 2 );
         ImGui::SetColumnWidth( 0, static_cast<float>( columWidth ) );
         ImGui::Text( "%s", label.data() );
@@ -698,38 +1054,6 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::DragFloat( "##Z", &data.z, 0.1f, 0.0f, 0.0f, "%.2f" );
 
-        // We take the offset from the first component that has changed to compute the end values for the other two components
-        // if the end result and the start result are different, we set the other two components to the same value
-        // TODO: review
-        if ( uniform ) {
-            float offSetX{ 0 };
-            float offSetY{ 0 };
-            float offSetZ{ 0 };
-
-            if ( data.x != oldValue.x ) {
-                offSetX = oldValue.x - data.x;
-            } else if ( data.y != oldValue.y ) {
-                offSetY = oldValue.y - data.y;
-            } else if ( data.z != oldValue.z ) {
-                offSetZ = oldValue.z - data.z;
-            }
-
-            if (offSetX != 0) {
-                data.y += offSetX;
-                data.z += offSetX;
-            }
-
-            if (offSetY != 0) {
-                data.x += offSetY;
-                data.z += offSetY;
-            }
-
-            if (offSetZ != 0) {
-                data.x += offSetZ;
-                data.y += offSetZ;
-            }
-        }
-
         ImGui::PopStyleColor( 3 );
         ImGui::PopItemWidth();
 
@@ -775,9 +1099,9 @@ namespace Mikoto {
     static auto SetupTransformComponentTab( Entity& entity, Scene* scene ) -> void {
         TransformComponent& transformComponent{ entity.GetComponent<TransformComponent>() };
 
-        glm::vec3 translation{ transformComponent.GetTranslation() };
-        glm::vec3 rotation{ transformComponent.GetRotation() };
-        glm::vec3 scale{ transformComponent.GetScale() };
+        glm::vec3 newTranslation{ transformComponent.GetTranslation() };
+        glm::vec3 newRotation{ transformComponent.GetRotation() };
+        glm::vec3 newScale{ transformComponent.GetScale() };
 
         const glm::vec3 oldTranslation{ transformComponent.GetTranslation() };
         const glm::vec3 oldScale{ transformComponent.GetScale() };
@@ -785,23 +1109,25 @@ namespace Mikoto {
 
         ImGui::Spacing();
 
-        DrawVec3Transform( "Translation", translation );
-        DrawVec3Transform( "Rotation", rotation );
+        DrawVec3Transform( "Translation", newTranslation );
+        DrawVec3Transform( "Rotation", newRotation );
 
-        static bool uniformScale{ false };
-        DrawVec3Transform( "Scale", scale, 1.0, 100.0, uniformScale );
+        bool uniformScale{ entity.GetComponent<TransformComponent>().HasUniformScale() };
+        DrawVec3Transform( "Scale", newScale, 1.0, 100.0, uniformScale );
         ImGui::SameLine(  );
-        ImGui::Checkbox( "##SetupTransformComponentTab:UniformScale", std::addressof( uniformScale ) );
+
+        if (ImGuiUtils::CheckBox("##SetupTransformComponentTab:UniformScale", uniformScale)) {
+            entity.GetComponent<TransformComponent>().WantUniformSale(uniformScale);
+        }
 
         if (ImGui::IsItemHovered(  )) {
             ImGuiUtils::ToolTip( "Enable uniform scaling" );
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
         }
 
-
-        transformComponent.SetTranslation( translation );
-        transformComponent.SetRotation( rotation );
-        transformComponent.SetScale( scale );
+        transformComponent.SetTranslation( newTranslation );
+        transformComponent.SetRotation( newRotation );
+        transformComponent.SetScale( newScale );
 
         // Apply the transformation to the children
         // For now Guizmos only change translation so thats the only thing we handle in the children
@@ -838,8 +1164,13 @@ namespace Mikoto {
 
         if (materialComponent.HasMaterial()) {
             Material& material{ materialComponent.GetMaterial() };
+            if (material.GetType() == MaterialType::STANDARD) {
+                EditStandardMaterial( dynamic_cast<StandardMaterial&>( material ) );
+            }
 
-            EditStandardMaterial( dynamic_cast<StandardMaterial&>( material ) );
+            if (material.GetType() == MaterialType::PBR) {
+                EditPBRMaterial( dynamic_cast<PBRMaterial&>( material ) );
+            }
         }
 
         ImGui::Indent();
@@ -931,10 +1262,20 @@ namespace Mikoto {
         constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_SizingFixedFit };
 
         if ( ImGui::BeginTable( "DirectionalLightEditTable", 2, tableFlags ) ) {
-            constexpr ImGuiColorEditFlags colorEditFlags{
-                ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview
-            };
 
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+            ImGui::TextUnformatted( "Color" );
+
+            ImGui::TableSetColumnIndex( 1 );
+
+            glm::vec4 diffuse{ lightComponent.GetDirLightData().Diffuse };
+            if ( ImGuiUtils::ColorEdit4( "##DirectionalLightDiffuse", diffuse  ) ) {
+                lightComponent.GetDirLightData().Diffuse = diffuse;
+            }
+
+            ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
             ImGui::TextUnformatted( "Direction" );
@@ -949,74 +1290,18 @@ namespace Mikoto {
             ImGui::TableSetColumnIndex( 1 );
 
             glm::vec4 direction{ lightComponent.GetDirLightData().Direction };
-            if ( ImGui::DragFloat4( "##DirectionalLightDirection", glm::value_ptr( direction ), 0.1f, 0.0f, 512.0f, "%.2f" ) ) {
+            if ( ImGuiUtils::DragFloat4( "##DirectionalLightDirection", "%.2f", direction, 0.1f, 0.0f, 512.0f) ) {
                 lightComponent.GetDirLightData().Direction = direction;
             }
 
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-            }
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "Ambient" );
-
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-            }
-
-            ImGui::TableSetColumnIndex( 1 );
-
-            glm::vec4 ambient{ lightComponent.GetDirLightData().Ambient };
-            if ( ImGui::ColorEdit4( "##DirectionalLightAmbient", glm::value_ptr( ambient ), colorEditFlags ) ) {
-                lightComponent.GetDirLightData().Ambient = ambient;
-            }
-
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-            }
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "Diffuse" );
-
-            ImGui::TableSetColumnIndex( 1 );
-
-            glm::vec4 diffuse{ lightComponent.GetDirLightData().Diffuse };
-            if ( ImGui::ColorEdit4( "##DirectionalLightDiffuse", glm::value_ptr( diffuse ), colorEditFlags ) ) {
-                lightComponent.GetDirLightData().Diffuse = diffuse;
-            }
-
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-            }
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "Specular" );
-
-            ImGui::TableSetColumnIndex( 1 );
-
-            glm::vec4 specular{ lightComponent.GetDirLightData().Specular };
-            if ( ImGui::ColorEdit4( "##DirectionalLightSpecular", glm::value_ptr( specular ), colorEditFlags ) ) {
-                lightComponent.GetDirLightData().Specular = specular;
-            }
-
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-            }
-
+            ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
             ImGui::TextUnformatted( "Cast shadows" );
 
             ImGui::TableSetColumnIndex( 1 );
             static bool castShadows{};
-            ImGui::Checkbox( "##DirectionalLightSahdows", std::addressof( castShadows ) );
-
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-            }
+            ImGuiUtils::CheckBox( "##DirectionalLightShadows", castShadows );
 
             ImGui::EndTable();
         }
@@ -1028,119 +1313,45 @@ namespace Mikoto {
         if ( ImGui::BeginTable( "PointLightMainTable", 2, tableFlags ) ) {
             auto& pointLightData{ lightComponent.GetPointLightData() };
 
+            ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "Ambient" );
-
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-            }
-
-            ImGui::TableSetColumnIndex( 1 );
-            static constexpr ImGuiColorEditFlags colorEditFlags{
-                ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview
-            };
-
-            glm::vec4 ambientComponent{ pointLightData.Ambient };
-            if ( ImGui::ColorEdit3( "##PointAmbientComponent", glm::value_ptr( ambientComponent ),
-                                    colorEditFlags ) ) {
-                pointLightData.Ambient = ambientComponent;
-            }
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "Diffuse" );
-
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-            }
-
-            ImGui::TableSetColumnIndex( 1 );
-
             glm::vec4 diffuseComponent{ pointLightData.Diffuse };
-            if ( ImGui::ColorEdit3( "##PointDiffuseComponent", glm::value_ptr( diffuseComponent ),
-                                    colorEditFlags ) ) {
+            if ( ImGuiUtils::ColorEdit4( "Color", diffuseComponent ) ) {
                 pointLightData.Diffuse = diffuseComponent;
             }
 
+            ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "Specular" );
 
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+            float intensity{ pointLightData.AttenuationParams.x };
+
+            if ( ImGuiUtils::Slider( "Intensity", intensity, { 1.0f, 	30000.0f } ) ) {
+                pointLightData.AttenuationParams.x = intensity;
             }
 
-            ImGui::TableSetColumnIndex( 1 );
-
-            glm::vec4 specularComponent{ pointLightData.Specular };
-            if ( ImGui::ColorEdit3( "##PointSpecularComponent", glm::value_ptr( specularComponent ),
-                                    colorEditFlags ) ) {
-                pointLightData.Specular = specularComponent;
-            }
-
-
+            ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "Constant" );
-            if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
 
-            ImGui::TableSetColumnIndex( 1 );
+            float radius{ pointLightData.AttenuationParams.y };
 
-            float constant{ pointLightData.Components.x };
-
-            if ( ImGui::SliderFloat( "##PointConstantComponent", std::addressof( constant ), 0.1f, 1.0f ) ) {
-                pointLightData.Components.x = constant;
-            }
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "Linear" );
-
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-            }
-
-            ImGui::TableSetColumnIndex( 1 );
-
-            float linear{ pointLightData.Components.y };
-
-            if ( ImGui::SliderFloat( "##PointLinearComponent", std::addressof( linear ), 0.0f, 2.0f ) ) {
-                pointLightData.Components.y = linear;
-            }
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "Quadratic" );
-
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-            }
-
-            ImGui::TableSetColumnIndex( 1 );
-
-            float quadratic{ pointLightData.Components.z };
-
-            if ( ImGui::SliderFloat( "##PointQuadraticComponent", std::addressof( quadratic ), 0.0f, 1.0f ) ) {
-                pointLightData.Components.z = quadratic;
+            if ( ImGuiUtils::Slider( "Radius", radius, { 1.0f, 500.0f }) ) {
+                pointLightData.AttenuationParams.y = radius;
             }
 
             if ( ImGui::IsItemHovered() ) {
                 ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
             }
 
-            ImGui::TableSetColumnIndex( 1 );
-
+            ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "Cast shadows" );
 
             static bool castShadows{};
-            ImGui::TableSetColumnIndex( 1 );
-            ImGui::Checkbox( "##PointLightSahdows", std::addressof( castShadows ) );
+            if (ImGuiUtils::CheckBox( "Cast shadows", castShadows )) {
 
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
             }
 
             ImGui::EndTable();
@@ -1153,178 +1364,81 @@ namespace Mikoto {
         if ( ImGui::BeginTable( "SpotLightEditTable", 2, tableFlags ) ) {
             auto& spotLightData{ lightComponent.GetSpotLightData() };
 
+            ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "Direction" );
-
-            ImGui::SameLine();
-
-            ImGuiUtils::HelpMarker( "The spot position is determined by the objects position." );
-
-            ImGui::TableSetColumnIndex( 1 );
 
             glm::vec4 direction{ spotLightData.Direction };
-            if ( ImGui::DragFloat3( "##SpotLightDirection", glm::value_ptr( direction ), 0.01f, -1.0f, 1.0f,
-                                    "%.2f" ) ) {
+            if ( ImGuiUtils::DragFloat4( "Direction", "%.2f", direction, 0.01f, -1.0f, 1.0f) ) {
                 spotLightData.Direction = direction;
             }
 
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-            }
+            ImGui::SameLine();
+            ImGuiUtils::HelpMarker( "The spot position is determined by the objects position." );
 
-            // Constants
-            {
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
-                ImGui::TextUnformatted( "Constant" );
-
-                if ( ImGui::IsItemHovered() ) {
-                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-                }
-
-                ImGui::TableSetColumnIndex( 1 );
-
-                float constant{ spotLightData.Components.x };
-
-                if ( ImGui::SliderFloat( "##SpotConstantComponent", std::addressof( constant ), 0.1f, 1.0f,
-                                         "%.6f" ) ) {
-                    spotLightData.Components.x = constant;
-                }
-
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
-                ImGui::TextUnformatted( "Linear" );
-
-                if ( ImGui::IsItemHovered() ) {
-                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-                }
-
-                ImGui::TableSetColumnIndex( 1 );
-
-                float linear{ spotLightData.Components.y };
-                if ( ImGui::SliderFloat( "##SpotLinearComponent", std::addressof( linear ), 0.0014f, 1.8f,
-                                         "%.6f" ) ) {
-                    spotLightData.Components.y = linear;
-                }
-
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
-                ImGui::TextUnformatted( "Quadratic" );
-
-                if ( ImGui::IsItemHovered() ) {
-                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-                }
-
-                ImGui::TableSetColumnIndex( 1 );
-
-                float quadratic{ spotLightData.Components.z };
-
-                if ( ImGui::SliderFloat( "##SpotQuadraticComponent", std::addressof( quadratic ), 0.000007f, 1.8f,
-                                         "%.6f" ) ) {
-                    spotLightData.Components.z = quadratic;
-                }
-            }
-
-            // Components
-            {
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
-                ImGui::TextUnformatted( "Ambient" );
-
-                ImGui::TableSetColumnIndex( 1 );
-                static constexpr ImGuiColorEditFlags colorEditFlags{
-                    ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview
-                };
-
-                glm::vec4 ambientComponent{ spotLightData.Ambient };
-                if ( ImGui::ColorEdit3( "##SpotAmbientComponent", glm::value_ptr( ambientComponent ),
-                                        colorEditFlags ) ) {
-                    spotLightData.Ambient = ambientComponent;
-                }
-
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
-                ImGui::TextUnformatted( "Diffuse" );
-
-                if ( ImGui::IsItemHovered() ) {
-                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-                }
-
-                ImGui::TableSetColumnIndex( 1 );
-
-                glm::vec4 diffuseComponent{ spotLightData.Diffuse };
-                if ( ImGui::ColorEdit3( "##SpotDiffuseComponent", glm::value_ptr( diffuseComponent ),
-                                        colorEditFlags ) ) {
-                    spotLightData.Diffuse = diffuseComponent;
-                }
-
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
-                ImGui::TextUnformatted( "Specular" );
-
-                if ( ImGui::IsItemHovered() ) {
-                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-                }
-
-                ImGui::TableSetColumnIndex( 1 );
-
-                glm::vec4 specularComponent{ spotLightData.Specular };
-                if ( ImGui::ColorEdit3( "##SpotSpecularComponent", glm::value_ptr( specularComponent ),
-                                        colorEditFlags ) ) {
-                    spotLightData.Specular = specularComponent;
-                }
-            }
-
-            // angles
-            {
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
-                ImGui::TextUnformatted( "Cut-off" );
-
-                ImGui::SameLine();
-                ImGuiUtils::HelpMarker( "Angles in degrees" );
-
-                ImGui::TableSetColumnIndex( 1 );
-                float cutOff{ glm::degrees( spotLightData.CutOffValues.x ) };
-                if ( ImGui::SliderFloat( "##SpotLightCutoff", std::addressof( cutOff ), 0.0f, 360.0f, "%.1f" ) ) {
-                    spotLightData.CutOffValues.x = glm::radians( cutOff );
-                }
-
-                if ( ImGui::IsItemHovered() ) {
-                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-                }
-
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
-                ImGui::TextUnformatted( "Outer cut-off" );
-
-                ImGui::SameLine();
-                ImGuiUtils::HelpMarker( "Angles in degrees" );
-
-                ImGui::TableSetColumnIndex( 1 );
-                float outerCutOff{ glm::degrees( spotLightData.CutOffValues.y ) };
-                if ( ImGui::SliderFloat( "##SpotLightOuterCutOff", std::addressof( outerCutOff ), 0.0f, 360.0f,
-                                         "%.1f" ) ) {
-                    spotLightData.CutOffValues.y = glm::radians( outerCutOff );
-                }
-
-                if ( ImGui::IsItemHovered() ) {
-                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-                }
-            }
-
+            ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "Cast shadows" );
+            glm::vec4 diffuseComponent{ spotLightData.Diffuse };
+            if ( ImGuiUtils::ColorEdit4( "Color", diffuseComponent ) ) {
+                spotLightData.Diffuse = diffuseComponent;
+            }
 
-            static bool castShadows{};
-            ImGui::TableSetColumnIndex( 1 );
-            ImGui::Checkbox( "##SpotLightSahdows", std::addressof( castShadows ) );
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+
+            float intensity{ spotLightData.Params.z };
+
+            if ( ImGuiUtils::Slider( "Intensity", intensity, { 1.0f, 	30000.0f } ) ) {
+                spotLightData.Params.z = intensity;
+            }
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+
+            float radius{ spotLightData.Params.w };
+
+            if ( ImGuiUtils::Slider( "Radius", radius, { 1.0f, 500.0f }) ) {
+                spotLightData.Params.w = radius;
+            }
 
             if ( ImGui::IsItemHovered() ) {
                 ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
             }
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+
+            float cutOff{ glm::degrees( spotLightData.Params.x ) };
+            if ( ImGuiUtils::Slider( "Cut-off", cutOff, { 0.0f, 180.0f })  ) {
+                spotLightData.Params.x = glm::radians( cutOff );
+            }
+
+            ImGui::SameLine();
+            ImGuiUtils::HelpMarker( "Angles in degrees" );
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+
+            float outerCutOff{ glm::degrees( spotLightData.Params.y ) };
+            if ( ImGuiUtils::Slider( "Outer cut-off", outerCutOff, { 0.0f, 180.0f }) ) {
+                spotLightData.Params.y = glm::radians( outerCutOff );
+
+            }
+
+            ImGui::SameLine();
+            ImGuiUtils::HelpMarker( "Angles in degrees" );
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+
+            static bool castShadows{};
+            ImGuiUtils::CheckBox( "Cast shadows", castShadows );
 
             ImGui::EndTable();
         }
@@ -1389,6 +1503,18 @@ namespace Mikoto {
             case LightType::SPOT_LIGHT_TYPE:
                 SetupSpotLightLightOptions( lightComponent );
                 break;
+        }
+    }
+
+    static auto SetupTextComponentTab(Entity& entity) -> void {
+        TextComponent& textComponent{ entity.GetComponent<TextComponent>() };
+
+        std::string content( '0', 4096 );
+
+        std::ranges::copy(textComponent.GetTextContent(), content.begin());
+
+        if (ImGuiUtils::TextArea( content )) {
+            textComponent.SetTextContent( content );
         }
     }
 
@@ -1567,12 +1693,21 @@ namespace Mikoto {
         }
 
         DrawComponent<TransformComponent>( fmt::format( "{} Transform", ICON_MD_DEVICE_HUB ), entity, [&]( Entity& target ) -> void { SetupTransformComponentTab( target, m_TargetScene ); }, false );
+
         DrawComponent<MaterialComponent>( fmt::format( "{} Material", ICON_MD_INSIGHTS ), entity, SetupMaterialComponentTab );
+
         DrawComponent<PhysicsComponent>( fmt::format( "{} Physics", ICON_MD_FITNESS_CENTER ), entity, SetupPhysicsComponentTab );
+
         DrawComponent<RenderComponent>( fmt::format( "{} Mesh", ICON_MD_VIEW_IN_AR ), entity, [&]( Entity& target ) -> void { SetupRenderComponentTab( target, m_TargetScene ); }, false );
+
         DrawComponent<LightComponent>( fmt::format( "{} Light", ICON_MD_LIGHT ), entity, SetupLightComponentTab );
+
         DrawComponent<AudioComponent>( fmt::format( "{} Audio", ICON_MD_AUDIOTRACK ), entity, SetupAudioComponentTab );
+
+        DrawComponent<TextComponent>( fmt::format( "{} Text", ICON_MD_MESSAGE ), entity, SetupTextComponentTab );
+
         DrawComponent<CameraComponent>( fmt::format( "{} Camera", ICON_MD_CAMERA_ALT ), entity, SetupCameraComponentTab );
+
         DrawComponent<NativeScriptComponent>( fmt::format( "{} Script", ICON_MD_CODE ), entity, SetupNativeScriptingComponentTab );
     }
 

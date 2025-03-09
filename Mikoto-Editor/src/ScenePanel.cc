@@ -96,6 +96,10 @@ namespace Mikoto {
                 } );
         }
 
+        auto SetManipulation( const GuizmoManipulationMode mode) -> void {
+            m_ActiveManipulationMode = mode;
+        }
+
         auto SetupGuizmos() const -> void {
             Entity* currentSelection{ m_GetActiveEntityCallback() };
             if (currentSelection != nullptr && currentSelection->IsValid()) {
@@ -143,6 +147,7 @@ namespace Mikoto {
         const glm::mat4& cameraProjection{ m_EditorMainCamera->GetProjection() };
         glm::mat4 objectTransform{ transformComponent.GetTransform() };
         glm::vec3 oldTranslation{ transformComponent.GetTranslation() };
+        glm::vec3 oldRotation{ transformComponent.GetRotation() };
 
         switch (m_ActiveManipulationMode) {
             case GuizmoManipulationMode::TRANSLATION:
@@ -163,11 +168,13 @@ namespace Mikoto {
             // For now Guizmos only change translation so thats the only thing we handle in the children
 
             glm::vec3 offsetTranslation{ transformComponent.GetTranslation() - oldTranslation };
+            glm::vec3 offsetRotation{ transformComponent.GetRotation() - oldRotation };
             auto& hierarchy{ m_TargetScene->GetHierarchy() };
-            hierarchy.ForAllChildren( [offsetTranslation]( Entity* child ) -> void {
+            hierarchy.ForAllChildren( [&]( Entity* child ) -> void {
                 TransformComponent& childTransform{ child->GetComponent<TransformComponent>() };
 
                 childTransform.SetTranslation( childTransform.GetTranslation() + offsetTranslation );
+                childTransform.SetRotation( childTransform.GetRotation() + offsetRotation );
 
             } , [&](Entity* target) -> bool {
                 return target->GetComponent<TagComponent>().GetGUID() ==
@@ -215,13 +222,13 @@ namespace Mikoto {
         }
     }
 
-    auto ScenePanel::OnUpdate(MKT_UNUSED_VAR float ts) -> void {
-        if (m_PanelIsVisible) {
+    auto ScenePanel::OnUpdate( MKT_UNUSED_VAR float ts ) -> void {
+        if ( m_PanelIsVisible ) {
             constexpr ImGuiWindowFlags windowFlags{};
 
             // Expand scene view to window bounds (no padding)
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f,0.0f });
-            ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible), windowFlags);
+            ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f, 0.0f } );
+            ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), windowFlags );
 
             //DrawScenePlayButtons();
 
@@ -235,4 +242,8 @@ namespace Mikoto {
             ImGui::PopStyleVar();
         }
     }
-}
+
+    auto ScenePanel::SetGuizmoManipulationMode( GuizmoManipulationMode mode ) const -> void {
+        dynamic_cast<ScenePanelViewport_VKImpl*>(m_Implementation.get())->SetManipulation( mode );
+    }
+}// namespace Mikoto

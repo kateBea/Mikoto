@@ -43,9 +43,6 @@ namespace Mikoto {
         Ref_T<spdlog::logger> m_CoreLogger{};
         Ref_T<spdlog::logger> m_AppLogger{};
     };
-
-    // Global instance for logging
-    inline Logger globalLoger{};
 }
 
 // Enable logging for debug builds exclusively

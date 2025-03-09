@@ -55,6 +55,7 @@ namespace Mikoto {
          * @return The position of the camera.
          * */
         MKT_NODISCARD auto GetPosition() const -> const glm::vec3& { return m_Position; }
+        MKT_NODISCARD auto GetTargetForward() const -> const glm::vec3& { return m_ForwardVector; }
         MKT_NODISCARD auto GetFOV() const -> float { return m_FieldOfView; }
         MKT_NODISCARD auto GetNearPlane() const -> float { return m_NearClip; }
         MKT_NODISCARD auto GetFarPlane() const -> float { return m_FarClip; }
@@ -148,7 +149,7 @@ namespace Mikoto {
         MKT_NODISCARD constexpr static auto GetMaxFov() -> float { return 90.0f; }
         MKT_NODISCARD constexpr static auto GetMinFov() -> float { return 15.0f; }
 
-        MKT_NODISCARD constexpr static auto GetMaxDampingFactor() -> float { return 5.0f; }
+        MKT_NODISCARD constexpr static auto GetMaxDampingFactor() -> float { return 100.0f; }
         MKT_NODISCARD constexpr static auto GetMinDampingFactor() -> float { return 1.0f; }
 
 
@@ -179,6 +180,8 @@ namespace Mikoto {
          * */
         auto ProcessKeyboardInput(double timeStep) -> void;
 
+     auto Interpolate(double timeStep) -> void;
+
 
     private:
      glm::vec3 m_TargetPosition{ 0.0f, 0.0f, 0.0f };
@@ -194,6 +197,9 @@ namespace Mikoto {
 
         float m_RotationSpeed{ GetMinRotationSpeed() };
         float m_MovementSpeed{ GetMinMovementSpeed() };
+
+       // Avoid speedy rotations. Compensate rotation speed
+       float m_RotationFactor{ 0.03f };
 
         bool m_AllowCameraMovementAndRotation{ false };
     };

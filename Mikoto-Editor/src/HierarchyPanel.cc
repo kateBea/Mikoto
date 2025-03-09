@@ -17,6 +17,7 @@
 #include <Core/System/AssetsSystem.hh>
 #include <Core/System/FileSystem.hh>
 #include <Core/System/RenderSystem.hh>
+#include <GUI/ImGuiUtils.hh>
 #include <Library/Filesystem/PathBuilder.hh>
 #include <Library/String/String.hh>
 #include <Library/Utility/Types.hh>
@@ -47,12 +48,13 @@ namespace Mikoto {
             if ( ImGui::MenuItem( "Cube" ) ) {
                 entityCreateInfo.Name = "Cube";
                 entityCreateInfo.ModelMesh = assetsSystem.GetModel( PathBuilder()
-                    .WithPath( fileSystem.GetAssetsRootPath().string() )
-                    .WithPath( "Prefabs" )
-                    .WithPath( "cube" )
-                    .WithPath( "gltf" )
-                    .WithPath( "scene.gltf" )
-                    .Build().string());
+                                                                            .WithPath( fileSystem.GetAssetsRootPath().string() )
+                                                                            .WithPath( "Prefabs" )
+                                                                            .WithPath( "cube" )
+                                                                            .WithPath( "gltf" )
+                                                                            .WithPath( "scene.gltf" )
+                                                                            .Build()
+                                                                            .string() );
 
                 newEntity = m_TargetScene->CreateEntity( entityCreateInfo );
             }
@@ -60,12 +62,13 @@ namespace Mikoto {
             if ( ImGui::MenuItem( "Cone" ) ) {
                 entityCreateInfo.Name = "Cone";
                 entityCreateInfo.ModelMesh = assetsSystem.GetModel( PathBuilder()
-                    .WithPath( fileSystem.GetAssetsRootPath().string() )
-                    .WithPath( "Prefabs" )
-                    .WithPath( "cone" )
-                    .WithPath( "gltf" )
-                    .WithPath( "scene.gltf" )
-                    .Build().string());
+                                                                            .WithPath( fileSystem.GetAssetsRootPath().string() )
+                                                                            .WithPath( "Prefabs" )
+                                                                            .WithPath( "cone" )
+                                                                            .WithPath( "gltf" )
+                                                                            .WithPath( "scene.gltf" )
+                                                                            .Build()
+                                                                            .string() );
 
                 newEntity = m_TargetScene->CreateEntity( entityCreateInfo );
             }
@@ -73,12 +76,13 @@ namespace Mikoto {
             if ( ImGui::MenuItem( "Cylinder" ) ) {
                 entityCreateInfo.Name = "Cylinder";
                 entityCreateInfo.ModelMesh = assetsSystem.GetModel( PathBuilder()
-                    .WithPath( fileSystem.GetAssetsRootPath().string() )
-                    .WithPath( "Prefabs" )
-                    .WithPath( "cylinder" )
-                    .WithPath( "gltf" )
-                    .WithPath( "scene.gltf" )
-                    .Build().string());
+                                                                            .WithPath( fileSystem.GetAssetsRootPath().string() )
+                                                                            .WithPath( "Prefabs" )
+                                                                            .WithPath( "cylinder" )
+                                                                            .WithPath( "gltf" )
+                                                                            .WithPath( "scene.gltf" )
+                                                                            .Build()
+                                                                            .string() );
 
                 newEntity = m_TargetScene->CreateEntity( entityCreateInfo );
             }
@@ -86,35 +90,96 @@ namespace Mikoto {
             if ( ImGui::MenuItem( "Sphere" ) ) {
                 entityCreateInfo.Name = "Sphere";
                 entityCreateInfo.ModelMesh = assetsSystem.GetModel( PathBuilder()
-                    .WithPath( fileSystem.GetAssetsRootPath().string() )
-                    .WithPath( "Prefabs" )
-                    .WithPath( "sphere" )
-                    .WithPath( "gltf" )
-                    .WithPath( "scene.gltf" )
-                    .Build().string());
+                                                                            .WithPath( fileSystem.GetAssetsRootPath().string() )
+                                                                            .WithPath( "Prefabs" )
+                                                                            .WithPath( "sphere" )
+                                                                            .WithPath( "gltf" )
+                                                                            .WithPath( "scene.gltf" )
+                                                                            .Build()
+                                                                            .string() );
 
                 newEntity = m_TargetScene->CreateEntity( entityCreateInfo );
-
             }
 
             if ( ImGui::MenuItem( "Sponza" ) ) {
                 entityCreateInfo.Name = "Sponza";
                 entityCreateInfo.ModelMesh = assetsSystem.GetModel( PathBuilder()
-                    .WithPath( fileSystem.GetAssetsRootPath().string() )
-                    .WithPath( "Prefabs" )
-                    .WithPath( "sponza" )
-                    .WithPath( "glTF" )
-                    .WithPath( "Sponza.gltf" )
-                    .Build().string());
+                                                                            .WithPath( fileSystem.GetAssetsRootPath().string() )
+                                                                            .WithPath( "Prefabs" )
+                                                                            .WithPath( "sponza" )
+                                                                            .WithPath( "sponza.obj" )
+                                                                            .Build()
+                                                                            .string() );
 
                 newEntity = m_TargetScene->CreateEntity( entityCreateInfo );
             }
 
-            if (newEntity != nullptr) {
+            if ( newEntity != nullptr ) {
                 MKT_APP_LOGGER_INFO( "Created new entity: {}", newEntity->GetComponent<TagComponent>().GetTag() );
             }
 
             ImGui::EndMenu();
+        }
+    }
+
+    auto HierarchyPanel::DrawLightMenuItems( const Entity* root ) const -> void {
+        EntityCreateInfo entityCreateInfo{
+            .Name{ },
+            .Root{ root },
+            .ModelMesh{ nullptr }
+        };
+
+        entityCreateInfo.Root = root;
+
+        ImGui::Spacing();
+        ImGui::Separator();
+
+        Entity* newEntity{ nullptr };
+
+        if ( ImGui::MenuItem( "Sky Light" ) ) {
+            entityCreateInfo.Name = "Sky Light";
+            newEntity = m_TargetScene->CreateEntity( entityCreateInfo );
+
+            if (newEntity != nullptr) {
+                LightComponent& lightComponent{ newEntity->AddComponent<LightComponent>() };
+                lightComponent.SetType( LightType::DIRECTIONAL_LIGHT_TYPE );
+            }
+        }
+
+        if ( ImGui::MenuItem( "Directional light" ) ) {
+            entityCreateInfo.Name = "Directional light";
+            newEntity = m_TargetScene->CreateEntity( entityCreateInfo );
+
+            if (newEntity != nullptr) {
+                LightComponent& lightComponent{ newEntity->AddComponent<LightComponent>() };
+                lightComponent.SetType( LightType::DIRECTIONAL_LIGHT_TYPE );
+            }
+        }
+
+        if ( ImGui::MenuItem( "Point light" ) ) {
+            entityCreateInfo.Name = "Point light";
+            newEntity = m_TargetScene->CreateEntity( entityCreateInfo );
+
+            if (newEntity != nullptr) {
+                LightComponent& lightComponent{ newEntity->AddComponent<LightComponent>() };
+                lightComponent.SetType( LightType::POINT_LIGHT_TYPE );
+                lightComponent.GetData().PointLightDat.AttenuationParams.x = 50.0f;
+                lightComponent.GetData().PointLightDat.AttenuationParams.y = 50.0f;
+            }
+        }
+
+        if ( ImGui::MenuItem( "Spot light" ) ) {
+            entityCreateInfo.Name = "Spot light";
+            newEntity = m_TargetScene->CreateEntity( entityCreateInfo );
+
+            if (newEntity != nullptr) {
+                LightComponent& lightComponent{ newEntity->AddComponent<LightComponent>() };
+                lightComponent.SetType( LightType::SPOT_LIGHT_TYPE );
+            }
+        }
+
+        if ( newEntity != nullptr ) {
+            MKT_APP_LOGGER_INFO( "Created new entity: {}", newEntity->GetComponent<TagComponent>().GetTag() );
         }
     }
 
@@ -191,11 +256,16 @@ namespace Mikoto {
 
 
     auto HierarchyPanel::OnEntityRightClickMenu( Entity& target ) const -> void {
-        static constexpr ImGuiPopupFlags popupItemFlags{ ImGuiPopupFlags_MouseButtonRight };
+        constexpr ImGuiPopupFlags popupWindowFlags{
+            ImGuiPopupFlags_NoOpenOverItems |
+            ImGuiPopupFlags_MouseButtonRight
+        };
 
-        ImGui::PushStyleVar( ImGuiStyleVar_PopupBorderSize, 1.0f );
+        ImGuiUtils::ImGuiScopedStyleVar popupBorder{ ImGuiStyleVar_PopupBorderSize, 1.0f };
+        ImGuiUtils::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 11.0f, 11.0f  } };
+        ImGuiUtils::ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f  } };
 
-        if ( ImGui::BeginPopupContextItem( nullptr, popupItemFlags ) ) {
+        if ( ImGui::BeginPopupContextItem( nullptr, popupWindowFlags ) ) {
             if ( ImGui::BeginMenu( "Add component" ) ) {
                 constexpr bool menuItemSelected{ false };         // these menu items should not display as selected
                 constexpr const char* menuItemShortcut{ nullptr };// no shortcuts for now
@@ -211,7 +281,7 @@ namespace Mikoto {
                 }
 
                 if ( ImGui::MenuItem( "Script", menuItemShortcut, menuItemSelected, !target.HasComponent<NativeScriptComponent>() ) ) {
-                    target.AddComponent<NativeScriptComponent>();
+                    target.AddComponent<NativeScriptComponent>("TODO: PATH");
                     ImGui::CloseCurrentPopup();
                 }
 
@@ -238,8 +308,6 @@ namespace Mikoto {
 
             ImGui::EndPopup();
         }
-
-        ImGui::PopStyleVar();
     }
 
     auto HierarchyPanel::DrawModelLoadMenuItem() const -> void {
@@ -283,9 +351,9 @@ namespace Mikoto {
             ImGuiPopupFlags_MouseButtonRight
         };
 
-        ImGui::PushStyleVar( ImGuiStyleVar_PopupBorderSize, 1.0f );
-        ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, { 11.0f, 11.0f  } );
-        ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, { 12.0f, 12.0f  } );
+        ImGuiUtils::ImGuiScopedStyleVar popupBorder{ ImGuiStyleVar_PopupBorderSize, 1.0f };
+        ImGuiUtils::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 11.0f, 11.0f  } };
+        ImGuiUtils::ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f  } };
 
         if ( ImGui::BeginPopupContextWindow( "##HierarchyPanel::BlankSpacePopupMenu:HierarchyMenuOptions", popupWindowFlags ) ) {
 
@@ -305,9 +373,9 @@ namespace Mikoto {
 
             DrawModelLoadMenuItem();
 
+            DrawLightMenuItems( nullptr );
+
             ImGui::EndPopup();
         }
-
-        ImGui::PopStyleVar(3);
     }
 }

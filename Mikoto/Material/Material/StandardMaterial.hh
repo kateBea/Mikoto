@@ -29,7 +29,6 @@ namespace Mikoto {
         MKT_NODISCARD auto GetDiffuseMap() const -> Texture2D* { return m_DiffuseTexture; }
         MKT_NODISCARD auto GetSpecularMap() const -> Texture2D* { return m_SpecularTexture; }
 
-        virtual auto SetDiffuseMap( Texture2D* map, const MapType type = MapType::TEXTURE_2D_DIFFUSE ) -> void = 0;
         virtual auto RemoveMap( MapType type = MapType::TEXTURE_2D_DIFFUSE ) -> void = 0;
 
         // Textures may use an empty texture as a placeholder

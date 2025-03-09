@@ -12,6 +12,7 @@
 // Project Headers
 #include <Panels/Panel.hh>
 #include <Scene/Scene/Entity.hh>
+#include <Scene/Scene/Scene.hh>
 
 namespace Mikoto {
     struct InspectorPanelCreateInfo {

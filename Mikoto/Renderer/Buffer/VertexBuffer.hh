@@ -15,7 +15,8 @@
 // Project Headers
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
-#include <Models/BufferLayout.hh>
+#include <Renderer/Buffer/BufferElement.hh>
+#include <Renderer/Buffer/BufferLayout.hh>
 #include <Models/Enums.hh>
 
 namespace Mikoto {

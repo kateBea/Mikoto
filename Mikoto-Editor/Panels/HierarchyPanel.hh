@@ -12,6 +12,7 @@
 // Project Headers
 #include <Panels/Panel.hh>
 #include <Scene/Scene/Entity.hh>
+#include <Scene/Scene/Scene.hh>
 #include <Library/Data/GenTree.hh>
 
 namespace Mikoto {
@@ -35,6 +36,7 @@ namespace Mikoto {
         auto DrawModelLoadMenuItem() const -> void;
         auto BlankSpacePopupMenu() const -> void;
         auto DrawPrefabMenuItems( const Entity* root ) const -> void;
+        auto DrawLightMenuItems( const Entity* root ) const -> void;
 
     private:
         Scene* m_TargetScene{ nullptr };

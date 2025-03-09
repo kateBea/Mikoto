@@ -19,24 +19,6 @@ namespace Mikoto {
         IDLE,
     };
 
-    enum class ShaderDataType {
-        NONE,
-        FLOAT_TYPE, // Represents a single float data type
-        FLOAT2_TYPE,// Represents a two float data type
-        FLOAT3_TYPE,// Represents a three float data type
-        FLOAT4_TYPE,// Represents a four float data type
-
-        MAT3_TYPE,// Represents 3x3 float matrix data type
-        MAT4_TYPE,// Represents 4x4 float matrix data type
-
-        INT_TYPE, // Represents a single int data type
-        INT2_TYPE,// Represents a two int data type
-        INT3_TYPE,// Represents a three int data type
-        INT4_TYPE,// Represents a four int data type
-        BOOL_TYPE,// Represents a single boolean data type
-        COUNT,
-    };
-
     enum class MapType {
         TEXTURE_2D_INVALID,
         TEXTURE_2D_DIFFUSE,
@@ -47,6 +29,17 @@ namespace Mikoto {
         TEXTURE_2D_METALLIC,
         TEXTURE_2D_AMBIENT_OCCLUSION,
         TEXTURE_2D_COUNT,
+
+        TEXTURE_CUBE,
+    };
+
+
+    enum MaterialPass {
+        MATERIAL_PASS_COLOR = 1,
+        MATERIAL_PASS_PBR = 2,
+        MATERIAL_PASS_WIREFRAME = 3,
+        MATERIAL_PASS_COMPUTE = 4,
+        MATERIAL_PASS_OUTLINE = 5,
     };
 
     enum class FileType {
@@ -82,12 +75,6 @@ namespace Mikoto {
     enum ProjectionType {
         ORTHOGRAPHIC = 0,
         PERSPECTIVE = 1,
-    };
-
-    enum ScreenMode {
-        FULLSCREEN = 0,
-        WINDOWED = 1,
-        BORDERLESS = 2,
     };
 
     /**
@@ -194,8 +181,9 @@ namespace Mikoto {
     enum ShaderStage {
         VERTEX_STAGE = BIT_SET( 1 ),
         FRAGMENT_STAGE = BIT_SET( 2 ),
-        GEOMETRY = BIT_SET( 3 ),
-        TESSELATION = BIT_SET( 4 ),
+        GEOMETRY_STAGE = BIT_SET( 3 ),
+        TESSELATION_STAGE = BIT_SET( 4 ),
+        COMPUTE_STAGE = BIT_SET( 5 ),
     };
 }// namespace Mikoto
 

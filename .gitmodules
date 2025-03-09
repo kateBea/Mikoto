@@ -52,3 +52,6 @@
 [submodule "Third-Party/cpptrace"]
 	path = Third-Party/cpptrace
 	url = https://github.com/jeremy-rifkin/cpptrace.git
+[submodule "Third-Party/freetype"]
+	path = Third-Party/freetype
+	url = https://gitlab.freedesktop.org/freetype/freetype

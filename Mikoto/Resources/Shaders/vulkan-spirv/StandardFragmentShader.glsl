@@ -20,7 +20,7 @@ layout (location = 0) out vec4 outColor;
 
 /**  Constants */
 
-#define MAX_LIGHTS 200
+#define MAX_LIGHTS 50
 #define LIGHT_HAS_SPECULAR_MAP      1
 #define LIGHT_HAS_NO_SPECULAR_MAP   0
 

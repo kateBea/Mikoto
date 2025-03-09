@@ -166,47 +166,7 @@ namespace Mikoto {
     }
 
     auto VulkanContext::ImmediateSubmit( const std::function<void( const VkCommandBuffer& )>& task) -> void {
-        VkCommandBuffer cmd{ m_ImmediateSubmitContext.CommandBuffer };
-
-        // Begin the command buffer recording. We will use this command buffer exactly
-        // once before resetting, so we tell vulkan that
-        VkCommandBufferBeginInfo cmdBeginInfo{ VulkanHelpers::Initializers::CommandBufferBeginInfo() };
-        cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        cmdBeginInfo.pNext = nullptr;
-        cmdBeginInfo.pInheritanceInfo = nullptr;
-        cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-        if ( vkBeginCommandBuffer( cmd, std::addressof( cmdBeginInfo ) ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkBeginCommandBuffer on ImmediateSubmit" );
-        }
-
-        task( cmd );
-
-        if ( vkEndCommandBuffer( cmd ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkBeginCommandBuffer on ImmediateSubmit" );
-        }
-
-        VkSubmitInfo submitInfo{ VulkanHelpers::Initializers::SubmitInfo() };
-        submitInfo.pNext = nullptr;
-        submitInfo.pWaitDstStageMask = nullptr;
-        submitInfo.waitSemaphoreCount = 0;
-        submitInfo.pWaitSemaphores = nullptr;
-        submitInfo.signalSemaphoreCount = 0;
-        submitInfo.pSignalSemaphores = nullptr;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = std::addressof(cmd);
-
-        const QueuesData& queuesData{ m_VulkanData.Device->GetLogicalDeviceQueues() };
-
-        if ( vkQueueSubmit( queuesData.Graphics->Queue, 1, std::addressof( submitInfo ), m_ImmediateSubmitContext.UploadFence ) ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkQueueSubmit on ImmediateSubmit" );
-        }
-
-        vkWaitForFences( m_VulkanData.Device->GetLogicalDevice() , 1, std::addressof( m_ImmediateSubmitContext.UploadFence ), true, 9999999999 );
-        vkResetFences( m_VulkanData.Device->GetLogicalDevice(), 1, std::addressof( m_ImmediateSubmitContext.UploadFence ) );
-
-        // reset the command buffers inside the command pool
-        vkResetCommandPool( m_VulkanData.Device->GetLogicalDevice(), m_ImmediateSubmitContext.CommandPool->Get(), 0 );
+        m_ImmediateSubmitTasks.emplace_back( task );
     }
 
     auto VulkanContext::Shutdown() -> void {
@@ -361,9 +321,60 @@ namespace Mikoto {
     auto VulkanContext::CreateSwapChain( const VulkanSwapChainCreateInfo& createInfo ) -> void {
         m_SwapChain = CreateScope<VulkanSwapChain>( createInfo );
 
-        if (m_SwapChain != nullptr) {
+        if ( m_SwapChain != nullptr ) {
             m_SwapChain->Init();
         }
+    }
+    auto VulkanContext::FlushImmediateSubmitTasks() -> void {
+        if (m_ImmediateSubmitTasks.empty()) {
+            return;
+        }
+
+        VkCommandBuffer cmd{ m_ImmediateSubmitContext.CommandBuffer };
+
+        // Begin the command buffer recording. We will use this command buffer exactly
+        // once before resetting, so we tell vulkan that
+        VkCommandBufferBeginInfo cmdBeginInfo{ VulkanHelpers::Initializers::CommandBufferBeginInfo() };
+        cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        cmdBeginInfo.pNext = nullptr;
+        cmdBeginInfo.pInheritanceInfo = nullptr;
+        cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+        if ( vkBeginCommandBuffer( cmd, std::addressof( cmdBeginInfo ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkBeginCommandBuffer on ImmediateSubmit" );
+        }
+
+        for (const auto& task : m_ImmediateSubmitTasks) {
+            task( cmd );
+        }
+
+        if ( vkEndCommandBuffer( cmd ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkBeginCommandBuffer on ImmediateSubmit" );
+        }
+
+        VkSubmitInfo submitInfo{ VulkanHelpers::Initializers::SubmitInfo() };
+        submitInfo.pNext = nullptr;
+        submitInfo.pWaitDstStageMask = nullptr;
+        submitInfo.waitSemaphoreCount = 0;
+        submitInfo.pWaitSemaphores = nullptr;
+        submitInfo.signalSemaphoreCount = 0;
+        submitInfo.pSignalSemaphores = nullptr;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = std::addressof(cmd);
+
+        const QueuesData& queuesData{ m_VulkanData.Device->GetLogicalDeviceQueues() };
+
+        if ( vkQueueSubmit( queuesData.Graphics->Queue, 1, std::addressof( submitInfo ), m_ImmediateSubmitContext.UploadFence ) ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Error on vkQueueSubmit on ImmediateSubmit" );
+        }
+
+        vkWaitForFences( m_VulkanData.Device->GetLogicalDevice() , 1, std::addressof( m_ImmediateSubmitContext.UploadFence ), true, 9999999999 );
+        vkResetFences( m_VulkanData.Device->GetLogicalDevice(), 1, std::addressof( m_ImmediateSubmitContext.UploadFence ) );
+
+        // reset the command buffers inside the command pool
+        vkResetCommandPool( m_VulkanData.Device->GetLogicalDevice(), m_ImmediateSubmitContext.CommandPool->Get(), 0 );
+
+        m_ImmediateSubmitTasks.clear();
     }
 
     auto VulkanContext::LoadVmaRequiredFunctions() -> void {
@@ -397,7 +408,7 @@ namespace Mikoto {
     }
 
     auto VulkanContext::CreateDefaultDescriptorLayouts() -> void {
-
+        // -----------------------------------------------------------
         DescriptorLayoutBuilder baseShaderDescriptorLayoutBuilder{};
         VkDescriptorSetLayout descLayout{ baseShaderDescriptorLayoutBuilder
                                        .WithBinding( 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
@@ -406,14 +417,34 @@ namespace Mikoto {
                                        .WithBinding( 3, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT )
                                        .Build( m_VulkanData.Device->GetLogicalDevice() ) };
 
-        DescriptorLayoutBuilder baseShaderWireframeDescriptorLayoutBuilder{};
         m_DescriptorSetLayouts.try_emplace( DESCRIPTOR_SET_LAYOUT_BASE_SHADER, descLayout );
 
+        // -----------------------------------------------------------
+        DescriptorLayoutBuilder baseShaderWireframeDescriptorLayoutBuilder{};
         VkDescriptorSetLayout descLayoutWireframe{ baseShaderWireframeDescriptorLayoutBuilder
                                                 .WithBinding( 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
                                                .Build( m_VulkanData.Device->GetLogicalDevice() ) };
         m_DescriptorSetLayouts.try_emplace( DESCRIPTOR_SET_LAYOUT_BASE_SHADER_WIREFRAME, descLayoutWireframe );
 
+        // -----------------------------------------------------------
+        DescriptorLayoutBuilder pbrShadersDescriptorLayoutBuilder{};
+        VkDescriptorSetLayout descLayoutPbr{ pbrShadersDescriptorLayoutBuilder
+                                       .WithBinding( 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
+                                       .WithBinding( 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT )
+                                       .WithBinding( 2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT )
+                                       .WithBinding( 3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT )
+                                       .WithBinding( 4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT )
+                                       .WithBinding( 5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT )
+                                       .WithBinding( 6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT )
+                                       .Build( m_VulkanData.Device->GetLogicalDevice() ) };
+        m_DescriptorSetLayouts.try_emplace( DESCRIPTOR_SET_LAYOUT_PBR_SHADER, descLayoutPbr );
+
+        // -----------------------------------------------------------
+        DescriptorLayoutBuilder computeShaderSimpleLayoutCreateInfo{};
+        VkDescriptorSetLayout compShaderSimple{ computeShaderSimpleLayoutCreateInfo
+                                                .WithBinding( 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT )
+                                               .Build( m_VulkanData.Device->GetLogicalDevice() ) };
+        m_DescriptorSetLayouts.try_emplace( DESCRIPTOR_SET_LAYOUT_COMPUTE_PIPELINE, compShaderSimple );
     }
 
     auto VulkanContext::RecreateSwapChain( const bool enableVsync ) -> void {
@@ -448,7 +479,9 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanContext::SubmitCommands() const -> void {
+    auto VulkanContext::SubmitCommands() -> void {
+        FlushImmediateSubmitTasks();
+
         FrameSynchronizationPrimitives submitInfo{};
 
         // Specify present and render semaphores
@@ -456,7 +489,11 @@ namespace Mikoto {
         submitInfo.RenderSemaphore = m_SwapChainSyncObjects.RenderSemaphore;
         submitInfo.PresentSemaphore = m_SwapChainSyncObjects.PresentSemaphore;
 
-        m_VulkanData.Device->SubmitCommands( submitInfo );
+        m_VulkanData.Device->SubmitCommandsGraphicsQueue( submitInfo );
+
+        ComputeSynchronizationPrimitives computeSubmitInfo{};
+
+        m_VulkanData.Device->SubmitCommandsComputeQueue( computeSubmitInfo );
     }
 
     auto VulkanContext::PresentToSwapchain() -> void {

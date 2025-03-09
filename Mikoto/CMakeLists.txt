@@ -52,7 +52,10 @@ SET(IMGUIZMO_SOURCES
     ${P_PATH}/Third-Party/ImGuizmo/ImSequencer.cpp)
 
 SET(SOURCES ${IMGUI_SOURCES} ${IMGUIZMO_SOURCES} ${SOURCE_FILES}
-        src/TextureCubeMap.cc)
+        src/TextureCubeMap.cc
+        Renderer/Buffer/BufferLayout.hh
+        Renderer/Vulkan/VulkanFont.hh
+        src/VulkanFont.cc)
 
 # External dependencies
 ADD_SUBDIRECTORY(${GLFW_CMAKE_DIR} build/glfw)

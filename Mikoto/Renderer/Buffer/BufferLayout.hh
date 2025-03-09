@@ -4,11 +4,14 @@
 
 #ifndef BUFFERLAYOUT_HH
 #define BUFFERLAYOUT_HH
-#include <Common/Common.hh>
-#include <initializer_list>
-#include <utility>
 
-#include <Models/BufferElement.hh>
+#include <utility>
+#include <algorithm>
+#include <ranges>
+#include <initializer_list>
+
+#include <Common/Common.hh>
+#include <Renderer/Buffer/BufferElement.hh>
 
 namespace Mikoto {
     class BufferLayout {
@@ -41,14 +44,22 @@ namespace Mikoto {
         // Helpers
         auto ComputeOffsetAndStride() -> void {
             UInt32_T offset{ 0 };
-            for (auto& item : m_Items) {
-                item.SetOffset(offset);
-                offset += item.GetSize();
-                m_Stride += item.GetSize();
+
+            for (auto& bufferElement : m_Items) {
+                bufferElement.SetOffset(offset);
+                offset += bufferElement.GetSize();
+                m_Stride += bufferElement.GetSize();
             }
         }
 
+    private:
+        // The size in bytes for all the elements contained
+        // within this buffer layout, e.g: if this buffer layout has
+        // 2 buffer elements (1 float and 1 mat4), m_Stride = Size(float) + Size(mat4)
+        // where size is the size in bytes of each element, see buffer element for sizes
         UInt32_T m_Stride{};
+
+        // The buffer elements
         std::vector<BufferElement> m_Items{};
     };
 }

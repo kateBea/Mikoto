@@ -29,7 +29,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetModel(std::string_view uri) -> Model*;
         MKT_NODISCARD auto GetTexture(std::string_view uri) -> Texture*;
-        MKT_NODISCARD auto GetFont(std::string_view uri) -> Texture*;
+        MKT_NODISCARD auto GetFont(std::string_view uri) -> Font*;
 
         MKT_NODISCARD auto LoadModel(const ModelLoadInfo& info) -> Model*;
         MKT_NODISCARD auto LoadTexture(const TextureLoadInfo& info) -> Texture*;

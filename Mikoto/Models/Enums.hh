@@ -19,24 +19,6 @@ namespace Mikoto {
         IDLE,
     };
 
-    enum class ShaderDataType {
-        NONE,
-        FLOAT_TYPE, // Represents a single float data type
-        FLOAT2_TYPE,// Represents a two float data type
-        FLOAT3_TYPE,// Represents a three float data type
-        FLOAT4_TYPE,// Represents a four float data type
-
-        MAT3_TYPE,// Represents 3x3 float matrix data type
-        MAT4_TYPE,// Represents 4x4 float matrix data type
-
-        INT_TYPE, // Represents a single int data type
-        INT2_TYPE,// Represents a two int data type
-        INT3_TYPE,// Represents a three int data type
-        INT4_TYPE,// Represents a four int data type
-        BOOL_TYPE,// Represents a single boolean data type
-        COUNT,
-    };
-
     enum class MapType {
         TEXTURE_2D_INVALID,
         TEXTURE_2D_DIFFUSE,

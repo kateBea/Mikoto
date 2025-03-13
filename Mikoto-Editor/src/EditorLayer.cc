@@ -50,6 +50,8 @@ namespace Mikoto {
 
         LoadPrefabModels();
 
+        LoadPrefabFonts();
+
         PrepareNewScene();
 
         m_EditorRenderer = RendererBackend::Create( RendererCreateInfo{
@@ -298,8 +300,7 @@ namespace Mikoto {
         const Path_T sceneSavePath{ fileSystem.OpenDialog( filters ) };
 
         m_SelectedEntity = nullptr;
-        //m_ActiveScene = m_SceneSerializer->Deserialize( sceneSavePath );
-        const auto sss = m_SceneSerializer->Deserialize( sceneSavePath );
+        m_ActiveScene = m_SceneSerializer->Deserialize( sceneSavePath );
     }
 
     auto EditorLayer::CreateScene( const std::string_view name ) -> void {
@@ -461,19 +462,27 @@ namespace Mikoto {
 
         style.WindowMinSize.x = minimumPanelsWidth;
 
+        ImGuiUtils::ImGuiScopedStyleVar popupBorder{ ImGuiStyleVar_PopupBorderSize, 1.0f };
+        ImGuiUtils::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 11.0f, 11.0f  } };
+        ImGuiUtils::ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f  } };
+
         if ( ImGui::BeginMenuBar() ) {
             ImGui::PushStyleVar( ImGuiStyleVar_PopupBorderSize, 1.0f );
 
             if ( ImGui::BeginMenu( "File" ) ) {
                 // Disabling fullscreen would allow the window to be moved to the front of other windows,
                 // which we can't undo at the moment without finer window depth/z control.
+
                 if ( ImGui::MenuItem( "New scene", "Ctrl + N" ) ) { CreateScene( "Sandbox3D" ); }
                 if ( ImGui::MenuItem( "Open scene", "Ctrl + L" ) ) { LoadScene(); }
                 if ( ImGui::MenuItem( "Save scene", "Ctrl + S" ) ) { SaveScene(); }
+
+                ImGui::Separator();
                 if ( ImGui::MenuItem( "New project", "Ctrl + P" ) ) { CreateProject(); }
                 if ( ImGui::MenuItem( "Open project", "Ctrl + P" ) ) { OpenProject(); }
                 if ( ImGui::MenuItem( "Save project", "Ctrl + G" ) ) { SaveProject(); }
 
+                ImGui::Separator();
                 static GuizmoManipulationMode manipulation{ GuizmoManipulationMode::TRANSLATION };
 
                 if ( ImGui::BeginMenu( "Manipulation Mode" ) ) {
@@ -571,7 +580,7 @@ namespace Mikoto {
             if ( ImGui::BeginMenu( "Help" ) ) {
                 constexpr ImGuiPopupFlags popUpFlags{ ImGuiPopupFlags_None };
 
-                if ( ImGui::Button( "About" ) ) {
+                if ( ImGui::MenuItem( "About" ) ) {
                     ImGui::OpenPopup( "About", popUpFlags );
                 }
 
@@ -671,6 +680,33 @@ namespace Mikoto {
                                                         .Build()
                                                         .string() );
         EnsureModelLoaded( assetsManager.LoadModel( modelLoadInfo ), GetConePrefabName( modelLoadInfo.Path.string() ) );
+    }
+
+    auto EditorLayer::LoadPrefabFonts() const -> void {
+        FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
+        AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
+
+        Font* interBlack{ assetsSystem.LoadFont( {
+            .Path{ PathBuilder()
+                .WithPath( fileSystem.GetFontsRootPath().string() )
+                .WithPath( "Inter" )
+                .WithPath( "static" )
+                .WithPath( "Inter-VariableFont.ttf" )
+                .Build() },
+            .Size{} } ) };
+
+        interBlack->SetSpacing( 1 );
+
+        Font* interBold{ assetsSystem.LoadFont( {
+           .Path{ PathBuilder()
+               .WithPath( fileSystem.GetFontsRootPath().string() )
+               .WithPath( "Inter" )
+               .WithPath( "static" )
+               .WithPath( "Inter-Bold.ttf" )
+               .Build() },
+           .Size{} } ) };
+
+        interBold->SetSpacing( 1 );
     }
 
     auto EditorLayer::GetPrefabModel( const PrefabSceneObject type ) -> Model* {

@@ -17,13 +17,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 // Project Headers
+#include <Assets/Font.hh>
 #include <Assets/Model.hh>
 #include <Common/Common.hh>
 #include <Common/Constants.hh>
 #include <Core/Logging/Assert.hh>
-#include <Models/LightData.hh>
 #include <Library/Random/Random.hh>
 #include <Library/Utility/Types.hh>
+#include <Models/LightData.hh>
 #include <Scene/Camera/SceneCamera.hh>
 
 namespace Mikoto {
@@ -411,18 +412,20 @@ namespace Mikoto {
         auto operator=(const TextComponent& other) -> TextComponent& = default;
         auto operator=(TextComponent&& other) -> TextComponent& = default;
 
-        MKT_NODISCARD auto GetFontPath() const -> const Path_T& { return m_FontPath; }
+        MKT_NODISCARD auto GetFontPath() const -> const Path_T& { return m_Font->GetPath(); }
         MKT_NODISCARD auto GetTextContent() const -> const std::string& { return m_TextContent; }
-        MKT_NODISCARD auto GetFontSize() const -> Size_T { return m_FontSize; }
-        MKT_NODISCARD auto GetLetterSpacing() const -> Size_T { return m_LetterSpacing; }
+        MKT_NODISCARD auto GetFontSize() const -> float { return m_Font->GetSize(); }
+        MKT_NODISCARD auto GetLetterSpacing() const -> float { return m_Font->GetSpacing(); }
 
-        auto LoadFont(const Path_T& fontPath) -> void {
-
+        auto LoadFont(Font* font) -> void {
+            if (font) {
+                m_Font = font;
+            }
         }
 
         MKT_NODISCARD auto SetTextContent(const std::string_view content ) -> void { m_TextContent = content.data(); }
-        MKT_NODISCARD auto SetFontSize(const Size_T size ) -> void { m_FontSize = size; }
-        MKT_NODISCARD auto SetLetterSpacing(const Size_T spacing ) -> void  { m_LetterSpacing = spacing; }
+        MKT_NODISCARD auto SetFontSize(const float size ) -> void { m_Font->SetSize(size); }
+        MKT_NODISCARD auto SetLetterSpacing(const float spacing ) -> void  { m_Font->SetSpacing(spacing); }
 
         auto OnComponentAttach() -> void {  }
         auto OnComponentUpdate() -> void {  }
@@ -431,9 +434,7 @@ namespace Mikoto {
     private:
         std::string m_TextContent{};
 
-        Path_T m_FontPath{};
-        Size_T m_FontSize{};
-        Size_T m_LetterSpacing{};
+        Font* m_Font{};
     };
 
     class NativeScriptComponent : public BaseComponent<NativeScriptComponent> {

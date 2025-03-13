@@ -32,7 +32,7 @@ namespace Mikoto {
 
     private:
         auto DrawNodeTree( const GenTree<Entity*>::Node& node ) -> void;
-        auto OnEntityRightClickMenu( Entity& target ) const -> void;
+        auto OnEntityRightClickMenu( Entity& entity ) const -> void;
         auto DrawModelLoadMenuItem() const -> void;
         auto BlankSpacePopupMenu() const -> void;
         auto DrawPrefabMenuItems( const Entity* root ) const -> void;

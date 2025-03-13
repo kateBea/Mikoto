@@ -475,7 +475,7 @@ namespace Mikoto {
         }
 
         if ( ret != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanContext::PrepareFrame - Failed to acquire swap chain image!" );
+            MKT_THROW_RUNTIME_ERROR( "VulkanContext::PrepareFrame - Failed to acquire swap chain Screenshots!" );
         }
     }
 

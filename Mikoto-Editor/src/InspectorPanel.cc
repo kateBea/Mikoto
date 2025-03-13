@@ -757,6 +757,10 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::PushItemWidth( -1.0f );
 
+        ImGuiUtils::ImGuiScopedStyleVar popupBorder{ ImGuiStyleVar_PopupBorderSize, 1.0f };
+        ImGuiUtils::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 11.0f, 11.0f  } };
+        ImGuiUtils::ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f  } };
+
         if ( ImGui::Button( "Add component" ) ) {
             ImGui::OpenPopup( "AddComponentButtonPopup" );
         }
@@ -817,7 +821,21 @@ namespace Mikoto {
             if ( ImGui::MenuItem( "Text", menuItemShortcut, menuItemSelected, !entity.HasComponent<TextComponent>() ) ) {
                 TextComponent& textComponent{ entity.AddComponent<TextComponent>() };
 
-                textComponent.LoadFont( "TODO" );
+                FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
+
+                AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
+
+                Font* interBlack{ assetsSystem.LoadFont( {
+                    .Path{ PathBuilder()
+                        .WithPath( fileSystem.GetFontsRootPath().string() )
+                        .WithPath( "Inter" )
+                        .WithPath( "static" )
+                        .WithPath( "Inter-VariableFont.ttf" )
+                        .Build() },
+                    .Size{} } ) };
+
+                textComponent.LoadFont( interBlack );
+
                 textComponent.SetFontSize( 12 );
                 textComponent.SetTextContent( "Example" );
                 textComponent.SetLetterSpacing( 1 );
@@ -1509,10 +1527,35 @@ namespace Mikoto {
     static auto SetupTextComponentTab(Entity& entity) -> void {
         TextComponent& textComponent{ entity.GetComponent<TextComponent>() };
 
-        std::string content( '0', 4096 );
+        // Combo box, font names (all currently loaded fonts)
+        AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
+        const auto& fontList{ assetsSystem.GetFonts() };
 
-        std::ranges::copy(textComponent.GetTextContent(), content.begin());
+        const auto viewRange{ std::ranges::views::transform( fontList, [](const auto& item) { return item.second->GetName(); } ) };
 
+        static std::string currentFontSelection{ fontList.begin()->second->GetName() };
+
+        ImGui::Spacing();
+        ImGuiUtils::ComboList( viewRange.begin(), viewRange.end(), currentFontSelection,
+            [&](const std::string& target) -> bool { return currentFontSelection == target; }, "SetupTextComponentTab:FontCombo");
+
+        // Slider float font size
+        float currentSize{ textComponent.GetFontSize() };
+        ImGui::Spacing();
+        if (ImGuiUtils::Slider( "##Size", currentSize, {10.0f, 35.0f } )) {
+            textComponent.SetFontSize( currentSize );
+        }
+
+        // Slider float letter spacing
+        float spacing{ textComponent.GetLetterSpacing() };
+        ImGui::Spacing();
+        if (ImGuiUtils::Slider( "##Spacing", spacing, {10.0f, 35.0f } ) ) {
+            textComponent.SetLetterSpacing( spacing );
+        }
+
+        std::string content{ textComponent.GetTextContent() };
+
+        ImGui::Spacing();
         if (ImGuiUtils::TextArea( content )) {
             textComponent.SetTextContent( content );
         }

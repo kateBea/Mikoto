@@ -59,6 +59,7 @@ namespace Mikoto {
         auto PrepareSerialization() -> void;
 
         auto LoadPrefabModels() const -> void;
+        auto LoadPrefabFonts() const -> void;
         auto GetPrefabModel( PrefabSceneObject type ) -> Model*;
 
     private:

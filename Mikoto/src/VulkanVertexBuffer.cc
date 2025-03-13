@@ -96,8 +96,6 @@ namespace Mikoto {
         m_Count = vertices.size();
         m_Size = m_Count * sizeof(float);
 
-        VulkanDevice& device{ VulkanContext::Get().GetDevice() };
-
         // Create staging buffer with VK_BUFFER_USAGE_TRANSFER_SRC_BIT usage flag.
         // This flag tells Vulkan that this buffer will only be used as a source for transfer commands.
         // We won’t be using the staging buffer for rendering.

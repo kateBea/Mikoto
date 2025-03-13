@@ -39,7 +39,7 @@ namespace Mikoto {
 }
 
 #if !defined(NDEBUG) || defined(_DEBUG)
-    #define MKT_PROFILE_SCOPE()  Timer _Timer{ StringUtils::ConcatStr(__PRETTY_FUNCTION__, "@line: [", __LINE__, "] Start profiling." ) }
+    #define MKT_PROFILE_SCOPE()  Timer _Timer{ StringUtils::ConcatStr(__PRETTY_FUNCTION__, ": Start profiling ..." ) }
 #else
     #define MKT_PROFILE_SCOPE()
 #endif

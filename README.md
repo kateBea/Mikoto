@@ -2,19 +2,19 @@
 
 **Mikoto** is an open-source, Vulkan-based game engine written in modern C++. Developed as an educational project, the engine aims to provide hands-on learning experiences in graphics programming while helping me explore the capabilities of the Vulkan API.
 
-![Mikoto Engine](Resources/image/img15.png)
+![Mikoto Engine](Resources/Screenshots/img15.png)
 
 ---
 
-![Mikoto Engine](Resources/image/img12.png)
+![Mikoto Engine](Resources/Screenshots/img12.png)
 
 ---
 
-![Mikoto Engine](Resources/image/img13.png)
+![Mikoto Engine](Resources/Screenshots/img13.png)
 
 ---
 
-![Mikoto Engine](Resources/image/img14.png)
+![Mikoto Engine](Resources/Screenshots/img14.png)
 
 ---
 
@@ -56,9 +56,9 @@
 ## Folder Structure
 
 - **`Resources/`**: Extra utilities like screenshots, some models to play around with, etc.
-- **`Mikoto-Engine/`**: The core engine that powers the Mikoto Game Engine.
+- **`Mikoto-Engine/`**: The core engine that powers the Graphics Engine.
 - **`Mikoto-Editor/`**: The editor project for creating and managing game scenes.
-- **`Mikoto-Runtime/`**: A sample project that demonstrates the engine's features.
+- **`Mikoto-Runtime/`**: A sample project that demonstrates some of the engine's features.
 
 ---
 

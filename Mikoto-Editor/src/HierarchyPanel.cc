@@ -376,7 +376,7 @@ namespace Mikoto {
             AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
 
             const std::initializer_list<std::pair<std::string, std::string>> filters{
-                { "Model files", "obj, gltf, fbx" },
+                { "Model files", "obj,gltf,fbx" },
                 { "OBJ files", "obj" },
                 { "glTF files", "gltf" },
                 { "FBX files", "fbx" }

@@ -224,7 +224,7 @@ namespace Mikoto {
         AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
 
         const std::initializer_list<std::pair<std::string, std::string>> filters{
-            { "Textures", "jpg, jpeg, png" },
+            { "Textures", "jpg,jpeg,png" },
             { "JPG", "jpg" },
             { "JPEG", "jpeg" },
             { "PNG", "png" }
@@ -1234,7 +1234,7 @@ namespace Mikoto {
 
         if ( ImGui::Button( fmt::format( " {} Load ", ICON_MD_SEARCH ).c_str() ) ) {
             const std::initializer_list<std::pair<std::string, std::string>> filters{
-                { "Model files", "obj, gltf, fbx" },
+                { "Model files", "obj,gltf,fbx" },
                 { "OBJ files", "obj" },
                 { "glTF files", "gltf" },
                 { "FBX files", "fbx" }

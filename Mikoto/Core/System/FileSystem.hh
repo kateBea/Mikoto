@@ -80,7 +80,7 @@ namespace Mikoto {
          * example of filter would be: { "Source File", "cc,c,cpp,cxx" }.
          * It offers the possibility to specify a default name when saving the file
          * @param filename default save file name
-         * @param filters dialog filters
+         * @param filters Dialog filters. List of filters extensions must be coma separated without spaces: e.g: { Textures, "png,jpg,jpeg" }
          * */
         auto SaveDialog( const std::string& filename, const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path_T;
 

@@ -416,7 +416,7 @@ namespace Mikoto {
         // Record imgui draw commands
         PrepareMainRenderPass( cmd );
 
-        // the transition the draw image and the swapchain image into their correct transfer layouts
+        // the transition the draw Screenshots and the swapchain Screenshots into their correct transfer layouts
         // the first time we enter here the layouts are undefined
         m_ColorImage->LayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, cmd );
         currentSwapChainImage.LayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmd );
@@ -428,7 +428,7 @@ namespace Mikoto {
         extent.width = swapChain.GetExtent().width;
         extent.depth = 1;
 
-        // execute a copy from the draw image into the swapchain
+        // execute a copy from the draw Screenshots into the swapchain
         VulkanHelpers::CopyImageToImage( cmd, m_ColorImage->Get(), currentSwapChainImage.Get(), extent );
 
         // Reset layouts

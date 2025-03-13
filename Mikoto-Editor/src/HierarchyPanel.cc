@@ -255,7 +255,7 @@ namespace Mikoto {
     }
 
 
-    auto HierarchyPanel::OnEntityRightClickMenu( Entity& target ) const -> void {
+    auto HierarchyPanel::OnEntityRightClickMenu( Entity& entity ) const -> void {
         constexpr ImGuiPopupFlags popupWindowFlags{
             ImGuiPopupFlags_NoOpenOverItems |
             ImGuiPopupFlags_MouseButtonRight
@@ -267,29 +267,88 @@ namespace Mikoto {
 
         if ( ImGui::BeginPopupContextItem( nullptr, popupWindowFlags ) ) {
             if ( ImGui::BeginMenu( "Add component" ) ) {
-                constexpr bool menuItemSelected{ false };         // these menu items should not display as selected
-                constexpr const char* menuItemShortcut{ nullptr };// no shortcuts for now
+                constexpr bool menuItemSelected{ false };
+            const char* menuItemShortcut{ nullptr };
 
-                if ( ImGui::MenuItem( "Material", menuItemShortcut, menuItemSelected, !target.HasComponent<MaterialComponent>() ) ) {
-                    target.AddComponent<MaterialComponent>();
-                    ImGui::CloseCurrentPopup();
+            if ( ImGui::MenuItem( "Material", menuItemShortcut, menuItemSelected,
+                                  !entity.HasComponent<MaterialComponent>() ) ) {
+                entity.AddComponent<MaterialComponent>();
+                ImGui::CloseCurrentPopup();
+            }
+
+            if ( ImGui::MenuItem( "Script", menuItemShortcut, menuItemSelected,
+                                  !entity.HasComponent<NativeScriptComponent>() ) ) {
+                entity.AddComponent<NativeScriptComponent>("TODO: PATH");
+                ImGui::CloseCurrentPopup();
+            }
+
+            if ( ImGui::MenuItem( "Mesh", menuItemShortcut, menuItemSelected,
+                !entity.HasComponent<RenderComponent>() ) ) {
+                entity.AddComponent<RenderComponent>();
+
+                // If we add a render component, we also need to add a material component
+                // which determines how this objects will be rendered
+
+                if ( !entity.HasComponent<MaterialComponent>() ) {
+                    entity.AddComponent<MaterialComponent>();
                 }
 
-                if ( ImGui::MenuItem( "Camera", menuItemShortcut, menuItemSelected, !target.HasComponent<CameraComponent>() ) ) {
-                    target.AddComponent<CameraComponent>();
-                    ImGui::CloseCurrentPopup();
-                }
+                ImGui::CloseCurrentPopup();
+            }
 
-                if ( ImGui::MenuItem( "Script", menuItemShortcut, menuItemSelected, !target.HasComponent<NativeScriptComponent>() ) ) {
-                    target.AddComponent<NativeScriptComponent>("TODO: PATH");
-                    ImGui::CloseCurrentPopup();
-                }
+            if ( ImGui::MenuItem( "Camera", menuItemShortcut, menuItemSelected,
+                                  !entity.HasComponent<CameraComponent>() ) ) {
+                entity.AddComponent<CameraComponent>( CreateScope<SceneCamera>() );
+                ImGui::CloseCurrentPopup();
+            }
+
+            if ( ImGui::MenuItem( "Lighting", menuItemShortcut, menuItemSelected,
+                                  !entity.HasComponent<LightComponent>() ) ) {
+                entity.AddComponent<LightComponent>();
+                ImGui::CloseCurrentPopup();
+            }
+
+            if ( ImGui::MenuItem( "Physics", menuItemShortcut, menuItemSelected,
+                                  !entity.HasComponent<PhysicsComponent>() ) ) {
+                entity.AddComponent<PhysicsComponent>();
+                ImGui::CloseCurrentPopup();
+            }
+
+            if ( ImGui::MenuItem( "Audio", menuItemShortcut, menuItemSelected, !entity.HasComponent<AudioComponent>() ) ) {
+                entity.AddComponent<AudioComponent>();
+                ImGui::CloseCurrentPopup();
+            }
+
+            if ( ImGui::MenuItem( "Text", menuItemShortcut, menuItemSelected, !entity.HasComponent<TextComponent>() ) ) {
+                TextComponent& textComponent{ entity.AddComponent<TextComponent>() };
+
+                FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
+
+                AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
+
+                Font* interBlack{ assetsSystem.LoadFont( {
+                    .Path{ PathBuilder()
+                        .WithPath( fileSystem.GetFontsRootPath().string() )
+                        .WithPath( "Inter" )
+                        .WithPath( "static" )
+                        .WithPath( "Inter-VariableFont.ttf" )
+                        .Build() },
+                    .Size{} } ) };
+
+                textComponent.LoadFont( interBlack );
+
+                textComponent.SetFontSize( 12 );
+                textComponent.SetTextContent( "Example" );
+                textComponent.SetLetterSpacing( 1 );
+
+                ImGui::CloseCurrentPopup();
+            }
 
                 ImGui::EndPopup();
             }
 
             if ( ImGui::MenuItem( "Remove object" ) ) {
-                m_TargetScene->RemoveEntity( target.GetComponent<TagComponent>().GetGUID() );
+                m_TargetScene->RemoveEntity( entity.GetComponent<TagComponent>().GetGUID() );
 
                 // Deselect the entity
                 m_SetActiveEntityCallback(nullptr);
@@ -297,14 +356,14 @@ namespace Mikoto {
 
             if ( ImGui::MenuItem( "Create empty object" ) ) {
                 EntityCreateInfo createInfo{};
-                createInfo.Root = std::addressof( target );
+                createInfo.Root = std::addressof( entity );
                 createInfo.Name = "Empty Object";
                 createInfo.ModelMesh = nullptr;
 
                 m_TargetScene->CreateEntity( createInfo );
             }
 
-            DrawPrefabMenuItems( std::addressof( target ) );
+            DrawPrefabMenuItems( std::addressof( entity ) );
 
             ImGui::EndPopup();
         }

@@ -31,6 +31,8 @@ namespace Mikoto {
         MKT_NODISCARD auto GetTexture(std::string_view uri) -> Texture*;
         MKT_NODISCARD auto GetFont(std::string_view uri) -> Font*;
 
+        MKT_NODISCARD auto GetFonts() const -> decltype( auto ) { return (m_Fonts); }
+
         MKT_NODISCARD auto LoadModel(const ModelLoadInfo& info) -> Model*;
         MKT_NODISCARD auto LoadTexture(const TextureLoadInfo& info) -> Texture*;
         MKT_NODISCARD auto LoadFont(const FontLoadInfo& info) -> Font*;

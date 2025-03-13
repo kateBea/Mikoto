@@ -50,6 +50,7 @@ namespace Mikoto {
             MKT_CORE_LOGGER_ERROR( "AssetsSystem::Shutdown - Failed to destroy free type library" );
         }
 
+        m_Fonts.clear();
         m_Models.clear();
         m_Textures.clear();
     }

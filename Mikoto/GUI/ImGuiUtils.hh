@@ -274,6 +274,39 @@ namespace Mikoto::ImGuiUtils {
         return active;
     }
 
+    template<typename InputIt, typename Pred>
+    inline auto ComboList(InputIt start, InputIt end, std::string& currentlyActive, Pred&& isSelectedPred, const CStr_T label) -> void {
+        ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
+        ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
+
+        constexpr ImGuiInputTextFlags flags{ ImGuiInputTextFlags_None };
+
+        if ( ImGui::BeginCombo( fmt::format("##{}", label).c_str(), currentlyActive.c_str(), flags ) ) {
+
+            for ( ; start != end; ++start ) {
+                const bool isSelected{ isSelectedPred(*start) };
+
+                if ( ImGui::Selectable( fmt::format( " {}", *start ).c_str(), isSelected ) ) {
+                    currentlyActive = *start;
+                }
+
+                if ( ImGui::IsItemHovered() ) {
+                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+                }
+
+                if ( isSelected ) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+
+            ImGui::EndCombo();
+        }
+
+        if ( ImGui::IsItemHovered() ) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+    }
+
     inline auto CenteredText(const char* label, const float width, float height = 20.0f) -> void {
         // https://github.com/phicore/ImGuiStylingTricks/wiki/Custom-MessageBox#step-5-removed-title-bar-and-homemade-centered-text
 

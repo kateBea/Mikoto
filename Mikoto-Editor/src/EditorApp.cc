@@ -174,8 +174,8 @@ namespace Mikoto {
     }
 
     auto EditorApp::UpdateLayers() const -> void {
-        const auto & timeManager{ Engine::GetSystem<TimeSystem>() };
-        const auto timeStep{ timeManager.GetTimeStep() };
+        const TimeSystem& timeManager{ Engine::GetSystem<TimeSystem>() };
+        const double timeStep{ timeManager.GetTimeStep() };
 
         for ( auto& layer: m_LayerRegistry | std::views::values ) {
             layer->OnUpdate(timeStep);
@@ -188,7 +188,8 @@ namespace Mikoto {
 
             // Handle GUI Logic, this does not render the GUI
             // Simply updates the GUI state
-            auto& editorLayer{ *m_LayerRegistry.Get<EditorLayer>() };
+            EditorLayer& editorLayer{ *m_LayerRegistry.Get<EditorLayer>() };
+
             editorLayer.PushImGuiDrawItems();
 
             // Update the layers. We determine the state of the application

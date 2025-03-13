@@ -70,16 +70,16 @@ Currently, the building process has been tested on Linux and Windows.
 ### Steps:
 
 ```shell
-  # Fetch the repository. Recurse to pull the submodules
-   git clone --recursive https://github.com/kateBea/Mikoto.git
-   cd Mikoto
-   
-   # Generate platform specific build system files
-   mkdir build && cd build
-   cmake -S .. -B .
-   
-   # Build the application
-   cmake --build . --config Release
+# Fetch the repository. Recurse to pull the submodules
+git clone --recursive https://github.com/kateBea/Mikoto.git
+cd Mikoto
+
+# Generate platform specific build system files
+mkdir build && cd build
+cmake -S .. -B .
+
+# Build the application
+cmake --build . --config Release
    
    ```
 ---
@@ -87,6 +87,21 @@ Currently, the building process has been tested on Linux and Windows.
 For Visual Studio users, CMake will generate `.sln` files by default. Open the solution in Visual Studio and build from there. CLion users can open the project directly and build it without extra steps.
 Before you run the editor program, you need to copy `engine-config.toml` file and the `Mikoto-Editor\Resources` folder to the working directory from which you are running the application.
 
+## Linux Required libraries
+
+```shell
+# Vulkan
+sudo apt install vulkan-tools
+sudo apt install libvulkan-dev
+sudo apt install vulkan-utility-libraries-dev spirv-tools
+
+# Native file dialog
+sudo apt-get install libgtk-3-dev
+
+# GLFW
+sudo apt install libwayland-dev libxkbcommon-dev xorg-dev
+   
+   ```
 ---
 
 ## Dependencies

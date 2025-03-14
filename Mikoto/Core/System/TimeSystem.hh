@@ -99,11 +99,11 @@ namespace Mikoto {
             if (unit != TimeUnit::SECONDS)
                 time = TransformToSeconds(time, unit);
 
-            std::chrono::hours hours{ (ULongLong_T)(time / SECONDS_PER_HOUR ) };
-            std::chrono::minutes minutes{ (ULongLong_T)(((ULongLong_T)(time) % (ULongLong_T)( SECONDS_PER_HOUR )) / SECONDS_PER_MINUTE ) };
-            std::chrono::seconds seconds{ (ULongLong_T)(((ULongLong_T)(time) % (ULongLong_T)( SECONDS_PER_HOUR )) % SECONDS_PER_MINUTE ) };
+            std::chrono::hours hours{ static_cast<ULongLong_T>(time / SECONDS_PER_HOUR) };
+            std::chrono::minutes minutes{ (static_cast<ULongLong_T>(time) % static_cast<ULongLong_T>(SECONDS_PER_HOUR) / SECONDS_PER_MINUTE) };
+            std::chrono::seconds seconds{ (static_cast<ULongLong_T>(time) % static_cast<ULongLong_T>(SECONDS_PER_HOUR) % SECONDS_PER_MINUTE) };
 
-            //return fmt::format("{:%H:%M:%S}", hours + minutes + seconds);
+            return fmt::format("{:%H:%M:%S}", hours + minutes + seconds);
             return "";
         }
 

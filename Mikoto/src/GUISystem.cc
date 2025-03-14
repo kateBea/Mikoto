@@ -47,7 +47,7 @@ namespace Mikoto {
         ImGuiUtils::ThemeDarkModeDefault();
 
         io.Fonts->AddFontDefault();
-        constexpr float baseFontSize{ 18.0f };
+        constexpr float baseFontSize{ 21.0f };
         constexpr float iconFontSize{ baseFontSize * 1.1f }; // FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly };
 
         FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
@@ -63,9 +63,8 @@ namespace Mikoto {
         // // Font 0
         m_Fonts.emplace_back(io.FontDefault = io.Fonts->AddFontFromFileTTF(PathBuilder()
                                  .WithPath( fileSystem.GetFontsRootPath().string() )
-                                 .WithPath( "Inter" )
-                                 .WithPath( "static" )
-                                 .WithPath( "Inter-Regular.ttf" )
+                                 .WithPath( "Open_Sans" )
+                                 .WithPath( "OpenSans-VariableFont.ttf" )
                                  .Build().string().c_str(), baseFontSize));
 
 

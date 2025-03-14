@@ -333,7 +333,8 @@ namespace Mikoto {
     auto ContentBrowserPanel::OnUpdate(float timeStep) -> void {
         if (m_PanelIsVisible) {
             static constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_None };
-            static constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_Resizable | ImGuiWindowFlags_NoCollapse | ImGuiTableFlags_ContextMenuInBody | ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_SizingFixedSame };
+            static constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_Resizable |
+                ImGuiTableFlags_ContextMenuInBody | ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_SizingFixedSame };
 
             ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible), windowFlags);
 
@@ -453,7 +454,11 @@ namespace Mikoto {
     }
 
     auto ContentBrowserPanel::OnRightClick() const -> void {
-        ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 1.0f);
+
+        ImGuiUtils::ImGuiScopedStyleVar popupBorder{ ImGuiStyleVar_PopupBorderSize, 1.0f };
+        ImGuiUtils::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 8.0f, 8.0f  } };
+        ImGuiUtils::ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f  } };
+
         if (ImGui::BeginPopupContextWindow("ContentBrowserPopup")) {
 
             ImGui::Spacing();
@@ -532,7 +537,5 @@ namespace Mikoto {
             ImGui::Spacing();
             ImGui::EndPopup();
         }
-
-        ImGui::PopStyleVar();
     }
 }

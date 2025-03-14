@@ -5,8 +5,11 @@
 #ifndef PHYSICS_HH
 #define PHYSICS_HH
 
+
 namespace Mikoto {
   class Physics {
+  public:
+
 
   };
 

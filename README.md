@@ -22,15 +22,15 @@
 
 | **Feature Name**        | **Feature Description**                           | **Supported** |
 |-------------------------|---------------------------------------------------|---------------|
-| Model Loading           | Ability to load 3D models from various file types | ✅             |
-| Image Loading           | Support for loading and using textures/images     | ✅             |
-| Blinn-Phong Lighting    | Basic lighting model implementation               | ✅             |
-| Entity Component System | Management of scene game objects through ECS      | ✅             |
+| Model Loading           | Ability to load 3D models from various file types | ✔️            |
+| Image Loading           | Support for loading and using textures/images     | ✔️            |
+| Blinn-Phong Lighting    | Basic lighting model implementation               | ✔️            |
+| Entity Component System | Management of scene game objects through ECS      | ✔️            |
 | Scene Serialization     | Serialize scenes from the editor                  | ❌             |
 | Particle System         | Visual particle effects like smoke, fire, etc.    | ❌             |
 | Vulkan Ray Tracing      | Support for Vulkan RayTracing                     | ❌             |
 | Physics Integration     | Basic collision detection and response            | ❌             |
-| UI Integration (ImGui)  | Immediate mode GUI for runtime/editor UI          | ✅             |
+| UI Integration (ImGui)  | Immediate mode GUI for runtime/editor UI          | ✔️            |
 | Animation System        | Skeletal animation and keyframe interpolation     | ❌             |
 | Audio Support           | Load and play sound effects and background music  | ❌             |
 
@@ -76,6 +76,8 @@ cd Mikoto
 
 # Generate platform specific build system files
 mkdir build && cd build
+
+# This will pull the necessary third party repos
 cmake -S .. -B .
 
 # Build the application

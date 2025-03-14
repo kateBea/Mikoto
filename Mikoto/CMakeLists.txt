@@ -1,10 +1,22 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.18)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.22)
 
 PROJECT(Mikoto)
 
 # CXX Lang Requirements
 SET(CMAKE_CXX_STANDARD 20)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+IF(MSVC)
+    SET(USE_STATIC_MSVC_RUNTIME_LIBRARY "Use the static MSVC runtime library" ON "MSVC;NOT WINDOWS_STORE" OFF)
+
+    if(USE_STATIC_MSVC_RUNTIME_LIBRARY)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MTd")  # For Debug: static runtime
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MTd")      # For Debug: static runtime
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MDd")  # For Debug: dynamic runtime
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MDd")      # For Debug: dynamic runtime
+    endif()
+ENDIF ()
 
 SET(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 SET(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -32,6 +44,7 @@ SET(NFD_CMAKE_DIR ${P_PATH}/Third-Party/nativefiledialog-extended)
 SET(TOML_CPP ${P_PATH}/Third-Party/tomlplusplus)
 SET(CPP_TRACE ${P_PATH}/Third-Party/cpptrace)
 SET(FREE_TYPE ${P_PATH}/Third-Party/freetype)
+SET(JOLT_PHYSICS ${P_PATH}/Third-Party/JoltPhysics/Build)
 
 # Setup Mikoto Engine source file
 FILE(GLOB SOURCE_FILES src/*.cc)
@@ -69,9 +82,10 @@ ADD_SUBDIRECTORY(${YAML_CMAKE_DIR} build/yaml)
 ADD_SUBDIRECTORY(${NFD_CMAKE_DIR} build/nfd)
 ADD_SUBDIRECTORY(${CPP_TRACE} build/cpptrace)
 ADD_SUBDIRECTORY(${FREE_TYPE} build/freetype)
+ADD_SUBDIRECTORY(${JOLT_PHYSICS} build/joltphysics)
 
 # Libraries to link against target
-SET(LIBRARIES glfw fmt EnTT::EnTT volk assimp yaml-cpp nfd cpptrace::cpptrace freetype)
+SET(LIBRARIES glfw fmt EnTT::EnTT volk assimp yaml-cpp nfd cpptrace::cpptrace freetype Jolt)
 
 # for tests only. -ltbb was required to use std::execution::par on linux
 # set(LIBRARIES glfw glew_s fmt EnTT::EnTT volk assimp yaml-cpp nfd tbb)
@@ -102,6 +116,7 @@ TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/ImGuizmo
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/yaml-cpp/include)
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/nativefiledialog-extended/src/include)
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/tomlplusplus/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/JoltPhysics/Jolt)
 
 # Avoid GLFW including OpenGL headers
 TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLFW_INCLUDE_NONE)
@@ -124,6 +139,8 @@ TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE VK_NO_PROTOTYPES)
 # range of 0.0 to 1.0 using the GLM_FORCE_DEPTH_ZERO_TO_ONE definition.
 TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE)
 TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLM_FORCE_RADIANS)
+TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
+
 TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
 
 # If you fetch pointers to all Vulkan functions in a custom way, e.g. using some loader like Volk:

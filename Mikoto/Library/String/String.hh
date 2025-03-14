@@ -10,6 +10,7 @@
 #include <iterator>
 #include <cctype>
 #include <algorithm>
+#include <format>
 
 #include "fmt/format.h"
 #include "fmt/color.h"
@@ -162,6 +163,16 @@ namespace Mikoto::StringUtils {
         return path.string();
 #endif
         return fileDir;
+    }
+
+    MKT_NODISCARD inline auto ToHex(Size_T value, const bool upper = true) -> std::string {
+        std::string result{ std::format("0x{:x}", value) };
+
+        if (upper) {
+            std::ranges::transform(result, result.begin(), ::toupper);
+        }
+
+        return result;
     }
 }
 

@@ -23,6 +23,7 @@
 #include <Library/Utility/Types.hh>
 #include <Panels/HierarchyPanel.hh>
 #include <Scene/Scene/Scene.hh>
+#include <Tools/ConsoleManager.hh>
 
 namespace Mikoto {
     static constexpr auto GetHierarchyName() -> std::string_view {
@@ -352,6 +353,8 @@ namespace Mikoto {
 
                 // Deselect the entity
                 m_SetActiveEntityCallback(nullptr);
+
+                ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_DEBUG, fmt::format("Removed entity: {}", entity.GetComponent<TagComponent>().GetTag()));
             }
 
             if ( ImGui::MenuItem( "Create empty object" ) ) {
@@ -360,7 +363,10 @@ namespace Mikoto {
                 createInfo.Name = "Empty Object";
                 createInfo.ModelMesh = nullptr;
 
-                m_TargetScene->CreateEntity( createInfo );
+                Entity* result{ m_TargetScene->CreateEntity( createInfo ) };
+
+                ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_INFO, fmt::format("Added entity: {}. Id => {}",
+                    result->GetComponent<TagComponent>().GetTag(), StringUtils::ToHex(result->GetComponent<TagComponent>().GetGUID())));
             }
 
             DrawPrefabMenuItems( std::addressof( entity ) );
@@ -399,7 +405,10 @@ namespace Mikoto {
                     .ModelMesh = model,
                 };
 
-                m_TargetScene->CreateEntity( entityCreateInfo );
+                Entity* result{ m_TargetScene->CreateEntity( entityCreateInfo ) };
+
+                ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_INFO, fmt::format("Added entity: {}. Id => {}",
+                    result->GetComponent<TagComponent>().GetTag(), StringUtils::ToHex(result->GetComponent<TagComponent>().GetGUID())));
             }
         }
     }
@@ -423,7 +432,10 @@ namespace Mikoto {
                     .ModelMesh{ nullptr },
                 };
 
-                m_TargetScene->CreateEntity( createInfo );
+                Entity* result{ m_TargetScene->CreateEntity( createInfo ) };
+
+                ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_INFO, fmt::format("Added entity: {}. Id => {}",
+                    result->GetComponent<TagComponent>().GetTag(), StringUtils::ToHex(result->GetComponent<TagComponent>().GetGUID())));
             }
 
             // We do not have the cursor on top of any entity

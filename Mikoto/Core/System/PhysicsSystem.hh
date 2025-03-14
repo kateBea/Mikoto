@@ -9,13 +9,13 @@
 #include <Core/Engine.hh>
 
 namespace Mikoto {
-    class PhysicsSystem final : public IEngineSystem {
+    class PhysicSystem final : public IEngineSystem {
     public:
-        explicit PhysicsSystem(const EngineConfig& options) {
+        explicit PhysicSystem(const EngineConfig& options) {
 
         }
 
-        ~PhysicsSystem() override = default;
+        ~PhysicSystem() override = default;
 
         auto Init() -> void override;
         auto Shutdown() -> void override;

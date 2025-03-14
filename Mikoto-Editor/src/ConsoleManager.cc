@@ -22,7 +22,7 @@ namespace Mikoto {
     auto ConsoleManager::PushMessage(ConsoleLogLevel level, std::string_view message) -> void {
         TimeSystem& timeSystem{ Engine::GetSystem<TimeSystem>() };
 
-        auto time{ timeSystem.ToString(timeSystem.GetTime()) };
+        auto time{ TimeSystem::ToString(timeSystem.GetTime()) };
         s_Messages.emplace_back(level, fmt::format("[ {} ] [ {} ] {}", GetLevelStr(level), time, message));
     }
 

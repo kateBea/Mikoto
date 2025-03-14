@@ -27,7 +27,7 @@ namespace Mikoto {
         FileSystem& fileSystem{ *s_Registry.Register<FileSystem>(options) };
         InputSystem& inputSystem{ *s_Registry.Register<InputSystem>(options) };
         GUISystem& guiSystem{ *s_Registry.Register<GUISystem>(options) };
-        PhysicsSystem& physicsSystem{ *s_Registry.Register<PhysicsSystem>(options) };
+        PhysicSystem& physicsSystem{ *s_Registry.Register<PhysicSystem>(options) };
         AudioSystem& audioSystem{ *s_Registry.Register<AudioSystem>(options) };
         RenderSystem& renderSystem{ *s_Registry.Register<RenderSystem>(options) };
         AssetsSystem& assetsSystem{ *s_Registry.Register<AssetsSystem>(options) };
@@ -73,7 +73,7 @@ namespace Mikoto {
         AssetsSystem& assetsSystem{ GetSystem<AssetsSystem>() };
         RenderSystem& renderSystem{ GetSystem<RenderSystem>() };
         AudioSystem& audioSystem{ GetSystem<AudioSystem>() };
-        PhysicsSystem& physicsSystem{ GetSystem<PhysicsSystem>() };
+        PhysicSystem& physicsSystem{ GetSystem<PhysicSystem>() };
         GUISystem& guiSystem{ GetSystem<GUISystem>() };
         InputSystem& inputSystem{ GetSystem<InputSystem>() };
         FileSystem& fileSystem{ GetSystem<FileSystem>() };

@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.18)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.22)
 
 PROJECT(Mikoto)
 
@@ -7,6 +7,15 @@ SET(CMAKE_CXX_STANDARD 20)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 IF(WIN32)
+    # Ensure that CMake uses static MSVC runtime library
+    # JoltUses this so we just enforce evrything else to use tghe same
+    # https://cmake.org/cmake/help/latest/variable/CMAKE_MSVC_RUNTIME_LIBRARY.html
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        SET(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+        SET(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
+    endif()
+
     # Set the python interpreter path
     SET(PYTHON_EXECUTABLE "python")
 
@@ -38,6 +47,8 @@ if((NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.bootstrap.json"))
     endif()
 endif()
 
+SET(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+SET(CPP_RTTI_ENABLED ON)
 
 ADD_SUBDIRECTORY(Mikoto)
 ADD_SUBDIRECTORY(Mikoto-Editor)

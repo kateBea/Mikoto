@@ -388,7 +388,7 @@ namespace Mikoto {
 
         for ( const auto& meshRenderInfo : m_DrawQueue | std::views::values ) {
 
-            if ( meshRenderInfo.Object ) {
+            if ( meshRenderInfo.Object && meshRenderInfo.IsRendered ) {
                 switch (meshRenderInfo.MaterialData->GetType()) {
 
                     case MaterialType::PBR:
@@ -1076,6 +1076,7 @@ namespace Mikoto {
             .Object = queueInfo.Render.GetMesh(),
             .Transform{ queueInfo.Transform.GetTransform() },
             .MaterialData{ std::addressof( queueInfo.Material.GetMaterial() ) },
+            .IsRendered{ queueInfo.Tag.IsVisible() }
         };
 
         if ( it != m_DrawQueue.end() ) {

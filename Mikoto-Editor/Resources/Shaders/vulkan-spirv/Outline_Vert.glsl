@@ -1,7 +1,7 @@
 /**************************************************
-    Shader for the PBR material. Using vec4s
-    and mat4s for now for simplicity with uniform
-    buffers aligment.
+    Shader for the PBR material with outline expansion.
+    Using vec4s and mat4s for simplicity with uniform
+    buffer alignment.
 
     Stage: Vertex
     Version: GLSL 4.5.0
@@ -31,12 +31,9 @@ layout(location = 2) out vec2 outVertexTexCoord;
 layout(location = 3) out vec3 outVertexColor;
 
 void main() {
-    // Setup frament shader expected data
-    outVertexTexCoord = a_TextureCoordinates;
+    outVertexNormals = a_Normal;
     outVertexColor = a_Color;
-
-    outVertexNormals = mat3(UniformBufferData.Transform) * a_Normal;
-    outFragmentPos = vec3(UniformBufferData.Transform * vec4(a_Position, 1.0));
+    outVertexTexCoord = a_TextureCoordinates;
 
     gl_Position = UniformBufferData.Projection * UniformBufferData.View * UniformBufferData.Transform * vec4(a_Position, 1.0);
 }

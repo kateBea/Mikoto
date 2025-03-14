@@ -1,13 +1,13 @@
 //
 // Created by kate on 11/12/23.
 //
+#include <cstring>
 
 #include <Core/System/AssetsSystem.hh>
 #include <Core/System/FileSystem.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanPBRMaterial.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
-#include <cstring>
 
 namespace Mikoto {
 

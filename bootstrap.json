@@ -1,0 +1,136 @@
+[
+    {
+        "name": "glfw",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/glfw/glfw.git"
+        }
+    },
+    {
+        "name": "imgui",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/ocornut/imgui.git",
+            "branch": "docking"
+        }
+    },
+    {
+        "name": "glm",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/g-truc/glm.git"
+        }
+    },
+    {
+        "name": "stb",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/nothings/stb.git"
+        }
+    },
+    {
+        "name": "fmt",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/fmtlib/fmt.git"
+        }
+    },
+    {
+        "name": "spdlog",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/gabime/spdlog.git"
+        }
+    },
+    {
+        "name": "entt",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/skypjack/entt.git"
+        }
+    },
+    {
+        "name": "volk",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/zeux/volk.git"
+        }
+    },
+    {
+        "name": "assimp",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/assimp/assimp.git"
+        }
+    },
+    {
+        "name": "VulkanMemoryAllocator",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git"
+        }
+    },
+    {
+        "name": "ImGuizmo",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/CedricGuillemet/ImGuizmo.git"
+        }
+    },
+    {
+        "name": "yaml-cpp",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/jbeder/yaml-cpp.git"
+        }
+    },
+    {
+        "name": "nativefiledialog-extended",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/btzy/nativefiledialog-extended.git"
+        }
+    },
+    {
+        "name": "JoltPhysics",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/jrouwe/JoltPhysics.git"
+        }
+    },
+    {
+        "name": "json",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/nlohmann/json.git"
+        }
+    },
+    {
+        "name": "tomlplusplus",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/marzer/tomlplusplus.git"
+        }
+    },
+    {
+        "name": "IconFontCppHeaders",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/juliettef/IconFontCppHeaders.git"
+        }
+    },
+    {
+        "name": "cpptrace",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/jeremy-rifkin/cpptrace.git"
+        }
+    },
+    {
+        "name": "freetype",
+        "source": {
+            "type": "git",
+            "url": "https://gitlab.freedesktop.org/freetype/freetype"
+        }
+    }
+]

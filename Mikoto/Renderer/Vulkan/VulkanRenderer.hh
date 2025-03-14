@@ -68,11 +68,11 @@ namespace Mikoto {
 
             glm::mat4 Transform{};
 
-            bool IsRendered{ false };
-
             // For now, we assume the
             // mesh has only one material
             Material* MaterialData{};
+
+            bool IsRendered{ false };
         };
 
         struct LightRenderInfo {

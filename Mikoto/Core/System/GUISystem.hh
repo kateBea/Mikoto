@@ -60,7 +60,7 @@ namespace Mikoto {
     private:
         Window* m_Window{ nullptr };
 
-        inline static std::deque<std::function<void()>> m_ShutdownCallbacks{}; /**< Queue for deleting objects */
+        std::deque<std::function<void()>> m_ShutdownCallbacks{}; /**< Queue for deleting objects */
 
         std::vector<ImFont*> m_Fonts{};                   /**< Vector storing ImGui fonts. */
         Scope_T<BackendImplementation> m_Implementation{ nullptr }; /**< Pointer to the backend implementation. */

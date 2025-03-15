@@ -114,7 +114,7 @@ namespace Mikoto {
             m_Rotation = angles;
             m_Scale = size;
 
-            RecomputeTransform();
+            m_Transform = Math::RecomputeTransform(position, size, angles);
         }
 
         auto SetTransform(const glm::mat4& transform) -> void {
@@ -133,8 +133,18 @@ namespace Mikoto {
             }
         }
 
-        auto SetTranslation(const glm::vec3& value) -> void { m_Translation = value; RecomputeTransform(); }
-        auto SetRotation(const glm::vec3& value) -> void { m_Rotation = value; RecomputeTransform(); }
+        auto SetTranslation(const glm::vec3& value) -> void {
+            m_Translation = value;
+
+            m_Transform = Math::RecomputeTransform(m_Translation, m_Scale, m_Rotation);
+        }
+
+        auto SetRotation(const glm::vec3& value) -> void {
+            m_Rotation = value;
+
+            m_Transform = Math::RecomputeTransform(m_Translation, m_Scale, m_Rotation);
+        }
+
         auto SetScale(const glm::vec3& value) -> void {
             if (!m_HasUniformScale) {
                 m_Scale = value;
@@ -156,7 +166,7 @@ namespace Mikoto {
                 }
             }
 
-            RecomputeTransform();
+            m_Transform = Math::RecomputeTransform(m_Translation, m_Scale, m_Rotation);
         }
 
         auto WantUniformSale(const bool value) -> void { m_HasUniformScale = value; }
@@ -168,22 +178,7 @@ namespace Mikoto {
         auto OnComponentRemoved() -> void {  }
 
     private:
-        /**
-         * Computes the model matrix as in Translate * Ry * Rx * Rz * Scale (where R represents a
-         * rotation in the desired axis. Rotation convention uses Tait-Bryan angles with axis order
-         * Y(1), X(2), Z(3)
-         * */
-        auto RecomputeTransform() -> void {
-            // Compute scale matrix
-            const glm::mat4 scale{ glm::scale(GLM_IDENTITY_MAT4, m_Scale) };
 
-            // Compute rotation matrix
-            glm::mat4 rotation{ glm::rotate(GLM_IDENTITY_MAT4, (float)glm::radians(m_Rotation.y), GLM_UNIT_VECTOR_Y) };
-            rotation = glm::rotate(rotation, (float)glm::radians(m_Rotation.x), GLM_UNIT_VECTOR_X);
-            rotation = glm::rotate(rotation, (float)glm::radians(m_Rotation.z), GLM_UNIT_VECTOR_Z);
-
-            m_Transform =  glm::translate(GLM_IDENTITY_MAT4, m_Translation) * rotation * scale;
-        }
 
     private:
         // Transform vectors

@@ -35,5 +35,9 @@ void main() {
     outVertexColor = a_Color;
     outVertexTexCoord = a_TextureCoordinates;
 
-    gl_Position = UniformBufferData.Projection * UniformBufferData.View * UniformBufferData.Transform * vec4(a_Position, 1.0);
+    float outlineWidth = 1.3f;
+
+    vec3 pos = vec3(a_Position + a_Normal * outlineWidth);
+
+    gl_Position = UniformBufferData.Projection * UniformBufferData.View * UniformBufferData.Transform * vec4(pos, 1.0);
 }

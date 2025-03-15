@@ -445,6 +445,13 @@ namespace Mikoto {
                                                 .WithBinding( 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT )
                                                .Build( m_VulkanData.Device->GetLogicalDevice() ) };
         m_DescriptorSetLayouts.try_emplace( DESCRIPTOR_SET_LAYOUT_COMPUTE_PIPELINE, compShaderSimple );
+
+        // -----------------------------------------------------------
+        DescriptorLayoutBuilder outlineSimpleLayoutCreateInfo{};
+        VkDescriptorSetLayout outlineSimple{ outlineSimpleLayoutCreateInfo
+            .WithBinding( 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
+                                               .Build( m_VulkanData.Device->GetLogicalDevice() ) };
+        m_DescriptorSetLayouts.try_emplace( DESCRIPTOR_SET_LAYOUT_OUTLINE, outlineSimple );
     }
 
     auto VulkanContext::RecreateSwapChain( const bool enableVsync ) -> void {

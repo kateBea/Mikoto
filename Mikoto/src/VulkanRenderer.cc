@@ -123,7 +123,7 @@ namespace Mikoto {
     }
 
     VulkanRenderer::VulkanRenderer( const VulkanRendererCreateInfo& createInfo )
-        : m_OffscreenExtent{
+        : RendererBackend{createInfo.Info.Name }, m_OffscreenExtent{
               .width{ createInfo.Info.ViewportWidth },
               .height{ createInfo.Info.ViewportHeight }
           },
@@ -161,6 +161,14 @@ namespace Mikoto {
         m_RenderMode = mode;
     }
 
+    auto VulkanRenderer::HasUpdatedResolution() const -> bool {
+        return m_RequestRescale;
+    }
+
+    auto VulkanRenderer::SetOutlineRenderTargetEntity( UInt64_T id ) -> void {
+        m_TargetObjectOutlineID = id;
+    }
+
     auto VulkanRenderer::Shutdown() -> void {
         m_Device->WaitIdle();
 
@@ -172,6 +180,10 @@ namespace Mikoto {
         // Checks
         if ( m_Camera == nullptr ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::BeginFrame - Camera for rendering is null. Forgot to call SetCamera() ?" );
+        }
+
+        if (m_RequestRescale) {
+            HandleRescaling();
         }
     }
 
@@ -208,6 +220,15 @@ namespace Mikoto {
         return success;
     }
 
+    auto VulkanRenderer::SetRenderResolution( RenderResolution resolution ) -> void {
+        // Must change render image
+        if (resolution != m_RenderResolution) {
+            m_RenderResolution = resolution;
+
+            m_RequestRescale = true;
+        }
+    }
+
     auto VulkanRenderer::SetupCubeMap( const TextureCubeMap* cubeMap ) -> void {
         // Preferably dynamic cast, but base class is not polymorphic (not single virtual method) for now
         m_CubeMap = static_cast<const VulkanTextureCubeMap *>( cubeMap );
@@ -232,10 +253,6 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::SetupObjectOutline( const MeshRenderInfo& meshRenderInfo ) -> void {
-        // TODO: fix outline
-        if (true) {
-            return;
-        }
 
         const VulkanPipeline* pipeline{ nullptr };
 
@@ -255,14 +272,9 @@ namespace Mikoto {
 
         pbrMaterial->SetProjection( m_Camera->GetProjection() );
         pbrMaterial->SetView( m_Camera->GetViewMatrix() );
-        pbrMaterial->SetTransform( meshRenderInfo.MeshRenderInfo::Transform );
+
+        pbrMaterial->SetTransform( meshRenderInfo.Transform );
         pbrMaterial->SetViewPosition( m_Camera->GetPosition() );
-
-        pbrMaterial->ResetLights();
-
-        for ( const auto& lightInfo: m_Lights | std::views::values ) {
-            pbrMaterial->UpdateLightsInfo( *lightInfo.Data, lightInfo.ActiveType );
-        }
 
         pbrMaterial->UploadUniformBuffers();
         pbrMaterial->BindDescriptorSet( m_DrawCommandBuffer, pipeline->GetLayout() );
@@ -399,10 +411,14 @@ namespace Mikoto {
                         SetupDefaultPass( meshRenderInfo );
                         break;
                 }
-
-                SetupObjectOutline(meshRenderInfo);
             }
 
+        }
+
+        auto outlineObject{ m_DrawQueue.find( m_TargetObjectOutlineID ) };
+
+        if (outlineObject != m_DrawQueue.end() && outlineObject->second.IsRendered && m_OutlineEnable) {
+            SetupObjectOutline(outlineObject->second);
         }
 
         vkCmdEndRenderPass( m_DrawCommandBuffer );
@@ -519,7 +535,7 @@ namespace Mikoto {
         depthAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
         depthAttachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        depthAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depthAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         depthAttachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         depthAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -877,7 +893,10 @@ namespace Mikoto {
         };
 
         // Set layout
-        const std::array descLayouts{ VulkanContext::Get().GetDescriptorSetLayouts( DESCRIPTOR_SET_LAYOUT_PBR_SHADER ) };
+        const std::array descLayouts{
+            VulkanContext::Get().GetDescriptorSetLayouts( DESCRIPTOR_SET_LAYOUT_PBR_SHADER ),
+            VulkanContext::Get().GetDescriptorSetLayouts( DESCRIPTOR_SET_LAYOUT_OUTLINE )
+        };
 
         // Create the pipeline layout
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VulkanHelpers::Initializers::PipelineLayoutCreateInfo() };
@@ -1103,6 +1122,57 @@ namespace Mikoto {
         }
 
         return result;
+    }
+
+    auto VulkanRenderer::HandleRescaling() -> void {
+        if (!m_RequestRescale) {
+            return;
+        }
+
+        switch ( m_RenderResolution ) {
+
+            case RenderResolution::RENDER_RESOLUTION_HD:
+                m_OffscreenExtent.width = 1280;
+                m_OffscreenExtent.height = 720;
+                break;
+            case RenderResolution::RENDER_RESOLUTION_FHD:
+                m_OffscreenExtent.width = 1920;
+                m_OffscreenExtent.height = 1080;
+                break;
+            case RenderResolution::RENDER_RESOLUTION_QHD:
+                m_OffscreenExtent.width = 2560;
+                m_OffscreenExtent.height = 1440;
+                break;
+            case RenderResolution::RENDER_RESOLUTION_UHD:
+                m_OffscreenExtent.width = 3840;
+                m_OffscreenExtent.height = 2160;
+                break;
+        }
+
+        // Naive approach
+        m_Device->WaitIdle();
+
+        m_OffscreenFrameBuffer = nullptr;
+
+        m_OffscreenColorAttachment = nullptr;
+        m_OffscreenDepthAttachment = nullptr;
+
+        CreateOffscreenAttachments();
+        CreateOffscreenFramebuffers();
+
+        UpdateViewport( 0, 0, static_cast<float>( m_OffscreenExtent.width ), static_cast<float>( m_OffscreenExtent.height ) );
+        UpdateScissor( 0, 0, { m_OffscreenExtent.width, m_OffscreenExtent.height } );
+
+        // Naive approach
+        m_Device->WaitIdle();
+
+        for (const auto& callback : m_ResizeCallbacks) {
+            callback();
+        }
+
+        m_ResizeCallbacks.clear();
+
+        m_RequestRescale = false;
     }
 
     auto VulkanRenderer::CreateCommandPools() -> void {

@@ -23,6 +23,7 @@
 #include <Common/Common.hh>
 #include <Common/Constants.hh>
 #include <Core/Logging/Assert.hh>
+#include <Library/Math/Math.hh>
 #include <Library/Random/Random.hh>
 #include <Library/Utility/Types.hh>
 #include <Models/LightData.hh>
@@ -119,10 +120,17 @@ namespace Mikoto {
         auto SetTransform(const glm::mat4& transform) -> void {
             m_Transform = transform;
 
-            // Update translation,
-            m_Translation = GetTranslationFromMat4(transform);
-            //m_Rotation = GetRotationFromMat4(transform);
-            //m_Scale = GetScaleFromMat4(transform);
+            glm::vec3 translate{};
+            glm::vec3 rotate{};
+            glm::vec3 scale{};
+
+            const bool success{ Math::DecomposeTransform(m_Transform, translate, rotate, scale) };
+
+            if (success) {
+                m_Scale = scale;
+                m_Translation = translate;
+                m_Rotation = rotate;
+            }
         }
 
         auto SetTranslation(const glm::vec3& value) -> void { m_Translation = value; RecomputeTransform(); }
@@ -150,6 +158,7 @@ namespace Mikoto {
 
             RecomputeTransform();
         }
+
         auto WantUniformSale(const bool value) -> void { m_HasUniformScale = value; }
 
         ~TransformComponent() = default;
@@ -159,18 +168,6 @@ namespace Mikoto {
         auto OnComponentRemoved() -> void {  }
 
     private:
-        static auto GetRotationFromMat4(const glm::mat4& matrix) -> glm::vec3 {
-            return {};
-        }
-
-        static auto GetTranslationFromMat4(const glm::mat4& matrix) -> glm::vec3 {
-            return glm::vec3(matrix[3]);
-        }
-
-        static auto GetScaleFromMat4(const glm::mat4& matrix) -> glm::vec3 {
-            return {};
-        }
-
         /**
          * Computes the model matrix as in Translate * Ry * Rx * Rz * Scale (where R represents a
          * rotation in the desired axis. Rotation convention uses Tait-Bryan angles with axis order

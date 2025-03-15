@@ -34,6 +34,7 @@
 #include <Core/Input/MouseCodes.hh>
 #include <Core/System/GUISystem.hh>
 #include <Core/System/InputSystem.hh>
+#include <Library/Math/Math.hh>
 #include <Scene/Scene/Scene.hh>
 
 #include "Common/Common.hh"
@@ -135,6 +136,7 @@ namespace Mikoto {
             glm::mat4 objectTransform{ transformComponent.GetTransform() };
             glm::vec3 oldTranslation{ transformComponent.GetTranslation() };
             glm::vec3 oldRotation{ transformComponent.GetRotation() };
+            glm::vec3 oldScale{ transformComponent.GetScale() };
 
             switch (m_ActiveManipulationMode) {
                 case GuizmoManipulationMode::TRANSLATION:
@@ -154,14 +156,18 @@ namespace Mikoto {
                 // Apply the transformation to the children
                 // For now Guizmos only change translation so thats the only thing we handle in the children
 
-                glm::vec3 offsetTranslation{ transformComponent.GetTranslation() - oldTranslation };
-                glm::vec3 offsetRotation{ transformComponent.GetRotation() - oldRotation };
+                const glm::vec3 offsetTranslation{ transformComponent.GetTranslation() - oldTranslation };
+                const glm::vec3 offsetRotation{ transformComponent.GetRotation() - oldRotation };
+                const glm::vec3 offsetScale{ transformComponent.GetScale() - oldScale };
+
                 auto &hierarchy{ m_TargetScene->GetHierarchy() };
+
                 hierarchy.ForAllChildren( [&]( Entity *child ) -> void {
                                               TransformComponent &childTransform{ child->GetComponent<TransformComponent>() };
 
                                               childTransform.SetTranslation( childTransform.GetTranslation() + offsetTranslation );
                                               childTransform.SetRotation( childTransform.GetRotation() + offsetRotation );
+                                              childTransform.SetScale( childTransform.GetScale() + offsetScale );
                                           }, [&]( Entity *target ) -> bool {
                                               return target->GetComponent<TagComponent>().GetGUID() ==
                                                      currentSelection->GetComponent<TagComponent>().GetGUID();
@@ -197,7 +203,11 @@ namespace Mikoto {
         // Set scene panel implementation
         m_Implementation = CreateScope<ScenePanelViewport_VKImpl>( sceneApiCreateInfo );
 
-        if (m_Implementation != nullptr) { m_Implementation->Init(); } else { MKT_APP_LOGGER_ERROR( "ScenePanel::ScenePanel - Failed to create Scene Panel ImGui implementation." ); }
+        if (m_Implementation != nullptr) {
+            m_Implementation->Init();
+        } else {
+            MKT_APP_LOGGER_ERROR( "ScenePanel::ScenePanel - Failed to create Scene Panel ImGui implementation." );
+        }
     }
 
     auto ScenePanel::OnUpdate( MKT_UNUSED_VAR float ts ) -> void {

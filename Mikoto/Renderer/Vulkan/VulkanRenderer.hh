@@ -91,6 +91,11 @@ namespace Mikoto {
             LightType ActiveType{};
         };
 
+        struct OutlinePushConstantData {
+            glm::vec4 OutlineColor{};
+            float OutlineWidth{};
+        };
+
     private:
         auto HandleRescaling() -> void;
 
@@ -129,6 +134,8 @@ namespace Mikoto {
         auto Flush() -> void;
 
     private:
+
+        OutlinePushConstantData m_OutlinePushConstantsBlock{};
 
         bool m_RequestRescale{ false };
         std::vector<std::function<void()>> m_ResizeCallbacks{};

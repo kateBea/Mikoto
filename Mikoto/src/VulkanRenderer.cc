@@ -359,7 +359,7 @@ namespace Mikoto {
         vkCmdDrawIndexed( m_DrawCommandBuffer, vulkanIndexBuffer->GetCount(), 1, 0, 0, 0 );
     }
 
-    auto VulkanRenderer::RecordCommands() -> void {
+    auto VulkanRenderer::RecordDrawCommands() -> void {
         VkCommandBufferBeginInfo beginInfo{ VulkanHelpers::Initializers::CommandBufferBeginInfo() };
 
         if ( vkBeginCommandBuffer( m_DrawCommandBuffer, std::addressof( beginInfo ) ) != VK_SUCCESS ) {
@@ -1055,7 +1055,7 @@ namespace Mikoto {
     auto VulkanRenderer::Flush() -> void {
         RecordComputeCommands();
 
-        RecordCommands();
+        RecordDrawCommands();
 
         // NOTE: Compute, Graphics and Present queues might be the same
         // Watch-out to properly sync operations between command buffers and commands

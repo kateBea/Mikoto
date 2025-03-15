@@ -144,7 +144,33 @@ namespace Mikoto::ImGuiUtils {
         style.TabRounding = .5f;
     }
 
-    inline auto HelpMarker( const std::string_view description, const std::string_view placeHolder = "(?)") -> void {
+    MKT_NODISCARD inline auto ComputeWidth() -> float {
+        ImGuiContext& globalContext{ *GImGui };
+        ImGuiWindow* currentWindow{ globalContext.CurrentWindow };
+        float width{};
+
+        if (globalContext.NextItemData.HasFlags & ImGuiNextItemDataFlags_HasWidth) {
+            width = globalContext.NextItemData.Width;
+        }
+        else {
+            width = currentWindow->DC.ItemWidth;
+        }
+
+        if (width < 0.0f) {
+            float regionAvailableX{ ImGui::GetContentRegionAvail().x };
+            width = ImMax(1.0f, regionAvailableX + width);
+        }
+
+        width = IM_TRUNC(width);
+
+        return width;
+    }
+
+    inline auto HelpMarker( const std::string_view description, const std::string_view placeHolder = "(?)", const bool sameLine = false) -> void {
+        if (sameLine) {
+            ImGui::SameLine();
+        }
+
         ImGui::TextDisabled("%s", placeHolder.data());
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && ImGui::BeginTooltip()) {
             ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -248,7 +274,7 @@ namespace Mikoto::ImGuiUtils {
         ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemInnerSpacing, ImVec2  { 0.0f, 0.0f } };
         ImGuiScopedStyleVar framePadding{ ImGuiStyleVar_FramePadding, ImVec2  { 4.0f, 4.0f } };
 
-        const bool active{ ImGui::Button(fmt::format("{}", icon).c_str()) };
+        const bool active{ ImGui::Button(fmt::format("{}", icon).c_str(), size) };
 
         if ( ImGui::IsItemHovered() ) {
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -257,19 +283,39 @@ namespace Mikoto::ImGuiUtils {
         return active;
     }
 
-    inline auto TextArea(std::string& contents) -> bool {
+    inline auto TextArea(std::string& buffer, float currentFontScale = 1) -> bool {
         ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
         ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
 
-        constexpr  ImGuiInputTextFlags flags{ ImGuiInputTextFlags_AllowTabInput };
+        const auto resizeCallback{ [](ImGuiInputTextCallbackData* data) -> Int32_T {
+            if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
+            {
+                std::string* str{ static_cast<std::string*>(data->UserData) };
 
-        ImVec2 windowSize{ ImGui::GetWindowSize() };
+                str->resize(data->BufTextLen);
+                data->Buf = str->data();
+            }
+            return 0;
+        }
+            };
 
-        const bool active{ ImGui::InputTextMultiline("##TextInput", contents.data(), contents.size(), ImVec2(windowSize.x * 0.5f, ImGui::GetTextLineHeight() * 5), flags) };
+        constexpr  ImGuiInputTextFlags flags{ ImGuiInputTextFlags_AllowTabInput | ImGuiInputTextFlags_CallbackResize };
+
+        const ImVec2 windowSize{ ImGui::GetWindowSize() };
+
+        constexpr float maxScale{ 3 };
+        constexpr float minScale{ 1 };
+
+        ImGui::SetWindowFontScale(currentFontScale > maxScale ? maxScale : currentFontScale);
+
+        const bool active{ ImGui::InputTextMultiline( "##TextArea:Input", buffer.data(), buffer.capacity() + 1,
+            ImVec2(ComputeWidth(), windowSize.y * 0.3f), flags, resizeCallback, std::addressof(buffer)) };
 
         if ( ImGui::IsItemHovered() ) {
             ImGui::SetMouseCursor( ImGuiMouseCursor_TextInput );
         }
+
+        ImGui::SetWindowFontScale(minScale);
 
         return active;
     }
@@ -278,15 +324,18 @@ namespace Mikoto::ImGuiUtils {
     inline auto ComboList(InputIt start, InputIt end, std::string& currentlyActive, Pred&& isSelectedPred, const CStr_T label) -> void {
         ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
         ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
+        ImGuiScopedStyleVar popUpRounding{ ImGuiStyleVar_PopupRounding, 2.5f };
+        ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 10.0f, 10.0f  } };
 
-        constexpr ImGuiInputTextFlags flags{ ImGuiInputTextFlags_None };
+        constexpr ImGuiComboFlags comboFlags{ ImGuiComboFlags_None };
+        constexpr ImGuiSelectableFlags selectableFlags{ ImGuiSelectableFlags_None };
 
-        if ( ImGui::BeginCombo( fmt::format("##{}", label).c_str(), currentlyActive.c_str(), flags ) ) {
+        if ( ImGui::BeginCombo( fmt::format("##{}", label).c_str(), currentlyActive.c_str(), comboFlags ) ) {
 
             for ( ; start != end; ++start ) {
                 const bool isSelected{ isSelectedPred(*start) };
 
-                if ( ImGui::Selectable( fmt::format( " {}", *start ).c_str(), isSelected ) ) {
+                if ( ImGui::Selectable( fmt::format( " {}", *start ).c_str(), isSelected, selectableFlags ) ) {
                     currentlyActive = *start;
                 }
 

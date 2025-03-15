@@ -55,6 +55,7 @@ namespace Mikoto {
         PrepareNewScene();
 
         m_EditorRenderer = RendererBackend::Create( RendererCreateInfo{
+                .Name{ "Editor Main renderer " },
                 .ViewportWidth{ static_cast<UInt32_T>( m_Window->GetWidth() ) },
                 .ViewportHeight{ static_cast<UInt32_T>( m_Window->GetHeight() ) },
                 .Api{ m_GraphicsAPI },
@@ -187,6 +188,25 @@ namespace Mikoto {
     }
 
     auto EditorLayer::CreatePanels() -> void {
+        const auto getSelectedEntity{
+            [&]() -> Entity* {
+                return m_SelectedEntity;
+            }
+        };
+
+        const auto setCurrentSelectedEntity{
+            [&]( Entity* target ) -> void {
+                m_SelectedEntity = target;
+
+                if ( target == nullptr ) {
+                    m_EditorRenderer->SetOutline( false );
+                } else {
+                    m_EditorRenderer->SetOutline( true );
+                    m_EditorRenderer->SetOutlineRenderTargetEntity( target->GetComponent<TagComponent>().GetGUID() );
+                }
+            }
+        };
+
         ScenePanelCreateInfo scenePanelCreateInfo{
             .Width{ static_cast<UInt32_T>( m_Window->GetWidth() ) },
             .Height{ static_cast<UInt32_T>( m_Window->GetHeight() ) },
@@ -194,10 +214,7 @@ namespace Mikoto {
             .Renderer{ m_EditorRenderer.get() },
             .EditorMainCamera{ m_EditorCamera.get() },
 
-            .GetActiveEntityCallback{
-                    [&]() -> Entity* {
-                        return m_SelectedEntity;
-                    } }
+            .GetActiveEntityCallback{ getSelectedEntity }
         };
 
         SettingsPanelCreateInfo settingsPanelCreateInfo{
@@ -209,26 +226,15 @@ namespace Mikoto {
 
         HierarchyPanelCreateInfo hierarchyPanelCreateInfo{
             .TargetScene{ m_ActiveScene.get() },
-            .GetActiveEntityCallback{
-                    [&]() -> Entity* {
-                        return m_SelectedEntity;
-                    } },
+            .GetActiveEntityCallback{ getSelectedEntity },
             .SetActiveEntityCallback{
-                    [&]( Entity* target ) -> void {
-                        m_SelectedEntity = target;
-                    } },
+                    setCurrentSelectedEntity },
         };
 
         InspectorPanelCreateInfo inspectorPanelCreateInfo{
             .TargetScene{ m_ActiveScene.get() },
-            .GetActiveEntityCallback{
-                    [&]() -> Entity* {
-                        return m_SelectedEntity;
-                    } },
-            .SetActiveEntityCallback{
-                    [&]( Entity* target ) -> void {
-                        m_SelectedEntity = target;
-                    } },
+            .GetActiveEntityCallback{ getSelectedEntity },
+            .SetActiveEntityCallback{ setCurrentSelectedEntity },
         };
 
         RendererPanelCreateInfo rendererPanelCreateInfo{
@@ -265,6 +271,33 @@ namespace Mikoto {
             m_Window->SetScreenMode( MKT_WINDOW_MODE_FULLSCREEN );
         } else {
             m_Window->SetScreenMode( MKT_WINDOW_MODE_WINDOWED );
+        }
+    }
+
+    auto EditorLayer::SetRendererResolution() const -> void {
+
+        if ( ImGui::BeginMenu( "Resolution" ) ) {
+            if ( ImGui::MenuItem( "HD - 720p", nullptr,
+                m_EditorRenderer->GetRenderResolution() == RenderResolution::RENDER_RESOLUTION_HD ) ) {
+                m_EditorRenderer->SetRenderResolution( RenderResolution::RENDER_RESOLUTION_HD );
+            }
+
+            if ( ImGui::MenuItem( "FHD - 1080p", nullptr,
+                m_EditorRenderer->GetRenderResolution() == RenderResolution::RENDER_RESOLUTION_FHD ) ) {
+                m_EditorRenderer->SetRenderResolution( RenderResolution::RENDER_RESOLUTION_FHD );
+            }
+
+            if ( ImGui::MenuItem( "QHD - 1440p", nullptr,
+                m_EditorRenderer->GetRenderResolution() == RenderResolution::RENDER_RESOLUTION_QHD ) ) {
+                m_EditorRenderer->SetRenderResolution( RenderResolution::RENDER_RESOLUTION_QHD );
+            }
+
+            if ( ImGui::MenuItem( "UHD - 2160p", nullptr,
+                m_EditorRenderer->GetRenderResolution() == RenderResolution::RENDER_RESOLUTION_UHD ) ) {
+                m_EditorRenderer->SetRenderResolution( RenderResolution::RENDER_RESOLUTION_UHD );
+            }
+
+            ImGui::EndMenu();
         }
     }
 
@@ -463,8 +496,8 @@ namespace Mikoto {
         style.WindowMinSize.x = minimumPanelsWidth;
 
         ImGuiUtils::ImGuiScopedStyleVar popupBorder{ ImGuiStyleVar_PopupBorderSize, 1.0f };
-        ImGuiUtils::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 11.0f, 11.0f  } };
-        ImGuiUtils::ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f  } };
+        ImGuiUtils::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 11.0f, 11.0f } };
+        ImGuiUtils::ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f } };
 
         if ( ImGui::BeginMenuBar() ) {
             ImGui::PushStyleVar( ImGuiStyleVar_PopupBorderSize, 1.0f );
@@ -577,6 +610,20 @@ namespace Mikoto {
 
             ImGuiUtils::HelpMarker( "This menu helps to change window stuff like the theme" );
 
+            if ( ImGui::BeginMenu( "Rendering" ) ) {
+                // Disabling fullscreen would allow the window to be moved to the front of other windows,
+                // which we can't undo at the moment without finer window depth/z control.
+
+                SetRendererResolution();
+
+                if ( ImGui::MenuItem( "Enable SSAO", nullptr ) ) {
+                }
+
+                ImGui::EndMenu();
+            }
+
+            ImGuiUtils::HelpMarker( "Configuration about the main scene rendering." );
+
             if ( ImGui::BeginMenu( "Help" ) ) {
                 constexpr ImGuiPopupFlags popUpFlags{ ImGuiPopupFlags_None };
 
@@ -686,25 +733,23 @@ namespace Mikoto {
         FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
         AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
 
-        Font* interBlack{ assetsSystem.LoadFont( {
-            .Path{ PathBuilder()
-                .WithPath( fileSystem.GetFontsRootPath().string() )
-                .WithPath( "Inter" )
-                .WithPath( "static" )
-                .WithPath( "Inter-VariableFont.ttf" )
-                .Build() },
-            .Size{} } ) };
+        Font* interBlack{ assetsSystem.LoadFont( { .Path{ PathBuilder()
+                                                                  .WithPath( fileSystem.GetFontsRootPath().string() )
+                                                                  .WithPath( "Inter" )
+                                                                  .WithPath( "static" )
+                                                                  .WithPath( "Inter-VariableFont.ttf" )
+                                                                  .Build() },
+                                                   .Size{} } ) };
 
         interBlack->SetSpacing( 1 );
 
-        Font* interBold{ assetsSystem.LoadFont( {
-           .Path{ PathBuilder()
-               .WithPath( fileSystem.GetFontsRootPath().string() )
-               .WithPath( "Inter" )
-               .WithPath( "static" )
-               .WithPath( "Inter-Bold.ttf" )
-               .Build() },
-           .Size{} } ) };
+        Font* interBold{ assetsSystem.LoadFont( { .Path{ PathBuilder()
+                                                                 .WithPath( fileSystem.GetFontsRootPath().string() )
+                                                                 .WithPath( "Inter" )
+                                                                 .WithPath( "static" )
+                                                                 .WithPath( "Inter-Bold.ttf" )
+                                                                 .Build() },
+                                                  .Size{} } ) };
 
         interBold->SetSpacing( 1 );
     }

@@ -21,9 +21,8 @@ namespace Mikoto {
 
     class RenderPanelViewport_VkImpl final : public RenderViewport {
     public:
-        explicit RenderPanelViewport_VkImpl( const RenderPanelViewport_VkImplCreateInfo& createInfo)
-            : RenderViewport{ createInfo.ViewportCreateInfo }
-        {}
+        explicit RenderPanelViewport_VkImpl( const RenderPanelViewport_VkImplCreateInfo& createInfo )
+            : RenderViewport{ createInfo.ViewportCreateInfo } {}
 
         auto Init() -> void override {
 
@@ -40,7 +39,7 @@ namespace Mikoto {
 
             // Create the Descriptor set for the texture displayed in the ImGuiWindow scene
 
-            const VulkanRenderer* vulkanSceneRenderer{ dynamic_cast<const VulkanRenderer*>( m_Renderer ) };
+            VulkanRenderer* vulkanSceneRenderer{ dynamic_cast<VulkanRenderer*>( m_Renderer ) };
 
             m_ColorAttachmentDescriptorSet =
                     ImGui_ImplVulkan_AddTexture( m_ColorAttachmentSampler, vulkanSceneRenderer->GetFinalImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
@@ -50,11 +49,26 @@ namespace Mikoto {
             guiSystem.AddShutdownCallback( [colorDs = m_ColorAttachmentDescriptorSet]() -> void {
                 ImGui_ImplVulkan_RemoveTexture( colorDs );
             } );
+
+            vulkanSceneRenderer->RegisterResizeCallbacks( [&]() -> void {
+                VulkanRenderer* renderer{ dynamic_cast<VulkanRenderer*>( m_Renderer ) };
+                const VulkanImage& image{ renderer->GetFinalImage() };
+
+                VulkanDevice& device{ VulkanContext::Get().GetDevice() };
+                device.WaitIdle();
+
+                m_ColorAttachmentDescriptorSet =
+                        ImGui_ImplVulkan_AddTexture( m_ColorAttachmentSampler, image.GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+
+                guiSystem.AddShutdownCallback( [colorDs = m_ColorAttachmentDescriptorSet]() -> void {
+                    ImGui_ImplVulkan_RemoveTexture( colorDs );
+                } );
+            } );
         }
 
         auto ShowPasses( ImGuiTreeNodeFlags treeNodeFlags ) -> void {
 
-            if (ImGui::TreeNodeEx( reinterpret_cast<const void *>( "RenderPanelViewport_VkImpl::ShowPasses" ), treeNodeFlags, "%s", "Passes")) {
+            if ( ImGui::TreeNodeEx( reinterpret_cast<const void*>( "RenderPanelViewport_VkImpl::ShowPasses" ), treeNodeFlags, "%s", "Passes" ) ) {
 
                 // Handle type of projection
                 ImGui::Spacing();
@@ -63,7 +77,7 @@ namespace Mikoto {
                     for ( Size_T index{}; index < s_ImageCompositions.size(); ++index ) {
                         const std::string composition{ s_ImageCompositions[index] };
 
-                        const bool isSelected{ StringUtils::Equal( composition , s_ImageCompositions[m_CurrentPassSelectionIndex] ) };
+                        const bool isSelected{ StringUtils::Equal( composition, s_ImageCompositions[m_CurrentPassSelectionIndex] ) };
 
                         if ( ImGui::Selectable( fmt::format( " {}", composition ).c_str(), isSelected ) ) {
                             m_CurrentPassSelectionIndex = index;
@@ -79,7 +93,7 @@ namespace Mikoto {
                     }
 
                     ImGui::EndCombo();
-                                        }
+                }
 
                 if ( ImGui::IsItemHovered() ) {
                     ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -94,7 +108,7 @@ namespace Mikoto {
                 }
 
                 // Index 0 is the final output
-                if (m_CurrentPassSelectionIndex == 0) {
+                if ( m_CurrentPassSelectionIndex == 0 ) {
                     ImGui::Spacing();
 
 
@@ -106,26 +120,26 @@ namespace Mikoto {
 
                     ImGuiUtils::ImGuiScopedStyleVar frameBorderSize{ ImGuiStyleVar_FrameBorderSize, 3.5f };
                     ImGui::Image( reinterpret_cast<ImTextureID>( m_ColorAttachmentDescriptorSet ),
-                    ImVec2{ m_ViewPortWidth, m_ViewPortHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+                                  ImVec2{ m_ViewPortWidth, m_ViewPortHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
                 }
 
                 ImGui::TreePop();
             }
         }
 
-        auto ShowRenderModes( ImGuiTreeNodeFlags treeNodeFlags  ) -> void {
+        auto ShowRenderModes( ImGuiTreeNodeFlags treeNodeFlags ) -> void {
             if ( ImGui::TreeNodeEx( reinterpret_cast<const void*>( "RenderPanelViewport_VkImpl::ShowRenderModes" ), treeNodeFlags, "%s", "Render Mode" ) ) {
 
                 // Handle type of projection
                 ImGui::Spacing();
                 if ( ImGui::BeginCombo( "##RenderPanelViewport_VkImpl::ShowRenderModes", s_RenderModes[m_CurrentRenderModeSelectionIndex].c_str() ) ) {
 
-                    for ( const auto& [renderMode, name] : s_RenderModes ) {
+                    for ( const auto& [renderMode, name]: s_RenderModes ) {
                         const bool isSelected{ m_CurrentRenderModeSelectionIndex == renderMode };
 
                         if ( ImGui::Selectable( fmt::format( " {}", name ).c_str(), isSelected ) ) {
                             m_CurrentRenderModeSelectionIndex = renderMode;
-                            m_Renderer->SetRenderMode(m_CurrentRenderModeSelectionIndex);
+                            m_Renderer->SetRenderMode( m_CurrentRenderModeSelectionIndex );
                         }
 
                         if ( ImGui::IsItemHovered() ) {
@@ -145,20 +159,41 @@ namespace Mikoto {
                 }
 
 
-
                 ImGui::TreePop();
             }
         }
 
         auto OnUpdate() -> void override {
+            if ( m_Renderer->HasUpdatedResolution() ) {
+                VulkanRenderer* vulkanSceneRenderer{ dynamic_cast<VulkanRenderer*>( m_Renderer ) };
+
+                vulkanSceneRenderer->RegisterResizeCallbacks( [&]() -> void {
+                    GUISystem& guiSystem{ Engine::GetSystem<GUISystem>() };
+                    VulkanRenderer* renderer{ dynamic_cast<VulkanRenderer*>( m_Renderer ) };
+                    const VulkanImage& image{ renderer->GetFinalImage() };
+
+                    VulkanDevice& device{ VulkanContext::Get().GetDevice() };
+                    device.WaitIdle();
+
+                    m_ColorAttachmentDescriptorSet =
+                            ImGui_ImplVulkan_AddTexture( m_ColorAttachmentSampler, image.GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+
+                    guiSystem.AddShutdownCallback( [colorDs = m_ColorAttachmentDescriptorSet]() -> void {
+                        ImGui_ImplVulkan_RemoveTexture( colorDs );
+                    } );
+                } );
+
+                return;
+            }
+
             constexpr ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_DefaultOpen |
-                                                           ImGuiTreeNodeFlags_AllowItemOverlap |
-                                                           ImGuiTreeNodeFlags_Framed |
-                                                           ImGuiTreeNodeFlags_SpanAvailWidth |
-                                                           ImGuiTreeNodeFlags_FramePadding};
+                                                     ImGuiTreeNodeFlags_AllowItemOverlap |
+                                                     ImGuiTreeNodeFlags_Framed |
+                                                     ImGuiTreeNodeFlags_SpanAvailWidth |
+                                                     ImGuiTreeNodeFlags_FramePadding };
 
             ImGui::Spacing();
-            if (ImGui::TreeNodeEx( reinterpret_cast<const void *>( "RenderPanelViewport_VkImpl::OnUpdate" ), styleFlags, "%s", "Scene")) {
+            if ( ImGui::TreeNodeEx( reinterpret_cast<const void*>( "RenderPanelViewport_VkImpl::OnUpdate" ), styleFlags, "%s", "Scene" ) ) {
 
                 ImGui::Spacing();
                 ImGui::Text( fmt::format( "Scene: {}", m_TargetScene->GetName() ).c_str() );
@@ -167,10 +202,9 @@ namespace Mikoto {
             }
 
             ImGui::Spacing();
-            ShowPasses(styleFlags);
+            ShowPasses( styleFlags );
 
-            ShowRenderModes(styleFlags);
-
+            ShowRenderModes( styleFlags );
         }
 
     private:
@@ -195,11 +229,11 @@ namespace Mikoto {
         }
 
     private:
-        static constexpr  std::array s_ImageCompositions{
+        static constexpr std::array s_ImageCompositions{
             "Final output", "Color pass", "Shadow pass", "Depth pass"
         };
 
-        static inline  std::unordered_map<Size_T, std::string> s_RenderModes{
+        static inline std::unordered_map<Size_T, std::string> s_RenderModes{
             { DISPLAY_NORMAL, "Normals" },
             { DISPLAY_COLOR, "Color" },
             { DISPLAY_AO, "Ambient Occlusion" },
@@ -219,25 +253,25 @@ namespace Mikoto {
         return "Renderer";
     }
 
-    RendererPanel::RendererPanel(const RendererPanelCreateInfo& createInfo)
-        : Panel{ StringUtils::MakePanelName(ICON_MD_SETTINGS_DISPLAY, GetRendererPanel() ) },
-        m_TargetScene{ createInfo.TargetScene } {
+    RendererPanel::RendererPanel( const RendererPanelCreateInfo& createInfo )
+        : Panel{ StringUtils::MakePanelName( ICON_MD_SETTINGS_DISPLAY, GetRendererPanel() ) },
+          m_TargetScene{ createInfo.TargetScene } {
 
         // Initialize implementation
         RenderPanelViewport_VkImplCreateInfo sceneApiCreateInfo{
             .ViewportCreateInfo{
-                .ViewportWidth{ createInfo.Width },
-                .ViewportHeight{ createInfo.Height },
-                .TargetScene{ createInfo.TargetScene },
-                .Renderer{ createInfo.Renderer },
-                .MainCamera{ createInfo.EditorMainCamera },
+                    .ViewportWidth{ createInfo.Width },
+                    .ViewportHeight{ createInfo.Height },
+                    .TargetScene{ createInfo.TargetScene },
+                    .Renderer{ createInfo.Renderer },
+                    .MainCamera{ createInfo.EditorMainCamera },
             },
         };
 
         // Set scene panel implementation
-        m_Implementation = CreateScope<RenderPanelViewport_VkImpl>(sceneApiCreateInfo);
+        m_Implementation = CreateScope<RenderPanelViewport_VkImpl>( sceneApiCreateInfo );
 
-        if (m_Implementation != nullptr) {
+        if ( m_Implementation != nullptr ) {
             m_Implementation->Init();
         } else {
             MKT_APP_LOGGER_ERROR( "ScenePanel::ScenePanel - Failed to create Scene Panel ImGui implementation." );

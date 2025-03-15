@@ -8,19 +8,19 @@
 #include <array>
 
 // Third-Party Libraries
-#include <GLFW/glfw3.h>
-#include <imgui.h>
-#include <volk.h>
-#include <backends/imgui_impl_glfw.h>
-#include <backends/imgui_impl_vulkan.h>
+#include <../../Third-Party/glfw/include/GLFW/glfw3.h>
+#include <../../Third-Party/imgui/backends/imgui_impl_glfw.h>
+#include <../../Third-Party/imgui/backends/imgui_impl_vulkan.h>
+#include <../../Third-Party/imgui/imgui.h>
+#include <../../Third-Party/volk/volk.h>
 
 // Important to include after imgui
-#include <ImGuizmo.h>
+#include <../../Third-Party/ImGuizmo/ImGuizmo.h>
 
 #include <Core/Logging/Logger.hh>
 #include <GUI/ImGuiVulkanBackend.hh>
-#include <Renderer/Vulkan/VulkanDeletionQueue.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
+#include <Renderer/Vulkan/VulkanDeletionQueue.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
 
 namespace Mikoto {
@@ -78,8 +78,7 @@ namespace Mikoto {
         // If the swapchain has been resized we need to recreate the framebuffers and images
         VulkanSwapChain& swapChain{ VulkanContext::Get().GetSwapChain() };
         if ( swapChain.GetExtent().width != m_Extent2D.width ||
-             swapChain.GetExtent().height != m_Extent2D.height )
-        {
+             swapChain.GetExtent().height != m_Extent2D.height) {
             m_Extent2D = swapChain.GetExtent();
             m_Extent3D = { m_Extent2D.width, m_Extent2D.height, 1 };
 
@@ -94,7 +93,7 @@ namespace Mikoto {
         RecordCommands( m_DrawCommandBuffers[swapChainImageIndex], VulkanContext::Get().GetSwapChain().GetImage( swapChainImageIndex ) );
 
         VulkanDevice& device{ VulkanContext::Get().GetDevice() };
-        device.RegisterGraphicsCommand( m_DrawCommandBuffers[swapChainImageIndex]);
+        device.RegisterGraphicsCommand( m_DrawCommandBuffers[swapChainImageIndex] );
 
         ImGuiIO& io{ ImGui::GetIO() };
         if ( io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {

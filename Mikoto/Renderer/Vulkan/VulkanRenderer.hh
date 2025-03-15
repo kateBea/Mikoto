@@ -50,10 +50,21 @@ namespace Mikoto {
 
         auto SetViewport( float x, float y, float width, float height ) -> void override;
 
+        template<typename Func>
+        auto RegisterResizeCallbacks(Func&& callback) -> void {
+            m_ResizeCallbacks.emplace_back(std::forward<Func>(callback));
+        }
+
         auto SetRenderMode( Size_T mode ) -> void override;
+
+        MKT_NODISCARD auto HasUpdatedResolution() const -> bool override;
+
+        auto SetOutlineRenderTargetEntity(UInt64_T id) -> void override;
 
         auto RemoveLight( UInt64_T id ) -> bool override;
         auto AddLight( UInt64_T id, const LightData& data, LightType activeType) -> bool override;
+
+        auto SetRenderResolution(RenderResolution resolution) -> void override;
 
         auto SetupCubeMap(const TextureCubeMap* cubeMap) -> void override;
 
@@ -81,6 +92,8 @@ namespace Mikoto {
         };
 
     private:
+        auto HandleRescaling() -> void;
+
         auto CreateCommandPools() -> void;
         auto CreateCommandBuffers() -> void;
         auto SetupObjectOutline(const MeshRenderInfo& meshRenderInfo) -> void;
@@ -116,9 +129,15 @@ namespace Mikoto {
         auto Flush() -> void;
 
     private:
+
+        bool m_RequestRescale{ false };
+        std::vector<std::function<void()>> m_ResizeCallbacks{};
+
         bool m_WireframeEnable{ false };
 
         VulkanDevice* m_Device{};
+
+        UInt64_T m_TargetObjectOutlineID{};
 
         Size_T m_RenderMode{ DISPLAY_COLOR };
 

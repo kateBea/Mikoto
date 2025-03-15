@@ -12,6 +12,7 @@
 
 // Important to include after imgui
 #include <volk.h>
+
 #include "ImGuizmo.h"
 
 // Project Headers
@@ -19,12 +20,10 @@
 
 #include "Core/Events/CoreEvents.hh"
 #include "Core/System/EventSystem.hh"
+#include "GUI/Icons/IconsMaterialDesign.h"
 #include "Panels/HierarchyPanel.hh"
 #include "Panels/ScenePanel.hh"
 #include "Renderer/Vulkan/VulkanContext.hh"
-
-
-#include "GUI/Icons/IconsMaterialDesign.h"
 
 // Third-Party Libraries
 #include "backends/imgui_impl_vulkan.h"
@@ -46,7 +45,7 @@ namespace Mikoto {
     struct ScenePanelViewport_VKImplCreateInfo {
         RenderViewportCreateInfo ViewportCreateInfo{};
 
-        std::function<Entity*()> GetActiveEntityCallback{};
+        std::function<Entity *()> GetActiveEntityCallback{};
     };
 
     class ScenePanelViewport_VKImpl final : public RenderViewport {
@@ -74,13 +73,13 @@ namespace Mikoto {
             samplerCreateInfo.maxLod = 1.0f;
             samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
 
-            if (vkCreateSampler( VulkanContext::Get().GetDevice().GetLogicalDevice(), &samplerCreateInfo, nullptr, &m_ColorAttachmentSampler ) != VK_SUCCESS) { MKT_THROW_RUNTIME_ERROR( "Failed to create Vulkan sampler!" ); }
+            if ( vkCreateSampler( VulkanContext::Get().GetDevice().GetLogicalDevice(), &samplerCreateInfo, nullptr, &m_ColorAttachmentSampler ) != VK_SUCCESS ) { MKT_THROW_RUNTIME_ERROR( "Failed to create Vulkan sampler!" ); }
 
             VulkanDeletionQueue::Push( [sampler = m_ColorAttachmentSampler]() -> void { vkDestroySampler( VulkanContext::Get().GetDevice().GetLogicalDevice(), sampler, nullptr ); } );
 
             // Create the Descriptor set for the texture displayed in the ImGuiWindow scene
 
-            const VulkanRenderer *vulkanSceneRenderer{ dynamic_cast<const VulkanRenderer *>( m_Renderer ) };
+            VulkanRenderer *vulkanSceneRenderer{ dynamic_cast<VulkanRenderer *>( m_Renderer ) };
 
             m_ColorAttachmentDescriptorSet =
                     ImGui_ImplVulkan_AddTexture( m_ColorAttachmentSampler, vulkanSceneRenderer->GetFinalImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
@@ -88,14 +87,29 @@ namespace Mikoto {
             GUISystem &guiSystem{ Engine::GetSystem<GUISystem>() };
 
             guiSystem.AddShutdownCallback( [ds = m_ColorAttachmentDescriptorSet]() -> void { ImGui_ImplVulkan_RemoveTexture( ds ); } );
+
+            vulkanSceneRenderer->RegisterResizeCallbacks( [&]() -> void {
+                VulkanRenderer *renderer{ dynamic_cast<VulkanRenderer *>( m_Renderer ) };
+                const VulkanImage &image{ renderer->GetFinalImage() };
+
+                VulkanDevice& device{ VulkanContext::Get().GetDevice() };
+                device.WaitIdle();
+
+                m_ColorAttachmentDescriptorSet =
+                        ImGui_ImplVulkan_AddTexture( m_ColorAttachmentSampler, image.GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+
+                guiSystem.AddShutdownCallback( [colorDs = m_ColorAttachmentDescriptorSet]() -> void {
+                    ImGui_ImplVulkan_RemoveTexture( colorDs );
+                } );
+            } );
         }
 
         auto SetManipulation( const GuizmoManipulationMode mode ) -> void { m_ActiveManipulationMode = mode; }
 
         auto SetupGuizmos() const -> void {
             Entity *currentSelection{ m_GetActiveEntityCallback() };
-            if (currentSelection != nullptr && currentSelection->IsValid()) {
-                if (!currentSelection->GetComponent<TagComponent>().IsVisible()) { return; }
+            if ( currentSelection != nullptr && currentSelection->IsValid() ) {
+                if ( !currentSelection->GetComponent<TagComponent>().IsVisible() ) { return; }
 
                 ImGuizmo::SetOrthographic( m_EditorMainCamera->IsOrthographic() );
                 ImGuizmo::SetDrawlist();
@@ -107,10 +121,32 @@ namespace Mikoto {
         }
 
         auto OnUpdate() -> void override {
+            if ( m_Renderer->HasUpdatedResolution() ) {
+                VulkanRenderer *vulkanSceneRenderer{ dynamic_cast<VulkanRenderer *>( m_Renderer ) };
+
+                vulkanSceneRenderer->RegisterResizeCallbacks( [&]() -> void {
+                    GUISystem &guiSystem{ Engine::GetSystem<GUISystem>() };
+                    VulkanRenderer *renderer{ dynamic_cast<VulkanRenderer *>( m_Renderer ) };
+                    const VulkanImage &image{ renderer->GetFinalImage() };
+
+                    VulkanDevice &device{ VulkanContext::Get().GetDevice() };
+                    device.WaitIdle();
+
+                    m_ColorAttachmentDescriptorSet =
+                            ImGui_ImplVulkan_AddTexture( m_ColorAttachmentSampler, image.GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+
+                    guiSystem.AddShutdownCallback( [colorDs = m_ColorAttachmentDescriptorSet]() -> void {
+                        ImGui_ImplVulkan_RemoveTexture( colorDs );
+                    } );
+                } );
+
+                return;
+            }
+
             const ImVec2 viewPortDimensions{ ImGui::GetContentRegionAvail() };
 
             // If the window size has changed, we need to resize the scene viewport
-            if (m_ViewPortWidth != viewPortDimensions.x || m_ViewPortHeight != viewPortDimensions.y) {
+            if ( m_ViewPortWidth != viewPortDimensions.x || m_ViewPortHeight != viewPortDimensions.y ) {
                 m_ViewPortWidth = viewPortDimensions.x;
                 m_ViewPortHeight = viewPortDimensions.y;
                 m_TargetScene->OnViewPortResize( viewPortDimensions.x, viewPortDimensions.y );
@@ -127,7 +163,7 @@ namespace Mikoto {
     private:
         auto HandleManipulationMode() const -> void {
             Entity *currentSelection{ m_GetActiveEntityCallback() };
-            if (currentSelection == nullptr || !currentSelection->IsValid()) { return; }
+            if ( currentSelection == nullptr || !currentSelection->IsValid() ) { return; }
 
             TransformComponent &transformComponent{ currentSelection->GetComponent<TransformComponent>() };
 
@@ -138,7 +174,7 @@ namespace Mikoto {
             glm::vec3 oldRotation{ transformComponent.GetRotation() };
             glm::vec3 oldScale{ transformComponent.GetScale() };
 
-            switch (m_ActiveManipulationMode) {
+            switch ( m_ActiveManipulationMode ) {
                 case GuizmoManipulationMode::TRANSLATION:
                     ImGuizmo::Manipulate( glm::value_ptr( cameraView ), glm::value_ptr( cameraProjection ), ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::MODE::LOCAL, glm::value_ptr( objectTransform ) );
                     break;
@@ -150,7 +186,7 @@ namespace Mikoto {
                     break;
             }
 
-            if (ImGuizmo::IsUsing()) {
+            if ( ImGuizmo::IsUsing() ) {
                 transformComponent.SetTransform( objectTransform );
 
                 // Apply the transformation to the children
@@ -167,17 +203,14 @@ namespace Mikoto {
 
                                               childTransform.SetTranslation( childTransform.GetTranslation() + offsetTranslation );
                                               childTransform.SetRotation( childTransform.GetRotation() + offsetRotation );
-                                              childTransform.SetScale( childTransform.GetScale() + offsetScale );
-                                          }, [&]( Entity *target ) -> bool {
-                                              return target->GetComponent<TagComponent>().GetGUID() ==
-                                                     currentSelection->GetComponent<TagComponent>().GetGUID();
-                                          } );
+                                              childTransform.SetScale( childTransform.GetScale() + offsetScale ); }, [&]( Entity *target ) -> bool { return target->GetComponent<TagComponent>().GetGUID() ==
+                                                                                                                   currentSelection->GetComponent<TagComponent>().GetGUID(); } );
             }
         }
 
     private:
         GuizmoManipulationMode m_ActiveManipulationMode{};
-        std::function<Entity*()> m_GetActiveEntityCallback{};
+        std::function<Entity *()> m_GetActiveEntityCallback{};
 
         VkSampler m_ColorAttachmentSampler{};
         VkDescriptorSet m_ColorAttachmentDescriptorSet{};
@@ -191,11 +224,11 @@ namespace Mikoto {
         // Initialize implementation
         ScenePanelViewport_VKImplCreateInfo sceneApiCreateInfo{
             .ViewportCreateInfo{
-                .ViewportWidth{ createInfo.Width },
-                .ViewportHeight{ createInfo.Height },
-                .TargetScene{ createInfo.TargetScene },
-                .Renderer{ createInfo.Renderer },
-                .MainCamera{ createInfo.EditorMainCamera },
+                    .ViewportWidth{ createInfo.Width },
+                    .ViewportHeight{ createInfo.Height },
+                    .TargetScene{ createInfo.TargetScene },
+                    .Renderer{ createInfo.Renderer },
+                    .MainCamera{ createInfo.EditorMainCamera },
             },
             .GetActiveEntityCallback{ createInfo.GetActiveEntityCallback },
         };
@@ -203,7 +236,7 @@ namespace Mikoto {
         // Set scene panel implementation
         m_Implementation = CreateScope<ScenePanelViewport_VKImpl>( sceneApiCreateInfo );
 
-        if (m_Implementation != nullptr) {
+        if ( m_Implementation != nullptr ) {
             m_Implementation->Init();
         } else {
             MKT_APP_LOGGER_ERROR( "ScenePanel::ScenePanel - Failed to create Scene Panel ImGui implementation." );
@@ -211,7 +244,7 @@ namespace Mikoto {
     }
 
     auto ScenePanel::OnUpdate( MKT_UNUSED_VAR float ts ) -> void {
-        if (m_PanelIsVisible) {
+        if ( m_PanelIsVisible ) {
             constexpr ImGuiWindowFlags windowFlags{};
 
             // Expand scene view to window bounds (no padding)

@@ -103,6 +103,23 @@ namespace Mikoto::Math {
 
         return true;
     }
+
+    /**
+         * Computes the model matrix as in Translate * Ry * Rx * Rz * Scale (where R represents a
+         * rotation in the desired axis. Rotation convention uses Tait-Bryan angles with axis order
+         * Y(1), X(2), Z(3)
+         * */
+    MKT_NODISCARD inline auto RecomputeTransform( const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3( 0.0f ) ) -> glm::mat4 {
+        // Compute scale matrix
+        const glm::mat4 scale{ glm::scale( GLM_IDENTITY_MAT4, size ) };
+
+        // Compute rotation matrix
+        glm::mat4 rotation{ glm::rotate( GLM_IDENTITY_MAT4, ( float )glm::radians( angles.y ), GLM_UNIT_VECTOR_Y ) };
+        rotation = glm::rotate( rotation, ( float )glm::radians( angles.x ), GLM_UNIT_VECTOR_X );
+        rotation = glm::rotate( rotation, ( float )glm::radians( angles.z ), GLM_UNIT_VECTOR_Z );
+
+        return glm::translate( GLM_IDENTITY_MAT4, position ) * rotation * scale;
+    }
 }// namespace Mikoto::Math
 
 #endif// MIKOTO_MATH_HH

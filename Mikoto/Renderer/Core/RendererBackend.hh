@@ -34,7 +34,16 @@
 #define MKT_SHADER_FALSE 0
 
 namespace Mikoto {
+    enum class RenderResolution {
+        RENDER_RESOLUTION_HD,
+        RENDER_RESOLUTION_FHD,
+        RENDER_RESOLUTION_QHD,
+        RENDER_RESOLUTION_UHD,
+    };
+
     struct RendererCreateInfo {
+        std::string_view Name{};
+
         UInt32_T ViewportWidth{};
         UInt32_T ViewportHeight{};
 
@@ -69,6 +78,27 @@ namespace Mikoto {
 
         virtual auto SetupCubeMap(const TextureCubeMap* cubeMap) -> void = 0;
 
+        virtual auto SetRenderResolution(RenderResolution resolution) -> void = 0;
+        virtual auto HasUpdatedResolution() const -> bool = 0;
+        MKT_NODISCARD auto GetRenderResolution() const -> RenderResolution { return m_RenderResolution; }
+
+
+        template<typename... Args>
+        auto SetOutlineRenderColor( Args&&... args ) -> void {
+            m_OutlineRenderColor = glm::vec4{ std::forward<Args>( args )... };
+        }
+
+        MKT_NODISCARD auto SetOutlineRenderWidth() const -> float { return m_OutlineRenderWidth; }
+
+        auto SetOutlineRenderWidth(const float size) -> void {
+            if (size > 1.0f) {
+                m_OutlineRenderWidth = size;
+            }
+        }
+
+        auto SetOutline(const bool value) -> void { m_OutlineEnable = value; }
+        virtual auto SetOutlineRenderTargetEntity(UInt64_T id) -> void = 0;
+
         // Camera & Viewport
         template<typename... Args>
         auto SetProjection( Args &&...args ) -> void {
@@ -95,8 +125,23 @@ namespace Mikoto {
         static auto Create( const RendererCreateInfo& createInfo ) -> Scope_T<RendererBackend>;
 
     protected:
+        explicit RendererBackend( const std::string_view name)
+            : m_Name{ name }
+        {}
+
+    protected:
+        std::string m_Name{};
+
         glm::mat4 m_Projection{};
         glm::vec4 m_ClearColor{};
+
+        bool m_OutlineEnable{};
+        float m_OutlineRenderWidth{ 1.5f };
+        glm::vec4 m_OutlineRenderColor{};
+
+        bool m_UpdatedResolution{ false };
+
+        RenderResolution m_RenderResolution{ RenderResolution::RENDER_RESOLUTION_FHD };
 
         const SceneCamera* m_Camera{ nullptr };
 

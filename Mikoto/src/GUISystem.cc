@@ -159,7 +159,6 @@ namespace Mikoto {
     }
 
     auto GUISystem::Update() -> void {
-
     }
 
     auto GUISystem::EndFrame() const -> void {

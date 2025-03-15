@@ -14,11 +14,12 @@ layout (location = 0) in vec3 inFragmentPos;
 layout (location = 1) in vec3 inNormals;
 layout (location = 2) in vec2 inTexCoord;
 layout (location = 3) in vec2 inVertexColor;
+layout (location = 4) in vec4 outOutlineColor;
 
 // Output variables
 layout (location = 0) out vec4 outColor;
 
 void main() {
 
-    outColor = vec4(1.0f, 1.0f, 1.0f , 1.0);
+    outColor = outOutlineColor;
 }

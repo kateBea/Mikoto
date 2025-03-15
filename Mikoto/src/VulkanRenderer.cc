@@ -281,6 +281,18 @@ namespace Mikoto {
 
         pipeline->Bind( m_DrawCommandBuffer );
 
+        m_OutlinePushConstantsBlock.OutlineWidth = m_OutlineRenderWidth;
+        m_OutlinePushConstantsBlock.OutlineColor = m_OutlineRenderColor;
+
+        vkCmdPushConstants(
+            m_DrawCommandBuffer,
+            pipeline->GetLayout(),
+            VK_SHADER_STAGE_VERTEX_BIT,
+            0,
+            sizeof(OutlinePushConstantData),
+            std::addressof( m_OutlinePushConstantsBlock )
+        );
+
         const VulkanVertexBuffer* vulkanVertexBuffer{ dynamic_cast<const VulkanVertexBuffer*>( meshRenderInfo.Object->GetVertexBuffer() ) };
         const VulkanIndexBuffer* vulkanIndexBuffer{ dynamic_cast<const VulkanIndexBuffer*>( meshRenderInfo.Object->GetIndexBuffer() ) };
 
@@ -898,10 +910,16 @@ namespace Mikoto {
             VulkanContext::Get().GetDescriptorSetLayouts( DESCRIPTOR_SET_LAYOUT_OUTLINE )
         };
 
+        // Define push constant range
+        VkPushConstantRange pushConstantRange{};
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        pushConstantRange.offset = 0;
+        pushConstantRange.size = sizeof(float) + sizeof(glm::vec4); // Outline width + color
+
         // Create the pipeline layout
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VulkanHelpers::Initializers::PipelineLayoutCreateInfo() };
-        pipelineLayoutInfo.pushConstantRangeCount = 0;
-        pipelineLayoutInfo.pPushConstantRanges = nullptr;
+        pipelineLayoutInfo.pushConstantRangeCount = 1;
+        pipelineLayoutInfo.pPushConstantRanges = std::addressof( pushConstantRange );
         pipelineLayoutInfo.setLayoutCount = static_cast<UInt32_T>( descLayouts.size() );
         pipelineLayoutInfo.pSetLayouts = descLayouts.data();
 

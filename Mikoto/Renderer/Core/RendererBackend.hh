@@ -88,12 +88,10 @@ namespace Mikoto {
             m_OutlineRenderColor = glm::vec4{ std::forward<Args>( args )... };
         }
 
-        MKT_NODISCARD auto SetOutlineRenderWidth() const -> float { return m_OutlineRenderWidth; }
+        MKT_NODISCARD auto GetOutlineRenderWidth() const -> float { return m_OutlineRenderWidth; }
 
         auto SetOutlineRenderWidth(const float size) -> void {
-            if (size > 1.0f) {
-                m_OutlineRenderWidth = size;
-            }
+            m_OutlineRenderWidth = size;
         }
 
         auto SetOutline(const bool value) -> void { m_OutlineEnable = value; }
@@ -137,7 +135,7 @@ namespace Mikoto {
 
         bool m_OutlineEnable{};
         float m_OutlineRenderWidth{ 1.5f };
-        glm::vec4 m_OutlineRenderColor{};
+        glm::vec4 m_OutlineRenderColor{ 1.0f, 1.0f, 1.0f, 1.0f};
 
         bool m_UpdatedResolution{ false };
 

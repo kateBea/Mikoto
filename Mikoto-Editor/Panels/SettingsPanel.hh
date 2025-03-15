@@ -17,8 +17,10 @@
 namespace Mikoto {
     struct SettingsPanelData {
         glm::vec4 ClearColor{};
+        glm::vec4 OutlineColor{ 1.0f, 1.0f, 1.0f, 1.0f };
         float EditorCameraMovementSpeed{ 70 };
         float EditorCameraRotationSpeed{ 30 };
+        float Outline{ 1.5f };
         float NearPlane{ 0.1f };
         float FarPlane{ 2000.0f };
         float FieldOfView{ 45.0f };

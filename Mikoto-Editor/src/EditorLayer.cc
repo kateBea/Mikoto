@@ -119,6 +119,8 @@ namespace Mikoto {
         m_EditorCamera->UpdateState( timeStep );
 
         // Setup renderer
+        m_EditorRenderer->SetOutlineRenderWidth( settingsPanel.GetData().Outline );
+        m_EditorRenderer->SetOutlineRenderColor( settingsPanel.GetData().OutlineColor );
         m_EditorRenderer->SetClearColor( settingsPanel.GetData().ClearColor );
         m_EditorRenderer->EnableWireframe( settingsPanel.GetData().RenderWireframeMode );
 

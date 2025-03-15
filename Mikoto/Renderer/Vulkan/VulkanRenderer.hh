@@ -88,7 +88,7 @@ namespace Mikoto {
         auto SetupPBRPass(const MeshRenderInfo& meshRenderInfo) -> void;
         auto SetupDefaultPass(const MeshRenderInfo& meshRenderInfo) -> void;
 
-        auto RecordCommands() -> void;
+        auto RecordDrawCommands() -> void;
         auto RecordComputeCommands() -> void;
         auto RecordComputeCommandsDEBUG() -> void;
         auto PrepareOffscreenRender() -> void;

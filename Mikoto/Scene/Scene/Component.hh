@@ -9,6 +9,7 @@
 // C++ Standard Library
 #include <functional>
 #include <string>
+#include <unordered_set>
 
 // Third-Party Libraries
 #include <glm/glm.hpp>
@@ -198,6 +199,34 @@ namespace Mikoto {
         glm::mat4 m_Transform{};
 
         bool m_HasUniformScale{};
+    };
+
+    class RelationComponent : public BaseComponent<RelationComponent> {
+    public:
+        explicit RelationComponent() = default;
+
+        RelationComponent(const RelationComponent& other) = default;
+        RelationComponent(RelationComponent&& other) = default;
+
+        auto operator=(const RelationComponent& other) -> RelationComponent& = default;
+        auto operator=(RelationComponent&& other) -> RelationComponent& = default;
+
+        auto RegisterChild(const UInt64_T id) -> void { m_ChildrenIDs.emplace(id); }
+        auto EraseChild(const UInt64_T id) -> void { m_ChildrenIDs.erase(id); }
+        MKT_NODISCARD auto IsChild(const UInt64_T id) const -> bool {return m_ChildrenIDs.contains(id); }
+
+        MKT_NODISCARD auto GetChildren() const -> decltype( auto ) { return (m_ChildrenIDs); }
+
+        auto OnComponentAttach() -> void {  }
+        auto OnComponentUpdate() -> void {  }
+        auto OnComponentRemoved() -> void {  }
+
+        ~RelationComponent() = default;
+
+    private:
+
+        std::unordered_set<UInt64_T> m_ChildrenIDs{};
+
     };
 
 

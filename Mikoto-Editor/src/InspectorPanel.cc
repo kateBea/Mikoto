@@ -1090,7 +1090,7 @@ namespace Mikoto {
         TagComponent& tag{ entity.GetComponent<TagComponent>() };
 
         bool wantToRenderActiveEntity{ tag.IsVisible() };
-        if ( ImGui::Checkbox( "##DrawVisibilityCheckBox::Checkbox", std::addressof( wantToRenderActiveEntity ) ) ) {
+        if ( ImGuiUtils::CheckBox( "##DrawVisibilityCheckBox::Checkbox", wantToRenderActiveEntity ) ) {
             tag.SetVisibility( wantToRenderActiveEntity );
         }
     }
@@ -1539,12 +1539,25 @@ namespace Mikoto {
         ImGuiUtils::ComboList( viewRange.begin(), viewRange.end(), currentFontSelection,
             [&](const std::string& target) -> bool { return currentFontSelection == target; }, "SetupTextComponentTab:FontCombo");
 
+        ImGuiUtils::HelpMarker( "Select the current font.", "(?)", true );
+
+        ImGui::Spacing();
+        static std::array textAlignment{ "Center", "Left", "Right" };
+
+        static std::string currentAlignment{ textAlignment[0] };
+        ImGuiUtils::ComboList( textAlignment.begin(), textAlignment.end(), currentAlignment,
+            [&](const std::string_view target) -> bool { return StringUtils::Equal( currentAlignment, target); }, "SetupTextComponentTab:Alignment");
+
+        ImGuiUtils::HelpMarker( "Text alignment.", "(?)", true );
+
         // Slider float font size
         float currentSize{ textComponent.GetFontSize() };
         ImGui::Spacing();
-        if (ImGuiUtils::Slider( "##Size", currentSize, {10.0f, 35.0f } )) {
+        if (ImGuiUtils::Slider( "##WorldSize", currentSize, {10.0f, 35.0f } )) {
             textComponent.SetFontSize( currentSize );
         }
+
+        ImGuiUtils::HelpMarker( "Text size in world space.", "(?)", true );
 
         // Slider float letter spacing
         float spacing{ textComponent.GetLetterSpacing() };
@@ -1553,10 +1566,14 @@ namespace Mikoto {
             textComponent.SetLetterSpacing( spacing );
         }
 
+        ImGuiUtils::HelpMarker( "Text inner spacing.", "(?)", true );
+
         std::string content{ textComponent.GetTextContent() };
 
         ImGui::Spacing();
-        if (ImGuiUtils::TextArea( content )) {
+        // Max scaling between 1 and 3
+        const float scalingValue{ 1.0f + ((3.0f - 1.0f) / 25.0f) * (currentSize - 10.0f) };
+        if (ImGuiUtils::TextArea( content, scalingValue )) {
             textComponent.SetTextContent( content );
         }
     }

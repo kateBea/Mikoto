@@ -9,9 +9,9 @@
 #include <stdexcept>
 
 // Third-Party Libraries
-#include <volk.h>
-#include <stb_image.h>
 #include <backends/imgui_impl_vulkan.h>
+#include <stb_image.h>
+#include <volk.h>
 
 // Project Headers
 #include <Common/Common.hh>
@@ -26,33 +26,42 @@
 namespace Mikoto {
 
     VulkanTexture2D::VulkanTexture2D( const VulkanTexture2DCreateInfo& data )
-        : Texture2D{ data.Type }
-    {
+        : Texture2D{ data.Type } {
         try {
-            LoadImageData( data.Path );
+            if ( data.BufferData.empty() ) {
+                LoadImageData( data.Path );
+            } else {
+                m_Width = data.Width;
+                m_Height = data.Height;
+                m_Channels = data.ChannelCount;
+                m_BufferSize = m_Width * m_Height * data.ChannelCount;
+
+                m_FileData.reserve( m_BufferSize );
+
+                std::memcpy( m_FileData.data(), data.BufferData.data(), m_BufferSize );
+            }
+
             CreateImage();
             CreateSampler();
 
             if ( !data.RetainFileData ) {
-                stbi_image_free( m_FileData );
-                m_FileData = nullptr;
+                m_FileData.clear();
             }
-        } catch (const std::exception& exception) {
-            m_FileData = nullptr;
+        } catch ( const std::exception& exception ) {
+            m_FileData.clear();
             m_BufferSize = 0;
             m_Image = nullptr;
             m_Sampler = VK_NULL_HANDLE;
 
             MKT_CORE_LOGGER_ERROR( "VulkanTexture2D::Create - Failed to initialize the Vulkan Texture 2D. exception.what(): {}", exception.what() );
         }
-
     }
 
     auto VulkanTexture2D::Create( const VulkanTexture2DCreateInfo& data ) -> Scope_T<VulkanTexture2D> {
         auto result{ CreateScope<VulkanTexture2D>( data ) };
 
         // Could not create a valid texture
-        if (result == nullptr || result->m_Image == nullptr) {
+        if ( result == nullptr || result->m_Image == nullptr ) {
             return nullptr;
         }
 
@@ -63,7 +72,7 @@ namespace Mikoto {
         VulkanDevice& device{ VulkanContext::Get().GetDevice() };
 
         m_BufferSize = 0;
-        m_FileData = nullptr;
+        m_FileData.clear();
 
         vkDestroySampler( device.GetLogicalDevice(), m_Sampler, nullptr );
 
@@ -73,7 +82,7 @@ namespace Mikoto {
     }
 
     VulkanTexture2D::~VulkanTexture2D() {
-        if (!m_IsReleased) {
+        if ( !m_IsReleased ) {
             Release();
             Invalidate();
         }
@@ -84,16 +93,16 @@ namespace Mikoto {
 
         const File* textureFile{ nullptr };
 
-        if (path.extension() == ".tif") {
+        if ( path.extension() == ".tif" ) {
 
             // traverse possible alternative extensions
-            for (const auto& extension : { ".png", ".jpg", ".jpeg" }) {
+            for ( const auto& extension: { ".png", ".jpg", ".jpeg" } ) {
                 // Look for the PNG version instead
                 Path_T pngVersion{ path };
                 pngVersion.replace_extension( extension );
                 textureFile = fileSystem.LoadFile( pngVersion );
 
-                if (textureFile != nullptr) {
+                if ( textureFile != nullptr ) {
                     break;
                 }
             }
@@ -101,7 +110,7 @@ namespace Mikoto {
             textureFile = fileSystem.LoadFile( path );
         }
 
-        if (textureFile == nullptr) {
+        if ( textureFile == nullptr ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanTexture2D::LoadImageData - Failed to load texture file." );
         }
 
@@ -109,14 +118,14 @@ namespace Mikoto {
 
         stbi_set_flip_vertically_on_load( true );
 
-        m_FileData = stbi_load(
-            m_File->GetPathCStr(),
-            std::addressof( m_Width ),
-            std::addressof( m_Height ),
-            std::addressof( m_Channels ),
-            STBI_rgb_alpha );
+        auto data{ stbi_load(
+                m_File->GetPathCStr(),
+                std::addressof( m_Width ),
+                std::addressof( m_Height ),
+                std::addressof( m_Channels ),
+                STBI_rgb_alpha ) };
 
-        if ( !m_FileData ) {
+        if ( !data ) {
             MKT_THROW_RUNTIME_ERROR( fmt::format( "VulkanTexture2D - Failed to load texture image! File: [{}]", m_File->GetPathCStr() ) );
         }
 
@@ -124,11 +133,14 @@ namespace Mikoto {
         // channels which matches the format we are going to be using for now
         constexpr auto channelCount{ 4 };
         m_BufferSize = m_Width * m_Height * channelCount;
+
+        m_FileData.resize( m_BufferSize );
+        std::memcpy( m_FileData.data(), data, m_BufferSize );
+
+        stbi_image_free( data );
     }
 
     auto VulkanTexture2D::CreateImage() -> void {
-        VulkanDevice& device{ VulkanContext::Get().GetDevice() };
-
         // allocate staging buffer
         VkBufferCreateInfo stagingBufferInfo{ VulkanHelpers::Initializers::BufferCreateInfo() };
         stagingBufferInfo.pNext = nullptr;
@@ -147,10 +159,10 @@ namespace Mikoto {
             .WantMapping{ true }
         };
 
-         m_StagingBuffer = VulkanBuffer::Create( stagingBufferBufferCreateInfo );
+        m_StagingBuffer = VulkanBuffer::Create( stagingBufferBufferCreateInfo );
 
         // Copy vertex data to staging buffer
-        std::memcpy(m_StagingBuffer->GetVmaAllocationInfo().pMappedData, m_FileData, m_BufferSize);
+        std::memcpy( m_StagingBuffer->GetVmaAllocationInfo().pMappedData, m_FileData.data(), m_BufferSize );
 
         m_StagingBuffer->PersistentUnmap();
 
@@ -217,7 +229,7 @@ namespace Mikoto {
 
         VulkanContext::Get().ImmediateSubmit( [&]( VkCommandBuffer cmd ) -> void {
             // Perform second transition for the descriptor set creation
-            m_Image->LayoutTransition(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd);
+            m_Image->LayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd );
         } );
     }
 
@@ -253,4 +265,4 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR( "Failed to create texture sampler!" );
         }
     }
-}
+}// namespace Mikoto

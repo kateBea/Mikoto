@@ -829,7 +829,6 @@ namespace Mikoto {
                     .Path{ PathBuilder()
                         .WithPath( fileSystem.GetFontsRootPath().string() )
                         .WithPath( "Inter" )
-                        .WithPath( "static" )
                         .WithPath( "Inter-VariableFont.ttf" )
                         .Build() },
                     .Size{} } ) };
@@ -1527,7 +1526,13 @@ namespace Mikoto {
     static auto SetupTextComponentTab(Entity& entity) -> void {
         TextComponent& textComponent{ entity.GetComponent<TextComponent>() };
 
-        // Combo box, font names (all currently loaded fonts)
+        glm::vec4 color{ textComponent.GetColor() };
+        constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
+
+        if ( ImGui::ColorEdit4( "Color", glm::value_ptr( color ), colorEditFlags ) ) {
+            textComponent.SetColor( color );
+        }
+
         AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
         const auto& fontList{ assetsSystem.GetFonts() };
 

@@ -25,8 +25,16 @@ namespace Mikoto {
 
     struct VulkanTexture2DCreateInfo {
         Path_T Path{};
+        std::string Name{};
+
         MapType Type{};
         bool RetainFileData{ false };
+
+        Int32_T Width{};
+        Int32_T Height{};
+        Int32_T ChannelCount{};
+
+        std::span<const UInt8_T> BufferData{};
     };
 
     /**
@@ -41,7 +49,7 @@ namespace Mikoto {
 
         explicit VulkanTexture2D(const VulkanTexture2DCreateInfo& data);
 
-        MKT_NODISCARD auto GetFileData() const -> stbi_uc* { return m_FileData; }
+        MKT_NODISCARD auto GetFileData() const -> decltype( auto ) { return (m_FileData); }
         MKT_NODISCARD auto GetImage() -> VulkanImage& { return *m_Image; }
         MKT_NODISCARD auto GetImage() const -> const VulkanImage& { return *m_Image; }
         MKT_NODISCARD auto GetSampler() const -> const VkSampler& { return m_Sampler; }
@@ -59,7 +67,7 @@ namespace Mikoto {
 
     private:
         Size_T m_BufferSize{ 0 };
-        stbi_uc* m_FileData{ nullptr };
+        std::vector<UInt8_T> m_FileData{ };
 
         VkSampler m_Sampler{ VK_NULL_HANDLE };
 

@@ -52,8 +52,9 @@ namespace Mikoto {
 
     struct EntityQueueInfo {
         TagComponent& Tag;
-        RenderComponent& Render;
+        RenderComponent* RenderComponent{ nullptr };
         MaterialComponent& Material;
+        TextComponent* TextComponent{ nullptr };
         TransformComponent& Transform;
     };
 

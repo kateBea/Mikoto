@@ -70,7 +70,12 @@ SET(SOURCES ${IMGUI_SOURCES} ${IMGUIZMO_SOURCES} ${SOURCE_FILES}
         src/TextureCubeMap.cc
         Renderer/Buffer/BufferLayout.hh
         Renderer/Vulkan/VulkanFont.hh
-        src/VulkanFont.cc)
+        src/VulkanFont.cc
+        Renderer/Text/FreeTypeManager.hh
+        Renderer/Text/FreeTypeFont.hh
+        Renderer/Text/FreeTypeGlyph.hh
+        src/FreeTypeGlyph.cc
+        src/FreeTypeFont.cc)
 
 # External dependencies
 ADD_SUBDIRECTORY(${GLFW_CMAKE_DIR} build/glfw)

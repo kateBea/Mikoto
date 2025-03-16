@@ -113,9 +113,13 @@ namespace Mikoto {
     }
 
     auto SceneCamera::SetViewportSize( const float width, const float height ) -> void {
-        if ( m_ViewportWidth == width && m_ViewportHeight == height ) return;
+        if ( m_ViewportWidth == width && m_ViewportHeight == height ) {
+            return;
+        }
+
         m_ViewportWidth = width;
         m_ViewportHeight = height;
+
         UpdateProjection();
     }
 

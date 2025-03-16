@@ -9,6 +9,7 @@
 // C++ Standard Library
 #include <any>
 #include <memory>
+#include <span>
 
 // Project Headers
 #include <Assets/Texture.hh>
@@ -20,6 +21,19 @@
 
 namespace Mikoto {
 
+    struct Texture2DCreateInfo {
+        std::string Name{};
+        Path_T Path{};
+
+        Int32_T Width{};
+        Int32_T Height{};
+        Int32_T ChannelCount{};
+
+        std::span<const UInt8_T> BufferData{};
+
+        MapType Type{};
+    };
+
     class Texture2D : public Texture {
     public:
         MKT_NODISCARD auto GetChannels() const -> Int32_T { return m_Channels; }
@@ -28,13 +42,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetType() const -> MapType { return m_Type; }
         MKT_NODISCARD auto GetFile() const -> const File* { return m_File; }
 
-        /**
-         * @brief Creates a new texture
-         * Creates a Texture2D based on the active graphics API (Vulkan or OpenGL) from the provided file path and MapType.
-         * @param path The path to the texture file.
-         * @param type The MapType for the texture.
-         * @return A shared pointer to the created Texture2D. If creation fails, returns a null pointer.
-         * */
+        MKT_NODISCARD static auto Create(const Texture2DCreateInfo& createInfo) -> Scope_T<Texture2D>;
         MKT_NODISCARD static auto Create(const Path_T& path, MapType type) -> Scope_T<Texture2D>;
 
         ~Texture2D() override = default;

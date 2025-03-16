@@ -452,6 +452,13 @@ namespace Mikoto {
             .WithBinding( 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
                                                .Build( m_VulkanData.Device->GetLogicalDevice() ) };
         m_DescriptorSetLayouts.try_emplace( DESCRIPTOR_SET_LAYOUT_OUTLINE, outlineSimple );
+
+        // -----------------------------------------------------------
+        DescriptorLayoutBuilder textSimpleLayoutCreateInfo{};
+        VkDescriptorSetLayout textSimple{ textSimpleLayoutCreateInfo
+            .WithBinding( 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT )
+                                               .Build( m_VulkanData.Device->GetLogicalDevice() ) };
+        m_DescriptorSetLayouts.try_emplace( DESCRIPTOR_SET_LAYOUT_TEXT, textSimple );
     }
 
     auto VulkanContext::RecreateSwapChain( const bool enableVsync ) -> void {

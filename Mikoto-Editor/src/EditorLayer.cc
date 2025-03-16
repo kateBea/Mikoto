@@ -37,6 +37,9 @@
 #include <Scene/Camera/SceneCamera.hh>
 #include <Scene/Scene/Scene.hh>
 
+#include "Renderer/Text/FreeTypeFont.hh"
+#include "Renderer/Text/FreeTypeGlyph.hh"
+
 namespace Mikoto {
     EditorLayer::EditorLayer( const EditorLayerCreateInfo& createInfo )
         : Layer{ "EditorLayer" },
@@ -735,13 +738,12 @@ namespace Mikoto {
         FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
         AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
 
-        Font* interBlack{ assetsSystem.LoadFont( { .Path{ PathBuilder()
+        FreeTypeFont* interBlack{ dynamic_cast<FreeTypeFont*>(assetsSystem.LoadFont( { .Path{ PathBuilder()
                                                                   .WithPath( fileSystem.GetFontsRootPath().string() )
                                                                   .WithPath( "Inter" )
-                                                                  .WithPath( "static" )
                                                                   .WithPath( "Inter-VariableFont.ttf" )
                                                                   .Build() },
-                                                   .Size{} } ) };
+                                                   .Size{ 48 } } )) };
 
         interBlack->SetSpacing( 1 );
 
@@ -751,7 +753,9 @@ namespace Mikoto {
                                                                  .WithPath( "static" )
                                                                  .WithPath( "Inter-Bold.ttf" )
                                                                  .Build() },
-                                                  .Size{} } ) };
+                                                  .Size{ 48 } } ) };
+
+        interBlack->GetGlyph( ' ' );
 
         interBold->SetSpacing( 1 );
     }

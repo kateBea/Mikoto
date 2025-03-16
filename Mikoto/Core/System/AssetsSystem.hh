@@ -5,9 +5,6 @@
 #ifndef ASSETSSYSTEM_HH
 #define ASSETSSYSTEM_HH
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
-
 #include <Core/Engine.hh>
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
@@ -48,8 +45,6 @@ namespace Mikoto {
         std::unordered_map<std::string, Scope_T<Model>> m_Models{};
         std::unordered_map<std::string, Scope_T<Texture>> m_Textures{};
         std::unordered_map<std::string, Scope_T<Font>> m_Fonts{};
-
-        FT_Library m_FreeTypeLibrary{};
     };
 
 }

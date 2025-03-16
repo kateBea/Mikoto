@@ -331,7 +331,6 @@ namespace Mikoto {
                     .Path{ PathBuilder()
                         .WithPath( fileSystem.GetFontsRootPath().string() )
                         .WithPath( "Inter" )
-                        .WithPath( "static" )
                         .WithPath( "Inter-VariableFont.ttf" )
                         .Build() },
                     .Size{} } ) };

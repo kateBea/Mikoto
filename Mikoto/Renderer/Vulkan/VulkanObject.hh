@@ -9,6 +9,9 @@
 
 namespace Mikoto {
 
+    // This is a vulkan resource residing on the GPU
+    // These are allocated and after its use they must be free.
+    // Examples: Pipelines, Shaders, Samplers, Textures, etc.
     class VulkanObject {
     public:
         explicit VulkanObject() = default;

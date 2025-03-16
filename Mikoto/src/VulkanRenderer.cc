@@ -773,7 +773,7 @@ namespace Mikoto {
 
                 transform = Math::RecomputeTransform( position, scale, rotation );
 
-                PushConstantData.Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+                PushConstantData.Color = { textRenderInfo.Color };
                 PushConstantData.MVP = m_Camera->GetProjection() * m_Camera->GetViewMatrix() * transform;
 
                 vkCmdPushConstants(

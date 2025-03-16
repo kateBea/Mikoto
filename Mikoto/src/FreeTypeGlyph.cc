@@ -43,10 +43,10 @@ namespace Mikoto {
         float x1 = x0 + static_cast<float>(m_Size.x);
         float y1 = y0 + static_cast<float>(m_Size.y);
 
-        // Default white color
-        float r{ 1.0f };
-        float g{ 1.0f };
-        float b{ 1.0f };
+        // Default neutral color
+        float r{ 0.0f };
+        float g{ 0.0f };
+        float b{ 0.0f };
 
         std::vector<float> vertices{
             // Position (x, y, z)  | Color (r, g, b) | UV (u, v)

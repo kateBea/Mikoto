@@ -5,16 +5,24 @@
 #ifndef VULKANFONT_HH
 #define VULKANFONT_HH
 
-#include <Assets/Font.hh>
+#include <unordered_map>
 
+#include <volk.h>
+
+#include <Assets/Font.hh>
+#include <Common/Common.hh>
+
+#include "Renderer/Text/FreeTypeFont.hh"
 #include "VulkanObject.hh"
 
 
 namespace Mikoto {
-    class VulkanFont final : public VulkanObject, public Font {
+    class VulkanFont final : public VulkanObject, public FreeTypeFont {
     public:
         explicit VulkanFont( const FontLoadInfo &loadInfo )
-            : Font{ loadInfo } {}
+            : FreeTypeFont{ loadInfo } {}
+
+        MKT_NODISCARD auto GetGlyphDescriptorSet(UInt64_T characterCode) -> VkDescriptorSet;
 
         auto Release() -> void override;
 
@@ -22,7 +30,8 @@ namespace Mikoto {
 
     private:
 
-
+        // Temporary
+        std::unordered_map<UInt64_T, VkDescriptorSet> m_GlyphDescriptorSet{};
     };
 
 }

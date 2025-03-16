@@ -30,6 +30,9 @@ namespace Mikoto {
         VkRenderPass RenderPass{};
         VkPipelineLayout PipelineLayout{};
 
+        //TODO: Review, this causes this struct to pass inconsistent data (diff values when you put this field vs when u don't)
+        //BufferLayout Layout{};
+
         PipelineType Type{ PipelineType::VULKAN_GRAPHICS_PIPELINE };
 
         VkPipelineViewportStateCreateInfo ViewportInfo{};
@@ -47,7 +50,7 @@ namespace Mikoto {
 
     class VulkanPipeline final : public VulkanObject {
     public:
-        explicit VulkanPipeline(const VulkanPipelineCreateInfo& config);
+        explicit VulkanPipeline(const VulkanPipelineCreateInfo& config, const BufferLayout& vertexLayout = VertexBuffer::GetDefaultBufferLayout());
 
         auto Init() -> void;
 
@@ -70,6 +73,8 @@ namespace Mikoto {
         VkPipeline m_GraphicsPipeline{};
         VkPipelineLayout m_PipelineLayout{};
         VulkanPipelineCreateInfo m_ConfigInfo{};
+
+        BufferLayout m_BufferLayout{};
     };
 }
 

@@ -2,31 +2,25 @@
 // Created by zanet on 1/26/2025.
 //
 
-#include <string>
-#include <string_view>
-#include <filesystem>
-
-#include <Common/Common.hh>
-#include <Core/Logging/Logger.hh>
-#include <Core/Logging/Assert.hh>
-#include <Library/Utility/Types.hh>
-#include <Core/System/AssetsSystem.hh>
 #include <Assets/Model.hh>
 #include <Assets/Texture.hh>
+#include <Common/Common.hh>
+#include <Core/Logging/Assert.hh>
+#include <Core/Logging/Logger.hh>
+#include <Core/System/AssetsSystem.hh>
+#include <Library/Utility/Types.hh>
 #include <Material/Texture/TextureCubeMap.hh>
+#include <filesystem>
+#include <string>
+#include <string_view>
+
+#include "Renderer/Text/FreeTypeManager.hh"
 
 
 namespace Mikoto {
 
     auto AssetsSystem::Init( ) -> void {
-
-        // Init Free Ttype Library
-        const auto FTInit_Result{ FT_Init_FreeType(std::addressof( m_FreeTypeLibrary )) };
-
-        if (FTInit_Result != 0) {
-            MKT_CORE_LOGGER_ERROR( "ERROR::FREETYPE: Could not init FreeType Library");
-            return;
-        }
+        FreeTypeManager::Init();
 
     }
 
@@ -38,7 +32,16 @@ namespace Mikoto {
         switch ( info.Type ) {
             case MapType::TEXTURE_CUBE:
                 return TextureCubeMap::Create( { .TexturePath{ info.Path } } ).release();
-            default:
+            case MapType::TEXTURE_2D_INVALID:
+            case MapType::TEXTURE_2D_TEXT:
+            case MapType::TEXTURE_2D_DIFFUSE:
+            case MapType::TEXTURE_2D_SPECULAR:
+            case MapType::TEXTURE_2D_EMISSIVE:
+            case MapType::TEXTURE_2D_NORMAL:
+            case MapType::TEXTURE_2D_ROUGHNESS:
+            case MapType::TEXTURE_2D_METALLIC:
+            case MapType::TEXTURE_2D_AMBIENT_OCCLUSION:
+            case MapType::TEXTURE_2D_COUNT:
                 return Texture2D::Create( info.Path, info.Type ).release();
         }
 
@@ -46,13 +49,13 @@ namespace Mikoto {
     }
 
     auto AssetsSystem::Shutdown() -> void {
-        if (FT_Done_FreeType(m_FreeTypeLibrary) != 0) {
-            MKT_CORE_LOGGER_ERROR( "AssetsSystem::Shutdown - Failed to destroy free type library" );
-        }
 
         m_Fonts.clear();
         m_Models.clear();
         m_Textures.clear();
+
+        // Shutdown library after all fonts are disposed of
+        FreeTypeManager::Shutdown();
     }
 
     auto AssetsSystem::GetModel( const std::string_view uri) -> Model* {

@@ -46,11 +46,12 @@ namespace Mikoto {
 
     auto VulkanIndexBuffer::LoadIndices(const std::span<const UInt32_T>& indices) -> void {
         m_Count = indices.size();
+        m_Size = m_Count * sizeof(UInt32_T);
 
         const VulkanBufferCreateInfo allocaInfo{
             .BufferCreateInfo{
                 .sType{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO },
-                .size{ m_Count * sizeof(UInt32_T) },
+                .size{ m_Size },
                 .usage{ VK_BUFFER_USAGE_INDEX_BUFFER_BIT }
             },
             .AllocationCreateInfo{

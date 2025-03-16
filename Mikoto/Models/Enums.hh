@@ -21,6 +21,7 @@ namespace Mikoto {
 
     enum class MapType {
         TEXTURE_2D_INVALID,
+        TEXTURE_2D_TEXT,
         TEXTURE_2D_DIFFUSE,
         TEXTURE_2D_SPECULAR,
         TEXTURE_2D_EMISSIVE,
@@ -40,6 +41,7 @@ namespace Mikoto {
         MATERIAL_PASS_WIREFRAME = 3,
         MATERIAL_PASS_COMPUTE = 4,
         MATERIAL_PASS_OUTLINE = 5,
+        MATERIAL_PASS_TEXT = 6,
     };
 
     enum class FileType {

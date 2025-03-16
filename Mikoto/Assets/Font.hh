@@ -13,7 +13,7 @@
 namespace Mikoto {
     struct FontLoadInfo {
         Path_T Path{};
-        float Size{ 12 };
+        float Size{ 48 };
     };
 
     class Font {

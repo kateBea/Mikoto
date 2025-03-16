@@ -25,6 +25,8 @@
 #include <Renderer/Vulkan/VulkanVertexBuffer.hh>
 #include <ranges>
 
+#include "Renderer/Text/FreeTypeFont.hh"
+
 namespace Mikoto {
 
     static auto GetDefaultGraphicsPipelineConfigInfo() -> VulkanPipelineCreateInfo {
@@ -433,6 +435,8 @@ namespace Mikoto {
             SetupObjectOutline(outlineObject->second);
         }
 
+        RecordTextDrawCommands();
+
         vkCmdEndRenderPass( m_DrawCommandBuffer );
 
         if ( vkEndCommandBuffer( m_DrawCommandBuffer ) != VK_SUCCESS ) {
@@ -736,6 +740,70 @@ namespace Mikoto {
         UpdateScissor( 0, 0, { m_OffscreenExtent.width, m_OffscreenExtent.height } );
     }
 
+    auto VulkanRenderer::RecordTextDrawCommands() -> void {
+        for (const auto& textRenderInfo : m_TextDrawQueue | std::views::values ) {
+            const VulkanPipeline* pipeline{ nullptr };
+            auto findIt{ m_Pipelines.find( MATERIAL_PASS_TEXT ) };
+            pipeline = findIt != m_Pipelines.end() ? std::addressof( findIt->second ) : nullptr;
+            if ( pipeline == nullptr ) {
+                MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::RecordCommands - Pipeline objects are null." );
+            }
+
+            VulkanPBRMaterial* pbrMaterial{ dynamic_cast<VulkanPBRMaterial*>( textRenderInfo.MaterialData ) };
+
+            float x = {};
+            for (auto characterCode : textRenderInfo.Contents) {
+                struct PushData {
+                    glm::mat4 MVP{};
+                    glm::vec4 Color{};
+                } PushConstantData;
+
+                FreeTypeGlyph* glyph{ textRenderInfo.Font->GetGlyph( characterCode ) };
+
+                glm::vec3 position{};
+                glm::vec3 rotation{};
+                glm::vec3 scale{};
+                glm::mat4 transform{};
+
+                // TODO: Hanlde spaces
+                 Math::DecomposeTransform( textRenderInfo.Transform, position, rotation, scale );
+
+                position.x =  position.x + x;
+                x += glyph->GetAdvance();
+
+                transform = Math::RecomputeTransform( position, scale, rotation );
+
+                PushConstantData.Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+                PushConstantData.MVP = m_Camera->GetProjection() * m_Camera->GetViewMatrix() * transform;
+
+                vkCmdPushConstants(
+                    m_DrawCommandBuffer,
+                    pipeline->GetLayout(),
+                    VK_SHADER_STAGE_VERTEX_BIT,
+                    0,
+                    sizeof(PushData),
+                    std::addressof( PushConstantData )
+                );
+
+                VkDescriptorSet glyphDset{ textRenderInfo.Font->GetGlyphDescriptorSet( characterCode ) };
+
+                pipeline->Bind( m_DrawCommandBuffer );
+
+                // It is here that we specify which desc set we bind to, always 0 for now
+                constexpr Size_T firstSet{ 0 };
+                vkCmdBindDescriptorSets( m_DrawCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetLayout(), firstSet, 1, &glyphDset, 0, nullptr );
+
+                const VulkanVertexBuffer* vulkanVertexBuffer{ dynamic_cast<const VulkanVertexBuffer*>( glyph->GetVertexBuffer() ) };
+                const VulkanIndexBuffer* vulkanIndexBuffer{ dynamic_cast<const VulkanIndexBuffer*>( glyph->GetIndexBuffer() ) };
+
+                vulkanVertexBuffer->Bind( m_DrawCommandBuffer );
+                vulkanIndexBuffer->Bind( m_DrawCommandBuffer );
+
+                vkCmdDrawIndexed( m_DrawCommandBuffer, vulkanIndexBuffer->GetCount(), 1, 0, 0, 0 );
+            }
+        }
+    }
+
     auto VulkanRenderer::SubmitCommands() const -> void {
         //m_Device->RegisterComputeCommand( m_ComputeCommandBuffer );
 
@@ -914,7 +982,7 @@ namespace Mikoto {
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
         pushConstantRange.offset = 0;
-        pushConstantRange.size = sizeof(float) + sizeof(glm::vec4); // Outline width + color
+        pushConstantRange.size = sizeof( float ) + sizeof( glm::vec4 );// Outline width + color
 
         // Create the pipeline layout
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VulkanHelpers::Initializers::PipelineLayoutCreateInfo() };
@@ -936,7 +1004,7 @@ namespace Mikoto {
         // Create the pipeline
         auto defaultMatPipelineConfig{ GetDefaultGraphicsPipelineConfigInfo() };
 
-        defaultMatPipelineConfig.DepthStencilInfo.back.compareOp = VK_COMPARE_OP_NOT_EQUAL;  // Draw where stencil != 1
+        defaultMatPipelineConfig.DepthStencilInfo.back.compareOp = VK_COMPARE_OP_NOT_EQUAL;// Draw where stencil != 1
         defaultMatPipelineConfig.DepthStencilInfo.back.failOp = VK_STENCIL_OP_KEEP;
         defaultMatPipelineConfig.DepthStencilInfo.back.depthFailOp = VK_STENCIL_OP_KEEP;
         defaultMatPipelineConfig.DepthStencilInfo.back.passOp = VK_STENCIL_OP_REPLACE;
@@ -950,6 +1018,79 @@ namespace Mikoto {
         auto [it, success]{ m_Pipelines.try_emplace( MATERIAL_PASS_OUTLINE, defaultMatPipelineConfig ) };
         if ( !success ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::InitializeDefaultPipeline - Failed to create standard pipeline." );
+        }
+
+        it->second.Init();
+    }
+
+    auto VulkanRenderer::InitializeTextPipeline() -> void {
+        const auto& fileSystem{ Engine::GetSystem<FileSystem>() };
+
+        const VulkanShaderCreateInfo vertexStage{
+            .FilePath{ PathBuilder()
+                               .WithPath( fileSystem.GetShadersRootPath().string() )
+                               .WithPath( "vulkan-spirv" )
+                               .WithPath( "Text_Vert.sprv" )
+                               .Build() },
+            .Stage{ VERTEX_STAGE },
+        };
+
+        const VulkanShaderCreateInfo fragmentStage{
+            .FilePath{ PathBuilder()
+                               .WithPath( fileSystem.GetShadersRootPath().string() )
+                               .WithPath( "vulkan-spirv" )
+                               .WithPath( "Text_Frag.sprv" )
+                               .Build() },
+            .Stage{ FRAGMENT_STAGE },
+        };
+
+        const VulkanShader* fragmentShader = VulkanShaderLibrary::LoadShader( fragmentStage );
+        const VulkanShader* vertexShader = VulkanShaderLibrary::LoadShader( vertexStage );
+
+        const std::array pipelineShaderStageCreateInfos{
+            vertexShader->GetPipelineStageCreateInfo(),
+            fragmentShader->GetPipelineStageCreateInfo()
+        };
+
+        // Set layout
+        const std::array descLayouts{
+            VulkanContext::Get().GetDescriptorSetLayouts( DESCRIPTOR_SET_LAYOUT_TEXT ),
+        };
+
+        // Define push constant range
+        VkPushConstantRange pushConstantRange{};
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        pushConstantRange.offset = 0;
+        pushConstantRange.size = sizeof( glm::mat4 ) + sizeof( glm::vec4 );
+
+        // Create the pipeline layout
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VulkanHelpers::Initializers::PipelineLayoutCreateInfo() };
+        pipelineLayoutInfo.pushConstantRangeCount = 1;
+        pipelineLayoutInfo.pPushConstantRanges = std::addressof( pushConstantRange );
+        pipelineLayoutInfo.setLayoutCount = static_cast<UInt32_T>( descLayouts.size() );
+        pipelineLayoutInfo.pSetLayouts = descLayouts.data();
+
+        VkPipelineLayout layout{};
+        if ( vkCreatePipelineLayout( m_Device->GetLogicalDevice(), std::addressof( pipelineLayoutInfo ), nullptr, std::addressof( layout ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "Failed to create pipeline layout" );
+        }
+
+        VulkanDeletionQueue::Push( [device = m_Device->GetLogicalDevice(),
+                                    pipelineLayout = layout]() -> void {
+            vkDestroyPipelineLayout( device, pipelineLayout, nullptr );
+        } );
+
+        // Create the pipeline
+        auto defaultMatPipelineConfig{ GetDefaultGraphicsPipelineConfigInfo() };
+
+        defaultMatPipelineConfig.PipelineLayout = layout;
+        //defaultMatPipelineConfig.VertexBufferLayout = FreeTypeGlyph::GetDefaultBufferLayout();
+        defaultMatPipelineConfig.RenderPass = m_OffscreenMainRenderPass;
+        defaultMatPipelineConfig.ShaderStages = pipelineShaderStageCreateInfos;
+
+        auto [it, success]{ m_Pipelines.try_emplace( MATERIAL_PASS_TEXT, defaultMatPipelineConfig, FreeTypeGlyph::GetDefaultBufferLayout() ) };
+        if ( !success ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::InitializeTextPipeline - Failed to create standard pipeline." );
         }
 
         it->second.Init();
@@ -1087,6 +1228,8 @@ namespace Mikoto {
         InitializeComputePipelines();
 
         InitializeOutlinePipeline();
+
+        InitializeTextPipeline();
     }
 
     auto VulkanRenderer::Flush() -> void {
@@ -1107,23 +1250,48 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::AddToDrawQueue( const EntityQueueInfo& queueInfo ) -> bool {
+        bool success{ false };
+
         const auto it{ m_DrawQueue.find( queueInfo.Tag.GetGUID() ) };
 
-        MeshRenderInfo info{
-            .Object = queueInfo.Render.GetMesh(),
-            .Transform{ queueInfo.Transform.GetTransform() },
-            .MaterialData{ std::addressof( queueInfo.Material.GetMaterial() ) },
-            .IsRendered{ queueInfo.Tag.IsVisible() }
-        };
+        if (queueInfo.RenderComponent != nullptr) {
+            MeshRenderInfo info{
+                .Object{ queueInfo.RenderComponent->GetMesh() },
+                .Transform{ queueInfo.Transform.GetTransform() },
+                .MaterialData{ std::addressof( queueInfo.Material.GetMaterial() ) },
+                .IsRendered{ queueInfo.Tag.IsVisible() }
+            };
 
-        if ( it != m_DrawQueue.end() ) {
-            it->second = info;
-            return true;
+            if ( it != m_DrawQueue.end() ) {
+                it->second = info;
+                success = true;
+            } else {
+                auto [insertIt, successInsert]{
+                    m_DrawQueue.try_emplace( queueInfo.Tag.GetGUID(), info )
+                };
+
+                success = successInsert;
+            }
         }
 
-        auto [insertIt, success]{
-            m_DrawQueue.try_emplace( queueInfo.Tag.GetGUID(), info )
-        };
+        if (queueInfo.TextComponent != nullptr) {
+            auto textFindIt{ m_TextDrawQueue.find( queueInfo.Tag.GetGUID() ) };
+
+            TextRenderInfo textRenderInfo {
+                .Contents{ queueInfo.TextComponent->GetTextContent() },
+                .Transform{ queueInfo.Transform.GetTransform() },
+                .Color{ queueInfo.TextComponent->GetColor() },
+                .MaterialData{ nullptr },
+                .IsRendered{ true },
+                .Font{ dynamic_cast<VulkanFont*>(queueInfo.TextComponent->GetFont() ) },
+            };
+
+            if (textFindIt != m_TextDrawQueue.end()) {
+                textFindIt->second = textRenderInfo;
+            } else {
+                m_TextDrawQueue.try_emplace( queueInfo.Tag.GetGUID(), textRenderInfo );
+            }
+        }
 
         return success;
     }

@@ -22,8 +22,8 @@
 
 namespace Mikoto {
 
-    VulkanPipeline::VulkanPipeline( const VulkanPipelineCreateInfo& config )
-        : m_ConfigInfo{ config }, m_PipelineLayout{ config.PipelineLayout }
+    VulkanPipeline::VulkanPipeline( const VulkanPipelineCreateInfo& config, const BufferLayout& vertexLayout )
+        : m_ConfigInfo{ config }, m_PipelineLayout{ config.PipelineLayout }, m_BufferLayout{  vertexLayout }
     {
 
     }
@@ -66,8 +66,8 @@ namespace Mikoto {
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VulkanHelpers::Initializers::PipelineVertexInputStateCreateInfo() };
 
         // Binding descriptions (define data layout)
-        const auto& bindingDesc{ VulkanVertexBuffer::GetDefaultBindingDescriptions() };
-        const auto& attributeDesc{ VulkanVertexBuffer::GetDefaultAttributeDescriptions() };
+        const auto& bindingDesc{ VulkanVertexBuffer::GetDefaultBindingDescriptions( m_BufferLayout ) };
+        const auto& attributeDesc{ VulkanVertexBuffer::GetDefaultAttributeDescriptions( m_BufferLayout ) };
         vertexInputInfo.vertexBindingDescriptionCount = bindingDesc.size();
         vertexInputInfo.vertexAttributeDescriptionCount = attributeDesc.size();
         vertexInputInfo.pVertexAttributeDescriptions = attributeDesc.data();

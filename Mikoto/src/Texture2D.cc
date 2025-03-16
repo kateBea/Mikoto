@@ -16,6 +16,30 @@
 
 
 namespace Mikoto {
+    auto Texture2D::Create( const Texture2DCreateInfo& createInfo ) -> Scope_T<Texture2D> {
+        auto& renderSystem{ Engine::GetSystem<RenderSystem>() };
+        switch(renderSystem.GetDefaultApi()) {
+            case GraphicsAPI::VULKAN_API:
+                return VulkanTexture2D::Create( VulkanTexture2DCreateInfo{
+                    .Path{ createInfo.Path },
+                    .Name{ createInfo.Name },
+
+                    .Type{ createInfo.Type },
+                    .RetainFileData{ false },
+
+                    .Width{ createInfo.Width },
+                    .Height{ createInfo.Height },
+                    .ChannelCount{ createInfo.ChannelCount },
+                    .BufferData{ createInfo.BufferData },
+                } );
+            default:
+                MKT_CORE_LOGGER_CRITICAL("Texture2D::Create - Unsupported renderer API");
+            break;
+        }
+
+        return nullptr;
+    }
+
     auto Texture2D::Create(const Path_T& path, MapType type) -> Scope_T<Texture2D> {
         auto& renderSystem{ Engine::GetSystem<RenderSystem>() };
         switch(renderSystem.GetDefaultApi()) {

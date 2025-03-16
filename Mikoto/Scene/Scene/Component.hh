@@ -444,9 +444,15 @@ namespace Mikoto {
             }
         }
 
-        MKT_NODISCARD auto SetTextContent(const std::string_view content ) -> void { m_TextContent = content.data(); }
-        MKT_NODISCARD auto SetFontSize(const float size ) -> void { m_Font->SetSize(size); }
-        MKT_NODISCARD auto SetLetterSpacing(const float spacing ) -> void  { m_Font->SetSpacing(spacing); }
+        MKT_NODISCARD auto GetFont() const -> Font* { return m_Font; }
+        MKT_NODISCARD auto GetColor() const -> const glm::vec4 { return m_Color; }
+
+        auto SetTextContent(const std::string_view content ) -> void { m_TextContent = content.data(); }
+        auto SetFontSize(const float size ) -> void { m_Font->SetSize(size); }
+        auto SetLetterSpacing(const float spacing ) -> void  { m_Font->SetSpacing(spacing); }
+
+        template<typename... Args>
+        auto SetColor(Args&&... args ) -> void  { m_Color = glm::vec4{ std::forward<Args>(args)...}; }
 
         auto OnComponentAttach() -> void {  }
         auto OnComponentUpdate() -> void {  }
@@ -454,6 +460,8 @@ namespace Mikoto {
 
     private:
         std::string m_TextContent{};
+
+        glm::vec4 m_Color{ 1.0f, 1.0f, 0.4f, 1.0f };
 
         Font* m_Font{};
     };

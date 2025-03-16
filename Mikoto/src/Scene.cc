@@ -66,8 +66,24 @@ namespace Mikoto {
 
             m_SceneRenderer->AddToDrawQueue( {
                 .Tag{ tagComponent },
-                .Render{ renderComponent },
+                .RenderComponent{ std::addressof( renderComponent ) },
                 .Material{ materialComponent },
+                .Transform{ transformComponent }
+            } );
+        }
+
+        // Register text
+        const auto renderText{ m_Registry.view<TagComponent, TransformComponent, TextComponent, MaterialComponent>() };
+        for (const entt::entity &entity: renderText) {
+            TagComponent &tagComponent{ m_Registry.get<TagComponent>( entity ) };
+            TextComponent &renderComponent{ m_Registry.get<TextComponent>( entity ) };
+            MaterialComponent &materialComponent{ m_Registry.get<MaterialComponent>( entity ) };
+            TransformComponent &transformComponent{ m_Registry.get<TransformComponent>( entity ) };
+
+            m_SceneRenderer->AddToDrawQueue( {
+                .Tag{ tagComponent },
+                .Material{ materialComponent },
+                .TextComponent{ std::addressof( renderComponent ) },
                 .Transform{ transformComponent }
             } );
         }

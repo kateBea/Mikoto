@@ -17,16 +17,18 @@
 #include <volk.h>
 
 // Project Headers
-#include <Common/Common.hh>
 #include <Assets/Mesh.hh>
+#include <Common/Common.hh>
 #include <Material/Core/Material.hh>
 #include <Renderer/Core/RendererBackend.hh>
 #include <Renderer/Vulkan/VulkanCommandPool.hh>
+#include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanFrameBuffer.hh>
 #include <Renderer/Vulkan/VulkanImage.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>
-#include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanTextureCubeMap.hh>
+
+#include "VulkanFont.hh"
 
 namespace Mikoto {
     struct VulkanRendererCreateInfo {
@@ -86,6 +88,16 @@ namespace Mikoto {
             bool IsRendered{ false };
         };
 
+        struct TextRenderInfo {
+            std::string Contents{};
+            glm::mat4 Transform{};
+            glm::vec4 Color{};
+            Material* MaterialData{};
+            bool IsRendered{ false };
+
+            VulkanFont* Font{ nullptr };
+        };
+
         struct LightRenderInfo {
             const LightData* Data{};
             LightType ActiveType{};
@@ -111,6 +123,8 @@ namespace Mikoto {
         auto RecordComputeCommandsDEBUG() -> void;
         auto PrepareOffscreenRender() -> void;
 
+        auto RecordTextDrawCommands() -> void;
+
         auto CreateOffscreenRenderPass() -> void;
         auto CreateOffscreenAttachments() -> void;
         auto CreateOffscreenFramebuffers() -> void;
@@ -122,6 +136,8 @@ namespace Mikoto {
         auto InitializePBRPipeline() -> void;
 
         auto InitializeOutlinePipeline() -> void;
+
+        auto InitializeTextPipeline() -> void;
 
         auto CreateRendererPipelines() -> void;
 
@@ -173,6 +189,7 @@ namespace Mikoto {
 
         std::unordered_map<Size_T, VulkanPipeline> m_Pipelines{};
         std::unordered_map<UInt64_T, MeshRenderInfo> m_DrawQueue{};
+        std::unordered_map<UInt64_T, TextRenderInfo> m_TextDrawQueue{};
 
         bool m_UseWireframe{};
     };

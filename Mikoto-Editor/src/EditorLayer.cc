@@ -738,12 +738,13 @@ namespace Mikoto {
         FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
         AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
 
+        // Bigger size adds more resolution
         FreeTypeFont* interBlack{ dynamic_cast<FreeTypeFont*>(assetsSystem.LoadFont( { .Path{ PathBuilder()
                                                                   .WithPath( fileSystem.GetFontsRootPath().string() )
                                                                   .WithPath( "Inter" )
                                                                   .WithPath( "Inter-VariableFont.ttf" )
                                                                   .Build() },
-                                                   .Size{ 48 } } )) };
+                                                   .Size{ 512 } } )) };
 
         interBlack->SetSpacing( 1 );
 
@@ -753,7 +754,7 @@ namespace Mikoto {
                                                                  .WithPath( "static" )
                                                                  .WithPath( "Inter-Bold.ttf" )
                                                                  .Build() },
-                                                  .Size{ 48 } } ) };
+                                                  .Size{ 512 } } ) };
 
         interBlack->GetGlyph( ' ' );
 

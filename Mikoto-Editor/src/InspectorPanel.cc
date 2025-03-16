@@ -1538,11 +1538,25 @@ namespace Mikoto {
 
         const auto viewRange{ std::ranges::views::transform( fontList, [](const auto& item) { return item.second->GetName(); } ) };
 
-        static std::string currentFontSelection{ fontList.begin()->second->GetName() };
+        static std::string currentFontSelectionName{ fontList.begin()->second->GetName() };
 
         ImGui::Spacing();
-        ImGuiUtils::ComboList( viewRange.begin(), viewRange.end(), currentFontSelection,
-            [&](const std::string& target) -> bool { return currentFontSelection == target; }, "SetupTextComponentTab:FontCombo");
+        ImGuiUtils::ComboList( viewRange.begin(), viewRange.end(), currentFontSelectionName,
+            [](const std::string& target) -> bool {
+                bool isSelected{ currentFontSelectionName == target };
+                return isSelected;
+            }, "SetupTextComponentTab:FontCombo");
+
+        if (textComponent.GetFont()->GetName() != currentFontSelectionName) {
+            auto findIt{ std::ranges::find_if( fontList,
+                [&](const std::pair<const std::string, Scope_T<Font>>& pair) -> bool {
+                    return pair.second->GetName() == currentFontSelectionName;
+                } ) };
+
+            if (findIt != fontList.end()) {
+                textComponent.LoadFont( findIt->second.get() );
+            }
+        }
 
         ImGuiUtils::HelpMarker( "Select the current font.", "(?)", true );
 

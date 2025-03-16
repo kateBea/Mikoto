@@ -39,7 +39,7 @@ namespace Mikoto {
 
     auto FreeTypeGlyph::CreateBuffers() -> void {
         float x0 = static_cast<float>(m_Bearing.x);
-        float y0 = static_cast<float>(-m_Bearing.y);
+        float y0 = static_cast<float>(m_Bearing.y - m_Size.y);
         float x1 = x0 + static_cast<float>(m_Size.x);
         float y1 = y0 + static_cast<float>(m_Size.y);
 

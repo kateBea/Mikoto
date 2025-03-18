@@ -337,9 +337,9 @@ namespace Mikoto {
 
                 textComponent.LoadFont( interBlack );
 
-                textComponent.SetFontSize( 12 );
+                textComponent.SetSize( 12 );
                 textComponent.SetTextContent( "Example" );
-                textComponent.SetLetterSpacing( 1 );
+                textComponent.SetSpacing( 1 );
 
                 ImGui::CloseCurrentPopup();
             }
@@ -387,7 +387,7 @@ namespace Mikoto {
                 { "FBX files", "fbx" }
             };
 
-            const Path_T path{ fileSystem.OpenDialog( filters )};
+            const Path_T path{ fileSystem.OpenDialog( filters ) };
 
             if ( !path.empty() ) {
                 const ModelLoadInfo modelLoadInfo{
@@ -406,9 +406,48 @@ namespace Mikoto {
 
                 Entity* result{ m_TargetScene->CreateEntity( entityCreateInfo ) };
 
-                ConsoleManager::PushMessage(ConsoleLogLevel::CONSOLE_INFO, fmt::format("Added entity: {}. Id => {}",
-                    result->GetComponent<TagComponent>().GetTag(), StringUtils::ToHex(result->GetComponent<TagComponent>().GetGUID())));
+                ConsoleManager::PushMessage( ConsoleLogLevel::CONSOLE_INFO, fmt::format( "Added entity: {}. Id => {}",
+                                                                                         result->GetComponent<TagComponent>().GetTag(), StringUtils::ToHex( result->GetComponent<TagComponent>().GetGUID() ) ) );
             }
+        }
+    }
+    auto HierarchyPanel::DrawTextMenuItems( const Entity* root ) const {
+        ImGui::Spacing();
+        ImGui::Separator();
+
+        if ( ImGui::MenuItem( "Text" ) ) {
+            const EntityCreateInfo entityCreateInfo{
+                .Name{ "Text" },
+                .Root{ nullptr },
+                .ModelMesh{ nullptr },
+            };
+
+            Entity* result{ m_TargetScene->CreateEntity( entityCreateInfo ) };
+
+            ConsoleManager::PushMessage( ConsoleLogLevel::CONSOLE_INFO, fmt::format( "Added entity: {}. Id => {}",
+                                                                                     result->GetComponent<TagComponent>().GetTag(), StringUtils::ToHex( result->GetComponent<TagComponent>().GetGUID() ) ) );
+
+            TextComponent& textComponent{ result->AddComponent<TextComponent>() };
+
+            FileSystem& fileSystem{ Engine::GetSystem<FileSystem>() };
+
+            AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
+
+            Font* jetBrainsThin{ assetsSystem.LoadFont( {
+                .Path{ PathBuilder()
+                    .WithPath( fileSystem.GetFontsRootPath().string() )
+                    .WithPath( "JetBrainsMono" )
+                    .WithPath( "fonts" )
+                    .WithPath( "ttf" )
+                    .WithPath( "JetBrainsMono-Thin.ttf" )
+                    .Build() },
+                .Size{} } ) };
+
+            textComponent.LoadFont( jetBrainsThin );
+
+            textComponent.SetTextContent( "Text" );
+            textComponent.SetSize( TextComponent::GetMinLetterSize() );
+            textComponent.SetSpacing( TextComponent::GetMinLetterSpacing() );
         }
     }
 
@@ -444,6 +483,8 @@ namespace Mikoto {
             DrawModelLoadMenuItem();
 
             DrawLightMenuItems( nullptr );
+
+            DrawTextMenuItems(nullptr);
 
             ImGui::EndPopup();
         }

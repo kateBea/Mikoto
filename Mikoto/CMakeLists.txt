@@ -27,7 +27,18 @@ SET(GLFW_BUILD_TESTS OFF CACHE BOOL "")
 SET(GLFW_BUILD_DOCS OFF CACHE BOOL "")
 SET(GLFW_INSTALL OFF CACHE BOOL "")
 
+# MSDFGEN configuration
+set(MSDFGEN_CORE_ONLY ON)
+set(MSDFGEN_USE_VCPKG OFF)
+set(MSDFGEN_BUILD_STANDALONE OFF)
+set(MSDFGEN_DISABLE_SVG ON)
+set(MSDFGEN_INSTALL OFF)
+set(BUILD_SHARED_LIBS OFF)
+set(MSDFGEN_DYNAMIC_RUNTIME OFF)
+
 SET(ASSIMP_WARNINGS_AS_ERRORS OFF CACHE BOOL "Treat Assimp Warnings as errors" FORCE)
+
+#find_package(msdfgen CONFIG REQUIRED)
 
 # Libraries
 SET( CURRENT_PATH ${CMAKE_CURRENT_SOURCE_DIR} )
@@ -45,6 +56,7 @@ SET(TOML_CPP ${P_PATH}/Third-Party/tomlplusplus)
 SET(CPP_TRACE ${P_PATH}/Third-Party/cpptrace)
 SET(FREE_TYPE ${P_PATH}/Third-Party/freetype)
 SET(JOLT_PHYSICS ${P_PATH}/Third-Party/JoltPhysics/Build)
+SET(MSDFGEN ${P_PATH}/Third-Party/msdfgen)
 
 # Setup Mikoto Engine source file
 FILE(GLOB SOURCE_FILES src/*.cc)
@@ -88,9 +100,10 @@ ADD_SUBDIRECTORY(${NFD_CMAKE_DIR} build/nfd)
 ADD_SUBDIRECTORY(${CPP_TRACE} build/cpptrace)
 ADD_SUBDIRECTORY(${FREE_TYPE} build/freetype)
 ADD_SUBDIRECTORY(${JOLT_PHYSICS} build/joltphysics)
+ADD_SUBDIRECTORY(${MSDFGEN} build/msdfgen)
 
 # Libraries to link against target
-SET(LIBRARIES glfw fmt EnTT::EnTT volk assimp yaml-cpp nfd cpptrace::cpptrace freetype Jolt)
+SET(LIBRARIES glfw fmt EnTT::EnTT volk assimp yaml-cpp nfd cpptrace::cpptrace freetype Jolt  msdfgen::msdfgen )
 
 # for tests only. -ltbb was required to use std::execution::par on linux
 # set(LIBRARIES glfw glew_s fmt EnTT::EnTT volk assimp yaml-cpp nfd tbb)
@@ -122,6 +135,9 @@ TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/yaml-cpp
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/nativefiledialog-extended/src/include)
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/tomlplusplus/include)
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/JoltPhysics/Jolt)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/freetype/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/msdfgen)
 
 # Avoid GLFW including OpenGL headers
 TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLFW_INCLUDE_NONE)
@@ -147,6 +163,7 @@ TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLM_FORCE_RADIANS)
 TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
 
 TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
+
 
 # If you fetch pointers to all Vulkan functions in a custom way, e.g. using some loader like Volk:
 # Define VMA_STATIC_VULKAN_FUNCTIONS and VMA_DYNAMIC_VULKAN_FUNCTIONS to 0.

@@ -120,6 +120,11 @@ namespace Mikoto::Math {
 
         return glm::translate( GLM_IDENTITY_MAT4, position ) * rotation * scale;
     }
+
+    template<typename T>
+    MKT_NODISCARD inline auto IsBetween(const T& value, const T& lowerBound, const T& upperBound) -> bool {
+        return value >= lowerBound && value <= upperBound;
+    }
 }// namespace Mikoto::Math
 
 #endif// MIKOTO_MATH_HH

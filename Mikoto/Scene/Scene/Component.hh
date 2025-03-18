@@ -422,7 +422,6 @@ namespace Mikoto {
         bool m_FixedAspectRatio{ false };
     };
 
-
     class TextComponent : public BaseComponent<TextComponent> {
     public:
         explicit TextComponent() = default;
@@ -435,8 +434,8 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetFontPath() const -> const Path_T& { return m_Font->GetPath(); }
         MKT_NODISCARD auto GetTextContent() const -> const std::string& { return m_TextContent; }
-        MKT_NODISCARD auto GetFontSize() const -> float { return m_Font->GetSize(); }
-        MKT_NODISCARD auto GetLetterSpacing() const -> float { return m_Font->GetSpacing(); }
+        MKT_NODISCARD auto GetFontSize() const -> float { return m_Size; }
+        MKT_NODISCARD auto GetLetterSpacing() const -> float { return m_Spacing; }
 
         auto LoadFont(Font* font) -> void {
             if (font) {
@@ -444,12 +443,38 @@ namespace Mikoto {
             }
         }
 
+        auto SetCamera(const Camera* camera) -> void {
+            if (camera != nullptr) {
+                m_Camera = camera;
+            }
+        }
+
+        MKT_NODISCARD auto GetCamera() const -> const Camera* { return m_Camera; }
+
         MKT_NODISCARD auto GetFont() const -> Font* { return m_Font; }
-        MKT_NODISCARD auto GetColor() const -> const glm::vec4 { return m_Color; }
+        MKT_NODISCARD auto GetColor() const -> const glm::vec4& { return m_Color; }
+
+        MKT_NODISCARD static auto GetMinLetterSpacing() -> float { return 1.0f; }
+        MKT_NODISCARD static auto GetMaxLetterSpacing() -> float { return 10.0f; }
+
+        MKT_NODISCARD static auto GetMinLetterSize() -> float { return 1.0f; }
+        MKT_NODISCARD static auto GetMaxLetterSize() -> float { return 10.0f; }
+
+        MKT_NODISCARD auto GetSize() const -> float { return m_Size; }
+        MKT_NODISCARD auto GetSpacing() const -> float { return m_Spacing; }
+
+        auto SetSize(const float value) -> void {
+            if (value != 0) {
+                m_Size = value;
+            }
+        }
+        auto SetSpacing(const float value) -> void {
+            if (value != 0) {
+                m_Spacing = value;
+            }
+        }
 
         auto SetTextContent(const std::string_view content ) -> void { m_TextContent = content.data(); }
-        auto SetFontSize(const float size ) -> void { m_Font->SetSize(size); }
-        auto SetLetterSpacing(const float spacing ) -> void  { m_Font->SetSpacing(spacing); }
 
         template<typename... Args>
         auto SetColor(Args&&... args ) -> void  { m_Color = glm::vec4{ std::forward<Args>(args)...}; }
@@ -463,7 +488,11 @@ namespace Mikoto {
 
         glm::vec4 m_Color{ 1.0f, 1.0f, 0.4f, 1.0f };
 
-        Font* m_Font{};
+        float m_Size{ 12 };
+        float m_Spacing{ 0 };
+
+        Font* m_Font{ nullptr };
+        const Camera* m_Camera{ nullptr };
     };
 
     class NativeScriptComponent : public BaseComponent<NativeScriptComponent> {

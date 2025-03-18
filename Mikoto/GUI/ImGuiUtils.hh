@@ -281,7 +281,7 @@ namespace Mikoto::ImGuiUtils {
         return active;
     }
 
-    inline auto TextArea( std::string& buffer, float currentFontScale = 1 ) -> bool {
+    inline auto TextArea( std::string& buffer) -> bool {
         ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
         ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
 
@@ -301,8 +301,6 @@ namespace Mikoto::ImGuiUtils {
 
         constexpr float maxScale{ 3 };
         constexpr float minScale{ 1 };
-
-        ImGui::SetWindowFontScale( currentFontScale > maxScale ? maxScale : currentFontScale );
 
         const bool active{ ImGui::InputTextMultiline( "##TextArea:Input", buffer.data(), buffer.capacity() + 1,
                                                       ImVec2( ComputeWidth(), windowSize.y * 0.3f ), flags, resizeCallback, std::addressof( buffer ) ) };

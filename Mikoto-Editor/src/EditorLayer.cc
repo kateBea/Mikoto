@@ -18,7 +18,6 @@
 #include <Core/System/FileSystem.hh>
 #include <Core/System/InputSystem.hh>
 #include <Core/System/TimeSystem.hh>
-#include <EditorModels/Enums.hh>
 #include <GUI/ImGuiUtils.hh>
 #include <Layers/EditorLayer.hh>
 #include <Library/Filesystem/PathBuilder.hh>
@@ -746,8 +745,6 @@ namespace Mikoto {
                                                                   .Build() },
                                                    .Size{ 512 } } )) };
 
-        interBlack->SetSpacing( 1 );
-
         Font* interBold{ assetsSystem.LoadFont( { .Path{ PathBuilder()
                                                                  .WithPath( fileSystem.GetFontsRootPath().string() )
                                                                  .WithPath( "Inter" )
@@ -756,9 +753,16 @@ namespace Mikoto {
                                                                  .Build() },
                                                   .Size{ 512 } } ) };
 
-        interBlack->GetGlyph( ' ' );
+        Font* jetBrainsThin{ assetsSystem.LoadFont( {
+                .Path{ PathBuilder()
+                    .WithPath( fileSystem.GetFontsRootPath().string() )
+                    .WithPath( "JetBrainsMono" )
+                    .WithPath( "fonts" )
+                    .WithPath( "ttf" )
+                    .WithPath( "JetBrainsMono-Thin.ttf" )
+                    .Build() },
+                .Size{} } ) };
 
-        interBold->SetSpacing( 1 );
     }
 
     auto EditorLayer::GetPrefabModel( const PrefabSceneObject type ) -> Model* {

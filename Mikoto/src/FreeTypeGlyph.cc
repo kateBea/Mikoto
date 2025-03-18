@@ -12,13 +12,13 @@
 namespace Mikoto {
 
     FreeTypeGlyph::FreeTypeGlyph( FT_Face face, FT_UInt characterIndex )
-        : m_face{ face }, m_GlyphIndex{ characterIndex } {
-        auto error{ FT_Load_Glyph( m_face, m_GlyphIndex, FT_LOAD_DEFAULT ) };
+        : m_Face{ face }, m_GlyphIndex{ characterIndex } {
+        auto error{ FT_Load_Glyph( m_Face, m_GlyphIndex, FT_LOAD_DEFAULT ) };
         if ( error != 0 ) {
             MKT_THROW_RUNTIME_ERROR( "failed to load glyph" );
         }
 
-        FT_GlyphSlot glyphSlot{ m_face->glyph };
+        FT_GlyphSlot glyphSlot{ m_Face->glyph };
         error = FT_Render_Glyph( glyphSlot, FT_RENDER_MODE_NORMAL );
         if ( error ) {
             MKT_THROW_RUNTIME_ERROR( "failed to render glyph" );
@@ -63,7 +63,7 @@ namespace Mikoto {
     }
 
     auto FreeTypeGlyph::CreateTextureFromBitmap() -> void {
-        FT_GlyphSlot glyphSlot{ m_face->glyph };
+        FT_GlyphSlot glyphSlot{ m_Face->glyph };
 
         if(glyphSlot->bitmap.pixel_mode != FT_PIXEL_MODE_GRAY || glyphSlot->bitmap.num_grays != 256) {
             MKT_THROW_RUNTIME_ERROR("unsupported pixel mode");

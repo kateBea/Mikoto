@@ -33,7 +33,7 @@
 | UI Integration (ImGui)  | Immediate mode GUI for runtime/editor UI                 | ✔️            |
 | Animation System        | Skeletal animation and keyframe interpolation            | ❌             |
 | Audio Support           | Load and play sound effects and background music         | ❌             |
-| Text Rendering          | Ability to render text in the 3D world and as an overlay | ✔️            |
+| Text Rendering          | Ability to render text in the 3D world and as an overlay | ✔️ (Partial)  |
 
 ## Supported Platforms
 

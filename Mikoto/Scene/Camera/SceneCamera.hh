@@ -63,12 +63,6 @@ namespace Mikoto {
 
 
         /**
-         * @brief Retrieve the view matrix of the camera.
-         * */
-        MKT_NODISCARD auto GetViewMatrix() const -> const glm::mat4& { return m_ViewMatrix; }
-
-
-        /**
          * @brief Retrieve the view projection matrix.
          * @return The result of the projection matrix multiplied by the view matrix.
          * */

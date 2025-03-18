@@ -140,5 +140,12 @@
             "url": "https://github.com/Chlumsky/msdfgen.git",
             "branch": "master"
         }
+    },
+    {
+        "name": "msdf-atlas-gen",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/Chlumsky/msdf-atlas-gen.git"
+        }
     }
 ]

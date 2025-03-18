@@ -6,18 +6,6 @@ PROJECT(Mikoto)
 SET(CMAKE_CXX_STANDARD 20)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-IF(MSVC)
-    SET(USE_STATIC_MSVC_RUNTIME_LIBRARY "Use the static MSVC runtime library" ON "MSVC;NOT WINDOWS_STORE" OFF)
-
-    if(USE_STATIC_MSVC_RUNTIME_LIBRARY)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MTd")  # For Debug: static runtime
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MTd")      # For Debug: static runtime
-    else()
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MDd")  # For Debug: dynamic runtime
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MDd")      # For Debug: dynamic runtime
-    endif()
-ENDIF ()
-
 SET(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 SET(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 SET(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
@@ -27,14 +15,22 @@ SET(GLFW_BUILD_TESTS OFF CACHE BOOL "")
 SET(GLFW_BUILD_DOCS OFF CACHE BOOL "")
 SET(GLFW_INSTALL OFF CACHE BOOL "")
 
+set(MSDF_ATLAS_BUILD_STANDALONE OFF)
+set(MSDF_ATLAS_USE_VCPKG OFF)
+set(MSDF_ATLAS_USE_SKIA OFF)
+set(MSDF_ATLAS_DYNAMIC_RUNTIME OFF)
+set(MSDF_ATLAS_MSDFGEN_EXTERNAL ON)
+set(MSDF_ATLAS_INSTALL OFF)
+set(BUILD_SHARED_LIBS OFF)
+
 # MSDFGEN configuration
 set(MSDFGEN_CORE_ONLY ON)
 set(MSDFGEN_USE_VCPKG OFF)
 set(MSDFGEN_BUILD_STANDALONE OFF)
 set(MSDFGEN_DISABLE_SVG ON)
-set(MSDFGEN_INSTALL OFF)
-set(BUILD_SHARED_LIBS OFF)
+set(MSDFGEN_DISABLE_PNG ON)
 set(MSDFGEN_DYNAMIC_RUNTIME OFF)
+
 
 SET(ASSIMP_WARNINGS_AS_ERRORS OFF CACHE BOOL "Treat Assimp Warnings as errors" FORCE)
 
@@ -57,6 +53,7 @@ SET(CPP_TRACE ${P_PATH}/Third-Party/cpptrace)
 SET(FREE_TYPE ${P_PATH}/Third-Party/freetype)
 SET(JOLT_PHYSICS ${P_PATH}/Third-Party/JoltPhysics/Build)
 SET(MSDFGEN ${P_PATH}/Third-Party/msdfgen)
+SET(MSDF_ATLAS_GEN ${P_PATH}/Third-Party/msdf-atlas-gen)
 
 # Setup Mikoto Engine source file
 FILE(GLOB SOURCE_FILES src/*.cc)
@@ -101,9 +98,10 @@ ADD_SUBDIRECTORY(${CPP_TRACE} build/cpptrace)
 ADD_SUBDIRECTORY(${FREE_TYPE} build/freetype)
 ADD_SUBDIRECTORY(${JOLT_PHYSICS} build/joltphysics)
 ADD_SUBDIRECTORY(${MSDFGEN} build/msdfgen)
+ADD_SUBDIRECTORY(${MSDF_ATLAS_GEN} build/msdf_atlas_gen)
 
 # Libraries to link against target
-SET(LIBRARIES glfw fmt EnTT::EnTT volk assimp yaml-cpp nfd cpptrace::cpptrace freetype Jolt  msdfgen::msdfgen )
+SET(LIBRARIES glfw fmt EnTT::EnTT volk assimp yaml-cpp nfd cpptrace::cpptrace freetype Jolt  msdfgen::msdfgen msdf-atlas-gen::msdf-atlas-gen)
 
 # for tests only. -ltbb was required to use std::execution::par on linux
 # set(LIBRARIES glfw glew_s fmt EnTT::EnTT volk assimp yaml-cpp nfd tbb)
@@ -138,6 +136,7 @@ TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/JoltPhys
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/freetype/include)
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/)
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/msdfgen)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/msdf-atlas-gen)
 
 # Avoid GLFW including OpenGL headers
 TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLFW_INCLUDE_NONE)

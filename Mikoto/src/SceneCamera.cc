@@ -97,6 +97,7 @@ namespace Mikoto {
         if ( !m_AllowCameraMovementAndRotation ) {
             InputSystem& inputSystem{ Engine::GetSystem<InputSystem>() };
             m_LastMousePosition = { inputSystem.GetMouseX(), inputSystem.GetMouseY() };
+
             return;
         }
 

@@ -95,7 +95,11 @@ namespace Mikoto {
             Material* MaterialData{};
             bool IsRendered{ false };
 
+            float LocalScaling{};
+            float LetterSpacing{};
+
             VulkanFont* Font{ nullptr };
+            const Camera* TextCamera{ nullptr };
         };
 
         struct LightRenderInfo {
@@ -106,6 +110,11 @@ namespace Mikoto {
         struct OutlinePushConstantData {
             glm::vec4 OutlineColor{};
             float OutlineWidth{};
+        };
+
+        struct TextRenderPushConstantData {
+            glm::mat4 MVP{};
+            glm::vec4 Color{};
         };
 
     private:
@@ -150,8 +159,8 @@ namespace Mikoto {
         auto Flush() -> void;
 
     private:
-
         OutlinePushConstantData m_OutlinePushConstantsBlock{};
+        TextRenderPushConstantData m_TextRenderPushConstantData{};
 
         bool m_RequestRescale{ false };
         std::vector<std::function<void()>> m_ResizeCallbacks{};

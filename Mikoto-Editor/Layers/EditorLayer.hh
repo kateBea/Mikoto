@@ -13,8 +13,6 @@
 #include <Layer.hh>
 #include <Assets/Model.hh>
 #include <Scene/SceneSerializer.hh>
-#include <EditorModels/DockSpaceControlFlags.hh>
-#include <EditorModels/Enums.hh>
 #include <Models/Enums.hh>
 #include <Panels/Panel.hh>
 #include <Project/Project.hh>
@@ -25,10 +23,36 @@
 #include <Material/Texture/TextureCubeMap.hh>
 
 namespace Mikoto {
+
     struct EditorLayerCreateInfo {
         Window* TargetWindow{ nullptr };
         GraphicsAPI Backend{};
         Path_T AssetsRootDirectory{};
+    };
+
+    struct DockControlFlags {
+        bool ApplicationCloseFlag{};
+
+        bool HierarchyPanelVisible{ true };
+        bool InspectorPanelVisible{ true };
+        bool ScenePanelVisible{ true };
+        bool SettingPanelVisible{ true };
+        bool StatsPanelVisible{ true };
+        bool ContentBrowser{ true };
+        bool ConsolePanel{ true };
+        bool RendererPanel{ true };
+    };
+
+    enum class PrefabSceneObject {
+        NO_PREFAB_OBJECT,
+        SPRITE_PREFAB_OBJECT,
+        CUBE_PREFAB_OBJECT,
+        CUSTOM_MODEL_PREFAB_OBJECT,
+        CONE_PREFAB_OBJECT,
+        CYLINDER_PREFAB_OBJECT,
+        SPHERE_PREFAB_OBJECT,
+        SPONZA_PREFAB_OBJECT,
+        COUNT_PREFAB_OBJECT,
     };
 
     class EditorLayer final : public Layer {

@@ -19,6 +19,7 @@
 
 namespace Mikoto {
 
+
     auto AssetsSystem::Init( ) -> void {
         FreeTypeManager::Init();
 

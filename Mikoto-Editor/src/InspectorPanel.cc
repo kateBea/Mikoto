@@ -835,9 +835,9 @@ namespace Mikoto {
 
                 textComponent.LoadFont( interBlack );
 
-                textComponent.SetFontSize( 12 );
+                textComponent.SetSize( 12 );
                 textComponent.SetTextContent( "Example" );
-                textComponent.SetLetterSpacing( 1 );
+                textComponent.SetSpacing( 1 );
 
                 ImGui::CloseCurrentPopup();
             }
@@ -1572,8 +1572,8 @@ namespace Mikoto {
         // Slider float font size
         float currentSize{ textComponent.GetFontSize() };
         ImGui::Spacing();
-        if (ImGuiUtils::Slider( "##WorldSize", currentSize, {10.0f, 35.0f } )) {
-            textComponent.SetFontSize( currentSize );
+        if (ImGuiUtils::Slider( "##WorldSize", currentSize, {TextComponent::GetMinLetterSize(), 35.0f } )) {
+            textComponent.SetSize( currentSize );
         }
 
         ImGuiUtils::HelpMarker( "Text size in world space.", "(?)", true );
@@ -1581,8 +1581,8 @@ namespace Mikoto {
         // Slider float letter spacing
         float spacing{ textComponent.GetLetterSpacing() };
         ImGui::Spacing();
-        if (ImGuiUtils::Slider( "##Spacing", spacing, {10.0f, 35.0f } ) ) {
-            textComponent.SetLetterSpacing( spacing );
+        if (ImGuiUtils::Slider( "##Spacing", spacing, {TextComponent::GetMinLetterSpacing(), 35.0f } ) ) {
+            textComponent.SetSpacing( spacing );
         }
 
         ImGuiUtils::HelpMarker( "Text inner spacing.", "(?)", true );
@@ -1591,8 +1591,7 @@ namespace Mikoto {
 
         ImGui::Spacing();
         // Max scaling between 1 and 3
-        const float scalingValue{ 1.0f + ((3.0f - 1.0f) / 25.0f) * (currentSize - 10.0f) };
-        if (ImGuiUtils::TextArea( content, scalingValue )) {
+        if (ImGuiUtils::TextArea( content )) {
             textComponent.SetTextContent( content );
         }
     }

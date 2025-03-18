@@ -27,6 +27,14 @@ namespace Mikoto {
             return (s_DefaultBufferLayout);
         }
 
+        MKT_NODISCARD auto IsSpace() const -> bool {
+            return FT_Get_Char_Index( m_Face, ' ' ) == m_GlyphIndex;
+        }
+
+        MKT_NODISCARD auto IsLineFeed() const -> bool {
+            return FT_Get_Char_Index( m_Face, '\n' ) == m_GlyphIndex;
+        }
+
         MKT_NODISCARD auto GetSize() const -> const glm::ivec2& { return m_Size; }
         MKT_NODISCARD auto GetBearing() const -> const glm::ivec2& { return m_Bearing; }
         MKT_NODISCARD auto GetAdvance() const -> UInt32_T { return m_Advance; }
@@ -47,7 +55,7 @@ namespace Mikoto {
                 { ShaderDataType::FLOAT2_TYPE, "a_TextureCoordinates" }
         };
 
-        FT_Face m_face{};
+        FT_Face m_Face{};
         FT_UInt m_GlyphIndex{};
 
         glm::ivec2   m_Size{};       // Size of glyph

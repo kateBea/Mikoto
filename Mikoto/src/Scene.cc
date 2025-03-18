@@ -65,26 +65,26 @@ namespace Mikoto {
             TransformComponent &transformComponent{ m_Registry.get<TransformComponent>( entity ) };
 
             m_SceneRenderer->AddToDrawQueue( {
-                .Tag{ tagComponent },
+                .Tag{ std::addressof( tagComponent ) },
                 .RenderComponent{ std::addressof( renderComponent ) },
-                .Material{ materialComponent },
-                .Transform{ transformComponent }
+                .Material{ std::addressof( materialComponent ) },
+                .Transform{ std::addressof( transformComponent ) }
             } );
         }
 
         // Register text
-        const auto renderText{ m_Registry.view<TagComponent, TransformComponent, TextComponent, MaterialComponent>() };
+        const auto renderText{ m_Registry.view<TagComponent, TransformComponent, TextComponent>() };
         for (const entt::entity &entity: renderText) {
             TagComponent &tagComponent{ m_Registry.get<TagComponent>( entity ) };
-            TextComponent &renderComponent{ m_Registry.get<TextComponent>( entity ) };
-            MaterialComponent &materialComponent{ m_Registry.get<MaterialComponent>( entity ) };
+            TextComponent &textComponent{ m_Registry.get<TextComponent>( entity ) };
             TransformComponent &transformComponent{ m_Registry.get<TransformComponent>( entity ) };
 
+            textComponent.SetCamera( m_SceneCamera );
+
             m_SceneRenderer->AddToDrawQueue( {
-                .Tag{ tagComponent },
-                .Material{ materialComponent },
-                .TextComponent{ std::addressof( renderComponent ) },
-                .Transform{ transformComponent }
+                .Tag{ std::addressof( tagComponent ) },
+                .TextComponent{ std::addressof( textComponent ) },
+                .Transform{ std::addressof( transformComponent ) }
             } );
         }
 
@@ -148,7 +148,9 @@ namespace Mikoto {
             entity = std::move( *result );
             m_Entities.erase( result );
 
-            if (entity->HasComponent<RenderComponent>()) { m_SceneRenderer->RemoveFromDrawQueue( entity->GetComponent<TagComponent>().GetGUID() ); }
+            if (entity->HasAnyOfComponents<RenderComponent, TextComponent>()) {
+                m_SceneRenderer->RemoveFromDrawQueue( entity->GetComponent<TagComponent>().GetGUID() );
+            }
 
             if (entity->HasComponent<LightComponent>()) { m_SceneRenderer->RemoveLight( uniqueID ); }
         }
@@ -294,7 +296,9 @@ namespace Mikoto {
     auto Scene::Clear() -> void {
         // Remove entities from draw queue
         for (const auto &entity: m_Entities) {
-            if (entity->HasComponent<RenderComponent>()) { m_SceneRenderer->RemoveFromDrawQueue( entity->GetComponent<TagComponent>().GetGUID() ); }
+            if (entity->HasAnyOfComponents<RenderComponent, TextComponent>()) {
+                m_SceneRenderer->RemoveFromDrawQueue( entity->GetComponent<TagComponent>().GetGUID() );
+            }
 
             if (entity->HasComponent<LightComponent>()) { RemoveFromLights( entity->GetComponent<TagComponent>().GetGUID() ); }
         }

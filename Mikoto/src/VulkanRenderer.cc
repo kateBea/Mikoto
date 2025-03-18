@@ -742,64 +742,86 @@ namespace Mikoto {
 
     auto VulkanRenderer::RecordTextDrawCommands() -> void {
         for (const auto& textRenderInfo : m_TextDrawQueue | std::views::values ) {
-            const VulkanPipeline* pipeline{ nullptr };
             auto findIt{ m_Pipelines.find( MATERIAL_PASS_TEXT ) };
-            pipeline = findIt != m_Pipelines.end() ? std::addressof( findIt->second ) : nullptr;
+
+            const VulkanPipeline* pipeline{ findIt != m_Pipelines.end() ? std::addressof( findIt->second ) : nullptr };
+            VulkanPBRMaterial* pbrMaterial{ dynamic_cast<VulkanPBRMaterial*>( textRenderInfo.MaterialData ) };
+
             if ( pipeline == nullptr ) {
                 MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::RecordCommands - Pipeline objects are null." );
             }
 
-            VulkanPBRMaterial* pbrMaterial{ dynamic_cast<VulkanPBRMaterial*>( textRenderInfo.MaterialData ) };
-
-            float x = {};
+            float advance{};
+            float yOffset{};
             for (auto characterCode : textRenderInfo.Contents) {
-                struct PushData {
-                    glm::mat4 MVP{};
-                    glm::vec4 Color{};
-                } PushConstantData;
 
                 FreeTypeGlyph* glyph{ textRenderInfo.Font->GetGlyph( characterCode ) };
 
-                glm::vec3 position{};
-                glm::vec3 rotation{};
-                glm::vec3 scale{};
-                glm::mat4 transform{};
+                if (glyph != nullptr) {
+                    glm::vec3 position{};
+                    glm::vec3 rotation{};
+                    glm::vec3 scale{};
+                    glm::mat4 transform{};
 
-                // TODO: Hanlde spaces
-                 Math::DecomposeTransform( textRenderInfo.Transform, position, rotation, scale );
+                    if ( Math::DecomposeTransform( textRenderInfo.Transform, position, rotation, scale ) ) {
+                        float fontScale = textRenderInfo.LocalScaling / TextComponent::GetMaxLetterSize();   // Scale from font size
+                        float letterSpacing = textRenderInfo.LetterSpacing / TextComponent::GetMaxLetterSpacing(); // Custom letter spacing
 
-                position.x =  position.x + x;
-                x += glyph->GetAdvance();
+                        // Compute spacing using font scale
+                        float spacingOffset{ advance * fontScale + letterSpacing * fontScale };
 
-                transform = Math::RecomputeTransform( position, scale, rotation );
+                        // Adjust position with spacing and font scaling before applying world scale
+                        position.x += spacingOffset;
+                        position.y += yOffset;
 
-                PushConstantData.Color = { textRenderInfo.Color };
-                PushConstantData.MVP = m_Camera->GetProjection() * m_Camera->GetViewMatrix() * transform;
+                        // Move to the next character
+                        advance += (static_cast<float>(glyph->GetAdvance()) + fontScale) * letterSpacing;
 
-                vkCmdPushConstants(
-                    m_DrawCommandBuffer,
-                    pipeline->GetLayout(),
-                    VK_SHADER_STAGE_VERTEX_BIT,
-                    0,
-                    sizeof(PushData),
-                    std::addressof( PushConstantData )
-                );
+                        // Apply local font scaling before world transform
+                        glm::vec3 localScale{ scale * fontScale };
 
-                VkDescriptorSet glyphDset{ textRenderInfo.Font->GetGlyphDescriptorSet( characterCode ) };
+                        transform = Math::RecomputeTransform(position, localScale, rotation);
 
-                pipeline->Bind( m_DrawCommandBuffer );
+                        if (glyph->IsSpace()) {
+                            position.y += textRenderInfo.LetterSpacing * textRenderInfo.LetterSpacing;
+                            continue;
+                        }
 
-                // It is here that we specify which desc set we bind to, always 0 for now
-                constexpr Size_T firstSet{ 0 };
-                vkCmdBindDescriptorSets( m_DrawCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetLayout(), firstSet, 1, &glyphDset, 0, nullptr );
+                        if (glyph->IsLineFeed()) {
+                            advance = 0.0f; // Reset horizontal position (move to the start of the line)
+                            yOffset -= textRenderInfo.LetterSpacing * textRenderInfo.LocalScaling; // Move down based on scaling
+                            continue;
+                        }
+                    }
 
-                const VulkanVertexBuffer* vulkanVertexBuffer{ dynamic_cast<const VulkanVertexBuffer*>( glyph->GetVertexBuffer() ) };
-                const VulkanIndexBuffer* vulkanIndexBuffer{ dynamic_cast<const VulkanIndexBuffer*>( glyph->GetIndexBuffer() ) };
+                    m_TextRenderPushConstantData.Color = { textRenderInfo.Color };
+                    m_TextRenderPushConstantData.MVP = textRenderInfo.TextCamera->GetProjection() * textRenderInfo.TextCamera->GetViewMatrix() * transform;
 
-                vulkanVertexBuffer->Bind( m_DrawCommandBuffer );
-                vulkanIndexBuffer->Bind( m_DrawCommandBuffer );
+                    vkCmdPushConstants(
+                        m_DrawCommandBuffer,
+                        pipeline->GetLayout(),
+                        VK_SHADER_STAGE_VERTEX_BIT,
+                        0,
+                        sizeof(TextRenderPushConstantData),
+                        std::addressof( m_TextRenderPushConstantData )
+                    );
 
-                vkCmdDrawIndexed( m_DrawCommandBuffer, vulkanIndexBuffer->GetCount(), 1, 0, 0, 0 );
+                    VkDescriptorSet glyphDset{ textRenderInfo.Font->GetGlyphDescriptorSet( characterCode ) };
+
+                    pipeline->Bind( m_DrawCommandBuffer );
+
+                    // It is here that we specify which desc set we bind to, always 0 for now
+                    constexpr Size_T firstSet{ 0 };
+                    vkCmdBindDescriptorSets( m_DrawCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetLayout(), firstSet, 1, &glyphDset, 0, nullptr );
+
+                    const VulkanVertexBuffer* vulkanVertexBuffer{ dynamic_cast<const VulkanVertexBuffer*>( glyph->GetVertexBuffer() ) };
+                    const VulkanIndexBuffer* vulkanIndexBuffer{ dynamic_cast<const VulkanIndexBuffer*>( glyph->GetIndexBuffer() ) };
+
+                    vulkanVertexBuffer->Bind( m_DrawCommandBuffer );
+                    vulkanIndexBuffer->Bind( m_DrawCommandBuffer );
+
+                    vkCmdDrawIndexed( m_DrawCommandBuffer, vulkanIndexBuffer->GetCount(), 1, 0, 0, 0 );
+                }
             }
         }
     }
@@ -1252,14 +1274,14 @@ namespace Mikoto {
     auto VulkanRenderer::AddToDrawQueue( const EntityQueueInfo& queueInfo ) -> bool {
         bool success{ false };
 
-        const auto it{ m_DrawQueue.find( queueInfo.Tag.GetGUID() ) };
+        const auto it{ m_DrawQueue.find( queueInfo.Tag->GetGUID() ) };
 
         if (queueInfo.RenderComponent != nullptr) {
             MeshRenderInfo info{
                 .Object{ queueInfo.RenderComponent->GetMesh() },
-                .Transform{ queueInfo.Transform.GetTransform() },
-                .MaterialData{ std::addressof( queueInfo.Material.GetMaterial() ) },
-                .IsRendered{ queueInfo.Tag.IsVisible() }
+                .Transform{ queueInfo.Transform->GetTransform() },
+                .MaterialData{ std::addressof( queueInfo.Material->GetMaterial() ) },
+                .IsRendered{ queueInfo.Tag->IsVisible() }
             };
 
             if ( it != m_DrawQueue.end() ) {
@@ -1267,7 +1289,7 @@ namespace Mikoto {
                 success = true;
             } else {
                 auto [insertIt, successInsert]{
-                    m_DrawQueue.try_emplace( queueInfo.Tag.GetGUID(), info )
+                    m_DrawQueue.try_emplace( queueInfo.Tag->GetGUID(), info )
                 };
 
                 success = successInsert;
@@ -1275,21 +1297,24 @@ namespace Mikoto {
         }
 
         if (queueInfo.TextComponent != nullptr) {
-            auto textFindIt{ m_TextDrawQueue.find( queueInfo.Tag.GetGUID() ) };
+            auto textFindIt{ m_TextDrawQueue.find( queueInfo.Tag->GetGUID() ) };
 
             TextRenderInfo textRenderInfo {
                 .Contents{ queueInfo.TextComponent->GetTextContent() },
-                .Transform{ queueInfo.Transform.GetTransform() },
+                .Transform{ queueInfo.Transform->GetTransform() },
                 .Color{ queueInfo.TextComponent->GetColor() },
-                .MaterialData{ nullptr },
+                .MaterialData{ nullptr }, // NO MATERIAL FOR NOW
                 .IsRendered{ true },
+                .LocalScaling{ queueInfo.TextComponent->GetFontSize() },
+                .LetterSpacing{ queueInfo.TextComponent->GetLetterSpacing() },
                 .Font{ dynamic_cast<VulkanFont*>(queueInfo.TextComponent->GetFont() ) },
+                .TextCamera{ queueInfo.TextComponent->GetCamera() }
             };
 
             if (textFindIt != m_TextDrawQueue.end()) {
                 textFindIt->second = textRenderInfo;
             } else {
-                m_TextDrawQueue.try_emplace( queueInfo.Tag.GetGUID(), textRenderInfo );
+                m_TextDrawQueue.try_emplace( queueInfo.Tag->GetGUID(), textRenderInfo );
             }
         }
 
@@ -1302,6 +1327,8 @@ namespace Mikoto {
         try {
             const auto eraseCount{ m_DrawQueue.erase( id ) };
             result = eraseCount != 0;
+
+            const auto texListEraseCount{ m_TextDrawQueue.erase( id ) };
 
         } catch ( std::exception& exception ) {
             MKT_THROW_RUNTIME_ERROR( fmt::format( "VulkanRenderer - {}", exception.what() ) );

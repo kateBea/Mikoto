@@ -132,5 +132,13 @@
             "type": "git",
             "url": "https://gitlab.freedesktop.org/freetype/freetype"
         }
+    },
+    {
+        "name": "msdfgen",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/Chlumsky/msdfgen.git",
+            "branch": "master"
+        }
     }
 ]

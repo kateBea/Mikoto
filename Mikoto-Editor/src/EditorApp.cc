@@ -11,7 +11,9 @@
 // Project headers
 #include <Common/Constants.hh>
 #include <Core/Engine.hh>
+#include <Core/Logging/StackTrace.hh>
 #include <Core/System/EventSystem.hh>
+#include <Core/System/FileSystem.hh>
 #include <Core/System/InputSystem.hh>
 #include <Core/System/TaskSystem.hh>
 #include <Core/System/TimeSystem.hh>
@@ -19,7 +21,6 @@
 #include <Layers/EditorLayer.hh>
 #include <Library/Filesystem/PathBuilder.hh>
 #include <Profiling/Timer.hh>
-#include <Core/Logging/StackTrace.hh>
 
 namespace Mikoto {
 
@@ -63,7 +64,7 @@ namespace Mikoto {
         // The first argument is generally the program's executable path
         for ( const auto limit{ argv + argc }; argv < limit; ++argv ) {
             m_CommandLineParser->Insert( *argv, GetCommandDescription(*argv), [argv]() -> void {
-                MKT_APP_LOGGER_DEBUG( "Running command {}", *argv);
+
             } );
         }
     }
@@ -72,7 +73,7 @@ namespace Mikoto {
         MKT_PROFILE_SCOPE();
 
         const auto configFilePath{ PathBuilder()
-            .WithPath( std::filesystem::current_path().string() )
+            .WithPath( FileSystem::GetCurrentWorkingDirectory() )
             .WithPath( "engine-config.toml" )
             .Build()
         };

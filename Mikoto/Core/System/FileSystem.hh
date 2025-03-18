@@ -92,6 +92,10 @@ namespace Mikoto {
          * */
         auto OpenDialog( const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path_T;
 
+        MKT_NODISCARD static auto GetCurrentWorkingDirectory() -> std::string {
+            return std::filesystem::current_path().string();
+        }
+
     private:
         Path_T m_ShadersRootPath{};
         Path_T m_FontsRootPath{};

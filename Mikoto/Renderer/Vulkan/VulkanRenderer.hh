@@ -118,6 +118,8 @@ namespace Mikoto {
         };
 
     private:
+        auto BatchMeshes() -> void;
+
         auto HandleRescaling() -> void;
 
         auto CreateCommandPools() -> void;

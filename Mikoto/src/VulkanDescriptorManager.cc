@@ -8,6 +8,10 @@
 
 namespace Mikoto {
 
+    auto VulkanDescriptorSetLayout::Release() -> void {
+        vkDestroyDescriptorSetLayout(m_Device, m_Layout, nullptr);
+    }
+
     auto DescriptorLayoutBuilder::Clear() -> void {
         m_Bindings.clear();
     }

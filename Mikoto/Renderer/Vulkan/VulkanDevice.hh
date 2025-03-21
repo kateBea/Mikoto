@@ -11,12 +11,16 @@
 #include <vk_mem_alloc.h>
 #include <volk.h>
 
+#include <Renderer/Core/DeviceObject.hh>
 #include <Renderer/Vulkan/VulkanBuffer.hh>
 #include <Renderer/Vulkan/VulkanCommandPool.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
 #include <Renderer/Vulkan/VulkanImage.hh>
 
 namespace Mikoto {
+
+    // Forward declarations
+    class VulkanShader;
 
     struct VulkanDeviceCreateInfo {
         VkInstance* Instance{};
@@ -36,6 +40,18 @@ namespace Mikoto {
         const VmaVulkanFunctions* VmaCallbacks{ nullptr };
     };
 
+    struct BufferCreateInfo {
+
+    };
+
+    struct ImageCreateInfo {
+
+    };
+
+    struct TextureCreateInfo {
+
+    };
+
     class VulkanDevice final : public VulkanObject {
     public:
         explicit VulkanDevice(const VulkanDeviceCreateInfo& createInfo);
@@ -48,10 +64,16 @@ namespace Mikoto {
 
         auto WaitIdle() const -> void;
 
+        MKT_NODISCARD auto CreateBuffer(const BufferCreateInfo& createInfo) -> DeviceObject*;
+        MKT_NODISCARD auto CreateDescriptorSetLayout(const VulkanShader& createInfo) -> DeviceObject*;
+        MKT_NODISCARD auto CreateDescriptorSetLayout(std::span<const VulkanShader*> shaders) -> std::vector<DeviceObject*>;
+        MKT_NODISCARD auto CreateImage(const ImageCreateInfo& createInfo) -> DeviceObject*;
+        MKT_NODISCARD auto CreateTexture(const TextureCreateInfo& createInfo) -> DeviceObject*;
+
         auto CreateBuffer(const VulkanBufferCreateInfo & createInfo, VkBuffer& buffer, VmaAllocation& allocation, VmaAllocationInfo& allocationInfo ) const -> void;
         auto CreateImage(const VulkanImageCreateInfo& createInfo, const VmaAllocationCreateInfo& allocCreateInfo, VkImage& image, VmaAllocation& allocation, VmaAllocationInfo& allocationInf  ) const -> void;
 
-        auto GetDeviceMinimumOffsetAlignment() const -> VkDeviceSize;
+        MKT_NODISCARD auto GetDeviceMinimumOffsetAlignment() const -> VkDeviceSize;
 
         // Device
         MKT_NODISCARD auto GetPhysicalDevice() const -> const VkPhysicalDevice& { return m_PhysicalDevice; }
@@ -111,6 +133,9 @@ namespace Mikoto {
         static auto IsDeviceSuitable( const VkPhysicalDevice& device, const PhysicalDeviceRequiredFeatures& requirements ) -> bool;
 
     private:
+        Size_T m_DeviceObjectCounter{ 0 };
+        std::unordered_map<Size_T, Scope_T<DeviceObject>> m_DeviceObjects{};
+
         VkInstance* m_VulkanInstance{ nullptr };
         VkSurfaceKHR* m_Surface{ nullptr };
 

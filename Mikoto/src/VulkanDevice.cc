@@ -1,15 +1,18 @@
 //
 // Created by kate on 1/26/2025.
 //
+#include <spirv_reflect.h>
+
 #include <Core/Logging/Logger.hh>
 #include <Core/Logging/StackTrace.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDeletionQueue.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Vulkan/VulkanShader.hh>
 
 namespace Mikoto {
 
-    VulkanDevice::VulkanDevice(const VulkanDeviceCreateInfo& createInfo) {
+    VulkanDevice::VulkanDevice( const VulkanDeviceCreateInfo& createInfo ) {
         m_VulkanInstance = createInfo.Instance;
         m_Surface = createInfo.Surface;
 
@@ -40,17 +43,17 @@ namespace Mikoto {
     VulkanDevice::~VulkanDevice() {
         MKT_CORE_LOGGER_INFO( "VulkanDevice::~VulkanDevice - Destroying device." );
 
-        if (!m_IsReleased) {
+        if ( !m_IsReleased ) {
             Release();
             Invalidate();
         }
     }
 
-    auto VulkanDevice::GetPhysicalDeviceInfo(const VkPhysicalDevice& device) -> PhysicalDeviceInfo {
+    auto VulkanDevice::GetPhysicalDeviceInfo( const VkPhysicalDevice& device ) -> PhysicalDeviceInfo {
         PhysicalDeviceInfo result{};
 
         vkGetPhysicalDeviceFeatures( device, std::addressof( result.Features ) );
-        vkGetPhysicalDeviceProperties( device, std::addressof(result.Properties ) );
+        vkGetPhysicalDeviceProperties( device, std::addressof( result.Properties ) );
         vkGetPhysicalDeviceMemoryProperties( device, std::addressof( result.MemoryProperties ) );
 
         return result;
@@ -65,12 +68,12 @@ namespace Mikoto {
 
         bool physicalDeviceSupportsAllRequiredExtensions{ true };
         for ( const auto& requiredExtension: requestedExtensions ) {
-            physicalDeviceSupportsAllRequiredExtensions = std::ranges::any_of(physicalDeviceSupportedExtensions,
-                [&requiredExtension](const VkExtensionProperties& extensionProperties) -> bool {
-                    return StringUtils::Equal( requiredExtension, extensionProperties.extensionName );
-                });
+            physicalDeviceSupportsAllRequiredExtensions = std::ranges::any_of( physicalDeviceSupportedExtensions,
+                                                                               [&requiredExtension]( const VkExtensionProperties& extensionProperties ) -> bool {
+                                                                                   return StringUtils::Equal( requiredExtension, extensionProperties.extensionName );
+                                                                               } );
 
-            if (!physicalDeviceSupportsAllRequiredExtensions) {
+            if ( !physicalDeviceSupportsAllRequiredExtensions ) {
                 break;
             }
         }
@@ -78,34 +81,150 @@ namespace Mikoto {
         return physicalDeviceSupportsAllRequiredExtensions;
     }
 
-    auto VulkanDevice::CreateBuffer(const VulkanBufferCreateInfo & createInfo, VkBuffer& buffer, VmaAllocation& allocation, VmaAllocationInfo& allocationInfo ) const -> void {
-        const auto result { vmaCreateBuffer(m_DefaultAllocator,
-                            std::addressof( createInfo.BufferCreateInfo ),
-                            std::addressof( createInfo.AllocationCreateInfo ),
-                                    std::addressof( buffer ),
-                            std::addressof( allocation ),
-                            std::addressof( allocationInfo )) };
+    auto VulkanDevice::CreateBuffer( const VulkanBufferCreateInfo& createInfo, VkBuffer& buffer, VmaAllocation& allocation, VmaAllocationInfo& allocationInfo ) const -> void {
+        const auto result{ vmaCreateBuffer( m_DefaultAllocator,
+                                            std::addressof( createInfo.BufferCreateInfo ),
+                                            std::addressof( createInfo.AllocationCreateInfo ),
+                                            std::addressof( buffer ),
+                                            std::addressof( allocation ),
+                                            std::addressof( allocationInfo ) ) };
 
-        if (result  != VK_SUCCESS) {
-             MKT_THROW_RUNTIME_ERROR("VulkanDevice::UploadBufferFailed to create VMA buffer.");
+        if ( result != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanDevice::UploadBufferFailed to create VMA buffer." );
         }
     }
 
-    auto VulkanDevice::CreateImage(const VulkanImageCreateInfo& createInfo, const VmaAllocationCreateInfo& allocCreateInfo, VkImage& image, VmaAllocation& allocation, VmaAllocationInfo& allocationInf ) const -> void {
-        const auto result{ vmaCreateImage(m_DefaultAllocator,
-                                     std::addressof( createInfo.ImageCreateInfo ),
-                                     std::addressof( allocCreateInfo ),
-                                     std::addressof( image ),
-                                     std::addressof( allocation ),
-                                     std::addressof( allocationInf ) ) };
+    auto VulkanDevice::CreateImage( const VulkanImageCreateInfo& createInfo, const VmaAllocationCreateInfo& allocCreateInfo, VkImage& image, VmaAllocation& allocation, VmaAllocationInfo& allocationInf ) const -> void {
+        const auto result{ vmaCreateImage( m_DefaultAllocator,
+                                           std::addressof( createInfo.ImageCreateInfo ),
+                                           std::addressof( allocCreateInfo ),
+                                           std::addressof( image ),
+                                           std::addressof( allocation ),
+                                           std::addressof( allocationInf ) ) };
 
-        if (result != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("VulkanDevice::AllocateImage - Failed to allocate VMA Image!");
+        if ( result != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanDevice::AllocateImage - Failed to allocate VMA Image!" );
         }
     }
 
     auto VulkanDevice::WaitIdle() const -> void {
-        vkDeviceWaitIdle(m_LogicalDevice);
+        vkDeviceWaitIdle( m_LogicalDevice );
+    }
+
+    auto VulkanDevice::CreateBuffer( const BufferCreateInfo& createInfo ) -> DeviceObject* {
+        return {};
+    }
+
+    auto VulkanDevice::CreateDescriptorSetLayout( const VulkanShader& shader ) -> DeviceObject* {
+        const File* shaderFile{ shader.GetFile() };
+
+        SpvReflectShaderModule module{};
+        SpvReflectResult result{ spvReflectCreateShaderModule( shaderFile->GetSizBytes(), shaderFile->GetFileContents().data(), std::addressof( module ) ) };
+        if ( result != SPV_REFLECT_RESULT_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanDevice::CreateDescriptorSetLayout - Failed to parse SPIR-V" );
+        }
+
+        UInt32_T setCount{ 0 };
+        spvReflectEnumerateDescriptorSets( std::addressof( module ), std::addressof( setCount ), nullptr );
+        std::vector<SpvReflectDescriptorSet*> sets( setCount );
+        spvReflectEnumerateDescriptorSets( std::addressof( module ), std::addressof( setCount ), sets.data() );
+
+        DescriptorLayoutBuilder builder{};
+
+        for ( UInt32_T setIndex{ 0 }; setIndex < setCount; ++setIndex ) {
+            const SpvReflectDescriptorSet& reflectSet{ *sets[setIndex] };
+
+            for ( UInt32_T j = 0; j < reflectSet.binding_count; ++j ) {
+                const SpvReflectDescriptorBinding& binding{ *reflectSet.bindings[j] };
+
+                builder.WithBinding(
+                        binding.binding,
+                        static_cast<VkDescriptorType>( binding.descriptor_type ),
+                        shader.GetVulkanStage() );
+            }
+        }
+
+        auto [insertResult, success]{
+            m_DeviceObjects.emplace( m_DeviceObjectCounter++, CreateScope<VulkanDescriptorSetLayout>( m_LogicalDevice, builder.Build( m_LogicalDevice ) ) )
+        };
+
+        spvReflectDestroyShaderModule( std::addressof( module ) );
+
+        return success ? insertResult->second.get() : nullptr;
+    }
+
+    auto VulkanDevice::CreateDescriptorSetLayout( std::span<const VulkanShader*> shaders ) -> std::vector<DeviceObject*> {
+        std::unordered_map<UInt32_T, DescriptorLayoutBuilder> descriptorUniqueSets{};
+
+        for (const auto& shader : shaders) {
+            const File* shaderFile{ shader->GetFile() };
+
+            SpvReflectShaderModule module{};
+            SpvReflectResult result{ spvReflectCreateShaderModule( shaderFile->GetSizBytes(), shaderFile->GetFileContents().data(), std::addressof( module ) ) };
+            if ( result != SPV_REFLECT_RESULT_SUCCESS ) {
+                MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateDescriptorSetLayout - Failed to parse SPIR-V" );
+                break;
+            }
+
+            UInt32_T setCount{ 0 };
+            spvReflectEnumerateDescriptorSets( std::addressof( module ), std::addressof( setCount ), nullptr );
+            std::vector<SpvReflectDescriptorSet*> sets( setCount );
+            spvReflectEnumerateDescriptorSets( std::addressof( module ), std::addressof( setCount ), sets.data() );
+
+            for ( UInt32_T setIndex{ 0 }; setIndex < setCount; ++setIndex ) {
+                const SpvReflectDescriptorSet& reflectSet{ *sets[setIndex] };
+
+                if (!descriptorUniqueSets.contains( reflectSet.set )) {
+                    DescriptorLayoutBuilder builder{};
+
+                    for ( UInt32_T reflectSetIndex{ 0 }; reflectSetIndex < reflectSet.binding_count; ++reflectSetIndex ) {
+                        const SpvReflectDescriptorBinding& binding{ *reflectSet.bindings[reflectSetIndex] };
+
+                        builder.WithBinding(
+                                binding.binding,
+                                static_cast<VkDescriptorType>( binding.descriptor_type ),
+                                shader->GetVulkanStage() );
+
+                    }
+
+                    descriptorUniqueSets.emplace( reflectSet.set, builder );
+                } else {
+                    DescriptorLayoutBuilder& builder{ descriptorUniqueSets[reflectSet.set] };
+
+                    for ( UInt32_T j{ 0 }; j < reflectSet.binding_count; ++j ) {
+                        const SpvReflectDescriptorBinding& binding{ *reflectSet.bindings[j] };
+
+                        builder.WithBinding(
+                                binding.binding,
+                                static_cast<VkDescriptorType>( binding.descriptor_type ),
+                                shader->GetVulkanStage() );
+                    }
+                }
+            }
+
+            spvReflectDestroyShaderModule( std::addressof( module ) );
+        }
+
+        std::vector<DeviceObject*> deviceObjects{};
+        for (const auto& builder : descriptorUniqueSets | std::ranges::views::values) {
+            auto [insertResult, success]{
+                m_DeviceObjects.emplace( m_DeviceObjectCounter++, CreateScope<VulkanDescriptorSetLayout>( m_LogicalDevice, builder.Build( m_LogicalDevice ) ) )
+            };
+
+            if (success) {
+                deviceObjects.emplace_back( insertResult->second.get() );
+            }
+        }
+
+        return deviceObjects;
+    }
+
+    auto VulkanDevice::CreateImage( const ImageCreateInfo& createInfo ) -> DeviceObject* {
+        return {};
+    }
+
+    auto VulkanDevice::CreateTexture( const TextureCreateInfo& createInfo ) -> DeviceObject* {
+        return {};
     }
 
     auto VulkanDevice::GetDeviceMinimumOffsetAlignment() const -> VkDeviceSize {
@@ -118,23 +237,23 @@ namespace Mikoto {
 
         // Verify queue support (Present is needed if the surface is not null)
         // For now I always want a graphics queue by default for the device
-        const auto& [Present, Graphics, Compute] { GetQueueFamilyIndices( device, requirements.Surface ) };
-        const bool deviceSupportsRequiredQueues{ Graphics.has_value() && (requirements.Surface != nullptr && Present.has_value()) };
+        const auto& [Present, Graphics, Compute]{ GetQueueFamilyIndices( device, requirements.Surface ) };
+        const bool deviceSupportsRequiredQueues{ Graphics.has_value() && ( requirements.Surface != nullptr && Present.has_value() ) };
 
         // Check swapchain support
         bool deviceHasSwapchainSupport{ true };
-        if ( extensionsSupported && requirements.Surface != nullptr  ) {
+        if ( extensionsSupported && requirements.Surface != nullptr ) {
             const SwapChainSupportDetails swapChainSupport{ VulkanHelpers::GetSwapChainSupport( device, *requirements.Surface ) };
             deviceHasSwapchainSupport = !swapChainSupport.Formats.empty() && !swapChainSupport.PresentModes.empty();
         }
 
         // Check support physical device features
         VkPhysicalDeviceFeatures supportedFeatures{};
-        vkGetPhysicalDeviceFeatures( device, std::addressof(supportedFeatures) );
+        vkGetPhysicalDeviceFeatures( device, std::addressof( supportedFeatures ) );
         bool supportRequiredPhysicalFeatures{
             // Anisotropic filtering requested and supported
-            (!requirements.AnysotropicFiltering || supportedFeatures.samplerAnisotropy) &&
-            (!requirements.FillModeNonSolid || supportedFeatures.fillModeNonSolid)
+            ( !requirements.AnysotropicFiltering || supportedFeatures.samplerAnisotropy ) &&
+            ( !requirements.FillModeNonSolid || supportedFeatures.fillModeNonSolid )
         };
 
         return deviceSupportsRequiredQueues && extensionsSupported && deviceHasSwapchainSupport && supportRequiredPhysicalFeatures;
@@ -142,7 +261,7 @@ namespace Mikoto {
 
     auto VulkanDevice::GetPrimaryPhysicalDevice() -> void {
         UInt32_T deviceCount{ 0 };
-        vkEnumeratePhysicalDevices( *m_VulkanInstance, std::addressof(deviceCount), nullptr );
+        vkEnumeratePhysicalDevices( *m_VulkanInstance, std::addressof( deviceCount ), nullptr );
         if ( deviceCount == 0 ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanDevice::PickPrimaryPhysicalDevice - Error failed to find GPUs with Vulkan support!" );
         }
@@ -164,7 +283,7 @@ namespace Mikoto {
                                   } )
         };
 
-        if (it == physicalDevices.end() ||  *it == VK_NULL_HANDLE ) {
+        if ( it == physicalDevices.end() || *it == VK_NULL_HANDLE ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanDevice::PickPrimaryPhysicalDevice - Error could not find a suitable GPU to use as primary physical device!" );
         }
 
@@ -247,7 +366,7 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::SubmitCommandsGraphicsQueue( const FrameSynchronizationPrimitives& syncPrimitives ) -> void {
-        if (m_GraphicsSubmitCommands.empty()) {
+        if ( m_GraphicsSubmitCommands.empty() ) {
             return;
         }
 
@@ -282,7 +401,7 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::SubmitCommandsComputeQueue( const ComputeSynchronizationPrimitives& syncPrimitives ) -> void {
-        if (m_ComputeSubmitCommands.empty()) {
+        if ( m_ComputeSubmitCommands.empty() ) {
             return;
         }
 
@@ -317,12 +436,17 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::Release() -> void {
-        if (m_IsReleased) {
+        if ( m_IsReleased ) {
             return;
         }
 
-        vmaDestroyAllocator( m_DefaultAllocator );
+        WaitIdle();
 
+        for ( const auto& object: m_DeviceObjects | std::views::values ) {
+            object->Release();
+        }
+
+        vmaDestroyAllocator( m_DefaultAllocator );
         vkDestroyDevice( m_LogicalDevice, nullptr );
 
         Invalidate();
@@ -334,7 +458,7 @@ namespace Mikoto {
             .device{ m_LogicalDevice },
             .pVulkanFunctions{ m_VmaCallbacks },
             .instance{ *m_VulkanInstance },
-            .vulkanApiVersion{ VK_MAKE_API_VERSION(MKT_VULKAN_VERSION_VARIANT, MKT_VULKAN_VERSION_MAJOR, MKT_VULKAN_VERSION_MINOR, MKT_VULKAN_VERSION_PATCH ) },
+            .vulkanApiVersion{ VK_MAKE_API_VERSION( MKT_VULKAN_VERSION_VARIANT, MKT_VULKAN_VERSION_MAJOR, MKT_VULKAN_VERSION_MINOR, MKT_VULKAN_VERSION_PATCH ) },
         };
 
         vmaCreateAllocator( std::addressof( allocatorInfo ), std::addressof( m_DefaultAllocator ) );
@@ -366,28 +490,28 @@ namespace Mikoto {
         // Vulkan does not give the family index,
         // so I need to manually keep track of it
         UInt32_T queueFamilyIndex{};
-        for ( const auto& queueFamilyProperties : queueFamilies ) {
+        for ( const auto& queueFamilyProperties: queueFamilies ) {
             // Check graphics queue support
-            if (!result.Graphics.has_value() && VulkanHelpers::HasGraphicsQueue(queueFamilyProperties) ) {
+            if ( !result.Graphics.has_value() && VulkanHelpers::HasGraphicsQueue( queueFamilyProperties ) ) {
                 result.Graphics = std::make_optional( VulkanQueueData{
-                    .Queue{ VK_NULL_HANDLE },
-                    .FamilyIndex{ queueFamilyIndex },
+                        .Queue{ VK_NULL_HANDLE },
+                        .FamilyIndex{ queueFamilyIndex },
                 } );
             }
 
             // Check present queue support
-            if (!result.Present.has_value() && surface != nullptr && VulkanHelpers::HasPresentQueue( device, queueFamilyIndex, *surface, queueFamilyProperties )) {
+            if ( !result.Present.has_value() && surface != nullptr && VulkanHelpers::HasPresentQueue( device, queueFamilyIndex, *surface, queueFamilyProperties ) ) {
                 result.Present = std::make_optional( VulkanQueueData{
-                    .Queue{ VK_NULL_HANDLE },
-                    .FamilyIndex{ queueFamilyIndex },
+                        .Queue{ VK_NULL_HANDLE },
+                        .FamilyIndex{ queueFamilyIndex },
                 } );
             }
 
             // Check compute queue
-            if (!result.Compute.has_value() && VulkanHelpers::HasComputeQueue(queueFamilyProperties)) {
+            if ( !result.Compute.has_value() && VulkanHelpers::HasComputeQueue( queueFamilyProperties ) ) {
                 result.Compute = std::make_optional( VulkanQueueData{
-                    .Queue{ VK_NULL_HANDLE },
-                    .FamilyIndex{ queueFamilyIndex },
+                        .Queue{ VK_NULL_HANDLE },
+                        .FamilyIndex{ queueFamilyIndex },
                 } );
             }
 
@@ -398,16 +522,16 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::GetDeviceQueues( const VkDevice& device, QueuesData& queues ) -> void {
-        if (queues.Graphics.has_value()) {
-            vkGetDeviceQueue( device, queues.Graphics->FamilyIndex, 0, std::addressof(queues.Graphics->Queue) );
+        if ( queues.Graphics.has_value() ) {
+            vkGetDeviceQueue( device, queues.Graphics->FamilyIndex, 0, std::addressof( queues.Graphics->Queue ) );
         }
 
-        if (queues.Present.has_value()) {
-            vkGetDeviceQueue( device, queues.Present->FamilyIndex, 0, std::addressof(queues.Present->Queue) );
+        if ( queues.Present.has_value() ) {
+            vkGetDeviceQueue( device, queues.Present->FamilyIndex, 0, std::addressof( queues.Present->Queue ) );
         }
 
-        if (queues.Compute.has_value()) {
-            vkGetDeviceQueue( device, queues.Compute->FamilyIndex, 0, std::addressof(queues.Compute->Queue) );
+        if ( queues.Compute.has_value() ) {
+            vkGetDeviceQueue( device, queues.Compute->FamilyIndex, 0, std::addressof( queues.Compute->Queue ) );
         }
     }
-}
+}// namespace Mikoto

@@ -343,7 +343,7 @@ namespace Mikoto {
         vulkanVertexBuffer->Bind( m_DrawCommandBuffer );
         vulkanIndexBuffer->Bind( m_DrawCommandBuffer );
 
-        vkCmdDrawIndexed( m_DrawCommandBuffer, vulkanIndexBuffer->GetCount(), 1, 0, 0, 0 );
+        vkCmdDrawIndexed( m_DrawCommandBuffer, vulkanIndexBuffer->GetCount(), 2, 0, 0, 0 );
     }
 
     auto VulkanRenderer::SetupDefaultPass( const MeshRenderInfo& meshRenderInfo ) -> void {
@@ -925,20 +925,20 @@ namespace Mikoto {
         };
 
         // Set layout
-        const std::array descLayouts{ VulkanContext::Get().GetDescriptorSetLayouts( DESCRIPTOR_SET_LAYOUT_PBR_SHADER ) };
+        std::array shaders{ vertexShader, fragmentShader };
+        const auto descSetLayouts{ m_Device->CreateDescriptorSetLayout( shaders ) };
+        const auto descLayouts{ std::ranges::views::transform( descSetLayouts, []( const DeviceObject* descSet ) {
+            return dynamic_cast<const VulkanDescriptorSetLayout*>(descSet)->Get();
+        } ) };
 
-        // Push constants. See push constants in frag shader
-        // First data is 12 bytes is which size sizeof(glm::vec3) using floats for the vec3
-        std::array pushConstantRanges{
-            VulkanHelpers::Initializers::PushConstantRange( VK_SHADER_STAGE_FRAGMENT_BIT, 32, sizeof( glm::vec4 ) ),
-        };
+        std::vector<VkDescriptorSetLayout> layouts{ descLayouts.begin(), descLayouts.end() };
 
         // Create the pipeline layout
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VulkanHelpers::Initializers::PipelineLayoutCreateInfo() };
         pipelineLayoutInfo.pushConstantRangeCount = 0;
         pipelineLayoutInfo.pPushConstantRanges = nullptr;
-        pipelineLayoutInfo.setLayoutCount = static_cast<UInt32_T>( descLayouts.size() );
-        pipelineLayoutInfo.pSetLayouts = descLayouts.data();
+        pipelineLayoutInfo.setLayoutCount = static_cast<UInt32_T>( layouts.size() );
+        pipelineLayoutInfo.pSetLayouts = layouts.data();
 
         VkPipelineLayout layout{};
         if ( vkCreatePipelineLayout( m_Device->GetLogicalDevice(), std::addressof( pipelineLayoutInfo ), nullptr, std::addressof( layout ) ) != VK_SUCCESS ) {
@@ -1243,9 +1243,9 @@ namespace Mikoto {
     auto VulkanRenderer::CreateRendererPipelines() -> void {
         InitializeDefaultPipeline();
 
-        InitializePBRWireFramePipeline();
-
         InitializePBRPipeline();
+
+        InitializePBRWireFramePipeline();
 
         InitializeComputePipelines();
 
@@ -1255,6 +1255,8 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::Flush() -> void {
+        BatchMeshes();
+
         RecordComputeCommands();
 
         RecordDrawCommands();
@@ -1335,6 +1337,10 @@ namespace Mikoto {
         }
 
         return result;
+    }
+
+    auto VulkanRenderer::BatchMeshes() -> void {
+
     }
 
     auto VulkanRenderer::HandleRescaling() -> void {

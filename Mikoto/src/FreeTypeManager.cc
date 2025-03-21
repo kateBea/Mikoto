@@ -5,7 +5,6 @@
 #include <../../Third-Party/freetype/include/ft2build.h>
 #include FT_FREETYPE_H
 
-#include <msdf-atlas-gen/msdf-atlas-gen/types.h>
 #include <msdf-atlas-gen/msdf-atlas-gen.h>
 
 #include <Core/Logging/Logger.hh>

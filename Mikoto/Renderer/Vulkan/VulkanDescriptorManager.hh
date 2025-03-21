@@ -16,8 +16,23 @@
 // Project Headers
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
+#include <Renderer/Core/DeviceObject.hh>
 
 namespace Mikoto {
+    class VulkanDescriptorSetLayout final : public DeviceObject {
+    public:
+        explicit VulkanDescriptorSetLayout( const VkDevice device, const VkDescriptorSetLayout layout )
+            : m_Device{ device }, m_Layout{ layout } {}
+
+        auto Release() -> void override;
+
+        auto Get() -> VkDescriptorSetLayout { return m_Layout; }
+        auto Get() const -> VkDescriptorSetLayout { return m_Layout; }
+
+    private:
+        VkDevice m_Device{ VK_NULL_HANDLE };
+        VkDescriptorSetLayout m_Layout{ VK_NULL_HANDLE };
+    };
 
     class DescriptorLayoutBuilder final {
     public:

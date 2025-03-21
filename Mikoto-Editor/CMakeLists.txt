@@ -20,6 +20,7 @@ ADD_EXECUTABLE(${PROJECT_NAME} ${SOURCE_FILES})
 # Specify target link libraries
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE ${LIBRARIES})
 
+# TODO: These get exposed because includes into .h files, this should be part of engine backend not client side stuff
 # Header files directories
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC .)
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Mikoto)

@@ -49,6 +49,7 @@
 ### Software Requirements
 - **CMake** 3.18 or higher.
 - **The Vulkan SDK**: Available from [Vulkan](https://vulkan.lunarg.com/).
+- A Python 3.x installation for the build system.
 - **C++20 Compiler**: Tested with GCC 12.3.0.
 - **GLSL-C**: Optional, as precompiled shader binaries are included.
 
@@ -111,23 +112,26 @@ sudo apt install libwayland-dev libxkbcommon-dev xorg-dev
 
 The development of Mikoto Engine is made possible thanks to these fantastic third-party libraries:
 
-| Library                       | Description                                  | Link                                                                                                                |
-|-------------------------------|----------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
-| **FMT**                       | Modern C++ formatting library                | [fmtlib/fmt](https://github.com/fmtlib/fmt)                                                                         |
-| **GLEW**                      | OpenGL Extension Wrangler Library            | [GLEW](https://glew.sourceforge.net/)                                                                               |
-| **GLFW**                      | Multi-platform library for window management | [glfw/glfw](https://github.com/glfw/glfw)                                                                           |
-| **GLM**                       | OpenGL Mathematics library                   | [g-truc/glm](https://github.com/g-truc/glm)                                                                         |
-| **ImGui**                     | Immediate Mode GUI library                   | [ocornut/imgui](https://github.com/ocornut/imgui)                                                                   |
-| **Spdlog**                    | Fast C++ logging library                     | [gabime/spdlog](https://github.com/gabime/spdlog)                                                                   |
-| **EnTT**                      | Fast and efficient Entity-Component System   | [skypjack/entt](https://github.com/skypjack/entt)                                                                   |
-| **Volk**                      | Meta-loader for Vulkan API                   | [zeux/volk](https://github.com/zeux/volk)                                                                           |
-| **Assimp**                    | Asset importer library                       | [assimp/assimp](https://github.com/assimp/assimp)                                                                   |
-| **VulkanMemoryAllocator**     | Memory allocation for Vulkan resources       | [GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) |
-| **ImGuizmo**                  | Gizmo manipulator for ImGui                  | [CedricGuillemet/ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo)                                             |
-| **yaml-cpp**                  | YAML parser and emitter for C++              | [jbeder/yaml-cpp](https://github.com/jbeder/yaml-cpp)                                                               |
-| **nativefiledialog-extended** | File dialog library for native UIs           | [btzy/nativefiledialog-extended](https://github.com/btzy/nativefiledialog-extended)                                 |
-| **JoltPhysics**               | Physics engine library                       | [jrouwe/JoltPhysics](https://github.com/jrouwe/JoltPhysics)                                                         |
-| **tomlplusplus**              | TOML configuration file parser for C++       | [marzer/tomlplusplus](https://github.com/marzer/tomlplusplus)                                                       |
+| Library                       | Description                                   | Link                                                                                                                |
+|-------------------------------|-----------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| **FMT**                       | Modern C++ formatting library                 | [fmtlib/fmt](https://github.com/fmtlib/fmt)                                                                         |
+| **GLEW**                      | OpenGL Extension Wrangler Library             | [GLEW](https://glew.sourceforge.net/)                                                                               |
+| **GLFW**                      | Multi-platform library for window management  | [glfw/glfw](https://github.com/glfw/glfw)                                                                           |
+| **GLM**                       | OpenGL Mathematics library                    | [g-truc/glm](https://github.com/g-truc/glm)                                                                         |
+| **ImGui**                     | Immediate Mode GUI library                    | [ocornut/imgui](https://github.com/ocornut/imgui)                                                                   |
+| **Spdlog**                    | Fast C++ logging library                      | [gabime/spdlog](https://github.com/gabime/spdlog)                                                                   |
+| **EnTT**                      | Fast and efficient Entity-Component System    | [skypjack/entt](https://github.com/skypjack/entt)                                                                   |
+| **Volk**                      | Meta-loader for Vulkan API                    | [zeux/volk](https://github.com/zeux/volk)                                                                           |
+| **Assimp**                    | Asset importer library                        | [assimp/assimp](https://github.com/assimp/assimp)                                                                   |
+| **VulkanMemoryAllocator**     | Memory allocation for Vulkan resources        | [GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) |
+| **ImGuizmo**                  | Gizmo manipulator for ImGui                   | [CedricGuillemet/ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo)                                             |
+| **yaml-cpp**                  | YAML parser and emitter for C++               | [jbeder/yaml-cpp](https://github.com/jbeder/yaml-cpp)                                                               |
+| **nativefiledialog-extended** | File dialog library for native UIs            | [btzy/nativefiledialog-extended](https://github.com/btzy/nativefiledialog-extended)                                 |
+| **JoltPhysics**               | Physics engine library                        | [jrouwe/JoltPhysics](https://github.com/jrouwe/JoltPhysics)                                                         |
+| **tomlplusplus**              | TOML configuration file parser for C++        | [marzer/tomlplusplus](https://github.com/marzer/tomlplusplus)                                                       |
+| **stb_image**                 | Image loading library                         | [nothings/stb](https://github.com/nothings/stb.git)                                                                 |
+| **msdf-atlas-gen**            | Multi-channel signed distance field generator | [Chlumsky/msdf-atlas-gen](https://github.com/Chlumsky/msdf-atlas-gen.git)                                           |
+
 > **Note**: The required libraries are included as a submodules in the project and do not require separate installation, just need to clone the repository with ``--recursive`` flag.
 
 ## Goals
@@ -146,6 +150,7 @@ The development of Mikoto has been inspired by the work of the following:
 - **Jason Gregory** for the book *[Game Engine Architecture](https://www.gameenginebook.com/)*.
 - **Matt Pharr, Wenzel Jakob, Greg Humphreys** for *[Physically Based Rendering: From Theory to Implementation](https://www.pbr-book.org/)*.
 - **Sascha Willems** for the [Vulkan examples repository](https://github.com/SaschaWillems/Vulkan).
+- **Marco Castorina and Gabriel Sassone** for the Mastering Graphics Programming with Vulkan Book.
 
 ---
 

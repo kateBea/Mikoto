@@ -763,6 +763,13 @@ namespace Mikoto {
                     .Build() },
                 .Size{} } ) };
 
+        Font* notoJP{ assetsSystem.LoadFont( {
+                .Path{ PathBuilder()
+                    .WithPath( fileSystem.GetFontsRootPath().string() )
+                    .WithPath( "NotoSansJP-VariableFont_wght.ttf" )
+                    .Build() },
+                .Size{} } ) };
+
     }
 
     auto EditorLayer::GetPrefabModel( const PrefabSceneObject type ) -> Model* {

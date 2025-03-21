@@ -6,15 +6,16 @@ PROJECT(Mikoto)
 SET(CMAKE_CXX_STANDARD 20)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# GLFW CMake Options
+SET(GLFW_INSTALL OFF CACHE BOOL "")
+SET(GLFW_BUILD_DOCS OFF CACHE BOOL "")
+SET(GLFW_BUILD_TESTS OFF CACHE BOOL "")
+SET(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "")
 SET(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 SET(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 SET(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
-SET(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "")
-SET(GLFW_BUILD_TESTS OFF CACHE BOOL "")
-SET(GLFW_BUILD_DOCS OFF CACHE BOOL "")
-SET(GLFW_INSTALL OFF CACHE BOOL "")
-
+# MSDFGEN CMake Options
 set(MSDF_ATLAS_BUILD_STANDALONE OFF)
 set(MSDF_ATLAS_USE_VCPKG OFF)
 set(MSDF_ATLAS_USE_SKIA OFF)
@@ -23,7 +24,6 @@ set(MSDF_ATLAS_MSDFGEN_EXTERNAL ON)
 set(MSDF_ATLAS_INSTALL OFF)
 set(BUILD_SHARED_LIBS OFF)
 
-# MSDFGEN configuration
 set(MSDFGEN_CORE_ONLY ON)
 set(MSDFGEN_USE_VCPKG OFF)
 set(MSDFGEN_BUILD_STANDALONE OFF)
@@ -31,60 +31,63 @@ set(MSDFGEN_DISABLE_SVG ON)
 set(MSDFGEN_DISABLE_PNG ON)
 set(MSDFGEN_DYNAMIC_RUNTIME OFF)
 
-
+# Assimp CMake Options
+SET(ASSIMP_INSTALL OFF CACHE BOOL "")
+SET(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "")
 SET(ASSIMP_WARNINGS_AS_ERRORS OFF CACHE BOOL "Treat Assimp Warnings as errors" FORCE)
 
-#find_package(msdfgen CONFIG REQUIRED)
+# Setup the root directory where the dependencies are located
+# All required Dependencies are located in the root folder
+# This CmakeList file however is located in Mikoto (the core engine) folder
+SET(CURRENT_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+CMAKE_PATH(GET CURRENT_PATH PARENT_PATH MIKOTO_ROOT_DIRECTORY)
 
-# Libraries
-SET( CURRENT_PATH ${CMAKE_CURRENT_SOURCE_DIR} )
-CMAKE_PATH(GET CURRENT_PATH PARENT_PATH P_PATH)
-
-SET(GLFW_CMAKE_DIR ${P_PATH}/Third-Party/glfw)
-SET(ENTT_CMAKE_DIR ${P_PATH}/Third-Party/entt)
-SET(FMT_CMAKE_DIR ${P_PATH}/Third-Party/fmt)
-SET(VOLK_CMAKE_DIR ${P_PATH}/Third-Party/volk)
-SET(ASSIMP_CMAKE_DIR ${P_PATH}/Third-Party/assimp)
-SET(VMA_CMAKE_DIR ${P_PATH}/Third-Party/VulkanMemoryAllocator)
-SET(YAML_CMAKE_DIR ${P_PATH}/Third-Party/yaml-cpp)
-SET(NFD_CMAKE_DIR ${P_PATH}/Third-Party/nativefiledialog-extended)
-SET(TOML_CPP ${P_PATH}/Third-Party/tomlplusplus)
-SET(CPP_TRACE ${P_PATH}/Third-Party/cpptrace)
-SET(FREE_TYPE ${P_PATH}/Third-Party/freetype)
-SET(JOLT_PHYSICS ${P_PATH}/Third-Party/JoltPhysics/Build)
-SET(MSDFGEN ${P_PATH}/Third-Party/msdfgen)
-SET(MSDF_ATLAS_GEN ${P_PATH}/Third-Party/msdf-atlas-gen)
+# External dependencies
+SET(GLFW_CMAKE_DIR      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/glfw)
+SET(ENTT_CMAKE_DIR      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/entt)
+SET(FMT_CMAKE_DIR       ${MIKOTO_ROOT_DIRECTORY}/Third-Party/fmt)
+SET(VOLK_CMAKE_DIR      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/volk)
+SET(ASSIMP_CMAKE_DIR    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/assimp)
+SET(VMA_CMAKE_DIR       ${MIKOTO_ROOT_DIRECTORY}/Third-Party/VulkanMemoryAllocator)
+SET(YAML_CMAKE_DIR      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/yaml-cpp)
+SET(NFD_CMAKE_DIR       ${MIKOTO_ROOT_DIRECTORY}/Third-Party/nativefiledialog-extended)
+SET(TOML_CPP            ${MIKOTO_ROOT_DIRECTORY}/Third-Party/tomlplusplus)
+SET(CPP_TRACE           ${MIKOTO_ROOT_DIRECTORY}/Third-Party/cpptrace)
+SET(FREE_TYPE           ${MIKOTO_ROOT_DIRECTORY}/Third-Party/freetype)
+SET(JOLT_PHYSICS        ${MIKOTO_ROOT_DIRECTORY}/Third-Party/JoltPhysics/Build)
+SET(MSDFGEN             ${MIKOTO_ROOT_DIRECTORY}/Third-Party/msdfgen)
+SET(MSDF_ATLAS_GEN      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/msdf-atlas-gen)
+SET(SPIRV_REFLECT      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/spirv-reflect)
 
 # Setup Mikoto Engine source file
 FILE(GLOB SOURCE_FILES src/*.cc)
 
 # Setup third party source files
+
+# Imgui and Imgui backend
 SET(IMGUI_SOURCES
-    ${P_PATH}/Third-Party/imgui/imgui.cpp
-    ${P_PATH}/Third-Party/imgui/imgui_draw.cpp
-    ${P_PATH}/Third-Party/imgui/imgui_demo.cpp
-    ${P_PATH}/Third-Party/imgui/imgui_tables.cpp
-    ${P_PATH}/Third-Party/imgui/imgui_widgets.cpp
-    ${P_PATH}/Third-Party/imgui/backends/imgui_impl_glfw.cpp
-    ${P_PATH}/Third-Party/imgui/backends/imgui_impl_vulkan.cpp)
+    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/imgui/imgui.cpp
+    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/imgui/imgui_draw.cpp
+    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/imgui/imgui_demo.cpp
+    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/imgui/imgui_tables.cpp
+    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/imgui/imgui_widgets.cpp
+    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/imgui/backends/imgui_impl_glfw.cpp
+    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/imgui/backends/imgui_impl_vulkan.cpp)
 
+# ImGui - ImGuizmo
 SET(IMGUIZMO_SOURCES
-    ${P_PATH}/Third-Party/ImGuizmo/ImGuizmo.cpp
-    ${P_PATH}/Third-Party/ImGuizmo/GraphEditor.cpp
-    ${P_PATH}/Third-Party/ImGuizmo/ImCurveEdit.cpp
-    ${P_PATH}/Third-Party/ImGuizmo/ImGradient.cpp
-    ${P_PATH}/Third-Party/ImGuizmo/ImSequencer.cpp)
+    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/ImGuizmo/ImGuizmo.cpp
+    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/ImGuizmo/GraphEditor.cpp
+    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/ImGuizmo/ImCurveEdit.cpp
+    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/ImGuizmo/ImGradient.cpp
+    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/ImGuizmo/ImSequencer.cpp)
 
-SET(SOURCES ${IMGUI_SOURCES} ${IMGUIZMO_SOURCES} ${SOURCE_FILES}
-        src/TextureCubeMap.cc
-        Renderer/Buffer/BufferLayout.hh
-        Renderer/Vulkan/VulkanFont.hh
-        src/VulkanFont.cc
-        Renderer/Text/FreeTypeManager.hh
-        Renderer/Text/FreeTypeFont.hh
-        Renderer/Text/FreeTypeGlyph.hh
-        src/FreeTypeGlyph.cc
-        src/FreeTypeFont.cc)
+# SpirV Reflect
+SET(SPIRV_REFLECT_SOURCES
+        ${MIKOTO_ROOT_DIRECTORY}/Third-Party/spirv-reflect/spirv_reflect.c)
+
+# Mikoto compile source files
+SET(SOURCES ${IMGUI_SOURCES} ${IMGUIZMO_SOURCES} ${SOURCE_FILES} ${SPIRV_REFLECT_SOURCES})
 
 # External dependencies
 ADD_SUBDIRECTORY(${GLFW_CMAKE_DIR} build/glfw)
@@ -101,10 +104,25 @@ ADD_SUBDIRECTORY(${MSDFGEN} build/msdfgen)
 ADD_SUBDIRECTORY(${MSDF_ATLAS_GEN} build/msdf_atlas_gen)
 
 # Libraries to link against target
-SET(LIBRARIES glfw fmt EnTT::EnTT volk assimp yaml-cpp nfd cpptrace::cpptrace freetype Jolt  msdfgen::msdfgen msdf-atlas-gen::msdf-atlas-gen)
+SET(LIBRARIES
+    glfw
+    fmt
+    EnTT::EnTT
+    volk
+    assimp
+    yaml-cpp
+    nfd
+    cpptrace::cpptrace
+    freetype
+    Jolt
+    msdfgen::msdfgen
+    msdf-atlas-gen::msdf-atlas-gen
+)
 
-# for tests only. -ltbb was required to use std::execution::par on linux
-# set(LIBRARIES glfw glew_s fmt EnTT::EnTT volk assimp yaml-cpp nfd tbb)
+# for tests only. -ltbb is required to use std::execution::par on linux
+#IF (UNIX)
+#    SET(LIBRARIES ${LIBRARIES} tbb)
+#ENDIF ()
 
 # Create the library
 ADD_LIBRARY(${PROJECT_NAME} STATIC ${SOURCES})
@@ -114,29 +132,30 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC ${LIBRARIES})
 
 # Specify target headers
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC  .)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/cpptrace/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/spdlog/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/spdlog/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/glfw/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/glew/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/imgui)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/imgui/backends)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/glm/)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/stb/)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/entt/single_include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/volk)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/fmt/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/assimp/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/VulkanMemoryAllocator/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/ImGuizmo)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/yaml-cpp/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/nativefiledialog-extended/src/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/tomlplusplus/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/JoltPhysics/Jolt)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/freetype/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/msdfgen)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${P_PATH}/Third-Party/msdf-atlas-gen)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/cpptrace/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/spdlog/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/spdlog/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/glfw/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/glew/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/imgui)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/imgui/backends)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/glm/)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/stb/)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/entt/single_include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/volk)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/fmt/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/assimp/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/VulkanMemoryAllocator/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/ImGuizmo)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/yaml-cpp/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/nativefiledialog-extended/src/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/tomlplusplus/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/JoltPhysics/Jolt)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/freetype/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/msdfgen)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/msdf-atlas-gen)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/spirv-reflect)
 
 # Avoid GLFW including OpenGL headers
 TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLFW_INCLUDE_NONE)

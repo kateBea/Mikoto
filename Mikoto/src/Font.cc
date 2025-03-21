@@ -14,7 +14,7 @@ namespace Mikoto {
     Font::Font( const FontLoadInfo &loadInfo )
         :m_Path{ loadInfo.Path },
             m_Name{ loadInfo.Path.stem().string() },
-            m_PixelSize{ loadInfo.Size }
+            m_Size{ loadInfo.Size }
     {
 
     }

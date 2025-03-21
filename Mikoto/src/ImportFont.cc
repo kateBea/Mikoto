@@ -2,7 +2,11 @@
 // Created by zanet on 3/18/2025.
 //
 
-#include "Renderer/Text/import-font.h"
+// Taken from msdfgen, I split this because msdfgen uses freetype library to import fonts
+// which is not part of core msdfgen, since I don't want the extensions from msdfgen I simply
+// build the core project and use freetype for font importing.
+
+#include "Renderer/Text/ImportFont.hh"
 
 #include <cstring>
 #include <vector>

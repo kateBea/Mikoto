@@ -14,6 +14,7 @@ namespace Mikoto {
     struct FontLoadInfo {
         Path_T Path{};
         float Size{ 48 };
+        float Spacing{ 1 };
     };
 
     class Font {
@@ -31,7 +32,8 @@ namespace Mikoto {
         Path_T m_Path{};
         std::string m_Name{};
 
-        float m_PixelSize{};
+        float m_Size{};
+        float m_Spacing{};
     };
 
 }// namespace Mikoto

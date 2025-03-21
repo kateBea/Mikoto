@@ -17,6 +17,7 @@
 #include <Material/Core/Shader.hh>
 #include <Library/Utility/Types.hh>
 #include <Library/Filesystem/File.hh>
+#include <Renderer/Vulkan/VulkanHelpers.hh>
 #include <Renderer/Vulkan/VulkanObject.hh>
 
 namespace Mikoto {
@@ -31,7 +32,10 @@ namespace Mikoto {
         explicit VulkanShader(const VulkanShaderCreateInfo& createInfo);
 
         MKT_NODISCARD auto Get() const -> const VkShaderModule& { return m_Module; }
+        MKT_NODISCARD auto GetFile() const -> const File* { return m_File; }
         MKT_NODISCARD auto GetPipelineStageCreateInfo() const -> const VkPipelineShaderStageCreateInfo& { return m_StageCreateInfo; }
+
+        MKT_NODISCARD auto GetVulkanStage() const -> VkShaderStageFlags { return VulkanHelpers::GetVkStageFromShaderStage(GetStage()); }
 
         auto Release() -> void override;
 

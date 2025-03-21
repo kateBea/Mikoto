@@ -1,5 +1,6 @@
 
-#pragma once
+#ifndef IMPORT_FONT
+#define IMPORT_FONT
 
 #include "msdfgen/core/Shape.h"
 
@@ -101,3 +102,5 @@ bool listFontVariationAxes(std::vector<FontVariationAxis> &axes, FreetypeHandle 
 #endif
 
 }
+
+#endif

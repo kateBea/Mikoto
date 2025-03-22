@@ -153,7 +153,7 @@ namespace Mikoto {
         return success ? insertResult->second.get() : nullptr;
     }
 
-    auto VulkanDevice::CreateDescriptorSetLayout( std::span<const VulkanShader*> shaders ) -> std::vector<DeviceObject*> {
+    auto VulkanDevice::CreateDescriptorSetLayout( const std::span<const VulkanShader*> shaders ) -> std::vector<DeviceObject*> {
         std::unordered_map<UInt32_T, DescriptorLayoutBuilder> descriptorUniqueSets{};
 
         for (const auto& shader : shaders) {

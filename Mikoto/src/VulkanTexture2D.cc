@@ -171,7 +171,6 @@ namespace Mikoto {
 
         VkImageCreateInfo vkImageCreateInfo{ VulkanHelpers::Initializers::ImageCreateInfo() };
 
-        // VK_FORMAT_R8G8B8A8_SRGB matches the image format loaded with stb
         vkImageCreateInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
         vkImageCreateInfo.extent = extent;
         vkImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;

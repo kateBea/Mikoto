@@ -39,6 +39,8 @@ namespace Mikoto {
 
     using CStr_T = const char*;
 
+    using Byte_T = unsigned char;
+
     template<typename T>
     using Scope_T = std::unique_ptr<T>;
 

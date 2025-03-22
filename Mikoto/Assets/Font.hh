@@ -5,10 +5,10 @@
 #ifndef FONT_HH
 #define FONT_HH
 
-#include <string>
-
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
+#include <Renderer/Text/FontAtlas.hh>
+#include <string>
 
 namespace Mikoto {
     struct FontLoadInfo {
@@ -23,6 +23,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
         MKT_NODISCARD auto GetPath() const -> const Path_T& { return m_Path; }
+        MKT_NODISCARD auto GetAtlas() const -> FontAtlas* { return m_Atlas.get(); }
 
         MKT_NODISCARD static auto Create( const FontLoadInfo &loadInfo ) -> Scope_T<Font>;
 
@@ -34,6 +35,8 @@ namespace Mikoto {
 
         float m_Size{};
         float m_Spacing{};
+
+        Scope_T<FontAtlas> m_Atlas{ nullptr };
     };
 
 }// namespace Mikoto

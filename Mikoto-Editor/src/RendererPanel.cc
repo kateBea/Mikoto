@@ -4,12 +4,14 @@
 
 #include "Panels/RendererPanel.hh"
 
+#include <Core/System/AssetsSystem.hh>
 #include <Core/System/GUISystem.hh>
 #include <GUI/ImGuiUtils.hh>
 #include <GUI/RenderViewport.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDeletionQueue.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
+#include <Renderer/Vulkan/VulkanTexture2D.hh>
 
 #include "GUI/Icons/IconsMaterialDesign.h"
 #include "imgui.h"
@@ -161,6 +163,35 @@ namespace Mikoto {
             }
         }
 
+        auto ShowFontAtlas(ImGuiTreeNodeFlags treeNodeFlags ) -> void {
+
+            if ( ImGui::TreeNodeEx( reinterpret_cast<const void*>( "RenderPanelViewport_VkImpl::ShowFontAtlas" ), treeNodeFlags, "%s", "Font Atlas" ) ) {
+
+                AssetsSystem& assetsSystem{ Engine::GetSystem<AssetsSystem>() };
+
+                const auto& fonts{ assetsSystem.GetFonts() };
+                for ( const auto& font: fonts | std::views::values ) {
+                    const FontAtlas* atlas{ font->GetAtlas() };
+
+                    if ( atlas != nullptr ) {
+                        const auto atlasTexture{ atlas->GetAtlasTexture() };
+
+                        ImGui::Spacing();
+                        ImGui::Text( fmt::format( "Font: {}", font->GetName() ).c_str() );
+
+                        auto dset{ GetAtlasDescriptorSet( atlasTexture->GetID().Get() ) };
+                        if (dset == VK_NULL_HANDLE) {
+                            dset = CreateAtlasDescriptorSet(atlasTexture);
+                        }
+
+                        ImGui::Spacing();
+                        ImGui::Image( reinterpret_cast<ImTextureID>( dset ), ImVec2{ 256, 256 }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
+                    }
+                }
+                ImGui::TreePop();
+            }
+        }
+
         auto OnUpdate() -> void override {
             if ( m_Renderer->HasUpdatedResolution() ) {
                 VulkanRenderer* vulkanSceneRenderer{ dynamic_cast<VulkanRenderer*>( m_Renderer ) };
@@ -196,11 +227,15 @@ namespace Mikoto {
                 ImGui::Spacing();
                 ImGui::Text( fmt::format( "Scene: {}", m_TargetScene->GetName() ).c_str() );
 
+                ImGui::Spacing();
+                ShowPasses( styleFlags );
+
                 ImGui::TreePop();
             }
 
             ImGui::Spacing();
-            ShowPasses( styleFlags );
+            ShowFontAtlas( styleFlags );
+
 
             ShowRenderModes( styleFlags );
         }
@@ -226,6 +261,32 @@ namespace Mikoto {
             return samplerCreateInfo;
         }
 
+        MKT_NODISCARD auto GetAtlasDescriptorSet( Size_T index ) -> VkDescriptorSet {
+            if ( const auto it{ m_AtlasDescriptorSets.find( index ) }; it != m_AtlasDescriptorSets.end() ) {
+                return it->second;
+            }
+
+            return VK_NULL_HANDLE;
+        }
+
+        MKT_NODISCARD auto CreateAtlasDescriptorSet( Texture2D* texture ) -> VkDescriptorSet {
+            VkDescriptorSet result{};
+
+            const VulkanTexture2D* texture2D{ dynamic_cast<VulkanTexture2D*>( texture ) };
+
+            if ( const auto it{ m_AtlasDescriptorSets.find( texture->GetID().Get() ) }; it == m_AtlasDescriptorSets.end() ) {
+                result = ImGui_ImplVulkan_AddTexture( texture2D->GetSampler(), texture2D->GetImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+                m_AtlasDescriptorSets.emplace( texture->GetID().Get(), result );
+            }
+
+            GUISystem& guiSystem{ Engine::GetSystem<GUISystem>() };
+
+            guiSystem.AddShutdownCallback( [colorDs = result]() -> void {
+                    ImGui_ImplVulkan_RemoveTexture( colorDs );
+                } );
+
+            return result;
+        }
     private:
         static constexpr std::array s_ImageCompositions{
             "Final output", "Color pass", "Shadow pass", "Depth pass"
@@ -245,6 +306,8 @@ namespace Mikoto {
         VkSampler m_ColorAttachmentSampler{};
 
         VkDescriptorSet m_ColorAttachmentDescriptorSet{};
+
+        std::unordered_map<UInt64_T, VkDescriptorSet> m_AtlasDescriptorSets{};
     };
 
     static constexpr auto GetRendererPanel() -> std::string_view {
@@ -280,8 +343,7 @@ namespace Mikoto {
         if ( m_PanelIsVisible ) {
             static constexpr ImGuiWindowFlags windowFlags{
                 ImGuiWindowFlags_NoScrollWithMouse |
-                ImGuiWindowFlags_NoCollapse |
-                ImGuiWindowFlags_NoScrollbar
+                ImGuiWindowFlags_NoCollapse
             };
 
             ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), windowFlags );

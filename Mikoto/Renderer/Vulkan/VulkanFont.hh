@@ -23,12 +23,15 @@ namespace Mikoto {
             : FreeTypeFont{ loadInfo } {}
 
         MKT_NODISCARD auto GetGlyphDescriptorSet(UInt64_T characterCode) -> VkDescriptorSet;
+        MKT_NODISCARD auto GetAtlasDescriptorSet() const -> VkDescriptorSet { return m_AtlasDset; }
 
         auto Release() -> void override;
 
         ~VulkanFont() override;
 
     private:
+
+        VkDescriptorSet m_AtlasDset{};
 
         // Temporary
         std::unordered_map<UInt64_T, VkDescriptorSet> m_GlyphDescriptorSet{};

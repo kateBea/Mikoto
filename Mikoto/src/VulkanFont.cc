@@ -44,6 +44,7 @@ namespace Mikoto {
     }
 
     auto VulkanFont::Release() -> void {
+
     }
 
     VulkanFont::~VulkanFont() {

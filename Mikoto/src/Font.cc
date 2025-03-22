@@ -16,7 +16,13 @@ namespace Mikoto {
             m_Name{ loadInfo.Path.stem().string() },
             m_Size{ loadInfo.Size }
     {
+        m_Atlas = CreateScope<FontAtlas>( m_Path );
 
+        if (!m_Atlas) {
+            MKT_CORE_LOGGER_ERROR( "Failed to allocate memory for font atlas" );
+        } else {
+            m_Atlas->Init();
+        }
     }
 
     auto Font::Create( const FontLoadInfo &loadInfo ) -> Scope_T<Font>{

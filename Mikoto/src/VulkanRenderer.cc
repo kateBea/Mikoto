@@ -1257,6 +1257,11 @@ namespace Mikoto {
     auto VulkanRenderer::Flush() -> void {
         BatchMeshes();
 
+        // For light culling we want to:
+        // submit depth pre-pass command buffer
+        // submit light culling command buffer
+        // Submitting final composition command buffer
+
         RecordComputeCommands();
 
         RecordDrawCommands();
@@ -1266,11 +1271,6 @@ namespace Mikoto {
         // If Graphics queue and Compute queue are the same queue they will share index
         // so might consider for this specific case to use pipeline barriers between these two commands buffers
         SubmitCommands();
-
-        // For light culling we want to:
-        // submit depth pre-pass command buffer
-        // submit light culling command buffer
-        // Submitting final composition command buffer
     }
 
     auto VulkanRenderer::AddToDrawQueue( const EntityQueueInfo& queueInfo ) -> bool {

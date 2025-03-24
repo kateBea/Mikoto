@@ -80,7 +80,7 @@ namespace Mikoto {
         virtual auto SetupCubeMap(const TextureCubeMap* cubeMap) -> void = 0;
 
         virtual auto SetRenderResolution(RenderResolution resolution) -> void = 0;
-        virtual auto HasUpdatedResolution() const -> bool = 0;
+        MKT_NODISCARD virtual auto HasUpdatedResolution() const -> bool = 0;
         MKT_NODISCARD auto GetRenderResolution() const -> RenderResolution { return m_RenderResolution; }
 
 

@@ -11,7 +11,7 @@
 #include <Common/Registry.hh>
 #include <Common/Application.hh>
 #include <Platform/Window/Window.hh>
-#include <Core/CommandLineParser.hh>
+#include <Core/ArgsParser.hh>
 #include <Library/Utility/Types.hh>
 
 namespace Mikoto {
@@ -34,13 +34,14 @@ namespace Mikoto {
         auto DestroyLayers() -> void;
         auto UpdateLayers() const -> void;
         auto InstallEventCallbacks() -> void;
-        auto ParseCommandLineArgs(Int32_T argc, char **argv) -> void;
+        auto SetupCmdArguments() -> void;
+        auto CheckArguments(Int32_T argc, char **argv ) const -> void;
 
     private:
         Registry<Layer> m_LayerRegistry{};
 
         Scope_T<Window> m_MainWindow{};
-        Scope_T<CommandLineParser> m_CommandLineParser{};
+        Scope_T<ArgsParser> m_ArgsParser{};
     };
 }
 

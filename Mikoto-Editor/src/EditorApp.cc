@@ -35,7 +35,9 @@ namespace Mikoto {
     auto EditorApp::Run( const Int32_T argc, char **argv ) -> Int32_T {
         Int32_T exitCode{ EXIT_SUCCESS };
 
-        ParseCommandLineArgs( argc, argv );
+        SetupCmdArguments( );
+
+        CheckArguments( argc, argv );
 
         try {
 
@@ -58,14 +60,26 @@ namespace Mikoto {
         return exitCode;
     }
 
-    auto EditorApp::ParseCommandLineArgs( const Int32_T argc, char **argv ) -> void {
-        m_CommandLineParser = CreateScope<CommandLineParser>();
+    auto EditorApp::SetupCmdArguments( ) -> void {
+        m_ArgsParser = ArgsParser::Create( { .Description{ "Mikoto args parse" }, .ProgramName{ "Mikoto Editor"} } );
 
-        // The first argument is generally the program's executable path
-        for ( const auto limit{ argv + argc }; argv < limit; ++argv ) {
-            m_CommandLineParser->Insert( *argv, GetCommandDescription(*argv), [argv]() -> void {
+        ArgsParser::Command helpCommand{
+            .Parameter{ "--help" },
+            .Description{ GetCommandDescription( "--help" ) },
+            .IsRequired{ false },
+            .Action{ [this]() -> void {
+                // Print help function
 
-            } );
+                return;
+            } },
+        };
+
+        m_ArgsParser->Emplace( helpCommand );
+    }
+
+    auto EditorApp::CheckArguments( Int32_T argc, char **argv ) const -> void {
+        if (!m_ArgsParser->Validate( argc, argv )) {
+            MKT_THROW_RUNTIME_ERROR( "Invalid command line arguments" );
         }
     }
 

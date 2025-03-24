@@ -27,11 +27,19 @@ namespace Mikoto {
 
     using MsdfGlyphGeometryList_T = std::vector<msdf_atlas::GlyphGeometry>;
 
-    MKT_NODISCARD static auto GenerateAtlas( const CStr_T fontFilename ) -> decltype( auto ) {
+    struct MsdfData {
+        Int32_T Width{};
+        Int32_T Height{};
+        std::vector<UInt8_T> Bytes{};
+
+        MsdfGlyphGeometryList_T GlyphData{};
+    };
+
+
+    MKT_NODISCARD static auto GenerateAtlas( const CStr_T fontFilename ) -> MsdfData {
         using namespace msdf_atlas;
 
-        std::pair<Scope_T<MsdfAtlasGen_T>, Scope_T<MsdfGlyphGeometryList_T>> result{};
-        result.second = CreateScope<MsdfGlyphGeometryList_T>();
+        MsdfData result{};
 
         // Initialize instance of FreeType library
         msdfgen::FreetypeHandle *ft{ msdfgen::initializeFreetype() };
@@ -41,7 +49,7 @@ namespace Mikoto {
 
             if ( font != nullptr ) {
                 // Storage for glyph geometry and their coordinates in the atlas
-                MsdfGlyphGeometryList_T &glyphs{ *result.second };
+                MsdfGlyphGeometryList_T glyphs{};
 
                 // FontGeometry is a helper class that loads a set of glyphs from a single font.
                 // It can also be used to get additional font metrics, kerning information, etc.
@@ -51,7 +59,7 @@ namespace Mikoto {
                 // The second argument can be ignored unless you mix different font sizes in one atlas.
                 // In the last argument, you can specify a charset other than ASCII.
                 // To load specific glyph indices, use loadGlyphs instead.
-                fontGeometry.loadCharset( font, 1.0, Charset::ASCII );
+                fontGeometry.loadCharset( font, 5.0, Charset::ASCII );
 
                 // Apply MSDF edge coloring. See edge-coloring.h for other coloring strategies.
                 constexpr double maxCornerAngle{ 3.0 };
@@ -75,27 +83,45 @@ namespace Mikoto {
                 packer.setMiterLimit( 1.0 );
 
                 // Compute atlas layout - pack glyphs
-                packer.pack( glyphs.data(), glyphs.size() );
+                packer.pack( glyphs.data(), static_cast<int>( glyphs.size() ) );
 
                 // Get final atlas dimensions
                 Int32_T width{};
                 Int32_T height{};
                 packer.getDimensions( width, height );
 
-                // The ImmediateAtlasGenerator class facilitates the generation of the atlas bitmap.
-                result.first = CreateScope<MsdfAtlasGen_T>( width, height );
-                auto generator{ *result.first };
+                result.Width = width;
+                result.Height = height;
 
                 // GeneratorAttributes can be modified to change the generator's default settings.
-                GeneratorAttributes attributes{};
-                attributes.config.overlapSupport = true;
-                attributes.scanlinePass = true;
+                GeneratorAttributes attributes{
+                    .config{ msdfgen::MSDFGeneratorConfig{ true } },
+                    .scanlinePass{ true }
+                };
+
+                if (attributes.scanlinePass) {
+                    attributes.config.errorCorrection.mode = msdfgen::ErrorCorrectionConfig::DISABLED;
+                }
+
+                // The ImmediateAtlasGenerator class facilitates the generation of the atlas bitmap.
+                MsdfAtlasGen_T generator{ width, height  };
 
                 generator.setAttributes( attributes );
                 generator.setThreadCount( 8 );
 
                 // Generate atlas bitmap
                 generator.generate( glyphs.data(), glyphs.size() );
+
+
+                // Copy the atlas pixel data
+                std::vector<UInt8_T> bytes{};
+                const msdfgen::BitmapConstRef<msdfgen::byte, 4>& bitmapRef{ generator.atlasStorage() };
+                for (Int64_T y{}; y < height*width*4; ++y) {
+                    bytes.emplace_back( static_cast<UInt8_T>( bitmapRef.pixels[y] ) );
+                }
+
+                result.Bytes = std::move( bytes );
+                result.GlyphData = std::move( glyphs );
 
                 // Cleanup
                 msdfgen::destroyFont( font );
@@ -108,23 +134,12 @@ namespace Mikoto {
     }
 
     auto FontAtlas::Init() -> void {
-        const auto result{ GenerateAtlas( m_Path.string().c_str() ) };
-
-        // Retrieve the generated atlas bitmap
-        const msdfgen::BitmapConstRef<msdf_atlas::byte, 4> &atlas{ result.first->atlasStorage() };
+        auto result{ GenerateAtlas( m_Path.string().c_str() ) };
 
         // Match the channel count for bitmap atlas storage
         constexpr auto channelCount{ 4 };
-        const auto width = atlas.width;
-        const auto height = atlas.height;
-
-        int subpixels = channelCount * width * height;
-        std::vector<msdf_atlas::byte> bytePixels( subpixels );
-        for ( int i = 0; i < subpixels; ++i )
-            bytePixels[i] = msdfgen::pixelFloatToByte( atlas.pixels[i] );
-
-        // Copy the atlas pixel data
-        std::vector<UInt8_T> bytes( atlas.pixels, atlas.pixels + ( width * height * channelCount ) );
+        const Int32_T width{ result.Width };
+        const Int32_T height{ result.Height };
 
         // Create texture from the raw atlas data
         Texture2DCreateInfo createInfo{
@@ -133,7 +148,7 @@ namespace Mikoto {
             .Width{ width },
             .Height{ height },
             .ChannelCount{ channelCount },
-            .BufferData{ bytes },
+            .BufferData{ std::move( result.Bytes ) },
             .Type{ MapType::TEXTURE_2D_TEXT }
         };
 

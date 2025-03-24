@@ -35,6 +35,11 @@ namespace Mikoto {
         MsdfGlyphGeometryList_T GlyphData{};
     };
 
+    struct CharsetRange {
+        Int32_T Start{};
+        Int32_T End{};
+    };
+
 
     MKT_NODISCARD static auto GenerateAtlas( const CStr_T fontFilename ) -> MsdfData {
         using namespace msdf_atlas;
@@ -56,10 +61,31 @@ namespace Mikoto {
                 FontGeometry fontGeometry( &glyphs );
 
                 // Load a set of character glyphs:
+
+                std::array charsetRanges{
+                    CharsetRange{ 0x0020, 0x007F },// Basic Latin
+                    //CharsetRange{ 0x00A0, 0x00FF },// Latin-1 Supplement
+                    //CharsetRange{ 0x0100, 0x017F },// Latin Extended-A
+                    //CharsetRange{ 0x0180, 0x024F },// Latin Extended-B
+                    //CharsetRange{ 0x0370, 0x03FF },// Greek & Coptic
+                    //CharsetRange{ 0x0400, 0x04FF } // Cyrillic
+                };
+
+                msdf_atlas::Charset charset{};
+                for ( auto range: charsetRanges ) {
+                    for ( uint32_t c = range.Start; c <= range.End; c++ ) {
+                        charset.add( c );
+                    }
+                }
+
+                // Load font geometry with the extended charset
+                fontGeometry.loadCharset( font, 5.0, charset );
+
+
                 // The second argument can be ignored unless you mix different font sizes in one atlas.
                 // In the last argument, you can specify a charset other than ASCII.
                 // To load specific glyph indices, use loadGlyphs instead.
-                fontGeometry.loadCharset( font, 5.0, Charset::ASCII );
+                fontGeometry.loadCharset( font, 5.0, charset );
 
                 // Apply MSDF edge coloring. See edge-coloring.h for other coloring strategies.
                 constexpr double maxCornerAngle{ 3.0 };
@@ -99,12 +125,12 @@ namespace Mikoto {
                     .scanlinePass{ true }
                 };
 
-                if (attributes.scanlinePass) {
+                if ( attributes.scanlinePass ) {
                     attributes.config.errorCorrection.mode = msdfgen::ErrorCorrectionConfig::DISABLED;
                 }
 
                 // The ImmediateAtlasGenerator class facilitates the generation of the atlas bitmap.
-                MsdfAtlasGen_T generator{ width, height  };
+                MsdfAtlasGen_T generator{ width, height };
 
                 generator.setAttributes( attributes );
                 generator.setThreadCount( 8 );
@@ -115,8 +141,8 @@ namespace Mikoto {
 
                 // Copy the atlas pixel data
                 std::vector<UInt8_T> bytes{};
-                const msdfgen::BitmapConstRef<msdfgen::byte, 4>& bitmapRef{ generator.atlasStorage() };
-                for (Int64_T y{}; y < height*width*4; ++y) {
+                const msdfgen::BitmapConstRef<msdfgen::byte, 4> &bitmapRef{ generator.atlasStorage() };
+                for ( Int64_T y{}; y < height * width * 4; ++y ) {
                     bytes.emplace_back( static_cast<UInt8_T>( bitmapRef.pixels[y] ) );
                 }
 
@@ -154,4 +180,4 @@ namespace Mikoto {
 
         m_Texture = Texture2D::Create( createInfo );
     }
-}
+}// namespace Mikoto

@@ -10,12 +10,20 @@
 #include <memory>
 
 // Project Headers
-#include <Models/Enums.hh>
-
 #include <Common/Singleton.hh>
 #include <Library/Random/Random.hh>
 
 namespace Mikoto {
+
+    /**
+     * @brief Represents the current state of a system.
+     * Can be used to control whether it is running, stopped or idling.
+     * */
+    enum class ApplicationStatus {
+        RUNNING,
+        STOPPED,
+        IDLE,
+    };
 
     /**
      * @brief Manages the editor application lifecycle.
@@ -26,6 +34,13 @@ namespace Mikoto {
          * @brief Constructs an empty application.
          * */
         explicit Application() = default;
+
+        /**
+         * @brief Creates and initializes the editor app and runs the main loop.
+         * @param argc Argument count.
+         * @param argv List of null terminated c-strings command line arguments.
+         * */
+        virtual auto Run( Int32_T argc, char** argv ) -> Int32_T = 0;
 
         /**
          * @brief Destructs this application after exiting its scope.
@@ -39,7 +54,6 @@ namespace Mikoto {
          * */
         virtual auto Init() -> void = 0;
 
-
         /**
          * @brief Shuts down this application. Call once
          * to terminate the application and free all of its
@@ -50,14 +64,14 @@ namespace Mikoto {
         /**
          * @brief Updates the application state.
          * */
-        virtual auto UpdateState() -> void = 0;
+        virtual auto Update() -> void = 0;
 
         /**
          * @brief Checks if the application is running.
          * @returns True if the application is running, false otherwise.
          * */
         MKT_NODISCARD auto IsRunning() const -> bool {
-            return m_State == Status::RUNNING || m_State == Status::IDLE;
+            return m_State == ApplicationStatus::RUNNING || m_State == ApplicationStatus::IDLE;
         }
 
     protected:
@@ -65,9 +79,9 @@ namespace Mikoto {
         GlobalUniqueID m_Guid{};
 
         /** Current state of the application. */
-        Status m_State{ Status::RUNNING };
+        ApplicationStatus m_State{ ApplicationStatus::RUNNING };
     };
-}
+}// namespace Mikoto
 
 
-#endif // MIKOTO_APPLICATION_HH
+#endif// MIKOTO_APPLICATION_HH

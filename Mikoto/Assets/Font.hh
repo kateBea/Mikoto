@@ -4,41 +4,78 @@
 
 #ifndef FONT_HH
 #define FONT_HH
-
-#include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
-#include <Renderer/Text/FontAtlas.hh>
 #include <string>
 
+
+#include <ankerl/unordered_dense.h>
+
+
+#include <Common/Common.hh>
+#include <Library/Data/ResourcePool.hh>
+#include <Library/Utility/Types.hh>
+#include <Renderer/FontGlyph.hh>
+#include <Renderer/GpuDevice.hh>
 namespace Mikoto {
-    struct FontLoadInfo {
-        Path_T Path{};
-        float Size{ 48 };
-        float Spacing{ 1 };
-    };
 
-    class Font {
+    /**
+    * @class Font
+    * @brief Represents a font and its associated glyphs.
+    *
+    * The `Font` class provides functionality for managing fonts, including
+    * loading, retrieving glyphs, and accessing font metadata. It supports
+    * font atlas generation and is designed for use in rendering systems.
+    */
+    class Font final : public ReferenceCounted {
     public:
-        explicit Font( const FontLoadInfo &loadInfo );
+        /**
+         * @brief Constructs a Font object from the provided load information.
+         * @param fontAtlas
+         * @param pixelSize
+         */
+        explicit Font( TextureHandle fontAtlas, float pixelSize );
 
-        MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
+        /**
+        * @brief Gets the path of the font file.
+        * @return Reference to the font file path.
+        */
         MKT_NODISCARD auto GetPath() const -> const Path_T& { return m_Path; }
-        MKT_NODISCARD auto GetAtlas() const -> FontAtlas* { return m_Atlas.get(); }
 
-        MKT_NODISCARD static auto Create( const FontLoadInfo &loadInfo ) -> Scope_T<Font>;
+        /**
+        * @brief Gets the name of the font.
+        * @return Reference to the font name.
+        */
+        MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 
-        virtual ~Font() = default;
+        /**
+        * @brief Gets the font atlas containing glyph textures.
+        * @return Pointer to the FontAtlas.
+        */
+        MKT_NODISCARD auto GetAtlas() const -> TextureHandle { return m_Atlas; }
+
+        /**
+        * @brief Retrieves the glyph data for a given character.
+        * @param characterCode Unicode code point of the character.
+        * @return Pointer to the corresponding FontGlyph, or nullptr if not found.
+        */
+        MKT_NODISCARD auto GetGlyph( UInt32_T characterCode ) -> FontGlyph;
+
+        /**
+        * @brief Default destructor.
+        */
+        ~Font() override = default;
 
     protected:
+
         Path_T m_Path{};
+
         std::string m_Name{};
 
-        float m_Size{};
-        float m_Spacing{};
+        float m_PixelSize{ 0.0f };
 
-        Scope_T<FontAtlas> m_Atlas{ nullptr };
+        TextureHandle m_Atlas{ nullptr };
+
+        ankerl::unordered_dense::map<UInt32_T, FontGlyph> m_Glyphs{};
     };
+}
 
-}// namespace Mikoto
-
-#endif //FONT_HH
+#endif//FONT_HH

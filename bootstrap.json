@@ -154,5 +154,41 @@
             "type": "git",
             "url": "https://github.com/KhronosGroup/SPIRV-Reflect.git"
         }
+    },
+    {
+        "name": "enkiTS",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/dougbinks/enkiTS.git"
+        }
+    },
+    {
+        "name": "miniaudio",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/mackron/miniaudio.git"
+        }
+    },
+    {
+        "name": "concurrentqueue",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/cameron314/concurrentqueue.git",
+            "branch": "master"
+        }
+    },
+    {
+        "name": "unordered_dense",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/martinus/unordered_dense.git"
+        }
+    },
+    {
+        "name": "json",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/nlohmann/json.git"
+        }
     }
 ]

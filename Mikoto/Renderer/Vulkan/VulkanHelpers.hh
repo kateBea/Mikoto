@@ -19,8 +19,6 @@
 
 // Project Headers
 #include "Common/Common.hh"
-#include "Renderer/Buffer/VertexBuffer.hh"
-#include "Material/Core/Shader.hh"
 #include "Library/Utility/Types.hh"
 
 // Vulkan version
@@ -28,6 +26,9 @@
 #define MKT_VULKAN_VERSION_MAJOR 1
 #define MKT_VULKAN_VERSION_MINOR 3
 #define MKT_VULKAN_VERSION_PATCH 0
+
+#define VK_DEVICE(GPU_DEVICE_PTR) \
+    dynamic_cast<VulkanDevice*>(GPU_DEVICE_PTR)->GetLogicalDevice()
 
 namespace Mikoto {
 
@@ -48,13 +49,13 @@ namespace Mikoto {
         std::optional<VulkanQueueData> Compute{};
     };
 
-    struct FrameSynchronizationPrimitives {
-        VkSemaphore PresentSemaphore{ VK_NULL_HANDLE };
-        VkSemaphore RenderSemaphore{ VK_NULL_HANDLE };
+    struct GraphicsQueueSyncPrimitives {
+        std::vector<VkSemaphore> PresentSemaphores{ VK_NULL_HANDLE };
+        std::vector<VkSemaphore> RenderSemaphores{ VK_NULL_HANDLE };
         VkFence RenderFence{ VK_NULL_HANDLE };
     };
 
-    struct ComputeSynchronizationPrimitives {
+    struct ComputeQueueSynchPrimitives {
         std::vector<VkSemaphore> WaitSemaphores{};
         std::vector<VkSemaphore> SignalSemaphores{};
         VkFence Fence{ VK_NULL_HANDLE };
@@ -75,7 +76,10 @@ namespace Mikoto::VulkanHelpers {
     MKT_NODISCARD auto HasComputeQueue( const VkQueueFamilyProperties& queueFamily ) -> bool;
     MKT_NODISCARD auto HasPresentQueue( const VkPhysicalDevice& device, UInt32_T queueFamilyIndex, const VkSurfaceKHR& surface, const VkQueueFamilyProperties& queueFamilyProperties ) -> bool;
     MKT_NODISCARD auto GetVkStageFromShaderStage(ShaderStage stage) -> VkShaderStageFlagBits;
+    MKT_NODISCARD auto GetVkFormatFromTextureFormat(TextureFormat format) -> VkFormat;
     MKT_NODISCARD auto GetUniformBufferPadding(VkDeviceSize bufferOriginalSize, VkDeviceSize deviceMinOffsetAlignment) -> VkDeviceSize;
+    MKT_NODISCARD auto GetUniformBufferPadding(VkDeviceSize bufferOriginalSize, VkDeviceSize deviceMinOffsetAlignment) -> VkDeviceSize;
+    MKT_NODISCARD auto InferVulkanIndexType(BufferDataType format) -> VkIndexType;
 
 } // MIKOTO::VULKAN_UTILS
 

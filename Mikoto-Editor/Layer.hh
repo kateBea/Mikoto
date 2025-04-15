@@ -12,7 +12,7 @@
 
 // Project Headers
 #include <Common/Common.hh>
-#include <Core/Events/Event.hh>
+#include <Core/Event.hh>
 
 namespace Mikoto {
     /**
@@ -31,7 +31,7 @@ namespace Mikoto {
         virtual auto OnUpdate(double ts) -> void = 0;
 
         virtual auto OnEvent(Event& event) -> void { (void)event; }
-        virtual auto PushImGuiDrawItems() -> void {}
+        virtual auto PushImGuiDrawItems(double timeStep) -> void {}
 
         /**
          * Returns this layer's name (mainly for debugging purposes)

@@ -6,12 +6,14 @@
 #ifndef MIKOTO_TYPES_HH
 #define MIKOTO_TYPES_HH
 
+
 // C++ Standard Library
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <memory>
-#include <unordered_map>
+
+#include <ankerl/unordered_dense.h>
 
 namespace Mikoto {
     using Path_T = std::filesystem::path;
@@ -48,7 +50,7 @@ namespace Mikoto {
     using Ref_T = std::shared_ptr<T>;
 
     template<typename Value>
-    using Registry_T = std::unordered_map<Size_T, Value>;
+    using Registry_T = ankerl::unordered_dense::map<Size_T, Value>;
 
     /**
      * @brief Creates a unique pointer to the given type.
@@ -73,6 +75,75 @@ namespace Mikoto {
     constexpr auto CreateRef( Args &&...args ) -> Ref_T<T> {
         return std::make_shared<T>( std::forward<Args>( args )... );
     }
+
+    /**
+     * @brief Converts a pointer to a byte array.
+     * @tparam T type of the object to convert.
+     * @param value pointer to the object to convert.
+     * @return a pointer to the byte array.
+     */
+    template<typename T>
+    auto AsBytes( T* value ) -> Byte_T* {
+        return reinterpret_cast<Byte_T*>( value );
+    }
+
+
+    /**
+    * @brief Utility function to cast a value to a specified output type.
+    *
+    * This function uses `static_cast` to convert the input value to the desired output type.
+    * It perfectly forwards the input to preserve value category (lvalue/rvalue).
+    *
+    * @tparam Output The type to cast the input value to.
+    * @param value The input value to be casted. It can be an lvalue or rvalue.
+    * @return The input value converted to the specified Output type.
+    *
+    * @note This function performs a `static_cast`. It is the caller's responsibility to ensure
+    *       that the cast is valid and safe. For example, this will not perform runtime checks
+    *       like `dynamic_cast`, and may result in undefined behavior if used incorrectly.
+    *
+    * @example
+    * int x = 42;
+    * float y = As<float>(x); // y = 42.0f
+    *
+    * std::unique_ptr<Base> base = std::make_unique<Derived>();
+    * std::unique_ptr<Derived> derived = As<std::unique_ptr<Derived>>(std::move(base));
+    */
+    template<typename Output>
+    constexpr auto Cast(auto&& value) -> Output {
+        return static_cast<Output>(std::forward<decltype(value)>(value));
+    }
+
+    /**
+    * @brief Reinterprets a reference or pointer as another type.
+    *
+    * This function wraps `reinterpret_cast` to convert the given value to the specified `Output` type.
+    * It is `constexpr` and perfect-forwarding aware.
+    *
+    * @tparam Output The type to cast to.
+    * @param value The input value to be reinterpreted. Can be lvalue or rvalue reference.
+    * @return The value reinterpreted as type `Output`.
+    *
+    * @note It is the caller's responsibility to ensure the cast is valid and safe.
+    *       Misuse can easily lead to undefined behavior.
+    *
+    * @example
+    *     int x = 42;
+    *     auto floatPtr = Reinterpret<float*>(&x);
+    */
+    template<typename Output>
+    constexpr auto Reinterpret(auto&& value) -> Output* {
+        return reinterpret_cast<Output*>(std::forward<decltype(value)>(value));
+    }
+
+    /**
+    * @brief Concept that ensures a type derives from the BaseType.
+    *
+    * @tparam DerivedType Type to check.
+    * @tparam BaseType Type to check.
+    */
+    template<typename DerivedType, typename BaseType>
+    concept IsDerivedFrom = std::derived_from<DerivedType, BaseType>;
 }
 
 #endif// MIKOTO_TYPES_HH

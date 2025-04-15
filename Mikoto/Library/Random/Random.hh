@@ -17,9 +17,9 @@
 #include "fmt/format.h"
 
 // Project Headers
-#include <Library//Utility/Types.hh>
 #include <Common/Common.hh>
-#include <Core/Logging/Logger.hh>
+#include <Core/Logger.hh>
+#include <Library/Utility/Types.hh>
 
 namespace Mikoto {
     /**
@@ -83,7 +83,7 @@ namespace Mikoto {
      * */
     MKT_NODISCARD inline auto GetRandomReal(double lowerBound, double upperbound, auto& seed = GetSeed()) -> double {
         if (lowerBound > upperbound)
-            throw std::runtime_error(fmt::format("Invalid range for random integer generation. Lower bound is {}, upperbound is {}", lowerBound, upperbound));
+            MKT_THROW_RUNTIME_ERROR(fmt::format("Invalid range for random integer generation. Lower bound is {}, upperbound is {}", lowerBound, upperbound));
 
         thread_local std::mt19937 mt{ seed() };
         return std::uniform_real_distribution{ lowerBound, upperbound }(mt);

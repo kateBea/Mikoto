@@ -29,7 +29,7 @@ namespace Mikoto {
                 m_Path.append( path );
             }
 
-            return *this;// Enable method chaining.
+            return *this;
         }
 
         /**
@@ -41,11 +41,12 @@ namespace Mikoto {
             return m_Path;
         }
 
-    private:
-        /** A flag indicating whether the path has been built (finalized). */
-        bool build{};
+        MKT_NODISCARD auto ToString() const -> std::string {
+            return m_Path.string();
+        }
 
-        /** The path being built. */
+    private:
+        bool build{};
         Path_T m_Path{};
     };
 }

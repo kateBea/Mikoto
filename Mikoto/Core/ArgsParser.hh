@@ -51,7 +51,14 @@ namespace Mikoto {
         }
 
         auto Validate(Int32_T argc, char** argv) -> bool {
-            // TODO: Implement the validation logic
+            for (auto start{ argv }; start != argv + argc; ++start) {
+                std::string_view argument{ *start };
+
+                if (IsArgument(argument) && !Validate( *start )) {
+                    return false;
+                }
+            }
+
             return true;
         }
 
@@ -60,6 +67,14 @@ namespace Mikoto {
         }
 
     private:
+
+        static auto IsArgument(std::string_view argument) -> bool {
+            return argument.starts_with( "-" ) || argument.starts_with( "--" );
+        }
+
+        static auto ValidateArgument( char** argument, Int32_T count) -> bool {
+            return true;
+        };
 
         static auto Validate(const std::string_view command) -> bool {
             return command.starts_with( "--" ) ||

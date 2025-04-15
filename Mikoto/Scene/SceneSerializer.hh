@@ -5,8 +5,8 @@
 #ifndef SCENESERIALIZER_HH
 #define SCENESERIALIZER_HH
 
-#include <Scene/Scene/Scene.hh>
-#include <Core/Serialization/Serializer.hh>
+#include <Scene/Scene.hh>
+#include <Core/Serializer.hh>
 
 namespace Mikoto {
 

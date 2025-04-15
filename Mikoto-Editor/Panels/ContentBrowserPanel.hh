@@ -7,19 +7,26 @@
 
 #include <memory>
 #include <filesystem>
-#include <unordered_map>
+#include <ankerl/unordered_dense.h>
 
 #include <imgui.h>
 
 #include <Panels/Panel.hh>
 #include <Library/Random/Random.hh>
-#include <Material/Texture/Texture2D.hh>
+#include <Renderer/GpuDevice.hh>
 
 namespace Mikoto {
+
+    struct ContentBrowserPanelDescription {
+        GpuDevice* Device{ nullptr };
+        Path_T AssetsRootDirectory{};
+        Path_T ProjectRootDirectory{};
+    };
+
     class ContentBrowserPanel final : public Panel {
     public:
 
-        explicit ContentBrowserPanel();
+        explicit ContentBrowserPanel(const ContentBrowserPanelDescription& desc);
         auto operator=(ContentBrowserPanel && other) -> ContentBrowserPanel & = default;
 
         auto OnUpdate(float timeStep) -> void override;
@@ -27,32 +34,36 @@ namespace Mikoto {
         ~ContentBrowserPanel() override = default;
 
     private:
-        enum class ContentBrowserTextureIcon {
-            FILE,
-            FOLDER,
-            AUDIO,
-            MATERIAL,
+        enum class TextureIconType : UInt32_T {
+            ICON_FILE,
+            ICON_FOLDER,
+            ICON_AUDIO,
+            ICON_MATERIAL,
         };
 
-        auto LoadIconsTexturesHandles() -> void;
+        auto LoadIcons() -> void;
         auto DrawHeader() -> void;
         auto DrawSideView() const -> void;
         auto DrawMainBody() -> void;
 
         auto OnRightClick() const -> void;
 
-        auto DrawProjectDirTree(const Path_T& root ) const -> void;
         auto DrawCurrentDirItems() -> void;
+        auto DrawProjectDirTree(const Path_T& root ) const -> void;
 
     private:
-        Texture2D* m_FolderIcon{};
-        Texture2D* m_FileIcon{};
+        GpuDevice* m_Device{ nullptr };
+
+        TextureHandle m_FolderIcon{};
+        TextureHandle m_FileIcon{};
 
         ImGuiTextFilter m_SearchFilter{};
 
         float m_ThumbnailSize{ 100.0f };
 
-        Path_T m_AssetsRoot{};
+        Path_T m_ProjectRoot{};
+        Path_T m_AssetsRootDirectory{};
+
         Path_T m_CurrentDirectory{};
         Path_T m_ForwardDirectory{};
 
@@ -61,7 +72,7 @@ namespace Mikoto {
 
         std::vector<Path_T> m_DirectoryStack{};
 
-        std::unordered_map<ContentBrowserTextureIcon, ImTextureID> m_ContentBrowserImTextureIDHandles{};
+        ankerl::unordered_dense::map<TextureIconType, ImTextureID> m_ContentBrowserImTextureIDHandles{};
     };
 }
 

@@ -16,23 +16,9 @@
 // Project Headers
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
-#include <Renderer/Core/DeviceObject.hh>
+#include <Renderer/DeviceObject.hh>
 
 namespace Mikoto {
-    class VulkanDescriptorSetLayout final : public DeviceObject {
-    public:
-        explicit VulkanDescriptorSetLayout( const VkDevice device, const VkDescriptorSetLayout layout )
-            : m_Device{ device }, m_Layout{ layout } {}
-
-        auto Release() -> void override;
-
-        auto Get() -> VkDescriptorSetLayout { return m_Layout; }
-        auto Get() const -> VkDescriptorSetLayout { return m_Layout; }
-
-    private:
-        VkDevice m_Device{ VK_NULL_HANDLE };
-        VkDescriptorSetLayout m_Layout{ VK_NULL_HANDLE };
-    };
 
     class DescriptorLayoutBuilder final {
     public:
@@ -43,6 +29,22 @@ namespace Mikoto {
 
     private:
         std::vector<VkDescriptorSetLayoutBinding> m_Bindings{};
+    };
+
+    class VulkanDescriptorSetLayout final : public DeviceObject {
+    public:
+        explicit VulkanDescriptorSetLayout( const DescriptorLayoutBuilder& builder );
+
+        auto Release() -> void override;
+
+        MKT_NODISCARD auto Get() -> VkDescriptorSetLayout& { return m_Layout; }
+        MKT_NODISCARD auto Get() const -> const VkDescriptorSetLayout& { return m_Layout; }
+
+    protected:
+        auto Allocate() -> void override;
+
+    private:
+        VkDescriptorSetLayout m_Layout{ VK_NULL_HANDLE };
     };
 
     // Handles updating descriptor sets

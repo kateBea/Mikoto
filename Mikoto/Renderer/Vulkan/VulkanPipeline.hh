@@ -16,41 +16,54 @@
 
 // Project Headers
 #include <Common/Common.hh>
-#include <Renderer/Vulkan/VulkanObject.hh>
-#include <Renderer/Vulkan/VulkanShader.hh>
+#include <Renderer/ComputePipeline.hh>
+#include <Renderer/ComputePipeline.hh>
+#include <Renderer/GraphicsPipeline.hh>
 
 namespace Mikoto {
-    enum class PipelineType {
-        VULKAN_GRAPHICS_PIPELINE,
-        VULKAN_COMPUTE_PIPELINE,
-    };
 
-    struct VulkanPipelineCreateInfo {
-        UInt32_T Subpass{};
-        VkRenderPass RenderPass{};
-        VkPipelineLayout PipelineLayout{};
-
-        //TODO: Review, this causes this struct to pass inconsistent data (diff values when you put this field vs when u don't)
-        //BufferLayout Layout{};
-
-        PipelineType Type{ PipelineType::VULKAN_GRAPHICS_PIPELINE };
-
-        VkPipelineViewportStateCreateInfo ViewportInfo{};
-        VkPipelineInputAssemblyStateCreateInfo InputAssemblyInfo{};
-        VkPipelineRasterizationStateCreateInfo RasterizationInfo{};
-        VkPipelineMultisampleStateCreateInfo MultisampleInfo{};
-        VkPipelineColorBlendAttachmentState ColorBlendAttachment{};
-        VkPipelineColorBlendStateCreateInfo ColorBlendInfo{};
-        VkPipelineDepthStencilStateCreateInfo DepthStencilInfo{};
-        VkPipelineDynamicStateCreateInfo DynamicStateInfo{};
-
-        std::span<const VkDynamicState> DynamicStateEnables{};
-        std::span<const VkPipelineShaderStageCreateInfo> ShaderStages{};
-    };
-
-    class VulkanPipeline final : public VulkanObject {
+    /**
+     * @brief Class representing a Vulkan render pass.
+     *
+     * This class encapsulates the Vulkan render pass functionality, including
+     * the creation and management of render passes, framebuffers, and attachments.
+     */
+    class VulkanRenderPass : public DeviceObject {
     public:
-        explicit VulkanPipeline(const VulkanPipelineCreateInfo& config, const BufferLayout& vertexLayout = VertexBuffer::GetDefaultBufferLayout());
+
+
+    private:
+
+    };
+
+    class VulkanGraphicsPipeline final : public GraphicsPipeline {
+    public:
+        explicit VulkanGraphicsPipeline(const GraphicsPipelineDescription& desc);
+
+        auto Release() -> void override;
+        auto Bind(VkCommandBuffer commandBuffer) const -> void;
+
+        MKT_NODISCARD auto Get() const -> const VkPipeline& { return m_GraphicsPipeline; }
+        MKT_NODISCARD auto GetLayout() const -> const VkPipelineLayout& { return m_PipelineLayout; }
+
+        ~VulkanGraphicsPipeline() override;
+
+    public:
+        DISABLE_COPY_AND_MOVE_FOR(VulkanGraphicsPipeline);
+
+    private:
+        auto Allocate() -> void override;
+
+    private:
+        BufferLayout m_BufferLayout{};
+
+        VkPipeline m_GraphicsPipeline{};
+        VkPipelineLayout m_PipelineLayout{};
+    };
+
+    class VulkanComputePipeline final : public ComputePipeline {
+    public:
+        explicit VulkanComputePipeline(const ComputePipelineDescription& desc);
 
         auto Init() -> void;
 
@@ -60,21 +73,17 @@ namespace Mikoto {
         MKT_NODISCARD auto Get() const -> const VkPipeline& { return m_GraphicsPipeline; }
         MKT_NODISCARD auto GetLayout() const -> const VkPipelineLayout& { return m_PipelineLayout; }
 
-        ~VulkanPipeline() override;
+        ~VulkanComputePipeline() override;
 
     public:
-        DELETE_COPY_FOR(VulkanPipeline);
+        DISABLE_COPY_AND_MOVE_FOR(VulkanComputePipeline);
 
     private:
-        auto InitializePipelinesGraphics() -> void;
-        auto InitializePipelinesCompute() -> void;
+        auto Allocate() -> void override;
 
     private:
         VkPipeline m_GraphicsPipeline{};
         VkPipelineLayout m_PipelineLayout{};
-        VulkanPipelineCreateInfo m_ConfigInfo{};
-
-        BufferLayout m_BufferLayout{};
     };
 }
 

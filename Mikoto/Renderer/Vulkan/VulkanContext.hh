@@ -17,7 +17,7 @@
 // Project Headers
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
-#include <Renderer/Core/RenderContext.hh>
+#include <Renderer/RenderContext.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanSwapChain.hh>
 
@@ -25,22 +25,6 @@
 
 
 namespace Mikoto {
-    enum DescriptorSetLayoutType {
-        DESCRIPTOR_SET_LAYOUT_BASE_SHADER,
-        DESCRIPTOR_SET_LAYOUT_PBR_SHADER,
-        DESCRIPTOR_SET_LAYOUT_OUTLINE,
-        DESCRIPTOR_SET_LAYOUT_BASE_SHADER_WIREFRAME,
-        DESCRIPTOR_SET_LAYOUT_COMPUTE_PIPELINE,
-        DESCRIPTOR_SET_LAYOUT_TEXT,
-    };
-
-    // Used for short-lived commands
-    struct ImmediateSubmitContext {
-        VkFence UploadFence{};            // Notify the host a task has finished executing
-        VkCommandBuffer CommandBuffer{};  // Command buffer to submit work to
-        Scope_T<VulkanCommandPool> CommandPool{};// Command pool to allocate command buffer from
-    };
-
 
     struct VulkanContextData {
         VkInstance Instance{};
@@ -48,18 +32,20 @@ namespace Mikoto {
         VmaVulkanFunctions VulkanVMAFunctions{};
         VkDebugUtilsMessengerEXT DebugMessenger{};
 
-        Scope_T<VulkanDevice> Device{};
-
         bool VOLKInitSuccess{};
 
         const bool EnableValidationLayers{};
         std::vector<const char*> ValidationLayers{};
+
+        auto SetInstance(VkInstance instance) -> VulkanContextData&;
+        auto SetSurface(VkSurfaceKHR surface) -> VulkanContextData&;
+        auto SetDebugMessenger(VkDebugUtilsMessengerEXT debugUtil) -> VulkanContextData&;
+        auto SetIsVolkReady(bool value) -> VulkanContextData&;
+        auto SetValidationLayers(CStr_T* layers, UInt32_T count) -> VulkanContextData&;
     };
 
-    class VulkanContext final : public RenderContext, public Singleton<VulkanContext> {
+    class VulkanContext final : public RenderContext {
     public:
-        explicit VulkanContext() = default;
-
         explicit VulkanContext(const RenderContextCreateInfo& createInfo)
             :  RenderContext{ createInfo }
         { }
@@ -70,28 +56,26 @@ namespace Mikoto {
         auto SubmitFrame() -> void override;
         auto PrepareFrame() -> void override;
 
-        // [Swapchain manipulation]
         auto EnableVSync() -> void override { SwitchSyncMode( true ); }
         auto DisableVSync() -> void override { SwitchSyncMode( false ); }
 
         MKT_NODISCARD auto IsVSyncActive() const -> bool { return m_SwapChain->IsVsyncEnabled(); }
         MKT_NODISCARD auto GetSwapChain() const -> VulkanSwapChain& { return *m_SwapChain; }
 
-        auto ImmediateSubmit(const std::function<void(const VkCommandBuffer&)>& task) -> void;
-
         // [General getters]
         MKT_NODISCARD auto GetSurface() const -> const VkSurfaceKHR& { return m_VulkanData.Surface; }
-        MKT_NODISCARD auto GetDescriptorAllocator() -> VulkanDescriptorAllocator& { return m_DescriptorAllocator; }
+
         MKT_NODISCARD auto GetInstance() const -> const VkInstance& { return m_VulkanData.Instance; }
         MKT_NODISCARD auto GetInstance() -> VkInstance& { return m_VulkanData.Instance; }
-        MKT_NODISCARD auto GetDevice() -> VulkanDevice& { return *m_VulkanData.Device; }
-        MKT_NODISCARD auto GetDevice() const -> const VulkanDevice& { return *m_VulkanData.Device; }
-        MKT_NODISCARD auto IsValidationEnabled() const -> bool { return m_VulkanData.EnableValidationLayers; }
-        MKT_NODISCARD auto GetValidationLayers() -> std::vector<const char*>& { return m_VulkanData.ValidationLayers; }
-        MKT_NODISCARD auto GetVmaFunctions() const -> const VmaVulkanFunctions& { return m_VulkanData.VulkanVMAFunctions; }
-        MKT_NODISCARD auto GetCurrentRenderableImageIndex() const -> UInt32_T { return m_CurrentRenderableSwapChainImage; }
 
-        MKT_NODISCARD auto GetDescriptorSetLayouts( const DescriptorSetLayoutType type ) -> const VkDescriptorSetLayout& { return m_DescriptorSetLayouts[type]; }
+        MKT_NODISCARD auto GetDevice() -> VulkanDevice* { return dynamic_cast<VulkanDevice*>(m_GraphicsDevice.get()); }
+        MKT_NODISCARD auto GetDevice() const -> const VulkanDevice* { return dynamic_cast<VulkanDevice*>(m_GraphicsDevice.get());  }
+
+        MKT_NODISCARD auto GetValidationLayers() -> std::vector<const char*>& { return m_VulkanData.ValidationLayers; }
+
+        MKT_NODISCARD auto GetVmaFunctions() const -> const VmaVulkanFunctions& { return m_VulkanData.VulkanVMAFunctions; }
+
+        MKT_NODISCARD auto GetCurrentRenderableImageIndex() const -> UInt32_T { return m_CurrentRenderableSwapChainImage; }
 
     private:
         // [Internal usage]
@@ -121,9 +105,6 @@ namespace Mikoto {
         MKT_NODISCARD auto CheckValidationLayerSupport() const -> bool;
 
     private:
-        std::unordered_map<DescriptorSetLayoutType, VkDescriptorSetLayout> m_DescriptorSetLayouts{};
-
-        VulkanDescriptorAllocator m_DescriptorAllocator{};
 
         VulkanContextData m_VulkanData{
             .Instance{},
@@ -139,15 +120,10 @@ namespace Mikoto {
             .ValidationLayers{ "VK_LAYER_KHRONOS_validation" }
         };
 
-        // Short-lived commands
-        ImmediateSubmitContext m_ImmediateSubmitContext{};
-
-        std::vector<std::function<void(const VkCommandBuffer& cmd)>> m_ImmediateSubmitTasks{};
-
         // Swapchain manipulation data
         Scope_T<VulkanSwapChain> m_SwapChain{};
         UInt32_T m_CurrentRenderableSwapChainImage{};
-        FrameSynchronizationPrimitives m_SwapChainSyncObjects{};
+        GraphicsQueueSyncPrimitives m_SwapChainSyncObjects{};
 
         // Required application extensions
         std::vector<const char *> m_DeviceRequestedExtensions{

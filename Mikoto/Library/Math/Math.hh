@@ -9,13 +9,20 @@
 #include <cmath>
 
 // Third-Party Libraries
-#include "glm/glm.hpp"
+#include <glm/glm.hpp>
 
 // Project Headers
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
+#include <glm/gtx/matrix_decompose.inl>
 
 namespace Mikoto::Math {
+    constexpr glm::vec3 GLM_UNIT_VECTOR_X{ 1.0f, 0.0f, 0.0f };
+    constexpr glm::vec3 GLM_UNIT_VECTOR_Y{ 0.0f, 1.0f, 0.0f };
+    constexpr glm::vec3 GLM_UNIT_VECTOR_Z{ 0.0f, 0.0f, 1.0f };
+
+    constexpr glm::mat4 GLM_IDENTITY_MAT4{ glm::mat4(1.0) };
+
     /**
 	 * Defines a position vector
 	 * */
@@ -124,6 +131,11 @@ namespace Mikoto::Math {
     template<typename T>
     MKT_NODISCARD inline auto IsBetween(const T& value, const T& lowerBound, const T& upperBound) -> bool {
         return value >= lowerBound && value <= upperBound;
+    }
+
+    template<typename T>
+    MKT_NODISCARD inline auto Clamp(const T& value, const T& min, const T& max) -> T {
+        return std::max(min, std::min(value, max));
     }
 }// namespace Mikoto::Math
 

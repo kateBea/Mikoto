@@ -17,44 +17,36 @@
 #include <Common/Common.hh>
 #include <Library/Random/Random.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
-#include <Renderer/Vulkan/VulkanObject.hh>
+#include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Buffer.hh>
 
 namespace Mikoto {
-    struct VulkanBufferCreateInfo {
-        VkBufferCreateInfo BufferCreateInfo{};
-        VmaAllocationCreateInfo AllocationCreateInfo{};
 
-        // True if the allocation was mapped, false otherwise.
-        // This is only used at the moment of creation of the buffer,
-        // not to keep track of whether the buffer is mapped or not.
-        // Allocation must be unmapped before destruction.
-        bool WantMapping{};
-    };
-
-    class VulkanBuffer final  : public VulkanObject {
+    class VulkanBuffer final : public Buffer {
     public:
-        explicit VulkanBuffer(const VulkanBufferCreateInfo& createInfo);
+        explicit VulkanBuffer( const BufferDescription& createInfo );
 
-        auto Release() -> void override;
+        MKT_NODISCARD auto IsMapped() const -> bool { return m_VmaAllocationInfo.pMappedData != nullptr; }
 
-        ~VulkanBuffer() override;
+        MKT_NODISCARD auto Get() -> VkBuffer& { return m_Buffer; }
+        MKT_NODISCARD auto Get() const -> const VkBuffer& { return m_Buffer; }
 
-        MKT_NODISCARD auto IsMapped() const -> bool { return m_IsMapped; }
+        MKT_NODISCARD auto GetMappedAddress() const -> void* { return m_VmaAllocationInfo.pMappedData; }
 
-        MKT_NODISCARD auto Get() const -> VkBuffer { return m_Buffer; }
-        MKT_NODISCARD auto GetSize() const -> VkDeviceSize { return m_Size; }
-        MKT_NODISCARD auto GetMappedPtr() const -> void* { return m_MappedAddress; }
-
-        MKT_NODISCARD auto GetVmaAllocation() const -> VmaAllocation { return m_VmaAllocation; }
-        MKT_NODISCARD auto GetVmaAllocationInfo() const -> VmaAllocationInfo { return m_VmaAllocationInfo; }
+        MKT_NODISCARD auto GetVmaAllocation() const -> const VmaAllocation& { return m_VmaAllocation; }
+        MKT_NODISCARD auto GetVmaAllocationInfo() const -> const VmaAllocationInfo& { return m_VmaAllocationInfo; }
 
         MKT_NODISCARD auto GetBufferCreateInfo() const -> VkBufferCreateInfo { return m_BufferCreateInfo; }
         MKT_NODISCARD auto GetVamAllocationCreateInfo() const -> VmaAllocationCreateInfo { return m_AllocationCreateInfo; }
 
-        MKT_NODISCARD static auto Create(const VulkanBufferCreateInfo& createInfo) -> Scope_T<VulkanBuffer>;
-
         auto PersistentMap() -> void;
         auto PersistentUnmap() -> void;
+
+        ~VulkanBuffer() override;
+
+    private:
+        auto Release() -> void override;
+        auto Allocate() -> void override;
 
     private:
         VkBuffer m_Buffer{};
@@ -63,13 +55,9 @@ namespace Mikoto {
         VmaAllocation m_VmaAllocation{};
         VmaAllocationInfo m_VmaAllocationInfo{};
 
-        VkDeviceSize m_Size{};
         VkBufferCreateInfo m_BufferCreateInfo{};
         VmaAllocationCreateInfo m_AllocationCreateInfo{};
-
-        bool m_IsMapped{};
-        void* m_MappedAddress{};
     };
-}
+}// namespace Mikoto
 
 #endif // MIKOTO_VULKAN_BUFFER_HH

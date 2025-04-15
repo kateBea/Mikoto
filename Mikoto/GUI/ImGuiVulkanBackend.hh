@@ -14,19 +14,18 @@
 // Third-Party Libraries
 #include <volk.h>
 
-#include <GUI/ImGuiUtils.hh>
-#include <GUI/BackendImplementation.hh>
-#include <Platform/Window/Window.hh>
+#include <GUI/ImGuiUtility.hh>
+#include <GUI/ImGuiBackend.hh>
 #include <Renderer/Vulkan/VulkanCommandPool.hh>
 #include <Renderer/Vulkan/VulkanFrameBuffer.hh>
 #include <Renderer/Vulkan/VulkanImage.hh>
 
 namespace Mikoto {
 
-    class ImGuiVulkanBackend final : public BackendImplementation {
+    class ImGuiVulkanBackend final : public ImGuiBackend {
     public:
         explicit ImGuiVulkanBackend( const ImGuiBackendCreateInfo& createInfo )
-            : BackendImplementation{ createInfo }, m_Extent2D{
+            : ImGuiBackend{ createInfo }, m_Extent2D{
                   .width{ static_cast<UInt32_T>( createInfo.Handle->GetWidth() ) },
                   .height{ static_cast<UInt32_T>( createInfo.Handle->GetHeight() ) }
               },
@@ -55,12 +54,14 @@ namespace Mikoto {
         auto RecordCommands( VkCommandBuffer cmd, VulkanImage& currentSwapchainImage ) const -> void;
 
     private:
+        VulkanDevice* m_Device{ nullptr };
+
         VkRenderPass m_ImGuiRenderPass{};
         VkDescriptorPool m_ImGuiDescriptorPool{};
 
         Scope_T<VulkanImage> m_ColorImage{};
         Scope_T<VulkanImage> m_DepthImage{};
-        Scope_T<VulkanFrameBuffer> m_DrawFrameBuffer{};
+        Scope_T<VulkanFramebuffer> m_DrawFrameBuffer{};
 
         Scope_T<VulkanCommandPool> m_CommandPool{};
         std::vector<VkCommandBuffer> m_DrawCommandBuffers{};
@@ -71,7 +72,7 @@ namespace Mikoto {
         VkExtent2D m_Extent2D{ 2560, 1440 };
         VkExtent3D m_Extent3D{ 2560, 1440, 1 };
     };
-}// namespace Mikoto
+}
 
 
 #endif // MIKOTO_IMGUI_VULKAN_BACKEND_HH

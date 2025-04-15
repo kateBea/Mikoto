@@ -31,7 +31,7 @@ namespace Mikoto {
         ~HierarchyPanel() override = default;
 
     private:
-        auto DrawNodeTree( const GenTree<Entity*>::Node& node ) -> void;
+        auto DrawNodeTree( const UInt64_T entityID  ) -> void;
         auto OnEntityRightClickMenu( Entity& entity ) const -> void;
         auto DrawModelLoadMenuItem() const -> void;
         auto DrawTextMenuItems(const Entity* null ) const;

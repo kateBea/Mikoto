@@ -36,6 +36,13 @@ SET(ASSIMP_INSTALL OFF CACHE BOOL "")
 SET(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "")
 SET(ASSIMP_WARNINGS_AS_ERRORS OFF CACHE BOOL "Treat Assimp Warnings as errors" FORCE)
 
+# EnkiTS CMake Options
+SET(ENKITS_BUILD_C_INTERFACE OFF CACHE BOOL "")
+SET(ENKITS_BUILD_EXAMPLES OFF CACHE BOOL "")
+SET(ENKITS_BUILD_SHARED OFF CACHE BOOL "")
+SET(ENKITS_INSTALL OFF CACHE BOOL "")
+SET(ENKITS_SANITIZE ON CACHE BOOL "")
+
 # Setup the root directory where the dependencies are located
 # All required Dependencies are located in the root folder
 # This CmakeList file however is located in Mikoto (the core engine) folder
@@ -58,9 +65,13 @@ SET(JOLT_PHYSICS        ${MIKOTO_ROOT_DIRECTORY}/Third-Party/JoltPhysics/Build)
 SET(MSDFGEN             ${MIKOTO_ROOT_DIRECTORY}/Third-Party/msdfgen)
 SET(MSDF_ATLAS_GEN      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/msdf-atlas-gen)
 SET(SPIRV_REFLECT      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/spirv-reflect)
+SET(ENKI_TS      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/enkiTS)
+SET(MINIAUDIO      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/miniaudio)
+SET(UNORDERED_DENSE      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/unordered_dense)
+SET(JSON      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/json)
 
 # Setup Mikoto Engine source file
-FILE(GLOB SOURCE_FILES src/*.cc)
+FILE(GLOB SOURCE_FILES Sources/*.cc)
 
 # Setup third party source files
 
@@ -86,8 +97,13 @@ SET(IMGUIZMO_SOURCES
 SET(SPIRV_REFLECT_SOURCES
         ${MIKOTO_ROOT_DIRECTORY}/Third-Party/spirv-reflect/spirv_reflect.c)
 
+# SpirV Reflect
+SET(MINIAUDIO
+        ${MIKOTO_ROOT_DIRECTORY}/Third-Party/miniaudio/miniaudio.c)
+
 # Mikoto compile source files
-SET(SOURCES ${IMGUI_SOURCES} ${IMGUIZMO_SOURCES} ${SOURCE_FILES} ${SPIRV_REFLECT_SOURCES})
+SET(SOURCES ${IMGUI_SOURCES} ${IMGUIZMO_SOURCES} ${SOURCE_FILES} ${SPIRV_REFLECT_SOURCES}
+        ${MINIAUDIO})
 
 # External dependencies
 ADD_SUBDIRECTORY(${GLFW_CMAKE_DIR} build/glfw)
@@ -102,6 +118,17 @@ ADD_SUBDIRECTORY(${FREE_TYPE} build/freetype)
 ADD_SUBDIRECTORY(${JOLT_PHYSICS} build/joltphysics)
 ADD_SUBDIRECTORY(${MSDFGEN} build/msdfgen)
 ADD_SUBDIRECTORY(${MSDF_ATLAS_GEN} build/msdf_atlas_gen)
+ADD_SUBDIRECTORY(${ENKI_TS} build/enkiTS)
+ADD_SUBDIRECTORY(${UNORDERED_DENSE} build/unordered_dense)
+ADD_SUBDIRECTORY(${JSON} build/json)
+
+# Todo pull other libs wih fetchcontent
+#include(FetchContent)
+#
+#FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
+#FetchContent_MakeAvailable(json)
+#
+#target_link_libraries(foo PRIVATE nlohmann_json::nlohmann_json)
 
 # Libraries to link against target
 SET(LIBRARIES
@@ -117,12 +144,16 @@ SET(LIBRARIES
     Jolt
     msdfgen::msdfgen
     msdf-atlas-gen::msdf-atlas-gen
+    enkiTS
+    unordered_dense::unordered_dense
+        nlohmann_json::nlohmann_json
 )
 
-# for tests only. -ltbb is required to use std::execution::par on linux
-#IF (UNIX)
-#    SET(LIBRARIES ${LIBRARIES} tbb)
-#ENDIF ()
+# Required pthread and lm for linux
+# https://github.com/mackron/miniaudio for details on potential required libraries
+IF (UNIX)
+    SET(LIBRARIES ${LIBRARIES} tbb pthread m dl atomic)
+ENDIF ()
 
 # Create the library
 ADD_LIBRARY(${PROJECT_NAME} STATIC ${SOURCES})
@@ -156,6 +187,11 @@ TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/msdfgen)
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/msdf-atlas-gen)
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/spirv-reflect)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/enkiTS/src)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/miniaudio)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/concurrentqueue)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/unordered_dense/include)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/json/include)
 
 # Avoid GLFW including OpenGL headers
 TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLFW_INCLUDE_NONE)
@@ -166,8 +202,6 @@ TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLFW_INCLUDE_NONE)
 TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE SPDLOG_FMT_EXTERNAL)
 
 # For Key and Mouse Codes we use the GLFW ones
-TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE USE_GLFW_KEY_CODES)
-TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE USE_GLFW_MOUSE_CODES)
 TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE USE_GLFW_INPUT)
 
 # Avoid symbols conflict when using Volk
@@ -189,3 +223,4 @@ TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
 # // https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/quick_start.html#quick_start_project_setup
 TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE VMA_STATIC_VULKAN_FUNCTIONS=0)
 TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE VMA_DYNAMIC_VULKAN_FUNCTIONS=0)
+TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE MIKOTO_USE_AUDIO_ENGINE_INTERFACE)

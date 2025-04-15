@@ -10,49 +10,26 @@
 #include <memory>
 
 // Project Headers
-#include <Layer.hh>
 #include <Assets/Model.hh>
-#include <Scene/SceneSerializer.hh>
-#include <Models/Enums.hh>
+#include <Layer.hh>
+#include <Library/Data/Registry.hh>
+#include <Material/TextureCube.hh>
 #include <Panels/Panel.hh>
+#include <Platform/Window.hh>
 #include <Project/Project.hh>
-#include <Scene/Camera/SceneCamera.hh>
-#include <Scene/Scene/Scene.hh>
 #include <Project/ProjectSerializer.hh>
-#include <Renderer/Core/RendererBackend.hh>
-#include <Material/Texture/TextureCubeMap.hh>
+#include <Renderer/RendererBackend.hh>
+#include <Scene/Entity.hh>
+#include <Scene/Scene.hh>
+#include <Scene/SceneCamera.hh>
+#include <Scene/SceneSerializer.hh>
+#include <Renderer/SceneRenderer.hh>
 
 namespace Mikoto {
 
     struct EditorLayerCreateInfo {
         Window* TargetWindow{ nullptr };
-        GraphicsAPI Backend{};
-        Path_T AssetsRootDirectory{};
-    };
-
-    struct DockControlFlags {
-        bool ApplicationCloseFlag{};
-
-        bool HierarchyPanelVisible{ true };
-        bool InspectorPanelVisible{ true };
-        bool ScenePanelVisible{ true };
-        bool SettingPanelVisible{ true };
-        bool StatsPanelVisible{ true };
-        bool ContentBrowser{ true };
-        bool ConsolePanel{ true };
-        bool RendererPanel{ true };
-    };
-
-    enum class PrefabSceneObject {
-        NO_PREFAB_OBJECT,
-        SPRITE_PREFAB_OBJECT,
-        CUBE_PREFAB_OBJECT,
-        CUSTOM_MODEL_PREFAB_OBJECT,
-        CONE_PREFAB_OBJECT,
-        CYLINDER_PREFAB_OBJECT,
-        SPHERE_PREFAB_OBJECT,
-        SPONZA_PREFAB_OBJECT,
-        COUNT_PREFAB_OBJECT,
+        Path_T ModelsRootDirectory{};
     };
 
     class EditorLayer final : public Layer {
@@ -63,7 +40,7 @@ namespace Mikoto {
         auto OnAttach() -> void override;
         auto OnDetach() -> void override;
         auto OnUpdate(double timeStep) -> void override;
-        auto PushImGuiDrawItems() -> void override;
+        auto PushImGuiDrawItems(double timeStep) -> void override;
 
     private:
         auto SaveScene() const -> void;
@@ -85,26 +62,33 @@ namespace Mikoto {
 
         auto LoadPrefabModels() const -> void;
         auto LoadPrefabFonts() const -> void;
-        auto GetPrefabModel( PrefabSceneObject type ) -> Model*;
+
+        auto SetupRenderer(double timeStep) -> void;
+        auto SetupCamera(double timeStep) -> void;
 
     private:
-        MKT_NODISCARD static auto GetSpritePrefabName(const std::string_view path = "") -> const std::string& { static std::string value{ path }; return value; }
-        MKT_NODISCARD static auto GetCubePrefabName(const std::string_view path = "") -> const std::string& { static std::string value{ path }; return value; }
-        MKT_NODISCARD static auto GetSpherePrefabName(const std::string_view path = "") -> const std::string& { static std::string value{ path }; return value; }
-        MKT_NODISCARD static auto GetCylinderPrefabName(const std::string_view path = "") -> const std::string& { static std::string value{ path }; return value; }
-        MKT_NODISCARD static auto GetConePrefabName(const std::string_view path = "") -> const std::string& { static std::string value{ path }; return value; }
-        MKT_NODISCARD static auto GetSponzaPrefabName(const std::string_view path = "") -> const std::string& { static std::string value{ path }; return value; }
+        struct DockControlFlags {
+            bool ApplicationCloseFlag{};
+
+            bool HierarchyPanelVisible{ true };
+            bool InspectorPanelVisible{ true };
+            bool ScenePanelVisible{ true };
+            bool SettingPanelVisible{ true };
+            bool StatsPanelVisible{ true };
+            bool ContentBrowser{ true };
+            bool ConsolePanel{ true };
+            bool RendererPanel{ true };
+        };
 
     private:
         Window* m_Window{ nullptr };
 
-        DockControlFlags m_ControlFlags{};
-
         Entity* m_SelectedEntity{};
 
         Scope_T<Scene> m_ActiveScene{};
+        Scope_T<SceneRenderer> m_SceneRenderer{};
 
-        TextureCubeMap* m_TextureCubeMap{};
+        TextureCube* m_TextureCubeMap{};
 
         Scope_T<SceneCamera> m_EditorCamera{};
         Scope_T<SceneSerializer> m_SceneSerializer{};
@@ -112,12 +96,9 @@ namespace Mikoto {
         Scope_T<Project> m_Project{};
         Scope_T<ProjectSerializer> m_ProjectSerializer{};
 
-        GraphicsAPI m_GraphicsAPI{};
+        RendererBackend* m_EditorRenderer{};
 
-        Scope_T<RendererBackend> m_EditorRenderer{};
-
-        // Tells hierarchy between game objects
-        //SceneGraph m_SceneGraph{};
+        DockControlFlags m_ControlFlags{};
 
         Registry<Panel> m_PanelRegistry{};
     };

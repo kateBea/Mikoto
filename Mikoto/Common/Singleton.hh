@@ -7,8 +7,7 @@
 #define MIKOTO_SINGLETON_HH
 
 // Project Headers
-#include <Core/Logging/Assert.hh>
-#include <Common/Constants.hh>
+#include <Core/Assert.hh>
 
 namespace Mikoto {
 
@@ -49,11 +48,7 @@ namespace Mikoto {
         virtual ~Singleton() = default;
 
     public:
-        Singleton(const Singleton&) = delete;
-        auto operator=(const Singleton&) -> ValueRef_T& = delete;
-
-        Singleton(Singleton&&) = delete;
-        auto operator=(Singleton&&) -> Singleton& = delete;
+        DISABLE_COPY_AND_MOVE_FOR(Singleton);
 
     protected:
         /**

@@ -15,24 +15,18 @@
 // Third-Party Library
 #include <glm/glm.hpp>
 #include <volk.h>
+#include <ankerl/unordered_dense.h>
 
 // Project Headers
-#include <Assets/Mesh.hh>
 #include <Common/Common.hh>
-#include <Material/Core/Material.hh>
-#include <Renderer/Core/RendererBackend.hh>
 #include <Renderer/Vulkan/VulkanCommandPool.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanFrameBuffer.hh>
-#include <Renderer/Vulkan/VulkanImage.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>
-#include <Renderer/Vulkan/VulkanTextureCubeMap.hh>
-
-#include "VulkanFont.hh"
 
 namespace Mikoto {
     struct VulkanRendererCreateInfo {
-        RendererCreateInfo Info{};
+        RendererDescription Info{};
     };
 
     class VulkanRenderer final : public RendererBackend {
@@ -77,7 +71,7 @@ namespace Mikoto {
 
     private:
         struct MeshRenderInfo {
-            const Mesh* Object{};
+            const MeshNode* Object{};
 
             glm::mat4 Transform{};
 
@@ -180,7 +174,7 @@ namespace Mikoto {
         VkRenderPass m_OffscreenMainRenderPass{};
         Scope_T<VulkanImage> m_OffscreenColorAttachment{};
         Scope_T<VulkanImage> m_OffscreenDepthAttachment{};
-        Scope_T<VulkanFrameBuffer> m_OffscreenFrameBuffer{};
+        Scope_T<VulkanFramebuffer> m_OffscreenFrameBuffer{};
 
         VkFormat m_ColorAttachmentFormat{};
         VkFormat m_DepthAttachmentFormat{};
@@ -196,11 +190,11 @@ namespace Mikoto {
         Scope_T<VulkanCommandPool> m_GraphicsCommandPool{};
         Scope_T<VulkanCommandPool> m_ComputeCommandPool{};
 
-        std::unordered_map<UInt64_T, LightRenderInfo> m_Lights{};
+        ankerl::unordered_dense<UInt64_T, LightRenderInfo> m_Lights{};
 
-        std::unordered_map<Size_T, VulkanPipeline> m_Pipelines{};
-        std::unordered_map<UInt64_T, MeshRenderInfo> m_DrawQueue{};
-        std::unordered_map<UInt64_T, TextRenderInfo> m_TextDrawQueue{};
+        ankerl::unordered_dense<Size_T, VulkanPipeline> m_Pipelines{};
+        ankerl::unordered_dense<UInt64_T, MeshRenderInfo> m_DrawQueue{};
+        ankerl::unordered_dense<UInt64_T, TextRenderInfo> m_TextDrawQueue{};
 
         bool m_UseWireframe{};
     };

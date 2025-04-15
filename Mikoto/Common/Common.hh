@@ -27,6 +27,9 @@
 // Stringify
 #define MKT_STRINGIFY(x) #x
 
+#define MKT_IS_NULL(PTR) PTR == nullptr
+#define MKT_IS_NOT_NULL(PTR) PTR != nullptr
+
 // Engine version
 #define MKT_ENGINE_VERSION_MAJOR 1
 #define MKT_ENGINE_VERSION_MINOR 0
@@ -48,7 +51,7 @@
 /**
  * Disable COPY constructor and operator for CLASS_NAME
  * */
-#define DELETE_COPY_FOR(CLASS_NAME)                 \
+#define DISABLE_COPY_FOR(CLASS_NAME)                 \
     CLASS_NAME(const CLASS_NAME&)       = delete;   \
     auto operator=(const CLASS_NAME&)   = delete
 

@@ -14,153 +14,146 @@
 #include <vector>
 
 // Third Party Libraries
-#include <assimp/scene.h>
-
-#include <assimp/Importer.hpp>
+#include <ankerl/unordered_dense.h>
 
 // Project Libraries
-#include <Assets/Mesh.hh>
+#include <Assets/MeshNode.hh>
 #include <Common/Common.hh>
-#include <Material/Texture/Texture2D.hh>
+#include <Material/Texture2D.hh>
 
 namespace Mikoto {
-    struct ModelLoadInfo {
-        Path_T Path{};
-        bool InvertedY{};// Y down (for vulkan)
+
+    /**
+    * @struct ModelLoadDescription
+    * @brief Contains parameters for loading a 3D model.
+    *
+    * The `ModelLoadInfo` structure specifies the path of the model to be loaded
+    * and whether textures should be included in the loading process.
+    */
+    struct ModelLoadDescription {
+        const File* ModelFile{};
         bool WantTextures{ true };
+
+        /**
+        * @brief Sets the path of the model.
+        * @param file The absolute or relative path to the model file.
+        * @return Reference to the modified ModelLoadInfo.
+        */
+        auto WithFilePath( const File* file ) -> ModelLoadDescription&;
+
+        /**
+        * @brief Specifies whether to load textures for the model.
+        * @param value True to load textures, false otherwise.
+        * @return Reference to the modified ModelLoadInfo.
+        */
+        auto LoadTextures( bool value ) -> ModelLoadDescription&;
     };
 
-    class Model final {
+    /**
+    * @class Model
+    * @brief Represents a 3D model composed of multiple mesh nodes.
+    *
+    * The `Model` class encapsulates a 3D object, including its mesh data,
+    * directory path, name, and vertex/index counts.
+    * It provides access to mesh data and metadata about the model.
+    */
+    class Model final : ReferenceCounted {
     public:
         /**
-         * Default constructor for models.
-         * */
-        explicit Model() = default;
-
-
-        /**
-         * Loads an object model from the given path. If the path is not valid this function raises an exception
-         * @param info Information to load model, see definition of ModelLoadInfo
-         * @throws std::runtime_error if the file does not exist or the path is invalid
-         * */
-        explicit Model( const ModelLoadInfo &info );
-
+        * @brief Retrieves the meshes of the model.
+        * @return A constant reference to a vector containing the model's meshes.
+        */
+        MKT_NODISCARD auto GetMeshes() const -> decltype( auto ) { return (m_Meshes); }
 
         /**
-         * Returns the list of meshes from this model
-         * @returns non-mutable list of meshes
-         * */
-        MKT_NODISCARD auto GetMeshes() const -> const std::vector<Scope_T<Mesh>> & { return m_Meshes; }
-
-
-        /**
-         * Returns the list of meshes from this model
-         * @returns mutable list of meshes
-         * */
-        MKT_NODISCARD auto GetMeshes() -> std::vector<Scope_T<Mesh>> & { return m_Meshes; }
-
+        * @brief Retrieves the meshes of the model.
+        * @return A reference to a vector containing the model's meshes.
+        */
+        MKT_NODISCARD auto GetMeshes() -> decltype( auto ) { return (m_Meshes); }
 
         /**
-         * Returns the absolute path to the directory where this model is located (does not include the model's name)
-         * @returns absolute path to this model's directory
-         * */
-        MKT_NODISCARD auto GetDirectory() const -> const Path_T & { return m_ModelAbsolutePath; }
-
-
-        /**
-         * Returns the name of this model
-         * @returns this model's name
-         * */
-        MKT_NODISCARD auto GetName() const -> const std::string & { return m_ModelName; }
-
+        * @brief Retrieves the mesh of the model by index.
+        * @return A reference to a mesh.
+        */
+        MKT_NODISCARD auto GetMeshes(const Size_T index) -> MeshNode& { return m_Meshes.at(index); }
 
         /**
-         * Returns the name of this model
-         * @returns this model's name
-         * */
-        MKT_NODISCARD MKT_UNUSED_FUNC auto GetVertexCount() const -> UInt64_T { return m_TotalVertices; }
-
-
-        /**
-         * Returns the name of this model
-         * @returns this model's name
-         * */
-        MKT_NODISCARD MKT_UNUSED_FUNC auto GetIndexCount() const -> UInt64_T { return m_TotalIndices; }
-
+        * @brief Retrieves the mesh of the model by index.
+        * @return A constant reference to a mesh.
+        */
+        MKT_NODISCARD auto GetMeshes(const Size_T index) const -> const MeshNode& { return m_Meshes.at(index); }
 
         /**
-         * Moves <code>other</code> model to the implicit parameter
-         * @param other moved from Model
-         * */
-        Model( Model &&other ) noexcept;
-
+        * @brief Gets the absolute directory path where the model is stored.
+        * @return A constant reference to the model's directory path.
+        */
+        MKT_NODISCARD auto GetDirectory() const -> const Path_T& { return m_ModelAbsolutePath; }
 
         /**
-         * Moves other model to the implicit parameter
-         * @param other moved from Model
-         * @returns *this
-         * */
-        auto operator=( Model &&other ) noexcept -> Model &;
+        * @brief Retrieves the name of the model.
+        * @return A constant reference to the model's name.
+        */
+        MKT_NODISCARD auto GetName() const -> const std::string& { return m_ModelName; }
 
+        /**
+        * @brief Gets the total number of vertices in the model.
+        * @return The vertex count.
+        */
+        MKT_NODISCARD auto GetVertexCount() const -> UInt64_T { return m_TotalVertices; }
+
+        /**
+         * @brief Gets the total number of indices in the model.
+         * @return The index count.
+         */
+        MKT_NODISCARD auto GetIndexCount() const -> UInt64_T { return m_TotalIndices; }
+
+        /**
+        * @brief Adds a new mesh node to the collection.
+        * @tparam Args Variadic template parameters for forwarding constructor arguments.
+        * @param index The index at which to insert the mesh node.
+        * @param args Arguments to be forwarded to the mesh node constructor.
+        *
+        * This function inserts a new mesh node into the `m_Meshes` collection at the given index.
+        */
+        template<typename... Args>
+        auto AddMeshNode(UInt32_T index, Args&&... args) -> void {
+            m_Meshes.emplace(index, std::forward<Args>(args)...);
+        }
 
     public:
-        DELETE_COPY_FOR( Model );
+        DISABLE_COPY_AND_MOVE_FOR( Model );
+
+        /**
+         * @brief Constructs a Model with the provided parameters.
+         * @param modelName Name of the model.
+         * @param modelPath Absolute path to the model file.
+         */
+        explicit Model( std::string modelName, Path_T modelPath)
+            : m_ModelName{ std::move( modelName ) },
+              m_ModelAbsolutePath{ std::move( modelPath ) }
+        {}
 
     private:
-        /**
-         * Helper function to load model resources from given path
-         * @param wantLoadTextures tells whether we want to attempt to load this model's textures
-         * @throws std::runtime_error if the file does not exist or the path is invalid
-         * */
-        auto Load( bool wantLoadTextures = false ) -> void;
 
+        // Only the factory can construct models
+        friend class MeshFactory;
 
-        /**
-         * Retrieves each one of the meshes contained within the scene
-         * into this Model. This process starts from the given node
-         * traversing all of its children nodes
-         * @param root contains components of the given scene
-         * @param scene represents a complete scene, which contains aiNodes and the associated meshes, materials, etc.
-         * @param modelDirectory The model's directory
-         * @param wantLoadTextures tells whether we want to attempt to load this model's textures
-         * */
-        auto ProcessNode( const aiNode *root, const aiScene *scene, const Path_T &modelDirectory, bool wantLoadTextures ) -> void;
+    private:
+        auto FreeObject() -> void {
 
-
-        /**
-         * Retrieves the components of the Mesh contained within
-         * the given node from the given scene
-         * @param node A mesh node (for usage with Assimp)
-         * @param scene Represents a complete scene, which contains aiNodes and the associated meshes, materials, etc.
-         * @param modelDirectory The model's directory
-         * @param wantLoadTextures Tells whether we want to attempt to load this model's textures
-         * @returns mesh containing the retrieved data
-         * */
-        auto ProcessMesh( const aiMesh *node, const aiScene *scene, const Path_T &modelDirectory, bool wantLoadTextures ) const -> Scope_T<Mesh>;
-
-
-        /**
-         * Retrieves texture materials from the given aiMaterial
-         * @param mat Container of the materials
-         * @param type Type of texture to be processed
-         * @param tType Specifies the type of texture for the <b>kT::Texture</b> object
-         * @param scene Represents a complete scene, which contains aiNodes and the associated meshes, materials, etc.
-         * @param modelDirectory The model's directory
-         * @returns A list of textures from the given material of type
-         * */
-        static auto LoadTextures( const aiMaterial *mat, aiTextureType type, MapType tType, const aiScene *scene, const Path_T &modelDirectory ) -> std::vector<Texture2D*>;
+        }
 
     protected:
-        Path_T m_ModelAbsolutePath{};
-        std::vector<Scope_T<Mesh>> m_Meshes{};
         std::string m_ModelName{};
+        Path_T m_ModelAbsolutePath{};
+
+        // ( Mesh index, mesh node )
+        ankerl::unordered_dense::map<UInt32_T, MeshNode> m_Meshes{};
 
         UInt64_T m_TotalVertices{};
         UInt64_T m_TotalIndices{};
-
-        /** Y points Down (suits vulkan coordinate system) */
-        bool m_InvertedY{};
     };
+
 }// namespace Mikoto
 
 #endif// MIKOTO_MODEL_HH

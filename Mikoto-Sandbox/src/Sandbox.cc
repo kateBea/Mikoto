@@ -24,7 +24,7 @@ namespace Mikoto {
         Init( );
 
         while (IsRunning()) {
-            UpdateState();
+            Update();
         }
 
         return exitCode;
@@ -41,6 +41,6 @@ namespace Mikoto {
     auto SandboxApp::Shutdown() -> void {
     }
 
-    auto SandboxApp::UpdateState() -> void {
+    auto SandboxApp::Update() -> void {
     }
 }

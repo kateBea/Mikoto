@@ -1,0 +1,60 @@
+/**
+ * Texture2D.cc
+ * Created by kate on 6/8/23.
+ * */
+
+#ifndef MIKOTO_TEXTURE2D_HH
+#define MIKOTO_TEXTURE2D_HH
+
+// C++ Standard Library
+#include <any>
+#include <memory>
+#include <span>
+
+// Project Headers
+#include <Assets/Texture.hh>
+#include <Common/Common.hh>
+#include <Library/Filesystem/File.hh>
+#include <Library/Random/Random.hh>
+#include <Library/Utility/Types.hh>
+
+namespace Mikoto {
+
+
+    /**
+    * @class Texture2D
+    * @brief Represents a 2D texture.
+    *
+    * The `Texture2D` class is a specialized texture type for handling 2D images.
+    * It inherits from the `Texture` base class and provides constructors
+    * for initializing texture properties such as width, height, and channels.
+    */
+    class Texture2D : public Texture {
+    public:
+        /**
+         * @brief Default destructor.
+         */
+        ~Texture2D() override = default;
+
+    protected:
+        /**
+         * @brief Constructs a 2D texture with specified parameters.
+         * @param type Type of the texture.
+         * @param width Width of the texture in pixels.
+         * @param height Height of the texture in pixels.
+         * @param channels Number of color channels in the texture.
+         * @param data Pointer to the texture data
+         * @param format Texture format
+         * @param usage Type of resource usage
+         */
+        Texture2D(const TextureType type, const Int32_T width, const Int32_T height, const Int32_T channels, Byte_T* data,
+                   const ResourceUsageType usage)
+            : Texture{ type, InferFormatFromChannels(channels), width, height, channels, usage }, m_Data{ data }
+        {}
+
+    protected:
+        Byte_T* m_Data{ nullptr };
+    };
+}
+
+#endif // MIKOTO_TEXTURE2D_HH

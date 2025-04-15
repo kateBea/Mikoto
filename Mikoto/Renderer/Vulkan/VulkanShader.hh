@@ -14,41 +14,35 @@
 
 // Project Headers
 #include <Common/Common.hh>
-#include <Material/Core/Shader.hh>
 #include <Library/Utility/Types.hh>
+#include <Material/ShaderModule.hh>
 #include <Library/Filesystem/File.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
-#include <Renderer/Vulkan/VulkanObject.hh>
 
 namespace Mikoto {
 
-    struct VulkanShaderCreateInfo {
-        Path_T FilePath{};
-        ShaderStage Stage{ VERTEX_STAGE };
-    };
-
-    class VulkanShader final : public VulkanObject, public Shader {
+    class VulkanShader final : public ShaderModule {
     public:
-        explicit VulkanShader(const VulkanShaderCreateInfo& createInfo);
+        explicit VulkanShader(const ShaderModuleDescription& createInfo);
 
-        MKT_NODISCARD auto Get() const -> const VkShaderModule& { return m_Module; }
-        MKT_NODISCARD auto GetFile() const -> const File* { return m_File; }
-        MKT_NODISCARD auto GetPipelineStageCreateInfo() const -> const VkPipelineShaderStageCreateInfo& { return m_StageCreateInfo; }
+        MKT_NODISCARD auto Get() -> VkShaderModule&;
+        MKT_NODISCARD auto Get() const -> const VkShaderModule&;
 
-        MKT_NODISCARD auto GetVulkanStage() const -> VkShaderStageFlags { return VulkanHelpers::GetVkStageFromShaderStage(GetStage()); }
+        MKT_NODISCARD auto GetPipelineStageCreateInfo() const -> const VkPipelineShaderStageCreateInfo&;
+
+        MKT_NODISCARD auto GetVulkanStage() const -> VkShaderStageFlags;
 
         auto Release() -> void override;
 
         ~VulkanShader() override;
 
     private:
-        auto Upload(const VulkanShaderCreateInfo& createInfo) -> void;
+        auto Allocate() -> void override;
 
     private:
-        const File* m_File{ nullptr };
-
         std::string m_Code{};
         std::string m_EntryPoint{};
+
         VkShaderModule m_Module{};
         VkPipelineShaderStageCreateInfo m_StageCreateInfo{};
     };

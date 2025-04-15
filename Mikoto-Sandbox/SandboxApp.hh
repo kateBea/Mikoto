@@ -16,12 +16,12 @@ namespace Mikoto {
          * @param argc argument count.
          * @param argv list of null terminated c-strings command line arguments.
          * */
-        auto Run(Int32_T argc, char** argv) -> Int32_T;
+        auto Run(Int32_T argc, char** argv) -> Int32_T override;
 
     protected:
         auto Init() -> void override;
         auto Shutdown() -> void override;
-        auto UpdateState() -> void override;
+        auto Update() -> void override;
 
         auto InstallEventCallbacks() -> void;
 

@@ -15,7 +15,7 @@ layout(push_constant) uniform PushConstants {
     vec4 TextColor;
 } pushConstants;
 
-// [Vertex Buffer elements]
+// [Vertex Device elements]
 layout(location = 0) in vec3 a_Position;
 layout(location = 1) in vec3 a_Color;
 layout(location = 2) in vec2 a_TextureCoordinates;

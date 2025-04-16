@@ -44,7 +44,7 @@ namespace Mikoto {
 
     private:
         std::string m_ImGuiFilesRootDir{};
-        GraphicsAPI m_BackendApi{ GraphicsAPI::VULKAN_API };
+        GraphicsAPI m_BackendApi{ GraphicsAPI::INVALID_API };
 
         Window* m_Window{ nullptr };
 

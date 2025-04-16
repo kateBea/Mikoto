@@ -19,7 +19,7 @@
 
 namespace Mikoto {
     VulkanShader::VulkanShader( const ShaderModuleDescription& createInfo )
-        : ShaderModule{ createInfo.Stage, createInfo.ShaderFile->GetFileContents() }, m_EntryPoint{ "main" }
+        : ShaderModule{ createInfo.Stage, createInfo.ShaderContents }, m_EntryPoint{ "main" }
     {}
 
     auto VulkanShader::Allocate() -> void {
@@ -32,9 +32,7 @@ namespace Mikoto {
         moduleCreateInfo.codeSize = GetContentSize();
         moduleCreateInfo.pCode = Reinterpret<const UInt32_T>( GetContents() );
 
-        VulkanDevice* device{ dynamic_cast<VulkanDevice*>(m_Device) };
-
-        if ( vkCreateShaderModule( device->GetLogicalDevice(),
+        if ( vkCreateShaderModule( Dynamic<VulkanDevice>(m_Device)->GetLogicalDevice(),
                                    std::addressof( moduleCreateInfo ),
                                    nullptr,
                                    std::addressof( m_Module ) ) != VK_SUCCESS ) {
@@ -57,8 +55,8 @@ namespace Mikoto {
             return;
         }
 
-        VulkanDevice* device{ dynamic_cast<VulkanDevice*>(m_Device) };
-        vkDestroyShaderModule( device->GetLogicalDevice(), m_Module, nullptr );
+        Dynamic<VulkanDevice>(m_Device)->FreeResource( this );
+        vkDestroyShaderModule( Dynamic<VulkanDevice>(m_Device)->GetLogicalDevice(), m_Module, nullptr );
     }
 
     VulkanShader::~VulkanShader() {

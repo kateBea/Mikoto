@@ -184,10 +184,9 @@ namespace Mikoto {
         auto ReleaseResource( const Handle index ) -> void {
 
             if ( index < m_Resources.size() && m_Resources.contains(index) ) {
-                m_Resources[index]->~IResource();
+                m_Resources[index].Instance = nullptr;
+                m_FreeHandles.emplace_back(index);
             }
-
-            m_FreeHandles.emplace_back(index);
         }
 
         /**
@@ -283,6 +282,7 @@ namespace Mikoto {
 
             if (!Block || BlockSize < sizeof(T)) {
                 if (Block) {
+                    // TODO: double check resource deletion in ref counting class, it is using different type of delete operator
                     ::operator delete(Block);
                 }
 

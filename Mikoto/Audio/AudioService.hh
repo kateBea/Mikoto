@@ -21,7 +21,6 @@ namespace Mikoto {
     public:
         explicit AudioService(const AudioServiceCreateInfo& options);
 
-        auto TestSound(const Path_T& soundFile ) const -> void;
         auto Init() -> void override;
         auto Shutdown() -> void override;
 

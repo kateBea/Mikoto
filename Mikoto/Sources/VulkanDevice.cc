@@ -4,28 +4,23 @@
 #include <spirv_reflect.h>
 
 #include <Core/Logger.hh>
+#include <Renderer/RenderService.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanShader.hh>
-#include <Renderer/Vulkan/VulkanSampler.hh>
 
 namespace Mikoto {
 
-    VulkanDevice::VulkanDevice( const VulkanDeviceDescription& createInfo ) {
+    VulkanDevice::VulkanDevice( const VulkanDeviceDescription& createInfo )
+        : GpuDevice{ GraphicsAPI::VULKAN_API }
+    {
         m_VulkanInstance = createInfo.Instance;
         m_Surface = createInfo.Surface;
 
-        m_RequestedExtensions = std::vector<const char*>{
-            createInfo.DeviceRequestedExtensions,
-            createInfo.DeviceRequestedExtensions + createInfo.RequiredExtensionsCount
-        };
+        m_RequestedExtensions = { createInfo.DeviceExtensions.begin(), createInfo.DeviceExtensions.end() };
+        m_ValidationsLayers = { createInfo.ValidationLayers.begin(), createInfo.ValidationLayers.end() };
 
-        m_ValidationsLayers = std::vector<const char*>{
-            createInfo.ValidationsLayers,
-            createInfo.ValidationsLayers + createInfo.ValidationsLayersCount
-        };
-
-        m_VmaCallbacks = createInfo.VmaCallbacks;
+        m_VmaCallbacks = std::addressof( Dynamic<VulkanContext>( RenderService::GetInstance()->GetContext() )->GetVmaFunctions() );
     }
 
     auto VulkanDevice::Init() -> void {
@@ -44,7 +39,7 @@ namespace Mikoto {
 
         shader->Allocate(this);
 
-        return ShaderModuleHandle{ shader };
+        return ShaderModuleHandle::Create( shader );
     }
 
     auto VulkanDevice::InitDescriptorAllocator() -> void {
@@ -61,7 +56,6 @@ namespace Mikoto {
                 { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
                 { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
         };
-
 
         m_DescriptorAllocator.Init( GetLogicalDevice(), 1000, sizes );
     }

@@ -18,7 +18,7 @@
 namespace Mikoto {
 
     /**
-    * @struct TextureLoadInfo
+    * @struct TextureLoadDescription
     * @brief Holds information for loading a texture.
     *
     * The `TextureLoadInfo` structure stores metadata required to load a texture,
@@ -133,8 +133,8 @@ namespace Mikoto {
         }
 
     private:
-        TextureType m_Type{};
-        TextureFormat m_Format{ TextureFormat::TEXTURE_FORMAT_RGBA8 };
+        TextureType m_Type{ TextureType::TEXTURE_INVALID };
+        TextureFormat m_Format{ TextureFormat::TEXTURE_FORMAT_INVALID };
 
         Int32_T m_Width{};
         Int32_T m_Height{};

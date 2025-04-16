@@ -59,7 +59,7 @@ namespace Mikoto {
      * normal, and other material properties.
      */
     enum class TextureType {
-        TEXTURE_INVALID,
+        TEXTURE_INVALID = -1,
         TEXTURE_2D,
         TEXTURE_CUBE,
     };
@@ -72,6 +72,7 @@ namespace Mikoto {
      * It includes formats such as RGBA and RGB, which describe how color data is represented per pixel.
      */
     enum class TextureFormat {
+        TEXTURE_FORMAT_INVALID = -1,
         TEXTURE_FORMAT_RGBA8,
         TEXTURE_FORMAT_RGB8,
     };
@@ -158,7 +159,8 @@ namespace Mikoto {
     };
 
     struct ShaderModuleDescription {
-        const File* ShaderFile{ nullptr };
+        std::string Uri{};
+        std::string ShaderContents{  };
         ShaderStage Stage{ ShaderStage::VERTEX_STAGE };
 
         auto WithShaderFile( const File* file ) -> ShaderModuleDescription&;

@@ -29,7 +29,7 @@ namespace Mikoto {
         auto Init() -> void override;
         auto Shutdown() -> void override;
 
-        auto LoadFont(const FontLoadDescription& description) -> Font*;
+        auto LoadFont(const FontLoadDescription& description) -> FontHandle;
 
     private:
         msdfgen::FreetypeHandle *m_FreeTypeHandle{ nullptr };

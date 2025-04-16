@@ -35,6 +35,8 @@ namespace Mikoto {
 
         virtual ~ImGuiBackend() = default;
 
+        MKT_NODISCARD static auto Create(const ImGuiBackendCreateInfo& info) -> Scope_T<ImGuiBackend>;
+
     protected:
         const Window* m_Window{};
         GraphicsAPI m_Api{ GraphicsAPI::VULKAN_API };

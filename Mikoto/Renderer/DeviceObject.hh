@@ -79,6 +79,17 @@ namespace Mikoto {
          */
         auto Allocate() -> void override = 0;
 
+        /**
+        * @brief Releases the underlying GPU resource.
+        *
+        * This pure virtual function must be implemented by concrete device resource classes
+        * (e.g., buffers, textures, samplers) to handle cleanup of GPU-side memory or API-specific
+        * handles. It ensures the resource is properly released from the graphics device.
+        *
+        * Once called, the object should no longer be used until reinitialized or recreated.
+        */
+        auto Release() -> void override = 0;
+
     protected:
         GpuDevice* m_Device{};
         ResourceUsageType m_UsageType{ ResourceUsageType::RESOURCE_USAGE_STATIC };

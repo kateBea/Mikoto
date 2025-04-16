@@ -24,28 +24,28 @@ namespace Mikoto {
     auto AssetsService::Init() -> void {
         // Texture loaded
         m_AssetLoaders[typeid(Texture)] = [](AssetsService* self, void* desc, const Path_T& uri) -> RefAny {
-            return self->LoadTextureAsset(*As<TextureLoadDescription*>(desc), uri);
+            return self->LoadTextureAsset(*Cast<TextureLoadDescription*>(desc), uri);
         };
         m_AssetLoaders[typeid(Texture2D)] = [](AssetsService* self, void* desc, const Path_T& uri) -> RefAny {
-            return self->LoadTextureAsset(*As<TextureLoadDescription*>(desc), uri);
+            return self->LoadTextureAsset(*Cast<TextureLoadDescription*>(desc), uri);
         };
         m_AssetLoaders[typeid(TextureCube)] = [](AssetsService* self, void* desc, const Path_T& uri) -> RefAny {
-            return self->LoadTextureAsset(*As<TextureLoadDescription*>(desc), uri);
+            return self->LoadTextureAsset(*Cast<TextureLoadDescription*>(desc), uri);
         };
 
         // Model loader
         m_AssetLoaders[typeid(Model)] = [](AssetsService* self, void* desc, const Path_T& uri) -> RefAny {
-            return self->LoadModelAsset(*As<ModelLoadDescription*>(desc), uri);
+            return self->LoadModelAsset(*Cast<ModelLoadDescription*>(desc), uri);
         };
 
         // Font loader
         m_AssetLoaders[typeid(Font)] = [](AssetsService* self, void* desc, const Path_T& uri) -> RefAny {
-            return self->LoadFontAsset(*As<FontLoadDescription*>(desc), uri);
+            return self->LoadFontAsset(*Cast<FontLoadDescription*>(desc), uri);
         };
 
         // Audio loader
         m_AssetLoaders[typeid(Audio)] = [](AssetsService* self, void* desc, const Path_T& uri) -> RefAny {
-            return self->LoadAudioAsset(*As<AudioLoadDescription*>(desc), uri);
+            return self->LoadAudioAsset(*Cast<AudioLoadDescription*>(desc), uri);
         };
 
         m_IsInitialized = true;
@@ -71,7 +71,7 @@ namespace Mikoto {
             return {};
         }
 
-        Ref<Model> model{ MeshFactory::GetInstance()->CreateModel( ModelLoadDescription {
+        ModelHandle model{ MeshFactory::GetInstance()->CreateModel( ModelLoadDescription {
             .ModelFile{ modelFile },
             .WantTextures{ description.WantTextures }
         } ) };
@@ -131,7 +131,7 @@ namespace Mikoto {
 
         AudioHandle handle{ m_AudioDevice->LoadAudio( audioDesc ) };
 
-        // Store a reference to the texture to access via uri for asset service clients
+        // Store a reference to the audio to access via uri for asset service clients
         auto [it, success]{
             m_LoadedAssets.try_emplace( audioFile->GetPath(), handle )
         };
@@ -158,4 +158,4 @@ namespace Mikoto {
 
         return m_LoadedAssets[fontFile->GetPath()];
     }
-}// namespace Mikoto
+}

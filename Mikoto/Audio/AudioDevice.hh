@@ -30,14 +30,7 @@ namespace Mikoto {
      * such as sample rate, format, and any other settings required to initialize the audio system.
      */
     struct AudioDeviceDescription {
-        /**
-        * @brief Flag to enable or disable the use of spatialization.
-        *
-        * If enabled, the device will allow spatial audio effects (3D positioning, attenuation, etc.).
-        */
-        bool EnableSpatialization{ true }; ///< Default to spatialization enabled
 
-        auto WithSpatialization(bool value) -> AudioDeviceDescription&;
     };
 
     /**
@@ -50,7 +43,7 @@ namespace Mikoto {
     */
     class AudioDevice {
     public:
-        explicit AudioDevice();
+        explicit AudioDevice(const AudioDeviceDescription& desc);
 
         /**
         * @brief Initializes the audio device and its engine.

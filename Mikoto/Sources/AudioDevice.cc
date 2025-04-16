@@ -19,15 +19,11 @@ namespace Mikoto {
     }
 #endif
 
-    auto AudioDeviceDescription::WithSpatialization( const bool value ) -> AudioDeviceDescription& {
-        this->EnableSpatialization = value;
-
-        return *this;
-    }
-    AudioDevice::AudioDevice() {
+    AudioDevice::AudioDevice(const AudioDeviceDescription& desc) {
 #ifdef MIKOTO_USE_MINIAUDIO_DEVICE
         m_DeviceConfig = ma_device_config_init( ma_device_type_playback );
 #endif
+
     }
 
     auto AudioDevice::Init() -> void {
@@ -51,7 +47,7 @@ namespace Mikoto {
 #endif
     }
 
-    auto AudioDevice::LoadAudio( const AudioLoadDescription& description ) -> Ref<Audio> {
+    auto AudioDevice::LoadAudio( const AudioLoadDescription& description ) -> AudioHandle {
         Audio* audio{ m_LoadedAudios.Allocate( description ) };
         if ( audio == nullptr ) {
             MKT_CORE_LOGGER_ERROR( "AudioDevice::LoadAudio - Failed to allocate audio resource." );
@@ -60,12 +56,11 @@ namespace Mikoto {
 
         audio->Init( this );
 
-        return Ref<Audio>(m_LoadedAudios.Get( audio->GetHandle() ));
+        return AudioHandle::Create(m_LoadedAudios.Get( audio->GetHandle() ));
     }
 
     auto AudioDevice::Create( const AudioDeviceDescription& description ) -> Scope_T<AudioDevice> {
         return CreateScope<AudioDevice>( description );
     }
 
-}// namespace Mikoto
-// namespace Mikoto
+}

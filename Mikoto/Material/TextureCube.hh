@@ -10,19 +10,30 @@
 #include <Assets/Texture.hh>
 
 namespace Mikoto {
-    struct TextureCubeMapCreateInfo {
-        Path_T TexturePath{};
-        TextureFormat Format{ TextureFormat::TEXTURE_FORMAT_RGBA8 };
-    };
 
     class TextureCube : public Texture {
     public:
-        explicit TextureCube( const TextureCubeMapCreateInfo& createInfo );
 
-        MKT_NODISCARD static auto Create( const TextureCubeMapCreateInfo& createInfo ) -> Scope_T<TextureCube>;
+        ~TextureCube() override = default;
 
-    private:
-        Path_T m_FilePath{};
+    protected:
+        /**
+         * @brief Constructs a 2D texture with specified parameters.
+         * @param type Type of the texture.
+         * @param width Width of the texture in pixels.
+         * @param height Height of the texture in pixels.
+         * @param channels Number of color channels in the texture.
+         * @param data Pointer to the texture data
+         * @param format Texture format
+         * @param usage Type of resource usage
+         */
+        TextureCube(const TextureType type, const Int32_T width, const Int32_T height, const Int32_T channels, Byte_T* data,
+                   const ResourceUsageType usage)
+            : Texture{ type, InferFormatFromChannels(channels), width, height, channels, usage }, m_Data{ data }
+        {}
+
+    protected:
+        Byte_T* m_Data{ nullptr };
     };
 }// namespace Mikoto
 

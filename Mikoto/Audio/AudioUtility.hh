@@ -5,6 +5,7 @@
 #ifndef AUDIORESOURCE_HH
 #define AUDIORESOURCE_HH
 
+#include <Library/Filesystem/File.hh>
 #include <Library/Utility/Types.hh>
 
 namespace Mikoto {

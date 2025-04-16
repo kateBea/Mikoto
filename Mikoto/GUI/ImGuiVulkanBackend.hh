@@ -16,9 +16,7 @@
 
 #include <GUI/ImGuiUtility.hh>
 #include <GUI/ImGuiBackend.hh>
-#include <Renderer/Vulkan/VulkanCommandPool.hh>
 #include <Renderer/Vulkan/VulkanFrameBuffer.hh>
-#include <Renderer/Vulkan/VulkanImage.hh>
 
 namespace Mikoto {
 
@@ -59,12 +57,11 @@ namespace Mikoto {
         VkRenderPass m_ImGuiRenderPass{};
         VkDescriptorPool m_ImGuiDescriptorPool{};
 
-        Scope_T<VulkanImage> m_ColorImage{};
-        Scope_T<VulkanImage> m_DepthImage{};
-        Scope_T<VulkanFramebuffer> m_DrawFrameBuffer{};
+        TextureHandle m_ColorImage{};
+        TextureHandle m_DepthImage{};
+        FramebufferHandle m_DrawFrameBuffer{};
 
-        Scope_T<VulkanCommandPool> m_CommandPool{};
-        std::vector<VkCommandBuffer> m_DrawCommandBuffers{};
+        CommandListHandle m_CommandList{};
 
         VkFormat m_ColorAttachmentFormat{};
         VkFormat m_DepthAttachmentFormat{};

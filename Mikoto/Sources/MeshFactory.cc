@@ -139,6 +139,7 @@ namespace Mikoto {
             }
 
             // Temporary. See if it is an embedded texture
+            // This one will probably be loaded in the device directly and not cached in the assets service??
             auto [embeddedTexturePtr, embeddedTextureIndex] {
                 scene->GetEmbeddedTextureAndIndex( texturePath.C_Str() )
             };
@@ -167,11 +168,11 @@ namespace Mikoto {
             };
 
 
-            // Paralelize texture loading
+            // TODO: Paralelize texture loading
             for ( const aiTextureType& type: types ) {
-                auto handle{ LoadTexture( modelRootPath, material, type, scene ) };
+                TextureHandle handle{ LoadTexture( modelRootPath, material, type, scene ) };
 
-                textures.emplace_back(LoadTexture( modelRootPath, material, type, scene ));
+                textures.emplace_back(handle);
             }
         }
 

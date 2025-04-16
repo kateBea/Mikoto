@@ -46,9 +46,8 @@ namespace Mikoto {
                 delete this;
             }
 #else
-            UInt32_T count{ --m_RefCount };
 
-            if (count == 0) {
+            if ( const UInt32_T count{ --m_RefCount }; count == 0) {
                 delete this;
             }
 #endif
@@ -190,6 +189,10 @@ class Ref {
 
         explicit operator RefCountedType*() {
             return m_Ptr;
+        }
+
+        static auto Create(RefCountedType* ptr) -> Ref<RefCountedType> {
+            return Ref<RefCountedType>{ ptr };
         }
 
         RefCountedType* operator->() { return m_Ptr; }

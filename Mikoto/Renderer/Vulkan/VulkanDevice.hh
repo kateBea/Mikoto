@@ -90,13 +90,9 @@ namespace Mikoto {
         MKT_NODISCARD auto GetAllocator() const -> const VmaAllocator&;
         MKT_NODISCARD auto GetAllocatorStats() -> const VmaTotalStatistics&;
 
-        // Commands
-        auto RegisterGraphicsCommand( VkCommandBuffer cmd ) -> void;
-        auto RegisterComputeCommand( VkCommandBuffer cmd ) -> void;
-
-        // Queues
-        auto SubmitCommandsGraphicsQueue(const GraphicsQueueSyncPrimitives& syncPrimitives ) -> void;
-        auto SubmitCommandsComputeQueue(const ComputeQueueSynchPrimitives& syncPrimitives ) -> void;
+        // This is called by resources allocated from this vulkan device
+        // device objects are resources allocated from pools, after usage they must be released from the corresponding pool
+        auto FreeResource(DeviceObject* resource) -> void;
 
         ~VulkanDevice() override;
 

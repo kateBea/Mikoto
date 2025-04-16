@@ -94,9 +94,6 @@ namespace Mikoto {
 
     class GpuDevice {
     public:
-
-        explicit GpuDevice(const GpuDeviceCreateInfo& createInfo);
-
         virtual auto Init() -> void = 0;
         virtual auto Shutdown() -> void = 0;
 
@@ -125,8 +122,12 @@ namespace Mikoto {
         MKT_NODISCARD static auto Create(const GpuDeviceCreateInfo& createInfo) -> Scope_T<GpuDevice>;
 
     protected:
+        explicit GpuDevice(GraphicsAPI api);
+
         virtual auto AccessDummyResource(Size_T resourceTypeID) -> Ref<IResource> = 0;
 
+    protected:
+        GraphicsAPI m_Api{};
     };
 }
 

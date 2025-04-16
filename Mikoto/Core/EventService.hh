@@ -6,16 +6,16 @@
 #ifndef MIKOTO_EVENT_MANAGER_HH
 #define MIKOTO_EVENT_MANAGER_HH
 
+#include <Common/Common.hh>
+#include <Common/Service.hh>
+#include <Core/Event.hh>
+#include <Library/Random/Random.hh>
+#include <Library/Utility/Types.hh>
 #include <functional>
 #include <set>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
-
-#include <Common/Common.hh>
-#include <Common/Service.hh>
-#include <Core/Event.hh>
-#include <Library/Utility/Types.hh>
 
 namespace Mikoto {
 
@@ -58,6 +58,43 @@ namespace Mikoto {
         EventHandler_T m_Handler{};
     };
 
+    /**
+    * @brief Base class for all event listeners (subscribers).
+    *
+    * Classes that want to listen for specific types of events must inherit from this class.
+    * To receive events, the subscriber must register itself with the event service (e.g., `EventService`)
+    * using the `Subscribe` function.
+    *
+    * Example usage:
+    *
+    * @code
+    * class MyListener : public Subscriber {
+    * public:
+    *
+    * };
+    *
+    * // Somewhere during initialization:
+    * EventService::GetInstance()->Subscribe<MyEvent>(myListenerPtr);
+    * @endcode
+    *
+    * The event system will then deliver matching events to the subscriber's registered handler.
+    */
+    class Subscriber {
+    public:
+
+        auto GetID() const -> const GlobalUniqueID& { return m_UniqueID; }
+
+        auto GetHandler(EventType type) -> const EventHandler_T&;
+        auto GetHandler(EventCategory type) -> const EventHandler_T&;
+
+    protected:
+        auto AddHandler(EventType type, EventHandler_T handler) -> void;
+
+    protected:
+        GlobalUniqueID m_UniqueID{};
+        ankerl::unordered_dense::map<EventType, EventHandlerWrapper> m_Handlers{};
+    };
+
     struct EventServiceCreateInfo {
     };
 
@@ -82,38 +119,11 @@ namespace Mikoto {
         auto Shutdown() -> void override;
         auto Update() -> void;
 
-        /**
-         * Subscribes an object to be notified when a type of event has happened.
-         * @param subId identifier for the subscriber object
-         * @param type type of event to subscribe to
-         * @param handler event handler from the subscriber
-         * */
-        auto Subscribe( const UInt64_T subId, EventType type, EventHandler_T&& handler ) -> void {
-            if ( !m_Subscribers.contains( subId ) ) {
-                auto [fst, snd]{ m_Subscribers.try_emplace( subId, Handlers_T{} ) };
-                fst->second.emplace_back( type, std::move( handler ) );
+        auto Subscribe(Subscriber* subscriber, EventType eventType) -> void;
+        auto Subscribe(Subscriber* subscriber, EventCategory eventCategory) -> void;
 
-            } else {
-                m_Subscribers[subId].emplace_back( type, std::move( handler ) );
-            }
-        }
-
-        /**
-         * Unsubscribes the object with the given id from the event type specified.
-         * When that type of event is triggered, the specified handler will no longer be run.
-         * @param subId subscriber unique identifier
-         * @param type type of event to unsubscribe from
-         * */
-        auto Unsubscribe( UInt64_T subId, EventType type ) -> void;
-
-        /**
-         * Unsubscribes the object with the given id from the event category.
-         * When any type of event of the given category is triggered, the specified
-         * handler will no longer be run.
-         * @param subId subscriber unique identifier
-         * @param category event category to unsubscribe from
-         * */
-        auto Unsubscribe( UInt64_T subId, EventCategory category ) -> void;
+        auto UnSubscribe(Subscriber* subscriber, EventType eventType) -> void;
+        auto UnSubscribe(Subscriber* subscriber, EventCategory eventCategory) -> void;
 
         /**
          * Can be executed by a publisher to notify a type of event has happened.
@@ -127,16 +137,16 @@ namespace Mikoto {
     private:
         template<typename EventType, typename... Args>
             requires IsEventDerived<EventType>
-        MKT_NODISCARD auto MakeEvent( Args&&... args ) -> Scope_T<Event> {
+        MKT_NODISCARD static auto MakeEvent( Args&&... args ) -> Scope_T<Event> {
             return CreateScope<EventType>( std::forward<Args>( args )... );
         }
 
         /**
          * Adds the given event to the queue of unhandled events
-         * @param event event to be added
+         * @param params event to be added
          * */
-        auto QueueEvent( Scope_T<Event>&& event ) -> void {
-            m_EventQueue.emplace_back( std::move( event ) );
+        auto QueueEvent( auto&&... params ) -> void {
+            m_EventQueue.emplace_back( std::forward<decltype(params)>(params)... );
         }
 
         /**
@@ -145,8 +155,8 @@ namespace Mikoto {
         auto ProcessEvents() -> void;
 
     private:
-        Subscribers_T m_Subscribers{};
-        EventQueue_T m_EventQueue{};
+        std::vector<Subscriber> m_EventSubscribers{};
+        std::vector<Scope_T<Event>> m_EventQueue{};
     };
 }// namespace Mikoto
 

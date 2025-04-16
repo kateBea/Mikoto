@@ -53,6 +53,8 @@ namespace Mikoto {
         auto WithCustomLoader(bool enable) -> MeshFactoryCreateInfo&;
     };
 
+    using ModelHandle = Ref<Model>;
+
     /**
     * @class MeshFactory
     * @brief Manages the creation and processing of 3D models.
@@ -83,7 +85,7 @@ namespace Mikoto {
         * @param loadInfo The model loading parameters.
         * @return Scoped pointer to the created Model. (Caller responsible for free)
         */
-        auto CreateModel( const ModelLoadDescription& loadInfo ) -> Ref<Model>;
+        auto CreateModel( const ModelLoadDescription& loadInfo ) -> ModelHandle;
 
     private:
         /**

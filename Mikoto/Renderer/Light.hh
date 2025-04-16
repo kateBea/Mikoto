@@ -69,6 +69,19 @@ namespace Mikoto {
         // Spotlight
         SpotLight SpotLightData{};
     };
+
+    class LightObject {
+    public:
+
+        template<typename... Args>
+        auto SetColor(Args&&... args) -> void  {
+            m_Color = glm::vec3(std::forward<Args>(args)...);
+        }
+
+    protected:
+        glm::vec3 m_Color{};
+    };
+
 /**
  * @brief Represents a light source in the scene.
  *

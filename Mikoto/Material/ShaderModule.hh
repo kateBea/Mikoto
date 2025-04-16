@@ -78,9 +78,9 @@ namespace Mikoto {
          * Initializes the shader with the stage (vertex, fragment, compute) and the file from which it is loaded.
          *
          * @param stage The stage of the shader (vertex, fragment, or compute).
-         * @param file A pointer to the file from which the shader is loaded.
+         * @param contents Contents for this shader module
          */
-        explicit ShaderModule( const ShaderStage stage, std::string_view contents)
+        explicit ShaderModule( const ShaderStage stage, const std::string_view contents)
             : m_Contents{ contents }, m_Stage{ stage } {}
 
     protected:

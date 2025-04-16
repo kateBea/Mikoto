@@ -57,7 +57,7 @@ namespace Mikoto {
 
         m_DrawFrameBuffer = nullptr;
 
-        m_CommandPool = nullptr;
+        m_CommandList = nullptr;
 
         ImGui_ImplVulkan_Shutdown();
 
@@ -447,7 +447,7 @@ namespace Mikoto {
         createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         createInfo.queueFamilyIndex = device.GetLogicalDeviceQueues().Graphics->FamilyIndex;
 
-        m_CommandPool = VulkanCommandPool::Create( VulkanCommandPoolCreateInfo{ .CreateInfo{ createInfo } } );
+        m_CommandList = VulkanCommandPool::Create( VulkanCommandPoolCreateInfo{ .CreateInfo{ createInfo } } );
     }
 
     auto ImGuiVulkanBackend::InitCommandBuffers() -> void {
@@ -458,10 +458,10 @@ namespace Mikoto {
         for (Size_T count{}; count < swapchainImagesCount; ++count) {
             VkCommandBufferAllocateInfo allocInfo{ VulkanHelpers::Initializers::CommandBufferAllocateInfo() };
             allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-            allocInfo.commandPool = m_CommandPool->Get();
+            allocInfo.commandPool = m_CommandList->Get();
             allocInfo.commandBufferCount = 1;
 
-            VkCommandBuffer commandBuffer{ *m_CommandPool->AllocateCommandBuffer( allocInfo ) };
+            VkCommandBuffer commandBuffer{ *m_CommandList->AllocateCommandBuffer( allocInfo ) };
 
             m_DrawCommandBuffers.emplace_back( commandBuffer );
         }

@@ -93,12 +93,13 @@ namespace Mikoto {
         template<typename AssetType>
         MKT_NODISCARD auto GetAssetByUri( const std::string_view uri ) -> Ref<AssetType> {
             if ( m_LoadedAssets.contains( uri.data() ) ) {
-                return Ref<AssetType>( As<AssetType*>( m_LoadedAssets.at( uri.data() ) ) );
+                return Ref<AssetType>( Cast<AssetType*>( m_LoadedAssets.at( uri.data() ) ) );
             }
 
             return nullptr;
         }
 
+        // pass in description and uri
         template<typename AssetType>
         auto LoadAsset( auto&&... args ) -> Ref<AssetType> {
 

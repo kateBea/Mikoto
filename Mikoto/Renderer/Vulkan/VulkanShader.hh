@@ -32,11 +32,10 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetVulkanStage() const -> VkShaderStageFlags;
 
-        auto Release() -> void override;
-
         ~VulkanShader() override;
 
     private:
+        auto Release() -> void override;
         auto Allocate() -> void override;
 
     private:

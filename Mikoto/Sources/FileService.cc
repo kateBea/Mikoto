@@ -26,6 +26,7 @@
 namespace Mikoto {
 
     FileService::FileService( const FileServiceCreateInfo& options )
+        : m_CurrentWorkingDir{ std::filesystem::current_path() }
     {}
 
     auto FileService::SaveDialog(const std::string& defaultName, const std::initializer_list<std::pair<std::string, std::string>>& filters) -> Path_T {
@@ -106,8 +107,8 @@ namespace Mikoto {
         NFD::Quit();
     }
 
-    auto  FileService::GetCurrentWorkingDirectory() -> std::string {
-        return std::filesystem::current_path().string();
+    auto  FileService::GetCurrentWorkingDirectory() const -> std::string {
+        return m_CurrentWorkingDir.string();
     }
 
 

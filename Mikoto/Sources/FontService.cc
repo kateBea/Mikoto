@@ -26,7 +26,9 @@ namespace Mikoto {
         m_IsInitialized = false;
     }
 
-    auto FontService::LoadFont( const FontLoadDescription &description ) -> Font * {
+    auto FontService::LoadFont( const FontLoadDescription &description ) -> FontHandle {
+        Font* font{ nullptr };
 
+        FontHandle::Create( font );
     }
 }// namespace Mikoto

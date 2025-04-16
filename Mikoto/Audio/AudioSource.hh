@@ -26,13 +26,13 @@ namespace Mikoto {
    */
     class AudioSource final : public IResource {
     public:
-     /**
-              * @brief Constructs an AudioSource from the specified audio file path.
-              *
-              * @param device The audio device to which this source belongs.
-              * @param path The file system path to the audio resource.
-              */
-     explicit AudioSource( AudioDevice* device, const Path_T& path );
+        /**
+        * @brief Constructs an AudioSource from the specified audio file path.
+        *
+        * @param device The audio device to which this source belongs.
+        * @param path The file system path to the audio resource.
+        */
+        explicit AudioSource( AudioDevice* device, const Path_T& path );
 
         /**
          * @brief Gets the current volume level.
@@ -157,8 +157,8 @@ namespace Mikoto {
         auto Release() -> void override;
 
     private:
+        friend class Audio;
 
-     friend class Audio;
     private:
         ma_sound m_Sound{};
         Path_T m_Path{};
@@ -170,7 +170,7 @@ namespace Mikoto {
         bool m_IsSpatialized{ false };
         bool m_IsPlaying{ false };
 
-        AudioDevice *m_Device{ nullptr };
+        AudioDevice* m_Device{ nullptr };
     };
 
 }// namespace Mikoto

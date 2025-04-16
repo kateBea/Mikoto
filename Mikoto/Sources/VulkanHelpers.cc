@@ -61,14 +61,12 @@ namespace Mikoto::VulkanHelpers {
 
     auto GetVkStageFromShaderStage( const ShaderStage stage ) -> VkShaderStageFlagBits {
         switch ( stage ) {
-            case VERTEX_STAGE:
+            case ShaderStage::VERTEX_STAGE:
                 return VK_SHADER_STAGE_VERTEX_BIT;
-            case COMPUTE_STAGE:
+            case ShaderStage::COMPUTE_STAGE:
                 return VK_SHADER_STAGE_COMPUTE_BIT;
-            case FRAGMENT_STAGE:
+            case ShaderStage::FRAGMENT_STAGE:
                 return VK_SHADER_STAGE_FRAGMENT_BIT;
-            case GEOMETRY_STAGE:
-            case TESSELATION_STAGE:
             default:
                 return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
         }

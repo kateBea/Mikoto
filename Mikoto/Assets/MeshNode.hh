@@ -36,7 +36,7 @@ namespace Mikoto {
          * @param indices Handle to the index buffer.
          * @param textures Vector of texture Handles associated with the mesh.
          */
-        explicit MeshNode( Size_T index, Ref<Buffer> vertices, Ref<Buffer> indices, std::vector<Ref<Texture>>&& textures );
+        explicit MeshNode( Size_T index, BufferHandle vertices, BufferHandle indices, std::vector<TextureHandle>&& textures );
 
         MeshNode(MeshNode&& other) noexcept;
 
@@ -44,13 +44,13 @@ namespace Mikoto {
          * @brief Retrieves the vertex buffer of the mesh.
          * @return A pointer to the vertex buffer.
          */
-        MKT_NODISCARD auto GetVertexBuffer() const -> Ref<Buffer> { return m_Vertices; }
+        MKT_NODISCARD auto GetVertexBuffer() const -> BufferHandle { return m_Vertices; }
 
         /**
          * @brief Retrieves the index buffer of the mesh.
          * @return A pointer to the index buffer.
          */
-        MKT_NODISCARD auto GetIndexBuffer() const -> Ref<Buffer> { return m_Indices; }
+        MKT_NODISCARD auto GetIndexBuffer() const -> BufferHandle { return m_Indices; }
 
         /**
          * @brief Retrieves the index of the mesh into its corresponding model.
@@ -62,17 +62,17 @@ namespace Mikoto {
          * @brief Retrieves the textures associated with the mesh.
          * @return A constant reference to the vector of textures.
          */
-        MKT_NODISCARD auto GetTextures() const -> const std::vector<Ref<Texture>>& { return m_OriginalTextures; }
+        MKT_NODISCARD auto GetTextures() const -> const std::vector<TextureHandle>& { return m_OriginalTextures; }
 
         DISABLE_COPY_FOR( MeshNode );
 
     private:
         Size_T m_MeshIndex{};
 
-        Ref<Buffer> m_Vertices{};
-        Ref<Buffer> m_Indices{};
+        BufferHandle m_Vertices{};
+        BufferHandle m_Indices{};
 
-        std::vector<Ref<Texture>> m_OriginalTextures{};
+        std::vector<TextureHandle> m_OriginalTextures{};
     };
 }
 

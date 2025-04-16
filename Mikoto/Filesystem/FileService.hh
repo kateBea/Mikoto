@@ -44,16 +44,15 @@ namespace Mikoto {
         auto GetFile( const Path_T& path ) -> File*;
         auto GetFile( const Path_T& path ) const -> const File*;
 
+        auto OpenDialog( const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path_T;
         auto SaveDialog( const std::string& filename, const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path_T;
 
-        auto OpenDialog( const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path_T;
-
-        MKT_NODISCARD static auto GetCurrentWorkingDirectory() -> std::string;
+        MKT_NODISCARD auto GetCurrentWorkingDirectory() const -> std::string;
 
         ~FileService() override = default;
 
     private:
-
+        Path_T m_CurrentWorkingDir{};
         std::vector<Scope_T<ITask>> m_FileLoadTasks{};
         ankerl::unordered_dense::map<std::string, Scope_T<File>> m_Files{};
     };

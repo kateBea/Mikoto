@@ -137,6 +137,34 @@ namespace Mikoto {
     }
 
     /**
+    * @brief Performs a `dynamic_cast` to the specified output pointer type.
+    *
+    * This utility function simplifies the syntax of `dynamic_cast` by inferring the input type
+    * and casting it to a pointer of the specified output type. It is typically used with polymorphic
+    * types where runtime type checking is necessary.
+    *
+    * @tparam Output The target type to cast to (must be a pointer type).
+    * @param value The object to cast, usually a reference or pointer to a base class.
+    * @return A pointer to the casted object if successful; nullptr otherwise.
+    *
+    * @note The input must be a polymorphic type (i.e., have at least one virtual function)
+    *       for `dynamic_cast` to work correctly.
+    *
+    * @example
+    * @code
+    * Base* base = new Derived();
+    * Derived* derived = Dynamic<Derived>(base);
+    * if (derived) {
+    *     derived->DoSomething();
+    * }
+    * @endcode
+    */
+    template<typename Output>
+    constexpr auto Dynamic(auto&& value) -> Output* {
+        return dynamic_cast<Output*>(std::forward<decltype(value)>(value));
+    }
+
+    /**
     * @brief Concept that ensures a type derives from the BaseType.
     *
     * @tparam DerivedType Type to check.

@@ -24,9 +24,7 @@ namespace Mikoto {
     }
 
     auto AudioService::Init() -> void {
-        constexpr AudioDeviceDescription description{
-            .EnableSpatialization{ true },
-        };
+        constexpr AudioDeviceDescription description{};
         m_Device = AudioDevice::Create( description );
 
         if (m_Device) {

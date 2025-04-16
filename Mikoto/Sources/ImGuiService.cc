@@ -114,7 +114,7 @@ namespace Mikoto {
 
         // Load ini file (static because IniFilename is const char*)
         // it will not extend iniFilePath lifetime
-        static const auto iniFilePath{
+        static const std::string iniFilePath{
             PathBuilder()
             .WithPath( m_ImGuiFilesRootDir )
             .WithPath( "imgui.ini" )
@@ -124,13 +124,13 @@ namespace Mikoto {
         io.IniFilename = iniFilePath.c_str();
 
         // Create implementation
-        ImGuiBackendCreateInfo imGuiVulkanBackendCreateInfo{
+        const ImGuiBackendCreateInfo imGuiVulkanBackendCreateInfo{
             .Handle{ m_Window },
             .API{ m_BackendApi },
             .Device{ RenderService::GetInstance()->GetGpuDevice() },
         };
 
-        m_Implementation = CreateScope<ImGuiVulkanBackend>(imGuiVulkanBackendCreateInfo);
+        m_Implementation = ImGuiBackend::Create( imGuiVulkanBackendCreateInfo );
 
         // Initialize the implementation
         if (m_Implementation) {
@@ -139,6 +139,16 @@ namespace Mikoto {
         else {
             MKT_CORE_LOGGER_ERROR("Failed to initialize an ImGui backend!");
         }
+    }
+
+    auto ImGuiBackend::Create(const ImGuiBackendCreateInfo& info) -> Scope_T<ImGuiBackend> {
+        switch (info.API) {
+            case GraphicsAPI::VULKAN_API:
+                return CreateScope<ImGuiVulkanBackend>(info);
+            default:;
+        }
+
+        return nullptr;
     }
 
     auto ImGuiService::Shutdown() -> void {

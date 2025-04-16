@@ -37,17 +37,17 @@ namespace Mikoto {
     }
 
     auto ShaderLibrary::LoadShader( const ShaderModuleDescription &description ) -> ShaderModuleHandle {
-        if (MKT_IS_NULL( description.ShaderFile ) ) {
+        if (description.ShaderContents.empty() ) {
             return {};
         }
 
         ShaderModuleHandle moduleHandle{ m_Device->CreateShaderModule( description ) };
         auto [it, success] {
-            m_Shaders.try_emplace( description.ShaderFile->GetPath(), moduleHandle )
+            m_Shaders.try_emplace( description.Uri, moduleHandle )
         };
 
         if (success) {
-            return GetShader( description.ShaderFile->GetPath() );
+            return GetShader( description.Uri );
         }
 
         return {};

@@ -54,7 +54,7 @@ namespace Mikoto {
     * Derived classes must implement the `Allocate` and `Release` methods to define how the resource is allocated and freed.
     * This structure allows resources to be dynamically managed by a resource pool, ensuring efficient allocation and cleanup.
     */
-    class IResource : public ReferenceCountedTyped<IResource> {
+    class IResource : public ReferenceCounted {
     public:
         /**
         * @brief Virtual destructor.
@@ -134,10 +134,6 @@ namespace Mikoto {
 
     private:
         friend class ReferenceCountedTyped<IResource>;
-
-        auto FreeObject() -> void {
-            Release();
-        }
     };
 
     /**
@@ -170,9 +166,9 @@ namespace Mikoto {
         * @brief Shuts down the resource pool, releasing all allocated resources.
         */
         auto Shutdown() -> void {
-            for ( auto& resource: m_Resources | std::views::values ) {
-                if ( resource ) {
-                    resource.reset();
+            for ( const auto& slot: m_Resources | std::views::values ) {
+                if ( slot.Block ) {
+                    // Check if resource was not freed
                 }
             }
 
@@ -200,7 +196,7 @@ namespace Mikoto {
         * @return A pointer to the resource, or nullptr if invalid.
         */
         MKT_NODISCARD auto AccessResource( const Handle index ) const -> IResource* {
-            return m_Resources.contains(index) ? m_Resources.at(index).get() : nullptr;
+            return m_Resources.contains(index) ? m_Resources.at(index) : nullptr;
         }
 
     protected:
@@ -231,12 +227,22 @@ namespace Mikoto {
             return !m_FreeHandles.empty();
         }
 
+    protected:
+        struct ResourceSlot {
+            Size_T BlockSize{};
+            void* Block{ nullptr };
+            IResource* Instance{ nullptr };
+
+            auto operator->() -> IResource* { return Instance; }
+            auto operator->() const -> const IResource* { return Instance; }
+        };
+
 
     protected:
         UInt32_T m_PoolSize{ 100 };
         UInt32_T m_IndexFreeHandles{};
         std::vector<Handle> m_FreeHandles{};
-        ankerl::unordered_dense::map<Handle, Scope_T<IResource>> m_Resources{};
+        ankerl::unordered_dense::map<Handle, ResourceSlot> m_Resources{};
     };
 
     /**
@@ -248,6 +254,8 @@ namespace Mikoto {
     template<typename T>
     class ResourcePoolTyped final : public ResourcePool {
     public:
+        using Pointer_T = T*;
+
         /**
         * @brief Collects a new typed resource from the pool.
         *
@@ -260,25 +268,44 @@ namespace Mikoto {
         * @return A pointer to the obtained resource, or nullptr if allocation fails.
         */
         template<typename... Args>
-        MKT_NODISCARD auto Allocate(Args&&... args) -> T* {
+        MKT_NODISCARD auto Allocate(Args&&... args) -> Pointer_T {
             const UInt32_T index{ ObtainResource() };
-            if ( index == INVALID_HANDLE ) {
+            if (index == INVALID_HANDLE) {
                 return nullptr;
             }
 
-            if ( !m_Resources[index] ) {
-                m_Resources[index] = CreateScope<T>(std::forward<Args>( args )...);
+            auto& [BlockSize, Block, Instance]{ m_Resources[index] };
+
+            if (Instance) {
+                Instance->~IResource();
+                Instance = nullptr;
             }
 
-            m_Resources[index]->SetHandle( index );
-            return static_cast<T*>( m_Resources[index].get() );
+            if (!Block || BlockSize < sizeof(T)) {
+                if (Block) {
+                    ::operator delete(Block);
+                }
+
+                BlockSize = sizeof(T);
+                Block = ::operator new(BlockSize, std::nothrow);
+            }
+
+            // Fail to allocate block of memory, operator new used above does not throw
+            if (!Block) {
+                return nullptr;
+            }
+
+            Instance = new(Block) T(std::forward<Args>(args)...);
+            Instance->SetHandle(index);
+
+            return Cast<Pointer_T>(Instance);
         }
 
         /**
          * @brief Releases a typed resource back to the pool.
          * @param resource A pointer to the resource to be released.
          */
-        auto Release( T* resource ) -> void {
+        auto Release( Pointer_T resource ) -> void {
             ReleaseResource( resource->GetHandle() );
         }
 
@@ -287,8 +314,8 @@ namespace Mikoto {
          * @param index The index of the resource to access.
          * @return A pointer to the resource, or nullptr if invalid.
          */
-        MKT_NODISCARD auto Get( const Handle index ) -> T* {
-            return static_cast<T*>( AccessResource( index ) );
+        MKT_NODISCARD auto Get( const Handle index ) -> Pointer_T {
+            return Cast<Pointer_T>( AccessResource( index ) );
         }
     };
 

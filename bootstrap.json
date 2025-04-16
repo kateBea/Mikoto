@@ -190,5 +190,12 @@
             "type": "git",
             "url": "https://github.com/nlohmann/json.git"
         }
+    },
+    {
+        "name": "sol2",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/ThePhD/sol2.git"
+        }
     }
 ]

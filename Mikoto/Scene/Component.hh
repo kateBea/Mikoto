@@ -539,6 +539,7 @@ namespace Mikoto {
         const Camera* m_Camera{ nullptr };
     };
 
+    // Scripting with c++
     class NativeScriptComponent : public BaseComponent<NativeScriptComponent> {
     public:
         explicit NativeScriptComponent(const Path_T& script)
@@ -556,6 +557,30 @@ namespace Mikoto {
         auto OnComponentRemoved() -> void {  }
 
         ~NativeScriptComponent() = default;
+
+    private:
+
+        Path_T m_ScriptPath{};
+
+    };
+
+    class ScriptComponent : public BaseComponent<ScriptComponent> {
+    public:
+        explicit ScriptComponent(const Path_T& script)
+            : m_ScriptPath{ script }
+        {}
+
+        ScriptComponent(const ScriptComponent& other) = default;
+        ScriptComponent(ScriptComponent&& other) = default;
+
+        auto operator=(const ScriptComponent& other) -> ScriptComponent& = default;
+        auto operator=(ScriptComponent&& other) -> ScriptComponent& = default;
+
+        auto OnComponentAttach() -> void {  }
+        auto OnComponentUpdate() -> void {  }
+        auto OnComponentRemoved() -> void {  }
+
+        ~ScriptComponent() = default;
 
     private:
 

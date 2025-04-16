@@ -18,6 +18,7 @@
 #include <Threading/TaskService.hh>
 #include <Timing/TimeService.hh>
 #include <Core/LoggingService.hh>
+#include <Scripting/LuaService.hh>
 
 #include "Renderer/FontService.hh"
 

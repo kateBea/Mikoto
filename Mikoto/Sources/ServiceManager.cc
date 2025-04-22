@@ -137,7 +137,7 @@ namespace Mikoto {
         meshFactory->Init();
     }
 
-    auto ServiceManager::Update(double dt) -> void {
+    auto ServiceManager::Update() -> void {
 
     }
 

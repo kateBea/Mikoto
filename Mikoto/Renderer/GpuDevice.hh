@@ -12,6 +12,7 @@
 #include <Renderer/RenderUtility.hh>
 
 namespace Mikoto {
+    class ICommandList;
 
     class ShaderModule;
     class ComputePipeline;
@@ -27,6 +28,16 @@ namespace Mikoto {
     struct SamplerDescription;
     struct FontLoadDescription;
     struct FramebufferDescription;
+
+    using TextureHandle = Ref<Texture>;
+    using BufferHandle = Ref<Buffer>;
+    using GraphicsPipelineHandle = Ref<GraphicsPipeline>;
+    using ComputePipelineHandle = Ref<ComputePipeline>;
+    using ShaderModuleHandle = Ref<ShaderModule>;
+    using SamplerHandle = Ref<Sampler>;
+    using FramebufferHandle = Ref<Framebuffer>;
+
+    using CommandListHandle = Ref<ICommandList>;
 
     struct GpuDeviceCreateInfo {
         GraphicsAPI Api{ GraphicsAPI::VULKAN_API };
@@ -54,10 +65,12 @@ namespace Mikoto {
 
     struct ComputeState {
         // Pipeline, etc
+        ComputePipelineHandle Pipeline{};
     };
 
     struct GraphicsState {
         // Pipeline, etc
+        GraphicsPipelineHandle Pipeline{};
     };
 
     class ICommandList : public DeviceObject {
@@ -82,16 +95,6 @@ namespace Mikoto {
 
     };
 
-    using TextureHandle = Ref<Texture>;
-    using BufferHandle = Ref<Buffer>;
-    using GraphicsPipelineHandle = Ref<GraphicsPipeline>;
-    using ComputePipelineHandle = Ref<ComputePipeline>;
-    using ShaderModuleHandle = Ref<ShaderModule>;
-    using SamplerHandle = Ref<Sampler>;
-    using FramebufferHandle = Ref<Framebuffer>;
-
-    using CommandListHandle = Ref<ICommandList>;
-
     class GpuDevice {
     public:
         virtual auto Init() -> void = 0;
@@ -104,6 +107,11 @@ namespace Mikoto {
         virtual MKT_NODISCARD auto CreateShaderModule(const ShaderModuleDescription& description) -> ShaderModuleHandle = 0;
         virtual MKT_NODISCARD auto CreateSampler(const SamplerDescription& description) -> SamplerHandle = 0;
         virtual MKT_NODISCARD auto CreateFramebuffer(const FramebufferDescription& description) -> FramebufferHandle = 0;
+
+        virtual MKT_NODISCARD auto CreateImguiTextureHandle(TextureHandle texture) -> RefAny = 0;
+
+        virtual auto SetBarrier(TextureHandle texture) -> void = 0;
+        virtual auto SetBarrier(BufferHandle buffer) -> void = 0;
 
         virtual auto CreateCommandList(const CommandListCreateDescription& params = {}) -> CommandListHandle = 0;
         virtual auto SubmitCommandList(CommandListHandle commandList, QueueType queueType = QueueType::QUEUE_GRAPHICS) -> void = 0;

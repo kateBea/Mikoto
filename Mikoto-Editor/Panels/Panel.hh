@@ -13,7 +13,6 @@
 // Project Header
 #include <Common/Common.hh>
 #include <Library/Random/Random.hh>
-#include <Platform/Window/Window.hh>
 
 namespace Mikoto {
     /**
@@ -21,7 +20,7 @@ namespace Mikoto {
      * can be dragged around our main window or simply dock
      * into our level editor dock space
      * */
-    class Panel /*: public Window*/ {
+    class Panel {
     public:
         /**
          * @brief Constructs this panel with the icon from the given path.

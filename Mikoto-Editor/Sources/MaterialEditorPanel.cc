@@ -6,6 +6,9 @@
 
 namespace Mikoto {
 
+    MaterialEditorPanel::MaterialEditorPanel( const MaterialEditorPanelDescription &description ) {
+    }
+
     auto MaterialEditorPanel::OnUpdate( float timeStep ) -> void {
     }
 }// namespace Mikoto

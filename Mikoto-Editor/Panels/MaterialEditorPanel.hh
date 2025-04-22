@@ -8,10 +8,16 @@
 #include <Panels/Panel.hh>
 
 namespace Mikoto {
+
+    struct MaterialEditorPanelDescription {
+        // Add any necessary parameters for the material editor panel
+    };
+
     class MaterialEditorPanel final : public Panel {
     public:
-        auto OnUpdate( float timeStep ) -> void override;
+        explicit MaterialEditorPanel( const MaterialEditorPanelDescription& description );
 
+        auto OnUpdate( float timeStep ) -> void override;
 
     private:
 

@@ -15,6 +15,7 @@
 #include <ankerl/unordered_dense.h>
 
 // Project Headers
+#include <Assets/MeshFactory.hh>
 #include <Assets/Model.hh>
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
@@ -25,7 +26,7 @@ namespace Mikoto {
     struct EntityCreateInfo {
         std::string Name{};
         const Entity* Root{};
-        const Model* ModelMesh{};
+        ModelHandle ModelMesh{};
 
         auto WithName( std::string_view name ) -> EntityCreateInfo&;
         auto WithRoot( const Entity* root ) -> EntityCreateInfo&;

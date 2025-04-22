@@ -312,6 +312,7 @@ namespace Mikoto {
         }
 
         MKT_NODISCARD auto GetActiveType() const -> LightType { return m_Type; }
+        MKT_NODISCARD auto SetActiveType(const LightType type) -> void { m_Type = type; }
 
         MKT_NODISCARD auto GetLight() -> Light& { return m_Data; }
         MKT_NODISCARD auto GetLight() const -> const Light& { return m_Data; }

@@ -48,7 +48,7 @@ namespace Mikoto {
         SAMPLER_MODE_ANISOTROPIC,// Anisotropic filtering (better texture quality at angles)
     };
 
-    class PBRMaterial : public Material {
+    class PBRMaterial final : public Material {
     public:
         struct Parameters {
             float Metallic{ 0.2f };
@@ -63,6 +63,7 @@ namespace Mikoto {
         auto SetTextureType( PBRTextureType type, Texture2D* texture ) -> void;
 
         MKT_NODISCARD auto IsOpaque() const -> bool;
+        MKT_NODISCARD auto IsTransparent() const -> bool;
 
         MKT_NODISCARD auto HasTextureType( PBRTextureType type ) const -> bool;
         MKT_NODISCARD auto GetTextureType( PBRTextureType type ) const -> Texture2D*;

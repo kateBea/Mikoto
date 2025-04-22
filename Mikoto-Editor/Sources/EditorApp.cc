@@ -4,12 +4,13 @@
  * */
 
 // C++ Standard Library
-#include <stdexcept>
 #include <cstdlib>
+#include <stdexcept>
 #include <utility>
 
 // Project headers
 #include <Core/EventService.hh>
+#include <Core/Logger.hh>
 #include <Core/ServiceManager.hh>
 #include <Core/StackTrace.hh>
 #include <EditorApp.hh>
@@ -18,7 +19,6 @@
 #include <Library/Filesystem/PathBuilder.hh>
 #include <Timing/TimeService.hh>
 #include <Timing/Timer.hh>
-#include <Core/Logger.hh>
 
 namespace Mikoto {
 
@@ -34,7 +34,7 @@ namespace Mikoto {
         Int32_T exitCode{ EXIT_SUCCESS };
 
         try {
-            SetupCmdArguments( );
+            SetupCmdArguments();
             CheckArguments( argc, argv );
 
             Init();
@@ -56,7 +56,7 @@ namespace Mikoto {
         return exitCode;
     }
 
-    auto EditorApp::SetupCmdArguments( ) -> void {
+    auto EditorApp::SetupCmdArguments() -> void {
         m_ArgsParser = ArgsParser::Create( { .Description{ "Mikoto args parse" }, .ProgramName{ "Mikoto Editor" } } );
 
         const ArgsParser::Command helpCommand{
@@ -74,7 +74,7 @@ namespace Mikoto {
     }
 
     auto EditorApp::CheckArguments( const Int32_T argc, char **argv ) const -> void {
-        if (!m_ArgsParser->Validate( argc, argv )) {
+        if ( !m_ArgsParser->Validate( argc, argv ) ) {
             MKT_THROW_RUNTIME_ERROR( "Invalid command line arguments" );
         }
     }
@@ -83,20 +83,17 @@ namespace Mikoto {
         MKT_PROFILE_SCOPE();
 
         const auto configFilePath{ PathBuilder()
-            .WithPath( FileService::GetCurrentWorkingDirectory() )
-            .WithPath( "engine-config.toml" )
-            .Build()
-        };
+                                           .WithPath( FileService::GetInstance()->GetCurrentWorkingDirectory() )
+                                           .WithPath( "engine-config.toml" )
+                                           .Build() };
 
         m_Options = ConfigLoader::LoadFromFile( configFilePath );
 
-        m_MainWindow = Window::Create({
-            .Title{ m_Options.EngineName },
-            .Width{ m_Options.WindowWidth },
-            .Height{ m_Options.WindowHeight },
-            .Backend{ m_Options.RendererAPI },
-            .Resizable{ m_Options.AllowWindowResizing }
-        });
+        m_MainWindow = Window::Create( { .Title{ m_Options.EngineName },
+                                         .Width{ m_Options.WindowWidth },
+                                         .Height{ m_Options.WindowHeight },
+                                         .Backend{ m_Options.RendererAPI },
+                                         .Resizable{ m_Options.AllowWindowResizing } } );
 
         if ( m_MainWindow ) {
             m_MainWindow->Init();
@@ -117,38 +114,38 @@ namespace Mikoto {
     }
 
     auto EditorApp::InstallEventCallbacks() -> void {
+        AddHandler( EventType::APP_CLOSE_EVENT,
+                    [this]( Event &event ) -> bool {
+                        m_State = ApplicationStatus::STOPPED;
+                        event.SetHandled( true );
+                        MKT_APP_LOGGER_WARN( "EditorApp::EventManager - Handled App Event close" );
+                        return false;
+                    } );
 
-        EventService::GetInstance()->Subscribe(m_Guid.Get(),
-                                EventType::APP_CLOSE_EVENT,
-                                [this](Event &event) -> bool {
-                                    m_State = ApplicationStatus::STOPPED;
-                                    event.SetHandled(true);
-                                    MKT_APP_LOGGER_WARN("EditorApp::EventManager - Handled App Event close");
-                                    return false;
-                                });
+        AddHandler( EventType::WINDOW_CLOSE_EVENT,
+                    [this]( Event &event ) -> bool {
+                        m_State = ApplicationStatus::STOPPED;
+                        event.SetHandled( true );
+                        MKT_APP_LOGGER_WARN( "EditorApp::EventManager - Handled Window Event close" );
+                        return false;
+                    } );
 
-        EventService::GetInstance()->Subscribe(m_Guid.Get(),
-                                EventType::WINDOW_CLOSE_EVENT,
-                                [this](Event &event) -> bool {
-                                    m_State = ApplicationStatus::STOPPED;
-                                    event.SetHandled(true);
-                                    MKT_APP_LOGGER_WARN("EditorApp::EventManager - Handled Window Event close");
-                                    return false;
-                                });
+        AddHandler( EventType::WINDOW_RESIZE_EVENT,
+                    [this]( Event & ) -> bool {
+                        m_State = m_MainWindow->IsMinimized() ? ApplicationStatus::IDLE : ApplicationStatus::RUNNING;
+                        MKT_APP_LOGGER_WARN( "EditorApp::EventManager - Handled Window Resize Event" );
+                        return false;
+                    } );
 
-        EventService::GetInstance()->Subscribe(m_Guid.Get(),
-                                EventType::WINDOW_RESIZE_EVENT,
-                                [this](Event &) -> bool {
-                                    m_State = m_MainWindow->IsMinimized() ? ApplicationStatus::IDLE : ApplicationStatus::RUNNING;
-                                    MKT_APP_LOGGER_WARN("EditorApp::EventManager - Handled Window Resize Event");
-                                    return false;
-                                });
+        EventService::GetInstance()->Subscribe( this, EventType::APP_CLOSE_EVENT );
+        EventService::GetInstance()->Subscribe( this, EventType::WINDOW_CLOSE_EVENT );
+        EventService::GetInstance()->Subscribe( this, EventType::WINDOW_RESIZE_EVENT );
     }
 
     auto EditorApp::Shutdown() -> void {
-        MKT_APP_LOGGER_INFO("=====================================");
-        MKT_APP_LOGGER_INFO("Shutting down application. Cleanup...");
-        MKT_APP_LOGGER_INFO("=====================================");
+        MKT_APP_LOGGER_INFO( "=====================================" );
+        MKT_APP_LOGGER_INFO( "Shutting down application. Cleanup..." );
+        MKT_APP_LOGGER_INFO( "=====================================" );
 
         // Shutdown layers
         DestroyLayers();
@@ -161,7 +158,7 @@ namespace Mikoto {
     }
 
     auto EditorApp::DestroyLayers() -> void {
-        for ( const auto& [id, layer]: m_LayerRegistry  ) {
+        for ( const auto &[id, layer]: m_LayerRegistry ) {
             layer->OnDetach();
         }
 
@@ -176,35 +173,33 @@ namespace Mikoto {
 
         m_LayerRegistry.Register<EditorLayer>( editorLayerCreateInfo );
 
-        for ( const auto& [id, layer]: m_LayerRegistry ) {
+        for ( const auto &[id, layer]: m_LayerRegistry ) {
             layer->OnAttach();
         }
     }
 
-    auto EditorApp::UpdateLayers(double timeStep) const -> void {
-        for ( const auto& [id, layer]: m_LayerRegistry ) {
-            layer->OnUpdate(timeStep);
+    auto EditorApp::UpdateLayers() const -> void {
+        const double timeStep{ TimeService::GetInstance()->GetTimeStep( TimeUnit::SECONDS ) };
+
+        for ( const auto &[id, layer]: m_LayerRegistry ) {
+            // Handle GUI Logic, this does not render the GUI
+            // Simply updates the GUI state
+            layer->PushImGuiDrawItems( timeStep );
+
+            layer->OnUpdate( timeStep );
         }
     }
 
     auto EditorApp::Update() -> void {
-        if (!m_MainWindow->IsMinimized()) {
-            const double timeStep{ TimeService::GetInstance()->GetTimeStep( TimeUnit::SECONDS ) };
-
+        if ( !m_MainWindow->IsMinimized() ) {
             ServiceManager::StartFrame();
-
-            // Handle GUI Logic, this does not render the GUI
-            // Simply updates the GUI state
-            EditorLayer& editorLayer{ *m_LayerRegistry.Get<EditorLayer>() };
-
-            editorLayer.PushImGuiDrawItems( timeStep );
 
             // Update the layers. We determine the state of the application
             // In the Editor layer we will update the scene, the camera, and the renderer
-            UpdateLayers( timeStep );
+            UpdateLayers();
 
-            ServiceManager::Update( timeStep );
+            ServiceManager::Update();
             ServiceManager::EndFrame();
         }
     }
-}
+}// namespace Mikoto

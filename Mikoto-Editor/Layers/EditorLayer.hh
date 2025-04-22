@@ -85,10 +85,13 @@ namespace Mikoto {
 
         Entity* m_SelectedEntity{};
 
+        Path_T m_ModelsRootDirectory{};
+        Path_T m_FontsRootDirectory{};
+
         Scope_T<Scene> m_ActiveScene{};
         Scope_T<SceneRenderer> m_SceneRenderer{};
 
-        TextureCube* m_TextureCubeMap{};
+        TextureHandle m_TextureCubeMap{};
 
         Scope_T<SceneCamera> m_EditorCamera{};
         Scope_T<SceneSerializer> m_SceneSerializer{};

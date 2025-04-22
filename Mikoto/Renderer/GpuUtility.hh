@@ -8,6 +8,8 @@
 #include <Library/Filesystem/File.hh>
 #include <Library/Utility/Types.hh>
 
+#include "GpuDevice.hh"
+
 namespace Mikoto {
 
     enum class PipelineType {
@@ -44,7 +46,7 @@ namespace Mikoto {
      * Each stage corresponds to a specific step in the rendering process, such as vertex processing, fragment
      * (pixel) processing, or compute shaders.
      */
-    enum class ShaderStage {
+    enum class ShaderStage : UInt32_T {
         VERTEX_STAGE,
         FRAGMENT_STAGE,
         COMPUTE_STAGE,
@@ -164,6 +166,7 @@ namespace Mikoto {
         ShaderStage Stage{ ShaderStage::VERTEX_STAGE };
 
         auto WithShaderFile( const File* file ) -> ShaderModuleDescription&;
+        auto WithUri( const std::string& stage ) -> ShaderModuleDescription&;
         auto WithStage( ShaderStage stage ) -> ShaderModuleDescription&;
     };
 
@@ -185,6 +188,12 @@ namespace Mikoto {
 
         TextureFormat ColorFormat{ TextureFormat::TEXTURE_FORMAT_RGBA8 };
         TextureFormat DepthFormat{ TextureFormat::TEXTURE_FORMAT_RGBA8 };
+
+        TextureHandle DepthAttachment{};
+        std::vector<TextureHandle> ColorAttachments{};
+
+        auto AddAttachment( TextureHandle color ) -> FramebufferDescription&;
+        auto AddDepthAttachment( TextureHandle depth ) -> FramebufferDescription&;
 
         auto WithWidth( Int32_T width ) -> FramebufferDescription&;
         auto WithHeight( Int32_T height ) -> FramebufferDescription&;

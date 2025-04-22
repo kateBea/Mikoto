@@ -191,8 +191,16 @@ class Ref {
             return m_Ptr;
         }
 
+        MKT_NODISCARD auto IsEmpty() const -> bool {
+            return m_Ptr == nullptr;
+        }
+
         static auto Create(RefCountedType* ptr) -> Ref<RefCountedType> {
             return Ref<RefCountedType>{ ptr };
+        }
+
+        static auto CreateEmpty() -> Ref<RefCountedType> {
+            return Ref<RefCountedType>{ nullptr };
         }
 
         RefCountedType* operator->() { return m_Ptr; }

@@ -5,15 +5,15 @@
 #ifndef MIKOTO_CONTENT_BROWSER_HH
 #define MIKOTO_CONTENT_BROWSER_HH
 
-#include <memory>
-#include <filesystem>
 #include <ankerl/unordered_dense.h>
-
 #include <imgui.h>
 
-#include <Panels/Panel.hh>
 #include <Library/Random/Random.hh>
+#include <Panels/Panel.hh>
 #include <Renderer/GpuDevice.hh>
+#include <filesystem>
+#include <memory>
+#include <stack>
 
 namespace Mikoto {
 
@@ -54,9 +54,6 @@ namespace Mikoto {
     private:
         GpuDevice* m_Device{ nullptr };
 
-        TextureHandle m_FolderIcon{};
-        TextureHandle m_FileIcon{};
-
         ImGuiTextFilter m_SearchFilter{};
 
         float m_ThumbnailSize{ 100.0f };
@@ -70,9 +67,10 @@ namespace Mikoto {
         bool m_ShowFileTypeHint{};
         bool m_ShowFoldersOnlyInDirectoryTree{};
 
-        std::vector<Path_T> m_DirectoryStack{};
+        std::deque<Path_T> m_DirectoryStack{};
 
-        ankerl::unordered_dense::map<TextureIconType, ImTextureID> m_ContentBrowserImTextureIDHandles{};
+        ankerl::unordered_dense::map<TextureIconType, TextureHandle> m_Textures{};
+        ankerl::unordered_dense::map<TextureIconType, RefAny> m_ImGuiTextureHandles{};
     };
 }
 

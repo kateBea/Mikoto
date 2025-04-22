@@ -15,6 +15,7 @@
 #include <Renderer/RendererBackend.hh>
 #include <Scene/Camera.hh>
 #include <Scene/Scene.hh>
+#include <nlohmann/json_fwd.hpp>
 
 namespace Mikoto {
 
@@ -146,9 +147,10 @@ namespace Mikoto {
         MKT_NODISCARD static auto Create(const SceneRendererCreateInfo& createInfo) -> Scope_T<SceneRenderer>;
 
     protected:
-        auto InitRenderPasses() -> void;
+        auto AddCoreRenderPasses() const -> void;
         auto ConstructRenderGraph() -> void;
-        auto ParseRenderGraph() const -> void;
+        auto ParseRenderGraphConfig() -> void;
+        auto SetupPasses(nlohmann::json &parsedJson) -> void;
 
     private:
         UInt32_T m_ViewportWidth{}; ///< The current width of the viewport.
@@ -159,8 +161,6 @@ namespace Mikoto {
         Path_T m_FrameGraphPath{};
 
         GpuDevice* m_Device{ nullptr };
-
-        Registry<RenderPass> m_PassRegistry{};
 
         RendererBackend* m_RendererBackend{ nullptr };///< The backend renderer responsible for rendering.
         Scope_T<FrameGraph> m_FrameGraph{ nullptr };  ///< The frame graph used to manage rendering passes.

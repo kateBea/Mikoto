@@ -3,6 +3,7 @@
 //
 
 #include "Renderer/FrameGraph.hh"
+#include <Renderer/Vulkan/VulkanFrameGraph.hh>
 
 namespace Mikoto {
 

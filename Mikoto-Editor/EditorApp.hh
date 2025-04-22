@@ -14,7 +14,7 @@
 #include <Common/Configuration.hh>
 
 namespace Mikoto {
-    class EditorApp final : public Application {
+    class EditorApp final : public Application, public Subscriber {
     public:
 
         auto Run(Int32_T argc, char** argv) -> Int32_T override;
@@ -27,7 +27,7 @@ namespace Mikoto {
     private:
         auto InitLayers() -> void;
         auto DestroyLayers() -> void;
-        auto UpdateLayers(double timeStep) const -> void;
+        auto UpdateLayers() const -> void;
         auto InstallEventCallbacks() -> void;
         auto SetupCmdArguments() -> void;
         auto CheckArguments(Int32_T argc, char **argv ) const -> void;

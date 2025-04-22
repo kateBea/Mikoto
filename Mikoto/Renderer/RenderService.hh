@@ -13,8 +13,6 @@
 #include <Renderer/RendererBackend.hh>
 #include <Renderer/GpuDevice.hh>
 
-#include "Renderer/RenderQueue.hh"
-
 namespace Mikoto {
 
     struct RenderServiceCreateInfo {
@@ -37,8 +35,6 @@ namespace Mikoto {
 
         MKT_NODISCARD auto CreateBackend() -> RendererBackend*;
 
-        auto RegisterRenderCommand(RenderCommand&& command) -> void;
-
         MKT_NODISCARD auto GetContext() -> RenderContext* { return m_Context.get(); }
         MKT_NODISCARD auto GetContext() const -> const RenderContext* { return m_Context.get(); }
 
@@ -48,12 +44,10 @@ namespace Mikoto {
         MKT_NODISCARD auto IsGraphicsActive(GraphicsAPI api ) -> bool;
         MKT_NODISCARD auto GetActiveGraphicsApi() const -> GraphicsAPI { return m_ActiveAPI; }
 
-
     private:
         auto Flush() -> void;
 
     private:
-        RenderQueue m_Commands{};
         GraphicsAPI m_ActiveAPI{ GraphicsAPI::VULKAN_API };
 
         RenderServiceCreateInfo m_Options{};

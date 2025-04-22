@@ -12,7 +12,7 @@ namespace Mikoto {
 
         constexpr int targetChannelCount{ STBI_rgb_alpha };
         stbi_uc* data{ stbi_load_from_memory(
-                As<stbi_uc*>( textureFile->GetFileBytes() ),
+                Cast<stbi_uc*>( textureFile->GetFileBytes() ),
                 textureFile->GetFileContents().size(),
                 std::addressof( outWidth ),
                 std::addressof( outHeight ),

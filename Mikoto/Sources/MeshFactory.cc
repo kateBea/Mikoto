@@ -18,13 +18,13 @@
 namespace Mikoto {
 
     struct MeshNodeCreateInfo {
-        Ref<Buffer> VertexBuffer{};
-        Ref<Buffer> IndexBuffer{};
+        BufferHandle VertexBuffer{};
+        BufferHandle IndexBuffer{};
 
-        std::vector<Ref<Texture>> Textures{};
+        std::vector<TextureHandle> Textures{};
     };
 
-    static auto InferMikotoType( const aiTextureType type ) -> TextureType {
+    static auto InferMikotoTextureType( const aiTextureType type ) -> TextureType {
         switch ( type ) {
             case aiTextureType_BASE_COLOR:
             case aiTextureType_NORMALS:
@@ -133,7 +133,7 @@ namespace Mikoto {
                 TextureLoadDescription loadInfo{};
                 loadInfo
                     .WithFile( FileService::GetInstance()->LoadFile( path ) )
-                    .WithType( InferMikotoType( type ) );
+                    .WithType( InferMikotoTextureType( type ) );
 
                 texture = AssetsService::GetInstance()->LoadAsset<Texture>( loadInfo.TextureFile->GetPath() );
             }

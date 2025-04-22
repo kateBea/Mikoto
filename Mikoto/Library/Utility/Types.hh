@@ -133,7 +133,7 @@ namespace Mikoto {
     */
     template<typename Output>
     constexpr auto Reinterpret(auto&& value) -> Output* {
-        return reinterpret_cast<Output*>(std::forward<decltype(value)>(value));
+        return reinterpret_cast<Output>(std::forward<decltype(value)>(value));
     }
 
     /**

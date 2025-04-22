@@ -20,7 +20,7 @@ namespace Mikoto {
     public:
 
         static auto Init(const EngineConfig& options) -> void;
-        static auto Update(double dt) -> void;
+        static auto Update() -> void;
         static auto Shutdown() -> void;
 
         static auto StartFrame() -> void;

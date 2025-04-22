@@ -45,6 +45,21 @@ namespace Mikoto {
     };
 
     /**
+    * @brief Represents a sampler object used for texture sampling.
+    *
+    * This class encapsulates the functionality of a sampler, allowing for
+    * texture sampling with various filtering and wrapping modes.
+    */
+    class Sampler : public DeviceObject {
+    public:
+
+
+    protected:
+        SamplerFilter m_Filter{ SamplerFilter::FILTER_LINEAR };
+        SamplerWrapMode m_Wrap{ SamplerWrapMode::WRAP_CLAMP_TO_EDGE };
+    };
+
+    /**
      * @class Texture
      * @brief Represents a texture used in graphics resources.
      *

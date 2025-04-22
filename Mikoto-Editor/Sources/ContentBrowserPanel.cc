@@ -12,6 +12,7 @@
 #include <volk.h>
 
 #include <Assets/AssetsService.hh>
+#include <GUI/ImGuiService.hh>
 #include <GUI/ImGuiUtility.hh>
 #include <Library/Filesystem/PathBuilder.hh>
 #include <Library/String/String.hh>
@@ -50,7 +51,7 @@ namespace Mikoto {
         constexpr TextureLoadDescription fileTextureDesc{
             .Type{ TextureType::TEXTURE_2D },
         };
-        m_FileIcon = AssetsService::GetInstance()->LoadAsset<Texture>( fileTextureDesc, file );
+        TextureHandle fileTexture{ AssetsService::GetInstance()->LoadAsset<Texture>( fileTextureDesc, file ) };
 
         // Load folder icon
         Path_T folder{ PathBuilder()
@@ -60,15 +61,17 @@ namespace Mikoto {
         constexpr TextureLoadDescription folderTextureDesc{
             .Type{ TextureType::TEXTURE_2D },
         };
-        m_FolderIcon = AssetsService::GetInstance()->LoadAsset<Texture>( folderTextureDesc );
+        TextureHandle folderTexture{ AssetsService::GetInstance()->LoadAsset<Texture>( folderTextureDesc ) };
 
         // The sampler for these two is kind of straightforward
-        m_FileIcon->SetSampler( m_Device->GetDummyResource<Sampler>() );
-        m_FolderIcon->SetSampler( m_Device->GetDummyResource<Sampler>() );
+        fileTexture->SetSampler( m_Device->GetDummyResource<Sampler>() );
+        folderTexture->SetSampler( m_Device->GetDummyResource<Sampler>() );
 
+        RefAny imguiFileHandle{ m_Device->CreateImguiTextureHandle(fileTexture) };
+        RefAny imguiFolderHandle{ m_Device->CreateImguiTextureHandle(fileTexture) };
 
-        m_ContentBrowserImTextureIDHandles.emplace( std::make_pair( TextureIconType::ICON_FILE, reinterpret_cast<ImTextureID>( fileDs ) ) );
-        m_ContentBrowserImTextureIDHandles.emplace( std::make_pair( TextureIconType::ICON_FOLDER, reinterpret_cast<ImTextureID>( folderDs ) ) );
+        m_TextureHandles.emplace( std::make_pair( TextureIconType::ICON_FILE, imguiFileHandle ) );
+        m_TextureHandles.emplace( std::make_pair( TextureIconType::ICON_FOLDER, imguiFolderHandle ) );
     }
 
     auto ContentBrowserPanel::DrawHeader() -> void {
@@ -142,14 +145,12 @@ namespace Mikoto {
                 ImGui::PushStyleVar( ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f );
             }
 
-            GUISystem& guiSystem{ ServiceInitializer::GetSystem<GUISystem>() };
-
-            ImGui::PushFont( guiSystem.GetFonts()[2] );
+            ImGui::PushFont( ImGuiService::GetInstance()->GetFonts()[2] );
             if ( ImGui::Button( fmt::format( "{}", ICON_MD_CHEVRON_LEFT ).c_str() ) ) {
-                m_ForwardDirectory = m_DirectoryStack[m_DirectoryStack.size() - 1];
-                m_DirectoryStack.pop_back();
+                m_ForwardDirectory = m_DirectoryStack.top();
+                m_DirectoryStack.pop();
 
-                m_CurrentDirectory = m_DirectoryStack[m_DirectoryStack.size() - 1];
+                m_CurrentDirectory = m_DirectoryStack.top();
             }
 
             if ( ImGui::IsItemHovered() ) {
@@ -176,7 +177,7 @@ namespace Mikoto {
 
             if ( ImGui::Button( fmt::format( "{}", ICON_MD_CHEVRON_RIGHT ).c_str() ) ) {
                 // update forward directory
-                m_DirectoryStack.emplace_back( m_ForwardDirectory );
+                m_DirectoryStack.push( m_ForwardDirectory );
                 m_CurrentDirectory = m_ForwardDirectory;
 
                 m_ForwardDirectory = Path_T{};
@@ -200,8 +201,8 @@ namespace Mikoto {
                 m_CurrentDirectory = m_ProjectRoot;
                 m_ForwardDirectory = Path_T{};
 
-                m_DirectoryStack.clear();
-                m_DirectoryStack.push_back( m_ProjectRoot );
+                m_DirectoryStack = {};
+                m_DirectoryStack.push( m_ProjectRoot );
             }
             if ( ImGui::IsItemHovered() ) {
                 ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -219,7 +220,7 @@ namespace Mikoto {
 
         // Directory buttons
         bool wantOpenDir{ false };
-        auto pathIt{ m_DirectoryStack.begin() };
+        auto pathIt{ m_DirectoryStack.top() };
 
         for ( ; pathIt != m_DirectoryStack.end(); ++pathIt ) {
             ImGui::SameLine();
@@ -347,11 +348,11 @@ namespace Mikoto {
                 std::string fileType{};
 
                 if ( entry.is_directory() ) {
-                    icon = m_ContentBrowserImTextureIDHandles[TextureIconType::ICON_FOLDER];
+                    icon = m_TextureHandles[TextureIconType::ICON_FOLDER];
                     fileType = "Folder";
                 } else {
                     // find type (texture, material, text file) file now for simplicity
-                    icon = m_ContentBrowserImTextureIDHandles[TextureIconType::ICON_FILE];
+                    icon = m_TextureHandles[TextureIconType::ICON_FILE];
                     fileType = "File";
                 }
 

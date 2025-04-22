@@ -20,7 +20,6 @@
 #include <Common/Common.hh>
 #include <Material/TextureCube.hh>
 #include <Renderer/GraphicsPipeline.hh>
-#include <Renderer/LightObject.hh>
 #include <Scene/Camera.hh>
 #include <Scene/Entity.hh>
 #include <Scene/Scene.hh>
@@ -74,15 +73,7 @@ namespace Mikoto {
         virtual auto RemoveLight( UInt64_T id ) -> bool = 0;
         virtual auto AddLight( const Entity& entity ) -> bool = 0;
 
-        auto SetOutlineRenderWidth( float width ) -> void;
-        auto SetRenderResolution( RenderResolution resolution ) -> void;
         MKT_NODISCARD auto GetRenderResolution() const -> RenderResolution;
-
-        // Outline rendering properties
-        template<typename... Args>
-        auto SetOutlineRenderColor( Args&&... args ) -> void {
-            m_OutlineRenderColor = glm::vec4{ std::forward<Args>(args)... };
-        }
 
         virtual auto EnableOutline(bool value) -> void;
         virtual auto SetOutlineRenderTargetEntity( UInt64_T id ) -> void = 0;

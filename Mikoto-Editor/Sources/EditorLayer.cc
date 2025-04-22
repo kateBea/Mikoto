@@ -20,7 +20,6 @@
 #include <GUI/ImGuiUtility.hh>
 #include <Layers/EditorLayer.hh>
 #include <Library/Filesystem/PathBuilder.hh>
-#include <Library/Random/Random.hh>
 #include <Panels/ConsolePanel.hh>
 #include <Panels/ContentBrowserPanel.hh>
 #include <Panels/HierarchyPanel.hh>
@@ -28,6 +27,7 @@
 #include <Panels/Panel.hh>
 #include <Panels/RendererPanel.hh>
 #include <Panels/ScenePanel.hh>
+#include <Panels/AssetsPanel.hh>
 #include <Panels/SettingsPanel.hh>
 #include <Panels/StatsPanel.hh>
 #include <Renderer/RenderService.hh>
@@ -47,10 +47,6 @@ namespace Mikoto {
         }
     }
 
-    static auto EnsureModelLoaded( const Task<Model>& model, const Path_T& path ) -> void {
-
-    }
-
     EditorLayer::EditorLayer( const EditorLayerCreateInfo& createInfo )
         : Layer{ "EditorLayer" },
           m_Window{ createInfo.TargetWindow } {}
@@ -63,9 +59,6 @@ namespace Mikoto {
         PrepareNewScene();
 
         // Create the backend Renderer
-        // TODO: render backends will have registered many passes passing a resolution here makes no because imagine
-        // a backend only has regstered a shadow pass, what happens is that u can access the pass and get its output texture
-        // that resulting output u can modify tehe resolution
         m_EditorRenderer = RenderService::GetInstance()->CreateBackend();
 
         // Create a renderer for our scene
@@ -198,7 +191,7 @@ namespace Mikoto {
             .Width{ static_cast<UInt32_T>( m_Window->GetWidth() ) },
             .Height{ static_cast<UInt32_T>( m_Window->GetHeight() ) },
             .TargetScene{ m_ActiveScene.get() },
-            .Renderer{ m_EditorRenderer.get() },
+            .Renderer{ m_EditorRenderer },
             .EditorMainCamera{ m_EditorCamera.get() },
 
             .GetActiveEntityCallback{ getSelectedEntity }
@@ -228,7 +221,7 @@ namespace Mikoto {
             .Width{ static_cast<UInt32_T>( m_Window->GetWidth() ) },
             .Height{ static_cast<UInt32_T>( m_Window->GetHeight() ) },
             .TargetScene{ m_ActiveScene.get() },
-            .Renderer{ m_EditorRenderer.get() },
+            .Renderer{ m_EditorRenderer },
             .EditorMainCamera{ m_EditorCamera.get() },
         };
 
@@ -327,17 +320,18 @@ namespace Mikoto {
         m_ActiveScene = CreateScope<Scene>( name );
 
         // Ground
+        const std::string uri{ PathBuilder()
+                            .WithPath( m_ModelsRootDirectory.string() )
+                            .WithPath( "Prefabs" )
+                            .WithPath( "cube" )
+                            .WithPath( "gltf" )
+                            .WithPath( "scene.gltf" )
+                            .Build()
+                            .string() };
         Entity* groundObjectHolder{ m_ActiveScene->CreateEntity( {
                 .Name{ "Ground" },
                 .Root{ nullptr },
-                .ModelMesh{ AssetsService::GetInstance()->GetAssetByUri<Model>( PathBuilder()
-                                                                            .WithPath( FileService::GetInstance()->GetAssetsRootPath().string() )
-                                                                            .WithPath( "Prefabs" )
-                                                                            .WithPath( "cube" )
-                                                                            .WithPath( "gltf" )
-                                                                            .WithPath( "scene.gltf" )
-                                                                            .Build()
-                                                                            .string() ) },
+                .ModelMesh{ AssetsService::GetInstance()->GetAssetByUri<Model>(uri) },
         } ) };
 
         // Because models usually have multiple meshes, we need to create a child entity for each mesh,
@@ -356,19 +350,19 @@ namespace Mikoto {
         Entity* lightObject{ m_ActiveScene->CreateEntity( {
                 .Name{ "Light" },
                 .Root{ nullptr },
-                .ModelMesh{ nullptr },
+                .ModelMesh{ Ref<Model>::CreateEmpty() },
         } ) };
 
         // TODO: the scene does not know this entity is a light
         // or rather does not have it registered as a light
         LightComponent& light{ lightObject->AddComponent<LightComponent>() };
-        light.SetType( LightType::POINT_LIGHT_TYPE );
+        light.SetActiveType( LightType::POINT_LIGHT_TYPE );
 
         // Scene camera
         Entity* cameraObject{ m_ActiveScene->CreateEntity( {
                 .Name{ "Camera" },
                 .Root{ nullptr },
-                .ModelMesh{ nullptr },
+                .ModelMesh{ Ref<Model>::CreateEmpty() },
         } ) };
 
         constexpr float NEAR_PLANE{ 0.1f };
@@ -379,14 +373,22 @@ namespace Mikoto {
         cameraObject->AddComponent<CameraComponent>( CreateScope<SceneCamera>( FIELD_OF_VIEW, ASPECT_RATIO, NEAR_PLANE, FAR_PLANE ) );
 
         // Load environment map
-        TextureCubeMapCreateInfo cubeMapCreateInfo{};
-
         TextureLoadDescription loadInfo{};
         loadInfo
-            .WithPath( "" )
-            .WithType( TextureType::TEXTURE_CUBE );
+        .WithFile( nullptr )
+                .WithType( TextureType::TEXTURE_CUBE );
 
-        AssetsService::GetInstance()->LoadTextureAsync( loadInfo );
+        const std::string uriCube{
+            PathBuilder()
+                .WithPath( m_ModelsRootDirectory.string() )
+                .WithPath( "Textures" )
+                .WithPath( "Cube-maps" )
+                .WithPath( "skybox.png" )
+                .Build()
+                .string()
+        };
+
+        AssetsService::GetInstance()->LoadAssetAsync<Texture>( loadInfo, uriCube );
     }
 
     auto EditorLayer::SaveProject() -> void {
@@ -644,66 +646,74 @@ namespace Mikoto {
             .WantTextures{ true }
         };
 
-        modelLoadInfo.Path = PathBuilder()
-                                     .WithPath( FileService::GetInstance()->GetAssetsRootPath().string() )
-                                     .WithPath( "Prefabs" )
-                                     .WithPath( "sponza" )
-                                     .WithPath( "sponza.obj" )
-                                     .Build()
-                                     .string();
-        EnsureModelLoaded( AssetsService::GetInstance()->LoadModelAsync( modelLoadInfo ), modelLoadInfo.Path.string() );
+        std::string uri{ PathBuilder()
+                                 .WithPath( m_ModelsRootDirectory.string() )
+                                 .WithPath( "Prefabs" )
+                                 .WithPath( "sponza" )
+                                 .WithPath( "sponza.obj" )
+                                 .Build()
+                                 .string() };
+        AssetsService::GetInstance()->LoadAssetAsync<Model>( modelLoadInfo, uri );
 
-        modelLoadInfo.Path = PathBuilder()
-                                     .WithPath( FileService::GetInstance()->GetAssetsRootPath().string() )
-                                     .WithPath( "Prefabs" )
-                                     .WithPath( "cube" )
-                                     .WithPath( "gltf" )
-                                     .WithPath( "scene.gltf" )
-                                     .Build()
-                                     .string();
-        EnsureModelLoaded( AssetsService::GetInstance()->LoadModelAsync( modelLoadInfo ), modelLoadInfo.Path.string() );
+        uri = PathBuilder()
+                      .WithPath( m_ModelsRootDirectory.string() )
+                      .WithPath( "Prefabs" )
+                      .WithPath( "cube" )
+                      .WithPath( "gltf" )
+                      .WithPath( "scene.gltf" )
+                      .Build()
+                      .string();
+        AssetsService::GetInstance()->LoadAssetAsync<Model>( modelLoadInfo, uri );
 
-        modelLoadInfo.Path = PathBuilder()
-                                     .WithPath( FileService::GetInstance()->GetAssetsRootPath().string() )
-                                     .WithPath( "Prefabs" )
-                                     .WithPath( "sphere" )
-                                     .WithPath( "gltf" )
-                                     .WithPath( "scene.gltf" )
-                                     .Build()
-                                     .string();
-        EnsureModelLoaded( AssetsService::GetInstance()->LoadModelAsync( modelLoadInfo ), modelLoadInfo.Path.string() );
+        uri = PathBuilder()
+                      .WithPath( m_ModelsRootDirectory.string() )
+                      .WithPath( "Prefabs" )
+                      .WithPath( "sphere" )
+                      .WithPath( "gltf" )
+                      .WithPath( "scene.gltf" )
+                      .Build()
+                      .string();
+        AssetsService::GetInstance()->LoadAssetAsync<Model>( modelLoadInfo, uri );
 
-        modelLoadInfo.Path = PathBuilder()
-                                     .WithPath( FileService::GetInstance()->GetAssetsRootPath().string() )
-                                     .WithPath( "Prefabs" )
-                                     .WithPath( "cylinder" )
-                                     .WithPath( "gltf" )
-                                     .WithPath( "scene.gltf" )
-                                     .Build()
-                                     .string();
-        EnsureModelLoaded( AssetsService::GetInstance()->LoadModelAsync( modelLoadInfo ), modelLoadInfo.Path.string() );
+        uri = PathBuilder()
+                      .WithPath( m_ModelsRootDirectory.string() )
+                      .WithPath( "Prefabs" )
+                      .WithPath( "cylinder" )
+                      .WithPath( "gltf" )
+                      .WithPath( "scene.gltf" )
+                      .Build()
+                      .string();
+        AssetsService::GetInstance()->LoadAssetAsync<Model>( modelLoadInfo, uri );
 
-        modelLoadInfo.Path = PathBuilder()
-                                     .WithPath( FileService::GetInstance()->GetAssetsRootPath().string() )
-                                     .WithPath( "Prefabs" )
-                                     .WithPath( "cone" )
-                                     .WithPath( "gltf" )
-                                     .WithPath( "scene.gltf" )
-                                     .Build()
-                                     .string();
-        EnsureModelLoaded( AssetsService::GetInstance()->LoadModelAsync( modelLoadInfo ), modelLoadInfo.Path.string() );
+        uri = PathBuilder()
+                      .WithPath( m_ModelsRootDirectory.string() )
+                      .WithPath( "Prefabs" )
+                      .WithPath( "cone" )
+                      .WithPath( "gltf" )
+                      .WithPath( "scene.gltf" )
+                      .Build()
+                      .string();
+        AssetsService::GetInstance()->LoadAssetAsync<Model>( modelLoadInfo, uri );
     }
 
     auto EditorLayer::LoadPrefabFonts() const -> void {
-
+        FileService::GetInstance()->LoadFileAsync(
+                                          PathBuilder()
+                                                  .WithPath( m_FontsRootDirectory.string() )
+                                                  .WithPath( "JetBrainsMono" )
+                                                  .WithPath( "fonts" )
+                                                  .WithPath( "ttf" )
+                                                  .WithPath( "JetBrainsMono-Regular.ttf" )
+                                                  .Build() )
+                ->SetOnCompleteTask( []( File* file ) -> void {
+                    AssetsService::GetInstance()->LoadAsset<Font>( FontLoadDescription{ .FontFile{ file }, .PixelSize{ 1.0f } } );
+                } );
     }
 
-    auto EditorLayer::SetupRenderer(double timeStep) -> void {
+    auto EditorLayer::SetupRenderer( double timeStep ) -> void {
         const SettingsPanel& settingsPanel{ *m_PanelRegistry.Get<SettingsPanel>() };
 
         // Setup renderer
-        m_EditorRenderer->SetOutlineRenderWidth( settingsPanel.GetData().Outline );
-        m_EditorRenderer->SetOutlineRenderColor( settingsPanel.GetData().OutlineColor );
         m_EditorRenderer->SetClearColor( settingsPanel.GetData().ClearColor );
         m_EditorRenderer->EnableWireframe( settingsPanel.GetData().RenderWireframeMode );
     }

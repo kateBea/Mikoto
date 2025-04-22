@@ -2,19 +2,20 @@
 // Created by kate on 10/12/23.
 //
 
+#include <memory>
+
+#include <imgui.h>
+
 #include "Panels/ConsolePanel.hh"
 
 #include <GUI/Icons/IconsFontAwesome5.h>
 #include <GUI/Icons/IconsMaterialDesign.h>
 #include <GUI/Icons/IconsMaterialDesignIcons.h>
-#include <imgui.h>
 
 #include <Common/Common.hh>
-#include <Core/System/GUISystem.hh>
+#include <Core/RuntimeConsole.hh>
+#include <GUI/ImGuiService.hh>
 #include <Library/String/String.hh>
-#include <Tools/ConsoleManager.hh>
-#include <memory>
-#include <string_view>
 
 namespace Mikoto {
     static constexpr auto GetConsolePanelName() -> std::string_view {
@@ -30,7 +31,7 @@ namespace Mikoto {
             ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible), ImGuiWindowFlags_NoCollapse);
 
             if (ImGui::Button(fmt::format("{} Clear", ICON_MD_DELETE).c_str())) {
-                ConsoleManager::ClearMessages();
+                RuntimeConsole::GetInstance()->ClearMessages();
             }
 
             if (ImGui::IsItemHovered()) {
@@ -62,11 +63,9 @@ namespace Mikoto {
     }
 
     auto ConsolePanel::DisplayMessages() -> void {
-        const auto& messages{ ConsoleManager::GetMessages() };
+        const auto& messages{ RuntimeConsole::GetInstance()->GetMessages() };
 
-        GUISystem& guiSystem{ Engine::GetSystem<GUISystem>() };
-
-        ImGui::PushFont(guiSystem.GetFonts()[GUISystem::GUIFonts::IMGUI_MANAGER_FONT_JET_BRAINS_17]);
+        ImGui::PushFont(ImGuiService::GetInstance()->GetFonts()[2]);
 
         for (const auto& [level, message] : messages) {
             switch (level) {

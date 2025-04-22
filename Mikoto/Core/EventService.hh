@@ -63,7 +63,8 @@ namespace Mikoto {
     *
     * Classes that want to listen for specific types of events must inherit from this class.
     * To receive events, the subscriber must register itself with the event service (e.g., `EventService`)
-    * using the `Subscribe` function.
+    * using the `Subscribe` function. A subscriber can handle multiple event types and categories.
+    * If a subscriber has registered a handler for a specific category, it can no longer register handlers for any event type of that category
     *
     * Example usage:
     *
@@ -92,7 +93,8 @@ namespace Mikoto {
 
     protected:
         GlobalUniqueID m_UniqueID{};
-        ankerl::unordered_dense::map<EventType, EventHandlerWrapper> m_Handlers{};
+        ankerl::unordered_dense::map<EventType, EventHandlerWrapper> m_HandlersByType{};
+        ankerl::unordered_dense::map<EventCategory, EventHandlerWrapper> m_HandlersByCategory{};
     };
 
     struct EventServiceCreateInfo {

@@ -11,7 +11,7 @@
 
 namespace Mikoto {
 
-    MeshNode::MeshNode( Size_T index, Ref<Buffer> vertices, Ref<Buffer> indices, std::vector<Ref<Texture>> &&textures )
+    MeshNode::MeshNode( const Size_T index, BufferHandle vertices, BufferHandle indices, std::vector<TextureHandle> &&textures )
         : m_MeshIndex{ index }, m_Vertices{ vertices }, m_Indices{ indices }, m_OriginalTextures{ std::move( textures ) }
     {}
 

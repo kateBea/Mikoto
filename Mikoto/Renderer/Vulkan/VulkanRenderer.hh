@@ -19,7 +19,6 @@
 
 // Project Headers
 #include <Common/Common.hh>
-#include <Renderer/Vulkan/VulkanCommandPool.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanFrameBuffer.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>

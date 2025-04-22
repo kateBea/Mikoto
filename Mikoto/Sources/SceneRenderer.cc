@@ -37,37 +37,9 @@ namespace Mikoto {
         std::vector<Shader> shaders;
     };
 
-    static auto SetupPasses(nlohmann::json &parsedJson, FrameGraph* grap) -> void {
+    auto SceneRenderer::SetupPasses(nlohmann::json &parsedJson) -> void {
         for (const auto &pass : parsedJson["passes"]) {
-            RenderPassConfig passConfig;
-            passConfig.name = pass["name"];
-            passConfig.topology = pass["topology"];
-            passConfig.blending = pass["blending"];
-            passConfig.depthTest = pass["depthTest"];
-            passConfig.cullMode = pass["cullMode"];
 
-            for (const auto &input : pass["inputs"]) {
-                passConfig.inputs.push_back(input);
-            }
-
-            for (const auto &output : pass["outputs"]) {
-                passConfig.outputs.push_back(output);
-            }
-
-            for (const auto &[key, value] : pass["attachments"].items()) {
-                RenderPassConfig::Attachment attachment;
-                attachment.format = value["format"];
-                attachment.loadOp = value["loadOp"];
-                attachment.storeOp = value["storeOp"];
-                passConfig.attachments[key] = attachment;
-            }
-
-            for (const auto &shader : pass["shaders"]) {
-                RenderPassConfig::Shader shaderInfo;
-                shaderInfo.stage = shader["stage"];
-                shaderInfo.path = shader["path"];
-                passConfig.shaders.push_back(shaderInfo);
-            }
         }
     }
 
@@ -79,8 +51,6 @@ namespace Mikoto {
     {}
 
     auto SceneRenderer::Init() -> void {
-        InitRenderPasses();
-
         ConstructRenderGraph();
     }
 
@@ -96,29 +66,29 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::Render( double timeStep ) const -> void {
-        m_FrameGraph->Render( m_RendererBackend );
+        m_FrameGraph->Render();
     }
 
     auto SceneRenderer::OnResize( const UInt32_T width, const UInt32_T height ) -> void {
         m_ViewportWidth = width;
         m_ViewportHeight = height;
 
-        m_FrameGraph->OnResize(m_RendererBackend, m_ViewportWidth, m_ViewportHeight);
+        m_FrameGraph->OnResize(m_Device, m_ViewportWidth, m_ViewportHeight);
     }
 
     auto SceneRenderer::Create( const SceneRendererCreateInfo &createInfo ) -> Scope_T<SceneRenderer> {
         return CreateScope<SceneRenderer>( createInfo );
     }
 
-    auto SceneRenderer::InitRenderPasses() -> void {
-        m_FrameGraph->RegisterPass( m_PassRegistry.Register<GBufferPass>() );
-        m_FrameGraph->RegisterPass( m_PassRegistry.Register<ShadingPass>() );
-        m_FrameGraph->RegisterPass( m_PassRegistry.Register<ShadowPass>() );
-        m_FrameGraph->RegisterPass( m_PassRegistry.Register<LightGridPass>() );
-        m_FrameGraph->RegisterPass( m_PassRegistry.Register<LightCullingPass>() );
-        m_FrameGraph->RegisterPass( m_PassRegistry.Register<WorldTextPass>() );
-        m_FrameGraph->RegisterPass( m_PassRegistry.Register<OverlayTextPass>() );
-        m_FrameGraph->RegisterPass( m_PassRegistry.Register<ObjectOutlinePass>() );
+    auto SceneRenderer::AddCoreRenderPasses() const -> void {
+        m_FrameGraph->RegisterPass<GBufferPass>(m_Device);
+        m_FrameGraph->RegisterPass<ShadingPass>(m_Device);
+        m_FrameGraph->RegisterPass<ShadowPass>(m_Device);
+        m_FrameGraph->RegisterPass<LightGridPass>(m_Device);
+        m_FrameGraph->RegisterPass<LightCullingPass>(m_Device);
+        m_FrameGraph->RegisterPass<WorldTextPass>(m_Device);
+        m_FrameGraph->RegisterPass<OverlayTextPass>(m_Device);
+        m_FrameGraph->RegisterPass<ObjectOutlinePass>(m_Device);
     }
 
     auto SceneRenderer::ConstructRenderGraph() -> void {
@@ -133,16 +103,20 @@ namespace Mikoto {
         if ( m_FrameGraph != nullptr ) {
             m_FrameGraph->Init();
 
-            ParseRenderGraph();
+            AddCoreRenderPasses();
+
+            ParseRenderGraphConfig();
+
+            m_FrameGraph->Compile();
         }
     }
 
-    auto SceneRenderer::ParseRenderGraph() const -> void {
+    auto SceneRenderer::ParseRenderGraphConfig() -> void {
         using nlohmann::json;
 
         const File* file{ FileService::GetInstance()->GetFile( m_FrameGraphPath ) };
 
-        if (file == nullptr) {
+        if (!FileService::GetInstance()->LoadFile( m_FrameGraphPath )) {
             MKT_CORE_LOGGER_ERROR( "Render graph file not loaded." );
             return;
         }
@@ -151,7 +125,7 @@ namespace Mikoto {
             // Load JSON used to configure the passes
             json parsedJson{ json::parse(file->GetFileContents()) };
 
-            SetupPasses( parsedJson, m_FrameGraph.get() );
+            SetupPasses( parsedJson );
 
         } catch (const json::parse_error& e) {
             MKT_CORE_LOGGER_ERROR("JSON parse error at byte {}: {}", e.byte, e.what());

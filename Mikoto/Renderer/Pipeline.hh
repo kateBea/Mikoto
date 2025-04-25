@@ -4,11 +4,11 @@
 
 #ifndef IPIPELINE_HH
 #define IPIPELINE_HH
+#include <string>
 
 #include <Common/Common.hh>
 #include <Renderer/DeviceObject.hh>
 #include <Renderer/GpuUtility.hh>
-#include <string>
 
 #include "BufferLayout.hh"
 

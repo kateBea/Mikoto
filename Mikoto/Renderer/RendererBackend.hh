@@ -21,6 +21,7 @@
 #include <Material/TextureCube.hh>
 #include <Renderer/GraphicsPipeline.hh>
 #include <Scene/Camera.hh>
+#include <Scene/Component.hh>
 #include <Scene/Entity.hh>
 #include <Scene/Scene.hh>
 
@@ -49,6 +50,18 @@ namespace Mikoto {
         RenderResolution Resolution{ RenderResolution::RENDER_RESOLUTION_FHD };
     };
 
+    class CommandList final : ReferenceCounted {
+    public:
+        auto EndRecording() -> void;
+        auto BeginRecording() -> void;
+
+        auto BeginRenderPass(RenderPass* pass) -> void;
+        auto UsePipeline(const GraphicsPipelineHandle & ref) -> void;
+        auto SubmitMeshDraw(const MeshNode * node, Material * material, const glm::mat4& mat) -> void;
+    };
+
+    using CommandListHandle = Ref<CommandList>;
+
     class RendererBackend {
     public:
         virtual ~RendererBackend() = default;
@@ -61,8 +74,8 @@ namespace Mikoto {
         virtual auto BeginFrame() -> void = 0;
         virtual auto EndFrame() -> void = 0;
 
-        virtual auto RegisterRenderPass(RenderPassHandle pass) -> void = 0;
-        virtual auto UnRegisterRenderPass(RenderPassHandle pass) -> void = 0;
+        virtual auto RegisterRenderPass(RenderPass* pass) -> void = 0;
+        virtual auto UnRegisterRenderPass(RenderPass* pass) -> void = 0;
 
         auto EnableWireframe(bool enable) -> void;
 
@@ -103,31 +116,17 @@ namespace Mikoto {
             m_CubeMap = handle;
         }
 
-        // Factory method to create a renderer instance
-        static auto Create( const RendererDescription& createInfo ) -> Scope_T<RendererBackend>;
-
-        /**
-        * @brief Set the scene for rendering.
-        *
-        * Allows the renderer to associate a scene with the backend, enabling the renderer to fetch necessary resources.
-        *
-        * @param scene A reference to the scene to be rendered.
-        */
         auto SetScene( Scene* scene ) -> void {
             if (scene != nullptr) {
                 m_Scene = scene;
             }
         }
 
-        /**
-        * @brief Set the resolution for the renderer.
-        *
-        * Updates the internal resolution of the renderer and may trigger reconfiguration of rendering settings.
-        *
-        * @param width The new width of the render target.
-        * @param height The new height of the render target.
-        */
         virtual auto OnResize( UInt32_T width, UInt32_T height ) -> void = 0;
+
+        auto CreateCommandList() -> CommandListHandle;
+        auto SubmitCommandList(CommandListHandle commandList) -> void;
+
     protected:
         struct ViewportConstraints {
             float Width{ 0 };///< The width of the viewport.
@@ -137,6 +136,11 @@ namespace Mikoto {
         };
 
     protected:
+        // Factory method to create a renderer instance
+        static auto Create( const RendererDescription& createInfo ) -> Scope_T<RendererBackend>;
+
+        friend class RenderService;
+
         explicit RendererBackend( const RendererDescription& createInfo );
 
     protected:

@@ -54,7 +54,7 @@ namespace Mikoto {
 
         Scope_T<RenderContext> m_Context{ nullptr };
 
-        ResourcePoolTyped<RendererBackend> m_BackendPool{};
+        std::vector<Scope_T<RendererBackend>> m_BackendPool{};
     };
 }
 #endif //RENDERSYSTEM_HH

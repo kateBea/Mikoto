@@ -59,6 +59,8 @@ namespace Mikoto {
         SamplerWrapMode m_Wrap{ SamplerWrapMode::WRAP_CLAMP_TO_EDGE };
     };
 
+    using SamplerHandle = Ref<Sampler>;
+
     /**
      * @class Texture
      * @brief Represents a texture used in graphics resources.
@@ -157,6 +159,8 @@ namespace Mikoto {
 
         SamplerHandle m_Sampler{};
     };
+
+    using TextureHandle = Ref<Texture>;
 
 }// namespace Mikoto
 

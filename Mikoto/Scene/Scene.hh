@@ -35,6 +35,8 @@ namespace Mikoto {
 
     class Scene final {
     public:
+        using EntiContainer_T = ankerl::unordered_dense::map<UInt64_T, Scope_T<Entity>>;
+
         explicit Scene( std::string_view name = "Mikoto" );
 
         auto UpdateIdle( double deltaTime ) -> void;
@@ -50,8 +52,8 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetName() const -> const std::string&;
 
-        MKT_NODISCARD auto GetEntities() -> ankerl::unordered_dense::map<UInt64_T, Entity>&;
-        MKT_NODISCARD auto GetEntities() const -> const ankerl::unordered_dense::map<UInt64_T, Entity>&;
+        MKT_NODISCARD auto GetEntities() -> EntiContainer_T&;
+        MKT_NODISCARD auto GetEntities() const -> const EntiContainer_T&;
 
         auto Clear() -> void;
 
@@ -77,7 +79,7 @@ namespace Mikoto {
 
         std::vector<UInt64_T> m_ToRemoveEntities{};
 
-        ankerl::unordered_dense::map<UInt64_T, Scope_T<Entity>> m_Entities{};
+        EntiContainer_T m_Entities{};
     };
 }
 

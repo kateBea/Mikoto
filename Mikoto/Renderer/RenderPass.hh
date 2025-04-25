@@ -4,19 +4,19 @@
 
 #ifndef RENDERPASS_HH
 #define RENDERPASS_HH
-#include "Renderer/FrameGraph.hh"
 
+#include <Common/Common.hh>
+#include <Common/ReferenceCounted.hh>
+
+#include "GpuDevice.hh"
+
+#include <Scene/Scene.hh>
+
+#include "Light.hh"
 
 namespace Mikoto {
-    struct DirectionalLight;
-}
-namespace Mikoto {
-    struct PointLight;
-}
-namespace Mikoto {
-    struct SpotLight;
-}
-namespace Mikoto {
+
+    class RendererBackend;
 
     class RenderPass : ReferenceCounted {
     public:
@@ -25,36 +25,37 @@ namespace Mikoto {
         virtual auto Init(GpuDevice* device) -> void = 0;
         virtual auto Shutdown() -> void = 0;
 
-        virtual auto PreRender(GpuDevice* device, FrameBlackboard* blackboard) -> void {}
-        virtual auto Execute(GpuDevice* device, FrameBlackboard* blackboard) -> void {}
-        virtual auto PostRender(GpuDevice* device, FrameBlackboard* blackboard) -> void {}
-        virtual auto SetRenderSize(GpuDevice* device,UInt32_T width, UInt32_T height) -> void {}
-
-        MKT_NODISCARD auto GetRenderWidth() const -> UInt32_T { return m_RenderWidth; }
-        MKT_NODISCARD auto GetRenderHeight() const -> UInt32_T { return m_RenderHeight; }
+        virtual auto Execute(RendererBackend* backend) -> void = 0;
 
         MKT_NODISCARD auto IsEnabled() const -> bool { return m_IsEnabled; }
         MKT_NODISCARD auto IsCompute() const -> bool { return m_IsCompute; }
 
         auto SetEnabled( const bool enabled) -> void { m_IsEnabled = enabled; }
     protected:
-        RenderPass( const UInt32_T viewportWidth, const UInt32_T viewportHeight)
-            : m_RenderWidth{ viewportWidth }, m_RenderHeight{ viewportHeight } {}
+        RenderPass() = default;
 
     protected:
-        UInt32_T m_RenderWidth{};
-        UInt32_T m_RenderHeight{};
 
         bool m_IsCompute{ false };
 
         bool m_IsEnabled{ true };
+
+        std::vector<RefAny> m_InputResources{};
+        std::vector<RefAny> m_OutputResources{};
     };
 
     // Generate the gbuffer attachments
     class GBufferPass final : public RenderPass {
     public:
 
-        explicit GBufferPass(UInt32_T viewportWidth, UInt32_T viewportHeight);
+        struct GBufferPassDescription {
+            UInt32_T ViewportWidth{ 0 };
+            UInt32_T ViewportHeight{ 0 };
+
+            std::vector<std::string> m_ShaderPaths{};
+        };
+
+        explicit GBufferPass(const GBufferPassDescription& description);
 
         struct GBufferData {
             TextureHandle Albedo{};
@@ -62,62 +63,45 @@ namespace Mikoto {
             TextureHandle Position{};
         };
 
-        auto Init(GpuDevice* device) -> void override;
-        auto Shutdown() -> void override;
-        auto Execute(GpuDevice* device, FrameBlackboard* blackboard ) -> void override;
+        auto Init(GpuDevice* device) -> void  override;
+        auto Shutdown() -> void  override;
+
+        auto Execute(RendererBackend* backend) -> void  override;
 
     private:
+        Scene* m_Scene{ nullptr };
+
         GBufferData m_GBuffer{};
 
-        UInt32_T m_ViewportWidth{};
-        UInt32_T m_ViewportHeight{};
-
         FramebufferHandle m_Framebuffer{};
-
         GraphicsPipelineHandle m_Pipeline{};
 
-        ankerl::unordered_dense::map<ShaderStage, std::string> m_ShaderPaths{};
+        Int32_T m_ViewportWidth{ 0 };
+        Int32_T m_ViewportHeight{ 0 };
     };
 
 #if false
-    // compute pass to generate light clusters
-    class LightGridPass final : public RenderPass {
-    public:
-
-        auto PreRender( GpuDevice* device, FrameBlackboard* blackboard ) -> void override;
-        auto Execute(GpuDevice* device, FrameBlackboard* blackboard ) -> void override;
-        auto PostRender( GpuDevice* device, FrameBlackboard* blackboard ) -> void override;
-
-    private:
-
-        BufferHandle m_LightGridBuffer{};
-
-        // We will take this as input
-        std::span<const SpotLight*> m_SpotLights{};
-        std::span<const PointLight*> m_PointLights{};
-        std::span<const DirectionalLight*> m_DirectionalLights{};
-    };
-
-    // Compute pass to cull lights per tile
+    // Pass to cull lights in the scene
+    // Generates the light grid and culling buffer
     class LightCullingPass final : public RenderPass {
     public:
 
-        auto PreRender( GpuDevice* device, FrameBlackboard* blackboard ) -> void override;
-        auto Execute(GpuDevice* device, FrameBlackboard* blackboard ) -> void override;
-        auto PostRender( GpuDevice* device, FrameBlackboard* blackboard ) -> void override;
+        auto Init(GpuDevice* device) -> void  override;
+        auto Shutdown() -> void  override;
+
+        auto Execute(RendererBackend* backend) -> void  override;
 
     public:
-        BufferHandle m_LightGridBuffer{};
-        BufferHandle m_LightCullingBuffer{};
+        BufferHandle m_LightClusters{};
+        BufferHandle m_LightCulling{};
 
-        // We will take this as input
-        std::span<const SpotLight*> m_SpotLights{};
-        std::span<const PointLight*> m_PointLights{};
-        std::span<const DirectionalLight*> m_DirectionalLights{};
+        std::vector<SpotLight> m_SpotLights{};
+        std::vector<PointLight> m_PointLights{};
+        std::vector<DirectionalLight> m_DirectionalLights{};
     };
 
-    // Apply lighting and most likely final step to generate the final image
-    class ShadingPass final : public RenderPass {
+    // Final PBR composition. Apply lighting
+    class GeometryPass final : public RenderPass {
     public:
 
         auto PreRender( GpuDevice* device, FrameBlackboard* blackboard ) -> void override;

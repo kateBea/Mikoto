@@ -17,7 +17,7 @@
 #include <Core/Logger.hh>
 #include <Core/MouseCodes.hh>
 #include <FileSystem/FileService.hh>
-#include <GUI/ImGuiUtility.hh>
+#include <ImGui/ImGuiUtility.hh>
 #include <Layers/EditorLayer.hh>
 #include <Library/Filesystem/PathBuilder.hh>
 #include <Panels/ConsolePanel.hh>
@@ -260,22 +260,22 @@ namespace Mikoto {
         if ( ImGui::BeginMenu( "Resolution" ) ) {
             if ( ImGui::MenuItem( "HD - 720p", nullptr,
                                   m_EditorRenderer->GetRenderResolution() == RenderResolution::RENDER_RESOLUTION_HD ) ) {
-                m_EditorRenderer->SetRenderResolution( RenderResolution::RENDER_RESOLUTION_HD );
+                m_SceneRenderer->SetRenderResolution( RenderResolution::RENDER_RESOLUTION_HD );
             }
 
             if ( ImGui::MenuItem( "FHD - 1080p", nullptr,
                                   m_EditorRenderer->GetRenderResolution() == RenderResolution::RENDER_RESOLUTION_FHD ) ) {
-                m_EditorRenderer->SetRenderResolution( RenderResolution::RENDER_RESOLUTION_FHD );
+                m_SceneRenderer->SetRenderResolution( RenderResolution::RENDER_RESOLUTION_FHD );
             }
 
             if ( ImGui::MenuItem( "QHD - 1440p", nullptr,
                                   m_EditorRenderer->GetRenderResolution() == RenderResolution::RENDER_RESOLUTION_QHD ) ) {
-                m_EditorRenderer->SetRenderResolution( RenderResolution::RENDER_RESOLUTION_QHD );
+                m_SceneRenderer->SetRenderResolution( RenderResolution::RENDER_RESOLUTION_QHD );
             }
 
             if ( ImGui::MenuItem( "UHD - 2160p", nullptr,
                                   m_EditorRenderer->GetRenderResolution() == RenderResolution::RENDER_RESOLUTION_UHD ) ) {
-                m_EditorRenderer->SetRenderResolution( RenderResolution::RENDER_RESOLUTION_UHD );
+                m_SceneRenderer->SetRenderResolution( RenderResolution::RENDER_RESOLUTION_UHD );
             }
 
             ImGui::EndMenu();

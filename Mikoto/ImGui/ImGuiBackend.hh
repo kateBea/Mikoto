@@ -16,11 +16,11 @@ namespace Mikoto {
     };
 
     /**
-   * This class encapsulates backend implementation-specific details. ImGui is a graphics API
-   * agnostic GUI library and provides several implementations, each for a specific graphics backend.
-   * This class serves as a general abstraction over the currently active backend in use in the application
-   * that will also be used with ImGui
-   * */
+    * This class encapsulates backend implementation-specific details. ImGui is a graphics API
+    * agnostic GUI library and provides several implementations, each for a specific graphics backend.
+    * This class serves as a general abstraction over the currently active backend in use in the application
+    * that will also be used with ImGui
+    * */
     class ImGuiBackend {
     public:
         explicit ImGuiBackend( const ImGuiBackendCreateInfo& createInfo )

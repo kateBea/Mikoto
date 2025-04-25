@@ -10,6 +10,26 @@
 #include <Renderer/DeviceObject.hh>
 
 namespace Mikoto {
+
+    struct FramebufferDescription {
+        Int32_T Width{};
+        Int32_T Height{};
+
+        TextureFormat ColorFormat{ TextureFormat::TEXTURE_FORMAT_RGBA8 };
+        TextureFormat DepthFormat{ TextureFormat::TEXTURE_FORMAT_RGBA8 };
+
+        TextureHandle DepthAttachment{};
+        std::vector<TextureHandle> ColorAttachments{};
+
+        auto AddAttachment( TextureHandle color ) -> FramebufferDescription&;
+        auto AddDepthAttachment( TextureHandle depth ) -> FramebufferDescription&;
+
+        auto WithWidth( Int32_T width ) -> FramebufferDescription&;
+        auto WithHeight( Int32_T height ) -> FramebufferDescription&;
+        auto WithColorFormat( TextureFormat format ) -> FramebufferDescription&;
+        auto WithDepthFormat( TextureFormat format ) -> FramebufferDescription&;
+    };
+
     /**
     * @brief Represents a framebuffer object used for off-screen rendering.
     *
@@ -22,6 +42,8 @@ namespace Mikoto {
     public:
 
     };
+
+    using FramebufferHandle = Ref<Framebuffer>;
 }
 
 

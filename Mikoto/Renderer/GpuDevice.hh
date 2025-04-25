@@ -11,6 +11,8 @@
 #include <Renderer/GpuUtility.hh>
 #include <Renderer/RenderUtility.hh>
 
+#include "Framebuffer.hh"
+
 namespace Mikoto {
     class ICommandList;
 
@@ -29,15 +31,10 @@ namespace Mikoto {
     struct FontLoadDescription;
     struct FramebufferDescription;
 
-    using TextureHandle = Ref<Texture>;
     using BufferHandle = Ref<Buffer>;
     using GraphicsPipelineHandle = Ref<GraphicsPipeline>;
     using ComputePipelineHandle = Ref<ComputePipeline>;
     using ShaderModuleHandle = Ref<ShaderModule>;
-    using SamplerHandle = Ref<Sampler>;
-    using FramebufferHandle = Ref<Framebuffer>;
-
-    using CommandListHandle = Ref<ICommandList>;
 
     struct GpuDeviceCreateInfo {
         GraphicsAPI Api{ GraphicsAPI::VULKAN_API };
@@ -95,6 +92,8 @@ namespace Mikoto {
 
     };
 
+    using GpuCommandListHandle = Ref<ICommandList>;
+
     class GpuDevice {
     public:
         virtual auto Init() -> void = 0;
@@ -113,8 +112,8 @@ namespace Mikoto {
         virtual auto SetBarrier(TextureHandle texture) -> void = 0;
         virtual auto SetBarrier(BufferHandle buffer) -> void = 0;
 
-        virtual auto CreateCommandList(const CommandListCreateDescription& params = {}) -> CommandListHandle = 0;
-        virtual auto SubmitCommandList(CommandListHandle commandList, QueueType queueType = QueueType::QUEUE_GRAPHICS) -> void = 0;
+        virtual auto CreateCommandList(const CommandListCreateDescription& params = {}) -> GpuCommandListHandle = 0;
+        virtual auto SubmitCommandList(GpuCommandListHandle commandList, QueueType queueType = QueueType::QUEUE_GRAPHICS) -> void = 0;
 
         template<typename ResourceType>
         auto GetDummyResource() -> decltype(auto) {

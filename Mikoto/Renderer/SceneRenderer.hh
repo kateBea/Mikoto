@@ -9,7 +9,6 @@
 #include <Common/ScopedService.hh>
 #include <Library/Data/Registry.hh>
 #include <Library/Utility/Types.hh>
-#include <Renderer/FrameGraph.hh>
 #include <Renderer/GpuDevice.hh>
 #include <Renderer/RenderPass.hh>
 #include <Renderer/RendererBackend.hh>
@@ -63,8 +62,8 @@ namespace Mikoto {
      * This enum is used to track whether the renderer is idle or actively simulating the scene.
      */
     enum class SceneState {
-        IDLE,     ///< The renderer is idle and not simulating the scene.
-        SIMULATING///< The renderer is actively simulating the scene.
+        IDLE,
+        SIMULATING
     };
 
     /**
@@ -134,6 +133,7 @@ namespace Mikoto {
 
         auto SetCamera( Camera* camera ) -> void;
         auto SetRenderBackend( RendererBackend* backend ) -> void;
+        auto SetRenderResolution(RenderResolution resolution) -> void;
 
         /**
          * @brief Creates a new `SceneRenderer` instance.
@@ -148,9 +148,6 @@ namespace Mikoto {
 
     protected:
         auto AddCoreRenderPasses() const -> void;
-        auto ConstructRenderGraph() -> void;
-        auto ParseRenderGraphConfig() -> void;
-        auto SetupPasses(nlohmann::json &parsedJson) -> void;
 
     private:
         UInt32_T m_ViewportWidth{}; ///< The current width of the viewport.
@@ -163,8 +160,6 @@ namespace Mikoto {
         GpuDevice* m_Device{ nullptr };
 
         RendererBackend* m_RendererBackend{ nullptr };///< The backend renderer responsible for rendering.
-        Scope_T<FrameGraph> m_FrameGraph{ nullptr };  ///< The frame graph used to manage rendering passes.
-        Scope_T<FrameBlackboard> m_FrameBlackboard{ nullptr };  ///< The frame graph used to manage rendering passes.
 
         RenderResolution m_RenderResolution{ RenderResolution::RENDER_RESOLUTION_FHD };///< The current resolution for rendering.
     };

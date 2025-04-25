@@ -1,27 +1,26 @@
 #include "Renderer/RenderPass.hh"
 
+#include <Renderer/RendererBackend.hh>
 #include <Scene/Component.hh>
+#include <Renderer/Pipeline.hh>
 
 namespace Mikoto {
 
-    GBufferPass::GBufferPass( const UInt32_T viewportWidth, const UInt32_T viewportHeight )
-        : RenderPass{ viewportWidth, viewportHeight } {
-    }
+    GBufferPass::GBufferPass( const GBufferPassDescription &description ) {}
 
-    // GBufferPass
-    auto GBufferPass::Init( GpuDevice* device ) -> void {
+    auto GBufferPass::Init( GpuDevice *device ) -> void {
         // Create textures for GBuffer (Albedo, Normal, Position)
-        m_GBuffer.Albedo = device->CreateTexture( { .format = TextureFormat::TEXTURE_FORMAT_RGBA8,
-                                                    .width = m_ViewportWidth,
-                                                    .height = m_ViewportHeight } );
+        m_GBuffer.Albedo = device->CreateTexture( TextureDescription{ .Format = TextureFormat::TEXTURE_FORMAT_RGBA8,
+                                                    .Width = m_ViewportWidth,
+                                                    .Height = m_ViewportHeight } );
 
-        m_GBuffer.Normal = device->CreateTexture( { .format = TextureFormat::TEXTURE_FORMAT_RGBA8,
-                                                    .width = m_ViewportWidth,
-                                                    .height = m_ViewportHeight } );
+        m_GBuffer.Normal = device->CreateTexture( TextureDescription{ .Format = TextureFormat::TEXTURE_FORMAT_RGBA8,
+                                                    .Width = m_ViewportWidth,
+                                                    .Height = m_ViewportHeight } );
 
-        m_GBuffer.Position = device->CreateTexture( { .format = TextureFormat::TEXTURE_FORMAT_RGBA8,
-                                                      .width = m_ViewportWidth,
-                                                      .height = m_ViewportHeight } );
+        m_GBuffer.Position = device->CreateTexture( TextureDescription{ .Format = TextureFormat::TEXTURE_FORMAT_RGBA8,
+                                                    .Width = m_ViewportWidth,
+                                                    .Height = m_ViewportHeight } );
 
         // Create framebuffer for GBuffer pass
         FramebufferDescription description{};
@@ -34,63 +33,55 @@ namespace Mikoto {
 
         m_Framebuffer = device->CreateFramebuffer( description );
 
-        // Create a buffer for mesh instance data
-        m_MeshInstanceData = device->CreateBuffer( {
-                .usage = BufferUsage::BUFFER_USAGE_VERTEX,
-                .size = sizeof( MeshInstanceData ) * 1000
-        } );
+        GraphicsPipelineDescription pipelineDesc{};
 
-        // Create the pipeline layout for binding resources (such as buffers and textures)
-        BindingSetLayoutDescription bindingSetLayoutDesc{};
-        bindingSetLayoutDesc
-                .AddBinding( BindingSetItem::Texture( 0, ShaderStage::Fragment ) ) // Albedo texture (binding 0)
-                .AddBinding( BindingSetItem::Sampler( 1, ShaderStage::Fragment ) );// Sampler (binding 1)
-
-        m_MaterialLayout = device->CreateBindingSetLayout( bindingSetLayoutDesc );
-
-        // Create the graphics pipeline for GBuffer pass
-        PipelineDescription pipelineDesc{};
-        pipelineDesc
-                .AddShaderStage( device->CreateShaderStage( ShaderStage::Vertex, "path/to/vertex_shader.spv" ) )
-                .AddShaderStage( device->CreateShaderStage( ShaderStage::Fragment, "path/to/fragment_shader.spv" ) )
-                .WithDepthStencilState( DepthStencilState::DepthTestWrite )
-                .WithRasterizationState( RasterizationState::FrontFaceCCW );
-
-        m_GBufferPipeline = device->CreateGraphicsPipeline( pipelineDesc );
+        m_Pipeline = device->CreateGraphicsPipeline( pipelineDesc );
     }
 
+    auto GBufferPass::Shutdown() -> void {
 
-    auto GBufferPass::Execute( GpuDevice* device, FrameBlackboard* blackboard ) -> void {
-        CommandListHandle cmd = device->CreateCommandList();
-        cmd->Begin();
-
-        cmd->SetViewport({ 0, 0, m_ViewportWidth, m_ViewportHeight });
-        cmd->SetGraphicsPipeline(m_GBufferPipeline);
-        cmd->SetVertexBuffer(1, m_MeshInstanceData);
-
-        for (Entity* entity : m_VisibleMeshes) {
-            MeshNode* mesh{ entity->GetComponent<RenderComponent>().GetMesh() };
-            cmd->SetVertexBuffer(0, mesh->GetVertexBuffer());
-            cmd->SetVertexBuffer(1, entity->GetInstanceBuffer());
-
-            cmd->SetIndexBuffer(mesh.GetIndexBuffer());
-        }
-
-        const auto& textures = mesh.GetTextures();
-        if (!textures.empty()) {
-            BindingSetDescription materialBindings{};
-            materialBindings.SetLayout = m_MaterialLayout;
-            materialBindings.AddBinding(BindingSetItem::Texture(0, textures[0]));
-            materialBindings.AddBinding(BindingSetItem::Sampler(1, m_DefaultSampler));
-            auto bindingSet = device->CreateBindingSet(materialBindings);
-            cmd->SetBindingSet(0, bindingSet);
-        }
-
-        const uint32_t indexCount = GetIndexCountFor(mesh);
-        const uint32_t instanceCount = GetInstanceCountFor(mesh);
-        cmd->DrawIndexed(indexCount, instanceCount, 0, 0, 0);
-
-        cmd->Close();
-        device->SubmitCommandList(cmd);
     }
+
+    auto GBufferPass::Execute( RendererBackend *backend ) -> void {
+        CommandListHandle commandList{ backend->CreateCommandList() };
+        commandList->BeginRecording();
+
+        commandList->BeginRenderPass( this );
+
+        for (const auto &entity: m_Scene->GetEntities() | std::views::values) {
+            if (entity->HasComponent<RenderComponent>()) {
+                RenderComponent &renderComponent{ entity->GetComponent<RenderComponent>() };
+                MaterialComponent &materialComponent{ entity->GetComponent<MaterialComponent>() };
+                TransformComponent &transformComponent{ entity->GetComponent<TransformComponent>() };
+
+                const auto subMesh{ renderComponent.GetMesh() };
+                const auto material{ materialComponent.GetMaterial() };
+                const auto& transform{ transformComponent.GetTransform() };
+
+                commandList->UsePipeline( m_Pipeline );
+                commandList->SubmitMeshDraw( subMesh, material, transform );
+            }
+        }
+
+        commandList->EndRecording();
+        backend->SubmitCommandList( commandList );
+    }
+
+#if false
+    auto LightCullingPass::Init( GpuDevice *device ) -> void {}
+
+    auto LightCullingPass::Shutdown() -> void {}
+
+    auto LightCullingPass::Execute( RendererBackend *backend ) -> void {
+        CommandListHandle commandList{ backend->CreateCommandList() };
+        commandList->BeginRecording();
+
+        commandList->BeginComputePass( this );
+
+
+
+        commandList->EndRecording();
+        backend->SubmitCommandList( commandList );
+    }
+#endif
 }

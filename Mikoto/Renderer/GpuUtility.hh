@@ -8,8 +8,6 @@
 #include <Library/Filesystem/File.hh>
 #include <Library/Utility/Types.hh>
 
-#include "GpuDevice.hh"
-
 namespace Mikoto {
 
     enum class PipelineType {
@@ -180,25 +178,6 @@ namespace Mikoto {
         auto WithMagFilter( SamplerFilter filter ) -> SamplerDescription&;
         auto WithWrapS( SamplerWrapMode wrap ) -> SamplerDescription&;
         auto WithWrapT( SamplerWrapMode wrap ) -> SamplerDescription&;
-    };
-
-    struct FramebufferDescription {
-        Int32_T Width{};
-        Int32_T Height{};
-
-        TextureFormat ColorFormat{ TextureFormat::TEXTURE_FORMAT_RGBA8 };
-        TextureFormat DepthFormat{ TextureFormat::TEXTURE_FORMAT_RGBA8 };
-
-        TextureHandle DepthAttachment{};
-        std::vector<TextureHandle> ColorAttachments{};
-
-        auto AddAttachment( TextureHandle color ) -> FramebufferDescription&;
-        auto AddDepthAttachment( TextureHandle depth ) -> FramebufferDescription&;
-
-        auto WithWidth( Int32_T width ) -> FramebufferDescription&;
-        auto WithHeight( Int32_T height ) -> FramebufferDescription&;
-        auto WithColorFormat( TextureFormat format ) -> FramebufferDescription&;
-        auto WithDepthFormat( TextureFormat format ) -> FramebufferDescription&;
     };
 }// namespace Mikoto
 #endif//GPURESOURCES_HH

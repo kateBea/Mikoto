@@ -10,7 +10,7 @@
 #include <Core/RuntimeConsole.hh>
 #include <Core/ServiceManager.hh>
 #include <FileSystem/FileService.hh>
-#include <GUI/ImGuiService.hh>
+#include <ImGui/ImGuiService.hh>
 #include <Assets/ShaderLibrary.hh>
 #include <Memory/MemoryService.hh>
 #include <Physics/PhysicService.hh>
@@ -25,13 +25,6 @@
 namespace Mikoto {
 
     auto ServiceManager::Init(const EngineConfig& options) -> void {
-        // Time service
-        TimeServiceCreateInfo timeServiceCreateInfo{
-            .DefaultUnit{ TimeUnit::SECONDS }
-        };
-        TimeService* timeService{ s_Registry.Register<TimeService>(timeServiceCreateInfo) };
-        timeService->Init();
-
         // Logging service
         LoggingServiceDescription loggingServiceDescription{
             .LogFilePath{ options.Options.LogFilePath },
@@ -39,6 +32,13 @@ namespace Mikoto {
         };
         LoggingService* loggingService{ s_Registry.Register<LoggingService>(loggingServiceDescription) };
         loggingService->Init();
+
+        // Time service
+        TimeServiceCreateInfo timeServiceCreateInfo{
+            .DefaultUnit{ TimeUnit::SECONDS }
+        };
+        TimeService* timeService{ s_Registry.Register<TimeService>(timeServiceCreateInfo) };
+        timeService->Init();
 
         // Runtime console service
         ConsoleManagerCreateInfo runtimeConsoleServiceCreateInfo{
@@ -130,7 +130,7 @@ namespace Mikoto {
 
         // Model importer library
         MeshFactoryCreateInfo meshFactoryCreateInfo{
-            .ImportersCount{ taskService->GetInstance()->GetWorkersCount() },
+            .ImportersCount{ taskService->GetWorkersCount() },
             .Device{ renderSystem->GetGpuDevice() },
         };
         MeshFactory* meshFactory{ s_Registry.Register<MeshFactory>(meshFactoryCreateInfo) };

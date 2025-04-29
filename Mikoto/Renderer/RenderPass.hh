@@ -18,9 +18,9 @@ namespace Mikoto {
 
     class RendererBackend;
 
-    class RenderPass : ReferenceCounted {
+    class FramePass : ReferenceCounted {
     public:
-        ~RenderPass() override = default;
+        ~FramePass() override = default;
 
         virtual auto Init(GpuDevice* device) -> void = 0;
         virtual auto Shutdown() -> void = 0;
@@ -32,7 +32,7 @@ namespace Mikoto {
 
         auto SetEnabled( const bool enabled) -> void { m_IsEnabled = enabled; }
     protected:
-        RenderPass() = default;
+        FramePass() = default;
 
     protected:
 
@@ -45,7 +45,7 @@ namespace Mikoto {
     };
 
     // Generate the gbuffer attachments
-    class GBufferPass final : public RenderPass {
+    class GBufferPass final : public FramePass {
     public:
 
         struct GBufferPassDescription {
@@ -80,10 +80,9 @@ namespace Mikoto {
         Int32_T m_ViewportHeight{ 0 };
     };
 
-#if false
     // Pass to cull lights in the scene
     // Generates the light grid and culling buffer
-    class LightCullingPass final : public RenderPass {
+    class LightCullingPass final : public FramePass {
     public:
 
         auto Init(GpuDevice* device) -> void  override;
@@ -99,6 +98,8 @@ namespace Mikoto {
         std::vector<PointLight> m_PointLights{};
         std::vector<DirectionalLight> m_DirectionalLights{};
     };
+
+#if false
 
     // Final PBR composition. Apply lighting
     class GeometryPass final : public RenderPass {

@@ -20,7 +20,6 @@ namespace Mikoto {
     enum class BufferUsage {
         BUFFER_USAGE_VERTEX,
         BUFFER_USAGE_INDEX,
-        BUFFER_USAGE_STAGING,
         BUFFER_USAGE_UNIFORM,
         BUFFER_USAGE_SHADER_STORAGE,
     };

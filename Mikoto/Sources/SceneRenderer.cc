@@ -31,5 +31,16 @@ namespace Mikoto {
 
     auto SceneRenderer::Create( const SceneRendererCreateInfo &createInfo ) -> Scope_T<SceneRenderer> {}
 
-    auto SceneRenderer::AddCoreRenderPasses() const -> void {}
+    auto SceneRenderer::AddCoreRenderPasses() -> void {
+        // Gbuffer
+        GBufferPass::GBufferPassDescription gbufferDescription{
+            .ViewportWidth = m_ViewportWidth,
+            .ViewportHeight = m_ViewportHeight,
+            .m_ShaderPaths = {}
+        };
+
+        m_GBufferPass = Ref<GBufferPass>::Create( new GBufferPass( gbufferDescription ) );
+
+        m_GBufferPass->Init( m_Device );
+    }
 }// namespace Mikoto

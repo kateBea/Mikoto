@@ -55,8 +55,8 @@ namespace Mikoto {
         auto EndRecording() -> void;
         auto BeginRecording() -> void;
 
-        auto BeginRenderPass(RenderPass* pass) -> void;
-        auto UsePipeline(const GraphicsPipelineHandle & ref) -> void;
+        auto BeginRenderPass(FramePass* pass) -> void;
+        auto BeginComputePass(FramePass* pass) -> void;
         auto SubmitMeshDraw(const MeshNode * node, Material * material, const glm::mat4& mat) -> void;
     };
 
@@ -74,8 +74,8 @@ namespace Mikoto {
         virtual auto BeginFrame() -> void = 0;
         virtual auto EndFrame() -> void = 0;
 
-        virtual auto RegisterRenderPass(RenderPass* pass) -> void = 0;
-        virtual auto UnRegisterRenderPass(RenderPass* pass) -> void = 0;
+        virtual auto RegisterRenderPass(FramePass* pass) -> void = 0;
+        virtual auto UnRegisterRenderPass(FramePass* pass) -> void = 0;
 
         auto EnableWireframe(bool enable) -> void;
 

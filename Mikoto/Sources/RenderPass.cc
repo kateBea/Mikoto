@@ -58,7 +58,6 @@ namespace Mikoto {
                 const auto material{ materialComponent.GetMaterial() };
                 const auto& transform{ transformComponent.GetTransform() };
 
-                commandList->UsePipeline( m_Pipeline );
                 commandList->SubmitMeshDraw( subMesh, material, transform );
             }
         }
@@ -67,21 +66,27 @@ namespace Mikoto {
         backend->SubmitCommandList( commandList );
     }
 
-#if false
-    auto LightCullingPass::Init( GpuDevice *device ) -> void {}
+    auto LightCullingPass::Init( GpuDevice *device ) -> void {
+        m_LightClusters = device->CreateBuffer(BufferDescription{
+            .Usage = BufferUsage::BUFFER_USAGE_SHADER_STORAGE
+        });
+
+        m_LightCulling = device->CreateBuffer(BufferDescription{
+            .Usage = BufferUsage::BUFFER_USAGE_SHADER_STORAGE
+        });
+    }
 
     auto LightCullingPass::Shutdown() -> void {}
 
     auto LightCullingPass::Execute( RendererBackend *backend ) -> void {
         CommandListHandle commandList{ backend->CreateCommandList() };
         commandList->BeginRecording();
-
         commandList->BeginComputePass( this );
-
-
 
         commandList->EndRecording();
         backend->SubmitCommandList( commandList );
     }
+
+#if false
 #endif
 }

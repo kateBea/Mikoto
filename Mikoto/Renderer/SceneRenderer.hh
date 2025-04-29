@@ -147,7 +147,7 @@ namespace Mikoto {
         MKT_NODISCARD static auto Create(const SceneRendererCreateInfo& createInfo) -> Scope_T<SceneRenderer>;
 
     protected:
-        auto AddCoreRenderPasses() const -> void;
+        auto AddCoreRenderPasses() -> void;
 
     private:
         UInt32_T m_ViewportWidth{}; ///< The current width of the viewport.
@@ -162,6 +162,9 @@ namespace Mikoto {
         RendererBackend* m_RendererBackend{ nullptr };///< The backend renderer responsible for rendering.
 
         RenderResolution m_RenderResolution{ RenderResolution::RENDER_RESOLUTION_FHD };///< The current resolution for rendering.
+
+        // Core passes
+        Ref<GBufferPass> m_GBufferPass{};
     };
 }// namespace Mikoto
 

@@ -117,6 +117,7 @@ namespace Mikoto {
         auto LoadAssetAsync( auto&&... args ) -> Task<void>* {
             auto tuple{ std::make_tuple(std::forward<decltype(args)>(args)...) };
 
+            // TODO: thread safety
             m_LoadTasks.emplace_back([args_tuple = std::move(tuple)]() mutable {
                 std::apply( []<typename... Args>(Args&&... unpackedArgs) {
                     LoadAsset<AssetType>(std::forward<Args>(unpackedArgs)...);

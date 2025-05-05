@@ -48,7 +48,6 @@ namespace Mikoto {
             Shutdown();
 
         } catch ( const std::exception &exception ) {
-            MKT_STACK_TRACE();
 
             MKT_COLOR_STYLE_PRINT_FORMATTED( MKT_FMT_COLOR_RED, MKT_FMT_STYLE_BOLD, "{}", exception.what() );
 

@@ -10,7 +10,7 @@ SET( CUR_PATH ${CMAKE_CURRENT_SOURCE_DIR} )
 CMAKE_PATH(GET CUR_PATH PARENT_PATH P_PATH)
 
 # Setup Mikoto Engine source file
-FILE(GLOB SOURCE_FILES ../Mikoto-Sandbox/src/*.cc)
+FILE(GLOB SOURCE_FILES Sources/*.cc)
 
 # Libraries to link against target
 SET(LIBRARIES Mikoto)

@@ -60,7 +60,7 @@ SET(MSDF_ATLAS_GEN      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/msdf-atlas-gen)
 SET(SPIRV_REFLECT      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/spirv-reflect)
 
 # Setup Mikoto Engine source file
-FILE(GLOB SOURCE_FILES src/*.cc)
+FILE(GLOB SOURCE_FILES Sources/*.cc)
 
 # Setup third party source files
 

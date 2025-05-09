@@ -5,7 +5,7 @@
 #ifndef COMMANDLINEPARSER_HH
 #define COMMANDLINEPARSER_HH
 
-#include <ranges>
+#include <argparse/argparse.hpp>
 
 #include <Common/Common.hh>
 

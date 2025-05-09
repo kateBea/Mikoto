@@ -60,7 +60,7 @@ namespace Mikoto {
             for ( auto& item: tasks ) {
                 if ( item->GetThreadNumber() >= m_TaskScheduler.GetNumTaskThreads() ) {
                     // Should instead assign to threads that do not have pending jobs
-                    std::cout << "Thread number is bigger than available workers. Assigning task to main thread." << std::endl;
+
                     item->SetThreadNumber( 0 );
                 }
 
@@ -73,7 +73,7 @@ namespace Mikoto {
         auto EnqueueAttachedTask( const std::vector<IAttachedTask*>& tasks ) -> void {
             for ( auto& item: tasks ) {
                 if ( item->GetThreadNumber() >= m_TaskScheduler.GetNumTaskThreads() ) {
-                    std::cout << "Thread number is bigger than available workers. Assigning task to main thread." << std::endl;
+
                     item->SetThreadNumber( 0 );
                 }
 

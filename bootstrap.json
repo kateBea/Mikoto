@@ -197,5 +197,12 @@
             "type": "git",
             "url": "https://github.com/ThePhD/sol2.git"
         }
+    },
+    {
+        "name": "argparse",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/p-ranav/argparse"
+        }
     }
 ]

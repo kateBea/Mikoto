@@ -11,8 +11,6 @@
 #include <Library/Data/ResourcePool.hh>
 #include <Library/Utility/Types.hh>
 
-#include "AudioDevice.hh"
-
 namespace Mikoto {
     class AudioDevice;
 

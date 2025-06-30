@@ -11,7 +11,7 @@
 #include <imgui.h>
 
 #include <Common/Service.hh>
-#include <GUI/ImGuiBackend.hh>
+#include <ImGui/ImGuiBackend.hh>
 #include <Renderer/RendererBackend.hh>
 
 namespace Mikoto {

@@ -283,7 +283,7 @@ namespace Mikoto {
     }
 
     auto EditorLayer::PrepareNewScene() -> void {
-        CreateScene( "Sandbox" );
+        InitializeEmptyScene( "Sandbox" );
     }
 
     auto EditorLayer::PrepareSerialization() -> void {
@@ -292,6 +292,7 @@ namespace Mikoto {
     }
 
     auto EditorLayer::SaveScene() const -> void {
+        // File filters
         const std::initializer_list<std::pair<std::string, std::string>> filters{
             { "Mikoto Scene files", "mkts,mktscene" },
             { "Mikoto Project Files", "mkt,mktp,mktproject" }
@@ -315,7 +316,7 @@ namespace Mikoto {
         m_ActiveScene = m_SceneSerializer->Deserialize( sceneSavePath );
     }
 
-    auto EditorLayer::CreateScene( const std::string_view name ) -> void {
+    auto EditorLayer::InitializeEmptyScene( const std::string_view name ) -> void {
         m_SelectedEntity = nullptr;
         m_ActiveScene = CreateScope<Scene>( name );
 
@@ -485,7 +486,7 @@ namespace Mikoto {
                 // Disabling fullscreen would allow the window to be moved to the front of other windows,
                 // which we can't undo at the moment without finer window depth/z control.
 
-                if ( ImGui::MenuItem( "New scene", "Ctrl + N" ) ) { CreateScene( "Sandbox3D" ); }
+                if ( ImGui::MenuItem( "New scene", "Ctrl + N" ) ) { InitializeEmptyScene( "Sandbox3D" ); }
                 if ( ImGui::MenuItem( "Open scene", "Ctrl + L" ) ) { LoadScene(); }
                 if ( ImGui::MenuItem( "Save scene", "Ctrl + S" ) ) { SaveScene(); }
 

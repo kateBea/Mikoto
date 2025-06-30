@@ -243,16 +243,15 @@ namespace Mikoto::StringUtils {
             }
         }
 
-        while (rightCharIt != str.rend()) {
-            if (std::isspace(*rightCharIt)) {
-                rightCharIt = std::next(rightCharIt);
-            }
-            else {
+        while ( rightCharIt != str.rend() ) {
+            if ( std::isspace( *rightCharIt ) ) {
+                rightCharIt = std::next( rightCharIt );
+            } else {
                 break;
             }
         }
 
-        auto right{  rightCharIt.base() };
+        const auto right{  rightCharIt.base() };
 
         return std::string{ str.substr(leftCharIt - str.begin(), right - leftCharIt) };
     }
@@ -264,8 +263,8 @@ namespace Mikoto::StringUtils {
      * @param str2 Null terminated string to compare.
      * @returns True if both string are the same, false otherwise.
      * */
-    MKT_NODISCARD inline constexpr auto Equal(std::string_view str1, std::string_view str2) -> bool {
-        return str1.compare(str2) == 0;
+    MKT_NODISCARD inline constexpr auto Equal( const std::string_view str1, const std::string_view str2) -> bool {
+        return str1 == str2;
     }
 
 

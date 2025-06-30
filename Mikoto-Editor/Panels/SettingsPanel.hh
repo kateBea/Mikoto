@@ -43,8 +43,9 @@ namespace Mikoto {
         explicit SettingsPanel(const SettingsPanelCreateInfo& data);
 
         auto OnUpdate(float timeStep) -> void override;
-        auto SetRenderBackgroundColor(const glm::vec4& color) { m_Data.ClearColor = color; }
-        auto SetRenderFieldOfView( const float fov) -> void { m_Data.FieldOfView = fov; }
+
+        auto SetRenderFieldOfView(float fov) -> void;
+        auto SetRenderClearColor(const glm::vec4& color) -> void;
 
         MKT_NODISCARD auto GetData() const -> const SettingsPanelData& { return m_Data; }
 

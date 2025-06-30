@@ -10,11 +10,6 @@ namespace Mikoto {
     AudioService::AudioService( const AudioServiceCreateInfo &options ) {
     }
 
-    auto AudioService::TestSound( const Path_T &soundFile ) const -> void {
-        (void)m_Device;
-        (void)soundFile;
-    }
-
     auto AudioService::GetDevice() -> AudioDevice * {
         return m_Device.get();
     }

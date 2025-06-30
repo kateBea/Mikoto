@@ -11,6 +11,10 @@
 #include <Library/Utility/Types.hh>
 
 namespace Mikoto::ThreadUtils {
+    /**
+     * @brief Get the number of concurrent threads supported by the system
+     * @return Number of concurrent threads supported by the system
+     */
     MKT_NODISCARD auto inline InferConcurrentThreads() -> UInt32_T {
         return std::thread::hardware_concurrency();
     }

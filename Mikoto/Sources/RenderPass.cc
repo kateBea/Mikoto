@@ -9,33 +9,7 @@ namespace Mikoto {
     GBufferPass::GBufferPass( const GBufferPassDescription &description ) {}
 
     auto GBufferPass::Init( GpuDevice *device ) -> void {
-        // Create textures for GBuffer (Albedo, Normal, Position)
-        m_GBuffer.Albedo = device->CreateTexture( TextureDescription{ .Format = TextureFormat::TEXTURE_FORMAT_RGBA8,
-                                                    .Width = m_ViewportWidth,
-                                                    .Height = m_ViewportHeight } );
 
-        m_GBuffer.Normal = device->CreateTexture( TextureDescription{ .Format = TextureFormat::TEXTURE_FORMAT_RGBA8,
-                                                    .Width = m_ViewportWidth,
-                                                    .Height = m_ViewportHeight } );
-
-        m_GBuffer.Position = device->CreateTexture( TextureDescription{ .Format = TextureFormat::TEXTURE_FORMAT_RGBA8,
-                                                    .Width = m_ViewportWidth,
-                                                    .Height = m_ViewportHeight } );
-
-        // Create framebuffer for GBuffer pass
-        FramebufferDescription description{};
-        description
-                .AddAttachment( m_GBuffer.Albedo )
-                .AddAttachment( m_GBuffer.Normal )
-                .AddAttachment( m_GBuffer.Position )
-                .WithWidth( m_ViewportWidth )
-                .WithHeight( m_ViewportHeight );
-
-        m_Framebuffer = device->CreateFramebuffer( description );
-
-        GraphicsPipelineDescription pipelineDesc{};
-
-        m_Pipeline = device->CreateGraphicsPipeline( pipelineDesc );
     }
 
     auto GBufferPass::Shutdown() -> void {
@@ -67,16 +41,12 @@ namespace Mikoto {
     }
 
     auto LightCullingPass::Init( GpuDevice *device ) -> void {
-        m_LightClusters = device->CreateBuffer(BufferDescription{
-            .Usage = BufferUsage::BUFFER_USAGE_SHADER_STORAGE
-        });
 
-        m_LightCulling = device->CreateBuffer(BufferDescription{
-            .Usage = BufferUsage::BUFFER_USAGE_SHADER_STORAGE
-        });
     }
 
-    auto LightCullingPass::Shutdown() -> void {}
+    auto LightCullingPass::Shutdown() -> void {
+
+    }
 
     auto LightCullingPass::Execute( RendererBackend *backend ) -> void {
         CommandListHandle commandList{ backend->CreateCommandList() };

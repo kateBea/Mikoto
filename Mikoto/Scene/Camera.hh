@@ -24,11 +24,6 @@ namespace Mikoto {
 
     class Camera {
     public:
-        explicit Camera(const glm::mat4& projection = glm::mat4(1.0f), const glm::mat4& transform = glm::mat4(1.0f), ProjectionType projectionType = ProjectionType::PERSPECTIVE )
-            :   m_Projection{ projection }, m_Transform{ transform }, m_ProjectionType{ projectionType }
-        {
-            SetProjectionType(m_ProjectionType);
-        }
 
         Camera(const Camera& other) = default;
         Camera(Camera&& other) = default;
@@ -82,6 +77,12 @@ namespace Mikoto {
         ~Camera() = default;
 
     protected:
+        explicit Camera(const glm::mat4& projection = glm::mat4(1.0f), const glm::mat4& transform = glm::mat4(1.0f), ProjectionType projectionType = ProjectionType::PERSPECTIVE )
+            :   m_Projection{ projection }, m_Transform{ transform }, m_ProjectionType{ projectionType }
+        {
+            SetProjectionType(m_ProjectionType);
+        }
+
         auto SetProjectionFromType() -> void {
 
             switch(m_ProjectionType) {

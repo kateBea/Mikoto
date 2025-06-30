@@ -4,10 +4,16 @@
 
 #ifndef LUASERVICE_HH
 #define LUASERVICE_HH
+#include <Common/Service.hh>
 
 
 namespace Mikoto {
-  class LuaService {
+  class LuaService final : public IService<LuaService> {
+  public:
+    auto Init() -> void override;
+    auto Shutdown() -> void override;
+
+  private:
 
   };
 }

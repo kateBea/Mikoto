@@ -42,7 +42,6 @@ namespace Mikoto {
         auto UpdateIdle( double deltaTime ) -> void;
         auto UpdateSimulate( double deltaTime ) -> void;
 
-        // (deferred) queue the entity to remove and mark it as no longer valid
         auto RemoveEntity( UInt64_T uniqueID ) -> void;
 
         auto FindByID( UInt64_T uniqueID ) -> Entity*;

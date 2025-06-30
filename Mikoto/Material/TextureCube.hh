@@ -24,7 +24,6 @@ namespace Mikoto {
          * @param height Height of the texture in pixels.
          * @param channels Number of color channels in the texture.
          * @param data Pointer to the texture data
-         * @param format Texture format
          * @param usage Type of resource usage
          */
         TextureCube(const TextureType type, const Int32_T width, const Int32_T height, const Int32_T channels, Byte_T* data,

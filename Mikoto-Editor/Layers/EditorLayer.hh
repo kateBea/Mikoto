@@ -45,7 +45,7 @@ namespace Mikoto {
     private:
         auto SaveScene() const -> void;
         auto LoadScene() -> void;
-        auto CreateScene(std::string_view name) -> void;
+        auto InitializeEmptyScene(std::string_view name) -> void;
 
         auto SaveProject() -> void;
         auto OpenProject() -> void;

@@ -21,6 +21,7 @@
 #include <Assets/Audio.hh>
 #include <Assets/Font.hh>
 #include <Assets/Model.hh>
+#include <Audio/AudioDevice.hh>
 #include <Common/Common.hh>
 #include <Library/Math/Math.hh>
 #include <Library/Random/Random.hh>

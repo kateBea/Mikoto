@@ -10,7 +10,7 @@
 auto main( const int argc, char** argv ) -> int {
     using namespace Mikoto;
 
-    const auto app{ CreateScope<EditorApp>()};
+    const auto app{ CreateScope<EditorApp>() };
 
     const Int32_T ret{ app->Run( argc, argv ) };
 

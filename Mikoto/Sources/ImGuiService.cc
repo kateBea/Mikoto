@@ -6,15 +6,17 @@
 #include <backends/imgui_impl_glfw.h>
 
     // Project Headers
-#include <GUI/Icons/IconsFontAwesome5.h>
-#include <GUI/Icons/IconsMaterialDesign.h>
-#include <GUI/Icons/IconsMaterialDesignIcons.h>
+#include <ImGui/IconsFontAwesome5.h>
+#include <ImGui/IconsMaterialDesign.h>
+#include <ImGui/IconsMaterialDesignIcons.h>
 #include <imgui_impl_vulkan.h>
 
 #include <Common/Common.hh>
 #include <Core/Logger.hh>
-#include <GUI/ImGuiService.hh>
-#include <GUI/ImGuiVulkanBackend.hh>
+#include <ImGui/ImGuiService.hh>
+#include <ImGui/ImGuiUtility.hh>
+#include <ImGui/ImGuiVulkanBackend.hh>
+#include <ImGui/ImGuiBackend.hh>
 #include <Library/Filesystem/PathBuilder.hh>
 #include <Renderer/RenderService.hh>
 

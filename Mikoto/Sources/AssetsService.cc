@@ -14,7 +14,6 @@
 #include <Material/TextureCube.hh>
 #include <Renderer/FontService.hh>
 #include <Renderer/GpuDevice.hh>
-#include <filesystem>
 
 namespace Mikoto {
 

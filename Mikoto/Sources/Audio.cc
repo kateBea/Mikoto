@@ -7,7 +7,7 @@
 #include <Assets/Audio.hh>
 #include <Audio/AudioDevice.hh>
 #include <Core/Logger.hh>
-#include <Library/Filesystem/File.hh>
+#include <Library/IO/File.hh>
 
 namespace Mikoto {
     AudioLoadDescription& AudioLoadDescription::WithFile( const File* source ) {

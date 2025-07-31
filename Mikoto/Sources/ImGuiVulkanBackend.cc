@@ -18,7 +18,7 @@
 #include <ImGuizmo/ImGuizmo.h>
 
 #include <Core/Logger.hh>
-#include <GUI/ImGuiVulkanBackend.hh>
+#include <ImGui/ImGuiVulkanBackend.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
 

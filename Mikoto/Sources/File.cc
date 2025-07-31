@@ -2,7 +2,7 @@
 // Created by zanet on 3/26/2025.
 //
 
-#include <Library/Filesystem/File.hh>
+#include <Library/IO/File.hh>
 
 namespace Mikoto {
 
@@ -111,18 +111,9 @@ namespace Mikoto {
             { "png", { 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A } },   // PNG
             { "jpeg", { 0xFF, 0xD8, 0xFF, 0xE0 } },                       // JPEG
             { "jpg", { 0xFF, 0xD8, 0xFF } },                              // JPG
-            { "gif", { 'G', 'I', 'F', '8' } },                            // GIF87a or GIF89a
-            { "pdf", { '%', 'P', 'D', 'F', '-' } },                       // PDF
-            { "zip", { 0x50, 0x4B, 0x03, 0x04 } },                        // ZIP
-            { "rar", { 0x52, 0x61, 0x72, 0x21, 0x1A, 0x07 } },            // RAR
-            { "bmp", { 'B', 'M' } },                                      // BMP
             { "mp3", { 0x49, 0x44, 0x33 } },                              // MP3 with ID3 tag
-            { "exe", { 0x4D, 0x5A } },                                    // MZ header for executables
-            { "ogg", { 'O', 'g', 'g', 'S' } },                            // OGG
             { "wav", { 'R', 'I', 'F', 'F' } },                            // WAV
             { "mp4", { 0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70 } },// MP4
-            { "tar", { 0x75, 0x73, 0x74, 0x61, 0x72 } },                  // TAR
-            { "7z", { 0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C } },             // 7-Zip
         };
 
         const auto itResult{ std::ranges::find_if( signatureMap, [&fileContent]( const std::pair<const std::string, std::vector<UChar_T>> &pair ) {

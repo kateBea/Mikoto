@@ -6,11 +6,11 @@
 #include <Assets/MeshFactory.hh>
 #include <Assets/Model.hh>
 #include <FileSystem/FileService.hh>
-#include <Library/Filesystem/PathBuilder.hh>
+#include <Library/IO/PathBuilder.hh>
 #include <Renderer/GpuUtility.hh>
+#include <Renderer/Pipeline.hh>
 #include <Renderer/RenderService.hh>
 #include <Threading/Task.hh>
-#include <Renderer/GraphicsPipeline.hh>
 
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"

@@ -35,12 +35,12 @@ namespace Mikoto {
 
         auto Init() -> void;
 
-        auto GetCoreLogger() -> const Ref_T<spdlog::logger>&;
-        auto GetAppLogger() -> const Ref_T<spdlog::logger>&;
+        auto GetCoreLogger() -> const Shared<spdlog::logger>&;
+        auto GetAppLogger() -> const Shared<spdlog::logger>&;
 
     private:
-        Ref_T<spdlog::logger> m_CoreLogger{};
-        Ref_T<spdlog::logger> m_AppLogger{};
+        Shared<spdlog::logger> m_CoreLogger{};
+        Shared<spdlog::logger> m_AppLogger{};
     };
 }
 

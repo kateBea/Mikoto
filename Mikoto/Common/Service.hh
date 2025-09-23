@@ -5,9 +5,10 @@
 #ifndef SERVICE_HH
 #define SERVICE_HH
 
+#include <type_traits>
+
 #include <Common/Common.hh>
 #include <Common/Singleton.hh>
-#include <type_traits>
 
 namespace Mikoto {
 

@@ -16,7 +16,7 @@ namespace Mikoto {
          * @param argc argument count.
          * @param argv list of null terminated c-strings command line arguments.
          * */
-        auto Run(Int32_T argc, char** argv) -> Int32_T override;
+        auto Run(Int32 argc, char** argv) -> Int32 override;
 
     protected:
         auto Init() -> void override;
@@ -31,7 +31,7 @@ namespace Mikoto {
          * @param argc argument count.
          * @param argv list of null terminated c-string.
          * */
-        auto ParseArguments(Int32_T argc, char **argv) -> void;
+        auto ParseArguments(Int32 argc, char **argv) -> void;
 
     private:
         std::vector<std::string> m_CommandLineArgs{}; /**< Holds the command line arguments. */

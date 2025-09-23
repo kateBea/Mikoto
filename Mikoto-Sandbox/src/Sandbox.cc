@@ -7,19 +7,19 @@
 
 namespace Mikoto {
 
-    auto SandboxApp::ParseArguments(Int32_T argc, char** argv) -> void {
+    auto SandboxApp::ParseArguments(Int32 argc, char** argv) -> void {
         const auto limit{ std::addressof(argv[argc]) };
         for ( ; argv < limit; ++argv) {
             m_CommandLineArgs.emplace_back(*argv);
         }
     }
 
-    auto SandboxApp::Run(Int32_T argc, char** argv) -> Int32_T {
+    auto SandboxApp::Run(Int32 argc, char** argv) -> Int32 {
         ParseArguments(argc, argv);
 
         ParseArguments(argc, argv);
 
-        Int32_T exitCode{ EXIT_SUCCESS };
+        Int32 exitCode{ EXIT_SUCCESS };
 
         Init( );
 

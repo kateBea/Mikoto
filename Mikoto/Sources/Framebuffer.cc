@@ -1,9 +1,9 @@
+// //
+// // Created by zanet on 4/9/2025.
+// //
 //
-// Created by zanet on 4/9/2025.
+// #include "Renderer/Framebuffer.hh"
 //
-
-#include "Renderer/Framebuffer.hh"
-
-namespace Mikoto {
-
-}
+// namespace Mikoto {
+//
+// }

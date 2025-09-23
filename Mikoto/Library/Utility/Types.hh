@@ -16,41 +16,41 @@
 #include <ankerl/unordered_dense.h>
 
 namespace Mikoto {
-    using Path_T = std::filesystem::path;
+    using Path = std::filesystem::path;
 
-    using Int8_T = std::int8_t;
-    using Int16_T = std::int16_t;
-    using Int32_T = std::int32_t;
-    using Int64_T = std::int64_t;
+    using Int8 = std::int8_t;
+    using Int16 = std::int16_t;
+    using Int32 = std::int32_t;
+    using Int64 = std::int64_t;
 
-    using UInt8_T = std::uint8_t;
-    using UInt16_T = std::uint16_t;
-    using UInt32_T = std::uint32_t;
-    using UInt64_T = std::uint64_t;
+    using UInt8 = std::uint8_t;
+    using UInt16 = std::uint16_t;
+    using UInt32 = std::uint32_t;
+    using UInt64 = std::uint64_t;
 
-    using UShort_T = unsigned short;
-    using UChar_T = unsigned char;
-    using ULong_T = unsigned short;
-    using ULongLong_T = unsigned long long;
+    using UShort = unsigned short;
+    using UChar = unsigned char;
+    using ULong = unsigned short;
+    using ULongLong = unsigned long long;
 
-    using Short_T = unsigned short;
-    using Long_T = unsigned long;
-    using LongLong_T = long long;
+    using Short = unsigned short;
+    using Long = unsigned long;
+    using LongLong = long long;
 
-    using Size_T = std::size_t;
+    using Size = std::size_t;
 
-    using CStr_T = const char*;
+    using CStr = const char*;
 
-    using Byte_T = unsigned char;
-
-    template<typename T>
-    using Scope_T = std::unique_ptr<T>;
+    using Byte = unsigned char;
 
     template<typename T>
-    using Ref_T = std::shared_ptr<T>;
+    using Unique = std::unique_ptr<T>;
+
+    template<typename T>
+    using Shared = std::shared_ptr<T>;
 
     template<typename Value>
-    using Registry_T = ankerl::unordered_dense::map<Size_T, Value>;
+    using RegistryCont = ankerl::unordered_dense::map<Size, Value>;
 
     /**
      * @brief Creates a unique pointer to the given type.
@@ -60,7 +60,7 @@ namespace Mikoto {
      * @return a unique pointer to the object.
      * */
     template<typename T, typename... Args>
-    constexpr auto CreateScope( Args &&...args ) -> Scope_T<T> {
+    constexpr auto CreateScope( Args &&...args ) -> Unique<T> {
         return std::make_unique<T>( std::forward<Args>( args )... );
     }
 
@@ -72,7 +72,7 @@ namespace Mikoto {
      * @return a shared pointer to the object.
      * */
     template<typename T, typename... Args>
-    constexpr auto CreateRef( Args &&...args ) -> Ref_T<T> {
+    constexpr auto CreateRef( Args &&...args ) -> Shared<T> {
         return std::make_shared<T>( std::forward<Args>( args )... );
     }
 
@@ -83,8 +83,8 @@ namespace Mikoto {
      * @return a pointer to the byte array.
      */
     template<typename T>
-    auto AsBytes( T* value ) -> Byte_T* {
-        return reinterpret_cast<Byte_T*>( value );
+    auto AsBytes( T* value ) -> Byte* {
+        return reinterpret_cast<Byte*>( value );
     }
 
 

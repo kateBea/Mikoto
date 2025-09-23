@@ -40,7 +40,7 @@ namespace Mikoto {
          * @param argc Argument count.
          * @param argv List of null terminated c-strings command line arguments.
          * */
-        virtual auto Run( Int32_T argc, char** argv ) -> Int32_T = 0;
+        virtual auto Run( Int32 argc, char** argv ) -> Int32 = 0;
 
         /**
          * @brief Destructs this application after exiting its scope.

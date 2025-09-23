@@ -278,8 +278,8 @@ namespace Mikoto::StringUtils {
      *
      * */
     template<typename... Args>
-    inline auto ConcatenatePath(const Path_T& first, Args&&... routes) -> Path_T {
-        Path_T result{};
+    inline auto ConcatenatePath(const Path& first, Args&&... routes) -> Path {
+        Path result{};
         result = result / first;
 
         std::filesystem::path expansion{};
@@ -305,7 +305,7 @@ namespace Mikoto::StringUtils {
      * @param path Path to the file
      * @returns String of byte sized .characters.
      * */
-    inline auto GetByteChar(const Path_T &path) -> std::string {
+    inline auto GetByteChar(const Path &path) -> std::string {
         std::string fileDir(4096, '\0');
 #if defined(_WIN32) || defined(_WIN64)
         auto byteChar{ path.string() };
@@ -317,7 +317,7 @@ namespace Mikoto::StringUtils {
         return fileDir;
     }
 
-    MKT_NODISCARD inline auto ToHex(Size_T value, const bool upper = true) -> std::string {
+    MKT_NODISCARD inline auto ToHex(Size value, const bool upper = true) -> std::string {
         std::string result{ std::format("0x{:x}", value) };
 
         if (upper) {

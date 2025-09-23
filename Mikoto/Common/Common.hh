@@ -58,9 +58,9 @@
 namespace Mikoto {
 
     struct SystemInfo {
-        Int64_T TotalRam{};  // Total usable main memory size in kB
-        Int64_T FreeRam{};   // Available memory size in kB
-        Int64_T SharedRam{}; // Amount of shared memory in kB
+        Int64 TotalRam{};  // Total usable main memory size in kB
+        Int64 FreeRam{};   // Available memory size in kB
+        Int64 SharedRam{}; // Amount of shared memory in kB
     };
 
     /**
@@ -105,9 +105,9 @@ namespace Mikoto {
         SystemInfo result{};
 
         auto parseLongFromLine{
-                [](const std::string& line) -> Int64_T {
+                [](const std::string& line) -> Int64 {
                     std::stringstream ss{ line };
-                    Int64_T parsedInteger{};
+                    Int64 parsedInteger{};
 
                     ss >> parsedInteger;
 

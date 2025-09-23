@@ -36,12 +36,12 @@ namespace Mikoto {
      * Returns a random 64-bit integer
      * @return random 64-bit integer
      * */
-    MKT_NODISCARD inline auto GetRandomUInt64(std::random_device& seed = GetSeed()) -> UInt64_T {
+    MKT_NODISCARD inline auto GetRandomUInt64(std::random_device& seed = GetSeed()) -> UInt64 {
         thread_local std::mt19937_64 mt{ seed() };
 
-        return std::uniform_int_distribution<UInt64_T>{
-                (std::numeric_limits<UInt64_T>::min)(),
-                (std::numeric_limits<UInt64_T>::max)(),
+        return std::uniform_int_distribution<UInt64>{
+                (std::numeric_limits<UInt64>::min)(),
+                (std::numeric_limits<UInt64>::max)(),
         }(mt);
     }
 
@@ -50,12 +50,12 @@ namespace Mikoto {
      * Returns a random integer
      * @return random integer
      * */
-    MKT_NODISCARD inline auto GetRandomUInt32(std::random_device& seed = GetSeed()) -> UInt32_T {
+    MKT_NODISCARD inline auto GetRandomUInt32(std::random_device& seed = GetSeed()) -> UInt32 {
         thread_local std::mt19937 mt{ seed() };
 
-        return std::uniform_int_distribution<UInt32_T>{
-                (std::numeric_limits<UInt32_T>::min)(),
-            (std::numeric_limits<UInt32_T>::max)(),
+        return std::uniform_int_distribution<UInt32>{
+                (std::numeric_limits<UInt32>::min)(),
+            (std::numeric_limits<UInt32>::max)(),
         }(mt);
     }
 
@@ -66,7 +66,7 @@ namespace Mikoto {
      * @return random integer in the range [lowerBound, upperbound)
      * @throws std::runtime_error if the range is invalid
      * */
-    MKT_NODISCARD inline auto GetRandomInt(Int32_T lowerBound, Int32_T upperbound, auto& seed = GetSeed()) -> Int32_T {
+    MKT_NODISCARD inline auto GetRandomInt(Int32 lowerBound, Int32 upperbound, auto& seed = GetSeed()) -> Int32 {
         if (lowerBound > upperbound)
             throw std::runtime_error(fmt::format("Invalid range for random integer generation. Lower bound is {}, upperbound is {}", lowerBound, upperbound));
 
@@ -90,10 +90,10 @@ namespace Mikoto {
     }
 
 
-    MKT_NODISCARD inline auto GetRandomIntNumberList(Size_T length, Int32_T lowerBound = -1000, Int32_T upperbound = 1000, auto& seed = GetSeed()) -> std::vector<Int32_T> {
-        std::vector<Int32_T> result{};
+    MKT_NODISCARD inline auto GetRandomIntNumberList(Size length, Int32 lowerBound = -1000, Int32 upperbound = 1000, auto& seed = GetSeed()) -> std::vector<Int32> {
+        std::vector<Int32> result{};
 
-        Size_T count{};
+        Size count{};
         result.reserve(length);
         for ( ; count < length; ++count)
             result.emplace_back(GetRandomInt(lowerBound, upperbound, seed));
@@ -102,10 +102,10 @@ namespace Mikoto {
     }
 
 
-    MKT_NODISCARD inline auto GetRandomRealNumberList(Size_T length, double lowerBound = -1000.0, double upperbound = 1000.0, auto& seed = GetSeed()) -> std::vector<double> {
+    MKT_NODISCARD inline auto GetRandomRealNumberList(Size length, double lowerBound = -1000.0, double upperbound = 1000.0, auto& seed = GetSeed()) -> std::vector<double> {
         std::vector<double> result{};
 
-        Size_T count{};
+        Size count{};
         result.reserve(length);
         for ( ; count < length; ++count)
             result.emplace_back(GetRandomReal(lowerBound, upperbound, seed));
@@ -114,8 +114,8 @@ namespace Mikoto {
     }
 
 
-    inline auto GetGUIDs() -> std::unordered_set<UInt64_T>& {
-        static std::unordered_set<UInt64_T> guids{};
+    inline auto GetGUIDs() -> std::unordered_set<UInt64>& {
+        static std::unordered_set<UInt64> guids{};
 
         return guids;
     }
@@ -124,7 +124,7 @@ namespace Mikoto {
      * Inserts guid to the list of valid guids
      * @param guid new guid
      * */
-    inline auto ValidateGUID(UInt64_T guid) -> void {
+    inline auto ValidateGUID(UInt64 guid) -> void {
         GetGUIDs().emplace(guid);
     }
 
@@ -132,7 +132,7 @@ namespace Mikoto {
      * Removes guid from the list of valid guids
      * @param guid id to be removed
      * */
-    inline auto InvalidateGUID(UInt64_T guid) -> void {
+    inline auto InvalidateGUID(UInt64 guid) -> void {
         GetGUIDs().erase(guid);
     }
 
@@ -149,7 +149,7 @@ namespace Mikoto {
      * Returns true if a guid has not been generated yet, false otherwise
      * @returns if a guid is valid or not
      * */
-    MKT_NODISCARD inline auto IsUse(UInt64_T guid) -> bool {
+    MKT_NODISCARD inline auto IsUse(UInt64 guid) -> bool {
         return GetGUIDs().contains(guid);
     }
 
@@ -158,10 +158,10 @@ namespace Mikoto {
      * function is used for the purpose of GUID's
      * @returns universally unique integer
      * */
-    MKT_NODISCARD inline auto GenerateGUID() -> UInt64_T {
+    MKT_NODISCARD inline auto GenerateGUID() -> UInt64 {
         static auto& seed{ GetGUIDSeed() };
 
-        UInt64_T result{ 0 };
+        UInt64 result{ 0 };
 
         do {
             result = GetRandomUInt64(seed);
@@ -180,14 +180,14 @@ namespace Mikoto {
         {
         }
 
-        explicit operator UInt64_T () const { return m_Id; }
+        explicit operator UInt64 () const { return m_Id; }
 
-        MKT_NODISCARD auto Get() const -> UInt64_T { return m_Id; }
+        MKT_NODISCARD auto Get() const -> UInt64 { return m_Id; }
 
         ~GlobalUniqueID() { InvalidateGUID(m_Id); }
 
     private:
-        UInt64_T m_Id{};
+        UInt64 m_Id{};
     };
 }
 #endif // MIKOTO_RANDOM_HH

@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 
+set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
+
 project(Mikoto
         VERSION 1.0
         LANGUAGES CXX

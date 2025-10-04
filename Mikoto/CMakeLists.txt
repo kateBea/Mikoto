@@ -1,5 +1,35 @@
 cmake_minimum_required(VERSION 3.22)
 
+# ======================================
+# CMake Policy Settings
+# ======================================
+# CMP0069: INTERPROCEDURAL_OPTIMIZATION (IPO / LTO)
+# --------------------------------------
+# When enabled, this policy ensures that CMake enforces interprocedural
+# optimization (also known as link-time optimization, or LTO) properly.
+# Some external dependencies (like FreeType or Assimp) declare the
+# INTERPROCEDURAL_OPTIMIZATION property, but older policies would silently
+# ignore it. Setting CMP0069 to NEW ensures consistent LTO behavior and
+# silences related warnings.
+#
+# Reference: https://cmake.org/cmake/help/latest/policy/CMP0069.html
+#
+# CMP0135: DOWNLOAD_EXTRACT_TIMESTAMP
+# --------------------------------------
+# When using FetchContent_Declare() with a URL, this policy controls the
+# timestamps applied to extracted files.
+#   - OLD behavior: keeps timestamps from the original archive.
+#   - NEW behavior: sets timestamps to the extraction time.
+# Setting CMP0135 to NEW improves build reproducibility and avoids
+# unnecessary rebuilds when dependencies are updated.
+#
+# Reference: https://cmake.org/cmake/help/latest/policy/CMP0135.html
+#
+# Both are safe and recommended to set to NEW for modern CMake projects.
+# ======================================
+cmake_policy(SET CMP0069 NEW)
+cmake_policy(SET CMP0135 NEW)
+
 project(Mikoto)
 
 # ======================================
@@ -49,6 +79,18 @@ set(ENKITS_BUILD_EXAMPLES OFF CACHE BOOL "")
 set(ENKITS_BUILD_SHARED OFF CACHE BOOL "")
 set(ENKITS_INSTALL OFF CACHE BOOL "")
 set(ENKITS_SANITIZE ON CACHE BOOL "")
+
+# ======================================
+# Freetype options
+# ======================================
+# FreeType can optionally use HarfBuzz for advanced text shaping (ligatures, kerning, etc.)
+# Mikoto only uses FreeType to rasterize glyphs for MSDF generation — no need for HarfBuzz.
+#
+# Setting FT_REQUIRE_HARFBUZZ and FT_DISABLE_HARFBUZZ disables the dependency entirely,
+# preventing the "Required version higher than found version ()" warning.
+set(FT_REQUIRE_HARFBUZZ OFF CACHE BOOL "Disable HarfBuzz requirement in FreeType" FORCE)
+set(FT_DISABLE_HARFBUZZ TRUE CACHE BOOL "Disable HarfBuzz support in FreeType" FORCE)
+set(FT_WITH_HARFBUZZ OFF CACHE BOOL "Don't build with HarfBuzz" FORCE)
 
 # ======================================
 # External dependencies via FetchContent
@@ -233,6 +275,14 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(glm)
+
+# harfbuzz (not needed if you don't do complex text layout)
+#FetchContent_Declare(
+#        harfbuzz
+#        GIT_REPOSITORY https://github.com/harfbuzz/harfbuzz.git
+#        GIT_TAG main
+#)
+#FetchContent_MakeAvailable(harfbuzz)
 
 # ======================================
 # Project sources

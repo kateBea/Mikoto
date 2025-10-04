@@ -20,7 +20,7 @@ namespace Mikoto {
 
     };
 
-    class FileService final : public IService<FileService> {
+    class FileService final : public IService, public Singleton<FileService> {
     public:
         explicit FileService( const FileServiceCreateInfo& options );
 
@@ -38,23 +38,23 @@ namespace Mikoto {
         auto Shutdown() -> void override;
 
         // load from disc
-        auto LoadFile( const Path_T& path, FileMode mode = MKT_FILE_OPEN_MODE_NONE ) -> File*;
-        auto LoadFileAsync( const Path_T& path, FileMode mode = MKT_FILE_OPEN_MODE_NONE ) -> Task<File>*;
+        auto LoadFile( const Path& path, FileMode mode = MKT_FILE_OPEN_MODE_NONE ) -> File*;
+        auto LoadFileAsync( const Path& path, FileMode mode = MKT_FILE_OPEN_MODE_NONE ) -> Task<File>*;
 
-        auto GetFile( const Path_T& path ) -> File*;
-        auto GetFile( const Path_T& path ) const -> const File*;
+        auto GetFile( const Path& path ) -> File*;
+        auto GetFile( const Path& path ) const -> const File*;
 
-        auto OpenDialog( const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path_T;
-        auto SaveDialog( const std::string& filename, const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path_T;
+        auto OpenDialog( const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path;
+        auto SaveDialog( const std::string& filename, const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path;
 
         MKT_NODISCARD auto GetCurrentWorkingDirectory() const -> std::string;
 
         ~FileService() override = default;
 
     private:
-        Path_T m_CurrentWorkingDir{};
-        std::vector<Scope_T<ITask>> m_FileLoadTasks{};
-        ankerl::unordered_dense::map<std::string, Scope_T<File>> m_Files{};
+        Path m_CurrentWorkingDir{};
+        std::vector<Unique<ITask>> m_FileLoadTasks{};
+        ankerl::unordered_dense::map<std::string, Unique<File>> m_Files{};
     };
 }// namespace Mikoto
 

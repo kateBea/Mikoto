@@ -12,10 +12,9 @@
 #include <limits>
 #include <numeric>
 
-#include "TaskScheduler.h"
+#include <TaskScheduler.h>
 
 namespace Mikoto {
-
 
     enum class TaskPriority {
         LOW,
@@ -60,14 +59,14 @@ namespace Mikoto {
     template<typename T>
     class Task final : public ITask {
     public:
-        using TaskFunction_T = std::function<T*()>;
-        using OnCompleteTaskFunction_T = std::function<void( T* )>;
+        using TaskFunction = std::function<T*()>;
+        using OnCompleteTaskFunction = std::function<void( T* )>;
 
-        explicit Task( const TaskFunction_T& task, TaskPriority priority = TaskPriority::NORMAL )
+        explicit Task( const TaskFunction& task, TaskPriority priority = TaskPriority::NORMAL )
             : m_Task{ task }, m_Priority{ priority } {
         }
 
-        auto SetOnCompleteTask( const OnCompleteTaskFunction_T& func ) -> void {
+        auto SetOnCompleteTask( const OnCompleteTaskFunction& func ) -> void {
             m_CompleteTask = func;
         }
 
@@ -83,12 +82,16 @@ namespace Mikoto {
 
         auto GetObject() -> T* { return m_Result; }
         auto GetPriority() const -> TaskPriority { return m_Priority; }
+        //
+        // static auto FromResult(auto&& obj) -> Task<decltype(obj)>* {
+        //     return new Task<decltype(obj)>( [obj]() { return obj; }, TaskPriority::NORMAL );
+        // }
 
     private:
         T* m_Result{};
 
-        TaskFunction_T m_Task;
-        OnCompleteTaskFunction_T m_CompleteTask;
+        TaskFunction m_Task;
+        OnCompleteTaskFunction m_CompleteTask;
         TaskPriority m_Priority;
     };
 
@@ -160,10 +163,10 @@ namespace Mikoto {
     template<>
     class AttachedTask<void> final : public IAttachedTask {
     public:
-        using TaskFunction_T = std::function<void()>;
+        using TaskFunction = std::function<void()>;
         using OnCompleteTaskFunction_T = std::function<void()>;
 
-        explicit AttachedTask( const TaskFunction_T& task, uint32_t threadNumber = 0, const TaskPriority priority = TaskPriority::NORMAL )
+        explicit AttachedTask( const TaskFunction& task, uint32_t threadNumber = 0, const TaskPriority priority = TaskPriority::NORMAL )
             : IAttachedTask{ threadNumber }, m_Task{ task }, m_Priority{ priority } {
         }
 
@@ -185,8 +188,8 @@ namespace Mikoto {
         auto GetPriority() const -> TaskPriority { return m_Priority; }
 
     private:
-        TaskFunction_T m_Task;
-        TaskFunction_T m_CompleteTask;
+        TaskFunction m_Task;
+        TaskFunction m_CompleteTask;
         TaskPriority m_Priority;
     };
 }// namespace Mikoto

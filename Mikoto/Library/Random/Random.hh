@@ -18,7 +18,6 @@
 
 // Project Headers
 #include <Common/Common.hh>
-#include <Core/Logger.hh>
 #include <Library/Utility/Types.hh>
 
 namespace Mikoto {

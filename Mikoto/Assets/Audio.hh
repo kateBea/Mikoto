@@ -5,7 +5,7 @@
 #ifndef AUDIO_HH
 #define AUDIO_HH
 
-#include <miniaudio/miniaudio.h>
+#include <miniaudio.h>
 
 #include <Audio/AudioDeviceObject.hh>
 #include <Audio/AudioSource.hh>

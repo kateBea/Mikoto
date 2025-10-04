@@ -30,10 +30,10 @@
 namespace Mikoto {
 
     struct TaskServiceCreateInfo {
-        UInt32_T WorkerThreadCount{ 0 };
+        UInt32 WorkerThreadCount{ 0 };
     };
 
-    class TaskService final : public IService<TaskService> {
+    class TaskService final : public IService, public Singleton<TaskService> {
     public:
 
       explicit TaskService(const TaskServiceCreateInfo& options);
@@ -41,13 +41,13 @@ namespace Mikoto {
       auto Init() -> void override;
       auto Shutdown() -> void override;
 
-      auto GetWorkersCount() const -> UInt32_T { return m_TaskManager->GetThreadCount(); }
+      auto GetWorkersCount() const -> UInt32 { return m_TaskManager->GetThreadCount(); }
 
       ~TaskService() override = default;
 
     private:
-      UInt32_T m_ThreadCount{};
-      Scope_T<TaskManager> m_TaskManager{ nullptr };
+      UInt32 m_ThreadCount{};
+      Unique<TaskManager> m_TaskManager{ nullptr };
     };
 
 }

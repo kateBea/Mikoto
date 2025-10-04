@@ -30,7 +30,7 @@ namespace Mikoto {
         * @param device The audio device to which this source belongs.
         * @param path The file system path to the audio resource.
         */
-        explicit AudioSource( AudioDevice* device, const Path_T& path );
+        explicit AudioSource( AudioDevice* device, const Path& path );
 
         /**
          * @brief Gets the current volume level.
@@ -66,6 +66,10 @@ namespace Mikoto {
          * @param volume A float value in the range [0.0, 1.0]. Values <= 0 are ignored.
          */
         auto SetVolume( float volume ) -> void;
+
+        auto IncreaseVolume( float delta ) -> void;
+
+        auto DecreaseVolume( float delta ) -> void;
 
         /**
          * @brief Enables or disables looping for the audio playback.
@@ -159,10 +163,10 @@ namespace Mikoto {
 
     private:
         ma_sound m_Sound{};
-        Path_T m_Path{};
+        Path m_Path{};
 
-        float m_Volume{};
-        bool m_Muted{};
+        float m_Volume{ 10.0f};
+        bool m_Muted{ false };
         float m_Pitch{ 1.0f };
         bool m_IsLooping{ false };
         bool m_IsSpatialized{ false };

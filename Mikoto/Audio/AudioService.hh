@@ -10,14 +10,14 @@
 #include <Library/Utility/Types.hh>
 #include <Threading/Task.hh>
 
-#include "AudioDevice.hh"
+#include "Audio/AudioDevice.hh"
 
 namespace Mikoto {
     struct AudioServiceCreateInfo {
 
     };
 
-    class AudioService final : public IService<AudioService> {
+    class AudioService final : public IService, public Singleton<AudioService> {
     public:
         explicit AudioService(const AudioServiceCreateInfo& options);
 
@@ -30,7 +30,7 @@ namespace Mikoto {
         ~AudioService() override = default;
 
     private:
-        Scope_T<AudioDevice> m_Device{};
+        Unique<AudioDevice> m_Device{};
     };
 
 }

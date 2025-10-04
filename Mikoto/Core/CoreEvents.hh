@@ -21,7 +21,7 @@
 namespace Mikoto {
     class WindowResizedEvent final : public Event {
     public:
-        WindowResizedEvent(Int32_T newWidth, Int32_T newHeight)
+        WindowResizedEvent(Int32 newWidth, Int32 newHeight)
             :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
             ,   m_Width{ newWidth }
             ,   m_Height{ newHeight }
@@ -29,8 +29,8 @@ namespace Mikoto {
 
         }
 
-        MKT_NODISCARD auto GetWidth() const -> Int32_T { return m_Width; }
-        MKT_NODISCARD auto GetHeight() const -> Int32_T { return m_Height; }
+        MKT_NODISCARD auto GetWidth() const -> Int32 { return m_Width; }
+        MKT_NODISCARD auto GetHeight() const -> Int32 { return m_Height; }
         MKT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
 
         MKT_NODISCARD static auto GetStaticType() -> EventType { return EventType::WINDOW_RESIZE_EVENT; }
@@ -42,8 +42,8 @@ namespace Mikoto {
     protected:
         MKT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
 
-        Int32_T m_Width{};
-        Int32_T m_Height{};
+        Int32 m_Width{};
+        Int32 m_Height{};
     };
 
     class WindowCloseEvent final : public Event {
@@ -169,22 +169,22 @@ namespace Mikoto {
 
     class KeyEvent : public Event {
     public:
-        MKT_NODISCARD auto GetKeyCode() const -> Int32_T { return m_KeyCode; }
+        MKT_NODISCARD auto GetKeyCode() const -> Int32 { return m_KeyCode; }
 
     protected:
-        KeyEvent(EventType type, Int32_T keyCode)
+        KeyEvent(EventType type, Int32 keyCode)
             :   Event{ type, GetCategoryFromType(type) }
             ,   m_KeyCode{ keyCode }
         {
 
         }
 
-        Int32_T m_KeyCode{};
+        Int32 m_KeyCode{};
     };
 
     class KeyPressedEvent final : public KeyEvent {
     public:
-        KeyPressedEvent(Int32_T keyCode, bool repeated, Int32_T modifiers = 0)
+        explicit KeyPressedEvent(const Int32 keyCode, const bool repeated = false, Int32 modifiers = 0)
             :   KeyEvent{ GetStaticType(), keyCode }
             ,   m_Repeated{ repeated }
             ,   m_Modifiers{ modifiers }
@@ -206,12 +206,12 @@ namespace Mikoto {
         MKT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
 
         bool m_Repeated{};
-        Int32_T m_Modifiers{};
+        Int32 m_Modifiers{};
     };
 
     class KeyReleasedEvent final : public KeyEvent {
     public:
-        explicit KeyReleasedEvent(Int32_T code)
+        explicit KeyReleasedEvent(Int32 code)
             :   KeyEvent{ GetStaticType(), code }
         {
 
@@ -230,7 +230,7 @@ namespace Mikoto {
 
     class KeyCharEvent final : public Event {
     public:
-        explicit KeyCharEvent(UInt32_T charCode)
+        explicit KeyCharEvent(UInt32 charCode)
             :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
             ,   m_KeyChar{ charCode }
         {
@@ -238,7 +238,7 @@ namespace Mikoto {
         }
 
         MKT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
-        MKT_NODISCARD auto GetChar() const -> UInt32_T { return m_KeyChar; }
+        MKT_NODISCARD auto GetChar() const -> UInt32 { return m_KeyChar; }
 
         MKT_NODISCARD static auto GetStaticType() -> EventType { return EventType::KEY_CHAR_EVENT; }
 
@@ -248,7 +248,7 @@ namespace Mikoto {
     private:
         MKT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
 
-        UInt32_T m_KeyChar{};
+        UInt32 m_KeyChar{};
     };
 
     class MouseMovedEvent final : public Event {
@@ -289,7 +289,7 @@ namespace Mikoto {
 
     class MouseButtonPressedEvent final : public MouseEvent {
     public:
-        explicit MouseButtonPressedEvent(Int32_T button, Int32_T modifiers = 0)
+        explicit MouseButtonPressedEvent(Int32 button, Int32 modifiers = 0)
             :   MouseEvent{ GetStaticType() }
             ,   m_Button{ button }
             ,   m_Modifiers{ modifiers }
@@ -297,8 +297,8 @@ namespace Mikoto {
 
         }
 
-        MKT_NODISCARD auto GetMouseButton() const -> Int32_T { return m_Button; }
-        MKT_NODISCARD auto GetModifiers() const -> Int32_T { return m_Modifiers; }
+        MKT_NODISCARD auto GetMouseButton() const -> Int32 { return m_Button; }
+        MKT_NODISCARD auto GetModifiers() const -> Int32 { return m_Modifiers; }
         MKT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
 
         MKT_NODISCARD static auto GetStaticType() -> EventType { return EventType::MOUSE_BUTTON_PRESSED_EVENT; }
@@ -311,20 +311,20 @@ namespace Mikoto {
     protected:
         MKT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
 
-        Int32_T m_Button{};
-        Int32_T m_Modifiers{};
+        Int32 m_Button{};
+        Int32 m_Modifiers{};
     };
 
     class MouseButtonReleasedEvent final : public MouseEvent {
     public:
-        explicit MouseButtonReleasedEvent(Int32_T button)
+        explicit MouseButtonReleasedEvent(Int32 button)
             :   MouseEvent{ GetStaticType() }
             ,   m_Button{ button }
         {
 
         }
 
-        MKT_NODISCARD auto GetMouseButton() const -> Int32_T { return m_Button; }
+        MKT_NODISCARD auto GetMouseButton() const -> Int32 { return m_Button; }
         MKT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
 
         MKT_NODISCARD static auto GetStaticType() -> EventType { return EventType::MOUSE_BUTTON_RELEASED_EVENT; }
@@ -336,7 +336,7 @@ namespace Mikoto {
     protected:
         MKT_NODISCARD auto ToString() const -> std::string_view override { return GetEventFormattedStr(GetType()); }
 
-        Int32_T m_Button{};
+        Int32 m_Button{};
     };
 
     class MouseScrollEvent final : public MouseEvent {

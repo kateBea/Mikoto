@@ -12,7 +12,7 @@ namespace Mikoto {
 
     };
 
-    class PhysicService final : public IService<PhysicService> {
+    class PhysicService final : public IService, public Singleton<PhysicService> {
     public:
         explicit PhysicService(const PhysicServiceCreateInfo& options);
 
@@ -20,7 +20,7 @@ namespace Mikoto {
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
-        auto Update(float dt) -> void;
+        auto Update(float dt) -> void override;
     };
 
 }

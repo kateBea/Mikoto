@@ -16,6 +16,10 @@
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
+#include <ranges>
+
+#include <ankerl/unordered_dense.h>
+#include <Common/Singleton.hh>
 
 namespace Mikoto {
 
@@ -25,14 +29,18 @@ namespace Mikoto {
     template<typename EventClassType>
     concept IsEventDerived = std::is_base_of_v<Event, EventClassType>;
 
-    class EventHandlerWrapper {
+    class EventHandler {
     public:
-        EventHandlerWrapper( EventType type, EventHandler_T&& func )
+        EventHandler( const EventType type, HandlerFunc&& func )
             : m_Type{ type }, m_Category{ GetCategoryFromType( type ) }, m_Handler{ std::move( func ) } {
         }
 
-        EventHandlerWrapper( EventHandlerWrapper&& other ) = default;
-        auto operator=( EventHandlerWrapper&& other ) noexcept -> EventHandlerWrapper& = default;
+        EventHandler( const EventCategory category, HandlerFunc&& func )
+            : m_Type{ EventType::UNKNOWN_EVENT }, m_Category{ category }, m_Handler{ std::move( func ) } {
+        }
+
+        EventHandler( EventHandler&& other ) = default;
+        auto operator=( EventHandler&& other ) noexcept -> EventHandler& = default;
 
         auto Exec( Event& event ) const -> bool {
             return m_Handler( event );
@@ -40,22 +48,22 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetType() const -> EventType { return m_Type; }
         MKT_NODISCARD auto GetCategory() const -> EventCategory { return m_Category; }
-        MKT_NODISCARD auto GetHandler() const -> EventHandler_T { return m_Handler; }
+        MKT_NODISCARD auto GetHandler() const -> HandlerFunc { return m_Handler; }
 
         /**
          * Returns true if this EventHandlerWrapper and other are the same, meaning
-         * they have same type of event and the event is from same categories.
+         * they have the same type of event and the event is from same categories.
          * @param other EventHandlerWrapper the implicit parameter is compared to
          * @returns true if this EventHandlerWrapper and other are the same, false otherwise
          * */
-        auto operator==( const EventHandlerWrapper& other ) const -> bool {
+        auto operator==( const EventHandler& other ) const -> bool {
             return m_Type == other.m_Type && m_Category == other.m_Category;
         }
 
     private:
         EventType m_Type{};
         EventCategory m_Category{};
-        EventHandler_T m_Handler{};
+        HandlerFunc m_Handler{};
     };
 
     /**
@@ -83,63 +91,69 @@ namespace Mikoto {
     class Subscriber {
     public:
 
-        auto GetID() const -> const GlobalUniqueID& { return m_UniqueID; }
+        MKT_NODISCARD auto GetID() const -> const GlobalUniqueID&;
 
-        auto GetHandler(EventType type) -> const EventHandler_T&;
-        auto GetHandler(EventCategory type) -> const EventHandler_T&;
+        auto GetHandler(EventType type) -> HandlerFunc;
+        auto GetHandler(EventCategory type) -> HandlerFunc;
 
     protected:
-        auto AddHandler(EventType type, EventHandler_T handler) -> void;
+        auto AddHandler(EventType type, HandlerFunc handler) -> void;
+        auto AddHandler(EventCategory category, HandlerFunc handler) -> void;
 
     protected:
         GlobalUniqueID m_UniqueID{};
-        ankerl::unordered_dense::map<EventType, EventHandlerWrapper> m_HandlersByType{};
-        ankerl::unordered_dense::map<EventCategory, EventHandlerWrapper> m_HandlersByCategory{};
+        ankerl::unordered_dense::map<EventType, EventHandler> m_HandlersByType{};
+        ankerl::unordered_dense::map<EventCategory, EventHandler> m_HandlersByCategory{};
     };
 
     struct EventServiceCreateInfo {
+
     };
 
-    class EventService final : public IService<EventService> {
-    public:
-        // Holds all the event subscribers with the corresponding event handler for each type of event.
-        // Subscribers are differentiated by their universally unique identifier (uuid for short).
-        // When a subscriber wants to receive some type of event, it is added to this map, and when that
-        // event has been triggered, the event handler will be run.
-        using Subscribers_T = std::unordered_map<UInt64_T, std::vector<EventHandlerWrapper>>;
-
-        // Represents an event queue
-        using EventQueue_T = std::vector<Scope_T<Event>>;
-
-        // List of events handlers
-        using Handlers_T = std::vector<EventHandlerWrapper>;
-
+    class EventService final : public IService, public Singleton<EventService> {
     public:
         explicit EventService( const EventServiceCreateInfo& options );
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
-        auto Update() -> void;
+        auto Update(float dt) -> void override;
 
-        auto Subscribe(Subscriber* subscriber, EventType eventType) -> void;
-        auto Subscribe(Subscriber* subscriber, EventCategory eventCategory) -> void;
-
-        auto UnSubscribe(Subscriber* subscriber, EventType eventType) -> void;
-        auto UnSubscribe(Subscriber* subscriber, EventCategory eventCategory) -> void;
+        auto Subscribe(Subscriber* subscriber) -> void;
+        auto UnSubscribe( const Subscriber* subscriber) -> void;
 
         /**
-         * Can be executed by a publisher to notify a type of event has happened.
+         * Queues an event to be processed later by the event service.
          * @param args arguments to be passed to the event
          * */
         template<typename EventType, typename... Args>
-        auto Trigger( Args&&... args ) -> void {
+        auto Queue( Args&&... args ) -> void {
             QueueEvent( MakeEvent<EventType>( std::forward<Args>( args )... ) );
+        }
+
+        /**
+         * Immediately processes an event by notifying all relevant subscribers.
+         * @param args arguments to be passed to the event
+         * */
+        template<typename EventType, typename... Args>
+        auto Emit( Args&&... args ) -> void {
+            auto event{ MakeEvent<EventType>( std::forward<Args>( args )... ) };
+
+            for ( auto& subscriber: m_Subscribers | std::views::values ) {
+
+                // If the subscriber has a handler for the exact type of event we have, call it
+                // Otherwise check whether the subscriber has a handler for the category of the event and call it
+                if ( const auto handler{ subscriber->GetHandler( event->GetType() ) }; handler ) {
+                    event->SetHandled( handler( *event ) );
+                } else if ( const auto handler{ subscriber->GetHandler( event->GetCategoryFlags() ) }; handler ) {
+                    event->SetHandled( handler( *event ) );
+                }
+            }
         }
 
     private:
         template<typename EventType, typename... Args>
             requires IsEventDerived<EventType>
-        MKT_NODISCARD static auto MakeEvent( Args&&... args ) -> Scope_T<Event> {
+        MKT_NODISCARD static auto MakeEvent( Args&&... args ) -> Unique<Event> {
             return CreateScope<EventType>( std::forward<Args>( args )... );
         }
 
@@ -157,8 +171,8 @@ namespace Mikoto {
         auto ProcessEvents() -> void;
 
     private:
-        std::vector<Subscriber> m_EventSubscribers{};
-        std::vector<Scope_T<Event>> m_EventQueue{};
+        std::vector<Unique<Event>> m_EventQueue{};
+        ankerl::unordered_dense::map<UInt64, Subscriber*> m_Subscribers{};
     };
 }// namespace Mikoto
 

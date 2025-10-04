@@ -18,6 +18,7 @@
 // Project Headers
 #include <Common/Common.hh>
 #include <Common/Service.hh>
+#include <Common/Singleton.hh>
 #include <Library/Utility/Types.hh>
 
 namespace Mikoto {
@@ -41,7 +42,7 @@ namespace Mikoto {
     /**
      * @brief A utility class to manage time-related operations.
      * */
-    class TimeService final : public IService<TimeService> {
+    class TimeService final : public IService, public Singleton<TimeService> {
     public:
         explicit TimeService(const TimeServiceCreateInfo& option);
 
@@ -94,27 +95,27 @@ namespace Mikoto {
         auto Shutdown() -> void override;
 
         // Conversion constants
-        static constexpr UInt32_T SECONDS_PER_HOUR{ 3'600 };        /**< Seconds per hour. */
-        static constexpr UInt32_T SECONDS_PER_MINUTE{ 60 };         /**< Minutes per second. */
+        static constexpr UInt32 SECONDS_PER_HOUR{ 3'600 };        /**< Seconds per hour. */
+        static constexpr UInt32 SECONDS_PER_MINUTE{ 60 };         /**< Minutes per second. */
 
-        static constexpr UInt32_T MILLISECONDS_PER_SECOND{ 1'000 };            /**< Milliseconds per second. */
-        static constexpr UInt32_T MICROSECONDS_PER_SECOND{ 1'000'000 };        /**< Microseconds per second. */
-        static constexpr UInt32_T NANOSECONDS_PER_SECOND{ 1'000'000'000 };     /**< Nanoseconds per second. */
+        static constexpr UInt32 MILLISECONDS_PER_SECOND{ 1'000 };            /**< Milliseconds per second. */
+        static constexpr UInt32 MICROSECONDS_PER_SECOND{ 1'000'000 };        /**< Microseconds per second. */
+        static constexpr UInt32 NANOSECONDS_PER_SECOND{ 1'000'000'000 };     /**< Nanoseconds per second. */
 
         // Conversion types
-        using Nano_T      = std::chrono::duration<double, std::ratio<1, 1'000'000'000>>;   /**< Type for nanoseconds. */
-        using Micro_T     = std::chrono::duration<double, std::ratio<1, 1'000'000>>;       /**< Type for microseconds. */
-        using Milli_T     = std::chrono::duration<double, std::ratio<1, 1'000>>;           /**< Type for milliseconds. */
-        using Sec_T       = std::chrono::duration<double /* std::ratio<1, 1> */>;               /**< Type for seconds. */
+        using Nano      = std::chrono::duration<double, std::ratio<1, 1'000'000'000>>;   /**< Type for nanoseconds. */
+        using Micro     = std::chrono::duration<double, std::ratio<1, 1'000'000>>;       /**< Type for microseconds. */
+        using Milli     = std::chrono::duration<double, std::ratio<1, 1'000>>;           /**< Type for milliseconds. */
+        using Sec       = std::chrono::duration<double /* std::ratio<1, 1> */>;               /**< Type for seconds. */
 
         // Time point types
-        using Clock_T     = std::chrono::high_resolution_clock;                            /**< Type for clock. */
-        using TimePoint_T = std::chrono::time_point<Clock_T>;                              /**< Type for a point in time. */
+        using Clock     = std::chrono::high_resolution_clock;                            /**< Type for clock. */
+        using TimePoint = std::chrono::time_point<Clock>;                              /**< Type for a point in time. */
 
     private:
         double m_TimeStep{};
-        TimePoint_T m_LastFrameTime{};
-        TimePoint_T m_InitTimePoint{};
+        TimePoint m_LastFrameTime{};
+        TimePoint m_InitTimePoint{};
 
         TimeUnit m_DefaultUnits{ TimeUnit::SECONDS };
     };

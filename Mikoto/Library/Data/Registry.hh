@@ -9,7 +9,7 @@
 
 #include <ankerl/unordered_dense.h>
 
-#include <Core/Assert.hh>
+#include <Logging/Assert.hh>
 #include <Library/Utility/Types.hh>
 
 namespace Mikoto {
@@ -29,8 +29,6 @@ namespace Mikoto {
     template<typename BaseType>
     class Registry final {
     public:
-        /// Internal alias for the actual storage map using ankerl::unordered_dense
-        using Registry_T = ankerl::unordered_dense<size_t, Scope_T<BaseType>>;
 
         /**
         * @brief Registers a new system/service of type RegisteredType into the registry.
@@ -47,7 +45,7 @@ namespace Mikoto {
         */
         template<typename  RegisteredType, typename... Args>
         auto Register( Args&&... args ) -> RegisteredType* {
-            const Size_T typeName{ typeid( RegisteredType ).hash_code() };
+            const Size typeName{ typeid( RegisteredType ).hash_code() };
 
             MKT_ASSERT( !m_Registry.contains( typeName ), "Registry::Register - Error registering system more than once." );
 
@@ -70,7 +68,7 @@ namespace Mikoto {
         */
         template<typename SystemType>
         auto Unregister() -> void {
-            const Size_T typeName{ typeid( SystemType ).hash_code() };
+            const Size typeName{ typeid( SystemType ).hash_code() };
 
             if ( m_Registry.contains( typeName ) ) {
                 m_Registry.erase( typeName );
@@ -143,7 +141,7 @@ namespace Mikoto {
 
     private:
         /// Internal storage for registered types keyed by their hash code
-        Registry_T m_Registry{};
+        ankerl::unordered_dense::map<Size, Unique<BaseType>> m_Registry{};
     };
 
 }// namespace Mikoto

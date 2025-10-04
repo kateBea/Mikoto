@@ -14,9 +14,5 @@
     #define MKT_STACK_TRACE()
 #endif
 
-namespace Mikoto {
-
-
-}// namespace Mikoto
 
 #endif//STACKTRACE_HH

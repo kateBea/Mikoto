@@ -5,17 +5,17 @@
 #ifndef MIKOTO_SANDBOX_APP_HH
 #define MIKOTO_SANDBOX_APP_HH
 
+#include <Assets/Audio.hh>
 #include <Library/Utility/Types.hh>
 #include <Common/Application.hh>
+#include <Core/EventService.hh>
+#include <Platform/Window.hh>
 
 namespace Mikoto {
-    class SandboxApp : public Application {
+
+    class SandboxApp final : public Application, public Subscriber {
     public:
-        /**
-         * @brief Creates and initializes the editor app and runs the main loop.
-         * @param argc argument count.
-         * @param argv list of null terminated c-strings command line arguments.
-         * */
+
         auto Run(Int32 argc, char** argv) -> Int32 override;
 
     protected:
@@ -23,18 +23,16 @@ namespace Mikoto {
         auto Shutdown() -> void override;
         auto Update() -> void override;
 
-        auto InstallEventCallbacks() -> void;
-
     private:
-        /**
-         * @brief Initializes the internal list of command line arguments.
-         * @param argc argument count.
-         * @param argv list of null terminated c-string.
-         * */
-        auto ParseArguments(Int32 argc, char **argv) -> void;
+        auto SetupEventCallbacks() -> void;
 
-    private:
-        std::vector<std::string> m_CommandLineArgs{}; /**< Holds the command line arguments. */
+        Unique<Window> m_Window{};
+
+        // For testing only
+        AudioSourceHandle m_Target{};
+        AudioSourceHandle m_SourceHandle{};
+        AudioSourceHandle m_SourceHandle2{};
+        auto TestCode() -> void;
     };
 }
 

@@ -15,7 +15,7 @@
 #include <Core/Configuration.hh>
 #include <Core/CoreEvents.hh>
 #include <Core/Root.hh>
-#include <EditorApp.hh>
+#include <SandboxApp.hh>
 #include <Audio/AudioDevice.hh>
 #include <Audio/AudioService.hh>
 #include <Core/InputService.hh>
@@ -25,7 +25,7 @@
 
 namespace Mikoto {
 
-    auto EditorApp::Run( const Int32 argc, char **argv ) -> Int32 {
+    auto SandboxApp::Run( const Int32 argc, char **argv ) -> Int32 {
         MKT_CORE_LOGGER_DEBUG("Initializing Mikoto Editor...");
 
         Int32 exitCode{ EXIT_SUCCESS };
@@ -47,7 +47,7 @@ namespace Mikoto {
         return exitCode;
     }
 
-    auto EditorApp::Init() -> void {
+    auto SandboxApp::Init() -> void {
         // Load configuration
 
         // App window
@@ -77,13 +77,13 @@ namespace Mikoto {
         SetupEventCallbacks();
     }
 
-    auto EditorApp::Shutdown() -> void {
+    auto SandboxApp::Shutdown() -> void {
         MKT_CORE_LOGGER_DEBUG("Shutting down Mikoto Editor...");
 
         Root::Shutdown();
     }
 
-    auto EditorApp::TestCode() -> void {
+    auto SandboxApp::TestCode() -> void {
         static bool firstRun{ true };
         if ( firstRun ) {
             firstRun = false;
@@ -123,7 +123,7 @@ namespace Mikoto {
         }
     }
 
-    auto EditorApp::Update() -> void {
+    auto SandboxApp::Update() -> void {
         TestCode();
 
         if ( !m_Window->IsMinimized() ) {
@@ -135,7 +135,7 @@ namespace Mikoto {
         }
     }
 
-    auto EditorApp::SetupEventCallbacks() -> void {
+    auto SandboxApp::SetupEventCallbacks() -> void {
 
         AddHandler( EventType::WINDOW_CLOSE_EVENT,
                     [this]( Event &event ) -> bool {

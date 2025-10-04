@@ -133,30 +133,13 @@ namespace Mikoto {
 
 
     private:
-        /**
-         * @brief Updates the projection matrix based on stored parameters.
-         * */
+
         auto UpdateProjection() -> void;
 
-
-        /**
-      * @brief Updates the view matrix of the camera.
-      * */
         auto UpdateViewMatrix() -> void;
 
-        /**
-         * @brief Processes mouse input to update the camera's state.
-         *
-         * @param timeStep The time elapsed since the last frame.
-         * */
         auto ProcessMouseInput( double timeStep ) -> void;
 
-
-        /**
-         * @brief Processes keyboard input to update the camera's state.
-         *
-         * @param timeStep The time elapsed since the last frame.
-         * */
         auto ProcessKeyboardInput( double timeStep ) -> void;
 
         auto Interpolate( double timeStep ) -> void;

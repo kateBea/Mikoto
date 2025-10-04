@@ -35,6 +35,7 @@ namespace Mikoto {
         bool m_Completed{};
     };
 
+    // Task that are pinned to a specific thread
     class IAttachedTask : public ITask, public enki::IPinnedTask {
     public:
         explicit IAttachedTask( uint32_t threadNum = 0 )
@@ -56,6 +57,7 @@ namespace Mikoto {
         uint32_t m_ThreadNumber{};
     };
 
+    // Task that can run on any thread
     template<typename T>
     class Task final : public ITask {
     public:
@@ -80,12 +82,8 @@ namespace Mikoto {
             }
         }
 
-        auto GetObject() -> T* { return m_Result; }
+        auto GetResult() -> T* { return m_Result; }
         auto GetPriority() const -> TaskPriority { return m_Priority; }
-        //
-        // static auto FromResult(auto&& obj) -> Task<decltype(obj)>* {
-        //     return new Task<decltype(obj)>( [obj]() { return obj; }, TaskPriority::NORMAL );
-        // }
 
     private:
         T* m_Result{};

@@ -15,14 +15,23 @@
 
 // Project Headers
 #include <Common/Common.hh>
+#include <Library/Utility/Types.hh>
 
 namespace Mikoto {
+
+    /**
+     * This concept ensures type safety determining in for the dispatcher method.
+     * If the event defines the static member function GetStaticType()
+     * (Ideally all events should implement it)
+     * */
+    template<typename EventClassType>
+    concept HasStaticGetType = requires (EventClassType) { EventClassType::GetStaticType(); };
 
     /**
      * Simply specifies the type of an Event
      * */
     enum class EventType {
-        EMPTY_EVENT,
+        UNKNOWN_EVENT,
 
         // Window events.
         // Category [WINDOW_EVENT_CATEGORY]
@@ -69,7 +78,7 @@ namespace Mikoto {
      * bit wise OR which is supported by integers, for simplicity sake, this structure
      * is not declared as an enum class
      * */
-    enum EventCategory : UInt32_T {
+    enum EventCategory : UInt32 {
         EMPTY_EVENT_CATEGORY = BIT_SET( 0 ),
 
         APPLICATION_EVENT_CATEGORY = BIT_SET( 1 ),
@@ -113,7 +122,7 @@ namespace Mikoto {
          * Returns the string representation of this Event.
          * Mainly for debugging purposes
          * */
-        MKT_NODISCARD auto GetNameStr() const -> std::string_view { return ToString(); }
+        MKT_NODISCARD auto GetName() const -> std::string_view { return ToString(); }
 
         /**
          * Tells whether this event has been handled or not
@@ -160,60 +169,10 @@ namespace Mikoto {
     };
 
     /**
-     * This concept ensures type safety determining in for the dispatcher method.
-     * If the event defines the static member function GetStaticType()
-     * (Ideally all events should implement it)
-     * */
-    template<typename EventClassType>
-    concept HasStaticGetType = requires (EventClassType) { EventClassType::GetStaticType(); };
-
-    /**
      * Alias for event function. The function is supposed to return true if the
      * event has been handled successfully, false otherwise.
      * */
-    using EventHandler_T = std::function<bool(Event&)>;
-
-    /**
-     * This a mechanism that handles the distribution and routing of events
-     * to appropriate event handlers. It acts as a central hub or manager
-     * for events and facilitates communication between different parts of our system.
-     *
-     * When it receives an Event it forwards or propagates it to the appropriate
-     * handler (essentially calls the handler with the provided event). If the
-     * Handler function does not want to propagate the Event, it marks it as handled,
-     * that is why the handler returns a boolean that indicates this state.
-     * */
-    class EventDispatcher {
-    public:
-        /**
-         * Alias for event function. The function is supposed to return true if the
-         * event has been handled successfully, false otherwise.
-         * @tparam T type of event, is supposed to be a class type like <code>kT::KeyPressedEvent</code>, etc
-         * */
-        template<typename T>
-        using EventFunc_T = std::function<bool(T&)>;
-
-        explicit EventDispatcher(Event& event)
-            :   m_Event{ event } {}
-
-        template<typename EventClassType>
-            requires HasStaticGetType<EventClassType>
-        MKT_NODISCARD auto Forward(EventFunc_T<EventClassType> func) -> bool {
-            if (m_Event.GetType() == EventClassType::GetStaticType()) {
-                m_Event.m_Handled = func(*(static_cast<EventClassType*>(&m_Event)));
-                return true;
-            }
-
-            return false;
-        }
-
-    private:
-        /**
-         * Using a reference instead of pointer because a pointer
-         * would require to construct an Event which an abstract class
-         * */
-        Event& m_Event;
-    };
+    using HandlerFunc = std::function<bool(Event&)>;
 
     /**
      * Returns the event category from the given event. The event could be part of
@@ -222,7 +181,7 @@ namespace Mikoto {
      * */
     MKT_NODISCARD constexpr auto GetCategoryFromType( const EventType type) -> EventCategory {
         switch (type) {
-            case EventType::EMPTY_EVENT: return EMPTY_EVENT_CATEGORY;
+            case EventType::UNKNOWN_EVENT: return EMPTY_EVENT_CATEGORY;
 
             case EventType::WINDOW_RESIZE_EVENT:
             case EventType::WINDOW_CLOSE_EVENT:
@@ -256,7 +215,7 @@ namespace Mikoto {
      * */
     MKT_NODISCARD constexpr auto GetEventFormattedStr(EventType type) -> std::string_view {
         switch(type) {
-            case EventType::EMPTY_EVENT: return "EMPTY_EVENT";
+            case EventType::UNKNOWN_EVENT: return "EMPTY_EVENT";
 
             // Window events.
             // Category [WINDOW_EVENT_CATEGORY]

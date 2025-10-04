@@ -30,13 +30,13 @@ namespace Mikoto {
         Window* MainWindow{ nullptr };
     };
 
-    class InputService final : public IService<InputService> {
+    class InputService final : public IService, public Singleton<InputService> {
     public:
         explicit InputService( const InputServiceCreateInfo& options );
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
-        auto Update(float dt ) const -> void;
+        auto Update(float dt ) -> void override;
 
         MKT_NODISCARD auto IsKeyPressed( KeyCode keyCode ) const -> bool;
         MKT_NODISCARD auto IsKeyReleased( KeyCode keyCode ) const -> bool;
@@ -55,7 +55,6 @@ namespace Mikoto {
 
     private:
         Window* m_Handle{ nullptr };
-
     };
 }
 

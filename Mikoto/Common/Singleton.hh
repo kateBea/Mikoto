@@ -7,7 +7,7 @@
 #define MIKOTO_SINGLETON_HH
 
 // Project Headers
-#include <Core/Assert.hh>
+#include <Logging/Assert.hh>
 
 namespace Mikoto {
 

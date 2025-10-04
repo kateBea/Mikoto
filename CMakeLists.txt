@@ -1,57 +1,42 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.22)
+cmake_minimum_required(VERSION 3.22)
 
-PROJECT(Mikoto)
+project(Mikoto
+        VERSION 1.0
+        LANGUAGES CXX
+)
 
-# CXX Lang Requirements
-SET(CMAKE_CXX_STANDARD 20)
-SET(CMAKE_CXX_STANDARD_REQUIRED ON)
+# ===========================
+# C++ language requirements
+# ===========================
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CPP_RTTI_ENABLED ON)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 
-
-IF(WIN32)
-    # Ensure that CMake uses static MSVC runtime library
-    # JoltUses this so we just enforce evrything else to use tghe same
-    # https://cmake.org/cmake/help/latest/variable/CMAKE_MSVC_RUNTIME_LIBRARY.html
+# ===========================
+# Platform-specific settings
+# ===========================
+if(WIN32)
+    # Static MSVC runtime
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        SET(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-    elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-        SET(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    else()
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
     endif()
 
-    # Set the python interpreter path
-    SET(PYTHON_EXECUTABLE "python")
+    set(PYTHON_EXECUTABLE "python")
+    add_compile_definitions(/W4)
+    set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
 
-    # Compile commands for Windows
-    ADD_COMPILE_DEFINITIONS(/W4)
-    SET(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
-
-ELSE()
-    # Set the python interpreter path
-    SET(PYTHON_EXECUTABLE "python3")
-
-    # Compile commands for Linux
-    ADD_COMPILE_OPTIONS(-fsanitize=address -D_DEBUG -Wall -Wextra -Wpedantic)
-
-    # Sanitize
-    ADD_LINK_OPTIONS(-fsanitize=address)
-ENDIF()
-
-if((NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.bootstrap.json"))
-    MESSAGE(DEBUG "Clonning repositories into Third-Party")
-
-    execute_process(
-            COMMAND ${PYTHON_EXECUTABLE} "bootstrap.py"
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            RESULT_VARIABLE bootstrap_result
-    )
-    if (NOT (${bootstrap_result} EQUAL 0))
-        message(FATAL_ERROR "Cannot run bootstrap.py")
-    endif()
+else()
+    set(PYTHON_EXECUTABLE "python3")
+    add_compile_options(-fsanitize=address -D_DEBUG -Wall -Wextra -Wpedantic)
+    add_link_options(-fsanitize=address)
 endif()
 
-SET(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
-
-SET(CPP_RTTI_ENABLED ON)
-
-ADD_SUBDIRECTORY(Mikoto)
-ADD_SUBDIRECTORY(Mikoto-Editor)
-ADD_SUBDIRECTORY(Mikoto-Sandbox)
+# ===========================
+# Add engine and editor
+# ===========================
+add_subdirectory(Mikoto)        # Core engine
+add_subdirectory(Mikoto-Editor) # Editor
+add_subdirectory(Mikoto-Sandbox) # Sandbox

@@ -7,8 +7,10 @@
 #include <ranges>
 #include <type_traits>
 
+#include <ankerl/unordered_dense.h>
+
 #include <Common/Common.hh>
-#include <Core/Assert.hh>
+#include <Logging/Assert.hh>
 #include <Library/Utility/Types.hh>
 #include <Common/ReferenceCounted.hh>
 
@@ -21,7 +23,7 @@ namespace Mikoto {
      * This type is used to uniquely identify resources managed by a pool.
      * It is defined as a `Size_T` type, and `INVALID_HANDLE` represents an invalid resource handle.
      */
-    using Handle = UInt32_T;
+    using Handle = UInt32;
 
     /**
      * @var INVALID_HANDLE
@@ -131,9 +133,6 @@ namespace Mikoto {
         bool m_IsAllocated{ false };
 
         Handle m_Handle{};
-
-    private:
-        friend class ReferenceCountedTyped<IResource>;
     };
 
     /**
@@ -151,7 +150,7 @@ namespace Mikoto {
         * @brief Initializes the resource pool.
         * @param poolSize The number of resources the pool can hold.
         */
-        auto Init( const UInt32_T poolSize ) -> void {
+        auto Init( const UInt32 poolSize ) -> void {
             m_PoolSize = poolSize;
             m_FreeHandles.reserve( poolSize );
 
@@ -166,8 +165,8 @@ namespace Mikoto {
         * @brief Shuts down the resource pool, releasing all allocated resources.
         */
         auto Shutdown() -> void {
-            for ( const auto& slot: m_Resources | std::views::values ) {
-                if ( slot.Block ) {
+            for ( const auto& resource: m_Resources | std::views::values ) {
+                if ( resource->IsUsed() ) {
                     // Check if resource was not freed
                 }
             }
@@ -184,7 +183,9 @@ namespace Mikoto {
         auto ReleaseResource( const Handle index ) -> void {
 
             if ( index < m_Resources.size() && m_Resources.contains(index) ) {
-                m_Resources[index].Instance = nullptr;
+                delete m_Resources[index];
+                m_Resources.erase(index);
+
                 m_FreeHandles.emplace_back(index);
             }
         }
@@ -204,7 +205,7 @@ namespace Mikoto {
         * @return The index of the obtained resource, or `INVALID_HANDLE` if allocation fails.
         */
         MKT_NODISCARD auto ObtainResource() -> Handle {
-            if ( IsHandleAvailable() ) {
+            if ( !IsHandleAvailable() ) {
                 return INVALID_HANDLE;
             }
 
@@ -227,21 +228,12 @@ namespace Mikoto {
         }
 
     protected:
-        struct ResourceSlot {
-            Size_T BlockSize{};
-            void* Block{ nullptr };
-            IResource* Instance{ nullptr };
-
-            auto operator->() -> IResource* { return Instance; }
-            auto operator->() const -> const IResource* { return Instance; }
-        };
-
 
     protected:
-        UInt32_T m_PoolSize{ 100 };
-        UInt32_T m_IndexFreeHandles{};
+        UInt32 m_PoolSize{ 100 };
+        UInt32 m_IndexFreeHandles{};
         std::vector<Handle> m_FreeHandles{};
-        ankerl::unordered_dense::map<Handle, ResourceSlot> m_Resources{};
+        ankerl::unordered_dense::map<Handle, IResource*> m_Resources{};
     };
 
     /**
@@ -253,7 +245,7 @@ namespace Mikoto {
     template<typename T>
     class ResourcePoolTyped final : public ResourcePool {
     public:
-        using Pointer_T = T*;
+        using Pointer = T*;
 
         /**
         * @brief Collects a new typed resource from the pool.
@@ -267,45 +259,28 @@ namespace Mikoto {
         * @return A pointer to the obtained resource, or nullptr if allocation fails.
         */
         template<typename... Args>
-        MKT_NODISCARD auto Allocate(Args&&... args) -> Pointer_T {
-            const UInt32_T index{ ObtainResource() };
+        MKT_NODISCARD auto Allocate(Args&&... args) -> Pointer {
+            const UInt32 index{ ObtainResource() };
             if (index == INVALID_HANDLE) {
                 return nullptr;
             }
 
-            auto& [BlockSize, Block, Instance]{ m_Resources[index] };
+            Pointer p{ nullptr };
 
-            if (Instance) {
-                Instance->~IResource();
-                Instance = nullptr;
+            const auto [it, success]{ m_Resources.try_emplace( index, new T(std::forward<Args>(args)... )) };
+            if (success) {
+                it->second->SetHandle( index );
+                p = static_cast<Pointer>(it->second);
             }
 
-            if (!Block || BlockSize < sizeof(T)) {
-                if (Block) {
-                    // TODO: double check resource deletion in ref counting class, it is using different type of delete operator
-                    ::operator delete(Block);
-                }
-
-                BlockSize = sizeof(T);
-                Block = ::operator new(BlockSize, std::nothrow);
-            }
-
-            // Fail to allocate block of memory, operator new used above does not throw
-            if (!Block) {
-                return nullptr;
-            }
-
-            Instance = new(Block) T(std::forward<Args>(args)...);
-            Instance->SetHandle(index);
-
-            return Cast<Pointer_T>(Instance);
+            return p;
         }
 
         /**
          * @brief Releases a typed resource back to the pool.
          * @param resource A pointer to the resource to be released.
          */
-        auto Release( Pointer_T resource ) -> void {
+        auto Release( Pointer resource ) -> void {
             ReleaseResource( resource->GetHandle() );
         }
 
@@ -314,8 +289,8 @@ namespace Mikoto {
          * @param index The index of the resource to access.
          * @return A pointer to the resource, or nullptr if invalid.
          */
-        MKT_NODISCARD auto Get( const Handle index ) -> Pointer_T {
-            return Cast<Pointer_T>( AccessResource( index ) );
+        MKT_NODISCARD auto Get( const Handle index ) -> Pointer {
+            return static_cast<Pointer>( AccessResource( index ) );
         }
     };
 

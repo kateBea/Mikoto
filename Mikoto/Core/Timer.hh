@@ -11,7 +11,7 @@
 
 // Project Headers
 #include <Common/Common.hh>
-#include <Timing/TimeService.hh>
+#include <Core/TimeService.hh>
 
 namespace Mikoto {
     class Timer final {

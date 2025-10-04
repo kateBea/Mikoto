@@ -12,7 +12,7 @@
 #include <utility>
 #include <vector>
 
-#include <Core/Logger.hh>
+#include <Logging/Logger.hh>
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 
@@ -69,23 +69,28 @@ namespace Mikoto {
 
     class File final {
     public:
-        explicit File( const Path_T& path, FileMode openMode = MKT_FILE_OPEN_MODE_NONE );
+        File(File&&) = default;
+        auto operator=(File&&) noexcept -> File& = default;
 
         MKT_NODISCARD auto GetPath() const -> const std::string& { return m_Path; }
         MKT_NODISCARD auto GetExtension() const -> const std::string& { return m_Extension; }
-        MKT_NODISCARD auto GetPathCStr() const -> CStr_T { return m_Path.c_str(); }
-        MKT_NODISCARD auto GetFileBytes() const -> Byte_T* { return AsBytes(m_Contents.c_str()); }
+        MKT_NODISCARD auto GetPathCStr() const -> CStr { return m_Path.c_str(); }
+        MKT_NODISCARD auto GetFileBytes() const -> const char* { return m_Contents.c_str(); }
         MKT_NODISCARD auto GetFileContents() const -> const std::string& { return m_Contents; }
         MKT_NODISCARD auto GetSize() const -> double { return static_cast<double>( m_Size ) / 1'000'000.0; }
         MKT_NODISCARD auto GetType() const -> FileType { return m_Type; }
-        MKT_NODISCARD auto GetSizeBytes() const -> Size_T { return m_Size; }
+        MKT_NODISCARD auto GetSizeBytes() const -> Size { return m_Size; }
         MKT_NODISCARD auto IsDirectory() const -> bool { return std::filesystem::is_directory( m_Path ); }
         MKT_NODISCARD auto IsFile() const -> bool { return std::filesystem::is_regular_file( m_Path ); }
 
         auto FlushContents() -> void;
-        auto SetContents( CStr_T contents ) -> void;
+        auto SetContents( CStr contents ) -> void;
+
+        static auto Load( const Path& path, FileMode openMode = MKT_FILE_OPEN_MODE_NONE ) -> Unique<File>;
 
     private:
+        File( const Path& path, std::fstream&& stream, FileMode openMode = MKT_FILE_OPEN_MODE_NONE );
+
         /**
          * Returns a string containing the data from a file
          * @returns contents of the file
@@ -100,7 +105,7 @@ namespace Mikoto {
 
         MKT_NODISCARD static auto InferFileType( const std::string& extension ) -> FileType;
 
-        MKT_NODISCARD static auto CompareSignature( const std::string& fileContent, const std::vector<UChar_T>& signature ) -> bool;
+        MKT_NODISCARD static auto CompareSignature( const std::string& fileContent, const std::vector<UChar>& signature ) -> bool;
 
         MKT_NODISCARD static auto InferExtensionFromFileSignature( const std::string& fileContent ) -> std::string;
 
@@ -108,7 +113,7 @@ namespace Mikoto {
         std::string m_Path{};
         std::string m_Extension{};
 
-        Size_T m_Size{};
+        Size m_Size{};
         std::fstream m_FileStream{};
 
         std::string m_Contents{};

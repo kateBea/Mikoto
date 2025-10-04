@@ -5,7 +5,7 @@
 #ifndef AUDIODEVICE_HH
 #define AUDIODEVICE_HH
 
-#include <miniaudio/miniaudio.h>
+#include <miniaudio.h>
 
 #include <Audio/AudioUtility.hh>
 #include <Library/Data/ResourcePool.hh>
@@ -75,7 +75,7 @@ namespace Mikoto {
         auto LoadAudio( const AudioLoadDescription& description ) -> AudioHandle;
 
 
-        MKT_NODISCARD static auto Create( const AudioDeviceDescription& description ) -> Scope_T<AudioDevice>;
+        MKT_NODISCARD static auto Create( const AudioDeviceDescription& description ) -> Unique<AudioDevice>;
 
     private:
         friend class Audio;

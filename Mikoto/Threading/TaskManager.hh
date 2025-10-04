@@ -17,7 +17,7 @@ namespace Mikoto {
 
     class TaskManager {
     public:
-        explicit TaskManager( uint32_t numThreads = 8 )
+        explicit TaskManager( UInt32 numThreads = 8 )
             : m_ThreadCount( numThreads ) {
         }
 
@@ -35,7 +35,7 @@ namespace Mikoto {
         }
 
         // total number or workers we have available right now (not that are free or sleeping)
-        auto GetAvailableWorkerCount() const -> uint32_t {
+        auto GetAvailableWorkerCount() const -> UInt32 {
             return m_TaskScheduler.GetNumTaskThreads();
         }
 
@@ -104,9 +104,9 @@ namespace Mikoto {
         auto GetThreadCount() const -> uint32_t { return m_ThreadCount; }
 
     private:
-        uint32_t m_ThreadCount{};
-        std::vector<ITask*> m_Task{};         ///< List of tasks
-        enki::TaskScheduler m_TaskScheduler{};///< Enki TaskScheduler
+        UInt32 m_ThreadCount{};
+        std::vector<ITask*> m_Task{};
+        enki::TaskScheduler m_TaskScheduler{};
     };
 
 }// namespace Mikoto

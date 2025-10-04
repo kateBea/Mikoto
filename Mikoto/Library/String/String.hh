@@ -20,7 +20,6 @@
 #include <Library/Utility/Types.hh>
 #include <Common/Common.hh>
 
-
 /**
  * Output colors. They can be mixed by using a bit OR when used with
  * MKT_COLOR_STYLE_PRINT_FORMATTED or MKT_COLOR_PRINT_FORMATTED. E.g.:
@@ -259,9 +258,9 @@ namespace Mikoto::StringUtils {
 
     /**
      * @brief Returns true if two character sequences are equal.
-     * @param str1 Null terminated string to compare.
-     * @param str2 Null terminated string to compare.
-     * @returns True if both string are the same, false otherwise.
+     * @param str1 Null-terminated string to compare.
+     * @param str2 Null-terminated string to compare.
+     * @returns True if both strings are the same, false otherwise.
      * */
     MKT_NODISCARD inline constexpr auto Equal( const std::string_view str1, const std::string_view str2) -> bool {
         return str1 == str2;
@@ -299,7 +298,7 @@ namespace Mikoto::StringUtils {
         return fmt::to_string(std::forward<decltype(args)>(args)...);
     }
     /**
-     * @brief Make a a path to a char string. Transforms wide char strings to byte
+     * @brief Make a path to a char string. Transforms wide char strings to byte
      * char strings. On Windows std::filesystem::string returns a string of wide
      * char types (wchar_t), whereas on linux it returns a string of char.
      * @param path Path to the file

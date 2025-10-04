@@ -30,7 +30,7 @@
 #define MOUSE_BUTTON_STRING_REPRESENTATION(name) #name
 
 namespace Mikoto {
-    enum MouseButton : Int8_T {
+    enum MouseButton : Int8 {
         Mouse_Button_1 = MKT_MOUSE_BUTTON_1,
         Mouse_Button_2 = MKT_MOUSE_BUTTON_2,
         Mouse_Button_3 = MKT_MOUSE_BUTTON_3,

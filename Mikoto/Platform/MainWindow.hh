@@ -85,8 +85,8 @@ namespace Mikoto {
          * including width, height, and the title of the window.
          * */
         struct MainWindowCreateSpec {
-            Int32_T Width{};          /**< The width of the GLFW window. Default is 0. */
-            Int32_T Height{};         /**< The height of the GLFW window. Default is 0. */
+            Int32 Width{};          /**< The width of the GLFW window. Default is 0. */
+            Int32 Height{};         /**< The height of the GLFW window. Default is 0. */
             std::string Title{}; /**< The title of the GLFW window. Default is an empty string. */
         };
 
@@ -128,8 +128,8 @@ namespace Mikoto {
         static inline std::atomic_uint32_t s_WindowsCount{ 0 };
         static inline std::atomic_bool s_GLFWInitSuccess{ false };
 
-        Int32_T m_WidthPreFullScreen{};
-        Int32_T m_HeightPreFullScreen{};
+        Int32 m_WidthPreFullScreen{};
+        Int32 m_HeightPreFullScreen{};
 
         GLFWwindow* m_Window{};
     };

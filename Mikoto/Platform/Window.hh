@@ -33,8 +33,8 @@ namespace Mikoto {
     struct WindowProperties {
         std::string Title{}; /**< The title of the window. */
 
-        Int32_T Width{};  /**< The width of the window. */
-        Int32_T Height{}; /**< The height of the window. */
+        Int32 Width{};  /**< The width of the window. */
+        Int32 Height{}; /**< The height of the window. */
 
         GraphicsAPI Backend{}; /**< The graphics backend for the window. */
 
@@ -67,13 +67,13 @@ namespace Mikoto {
          * @brief Returns the width of this window.
          * @returns The width of the window.
          * */
-        MKT_NODISCARD auto GetWidth() const -> Int32_T { return m_Properties.Width; }
+        MKT_NODISCARD auto GetWidth() const -> Int32 { return m_Properties.Width; }
 
         /**
          * @brief Returns the height of this window.
          * @returns The height of the window.
          * */
-        MKT_NODISCARD auto GetHeight() const -> Int32_T { return m_Properties.Height; }
+        MKT_NODISCARD auto GetHeight() const -> Int32 { return m_Properties.Height; }
 
         /**
          * @brief Returns the title of this window.
@@ -141,7 +141,7 @@ namespace Mikoto {
          * @param properties Determines the properties of the window to be created.
          * @returns A pointer to the newly created window.
          * */
-        static auto Create( const WindowProperties& properties ) -> Scope_T<Window>;
+        static auto Create( const WindowProperties& properties ) -> Unique<Window>;
 
         /**
          * @brief Default virtual destructor for this Window.

@@ -1,21 +1,24 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.22)
+cmake_minimum_required(VERSION 3.22)
 
-PROJECT(Mikoto)
+project(Mikoto)
 
-# CXX Lang Requirements
-SET(CMAKE_CXX_STANDARD 20)
-SET(CMAKE_CXX_STANDARD_REQUIRED ON)
+# ======================================
+# Language requirements
+# ======================================
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# GLFW CMake Options
-SET(GLFW_INSTALL OFF CACHE BOOL "")
-SET(GLFW_BUILD_DOCS OFF CACHE BOOL "")
-SET(GLFW_BUILD_TESTS OFF CACHE BOOL "")
-SET(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "")
-SET(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-SET(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-SET(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+# ======================================
+# GLFW options
+# ======================================
+set(GLFW_INSTALL OFF CACHE BOOL "")
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
-# MSDFGEN CMake Options
+# ======================================
+# MSDFGEN / MSDF Atlas options
+# ======================================
 set(MSDF_ATLAS_BUILD_STANDALONE OFF)
 set(MSDF_ATLAS_USE_VCPKG OFF)
 set(MSDF_ATLAS_USE_SKIA OFF)
@@ -31,198 +34,332 @@ set(MSDFGEN_DISABLE_SVG ON)
 set(MSDFGEN_DISABLE_PNG ON)
 set(MSDFGEN_DYNAMIC_RUNTIME OFF)
 
-# Assimp CMake Options
-SET(ASSIMP_INSTALL OFF CACHE BOOL "")
-SET(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "")
-SET(ASSIMP_WARNINGS_AS_ERRORS OFF CACHE BOOL "Treat Assimp Warnings as errors" FORCE)
+# ======================================
+# Assimp options
+# ======================================
+set(ASSIMP_INSTALL OFF CACHE BOOL "")
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "")
+set(ASSIMP_WARNINGS_AS_ERRORS OFF CACHE BOOL "" FORCE)
 
-# EnkiTS CMake Options
-SET(ENKITS_BUILD_C_INTERFACE OFF CACHE BOOL "")
-SET(ENKITS_BUILD_EXAMPLES OFF CACHE BOOL "")
-SET(ENKITS_BUILD_SHARED OFF CACHE BOOL "")
-SET(ENKITS_INSTALL OFF CACHE BOOL "")
-SET(ENKITS_SANITIZE ON CACHE BOOL "")
+# ======================================
+# EnkiTS options
+# ======================================
+set(ENKITS_BUILD_C_INTERFACE OFF CACHE BOOL "")
+set(ENKITS_BUILD_EXAMPLES OFF CACHE BOOL "")
+set(ENKITS_BUILD_SHARED OFF CACHE BOOL "")
+set(ENKITS_INSTALL OFF CACHE BOOL "")
+set(ENKITS_SANITIZE ON CACHE BOOL "")
 
-# Setup the root directory where the dependencies are located
-# All required Dependencies are located in the root folder
-# This CmakeList file however is located in Mikoto (the core engine) folder
-SET(CURRENT_PATH ${CMAKE_CURRENT_SOURCE_DIR})
-CMAKE_PATH(GET CURRENT_PATH PARENT_PATH MIKOTO_ROOT_DIRECTORY)
+# ======================================
+# External dependencies via FetchContent
+# ======================================
+include(FetchContent)
 
-# External dependencies
-SET(GLFW_CMAKE_DIR      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/glfw)
-SET(ENTT_CMAKE_DIR      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/entt)
-SET(FMT_CMAKE_DIR       ${MIKOTO_ROOT_DIRECTORY}/Third-Party/fmt)
-SET(VOLK_CMAKE_DIR      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/volk)
-SET(ASSIMP_CMAKE_DIR    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/assimp)
-SET(VMA_CMAKE_DIR       ${MIKOTO_ROOT_DIRECTORY}/Third-Party/VulkanMemoryAllocator)
-SET(YAML_CMAKE_DIR      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/yaml-cpp)
-SET(NFD_CMAKE_DIR       ${MIKOTO_ROOT_DIRECTORY}/Third-Party/nativefiledialog-extended)
-SET(TOML_CPP            ${MIKOTO_ROOT_DIRECTORY}/Third-Party/tomlplusplus)
-SET(CPP_TRACE           ${MIKOTO_ROOT_DIRECTORY}/Third-Party/cpptrace)
-SET(FREE_TYPE           ${MIKOTO_ROOT_DIRECTORY}/Third-Party/freetype)
-SET(JOLT_PHYSICS        ${MIKOTO_ROOT_DIRECTORY}/Third-Party/JoltPhysics/Build)
-SET(MSDFGEN             ${MIKOTO_ROOT_DIRECTORY}/Third-Party/msdfgen)
-SET(MSDF_ATLAS_GEN      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/msdf-atlas-gen)
-SET(SPIRV_REFLECT      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/spirv-reflect)
-SET(ENKI_TS      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/enkiTS)
-SET(MINIAUDIO      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/miniaudio)
-SET(UNORDERED_DENSE      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/unordered_dense)
-SET(JSON      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/json)
-SET(ARGPARSE      ${MIKOTO_ROOT_DIRECTORY}/Third-Party/argparse)
+# fmt
+fetchcontent_declare(fmt
+        GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+        GIT_TAG 11.0.2
+)
+fetchcontent_makeavailable(fmt)
 
-# Setup Mikoto Engine source file
-FILE(GLOB SOURCE_FILES Sources/*.cc)
+# glfw
+fetchcontent_declare(glfw
+        GIT_REPOSITORY https://github.com/glfw/glfw.git
+        GIT_TAG 3.3.9
+)
+fetchcontent_makeavailable(glfw)
 
-# Setup third party source files
+# ImGui (docking branch)
+fetchcontent_declare(imgui
+        GIT_REPOSITORY https://github.com/ocornut/imgui.git
+        GIT_TAG docking
+)
+fetchcontent_makeavailable(imgui)
 
-# Imgui and Imgui backend
-SET(IMGUI_SOURCES
-    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/imgui/imgui.cpp
-    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/imgui/imgui_draw.cpp
-    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/imgui/imgui_demo.cpp
-    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/imgui/imgui_tables.cpp
-    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/imgui/imgui_widgets.cpp
-    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/imgui/backends/imgui_impl_glfw.cpp
-    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/imgui/backends/imgui_impl_vulkan.cpp)
+# ImGuizmo
+fetchcontent_declare(ImGuizmo
+        GIT_REPOSITORY https://github.com/CedricGuillemet/ImGuizmo.git
+        GIT_TAG master
+)
+fetchcontent_makeavailable(ImGuizmo)
 
-# ImGui - ImGuizmo
-SET(IMGUIZMO_SOURCES
-    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/ImGuizmo/ImGuizmo.cpp
-    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/ImGuizmo/GraphEditor.cpp
-    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/ImGuizmo/ImCurveEdit.cpp
-    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/ImGuizmo/ImGradient.cpp
-    ${MIKOTO_ROOT_DIRECTORY}/Third-Party/ImGuizmo/ImSequencer.cpp)
+# toml++ (header-only)
+fetchcontent_declare(tomlplusplus
+        GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
+        GIT_TAG v3.4.0
+)
+fetchcontent_makeavailable(tomlplusplus)
 
-# SpirV Reflect
-SET(SPIRV_REFLECT_SOURCES
-        ${MIKOTO_ROOT_DIRECTORY}/Third-Party/spirv-reflect/spirv_reflect.c)
+# cpptrace
+fetchcontent_declare(cpptrace
+        GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
+        GIT_TAG v0.7.3
+)
+fetchcontent_makeavailable(cpptrace)
 
-# SpirV Reflect
-SET(MINIAUDIO
-        ${MIKOTO_ROOT_DIRECTORY}/Third-Party/miniaudio/miniaudio.c)
+# unordered_dense (header-only)
+fetchcontent_declare(unordered_dense
+        GIT_REPOSITORY https://github.com/martinus/unordered_dense.git
+        GIT_TAG v4.4.0
+)
+fetchcontent_makeavailable(unordered_dense)
 
-# Mikoto compile source files
-SET(SOURCES ${IMGUI_SOURCES} ${IMGUIZMO_SOURCES} ${SOURCE_FILES} ${SPIRV_REFLECT_SOURCES}
-        ${MINIAUDIO})
+# EnTT
+fetchcontent_declare(entt
+        GIT_REPOSITORY https://github.com/skypjack/entt.git
+        GIT_TAG v3.13.0
+)
+fetchcontent_makeavailable(entt)
 
-# External dependencies
-ADD_SUBDIRECTORY(${GLFW_CMAKE_DIR} build/glfw)
-ADD_SUBDIRECTORY(${FMT_CMAKE_DIR} build/fmt)
-ADD_SUBDIRECTORY(${ENTT_CMAKE_DIR} build/entt)
-ADD_SUBDIRECTORY(${VOLK_CMAKE_DIR} build/volk)
-ADD_SUBDIRECTORY(${ASSIMP_CMAKE_DIR} build/assimp)
-ADD_SUBDIRECTORY(${YAML_CMAKE_DIR} build/yaml)
-ADD_SUBDIRECTORY(${NFD_CMAKE_DIR} build/nfd)
-ADD_SUBDIRECTORY(${CPP_TRACE} build/cpptrace)
-ADD_SUBDIRECTORY(${FREE_TYPE} build/freetype)
-ADD_SUBDIRECTORY(${JOLT_PHYSICS} build/joltphysics)
-ADD_SUBDIRECTORY(${MSDFGEN} build/msdfgen)
-ADD_SUBDIRECTORY(${MSDF_ATLAS_GEN} build/msdf_atlas_gen)
-ADD_SUBDIRECTORY(${ENKI_TS} build/enkiTS)
-ADD_SUBDIRECTORY(${UNORDERED_DENSE} build/unordered_dense)
-ADD_SUBDIRECTORY(${JSON} build/json)
+# nlohmann_json
+fetchcontent_declare(nlohmann_json
+        URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
+)
+fetchcontent_makeavailable(nlohmann_json)
 
-# Todo pull other libs wih fetchcontent
-#include(FetchContent)
-#
-#FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
-#FetchContent_MakeAvailable(json)
-#
-#target_link_libraries(foo PRIVATE nlohmann_json::nlohmann_json)
+# Miniaudio
+fetchcontent_declare(miniaudio
+        GIT_REPOSITORY https://github.com/mackron/miniaudio.git
+        GIT_TAG 0.11.23
+)
+fetchcontent_makeavailable(miniaudio)
 
-# Libraries to link against target
-SET(LIBRARIES
-    glfw
-    fmt
-    EnTT::EnTT
-    volk
-    assimp
-    yaml-cpp
-    nfd
-    cpptrace::cpptrace
-    freetype
-    Jolt
-    msdfgen::msdfgen
-    msdf-atlas-gen::msdf-atlas-gen
-    enkiTS
-    unordered_dense::unordered_dense
+
+# SpirV-Reflect
+fetchcontent_declare(spirv_reflect
+        GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Reflect.git
+        GIT_TAG main
+)
+fetchcontent_makeavailable(spirv_reflect)
+
+add_library(spirv_reflect_lib ${spirv_reflect_SOURCE_DIR}/spirv_reflect.c)
+target_include_directories(spirv_reflect_lib PUBLIC ${spirv_reflect_SOURCE_DIR})
+
+# volk
+fetchcontent_declare(volk
+        GIT_REPOSITORY https://github.com/zeux/volk.git
+        GIT_TAG 1.4.304
+)
+fetchcontent_makeavailable(volk)
+
+# VulkanMemoryAllocator
+fetchcontent_declare(VulkanMemoryAllocator
+        GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+        GIT_TAG v3.3.0
+)
+fetchcontent_makeavailable(VulkanMemoryAllocator)
+
+# yaml-cpp
+fetchcontent_declare(yaml_cpp
+        GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+        GIT_TAG 0.8.0
+)
+fetchcontent_makeavailable(yaml_cpp)
+
+# nativefiledialog-extended
+fetchcontent_declare(nfd
+        GIT_REPOSITORY https://github.com/btzy/nativefiledialog-extended.git
+        GIT_TAG v1.1.1
+)
+fetchcontent_makeavailable(nfd)
+
+# freetype
+fetchcontent_declare(freetype
+        GIT_REPOSITORY https://gitlab.freedesktop.org/freetype/freetype.git
+        GIT_TAG VER-2-13-2
+)
+fetchcontent_makeavailable(freetype)
+
+# JoltPhysics
+fetchcontent_declare(JoltPhysics
+        GIT_REPOSITORY https://github.com/jrouwe/JoltPhysics.git
+        GIT_TAG v5.3.0
+        SOURCE_SUBDIR Build
+)
+fetchcontent_makeavailable(JoltPhysics)
+
+# assimp
+fetchcontent_declare(assimp
+        GIT_REPOSITORY https://github.com/assimp/assimp.git
+        GIT_TAG v5.4.3
+)
+fetchcontent_makeavailable(assimp)
+
+# msdfgen
+fetchcontent_declare(msdfgen
+        GIT_REPOSITORY https://github.com/Chlumsky/msdfgen.git
+        GIT_TAG v1.12
+)
+fetchcontent_makeavailable(msdfgen)
+
+# msdf-atlas-gen
+fetchcontent_declare(msdf_atlas_gen
+        GIT_REPOSITORY https://github.com/Chlumsky/msdf-atlas-gen.git
+        GIT_TAG v1.3
+)
+fetchcontent_makeavailable(msdf_atlas_gen)
+
+# enkiTS
+fetchcontent_declare(enkiTS
+        GIT_REPOSITORY https://github.com/dougbinks/enkiTS.git
+        GIT_TAG v1.11
+)
+fetchcontent_makeavailable(enkiTS)
+
+# spdlog
+fetchcontent_declare(spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG v1.12.0  # latest stable release
+)
+fetchcontent_makeavailable(spdlog)
+
+# stb (header-only)
+fetchcontent_declare(stb
+        GIT_REPOSITORY https://github.com/nothings/stb.git
+        GIT_TAG master  # stable is usually master for stb
+)
+fetchcontent_makeavailable(stb)
+
+fetchcontent_declare(tomlplusplus
+        GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
+        GIT_TAG v3.4.0
+)
+fetchcontent_makeavailable(tomlplusplus)
+
+FetchContent_Declare(
+        glm
+        GIT_REPOSITORY https://github.com/g-truc/glm.git
+        GIT_TAG master
+)
+
+FetchContent_MakeAvailable(glm)
+
+# ======================================
+# Project sources
+# ======================================
+file(GLOB SOURCE_FILES Sources/*.cc)
+
+# ======================================
+# ImGui sources (compiled directly into Mikoto)
+# ======================================
+set(IMGUI_SOURCES
+        ${imgui_SOURCE_DIR}/imgui.cpp
+        ${imgui_SOURCE_DIR}/imgui_draw.cpp
+        ${imgui_SOURCE_DIR}/imgui_demo.cpp
+        ${imgui_SOURCE_DIR}/imgui_tables.cpp
+        ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
+)
+
+# ImGuizmo sources
+set(IMGUIZMO_SOURCES
+        ${imguizmo_SOURCE_DIR}/ImGuizmo.cpp
+        ${imguizmo_SOURCE_DIR}/GraphEditor.cpp
+        ${imguizmo_SOURCE_DIR}/ImCurveEdit.cpp
+        ${imguizmo_SOURCE_DIR}/ImGradient.cpp
+        ${imguizmo_SOURCE_DIR}/ImSequencer.cpp
+)
+
+# SpirV-Reflect sources
+set(SPIRV_REFLECT_SOURCES
+        ${spirv_reflect_SOURCE_DIR}/spirv_reflect.c
+)
+
+#get_cmake_property(_variableNames VARIABLES)
+#    foreach(_variableName ${_variableNames})
+#        message(STATUS "${_variableName}=${${_variableName}}")
+#endforeach()
+
+# Miniaudio sources
+set(MINIAUDIO_SOURCES
+        ${miniaudio_SOURCE_DIR}/miniaudio.c
+)
+
+# Combine all sources into Mikoto
+set(ALL_SOURCES
+        ${SOURCE_FILES}
+        ${IMGUI_SOURCES}
+        ${IMGUIZMO_SOURCES}
+        ${SPIRV_REFLECT_SOURCES}
+        ${MINIAUDIO_SOURCES}
+)
+
+# ======================================
+# Libraries to link
+# ======================================
+set(LIBRARIES
+        glfw
+        fmt::fmt
+        EnTT::EnTT
+        volk
+        assimp
+        yaml-cpp
+        glm
+        nfd
+        cpptrace::cpptrace
+        freetype
+        Jolt
+        msdfgen::msdfgen
+        msdf-atlas-gen::msdf-atlas-gen
+        enkiTS
+        unordered_dense::unordered_dense
         nlohmann_json::nlohmann_json
 )
 
-# Required pthread and lm for linux
-# https://github.com/mackron/miniaudio for details on potential required libraries
-IF (UNIX)
-    SET(LIBRARIES ${LIBRARIES} tbb pthread m dl atomic)
-ENDIF ()
+if(UNIX)
+    list(APPEND LIBRARIES tbb pthread m dl atomic)
+endif()
 
-# Create the library
-ADD_LIBRARY(${PROJECT_NAME} STATIC ${SOURCES})
+# ======================================
+# Create Mikoto library
+# ======================================
+add_library(${PROJECT_NAME} STATIC ${ALL_SOURCES})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARIES})
 
-# Link libraries
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC ${LIBRARIES})
+# ======================================
+# Include directories
+# ======================================
+target_include_directories(${PROJECT_NAME} PUBLIC .)
+target_include_directories(${PROJECT_NAME} PUBLIC
+        ${imgui_SOURCE_DIR}
+        ${imgui_SOURCE_DIR}/backends
+        ${ImGuizmo_SOURCE_DIR}
+        ${spirv_reflect_SOURCE_DIR}
+        ${miniaudio_SOURCE_DIR}
+        ${fmt_SOURCE_DIR}/include
+        ${glfw_SOURCE_DIR}/include
+        ${VulkanMemoryAllocator_SOURCE_DIR}/include
+        ${entt_SOURCE_DIR}/single_include
+        ${yaml_cpp_SOURCE_DIR}/include
+        ${nlohmann_json_SOURCE_DIR}/include
+        ${unordered_dense_SOURCE_DIR}/include
+        ${nfd_SOURCE_DIR}/src
+        ${freetype_SOURCE_DIR}/include
+        ${JoltPhysics_SOURCE_DIR}/Jolt
+        ${assimp_SOURCE_DIR}/include
+        ${msdfgen_SOURCE_DIR}/include
+        ${msdf_atlas_gen_SOURCE_DIR}/include
+        ${enkiTS_SOURCE_DIR}/src
+        ${spdlog_SOURCE_DIR}/include
+        ${tomlplusplus_SOURCE_DIR}/include
+        ${stb_SOURCE_DIR}
+        ${glm_SOURCE_DIR}
+)
 
-# Specify target headers
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC  .)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/cpptrace/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/spdlog/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/spdlog/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/glfw/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/glew/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/imgui)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/imgui/backends)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/glm/)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/stb/)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/entt/single_include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/volk)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/fmt/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/assimp/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/VulkanMemoryAllocator/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/ImGuizmo)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/yaml-cpp/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/nativefiledialog-extended/src/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/tomlplusplus/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/JoltPhysics/Jolt)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/freetype/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/msdfgen)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/msdf-atlas-gen)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/spirv-reflect)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/enkiTS/src)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/miniaudio)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/concurrentqueue)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/unordered_dense/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/json/include)
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${MIKOTO_ROOT_DIRECTORY}/Third-Party/argparse/include)
-
-# Avoid GLFW including OpenGL headers
-TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLFW_INCLUDE_NONE)
-
-# Needed if we want to use FMT as an external library and not the
-# one bundled with SPDLOG
-# For more: https://github.com/gabime/spdlog/wiki/0.-FAQ
-TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE SPDLOG_FMT_EXTERNAL)
-
-# For Key and Mouse Codes we use the GLFW ones
-TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE USE_GLFW_INPUT)
-
-# Avoid symbols conflict when using Volk
-TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE VK_NO_PROTOTYPES)
-
-# The perspective projection matrix generated by GLM will use the OpenGL depth
-# range of -1.0 to 1.0 by default. We need to configure it to use the Vulkan
-# range of 0.0 to 1.0 using the GLM_FORCE_DEPTH_ZERO_TO_ONE definition.
-TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE)
-TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLM_FORCE_RADIANS)
-TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
-
-TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
-
-
-# If you fetch pointers to all Vulkan functions in a custom way, e.g. using some loader like Volk:
-# Define VMA_STATIC_VULKAN_FUNCTIONS and VMA_DYNAMIC_VULKAN_FUNCTIONS to 0.
-# Pass these pointers via structure VmaVulkanFunctions.
-# // https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/quick_start.html#quick_start_project_setup
-TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE VMA_STATIC_VULKAN_FUNCTIONS=0)
-TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE VMA_DYNAMIC_VULKAN_FUNCTIONS=0)
-TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PRIVATE MIKOTO_USE_AUDIO_ENGINE_INTERFACE)
+# ======================================
+# Compile definitions
+# ======================================
+target_compile_definitions(${PROJECT_NAME} PRIVATE GLFW_INCLUDE_NONE)
+target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_FMT_EXTERNAL)
+target_compile_definitions(${PROJECT_NAME} PRIVATE USE_GLFW_KEY_CODES)
+target_compile_definitions(${PROJECT_NAME} PRIVATE USE_GLFW_MOUSE_CODES)
+target_compile_definitions(${PROJECT_NAME} PRIVATE USE_GLFW_INPUT)
+target_compile_definitions(${PROJECT_NAME} PRIVATE VK_NO_PROTOTYPES)
+target_compile_definitions(${PROJECT_NAME} PRIVATE IMGUI_IMPL_VULKAN_USE_VOLK)
+target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE)
+target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_RADIANS)
+target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
+target_compile_definitions(${PROJECT_NAME} PRIVATE VMA_STATIC_VULKAN_FUNCTIONS=0)
+target_compile_definitions(${PROJECT_NAME} PRIVATE VMA_DYNAMIC_VULKAN_FUNCTIONS=0)
+target_compile_definitions(${PROJECT_NAME} PRIVATE MIKOTO_USE_AUDIO_ENGINE_INTERFACE)

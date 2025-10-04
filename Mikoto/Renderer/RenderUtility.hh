@@ -8,7 +8,7 @@
 #include <stb_image.h>
 
 #include <Common/Common.hh>
-#include <Library/Filesystem/File.hh>
+#include <Library/IO/File.hh>
 
 namespace Mikoto {
     enum class GraphicsAPI {
@@ -18,9 +18,9 @@ namespace Mikoto {
     };
 
     // By default, textures are loaded with rgba format which is supported by most of gpus
-    MKT_NODISCARD auto LoadImageFromFile( const File* textureFile, Int32_T& outWidth, Int32_T& outHeight, Int32_T& outChannels ) -> stbi_uc*;
+    MKT_NODISCARD auto LoadImageFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
 
-    MKT_NODISCARD auto FreeImageData( Byte_T* data ) -> void;
+    MKT_NODISCARD auto FreeImageData( Byte* data ) -> void;
 
 
     class StbImage final {
@@ -35,18 +35,18 @@ namespace Mikoto {
 
         auto operator=( StbImage&& other ) noexcept -> StbImage&;
 
-        MKT_NODISCARD auto GetData() const -> Byte_T* { return m_Data; }
-        MKT_NODISCARD auto GetWidth() const -> Int32_T { return m_Width; }
-        MKT_NODISCARD auto GetHeight() const -> Int32_T { return m_Height; }
-        MKT_NODISCARD auto GetChannels() const -> Int32_T { return m_Channels; }
+        MKT_NODISCARD auto GetData() const -> Byte* { return m_Data; }
+        MKT_NODISCARD auto GetWidth() const -> Int32 { return m_Width; }
+        MKT_NODISCARD auto GetHeight() const -> Int32 { return m_Height; }
+        MKT_NODISCARD auto GetChannels() const -> Int32 { return m_Channels; }
 
         MKT_NODISCARD auto IsValid() const -> bool { return m_Data != nullptr; }
 
     private:
-        Int32_T m_Width{};
-        Int32_T m_Height{};
-        Int32_T m_Channels{};
-        Byte_T* m_Data{ nullptr };
+        Int32 m_Width{};
+        Int32 m_Height{};
+        Int32 m_Channels{};
+        Byte* m_Data{ nullptr };
     };
 
     /**

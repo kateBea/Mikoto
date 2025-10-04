@@ -5,41 +5,27 @@
 #ifndef SERVICE_HH
 #define SERVICE_HH
 
-#include <type_traits>
-
 #include <Common/Common.hh>
-#include <Common/Singleton.hh>
 
 namespace Mikoto {
 
     /**
     * @brief Base class for services following the singleton pattern.
-    * @tparam ServiceType The type of the derived service class.
     *
     * This class provides a common interface for services that follow a singleton pattern.
     * It inherits from `Singleton<ServiceType>`, ensuring that only one instance of the service exists.
     *
     * Services inherited from this class must implement the `Init` and `Shutdown` methods.
     */
-    template<typename ServiceType>
-    class IService : public Singleton<ServiceType> {
+    class IService {
     public:
-        /**
-         * @brief Retrieves the singleton instance of the service.
-         * @return A pointer to the instance of the service.
-         *
-         * This function provides access to the unique instance of the service.
-         */
-        MKT_NODISCARD static auto GetInstance() -> ServiceType* {
-            return ServiceType::GetPtr();
-        }
 
         /**
          * @brief Default virtual destructor.
          *
          * Ensures proper cleanup of derived service instances.
          */
-        ~IService() override = default;
+        virtual ~IService() = default;
 
         /**
          * @brief Initializes the service.
@@ -58,6 +44,12 @@ namespace Mikoto {
         virtual auto Shutdown() -> void = 0;
 
         /**
+         * @brief Updates the service.
+         *
+         * This function can be overridden by derived classes to implement
+         */
+        virtual auto Update(float dt) -> void { }
+        /**
          * @brief Checks if the service is initialized.
          *
          * @return True if the service is initialized, false otherwise.
@@ -68,7 +60,6 @@ namespace Mikoto {
 
     protected:
         bool m_IsInitialized{ false };
-
     };
 
 }// namespace Mikoto

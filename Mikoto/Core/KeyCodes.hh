@@ -12,6 +12,8 @@
 #include "GLFW/glfw3.h"
 
 // Project Headers
+#include <Library/Utility/Types.hh>
+
 #include "Common/Common.hh"
 
 #if defined(USE_GLFW_INPUT)
@@ -144,7 +146,7 @@
 
 
 namespace Mikoto {
-    enum KeyCode : Int16_T {
+    enum KeyCode : Int16 {
         Key_Space           = MKT_KEY_SPACE           ,
         Key_Apostrophe      = MKT_KEY_APOSTROPHE      , /* ' */
         Key_Comma           = MKT_KEY_COMMA           , /* , */

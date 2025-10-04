@@ -10,11 +10,12 @@
 
 // Third-Party Libraries
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/matrix_decompose.inl>
 
 // Project Headers
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
-#include <glm/gtx/matrix_decompose.inl>
 
 namespace Mikoto::Math {
     constexpr glm::vec3 GLM_UNIT_VECTOR_X{ 1.0f, 0.0f, 0.0f };
@@ -37,7 +38,7 @@ namespace Mikoto::Math {
         return { x, y, z, .0f };
     }
 
-    MKT_NODISCARD inline auto Round( const double value, const Size_T decimalsCount ) -> double {
+    MKT_NODISCARD inline auto Round( const double value, const Size decimalsCount ) -> double {
         const double factor{ std::pow( 10, decimalsCount ) };
         return std::round( value * factor ) / factor;
     }

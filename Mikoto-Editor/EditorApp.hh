@@ -7,12 +7,15 @@
 #define MIKOTO_EDITOR_RUNNER_HH
 
 // Project Headers
+#include <Assets/Audio.hh>
 #include <Common/Application.hh>
-#include <Common/Configuration.hh>
+#include <Core/Configuration.hh>
+#include <Core/EventService.hh>
 #include <Library/Utility/Types.hh>
+#include <Platform/Window.hh>
 
 namespace Mikoto {
-    class EditorApp final : public Application {
+    class EditorApp final : public Application, public Subscriber {
     public:
 
         auto Run(Int32 argc, char** argv) -> Int32 override;
@@ -21,6 +24,15 @@ namespace Mikoto {
         auto Init() -> void override;
         auto Shutdown() -> void override;
         auto Update() -> void override;
+
+    private:
+        auto SetupEventCallbacks() -> void;
+
+        Unique<Window> m_Window{};
+
+        // For testing only
+        AudioSourceHandle m_SourceHandle{};
+        auto TestCode() -> void;
     };
 }
 

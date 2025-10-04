@@ -92,6 +92,16 @@ set(FT_REQUIRE_HARFBUZZ OFF CACHE BOOL "Disable HarfBuzz requirement in FreeType
 set(FT_DISABLE_HARFBUZZ TRUE CACHE BOOL "Disable HarfBuzz support in FreeType" FORCE)
 set(FT_WITH_HARFBUZZ OFF CACHE BOOL "Don't build with HarfBuzz" FORCE)
 
+set(FT_DISABLE_ZLIB ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_BZIP2 ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_PNG ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_HARFBUZZ ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_BROTLI ON CACHE BOOL "" FORCE)
+
+# Force CMake-based build (not the legacy Windows one)
+set(FT2_BUILD_LIBRARY ON CACHE BOOL "" FORCE)
+set(FT_WITH_CMAKE ON CACHE BOOL "" FORCE)
+
 # ======================================
 # External dependencies via FetchContent
 # ======================================

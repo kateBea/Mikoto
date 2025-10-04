@@ -29,12 +29,6 @@ namespace Mikoto {
         auto SetupEventCallbacks() -> void;
 
         Unique<Window> m_Window{};
-
-        // For testing only
-        AudioSourceHandle m_Target{};
-        AudioSourceHandle m_SourceHandle{};
-        AudioSourceHandle m_SourceHandle2{};
-        auto TestCode() -> void;
     };
 }
 

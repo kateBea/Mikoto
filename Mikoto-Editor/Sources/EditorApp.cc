@@ -83,48 +83,7 @@ namespace Mikoto {
         Root::Shutdown();
     }
 
-    auto EditorApp::TestCode() -> void {
-        static bool firstRun{ true };
-        if ( firstRun ) {
-            firstRun = false;
-
-            const auto device{ AudioService::Get().GetDevice() };
-            auto file{ FileService::GetPtr()->LoadFile( "./ringtone.mp3" ) };
-
-            if ( !file ) {
-                MKT_CORE_LOGGER_ERROR( "Failed to load audio file!" );
-            }
-
-            const AudioLoadDescription desc{
-                .AudioFile{ file } ,
-                .Volume{ 0.5f },
-            };
-
-            AudioHandle handle{ device->LoadAudio( desc ) };
-            if ( handle.IsEmpty() ) {
-                MKT_CORE_LOGGER_ERROR( "Audio handle is empty! {}", file->GetPath() );
-            } else {
-                m_SourceHandle = handle->CreateSource();
-                m_SourceHandle->SetLooping( true );
-            }
-
-            file = FileService::GetPtr()->LoadFile( "./vtuber_8899707_rockoTensei.mp3" );
-            const AudioLoadDescription desc2{
-                .AudioFile{ file } ,
-                .Volume{ 0.5f },
-            };
-            AudioHandle handle1{ device->LoadAudio( desc2 ) };
-            if ( handle1.IsEmpty() ) {
-                MKT_CORE_LOGGER_ERROR( "Audio handle is empty! {}", file->GetPath() );
-            } else {
-                m_SourceHandle2 = handle1->CreateSource();
-                m_SourceHandle2->SetLooping( true );
-            }
-        }
-    }
-
     auto EditorApp::Update() -> void {
-        TestCode();
 
         if ( !m_Window->IsMinimized() ) {
             Root::StartFrame();
@@ -142,49 +101,6 @@ namespace Mikoto {
                         m_State = ApplicationStatus::STOPPED;
                         event.SetHandled( true );
                         MKT_CORE_LOGGER_TRACE( "EditorApp::EventManager - Handled Window Event close" );
-                        return true;
-                    } );
-
-        AddHandler( EventType::KEY_PRESSED_EVENT,
-                    [this, deltaVolume = 0.5f]( Event &event ) -> bool {
-                        auto& keyEvent{ static_cast<KeyPressedEvent&>( event ) };
-                        MKT_CORE_LOGGER_TRACE( "Key pressed: {}", GetStringRepresentation(static_cast<KeyCode>(keyEvent.GetKeyCode())) );
-
-                        if ( keyEvent.GetKeyCode() == static_cast<Int32>( KeyCode::Key_1 ) ) {
-                            if (!m_Target.IsEmpty()) {  m_Target->Stop(); }
-
-                            m_Target = m_SourceHandle;
-                            MKT_CORE_LOGGER_TRACE( "EditorApp::EventManager - Swtching music");
-
-                            m_Target->Play();
-
-                        } else if ( keyEvent.GetKeyCode() == static_cast<Int32>( KeyCode::Key_2 ) ) {
-                            if (!m_Target.IsEmpty()) {  m_Target->Stop(); }
-                            m_Target = m_SourceHandle2;
-
-                            m_Target->Play();
-                        }
-
-                        if ( keyEvent.GetKeyCode() == static_cast<Int32>( KeyCode::Key_Space ) ) {
-                            if (m_Target->IsPlaying()) {
-                                m_Target->Stop();
-                                MKT_CORE_LOGGER_TRACE( "EditorApp::EventManager - Pausing music" );
-                            } else {
-                                m_Target->Play();
-                                MKT_CORE_LOGGER_TRACE( "EditorApp::EventManager - Playing music" );
-                            }
-                        }
-
-                        if ( keyEvent.GetKeyCode() == static_cast<Int32>( KeyCode::Key_Up ) ) {
-                            m_SourceHandle->IncreaseVolume(deltaVolume);
-                            MKT_CORE_LOGGER_TRACE( "EditorApp::EventManager - Increasing volume" );
-                        }
-
-                        if ( keyEvent.GetKeyCode() == static_cast<Int32>( KeyCode::Key_Down ) ) {
-                            m_SourceHandle->DecreaseVolume(deltaVolume);
-                            MKT_CORE_LOGGER_TRACE( "EditorApp::EventManager - Decreasing volume" );
-                        }
-
                         return true;
                     } );
 

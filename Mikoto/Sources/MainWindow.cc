@@ -42,7 +42,7 @@ namespace Mikoto {
                 // TODO: load from config
                 major = 1;
                 minor = 3;
-                m_Properties.Title = fmt::format("Mikoto (Vulkan Version {}.{})", major, minor);
+                m_Properties.Title = fmt::format("{} (Vulkan Version {}.{})", m_Properties.Title, major, minor);
 
                 // Because GLFW was originally designed to create an OpenGL context,
                 // we need to tell it to not create an OpenGL context with a later call to glfwCreateWindow
@@ -67,7 +67,6 @@ namespace Mikoto {
 
         m_Window = Create(spec);
 
-        MKT_ASSERT(m_Window != nullptr, "MainWindow::Init - Failed to create the Window GLFW");
         MKT_CORE_LOGGER_INFO("Created MainWindow '{}' [{} x {}]", GetTitle(), GetWidth(), GetHeight());
 
         MoveToMonitorCenter();

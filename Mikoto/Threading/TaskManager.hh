@@ -26,7 +26,7 @@ namespace Mikoto {
         }
 
         auto Shutdown() -> void {
-            m_TaskScheduler.WaitforAll();
+            m_TaskScheduler.WaitforAllAndShutdown();
         }
 
         // Submit a single task to the task scheduler
@@ -42,18 +42,6 @@ namespace Mikoto {
         // Submit a task with a specific thread index
         auto SubmitAttachedTask( IAttachedTask* task ) -> void {
             m_TaskScheduler.AddPinnedTask( task );
-        }
-
-        auto WaitGroupTasks( const std::vector<ITask*>& tasks ) -> void {
-            enki::TaskSet set{ ( uint32_t )m_Task.size(),
-                               [&]( enki::TaskSetPartition range, uint32_t threadnum ) {
-                                   for ( uint32_t i = range.start; i < range.end; ++i ) {
-                                       tasks[i]->Execute();
-                                   }
-                               } };
-
-            m_TaskScheduler.AddTaskSetToPipe( &set );
-            m_TaskScheduler.WaitforTask( &set );
         }
 
         auto RunAttachedTasks( const std::vector<IAttachedTask*>& tasks ) -> void {

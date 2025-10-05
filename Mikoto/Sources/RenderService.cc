@@ -9,9 +9,8 @@
 //
 // // Project Headers
 // #include <Common/Common.hh>
+// #include <Logging/Logger.hh>
 // #include <Renderer/RenderService.hh>
-// #include <Renderer/RenderCommand.hh>
-// #include <Renderer/RenderQueue.hh>
 // #include <Renderer/Vulkan/VulkanContext.hh>
 //
 // namespace Mikoto {
@@ -21,6 +20,8 @@
 //     {}
 //
 //     auto RenderService::Init() -> void {
+//         MKT_CORE_LOGGER_INFO("Initializing RenderService...");
+//
 //         const RenderContextCreateInfo createInfo{
 //             .TargetWindow{ m_Options.TargetWindow },
 //         };
@@ -28,7 +29,6 @@
 //         m_BackendPool.Init( 10 );
 //
 //         m_Context = RenderContext::Create(createInfo);
-//         MKT_ASSERT( m_Context, "RenderSystem::Init - Assertion failed. Could not create a valid Render context." );
 //         if (!m_Context->Init()) {
 //             MKT_THROW_RUNTIME_ERROR( "RenderSystem::Init - Could not initialize Render context." );
 //         }
@@ -41,8 +41,14 @@
 //             return;
 //         }
 //
+//         // The Log comes after so we know the service was
+//         // initialized before attempting to shut it down
+//         MKT_CORE_LOGGER_INFO( "Shutting down AudioService..." );
+//
 //         m_Context->Shutdown();
 //         m_Context = nullptr;
+//
+//         m_IsInitialized = false;
 //     }
 //
 //     auto RenderService::Update(float ts) -> void {
@@ -68,22 +74,13 @@
 //         if ( result ) {
 //             result->Init();
 //         } else {
-//             MKT_APP_LOGGER_ERROR( "RenderService::CreateBackend - Failed to create the editor renderer." );
+//             MKT_CORE_LOGGER_ERROR( "RenderService::CreateBackend - Failed to create the editor renderer." );
 //         }
 //
 //         return result;
 //     }
 //
-//     auto RenderService::RegisterRenderCommand( RenderCommand &&command ) -> void {
-//         m_Commands.Submit( std::move( command ) );
-//     }
-//
 //     auto RenderService::Flush() -> void {
-//         // Execute all the commands, render commands can include stuff not directly related to the API
-//         // For instance if we want to change the size of the viewport that is not a command
-//         // that is directly related to the API, but it is a command that is necessary for rendering
-//         // Even tho it is later needed to determine the size of the image we render to
-//         m_Commands.Flush();
 //
 //         m_Context->SubmitFrame();
 //     }

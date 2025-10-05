@@ -31,6 +31,14 @@ namespace Mikoto {
         stbi_image_free( data );
     }
 
+    auto InferAPI( std::string_view apiName ) -> GraphicsAPI {
+        if (StringUtils::Equal( apiName, "Vulkan", StringUtils::StringComparisonPolicy::CASE_INSENSITIVE )) {
+            return GraphicsAPI::VULKAN_API;
+        }
+
+        return GraphicsAPI::VULKAN_API;
+    }
+
     StbImage::StbImage( const File* textureFile ) {
         m_Data = LoadImageFromFile( textureFile, m_Width, m_Height, m_Channels );
     }

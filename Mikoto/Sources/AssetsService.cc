@@ -47,6 +47,14 @@
 //             return self->LoadAudioAsset(*Cast<AudioLoadDescription*>(desc), uri);
 //         };
 //
+//         // Model importer library
+//         MeshFactoryCreateInfo meshFactoryCreateInfo{
+//             .ImportersCount{ taskService->GetWorkersCount() },
+//             .Device{ renderSystem->GetGpuDevice() },
+//         };
+//         MeshFactory* meshFactory{ s_Registry.Register<MeshFactory>(meshFactoryCreateInfo) };
+//         meshFactory->Init();
+//
 //         m_IsInitialized = true;
 //     }
 //

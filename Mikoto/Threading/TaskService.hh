@@ -27,29 +27,31 @@
  * This subsystem is still a WIP.
  * Will not be available/operative for some time in the engine.
  * */
-namespace Mikoto {
-
-    struct TaskServiceCreateInfo {
-        UInt32 WorkerThreadCount{ 0 };
+namespace Mikoto
+{
+    struct TaskServiceCreateInfo
+    {
+        UInt32 WorkerThreadCount{0};
     };
 
-    class TaskService final : public IService, public Singleton<TaskService> {
+    class TaskService final : public IService, public Singleton<TaskService>
+    {
     public:
+        explicit TaskService(const TaskServiceCreateInfo& options);
 
-      explicit TaskService(const TaskServiceCreateInfo& options);
+        auto Init() -> void override;
+        auto Shutdown() -> void override;
+        auto Update(float dt) -> void override;
 
-      auto Init() -> void override;
-      auto Shutdown() -> void override;
+        auto GetManager() const -> TaskManager* { return m_TaskManager.get(); }
+        auto GetWorkersCount() const -> UInt32 { return m_TaskManager->GetThreadCount(); }
 
-      auto GetWorkersCount() const -> UInt32 { return m_TaskManager->GetThreadCount(); }
-
-      ~TaskService() override = default;
+        ~TaskService() override = default;
 
     private:
-      UInt32 m_ThreadCount{};
-      Unique<TaskManager> m_TaskManager{ nullptr };
+        UInt32 m_ThreadCount{};
+        Unique<TaskManager> m_TaskManager{nullptr};
     };
-
 }
 
 #endif // MIKOTO_TASK_MANAGER_HH

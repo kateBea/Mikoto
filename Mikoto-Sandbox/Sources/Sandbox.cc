@@ -22,6 +22,8 @@
 #include <Filesystem/FileService.hh>
 #include <Logging/Logger.hh>
 #include <Logging/StackTrace.hh>
+#include <Threading/TaskManager.hh>
+#include <Threading/TaskService.hh>
 
 namespace Mikoto {
 
@@ -48,15 +50,17 @@ namespace Mikoto {
     }
 
     auto SandboxApp::Init() -> void {
+
         // Load configuration
+        BaseConfiguration configApp{ "./engine-config.toml" };
 
         // App window
         m_Window = Window::Create({
-            .Title{ "Mikoto engine" },
-            .Width{ 1920 },
-            .Height{ 1080 },
-            .Backend{ GraphicsAPI::VULKAN_API },
-            .Resizable{ true }
+            .Title{ configApp.Get<std::string>( "application.title", "Mikoto Sandbox" ) },
+            .Width{ static_cast<Int32>( configApp.Get<Int64>( "application.width", 1920 ) ) },
+            .Height{ static_cast<Int32>( configApp.Get<Int64>( "application.height", 1080 ) ) },
+            .Backend{ InferAPI( configApp.Get<std::string>( "renderer.api", "" ) ) },
+            .Resizable{ configApp.Get<bool>( "application.resizable", true ) }
         });
 
         if ( m_Window ) {
@@ -66,9 +70,8 @@ namespace Mikoto {
         }
 
         // Configure and initialize the engine
-
         const RootConfig config{
-            .LockFrameRate{ false },
+            .LockFrameRate{ configApp.Get<bool>( "renderer.vsync", false )  },
             .TargetWindow{ m_Window.get() }
         };
 
@@ -120,6 +123,14 @@ namespace Mikoto {
                 m_SourceHandle2 = handle1->CreateSource();
                 m_SourceHandle2->SetLooping( true );
             }
+        }
+
+        if ( InputService::Get().IsKeyPressed( KeyCode::Key_Escape ) ) {
+            TaskManager* manager{ TaskService::Get().GetManager() };
+
+            manager->SubmitTask( new Task<void>( []() -> void {
+                MKT_CORE_LOGGER_TRACE( "Hello from Thread:" );
+            } ) );
         }
     }
 

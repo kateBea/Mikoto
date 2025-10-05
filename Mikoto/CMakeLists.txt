@@ -286,6 +286,15 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(glm)
 
+# Vulkan Memory Allocator (VMA)
+FetchContent_Declare(
+        VulkanMemoryAllocator
+        GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+        GIT_TAG master
+)
+
+FetchContent_MakeAvailable(VulkanMemoryAllocator)
+
 # harfbuzz (not needed if you don't do complex text layout)
 #FetchContent_Declare(
 #        harfbuzz
@@ -365,6 +374,7 @@ set(LIBRARIES
         enkiTS
         unordered_dense::unordered_dense
         nlohmann_json::nlohmann_json
+        GPUOpen::VulkanMemoryAllocator
 )
 
 if(UNIX)
@@ -405,6 +415,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${tomlplusplus_SOURCE_DIR}/include
         ${stb_SOURCE_DIR}
         ${glm_SOURCE_DIR}
+        ${vulkanmemoryallocator_SOURCE_DIR}/include
 )
 
 # ======================================

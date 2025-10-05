@@ -11,6 +11,7 @@
 #include <cctype>
 #include <algorithm>
 #include <format>
+#include <functional>
 
 #include "fmt/format.h"
 #include "fmt/color.h"
@@ -181,6 +182,11 @@
 
 namespace Mikoto::StringUtils {
 
+    enum class StringComparisonPolicy {
+        CASE_SENSITIVE,
+        CASE_INSENSITIVE
+    };
+
     /**
      * @brief Returns a string which is the concatenation of the string.
      * representation of the given values. Use ConcatStr, methods with *_H are
@@ -266,6 +272,27 @@ namespace Mikoto::StringUtils {
         return str1 == str2;
     }
 
+    /**
+     * @brief Returns true if two character sequences are equal.
+     * @param str1 Null-terminated string to compare.
+     * @param str2 Null-terminated string to compare.
+     * @returns True if both strings are the same, false otherwise.
+     * */
+    MKT_NODISCARD inline constexpr auto Equal( const std::string_view str1, const std::string_view str2, StringComparisonPolicy policy) -> bool {
+        const auto insensitive{ [](const char a, const char b) {
+            return std::tolower(a) == std::tolower(b);
+        }};
+
+        const auto sensitive{ [](const char a, const char b) {
+            return a == b;
+        }};
+
+        const std::function<bool(char, char)> predicate{
+            policy == StringComparisonPolicy::CASE_SENSITIVE ? sensitive : insensitive
+        };
+
+        return std::ranges::equal(str1, str2, predicate);
+    }
 
     template<typename CharType>
     inline constexpr auto ReplaceWith(std::string& str, CharType oldVal, CharType newVal) -> void {

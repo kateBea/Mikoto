@@ -19,7 +19,7 @@
 #include <Library/Utility/Types.hh>
 #include <Renderer/RenderContext.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
-#include <Renderer/Vulkan/VulkanSwapChain.hh>
+#include <Renderer/Vulkan/VulkanTexture.hh>
 
 #include <Renderer/Vulkan/VulkanDescriptorManager.hh>
 
@@ -41,7 +41,7 @@ namespace Mikoto {
         auto SetSurface(VkSurfaceKHR surface) -> VulkanContextData&;
         auto SetDebugMessenger(VkDebugUtilsMessengerEXT debugUtil) -> VulkanContextData&;
         auto SetIsVolkReady(bool value) -> VulkanContextData&;
-        auto SetValidationLayers(CStr_T* layers, UInt32_T count) -> VulkanContextData&;
+        auto SetValidationLayers(CStr* layers, UInt32 count) -> VulkanContextData&;
     };
 
     class VulkanContext final : public RenderContext {
@@ -75,7 +75,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetVmaFunctions() const -> const VmaVulkanFunctions& { return m_VulkanData.VulkanVMAFunctions; }
 
-        MKT_NODISCARD auto GetCurrentRenderableImageIndex() const -> UInt32_T { return m_CurrentRenderableSwapChainImage; }
+        MKT_NODISCARD auto GetCurrentRenderableImageIndex() const -> UInt32 { return m_CurrentRenderableSwapChainImage; }
 
     private:
         // [Internal usage]
@@ -121,8 +121,8 @@ namespace Mikoto {
         };
 
         // Swapchain manipulation data
-        Scope_T<VulkanSwapChain> m_SwapChain{};
-        UInt32_T m_CurrentRenderableSwapChainImage{};
+        Unique<VulkanSwapChain> m_SwapChain{};
+        UInt32 m_CurrentRenderableSwapChainImage{};
         GraphicsQueueSyncPrimitives m_SwapChainSyncObjects{};
 
         // Required application extensions

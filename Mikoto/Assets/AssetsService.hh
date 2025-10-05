@@ -7,6 +7,10 @@
 
 #include <ankerl/unordered_dense.h>
 
+#include <Common/Service.hh>
+#include <Common/Singleton.hh>
+#include <Library/Utility/Types.hh>
+
 #include <Assets/Font.hh>
 #include <Assets/Model.hh>
 #include <Assets/Texture.hh>
@@ -59,7 +63,7 @@ namespace Mikoto {
     * This service is part of the overall service-based architecture and helps
     * to avoid reloading ready-to-use resources.
     */
-    class AssetsService final : public IService<AssetsService> {
+    class AssetsService final : public IService, public Singleton<AssetsService> {
     public:
         /**
         * @brief Constructs an AssetsService with the provided configuration.
@@ -93,7 +97,7 @@ namespace Mikoto {
         template<typename AssetType>
         MKT_NODISCARD auto GetAssetByUri( const std::string_view uri ) -> Ref<AssetType> {
             if ( m_LoadedAssets.contains( uri.data() ) ) {
-                return Ref<AssetType>( Cast<AssetType*>( m_LoadedAssets.at( uri.data() ) ) );
+                return Ref<AssetType>( static_cast<AssetType*>( m_LoadedAssets.at( uri.data() ) ) );
             }
 
             return nullptr;
@@ -105,7 +109,7 @@ namespace Mikoto {
 
             if ( const auto& typeInfo{ typeid( AssetType ) }; m_AssetLoaders.contains(typeInfo)) {
                 Ref<AssetType> assetRef{
-                    m_AssetLoaders.at(typeInfo)(std::forward<decltype(args)>(args)...).template As<AssetType>()
+                    m_AssetLoaders.at(typeInfo)(std::forward<decltype(args)>(args)...).As<AssetType>()
                 };
             }
 
@@ -131,10 +135,10 @@ namespace Mikoto {
 
     private:
         // Load assets asynchronous
-        auto LoadModelAsset( const ModelLoadDescription& description, const Path_T& uri ) -> RefAny;
-        auto LoadTextureAsset( const TextureLoadDescription& description, const Path_T& uri ) -> RefAny;
-        auto LoadAudioAsset( const AudioLoadDescription& description, const Path_T& uri ) -> RefAny;
-        auto LoadFontAsset( const FontLoadDescription& description, const Path_T& uri ) -> RefAny;
+        auto LoadModelAsset( const ModelLoadDescription& description, const Path& uri ) -> RefAny;
+        auto LoadTextureAsset( const TextureLoadDescription& description, const Path& uri ) -> RefAny;
+        auto LoadAudioAsset( const AudioLoadDescription& description, const Path& uri ) -> RefAny;
+        auto LoadFontAsset( const FontLoadDescription& description, const Path& uri ) -> RefAny;
 
     private:
         GpuDevice* m_GpuDevice{ nullptr };

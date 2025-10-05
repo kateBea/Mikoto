@@ -22,6 +22,8 @@ namespace Mikoto {
 
     MKT_NODISCARD auto FreeImageData( Byte* data ) -> void;
 
+    MKT_NODISCARD auto InferAPI( std::string_view apiName ) -> GraphicsAPI;
+
 
     class StbImage final {
     public:

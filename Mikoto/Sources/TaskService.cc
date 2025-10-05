@@ -29,4 +29,9 @@ namespace Mikoto {
         // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down TaskService..." );
     }
+
+    auto TaskService::Update( float dt ) -> void {
+
+
+    }
 }// namespace Mikoto

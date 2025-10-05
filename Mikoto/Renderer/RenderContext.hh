@@ -39,7 +39,7 @@ namespace Mikoto {
         virtual auto EnableVSync() -> void = 0;
         virtual auto DisableVSync() -> void = 0;
 
-        static auto Create(const RenderContextCreateInfo& config) -> Scope_T<RenderContext>;
+        static auto Create(const RenderContextCreateInfo& config) -> Unique<RenderContext>;
 
     protected:
         explicit RenderContext() = default;
@@ -51,7 +51,7 @@ namespace Mikoto {
     protected:
 
         RenderContextData m_ContextData{};
-        Scope_T<GpuDevice> m_GraphicsDevice{};
+        Unique<GpuDevice> m_GraphicsDevice{};
 
     };
 }// namespace Mikoto

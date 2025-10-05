@@ -20,13 +20,13 @@ namespace Mikoto {
         GraphicsAPI RendererAPI{ GraphicsAPI::VULKAN_API };
     };
 
-    class RenderService final : public IService<RenderService> {
+    class RenderService final : public IService, public Singleton <RenderService> {
     public:
         explicit RenderService(const RenderServiceCreateInfo& options);
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
-        auto Update(float ts) -> void;
+        auto Update(float ts) -> void override;
 
         ~RenderService() override = default;
 
@@ -48,13 +48,12 @@ namespace Mikoto {
         auto Flush() -> void;
 
     private:
+        RenderServiceCreateInfo m_Options{};
         GraphicsAPI m_ActiveAPI{ GraphicsAPI::VULKAN_API };
 
-        RenderServiceCreateInfo m_Options{};
+        Unique<RenderContext> m_Context{ nullptr };
 
-        Scope_T<RenderContext> m_Context{ nullptr };
-
-        std::vector<Scope_T<RendererBackend>> m_BackendPool{};
+        ResourcePoolTyped<RendererBackend> m_BackendPool{};
     };
 }
 #endif //RENDERSYSTEM_HH

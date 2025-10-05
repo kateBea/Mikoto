@@ -56,17 +56,41 @@ namespace Mikoto {
 
         // Audio service
         AudioServiceCreateInfo audioServiceCreateInfo{};
-        AudioService* audioService{ s_Services.Register<AudioService>(audioServiceCreateInfo) };
+        AudioService *audioService{ s_Services.Register<AudioService>( audioServiceCreateInfo ) };
         audioService->Init();
+
+        // // Render service
+        // // ImGui and the asset service must be initialized after the render system
+        // // because it requires a valid render context active
+        // RenderServiceCreateInfo renderServiceCreateInfo{
+        //     .TargetWindow{ config.TargetWindow },
+        //     .RendererAPI{ GraphicsAPI::VULKAN_API }
+        // };
+        // RenderService *renderSystem{ s_Services.Register<RenderService>( renderServiceCreateInfo ) };
+        // renderSystem->Init();
+        //
+        // // Imgui service
+        // ImGuiServiceDescription imguiServiceCreateInfo{
+        //     .BackendApi{ GraphicsAPI::VULKAN_API },
+        //     .TargetWindow{ config.TargetWindow }
+        // };
+        // ImGuiService *imguiService{ s_Services.Register<ImGuiService>( imguiServiceCreateInfo ) };
+        // imguiService->Init();
+        //
+        // // Assets service
+        // AssetsServiceDescription assetsServiceCreateInfo{
+        //     .Device{ renderSystem->GetGpuDevice() },
+        //     .AudDevice{ audioService->GetDevice() },
+        // };
+        // AssetsService *assetsService{ s_Services.Register<AssetsService>( assetsServiceCreateInfo ) };
+        // assetsService->Init();
 
     }
 
     auto Root::Shutdown() -> void {
         MKT_CORE_LOGGER_DEBUG( "Shutting down Root..." );
 
-        for (const auto &service: s_Services | std::views::values) {
-            service->Shutdown();
-        }
+        for (const auto &service: s_Services | std::views::values) { service->Shutdown(); }
     }
 
     auto Root::StartFrame() -> void {}
@@ -78,11 +102,7 @@ namespace Mikoto {
         TimeService::Get().Update();
         const double timeStep{ TimeService::Get().GetTimeStep( TimeUnit::SECONDS ) };
 
-        for (const auto &service: s_Services | std::views::values) {
-            if (service->IsInitialized()) {
-                service->Update( static_cast<float>( timeStep ) );
-            }
-        }
+        for (const auto &service: s_Services | std::views::values) { if (service->IsInitialized()) { service->Update( static_cast<float>( timeStep ) ); } }
     }
 
 }// namespace Mikoto

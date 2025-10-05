@@ -16,12 +16,11 @@
 
 namespace Mikoto {
     struct ImGuiServiceDescription {
-        Path_T ImGuiFiles{};
         GraphicsAPI BackendApi{ GraphicsAPI::VULKAN_API };
         Window* TargetWindow{ nullptr };
     };
 
-    class ImGuiService final : public IService<ImGuiService> {
+    class ImGuiService final : public IService, public Singleton<ImGuiService> {
     public:
 
         explicit ImGuiService(const ImGuiServiceDescription& options);

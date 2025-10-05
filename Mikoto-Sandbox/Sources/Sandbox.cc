@@ -92,7 +92,7 @@ namespace Mikoto {
             firstRun = false;
 
             const auto device{ AudioService::Get().GetDevice() };
-            auto file{ FileService::GetPtr()->LoadFile( "./ringtone.mp3" ) };
+            auto file{ FileService::Get()->LoadFile( "./ringtone.mp3" ) };
 
             if ( !file ) {
                 MKT_CORE_LOGGER_ERROR( "Failed to load audio file!" );
@@ -126,7 +126,7 @@ namespace Mikoto {
         }
 
         if ( InputService::Get().IsKeyPressed( KeyCode::Key_Escape ) ) {
-            TaskManager* manager{ TaskService::Get().GetManager() };
+            TaskManager* manager{ TaskService::Get()->GetManager() };
 
             manager->SubmitTask( new Task<void>( []() -> void {
                 MKT_CORE_LOGGER_TRACE( "Hello from Thread:" );

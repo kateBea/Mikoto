@@ -10,6 +10,7 @@
 #include <Filesystem/FileService.hh>
 #include <Physics/PhysicService.hh>
 #include <Threading/TaskService.hh>
+#include <Renderer/RenderService.hh>
 #include <Core/Root.hh>
 #include <Logging/Logger.hh>
 
@@ -59,15 +60,15 @@ namespace Mikoto {
         AudioService *audioService{ s_Services.Register<AudioService>( audioServiceCreateInfo ) };
         audioService->Init();
 
-        // // Render service
-        // // ImGui and the asset service must be initialized after the render system
-        // // because it requires a valid render context active
-        // RenderServiceCreateInfo renderServiceCreateInfo{
-        //     .TargetWindow{ config.TargetWindow },
-        //     .RendererAPI{ GraphicsAPI::VULKAN_API }
-        // };
-        // RenderService *renderSystem{ s_Services.Register<RenderService>( renderServiceCreateInfo ) };
-        // renderSystem->Init();
+        // Render service
+        // ImGui and the asset service must be initialized after the render system
+        // because it requires a valid render context active
+        RenderServiceCreateInfo renderServiceCreateInfo{
+            .TargetWindow{ config.TargetWindow },
+            .RendererAPI{ config.TargetApi },
+        };
+        RenderService *renderSystem{ s_Services.Register<RenderService>( renderServiceCreateInfo ) };
+        renderSystem->Init();
         //
         // // Imgui service
         // ImGuiServiceDescription imguiServiceCreateInfo{

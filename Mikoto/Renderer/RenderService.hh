@@ -7,11 +7,8 @@
 
 #include <Common/Common.hh>
 #include <Common/Service.hh>
-#include <Library/Data/ResourcePool.hh>
 #include <Platform/Window.hh>
 #include <Renderer/RenderContext.hh>
-#include <Renderer/RendererBackend.hh>
-#include <Renderer/GpuDevice.hh>
 
 namespace Mikoto {
 
@@ -33,13 +30,8 @@ namespace Mikoto {
         auto PrepareFrame() const -> void;
         auto EndFrame() -> void;
 
-        MKT_NODISCARD auto CreateBackend() -> RendererBackend*;
-
         MKT_NODISCARD auto GetContext() -> RenderContext* { return m_Context.get(); }
         MKT_NODISCARD auto GetContext() const -> const RenderContext* { return m_Context.get(); }
-
-        MKT_NODISCARD auto GetGpuDevice() -> GpuDevice* { return m_Context->GetGraphicsDevice(); }
-        MKT_NODISCARD auto GetGpuDevice() const -> const GpuDevice* { return m_Context->GetGraphicsDevice(); }
 
         MKT_NODISCARD auto IsGraphicsActive(GraphicsAPI api ) -> bool;
         MKT_NODISCARD auto GetActiveGraphicsApi() const -> GraphicsAPI { return m_ActiveAPI; }
@@ -49,11 +41,8 @@ namespace Mikoto {
 
     private:
         RenderServiceCreateInfo m_Options{};
-        GraphicsAPI m_ActiveAPI{ GraphicsAPI::VULKAN_API };
-
         Unique<RenderContext> m_Context{ nullptr };
-
-        ResourcePoolTyped<RendererBackend> m_BackendPool{};
+        GraphicsAPI m_ActiveAPI{ GraphicsAPI::VULKAN_API };
     };
 }
 #endif //RENDERSYSTEM_HH

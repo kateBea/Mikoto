@@ -11,18 +11,13 @@
 #include <vector>
 
 // Third-Party Libraries
-#include <vk_mem_alloc.h>
 #include <volk.h>
+#include <vk_mem_alloc.h>
 
 // Project Headers
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 #include <Renderer/RenderContext.hh>
-#include <Renderer/Vulkan/VulkanDevice.hh>
-#include <Renderer/Vulkan/VulkanTexture.hh>
-
-#include <Renderer/Vulkan/VulkanDescriptorManager.hh>
-
 
 namespace Mikoto {
 
@@ -59,47 +54,22 @@ namespace Mikoto {
         auto EnableVSync() -> void override { SwitchSyncMode( true ); }
         auto DisableVSync() -> void override { SwitchSyncMode( false ); }
 
-        MKT_NODISCARD auto IsVSyncActive() const -> bool { return m_SwapChain->IsVsyncEnabled(); }
-        MKT_NODISCARD auto GetSwapChain() const -> VulkanSwapChain& { return *m_SwapChain; }
-
         // [General getters]
         MKT_NODISCARD auto GetSurface() const -> const VkSurfaceKHR& { return m_VulkanData.Surface; }
 
         MKT_NODISCARD auto GetInstance() const -> const VkInstance& { return m_VulkanData.Instance; }
         MKT_NODISCARD auto GetInstance() -> VkInstance& { return m_VulkanData.Instance; }
 
-        MKT_NODISCARD auto GetDevice() -> VulkanDevice* { return dynamic_cast<VulkanDevice*>(m_GraphicsDevice.get()); }
-        MKT_NODISCARD auto GetDevice() const -> const VulkanDevice* { return dynamic_cast<VulkanDevice*>(m_GraphicsDevice.get());  }
-
         MKT_NODISCARD auto GetValidationLayers() -> std::vector<const char*>& { return m_VulkanData.ValidationLayers; }
-
         MKT_NODISCARD auto GetVmaFunctions() const -> const VmaVulkanFunctions& { return m_VulkanData.VulkanVMAFunctions; }
 
-        MKT_NODISCARD auto GetCurrentRenderableImageIndex() const -> UInt32 { return m_CurrentRenderableSwapChainImage; }
-
     private:
-        // [Internal usage]
-        auto SubmitCommands() -> void;
-        auto PresentToSwapchain() -> void;
-
-        auto PrepareImmediateSubmit() -> void;
-
         auto InitVolk() -> void;
         auto LoadVmaRequiredFunctions() -> void;
 
-        auto CreateDefaultDescriptorLayouts() -> void;
-        auto InitDescriptorAllocator() -> void;
-
-        auto RecreateSwapChain( bool enableVsync = false ) -> void;
-
-        auto CreateDevice() -> void;
         auto CreateSurface() -> void;
         auto CreateInstance() -> void;
         auto CreateDebugMessenger() -> void;
-        auto CreateSynchronizationPrimitives() -> void;
-        auto CreateSwapChain( const VulkanSwapChainCreateInfo& createInfo ) -> void;
-
-        auto FlushImmediateSubmitTasks() -> void;
 
         auto SwitchSyncMode( bool enable ) -> void;
         MKT_NODISCARD auto CheckValidationLayerSupport() const -> bool;
@@ -119,11 +89,6 @@ namespace Mikoto {
 #endif
             .ValidationLayers{ "VK_LAYER_KHRONOS_validation" }
         };
-
-        // Swapchain manipulation data
-        Unique<VulkanSwapChain> m_SwapChain{};
-        UInt32 m_CurrentRenderableSwapChainImage{};
-        GraphicsQueueSyncPrimitives m_SwapChainSyncObjects{};
 
         // Required application extensions
         std::vector<const char *> m_DeviceRequestedExtensions{

@@ -5,7 +5,7 @@
 #ifndef GPURESOURCES_HH
 #define GPURESOURCES_HH
 
-#include <Library/Filesystem/File.hh>
+#include <Library/IO/File.hh>
 #include <Library/Utility/Types.hh>
 
 namespace Mikoto {
@@ -43,7 +43,7 @@ namespace Mikoto {
      * Each stage corresponds to a specific step in the rendering process, such as vertex processing, fragment
      * (pixel) processing, or compute shaders.
      */
-    enum class ShaderStage : UInt32_T {
+    enum class ShaderStage : UInt32 {
         VERTEX_STAGE,
         FRAGMENT_STAGE,
         COMPUTE_STAGE,
@@ -95,7 +95,7 @@ namespace Mikoto {
     };
 
     template<typename T>
-    MKT_NODISCARD auto InferSize( const Size_T elemCount) -> Size_T {
+    MKT_NODISCARD auto InferSize( const Size elemCount) -> Size {
         return sizeof(T) * elemCount;
     }
 
@@ -108,7 +108,7 @@ namespace Mikoto {
      * @param channelCount The number of channels (e.g., 3 for RGB, 4 for RGBA).
      * @return The inferred texture format (either RGB8 or RGBA8).
      */
-    MKT_NODISCARD constexpr auto InferFormatFromChannels( const Int32_T channelCount ) -> TextureFormat {
+    MKT_NODISCARD constexpr auto InferFormatFromChannels( const Int32 channelCount ) -> TextureFormat {
         switch ( channelCount ) {
             case 3:
                 return TextureFormat::TEXTURE_FORMAT_RGB8;
@@ -121,36 +121,36 @@ namespace Mikoto {
     }
 
     struct BufferDescription {
-        Size_T SizeBytes{};
-        Byte_T* Data{ nullptr };
+        Size SizeBytes{};
+        Byte* Data{ nullptr };
 
         BufferUsage Usage{ BufferUsage::BUFFER_USAGE_VERTEX };
         BufferDataType Type{ BufferDataType::BUFFER_DATA_FLOAT32 };
         ResourceUsageType UsageType{ ResourceUsageType::RESOURCE_USAGE_STATIC };
 
-        auto WithSizeBytes(Size_T size) -> BufferDescription&;
-        auto WithData(Byte_T* data) -> BufferDescription&;
+        auto WithSizeBytes(Size size) -> BufferDescription&;
+        auto WithData(Byte* data) -> BufferDescription&;
         auto WithUsage(BufferUsage usage) -> BufferDescription&;
         auto WithBufferDataType(BufferDataType type) -> BufferDescription&;
         auto WithResourceUsageType(ResourceUsageType type) -> BufferDescription&;
     };
 
     struct TextureDescription {
-        Int32_T Width{};
-        Int32_T Height{};
-        Int32_T ChannelCount{ 4 };
+        Int32 Width{};
+        Int32 Height{};
+        Int32 ChannelCount{ 4 };
 
-        Byte_T* Data{ nullptr };
+        Byte* Data{ nullptr };
 
         TextureType Type{ TextureType::TEXTURE_2D };
         TextureFormat Format{ InferFormatFromChannels( this->ChannelCount ) };
         ResourceUsageType UsageType{ ResourceUsageType::RESOURCE_USAGE_STATIC };
 
-        auto WithWidth( Int32_T width ) -> TextureDescription&;
-        auto WithHeight( Int32_T height ) -> TextureDescription&;
-        auto WithChannelCount( Int32_T channels ) -> TextureDescription&;
+        auto WithWidth( Int32 width ) -> TextureDescription&;
+        auto WithHeight( Int32 height ) -> TextureDescription&;
+        auto WithChannelCount( Int32 channels ) -> TextureDescription&;
 
-        auto WithData( Byte_T* data ) -> TextureDescription&;
+        auto WithData( Byte* data ) -> TextureDescription&;
         auto WithType( TextureType type ) -> TextureDescription&;
 
         auto WithFormat( TextureFormat format ) -> TextureDescription&;
@@ -158,12 +158,11 @@ namespace Mikoto {
     };
 
     struct ShaderModuleDescription {
-        std::string Uri{};
+        const File* ShaderFile{};
         std::string ShaderContents{  };
         ShaderStage Stage{ ShaderStage::VERTEX_STAGE };
 
         auto WithShaderFile( const File* file ) -> ShaderModuleDescription&;
-        auto WithUri( const std::string& stage ) -> ShaderModuleDescription&;
         auto WithStage( ShaderStage stage ) -> ShaderModuleDescription&;
     };
 

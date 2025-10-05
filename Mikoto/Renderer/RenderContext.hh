@@ -7,8 +7,6 @@
 
 #include <Common/Singleton.hh>
 #include <Platform/Window.hh>
-#include <Renderer/RendererBackend.hh>
-#include <Renderer/GpuDevice.hh>
 #include <Library/Utility/Types.hh>
 
 namespace Mikoto {
@@ -34,8 +32,6 @@ namespace Mikoto {
         virtual auto SubmitFrame() -> void = 0;
         virtual auto PrepareFrame() -> void = 0;
 
-        MKT_NODISCARD auto GetGraphicsDevice() const -> GpuDevice* { return m_GraphicsDevice.get(); }
-
         virtual auto EnableVSync() -> void = 0;
         virtual auto DisableVSync() -> void = 0;
 
@@ -51,8 +47,7 @@ namespace Mikoto {
     protected:
 
         RenderContextData m_ContextData{};
-        Unique<GpuDevice> m_GraphicsDevice{};
-
+        //Unique<GpuDevice> m_GraphicsDevice{};
     };
 }// namespace Mikoto
 

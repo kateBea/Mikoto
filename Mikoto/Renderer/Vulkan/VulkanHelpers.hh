@@ -20,6 +20,8 @@
 // Project Headers
 #include "Common/Common.hh"
 #include "Library/Utility/Types.hh"
+#include <Renderer/BufferLayout.hh>
+#include <Renderer/GpuUtility.hh>
 
 // Vulkan version
 #define MKT_VULKAN_VERSION_VARIANT 0
@@ -40,7 +42,7 @@ namespace Mikoto {
 
     struct VulkanQueueData {
         VkQueue Queue{};
-        UInt32_T FamilyIndex{};
+        UInt32 FamilyIndex{};
     };
 
     struct QueuesData {
@@ -66,7 +68,7 @@ namespace Mikoto {
 
 namespace Mikoto::VulkanHelpers {
     // We take a set because for instance graphics queue and present queue could be the same, if u try to create two queues of same index program will crash
-    MKT_NODISCARD auto SetupDeviceQueueCreateInfo(const std::set<UInt32_T>& uniqueQueueFamilies) -> std::vector<VkDeviceQueueCreateInfo>;
+    MKT_NODISCARD auto SetupDeviceQueueCreateInfo(const std::set<UInt32>& uniqueQueueFamilies) -> std::vector<VkDeviceQueueCreateInfo>;
 
     auto CopyImageToImage(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent3D imageSize) -> void;
 
@@ -74,7 +76,7 @@ namespace Mikoto::VulkanHelpers {
     MKT_NODISCARD auto GetVulkanAttributeDataType(ShaderDataType type) -> VkFormat;
     MKT_NODISCARD auto HasGraphicsQueue( const VkQueueFamilyProperties& queueFamily ) -> bool;
     MKT_NODISCARD auto HasComputeQueue( const VkQueueFamilyProperties& queueFamily ) -> bool;
-    MKT_NODISCARD auto HasPresentQueue( const VkPhysicalDevice& device, UInt32_T queueFamilyIndex, const VkSurfaceKHR& surface, const VkQueueFamilyProperties& queueFamilyProperties ) -> bool;
+    MKT_NODISCARD auto HasPresentQueue( const VkPhysicalDevice& device, UInt32 queueFamilyIndex, const VkSurfaceKHR& surface, const VkQueueFamilyProperties& queueFamilyProperties ) -> bool;
     MKT_NODISCARD auto GetVkStageFromShaderStage(ShaderStage stage) -> VkShaderStageFlagBits;
     MKT_NODISCARD auto GetVkFormatFromTextureFormat(TextureFormat format) -> VkFormat;
     MKT_NODISCARD auto GetUniformBufferPadding(VkDeviceSize bufferOriginalSize, VkDeviceSize deviceMinOffsetAlignment) -> VkDeviceSize;
@@ -101,7 +103,7 @@ namespace Mikoto::VulkanHelpers::Initializers {
         return subImage;
     }
 
-    MKT_NODISCARD inline auto CreateDescriptorSetLayoutBinding(VkDescriptorType type, VkShaderStageFlags stageFlags, UInt32_T binding) -> VkDescriptorSetLayoutBinding {
+    MKT_NODISCARD inline auto CreateDescriptorSetLayoutBinding(VkDescriptorType type, VkShaderStageFlags stageFlags, UInt32 binding) -> VkDescriptorSetLayoutBinding {
         VkDescriptorSetLayoutBinding layoutBinding{};
         layoutBinding.binding = binding;
         layoutBinding.descriptorCount = 1;
@@ -409,7 +411,7 @@ namespace Mikoto::VulkanHelpers::Initializers {
         return ret;
     }
 
-    inline auto PushConstantRange(VkShaderStageFlags stageFlags, UInt32_T size, UInt32_T offset) -> VkPushConstantRange {
+    inline auto PushConstantRange(VkShaderStageFlags stageFlags, UInt32 size, UInt32 offset) -> VkPushConstantRange {
         const VkPushConstantRange pushConstantRange {
             .stageFlags{ stageFlags },
             .offset{ offset },

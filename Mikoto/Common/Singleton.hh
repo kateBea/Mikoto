@@ -42,6 +42,10 @@ namespace Mikoto {
          * */
         static auto GetPtr() -> ValuePtr_T { if (!s_Instance) Get();  return s_Instance; }
 
+        ValuePtr_T operator->() {
+            return s_Instance;
+        }
+
         /**
          * Performs destruction on this singleton instance
          * */

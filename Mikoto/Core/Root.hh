@@ -18,6 +18,7 @@ namespace Mikoto {
         bool LockFrameRate{ false };
 
         Window* TargetWindow{ nullptr };
+        GraphicsAPI TargetApi{ GraphicsAPI::VULKAN_API };
     };
 
     // handles services lifetime and dependencies

@@ -28,7 +28,7 @@ namespace Mikoto {
          *
          * @param maxSize The maximum size (in bytes) that can be allocated by this allocator.
          */
-        explicit HeapAllocator( Size_T maxSize );
+        explicit HeapAllocator( Size maxSize );
 
         /**
          * @brief Allocates memory for the specified size.
@@ -38,7 +38,7 @@ namespace Mikoto {
          * @param size The size (in bytes) of memory to allocate.
          * @return A pointer to the allocated memory.
          */
-        auto Allocate( Size_T size ) -> void* override;
+        auto Allocate( Size size ) -> void* override;
 
         /**
          * @brief Deallocates memory that was previously allocated.
@@ -48,7 +48,7 @@ namespace Mikoto {
          * @param ptr A pointer to the memory to deallocate.
          * @param size The size (in bytes) of the memory to deallocate.
          */
-        auto Deallocate( void* ptr, Size_T size ) -> void override;
+        auto Deallocate( void* ptr, Size size ) -> void override;
 
         /**
          * @brief Returns the maximum allocatable size.
@@ -57,7 +57,7 @@ namespace Mikoto {
          *
          * @return The maximum allocatable size in bytes.
          */
-        MKT_NODISCARD auto MaxSize() const noexcept -> Size_T override;
+        MKT_NODISCARD auto MaxSize() const noexcept -> Size override;
 
         /**
          * @brief Returns the size of memory that has been allocated so far.
@@ -66,7 +66,7 @@ namespace Mikoto {
          *
          * @return The amount of memory allocated in bytes.
          */
-        MKT_NODISCARD auto GetAllocatedSize() const noexcept -> Size_T { return m_AllocatedSize; }
+        MKT_NODISCARD auto GetAllocatedSize() const noexcept -> Size { return m_AllocatedSize; }
 
     private:
         // Allocate a huge chuck when this object is created
@@ -75,8 +75,8 @@ namespace Mikoto {
         // to keep track of the allocated memory and minimazi actual
         // system allocations
         void* m_MemoryBlock{ nullptr };
-        Size_T m_MaxSize{ 0 };
-        Size_T m_AllocatedSize{ 0 };
+        Size m_MaxSize{ 0 };
+        Size m_AllocatedSize{ 0 };
     };
 }// namespace Mikoto
 

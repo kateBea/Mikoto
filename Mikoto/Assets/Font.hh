@@ -15,6 +15,7 @@
 #include <Library/Utility/Types.hh>
 #include <Renderer/FontGlyph.hh>
 #include <Renderer/GpuDevice.hh>
+
 namespace Mikoto {
 
     /**
@@ -38,7 +39,7 @@ namespace Mikoto {
         * @brief Gets the path of the font file.
         * @return Reference to the font file path.
         */
-        MKT_NODISCARD auto GetPath() const -> const Path_T& { return m_Path; }
+        MKT_NODISCARD auto GetPath() const -> const Path& { return m_Path; }
 
         /**
         * @brief Gets the name of the font.
@@ -57,7 +58,7 @@ namespace Mikoto {
         * @param characterCode Unicode code point of the character.
         * @return Pointer to the corresponding FontGlyph, or nullptr if not found.
         */
-        MKT_NODISCARD auto GetGlyph( UInt32_T characterCode ) -> FontGlyph;
+        MKT_NODISCARD auto GetGlyph( UInt32 characterCode ) -> FontGlyph;
 
         /**
         * @brief Default destructor.
@@ -66,7 +67,7 @@ namespace Mikoto {
 
     protected:
 
-        Path_T m_Path{};
+        Path m_Path{};
 
         std::string m_Name{};
 
@@ -74,8 +75,10 @@ namespace Mikoto {
 
         TextureHandle m_Atlas{ nullptr };
 
-        ankerl::unordered_dense::map<UInt32_T, FontGlyph> m_Glyphs{};
+        ankerl::unordered_dense::map<UInt32, FontGlyph> m_Glyphs{};
     };
+
+    using FontHandle = Ref<Font>;
 }
 
 #endif//FONT_HH

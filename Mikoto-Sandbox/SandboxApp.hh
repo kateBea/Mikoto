@@ -32,6 +32,7 @@ namespace Mikoto {
         AudioSourceHandle m_Target{};
         AudioSourceHandle m_SourceHandle{};
         AudioSourceHandle m_SourceHandle2{};
+        AudioSourceHandle m_SourceHandle3{};
         auto TestCode() -> void;
     };
 }

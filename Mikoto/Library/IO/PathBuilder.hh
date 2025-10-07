@@ -36,7 +36,7 @@ namespace Mikoto {
          * @brief Finalizes the path and prevents further modifications.
          * @return The finalized path as a Path_T object.
          * */
-        auto Build() -> Path_T {
+        auto Build() -> Path {
             build = true;
             return m_Path;
         }
@@ -47,7 +47,7 @@ namespace Mikoto {
 
     private:
         bool build{};
-        Path_T m_Path{};
+        Path m_Path{};
     };
 }
 #endif //MIKOTO_STRING_UTILS_PATH_BUILDER_HH

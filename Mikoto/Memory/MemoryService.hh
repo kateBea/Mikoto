@@ -7,6 +7,7 @@
 
 #include <Common/Common.hh>
 #include <Common/Service.hh>
+#include <Common/Singleton.hh>
 #include <Library/Utility/Types.hh>
 #include <Memory/HeapAllocator.hh>
 
@@ -20,14 +21,14 @@ namespace Mikoto {
     * that should be allocated when the service is initialized. It provides a fluent interface for setting its properties.
     */
     struct MemoryServiceCreateInfo {
-        Size_T InitialMemoryPoolSize{};
+        Size InitialMemoryPoolSize{};
 
         /**
          * @brief Sets the initial size of the memory pool.
          * @param size The size of the memory pool in bytes.
          * @return Reference to the modified MemoryServiceCreateInfo.
          */
-        auto WithInitialSize(Size_T size) -> MemoryServiceCreateInfo&;
+        auto WithInitialSize(Size size) -> MemoryServiceCreateInfo&;
     };
 
 
@@ -40,7 +41,7 @@ namespace Mikoto {
      *
      * This service can be used to allocate and deallocate memory, as well as to manage different types of memory pools.
      */
-    class MemoryService final : public IService<MemoryService> {
+    class MemoryService final : public IService, public Singleton<MemoryService> {
     public:
         /**
          * @brief Constructs a MemoryService instance with the provided configuration.
@@ -65,15 +66,8 @@ namespace Mikoto {
          */
         auto Shutdown() -> void override;
 
-        /**
-         * @brief Returns the system allocator used by the MemoryService.
-         *
-         * @return The `HeapAllocator` used by this MemoryService.
-         */
-        MKT_NODISCARD auto GetSystemAllocator() -> HeapAllocator& { return m_SystemAllocator; }
-
     private:
-        HeapAllocator m_SystemAllocator{ MKT_MEGABYTES( 1 ) };
+
     };
 }// namespace Mikoto
 

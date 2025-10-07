@@ -1,72 +1,70 @@
-// /**
-//  * VulkanBuffer.cc
-//  * Created by kate on 8/13/2023.
-//  * */
-//
-// // Project Headers
-// #include <Renderer/Vulkan/VulkanBuffer.hh>
-// #include <Renderer/Vulkan/VulkanContext.hh>
-//
-// namespace Mikoto {
-//
-//
-//     auto VulkanBuffer::Release() -> void {
-//         PersistentUnmap();
-//
-//         auto& device{ VulkanContext::Get().GetDevice() };
-//         device.WaitIdle();
-//
-//         vmaDestroyBuffer( device.GetAllocator(), m_Buffer, m_VmaAllocation );
-//     }
-//
-//     VulkanBuffer::~VulkanBuffer() {
-//
-//         if ( !m_IsReleased ) {
-//             Release();
-//             Invalidate();
-//         }
-//     }
-//
-//     VulkanBuffer::VulkanBuffer( const VulkanBufferCreateInfo& createInfo )
-//         : m_Size{ createInfo.BufferCreateInfo.size },
-//         m_BufferCreateInfo{ createInfo.BufferCreateInfo },
-//         m_AllocationCreateInfo{ createInfo.AllocationCreateInfo }
-//     {
-//         VulkanDevice& device{ VulkanContext::Get().GetDevice() };
-//         device.CreateBuffer( createInfo, m_Buffer, m_VmaAllocation, m_VmaAllocationInfo );
-//
-//         if ( createInfo.WantMapping ) {
-//             PersistentMap();
-//         }
-//     }
-//
-//     auto VulkanBuffer::PersistentMap() -> void {
-//         VulkanDevice& device{ VulkanContext::Get().GetDevice() };
-//         if (vmaMapMemory(device.GetAllocator(), m_VmaAllocation, std::addressof( m_MappedAddress ) ) != VK_SUCCESS) {
-//             MKT_THROW_RUNTIME_ERROR("Failed to map memory for uniform buffer in default material!");
-//         }
-//
-//         m_IsMapped = true;
-//     }
-//
-//     auto VulkanBuffer::PersistentUnmap() -> void {
-//         VulkanDevice& device{ VulkanContext::Get().GetDevice() };
-//
-//         if (m_IsMapped) {
-//             vmaUnmapMemory(device.GetAllocator(), m_VmaAllocation);
-//             m_IsMapped = false;
-//         }
-//     }
-//
-//     template<BufferUsage usage>
-//     auto VulkanBuffer::Bind( const VkCommandBuffer commandBuffer ) const -> void {
-//         if constexpr ( usage == BufferUsage::BUFFER_USAGE_VERTEX ) {
-//             constexpr std::array buffers{ m_Buffer };
-//             constexpr std::array<VkDeviceSize, 1> offsets{};
-//
-//             vkCmdBindVertexBuffers( commandBuffer, 0, 1, buffers.data(), offsets.data() );
-//         } else if constexpr ( usage == BufferUsage::BUFFER_USAGE_INDEX ) {
-//             vkCmdBindIndexBuffer( commandBuffer, m_Buffer, 0, VulkanHelpers::InferVulkanIndexType( m_DataType ) );
-//         }
-//     }
-// }
+/**
+ * VulkanBuffer.cc
+ * Created by kate on 8/13/2023.
+ * */
+
+// Project Headers
+#include <Renderer/Vulkan/VulkanBuffer.hh>
+#include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
+
+namespace Mikoto {
+
+
+    auto VulkanBuffer::Release() -> void {
+        if ( m_Buffer == VK_NULL_HANDLE ) {
+            return;// nothing to free
+        }
+
+        const auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( m_Device )->GetAllocator()) };
+        MKT_ASSERT(allocator != nullptr, "Allocator is null in VulkanBuffer::Release!");
+
+        allocator->FreeBuffer(this);
+
+        m_Buffer = VK_NULL_HANDLE;
+        m_VmaAllocation = nullptr;
+
+        m_IsAllocated = false;
+    }
+
+    auto VulkanBuffer::Allocate() -> void {
+        // Ensure allocator exists
+        const auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( m_Device )->GetAllocator()) };
+        MKT_ASSERT(allocator != nullptr, "Allocator is null in VulkanBuffer::Allocate!");
+
+        const VkResult result{ allocator->AllocateBuffer(this) };
+        if (result != VK_SUCCESS) {
+            MKT_THROW_RUNTIME_ERROR("Failed to allocate Vulkan buffer!");
+        }
+
+        m_IsAllocated = true;
+    }
+
+    VulkanBuffer::~VulkanBuffer() {
+        Release();
+    }
+
+    VulkanBuffer::VulkanBuffer( const BufferDescription& createInfo )
+        : Buffer{ createInfo.Data, createInfo.SizeBytes, createInfo.Usage, createInfo.UsageType }
+    {
+        m_BufferCreateInfo = VulkanHelpers::Initializers::BufferCreateInfo();
+        m_BufferCreateInfo.pNext = nullptr;
+
+        m_BufferCreateInfo.size = static_cast<UInt32>( m_SizeBytes);
+        m_BufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+
+        //let the VMA library know that this data should be on CPU RAM
+        m_AllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+        m_AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    }
+
+    auto VulkanBuffer::PersistentMap() -> void {
+        const auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( m_Device )->GetAllocator()) };
+        allocator->MapBuffer( this );
+    }
+
+    auto VulkanBuffer::PersistentUnmap() -> void {
+        const auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( m_Device )->GetAllocator()) };
+        allocator->UnmapBuffer( this );
+    }
+}

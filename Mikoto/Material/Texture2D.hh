@@ -13,13 +13,9 @@
 
 // Project Headers
 #include <Assets/Texture.hh>
-#include <Common/Common.hh>
-#include <Library/Filesystem/File.hh>
-#include <Library/Random/Random.hh>
 #include <Library/Utility/Types.hh>
 
 namespace Mikoto {
-
 
     /**
     * @class Texture2D
@@ -47,13 +43,13 @@ namespace Mikoto {
          * @param format Texture format
          * @param usage Type of resource usage
          */
-        Texture2D(const TextureType type, const Int32_T width, const Int32_T height, const Int32_T channels, Byte_T* data,
+        Texture2D(const TextureType type, const Int32 width, const Int32 height, const Int32 channels, Byte* data,
                    const ResourceUsageType usage)
             : Texture{ type, InferFormatFromChannels(channels), width, height, channels, usage }, m_Data{ data }
         {}
 
     protected:
-        Byte_T* m_Data{ nullptr };
+        Byte* m_Data{ nullptr };
     };
 }
 

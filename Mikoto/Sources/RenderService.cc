@@ -31,6 +31,13 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR( "RenderSystem::Init - Could not initialize Render context." );
         }
 
+        m_Device = GpuDevice::Create({ .Api = m_Options.RendererAPI });
+        if (!m_Device) {
+            MKT_THROW_RUNTIME_ERROR( "RenderSystem::Init - Could not create GPU Device." );
+        }
+
+        m_Device->Init();
+
         m_IsInitialized = true;
     }
 
@@ -41,7 +48,11 @@ namespace Mikoto {
 
         // The Log comes after so we know the service was
         // initialized before attempting to shut it down
-        MKT_CORE_LOGGER_INFO( "Shutting down AudioService..." );
+        MKT_CORE_LOGGER_INFO( "Shutting down RenderService..." );
+
+        // The device must be destroyed before the context
+        m_Device->Shutdown();
+        m_Device = nullptr;
 
         m_Context->Shutdown();
         m_Context = nullptr;
@@ -59,6 +70,10 @@ namespace Mikoto {
 
     auto RenderService::EndFrame() -> void {
         Flush();
+    }
+
+    auto RenderService::IsGraphicsActive( const GraphicsAPI api ) const -> bool {
+        return m_ActiveAPI == api;
     }
 
     auto RenderService::Flush() -> void {

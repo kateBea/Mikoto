@@ -35,7 +35,7 @@ namespace Mikoto {
 
         virtual ~ImGuiBackend() = default;
 
-        MKT_NODISCARD static auto Create(const ImGuiBackendCreateInfo& info) -> Scope_T<ImGuiBackend>;
+        MKT_NODISCARD static auto Create(const ImGuiBackendCreateInfo& info) -> Unique<ImGuiBackend>;
 
     protected:
         const Window* m_Window{};

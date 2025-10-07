@@ -157,6 +157,23 @@ namespace Mikoto {
         auto WithResourceType( ResourceUsageType type ) -> TextureDescription&;
     };
 
+    /**
+    * @struct TextureLoadDescription
+    * @brief Holds information for loading a texture.
+    *
+    * The `TextureLoadInfo` structure stores metadata required to load a texture,
+    * including the file path and texture type. It provides a fluent interface
+    * for setting its properties.
+    */
+    struct TextureLoadDescription {
+        const File *TextureFile{};
+        TextureType Type{ TextureType::TEXTURE_INVALID };
+
+
+        auto WithFile( const File *file ) -> TextureLoadDescription &;
+        auto WithType( TextureType type ) -> TextureLoadDescription &;
+    };
+
     struct ShaderModuleDescription {
         const File* ShaderFile{};
         std::string ShaderContents{  };

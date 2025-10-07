@@ -9,6 +9,7 @@
 
 #include <Common/Common.hh>
 #include <Common/Service.hh>
+#include <Common/Singleton.hh>
 #include <Library/Data/ResourcePool.hh>
 
 #include "Renderer/GpuDevice.hh"
@@ -16,13 +17,11 @@
 
 namespace Mikoto {
 
-    using FontHandle = Ref<Font>;
-
     struct FontServiceCreateInfo {
 
     };
 
-    class FontService final : public IService<FontService> {
+    class FontService final : public IService, public Singleton<FontService> {
     public:
         explicit FontService( const FontServiceCreateInfo &options );
 

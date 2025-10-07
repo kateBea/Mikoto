@@ -65,6 +65,16 @@ namespace Mikoto {
         return *this;
     }
 
+    auto TextureLoadDescription::WithFile( const File *file ) -> TextureLoadDescription & {
+        this->TextureFile = file;
+        return *this;
+    }
+
+    auto TextureLoadDescription::WithType( TextureType type ) -> TextureLoadDescription & {
+        this->Type = type;
+        return *this;
+    }
+
     auto ShaderModuleDescription::WithShaderFile( const File *file ) -> ShaderModuleDescription & {
         ShaderFile = file;
         return *this;

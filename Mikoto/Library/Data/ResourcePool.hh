@@ -166,8 +166,9 @@ namespace Mikoto {
         */
         auto Shutdown() -> void {
             for ( const auto& resource: m_Resources | std::views::values ) {
-                if ( resource->IsUsed() ) {
+                if ( resource->IsUsed() || resource->GetRefCount() == 1 ) {
                     // Check if resource was not freed
+                    ReleaseResource( resource->GetHandle() );
                 }
             }
 
@@ -182,9 +183,9 @@ namespace Mikoto {
         */
         auto ReleaseResource( const Handle index ) -> void {
 
-            if ( index < m_Resources.size() && m_Resources.contains(index) ) {
-                delete m_Resources[index];
-                m_Resources.erase(index);
+            if ( m_Resources.contains(index) ) {
+                m_Resources[index]->Free();
+                m_Resources[index] = nullptr;
 
                 m_FreeHandles.emplace_back(index);
             }
@@ -265,12 +266,15 @@ namespace Mikoto {
                 return nullptr;
             }
 
-            Pointer p{ nullptr };
+            Pointer p{ new T(std::forward<Args>(args)... ) };
 
-            const auto [it, success]{ m_Resources.try_emplace( index, new T(std::forward<Args>(args)... )) };
+            const auto [it, success]{ m_Resources.try_emplace( index, p) };
             if (success) {
                 it->second->SetHandle( index );
                 p = static_cast<Pointer>(it->second);
+            } else if (it->second == nullptr) {
+                // Index is already reserved
+                it->second = p;
             }
 
             return p;
@@ -278,10 +282,10 @@ namespace Mikoto {
 
         /**
          * @brief Releases a typed resource back to the pool.
-         * @param resource A pointer to the resource to be released.
+         * @param handle The handle of the resource to be released.
          */
-        auto Release( Pointer resource ) -> void {
-            ReleaseResource( resource->GetHandle() );
+        auto Release( const Handle handle ) -> void {
+            ReleaseResource( handle );
         }
 
         /**
@@ -292,6 +296,12 @@ namespace Mikoto {
         MKT_NODISCARD auto Get( const Handle index ) -> Pointer {
             return static_cast<Pointer>( AccessResource( index ) );
         }
+
+        auto begin() { return m_Resources.begin(); }
+        auto end() { return m_Resources.end(); }
+
+        auto cbegin() const { return m_Resources.cbegin(); }
+        auto cend() const { return m_Resources.cend(); }
     };
 
 }

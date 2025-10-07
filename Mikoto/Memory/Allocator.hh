@@ -57,7 +57,7 @@ namespace Mikoto {
         * @param size The number of objects to allocate memory for.
         * @return A pointer to the allocated memory.
         */
-        virtual auto Allocate( Size_T size ) -> Pointer_T = 0;
+        virtual auto Allocate( Size size ) -> Pointer_T = 0;
 
         /**
         * @brief Allocates at least the specified number of objects of type `T`.
@@ -68,7 +68,7 @@ namespace Mikoto {
         * @param size The number of objects to allocate memory for.
         * @return A pointer to the allocated memory.
         */
-        virtual auto AllocateAtLeast( const Size_T size ) -> Pointer_T {
+        virtual auto AllocateAtLeast( const Size size ) -> Pointer_T {
             return Allocate( size );
         }
 
@@ -80,7 +80,7 @@ namespace Mikoto {
         * @param ptr A pointer to the memory to deallocate.
         * @param size The number of objects to deallocate memory for.
         */
-        virtual auto Deallocate( T* ptr, Size_T size ) -> void = 0;
+        virtual auto Deallocate( T* ptr, Size size ) -> void = 0;
 
         /**
         * @brief Returns the maximum size that can be allocated by this allocator.
@@ -89,7 +89,7 @@ namespace Mikoto {
         *
         * @return The maximum allocatable size in bytes.
         */
-        MKT_NODISCARD virtual auto MaxSize() const noexcept -> Size_T = 0;
+        MKT_NODISCARD virtual auto MaxSize() const noexcept -> Size = 0;
 
         /**
         * @brief Constructs an object of type `T` in the specified memory location.

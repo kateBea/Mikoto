@@ -17,9 +17,9 @@
 #include <ankerl/unordered_dense.h>
 
 // Project Libraries
-#include <Assets/MeshNode.hh>
 #include <Common/Common.hh>
 #include <Material/Texture2D.hh>
+#include <Renderer/Buffer.hh>
 
 namespace Mikoto {
 
@@ -50,6 +50,60 @@ namespace Mikoto {
     };
 
     /**
+     * @class MeshNode
+     * @brief Represents a single mesh node within a 3D model.
+     *
+     * The `MeshNode` class stores vertex and index buffer references, along with associated textures.
+     */
+    class MeshNode final {
+    public:
+        /**
+         * @brief Constructs a MeshNode with the given parameters.
+         * @param index Index of the mesh within the model.
+         * @param vertices Handle to the vertex buffer.
+         * @param indices Handle to the index buffer.
+         * @param textures Vector of texture Handles associated with the mesh.
+         */
+        explicit MeshNode( Size index, BufferHandle vertices, BufferHandle indices, std::vector<TextureHandle>&& textures );
+
+        MeshNode(MeshNode&& other) noexcept;
+
+        /**
+         * @brief Retrieves the vertex buffer of the mesh.
+         * @return A pointer to the vertex buffer.
+         */
+        MKT_NODISCARD auto GetVertexBuffer() -> BufferHandle { return std::move( m_Vertices ); }
+
+        /**
+         * @brief Retrieves the index buffer of the mesh.
+         * @return A pointer to the index buffer.
+         */
+        MKT_NODISCARD auto GetIndexBuffer() -> BufferHandle { return std::move( m_Indices ); }
+
+        /**
+         * @brief Retrieves the index of the mesh into its corresponding model.
+         * @return The mesh index for this mesh.
+         */
+        MKT_NODISCARD auto GetMeshIndex() const -> Size { return m_MeshIndex; }
+
+        /**
+         * @brief Retrieves the textures associated with the mesh.
+         * @return A constant reference to the vector of textures.
+         */
+        MKT_NODISCARD auto GetTextures() const -> const std::vector<TextureHandle>& { return m_OriginalTextures; }
+
+        DISABLE_COPY_FOR( MeshNode );
+
+    private:
+        Size m_MeshIndex{};
+
+        BufferHandle m_Vertices{};
+        BufferHandle m_Indices{};
+
+        std::vector<TextureHandle> m_OriginalTextures{};
+    };
+
+    /**
     * @class Model
     * @brief Represents a 3D model composed of multiple mesh nodes.
     *
@@ -57,7 +111,7 @@ namespace Mikoto {
     * directory path, name, and vertex/index counts.
     * It provides access to mesh data and metadata about the model.
     */
-    class Model final : ReferenceCounted {
+    class Model final : public ReferenceCounted {
     public:
         /**
         * @brief Retrieves the meshes of the model.
@@ -74,20 +128,22 @@ namespace Mikoto {
         /**
         * @brief Retrieves the mesh of the model by index.
         * @return A reference to a mesh.
+        * @throws
         */
-        MKT_NODISCARD auto GetMeshes(const Size_T index) -> MeshNode& { return m_Meshes.at(index); }
+        MKT_NODISCARD auto GetMeshNode(const Size index) -> MeshNode& { return m_Meshes.at(index); }
 
         /**
         * @brief Retrieves the mesh of the model by index.
         * @return A constant reference to a mesh.
+        * @throws
         */
-        MKT_NODISCARD auto GetMeshes(const Size_T index) const -> const MeshNode& { return m_Meshes.at(index); }
+        MKT_NODISCARD auto GetMeshNode(const Size index) const -> const MeshNode& { return m_Meshes.at(index); }
 
         /**
         * @brief Gets the absolute directory path where the model is stored.
         * @return A constant reference to the model's directory path.
         */
-        MKT_NODISCARD auto GetDirectory() const -> const Path_T& { return m_ModelAbsolutePath; }
+        MKT_NODISCARD auto GetDirectory() const -> const Path& { return m_ModelAbsolutePath; }
 
         /**
         * @brief Retrieves the name of the model.
@@ -99,13 +155,13 @@ namespace Mikoto {
         * @brief Gets the total number of vertices in the model.
         * @return The vertex count.
         */
-        MKT_NODISCARD auto GetVertexCount() const -> UInt64_T { return m_TotalVertices; }
+        MKT_NODISCARD auto GetVertexCount() const -> UInt64 { return m_TotalVertices; }
 
         /**
          * @brief Gets the total number of indices in the model.
          * @return The index count.
          */
-        MKT_NODISCARD auto GetIndexCount() const -> UInt64_T { return m_TotalIndices; }
+        MKT_NODISCARD auto GetIndexCount() const -> UInt64 { return m_TotalIndices; }
 
         /**
         * @brief Adds a new mesh node to the collection.
@@ -116,11 +172,13 @@ namespace Mikoto {
         * This function inserts a new mesh node into the `m_Meshes` collection at the given index.
         */
         template<typename... Args>
-        auto AddMeshNode(UInt32_T index, Args&&... args) -> void {
+        auto AddMeshNode(UInt32 index, Args&&... args) -> void {
             m_Meshes.emplace(index, std::forward<Args>(args)...);
         }
 
-    public:
+    ~Model() override = default;
+
+    private:
         DISABLE_COPY_AND_MOVE_FOR( Model );
 
         /**
@@ -128,7 +186,7 @@ namespace Mikoto {
          * @param modelName Name of the model.
          * @param modelPath Absolute path to the model file.
          */
-        explicit Model( std::string modelName, Path_T modelPath)
+        explicit Model( std::string modelName, Path modelPath)
             : m_ModelName{ std::move( modelName ) },
               m_ModelAbsolutePath{ std::move( modelPath ) }
         {}
@@ -138,20 +196,15 @@ namespace Mikoto {
         // Only the factory can construct models
         friend class MeshFactory;
 
-    private:
-        auto FreeObject() -> void {
-
-        }
-
     protected:
         std::string m_ModelName{};
-        Path_T m_ModelAbsolutePath{};
+        Path m_ModelAbsolutePath{};
 
         // ( Mesh index, mesh node )
-        ankerl::unordered_dense::map<UInt32_T, MeshNode> m_Meshes{};
+        ankerl::unordered_dense::map<UInt32, MeshNode> m_Meshes{};
 
-        UInt64_T m_TotalVertices{};
-        UInt64_T m_TotalIndices{};
+        UInt64 m_TotalVertices{};
+        UInt64 m_TotalIndices{};
     };
 
 }// namespace Mikoto

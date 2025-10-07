@@ -48,7 +48,7 @@ namespace Mikoto {
         Window* m_Window{ nullptr };
 
         std::vector<ImFont*> m_Fonts{};
-        Scope_T<ImGuiBackend> m_Implementation{ nullptr };
+        Unique<ImGuiBackend> m_Implementation{ nullptr };
     };
 
 }

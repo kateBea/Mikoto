@@ -25,12 +25,3 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_FMT_EXTERNAL)
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE)
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_RADIANS)
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
-
-target_compile_definitions(${PROJECT_NAME} PRIVATE VK_NO_PROTOTYPES)
-
-# If you fetch pointers to all Vulkan functions in a custom way, e.g. using some loader like Volk:
-# Define VMA_STATIC_VULKAN_FUNCTIONS and VMA_DYNAMIC_VULKAN_FUNCTIONS to 0.
-# Pass these pointers via structure VmaVulkanFunctions.
-# // https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/quick_start.html#quick_start_project_setup
-target_compile_definitions(${PROJECT_NAME} PRIVATE VMA_STATIC_VULKAN_FUNCTIONS=0)
-target_compile_definitions(${PROJECT_NAME} PRIVATE VMA_DYNAMIC_VULKAN_FUNCTIONS=0)

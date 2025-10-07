@@ -26,13 +26,13 @@ namespace Mikoto {
          * @param data Pointer to the texture data
          * @param usage Type of resource usage
          */
-        TextureCube(const TextureType type, const Int32_T width, const Int32_T height, const Int32_T channels, Byte_T* data,
+        TextureCube(const TextureType type, const Int32 width, const Int32 height, const Int32 channels, Byte* data,
                    const ResourceUsageType usage)
             : Texture{ type, InferFormatFromChannels(channels), width, height, channels, usage }, m_Data{ data }
         {}
 
     protected:
-        Byte_T* m_Data{ nullptr };
+        Byte* m_Data{ nullptr };
     };
 }// namespace Mikoto
 

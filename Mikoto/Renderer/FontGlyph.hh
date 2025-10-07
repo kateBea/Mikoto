@@ -5,16 +5,17 @@
 #ifndef GLYPH_HH
 #define GLYPH_HH
 
+#include <glm/glm.hpp>
+
 #include <Assets/Texture.hh>
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
-#include <Renderer/BufferElement.hh>
 #include <Renderer/BufferLayout.hh>
-#include <glm/glm.hpp>
 
-#include "GpuDevice.hh"
+#include "Renderer/GpuDevice.hh"
 
 namespace Mikoto {
+
     // Represents the specific characters of a given font
     class FontGlyph final {
     public:
@@ -28,7 +29,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetSize() const -> const glm::ivec2& { return m_Size; }
         MKT_NODISCARD auto GetBearing() const -> const glm::ivec2& { return m_Bearing; }
-        MKT_NODISCARD auto GetAdvance() const -> UInt32_T { return m_Advance; }
+        MKT_NODISCARD auto GetAdvance() const -> UInt32 { return m_Advance; }
 
         MKT_NODISCARD auto GetTexture() const -> BufferHandle;
         MKT_NODISCARD auto GetVertexBuffer() const -> BufferHandle;
@@ -47,7 +48,7 @@ namespace Mikoto {
 
         glm::ivec2   m_Size{};
         glm::ivec2   m_Bearing{};
-        UInt32_T m_Advance{};
+        UInt32 m_Advance{};
 
         BufferHandle m_VertexBuffer{};
         BufferHandle m_IndexBuffer{};

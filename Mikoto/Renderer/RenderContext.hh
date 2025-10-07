@@ -14,20 +14,12 @@ namespace Mikoto {
         const Window* TargetWindow{ nullptr };
     };
 
-    class RenderContext : public Singleton<RenderContext> {
+    class RenderContext {
     public:
-        struct RenderContextData {
-            const Window* TargetWindow{ nullptr };
-        };
-
-    public:
-        ~RenderContext() override = default;
-
+        virtual ~RenderContext() = default;
 
         virtual auto Init() -> bool = 0;
         virtual auto Shutdown() -> void = 0;
-
-        auto GetContextData() -> RenderContextData& { return m_ContextData; }
 
         virtual auto SubmitFrame() -> void = 0;
         virtual auto PrepareFrame() -> void = 0;
@@ -38,15 +30,14 @@ namespace Mikoto {
         static auto Create(const RenderContextCreateInfo& config) -> Unique<RenderContext>;
 
     protected:
-        explicit RenderContext() = default;
 
         explicit RenderContext(const RenderContextCreateInfo& createInfo)
-            :   m_ContextData{ .TargetWindow{ createInfo.TargetWindow } }
+            :   m_TargetWindow{ createInfo.TargetWindow }
         { }
 
     protected:
 
-        RenderContextData m_ContextData{};
+        const Window* m_TargetWindow{ nullptr };
         //Unique<GpuDevice> m_GraphicsDevice{};
     };
 }// namespace Mikoto

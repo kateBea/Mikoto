@@ -2,17 +2,19 @@
 // Created by zanet on 10/1/2025.
 //
 
+#include <Assets/AssetsService.hh>
+#include <Audio/AudioService.hh>
 #include <Core/Configuration.hh>
 #include <Core/EventService.hh>
 #include <Core/InputService.hh>
-#include <Core/TimeService.hh>
-#include <Audio/AudioService.hh>
-#include <Filesystem/FileService.hh>
-#include <Physics/PhysicService.hh>
-#include <Threading/TaskService.hh>
-#include <Renderer/RenderService.hh>
 #include <Core/Root.hh>
+#include <Core/TimeService.hh>
+#include <Filesystem/FileService.hh>
 #include <Logging/Logger.hh>
+#include <Memory/MemoryService.hh>
+#include <Physics/PhysicService.hh>
+#include <Renderer/RenderService.hh>
+#include <Threading/TaskService.hh>
 
 namespace Mikoto {
 
@@ -69,6 +71,12 @@ namespace Mikoto {
         };
         RenderService *renderSystem{ s_Services.Register<RenderService>( renderServiceCreateInfo ) };
         renderSystem->Init();
+
+        // Memory service
+        MemoryServiceCreateInfo memoryServiceCreateInfo{};
+        MemoryService *memoryService{ s_Services.Register<MemoryService>( memoryServiceCreateInfo ) };
+        memoryService->Init();
+
         //
         // // Imgui service
         // ImGuiServiceDescription imguiServiceCreateInfo{
@@ -77,33 +85,44 @@ namespace Mikoto {
         // };
         // ImGuiService *imguiService{ s_Services.Register<ImGuiService>( imguiServiceCreateInfo ) };
         // imguiService->Init();
-        //
-        // // Assets service
-        // AssetsServiceDescription assetsServiceCreateInfo{
-        //     .Device{ renderSystem->GetGpuDevice() },
-        //     .AudDevice{ audioService->GetDevice() },
-        // };
-        // AssetsService *assetsService{ s_Services.Register<AssetsService>( assetsServiceCreateInfo ) };
-        // assetsService->Init();
+
+        // Assets service
+        AssetsServiceDescription assetsServiceCreateInfo{
+            .Device{ renderSystem->GetGpuDevice() },
+            .AudDevice{ audioService->GetDevice() },
+        };
+        AssetsService *assetsService{ s_Services.Register<AssetsService>( assetsServiceCreateInfo ) };
+        assetsService->Init();
 
     }
 
     auto Root::Shutdown() -> void {
         MKT_CORE_LOGGER_DEBUG( "Shutting down Root..." );
 
-        for (const auto &service: s_Services | std::views::values) { service->Shutdown(); }
+        for (const auto& [id, system] : std::views::reverse(s_Services)) {
+            // Services need to be shutdown in the order they were initialized
+            // Registry does not guarantee any order for now
+            system->Shutdown();
+        }
     }
 
-    auto Root::StartFrame() -> void {}
+    auto Root::StartFrame() -> void {
+        RenderService::Get()->PrepareFrame();
+    }
 
-    auto Root::EndFrame() -> void {}
+    auto Root::EndFrame() -> void {
+        RenderService::Get()->EndFrame();
+    }
 
     auto Root::UpdateState() -> void {
-        // Update time step
-        TimeService::Get().Update();
+        TimeService::Get()->Update();
         const double timeStep{ TimeService::Get().GetTimeStep( TimeUnit::SECONDS ) };
 
-        for (const auto &service: s_Services | std::views::values) { if (service->IsInitialized()) { service->Update( static_cast<float>( timeStep ) ); } }
+        for (const auto &service: s_Services | std::views::values ) {
+            if (service->IsInitialized()) {
+                service->Update( static_cast<float>( timeStep ) );
+            }
+        }
     }
 
 }// namespace Mikoto

@@ -33,7 +33,7 @@ namespace Mikoto::ImGuiUtils {
         }
     };
 
-    MKT_NODISCARD inline auto PushImageButton( UInt64_T textureId, const VkDescriptorSet textureHandle, const ImVec2 size ) -> bool {
+    MKT_NODISCARD inline auto PushImageButton( UInt64 textureId, const VkDescriptorSet textureHandle, const ImVec2 size ) -> bool {
         const ImTextureID icon{ reinterpret_cast<ImTextureID>( textureHandle ) };
         return ImGui::ImageButton( StringUtils::ToString( textureId ).c_str(), icon, size, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
     }
@@ -177,7 +177,7 @@ namespace Mikoto::ImGuiUtils {
         }
     }
 
-    inline auto CheckBox( const CStr_T label, bool& value ) -> bool {
+    inline auto CheckBox( const CStr label, bool& value ) -> bool {
         ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
         ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 3.5f };
 
@@ -218,7 +218,7 @@ namespace Mikoto::ImGuiUtils {
         ImGui::PopStyleVar();
     }
 
-    inline auto DragFloat4( const CStr_T label, const CStr_T format, glm::vec4& vect, float speed, float minVal, float maxVal ) -> bool {
+    inline auto DragFloat4( const CStr label, const CStr format, glm::vec4& vect, float speed, float minVal, float maxVal ) -> bool {
         ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
         ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 3.5f };
         ImGuiScopedStyleVar spacing{ ImGuiStyleVar_ItemInnerSpacing, ImVec2{ 5.0f, 5.0f } };
@@ -232,7 +232,7 @@ namespace Mikoto::ImGuiUtils {
         return active;
     }
 
-    inline auto ColorEdit4( const CStr_T label, glm::vec4& vect ) -> bool {
+    inline auto ColorEdit4( const CStr label, glm::vec4& vect ) -> bool {
         constexpr ImGuiColorEditFlags colorEditFlags{
             ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_PickerHueBar
         };
@@ -250,7 +250,7 @@ namespace Mikoto::ImGuiUtils {
         return active;
     }
 
-    inline auto Slider( const CStr_T label, float& value, const glm::vec2& bounds, std::string_view format = "%.2f" ) -> bool {
+    inline auto Slider( const CStr label, float& value, const glm::vec2& bounds, std::string_view format = "%.2f" ) -> bool {
         constexpr ImGuiSliderFlags flags{ ImGuiSliderFlags_None };
 
         ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
@@ -265,7 +265,7 @@ namespace Mikoto::ImGuiUtils {
         return active;
     }
 
-    inline auto ButtonTextIcon( const CStr_T icon, ImVec2 size = { 0.0f, 0.0f } ) -> bool {
+    inline auto ButtonTextIcon( const CStr icon, ImVec2 size = { 0.0f, 0.0f } ) -> bool {
         ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
         ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
         ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemInnerSpacing, ImVec2{ 0.0f, 0.0f } };
@@ -284,7 +284,7 @@ namespace Mikoto::ImGuiUtils {
         ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
         ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
 
-        const auto resizeCallback{ []( ImGuiInputTextCallbackData* data ) -> Int32_T {
+        const auto resizeCallback{ []( ImGuiInputTextCallbackData* data ) -> Int32 {
             if ( data->EventFlag == ImGuiInputTextFlags_CallbackResize ) {
                 std::string* str{ static_cast<std::string*>( data->UserData ) };
 
@@ -314,7 +314,7 @@ namespace Mikoto::ImGuiUtils {
     }
 
     template<typename InputIt, typename Pred>
-    inline auto ComboList( InputIt start, InputIt end, std::string& currentlyActive, Pred&& isSelectedPred, const CStr_T label ) -> void {
+    inline auto ComboList( InputIt start, InputIt end, std::string& currentlyActive, Pred&& isSelectedPred, const CStr label ) -> void {
         ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
         ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
         ImGuiScopedStyleVar popUpRounding{ ImGuiStyleVar_PopupRounding, 2.5f };

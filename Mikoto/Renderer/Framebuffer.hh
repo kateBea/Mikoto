@@ -12,8 +12,8 @@
 namespace Mikoto {
 
     struct FramebufferDescription {
-        Int32_T Width{};
-        Int32_T Height{};
+        Int32 Width{};
+        Int32 Height{};
 
         TextureFormat ColorFormat{ TextureFormat::TEXTURE_FORMAT_RGBA8 };
         TextureFormat DepthFormat{ TextureFormat::TEXTURE_FORMAT_RGBA8 };
@@ -24,8 +24,8 @@ namespace Mikoto {
         auto AddAttachment( TextureHandle color ) -> FramebufferDescription&;
         auto AddDepthAttachment( TextureHandle depth ) -> FramebufferDescription&;
 
-        auto WithWidth( Int32_T width ) -> FramebufferDescription&;
-        auto WithHeight( Int32_T height ) -> FramebufferDescription&;
+        auto WithWidth( Int32 width ) -> FramebufferDescription&;
+        auto WithHeight( Int32 height ) -> FramebufferDescription&;
         auto WithColorFormat( TextureFormat format ) -> FramebufferDescription&;
         auto WithDepthFormat( TextureFormat format ) -> FramebufferDescription&;
     };

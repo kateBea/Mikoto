@@ -27,7 +27,7 @@ namespace Mikoto {
          *
          * @return The size of the buffer in bytes.
          */
-        MKT_NODISCARD auto GetSizeBytes() const -> Size_T {
+        MKT_NODISCARD auto GetSizeBytes() const -> Size {
             return m_SizeBytes;
         }
 
@@ -59,13 +59,16 @@ namespace Mikoto {
          * @param usage The usage type of the buffer (e.g., vertex, index).
          * @param usageType The resource usage type (e.g., static, dynamic).
          */
-        Buffer( const Size_T sizeBytes, const BufferUsage usage, const ResourceUsageType usageType )
-            : DeviceObject{ usageType }, m_SizeBytes{ sizeBytes }, m_Usage{ usage } {}
+        Buffer( Byte* data, const Size sizeBytes, const BufferUsage usage, const ResourceUsageType usageType )
+            : DeviceObject{ usageType }, m_Data{ data}, m_SizeBytes{ sizeBytes }, m_Usage{ usage } {}
 
     protected:
-        Size_T m_SizeBytes{};
+        Byte* m_Data{ nullptr };
+        Size m_SizeBytes{};
         BufferDataType m_DataType{ BufferDataType::BUFFER_DATA_TYPE_INVALID };
         BufferUsage m_Usage{ BufferUsage::BUFFER_USAGE_VERTEX };
     };
+
+    using BufferHandle = Ref<Buffer>;
 }// namespace Mikoto
 #endif//BUFFER_HH

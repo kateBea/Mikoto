@@ -88,7 +88,7 @@ namespace Mikoto {
 
         DepthCompareOp DepthCompareOperation{ DepthCompareOp::GREATER_OR_EQUAL };
 
-        std::vector<ShaderModuleHandle> ShaderStages{};
+        //std::vector<ShaderModuleHandle> ShaderStages{};
     };
 
     class GraphicsPipeline : public IPipeline {

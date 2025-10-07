@@ -65,7 +65,18 @@ namespace Mikoto {
 
         audio->Init( this );
 
-        return AudioHandle::Create(m_LoadedAudios.Get( audio->GetHandle() ));
+        m_CachedAudios[description.AudioFile->GetPath()] = audio->GetHandle();
+
+        return AudioHandle::Create( m_LoadedAudios.Get( audio->GetHandle() ) );
+    }
+
+    auto AudioDevice::GetAudio( const std::string& uri ) -> AudioHandle {
+        const auto it{ m_CachedAudios.find( uri ) };
+        if ( it != m_CachedAudios.end() ) {
+            return AudioHandle::Create( m_LoadedAudios.Get( it->second ) );
+        }
+
+        return AudioHandle::CreateEmpty();
     }
 
     auto AudioDevice::Create( const AudioDeviceDescription& description ) -> Unique<AudioDevice> {

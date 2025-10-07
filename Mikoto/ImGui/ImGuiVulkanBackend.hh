@@ -14,8 +14,8 @@
 // Third-Party Libraries
 #include <volk.h>
 
-#include <GUI/ImGuiUtility.hh>
-#include <GUI/ImGuiBackend.hh>
+#include <ImGui/ImGuiUtility.hh>
+#include <ImGui/ImGuiBackend.hh>
 #include <Renderer/Vulkan/VulkanFrameBuffer.hh>
 
 namespace Mikoto {
@@ -24,12 +24,12 @@ namespace Mikoto {
     public:
         explicit ImGuiVulkanBackend( const ImGuiBackendCreateInfo& createInfo )
             : ImGuiBackend{ createInfo }, m_Extent2D{
-                  .width{ static_cast<UInt32_T>( createInfo.Handle->GetWidth() ) },
-                  .height{ static_cast<UInt32_T>( createInfo.Handle->GetHeight() ) }
+                  .width{ static_cast<UInt32>( createInfo.Handle->GetWidth() ) },
+                  .height{ static_cast<UInt32>( createInfo.Handle->GetHeight() ) }
               },
               m_Extent3D{
-                  .width{ static_cast<UInt32_T>( createInfo.Handle->GetWidth() ) },
-                  .height{ static_cast<UInt32_T>( createInfo.Handle->GetHeight() ) }, .depth{ 1 }
+                  .width{ static_cast<UInt32>( createInfo.Handle->GetWidth() ) },
+                  .height{ static_cast<UInt32>( createInfo.Handle->GetHeight() ) }, .depth{ 1 }
               }
         {}
 

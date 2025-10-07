@@ -37,7 +37,7 @@ namespace Mikoto {
             }
 
         } catch ( const std::exception &e ) {
-            MKT_CORE_LOGGER_CRITICAL("Error occurred", e.what());
+            MKT_CORE_LOGGER_CRITICAL("Error occurred {}", e.what());
             exitCode = EXIT_FAILURE;
         }
 

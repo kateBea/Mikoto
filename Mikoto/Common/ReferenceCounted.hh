@@ -103,12 +103,16 @@ namespace Mikoto
         Ref(Ref&& other)
             noexcept : m_Ptr(other.m_Ptr)
         {
+            other.m_Ptr = nullptr;
+        }
+
+        Ref(const Ref& other)
+            : m_Ptr(other.m_Ptr)
+        {
             if (m_Ptr)
             {
                 m_Ptr->Acquire();
             }
-
-            m_Ptr->Free();
         }
 
         Ref& operator=(const Ref& other)
@@ -182,5 +186,32 @@ namespace Mikoto
     private:
         RefCountedType* m_Ptr{nullptr};
     };
+
+    template <typename T, typename OtherT>
+    auto Dynamic(const Ref<OtherT>& ref) -> Ref<T> {
+        if (ref.IsEmpty()) {
+            return Ref<T>::CreateEmpty();
+        }
+
+        if (T* castedPtr{ dynamic_cast<T*>(ref.Get()) }) {
+            return Ref<T>::Create(castedPtr);
+        }
+
+        return Ref<T>::CreateEmpty();
+    }
+
+    template <typename T, typename OtherT>
+    auto Dynamic(Ref<OtherT>& ref) -> Ref<T> {
+        if (ref.IsEmpty()) {
+            return Ref<T>::CreateEmpty();
+        }
+
+        if (T* castedPtr{ dynamic_cast<T*>(ref.Get()) }) {
+            return Ref<T>::Create(castedPtr);
+        }
+
+        return Ref<T>::CreateEmpty();
+    }
+
 } // namespace Mikoto
 #endif //REFERENCECOUNTED_HH

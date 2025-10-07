@@ -80,4 +80,14 @@ namespace Mikoto {
 
         return *this;
     }
+
+    auto FontLoadDescription::WithFile( const File* file ) -> FontLoadDescription& {
+        this->FontFile = file;
+        return *this;
+    }
+
+    auto FontLoadDescription::WithPixelSize( float pixelSize ) -> FontLoadDescription& {
+        this->PixelSize = pixelSize;
+        return *this;
+    }
 }// namespace Mikoto

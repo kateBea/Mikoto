@@ -29,16 +29,7 @@
 #define MKT_VULKAN_VERSION_MINOR 3
 #define MKT_VULKAN_VERSION_PATCH 0
 
-#define VK_DEVICE(GPU_DEVICE_PTR) \
-    dynamic_cast<VulkanDevice*>(GPU_DEVICE_PTR)->GetLogicalDevice()
-
 namespace Mikoto {
-
-    struct SwapChainSupportDetails {
-        VkSurfaceCapabilitiesKHR Capabilities{};
-        std::vector<VkSurfaceFormatKHR> Formats{};
-        std::vector<VkPresentModeKHR> PresentModes{};
-    };
 
     struct VulkanQueueData {
         VkQueue Queue{};
@@ -49,6 +40,12 @@ namespace Mikoto {
         std::optional<VulkanQueueData> Present{};
         std::optional<VulkanQueueData> Graphics{};
         std::optional<VulkanQueueData> Compute{};
+    };
+
+    struct SwapChainSupportDetails {
+        VkSurfaceCapabilitiesKHR Capabilities{};
+        std::vector<VkSurfaceFormatKHR> Formats{};
+        std::vector<VkPresentModeKHR> PresentModes{};
     };
 
     struct GraphicsQueueSyncPrimitives {
@@ -67,6 +64,7 @@ namespace Mikoto {
 }
 
 namespace Mikoto::VulkanHelpers {
+
     // We take a set because for instance graphics queue and present queue could be the same, if u try to create two queues of same index program will crash
     MKT_NODISCARD auto SetupDeviceQueueCreateInfo(const std::set<UInt32>& uniqueQueueFamilies) -> std::vector<VkDeviceQueueCreateInfo>;
 

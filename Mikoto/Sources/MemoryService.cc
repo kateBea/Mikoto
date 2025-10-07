@@ -1,19 +1,28 @@
-// //
-// // Created by zanet on 3/27/2025.
-// //
 //
-// #include <Memory/MemoryService.hh>
+// Created by zanet on 3/27/2025.
 //
-// namespace Mikoto {
-//
-//     MemoryService::MemoryService( const MemoryServiceCreateInfo &options )
-//         : m_SystemAllocator{ options.InitialMemoryPoolSize }
-//     {}
-//
-//     auto MemoryService::Init() -> void {
-//
-//     }
-//
-//     auto MemoryService::Shutdown() -> void {
-//     }
-// }// namespace Mikoto
+
+#include <Logging/Logger.hh>
+#include <Memory/MemoryService.hh>
+
+namespace Mikoto {
+
+    MemoryService::MemoryService( const MemoryServiceCreateInfo &options )
+    {}
+
+    auto MemoryService::Init() -> void {
+        MKT_CORE_LOGGER_INFO("Initializing MemoryService...");
+
+        m_IsInitialized = true;
+    }
+
+    auto MemoryService::Shutdown() -> void {
+        if (!m_IsInitialized) {
+            return;
+        }
+
+        // The Log comes after so we know the service was
+        // initialized before attempting to shut it down
+        MKT_CORE_LOGGER_INFO( "Shutting down MemoryService..." );
+    }
+}// namespace Mikoto

@@ -7,22 +7,21 @@
 
 #include <ankerl/unordered_dense.h>
 
-#include <Common/Service.hh>
-#include <Common/Singleton.hh>
-#include <Library/Utility/Types.hh>
-
 #include <Assets/Font.hh>
 #include <Assets/Model.hh>
 #include <Assets/Texture.hh>
 #include <Audio/AudioDevice.hh>
 #include <Common/Common.hh>
 #include <Common/Service.hh>
+#include <Common/Singleton.hh>
 #include <Library/Data/ResourcePool.hh>
 #include <Library/Utility/Types.hh>
+#include <Renderer/FontService.hh>
 #include <Renderer/RenderUtility.hh>
 #include <Threading/Task.hh>
 
 #include "Assets/Audio.hh"
+#include "MeshFactory.hh"
 
 namespace Mikoto {
 
@@ -96,59 +95,66 @@ namespace Mikoto {
         */
         template<typename AssetType>
         MKT_NODISCARD auto GetAssetByUri( const std::string_view uri ) -> Ref<AssetType> {
-            if ( m_LoadedAssets.contains( uri.data() ) ) {
-                return Ref<AssetType>( static_cast<AssetType*>( m_LoadedAssets.at( uri.data() ) ) );
+            if constexpr (std::is_same_v<AssetType, Model>) {
+                if ( const auto it{ m_Models.find(std::string(uri)) }; it != m_Models.end())
+                    return it->second;
+            }
+            else if constexpr (std::is_same_v<AssetType, Texture>) {
+                if ( const auto it{ m_Textures.find(std::string(uri)) }; it != m_Textures.end())
+                    return it->second;
+            }
+            else if constexpr (std::is_same_v<AssetType, Audio>) {
+                if ( const auto it{ m_Audios.find(std::string(uri)) }; it != m_Audios.end())
+                    return it->second;
+            }
+            else if constexpr (std::is_same_v<AssetType, Font>) {
+                if ( const auto it{ m_Fonts.find(std::string(uri)) }; it != m_Fonts.end())
+                    return it->second;
             }
 
-            return nullptr;
+            return Ref<AssetType>::CreateEmpty();
         }
 
         // pass in description and uri
         template<typename AssetType>
         auto LoadAsset( auto&&... args ) -> Ref<AssetType> {
-
-            if ( const auto& typeInfo{ typeid( AssetType ) }; m_AssetLoaders.contains(typeInfo)) {
-                Ref<AssetType> assetRef{
-                    m_AssetLoaders.at(typeInfo)(std::forward<decltype(args)>(args)...).As<AssetType>()
-                };
-            }
-
-            return {};
+            return LoadAssetTyped( std::forward<decltype(args)>(args)... );
         }
 
         // pass in description and uri
         template<typename AssetType>
         auto LoadAssetAsync( auto&&... args ) -> Task<void>* {
-            auto tuple{ std::make_tuple(std::forward<decltype(args)>(args)...) };
+            auto tuple = std::make_tuple(std::forward<decltype(args)>(args)...);
 
-            // TODO: thread safety
-            m_LoadTasks.emplace_back([args_tuple = std::move(tuple)]() mutable {
-                std::apply( []<typename... Args>(Args&&... unpackedArgs) {
+            m_LoadTasks.emplace_back([this, args_tuple = std::move(tuple)]() mutable {
+                std::apply([this]<typename... Args>(Args&&... unpackedArgs) {
                     LoadAsset<AssetType>(std::forward<Args>(unpackedArgs)...);
                 }, std::move(args_tuple));
             });
 
-            return std::addressof( m_LoadTasks.back() );
+            return std::addressof(m_LoadTasks.back());
         }
 
         ~AssetsService() override = default;
 
     private:
-        // Load assets asynchronous
-        auto LoadModelAsset( const ModelLoadDescription& description, const Path& uri ) -> RefAny;
-        auto LoadTextureAsset( const TextureLoadDescription& description, const Path& uri ) -> RefAny;
-        auto LoadAudioAsset( const AudioLoadDescription& description, const Path& uri ) -> RefAny;
-        auto LoadFontAsset( const FontLoadDescription& description, const Path& uri ) -> RefAny;
+        auto LoadAssetTyped( const ModelLoadDescription& description) -> ModelHandle;
+        auto LoadAssetTyped( const TextureLoadDescription& description) -> TextureHandle;
+        auto LoadAssetTyped( const AudioLoadDescription& description) -> AudioHandle;
+        auto LoadAssetTyped( const FontLoadDescription& description) -> FontHandle;
 
     private:
+        Unique<MeshFactory> m_MeshFactory{};
+
         GpuDevice* m_GpuDevice{ nullptr };
         AudioDevice* m_AudioDevice{ nullptr };
 
         std::vector<Task<void>> m_LoadTasks{};
-        ankerl::unordered_dense::map<std::string, RefAny> m_LoadedAssets{};
 
-        using AssetLoaderFn = std::function<RefAny(AssetsService*, void*, const Path_T&)>;
-        ankerl::unordered_dense::map<std::type_info, AssetLoaderFn> m_AssetLoaders{};
+        ankerl::unordered_dense::map<std::string, ModelHandle> m_Models{};
+        ankerl::unordered_dense::map<std::string, TextureHandle> m_Textures{};
+        ankerl::unordered_dense::map<std::string, AudioHandle> m_Audios{};
+        ankerl::unordered_dense::map<std::string, FontHandle> m_Fonts{};
     };
 }// namespace Mikoto
 

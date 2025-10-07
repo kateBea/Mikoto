@@ -60,8 +60,6 @@ namespace Mikoto {
         auto SubmitMeshDraw(const MeshNode * node, Material * material, const glm::mat4& mat) -> void;
     };
 
-    using CommandListHandle = Ref<CommandList>;
-
     class RendererBackend {
     public:
         virtual ~RendererBackend() = default;

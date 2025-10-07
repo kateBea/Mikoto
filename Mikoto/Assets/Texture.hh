@@ -9,40 +9,12 @@
 
 #include <Common/Common.hh>
 #include <Library/Data/ResourcePool.hh>
-#include <Library/Filesystem/File.hh>
-#include <Library/Random/Random.hh>
+#include <Library/IO/File.hh>
 #include <Library/Utility/Types.hh>
 #include <Renderer/DeviceObject.hh>
-#include <Renderer/GpuDevice.hh>
+#include <Renderer/GpuUtility.hh>
 
 namespace Mikoto {
-
-    /**
-    * @struct TextureLoadDescription
-    * @brief Holds information for loading a texture.
-    *
-    * The `TextureLoadInfo` structure stores metadata required to load a texture,
-    * including the file path and texture type. It provides a fluent interface
-    * for setting its properties.
-    */
-    struct TextureLoadDescription {
-        const File* TextureFile{};
-        TextureType Type{ TextureType::TEXTURE_INVALID };
-
-        /**
-        * @brief Sets the path of the model.
-        * @param file The absolute or relative path to the model file.
-        * @return Reference to the modified ModelLoadInfo.
-        */
-        auto WithFile( const File* file ) -> TextureLoadDescription&;
-
-        /**
-         * @brief Sets the texture type.
-         * @param type The texture type to be assigned.
-         * @return A reference to the modified `TextureLoadInfo` instance.
-         */
-        auto WithType( TextureType type ) -> TextureLoadDescription&;
-    };
 
     /**
     * @brief Represents a sampler object used for texture sampling.
@@ -85,7 +57,7 @@ namespace Mikoto {
          *
          * @return The width of the texture in pixels.
          */
-        MKT_NODISCARD auto GetWidth() const -> Int32_T {
+        MKT_NODISCARD auto GetWidth() const -> Int32 {
             return m_Width;
         }
 
@@ -94,7 +66,7 @@ namespace Mikoto {
          *
          * @return The height of the texture in pixels.
          */
-        MKT_NODISCARD auto GetHeight() const -> Int32_T {
+        MKT_NODISCARD auto GetHeight() const -> Int32 {
             return m_Height;
         }
 
@@ -103,7 +75,7 @@ namespace Mikoto {
          *
          * @return The number of channels in the texture (e.g., 4 for RGBA).
          */
-        MKT_NODISCARD auto GetChannels() const -> Int32_T {
+        MKT_NODISCARD auto GetChannels() const -> Int32 {
             return m_Channels;
         }
 
@@ -117,7 +89,7 @@ namespace Mikoto {
         }
 
         MKT_NODISCARD auto GetSampler() const -> SamplerHandle {
-            return m_Sampler;
+            return SamplerHandle::CreateEmpty();
         }
 
         auto SetSampler(SamplerHandle sampler) -> void {
@@ -145,17 +117,17 @@ namespace Mikoto {
          * @param usage
          */
         explicit Texture( const TextureType type, const TextureFormat format,
-                          const Int32_T width, const Int32_T height, const Int32_T channels, ResourceUsageType usage )
+                          const Int32 width, const Int32 height, const Int32 channels, ResourceUsageType usage )
             : DeviceObject{ usage }, m_Type{ type }, m_Format{ format }, m_Width{ width }, m_Height{ height }, m_Channels{ channels } {
         }
 
-    private:
+    protected:
         TextureType m_Type{ TextureType::TEXTURE_INVALID };
         TextureFormat m_Format{ TextureFormat::TEXTURE_FORMAT_INVALID };
 
-        Int32_T m_Width{};
-        Int32_T m_Height{};
-        Int32_T m_Channels{};
+        Int32 m_Width{};
+        Int32 m_Height{};
+        Int32 m_Channels{};
 
         SamplerHandle m_Sampler{};
     };

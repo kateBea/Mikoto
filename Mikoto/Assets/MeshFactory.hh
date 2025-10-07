@@ -7,13 +7,17 @@
 
 #include <atomic>
 
-// Third Party Libraries
-#include <Common/Service.hh>
-#include <Library/Utility/Types.hh>
+#include "assimp/IOStream.hpp"
+#include "assimp/IOSystem.hpp"
+#include "assimp/LogStream.hpp"
 #include <assimp/Importer.hpp>
 
+// Third Party Libraries
+#include <Common/Service.hh>
+#include <Common/Singleton.hh>
+#include <Library/Utility/Types.hh>
+
 #include "Assets/Model.hh"
-#include "assimp/LogStream.hpp"
 
 namespace Mikoto {
 
@@ -25,7 +29,7 @@ namespace Mikoto {
     * including the number of importers to be allocated for processing mesh data and optional custom configurations.
     */
     struct MeshFactoryCreateInfo {
-        UInt32_T ImportersCount{};
+        UInt32 ImportersCount{};
         bool UseCustomLogger{ false };
         bool UseCustomLoader{ false };
 
@@ -36,7 +40,7 @@ namespace Mikoto {
          * @param count Number of importers.
          * @return Reference to the modified MeshFactoryCreateInfo.
          */
-        auto WithImportersCount(Size_T count) -> MeshFactoryCreateInfo&;
+        auto WithImportersCount(Size count) -> MeshFactoryCreateInfo&;
 
         /**
          * @brief Enables or disables custom logging for Assimp.
@@ -62,7 +66,7 @@ namespace Mikoto {
     * The `MeshFactory` class provides functionality for loading, importing, and creating 3D models.
     * It uses Assimp for model processing and maintains a pool of importers to support multithreaded operations.
     */
-    class MeshFactory final : public IService<MeshFactory> {
+    class MeshFactory final : public Singleton<MeshFactory> {
     public:
         /**
         * @brief Constructs a MeshFactory with the given configuration.
@@ -73,19 +77,19 @@ namespace Mikoto {
         /**
         * @brief Initializes the mesh factory.
         */
-        auto Init() -> void override;
+        auto Init() -> void;
 
         /**
         * @brief Shuts down the mesh factory and releases resources.
         */
-        auto Shutdown() -> void override;
+        auto Shutdown() -> void;
 
         /**
         * @brief Creates a model from the given load information.
         * @param loadInfo The model loading parameters.
         * @return Scoped pointer to the created Model. (Caller responsible for free)
         */
-        auto CreateModel( const ModelLoadDescription& loadInfo ) -> ModelHandle;
+        auto ImportModel( const ModelLoadDescription& loadInfo ) -> ModelHandle;
 
     private:
         /**
@@ -95,8 +99,8 @@ namespace Mikoto {
         * This structure maintains log severity levels and custom logging implementations.
         */
         struct Logging {
-            UInt32_T Severity{};
-            Scope_T<Assimp::LogStream> CustomLogImpl{};
+            UInt32 Severity{};
+            Assimp::LogStream* CustomLogImpl{};
         };
 
         /**
@@ -109,35 +113,33 @@ namespace Mikoto {
             Assimp::Importer MeshImporter{};
             std::atomic_bool IsFree{ true };
 
-            Scope_T<Assimp::IOSystem> LoaderImplementation{};
-            Scope_T<Assimp::IOStream> StreamImplementation{};
+            Assimp::IOSystem* LoaderImplementation{};
+            Assimp::IOStream* StreamImplementation{};
+
+            ImporterInfo() = default;
+            ~ImporterInfo() = default;
+
+            ImporterInfo(const ImporterInfo&) = delete;
+            ImporterInfo& operator=(const ImporterInfo&) = delete;
         };
 
     private:
-        /**
-        * @brief Sets up a custom logger for the Assimp library.
-        *
-        * This function configures a custom logging implementation for Assimp, allowing for better
-        * debugging and monitoring of model import operations.
-        */
+        // [Internal]
         auto SetupCustomAssimpLogger() -> void;
-
-        /**
-         * @brief Registers and configures custom loaders for asset importers.
-         *
-         * This function sets up additional or custom asset loaders for the import pipeline,
-         * helps integrate an Assimp loading pipeline within the Mikoto ecosystem.
-         */
         auto SetupCustomLoaderForImporters() -> void;
+
+        static auto ImportModel(GpuDevice* device, Assimp::Importer& importer, const ModelLoadDescription& loadInfo ) -> Model*;
 
     private:
         GpuDevice* m_Device{ nullptr };
+
+        bool m_IsInitialized{ false };
 
         bool m_WantCustomLog{ false };
         bool m_WantCustomLoader{ false };
 
         Logging m_AssimpLogger{};
-        std::vector<ImporterInfo> m_Importers{};
+        std::vector<ImporterInfo*> m_Importers{};
     };
 
 }// namespace Mikoto

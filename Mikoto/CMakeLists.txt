@@ -374,7 +374,6 @@ set(LIBRARIES
         enkiTS
         unordered_dense::unordered_dense
         nlohmann_json::nlohmann_json
-        GPUOpen::VulkanMemoryAllocator
 )
 
 if(UNIX)
@@ -426,11 +425,12 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_FMT_EXTERNAL)
 target_compile_definitions(${PROJECT_NAME} PRIVATE USE_GLFW_KEY_CODES)
 target_compile_definitions(${PROJECT_NAME} PRIVATE USE_GLFW_MOUSE_CODES)
 target_compile_definitions(${PROJECT_NAME} PRIVATE USE_GLFW_INPUT)
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE VK_NO_PROTOTYPES)
 target_compile_definitions(${PROJECT_NAME} PRIVATE IMGUI_IMPL_VULKAN_USE_VOLK)
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE)
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_RADIANS)
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
-target_compile_definitions(${PROJECT_NAME} PRIVATE VMA_STATIC_VULKAN_FUNCTIONS=0)
-target_compile_definitions(${PROJECT_NAME} PRIVATE VMA_DYNAMIC_VULKAN_FUNCTIONS=0)
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE MIKOTO_USE_AUDIO_ENGINE_INTERFACE)

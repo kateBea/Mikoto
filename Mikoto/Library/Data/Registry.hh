@@ -96,41 +96,11 @@ namespace Mikoto {
             return nullptr;
         }
 
-        /**
-        * @brief Const begin iterator for registry traversal.
-        *
-        * @return Iterator to the beginning of the internal map.
-        */
-        constexpr auto begin() const -> decltype( auto ) {
-            return m_Registry.begin();
-        }
-
-        /**
-        * @brief Const end iterator for registry traversal.
-        *
-        * @return Iterator to the end of the internal map.
-        */
-        constexpr auto end() const -> decltype( auto ) {
-            return m_Registry.end();
-        }
-
-        /**
-        * @brief Mutable begin iterator for registry traversal.
-        *
-        * @return Iterator to the beginning of the internal map.
-        */
-        constexpr auto begin() -> decltype( auto ) {
-            return m_Registry.begin();
-        }
-
-        /**
-        * @brief Mutable end iterator for registry traversal.
-        *
-        * @return Iterator to the end of the internal map.
-        */
-        constexpr auto end() -> decltype( auto ) {
-            return m_Registry.end();
-        }
+        // Iterators
+        constexpr auto begin() -> decltype(auto) { return m_Registry.begin(); }
+        constexpr auto end() -> decltype(auto) { return m_Registry.end(); }
+        constexpr auto begin() const -> decltype(auto) { return m_Registry.begin(); }
+        constexpr auto end() const -> decltype(auto) { return m_Registry.end(); }
 
         /**
         * @brief Clears all registered systems/services from the registry.

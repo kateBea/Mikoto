@@ -74,6 +74,8 @@ namespace Mikoto {
         */
         auto LoadAudio( const AudioLoadDescription& description ) -> AudioHandle;
 
+        auto GetAudio(const std::string& uri) -> AudioHandle;
+
 
         MKT_NODISCARD static auto Create( const AudioDeviceDescription& description ) -> Unique<AudioDevice>;
 
@@ -91,6 +93,7 @@ namespace Mikoto {
 #endif
 
         ResourcePoolTyped<Audio> m_LoadedAudios{};
+        ankerl::unordered_dense::map<std::string, Handle> m_CachedAudios{};
     };
 
 

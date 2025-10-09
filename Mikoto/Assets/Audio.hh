@@ -34,6 +34,8 @@ namespace Mikoto {
          */
         explicit Audio( const AudioLoadDescription& description );
 
+        auto GetFile() const -> const File* { return m_FileSource; }
+
         auto CreateSource() -> AudioSourceHandle;
 
     private:

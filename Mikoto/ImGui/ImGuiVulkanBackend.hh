@@ -14,9 +14,10 @@
 // Third-Party Libraries
 #include <volk.h>
 
-#include <ImGui/ImGuiUtility.hh>
-#include <ImGui/ImGuiBackend.hh>
+#include <ImGui/ImGuiService.hh>
+#include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanFrameBuffer.hh>
+#include <Renderer/Vulkan/VulkanTexture.hh>
 
 namespace Mikoto {
 
@@ -41,18 +42,16 @@ namespace Mikoto {
 
     private:
         auto InitImGuiForVulkan() -> void;
-        auto InitializeImGuiRender() -> void;
+        auto FetchAttachmentFormats() -> void;
         auto CreateRenderPass() -> void;
         auto CreateImages() -> void;
         auto CreateFrameBuffer() -> void;
-        auto PrepareMainRenderPass( VkCommandBuffer cmd ) const -> void;
-        auto InitCommandBuffers() -> void;
-        auto InitializeCommands() -> void;
 
-        auto RecordCommands( VkCommandBuffer cmd, VulkanImage& currentSwapchainImage ) const -> void;
+        auto PrepareForRender() const -> void;
+
+        auto RecordCommands( TextureHandle swapChainDrawTarget ) const -> void;
 
     private:
-        VulkanDevice* m_Device{ nullptr };
 
         VkRenderPass m_ImGuiRenderPass{};
         VkDescriptorPool m_ImGuiDescriptorPool{};

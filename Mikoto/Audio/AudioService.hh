@@ -8,7 +8,6 @@
 #include <Assets/Audio.hh>
 #include <Common/Service.hh>
 #include <Library/Utility/Types.hh>
-#include <Threading/Task.hh>
 
 #include "Audio/AudioDevice.hh"
 

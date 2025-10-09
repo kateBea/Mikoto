@@ -10,11 +10,14 @@
 #include <Core/Root.hh>
 #include <Core/TimeService.hh>
 #include <Filesystem/FileService.hh>
+#include <ImGui/ImGuiService.hh>
 #include <Logging/Logger.hh>
 #include <Memory/MemoryService.hh>
 #include <Physics/PhysicService.hh>
 #include <Renderer/RenderService.hh>
 #include <Threading/TaskService.hh>
+
+#include <Threading/ThreadUtility.hh>
 
 namespace Mikoto {
 
@@ -78,13 +81,14 @@ namespace Mikoto {
         memoryService->Init();
 
         //
-        // // Imgui service
-        // ImGuiServiceDescription imguiServiceCreateInfo{
-        //     .BackendApi{ GraphicsAPI::VULKAN_API },
-        //     .TargetWindow{ config.TargetWindow }
-        // };
-        // ImGuiService *imguiService{ s_Services.Register<ImGuiService>( imguiServiceCreateInfo ) };
-        // imguiService->Init();
+        // Imgui service
+        ImGuiServiceDescription imguiServiceCreateInfo{
+            .Device{ renderSystem->GetGpuDevice() },
+            .BackendApi{ GraphicsAPI::VULKAN_API },
+            .TargetWindow{ config.TargetWindow }
+        };
+        ImGuiService *imguiService{ s_Services.Register<ImGuiService>( imguiServiceCreateInfo ) };
+        imguiService->Init();
 
         // Assets service
         AssetsServiceDescription assetsServiceCreateInfo{

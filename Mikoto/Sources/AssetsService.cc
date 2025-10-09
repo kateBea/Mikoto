@@ -45,7 +45,7 @@ namespace Mikoto {
         // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down AssetsService..." );
 
-        m_LoadTasks.clear();
+        //m_LoadTasks.clear();
 
         m_MeshFactory->Shutdown();
         m_MeshFactory.reset();
@@ -57,6 +57,11 @@ namespace Mikoto {
         const File* modelFile{ description.ModelFile};
         if (!modelFile) {
             return ModelHandle::CreateEmpty();
+        }
+
+        // if it exists
+        if (const auto itFind{ m_Models.find( modelFile->GetPath() ) }; itFind != m_Models.end() ) {
+            return itFind->second;
         }
 
         ModelHandle model{ MeshFactory::Get()->ImportModel( ModelLoadDescription {
@@ -81,6 +86,11 @@ namespace Mikoto {
         const File* textureFile{ description.TextureFile  };
         if (!textureFile) {
             return TextureHandle::CreateEmpty();
+        }
+
+        // if it exists
+        if (const auto itFind{ m_Textures.find( textureFile->GetPath() ) }; itFind != m_Textures.end() ) {
+            return itFind->second;
         }
 
         const StbImage image{ textureFile };
@@ -121,6 +131,11 @@ namespace Mikoto {
             return AudioHandle::CreateEmpty();
         }
 
+        // if it exists
+        if (const auto itFind{ m_Audios.find( audioFile->GetPath() ) }; itFind != m_Audios.end() ) {
+            return itFind->second;
+        }
+
         AudioLoadDescription audioDesc{};
         audioDesc.WithFile( description.AudioFile )
                 .SetVolume( 1.0f );
@@ -143,6 +158,11 @@ namespace Mikoto {
         const File* fontFile{ description.FontFile };
         if (!fontFile) {
             return FontHandle::CreateEmpty();
+        }
+
+        // if it exists
+        if (const auto itFind{ m_Fonts.find( fontFile->GetPath() ) }; itFind != m_Fonts.end() ) {
+            return itFind->second;
         }
 
         FontLoadDescription fontDesc{};

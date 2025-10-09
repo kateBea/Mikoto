@@ -81,6 +81,8 @@ namespace Mikoto::VulkanHelpers {
     MKT_NODISCARD auto GetUniformBufferPadding(VkDeviceSize bufferOriginalSize, VkDeviceSize deviceMinOffsetAlignment) -> VkDeviceSize;
     MKT_NODISCARD auto InferVulkanIndexType(BufferDataType format) -> VkIndexType;
 
+    MKT_NODISCARD auto FindSupportedFormat( VkPhysicalDevice device, const VkFormat* candidates, UInt32 candidatesCount, VkImageTiling tiling, VkFormatFeatureFlags features ) -> VkFormat;
+
 } // MIKOTO::VULKAN_UTILS
 
 

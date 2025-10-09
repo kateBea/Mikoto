@@ -27,6 +27,8 @@ namespace Mikoto {
 
         MKT_NODISCARD auto IsMapped() const -> bool { return m_VmaAllocationInfo.pMappedData != nullptr; }
 
+        MKT_NODISCARD auto GetImplHandle() -> VkBuffer* { return std::addressof(m_Buffer); }
+
         MKT_NODISCARD auto GetBuffer() -> VkBuffer* { return std::addressof(m_Buffer); }
         MKT_NODISCARD auto GetBuffer() const -> const VkBuffer* { return std::addressof(m_Buffer); }
 

@@ -6,9 +6,10 @@
 #define MIKOTO_SANDBOX_APP_HH
 
 #include <Assets/Audio.hh>
-#include <Library/Utility/Types.hh>
+#include <Audio/AudioDevice.hh>
 #include <Common/Application.hh>
 #include <Core/EventService.hh>
+#include <Library/Utility/Types.hh>
 #include <Platform/Window.hh>
 
 namespace Mikoto {
@@ -30,9 +31,8 @@ namespace Mikoto {
 
         // For testing only
         AudioSourceHandle m_Target{};
-        AudioSourceHandle m_SourceHandle{};
-        AudioSourceHandle m_SourceHandle2{};
-        AudioSourceHandle m_SourceHandle3{};
+        std::vector<AudioHandle> m_Audios{};
+
         auto TestCode() -> void;
     };
 }

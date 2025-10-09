@@ -32,6 +32,8 @@ namespace Mikoto {
     public:
         explicit VulkanSampler( const SamplerDescription& desc );
 
+        MKT_NODISCARD auto GetImplHandle() -> VkSampler* { return std::addressof(m_Sampler); }
+
         auto GetSampler() const -> VkSampler { return m_Sampler; }
         ~VulkanSampler() override;
 
@@ -54,6 +56,8 @@ namespace Mikoto {
     public:
         explicit VulkanTexture( const TextureDescription& data );
         explicit VulkanTexture( VkImageViewCreateInfo viewCreateInfo );
+
+        MKT_NODISCARD auto GetImplHandle() -> VkImage* { return std::addressof(m_Image); }
 
         MKT_NODISCARD auto GetImage() -> VkImage*;
         MKT_NODISCARD auto GetImage() const -> const VkImage*;
@@ -112,6 +116,8 @@ namespace Mikoto {
     class VulkanSwapChain final : public DeviceObject {
     public:
         explicit VulkanSwapChain( const VulkanSwapChainCreateInfo& createInfo );
+
+        MKT_NODISCARD auto GetImplHandle() -> VkSwapchainKHR* { return std::addressof(m_Swapchain); }
 
         MKT_NODISCARD auto Present( UInt32 imageIndex, const VkSemaphore& renderFinished ) -> VkResult;
 

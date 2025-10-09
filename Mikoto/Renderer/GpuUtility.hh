@@ -10,6 +10,14 @@
 
 namespace Mikoto {
 
+    enum class QueueType {
+        TRANSFER_QUEUE,
+        GRAPHICS_QUEUE,
+        COMPUTE_QUEUE,
+        PRESENT_QUEUE,
+        INVALID_QUEUE
+    };
+
     enum class PipelineType {
         INVALID_TYPE,
         GRAPHICS_PIPELINE,

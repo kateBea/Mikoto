@@ -16,6 +16,9 @@ namespace Mikoto {
         MKT_CORE_LOGGER_INFO("Initializing TaskService...");
 
         m_TaskManager = CreateScope<TaskManager>( m_ThreadCount );
+        if (m_TaskManager) {
+            m_TaskManager->Init();
+        }
 
         m_IsInitialized = true;
     }

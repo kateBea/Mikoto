@@ -5,16 +5,16 @@
 #ifndef FILE_HH
 #define FILE_HH
 
+#include <Common/Common.hh>
+#include <Common/ReferenceCounted.hh>
+#include <Library/Utility/Types.hh>
+#include <Logging/Logger.hh>
 #include <filesystem>
 #include <fstream>
 #include <ranges>
 #include <unordered_map>
 #include <utility>
 #include <vector>
-
-#include <Logging/Logger.hh>
-#include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
 
 #define MKT_CSTRING_PATH(path) path.string().c_str()
 
@@ -67,12 +67,13 @@ namespace Mikoto {
         }
     }
 
-    class File final {
+    class File final /*IResource so it is ref counted*/ {
     public:
         File(File&&) = default;
         auto operator=(File&&) noexcept -> File& = default;
 
         MKT_NODISCARD auto GetPath() const -> const std::string& { return m_Path; }
+        MKT_NODISCARD auto GetName() const -> std::string { return m_PathObject.filename().string(); }
         MKT_NODISCARD auto GetExtension() const -> const std::string& { return m_Extension; }
         MKT_NODISCARD auto GetPathCStr() const -> CStr { return m_Path.c_str(); }
         MKT_NODISCARD auto GetFileBytes() const -> const char* { return m_Contents.c_str(); }
@@ -110,6 +111,7 @@ namespace Mikoto {
         MKT_NODISCARD static auto InferExtensionFromFileSignature( const std::string& fileContent ) -> std::string;
 
     private:
+        Path m_PathObject{};
         std::string m_Path{};
         std::string m_Extension{};
 
@@ -120,6 +122,8 @@ namespace Mikoto {
         FileType m_Type{ FileType::UNKNOWN_FILE_TYPE };
         FileMode m_OpenMode{ MKT_FILE_OPEN_MODE_NONE };
     };
+
+    using FileHandle = Ref<File>;
 
 }// namespace Mikoto
 #endif//FILE_HH

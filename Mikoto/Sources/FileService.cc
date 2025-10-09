@@ -160,11 +160,11 @@ namespace Mikoto {
     }
 
 
-    auto FileService::LoadFileAsync( const Path& path, const FileMode mode ) -> Task<File>* {
+    auto FileService::LoadFileAsync( const Path& path, const FileMode mode ) -> void {
         File* result{ LoadFile( path, mode ) };
 
         // TODO: create the task and return it
-        return nullptr;
+        //return nullptr;
     }
 
 }// namespace Mikoto

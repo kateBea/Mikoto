@@ -251,13 +251,6 @@ fetchcontent_declare(msdf_atlas_gen
 )
 fetchcontent_makeavailable(msdf_atlas_gen)
 
-# enkiTS
-fetchcontent_declare(enkiTS
-        GIT_REPOSITORY https://github.com/dougbinks/enkiTS.git
-        GIT_TAG v1.11
-)
-fetchcontent_makeavailable(enkiTS)
-
 # spdlog
 fetchcontent_declare(spdlog
         GIT_REPOSITORY https://github.com/gabime/spdlog.git
@@ -272,12 +265,14 @@ fetchcontent_declare(stb
 )
 fetchcontent_makeavailable(stb)
 
+# Tom plus plus
 fetchcontent_declare(tomlplusplus
         GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
         GIT_TAG v3.4.0
 )
 fetchcontent_makeavailable(tomlplusplus)
 
+# GLM
 FetchContent_Declare(
         glm
         GIT_REPOSITORY https://github.com/g-truc/glm.git
@@ -294,6 +289,15 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(VulkanMemoryAllocator)
+
+# Taskflow
+FetchContent_Declare(
+        taskflow
+        GIT_REPOSITORY https://github.com/taskflow/taskflow.git
+        GIT_TAG v3.7.0
+)
+
+FetchContent_MakeAvailable(taskflow)
 
 # harfbuzz (not needed if you don't do complex text layout)
 #FetchContent_Declare(
@@ -371,7 +375,6 @@ set(LIBRARIES
         Jolt
         msdfgen::msdfgen
         msdf-atlas-gen::msdf-atlas-gen
-        enkiTS
         unordered_dense::unordered_dense
         nlohmann_json::nlohmann_json
 )
@@ -393,28 +396,27 @@ target_include_directories(${PROJECT_NAME} PUBLIC .)
 target_include_directories(${PROJECT_NAME} PUBLIC
         ${imgui_SOURCE_DIR}
         ${imgui_SOURCE_DIR}/backends
-        ${ImGuizmo_SOURCE_DIR}
+        ${imguizmo_SOURCE_DIR}
         ${spirv_reflect_SOURCE_DIR}
         ${miniaudio_SOURCE_DIR}
         ${fmt_SOURCE_DIR}/include
         ${glfw_SOURCE_DIR}/include
-        ${VulkanMemoryAllocator_SOURCE_DIR}/include
         ${entt_SOURCE_DIR}/single_include
         ${yaml_cpp_SOURCE_DIR}/include
         ${nlohmann_json_SOURCE_DIR}/include
         ${unordered_dense_SOURCE_DIR}/include
         ${nfd_SOURCE_DIR}/src
         ${freetype_SOURCE_DIR}/include
-        ${JoltPhysics_SOURCE_DIR}/Jolt
+        ${joltphysics_SOURCE_DIR}/Jolt
         ${assimp_SOURCE_DIR}/include
         ${msdfgen_SOURCE_DIR}/include
         ${msdf_atlas_gen_SOURCE_DIR}/include
-        ${enkiTS_SOURCE_DIR}/src
         ${spdlog_SOURCE_DIR}/include
         ${tomlplusplus_SOURCE_DIR}/include
         ${stb_SOURCE_DIR}
         ${glm_SOURCE_DIR}
         ${vulkanmemoryallocator_SOURCE_DIR}/include
+        ${taskflow_SOURCE_DIR}
 )
 
 # ======================================

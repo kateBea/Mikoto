@@ -19,7 +19,6 @@
 #include "Common/Service.hh"
 #include <Library/Utility/Types.hh>
 
-#include <Threading/Task.hh>
 #include <Threading/TaskManager.hh>
 
 /**
@@ -43,8 +42,16 @@ namespace Mikoto
         auto Shutdown() -> void override;
         auto Update(float dt) -> void override;
 
-        auto GetManager() const -> TaskManager* { return m_TaskManager.get(); }
-        auto GetWorkersCount() const -> UInt32 { return m_TaskManager->GetThreadCount(); }
+        template<typename Func, typename... Args>
+        auto Submit(Func&& func, Args&&... args) -> void {
+            auto newTask{
+                std::function<void()>{ std::bind(std::forward<Func>(func), std::forward<Args>(args)...) }
+            };
+
+            m_TaskManager->SubmitTask( std::move(newTask) );
+        }
+
+        MKT_NODISCARD auto GetWorkersCount() const -> UInt32 { return m_ThreadCount; }
 
         ~TaskService() override = default;
 

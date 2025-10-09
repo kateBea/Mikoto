@@ -61,6 +61,7 @@ namespace Mikoto {
     }
 
     auto RenderService::Update(float ts) -> void {
+        m_Device->RunGarbageCollection();
 
     }
 

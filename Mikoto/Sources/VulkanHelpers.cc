@@ -41,17 +41,17 @@ namespace Mikoto::VulkanHelpers {
         return VK_INDEX_TYPE_MAX_ENUM;
     }
 
-    auto SetupDeviceQueueCreateInfo(const std::set<UInt32>& uniqueQueueFamilies) -> std::vector<VkDeviceQueueCreateInfo> {
+    auto SetupDeviceQueueCreateInfo( const std::set<UInt32>& uniqueQueueFamilies ) -> std::vector<VkDeviceQueueCreateInfo> {
         std::vector<VkDeviceQueueCreateInfo> result{};
 
         // static because pQueuePriorities is a pointer to a float
         static constexpr float queuePriority{ 1.0f };
-        for ( const UInt32 queueFamily : uniqueQueueFamilies ) {
+        for ( const UInt32 queueFamily: uniqueQueueFamilies ) {
             VkDeviceQueueCreateInfo queueCreateInfo{ Initializers::DeviceQueueCreateInfo() };
 
             queueCreateInfo.queueFamilyIndex = queueFamily;
             queueCreateInfo.queueCount = 1;
-            queueCreateInfo.pQueuePriorities = std::addressof(queuePriority);
+            queueCreateInfo.pQueuePriorities = std::addressof( queuePriority );
 
             result.push_back( queueCreateInfo );
         }
@@ -105,6 +105,22 @@ namespace Mikoto::VulkanHelpers {
         return details;
     }
 
+    auto FindSupportedFormat( VkPhysicalDevice device, const VkFormat* candidates, UInt32 candidatesCount, VkImageTiling tiling, VkFormatFeatureFlags features ) -> VkFormat {
+        for ( ; candidates != std::addressof( candidates[candidatesCount] ); ++candidates ) {
+            VkFormatProperties props{};
+            const VkFormat format{ candidates[candidatesCount] };
+
+            vkGetPhysicalDeviceFormatProperties( device, format, std::addressof( props ) );
+
+            if ( ( tiling == VK_IMAGE_TILING_LINEAR && ( props.linearTilingFeatures & features ) == features ) ||
+                 ( tiling == VK_IMAGE_TILING_OPTIMAL && ( props.optimalTilingFeatures & features ) == features ) ) {
+                return format;
+            }
+        }
+
+        return VK_FORMAT_UNDEFINED;
+    }
+
     auto HasGraphicsQueue( const VkQueueFamilyProperties& queueFamily ) -> bool {
         return queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT;
     }
@@ -113,9 +129,9 @@ namespace Mikoto::VulkanHelpers {
         return queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT;
     }
 
-    auto HasPresentQueue( const VkPhysicalDevice& device, const UInt32 queueFamilyIndex,  const VkSurfaceKHR& surface, const VkQueueFamilyProperties& queueFamilyProperties  ) -> bool {
+    auto HasPresentQueue( const VkPhysicalDevice& device, const UInt32 queueFamilyIndex, const VkSurfaceKHR& surface, const VkQueueFamilyProperties& queueFamilyProperties ) -> bool {
         VkBool32 presentSupport{ VK_FALSE };
-        if (vkGetPhysicalDeviceSurfaceSupportKHR( device, queueFamilyIndex, surface, std::addressof( presentSupport ) ) != VK_SUCCESS) {
+        if ( vkGetPhysicalDeviceSurfaceSupportKHR( device, queueFamilyIndex, surface, std::addressof( presentSupport ) ) != VK_SUCCESS ) {
             MKT_CORE_LOGGER_ERROR( "VulkanHelpers::HasPresentQueue - Failed to get Physical device surface support." );
             return false;
         }
@@ -128,26 +144,37 @@ namespace Mikoto::VulkanHelpers {
         return false;
     }
 
-    auto GetVulkanAttributeDataType(ShaderDataType type) -> VkFormat {
-        switch(type) {
-            case ShaderDataType::FLOAT_TYPE: return VK_FORMAT_R32_SFLOAT;
-            case ShaderDataType::FLOAT2_TYPE: return VK_FORMAT_R32G32_SFLOAT;
-            case ShaderDataType::FLOAT3_TYPE: return VK_FORMAT_R32G32B32_SFLOAT;
-            case ShaderDataType::FLOAT4_TYPE: return VK_FORMAT_R32G32B32A32_SFLOAT;
+    auto GetVulkanAttributeDataType( ShaderDataType type ) -> VkFormat {
+        switch ( type ) {
+            case ShaderDataType::FLOAT_TYPE:
+                return VK_FORMAT_R32_SFLOAT;
+            case ShaderDataType::FLOAT2_TYPE:
+                return VK_FORMAT_R32G32_SFLOAT;
+            case ShaderDataType::FLOAT3_TYPE:
+                return VK_FORMAT_R32G32B32_SFLOAT;
+            case ShaderDataType::FLOAT4_TYPE:
+                return VK_FORMAT_R32G32B32A32_SFLOAT;
 
             case ShaderDataType::MAT3_TYPE:
-            case ShaderDataType::MAT4_TYPE: return VK_FORMAT_UNDEFINED; //temporary
+            case ShaderDataType::MAT4_TYPE:
+                return VK_FORMAT_UNDEFINED;//temporary
 
-            case ShaderDataType::INT_TYPE:  return VK_FORMAT_R32_SINT;
-            case ShaderDataType::INT2_TYPE: return VK_FORMAT_R32G32_SINT;
-            case ShaderDataType::INT3_TYPE: return VK_FORMAT_R32G32B32_SINT;
-            case ShaderDataType::INT4_TYPE: return VK_FORMAT_R32G32B32A32_SINT;
-            case ShaderDataType::BOOL_TYPE: return VK_FORMAT_R32_SINT;
+            case ShaderDataType::INT_TYPE:
+                return VK_FORMAT_R32_SINT;
+            case ShaderDataType::INT2_TYPE:
+                return VK_FORMAT_R32G32_SINT;
+            case ShaderDataType::INT3_TYPE:
+                return VK_FORMAT_R32G32B32_SINT;
+            case ShaderDataType::INT4_TYPE:
+                return VK_FORMAT_R32G32B32A32_SINT;
+            case ShaderDataType::BOOL_TYPE:
+                return VK_FORMAT_R32_SINT;
 
             case ShaderDataType::NONE:
-            case ShaderDataType::COUNT: [[fallthrough]];
+            case ShaderDataType::COUNT:
+                [[fallthrough]];
             default:
-                MKT_ASSERT(false, "Invalid shader data type");
+                MKT_ASSERT( false, "Invalid shader data type" );
         }
     }
 
@@ -185,6 +212,6 @@ namespace Mikoto::VulkanHelpers {
         blitInfo.regionCount = 1;
         blitInfo.pRegions = &blitRegion;
 
-        vkCmdBlitImage2(cmd, &blitInfo);
+        vkCmdBlitImage2( cmd, &blitInfo );
     }
-}
+}// namespace Mikoto::VulkanHelpers

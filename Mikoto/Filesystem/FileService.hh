@@ -12,7 +12,6 @@
 #include <Common/Service.hh>
 #include <Library/IO/File.hh>
 #include <Library/Utility/Types.hh>
-#include <Threading/Task.hh>
 
 namespace Mikoto {
 
@@ -39,7 +38,7 @@ namespace Mikoto {
 
         // load from disc
         auto LoadFile( const Path& path, FileMode mode = MKT_FILE_OPEN_MODE_NONE ) -> File*;
-        auto LoadFileAsync( const Path& path, FileMode mode = MKT_FILE_OPEN_MODE_NONE ) -> Task<File>*;
+        auto LoadFileAsync( const Path& path, FileMode mode = MKT_FILE_OPEN_MODE_NONE ) -> void; // Return a future
 
         auto GetFile( const Path& path ) -> File*;
         auto GetFile( const Path& path ) const -> const File*;
@@ -53,7 +52,6 @@ namespace Mikoto {
 
     private:
         Path m_CurrentWorkingDir{};
-        std::vector<Unique<ITask>> m_FileLoadTasks{};
         ankerl::unordered_dense::map<std::string, Unique<File>> m_Files{};
     };
 }// namespace Mikoto

@@ -12,6 +12,32 @@
 #include <Renderer/Buffer.hh>
 
 namespace Mikoto {
+
+    class ICommandList : public DeviceObject {
+    public:
+
+        virtual auto Begin() -> void = 0;
+        virtual auto Close() -> void = 0;
+
+        virtual auto FillTexture(Buffer* src, Texture* dest) -> void = 0;
+        virtual auto CopyTexture(Buffer* src, Buffer* dest) -> void = 0;
+        virtual auto CopyBuffer(Texture* src, Texture* dest) -> void = 0;
+
+        virtual auto WriteBuffer(Buffer* target, Byte* data, Size size) -> void = 0;
+        virtual auto WriteTexture(Texture* target, Byte* data, Size size) -> void = 0;
+    };
+
+    class IQueue : public DeviceObject {
+    public:
+
+        MKT_NODISCARD auto GetType() const -> QueueType { return m_Type; }
+
+    private:
+        QueueType m_Type{ QueueType::INVALID_QUEUE };
+    };
+
+    using CommandListHandle = Ref<ICommandList>;
+
     struct GpuDeviceCreateInfo {
         GraphicsAPI Api{ GraphicsAPI::VULKAN_API };
 
@@ -25,6 +51,8 @@ namespace Mikoto {
 
         MKT_NODISCARD virtual auto CreateTexture(const TextureDescription& description) -> TextureHandle = 0;
         MKT_NODISCARD virtual auto CreateBuffer(const BufferDescription& description) -> BufferHandle = 0;
+
+        MKT_NODISCARD virtual auto CreateCommandList() -> CommandListHandle = 0;
 
         virtual auto RunGarbageCollection() -> void = 0;
 

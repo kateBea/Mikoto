@@ -24,21 +24,27 @@
 
 namespace Mikoto {
 
-    auto ImGuiVulkanBackend::Init() -> bool {
+    auto ImGuiVulkanBackend::Init() -> void {
         CreateImages();
         CreateRenderPass();
         CreateFrameBuffer();
 
         InitImGuiForVulkan();
 
-        return true;
+        // TODO: uncoment when backend is properly initialized for the shutting down
+        m_IsInitialized = true;
     }
 
     auto ImGuiVulkanBackend::Shutdown() -> void {
+        if (!m_IsInitialized) {
+            return;
+        }
+
         // Wait for remaining operations to complete
         TO_VK_DEVICE( m_GpuDevice )->WaitIdle();
 
         ImGui_ImplVulkan_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
 
         vkDestroyRenderPass( VK_DEVICE(m_GpuDevice), m_ImGuiRenderPass, nullptr );
         vkDestroyDescriptorPool( VK_DEVICE(m_GpuDevice), m_ImGuiDescriptorPool, nullptr );
@@ -52,9 +58,6 @@ namespace Mikoto {
         ImGuizmo::BeginFrame();
     }
     auto ImGuiVulkanBackend::EndFrame() -> void {
-    }
-
-    auto ImGuiVulkanBackend::InitImGuiForVulkan() -> void {
     }
 
     auto ImGuiVulkanBackend::CreateImages() -> void {
@@ -73,20 +76,18 @@ namespace Mikoto {
         };
 
         const std::initializer_list<const VkFormat> targetDepthFormats{
-            VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_D32_SFLOAT, VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_SRGB
+            VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT
         };
 
         m_ColorAttachmentFormat = VulkanHelpers::FindSupportedFormat(
                 TO_VK_DEVICE( m_GpuDevice )->GetPhysicalDevice(),
-                targetColorFormats.begin(),
-                targetColorFormats.size(),
+                targetColorFormats,
                 VK_IMAGE_TILING_OPTIMAL,
                 VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT );
 
         m_DepthAttachmentFormat = VulkanHelpers::FindSupportedFormat(
                 TO_VK_DEVICE( m_GpuDevice )->GetPhysicalDevice(),
-                targetDepthFormats.begin(),
-                targetDepthFormats.size(),
+                targetDepthFormats,
                 VK_IMAGE_TILING_OPTIMAL,
                 VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT );
     }
@@ -163,6 +164,73 @@ namespace Mikoto {
 
         if ( vkCreateRenderPass( VK_DEVICE(m_GpuDevice), std::addressof( info ), nullptr, std::addressof( m_ImGuiRenderPass ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "Failed to create render pass for the Vulkan Renderer!" );
+        }
+    }
+
+    auto ImGuiVulkanBackend::InitImGuiForVulkan() -> void {
+        GLFWwindow* window{ std::any_cast<GLFWwindow*>( m_Window->GetNativeWindow() ) };
+        std::array<VkDescriptorPoolSize, 11> poolSizes{};
+
+        poolSizes[0] = { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 };
+        poolSizes[1] = { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 };
+        poolSizes[2] = { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 };
+        poolSizes[3] = { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 };
+        poolSizes[4] = { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 };
+        poolSizes[5] = { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 };
+        poolSizes[6] = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 };
+        poolSizes[7] = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 };
+        poolSizes[8] = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 };
+        poolSizes[9] = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 };
+        poolSizes[10] = { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 };
+
+        VkDescriptorPoolCreateInfo poolCreateInfo{ VulkanHelpers::Initializers::DescriptorPoolCreateInfo() };
+        poolCreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        poolCreateInfo.maxSets = 1000;
+        poolCreateInfo.poolSizeCount = static_cast<UInt32>( poolSizes.size() );
+        poolCreateInfo.pPoolSizes = poolSizes.data();
+
+        const VulkanDevice& device{ *TO_VK_DEVICE( m_GpuDevice ) };
+
+        if ( vkCreateDescriptorPool( device.GetLogicalDevice(),
+                                     std::addressof( poolCreateInfo ),
+                                     nullptr,
+                                     std::addressof( m_ImGuiDescriptorPool ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "ImGuiVulkanBackend::InitImGuiForVulkan - Failed to create descriptor pool for ImGui." );
+        }
+
+#if __linux__
+        ImGui_ImplVulkan_LoadFunctions(
+                []( const char* functionName, void* vulkanInstance ) {
+                    return vkGetInstanceProcAddr( *static_cast<VkInstance*>( vulkanInstance ), functionName );
+                },
+                std::addressof( VulkanContext::Get().GetInstance() ) );
+#else
+        ImGui_ImplVulkan_LoadFunctions( VK_API_VERSION_1_3,
+            []( const char* functionName, void* vulkanInstance ) {
+                return vkGetInstanceProcAddr( *static_cast<VkInstance*>( vulkanInstance ), functionName );
+            }, std::addressof( VulkanContext::Get().GetInstance() ) );
+#endif
+
+
+        ImGui_ImplGlfw_InitForVulkan( window, true );
+
+        ImGui_ImplVulkan_InitInfo initInfo{
+            .Instance = VulkanContext::Get().GetInstance(),
+            .PhysicalDevice = device.GetPhysicalDevice(),
+            .Device = device.GetLogicalDevice(),
+            .Queue = device.GetLogicalDeviceQueues().Graphics->Queue,
+            .DescriptorPool = m_ImGuiDescriptorPool,
+            .MinImageCount = 3,
+            .ImageCount = 3,
+            .PipelineInfoMain{
+                .RenderPass{ m_ImGuiRenderPass },
+                .Subpass{ 0 },
+                .MSAASamples{ VK_SAMPLE_COUNT_1_BIT }
+            },
+        };
+
+        if ( !ImGui_ImplVulkan_Init( std::addressof( initInfo ) ) ) {
+            MKT_THROW_RUNTIME_ERROR( "ImGuiVulkanBackend - Failed to initialize Vulkan for ImGui" );
         }
     }
 
@@ -285,74 +353,6 @@ namespace Mikoto {
         if ( io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
-        }
-    }
-
-    auto ImGuiVulkanBackend::InitImGuiForVulkan() -> void {
-        GLFWwindow* window{ std::any_cast<GLFWwindow*>( m_Window->GetNativeWindow() ) };
-        std::array<VkDescriptorPoolSize, 11> poolSizes{};
-
-        poolSizes[0] = { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 };
-        poolSizes[1] = { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 };
-        poolSizes[2] = { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 };
-        poolSizes[3] = { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 };
-        poolSizes[4] = { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 };
-        poolSizes[5] = { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 };
-        poolSizes[6] = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 };
-        poolSizes[7] = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 };
-        poolSizes[8] = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 };
-        poolSizes[9] = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 };
-        poolSizes[10] = { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 };
-
-        VkDescriptorPoolCreateInfo poolCreateInfo{ VulkanHelpers::Initializers::DescriptorPoolCreateInfo() };
-        poolCreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-        poolCreateInfo.maxSets = 1000;
-        poolCreateInfo.poolSizeCount = static_cast<UInt32_T>( poolSizes.size() );
-        poolCreateInfo.pPoolSizes = poolSizes.data();
-
-        const VulkanDevice& device{ VulkanContext::Get().GetDevice() };
-
-        if ( vkCreateDescriptorPool( device.GetLogicalDevice(),
-                                     std::addressof( poolCreateInfo ),
-                                     nullptr,
-                                     std::addressof( m_ImGuiDescriptorPool ) ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "ImGuiVulkanBackend::Init - Failed to create descriptor pool for ImGui." );
-        }
-
-#if __linux__
-        ImGui_ImplVulkan_LoadFunctions(
-                []( const char* functionName, void* vulkanInstance ) {
-                    return vkGetInstanceProcAddr( *static_cast<VkInstance*>( vulkanInstance ), functionName );
-                },
-                std::addressof( VulkanContext::Get().GetInstance() ) );
-#else
-        ImGui_ImplVulkan_LoadFunctions( VK_API_VERSION_1_3, []( const char* functionName, void* vulkanInstance ) { return vkGetInstanceProcAddr( *static_cast<VkInstance*>( vulkanInstance ), functionName ); }, std::addressof( VulkanContext::Get().GetInstance() ) );
-#endif
-
-
-        ImGui_ImplGlfw_InitForVulkan( window, true );
-
-        ImGui_ImplVulkan_InitInfo initInfo{
-            .Instance = VulkanContext::Get().GetInstance(),
-            .PhysicalDevice = device.GetPhysicalDevice(),
-            .Device = device.GetLogicalDevice(),
-            .Queue = device.GetLogicalDeviceQueues().Graphics->Queue,
-            .DescriptorPool = m_ImGuiDescriptorPool,
-            .RenderPass = m_ImGuiRenderPass,
-            .MinImageCount = 3,
-            .ImageCount = 3,
-            .MSAASamples = VK_SAMPLE_COUNT_1_BIT
-        };
-
-
-        if ( !ImGui_ImplVulkan_Init( std::addressof( initInfo ) ) ) {
-            MKT_THROW_RUNTIME_ERROR( "ImGuiVulkanBackend - Failed to initialize Vulkan for ImGui" );
-        }
-
-        if ( ImGui_ImplVulkan_CreateFontsTexture() ) {
-            MKT_CORE_LOGGER_DEBUG( "Successfully created ImGui fonts!" );
-        } else {
-            MKT_THROW_RUNTIME_ERROR( "Error creating ImGui fonts!" );
         }
     }
 

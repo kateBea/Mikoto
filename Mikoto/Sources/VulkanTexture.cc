@@ -27,7 +27,7 @@ namespace Mikoto {
     }
 
     VulkanSampler::~VulkanSampler() {
-        if (!m_IsAllocated) {
+        if ( !m_IsAllocated ) {
             return;
         }
 
@@ -43,9 +43,10 @@ namespace Mikoto {
     }
 
     VulkanTexture::VulkanTexture( VkImageViewCreateInfo viewCreateInfo )
-        : Texture2D{ TextureType::TEXTURE_2D, 0, 0, 0, nullptr, ResourceUsageType::RESOURCE_USAGE_STATIC }
-    {
-        m_Image = viewCreateInfo.image;
+        : Texture2D{ TextureType::TEXTURE_2D, 0, 0, 0, nullptr, ResourceUsageType::RESOURCE_USAGE_STATIC },
+          m_Image{ viewCreateInfo.image },
+          m_ImageViewCreateInfo{ viewCreateInfo },
+          m_IsImageExternal{ true } {
     }
 
     auto VulkanTexture::Release() -> void {
@@ -59,7 +60,7 @@ namespace Mikoto {
 
         if ( !m_IsImageExternal ) {
             // Free from VMA Allocator or GpuAllocator
-            auto allocator{ dynamic_cast<VulkanMemoryAllocator*>(dynamic_cast<VulkanDevice*>( m_Device )->GetAllocator()) };
+            auto allocator{ dynamic_cast<VulkanMemoryAllocator*>( dynamic_cast<VulkanDevice*>( m_Device )->GetAllocator() ) };
             allocator->FreeImage( this );
         }
 
@@ -67,23 +68,23 @@ namespace Mikoto {
     }
 
     auto VulkanTexture::GetVMAllocation() -> VmaAllocation* {
-        return std::addressof(m_Allocation);
+        return std::addressof( m_Allocation );
     }
 
     auto VulkanTexture::GetVMAllocationInfo() -> VmaAllocationInfo* {
-        return std::addressof(m_AllocationInfo);
+        return std::addressof( m_AllocationInfo );
     }
 
     auto VulkanTexture::GetImageCreateInfo() -> const VkImageCreateInfo* {
-        return std::addressof(m_ImageCreateInfo);
+        return std::addressof( m_ImageCreateInfo );
     }
 
     auto VulkanTexture::GetAllocationCreateInfo() -> const VmaAllocationCreateInfo* {
-        return std::addressof(m_AllocationCreateInfo);
+        return std::addressof( m_AllocationCreateInfo );
     }
 
     VulkanTexture::~VulkanTexture() {
-        if (!m_IsAllocated) {
+        if ( m_IsAllocated ) {
             Release();
         }
     }
@@ -133,9 +134,8 @@ namespace Mikoto {
         imageBarrier.oldLayout = m_CurrentLayout;
         imageBarrier.newLayout = newLayout;
 
-        VkImageAspectFlags aspectMask{ static_cast<VkImageAspectFlags>( newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL ?
-            VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT ) };
-        imageBarrier.subresourceRange = VulkanHelpers::Initializers::ImageSubresourceRange(aspectMask);
+        VkImageAspectFlags aspectMask{ static_cast<VkImageAspectFlags>( newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT ) };
+        imageBarrier.subresourceRange = VulkanHelpers::Initializers::ImageSubresourceRange( aspectMask );
         imageBarrier.image = m_Image;
 
         VkDependencyInfo depInfo{};
@@ -143,25 +143,23 @@ namespace Mikoto {
         depInfo.pNext = nullptr;
 
         depInfo.imageMemoryBarrierCount = 1;
-        depInfo.pImageMemoryBarriers = std::addressof(imageBarrier);
+        depInfo.pImageMemoryBarriers = std::addressof( imageBarrier );
 
-        vkCmdPipelineBarrier2(cmd, std::addressof(depInfo));
+        vkCmdPipelineBarrier2( cmd, std::addressof( depInfo ) );
 
         // Update the current layout
         m_CurrentLayout = newLayout;
     }
 
     VulkanSwapChain::VulkanSwapChain( const VulkanSwapChainCreateInfo& createInfo )
-        :   m_Extent{ createInfo.Extent },
-            m_OldSwapChain{ createInfo.OldSwapChain },
-            m_Surface{ createInfo.Surface },
-            m_IsVsyncEnabled{ createInfo.EnableVsync }
-    {
-
+        : m_Extent{ createInfo.Extent },
+          m_OldSwapChain{ createInfo.OldSwapChain },
+          m_Surface{ createInfo.Surface },
+          m_IsVsyncEnabled{ createInfo.EnableVsync } {
     }
 
     auto VulkanSwapChain::Allocate() -> void {
-        if (m_Surface == nullptr) {
+        if ( m_Surface == nullptr ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanSwapChain::Init - Error the surface for the swapchain is null." );
         }
 
@@ -178,16 +176,18 @@ namespace Mikoto {
         CreateSwapChain();
 
         AcquireSwapchainImages();
+
+        m_IsAllocated = true;
     }
 
     auto VulkanSwapChain::CreateSwapChain() -> void {
-        const auto [Capabilities, Formats, PresentModes] {
-            VulkanHelpers::GetSwapChainSupport(TO_VK_DEVICE( m_Device )->GetPhysicalDevice(), *m_Surface)
+        const auto [Capabilities, Formats, PresentModes]{
+            VulkanHelpers::GetSwapChainSupport( TO_VK_DEVICE( m_Device )->GetPhysicalDevice(), *m_Surface )
         };
 
-        const auto [format, colorSpace]{ ChooseSurfaceFormat(Formats) };
-        const VkPresentModeKHR presentMode{ ChoosePresentMode(PresentModes) };
-        const VkExtent2D extent{ ChooseExtent(Capabilities) };
+        const auto [format, colorSpace]{ ChooseSurfaceFormat( Formats ) };
+        const VkPresentModeKHR presentMode{ ChoosePresentMode( PresentModes ) };
+        const VkExtent2D extent{ ChooseExtent( Capabilities ) };
 
         // Save for later use
         m_Format = format;
@@ -200,7 +200,7 @@ namespace Mikoto {
          * results in the maximum swap chain image count so we do the check and clamp the resulting image count
          * */
         UInt32 imageCount{ Capabilities.minImageCount + 1 };
-        if (Capabilities.maxImageCount > 0 && imageCount > Capabilities.maxImageCount) {
+        if ( Capabilities.maxImageCount > 0 && imageCount > Capabilities.maxImageCount ) {
             imageCount = Capabilities.maxImageCount;
         }
 
@@ -217,40 +217,42 @@ namespace Mikoto {
         // swap chain image ready for render and then be presented
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-        const auto& [Present, Graphics, Compute] {
+        const auto& [Present, Graphics, Compute]{
             TO_VK_DEVICE( m_Device )->GetLogicalDeviceQueues()
         };
 
         // Let swapchain to share images between queues or not. We need to account for it
         // in the case the present queue and the graphics queue are not actually the same
         const std::array queueFamilyIndices{ Graphics->FamilyIndex, Present->FamilyIndex };
-        if (Graphics->FamilyIndex != Present->FamilyIndex) {
+        if ( Graphics->FamilyIndex != Present->FamilyIndex ) {
             createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
             createInfo.queueFamilyIndexCount = queueFamilyIndices.size();
             createInfo.pQueueFamilyIndices = queueFamilyIndices.data();
-        }
-        else {
+        } else {
             createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
             createInfo.queueFamilyIndexCount = 0;
             createInfo.pQueueFamilyIndices = nullptr;
         }
 
-        createInfo.preTransform = Capabilities.currentTransform; // Image transform ot perform on swapchain images
-        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR; // Handle blending, just draw as it is (perform no blending)
+        createInfo.preTransform = Capabilities.currentTransform;      // Image transform ot perform on swapchain images
+        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;// Handle blending, just draw as it is (perform no blending)
         createInfo.presentMode = presentMode;
         createInfo.clipped = VK_TRUE;
-        createInfo.oldSwapchain = VK_NULL_HANDLE; // TODO: pass old swapchain (need debug currently old swapchain becoming retired which can't be passed here)
+        createInfo.oldSwapchain = VK_NULL_HANDLE;// TODO: pass old swapchain (need debug currently old swapchain becoming retired which can't be passed here)
 
-        if (vkCreateSwapchainKHR(VK_DEVICE(m_Device), std::addressof( createInfo ), nullptr, std::addressof( m_Swapchain ) ) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("VulkanSwapChain::CreateSwapChain - Failed to create swap chain.");
+        if ( vkCreateSwapchainKHR( VK_DEVICE( m_Device ), std::addressof( createInfo ), nullptr, std::addressof( m_Swapchain ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanSwapChain::CreateSwapChain - Failed to create swap chain." );
         }
     }
 
     auto VulkanTexture::AllocateImage() -> void {
+        // Specify current layout, it should be undefined as this is a newly created image
+        m_ImageCreateInfo.initialLayout = m_CurrentLayout;
+
         // The image has not been allocated, and
         // we need to allocate it on the given device
         if ( m_Image == VK_NULL_HANDLE ) {
-            const auto allocator{ dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( m_Device )->GetAllocator()) };
+            const auto allocator{ dynamic_cast<VulkanMemoryAllocator*>( TO_VK_DEVICE( m_Device )->GetAllocator() ) };
 
             const VkResult result{ allocator->AllocateImage( this ) };
 
@@ -270,8 +272,8 @@ namespace Mikoto {
         // the caller can optionally pass a valid image because this VulkanImage is supposed be
         // usable for the swapchain as well, however, if the latter is the case,
         // we are responsible for releasing the image views, not the actual images.
-        if ( vkCreateImageView( dynamic_cast<VulkanDevice*>(m_Device)->GetLogicalDevice(),
-            std::addressof( m_ImageViewCreateInfo ), nullptr, std::addressof( m_ImageView ) ) != VK_SUCCESS ) {
+        if ( vkCreateImageView( dynamic_cast<VulkanDevice*>( m_Device )->GetLogicalDevice(),
+                                std::addressof( m_ImageViewCreateInfo ), nullptr, std::addressof( m_ImageView ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanImage::VulkanImage - Failed to create the Vulkan Image View!" );
         }
 
@@ -279,98 +281,113 @@ namespace Mikoto {
     }
 
     auto VulkanTexture::Allocate() -> void {
-        // allocate staging buffer
-        VkBufferCreateInfo stagingBufferInfo{ VulkanHelpers::Initializers::BufferCreateInfo() };
-        stagingBufferInfo.pNext = nullptr;
+        // Specify the current layout, it should be undefined as this is a newly created image
+        m_ImageCreateInfo.initialLayout = m_CurrentLayout;
 
-        stagingBufferInfo.size = m_ImageSize;
-        stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        // The case for swap chain images
+        if ( m_Image != VK_NULL_HANDLE ) {
 
-        //let the VMA library know that this data should be on CPU RAM
-        VmaAllocationCreateInfo vmaStagingAllocationCreateInfo{};
-        vmaStagingAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
-        vmaStagingAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            // the caller can optionally pass a valid image because this VulkanTexture is supposed be
+            // usable for the swapchain as well, however, if the latter is the case,
+            // we are responsible for releasing the image views, not the actual images.
+            // TODO: refactor and move down to use with normal images creation
+            if ( vkCreateImageView( VK_DEVICE( m_Device ), std::addressof( m_ImageViewCreateInfo ), nullptr, std::addressof( m_ImageView ) ) != VK_SUCCESS ) {
+                MKT_THROW_RUNTIME_ERROR( "VulkanTexture::Allocate - Failed to create the Vulkan Image View!" );
+            }
+        } else {
+            // allocate staging buffer
+            VkBufferCreateInfo stagingBufferInfo{ VulkanHelpers::Initializers::BufferCreateInfo() };
+            stagingBufferInfo.pNext = nullptr;
 
-        // Copy vertex data to staging buffer
-        m_StagingBuffer = m_Device->CreateBuffer( {} );
-        auto stagingBufferHandle{ Dynamic<VulkanBuffer>( m_StagingBuffer ) };
+            stagingBufferInfo.size = m_ImageSize;
+            stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-        stagingBufferHandle->PersistentMap();
-        std::memcpy( Dynamic<VulkanBuffer>( m_StagingBuffer )->GetVmaAllocationInfo()->pMappedData, m_Data, m_ImageSize );
+            //let the VMA library know that this data should be on CPU RAM
+            VmaAllocationCreateInfo vmaStagingAllocationCreateInfo{};
+            vmaStagingAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+            vmaStagingAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-        stagingBufferHandle->PersistentUnmap();
+            // Copy vertex data to staging buffer
+            m_StagingBuffer = m_Device->CreateBuffer( {} );
+            auto stagingBufferHandle{ Dynamic<VulkanBuffer>( m_StagingBuffer ) };
 
-        // Allocate image
-        const VkExtent3D extent{ static_cast<UInt32>( m_Width ), static_cast<UInt32>( m_Height ), 1 };
+            stagingBufferHandle->PersistentMap();
+            std::memcpy( Dynamic<VulkanBuffer>( m_StagingBuffer )->GetVmaAllocationInfo()->pMappedData, m_Data, m_ImageSize );
 
-        m_ImageCreateInfo = VulkanHelpers::Initializers::ImageCreateInfo();
+            stagingBufferHandle->PersistentUnmap();
 
-        m_ImageCreateInfo.format = VulkanHelpers::GetVkFormatFromTextureFormat(m_Format);
-        m_ImageCreateInfo.extent = extent;
-        m_ImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-        m_ImageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+            // Allocate image
+            const VkExtent3D extent{ static_cast<UInt32>( m_Width ), static_cast<UInt32>( m_Height ), 1 };
 
-        m_ImageCreateInfo.mipLevels = 1;
-        m_ImageCreateInfo.arrayLayers = 1;
-        m_ImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-        m_ImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-        m_ImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            m_ImageCreateInfo = VulkanHelpers::Initializers::ImageCreateInfo();
 
-        // The image will only be used by one queue family: the one that supports graphics (and therefore also) transfer operations.
-        m_ImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        m_ImageCreateInfo.flags = 0;
+            m_ImageCreateInfo.format = VulkanHelpers::GetVkFormatFromTextureFormat( m_Format );
+            m_ImageCreateInfo.extent = extent;
+            m_ImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+            m_ImageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-        VkImageViewCreateInfo imageViewCreateInfo{ VulkanHelpers::Initializers::ImageViewCreateInfo() };
+            m_ImageCreateInfo.mipLevels = 1;
+            m_ImageCreateInfo.arrayLayers = 1;
+            m_ImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+            m_ImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+            m_ImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-        imageViewCreateInfo.pNext = nullptr;
-        imageViewCreateInfo.flags = 0;
-        imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        imageViewCreateInfo.format = m_ImageCreateInfo.format;
+            // The image will only be used by one queue family: the one that supports graphics (and therefore also) transfer operations.
+            m_ImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            m_ImageCreateInfo.flags = 0;
 
-        imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-        imageViewCreateInfo.subresourceRange.levelCount = 1;
-        imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-        imageViewCreateInfo.subresourceRange.layerCount = 1;
+            VkImageViewCreateInfo imageViewCreateInfo{ VulkanHelpers::Initializers::ImageViewCreateInfo() };
 
-        // Ensure allocator exists
-        const auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( m_Device )->GetAllocator()) };
-        MKT_ASSERT(allocator != nullptr, "Allocator is null in VulkanBuffer::Allocate!");
+            imageViewCreateInfo.pNext = nullptr;
+            imageViewCreateInfo.flags = 0;
+            imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            imageViewCreateInfo.format = m_ImageCreateInfo.format;
 
-        const VkResult result{ allocator->AllocateImage(this) };
-        if (result != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("Failed to allocate Vulkan buffer!");
+            imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+            imageViewCreateInfo.subresourceRange.levelCount = 1;
+            imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+            imageViewCreateInfo.subresourceRange.layerCount = 1;
+
+            // Ensure allocator exists
+            const auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>( TO_VK_DEVICE( m_Device )->GetAllocator() ) };
+            MKT_ASSERT( allocator != nullptr, "Allocator is null in VulkanBuffer::Allocate!" );
+
+            const VkResult result{ allocator->AllocateImage( this ) };
+            if ( result != VK_SUCCESS ) {
+                MKT_THROW_RUNTIME_ERROR( "Failed to allocate Vulkan buffer!" );
+            }
+
+            // Copy buffer data to image and transition image layouts for optimal usage in shaders
+
+            // device->TransferQueueSubmit( [this, extent, device]( const VkCommandBuffer& cmd ) -> void {
+            //     VulkanImage* image{ device->AccessImage( m_Image ) };
+            //
+            //     image->SubmitLayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmd );
+            //
+            //     // Copy from staging buffer to image buffer
+            //     VkBufferImageCopy copyRegion{};
+            //     copyRegion.bufferOffset = 0;
+            //     copyRegion.bufferRowLength = 0;
+            //     copyRegion.bufferImageHeight = 0;
+            //
+            //     copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            //     copyRegion.imageSubresource.mipLevel = 0;
+            //     copyRegion.imageSubresource.baseArrayLayer = 0;
+            //     copyRegion.imageSubresource.layerCount = 1;
+            //     copyRegion.imageExtent = extent;
+            //
+            //     //copy the buffer into the image
+            //     vkCmdCopyBufferToImage( cmd, m_StagingBuffer->Get(), m_Image->Get(), m_Image->GetCurrentLayout(), 1, std::addressof( copyRegion ) );
+            // } );
+            //
+            // VulkanContext::Get().ImmediateSubmit( [&]( VkCommandBuffer cmd ) -> void {
+            //     // Perform second transition for the descriptor set creation
+            //     m_Image->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd );
+            // } );
         }
 
-        // Copy buffer data to image and transition image layouts for optimal usage in shaders
-
-        // device->TransferQueueSubmit( [this, extent, device]( const VkCommandBuffer& cmd ) -> void {
-        //     VulkanImage* image{ device->AccessImage( m_Image ) };
-        //
-        //     image->SubmitLayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmd );
-        //
-        //     // Copy from staging buffer to image buffer
-        //     VkBufferImageCopy copyRegion{};
-        //     copyRegion.bufferOffset = 0;
-        //     copyRegion.bufferRowLength = 0;
-        //     copyRegion.bufferImageHeight = 0;
-        //
-        //     copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        //     copyRegion.imageSubresource.mipLevel = 0;
-        //     copyRegion.imageSubresource.baseArrayLayer = 0;
-        //     copyRegion.imageSubresource.layerCount = 1;
-        //     copyRegion.imageExtent = extent;
-        //
-        //     //copy the buffer into the image
-        //     vkCmdCopyBufferToImage( cmd, m_StagingBuffer->Get(), m_Image->Get(), m_Image->GetCurrentLayout(), 1, std::addressof( copyRegion ) );
-        // } );
-        //
-        // VulkanContext::Get().ImmediateSubmit( [&]( VkCommandBuffer cmd ) -> void {
-        //     // Perform second transition for the descriptor set creation
-        //     m_Image->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd );
-        // } );
-
-       m_IsAllocated = true;
+        m_IsAllocated = true;
     }
 
     auto VulkanSwapChain::AcquireSwapchainImages() -> void {
@@ -382,17 +399,17 @@ namespace Mikoto {
         // allowed to create a swap chain with more. That's why we'll first query the final number of
         // images with vkGetSwapchainImagesKHR with the last parameter as nullptr, then resize the container and finally call it again to
         // retrieve the handles.
-        vkGetSwapchainImagesKHR(device.GetLogicalDevice(), m_Swapchain, std::addressof( imageCount ), nullptr);
+        vkGetSwapchainImagesKHR( device.GetLogicalDevice(), m_Swapchain, std::addressof( imageCount ), nullptr );
 
-        auto images{ std::vector<VkImage>(imageCount) };
-        vkGetSwapchainImagesKHR(device.GetLogicalDevice(), m_Swapchain, std::addressof( imageCount ), images.data());
+        auto images{ std::vector<VkImage>( imageCount ) };
+        vkGetSwapchainImagesKHR( device.GetLogicalDevice(), m_Swapchain, std::addressof( imageCount ), images.data() );
 
-        for (const VkImage& image : images) {
-            m_Images.emplace_back( new VulkanTexture( CreateSwapchainImageViewCreateInfo(image, m_Format ) ) );
+        for ( VkImage image: images ) {
+            m_Images.emplace_back( device.CreateSwapChainTextures( CreateSwapchainImageViewCreateInfo( image, m_Format ) ) );
         }
     }
 
-    auto VulkanSwapChain::CreateSwapchainImageViewCreateInfo( const VkImage& image, const VkFormat& format ) -> VkImageViewCreateInfo {
+    auto VulkanSwapChain::CreateSwapchainImageViewCreateInfo( VkImage image, const VkFormat& format ) -> VkImageViewCreateInfo {
         VkImageViewCreateInfo createInfo{ VulkanHelpers::Initializers::ImageViewCreateInfo() };
         createInfo.image = image;
         createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -411,7 +428,7 @@ namespace Mikoto {
         return createInfo;
     }
 
-    auto VulkanSwapChain::GetNextRenderableImage( UInt32 &imageIndex, const VkFence fence, const VkSemaphore imageAvailable ) const -> VkResult {
+    auto VulkanSwapChain::GetNextRenderableImage( UInt32& imageIndex, const VkFence fence, const VkSemaphore imageAvailable ) const -> VkResult {
         static VulkanDevice& device{ *TO_VK_DEVICE( m_Device ) };
 
         // For simplicity, parenthesize std::numeric_limits<std::uint64_t>::max because windows has a macro literally called max that causes conflicts
@@ -441,27 +458,27 @@ namespace Mikoto {
         // Only the GUI is directly rendering to the swapchain images at the moment.
         // Generally, the renderer is drawing to a texture which can then be copied to a
         // swap chain image ready for render and then be presented
-        m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+        m_CurrentFrame = ( m_CurrentFrame + 1 ) % MAX_FRAMES_IN_FLIGHT;
 
         const auto& [Present, Graphics, Compute]{ device.GetLogicalDeviceQueues() };
         VkQueue presentQueue{ VK_NULL_HANDLE };
 
-        if (Present.has_value() && Present->Queue != VK_NULL_HANDLE) {
+        if ( Present.has_value() && Present->Queue != VK_NULL_HANDLE ) {
             presentQueue = Present->Queue;
-        } else if (Present.has_value() && Present->Queue != VK_NULL_HANDLE) {
+        } else if ( Present.has_value() && Present->Queue != VK_NULL_HANDLE ) {
             // Present and graphics queue may have the same index
             presentQueue = Graphics->Queue;
         } else {
             MKT_CORE_LOGGER_ERROR( "VulkanSwapChain::Present - No presentation queue available." );
         }
 
-        return vkQueuePresentKHR(presentQueue, std::addressof( presentInfo ) );
+        return vkQueuePresentKHR( presentQueue, std::addressof( presentInfo ) );
     }
 
-    auto VulkanSwapChain::ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) -> VkSurfaceFormatKHR {
+    auto VulkanSwapChain::ChooseSurfaceFormat( const std::vector<VkSurfaceFormatKHR>& availableFormats ) -> VkSurfaceFormatKHR {
         // NOTE: if we only have one format, and it is VK_FORMAT_UNDEFINED, it means the surface supports all formats
-        for (const auto& availableFormat : availableFormats) {
-            if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+        for ( const auto& availableFormat: availableFormats ) {
+            if ( availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR ) {
                 return availableFormat;
             }
         }
@@ -469,13 +486,13 @@ namespace Mikoto {
         return availableFormats[0];
     }
 
-    auto VulkanSwapChain::ChoosePresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) const -> VkPresentModeKHR {
-        if (m_IsVsyncEnabled) {
+    auto VulkanSwapChain::ChoosePresentMode( const std::vector<VkPresentModeKHR>& availablePresentModes ) const -> VkPresentModeKHR {
+        if ( m_IsVsyncEnabled ) {
             return VK_PRESENT_MODE_FIFO_KHR;
         }
 
-        for (const auto& availablePresentMode : availablePresentModes) {
-            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR || availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+        for ( const auto& availablePresentMode: availablePresentModes ) {
+            if ( availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR || availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR ) {
                 return availablePresentMode;
             }
         }
@@ -513,12 +530,12 @@ namespace Mikoto {
     }
 
     auto VulkanSwapChain::Release() -> void {
-        if (!m_IsAllocated) {
+        if ( !m_IsAllocated ) {
             return;
         }
 
         // Wait on outstanding queue operations because there might be some objects still in use by the GPU
-        TO_VK_DEVICE(m_Device)->WaitIdle();
+        TO_VK_DEVICE( m_Device )->WaitIdle();
 
         m_Surface = nullptr;
 
@@ -527,7 +544,7 @@ namespace Mikoto {
         // Destroy handles
         // The device is owned by the context and is destroyed before the instance and after any object is
         // created from it has finished being used
-        vkDestroySwapchainKHR( VK_DEVICE(m_Device), m_Swapchain, nullptr );
+        vkDestroySwapchainKHR( VK_DEVICE( m_Device ), m_Swapchain, nullptr );
 
         m_IsAllocated = false;
     }

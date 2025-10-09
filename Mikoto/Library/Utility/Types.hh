@@ -38,7 +38,7 @@ namespace Mikoto {
 
     using Size = std::size_t;
 
-    using CStr = const char*;
+    using CStr = const char *;
 
     using Byte = unsigned char;
 
@@ -79,8 +79,8 @@ namespace Mikoto {
      * @param value pointer to the object to convert.
      * @return a pointer to the byte array.
      */
-    auto AsBytes( auto&& value ) -> Byte* {
-        return reinterpret_cast<Byte*>( value );
+    auto AsBytes( auto &&value ) -> Byte * {
+        return reinterpret_cast<Byte *>( value );
     }
 
     /**
@@ -91,6 +91,22 @@ namespace Mikoto {
     */
     template<typename DerivedType, typename BaseType>
     concept IsDerivedFrom = std::derived_from<DerivedType, BaseType>;
-}
+
+    template<typename From, typename To>
+    concept DynamicallyCastable =
+            std::is_pointer_v<From> &&
+            std::is_pointer_v<To> &&
+            std::is_polymorphic_v<std::remove_pointer_t<From>> &&
+            requires( From from ) {
+                { dynamic_cast<To>( from ) } -> std::same_as<To>;
+            };
+
+    // Bidirectional
+    template<typename From, typename To>
+    concept RelatedDynamicallyCastable =
+            DynamicallyCastable<From, To> &&
+            ( std::is_base_of_v<std::remove_pointer_t<From>, std::remove_pointer_t<To>> ||
+              std::is_base_of_v<std::remove_pointer_t<To>, std::remove_pointer_t<From>> );
+}// namespace Mikoto
 
 #endif// MIKOTO_TYPES_HH

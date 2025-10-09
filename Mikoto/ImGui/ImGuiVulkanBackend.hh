@@ -34,7 +34,7 @@ namespace Mikoto {
               }
         {}
 
-        auto Init() -> bool override;
+        auto Init() -> void override;
         auto Shutdown() -> void override;
 
         auto BeginFrame() -> void override;

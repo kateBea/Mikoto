@@ -10,12 +10,13 @@
 namespace Mikoto {
 
     auto RenderContext::Create( const RenderContextCreateInfo& config ) -> Unique<RenderContext> {
-        switch (RenderService::Get().GetActiveGraphicsApi()) {
+        Unique<RenderContext> result{ nullptr };
+        switch (config.Api) {
             case GraphicsAPI::VULKAN_API:
-                return CreateScope<VulkanContext>( config );
+                result = CreateScope<VulkanContext>( config );
             default:;
         }
 
-        return nullptr;
+        return result;
     }
 }

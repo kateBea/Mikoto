@@ -16,6 +16,7 @@ namespace Mikoto {
 
         return nullptr;
     }
+
     GpuDevice::GpuDevice( const GraphicsAPI api )
         : m_Api{ api }
     {

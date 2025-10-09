@@ -24,15 +24,15 @@ namespace Mikoto {
         : m_FileSource{ description.AudioFile } {}
 
     auto Audio::CreateSource() -> AudioSourceHandle {
-        AudioSource* source{ m_Sources.Allocate( m_Device, m_FileSource->GetPath() ) };
-        if ( source == nullptr ) {
+        AudioSourceHandle source{ m_Sources.Allocate( m_Device, m_FileSource->GetPath() ) };
+        if ( source.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate audio source." );
             return AudioSourceHandle::CreateEmpty();
         }
 
         source->Allocate();
 
-        return AudioSourceHandle{ source };
+        return source;
     }
 
     auto Audio::Release() -> void {

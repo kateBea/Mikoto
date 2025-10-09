@@ -57,8 +57,8 @@ namespace Mikoto {
             return AudioHandle::CreateEmpty();
         }
 
-        Audio* audio{ m_LoadedAudios.Allocate( description ) };
-        if ( audio == nullptr ) {
+        AudioHandle audio{ m_LoadedAudios.Allocate( description ) };
+        if ( audio.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "AudioDevice::LoadAudio - Failed to allocate audio resource." );
             return AudioHandle::CreateEmpty();
         }
@@ -67,13 +67,13 @@ namespace Mikoto {
 
         m_CachedAudios[description.AudioFile->GetPath()] = audio->GetHandle();
 
-        return AudioHandle::Create( m_LoadedAudios.Get( audio->GetHandle() ) );
+        return audio;
     }
 
     auto AudioDevice::GetAudio( const std::string& uri ) -> AudioHandle {
         const auto it{ m_CachedAudios.find( uri ) };
         if ( it != m_CachedAudios.end() ) {
-            return AudioHandle::Create( m_LoadedAudios.Get( it->second ) );
+            return m_LoadedAudios.Get( it->second );
         }
 
         return AudioHandle::CreateEmpty();

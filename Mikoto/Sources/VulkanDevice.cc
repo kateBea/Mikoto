@@ -1,6 +1,9 @@
 //
 // Created by kate on 1/26/2025.
 //
+
+#include <new>
+
 #include <spirv_reflect.h>
 
 #include <ankerl/unordered_dense.h>
@@ -9,6 +12,7 @@
 #include <Renderer/RenderService.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Vulkan/VulkanTexture.hh>
 
 namespace Mikoto {
 
@@ -153,6 +157,10 @@ namespace Mikoto {
         MKT_CORE_LOGGER_INFO( "VulkanDevice::Init - Initializing Vulkan Device." );
 
         GetPrimaryPhysicalDevice();
+
+        // Get the queue family indices for the selected physical device, we will need them to create the logical device
+        m_Queues = GetQueueFamilyIndices( m_PhysicalDevice, std::addressof(VulkanContext::Get()->GetSurface()) );
+
         CreatePrimaryLogicalDevice();
 
         FetchDeviceQueues( m_LogicalDevice, m_Queues );
@@ -210,9 +218,6 @@ namespace Mikoto {
         vkGetPhysicalDeviceFeatures( m_PhysicalDevice, std::addressof( m_PhysicalDeviceInfo.Features ) );
         vkGetPhysicalDeviceProperties( m_PhysicalDevice, std::addressof( m_PhysicalDeviceInfo.Properties ) );
         vkGetPhysicalDeviceMemoryProperties( m_PhysicalDevice, std::addressof( m_PhysicalDeviceInfo.MemoryProperties ) );
-
-        // Get the queue family indices for the selected physical device, we will need them to create the logical device
-        m_Queues = GetQueueFamilyIndices( m_PhysicalDevice, std::addressof(VulkanContext::Get()->GetSurface()) );
 
         MKT_CORE_LOGGER_DEBUG( "VulkanDevice::GetPrimaryPhysicalDevice - Selected GPU: {}", m_PhysicalDeviceInfo.Properties.deviceName );
     }
@@ -281,6 +286,12 @@ namespace Mikoto {
             return;
         }
 
+        // Wait for pending operations
+        WaitIdle();
+
+        // Destroy swapchain before device
+        m_SwapChain.Disable();
+
         // Clear resources (pools, etc)
         m_Textures.Shutdown();
         m_Buffers.Shutdown();
@@ -297,30 +308,31 @@ namespace Mikoto {
 
     auto VulkanDevice::WaitIdle() const -> void {
         vkDeviceWaitIdle( m_LogicalDevice );
-
     }
 
     auto VulkanDevice::CreateTexture( const TextureDescription& description ) -> TextureHandle {
-        Texture* texture{ m_Textures.Allocate( description ) };
-        if ( texture == nullptr ) {
-            MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateBuffer - Failed to allocate buffer resource." );
+        TextureHandle texture{ m_Textures.Allocate( description ).As<Texture>() };
+        if ( texture.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateBuffer - Failed to allocate texture resource." );
             return TextureHandle::CreateEmpty();
         }
 
         texture->Allocate( this );
 
-        return TextureHandle::Create(m_Textures.Get( texture->GetHandle()) );
+        return texture;
     }
 
     auto VulkanDevice::RunGarbageCollection() -> void {
+        // 1 means no external entity is using it so we can safely destroy it
+        // It could be empty because the resource pool keeps the slots
         for ( const auto& texture: m_Textures | std::views::values ) {
-            if ( texture && texture->GetRefCount() == 1 ) {
+            if ( !texture.IsEmpty() && texture->GetRefCount() == 1 ) {
                 m_Textures.Release( texture->GetHandle() );
             }
         }
 
         for ( const auto& buffer: m_Buffers | std::views::values ) {
-            if ( buffer && buffer->GetRefCount() == 1 ) {
+            if ( !buffer.IsEmpty() && buffer->GetRefCount() == 1 ) {
                 m_Buffers.Release( buffer->GetHandle() );
             }
         }
@@ -333,15 +345,15 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreateBuffer( const BufferDescription& description ) -> BufferHandle {
-        Buffer* buffer{ m_Buffers.Allocate( description ) };
-        if ( buffer == nullptr ) {
+        BufferHandle buffer{ m_Buffers.Allocate( description ).As<Buffer>() };
+        if ( buffer.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateBuffer - Failed to allocate buffer resource." );
             return BufferHandle::CreateEmpty();
         }
 
         buffer->Allocate( this );
 
-        return BufferHandle::Create(m_Buffers.Get( buffer->GetHandle()) );
+        return buffer;
     }
 
     auto VulkanDevice::GetUniformBufferMinOffsetAlignment() const -> VkDeviceSize {
@@ -378,6 +390,35 @@ namespace Mikoto {
 
     auto VulkanDevice::GetLogicalDeviceQueues() const -> const QueuesData& {
         return m_Queues;
+    }
+
+
+    auto VulkanDevice::GetSwapChain() -> SwapChainHandle {
+        return m_SwapChain;
+    }
+
+    auto VulkanDevice::GetSwapChainPtr() -> VulkanSwapChain* {
+        return m_SwapChain.GetRaw();
+    }
+
+    auto VulkanDevice::InitializeSwapchain( const VulkanSwapChainCreateInfo& createInfo ) -> void {
+
+        m_SwapChain = std::move(SwapChainHandle::Create( new ( std::nothrow ) VulkanSwapChain( createInfo )));
+        if ( !m_SwapChain.IsEmpty() ) {
+            dynamic_cast<DeviceObject*>( m_SwapChain.GetRaw() )->Allocate( this );
+        }
+    }
+
+    auto VulkanDevice::CreateSwapChainTextures( const VkImageViewCreateInfo& createInfo ) -> TextureHandle {
+        TextureHandle texture{ m_Textures.Allocate( createInfo ).As<Texture>() };
+        if ( texture.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateBuffer - Failed to allocate texture resource with VkImageViewCreateInfo." );
+            return TextureHandle::CreateEmpty();
+        }
+
+        texture->Allocate( this );
+
+        return texture;
     }
 
 }// namespace Mikoto

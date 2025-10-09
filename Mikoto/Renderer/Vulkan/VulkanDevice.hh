@@ -85,6 +85,12 @@ namespace Mikoto {
         MKT_NODISCARD auto GetLogicalDevice() const -> const VkDevice&;
         MKT_NODISCARD auto GetLogicalDeviceQueues() const -> const QueuesData&;
 
+        MKT_NODISCARD auto GetSwapChain() -> SwapChainHandle;
+        MKT_NODISCARD auto GetSwapChainPtr() -> VulkanSwapChain*;
+
+        auto InitializeSwapchain(const VulkanSwapChainCreateInfo& createInfo) -> void;
+        auto CreateSwapChainTextures(const VkImageViewCreateInfo& createInfo) -> TextureHandle;
+
         ~VulkanDevice() override = default;
 
     private:
@@ -102,6 +108,8 @@ namespace Mikoto {
         auto CreatePrimaryLogicalDevice() -> void;
 
     private:
+        SwapChainHandle m_SwapChain{};
+
         ResourcePoolTyped<VulkanBuffer> m_Buffers{};
         ResourcePoolTyped<VulkanTexture> m_Textures{};
         ResourcePoolTyped<VulkanCommandPool> m_CmdPools{};

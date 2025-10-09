@@ -46,7 +46,6 @@ namespace Mikoto {
 
     private:
         RenderServiceCreateInfo m_Options{};
-
         Unique<GpuDevice> m_Device{ nullptr };
         Unique<RenderContext> m_Context{ nullptr };
 

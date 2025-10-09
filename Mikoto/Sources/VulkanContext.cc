@@ -27,7 +27,9 @@
 #include <Logging/Logger.hh>
 #include <Platform/MainWindow.hh>
 #include <Platform/Window.hh>
+#include <Renderer/RenderService.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
+#include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
 
 namespace Mikoto {
@@ -129,6 +131,10 @@ namespace Mikoto {
         vkDestroySurfaceKHR( GetInstance(), GetSurface(), nullptr );
 
         vkDestroyInstance( GetInstance(), nullptr );
+    }
+
+    void VulkanContext::PrepareForPresentation() {
+        CreateSwapchain();
     }
 
     auto VulkanContext::SubmitFrame() -> void {
@@ -237,5 +243,18 @@ namespace Mikoto {
 
         MKT_ASSERT( m_VulkanData.VOLKInitSuccess, "VulkanContext::InitContext - Failed to initialize VOLK!" );
         MKT_ASSERT( m_TargetWindow, "VulkanContext::InitContext - Window handle for Vulkan Context initialization is NULL" );
+    }
+
+    auto VulkanContext::CreateSwapchain() -> void {
+        const VulkanSwapChainCreateInfo createInfo{
+            .Extent{
+                .width { static_cast<UInt32>( m_TargetWindow->GetWidth() ) },
+                .height{ static_cast<UInt32>( m_TargetWindow->GetHeight() ) } },
+            .Surface{ std::addressof( m_VulkanData.Surface ) },
+            .EnableVsync{ false },
+            .OldSwapChain{ VK_NULL_HANDLE }
+        };
+
+        TO_VK_DEVICE( RenderService::Get()->GetGpuDevice() )->InitializeSwapchain(createInfo);
     }
 }// namespace Mikoto

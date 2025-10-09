@@ -11,8 +11,8 @@
 
 // Third-Party Libraries
 #include <stb_image.h>
-#include <vk_mem_alloc.h>
 #include <volk.h>
+#include <vk_mem_alloc.h>
 
 // Project Headers
 #include <Common/Common.hh>
@@ -80,7 +80,7 @@ namespace Mikoto {
 
         ~VulkanTexture() override;
 
-    protected:
+    private:
         auto AllocateImage() -> void;
         auto Allocate() -> void override;
         auto Release() -> void override;
@@ -134,25 +134,22 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetNextRenderableImage( UInt32& imageIndex, VkFence fence = VK_NULL_HANDLE, VkSemaphore imageAvailable = VK_NULL_HANDLE ) const -> VkResult;
 
-        auto Release() -> void override;
-
         ~VulkanSwapChain() override;
 
-    public:
         DISABLE_COPY_AND_MOVE_FOR( VulkanSwapChain );
 
     private:
+        auto Release() -> void override;
+        auto Allocate() -> void override;
+
         auto CreateSwapChain() -> void;
         auto AcquireSwapchainImages() -> void;
 
         MKT_NODISCARD auto ChoosePresentMode( const std::vector<VkPresentModeKHR>& availablePresentModes ) const -> VkPresentModeKHR;
         MKT_NODISCARD auto ChooseExtent( const VkSurfaceCapabilitiesKHR& capabilities ) const -> VkExtent2D;
 
-        MKT_NODISCARD static auto CreateSwapchainImageViewCreateInfo( const VkImage& image, const VkFormat& format ) -> VkImageViewCreateInfo;
+        MKT_NODISCARD static auto CreateSwapchainImageViewCreateInfo( VkImage image, const VkFormat& format ) -> VkImageViewCreateInfo;
         MKT_NODISCARD static auto ChooseSurfaceFormat( const std::vector<VkSurfaceFormatKHR>& availableFormats ) -> VkSurfaceFormatKHR;
-
-    protected:
-        auto Allocate() -> void override;
 
     private:
         /**
@@ -176,6 +173,8 @@ namespace Mikoto {
 
         Size m_CurrentFrame{};
     };
+
+    using SwapChainHandle = Ref<VulkanSwapChain>;
 }// namespace Mikoto
 
 #endif// MIKOTO_VULKAN_TEXTURE2D_HH

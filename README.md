@@ -121,6 +121,7 @@ The development of Mikoto Engine is made possible thanks to these fantastic thir
 | **tomlplusplus**              | TOML configuration file parser for C++        | [marzer/tomlplusplus](https://github.com/marzer/tomlplusplus)                                                       |
 | **stb_image**                 | Image loading library                         | [nothings/stb](https://github.com/nothings/stb.git)                                                                 |
 | **msdf-atlas-gen**            | Multi-channel signed distance field generator | [Chlumsky/msdf-atlas-gen](https://github.com/Chlumsky/msdf-atlas-gen.git)                                           |
+| **TaskFlow**                  | Moder C++ Task library                        | [https://github.com/taskflow/taskflow)                                                                              |
 
 > **Note**: The required libraries are included as a submodules in the project and do not require separate installation, just need to clone the repository with ``--recursive`` flag.
 

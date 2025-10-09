@@ -8,10 +8,9 @@
 #include <string_view>
 
 #include <Common/Common.hh>
-#include <Library/Data/ResourcePool.hh>
-#include <Library/IO/File.hh>
 #include <Library/Utility/Types.hh>
 #include <Renderer/DeviceObject.hh>
+#include <Common/ReferenceCounted.hh>
 #include <Renderer/GpuUtility.hh>
 
 namespace Mikoto {

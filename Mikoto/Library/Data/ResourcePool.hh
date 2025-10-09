@@ -66,17 +66,6 @@ namespace Mikoto {
         ~IResource() override = default;
 
         /**
-        * @brief Allocates the resource.
-        *
-        * This method is responsible for allocating the resource within the resource pool.
-        * Derived classes should implement the actual resource allocation logic, which may involve memory allocation or
-        * system-level resource initialization. After a succesful call to this method, the resource is considered ready for use.
-        *
-        * @note This method should be implemented by derived classes to handle resource allocation.
-        */
-        virtual auto Allocate() -> void = 0;
-
-        /**
         * @brief Retrieves the handle associated with the resource.
         *
         * Returns the handle (ID) that uniquely identifies the resource in the pool.
@@ -119,6 +108,17 @@ namespace Mikoto {
         auto IsUsed() const -> bool { return GetRefCount() != 0; }
 
     protected:
+        /**
+        * @brief Allocates the resource.
+        *
+        * This method is responsible for allocating the resource within the resource pool.
+        * Derived classes should implement the actual resource allocation logic, which may involve memory allocation or
+        * system-level resource initialization. After a succesful call to this method, the resource is considered ready for use.
+        *
+        * @note This method should be implemented by derived classes to handle resource allocation.
+        */
+        virtual auto Allocate() -> void = 0;
+
         /**
         * @brief Releases the resource.
         *
@@ -166,7 +166,7 @@ namespace Mikoto {
         */
         auto Shutdown() -> void {
             for ( const auto& resource: m_Resources | std::views::values ) {
-                if ( resource ) {
+                if ( !resource.IsEmpty() ) {
                     // Check if resource was not freed
                     ReleaseResource( resource->GetHandle() );
                 }
@@ -196,8 +196,8 @@ namespace Mikoto {
         * @param index The index of the resource to access.
         * @return A pointer to the resource, or nullptr if invalid.
         */
-        MKT_NODISCARD auto AccessResource( const Handle index ) const -> IResource* {
-            return m_Resources.contains(index) ? m_Resources.at(index) : nullptr;
+        MKT_NODISCARD auto AccessResource( const Handle index ) const -> Ref<IResource> {
+            return m_Resources.contains(index) ? m_Resources.at(index) : Ref<IResource>::CreateEmpty();
         }
 
     protected:
@@ -234,7 +234,7 @@ namespace Mikoto {
         UInt32 m_PoolSize{ 100 };
         UInt32 m_IndexFreeHandles{};
         std::vector<Handle> m_FreeHandles{};
-        ankerl::unordered_dense::map<Handle, IResource*> m_Resources{};
+        ankerl::unordered_dense::map<Handle, Ref<IResource>> m_Resources{};
     };
 
     /**
@@ -247,6 +247,7 @@ namespace Mikoto {
     class ResourcePoolTyped final : public ResourcePool {
     public:
         using Pointer = T*;
+        using RefHandle = Ref<T>;
 
         /**
         * @brief Collects a new typed resource from the pool.
@@ -260,24 +261,23 @@ namespace Mikoto {
         * @return A pointer to the obtained resource, or nullptr if allocation fails.
         */
         template<typename... Args>
-        MKT_NODISCARD auto Allocate(Args&&... args) -> Pointer {
+        MKT_NODISCARD auto Allocate(Args&&... args) -> RefHandle {
             const UInt32 index{ ObtainResource() };
             if (index == INVALID_HANDLE) {
-                return nullptr;
+                return RefHandle::CreateEmpty();
             }
 
-            Pointer p{ new T(std::forward<Args>(args)... ) };
+            Pointer p{ new (std::nothrow) T(std::forward<Args>(args)... ) };
+            auto newResource{ std::move(Ref<IResource>::Create(p)) };
 
-            const auto [it, success]{ m_Resources.try_emplace( index, p) };
+            const auto [it, success]{ m_Resources.try_emplace( index, std::move(newResource) ) };
             if (success) {
-                it->second->SetHandle( index );
-                p = static_cast<Pointer>(it->second);
-            } else if (it->second == nullptr) {
-                // Index is already reserved
-                it->second = p;
+                p->SetHandle( index );
+            } else if (it->second.IsEmpty()) {
+                it->second = Ref<IResource>::Create(p);
             }
 
-            return p;
+            return it->second.As<T>();
         }
 
         /**
@@ -293,8 +293,12 @@ namespace Mikoto {
          * @param index The index of the resource to access.
          * @return A pointer to the resource, or nullptr if invalid.
          */
-        MKT_NODISCARD auto Get( const Handle index ) -> Pointer {
-            return static_cast<Pointer>( AccessResource( index ) );
+        MKT_NODISCARD auto Get( const Handle index ) -> RefHandle {
+            if ( auto result{ AccessResource( index ) }; !result.IsEmpty()) {
+                return result.As<T>();
+            }
+
+            return RefHandle::CreateEmpty();
         }
 
         auto begin() { return m_Resources.begin(); }

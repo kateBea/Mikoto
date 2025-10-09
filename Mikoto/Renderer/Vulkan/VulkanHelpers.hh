@@ -12,6 +12,7 @@
 #include <memory>
 #include <string_view>
 #include <optional>
+#include <span>
 
 // Third-Party Libraries
 #include "vk_mem_alloc.h"
@@ -81,7 +82,7 @@ namespace Mikoto::VulkanHelpers {
     MKT_NODISCARD auto GetUniformBufferPadding(VkDeviceSize bufferOriginalSize, VkDeviceSize deviceMinOffsetAlignment) -> VkDeviceSize;
     MKT_NODISCARD auto InferVulkanIndexType(BufferDataType format) -> VkIndexType;
 
-    MKT_NODISCARD auto FindSupportedFormat( VkPhysicalDevice device, const VkFormat* candidates, UInt32 candidatesCount, VkImageTiling tiling, VkFormatFeatureFlags features ) -> VkFormat;
+    MKT_NODISCARD auto FindSupportedFormat( VkPhysicalDevice device, std::span<const VkFormat> candidates, VkImageTiling tiling, VkFormatFeatureFlags features ) -> VkFormat;
 
 } // MIKOTO::VULKAN_UTILS
 

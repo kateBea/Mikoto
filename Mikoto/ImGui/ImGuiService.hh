@@ -35,7 +35,7 @@ namespace Mikoto {
             : m_Window{ createInfo.Handle }, m_GpuDevice{ createInfo.Device }, m_Api{ createInfo.API }
         {}
 
-        virtual auto Init() -> bool = 0;
+        virtual auto Init() -> void = 0;
         virtual auto Shutdown() -> void = 0;
 
         virtual auto BeginFrame() -> void = 0;
@@ -46,6 +46,8 @@ namespace Mikoto {
         MKT_NODISCARD static auto Create(const ImGuiBackendCreateInfo& info) -> Unique<ImGuiBackend>;
 
     protected:
+        bool m_IsInitialized{ false };
+
         const Window* m_Window{};
         GpuDevice* m_GpuDevice{};
         GraphicsAPI m_Api{ GraphicsAPI::VULKAN_API };

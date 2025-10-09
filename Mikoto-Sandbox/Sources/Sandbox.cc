@@ -26,6 +26,7 @@
 #include <Renderer/Buffer.hh>
 #include <Renderer/GpuUtility.hh>
 #include <Renderer/RenderService.hh>
+#include <Renderer/Vulkan/VulkanTexture.hh>
 #include <SandboxApp.hh>
 #include <Threading/TaskManager.hh>
 #include <Threading/TaskService.hh>

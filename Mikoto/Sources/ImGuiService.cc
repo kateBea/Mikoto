@@ -22,11 +22,16 @@
 namespace Mikoto {
 
     ImGuiService::ImGuiService( const ImGuiServiceDescription &options )
-        : m_Device{ options.Device }, m_BackendApi{ options.BackendApi }, m_Window{ options.TargetWindow }
+        : m_Device{ options.Device },
+         m_ImGuiFilesRootDir{ PathBuilder()
+        .WithPath( "Resources" )
+        .WithPath( "ImGui" )
+        .Build().string() },
+        m_BackendApi{ options.BackendApi },
+        m_Window{ options.TargetWindow }
     {}
 
     auto ImGuiService::Init() -> void {
-        return;
         MKT_CORE_LOGGER_INFO("Initializing ImGuiService...");
 
         IMGUI_CHECKVERSION();
@@ -165,7 +170,6 @@ namespace Mikoto {
         m_Implementation->Shutdown();
         m_Implementation = nullptr;
 
-        ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
     }
 

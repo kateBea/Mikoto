@@ -144,6 +144,7 @@ namespace Mikoto {
        */
         MKT_NODISCARD auto IsSpatialized() const -> bool;
 
+    private:
         /**
        * @brief Allocates internal audio resources and prepares for playback.
        *

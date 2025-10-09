@@ -8,9 +8,11 @@
 #include <Common/Singleton.hh>
 #include <Platform/Window.hh>
 #include <Library/Utility/Types.hh>
+#include <Renderer/GpuDevice.hh>
 
 namespace Mikoto {
     struct RenderContextCreateInfo {
+        GraphicsAPI Api{ GraphicsAPI::UNKNOWN };
         const Window* TargetWindow{ nullptr };
     };
 
@@ -20,6 +22,8 @@ namespace Mikoto {
 
         virtual auto Init() -> bool = 0;
         virtual auto Shutdown() -> void = 0;
+
+        virtual auto PrepareForPresentation() -> void = 0;
 
         virtual auto SubmitFrame() -> void = 0;
         virtual auto PrepareFrame() -> void = 0;
@@ -35,10 +39,7 @@ namespace Mikoto {
             :   m_TargetWindow{ createInfo.TargetWindow }
         { }
 
-    protected:
-
         const Window* m_TargetWindow{ nullptr };
-        //Unique<GpuDevice> m_GraphicsDevice{};
     };
 }// namespace Mikoto
 

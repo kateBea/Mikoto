@@ -39,7 +39,7 @@ namespace Mikoto {
     }
 
     MeshNode::MeshNode( const Size index, BufferHandle vertices, BufferHandle indices, std::vector<TextureHandle> &&textures )
-        : m_MeshIndex{ index }, m_Vertices{ ( vertices.Get() ) }, m_Indices{ ( indices.Get() ) }, m_OriginalTextures{ std::move( textures ) }
+        : m_MeshIndex{ index }, m_Vertices{ ( vertices ) }, m_Indices{ ( indices ) }, m_OriginalTextures{ std::move( textures ) }
     {}
 
     MeshNode::MeshNode( MeshNode &&other ) noexcept {

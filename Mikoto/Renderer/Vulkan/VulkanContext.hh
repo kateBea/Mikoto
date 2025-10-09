@@ -19,6 +19,8 @@
 #include <Library/Utility/Types.hh>
 #include <Renderer/RenderContext.hh>
 
+#include "VulkanTexture.hh"
+
 namespace Mikoto {
 
     struct VulkanContextData {
@@ -44,6 +46,8 @@ namespace Mikoto {
         auto Init() -> bool override;
         auto Shutdown() -> void override;
 
+        auto PrepareForPresentation() -> void override;
+
         auto SubmitFrame() -> void override;
         auto PrepareFrame() -> void override;
 
@@ -58,11 +62,13 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetApiVersion() const -> UInt32 { return m_VulkanData.ApiVersion; }
 
-        MKT_NODISCARD auto GetValidationLayers() -> const std::vector<const char*>& { return m_VulkanData.ValidationLayers; }
+        MKT_NODISCARD auto GetValidationLayers() const -> const std::vector<const char*>& { return m_VulkanData.ValidationLayers; }
         MKT_NODISCARD auto GetVMAFunctions() const -> const VmaVulkanFunctions& { return m_VulkanData.VulkanVMAFunctions; }
 
     private:
         auto InitVolk() -> void;
+
+        auto CreateSwapchain() -> void;
 
         auto CreateSurface() -> void;
         auto CreateInstance() -> void;

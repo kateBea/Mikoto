@@ -105,11 +105,9 @@ namespace Mikoto::VulkanHelpers {
         return details;
     }
 
-    auto FindSupportedFormat( VkPhysicalDevice device, const VkFormat* candidates, UInt32 candidatesCount, VkImageTiling tiling, VkFormatFeatureFlags features ) -> VkFormat {
-        for ( ; candidates != std::addressof( candidates[candidatesCount] ); ++candidates ) {
+    auto FindSupportedFormat( VkPhysicalDevice device, std::span<const VkFormat> candidates, VkImageTiling tiling, VkFormatFeatureFlags features ) -> VkFormat {
+        for (const VkFormat format : candidates ) {
             VkFormatProperties props{};
-            const VkFormat format{ candidates[candidatesCount] };
-
             vkGetPhysicalDeviceFormatProperties( device, format, std::addressof( props ) );
 
             if ( ( tiling == VK_IMAGE_TILING_LINEAR && ( props.linearTilingFeatures & features ) == features ) ||

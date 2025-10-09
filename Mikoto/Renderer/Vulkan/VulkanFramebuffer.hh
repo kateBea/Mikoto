@@ -14,27 +14,21 @@
 #include <Renderer/Framebuffer.hh>
 
 namespace Mikoto {
-    struct VulkanFramebufferDescription {
-        VkFramebufferCreateInfo CreateInfo{};
-    };
 
     class VulkanFramebuffer final : public Framebuffer {
     public:
-        explicit VulkanFramebuffer(const VulkanFramebufferDescription& createInfo);
+        explicit VulkanFramebuffer(const FramebufferDescription& createInfo);
 
-        MKT_NODISCARD auto Get() const -> const VkFramebuffer& { return m_FrameBuffer; }
+        MKT_NODISCARD auto GetImplHandle() -> VkFramebuffer* { return std::addressof(m_FrameBuffer); }
         MKT_NODISCARD auto GetCreateInfo() const -> const VkFramebufferCreateInfo& { return m_CreateInfo; }
-
-        auto Release() -> void override;
 
         ~VulkanFramebuffer() override;
 
     protected:
         auto Allocate() -> void override;
+        auto Release() -> void override;
 
     private:
-        VulkanDevice* m_Device{ nullptr };
-
         VkFramebuffer m_FrameBuffer{};
         VkFramebufferCreateInfo m_CreateInfo{};
     };

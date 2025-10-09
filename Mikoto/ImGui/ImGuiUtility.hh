@@ -10,14 +10,12 @@
 // C++ Standard Library
 #include <volk.h>
 #include <imgui.h>
-#include <imgui_impl_vulkan.h>
 #include <imgui_internal.h>
 #include <glm/gtc/type_ptr.hpp>
 
 #include <Common/Common.hh>
 #include <Library/String/String.hh>
 #include <Library/Utility/Types.hh>
-#include <Material/Texture2D.hh>
 
 namespace Mikoto::ImGuiUtils {
 
@@ -143,8 +141,8 @@ namespace Mikoto::ImGuiUtils {
     }
 
     MKT_NODISCARD inline auto ComputeWidth() -> float {
-        ImGuiContext& globalContext{ *GImGui };
-        ImGuiWindow* currentWindow{ globalContext.CurrentWindow };
+        const ImGuiContext& globalContext{ *GImGui };
+        const ImGuiWindow* currentWindow{ globalContext.CurrentWindow };
         float width{};
 
         if ( globalContext.NextItemData.HasFlags & ImGuiNextItemDataFlags_HasWidth ) {
@@ -241,7 +239,7 @@ namespace Mikoto::ImGuiUtils {
         ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
         ImGuiScopedStyleVar spacing{ ImGuiStyleVar_ItemInnerSpacing, ImVec2{ 5.0f, 5.0f } };
 
-        bool active{ ImGui::ColorEdit4( label, value_ptr( vect ), colorEditFlags ) };
+        const bool active{ ImGui::ColorEdit4( label, value_ptr( vect ), colorEditFlags ) };
 
         if ( ImGui::IsItemHovered() ) {
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );

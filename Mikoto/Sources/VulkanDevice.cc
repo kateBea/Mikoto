@@ -314,16 +314,22 @@ namespace Mikoto {
 
     auto VulkanDevice::RunGarbageCollection() -> void {
         for ( const auto& texture: m_Textures | std::views::values ) {
-            if ( texture->GetRefCount() == 1 ) {
+            if ( texture && texture->GetRefCount() == 1 ) {
                 m_Textures.Release( texture->GetHandle() );
             }
         }
 
         for ( const auto& buffer: m_Buffers | std::views::values ) {
-            if ( buffer->GetRefCount() == 1 ) {
+            if ( buffer && buffer->GetRefCount() == 1 ) {
                 m_Buffers.Release( buffer->GetHandle() );
             }
         }
+    }
+
+    auto VulkanDevice::CreateCommandList() -> CommandListHandle {
+        // Get an available command pool or create a new command list
+
+        return CommandListHandle::CreateEmpty();
     }
 
     auto VulkanDevice::CreateBuffer( const BufferDescription& description ) -> BufferHandle {

@@ -18,7 +18,7 @@
 #include <Library/Utility/Types.hh>
 #include <Renderer/FontService.hh>
 #include <Renderer/RenderUtility.hh>
-#include <Threading/Task.hh>
+#include <Threading/TaskService.hh>
 
 #include "Assets/Audio.hh"
 #include "MeshFactory.hh"
@@ -115,24 +115,21 @@ namespace Mikoto {
             return Ref<AssetType>::CreateEmpty();
         }
 
-        // pass in description and uri
         template<typename AssetType>
         auto LoadAsset( auto&&... args ) -> Ref<AssetType> {
             return LoadAssetTyped( std::forward<decltype(args)>(args)... );
         }
 
-        // pass in description and uri
         template<typename AssetType>
-        auto LoadAssetAsync( auto&&... args ) -> Task<void>* {
-            auto tuple = std::make_tuple(std::forward<decltype(args)>(args)...);
+        auto LoadAssetAsync( auto&&... args ) -> void {
+            // LoadAsset used to accept more parameters
+            auto tuple{ std::make_tuple(std::forward<decltype(args)>(args)...) };
 
-            m_LoadTasks.emplace_back([this, args_tuple = std::move(tuple)]() mutable {
+            TaskService::Get()->Submit([this, argsTuple = std::move(tuple)]() mutable -> void {
                 std::apply([this]<typename... Args>(Args&&... unpackedArgs) {
                     LoadAsset<AssetType>(std::forward<Args>(unpackedArgs)...);
-                }, std::move(args_tuple));
+                }, std::move(argsTuple));
             });
-
-            return std::addressof(m_LoadTasks.back());
         }
 
         ~AssetsService() override = default;
@@ -148,8 +145,6 @@ namespace Mikoto {
 
         GpuDevice* m_GpuDevice{ nullptr };
         AudioDevice* m_AudioDevice{ nullptr };
-
-        std::vector<Task<void>> m_LoadTasks{};
 
         ankerl::unordered_dense::map<std::string, ModelHandle> m_Models{};
         ankerl::unordered_dense::map<std::string, TextureHandle> m_Textures{};

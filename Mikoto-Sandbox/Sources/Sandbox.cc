@@ -96,9 +96,8 @@ namespace Mikoto {
         if ( firstRun ) {
             firstRun = false;
 
-            const auto device{ AudioService::Get()->GetDevice() };
-            auto file{ FileService::Get()->LoadFile( "./ringtone.mp3" ) };
 
+            auto file{ FileService::Get()->LoadFile( "./ringtone.mp3" ) };
             if ( !file ) {
                 MKT_CORE_LOGGER_ERROR( "Failed to load audio file!" );
             }
@@ -108,25 +107,24 @@ namespace Mikoto {
                 .Volume{ 0.5f },
             };
 
-            AudioHandle handle{ device->LoadAudio( desc ) };
-            if ( handle.IsEmpty() ) {
+            // Load from a device
+            auto* audioDevice{ AudioService::Get()->GetDevice() };
+            if ( AudioHandle handle{ audioDevice->LoadAudio( desc ) }; handle.IsEmpty() ) {
                 MKT_CORE_LOGGER_ERROR( "Audio handle is empty! {}", file->GetPath() );
             } else {
-                m_SourceHandle = handle->CreateSource();
-                m_SourceHandle->SetLooping( true );
+                m_Audios.emplace_back( handle );
             }
 
+            // Load from asset service
             file = FileService::GetPtr()->LoadFile( "./vtuber_8899707_rockoTensei.mp3" );
             const AudioLoadDescription desc2{
                 .AudioFile{ file } ,
                 .Volume{ 0.5f },
             };
-            AudioHandle handle1{ device->LoadAudio( desc2 ) };
-            if ( handle1.IsEmpty() ) {
+            if ( AudioHandle handle1{ AssetsService::Get()->LoadAsset<Audio>( desc2 ) }; handle1.IsEmpty() ) {
                 MKT_CORE_LOGGER_ERROR( "Audio handle is empty! {}", file->GetPath() );
             } else {
-                m_SourceHandle2 = handle1->CreateSource();
-                m_SourceHandle2->SetLooping( true );
+                m_Audios.emplace_back( handle1 );
             }
         }
 
@@ -144,21 +142,18 @@ namespace Mikoto {
             if ( handle.IsEmpty() ) {
                 MKT_CORE_LOGGER_ERROR( "Audio handle is empty! {}", file->GetPath() );
             } else {
-                m_SourceHandle3 = handle->CreateSource();
-                m_SourceHandle3->SetLooping( true );
+                m_Audios.emplace_back( handle );
             }
 
             if (!device->GetAudio( "./virtual_5855285.mp3" ).IsEmpty()) {
                 MKT_CORE_LOGGER_DEBUG( "Audio track virtual_5855285.mp3 has been loaded." );
             }
-        }
 
-        if ( InputService::Get()->IsKeyPressed( KeyCode::Key_Escape ) ) {
-            TaskManager* manager{ TaskService::Get()->GetManager() };
-
-            manager->SubmitTask( new Task<void>( []() -> void {
-                MKT_CORE_LOGGER_TRACE( "Hello from Thread:" );
-            } ) );
+            MKT_CORE_LOGGER_DEBUG( "Loading audio asset asynchronously" );
+            AssetsService::Get()->LoadAssetAsync<Audio>( AudioLoadDescription {
+                .AudioFile{ FileService::Get()->LoadFile( "./harajuku_8211997.mp3" ) },
+                .Volume{ 1.0 }
+            } );
         }
 
         static bool gpuDevTest{ true };
@@ -169,7 +164,6 @@ namespace Mikoto {
                -0.5f, -0.5f, 0.0f,   // Vertex 2
                 0.5f, -0.5f, 0.0f    // Vertex 3
             };
-
 
             // Describe the buffer
             BufferDescription desc{};
@@ -214,30 +208,46 @@ namespace Mikoto {
                         auto& keyEvent{ static_cast<KeyPressedEvent&>( event ) };
                         MKT_CORE_LOGGER_TRACE( "Key pressed: {}", GetStringRepresentation(static_cast<KeyCode>(keyEvent.GetKeyCode())) );
 
-                        if ( keyEvent.GetKeyCode() == static_cast<Int32>( KeyCode::Key_1 ) ) {
+                        Int32 position{ keyEvent.GetKeyCode() - static_cast<Int32>( Key_0 ) };
+                        if ( position < m_Audios.size() ) {
                             if (!m_Target.IsEmpty()) {  m_Target->Stop(); }
 
-                            m_Target = m_SourceHandle;
-                            MKT_CORE_LOGGER_TRACE( "SandboxApp::EventManager - Switching music");
+                            m_Target = m_Audios.at( position )->CreateSource();
+                            MKT_CORE_LOGGER_TRACE( "SandboxApp::EventManager - Switching music {}", m_Audios.at( position )->GetFile()->GetPath() );
 
-                            m_Target->Play();
+                            if (!m_Target.IsEmpty()) { m_Target->Play(); }
+                        }
 
-                        } else if ( keyEvent.GetKeyCode() == static_cast<Int32>( KeyCode::Key_2 ) ) {
-                            if (!m_Target.IsEmpty()) {  m_Target->Stop(); }
-                            m_Target = m_SourceHandle2;
-                            MKT_CORE_LOGGER_TRACE( "SandboxApp::EventManager - Switching music");
+                        if ( keyEvent.GetKeyCode() == static_cast<Int32>( KeyCode::Key_Enter )) {
+                            // Load new audio
+                            TaskService::Get()->Submit([this]() -> void {
+                                std::string path{};
+                                MKT_COLOR_PRINT_FORMATTED( MKT_FMT_COLOR_AQUA, "Enter audio path: " );
+                                std::getline( std::cin, path );
 
-                            m_Target->Play();
-                        } else if ( keyEvent.GetKeyCode() == static_cast<Int32>( KeyCode::Key_3 ) ) {
-                            if (!m_Target.IsEmpty()) {  m_Target->Stop(); }
-                            m_Target = m_SourceHandle3;
-                            MKT_CORE_LOGGER_TRACE( "SandboxApp::EventManager - Switching music");
+                                auto file{ FileService::Get()->LoadFile( path ) };
+                                if ( !file ) {
+                                    MKT_CORE_LOGGER_ERROR( "Failed to load audio file at {}!", path );
+                                    return;
+                                }
 
-                            m_Target->Play();
+                                const AudioLoadDescription desc{
+                                    .AudioFile{ file } ,
+                                    .Volume{ 0.5f },
+                                };
+
+                                // Load from a device
+                                if ( AudioHandle handle{ AssetsService::Get()->LoadAsset<Audio>( desc ) }; handle.IsEmpty() ) {
+                                    MKT_CORE_LOGGER_ERROR( "Audio handle is empty! {}", file->GetPath() );
+                                } else {
+                                    m_Audios.emplace_back( handle );
+                                    MKT_CORE_LOGGER_TRACE( "Loaded audio track {}", file->GetPath() );
+                                }
+                            });
                         }
 
                         if ( keyEvent.GetKeyCode() == static_cast<Int32>( KeyCode::Key_Space ) ) {
-                            if (m_Target->IsPlaying()) {
+                            if (!m_Target.IsEmpty() && m_Target->IsPlaying()) {
                                 m_Target->Stop();
                                 MKT_CORE_LOGGER_TRACE( "SandboxApp - Pausing music" );
                             } else {
@@ -247,18 +257,17 @@ namespace Mikoto {
                         }
 
                         if ( keyEvent.GetKeyCode() == static_cast<Int32>( KeyCode::Key_Up ) ) {
-                            m_Target->IncreaseVolume(deltaVolume);
+                            if (!m_Target.IsEmpty()) m_Target->IncreaseVolume(deltaVolume);
                             MKT_CORE_LOGGER_TRACE( "SandboxApp - Increasing volume" );
                         }
 
                         if ( keyEvent.GetKeyCode() == static_cast<Int32>( KeyCode::Key_Down ) ) {
-                            m_Target->DecreaseVolume(deltaVolume);
+                            if (!m_Target.IsEmpty()) m_Target->DecreaseVolume(deltaVolume);
                             MKT_CORE_LOGGER_TRACE( "SandboxApp - Decreasing volume" );
                         }
 
                         return true;
                     } );
-
 
         EventService::Get()->Subscribe( this );
     }

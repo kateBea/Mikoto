@@ -166,7 +166,7 @@ namespace Mikoto {
         */
         auto Shutdown() -> void {
             for ( const auto& resource: m_Resources | std::views::values ) {
-                if ( resource->IsUsed() || resource->GetRefCount() == 1 ) {
+                if ( resource ) {
                     // Check if resource was not freed
                     ReleaseResource( resource->GetHandle() );
                 }

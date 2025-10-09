@@ -11,11 +11,48 @@
 #include <imgui.h>
 
 #include <Common/Service.hh>
-#include <ImGui/ImGuiBackend.hh>
-#include <Renderer/RendererBackend.hh>
+#include <Platform/Window.hh>
+#include <Renderer/GpuDevice.hh>
+#include <Renderer/RenderUtility.hh>
 
 namespace Mikoto {
+
+    struct ImGuiBackendCreateInfo {
+        const Window* Handle{};
+        GraphicsAPI API{ GraphicsAPI::VULKAN_API };
+        GpuDevice* Device{ nullptr };
+    };
+
+    /**
+    * This class encapsulates backend implementation-specific details. ImGui is a graphics API
+    * agnostic GUI library and provides several implementations, each for a specific graphics backend.
+    * This class serves as a general abstraction over the currently active backend in use in the application
+    * that will also be used with ImGui
+    * */
+    class ImGuiBackend {
+    public:
+        explicit ImGuiBackend( const ImGuiBackendCreateInfo& createInfo )
+            : m_Window{ createInfo.Handle }, m_GpuDevice{ createInfo.Device }, m_Api{ createInfo.API }
+        {}
+
+        virtual auto Init() -> bool = 0;
+        virtual auto Shutdown() -> void = 0;
+
+        virtual auto BeginFrame() -> void = 0;
+        virtual auto EndFrame() -> void = 0;
+
+        virtual ~ImGuiBackend() = default;
+
+        MKT_NODISCARD static auto Create(const ImGuiBackendCreateInfo& info) -> Unique<ImGuiBackend>;
+
+    protected:
+        const Window* m_Window{};
+        GpuDevice* m_GpuDevice{};
+        GraphicsAPI m_Api{ GraphicsAPI::VULKAN_API };
+    };
+
     struct ImGuiServiceDescription {
+        GpuDevice* Device{ nullptr };
         GraphicsAPI BackendApi{ GraphicsAPI::VULKAN_API };
         Window* TargetWindow{ nullptr };
     };
@@ -38,10 +75,11 @@ namespace Mikoto {
 
     private:
 
-        auto AddIconFont(float fontSize, const std::string &path, const std::array<ImWchar, 3> &iconRanges) -> void;
         auto InitImplementation() -> void;
+        auto AddIconFont(float fontSize, const std::string &path, const std::array<ImWchar, 3> &iconRanges) -> void;
 
     private:
+        GpuDevice* m_Device{ nullptr };
         std::string m_ImGuiFilesRootDir{};
         GraphicsAPI m_BackendApi{ GraphicsAPI::INVALID_API };
 

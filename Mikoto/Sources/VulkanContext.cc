@@ -112,6 +112,11 @@ namespace Mikoto {
         CreateDebugMessenger();
         CreateSurface();
 
+        // Create the swap chain. The manager is an texture/image manager that
+        // provides the images we render to and present to the screen.
+        // If we pass a window while creating the context, we assume we want to present
+        // So we check for swap chain support and create it if possible
+
         return true;
     }
 

@@ -13,7 +13,6 @@
 #include <Library/IO/PathBuilder.hh>
 #include <Renderer/GpuUtility.hh>
 #include <Renderer/RenderService.hh>
-#include <Threading/Task.hh>
 #include <Renderer/Pipeline.hh>
 
 #include "assimp/postprocess.h"

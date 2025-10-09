@@ -59,6 +59,12 @@ namespace Mikoto {
             return m_UsageType;
         }
 
+        // API specific object handle
+        template<typename ChildType>
+        MKT_NODISCARD auto GetNativeHandle() const {
+            return static_cast<ChildType*>(this)->GetImplHandle();
+        }
+
     protected:
 
         /***

@@ -18,6 +18,44 @@
 
 namespace Mikoto {
 
+    class VulkanCmdList : public ICommandList {
+    public:
+
+        auto Begin() -> void override;
+        auto Close() -> void override;
+
+        auto FillTexture(Buffer* src, Texture* dest) -> void override;
+        auto CopyTexture(Buffer* src, Buffer* dest) -> void override;
+        auto CopyBuffer(Texture* src, Texture* dest) -> void override;
+
+        auto WriteBuffer(Buffer* target, Byte* data, Size size) -> void override;
+        auto WriteTexture(Texture* target, Byte* data, Size size) -> void override;
+
+        MKT_NODISCARD auto GetImplHandle() -> VkCommandBuffer* { return std::addressof(m_CmdBuffer); }
+
+    private:
+        VkCommandBuffer m_CmdBuffer{ VK_NULL_HANDLE };
+
+    };
+
+    class VulkanCommandPool final : public DeviceObject {
+    public:
+        explicit VulkanCommandPool(VkCommandPoolCreateInfo createInfo, Size initialCmdListCount = 10);
+
+        MKT_NODISCARD auto GetImplHandle() -> VkCommandPool* { return std::addressof(m_Pool); }
+
+        auto AllocateCmdList() -> CommandListHandle;
+    public:
+        DISABLE_COPY_AND_MOVE_FOR(VulkanCommandPool);
+    private:
+        auto Allocate() -> void override;
+        auto Release() -> void override;
+
+    private:
+        VkCommandPool m_Pool{ VK_NULL_HANDLE };
+        ResourcePoolTyped<VulkanCmdList> m_CmdLists{};
+    };
+
     class VulkanDevice final : public GpuDevice {
     public:
         explicit VulkanDevice( const GpuDeviceCreateInfo& createInfo );
@@ -31,6 +69,8 @@ namespace Mikoto {
         MKT_NODISCARD auto CreateBuffer( const BufferDescription& description ) -> BufferHandle override;
 
         auto RunGarbageCollection() -> void override;
+
+        MKT_NODISCARD auto CreateCommandList() -> CommandListHandle override;
 
         // Return the minimum required alignment (in bytes) for uniform buffers
         auto GetUniformBufferMinOffsetAlignment() const -> VkDeviceSize;
@@ -64,6 +104,7 @@ namespace Mikoto {
     private:
         ResourcePoolTyped<VulkanBuffer> m_Buffers{};
         ResourcePoolTyped<VulkanTexture> m_Textures{};
+        ResourcePoolTyped<VulkanCommandPool> m_CmdPools{};
 
         QueuesData m_Queues{};
 

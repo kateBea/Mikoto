@@ -17,7 +17,7 @@ namespace Mikoto {
     }
 
     File::File( const Path& path, std::fstream&& stream, const FileMode openMode )
-        : m_Path{ path.string() }, m_FileStream{ std::move( stream ) }, m_OpenMode{ openMode } {
+        : m_PathObject{ path }, m_Path{ path.string() }, m_FileStream{ std::move( stream ) }, m_OpenMode{ openMode } {
 
         LoadContents();
         InferFileSize();

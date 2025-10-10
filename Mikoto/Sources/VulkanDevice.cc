@@ -2,17 +2,15 @@
 // Created by kate on 1/26/2025.
 //
 
-#include <new>
-
-#include <spirv_reflect.h>
-
 #include <ankerl/unordered_dense.h>
+#include <spirv_reflect.h>
 
 #include <Logging/Logger.hh>
 #include <Renderer/RenderService.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanTexture.hh>
+#include <new>
 
 namespace Mikoto {
 
@@ -45,20 +43,20 @@ namespace Mikoto {
 
     static auto CheckExtensionSupport( const VkPhysicalDevice& device, const std::vector<const char*>& requested ) -> bool {
         UInt32 count{};
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &count, nullptr);
+        vkEnumerateDeviceExtensionProperties( device, nullptr, &count, nullptr );
 
-        std::vector<VkExtensionProperties> available(count);
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &count, available.data());
+        std::vector<VkExtensionProperties> available( count );
+        vkEnumerateDeviceExtensionProperties( device, nullptr, &count, available.data() );
 
         ankerl::unordered_dense::set<std::string_view> names{};
-        names.reserve(available.size());
+        names.reserve( available.size() );
 
-        for ( const auto& [extensionName, specVersion] : available) {
-            names.emplace(extensionName);
+        for ( const auto& [extensionName, specVersion]: available ) {
+            names.emplace( extensionName );
         }
 
         // We simply check that all requested extensions are in the available ones
-        return std::ranges::all_of(requested, [&](auto r) { return names.contains(r); });
+        return std::ranges::all_of( requested, [&]( auto r ) { return names.contains( r ); } );
     }
 
     static auto FetchDeviceQueues( const VkDevice& device, QueuesData& queues ) -> void {
@@ -90,26 +88,26 @@ namespace Mikoto {
         for ( const auto& queueFamilyProperties: queueFamilies ) {
             // Check graphics queue support
             if ( !result.Graphics.has_value() && VulkanHelpers::HasGraphicsQueue( queueFamilyProperties ) ) {
-                result.Graphics = std::make_optional(VulkanQueueData{
+                result.Graphics = std::make_optional( VulkanQueueData{
                         .Queue{ VK_NULL_HANDLE },
                         .FamilyIndex{ queueFamilyIndex },
-                });
+                } );
             }
 
             // Check present queue support
             if ( !result.Present.has_value() && surface != nullptr && VulkanHelpers::HasPresentQueue( device, queueFamilyIndex, *surface, queueFamilyProperties ) ) {
-                result.Present = std::make_optional(VulkanQueueData{
+                result.Present = std::make_optional( VulkanQueueData{
                         .Queue{ VK_NULL_HANDLE },
                         .FamilyIndex{ queueFamilyIndex },
-                });
+                } );
             }
 
             // Check compute queue
             if ( !result.Compute.has_value() && VulkanHelpers::HasComputeQueue( queueFamilyProperties ) ) {
-                result.Compute = std::make_optional(VulkanQueueData{
+                result.Compute = std::make_optional( VulkanQueueData{
                         .Queue{ VK_NULL_HANDLE },
                         .FamilyIndex{ queueFamilyIndex },
-                });
+                } );
             }
 
             ++queueFamilyIndex;
@@ -159,7 +157,7 @@ namespace Mikoto {
         GetPrimaryPhysicalDevice();
 
         // Get the queue family indices for the selected physical device, we will need them to create the logical device
-        m_Queues = GetQueueFamilyIndices( m_PhysicalDevice, std::addressof(VulkanContext::Get()->GetSurface()) );
+        m_Queues = GetQueueFamilyIndices( m_PhysicalDevice, std::addressof( VulkanContext::Get()->GetSurface() ) );
 
         CreatePrimaryLogicalDevice();
 
@@ -171,13 +169,15 @@ namespace Mikoto {
         m_Buffers.Init( 100 );
         m_Textures.Init( 100 );
 
+        m_CmdPools.Init( 10 );
+
         m_IsInitialized = true;
     }
 
     auto VulkanDevice::InitMemoryAllocator() -> void {
-        m_GpuAllocator = GpuAllocator::Create(this);
-        if (!m_GpuAllocator) {
-            MKT_THROW_RUNTIME_ERROR("VulkanDevice::InitMemoryAllocator - Could not create GPU Allocator.");
+        m_GpuAllocator = GpuAllocator::Create( this );
+        if ( !m_GpuAllocator ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanDevice::InitMemoryAllocator - Could not create GPU Allocator." );
         }
 
         m_GpuAllocator->Init();
@@ -200,7 +200,7 @@ namespace Mikoto {
                                       const PhysicalDeviceRequiredFeatures reqs{
                                           .AnysotropicFiltering{ true },
                                           .FillModeNonSolid{ true },
-                                          .Surface{ std::addressof(VulkanContext::Get()->GetSurface()) },
+                                          .Surface{ std::addressof( VulkanContext::Get()->GetSurface() ) },
                                           .RequestedExtensions{ std::addressof( m_RequestedExtensions ) },
                                       };
 
@@ -295,10 +295,11 @@ namespace Mikoto {
         // Clear resources (pools, etc)
         m_Textures.Shutdown();
         m_Buffers.Shutdown();
+        m_CmdPools.Shutdown();
 
         MKT_CORE_LOGGER_INFO( "VulkanDevice::Shutdown - Shutting down Vulkan Device." );
 
-        if (m_GpuAllocator) {
+        if ( m_GpuAllocator ) {
             m_GpuAllocator->Shutdown();
             m_GpuAllocator = nullptr;
         }
@@ -338,10 +339,35 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanDevice::CreateCommandList() -> CommandListHandle {
+    auto VulkanDevice::CreateCommandList( QueueType queue ) -> CommandListHandle {
         // Get an available command pool or create a new command list
+        Ref<VulkanCommandPool> commandPool{};
+        for ( const auto& pool: m_CmdPools | std::views::values ) {
+            commandPool = pool.As<VulkanCommandPool>();
+            if ( commandPool.IsEmpty() && !commandPool->IsPoolLocked() ) {
+                break;
+            }
+        }
 
-        return CommandListHandle::CreateEmpty();
+        CommandListHandle resultCommandList{};
+
+        // No available pool
+        if (commandPool.IsEmpty()) {
+            commandPool = m_CmdPools.Allocate( queue, 10 );
+
+            if (commandPool.IsEmpty()) {
+                MKT_THROW_RUNTIME_ERROR( "VulkanDevice::CreateCommandList - Failed to allocate command pool." );
+            } else {
+                commandPool.As<DeviceObject>()->Allocate(this);
+            }
+
+            resultCommandList = commandPool->AllocateCmdList();
+            if (resultCommandList.IsEmpty()) {
+                MKT_THROW_RUNTIME_ERROR( "VulkanDevice::CreateCommandList - Failed to allocate command list." );
+            }
+        }
+
+        return resultCommandList;
     }
 
     auto VulkanDevice::CreateBuffer( const BufferDescription& description ) -> BufferHandle {
@@ -401,9 +427,12 @@ namespace Mikoto {
         return m_SwapChain.GetRaw();
     }
 
+    auto VulkanDevice::SubmitCommands( CommandListHandle cmd ) -> void {
+    }
+
     auto VulkanDevice::InitializeSwapchain( const VulkanSwapChainCreateInfo& createInfo ) -> void {
 
-        m_SwapChain = std::move(SwapChainHandle::Create( new ( std::nothrow ) VulkanSwapChain( createInfo )));
+        m_SwapChain = std::move( SwapChainHandle::Create( new ( std::nothrow ) VulkanSwapChain( createInfo ) ) );
         if ( !m_SwapChain.IsEmpty() ) {
             dynamic_cast<DeviceObject*>( m_SwapChain.GetRaw() )->Allocate( this );
         }
@@ -419,6 +448,133 @@ namespace Mikoto {
         texture->Allocate( this );
 
         return texture;
+    }
+
+    VulkanCmdList::VulkanCmdList( const VkCommandBufferAllocateInfo& createInfo )
+        : m_AllocInfo{ createInfo }
+    {
+    }
+
+    auto VulkanCmdList::Begin() -> void {
+        // Begin recording command buffer
+        VkCommandBufferBeginInfo beginInfo{ VulkanHelpers::Initializers::CommandBufferBeginInfo() };
+
+        if ( vkBeginCommandBuffer( m_CmdBuffer, std::addressof( beginInfo ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanCmdList::Close - Failed to begin recording ImGui command buffer" );
+        }
+    }
+
+    auto VulkanCmdList::Close() -> void {
+        // End recording command buffer
+        if ( vkEndCommandBuffer( m_CmdBuffer ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanCmdList::Close - Failed to record command buffer!" );
+        }
+    }
+
+    auto VulkanCmdList::FillTexture( Buffer* src, Texture* dest ) -> void {
+    }
+
+    auto VulkanCmdList::CopyTexture( Buffer* src, Buffer* dest ) -> void {
+    }
+
+    auto VulkanCmdList::CopyBuffer( Texture* src, Texture* dest ) -> void {
+    }
+
+    auto VulkanCmdList::WriteBuffer( Buffer* target, Byte* data, Size size ) -> void {
+    }
+
+    auto VulkanCmdList::WriteTexture( Texture* target, Byte* data, Size size ) -> void {
+    }
+
+    VulkanCmdList::~VulkanCmdList() {
+        if ( m_IsAllocated ) {
+            Release();
+        }
+    }
+
+    auto VulkanCmdList::Allocate() -> void {
+        if ( vkAllocateCommandBuffers(
+                     VK_DEVICE( m_Device ),
+                     std::addressof( m_AllocInfo ),
+                     std::addressof( m_CmdBuffer ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanCmdList::Allocate - Failed to allocate command buffer" );
+        }
+
+        m_IsAllocated = true;
+    }
+
+    auto VulkanCmdList::Release() -> void {
+        vkFreeCommandBuffers( VK_DEVICE( m_Device ), m_AllocInfo.commandPool, 1, std::addressof( m_CmdBuffer ) );
+        m_IsAllocated = false;
+    }
+
+    VulkanCommandPool::VulkanCommandPool( QueueType queue, Size initialCmdListCount )
+        : m_QueueType{ queue }
+    {
+        m_CmdLists.Init( initialCmdListCount );
+    }
+
+    auto VulkanCommandPool::AllocateCmdList() -> CommandListHandle {
+        VkCommandBufferAllocateInfo allocInfo{ VulkanHelpers::Initializers::CommandBufferAllocateInfo() };
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandPool = m_Pool;
+        allocInfo.commandBufferCount = 1;
+
+        Ref<VulkanCmdList> handle{ m_CmdLists.Allocate(allocInfo ) };
+        if ( handle.IsEmpty() ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanCommandPool::AllocateCmdList - Failed to allocate  command list." );
+        } else {
+            handle.As<DeviceObject>()->Allocate(m_Device);
+        }
+
+        return handle.As<ICommandList>();
+    }
+
+    VulkanCommandPool::~VulkanCommandPool() {
+        if ( m_IsAllocated ) {
+            Release();
+        }
+    }
+
+    auto VulkanCommandPool::DetermineQueueIndex( const QueuesData& queues, QueueType queue ) -> UInt32 {
+        if ( queue == QueueType::GRAPHICS_QUEUE && queues.Graphics.has_value() ) {
+            return queues.Graphics->FamilyIndex;
+        }
+
+        if ( queue == QueueType::COMPUTE_QUEUE && queues.Compute.has_value() ) {
+            return queues.Compute->FamilyIndex;
+        }
+
+        if ( queue == QueueType::PRESENT_QUEUE && queues.Present.has_value() ) {
+            return queues.Present->FamilyIndex;
+        }
+
+        // Invalid queue?
+        return std::numeric_limits<UInt32>::max();
+    }
+
+    auto VulkanCommandPool::Allocate() -> void {
+        const auto& queues{ TO_VK_DEVICE( m_Device )->GetLogicalDeviceQueues() };
+
+        // Command pool to allocate command buffers for compute queue operations
+        VkCommandPoolCreateInfo createInfo{ VulkanHelpers::Initializers::CommandPoolCreateInfo() };
+        createInfo.flags = 0;
+        createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        createInfo.queueFamilyIndex = DetermineQueueIndex( queues, m_QueueType );
+
+        if ( vkCreateCommandPool( VK_DEVICE( m_Device ), std::addressof( createInfo ), nullptr, std::addressof( m_Pool ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanCommandPool::Create - ailed to create command pool!" );
+        }
+
+        m_IsAllocated = true;
+    }
+
+    auto VulkanCommandPool::Release() -> void {
+        m_CmdLists.Shutdown();
+
+        vkDestroyCommandPool( VK_DEVICE( m_Device ), m_Pool, nullptr );
+
+        m_IsAllocated = false;
     }
 
 }// namespace Mikoto

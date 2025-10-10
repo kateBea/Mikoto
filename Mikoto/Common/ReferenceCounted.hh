@@ -200,32 +200,5 @@ namespace Mikoto {
         RefCountedType* m_Ptr{ nullptr };
     };
 
-    //TODO: remove
-    template<typename T, typename OtherT>
-    auto Dynamic( const Ref<OtherT>& ref ) -> Ref<T> {
-        if ( ref.IsEmpty() ) {
-            return Ref<T>::CreateEmpty();
-        }
-
-        if ( T * castedPtr{ dynamic_cast<T*>( ref.GetRaw() ) } ) {
-            return Ref<T>::Create( castedPtr );
-        }
-
-        return Ref<T>::CreateEmpty();
-    }
-
-    template<typename T, typename OtherT>
-    auto Dynamic( Ref<OtherT>& ref ) -> Ref<T> {
-        if ( ref.IsEmpty() ) {
-            return Ref<T>::CreateEmpty();
-        }
-
-        if ( T * castedPtr{ dynamic_cast<T*>( ref.GetRaw() ) } ) {
-            return Ref<T>::Create( castedPtr );
-        }
-
-        return Ref<T>::CreateEmpty();
-    }
-
 }// namespace Mikoto
 #endif//REFERENCECOUNTED_HH

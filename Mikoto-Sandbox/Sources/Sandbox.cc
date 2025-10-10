@@ -29,6 +29,7 @@
 #include <SandboxApp.hh>
 #include <Threading/TaskManager.hh>
 #include <Threading/TaskService.hh>
+#include <Memory/Allocator.hh>
 
 namespace Mikoto {
 
@@ -149,11 +150,11 @@ namespace Mikoto {
                 MKT_CORE_LOGGER_DEBUG( "Audio track virtual_5855285.mp3 has been loaded." );
             }
 
-            MKT_CORE_LOGGER_DEBUG( "Loading audio asset asynchronously" );
-            AssetsService::Get()->LoadAssetAsync<Audio>( AudioLoadDescription {
-                .AudioFile{ FileService::Get()->LoadFile( "./harajuku_8211997.mp3" ) },
-                .Volume{ 1.0 }
-            } );
+            // MKT_CORE_LOGGER_DEBUG( "Loading audio asset asynchronously" );
+            // AssetsService::Get()->LoadAssetAsync<Audio>( AudioLoadDescription {
+            //     .AudioFile{ FileService::Get()->LoadFile( "./harajuku_8211997.mp3" ) },
+            //     .Volume{ 1.0 }
+            // } );
         }
 
         static bool gpuDevTest{ true };
@@ -176,6 +177,21 @@ namespace Mikoto {
             // Create it through the GPU device (Vulkan or otherwise)
             const auto gpuDev{ RenderService::Get()->GetGpuDevice() };
             BufferHandle vertexBuffer{ gpuDev->CreateBuffer(desc) };
+
+            // Allocate staging buffer to copy over the texture data
+            BufferDescription stagingDesc{};
+            stagingDesc.WithData( nullptr )
+                    .WithUsage( BufferUsage::BUFFER_USAGE_STAGING )
+                    .WithSizeBytes( MKT_MEGABYTES( 10 ) )
+                    .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
+            BufferHandle stagingBuffer{ gpuDev->CreateBuffer(stagingDesc) };
+
+            TextureLoadDescription loadDesc{};
+            loadDesc
+                .WithFile( FileService::Get()->LoadFile( "./texture.png" ) )
+                .WithType( TextureType::TEXTURE_2D );
+
+            TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadDesc ) };
 
             gpuDevTest = false;
         }

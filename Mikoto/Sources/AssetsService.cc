@@ -45,7 +45,10 @@ namespace Mikoto {
         // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down AssetsService..." );
 
-        //m_LoadTasks.clear();
+        m_Textures.clear();
+        m_Audios.clear();
+        m_Fonts.clear();
+        m_Models.clear();
 
         m_MeshFactory->Shutdown();
         m_MeshFactory.reset();

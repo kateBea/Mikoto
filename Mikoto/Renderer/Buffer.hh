@@ -49,6 +49,9 @@ namespace Mikoto {
             return m_DataType;
         }
 
+        // Copy from CPU to GPU ( this buffer must be accessible from CPU)
+        virtual auto CopyFromBlock(const void* ptr, Size size) -> void = 0;
+
     protected:
         /**
          * @brief Protected constructor for the Device class.
@@ -65,7 +68,7 @@ namespace Mikoto {
     protected:
         Byte* m_Data{ nullptr };
         Size m_SizeBytes{};
-        BufferDataType m_DataType{ BufferDataType::BUFFER_DATA_TYPE_INVALID };
+        BufferDataType m_DataType{ BufferDataType::BUFFER_DATA_TYPE_UNKNOWN };
         BufferUsage m_Usage{ BufferUsage::BUFFER_USAGE_VERTEX };
     };
 

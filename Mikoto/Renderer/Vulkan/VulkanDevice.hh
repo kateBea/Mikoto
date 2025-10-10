@@ -18,8 +18,12 @@
 
 namespace Mikoto {
 
-    class VulkanCmdList : public ICommandList {
+    // Forward declare for VulkanCmdList
+    class VulkanCommandPool;
+
+    class VulkanCmdList final : public ICommandList {
     public:
+        explicit VulkanCmdList(const VkCommandBufferAllocateInfo& createInfo);
 
         auto Begin() -> void override;
         auto Close() -> void override;
@@ -33,25 +37,40 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetImplHandle() -> VkCommandBuffer* { return std::addressof(m_CmdBuffer); }
 
+        ~VulkanCmdList() override;
+    private:
+        auto Allocate() -> void override;
+        auto Release() -> void override;
     private:
         VkCommandBuffer m_CmdBuffer{ VK_NULL_HANDLE };
-
+        VkCommandBufferAllocateInfo m_AllocInfo{};
     };
 
     class VulkanCommandPool final : public DeviceObject {
     public:
-        explicit VulkanCommandPool(VkCommandPoolCreateInfo createInfo, Size initialCmdListCount = 10);
+        explicit VulkanCommandPool(QueueType queue, Size initialCmdListCount = 10);
 
         MKT_NODISCARD auto GetImplHandle() -> VkCommandPool* { return std::addressof(m_Pool); }
 
+        MKT_NODISCARD auto IsPoolLocked() const -> bool { return m_InUse.load(); }
+
         auto AllocateCmdList() -> CommandListHandle;
+
+        ~VulkanCommandPool() override;
     public:
         DISABLE_COPY_AND_MOVE_FOR(VulkanCommandPool);
+
+        static auto DetermineQueueIndex(const QueuesData& queues, QueueType queue) -> UInt32;
     private:
         auto Allocate() -> void override;
         auto Release() -> void override;
 
     private:
+        // Command pools cannot be shared between threads
+        std::atomic_bool m_InUse{};
+
+        QueueType m_QueueType{ QueueType::GRAPHICS_QUEUE };
+
         VkCommandPool m_Pool{ VK_NULL_HANDLE };
         ResourcePoolTyped<VulkanCmdList> m_CmdLists{};
     };
@@ -68,9 +87,11 @@ namespace Mikoto {
         MKT_NODISCARD auto CreateTexture( const TextureDescription& description ) -> TextureHandle override;
         MKT_NODISCARD auto CreateBuffer( const BufferDescription& description ) -> BufferHandle override;
 
+        auto SubmitCommands(CommandListHandle cmd) -> void override;
+
         auto RunGarbageCollection() -> void override;
 
-        MKT_NODISCARD auto CreateCommandList() -> CommandListHandle override;
+        MKT_NODISCARD auto CreateCommandList(QueueType queue = QueueType::GRAPHICS_QUEUE) -> CommandListHandle override;
 
         // Return the minimum required alignment (in bytes) for uniform buffers
         auto GetUniformBufferMinOffsetAlignment() const -> VkDeviceSize;
@@ -88,8 +109,8 @@ namespace Mikoto {
         MKT_NODISCARD auto GetSwapChain() -> SwapChainHandle;
         MKT_NODISCARD auto GetSwapChainPtr() -> VulkanSwapChain*;
 
-        auto InitializeSwapchain(const VulkanSwapChainCreateInfo& createInfo) -> void;
-        auto CreateSwapChainTextures(const VkImageViewCreateInfo& createInfo) -> TextureHandle;
+        auto InitializeSwapchain( const VulkanSwapChainCreateInfo& createInfo ) -> void;
+        auto CreateSwapChainTextures( const VkImageViewCreateInfo& createInfo ) -> TextureHandle;
 
         ~VulkanDevice() override = default;
 

@@ -25,6 +25,8 @@ namespace Mikoto {
     public:
         explicit VulkanBuffer( const BufferDescription& createInfo );
 
+        auto CopyFromBlock(const void* ptr, Size size) -> void override;
+
         MKT_NODISCARD auto IsMapped() const -> bool { return m_VmaAllocationInfo.pMappedData != nullptr; }
 
         MKT_NODISCARD auto GetImplHandle() -> VkBuffer* { return std::addressof(m_Buffer); }

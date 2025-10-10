@@ -15,6 +15,9 @@ namespace Mikoto {
 
     class ICommandList : public DeviceObject {
     public:
+        explicit ICommandList( const QueueType queue = QueueType::INVALID_QUEUE )
+            : m_Type{ queue }
+        {  }
 
         virtual auto Begin() -> void = 0;
         virtual auto Close() -> void = 0;
@@ -25,6 +28,9 @@ namespace Mikoto {
 
         virtual auto WriteBuffer(Buffer* target, Byte* data, Size size) -> void = 0;
         virtual auto WriteTexture(Texture* target, Byte* data, Size size) -> void = 0;
+
+    private:
+        QueueType m_Type{ QueueType::INVALID_QUEUE };
     };
 
     class IQueue : public DeviceObject {
@@ -52,7 +58,8 @@ namespace Mikoto {
         MKT_NODISCARD virtual auto CreateTexture(const TextureDescription& description) -> TextureHandle = 0;
         MKT_NODISCARD virtual auto CreateBuffer(const BufferDescription& description) -> BufferHandle = 0;
 
-        MKT_NODISCARD virtual auto CreateCommandList() -> CommandListHandle = 0;
+        virtual auto SubmitCommands(CommandListHandle cmd) -> void = 0;
+        MKT_NODISCARD virtual auto CreateCommandList(QueueType queue = QueueType::GRAPHICS_QUEUE) -> CommandListHandle = 0;
 
         virtual auto RunGarbageCollection() -> void = 0;
 

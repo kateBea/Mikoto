@@ -40,6 +40,7 @@ namespace Mikoto {
     }
     VulkanTexture::VulkanTexture( const TextureDescription& data )
         : Texture2D{ data.Type, data.Width, data.Height, data.ChannelCount, data.Data, data.UsageType } {
+        m_ImageSize =  m_Width * m_Height * m_Channels;
     }
 
     VulkanTexture::VulkanTexture( VkImageViewCreateInfo viewCreateInfo )
@@ -47,6 +48,7 @@ namespace Mikoto {
           m_Image{ viewCreateInfo.image },
           m_ImageViewCreateInfo{ viewCreateInfo },
           m_IsImageExternal{ true } {
+        m_ImageSize =  m_Width * m_Height * m_Channels;
     }
 
     auto VulkanTexture::Release() -> void {
@@ -290,36 +292,28 @@ namespace Mikoto {
             // the caller can optionally pass a valid image because this VulkanTexture is supposed be
             // usable for the swapchain as well, however, if the latter is the case,
             // we are responsible for releasing the image views, not the actual images.
-            // TODO: refactor and move down to use with normal images creation
             if ( vkCreateImageView( VK_DEVICE( m_Device ), std::addressof( m_ImageViewCreateInfo ), nullptr, std::addressof( m_ImageView ) ) != VK_SUCCESS ) {
                 MKT_THROW_RUNTIME_ERROR( "VulkanTexture::Allocate - Failed to create the Vulkan Image View!" );
             }
         } else {
-            // allocate staging buffer
-            VkBufferCreateInfo stagingBufferInfo{ VulkanHelpers::Initializers::BufferCreateInfo() };
-            stagingBufferInfo.pNext = nullptr;
+            // Allocate staging buffer to copy over the texture data
+            BufferDescription stagingDesc{};
+            stagingDesc.WithData( nullptr )
+                    .WithUsage( BufferUsage::BUFFER_USAGE_STAGING )
+                    .WithSizeBytes( InferSize<UInt32>( m_ImageSize ) )
+                    .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
 
-            stagingBufferInfo.size = m_ImageSize;
-            stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+            m_StagingBuffer = m_Device->CreateBuffer( stagingDesc );
+            m_StagingBuffer->CopyFromBlock( m_Data, m_ImageSize );
 
-            //let the VMA library know that this data should be on CPU RAM
-            VmaAllocationCreateInfo vmaStagingAllocationCreateInfo{};
-            vmaStagingAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
-            vmaStagingAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-            // Copy vertex data to staging buffer
-            m_StagingBuffer = m_Device->CreateBuffer( {} );
-            auto stagingBufferHandle{ Dynamic<VulkanBuffer>( m_StagingBuffer ) };
-
-            stagingBufferHandle->PersistentMap();
-            std::memcpy( Dynamic<VulkanBuffer>( m_StagingBuffer )->GetVmaAllocationInfo()->pMappedData, m_Data, m_ImageSize );
-
-            stagingBufferHandle->PersistentUnmap();
-
-            // Allocate image
-            const VkExtent3D extent{ static_cast<UInt32>( m_Width ), static_cast<UInt32>( m_Height ), 1 };
-
+            // Setup
             m_ImageCreateInfo = VulkanHelpers::Initializers::ImageCreateInfo();
+
+            const VkExtent3D extent{
+                static_cast<UInt32>( m_Width ),
+                static_cast<UInt32>( m_Height ),
+                1
+            };
 
             m_ImageCreateInfo.format = VulkanHelpers::GetVkFormatFromTextureFormat( m_Format );
             m_ImageCreateInfo.extent = extent;
@@ -332,12 +326,12 @@ namespace Mikoto {
             m_ImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
             m_ImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-            // The image will only be used by one queue family: the one that supports graphics (and therefore also) transfer operations.
+            // The image will only be used by one queue family:
+            // the one that supports transfer operations, often graphics one suffices.
             m_ImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             m_ImageCreateInfo.flags = 0;
 
             VkImageViewCreateInfo imageViewCreateInfo{ VulkanHelpers::Initializers::ImageViewCreateInfo() };
-
             imageViewCreateInfo.pNext = nullptr;
             imageViewCreateInfo.flags = 0;
             imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -349,42 +343,21 @@ namespace Mikoto {
             imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
             imageViewCreateInfo.subresourceRange.layerCount = 1;
 
-            // Ensure allocator exists
+            // Allocate image using GPU Allocator
             const auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>( TO_VK_DEVICE( m_Device )->GetAllocator() ) };
-            MKT_ASSERT( allocator != nullptr, "Allocator is null in VulkanBuffer::Allocate!" );
-
-            const VkResult result{ allocator->AllocateImage( this ) };
-            if ( result != VK_SUCCESS ) {
+            if ( const VkResult result{ allocator->AllocateImage( this ) }; result != VK_SUCCESS ) {
                 MKT_THROW_RUNTIME_ERROR( "Failed to allocate Vulkan buffer!" );
             }
 
-            // Copy buffer data to image and transition image layouts for optimal usage in shaders
+            //Specify optional type operation so we return for instance
+            //a command list to be submited in transfer queue
+            CommandListHandle cmd{ m_Device->CreateCommandList() };
+            cmd->Begin();
 
-            // device->TransferQueueSubmit( [this, extent, device]( const VkCommandBuffer& cmd ) -> void {
-            //     VulkanImage* image{ device->AccessImage( m_Image ) };
-            //
-            //     image->SubmitLayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmd );
-            //
-            //     // Copy from staging buffer to image buffer
-            //     VkBufferImageCopy copyRegion{};
-            //     copyRegion.bufferOffset = 0;
-            //     copyRegion.bufferRowLength = 0;
-            //     copyRegion.bufferImageHeight = 0;
-            //
-            //     copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            //     copyRegion.imageSubresource.mipLevel = 0;
-            //     copyRegion.imageSubresource.baseArrayLayer = 0;
-            //     copyRegion.imageSubresource.layerCount = 1;
-            //     copyRegion.imageExtent = extent;
-            //
-            //     //copy the buffer into the image
-            //     vkCmdCopyBufferToImage( cmd, m_StagingBuffer->Get(), m_Image->Get(), m_Image->GetCurrentLayout(), 1, std::addressof( copyRegion ) );
-            // } );
-            //
-            // VulkanContext::Get().ImmediateSubmit( [&]( VkCommandBuffer cmd ) -> void {
-            //     // Perform second transition for the descriptor set creation
-            //     m_Image->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd );
-            // } );
+            cmd->FillTexture( m_StagingBuffer.GetRaw(), this );
+
+            cmd->Close();
+            m_Device->SubmitCommands(cmd);
         }
 
         m_IsAllocated = true;

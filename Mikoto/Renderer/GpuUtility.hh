@@ -28,6 +28,7 @@ namespace Mikoto {
     enum class BufferUsage {
         BUFFER_USAGE_VERTEX,
         BUFFER_USAGE_INDEX,
+        BUFFER_USAGE_STAGING,
         BUFFER_USAGE_UNIFORM,
         BUFFER_USAGE_SHADER_STORAGE,
     };
@@ -96,7 +97,7 @@ namespace Mikoto {
     };
 
     enum class BufferDataType {
-        BUFFER_DATA_TYPE_INVALID,
+        BUFFER_DATA_TYPE_UNKNOWN,
         BUFFER_DATA_UINT32,
         BUFFER_DATA_UINT16,
         BUFFER_DATA_FLOAT32,
@@ -133,7 +134,7 @@ namespace Mikoto {
         Byte* Data{ nullptr };
 
         BufferUsage Usage{ BufferUsage::BUFFER_USAGE_VERTEX };
-        BufferDataType Type{ BufferDataType::BUFFER_DATA_FLOAT32 };
+        BufferDataType Type{ BufferDataType::BUFFER_DATA_TYPE_UNKNOWN };
         ResourceUsageType UsageType{ ResourceUsageType::RESOURCE_USAGE_STATIC };
 
         auto WithSizeBytes(Size size) -> BufferDescription&;

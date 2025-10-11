@@ -32,17 +32,6 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR( "RenderSystem::Init - Could not initialize Render context." );
         }
 
-        // Init the device when the context is ready
-        m_Device = GpuDevice::Create({ .Api = GraphicsAPI::VULKAN_API });
-        if (!m_Device) {
-            MKT_THROW_RUNTIME_ERROR( "RenderContext::Create - Could not initialize GPU Device." );
-        }
-        m_Device->Init();
-
-        // When we have the context and device ready,
-        // we can prepare to prepare stuff to screen presentation if presentation is supported and was requested
-        m_Context->PrepareForPresentation();
-
         m_IsInitialized = true;
     }
 
@@ -55,10 +44,6 @@ namespace Mikoto {
         // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down RenderService..." );
 
-        // Device needs a valid context
-        m_Device->Shutdown();
-        m_Device = nullptr;
-
         m_Context->Shutdown();
         m_Context = nullptr;
 
@@ -66,7 +51,7 @@ namespace Mikoto {
     }
 
     auto RenderService::Update(float ts) -> void {
-        m_Device->RunGarbageCollection();
+
 
     }
 

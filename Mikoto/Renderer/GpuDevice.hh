@@ -5,11 +5,13 @@
 #ifndef GPUDEVICE_HH
 #define GPUDEVICE_HH
 
-#include <Library/Utility/Types.hh>
-#include <Renderer/RenderUtility.hh>
-#include <Renderer/GpuUtility.hh>
 #include <Assets/Texture.hh>
+#include <Library/Utility/Types.hh>
 #include <Renderer/Buffer.hh>
+#include <Renderer/GpuUtility.hh>
+#include <Renderer/RenderUtility.hh>
+
+#include "Renderer/Framebuffer.hh"
 
 namespace Mikoto {
 
@@ -20,11 +22,11 @@ namespace Mikoto {
         {  }
 
         virtual auto Begin() -> void = 0;
-        virtual auto Close() -> void = 0;
+        virtual auto End() -> void = 0;
 
         virtual auto FillTexture(Buffer* src, Texture* dest) -> void = 0;
-        virtual auto CopyTexture(Buffer* src, Buffer* dest) -> void = 0;
-        virtual auto CopyBuffer(Texture* src, Texture* dest) -> void = 0;
+        virtual auto CopyBuffer(Buffer* src, Buffer* dest) -> void = 0;
+        virtual auto CopyTexture(Texture* src, Texture* dest) -> void = 0;
 
         virtual auto WriteBuffer(Buffer* target, Byte* data, Size size) -> void = 0;
         virtual auto WriteTexture(Texture* target, Byte* data, Size size) -> void = 0;
@@ -57,6 +59,7 @@ namespace Mikoto {
 
         MKT_NODISCARD virtual auto CreateTexture(const TextureDescription& description) -> TextureHandle = 0;
         MKT_NODISCARD virtual auto CreateBuffer(const BufferDescription& description) -> BufferHandle = 0;
+        MKT_NODISCARD virtual auto CreateFrameBuffer(const FramebufferDescription& description) -> FramebufferHandle = 0;
 
         virtual auto SubmitCommands(CommandListHandle cmd) -> void = 0;
         MKT_NODISCARD virtual auto CreateCommandList(QueueType queue = QueueType::GRAPHICS_QUEUE) -> CommandListHandle = 0;

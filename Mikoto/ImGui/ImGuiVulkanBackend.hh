@@ -47,9 +47,9 @@ namespace Mikoto {
         auto CreateImages() -> void;
         auto CreateFrameBuffer() -> void;
 
-        auto PrepareForRender() const -> void;
+        auto RecordRenderPassCommands() -> void;
 
-        auto RecordCommands( TextureHandle swapChainDrawTarget ) const -> void;
+        auto RecordCommands( TextureHandle swapChainDrawTarget ) -> void;
 
     private:
 

@@ -27,8 +27,8 @@ namespace Mikoto {
          * @param usage Type of resource usage
          */
         TextureCube(const TextureType type, const Int32 width, const Int32 height, const Int32 channels, Byte* data,
-                   const ResourceUsageType usage)
-            : Texture{ type, InferFormatFromChannels(channels), width, height, channels, usage }, m_Data{ data }
+                   const ResourceUsageType usage, TextureUsage textureUsage)
+            : Texture{ type, InferFormatFromChannels(channels), width, height, channels, usage, textureUsage }, m_Data{ data }
         {}
 
     protected:

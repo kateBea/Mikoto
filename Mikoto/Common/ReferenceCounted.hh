@@ -15,9 +15,6 @@ namespace Mikoto {
     /**
      * @brief Base class for reference-counted objects.
      *
-     * Designed for intrusive smart pointers in the engine.
-     * Users must call AddRef() when retaining a reference and Release() when releasing one.
-     * Object must have been created by new
      * https://isocpp.org/wiki/faq/freestore-mgmt#delete-this
      */
     class ReferenceCounted {
@@ -32,39 +29,21 @@ namespace Mikoto {
         }
 
         auto Acquire() const noexcept -> void {
-#if MIKOTO_THREAD_SAFE_REFS
-            m_RefCount.fetch_add( 1, std::memory_order_relaxed );
-#else
             ++m_RefCount;
-#endif
         }
 
         auto Free() const noexcept -> void {
-#if MIKOTO_THREAD_SAFE_REFS
-            if ( m_RefCount.fetch_sub( 1, std::memory_order_acq_rel ) == 1 ) {
-                delete this;
-            }
-#else
 
             if ( const UInt32 count{ --m_RefCount }; count == 0 ) {
                 delete this;
             }
-#endif
         }
 
         auto GetRefCount() const noexcept -> UInt32 {
-#if MIKOTO_THREAD_SAFE_REFS
-            return m_RefCount.load( std::memory_order_relaxed );
-#else
             return m_RefCount;
-#endif
         }
 
-#if MIKOTO_THREAD_SAFE_REFS
-        mutable std::atomic<UInt32_T> m_RefCount{ 1 };
-#else
         mutable UInt32 m_RefCount{ 0 };
-#endif
     };
 
     /**
@@ -170,6 +149,8 @@ namespace Mikoto {
             if ( m_Ptr ) {
                 m_Ptr->Free();
             }
+
+            m_Ptr = nullptr;
         }
 
         explicit operator RefCountedType*() {
@@ -177,7 +158,7 @@ namespace Mikoto {
         }
 
         MKT_NODISCARD auto IsEmpty() const -> bool {
-            return !m_Ptr;
+            return m_Ptr == nullptr;
         }
 
         static auto Create( RefCountedType* ptr ) -> Ref<RefCountedType> {

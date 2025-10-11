@@ -13,6 +13,7 @@
 
 #include "Renderer/Vulkan/VulkanBuffer.hh"
 #include "Renderer/Vulkan/VulkanTexture.hh"
+#include "VulkanFrameBuffer.hh"
 #include "VulkanMemoryAllocator.hh"
 
 
@@ -26,29 +27,33 @@ namespace Mikoto {
         explicit VulkanCmdList(const VkCommandBufferAllocateInfo& createInfo);
 
         auto Begin() -> void override;
-        auto Close() -> void override;
+        auto End() -> void override;
 
         auto FillTexture(Buffer* src, Texture* dest) -> void override;
-        auto CopyTexture(Buffer* src, Buffer* dest) -> void override;
-        auto CopyBuffer(Texture* src, Texture* dest) -> void override;
+        auto CopyBuffer(Buffer* src, Buffer* dest) -> void override;
+        auto CopyTexture(Texture* src, Texture* dest) -> void override;
 
         auto WriteBuffer(Buffer* target, Byte* data, Size size) -> void override;
         auto WriteTexture(Texture* target, Byte* data, Size size) -> void override;
 
         MKT_NODISCARD auto GetImplHandle() -> VkCommandBuffer* { return std::addressof(m_CmdBuffer); }
 
+        auto SetSubmitted(const bool val) -> void { m_IsSubmitted = val; }
+        MKT_NODISCARD auto IsSubmitted() const -> bool { return m_IsSubmitted; }
+
         ~VulkanCmdList() override;
     private:
         auto Allocate() -> void override;
         auto Release() -> void override;
     private:
+        bool m_IsSubmitted{ false };
         VkCommandBuffer m_CmdBuffer{ VK_NULL_HANDLE };
         VkCommandBufferAllocateInfo m_AllocInfo{};
     };
 
     class VulkanCommandPool final : public DeviceObject {
     public:
-        explicit VulkanCommandPool(QueueType queue, Size initialCmdListCount = 10);
+        explicit VulkanCommandPool(QueueType queue, Size initialCmdListCount = 100);
 
         MKT_NODISCARD auto GetImplHandle() -> VkCommandPool* { return std::addressof(m_Pool); }
 
@@ -56,7 +61,19 @@ namespace Mikoto {
 
         auto AllocateCmdList() -> CommandListHandle;
 
+        auto RunGarbageCollection() -> void;
+
+        auto Clear() -> void;
+
+        auto begin() { return m_CmdLists.begin(); }
+        auto end() { return m_CmdLists.end(); }
+
+        auto cbegin() const { return m_CmdLists.cbegin(); }
+        auto cend() const { return m_CmdLists.cend(); }
+
         ~VulkanCommandPool() override;
+
+
     public:
         DISABLE_COPY_AND_MOVE_FOR(VulkanCommandPool);
 
@@ -75,6 +92,8 @@ namespace Mikoto {
         ResourcePoolTyped<VulkanCmdList> m_CmdLists{};
     };
 
+    using VulkanCommandPoolHandle = Ref<VulkanCommandPool>;
+
     class VulkanDevice final : public GpuDevice {
     public:
         explicit VulkanDevice( const GpuDeviceCreateInfo& createInfo );
@@ -86,12 +105,13 @@ namespace Mikoto {
 
         MKT_NODISCARD auto CreateTexture( const TextureDescription& description ) -> TextureHandle override;
         MKT_NODISCARD auto CreateBuffer( const BufferDescription& description ) -> BufferHandle override;
+        MKT_NODISCARD auto CreateFrameBuffer( const FramebufferDescription& description ) -> FramebufferHandle override;
 
-        auto SubmitCommands(CommandListHandle cmd) -> void override;
+        auto SubmitCommands( CommandListHandle cmd ) -> void override;
 
         auto RunGarbageCollection() -> void override;
 
-        MKT_NODISCARD auto CreateCommandList(QueueType queue = QueueType::GRAPHICS_QUEUE) -> CommandListHandle override;
+        MKT_NODISCARD auto CreateCommandList( QueueType queue = QueueType::GRAPHICS_QUEUE ) -> CommandListHandle override;
 
         // Return the minimum required alignment (in bytes) for uniform buffers
         auto GetUniformBufferMinOffsetAlignment() const -> VkDeviceSize;
@@ -106,13 +126,14 @@ namespace Mikoto {
         MKT_NODISCARD auto GetLogicalDevice() const -> const VkDevice&;
         MKT_NODISCARD auto GetLogicalDeviceQueues() const -> const QueuesData&;
 
-        MKT_NODISCARD auto GetSwapChain() -> SwapChainHandle;
-        MKT_NODISCARD auto GetSwapChainPtr() -> VulkanSwapChain*;
+        auto FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void;
+        auto PresentToSwapChain( const FrameSynchronizationPrimitives& syncPrimitives, SwapChainHandle swapchain ) -> void;
 
-        auto InitializeSwapchain( const VulkanSwapChainCreateInfo& createInfo ) -> void;
-        auto CreateSwapChainTextures( const VkImageViewCreateInfo& createInfo ) -> TextureHandle;
+        auto CreateSwapchain( const VulkanSwapChainCreateInfo& createInfo ) -> SwapChainHandle;
+        auto CreateSwapChainTextures( const VkImageViewCreateInfo& createInfo, VkExtent2D extent ) -> TextureHandle;
 
         ~VulkanDevice() override = default;
+
 
     private:
         // [Internal usage]
@@ -129,11 +150,12 @@ namespace Mikoto {
         auto CreatePrimaryLogicalDevice() -> void;
 
     private:
-        SwapChainHandle m_SwapChain{};
+        std::vector<CommandListHandle> m_PendingCmdLists{};
 
         ResourcePoolTyped<VulkanBuffer> m_Buffers{};
         ResourcePoolTyped<VulkanTexture> m_Textures{};
         ResourcePoolTyped<VulkanCommandPool> m_CmdPools{};
+        ResourcePoolTyped<VulkanFramebuffer> m_Framebuffers{};
 
         QueuesData m_Queues{};
 

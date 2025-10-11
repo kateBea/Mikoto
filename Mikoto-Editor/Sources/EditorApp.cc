@@ -12,12 +12,13 @@
 #include <string>
 
 // Project headers
+#include <Audio/AudioDevice.hh>
 #include <Core/Configuration.hh>
 #include <Core/CoreEvents.hh>
-#include <Core/Root.hh>
-#include <EditorApp.hh>
-#include <Audio/AudioDevice.hh>
 #include <Core/InputService.hh>
+#include <Core/Root.hh>
+#include <Core/TimeService.hh>
+#include <EditorApp.hh>
 #include <Filesystem/FileService.hh>
 #include <Logging/Logger.hh>
 #include <Logging/StackTrace.hh>
@@ -84,10 +85,14 @@ namespace Mikoto {
 
     auto EditorApp::Update() -> void {
 
+
+        TimeService::Get()->Update();
+        const double timeStep{ TimeService::Get().GetTimeStep( TimeUnit::SECONDS ) };
+
         if ( !m_Window->IsMinimized() ) {
             Root::StartFrame();
 
-            Root::UpdateState();
+            Root::UpdateState( timeStep );
 
             Root::EndFrame();
         }

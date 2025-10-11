@@ -23,10 +23,11 @@ namespace Mikoto {
         virtual auto Init() -> bool = 0;
         virtual auto Shutdown() -> void = 0;
 
-        virtual auto PrepareForPresentation() -> void = 0;
-
         virtual auto SubmitFrame() -> void = 0;
         virtual auto PrepareFrame() -> void = 0;
+
+        MKT_NODISCARD auto GetGpuDevice() -> GpuDevice* { return m_Device.get(); }
+        MKT_NODISCARD auto GetGpuDevice() const -> const GpuDevice* { return m_Device.get(); }
 
         virtual auto EnableVSync() -> void = 0;
         virtual auto DisableVSync() -> void = 0;
@@ -38,6 +39,8 @@ namespace Mikoto {
         explicit RenderContext(const RenderContextCreateInfo& createInfo)
             :   m_TargetWindow{ createInfo.TargetWindow }
         { }
+
+        Unique<GpuDevice> m_Device{ nullptr };
 
         const Window* m_TargetWindow{ nullptr };
     };

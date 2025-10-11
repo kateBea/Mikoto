@@ -55,7 +55,7 @@ namespace Mikoto {
     class VulkanTexture final : public Texture2D {
     public:
         explicit VulkanTexture( const TextureDescription& data );
-        explicit VulkanTexture( VkImageViewCreateInfo viewCreateInfo );
+        explicit VulkanTexture( const VkImageViewCreateInfo& viewCreateInfo, VkExtent2D extent);
 
         MKT_NODISCARD auto GetImplHandle() -> VkImage* { return std::addressof(m_Image); }
 
@@ -70,6 +70,9 @@ namespace Mikoto {
         MKT_NODISCARD auto GetCurrentLayout() const -> VkImageLayout;
         MKT_NODISCARD auto GetCreateInfo() const -> const VkImageCreateInfo&;
         MKT_NODISCARD auto GetViewCreateInfo() const -> const VkImageViewCreateInfo&;
+
+        MKT_NODISCARD auto IsSwapChainImage() const -> bool;
+
 
         auto SubmitLayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd ) -> void;
 
@@ -123,14 +126,13 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetImageCount() const -> Size;
 
-        MKT_NODISCARD auto GetImage( Size index ) -> VulkanTexture&;
-        MKT_NODISCARD auto GetImage( Size index ) const -> const VulkanTexture&;
-
-        MKT_NODISCARD auto GetSwapChainKHR() const -> VkSwapchainKHR;
+        MKT_NODISCARD auto GetImage( Size index ) -> TextureHandle;
 
         MKT_NODISCARD auto GetExtent() const -> VkExtent2D;
 
         MKT_NODISCARD auto IsVsyncEnabled() const -> bool;
+
+        MKT_NODISCARD auto GetCurrentFrameIndex() const -> UInt32 { return m_CurrentFrame; }
 
         MKT_NODISCARD auto GetNextRenderableImage( UInt32& imageIndex, VkFence fence = VK_NULL_HANDLE, VkSemaphore imageAvailable = VK_NULL_HANDLE ) const -> VkResult;
 

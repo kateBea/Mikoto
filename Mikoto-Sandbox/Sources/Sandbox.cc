@@ -20,16 +20,18 @@
 #include <Core/CoreEvents.hh>
 #include <Core/InputService.hh>
 #include <Core/Root.hh>
+#include <Core/TimeService.hh>
 #include <Filesystem/FileService.hh>
+#include <GameLayer.hh>
 #include <Logging/Logger.hh>
 #include <Logging/StackTrace.hh>
+#include <Memory/Allocator.hh>
 #include <Renderer/Buffer.hh>
 #include <Renderer/GpuUtility.hh>
 #include <Renderer/RenderService.hh>
 #include <SandboxApp.hh>
 #include <Threading/TaskManager.hh>
 #include <Threading/TaskService.hh>
-#include <Memory/Allocator.hh>
 
 namespace Mikoto {
 
@@ -84,10 +86,14 @@ namespace Mikoto {
         Root::Init(config);
 
         SetupEventCallbacks();
+
+        m_LayerStack.PushLayer<GameLayer>( "Game - Layer" );
     }
 
     auto SandboxApp::Shutdown() -> void {
         MKT_CORE_LOGGER_DEBUG("Shutting down Mikoto Editor...");
+
+        m_LayerStack.Clear();
 
         Root::Shutdown();
     }
@@ -200,10 +206,14 @@ namespace Mikoto {
     auto SandboxApp::Update() -> void {
         TestCode();
 
+        TimeService::Get()->Update();
+        const double timeStep{ TimeService::Get().GetTimeStep( TimeUnit::SECONDS ) };
+
         if ( !m_Window->IsMinimized() ) {
             Root::StartFrame();
 
-            Root::UpdateState();
+            m_LayerStack.OnUpdate( static_cast<float>( timeStep ) );
+            Root::UpdateState( static_cast<float>( timeStep ) );
 
             Root::EndFrame();
         }

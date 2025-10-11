@@ -108,19 +108,21 @@ namespace Mikoto {
             // Registry does not guarantee any order for now
             system->Shutdown();
         }
+
+        MKT_CORE_LOGGER_DEBUG( "Final shutdown at Root and resource count is {}", IResource::s_ResourceCount );
     }
 
     auto Root::StartFrame() -> void {
         RenderService::Get()->PrepareFrame();
+        ImGuiService::Get()->PrepareFrame();
     }
 
     auto Root::EndFrame() -> void {
+        ImGuiService::Get()->EndFrame();
         RenderService::Get()->EndFrame();
     }
 
-    auto Root::UpdateState() -> void {
-        TimeService::Get()->Update();
-        const double timeStep{ TimeService::Get().GetTimeStep( TimeUnit::SECONDS ) };
+    auto Root::UpdateState(float timeStep) -> void {
 
         for (const auto &service: s_Services | std::views::values ) {
             if (service->IsInitialized()) {

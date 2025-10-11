@@ -23,6 +23,7 @@
 #include "Library/Utility/Types.hh"
 #include <Renderer/BufferLayout.hh>
 #include <Renderer/GpuUtility.hh>
+#include <Assets/Texture.hh>
 
 // Vulkan version
 #define MKT_VULKAN_VERSION_VARIANT 0
@@ -41,6 +42,12 @@ namespace Mikoto {
         std::optional<VulkanQueueData> Present{};
         std::optional<VulkanQueueData> Graphics{};
         std::optional<VulkanQueueData> Compute{};
+    };
+
+    struct FrameSynchronizationPrimitives {
+        VkSemaphore ImageAvailableSemaphore{ VK_NULL_HANDLE };
+        VkSemaphore RenderFinishedSemaphore{ VK_NULL_HANDLE };
+        VkFence RenderFence{ VK_NULL_HANDLE };
     };
 
     struct SwapChainSupportDetails {
@@ -77,13 +84,17 @@ namespace Mikoto::VulkanHelpers {
     MKT_NODISCARD auto HasComputeQueue( const VkQueueFamilyProperties& queueFamily ) -> bool;
     MKT_NODISCARD auto HasPresentQueue( const VkPhysicalDevice& device, UInt32 queueFamilyIndex, const VkSurfaceKHR& surface, const VkQueueFamilyProperties& queueFamilyProperties ) -> bool;
     MKT_NODISCARD auto GetVkStageFromShaderStage(ShaderStage stage) -> VkShaderStageFlagBits;
-    MKT_NODISCARD auto GetVkFormatFromTextureFormat(TextureFormat format) -> VkFormat;
+    MKT_NODISCARD auto GetVkFormatFromTextureFormat( TextureFormat format, TextureUsage usage, VkPhysicalDevice device ) -> VkFormat;
     MKT_NODISCARD auto GetUniformBufferPadding(VkDeviceSize bufferOriginalSize, VkDeviceSize deviceMinOffsetAlignment) -> VkDeviceSize;
     MKT_NODISCARD auto GetUniformBufferPadding(VkDeviceSize bufferOriginalSize, VkDeviceSize deviceMinOffsetAlignment) -> VkDeviceSize;
     MKT_NODISCARD auto InferVulkanIndexType(BufferDataType format) -> VkIndexType;
-
+    MKT_NODISCARD auto ToVkImageUsage(TextureUsage usage) -> VkImageUsageFlags;
     MKT_NODISCARD auto FindSupportedFormat( VkPhysicalDevice device, std::span<const VkFormat> candidates, VkImageTiling tiling, VkFormatFeatureFlags features ) -> VkFormat;
+    MKT_NODISCARD auto ToVkFormat(TextureFormat format) -> VkFormat;
+    MKT_NODISCARD auto ToMikotoFormat(VkFormat format) -> TextureFormat;
 
+    auto ImageUsageFlagsToString(Texture* texture) -> void;
+    auto ImageLayoutToString(Texture* texture) -> void;
 } // MIKOTO::VULKAN_UTILS
 
 

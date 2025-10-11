@@ -35,8 +35,8 @@ namespace Mikoto {
         MKT_NODISCARD auto GetContext() -> RenderContext* { return m_Context.get(); }
         MKT_NODISCARD auto GetContext() const -> const RenderContext* { return m_Context.get(); }
 
-        MKT_NODISCARD auto GetGpuDevice() -> GpuDevice* { return m_Device.get(); }
-        MKT_NODISCARD auto GetGpuDevice() const -> const GpuDevice* { return m_Device.get(); }
+        MKT_NODISCARD auto GetGpuDevice() -> GpuDevice* { return m_Context->GetGpuDevice(); }
+        MKT_NODISCARD auto GetGpuDevice() const -> const GpuDevice* { return m_Context->GetGpuDevice(); }
 
         MKT_NODISCARD auto IsGraphicsActive( GraphicsAPI api ) const -> bool;
         MKT_NODISCARD auto GetActiveGraphicsApi() const -> GraphicsAPI { return m_ActiveAPI; }
@@ -46,7 +46,6 @@ namespace Mikoto {
 
     private:
         RenderServiceCreateInfo m_Options{};
-        Unique<GpuDevice> m_Device{ nullptr };
         Unique<RenderContext> m_Context{ nullptr };
 
         GraphicsAPI m_ActiveAPI{ GraphicsAPI::VULKAN_API };

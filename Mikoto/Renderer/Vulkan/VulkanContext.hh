@@ -19,6 +19,7 @@
 #include <Library/Utility/Types.hh>
 #include <Renderer/RenderContext.hh>
 
+#include "VulkanHelpers.hh"
 #include "VulkanTexture.hh"
 
 namespace Mikoto {
@@ -46,19 +47,21 @@ namespace Mikoto {
         auto Init() -> bool override;
         auto Shutdown() -> void override;
 
-        auto PrepareForPresentation() -> void override;
-
         auto SubmitFrame() -> void override;
         auto PrepareFrame() -> void override;
 
         auto EnableVSync() -> void override { SwitchSyncMode( true ); }
         auto DisableVSync() -> void override { SwitchSyncMode( false ); }
 
+        MKT_NODISCARD auto GetCurrentImageIndex() const -> UInt32 { return m_CurrentImageIndex; }
+
         // [General getters]
         MKT_NODISCARD auto GetSurface() const -> const VkSurfaceKHR& { return m_VulkanData.Surface; }
 
         MKT_NODISCARD auto GetInstance() const -> const VkInstance& { return m_VulkanData.Instance; }
         MKT_NODISCARD auto GetInstance() -> VkInstance& { return m_VulkanData.Instance; }
+
+        MKT_NODISCARD auto GetSwapchain() -> SwapChainHandle { return m_Swapchain; }
 
         MKT_NODISCARD auto GetApiVersion() const -> UInt32 { return m_VulkanData.ApiVersion; }
 
@@ -73,11 +76,22 @@ namespace Mikoto {
         auto CreateSurface() -> void;
         auto CreateInstance() -> void;
         auto CreateDebugMessenger() -> void;
+        auto CreateSynchronizationPrimitives() -> void;
 
         auto SwitchSyncMode( bool enable ) -> void;
         MKT_NODISCARD auto CheckValidationLayerSupport() const -> bool;
 
     private:
+
+        SwapChainHandle m_Swapchain{};
+
+        // Current frame
+        UInt32 m_CurrentFrameIndex{};
+
+        // Current swapchain image we can render to
+        // which is set at the start of every frame via PrepareFrame
+        UInt32 m_CurrentImageIndex{};
+        std::vector<FrameSynchronizationPrimitives> m_FrameSyncPrimitives{};
 
         VulkanContextData m_VulkanData{
             .Instance{},

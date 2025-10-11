@@ -111,7 +111,9 @@ namespace Mikoto {
         }
 
         CreateInstance();
+
         CreateDebugMessenger();
+
         CreateSurface();
 
         // Create the swap chain. The manager is an texture/image manager that
@@ -119,25 +121,56 @@ namespace Mikoto {
         // If we pass a window while creating the context, we assume we want to present
         // So we check for swap chain support and create it if possible
 
+        // Init the device when the context is ready
+        m_Device = GpuDevice::Create({ .Api = GraphicsAPI::VULKAN_API });
+        if (!m_Device) {
+            MKT_THROW_RUNTIME_ERROR( "RenderContext::Create - Could not initialize GPU Device." );
+        }
+        m_Device->Init();
+
+        // The current flow assumes we will present to a surface
+        // so we create a swap chain to get ready for that
+        CreateSwapchain();
+
+        CreateSynchronizationPrimitives();
+
         return true;
     }
 
     auto VulkanContext::Shutdown() -> void {
 
+        m_Swapchain.Disable();
+
+        for (const auto& framePrimitives : m_FrameSyncPrimitives) {
+            // Destroy frame sync stuff
+            vkDestroySemaphore(  VK_DEVICE(m_Device.get()), framePrimitives.RenderFinishedSemaphore, nullptr );
+            vkDestroySemaphore( VK_DEVICE(m_Device.get()), framePrimitives.ImageAvailableSemaphore, nullptr );
+            vkDestroyFence(  VK_DEVICE(m_Device.get()), framePrimitives.RenderFence, nullptr );
+        }
+
         if ( m_VulkanData.EnableValidationLayers && vkDestroyDebugUtilsMessengerEXT != nullptr ) {
             vkDestroyDebugUtilsMessengerEXT( GetInstance(), m_VulkanData.DebugMessenger, nullptr );
         }
+
+        // Device needs a valid context
+        m_Device->Shutdown();
+        m_Device = nullptr;
 
         vkDestroySurfaceKHR( GetInstance(), GetSurface(), nullptr );
 
         vkDestroyInstance( GetInstance(), nullptr );
     }
 
-    void VulkanContext::PrepareForPresentation() {
-        CreateSwapchain();
-    }
-
     auto VulkanContext::SubmitFrame() -> void {
+        // Prepare the submission to the queue. We want to wait on
+        // the present semaphore, which is signaled when the swapchain
+        // is ready (there's image available to render to). We will
+        // signal the render semaphore to signal that rendering has finished
+
+        VulkanDevice* device{ TO_VK_DEVICE( RenderService::Get()->GetGpuDevice() ) };
+
+        device->FlushPendingCommands( m_FrameSyncPrimitives[m_CurrentFrameIndex] );
+        device->PresentToSwapChain( m_FrameSyncPrimitives[m_CurrentFrameIndex], m_Swapchain );
     }
 
     auto VulkanContext::CreateInstance() -> void {
@@ -235,6 +268,20 @@ namespace Mikoto {
     }
 
     auto VulkanContext::PrepareFrame() -> void {
+      m_Device->RunGarbageCollection();
+
+        m_CurrentFrameIndex = m_Swapchain->GetCurrentFrameIndex();
+        const auto ret{ m_Swapchain->GetNextRenderableImage( m_CurrentImageIndex,
+                                                     m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFence,
+                                                     m_FrameSyncPrimitives[m_CurrentFrameIndex].ImageAvailableSemaphore ) };
+
+        if ( ret == VK_ERROR_OUT_OF_DATE_KHR ) {
+            MKT_THROW_RUNTIME_ERROR( "Error getting swap chain image index" );
+        }
+
+        if ( ret != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanContext::PrepareFrame - Failed to acquire swap chain Screenshots!" );
+        }
     }
 
     auto VulkanContext::InitVolk() -> void {
@@ -255,6 +302,43 @@ namespace Mikoto {
             .OldSwapChain{ VK_NULL_HANDLE }
         };
 
-        TO_VK_DEVICE( RenderService::Get()->GetGpuDevice() )->InitializeSwapchain(createInfo);
+        m_Swapchain = TO_VK_DEVICE( m_Device.get() )->CreateSwapchain(createInfo);
     }
+
+    auto VulkanContext::CreateSynchronizationPrimitives() -> void {
+
+        const Size frameCount{ m_Swapchain->GetImageCount() };
+        m_FrameSyncPrimitives.resize( frameCount );
+
+        for (auto& [ImageAvailableSemaphore, RenderFinishedSemaphore, RenderFence] : m_FrameSyncPrimitives) {
+            VkFenceCreateInfo fenceInfo{ VulkanHelpers::Initializers::FenceCreateInfo() };
+
+            // We want to create the fence with the Create Signaled flag, so we
+            // can wait on it before using it on a GPU command (for the first frame)
+            fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+            if ( vkCreateFence( VK_DEVICE(RenderService::Get()->GetGpuDevice()),
+                                std::addressof( fenceInfo ),
+                                nullptr,
+                                std::addressof( RenderFence ) ) != VK_SUCCESS ) {
+                MKT_THROW_RUNTIME_ERROR( fmt::format( "Failed to create frame render fence!" ) );
+                                }
+
+            VkSemaphoreCreateInfo semaphoreCreateInfo{ VulkanHelpers::Initializers::SemaphoreCreateInfo() };
+            if ( vkCreateSemaphore( VK_DEVICE(RenderService::Get()->GetGpuDevice()),
+                                    std::addressof( semaphoreCreateInfo ),
+                                    nullptr,
+                                    std::addressof( ImageAvailableSemaphore ) ) != VK_SUCCESS ) {
+                MKT_THROW_RUNTIME_ERROR( fmt::format( "Failed to create frame present semaphore" ) );
+                                    }
+
+            if ( vkCreateSemaphore( VK_DEVICE(RenderService::Get()->GetGpuDevice()),
+                                    std::addressof( semaphoreCreateInfo ),
+                                    nullptr,
+                                    std::addressof( RenderFinishedSemaphore ) ) != VK_SUCCESS ) {
+                MKT_THROW_RUNTIME_ERROR( fmt::format( "Failed to create frame render semaphore" ) );
+                                    }
+        }
+    }
+
 }// namespace Mikoto

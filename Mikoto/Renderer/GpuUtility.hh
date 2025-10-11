@@ -72,6 +72,15 @@ namespace Mikoto {
         TEXTURE_CUBE,
     };
 
+    enum class TextureUsage {
+        TEXTURE_USAGE_COLOR,
+        TEXTURE_USAGE_DEPTH,
+        TEXTURE_USAGE_NORMAL,
+        TEXTURE_USAGE_STORAGE,       // compute shader writable
+        TEXTURE_USAGE_CUBEMAP,       // for environment maps
+        TEXTURE_USAGE_RENDER_TARGET, // render target attachments
+    };
+
     /**
      * @enum TextureFormat
      * @brief Enum representing various texture formats.
@@ -81,8 +90,47 @@ namespace Mikoto {
      */
     enum class TextureFormat {
         TEXTURE_FORMAT_INVALID = -1,
-        TEXTURE_FORMAT_RGBA8,
-        TEXTURE_FORMAT_RGB8,
+
+    // --- 8-bit normalized formats ---
+    TEXTURE_FORMAT_R8_UNORM,
+    TEXTURE_FORMAT_RG8_UNORM,
+    TEXTURE_FORMAT_RGB8_UNORM,
+    TEXTURE_FORMAT_RGBA8_UNORM,
+
+    // --- 8-bit signed normalized (rare, but sometimes used for normals) ---
+    TEXTURE_FORMAT_R8_SNORM,
+    TEXTURE_FORMAT_RG8_SNORM,
+    TEXTURE_FORMAT_RGB8_SNORM,
+    TEXTURE_FORMAT_RGBA8_SNORM,
+
+    // --- 16-bit normalized ---
+    TEXTURE_FORMAT_R16_UNORM,
+    TEXTURE_FORMAT_RG16_UNORM,
+    TEXTURE_FORMAT_RGB16_UNORM,
+    TEXTURE_FORMAT_RGBA16_UNORM,
+
+    // --- 16-bit float (HDR and data textures) ---
+    TEXTURE_FORMAT_R16_FLOAT,
+    TEXTURE_FORMAT_RG16_FLOAT,
+    TEXTURE_FORMAT_RGB16_FLOAT,
+    TEXTURE_FORMAT_RGBA16_FLOAT,
+
+    // --- 32-bit float (HDR / G-buffer / compute data) ---
+    TEXTURE_FORMAT_R32_FLOAT,
+    TEXTURE_FORMAT_RG32_FLOAT,
+    TEXTURE_FORMAT_RGB32_FLOAT,
+    TEXTURE_FORMAT_RGBA32_FLOAT,
+
+    // --- sRGB (gamma-correct color) ---
+    TEXTURE_FORMAT_SRGB8,
+    TEXTURE_FORMAT_SRGB8_ALPHA8,
+
+    // --- Depth and stencil formats ---
+    TEXTURE_FORMAT_D16_UNORM,
+    TEXTURE_FORMAT_D24_UNORM_S8_UINT,
+    TEXTURE_FORMAT_D32_FLOAT,
+    TEXTURE_FORMAT_D32_FLOAT_S8_UINT,
+
     };
 
     enum class ResourceUsageType {
@@ -116,17 +164,18 @@ namespace Mikoto {
      *
      * @param channelCount The number of channels (e.g., 3 for RGB, 4 for RGBA).
      * @return The inferred texture format (either RGB8 or RGBA8).
+     * @deprecated Will specify format from load description
      */
     MKT_NODISCARD constexpr auto InferFormatFromChannels( const Int32 channelCount ) -> TextureFormat {
         switch ( channelCount ) {
             case 3:
-                return TextureFormat::TEXTURE_FORMAT_RGB8;
+                return TextureFormat::TEXTURE_FORMAT_RGB8_SNORM;
             case 4:
-                return TextureFormat::TEXTURE_FORMAT_RGBA8;
+                return TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM;
             default:;
         }
 
-        return TextureFormat::TEXTURE_FORMAT_RGBA8;
+        return TextureFormat::TEXTURE_FORMAT_RGB8_SNORM;
     }
 
     struct BufferDescription {
@@ -152,6 +201,7 @@ namespace Mikoto {
         Byte* Data{ nullptr };
 
         TextureType Type{ TextureType::TEXTURE_2D };
+        TextureUsage Usage{ TextureUsage::TEXTURE_USAGE_NORMAL };
         TextureFormat Format{ InferFormatFromChannels( this->ChannelCount ) };
         ResourceUsageType UsageType{ ResourceUsageType::RESOURCE_USAGE_STATIC };
 
@@ -161,10 +211,12 @@ namespace Mikoto {
 
         auto WithData( Byte* data ) -> TextureDescription&;
         auto WithType( TextureType type ) -> TextureDescription&;
+        auto WithTextureUsage( TextureUsage usage ) -> TextureDescription&;
 
         auto WithFormat( TextureFormat format ) -> TextureDescription&;
         auto WithResourceType( ResourceUsageType type ) -> TextureDescription&;
     };
+
 
     /**
     * @struct TextureLoadDescription

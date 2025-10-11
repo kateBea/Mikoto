@@ -11,6 +11,7 @@
 #include <Core/EventService.hh>
 #include <Library/Utility/Types.hh>
 #include <Platform/Window.hh>
+#include <Core/LayerStack.hh>
 
 namespace Mikoto {
 
@@ -34,6 +35,8 @@ namespace Mikoto {
         std::vector<AudioHandle> m_Audios{};
 
         auto TestCode() -> void;
+
+        LayerStack m_LayerStack{};
     };
 }
 

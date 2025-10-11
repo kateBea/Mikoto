@@ -36,19 +36,23 @@ namespace Mikoto {
 
     auto VulkanSampler::Release() -> void {
     }
+
     auto VulkanSampler::Allocate() -> void {
     }
+
     VulkanTexture::VulkanTexture( const TextureDescription& data )
-        : Texture2D{ data.Type, data.Width, data.Height, data.ChannelCount, data.Data, data.UsageType } {
-        m_ImageSize =  m_Width * m_Height * m_Channels;
+        : Texture2D{ data.Type, data.Width, data.Height, data.ChannelCount, data.Data, data.UsageType, data.Format, data.Usage } {
+        m_ImageSize = m_Width * m_Height * m_Channels;
     }
 
-    VulkanTexture::VulkanTexture( VkImageViewCreateInfo viewCreateInfo )
-        : Texture2D{ TextureType::TEXTURE_2D, 0, 0, 0, nullptr, ResourceUsageType::RESOURCE_USAGE_STATIC },
+    VulkanTexture::VulkanTexture( const VkImageViewCreateInfo& viewCreateInfo, VkExtent2D extent )
+        : Texture2D{ TextureType::TEXTURE_2D, static_cast<Int32>( extent.width ), static_cast<Int32>( extent.height ), 0, nullptr,
+                     ResourceUsageType::RESOURCE_USAGE_STATIC,
+                     VulkanHelpers::ToMikotoFormat( viewCreateInfo.format ) },
+          m_IsImageExternal{ true },
           m_Image{ viewCreateInfo.image },
-          m_ImageViewCreateInfo{ viewCreateInfo },
-          m_IsImageExternal{ true } {
-        m_ImageSize =  m_Width * m_Height * m_Channels;
+          m_ImageViewCreateInfo{ viewCreateInfo } {
+        m_ImageSize = m_Width * m_Height * m_Channels;
     }
 
     auto VulkanTexture::Release() -> void {
@@ -121,6 +125,10 @@ namespace Mikoto {
 
     auto VulkanTexture::GetViewCreateInfo() const -> const VkImageViewCreateInfo& {
         return m_ImageViewCreateInfo;
+    }
+
+    auto VulkanTexture::IsSwapChainImage() const -> bool {
+        return m_IsImageExternal;
     }
 
     auto VulkanTexture::SubmitLayoutTransition( const VkImageLayout newLayout, const VkCommandBuffer cmd ) -> void {
@@ -287,24 +295,21 @@ namespace Mikoto {
         m_ImageCreateInfo.initialLayout = m_CurrentLayout;
 
         // The case for swap chain images
-        if ( m_Image != VK_NULL_HANDLE ) {
+        if ( m_Image == VK_NULL_HANDLE ) {
+            // This could be a texture that we want to fill from
+            // an image loaded from disc or a texture we will write to as a color image
+            // for the later we do not want to copy anything to it
+            if (m_Data) {
+                // Allocate staging buffer to copy over the texture data
+                BufferDescription stagingDesc{};
+                stagingDesc.WithData( nullptr )
+                        .WithUsage( BufferUsage::BUFFER_USAGE_STAGING )
+                        .WithSizeBytes( InferSize<UInt32>( m_ImageSize ) )
+                        .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
 
-            // the caller can optionally pass a valid image because this VulkanTexture is supposed be
-            // usable for the swapchain as well, however, if the latter is the case,
-            // we are responsible for releasing the image views, not the actual images.
-            if ( vkCreateImageView( VK_DEVICE( m_Device ), std::addressof( m_ImageViewCreateInfo ), nullptr, std::addressof( m_ImageView ) ) != VK_SUCCESS ) {
-                MKT_THROW_RUNTIME_ERROR( "VulkanTexture::Allocate - Failed to create the Vulkan Image View!" );
+                m_StagingBuffer = m_Device->CreateBuffer( stagingDesc );
+                m_StagingBuffer->CopyFromBlock( m_Data, m_ImageSize );
             }
-        } else {
-            // Allocate staging buffer to copy over the texture data
-            BufferDescription stagingDesc{};
-            stagingDesc.WithData( nullptr )
-                    .WithUsage( BufferUsage::BUFFER_USAGE_STAGING )
-                    .WithSizeBytes( InferSize<UInt32>( m_ImageSize ) )
-                    .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
-
-            m_StagingBuffer = m_Device->CreateBuffer( stagingDesc );
-            m_StagingBuffer->CopyFromBlock( m_Data, m_ImageSize );
 
             // Setup
             m_ImageCreateInfo = VulkanHelpers::Initializers::ImageCreateInfo();
@@ -315,33 +320,26 @@ namespace Mikoto {
                 1
             };
 
-            m_ImageCreateInfo.format = VulkanHelpers::GetVkFormatFromTextureFormat( m_Format );
+            m_ImageCreateInfo.format =
+                    VulkanHelpers::GetVkFormatFromTextureFormat(
+                            m_Format,
+                            m_TextureUsage,
+                            TO_VK_DEVICE( m_Device )->GetPhysicalDevice() );
             m_ImageCreateInfo.extent = extent;
+            // Vulkan Texture is a 2D image always
             m_ImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-            m_ImageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+            m_ImageCreateInfo.usage = VulkanHelpers::ToVkImageUsage( m_TextureUsage );
 
             m_ImageCreateInfo.mipLevels = 1;
             m_ImageCreateInfo.arrayLayers = 1;
             m_ImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
             m_ImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-            m_ImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            m_ImageCreateInfo.initialLayout = m_CurrentLayout;
 
             // The image will only be used by one queue family:
             // the one that supports transfer operations, often graphics one suffices.
             m_ImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             m_ImageCreateInfo.flags = 0;
-
-            VkImageViewCreateInfo imageViewCreateInfo{ VulkanHelpers::Initializers::ImageViewCreateInfo() };
-            imageViewCreateInfo.pNext = nullptr;
-            imageViewCreateInfo.flags = 0;
-            imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            imageViewCreateInfo.format = m_ImageCreateInfo.format;
-
-            imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-            imageViewCreateInfo.subresourceRange.levelCount = 1;
-            imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-            imageViewCreateInfo.subresourceRange.layerCount = 1;
 
             // Allocate image using GPU Allocator
             const auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>( TO_VK_DEVICE( m_Device )->GetAllocator() ) };
@@ -350,14 +348,40 @@ namespace Mikoto {
             }
 
             //Specify optional type operation so we return for instance
-            //a command list to be submited in transfer queue
-            CommandListHandle cmd{ m_Device->CreateCommandList() };
+            //a command list to be submitted in transfer queue
+            CommandListHandle cmd{ m_Device->CreateCommandList(QueueType::TRANSFER_QUEUE) };
             cmd->Begin();
 
             cmd->FillTexture( m_StagingBuffer.GetRaw(), this );
 
-            cmd->Close();
-            m_Device->SubmitCommands(cmd);
+            cmd->End();
+            m_Device->SubmitCommands( cmd );
+
+            // Prepare for view creation
+            m_ImageViewCreateInfo = VulkanHelpers::Initializers::ImageViewCreateInfo();
+            m_ImageViewCreateInfo.pNext = nullptr;
+            m_ImageViewCreateInfo.flags = 0;
+            m_ImageViewCreateInfo.image = m_Image;
+            m_ImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            m_ImageViewCreateInfo.format = m_ImageCreateInfo.format;
+
+            VkImageAspectFlags aspectFlags{ VK_IMAGE_ASPECT_COLOR_BIT };
+            if ( m_TextureUsage == TextureUsage::TEXTURE_USAGE_DEPTH ) {
+                aspectFlags = m_ImageCreateInfo.format < VK_FORMAT_D16_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT : ( VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT );
+            }
+
+            m_ImageViewCreateInfo.subresourceRange.aspectMask = aspectFlags;
+            m_ImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+            m_ImageViewCreateInfo.subresourceRange.levelCount = 1;
+            m_ImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+            m_ImageViewCreateInfo.subresourceRange.layerCount = 1;
+        }
+
+        // the caller can optionally pass a valid image because this VulkanTexture is supposed be
+        // usable for the swapchain as well, however, if the latter is the case,
+        // we are responsible for releasing the image views, not the actual images.
+        if ( vkCreateImageView( VK_DEVICE( m_Device ), std::addressof( m_ImageViewCreateInfo ), nullptr, std::addressof( m_ImageView ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanTexture::Allocate - Failed to create the Vulkan Image View!" );
         }
 
         m_IsAllocated = true;
@@ -377,8 +401,10 @@ namespace Mikoto {
         auto images{ std::vector<VkImage>( imageCount ) };
         vkGetSwapchainImagesKHR( device.GetLogicalDevice(), m_Swapchain, std::addressof( imageCount ), images.data() );
 
+        UInt32 imageIndex{ 0 };
         for ( VkImage image: images ) {
-            m_Images.emplace_back( device.CreateSwapChainTextures( CreateSwapchainImageViewCreateInfo( image, m_Format ) ) );
+            auto& insertedImg{ m_Images.emplace_back( device.CreateSwapChainTextures( CreateSwapchainImageViewCreateInfo( image, m_Format ), m_Extent ) ) };
+            insertedImg->SetDebugName( fmt::format( "Swapchain Img - {}", imageIndex++ ) );
         }
     }
 
@@ -412,7 +438,7 @@ namespace Mikoto {
     }
 
     auto VulkanSwapChain::Present( const UInt32 imageIndex, const VkSemaphore& renderFinished ) -> VkResult {
-        static VulkanDevice& device{ *TO_VK_DEVICE( m_Device ) };
+        VulkanDevice& device{ *TO_VK_DEVICE( m_Device ) };
 
         const std::array swapChains{ m_Swapchain };
         const std::array signalSemaphores{ renderFinished };
@@ -438,7 +464,7 @@ namespace Mikoto {
 
         if ( Present.has_value() && Present->Queue != VK_NULL_HANDLE ) {
             presentQueue = Present->Queue;
-        } else if ( Present.has_value() && Present->Queue != VK_NULL_HANDLE ) {
+        } else if ( Graphics.has_value() && Graphics->Queue != VK_NULL_HANDLE ) {
             // Present and graphics queue may have the same index
             presentQueue = Graphics->Queue;
         } else {
@@ -446,6 +472,21 @@ namespace Mikoto {
         }
 
         return vkQueuePresentKHR( presentQueue, std::addressof( presentInfo ) );
+    }
+
+    auto VulkanSwapChain::GetImageCount() const -> Size {
+        return m_Images.size();
+    }
+
+    auto VulkanSwapChain::GetImage( const Size index ) -> TextureHandle {
+        return m_Images[ index ];
+    }
+    auto VulkanSwapChain::GetExtent() const -> VkExtent2D {
+        return m_Extent;
+    }
+
+    auto VulkanSwapChain::IsVsyncEnabled() const -> bool {
+        return m_IsVsyncEnabled;
     }
 
     auto VulkanSwapChain::ChooseSurfaceFormat( const std::vector<VkSurfaceFormatKHR>& availableFormats ) -> VkSurfaceFormatKHR {

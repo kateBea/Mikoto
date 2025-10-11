@@ -168,8 +168,17 @@ namespace Mikoto {
         // Init pools
         m_Buffers.Init( 100 );
         m_Textures.Init( 100 );
+        m_Framebuffers.Init( 10 );
 
-        m_CmdPools.Init( 10 );
+        // Pre-initialize available pools
+        UInt32 poolCount{ 1 };
+        m_CmdPools.Init( poolCount );
+        for (auto count{ 0 }; count < poolCount; ++count ) {
+            // Temporary on my machine this queue is powerful xdd
+            // This will depend on command recording to avoid resizing the pool often
+            auto pool{ m_CmdPools.Allocate( QueueType::GRAPHICS_QUEUE, 200 ) };
+            pool.As<DeviceObject>()->Initialize(this);
+        }
 
         m_IsInitialized = true;
     }
@@ -280,7 +289,6 @@ namespace Mikoto {
         MKT_CORE_LOGGER_DEBUG( "VulkanDevice::CreatePrimaryLogicalDevice - Created primary logical device." );
     }
 
-
     auto VulkanDevice::Shutdown() -> void {
         if ( !m_IsInitialized ) {
             return;
@@ -289,13 +297,13 @@ namespace Mikoto {
         // Wait for pending operations
         WaitIdle();
 
-        // Destroy swapchain before device
-        m_SwapChain.Disable();
+        m_PendingCmdLists.clear();
 
         // Clear resources (pools, etc)
         m_Textures.Shutdown();
         m_Buffers.Shutdown();
         m_CmdPools.Shutdown();
+        m_Framebuffers.Shutdown();
 
         MKT_CORE_LOGGER_INFO( "VulkanDevice::Shutdown - Shutting down Vulkan Device." );
 
@@ -305,6 +313,8 @@ namespace Mikoto {
         }
 
         vkDestroyDevice( m_LogicalDevice, nullptr );
+
+        m_IsInitialized = false;
     }
 
     auto VulkanDevice::WaitIdle() const -> void {
@@ -314,57 +324,38 @@ namespace Mikoto {
     auto VulkanDevice::CreateTexture( const TextureDescription& description ) -> TextureHandle {
         TextureHandle texture{ m_Textures.Allocate( description ).As<Texture>() };
         if ( texture.IsEmpty() ) {
-            MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateBuffer - Failed to allocate texture resource." );
+            MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateTexture - Failed to allocate texture resource." );
             return TextureHandle::CreateEmpty();
         }
 
-        texture->Allocate( this );
+        texture->Initialize( this );
 
         return texture;
     }
 
     auto VulkanDevice::RunGarbageCollection() -> void {
-        // 1 means no external entity is using it so we can safely destroy it
-        // It could be empty because the resource pool keeps the slots
-        for ( const auto& texture: m_Textures | std::views::values ) {
-            if ( !texture.IsEmpty() && texture->GetRefCount() == 1 ) {
-                m_Textures.Release( texture->GetHandle() );
-            }
-        }
+        // Call at the begining of each frame to free command buffers
 
-        for ( const auto& buffer: m_Buffers | std::views::values ) {
-            if ( !buffer.IsEmpty() && buffer->GetRefCount() == 1 ) {
-                m_Buffers.Release( buffer->GetHandle() );
-            }
+        for (const auto& pool : m_CmdPools | std::views::values) {
+            pool.As<VulkanCommandPool>()->RunGarbageCollection();
         }
     }
 
     auto VulkanDevice::CreateCommandList( QueueType queue ) -> CommandListHandle {
-        // Get an available command pool or create a new command list
-        Ref<VulkanCommandPool> commandPool{};
-        for ( const auto& pool: m_CmdPools | std::views::values ) {
-            commandPool = pool.As<VulkanCommandPool>();
-            if ( commandPool.IsEmpty() && !commandPool->IsPoolLocked() ) {
-                break;
-            }
-        }
+        // Find pool we can allocate command lists for the specified type of queue
 
         CommandListHandle resultCommandList{};
 
-        // No available pool
-        if (commandPool.IsEmpty()) {
-            commandPool = m_CmdPools.Allocate( queue, 10 );
+        VulkanCommandPoolHandle pool{ m_CmdPools.GetResource() };
 
-            if (commandPool.IsEmpty()) {
-                MKT_THROW_RUNTIME_ERROR( "VulkanDevice::CreateCommandList - Failed to allocate command pool." );
-            } else {
-                commandPool.As<DeviceObject>()->Allocate(this);
-            }
-
-            resultCommandList = commandPool->AllocateCmdList();
-            if (resultCommandList.IsEmpty()) {
+        // If we managed to allocate a pool
+        if (!pool.IsEmpty() ) {
+            resultCommandList = pool->AllocateCmdList();
+            if ( resultCommandList.IsEmpty() ) {
                 MKT_THROW_RUNTIME_ERROR( "VulkanDevice::CreateCommandList - Failed to allocate command list." );
             }
+
+            resultCommandList->Initialize(this);
         }
 
         return resultCommandList;
@@ -377,9 +368,21 @@ namespace Mikoto {
             return BufferHandle::CreateEmpty();
         }
 
-        buffer->Allocate( this );
+        buffer->Initialize( this );
 
         return buffer;
+    }
+
+    auto VulkanDevice::CreateFrameBuffer( const FramebufferDescription& description ) -> FramebufferHandle {
+        FramebufferHandle framebuffer{ m_Framebuffers.Allocate( description ).As<Framebuffer>() };
+        if ( framebuffer.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateFrameBuffer - Failed to allocate framebuffer resource." );
+            return FramebufferHandle::CreateEmpty();
+        }
+
+        framebuffer->Initialize( this );
+
+        return framebuffer;
     }
 
     auto VulkanDevice::GetUniformBufferMinOffsetAlignment() const -> VkDeviceSize {
@@ -418,41 +421,90 @@ namespace Mikoto {
         return m_Queues;
     }
 
-
-    auto VulkanDevice::GetSwapChain() -> SwapChainHandle {
-        return m_SwapChain;
-    }
-
-    auto VulkanDevice::GetSwapChainPtr() -> VulkanSwapChain* {
-        return m_SwapChain.GetRaw();
-    }
-
     auto VulkanDevice::SubmitCommands( CommandListHandle cmd ) -> void {
+        m_PendingCmdLists.emplace_back( cmd );
     }
 
-    auto VulkanDevice::InitializeSwapchain( const VulkanSwapChainCreateInfo& createInfo ) -> void {
+    auto VulkanDevice::CreateSwapchain( const VulkanSwapChainCreateInfo& createInfo ) -> SwapChainHandle {
 
-        m_SwapChain = std::move( SwapChainHandle::Create( new ( std::nothrow ) VulkanSwapChain( createInfo ) ) );
-        if ( !m_SwapChain.IsEmpty() ) {
-            dynamic_cast<DeviceObject*>( m_SwapChain.GetRaw() )->Allocate( this );
+        SwapChainHandle result{ std::move( SwapChainHandle::Create( new ( std::nothrow ) VulkanSwapChain( createInfo ) ) ) };
+        if ( !result.IsEmpty() ) {
+            result.GetRaw()->Initialize( this );
         }
+
+        return result;
     }
 
-    auto VulkanDevice::CreateSwapChainTextures( const VkImageViewCreateInfo& createInfo ) -> TextureHandle {
-        TextureHandle texture{ m_Textures.Allocate( createInfo ).As<Texture>() };
+    auto VulkanDevice::CreateSwapChainTextures( const VkImageViewCreateInfo& createInfo, VkExtent2D extent ) -> TextureHandle {
+        TextureHandle texture{ m_Textures.Allocate( createInfo, extent ).As<Texture>() };
         if ( texture.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateBuffer - Failed to allocate texture resource with VkImageViewCreateInfo." );
             return TextureHandle::CreateEmpty();
         }
 
-        texture->Allocate( this );
+        texture->Initialize( this );
 
         return texture;
     }
 
+    auto VulkanDevice::FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void {
+        VkPipelineStageFlags waitStage{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        VkSubmitInfo submit{ VulkanHelpers::Initializers::SubmitInfo() };
+        submit.pNext = nullptr;
+        submit.pWaitDstStageMask = std::addressof( waitStage );
+
+        // Wait-on semaphores
+        submit.waitSemaphoreCount = 1;
+        submit.pWaitSemaphores = std::addressof( syncPrimitives.ImageAvailableSemaphore );
+
+        // Completion signal semaphores
+        submit.signalSemaphoreCount = 1;
+        submit.pSignalSemaphores = std::addressof( syncPrimitives.RenderFinishedSemaphore );
+
+        // Command buffers
+        std::vector<VkCommandBuffer> vkCommands{};
+        for (const auto& commandBuffer : m_PendingCmdLists) {
+            auto* cmd{ commandBuffer.As<VulkanCmdList>()->GetImplHandle() };
+
+            if (!commandBuffer.As<VulkanCmdList>()->IsSubmitted()) {
+                vkCommands.emplace_back( *cmd );
+            }
+        }
+
+        submit.commandBufferCount = vkCommands.size();
+        submit.pCommandBuffers = vkCommands.data();
+
+        if ( vkQueueSubmit( m_Queues.Graphics->Queue, 1, std::addressof( submit ), syncPrimitives.RenderFence ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanContext::SubmitFrame - Error trying to submit commands." );
+        }
+
+        vkWaitForFences( m_LogicalDevice, 1, std::addressof( syncPrimitives.RenderFence ), VK_TRUE, ( std::numeric_limits<std::uint64_t>::max )() );
+
+        //Commands have already been flushed I can get rid of them
+        m_PendingCmdLists.clear();
+    }
+
+    auto VulkanDevice::PresentToSwapChain( const FrameSynchronizationPrimitives& syncPrimitives, SwapChainHandle swapchain ) -> void {
+        // Presentation
+        const auto result{ swapchain->Present( VulkanContext::Get()->GetCurrentImageIndex(), syncPrimitives.RenderFinishedSemaphore ) };
+        if ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ) {
+            MKT_THROW_RUNTIME_ERROR( "Error presenting to swp chain" );
+            return;
+        }
+
+        if ( result != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanDevice::PresentToSwapChain - Error failed present images to swapchain." );
+        }
+
+        for (auto& cmdList : m_PendingCmdLists) {
+            cmdList.As<VulkanCmdList>()->SetSubmitted( true );
+        }
+
+        m_PendingCmdLists.clear();
+    }
+
     VulkanCmdList::VulkanCmdList( const VkCommandBufferAllocateInfo& createInfo )
-        : m_AllocInfo{ createInfo }
-    {
+        : m_AllocInfo{ createInfo } {
     }
 
     auto VulkanCmdList::Begin() -> void {
@@ -464,7 +516,7 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanCmdList::Close() -> void {
+    auto VulkanCmdList::End() -> void {
         // End recording command buffer
         if ( vkEndCommandBuffer( m_CmdBuffer ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanCmdList::Close - Failed to record command buffer!" );
@@ -474,10 +526,34 @@ namespace Mikoto {
     auto VulkanCmdList::FillTexture( Buffer* src, Texture* dest ) -> void {
     }
 
-    auto VulkanCmdList::CopyTexture( Buffer* src, Buffer* dest ) -> void {
+    auto VulkanCmdList::CopyBuffer( Buffer* src, Buffer* dest ) -> void {
     }
 
-    auto VulkanCmdList::CopyBuffer( Texture* src, Texture* dest ) -> void {
+    auto VulkanCmdList::CopyTexture( Texture* srcTexture, Texture* destTexture ) -> void {
+        const auto src{ dynamic_cast<VulkanTexture*>( srcTexture ) };
+        const auto dest{ dynamic_cast<VulkanTexture*>( destTexture ) };
+
+        // Layout transition for transfer optimal
+        src->SubmitLayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_CmdBuffer );
+        dest->SubmitLayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_CmdBuffer );
+
+        // Define copy region
+        VkExtent3D extent{};
+        extent.width = dest->GetWidth();
+        extent.height = dest->GetHeight();
+        extent.depth = 1;
+
+        VulkanHelpers::CopyImageToImage( m_CmdBuffer, *src->GetImplHandle(), *dest->GetImplHandle(), extent );
+
+        // Reset layout
+        src->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_CmdBuffer );
+
+        if (!dest->IsSwapChainImage()) {
+            dest->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_CmdBuffer );
+        } else {
+            dest->SubmitLayoutTransition( VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, m_CmdBuffer );
+        }
+
     }
 
     auto VulkanCmdList::WriteBuffer( Buffer* target, Byte* data, Size size ) -> void {
@@ -509,8 +585,7 @@ namespace Mikoto {
     }
 
     VulkanCommandPool::VulkanCommandPool( QueueType queue, Size initialCmdListCount )
-        : m_QueueType{ queue }
-    {
+        : m_QueueType{ queue } {
         m_CmdLists.Init( initialCmdListCount );
     }
 
@@ -520,20 +595,28 @@ namespace Mikoto {
         allocInfo.commandPool = m_Pool;
         allocInfo.commandBufferCount = 1;
 
-        Ref<VulkanCmdList> handle{ m_CmdLists.Allocate(allocInfo ) };
+        Ref<VulkanCmdList> handle{ m_CmdLists.Allocate( allocInfo ) };
         if ( handle.IsEmpty() ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanCommandPool::AllocateCmdList - Failed to allocate  command list." );
         } else {
-            handle.As<DeviceObject>()->Allocate(m_Device);
+            handle.As<DeviceObject>()->Initialize( m_Device );
         }
 
         return handle.As<ICommandList>();
+    }
+
+    auto VulkanCommandPool::Clear() -> void {
+        m_CmdLists.Clear();
     }
 
     VulkanCommandPool::~VulkanCommandPool() {
         if ( m_IsAllocated ) {
             Release();
         }
+    }
+
+    auto VulkanCommandPool::RunGarbageCollection() -> void {
+        m_CmdLists.Clear();
     }
 
     auto VulkanCommandPool::DetermineQueueIndex( const QueuesData& queues, QueueType queue ) -> UInt32 {

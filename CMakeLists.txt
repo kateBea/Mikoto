@@ -26,8 +26,10 @@ if(WIN32)
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
     endif()
 
+    #add_compile_options(/W4 /fsanitize=address)
+    #add_link_options(/fsanitize=address)
+
     set(PYTHON_EXECUTABLE "python")
-    add_compile_definitions(/W4)
     set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
 
 else()

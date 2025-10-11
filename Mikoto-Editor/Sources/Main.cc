@@ -8,6 +8,7 @@
 #include <Library/Utility/Types.hh>
 
 auto main( const int argc, char** argv ) -> int {
+
     using namespace Mikoto;
 
     EditorApp app{};

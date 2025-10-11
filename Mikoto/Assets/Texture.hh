@@ -87,6 +87,10 @@ namespace Mikoto {
             return m_Type;
         }
 
+        MKT_NODISCARD auto GetTextureUsage() const -> TextureUsage {
+            return m_TextureUsage;
+        }
+
         MKT_NODISCARD auto GetSampler() const -> SamplerHandle {
             return SamplerHandle::CreateEmpty();
         }
@@ -116,13 +120,14 @@ namespace Mikoto {
          * @param usage
          */
         explicit Texture( const TextureType type, const TextureFormat format,
-                          const Int32 width, const Int32 height, const Int32 channels, ResourceUsageType usage )
-            : DeviceObject{ usage }, m_Type{ type }, m_Format{ format }, m_Width{ width }, m_Height{ height }, m_Channels{ channels } {
+                          const Int32 width, const Int32 height, const Int32 channels, ResourceUsageType usage, TextureUsage textureUsage )
+            : DeviceObject{ usage }, m_Type{ type }, m_Format{ format }, m_TextureUsage{ textureUsage }, m_Width{ width }, m_Height{ height }, m_Channels{ channels } {
         }
 
     protected:
         TextureType m_Type{ TextureType::TEXTURE_INVALID };
         TextureFormat m_Format{ TextureFormat::TEXTURE_FORMAT_INVALID };
+        TextureUsage m_TextureUsage{ TextureUsage::TEXTURE_USAGE_NORMAL };
 
         Int32 m_Width{};
         Int32 m_Height{};

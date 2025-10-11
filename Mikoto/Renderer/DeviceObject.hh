@@ -37,11 +37,14 @@ namespace Mikoto {
          *
          * @param device A pointer to the GPU device associated with this object.
          */
-        auto Allocate( GpuDevice* device ) -> void {
+        auto Initialize( GpuDevice* device ) -> void {
             m_Device = device;
 
             Allocate();
         }
+
+        auto SetDebugName(const std::string_view name) -> void { m_DebugName = name; }
+        auto GetDebugName() const -> const std::string& { return m_DebugName; }
 
         /**
          * @brief Destructor for the DeviceObject class.
@@ -61,7 +64,7 @@ namespace Mikoto {
 
         // API specific object handle
         template<typename ChildType>
-        MKT_NODISCARD auto GetNativeHandle() const {
+        MKT_NODISCARD auto GetNativeHandle() -> decltype(auto) {
             return static_cast<ChildType*>(this)->GetImplHandle();
         }
 
@@ -97,6 +100,7 @@ namespace Mikoto {
         auto Release() -> void override = 0;
 
     protected:
+        std::string m_DebugName{ "DeviceObject" };
         GpuDevice* m_Device{};
         ResourceUsageType m_UsageType{ ResourceUsageType::RESOURCE_USAGE_STATIC };
     };

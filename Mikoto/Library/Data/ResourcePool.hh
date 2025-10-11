@@ -4,15 +4,15 @@
 
 #ifndef RESOURCEPOOL_HH
 #define RESOURCEPOOL_HH
-#include <ranges>
-#include <type_traits>
-
 #include <ankerl/unordered_dense.h>
 
 #include <Common/Common.hh>
-#include <Logging/Assert.hh>
-#include <Library/Utility/Types.hh>
 #include <Common/ReferenceCounted.hh>
+#include <Library/Utility/Types.hh>
+#include <Logging/Assert.hh>
+#include <Logging/Logger.hh>
+#include <ranges>
+#include <type_traits>
 
 namespace Mikoto {
 
@@ -58,13 +58,23 @@ namespace Mikoto {
     */
     class IResource : public ReferenceCounted {
     public:
-        /**
-        * @brief Virtual destructor.
-        *
-        * A virtual destructor to ensure proper cleanup of derived class objects when deleted through a base pointer.
-        */
+#if !defined(NDEBUG)
+        IResource() {
+            ++s_ResourceCount;
+            MKT_CORE_LOGGER_DEBUG("Creating resource, count is no: {}", s_ResourceCount );
+        };
+
+
+        ~IResource() override {
+            --s_ResourceCount;
+            MKT_CORE_LOGGER_DEBUG("Destroying resource, count is no: {}", s_ResourceCount );
+        };
+
+#else
+
         ~IResource() override = default;
 
+#endif
         /**
         * @brief Retrieves the handle associated with the resource.
         *
@@ -133,6 +143,12 @@ namespace Mikoto {
         bool m_IsAllocated{ false };
 
         Handle m_Handle{};
+
+#if !defined(NDEBUG)
+    public:
+        static inline Size s_ResourceCount{ 0 };
+#endif
+
     };
 
     /**
@@ -146,6 +162,8 @@ namespace Mikoto {
     */
     class ResourcePool {
     public:
+        using ResourceHandle = Ref<IResource>;
+
         /**
         * @brief Initializes the resource pool.
         * @param poolSize The number of resources the pool can hold.
@@ -165,15 +183,19 @@ namespace Mikoto {
         * @brief Shuts down the resource pool, releasing all allocated resources.
         */
         auto Shutdown() -> void {
-            for ( const auto& resource: m_Resources | std::views::values ) {
-                if ( !resource.IsEmpty() ) {
-                    // Check if resource was not freed
-                    ReleaseResource( resource->GetHandle() );
-                }
+            m_FreeHandles.clear();
+            m_Resources.clear();
+        }
+
+        auto Clear() -> void {
+            for ( auto& resource: m_Resources | std::views::values ) {
+                resource.Disable();
             }
 
             m_FreeHandles.clear();
             m_Resources.clear();
+
+            Init(m_PoolSize);
         }
 
     protected:
@@ -184,9 +206,7 @@ namespace Mikoto {
         auto ReleaseResource( const Handle index ) -> void {
 
             if ( m_Resources.contains(index) ) {
-                m_Resources[index]->Free();
-                m_Resources[index] = nullptr;
-
+                m_Resources.erase(index);
                 m_FreeHandles.emplace_back(index);
             }
         }
@@ -196,8 +216,8 @@ namespace Mikoto {
         * @param index The index of the resource to access.
         * @return A pointer to the resource, or nullptr if invalid.
         */
-        MKT_NODISCARD auto AccessResource( const Handle index ) const -> Ref<IResource> {
-            return m_Resources.contains(index) ? m_Resources.at(index) : Ref<IResource>::CreateEmpty();
+        MKT_NODISCARD auto AccessResource( const Handle index ) const -> ResourceHandle {
+            return m_Resources.contains(index) ? m_Resources.at(index) : ResourceHandle::CreateEmpty();
         }
 
     protected:
@@ -206,35 +226,33 @@ namespace Mikoto {
         * @return The index of the obtained resource, or `INVALID_HANDLE` if allocation fails.
         */
         MKT_NODISCARD auto ObtainResource() -> Handle {
-            if ( !IsHandleAvailable() ) {
-                return INVALID_HANDLE;
-            }
-
             const Handle index{ m_FreeHandles.back() };
-
-            // TODO: avoid adding/removing elements from this list
             m_FreeHandles.pop_back();
 
             return index;
         }
 
-        /**
-        * @brief Checks if a handle is available for use.
-        * @return True if the handle is available, false otherwise.
-        *
-        * This function determines whether we have handles free for use.
-        */
-        MKT_NODISCARD auto IsHandleAvailable() const -> bool {
-            return !m_FreeHandles.empty();
+        auto Resize() -> void {
+            // When pool is full free handles will be empty
+
+            // Add the other handles after current limit size
+            // Last available handle ID is m_PoolSize - 1 (see init)
+            for (UInt32 i{}; i <  (m_PoolSize * POOL_RESIZE_RATE) - m_PoolSize; ++i ) {
+                m_FreeHandles.emplace_back( i + m_PoolSize );
+            }
+
+            m_PoolSize = m_FreeHandles.size();
         }
 
+        MKT_NODISCARD auto IsPoolFull() const -> bool { return m_FreeHandles.size() == 0; }
+
     protected:
+        static constexpr double POOL_RESIZE_RATE{ 2.5 };
 
     protected:
         UInt32 m_PoolSize{ 100 };
-        UInt32 m_IndexFreeHandles{};
         std::vector<Handle> m_FreeHandles{};
-        ankerl::unordered_dense::map<Handle, Ref<IResource>> m_Resources{};
+        ankerl::unordered_dense::map<Handle, ResourceHandle> m_Resources{};
     };
 
     /**
@@ -262,22 +280,23 @@ namespace Mikoto {
         */
         template<typename... Args>
         MKT_NODISCARD auto Allocate(Args&&... args) -> RefHandle {
-            const UInt32 index{ ObtainResource() };
-            if (index == INVALID_HANDLE) {
-                return RefHandle::CreateEmpty();
+            if (IsPoolFull()) {
+                Resize();
             }
 
+            const UInt32 index{ ObtainResource() };
+
             Pointer p{ new (std::nothrow) T(std::forward<Args>(args)... ) };
-            auto newResource{ std::move(Ref<IResource>::Create(p)) };
+            auto newResource{ std::move(ResourceHandle::Create(p)) };
 
             const auto [it, success]{ m_Resources.try_emplace( index, std::move(newResource) ) };
             if (success) {
                 p->SetHandle( index );
             } else if (it->second.IsEmpty()) {
-                it->second = Ref<IResource>::Create(p);
+                it->second = ResourceHandle::Create(p);
             }
 
-            return it->second.As<T>();
+            return it->second.template As<T>();
         }
 
         /**
@@ -299,6 +318,22 @@ namespace Mikoto {
             }
 
             return RefHandle::CreateEmpty();
+        }
+
+        MKT_NODISCARD auto GetResource() -> RefHandle {
+            // This function can be used to get the first available resource
+            // we might preallocate and have them ready for usage later
+            RefHandle result{ RefHandle::CreateEmpty() };
+
+            // Find the first available resource
+            for (ResourceHandle& resource : m_Resources  | std::views::values ) {
+                if (!resource.IsEmpty() && resource->IsReady()) {
+                    result = resource.As<T>();
+                    break;
+                }
+            }
+
+            return result;
         }
 
         auto begin() { return m_Resources.begin(); }

@@ -55,30 +55,36 @@ namespace Mikoto {
     }
 
     auto AudioSource::Play() -> void {
-        if ( !m_IsPlaying ) {
-            ma_sound_start( &m_Sound );
-            m_IsPlaying = true;
-        }
+        Continue();
     }
 
     auto AudioSource::Pause() -> void {
         if ( m_IsPlaying ) {
+            // Save current progress
+            ma_sound_get_cursor_in_seconds( &m_Sound, &m_CurrentProgress );
             ma_sound_stop( &m_Sound );
+
             m_IsPlaying = false;
         }
     }
 
     auto AudioSource::Continue() -> void {
         if ( !m_IsPlaying ) {
+            // Save current progress
             ma_sound_start( &m_Sound );
+            ma_sound_seek_to_second( std::addressof( m_Sound ), m_CurrentProgress );
+
             m_IsPlaying = true;
         }
     }
 
     auto AudioSource::Stop() -> void {
         ma_sound_stop( &m_Sound );
-        ma_sound_seek_to_pcm_frame( &m_Sound, 0 );
+
         m_IsPlaying = false;
+
+        m_CurrentProgress = 0;
+        ma_sound_seek_to_second( std::addressof( m_Sound ), m_CurrentProgress );
     }
 
     auto AudioSource::IsPlaying() const -> bool {
@@ -107,6 +113,40 @@ namespace Mikoto {
 
     auto AudioSource::IsSpatialized() const -> bool {
         return m_IsSpatialized;
+    }
+
+    auto AudioSource::GetAudioDuration() const -> float {
+        float duration{ 0 };
+
+        ma_sound_get_length_in_seconds( &m_Sound, &duration );
+
+        // Clamp to 32-bit if needed
+        return duration;
+    }
+
+    auto AudioSource::GetCurrentProgress() const -> float {
+        float duration{ 0 };
+
+        ma_sound_get_cursor_in_seconds( &m_Sound, &duration );
+
+        // Clamp to 32-bit if needed
+        return duration;
+    }
+
+    auto AudioSource::IsSameSource( const AudioSource * source) const -> bool {
+        if (source == nullptr) {
+            return false;
+        }
+
+        return source == this;
+    }
+
+    auto AudioSource::IsSameAudio( const AudioSource * source) const -> bool {
+        if (source == nullptr) {
+            return false;
+        }
+
+        return m_Path == source->m_Path;
     }
 
     auto AudioSource::Allocate() -> void {

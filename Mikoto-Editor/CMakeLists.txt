@@ -27,3 +27,21 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_RADIANS)
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE VK_NO_PROTOTYPES)
+
+# ======================================
+# Post build
+# ======================================
+
+# Path to your resources folder (relative to project root)
+set(RESOURCE_DIR "${CMAKE_SOURCE_DIR}/Mikoto/Resources")
+
+# Path where resources should be copied in the build folder
+set(OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/Resources")
+
+add_custom_command(
+        TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${RESOURCE_DIR}" "${OUTPUT_DIR}"
+        COMMENT "Copying resources to build directory..."
+)
+

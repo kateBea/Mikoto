@@ -10,6 +10,7 @@
 #include <Common/Common.hh>
 #include <Library/Data/ResourcePool.hh>
 #include <Library/Utility/Types.hh>
+#include <utility>
 
 namespace Mikoto {
     class AudioDevice;
@@ -144,6 +145,14 @@ namespace Mikoto {
        */
         MKT_NODISCARD auto IsSpatialized() const -> bool;
 
+      // audio duration in seconds
+      MKT_NODISCARD auto GetAudioDuration() const -> float;
+      // current progress in seconds
+      MKT_NODISCARD auto GetCurrentProgress() const -> float;
+
+      MKT_NODISCARD auto IsSameSource( const AudioSource* source) const -> bool;
+      MKT_NODISCARD auto IsSameAudio( const AudioSource* source) const -> bool;
+
     private:
         /**
        * @brief Allocates internal audio resources and prepares for playback.
@@ -169,6 +178,7 @@ namespace Mikoto {
         float m_Volume{ 10.0f};
         bool m_Muted{ false };
         float m_Pitch{ 1.0f };
+        float m_CurrentProgress{ 0.0f };
         bool m_IsLooping{ false };
         bool m_IsSpatialized{ false };
         bool m_IsPlaying{ false };

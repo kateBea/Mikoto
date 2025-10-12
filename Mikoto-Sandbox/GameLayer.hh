@@ -7,6 +7,7 @@
 
 #include <imgui.h>
 
+#include <Assets/Audio.hh>
 #include <Core/LayerStack.hh>
 #include <string_view>
 

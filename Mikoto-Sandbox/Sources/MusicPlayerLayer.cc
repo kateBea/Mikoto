@@ -2,7 +2,7 @@
 // Created by kate on 10/12/25.
 //
 
-#include "MusicPlayerLayer.hh"
+#include <MusicPlayerLayer.hh>
 
 #include <imgui.h>
 
@@ -34,7 +34,7 @@ namespace Mikoto {
         if ( ImGui::BeginChild( "TrackList", trackListMinSize, true, ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_HorizontalScrollbar ) ) {
             for ( Size i{}; i < m_Tracks.size(); ++i ) {
                 const auto& audio{ m_Tracks[i] };
-                if ( ImGui::Selectable( audio->GetFile()->GetPathCStr(), i == m_SelectedIndex ) ) {
+                if ( ImGui::Selectable( audio->GetTrackName().c_str(), i == m_SelectedIndex ) ) {
                     m_SelectedIndex = static_cast<int>( i );
                     m_NewAudio = m_Tracks.at( m_SelectedIndex )->CreateSource();
                 }
@@ -55,7 +55,11 @@ namespace Mikoto {
 
                 m_Target = m_NewAudio;
             }
-            m_Target->Play();
+
+            // check, when we have never selected an audio
+            if (!m_Target.IsEmpty()) {
+                m_Target->Play();
+            }
         }
 
         ImGui::SameLine();

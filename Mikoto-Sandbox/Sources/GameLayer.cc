@@ -6,6 +6,7 @@
 
 #include <imgui.h>
 
+#include <ImGui/ImGuiService.hh>
 #include <Logging/Logger.hh>
 
 namespace Mikoto {
@@ -32,7 +33,9 @@ namespace Mikoto {
             ImGui::Checkbox("Another Window", &m_ShowDemo);
 
             ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", reinterpret_cast<float*>( &m_ClearColor ) ); // Edit 3 floats representing a color
+            if (ImGui::ColorEdit4("clear color", reinterpret_cast<float*>( &m_ClearColor ) )) {
+                ImGuiService::Get()->SetImGuiBackGroundClearColor( m_ClearColor );
+            }
 
             if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
                 counter++;

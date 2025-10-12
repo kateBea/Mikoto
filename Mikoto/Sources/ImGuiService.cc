@@ -56,6 +56,15 @@ namespace Mikoto {
         ImGui::StyleColorsDark();
         ImGuiUtils::ThemeDarkModeDefault();
 
+        // General look and feel
+
+        style.FrameRounding  = 6.0f;  // Buttons, sliders, etc.
+        style.GrabRounding   = 6.0f;  // Grabs on sliders
+        style.WindowRounding = 8.0f;  // Top-level windows
+        style.ChildRounding  = 8.0f;  // Child windows
+        style.PopupRounding  = 8.0f;  // Popups
+        style.ScrollbarRounding = 8.0f;
+
         io.Fonts->AddFontDefault();
         constexpr float baseFontSize{ 21.0f };
         constexpr float iconFontSize{ baseFontSize * 1.1f }; // FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly };
@@ -95,8 +104,8 @@ namespace Mikoto {
         m_IsInitialized = true;
     }
 
-    auto ImGuiService::AddIconFont( const float fontSize, const std::string &path, const std::array<ImWchar, 3> &iconRanges) -> void {
-        const auto& io{ ImGui::GetIO() };
+    auto ImGuiService::AddIconFont( const float fontSize, const std::string &path, const std::array<ImWchar, 3> &iconRanges ) -> void {
+        const auto &io{ ImGui::GetIO() };
 
         ImFontConfig config{};
         config.MergeMode = true;
@@ -110,11 +119,16 @@ namespace Mikoto {
         auto font{ io.Fonts->AddFontFromFileTTF(
                 path.c_str(),
                 fontSize,
-                std::addressof(config),
-                iconRanges.data()) };
+                std::addressof( config ),
+                iconRanges.data() ) };
 
-        m_Fonts.emplace_back(font);
+        m_Fonts.emplace_back( font );
     }
+
+    auto ImGuiService::SetImGuiBackGroundClearColor( const Vec4 &color ) -> void {
+        m_Implementation->SetClearColor(color);
+    }
+
 
     auto ImGuiService::InitImplementation() -> void {
         ImGuiIO& io{ ImGui::GetIO() };

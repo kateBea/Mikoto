@@ -60,7 +60,7 @@ namespace Mikoto {
     auto SandboxApp::Init() -> void {
 
         // Load configuration
-        BaseConfiguration configApp{ "./engine-config.toml" };
+        BaseConfiguration configApp{ "./app-config.toml" };
 
         // App window
         m_Window = Window::Create( { .Title{ configApp.Get<std::string>( "application.title" ) },

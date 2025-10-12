@@ -58,9 +58,11 @@ namespace Mikoto {
     #define MKT_CORE_LOGGER_INFO(...) Mikoto::Logger::Get().GetConsoleLog()->info(fmt::format(__VA_ARGS__))
     #define MKT_CORE_LOGGER_DEBUG(...) Mikoto::Logger::Get().GetConsoleLog()->debug(fmt::format(__VA_ARGS__))
 #else
-    #define MKT_CORE_LOGGER_ERROR(...)
+    // I still want to see errors and critical logs
+    #define MKT_CORE_LOGGER_ERROR(...) Mikoto::Logger::Get().GetConsoleLog()->error(fmt::format(__VA_ARGS__))
+    #define MKT_CORE_LOGGER_CRITICAL(...) Mikoto::Logger::Get().GetConsoleLog()->critical(fmt::format(__VA_ARGS__))
+
     #define MKT_CORE_LOGGER_WARN(...)
-    #define MKT_CORE_LOGGER_CRITICAL(...)
     #define MKT_CORE_LOGGER_TRACE(...)
     #define MKT_CORE_LOGGER_INFO(...)
     #define MKT_CORE_LOGGER_DEBUG(...)

@@ -14,7 +14,11 @@
 #include <memory>
 #include <utility>
 
+#include <glm/glm.hpp>
+
 namespace Mikoto {
+    using Vec4 = glm::vec4;
+
     using Path = std::filesystem::path;
 
     using Int8 = std::int8_t;

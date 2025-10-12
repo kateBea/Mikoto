@@ -278,7 +278,7 @@ namespace Mikoto::StringUtils {
      * @param str2 Null-terminated string to compare.
      * @returns True if both strings are the same, false otherwise.
      * */
-    MKT_NODISCARD inline constexpr auto Equal( const std::string_view str1, const std::string_view str2, StringComparisonPolicy policy) -> bool {
+    MKT_NODISCARD inline auto Equal( const std::string_view str1, const std::string_view str2, StringComparisonPolicy policy) -> bool {
         const auto insensitive{ [](const char a, const char b) {
             return std::tolower(a) == std::tolower(b);
         }};

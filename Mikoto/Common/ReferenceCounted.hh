@@ -138,9 +138,9 @@ namespace Mikoto {
 
         template<typename OtherRefCountedType>
         auto As() const -> Ref<OtherRefCountedType> {
-            if constexpr ( RelatedDynamicallyCastable<OtherRefCountedType*, OtherRefCountedType*> ) {
-                return Ref<OtherRefCountedType>::CreateEmpty();
-            }
+            // if constexpr ( RelatedDynamicallyCastable<OtherRefCountedType*, RefCountedType*> == true ) {
+            //     return Ref<OtherRefCountedType>::CreateEmpty();
+            // }
 
             return Ref<OtherRefCountedType>( dynamic_cast<OtherRefCountedType*>( m_Ptr ) );
         }

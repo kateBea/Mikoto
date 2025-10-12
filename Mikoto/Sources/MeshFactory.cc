@@ -9,7 +9,7 @@
 #include <Assets/AssetsService.hh>
 #include <Assets/MeshFactory.hh>
 #include <Assets/Model.hh>
-#include <FileSystem/FileService.hh>
+#include <Filesystem/FileService.hh>
 #include <Library/IO/PathBuilder.hh>
 #include <Renderer/GpuUtility.hh>
 #include <Renderer/RenderService.hh>
@@ -225,7 +225,7 @@ namespace Mikoto {
         // Process all the meshes from this node
         for ( UInt64 meshIndex{}; meshIndex < rootNode->mNumMeshes; meshIndex++ ) {
             auto [VertexBuffer, IndexBuffer, Textures]{
-                std::move( ConstructMeshNode(device, rootPath, scene->mMeshes[rootNode->mMeshes[meshIndex]], scene ) )
+                ConstructMeshNode(device, rootPath, scene->mMeshes[rootNode->mMeshes[meshIndex]], scene )
             };
 
             result.emplace_back( rootNode->mMeshes[meshIndex], VertexBuffer, IndexBuffer, std::move( Textures ) );

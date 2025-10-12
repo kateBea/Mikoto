@@ -287,7 +287,7 @@ namespace Mikoto {
             const UInt32 index{ ObtainResource() };
 
             Pointer p{ new (std::nothrow) T(std::forward<Args>(args)... ) };
-            auto newResource{ std::move(ResourceHandle::Create(p)) };
+            auto newResource{ ResourceHandle::Create(p) };
 
             const auto [it, success]{ m_Resources.try_emplace( index, std::move(newResource) ) };
             if (success) {

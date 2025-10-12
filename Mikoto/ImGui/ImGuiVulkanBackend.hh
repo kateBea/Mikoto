@@ -16,7 +16,7 @@
 
 #include <ImGui/ImGuiService.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
-#include <Renderer/Vulkan/VulkanFrameBuffer.hh>
+#include <Renderer/Vulkan/VulkanFramebuffer.hh>
 #include <Renderer/Vulkan/VulkanTexture.hh>
 
 namespace Mikoto {

@@ -466,9 +466,7 @@ namespace Mikoto {
         for (const auto& commandBuffer : m_PendingCmdLists) {
             auto* cmd{ commandBuffer.As<VulkanCmdList>()->GetImplHandle() };
 
-            if (!commandBuffer.As<VulkanCmdList>()->IsSubmitted()) {
-                vkCommands.emplace_back( *cmd );
-            }
+            vkCommands.emplace_back( *cmd );
         }
 
         submit.commandBufferCount = vkCommands.size();
@@ -494,10 +492,6 @@ namespace Mikoto {
 
         if ( result != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanDevice::PresentToSwapChain - Error failed present images to swapchain." );
-        }
-
-        for (auto& cmdList : m_PendingCmdLists) {
-            cmdList.As<VulkanCmdList>()->SetSubmitted( true );
         }
 
         m_PendingCmdLists.clear();

@@ -61,7 +61,7 @@ namespace Mikoto {
             auto result = toml::parse_file(filePath.string());
 
             if (result.failed()) {
-                MKT_CORE_LOGGER_ERROR("Failed to load configuration file: {}", filePath.string());
+                MKT_THROW_RUNTIME_ERROR(fmt::format("Failed to load configuration file: {}", filePath.string()));
                 return;
             }
 

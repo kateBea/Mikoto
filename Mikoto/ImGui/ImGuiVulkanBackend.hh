@@ -47,9 +47,8 @@ namespace Mikoto {
         auto CreateImages() -> void;
         auto CreateFrameBuffer() -> void;
 
-        auto RecordRenderPassCommands() -> void;
-
-        auto RecordCommands( TextureHandle swapChainDrawTarget ) -> void;
+        auto RecordRenderPassCommands(CommandListHandle cmdList ) -> void;
+        auto RecordCommands( TextureHandle swapChainDrawTarget, CommandListHandle cmdList  ) -> void;
 
     private:
 
@@ -59,8 +58,6 @@ namespace Mikoto {
         TextureHandle m_ColorImage{};
         TextureHandle m_DepthImage{};
         FramebufferHandle m_DrawFrameBuffer{};
-
-        CommandListHandle m_CommandList{};
 
         VkFormat m_ColorAttachmentFormat{};
         VkFormat m_DepthAttachmentFormat{};

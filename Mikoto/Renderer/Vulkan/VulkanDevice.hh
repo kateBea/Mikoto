@@ -46,7 +46,7 @@ namespace Mikoto {
 
     class VulkanCommandPool final : public DeviceObject {
     public:
-        explicit VulkanCommandPool(QueueType queue, Size initialCmdListCount = 100);
+        explicit VulkanCommandPool(QueueType queue, Size initialCmdListCount = 10);
 
         MKT_NODISCARD auto GetImplHandle() -> VkCommandPool* { return std::addressof(m_Pool); }
 

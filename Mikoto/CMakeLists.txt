@@ -380,7 +380,7 @@ set(LIBRARIES
 )
 
 if(UNIX)
-    list(APPEND LIBRARIES pthread m dl atomic)
+    list(APPEND LIBRARIES pthread)
 endif()
 
 # ======================================

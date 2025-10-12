@@ -61,13 +61,13 @@ namespace Mikoto {
 #if !defined(NDEBUG)
         IResource() {
             ++s_ResourceCount;
-            MKT_CORE_LOGGER_DEBUG("Creating resource, count is no: {}", s_ResourceCount );
+            //MKT_CORE_LOGGER_DEBUG("Creating resource, count is no: {}", s_ResourceCount );
         };
 
 
         ~IResource() override {
             --s_ResourceCount;
-            MKT_CORE_LOGGER_DEBUG("Destroying resource, count is no: {}", s_ResourceCount );
+            //MKT_CORE_LOGGER_DEBUG("Destroying resource, count is no: {}", s_ResourceCount );
         };
 
 #else

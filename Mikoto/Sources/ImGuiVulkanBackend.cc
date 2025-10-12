@@ -43,7 +43,6 @@ namespace Mikoto {
         // Services in Mikoto do not do their cleanup in the destructor they do it on the Shutdown method
         m_ColorImage.Disable();
         m_DepthImage.Disable();
-        m_CommandList.Disable();
         m_DrawFrameBuffer.Disable();
 
         // Wait for remaining operations to complete
@@ -272,14 +271,14 @@ namespace Mikoto {
 
         ImGui::Render();
 
-        m_CommandList = m_GpuDevice->CreateCommandList();
-        m_CommandList->Begin();
+        CommandListHandle commandList{ m_GpuDevice->CreateCommandList() };
+        commandList->Begin();
 
         const UInt32 swapChainImageIndex{ VulkanContext::Get()->GetCurrentImageIndex() };
-        RecordCommands( swapChain->GetImage( swapChainImageIndex ) );
+        RecordCommands( swapChain->GetImage( swapChainImageIndex ), commandList );
 
-        m_CommandList->End();
-        m_GpuDevice->SubmitCommands( m_CommandList );
+        commandList->End();
+        m_GpuDevice->SubmitCommands( commandList );
 
         if ( const ImGuiIO & io{ ImGui::GetIO() }; io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {
             ImGui::UpdatePlatformWindows();
@@ -302,7 +301,7 @@ namespace Mikoto {
         m_DrawFrameBuffer = m_GpuDevice->CreateFrameBuffer( description );
     }
 
-    auto ImGuiVulkanBackend::RecordRenderPassCommands() -> void {
+    auto ImGuiVulkanBackend::RecordRenderPassCommands( CommandListHandle cmdList ) -> void {
         // Begin ImGui-specific render pass
         VkRenderPassBeginInfo renderPassInfo{ VulkanHelpers::Initializers::RenderPassBeginInfo() };
         renderPassInfo.renderPass = m_ImGuiRenderPass;// Use the render pass for ImGui
@@ -319,7 +318,7 @@ namespace Mikoto {
         renderPassInfo.clearValueCount = static_cast<UInt32>( clearValues.size() );
         renderPassInfo.pClearValues = clearValues.data();
 
-        auto nativeCmdListHandle{ *m_CommandList->GetNativeHandle<VulkanCmdList>() };
+        auto nativeCmdListHandle{ *cmdList->GetNativeHandle<VulkanCmdList>() };
 
         SwapChainHandle vulkanSwapChain{ VulkanContext::Get()->GetSwapchain() };
 
@@ -349,11 +348,11 @@ namespace Mikoto {
         vkCmdEndRenderPass( nativeCmdListHandle );
     }
 
-    auto ImGuiVulkanBackend::RecordCommands( TextureHandle swapChainDrawTarget ) -> void {
+    auto ImGuiVulkanBackend::RecordCommands( TextureHandle swapChainDrawTarget, CommandListHandle cmdList ) -> void {
         // Record imgui draw commands
-        RecordRenderPassCommands();
+        RecordRenderPassCommands( cmdList );
 
-        m_CommandList->CopyTexture( m_ColorImage.GetRaw(), swapChainDrawTarget.GetRaw() );
+        cmdList->CopyTexture( m_ColorImage.GetRaw(), swapChainDrawTarget.GetRaw() );
     }
 
 }// namespace Mikoto

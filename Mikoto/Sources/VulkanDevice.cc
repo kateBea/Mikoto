@@ -10,7 +10,6 @@
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanTexture.hh>
-#include <new>
 
 namespace Mikoto {
 
@@ -171,7 +170,7 @@ namespace Mikoto {
         m_Framebuffers.Init( 10 );
 
         // Pre-initialize available pools
-        UInt32 poolCount{ 1 };
+        UInt32 poolCount{ 5 };
         m_CmdPools.Init( poolCount );
         for (auto count{ 0 }; count < poolCount; ++count ) {
             // Temporary on my machine this queue is powerful xdd
@@ -427,7 +426,7 @@ namespace Mikoto {
 
     auto VulkanDevice::CreateSwapchain( const VulkanSwapChainCreateInfo& createInfo ) -> SwapChainHandle {
 
-        SwapChainHandle result{ std::move( SwapChainHandle::Create( new ( std::nothrow ) VulkanSwapChain( createInfo ) ) ) };
+        SwapChainHandle result{ std::move( SwapChainHandle::Create( MKT_NO_THROW_NEW VulkanSwapChain( createInfo ) ) ) };
         if ( !result.IsEmpty() ) {
             result.GetRaw()->Initialize( this );
         }

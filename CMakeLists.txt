@@ -13,13 +13,15 @@ project(Mikoto
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CPP_RTTI_ENABLED ON)
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
 
 # ===========================
 # Platform-specific settings
 # ===========================
 if(WIN32)
     # Static MSVC runtime
+    message("Target platform Windows")
+
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     else()
@@ -29,13 +31,17 @@ if(WIN32)
     #add_compile_options(/W4 /fsanitize=address)
     #add_link_options(/fsanitize=address)
 
-    set(PYTHON_EXECUTABLE "python")
     set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
 
-else()
-    set(PYTHON_EXECUTABLE "python3")
-    add_compile_options(-fsanitize=address -D_DEBUG -Wall -Wextra -Wpedantic)
-    add_link_options(-fsanitize=address)
+elseif(LINUX)
+    message("Target platform Linux")
+
+    # Remove g3 for Release g3 is full debug info
+    #add_compile_options(-fsanitize=address -g3 -D_DEBUG -Wall -Wextra -Wpedantic )
+    #add_link_options(-fsanitize=address)
+
+    # Easiest for now to run valgrind tests
+    add_compile_options(-g3 -D_DEBUG -Wall -Wextra -Wpedantic )
 endif()
 
 # ===========================

@@ -11,10 +11,13 @@
 #include <fstream>
 #include <string>
 #include <array>
+#include <new>
 
 #include <fmt/format.h>
 
 // Project Headers
+
+#define MKT_NO_THROW_NEW new (std::nothrow)
 
 #define MKT_NODISCARD [[nodiscard]]
 #define MKT_UNUSED_FUNC [[maybe_unused]]

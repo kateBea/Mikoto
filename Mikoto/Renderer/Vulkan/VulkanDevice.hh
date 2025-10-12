@@ -37,7 +37,7 @@ namespace Mikoto {
 
         ~VulkanCmdList() override;
     private:
-        auto Allocate() -> void override;
+        auto Initialize() -> void override;
         auto Release() -> void override;
     private:
         VkCommandBuffer m_CmdBuffer{ VK_NULL_HANDLE };
@@ -72,7 +72,7 @@ namespace Mikoto {
 
         static auto DetermineQueueIndex(const QueuesData& queues, QueueType queue) -> UInt32;
     private:
-        auto Allocate() -> void override;
+        auto Initialize() -> void override;
         auto Release() -> void override;
 
     private:

@@ -36,7 +36,7 @@ namespace Mikoto {
             return AudioSourceHandle::CreateEmpty();
         }
 
-        source->Allocate();
+        source->Initialize();
 
         return source;
     }
@@ -48,8 +48,8 @@ namespace Mikoto {
         m_Sources.Shutdown();
     }
 
-    auto Audio::Allocate() -> void {
-        m_Sources.Init( 20 );
+    auto Audio::Initialize() -> void {
+        m_Sources.Init( 5 );
         SetIsReady( true );
 
         m_IsAllocated = true;

@@ -39,7 +39,7 @@ namespace Mikoto {
 
     private:
         auto Release() -> void override;
-        auto Allocate() -> void override;
+        auto Initialize() -> void override;
 
     private:
         VkSampler m_Sampler{ VK_NULL_HANDLE };
@@ -85,7 +85,7 @@ namespace Mikoto {
 
     private:
         auto AllocateImage() -> void;
-        auto Allocate() -> void override;
+        auto Initialize() -> void override;
         auto Release() -> void override;
 
     private:
@@ -142,7 +142,7 @@ namespace Mikoto {
 
     private:
         auto Release() -> void override;
-        auto Allocate() -> void override;
+        auto Initialize() -> void override;
 
         auto CreateSwapChain() -> void;
         auto AcquireSwapchainImages() -> void;

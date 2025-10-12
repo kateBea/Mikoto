@@ -40,7 +40,7 @@ namespace Mikoto {
         auto Init( AudioDevice* device ) -> void {
             m_Device = device;
 
-            Allocate();
+            Initialize();
         }
 
         /**
@@ -57,7 +57,7 @@ namespace Mikoto {
          * This method is pure virtual and must be implemented by derived classes to allocate resources
          * (e.g., buffers, textures) on the GPU. It is called when the `Init` method is invoked.
          */
-        auto Allocate() -> void override = 0;
+        auto Initialize() -> void override = 0;
 
         auto Release() -> void override = 0;
 

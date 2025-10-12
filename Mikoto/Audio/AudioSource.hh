@@ -160,7 +160,7 @@ namespace Mikoto {
        *
        * @note Must be called before invoking Play().
        */
-        auto Allocate() -> void override;
+        auto Initialize() -> void override;
 
         /**
        * @brief Releases internal audio resources and frees memory.

@@ -6,8 +6,8 @@
 
 #include <Assets/Audio.hh>
 #include <Audio/AudioDevice.hh>
-#include <Logging/Logger.hh>
 #include <Library/IO/File.hh>
+#include <Logging/Logger.hh>
 
 namespace Mikoto {
     AudioLoadDescription& AudioLoadDescription::WithFile( const File* source ) {
@@ -21,7 +21,13 @@ namespace Mikoto {
     }
 
     Audio::Audio( const AudioLoadDescription& description )
-        : m_FileSource{ description.AudioFile } {}
+        : m_FileSource{ description.AudioFile },
+          m_TrackName{
+          Path{ description.AudioFile->GetPath() }
+              .replace_extension()
+              .filename()
+              .string() }
+    {}
 
     auto Audio::CreateSource() -> AudioSourceHandle {
         AudioSourceHandle source{ m_Sources.Allocate( m_Device, m_FileSource->GetPath() ) };
@@ -34,9 +40,12 @@ namespace Mikoto {
 
         return source;
     }
+    auto Audio::GetTrackName() const -> const std::string& {
+        return m_TrackName;
+    }
 
     auto Audio::Release() -> void {
-        m_Sources.Shutdown( );
+        m_Sources.Shutdown();
     }
 
     auto Audio::Allocate() -> void {
@@ -45,4 +54,4 @@ namespace Mikoto {
 
         m_IsAllocated = true;
     }
-}
+}// namespace Mikoto

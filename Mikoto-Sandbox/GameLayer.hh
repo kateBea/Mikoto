@@ -24,7 +24,7 @@ namespace Mikoto {
     private:
         bool m_ShowDemo{ false };
         bool m_ShowAnotherWindow{ false };
-        ImVec4 m_ClearColor{ ImVec4(0.45f, 0.55f, 0.60f, 1.00f) };
+        Vec4 m_ClearColor{ 0.45f, 0.55f, 0.60f, 1.00f };
     };
 }// namespace Mikoto
 

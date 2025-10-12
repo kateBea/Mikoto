@@ -38,6 +38,8 @@ namespace Mikoto {
 
         auto CreateSource() -> AudioSourceHandle;
 
+        MKT_NODISCARD auto GetTrackName() const -> const std::string&;
+
     private:
         /**
         * @brief Releases system resources associated with the audio.
@@ -49,6 +51,8 @@ namespace Mikoto {
         auto Allocate() -> void override;
 
         const File* m_FileSource{};
+
+        std::string m_TrackName{};
 
         ResourcePoolTyped<AudioSource> m_Sources{};
     };

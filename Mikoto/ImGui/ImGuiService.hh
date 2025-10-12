@@ -14,6 +14,7 @@
 #include <Platform/Window.hh>
 #include <Renderer/GpuDevice.hh>
 #include <Renderer/RenderUtility.hh>
+#include <Library/Utility/Types.hh>
 
 namespace Mikoto {
 
@@ -41,11 +42,14 @@ namespace Mikoto {
         virtual auto BeginFrame() -> void = 0;
         virtual auto EndFrame() -> void = 0;
 
+        auto SetClearColor(const Vec4& color) -> void { m_ClearColor = color; };
+
         virtual ~ImGuiBackend() = default;
 
         MKT_NODISCARD static auto Create(const ImGuiBackendCreateInfo& info) -> Unique<ImGuiBackend>;
 
     protected:
+        Vec4 m_ClearColor{ 0.9f, 0.6f, 0.85f, 1.0f };
         bool m_IsInitialized{ false };
 
         const Window* m_Window{};
@@ -74,6 +78,7 @@ namespace Mikoto {
 
         auto GetFonts() -> std::vector<ImFont*>& { return m_Fonts; }
 
+        auto SetImGuiBackGroundClearColor(const Vec4& color) -> void;
 
     private:
 

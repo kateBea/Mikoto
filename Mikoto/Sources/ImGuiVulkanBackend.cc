@@ -310,7 +310,7 @@ namespace Mikoto {
         renderPassInfo.renderArea.extent = m_Extent2D;
 
         std::array<VkClearValue, 2> clearValues{};            // Only one clear value for the color attachment
-        clearValues[0].color = { { 0.9f, 0.6f, 0.85f, 1.0f } };// Clear color for ImGui
+        clearValues[0].color = { m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a };// Clear color for ImGui
         clearValues[1].depthStencil = { 1.0f, 0 };
 
         renderPassInfo.clearValueCount = static_cast<UInt32>( clearValues.size() );

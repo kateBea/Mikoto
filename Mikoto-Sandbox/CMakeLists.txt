@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 file(GLOB SOURCE_FILES Sources/*.cc)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES}
-        MusicPlayerLayer.cc
+        Sources/MusicPlayerLayer.cc
         MusicPlayerLayer.hh)
 
 # Link the engine
@@ -36,7 +36,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
 set(RESOURCE_DIR "${CMAKE_SOURCE_DIR}/Mikoto/Resources")
 
 # Path where resources should be copied in the build folder
-set(OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/Resources")
+set(OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 
 add_custom_command(
         TARGET ${PROJECT_NAME} POST_BUILD

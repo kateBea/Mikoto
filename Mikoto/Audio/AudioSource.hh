@@ -150,6 +150,7 @@ namespace Mikoto {
       // current progress in seconds
       MKT_NODISCARD auto GetCurrentProgress() const -> float;
 
+
       MKT_NODISCARD auto IsSameSource( const AudioSource* source) const -> bool;
       MKT_NODISCARD auto IsSameAudio( const AudioSource* source) const -> bool;
 

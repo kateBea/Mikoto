@@ -126,15 +126,15 @@ namespace Mikoto {
          * */
         virtual auto ProcessEvents() -> void = 0;
 
-         virtual MKT_NODISCARD auto IsKeyPressed( KeyCode keyCode ) const -> bool = 0;
-         virtual MKT_NODISCARD auto IsKeyReleased( KeyCode keyCode ) const -> bool = 0;
+         MKT_NODISCARD virtual auto IsKeyPressed( KeyCode keyCode ) const -> bool = 0;
+         MKT_NODISCARD virtual auto IsKeyReleased( KeyCode keyCode ) const -> bool = 0;
 
-         virtual MKT_NODISCARD auto IsMouseKeyPressed( MouseButton button ) const -> bool = 0;
-         virtual MKT_NODISCARD auto IsMouseKeyReleased( MouseButton button ) const -> bool = 0;
+         MKT_NODISCARD virtual auto IsMouseKeyPressed( MouseButton button ) const -> bool = 0;
+         MKT_NODISCARD virtual auto IsMouseKeyReleased( MouseButton button ) const -> bool = 0;
 
-         virtual MKT_NODISCARD auto GetMouseX() const -> double = 0;
-         virtual MKT_NODISCARD auto GetMouseY() const -> double = 0;
-         virtual MKT_NODISCARD auto GetMousePos() const -> std::pair<double, double> = 0;
+         MKT_NODISCARD virtual auto GetMouseX() const -> double = 0;
+         MKT_NODISCARD virtual auto GetMouseY() const -> double = 0;
+         MKT_NODISCARD virtual auto GetMousePos() const -> std::pair<double, double> = 0;
 
         /**
          * @brief Creates a Window for the currently active platform.

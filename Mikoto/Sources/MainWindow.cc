@@ -314,6 +314,7 @@ namespace Mikoto {
     }
 
     auto MainWindow::Create(const MainWindowCreateSpec& spec) -> GLFWwindow* {
+
         // All windows are created in non-fullscreen mode because the monitor we pass is null, see docs for glfwCreateWindow
         GLFWwindow* window{ glfwCreateWindow(spec.Width, spec.Height, spec.Title.data(), nullptr, nullptr) };
         s_WindowsCount += 1;

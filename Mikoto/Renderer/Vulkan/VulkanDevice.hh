@@ -13,14 +13,11 @@
 
 #include "Renderer/Vulkan/VulkanBuffer.hh"
 #include "Renderer/Vulkan/VulkanTexture.hh"
-#include "VulkanFrameBuffer.hh"
-#include "VulkanMemoryAllocator.hh"
+#include "Renderer/Vulkan/VulkanFramebuffer.hh"
+#include "Renderer/Vulkan/VulkanMemoryAllocator.hh"
 
 
 namespace Mikoto {
-
-    // Forward declare for VulkanCmdList
-    class VulkanCommandPool;
 
     class VulkanCmdList final : public ICommandList {
     public:
@@ -38,15 +35,11 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetImplHandle() -> VkCommandBuffer* { return std::addressof(m_CmdBuffer); }
 
-        auto SetSubmitted(const bool val) -> void { m_IsSubmitted = val; }
-        MKT_NODISCARD auto IsSubmitted() const -> bool { return m_IsSubmitted; }
-
         ~VulkanCmdList() override;
     private:
         auto Allocate() -> void override;
         auto Release() -> void override;
     private:
-        bool m_IsSubmitted{ false };
         VkCommandBuffer m_CmdBuffer{ VK_NULL_HANDLE };
         VkCommandBufferAllocateInfo m_AllocInfo{};
     };
@@ -111,10 +104,10 @@ namespace Mikoto {
 
         auto RunGarbageCollection() -> void override;
 
-        MKT_NODISCARD auto CreateCommandList( QueueType queue = QueueType::GRAPHICS_QUEUE ) -> CommandListHandle override;
+        MKT_NODISCARD auto CreateCommandList( QueueType queue ) -> CommandListHandle override;
 
         // Return the minimum required alignment (in bytes) for uniform buffers
-        auto GetUniformBufferMinOffsetAlignment() const -> VkDeviceSize;
+        MKT_NODISCARD auto GetUniformBufferMinOffsetAlignment() const -> VkDeviceSize;
 
         MKT_NODISCARD auto GetPhysicalDevice() const -> const VkPhysicalDevice&;
         MKT_NODISCARD auto GetPhysicalDeviceFeatures() const -> const VkPhysicalDeviceFeatures&;

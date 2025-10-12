@@ -9,7 +9,7 @@
 // Project Headers
 #include <Common/Common.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
-#include <Renderer/Vulkan/VulkanFrameBuffer.hh>
+#include <Renderer/Vulkan/VulkanFramebuffer.hh>
 
 namespace Mikoto {
     VulkanFramebuffer::VulkanFramebuffer( const FramebufferDescription &createInfo )

@@ -29,7 +29,7 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanFramebuffer::Allocate() -> void {
+    auto VulkanFramebuffer::Initialize() -> void {
         m_CreateInfo = VulkanHelpers::Initializers::FramebufferCreateInfo();
 
         VkRenderPass renderPass{ VK_NULL_HANDLE };

@@ -127,7 +127,7 @@ namespace Mikoto {
         *
         * @note This method should be implemented by derived classes to handle resource allocation.
         */
-        virtual auto Allocate() -> void = 0;
+        virtual auto Initialize() -> void = 0;
 
         /**
         * @brief Releases the resource.
@@ -188,9 +188,6 @@ namespace Mikoto {
         }
 
         auto Clear() -> void {
-            for ( auto& resource: m_Resources | std::views::values ) {
-                resource.Disable();
-            }
 
             m_FreeHandles.clear();
             m_Resources.clear();
@@ -205,8 +202,7 @@ namespace Mikoto {
         */
         auto ReleaseResource( const Handle index ) -> void {
 
-            if ( m_Resources.contains(index) ) {
-                m_Resources.erase(index);
+            if ( m_Resources.erase(index) != 0 ) {
                 m_FreeHandles.emplace_back(index);
             }
         }

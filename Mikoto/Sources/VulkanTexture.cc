@@ -37,7 +37,7 @@ namespace Mikoto {
     auto VulkanSampler::Release() -> void {
     }
 
-    auto VulkanSampler::Allocate() -> void {
+    auto VulkanSampler::Initialize() -> void {
     }
 
     VulkanTexture::VulkanTexture( const TextureDescription& data )
@@ -168,7 +168,7 @@ namespace Mikoto {
           m_IsVsyncEnabled{ createInfo.EnableVsync } {
     }
 
-    auto VulkanSwapChain::Allocate() -> void {
+    auto VulkanSwapChain::Initialize() -> void {
         if ( m_Surface == nullptr ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanSwapChain::Init - Error the surface for the swapchain is null." );
         }
@@ -290,7 +290,7 @@ namespace Mikoto {
         m_IsAllocated = true;
     }
 
-    auto VulkanTexture::Allocate() -> void {
+    auto VulkanTexture::Initialize() -> void {
         // Specify the current layout, it should be undefined as this is a newly created image
         m_ImageCreateInfo.initialLayout = m_CurrentLayout;
 

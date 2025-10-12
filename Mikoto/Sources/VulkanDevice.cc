@@ -165,17 +165,17 @@ namespace Mikoto {
         InitMemoryAllocator();
 
         // Init pools
-        m_Buffers.Init( 100 );
-        m_Textures.Init( 100 );
+        m_Buffers.Init( 10 );
+        m_Textures.Init( 10 );
         m_Framebuffers.Init( 10 );
 
         // Pre-initialize available pools
-        UInt32 poolCount{ 5 };
+        UInt32 poolCount{ 2 };
         m_CmdPools.Init( poolCount );
         for (auto count{ 0 }; count < poolCount; ++count ) {
             // Temporary on my machine this queue is powerful xdd
             // This will depend on command recording to avoid resizing the pool often
-            auto pool{ m_CmdPools.Allocate( QueueType::GRAPHICS_QUEUE, 200 ) };
+            auto pool{ m_CmdPools.Allocate( QueueType::GRAPHICS_QUEUE, 100 ) };
             pool.As<DeviceObject>()->Initialize(this);
         }
 
@@ -333,7 +333,10 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::RunGarbageCollection() -> void {
-        // Call at the begining of each frame to free command buffers
+        // Call at the beginning of each frame to free command buffers
+
+        // Commands have already been flushed I can get rid of them
+        m_PendingCmdLists.clear();
 
         for (const auto& pool : m_CmdPools | std::views::values) {
             pool.As<VulkanCommandPool>()->RunGarbageCollection();
@@ -353,8 +356,6 @@ namespace Mikoto {
             if ( resultCommandList.IsEmpty() ) {
                 MKT_THROW_RUNTIME_ERROR( "VulkanDevice::CreateCommandList - Failed to allocate command list." );
             }
-
-            resultCommandList->Initialize(this);
         }
 
         return resultCommandList;
@@ -426,9 +427,9 @@ namespace Mikoto {
 
     auto VulkanDevice::CreateSwapchain( const VulkanSwapChainCreateInfo& createInfo ) -> SwapChainHandle {
 
-        SwapChainHandle result{ std::move( SwapChainHandle::Create( MKT_NO_THROW_NEW VulkanSwapChain( createInfo ) ) ) };
+        SwapChainHandle result{ SwapChainHandle::Create( MKT_NO_THROW_NEW VulkanSwapChain( createInfo ) ) };
         if ( !result.IsEmpty() ) {
-            result.GetRaw()->Initialize( this );
+            result.As<DeviceObject>()->Initialize( this );
         }
 
         return result;
@@ -447,6 +448,10 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void {
+        if (m_PendingCmdLists.empty()) {
+            return;
+        }
+
         VkPipelineStageFlags waitStage{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
         VkSubmitInfo submit{ VulkanHelpers::Initializers::SubmitInfo() };
         submit.pNext = nullptr;
@@ -472,13 +477,11 @@ namespace Mikoto {
         submit.pCommandBuffers = vkCommands.data();
 
         if ( vkQueueSubmit( m_Queues.Graphics->Queue, 1, std::addressof( submit ), syncPrimitives.RenderFence ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanContext::SubmitFrame - Error trying to submit commands." );
+            MKT_THROW_RUNTIME_ERROR( "VulkanDevice::FlushPendingCommands - Error trying to submit commands." );
         }
 
+        // Wait for commands to finish execution so we can free them from pending queue, they can later be freed by calling RunGarbageCollection
         vkWaitForFences( m_LogicalDevice, 1, std::addressof( syncPrimitives.RenderFence ), VK_TRUE, ( std::numeric_limits<std::uint64_t>::max )() );
-
-        //Commands have already been flushed I can get rid of them
-        m_PendingCmdLists.clear();
     }
 
     auto VulkanDevice::PresentToSwapChain( const FrameSynchronizationPrimitives& syncPrimitives, SwapChainHandle swapchain ) -> void {
@@ -561,7 +564,7 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanCmdList::Allocate() -> void {
+    auto VulkanCmdList::Initialize() -> void {
         if ( vkAllocateCommandBuffers(
                      VK_DEVICE( m_Device ),
                      std::addressof( m_AllocInfo ),
@@ -629,7 +632,7 @@ namespace Mikoto {
         return std::numeric_limits<UInt32>::max();
     }
 
-    auto VulkanCommandPool::Allocate() -> void {
+    auto VulkanCommandPool::Initialize() -> void {
         const auto& queues{ TO_VK_DEVICE( m_Device )->GetLogicalDeviceQueues() };
 
         // Command pool to allocate command buffers for compute queue operations

@@ -55,7 +55,7 @@ namespace Mikoto {
 
     private:
         auto Release() -> void override;
-        auto Allocate() -> void override;
+        auto Initialize() -> void override;
 
     private:
         VkBuffer m_Buffer{};

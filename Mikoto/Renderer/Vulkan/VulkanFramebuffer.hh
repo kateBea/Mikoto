@@ -25,7 +25,7 @@ namespace Mikoto {
         ~VulkanFramebuffer() override;
 
     protected:
-        auto Allocate() -> void override;
+        auto Initialize() -> void override;
         auto Release() -> void override;
 
     private:

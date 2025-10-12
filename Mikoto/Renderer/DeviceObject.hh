@@ -40,7 +40,7 @@ namespace Mikoto {
         auto Initialize( GpuDevice* device ) -> void {
             m_Device = device;
 
-            Allocate();
+            Initialize();
         }
 
         auto SetDebugName(const std::string_view name) -> void { m_DebugName = name; }
@@ -86,7 +86,7 @@ namespace Mikoto {
          * This method is pure virtual and must be implemented by derived classes to allocate resources
          * (e.g., buffers, textures) on the GPU. It is called when the `Init` method is invoked.
          */
-        auto Allocate() -> void override = 0;
+        auto Initialize() -> void override = 0;
 
         /**
         * @brief Releases the underlying GPU resource.

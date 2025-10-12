@@ -48,7 +48,7 @@ namespace Mikoto {
         */
         auto Release() -> void override;
 
-        auto Allocate() -> void override;
+        auto Initialize() -> void override;
 
         const File* m_FileSource{};
 

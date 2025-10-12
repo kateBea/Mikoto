@@ -171,6 +171,8 @@ namespace Mikoto {
 
         device->FlushPendingCommands( m_FrameSyncPrimitives[m_CurrentFrameIndex] );
         device->PresentToSwapChain( m_FrameSyncPrimitives[m_CurrentFrameIndex], m_Swapchain );
+
+        m_Device->RunGarbageCollection();
     }
 
     auto VulkanContext::CreateInstance() -> void {
@@ -268,7 +270,7 @@ namespace Mikoto {
     }
 
     auto VulkanContext::PrepareFrame() -> void {
-      m_Device->RunGarbageCollection();
+
 
         m_CurrentFrameIndex = m_Swapchain->GetCurrentFrameIndex();
         const auto ret{ m_Swapchain->GetNextRenderableImage( m_CurrentImageIndex,

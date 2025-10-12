@@ -149,7 +149,7 @@ namespace Mikoto {
         return m_Path == source->m_Path;
     }
 
-    auto AudioSource::Allocate() -> void {
+    auto AudioSource::Initialize() -> void {
         if ( m_Path.empty() ) {
             return;
         }

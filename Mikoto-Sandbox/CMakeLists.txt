@@ -8,7 +8,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 file(GLOB SOURCE_FILES Sources/*.cc)
 
-add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+add_executable(${PROJECT_NAME} ${SOURCE_FILES}
+        MusicPlayerLayer.cc
+        MusicPlayerLayer.hh)
 
 # Link the engine
 target_link_libraries(${PROJECT_NAME} PRIVATE Mikoto)
@@ -25,3 +27,20 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_FMT_EXTERNAL)
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE)
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_RADIANS)
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
+
+# ======================================
+# Post build
+# ======================================
+
+# Path to your resources folder (relative to project root)
+set(RESOURCE_DIR "${CMAKE_SOURCE_DIR}/Mikoto/Resources")
+
+# Path where resources should be copied in the build folder
+set(OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/Resources")
+
+add_custom_command(
+        TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${RESOURCE_DIR}" "${OUTPUT_DIR}"
+        COMMENT "Copying resources to build directory..."
+)

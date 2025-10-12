@@ -31,6 +31,7 @@
 #include <SandboxApp.hh>
 #include <Threading/TaskManager.hh>
 #include <Threading/TaskService.hh>
+#include <MusicPlayerLayer.hh>
 
 namespace Mikoto {
 
@@ -85,6 +86,7 @@ namespace Mikoto {
         SetupEventCallbacks();
 
         m_LayerStack.PushLayer<GameLayer>( "Game - Layer" );
+        m_LayerStack.PushLayer<MusicPlayerLayer>( "MusicPlayer - Layer" );
     }
 
     auto SandboxApp::Shutdown() -> void {

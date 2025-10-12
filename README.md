@@ -4,7 +4,9 @@
 
 The ``new-arch`` branch is a WIP for the Mikoto's new architecture. It brings some new features, like resources pools, automatic resource cleanup, and abstraction on top of render
 passes, amongst other features.
-![Mikoto Engine](Resources/Screenshots/img15.png)
+![Mikoto Engine](Resources/Screenshots/img1.png)
+---
+![Mikoto Engine](Resources/Screenshots/img2.png)
 
 ---
 

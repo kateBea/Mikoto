@@ -21,8 +21,8 @@
 // Project Headers
 #include "Common/Common.hh"
 #include "Library/Utility/Types.hh"
-#include <Renderer/BufferLayout.hh>
 #include <Renderer/GpuUtility.hh>
+#include <Renderer/RenderUtility.hh>
 #include <Assets/Texture.hh>
 
 // Vulkan version
@@ -85,7 +85,6 @@ namespace Mikoto::VulkanHelpers {
     MKT_NODISCARD auto HasPresentQueue( const VkPhysicalDevice& device, UInt32 queueFamilyIndex, const VkSurfaceKHR& surface, const VkQueueFamilyProperties& queueFamilyProperties ) -> bool;
     MKT_NODISCARD auto GetVkStageFromShaderStage(ShaderStage stage) -> VkShaderStageFlagBits;
     MKT_NODISCARD auto GetVkFormatFromTextureFormat( TextureFormat format, TextureUsage usage, VkPhysicalDevice device ) -> VkFormat;
-    MKT_NODISCARD auto GetUniformBufferPadding(VkDeviceSize bufferOriginalSize, VkDeviceSize deviceMinOffsetAlignment) -> VkDeviceSize;
     MKT_NODISCARD auto GetUniformBufferPadding(VkDeviceSize bufferOriginalSize, VkDeviceSize deviceMinOffsetAlignment) -> VkDeviceSize;
     MKT_NODISCARD auto InferVulkanIndexType(BufferDataType format) -> VkIndexType;
     MKT_NODISCARD auto ToVkImageUsage(TextureUsage usage) -> VkImageUsageFlags;

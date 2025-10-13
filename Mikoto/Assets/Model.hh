@@ -207,6 +207,8 @@ namespace Mikoto {
         UInt64 m_TotalIndices{};
     };
 
+    using ModelHandle = Ref<Model>;
+
 }// namespace Mikoto
 
 #endif// MIKOTO_MODEL_HH

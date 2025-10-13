@@ -84,7 +84,6 @@ namespace Mikoto {
         ~VulkanTexture() override;
 
     private:
-        auto AllocateImage() -> void;
         auto Initialize() -> void override;
         auto Release() -> void override;
 

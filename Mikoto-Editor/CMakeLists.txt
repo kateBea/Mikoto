@@ -8,7 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 file(GLOB SOURCE_FILES Sources/*.cc)
 
-add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+add_executable(${PROJECT_NAME} ${SOURCE_FILES}
+        Panels/Utility.hh)
 
 # Link the engine
 target_link_libraries(${PROJECT_NAME} PRIVATE Mikoto)
@@ -36,7 +37,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE VK_NO_PROTOTYPES)
 set(RESOURCE_DIR "${CMAKE_SOURCE_DIR}/Mikoto/Resources")
 
 # Path where resources should be copied in the build folder
-set(OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/Resources")
+set(OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 
 add_custom_command(
         TARGET ${PROJECT_NAME} POST_BUILD

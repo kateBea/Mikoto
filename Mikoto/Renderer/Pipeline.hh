@@ -10,9 +10,6 @@
 #include <Renderer/DeviceObject.hh>
 #include <Renderer/GpuUtility.hh>
 
-#include "BufferLayout.hh"
-
-
 namespace Mikoto {
     class IPipeline : public DeviceObject {
     public:

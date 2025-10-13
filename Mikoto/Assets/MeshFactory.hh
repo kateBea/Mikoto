@@ -57,8 +57,6 @@ namespace Mikoto {
         auto WithCustomLoader(bool enable) -> MeshFactoryCreateInfo&;
     };
 
-    using ModelHandle = Ref<Model>;
-
     /**
     * @class MeshFactory
     * @brief Manages the creation and processing of 3D models.
@@ -113,12 +111,12 @@ namespace Mikoto {
             Assimp::Importer MeshImporter{};
             std::atomic_bool IsFree{ true };
 
-            Assimp::IOSystem* LoaderImplementation{};
-            Assimp::IOStream* StreamImplementation{};
+            Unique<Assimp::IOSystem> CustomFileHandlingImpl{};
 
             ImporterInfo() = default;
             ~ImporterInfo() = default;
 
+            // Assimp::Importer copy is forbidden
             ImporterInfo(const ImporterInfo&) = delete;
             ImporterInfo& operator=(const ImporterInfo&) = delete;
         };
@@ -126,20 +124,20 @@ namespace Mikoto {
     private:
         // [Internal]
         auto SetupCustomAssimpLogger() -> void;
-        auto SetupCustomLoaderForImporters() -> void;
 
         static auto ImportModel(GpuDevice* device, Assimp::Importer& importer, const ModelLoadDescription& loadInfo ) -> Model*;
 
     private:
         GpuDevice* m_Device{ nullptr };
 
+        Unique<Assimp::LogStream> m_CustomLoggingImpl{};
+
         bool m_IsInitialized{ false };
 
         bool m_WantCustomLog{ false };
-        bool m_WantCustomLoader{ false };
 
         Logging m_AssimpLogger{};
-        std::vector<ImporterInfo*> m_Importers{};
+        std::vector<Unique<ImporterInfo>> m_Importers{};
     };
 
 }// namespace Mikoto

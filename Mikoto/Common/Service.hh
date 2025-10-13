@@ -48,7 +48,7 @@ namespace Mikoto {
          *
          * This function can be overridden by derived classes to implement
          */
-        virtual auto Update(float dt) -> void { }
+        virtual auto Update(float) -> void { }
         /**
          * @brief Checks if the service is initialized.
          *

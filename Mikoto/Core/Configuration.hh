@@ -58,16 +58,15 @@ namespace Mikoto {
         }
 
         auto Load(const Path& filePath) -> void override {
-            auto result = toml::parse_file(filePath.string());
+            toml::parse_result result{ toml::parse_file(filePath.string()) };
 
             if (result.failed()) {
                 MKT_THROW_RUNTIME_ERROR(fmt::format("Failed to load configuration file: {}", filePath.string()));
-                return;
             }
 
             m_Data.clear();
 
-            const auto& tbl = result.table();
+            const toml::table& tbl { result.table() };
             for (auto&& [sectionName, sectionValue] : tbl) {
                 if (auto* section = sectionValue.as_table()) {
 
@@ -75,7 +74,7 @@ namespace Mikoto {
                         std::string fullKey = fmt::format("{}{}{}", sectionName.str(), SEPARATOR, key.str());
 
                         value.visit([&](auto&& v) {
-                            m_Data[fullKey] = ToAny(v);
+                            m_Data[fullKey] = ToNativeType(v);
                         });
                     }
                 }
@@ -91,7 +90,7 @@ namespace Mikoto {
          * @param v Toml value
          * @return std::any containing the value, or null if the type is unsupported
          */
-        static auto ToAny(const auto& v) -> std::any {
+        static auto ToNativeType(const auto& v) -> std::any {
             using VType = std::decay_t<decltype(v)>;
 
             if constexpr (toml::is_boolean<VType>) {

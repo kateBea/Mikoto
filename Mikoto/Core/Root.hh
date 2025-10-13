@@ -10,8 +10,6 @@
 #include <Library/Data/Registry.hh>
 #include <Platform/Window.hh>
 
-#include <ankerl/unordered_dense.h>
-
 namespace Mikoto {
 
     struct RootConfig {

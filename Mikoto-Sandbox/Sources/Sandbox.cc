@@ -23,7 +23,6 @@
 #include <Filesystem/FileService.hh>
 #include <GameLayer.hh>
 #include <Logging/Logger.hh>
-#include <Logging/StackTrace.hh>
 #include <SandboxApp.hh>
 #include <Threading/TaskManager.hh>
 #include <Threading/TaskService.hh>
@@ -33,7 +32,7 @@
 namespace Mikoto {
 
     auto SandboxApp::Run( const Int32 argc, char **argv ) -> Int32 {
-        MKT_CORE_LOGGER_DEBUG( "Initializing Mikoto Editor..." );
+        MKT_CORE_LOGGER_DEBUG( "Initializing Mikoto Sandbox..." );
 
         Int32 exitCode{ EXIT_SUCCESS };
 
@@ -60,11 +59,12 @@ namespace Mikoto {
         BaseConfiguration configApp{ "./app-config.toml" };
 
         // App window
-        m_Window = Window::Create( { .Title{ configApp.Get<std::string>( "application.title" ) },
-                                     .Width{ static_cast<Int32>( configApp.Get<Int64>( "application.width" ) ) },
-                                     .Height{ static_cast<Int32>( configApp.Get<Int64>( "application.height" ) ) },
-                                     .Backend{ InferAPI( configApp.Get<std::string>( "renderer.api" ) ) },
-                                     .Resizable{ configApp.Get<bool>( "application.resizable" ) } } );
+        m_Window = Window::Create( {
+            .Title{ configApp.Get<std::string>( "application.title" ) },
+            .Width{ static_cast<Int32>( configApp.Get<Int64>( "application.width" ) ) },
+            .Height{ static_cast<Int32>( configApp.Get<Int64>( "application.height" ) ) },
+            .Backend{ InferAPI( configApp.Get<std::string>( "renderer.api" ) ) },
+            .Resizable{ configApp.Get<bool>( "application.resizable" ) } } );
 
         if ( m_Window ) {
             m_Window->Init();

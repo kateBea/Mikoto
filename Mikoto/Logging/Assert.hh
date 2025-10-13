@@ -15,11 +15,11 @@
 // Project Headers
 #include <Library/String/String.hh>
 
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(WIN32) || defined(WIN64)
     #define __PRETTY_FUNCTION__  __FUNCTION__
 #endif
 
-#if !defined(NDEBUG) || defined(_DEBUG)
+#if !defined(NDEBUG)
     #define MKT_ENABLE_ASSERTIONS
 #else
     #undef MKT_ENABLE_ASSERTIONS

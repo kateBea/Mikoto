@@ -49,6 +49,13 @@ namespace Mikoto {
                 .WithType( TextureType::TEXTURE_2D );
 
         m_Texture = AssetsService::Get()->LoadAsset<Texture>( loadDesc );
+
+        ModelLoadDescription modelLoadDesc{
+            .ModelFile{ FileService::Get()->LoadFile( "./Resources/Models/2 - Cat with scarf/source/Pbr/base.obj" ) },
+            .WantTextures{ true }
+        };
+
+        m_Model = AssetsService::Get()->LoadAsset<Model>( modelLoadDesc );
     }
 
     auto GraphicsLayer::OnDestroy() -> void {

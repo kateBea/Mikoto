@@ -23,28 +23,39 @@ namespace Mikoto {
         //executor.async(taskflow);
 
         // create asynchronous tasks directly from an executor
-        std::future<int> future = executor.async([](){
+        std::future<int> future{ executor.async([](){
           std::cout << "async task returns 1\n";
           return 1;
-        });
+        }) };
         executor.silent_async([](){ std::cout << "async task does not return\n"; });
 
         // create asynchronous tasks with dynamic dependencies
-        tf::AsyncTask A = executor.silent_dependent_async([](){ MKT_CORE_LOGGER_DEBUG( "Hello from TASK A" ); });
-        tf::AsyncTask B = executor.silent_dependent_async([](){ MKT_CORE_LOGGER_DEBUG( "Hello from TASK B" ); }, A);
-        tf::AsyncTask C = executor.silent_dependent_async([](){ MKT_CORE_LOGGER_DEBUG( "Hello from TASK C" );  }, A);
-        tf::AsyncTask D = executor.silent_dependent_async([](){ MKT_CORE_LOGGER_DEBUG( "Hello from TASK D" ); }, B, C);}
+        tf::AsyncTask A{ executor.silent_dependent_async([](){ MKT_CORE_LOGGER_DEBUG( "Hello from TASK A" ); }) };
+        tf::AsyncTask B{ executor.silent_dependent_async([](){ MKT_CORE_LOGGER_DEBUG( "Hello from TASK B" ); }, A) };
+        tf::AsyncTask C{ executor.silent_dependent_async([](){ MKT_CORE_LOGGER_DEBUG( "Hello from TASK C" );  }, A) };
+        tf::AsyncTask D{ executor.silent_dependent_async([](){ MKT_CORE_LOGGER_DEBUG( "Hello from TASK D" ); }, B, C ) };
+    }
 
-    TaskManager::TaskManager( UInt32 threadCount )
+    TaskManager::TaskManager( const UInt32 threadCount )
         : m_ThreadCount( threadCount )
     {
     }
 
     auto TaskManager::Init() -> void {
         MKT_CORE_LOGGER_DEBUG( "Initializing TaskManager...");
+
+#if !defined(NDEBUG)
+        TestCode();
+#endif
+
+        m_IsInitialized = true;
     }
 
     auto TaskManager::Shutdown() -> void {
+        if (!m_IsInitialized) {
+            return;
+        }
+
         MKT_CORE_LOGGER_DEBUG( "Initializing TaskManager...");
     }
 

@@ -27,11 +27,15 @@ namespace Mikoto {
 
         // Model importer library
         MeshFactoryCreateInfo meshFactoryCreateInfo{
-            .ImportersCount{ 4  },
+            .ImportersCount{ 5 },
+            .UseCustomLogger{ true },
             .Device{ m_GpuDevice },
         };
+
         m_MeshFactory = CreateScope<MeshFactory>( meshFactoryCreateInfo );
-        m_MeshFactory->Init();
+        if (m_MeshFactory) {
+            m_MeshFactory->Init();
+        }
 
         m_IsInitialized = true;
     }
@@ -53,11 +57,14 @@ namespace Mikoto {
         m_MeshFactory->Shutdown();
         m_MeshFactory.reset();
 
+        m_AudioDevice = nullptr;
+        m_GpuDevice = nullptr;
+
         m_IsInitialized = false;
     }
 
     auto AssetsService::LoadAssetTyped( const ModelLoadDescription& description) -> ModelHandle {
-        const File* modelFile{ description.ModelFile};
+        const File* modelFile{ description.ModelFile };
         if (!modelFile) {
             return ModelHandle::CreateEmpty();
         }

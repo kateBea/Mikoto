@@ -15,7 +15,6 @@
 #include <Common/Common.hh>
 #include <Core/InputService.hh>
 #include <Core/MouseCodes.hh>
-#include <Library/String/String.hh>
 #include <Library/Utility/Types.hh>
 #include <Logging/Logger.hh>
 

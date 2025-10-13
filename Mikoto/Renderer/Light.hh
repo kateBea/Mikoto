@@ -47,16 +47,16 @@ namespace Mikoto {
             auto SetType(Type type) -> void { m_Type = type; }
             auto GetType() const -> Type { return m_Type; }
 
-            auto SetColor(const Vec3& color) -> void { m_Color = color; }
-            auto GetColor() const -> Vec3 { return m_Color; }
+            auto SetColor(const Vec3F& color) -> void { m_Color = color; }
+            auto GetColor() const -> Vec3F { return m_Color; }
 
             auto SetIntensity(float intensity) -> void { m_Intensity = intensity; }
             auto GetIntensity() const -> float { return m_Intensity; }
 
             private:
             Type m_Type{ Type::DIRECTIONAL }; /**< The type of the light source. */
-            Vec3 m_Color{ 1.0f, 1.0f, 1.0f }; /**< The color of the light source. */
-            floar m_Intensity{ 1.0f }; /**< The intensity of the light source. */
+            Vec3F m_Color{ 1.0f, 1.0f, 1.0f }; /**< The color of the light source. */
+            float m_Intensity{ 1.0f }; /**< The intensity of the light source. */
     };
 
     class PointLight : public LightObject {

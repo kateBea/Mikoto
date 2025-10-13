@@ -10,6 +10,8 @@
 #include <Assets/AssetsService.hh>
 #include <Renderer/RenderService.hh>
 #include <Core/LayerStack.hh>
+#include <Scene/Scene.hh>
+#include <Scene/SceneCamera.hh>
 
 namespace Mikoto {
 
@@ -22,9 +24,15 @@ namespace Mikoto {
         auto OnUpdate( float deltaTime ) -> void override;
 
     private:
+        auto SetupScene() -> void;
+
+    private:
         BufferHandle m_VertexBuffer{};
         BufferHandle m_StagingBuffer{};
         TextureHandle m_Texture{};
+
+        Unique<Scene> m_MainScene{};
+        Unique<SceneCamera> m_SceneCamera{};
 
         ModelHandle m_Model{};
     };

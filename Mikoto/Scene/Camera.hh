@@ -60,9 +60,9 @@ namespace Mikoto {
         auto SetRotation(const glm::vec3& angles = glm::vec3(0.0f)) -> void {
             m_Rotation = angles;
 
-            m_Transform = rotate(m_Transform, glm::radians( m_Rotation[0] ), Math::GLM_UNIT_VECTOR_X);
-            m_Transform =  rotate(m_Transform, glm::radians( m_Rotation[1] ), Math::GLM_UNIT_VECTOR_Y);
-            m_Transform =  rotate(m_Transform, glm::radians( m_Rotation[2] ), Math::GLM_UNIT_VECTOR_Z);
+            m_Transform = rotate(m_Transform, glm::radians( m_Rotation[0] ), Math::UNIT_VECTOR_X);
+            m_Transform =  rotate(m_Transform, glm::radians( m_Rotation[1] ), Math::UNIT_VECTOR_Y);
+            m_Transform =  rotate(m_Transform, glm::radians( m_Rotation[2] ), Math::UNIT_VECTOR_Z);
         }
 
         MKT_NODISCARD auto GetProjectionType() const -> ProjectionType { return m_ProjectionType; }
@@ -71,7 +71,7 @@ namespace Mikoto {
         auto SetProjectionType( const ProjectionType type ) -> void {
             m_ProjectionType = type;
 
-            SetProjectionFromType();
+            UpdateProjection();
         }
 
         ~Camera() = default;
@@ -80,10 +80,11 @@ namespace Mikoto {
         explicit Camera(const glm::mat4& projection = glm::mat4(1.0f), const glm::mat4& transform = glm::mat4(1.0f), ProjectionType projectionType = ProjectionType::PERSPECTIVE )
             :   m_Projection{ projection }, m_Transform{ transform }, m_ProjectionType{ projectionType }
         {
-            SetProjectionType(m_ProjectionType);
+            UpdateProjection();
         }
 
-        auto SetProjectionFromType() -> void {
+        auto UpdateProjection() -> void {
+            m_AspectRatio = m_ViewportWidth / m_ViewportHeight;
 
             switch(m_ProjectionType) {
                 case ProjectionType::ORTHOGRAPHIC:

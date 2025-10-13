@@ -16,6 +16,7 @@
 #include <Physics/PhysicService.hh>
 #include <Renderer/RenderService.hh>
 #include <Threading/TaskService.hh>
+#include <Scripting/ScriptingService.hh>
 
 #include <Threading/ThreadUtility.hh>
 
@@ -97,6 +98,12 @@ namespace Mikoto {
         };
         AssetsService *assetsService{ s_Services.Register<AssetsService>( assetsServiceCreateInfo ) };
         assetsService->Init();
+
+        // Scripting service
+        ScriptingServiceDescription luaServiceCreateInfo{
+        };
+        ScriptingService *scriptingService{ s_Services.Register<ScriptingService>( luaServiceCreateInfo ) };
+        scriptingService->Init();
 
     }
 

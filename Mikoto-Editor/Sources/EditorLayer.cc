@@ -1,40 +1,36 @@
-// /**
-//  * EditorLayer.cc
-//  * Created by kate on 6/12/23.
-//  * */
-//
-// // C++ Standard Library
-// #include <memory>
-//
-// // Third-Party Libraries
-// #include "glm/gtc/type_ptr.hpp"
-//
-// // Project Headers
-// #include <Assets/AssetsService.hh>
-// #include <Core/CoreEvents.hh>
-// #include <Core/EventService.hh>
-// #include <Core/InputService.hh>
-// #include <Core/Logger.hh>
-// #include <Core/MouseCodes.hh>
-// #include <FileSystem/FileService.hh>
-// #include <ImGui/ImGuiUtility.hh>
-// #include <Layers/EditorLayer.hh>
-// #include <Library/Filesystem/PathBuilder.hh>
-// #include <Panels/ConsolePanel.hh>
-// #include <Panels/ContentBrowserPanel.hh>
-// #include <Panels/HierarchyPanel.hh>
-// #include <Panels/InspectorPanel.hh>
-// #include <Panels/Panel.hh>
-// #include <Panels/RendererPanel.hh>
-// #include <Panels/ScenePanel.hh>
-// #include <Panels/AssetsPanel.hh>
-// #include <Panels/SettingsPanel.hh>
-// #include <Panels/StatsPanel.hh>
-// #include <Renderer/RenderService.hh>
-// #include <Scene/Component.hh>
-//
-// namespace Mikoto {
-//
+/**
+ * EditorLayer.cc
+ * Created by kate on 6/12/23.
+ * */
+
+// C++ Standard Library
+#include <memory>
+
+// Third-Party Libraries
+#include "glm/gtc/type_ptr.hpp"
+
+// Project Headers
+#include <Layers/EditorLayer.hh>
+
+namespace Mikoto {
+
+    EditorLayer::EditorLayer( const EditorLayerCreateInfo &createInfo )
+        : ILayer{ createInfo.Name }
+    {}
+
+    auto EditorLayer::OnCreate() -> void {
+
+    }
+
+    auto EditorLayer::OnDestroy() -> void {
+
+    }
+
+    auto EditorLayer::OnUpdate(float timeStep) -> void {
+
+    }
+
+#if false
 //     static auto ShowDockingDisabledMessage() -> void {
 //         ImGuiIO& io{ ImGui::GetIO() };
 //
@@ -745,5 +741,5 @@
 //
 //         m_EditorCamera->UpdateState( timeStep );
 //     }
-//
-// }// namespace Mikoto
+#endif
+}// namespace Mikoto

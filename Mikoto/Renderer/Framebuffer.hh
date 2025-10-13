@@ -10,7 +10,7 @@
 #include <Library/Utility/Types.hh>
 #include <Library/Data/ResourcePool.hh>
 #include <Renderer/DeviceObject.hh>
-#include <Renderer/GpuUtility.hh>
+#include <Renderer/RenderUtility.hh>
 
 namespace Mikoto {
 

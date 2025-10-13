@@ -15,17 +15,15 @@
 #include <Audio/AudioDevice.hh>
 #include <Core/Configuration.hh>
 #include <Core/CoreEvents.hh>
-#include <Core/InputService.hh>
 #include <Core/Root.hh>
 #include <Core/TimeService.hh>
 #include <EditorApp.hh>
-#include <Filesystem/FileService.hh>
 #include <Logging/Logger.hh>
-#include <Logging/StackTrace.hh>
+#include <Layers/EditorLayer.hh>
 
 namespace Mikoto {
 
-    auto EditorApp::Run( const Int32 argc, char **argv ) -> Int32 {
+    auto EditorApp::Run( const Int32, char ** ) -> Int32 {
         MKT_CORE_LOGGER_DEBUG("Initializing Mikoto Editor...");
 
         Int32 exitCode{ EXIT_SUCCESS };
@@ -49,15 +47,15 @@ namespace Mikoto {
 
     auto EditorApp::Init() -> void {
         // Load configuration
+        BaseConfiguration configApp{ "./app-config.toml" };
 
         // App window
-        m_Window = Window::Create({
-            .Title{ "Mikoto engine" },
-            .Width{ 1920 },
-            .Height{ 1080 },
-            .Backend{ GraphicsAPI::VULKAN_API },
-            .Resizable{ true }
-        });
+        m_Window = Window::Create( {
+            .Title{ configApp.Get<std::string>( "application.title" ) },
+            .Width{ static_cast<Int32>( configApp.Get<Int64>( "application.width" ) ) },
+            .Height{ static_cast<Int32>( configApp.Get<Int64>( "application.height" ) ) },
+            .Backend{ InferAPI( configApp.Get<std::string>( "renderer.api" ) ) },
+            .Resizable{ configApp.Get<bool>( "application.resizable" ) } } );
 
         if ( m_Window ) {
             m_Window->Init();
@@ -75,6 +73,12 @@ namespace Mikoto {
         Root::Init(config);
 
         SetupEventCallbacks();
+
+        m_LayerStack.PushLayer<EditorLayer>(EditorLayerCreateInfo{
+            .Name{ "Editor Layer" },
+            .TargetWindow{ m_Window.get() },
+            .ModelsRootDirectory{ configApp.Get<std::string>( "paths.assets" ) },
+        });
     }
 
     auto EditorApp::Shutdown() -> void {

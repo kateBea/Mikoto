@@ -13,6 +13,7 @@
 #include <Core/EventService.hh>
 #include <Library/Utility/Types.hh>
 #include <Platform/Window.hh>
+#include <Core/LayerStack.hh>
 
 namespace Mikoto {
     class EditorApp final : public Application, public Subscriber {
@@ -29,6 +30,7 @@ namespace Mikoto {
         auto SetupEventCallbacks() -> void;
 
         Unique<Window> m_Window{};
+        LayerStack m_LayerStack{};
     };
 }
 

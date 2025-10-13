@@ -154,7 +154,7 @@ namespace Mikoto {
         m_Handle = nullptr;
     }
 
-    auto InputService::Update( float dt ) -> void {
+    auto InputService::Update( float ) -> void {
         if ( m_Handle != nullptr ) {
             m_Handle->ProcessEvents();
         }

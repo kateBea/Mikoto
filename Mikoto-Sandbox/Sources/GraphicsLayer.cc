@@ -6,7 +6,7 @@
 #include <Filesystem/FileService.hh>
 #include <GraphicsLayer.hh>
 #include <Memory/Allocator.hh>
-#include <Renderer/GpuUtility.hh>
+#include <Renderer/RenderUtility.hh>
 #include <Renderer/RenderService.hh>
 
 namespace Mikoto {

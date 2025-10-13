@@ -6,7 +6,7 @@
 #define IDEVICEOBJECT_HH
 
 #include <Library/Data/ResourcePool.hh>
-#include <Renderer/GpuUtility.hh>
+#include <Renderer/RenderUtility.hh>
 
 namespace Mikoto {
     class GpuDevice;

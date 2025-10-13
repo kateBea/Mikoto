@@ -102,12 +102,10 @@ namespace Mikoto {
          * @brief Determines the size of a file.
          * @returns Size in KB of the given file, -1 if the file is not valid (not a directory or does not exist).
          * */
-        MKT_NODISCARD auto InferFileSize() -> void;
+        auto InferFileSize() -> void;
 
         MKT_NODISCARD static auto InferFileType( const std::string& extension ) -> FileType;
-
         MKT_NODISCARD static auto CompareSignature( const std::string& fileContent, const std::vector<UChar>& signature ) -> bool;
-
         MKT_NODISCARD static auto InferExtensionFromFileSignature( const std::string& fileContent ) -> std::string;
 
     private:

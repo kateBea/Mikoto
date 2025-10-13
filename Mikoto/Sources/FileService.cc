@@ -22,7 +22,7 @@
 
 namespace Mikoto {
 
-    FileService::FileService( const FileServiceCreateInfo& options )
+    FileService::FileService( const FileServiceCreateInfo& )
         : m_CurrentWorkingDir{ std::filesystem::current_path() }
     {}
 

@@ -78,7 +78,7 @@ namespace Mikoto {
         m_AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
     }
 
-    auto VulkanBuffer::CopyFromBlock( const void* ptr, Size size ) -> void {
+    auto VulkanBuffer::CopyFromBlock( const void* ptr, const Size size ) -> void {
         PersistentMap();
         std::memcpy( m_VmaAllocationInfo.pMappedData, ptr, size );
         PersistentUnmap();

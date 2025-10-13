@@ -41,14 +41,15 @@ namespace Mikoto {
 
         auto RemoveEntity( UInt64 uniqueID ) -> void;
 
-        auto FindByID( UInt64 uniqueID ) -> Entity*;
-        auto FindFirstByName( std::string_view name ) -> Entity*;
+        MKT_NODISCARD auto FindByID( UInt64 uniqueID ) -> Entity*;
+        MKT_NODISCARD auto FindFirstByName( std::string_view name ) -> Entity*;
 
-        auto CreateEntity( const EntityCreateInfo& createInfo ) -> Entity*;
+        MKT_NODISCARD auto CreateEntity( const EntityCreateInfo& createInfo ) -> Entity*;
 
-        MKT_NODISCARD auto GetName() const -> const std::string&;
+        MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 
-        MKT_NODISCARD auto GetEntities() const -> decltype(auto);
+        MKT_NODISCARD auto GetEntities() -> ankerl::unordered_dense::map<Size, Entity>& { return m_Entities; }
+        MKT_NODISCARD auto GetEntities() const -> const ankerl::unordered_dense::map<Size, Entity>& { return m_Entities; }
 
         auto Clear() -> void;
 
@@ -62,7 +63,7 @@ namespace Mikoto {
         std::string m_Name{};
         entt::registry m_Registry{};
 
-        //ankl::unordered_dense::map<Size, EntityRef> m_Entities{};
+        ankerl::unordered_dense::map<Size, Entity> m_Entities{};
     };
 }
 

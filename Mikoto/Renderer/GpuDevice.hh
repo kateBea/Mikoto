@@ -8,7 +8,7 @@
 #include <Assets/Texture.hh>
 #include <Library/Utility/Types.hh>
 #include <Renderer/Buffer.hh>
-#include <Renderer/GpuUtility.hh>
+#include <Renderer/RenderUtility.hh>
 #include <Renderer/RenderUtility.hh>
 
 #include "Renderer/Framebuffer.hh"

@@ -25,10 +25,11 @@ namespace Mikoto {
          * @param channels Number of color channels in the texture.
          * @param data Pointer to the texture data
          * @param usage Type of resource usage
+         * @param textureUsage Usage of this texture
          */
         TextureCube(const TextureType type, const Int32 width, const Int32 height, const Int32 channels, Byte* data,
                    const ResourceUsageType usage, TextureUsage textureUsage)
-            : Texture{ type, InferFormatFromChannels(channels), width, height, channels, usage, textureUsage }, m_Data{ data }
+            : Texture{ type, TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM, width, height, channels, usage, textureUsage }, m_Data{ data }
         {}
 
     protected:

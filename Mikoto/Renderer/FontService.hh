@@ -10,9 +10,7 @@
 #include <Common/Common.hh>
 #include <Common/Service.hh>
 #include <Common/Singleton.hh>
-#include <Library/Data/ResourcePool.hh>
 
-#include "Renderer/GpuDevice.hh"
 #include <Assets/Font.hh>
 
 namespace Mikoto {

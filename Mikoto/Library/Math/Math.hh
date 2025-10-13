@@ -18,11 +18,11 @@
 #include <Library/Utility/Types.hh>
 
 namespace Mikoto::Math {
-    constexpr glm::vec3 GLM_UNIT_VECTOR_X{ 1.0f, 0.0f, 0.0f };
-    constexpr glm::vec3 GLM_UNIT_VECTOR_Y{ 0.0f, 1.0f, 0.0f };
-    constexpr glm::vec3 GLM_UNIT_VECTOR_Z{ 0.0f, 0.0f, 1.0f };
+    constexpr glm::vec3 UNIT_VECTOR_X{ 1.0f, 0.0f, 0.0f };
+    constexpr glm::vec3 UNIT_VECTOR_Y{ 0.0f, 1.0f, 0.0f };
+    constexpr glm::vec3 UNIT_VECTOR_Z{ 0.0f, 0.0f, 1.0f };
 
-    constexpr glm::mat4 GLM_IDENTITY_MAT4{ glm::mat4(1.0) };
+    constexpr glm::mat4 IDENTITY_MAT4{ glm::mat4(1.0) };
 
     /**
 	 * Defines a position vector
@@ -119,14 +119,14 @@ namespace Mikoto::Math {
          * */
     MKT_NODISCARD inline auto RecomputeTransform( const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3( 0.0f ) ) -> glm::mat4 {
         // Compute scale matrix
-        const glm::mat4 scale{ glm::scale( GLM_IDENTITY_MAT4, size ) };
+        const glm::mat4 scale{ glm::scale( IDENTITY_MAT4, size ) };
 
         // Compute rotation matrix
-        glm::mat4 rotation{ glm::rotate( GLM_IDENTITY_MAT4, ( float )glm::radians( angles.y ), GLM_UNIT_VECTOR_Y ) };
-        rotation = glm::rotate( rotation, ( float )glm::radians( angles.x ), GLM_UNIT_VECTOR_X );
-        rotation = glm::rotate( rotation, ( float )glm::radians( angles.z ), GLM_UNIT_VECTOR_Z );
+        glm::mat4 rotation{ glm::rotate( IDENTITY_MAT4, ( float )glm::radians( angles.y ), UNIT_VECTOR_Y ) };
+        rotation = glm::rotate( rotation, ( float )glm::radians( angles.x ), UNIT_VECTOR_X );
+        rotation = glm::rotate( rotation, ( float )glm::radians( angles.z ), UNIT_VECTOR_Z );
 
-        return glm::translate( GLM_IDENTITY_MAT4, position ) * rotation * scale;
+        return glm::translate( IDENTITY_MAT4, position ) * rotation * scale;
     }
 
     template<typename T>

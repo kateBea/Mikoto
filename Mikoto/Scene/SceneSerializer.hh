@@ -16,8 +16,8 @@ namespace Mikoto {
     * */
     class SceneSerializer final : public ISerializer<Scene> {
     public:
-        auto Serialize( const Scene& scene, const Path_T& saveFilePath ) -> void override;
-        auto Deserialize( const Path_T& saveFilePath ) -> Scope_T<Scene> override;
+        auto Serialize( const Scene& scene, const Path& saveFilePath ) -> void override;
+        auto Deserialize( const Path& saveFilePath ) -> Unique<Scene> override;
     };
 }
 #endif // SCENESERIALIZER_HH

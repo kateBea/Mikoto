@@ -56,12 +56,18 @@ namespace Mikoto {
         };
 
         m_Model = AssetsService::Get()->LoadAsset<Model>( modelLoadDesc );
+
+        SetupScene();
     }
 
     auto GraphicsLayer::OnDestroy() -> void {
     }
 
     auto GraphicsLayer::OnUpdate( float ) -> void {
+    }
+
+    auto GraphicsLayer::SetupScene() -> void {
+
     }
 
 }// namespace Mikoto

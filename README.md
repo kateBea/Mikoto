@@ -86,7 +86,12 @@ cmake --build . --config Release
 ---
 
 For Visual Studio users, CMake will generate `.sln` files by default. Open the solution in Visual Studio and build from there. CLion users can open the project directly and build it without extra steps.
-Before you run the editor program, you need to copy `engine-config.toml` file and the `Mikoto-Editor\Resources` folder to the working directory from which you are running the application.
+The following are commands needed to install the necessary libraries on Linux, also available in the file [install.sh](/Mikoto/Resources/installs.sh)
+Optionally pass target InstallDependencies (``--target InstallDependencies``) to installa necessary dependencies by running the script, user will be prompted to give permissions:
+
+```
+cmake --build . --target InstallDependencies --config Release 
+```
 
 ## Linux Required libraries
 
@@ -105,6 +110,29 @@ sudo apt install libwayland-dev libxkbcommon-dev xorg-dev
    ```
 ---
 
+## Lua Scripting Pre-Setup
+
+Mikoto uses **Lua 5.4+** for scripting. To set it up on Linux, follow these steps:
+
+1. Download Lua from the official Lua downloads page: [https://www.lua.org/download.html](https://www.lua.org/download.html) and get the `.tar.gz` file.
+
+2. Extract the archive and navigate into the directory:
+```bash
+# Access contents
+tar -xvf lua-5.4.8.tar.gz
+cd lua-5.4.8
+
+# Install and tests lua
+sudo make
+sudo make test
+sudo make install
+```
+
+If lua has been installed, the command ``lua -v`` should print something like the following:
+
+```
+Lua 5.4.8  Copyright (C) 1994-2025 Lua.org, PUC-Rio
+```
 ## Dependencies
 
 The development of Mikoto Engine is made possible thanks to these fantastic third-party libraries:
@@ -129,6 +157,7 @@ The development of Mikoto Engine is made possible thanks to these fantastic thir
 | **stb_image**                 | Image loading library                         | [nothings/stb](https://github.com/nothings/stb.git)                                                                 |
 | **msdf-atlas-gen**            | Multi-channel signed distance field generator | [Chlumsky/msdf-atlas-gen](https://github.com/Chlumsky/msdf-atlas-gen.git)                                           |
 | **TaskFlow**                  | Moder C++ Task library                        | [https://github.com/taskflow/taskflow)                                                                              |
+| **Sol2**                      | Moder C++ Library for Scripting with Lua      | [https://github.com/ThePhD/sol2)                                                                                    |
 
 > **Note**: The required libraries are included as a submodules in the project and do not require separate installation, just need to clone the repository with ``--recursive`` flag.
 

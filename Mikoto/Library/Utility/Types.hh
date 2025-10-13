@@ -18,6 +18,8 @@
 
 namespace Mikoto {
     using Vec4F = glm::vec4;
+    using Vec3F = glm::vec3;
+    using Vec2F = glm::vec2;
 
     using Path = std::filesystem::path;
 

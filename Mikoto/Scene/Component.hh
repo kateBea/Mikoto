@@ -13,7 +13,6 @@
 
 // Third-Party Libraries
 #include <glm/glm.hpp>
-#include <glm/gtx/matrix_decompose.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -22,44 +21,25 @@
 #include <Assets/Font.hh>
 #include <Assets/Model.hh>
 #include <Audio/AudioDevice.hh>
+#include <Audio/AudioListener.hh>
 #include <Common/Common.hh>
+#include <Filesystem/FileService.hh>
 #include <Library/Math/Math.hh>
 #include <Library/Random/Random.hh>
 #include <Library/Utility/Types.hh>
 #include <Material/Material.hh>
 #include <Renderer/Light.hh>
 #include <Scene/SceneCamera.hh>
-#include <Audio/AudioListener.hh>
 
 namespace Mikoto {
 
-    template<typename ComponentType>
-    class BaseComponent {
-    public:
-        explicit BaseComponent() = default;
-
-        BaseComponent(const BaseComponent & other) = default;
-        BaseComponent(BaseComponent && other) = default;
-
-        auto operator=(const BaseComponent & other) -> BaseComponent & = default;
-        auto operator=(BaseComponent && other) -> BaseComponent & = default;
-
-        ~BaseComponent() = default;
-
-        auto OnCreate() -> void { static_cast<ComponentType*>(this)->OnComponentAttach(); }
-        auto OnUpdate() -> void { static_cast<ComponentType*>(this)->OnComponentUpdate(); }
-        auto OnRemove() -> void { static_cast<ComponentType*>(this)->OnComponentRemoved(); }
-    };
-
-
-    class TagComponent : public BaseComponent<TagComponent> {
+    class TagComponent {
     public:
         explicit TagComponent() = default;
 
         explicit TagComponent( const std::string_view tag )
             :   m_Tag{ tag }, m_Visibility{ true }
-        {
-        }
+        {}
 
         TagComponent(const TagComponent& other) = default;
         TagComponent(TagComponent&& other) noexcept = default;
@@ -69,7 +49,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto IsVisible() const -> bool { return m_Visibility; }
         MKT_NODISCARD auto GetTag() const -> const std::string& { return m_Tag; }
-        MKT_NODISCARD auto GetGUID() const -> UInt64_T { return m_GUID.Get(); }
+        MKT_NODISCARD auto GetGUID() const -> UInt64 { return m_GUID.Get(); }
 
         auto SetTag( const std::string_view newName) -> void { m_Tag = newName; }
         auto SetVisibility( const bool value) -> void { m_Visibility = value; }
@@ -85,10 +65,9 @@ namespace Mikoto {
 
 
 
-    class TransformComponent : public BaseComponent<TransformComponent> {
+    class TransformComponent {
     public:
         explicit TransformComponent() = default;
-        explicit TransformComponent(const glm::mat4& data) { m_Transform = data; }
 
         TransformComponent(const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3(0.0f)) {
             ComputeTransform(position, size, angles);
@@ -123,9 +102,9 @@ namespace Mikoto {
         auto SetTransform(const glm::mat4& transform) -> void {
             m_Transform = transform;
 
-            glm::vec3 translate{};
-            glm::vec3 rotate{};
-            glm::vec3 scale{};
+            Vec3F translate{};
+            Vec3F rotate{};
+            Vec3F scale{};
 
             const bool success{ Math::DecomposeTransform(m_Transform, translate, rotate, scale) };
 
@@ -136,19 +115,19 @@ namespace Mikoto {
             }
         }
 
-        auto SetTranslation(const glm::vec3& value) -> void {
+        auto SetTranslation(const Vec3F& value) -> void {
             m_Translation = value;
 
             m_Transform = Math::RecomputeTransform(m_Translation, m_Scale, m_Rotation);
         }
 
-        auto SetRotation(const glm::vec3& value) -> void {
+        auto SetRotation(const Vec3F& value) -> void {
             m_Rotation = value;
 
             m_Transform = Math::RecomputeTransform(m_Translation, m_Scale, m_Rotation);
         }
 
-        auto SetScale(const glm::vec3& value) -> void {
+        auto SetScale(const Vec3F& value) -> void {
             if (!m_HasUniformScale) {
                 m_Scale = value;
             } else {
@@ -172,7 +151,7 @@ namespace Mikoto {
             m_Transform = Math::RecomputeTransform(m_Translation, m_Scale, m_Rotation);
         }
 
-        auto WantUniformSale(const bool value) -> void { m_HasUniformScale = value; }
+        auto SetUniformSale(const bool value) -> void { m_HasUniformScale = value; }
 
         ~TransformComponent() = default;
 
@@ -185,9 +164,9 @@ namespace Mikoto {
 
     private:
         // Transform vectors
-        glm::vec3 m_Translation{};
-        glm::vec3 m_Rotation{};
-        glm::vec3 m_Scale{};
+        Vec3F m_Translation{};
+        Vec3F m_Rotation{};
+        Vec3F m_Scale{};
 
         // Model matrix (defines object translation, rotation and scale
         // according to the current transform values/vectors
@@ -196,7 +175,7 @@ namespace Mikoto {
         bool m_HasUniformScale{};
     };
 
-    class RelationComponent : public BaseComponent<RelationComponent> {
+    class RelationComponent {
     public:
         explicit RelationComponent() = default;
 
@@ -206,19 +185,14 @@ namespace Mikoto {
         auto operator=(const RelationComponent& other) -> RelationComponent& = default;
         auto operator=(RelationComponent&& other) -> RelationComponent& = default;
 
-        auto RegisterChild(const UInt64_T id) -> void { m_ChildrenIDs.emplace(id); }
-        auto EraseChild(const UInt64_T id) -> void { m_ChildrenIDs.erase(id); }
+        auto RegisterChild(const UInt64 id) -> void { m_ChildrenIDs.emplace(id); }
+        auto EraseChild(const UInt64 id) -> void { m_ChildrenIDs.erase(id); }
 
-        MKT_NODISCARD auto At(const Size_T index) const -> UInt64_T {
-            return *std::next(m_ChildrenIDs.begin(), index);
-        }
-
-        MKT_NODISCARD auto IsChild(const UInt64_T id) const -> bool {return m_ChildrenIDs.contains(id); }
+        MKT_NODISCARD auto IsChild(const UInt64 id) const -> bool {return m_ChildrenIDs.contains(id); }
         MKT_NODISCARD auto HasChildren() const -> bool {return !m_ChildrenIDs.empty(); }
 
-        MKT_NODISCARD auto GetChildren() const -> decltype( auto ) { return (m_ChildrenIDs); }
-
         MKT_NODISCARD auto IsLeaf() const -> bool { return m_ChildrenIDs.empty(); }
+        MKT_NODISCARD auto GetChildren() const -> decltype( auto ) { return (m_ChildrenIDs); }
 
         auto OnComponentAttach() -> void {  }
         auto OnComponentUpdate() -> void {  }
@@ -228,28 +202,22 @@ namespace Mikoto {
 
     private:
 
-        ankerl::unordered_dense::set<UInt64_T> m_ChildrenIDs{};
+        ankerl::unordered_dense::set<UInt64> m_ChildrenIDs{};
     };
-
-
 
     /**
      * Contains the material information of an entity. It describes how this object looks like
      * */
-    class MaterialComponent : public BaseComponent<MaterialComponent> {
+    class MaterialComponent {
     public:
-        explicit MaterialComponent(Scope_T<Material>&& mat = nullptr)
-            : m_Material{ std::move(mat) }
-        {}
+        explicit MaterialComponent(MaterialHandle mat)
+            : m_Material{ mat } {
+        }
 
         MaterialComponent(MaterialComponent&&) = default;
         auto operator=(MaterialComponent&&) -> MaterialComponent& = default;
 
-        MKT_NODISCARD auto HasMaterial() const -> bool { return m_Material != nullptr; }
-        MKT_NODISCARD auto GetMaterial() -> Material* { return m_Material.get(); }
-        MKT_NODISCARD auto GetMaterial() const -> const Material* { return m_Material.get(); }
-
-        auto SetMaterial(Scope_T<Material>&& mat) -> void { m_Material = std::move(mat); }
+        MKT_NODISCARD auto GetMaterial() -> MaterialHandle { return m_Material; }
 
         ~MaterialComponent() = default;
 
@@ -258,17 +226,15 @@ namespace Mikoto {
         auto OnComponentRemoved() -> void {  }
 
     private:
-        Scope_T<Material> m_Material{};
+        MaterialHandle m_Material{};
     };
-
-
 
     /**
      * This component will contain the data to render an object, such
      * as vertex buffers, index buffers, although this component won't be visible
      * in the editor UI
      * */
-    class RenderComponent : public BaseComponent<RenderComponent> {
+    class RenderComponent {
     public:
         explicit RenderComponent() = default;
 
@@ -282,7 +248,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto HasMesh() const -> bool { return m_Mesh != nullptr; }
         MKT_NODISCARD auto GetMesh() const -> const MeshNode* { return m_Mesh; }
-        MKT_NODISCARD auto GetPath() const -> const Path_T& { return m_Path; }
+        MKT_NODISCARD auto GetPath() const -> const Path& { return m_Path; }
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 
         auto OnComponentAttach() -> void {  }
@@ -292,11 +258,11 @@ namespace Mikoto {
     private:
         const MeshNode* m_Mesh{};
 
-        Path_T m_Path{};
+        Path m_Path{};
         std::string m_Name{};
     };
 
-    class LightComponent : public BaseComponent<LightComponent> {
+    class LightComponent {
     public:
         explicit LightComponent() = default;
 
@@ -328,7 +294,7 @@ namespace Mikoto {
     };
 
 
-    class AudioSourceComponent : public BaseComponent<AudioSourceComponent> {
+    class AudioSourceComponent {
     public:
         explicit AudioSourceComponent() = default;
 
@@ -342,8 +308,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetSource() const -> AudioSourceHandle { return m_AudioSource; }
 
-
-        auto SetClipt(AudioHandle clip) -> void {
+        auto SetClip( const AudioHandle& clip ) -> void {
 
             m_Clip = clip;
             m_AudioSource = m_Clip->CreateSource();
@@ -361,7 +326,7 @@ namespace Mikoto {
     };
 
 
-    class AudioListenerComponent : public BaseComponent<AudioListenerComponent> {
+    class AudioListenerComponent {
     public:
         explicit AudioListenerComponent() = default;
 
@@ -391,7 +356,7 @@ namespace Mikoto {
         AudioListener* m_Listener{};
     };
 
-    class RigidBodyComponent : public BaseComponent<RigidBodyComponent> {
+    class RigidBodyComponent {
     public:
         explicit RigidBodyComponent() = default;
 
@@ -415,7 +380,7 @@ namespace Mikoto {
         bool m_UseGravity{};
     };
 
-    class ColliderComponent : public BaseComponent<ColliderComponent> {
+    class ColliderComponent {
     public:
         explicit ColliderComponent() = default;
 
@@ -430,26 +395,20 @@ namespace Mikoto {
         auto OnComponentAttach() -> void {  }
         auto OnComponentUpdate() -> void {  }
         auto OnComponentRemoved() -> void {  }
-
-    private:
-
     };
 
 
-    class CameraComponent : public BaseComponent<CameraComponent> {
+    class CameraComponent {
     public:
         explicit CameraComponent() = default;
 
-        explicit CameraComponent( Scope_T<SceneCamera>&& camera,  const bool mainCam = true, const bool fixedAspectRation = false)
+        explicit CameraComponent( Unique<SceneCamera>&& camera,  const bool mainCam = true, const bool fixedAspectRation = false)
             :   m_Camera{ camera != nullptr ? std::move(camera) : CreateScope<SceneCamera>() }, m_MainCam{ mainCam }, m_FixedAspectRatio{ fixedAspectRation }
         {
 
         }
 
-        CameraComponent(const CameraComponent& other) = default;
         CameraComponent(CameraComponent&& other) noexcept = default;
-
-        auto operator=(const CameraComponent& other) -> CameraComponent& = default;
         auto operator=(CameraComponent&& other) -> CameraComponent& = default;
 
         MKT_NODISCARD auto IsMainCamera() const -> bool { return m_MainCam; }
@@ -465,14 +424,18 @@ namespace Mikoto {
         auto OnComponentAttach() -> void {  }
         auto OnComponentUpdate() -> void {  }
         auto OnComponentRemoved() -> void {  }
+
+        // Camera component has its own camera not shared
+        DISABLE_COPY_FOR( CameraComponent );
+
     private:
-        Scope_T<SceneCamera> m_Camera{};
+        Unique<SceneCamera> m_Camera{};
 
         bool m_MainCam{ true };
         bool m_FixedAspectRatio{ false };
     };
 
-    class TextComponent : public BaseComponent<TextComponent> {
+    class TextComponent {
     public:
         explicit TextComponent() = default;
 
@@ -482,7 +445,7 @@ namespace Mikoto {
         auto operator=(const TextComponent& other) -> TextComponent& = default;
         auto operator=(TextComponent&& other) -> TextComponent& = default;
 
-        auto LoadFont(Font* font) -> void {
+        auto SetFont( const Font* font) -> void {
             if (font) {
                 m_Font = font;
             }
@@ -532,7 +495,7 @@ namespace Mikoto {
     private:
         std::string m_TextContent{};
 
-        glm::vec4 m_Color{ 1.0f, 1.0f, 0.4f, 1.0f };
+        Vec4F m_Color{ 1.0f, 1.0f, 0.4f, 1.0f };
 
         float m_Size{ 12 };
         float m_Spacing{ 0 };
@@ -541,36 +504,11 @@ namespace Mikoto {
         const Camera* m_Camera{ nullptr };
     };
 
-    // Scripting with c++
-    class NativeScriptComponent : public BaseComponent<NativeScriptComponent> {
+    class ScriptComponent  {
     public:
-        explicit NativeScriptComponent(const Path_T& script)
-            : m_ScriptPath{ script }
-        {}
-
-        NativeScriptComponent(const NativeScriptComponent& other) = default;
-        NativeScriptComponent(NativeScriptComponent&& other) = default;
-
-        auto operator=(const NativeScriptComponent& other) -> NativeScriptComponent& = default;
-        auto operator=(NativeScriptComponent&& other) -> NativeScriptComponent& = default;
-
-        auto OnComponentAttach() -> void {  }
-        auto OnComponentUpdate() -> void {  }
-        auto OnComponentRemoved() -> void {  }
-
-        ~NativeScriptComponent() = default;
-
-    private:
-
-        Path_T m_ScriptPath{};
-
-    };
-
-    class ScriptComponent : public BaseComponent<ScriptComponent> {
-    public:
-        explicit ScriptComponent(const Path_T& script)
-            : m_ScriptPath{ script }
-        {}
+        explicit ScriptComponent(const Path& script ) {
+            m_Script = FileService::Get()->LoadFile( script );
+        }
 
         ScriptComponent(const ScriptComponent& other) = default;
         ScriptComponent(ScriptComponent&& other) = default;
@@ -586,8 +524,7 @@ namespace Mikoto {
 
     private:
 
-        Path_T m_ScriptPath{};
-
+        const File* m_Script{};
     };
 }
 

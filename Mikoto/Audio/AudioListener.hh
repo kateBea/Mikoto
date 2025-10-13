@@ -62,10 +62,10 @@ namespace Mikoto {
         auto Apply() const -> void;
 
     private:
-        glm::vec3 m_Position{ 0.0f, 0.0f, 0.0f };
-        glm::vec3 m_Forward{ 0.0f, 0.0f, -1.0f };
-        glm::vec3 m_Up{ 0.0f, 1.0f, 0.0f };
-        glm::vec3 m_Velocity{ 0.0f, 0.0f, 0.0f };
+        Vec3F m_Position{ 0.0f, 0.0f, 0.0f };
+        Vec3F m_Forward{ 0.0f, 0.0f, -1.0f };
+        Vec3F m_Up{ 0.0f, 1.0f, 0.0f };
+        Vec3F m_Velocity{ 0.0f, 0.0f, 0.0f };
     };
 
 }// namespace Mikoto

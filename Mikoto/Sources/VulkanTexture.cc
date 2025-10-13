@@ -248,7 +248,7 @@ namespace Mikoto {
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;// Handle blending, just draw as it is (perform no blending)
         createInfo.presentMode = presentMode;
         createInfo.clipped = VK_TRUE;
-        createInfo.oldSwapchain = VK_NULL_HANDLE;// TODO: pass old swapchain (need debug currently old swapchain becoming retired which can't be passed here)
+        createInfo.oldSwapchain = VK_NULL_HANDLE;// TODO: pass old swap chain (need debug currently old swapchain becoming retired which can't be passed here)
 
         if ( vkCreateSwapchainKHR( VK_DEVICE( m_Device ), std::addressof( createInfo ), nullptr, std::addressof( m_Swapchain ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanSwapChain::CreateSwapChain - Failed to create swap chain." );

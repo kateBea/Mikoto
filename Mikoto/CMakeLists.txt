@@ -299,6 +299,15 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(taskflow)
 
+# Sol2
+FetchContent_Declare(
+        sol2
+        GIT_REPOSITORY https://github.com/ThePhD/sol2.git
+        GIT_TAG v3.3.0
+)
+
+FetchContent_MakeAvailable(sol2)
+
 # harfbuzz (not needed if you don't do complex text layout)
 #FetchContent_Declare(
 #        harfbuzz
@@ -377,6 +386,8 @@ set(LIBRARIES
         msdf-atlas-gen::msdf-atlas-gen
         unordered_dense::unordered_dense
         nlohmann_json::nlohmann_json
+        sol2::sol2
+        lua
 )
 
 if(UNIX)
@@ -417,6 +428,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${glm_SOURCE_DIR}
         ${vulkanmemoryallocator_SOURCE_DIR}/include
         ${taskflow_SOURCE_DIR}
+        ${sol2_SOURCE_DIR}/include
 )
 
 # ======================================
@@ -436,3 +448,30 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_RADIANS)
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE MIKOTO_USE_AUDIO_ENGINE_INTERFACE)
+
+# ======================================
+# Custom Commands
+# ======================================
+# Path to your resources folder (relative to project root)
+set(RESOURCE_DIR "${CMAKE_SOURCE_DIR}/Mikoto/Resources")
+
+# Path where resources should be copied in the build folder
+set(OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+
+add_custom_command(
+        TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${RESOURCE_DIR}" "${OUTPUT_DIR}"
+        COMMENT "Copying resources to build directory..."
+)
+
+
+set(INSTALL_SCRIPT "${CMAKE_SOURCE_DIR}/install.sh")
+
+if(UNIX)
+    add_custom_target(InstallDependencies
+        COMMAND ${INSTALL_SCRIPT}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Running install.sh to install Linux dependencies"
+    )
+endif()

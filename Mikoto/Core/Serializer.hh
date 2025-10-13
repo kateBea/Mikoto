@@ -13,8 +13,8 @@ namespace Mikoto {
     public:
         virtual ~ISerializer() = default;
 
-        virtual auto Serialize(const SerializeObjT& obj, const Path_T& savePath) -> void = 0;
-        virtual auto Deserialize(const Path_T& loadPath) -> Scope_T<SerializeObjT> = 0;
+        virtual auto Serialize(const SerializeObjT& obj, const Path& savePath) -> void = 0;
+        virtual auto Deserialize(const Path& loadPath) -> Unique<SerializeObjT> = 0;
     };
 }
 #endif //SERIALIZER_HH

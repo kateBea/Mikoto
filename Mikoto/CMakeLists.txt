@@ -466,7 +466,7 @@ add_custom_command(
 )
 
 
-set(INSTALL_SCRIPT "${CMAKE_SOURCE_DIR}/install.sh")
+set(INSTALL_SCRIPT "${CMAKE_BINARY_DIR}/install.sh")
 
 if(UNIX)
     add_custom_target(InstallDependencies

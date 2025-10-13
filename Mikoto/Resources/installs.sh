@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+# install.sh — Install Mikoto Linux dependencies
+
 # Vulkan
 sudo apt install vulkan-tools
 sudo apt install libvulkan-dev

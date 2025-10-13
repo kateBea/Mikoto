@@ -459,7 +459,7 @@ set(RESOURCE_DIR "${CMAKE_SOURCE_DIR}/Mikoto/Resources")
 set(OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 
 add_custom_command(
-        TARGET ${PROJECT_NAME} POST_BUILD
+        TARGET ${PROJECT_NAME}
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${RESOURCE_DIR}" "${OUTPUT_DIR}"
         COMMENT "Copying resources to build directory..."

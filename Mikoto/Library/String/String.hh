@@ -194,7 +194,7 @@ namespace Mikoto::StringUtils {
      * @see ConcatStr(...)
      * */
     template<typename T, typename... Args>
-    inline static auto ConcatStings(const T& first, Args&&... args) -> std::string {
+    static auto Concat(const T& first, Args&&... args) -> std::string {
         std::string result{};
         result.append(fmt::to_string(first));
 
@@ -205,18 +205,6 @@ namespace Mikoto::StringUtils {
         result.append(expansion);
 
         return result;
-    }
-
-
-    /**
-     * @brief Returns a string which is the concatenation of the string
-     * representation of the given values.
-     * @param args list of values.
-     * @tparam Args types of the given values.
-     * */
-    template<typename... Args>
-    inline auto Concat(Args&&... args) -> decltype(auto) {
-        return ConcatStings(std::forward<Args>(args)...);
     }
 
     /**
@@ -268,7 +256,7 @@ namespace Mikoto::StringUtils {
      * @param str2 Null-terminated string to compare.
      * @returns True if both strings are the same, false otherwise.
      * */
-    MKT_NODISCARD inline constexpr auto Equal( const std::string_view str1, const std::string_view str2) -> bool {
+    MKT_NODISCARD constexpr auto Equal( const std::string_view str1, const std::string_view str2) -> bool {
         return str1 == str2;
     }
 
@@ -276,6 +264,7 @@ namespace Mikoto::StringUtils {
      * @brief Returns true if two character sequences are equal.
      * @param str1 Null-terminated string to compare.
      * @param str2 Null-terminated string to compare.
+     * @param policy Whether we want the comparison to be case-sensitive or not
      * @returns True if both strings are the same, false otherwise.
      * */
     MKT_NODISCARD inline auto Equal( const std::string_view str1, const std::string_view str2, StringComparisonPolicy policy) -> bool {
@@ -287,7 +276,7 @@ namespace Mikoto::StringUtils {
             return a == b;
         }};
 
-        const std::function<bool(char, char)> predicate{
+        const std::function predicate{
             policy == StringComparisonPolicy::CASE_SENSITIVE ? sensitive : insensitive
         };
 
@@ -317,30 +306,14 @@ namespace Mikoto::StringUtils {
         return result;
     }
 
-    inline auto Format(auto&&... args) -> decltype(auto) {
-        return fmt::format(std::forward<decltype(args)>(args)...);
+    template<typename... Args>
+    auto Format(Args&&... args) -> decltype(auto) {
+        return fmt::format(std::forward<Args>(args)...);
     }
 
-    inline auto ToString(auto&&... args) -> decltype(auto) {
-        return fmt::to_string(std::forward<decltype(args)>(args)...);
-    }
-    /**
-     * @brief Make a path to a char string. Transforms wide char strings to byte
-     * char strings. On Windows std::filesystem::string returns a string of wide
-     * char types (wchar_t), whereas on linux it returns a string of char.
-     * @param path Path to the file
-     * @returns String of byte sized .characters.
-     * */
-    inline auto GetByteChar(const Path &path) -> std::string {
-        std::string fileDir(4096, '\0');
-#if defined(_WIN32) || defined(_WIN64)
-        auto byteChar{ path.string() };
-
-        wcstombs_s(nullptr, fileDir.data(), fileDir.size(), path.c_str(), 4096);
-#else
-        return path.string();
-#endif
-        return fileDir;
+    template<typename... Args>
+    auto ToString(Args&&... args) -> decltype(auto) {
+        return fmt::to_string(std::forward<Args>(args)...);
     }
 
     MKT_NODISCARD inline auto ToHex(Size value, const bool upper = true) -> std::string {

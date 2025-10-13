@@ -10,7 +10,9 @@ file(GLOB SOURCE_FILES Sources/*.cc)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES}
         Sources/MusicPlayerLayer.cc
-        MusicPlayerLayer.hh)
+        MusicPlayerLayer.hh
+        GraphicsLayer.cc
+        GraphicsLayer.hh)
 
 # Link the engine
 target_link_libraries(${PROJECT_NAME} PRIVATE Mikoto)

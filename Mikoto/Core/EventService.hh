@@ -61,8 +61,8 @@ namespace Mikoto {
         }
 
     private:
-        EventType m_Type{};
-        EventCategory m_Category{};
+        EventType m_Type{ EventType::UNKNOWN_EVENT };
+        EventCategory m_Category{ EMPTY_EVENT_CATEGORY };
         HandlerFunc m_Handler{};
     };
 
@@ -83,7 +83,7 @@ namespace Mikoto {
     * };
     *
     * // Somewhere during initialization:
-    * EventService::GetInstance()->Subscribe<MyEvent>(myListenerPtr);
+    * EventService::GetInstance()->Subscribe(myListenerPtr);
     * @endcode
     *
     * The event system will then deliver matching events to the subscriber's registered handler.
@@ -142,10 +142,11 @@ namespace Mikoto {
 
                 // If the subscriber has a handler for the exact type of event we have, call it
                 // Otherwise check whether the subscriber has a handler for the category of the event and call it
-                if ( const auto handler{ subscriber->GetHandler( event->GetType() ) }; handler ) {
-                    event->SetHandled( handler( *event ) );
-                } else if ( const auto handler{ subscriber->GetHandler( event->GetCategoryFlags() ) }; handler ) {
-                    event->SetHandled( handler( *event ) );
+                if ( const auto handlerByType{ subscriber->GetHandler( event->GetType() ) }; handlerByType ) {
+                    event->SetHandled( handlerByType( *event ) );
+
+                } else if ( const auto handlerByCategory{ subscriber->GetHandler( event->GetCategoryFlags() ) }; handlerByCategory ) {
+                    event->SetHandled( handlerByCategory( *event ) );
                 }
             }
         }
@@ -161,8 +162,9 @@ namespace Mikoto {
          * Adds the given event to the queue of unhandled events
          * @param params event to be added
          * */
-        auto QueueEvent( auto&&... params ) -> void {
-            m_EventQueue.emplace_back( std::forward<decltype(params)>(params)... );
+        template<typename... Args>
+        auto QueueEvent( Args&&... params ) -> void {
+            m_EventQueue.emplace_back( std::forward<Args>(params)... );
         }
 
         /**

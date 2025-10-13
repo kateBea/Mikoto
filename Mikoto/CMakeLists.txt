@@ -465,13 +465,13 @@ add_custom_command(
         COMMENT "Copying resources to build directory..."
 )
 
-
-set(INSTALL_SCRIPT "${CMAKE_BINARY_DIR}/install.sh")
+# Install file is in Resources folder and gets copied to Root of Mikoto binary dir
+set(INSTALL_SCRIPT "${Mikoto_BINARY_DIR}/install.sh")
 
 if(UNIX)
     add_custom_target(InstallDependencies
         COMMAND ${INSTALL_SCRIPT}
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        WORKING_DIRECTORY ${Mikoto_BINARY_DIR}
         COMMENT "Running install.sh to install Linux dependencies"
     )
 endif()

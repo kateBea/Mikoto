@@ -452,26 +452,26 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE MIKOTO_USE_AUDIO_ENGINE_INTER
 # ======================================
 # Custom Commands
 # ======================================
-# Path to your resources folder (relative to project root)
-set(RESOURCE_DIR "${CMAKE_SOURCE_DIR}/Mikoto/Resources")
 
-# Path where resources should be copied in the build folder
-set(OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+# Correct paths based on your project layout
+set(RESOURCES_SRC "${Mikoto_SOURCE_DIR}/Resources")
+set(RESOURCES_DST "${Mikoto_BINARY_DIR}/Resources")
+set(INSTALL_SCRIPT "${RESOURCES_DST}/installs.sh")
 
+# Copy all resources into the build directory
 add_custom_command(
-        TARGET ${PROJECT_NAME}
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${RESOURCE_DIR}" "${OUTPUT_DIR}"
-        COMMENT "Copying resources to build directory..."
+        OUTPUT ${RESOURCES_DST}
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${RESOURCES_SRC} ${RESOURCES_DST}
+        COMMAND chmod +x ${INSTALL_SCRIPT}
+        COMMENT "Copying all resources and making installs.sh executable"
 )
 
-# Install file is in Resources folder and gets copied to Root of Mikoto binary dir
-set(INSTALL_SCRIPT "${Mikoto_BINARY_DIR}/install.sh")
-
+# Create a target that depends on the copied files
 if(UNIX)
     add_custom_target(InstallDependencies
-        COMMAND ${INSTALL_SCRIPT}
-        WORKING_DIRECTORY ${Mikoto_BINARY_DIR}
-        COMMENT "Running install.sh to install Linux dependencies"
+            DEPENDS ${RESOURCES_DST}
+            COMMAND ${INSTALL_SCRIPT}
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            COMMENT "Running installs.sh to install Linux dependencies"
     )
 endif()

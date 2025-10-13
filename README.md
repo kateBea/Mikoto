@@ -91,6 +91,7 @@ Optionally pass target InstallDependencies (``--target InstallDependencies``) to
 
 ```
 cmake --build . --target InstallDependencies --config Release 
+cmake --build . --config Release
 ```
 
 ## Linux Required libraries

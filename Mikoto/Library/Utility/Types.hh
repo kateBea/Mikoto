@@ -17,7 +17,7 @@
 #include <glm/glm.hpp>
 
 namespace Mikoto {
-    using Vec4 = glm::vec4;
+    using Vec4F = glm::vec4;
 
     using Path = std::filesystem::path;
 

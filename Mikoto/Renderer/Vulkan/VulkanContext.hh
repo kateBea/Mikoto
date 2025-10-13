@@ -17,8 +17,7 @@
 // Project Headers
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
-#include <Renderer/RenderContext.hh>
-
+#include <Renderer/RenderService.hh>
 #include "VulkanHelpers.hh"
 #include "VulkanTexture.hh"
 

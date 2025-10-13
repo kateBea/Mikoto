@@ -3,7 +3,6 @@
 //
 
 #include <Library/Utility/Types.hh>
-#include <Renderer/RenderContext.hh>
 #include <Renderer/RenderService.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 

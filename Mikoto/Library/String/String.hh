@@ -193,30 +193,14 @@ namespace Mikoto::StringUtils {
      * designated as helpers for internal usage.
      * @see ConcatStr(...)
      * */
-    template<typename T, typename... Args>
-    static auto Concat(const T& first, Args&&... args) -> std::string {
-        std::string result{};
-        result.append(fmt::to_string(first));
+    template<typename... Args>
+    static auto Concat(Args&&... args) -> std::string {
+        fmt::memory_buffer buffer{};
+        (fmt::format_to(std::back_inserter(buffer),
+            "{}", std::forward<Args>(args)), ...);
 
-        std::string expansion{};
-        if constexpr (sizeof...(args))
-            expansion = std::move(ConcatStr_H(args...));
-
-        result.append(expansion);
-
-        return result;
+        return fmt::to_string(buffer);
     }
-
-    /**
-     * Utility function to make panel names for ImGui windows.
-     * @param panelIcon Panel's icon value.
-     * @param panelName Name of the panel.
-     * @returns The panel's name including the icon.
-     * */
-    MKT_NODISCARD inline auto MakePanelName(std::string_view panelIcon, std::string_view panelName) -> std::string {
-        return fmt::format("{} {}", panelIcon, panelName);
-    }
-
 
     /**
      * @brief Remove any leading white spaces from str, from both ends.
@@ -254,20 +238,10 @@ namespace Mikoto::StringUtils {
      * @brief Returns true if two character sequences are equal.
      * @param str1 Null-terminated string to compare.
      * @param str2 Null-terminated string to compare.
-     * @returns True if both strings are the same, false otherwise.
-     * */
-    MKT_NODISCARD constexpr auto Equal( const std::string_view str1, const std::string_view str2) -> bool {
-        return str1 == str2;
-    }
-
-    /**
-     * @brief Returns true if two character sequences are equal.
-     * @param str1 Null-terminated string to compare.
-     * @param str2 Null-terminated string to compare.
      * @param policy Whether we want the comparison to be case-sensitive or not
      * @returns True if both strings are the same, false otherwise.
      * */
-    MKT_NODISCARD inline auto Equal( const std::string_view str1, const std::string_view str2, StringComparisonPolicy policy) -> bool {
+    MKT_NODISCARD inline auto Equal( const std::string_view str1, const std::string_view str2, StringComparisonPolicy policy = StringComparisonPolicy::CASE_SENSITIVE) -> bool {
         const auto insensitive{ [](const char a, const char b) {
             return std::tolower(a) == std::tolower(b);
         }};
@@ -293,7 +267,7 @@ namespace Mikoto::StringUtils {
      *
      * */
     template<typename... Args>
-    inline auto ConcatenatePath(const Path& first, Args&&... routes) -> Path {
+    auto ConcatenatePath(const Path& first, Args&&... routes) -> Path {
         Path result{};
         result = result / first;
 

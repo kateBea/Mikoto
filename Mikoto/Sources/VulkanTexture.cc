@@ -255,41 +255,6 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanTexture::AllocateImage() -> void {
-        // Specify current layout, it should be undefined as this is a newly created image
-        m_ImageCreateInfo.initialLayout = m_CurrentLayout;
-
-        // The image has not been allocated, and
-        // we need to allocate it on the given device
-        if ( m_Image == VK_NULL_HANDLE ) {
-            const auto allocator{ dynamic_cast<VulkanMemoryAllocator*>( TO_VK_DEVICE( m_Device )->GetAllocator() ) };
-
-            const VkResult result{ allocator->AllocateImage( this ) };
-
-            if ( result != VK_SUCCESS ) {
-                MKT_THROW_RUNTIME_ERROR( "VulkanImage::Allocate - Failed to allocate VMA Image!" );
-            }
-        } else {
-            m_IsImageExternal = true;
-            m_ImageCreateInfo.initialLayout = m_CurrentLayout;
-        }
-
-        // Save the created image into the view create info
-        // required to create the image view
-        m_ImageViewCreateInfo.image = m_Image;
-
-        // Here we always create the image view;
-        // the caller can optionally pass a valid image because this VulkanImage is supposed be
-        // usable for the swapchain as well, however, if the latter is the case,
-        // we are responsible for releasing the image views, not the actual images.
-        if ( vkCreateImageView( dynamic_cast<VulkanDevice*>( m_Device )->GetLogicalDevice(),
-                                std::addressof( m_ImageViewCreateInfo ), nullptr, std::addressof( m_ImageView ) ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanImage::VulkanImage - Failed to create the Vulkan Image View!" );
-        }
-
-        m_IsAllocated = true;
-    }
-
     auto VulkanTexture::Initialize() -> void {
         // Specify the current layout, it should be undefined as this is a newly created image
         m_ImageCreateInfo.initialLayout = m_CurrentLayout;

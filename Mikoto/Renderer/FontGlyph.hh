@@ -10,7 +10,6 @@
 #include <Assets/Texture.hh>
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
-#include <Renderer/BufferLayout.hh>
 
 #include "Renderer/GpuDevice.hh"
 

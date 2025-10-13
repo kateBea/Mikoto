@@ -14,6 +14,7 @@
 #include <new>
 
 #include <fmt/format.h>
+#include <cpptrace/cpptrace.hpp>
 
 // Project Headers
 
@@ -38,6 +39,7 @@
 #define MKT_ENGINE_VERSION_PATCH 0
 
 #define MKT_THROW_RUNTIME_ERROR(MESSAGE) \
+    cpptrace::generate_trace().print(); \
     throw std::runtime_error(fmt::format("Message: {}\n@File: {}\n@Line: {}", MESSAGE, __FILE__, __LINE__))
 
 /**

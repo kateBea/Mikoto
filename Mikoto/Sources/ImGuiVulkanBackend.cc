@@ -63,7 +63,7 @@ namespace Mikoto {
         ImGuizmo::BeginFrame();
     }
 
-    auto ImGuiVulkanBackend::FetchAttachmentFormats() -> void {
+    auto ImGuiVulkanBackend::CreateRenderPass() -> void {
         const std::initializer_list<const VkFormat> targetColorFormats{
             VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_D32_SFLOAT, VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_SRGB
         };
@@ -72,23 +72,21 @@ namespace Mikoto {
             VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT
         };
 
-        m_ColorAttachmentFormat = VulkanHelpers::FindSupportedFormat(
+        VkFormat colorFormat{ VulkanHelpers::FindSupportedFormat(
                 TO_VK_DEVICE( m_GpuDevice )->GetPhysicalDevice(),
                 targetColorFormats,
                 VK_IMAGE_TILING_OPTIMAL,
-                VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT );
+                VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT ) };
 
-        m_DepthAttachmentFormat = VulkanHelpers::FindSupportedFormat(
+        VkFormat depthFormat{ VulkanHelpers::FindSupportedFormat(
                 TO_VK_DEVICE( m_GpuDevice )->GetPhysicalDevice(),
                 targetDepthFormats,
                 VK_IMAGE_TILING_OPTIMAL,
-                VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT );
-    }
+                VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT ) };
 
-    auto ImGuiVulkanBackend::CreateRenderPass() -> void {
         // Color Attachment
         VkAttachmentDescription colorAttachmentDesc{};
-        colorAttachmentDesc.format = m_ColorAttachmentFormat;
+        colorAttachmentDesc.format = colorFormat;
         colorAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
         colorAttachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         colorAttachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -104,7 +102,7 @@ namespace Mikoto {
         // Depth Attachment
         VkAttachmentDescription depthAttachmentDesc{};
         depthAttachmentDesc.flags = 0;
-        depthAttachmentDesc.format = m_DepthAttachmentFormat;
+        depthAttachmentDesc.format = depthFormat;
         depthAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
         depthAttachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -224,7 +222,6 @@ namespace Mikoto {
     }
 
     auto ImGuiVulkanBackend::CreateImages() -> void {
-        FetchAttachmentFormats();
 
         // Color Device attachment
         TextureDescription colorDesc{};
@@ -244,8 +241,8 @@ namespace Mikoto {
         // Depth attachment
         TextureDescription depthDesc{};
         depthDesc
-                .WithWidth( m_Extent2D.width )
-                .WithHeight( m_Extent2D.height )
+                .WithWidth( static_cast<Int32>(m_Extent2D.width) )
+                .WithHeight( static_cast<Int32>(m_Extent2D.height) )
                 .WithChannelCount( 1 )
                 .WithData( nullptr )
                 .WithType( TextureType::TEXTURE_2D )
@@ -258,10 +255,12 @@ namespace Mikoto {
     }
 
     auto ImGuiVulkanBackend::EndFrame() -> void {
-        // If the swapchain has been resized, we need to recreate the framebuffers and images
+        // If the swap chain has been resized, we need to recreate the framebuffers and images
         SwapChainHandle swapChain{ VulkanContext::Get()->GetSwapchain() };
         if ( swapChain->GetExtent().width != m_Extent2D.width ||
              swapChain->GetExtent().height != m_Extent2D.height ) {
+
+            // Save new dimensions
             m_Extent2D = swapChain->GetExtent();
             m_Extent3D = { m_Extent2D.width, m_Extent2D.height, 1 };
 
@@ -299,6 +298,7 @@ namespace Mikoto {
             } );
 
         m_DrawFrameBuffer = m_GpuDevice->CreateFrameBuffer( description );
+        m_DrawFrameBuffer->SetDebugName( "ImGui Framebuffer" );
     }
 
     auto ImGuiVulkanBackend::RecordRenderPassCommands( CommandListHandle cmdList ) -> void {
@@ -318,7 +318,7 @@ namespace Mikoto {
         renderPassInfo.clearValueCount = static_cast<UInt32>( clearValues.size() );
         renderPassInfo.pClearValues = clearValues.data();
 
-        auto nativeCmdListHandle{ *cmdList->GetNativeHandle<VulkanCmdList>() };
+        const auto nativeCmdListHandle{ *cmdList->GetNativeHandle<VulkanCmdList>() };
 
         SwapChainHandle vulkanSwapChain{ VulkanContext::Get()->GetSwapchain() };
 

@@ -2,23 +2,31 @@
 // Created by zanet on 3/28/2025.
 //
 
-#include <array>
-#include <memory>
-#include <vector>
-
 #include <Assets/AssetsService.hh>
 #include <Assets/MeshFactory.hh>
 #include <Assets/Model.hh>
 #include <Filesystem/FileService.hh>
 #include <Library/IO/PathBuilder.hh>
 #include <Renderer/GpuUtility.hh>
-#include <Renderer/RenderService.hh>
 #include <Renderer/Pipeline.hh>
+#include <Renderer/RenderService.hh>
+#include <array>
+#include <memory>
+#include <vector>
 
+#include "assimp/DefaultLogger.hpp"
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
 
 namespace Mikoto {
+
+    class CustomLogStream final : public Assimp::LogStream {
+    public:
+        void write(const char* message) override {
+            // Redirect to your engine logger
+            MKT_CORE_LOGGER_DEBUG("[Assimp] {}", message);
+        }
+    };
 
     struct MeshNodeCreateInfo {
         BufferHandle VertexBuffer{};
@@ -107,7 +115,7 @@ namespace Mikoto {
                 vertices.emplace_back( 0.0f );
             }
 
-            // Tangents and Bitangents
+            // Tangents and Bi tangents
             if ( mesh->HasTangentsAndBitangents() ) {
             }
         }
@@ -168,11 +176,8 @@ namespace Mikoto {
 
         if ( mesh->mMaterialIndex > 0 ) {
             const aiMaterial* material{ scene->mMaterials[mesh->mMaterialIndex] };
-
-            // TODO: Parallelize texture loading
             for ( const aiTextureType& type: ASSIMP_TEXTURE_TYPES ) {
                 TextureHandle handle{ LoadTexture( modelRootPath, material, type, scene ) };
-
                 textures.emplace_back(handle);
             }
         }
@@ -180,62 +185,52 @@ namespace Mikoto {
         return textures;
     }
 
-    static auto ConstructMeshNode(GpuDevice* device, const std::string& modelRootPath, const aiMesh* aiMesh, const aiScene* scene ) -> MeshNodeCreateInfo {
+    static auto ConstructMeshNode(GpuDevice* device, const std::string& rootPath,
+                              const aiMesh* mesh, const aiScene* scene)
+    -> std::tuple<BufferHandle, BufferHandle, std::vector<TextureHandle>>
+    {
+        auto vertices{ LoadVertices(mesh) };
+        auto indices{ LoadIndices(mesh) };
+        auto textures{ LoadTextures(rootPath, mesh, scene) };
 
-        std::vector<float> vertices{ LoadVertices( aiMesh ) };
-        std::vector<UInt32> indices{ LoadIndices( aiMesh ) };
-        std::vector<TextureHandle> textures{ LoadTextures( modelRootPath, aiMesh, scene ) };
+        BufferDescription vertexDesc{};
+        vertexDesc.WithData(reinterpret_cast<Byte*>(vertices.data()))
+                  .WithUsage(BufferUsage::BUFFER_USAGE_VERTEX)
+                  .WithBufferDataType(BufferDataType::BUFFER_DATA_FLOAT32)
+                  .WithSizeBytes(InferSize<float>(vertices.size()))
+                  .WithResourceUsageType(ResourceUsageType::RESOURCE_USAGE_STATIC);
 
-        // Vertex buffer
-        BufferDescription verticesDescription{};
+        BufferDescription indexDesc{};
+        indexDesc.WithData(reinterpret_cast<Byte*>(indices.data()))
+                 .WithUsage(BufferUsage::BUFFER_USAGE_INDEX)
+                 .WithSizeBytes(InferSize<UInt32>(indices.size()))
+                 .WithBufferDataType(BufferDataType::BUFFER_DATA_UINT32)
+                 .WithResourceUsageType(ResourceUsageType::RESOURCE_USAGE_STATIC);
 
-        verticesDescription.WithData( reinterpret_cast<Byte*>( vertices.data() ) )
-            .WithUsage( BufferUsage::BUFFER_USAGE_VERTEX )
-            .WithSizeBytes( InferSize<float>( vertices.size() ) )
-            .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
-
-        const BufferHandle vertexBufferHandle{ device->CreateBuffer( verticesDescription ) };
-
-        // Index buffer
-        BufferDescription indicesDescription{};
-
-        indicesDescription.WithData( reinterpret_cast<Byte*>( indices.data() ) )
-            .WithUsage( BufferUsage::BUFFER_USAGE_INDEX )
-            .WithSizeBytes( InferSize<UInt32>( indices.size() ) )
-            .WithBufferDataType( BufferDataType::BUFFER_DATA_UINT32 )
-            .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
-
-        const BufferHandle indexBufferHandle{ device->CreateBuffer( indicesDescription ) };
-
-        MeshNodeCreateInfo result{
-            .VertexBuffer{ std::move( vertexBufferHandle ) },
-            .IndexBuffer{ std::move( indexBufferHandle ) },
-            .Textures{ std::move( textures ) }
-        };
-
-        return result;
+        return { device->CreateBuffer(vertexDesc), device->CreateBuffer(indexDesc), std::move(textures) };
     }
 
-    static auto LoadNodes( GpuDevice* device, const std::string& rootPath, const aiNode* rootNode, const aiScene* scene, const ModelLoadDescription& loadInfo ) -> std::vector<MeshNode> {
+    static auto LoadNodes(GpuDevice* device, const std::string& rootPath, const aiNode* node,
+                      const aiScene* scene, const ModelLoadDescription& loadInfo) -> std::vector<MeshNode>
+    {
         // Assimp structures a scene like a hierarchy of nodes where
         // each node has child nodes and a list of meshes attached to it (the node only holds indices the actual meshes are in the aiScene structure).
         // We will first load all the meshes from the current node and recursively do the same task with children nodes.
         std::vector<MeshNode> result{};
 
         // Process all the meshes from this node
-        for ( UInt64 meshIndex{}; meshIndex < rootNode->mNumMeshes; meshIndex++ ) {
-            auto [VertexBuffer, IndexBuffer, Textures]{
-                ConstructMeshNode(device, rootPath, scene->mMeshes[rootNode->mMeshes[meshIndex]], scene )
+        for (UInt64 i{}; i < node->mNumMeshes; ++i) {
+            auto [vertexBuf, indexBuf, textures] {
+                ConstructMeshNode(device, rootPath, scene->mMeshes[node->mMeshes[i]], scene)
             };
 
-            result.emplace_back( rootNode->mMeshes[meshIndex], VertexBuffer, IndexBuffer, std::move( Textures ) );
+            result.emplace_back( static_cast<Size>(node->mMeshes[i]), std::move(vertexBuf),std::move(indexBuf), std::move(textures) );
         }
 
         // Do the same for all the children nodex from this node
-        for ( UInt64 indexChildNode{}; indexChildNode < rootNode->mNumChildren; indexChildNode++ ) {
-            auto children{ LoadNodes(device, rootPath, rootNode->mChildren[indexChildNode], scene, loadInfo ) };
-
-            std::ranges::move( children, std::back_inserter( result ) );
+        for (UInt64 i{}; i < node->mNumChildren; ++i) {
+            auto children{ LoadNodes(device, rootPath, node->mChildren[i], scene, loadInfo) };
+            std::ranges::move(children, std::back_inserter(result));
         }
 
         return result;
@@ -249,16 +244,17 @@ namespace Mikoto {
                                                                        aiProcess_FlipUVs |
                                                                        aiProcess_GenSmoothNormals |
                                                                        aiProcess_JoinIdenticalVertices ) };
-
-        const std::string absolutePath{ loadInfo.ModelFile->GetPath() };
+        const File* file{ loadInfo.ModelFile };
+        const std::string absolutePath{ file->GetPath() };
         const std::string fileName{ Path{ absolutePath }.stem().string() };
 
         const aiScene* scene{ importer.ReadFile( absolutePath.c_str(), importerFlags ) };
+        //const aiScene* scene{ importer.ReadFileFromMemory(  file->GetFileBytes(), file->GetSizeBytes(), importerFlags ) };
         if ( scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || scene->mRootNode == nullptr ) {
             MKT_CORE_LOGGER_ERROR( "ImportModel - Model load failed. Assimp error: '{}'", importer.GetErrorString() );
         } else {
 
-            Path rootPath{loadInfo.ModelFile->GetPath() };
+            Path rootPath{file->GetPath() };
             rootPath.remove_filename();
 
             if ( auto nodes{ LoadNodes(device, rootPath.string(), scene->mRootNode, scene, loadInfo ) }; !nodes.empty() ) {
@@ -273,39 +269,19 @@ namespace Mikoto {
         return result;
     }
 
-    auto MeshFactory::Init() -> void {
-        // Configure custom logger
-        if ( m_WantCustomLog ) {
-            SetupCustomAssimpLogger();
-        }
-
-        // Configure custom importer system for all available importers
-        if ( m_WantCustomLoader ) {
-            SetupCustomLoaderForImporters();
-        }
-
-        // Allocate importers
-
-        m_IsInitialized = true;
-    }
-
-    auto MeshFactory::Shutdown() -> void {
-
-        if ( !m_IsInitialized ) {
-            return;
-        }
-    }
-
     MeshFactory::MeshFactory( const MeshFactoryCreateInfo& createInfo )
         : m_Device{ createInfo.Device },
-            m_WantCustomLog{ createInfo.UseCustomLogger },
-          m_WantCustomLoader{ createInfo.UseCustomLoader } {
-        m_Importers.reserve( createInfo.ImportersCount );
+            m_WantCustomLog{ createInfo.UseCustomLogger } {
+        m_Importers.resize( createInfo.ImportersCount );
+
+        for (auto& importerInfo : m_Importers) {
+            importerInfo = CreateScope<ImporterInfo>();
+        }
     }
 
     auto MeshFactory::ImportModel( const ModelLoadDescription& loadInfo ) -> ModelHandle {
         if ( loadInfo.ModelFile == nullptr ) {
-            MKT_CORE_LOGGER_ERROR( "MeshFactory::Load - File is null." );
+            MKT_CORE_LOGGER_ERROR( "MeshFactory::ImportModel - File is null." );
             return ModelHandle::CreateEmpty();
         }
 
@@ -313,7 +289,7 @@ namespace Mikoto {
 
         // Find available importer and atomically acquire it
         const auto availableImporter{
-            std::ranges::find_if( m_Importers, []( ImporterInfo* info ) {
+            std::ranges::find_if( m_Importers, []( const Unique<ImporterInfo>& info ) {
                 bool expected{ true };
                 return info->IsFree.compare_exchange_strong( expected, false );
             } )
@@ -332,9 +308,38 @@ namespace Mikoto {
     }
 
     auto MeshFactory::SetupCustomAssimpLogger() -> void {
+        if (m_WantCustomLog) {
+            m_CustomLoggingImpl = CreateScope<CustomLogStream>();
+
+            Assimp::DefaultLogger::create("", Assimp::Logger::VERBOSE);
+            Assimp::DefaultLogger::get()->attachStream(m_CustomLoggingImpl.get(), Assimp::Logger::VERBOSE);
+        }
     }
 
-    auto MeshFactory::SetupCustomLoaderForImporters() -> void {
+    auto MeshFactory::Init() -> void {
+        // Allocate importers
+        for ( const auto& importerInfo : m_Importers) {
+            importerInfo->CustomFileHandlingImpl = nullptr;
+            importerInfo->MeshImporter.SetIOHandler(importerInfo->CustomFileHandlingImpl.get());
+        }
+
+        // Configure custom logger
+        if ( m_WantCustomLog ) {
+            SetupCustomAssimpLogger();
+        }
+
+        m_IsInitialized = true;
+    }
+
+    auto MeshFactory::Shutdown() -> void {
+
+        if ( !m_IsInitialized ) {
+            return;
+        }
+
+        MKT_CORE_LOGGER_INFO( "Shutting down AssetsService..." );
+
+        m_Importers.clear();
     }
 
     auto MeshFactoryCreateInfo::WithImportersCount( const Size count ) -> MeshFactoryCreateInfo& {

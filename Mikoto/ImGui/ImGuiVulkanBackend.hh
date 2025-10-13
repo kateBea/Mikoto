@@ -42,7 +42,6 @@ namespace Mikoto {
 
     private:
         auto InitImGuiForVulkan() -> void;
-        auto FetchAttachmentFormats() -> void;
         auto CreateRenderPass() -> void;
         auto CreateImages() -> void;
         auto CreateFrameBuffer() -> void;
@@ -58,9 +57,6 @@ namespace Mikoto {
         TextureHandle m_ColorImage{};
         TextureHandle m_DepthImage{};
         FramebufferHandle m_DrawFrameBuffer{};
-
-        VkFormat m_ColorAttachmentFormat{};
-        VkFormat m_DepthAttachmentFormat{};
 
         VkExtent2D m_Extent2D{ 2560, 1440 };
         VkExtent3D m_Extent3D{ 2560, 1440, 1 };

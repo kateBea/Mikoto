@@ -6,11 +6,13 @@
 #define GRAPHICSLAYER_HH
 #include <string_view>
 
+#include <Assets/Model.hh>
 #include <Assets/AssetsService.hh>
 #include <Renderer/RenderService.hh>
 #include <Core/LayerStack.hh>
 
 namespace Mikoto {
+
     class GraphicsLayer final : public ILayer {
     public:
         explicit GraphicsLayer( std::string_view name );
@@ -24,6 +26,7 @@ namespace Mikoto {
         BufferHandle m_StagingBuffer{};
         TextureHandle m_Texture{};
 
+        ModelHandle m_Model{};
     };
 }
 

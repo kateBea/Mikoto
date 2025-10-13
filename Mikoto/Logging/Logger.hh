@@ -57,6 +57,8 @@ namespace Mikoto {
     #define MKT_CORE_LOGGER_TRACE(...) Mikoto::Logger::Get().GetConsoleLog()->trace(fmt::format(__VA_ARGS__))
     #define MKT_CORE_LOGGER_INFO(...) Mikoto::Logger::Get().GetConsoleLog()->info(fmt::format(__VA_ARGS__))
     #define MKT_CORE_LOGGER_DEBUG(...) Mikoto::Logger::Get().GetConsoleLog()->debug(fmt::format(__VA_ARGS__))
+
+    #define MKT_STACK_TRACE() cpptrace::generate_trace().print()
 #else
     // I still want to see errors and critical logs
     #define MKT_CORE_LOGGER_ERROR(...) Mikoto::Logger::Get().GetConsoleLog()->error(fmt::format(__VA_ARGS__))
@@ -66,6 +68,8 @@ namespace Mikoto {
     #define MKT_CORE_LOGGER_TRACE(...)
     #define MKT_CORE_LOGGER_WARN(...)
     #define MKT_CORE_LOGGER_DEBUG(...)
+
+    #define MKT_STACK_TRACE() cpptrace::generate_trace().print()
 #endif
 
 

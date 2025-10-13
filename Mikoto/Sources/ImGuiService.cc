@@ -125,7 +125,7 @@ namespace Mikoto {
         m_Fonts.emplace_back( font );
     }
 
-    auto ImGuiService::SetImGuiBackGroundClearColor( const Vec4 &color ) -> void {
+    auto ImGuiService::SetImGuiBackGroundClearColor( const Vec4F &color ) -> void {
         m_Implementation->SetClearColor(color);
     }
 

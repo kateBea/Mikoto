@@ -14,7 +14,6 @@
 namespace Mikoto {
     /**
      * @brief Base class for reference-counted objects.
-     *
      * https://isocpp.org/wiki/faq/freestore-mgmt#delete-this
      */
     class ReferenceCounted {
@@ -48,14 +47,13 @@ namespace Mikoto {
 
     /**
     * @brief Base class for reference-counted objects.
-    *
     * https://isocpp.org/wiki/faq/freestore-mgmt#delete-this
     */
     template<typename RefCountedType>
     class Ref {
     public:
         explicit Ref( RefCountedType* ptr = nullptr ) noexcept
-            : m_Ptr( ptr ) {
+            : m_Ptr{ ptr } {
             // RefCountedType must be a ReferenceCounted or inheriting from it
             // ReferenceCounted by default has the count set to one as the first usage counts
             if (m_Ptr) {
@@ -157,23 +155,16 @@ namespace Mikoto {
             return m_Ptr;
         }
 
-        MKT_NODISCARD auto IsEmpty() const -> bool {
-            return m_Ptr == nullptr;
-        }
+        MKT_NODISCARD auto IsEmpty() const -> bool { return m_Ptr == nullptr; }
 
-        static auto Create( RefCountedType* ptr ) -> Ref<RefCountedType> {
-            return Ref<RefCountedType>{ ptr };
-        }
+        MKT_NODISCARD static auto CreateEmpty() -> Ref { return Ref{ nullptr }; }
+        MKT_NODISCARD static auto Create( RefCountedType* ptr ) -> Ref { return Ref{ ptr }; }
 
-        static auto CreateEmpty() -> Ref<RefCountedType> {
-            return Ref<RefCountedType>{ nullptr };
-        }
+        auto operator->() -> RefCountedType* { return m_Ptr; }
+        auto operator->() const -> const RefCountedType* { return m_Ptr; }
 
-        RefCountedType* operator->() { return m_Ptr; }
-        const RefCountedType* operator->() const { return m_Ptr; }
-
-        RefCountedType* GetRaw() { return m_Ptr; }
-        const RefCountedType* GetRaw() const { return m_Ptr; }
+        auto GetRaw() -> RefCountedType* { return m_Ptr; }
+        auto GetRaw() const -> const RefCountedType* { return m_Ptr; }
 
     private:
         friend class ReferenceCounted;

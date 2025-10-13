@@ -16,10 +16,11 @@
 
 // Project Headers
 #include <Common/Common.hh>
+#include <Common/ReferenceCounted.hh>
 
 namespace Mikoto {
 
-    class Material {
+    class Material : public IResource {
     public:
         explicit Material(const std::string_view name = "Base Material")
             :   m_Name{ name }

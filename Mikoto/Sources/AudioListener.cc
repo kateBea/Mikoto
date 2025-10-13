@@ -4,9 +4,10 @@
 
 #include <miniaudio.h>
 
-#include "Audio/AudioListener.hh"
+#include <Audio/AudioListener.hh>
 #include <Audio/AudioDevice.hh>
 #include <Audio/AudioService.hh>
+#include <Library/Utility/Types.hh>
 
 namespace Mikoto {
     auto AudioListener::SetPosition(float x, float y, float z) -> void {

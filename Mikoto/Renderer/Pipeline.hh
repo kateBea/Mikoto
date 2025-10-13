@@ -8,7 +8,8 @@
 
 #include <Common/Common.hh>
 #include <Renderer/DeviceObject.hh>
-#include <Renderer/GpuUtility.hh>
+#include <Renderer/RenderUtility.hh>
+#include <Material/ShaderModule.hh>
 
 namespace Mikoto {
     class IPipeline : public DeviceObject {
@@ -19,13 +20,12 @@ namespace Mikoto {
             return m_PipelineType;
         }
 
-        MKT_NODISCARD auto GetPassName() const -> std::string {
-            return m_PassName;
-        }
+    protected:
+        explicit IPipeline(const PipelineType pipelineType)
+            : m_PipelineType{ pipelineType } {}
 
     protected:
-        std::string m_PassName{};
-        PipelineType m_PipelineType{ PipelineType::INVALID_TYPE };
+        const PipelineType m_PipelineType{ PipelineType::INVALID_TYPE };
     };
 
     struct ComputePipelineDescription {
@@ -40,15 +40,18 @@ namespace Mikoto {
     */
     class ComputePipeline : public IPipeline {
     public:
+        explicit ComputePipeline(const ComputePipelineDescription& description)
+            : IPipeline{ PipelineType::COMPUTE_PIPELINE } {}
+
     private:
     };
 
     // Note: for now this will always be the same layout as the Models, see Model.hh
     static inline const BufferLayout DEFAULT_VERTEX_BUFFER_LAYOUT{
-                    { ShaderDataType::FLOAT3_TYPE, "a_Position" },
-                    { ShaderDataType::FLOAT3_TYPE, "a_Normal" },
-                    { ShaderDataType::FLOAT3_TYPE, "a_Color" },
-                    { ShaderDataType::FLOAT2_TYPE, "a_TextureCoordinates" }
+        { ShaderDataType::FLOAT3_TYPE, "a_Position" },
+        { ShaderDataType::FLOAT3_TYPE, "a_Normal" },
+        { ShaderDataType::FLOAT3_TYPE, "a_Color" },
+        { ShaderDataType::FLOAT2_TYPE, "a_TextureCoordinates" }
     };
 
     enum class Topology {
@@ -82,14 +85,15 @@ namespace Mikoto {
         float WireframeLineWidth{ 1.0f };
 
         BufferLayout DefaultVertexLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT };
-
         DepthCompareOp DepthCompareOperation{ DepthCompareOp::GREATER_OR_EQUAL };
-
-        //std::vector<ShaderModuleHandle> ShaderStages{};
+        std::vector<ShaderModuleHandle> ShaderStages{};
     };
 
     class GraphicsPipeline : public IPipeline {
     public:
+        explicit GraphicsPipeline(const GraphicsPipelineDescription& description)
+            : IPipeline{ PipelineType::GRAPHICS_PIPELINE } {}
+
     protected:
         bool m_BackfaceCulling{ true };
         bool m_DepthTest{ true };
@@ -99,8 +103,9 @@ namespace Mikoto {
         bool m_Wireframe{ false };
         float m_WireframeLineWidth{ 1.0f };
 
-        PipelineType m_PipelineType{ PipelineType::GRAPHICS_PIPELINE };
+        DepthCompareOp m_DepthCompareOp{};
         Topology m_Topology{ Topology::TRIANGLE_LIST };
+        BufferLayout DefaultVertexLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT };
     };
 }
 #endif //IPIPELINE_HH

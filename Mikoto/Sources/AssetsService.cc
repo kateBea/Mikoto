@@ -117,7 +117,7 @@ namespace Mikoto {
             .WithData( image.GetData() )
 
             .WithType( description.Type )
-            .WithFormat( InferFormatFromChannels( image.GetChannels() ) )
+            .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM )
 
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 

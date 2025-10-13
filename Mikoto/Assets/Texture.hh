@@ -11,7 +11,7 @@
 #include <Library/Utility/Types.hh>
 #include <Renderer/DeviceObject.hh>
 #include <Common/ReferenceCounted.hh>
-#include <Renderer/GpuUtility.hh>
+#include <Renderer/RenderUtility.hh>
 
 namespace Mikoto {
 
@@ -125,7 +125,7 @@ namespace Mikoto {
         }
 
     protected:
-        TextureType m_Type{ TextureType::TEXTURE_INVALID };
+        TextureType m_Type{ TextureType::TEXTURE_UNKNOWN };
         TextureFormat m_Format{ TextureFormat::TEXTURE_FORMAT_INVALID };
         TextureUsage m_TextureUsage{ TextureUsage::TEXTURE_USAGE_NORMAL };
 

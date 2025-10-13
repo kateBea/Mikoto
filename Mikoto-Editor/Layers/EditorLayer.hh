@@ -11,38 +11,38 @@
 
 // Project Headers
 #include <Assets/Model.hh>
-#include <Layers/Layer.hh>
 #include <Library/Data/Registry.hh>
 #include <Material/TextureCube.hh>
 #include <Panels/Panel.hh>
 #include <Platform/Window.hh>
-#include <Project/Project.hh>
-#include <Project/ProjectSerializer.hh>
-#include <Renderer/RendererBackend.hh>
 #include <Scene/Entity.hh>
 #include <Scene/Scene.hh>
 #include <Scene/SceneCamera.hh>
 #include <Scene/SceneSerializer.hh>
+#include <Core/LayerStack.hh>
 #include <Renderer/SceneRenderer.hh>
 
 namespace Mikoto {
 
     struct EditorLayerCreateInfo {
+        std::string_view Name{ nullptr };
         Window* TargetWindow{ nullptr };
-        Path_T ModelsRootDirectory{};
+        Path ModelsRootDirectory{};
     };
 
-    class EditorLayer final : public Layer {
+    class EditorLayer final : public ILayer {
     public:
-        explicit EditorLayer() = default;
         explicit EditorLayer(const EditorLayerCreateInfo& createInfo);
 
-        auto OnAttach() -> void override;
-        auto OnDetach() -> void override;
-        auto OnUpdate(double timeStep) -> void override;
-        auto PushImGuiDrawItems(double timeStep) -> void override;
+        auto OnCreate() -> void override;
+        auto OnDestroy() -> void override;
+        auto OnUpdate(float timeStep) -> void override;
+
+        ~EditorLayer() override = default;
 
     private:
+        auto PushImGuiDrawItems(float timeStep) -> void;
+
         auto SaveScene() const -> void;
         auto LoadScene() -> void;
         auto InitializeEmptyScene(std::string_view name) -> void;
@@ -85,21 +85,16 @@ namespace Mikoto {
 
         Entity* m_SelectedEntity{};
 
-        Path_T m_ModelsRootDirectory{};
-        Path_T m_FontsRootDirectory{};
+        Path m_ModelsRootDirectory{};
+        Path m_FontsRootDirectory{};
 
-        Scope_T<Scene> m_ActiveScene{};
-        Scope_T<SceneRenderer> m_SceneRenderer{};
+        Unique<Scene> m_ActiveScene{};
+        Unique<SceneRenderer> m_SceneRenderer{};
 
         TextureHandle m_TextureCubeMap{};
 
-        Scope_T<SceneCamera> m_EditorCamera{};
-        Scope_T<SceneSerializer> m_SceneSerializer{};
-
-        Scope_T<Project> m_Project{};
-        Scope_T<ProjectSerializer> m_ProjectSerializer{};
-
-        RendererBackend* m_EditorRenderer{};
+        Unique<SceneCamera> m_EditorCamera{};
+        Unique<SceneSerializer> m_SceneSerializer{};
 
         DockControlFlags m_ControlFlags{};
 

@@ -5,8 +5,10 @@
 #ifndef AUDIOLISTENER_HH
 #define AUDIOLISTENER_HH
 
-#include <Common/Common.hh>
 #include <glm/glm.hpp>
+
+#include <Common/Common.hh>
+#include <Library/Utility/Types.hh>
 
 namespace Mikoto {
     /**

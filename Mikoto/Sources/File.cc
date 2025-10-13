@@ -64,6 +64,10 @@ namespace Mikoto {
         }
     }
 
+    auto File::SetContents( CStr contents ) -> void {
+        m_Contents = contents;
+    }
+
     auto File::LoadContents() -> void {
         if ( !m_FileStream.is_open() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to open file [ {} ]!", m_Path );

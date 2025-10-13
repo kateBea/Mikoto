@@ -7,7 +7,7 @@
 #include <Assets/Model.hh>
 #include <Filesystem/FileService.hh>
 #include <Library/IO/PathBuilder.hh>
-#include <Renderer/GpuUtility.hh>
+#include <Renderer/RenderUtility.hh>
 #include <Renderer/Pipeline.hh>
 #include <Renderer/RenderService.hh>
 #include <array>
@@ -55,7 +55,7 @@ namespace Mikoto {
             case aiTextureType_AMBIENT_OCCLUSION:
                 return TextureType::TEXTURE_2D;
             default:
-                return TextureType::TEXTURE_INVALID;
+                return TextureType::TEXTURE_UNKNOWN;
         }
     }
 

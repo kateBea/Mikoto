@@ -21,7 +21,6 @@
 // Project Headers
 #include "Common/Common.hh"
 #include "Library/Utility/Types.hh"
-#include <Renderer/GpuUtility.hh>
 #include <Renderer/RenderUtility.hh>
 #include <Assets/Texture.hh>
 

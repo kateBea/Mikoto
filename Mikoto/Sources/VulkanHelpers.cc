@@ -135,7 +135,7 @@ namespace Mikoto::VulkanHelpers {
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                        VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
-            case TextureUsage::TEXTURE_USAGE_CUBEMAP:
+            case TextureUsage::TEXTURE_USAGE_CUBE:
                 return VK_IMAGE_USAGE_SAMPLED_BIT |
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;

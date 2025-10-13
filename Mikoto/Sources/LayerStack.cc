@@ -15,7 +15,7 @@ namespace Mikoto {
         m_Layers.Clear();
     }
 
-    auto LayerStack::OnUpdate( float deltaTime ) -> void {
+    auto LayerStack::OnUpdate( const float deltaTime ) -> void {
         for ( const auto &layerPtr: m_Layers | std::views::values ) {
             layerPtr->OnUpdate(deltaTime);
         }

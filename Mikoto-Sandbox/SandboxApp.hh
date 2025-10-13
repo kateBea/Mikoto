@@ -29,13 +29,6 @@ namespace Mikoto {
         auto SetupEventCallbacks() -> void;
 
         Unique<Window> m_Window{};
-
-        // For testing only
-        AudioSourceHandle m_Target{};
-        std::vector<AudioHandle> m_Audios{};
-
-        auto TestCode() -> void;
-
         LayerStack m_LayerStack{};
     };
 }

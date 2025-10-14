@@ -62,7 +62,7 @@ namespace Mikoto {
         MKT_NODISCARD virtual auto CreateFrameBuffer(const FramebufferDescription& description) -> FramebufferHandle = 0;
 
         virtual auto SubmitCommands(CommandListHandle cmd) -> void = 0;
-        MKT_NODISCARD virtual auto CreateCommandList(QueueType queue = QueueType::GRAPHICS_QUEUE) -> CommandListHandle = 0;
+        MKT_NODISCARD virtual auto CreateCommandList(QueueType queue) -> CommandListHandle = 0;
 
         virtual auto RunGarbageCollection() -> void = 0;
 

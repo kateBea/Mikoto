@@ -113,6 +113,43 @@ namespace Mikoto {
             DynamicallyCastable<From, To> &&
             ( std::is_base_of_v<std::remove_pointer_t<From>, std::remove_pointer_t<To>> ||
               std::is_base_of_v<std::remove_pointer_t<To>, std::remove_pointer_t<From>> );
+
+    /**
+     * @class PathBuilder
+     * A utility class to build and finalize paths in a controlled manner.
+     * The class provides a fluent API for appending parts to a path, ensuring that
+     * once the path is "built" using the `Build` method, no further modifications are allowed.
+     * */
+    class PathBuilder final {
+    public:
+        /**
+         * @brief Appends a new part to the path if the path has not been built yet.
+         * @tparam StringLikeT A type convertible to std::string_view (e.g., std::string, const char*).
+         * @param path The part of the path to append.
+         * @return A reference to the current PathBuilder instance to allow chaining.
+         * */
+        template<std::convertible_to<std::string_view> StringLikeT>
+        auto WithPath( StringLikeT&& path ) -> PathBuilder& {
+            if ( !build ) {
+                m_Path.append( path );
+            }
+
+            return *this;
+        }
+
+        /**
+         * @brief Finalizes the path and prevents further modifications.
+         * @return The finalized path as a Path_T object.
+         * */
+        auto Build() -> Path {
+            build = true;
+            return m_Path;
+        }
+
+    private:
+        bool build{};
+        Path m_Path{};
+    };
 }// namespace Mikoto
 
 #endif// MIKOTO_TYPES_HH

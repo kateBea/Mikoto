@@ -36,7 +36,7 @@ namespace Mikoto {
     struct TimeServiceCreateInfo {
         TimeUnit DefaultUnit{ TimeUnit::SECONDS };
 
-        auto WithDefaultUnit(const TimeUnit unit) -> TimeServiceCreateInfo&;
+        auto WithDefaultUnit(TimeUnit unit) -> TimeServiceCreateInfo&;
     };
     
     /**
@@ -59,7 +59,7 @@ namespace Mikoto {
          * */
         auto Update() -> void;
 
-        auto GetDefaultUnit() const -> TimeUnit;
+        MKT_NODISCARD auto GetDefaultUnit() const -> TimeUnit;
 
         /**
          * @brief Returns the time step. Allows conversion
@@ -67,14 +67,14 @@ namespace Mikoto {
          * @param unit The time step unit of the returned value, default unit is seconds.
          * @returns Time step value in the specified time unit.
          * */
-        MKT_NODISCARD auto GetTimeStep( const TimeUnit unit = TimeUnit::SECONDS) const -> double;
+        MKT_NODISCARD auto GetTimeStep( TimeUnit unit = TimeUnit::SECONDS) const -> double;
 
         /**
          * @brief Returns the time since the first call to Init().
          * @param unit The time unit of the returned value, default unit is seconds.
          * @returns The amount of time has passed since the first call to Init().
          * */
-        MKT_NODISCARD auto GetTime( const TimeUnit unit = TimeUnit::SECONDS ) const -> double;
+        MKT_NODISCARD auto GetTime( TimeUnit unit = TimeUnit::SECONDS ) const -> double;
 
         /**
          * @brief Returns a formatted string representing the time.
@@ -82,7 +82,7 @@ namespace Mikoto {
          * @param unit The time unit. Specifies the unit for the first argument.
          * @returns A string representing the time in HH:MM:SS format.
          * */
-        MKT_NODISCARD static auto ToString(double time, const TimeUnit unit = TimeUnit::SECONDS) -> std::string;
+        MKT_NODISCARD static auto ToString(double time, TimeUnit unit = TimeUnit::SECONDS) -> std::string;
 
         /**
          * @brief Converts time to seconds.
@@ -90,7 +90,7 @@ namespace Mikoto {
          * @param unit The units of the time provided.
          * @returns The time converted to seconds.
          * */
-        MKT_UNUSED_FUNC static auto TransformToSeconds( const double time, const TimeUnit unit ) -> double;
+        MKT_UNUSED_FUNC static auto TransformToSeconds( double time, TimeUnit unit ) -> double;
 
         auto Shutdown() -> void override;
 

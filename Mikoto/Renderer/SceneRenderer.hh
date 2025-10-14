@@ -8,6 +8,7 @@
 #include <Common/Common.hh>
 #include <Renderer/GpuDevice.hh>
 #include <Scene/Camera.hh>
+#include <Scene/Scene.hh>
 
 namespace Mikoto {
 

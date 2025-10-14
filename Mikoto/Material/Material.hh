@@ -9,7 +9,6 @@
 // C++ Standard Library
 #include <string>
 #include <string_view>
-#include <memory>
 
 // Third-Party Headers
 #include <glm/glm.hpp>
@@ -32,9 +31,9 @@ namespace Mikoto {
 
         auto SetActive(const bool value) -> void { m_Apply = value; }
         auto SetName(const std::string_view newName) -> void { m_Name = newName; }
-        auto SetColor(auto&&... args) -> void { m_Color = glm::vec4(std::forward<decltype(args)>(args)...); }
+        auto SetColor( auto&&... args ) -> void { m_Color = glm::vec4( std::forward<decltype( args )>( args )... ); }
 
-        virtual ~Material() = default;
+        ~Material() override = default;
 
     protected:
         std::string m_Name{};

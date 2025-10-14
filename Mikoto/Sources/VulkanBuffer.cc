@@ -28,7 +28,6 @@ namespace Mikoto {
     }
 
     auto VulkanBuffer::Initialize() -> void {
-        // Ensure allocator exists
         const auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( m_Device )->GetAllocator()) };
         MKT_ASSERT(allocator != nullptr, "Allocator is null in VulkanBuffer::Allocate!");
 

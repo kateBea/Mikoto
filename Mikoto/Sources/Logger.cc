@@ -7,6 +7,7 @@
 #include <fmt/chrono.h>
 #include <fmt/format.h>
 
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -32,64 +33,33 @@ namespace Mikoto {
     // Global logger instance
     Logger s_Logger{};
 
-    MKT_NODISCARD static auto FindLatestLogFile( const Path& directory ) -> std::optional<fs::path> {
-        // std::filesystem does not guarantee file order, just look for log name with max log index
-
-        const std::regex pattern{ R"(^mikoto-(\d{8})-(\d+)\.log$)" };
-
-        std::optional<fs::path> latestFile{};
-        int maxIndex{ -1 };
-
-        // Get today’s date
+    MKT_NODISCARD
+    static auto NextLogFilePath( const fs::path& directory ) -> fs::path {
+        constexpr std::string_view BASE{ "mikoto" };
+        constexpr std::string_view EXT{ ".log" };
         const std::string today{ fmt::format( "{:%Y%m%d}", std::chrono::system_clock::now() ) };
 
-        for ( const auto& entry: fs::directory_iterator{ directory } ) {
-            if ( !entry.is_regular_file() || entry.path().extension() != ".log" )
+        // Regex pattern to match log files like mikoto-20251014-1.log,
+        // mikoto, then date, then log count index
+        const std::regex pattern{ R"(mikoto-(\d{8})-(\d+)\.log)" };
+
+        Int32 maxIndex{};
+
+        // Find the last file index
+        for ( const auto& entry : std::views::all( fs::directory_iterator( directory ) ) |
+            std::views::filter( []( auto& e ) { return e.is_regular_file(); } ) ) {
+            if ( entry.path().extension() != EXT ) {
                 continue;
-
-            const std::string filename = entry.path().filename().string();
-
-            if ( std::smatch match{}; std::regex_match( filename, match, pattern ) ) {
-                const std::string& date{ match[1].str() };
-                if ( date != today )
-                    continue;// ignore logs from other days
-
-                const int index{ std::stoi( match[2].str() ) };
-                if ( index > maxIndex ) {
-                    maxIndex = index;
-                    latestFile = entry.path();
-                }
             }
-        }
 
-        return latestFile;
-    }
-
-    MKT_NODISCARD static auto FormatFileLoggerName( const std::string& existingName ) -> std::string {
-        // in a way such that imagine every day we can run the app he first time we do in the day the name is mikoto - 20250114 - 1.log
-        // the second time the same day it is mikoto - 20250114 - 2.log third time mikoto - 20250114 - 3.log etc
-
-        constexpr std::string_view EXTENSION{ ".log" };
-        constexpr std::string_view SEPARATOR{ "-" };
-        constexpr std::string_view BASE{ "mikoto" };
-
-        // Get current date
-        const std::string date{ fmt::format( "{:%Y%m%d}", std::chrono::system_clock::now() ) };
-
-        Int32 count{ 1 };// default start
-        if ( !existingName.empty() ) {
-            const std::regex pattern{ R"(^mikoto-(\d{8})-(\d+)\.log$)" };
             std::smatch match{};
-            if ( std::regex_match( existingName, match, pattern ) ) {
-                const std::string& existingDate{ match[1].str() };
-                const int existingIndex{ std::stoi( match[2].str() ) };
-                if ( existingDate == date )
-                    count = existingIndex + 1;
+            const std::string filename{ entry.path().filename().string() };
+            if ( std::regex_match( filename, match, pattern ) && match[1].str() == today ) {
+                maxIndex = std::max( maxIndex, std::stoi( match[2].str() ) );
             }
         }
 
-        const Int32 index{ count };
-        return fmt::format( "{}{}{}{}{}{}", BASE, SEPARATOR, date, SEPARATOR, index, EXTENSION );
+        return directory / fmt::format( "{}-{}-{}{}", BASE, today, maxIndex + 1, EXT );
     }
 
     Logger::Logger()
@@ -102,16 +72,7 @@ namespace Mikoto {
         m_StdOut = spdlog::stdout_color_mt( "MIKOTO_STDOUT_LOGGER" );
         m_StdErr = spdlog::stderr_color_mt( "MIKOTO_STDERR_LOGGER" );
 
-        auto lastLog{ FindLatestLogFile( fs::current_path() ) };
-        if ( lastLog.has_value() ) {
-            m_FileLogName = FormatFileLoggerName( lastLog.value().filename() );
-        } else {
-            m_FileLogName = FormatFileLoggerName( "" );
-        }
-
-
-        // If the file exists create a new one we would not want to miss logs because they get overwritten
-        m_FileLogName = FormatFileLoggerName( m_FileLogName );
+        m_FileLogName = NextLogFilePath( fs::current_path() );
 
         try {
             m_File = spdlog::basic_logger_mt( "MIKOTO_FILE_LOGGER", m_FileLogName );

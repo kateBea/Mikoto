@@ -44,20 +44,19 @@ passes, amongst other features.
 ## Requirements
 
 ### Software Requirements
-- **CMake** 3.18 or higher.
+- **CMake** 3.22 or higher.
 - **The Vulkan SDK**: Available from [Vulkan](https://vulkan.lunarg.com/).
-- A Python 3.x installation for the build system.
-- **C++20 Compiler**: Tested with GCC 12.3.0.
+- **C++20 Compiler**: Tested with GCC 13.3.0
 - **GLSL-C**: Optional, as precompiled shader binaries are included.
 
 ---
 
 ## Folder Structure
 
-- **`Resources/`**: Extra utilities like screenshots, some models to play around with, etc.
-- **`Mikoto-Engine/`**: The core engine that powers the Graphics Engine.
+- **`Resources/`**: Resources screenshots and some models to play around with.
+- **`Mikoto-Engine/`**: The core engine that powers the editor.
 - **`Mikoto-Editor/`**: The editor project for creating and managing game scenes.
-- **`Mikoto-Runtime/`**: A sample project that demonstrates some of the engine's features.
+- **`Mikoto-Sandbox/`**: A sample project that demonstrates some of the engine's features.
 
 ---
 

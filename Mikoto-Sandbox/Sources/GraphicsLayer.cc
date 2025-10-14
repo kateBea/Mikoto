@@ -68,7 +68,15 @@ namespace Mikoto {
     }
 
     auto GraphicsLayer::SetupScene() -> void {
+    }
 
+    auto GraphicsLayer::SetupRenderer() -> void {
+        SceneRendererCreateInfo spec{};
+        m_Renderer = SceneRenderer::Create( spec );
+
+        if (m_Renderer) {
+            m_Renderer->Init();
+        }
     }
 
 }// namespace Mikoto

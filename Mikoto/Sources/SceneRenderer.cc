@@ -1,20 +1,26 @@
-// //
-// // Created by zanet on 4/5/2025.
-// //
 //
-// #include <FileSystem/FileService.hh>
-// #include <Renderer/SceneRenderer.hh>
-// #include <nlohmann/json.hpp>
+// Created by zanet on 4/5/2025.
 //
-// namespace Mikoto {
-//
-//
-//     SceneRenderer::SceneRenderer( const SceneRendererCreateInfo &createInfo ) {}
-//
-//     auto SceneRenderer::Init() -> void {}
-//
-//     auto SceneRenderer::Shutdown() -> void {}
-//
+
+#include <nlohmann/json.hpp>
+
+#include <Renderer/SceneRenderer.hh>
+
+namespace Mikoto {
+
+
+     SceneRenderer::SceneRenderer( const SceneRendererCreateInfo &createInfo ) {}
+
+     auto SceneRenderer::Init() -> void {
+         // Ideally, construct render passes that can be tweaked from options specified in JSONS
+     }
+
+     auto SceneRenderer::Shutdown() -> void {}
+
+     auto SceneRenderer::Create( const SceneRendererCreateInfo &createInfo ) -> Unique<SceneRenderer> {
+         return nullptr;
+     }
+     //
 //     auto SceneRenderer::SetState( SceneState state ) -> void {}
 //
 //     auto SceneRenderer::SetScene( Scene *scene ) -> void {}
@@ -29,7 +35,6 @@
 //
 //     auto SceneRenderer::SetRenderResolution( RenderResolution resolution ) -> void {}
 //
-//     auto SceneRenderer::Create( const SceneRendererCreateInfo &createInfo ) -> Scope_T<SceneRenderer> {}
 //
 //     auto SceneRenderer::AddCoreRenderPasses() -> void {
 //         // Gbuffer
@@ -42,5 +47,5 @@
 //         m_GBufferPass = Ref<GBufferPass>::Create( new GBufferPass( gbufferDescription ) );
 //
 //         m_GBufferPass->Init( m_Device );
-//     }
-// }// namespace Mikoto
+
+}// namespace Mikoto

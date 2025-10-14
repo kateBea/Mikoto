@@ -18,7 +18,6 @@
 // Project Headers
 #include <Assets/Model.hh>
 #include <Common/Common.hh>
-#include <Library/IO/PathBuilder.hh>
 #include <Library/String/String.hh>
 #include <Library/Utility/Types.hh>
 

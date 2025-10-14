@@ -6,10 +6,11 @@
 #define GRAPHICSLAYER_HH
 #include <string_view>
 
-#include <Assets/Model.hh>
 #include <Assets/AssetsService.hh>
-#include <Renderer/RenderService.hh>
+#include <Assets/Model.hh>
 #include <Core/LayerStack.hh>
+#include <Renderer/RenderService.hh>
+#include <Renderer/SceneRenderer.hh>
 #include <Scene/Scene.hh>
 #include <Scene/SceneCamera.hh>
 
@@ -25,6 +26,7 @@ namespace Mikoto {
 
     private:
         auto SetupScene() -> void;
+        auto SetupRenderer() -> void;
 
     private:
         BufferHandle m_VertexBuffer{};
@@ -33,6 +35,7 @@ namespace Mikoto {
 
         Unique<Scene> m_MainScene{};
         Unique<SceneCamera> m_SceneCamera{};
+        Unique<SceneRenderer> m_Renderer{};
 
         ModelHandle m_Model{};
     };

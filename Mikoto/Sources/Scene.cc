@@ -18,10 +18,16 @@
 
 namespace Mikoto {
     Scene::Scene( const std::string_view name )
-        : m_Name{ name }
-    {
+        : m_Name{ name } {
         // Install component listeners
+    }
 
+    auto Scene::SetName( std::string_view name ) -> void {
+        m_Name = name;
+    }
+
+    auto Scene::CreateEntity( std::string_view name ) -> Entity * {
+        return nullptr;
     }
 
 #if false
@@ -438,6 +444,10 @@ namespace Mikoto {
     }
 
 #endif
+
+    auto Scene::Create( std::string_view name ) -> Unique<Scene> {
+        return CreateScope<Scene>( name );
+    }
 
     Scene::~Scene() {
 

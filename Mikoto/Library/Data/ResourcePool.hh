@@ -4,6 +4,9 @@
 
 #ifndef RESOURCEPOOL_HH
 #define RESOURCEPOOL_HH
+
+#include <ranges>
+#include <type_traits>
 #include <ankerl/unordered_dense.h>
 
 #include <Common/Common.hh>
@@ -11,8 +14,7 @@
 #include <Library/Utility/Types.hh>
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
-#include <ranges>
-#include <type_traits>
+#include <Memory/HeapAllocator.hh>
 
 namespace Mikoto {
 
@@ -154,15 +156,35 @@ namespace Mikoto {
     /**
     * @class ResourcePool
     * @brief Manages a pool of reusable resources [Internal].
+    * This class is meant to support ResourcePoolType, do not use it
     *
     * The `ResourcePool` class provides an efficient way to manage resources,
-    * allowing reuse and minimizing allocations. It is designed to store and
+    * allowing to reuse and minimizing allocations. It is designed to store and
     * retrieve resources dynamically as needed. `IResource`'s registered to a resource pool
     * do need to be free-d by the user, the pool does not take care of deallocating resources
     */
     class ResourcePool {
     public:
         using ResourceHandle = Ref<IResource>;
+
+        // WIP: not yet to use
+        auto Init(  const UInt32 poolSize, const Size resourceSize, HeapAllocator* allocator ) -> void {
+            MKT_ASSERT( MKT_SIZEOF( resourceSize ) != 0, "Invalid size for resource" );
+
+            m_PoolSize = poolSize;
+            m_FreeHandles.reserve( poolSize );
+            m_Resources.reserve( poolSize );
+
+            for ( Handle i{ 0 }; i < poolSize; ++i ) {
+                m_FreeHandles.emplace_back( i );
+
+                // TODO:
+                HeapAllocator::Block block{
+                    m_Allocator->Allocate( resourceSize )
+                };
+                m_Resources.try_emplace( i, nullptr );
+            }
+        }
 
         /**
         * @brief Initializes the resource pool.
@@ -246,6 +268,8 @@ namespace Mikoto {
         static constexpr double POOL_RESIZE_RATE{ 2.5 };
 
     protected:
+        HeapAllocator* m_Allocator{ nullptr };
+
         UInt32 m_PoolSize{ 100 };
         std::vector<Handle> m_FreeHandles{};
         ankerl::unordered_dense::map<Handle, ResourceHandle> m_Resources{};
@@ -276,6 +300,11 @@ namespace Mikoto {
         */
         template<typename... Args>
         MKT_NODISCARD auto Allocate(Args&&... args) -> RefHandle {
+            // TODO: Implement preallocation. Extend ResourcePool to receive the size of the IResource to be stored
+            // the idea is to preallocate memory enough to hold the IResource and avoid further allocation unless necessary
+            // use emplace new to construct objects on previously allocated memory, every slot has same sized block = sizeof(T)
+            // See: http://www-igm.univ-mlv.fr/~dr/CPP/c++-faq/dtors.html#:~:text=my%20member%20objects%3F-,No.,the%20destructors%20for%20member%20objects.
+
             if (IsPoolFull()) {
                 Resize();
             }

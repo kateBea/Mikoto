@@ -139,6 +139,9 @@ namespace Mikoto {
 
         GpuDevice* m_Device{ nullptr };
 
+        Scene* m_Scene{ nullptr };
+        Camera* m_Camera{ nullptr };
+
         //RendererBackend* m_RendererBackend{ nullptr };
         //RenderResolution m_RenderResolution{ RenderResolution::RENDER_RESOLUTION_FHD };
     };

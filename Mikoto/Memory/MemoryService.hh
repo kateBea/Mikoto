@@ -66,7 +66,11 @@ namespace Mikoto {
          */
         auto Shutdown() -> void override;
 
+        MKT_NODISCARD auto GetHeapAlloc() -> HeapAllocator*;
+
     private:
+
+        HeapAllocator m_HeapAllocator{ 1000 };
 
     };
 }// namespace Mikoto

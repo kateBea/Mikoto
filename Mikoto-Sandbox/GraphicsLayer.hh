@@ -13,12 +13,13 @@
 #include <Renderer/SceneRenderer.hh>
 #include <Scene/Scene.hh>
 #include <Scene/SceneCamera.hh>
+#include <Platform/Window.hh>
 
 namespace Mikoto {
 
     class GraphicsLayer final : public ILayer {
     public:
-        explicit GraphicsLayer( std::string_view name );
+        explicit GraphicsLayer( std::string_view name, const Window* window );
 
         auto OnCreate() -> void override;
         auto OnDestroy() -> void override;
@@ -28,6 +29,8 @@ namespace Mikoto {
         auto SetupScene() -> void;
         auto SetupRenderer() -> void;
 
+        auto UpdateCamera( float timeStep ) -> void;
+
     private:
         BufferHandle m_VertexBuffer{};
         BufferHandle m_StagingBuffer{};
@@ -36,6 +39,8 @@ namespace Mikoto {
         Unique<Scene> m_MainScene{};
         Unique<SceneCamera> m_SceneCamera{};
         Unique<SceneRenderer> m_Renderer{};
+
+        const Window* m_Window{};
 
         ModelHandle m_Model{};
     };

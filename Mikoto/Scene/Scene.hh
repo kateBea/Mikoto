@@ -41,15 +41,20 @@ namespace Mikoto {
 
         auto RemoveEntity( UInt64 uniqueID ) -> void;
 
+        auto SetName( std::string_view name ) -> void;
+
         MKT_NODISCARD auto FindByID( UInt64 uniqueID ) -> Entity*;
         MKT_NODISCARD auto FindFirstByName( std::string_view name ) -> Entity*;
 
-        MKT_NODISCARD auto CreateEntity( const EntityCreateInfo& createInfo ) -> Entity*;
+        MKT_NODISCARD auto CreateEntity( std::string_view name ) -> Entity*;
+        MKT_NODISCARD auto CreateEntity( const EntityCreateInfo& createInfo = {} ) -> Entity*;
 
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 
         MKT_NODISCARD auto GetEntities() -> ankerl::unordered_dense::map<Size, Entity>& { return m_Entities; }
         MKT_NODISCARD auto GetEntities() const -> const ankerl::unordered_dense::map<Size, Entity>& { return m_Entities; }
+
+        MKT_NODISCARD static auto Create( std::string_view name ) -> Unique<Scene>;
 
         auto Clear() -> void;
 

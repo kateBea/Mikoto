@@ -18,6 +18,8 @@ namespace Mikoto {
         // Optionally preload some audio files
         LoadAudio( "./harajuku_8211997.mp3" );
         LoadAudio( "./vtuber_8899707_rockoTensei.mp3" );
+
+        MKT_FILE_LOGGER_DEBUG( "Initializing Graphics Layer" );
     }
 
     void MusicPlayerLayer::OnDestroy() {
@@ -128,6 +130,8 @@ namespace Mikoto {
                  return track->GetFile()->GetPath() == path;
              } ) ) {
             m_Tracks.push_back( handle );
+
+            MKT_FILE_LOGGER_DEBUG( "Registered audio track: {}", path );
         }
     }
 }// namespace Mikoto

@@ -8,13 +8,13 @@
 #include <Library/Utility/Types.hh>
 
 namespace Mikoto {
-    template <typename SerializeObjT>
+    template <typename SerializedObjT>
     class ISerializer {
     public:
         virtual ~ISerializer() = default;
 
-        virtual auto Serialize(const SerializeObjT& obj, const Path& savePath) -> void = 0;
-        virtual auto Deserialize(const Path& loadPath) -> Unique<SerializeObjT> = 0;
+        virtual auto Serialize(const SerializedObjT& obj, const Path& savePath) -> void = 0;
+        virtual auto Deserialize(const Path& loadPath) -> Unique<SerializedObjT> = 0;
     };
 }
 #endif //SERIALIZER_HH

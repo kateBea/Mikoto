@@ -28,10 +28,11 @@
 #include <Threading/TaskService.hh>
 #include <MusicPlayerLayer.hh>
 #include <GraphicsLayer.hh>
+#include <Core/Timer.hh>
 
 namespace Mikoto {
 
-    auto SandboxApp::Run( const Int32 argc, char **argv ) -> Int32 {
+    auto SandboxApp::Run( const Int32, char** ) -> Int32 {
         MKT_CORE_LOGGER_DEBUG( "Initializing Mikoto Sandbox..." );
 
         Int32 exitCode{ EXIT_SUCCESS };
@@ -54,6 +55,7 @@ namespace Mikoto {
     }
 
     auto SandboxApp::Init() -> void {
+        MKT_PROFILE_SCOPE();
 
         // Load configuration
         BaseConfiguration configApp{ "./app-config.toml" };

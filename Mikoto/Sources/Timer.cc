@@ -16,32 +16,7 @@
 
 namespace Mikoto {
 
-    Timer::Timer(const std::string_view startMessage)
-        :   m_TimeSinceStart{ Clock_T::now() }
-    {
-        MKT_CORE_LOGGER_DEBUG("{}", startMessage);
-    }
-
-    auto Timer::GetCurrentProgress( const TimeUnit defaultUnit ) const -> double {
-        switch (defaultUnit) {
-            case TimeUnit::SECONDS:         return std::chrono::duration_cast<Sec_T>(Clock_T::now() - m_TimeSinceStart).count();
-            case TimeUnit::MILLISECONDS:    return std::chrono::duration_cast<Milli_T>(Clock_T::now() - m_TimeSinceStart).count();
-            case TimeUnit::MICROSECONDS:    return std::chrono::duration_cast<Micro_T>(Clock_T::now() - m_TimeSinceStart).count();
-            case TimeUnit::NANOSECONDS:     return std::chrono::duration_cast<Nano_T>(Clock_T::now() - m_TimeSinceStart).count();
-        }
-
-        return -1.0;
-    }
-
-    auto Timer::Restart() -> void {
-        m_TimeSinceStart = Clock_T::now();
-    }
-
-    Timer::~Timer() {
-        MKT_CORE_LOGGER_DEBUG("{} End Timing. Elapsed {} {} ms(s)\n", __PRETTY_FUNCTION__, GetCurrentProgress(), GetUnitStr(TimeUnit::MILLISECONDS));
-    }
-
-    auto Timer::GetUnitStr( const TimeUnit defaultUnit ) -> std::string_view {
+    MKT_NODISCARD static constexpr auto GetUnitStr( const TimeUnit defaultUnit = TimeUnit::SECONDS) -> std::string_view {
         switch (defaultUnit) {
             case TimeUnit::SECONDS:         return "s";
             case TimeUnit::MILLISECONDS:    return "ms";
@@ -49,6 +24,33 @@ namespace Mikoto {
             case TimeUnit::NANOSECONDS:     return "ns";
         }
 
-        return "";
+        return "s";
+    }
+
+    Timer::Timer(const std::string_view startMessage)
+        :   m_TimeSinceStart{ Clock::now() }
+    {
+        MKT_CORE_LOGGER_DEBUG("{}", startMessage);
+    }
+
+    auto Timer::GetCurrentProgress( const TimeUnit defaultUnit ) const -> double {
+        switch (defaultUnit) {
+            case TimeUnit::SECONDS:         return std::chrono::duration_cast<Sec>(Clock::now() - m_TimeSinceStart).count();
+            case TimeUnit::MILLISECONDS:    return std::chrono::duration_cast<Milli>(Clock::now() - m_TimeSinceStart).count();
+            case TimeUnit::MICROSECONDS:    return std::chrono::duration_cast<Micro>(Clock::now() - m_TimeSinceStart).count();
+            case TimeUnit::NANOSECONDS:     return std::chrono::duration_cast<Nano>(Clock::now() - m_TimeSinceStart).count();
+        }
+
+        return std::chrono::duration_cast<Sec>(Clock::now() - m_TimeSinceStart).count();;
+    }
+
+    auto Timer::Restart() -> void {
+        m_TimeSinceStart = Clock::now();
+    }
+
+    Timer::~Timer() {
+        const auto units{ TimeUnit::MILLISECONDS };
+        MKT_CORE_LOGGER_DEBUG("{} End Timer. Elapsed {} {}",
+            __PRETTY_FUNCTION__, GetCurrentProgress(units), GetUnitStr(units));
     }
 }

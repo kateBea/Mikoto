@@ -16,6 +16,7 @@ namespace Mikoto {
     {}
 
     auto GraphicsLayer::OnCreate() -> void {
+        MKT_FILE_LOGGER_DEBUG( "Initializing Graphics Layer" );
         // Some example data: a few floats for a vertex buffer
         std::array vertexData{
             0.0f, 0.5f, 0.0f,  // Vertex 1 (x, y, z)

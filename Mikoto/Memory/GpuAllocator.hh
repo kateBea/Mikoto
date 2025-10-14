@@ -7,11 +7,13 @@
 #include <Library/Utility/Types.hh>
 #include <Renderer/GpuDevice.hh>
 
+#include "Allocator.hh"
+
 
 namespace Mikoto {
-    class GpuAllocator {
+    class GpuAllocator : public Allocator {
     public:
-        virtual ~GpuAllocator() = default;
+        ~GpuAllocator() override = default;
         explicit GpuAllocator(GpuDevice* device)
             : m_Device{ device }
         {}

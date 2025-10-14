@@ -60,6 +60,7 @@
     } while (false)
 
     #define MKT_STATIC_ASSERT(__EXPR, __MESSAGE) static_assert(__EXPR, __MESSAGE)
+
 #else
     #define MKT_ASSERT(__EXPR, __MESSAGE)
     #define MKT_ASSERT_EXPR(__EXPR)

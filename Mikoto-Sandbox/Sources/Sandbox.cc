@@ -86,7 +86,7 @@ namespace Mikoto {
 
         m_LayerStack.PushLayer<GameLayer>( "Game - Layer" );
         m_LayerStack.PushLayer<MusicPlayerLayer>( "MusicPlayer - Layer" );
-        m_LayerStack.PushLayer<GraphicsLayer>( "Graphics - Layer" );
+        m_LayerStack.PushLayer<GraphicsLayer>( "Graphics - Layer", m_Window.get() );
     }
 
     auto SandboxApp::Shutdown() -> void {

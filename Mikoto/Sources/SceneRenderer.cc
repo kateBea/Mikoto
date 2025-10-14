@@ -15,23 +15,33 @@ namespace Mikoto {
          // Ideally, construct render passes that can be tweaked from options specified in JSONS
      }
 
-     auto SceneRenderer::Shutdown() -> void {}
+     auto SceneRenderer::Shutdown() -> void {
+
+     }
+
+     auto SceneRenderer::SetState( const SceneState state ) -> void {
+         m_SceneState = state;
+     }
+
+     auto SceneRenderer::SetScene( Scene *scene ) -> void {
+         m_Scene = scene;
+     }
+     auto SceneRenderer::Render( double ) const -> void {
+
+     }
+
+     auto SceneRenderer::SetCamera( Camera *camera ) -> void {
+         m_Camera = camera;
+     }
 
      auto SceneRenderer::Create( const SceneRendererCreateInfo &createInfo ) -> Unique<SceneRenderer> {
-         return nullptr;
+         return CreateScope<SceneRenderer>( createInfo );
      }
-     //
-//     auto SceneRenderer::SetState( SceneState state ) -> void {}
-//
-//     auto SceneRenderer::SetScene( Scene *scene ) -> void {}
-//
-//     auto SceneRenderer::Render( double timeStep ) const -> void {}
+
 //
 //     auto SceneRenderer::OnResize( UInt32_T width, UInt32_T height ) -> void {}
 //
 //     auto SceneRenderer::SetCamera( Camera *camera ) -> void {}
-//
-//     auto SceneRenderer::SetRenderBackend( RendererBackend *backend ) -> void {}
 //
 //     auto SceneRenderer::SetRenderResolution( RenderResolution resolution ) -> void {}
 //

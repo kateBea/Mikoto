@@ -2,12 +2,11 @@
 // Created by kate on 10/12/25.
 //
 
-#include <MusicPlayerLayer.hh>
-
 #include <imgui.h>
 
 #include <Assets/AssetsService.hh>
 #include <Filesystem/FileService.hh>
+#include <MusicPlayerLayer.hh>
 
 namespace Mikoto {
     MusicPlayerLayer::MusicPlayerLayer( std::string_view name )
@@ -59,7 +58,7 @@ namespace Mikoto {
             }
 
             // check, when we have never selected an audio
-            if (!m_Target.IsEmpty()) {
+            if ( !m_Target.IsEmpty() ) {
                 m_Target->Play();
             }
         }
@@ -101,14 +100,30 @@ namespace Mikoto {
         ImGui::InputText( "Audio Path", m_InputPath.data(), m_InputPath.size() );
         ImGui::SameLine();
         if ( ImGui::Button( "Load" ) ) {
-            if ( strlen( m_InputPath.data() ) > 0 ) {
-                LoadAudio( m_InputPath.data() );
-                m_InputPath[0] = '\0';// Clear input after loading
-            }
+            TaskService::Get()->Submit( [this]() -> void {
+                // prepare filters for the dialog
+                std::initializer_list<std::pair<std::string, std::string>> filters{
+                    { "Audio files", "mp3,wav" },
+                };
+
+                const std::string songPath{ FileService::Get()->OpenDialog( filters ).string() };
+
+                for ( Size i{}; i < std::min( m_InputPath.size(), songPath.size() ); ++i ) {
+                    m_InputPath[i] = songPath[i];
+                }
+
+                if ( std::strlen( m_InputPath.data() ) > 0 ) {
+                    LoadAudio( songPath );
+
+                    // Clear input after loading
+                    m_InputPath[0] = '\0';
+                }
+            } );
         }
     }
 
     auto MusicPlayerLayer::LoadAudio( std::string_view path ) -> void {
+
         auto file{ FileService::Get()->LoadFile( path ) };
         if ( !file ) {
             MKT_CORE_LOGGER_ERROR( "Failed to load audio file: {}", path );
@@ -126,8 +141,13 @@ namespace Mikoto {
             return;
         }
 
+        const std::string newTrackName{ Path{ path }
+                                                .replace_extension()
+                                                .filename()
+                                                .string() };
+
         if ( !std::ranges::any_of( m_Tracks, [&]( const AudioHandle& track ) {
-                 return track->GetFile()->GetPath() == path;
+                 return track->GetTrackName().c_str() == newTrackName;
              } ) ) {
             m_Tracks.push_back( handle );
 

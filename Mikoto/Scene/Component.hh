@@ -17,6 +17,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 // Project Headers
+#include <Assets/AssetsService.hh>
 #include <Assets/Audio.hh>
 #include <Assets/Font.hh>
 #include <Assets/Model.hh>
@@ -296,7 +297,22 @@ namespace Mikoto {
 
     class AudioSourceComponent {
     public:
-        explicit AudioSourceComponent() = default;
+        explicit AudioSourceComponent(const Path& path = "") {
+            if ( auto file{ FileService::Get()->LoadFile( path ) }; !file ) {
+                MKT_CORE_LOGGER_ERROR( "AudioSourceComponent - Failed to load audio file: {}", path.string() );
+            } else {
+                const AudioLoadDescription desc{
+                    .AudioFile{ file },
+                    .Volume{ 0.5f }
+                };
+
+                if ( AudioHandle handle{ AssetsService::Get()->LoadAsset<Audio>( desc ) }; handle.IsEmpty() ) {
+                    MKT_CORE_LOGGER_ERROR( "AudioSourceComponent - Audio handle is empty: {}", path.string() );
+                } else {
+                    m_AudioSource = handle->CreateSource();
+                }
+            }
+        }
 
         AudioSourceComponent(const AudioSourceComponent & other) = default;
         AudioSourceComponent(AudioSourceComponent && other) = default;
@@ -339,21 +355,15 @@ namespace Mikoto {
         ~AudioListenerComponent() = default;
 
 
-        auto SetListener(AudioListener* listener) -> void {
-            if (listener != nullptr) {
-                m_Listener = listener;
-            }
-        }
-
-        MKT_NODISCARD auto GetListener() -> AudioListener* { return m_Listener; }
-        MKT_NODISCARD auto GetListener() const -> const AudioListener* { return m_Listener; }
+        MKT_NODISCARD auto GetListener() -> AudioListener& { return m_Listener; }
+        MKT_NODISCARD auto GetListener() const -> const AudioListener& { return m_Listener; }
 
         auto OnComponentAttach() -> void {  }
         auto OnComponentUpdate() -> void {  }
         auto OnComponentRemoved() -> void {  }
 
     private:
-        AudioListener* m_Listener{};
+        AudioListener m_Listener{};
     };
 
     class RigidBodyComponent {
@@ -506,7 +516,7 @@ namespace Mikoto {
 
     class ScriptComponent  {
     public:
-        explicit ScriptComponent(const Path& script ) {
+        explicit ScriptComponent( const Path& script ) {
             m_Script = FileService::Get()->LoadFile( script );
         }
 
@@ -519,6 +529,13 @@ namespace Mikoto {
         auto OnComponentAttach() -> void {  }
         auto OnComponentUpdate() -> void {  }
         auto OnComponentRemoved() -> void {  }
+
+        auto SetScript(const File* script ) -> void {
+            m_Script = script;
+        }
+
+        MKT_NODISCARD auto GetScript() const -> const File* { return m_Script; }
+        MKT_NODISCARD auto HasScript() const -> bool { return m_Script != nullptr; }
 
         ~ScriptComponent() = default;
 

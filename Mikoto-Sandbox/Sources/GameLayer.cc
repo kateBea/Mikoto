@@ -60,6 +60,8 @@ namespace Mikoto {
     auto GameLayer::OnCreate() -> void {
         MKT_CORE_LOGGER_WARN( "Creating Layer GameLayer..." );
 
+        MKT_FILE_LOGGER_DEBUG( "Initializing Game Layer" );
+
     }
 
     auto GameLayer::OnDestroy() -> void {

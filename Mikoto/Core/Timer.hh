@@ -24,22 +24,19 @@ namespace Mikoto {
         ~Timer();
 
     private:
-        MKT_NODISCARD static auto GetUnitStr(TimeUnit defaultUnit = TimeUnit::SECONDS) -> std::string_view;
+        using Nano = std::chrono::duration<double, std::ratio<1, 1000000000>>;
+        using Micro = std::chrono::duration<double, std::ratio<1, 1000000>>;
+        using Milli = std::chrono::duration<double, std::ratio<1, 1000>>;
+        using Sec = std::chrono::duration<double, std::ratio<1, 1>>;
 
-    private:
-        using Nano_T = std::chrono::duration<double, std::ratio<1, 1000000000>>;
-        using Micro_T = std::chrono::duration<double, std::ratio<1, 1000000>>;
-        using Milli_T = std::chrono::duration<double, std::ratio<1, 1000>>;
-        using Sec_T = std::chrono::duration<double, std::ratio<1, 1>>;
+        using Clock = std::chrono::high_resolution_clock;
+        using TimePoint = std::chrono::time_point<Clock>;
 
-        using Clock_T = std::chrono::high_resolution_clock;
-        using TimePoint_T = std::chrono::time_point<Clock_T>;
-
-        TimePoint_T m_TimeSinceStart{};
+        TimePoint m_TimeSinceStart{};
     };
 }
 
-#if !defined(NDEBUG) || defined(_DEBUG)
+#if !defined(NDEBUG)
     #define MKT_PROFILE_SCOPE()  Timer _Timer{ StringUtils::Concat(__PRETTY_FUNCTION__, ": Start profiling ..." ) }
 #else
     #define MKT_PROFILE_SCOPE()

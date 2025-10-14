@@ -112,6 +112,7 @@ namespace Mikoto::Math {
         return true;
     }
 
+
     /**
          * Computes the model matrix as in Translate * Ry * Rx * Rz * Scale (where R represents a
          * rotation in the desired axis. Rotation convention uses Tait-Bryan angles with axis order

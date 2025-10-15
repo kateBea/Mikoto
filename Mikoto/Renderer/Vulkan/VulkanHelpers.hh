@@ -507,6 +507,28 @@ namespace Mikoto::VulkanHelpers::Initializers {
 
         return ret;
     }
+
+    /**
+     * Returns a default initialized VkRenderingAttachmentInfo structure
+     * @returns default initialized VkRenderingAttachmentInfo
+     * */
+    inline auto RenderingAttachmentInfo() -> VkRenderingAttachmentInfo {
+        VkRenderingAttachmentInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+
+        return ret;
+    }
+
+    /**
+     * Returns a default initialized VkRenderingInfo structure
+     * @returns default initialized VkRenderingInfo
+     * */
+    inline auto RenderingInfo() -> VkRenderingInfo {
+        VkRenderingInfo ret{};
+        ret.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+
+        return ret;
+    }
 }
 
 #endif // MIKOTO_VULKAN_UTILS_HH

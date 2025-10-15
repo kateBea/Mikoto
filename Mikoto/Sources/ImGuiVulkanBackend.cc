@@ -379,9 +379,7 @@ namespace Mikoto {
         clearValues[1].depthStencil = { 1.0f, 0 };
 
         // Setup rendering color attachment
-        VkRenderingAttachmentInfo colorAttachment{};
-        colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-        colorAttachment.pNext = nullptr;
+        VkRenderingAttachmentInfo colorAttachment{ VulkanHelpers::Initializers::RenderingAttachmentInfo() };
 
         colorAttachment.imageView = *colorImage->GetView();
         colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -390,9 +388,7 @@ namespace Mikoto {
         colorAttachment.clearValue = clearValues[0];
 
         // Setup rendering depth attachment
-        VkRenderingAttachmentInfo depthAttachment{};
-        depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-        depthAttachment.pNext = nullptr;
+        VkRenderingAttachmentInfo depthAttachment{ VulkanHelpers::Initializers::RenderingAttachmentInfo() };
 
         depthAttachment.imageView = *depthImage->GetView();
         depthAttachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
@@ -400,9 +396,7 @@ namespace Mikoto {
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         depthAttachment.clearValue = clearValues[1];
 
-        VkRenderingInfo renderInfo {};
-        renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-        renderInfo.pNext = nullptr;
+        VkRenderingInfo renderInfo { VulkanHelpers::Initializers::RenderingInfo() };
 
         renderInfo.renderArea = VkRect2D { VkOffset2D { 0, 0 }, m_Extent2D };
         renderInfo.layerCount = 1;

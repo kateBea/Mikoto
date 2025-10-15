@@ -179,7 +179,7 @@ namespace Mikoto {
 
         // The Log comes after so we know the service was
         // initialized before attempting to shut it down
-        MKT_CORE_LOGGER_INFO( "Shutting down AssetsService..." );
+        MKT_CORE_LOGGER_INFO( "Shutting down ImGuiService..." );
 
         m_Implementation->Shutdown();
         m_Implementation = nullptr;

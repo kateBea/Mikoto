@@ -13,11 +13,11 @@
 
 namespace Mikoto {
 
-    GraphicsLayer::GraphicsLayer( std::string_view name, const Window* window  )
-        : ILayer{ name }, m_Window { window } {}
+    static auto TestCode() -> void {
+        BufferHandle vertexBuffer{};
+        BufferHandle stagingBuffer{};
+        TextureHandle texture{};
 
-    auto GraphicsLayer::OnCreate() -> void {
-        MKT_FILE_LOGGER_DEBUG( "Initializing Graphics Layer" );
         // Some example data: a few floats for a vertex buffer
         std::array vertexData{
             0.0f, 0.5f, 0.0f,  // Vertex 1 (x, y, z)
@@ -35,7 +35,7 @@ namespace Mikoto {
 
         // Create it through the GPU device (Vulkan or otherwise)
         const auto gpuDev{ RenderService::Get()->GetGpuDevice() };
-        m_VertexBuffer = gpuDev->CreateBuffer( desc );
+        vertexBuffer = gpuDev->CreateBuffer( desc );
 
         // Allocate staging buffer to copy over the texture data
         BufferDescription stagingDesc{};
@@ -43,31 +43,26 @@ namespace Mikoto {
                 .WithUsage( BufferUsage::BUFFER_USAGE_STAGING )
                 .WithSizeBytes( MKT_MEGABYTES( 10 ) )
                 .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
-        m_StagingBuffer = gpuDev->CreateBuffer( stagingDesc );
+        stagingBuffer = gpuDev->CreateBuffer( stagingDesc );
 
         TextureLoadDescription loadDesc{};
         loadDesc
                 .WithFile( FileService::Get()->LoadFile( "./texture.png" ) )
                 .WithType( TextureType::TEXTURE_2D );
 
-        m_Texture = AssetsService::Get()->LoadAsset<Texture>( loadDesc );
+        texture = AssetsService::Get()->LoadAsset<Texture>( loadDesc );
+    }
 
-        ModelLoadDescription modelLoadDesc{
-            .ModelFile{ FileService::Get()->LoadFile( "./Resources/Models/2 - Cat with scarf/source/Pbr/base.obj" ) },
-            .WantTextures{ true }
-        };
+    GraphicsLayer::GraphicsLayer( std::string_view name, const Window* window  )
+        : ILayer{ name }, m_Window { window } {}
 
-        m_Model = AssetsService::Get()->LoadAsset<Model>( modelLoadDesc );
+    auto GraphicsLayer::OnCreate() -> void {
+        MKT_FILE_LOGGER_DEBUG( "Initializing Graphics Layer" );
+        TestCode();
 
-        constexpr float NEAR_PLANE{ 0.1f };
-        constexpr float FAR_PLANE{ 1000.0f };
-        constexpr float FIELD_OF_VIEW{ 45.0f };
-        const float ASPECT_RATIO{
-            static_cast<float>( m_Window->GetWidth() ) / static_cast<float>( m_Window->GetHeight() )
-        };
+        LoadModels();
 
-        m_SceneCamera = CreateScope<SceneCamera>( FIELD_OF_VIEW, ASPECT_RATIO, NEAR_PLANE, FAR_PLANE );
-        m_SceneCamera->SetTargetWindow( m_Window );
+        SetupCamera();
 
         SetupRenderer();
 
@@ -84,6 +79,15 @@ namespace Mikoto {
         m_Renderer->SetScene( m_MainScene.get() );
         m_Renderer->SetCamera( m_SceneCamera.get() );
         m_Renderer->Render( timeStep /*Render target??*/ );
+    }
+
+    auto GraphicsLayer::LoadModels() -> void {
+        ModelLoadDescription modelLoadDesc{
+            .ModelFile{ FileService::Get()->LoadFile( "./Resources/Models/2 - Cat with scarf/source/Pbr/base.obj" ) },
+            .WantTextures{ true }
+        };
+
+        m_Model = AssetsService::Get()->LoadAsset<Model>( modelLoadDesc );
     }
 
     auto GraphicsLayer::SetupScene() -> void {
@@ -106,6 +110,16 @@ namespace Mikoto {
             listener->AddComponent<ScriptComponent>( "hello_world.lua" );
             listener->AddComponent<AudioListenerComponent>();
         }
+    }
+
+    auto GraphicsLayer::SetupCamera() -> void {
+        constexpr float nearPlane{ 0.1f };
+        constexpr float farPlane{ 1000.0f };
+        constexpr float fov{ 45.0f };
+        const float aspectRatio{ static_cast<float>( m_Window->GetWidth() ) / static_cast<float>( m_Window->GetHeight() ) };
+
+        m_SceneCamera = CreateScope<SceneCamera>( fov, aspectRatio, nearPlane, farPlane );
+        m_SceneCamera->SetTargetWindow( m_Window );
     }
 
     auto GraphicsLayer::SetupRenderer() -> void {

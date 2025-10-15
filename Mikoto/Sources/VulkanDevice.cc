@@ -140,6 +140,25 @@ namespace Mikoto {
             ( !requirements.FillModeNonSolid || supportedFeatures.fillModeNonSolid )
         };
 
+        // Check for dynamic rendering if requested
+
+#if defined(MKT_USE_VULKAN_DYNAMIC_RENDERING)
+        VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeature{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES
+        };
+
+        VkPhysicalDeviceFeatures2 features2{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+            .pNext = &dynamicRenderingFeature
+        };
+
+        vkGetPhysicalDeviceFeatures2(device, &features2);
+
+        supportRequiredPhysicalFeatures = supportRequiredPhysicalFeatures &&
+            dynamicRenderingFeature.dynamicRendering == VK_TRUE;
+#endif
+
+
         return extensionsSupported && deviceSupportsRequiredQueues && deviceHasSwapchainSupport && supportRequiredPhysicalFeatures;
     }
 
@@ -246,6 +265,10 @@ namespace Mikoto {
 
         VkPhysicalDeviceVulkan13Features vulkan13Features{ VulkanHelpers::Initializers::PhysicalDeviceVulkan13Features() };
         vulkan13Features.synchronization2 = VK_TRUE;// required for vkCmdPipelineBarrier2 used when image transitions
+
+#if defined(MKT_USE_VULKAN_DYNAMIC_RENDERING)
+        vulkan13Features.dynamicRendering = VK_TRUE;
+#endif
 
         VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{ VulkanHelpers::Initializers::PhysicalDeviceFeatures2() };
         physicalDeviceFeatures2.features = deviceFeatures;

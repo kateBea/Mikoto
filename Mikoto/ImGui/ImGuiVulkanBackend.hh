@@ -47,9 +47,17 @@ namespace Mikoto {
         auto CreateFrameBuffer() -> void;
 
         auto RecordRenderPassCommands(CommandListHandle cmdList ) -> void;
+        auto RecordDynamicRenderCommands(CommandListHandle cmdList ) -> void;
+
         auto RecordCommands( TextureHandle swapChainDrawTarget, CommandListHandle cmdList  ) -> void;
 
     private:
+
+#if defined(MKT_USE_VULKAN_DYNAMIC_RENDERING)
+        const bool m_UseDynamicRendering{ true };
+#else
+        const bool m_UseDynamicRendering{ false };
+#endif
 
         VkRenderPass m_ImGuiRenderPass{};
         VkDescriptorPool m_ImGuiDescriptorPool{};

@@ -309,7 +309,7 @@ namespace Mikoto {
             // Allocate image using GPU Allocator
             const auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>( TO_VK_DEVICE( m_Device )->GetAllocator() ) };
             if ( const VkResult result{ allocator->AllocateImage( this ) }; result != VK_SUCCESS ) {
-                MKT_THROW_RUNTIME_ERROR( "Failed to allocate Vulkan buffer!" );
+                MKT_THROW_RUNTIME_ERROR( "Failed to allocate Vulkan image!" );
             }
 
             //Specify optional type operation so we return for instance

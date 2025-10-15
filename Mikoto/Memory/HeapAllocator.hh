@@ -53,13 +53,6 @@ namespace Mikoto {
         auto Deallocate( Block block ) -> void ;
 
         /**
-         * @brief Returns the maximum allocatable size.
-         * This method returns the maximum size of memory that can be allocated by the `HeapAllocator`.
-         * @return The maximum allocatable size in bytes.
-         */
-        MKT_NODISCARD auto MaxSize() const noexcept -> Size;
-
-        /**
          * @brief Returns the size of memory that has been allocated so far.
          * This method returns the total amount of memory that has been allocated by the `HeapAllocator` so far.
          * @return The amount of memory allocated in bytes.

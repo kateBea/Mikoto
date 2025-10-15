@@ -23,16 +23,12 @@ namespace Mikoto {
         return { size, block };
     }
 
-    auto HeapAllocator::Deallocate( Block block ) -> void {
+    auto HeapAllocator::Deallocate( const Block block ) -> void {
         if ( block.Address ) {
             // Deallocate the memory and update the allocated size.
             MKT_NOTHROW_PLACEMENT_DELETE( block.Address );
             m_AllocatedSize -= block.AllocatedSize;
         }
-    }
-
-    MKT_NODISCARD auto HeapAllocator::MaxSize() const noexcept -> Size {
-        return 0;// TODO
     }
 
 }// namespace Mikoto

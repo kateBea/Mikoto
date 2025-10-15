@@ -20,15 +20,6 @@ namespace Mikoto {
     class Entity {
     public:
 
-        explicit Entity(entt::registry& registry)
-            :   m_Handle{ registry.create() }, m_Registry{ std::addressof(registry) }
-        {
-            /**
-             * See: Observe changes section from https://github.com/skypjack/entt/wiki/Entity-Component-System
-             * for details on listeners.
-             * */
-        }
-
         MKT_NODISCARD auto Get() const -> decltype( auto ) { return (m_Handle); }
 
         /**
@@ -138,6 +129,20 @@ namespace Mikoto {
             return m_Handle == other.m_Handle && m_Registry == other.m_Registry;
         }
 
+        ~Entity() {
+            Invalidate();
+        }
+
+    private:
+        explicit Entity(entt::registry& registry)
+            :   m_Handle{ registry.create() }, m_Registry{ std::addressof(registry) }
+        {
+            /**
+             * See: Observe changes section from https://github.com/skypjack/entt/wiki/Entity-Component-System
+             * for details on listeners.
+             * */
+        }
+
         /**
          * Puts this entity into an invalid state. Other methods are not recommended to be called
          * on the implicit parameter after a call to this function, otherwise it may result
@@ -147,13 +152,8 @@ namespace Mikoto {
             // This entity does not belong to any scene anymore
             // it can be safely removed from entt structures
             m_Registry = nullptr;
+            m_Handle = entt::null;
         }
-
-        ~Entity() {
-            Invalidate();
-        }
-
-    private:
 
         friend class Scene;
 

@@ -64,7 +64,7 @@ namespace Mikoto {
          * @param indices Handle to the index buffer.
          * @param textures Vector of texture Handles associated with the mesh.
          */
-        explicit MeshNode( Size index, BufferHandle vertices, BufferHandle indices, std::vector<TextureHandle>&& textures );
+        explicit MeshNode( Size index, BufferHandle vertices, BufferHandle indices, std::vector<TextureHandle>&& textures, std::string_view name );
 
         MeshNode(MeshNode&& other) noexcept;
 
@@ -79,6 +79,8 @@ namespace Mikoto {
          * @return A pointer to the index buffer.
          */
         MKT_NODISCARD auto GetIndexBuffer() -> BufferHandle { return std::move( m_Indices ); }
+
+        MKT_NODISCARD auto GetName() -> const std::string& { return m_Name; }
 
         /**
          * @brief Retrieves the index of the mesh into its corresponding model.
@@ -96,6 +98,8 @@ namespace Mikoto {
 
     private:
         Size m_MeshIndex{};
+
+        std::string m_Name{};
 
         BufferHandle m_Vertices{};
         BufferHandle m_Indices{};
@@ -115,15 +119,9 @@ namespace Mikoto {
     public:
         /**
         * @brief Retrieves the meshes of the model.
-        * @return A constant reference to a vector containing the model's meshes.
+        * @return The count of mesh nodes.
         */
-        MKT_NODISCARD auto GetMeshes() const -> decltype( auto ) { return (m_Meshes); }
-
-        /**
-        * @brief Retrieves the meshes of the model.
-        * @return A reference to a vector containing the model's meshes.
-        */
-        MKT_NODISCARD auto GetMeshes() -> decltype( auto ) { return (m_Meshes); }
+        MKT_NODISCARD auto GetMeshNodeCount() const -> Size { return m_Meshes.size(); }
 
         /**
         * @brief Retrieves the mesh of the model by index.

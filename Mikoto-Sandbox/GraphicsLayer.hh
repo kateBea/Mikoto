@@ -26,15 +26,14 @@ namespace Mikoto {
         auto OnUpdate( float deltaTime ) -> void override;
 
     private:
+        auto LoadModels() -> void;
         auto SetupScene() -> void;
+        auto SetupCamera() -> void;
         auto SetupRenderer() -> void;
 
         auto UpdateCamera( float timeStep ) -> void;
 
     private:
-        BufferHandle m_VertexBuffer{};
-        BufferHandle m_StagingBuffer{};
-        TextureHandle m_Texture{};
 
         Unique<Scene> m_MainScene{};
         Unique<SceneCamera> m_SceneCamera{};

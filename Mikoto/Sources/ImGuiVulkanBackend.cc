@@ -26,8 +26,14 @@ namespace Mikoto {
 
     auto ImGuiVulkanBackend::Init() -> void {
         CreateImages();
-        CreateRenderPass();
-        CreateFrameBuffer();
+
+        if (!m_UseDynamicRendering) {
+            CreateRenderPass();
+
+            // Frame buffer requires render pass if we
+            // do not use dynamic rendering
+            CreateFrameBuffer();
+        }
 
         InitImGuiForVulkan();
 
@@ -216,6 +222,22 @@ namespace Mikoto {
                     .MSAASamples{ VK_SAMPLE_COUNT_1_BIT } },
         };
 
+        if (m_UseDynamicRendering) {
+            initInfo.UseDynamicRendering = true;
+
+            const auto colorImage{ dynamic_cast<VulkanTexture *>(m_ColorImage.GetRaw()) };
+            const auto depthImage{ dynamic_cast<VulkanTexture *>(m_DepthImage.GetRaw()) };
+            VkFormat colorFormat{ colorImage->GetImageCreateInfo()->format };
+            VkFormat depthFormat{ depthImage->GetImageCreateInfo()->format };
+
+            initInfo.PipelineInfoMain.PipelineRenderingCreateInfo = {
+                .sType{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO },
+                .colorAttachmentCount{ 1 },
+                .pColorAttachmentFormats{ std::addressof( colorFormat  ) },
+                .depthAttachmentFormat{ depthFormat },
+            };
+        }
+
         if ( !ImGui_ImplVulkan_Init( std::addressof( initInfo ) ) ) {
             MKT_THROW_RUNTIME_ERROR( "ImGuiVulkanBackend - Failed to initialize Vulkan for ImGui" );
         }
@@ -309,7 +331,7 @@ namespace Mikoto {
         renderPassInfo.renderArea.offset = { 0, 0 };
         renderPassInfo.renderArea.extent = m_Extent2D;
 
-        std::array<VkClearValue, 2> clearValues{};            // Only one clear value for the color attachment
+        std::array<VkClearValue, 2> clearValues{};                                                // Only one clear value for the color attachment
         clearValues[0].color = { m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a };// Clear color for ImGui
         clearValues[1].depthStencil = { 1.0f, 0 };
 
@@ -348,9 +370,62 @@ namespace Mikoto {
         vkCmdEndRenderPass( nativeCmdListHandle );
     }
 
+    auto ImGuiVulkanBackend::RecordDynamicRenderCommands( CommandListHandle cmdList ) -> void {
+        VulkanTexture* colorImage{ dynamic_cast<VulkanTexture *>(m_ColorImage.GetRaw()) };
+        VulkanTexture* depthImage{ dynamic_cast<VulkanTexture *>(m_DepthImage.GetRaw()) };
+
+        std::array<VkClearValue, 2> clearValues{};                                                // Only one clear value for the color attachment
+        clearValues[0].color = { m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a };// Clear color for ImGui
+        clearValues[1].depthStencil = { 1.0f, 0 };
+
+        // Setup rendering color attachment
+        VkRenderingAttachmentInfo colorAttachment{};
+        colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        colorAttachment.pNext = nullptr;
+
+        colorAttachment.imageView = *colorImage->GetView();
+        colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachment.clearValue = clearValues[0];
+
+        // Setup rendering depth attachment
+        VkRenderingAttachmentInfo depthAttachment{};
+        depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        depthAttachment.pNext = nullptr;
+
+        depthAttachment.imageView = *depthImage->GetView();
+        depthAttachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        depthAttachment.clearValue = clearValues[1];
+
+        VkRenderingInfo renderInfo {};
+        renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        renderInfo.pNext = nullptr;
+
+        renderInfo.renderArea = VkRect2D { VkOffset2D { 0, 0 }, m_Extent2D };
+        renderInfo.layerCount = 1;
+        renderInfo.colorAttachmentCount = 1;
+        renderInfo.pColorAttachments = &colorAttachment;
+        renderInfo.pDepthAttachment = &depthAttachment;
+        renderInfo.pStencilAttachment = nullptr;
+
+        const auto nativeCmdListHandle{ *cmdList->GetNativeHandle<VulkanCmdList>() };
+        vkCmdBeginRendering(nativeCmdListHandle, std::addressof( renderInfo ));
+
+        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), nativeCmdListHandle);
+
+        vkCmdEndRendering( nativeCmdListHandle );
+    }
+
     auto ImGuiVulkanBackend::RecordCommands( TextureHandle swapChainDrawTarget, CommandListHandle cmdList ) -> void {
         // Record imgui draw commands
-        RecordRenderPassCommands( cmdList );
+        if (m_UseDynamicRendering) {
+            RecordDynamicRenderCommands(cmdList);
+        } else {
+            RecordRenderPassCommands( cmdList );
+        }
 
         cmdList->CopyTexture( m_ColorImage.GetRaw(), swapChainDrawTarget.GetRaw() );
     }

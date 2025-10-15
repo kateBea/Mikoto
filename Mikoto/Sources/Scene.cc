@@ -4,9 +4,10 @@
  * */
 
 // C++ Standard Library
-#include <memory>
-#include <utility>
 #include <algorithm>
+#include <memory>
+#include <string_view>
+#include <utility>
 
 // Third-Party Libraries
 #include <entt/entt.hpp>
@@ -17,18 +18,109 @@
 #include <Scene/Scene.hh>
 
 namespace Mikoto {
+
+    static auto SetupStandardComponents( Entity& entity, std::string_view name ) -> void {
+        // [Constants for default entity parameters]
+        constexpr Vec3F initialSize{ 1.0f, 1.0f, 1.0f };
+        constexpr Vec3F initialPosition{ 0.0, 0.0, 0.0 };
+        constexpr Vec3F initialRotation{ 0.0f, 0.0f, 0.0f };
+
+        entity.AddComponent<RelationComponent>();
+        entity.AddComponent<TagComponent>( name );
+        entity.AddComponent<TransformComponent>( initialPosition, initialSize, initialRotation );
+    }
+
     Scene::Scene( const std::string_view name )
         : m_Name{ name } {
         // Install component listeners
     }
 
-    auto Scene::SetName( std::string_view name ) -> void {
+    auto Scene::SetName( const std::string_view name ) -> void {
         m_Name = name;
     }
 
-    auto Scene::CreateEntity( std::string_view name ) -> Entity * {
-        return nullptr;
+    auto Scene::FindByID( const UInt64 uniqueID ) -> Entity* {
+        const auto it{ m_Entities.find( uniqueID ) };
+
+        return it != m_Entities.end() ? it->second.get() : nullptr;
     }
+
+    auto Scene::FindFirstByName( const std::string_view name ) -> Entity* {
+        const auto it{ std::ranges::find_if( m_Entities, [&]( auto& pair ) -> bool {
+            const auto& entity{ pair.second };
+
+            // All entities have tag component you can only create
+            // them from the CreateEntity method
+            const auto& tag{ entity->template GetComponent<TagComponent>() };
+            return tag.GetTag() == name;
+        } ) };
+
+        return it != m_Entities.end() ? it->second.get() : nullptr;
+    }
+
+    auto Scene::ExistsByID( const UInt64 uniqueID ) -> bool {
+        return FindByID( uniqueID ) != nullptr;
+    }
+
+    auto Scene::ExistsByName( const std::string_view name ) -> bool {
+        return FindFirstByName( name ) != nullptr;
+    }
+
+    auto Scene::Clear() -> void {
+        m_Entities.clear();
+
+        m_Registry.clear();
+    }
+
+    auto Scene::CreateEntity( std::string_view name ) -> Entity* {
+        const EntityCreateInfo info{
+            .Root{ nullptr },
+            .Name{ name },
+            .Model{ ModelHandle::CreateEmpty() }
+        };
+
+        return CreateEntity( info );
+    }
+
+    auto Scene::CreateEntity( const EntityCreateInfo& createInfo ) -> Entity* {
+        Entity* result{ nullptr };
+
+        Unique<Entity> newEntity{ new Entity( m_Registry ) };
+        SetupStandardComponents( *newEntity, createInfo.Name );
+
+        UInt64 guid{ newEntity->GetComponent<TagComponent>().GetGUID() };
+        const auto [it, success]{
+            m_Entities.try_emplace( guid, std::move( newEntity ) )
+        };
+
+        if ( success ) {
+            // We managed to register the new entity
+            result = it->second.get();
+
+            // if root is not empty this entity must be registered as child of root entity
+            if (createInfo.Root != nullptr) {
+                Entity* parent{ createInfo.Root };
+                RelationComponent& relation{ parent->GetComponent<RelationComponent>() };
+
+                relation.RegisterChild( guid );
+            }
+
+            // in root model is not empty we create a children for this entity
+            // each children well hold a mesh
+            if (!createInfo.Model.IsEmpty()) {
+                if (createInfo.Model->GetMeshNodeCount() > 1) {
+                    for (Size index{}; index < createInfo.Model->GetMeshNodeCount(); index++) {
+                        AddSingleEntityWithRoot( result, createInfo.Model, index );
+                    }
+                } else {
+                    result->AddComponent<MeshComponent>( createInfo.Model, 0 );
+                }
+            }
+        }
+
+        return result;
+    }
+
 
 #if false
     auto Scene::OnTextComponentAttach( entt::registry &reg, const entt::entity entity ) -> void {
@@ -450,6 +542,30 @@ namespace Mikoto {
     }
 
     Scene::~Scene() {
-
+        Clear();
     }
-}
+
+    auto Scene::AddSingleEntityWithRoot( Entity* root, ModelHandle model, Int32 index ) -> void {
+        if ( Entity * child{ CreateEntity( model->GetMeshNode( index ).GetName() ) }; child != nullptr) {
+            child->AddComponent<MeshComponent>( model, index );
+
+            RelationComponent& relationComponent{ root->AddComponent<RelationComponent>() };
+            relationComponent.RegisterChild( child->GetComponent<TagComponent>().GetGUID() );
+        }
+    }
+
+    auto EntityCreateInfo::WithName( std::string_view name ) -> EntityCreateInfo& {
+        this->Name = name;
+        return *this;
+    }
+
+    auto EntityCreateInfo::WithRoot( Entity* root ) -> EntityCreateInfo& {
+        this->Root = root;
+        return *this;
+    }
+
+    auto EntityCreateInfo::WithModelMesh( ModelHandle modelMesh ) -> EntityCreateInfo& {
+        this->Model = modelMesh;
+        return *this;
+    }
+}// namespace Mikoto

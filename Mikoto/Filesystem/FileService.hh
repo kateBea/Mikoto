@@ -40,6 +40,12 @@ namespace Mikoto {
         auto LoadFile( const Path& path, FileMode mode = MKT_FILE_OPEN_MODE_NONE ) -> File*;
         auto LoadFileAsync( const Path& path, FileMode mode = MKT_FILE_OPEN_MODE_NONE ) -> void; // Return a future
 
+        auto CreateFile( const Path& path ) -> File*;
+        auto CreateFileAsync( const Path& path ) -> File*; // Return a future
+
+        auto SaveFile( const File* file ) -> void;
+        auto SaveFileAsync( const File* file ) -> void; // Return a future
+
         auto GetFile( const Path& path ) -> File*;
         auto GetFile( const Path& path ) const -> const File*;
 

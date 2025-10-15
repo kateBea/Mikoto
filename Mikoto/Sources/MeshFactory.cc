@@ -37,9 +37,10 @@ namespace Mikoto {
     };
 
     static constexpr std::array ASSIMP_TEXTURE_TYPES{
-        aiTextureType_BASE_COLOR,
-        aiTextureType_NORMAL_CAMERA,
-        aiTextureType_EMISSION_COLOR,
+        aiTextureType_DIFFUSE,
+        aiTextureType_SPECULAR,
+        aiTextureType_NORMALS,
+        aiTextureType_EMISSIVE,
         aiTextureType_METALNESS,
         aiTextureType_DIFFUSE_ROUGHNESS,
         aiTextureType_AMBIENT_OCCLUSION
@@ -47,10 +48,10 @@ namespace Mikoto {
 
     static auto InferMikotoTextureType( const aiTextureType type ) -> TextureType {
         switch ( type ) {
-            case aiTextureType_BASE_COLOR:
+            case aiTextureType_DIFFUSE:
+            case aiTextureType_SPECULAR:
             case aiTextureType_NORMALS:
-            case aiTextureType_NORMAL_CAMERA:
-            case aiTextureType_EMISSION_COLOR:
+            case aiTextureType_EMISSIVE:
             case aiTextureType_METALNESS:
             case aiTextureType_DIFFUSE_ROUGHNESS:
             case aiTextureType_AMBIENT_OCCLUSION:
@@ -155,7 +156,11 @@ namespace Mikoto {
                 loadInfo.WithFile( FileService::Get()->LoadFile( path ) )
                     .WithType( InferMikotoTextureType( type ) );
 
-                texture = AssetsService::Get()->LoadAsset<Texture>( loadInfo );
+                try {
+                    texture = AssetsService::Get()->LoadAsset<Texture>( loadInfo );
+                } catch ( std::exception& e ) {
+                    MKT_CORE_LOGGER_ERROR( "LoadTexture - Failed to load texture. Reason: {}", e.what() );
+                }
             }
 
             // Temporary. See if it is an embedded texture
@@ -179,7 +184,10 @@ namespace Mikoto {
             const aiMaterial* material{ scene->mMaterials[mesh->mMaterialIndex] };
             for ( const aiTextureType& type: ASSIMP_TEXTURE_TYPES ) {
                 TextureHandle handle{ LoadTexture( modelRootPath, material, type, scene ) };
-                textures.emplace_back(handle);
+
+                if (!handle.IsEmpty()) {
+                    textures.emplace_back( handle );
+                }
             }
         }
 
@@ -188,8 +196,10 @@ namespace Mikoto {
 
     static auto ConstructMeshNode(GpuDevice* device, const std::string& rootPath,
                               const aiMesh* mesh, const aiScene* scene)
-    -> std::tuple<BufferHandle, BufferHandle, std::vector<TextureHandle>>
+    -> std::tuple<BufferHandle, BufferHandle, std::vector<TextureHandle>, std::string>
     {
+        const std::string name{ mesh->mName.C_Str() };
+
         auto vertices{ LoadVertices(mesh) };
         auto indices{ LoadIndices(mesh) };
         auto textures{ LoadTextures(rootPath, mesh, scene) };
@@ -208,7 +218,7 @@ namespace Mikoto {
                  .WithBufferDataType(BufferDataType::BUFFER_DATA_UINT32)
                  .WithResourceUsageType(ResourceUsageType::RESOURCE_USAGE_STATIC);
 
-        return { device->CreateBuffer(vertexDesc), device->CreateBuffer(indexDesc), std::move(textures) };
+        return { device->CreateBuffer(vertexDesc), device->CreateBuffer(indexDesc), std::move(textures), name };
     }
 
     static auto LoadNodes(GpuDevice* device, const std::string& rootPath, const aiNode* node,
@@ -221,11 +231,11 @@ namespace Mikoto {
 
         // Process all the meshes from this node
         for (UInt64 i{}; i < node->mNumMeshes; ++i) {
-            auto [vertexBuf, indexBuf, textures] {
+            auto [vertexBuf, indexBuf, textures, name] {
                 ConstructMeshNode(device, rootPath, scene->mMeshes[node->mMeshes[i]], scene)
             };
 
-            result.emplace_back( static_cast<Size>(node->mMeshes[i]), std::move(vertexBuf),std::move(indexBuf), std::move(textures) );
+            result.emplace_back( static_cast<Size>(node->mMeshes[i]), std::move(vertexBuf),std::move(indexBuf), std::move(textures), std::move(name) );
         }
 
         // Do the same for all the children nodex from this node

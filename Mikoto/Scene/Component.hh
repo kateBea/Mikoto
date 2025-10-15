@@ -39,7 +39,7 @@ namespace Mikoto {
         explicit TagComponent() = default;
 
         explicit TagComponent( const std::string_view tag )
-            :   m_Tag{ tag }, m_Visibility{ true }
+            :   m_Tag{ tag }, m_IsActive{ true }
         {}
 
         TagComponent(const TagComponent& other) = default;
@@ -48,19 +48,19 @@ namespace Mikoto {
         auto operator=(const TagComponent& other) -> TagComponent& = default;
         auto operator=(TagComponent&& other) -> TagComponent& = default;
 
-        MKT_NODISCARD auto IsVisible() const -> bool { return m_Visibility; }
+        MKT_NODISCARD auto IsActive() const -> bool { return m_IsActive; }
         MKT_NODISCARD auto GetTag() const -> const std::string& { return m_Tag; }
         MKT_NODISCARD auto GetGUID() const -> UInt64 { return m_GUID.Get(); }
 
         auto SetTag( const std::string_view newName) -> void { m_Tag = newName; }
-        auto SetVisibility( const bool value) -> void { m_Visibility = value; }
+        auto SetActive( const bool value) -> void { m_IsActive = value; }
 
         auto OnComponentAttach() -> void {  }
         auto OnComponentUpdate() -> void {  }
         auto OnComponentRemoved() -> void {  }
     private:
         std::string m_Tag{};
-        bool m_Visibility{};
+        bool m_IsActive{};
         GlobalUniqueID m_GUID{};
     };
 
@@ -235,29 +235,34 @@ namespace Mikoto {
      * as vertex buffers, index buffers, although this component won't be visible
      * in the editor UI
      * */
-    class RenderComponent {
+    class MeshComponent {
     public:
-        explicit RenderComponent() = default;
+        explicit MeshComponent(ModelHandle model = ModelHandle::CreateEmpty(), Int32 meshIndex = {})
+            : m_Model{ model }, m_MeshIndex { meshIndex } {};
 
-        ~RenderComponent() = default;
+        ~MeshComponent() = default;
 
-        auto SetMesh(const MeshNode* mesh) {
-            if (mesh != nullptr) {
-                m_Mesh = mesh;
+        auto SetMesh(ModelHandle model, const Int32 meshIndex) {
+            if (!model.IsEmpty()) {
+                m_Model = model;
+                m_MeshIndex = meshIndex;
             }
         }
 
-        MKT_NODISCARD auto HasMesh() const -> bool { return m_Mesh != nullptr; }
-        MKT_NODISCARD auto GetMesh() const -> const MeshNode* { return m_Mesh; }
-        MKT_NODISCARD auto GetPath() const -> const Path& { return m_Path; }
-        MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
+        MKT_NODISCARD auto HasMesh() const -> bool { return !m_Model.IsEmpty(); }
+        MKT_NODISCARD auto GetMesh() const -> const MeshNode* {
+            return std::addressof(m_Model->GetMeshNode(static_cast<UInt32>(m_MeshIndex)));
+        }
+        MKT_NODISCARD auto GetName() const -> const std::string& { return m_Model->GetName(); }
 
         auto OnComponentAttach() -> void {  }
         auto OnComponentUpdate() -> void {  }
         auto OnComponentRemoved() -> void {  }
 
     private:
-        const MeshNode* m_Mesh{};
+        Int32 m_MeshIndex{ -1 };
+
+        ModelHandle m_Model{};
 
         Path m_Path{};
         std::string m_Name{};

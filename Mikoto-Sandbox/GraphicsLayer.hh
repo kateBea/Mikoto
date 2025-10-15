@@ -41,7 +41,8 @@ namespace Mikoto {
 
         const Window* m_Window{};
 
-        ModelHandle m_Model{};
+        ModelHandle m_ModelSingleMesh{};
+        ModelHandle m_ModelMultipleMeshes{};
     };
 }
 

@@ -82,12 +82,19 @@ namespace Mikoto {
     }
 
     auto GraphicsLayer::LoadModels() -> void {
-        ModelLoadDescription modelLoadDesc{
-            .ModelFile{ FileService::Get()->LoadFile( "./Resources/Models/2 - Cat with scarf/source/Pbr/base.obj" ) },
+        ModelLoadDescription descFirst{
+            .ModelFile{ FileService::Get()->LoadFile( "./Resources/Models/3 - Dachniy house/source/Dachniy_Domik/D_House.FBX" ) },
             .WantTextures{ true }
         };
 
-        m_Model = AssetsService::Get()->LoadAsset<Model>( modelLoadDesc );
+        m_ModelMultipleMeshes = AssetsService::Get()->LoadAsset<Model>( descFirst );
+
+        ModelLoadDescription descSecond{
+            .ModelFile{ FileService::Get()->LoadFile( "./Resources/Models/1 - Box texture/BoxTexture.obj" ) },
+            .WantTextures{ true }
+        };
+
+        m_ModelSingleMesh = AssetsService::Get()->LoadAsset<Model>( descSecond );
     }
 
     auto GraphicsLayer::SetupScene() -> void {
@@ -101,7 +108,43 @@ namespace Mikoto {
             entity->AddComponent<AudioSourceComponent>( "my_song.mp3" );
         }
 
-        // This can hear sound and has a camera sounds
+        // Load a model with multiples mesh nodes for testing
+        Entity* multipleNodes{ m_MainScene->CreateEntity( EntityCreateInfo{
+            .Root{ entity },
+            .Name{ "Npc" },
+            .Model{ m_ModelMultipleMeshes },
+        } ) };
+
+        if ( entity ) {
+            multipleNodes->AddComponent<ScriptComponent>( "idle.lua" );
+            multipleNodes->AddComponent<AudioSourceComponent>( "quack.mp3" );
+        }
+
+        // Load a model with multiples mesh nodes for testing
+        Entity* multipleNodesNoRoot{ m_MainScene->CreateEntity( EntityCreateInfo{
+            .Root{ nullptr },
+            .Name{ "Npc 1" },
+            .Model{ m_ModelMultipleMeshes },
+        } ) };
+
+        if ( multipleNodesNoRoot ) {
+            multipleNodesNoRoot->AddComponent<ScriptComponent>( "idle.lua" );
+            multipleNodesNoRoot->AddComponent<AudioSourceComponent>( "quack.mp3" );
+        }
+
+        // Load a model 1 node mesh nodes for testing
+        Entity* rootNoMultiple{ m_MainScene->CreateEntity( EntityCreateInfo{
+            .Root{ multipleNodesNoRoot },
+            .Name{ "Npc 2" },
+            .Model{ m_ModelSingleMesh },
+        } ) };
+
+        if ( rootNoMultiple ) {
+            rootNoMultiple->AddComponent<ScriptComponent>( "idle.lua" );
+            rootNoMultiple->AddComponent<AudioSourceComponent>( "quack.mp3" );
+        }
+
+        // This can hear sound and has a camera
         // it would make sense as we generally want stuff close to the camera to be heard
         // the further they are from the camera, the less we can hear sources
         Entity* listener{ m_MainScene->CreateEntity( "PlushCat" ) };
@@ -109,6 +152,19 @@ namespace Mikoto {
             listener->AddComponent<CameraComponent>();
             listener->AddComponent<ScriptComponent>( "hello_world.lua" );
             listener->AddComponent<AudioListenerComponent>();
+        }
+
+        // Some checks just to test the Scene interface
+        if ( m_MainScene->ExistsByName( "PlushCat" ) ) {
+            MKT_CORE_LOGGER_WARN( "Entity with name {} exists.", "PlushCat" );
+        } else {
+            MKT_CORE_LOGGER_WARN( "Entity with name {} not exists.", "PlushCat" );
+        }
+
+        if (m_MainScene->ExistsByID( 4 )) {
+            MKT_CORE_LOGGER_WARN( "Entity with ID {} exists.", 4 );
+        } else {
+            MKT_CORE_LOGGER_WARN( "Entity with ID {} does not exist.", 4 );
         }
     }
 

@@ -23,22 +23,24 @@
 namespace Mikoto {
 
     struct EntityCreateInfo {
+        Entity* Root{};
         std::string_view Name{};
-        const Entity* Root{};
         ModelHandle Model{};
 
         auto WithName( std::string_view name ) -> EntityCreateInfo&;
-        auto WithRoot( const Entity* root ) -> EntityCreateInfo&;
+        auto WithRoot( Entity* root ) -> EntityCreateInfo&;
         auto WithModelMesh( ModelHandle modelMesh ) -> EntityCreateInfo&;
     };
 
     class Scene final {
     public:
-        explicit Scene( std::string_view name = "Mikoto" );
+        explicit Scene( std::string_view name = "New Scene" );
 
         auto UpdateIdle( double deltaTime ) -> void;
         auto UpdateSimulate( double deltaTime ) -> void;
 
+
+        // Remove recursively check if its child of any entity
         auto RemoveEntity( UInt64 uniqueID ) -> void;
 
         auto SetName( std::string_view name ) -> void;
@@ -46,13 +48,16 @@ namespace Mikoto {
         MKT_NODISCARD auto FindByID( UInt64 uniqueID ) -> Entity*;
         MKT_NODISCARD auto FindFirstByName( std::string_view name ) -> Entity*;
 
+        MKT_NODISCARD auto ExistsByID( UInt64 uniqueID ) -> bool;
+        MKT_NODISCARD auto ExistsByName( std::string_view name ) -> bool;
+
         MKT_NODISCARD auto CreateEntity( std::string_view name ) -> Entity*;
+
         MKT_NODISCARD auto CreateEntity( const EntityCreateInfo& createInfo = {} ) -> Entity*;
 
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 
-        MKT_NODISCARD auto GetEntities() -> ankerl::unordered_dense::map<Size, Entity>& { return m_Entities; }
-        MKT_NODISCARD auto GetEntities() const -> const ankerl::unordered_dense::map<Size, Entity>& { return m_Entities; }
+        MKT_NODISCARD auto GetEntities() const -> const ankerl::unordered_dense::map<Size, Unique<Entity>>& { return m_Entities; }
 
         MKT_NODISCARD static auto Create( std::string_view name ) -> Unique<Scene>;
 
@@ -61,15 +66,14 @@ namespace Mikoto {
         ~Scene();
 
     private:
-        auto DestroyEntity( UInt64 uniqueID ) -> bool;
-        auto AddEmptyEntity( std::string_view tagName, const Entity* root ) -> Entity*;
-
+        auto AddSingleEntityWithRoot(Entity * root, ModelHandle model, Int32 index ) -> void;
     private:
         std::string m_Name{};
         entt::registry m_Registry{};
 
-        ankerl::unordered_dense::map<Size, Entity> m_Entities{};
+        // Unique because iterators are invalidated on resize
+        ankerl::unordered_dense::map<Size, Unique<Entity>> m_Entities{};
     };
-}
+}// namespace Mikoto
 
 #endif// MIKOTO_SCENE_HH

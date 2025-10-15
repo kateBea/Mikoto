@@ -107,11 +107,11 @@ namespace Mikoto {
     static auto SerializeComponent( const TagComponent& tag, YAML::Emitter& emitter ) -> void {
         emitter << YAML::BeginMap;
         emitter << YAML::Key << "Name" << YAML::Value << tag.GetTag();
-        emitter << YAML::Key << "Visibility" << YAML::Value << tag.IsVisible();
+        emitter << YAML::Key << "Visibility" << YAML::Value << tag.IsActive();
         emitter << YAML::EndMap;
     }
 
-    static auto SerializeComponent( const RenderComponent& renderComponent, YAML::Emitter& emitter ) -> void {
+    static auto SerializeComponent( const MeshComponent& renderComponent, YAML::Emitter& emitter ) -> void {
         emitter << YAML::BeginMap;
 
 
@@ -182,9 +182,9 @@ namespace Mikoto {
         SerializeComponent( rootEntity->GetComponent<TransformComponent>(), emitter );
 
         // Serialize Render Component
-        if ( rootEntity->HasComponent<RenderComponent>() ) {
+        if ( rootEntity->HasComponent<MeshComponent>() ) {
             emitter << YAML::Key << "RenderComponent" << YAML::Value;
-            SerializeComponent( rootEntity->GetComponent<RenderComponent>(), emitter );
+            SerializeComponent( rootEntity->GetComponent<MeshComponent>(), emitter );
         }
 
         // Serialize Material Component
@@ -226,7 +226,7 @@ namespace Mikoto {
         const RelationComponent& relation{ rootEntity->GetComponent<RelationComponent>() };
 
         for ( auto& [id, childEntity]: scene->GetEntities() ) {
-            SerializeNode( emitter, scene, std::addressof( childEntity )  );
+            SerializeNode( emitter, scene, childEntity.get()  );
         }
 
         emitter << YAML::EndMap;

@@ -16,9 +16,7 @@
 
 // Project Headers
 #include <Common/Common.hh>
-#include <Renderer/ComputePipeline.hh>
-#include <Renderer/ComputePipeline.hh>
-#include <Renderer/GraphicsPipeline.hh>
+#include <Renderer/Pipeline.hh>
 
 namespace Mikoto {
 
@@ -38,7 +36,10 @@ namespace Mikoto {
 
     class VulkanGraphicsPipeline final : public GraphicsPipeline {
     public:
-        explicit VulkanGraphicsPipeline(const GraphicsPipelineDescription& desc);
+        // Pass what u need to create a vulkan graphics pipeine
+        // no need to be the base description can be anything needed to create this vulkan pipoeline
+        // the device which we have crteated at start of the engine knows how to consttuct api specific objects
+        explicit VulkanGraphicsPipeline(/**/);
 
         auto Release() -> void override;
         auto Bind(VkCommandBuffer commandBuffer) const -> void;

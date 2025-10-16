@@ -52,6 +52,8 @@ namespace Mikoto {
         MKT_NODISCARD auto GetViewProjection() const -> glm::mat4 { return GetProjection() * m_ViewMatrix; }
 
         MKT_NODISCARD auto GetPosition() const -> const glm::vec3& { return m_Position; }
+        MKT_NODISCARD auto GetRotation() const -> const glm::vec3& { return m_Rotation; }
+
         auto SetPosition(const glm::vec3& position) -> void {
             m_Translation = position;
             m_Transform = glm::translate(m_Transform, m_Translation);

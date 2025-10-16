@@ -66,7 +66,7 @@ namespace Mikoto {
         style.ScrollbarRounding = 8.0f;
 
         io.Fonts->AddFontDefault();
-        constexpr float baseFontSize{ 21.0f };
+        constexpr float baseFontSize{ 16.0f };
         constexpr float iconFontSize{ baseFontSize * 1.1f }; // FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly };
 
         const std::string fontPath{
@@ -78,8 +78,8 @@ namespace Mikoto {
         m_Fonts.emplace_back(io.FontDefault =
             io.Fonts->AddFontFromFileTTF(PathBuilder()
                 .WithPath( m_ImGuiFilesRootDir )
-                .WithPath( "Open_Sans" )
-                .WithPath( "OpenSans-VariableFont.ttf" )
+                .WithPath( "JetBrainsMono/fonts/ttf/" )
+                .WithPath( "JetBrainsMonoNL-Thin.ttf" )
                 .Build().string().c_str(), baseFontSize));
 
 

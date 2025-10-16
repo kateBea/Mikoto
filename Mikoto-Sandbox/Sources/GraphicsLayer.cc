@@ -2,6 +2,8 @@
 // Created by kate on 10/13/25.
 //
 
+#include <imgui.h>
+
 #include <Assets/AssetsService.hh>
 #include <Core/InputService.hh>
 #include <Filesystem/FileService.hh>
@@ -10,6 +12,7 @@
 #include <Renderer/RenderService.hh>
 #include <Renderer/RenderUtility.hh>
 #include <Scene/Component.hh>
+#include <glm/gtc/type_ptr.hpp>// For glm::value_ptr
 
 namespace Mikoto {
 
@@ -53,8 +56,8 @@ namespace Mikoto {
         texture = AssetsService::Get()->LoadAsset<Texture>( loadDesc );
     }
 
-    GraphicsLayer::GraphicsLayer( std::string_view name, const Window* window  )
-        : ILayer{ name }, m_Window { window } {}
+    GraphicsLayer::GraphicsLayer( std::string_view name, const Window* window )
+        : ILayer{ name }, m_Window{ window } {}
 
     auto GraphicsLayer::OnCreate() -> void {
         MKT_FILE_LOGGER_DEBUG( "Initializing Graphics Layer" );
@@ -75,14 +78,17 @@ namespace Mikoto {
         m_Renderer = nullptr;
     }
 
-    auto GraphicsLayer::OnUpdate( float deltaTime ) -> void {
+    auto GraphicsLayer::OnUpdate( const float deltaTime ) -> void {
         UpdateCamera( deltaTime );
+        DisplayCameraDebugInfo();
 
+#if false// No render flow yet
         m_MainScene->SetState( SceneState::IDLE );
 
         m_Renderer->SetScene( m_MainScene.get() );
         m_Renderer->SetCamera( m_SceneCamera.get() );
-        m_Renderer->Render( deltaTime /*Render target??*/ );
+        m_Renderer->Render( deltaTime );
+#endif
     }
 
     auto GraphicsLayer::LoadModels() -> void {
@@ -114,9 +120,9 @@ namespace Mikoto {
 
         // Load a model with multiples mesh nodes for testing
         Entity* multipleNodes{ m_MainScene->CreateEntity( EntityCreateInfo{
-            .Root{ entity },
-            .Name{ "Npc" },
-            .Model{ m_ModelMultipleMeshes },
+                .Root{ entity },
+                .Name{ "Npc" },
+                .Model{ m_ModelMultipleMeshes },
         } ) };
 
         if ( entity ) {
@@ -126,9 +132,9 @@ namespace Mikoto {
 
         // Load a model with multiples mesh nodes for testing
         Entity* multipleNodesNoRoot{ m_MainScene->CreateEntity( EntityCreateInfo{
-            .Root{ nullptr },
-            .Name{ "Npc 1" },
-            .Model{ m_ModelMultipleMeshes },
+                .Root{ nullptr },
+                .Name{ "Npc 1" },
+                .Model{ m_ModelMultipleMeshes },
         } ) };
 
         if ( multipleNodesNoRoot ) {
@@ -138,9 +144,9 @@ namespace Mikoto {
 
         // Load a model 1 node mesh nodes for testing
         Entity* rootNoMultiple{ m_MainScene->CreateEntity( EntityCreateInfo{
-            .Root{ multipleNodesNoRoot },
-            .Name{ "Npc 2" },
-            .Model{ m_ModelSingleMesh },
+                .Root{ multipleNodesNoRoot },
+                .Name{ "Npc 2" },
+                .Model{ m_ModelSingleMesh },
         } ) };
 
         if ( rootNoMultiple ) {
@@ -165,7 +171,7 @@ namespace Mikoto {
             MKT_CORE_LOGGER_WARN( "Entity with name {} not exists.", "PlushCat" );
         }
 
-        if (m_MainScene->ExistsByID( 4 )) {
+        if ( m_MainScene->ExistsByID( 4 ) ) {
             MKT_CORE_LOGGER_WARN( "Entity with ID {} exists.", 4 );
         } else {
             MKT_CORE_LOGGER_WARN( "Entity with ID {} does not exist.", 4 );
@@ -185,8 +191,7 @@ namespace Mikoto {
     auto GraphicsLayer::SetupRenderer() -> void {
         SceneRendererCreateInfo spec{};
         spec.WithName( "Scene renderer" )
-            .WithDevice( RenderService::Get()->GetGpuDevice() )
-            .WithResolution( m_Window->GetWidth(), m_Window->GetHeight() );
+                .WithDevice( RenderService::Get()->GetGpuDevice() );
 
         m_Renderer = SceneRenderer::Create( spec );
 
@@ -218,6 +223,114 @@ namespace Mikoto {
         }
 
         m_SceneCamera->UpdateState( timeStep );
+    }
+
+    auto GraphicsLayer::DisplayCameraDebugInfo() const -> void {
+        if ( ImGui::Begin( "Camera Properties" ) ) {
+            ImGui::Text( "Camera Debug Info" );
+            ImGui::Separator();
+
+            // --- Position ---
+            glm::vec3 position = m_SceneCamera->GetPosition();
+            if ( ImGui::DragFloat3( "Position", glm::value_ptr( position ), 0.1f ) )
+                m_SceneCamera->SetPosition( position );
+
+            // --- Rotation ---
+            glm::vec3 rotation = m_SceneCamera->GetRotation();
+            if ( ImGui::DragFloat3( "Rotation (deg)", glm::value_ptr( rotation ), 0.5f ) )
+                m_SceneCamera->SetRotation( rotation );
+
+            ImGui::Separator();
+
+            // --- Projection ---
+            float fov = m_SceneCamera->GetFOV();
+            if ( ImGui::SliderFloat( "Field of View", &fov, 10.0f, 120.0f ) )
+                m_SceneCamera->SetFieldOfView( fov );
+
+            float nearPlane = m_SceneCamera->GetNearPlane();
+            float farPlane = m_SceneCamera->GetFarPlane();
+
+            if ( ImGui::DragFloat( "Near Plane", &nearPlane, 0.01f, 0.01f, farPlane - 0.1f ) )
+                m_SceneCamera->SetNearPlane( nearPlane );
+
+            if ( ImGui::DragFloat( "Far Plane", &farPlane, 1.0f, nearPlane + 0.1f, 10000.0f ) )
+                m_SceneCamera->SetFarPlane( farPlane );
+
+            ImGui::Separator();
+
+            // --- Projection type (combo box) ---
+            static const char* projectionTypes[] = { "Perspective", "Orthographic" };
+            int currentProjection = m_SceneCamera->IsOrthographic() ? 1 : 0;
+
+            if ( ImGui::Combo( "Projection Type", &currentProjection, projectionTypes, IM_ARRAYSIZE( projectionTypes ) ) ) {
+                m_SceneCamera->SetProjectionType(
+                        currentProjection == 0 ? ProjectionType::PERSPECTIVE : ProjectionType::ORTHOGRAPHIC );
+            }
+
+            ImGui::Separator();
+
+            // --- Matrices ---
+            if ( ImGui::TreeNode( "Matrices" ) ) {
+                const glm::mat4& view = m_SceneCamera->GetViewMatrix();
+                const glm::mat4& proj = m_SceneCamera->GetProjection();
+
+                if ( ImGui::BeginTable( "MatrixTable", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg ) ) {
+                    ImGui::TableSetupColumn( "Row" );
+                    ImGui::TableSetupColumn( "View C0" );
+                    ImGui::TableSetupColumn( "View C1" );
+                    ImGui::TableSetupColumn( "View C2" );
+                    ImGui::TableSetupColumn( "View C3" );
+                    ImGui::TableHeadersRow();
+
+                    for ( int i = 0; i < 4; ++i ) {
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex( 0 );
+                        ImGui::Text( "Row %d", i );
+                        ImGui::TableSetColumnIndex( 1 );
+                        ImGui::Text( "%.3f", view[i][0] );
+                        ImGui::TableSetColumnIndex( 2 );
+                        ImGui::Text( "%.3f", view[i][1] );
+                        ImGui::TableSetColumnIndex( 3 );
+                        ImGui::Text( "%.3f", view[i][2] );
+                        ImGui::TableSetColumnIndex( 4 );
+                        ImGui::Text( "%.3f", view[i][3] );
+                    }
+
+                    ImGui::Separator();
+                    ImGui::EndTable();
+                }
+
+                ImGui::Spacing();
+
+                if ( ImGui::BeginTable( "ProjectionMatrixTable", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg ) ) {
+                    ImGui::TableSetupColumn( "Row" );
+                    ImGui::TableSetupColumn( "Proj C0" );
+                    ImGui::TableSetupColumn( "Proj C1" );
+                    ImGui::TableSetupColumn( "Proj C2" );
+                    ImGui::TableSetupColumn( "Proj C3" );
+                    ImGui::TableHeadersRow();
+
+                    for ( int i = 0; i < 4; ++i ) {
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex( 0 );
+                        ImGui::Text( "Row %d", i );
+                        ImGui::TableSetColumnIndex( 1 );
+                        ImGui::Text( "%.3f", proj[i][0] );
+                        ImGui::TableSetColumnIndex( 2 );
+                        ImGui::Text( "%.3f", proj[i][1] );
+                        ImGui::TableSetColumnIndex( 3 );
+                        ImGui::Text( "%.3f", proj[i][2] );
+                        ImGui::TableSetColumnIndex( 4 );
+                        ImGui::Text( "%.3f", proj[i][3] );
+                    }
+
+                    ImGui::EndTable();
+                }
+
+                ImGui::TreePop();
+            }
+        }
+        ImGui::End();
     }
 
 }// namespace Mikoto

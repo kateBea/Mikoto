@@ -8,20 +8,14 @@
 
 namespace Mikoto {
 
-     SceneRenderer::SceneRenderer( const SceneRendererCreateInfo &createInfo ) {}
+    SceneRenderer::SceneRenderer( const SceneRendererCreateInfo &createInfo )
+        : m_Device{ createInfo.Device }
+    {}
 
      auto SceneRenderer::Init() -> void {
-         // Final composition
-         Unique<ShadingPass> shadingPass{ new ShadingPass() };
-         shadingPass->Init( m_Device );
 
-         m_Passes.emplace_back( std::move(shadingPass) );
+        AddCoreRenderPasses();
 
-         // Compute basic
-         Unique<ComputeBasic> computeBasic{ new ComputeBasic() };
-         computeBasic->Init( m_Device );
-
-         m_Passes.emplace_back( std::move(computeBasic) );
      }
 
      auto SceneRenderer::Shutdown() -> void {
@@ -43,17 +37,34 @@ namespace Mikoto {
          cmd->Begin();
 
          const FrameContext context{
-            .Cmd{ cmd },
-            .FrameIndex{ 0 },
-            .DeltaTime{ static_cast<float>( timeStep ) }
+             .Cmd{ cmd },
+             .FrameIndex{ 0 },
+             .DeltaTime{ static_cast<float>( timeStep ) }
          };
-         for ( auto& pass : m_Passes ) {
-             if ( const auto renderPass{ dynamic_cast<IRenderPass*>(pass.get()) }) {
+         for ( auto &pass: m_Passes ) {
+             if ( const auto renderPass{ dynamic_cast<IRenderPass *>( pass.get() ) } ) {
                  renderPass->Render( context, m_RendererBackend );
              }
          }
 
          cmd->End();
+     }
+
+     auto SceneRenderer::OnResize( UInt32 width, UInt32 height ) -> void {
+     }
+
+     auto SceneRenderer::AddCoreRenderPasses() -> void {
+        // Final composition
+        Unique<ShadingPass> shadingPass{ new ShadingPass() };
+        shadingPass->Init( m_Device );
+
+        m_Passes.emplace_back( std::move(shadingPass) );
+
+        // Compute basic
+        Unique<ComputeBasic> computeBasic{ new ComputeBasic() };
+        computeBasic->Init( m_Device );
+
+        m_Passes.emplace_back( std::move(computeBasic) );
      }
 
      auto SceneRenderer::SetCamera( Camera *camera ) -> void {
@@ -63,5 +74,15 @@ namespace Mikoto {
      auto SceneRenderer::Create( const SceneRendererCreateInfo &createInfo ) -> Unique<SceneRenderer> {
          return CreateScope<SceneRenderer>( createInfo );
      }
+
+    auto SceneRendererCreateInfo::WithName( std::string_view name ) -> SceneRendererCreateInfo & {
+        this->Name = name;
+        return *this;
+    }
+
+    auto SceneRendererCreateInfo::WithDevice( GpuDevice *device ) -> SceneRendererCreateInfo & {
+        this->Device = device;
+        return *this;
+    }
 
 }// namespace Mikoto

@@ -22,6 +22,16 @@
 
 namespace Mikoto {
 
+    /**
+     * @brief Enum representing the current state of the scene renderer.
+     *
+     * This enum is used to track whether the renderer is idle or actively simulating the scene.
+     */
+    enum class SceneState {
+        IDLE,
+        SIMULATING
+    };
+
     struct EntityCreateInfo {
         Entity* Root{};
         std::string_view Name{};
@@ -38,6 +48,13 @@ namespace Mikoto {
 
         auto UpdateIdle( double deltaTime ) -> void;
         auto UpdateSimulate( double deltaTime ) -> void;
+
+        /**
+         * @brief Sets the state of the scene renderer.
+         * This function changes the state of the renderer, such as transitioning from idle to simulating.
+         * @param state The new state to set for the renderer.
+         */
+        auto SetState( SceneState state ) -> void;
 
 
         // Remove recursively check if its child of any entity
@@ -70,6 +87,8 @@ namespace Mikoto {
     private:
         std::string m_Name{};
         entt::registry m_Registry{};
+
+        SceneState m_SceneState{ SceneState::IDLE };
 
         // Unique because iterators are invalidated on resize
         ankerl::unordered_dense::map<Size, Unique<Entity>> m_Entities{};

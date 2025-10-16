@@ -13,25 +13,13 @@
 #include <Material/Texture2D.hh>
 
 namespace Mikoto {
+
     struct PBRMaterialCreateSpec {
-        std::string Name{};
-
-        Texture2D* AlbedoMap{ nullptr };
-        Texture2D* NormalMap{ nullptr };
-        Texture2D* MetallicMap{ nullptr };
-        Texture2D* RoughnessMap{ nullptr };
-        Texture2D* AmbientOcclusionMap{ nullptr };
-
-        auto SetAlbedoTexture( Texture2D* texture ) -> PBRMaterialCreateSpec&;
-    };
-
-    enum class PBRTextureType {
-        TEXTURE_TYPE_ALBEDO,              // Base color texture
-        TEXTURE_TYPE_NORMAL,              // Normal map
-        TEXTURE_TYPE_ROUGHNESS,           // Roughness map
-        TEXTURE_TYPE_METALLIC,            // Metalness map
-        TEXTURE_TYPE_AMBIENT_OCCLUSION,   // Ambient occlusion map
-        TEXTURE_TYPE_EMISSIVE,            // Emissive map
+        TextureHandle AlbedoMap{};
+        TextureHandle NormalMap{};
+        TextureHandle MetallicMap{};
+        TextureHandle RoughnessMap{};
+        TextureHandle AmbientOcclusionMap{};
     };
 
     enum class PBRBlendMode {
@@ -43,9 +31,9 @@ namespace Mikoto {
     };
 
     enum class PBRSamplerMode {
-        SAMPLER_MODE_NEAREST,    // Nearest neighbor filtering (pixelated)
-        SAMPLER_MODE_LINEAR,     // Linear filtering (smooth)
-        SAMPLER_MODE_ANISOTROPIC,// Anisotropic filtering (better texture quality at angles)
+        SAMPLER_MODE_NEAREST,
+        SAMPLER_MODE_LINEAR,
+        SAMPLER_MODE_ANISOTROPIC,
     };
 
     class PBRMaterial final : public Material {
@@ -53,20 +41,20 @@ namespace Mikoto {
         struct Parameters {
             float Metallic{ 0.2f };
             float Roughness{ 0.4f };
-            float AmbientOcclusion{ 0.4f };
             float Emissive{ 0.4f };
+            float AmbientOcclusion{ 0.4f };
             float ReflectanceFactor{ 0.4f };
         };
 
     public:
-        auto RemoveTextureType( PBRTextureType type ) -> void;
-        auto SetTextureType( PBRTextureType type, Texture2D* texture ) -> void;
+        auto RemoveTextureType( TextureType type ) -> void;
+        auto SetTextureType( TextureType type, TextureHandle texture ) -> void;
 
         MKT_NODISCARD auto IsOpaque() const -> bool;
         MKT_NODISCARD auto IsTransparent() const -> bool;
 
-        MKT_NODISCARD auto HasTextureType( PBRTextureType type ) const -> bool;
-        MKT_NODISCARD auto GetTextureType( PBRTextureType type ) const -> Texture2D*;
+        MKT_NODISCARD auto HasTextureType( TextureType type ) const -> bool;
+        MKT_NODISCARD auto GetTextureType( TextureType type ) const -> TextureHandle;
 
         auto SetEmissiveFactor( const glm::vec4& emissive ) -> void;
         auto SetRoughnessFactor( float roughness ) -> void;
@@ -81,7 +69,7 @@ namespace Mikoto {
 
     protected:
         explicit PBRMaterial( const PBRMaterialCreateSpec& createInfo )
-            : Material{ createInfo.Name},
+            : Material{ "PBR Material" },
               m_AlbedoMap{ createInfo.AlbedoMap },
               m_NormalMap{ createInfo.NormalMap },
               m_MetallicMap{ createInfo.MetallicMap },
@@ -95,11 +83,11 @@ namespace Mikoto {
     protected:
         Parameters m_Params{};
 
-        Texture2D* m_AlbedoMap{};
-        Texture2D* m_NormalMap{};
-        Texture2D* m_MetallicMap{};
-        Texture2D* m_RoughnessMap{};
-        Texture2D* m_AmbientOcclusionMap{};
+        TextureHandle m_AlbedoMap{};
+        TextureHandle m_NormalMap{};
+        TextureHandle m_MetallicMap{};
+        TextureHandle m_RoughnessMap{};
+        TextureHandle m_AmbientOcclusionMap{};
     };
 }// namespace Mikoto
 

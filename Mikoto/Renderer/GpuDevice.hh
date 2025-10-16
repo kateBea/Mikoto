@@ -7,10 +7,11 @@
 
 #include <Assets/Texture.hh>
 #include <Library/Utility/Types.hh>
+#include <Material/ShaderModule.hh>
 #include <Renderer/Buffer.hh>
 #include <Renderer/RenderUtility.hh>
-#include <Renderer/RenderUtility.hh>
 
+#include "Pipeline.hh"
 #include "Renderer/Framebuffer.hh"
 
 namespace Mikoto {
@@ -60,6 +61,11 @@ namespace Mikoto {
         MKT_NODISCARD virtual auto CreateTexture(const TextureDescription& description) -> TextureHandle = 0;
         MKT_NODISCARD virtual auto CreateBuffer(const BufferDescription& description) -> BufferHandle = 0;
         MKT_NODISCARD virtual auto CreateFrameBuffer(const FramebufferDescription& description) -> FramebufferHandle = 0;
+
+        MKT_NODISCARD virtual auto CreatePipeline(const ComputePipelineDescription& description) -> PipelineHandle = 0;
+        MKT_NODISCARD virtual auto CreatePipeline(const GraphicsPipelineDescription& description) -> PipelineHandle = 0;
+
+        MKT_NODISCARD virtual auto LoadShader(const Path& path, ShaderStage stage) -> ShaderModuleHandle = 0;
 
         virtual auto SubmitCommands(CommandListHandle cmd) -> void = 0;
         MKT_NODISCARD virtual auto CreateCommandList(QueueType queue) -> CommandListHandle = 0;

@@ -8,26 +8,52 @@
 
 namespace Mikoto {
 
-
      SceneRenderer::SceneRenderer( const SceneRendererCreateInfo &createInfo ) {}
 
      auto SceneRenderer::Init() -> void {
-         // Ideally, construct render passes that can be tweaked from options specified in JSONS
+         // Final composition
+         Unique<ShadingPass> shadingPass{ new ShadingPass() };
+         shadingPass->Init( m_Device );
+
+         m_Passes.emplace_back( std::move(shadingPass) );
+
+         // Compute basic
+         Unique<ComputeBasic> computeBasic{ new ComputeBasic() };
+         computeBasic->Init( m_Device );
+
+         m_Passes.emplace_back( std::move(computeBasic) );
      }
 
      auto SceneRenderer::Shutdown() -> void {
 
      }
 
-     auto SceneRenderer::SetState( const SceneState state ) -> void {
-         m_SceneState = state;
-     }
 
      auto SceneRenderer::SetScene( Scene *scene ) -> void {
          m_Scene = scene;
      }
-     auto SceneRenderer::Render( double ) const -> void {
 
+     auto SceneRenderer::Render( double timeStep ) -> void {
+
+         for ( const Unique<IPass> &pass: m_Passes ) {
+             pass->Execute();
+         }
+
+         CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
+         cmd->Begin();
+
+         const FrameContext context{
+            .Cmd{ cmd },
+            .FrameIndex{ 0 },
+            .DeltaTime{ static_cast<float>( timeStep ) }
+         };
+         for ( auto& pass : m_Passes ) {
+             if ( const auto renderPass{ dynamic_cast<IRenderPass*>(pass.get()) }) {
+                 renderPass->Render( context, m_RendererBackend );
+             }
+         }
+
+         cmd->End();
      }
 
      auto SceneRenderer::SetCamera( Camera *camera ) -> void {
@@ -37,25 +63,5 @@ namespace Mikoto {
      auto SceneRenderer::Create( const SceneRendererCreateInfo &createInfo ) -> Unique<SceneRenderer> {
          return CreateScope<SceneRenderer>( createInfo );
      }
-
-//
-//     auto SceneRenderer::OnResize( UInt32_T width, UInt32_T height ) -> void {}
-//
-//     auto SceneRenderer::SetCamera( Camera *camera ) -> void {}
-//
-//     auto SceneRenderer::SetRenderResolution( RenderResolution resolution ) -> void {}
-//
-//
-//     auto SceneRenderer::AddCoreRenderPasses() -> void {
-//         // Gbuffer
-//         GBufferPass::GBufferPassDescription gbufferDescription{
-//             .ViewportWidth = m_ViewportWidth,
-//             .ViewportHeight = m_ViewportHeight,
-//             .m_ShaderPaths = {}
-//         };
-//
-//         m_GBufferPass = Ref<GBufferPass>::Create( new GBufferPass( gbufferDescription ) );
-//
-//         m_GBufferPass->Init( m_Device );
 
 }// namespace Mikoto

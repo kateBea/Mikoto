@@ -70,15 +70,19 @@ namespace Mikoto {
     }
 
     auto GraphicsLayer::OnDestroy() -> void {
+        m_Renderer->Shutdown();
+
+        m_Renderer = nullptr;
     }
 
-    auto GraphicsLayer::OnUpdate( float timeStep ) -> void {
-        UpdateCamera( timeStep );
+    auto GraphicsLayer::OnUpdate( float deltaTime ) -> void {
+        UpdateCamera( deltaTime );
 
-        m_Renderer->SetState( SceneState::IDLE );
+        m_MainScene->SetState( SceneState::IDLE );
+
         m_Renderer->SetScene( m_MainScene.get() );
         m_Renderer->SetCamera( m_SceneCamera.get() );
-        m_Renderer->Render( timeStep /*Render target??*/ );
+        m_Renderer->Render( deltaTime /*Render target??*/ );
     }
 
     auto GraphicsLayer::LoadModels() -> void {
@@ -180,6 +184,10 @@ namespace Mikoto {
 
     auto GraphicsLayer::SetupRenderer() -> void {
         SceneRendererCreateInfo spec{};
+        spec.WithName( "Scene renderer" )
+            .WithDevice( RenderService::Get()->GetGpuDevice() )
+            .WithResolution( m_Window->GetWidth(), m_Window->GetHeight() );
+
         m_Renderer = SceneRenderer::Create( spec );
 
         if ( m_Renderer ) {

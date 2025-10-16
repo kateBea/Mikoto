@@ -100,6 +100,10 @@ namespace Mikoto {
         MKT_NODISCARD auto CreateBuffer( const BufferDescription& description ) -> BufferHandle override;
         MKT_NODISCARD auto CreateFrameBuffer( const FramebufferDescription& description ) -> FramebufferHandle override;
 
+        MKT_NODISCARD auto CreatePipeline(const ComputePipelineDescription& description) -> PipelineHandle override;
+        MKT_NODISCARD auto CreatePipeline(const GraphicsPipelineDescription& description) -> PipelineHandle override;
+        MKT_NODISCARD auto LoadShader(const Path& path, ShaderStage stage) -> ShaderModuleHandle override;
+
         auto SubmitCommands( CommandListHandle cmd ) -> void override;
 
         auto RunGarbageCollection() -> void override;

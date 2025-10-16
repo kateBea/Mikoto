@@ -7,6 +7,8 @@
 
 #include <Common/Common.hh>
 #include <Renderer/GpuDevice.hh>
+#include <Renderer/RendererBackend.hh>
+#include <Renderer/RenderPass.hh>
 #include <Scene/Camera.hh>
 #include <Scene/Scene.hh>
 
@@ -20,13 +22,11 @@ namespace Mikoto {
      * The `SceneRendererCreateInfo` is used to specify essential information like the name and viewport dimensions.
      */
     struct SceneRendererCreateInfo {
-        std::string_view Name{};  ///< The name of the renderer for debugging purposes.
-        UInt32 ViewportWidth{}; ///< The width of the viewport.
-        UInt32 ViewportHeight{};///< The height of the viewport.
+        std::string_view Name{};
+        UInt32 ViewportWidth{};
+        UInt32 ViewportHeight{};
 
-        Path RenderGraphPath{}; ///< The path to the render graph configuration file.
-
-        GpuDevice* Device{ nullptr }; ///< The GPU device associated with the renderer.
+        GpuDevice* Device{ nullptr };
 
         /**
          * @brief Set the resolution for the renderer.
@@ -48,16 +48,8 @@ namespace Mikoto {
         * @return This object to allow chaining.
         */
         auto WithName(std::string_view name) -> SceneRendererCreateInfo&;
-    };
 
-    /**
-     * @brief Enum representing the current state of the scene renderer.
-     *
-     * This enum is used to track whether the renderer is idle or actively simulating the scene.
-     */
-    enum class SceneState {
-        IDLE,
-        SIMULATING
+        auto WithDevice(GpuDevice* device) -> SceneRendererCreateInfo&;
     };
 
     /**
@@ -86,12 +78,6 @@ namespace Mikoto {
          */
         auto Shutdown() -> void;
 
-        /**
-         * @brief Sets the state of the scene renderer.
-         * This function changes the state of the renderer, such as transitioning from idle to simulating.
-         * @param state The new state to set for the renderer.
-         */
-        auto SetState( SceneState state ) -> void;
 
         /**
          * @brief Sets the scene that will be rendered by the renderer.
@@ -104,7 +90,7 @@ namespace Mikoto {
          * @brief Renders the current scene.
          * This function performs the rendering of the active scene using the renderer backend and frame graph.
          */
-        auto Render( double timeStep ) const -> void;
+        auto Render( double timeStep ) -> void;
 
         /**
          * @brief Handles viewport resizing. This function is called when the window is resized and updates the internal viewport size.
@@ -114,8 +100,6 @@ namespace Mikoto {
         auto OnResize( UInt32 width, UInt32 height ) -> void;
 
         auto SetCamera( Camera* camera ) -> void;
-        //auto SetRenderBackend( RendererBackend* backend ) -> void;
-        //auto SetRenderResolution(RenderResolution resolution) -> void;
 
         /**
          * @brief Creates a new `SceneRenderer` instance.
@@ -135,15 +119,14 @@ namespace Mikoto {
         UInt32 m_ViewportWidth{};
         UInt32 m_ViewportHeight{};
 
-        SceneState m_SceneState{ SceneState::IDLE };
-
         GpuDevice* m_Device{ nullptr };
 
         Scene* m_Scene{ nullptr };
         Camera* m_Camera{ nullptr };
 
-        //RendererBackend* m_RendererBackend{ nullptr };
-        //RenderResolution m_RenderResolution{ RenderResolution::RENDER_RESOLUTION_FHD };
+        RendererBackend* m_RendererBackend{ nullptr };
+
+        std::vector<Unique<IPass>> m_Passes{};
     };
 }// namespace Mikoto
 

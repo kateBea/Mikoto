@@ -10,9 +10,9 @@
 namespace Mikoto {
 
     enum class LightType {
-        DIRECTIONAL_LIGHT_TYPE = 0,
-        POINT_LIGHT_TYPE = 1,
-        SPOT_LIGHT_TYPE = 2,
+        DIRECTIONAL_LIGHT_TYPE,
+        POINT_LIGHT_TYPE,
+        SPOT_LIGHT_TYPE,
     };
 
 
@@ -25,7 +25,7 @@ namespace Mikoto {
         }
 
     protected:
-        glm::vec3 m_Color{};
+        Vec3F m_Color{};
     };
 
 /**

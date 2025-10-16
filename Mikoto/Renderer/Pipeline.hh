@@ -10,6 +10,7 @@
 #include <Renderer/DeviceObject.hh>
 #include <Renderer/RenderUtility.hh>
 #include <Material/ShaderModule.hh>
+#include <Common/ReferenceCounted.hh>
 
 namespace Mikoto {
     class IPipeline : public DeviceObject {
@@ -27,6 +28,8 @@ namespace Mikoto {
     protected:
         const PipelineType m_PipelineType{ PipelineType::INVALID_TYPE };
     };
+
+    using PipelineHandle = Ref<IPipeline>;
 
     struct ComputePipelineDescription {
     };

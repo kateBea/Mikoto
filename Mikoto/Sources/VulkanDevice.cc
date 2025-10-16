@@ -408,6 +408,18 @@ namespace Mikoto {
         return framebuffer;
     }
 
+    auto VulkanDevice::CreatePipeline( const ComputePipelineDescription& description ) -> PipelineHandle {
+        return PipelineHandle::CreateEmpty();
+    }
+
+    auto VulkanDevice::CreatePipeline( const GraphicsPipelineDescription& description ) -> PipelineHandle {
+        return PipelineHandle::CreateEmpty();
+    }
+
+    auto VulkanDevice::LoadShader( const Path& path, ShaderStage stage ) -> ShaderModuleHandle {
+        return ShaderModuleHandle::CreateEmpty();
+    }
+
     auto VulkanDevice::GetUniformBufferMinOffsetAlignment() const -> VkDeviceSize {
         return m_PhysicalDeviceInfo.Properties.limits.minUniformBufferOffsetAlignment;
     }

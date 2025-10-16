@@ -32,9 +32,9 @@ namespace Mikoto {
         auto SetupRenderer() -> void;
 
         auto UpdateCamera( float timeStep ) -> void;
+        auto DisplayCameraDebugInfo() const -> void;
 
     private:
-
         Unique<Scene> m_MainScene{};
         Unique<SceneCamera> m_SceneCamera{};
         Unique<SceneRenderer> m_Renderer{};

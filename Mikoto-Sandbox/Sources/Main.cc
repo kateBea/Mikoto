@@ -10,8 +10,10 @@
 #include <SandboxApp.hh>
 
 auto main(int argc, char** argv) -> int {
-    auto app { std::make_unique<Mikoto::SandboxApp>() };
-    auto ret{ app->Run(argc, argv) };
+    using namespace Mikoto;
+
+    SandboxApp app{};
+    const auto ret{ app.Run(argc, argv) };
 
     return ret;
 }

@@ -23,21 +23,8 @@ namespace Mikoto {
      */
     struct SceneRendererCreateInfo {
         std::string_view Name{};
-        UInt32 ViewportWidth{};
-        UInt32 ViewportHeight{};
 
         GpuDevice* Device{ nullptr };
-
-        /**
-         * @brief Set the resolution for the renderer.
-         *
-         * Sets the viewport width and height for the scene renderer.
-         *
-         * @param width The width of the viewport.
-         * @param height The height of the viewport.
-         * @return This object to allow chaining.
-         */
-        auto WithResolution( UInt32 width, UInt32 height ) -> SceneRendererCreateInfo&;
 
         /**
         * @brief Set the name for the renderer.
@@ -116,8 +103,6 @@ namespace Mikoto {
         auto AddCoreRenderPasses() -> void;
 
     private:
-        UInt32 m_ViewportWidth{};
-        UInt32 m_ViewportHeight{};
 
         GpuDevice* m_Device{ nullptr };
 

@@ -20,26 +20,33 @@
 
 namespace Mikoto {
 
-    /**
-     * @brief Class representing a Vulkan render pass.
-     *
-     * This class encapsulates the Vulkan render pass functionality, including
-     * the creation and management of render passes, framebuffers, and attachments.
-     */
-    class VulkanRenderPass : public DeviceObject {
-    public:
+    struct VulkanGraphicsPipelineCreateInfo {
+        UInt32 Subpass{};
 
+#if !defined(MKT_USE_VULKAN_DYNAMIC_RENDERING)
+        // Not needed if we do dynamic rendering
+        VkRenderPass RenderPass{};
+#endif
 
-    private:
+        //TODO: Review, this causes this struct to pass inconsistent data (diff values when you put this field vs when u don't)
+        //BufferLayout Layout{};
 
+        VkPipelineViewportStateCreateInfo ViewportInfo{};
+        VkPipelineInputAssemblyStateCreateInfo InputAssemblyInfo{};
+        VkPipelineRasterizationStateCreateInfo RasterizationInfo{};
+        VkPipelineMultisampleStateCreateInfo MultisampleInfo{};
+        VkPipelineColorBlendAttachmentState ColorBlendAttachment{};
+        VkPipelineColorBlendStateCreateInfo ColorBlendInfo{};
+        VkPipelineDepthStencilStateCreateInfo DepthStencilInfo{};
+        VkPipelineDynamicStateCreateInfo DynamicStateInfo{};
+
+        std::span<const VkDynamicState> DynamicStateEnables{};
     };
 
     class VulkanGraphicsPipeline final : public GraphicsPipeline {
     public:
-        // Pass what u need to create a vulkan graphics pipeine
-        // no need to be the base description can be anything needed to create this vulkan pipoeline
-        // the device which we have crteated at start of the engine knows how to consttuct api specific objects
-        explicit VulkanGraphicsPipeline(/**/);
+
+        explicit VulkanGraphicsPipeline(const VulkanGraphicsPipelineCreateInfo& info);
 
         auto Release() -> void override;
         auto Bind(VkCommandBuffer commandBuffer) const -> void;
@@ -53,20 +60,20 @@ namespace Mikoto {
         DISABLE_COPY_AND_MOVE_FOR(VulkanGraphicsPipeline);
 
     private:
-        auto Allocate() -> void override;
+        auto Initialize() -> void override;
 
     private:
         BufferLayout m_BufferLayout{};
 
         VkPipeline m_GraphicsPipeline{};
         VkPipelineLayout m_PipelineLayout{};
+
+        VulkanGraphicsPipelineCreateInfo m_ConfigInfo{};
     };
 
     class VulkanComputePipeline final : public ComputePipeline {
     public:
-        explicit VulkanComputePipeline(const ComputePipelineDescription& desc);
-
-        auto Init() -> void;
+        explicit VulkanComputePipeline();
 
         auto Release() -> void override;
         auto Bind(VkCommandBuffer commandBuffer) const -> void;
@@ -80,11 +87,12 @@ namespace Mikoto {
         DISABLE_COPY_AND_MOVE_FOR(VulkanComputePipeline);
 
     private:
-        auto Allocate() -> void override;
+        auto Initialize() -> void override;
 
     private:
         VkPipeline m_GraphicsPipeline{};
         VkPipelineLayout m_PipelineLayout{};
+        std::span<VkPipelineShaderStageCreateInfo> m_ShaderStages{};
     };
 }
 

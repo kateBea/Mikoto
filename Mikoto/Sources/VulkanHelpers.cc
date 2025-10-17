@@ -8,6 +8,8 @@
 #include <stdexcept>
 
 // Third-Party Libraries
+#include <spirv_reflect.h>
+
 #include "vk_mem_alloc.h"
 #include "volk.h"
 
@@ -19,43 +21,57 @@
 namespace Mikoto::VulkanHelpers {
 
     // Converts VkImageLayout → readable string
-    auto ImageLayoutToString(Texture* texture) -> void {
+    auto ImageLayoutToString( Texture* texture ) -> void {
         const auto src{ dynamic_cast<VulkanTexture*>( texture ) };
         VkImageLayout layout{ src->GetCurrentLayout() };
         const char* layoutName = "UNKNOWN_LAYOUT";
 
-        switch (layout)
-        {
+        switch ( layout ) {
             case VK_IMAGE_LAYOUT_UNDEFINED:
-                layoutName = "VK_IMAGE_LAYOUT_UNDEFINED"; break;
+                layoutName = "VK_IMAGE_LAYOUT_UNDEFINED";
+                break;
             case VK_IMAGE_LAYOUT_GENERAL:
-                layoutName = "VK_IMAGE_LAYOUT_GENERAL"; break;
+                layoutName = "VK_IMAGE_LAYOUT_GENERAL";
+                break;
             case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-                layoutName = "VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL"; break;
+                layoutName = "VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL";
+                break;
             case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-                layoutName = "VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL"; break;
+                layoutName = "VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL";
+                break;
             case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
-                layoutName = "VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL"; break;
+                layoutName = "VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL";
+                break;
             case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-                layoutName = "VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL"; break;
+                layoutName = "VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL";
+                break;
             case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-                layoutName = "VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL"; break;
+                layoutName = "VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL";
+                break;
             case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-                layoutName = "VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL"; break;
+                layoutName = "VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL";
+                break;
             case VK_IMAGE_LAYOUT_PREINITIALIZED:
-                layoutName = "VK_IMAGE_LAYOUT_PREINITIALIZED"; break;
+                layoutName = "VK_IMAGE_LAYOUT_PREINITIALIZED";
+                break;
             case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
-                layoutName = "VK_IMAGE_LAYOUT_PRESENT_SRC_KHR"; break;
+                layoutName = "VK_IMAGE_LAYOUT_PRESENT_SRC_KHR";
+                break;
             case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
-                layoutName = "VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL"; break;
+                layoutName = "VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL";
+                break;
             case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
-                layoutName = "VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL"; break;
+                layoutName = "VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL";
+                break;
             case VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL:
-                layoutName = "VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL"; break;
+                layoutName = "VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL";
+                break;
             case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL:
-                layoutName = "VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL"; break;
+                layoutName = "VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL";
+                break;
             default:
-                layoutName = "UNKNOWN_LAYOUT"; break;
+                layoutName = "UNKNOWN_LAYOUT";
+                break;
         }
 
         MKT_CORE_LOGGER_DEBUG( "Image layout: {} for texture: {}", layoutName, texture->GetDebugName() );
@@ -84,31 +100,31 @@ namespace Mikoto::VulkanHelpers {
         return VK_INDEX_TYPE_MAX_ENUM;
     }
 
-    auto ImageUsageFlagsToString(Texture* texture) -> void {
+    auto ImageUsageFlagsToString( Texture* texture ) -> void {
         const auto src{ dynamic_cast<VulkanTexture*>( texture ) };
         VkImageUsageFlags flags{ src->GetCreateInfo().usage };
 
         std::ostringstream oss;
         bool first = true;
 
-        auto append = [&](const char* name) {
-            if (!first) oss << " | ";
+        auto append = [&]( const char* name ) {
+            if ( !first ) oss << " | ";
             oss << name;
             first = false;
         };
 
-        if (flags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) append("TRANSFER_SRC");
-        if (flags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) append("TRANSFER_DST");
-        if (flags & VK_IMAGE_USAGE_SAMPLED_BIT) append("SAMPLED");
-        if (flags & VK_IMAGE_USAGE_STORAGE_BIT) append("STORAGE");
-        if (flags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) append("COLOR_ATTACHMENT");
-        if (flags & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) append("DEPTH_STENCIL_ATTACHMENT");
-        if (flags & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT) append("TRANSIENT_ATTACHMENT");
-        if (flags & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT) append("INPUT_ATTACHMENT");
-        if (flags & VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR) append("FRAGMENT_SHADING_RATE_ATTACHMENT_KHR");
-        if (flags & VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT) append("FRAGMENT_DENSITY_MAP_EXT");
+        if ( flags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT ) append( "TRANSFER_SRC" );
+        if ( flags & VK_IMAGE_USAGE_TRANSFER_DST_BIT ) append( "TRANSFER_DST" );
+        if ( flags & VK_IMAGE_USAGE_SAMPLED_BIT ) append( "SAMPLED" );
+        if ( flags & VK_IMAGE_USAGE_STORAGE_BIT ) append( "STORAGE" );
+        if ( flags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT ) append( "COLOR_ATTACHMENT" );
+        if ( flags & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT ) append( "DEPTH_STENCIL_ATTACHMENT" );
+        if ( flags & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT ) append( "TRANSIENT_ATTACHMENT" );
+        if ( flags & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT ) append( "INPUT_ATTACHMENT" );
+        if ( flags & VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR ) append( "FRAGMENT_SHADING_RATE_ATTACHMENT_KHR" );
+        if ( flags & VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT ) append( "FRAGMENT_DENSITY_MAP_EXT" );
 
-        if (first)
+        if ( first )
             oss << "NONE";
 
         MKT_CORE_LOGGER_DEBUG( "Image usage flags: {} for texture: {}", oss.str(), texture->GetDebugName() );
@@ -463,3 +479,211 @@ namespace Mikoto::VulkanHelpers {
         vkCmdBlitImage2( cmd, &blitInfo );
     }
 }// namespace Mikoto::VulkanHelpers
+
+namespace Mikoto::VulkanHelpers::SpirVReflection {
+    auto ToVkDescriptorType( SpvReflectDescriptorType type ) -> VkDescriptorType {
+        switch ( type ) {
+            case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER:
+                return VK_DESCRIPTOR_TYPE_SAMPLER;
+            case SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+                return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+                return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+                return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+                return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+            case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+                return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
+            case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+                return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+                return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            case SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+                return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+#if defined( VK_KHR_acceleration_structure )
+            case SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+                return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+#endif
+            default:
+                return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+        }
+    }
+
+    auto MergePushConstantRange( std::vector<VkPushConstantRange>& dst, const UInt32 targetOffset, const UInt32 targetSize, const VkShaderStageFlags flags ) -> void {
+        for ( auto& [stageFlags, offset, size]: dst ) {
+            if ( offset == targetOffset && size == targetSize ) {
+                stageFlags |= flags;
+                return;
+            }
+        }
+
+        dst.push_back( VkPushConstantRange{ flags, targetOffset, targetSize } );
+    }
+
+    auto ReflectAndCreatePipelineLayout(VkDevice device, const std::vector<std::vector<UInt32>>& spirvModules, ReflectedPipeline& out ) -> VkResult {
+        out = {};
+
+        std::map<UInt32, std::unordered_map<UInt32, VkDescriptorSetLayoutBinding>> sets{};
+        std::vector<VkPushConstantRange> pushConstants;
+
+        for ( const auto& moduleData: spirvModules ) {
+            if ( moduleData.empty() ) {
+                continue;
+            }
+
+            SpvReflectShaderModule mod{};
+            if ( spvReflectCreateShaderModule( moduleData.size() * sizeof( UInt32 ), moduleData.data(), &mod ) != SPV_REFLECT_RESULT_SUCCESS )
+                return VK_ERROR_INITIALIZATION_FAILED;
+
+            // The reason why we do this cast is that they are a map 1 to 1 (the enums values)
+            auto stage{ static_cast<VkShaderStageFlagBits>( mod.shader_stage) };
+
+            // === DESCRIPTOR SETS ===
+            UInt32 setCount{};
+            spvReflectEnumerateDescriptorSets( &mod, &setCount, nullptr );
+            std::vector<SpvReflectDescriptorSet*> reflSets( setCount );
+            spvReflectEnumerateDescriptorSets( &mod, &setCount, reflSets.data() );
+
+            for ( auto* reflectDs: reflSets ) {
+                for ( UInt32 setBinding{}; setBinding < reflectDs->bindingCount; ++setBinding ) {
+                    auto* rb = reflectDs->bindings[setBinding];
+                    UInt32 set{ reflectDs->set };
+                    auto& bindingMap{ sets[set] };
+
+                    if ( auto it{ bindingMap.find( rb->binding ) }; it == bindingMap.end() ) {
+                        VkDescriptorSetLayoutBinding bindingInfo{};
+                        bindingInfo.binding = rb->binding;
+                        bindingInfo.descriptorType = ToVkDescriptorType( rb->descriptor_type );
+                        bindingInfo.descriptorCount = std::max( 1u, rb->count );
+                        bindingInfo.stageFlags = stage;
+                        bindingMap[bindingInfo.binding] = bindingInfo;
+
+                        out.bindingMap[{ set, bindingInfo.binding }] = ReflectedBindingInfo{
+                            set, bindingInfo.binding, bindingInfo.descriptorType, bindingInfo.descriptorCount, static_cast<VkShaderStageFlags>( stage)
+                        };
+                    } else {
+                        it->second.stageFlags |= stage;
+                        out.bindingMap[{ reflectDs->set, it->second.binding }].stageFlags |= stage;
+                    }
+                }
+            }
+
+            // === PUSH CONSTANTS ===
+            UInt32 pcCount{};
+            spvReflectEnumeratePushConstantBlocks( &mod, &pcCount, nullptr );
+            std::vector<SpvReflectBlockVariable*> pcs( pcCount );
+            spvReflectEnumeratePushConstantBlocks( &mod, &pcCount, pcs.data() );
+            for ( auto* pc: pcs )
+                MergePushConstantRange( pushConstants, pc->offset, pc->size, stage );
+
+            // === VERTEX INPUTS (vertex stage only) ===
+            if ( stage == VK_SHADER_STAGE_VERTEX_BIT ) {
+                UInt32 inputCount{};
+                spvReflectEnumerateInputVariables( &mod, &inputCount, nullptr );
+                std::vector<SpvReflectInterfaceVariable*> inputs( inputCount );
+                spvReflectEnumerateInputVariables( &mod, &inputCount, inputs.data() );
+
+                // Collect attributes
+                UInt32 binding{};
+                for ( auto* v: inputs ) {
+                    if ( v->decoration_flags & SPV_REFLECT_DECORATION_BUILT_IN ) {
+                        // skip built-ins like gl_VertexIndex
+                        continue;
+                    }
+
+                    VkVertexInputAttributeDescription attr{};
+                    attr.binding = binding;
+                    attr.location = v->location;
+                    attr.offset = 0;
+
+                    switch ( v->format ) {
+                        case SPV_REFLECT_FORMAT_R32_SFLOAT:
+                            attr.format = VK_FORMAT_R32_SFLOAT;
+                            break;
+                        case SPV_REFLECT_FORMAT_R32G32_SFLOAT:
+                            attr.format = VK_FORMAT_R32G32_SFLOAT;
+                            break;
+                        case SPV_REFLECT_FORMAT_R32G32B32_SFLOAT:
+                            attr.format = VK_FORMAT_R32G32B32_SFLOAT;
+                            break;
+                        case SPV_REFLECT_FORMAT_R32G32B32A32_SFLOAT:
+                            attr.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+                            break;
+                        default:
+                            attr.format = VK_FORMAT_UNDEFINED;
+                            break;
+                    }
+
+                    out.vertexAttributes.push_back( attr );
+                }
+
+                if ( !out.vertexAttributes.empty() ) {
+                    VkVertexInputBindingDescription bind{};
+                    bind.binding = 0;
+                    bind.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+                    // user-defined later
+                    // SPIR-V reflection can tell us which vertex attributes the shader expects
+                    // (e.g. positions, normals, UVs, etc.), along with their formats and offsets,
+                    // but it CANNOT tell us the total stride (the size of one vertex in bytes).
+                    bind.stride = 0;
+
+                    out.vertexBindings.push_back( bind );
+                }
+            }
+
+            spvReflectDestroyShaderModule( &mod );
+        }
+
+        // === CREATE DESCRIPTOR SET LAYOUTS ===
+        for ( auto& [setIdx, bindings]: sets ) {
+            std::vector<VkDescriptorSetLayoutBinding> layout;
+            for ( auto& [_, b]: bindings )
+                layout.push_back( b );
+
+            VkDescriptorSetLayoutCreateInfo info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+            info.bindingCount = static_cast<uint32_t>( layout.size() );
+            info.pBindings = layout.data();
+
+            VkDescriptorSetLayout layoutHandle;
+            if ( vkCreateDescriptorSetLayout( device, &info, nullptr, &layoutHandle ) != VK_SUCCESS )
+                return VK_ERROR_INITIALIZATION_FAILED;
+
+            out.setLayouts.push_back( layoutHandle );
+        }
+
+        // === PIPELINE LAYOUT ===
+        VkPipelineLayoutCreateInfo plInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+        plInfo.setLayoutCount = static_cast<UInt32>( out.setLayouts.size() );
+        plInfo.pSetLayouts = out.setLayouts.data();
+
+        plInfo.pushConstantRangeCount = static_cast<uint32_t>( pushConstants.size() );
+        plInfo.pPushConstantRanges = pushConstants.data();
+
+        if ( vkCreatePipelineLayout( device, &plInfo, nullptr, &out.pipelineLayout ) != VK_SUCCESS )
+            return VK_ERROR_INITIALIZATION_FAILED;
+
+        out.pushConstantRanges = std::move( pushConstants );
+
+        return VK_SUCCESS;
+    }
+
+    auto DestroyReflectedPipeline( const VkDevice device, ReflectedPipeline& reflected ) -> void {
+        if ( reflected.pipelineLayout ) {
+            vkDestroyPipelineLayout( device, reflected.pipelineLayout, nullptr );
+            reflected.pipelineLayout = VK_NULL_HANDLE;
+        }
+
+        for ( const auto dsLayout: reflected.setLayouts ) {
+            vkDestroyDescriptorSetLayout( device, dsLayout, nullptr );
+        }
+
+        reflected.setLayouts.clear();
+        reflected.vertexBindings.clear();
+        reflected.vertexAttributes.clear();
+        reflected.bindingMap.clear();
+        reflected.pushConstantRanges.clear();
+    }
+
+}

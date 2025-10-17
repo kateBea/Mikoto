@@ -5,16 +5,18 @@
 #ifndef VULKANDEVICE_HH
 #define VULKANDEVICE_HH
 
-#include <vk_mem_alloc.h>
 #include <volk.h>
+#include <vk_mem_alloc.h>
 
 #include <Renderer/GpuDevice.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
 
 #include "Renderer/Vulkan/VulkanBuffer.hh"
-#include "Renderer/Vulkan/VulkanTexture.hh"
 #include "Renderer/Vulkan/VulkanFramebuffer.hh"
 #include "Renderer/Vulkan/VulkanMemoryAllocator.hh"
+#include "Renderer/Vulkan/VulkanPipeline.hh"
+#include "Renderer/Vulkan/VulkanTexture.hh"
+#include "Renderer/Vulkan/VulkanShader.hh"
 
 
 namespace Mikoto {
@@ -153,6 +155,10 @@ namespace Mikoto {
         ResourcePoolTyped<VulkanTexture> m_Textures{};
         ResourcePoolTyped<VulkanCommandPool> m_CmdPools{};
         ResourcePoolTyped<VulkanFramebuffer> m_Framebuffers{};
+        ResourcePoolTyped<VulkanGraphicsPipeline> m_GraphicsPipelines{};
+        ResourcePoolTyped<VulkanComputePipeline> m_ComputePipelines{};
+        ResourcePoolTyped<VulkanSwapChain> m_Swapchains{};
+        ResourcePoolTyped<VulkanShader> m_Shaders{};
 
         QueuesData m_Queues{};
 

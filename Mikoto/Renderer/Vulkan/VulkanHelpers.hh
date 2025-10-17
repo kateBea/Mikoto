@@ -13,11 +13,12 @@
 #include <string_view>
 #include <optional>
 #include <span>
+#include <map>
 
 // Third-Party Libraries
 #include "volk.h"
 #include "vk_mem_alloc.h"
-
+#include <ankerl/unordered_dense.h>
 // Project Headers
 #include "Common/Common.hh"
 #include "Library/Utility/Types.hh"
@@ -95,6 +96,62 @@ namespace Mikoto::VulkanHelpers {
     auto ImageLayoutToString(Texture* texture) -> void;
 } // MIKOTO::VULKAN_UTILS
 
+/**
+ * Features:
+ *  - Reflects multiple shader stages (vertex, fragment, compute, etc.).
+ *  - Merges descriptor bindings and push constants across stages.
+ *  - Builds VkDescriptorSetLayout + VkPipelineLayout.
+ *  - Reflects vertex input attributes for vertex shaders.
+ *  - Returns mapping of (set,binding) -> descriptor info for resource binding.
+ */
+namespace Mikoto::VulkanHelpers::SpirVReflection {
+
+    /**
+     * Simple struct describing a descriptor binding reflection result.
+     */
+    struct ReflectedBindingInfo {
+        UInt32 set{};
+        UInt32 binding{};
+        VkDescriptorType type{};
+        UInt32 count{};
+        VkShaderStageFlags stageFlags{};
+    };
+
+    /**
+     * Reflected pipeline data container.
+     */
+    struct ReflectedPipeline {
+        std::vector<VkDescriptorSetLayout> setLayouts{};
+        std::vector<VkPushConstantRange> pushConstantRanges{};
+
+        VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+
+        // Optional vertex input data (only filled if vertex shader provided)
+        std::vector<VkVertexInputBindingDescription> vertexBindings{};
+        std::vector<VkVertexInputAttributeDescription> vertexAttributes{};
+
+        // Map from (set,binding) -> descriptor info
+        std::map<std::pair<UInt32, UInt32>, ReflectedBindingInfo> bindingMap{};
+    };
+
+    /**
+     * @brief Reflect SPIR-V modules (vertex/fragment/etc.) and build pipeline layouts.
+     * @param device Vulkan logical device.
+     * @param spirvModules Vector of SPIR-V binaries (vertex, fragment...).
+     * @param out ReflectedPipeline output struct.
+     * @return VkResult
+     */
+    auto ReflectAndCreatePipelineLayout(
+        VkDevice device,
+        const std::vector<std::vector<UInt32>>& spirvModules,
+        ReflectedPipeline& out) -> VkResult;
+
+    /**
+     * @brief Destroy all Vulkan objects inside a ReflectedPipeline.
+     */
+    auto DestroyReflectedPipeline(VkDevice device, ReflectedPipeline& reflected) -> void;
+
+}
 
 namespace Mikoto::VulkanHelpers::Initializers {
     /**

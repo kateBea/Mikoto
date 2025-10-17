@@ -16,7 +16,6 @@
 // Project Headers
 #include <Common/Common.hh>
 #include <Library/Random/Random.hh>
-#include <Renderer/Vulkan/VulkanHelpers.hh>
 #include <Renderer/Buffer.hh>
 
 namespace Mikoto {
@@ -27,14 +26,10 @@ namespace Mikoto {
 
         auto CopyFromBlock(const void* ptr, Size size) -> void override;
 
-        MKT_NODISCARD auto IsMapped() const -> bool { return m_VmaAllocationInfo.pMappedData != nullptr; }
-
         MKT_NODISCARD auto GetImplHandle() -> VkBuffer* { return std::addressof(m_Buffer); }
 
         MKT_NODISCARD auto GetBuffer() -> VkBuffer* { return std::addressof(m_Buffer); }
         MKT_NODISCARD auto GetBuffer() const -> const VkBuffer* { return std::addressof(m_Buffer); }
-
-        MKT_NODISCARD auto GetMappedAddress() const -> void* { return m_VmaAllocationInfo.pMappedData; }
 
         MKT_NODISCARD auto GetVmaAllocation() -> VmaAllocation* { return std::addressof(m_VmaAllocation); }
         MKT_NODISCARD auto GetVmaAllocation() const -> const VmaAllocation* { return std::addressof(m_VmaAllocation);; }
@@ -50,6 +45,8 @@ namespace Mikoto {
 
         auto PersistentMap() -> void;
         auto PersistentUnmap() -> void;
+        MKT_NODISCARD auto IsMapped() const -> bool { return m_VmaAllocationInfo.pMappedData != nullptr; }
+        MKT_NODISCARD auto GetMappedAddress() const -> const void* { return m_VmaAllocationInfo.pMappedData; }
 
         ~VulkanBuffer() override;
 

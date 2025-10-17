@@ -54,6 +54,9 @@ namespace Mikoto {
                 .WithType( TextureType::TEXTURE_2D );
 
         texture = AssetsService::Get()->LoadAsset<Texture>( loadDesc );
+
+        ShaderModuleHandle pbrVertex{ gpuDev->LoadShader( "./Resources/Shaders/vulkan-spirv/PBRVertexShader.sprv", ShaderStage::VERTEX_STAGE ) };
+        ShaderModuleHandle pbrFragment{ gpuDev->LoadShader( "./Resources/Shaders/vulkan-spirv/StandardFragmentShader.sprv", ShaderStage::VERTEX_STAGE ) };
     }
 
     GraphicsLayer::GraphicsLayer( std::string_view name, const Window* window )

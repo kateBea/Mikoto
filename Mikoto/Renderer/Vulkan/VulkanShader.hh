@@ -10,14 +10,11 @@
 #include <filesystem>
 
 // Third-Party Libraries
-#include "volk.h"
+#include <volk.h>
 
 // Project Headers
 #include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
 #include <Material/ShaderModule.hh>
-#include <Library/Filesystem/File.hh>
-#include <Renderer/Vulkan/VulkanHelpers.hh>
 
 namespace Mikoto {
 
@@ -36,10 +33,9 @@ namespace Mikoto {
 
     private:
         auto Release() -> void override;
-        auto Allocate() -> void override;
+        auto Initialize() -> void override;
 
     private:
-        std::string m_Code{};
         std::string m_EntryPoint{};
 
         VkShaderModule m_Module{};

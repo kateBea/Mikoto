@@ -211,7 +211,6 @@ namespace Mikoto {
 
     struct ShaderModuleDescription {
         const File* ShaderFile{};
-        std::string ShaderContents{};
         ShaderStage Stage{ ShaderStage::VERTEX_STAGE };
 
         auto WithShaderFile( const File* file ) -> ShaderModuleDescription&;

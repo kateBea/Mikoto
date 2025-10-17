@@ -16,6 +16,7 @@
 #include <Common/Singleton.hh>
 #include <Library/Data/ResourcePool.hh>
 #include <Library/Utility/Types.hh>
+#include <Material/ShaderLibrary.hh>
 #include <Renderer/FontService.hh>
 #include <Renderer/RenderUtility.hh>
 #include <Threading/TaskService.hh>
@@ -142,6 +143,7 @@ namespace Mikoto {
 
     private:
         Unique<MeshFactory> m_MeshFactory{};
+        Unique<ShaderLibrary> m_ShaderLibrary{};
 
         GpuDevice* m_GpuDevice{ nullptr };
         AudioDevice* m_AudioDevice{ nullptr };

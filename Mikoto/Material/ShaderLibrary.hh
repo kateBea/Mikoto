@@ -8,16 +8,17 @@
 #include <ankerl/unordered_dense.h>
 
 #include <Common/Service.hh>
+#include <Common/Singleton.hh>
 #include <Material/ShaderModule.hh>
-#include <Renderer/GpuDevice.hh>
 
 namespace Mikoto {
+
     struct ShaderLibraryDescription {
-        Path_T FilePath{};
         GpuDevice* Device{ nullptr };
     };
 
-    class ShaderLibrary final : public IService<ShaderLibrary>{
+    // The shader library keeps track of the shaders loaded from disk
+    class ShaderLibrary final : public IService, public Singleton<ShaderLibrary> {
     public:
         explicit ShaderLibrary( const ShaderLibraryDescription &options );
 
@@ -26,13 +27,16 @@ namespace Mikoto {
 
         auto GetShader( std::string_view uri ) -> ShaderModuleHandle;
         auto LoadShader( const ShaderModuleDescription &loadInfo ) -> ShaderModuleHandle;
+        auto LoadShader( const Path &path, ShaderStage stage ) -> ShaderModuleHandle;
+
+        ~ShaderLibrary() override = default;
 
     private:
-        GpuDevice* m_Device{ nullptr };
+        GpuDevice *m_Device{ nullptr };
         ankerl::unordered_dense::map<std::string, ShaderModuleHandle> m_Shaders{};
     };
 
-}
+}// namespace Mikoto
 
 
 #endif // SHADERLIBRARY_HH

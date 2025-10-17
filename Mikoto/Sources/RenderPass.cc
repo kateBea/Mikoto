@@ -2,6 +2,7 @@
 // Created by kate on 10/16/25.
 //
 
+#include <Material/ShaderLibrary.hh>
 #include <Renderer/RenderPass.hh>
 
 namespace Mikoto {
@@ -40,11 +41,11 @@ namespace Mikoto {
         m_DepthTarget->SetDebugName( "Final pass depth texture" );
 
         // Build your PBR graphics pipeline
+        ShaderModuleHandle pbrVertex{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/PBRVertexShader.sprv", ShaderStage::VERTEX_STAGE ) };
+        ShaderModuleHandle pbrFragment{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/StandardFragmentShader.sprv", ShaderStage::FRAGMENT_STAGE ) };
+
         GraphicsPipelineDescription pipelineDesc{};
-        pipelineDesc.ShaderStages = {
-            m_Device->LoadShader("shaders/pbr.vert.spv", ShaderStage::VERTEX_STAGE),
-            m_Device->LoadShader("shaders/pbr.frag.spv", ShaderStage::FRAGMENT_STAGE),
-        };
+        pipelineDesc.ShaderStages = { pbrVertex, pbrFragment };
         pipelineDesc.DepthTest = true;
         pipelineDesc.DepthWrite = true;
         pipelineDesc.AlphaBlending = true;

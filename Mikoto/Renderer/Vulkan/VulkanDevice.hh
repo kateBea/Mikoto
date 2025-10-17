@@ -8,6 +8,7 @@
 #include <volk.h>
 #include <vk_mem_alloc.h>
 
+#include <Material/ShaderLibrary.hh>
 #include <Renderer/GpuDevice.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
 

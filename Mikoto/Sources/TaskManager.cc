@@ -56,7 +56,7 @@ namespace Mikoto {
             return;
         }
 
-        MKT_CORE_LOGGER_DEBUG( "Initializing TaskManager...");
+        MKT_CORE_LOGGER_DEBUG( "Shutting down TaskManager...");
     }
 
     auto TaskManager::SubmitTask( std::function<void()> &&task ) -> void {

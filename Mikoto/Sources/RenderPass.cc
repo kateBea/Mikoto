@@ -42,7 +42,7 @@ namespace Mikoto {
 
         // Build your PBR graphics pipeline
         ShaderModuleHandle pbrVertex{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/PBRVertexShader.sprv", ShaderStage::VERTEX_STAGE ) };
-        ShaderModuleHandle pbrFragment{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/StandardFragmentShader.sprv", ShaderStage::FRAGMENT_STAGE ) };
+        ShaderModuleHandle pbrFragment{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/PBRFragmentShader.sprv", ShaderStage::FRAGMENT_STAGE ) };
 
         GraphicsPipelineDescription pipelineDesc{};
         pipelineDesc.ShaderStages = { pbrVertex, pbrFragment };

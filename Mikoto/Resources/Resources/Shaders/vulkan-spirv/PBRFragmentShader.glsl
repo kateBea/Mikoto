@@ -65,6 +65,17 @@ layout (location = 3) in vec2 inVertexColor;
 // Output variables
 layout (location = 0) out vec4 out_Color;
 
+// TODO: bindless
+//layout(set = 1, binding = 0) uniform sampler2D g_Textures[];
+//
+//layout(push_constant) uniform PushConstants {
+//    uint albedoIndex;
+//    uint normalIndex;
+//    uint metallicIndex;
+//    uint roughnessIndex;
+//    uint aoIndex;
+//} material;
+
 layout(set = 0, binding = 1) uniform sampler2D albedoSampler;
 layout(set = 0, binding = 2) uniform sampler2D normalSampler;
 layout(set = 0, binding = 3) uniform sampler2D metallicSampler;

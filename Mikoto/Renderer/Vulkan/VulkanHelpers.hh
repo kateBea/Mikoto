@@ -120,7 +120,7 @@ namespace Mikoto::VulkanHelpers::Reflection {
     /**
      * Reflected pipeline data container.
      */
-    struct ReflectedPipeline {
+    struct ReflectedData {
         std::vector<VkDescriptorSetLayout> setLayouts{};
         std::vector<VkPushConstantRange> pushConstantRanges{};
 
@@ -141,15 +141,15 @@ namespace Mikoto::VulkanHelpers::Reflection {
      * @param out ReflectedPipeline output struct.
      * @return VkResult
      */
-    auto ReflectAndCreatePipelineLayout(
+    auto ReflectSPIRV(
         VkDevice device,
         const std::vector<std::vector<UInt32>>& spirvModules,
-        ReflectedPipeline& out) -> VkResult;
+        ReflectedData& out) -> VkResult;
 
     /**
      * @brief Destroy all Vulkan objects inside a ReflectedPipeline.
      */
-    auto DestroyReflectedPipeline(VkDevice device, ReflectedPipeline& reflected) -> void;
+    auto DestroyReflectedPipeline(VkDevice device, ReflectedData& reflected) -> void;
 
 }
 

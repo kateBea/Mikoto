@@ -76,12 +76,14 @@ layout (location = 0) out vec4 out_Color;
 //    uint aoIndex;
 //} material;
 
+// This would go to the global texture array
 layout(set = 0, binding = 1) uniform sampler2D albedoSampler;
 layout(set = 0, binding = 2) uniform sampler2D normalSampler;
 layout(set = 0, binding = 3) uniform sampler2D metallicSampler;
 layout(set = 0, binding = 4) uniform sampler2D roughnessSampler;
 layout(set = 0, binding = 5) uniform sampler2D ambientOcclusionSampler;
 
+// These would be bound per object as push constants
 layout(set = 0, binding = 6) uniform UniformBuffer {
 
     vec4 Albedo;
@@ -96,6 +98,7 @@ layout(set = 0, binding = 6) uniform UniformBuffer {
 
 } MaterialParams;
 
+// these will go to an storage bufferr
 layout(set = 0, binding = 7) uniform UniformBuffer {
     SpotLight SpotLights[MAX_LIGHTS];
     PointLight PointLights[MAX_LIGHTS];

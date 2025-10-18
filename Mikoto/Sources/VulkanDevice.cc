@@ -531,10 +531,10 @@ namespace Mikoto {
             }
 
             // Test reflection
-            ReflectedPipeline reflected;
+            ReflectedData reflected;
 
             std::vector<UInt32> block{ (UInt32*)(result->GetContents()), (UInt32*)(result->GetContents()+result->GetContentSize()) };
-            VkResult r = ReflectAndCreatePipelineLayout(m_LogicalDevice, {block}, reflected);
+            VkResult r = ReflectSPIRV(m_LogicalDevice, {block}, reflected);
             if (r != VK_SUCCESS) {
 
             }

@@ -521,7 +521,7 @@ namespace Mikoto::VulkanHelpers::Reflection {
         dst.push_back( VkPushConstantRange{ flags, targetOffset, targetSize } );
     }
 
-    auto ReflectAndCreatePipelineLayout(VkDevice device, const std::vector<std::vector<UInt32>>& spirvModules, ReflectedPipeline& out ) -> VkResult {
+    auto ReflectSPIRV(VkDevice device, const std::vector<std::vector<UInt32>>& spirvModules, ReflectedData& out ) -> VkResult {
         out = {};
 
         std::map<UInt32, std::unordered_map<UInt32, VkDescriptorSetLayoutBinding>> sets{};
@@ -669,7 +669,7 @@ namespace Mikoto::VulkanHelpers::Reflection {
         return VK_SUCCESS;
     }
 
-    auto DestroyReflectedPipeline( const VkDevice device, ReflectedPipeline& reflected ) -> void {
+    auto DestroyReflectedPipeline( const VkDevice device, ReflectedData& reflected ) -> void {
         if ( reflected.pipelineLayout ) {
             vkDestroyPipelineLayout( device, reflected.pipelineLayout, nullptr );
             reflected.pipelineLayout = VK_NULL_HANDLE;

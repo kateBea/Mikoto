@@ -36,8 +36,8 @@ namespace Mikoto {
         }
 
         /**
-         * @brief Gets the file associated with the shader.
-         * @return A pointer to the file from which the shader was loaded.
+         * @brief Gets the size in bytes of the shader contents
+         * @return The size in bytes of the shader contents
          */
         MKT_NODISCARD auto GetContentSize() const -> Size {
             return m_ContentsSize;

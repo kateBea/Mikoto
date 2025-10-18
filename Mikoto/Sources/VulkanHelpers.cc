@@ -480,7 +480,7 @@ namespace Mikoto::VulkanHelpers {
     }
 }// namespace Mikoto::VulkanHelpers
 
-namespace Mikoto::VulkanHelpers::SpirVReflection {
+namespace Mikoto::VulkanHelpers::Reflection {
     auto ToVkDescriptorType( SpvReflectDescriptorType type ) -> VkDescriptorType {
         switch ( type ) {
             case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER:

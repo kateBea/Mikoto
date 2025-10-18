@@ -104,7 +104,7 @@ namespace Mikoto::VulkanHelpers {
  *  - Reflects vertex input attributes for vertex shaders.
  *  - Returns mapping of (set,binding) -> descriptor info for resource binding.
  */
-namespace Mikoto::VulkanHelpers::SpirVReflection {
+namespace Mikoto::VulkanHelpers::Reflection {
 
     /**
      * Simple struct describing a descriptor binding reflection result.

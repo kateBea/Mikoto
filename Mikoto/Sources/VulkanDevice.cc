@@ -514,6 +514,8 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::LoadShader( const Path& path, ShaderStage stage ) -> ShaderModuleHandle {
+        using namespace VulkanHelpers::Reflection;
+
         ShaderModuleHandle result{ ShaderModuleHandle::CreateEmpty() };
         if ( const File * shaderFile{ FileService::Get()->LoadFile( path ) } ) {
             ShaderModuleDescription description{
@@ -526,6 +528,15 @@ namespace Mikoto {
                 result->Initialize( this );
             } else {
                 MKT_CORE_LOGGER_ERROR( "VulkanDevice::LoadShader - Failed to create shader." );
+            }
+
+            // Test reflection
+            ReflectedPipeline reflected;
+
+            std::vector<UInt32> block{ (UInt32*)(result->GetContents()), (UInt32*)(result->GetContents()+result->GetContentSize()) };
+            VkResult r = ReflectAndCreatePipelineLayout(m_LogicalDevice, {block}, reflected);
+            if (r != VK_SUCCESS) {
+
             }
         }
 

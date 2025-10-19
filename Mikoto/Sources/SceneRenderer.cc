@@ -2,78 +2,85 @@
 // Created by zanet on 4/5/2025.
 //
 
-#include <nlohmann/json.hpp>
+#include <ranges>
 
+#include <Renderer/RenderService.hh>
 #include <Renderer/SceneRenderer.hh>
+#include <nlohmann/json.hpp>
 
 namespace Mikoto {
 
     SceneRenderer::SceneRenderer( const SceneRendererCreateInfo &createInfo )
-        : m_Device{ createInfo.Device }
-    {}
+        : m_Device{ createInfo.Device } {}
 
-     auto SceneRenderer::Init() -> void {
+    auto SceneRenderer::Init() -> void {
+        m_RendererBackend = RenderService::Get()->CreateRendererBackend( "SceneRenderer render backend" );
+        if ( m_RendererBackend ) {
+            m_RendererBackend->Init();
+        }
 
         AddCoreRenderPasses();
+    }
 
-     }
-
-     auto SceneRenderer::Shutdown() -> void {
-
-     }
+    auto SceneRenderer::Shutdown() -> void {
+    }
 
 
-     auto SceneRenderer::SetScene( Scene *scene ) -> void {
-         m_Scene = scene;
-     }
+    auto SceneRenderer::SetScene( Scene *scene ) -> void {
+        m_Scene = scene;
+    }
 
-     auto SceneRenderer::Render( double timeStep ) -> void {
+    auto SceneRenderer::Render( double ) -> void {
 
-         for ( const Unique<IPass> &pass: m_Passes ) {
-             pass->Execute();
-         }
+        CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
+        cmd->Begin();
 
-         CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
-         cmd->Begin();
+        for ( const Unique<IPass> &pass: m_Passes | std::ranges::views::values ) {
+            pass->Execute();
+        }
 
-         const FrameContext context{
-             .Cmd{ cmd },
-             .FrameIndex{ 0 },
-             .DeltaTime{ static_cast<float>( timeStep ) }
-         };
-         for ( auto &pass: m_Passes ) {
-             if ( const auto renderPass{ dynamic_cast<IRenderPass *>( pass.get() ) } ) {
-                 renderPass->Render( context, m_RendererBackend );
-             }
-         }
+        m_RendererBackend->SetCamera( m_Camera );
 
-         cmd->End();
-     }
+        for ( auto &pass: m_Passes | std::ranges::views::values ) {
+            if ( const auto renderPass{ dynamic_cast<IRenderPass *>( pass.get() ) } ) {
+                renderPass->Render( m_RendererBackend, cmd );
+            }
+        }
 
-     auto SceneRenderer::OnResize( UInt32 width, UInt32 height ) -> void {
-     }
+        cmd->End();
+        m_Device->SubmitCommands( cmd );
+    }
 
-     auto SceneRenderer::AddCoreRenderPasses() -> void {
+    auto SceneRenderer::OnResize( UInt32 width, UInt32 height ) -> void {
+    }
+
+    auto SceneRenderer::AddCoreRenderPasses() -> void {
         // Final composition
-        Unique<ShadingPass> shadingPass{ new ShadingPass() };
+        ShadingPass* shadingPass{ m_Passes.Register<ShadingPass>() };
         shadingPass->Init( m_Device );
 
-        m_Passes.emplace_back( std::move(shadingPass) );
-
         // Compute basic
-        Unique<ComputeBasic> computeBasic{ new ComputeBasic() };
+        ComputeBasic* computeBasic{ m_Passes.Register<ComputeBasic>() };
         computeBasic->Init( m_Device );
+    }
 
-        m_Passes.emplace_back( std::move(computeBasic) );
-     }
+    auto SceneRenderer::SetCamera( Camera *camera ) -> void {
+        m_Camera = camera;
+    }
 
-     auto SceneRenderer::SetCamera( Camera *camera ) -> void {
-         m_Camera = camera;
-     }
+    auto SceneRenderer::GetFinalComposition() -> TextureHandle {
+        TextureHandle handle{ TextureHandle::CreateEmpty() };
+        ShadingPass* shadingPass{ m_Passes.Get<ShadingPass>() };
+        if (shadingPass) {
+            handle = shadingPass->GetFinalComposition();
+        }
 
-     auto SceneRenderer::Create( const SceneRendererCreateInfo &createInfo ) -> Unique<SceneRenderer> {
-         return CreateScope<SceneRenderer>( createInfo );
-     }
+        return handle;
+    }
+
+    auto SceneRenderer::Create( const SceneRendererCreateInfo &createInfo ) -> Unique<SceneRenderer> {
+        return CreateScope<SceneRenderer>( createInfo );
+    }
 
     auto SceneRendererCreateInfo::WithName( std::string_view name ) -> SceneRendererCreateInfo & {
         this->Name = name;

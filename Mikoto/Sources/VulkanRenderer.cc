@@ -1,1324 +1,172 @@
-// /**
-//  * VulkanRenderer.cc
-//  * Created by kate on 7/3/23.
-//  * */
-//
-// // C++ Standard Library
-// #include <array>
-//
-// // Third-Party Libraries
-// #include <volk.h>
-//
-// // Project Headers
-// #include <Common/Common.hh>
-// #include <Core/Service/RenderService.hh>
-// #include <Library/Filesystem/PathBuilder.hh>
-// #include <Renderer/Vulkan/VulkanContext.hh>
-// #include <Renderer/Vulkan/VulkanDeletionQueue.hh>
-// #include <Renderer/Vulkan/VulkanDescriptorManager.hh>
-// #include <Renderer/Vulkan/VulkanIndexBuffer.hh>
-// #include <Renderer/Vulkan/VulkanPBRMaterial.hh>
-// #include <Renderer/Vulkan/VulkanRenderer.hh>
-// #include <Renderer/Vulkan/VulkanShaderLibrary.hh>
-// #include <Renderer/Vulkan/VulkanStandardMaterial.hh>
-// #include <Renderer/Vulkan/VulkanVertexBuffer.hh>
-//
-//
-// namespace Mikoto {
-//
-//
-//
-//     VulkanRenderer::VulkanRenderer( const VulkanRendererCreateInfo& createInfo )
-//         : RendererBackend{ createInfo.Info.Name },
-//           m_Device{ dynamic_cast<VulkanDevice*>( RenderService::GetInstance()->GetGpuDevice() ) },
-//           m_OffscreenExtent{ .width{ createInfo.Info.ViewportWidth }, .height{ createInfo.Info.ViewportHeight } } {}
-//
-//     auto VulkanRenderer::Init() -> bool {
-//         MKT_CORE_LOGGER_INFO( "VulkanRenderer::Init - Initializing Vulkan Renderer." );
-//
-//         bool success{ true };
-//
-//         try {
-//             CreateCommandPools();
-//             CreateCommandBuffers();
-//
-//             PrepareOffscreenRender();
-//
-//             CreateRendererPipelines();
-//         } catch ( std::exception& exception ) {
-//             MKT_CORE_LOGGER_ERROR( "VulkanRenderer::Init - Exception {}", exception.what() );
-//             success = false;
-//         }
-//
-//         MKT_CORE_LOGGER_INFO( "VulkanRenderer::Init - Exiting Vulkan Renderer initialization." );
-//
-//         return success;
-//     }
-//
-//     auto VulkanRenderer::SetViewport( const float x, const float y, const float width, const float height ) -> void {
-//         // We need to update the viewport and scissor for the offscreen render
-//         // If the values are out of range for the current render images we might need to recreate the offscreen render images and framebuffers
-//         UpdateViewport( x, y, width, height );
-//     }
-//
-//     void VulkanRenderer::SetRenderMode( const Size_T mode ) {
-//         m_RenderMode = mode;
-//     }
-//
-//     auto VulkanRenderer::HasUpdatedResolution() const -> bool {
-//         return m_RequestRescale;
-//     }
-//
-//     auto VulkanRenderer::SetOutlineRenderTargetEntity( UInt64_T id ) -> void {
-//         m_TargetObjectOutlineID = id;
-//     }
-//
-//     auto VulkanRenderer::Shutdown() -> void {
-//         m_Device->WaitIdle();
-//
-//         m_OffscreenColorAttachment = nullptr;
-//         m_OffscreenDepthAttachment = nullptr;
-//     }
-//
-//     auto VulkanRenderer::BeginFrame() -> void {
-//         // Checks
-//         if ( m_Camera == nullptr ) {
-//             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::BeginFrame - Camera for rendering is null. Forgot to call SetCamera() ?" );
-//         }
-//
-//         if ( m_RequestRescale ) {
-//             HandleRescaling();
-//         }
-//     }
-//
-//     auto VulkanRenderer::EndFrame() -> void {
-//         Flush();
-//     }
-//
-//     auto VulkanRenderer::EnableWireframe( bool enable ) -> void {
-//         m_WireframeEnable = enable;
-//     }
-//
-//     auto VulkanRenderer::RemoveLight( const UInt64_T id ) -> bool {
-//         const UInt64_T count{ m_Lights.erase( id ) };
-//
-//         return count != 0;
-//     }
-//
-//     auto VulkanRenderer::AddLight( const UInt64_T id, const LightData& data, LightType activeType ) -> bool {
-//         const auto itFind{ m_Lights.find( id ) };
-//
-//         if ( itFind != m_Lights.end() ) {
-//             itFind->second.Data = std::addressof( data );
-//             itFind->second.ActiveType = activeType;
-//
-//             return true;
-//         }
-//
-//         auto [it, success]{
-//             m_Lights.try_emplace( id, LightRenderInfo{
-//                                               .Data{ std::addressof( data ) },
-//                                               .ActiveType{ activeType } } )
-//         };
-//
-//         return success;
-//     }
-//
-//     auto VulkanRenderer::SetRenderResolution( RenderResolution resolution ) -> void {
-//         // Must change render image
-//         if ( resolution != m_RenderResolution ) {
-//             m_RenderResolution = resolution;
-//
-//             m_RequestRescale = true;
-//         }
-//     }
-//
-//     auto VulkanRenderer::SetupCubeMap( const TextureCubeMap* cubeMap ) -> void {
-//         // Preferably dynamic cast, but base class is not polymorphic (not single virtual method) for now
-//         m_CubeMap = static_cast<const VulkanTextureCubeMap*>( cubeMap );
-//     }
-//
-//     auto VulkanRenderer::CreateCommandBuffers() -> void {
-//         // Create as many as images we have to render
-//         constexpr UInt32_T COMMAND_BUFFERS_COUNT{ 1 };
-//
-//         VkCommandBufferAllocateInfo allocInfo{ VulkanHelpers::Initializers::CommandBufferAllocateInfo() };
-//         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-//         allocInfo.commandPool = m_GraphicsCommandPool->Get();
-//         allocInfo.commandBufferCount = COMMAND_BUFFERS_COUNT;
-//
-//         m_DrawCommandBuffer = *m_GraphicsCommandPool->AllocateCommandBuffer( allocInfo );
-//
-//         // Compute command buffer
-//         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-//         allocInfo.commandPool = m_ComputeCommandPool->Get();
-//         allocInfo.commandBufferCount = COMMAND_BUFFERS_COUNT;
-//         m_ComputeCommandBuffer = *m_ComputeCommandPool->AllocateCommandBuffer( allocInfo );
-//     }
-//
-//     auto VulkanRenderer::SetupObjectOutline( const MeshRenderInfo& meshRenderInfo ) -> void {
-//
-//         const VulkanPipeline* pipeline{ nullptr };
-//
-//         VulkanPBRMaterial* pbrMaterial{ dynamic_cast<VulkanPBRMaterial*>( meshRenderInfo.MaterialData ) };
-//
-//         // Setup render mode
-//         pbrMaterial->SetRenderMode( m_RenderMode );
-//         pbrMaterial->EnableWireframe( m_WireframeEnable ? MKT_SHADER_TRUE : MKT_SHADER_FALSE );
-//
-//         // The material will store its passes so we dont have to do the switch stamentnt below
-//         auto findIt{ m_Pipelines.find( MATERIAL_PASS_OUTLINE ) };
-//
-//         pipeline = findIt != m_Pipelines.end() ? std::addressof( findIt->second ) : nullptr;
-//         if ( pipeline == nullptr ) {
-//             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::RecordCommands - Pipeline objects are null." );
-//         }
-//
-//         pbrMaterial->SetProjection( m_Camera->GetProjection() );
-//         pbrMaterial->SetView( m_Camera->GetViewMatrix() );
-//
-//         pbrMaterial->SetTransform( meshRenderInfo.Transform );
-//         pbrMaterial->SetViewPosition( m_Camera->GetPosition() );
-//
-//         pbrMaterial->UploadUniformBuffers();
-//         pbrMaterial->BindDescriptorSet( m_DrawCommandBuffer, pipeline->GetLayout() );
-//
-//         pipeline->Bind( m_DrawCommandBuffer );
-//
-//         m_OutlinePushConstantsBlock.OutlineWidth = m_OutlineRenderWidth;
-//         m_OutlinePushConstantsBlock.OutlineColor = m_OutlineRenderColor;
-//
-//         vkCmdPushConstants(
-//                 m_DrawCommandBuffer,
-//                 pipeline->GetLayout(),
-//                 VK_SHADER_STAGE_VERTEX_BIT,
-//                 0,
-//                 sizeof( OutlinePushConstantData ),
-//                 std::addressof( m_OutlinePushConstantsBlock ) );
-//
-//         const VulkanVertexBuffer* vulkanVertexBuffer{ dynamic_cast<const VulkanVertexBuffer*>( meshRenderInfo.Object->GetVertexBuffer() ) };
-//         const VulkanIndexBuffer* vulkanIndexBuffer{ dynamic_cast<const VulkanIndexBuffer*>( meshRenderInfo.Object->GetIndexBuffer() ) };
-//
-//         vulkanVertexBuffer->Bind( m_DrawCommandBuffer );
-//         vulkanIndexBuffer->Bind( m_DrawCommandBuffer );
-//
-//         vkCmdDrawIndexed( m_DrawCommandBuffer, vulkanIndexBuffer->GetCount(), 1, 0, 0, 0 );
-//     }
-//
-//     auto VulkanRenderer::SetupPBRPass( const MeshRenderInfo& meshRenderInfo ) -> void {
-//         const VulkanPipeline* pipeline{ nullptr };
-//
-//         VulkanPBRMaterial* pbrMaterial{ dynamic_cast<VulkanPBRMaterial*>( meshRenderInfo.MaterialData ) };
-//
-//         // Setup render mode
-//         pbrMaterial->SetRenderMode( m_RenderMode );
-//         pbrMaterial->EnableWireframe( m_WireframeEnable ? MKT_SHADER_TRUE : MKT_SHADER_FALSE );
-//
-//         // The material will store its passes so we dont have to do the switch stamentnt below
-//         auto findIt{ m_Pipelines.find( m_WireframeEnable ? MATERIAL_PASS_WIREFRAME : pbrMaterial->GetPass() ) };
-//
-//         pipeline = findIt != m_Pipelines.end() ? std::addressof( findIt->second ) : nullptr;
-//         if ( pipeline == nullptr ) {
-//             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::RecordCommands - Pipeline objects are null." );
-//         }
-//
-//         pbrMaterial->SetProjection( m_Camera->GetProjection() );
-//         pbrMaterial->SetView( m_Camera->GetViewMatrix() );
-//         pbrMaterial->SetTransform( meshRenderInfo.Transform );
-//         pbrMaterial->SetViewPosition( m_Camera->GetPosition() );
-//
-//         pbrMaterial->ResetLights();
-//
-//         for ( const auto& lightInfo: m_Lights | std::views::values ) {
-//             pbrMaterial->UpdateLightsInfo( *lightInfo.Data, lightInfo.ActiveType );
-//         }
-//
-//         pbrMaterial->UploadUniformBuffers();
-//         pbrMaterial->BindDescriptorSet( m_DrawCommandBuffer, pipeline->GetLayout() );
-//
-//         pipeline->Bind( m_DrawCommandBuffer );
-//
-//         const VulkanVertexBuffer* vulkanVertexBuffer{ dynamic_cast<const VulkanVertexBuffer*>( meshRenderInfo.Object->GetVertexBuffer() ) };
-//         const VulkanIndexBuffer* vulkanIndexBuffer{ dynamic_cast<const VulkanIndexBuffer*>( meshRenderInfo.Object->GetIndexBuffer() ) };
-//
-//         vulkanVertexBuffer->Bind( m_DrawCommandBuffer );
-//         vulkanIndexBuffer->Bind( m_DrawCommandBuffer );
-//
-//         vkCmdDrawIndexed( m_DrawCommandBuffer, vulkanIndexBuffer->GetCount(), 2, 0, 0, 0 );
-//     }
-//
-//     auto VulkanRenderer::SetupDefaultPass( const MeshRenderInfo& meshRenderInfo ) -> void {
-//         const VulkanPipeline* pipeline{ nullptr };
-//
-//         VulkanStandardMaterial* standardMaterial{ dynamic_cast<VulkanStandardMaterial*>( meshRenderInfo.MaterialData ) };
-//
-//         // The material will store its passes so we dont have to do the switch stamentnt below
-//         auto findIt{ m_Pipelines.find( standardMaterial->GetPass() ) };
-//
-//         pipeline = findIt != m_Pipelines.end() ? std::addressof( findIt->second ) : nullptr;
-//         if ( pipeline == nullptr ) {
-//             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::RecordCommands - Pipeline objects are null." );
-//         }
-//
-//         standardMaterial->SetProjection( m_Camera->GetProjection() );
-//         standardMaterial->SetView( m_Camera->GetViewMatrix() );
-//         standardMaterial->SetTransform( meshRenderInfo.Transform );
-//
-//         standardMaterial->SetViewPosition( m_Camera->GetPosition() );
-//
-//         standardMaterial->ResetLights();
-//
-//         for ( const auto& lightInfo: m_Lights | std::views::values ) {
-//             standardMaterial->UpdateLightsInfo( *lightInfo.Data, lightInfo.ActiveType );
-//         }
-//
-//         standardMaterial->UploadUniformBuffers();
-//         standardMaterial->BindDescriptorSet( m_DrawCommandBuffer, pipeline->GetLayout() );
-//
-//         pipeline->Bind( m_DrawCommandBuffer );
-//
-//         const VulkanVertexBuffer* vulkanVertexBuffer{ dynamic_cast<const VulkanVertexBuffer*>( meshRenderInfo.Object->GetVertexBuffer() ) };
-//         const VulkanIndexBuffer* vulkanIndexBuffer{ dynamic_cast<const VulkanIndexBuffer*>( meshRenderInfo.Object->GetIndexBuffer() ) };
-//
-//         vulkanVertexBuffer->Bind( m_DrawCommandBuffer );
-//         vulkanIndexBuffer->Bind( m_DrawCommandBuffer );
-//
-//         vkCmdDrawIndexed( m_DrawCommandBuffer, vulkanIndexBuffer->GetCount(), 1, 0, 0, 0 );
-//     }
-//
-//     auto VulkanRenderer::RecordDrawCommands() -> void {
-//         VkCommandBufferBeginInfo beginInfo{ VulkanHelpers::Initializers::CommandBufferBeginInfo() };
-//
-//         if ( vkBeginCommandBuffer( m_DrawCommandBuffer, std::addressof( beginInfo ) ) != VK_SUCCESS ) {
-//             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer - Failed to begin recording to command buffer." );
-//         }
-//
-//         // Clear values
-//         m_ClearValues[1].depthStencil = { 1.0f, 0 };
-//         m_ClearValues[0].color = { { m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a } };
-//
-//         VkRenderPassBeginInfo renderPassInfo{ VulkanHelpers::Initializers::RenderPassBeginInfo() };
-//         renderPassInfo.renderPass = m_OffscreenMainRenderPass;
-//         renderPassInfo.framebuffer = m_OffscreenFrameBuffer->Get();
-//         renderPassInfo.renderArea.offset = { 0, 0 };
-//         renderPassInfo.renderArea.extent = m_OffscreenExtent;
-//         renderPassInfo.clearValueCount = static_cast<UInt32_T>( m_ClearValues.size() );
-//         renderPassInfo.pClearValues = m_ClearValues.data();
-//
-//         UpdateViewport( 0, 0, static_cast<float>( m_OffscreenExtent.width ), static_cast<float>( m_OffscreenExtent.height ) );
-//         UpdateScissor( 0, 0, { m_OffscreenExtent.width, m_OffscreenExtent.height } );
-//
-//         vkCmdSetViewport( m_DrawCommandBuffer, 0, 1, std::addressof( m_OffscreenViewport ) );
-//         vkCmdSetScissor( m_DrawCommandBuffer, 0, 1, std::addressof( m_OffscreenScissor ) );
-//
-//         vkCmdBeginRenderPass( m_DrawCommandBuffer, std::addressof( renderPassInfo ), VK_SUBPASS_CONTENTS_INLINE );
-//
-//         for ( const auto& meshRenderInfo: m_DrawQueue | std::views::values ) {
-//
-//             if ( meshRenderInfo.Object && meshRenderInfo.IsRendered ) {
-//                 switch ( meshRenderInfo.MaterialData->GetType() ) {
-//
-//                     case MaterialType::PBR:
-//                         SetupPBRPass( meshRenderInfo );
-//                         break;
-//
-//                     case MaterialType::PHONG:
-//                         SetupDefaultPass( meshRenderInfo );
-//                         break;
-//                 }
-//             }
-//         }
-//
-//         auto outlineObject{ m_DrawQueue.find( m_TargetObjectOutlineID ) };
-//
-//         if ( outlineObject != m_DrawQueue.end() && outlineObject->second.IsRendered && m_OutlineEnable ) {
-//             SetupObjectOutline( outlineObject->second );
-//         }
-//
-//         RecordTextDrawCommands();
-//
-//         vkCmdEndRenderPass( m_DrawCommandBuffer );
-//
-//         if ( vkEndCommandBuffer( m_DrawCommandBuffer ) != VK_SUCCESS ) {
-//             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::RecordCommands - Failed to end recording command buffer" );
-//         }
-//     }
-//
-//     auto VulkanRenderer::RecordComputeCommands() -> void {
-//         //RecordComputeCommandsDEBUG();
-//     }
-//
-//     auto VulkanRenderer::RecordComputeCommandsDEBUG() -> void {
-//         // This serves as an example on how to record compute shader commands at its simple level
-//         // This everything needed for this function is in this scope declared with static storage to
-//         // the objects being destroyed. We are simply reading from the buffer as can be seen below
-//         // with no synchronization whether the operations are completed just for the example sake
-//
-//         // VMA will probaly complain as the buffer here has storage duration and is last to get destroyed
-//
-//         // Compute pipelines consist of one stage, the compute shader, therefore they take one shader stage on construction
-//         // Compute shaders operate independently, with no user-defined inputs or outputs,
-//         // meaning there’s no direct way for consecutive compute shaders to communicate within
-//         // a single pipeline. Each dispatch runs a single compute shader stage, and that’s it.
-//         // If you need multiple compute shaders in sequence, you must create separate pipelines
-//         // for each shader and use proper synchronization to manage data transfer between them
-//
-//         // DEBUG
-//         static std::vector<float> values( 10 );
-//
-//         VkBufferCreateInfo stagingBufferInfo{ VulkanHelpers::Initializers::BufferCreateInfo() };
-//         stagingBufferInfo.pNext = nullptr;
-//
-//         stagingBufferInfo.size = static_cast<UInt32_T>( values.size() * sizeof( float ) );
-//         stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-//
-//         //let the VMA library know that this data should be on CPU RAM
-//         VmaAllocationCreateInfo vmaStagingAllocationCreateInfo{};
-//         vmaStagingAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
-//         vmaStagingAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-//
-//         const VulkanBufferCreateInfo stagingBufferBufferCreateInfo{
-//             .BufferCreateInfo{ stagingBufferInfo },
-//             .AllocationCreateInfo{ vmaStagingAllocationCreateInfo },
-//             .WantMapping{ true }
-//         };
-//
-//         static Scope_T<VulkanBuffer> stagingBuffer{ VulkanBuffer::Create( stagingBufferBufferCreateInfo ) };
-//         static bool first{ true };
-//         static VkDescriptorSet s_DescriptorSet{};
-//         static TimeSystem& timeSystem{ ServiceInitializer::GetSystem<TimeSystem>() };
-//
-//         if ( first ) {
-//             const VkDescriptorSetLayout& descriptorSetLayout{ VulkanContext::Get().GetDescriptorSetLayouts( DESCRIPTOR_SET_LAYOUT_COMPUTE_PIPELINE ) };
-//
-//             const VulkanDevice& device{ VulkanContext::Get().GetDevice() };
-//             VulkanDescriptorAllocator& descriptorAllocator{ VulkanContext::Get().GetDescriptorAllocator() };
-//
-//             s_DescriptorSet = *descriptorAllocator.Allocate( device.GetLogicalDevice(), descriptorSetLayout );
-//
-//             VulkanDescriptorWriter descWriters{};
-//
-//             descWriters
-//                     .WriteBuffer( 0, stagingBuffer->Get(), stagingBuffer->GetSize(), 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER )
-//                     .UpdateSet( device.GetLogicalDevice(), s_DescriptorSet );
-//
-//             first = false;
-//         } else {
-//             std::memcpy( values.data(), stagingBuffer->GetMappedPtr(), stagingBuffer->GetSize() );
-//         }
-//
-//         VkCommandBufferBeginInfo beginInfo{};
-//         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-//
-//         if ( vkBeginCommandBuffer( m_ComputeCommandBuffer, &beginInfo ) != VK_SUCCESS ) {
-//             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::RecordComputeCommands - Failed to begin recording command buffer!" );
-//         }
-//
-//         auto findIt{ m_Pipelines.find( MATERIAL_PASS_COMPUTE ) };
-//
-//         const VulkanPipeline* computePipeline{ findIt == m_Pipelines.end() ? nullptr : std::addressof( findIt->second ) };
-//
-//         vkCmdBindPipeline( m_ComputeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->Get() );
-//         vkCmdBindDescriptorSets( m_ComputeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->GetLayout(), 0, 1, std::addressof( s_DescriptorSet ), 0, 0 );
-//
-//         vkCmdDispatch( m_ComputeCommandBuffer, 10, 0, 0 );
-//
-//         if ( vkEndCommandBuffer( m_ComputeCommandBuffer ) != VK_SUCCESS ) {
-//             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::RecordComputeCommands - Failed to record compute commands" );
-//         }
-//     }
-//
-//     auto VulkanRenderer::CreateOffscreenRenderPass() -> void {
-//         // Color Attachment
-//         VkAttachmentDescription colorAttachmentDesc{};
-//         colorAttachmentDesc.format = m_ColorAttachmentFormat;
-//         colorAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
-//         colorAttachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-//         colorAttachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-//         colorAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-//         colorAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-//         colorAttachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-//         colorAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;// VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-//
-//         VkAttachmentReference colorAttachmentRef{};
-//         colorAttachmentRef.attachment = 0;
-//         colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-//
-//         // Depth Attachment
-//         VkAttachmentDescription depthAttachmentDesc{};
-//         depthAttachmentDesc.flags = 0;
-//         depthAttachmentDesc.format = m_DepthAttachmentFormat;
-//         depthAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
-//         depthAttachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-//         depthAttachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-//         depthAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-//         depthAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-//         depthAttachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-//         depthAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-//
-//         VkAttachmentReference depthAttachmentRef{};
-//         depthAttachmentRef.attachment = 1;
-//         depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-//
-//         VkSubpassDescription subpass{};
-//         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-//         subpass.colorAttachmentCount = 1;
-//         subpass.pColorAttachments = &colorAttachmentRef;
-//         subpass.pDepthStencilAttachment = &depthAttachmentRef;
-//
-//         VkSubpassDependency colorAttachmentDependency{};
-//         colorAttachmentDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-//         colorAttachmentDependency.dstSubpass = 0;
-//         colorAttachmentDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-//         colorAttachmentDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-//         colorAttachmentDependency.srcAccessMask = 0;
-//         colorAttachmentDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-//
-//         // Add a new subpass dependency that synchronizes accesses to depth attachments.
-//         // This dependency tells Vulkan that the depth attachment in a renderpass cannot
-//         // be used before previous render-passes have finished using it.
-//         VkSubpassDependency deptAttachmentDependency{};
-//         deptAttachmentDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-//         deptAttachmentDependency.dstSubpass = 0;
-//         deptAttachmentDependency.srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-//         deptAttachmentDependency.srcAccessMask = 0;
-//         deptAttachmentDependency.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-//         deptAttachmentDependency.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-//
-//         std::array attachmentDependencies{ colorAttachmentDependency, deptAttachmentDependency };
-//         std::array attachmentDescriptions{ colorAttachmentDesc, depthAttachmentDesc };
-//
-//         VkRenderPassCreateInfo info{ VulkanHelpers::Initializers::RenderPassCreateInfo() };
-//         info.attachmentCount = static_cast<UInt32_T>( attachmentDescriptions.size() );
-//         info.pAttachments = attachmentDescriptions.data();
-//
-//         info.dependencyCount = static_cast<UInt32_T>( attachmentDependencies.size() );
-//         info.pDependencies = attachmentDependencies.data();
-//
-//         info.subpassCount = 1;
-//         info.pSubpasses = &subpass;
-//
-//         if ( vkCreateRenderPass( m_Device->GetLogicalDevice(), &info, nullptr, &m_OffscreenMainRenderPass ) != VK_SUCCESS ) {
-//             MKT_THROW_RUNTIME_ERROR( "Failed to create render pass for the Vulkan Renderer!" );
-//         }
-//
-//         VulkanDeletionQueue::Push( [device = m_Device->GetLogicalDevice(), renderPass = m_OffscreenMainRenderPass]() -> void {
-//             vkDestroyRenderPass( device, renderPass, nullptr );
-//         } );
-//     }
-//
-//     auto VulkanRenderer::CreateOffscreenFramebuffers() -> void {
-//         const std::array attachments{ m_OffscreenColorAttachment->GetView(), m_OffscreenDepthAttachment->GetView() };
-//
-//         VkFramebufferCreateInfo createInfo{ VulkanHelpers::Initializers::FramebufferCreateInfo() };
-//         createInfo.pNext = nullptr;
-//         createInfo.renderPass = m_OffscreenMainRenderPass;
-//
-//         createInfo.width = m_OffscreenExtent.width;
-//         createInfo.height = m_OffscreenExtent.height;
-//         createInfo.layers = 1;
-//
-//         createInfo.attachmentCount = static_cast<UInt32_T>( attachments.size() );
-//         createInfo.pAttachments = attachments.data();
-//
-//         VulkanFramebufferDescription frameBufferCreateInfo{
-//             .CreateInfo{ createInfo },
-//         };
-//
-//         m_OffscreenFrameBuffer = CreateScope<VulkanFramebuffer>( frameBufferCreateInfo );
-//     }
-//
-//     auto VulkanRenderer::UpdateViewport( const float x, const float y, const float width, const float height ) -> void {
-//         // https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport/
-//         // As the engine uses Vulkan 1.3, VK_KHR_MAINTENANCE1  is not required since its part of the Graphics Api since 1.1
-//
-//         m_OffscreenViewport = {
-//             .x = x,
-//             .y = y,
-//             .width = width,
-//             .height = height,
-//             .minDepth = 0.0f,
-//             .maxDepth = 1.0f,
-//         };
-//     }
-//
-//     auto VulkanRenderer::UpdateScissor( const Int32_T x, const Int32_T y, VkExtent2D extent ) -> void {
-//         m_OffscreenScissor = {
-//             .offset{ x, y },
-//             .extent{ extent },
-//         };
-//     }
-//
-//     auto VulkanRenderer::CreateOffscreenAttachments() -> void {
-//         // Color Device attachment
-//         VkImageCreateInfo colorAttachmentCreateInfo{ VulkanHelpers::Initializers::ImageCreateInfo() };
-//         colorAttachmentCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-//         colorAttachmentCreateInfo.format = m_ColorAttachmentFormat;
-//         colorAttachmentCreateInfo.extent.width = m_OffscreenExtent.width;
-//         colorAttachmentCreateInfo.extent.height = m_OffscreenExtent.height;
-//         colorAttachmentCreateInfo.extent.depth = 1;
-//         colorAttachmentCreateInfo.mipLevels = 1;
-//         colorAttachmentCreateInfo.arrayLayers = 1;
-//         colorAttachmentCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-//         colorAttachmentCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-//         colorAttachmentCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-//
-//         VkImageViewCreateInfo colorAttachmentViewCreateInfo{ VulkanHelpers::Initializers::ImageViewCreateInfo() };
-//         colorAttachmentViewCreateInfo.image = VK_NULL_HANDLE;
-//         colorAttachmentViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-//         colorAttachmentViewCreateInfo.format = colorAttachmentCreateInfo.format;// match formats for simplicity
-//
-//         colorAttachmentViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-//         colorAttachmentViewCreateInfo.subresourceRange.baseMipLevel = 0;
-//         colorAttachmentViewCreateInfo.subresourceRange.levelCount = 1;
-//         colorAttachmentViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-//         colorAttachmentViewCreateInfo.subresourceRange.layerCount = 1;
-//
-//         VulkanImageCreateInfo colorImageCreateInfo{
-//             .Image{ VK_NULL_HANDLE },
-//             .ImageCreateInfo{ colorAttachmentCreateInfo },
-//             .ImageViewCreateInfo{ colorAttachmentViewCreateInfo },
-//         };
-//
-//         m_OffscreenColorAttachment = CreateScope<VulkanImage>( colorImageCreateInfo );
-//
-//         // Depth attachment
-//         VkImageCreateInfo depthAttachmentCreateInfo{ VulkanHelpers::Initializers::ImageCreateInfo() };
-//         depthAttachmentCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-//         depthAttachmentCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-//
-//         depthAttachmentCreateInfo.extent.width = m_OffscreenExtent.width;
-//         depthAttachmentCreateInfo.extent.height = m_OffscreenExtent.height;
-//         depthAttachmentCreateInfo.extent.depth = 1;
-//         depthAttachmentCreateInfo.format = m_DepthAttachmentFormat;
-//
-//         depthAttachmentCreateInfo.mipLevels = 1;
-//         depthAttachmentCreateInfo.arrayLayers = 1;
-//         depthAttachmentCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-//         depthAttachmentCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-//
-//         VkImageViewCreateInfo depthAttachmentViewCreateInfo{ VulkanHelpers::Initializers::ImageViewCreateInfo() };
-//
-//         depthAttachmentViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-//         depthAttachmentViewCreateInfo.image = VK_NULL_HANDLE;// Set by OnCreate()
-//         depthAttachmentViewCreateInfo.format = depthAttachmentCreateInfo.format;
-//         depthAttachmentViewCreateInfo.subresourceRange.baseMipLevel = 0;
-//         depthAttachmentViewCreateInfo.subresourceRange.levelCount = 1;
-//         depthAttachmentViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-//         depthAttachmentViewCreateInfo.subresourceRange.layerCount = 1;
-//         depthAttachmentViewCreateInfo.subresourceRange.aspectMask =
-//                 depthAttachmentCreateInfo.format < VK_FORMAT_D16_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT : ( VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT );
-//
-//         VulkanImageCreateInfo depthImageCreateInfo{
-//             .Image{ VK_NULL_HANDLE },
-//             .ImageCreateInfo{ depthAttachmentCreateInfo },
-//             .ImageViewCreateInfo{ depthAttachmentViewCreateInfo },
-//         };
-//
-//         m_OffscreenDepthAttachment = CreateScope<VulkanImage>( depthImageCreateInfo );
-//     }
-//
-//     auto VulkanRenderer::PrepareOffscreenRender() -> void {
-//         m_ClearValues[0].color = { { 0.2f, 0.2f, 0.2f, 1.0f } };
-//         m_ClearValues[1].depthStencil = { 1.0f, 0 };
-//
-//         m_ColorAttachmentFormat = m_Device->FindSupportedFormat(
-//                 { VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_D32_SFLOAT, VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_SRGB },
-//                 VK_IMAGE_TILING_OPTIMAL,
-//                 VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT );
-//
-//         m_DepthAttachmentFormat = m_Device->FindSupportedFormat(
-//                 { VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT },
-//                 VK_IMAGE_TILING_OPTIMAL,
-//                 VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT );
-//
-//         CreateOffscreenRenderPass();
-//         CreateOffscreenAttachments();
-//         CreateOffscreenFramebuffers();
-//
-//         UpdateViewport( 0, 0, static_cast<float>( m_OffscreenExtent.width ), static_cast<float>( m_OffscreenExtent.height ) );
-//         UpdateScissor( 0, 0, { m_OffscreenExtent.width, m_OffscreenExtent.height } );
-//     }
-//
-//     auto VulkanRenderer::RecordTextDrawCommands() -> void {
-//         for ( const auto& textRenderInfo: m_TextDrawQueue | std::views::values ) {
-//             auto findIt{ m_Pipelines.find( MATERIAL_PASS_TEXT ) };
-//
-//             const VulkanPipeline* pipeline{ findIt != m_Pipelines.end() ? std::addressof( findIt->second ) : nullptr };
-//             VulkanPBRMaterial* pbrMaterial{ dynamic_cast<VulkanPBRMaterial*>( textRenderInfo.MaterialData ) };
-//
-//             if ( pipeline == nullptr ) {
-//                 MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::RecordCommands - Pipeline objects are null." );
-//             }
-//
-//             float advance{};
-//             float yOffset{};
-//             for ( auto characterCode: textRenderInfo.Contents ) {
-//
-//                 FreeTypeGlyph* glyph{ textRenderInfo.Font->GetGlyph( characterCode ) };
-//
-//                 if ( glyph != nullptr ) {
-//                     glm::vec3 position{};
-//                     glm::vec3 rotation{};
-//                     glm::vec3 scale{};
-//                     glm::mat4 transform{};
-//
-//                     if ( Math::DecomposeTransform( textRenderInfo.Transform, position, rotation, scale ) ) {
-//                         float fontScale = textRenderInfo.LocalScaling / TextComponent::GetMaxLetterSize();        // Scale from font size
-//                         float letterSpacing = textRenderInfo.LetterSpacing / TextComponent::GetMaxLetterSpacing();// Custom letter spacing
-//
-//                         // Compute spacing using font scale
-//                         float spacingOffset{ advance * fontScale + letterSpacing * fontScale };
-//
-//                         // Adjust position with spacing and font scaling before applying world scale
-//                         position.x += spacingOffset;
-//                         position.y += yOffset;
-//
-//                         // Move to the next character
-//                         advance += ( static_cast<float>( glyph->GetAdvance() ) + fontScale ) * letterSpacing;
-//
-//                         // Apply local font scaling before world transform
-//                         glm::vec3 localScale{ scale * fontScale };
-//
-//                         transform = Math::RecomputeTransform( position, localScale, rotation );
-//
-//                         if ( glyph->IsSpace() ) {
-//                             position.y += textRenderInfo.LetterSpacing * textRenderInfo.LetterSpacing;
-//                             continue;
-//                         }
-//
-//                         if ( glyph->IsLineFeed() ) {
-//                             advance = 0.0f;                                                       // Reset horizontal position (move to the start of the line)
-//                             yOffset -= textRenderInfo.LetterSpacing * textRenderInfo.LocalScaling;// Move down based on scaling
-//                             continue;
-//                         }
-//                     }
-//
-//                     m_TextRenderPushConstantData.Color = { textRenderInfo.Color };
-//                     m_TextRenderPushConstantData.MVP = textRenderInfo.TextCamera->GetProjection() * textRenderInfo.TextCamera->GetViewMatrix() * transform;
-//
-//                     vkCmdPushConstants(
-//                             m_DrawCommandBuffer,
-//                             pipeline->GetLayout(),
-//                             VK_SHADER_STAGE_VERTEX_BIT,
-//                             0,
-//                             sizeof( TextRenderPushConstantData ),
-//                             std::addressof( m_TextRenderPushConstantData ) );
-//
-//                     VkDescriptorSet glyphDset{ textRenderInfo.Font->GetGlyphDescriptorSet( characterCode ) };
-//
-//                     pipeline->Bind( m_DrawCommandBuffer );
-//
-//                     // It is here that we specify which desc set we bind to, always 0 for now
-//                     constexpr Size_T firstSet{ 0 };
-//                     vkCmdBindDescriptorSets( m_DrawCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetLayout(), firstSet, 1, &glyphDset, 0, nullptr );
-//
-//                     const VulkanVertexBuffer* vulkanVertexBuffer{ dynamic_cast<const VulkanVertexBuffer*>( glyph->GetVertexBuffer() ) };
-//                     const VulkanIndexBuffer* vulkanIndexBuffer{ dynamic_cast<const VulkanIndexBuffer*>( glyph->GetIndexBuffer() ) };
-//
-//                     vulkanVertexBuffer->Bind( m_DrawCommandBuffer );
-//                     vulkanIndexBuffer->Bind( m_DrawCommandBuffer );
-//
-//                     vkCmdDrawIndexed( m_DrawCommandBuffer, vulkanIndexBuffer->GetCount(), 1, 0, 0, 0 );
-//                 }
-//             }
-//         }
-//     }
-//
-//     auto VulkanRenderer::SubmitCommands() const -> void {
-//         //m_Device->RegisterComputeCommand( m_ComputeCommandBuffer );
-//
-//         m_Device->RegisterGraphicsCommand( m_DrawCommandBuffer );
-//     }
-//
-//     auto VulkanRenderer::InitializeDefaultPipeline() -> void {
-//         const auto& fileSystem{ ServiceInitializer::GetSystem<FileSystem>() };
-//
-//         const VulkanShaderCreateInfo vertexStage{
-//             .FilePath{ PathBuilder()
-//                                .WithPath( fileSystem.GetShadersRootPath().string() )
-//                                .WithPath( "vulkan-spirv" )
-//                                .WithPath( "StandardVertexShader.sprv" )
-//                                .Build() },
-//             .Stage{ VERTEX_STAGE },
-//         };
-//
-//         const VulkanShaderCreateInfo fragmentStage{
-//             .FilePath{ PathBuilder()
-//                                .WithPath( fileSystem.GetShadersRootPath().string() )
-//                                .WithPath( "vulkan-spirv" )
-//                                .WithPath( "StandardFragmentShader.sprv" )
-//                                .Build() },
-//             .Stage{ FRAGMENT_STAGE },
-//         };
-//
-//         const VulkanShader* fragmentShader = ShaderLibrary::LoadShader( fragmentStage );
-//         const VulkanShader* vertexShader = ShaderLibrary::LoadShader( vertexStage );
-//
-//         const std::array pipelineShaderStageCreateInfos{
-//             vertexShader->GetPipelineStageCreateInfo(),
-//             fragmentShader->GetPipelineStageCreateInfo()
-//         };
-//
-//         const std::array descLayouts{ VulkanContext::Get().GetDescriptorSetLayouts( DESCRIPTOR_SET_LAYOUT_BASE_SHADER ) };
-//
-//         // Create the pipeline layout
-//         VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VulkanHelpers::Initializers::PipelineLayoutCreateInfo() };
-//         pipelineLayoutInfo.pushConstantRangeCount = 0;
-//         pipelineLayoutInfo.pPushConstantRanges = nullptr;
-//         pipelineLayoutInfo.setLayoutCount = static_cast<UInt32_T>( descLayouts.size() );
-//         pipelineLayoutInfo.pSetLayouts = descLayouts.data();
-//
-//         VkPipelineLayout layout{};
-//         if ( vkCreatePipelineLayout( m_Device->GetLogicalDevice(), std::addressof( pipelineLayoutInfo ), nullptr, std::addressof( layout ) ) != VK_SUCCESS ) {
-//             MKT_THROW_RUNTIME_ERROR( "Failed to create pipeline layout" );
-//         }
-//
-//         VulkanDeletionQueue::Push( [device = m_Device->GetLogicalDevice(),
-//                                     pipelineLayout = layout]() -> void {
-//             vkDestroyPipelineLayout( device, pipelineLayout, nullptr );
-//         } );
-//
-//         // Create the pipeline
-//         auto defaultMatPipelineConfig{ GetDefaultGraphicsPipelineConfigInfo() };
-//
-//         defaultMatPipelineConfig.PipelineLayout = layout;
-//         defaultMatPipelineConfig.RenderPass = m_OffscreenMainRenderPass;
-//         defaultMatPipelineConfig.ShaderStages = pipelineShaderStageCreateInfos;
-//
-//         auto [it, success]{ m_Pipelines.try_emplace( MATERIAL_PASS_COLOR, defaultMatPipelineConfig ) };
-//         if ( !success ) {
-//             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::InitializeDefaultPipeline - Failed to create standard pipeline." );
-//         } else {
-//             it->second.Init();
-//         }
-//     }
-//
-//     auto VulkanRenderer::InitializePBRPipeline() -> void {
-//         const auto& fileSystem{ ServiceInitializer::GetSystem<FileSystem>() };
-//
-//         const VulkanShaderCreateInfo vertexStage{
-//             .FilePath{ PathBuilder()
-//                                .WithPath( fileSystem.GetShadersRootPath().string() )
-//                                .WithPath( "vulkan-spirv" )
-//                                .WithPath( "PBRVertexShader.sprv" )
-//                                .Build() },
-//             .Stage{ VERTEX_STAGE },
-//         };
-//
-//         const VulkanShaderCreateInfo fragmentStage{
-//             .FilePath{ PathBuilder()
-//                                .WithPath( fileSystem.GetShadersRootPath().string() )
-//                                .WithPath( "vulkan-spirv" )
-//                                .WithPath( "PBRFragmentShader.sprv" )
-//                                .Build() },
-//             .Stage{ FRAGMENT_STAGE },
-//         };
-//
-//         const VulkanShader* fragmentShader = ShaderLibrary::LoadShader( fragmentStage );
-//         const VulkanShader* vertexShader = ShaderLibrary::LoadShader( vertexStage );
-//
-//         const std::array pipelineShaderStageCreateInfos{
-//             vertexShader->GetPipelineStageCreateInfo(),
-//             fragmentShader->GetPipelineStageCreateInfo()
-//         };
-//
-//         // Set layout
-//         std::array shaders{ vertexShader, fragmentShader };
-//         const auto descSetLayouts{ m_Device->CreateDescriptorSetLayout( shaders ) };
-//         const auto descLayouts{ std::ranges::views::transform( descSetLayouts, []( const DeviceObject* descSet ) {
-//             return dynamic_cast<const VulkanDescriptorSetLayout*>( descSet )->Get();
-//         } ) };
-//
-//         std::vector<VkDescriptorSetLayout> layouts{ descLayouts.begin(), descLayouts.end() };
-//
-//         // Create the pipeline layout
-//         VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VulkanHelpers::Initializers::PipelineLayoutCreateInfo() };
-//         pipelineLayoutInfo.pushConstantRangeCount = 0;
-//         pipelineLayoutInfo.pPushConstantRanges = nullptr;
-//         pipelineLayoutInfo.setLayoutCount = static_cast<UInt32_T>( layouts.size() );
-//         pipelineLayoutInfo.pSetLayouts = layouts.data();
-//
-//         VkPipelineLayout layout{};
-//         if ( vkCreatePipelineLayout( m_Device->GetLogicalDevice(), std::addressof( pipelineLayoutInfo ), nullptr, std::addressof( layout ) ) != VK_SUCCESS ) {
-//             MKT_THROW_RUNTIME_ERROR( "Failed to create pipeline layout" );
-//         }
-//
-//         VulkanDeletionQueue::Push( [device = m_Device->GetLogicalDevice(),
-//                                     pipelineLayout = layout]() -> void {
-//             vkDestroyPipelineLayout( device, pipelineLayout, nullptr );
-//         } );
-//
-//         // Create the pipeline
-//         auto defaultMatPipelineConfig{ GetDefaultGraphicsPipelineConfigInfo() };
-//
-//         defaultMatPipelineConfig.PipelineLayout = layout;
-//         defaultMatPipelineConfig.RenderPass = m_OffscreenMainRenderPass;
-//         defaultMatPipelineConfig.ShaderStages = pipelineShaderStageCreateInfos;
-//
-//         auto [it, success]{ m_Pipelines.try_emplace( MATERIAL_PASS_PBR, defaultMatPipelineConfig ) };
-//         if ( !success ) {
-//             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::InitializeDefaultPipeline - Failed to create standard pipeline." );
-//         } else {
-//             it->second.Init();
-//         }
-//     }
-//
-//     auto VulkanRenderer::InitializeOutlinePipeline() -> void {
-//         const auto& fileSystem{ ServiceInitializer::GetSystem<FileSystem>() };
-//
-//         const VulkanShaderCreateInfo vertexStage{
-//             .FilePath{ PathBuilder()
-//                                .WithPath( fileSystem.GetShadersRootPath().string() )
-//                                .WithPath( "vulkan-spirv" )
-//                                .WithPath( "Outline_Vert.sprv" )
-//                                .Build() },
-//             .Stage{ VERTEX_STAGE },
-//         };
-//
-//         const VulkanShaderCreateInfo fragmentStage{
-//             .FilePath{ PathBuilder()
-//                                .WithPath( fileSystem.GetShadersRootPath().string() )
-//                                .WithPath( "vulkan-spirv" )
-//                                .WithPath( "Outline_Frag.sprv" )
-//                                .Build() },
-//             .Stage{ FRAGMENT_STAGE },
-//         };
-//
-//         const VulkanShader* fragmentShader = ShaderLibrary::LoadShader( fragmentStage );
-//         const VulkanShader* vertexShader = ShaderLibrary::LoadShader( vertexStage );
-//
-//         const std::array pipelineShaderStageCreateInfos{
-//             vertexShader->GetPipelineStageCreateInfo(),
-//             fragmentShader->GetPipelineStageCreateInfo()
-//         };
-//
-//         // Set layout
-//         const std::array descLayouts{
-//             VulkanContext::Get().GetDescriptorSetLayouts( DESCRIPTOR_SET_LAYOUT_PBR_SHADER ),
-//             VulkanContext::Get().GetDescriptorSetLayouts( DESCRIPTOR_SET_LAYOUT_OUTLINE )
-//         };
-//
-//         // Define push constant range
-//         VkPushConstantRange pushConstantRange{};
-//         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-//         pushConstantRange.offset = 0;
-//         pushConstantRange.size = sizeof( float ) + sizeof( glm::vec4 );// Outline width + color
-//
-//         // Create the pipeline layout
-//         VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VulkanHelpers::Initializers::PipelineLayoutCreateInfo() };
-//         pipelineLayoutInfo.pushConstantRangeCount = 1;
-//         pipelineLayoutInfo.pPushConstantRanges = std::addressof( pushConstantRange );
-//         pipelineLayoutInfo.setLayoutCount = static_cast<UInt32_T>( descLayouts.size() );
-//         pipelineLayoutInfo.pSetLayouts = descLayouts.data();
-//
-//         VkPipelineLayout layout{};
-//         if ( vkCreatePipelineLayout( m_Device->GetLogicalDevice(), std::addressof( pipelineLayoutInfo ), nullptr, std::addressof( layout ) ) != VK_SUCCESS ) {
-//             MKT_THROW_RUNTIME_ERROR( "Failed to create pipeline layout" );
-//         }
-//
-//         VulkanDeletionQueue::Push( [device = m_Device->GetLogicalDevice(),
-//                                     pipelineLayout = layout]() -> void {
-//             vkDestroyPipelineLayout( device, pipelineLayout, nullptr );
-//         } );
-//
-//         // Create the pipeline
-//         auto defaultMatPipelineConfig{ GetDefaultGraphicsPipelineConfigInfo() };
-//
-//         defaultMatPipelineConfig.DepthStencilInfo.back.compareOp = VK_COMPARE_OP_NOT_EQUAL;// Draw where stencil != 1
-//         defaultMatPipelineConfig.DepthStencilInfo.back.failOp = VK_STENCIL_OP_KEEP;
-//         defaultMatPipelineConfig.DepthStencilInfo.back.depthFailOp = VK_STENCIL_OP_KEEP;
-//         defaultMatPipelineConfig.DepthStencilInfo.back.passOp = VK_STENCIL_OP_REPLACE;
-//         defaultMatPipelineConfig.DepthStencilInfo.front = defaultMatPipelineConfig.DepthStencilInfo.back;
-//         defaultMatPipelineConfig.DepthStencilInfo.depthTestEnable = VK_FALSE;
-//
-//         defaultMatPipelineConfig.PipelineLayout = layout;
-//         defaultMatPipelineConfig.RenderPass = m_OffscreenMainRenderPass;
-//         defaultMatPipelineConfig.ShaderStages = pipelineShaderStageCreateInfos;
-//
-//         auto [it, success]{ m_Pipelines.try_emplace( MATERIAL_PASS_OUTLINE, defaultMatPipelineConfig ) };
-//         if ( !success ) {
-//             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::InitializeDefaultPipeline - Failed to create standard pipeline." );
-//         }
-//
-//         it->second.Init();
-//     }
-//
-//     auto VulkanRenderer::InitializeTextPipeline() -> void {
-//         const auto& fileSystem{ ServiceInitializer::GetSystem<FileSystem>() };
-//
-//         const VulkanShaderCreateInfo vertexStage{
-//             .FilePath{ PathBuilder()
-//                                .WithPath( fileSystem.GetShadersRootPath().string() )
-//                                .WithPath( "vulkan-spirv" )
-//                                .WithPath( "Text_Vert.sprv" )
-//                                .Build() },
-//             .Stage{ VERTEX_STAGE },
-//         };
-//
-//         const VulkanShaderCreateInfo fragmentStage{
-//             .FilePath{ PathBuilder()
-//                                .WithPath( fileSystem.GetShadersRootPath().string() )
-//                                .WithPath( "vulkan-spirv" )
-//                                .WithPath( "Text_Frag.sprv" )
-//                                .Build() },
-//             .Stage{ FRAGMENT_STAGE },
-//         };
-//
-//         const VulkanShader* fragmentShader = ShaderLibrary::LoadShader( fragmentStage );
-//         const VulkanShader* vertexShader = ShaderLibrary::LoadShader( vertexStage );
-//
-//         const std::array pipelineShaderStageCreateInfos{
-//             vertexShader->GetPipelineStageCreateInfo(),
-//             fragmentShader->GetPipelineStageCreateInfo()
-//         };
-//
-//         // Set layout
-//         const std::array descLayouts{
-//             VulkanContext::Get().GetDescriptorSetLayouts( DESCRIPTOR_SET_LAYOUT_TEXT ),
-//         };
-//
-//         // Define push constant range
-//         VkPushConstantRange pushConstantRange{};
-//         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-//         pushConstantRange.offset = 0;
-//         pushConstantRange.size = sizeof( glm::mat4 ) + sizeof( glm::vec4 );
-//
-//         // Create the pipeline layout
-//         VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VulkanHelpers::Initializers::PipelineLayoutCreateInfo() };
-//         pipelineLayoutInfo.pushConstantRangeCount = 1;
-//         pipelineLayoutInfo.pPushConstantRanges = std::addressof( pushConstantRange );
-//         pipelineLayoutInfo.setLayoutCount = static_cast<UInt32_T>( descLayouts.size() );
-//         pipelineLayoutInfo.pSetLayouts = descLayouts.data();
-//
-//         VkPipelineLayout layout{};
-//         if ( vkCreatePipelineLayout( m_Device->GetLogicalDevice(), std::addressof( pipelineLayoutInfo ), nullptr, std::addressof( layout ) ) != VK_SUCCESS ) {
-//             MKT_THROW_RUNTIME_ERROR( "Failed to create pipeline layout" );
-//         }
-//
-//         VulkanDeletionQueue::Push( [device = m_Device->GetLogicalDevice(),
-//                                     pipelineLayout = layout]() -> void {
-//             vkDestroyPipelineLayout( device, pipelineLayout, nullptr );
-//         } );
-//
-//         // Create the pipeline
-//         auto defaultMatPipelineConfig{ GetDefaultGraphicsPipelineConfigInfo() };
-//
-//         defaultMatPipelineConfig.PipelineLayout = layout;
-//         //defaultMatPipelineConfig.VertexBufferLayout = FreeTypeGlyph::GetDefaultBufferLayout();
-//         defaultMatPipelineConfig.RenderPass = m_OffscreenMainRenderPass;
-//         defaultMatPipelineConfig.ShaderStages = pipelineShaderStageCreateInfos;
-//
-//         auto [it, success]{ m_Pipelines.try_emplace( MATERIAL_PASS_TEXT, defaultMatPipelineConfig, FreeTypeGlyph::GetDefaultBufferLayout() ) };
-//         if ( !success ) {
-//             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::InitializeTextPipeline - Failed to create standard pipeline." );
-//         }
-//
-//         it->second.Init();
-//     }
-//
-//     auto VulkanRenderer::InitializePBRWireFramePipeline() -> void {
-//         const auto& fileSystem{ ServiceInitializer::GetSystem<FileSystem>() };
-//
-//         const VulkanShaderCreateInfo vertexStage{
-//             .FilePath{ PathBuilder()
-//                                .WithPath( fileSystem.GetShadersRootPath().string() )
-//                                .WithPath( "vulkan-spirv" )
-//                                .WithPath( "PBRVertexShader.sprv" )
-//                                .Build() },
-//             .Stage{ VERTEX_STAGE },
-//         };
-//
-//         const VulkanShaderCreateInfo fragmentStage{
-//             .FilePath{ PathBuilder()
-//                                .WithPath( fileSystem.GetShadersRootPath().string() )
-//                                .WithPath( "vulkan-spirv" )
-//                                .WithPath( "PBRFragmentShader.sprv" )
-//                                .Build() },
-//             .Stage{ FRAGMENT_STAGE },
-//         };
-//
-//         const VulkanShader* fragmentShader = ShaderLibrary::LoadShader( fragmentStage );
-//         const VulkanShader* vertexShader = ShaderLibrary::LoadShader( vertexStage );
-//
-//         const std::array pipelineShaderStageCreateInfos{
-//             vertexShader->GetPipelineStageCreateInfo(),
-//             fragmentShader->GetPipelineStageCreateInfo()
-//         };
-//
-//         const std::array descLayouts{ VulkanContext::Get().GetDescriptorSetLayouts( DESCRIPTOR_SET_LAYOUT_PBR_SHADER ) };
-//
-//         // Create the pipeline layout
-//         VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VulkanHelpers::Initializers::PipelineLayoutCreateInfo() };
-//         pipelineLayoutInfo.pushConstantRangeCount = 0;
-//         pipelineLayoutInfo.pPushConstantRanges = nullptr;
-//         pipelineLayoutInfo.setLayoutCount = static_cast<UInt32_T>( descLayouts.size() );
-//         pipelineLayoutInfo.pSetLayouts = descLayouts.data();
-//
-//         VkPipelineLayout layout{};
-//         if ( vkCreatePipelineLayout( m_Device->GetLogicalDevice(), std::addressof( pipelineLayoutInfo ), nullptr, std::addressof( layout ) ) != VK_SUCCESS ) {
-//             MKT_THROW_RUNTIME_ERROR( "Failed to create pipeline layout" );
-//         }
-//
-//         VulkanDeletionQueue::Push( [device = m_Device->GetLogicalDevice(),
-//                                     pipelineLayout = layout]() -> void {
-//             vkDestroyPipelineLayout( device, pipelineLayout, nullptr );
-//         } );
-//
-//
-//         // Create the pipeline
-//         auto wireframePipelineConfig{ GetDefaultGraphicsPipelineConfigInfo() };
-//
-//         constexpr float GPU_STANDARD_LINE_WIDTH{ 1.0f };
-//         wireframePipelineConfig.RasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
-//         wireframePipelineConfig.RasterizationInfo.cullMode = VK_CULL_MODE_NONE;
-//         wireframePipelineConfig.RasterizationInfo.lineWidth = GPU_STANDARD_LINE_WIDTH;
-//
-//         wireframePipelineConfig.RenderPass = m_OffscreenMainRenderPass;
-//         wireframePipelineConfig.PipelineLayout = layout;
-//         wireframePipelineConfig.ShaderStages = pipelineShaderStageCreateInfos;
-//
-//         auto [it, success]{ m_Pipelines.try_emplace( MATERIAL_PASS_WIREFRAME, wireframePipelineConfig ) };
-//         if ( !success ) {
-//             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::InitializeDefaultPipeline - Failed to create standard pipeline." );
-//         } else {
-//             it->second.Init();
-//         }
-//     }
-//
-//     auto VulkanRenderer::InitializeComputePipelines() -> void {
-//         const auto& fileSystem{ ServiceInitializer::GetSystem<FileSystem>() };
-//
-//         // Compute pipeline only takes one shader stage
-//         const VulkanShaderCreateInfo lightCullingComputeShaderCreateInfo{
-//             .FilePath{ PathBuilder()
-//                                .WithPath( fileSystem.GetShadersRootPath().string() )
-//                                .WithPath( "vulkan-spirv" )
-//                                .WithPath( "Compute_Shader.sprv" )
-//                                .Build() },
-//             .Stage{ COMPUTE_STAGE },
-//         };
-//
-//
-//         const VulkanShader* lightCullingComputeShader{ ShaderLibrary::LoadShader( lightCullingComputeShaderCreateInfo ) };
-//
-//         const std::array pipelineShaderStageCreateInfos{
-//             lightCullingComputeShader->GetPipelineStageCreateInfo(),
-//         };
-//
-//         const std::array descLayouts{ VulkanContext::Get().GetDescriptorSetLayouts( DESCRIPTOR_SET_LAYOUT_COMPUTE_PIPELINE ) };
-//
-//         // Create the pipeline layout
-//         VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VulkanHelpers::Initializers::PipelineLayoutCreateInfo() };
-//         pipelineLayoutInfo.pushConstantRangeCount = 0;
-//         pipelineLayoutInfo.pPushConstantRanges = nullptr;
-//         pipelineLayoutInfo.setLayoutCount = static_cast<UInt32_T>( descLayouts.size() );
-//         pipelineLayoutInfo.pSetLayouts = descLayouts.data();
-//
-//         VkPipelineLayout layout{};
-//         if ( vkCreatePipelineLayout( m_Device->GetLogicalDevice(), std::addressof( pipelineLayoutInfo ), nullptr, std::addressof( layout ) ) != VK_SUCCESS ) {
-//             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::InitializeComputePipelines - Failed to create pipeline layout" );
-//         }
-//
-//         VulkanDeletionQueue::Push( [device = m_Device->GetLogicalDevice(), pipelineLayout = layout]() -> void {
-//             vkDestroyPipelineLayout( device, pipelineLayout, nullptr );
-//         } );
-//
-//         // Create the pipeline
-//         auto computePipelineCreateInfo{ GetDefaultComputePipelineConfigInfo() };
-//         computePipelineCreateInfo.Type = PipelineType::VULKAN_COMPUTE_PIPELINE;
-//
-//         computePipelineCreateInfo.PipelineLayout = layout;
-//         computePipelineCreateInfo.ShaderStages = pipelineShaderStageCreateInfos;
-//
-//         auto [it, success]{ m_Pipelines.try_emplace( MATERIAL_PASS_COMPUTE, computePipelineCreateInfo ) };
-//         if ( !success ) {
-//             MKT_THROW_RUNTIME_ERROR( "VulkanRenderer::InitializeDefaultPipeline - Failed to create standard pipeline." );
-//         } else {
-//             it->second.Init();
-//         }
-//     }
-//
-//     auto VulkanRenderer::CreateRendererPipelines() -> void {
-//         InitializeDefaultPipeline();
-//
-//         InitializePBRPipeline();
-//
-//         InitializePBRWireFramePipeline();
-//
-//         InitializeComputePipelines();
-//
-//         InitializeOutlinePipeline();
-//
-//         InitializeTextPipeline();
-//     }
-//
-//     auto VulkanRenderer::Flush() -> void {
-//         BatchMeshes();
-//
-//         // For light culling we want to:
-//         // submit depth pre-pass command buffer
-//         // submit light culling command buffer
-//         // Submitting final composition command buffer
-//
-//         RecordComputeCommands();
-//
-//         RecordDrawCommands();
-//
-//         // NOTE: Compute, Graphics and Present queues might be the same
-//         // Watch-out to properly sync operations between command buffers and commands
-//         // If Graphics queue and Compute queue are the same queue they will share index
-//         // so might consider for this specific case to use pipeline barriers between these two commands buffers
-//         SubmitCommands();
-//     }
-//
-//     auto VulkanRenderer::AddToDrawQueue( const EntityQueueInfo& queueInfo ) -> bool {
-//         bool success{ false };
-//
-//         const auto it{ m_DrawQueue.find( queueInfo.Tag->GetGUID() ) };
-//
-//         if ( queueInfo.RenderComponent != nullptr ) {
-//             MeshRenderInfo info{
-//                 .Object{ queueInfo.RenderComponent->GetMesh() },
-//                 .Transform{ queueInfo.Transform->GetTransform() },
-//                 .MaterialData{ std::addressof( queueInfo.Material->GetMaterial() ) },
-//                 .IsRendered{ queueInfo.Tag->IsVisible() }
-//             };
-//
-//             if ( it != m_DrawQueue.end() ) {
-//                 it->second = info;
-//                 success = true;
-//             } else {
-//                 auto [insertIt, successInsert]{
-//                     m_DrawQueue.try_emplace( queueInfo.Tag->GetGUID(), info )
-//                 };
-//
-//                 success = successInsert;
-//             }
-//         }
-//
-//         if ( queueInfo.TextComponent != nullptr ) {
-//             const auto textFindIt{ m_TextDrawQueue.find( queueInfo.Tag->GetGUID() ) };
-//
-//             TextRenderInfo textRenderInfo{
-//                 .Contents{ queueInfo.TextComponent->GetTextContent() },
-//                 .Transform{ queueInfo.Transform->GetTransform() },
-//                 .Color{ queueInfo.TextComponent->GetColor() },
-//                 .MaterialData{ nullptr },// NO MATERIAL FOR NOW
-//                 .IsRendered{ true },
-//                 .LocalScaling{ queueInfo.TextComponent->GetFontSize() },
-//                 .LetterSpacing{ queueInfo.TextComponent->GetLetterSpacing() },
-//                 .Font{ dynamic_cast<VulkanFont*>( queueInfo.TextComponent->GetFont() ) },
-//                 .TextCamera{ queueInfo.TextComponent->GetCamera() }
-//             };
-//
-//             if ( textFindIt != m_TextDrawQueue.end() ) {
-//                 textFindIt->second = textRenderInfo;
-//             } else {
-//                 m_TextDrawQueue.try_emplace( queueInfo.Tag->GetGUID(), textRenderInfo );
-//             }
-//         }
-//
-//         return success;
-//     }
-//
-//     auto VulkanRenderer::RemoveFromDrawQueue( const UInt64_T id ) -> bool {
-//         auto result{ false };
-//
-//         try {
-//             const auto eraseCount{ m_DrawQueue.erase( id ) };
-//             result = eraseCount != 0;
-//
-//             const auto texListEraseCount{ m_TextDrawQueue.erase( id ) };
-//
-//         } catch ( std::exception& exception ) {
-//             MKT_THROW_RUNTIME_ERROR( fmt::format( "VulkanRenderer - {}", exception.what() ) );
-//         }
-//
-//         return result;
-//     }
-//
-//     auto VulkanRenderer::BatchMeshes() -> void {
-//     }
-//
-//     auto VulkanRenderer::HandleRescaling() -> void {
-//         if ( !m_RequestRescale ) {
-//             return;
-//         }
-//
-//         switch ( m_RenderResolution ) {
-//
-//             case RenderResolution::RENDER_RESOLUTION_HD:
-//                 m_OffscreenExtent.width = 1280;
-//                 m_OffscreenExtent.height = 720;
-//                 break;
-//             case RenderResolution::RENDER_RESOLUTION_FHD:
-//                 m_OffscreenExtent.width = 1920;
-//                 m_OffscreenExtent.height = 1080;
-//                 break;
-//             case RenderResolution::RENDER_RESOLUTION_QHD:
-//                 m_OffscreenExtent.width = 2560;
-//                 m_OffscreenExtent.height = 1440;
-//                 break;
-//             case RenderResolution::RENDER_RESOLUTION_UHD:
-//                 m_OffscreenExtent.width = 3840;
-//                 m_OffscreenExtent.height = 2160;
-//                 break;
-//         }
-//
-//         // Naive approach
-//         m_Device->WaitIdle();
-//
-//         m_OffscreenFrameBuffer = nullptr;
-//
-//         m_OffscreenColorAttachment = nullptr;
-//         m_OffscreenDepthAttachment = nullptr;
-//
-//         CreateOffscreenAttachments();
-//         CreateOffscreenFramebuffers();
-//
-//         UpdateViewport( 0, 0, static_cast<float>( m_OffscreenExtent.width ), static_cast<float>( m_OffscreenExtent.height ) );
-//         UpdateScissor( 0, 0, { m_OffscreenExtent.width, m_OffscreenExtent.height } );
-//
-//         // Naive approach
-//         m_Device->WaitIdle();
-//
-//         for ( const auto& callback: m_ResizeCallbacks ) {
-//             callback();
-//         }
-//
-//         m_ResizeCallbacks.clear();
-//
-//         m_RequestRescale = false;
-//     }
-//
-//     auto VulkanRenderer::CreateCommandPools() -> void {
-//         const auto& [Present, Graphics, Compute]{
-//             m_Device->GetLogicalDeviceQueues()
-//         };
-//
-//         // Command pool to allocate command buffers for graphics queue operations
-//         VkCommandPoolCreateInfo graphicsQueueCmdPoolCreateInfo{ VulkanHelpers::Initializers::CommandPoolCreateInfo() };
-//         graphicsQueueCmdPoolCreateInfo.flags = 0;
-//         graphicsQueueCmdPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-//         graphicsQueueCmdPoolCreateInfo.queueFamilyIndex = Graphics->FamilyIndex;
-//
-//         const VulkanCommandPoolCreateInfo vulkanGraphicsQueueCommandPoolCreateInfo{
-//             .CreateInfo{ graphicsQueueCmdPoolCreateInfo },
-//         };
-//
-//         m_GraphicsCommandPool = VulkanCommandPool::Create( vulkanGraphicsQueueCommandPoolCreateInfo );
-//
-//         // Command pool to allocate command buffers for compute queue operations
-//         VkCommandPoolCreateInfo computeQueueCmdPoolCreateInfo{ VulkanHelpers::Initializers::CommandPoolCreateInfo() };
-//         graphicsQueueCmdPoolCreateInfo.flags = 0;
-//         graphicsQueueCmdPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-//         graphicsQueueCmdPoolCreateInfo.queueFamilyIndex = Compute->FamilyIndex;
-//
-//         const VulkanCommandPoolCreateInfo vulkanComputeQueueCommandPoolCreateInfo{
-//             .CreateInfo{ computeQueueCmdPoolCreateInfo },
-//         };
-//
-//         m_ComputeCommandPool = VulkanCommandPool::Create( vulkanComputeQueueCommandPoolCreateInfo );
-//     }
-// }// namespace Mikoto
+/**
+ * VulkanRenderer.cc
+ * Created by kate on 7/3/23.
+ * */
+
+// C++ Standard Library
+#include <array>
+
+// Third-Party Libraries
+#include <volk.h>
+
+#include <Renderer/Vulkan/VulkanRenderer.hh>
+
+namespace Mikoto {
+
+    struct FrameUBO {
+        glm::mat4 View{};
+        glm::mat4 Projection{};
+    };
+
+    struct ObjectUBO {
+        glm::mat4 Transform{};
+    };
+
+    VulkanRenderer::VulkanRenderer( GpuDevice *device, std::string_view name )
+        : RendererBackend{ { name, device } }
+    {}
+
+    auto VulkanRenderer::Init() -> void {
+        // Create data that is needed per frame
+        BufferDescription bufferDesc{};
+        bufferDesc.WithData( nullptr )
+                .WithUsage( BufferUsage::BUFFER_USAGE_UNIFORM )
+                .WithSizeBytes( sizeof(FrameUBO) )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
+        m_FrameUBOBuffer = m_GraphicsDevice->CreateBuffer( bufferDesc );
+
+        m_IsInitialized = true;
+    }
+
+    auto VulkanRenderer::Shutdown() -> void {
+        if (!m_IsInitialized) {
+            return;
+        }
+    }
+
+    auto VulkanRenderer::EndRender() -> void {
+        VkCommandBuffer cmd{ *m_GraphicsCommandList->GetNativeHandle<VulkanCmdList>() };
+
+        vkCmdEndRendering(cmd);
+
+        // transition image after wars so it can be read from, i am not entirely sure about this
+        for (AttachmentInfo& info : m_ColorAttachments) {
+            VulkanTexture* texture{ dynamic_cast<VulkanTexture *>(info.Image.GetRaw()) };
+            texture->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd );
+        }
+    }
+
+    auto VulkanRenderer::BeginRender( const RenderInfo &info, CommandListHandle cmdList ) -> void {
+        m_GraphicsCommandList = cmdList;
+
+        // Save attachments to process later
+        m_ColorAttachments = info.ColorAttachments;
+        m_DepthAttachment = info.DepthAttachment;
+
+        VkCommandBuffer nativeCmd{ *m_GraphicsCommandList->GetNativeHandle<VulkanCmdList>() };
+
+        // Dynamic rendering setup
+        std::vector<VkRenderingAttachmentInfo> colorAttachments;
+        colorAttachments.reserve( info.ColorAttachments.size() );
+
+        for ( const auto &color: info.ColorAttachments ) {
+            const VulkanTexture *colorImage{ dynamic_cast<const VulkanTexture *>( color.Image.GetRaw() ) };
+            VkRenderingAttachmentInfo colorAttachment{};
+            colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+            colorAttachment.imageView = *colorImage->GetView();
+            colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            colorAttachment.loadOp = color.Clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+            colorAttachment.storeOp = color.Store ? VK_ATTACHMENT_STORE_OP_STORE : VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            colorAttachment.clearValue.color = { color.ClearColor.x, color.ClearColor.y, color.ClearColor.z, color.ClearColor.w };
+            colorAttachments.push_back( colorAttachment );
+        }
+
+        const VulkanTexture *depthImage{ dynamic_cast<const VulkanTexture *>( info.DepthAttachment.Image.GetRaw() ) };
+
+        VkRenderingAttachmentInfo depthAttachment{};
+        depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        depthAttachment.imageView = *depthImage->GetView();
+        depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        depthAttachment.loadOp = info.DepthAttachment.Clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+        depthAttachment.storeOp = info.DepthAttachment.Store ? VK_ATTACHMENT_STORE_OP_STORE : VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.clearValue.depthStencil = { info.DepthAttachment.ClearDepth, 0 };
+
+        VkRenderingInfo renderingInfo{};
+        renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        renderingInfo.renderArea = { VkOffset2D{ 0, 0 }, VkExtent2D{ 1920, 1080 } };
+        renderingInfo.layerCount = 1;
+        renderingInfo.colorAttachmentCount = static_cast<uint32_t>( colorAttachments.size() );
+        renderingInfo.pColorAttachments = colorAttachments.data();
+        renderingInfo.pDepthAttachment = std::addressof( depthAttachment );
+
+        vkCmdBeginRendering( nativeCmd, std::addressof( renderingInfo ) );
+    }
+
+    auto VulkanRenderer::SetPipeline( PipelineHandle pipeline ) -> void {
+    }
+
+    auto VulkanRenderer::DrawScene( Scene *scene ) -> void {
+        VkCommandBuffer cmd{*m_GraphicsCommandList->GetNativeHandle<VulkanCmdList>()};
+        VulkanGraphicsPipeline* pipeline{m_Pipeline->GetNativeHandle<VulkanGraphicsPipeline>()};
+
+        // Bind pipeline
+        //vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->Get());
+
+        // We descriptor sets per frequency usage
+        // Bind per-frame descriptor set (set 0)
+        //vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+        //                        pipeline->GetLayout(), 0, 1, std::addressof( m_FrameDescriptorSet ), 0, nullptr);
+        //
+        // // Draw each mesh
+        // for (size_t i = 0; i < scene->GetRenderableMeshes().size(); ++i) {
+        //     auto& mesh = scene->GetRenderableMeshes()[i];
+        //
+        //     // --- Update object transform ---
+        //     ObjectUBO objectUBO{};
+        //     objectUBO.Transform = mesh.transform;
+        //     m_ObjectUBOBuffer->CopyFromBlock(std::addressof(objectUBO), sizeof(ObjectUBO),
+        //                                     i * sizeof(ObjectUBO));
+        //
+        //     // Bind per-object descriptor set
+        //     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+        //                             pipeline->GetLayout(), 1, 1, &m_ObjectDescriptorSet, 0, nullptr);
+        //
+        //     // Bind vertex/index buffers
+        //     VkDeviceSize offsets[] = {0};
+        //     vkCmdBindVertexBuffers(cmd, 0, 1, &mesh.vertexBuffer, offsets);
+        //     vkCmdBindIndexBuffer(cmd, mesh.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        //
+        //     // Draw
+        //     vkCmdDrawIndexed(cmd, mesh.indexCount, 1, 0, 0, 0);
+        // }
+    }
+
+    auto VulkanRenderer::OnResize( UInt32 width, UInt32 height ) -> void {
+    }
+
+    auto VulkanRenderer::SetCamera( const Camera *camera ) -> void {
+        FrameUBO frameUBO{};
+        frameUBO.View = camera->GetViewMatrix();
+        frameUBO.Projection = camera->GetProjection();
+
+        m_FrameUBOBuffer->CopyFromBlock(std::addressof( frameUBO ), sizeof(FrameUBO));
+    }
+
+    auto VulkanRenderer::SetViewport( const float x, const float y, const float width, const float height ) -> void {
+        VkCommandBuffer cmd{ *m_GraphicsCommandList->GetNativeHandle<VulkanCmdList>() };
+
+        m_Viewport.x = x;
+        m_Viewport.y = y;
+        m_Viewport.width  = width;
+        m_Viewport.height = height;
+        m_Viewport.minDepth = 0.0f;
+        m_Viewport.maxDepth = 1.0f;
+
+        m_Scissor.offset = { static_cast<Int32>(x), static_cast<Int32>(y) };
+        m_Scissor.extent = { static_cast<UInt32>(width), static_cast<UInt32>(height) };
+
+        vkCmdSetViewport(cmd, 0, 1, std::addressof( m_Viewport ));
+        vkCmdSetScissor(cmd, 0, 1, std::addressof( m_Scissor ));
+    }
+
+}// namespace Mikoto

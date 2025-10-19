@@ -6,6 +6,7 @@
 // C++ Standard Library
 #include <any>
 #include <array>
+#include <ranges>
 
 // Third-Party Libraries
 #include <GLFW/glfw3.h>
@@ -50,6 +51,14 @@ namespace Mikoto {
         m_ColorImage.Disable();
         m_DepthImage.Disable();
         m_DrawFrameBuffer.Disable();
+
+
+        // Clear texture IDs
+        for (ImGuiTextIDInfo& info : m_ImGuiSets | std::ranges::views::values ) {
+            ImGui_ImplVulkan_RemoveTexture( info.descriptorSet );
+        }
+
+        m_ImGuiSets.clear();
 
         // Wait for remaining operations to complete
         TO_VK_DEVICE( m_GpuDevice )->WaitIdle();
@@ -305,6 +314,28 @@ namespace Mikoto {
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
         }
+    }
+
+    auto ImGuiVulkanBackend::ConstructImGuiTextureID(TextureHandle texture) -> ImTextureID {
+        ImTextureID result{};
+
+        auto itFind{ m_ImGuiSets.find( texture->GetHandle() ) };
+        if ( itFind != m_ImGuiSets.end() ) {
+            result = reinterpret_cast<ImTextureID>(itFind->second.descriptorSet);
+        } else {
+            SamplerHandle sampler{ m_GpuDevice->CreateSampler( SamplerDescription{} ) };
+            VulkanTexture* color{ dynamic_cast<VulkanTexture*>( texture.GetRaw() ) };
+
+            VkDescriptorSet ds{ ImGui_ImplVulkan_AddTexture( *sampler->GetNativeHandle<VulkanSampler>(), *color->GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ) };
+
+            const auto [it, success] {
+                m_ImGuiSets.try_emplace( texture->GetHandle(), ImGuiTextIDInfo{ sampler, texture, ds } )
+            };
+
+            result = reinterpret_cast<ImTextureID>(it->second.descriptorSet);
+        }
+
+        return result;
     }
 
     auto ImGuiVulkanBackend::CreateFrameBuffer() -> void {

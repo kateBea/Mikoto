@@ -13,6 +13,7 @@
 
 // Third-Party Libraries
 #include <volk.h>
+#include <ankerl/unordered_dense.h>
 
 #include <ImGui/ImGuiService.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
@@ -39,6 +40,8 @@ namespace Mikoto {
 
         auto BeginFrame() -> void override;
         auto EndFrame() -> void override;
+
+        MKT_NODISCARD auto ConstructImGuiTextureID(TextureHandle texture) -> ImTextureID override;
 
     private:
         auto InitImGuiForVulkan() -> void;
@@ -68,6 +71,14 @@ namespace Mikoto {
 
         VkExtent2D m_Extent2D{ 2560, 1440 };
         VkExtent3D m_Extent3D{ 2560, 1440, 1 };
+
+        struct ImGuiTextIDInfo {
+            SamplerHandle sampler{};
+            TextureHandle texture{};
+            VkDescriptorSet descriptorSet{};
+        };
+        ankerl::unordered_dense::map<Handle, ImGuiTextIDInfo> m_ImGuiSets{};
+
     };
 }
 

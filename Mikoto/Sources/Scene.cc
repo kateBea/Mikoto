@@ -35,6 +35,10 @@ namespace Mikoto {
         // Install component listeners
     }
 
+    auto Scene::SetState( const SceneState state ) -> void {
+        m_SceneState = state;
+    }
+
     auto Scene::SetName( const std::string_view name ) -> void {
         m_Name = name;
     }

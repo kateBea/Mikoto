@@ -43,6 +43,7 @@ namespace Mikoto {
 
     private:
         VkSampler m_Sampler{ VK_NULL_HANDLE };
+        VkSamplerCreateInfo m_CreateInfo{};
     };
 
     /**

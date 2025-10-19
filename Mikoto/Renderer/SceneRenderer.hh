@@ -6,9 +6,10 @@
 #define SCENERENDERER_HH
 
 #include <Common/Common.hh>
+#include <Library/Data/Registry.hh>
 #include <Renderer/GpuDevice.hh>
-#include <Renderer/RendererBackend.hh>
 #include <Renderer/RenderPass.hh>
+#include <Renderer/RendererBackend.hh>
 #include <Scene/Camera.hh>
 #include <Scene/Scene.hh>
 
@@ -88,6 +89,8 @@ namespace Mikoto {
 
         auto SetCamera( Camera* camera ) -> void;
 
+        auto GetFinalComposition() -> TextureHandle;
+
         /**
          * @brief Creates a new `SceneRenderer` instance.
          *
@@ -111,7 +114,7 @@ namespace Mikoto {
 
         RendererBackend* m_RendererBackend{ nullptr };
 
-        std::vector<Unique<IPass>> m_Passes{};
+        Registry<IPass> m_Passes{};
     };
 }// namespace Mikoto
 

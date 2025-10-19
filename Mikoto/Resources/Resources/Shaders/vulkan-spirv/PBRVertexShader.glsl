@@ -9,32 +9,37 @@
 
 #version 450
 
-// [Uniform buffer elements]
-layout(set = 0, binding = 0) uniform UniformBufferObject {
+// [Uniform buffer containing per frame data]
+layout(set = 0, binding = 0) uniform FrameUBO {
     mat4 View;
     mat4 Projection;
+} frame;
+
+// [Uniform buffer containing per object data]
+layout(set = 1, binding = 0) uniform ObjectUBO {
     mat4 Transform;
-} UniformBufferData;
+} object;
 
 // [Vertex attributes]
 layout(location = 0) in vec3 a_Position;
 layout(location = 1) in vec3 a_Normal;
 layout(location = 2) in vec3 a_Color;
-layout(location = 3) in vec2 a_TextureCoordinates;
+layout(location = 3) in vec2 a_TexCoord;
 
 // [Output data]
 layout(location = 0) out vec3 out_FragmentPos;
-layout(location = 1) out vec3 out_VertexNormals;
-layout(location = 2) out vec2 out_VertexTexCoord;
-layout(location = 3) out vec3 out_VertexColor;
+layout(location = 1) out vec3 out_VertexNormal;
+layout(location = 2) out vec2 out_TexCoord;
+layout(location = 3) out vec3 out_Color;
 
 void main() {
-    // Setup frament shader expected data
-    out_VertexColor = a_Color;
-    out_VertexTexCoord = a_TextureCoordinates;
+    mat4 model = object.Transform;
+    mat3 normalMatrix = mat3(model);
 
-    out_VertexNormals = mat3(UniformBufferData.Transform) * a_Normal;
-    out_FragmentPos = vec3(UniformBufferData.Transform * vec4(a_Position, 1.0));
+    out_Color = a_Color;
+    out_TexCoord = a_TexCoord;
+    out_VertexNormal = normalize(normalMatrix * a_Normal);
+    out_FragmentPos = vec3(model * vec4(a_Position, 1.0));
 
-    gl_Position = UniformBufferData.Projection * UniformBufferData.View * UniformBufferData.Transform * vec4(a_Position, 1.0);
+    gl_Position = frame.Projection * frame.View * model * vec4(a_Position, 1.0);
 }

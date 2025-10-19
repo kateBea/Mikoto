@@ -51,6 +51,8 @@ namespace Mikoto {
         auto Release() -> void override;
         auto Bind(VkCommandBuffer commandBuffer) const -> void;
 
+        MKT_NODISCARD auto GetImplHandle() -> VulkanGraphicsPipeline* { return this; }
+
         MKT_NODISCARD auto Get() const -> const VkPipeline& { return m_GraphicsPipeline; }
         MKT_NODISCARD auto GetLayout() const -> const VkPipelineLayout& { return m_PipelineLayout; }
 
@@ -78,7 +80,9 @@ namespace Mikoto {
         auto Release() -> void override;
         auto Bind(VkCommandBuffer commandBuffer) const -> void;
 
-        MKT_NODISCARD auto Get() const -> const VkPipeline& { return m_GraphicsPipeline; }
+        MKT_NODISCARD auto GetImplHandle() -> VulkanComputePipeline* { return this; }
+
+        MKT_NODISCARD auto Get() const -> const VkPipeline& { return m_ComputePipeline; }
         MKT_NODISCARD auto GetLayout() const -> const VkPipelineLayout& { return m_PipelineLayout; }
 
         ~VulkanComputePipeline() override;
@@ -90,7 +94,7 @@ namespace Mikoto {
         auto Initialize() -> void override;
 
     private:
-        VkPipeline m_GraphicsPipeline{};
+        VkPipeline m_ComputePipeline{};
         VkPipelineLayout m_PipelineLayout{};
         std::span<VkPipelineShaderStageCreateInfo> m_ShaderStages{};
     };

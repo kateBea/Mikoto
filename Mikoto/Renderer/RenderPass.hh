@@ -16,7 +16,7 @@ namespace Mikoto {
     public:
         virtual ~IPass() = default;
 
-        virtual auto Execute() -> void {}
+        virtual auto Execute(CommandListHandle cmd) -> void {}
         virtual auto Init(GpuDevice* device) -> void = 0;
         virtual auto Shutdown() -> void = 0;
     };
@@ -63,7 +63,7 @@ namespace Mikoto {
 
         auto Shutdown() -> void override;
 
-        auto Execute() -> void override;
+        auto Execute(CommandListHandle cmd) -> void override;
 
     private:
         GpuDevice* m_Device{};

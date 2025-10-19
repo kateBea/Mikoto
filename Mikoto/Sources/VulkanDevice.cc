@@ -538,7 +538,21 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreatePipeline( const GraphicsPipelineDescription& description ) -> PipelineHandle {
-        return PipelineHandle::CreateEmpty();
+        auto defaultInfo{ GetDefaultGraphicsPipelineConfigInfo() };
+        defaultInfo.Layout = description.DefaultVertexLayout;
+        defaultInfo.Depth = description.DepthTexture;
+        defaultInfo.ColorAttachments = description.ColorAttachments;
+        defaultInfo.ShaderModules = description.ShaderStages;
+
+        PipelineHandle graphicsPipeline{ m_GraphicsPipelines.Allocate( defaultInfo ).As<IPipeline>() };
+        if ( graphicsPipeline.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreatePipeline - Failed to allocate graphics pipeline resource." );
+            return PipelineHandle::CreateEmpty();
+        }
+
+        graphicsPipeline->Initialize( this );
+
+        return graphicsPipeline;
     }
 
     auto VulkanDevice::LoadShader( const Path& path, ShaderStage stage ) -> ShaderModuleHandle {
@@ -738,9 +752,13 @@ namespace Mikoto {
     }
 
     auto VulkanCmdList::WriteBuffer( Buffer* target, Byte* data, Size size ) -> void {
+        // Can be device local data
+        // Here i can encapsulate all the logic about creating staging buffers etc
     }
 
     auto VulkanCmdList::WriteTexture( Texture* target, Byte* data, Size size ) -> void {
+        // Can be device local data
+        // Here i can encapsulate all the logic about creating staging buffers etc
     }
 
     VulkanCmdList::~VulkanCmdList() {

@@ -11,3 +11,6 @@ sudo apt-get install libgtk-3-dev
 
 # GLFW
 sudo apt install libwayland-dev libxkbcommon-dev xorg-dev
+
+# Optional: GLSL Compiler to SPIR-V
+sudo apt install glslc

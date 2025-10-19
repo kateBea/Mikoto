@@ -36,7 +36,7 @@ namespace Mikoto {
         cmd->Begin();
 
         for ( const Unique<IPass> &pass: m_Passes | std::ranges::views::values ) {
-            pass->Execute();
+            pass->Execute( cmd );
         }
 
         m_RendererBackend->SetCamera( m_Camera );

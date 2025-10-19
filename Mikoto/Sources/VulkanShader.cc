@@ -56,9 +56,13 @@ namespace Mikoto {
     }
 
     auto VulkanShader::Release() -> void {
-        vkDestroyShaderModule( VK_DEVICE(m_Device), m_Module, nullptr );
+        vkDestroyShaderModule( VK_DEVICE( m_Device ), m_Module, nullptr );
 
         m_IsAllocated = false;
+    }
+
+    auto VulkanShader::GetPipelineStageCreateInfo() const -> const VkPipelineShaderStageCreateInfo & {
+        return m_StageCreateInfo;
     }
 
     VulkanShader::~VulkanShader() {

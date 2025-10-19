@@ -31,6 +31,9 @@ namespace Mikoto {
         explicit IPipeline(const PipelineType pipelineType)
             : m_PipelineType{ pipelineType } {}
 
+        explicit IPipeline(const PipelineType pipelineType, const std::vector<ShaderModuleHandle>& shaderModules)
+            : m_PipelineType{ pipelineType }, m_ShaderModules{ shaderModules } {}
+
     protected:
         const PipelineType m_PipelineType{ PipelineType::INVALID_TYPE };
 
@@ -98,12 +101,16 @@ namespace Mikoto {
         BufferLayout DefaultVertexLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT };
         DepthCompareOp DepthCompareOperation{ DepthCompareOp::GREATER_OR_EQUAL };
         std::vector<ShaderModuleHandle> ShaderStages{};
+
+        TextureHandle DepthTexture{  };
+        std::vector<TextureHandle> ColorAttachments{};
     };
 
     class GraphicsPipeline : public IPipeline {
     public:
-        explicit GraphicsPipeline()
-            : IPipeline{ PipelineType::GRAPHICS_PIPELINE } {}
+        explicit GraphicsPipeline(const std::vector<ShaderModuleHandle>& modules)
+            : IPipeline{ PipelineType::GRAPHICS_PIPELINE, modules }
+        {}
 
     protected:
         bool m_BackfaceCulling{ true };

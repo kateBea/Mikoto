@@ -28,8 +28,7 @@ namespace Mikoto {
         VkRenderPass RenderPass{};
 #endif
 
-        //TODO: Review, this causes this struct to pass inconsistent data (diff values when you put this field vs when u don't)
-        //BufferLayout Layout{};
+        BufferLayout Layout{};
 
         VkPipelineViewportStateCreateInfo ViewportInfo{};
         VkPipelineInputAssemblyStateCreateInfo InputAssemblyInfo{};
@@ -41,6 +40,11 @@ namespace Mikoto {
         VkPipelineDynamicStateCreateInfo DynamicStateInfo{};
 
         std::span<const VkDynamicState> DynamicStateEnables{};
+
+        TextureHandle Depth{};
+        std::vector<TextureHandle> ColorAttachments{};
+
+        std::vector<ShaderModuleHandle> ShaderModules{};
     };
 
     class VulkanGraphicsPipeline final : public GraphicsPipeline {
@@ -65,7 +69,14 @@ namespace Mikoto {
         auto Initialize() -> void override;
 
     private:
+        // Needed when using dynamic rendering
+        // format is not dynamic
+        VkFormat m_DepthAttachmentFormat{};
+        std::vector<VkFormat> m_ColorAttachmentsFormats{};
+
         BufferLayout m_BufferLayout{};
+
+        VulkanHelpers::Reflection::ReflectedData m_ReflectionData{};
 
         VkPipeline m_GraphicsPipeline{};
         VkPipelineLayout m_PipelineLayout{};
@@ -94,6 +105,7 @@ namespace Mikoto {
         auto Initialize() -> void override;
 
     private:
+
         VkPipeline m_ComputePipeline{};
         VkPipelineLayout m_PipelineLayout{};
         std::span<VkPipelineShaderStageCreateInfo> m_ShaderStages{};

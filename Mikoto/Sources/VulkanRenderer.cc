@@ -103,6 +103,7 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::SetPipeline( PipelineHandle pipeline ) -> void {
+        m_Pipeline = pipeline;
     }
 
     auto VulkanRenderer::DrawScene( Scene *scene ) -> void {
@@ -110,7 +111,10 @@ namespace Mikoto {
         VulkanGraphicsPipeline* pipeline{m_Pipeline->GetNativeHandle<VulkanGraphicsPipeline>()};
 
         // Bind pipeline
-        //vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->Get());
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->Get());
+
+        // TODO: test only this goees for the FullScreen shaders
+        vkCmdDraw(cmd, 3, 1, 0, 0); // Only 3 vertices, no vertex buffers or descriptors
 
         // We descriptor sets per frequency usage
         // Bind per-frame descriptor set (set 0)

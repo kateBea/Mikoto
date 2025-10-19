@@ -129,11 +129,11 @@ namespace Mikoto {
         RenderService::Get()->EndFrame();
     }
 
-    auto Root::UpdateState(float timeStep) -> void {
+    auto Root::UpdateState( const float timeStep ) -> void {
 
         for (const auto &service: s_Services | std::views::values ) {
             if (service->IsInitialized()) {
-                service->Update( static_cast<float>( timeStep ) );
+                service->Update( timeStep );
             }
         }
     }

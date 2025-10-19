@@ -190,7 +190,7 @@ namespace Mikoto {
 
     auto VulkanSwapChain::Initialize() -> void {
         if ( m_Surface == nullptr ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanSwapChain::Init - Error the surface for the swapchain is null." );
+            MKT_THROW_RUNTIME_ERROR( "VulkanSwapChain::Initialize - Error the surface for the swapchain is null." );
         }
 
         /**
@@ -203,14 +203,14 @@ namespace Mikoto {
          *
          * this validation error is triggered at times when resizing the main window (GLFW window)
          * */
-        CreateSwapChain();
+        CreateSwpChain();
 
-        AcquireSwapchainImages();
+        GetImages();
 
         m_IsAllocated = true;
     }
 
-    auto VulkanSwapChain::CreateSwapChain() -> void {
+    auto VulkanSwapChain::CreateSwpChain() -> void {
         const auto [Capabilities, Formats, PresentModes]{
             VulkanHelpers::GetSwapChainSupport( TO_VK_DEVICE( m_Device )->GetPhysicalDevice(), *m_Surface )
         };
@@ -296,7 +296,6 @@ namespace Mikoto {
                 m_StagingBuffer->CopyFromBlock( m_Data, m_ImageSize );
             }
 
-            // Setup
             m_ImageCreateInfo = VulkanHelpers::Initializers::ImageCreateInfo();
 
             const VkExtent3D extent{
@@ -372,7 +371,7 @@ namespace Mikoto {
         m_IsAllocated = true;
     }
 
-    auto VulkanSwapChain::AcquireSwapchainImages() -> void {
+    auto VulkanSwapChain::GetImages() -> void {
         static VulkanDevice& device{ *TO_VK_DEVICE( m_Device ) };
 
         UInt32 imageCount{};
@@ -387,13 +386,13 @@ namespace Mikoto {
         vkGetSwapchainImagesKHR( device.GetLogicalDevice(), m_Swapchain, std::addressof( imageCount ), images.data() );
 
         UInt32 imageIndex{ 0 };
-        for ( VkImage image: images ) {
-            auto& insertedImg{ m_Images.emplace_back( device.CreateSwapChainTextures( CreateSwapchainImageViewCreateInfo( image, m_Format ), m_Extent ) ) };
+        for ( const VkImage image: images ) {
+            auto& insertedImg{ m_Images.emplace_back( device.CreateSwapChainTextures( ConstructImgViewInfo( image, m_Format ), m_Extent ) ) };
             insertedImg->SetDebugName( fmt::format( "Swapchain Img - {}", imageIndex++ ) );
         }
     }
 
-    auto VulkanSwapChain::CreateSwapchainImageViewCreateInfo( VkImage image, const VkFormat& format ) -> VkImageViewCreateInfo {
+    auto VulkanSwapChain::ConstructImgViewInfo( VkImage image, const VkFormat& format ) -> VkImageViewCreateInfo {
         VkImageViewCreateInfo createInfo{ VulkanHelpers::Initializers::ImageViewCreateInfo() };
         createInfo.image = image;
         createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -422,8 +421,15 @@ namespace Mikoto {
         return vkAcquireNextImageKHR( VK_DEVICE( m_Device ), m_Swapchain, ( std::numeric_limits<UInt64>::max )(), imageAvailable, VK_NULL_HANDLE, std::addressof( imageIndex ) );
     }
 
+    auto VulkanSwapChain::OnResize( const VkExtent2D newDimensions, const bool vsync ) -> void {
+        m_Extent = newDimensions;
+        m_IsVsyncEnabled = vsync;
+
+        Initialize();
+    }
+
     auto VulkanSwapChain::Present( const UInt32 imageIndex, const VkSemaphore& renderFinished ) -> VkResult {
-        VulkanDevice& device{ *TO_VK_DEVICE( m_Device ) };
+        const VulkanDevice& device{ *TO_VK_DEVICE( m_Device ) };
 
         const std::array swapChains{ m_Swapchain };
         const std::array signalSemaphores{ renderFinished };
@@ -439,9 +445,7 @@ namespace Mikoto {
         presentInfo.waitSemaphoreCount = signalSemaphores.size();
         presentInfo.pWaitSemaphores = signalSemaphores.data();
 
-        // Only the GUI is directly rendering to the swapchain images at the moment.
-        // Generally, the renderer is drawing to a texture which can then be copied to a
-        // swap chain image ready for render and then be presented
+        // Advance to next frame
         m_CurrentFrame = ( m_CurrentFrame + 1 ) % MAX_FRAMES_IN_FLIGHT;
 
         const auto& [Present, Graphics, Compute]{ device.GetLogicalDeviceQueues() };
@@ -450,7 +454,6 @@ namespace Mikoto {
         if ( Present.has_value() && Present->Queue != VK_NULL_HANDLE ) {
             presentQueue = Present->Queue;
         } else if ( Graphics.has_value() && Graphics->Queue != VK_NULL_HANDLE ) {
-            // Present and graphics queue may have the same index
             presentQueue = Graphics->Queue;
         } else {
             MKT_CORE_LOGGER_ERROR( "VulkanSwapChain::Present - No presentation queue available." );
@@ -525,13 +528,12 @@ namespace Mikoto {
     }
 
     VulkanSwapChain::~VulkanSwapChain() {
-        Release();
+        if (m_IsAllocated) {
+            Release();
+        }
     }
 
     auto VulkanSwapChain::Release() -> void {
-        if ( !m_IsAllocated ) {
-            return;
-        }
 
         // Wait on outstanding queue operations because there might be some objects still in use by the GPU
         TO_VK_DEVICE( m_Device )->WaitIdle();

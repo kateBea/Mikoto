@@ -65,6 +65,12 @@ namespace Mikoto {
     static auto GetShaderStagesInfo(std::span<ShaderModuleHandle> shaders) -> std::vector<VkPipelineShaderStageCreateInfo> {
         std::vector<VkPipelineShaderStageCreateInfo> shaderStagesInfos{};
 
+        for (auto& shader : shaders) {
+            if (!shader.IsEmpty()) {
+                const auto vkModule{ dynamic_cast<VulkanShader*>(shader.GetRaw() ) };
+                shaderStagesInfos.emplace_back(vkModule->GetPipelineStageCreateInfo());
+            }
+        }
 
         return shaderStagesInfos;
     }
@@ -76,9 +82,19 @@ namespace Mikoto {
         return result;
     }
 
-    VulkanGraphicsPipeline::VulkanGraphicsPipeline( const VulkanGraphicsPipelineCreateInfo& info ) {}
+    VulkanGraphicsPipeline::VulkanGraphicsPipeline( const VulkanGraphicsPipelineCreateInfo& info)
+        : GraphicsPipeline{ info.ShaderModules }, m_ConfigInfo{ info }, m_BufferLayout{ info.Layout } {
+
+        m_DepthAttachmentFormat = dynamic_cast<const VulkanTexture*>(info.Depth.GetRaw() )->GetViewCreateInfo().format;
+
+        for (auto& attachment : info.ColorAttachments) {
+            m_ColorAttachmentsFormats.emplace_back( dynamic_cast<const VulkanTexture*>(attachment.GetRaw() )->GetViewCreateInfo().format );
+        }
+    }
 
     auto VulkanGraphicsPipeline::Release() -> void {
+        DestroyReflectedPipeline( VK_DEVICE(m_Device), m_ReflectionData );
+
         vkDestroyPipeline( VK_DEVICE(m_Device), m_GraphicsPipeline, nullptr );
         m_IsAllocated = false;
     }
@@ -112,7 +128,13 @@ namespace Mikoto {
         pipelineInfo.pStages = shaderStageInfos.data();
 
         // Pipeline layout
-        const auto pipelineLayout { CreatePipelineLayout(m_ShaderModules) };
+        std::vector<std::vector<UInt32>> shaderBlocks{};
+        for (const auto& shader : m_ShaderModules) {
+            shaderBlocks.emplace_back( (UInt32*)shader->GetContents(), (UInt32*)(shader->GetContents() + shader->GetContentSize()) );
+        }
+
+        VkResult res{ ReflectSPIRV( VK_DEVICE(m_Device), shaderBlocks, m_ReflectionData ) };
+        const auto pipelineLayout { m_ReflectionData.pipelineLayout };
         if (pipelineLayout == VK_NULL_HANDLE) {
             MKT_THROW_RUNTIME_ERROR( "VulkanComputePipeline::Initialize - Layout is null handle" );
         }
@@ -122,14 +144,30 @@ namespace Mikoto {
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VulkanHelpers::Initializers::PipelineVertexInputStateCreateInfo() };
 
         // Binding descriptions (define data layout)
-        const auto& bindingDesc{ GetDefaultBindingDescriptions( m_BufferLayout ) };
-        const auto& attributeDesc{ GetDefaultAttributeDescriptions( m_BufferLayout ) };
-        vertexInputInfo.vertexBindingDescriptionCount = bindingDesc.size();
-        vertexInputInfo.vertexAttributeDescriptionCount = attributeDesc.size();
-        vertexInputInfo.pVertexAttributeDescriptions = attributeDesc.data();
-        vertexInputInfo.pVertexBindingDescriptions = bindingDesc.data();
+        if (m_BufferLayout.HasElements()) {
+            const auto& bindingDesc{ GetDefaultBindingDescriptions( m_BufferLayout ) };
+            const auto& attributeDesc{ GetDefaultAttributeDescriptions( m_BufferLayout ) };
+            vertexInputInfo.vertexBindingDescriptionCount = bindingDesc.size();
+            vertexInputInfo.vertexAttributeDescriptionCount = attributeDesc.size();
+            vertexInputInfo.pVertexAttributeDescriptions = attributeDesc.data();
+            vertexInputInfo.pVertexBindingDescriptions = bindingDesc.data();
+        } else {
+            vertexInputInfo.vertexBindingDescriptionCount = 0;
+            vertexInputInfo.vertexAttributeDescriptionCount = 0;
+            vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+            vertexInputInfo.pVertexBindingDescriptions = nullptr;
+        }
+
+        // Create pipeline rendering info for dynamic rendering
+        VkPipelineRenderingCreateInfo renderingInfo{};
+        renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+        renderingInfo.colorAttachmentCount = static_cast<UInt32>(m_ColorAttachmentsFormats.size());
+        renderingInfo.pColorAttachmentFormats = m_ColorAttachmentsFormats.data();
+        renderingInfo.depthAttachmentFormat = m_DepthAttachmentFormat;
+        renderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
         // Pipeline create info submit
+        pipelineInfo.pNext = std::addressof( renderingInfo );
         pipelineInfo.pVertexInputState = std::addressof( vertexInputInfo );
         pipelineInfo.pInputAssemblyState = std::addressof( m_ConfigInfo.InputAssemblyInfo );
         pipelineInfo.pViewportState = std::addressof( m_ConfigInfo.ViewportInfo );

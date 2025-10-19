@@ -41,14 +41,17 @@ namespace Mikoto {
         m_DepthTarget->SetDebugName( "Final pass depth texture" );
 
         // Build your PBR graphics pipeline
-        ShaderModuleHandle pbrVertex{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/PBRVertexShader.sprv", ShaderStage::VERTEX_STAGE ) };
-        ShaderModuleHandle pbrFragment{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/PBRFragmentShader.sprv", ShaderStage::FRAGMENT_STAGE ) };
+        ShaderModuleHandle pbrVertex{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/FullscreenTriangle_Vert.sprv", ShaderStage::VERTEX_STAGE ) };
+        ShaderModuleHandle pbrFragment{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/FullscreenTriangle_Frag.sprv", ShaderStage::FRAGMENT_STAGE ) };
 
         GraphicsPipelineDescription pipelineDesc{};
         pipelineDesc.ShaderStages = { pbrVertex, pbrFragment };
         pipelineDesc.DepthTest = true;
         pipelineDesc.DepthWrite = true;
         pipelineDesc.AlphaBlending = true;
+        pipelineDesc.DefaultVertexLayout = {};
+        pipelineDesc.DepthTexture = m_DepthTarget;
+        pipelineDesc.ColorAttachments = { m_ColorTarget };
 
         m_Pipeline = m_Device->CreatePipeline(pipelineDesc);
     }
@@ -66,6 +69,7 @@ namespace Mikoto {
                               cmd );
 
         backend->SetViewport( 0, 0, 1920, 1080 );
+        backend->SetPipeline( m_Pipeline );
 
         backend->DrawScene( m_Scene );
 
@@ -86,7 +90,7 @@ namespace Mikoto {
     auto ComputeBasic::Shutdown() -> void {
     }
 
-    auto ComputeBasic::Execute() -> void {
+    auto ComputeBasic::Execute(CommandListHandle cmd) -> void {
 
     }
 }// namespace Mikoto

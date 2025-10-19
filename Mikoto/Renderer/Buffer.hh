@@ -118,6 +118,7 @@ namespace Mikoto {
             ComputeOffsetAndStride();
         }
 
+        MKT_NODISCARD auto HasElements() const -> bool { return m_Items.size() != 0; }
         MKT_NODISCARD auto GetElements() const -> const std::vector<BufferElement>& { return m_Items; }
         MKT_NODISCARD auto GetCount() const -> Size { return m_Items.size(); }
         MKT_NODISCARD auto GetStride() const { return m_Stride; }

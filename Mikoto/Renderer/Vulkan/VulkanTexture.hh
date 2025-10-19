@@ -139,7 +139,7 @@ namespace Mikoto {
         // you do not really want to do the swap chain of creating a new one, that is maybe in the cae you have another window
         // but if you want to recreate this swap chain because a resizing of the surface happened, then you don't need a new one
         // as in new VulkanSwapChain instance you just need a "recreate logic"
-        // auto OnResize(VkExtent2D newDimensions, bool vsync = false) -> void;
+        auto OnResize(VkExtent2D newDimensions, bool vsync = false) -> void;
 
         ~VulkanSwapChain() override;
 
@@ -149,13 +149,13 @@ namespace Mikoto {
         auto Release() -> void override;
         auto Initialize() -> void override;
 
-        auto CreateSwapChain() -> void;
-        auto AcquireSwapchainImages() -> void;
+        auto CreateSwpChain() -> void;
+        auto GetImages() -> void;
 
         MKT_NODISCARD auto ChoosePresentMode( const std::vector<VkPresentModeKHR>& availablePresentModes ) const -> VkPresentModeKHR;
         MKT_NODISCARD auto ChooseExtent( const VkSurfaceCapabilitiesKHR& capabilities ) const -> VkExtent2D;
 
-        MKT_NODISCARD static auto CreateSwapchainImageViewCreateInfo( VkImage image, const VkFormat& format ) -> VkImageViewCreateInfo;
+        MKT_NODISCARD static auto ConstructImgViewInfo( VkImage image, const VkFormat& format ) -> VkImageViewCreateInfo;
         MKT_NODISCARD static auto ChooseSurfaceFormat( const std::vector<VkSurfaceFormatKHR>& availableFormats ) -> VkSurfaceFormatKHR;
 
     private:

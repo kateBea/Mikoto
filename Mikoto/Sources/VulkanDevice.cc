@@ -280,6 +280,7 @@ namespace Mikoto {
         m_GraphicsPipelines.Init( 10 );
         m_ComputePipelines.Init( 10 );
         m_Shaders.Init( 10 );
+        m_Samplers.Init( 10 );
 
         // Pre-initialize available pools
         UInt32 poolCount{ 2 };
@@ -354,18 +355,32 @@ namespace Mikoto {
         // Requested device features
         VkPhysicalDeviceFeatures deviceFeatures{};
         deviceFeatures.samplerAnisotropy = VK_TRUE;
-        deviceFeatures.fillModeNonSolid = VK_TRUE;// required for wireframe mode
+
+        // required for wireframe mode
+        deviceFeatures.fillModeNonSolid = VK_TRUE;
 
         VkPhysicalDeviceVulkan13Features vulkan13Features{ VulkanHelpers::Initializers::PhysicalDeviceVulkan13Features() };
-        vulkan13Features.synchronization2 = VK_TRUE;// required for vkCmdPipelineBarrier2 used when image transitions
+
+        // required for vkCmdPipelineBarrier2 used when image transitions
+        vulkan13Features.synchronization2 = VK_TRUE;
 
 #if defined( MKT_USE_VULKAN_DYNAMIC_RENDERING )
         vulkan13Features.dynamicRendering = VK_TRUE;
 #endif
 
+        VkPhysicalDeviceVulkan12Features enabled12Features{ VulkanHelpers::Initializers::PhysicalDeviceVulkan12Features() };
+
+        // Enable bind-less
+        enabled12Features.descriptorIndexing = VK_TRUE;
+        enabled12Features.runtimeDescriptorArray = VK_TRUE;
+        enabled12Features.descriptorBindingPartiallyBound = VK_TRUE;
+        enabled12Features.descriptorBindingVariableDescriptorCount = VK_TRUE;
+        enabled12Features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+        enabled12Features.pNext = std::addressof( vulkan13Features );
+
         VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{ VulkanHelpers::Initializers::PhysicalDeviceFeatures2() };
         physicalDeviceFeatures2.features = deviceFeatures;
-        physicalDeviceFeatures2.pNext = std::addressof( vulkan13Features );
+        physicalDeviceFeatures2.pNext = std::addressof( enabled12Features );
 
         VkDeviceCreateInfo createInfo{ VulkanHelpers::Initializers::DeviceCreateInfo() };
         createInfo.queueCreateInfoCount = static_cast<UInt32>( queueCreateInfos.size() );
@@ -423,6 +438,7 @@ namespace Mikoto {
         m_GraphicsPipelines.Shutdown();
         m_ComputePipelines.Shutdown();
         m_Shaders.Shutdown();
+        m_Samplers.Shutdown();
 
         MKT_CORE_LOGGER_INFO( "VulkanDevice::Shutdown - Shutting down Vulkan Device." );
 
@@ -505,6 +521,18 @@ namespace Mikoto {
         return framebuffer;
     }
 
+    auto VulkanDevice::CreateSampler( const SamplerDescription& description ) -> SamplerHandle {
+        SamplerHandle sampler{ m_Samplers.Allocate( description ).As<Sampler>() };
+        if ( sampler.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateSampler - Failed to allocate sampler resource." );
+            return SamplerHandle::CreateEmpty();
+        }
+
+        sampler->Initialize( this );
+
+        return sampler;
+    }
+
     auto VulkanDevice::CreatePipeline( const ComputePipelineDescription& description ) -> PipelineHandle {
         return PipelineHandle::CreateEmpty();
     }
@@ -531,13 +559,13 @@ namespace Mikoto {
             }
 
             // Test reflection
-            ReflectedData reflected;
-
-            std::vector<UInt32> block{ (UInt32*)(result->GetContents()), (UInt32*)(result->GetContents()+result->GetContentSize()) };
-            VkResult r = ReflectSPIRV(m_LogicalDevice, {block}, reflected);
-            if (r != VK_SUCCESS) {
-
-            }
+            // ReflectedData reflected;
+            //
+            // std::vector<UInt32> block{ (UInt32*)(result->GetContents()), (UInt32*)(result->GetContents()+result->GetContentSize()) };
+            // VkResult r = ReflectSPIRV(m_LogicalDevice, {block}, reflected);
+            // if (r != VK_SUCCESS) {
+            //
+            // }
         }
 
         return result;

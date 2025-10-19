@@ -24,20 +24,41 @@
 namespace Mikoto {
 
     VulkanSampler::VulkanSampler( const SamplerDescription& desc ) {
+        // Create a Sampler for the texture we will display in the viewport
+        m_CreateInfo = VulkanHelpers::Initializers::SamplerCreateInfo();
+
+        m_CreateInfo.magFilter = VK_FILTER_LINEAR;
+        m_CreateInfo.minFilter = VK_FILTER_LINEAR;
+        m_CreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+        m_CreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        m_CreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        m_CreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+
+        m_CreateInfo.maxAnisotropy = 1.0f;
+        m_CreateInfo.mipLodBias = 0.0f;
+        m_CreateInfo.minLod = 0.0f;
+        m_CreateInfo.maxLod = 1.0f;
+        m_CreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
     }
 
     VulkanSampler::~VulkanSampler() {
-        if ( !m_IsAllocated ) {
-            return;
+        if ( m_IsAllocated ) {
+            Release();
         }
-
-        Release();
     }
 
     auto VulkanSampler::Release() -> void {
+        vkDestroySampler( VK_DEVICE(m_Device), m_Sampler, nullptr );
+        m_IsAllocated = false;
     }
 
     auto VulkanSampler::Initialize() -> void {
+        if ( vkCreateSampler( VK_DEVICE(m_Device), std::addressof( m_CreateInfo ), nullptr, std::addressof( m_Sampler ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanSampler::Initialize - Failed to create sampler!" );
+        }
+
+        m_IsAllocated = true;
     }
 
     VulkanTexture::VulkanTexture( const TextureDescription& data )

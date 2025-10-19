@@ -126,7 +126,15 @@ namespace Mikoto {
     }
 
     auto ImGuiService::SetImGuiBackGroundClearColor( const Vec4F &color ) -> void {
-        m_Implementation->SetClearColor(color);
+        m_Implementation->SetClearColor( color );
+    }
+
+    auto ImGuiService::GetBackend() -> ImGuiBackend * {
+        return m_Implementation.get();
+    }
+
+    auto ImGuiService::GetBackend() const -> const ImGuiBackend * {
+        return m_Implementation.get();
     }
 
 

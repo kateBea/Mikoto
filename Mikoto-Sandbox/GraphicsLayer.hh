@@ -32,6 +32,7 @@ namespace Mikoto {
         auto SetupRenderer() -> void;
 
         auto UpdateCamera( float timeStep ) -> void;
+        auto DrawViewport() const -> void;
         auto DisplayCameraDebugInfo() const -> void;
 
     private:

@@ -8,6 +8,8 @@
 #include <Core/InputService.hh>
 #include <Filesystem/FileService.hh>
 #include <GraphicsLayer.hh>
+#include <ImGui/ImGuiService.hh>
+#include <ImGui/ImGuiUtility.hh>
 #include <Memory/Allocator.hh>
 #include <Renderer/RenderService.hh>
 #include <Renderer/RenderUtility.hh>
@@ -82,16 +84,18 @@ namespace Mikoto {
     }
 
     auto GraphicsLayer::OnUpdate( const float deltaTime ) -> void {
+        ImGuiUtils::ImGuiScopedBorderColor borderColor{ {66, 200, 255, 255 } };
+
         UpdateCamera( deltaTime );
         DisplayCameraDebugInfo();
 
-#if false// No render flow yet
         m_MainScene->SetState( SceneState::IDLE );
 
         m_Renderer->SetScene( m_MainScene.get() );
         m_Renderer->SetCamera( m_SceneCamera.get() );
         m_Renderer->Render( deltaTime );
-#endif
+
+        DrawViewport();
     }
 
     auto GraphicsLayer::LoadModels() -> void {
@@ -226,6 +230,21 @@ namespace Mikoto {
         }
 
         m_SceneCamera->UpdateState( timeStep );
+    }
+
+    auto GraphicsLayer::DrawViewport() const -> void {
+        if ( ImGui::Begin( "Viewport" ) ) {
+            ImGuiBackend* backend{ ImGuiService::Get()->GetBackend() };
+            TextureHandle finalComposition{ m_Renderer->GetFinalComposition() };
+
+            const ImVec2 dim{ ImGui::GetContentRegionAvail() };
+
+            ImTextureID textureID{ backend->ConstructImGuiTextureID(finalComposition) };
+            ImGui::Image(textureID,  ImVec2{ dim.x, dim.y }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+
+
+            ImGui::End();
+        }
     }
 
     auto GraphicsLayer::DisplayCameraDebugInfo() const -> void {

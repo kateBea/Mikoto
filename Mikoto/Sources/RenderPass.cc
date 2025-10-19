@@ -56,20 +56,24 @@ namespace Mikoto {
     auto ShadingPass::Shutdown() -> void {
     }
 
-    auto ShadingPass::SetRenderData( Scene *scene, std::span<Light> lights ) -> void {
+    auto ShadingPass::SetScene( Scene *scene) -> void {
         m_Scene = scene;
-        m_Lights = lights;
     }
 
-    auto ShadingPass::Render( const FrameContext &frame, RendererBackend *backend ) -> void {
-        backend->BeginRender(frame, {
-            .DepthAttachment{ m_DepthTarget },
-            .ColorAttachments{ { m_ColorTarget } }
-        });
+    auto ShadingPass::Render( RendererBackend *backend, CommandListHandle cmd ) -> void {
+        backend->BeginRender( { .DepthAttachment{ m_DepthTarget },
+                                .ColorAttachments{ { m_ColorTarget } } },
+                              cmd );
 
-        backend->DrawScene(m_Scene, m_Lights);
+        backend->SetViewport( 0, 0, 1920, 1080 );
+
+        backend->DrawScene( m_Scene );
 
         backend->EndRender();
+    }
+
+    auto ShadingPass::GetFinalComposition() -> TextureHandle {
+        return m_ColorTarget;
     }
 
     auto ShadingPass::OnResize( const UInt32 width, const UInt32 height ) -> void {

@@ -154,13 +154,13 @@ namespace Mikoto {
     }
 
     auto VulkanComputePipeline::Release() -> void {
-        vkDestroyPipeline( VK_DEVICE( m_Device ), m_GraphicsPipeline, nullptr );
+        vkDestroyPipeline( VK_DEVICE( m_Device ), m_ComputePipeline, nullptr );
         m_IsAllocated = false;
     }
 
     auto VulkanComputePipeline::Bind( VkCommandBuffer commandBuffer ) const -> void {
-        MKT_ASSERT( m_GraphicsPipeline != VK_NULL_HANDLE, "VulkanComputePipeline::Bind - Compute pipeline is null." );
-        vkCmdBindPipeline( commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline );
+        MKT_ASSERT( m_ComputePipeline != VK_NULL_HANDLE, "VulkanComputePipeline::Bind - Compute pipeline is null." );
+        vkCmdBindPipeline( commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ComputePipeline );
     }
 
     VulkanComputePipeline::~VulkanComputePipeline() {
@@ -185,7 +185,7 @@ namespace Mikoto {
         computePipelineCreateInfo.stage = shaderStageInfos.front(); // I use front because compute pipeline only have one stage, the compute shader
         computePipelineCreateInfo.layout = pipelineLayout;
 
-        if ( vkCreateComputePipelines( VK_DEVICE(m_Device), VK_NULL_HANDLE, 1, std::addressof( computePipelineCreateInfo ), nullptr, std::addressof( m_GraphicsPipeline ) ) != VK_SUCCESS ) {
+        if ( vkCreateComputePipelines( VK_DEVICE(m_Device), VK_NULL_HANDLE, 1, std::addressof( computePipelineCreateInfo ), nullptr, std::addressof( m_ComputePipeline ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanComputePipeline::Initialize - Failed to create compute pipeline" );
         }
     }

@@ -26,7 +26,7 @@ namespace Mikoto {
     public:
         ~IRenderPass() override = default;
 
-        virtual auto Render(const FrameContext& frame, RendererBackend* backend) -> void = 0;
+        virtual auto Render(RendererBackend* backend, CommandListHandle cmd) -> void = 0;
 
         virtual auto OnResize(UInt32 width, UInt32 height) -> void {}
     };
@@ -38,9 +38,11 @@ namespace Mikoto {
 
         auto Shutdown() -> void override;
 
-        auto SetRenderData(Scene* scene, std::span<Light> lights) -> void;
+        auto SetScene(Scene* scene) -> void;
 
-        auto Render(const FrameContext& frame, RendererBackend* backend) -> void override;
+        auto Render(RendererBackend* backend, CommandListHandle cmd) -> void override;
+
+        MKT_NODISCARD auto GetFinalComposition() -> TextureHandle;
 
         auto OnResize(UInt32 width, UInt32 height) -> void override;
 
@@ -48,7 +50,6 @@ namespace Mikoto {
         GpuDevice* m_Device{};
 
         Scene* m_Scene{};
-        std::span<Light> m_Lights{};
 
         PipelineHandle m_Pipeline{};
         TextureHandle m_ColorTarget{};

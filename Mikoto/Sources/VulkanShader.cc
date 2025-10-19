@@ -62,7 +62,7 @@ namespace Mikoto {
     }
 
     VulkanShader::~VulkanShader() {
-        if ( !m_IsAllocated ) {
+        if ( m_IsAllocated ) {
             Release();
         }
     }

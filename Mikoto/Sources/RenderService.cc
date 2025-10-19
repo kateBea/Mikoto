@@ -11,7 +11,7 @@
 #include <Common/Common.hh>
 #include <Logging/Logger.hh>
 #include <Renderer/RenderService.hh>
-#include <Renderer/Vulkan/VulkanContext.hh>
+#include <Renderer/Vulkan/VulkanRenderer.hh>
 
 namespace Mikoto {
 
@@ -44,6 +44,8 @@ namespace Mikoto {
         // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down RenderService..." );
 
+        m_RenderBackends.clear();
+
         m_Context->Shutdown();
         m_Context = nullptr;
 
@@ -70,5 +72,21 @@ namespace Mikoto {
     auto RenderService::Flush() -> void {
 
         m_Context->SubmitFrame();
+    }
+
+    auto RenderService::CreateRendererBackend( const std::string_view name) -> RendererBackend * {
+        RendererBackend* renderer{ nullptr };
+
+        switch ( m_ActiveAPI ) {
+            case GraphicsAPI::VULKAN_API:
+
+                renderer = m_RenderBackends.emplace_back(CreateScope<VulkanRenderer>( GetGpuDevice(), name )).get();
+            break;
+            default:
+                MKT_CORE_LOGGER_CRITICAL( "RenderService::CreateRendererBackend - Error Unsupported renderer API!" );
+            break;
+        }
+
+        return renderer;
     }
 }

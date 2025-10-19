@@ -42,7 +42,9 @@ namespace Mikoto {
         virtual auto BeginFrame() -> void = 0;
         virtual auto EndFrame() -> void = 0;
 
-        auto SetClearColor(const Vec4F& color) -> void { m_ClearColor = color; };
+        auto SetClearColor(const Vec4F& color) -> void { m_ClearColor = color; }
+
+        MKT_NODISCARD virtual auto ConstructImGuiTextureID(TextureHandle texture) -> ImTextureID = 0;
 
         virtual ~ImGuiBackend() = default;
 
@@ -79,6 +81,9 @@ namespace Mikoto {
         auto GetFonts() -> std::vector<ImFont*>& { return m_Fonts; }
 
         auto SetImGuiBackGroundClearColor(const Vec4F& color) -> void;
+
+        MKT_NODISCARD auto GetBackend() -> ImGuiBackend*;
+        MKT_NODISCARD auto GetBackend() const -> const ImGuiBackend*;
 
     private:
 

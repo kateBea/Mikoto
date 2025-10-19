@@ -31,6 +31,19 @@ namespace Mikoto::ImGuiUtils {
         }
     };
 
+    class ImGuiScopedBorderColor {
+    public:
+        explicit ImGuiScopedBorderColor( Vec4F color, float thickness = 1.0f ) {
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, thickness );
+            ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(color.r, color.g, color.b, color.a));
+        }
+
+        ~ImGuiScopedBorderColor() {
+            ImGui::PopStyleColor();
+            ImGui::PopStyleVar();
+        }
+    };
+
     MKT_NODISCARD inline auto PushImageButton( UInt64 textureId, const VkDescriptorSet textureHandle, const ImVec2 size ) -> bool {
         const ImTextureID icon{ reinterpret_cast<ImTextureID>( textureHandle ) };
         return ImGui::ImageButton( StringUtils::ToString( textureId ).c_str(), icon, size, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );

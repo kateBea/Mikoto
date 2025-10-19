@@ -6,6 +6,7 @@
 
 #include <Assets/AssetsService.hh>
 #include <Filesystem/FileService.hh>
+#include <ImGui/ImGuiUtility.hh>
 #include <MusicPlayerLayer.hh>
 
 namespace Mikoto {
@@ -26,6 +27,7 @@ namespace Mikoto {
     }
 
     auto MusicPlayerLayer::OnUpdate( float /*deltaTime*/ ) -> void {
+        ImGuiUtils::ImGuiScopedBorderColor borderColor{ {0, 200, 255, 255 } };
         ImGui::Begin( "\uf025 Music Player", nullptr, ImGuiWindowFlags_AlwaysAutoResize );
 
         DrawLoadAudioUI();

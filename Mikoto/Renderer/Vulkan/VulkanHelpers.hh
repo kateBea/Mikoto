@@ -555,6 +555,17 @@ namespace Mikoto::VulkanHelpers::Initializers {
     }
 
     /**
+     * Returns a default initialized VkPhysicalDeviceVulkan12Features structure
+     * @returns default initialized VkPhysicalDeviceVulkan12Features
+     * */
+    inline auto PhysicalDeviceVulkan12Features() -> VkPhysicalDeviceVulkan12Features {
+        VkPhysicalDeviceVulkan12Features ret{};
+        ret.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+
+        return ret;
+    }
+
+    /**
      * Returns a default initialized VkPhysicalDeviceFeatures2 structure
      * @returns default initialized VkPhysicalDeviceFeatures2
      * */

@@ -5,10 +5,14 @@
 #ifndef RENDERSYSTEM_HH
 #define RENDERSYSTEM_HH
 
+#include <string_view>
+
 #include <Common/Common.hh>
 #include <Common/Service.hh>
 #include <Platform/Window.hh>
 #include <Renderer/GpuDevice.hh>
+
+#include "RendererBackend.hh"
 
 namespace Mikoto {
 
@@ -73,12 +77,16 @@ namespace Mikoto {
         MKT_NODISCARD auto IsGraphicsActive( GraphicsAPI api ) const -> bool;
         MKT_NODISCARD auto GetActiveGraphicsApi() const -> GraphicsAPI { return m_ActiveAPI; }
 
+        MKT_NODISCARD auto CreateRendererBackend( const std::string_view name ) -> RendererBackend*;
+
     private:
         auto Flush() -> void;
 
     private:
         RenderServiceCreateInfo m_Options{};
         Unique<RenderContext> m_Context{ nullptr };
+
+        std::vector<Unique<RendererBackend>> m_RenderBackends{};
 
         GraphicsAPI m_ActiveAPI{ GraphicsAPI::VULKAN_API };
     };

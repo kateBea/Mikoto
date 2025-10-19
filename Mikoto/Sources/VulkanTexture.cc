@@ -184,7 +184,6 @@ namespace Mikoto {
 
     VulkanSwapChain::VulkanSwapChain( const VulkanSwapChainCreateInfo& createInfo )
         : m_Extent{ createInfo.Extent },
-          m_OldSwapChain{ createInfo.OldSwapChain },
           m_Surface{ createInfo.Surface },
           m_IsVsyncEnabled{ createInfo.EnableVsync } {
     }

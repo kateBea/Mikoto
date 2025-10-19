@@ -113,7 +113,6 @@ namespace Mikoto {
         VkExtent2D Extent{};
         VkSurfaceKHR* Surface{};
         bool EnableVsync{ false };
-        VkSwapchainKHR OldSwapChain{ VK_NULL_HANDLE };
     };
 
     class VulkanSwapChain final : public DeviceObject {
@@ -135,6 +134,12 @@ namespace Mikoto {
         MKT_NODISCARD auto GetCurrentFrameIndex() const -> UInt32 { return m_CurrentFrame; }
 
         MKT_NODISCARD auto GetNextRenderableImage( UInt32& imageIndex, VkFence fence = VK_NULL_HANDLE, VkSemaphore imageAvailable = VK_NULL_HANDLE ) const -> VkResult;
+
+        // TODO: Destroy this swap chain and create a new one
+        // you do not really want to do the swap chain of creating a new one, that is maybe in the cae you have another window
+        // but if you want to recreate this swap chain because a resizing of the surface happened, then you don't need a new one
+        // as in new VulkanSwapChain instance you just need a "recreate logic"
+        // auto OnResize(VkExtent2D newDimensions, bool vsync = false) -> void;
 
         ~VulkanSwapChain() override;
 
@@ -162,7 +167,6 @@ namespace Mikoto {
     private:
         VkExtent2D m_Extent{};
         VkSwapchainKHR m_Swapchain{ VK_NULL_HANDLE };
-        VkSwapchainKHR m_OldSwapChain{ VK_NULL_HANDLE };
 
         VkFormat m_Format{};
         VkPresentModeKHR m_PresentMode{};

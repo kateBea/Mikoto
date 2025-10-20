@@ -116,7 +116,7 @@ Mikoto uses **Lua 5.4+** for scripting. To set it up on Linux, follow these step
 
 1. Download Lua from the official Lua downloads page: [https://www.lua.org/download.html](https://www.lua.org/download.html) and get the `.tar.gz` file.
 
-2. Extract the archive and navigate into the directory:
+2. Run the following commands in your terminal:
 ```bash
 # Access contents
 tar -xvf lua-5.4.8.tar.gz
@@ -127,6 +127,23 @@ sudo make
 sudo make test
 sudo make install
 ```
+
+If you are on Windows and have MinGW installed, you can use the following commands to build and install Lua:
+
+```bash
+# Access contents
+tar -xvf lua-5.4.8.tar.gz
+cd lua-5.4.8/src
+
+# Install and tests lua
+sudo make
+sudo make mingw
+```
+
+After this you would need to set the variables in your environment to point to the Lua installation path.
+- ``LUA_DIR``: Path to the Lua installation directory.
+- ``LUA_INCLUDE_DIR``: Path to the Lua include directory (usually ``<LUA_DIR>/include``).
+- ``LUA_LIBRARY``: Path to the Lua library file (usually ``<LUA_DIR>/lib/lua.a`` or ``<LUA_DIR>/lib/lua.lib`` or so).
 
 If lua has been installed, the command ``lua -v`` should print something like the following:
 

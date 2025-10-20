@@ -329,9 +329,6 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(sol2)
 
-# Lua (system package)
-find_package(Lua51 REQUIRED)
-
 # harfbuzz (not needed if you don't do complex text layout)
 #FetchContent_Declare(
 #        harfbuzz

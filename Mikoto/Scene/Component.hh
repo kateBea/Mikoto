@@ -86,6 +86,10 @@ namespace Mikoto {
         MKT_NODISCARD auto GetTransform() const -> const glm::mat4& { return m_Transform; }
         MKT_NODISCARD auto HasUniformScale() const -> bool { return m_HasUniformScale; }
 
+        MKT_NODISCARD auto GetRotationQuat() const -> glm::quat {
+            return glm::quat(m_Rotation);
+        }
+
         /**
          * Computes the model matrix for for this component according to the transform vectors
          * @param position specifies the object translation value
@@ -128,6 +132,16 @@ namespace Mikoto {
             m_Transform = Math::RecomputeTransform(m_Translation, m_Scale, m_Rotation);
         }
 
+        auto SetRotation(const glm::quat& quaternion) -> void {
+            m_Rotation = glm::eulerAngles(quaternion);
+
+            m_Transform = Math::RecomputeTransform(m_Translation, m_Scale, m_Rotation);
+
+            // m_Transform = glm::translate(glm::mat4(1.0f), m_Translation)
+            //             * glm::toMat4(quaternion)
+            //             * glm::scale(glm::mat4(1.0f), m_Scale);
+        }
+
         auto SetScale(const Vec3F& value) -> void {
             if (!m_HasUniformScale) {
                 m_Scale = value;
@@ -165,7 +179,7 @@ namespace Mikoto {
 
     private:
         // Transform vectors
-        Vec3F m_Translation{};
+        Vec3F m_Translation{ 0.0f, 100.0f, 0.0f };
         Vec3F m_Rotation{};
         Vec3F m_Scale{};
 
@@ -373,26 +387,61 @@ namespace Mikoto {
 
     class RigidBodyComponent {
     public:
+
+        enum class BodyType {
+            STATIC,
+            KINEMATIC,
+            DYNAMIC
+        };
+
         explicit RigidBodyComponent() = default;
 
-        RigidBodyComponent(const RigidBodyComponent & other) = default;
-        RigidBodyComponent(RigidBodyComponent && other) = default;
+        RigidBodyComponent(const RigidBodyComponent&) = default;
+        RigidBodyComponent(RigidBodyComponent&&) noexcept = default;
 
-        auto operator=(const RigidBodyComponent & other) -> RigidBodyComponent & = default;
-        auto operator=(RigidBodyComponent && other) -> RigidBodyComponent & = default;
+        auto operator=(const RigidBodyComponent&) -> RigidBodyComponent& = default;
+        auto operator=(RigidBodyComponent&&) noexcept -> RigidBodyComponent& = default;
 
         ~RigidBodyComponent() = default;
 
         MKT_NODISCARD auto GetMass() const -> float { return m_Mass; }
+        auto SetMass(const float mass) -> void { m_Mass = mass; }
 
-        auto OnComponentAttach() -> void {  }
-        auto OnComponentUpdate() -> void {  }
-        auto OnComponentRemoved() -> void {  }
+        MKT_NODISCARD auto GetFriction() const -> float { return m_Friction; }
+        auto SetFriction(const float friction) -> void { m_Friction = friction; }
+
+        MKT_NODISCARD auto UseGravity() const -> bool { return m_UseGravity; }
+        auto SetUseGravity(const bool enabled) -> void { m_UseGravity = enabled; }
+
+        MKT_NODISCARD auto GetBodyType() const -> BodyType { return m_BodyType; }
+        MKT_NODISCARD auto IsBodyType(const BodyType type) const -> bool { return m_BodyType == type; }
+        MKT_NODISCARD auto IsDynamic() const -> bool { return m_BodyType == BodyType::DYNAMIC; }
+        auto SetBodyType(const BodyType type) -> void { m_BodyType = type; }
+
+        // Called by ECS lifecycle
+        auto OnComponentAttach() -> void {}
+        auto OnComponentUpdate(float dt) -> void {}
+        auto OnComponentRemoved() -> void {}
+
+        MKT_NODISCARD auto GetInternalBodyHandle() const -> std::uintptr_t* { return m_InternalBodyHandle; }
+        auto SetInternalBodyHandle(std::uintptr_t* ptr) -> void {
+            if (ptr) {
+                m_InternalBodyHandle = ptr;
+            }
+        }
+
+        auto RemoveBodyHandle() -> void {
+            m_InternalBodyHandle = nullptr;
+        }
 
     private:
-        float m_Mass{};
-        float m_Friction{};
-        bool m_UseGravity{};
+        float m_Mass{1.0f};
+        float m_Friction{0.5f};
+        bool m_UseGravity{true};
+        BodyType m_BodyType{true};
+
+        // Internal handle (opaque, backend-specific)
+        std::uintptr_t* m_InternalBodyHandle{nullptr};
     };
 
     class ColliderComponent {

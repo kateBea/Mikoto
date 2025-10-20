@@ -9,12 +9,11 @@
 #include <string_view>
 
 // Third-Party Libraries
-#include "GLFW/glfw3.h"
+#include <GLFW/glfw3.h>
 
 // Project Headers
+#include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
-
-#include "Common/Common.hh"
 
 #if defined(USE_GLFW_INPUT)
     #define MKT_KEY_SPACE              GLFW_KEY_SPACE

@@ -38,7 +38,7 @@ namespace Mikoto {
     protected:
         std::string m_Name{};
         bool m_Apply{ true };
-        glm::vec4 m_Color{ 1.0f, 1.0f, 1.0f, 1.0f };
+        Vec4F m_Color{ 1.0f, 1.0f, 1.0f, 1.0f };
     };
 
     using MaterialHandle = Ref<Material>;

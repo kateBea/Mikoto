@@ -7,21 +7,13 @@
 
 #include <miniaudio.h>
 
+#include <Assets/Audio.hh>
 #include <Audio/AudioUtility.hh>
 #include <Library/Data/ResourcePool.hh>
 #include <Library/Utility/Types.hh>
 
-#ifdef MIKOTO_USE_AUDIO_ENGINE_INTERFACE
-#define MIKOTO_USE_MINIAUDIO_ENGINE
-#else
-#define MIKOTO_USE_MINIAUDIO_DEVICE
-#endif
 
 namespace Mikoto {
-
-    class Audio;
-
-    using AudioHandle = Ref<Audio>;
 
     /**
      * @brief Represents the configuration and description of an audio device.
@@ -30,7 +22,7 @@ namespace Mikoto {
      * such as sample rate, format, and any other settings required to initialize the audio system.
      */
     struct AudioDeviceDescription {
-
+        UInt32 MaxListenersCount{ 5 };
     };
 
     /**
@@ -68,12 +60,18 @@ namespace Mikoto {
         * (which includes the file path and other parameters like volume). It returns a handle
         * to the loaded audio resource.
         *
-        * @param description The `AudioDescription` that contains the source file and properties
-        *                    for the audio.
+        * @param description The `AudioDescription` that contains the source file and properties for the audio.
         * @return A handle to the loaded audio resource.
         */
         auto LoadAudio( const AudioLoadDescription& description ) -> AudioHandle;
 
+        /**
+        * @brief Retrieves an audio that might have been loaded before
+        *
+        * Returns an audio that was cached. If the audio does not exist, it returns an empty handle.
+        * @param uri Uri to the cached audio.
+        * @return Handle to the cached audio.
+        */
         auto GetAudio(const std::string& uri) -> AudioHandle;
 
 
@@ -86,11 +84,7 @@ namespace Mikoto {
 
     private:
         ma_engine m_AudioEngine{};
-        ma_device_config m_DeviceConfig{};
-
-#ifndef MIKOTO_USE_AUDIO_ENGINE_INTERFACE
-        ma_device m_Device{};
-#endif
+        ma_engine_config m_EngineConfig{};
 
         ResourcePoolTyped<Audio> m_LoadedAudios{};
         ankerl::unordered_dense::map<std::string, Handle> m_CachedAudios{};

@@ -187,6 +187,8 @@ namespace Mikoto {
         AudioDevice* m_Device{ nullptr };
     };
 
+    using AudioSourceHandle = Ref<AudioSource>;
+
 }// namespace Mikoto
 
 

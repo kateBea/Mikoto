@@ -471,7 +471,6 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE)
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_RADIANS)
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE MIKOTO_USE_AUDIO_ENGINE_INTERFACE)
 target_compile_definitions(${PROJECT_NAME} PRIVATE MKT_USE_VULKAN_DYNAMIC_RENDERING)
 
 # ======================================

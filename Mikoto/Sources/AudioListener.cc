@@ -31,11 +31,9 @@ namespace Mikoto {
     auto AudioListener::Apply() const -> void {
         AudioDevice* engine{ AudioService::GetPtr()->GetDevice() };
 
-#if defined(MIKOTO_USE_AUDIO_ENGINE_INTERFACE)
         ma_engine_listener_set_position(&engine->m_AudioEngine, 0, m_Position.x, m_Position.y, m_Position.z);
         ma_engine_listener_set_direction(&engine->m_AudioEngine, 0, m_Forward.x, m_Forward.y, m_Forward.z);
         ma_engine_listener_set_velocity(&engine->m_AudioEngine, 0, m_Velocity.x, m_Velocity.y, m_Velocity.z);
-#endif
 
     }
 }

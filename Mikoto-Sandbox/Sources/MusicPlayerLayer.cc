@@ -93,6 +93,16 @@ namespace Mikoto {
             } };
             ImGui::Text( "%s / %s (s)", formatTime( audioProgress ).c_str(), formatTime( totalDuration ).c_str() );
         }
+        ImGui::SameLine();
+
+        if (!m_Target.IsEmpty()) {
+            bool spatialized{ m_Target->IsSpatialized() };
+
+            if (ImGui::Checkbox( "Spatialized", std::addressof( spatialized ))) {
+                m_Target->SetSpatialization( spatialized );
+            }
+        }
+
         ImGui::EndGroup();
 
         ImGui::End();

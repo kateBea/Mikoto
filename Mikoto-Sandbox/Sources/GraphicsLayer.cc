@@ -33,10 +33,10 @@ namespace Mikoto {
         // Describe the buffer
         BufferDescription desc{};
         desc.WithSizeBytes( vertexData.size() * sizeof( vertexData[0] ) )
-                .WithData( AsBytes( vertexData.data() ) )
-                .WithUsage( BufferUsage::BUFFER_USAGE_VERTEX )
-                .WithBufferDataType( BufferDataType::BUFFER_DATA_FLOAT32 )
-                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+            .WithData( AsBytes( vertexData.data() ) )
+            .WithUsage( BufferUsage::BUFFER_USAGE_VERTEX )
+            .WithBufferDataType( BufferDataType::BUFFER_DATA_FLOAT32 )
+            .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
         // Create it through the GPU device (Vulkan or otherwise)
         const auto gpuDev{ RenderService::Get()->GetGpuDevice() };
@@ -45,9 +45,9 @@ namespace Mikoto {
         // Allocate staging buffer to copy over the texture data
         BufferDescription stagingDesc{};
         stagingDesc.WithData( nullptr )
-                .WithUsage( BufferUsage::BUFFER_USAGE_STAGING )
-                .WithSizeBytes( MKT_MEGABYTES( 10 ) )
-                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
+                   .WithUsage( BufferUsage::BUFFER_USAGE_STAGING )
+                   .WithSizeBytes( MKT_MEGABYTES( 10 ) )
+                   .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
         stagingBuffer = gpuDev->CreateBuffer( stagingDesc );
 
         TextureLoadDescription loadDesc{};
@@ -61,7 +61,7 @@ namespace Mikoto {
         ShaderModuleHandle pbrFragment{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/StandardFragmentShader.sprv", ShaderStage::FRAGMENT_STAGE ) };
     }
 
-    GraphicsLayer::GraphicsLayer( std::string_view name, const Window* window )
+    GraphicsLayer::GraphicsLayer( std::string_view name, const Window *window )
         : ILayer{ name }, m_Window{ window } {}
 
     auto GraphicsLayer::OnCreate() -> void {
@@ -83,8 +83,58 @@ namespace Mikoto {
         m_Renderer = nullptr;
     }
 
+    auto GraphicsLayer::UpdateListener() -> void {
+        TransformComponent &transform{ m_Listener->GetComponent<TransformComponent>() };
+        AudioListenerComponent &listenerComp{ m_Listener->GetComponent<AudioListenerComponent>() };
+        AudioListener &listener{ listenerComp.GetListener() };
+
+        if (ImGui::Begin( "Audio Listener" )) {
+            // === Position ===
+            Vec3F position{ transform.GetTranslation() };
+            if (ImGui::DragFloat3( "Position", glm::value_ptr( position ), 0.1f )) {
+                listener.SetPosition( position.x, position.y, position.z );
+                transform.SetTranslation( position );
+            }
+
+            // === Orientation ===
+            static Vec3F forward{ 0.0f, 0.0f, -1.0f };
+            static Vec3F up{ 0.0f, 1.0f, 0.0f };
+            ImGui::SeparatorText( "Orientation" );
+            ImGui::DragFloat3( "Forward", glm::value_ptr( forward ), 0.05f, -1.0f, 1.0f );
+            ImGui::DragFloat3( "Up", glm::value_ptr( up ), 0.05f, -1.0f, 1.0f );
+            if (ImGui::Button( "Apply Orientation" )) {
+                listener.SetOrientation( forward.x, forward.y, forward.z, up.x, up.y, up.z );
+            }
+
+            // === Velocity ===
+            static Vec3F velocity{ 0.0f, 0.0f, 0.0f };
+            ImGui::SeparatorText( "Velocity" );
+            if (ImGui::DragFloat3( "Velocity", glm::value_ptr( velocity ), 0.1f )) {
+                listener.SetVelocity( velocity.x, velocity.y, velocity.z );
+            }
+
+            ImGui::Separator();
+            static bool autoApply{ true };
+            if (ImGui::Checkbox( "Auto apply", std::addressof( autoApply ) )) {
+
+            }
+            if (!autoApply) {
+                ImGui::SameLine(  );
+                if (ImGui::Button( "Apply Listener State" )) {
+                    listener.Apply();
+                }
+            } else {
+                listener.Apply();
+            }
+
+            ImGui::End();
+        }
+    }
+
     auto GraphicsLayer::OnUpdate( const float deltaTime ) -> void {
-        ImGuiUtils::ImGuiScopedBorderColor borderColor{ {66, 200, 255, 255 } };
+        ImGuiUtils::ImGuiScopedBorderColor borderColor{ { 66, 200, 255, 255 } };
+
+        UpdateListener();
 
         UpdateCamera( deltaTime );
         DisplayCameraDebugInfo();
@@ -119,44 +169,44 @@ namespace Mikoto {
         m_MainScene->SetName( "Change name just for fun" );
 
         // This emits sounds
-        Entity* entity{ m_MainScene->CreateEntity( "Ball" ) };
-        if ( entity ) {
+        Entity *entity{ m_MainScene->CreateEntity( "Ball" ) };
+        if (entity) {
             entity->AddComponent<ScriptComponent>( "hello_world.lua" );
             entity->AddComponent<AudioSourceComponent>( "my_song.mp3" );
         }
 
         // Load a model with multiples mesh nodes for testing
-        Entity* multipleNodes{ m_MainScene->CreateEntity( EntityCreateInfo{
-                .Root{ entity },
-                .Name{ "Npc" },
-                .Model{ m_ModelMultipleMeshes },
+        Entity *multipleNodes{ m_MainScene->CreateEntity( EntityCreateInfo{
+            .Root{ entity },
+            .Name{ "Npc" },
+            .Model{ m_ModelMultipleMeshes },
         } ) };
 
-        if ( entity ) {
+        if (entity) {
             multipleNodes->AddComponent<ScriptComponent>( "idle.lua" );
             multipleNodes->AddComponent<AudioSourceComponent>( "quack.mp3" );
         }
 
         // Load a model with multiples mesh nodes for testing
-        Entity* multipleNodesNoRoot{ m_MainScene->CreateEntity( EntityCreateInfo{
-                .Root{ nullptr },
-                .Name{ "Npc 1" },
-                .Model{ m_ModelMultipleMeshes },
+        Entity *multipleNodesNoRoot{ m_MainScene->CreateEntity( EntityCreateInfo{
+            .Root{ nullptr },
+            .Name{ "Npc 1" },
+            .Model{ m_ModelMultipleMeshes },
         } ) };
 
-        if ( multipleNodesNoRoot ) {
+        if (multipleNodesNoRoot) {
             multipleNodesNoRoot->AddComponent<ScriptComponent>( "idle.lua" );
             multipleNodesNoRoot->AddComponent<AudioSourceComponent>( "quack.mp3" );
         }
 
         // Load a model 1 node mesh nodes for testing
-        Entity* rootNoMultiple{ m_MainScene->CreateEntity( EntityCreateInfo{
-                .Root{ multipleNodesNoRoot },
-                .Name{ "Npc 2" },
-                .Model{ m_ModelSingleMesh },
+        Entity *rootNoMultiple{ m_MainScene->CreateEntity( EntityCreateInfo{
+            .Root{ multipleNodesNoRoot },
+            .Name{ "Npc 2" },
+            .Model{ m_ModelSingleMesh },
         } ) };
 
-        if ( rootNoMultiple ) {
+        if (rootNoMultiple) {
             rootNoMultiple->AddComponent<ScriptComponent>( "idle.lua" );
             rootNoMultiple->AddComponent<AudioSourceComponent>( "quack.mp3" );
         }
@@ -164,25 +214,19 @@ namespace Mikoto {
         // This can hear sound and has a camera
         // it would make sense as we generally want stuff close to the camera to be heard
         // the further they are from the camera, the less we can hear sources
-        Entity* listener{ m_MainScene->CreateEntity( "PlushCat" ) };
-        if ( listener ) {
-            listener->AddComponent<CameraComponent>();
-            listener->AddComponent<ScriptComponent>( "hello_world.lua" );
-            listener->AddComponent<AudioListenerComponent>();
+        m_Listener = m_MainScene->CreateEntity( "PlushCat" );
+        if (m_Listener) {
+            m_Listener->AddComponent<CameraComponent>();
+            m_Listener->AddComponent<ScriptComponent>( "hello_world.lua" );
+            AudioListenerComponent &listenerComp{ m_Listener->AddComponent<AudioListenerComponent>() };
+            AudioListener &audioListener{ listenerComp.GetListener() };
+            audioListener.Apply();
         }
 
         // Some checks just to test the Scene interface
-        if ( m_MainScene->ExistsByName( "PlushCat" ) ) {
-            MKT_CORE_LOGGER_WARN( "Entity with name {} exists.", "PlushCat" );
-        } else {
-            MKT_CORE_LOGGER_WARN( "Entity with name {} not exists.", "PlushCat" );
-        }
+        if (m_MainScene->ExistsByName( "PlushCat" )) { MKT_CORE_LOGGER_WARN( "Entity with name {} exists.", "PlushCat" ); } else { MKT_CORE_LOGGER_WARN( "Entity with name {} not exists.", "PlushCat" ); }
 
-        if ( m_MainScene->ExistsByID( 4 ) ) {
-            MKT_CORE_LOGGER_WARN( "Entity with ID {} exists.", 4 );
-        } else {
-            MKT_CORE_LOGGER_WARN( "Entity with ID {} does not exist.", 4 );
-        }
+        if (m_MainScene->ExistsByID( 4 )) { MKT_CORE_LOGGER_WARN( "Entity with ID {} exists.", 4 ); } else { MKT_CORE_LOGGER_WARN( "Entity with ID {} does not exist.", 4 ); }
     }
 
     auto GraphicsLayer::SetupCamera() -> void {
@@ -198,13 +242,11 @@ namespace Mikoto {
     auto GraphicsLayer::SetupRenderer() -> void {
         SceneRendererCreateInfo spec{};
         spec.WithName( "Scene renderer" )
-                .WithDevice( RenderService::Get()->GetGpuDevice() );
+            .WithDevice( RenderService::Get()->GetGpuDevice() );
 
         m_Renderer = SceneRenderer::Create( spec );
 
-        if ( m_Renderer ) {
-            m_Renderer->Init();
-        }
+        if (m_Renderer) { m_Renderer->Init(); }
     }
 
     auto GraphicsLayer::UpdateCamera( float timeStep ) -> void {
@@ -223,24 +265,20 @@ namespace Mikoto {
         // we render to the window here not to an imgui viewport
         m_SceneCamera->SetViewportSize( m_Window->GetWidth(), m_Window->GetHeight() );
 
-        if ( InputService::Get()->IsMouseKeyPressed( Mouse_Button_Right ) ) {
-            m_SceneCamera->EnableCamera( true );
-        } else {
-            m_SceneCamera->EnableCamera( false );
-        }
+        if (InputService::Get()->IsMouseKeyPressed( Mouse_Button_Right )) { m_SceneCamera->EnableCamera( true ); } else { m_SceneCamera->EnableCamera( false ); }
 
         m_SceneCamera->UpdateState( timeStep );
     }
 
     auto GraphicsLayer::DrawViewport() const -> void {
-        if ( ImGui::Begin( "Viewport" ) ) {
-            ImGuiBackend* backend{ ImGuiService::Get()->GetBackend() };
+        if (ImGui::Begin( "Viewport" )) {
+            ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
             TextureHandle finalComposition{ m_Renderer->GetFinalComposition() };
 
             const ImVec2 dim{ ImGui::GetContentRegionAvail() };
 
-            ImTextureID textureID{ backend->ConstructImGuiTextureID(finalComposition) };
-            ImGui::Image(textureID,  ImVec2{ dim.x, dim.y }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+            ImTextureID textureID{ backend->ConstructImGuiTextureID( finalComposition ) };
+            ImGui::Image( textureID, ImVec2{ dim.x, dim.y }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
 
 
             ImGui::End();
@@ -248,43 +286,38 @@ namespace Mikoto {
     }
 
     auto GraphicsLayer::DisplayCameraDebugInfo() const -> void {
-        if ( ImGui::Begin( "Camera Properties" ) ) {
+        if (ImGui::Begin( "Camera Properties" )) {
             ImGui::Text( "Camera Debug Info" );
             ImGui::Separator();
 
             // --- Position ---
-            glm::vec3 position = m_SceneCamera->GetPosition();
-            if ( ImGui::DragFloat3( "Position", glm::value_ptr( position ), 0.1f ) )
-                m_SceneCamera->SetPosition( position );
+            glm::vec3 position{ m_SceneCamera->GetPosition() };
+            if (ImGui::DragFloat3( "Position", glm::value_ptr( position ), 0.1f )) m_SceneCamera->SetPosition( position );
 
             // --- Rotation ---
-            glm::vec3 rotation = m_SceneCamera->GetRotation();
-            if ( ImGui::DragFloat3( "Rotation (deg)", glm::value_ptr( rotation ), 0.5f ) )
-                m_SceneCamera->SetRotation( rotation );
+            glm::vec3 rotation{ m_SceneCamera->GetRotation() };
+            if (ImGui::DragFloat3( "Rotation (deg)", glm::value_ptr( rotation ), 0.5f )) m_SceneCamera->SetRotation( rotation );
 
             ImGui::Separator();
 
             // --- Projection ---
-            float fov = m_SceneCamera->GetFOV();
-            if ( ImGui::SliderFloat( "Field of View", &fov, 10.0f, 120.0f ) )
-                m_SceneCamera->SetFieldOfView( fov );
+            float fov{ m_SceneCamera->GetFOV() };
+            if (ImGui::SliderFloat( "Field of View", &fov, 10.0f, 120.0f )) m_SceneCamera->SetFieldOfView( fov );
 
-            float nearPlane = m_SceneCamera->GetNearPlane();
-            float farPlane = m_SceneCamera->GetFarPlane();
+            float nearPlane{ m_SceneCamera->GetNearPlane() };
+            float farPlane{ m_SceneCamera->GetFarPlane() };
 
-            if ( ImGui::DragFloat( "Near Plane", &nearPlane, 0.01f, 0.01f, farPlane - 0.1f ) )
-                m_SceneCamera->SetNearPlane( nearPlane );
+            if (ImGui::DragFloat( "Near Plane", &nearPlane, 0.01f, 0.01f, farPlane - 0.1f )) m_SceneCamera->SetNearPlane( nearPlane );
 
-            if ( ImGui::DragFloat( "Far Plane", &farPlane, 1.0f, nearPlane + 0.1f, 10000.0f ) )
-                m_SceneCamera->SetFarPlane( farPlane );
+            if (ImGui::DragFloat( "Far Plane", &farPlane, 1.0f, nearPlane + 0.1f, 10000.0f )) m_SceneCamera->SetFarPlane( farPlane );
 
             ImGui::Separator();
 
             // --- Projection type (combo box) ---
-            static const char* projectionTypes[] = { "Perspective", "Orthographic" };
+            static const char *projectionTypes[]{ "Perspective", "Orthographic" };
             int currentProjection = m_SceneCamera->IsOrthographic() ? 1 : 0;
 
-            if ( ImGui::Combo( "Projection Type", &currentProjection, projectionTypes, IM_ARRAYSIZE( projectionTypes ) ) ) {
+            if (ImGui::Combo( "Projection Type", &currentProjection, projectionTypes, IM_ARRAYSIZE( projectionTypes ) )) {
                 m_SceneCamera->SetProjectionType(
                         currentProjection == 0 ? ProjectionType::PERSPECTIVE : ProjectionType::ORTHOGRAPHIC );
             }
@@ -292,11 +325,11 @@ namespace Mikoto {
             ImGui::Separator();
 
             // --- Matrices ---
-            if ( ImGui::TreeNode( "Matrices" ) ) {
-                const glm::mat4& view = m_SceneCamera->GetViewMatrix();
-                const glm::mat4& proj = m_SceneCamera->GetProjection();
+            if (ImGui::TreeNode( "Matrices" )) {
+                const glm::mat4 &view{ m_SceneCamera->GetViewMatrix() };
+                const glm::mat4 &proj{ m_SceneCamera->GetProjection() };
 
-                if ( ImGui::BeginTable( "MatrixTable", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg ) ) {
+                if (ImGui::BeginTable( "MatrixTable", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg )) {
                     ImGui::TableSetupColumn( "Row" );
                     ImGui::TableSetupColumn( "View C0" );
                     ImGui::TableSetupColumn( "View C1" );
@@ -304,7 +337,8 @@ namespace Mikoto {
                     ImGui::TableSetupColumn( "View C3" );
                     ImGui::TableHeadersRow();
 
-                    for ( int i = 0; i < 4; ++i ) {
+
+                    for (Int32 i{}; i < 4; ++i) {
                         ImGui::TableNextRow();
                         ImGui::TableSetColumnIndex( 0 );
                         ImGui::Text( "Row %d", i );
@@ -324,7 +358,7 @@ namespace Mikoto {
 
                 ImGui::Spacing();
 
-                if ( ImGui::BeginTable( "ProjectionMatrixTable", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg ) ) {
+                if (ImGui::BeginTable( "ProjectionMatrixTable", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg )) {
                     ImGui::TableSetupColumn( "Row" );
                     ImGui::TableSetupColumn( "Proj C0" );
                     ImGui::TableSetupColumn( "Proj C1" );
@@ -332,7 +366,7 @@ namespace Mikoto {
                     ImGui::TableSetupColumn( "Proj C3" );
                     ImGui::TableHeadersRow();
 
-                    for ( int i = 0; i < 4; ++i ) {
+                    for (Int32 i{}; i < 4; ++i) {
                         ImGui::TableNextRow();
                         ImGui::TableSetColumnIndex( 0 );
                         ImGui::Text( "Row %d", i );

@@ -64,7 +64,7 @@ namespace Mikoto {
         auto Apply() const -> void;
 
     private:
-        Vec3F m_Position{ 0.0f, 0.0f, 0.0f };
+        Vec3F m_Position{ -15.0f, 0.0f, 0.0f };
         Vec3F m_Forward{ 0.0f, 0.0f, -1.0f };
         Vec3F m_Up{ 0.0f, 1.0f, 0.0f };
         Vec3F m_Velocity{ 0.0f, 0.0f, 0.0f };

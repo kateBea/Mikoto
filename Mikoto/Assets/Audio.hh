@@ -15,8 +15,6 @@
 
 namespace Mikoto {
 
-    using AudioSourceHandle = Ref<AudioSource>;
-
     /**
     * @class AudioDeviceObject
     * @brief Represents a resource associated with an audio device.
@@ -56,6 +54,8 @@ namespace Mikoto {
 
         ResourcePoolTyped<AudioSource> m_Sources{};
     };
+
+    using AudioHandle = Ref<Audio>;
 
 }// namespace Mikoto
 

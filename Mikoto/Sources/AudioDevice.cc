@@ -10,44 +10,23 @@
 
 namespace Mikoto {
 
-#ifdef MIKOTO_USE_MINIAUDIO_DEVICE
-    static auto DataCallback( ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount ) -> void {
-        auto* pAudio = static_cast<Audio*>( pDevice->pUserData );
-        if ( pAudio == nullptr || !pAudio->IsLoaded() ) return;
-
-        ma_decoder_read_pcm_frames( &pAudio->m_Decoder, pOutput, frameCount, nullptr );
-    }
-#endif
 
     AudioDevice::AudioDevice(const AudioDeviceDescription& desc) {
-#ifdef MIKOTO_USE_MINIAUDIO_DEVICE
-        m_DeviceConfig = ma_device_config_init( ma_device_type_playback );
-#endif
-
+        m_EngineConfig = ma_engine_config_init();
+        m_EngineConfig.listenerCount = desc.MaxListenersCount;
     }
 
     auto AudioDevice::Init() -> void {
-#ifdef MIKOTO_USE_MINIAUDIO_DEVICE
-        m_DeviceConfig.sampleRate = 44100;// Default sample rate
-        m_DeviceConfig.dataCallback = DataCallback;
-
-        if ( ma_device_init( nullptr, &m_DeviceConfig, &m_Device ) != MA_SUCCESS ) {
-            // Handle initialization failure
+        ma_result result{ ma_engine_init( nullptr, &m_AudioEngine ) };
+        if( result != MA_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "AudioDevice::Init - Failed to initialize audio device" );
         }
-#else
-        ma_engine_init( nullptr, &m_AudioEngine );
-#endif
 
         m_LoadedAudios.Init( 10 );
     }
 
     auto AudioDevice::Shutdown() -> void {
-#ifdef MIKOTO_USE_MINIAUDIO_DEVICE
-        ma_device_uninit( &m_Device );
-#else
         ma_engine_uninit( &m_AudioEngine );
-#endif
-
         m_LoadedAudios.Shutdown();
     }
 

@@ -31,11 +31,15 @@ namespace Mikoto {
         auto SetupCamera() -> void;
         auto SetupRenderer() -> void;
 
+        auto UpdateListener() -> void;
+
         auto UpdateCamera( float timeStep ) -> void;
         auto DrawViewport() const -> void;
         auto DisplayCameraDebugInfo() const -> void;
 
     private:
+        Entity* m_Listener{ nullptr };
+
         Unique<Scene> m_MainScene{};
         Unique<SceneCamera> m_SceneCamera{};
         Unique<SceneRenderer> m_Renderer{};

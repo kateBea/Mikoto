@@ -546,7 +546,7 @@ namespace Mikoto::VulkanHelpers::Reflection {
             spvReflectEnumerateDescriptorSets( &mod, &setCount, reflSets.data() );
 
             for ( auto* reflectDs: reflSets ) {
-                for ( UInt32 setBinding{}; setBinding < reflectDs->bindingCount; ++setBinding ) {
+                for ( UInt32 setBinding{}; setBinding < reflectDs->binding_count; ++setBinding ) {
                     auto* rb = reflectDs->bindings[setBinding];
                     UInt32 set{ reflectDs->set };
                     auto& bindingMap{ sets[set] };

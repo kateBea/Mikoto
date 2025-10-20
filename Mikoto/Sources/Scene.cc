@@ -14,6 +14,7 @@
 
 // Project Headers
 #include <Library/Random/Random.hh>
+#include <Physics/PhysicService.hh>
 #include <Scene/Component.hh>
 #include <Scene/Scene.hh>
 
@@ -33,6 +34,36 @@ namespace Mikoto {
     Scene::Scene( const std::string_view name )
         : m_Name{ name } {
         // Install component listeners
+    }
+
+    auto Scene::UpdateIdle( double deltaTime ) -> void {}
+
+    auto Scene::UpdateSimulate( double deltaTime ) -> void {}
+
+    auto Scene::RemoveEntity( UInt64 uniqueID ) -> void {}
+
+    auto Scene::AttachRigidBody( Entity *entity ) -> void {
+        if (entity == nullptr) {
+            return;
+        }
+
+        if (entity->HasComponent<RigidBodyComponent>()) {
+            RigidBodyComponent& rigidBodyComp{ entity->GetComponent<RigidBodyComponent>() };
+            PhysicService::Get()->OnRigidBodyAdded( *entity,  rigidBodyComp );
+        } else {
+            // Add the component if it does not exists
+            RigidBodyComponent& rigidBodyComp{ entity->AddComponent<RigidBodyComponent>() };
+            PhysicService::Get()->OnRigidBodyAdded( *entity,  rigidBodyComp );
+        }
+    }
+
+    auto Scene::DetachRigidBody( Entity *entity ) -> void {
+        if (entity == nullptr || entity->HasComponent<RigidBodyComponent>()) {
+            return;
+        }
+
+        RigidBodyComponent& rigidBodyComp{ entity->AddComponent<RigidBodyComponent>() };
+        PhysicService::Get()->OnRigidBodyRemoved( rigidBodyComp );
     }
 
     auto Scene::SetState( const SceneState state ) -> void {
@@ -547,6 +578,10 @@ namespace Mikoto {
 
     Scene::~Scene() {
         Clear();
+    }
+
+    auto Scene::GetRegistry() -> entt::registry & {
+        return m_Registry;
     }
 
     auto Scene::AddSingleEntityWithRoot( Entity* root, ModelHandle model, Int32 index ) -> void {

@@ -75,8 +75,6 @@ namespace Mikoto {
         }
 
     protected:
-        /** Globally unique identifier for the application. Used to subscribe to events. */
-        GlobalUniqueID m_Guid{};
 
         /** Current state of the application. */
         ApplicationStatus m_State{ ApplicationStatus::RUNNING };

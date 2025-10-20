@@ -25,10 +25,12 @@ cmake_minimum_required(VERSION 3.22)
 #
 # Reference: https://cmake.org/cmake/help/latest/policy/CMP0135.html
 #
-# Both are safe and recommended to set to NEW for modern CMake projects.
+# CMP0077
+# For NFD
 # ======================================
 cmake_policy(SET CMP0069 NEW)
 cmake_policy(SET CMP0135 NEW)
+cmake_policy(SET CMP0077 NEW)
 
 project(Mikoto)
 

@@ -11,6 +11,7 @@
 #include <ImGui/ImGuiService.hh>
 #include <ImGui/ImGuiUtility.hh>
 #include <Memory/Allocator.hh>
+#include <Physics/PhysicService.hh>
 #include <Renderer/RenderService.hh>
 #include <Renderer/RenderUtility.hh>
 #include <Scene/Component.hh>
@@ -134,6 +135,8 @@ namespace Mikoto {
     auto GraphicsLayer::OnUpdate( const float deltaTime ) -> void {
         ImGuiUtils::ImGuiScopedBorderColor borderColor{ { 66, 200, 255, 255 } };
 
+        PhysicService::Get()->SetSimulationScene( m_MainScene.get() );
+
         UpdateListener();
 
         UpdateCamera( deltaTime );
@@ -221,6 +224,11 @@ namespace Mikoto {
             AudioListenerComponent &listenerComp{ m_Listener->AddComponent<AudioListenerComponent>() };
             AudioListener &audioListener{ listenerComp.GetListener() };
             audioListener.Apply();
+
+            RigidBodyComponent& rigidBody{ m_Listener->AddComponent<RigidBodyComponent>() };
+            rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
+
+            m_MainScene->AttachRigidBody( m_Listener );
         }
 
         // Some checks just to test the Scene interface

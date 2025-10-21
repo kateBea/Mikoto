@@ -23,35 +23,37 @@ namespace Mikoto {
     class DescriptorLayoutBuilder final {
     public:
 
-        auto Clear() -> void;
-        auto WithBinding( UInt32_T binding, VkDescriptorType type, VkShaderStageFlags shaderStages = VK_SHADER_STAGE_VERTEX_BIT ) -> DescriptorLayoutBuilder&;
-        auto Build( VkDevice device, const void* pNext = nullptr, VkDescriptorSetLayoutCreateFlags flags = 0 ) const -> VkDescriptorSetLayout;
+        auto Build( const void* pNext = nullptr, VkDescriptorSetLayoutCreateFlags flags = 0 ) const -> VkDescriptorSetLayoutCreateInfo;
+
+        // if the descriptor is an array arraySize != -1
+        auto WithBinding( UInt32 binding, VkDescriptorType type,  Int32 arraySize, VkShaderStageFlags shaderStages = VK_SHADER_STAGE_VERTEX_BIT ) -> DescriptorLayoutBuilder&;
 
     private:
         std::vector<VkDescriptorSetLayoutBinding> m_Bindings{};
     };
 
-    class VulkanDescriptorSetLayout final : public DeviceObject {
+    class DescriptorSetLayout final : public DeviceObject {
     public:
-        explicit VulkanDescriptorSetLayout( const DescriptorLayoutBuilder& builder );
+        explicit DescriptorSetLayout( const VkDescriptorSetLayoutCreateInfo& info );
 
-        auto Release() -> void override;
+        MKT_NODISCARD auto GetNativeHandle(ObjectType type) -> Object override;
 
-        MKT_NODISCARD auto Get() -> VkDescriptorSetLayout& { return m_Layout; }
-        MKT_NODISCARD auto Get() const -> const VkDescriptorSetLayout& { return m_Layout; }
+        ~DescriptorSetLayout() override;
 
     protected:
-        auto Allocate() -> void override;
+        auto Release() -> void override;
+        auto Initialize() -> void override;
 
     private:
         VkDescriptorSetLayout m_Layout{ VK_NULL_HANDLE };
+        VkDescriptorSetLayoutCreateInfo m_CreateInfo{};
     };
 
     // Handles updating descriptor sets
-    class VulkanDescriptorWriter final {
+    class DescriptorWriter final {
     public:
-        auto WriteBuffer( UInt32_T binding, VkBuffer buffer, Size_T size, Size_T offset, VkDescriptorType type ) -> VulkanDescriptorWriter&;
-        auto WriteImage( UInt32_T binding, VkImageView image, VkSampler sampler, VkImageLayout layout, VkDescriptorType type ) -> VulkanDescriptorWriter&;
+        auto WriteBuffer( UInt32 binding, VkBuffer buffer, Size size, Size offset, VkDescriptorType type ) -> DescriptorWriter&;
+        auto WriteImage( UInt32 binding, VkImageView image, VkSampler sampler, VkImageLayout layout, VkDescriptorType type ) -> DescriptorWriter&;
 
         auto Clear() -> void;
         auto UpdateSet(VkDevice device, VkDescriptorSet set) -> void;
@@ -66,22 +68,23 @@ namespace Mikoto {
 
     // Handles allocating descriptor pools
     // Allocates a new one if needed
-    class VulkanDescriptorAllocator final {
+    class DescriptorAllocator final {
     public:
         struct PoolSizeRatio {
             VkDescriptorType Type{};
             float Ratio{};
         };
 
-        auto Init(VkDevice device, UInt32_T initialSets, std::span<PoolSizeRatio> poolRatios) -> void;
-        auto ClearPools(VkDevice device) -> void;
-        auto DestroyPools(VkDevice device) -> void;
+        auto Init(VkDevice device, UInt32 initialSets, std::span<PoolSizeRatio> poolRatios) -> void;
+        auto Shutdown() -> void;
 
-        auto Allocate(VkDevice device, VkDescriptorSetLayout layout, const void* pNext = nullptr) -> VkDescriptorSet*;
+        auto ClearPools() -> void;
+
+        auto Allocate(VkDescriptorSetLayout layout, const void* pNext = nullptr) -> VkDescriptorSet*;
 
     private:
-        auto GetPool(VkDevice device) -> VkDescriptorPool;
-        static auto CreatePool(VkDevice device, uint32_t setCount, std::span<PoolSizeRatio> poolRatios) -> VkDescriptorPool;
+        auto GetPool() -> VkDescriptorPool;
+        auto CreatePool(UInt32 setCount, std::span<PoolSizeRatio> poolRatios) -> VkDescriptorPool;
 
 
     private:
@@ -89,6 +92,8 @@ namespace Mikoto {
         inline static float MAX_SETS_PER_POOL{ 4092.0f };
 
         float m_SetsPerPool{};
+
+        VkDevice m_Device{ VK_NULL_HANDLE };
 
         // how many sets we allocate per pool
         std::vector<PoolSizeRatio> m_Ratios{};

@@ -57,6 +57,9 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::BeginRender( const RenderInfo &info, CommandListHandle cmdList ) -> void {
+        // Can uodate descriptors globals here maybe
+        // so we have everything rweady before proceeding
+
         m_GraphicsCommandList = cmdList;
 
         // Save attachments to process later
@@ -110,11 +113,15 @@ namespace Mikoto {
         VkCommandBuffer cmd{*m_GraphicsCommandList->GetNativeHandle<VulkanCmdList>()};
         VulkanGraphicsPipeline* pipeline{m_Pipeline->GetNativeHandle<VulkanGraphicsPipeline>()};
 
+        VkDescriptorSet dSet{ TO_VK_DEVICE( m_GraphicsDevice )->GetGlobalTexturesSet() };
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pipeline->GetLayout(), 0, 1, std::addressof( dSet ), 0, nullptr);
+
         // Bind pipeline
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->Get());
 
         // TODO: test only this goees for the FullScreen shaders
-        vkCmdDraw(cmd, 3, 1, 0, 0); // Only 3 vertices, no vertex buffers or descriptors
+        vkCmdDraw(cmd, 4, 1, 0, 0);
 
         // We descriptor sets per frequency usage
         // Bind per-frame descriptor set (set 0)

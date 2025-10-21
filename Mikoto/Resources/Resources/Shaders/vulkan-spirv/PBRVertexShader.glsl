@@ -13,6 +13,7 @@
 layout(set = 0, binding = 0) uniform FrameUBO {
     mat4 View;
     mat4 Projection;
+    vec4 CameraPosition;
 } frame;
 
 // [Uniform buffer containing per object data]
@@ -31,6 +32,7 @@ layout(location = 0) out vec3 out_FragmentPos;
 layout(location = 1) out vec3 out_VertexNormal;
 layout(location = 2) out vec2 out_TexCoord;
 layout(location = 3) out vec3 out_Color;
+layout(location = 4) out vec3 out_CameraPos;
 
 void main() {
     mat4 model = object.Transform;
@@ -38,6 +40,7 @@ void main() {
 
     out_Color = a_Color;
     out_TexCoord = a_TexCoord;
+    out_CameraPos = frame.CameraPosition.xyz;
     out_VertexNormal = normalize(normalMatrix * a_Normal);
     out_FragmentPos = vec3(model * vec4(a_Position, 1.0));
 

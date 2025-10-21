@@ -269,6 +269,8 @@ namespace Mikoto {
 
     auto VulkanContext::PrepareFrame() -> void {
 
+        // Updates global descriptors
+        TO_VK_DEVICE(m_Device.get())->PrepareResources();
 
         m_CurrentFrameIndex = m_Swapchain->GetCurrentFrameIndex();
         const auto ret{ m_Swapchain->GetNextRenderableImage( m_CurrentImageIndex,

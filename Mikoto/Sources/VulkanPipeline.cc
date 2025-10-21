@@ -133,7 +133,7 @@ namespace Mikoto {
             shaderBlocks.emplace_back( (UInt32*)shader->GetContents(), (UInt32*)(shader->GetContents() + shader->GetContentSize()) );
         }
 
-        VkResult res{ ReflectSPIRV( VK_DEVICE(m_Device), shaderBlocks, m_ReflectionData ) };
+        VkResult res{ ReflectSPIRV( VK_DEVICE(m_Device), shaderBlocks, m_ReflectionData) };
         const auto pipelineLayout { m_ReflectionData.pipelineLayout };
         if (pipelineLayout == VK_NULL_HANDLE) {
             MKT_THROW_RUNTIME_ERROR( "VulkanComputePipeline::Initialize - Layout is null handle" );

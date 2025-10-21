@@ -395,13 +395,11 @@ namespace Mikoto {
 
         // Now you can interact with the dynamic body, in this case we're going to give it a velocity.
         // (note that if we had used CreateBody then we could have set the velocity straight on the body before adding it to the physics system)
-        //s_Impl->BodyInterface->SetLinearVelocity(body->GetID(), JPH::Vec3(0.0f, -2.0f, 0.0f));
+        s_Impl->BodyInterface->SetLinearVelocity(body->GetID(), JPH::Vec3(0.0f, 0.0f, 0.0f));
+        s_Impl->BodyInterface->SetAngularVelocity(body->GetID(), JPH::Vec3(0.3f, 0.0f, 5.0f));
         s_Impl->BodyInterface->AddImpulse(body->GetID(), JPH::Vec3(0.0f, -2.0f, 0.0f));
 
         rb.SetInternalBodyHandle( reinterpret_cast<std::uintptr_t*>(body) );
-
-        MKT_CORE_LOGGER_INFO("Total bodies: {}", s_Impl->PhysicsSystem.GetNumBodies());
-        MKT_CORE_LOGGER_INFO("Active rigid bodies: {}", s_Impl->PhysicsSystem.GetNumActiveBodies(JPH::EBodyType::RigidBody));
     }
 
 }

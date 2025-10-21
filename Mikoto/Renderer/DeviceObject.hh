@@ -11,6 +11,27 @@
 namespace Mikoto {
     class GpuDevice;
 
+    struct Object {
+        union {
+            UInt64 integer;
+            void* pointer;
+        };
+
+        explicit Object(const UInt64 i) : integer(i) { }
+        explicit Object(void* p) : pointer(p) { }
+
+        template<typename T>
+        operator T* () const {
+            return static_cast<T*>(pointer);
+        }
+    };
+
+    enum class ObjectType {
+        Vk_DescriptorSetLayout,
+    };
+
+
+
     /**
      * @class DeviceObject
      * @brief Represents a device object associated with a GPU device.
@@ -67,6 +88,9 @@ namespace Mikoto {
         MKT_NODISCARD auto GetNativeHandle() -> decltype(auto) {
             return static_cast<ChildType*>(this)->GetImplHandle();
         }
+
+        // API specific object handle
+        MKT_NODISCARD virtual auto GetNativeHandle( ObjectType ) -> Object { return Object(nullptr); }
 
     protected:
 

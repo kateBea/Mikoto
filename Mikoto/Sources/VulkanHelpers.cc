@@ -18,6 +18,8 @@
 #include "Renderer/Vulkan/VulkanContext.hh"
 #include "Renderer/Vulkan/VulkanHelpers.hh"
 
+#include <Renderer/Vulkan/VulkanDevice.hh>
+
 namespace Mikoto::VulkanHelpers {
 
     // Converts VkImageLayout → readable string
@@ -521,7 +523,16 @@ namespace Mikoto::VulkanHelpers::Reflection {
         dst.push_back( VkPushConstantRange{ flags, targetOffset, targetSize } );
     }
 
-    auto ReflectSPIRV(VkDevice device, const std::vector<std::vector<UInt32>>& spirvModules, ReflectedData& out ) -> VkResult {
+    MKT_NODISCARD static auto IsBindlessEnabled() -> bool {
+#if defined(MKT_USE_VULKAN_BINDLESS)
+        return true;
+#else
+        return false;
+#endif
+
+    }
+
+    auto ReflectSPIRV(VkDevice device, const std::vector<std::vector<UInt32>>& spirvModules, ReflectedData& out) -> VkResult {
         out = {};
 
         std::map<UInt32, std::unordered_map<UInt32, VkDescriptorSetLayoutBinding>> sets{};
@@ -555,7 +566,14 @@ namespace Mikoto::VulkanHelpers::Reflection {
                         VkDescriptorSetLayoutBinding bindingInfo{};
                         bindingInfo.binding = rb->binding;
                         bindingInfo.descriptorType = ToVkDescriptorType( rb->descriptor_type );
-                        bindingInfo.descriptorCount = std::max( 1u, rb->count );
+
+                        if (IsBindlessEnabled() && bindingInfo.descriptorType == SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER && rb->type_description->op == SpvOpTypeArray ) {
+                            bindingInfo.descriptorCount = std::max( 1u, VulkanDevice::GetMaxBindlessTextureCount() );
+
+                        } else {
+                            bindingInfo.descriptorCount = std::max( 1u, rb->count );
+                        }
+
                         bindingInfo.stageFlags = stage;
                         bindingMap[bindingInfo.binding] = bindingInfo;
 
@@ -639,11 +657,32 @@ namespace Mikoto::VulkanHelpers::Reflection {
         // === CREATE DESCRIPTOR SET LAYOUTS ===
         for ( auto& [setIdx, bindings]: sets ) {
             std::vector<VkDescriptorSetLayoutBinding> layout;
-            for ( auto& [_, b]: bindings )
+            for ( auto& [_, b]: bindings ) {
                 layout.push_back( b );
+            }
+
+            // Bindless
+            VkDescriptorBindingFlagsEXT bindingFlags{};
+            VkDescriptorSetLayoutBindingFlagsCreateInfoEXT flagsInfo{};
 
             VkDescriptorSetLayoutCreateInfo info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-            info.bindingCount = static_cast<uint32_t>( layout.size() );
+
+            if (IsBindlessEnabled()) {
+                bindingFlags =
+                                VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+                                VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+                                VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+
+                flagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
+                flagsInfo.bindingCount = 1;
+                flagsInfo.pBindingFlags = &bindingFlags;
+                info.pNext = std::addressof( flagsInfo );
+
+                // Validation
+                info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+            }
+
+            info.bindingCount = static_cast<UInt32>( layout.size() );
             info.pBindings = layout.data();
 
             VkDescriptorSetLayout layoutHandle;
@@ -655,6 +694,7 @@ namespace Mikoto::VulkanHelpers::Reflection {
 
         // === PIPELINE LAYOUT ===
         VkPipelineLayoutCreateInfo plInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+
         plInfo.setLayoutCount = static_cast<UInt32>( out.setLayouts.size() );
         plInfo.pSetLayouts = out.setLayouts.data();
 

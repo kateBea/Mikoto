@@ -92,10 +92,14 @@ namespace Mikoto {
         }
 
         MKT_NODISCARD auto GetSampler() const -> SamplerHandle {
-            return SamplerHandle::CreateEmpty();
+            return m_Sampler;
         }
 
-        auto SetSampler(SamplerHandle sampler) -> void {
+        MKT_NODISCARD auto HasSampler() const -> bool {
+            return !m_Sampler.IsEmpty();
+        }
+
+        auto SetSampler(const SamplerHandle& sampler) -> void {
             m_Sampler = sampler;
         }
 

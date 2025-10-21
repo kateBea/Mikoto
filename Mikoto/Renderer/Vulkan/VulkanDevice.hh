@@ -18,7 +18,7 @@
 #include "Renderer/Vulkan/VulkanPipeline.hh"
 #include "Renderer/Vulkan/VulkanTexture.hh"
 #include "Renderer/Vulkan/VulkanShader.hh"
-
+#include "Renderer/Vulkan/VulkanDescriptorManager.hh"
 
 namespace Mikoto {
 
@@ -113,6 +113,8 @@ namespace Mikoto {
 
         auto RunGarbageCollection() -> void override;
 
+        auto PrepareResources() -> void;
+
         MKT_NODISCARD auto CreateCommandList( QueueType queue ) -> CommandListHandle override;
 
         // Return the minimum required alignment (in bytes) for uniform buffers
@@ -134,6 +136,10 @@ namespace Mikoto {
         auto CreateSwapchain( const VulkanSwapChainCreateInfo& createInfo ) -> SwapChainHandle;
         auto CreateSwapChainTextures( const VkImageViewCreateInfo& createInfo, VkExtent2D extent ) -> TextureHandle;
 
+        MKT_NODISCARD auto GetGlobalTexturesSet() -> VkDescriptorSet;
+
+        MKT_NODISCARD static auto GetMaxBindlessTextureCount() -> UInt32;
+
         ~VulkanDevice() override = default;
 
 
@@ -148,10 +154,21 @@ namespace Mikoto {
     private:
         // [Internal usage]
         auto InitMemoryAllocator() -> void;
+        auto InitDescriptorAllocator() -> void;
         auto GetPrimaryPhysicalDevice() -> void;
         auto CreatePrimaryLogicalDevice() -> void;
 
+        auto CreateBindlessDescriptor() -> void;
+        auto UpdateBindlessTextureDescriptor(Int32 index, VulkanTexture* texture) -> void;
+
     private:
+        VkDescriptorPool m_BindlessPool{};
+        VkDescriptorSet m_BindlessDescriptorSet{};
+        VkDescriptorSetLayout m_BindlessDescriptorSetLayout{ VK_NULL_HANDLE };
+        std::vector<TextureHandle> m_BindlessTextures{};
+
+        DescriptorAllocator m_DescriptorAllocator{};
+
         std::vector<CommandListHandle> m_PendingCmdLists{};
 
         ResourcePoolTyped<VulkanBuffer> m_Buffers{};

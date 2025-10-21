@@ -152,6 +152,21 @@ namespace Mikoto {
         return m_IsImageExternal;
     }
 
+    auto VulkanTexture::SetTextureIndex( Int32 index ) const -> void {
+        if (m_TextureArrayIndex < 0) {
+            // Texture has not been set
+            m_TextureArrayIndex = index;
+        }
+    }
+
+    auto VulkanTexture::GetTextureIndex() const -> Int32 {
+        return m_TextureArrayIndex;
+    }
+
+    auto VulkanTexture::HasBindlessIndex() const -> bool {
+        return m_TextureArrayIndex != -1;
+    }
+
     auto VulkanTexture::SubmitLayoutTransition( const VkImageLayout newLayout, const VkCommandBuffer cmd ) -> void {
         VkImageMemoryBarrier2 imageBarrier{};
         imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;

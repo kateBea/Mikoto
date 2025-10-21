@@ -227,6 +227,7 @@ namespace Mikoto {
 
             RigidBodyComponent& rigidBody{ m_Listener->AddComponent<RigidBodyComponent>() };
             rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
+            rigidBody.SetFriction( 0 );
 
             m_MainScene->AttachRigidBody( m_Listener );
         }
@@ -279,9 +280,17 @@ namespace Mikoto {
     }
 
     auto GraphicsLayer::DrawViewport() const -> void {
+        // TextureLoadDescription loadDesc{};
+        // loadDesc
+        //         .WithFile( FileService::Get()->LoadFile( "./texture.png" ) )
+        //         .WithType( TextureType::TEXTURE_2D );
+        //
+        // static auto textureAlt = AssetsService::Get()->LoadAsset<Texture>( loadDesc );
+
         if (ImGui::Begin( "Viewport" )) {
             ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
             TextureHandle finalComposition{ m_Renderer->GetFinalComposition() };
+            //TextureHandle finalComposition{ textureAlt };
 
             const ImVec2 dim{ ImGui::GetContentRegionAvail() };
 

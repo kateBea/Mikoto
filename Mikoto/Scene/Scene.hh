@@ -79,6 +79,9 @@ namespace Mikoto {
         auto AttachRigidBody(Entity* entity) -> void;
         auto DetachRigidBody(Entity* entity) -> void;
 
+        auto GetRegistry() -> entt::registry&;
+        auto GetRegistry() const -> const entt::registry&;
+
         MKT_NODISCARD static auto Create( std::string_view name ) -> Unique<Scene>;
 
         auto Clear() -> void;
@@ -86,9 +89,8 @@ namespace Mikoto {
         ~Scene();
 
     private:
-        friend class PhysicService;
+        friend class PhysicsBase;
 
-        auto GetRegistry() -> entt::registry&;
 
     private:
         auto AddSingleEntityWithRoot(Entity * root, ModelHandle model, Int32 index ) -> void;

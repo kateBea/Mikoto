@@ -45,6 +45,7 @@ namespace Mikoto {
 
         auto PersistentMap() -> void;
         auto PersistentUnmap() -> void;
+
         MKT_NODISCARD auto IsMapped() const -> bool { return m_VmaAllocationInfo.pMappedData != nullptr; }
         MKT_NODISCARD auto GetMappedAddress() const -> const void* { return m_VmaAllocationInfo.pMappedData; }
 

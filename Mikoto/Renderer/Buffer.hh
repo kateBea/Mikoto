@@ -201,6 +201,10 @@ namespace Mikoto {
         // Copy from CPU to GPU ( this buffer must be accessible from CPU)
         virtual auto CopyFromBlock(const void* ptr, Size size) -> void = 0;
 
+        MKT_NODISCARD auto GetCount() const -> Size {
+            return InferElementCount(m_DataType, m_SizeBytes);
+        }
+
     protected:
         /**
          * @brief Protected constructor for the Device class.

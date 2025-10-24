@@ -96,6 +96,17 @@ namespace Mikoto {
             return nullptr;
         }
 
+        template<typename SystemType>
+        auto Get() const -> const SystemType* {
+            const auto typeName{ typeid( SystemType ).hash_code() };
+
+            if ( m_Registry.contains( typeName ) ) {
+                return dynamic_cast<const SystemType*>( m_Registry.at(typeName).get() );
+            }
+
+            return nullptr;
+        }
+
         // Iterators
         constexpr auto begin() -> decltype(auto) { return m_Registry.begin(); }
         constexpr auto end() -> decltype(auto) { return m_Registry.end(); }

@@ -32,6 +32,10 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR( "RenderSystem::Init - Could not initialize Render context." );
         }
 
+        InitShaderLibrary();
+
+        InitRendererBackend();
+
         m_IsInitialized = true;
     }
 
@@ -44,7 +48,11 @@ namespace Mikoto {
         // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down RenderService..." );
 
-        m_RenderBackends.clear();
+        m_ShaderLibrary->Shutdown();
+        m_ShaderLibrary.reset();
+
+        m_RenderBackend->Shutdown();
+        m_RenderBackend.reset();
 
         m_Context->Shutdown();
         m_Context = nullptr;
@@ -74,19 +82,32 @@ namespace Mikoto {
         m_Context->SubmitFrame();
     }
 
-    auto RenderService::CreateRendererBackend( const std::string_view name) -> RendererBackend * {
-        RendererBackend* renderer{ nullptr };
-
+    auto RenderService::InitRendererBackend() -> void {
         switch ( m_ActiveAPI ) {
             case GraphicsAPI::VULKAN_API:
-
-                renderer = m_RenderBackends.emplace_back(CreateScope<VulkanRenderer>( GetGpuDevice(), name )).get();
-            break;
+                m_RenderBackend = CreateScope<VulkanRenderer>( GetGpuDevice(), "Vulkan Renderer" );
+                break;
             default:
                 MKT_CORE_LOGGER_CRITICAL( "RenderService::CreateRendererBackend - Error Unsupported renderer API!" );
-            break;
+                break;
         }
 
-        return renderer;
+        if ( m_RenderBackend ) {
+            m_RenderBackend->Init();
+        }
     }
-}
+
+    auto RenderService::InitShaderLibrary() -> void {
+        MKT_CORE_LOGGER_INFO( "Initializing ShaderLibrary..." );
+
+        const ShaderLibraryDescription description{
+            .Device{ GetGpuDevice() }
+        };
+
+        m_ShaderLibrary = CreateScope<ShaderLibrary>( description );
+        if (m_ShaderLibrary) {
+            m_ShaderLibrary->Init();
+        }
+
+    }
+}// namespace Mikoto

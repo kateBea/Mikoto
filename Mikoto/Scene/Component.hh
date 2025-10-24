@@ -267,6 +267,10 @@ namespace Mikoto {
         MKT_NODISCARD auto GetMesh() const -> const MeshNode* {
             return std::addressof(m_Model->GetMeshNode(static_cast<UInt32>(m_MeshIndex)));
         }
+
+        MKT_NODISCARD auto GetMesh() -> MeshNode* {
+            return std::addressof(m_Model->GetMeshNode(static_cast<UInt32>(m_MeshIndex)));
+        }
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Model->GetName(); }
 
         auto OnComponentAttach() -> void {  }

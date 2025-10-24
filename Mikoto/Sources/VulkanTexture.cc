@@ -69,7 +69,7 @@ namespace Mikoto {
     VulkanTexture::VulkanTexture( const VkImageViewCreateInfo& viewCreateInfo, VkExtent2D extent )
         : Texture2D{ TextureType::TEXTURE_2D, static_cast<Int32>( extent.width ), static_cast<Int32>( extent.height ), 0, nullptr,
                      ResourceUsageType::RESOURCE_USAGE_STATIC,
-                     VulkanHelpers::ToMikotoFormat( viewCreateInfo.format ) },
+                     VulkanHelpers::ToTextureFormat( viewCreateInfo.format ) },
           m_IsImageExternal{ true },
           m_Image{ viewCreateInfo.image },
           m_ImageViewCreateInfo{ viewCreateInfo } {

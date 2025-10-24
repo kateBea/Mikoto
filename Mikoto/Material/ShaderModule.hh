@@ -8,8 +8,6 @@
 
 // C++ Standard Library
 
-#define SHADER_STAGE_STR( STAGE_NAME ) #STAGE_NAME
-
 // Project Headers
 #include <Common/Common.hh>
 #include <Renderer/DeviceObject.hh>
@@ -72,12 +70,14 @@ namespace Mikoto {
          * @param contents Contents for this shader module
          * @param size Size in bytes of for the contents
          */
-        explicit ShaderModule( const ShaderStage stage, const void* contents , Size size)
+        explicit ShaderModule( const ShaderStage stage, const void* contents , const Size size)
             : m_Contents{ static_cast<const Byte*>( contents ) }, m_ContentsSize{ size }, m_Stage{ stage } {}
 
     protected:
         const Byte* m_Contents{ nullptr };
-        Size m_ContentsSize{}; // in bytes
+
+        // Size in bytes
+        Size m_ContentsSize{};
 
         ShaderStage m_Stage{ ShaderStage::STAGE_UNKNOWN };
     };

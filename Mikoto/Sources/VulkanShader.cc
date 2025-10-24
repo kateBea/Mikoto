@@ -45,7 +45,7 @@ namespace Mikoto {
         }
 
         m_StageCreateInfo = VulkanHelpers::Initializers::PipelineShaderStageCreateInfo();
-        m_StageCreateInfo.stage = VulkanHelpers::GetVkStageFromShaderStage( m_Stage );
+        m_StageCreateInfo.stage = VulkanHelpers::ToVkStage( m_Stage );
         m_StageCreateInfo.module = m_Module;
         m_StageCreateInfo.pName = m_EntryPoint.c_str();
         m_StageCreateInfo.flags = 0;

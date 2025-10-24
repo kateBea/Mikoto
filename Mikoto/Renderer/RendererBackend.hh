@@ -17,11 +17,11 @@
 
 // Project Headers
 #include <Common/Service.hh>
+#include <Library/Utility/Types.hh>
+#include <Material/Material.hh>
+#include <Renderer/GpuDevice.hh>
 #include <Scene/Camera.hh>
 #include <Scene/Scene.hh>
-#include <Library/Utility/Types.hh>
-
-#include <Renderer/GpuDevice.hh>
 
 namespace Mikoto {
 
@@ -30,31 +30,12 @@ namespace Mikoto {
         GpuDevice* Device{ nullptr };
     };
 
-    struct AttachmentInfo {
-        TextureHandle Image{};
-        Vec4F ClearColor{ 0.4f, 0.33f, 0.55f, 1.0f };
-        bool Clear{ true };
-        bool Store{ true };
-    };
-
-    struct DepthAttachmentInfo {
-        TextureHandle Image{};
-        float ClearDepth{ 1.0f };
-        bool Clear{ true };
-        bool Store{ false };
-    };
-
-    struct RenderInfo {
-        DepthAttachmentInfo DepthAttachment{};
-        std::vector<AttachmentInfo> ColorAttachments{};
-    };
-
     class RendererBackend : public IService {
     public:
         ~RendererBackend() override = default;
 
         virtual auto EndRender() -> void = 0;
-        virtual auto BeginRender(const RenderInfo& info, CommandListHandle cmd) -> void = 0;
+        virtual auto BeginRender(CommandListHandle cmd) -> void = 0;
 
         virtual auto SetPipeline(PipelineHandle pipeline) -> void = 0;
 
@@ -64,6 +45,10 @@ namespace Mikoto {
 
         virtual auto SetCamera( const Camera* camera ) -> void = 0;
         virtual auto SetViewport( float x, float y, float width, float height ) -> void = 0;
+
+        MKT_NODISCARD virtual auto CreateMaterial( /* params */ ) -> MaterialHandle = 0;
+
+        MKT_NODISCARD virtual auto GetFinalComposition() const -> TextureHandle = 0;
 
     protected:
         explicit RendererBackend( const RendererDescription& createInfo )

@@ -39,6 +39,7 @@ project(Mikoto)
 # ======================================
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+#set(CMAKE_CXX_EXTENSIONS OFF)
 
 # ======================================
 # GLFW options
@@ -330,9 +331,6 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(sol2)
-
-# Lua (system package)
-find_package(Lua51 REQUIRED)
 
 # harfbuzz (not needed if you don't do complex text layout)
 #FetchContent_Declare(

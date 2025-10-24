@@ -20,7 +20,7 @@
 
 namespace Mikoto {
 
-    struct VulkanGraphicsPipelineCreateInfo {
+    struct VulkanGraphicsPipelineDescription {
         UInt32 Subpass{};
 
 #if !defined(MKT_USE_VULKAN_DYNAMIC_RENDERING)
@@ -50,15 +50,15 @@ namespace Mikoto {
     class VulkanGraphicsPipeline final : public GraphicsPipeline {
     public:
 
-        explicit VulkanGraphicsPipeline(const VulkanGraphicsPipelineCreateInfo& info);
+        explicit VulkanGraphicsPipeline(const VulkanGraphicsPipelineDescription& info);
 
         auto Release() -> void override;
         auto Bind(VkCommandBuffer commandBuffer) const -> void;
 
         MKT_NODISCARD auto GetImplHandle() -> VulkanGraphicsPipeline* { return this; }
 
-        MKT_NODISCARD auto Get() const -> const VkPipeline& { return m_GraphicsPipeline; }
-        MKT_NODISCARD auto GetLayout() const -> const VkPipelineLayout& { return m_PipelineLayout; }
+        MKT_NODISCARD auto Get() const -> const VkPipeline& { return m_Pipeline; }
+        MKT_NODISCARD auto GetLayout() const -> const VkPipelineLayout& { return m_Layout; }
 
         ~VulkanGraphicsPipeline() override;
 
@@ -78,10 +78,10 @@ namespace Mikoto {
 
         VulkanHelpers::Reflection::ReflectedData m_ReflectionData{};
 
-        VkPipeline m_GraphicsPipeline{};
-        VkPipelineLayout m_PipelineLayout{};
+        VkPipeline m_Pipeline{};
+        VkPipelineLayout m_Layout{};
 
-        VulkanGraphicsPipelineCreateInfo m_ConfigInfo{};
+        VulkanGraphicsPipelineDescription m_ConfigInfo{};
     };
 
     class VulkanComputePipeline final : public ComputePipeline {
@@ -93,8 +93,8 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetImplHandle() -> VulkanComputePipeline* { return this; }
 
-        MKT_NODISCARD auto Get() const -> const VkPipeline& { return m_ComputePipeline; }
-        MKT_NODISCARD auto GetLayout() const -> const VkPipelineLayout& { return m_PipelineLayout; }
+        MKT_NODISCARD auto Get() const -> const VkPipeline& { return m_Pipeline; }
+        MKT_NODISCARD auto GetLayout() const -> const VkPipelineLayout& { return m_Layout; }
 
         ~VulkanComputePipeline() override;
 
@@ -106,9 +106,9 @@ namespace Mikoto {
 
     private:
 
-        VkPipeline m_ComputePipeline{};
-        VkPipelineLayout m_PipelineLayout{};
-        std::span<VkPipelineShaderStageCreateInfo> m_ShaderStages{};
+        VkPipeline m_Pipeline{};
+        VkPipelineLayout m_Layout{};
+        VulkanHelpers::Reflection::ReflectedData m_ReflectionData{};
     };
 }
 

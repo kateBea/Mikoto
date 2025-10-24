@@ -9,6 +9,7 @@
 #include <Scene/Entity.hh>
 #include <Scene/Scene.hh>
 #include <Scene/Component.hh>
+#include <Physics/PhysicsBase.hh>
 
 namespace Mikoto {
     struct PhysicServiceCreateInfo {
@@ -28,17 +29,13 @@ namespace Mikoto {
 
         auto SetSimulationScene(Scene* scene) -> void;
 
-        auto SyncTransformsToPhysics() -> void;
-        auto SyncTransformsFromPhysics() -> void;
+    private:
+        friend class Scene;
 
         auto OnRigidBodyRemoved(RigidBodyComponent& rb) -> void;
         auto OnRigidBodyAdded(Entity& entity, RigidBodyComponent& rb) -> void;
 
-    private:
-        Vec3F m_Gravity{ 0.0f, -9.81f, 0.0f };
-
-        // Scene we will run simulations on
-        Scene* m_Scene{ nullptr };
+        Unique<PhysicsBase> m_PhysicsBase{};
     };
 
 }

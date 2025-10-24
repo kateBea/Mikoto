@@ -56,19 +56,6 @@ namespace Mikoto {
         std::vector<VkPresentModeKHR> PresentModes{};
     };
 
-    struct GraphicsQueueSyncPrimitives {
-        std::vector<VkSemaphore> PresentSemaphores{ VK_NULL_HANDLE };
-        std::vector<VkSemaphore> RenderSemaphores{ VK_NULL_HANDLE };
-        VkFence RenderFence{ VK_NULL_HANDLE };
-    };
-
-    struct ComputeQueueSynchPrimitives {
-        std::vector<VkSemaphore> WaitSemaphores{};
-        std::vector<VkSemaphore> SignalSemaphores{};
-        VkFence Fence{ VK_NULL_HANDLE };
-    };
-
-
 }
 
 namespace Mikoto::VulkanHelpers {
@@ -79,18 +66,22 @@ namespace Mikoto::VulkanHelpers {
     auto CopyImageToImage(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent3D imageSize) -> void;
 
     MKT_NODISCARD auto GetSwapChainSupport( const VkPhysicalDevice& device, const VkSurfaceKHR& surface ) -> SwapChainSupportDetails;
-    MKT_NODISCARD auto GetVulkanAttributeDataType(ShaderDataType type) -> VkFormat;
+
     MKT_NODISCARD auto HasGraphicsQueue( const VkQueueFamilyProperties& queueFamily ) -> bool;
     MKT_NODISCARD auto HasComputeQueue( const VkQueueFamilyProperties& queueFamily ) -> bool;
     MKT_NODISCARD auto HasPresentQueue( const VkPhysicalDevice& device, UInt32 queueFamilyIndex, const VkSurfaceKHR& surface, const VkQueueFamilyProperties& queueFamilyProperties ) -> bool;
-    MKT_NODISCARD auto GetVkStageFromShaderStage(ShaderStage stage) -> VkShaderStageFlagBits;
+
     MKT_NODISCARD auto GetVkFormatFromTextureFormat( TextureFormat format, TextureUsage usage, VkPhysicalDevice device ) -> VkFormat;
+
     MKT_NODISCARD auto GetUniformBufferPadding(VkDeviceSize bufferOriginalSize, VkDeviceSize deviceMinOffsetAlignment) -> VkDeviceSize;
     MKT_NODISCARD auto InferVulkanIndexType(BufferDataType format) -> VkIndexType;
-    MKT_NODISCARD auto ToVkImageUsage(TextureUsage usage) -> VkImageUsageFlags;
     MKT_NODISCARD auto FindSupportedFormat( VkPhysicalDevice device, std::span<const VkFormat> candidates, VkImageTiling tiling, VkFormatFeatureFlags features ) -> VkFormat;
+
     MKT_NODISCARD auto ToVkFormat(TextureFormat format) -> VkFormat;
-    MKT_NODISCARD auto ToMikotoFormat(VkFormat format) -> TextureFormat;
+    MKT_NODISCARD auto ToTextureFormat(VkFormat format) -> TextureFormat;
+    MKT_NODISCARD auto ToVkShaderDataType(ShaderDataType type) -> VkFormat;
+    MKT_NODISCARD auto ToVkStage(ShaderStage stage) -> VkShaderStageFlagBits;
+    MKT_NODISCARD auto ToVkImageUsage(TextureUsage usage) -> VkImageUsageFlags;
 
     auto ImageUsageFlagsToString(Texture* texture) -> void;
     auto ImageLayoutToString(Texture* texture) -> void;

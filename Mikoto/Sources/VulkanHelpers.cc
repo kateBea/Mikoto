@@ -15,10 +15,11 @@
 
 // Project Header
 
+#include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Vulkan/VulkanRenderer.hh>
+
 #include "Renderer/Vulkan/VulkanContext.hh"
 #include "Renderer/Vulkan/VulkanHelpers.hh"
-
-#include <Renderer/Vulkan/VulkanDevice.hh>
 
 namespace Mikoto::VulkanHelpers {
 
@@ -88,7 +89,7 @@ namespace Mikoto::VulkanHelpers {
         return alignedSize;
     }
 
-    auto InferVulkanIndexType( BufferDataType format ) -> VkIndexType {
+    auto InferVulkanIndexType( const BufferDataType format ) -> VkIndexType {
         switch ( format ) {
             case BufferDataType::BUFFER_DATA_UINT16:
                 return VK_INDEX_TYPE_UINT16;
@@ -132,7 +133,7 @@ namespace Mikoto::VulkanHelpers {
         MKT_CORE_LOGGER_DEBUG( "Image usage flags: {} for texture: {}", oss.str(), texture->GetDebugName() );
     }
 
-    auto ToVkImageUsage( TextureUsage usage ) -> VkImageUsageFlags {
+    auto ToVkImageUsage( const TextureUsage usage ) -> VkImageUsageFlags {
         switch ( usage ) {
             case TextureUsage::TEXTURE_USAGE_COLOR:
                 // Textures that I will print to and can copy them to toehr textures like the color image from ImGui Backend
@@ -188,7 +189,7 @@ namespace Mikoto::VulkanHelpers {
         return result;
     }
 
-    auto GetVkStageFromShaderStage( const ShaderStage stage ) -> VkShaderStageFlagBits {
+    auto ToVkStage( const ShaderStage stage ) -> VkShaderStageFlagBits {
         switch ( stage ) {
             case ShaderStage::VERTEX_STAGE:
                 return VK_SHADER_STAGE_VERTEX_BIT;
@@ -201,7 +202,7 @@ namespace Mikoto::VulkanHelpers {
         }
     }
 
-    auto ToVkFormat( TextureFormat format ) -> VkFormat {
+    auto ToVkFormat( const TextureFormat format ) -> VkFormat {
         switch ( format ) {
             case TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM:
                 return VK_FORMAT_R8G8B8A8_SNORM;
@@ -248,7 +249,7 @@ namespace Mikoto::VulkanHelpers {
         }
     }
 
-    auto ToMikotoFormat( VkFormat format ) -> TextureFormat {
+    auto ToTextureFormat( VkFormat format ) -> TextureFormat {
         switch ( format ) {
             // --- 8-bit normalized ---
             case VK_FORMAT_R8_UNORM:
@@ -410,7 +411,7 @@ namespace Mikoto::VulkanHelpers {
         return false;
     }
 
-    auto GetVulkanAttributeDataType( ShaderDataType type ) -> VkFormat {
+    auto ToVkShaderDataType( const ShaderDataType type ) -> VkFormat {
         switch ( type ) {
             case ShaderDataType::FLOAT_TYPE:
                 return VK_FORMAT_R32_SFLOAT;
@@ -568,7 +569,7 @@ namespace Mikoto::VulkanHelpers::Reflection {
                         bindingInfo.descriptorType = ToVkDescriptorType( rb->descriptor_type );
 
                         if (IsBindlessEnabled() && bindingInfo.descriptorType == SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER && rb->type_description->op == SpvOpTypeArray ) {
-                            bindingInfo.descriptorCount = std::max( 1u, VulkanDevice::GetMaxBindlessTextureCount() );
+                            bindingInfo.descriptorCount = std::max( 1u, VulkanRenderer::GetMaxBindlessTextureCount() );
 
                         } else {
                             bindingInfo.descriptorCount = std::max( 1u, rb->count );

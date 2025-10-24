@@ -19,17 +19,6 @@ layout(set = 0, binding = 0) uniform FrameUBO {
 // [Uniform buffer containing per object data]
 layout(set = 1, binding = 0) uniform ObjectUBO {
     mat4 Transform;
-    vec4 Albedo;
-
-// Metalness, roughnes and ao for when we submit an
-// object that does not have textures to sample from
-    vec4 Factors;
-
-    int AlbedoIndex;
-    int NormalIndex;
-    int MetallicIndex;
-    int RoughnessIndex;
-    int AoIndex;
 } object;
 
 // [Vertex attributes]

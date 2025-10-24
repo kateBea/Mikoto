@@ -41,7 +41,7 @@ namespace Mikoto {
             attributeDescriptions[index] = {};
             attributeDescriptions[index].binding = 0;
             attributeDescriptions[index].location = index;
-            attributeDescriptions[index].format = VulkanHelpers::GetVulkanAttributeDataType( layout[index].GetType() );
+            attributeDescriptions[index].format = VulkanHelpers::ToVkShaderDataType( layout[index].GetType() );
             attributeDescriptions[index].offset = layout[index].GetOffset();
         }
 
@@ -75,14 +75,7 @@ namespace Mikoto {
         return shaderStagesInfos;
     }
 
-    static auto CreatePipelineLayout(std::span<ShaderModuleHandle> shaders) -> VkPipelineLayout {
-        VkPipelineLayout result{ VK_NULL_HANDLE };
-
-
-        return result;
-    }
-
-    VulkanGraphicsPipeline::VulkanGraphicsPipeline( const VulkanGraphicsPipelineCreateInfo& info)
+    VulkanGraphicsPipeline::VulkanGraphicsPipeline( const VulkanGraphicsPipelineDescription& info)
         : GraphicsPipeline{ info.ShaderModules }, m_ConfigInfo{ info }, m_BufferLayout{ info.Layout } {
 
         m_DepthAttachmentFormat = dynamic_cast<const VulkanTexture*>(info.Depth.GetRaw() )->GetViewCreateInfo().format;
@@ -95,13 +88,13 @@ namespace Mikoto {
     auto VulkanGraphicsPipeline::Release() -> void {
         DestroyReflectedPipeline( VK_DEVICE(m_Device), m_ReflectionData );
 
-        vkDestroyPipeline( VK_DEVICE(m_Device), m_GraphicsPipeline, nullptr );
+        vkDestroyPipeline( VK_DEVICE(m_Device), m_Pipeline, nullptr );
         m_IsAllocated = false;
     }
 
     auto VulkanGraphicsPipeline::Bind( const VkCommandBuffer commandBuffer ) const -> void {
-        MKT_ASSERT( m_GraphicsPipeline != VK_NULL_HANDLE, "VulkanGraphicsPipeline::Bind - Graphics pipeline is null." );
-        vkCmdBindPipeline( commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline );
+        MKT_ASSERT( m_Pipeline != VK_NULL_HANDLE, "VulkanGraphicsPipeline::Bind - Graphics pipeline is null." );
+        vkCmdBindPipeline( commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline );
     }
 
     VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
@@ -121,7 +114,7 @@ namespace Mikoto {
         // Setup Shaders
         const auto& shaderStageInfos{ GetShaderStagesInfo(m_ShaderModules) };
         if (shaderStageInfos.empty()) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanComputePipeline::Initialize - stage infos is empty" );
+            MKT_THROW_RUNTIME_ERROR( "VulkanGraphicsPipeline::Initialize - stage infos is empty" );
         }
 
         pipelineInfo.stageCount = shaderStageInfos.size();
@@ -136,9 +129,9 @@ namespace Mikoto {
         VkResult res{ ReflectSPIRV( VK_DEVICE(m_Device), shaderBlocks, m_ReflectionData) };
         const auto pipelineLayout { m_ReflectionData.pipelineLayout };
         if (pipelineLayout == VK_NULL_HANDLE) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanComputePipeline::Initialize - Layout is null handle" );
+            MKT_THROW_RUNTIME_ERROR( "VulkanGraphicsPipeline::Initialize - Layout is null handle" );
         }
-        m_PipelineLayout = pipelineLayout;
+        m_Layout = pipelineLayout;
 
         // Setup Vertex input
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VulkanHelpers::Initializers::PipelineVertexInputStateCreateInfo() };
@@ -175,13 +168,13 @@ namespace Mikoto {
         pipelineInfo.pMultisampleState = std::addressof( m_ConfigInfo.MultisampleInfo );
         pipelineInfo.pColorBlendState = std::addressof( m_ConfigInfo.ColorBlendInfo );
         pipelineInfo.pDepthStencilState = std::addressof( m_ConfigInfo.DepthStencilInfo );
-        pipelineInfo.layout = m_PipelineLayout;
+        pipelineInfo.layout = m_Layout;
         pipelineInfo.subpass = m_ConfigInfo.Subpass;
         pipelineInfo.basePipelineIndex = -1;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
         pipelineInfo.pDynamicState = std::addressof( m_ConfigInfo.DynamicStateInfo );
 
-        if ( vkCreateGraphicsPipelines( VK_DEVICE( m_Device ), VK_NULL_HANDLE, 1, std::addressof( pipelineInfo ), nullptr, std::addressof( m_GraphicsPipeline ) ) != VK_SUCCESS ) {
+        if ( vkCreateGraphicsPipelines( VK_DEVICE( m_Device ), VK_NULL_HANDLE, 1, std::addressof( pipelineInfo ), nullptr, std::addressof( m_Pipeline ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanGraphicsPipeline::Initialize - Failed to create Graphics pipeline" );
         }
 
@@ -189,16 +182,21 @@ namespace Mikoto {
     }
 
     VulkanComputePipeline::VulkanComputePipeline() {
+        if (m_IsAllocated) {
+            Release();
+        }
     }
 
     auto VulkanComputePipeline::Release() -> void {
-        vkDestroyPipeline( VK_DEVICE( m_Device ), m_ComputePipeline, nullptr );
+        DestroyReflectedPipeline( VK_DEVICE(m_Device), m_ReflectionData );
+
+        vkDestroyPipeline( VK_DEVICE( m_Device ), m_Pipeline, nullptr );
         m_IsAllocated = false;
     }
 
-    auto VulkanComputePipeline::Bind( VkCommandBuffer commandBuffer ) const -> void {
-        MKT_ASSERT( m_ComputePipeline != VK_NULL_HANDLE, "VulkanComputePipeline::Bind - Compute pipeline is null." );
-        vkCmdBindPipeline( commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_ComputePipeline );
+    auto VulkanComputePipeline::Bind( const VkCommandBuffer commandBuffer ) const -> void {
+        MKT_ASSERT( m_Pipeline != VK_NULL_HANDLE, "VulkanComputePipeline::Bind - Compute pipeline is null." );
+        vkCmdBindPipeline( commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline );
     }
 
     VulkanComputePipeline::~VulkanComputePipeline() {
@@ -211,19 +209,25 @@ namespace Mikoto {
         VkComputePipelineCreateInfo computePipelineCreateInfo{ VulkanHelpers::Initializers::ComputePipelineCreateInfo() };
 
         const auto& shaderStageInfos{ GetShaderStagesInfo(m_ShaderModules) };
-        const auto pipelineLayout { CreatePipelineLayout(m_ShaderModules) };
 
-        if (shaderStageInfos.empty() || pipelineLayout == VK_NULL_HANDLE) {
+        std::vector<std::vector<UInt32>> shaderBlocks{};
+        for (const auto& shader : m_ShaderModules) {
+            shaderBlocks.emplace_back( (UInt32*)shader->GetContents(), (UInt32*)(shader->GetContents() + shader->GetContentSize()) );
+        }
+
+        VkResult res{ ReflectSPIRV( VK_DEVICE(m_Device), shaderBlocks, m_ReflectionData ) };
+
+        m_Layout = m_ReflectionData.pipelineLayout;
+
+        if (shaderStageInfos.empty() || m_Layout == VK_NULL_HANDLE) {
             MKT_THROW_RUNTIME_ERROR( "VulkanComputePipeline::Initialize - stage infos is empty or pipeline layout is null handle." );
         }
 
-        // Save if needed later
-        m_PipelineLayout = pipelineLayout;
+        // I use front() because compute pipeline only have one stage, the compute shader
+        computePipelineCreateInfo.stage = shaderStageInfos.front();
+        computePipelineCreateInfo.layout = m_Layout;
 
-        computePipelineCreateInfo.stage = shaderStageInfos.front(); // I use front because compute pipeline only have one stage, the compute shader
-        computePipelineCreateInfo.layout = pipelineLayout;
-
-        if ( vkCreateComputePipelines( VK_DEVICE(m_Device), VK_NULL_HANDLE, 1, std::addressof( computePipelineCreateInfo ), nullptr, std::addressof( m_ComputePipeline ) ) != VK_SUCCESS ) {
+        if ( vkCreateComputePipelines( VK_DEVICE(m_Device), VK_NULL_HANDLE, 1, std::addressof( computePipelineCreateInfo ), nullptr, std::addressof( m_Pipeline ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanComputePipeline::Initialize - Failed to create compute pipeline" );
         }
     }

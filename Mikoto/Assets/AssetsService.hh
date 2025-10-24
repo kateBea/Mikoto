@@ -116,11 +116,15 @@ namespace Mikoto {
             return Ref<AssetType>::CreateEmpty();
         }
 
+        // Takes only the LoadDescription of the asset we want to load
+        // see RenderUtility.hh for load descriptions
         template<typename AssetType>
         auto LoadAsset( auto&&... args ) -> Ref<AssetType> {
             return LoadAssetTyped( std::forward<decltype(args)>(args)... );
         }
 
+        // Takes only the LoadDescription of the asset we want to load
+        // see RenderUtility.hh for load descriptions
         template<typename AssetType>
         auto LoadAssetAsync( auto&&... args ) -> void {
             // LoadAsset used to accept more parameters

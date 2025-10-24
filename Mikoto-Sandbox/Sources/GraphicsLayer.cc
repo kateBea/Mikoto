@@ -135,8 +135,6 @@ namespace Mikoto {
     auto GraphicsLayer::OnUpdate( const float deltaTime ) -> void {
         ImGuiUtils::ImGuiScopedBorderColor borderColor{ { 66, 200, 255, 255 } };
 
-        PhysicService::Get()->SetSimulationScene( m_MainScene.get() );
-
         UpdateListener();
 
         UpdateCamera( deltaTime );
@@ -170,6 +168,9 @@ namespace Mikoto {
     auto GraphicsLayer::SetupScene() -> void {
         m_MainScene = Scene::Create( "Hello World" );
         m_MainScene->SetName( "Change name just for fun" );
+
+        // You need to specify the Scene the physics are simulated on
+        PhysicService::Get()->SetSimulationScene( m_MainScene.get() );
 
         // This emits sounds
         Entity *entity{ m_MainScene->CreateEntity( "Ball" ) };
@@ -229,6 +230,7 @@ namespace Mikoto {
             rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
             rigidBody.SetFriction( 0 );
 
+            // This requires the simulation scene to have been specified before
             m_MainScene->AttachRigidBody( m_Listener );
         }
 
@@ -258,7 +260,7 @@ namespace Mikoto {
         if (m_Renderer) { m_Renderer->Init(); }
     }
 
-    auto GraphicsLayer::UpdateCamera( float timeStep ) -> void {
+    auto GraphicsLayer::UpdateCamera( const float timeStep ) -> void {
 
         m_SceneCamera->SetMovementSpeed( 13.f );
         m_SceneCamera->SetRotationSpeed( 13.f );

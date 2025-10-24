@@ -8,11 +8,12 @@
 #include <Logging/Logger.hh>
 #include <Renderer/RenderService.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
+#include <Renderer/Vulkan/VulkanDescriptorManager.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>
+#include <Renderer/Vulkan/VulkanRenderer.hh>
 #include <Renderer/Vulkan/VulkanTexture.hh>
-#include <Renderer/Vulkan/VulkanDescriptorManager.hh>
 
 namespace Mikoto {
 
@@ -43,8 +44,8 @@ namespace Mikoto {
         const std::vector<const char*>* RequestedExtensions{};
     };
 
-    static auto GetDefaultGraphicsPipelineConfigInfo() -> VulkanGraphicsPipelineCreateInfo {
-        VulkanGraphicsPipelineCreateInfo configInfo{};
+    static auto GetDefaultGraphicsPipelineConfigInfo() -> VulkanGraphicsPipelineDescription {
+        VulkanGraphicsPipelineDescription configInfo{};
 
         // [Input assembly]
         configInfo.InputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -294,8 +295,6 @@ namespace Mikoto {
             pool.As<DeviceObject>()->Initialize( this );
         }
 
-        CreateBindlessDescriptor();
-
         InitDescriptorAllocator();
 
         m_IsInitialized = true;
@@ -444,70 +443,6 @@ namespace Mikoto {
         MKT_CORE_LOGGER_DEBUG( "VulkanDevice::CreatePrimaryLogicalDevice - Created primary logical device." );
     }
 
-    auto VulkanDevice::CreateBindlessDescriptor() -> void {
-        const UInt32 maxBindlessTextures{ GetMaxBindlessTextureCount() };
-
-        // Descriptor pool ------------------------
-        VkDescriptorPoolSize poolSize{};
-        poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSize.descriptorCount = maxBindlessTextures;
-
-        // Flags required for bindless descriptor sets
-        VkDescriptorPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.flags =
-            VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT; // needed for descriptor indexing
-        poolInfo.maxSets = 1; // You’ll typically have one global bindless descriptor set
-        poolInfo.poolSizeCount = 1;
-        poolInfo.pPoolSizes = &poolSize;
-
-        if (vkCreateDescriptorPool(m_LogicalDevice, &poolInfo, nullptr, &m_BindlessPool) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("Failed to create bindless descriptor pool!");
-        }
-
-        // Descriptor layout ------------------------
-        VkDescriptorSetLayoutBinding binding{};
-        binding.binding = 1;
-        binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        binding.descriptorCount = maxBindlessTextures; // e.g. 4096
-        binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-        VkDescriptorBindingFlags bindingFlags =
-            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-            VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT |
-            VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
-
-        VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo{};
-        bindingFlagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
-        bindingFlagsInfo.bindingCount = 1;
-        bindingFlagsInfo.pBindingFlags = &bindingFlags;
-
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.pNext = &bindingFlagsInfo;
-        layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
-        layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &binding;
-
-        vkCreateDescriptorSetLayout(m_LogicalDevice, &layoutInfo, nullptr, &m_BindlessDescriptorSetLayout);
-
-        VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{};
-        variableCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
-        const UInt32 counts[]{ maxBindlessTextures };
-        variableCountInfo.descriptorSetCount = 1;
-        variableCountInfo.pDescriptorCounts = counts;
-
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = m_BindlessPool;
-        allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = &m_BindlessDescriptorSetLayout;
-        allocInfo.pNext = &variableCountInfo;
-
-        if (vkAllocateDescriptorSets(m_LogicalDevice, &allocInfo, &m_BindlessDescriptorSet) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("Failed to allocate bindless descriptor set!");
-        }
-    }
 
     auto VulkanDevice::Shutdown() -> void {
         if ( !m_IsInitialized ) {
@@ -519,13 +454,7 @@ namespace Mikoto {
 
         m_PendingCmdLists.clear();
 
-        // Bindless shutdown
-        m_BindlessTextures.clear();
 
-        vkFreeDescriptorSets( m_LogicalDevice, m_BindlessPool, 1, std::addressof( m_BindlessDescriptorSet ) );
-
-        vkDestroyDescriptorPool(m_LogicalDevice, m_BindlessPool, nullptr);
-        vkDestroyDescriptorSetLayout(m_LogicalDevice, m_BindlessDescriptorSetLayout, nullptr);
 
         // Clear resources (pools, etc)
         m_Textures.Shutdown();
@@ -569,41 +498,13 @@ namespace Mikoto {
         // we do not want to add to the descriptor depth images as we
         if (texture->GetTextureUsage() != TextureUsage::TEXTURE_USAGE_DEPTH) {
             // We update the set later it might be in use
-            VulkanTexture* vkTexture{ dynamic_cast<VulkanTexture*>(texture.GetRaw()) };
-
-            const Int32 textureIndex{ static_cast<Int32>(m_BindlessTextures.size()) };
-            vkTexture->SetTextureIndex(textureIndex);
-
-            m_BindlessTextures.push_back(texture);
+            VulkanRenderer* renderer{ dynamic_cast<VulkanRenderer*>(RenderService::Get()->GetBackend()) };
+            renderer->RegisterTextureForRender(texture);
         }
 
         return texture;
     }
 
-    auto VulkanDevice::UpdateBindlessTextureDescriptor(Int32 index, VulkanTexture* texture) -> void {
-        if (!texture->HasSampler()) {
-            texture->SetSampler(CreateSampler( SamplerDescription{} ));
-        }
-
-        VkSampler sampler{ *texture->GetSampler()->GetNativeHandle<VulkanSampler>() };
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.sampler = sampler;
-        imageInfo.imageView = *texture->GetView();
-
-        // is this the image's layout or the layout i want to to be for optimal sampling
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-        VkWriteDescriptorSet write{};
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstSet = m_BindlessDescriptorSet;
-        write.dstBinding = 1; // textures[] binding
-        write.dstArrayElement = index;
-        write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        write.descriptorCount = 1;
-        write.pImageInfo = &imageInfo;
-
-        vkUpdateDescriptorSets(m_LogicalDevice, 1, &write, 0, nullptr);
-    }
 
     auto VulkanDevice::RunGarbageCollection() -> void {
         // Call at the beginning of each frame to free command buffers
@@ -616,17 +517,6 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanDevice::PrepareResources() -> void {
-        for ( TextureHandle& texture : m_BindlessTextures ) {
-
-            // Once the texture is ready update the descriptor containing the texture arrays
-            VulkanTexture* vkTexture{ dynamic_cast<VulkanTexture*>(texture.GetRaw()) };
-
-            const Int32 textureIndex{ vkTexture->GetTextureIndex() };
-            UpdateBindlessTextureDescriptor(textureIndex, vkTexture);
-
-        }
-    }
 
     auto VulkanDevice::CreateCommandList( QueueType queue ) -> CommandListHandle {
         // Find pool we can allocate command lists for the specified type of queue
@@ -774,7 +664,7 @@ namespace Mikoto {
         m_PendingCmdLists.emplace_back( cmd );
     }
 
-    auto VulkanDevice::CreateSwapchain( const VulkanSwapChainCreateInfo& createInfo ) -> SwapChainHandle {
+    auto VulkanDevice::CreateSwapChain( const VulkanSwapChainCreateInfo& createInfo ) -> SwapChainHandle {
 
         SwapChainHandle result{ m_Swapchains.Allocate( createInfo ) };
         if ( !result.IsEmpty() ) {
@@ -796,15 +686,11 @@ namespace Mikoto {
         return texture;
     }
 
-    auto VulkanDevice::GetGlobalTexturesSet() -> VkDescriptorSet {
-        return m_BindlessDescriptorSet;
+    auto VulkanDevice::IsBindlessEnabled() const -> bool {
+        return m_IsBindlessEnabled;
     }
 
-    auto VulkanDevice::GetMaxBindlessTextureCount() -> UInt32 {
-        return 4096;
-    }
-
-    auto VulkanDevice::FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void {
+    auto VulkanDevice::FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) const -> void {
         if ( m_PendingCmdLists.empty() ) {
             return;
         }
@@ -846,7 +732,6 @@ namespace Mikoto {
         const auto result{ swapchain->Present( VulkanContext::Get()->GetCurrentImageIndex(), syncPrimitives.RenderFinishedSemaphore ) };
         if ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ) {
             MKT_THROW_RUNTIME_ERROR( "Error presenting to swp chain" );
-            return;
         }
 
         if ( result != VK_SUCCESS ) {
@@ -878,8 +763,8 @@ namespace Mikoto {
 
     auto VulkanCmdList::FillTexture( Buffer* src, Texture* dest ) -> void {
         // Cast to Vulkan-specific implementations
-        auto* vkSrc{ static_cast<VulkanBuffer*>(src) };
-        auto* vkDest{ static_cast<VulkanTexture*>(dest) };
+        auto* vkSrc{ dynamic_cast<VulkanBuffer*>(src) };
+        auto* vkDest{ dynamic_cast<VulkanTexture*>(dest) };
 
         if (!vkSrc || !vkDest)
             return;

@@ -205,13 +205,13 @@ namespace Mikoto {
         }
 
 #if __linux__
-        ImGui_ImplVulkan_LoadFunctions(VK_API_VERSION_1_3,
+        ImGui_ImplVulkan_LoadFunctions(VulkanContext::Get()->GetApiVersion(),
                 []( const char* functionName, void* vulkanInstance ) {
                     return vkGetInstanceProcAddr( *static_cast<VkInstance*>( vulkanInstance ), functionName );
                 },
                 std::addressof( VulkanContext::Get()->GetInstance() ) );
 #else
-        ImGui_ImplVulkan_LoadFunctions( VK_API_VERSION_1_3, []( const char* functionName, void* vulkanInstance ) { return vkGetInstanceProcAddr( *static_cast<VkInstance*>( vulkanInstance ), functionName ); }, std::addressof( VulkanContext::Get().GetInstance() ) );
+        ImGui_ImplVulkan_LoadFunctions( VulkanContext::Get()->GetApiVersion(), []( const char* functionName, void* vulkanInstance ) { return vkGetInstanceProcAddr( *static_cast<VkInstance*>( vulkanInstance ), functionName ); }, std::addressof( VulkanContext::Get().GetInstance() ) );
 #endif
 
 

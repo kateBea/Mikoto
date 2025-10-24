@@ -17,7 +17,7 @@ namespace Mikoto {
         GpuDevice* Device{ nullptr };
     };
 
-    // The shader library keeps track of the shaders loaded from disk
+    // The shader library keeps track of the shaders loaded from the disk
     class ShaderLibrary final : public IService, public Singleton<ShaderLibrary> {
     public:
         explicit ShaderLibrary( const ShaderLibraryDescription &options );

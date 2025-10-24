@@ -187,8 +187,7 @@ namespace Mikoto {
         }
 
         FontLoadDescription fontDesc{};
-        fontDesc
-            .WithFile( fontFile )
+        fontDesc.WithFile( fontFile )
             .WithPixelSize( 1.0f );
 
         FontHandle fontHandle{ FontService::Get()->LoadFont( fontDesc ) };

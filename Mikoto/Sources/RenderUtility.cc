@@ -98,6 +98,21 @@ namespace Mikoto {
         this->PixelSize = pixelSize;
         return *this;
     }
+    auto InferElementCount( const BufferDataType dataType, const Size blockSize ) -> Size {
+        switch (dataType) {
+
+            case BufferDataType::BUFFER_DATA_TYPE_UNKNOWN:
+                break;
+            case BufferDataType::BUFFER_DATA_UINT32:
+                return blockSize / sizeof( UInt32 );
+            case BufferDataType::BUFFER_DATA_UINT16:
+                return blockSize / sizeof( UInt16 );
+            case BufferDataType::BUFFER_DATA_FLOAT32:
+                return blockSize / sizeof( float );
+        }
+
+        return 0;
+    }
 
     auto BufferDescription::WithSizeBytes( Size size ) -> BufferDescription& {
         SizeBytes = size;

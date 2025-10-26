@@ -138,7 +138,13 @@ namespace Mikoto {
         // Pipeline layout
         std::vector<std::vector<UInt32>> shaderBlocks{};
         for (const auto& shader : m_ShaderModules) {
-            shaderBlocks.emplace_back( (UInt32*)shader->GetContents(), (UInt32*)(shader->GetContents() + shader->GetContentSize()) );
+            const void* data = shader->GetContents();
+            size_t size = shader->GetContentSize();
+
+            const auto* begin = reinterpret_cast<const UInt32*>(data);
+            const auto* end = reinterpret_cast<const UInt32*>(static_cast<const std::byte*>(data) + size);
+
+            shaderBlocks.emplace_back(begin, end);
         }
 
         VkResult res{ ReflectSPIRV( VK_DEVICE(m_Device), shaderBlocks, m_ReflectionData) };
@@ -227,7 +233,13 @@ namespace Mikoto {
 
         std::vector<std::vector<UInt32>> shaderBlocks{};
         for (const auto& shader : m_ShaderModules) {
-            shaderBlocks.emplace_back( (UInt32*)shader->GetContents(), (UInt32*)(shader->GetContents() + shader->GetContentSize()) );
+            const void* data = shader->GetContents();
+            size_t size = shader->GetContentSize();
+
+            const auto* begin = reinterpret_cast<const UInt32*>(data);
+            const auto* end = reinterpret_cast<const UInt32*>(static_cast<const std::byte*>(data) + size);
+
+            shaderBlocks.emplace_back(begin, end);
         }
 
         VkResult res{ ReflectSPIRV( VK_DEVICE(m_Device), shaderBlocks, m_ReflectionData ) };

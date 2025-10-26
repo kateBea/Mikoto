@@ -411,11 +411,10 @@ set(LIBRARIES
         unordered_dense::unordered_dense
         nlohmann_json::nlohmann_json
         sol2::sol2
-        lua
 )
 
 if(UNIX)
-    list(APPEND LIBRARIES pthread)
+    list(APPEND LIBRARIES pthread lua)
 endif()
 
 # ======================================

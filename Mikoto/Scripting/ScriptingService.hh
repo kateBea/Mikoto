@@ -5,7 +5,11 @@
 #ifndef LUASERVICE_HH
 #define LUASERVICE_HH
 
+// Will temporarily disable lua on windows
+// until the build works for this platform properly
+#if defined(__linux__)
 #include <sol/sol.hpp>
+#endif
 
 #include <Common/Service.hh>
 #include <Common/Singleton.hh>
@@ -24,7 +28,9 @@ namespace Mikoto {
 
   private:
 
+#if defined(__linux__)
     sol::state m_LuaState{};
+#endif
 
   };
 }

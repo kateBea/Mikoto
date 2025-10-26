@@ -12,22 +12,45 @@ namespace Mikoto {
     class GpuDevice;
 
     struct Object {
-        union {
-            UInt64 integer;
-            void* pointer;
+        enum class Type {
+            Pointer,
+            Integer,
+            None
         };
 
-        explicit Object(const UInt64 i) : integer(i) { }
-        explicit Object(void* p) : pointer(p) { }
+        Type type{ Type::None };
+        void* pointer{ nullptr };
+        UInt64 integer{ 0 };
+
+        explicit Object(void* p) : type(Type::Pointer), pointer(p) {}
+        explicit Object(UInt64 i) : type(Type::Integer), integer(i) {}
+        Object() = default;
 
         template<typename T>
-        operator T* () const {
-            return static_cast<T*>(pointer);
+        operator T*() const {
+            if (type == Type::Pointer) {
+                return static_cast<T*>(pointer);
+            }
+
+            return nullptr;
         }
+
+        bool IsValid() const { return type != Type::None; }
     };
 
+
     enum class ObjectType {
+        Vk_Device,
+        Vk_Buffer,
+        Vk_Sampler,
+        Vk_Image,
+        Vk_ImageView,
+        Vk_Framebuffer,
+        Vk_CmdPool,
+        Vk_CmdBuffer,
         Vk_DescriptorSetLayout,
+        Vk_Pipeline,
+        Vk_PipelineLayout,
     };
 
 
@@ -84,13 +107,8 @@ namespace Mikoto {
         }
 
         // API specific object handle
-        template<typename ChildType>
-        MKT_NODISCARD auto GetNativeHandle() -> decltype(auto) {
-            return static_cast<ChildType*>(this)->GetImplHandle();
-        }
-
-        // API specific object handle
         MKT_NODISCARD virtual auto GetNativeHandle( ObjectType ) -> Object { return Object(nullptr); }
+
 
     protected:
 

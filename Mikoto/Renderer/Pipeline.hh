@@ -43,6 +43,7 @@ namespace Mikoto {
     using PipelineHandle = Ref<IPipeline>;
 
     struct ComputePipelineDescription {
+        ShaderModuleHandle Stage{};
     };
 
     /**
@@ -54,8 +55,8 @@ namespace Mikoto {
     */
     class ComputePipeline : public IPipeline {
     public:
-        explicit ComputePipeline()
-            : IPipeline{ PipelineType::COMPUTE_PIPELINE } {}
+        explicit ComputePipeline(const ComputePipelineDescription& desc)
+            : IPipeline{ PipelineType::COMPUTE_PIPELINE, { desc.Stage } } {}
 
     private:
     };

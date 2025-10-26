@@ -12,8 +12,16 @@
 #include <Renderer/Vulkan/VulkanFramebuffer.hh>
 
 namespace Mikoto {
-    VulkanFramebuffer::VulkanFramebuffer( const FramebufferDescription &createInfo )
+    VulkanFramebuffer::VulkanFramebuffer( const FramebufferDescription& createInfo )
         : Framebuffer{ createInfo } {
+    }
+
+    auto VulkanFramebuffer::GetNativeHandle( ObjectType type ) -> Object {
+        if (type != ObjectType::Vk_Framebuffer) {
+            return Object(nullptr);
+        }
+
+        return Object(m_FrameBuffer );
     }
 
     auto VulkanFramebuffer::Release() -> void {

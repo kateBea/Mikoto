@@ -11,8 +11,8 @@
 #include <Renderer/GpuDevice.hh>
 #include <Renderer/RendererBackend.hh>
 #include <Renderer/RenderPassBase.hh>
-
 #include <Renderer/Pipeline.hh>
+#include <Renderer/Vulkan/VulkanDescriptorManager.hh>
 
 namespace Mikoto::VulkanPasses {
 
@@ -27,7 +27,7 @@ namespace Mikoto::VulkanPasses {
         auto Render(Scene* scene) -> void override;
         auto OnResize(UInt32 width, UInt32 height) -> void override;
 
-        auto BindDefaultSets(VkDescriptorSet) -> void;
+        auto BindDefaultSets(VkDescriptorSet& set, UInt32 setIndex ) -> void;
 
         auto WantStoreOP(bool enable) -> void;
         auto SetClearColor(const Vec4F& color) -> void;
@@ -54,7 +54,7 @@ namespace Mikoto::VulkanPasses {
         auto InitInstanceData() -> void;
         auto UploadInstanceData() -> void;
         auto CreateMeshesStorageDescriptorSet() -> void;
-        auto DrawMeshBatch(CommandListHandle cmd, const MeshBatch& batch) -> void;
+        auto DrawMeshBatch(const MeshBatch& batch) -> void;
 
     private:
         GpuDevice* m_Device{};
@@ -63,8 +63,10 @@ namespace Mikoto::VulkanPasses {
         AttachmentInfo m_ColorTarget{};
         AttachmentInfo m_DepthTarget{};
 
+        DescriptorSetLayoutHandle m_EntitiesSetLayout{  };
+
         bool m_WantStoreOP{};
-        Vec4F m_ClearColor{};
+        Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
 
         CommandListHandle m_CmdList{};
 
@@ -76,7 +78,8 @@ namespace Mikoto::VulkanPasses {
     };
 
     // Dummy compute pipeline we will use for testing only for now
-    class ComputeBasic final : public IPass {
+    // This computes just calculates first N prime numbers
+    class ComputeBasic final : public IComputePass {
     public:
         auto Init(GpuDevice* device) -> void override;
         auto Shutdown() -> void override;
@@ -89,6 +92,13 @@ namespace Mikoto::VulkanPasses {
     private:
         GpuDevice* m_Device{};
         PipelineHandle m_Pipeline{};
+
+        // Count of prime numbers
+        UInt32 m_Count{ 30 };
+
+        BufferHandle m_StorageBuffer{};
+        VkDescriptorSet m_DescriptorSet{};
+        DescriptorSetLayoutHandle m_ComputeLayout{};
 
         CommandListHandle m_CmdList{};
     };

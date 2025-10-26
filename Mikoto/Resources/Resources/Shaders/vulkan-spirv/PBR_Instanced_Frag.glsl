@@ -8,13 +8,10 @@
 **************************************************/
 
 #version 450
-
 #extension GL_EXT_nonuniform_qualifier : require
 
 const float PI = 3.14159265359;
-
 #define INVALID_TEXTURE_INDEX -1
-
 #define MAX_LIGHTS 50
 
 #define DISPLAY_NORMAL 1
@@ -23,21 +20,19 @@ const float PI = 3.14159265359;
 #define DISPLAY_AO 4
 #define DISPLAY_ROUGH 5
 
+// --------------------------------------------------
+// Structs
+// --------------------------------------------------
 struct PointLight {
     vec4 Position;
-
     vec4 ambient;
     vec4 Diffuse;
     vec4 specular;
-
     vec4 AttenuationParams;
-
 };
 
 struct DirectionalLight {
     vec4 Direction;
-    vec4 Position;
-
     vec4 Ambient;
     vec4 Diffuse;
     vec4 Specular;
@@ -46,65 +41,79 @@ struct DirectionalLight {
 struct SpotLight {
     vec4 Position;
     vec4 Direction;
-
     vec4 Ambient;
     vec4 Diffuse;
     vec4 Specular;
-
-// cutoff
-// x=cutOff, y=outerCutOff (both angles in radians),  z = intensity, w = radius
+// x=cutOff, y=outerCutOff, z=intensity, w=radius
     vec4 CutOffValues;
 };
 
-
-// Input variables
-layout (location = 0) in vec3 inFragmentPos;
-layout (location = 1) in vec3 inNormals;
-layout (location = 2) in vec2 inTexCoord;
-layout (location = 3) in vec2 inVertexColor;
-layout (location = 4) in vec3 inCameraPos;
-
-// Output variables
-layout (location = 0) out vec4 out_Color;
-
-// Global textures
-layout (set = 0, binding = 1) uniform sampler2D g_Textures[];
-
-// Per object
-layout(set = 0, binding = 2) uniform MaterialUniformBuffer {
-
+struct ShadingPassMeshBufferUBO {
+    mat4 Transform;
     vec4 Albedo;
-
-// Metalness, roughnes and ao for when we submit an
-// object that does not have textures to sample from
     vec4 Factors;
-
     int AlbedoIndex;
     int NormalIndex;
     int MetallicIndex;
     int RoughnessIndex;
     int AoIndex;
+};
 
-} MaterialParams;
+// --------------------------------------------------
+// Inputs from vertex shader
+// --------------------------------------------------
+layout(location = 0) in vec3 inFragmentPos;
+layout(location = 1) in vec3 inNormals;
+layout(location = 2) in vec2 inTexCoord;
+layout(location = 3) in vec3 inVertexColor;
+layout(location = 4) in vec3 inCameraPos;
+layout(location = 5) flat in uint inInstanceIndex;
 
-// these will go to an storage bufferr
-layout(set = 0, binding = 3) uniform LightUniformBuffer {
+// --------------------------------------------------
+// Output
+// --------------------------------------------------
+layout(location = 0) out vec4 out_Color;
+
+// --------------------------------------------------
+// Lighting UBO
+// --------------------------------------------------
+layout(set = 0, binding = 1) uniform LightUniformBuffer {
     SpotLight SpotLights[MAX_LIGHTS];
     PointLight PointLights[MAX_LIGHTS];
     DirectionalLight DirectionalLights[MAX_LIGHTS];
-
     int DirectionalLightCount;
     int PointLightCount;
     int SpotLightCount;
-
     int DisplayMode;
     int Wireframe;
-
 } LightsParams;
 
+// --------------------------------------------------
+// Global textures
+// --------------------------------------------------
+// If a binding uses VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT, it must have the
+// highest binding number in that descriptor set. All other bindings must have smaller binding numbers.
+/**
+Since g_Textures has variable size
+layout(set = 0, binding = 0) uniform FrameUBO { ... };
+layout(set = 0, binding = 1) uniform LightUniformBuffer { ... };
+layout(set = 1, binding = 0) uniform sampler2D g_Textures[];
 
-vec3 GetNormalFromMap() {
-    vec3 tangentNormal = texture(g_Textures[MaterialParams.NormalIndex], inTexCoord).xyz * 2.0 - 1.0;
+layout(set = 2, binding = 0) readonly buffer InstanceData { ... };
+*/
+layout(set = 1, binding = 0) uniform sampler2D g_Textures[];
+
+// --------------------------------------------------
+// Per-instance storage buffer (same as vertex)
+// --------------------------------------------------
+layout(std430, set = 2, binding = 0) readonly buffer InstanceData {
+    ShadingPassMeshBufferUBO instances[];
+};
+
+
+
+vec3 GetNormalFromMap(sampler2D normalMap) {
+    vec3 tangentNormal = texture(normalMap, inTexCoord).xyz * 2.0 - 1.0;
 
     vec3 Q1  = dFdx( inFragmentPos );
     vec3 Q2  = dFdy( inFragmentPos );
@@ -228,7 +237,7 @@ vec3 ComputeDirectionalLightContribution(vec3 N, vec3 V, vec3 F0, float roughnes
 
     for(int i = 0; i < LightsParams.DirectionalLightCount; ++i) {
         // calculate per-light radiance
-        vec3 L = normalize( -vec3(LightsParams.DirectionalLights[i].Position.xyz ) );
+        vec3 L = normalize( -vec3(LightsParams.DirectionalLights[i].Direction.xyz ) );
         vec3 H = normalize( V + L );
 
         // This vec 3 should be the light color, we assume it is full white for now
@@ -351,47 +360,47 @@ vec4 DetermineOutFragmentColor(vec3 N, vec3 color, float metallic, float roughne
     return result;
 }
 
+// --------------------------------------------------
+// Main
+// --------------------------------------------------
 void main() {
 
-    vec3 albedo     = MaterialParams.AlbedoIndex != INVALID_TEXTURE_INDEX ?
-    pow(texture(g_Textures[MaterialParams.AlbedoIndex], inTexCoord).rgb, vec3(2.2)) : MaterialParams.Albedo.xyz;
+    ShadingPassMeshBufferUBO materialParams = instances[inInstanceIndex];
 
-    float metallic  = MaterialParams.MetallicIndex  != INVALID_TEXTURE_INDEX ?
-    texture(g_Textures[MaterialParams.MetallicIndex], inTexCoord).r : MaterialParams.Factors.x;
+    vec3 albedo     = materialParams.AlbedoIndex != INVALID_TEXTURE_INDEX ?
+    pow(texture(g_Textures[materialParams.AlbedoIndex], inTexCoord).rgb, vec3(2.2))
+    : materialParams.Albedo.xyz;
 
-    float roughness = MaterialParams.RoughnessIndex != INVALID_TEXTURE_INDEX ?
-    texture(g_Textures[MaterialParams.RoughnessIndex], inTexCoord).r : MaterialParams.Factors.y;
+    float metallic  = materialParams.MetallicIndex  != INVALID_TEXTURE_INDEX ?
+    texture(g_Textures[materialParams.MetallicIndex], inTexCoord).r
+    : materialParams.Factors.x;
 
-    float ao        = MaterialParams.AoIndex != INVALID_TEXTURE_INDEX ?
-    texture(g_Textures[MaterialParams.AoIndex], inTexCoord).r : MaterialParams.Factors.z;
+    float roughness = materialParams.RoughnessIndex != INVALID_TEXTURE_INDEX ?
+    texture(g_Textures[materialParams.RoughnessIndex], inTexCoord).r
+    : materialParams.Factors.y;
 
-    vec3 N = MaterialParams.NormalIndex != INVALID_TEXTURE_INDEX ? GetNormalFromMap() : normalize(inNormals);
+    float ao        = materialParams.AoIndex != INVALID_TEXTURE_INDEX ?
+    texture(g_Textures[materialParams.AoIndex], inTexCoord).r
+    : materialParams.Factors.z;
+
+    vec3 N = materialParams.NormalIndex != INVALID_TEXTURE_INDEX
+    ? GetNormalFromMap(g_Textures[materialParams.NormalIndex])
+    : normalize(inNormals);
 
     vec3 V = normalize(inCameraPos - inFragmentPos);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
-    // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0
-    // of 0.04 and if it's a metal, use the albedo color as F0 (metallic workflow)
-    vec3 F0 = vec3(0.04);
-    F0 = mix(F0, albedo, metallic);
-
-    // reflectance equation
     vec3 Lo = vec3(0.0);
-
     Lo += ComputeDirectionalLightContribution(N, V, F0, roughness, metallic, albedo);
     Lo += ComputePointLightContribution(N, V, F0, roughness, metallic, albedo);
     Lo += ComputeSpotLightContribution(N, V, F0, roughness, metallic, albedo);
 
-    // ambient lighting (note that the next IBL tutorial will replace
-    // this ambient lighting with environment lighting).
     vec3 ambient = vec3(0.03) * albedo * ao;
-
     vec3 color = ambient + Lo;
 
-    // HDR tonemapping
     color = color / (color + vec3(1.0));
-
-    // gamma correct
-    color = pow(color, vec3(1.0/2.2));
+    color = pow(color, vec3(1.0 / 2.2));
 
     out_Color = DetermineOutFragmentColor(N, color, metallic, roughness, ao);
+    out_Color = vec4(inInstanceIndex, inInstanceIndex, inInstanceIndex, 1.0f);
 }

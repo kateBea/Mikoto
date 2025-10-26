@@ -9,36 +9,92 @@
 // Third-Party Libraries
 #include <volk.h>
 
-#include <Scene/Component.hh>
+#include <Renderer/Light.hh>
 #include <Renderer/Vulkan/VulkanPasses.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
+#include <Scene/Component.hh>
+
+// TODO: temporary matches pbr_instance shaders layout
+#define MAX_LIGHTS 50
 
 namespace Mikoto {
 
     struct FrameUBO {
         glm::mat4 View{};
         glm::mat4 Projection{};
+        Vec4F CameraPosition{};
     };
 
-    VulkanRenderer::VulkanRenderer( GpuDevice *device, std::string_view name )
-        : RendererBackend{ { name, device } }
-    {}
+    struct SpotLightShader {
+        Vec4F Position;
+        Vec4F Direction;
+        Vec4F Ambient;
+        Vec4F Diffuse;
+        Vec4F Specular;
+        // x=cutOff, y=outerCutOff, z=intensity, w=radius
+        Vec4F CutOffValues;
+    };
 
-    auto VulkanRenderer::Init() -> void {
-        // Create data that is needed per frame
-        // need to use GetUniformBufferMinOffsetAlignment()
-        // somewhere here check in legacy how we created them, proper alignment is
-        // required gpu packs them in at least that amount of bytes blocks
+    struct PointLightShader {
+        Vec4F Position;
+        Vec4F ambient;
+        Vec4F Diffuse;
+        Vec4F specular;
+        Vec4F AttenuationParams;
+    };
+
+    struct DirectionalLightShader {
+        Vec4F Position;
+        Vec4F Ambient;
+        Vec4F Diffuse;
+        Vec4F Specular;
+    };
+
+
+    struct LightInfo {
+        SpotLight SpotLights[MAX_LIGHTS];
+        PointLightShader PointLights[MAX_LIGHTS];
+        DirectionalLightShader DirectionalLights[MAX_LIGHTS];
+        Int32 DirectionalLightCount{};
+        Int32 PointLightCount{};
+        Int32 SpotLightCount{};
+        Int32 DisplayMode{};
+        Int32 Wireframe{};
+    };
+
+    template<typename UniformBufferT>
+    static auto CreateUniformBuffer( GpuDevice* device ) -> BufferHandle {
+        BufferHandle buffer{ BufferHandle::CreateEmpty() };
+
+        constexpr Size elementCount{ 1 };
+        constexpr Size elementSize{ sizeof( UniformBufferT ) };
+
+        // UniformBuffer size padded. Vertex shader
+        const VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE( device )->GetUniformBufferMinOffsetAlignment() };
+        const VkDeviceSize paddedSize{ VulkanHelpers::GetUniformBufferPadding( elementSize, minOffsetAlignment ) };
+
+        const Size totalSize{ elementCount * paddedSize };
+
         BufferDescription bufferDesc{};
         bufferDesc.WithData( nullptr )
                 .WithUsage( BufferUsage::BUFFER_USAGE_UNIFORM )
-                .WithSizeBytes( sizeof(FrameUBO) )
+                .WithSizeBytes( totalSize )
                 .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
-        m_FrameUBOBuffer = m_GraphicsDevice->CreateBuffer( bufferDesc );
+        buffer = device->CreateBuffer( bufferDesc );
+
+        return buffer;
+    }
+
+    VulkanRenderer::VulkanRenderer( GpuDevice* device, const std::string_view name )
+        : RendererBackend{ { name, device } } {}
+
+    auto VulkanRenderer::Init() -> void {
 
         CreateBindlessDescriptor();
 
-        m_Materials.Init(10);
+        InitGlobalShaderBuffers();
+
+        m_Materials.Init( 10 );
 
         InitCoreRenderPasses();
 
@@ -46,7 +102,7 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::Shutdown() -> void {
-        if (!m_IsInitialized) {
+        if ( !m_IsInitialized ) {
             return;
         }
 
@@ -56,67 +112,78 @@ namespace Mikoto {
 
         m_BindlessTextures.clear();
 
-        vkFreeDescriptorSets( VK_DEVICE(m_GraphicsDevice) , m_BindlessPool, 1, std::addressof( m_BindlessDescriptorSet ) );
-
-        vkDestroyDescriptorPool(VK_DEVICE(m_GraphicsDevice), m_BindlessPool, nullptr);
-        vkDestroyDescriptorSetLayout(VK_DEVICE(m_GraphicsDevice), m_BindlessDescriptorSetLayout, nullptr);
-
         m_IsInitialized = false;
     }
 
     auto VulkanRenderer::EndRender() -> void {
-        for ( const auto& pass : m_Passes | std::ranges::views::values ) {
-            pass->End();
+        for ( const auto& pass: m_Passes | std::ranges::views::values ) {
+
+            // This is only for the render commands which share the same command buffer
+            if ( const auto graphicsPass{ dynamic_cast<IRenderPass*>( pass.get() ) } ) {
+                graphicsPass->End( );
+            }
         }
+
+        m_GraphicsCommandList->End();
     }
 
     auto VulkanRenderer::BeginRender( CommandListHandle cmdList ) -> void {
         using namespace Mikoto::VulkanPasses;
 
+        // Compute workflow first
+        RunComputeWorkflow();
+
+
+        // Graphics commands
         m_GraphicsCommandList = cmdList;
+        m_GraphicsCommandList->Begin();
 
         // Prepare resources
-        for ( TextureHandle& texture : m_BindlessTextures ) {
 
-            // Once the texture is ready, update the descriptor containing the texture arrays
-            const auto vkTexture{ dynamic_cast<VulkanTexture*>(texture.GetRaw()) };
+        if (m_UpdateTextureDescriptor) {
+            // We push all the textures we need, when we begin render
+            // we make sure they are all visible through the descriptor set
+            // do this once and only when is needed if the texture list hasn't changed
+            // there's no need to update this descriptor set
+            for ( TextureHandle& texture: m_BindlessTextures ) {
 
-            const Int32 textureIndex{ vkTexture->GetTextureIndex() };
-            UpdateBindlessTextureDescriptor(textureIndex, vkTexture);
+                const auto vkTexture{ dynamic_cast<VulkanTexture*>( texture.GetRaw() ) };
+
+                const Int32 textureIndex{ vkTexture->GetTextureIndex() };
+                UpdateBindlessTextureDescriptor( textureIndex, vkTexture );
+            }
+
+            m_UpdateTextureDescriptor = false;
+        }
+
+        for ( const auto& pass: m_Passes | std::ranges::views::values ) {
+            if ( const auto graphicsPass{ dynamic_cast<IRenderPass*>( pass.get() ) } ) {
+                graphicsPass->Begin( m_GraphicsCommandList );
+            }
         }
 
         // Shading pass will bind the global renderer descriptor pass
         // this pass is the main pass. These the lights and the texture sets are not changing between passes,
         // shaders must declare them properly to align to this descriptor layout
+        // These descriptors go to set 0
         ShadingPass* shadingPass{ m_Passes.Get<ShadingPass>() };
-        shadingPass->BindDefaultSets(m_BindlessDescriptorSet);
-
-        for ( const auto& pass : m_Passes | std::ranges::views::values) {
-            pass->Begin( cmdList );
-        }
+        shadingPass->BindDefaultSets( m_FrameSet, 0 );
+        shadingPass->BindDefaultSets( m_TexturesSet, 1 );
     }
 
-    auto VulkanRenderer::SetPipeline( const PipelineHandle pipeline ) -> void {
-        m_Pipeline = pipeline;
-    }
-
-    auto VulkanRenderer::DrawScene( Scene *scene ) -> void {
-        // Handle lights here which are also the same for all passses
+    auto VulkanRenderer::DrawScene( Scene* scene ) -> void {
+        // Handle lights here which are also the same for all passes
         auto& registry{ scene->GetRegistry() };
         auto lightsView{ registry.view<TagComponent, TransformComponent, LightComponent>() };
-        for (auto& lightEntity : lightsView) {
+        for ( auto& lightEntity: lightsView ) {
             TagComponent& tagComp{ registry.get<TagComponent>( lightEntity ) };
             LightComponent& lightComp{ registry.get<LightComponent>( lightEntity ) };
             TransformComponent& transformCom{ registry.get<TransformComponent>( lightEntity ) };
         }
 
-        for ( const auto& pass : m_Passes | std::ranges::views::values ) {
-            pass->Execute();
-        }
-
         // For all passes with a graphics pipeline
-        for (auto& pass : m_Passes | std::ranges::views::values ) {
-            if ( const auto graphicsPass{ dynamic_cast<IRenderPass*>(pass.get()) } ) {
+        for ( auto& pass: m_Passes | std::ranges::views::values ) {
+            if ( const auto graphicsPass{ dynamic_cast<IRenderPass*>( pass.get() ) } ) {
                 graphicsPass->Render( scene );
             }
         }
@@ -125,16 +192,16 @@ namespace Mikoto {
     auto VulkanRenderer::OnResize( UInt32 width, UInt32 height ) -> void {
     }
 
-    auto VulkanRenderer::SetCamera( const Camera *camera ) -> void {
+    auto VulkanRenderer::SetCamera( const Camera* camera ) -> void {
         FrameUBO frameUBO{};
         frameUBO.View = camera->GetViewMatrix();
         frameUBO.Projection = camera->GetProjection();
 
-        m_FrameUBOBuffer->CopyFromBlock(std::addressof( frameUBO ), sizeof(FrameUBO));
+        m_FrameUBOBuffer->CopyFromBlock( std::addressof( frameUBO ), sizeof( FrameUBO ) );
     }
 
     auto VulkanRenderer::SetViewport( const float x, const float y, const float width, const float height ) -> void {
-        VkCommandBuffer cmd{ *m_GraphicsCommandList->GetNativeHandle<VulkanCmdList>() };
+        VkCommandBuffer cmd{ m_GraphicsCommandList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
 
         m_Viewport.x = x;
         m_Viewport.y = y;
@@ -166,101 +233,110 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::RegisterTextureForRender( TextureHandle texture ) -> void {
-        const auto vkTexture{ dynamic_cast<VulkanTexture*>(texture.GetRaw()) };
+        const auto vkTexture{ dynamic_cast<VulkanTexture*>( texture.GetRaw() ) };
 
-        const Int32 textureIndex{ static_cast<Int32>(m_BindlessTextures.size()) };
-        vkTexture->SetTextureIndex(textureIndex);
+        const Int32 textureIndex{ static_cast<Int32>( m_BindlessTextures.size() ) };
+        vkTexture->SetTextureIndex( textureIndex );
 
-        m_BindlessTextures.push_back(texture);
+        m_BindlessTextures.push_back( texture );
+
+        m_UpdateTextureDescriptor = true;
     }
 
     auto VulkanRenderer::GetMaxBindlessTextureCount() -> UInt32 {
         return 4096;
     }
 
+    auto VulkanRenderer::InitGlobalShaderBuffers() -> void {
+        m_FrameUBOBuffer = CreateUniformBuffer<FrameUBO>( m_GraphicsDevice );
+        m_LightsBuffer = CreateUniformBuffer<LightInfo>( m_GraphicsDevice );
+
+
+        DescriptorWriter descriptorWriter{};
+
+        descriptorWriter.WriteBuffer( 0, m_FrameUBOBuffer->GetNativeHandle(ObjectType::Vk_Buffer), m_FrameUBOBuffer->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+            .WriteBuffer( 1, m_LightsBuffer->GetNativeHandle(ObjectType::Vk_Buffer), m_LightsBuffer->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+            .UpdateSet( VK_DEVICE(m_GraphicsDevice), m_FrameSet );
+    }
+
     auto VulkanRenderer::CreateBindlessDescriptor() -> void {
         const UInt32 maxBindlessTextures{ GetMaxBindlessTextureCount() };
 
-        // Descriptor pool ------------------------
-        VkDescriptorPoolSize poolSize{};
-        poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSize.descriptorCount = maxBindlessTextures;
+        // ───────────────────────────────────────────────
+        // [ Set = 0 ] Frame + Light UBOs
+        // ───────────────────────────────────────────────
+        std::array<VkDescriptorSetLayoutBinding, 2> frameBindings{};
+        frameBindings[0].binding = 0;
+        frameBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        frameBindings[0].descriptorCount = 1;
+        frameBindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-        // Flags required for bindless descriptor sets
-        VkDescriptorPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.flags =
-            VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT; // needed for descriptor indexing
-        poolInfo.maxSets = 1; // You’ll typically have one global bindless descriptor set
-        poolInfo.poolSizeCount = 1;
-        poolInfo.pPoolSizes = &poolSize;
+        frameBindings[1].binding = 1;
+        frameBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        frameBindings[1].descriptorCount = 1;
+        frameBindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        if (vkCreateDescriptorPool(VK_DEVICE(m_GraphicsDevice), &poolInfo, nullptr, &m_BindlessPool) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("Failed to create bindless descriptor pool!");
-        }
+        VkDescriptorSetLayoutCreateInfo frameLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+        frameLayoutInfo.bindingCount = static_cast<uint32_t>( frameBindings.size() );
+        frameLayoutInfo.pBindings = frameBindings.data();
 
-        // Descriptor layout ------------------------
-        VkDescriptorSetLayoutBinding binding{};
-        binding.binding = 1;
-        binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        binding.descriptorCount = maxBindlessTextures; // e.g. 4096
-        binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        m_FrameLayout = TO_VK_DEVICE( m_GraphicsDevice )->AllocateDescriptorSetLayout( frameLayoutInfo );
 
-        VkDescriptorBindingFlags bindingFlags =
-            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-            VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT |
-            VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+        // Set = 0 → Frame + Light
+        m_FrameSet = TO_VK_DEVICE( m_GraphicsDevice )->AllocateDescriptorSet( m_FrameLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ) );
 
-        VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo{};
-        bindingFlagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
-        bindingFlagsInfo.bindingCount = 1;
-        bindingFlagsInfo.pBindingFlags = &bindingFlags;
+        // ───────────────────────────────────────────────
+        // [ Set = 1 ] Bindless textures
+        // ───────────────────────────────────────────────
+        VkDescriptorSetLayoutBinding textureBinding{};
+        textureBinding.binding = 0;// matches layout(set=1, binding=0)
+        textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        textureBinding.descriptorCount = maxBindlessTextures;
+        textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.pNext = &bindingFlagsInfo;
-        layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
-        layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &binding;
+        VkDescriptorBindingFlags textureFlags =
+                VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+                VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT |
+                VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
 
-        vkCreateDescriptorSetLayout(VK_DEVICE(m_GraphicsDevice), &layoutInfo, nullptr, &m_BindlessDescriptorSetLayout);
+        VkDescriptorSetLayoutBindingFlagsCreateInfo textureFlagsInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO };
+        textureFlagsInfo.bindingCount = 1;
+        textureFlagsInfo.pBindingFlags = &textureFlags;
 
-        VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{};
-        variableCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
-        const UInt32 counts[]{ maxBindlessTextures };
+        VkDescriptorSetLayoutCreateInfo textureLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+        textureLayoutInfo.pNext = &textureFlagsInfo;
+        textureLayoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+        textureLayoutInfo.bindingCount = 1;
+        textureLayoutInfo.pBindings = &textureBinding;
+
+        m_TextureLayout = TO_VK_DEVICE( m_GraphicsDevice )->AllocateDescriptorSetLayout( textureLayoutInfo );
+
+        // Set = 1 → Bindless textures
+        const UInt32 variableCount[] = { maxBindlessTextures };
+        VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO };
         variableCountInfo.descriptorSetCount = 1;
-        variableCountInfo.pDescriptorCounts = counts;
+        variableCountInfo.pDescriptorCounts = variableCount;
 
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = m_BindlessPool;
-        allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = &m_BindlessDescriptorSetLayout;
-        allocInfo.pNext = &variableCountInfo;
-
-        if (vkAllocateDescriptorSets(VK_DEVICE(m_GraphicsDevice), &allocInfo, &m_BindlessDescriptorSet) != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("Failed to allocate bindless descriptor set!");
-        }
-
+        m_TexturesSet = TO_VK_DEVICE( m_GraphicsDevice )->AllocateDescriptorSet( m_TextureLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ), std::addressof( variableCountInfo ) );
     }
 
-    auto VulkanRenderer::UpdateBindlessTextureDescriptor( const Int32 index, VulkanTexture *texture ) -> void {
+    auto VulkanRenderer::UpdateBindlessTextureDescriptor( const Int32 index, VulkanTexture* texture ) -> void {
         if ( !texture->HasSampler() ) {
             texture->SetSampler( m_GraphicsDevice->CreateSampler( SamplerDescription{} ) );
         }
 
-        VkSampler sampler{ *texture->GetSampler()->GetNativeHandle<VulkanSampler>() };
+        VkSampler sampler{ texture->GetSampler()->GetNativeHandle( ObjectType::Vk_Sampler ) };
         VkDescriptorImageInfo imageInfo{};
         imageInfo.sampler = sampler;
-        imageInfo.imageView = *texture->GetView();
+        imageInfo.imageView = texture->GetNativeHandle( ObjectType::Vk_ImageView );
 
         // is this the image's layout or the layout i want to to be for optimal sampling
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         VkWriteDescriptorSet write{};
         write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstSet = m_BindlessDescriptorSet;
-        write.dstBinding = 1;// textures[] binding
+        write.dstSet = m_TexturesSet;
+        write.dstBinding = 0;
         write.dstArrayElement = index;
         write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         write.descriptorCount = 1;
@@ -279,6 +355,33 @@ namespace Mikoto {
         // Compute basic
         ComputeBasic* computeBasic{ m_Passes.Register<ComputeBasic>() };
         computeBasic->Init( TO_VK_DEVICE( m_GraphicsDevice ) );
+    }
+
+    auto VulkanRenderer::RunComputeWorkflow()-> void{
+        CommandListHandle computeCommandList{ m_GraphicsDevice->CreateCommandList( QueueType::COMPUTE_QUEUE ) };
+        computeCommandList->Begin();
+
+        for ( const auto& pass: m_Passes | std::ranges::views::values ) {
+            if ( const auto computePass{ dynamic_cast<IComputePass*>( pass.get() ) } ) {
+                computePass->Begin(computeCommandList);
+            }
+        }
+
+        for ( const auto& pass: m_Passes | std::ranges::views::values ) {
+            if ( const auto computePass{ dynamic_cast<IComputePass*>( pass.get() ) } ) {
+                computePass->Execute();
+            }
+        }
+
+        for ( const auto& pass: m_Passes | std::ranges::views::values ) {
+            if ( const auto computePass{ dynamic_cast<IComputePass*>( pass.get() ) } ) {
+                computePass->End();
+            }
+        }
+
+        computeCommandList->End();
+        m_GraphicsDevice->SubmitCommands( computeCommandList );
+
     }
 
 }// namespace Mikoto

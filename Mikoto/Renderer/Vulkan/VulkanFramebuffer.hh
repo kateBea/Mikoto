@@ -19,7 +19,7 @@ namespace Mikoto {
     public:
         explicit VulkanFramebuffer(const FramebufferDescription& createInfo);
 
-        MKT_NODISCARD auto GetImplHandle() -> VkFramebuffer* { return std::addressof(m_FrameBuffer); }
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
         MKT_NODISCARD auto GetCreateInfo() const -> const VkFramebufferCreateInfo& { return m_CreateInfo; }
 
         ~VulkanFramebuffer() override;

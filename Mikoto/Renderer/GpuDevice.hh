@@ -72,6 +72,8 @@ namespace Mikoto {
         virtual auto SubmitCommands(CommandListHandle cmd) -> void = 0;
         MKT_NODISCARD virtual auto CreateCommandList(QueueType queue) -> CommandListHandle = 0;
 
+        MKT_NODISCARD virtual auto GetNativeHandle( ObjectType type ) -> Object { return Object(nullptr); }
+
         virtual auto RunGarbageCollection() -> void = 0;
 
         virtual ~GpuDevice() = default;

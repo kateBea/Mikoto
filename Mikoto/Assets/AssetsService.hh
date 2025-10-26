@@ -147,7 +147,6 @@ namespace Mikoto {
 
     private:
         Unique<MeshFactory> m_MeshFactory{};
-        Unique<ShaderLibrary> m_ShaderLibrary{};
 
         GpuDevice* m_GpuDevice{ nullptr };
         AudioDevice* m_AudioDevice{ nullptr };

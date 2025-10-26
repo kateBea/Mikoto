@@ -30,8 +30,6 @@ namespace Mikoto {
         virtual auto Init(GpuDevice* device) -> void = 0;
         virtual auto Shutdown() -> void = 0;
 
-        virtual auto Execute() -> void {}
-
         virtual auto Begin(CommandListHandle cmd) -> void = 0;
         virtual auto End() -> void = 0;
     };
@@ -43,6 +41,13 @@ namespace Mikoto {
 
         virtual auto Render(Scene* scene) -> void = 0;
         virtual auto OnResize(UInt32 width, UInt32 height) -> void {}
+    };
+
+    class IComputePass : public IPass {
+    public:
+        ~IComputePass() override = default;
+
+        virtual auto Execute() -> void {}
     };
 
 }

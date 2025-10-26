@@ -60,6 +60,8 @@ namespace Mikoto {
         MKT_NODISCARD auto Get() const -> const VkPipeline& { return m_Pipeline; }
         MKT_NODISCARD auto GetLayout() const -> const VkPipelineLayout& { return m_Layout; }
 
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
+
         ~VulkanGraphicsPipeline() override;
 
     public:
@@ -86,15 +88,12 @@ namespace Mikoto {
 
     class VulkanComputePipeline final : public ComputePipeline {
     public:
-        explicit VulkanComputePipeline();
+        explicit VulkanComputePipeline( const ComputePipelineDescription& info );
 
         auto Release() -> void override;
         auto Bind(VkCommandBuffer commandBuffer) const -> void;
 
-        MKT_NODISCARD auto GetImplHandle() -> VulkanComputePipeline* { return this; }
-
-        MKT_NODISCARD auto Get() const -> const VkPipeline& { return m_Pipeline; }
-        MKT_NODISCARD auto GetLayout() const -> const VkPipelineLayout& { return m_Layout; }
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
 
         ~VulkanComputePipeline() override;
 

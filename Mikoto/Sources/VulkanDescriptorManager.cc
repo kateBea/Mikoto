@@ -19,10 +19,10 @@ namespace Mikoto {
         : m_CreateInfo{ info }
     {}
 
-    auto DescriptorSetLayout::GetNativeHandle( ObjectType type )-> Object {
+    auto DescriptorSetLayout::GetNativeHandle( ObjectType type ) -> Object {
         switch (type) {
             case ObjectType::Vk_DescriptorSetLayout:
-                return Object(std::addressof( m_Layout ));
+                return Object(m_Layout);
             default:;
         }
 
@@ -36,10 +36,9 @@ namespace Mikoto {
     }
 
     auto DescriptorSetLayout::Initialize() -> void {
+        MKT_VK_CHECK( vkCreateDescriptorSetLayout( VK_DEVICE(m_Device), std::addressof( m_CreateInfo ), nullptr, std::addressof( m_Layout ) ) );
 
-        if ( vkCreateDescriptorSetLayout( VK_DEVICE(m_Device), std::addressof( m_CreateInfo ), nullptr, std::addressof( m_Layout ) ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "DescriptorLayoutBuilder::Initialize - Failed to create descriptor set layout." );
-        }
+        m_IsAllocated = true;
     }
 
     auto DescriptorLayoutBuilder::WithBinding( UInt32 binding, VkDescriptorType type,  Int32 arraySize, VkShaderStageFlags shaderStages ) -> DescriptorLayoutBuilder& {
@@ -86,7 +85,7 @@ namespace Mikoto {
         VkWriteDescriptorSet write{ VulkanHelpers::Initializers::WriteDescriptorSet() };
 
         write.dstBinding = binding;
-        write.dstSet = VK_NULL_HANDLE; //left empty for now until we need to write it
+        write.dstSet = VK_NULL_HANDLE; //left empty for now until we to write it in the updateSet()
         write.descriptorCount = 1;
         write.descriptorType = type;
         write.pBufferInfo = std::addressof( info );
@@ -111,7 +110,7 @@ namespace Mikoto {
         VkWriteDescriptorSet write{ VulkanHelpers::Initializers::WriteDescriptorSet() };
 
         write.dstBinding = binding;
-        write.dstSet = VK_NULL_HANDLE; //left empty for now until we need to write it
+        write.dstSet = VK_NULL_HANDLE; //left empty for now until we to write it  in the updateSet()
         write.descriptorCount = 1;
         write.descriptorType = type;
         write.pImageInfo = std::addressof( info );
@@ -127,7 +126,7 @@ namespace Mikoto {
         m_BufferInfos.clear();
     }
 
-    auto DescriptorWriter::UpdateSet( const VkDevice device, const VkDescriptorSet set ) -> void {
+    auto DescriptorWriter::UpdateSet( VkDevice device, VkDescriptorSet set ) -> void {
         for (VkWriteDescriptorSet& write : m_Writes) {
             write.dstSet = set;
         }
@@ -251,6 +250,11 @@ namespace Mikoto {
 
         VkDescriptorPoolCreateInfo poolInfo{ VulkanHelpers::Initializers::DescriptorPoolCreateInfo() };
         poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+
+        if (m_IsBindlessEnabled) {
+            poolInfo.flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+        }
+
         poolInfo.maxSets = setCount;
         poolInfo.poolSizeCount = static_cast<UInt32>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();

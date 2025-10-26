@@ -42,6 +42,14 @@ namespace Mikoto {
         m_CreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
     }
 
+    auto VulkanSampler::GetNativeHandle( ObjectType type ) -> Object {
+        if (type != ObjectType::Vk_Sampler ) {
+            return Object(nullptr);
+        }
+
+        return Object(m_Sampler);
+    }
+
     VulkanSampler::~VulkanSampler() {
         if ( m_IsAllocated ) {
             Release();
@@ -152,7 +160,7 @@ namespace Mikoto {
         return m_IsImageExternal;
     }
 
-    auto VulkanTexture::SetTextureIndex( Int32 index ) const -> void {
+    auto VulkanTexture::SetTextureIndex( Int32 index ) -> void {
         if (m_TextureArrayIndex < 0) {
             // Texture has not been set
             m_TextureArrayIndex = index;
@@ -165,6 +173,20 @@ namespace Mikoto {
 
     auto VulkanTexture::HasBindlessIndex() const -> bool {
         return m_TextureArrayIndex != -1;
+    }
+
+    auto VulkanTexture::GetNativeHandle( ObjectType type ) -> Object {
+        switch (type) {
+            case ObjectType::Vk_Image:
+                return Object(m_Image );
+
+            case ObjectType::Vk_ImageView:
+                return Object(m_ImageView );
+
+            default:;
+        }
+
+        return Object(nullptr );
     }
 
     auto VulkanTexture::SubmitLayoutTransition( const VkImageLayout newLayout, const VkCommandBuffer cmd ) -> void {

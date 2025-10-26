@@ -21,7 +21,7 @@ namespace Mikoto {
             return m_PipelineType;
         }
 
-        auto AddStage(const ShaderModuleHandle module) -> void {
+        auto AddStage( const ShaderModuleHandle& module ) -> void {
             if (!module.IsEmpty()) {
                 m_ShaderModules.push_back(module);
             }
@@ -43,6 +43,7 @@ namespace Mikoto {
     using PipelineHandle = Ref<IPipeline>;
 
     struct ComputePipelineDescription {
+        ShaderModuleHandle Stage{};
     };
 
     /**
@@ -54,8 +55,8 @@ namespace Mikoto {
     */
     class ComputePipeline : public IPipeline {
     public:
-        explicit ComputePipeline()
-            : IPipeline{ PipelineType::COMPUTE_PIPELINE } {}
+        explicit ComputePipeline(const ComputePipelineDescription& desc)
+            : IPipeline{ PipelineType::COMPUTE_PIPELINE, { desc.Stage } } {}
 
     private:
     };
@@ -108,7 +109,7 @@ namespace Mikoto {
 
     class GraphicsPipeline : public IPipeline {
     public:
-        explicit GraphicsPipeline(const std::vector<ShaderModuleHandle>& modules)
+        explicit GraphicsPipeline(const std::vector<ShaderModuleHandle>& modules = {})
             : IPipeline{ PipelineType::GRAPHICS_PIPELINE, modules }
         {}
 

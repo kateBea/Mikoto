@@ -5,12 +5,12 @@
 #ifndef RENDERSYSTEM_HH
 #define RENDERSYSTEM_HH
 
-#include <string_view>
-
 #include <Common/Common.hh>
 #include <Common/Service.hh>
+#include <Material/ShaderLibrary.hh>
 #include <Platform/Window.hh>
 #include <Renderer/GpuDevice.hh>
+#include <string_view>
 
 #include "RendererBackend.hh"
 
@@ -71,22 +71,26 @@ namespace Mikoto {
         MKT_NODISCARD auto GetContext() -> RenderContext* { return m_Context.get(); }
         MKT_NODISCARD auto GetContext() const -> const RenderContext* { return m_Context.get(); }
 
+        MKT_NODISCARD auto GetBackend() -> RendererBackend* { return m_RenderBackend.get(); }
+        MKT_NODISCARD auto GetBackend() const -> const RendererBackend* { return m_RenderBackend.get(); }
+
         MKT_NODISCARD auto GetGpuDevice() -> GpuDevice* { return m_Context->GetGpuDevice(); }
         MKT_NODISCARD auto GetGpuDevice() const -> const GpuDevice* { return m_Context->GetGpuDevice(); }
 
         MKT_NODISCARD auto IsGraphicsActive( GraphicsAPI api ) const -> bool;
         MKT_NODISCARD auto GetActiveGraphicsApi() const -> GraphicsAPI { return m_ActiveAPI; }
 
-        MKT_NODISCARD auto CreateRendererBackend( const std::string_view name ) -> RendererBackend*;
-
     private:
         auto Flush() -> void;
+        auto InitRendererBackend() -> void;
+        auto InitShaderLibrary() -> void;
 
     private:
         RenderServiceCreateInfo m_Options{};
-        Unique<RenderContext> m_Context{ nullptr };
 
-        std::vector<Unique<RendererBackend>> m_RenderBackends{};
+        Unique<RenderContext> m_Context{};
+        Unique<RendererBackend> m_RenderBackend{};
+        Unique<ShaderLibrary> m_ShaderLibrary{};
 
         GraphicsAPI m_ActiveAPI{ GraphicsAPI::VULKAN_API };
     };

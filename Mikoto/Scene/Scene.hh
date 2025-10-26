@@ -76,11 +76,21 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetEntities() const -> const ankerl::unordered_dense::map<Size, Unique<Entity>>& { return m_Entities; }
 
+        auto AttachRigidBody(Entity* entity) -> void;
+        auto DetachRigidBody(Entity* entity) -> void;
+
+        auto GetRegistry() -> entt::registry&;
+        auto GetRegistry() const -> const entt::registry&;
+
         MKT_NODISCARD static auto Create( std::string_view name ) -> Unique<Scene>;
 
         auto Clear() -> void;
 
         ~Scene();
+
+    private:
+        friend class PhysicsBase;
+
 
     private:
         auto AddSingleEntityWithRoot(Entity * root, ModelHandle model, Int32 index ) -> void;

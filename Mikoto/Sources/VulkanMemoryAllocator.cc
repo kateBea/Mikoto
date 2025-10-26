@@ -18,7 +18,7 @@ namespace Mikoto {
         allocInfo.physicalDevice = dynamic_cast<VulkanDevice *>( m_Device )->GetPhysicalDevice();
         allocInfo.device = dynamic_cast<VulkanDevice *>( m_Device )->GetLogicalDevice();
         allocInfo.instance = VulkanContext::Get()->GetInstance();
-        allocInfo.vulkanApiVersion = VulkanContext::Get()->GetApiVersion();// e.g. VK_API_VERSION_1_2
+        allocInfo.vulkanApiVersion = VulkanContext::Get()->GetApiVersion();
 
         //  VMA tries to fetch remaining pointers that are still null
         //  by calling vkGetInstanceProcAddr and vkGetDeviceProcAddr on its own.

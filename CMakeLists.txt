@@ -36,16 +36,15 @@ if(WIN32)
 elseif(LINUX)
     message("Target platform Linux")
 
+    # Easiest for now to run valgrind tests
     #add_compile_options(-fsanitize=address -g3 -D_DEBUG -Wall -Wextra -Wpedantic )
     #add_link_options(-fsanitize=address)
 
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         add_compile_options(-g3 -D_GLIBCXX_DEBUG -Wall -Wextra -Wpedantic)
     else()
-        add_compile_options(-Wall -Wextra -Wpedantic)
+        add_compile_options(-O3 -Wall -Wextra -Wpedantic)
     endif()
-
-    # Easiest for now to run valgrind tests
 endif()
 
 # ===========================

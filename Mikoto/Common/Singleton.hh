@@ -18,36 +18,36 @@ namespace Mikoto {
     template<typename Derived>
     class Singleton {
     public:
-        using Value_T = Derived;
-        using ValueRef_T = Derived&;
-        using ValuePtr_T = Value_T*;
+        using Value = Derived;
+        using ValueRef = Derived&;
+        using ValuePtr = Value*;
 
     public:
         explicit Singleton() {
             MKT_ASSERT(!s_Instance, "Singleton - Instance already exists.");
-            s_Instance = static_cast<ValuePtr_T>(this);
+            s_Instance = static_cast<ValuePtr>(this);
         }
 
         /**
          * Returns a reference to the single instance
-         * @returns single instance
+         * @returns Reference to the single instance
          * */
-        static auto Get() -> ValueRef_T {
+        static auto Get() -> ValueRef {
             return *s_Instance;
         }
 
         /**
          * Returns a pointer to the single instance
-         * @returns pointer single instance
+         * @returns Pointer to the single instance
          * */
-        static auto GetPtr() -> ValuePtr_T { if (!s_Instance) Get();  return s_Instance; }
+        static auto GetPtr() -> ValuePtr { if (!s_Instance) Get();  return s_Instance; }
 
-        ValuePtr_T operator->() {
+        ValuePtr operator->() {
             return s_Instance;
         }
 
         /**
-         * Performs destruction on this singleton instance
+         * Called when this instance is destroyed.
          * */
         virtual ~Singleton() = default;
 
@@ -58,7 +58,7 @@ namespace Mikoto {
         /**
          * Pointer to the single instance allowed for Singleton objects
          * */
-        inline static ValuePtr_T s_Instance;
+        inline static ValuePtr s_Instance;
     };
 
 }

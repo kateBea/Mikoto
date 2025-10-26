@@ -31,14 +31,14 @@ namespace Mikoto {
     };
 
     struct WindowProperties {
-        std::string Title{}; /**< The title of the window. */
+        std::string Title{};
 
-        Int32 Width{};  /**< The width of the window. */
-        Int32 Height{}; /**< The height of the window. */
+        Int32 Width{};
+        Int32 Height{};
 
-        GraphicsAPI Backend{}; /**< The graphics backend for the window. */
+        GraphicsAPI Backend{};
 
-        bool Resizable{ false }; /**< Indicates if the window is resizable. */
+        bool Resizable{ false };
     };
 
     /**

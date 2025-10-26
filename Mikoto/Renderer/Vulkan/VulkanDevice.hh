@@ -18,7 +18,7 @@
 #include "Renderer/Vulkan/VulkanPipeline.hh"
 #include "Renderer/Vulkan/VulkanTexture.hh"
 #include "Renderer/Vulkan/VulkanShader.hh"
-
+#include "Renderer/Vulkan/VulkanDescriptorManager.hh"
 
 namespace Mikoto {
 
@@ -36,7 +36,7 @@ namespace Mikoto {
         auto WriteBuffer(Buffer* target, Byte* data, Size size) -> void override;
         auto WriteTexture(Texture* target, Byte* data, Size size) -> void override;
 
-        MKT_NODISCARD auto GetImplHandle() -> VkCommandBuffer* { return std::addressof(m_CmdBuffer); }
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
 
         ~VulkanCmdList() override;
     private:
@@ -51,7 +51,7 @@ namespace Mikoto {
     public:
         explicit VulkanCommandPool(QueueType queue, Size initialCmdListCount = 10);
 
-        MKT_NODISCARD auto GetImplHandle() -> VkCommandPool* { return std::addressof(m_Pool); }
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
 
         MKT_NODISCARD auto IsPoolLocked() const -> bool { return m_InUse.load(); }
 
@@ -94,15 +94,14 @@ namespace Mikoto {
     public:
         explicit VulkanDevice( const GpuDeviceCreateInfo& createInfo );
 
+        // GPU Device Interface ================================================
+
         auto Init() -> void override;
         auto Shutdown() -> void override;
-
-        auto WaitIdle() const -> void;
 
         MKT_NODISCARD auto CreateTexture( const TextureDescription& description ) -> TextureHandle override;
         MKT_NODISCARD auto CreateBuffer( const BufferDescription& description ) -> BufferHandle override;
         MKT_NODISCARD auto CreateFrameBuffer( const FramebufferDescription& description ) -> FramebufferHandle override;
-
         MKT_NODISCARD auto CreateSampler( const SamplerDescription& description ) -> SamplerHandle override;
 
         MKT_NODISCARD auto CreatePipeline(const ComputePipelineDescription& description) -> PipelineHandle override;
@@ -110,10 +109,15 @@ namespace Mikoto {
         MKT_NODISCARD auto LoadShader(const Path& path, ShaderStage stage) -> ShaderModuleHandle override;
 
         auto SubmitCommands( CommandListHandle cmd ) -> void override;
-
         auto RunGarbageCollection() -> void override;
 
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
+
         MKT_NODISCARD auto CreateCommandList( QueueType queue ) -> CommandListHandle override;
+
+        // Vulkan specifics ================================================
+
+        auto WaitIdle() const -> void;
 
         // Return the minimum required alignment (in bytes) for uniform buffers
         MKT_NODISCARD auto GetUniformBufferMinOffsetAlignment() const -> VkDeviceSize;
@@ -128,14 +132,18 @@ namespace Mikoto {
         MKT_NODISCARD auto GetLogicalDevice() const -> const VkDevice&;
         MKT_NODISCARD auto GetLogicalDeviceQueues() const -> const QueuesData&;
 
+        MKT_NODISCARD auto AllocateDescriptorSet(const VkDescriptorSetLayout& layout, const void* pNext = nullptr) -> VkDescriptorSet;
+        MKT_NODISCARD auto AllocateDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo& layout) -> DescriptorSetLayoutHandle;
+
         auto FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void;
         auto PresentToSwapChain( const FrameSynchronizationPrimitives& syncPrimitives, SwapChainHandle swapchain ) -> void;
 
-        auto CreateSwapchain( const VulkanSwapChainCreateInfo& createInfo ) -> SwapChainHandle;
+        auto CreateSwapChain( const VulkanSwapChainCreateInfo& createInfo ) -> SwapChainHandle;
         auto CreateSwapChainTextures( const VkImageViewCreateInfo& createInfo, VkExtent2D extent ) -> TextureHandle;
 
-        ~VulkanDevice() override = default;
+        MKT_NODISCARD auto IsBindlessEnabled() const -> bool;
 
+        ~VulkanDevice() override = default;
 
     private:
         // [Internal usage]
@@ -148,10 +156,19 @@ namespace Mikoto {
     private:
         // [Internal usage]
         auto InitMemoryAllocator() -> void;
+        auto InitDescriptorAllocator() -> void;
         auto GetPrimaryPhysicalDevice() -> void;
         auto CreatePrimaryLogicalDevice() -> void;
 
     private:
+#if defined(MKT_USE_VULKAN_BINDLESS)
+        const bool m_IsBindlessEnabled{ true };
+#else
+        const bool m_IsBindlessEnabled{ false };
+#endif
+
+        DescriptorAllocator m_DescriptorAllocator{};
+
         std::vector<CommandListHandle> m_PendingCmdLists{};
 
         ResourcePoolTyped<VulkanBuffer> m_Buffers{};
@@ -163,6 +180,7 @@ namespace Mikoto {
         ResourcePoolTyped<VulkanSwapChain> m_Swapchains{};
         ResourcePoolTyped<VulkanShader> m_Shaders{};
         ResourcePoolTyped<VulkanSampler> m_Samplers{};
+        ResourcePoolTyped<DescriptorSetLayout> m_DescriptorSetLayouts{};
 
         QueuesData m_Queues{};
 

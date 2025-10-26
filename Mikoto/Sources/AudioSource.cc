@@ -70,7 +70,7 @@ namespace Mikoto {
 
     auto AudioSource::Continue() -> void {
         if ( !m_IsPlaying ) {
-            // Save current progress
+
             ma_sound_start( &m_Sound );
             ma_sound_seek_to_second( std::addressof( m_Sound ), m_CurrentProgress );
 
@@ -162,7 +162,7 @@ namespace Mikoto {
                 std::addressof( m_Sound ) ) };
 
         if ( result != MA_SUCCESS ) {
-            MKT_CORE_LOGGER_ERROR( "Failed to allocate audio source." );
+            MKT_CORE_LOGGER_ERROR( "AudioSource::Initialize - Failed to allocate audio source." );
             return;
         }
 
@@ -183,5 +183,7 @@ namespace Mikoto {
         ma_sound_uninit( &m_Sound );
         m_IsPlaying = false;
         m_Sound = {};
+
+        m_IsAllocated = false;
     }
 }

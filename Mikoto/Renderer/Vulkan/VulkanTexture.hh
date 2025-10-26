@@ -32,9 +32,8 @@ namespace Mikoto {
     public:
         explicit VulkanSampler( const SamplerDescription& desc );
 
-        MKT_NODISCARD auto GetImplHandle() -> VkSampler* { return std::addressof(m_Sampler); }
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
 
-        auto GetSampler() const -> VkSampler { return m_Sampler; }
         ~VulkanSampler() override;
 
     private:
@@ -58,6 +57,8 @@ namespace Mikoto {
         explicit VulkanTexture( const TextureDescription& data );
         explicit VulkanTexture( const VkImageViewCreateInfo& viewCreateInfo, VkExtent2D extent);
 
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
+
         MKT_NODISCARD auto GetImplHandle() -> VkImage* { return std::addressof(m_Image); }
 
         MKT_NODISCARD auto GetImage() -> VkImage*;
@@ -74,6 +75,9 @@ namespace Mikoto {
 
         MKT_NODISCARD auto IsSwapChainImage() const -> bool;
 
+        auto SetTextureIndex( Int32 index ) -> void;
+        MKT_NODISCARD auto GetTextureIndex() const -> Int32;
+        MKT_NODISCARD auto HasBindlessIndex() const -> bool;
 
         auto SubmitLayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd ) -> void;
 
@@ -107,6 +111,10 @@ namespace Mikoto {
         VmaAllocationCreateInfo m_AllocationCreateInfo{};
 
         VkImageLayout m_CurrentLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
+
+        // For Dynamic rendering
+        // Set by the device when created
+        Int32 m_TextureArrayIndex{ -1 };
     };
 
     struct VulkanSwapChainCreateInfo {

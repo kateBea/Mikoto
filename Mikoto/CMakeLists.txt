@@ -25,10 +25,12 @@ cmake_minimum_required(VERSION 3.22)
 #
 # Reference: https://cmake.org/cmake/help/latest/policy/CMP0135.html
 #
-# Both are safe and recommended to set to NEW for modern CMake projects.
+# CMP0077
+# For NFD
 # ======================================
 cmake_policy(SET CMP0069 NEW)
 cmake_policy(SET CMP0135 NEW)
+cmake_policy(SET CMP0077 NEW)
 
 project(Mikoto)
 
@@ -37,6 +39,7 @@ project(Mikoto)
 # ======================================
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+#set(CMAKE_CXX_EXTENSIONS OFF)
 
 # ======================================
 # GLFW options
@@ -468,7 +471,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE)
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_RADIANS)
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE MIKOTO_USE_AUDIO_ENGINE_INTERFACE)
+target_compile_definitions(${PROJECT_NAME} PRIVATE MKT_USE_VULKAN_BINDLESS)
 target_compile_definitions(${PROJECT_NAME} PRIVATE MKT_USE_VULKAN_DYNAMIC_RENDERING)
 
 # ======================================

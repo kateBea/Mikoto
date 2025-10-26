@@ -164,8 +164,6 @@ namespace Mikoto {
 
         /**
        * @brief Releases internal audio resources and frees memory.
-       *
-       * @note Should be called when the AudioSource is no longer needed.
        */
         auto Release() -> void override;
 
@@ -186,6 +184,8 @@ namespace Mikoto {
 
         AudioDevice* m_Device{ nullptr };
     };
+
+    using AudioSourceHandle = Ref<AudioSource>;
 
 }// namespace Mikoto
 

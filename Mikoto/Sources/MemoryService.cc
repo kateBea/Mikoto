@@ -7,7 +7,7 @@
 
 namespace Mikoto {
 
-    MemoryService::MemoryService( const MemoryServiceCreateInfo &options )
+    MemoryService::MemoryService( const MemoryServiceCreateInfo& )
     {}
 
     auto MemoryService::Init() -> void {
@@ -24,5 +24,7 @@ namespace Mikoto {
         // The Log comes after so we know the service was
         // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down MemoryService..." );
+
+        m_IsInitialized = false;
     }
 }// namespace Mikoto

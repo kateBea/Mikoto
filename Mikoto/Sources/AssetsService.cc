@@ -40,10 +40,7 @@ namespace Mikoto {
         ShaderLibraryDescription shaderLibraryDescription{
             .Device{ m_GpuDevice },
         };
-        m_ShaderLibrary = CreateScope<ShaderLibrary>( shaderLibraryDescription );
-        if (m_ShaderLibrary) {
-            m_ShaderLibrary->Init();
-        }
+
 
         m_IsInitialized = true;
     }
@@ -64,9 +61,6 @@ namespace Mikoto {
 
         m_MeshFactory->Shutdown();
         m_MeshFactory.reset();
-
-        m_ShaderLibrary->Shutdown();
-        m_ShaderLibrary.reset();
 
         m_AudioDevice = nullptr;
         m_GpuDevice = nullptr;
@@ -128,7 +122,7 @@ namespace Mikoto {
             .WithData( image.GetData() )
 
             .WithType( description.Type )
-            .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM )
+            .WithFormat( TextureFormat::TEXTURE_FORMAT_SRGB8_ALPHA8 )
 
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
@@ -187,8 +181,7 @@ namespace Mikoto {
         }
 
         FontLoadDescription fontDesc{};
-        fontDesc
-            .WithFile( fontFile )
+        fontDesc.WithFile( fontFile )
             .WithPixelSize( 1.0f );
 
         FontHandle fontHandle{ FontService::Get()->LoadFont( fontDesc ) };

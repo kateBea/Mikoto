@@ -5,89 +5,74 @@
 #ifndef MIKOTO_PHYSICALLY_BASED_MATERIAL_HH
 #define MIKOTO_PHYSICALLY_BASED_MATERIAL_HH
 
-#include <memory>
+#include <ankerl/unordered_dense.h>
 
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 #include <Material/Material.hh>
-#include <Material/Texture2D.hh>
+#include <Assets/Texture.hh>
+#include <Renderer/RenderUtility.hh>
 
 namespace Mikoto {
 
-    struct PBRMaterialCreateSpec {
-        TextureHandle AlbedoMap{};
-        TextureHandle NormalMap{};
-        TextureHandle MetallicMap{};
-        TextureHandle RoughnessMap{};
-        TextureHandle AmbientOcclusionMap{};
-    };
-
-    enum class PBRBlendMode {
-        BLEND_MODE_OPAQUE,    // Fully opaque (no transparency)
-        BLEND_MODE_MASKED,    // Cutout transparency (alpha test)
-        BLEND_MODE_BLEND,     // Alpha blending for transparency
-        BLEND_MODE_ADDITIVE,  // Additive blending (glowing effects)
-        BLEND_MODE_MULTIPLY,  // Multiplicative blending (darkening effects)
-    };
-
-    enum class PBRSamplerMode {
-        SAMPLER_MODE_NEAREST,
-        SAMPLER_MODE_LINEAR,
-        SAMPLER_MODE_ANISOTROPIC,
+    enum class MapType {
+        ALBEDO_TEXTURE,
+        NORMAL_TEXTURE,
+        METALLIC_TEXTURE,
+        ROUGHNESS_TEXTURE,
+        AMBIENT_OCCLUSION_TEXTURE,
+        EMISSIVE_TEXTURE,
     };
 
     class PBRMaterial final : public Material {
     public:
-        struct Parameters {
-            float Metallic{ 0.2f };
-            float Roughness{ 0.4f };
-            float Emissive{ 0.4f };
-            float AmbientOcclusion{ 0.4f };
-            float ReflectanceFactor{ 0.4f };
-        };
 
-    public:
-        auto RemoveTextureType( TextureType type ) -> void;
-        auto SetTextureType( TextureType type, TextureHandle texture ) -> void;
+        explicit PBRMaterial( const std::string_view name = "PBR" )
+            : Material{ name } {}
+
+        auto RemoveTextureType( MapType type ) -> void;
+        auto SetTextureType( MapType type, const TextureHandle &texture ) -> void;
 
         MKT_NODISCARD auto IsOpaque() const -> bool;
         MKT_NODISCARD auto IsTransparent() const -> bool;
 
-        MKT_NODISCARD auto HasTextureType( TextureType type ) const -> bool;
-        MKT_NODISCARD auto GetTextureType( TextureType type ) const -> TextureHandle;
+        MKT_NODISCARD auto HasTextureType( MapType type ) const -> bool;
+        MKT_NODISCARD auto GetTextureType( MapType type ) const -> TextureHandle;
 
-        auto SetEmissiveFactor( const glm::vec4& emissive ) -> void;
+        auto SetBlendMode( Blending alphaMode ) -> void;
+        auto SetSamplingMode( SamplerFilter filtering ) -> void;
+
+        auto SetAlpha( float alpha ) -> void;
+        auto SetMetallicFactor( float metallic ) -> void;
         auto SetRoughnessFactor( float roughness ) -> void;
-        auto SetMetalicFactor( float metallic ) -> void;
         auto SetReflectanceFactor( float reflectance ) -> void;
-        auto SetBlendMode( PBRBlendMode alphaMode ) -> void;
-        auto SetSamplingMode( PBRSamplerMode sampler ) -> void;
+        auto SetEmissiveFactor( float emissive ) -> void;
 
-        MKT_NODISCARD auto GetParameters() const -> const Parameters&;
+        MKT_NODISCARD auto GetAlpha() const -> float;
+        MKT_NODISCARD auto GetMetallicFactor() const -> float;
+        MKT_NODISCARD auto GetRoughnessFactor() const -> float;
+        MKT_NODISCARD auto GetReflectanceFactor() const -> float;
+        MKT_NODISCARD auto GetEmissiveFactor() const -> float;
 
-        ~PBRMaterial() override = default;
+        ~PBRMaterial() override ;
 
-    protected:
-        explicit PBRMaterial( const PBRMaterialCreateSpec& createInfo )
-            : Material{ "PBR Material" },
-              m_AlbedoMap{ createInfo.AlbedoMap },
-              m_NormalMap{ createInfo.NormalMap },
-              m_MetallicMap{ createInfo.MetallicMap },
-              m_RoughnessMap{ createInfo.RoughnessMap },
-              m_AmbientOcclusionMap{ createInfo.AmbientOcclusionMap } {}
+    private:
 
-        explicit PBRMaterial( const std::string_view name = "PBR" )
-            : Material{ name } {
-        }
+        auto Release() -> void override;
+        auto Initialize() -> void override;
 
-    protected:
-        Parameters m_Params{};
+    private:
+        Blending m_BlendMode{ Blending::MODE_OPAQUE };
+        SamplerFilter m_Filtering{ SamplerFilter::FILTER_NEAREST };
 
-        TextureHandle m_AlbedoMap{};
-        TextureHandle m_NormalMap{};
-        TextureHandle m_MetallicMap{};
-        TextureHandle m_RoughnessMap{};
-        TextureHandle m_AmbientOcclusionMap{};
+        float m_Alpha{ 1.0f };
+        float m_Metallic{ 0.2f };
+        float m_Roughness{ 0.4f };
+        float m_Emissive{ 0.4f };
+        float m_AmbientOcclusion{ 0.4f };
+        float m_ReflectanceFactor{ 0.4f };
+
+        ankerl::unordered_dense::map<MapType, TextureHandle> m_Textures{};
     };
 }// namespace Mikoto
 

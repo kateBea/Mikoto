@@ -52,13 +52,11 @@ namespace Mikoto {
 
         explicit VulkanGraphicsPipeline(const VulkanGraphicsPipelineDescription& info);
 
-        auto Release() -> void override;
         auto Bind(VkCommandBuffer commandBuffer) const -> void;
 
         MKT_NODISCARD auto GetImplHandle() -> VulkanGraphicsPipeline* { return this; }
 
         MKT_NODISCARD auto Get() const -> const VkPipeline& { return m_Pipeline; }
-        MKT_NODISCARD auto GetLayout() const -> const VkPipelineLayout& { return m_Layout; }
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
 
@@ -69,6 +67,7 @@ namespace Mikoto {
 
     private:
         auto Initialize() -> void override;
+        auto Release() -> void override;
 
     private:
         // Needed when using dynamic rendering
@@ -81,8 +80,6 @@ namespace Mikoto {
         VulkanHelpers::Reflection::ReflectedData m_ReflectionData{};
 
         VkPipeline m_Pipeline{};
-        VkPipelineLayout m_Layout{};
-
         VulkanGraphicsPipelineDescription m_ConfigInfo{};
     };
 
@@ -90,7 +87,6 @@ namespace Mikoto {
     public:
         explicit VulkanComputePipeline( const ComputePipelineDescription& info );
 
-        auto Release() -> void override;
         auto Bind(VkCommandBuffer commandBuffer) const -> void;
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
@@ -102,11 +98,11 @@ namespace Mikoto {
 
     private:
         auto Initialize() -> void override;
+        auto Release() -> void override;
 
     private:
 
         VkPipeline m_Pipeline{};
-        VkPipelineLayout m_Layout{};
         VulkanHelpers::Reflection::ReflectedData m_ReflectionData{};
     };
 }

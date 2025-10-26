@@ -90,6 +90,8 @@ namespace Mikoto::VulkanHelpers {
     auto ImageUsageFlagsToString(Texture* texture) -> void;
     auto ImageLayoutToString(Texture* texture) -> void;
 
+    auto SetObjectDebugName(VkDevice device, VkObjectType objectType, UInt64 objectHandle, const char* name) -> void;
+
     MKT_NODISCARD auto VkResultToString(VkResult result) -> const char*;
 
 

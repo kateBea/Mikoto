@@ -40,10 +40,7 @@ namespace Mikoto {
         ShaderLibraryDescription shaderLibraryDescription{
             .Device{ m_GpuDevice },
         };
-        m_ShaderLibrary = CreateScope<ShaderLibrary>( shaderLibraryDescription );
-        if (m_ShaderLibrary) {
-            m_ShaderLibrary->Init();
-        }
+
 
         m_IsInitialized = true;
     }
@@ -64,9 +61,6 @@ namespace Mikoto {
 
         m_MeshFactory->Shutdown();
         m_MeshFactory.reset();
-
-        m_ShaderLibrary->Shutdown();
-        m_ShaderLibrary.reset();
 
         m_AudioDevice = nullptr;
         m_GpuDevice = nullptr;

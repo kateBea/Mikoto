@@ -25,10 +25,11 @@
 #include <Renderer/RenderPassBase.hh>
 #include <Renderer/RendererBackend.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Vulkan/VulkanDescriptorManager.hh>
 
 namespace Mikoto {
 
-    class VulkanRenderer final : public RendererBackend {
+    class VulkanRenderer final : public RendererBackend, public Singleton<VulkanRenderer> {
     public:
         explicit VulkanRenderer( GpuDevice* device, std::string_view name );
 
@@ -37,8 +38,6 @@ namespace Mikoto {
 
         auto EndRender() -> void override;
         auto BeginRender( CommandListHandle cmd ) -> void override;
-
-        auto SetPipeline( PipelineHandle pipeline ) -> void override;
 
         auto DrawScene( Scene* scene ) -> void override;
 
@@ -59,22 +58,29 @@ namespace Mikoto {
 
     private:
         // [Internal usage]
+        auto InitGlobalShaderBuffers() -> void;
         auto CreateBindlessDescriptor() -> void;
         auto UpdateBindlessTextureDescriptor( Int32 index, VulkanTexture* texture ) -> void;
 
         auto InitCoreRenderPasses() -> void;
 
+        auto RunComputeWorkflow() -> void;
+
 
     private:
         // Per frame data
         BufferHandle m_FrameUBOBuffer{};
-        PipelineHandle m_Pipeline{};
-        VkDescriptorSet m_FrameDescriptorSet{};
+        BufferHandle m_LightsBuffer{};
+
+        VkDescriptorSet m_FrameSet{ VK_NULL_HANDLE };
+        VkDescriptorSet m_TexturesSet{ VK_NULL_HANDLE };
+
+        DescriptorSetLayoutHandle m_TextureLayout{};
+        DescriptorSetLayoutHandle m_FrameLayout{};
+
 
 #if defined( MKT_USE_VULKAN_BINDLESS )
-        VkDescriptorPool m_BindlessPool{ VK_NULL_HANDLE };
-        VkDescriptorSet m_BindlessDescriptorSet{ VK_NULL_HANDLE };
-        VkDescriptorSetLayout m_BindlessDescriptorSetLayout{ VK_NULL_HANDLE };
+        bool m_UpdateTextureDescriptor{ false };
         std::vector<TextureHandle> m_BindlessTextures{};
 #endif
 

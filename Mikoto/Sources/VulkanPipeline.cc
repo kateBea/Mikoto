@@ -97,6 +97,21 @@ namespace Mikoto {
         vkCmdBindPipeline( commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline );
     }
 
+    auto VulkanGraphicsPipeline::GetNativeHandle( ObjectType type ) -> Object {
+        switch (type) {
+
+            case ObjectType::Vk_PipelineLayout:
+                return Object(m_Layout );
+
+            case ObjectType::Vk_Pipeline:
+                return Object(m_Pipeline );
+
+            default:;
+        }
+
+        return Object(nullptr);
+    }
+
     VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
         if (m_IsAllocated) {
             Release();
@@ -127,19 +142,19 @@ namespace Mikoto {
         }
 
         VkResult res{ ReflectSPIRV( VK_DEVICE(m_Device), shaderBlocks, m_ReflectionData) };
-        const auto pipelineLayout { m_ReflectionData.pipelineLayout };
-        if (pipelineLayout == VK_NULL_HANDLE) {
+        if (m_ReflectionData.pipelineLayout == VK_NULL_HANDLE) {
             MKT_THROW_RUNTIME_ERROR( "VulkanGraphicsPipeline::Initialize - Layout is null handle" );
         }
-        m_Layout = pipelineLayout;
+        m_Layout = m_ReflectionData.pipelineLayout;
 
         // Setup Vertex input
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VulkanHelpers::Initializers::PipelineVertexInputStateCreateInfo() };
 
         // Binding descriptions (define data layout)
+        const auto& bindingDesc{ GetDefaultBindingDescriptions( m_BufferLayout ) };
+        const auto& attributeDesc{ GetDefaultAttributeDescriptions( m_BufferLayout ) };
+
         if (m_BufferLayout.HasElements()) {
-            const auto& bindingDesc{ GetDefaultBindingDescriptions( m_BufferLayout ) };
-            const auto& attributeDesc{ GetDefaultAttributeDescriptions( m_BufferLayout ) };
             vertexInputInfo.vertexBindingDescriptionCount = bindingDesc.size();
             vertexInputInfo.vertexAttributeDescriptionCount = attributeDesc.size();
             vertexInputInfo.pVertexAttributeDescriptions = attributeDesc.data();
@@ -181,10 +196,10 @@ namespace Mikoto {
         m_IsAllocated = true;
     }
 
-    VulkanComputePipeline::VulkanComputePipeline() {
-        if (m_IsAllocated) {
-            Release();
-        }
+    VulkanComputePipeline::VulkanComputePipeline(const ComputePipelineDescription& info)
+        : ComputePipeline( info )
+    {
+
     }
 
     auto VulkanComputePipeline::Release() -> void {
@@ -230,5 +245,22 @@ namespace Mikoto {
         if ( vkCreateComputePipelines( VK_DEVICE(m_Device), VK_NULL_HANDLE, 1, std::addressof( computePipelineCreateInfo ), nullptr, std::addressof( m_Pipeline ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanComputePipeline::Initialize - Failed to create compute pipeline" );
         }
+
+        m_IsAllocated = true;
+    }
+
+    auto VulkanComputePipeline::GetNativeHandle( ObjectType type ) -> Object {
+        switch (type) {
+
+            case ObjectType::Vk_PipelineLayout:
+                return Object(m_Layout );
+
+            case ObjectType::Vk_Pipeline:
+                return Object(m_Pipeline );
+
+            default:;
+        }
+
+        return Object(nullptr);
     }
 }// namespace Mikoto

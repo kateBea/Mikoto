@@ -6,6 +6,8 @@
 #define LIGHT_HH
 
 #include <glm/glm.hpp>
+#include <Common/Common.hh>
+#include <Library/Utility/Types.hh>
 
 namespace Mikoto {
 
@@ -54,9 +56,9 @@ namespace Mikoto {
             auto GetIntensity() const -> float { return m_Intensity; }
 
             private:
-            Type m_Type{ Type::DIRECTIONAL }; /**< The type of the light source. */
-            Vec3F m_Color{ 1.0f, 1.0f, 1.0f }; /**< The color of the light source. */
-            float m_Intensity{ 1.0f }; /**< The intensity of the light source. */
+            Type m_Type{ Type::DIRECTIONAL };
+            Vec3F m_Color{ 1.0f, 1.0f, 1.0f };
+            float m_Intensity{ 1.0f };
     };
 
     class PointLight : public LightObject {

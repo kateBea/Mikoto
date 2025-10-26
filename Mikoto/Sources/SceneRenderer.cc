@@ -28,10 +28,11 @@ namespace Mikoto {
     auto SceneRenderer::Render( double ) -> void {
 
         CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
-        cmd->Begin();
 
         m_RendererBackend->SetCamera( m_Camera );
 
+        // Renderer backend will know where it opens the command list
+        // here we will just submit it
         m_RendererBackend->BeginRender( cmd );
 
         m_RendererBackend->SetViewport( 0, 0, 1920, 1080 );
@@ -39,7 +40,6 @@ namespace Mikoto {
 
         m_RendererBackend->EndRender();
 
-        cmd->End();
         m_Device->SubmitCommands( cmd );
     }
 

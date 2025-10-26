@@ -144,6 +144,7 @@ namespace Mikoto {
 
         m_Renderer->SetScene( m_MainScene.get() );
         m_Renderer->SetCamera( m_SceneCamera.get() );
+
         m_Renderer->Render( deltaTime );
 
         DrawViewport();

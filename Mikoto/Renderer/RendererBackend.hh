@@ -37,8 +37,6 @@ namespace Mikoto {
         virtual auto EndRender() -> void = 0;
         virtual auto BeginRender(CommandListHandle cmd) -> void = 0;
 
-        virtual auto SetPipeline(PipelineHandle pipeline) -> void = 0;
-
         virtual auto DrawScene(Scene* scene) -> void = 0;
 
         virtual auto OnResize( UInt32 width, UInt32 height ) -> void = 0;

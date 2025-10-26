@@ -24,9 +24,12 @@ namespace Mikoto {
     public:
         explicit VulkanBuffer( const BufferDescription& createInfo );
 
+        auto CopyToBlock( void* ptr ) -> void override;
         auto CopyFromBlock(const void* ptr, Size size) -> void override;
 
         MKT_NODISCARD auto GetImplHandle() -> VkBuffer* { return std::addressof(m_Buffer); }
+
+        MKT_NODISCARD auto GetNativeHandle( ObjectType ) -> Object override;
 
         MKT_NODISCARD auto GetBuffer() -> VkBuffer* { return std::addressof(m_Buffer); }
         MKT_NODISCARD auto GetBuffer() const -> const VkBuffer* { return std::addressof(m_Buffer); }

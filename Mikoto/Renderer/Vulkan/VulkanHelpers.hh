@@ -12,6 +12,7 @@
 #include <memory>
 #include <string_view>
 #include <optional>
+#include <exception>
 #include <span>
 #include <map>
 
@@ -19,6 +20,9 @@
 #include "volk.h"
 #include "vk_mem_alloc.h"
 #include <ankerl/unordered_dense.h>
+
+#include <fmt/format.h>
+
 // Project Headers
 #include "Common/Common.hh"
 #include "Library/Utility/Types.hh"
@@ -85,6 +89,25 @@ namespace Mikoto::VulkanHelpers {
 
     auto ImageUsageFlagsToString(Texture* texture) -> void;
     auto ImageLayoutToString(Texture* texture) -> void;
+
+    MKT_NODISCARD auto VkResultToString(VkResult result) -> const char*;
+
+
+#define MKT_VK_CHECK( expr )                                                                         \
+    do {                                                                                             \
+        VkResult _vk_result = ( expr );                                                              \
+        if ( _vk_result != VK_SUCCESS ) {                                                            \
+            MKT_FILE_LOGGER_CRITICAL(                                                                \
+                    "Vulkan error: {} (code: {}) at {}:{}",                                          \
+                    VulkanHelpers::VkResultToString( _vk_result ), static_cast<Int32>( _vk_result ), \
+                    __FILE__, __LINE__ );                                                            \
+                                                                                                     \
+            throw std::runtime_error( fmt::format(                                                   \
+                    "Vulkan call failed: {}\nFile: {}\nLine: {}",                                    \
+                    VulkanHelpers::VkResultToString( _vk_result ), __FILE__, __LINE__ ) );           \
+        }                                                                                            \
+    } while ( 0 )
+
 } // MIKOTO::VULKAN_UTILS
 
 /**
@@ -101,6 +124,7 @@ namespace Mikoto::VulkanHelpers::Reflection {
      * Simple struct describing a descriptor binding reflection result.
      */
     struct ReflectedBindingInfo {
+        std::string name{};
         UInt32 set{};
         UInt32 binding{};
         VkDescriptorType type{};

@@ -36,7 +36,7 @@ namespace Mikoto {
         auto WriteBuffer(Buffer* target, Byte* data, Size size) -> void override;
         auto WriteTexture(Texture* target, Byte* data, Size size) -> void override;
 
-        MKT_NODISCARD auto GetImplHandle() -> VkCommandBuffer* { return std::addressof(m_CmdBuffer); }
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
 
         ~VulkanCmdList() override;
     private:
@@ -51,7 +51,7 @@ namespace Mikoto {
     public:
         explicit VulkanCommandPool(QueueType queue, Size initialCmdListCount = 10);
 
-        MKT_NODISCARD auto GetImplHandle() -> VkCommandPool* { return std::addressof(m_Pool); }
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
 
         MKT_NODISCARD auto IsPoolLocked() const -> bool { return m_InUse.load(); }
 
@@ -111,6 +111,8 @@ namespace Mikoto {
         auto SubmitCommands( CommandListHandle cmd ) -> void override;
         auto RunGarbageCollection() -> void override;
 
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
+
         MKT_NODISCARD auto CreateCommandList( QueueType queue ) -> CommandListHandle override;
 
         // Vulkan specifics ================================================
@@ -130,7 +132,10 @@ namespace Mikoto {
         MKT_NODISCARD auto GetLogicalDevice() const -> const VkDevice&;
         MKT_NODISCARD auto GetLogicalDeviceQueues() const -> const QueuesData&;
 
-        auto FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) const -> void;
+        MKT_NODISCARD auto AllocateDescriptorSet(const VkDescriptorSetLayout& layout, const void* pNext = nullptr) -> VkDescriptorSet;
+        MKT_NODISCARD auto AllocateDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo& layout) -> DescriptorSetLayoutHandle;
+
+        auto FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void;
         auto PresentToSwapChain( const FrameSynchronizationPrimitives& syncPrimitives, SwapChainHandle swapchain ) -> void;
 
         auto CreateSwapChain( const VulkanSwapChainCreateInfo& createInfo ) -> SwapChainHandle;
@@ -175,6 +180,7 @@ namespace Mikoto {
         ResourcePoolTyped<VulkanSwapChain> m_Swapchains{};
         ResourcePoolTyped<VulkanShader> m_Shaders{};
         ResourcePoolTyped<VulkanSampler> m_Samplers{};
+        ResourcePoolTyped<DescriptorSetLayout> m_DescriptorSetLayouts{};
 
         QueuesData m_Queues{};
 

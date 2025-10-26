@@ -15,6 +15,7 @@
 
 // Project Headers
 #include <Common/Common.hh>
+#include <Common/ReferenceCounted.hh>
 #include <Library/Utility/Types.hh>
 #include <Renderer/DeviceObject.hh>
 
@@ -34,9 +35,11 @@ namespace Mikoto {
 
     class DescriptorSetLayout final : public DeviceObject {
     public:
+        using DeviceObject::Initialize;
+
         explicit DescriptorSetLayout( const VkDescriptorSetLayoutCreateInfo& info );
 
-        MKT_NODISCARD auto GetNativeHandle(ObjectType type) -> Object override;
+        MKT_NODISCARD auto GetNativeHandle(ObjectType type ) -> Object override;
 
         ~DescriptorSetLayout() override;
 
@@ -48,6 +51,8 @@ namespace Mikoto {
         VkDescriptorSetLayout m_Layout{ VK_NULL_HANDLE };
         VkDescriptorSetLayoutCreateInfo m_CreateInfo{};
     };
+
+    using DescriptorSetLayoutHandle = Ref<DescriptorSetLayout>;
 
     // Handles updating descriptor sets
     class DescriptorWriter final {
@@ -94,6 +99,12 @@ namespace Mikoto {
         float m_SetsPerPool{};
 
         VkDevice m_Device{ VK_NULL_HANDLE };
+
+#if defined(MKT_USE_VULKAN_BINDLESS)
+        const bool m_IsBindlessEnabled{ true };
+#else
+        const bool m_IsBindlessEnabled{ false };
+#endif
 
         // how many sets we allocate per pool
         std::vector<PoolSizeRatio> m_Ratios{};

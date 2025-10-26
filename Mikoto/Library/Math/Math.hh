@@ -18,33 +18,37 @@
 #include <Library/Utility/Types.hh>
 
 namespace Mikoto::Math {
-    constexpr glm::vec3 UNIT_VECTOR_X{ 1.0f, 0.0f, 0.0f };
-    constexpr glm::vec3 UNIT_VECTOR_Y{ 0.0f, 1.0f, 0.0f };
-    constexpr glm::vec3 UNIT_VECTOR_Z{ 0.0f, 0.0f, 1.0f };
+    constexpr Vec3F UNIT_VECTOR_X{ 1.0f, 0.0f, 0.0f };
+    constexpr Vec3F UNIT_VECTOR_Y{ 0.0f, 1.0f, 0.0f };
+    constexpr Vec3F UNIT_VECTOR_Z{ 0.0f, 0.0f, 1.0f };
 
-    constexpr glm::mat4 IDENTITY_MAT4{ glm::mat4(1.0) };
+    constexpr glm::mat4 IDENTITY_MAT4{ glm::mat4( 1.0 ) };
 
     /**
 	 * Defines a position vector
 	 * */
-    MKT_UNUSED_FUNC MKT_NODISCARD inline auto MakePos( float x, float y, float z ) -> glm::vec4 {
+    MKT_NODISCARD
+    inline auto MakePos( float x, float y, float z ) -> glm::vec4 {
         return { x, y, z, 1.0f };
     }
 
     /**
 	 * Defines a direction vector
 	 * */
-    MKT_UNUSED_FUNC MKT_NODISCARD inline auto MakeDir( float x, float y, float z ) -> glm::vec4 {
+    MKT_NODISCARD
+    inline auto MakeDir( float x, float y, float z ) -> glm::vec4 {
         return { x, y, z, .0f };
     }
 
-    MKT_NODISCARD inline auto Round( const double value, const Size decimalsCount ) -> double {
+    MKT_NODISCARD
+    inline auto Round( const double value, const Size decimalsCount ) -> double {
         const double factor{ std::pow( 10, decimalsCount ) };
         return std::round( value * factor ) / factor;
     }
 
-    MKT_NODISCARD inline auto DecomposeTransform( const glm::mat4& transform, glm::vec3& translation,
-                                                  glm::vec3& rotation, glm::vec3& scale ) -> bool {
+    MKT_NODISCARD
+    inline auto DecomposeTransform( const glm::mat4& transform, glm::vec3& translation,
+                                    glm::vec3& rotation, glm::vec3& scale ) -> bool {
         // From glm::decompose in matrix_decompose.inl
 
         using namespace glm;
@@ -114,11 +118,12 @@ namespace Mikoto::Math {
 
 
     /**
-         * Computes the model matrix as in Translate * Ry * Rx * Rz * Scale (where R represents a
-         * rotation in the desired axis. Rotation convention uses Tait-Bryan angles with axis order
-         * Y(1), X(2), Z(3)
-         * */
-    MKT_NODISCARD inline auto RecomputeTransform( const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3( 0.0f ) ) -> glm::mat4 {
+     * Computes the model matrix as in Translate * Ry * Rx * Rz * Scale (where R represents a
+     * rotation in the desired axis. Rotation convention uses Tait-Bryan angles with axis order
+     * Y(1), X(2), Z(3)
+     * */
+    MKT_NODISCARD
+    inline auto RecomputeTransform( const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3( 0.0f ) ) -> glm::mat4 {
         // Compute scale matrix
         const glm::mat4 scale{ glm::scale( IDENTITY_MAT4, size ) };
 
@@ -131,13 +136,13 @@ namespace Mikoto::Math {
     }
 
     template<typename T>
-    MKT_NODISCARD inline auto IsBetween(const T& value, const T& lowerBound, const T& upperBound) -> bool {
+    MKT_NODISCARD auto IsBetween( const T& value, const T& lowerBound, const T& upperBound ) -> bool {
         return value >= lowerBound && value <= upperBound;
     }
 
     template<typename T>
-    MKT_NODISCARD inline auto Clamp(const T& value, const T& min, const T& max) -> T {
-        return std::max(min, std::min(value, max));
+    MKT_NODISCARD auto Clamp( const T& value, const T& min, const T& max ) -> T {
+        return std::max( min, std::min( value, max ) );
     }
 }// namespace Mikoto::Math
 

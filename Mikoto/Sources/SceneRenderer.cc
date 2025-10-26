@@ -14,12 +14,7 @@ namespace Mikoto {
         : m_Device{ createInfo.Device } {}
 
     auto SceneRenderer::Init() -> void {
-        m_RendererBackend = RenderService::Get()->CreateRendererBackend( "SceneRenderer render backend" );
-        if ( m_RendererBackend ) {
-            m_RendererBackend->Init();
-        }
-
-        AddCoreRenderPasses();
+        m_RendererBackend = RenderService::Get()->GetBackend();
     }
 
     auto SceneRenderer::Shutdown() -> void {
@@ -33,46 +28,33 @@ namespace Mikoto {
     auto SceneRenderer::Render( double ) -> void {
 
         CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
-        cmd->Begin();
-
-        for ( const Unique<IPass> &pass: m_Passes | std::ranges::views::values ) {
-            pass->Execute( cmd );
-        }
 
         m_RendererBackend->SetCamera( m_Camera );
 
-        for ( auto &pass: m_Passes | std::ranges::views::values ) {
-            if ( const auto renderPass{ dynamic_cast<IRenderPass *>( pass.get() ) } ) {
-                renderPass->Render( m_RendererBackend, cmd );
-            }
-        }
+        // Renderer backend will know where it opens the command list
+        // here we will just submit it
+        m_RendererBackend->BeginRender( cmd );
 
-        cmd->End();
+        m_RendererBackend->SetViewport( 0, 0, 1920, 1080 );
+        m_RendererBackend->DrawScene( m_Scene );
+
+        m_RendererBackend->EndRender();
+
         m_Device->SubmitCommands( cmd );
     }
 
     auto SceneRenderer::OnResize( UInt32 width, UInt32 height ) -> void {
-    }
 
-    auto SceneRenderer::AddCoreRenderPasses() -> void {
-        // Final composition
-        ShadingPass* shadingPass{ m_Passes.Register<ShadingPass>() };
-        shadingPass->Init( m_Device );
-
-        // Compute basic
-        ComputeBasic* computeBasic{ m_Passes.Register<ComputeBasic>() };
-        computeBasic->Init( m_Device );
     }
 
     auto SceneRenderer::SetCamera( Camera *camera ) -> void {
         m_Camera = camera;
     }
 
-    auto SceneRenderer::GetFinalComposition() -> TextureHandle {
+    auto SceneRenderer::GetFinalComposition() const -> TextureHandle {
         TextureHandle handle{ TextureHandle::CreateEmpty() };
-        ShadingPass* shadingPass{ m_Passes.Get<ShadingPass>() };
-        if (shadingPass) {
-            handle = shadingPass->GetFinalComposition();
+        if (m_RendererBackend) {
+            handle = m_RendererBackend->GetFinalComposition();
         }
 
         return handle;

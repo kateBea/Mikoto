@@ -15,6 +15,9 @@
 
 // Project Header
 
+#include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Vulkan/VulkanRenderer.hh>
+
 #include "Renderer/Vulkan/VulkanContext.hh"
 #include "Renderer/Vulkan/VulkanHelpers.hh"
 
@@ -76,6 +79,30 @@ namespace Mikoto::VulkanHelpers {
 
         MKT_CORE_LOGGER_DEBUG( "Image layout: {} for texture: {}", layoutName, texture->GetDebugName() );
     }
+    auto VkResultToString( VkResult result ) -> const char* {
+        switch (result) {
+            case VK_SUCCESS: return "VK_SUCCESS";
+            case VK_NOT_READY: return "VK_NOT_READY";
+            case VK_TIMEOUT: return "VK_TIMEOUT";
+            case VK_EVENT_SET: return "VK_EVENT_SET";
+            case VK_EVENT_RESET: return "VK_EVENT_RESET";
+            case VK_INCOMPLETE: return "VK_INCOMPLETE";
+            case VK_ERROR_OUT_OF_HOST_MEMORY: return "VK_ERROR_OUT_OF_HOST_MEMORY";
+            case VK_ERROR_OUT_OF_DEVICE_MEMORY: return "VK_ERROR_OUT_OF_DEVICE_MEMORY";
+            case VK_ERROR_INITIALIZATION_FAILED: return "VK_ERROR_INITIALIZATION_FAILED";
+            case VK_ERROR_DEVICE_LOST: return "VK_ERROR_DEVICE_LOST";
+            case VK_ERROR_MEMORY_MAP_FAILED: return "VK_ERROR_MEMORY_MAP_FAILED";
+            case VK_ERROR_LAYER_NOT_PRESENT: return "VK_ERROR_LAYER_NOT_PRESENT";
+            case VK_ERROR_EXTENSION_NOT_PRESENT: return "VK_ERROR_EXTENSION_NOT_PRESENT";
+            case VK_ERROR_FEATURE_NOT_PRESENT: return "VK_ERROR_FEATURE_NOT_PRESENT";
+            case VK_ERROR_INCOMPATIBLE_DRIVER: return "VK_ERROR_INCOMPATIBLE_DRIVER";
+            case VK_ERROR_TOO_MANY_OBJECTS: return "VK_ERROR_TOO_MANY_OBJECTS";
+            case VK_ERROR_FORMAT_NOT_SUPPORTED: return "VK_ERROR_FORMAT_NOT_SUPPORTED";
+            case VK_ERROR_FRAGMENTED_POOL: return "VK_ERROR_FRAGMENTED_POOL";
+            case VK_ERROR_UNKNOWN: return "VK_ERROR_UNKNOWN";
+            default: return "UNKNOWN_VK_RESULT";
+        }
+    }
 
     auto GetUniformBufferPadding( const VkDeviceSize bufferOriginalSize, const VkDeviceSize deviceMinOffsetAlignment ) -> VkDeviceSize {
         VkDeviceSize alignedSize{ bufferOriginalSize };
@@ -86,7 +113,7 @@ namespace Mikoto::VulkanHelpers {
         return alignedSize;
     }
 
-    auto InferVulkanIndexType( BufferDataType format ) -> VkIndexType {
+    auto InferVulkanIndexType( const BufferDataType format ) -> VkIndexType {
         switch ( format ) {
             case BufferDataType::BUFFER_DATA_UINT16:
                 return VK_INDEX_TYPE_UINT16;
@@ -130,7 +157,7 @@ namespace Mikoto::VulkanHelpers {
         MKT_CORE_LOGGER_DEBUG( "Image usage flags: {} for texture: {}", oss.str(), texture->GetDebugName() );
     }
 
-    auto ToVkImageUsage( TextureUsage usage ) -> VkImageUsageFlags {
+    auto ToVkImageUsage( const TextureUsage usage ) -> VkImageUsageFlags {
         switch ( usage ) {
             case TextureUsage::TEXTURE_USAGE_COLOR:
                 // Textures that I will print to and can copy them to toehr textures like the color image from ImGui Backend
@@ -186,7 +213,7 @@ namespace Mikoto::VulkanHelpers {
         return result;
     }
 
-    auto GetVkStageFromShaderStage( const ShaderStage stage ) -> VkShaderStageFlagBits {
+    auto ToVkStage( const ShaderStage stage ) -> VkShaderStageFlagBits {
         switch ( stage ) {
             case ShaderStage::VERTEX_STAGE:
                 return VK_SHADER_STAGE_VERTEX_BIT;
@@ -199,7 +226,7 @@ namespace Mikoto::VulkanHelpers {
         }
     }
 
-    auto ToVkFormat( TextureFormat format ) -> VkFormat {
+    auto ToVkFormat( const TextureFormat format ) -> VkFormat {
         switch ( format ) {
             case TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM:
                 return VK_FORMAT_R8G8B8A8_SNORM;
@@ -246,7 +273,7 @@ namespace Mikoto::VulkanHelpers {
         }
     }
 
-    auto ToMikotoFormat( VkFormat format ) -> TextureFormat {
+    auto ToTextureFormat( VkFormat format ) -> TextureFormat {
         switch ( format ) {
             // --- 8-bit normalized ---
             case VK_FORMAT_R8_UNORM:
@@ -408,7 +435,7 @@ namespace Mikoto::VulkanHelpers {
         return false;
     }
 
-    auto GetVulkanAttributeDataType( ShaderDataType type ) -> VkFormat {
+    auto ToVkShaderDataType( const ShaderDataType type ) -> VkFormat {
         switch ( type ) {
             case ShaderDataType::FLOAT_TYPE:
                 return VK_FORMAT_R32_SFLOAT;
@@ -521,7 +548,16 @@ namespace Mikoto::VulkanHelpers::Reflection {
         dst.push_back( VkPushConstantRange{ flags, targetOffset, targetSize } );
     }
 
-    auto ReflectSPIRV(VkDevice device, const std::vector<std::vector<UInt32>>& spirvModules, ReflectedData& out ) -> VkResult {
+    MKT_NODISCARD static auto IsBindlessEnabled() -> bool {
+#if defined(MKT_USE_VULKAN_BINDLESS)
+        return true;
+#else
+        return false;
+#endif
+
+    }
+
+    auto ReflectSPIRV(VkDevice device, const std::vector<std::vector<UInt32>>& spirvModules, ReflectedData& out) -> VkResult {
         out = {};
 
         std::map<UInt32, std::unordered_map<UInt32, VkDescriptorSetLayoutBinding>> sets{};
@@ -546,21 +582,28 @@ namespace Mikoto::VulkanHelpers::Reflection {
             spvReflectEnumerateDescriptorSets( &mod, &setCount, reflSets.data() );
 
             for ( auto* reflectDs: reflSets ) {
-                for ( UInt32 setBinding{}; setBinding < reflectDs->bindingCount; ++setBinding ) {
-                    auto* rb = reflectDs->bindings[setBinding];
+                for ( UInt32 setBinding{}; setBinding < reflectDs->binding_count; ++setBinding ) {
+                    auto* reflectedBinding = reflectDs->bindings[setBinding];
                     UInt32 set{ reflectDs->set };
                     auto& bindingMap{ sets[set] };
 
-                    if ( auto it{ bindingMap.find( rb->binding ) }; it == bindingMap.end() ) {
+                    if ( auto it{ bindingMap.find( reflectedBinding->binding ) }; it == bindingMap.end() ) {
                         VkDescriptorSetLayoutBinding bindingInfo{};
-                        bindingInfo.binding = rb->binding;
-                        bindingInfo.descriptorType = ToVkDescriptorType( rb->descriptor_type );
-                        bindingInfo.descriptorCount = std::max( 1u, rb->count );
+                        bindingInfo.binding = reflectedBinding->binding;
+                        bindingInfo.descriptorType = ToVkDescriptorType( reflectedBinding->descriptor_type );
+
+                        if (IsBindlessEnabled() && bindingInfo.descriptorType == SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER && reflectedBinding->type_description->op == SpvOpTypeRuntimeArray || reflectedBinding->type_description->op == SpvOpTypeArray ) {
+                            bindingInfo.descriptorCount = std::max( 1u, VulkanRenderer::GetMaxBindlessTextureCount() );
+
+                        } else {
+                            bindingInfo.descriptorCount = std::max( 1u, reflectedBinding->count );
+                        }
+
                         bindingInfo.stageFlags = stage;
                         bindingMap[bindingInfo.binding] = bindingInfo;
 
                         out.bindingMap[{ set, bindingInfo.binding }] = ReflectedBindingInfo{
-                            set, bindingInfo.binding, bindingInfo.descriptorType, bindingInfo.descriptorCount, static_cast<VkShaderStageFlags>( stage)
+                            reflectedBinding->name, set, bindingInfo.binding, bindingInfo.descriptorType, bindingInfo.descriptorCount, static_cast<VkShaderStageFlags>( stage)
                         };
                     } else {
                         it->second.stageFlags |= stage;
@@ -637,24 +680,58 @@ namespace Mikoto::VulkanHelpers::Reflection {
         }
 
         // === CREATE DESCRIPTOR SET LAYOUTS ===
-        for ( auto& [setIdx, bindings]: sets ) {
-            std::vector<VkDescriptorSetLayoutBinding> layout;
-            for ( auto& [_, b]: bindings )
-                layout.push_back( b );
+        for (auto& [setIdx, bindings] : sets) {
+            std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
+            layoutBindings.reserve(bindings.size());
 
-            VkDescriptorSetLayoutCreateInfo info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-            info.bindingCount = static_cast<uint32_t>( layout.size() );
-            info.pBindings = layout.data();
+            for (auto& [_, b] : bindings) {
+                layoutBindings.push_back(b);
+            }
 
-            VkDescriptorSetLayout layoutHandle;
-            if ( vkCreateDescriptorSetLayout( device, &info, nullptr, &layoutHandle ) != VK_SUCCESS )
+            VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+            layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
+            layoutInfo.pBindings = layoutBindings.data();
+
+            std::vector<VkDescriptorBindingFlags> bindingFlags(layoutBindings.size(), 0);
+
+            // Attach the binding flags info via pNext
+            VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{};
+            flagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
+            flagsInfo.bindingCount = static_cast<UInt32>(bindingFlags.size());
+            flagsInfo.pBindingFlags = bindingFlags.data();
+
+
+            if (IsBindlessEnabled()) {
+                // Enable bindless flags for each binding
+                UInt8 index{ 0 };
+                for (auto& flags : bindingFlags) {
+
+                    // Image samplers are in the form of array by convention
+                    // we dont bind them one by one but instead provide an array of combined image samplers
+                    if (bindings[index++].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
+                        flags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+                            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+                           VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+                    } else {
+                        flags = 0;
+                    }
+                }
+
+                layoutInfo.pNext = &flagsInfo;
+                layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+            }
+
+            VkDescriptorSetLayout layoutHandle{};
+            if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &layoutHandle) != VK_SUCCESS) {
                 return VK_ERROR_INITIALIZATION_FAILED;
+            }
 
-            out.setLayouts.push_back( layoutHandle );
+            out.setLayouts.push_back(layoutHandle);
         }
 
         // === PIPELINE LAYOUT ===
         VkPipelineLayoutCreateInfo plInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+
         plInfo.setLayoutCount = static_cast<UInt32>( out.setLayouts.size() );
         plInfo.pSetLayouts = out.setLayouts.data();
 

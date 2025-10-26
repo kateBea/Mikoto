@@ -8,7 +8,7 @@
 #include <Common/Common.hh>
 #include <Library/Data/Registry.hh>
 #include <Renderer/GpuDevice.hh>
-#include <Renderer/RenderPass.hh>
+#include <Renderer/RenderPassBase.hh>
 #include <Renderer/RendererBackend.hh>
 #include <Scene/Camera.hh>
 #include <Scene/Scene.hh>
@@ -89,7 +89,7 @@ namespace Mikoto {
 
         auto SetCamera( Camera* camera ) -> void;
 
-        auto GetFinalComposition() -> TextureHandle;
+        auto GetFinalComposition() const -> TextureHandle;
 
         /**
          * @brief Creates a new `SceneRenderer` instance.
@@ -102,9 +102,6 @@ namespace Mikoto {
          */
         MKT_NODISCARD static auto Create(const SceneRendererCreateInfo& createInfo) -> Unique<SceneRenderer>;
 
-    protected:
-        auto AddCoreRenderPasses() -> void;
-
     private:
 
         GpuDevice* m_Device{ nullptr };
@@ -113,8 +110,6 @@ namespace Mikoto {
         Camera* m_Camera{ nullptr };
 
         RendererBackend* m_RendererBackend{ nullptr };
-
-        Registry<IPass> m_Passes{};
     };
 }// namespace Mikoto
 

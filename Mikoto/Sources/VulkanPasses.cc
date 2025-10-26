@@ -1,0 +1,368 @@
+//
+// Created by kate on 10/23/25.
+//
+
+// C++ Standard Library
+#include <array>
+
+// Third-Party Libraries
+#include <volk.h>
+
+#include <Material/PBRMaterial.hh>
+#include <Material/ShaderLibrary.hh>
+#include <Renderer/RenderUtility.hh>
+#include <Scene/Component.hh>
+
+#include "Renderer/Vulkan/VulkanDevice.hh"
+#include "Renderer/Vulkan/VulkanPasses.hh"
+#include "Renderer/Vulkan/VulkanTexture.hh"
+#include "Renderer/Vulkan/VulkanHelpers.hh"
+
+namespace Mikoto::VulkanPasses {
+
+    static auto GetMeshTextureIndices(TextureHandle texture) -> Int32 {
+        if ( const auto vkTexture{ dynamic_cast<VulkanTexture*>( texture.GetRaw() ) } ) {
+            return vkTexture->GetTextureIndex();
+        }
+
+        return -1;
+    }
+
+    auto ShadingPass::Init( GpuDevice* device ) -> void{
+        m_Device = device;
+
+        // Color attachment
+        TextureDescription colorDesc{};
+        colorDesc.WithWidth( 1920 )
+            .WithHeight( 1080 )
+            .WithChannelCount( 4 )
+            .WithData( nullptr )
+            .WithType( TextureType::TEXTURE_2D )
+            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
+            .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
+            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+
+        m_ColorTarget.Image = m_Device->CreateTexture( colorDesc );
+        m_ColorTarget.Image->SetDebugName( "ShadingPass Color Target" );
+
+        // Depth attachment
+        TextureDescription depthDesc{};
+        depthDesc.WithWidth( 1920 )
+            .WithHeight( 1080 )
+            .WithChannelCount( 1 )
+            .WithData( nullptr )
+            .WithType( TextureType::TEXTURE_2D )
+            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
+            .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
+            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+
+        m_DepthTarget.Image = m_Device->CreateTexture( depthDesc );
+        m_DepthTarget.Image->SetDebugName( "ShadingPass Depth Target" );
+
+        // Graphics pipeline
+        ShaderModuleHandle vertShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/PBR_Instanced_Vert.sprv", ShaderStage::VERTEX_STAGE ) };
+        ShaderModuleHandle fragShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/PBR_Instanced_Frag.sprv", ShaderStage::FRAGMENT_STAGE ) };
+
+        GraphicsPipelineDescription pipelineDesc{};
+        pipelineDesc.ShaderStages = { vertShader, fragShader };
+        pipelineDesc.DepthTest = true;
+        pipelineDesc.DepthWrite = true;
+        pipelineDesc.AlphaBlending = true;
+        pipelineDesc.DepthTexture = m_DepthTarget.Image;
+        pipelineDesc.ColorAttachments = { m_ColorTarget.Image };
+
+        m_Pipeline = m_Device->CreatePipeline( pipelineDesc );
+
+        InitInstanceData();
+        CreateMeshesStorageDescriptorSet();
+    }
+
+    auto ShadingPass::Shutdown() -> void {
+
+        m_BatchOffsetMap.clear();
+        m_MeshBatches.clear();
+    }
+
+    auto ShadingPass::Begin( CommandListHandle cmd ) -> void {
+        m_CmdList = cmd;
+        VkCommandBuffer vkCmd { cmd->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
+
+        std::vector<VkRenderingAttachmentInfo> colorAttachments{};
+        VkRenderingAttachmentInfo colorAttachment{};
+        colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        colorAttachment.imageView = m_ColorTarget.Image->GetNativeHandle( ObjectType::Vk_ImageView );
+        colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachment.clearValue.color = { m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a };
+        colorAttachments.push_back( colorAttachment );
+
+        VkRenderingAttachmentInfo depthAttachment{};
+        depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        depthAttachment.imageView = m_DepthTarget.Image->GetNativeHandle( ObjectType::Vk_ImageView );
+        depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        depthAttachment.clearValue.depthStencil = { 1.0f, 0 };
+
+        VkRenderingInfo renderingInfo{};
+        renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        renderingInfo.renderArea = { { 0, 0 }, { 1920, 1080 } };
+        renderingInfo.layerCount = 1;
+        renderingInfo.colorAttachmentCount = static_cast<uint32_t>( colorAttachments.size() );
+        renderingInfo.pColorAttachments = colorAttachments.data();
+        renderingInfo.pDepthAttachment = std::addressof( depthAttachment );
+
+        vkCmdBeginRendering( vkCmd, &renderingInfo );
+
+        vkCmdBindPipeline( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetNativeHandle( ObjectType::Vk_Pipeline ) );
+    }
+
+    void ShadingPass::End() {
+        const auto vkCmd{ m_CmdList->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
+        vkCmdEndRendering( vkCmd );
+
+        // Transition color target to shader read
+        const auto tex{ dynamic_cast<VulkanTexture*>( m_ColorTarget.Image.GetRaw() ) };
+        tex->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, vkCmd );
+    }
+
+    auto ShadingPass::WantStoreOP( const bool enable ) -> void {
+        m_WantStoreOP = enable;
+    }
+
+    auto ShadingPass::SetClearColor( const glm::vec4& color ) -> void {
+        m_ClearColor = color;
+    }
+
+    auto ShadingPass::GetFinalComposition() const -> TextureHandle {
+        return m_ColorTarget.Image;
+    }
+
+    auto ShadingPass::Render( Scene* scene ) -> void {
+        // Clear previous batches
+        m_MeshBatches.clear();
+
+        // Build batches per mesh
+        auto& registry{ scene->GetRegistry() };
+        auto renderables{ registry.view<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
+
+        for ( auto& entity: renderables ) {
+            auto& transform{ registry.get<TransformComponent>( entity ) };
+            auto& meshComp { registry.get<MeshComponent>( entity ) };
+            auto& materialComp { registry.get<MaterialComponent>( entity ) };
+
+            MeshNode* meshNode{ meshComp.GetMesh() };
+            if ( !meshNode ) {
+                continue;
+            }
+
+            ShadingPassMeshBufferUBO ubo{};
+            ubo.Transform = transform.GetTransform();
+            ubo.Albedo = Vec4F( 1.0f );
+            ubo.Factors = Vec4F( 1.0f );
+
+            // Texture indices
+            const PBRMaterial* pbrMat{ dynamic_cast<PBRMaterial*>(materialComp.GetMaterial().GetRaw()) };
+
+            ubo.AlbedoIndex = GetMeshTextureIndices( pbrMat->GetTextureType( MapType::ALBEDO_TEXTURE ) );
+            ubo.NormalIndex = GetMeshTextureIndices( pbrMat->GetTextureType( MapType::NORMAL_TEXTURE ) );
+            ubo.MetallicIndex = GetMeshTextureIndices( pbrMat->GetTextureType( MapType::METALLIC_TEXTURE ) );
+            ubo.RoughnessIndex = GetMeshTextureIndices( pbrMat->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
+            ubo.AoIndex = GetMeshTextureIndices( pbrMat->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
+
+            auto& [Mesh, Instances]{ m_MeshBatches[meshNode] };
+
+            Mesh = meshNode;
+            Instances.push_back( ubo );
+        }
+
+        // Upload instances into GPU buffer
+        UploadInstanceData();
+
+        // Draw each mesh with instancing
+        for ( auto& batch: m_MeshBatches | std::views::values ) {
+            if ( !batch.Instances.empty() ) {
+                DrawMeshBatch( batch );
+            }
+        }
+    }
+
+    auto ShadingPass::InitInstanceData() -> void {
+        constexpr Size elementCount{ 1024 };
+        constexpr Size elementSize{ sizeof( ShadingPassMeshBufferUBO ) };
+
+        // UniformBuffer size padded. Vertex shader
+        const VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE( m_Device )->GetUniformBufferMinOffsetAlignment() };
+        const VkDeviceSize paddedSize{ VulkanHelpers::GetUniformBufferPadding(elementSize, minOffsetAlignment) };
+
+        const Size totalSize{ elementCount * paddedSize };
+
+        BufferDescription desc{};
+        desc.WithSizeBytes( totalSize )
+                .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
+
+        m_InstanceSSBO = m_Device->CreateBuffer( desc );
+        m_InstanceSSBO->SetDebugName( "ShadingPass Instance SSBO" );
+    }
+
+    auto ShadingPass::UploadInstanceData() -> void {
+        std::vector<ShadingPassMeshBufferUBO> allInstances;
+
+        for ( auto& [meshNode, batch]: m_MeshBatches ) {
+            m_BatchOffsetMap[meshNode] = allInstances.size();
+            allInstances.insert( allInstances.end(), batch.Instances.begin(), batch.Instances.end() );
+        }
+
+        const Size totalSize{ allInstances.size() * sizeof( ShadingPassMeshBufferUBO ) };
+        m_InstanceSSBO->CopyFromBlock( allInstances.data(), totalSize );
+
+        auto vkCmd { m_CmdList->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
+        vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                 m_Pipeline->GetNativeHandle(ObjectType::Vk_PipelineLayout),
+                                 2, 1, &m_MeshDataSet, 0, nullptr );
+    }
+
+    auto ShadingPass::CreateMeshesStorageDescriptorSet() -> void {
+
+        VkDescriptorSetLayoutBinding ssboBinding{};
+        ssboBinding.binding = 0;
+        ssboBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        ssboBinding.descriptorCount = 1;
+        ssboBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        ssboBinding.pImmutableSamplers = nullptr;
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = 1;
+        layoutInfo.pBindings = &ssboBinding;
+
+        m_EntitiesSetLayout = TO_VK_DEVICE(m_Device)->AllocateDescriptorSetLayout( layoutInfo );
+        m_MeshDataSet = TO_VK_DEVICE(m_Device)->AllocateDescriptorSet( m_EntitiesSetLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ) );
+
+        // Write buffer info
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = m_InstanceSSBO->GetNativeHandle(ObjectType::Vk_Buffer);
+        bufferInfo.offset = 0;
+        bufferInfo.range = m_InstanceSSBO->GetSizeBytes(); // WHOLE_SIZE if dynamic (but count will be the total)
+
+        VkWriteDescriptorSet write{};
+        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.dstSet = m_MeshDataSet;
+        write.dstBinding = 0;
+        write.dstArrayElement = 0;
+        write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        write.descriptorCount = 1;
+        write.pBufferInfo = std::addressof( bufferInfo );
+
+        vkUpdateDescriptorSets(VK_DEVICE(m_Device), 1, &write, 0, nullptr);
+    }
+
+    auto ShadingPass::DrawMeshBatch( const MeshBatch& batch ) -> void {
+        if ( !batch.Mesh || batch.Instances.empty() ) {
+            return;
+        }
+
+        const VkCommandBuffer vkCmd { m_CmdList->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
+
+        BufferHandle vertexBuffer{ batch.Mesh->GetVertexBuffer() };
+        BufferHandle indexBuffer{ batch.Mesh->GetIndexBuffer() };
+
+        constexpr std::array<VkDeviceSize, 1> offsets{};
+        const std::array<VkBuffer, 1> vertexBuffers{ indexBuffer->GetNativeHandle(ObjectType::Vk_Buffer) };
+
+        vkCmdBindVertexBuffers( vkCmd, 0, 1, vertexBuffers.data(), offsets.data() );
+        vkCmdBindIndexBuffer( vkCmd, indexBuffer->GetNativeHandle(ObjectType::Vk_Buffer), 0, VK_INDEX_TYPE_UINT32 );
+
+        vkCmdDrawIndexed( vkCmd,
+                          indexBuffer->GetCount(),
+                          static_cast<UInt32>( batch.Instances.size() ),
+                          0, 0, 0 );
+    }
+
+    auto ShadingPass::OnResize( UInt32 width, UInt32 height ) -> void {
+        // TODO: resize color/depth targets
+    }
+
+    auto ShadingPass::BindDefaultSets( VkDescriptorSet& set, const UInt32 setIndex ) -> void {
+        const VkCommandBuffer vkCmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
+        const VkPipelineLayout pipeline{ m_Pipeline->GetNativeHandle(ObjectType::Vk_PipelineLayout) };
+
+        vkCmdBindDescriptorSets(vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline, setIndex, 1, std::addressof( set ), 0, nullptr);
+    }
+
+    auto ComputeBasic::Init( GpuDevice* device ) -> void {
+
+        m_Device = device;
+
+        // Create small storage buffer
+        const Size totalSize{ sizeof( UInt32) * m_Count };
+        BufferDescription desc{};
+        desc.WithSizeBytes( totalSize )
+                .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
+
+        m_StorageBuffer = m_Device->CreateBuffer( desc );
+        m_StorageBuffer->SetDebugName( "ComputeBasic SSBO" );
+
+        // Descriptor set setup
+        VkDescriptorSetLayoutBinding binding{};
+        binding.binding = 0;
+        binding.descriptorCount = 1;
+        binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+        const VkDescriptorSetLayoutCreateInfo layoutInfo{
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .bindingCount = 1,
+            .pBindings = &binding
+        };
+
+        m_ComputeLayout = TO_VK_DEVICE( m_Device )->AllocateDescriptorSetLayout( layoutInfo );
+        m_DescriptorSet = TO_VK_DEVICE( m_Device )->AllocateDescriptorSet(m_ComputeLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ) );
+
+
+        // Pipeline setup
+        ShaderModuleHandle compModule{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/BasicCompute_Comp.sprv", ShaderStage::COMPUTE_STAGE ) };
+
+        ComputePipelineDescription description{
+            .Stage{ compModule }
+        };
+
+        m_Pipeline = m_Device->CreatePipeline( description );
+
+        // Descriptor update
+        DescriptorWriter descriptorWriter{};
+        descriptorWriter.WriteBuffer( 0, m_StorageBuffer->GetNativeHandle(ObjectType::Vk_Buffer), m_StorageBuffer->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+            .UpdateSet( VK_DEVICE(m_Device), m_DescriptorSet );
+    }
+
+    auto ComputeBasic::Shutdown() -> void {
+
+    }
+
+    auto ComputeBasic::Begin( const CommandListHandle cmd ) -> void {
+        m_CmdList = cmd;
+
+        std::vector<UInt32> data(m_Count);
+        m_StorageBuffer->CopyToBlock( data.data() );
+    }
+
+    auto ComputeBasic::End() -> void {
+    }
+
+    auto ComputeBasic::Execute() -> void {
+        VkCommandBuffer cmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
+        VkPipeline pipeline{ m_Pipeline->GetNativeHandle( ObjectType::Vk_Pipeline ) };
+        VkPipelineLayout pipelineLayout{ m_Pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ) };
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &m_DescriptorSet, 0, nullptr);
+
+        // Dispatch enough workgroups for 64 threads total
+        const UInt32 localSize{ 64 }; // matches shader's local_size_x
+        const UInt32 groupCount{ (m_Count + localSize - 1) / localSize };
+        vkCmdDispatch(cmd, groupCount, 1, 1);
+    }
+}// namespace Mikoto::VulkanPasses

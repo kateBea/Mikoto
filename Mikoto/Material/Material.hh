@@ -16,6 +16,8 @@
 // Project Headers
 #include <Common/Common.hh>
 #include <Common/ReferenceCounted.hh>
+#include <Library/Data/ResourcePool.hh>
+#include <Library/Utility/Types.hh>
 
 namespace Mikoto {
 
@@ -26,19 +28,23 @@ namespace Mikoto {
         {}
 
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
-        MKT_NODISCARD auto GetColor() const -> const glm::vec4& { return m_Color; }
-        MKT_NODISCARD auto IsActive() const -> bool { return m_Apply; }
+        MKT_NODISCARD auto GetColor() const -> const Vec4F& { return m_Color; }
 
-        auto SetActive(const bool value) -> void { m_Apply = value; }
-        auto SetName(const std::string_view newName) -> void { m_Name = newName; }
-        auto SetColor( auto&&... args ) -> void { m_Color = glm::vec4( std::forward<decltype( args )>( args )... ); }
+        // Material name
+        auto SetName(const std::string_view newName) -> void {
+            m_Name = newName;
+        }
+
+        // Material base color
+        auto SetColor( auto&&... args ) -> void {
+            m_Color = Vec4F( std::forward<decltype( args )>( args )... );
+        }
 
         ~Material() override = default;
 
     protected:
         std::string m_Name{};
-        bool m_Apply{ true };
-        glm::vec4 m_Color{ 1.0f, 1.0f, 1.0f, 1.0f };
+        Vec4F m_Color{ 1.0f, 1.0f, 1.0f, 1.0f };
     };
 
     using MaterialHandle = Ref<Material>;

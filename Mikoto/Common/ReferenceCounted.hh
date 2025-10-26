@@ -80,10 +80,8 @@ namespace Mikoto {
                     m_Ptr->Free();
                 }
 
-                // I steal other's m_Ptr
                 m_Ptr = other.m_Ptr;
 
-                // And then I set other to have nothing
                 other.m_Ptr = nullptr;
             }
 

@@ -82,7 +82,18 @@ namespace Mikoto {
             ( void )messageType;
             ( void )pUserData;
 
-            MKT_CORE_LOGGER_ERROR( "Validation Error: {}", pCallbackData->pMessage );
+                    switch (messageSeverity) {
+                        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+                            MKT_CORE_LOGGER_ERROR( "Validation Error: {}", pCallbackData->pMessage );
+                            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+                                MKT_CORE_LOGGER_WARN( "Validation Warn: {}", pCallbackData->pMessage );
+                        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+                            MKT_CORE_LOGGER_INFO( "Validation Info: {}", pCallbackData->pMessage );
+                        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+                            MKT_CORE_LOGGER_DEBUG( "Validation Debug: {}", pCallbackData->pMessage );
+                        default:
+                            MKT_CORE_LOGGER_ERROR( "Validation Unhandled Severity: {}", pCallbackData->pMessage );
+                    }
             return VK_FALSE;
         };
     }
@@ -269,7 +280,6 @@ namespace Mikoto {
 
     auto VulkanContext::PrepareFrame() -> void {
 
-
         m_CurrentFrameIndex = m_Swapchain->GetCurrentFrameIndex();
         const auto ret{ m_Swapchain->GetNextRenderableImage( m_CurrentImageIndex,
                                                      m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFence,
@@ -301,7 +311,7 @@ namespace Mikoto {
             .EnableVsync{ false },
         };
 
-        m_Swapchain = TO_VK_DEVICE( m_Device.get() )->CreateSwapchain(createInfo);
+        m_Swapchain = TO_VK_DEVICE( m_Device.get() )->CreateSwapChain(createInfo);
     }
 
     auto VulkanContext::CreateSynchronizationPrimitives() -> void {

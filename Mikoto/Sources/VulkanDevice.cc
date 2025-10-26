@@ -8,9 +8,11 @@
 #include <Logging/Logger.hh>
 #include <Renderer/RenderService.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
+#include <Renderer/Vulkan/VulkanDescriptorManager.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>
+#include <Renderer/Vulkan/VulkanRenderer.hh>
 #include <Renderer/Vulkan/VulkanTexture.hh>
 
 namespace Mikoto {
@@ -42,12 +44,13 @@ namespace Mikoto {
         const std::vector<const char*>* RequestedExtensions{};
     };
 
-    static auto GetDefaultGraphicsPipelineConfigInfo() -> VulkanGraphicsPipelineCreateInfo {
-        VulkanGraphicsPipelineCreateInfo configInfo{};
+    static auto GetDefaultGraphicsPipelineConfigInfo() -> VulkanGraphicsPipelineDescription {
+        VulkanGraphicsPipelineDescription configInfo{};
 
         // [Input assembly]
         configInfo.InputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        configInfo.InputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;// Every three vertices are group together into a separate triangle
+        //configInfo.InputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        configInfo.InputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;// Every three vertices are group together into a separate triangle
         configInfo.InputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
 
         // [Viewport and Scissor]
@@ -281,6 +284,7 @@ namespace Mikoto {
         m_ComputePipelines.Init( 10 );
         m_Shaders.Init( 10 );
         m_Samplers.Init( 10 );
+        m_DescriptorSetLayouts.Init( 10 );
 
         // Pre-initialize available pools
         UInt32 poolCount{ 2 };
@@ -292,7 +296,27 @@ namespace Mikoto {
             pool.As<DeviceObject>()->Initialize( this );
         }
 
+        InitDescriptorAllocator();
+
         m_IsInitialized = true;
+    }
+
+    auto VulkanDevice::InitDescriptorAllocator() -> void {
+        std::vector<DescriptorAllocator::PoolSizeRatio> sizes{
+                { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+                { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+                { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+                { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+                { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+                { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+                { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+                { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+                { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+        };
+
+        m_DescriptorAllocator.Init( m_LogicalDevice , 1000, sizes );
     }
 
     auto VulkanDevice::InitMemoryAllocator() -> void {
@@ -376,6 +400,9 @@ namespace Mikoto {
         enabled12Features.descriptorBindingPartiallyBound = VK_TRUE;
         enabled12Features.descriptorBindingVariableDescriptorCount = VK_TRUE;
         enabled12Features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+        enabled12Features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+        enabled12Features.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
+        enabled12Features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
         enabled12Features.pNext = std::addressof( vulkan13Features );
 
         VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{ VulkanHelpers::Initializers::PhysicalDeviceFeatures2() };
@@ -419,6 +446,7 @@ namespace Mikoto {
         MKT_CORE_LOGGER_DEBUG( "VulkanDevice::CreatePrimaryLogicalDevice - Created primary logical device." );
     }
 
+
     auto VulkanDevice::Shutdown() -> void {
         if ( !m_IsInitialized ) {
             return;
@@ -439,6 +467,9 @@ namespace Mikoto {
         m_ComputePipelines.Shutdown();
         m_Shaders.Shutdown();
         m_Samplers.Shutdown();
+        m_DescriptorSetLayouts.Shutdown();
+
+        m_DescriptorAllocator.Shutdown();
 
         MKT_CORE_LOGGER_INFO( "VulkanDevice::Shutdown - Shutting down Vulkan Device." );
 
@@ -465,8 +496,17 @@ namespace Mikoto {
 
         texture->Initialize( this );
 
+        // we use VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL for images to be sampled
+        // we do not want to add to the descriptor depth images as we
+        if (texture->GetTextureUsage() != TextureUsage::TEXTURE_USAGE_DEPTH) {
+            // We update the set later it might be in use
+            VulkanRenderer* renderer{ dynamic_cast<VulkanRenderer*>(RenderService::Get()->GetBackend()) };
+            renderer->RegisterTextureForRender(texture);
+        }
+
         return texture;
     }
+
 
     auto VulkanDevice::RunGarbageCollection() -> void {
         // Call at the beginning of each frame to free command buffers
@@ -478,6 +518,11 @@ namespace Mikoto {
             pool.As<VulkanCommandPool>()->RunGarbageCollection();
         }
     }
+
+    Object VulkanDevice::GetNativeHandle( ObjectType type ) {
+        return Object(m_LogicalDevice);
+    }
+
 
     auto VulkanDevice::CreateCommandList( QueueType queue ) -> CommandListHandle {
         // Find pool we can allocate command lists for the specified type of queue
@@ -534,7 +579,15 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreatePipeline( const ComputePipelineDescription& description ) -> PipelineHandle {
-        return PipelineHandle::CreateEmpty();
+        PipelineHandle computePipeline{ m_ComputePipelines.Allocate( description ).As<IPipeline>() };
+        if ( computePipeline.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreatePipeline - Failed to allocate compute pipeline resource." );
+            return PipelineHandle::CreateEmpty();
+        }
+
+        computePipeline->Initialize( this );
+
+        return computePipeline;
     }
 
     auto VulkanDevice::CreatePipeline( const GraphicsPipelineDescription& description ) -> PipelineHandle {
@@ -556,8 +609,6 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::LoadShader( const Path& path, ShaderStage stage ) -> ShaderModuleHandle {
-        using namespace VulkanHelpers::Reflection;
-
         ShaderModuleHandle result{ ShaderModuleHandle::CreateEmpty() };
         if ( const File * shaderFile{ FileService::Get()->LoadFile( path ) } ) {
             ShaderModuleDescription description{
@@ -571,15 +622,6 @@ namespace Mikoto {
             } else {
                 MKT_CORE_LOGGER_ERROR( "VulkanDevice::LoadShader - Failed to create shader." );
             }
-
-            // Test reflection
-            // ReflectedData reflected;
-            //
-            // std::vector<UInt32> block{ (UInt32*)(result->GetContents()), (UInt32*)(result->GetContents()+result->GetContentSize()) };
-            // VkResult r = ReflectSPIRV(m_LogicalDevice, {block}, reflected);
-            // if (r != VK_SUCCESS) {
-            //
-            // }
         }
 
         return result;
@@ -621,12 +663,32 @@ namespace Mikoto {
         return m_Queues;
     }
 
+    auto VulkanDevice::AllocateDescriptorSet( const VkDescriptorSetLayout& layout, const void* pNext ) -> VkDescriptorSet {
+        VkDescriptorSet result{ *m_DescriptorAllocator.Allocate( layout, pNext ) };
+        if ( result != VK_NULL_HANDLE ) {
+            return result;
+        }
+
+        return VK_NULL_HANDLE;
+    }
+
+    auto VulkanDevice::AllocateDescriptorSetLayout( const VkDescriptorSetLayoutCreateInfo& layout ) -> DescriptorSetLayoutHandle {
+        DescriptorSetLayoutHandle setLayout{ m_DescriptorSetLayouts.Allocate( layout ).As<DescriptorSetLayout>() };
+        if ( setLayout.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "VulkanDevice::AllocateDescriptorSetLayout - Failed to allocate texture resource with VkImageViewCreateInfo." );
+            return DescriptorSetLayoutHandle::CreateEmpty();
+        }
+
+        setLayout->Initialize( this );
+
+        return setLayout;
+    }
+
     auto VulkanDevice::SubmitCommands( CommandListHandle cmd ) -> void {
         m_PendingCmdLists.emplace_back( cmd );
     }
 
-    auto VulkanDevice::CreateSwapchain( const VulkanSwapChainCreateInfo& createInfo ) -> SwapChainHandle {
-
+    auto VulkanDevice::CreateSwapChain( const VulkanSwapChainCreateInfo& createInfo ) -> SwapChainHandle {
         SwapChainHandle result{ m_Swapchains.Allocate( createInfo ) };
         if ( !result.IsEmpty() ) {
             result.As<DeviceObject>()->Initialize( this );
@@ -647,7 +709,11 @@ namespace Mikoto {
         return texture;
     }
 
-    auto VulkanDevice::FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void {
+    auto VulkanDevice::IsBindlessEnabled() const -> bool {
+        return m_IsBindlessEnabled;
+    }
+
+    auto VulkanDevice::FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives )  -> void {
         if ( m_PendingCmdLists.empty() ) {
             return;
         }
@@ -667,10 +733,10 @@ namespace Mikoto {
 
         // Command buffers
         std::vector<VkCommandBuffer> vkCommands{};
-        for ( const auto& commandBuffer: m_PendingCmdLists ) {
-            auto* cmd{ commandBuffer.As<VulkanCmdList>()->GetImplHandle() };
+        for ( auto& commandBuffer: m_PendingCmdLists ) {
+            VkCommandBuffer cmd{ commandBuffer->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
 
-            vkCommands.emplace_back( *cmd );
+            vkCommands.emplace_back( cmd );
         }
 
         submit.commandBufferCount = vkCommands.size();
@@ -689,7 +755,6 @@ namespace Mikoto {
         const auto result{ swapchain->Present( VulkanContext::Get()->GetCurrentImageIndex(), syncPrimitives.RenderFinishedSemaphore ) };
         if ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ) {
             MKT_THROW_RUNTIME_ERROR( "Error presenting to swp chain" );
-            return;
         }
 
         if ( result != VK_SUCCESS ) {
@@ -720,6 +785,47 @@ namespace Mikoto {
     }
 
     auto VulkanCmdList::FillTexture( Buffer* src, Texture* dest ) -> void {
+        // Cast to Vulkan-specific implementations
+        auto* vkSrc{ dynamic_cast<VulkanBuffer*>(src) };
+        auto* vkDest{ dynamic_cast<VulkanTexture*>(dest) };
+
+        if (!vkSrc || !vkDest) {
+            return;
+        }
+
+        // Ensure the destination image is in TRANSFER_DST layout
+        vkDest->SubmitLayoutTransition(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_CmdBuffer);
+
+        // Describe the region to copy
+        VkBufferImageCopy copyRegion{};
+        copyRegion.bufferOffset = 0;
+        copyRegion.bufferRowLength = 0;   // Tightly packed
+        copyRegion.bufferImageHeight = 0; // Tightly packed
+
+        copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        copyRegion.imageSubresource.mipLevel = 0;
+        copyRegion.imageSubresource.baseArrayLayer = 0;
+        copyRegion.imageSubresource.layerCount = 1;
+
+        copyRegion.imageOffset = {0, 0, 0};
+        copyRegion.imageExtent = {
+            vkDest->GetCreateInfo().extent.width,
+            vkDest->GetCreateInfo().extent.height,
+            1
+        };
+
+        // Issue the copy command
+        vkCmdCopyBufferToImage(
+            m_CmdBuffer,
+            *vkSrc->GetImplHandle(),      // VkBuffer
+            *vkDest->GetImage(),          // VkImage
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            &copyRegion
+        );
+
+        // Transition the image to SHADER_READ_ONLY for sampling
+        vkDest->SubmitLayoutTransition(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_CmdBuffer);
     }
 
     auto VulkanCmdList::CopyBuffer( Buffer* src, Buffer* dest ) -> void {
@@ -753,12 +859,20 @@ namespace Mikoto {
 
     auto VulkanCmdList::WriteBuffer( Buffer* target, Byte* data, Size size ) -> void {
         // Can be device local data
-        // Here i can encapsulate all the logic about creating staging buffers etc
+        // Here I can encapsulate all the logic about creating staging buffers etc
     }
 
     auto VulkanCmdList::WriteTexture( Texture* target, Byte* data, Size size ) -> void {
         // Can be device local data
-        // Here i can encapsulate all the logic about creating staging buffers etc
+        // Here I can encapsulate all the logic about creating staging buffers etc
+    }
+
+    auto VulkanCmdList::GetNativeHandle( ObjectType type )  -> Object {
+        if (type != ObjectType::Vk_CmdBuffer) {
+            return Object(nullptr);
+        }
+
+        return Object( m_CmdBuffer );
     }
 
     VulkanCmdList::~VulkanCmdList() {
@@ -786,6 +900,14 @@ namespace Mikoto {
     VulkanCommandPool::VulkanCommandPool( QueueType queue, Size initialCmdListCount )
         : m_QueueType{ queue } {
         m_CmdLists.Init( initialCmdListCount );
+    }
+
+    auto VulkanCommandPool::GetNativeHandle( ObjectType type )  -> Object {
+        if (type != ObjectType::Vk_CmdPool) {
+            return Object(nullptr);
+        }
+
+        return Object(m_Pool);
     }
 
     auto VulkanCommandPool::AllocateCmdList() -> CommandListHandle {

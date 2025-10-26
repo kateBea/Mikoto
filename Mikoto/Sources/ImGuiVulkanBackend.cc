@@ -205,13 +205,13 @@ namespace Mikoto {
         }
 
 #if __linux__
-        ImGui_ImplVulkan_LoadFunctions(VK_API_VERSION_1_3,
+        ImGui_ImplVulkan_LoadFunctions(VulkanContext::Get()->GetApiVersion(),
                 []( const char* functionName, void* vulkanInstance ) {
                     return vkGetInstanceProcAddr( *static_cast<VkInstance*>( vulkanInstance ), functionName );
                 },
                 std::addressof( VulkanContext::Get()->GetInstance() ) );
 #else
-        ImGui_ImplVulkan_LoadFunctions( VK_API_VERSION_1_3, []( const char* functionName, void* vulkanInstance ) { return vkGetInstanceProcAddr( *static_cast<VkInstance*>( vulkanInstance ), functionName ); }, std::addressof( VulkanContext::Get().GetInstance() ) );
+        ImGui_ImplVulkan_LoadFunctions( VulkanContext::Get()->GetApiVersion(), []( const char* functionName, void* vulkanInstance ) { return vkGetInstanceProcAddr( *static_cast<VkInstance*>( vulkanInstance ), functionName ); }, std::addressof( VulkanContext::Get().GetInstance() ) );
 #endif
 
 
@@ -326,7 +326,7 @@ namespace Mikoto {
             SamplerHandle sampler{ m_GpuDevice->CreateSampler( SamplerDescription{} ) };
             VulkanTexture* color{ dynamic_cast<VulkanTexture*>( texture.GetRaw() ) };
 
-            VkDescriptorSet ds{ ImGui_ImplVulkan_AddTexture( *sampler->GetNativeHandle<VulkanSampler>(), *color->GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ) };
+            VkDescriptorSet ds{ ImGui_ImplVulkan_AddTexture( sampler->GetNativeHandle( ObjectType::Vk_Sampler ), *color->GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ) };
 
             const auto [it, success] {
                 m_ImGuiSets.try_emplace( texture->GetHandle(), ImGuiTextIDInfo{ sampler, texture, ds } )
@@ -358,7 +358,7 @@ namespace Mikoto {
         // Begin ImGui-specific render pass
         VkRenderPassBeginInfo renderPassInfo{ VulkanHelpers::Initializers::RenderPassBeginInfo() };
         renderPassInfo.renderPass = m_ImGuiRenderPass;// Use the render pass for ImGui
-        renderPassInfo.framebuffer = *m_DrawFrameBuffer->GetNativeHandle<VulkanFramebuffer>();
+        renderPassInfo.framebuffer = m_DrawFrameBuffer->GetNativeHandle( ObjectType::Vk_Framebuffer );
         renderPassInfo.renderArea.offset = { 0, 0 };
         renderPassInfo.renderArea.extent = m_Extent2D;
 
@@ -371,7 +371,7 @@ namespace Mikoto {
         renderPassInfo.clearValueCount = static_cast<UInt32>( clearValues.size() );
         renderPassInfo.pClearValues = clearValues.data();
 
-        const auto nativeCmdListHandle{ *cmdList->GetNativeHandle<VulkanCmdList>() };
+        const auto nativeCmdListHandle{ cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
 
         SwapChainHandle vulkanSwapChain{ VulkanContext::Get()->GetSwapchain() };
 
@@ -436,7 +436,7 @@ namespace Mikoto {
         renderInfo.pDepthAttachment = &depthAttachment;
         renderInfo.pStencilAttachment = nullptr;
 
-        const auto nativeCmdListHandle{ *cmdList->GetNativeHandle<VulkanCmdList>() };
+        const auto nativeCmdListHandle{ cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
         vkCmdBeginRendering(nativeCmdListHandle, std::addressof( renderInfo ));
 
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), nativeCmdListHandle);

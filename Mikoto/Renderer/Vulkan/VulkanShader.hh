@@ -22,8 +22,7 @@ namespace Mikoto {
     public:
         explicit VulkanShader(const ShaderModuleDescription& createInfo);
 
-        MKT_NODISCARD auto Get() -> VkShaderModule&;
-        MKT_NODISCARD auto Get() const -> const VkShaderModule&;
+        MKT_NODISCARD auto GetNativeHandle( ObjectType ) -> Object override;
 
         MKT_NODISCARD auto GetPipelineStageCreateInfo() const -> const VkPipelineShaderStageCreateInfo&;
 
@@ -36,7 +35,7 @@ namespace Mikoto {
         auto Initialize() -> void override;
 
     private:
-        std::string m_EntryPoint{};
+        std::string m_EntryPoint{ "main" };
 
         VkShaderModule m_Module{};
         VkPipelineShaderStageCreateInfo m_StageCreateInfo{};

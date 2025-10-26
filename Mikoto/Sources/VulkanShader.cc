@@ -9,6 +9,7 @@
 
 // Third-Party Libraries
 #include "volk.h"
+#include <spirv_reflect.h>
 
 // Project Headers
 #include <Common/Common.hh>
@@ -21,16 +22,34 @@
 namespace Mikoto {
     VulkanShader::VulkanShader( const ShaderModuleDescription& createInfo )
         : ShaderModule{
-            createInfo.Stage,
-            reinterpret_cast<const void*>(createInfo.ShaderFile->GetFileContents().data()),
-            createInfo.ShaderFile->GetSizeBytes() },
-            m_EntryPoint{ "main" }
-    {}
+              createInfo.Stage,
+              reinterpret_cast<const void*>( createInfo.ShaderFile->GetFileContents().data() ),
+              createInfo.ShaderFile->GetSizeBytes()
+          } {
+        m_DebugName = createInfo.ShaderFile->GetName();
+    }
+
+    auto VulkanShader::GetNativeHandle( ObjectType object ) -> Object {
+        return Object(m_Module );
+    }
 
     auto VulkanShader::Initialize() -> void {
         if (!HasContents()) {
             MKT_CORE_LOGGER_ERROR( "VulkanShader::Initialize - Shader has no contents." );
             return;
+        }
+
+        // Check client specified correctly the stage
+        SpvReflectShaderModule module{};
+        SpvReflectResult result{ spvReflectCreateShaderModule(GetContentSize(), GetContents(), &module) };
+
+        if (result == SPV_REFLECT_RESULT_SUCCESS) {
+            // Number of entrypoints
+            VkShaderStageFlags moduleStage{ (VkShaderStageFlags)module.shader_stage };
+
+            if (VulkanHelpers::ToVkStage( m_Stage ) != moduleStage) {
+                MKT_CORE_LOGGER_WARN( "VulkanShader::Initialize - Specified wrong stage for shader {}", m_DebugName );
+            }
         }
 
         VkShaderModuleCreateInfo moduleCreateInfo{ VulkanHelpers::Initializers::ShaderModuleCreateInfo() };
@@ -45,7 +64,7 @@ namespace Mikoto {
         }
 
         m_StageCreateInfo = VulkanHelpers::Initializers::PipelineShaderStageCreateInfo();
-        m_StageCreateInfo.stage = VulkanHelpers::GetVkStageFromShaderStage( m_Stage );
+        m_StageCreateInfo.stage = VulkanHelpers::ToVkStage( m_Stage );
         m_StageCreateInfo.module = m_Module;
         m_StageCreateInfo.pName = m_EntryPoint.c_str();
         m_StageCreateInfo.flags = 0;
@@ -61,8 +80,12 @@ namespace Mikoto {
         m_IsAllocated = false;
     }
 
-    auto VulkanShader::GetPipelineStageCreateInfo() const -> const VkPipelineShaderStageCreateInfo & {
+    auto VulkanShader::GetPipelineStageCreateInfo() const -> const VkPipelineShaderStageCreateInfo& {
         return m_StageCreateInfo;
+    }
+
+    auto VulkanShader::GetVulkanStage() const -> VkShaderStageFlags {
+        return m_StageCreateInfo.stage;
     }
 
     VulkanShader::~VulkanShader() {

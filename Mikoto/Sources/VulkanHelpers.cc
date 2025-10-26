@@ -79,6 +79,21 @@ namespace Mikoto::VulkanHelpers {
 
         MKT_CORE_LOGGER_DEBUG( "Image layout: {} for texture: {}", layoutName, texture->GetDebugName() );
     }
+
+    auto SetObjectDebugName( VkDevice device, VkObjectType objectType, UInt64 objectHandle, const char* name ) -> void {
+        VkDebugUtilsObjectNameInfoEXT nameInfo{};
+        nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        nameInfo.objectType = objectType;
+        nameInfo.objectHandle = objectHandle;
+        nameInfo.pObjectName = name;
+
+        if (vkSetDebugUtilsObjectNameEXT) {
+            vkSetDebugUtilsObjectNameEXT(device, std::addressof( nameInfo ));
+        } else {
+            MKT_CORE_LOGGER_WARN("VulkanHelpers::SetObjectDebugName - vkGetDeviceProcAddr is null, cannot set debug name.");
+        }
+    }
+
     auto VkResultToString( VkResult result ) -> const char* {
         switch (result) {
             case VK_SUCCESS: return "VK_SUCCESS";

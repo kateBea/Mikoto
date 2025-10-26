@@ -131,7 +131,7 @@ namespace Mikoto {
         using namespace Mikoto::VulkanPasses;
 
         // Compute workflow first
-        RunComputeWorkflow();
+        //RunComputeWorkflow();
 
 
         // Graphics commands

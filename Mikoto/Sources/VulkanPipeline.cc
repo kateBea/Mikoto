@@ -36,7 +36,7 @@ namespace Mikoto {
 
         // The index refers to how the vertex attributes are laid out according to s_DefaultBufferLayout
         // so index 0 -> s_DefaultBufferLayout first attribute,
-        // index 1 -> s_DefaultBufferLayout second attribute and so on
+        // index 1 -> s_DefaultBufferLayout second attribute, and so on
         for ( Size index{}; index < attributeDescriptions.size(); ++index ) {
             attributeDescriptions[index] = {};
             attributeDescriptions[index].binding = 0;
@@ -76,7 +76,7 @@ namespace Mikoto {
     }
 
     VulkanGraphicsPipeline::VulkanGraphicsPipeline( const VulkanGraphicsPipelineDescription& info)
-        : GraphicsPipeline{ info.ShaderModules }, m_ConfigInfo{ info }, m_BufferLayout{ info.Layout } {
+        : GraphicsPipeline{ info.ShaderModules }, m_BufferLayout{ info.Layout }, m_ConfigInfo{ info } {
 
         m_DepthAttachmentFormat = dynamic_cast<const VulkanTexture*>(info.Depth.GetRaw() )->GetViewCreateInfo().format;
 
@@ -101,7 +101,7 @@ namespace Mikoto {
         switch (type) {
 
             case ObjectType::Vk_PipelineLayout:
-                return Object(m_Layout );
+                return Object(m_ReflectionData.pipelineLayout);
 
             case ObjectType::Vk_Pipeline:
                 return Object(m_Pipeline );
@@ -138,20 +138,19 @@ namespace Mikoto {
         // Pipeline layout
         std::vector<std::vector<UInt32>> shaderBlocks{};
         for (const auto& shader : m_ShaderModules) {
-            const void* data = shader->GetContents();
-            size_t size = shader->GetContentSize();
+            const void* data{ shader->GetContents() };
+            const Size size{ shader->GetContentSize() };
 
-            const auto* begin = reinterpret_cast<const UInt32*>(data);
-            const auto* end = reinterpret_cast<const UInt32*>(static_cast<const std::byte*>(data) + size);
+            const auto* begin{ reinterpret_cast<const UInt32*>(static_cast<const std::byte*>(data)) };
+            const auto* end{ reinterpret_cast<const UInt32*>(static_cast<const std::byte*>(data) + size) };
 
             shaderBlocks.emplace_back(begin, end);
         }
 
-        VkResult res{ ReflectSPIRV( VK_DEVICE(m_Device), shaderBlocks, m_ReflectionData) };
-        if (m_ReflectionData.pipelineLayout == VK_NULL_HANDLE) {
+        const VkResult res{ ReflectSPIRV( VK_DEVICE(m_Device), shaderBlocks, m_ReflectionData) };
+        if (res != VK_SUCCESS || m_ReflectionData.pipelineLayout == VK_NULL_HANDLE) {
             MKT_THROW_RUNTIME_ERROR( "VulkanGraphicsPipeline::Initialize - Layout is null handle" );
         }
-        m_Layout = m_ReflectionData.pipelineLayout;
 
         // Setup Vertex input
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VulkanHelpers::Initializers::PipelineVertexInputStateCreateInfo() };
@@ -189,7 +188,7 @@ namespace Mikoto {
         pipelineInfo.pMultisampleState = std::addressof( m_ConfigInfo.MultisampleInfo );
         pipelineInfo.pColorBlendState = std::addressof( m_ConfigInfo.ColorBlendInfo );
         pipelineInfo.pDepthStencilState = std::addressof( m_ConfigInfo.DepthStencilInfo );
-        pipelineInfo.layout = m_Layout;
+        pipelineInfo.layout = m_ReflectionData.pipelineLayout;
         pipelineInfo.subpass = m_ConfigInfo.Subpass;
         pipelineInfo.basePipelineIndex = -1;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
@@ -233,26 +232,24 @@ namespace Mikoto {
 
         std::vector<std::vector<UInt32>> shaderBlocks{};
         for (const auto& shader : m_ShaderModules) {
-            const void* data = shader->GetContents();
-            size_t size = shader->GetContentSize();
+            const void* data{ shader->GetContents() };
+            const Size size{ shader->GetContentSize() };
 
-            const auto* begin = reinterpret_cast<const UInt32*>(data);
-            const auto* end = reinterpret_cast<const UInt32*>(static_cast<const std::byte*>(data) + size);
+            const auto* begin{ reinterpret_cast<const UInt32*>(static_cast<const std::byte*>(data)) };
+            const auto* end{ reinterpret_cast<const UInt32*>(static_cast<const std::byte*>(data) + size) };
 
             shaderBlocks.emplace_back(begin, end);
         }
 
         VkResult res{ ReflectSPIRV( VK_DEVICE(m_Device), shaderBlocks, m_ReflectionData ) };
 
-        m_Layout = m_ReflectionData.pipelineLayout;
-
-        if (shaderStageInfos.empty() || m_Layout == VK_NULL_HANDLE) {
+        if (shaderStageInfos.empty() || m_ReflectionData.pipelineLayout == VK_NULL_HANDLE) {
             MKT_THROW_RUNTIME_ERROR( "VulkanComputePipeline::Initialize - stage infos is empty or pipeline layout is null handle." );
         }
 
         // I use front() because compute pipeline only have one stage, the compute shader
         computePipelineCreateInfo.stage = shaderStageInfos.front();
-        computePipelineCreateInfo.layout = m_Layout;
+        computePipelineCreateInfo.layout = m_ReflectionData.pipelineLayout;
 
         if ( vkCreateComputePipelines( VK_DEVICE(m_Device), VK_NULL_HANDLE, 1, std::addressof( computePipelineCreateInfo ), nullptr, std::addressof( m_Pipeline ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanComputePipeline::Initialize - Failed to create compute pipeline" );
@@ -265,7 +262,7 @@ namespace Mikoto {
         switch (type) {
 
             case ObjectType::Vk_PipelineLayout:
-                return Object(m_Layout );
+                return Object(m_ReflectionData.pipelineLayout);
 
             case ObjectType::Vk_Pipeline:
                 return Object(m_Pipeline );

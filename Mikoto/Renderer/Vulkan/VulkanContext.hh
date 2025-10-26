@@ -35,6 +35,7 @@ namespace Mikoto {
 
         const bool EnableValidationLayers{};
         std::vector<const char*> ValidationLayers{};
+        std::vector<const char*> InstanceExtensions{};
     };
 
     class VulkanContext final : public RenderContext, public Singleton<VulkanContext> {
@@ -103,7 +104,8 @@ namespace Mikoto {
 #else
             .EnableValidationLayers{ true },
 #endif
-            .ValidationLayers{ "VK_LAYER_KHRONOS_validation" }
+            .ValidationLayers{ "VK_LAYER_KHRONOS_validation" },
+            .InstanceExtensions{ VK_EXT_DEBUG_UTILS_EXTENSION_NAME }
         };
     };
 }

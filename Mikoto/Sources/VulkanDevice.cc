@@ -890,6 +890,15 @@ namespace Mikoto {
         }
 
         m_IsAllocated = true;
+
+        // Set a debug name when this command buffer is ready to use
+        SetDebugName( fmt::format( "Mikoto VkCommandList - ResourceID: {}", GetHandle() ) );
+
+        VulkanHelpers::SetObjectDebugName(
+            VK_DEVICE( m_Device ),
+            VK_OBJECT_TYPE_COMMAND_BUFFER,
+            reinterpret_cast<UInt64>( m_CmdBuffer ),
+            m_DebugName.c_str() );
     }
 
     auto VulkanCmdList::Release() -> void {

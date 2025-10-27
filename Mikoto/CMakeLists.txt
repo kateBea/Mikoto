@@ -389,6 +389,8 @@ set(ALL_SOURCES
         ${IMGUIZMO_SOURCES}
         ${SPIRV_REFLECT_SOURCES}
         ${MINIAUDIO_SOURCES}
+        Core/SystemStats.cc
+        Core/SystemStats.hh
 )
 
 # ======================================

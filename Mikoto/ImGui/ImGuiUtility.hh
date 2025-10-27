@@ -19,6 +19,12 @@
 
 namespace Mikoto::ImGuiUtils {
 
+    enum class GuizmoManipulationMode {
+        TRANSLATION,
+        ROTATION,
+        SCALE,
+    };
+
     class ImGuiScopedStyleVar {
     public:
         template<typename... Args>
@@ -512,6 +518,16 @@ namespace Mikoto::ImGuiUtils {
 
             ImGui::TreePop();
         }
+    }
+
+    /**
+     * Utility function to make panel names for ImGui windows.
+     * @param panelIcon Panel's icon value.
+     * @param panelName Name of the panel.
+     * @returns The panel's name including the icon.
+     * */
+    MKT_NODISCARD inline auto MakePanelName(std::string_view panelIcon, std::string_view panelName) -> std::string {
+        return fmt::format("{} {}", panelIcon, panelName);
     }
 }// namespace Mikoto::ImGuiUtils
 

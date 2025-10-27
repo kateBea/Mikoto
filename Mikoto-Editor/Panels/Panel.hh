@@ -56,7 +56,7 @@ namespace Mikoto {
          * @brief Hides or reveals this panel in the docking space.
          * @param value if false, hides this panel, otherwise it will always be visible.
          * */
-        auto MakeVisible( const bool value ) -> void { m_PanelIsVisible = value; }
+        auto SetVisible( const bool value ) -> void { m_PanelIsVisible = value; }
 
 
         /**

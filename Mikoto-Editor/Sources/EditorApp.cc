@@ -88,13 +88,13 @@ namespace Mikoto {
     }
 
     auto EditorApp::Update() -> void {
-
-
         TimeService::Get()->Update();
         const double timeStep{ TimeService::Get().GetTimeStep( TimeUnit::SECONDS ) };
 
         if ( !m_Window->IsMinimized() ) {
             Root::StartFrame();
+
+            m_LayerStack.OnUpdate( static_cast<float>( timeStep ) );
 
             Root::UpdateState( timeStep );
 
@@ -111,7 +111,6 @@ namespace Mikoto {
                         MKT_CORE_LOGGER_TRACE( "EditorApp::EventManager - Handled Window Event close" );
                         return true;
                     } );
-
 
         EventService::Get().Subscribe( this );
     }

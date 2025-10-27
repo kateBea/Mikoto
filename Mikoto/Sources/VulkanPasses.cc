@@ -10,13 +10,14 @@
 
 #include <Material/PBRMaterial.hh>
 #include <Material/ShaderLibrary.hh>
+#include <Memory/MemoryService.hh>
 #include <Renderer/RenderUtility.hh>
 #include <Scene/Component.hh>
 
 #include "Renderer/Vulkan/VulkanDevice.hh"
+#include "Renderer/Vulkan/VulkanHelpers.hh"
 #include "Renderer/Vulkan/VulkanPasses.hh"
 #include "Renderer/Vulkan/VulkanTexture.hh"
-#include "Renderer/Vulkan/VulkanHelpers.hh"
 
 namespace Mikoto::VulkanPasses {
 
@@ -297,7 +298,7 @@ namespace Mikoto::VulkanPasses {
         m_Device = device;
 
         // Create small storage buffer
-        const Size totalSize{ sizeof( UInt32) * m_Count };
+        const Size totalSize{ sizeof( UInt32 ) * m_Count };
         BufferDescription desc{};
         desc.WithSizeBytes( totalSize )
                 .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
@@ -345,8 +346,10 @@ namespace Mikoto::VulkanPasses {
     auto ComputeBasic::Begin( const CommandListHandle cmd ) -> void {
         m_CmdList = cmd;
 
-        std::vector<UInt32> data(m_Count);
-        m_StorageBuffer->CopyToBlock( data.data() );
+        std::vector<UInt32> data{};
+        data.resize( m_Count );
+
+        m_StorageBuffer->CopyToBlock( data.data(), data.size() * sizeof( UInt32 ) );
     }
 
     auto ComputeBasic::End() -> void {
@@ -361,7 +364,7 @@ namespace Mikoto::VulkanPasses {
         vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &m_DescriptorSet, 0, nullptr);
 
         // Dispatch enough workgroups for 64 threads total
-        const UInt32 localSize{ 64 }; // matches shader's local_size_x
+        constexpr UInt32 localSize{ 64 }; // matches shader's local_size_x
         const UInt32 groupCount{ (m_Count + localSize - 1) / localSize };
         vkCmdDispatch(cmd, groupCount, 1, 1);
     }

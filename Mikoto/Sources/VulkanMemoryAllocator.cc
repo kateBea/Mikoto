@@ -88,21 +88,15 @@ namespace Mikoto {
         MKT_ASSERT(buffer != nullptr, "VulkanMemoryAllocator::MapBuffer - buffer is null!");
 
         if (map) {
-            // Map buffer memory to CPU
-            void* mapped{ nullptr };
-
             const VkResult result{ vmaMapMemory(
                 m_Allocator,
                 *buffer->GetVmaAllocation(),
-                std::addressof( mapped )
+                std::addressof( buffer->GetVmaAllocationInfo()->pMappedData )
             )};
 
             if (result != VK_SUCCESS) {
                 MKT_THROW_RUNTIME_ERROR("Failed to map Vulkan buffer memory!");
             }
-
-            // Update buffer’s allocation info
-            buffer->GetVmaAllocationInfo()->pMappedData = mapped;
         }
         else {
             // Unmap buffer memory from CPU

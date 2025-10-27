@@ -127,19 +127,17 @@ namespace Mikoto {
         m_GraphicsCommandList->End();
     }
 
-    auto VulkanRenderer::BeginRender( CommandListHandle cmdList ) -> void {
+    auto VulkanRenderer::BeginRender( const CommandListHandle cmd ) -> void {
         using namespace Mikoto::VulkanPasses;
 
         // Compute workflow first
-        //RunComputeWorkflow();
-
+        RunComputeWorkflow();
 
         // Graphics commands
-        m_GraphicsCommandList = cmdList;
+        m_GraphicsCommandList = cmd;
         m_GraphicsCommandList->Begin();
 
         // Prepare resources
-
         if (m_UpdateTextureDescriptor) {
             // We push all the textures we need, when we begin render
             // we make sure they are all visible through the descriptor set
@@ -381,7 +379,6 @@ namespace Mikoto {
 
         computeCommandList->End();
         m_GraphicsDevice->SubmitCommands( computeCommandList );
-
     }
 
 }// namespace Mikoto

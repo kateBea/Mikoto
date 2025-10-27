@@ -66,6 +66,8 @@ namespace Mikoto {
          */
         auto Shutdown() -> void override;
 
+        auto GetHeapAllocator() -> HeapAllocator* { return std::addressof(m_HeapAllocator); }
+
     private:
 
         HeapAllocator m_HeapAllocator{ 1000 };

@@ -83,13 +83,17 @@ namespace Mikoto {
         m_AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
     }
 
-    auto VulkanBuffer::CopyToBlock( void* ptr ) -> void {
+    auto VulkanBuffer::CopyToBlock( void* ptr, const Size size ) -> void {
+        // Do a check that this is CPU visible memory
+
         PersistentMap();
-        std::memcpy( ptr, m_VmaAllocationInfo.pMappedData, m_VmaAllocationInfo.size );
+        std::memcpy( ptr, m_VmaAllocationInfo.pMappedData, size );
         PersistentUnmap();
     }
 
     auto VulkanBuffer::CopyFromBlock( const void* ptr, const Size size ) -> void {
+        // Do a check that this is CPU visible memory
+
         PersistentMap();
         std::memcpy( m_VmaAllocationInfo.pMappedData, ptr, size );
         PersistentUnmap();

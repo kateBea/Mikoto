@@ -190,16 +190,16 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR( "VulkanDevice::PresentToSwapChain - Error failed present images to swapchain." );
         }
 
-        m_Device->RunGarbageCollection();
+        //m_Device->RunGarbageCollection();
     }
 
-    auto VulkanContext::RecreateSwapchain() -> void {
+    auto VulkanContext::RecreateSwapchain( const bool enableVsync ) -> void {
         const VkExtent2D newExtent{
             .width{ static_cast<UInt32>( m_TargetWindow->GetWidth() ) },
-            .height{ static_cast<UInt32>( m_TargetWindow->GetHeight() ) }
+            .height{ static_cast<UInt32>( m_TargetWindow->GetHeight() ) },
         };
 
-        m_Swapchain->OnResize( newExtent, m_TargetWindow->GetHeight() );
+        m_Swapchain->OnResize( newExtent, enableVsync );
     }
 
     auto VulkanContext::CreateInstance() -> void {
@@ -293,7 +293,7 @@ namespace Mikoto {
     }
 
     auto VulkanContext::SwitchSyncMode( const bool enable ) -> void {
-
+        RecreateSwapchain();
     }
 
     auto VulkanContext::PrepareFrame() -> void {

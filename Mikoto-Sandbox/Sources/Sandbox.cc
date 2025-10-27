@@ -91,7 +91,7 @@ namespace Mikoto {
     }
 
     auto SandboxApp::Shutdown() -> void {
-        MKT_CORE_LOGGER_DEBUG( "Shutting down Mikoto Editor..." );
+        MKT_CORE_LOGGER_DEBUG( "Shutting down Mikoto Sandbox..." );
 
         m_LayerStack.Clear();
 

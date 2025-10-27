@@ -78,7 +78,7 @@ namespace Mikoto {
         auto CreateDebugMessenger() -> void;
         auto CreateSynchronizationPrimitives() -> void;
 
-        auto RecreateSwapchain() -> void;
+        auto RecreateSwapchain( bool enableVsync = false) -> void;
 
         auto SwitchSyncMode( bool enable ) -> void;
         MKT_NODISCARD auto CheckValidationLayerSupport() const -> bool;

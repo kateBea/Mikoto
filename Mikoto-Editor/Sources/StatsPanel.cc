@@ -128,6 +128,11 @@ namespace Mikoto {
                 ImGui::TableNextRow(); ImGui::TableNextColumn(); ImGui::TextUnformatted("RAM (Total)");
                 ImGui::TableNextColumn(); ImGui::Text(fmt::format(": {:.2f} MB", totalMB).c_str());
 
+                ImGui::TableNextRow(); ImGui::TableNextColumn();
+                ImGui::TextUnformatted("App RAM usage");
+                ImGui::TableNextColumn();
+                ImGui::Text(fmt::format(": {:.2f} MB", stats->GetProcessRamUsage() / 1'000'000.0).c_str());
+
                 ImGui::TableNextRow(); ImGui::TableNextColumn(); ImGui::TextUnformatted("RAM (Available)");
                 ImGui::TableNextColumn(); ImGui::Text(fmt::format(": {:.2f} MB", freeMB).c_str());
 

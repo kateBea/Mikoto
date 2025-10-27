@@ -23,7 +23,6 @@ namespace Mikoto {
     public:
         /**
          * @brief Default constructor for the DeviceObject class.
-         *
          * Initializes a default instance of the DeviceObject. This constructor is typically used
          * when the device object is initialized later with a call to `Init`.
          */
@@ -31,7 +30,6 @@ namespace Mikoto {
 
         /**
          * @brief Initializes the device object with the given GPU device.
-         *
          * This method sets the device for the object and calls `Allocate` to perform any necessary
          * resource allocation specific to the derived object.
          *
@@ -45,20 +43,13 @@ namespace Mikoto {
 
         /**
          * @brief Destructor for the DeviceObject class.
-         *
          * Ensures proper cleanup of resources when the device object is destroyed.
          */
         ~AudioDeviceObject() override = default;
 
     protected:
-        /**
-         * @brief Allocates the resources specific to the device object.
-         *
-         * This method is pure virtual and must be implemented by derived classes to allocate resources
-         * (e.g., buffers, textures) on the GPU. It is called when the `Init` method is invoked.
-         */
-        auto Initialize() -> void override = 0;
 
+        auto Initialize() -> void override = 0;
         auto Release() -> void override = 0;
 
     protected:

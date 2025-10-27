@@ -9,7 +9,7 @@
 #include <Common/Service.hh>
 #include <Library/Utility/Types.hh>
 
-#include "Audio/AudioDevice.hh"
+#include <Audio/AudioDevice.hh>
 
 namespace Mikoto {
     struct AudioServiceCreateInfo {

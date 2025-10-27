@@ -17,6 +17,7 @@
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 
+
 namespace Mikoto::Math {
     constexpr Vec3F UNIT_VECTOR_X{ 1.0f, 0.0f, 0.0f };
     constexpr Vec3F UNIT_VECTOR_Y{ 0.0f, 1.0f, 0.0f };
@@ -44,6 +45,16 @@ namespace Mikoto::Math {
     inline auto Round( const double value, const Size decimalsCount ) -> double {
         const double factor{ std::pow( 10, decimalsCount ) };
         return std::round( value * factor ) / factor;
+    }
+
+    template<typename T>
+    MKT_NODISCARD auto Min( const T& a, const T& b ) -> const T& {
+        return  b < a ? b : a;
+    }
+
+    template<typename T>
+    MKT_NODISCARD auto Max( const T& a, const T& b ) -> const T& {
+        return  a < b ? b : a;
     }
 
     MKT_NODISCARD

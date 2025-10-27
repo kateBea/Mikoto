@@ -5,14 +5,16 @@
 #ifndef AUDIOSOURCE_HH
 #define AUDIOSOURCE_HH
 
+#include <utility>
+
 #include <miniaudio.h>
 
 #include <Common/Common.hh>
 #include <Library/Data/ResourcePool.hh>
 #include <Library/Utility/Types.hh>
-#include <utility>
 
 namespace Mikoto {
+
     class AudioDevice;
 
     /**
@@ -35,46 +37,48 @@ namespace Mikoto {
 
         /**
          * @brief Gets the current volume level.
-         *
          * @return A float value in the range [0.0, 1.0] representing the volume.
          */
         MKT_NODISCARD auto GetVolume() const -> float;
 
         /**
          * @brief Checks if the audio source is muted.
-         *
          * @return True if muted, false otherwise.
          */
         MKT_NODISCARD auto IsMuted() const -> bool;
 
         /**
          * @brief Checks if the audio is set to loop.
-         *
          * @return True if looping is enabled, false otherwise.
          */
         MKT_NODISCARD auto IsLooping() const -> bool;
 
         /**
          * @brief Mutes or unmutes the audio source.
-         *
          * @param value True to mute the source, false to unmute it.
          */
         auto Mute( bool value ) -> void;
 
         /**
          * @brief Sets the playback volume.
-         *
          * @param volume A float value in the range [0.0, 1.0]. Values <= 0 are ignored.
          */
         auto SetVolume( float volume ) -> void;
 
+        /**
+        * @brief Increases current volume by delta
+        * @param delta Volume increase value
+        */
         auto IncreaseVolume( float delta ) -> void;
 
+        /**
+        * @brief Decreases current volume by delta
+        * @param delta Volume decrease value
+        */
         auto DecreaseVolume( float delta ) -> void;
 
         /**
          * @brief Enables or disables looping for the audio playback.
-         *
          * @param value True to enable looping, false to disable.
          */
         auto SetLooping( bool value ) -> void;
@@ -101,28 +105,24 @@ namespace Mikoto {
 
         /**
         * @brief Checks if the audio is currently playing.
-        *
         * @return True if the audio is actively playing, false otherwise.
         */
         MKT_NODISCARD auto IsPlaying() const -> bool;
 
         /**
         * @brief Sets the pitch multiplier of the audio.
-        *
         * @param pitch The desired pitch factor (1.0 = normal pitch).
         */
         auto SetPitch( float pitch ) -> void;
 
         /**
         * @brief Gets the current pitch multiplier.
-        *
         * @return The current pitch as a float.
         */
         MKT_NODISCARD auto GetPitch() const -> float;
 
         /**
         * @brief Enables or disables 3D spatialization for the audio source.
-        *
         * @param state True to enable spatialization, false to disable.
         */
         auto SetSpatialization( bool state ) -> void;
@@ -139,32 +139,22 @@ namespace Mikoto {
         auto SetPosition( float x, float y, float z ) -> void;
 
         /**
-       * @brief Checks if spatialization is enabled.
-       *
-       * @return True if spatialization is active, false otherwise.
-       */
+        * @brief Checks if spatialization is enabled.
+        * @return True if spatialization is active, false otherwise.
+        */
         MKT_NODISCARD auto IsSpatialized() const -> bool;
 
-      // audio duration in seconds
-      MKT_NODISCARD auto GetAudioDuration() const -> float;
-      // current progress in seconds
-      MKT_NODISCARD auto GetCurrentProgress() const -> float;
+        // audio duration in seconds
+        MKT_NODISCARD auto GetAudioDuration() const -> float;
+        // current progress in seconds
+        MKT_NODISCARD auto GetCurrentProgress() const -> float;
 
-
-      MKT_NODISCARD auto IsSameSource( const AudioSource* source) const -> bool;
-      MKT_NODISCARD auto IsSameAudio( const AudioSource* source) const -> bool;
+        MKT_NODISCARD auto IsSameSource( const AudioSource* source ) const -> bool;
+        MKT_NODISCARD auto IsSameAudio( const AudioSource* source ) const -> bool;
 
     private:
-        /**
-       * @brief Allocates internal audio resources and prepares for playback.
-       *
-       * @note Must be called before invoking Play().
-       */
-        auto Initialize() -> void override;
 
-        /**
-       * @brief Releases internal audio resources and frees memory.
-       */
+        auto Initialize() -> void override;
         auto Release() -> void override;
 
     private:
@@ -174,7 +164,7 @@ namespace Mikoto {
         ma_sound m_Sound{};
         Path m_Path{};
 
-        float m_Volume{ 10.0f};
+        float m_Volume{ 10.0f };
         bool m_Muted{ false };
         float m_Pitch{ 1.0f };
         float m_CurrentProgress{ 0.0f };

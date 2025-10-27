@@ -298,7 +298,7 @@ namespace Mikoto::VulkanPasses {
         m_Device = device;
 
         // Create small storage buffer
-        const Size totalSize{ sizeof( UInt32 ) * m_Count };
+        const Size totalSize{ sizeof( UInt32 ) * m_Limit };
         BufferDescription desc{};
         desc.WithSizeBytes( totalSize )
                 .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
@@ -347,7 +347,7 @@ namespace Mikoto::VulkanPasses {
         m_CmdList = cmd;
 
         std::vector<UInt32> data{};
-        data.resize( m_Count );
+        data.resize( m_Limit );
 
         m_StorageBuffer->CopyToBlock( data.data(), data.size() * sizeof( UInt32 ) );
     }
@@ -365,7 +365,7 @@ namespace Mikoto::VulkanPasses {
 
         // Dispatch enough workgroups for 64 threads total
         constexpr UInt32 localSize{ 64 }; // matches shader's local_size_x
-        const UInt32 groupCount{ (m_Count + localSize - 1) / localSize };
+        const UInt32 groupCount{ (m_Limit + localSize - 1) / localSize };
         vkCmdDispatch(cmd, groupCount, 1, 1);
     }
 }// namespace Mikoto::VulkanPasses

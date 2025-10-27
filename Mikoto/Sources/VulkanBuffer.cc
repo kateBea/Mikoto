@@ -4,6 +4,7 @@
  * */
 
 // Project Headers
+#include <Library/Math/Math.hh>
 #include <Renderer/Vulkan/VulkanBuffer.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
@@ -86,8 +87,10 @@ namespace Mikoto {
     auto VulkanBuffer::CopyToBlock( void* ptr, const Size size ) -> void {
         // Do a check that this is CPU visible memory
 
+        const Size copyAmount{ Math::Min(size, m_VmaAllocationInfo.size) };
+
         PersistentMap();
-        std::memcpy( ptr, m_VmaAllocationInfo.pMappedData, size );
+        std::memcpy( ptr, m_VmaAllocationInfo.pMappedData, copyAmount );
         PersistentUnmap();
     }
 

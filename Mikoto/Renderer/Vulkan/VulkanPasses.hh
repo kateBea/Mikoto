@@ -78,7 +78,7 @@ namespace Mikoto::VulkanPasses {
     };
 
     // Dummy compute pipeline we will use for testing only for now
-    // This computes just calculates first N prime numbers
+    // This computes just calculates first prime numbers up until a limit
     class ComputeBasic final : public IComputePass {
     public:
         auto Init(GpuDevice* device) -> void override;
@@ -93,8 +93,8 @@ namespace Mikoto::VulkanPasses {
         GpuDevice* m_Device{};
         PipelineHandle m_Pipeline{};
 
-        // Count of prime numbers
-        UInt32 m_Count{ 30 };
+        // Prime numbers up until this value
+        UInt32 m_Limit{ 30 };
 
         BufferHandle m_StorageBuffer{};
         VkDescriptorSet m_DescriptorSet{};

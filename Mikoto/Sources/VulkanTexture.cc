@@ -462,6 +462,12 @@ namespace Mikoto {
         m_Extent = newDimensions;
         m_IsVsyncEnabled = vsync;
 
+        TO_VK_DEVICE( m_Device )->WaitIdle();
+        m_Images.clear();
+
+        vkDestroySwapchainKHR( VK_DEVICE( m_Device ), m_Swapchain, nullptr );
+        m_OldSwapchain = m_Swapchain;
+
         Initialize();
     }
 

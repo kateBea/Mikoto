@@ -179,9 +179,27 @@ namespace Mikoto {
         VulkanDevice* device{ TO_VK_DEVICE( RenderService::Get()->GetGpuDevice() ) };
 
         device->FlushPendingCommands( m_FrameSyncPrimitives[m_CurrentFrameIndex] );
-        device->PresentToSwapChain( m_FrameSyncPrimitives[m_CurrentFrameIndex], m_Swapchain );
+
+        const auto result{ m_Swapchain->Present( GetCurrentImageIndex(), m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFinishedSemaphore ) };
+        if ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ) {
+            RecreateSwapchain();
+            return;
+        }
+
+        if ( result != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanDevice::PresentToSwapChain - Error failed present images to swapchain." );
+        }
 
         m_Device->RunGarbageCollection();
+    }
+
+    auto VulkanContext::RecreateSwapchain() -> void {
+        const VkExtent2D newExtent{
+            .width{ m_TargetWindow->GetWidth() },
+            .height{ m_TargetWindow->GetHeight() }
+        };
+
+        m_Swapchain->OnResize( newExtent, m_TargetWindow->GetHeight() );
     }
 
     auto VulkanContext::CreateInstance() -> void {
@@ -286,7 +304,7 @@ namespace Mikoto {
                                                      m_FrameSyncPrimitives[m_CurrentFrameIndex].ImageAvailableSemaphore ) };
 
         if ( ret == VK_ERROR_OUT_OF_DATE_KHR ) {
-            MKT_THROW_RUNTIME_ERROR( "Error getting swap chain image index" );
+            RecreateSwapchain();
         }
 
         if ( ret != VK_SUCCESS ) {

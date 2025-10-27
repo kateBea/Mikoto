@@ -14,6 +14,8 @@
 
 #include <taskflow/taskflow.hpp>
 
+#include <ankerl/unordered_dense.h>
+
 namespace Mikoto {
 
     class TaskManager final : public IService, public Singleton<TaskManager> {
@@ -25,10 +27,31 @@ namespace Mikoto {
 
         auto SubmitTask(std::function<void()>&& task) -> void;
 
-    private:
-        UInt32 m_ThreadCount{};
+        template<typename Func, typename... Args>
+        auto RunPeriodically(Size seconds, Func&& func, Args&&... args ) -> UInt32 {
+            auto newTask{
+                std::function<void()>{ std::bind( std::forward<Func>( func ), std::forward<Args>( args )... ) }
+            };
 
+            m_PeriodicTasksFrequency.try_emplace( m_TaskIndex, seconds );
+            m_PeriodicTaskCondition.try_emplace( m_TaskIndex, true );
+
+            AddNewTaskRunner(std::move(newTask), m_TaskIndex);
+
+            return m_TaskIndex++;
+        }
+
+        auto DisablePeriodicTask(UInt32 index) -> void;
+
+    private:
+        auto AddNewTaskRunner(std::function<void()>&& task, UInt32 index) -> void;
+
+        UInt32 m_ThreadCount{};
         tf::Executor m_Executor{};
+
+        UInt32 m_TaskIndex{};
+        ankerl::unordered_dense::map<UInt32, Size> m_PeriodicTasksFrequency{};
+        ankerl::unordered_dense::map<UInt32, bool> m_PeriodicTaskCondition{};
     };
 }// namespace Mikoto
 

@@ -106,6 +106,7 @@ namespace Mikoto {
         ScriptingService *scriptingService{ s_Services.Register<ScriptingService>( luaServiceCreateInfo ) };
         scriptingService->Init();
 
+        //TaskManager::Get()->RunPeriodically( 3, []() -> void { SystemStats::Get()->Update(); } );
     }
 
     auto Root::Shutdown() -> void {

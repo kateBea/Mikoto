@@ -99,7 +99,7 @@ namespace Mikoto::VulkanHelpers {
     do {                                                                                             \
         VkResult _vk_result = ( expr );                                                              \
         if ( _vk_result != VK_SUCCESS ) {                                                            \
-            MKT_FILE_LOGGER_CRITICAL(                                                                \
+            MKT_FILE_LOGGER_ERROR(                                                                   \
                     "Vulkan error: {} (code: {}) at {}:{}",                                          \
                     VulkanHelpers::VkResultToString( _vk_result ), static_cast<Int32>( _vk_result ), \
                     __FILE__, __LINE__ );                                                            \
@@ -110,7 +110,7 @@ namespace Mikoto::VulkanHelpers {
         }                                                                                            \
     } while ( 0 )
 
-} // MIKOTO::VULKAN_UTILS
+}
 
 /**
  * Features:

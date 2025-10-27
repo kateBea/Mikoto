@@ -37,7 +37,7 @@ namespace Mikoto {
         QueueType m_Type{ QueueType::INVALID_QUEUE };
     };
 
-    class IQueue : public DeviceObject {
+    class IQueue {
     public:
 
         MKT_NODISCARD auto GetType() const -> QueueType { return m_Type; }

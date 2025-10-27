@@ -70,6 +70,7 @@ namespace Mikoto {
         ~VulkanCommandPool() override;
 
 
+        using DeviceObject::Initialize;
     public:
         DISABLE_COPY_AND_MOVE_FOR(VulkanCommandPool);
 

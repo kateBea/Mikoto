@@ -206,6 +206,8 @@ namespace Mikoto {
             return InferElementCount(m_DataType, m_SizeBytes);
         }
 
+        using DeviceObject::Initialize;
+
     protected:
         /**
          * @brief Protected constructor for the Device class.

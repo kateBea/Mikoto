@@ -195,8 +195,8 @@ namespace Mikoto {
 
     auto VulkanContext::RecreateSwapchain() -> void {
         const VkExtent2D newExtent{
-            .width{ m_TargetWindow->GetWidth() },
-            .height{ m_TargetWindow->GetHeight() }
+            .width{ static_cast<UInt32>( m_TargetWindow->GetWidth() ) },
+            .height{ static_cast<UInt32>( m_TargetWindow->GetHeight() ) }
         };
 
         m_Swapchain->OnResize( newExtent, m_TargetWindow->GetHeight() );

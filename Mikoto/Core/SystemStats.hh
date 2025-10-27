@@ -13,13 +13,12 @@ namespace Mikoto {
 
     class SystemStats final : public Singleton<SystemStats> {
     public:
-
         // Can be called by background thread every x time
         // to avoid overhead spinning cpu
         auto Update() -> void;
 
         // Tells how often we fetch system stats (in seconds)
-        auto SetUpdateFrequency(Int32 frequency) -> void;
+        auto SetUpdateFrequency( Int32 frequency ) -> void;
 
         // RAM in bytes
         auto GetSharedRam() const -> double;
@@ -32,11 +31,13 @@ namespace Mikoto {
 
         // GPU (filled externally, e.g., RenderService)
         auto GetGpuName() const -> const std::string&;
-        auto SetGpuName(const std::string& name) -> void;
+        auto SetGpuName( const std::string& name ) -> void;
 
         // VRAM (stub, later Vulkan/Allocator integration)
         auto GetVramUsage() const -> double;
-        auto SetVramUsage(double usageBytes) -> void;
+        auto SetVramUsage( double usageBytes ) -> void;
+
+        auto GetProcessRamUsage() const -> double;
 
     private:
         double m_SharedRam{ 0.0 };
@@ -45,10 +46,12 @@ namespace Mikoto {
         double m_CpuUsage{ 0.0 };
         double m_VramUsage{ 0.0 };
 
-        std::string m_CpuName{};
-        std::string m_GpuName{"Unknown GPU"};
+        double m_ProcessRamUsage{ 0.0 };
 
-        Int32  m_UpdateFrequency{ 1 };
+        std::string m_CpuName{};
+        std::string m_GpuName{ "Unknown GPU" };
+
+        Int32 m_UpdateFrequency{ 1 };
     };
 }
 

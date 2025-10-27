@@ -27,7 +27,9 @@ namespace Mikoto {
     private:
         float m_FrameRate{};
         float m_FrameTime{};
-        float m_IntervalUpdate{};
+
+        float m_IntervalUpdate{ };
+        double m_LastTime{};
 
         Int32 m_ColumCount{ 2 };
     };

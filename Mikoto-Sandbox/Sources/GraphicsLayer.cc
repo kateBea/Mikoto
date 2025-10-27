@@ -173,14 +173,14 @@ namespace Mikoto {
         // You need to specify the Scene the physics are simulated on
         PhysicService::Get()->SetSimulationScene( m_MainScene.get() );
 
-        // This emits sounds
+        // This emitting sounds
         Entity *entity{ m_MainScene->CreateEntity( "Ball" ) };
         if (entity) {
             entity->AddComponent<ScriptComponent>( "hello_world.lua" );
             entity->AddComponent<AudioSourceComponent>( "my_song.mp3" );
         }
 
-        // Load a model with multiples mesh nodes for testing
+        // Load a model with multiple mesh nodes for testing
         Entity *multipleNodes{ m_MainScene->CreateEntity( EntityCreateInfo{
             .Root{ entity },
             .Name{ "Npc" },
@@ -192,7 +192,7 @@ namespace Mikoto {
             multipleNodes->AddComponent<AudioSourceComponent>( "quack.mp3" );
         }
 
-        // Load a model with multiples mesh nodes for testing
+        // Load a model with multiple mesh nodes for testing
         Entity *multipleNodesNoRoot{ m_MainScene->CreateEntity( EntityCreateInfo{
             .Root{ nullptr },
             .Name{ "Npc 1" },
@@ -236,9 +236,17 @@ namespace Mikoto {
         }
 
         // Some checks just to test the Scene interface
-        if (m_MainScene->ExistsByName( "PlushCat" )) { MKT_CORE_LOGGER_WARN( "Entity with name {} exists.", "PlushCat" ); } else { MKT_CORE_LOGGER_WARN( "Entity with name {} not exists.", "PlushCat" ); }
+        if (m_MainScene->ExistsByName( "PlushCat" )) {
+            MKT_CORE_LOGGER_WARN( "Entity with name {} exists.", "PlushCat" );
+        } else {
+            MKT_CORE_LOGGER_WARN( "Entity with name {} not exists.", "PlushCat" );
+        }
 
-        if (m_MainScene->ExistsByID( 4 )) { MKT_CORE_LOGGER_WARN( "Entity with ID {} exists.", 4 ); } else { MKT_CORE_LOGGER_WARN( "Entity with ID {} does not exist.", 4 ); }
+        if (m_MainScene->ExistsByID( 4 )) {
+            MKT_CORE_LOGGER_WARN( "Entity with ID {} exists.", 4 );
+        } else {
+            MKT_CORE_LOGGER_WARN( "Entity with ID {} does not exist.", 4 );
+        }
     }
 
     auto GraphicsLayer::SetupCamera() -> void {
@@ -258,7 +266,9 @@ namespace Mikoto {
 
         m_Renderer = SceneRenderer::Create( spec );
 
-        if (m_Renderer) { m_Renderer->Init(); }
+        if (m_Renderer) {
+            m_Renderer->Init();
+        }
     }
 
     auto GraphicsLayer::UpdateCamera( const float timeStep ) -> void {
@@ -273,7 +283,7 @@ namespace Mikoto {
 
         m_SceneCamera->SetFieldOfView( 45 );
 
-        // Get viewport dimensions from window
+        // Get viewport dimensions from the window
         // we render to the window here not to an imgui viewport
         m_SceneCamera->SetViewportSize( m_Window->GetWidth(), m_Window->GetHeight() );
 
@@ -283,23 +293,15 @@ namespace Mikoto {
     }
 
     auto GraphicsLayer::DrawViewport() const -> void {
-        // TextureLoadDescription loadDesc{};
-        // loadDesc
-        //         .WithFile( FileService::Get()->LoadFile( "./texture.png" ) )
-        //         .WithType( TextureType::TEXTURE_2D );
-        //
-        // static auto textureAlt = AssetsService::Get()->LoadAsset<Texture>( loadDesc );
 
         if (ImGui::Begin( "Viewport" )) {
             ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
-            TextureHandle finalComposition{ m_Renderer->GetFinalComposition() };
-            //TextureHandle finalComposition{ textureAlt };
+            const TextureHandle finalComposition{ m_Renderer->GetFinalComposition() };
 
             const ImVec2 dim{ ImGui::GetContentRegionAvail() };
 
-            ImTextureID textureID{ backend->ConstructImGuiTextureID( finalComposition ) };
+            const ImTextureID textureID{ backend->ConstructImGuiTextureID( finalComposition ) };
             ImGui::Image( textureID, ImVec2{ dim.x, dim.y }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
-
 
             ImGui::End();
         }

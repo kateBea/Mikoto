@@ -287,13 +287,13 @@ namespace Mikoto {
         m_DescriptorSetLayouts.Init( 10 );
 
         // Pre-initialize available pools
-        UInt32 poolCount{ 2 };
+        constexpr UInt32 poolCount{ 2 };
         m_CmdPools.Init( poolCount );
         for ( auto count{ 0 }; count < poolCount; ++count ) {
-            // Temporary on my machine this queue is powerful xdd
+            // Temporary. On my machine, this queue is powerful xdd
             // This will depend on command recording to avoid resizing the pool often
             auto pool{ m_CmdPools.Allocate( QueueType::GRAPHICS_QUEUE, 100 ) };
-            pool.As<DeviceObject>()->Initialize( this );
+            pool->Initialize( this );
         }
 
         InitDescriptorAllocator();
@@ -452,6 +452,8 @@ namespace Mikoto {
             return;
         }
 
+        MKT_CORE_LOGGER_INFO( "VulkanDevice::Shutdown - Shutting down Vulkan Device." );
+
         // Wait for pending operations
         WaitIdle();
 
@@ -470,8 +472,6 @@ namespace Mikoto {
         m_DescriptorSetLayouts.Shutdown();
 
         m_DescriptorAllocator.Shutdown();
-
-        MKT_CORE_LOGGER_INFO( "VulkanDevice::Shutdown - Shutting down Vulkan Device." );
 
         if ( m_GpuAllocator ) {
             m_GpuAllocator->Shutdown();
@@ -500,7 +500,7 @@ namespace Mikoto {
         // we do not want to add to the descriptor depth images as we
         if (texture->GetTextureUsage() != TextureUsage::TEXTURE_USAGE_DEPTH) {
             // We update the set later it might be in use
-            VulkanRenderer* renderer{ dynamic_cast<VulkanRenderer*>(RenderService::Get()->GetBackend()) };
+            const auto renderer{ dynamic_cast<VulkanRenderer*>(RenderService::Get()->GetBackend()) };
             renderer->RegisterTextureForRender(texture);
         }
 
@@ -509,7 +509,6 @@ namespace Mikoto {
 
 
     auto VulkanDevice::RunGarbageCollection() -> void {
-        // Call at the beginning of each frame to free command buffers
 
         // Commands have already been flushed I can get rid of them
         m_PendingCmdLists.clear();
@@ -519,20 +518,17 @@ namespace Mikoto {
         }
     }
 
-    Object VulkanDevice::GetNativeHandle( ObjectType type ) {
+    auto VulkanDevice::GetNativeHandle( ObjectType type ) -> Object {
         return Object(m_LogicalDevice);
     }
 
 
     auto VulkanDevice::CreateCommandList( QueueType queue ) -> CommandListHandle {
         // Find pool we can allocate command lists for the specified type of queue
-
         CommandListHandle resultCommandList{};
 
-        VulkanCommandPoolHandle pool{ m_CmdPools.GetResource() };
-
-        // If we managed to allocate a pool
-        if ( !pool.IsEmpty() ) {
+        // Get the first available pool
+        if ( VulkanCommandPoolHandle pool{ m_CmdPools.GetResource() }; !pool.IsEmpty() ) {
             resultCommandList = pool->AllocateCmdList();
             if ( resultCommandList.IsEmpty() ) {
                 MKT_THROW_RUNTIME_ERROR( "VulkanDevice::CreateCommandList - Failed to allocate command list." );
@@ -859,12 +855,12 @@ namespace Mikoto {
 
     auto VulkanCmdList::WriteBuffer( Buffer* target, Byte* data, Size size ) -> void {
         // Can be device local data
-        // Here I can encapsulate all the logic about creating staging buffers etc
+        // Here I can encapsulate all the logic about creating staging buffers etc.
     }
 
     auto VulkanCmdList::WriteTexture( Texture* target, Byte* data, Size size ) -> void {
         // Can be device local data
-        // Here I can encapsulate all the logic about creating staging buffers etc
+        // Here I can encapsulate all the logic about creating staging buffers, etc.
     }
 
     auto VulkanCmdList::GetNativeHandle( ObjectType type )  -> Object {

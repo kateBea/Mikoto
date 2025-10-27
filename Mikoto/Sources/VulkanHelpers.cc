@@ -10,10 +10,10 @@
 // Third-Party Libraries
 #include <spirv_reflect.h>
 
-#include "vk_mem_alloc.h"
 #include "volk.h"
+#include "vk_mem_alloc.h"
 
-// Project Header
+// Project Headers
 
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>

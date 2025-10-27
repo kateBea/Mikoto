@@ -21,45 +21,50 @@
 
 namespace Mikoto {
 
-    static constexpr auto GetStatsPanelName() -> std::string_view {
-        return "Statistics";
-    }
+    static constexpr auto GetStatsPanelName() -> std::string_view { return "Engine Dashboard"; }
 
     template<typename FuncType>
     static auto DrawStatsSection(const std::string_view title, FuncType&& func) -> void {
-        static constexpr ImGuiTreeNodeFlags styleFlags{
-            ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding
-        };
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 6));
+        ImGui::PushStyleColor(ImGuiCol_Header,        ImVec4(0.20f, 0.22f, 0.28f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.25f, 0.28f, 0.35f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_HeaderActive,  ImVec4(0.30f, 0.33f, 0.40f, 1.0f));
 
-        if (ImGui::TreeNodeEx(reinterpret_cast<void*>(typeid(func).hash_code()), styleFlags, "%s", title.data())) {
+        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth |
+                                   ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_DefaultOpen;
+
+        if (ImGui::TreeNodeEx(reinterpret_cast<void*>(typeid(func).hash_code()), flags, "%s", title.data())) {
+            ImGui::Spacing();
             func();
+            ImGui::Spacing();
             ImGui::TreePop();
         }
+
+        ImGui::PopStyleColor(3);
+        ImGui::PopStyleVar();
     }
 
     StatsPanel::StatsPanel() {
-        m_PanelHeaderName = ImGuiUtils::MakePanelName(ICON_MD_MONITOR_HEART, GetStatsPanelName());
+        m_PanelHeaderName = ImGuiUtils::MakePanelName("🧭", GetStatsPanelName());
     }
 
     auto StatsPanel::OnUpdate(float timeStep) -> void {
         if (!m_PanelIsVisible) return;
 
-        ImGui::Begin(m_PanelHeaderName.c_str(), &m_PanelIsVisible);
+        m_FrameRate = 1 / timeStep;
+        m_FrameTime = timeStep;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12, 12));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.12f, 0.12f, 0.14f, 1.0f));
+
+        ImGui::Begin(m_PanelHeaderName.c_str(), &m_PanelIsVisible,
+                     ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
 
         ImGui::TextUnformatted("Statistics refresh interval (seconds)");
-        if (ImGui::Button(fmt::format("{}", ICON_MD_REFRESH).c_str()))
-            m_IntervalUpdate = 3.0f;
-
-        if (ImGui::IsItemHovered())
-            ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-
         ImGui::SameLine();
-
+        ImGui::SetNextItemWidth(120.0f);
         ImGui::SliderFloat("##StatisticsRefreshInterval", &m_IntervalUpdate, 0.1f, 10.0f, "%.2f");
-        ImGuiUtils::HelpMarker(
-            "How often to refresh system stats (RAM, CPU, VRAM, etc.).\n"
-            "Higher frequencies may increase overhead slightly."
-        );
+        ImGuiUtils::HelpMarker("How often system stats update. Higher = less overhead.");
 
         ImGui::Spacing();
         ImGui::Separator();
@@ -69,87 +74,96 @@ namespace Mikoto {
         DrawSystemInfo();
 
         ImGui::End();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleVar();
     }
 
     auto StatsPanel::DrawPerformance() -> void {
-        static std::array<float, 90> frameRateGraph{};
+        static std::array<float, 120> frameHistory{};
         static std::size_t index = 0;
         static float maxFps = 0.0f;
 
-        frameRateGraph[index] = m_FrameRate;
+        frameHistory[index] = m_FrameRate;
         if (m_FrameRate > maxFps) maxFps = m_FrameRate;
-        index = (index + 1) % frameRateGraph.size();
+        index = (index + 1) % frameHistory.size();
 
         DrawStatsSection("Performance", [&]() {
-            if (ImGui::BeginTable("PerformanceTable", m_ColumCount)) {
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::TextUnformatted("FPS");
-                ImGui::TableNextColumn();
-                ImGui::Text(fmt::format(": {:.2f}", m_FrameRate).c_str());
+            if (ImGui::BeginTable("PerformanceTable", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp)) {
+                auto Row = [&](const char* label, const std::string& value, ImVec4 color = ImVec4(1,1,1,1)) {
+                    ImGui::TableNextRow();
+                    ImGui::TableNextColumn(); ImGui::TextUnformatted(label);
+                    ImGui::TableNextColumn(); ImGui::TextColored(color, "%s", value.c_str());
+                };
 
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::TextUnformatted("Frame-time");
-                ImGui::TableNextColumn();
-                ImGui::Text(fmt::format(": {:.2f} ms", m_FrameTime * 1000.0f).c_str());
+                Row("Frame Rate", fmt::format("{:.2f} FPS", m_FrameRate), ImVec4(0.6f, 0.9f, 0.6f, 1.0f));
+                Row("Frame Time", fmt::format("{:.2f} ms", m_FrameTime * 1000.0f), ImVec4(0.7f, 0.7f, 1.0f, 1.0f));
 
                 ImGui::EndTable();
             }
 
-            ImGui::PlotLines("##FPSGraph", frameRateGraph.data(), frameRateGraph.size(),
-                             0, fmt::format("{:.2f} FPS", m_FrameRate).c_str(),
-                             0.0f, maxFps, ImVec2(0, 80.0f));
+            ImGui::Spacing();
+            ImGui::PushStyleColor(ImGuiCol_PlotLines, ImVec4(0.3f, 0.7f, 1.0f, 1.0f));
+            ImGui::PlotLines("##FrameGraph", frameHistory.data(), frameHistory.size(), 0,
+                             fmt::format("{:.2f} FPS", m_FrameRate).c_str(),
+                             0.0f, maxFps, ImVec2(-1, 80.0f));
+            ImGui::PopStyleColor();
         });
     }
 
     auto StatsPanel::DrawSystemInfo() -> void {
-        DrawStatsSection("System", [&]() {
-            const auto* stats{ SystemStats::GetPtr() };
+        DrawStatsSection("System Overview", [&]() {
+        const auto* stats = SystemStats::GetPtr();
+        const double totalMB  = stats->GetTotalRam() / 1'000'000.0;
+        const double freeMB   = stats->GetFreeRam() / 1'000'000.0;
+        const double sharedMB = stats->GetSharedRam() / 1'000'000.0;
+        const double appMB    = stats->GetProcessRamUsage() / 1'000'000.0;
+        const double cpuUsage = stats->GetCpuUsage();
+        const double ramPercent = (appMB / totalMB) * 100.0;
 
-            const auto totalMB = stats->GetTotalRam() / 1'000'000.0;
-            const auto freeMB  = stats->GetFreeRam() / 1'000'000.0;
-            const auto sharedMB = stats->GetSharedRam() / 1'000'000.0;
-            const auto cpuUsage = stats->GetCpuUsage();
+        std::string apiStr;
+        switch (RenderService::Get()->GetActiveGraphicsApi()) {
+            case GraphicsAPI::VULKAN_API: apiStr = "Vulkan"; break;
+            default: apiStr = "Unknown"; break;
+        }
 
-            std::string apiStr;
-            switch (RenderService::Get()->GetActiveGraphicsApi()) {
-                case GraphicsAPI::VULKAN_API: apiStr = "Vulkan"; break;
-                default: apiStr = "Unknown"; break;
-            }
+        // Make CPU usage formatting width stable
+            const std::string cpuStr = fmt::format("{} ({:05.1f} %)", stats->GetCpuName(), cpuUsage);
 
-            if (ImGui::BeginTable("SystemTable", m_ColumCount)) {
-                ImGui::TableNextRow(); ImGui::TableNextColumn(); ImGui::TextUnformatted("Graphics API");
-                ImGui::TableNextColumn(); ImGui::Text(fmt::format(": {}", apiStr).c_str());
-
-                ImGui::TableNextRow(); ImGui::TableNextColumn(); ImGui::TextUnformatted("CPU");
-                ImGui::TableNextColumn(); ImGui::Text(fmt::format(": {} ({:.1f}%%)", stats->GetCpuName(), cpuUsage).c_str());
-
-                ImGui::TableNextRow(); ImGui::TableNextColumn(); ImGui::TextUnformatted("RAM (Total)");
-                ImGui::TableNextColumn(); ImGui::Text(fmt::format(": {:.2f} MB", totalMB).c_str());
-
-                ImGui::TableNextRow(); ImGui::TableNextColumn();
-                ImGui::TextUnformatted("App RAM usage");
+        if (ImGui::BeginTable("SystemTable", 2,
+            ImGuiTableFlags_BordersInnerV |
+            ImGuiTableFlags_SizingFixedFit |
+            ImGuiTableFlags_NoHostExtendX))
+        {
+            auto Row = [&](const char* label, const std::string& value, ImVec4 color = ImVec4(1,1,1,1)) {
+                ImGui::TableNextRow();
                 ImGui::TableNextColumn();
-                ImGui::Text(fmt::format(": {:.2f} MB", stats->GetProcessRamUsage() / 1'000'000.0).c_str());
+                ImGui::TextUnformatted(label);
+                ImGui::TableNextColumn();
+                ImGui::TextColored(color, "%s", value.c_str());
+            };
 
-                ImGui::TableNextRow(); ImGui::TableNextColumn(); ImGui::TextUnformatted("RAM (Available)");
-                ImGui::TableNextColumn(); ImGui::Text(fmt::format(": {:.2f} MB", freeMB).c_str());
+            Row("Graphics API", apiStr);
+            Row("CPU", cpuStr, ImVec4(0.9f, 0.9f, 0.6f, 1.0f));
+            Row("RAM (Total)", fmt::format("{:.2f} MB", totalMB));
+            Row("App RAM", fmt::format("{:.2f} MB ({:4.1f}%%)", appMB, ramPercent),
+                ImVec4(0.8f, 0.8f, 0.5f, 1.0f));
+            Row("RAM (Available)", fmt::format("{:.2f} MB", freeMB));
+            Row("RAM (Shared)", fmt::format("{:.2f} MB", sharedMB));
+            Row("GPU", stats->GetGpuName());
+            Row("VRAM Usage", fmt::format("{:.2f} MB", stats->GetVramUsage() / 1'000'000.0),
+                ImVec4(0.7f, 0.5f, 1.0f, 1.0f));
+            Row("Elapsed Time", TimeService::Get()->ToString(TimeService::Get()->GetTime()));
 
-                ImGui::TableNextRow(); ImGui::TableNextColumn(); ImGui::TextUnformatted("RAM (Shared)");
-                ImGui::TableNextColumn(); ImGui::Text(fmt::format(": {:.2f} MB", sharedMB).c_str());
+            ImGui::EndTable();
+        }
 
-                ImGui::TableNextRow(); ImGui::TableNextColumn(); ImGui::TextUnformatted("GPU");
-                ImGui::TableNextColumn(); ImGui::Text(fmt::format(": {}", stats->GetGpuName()).c_str());
+        ImGui::Spacing();
+        ImGui::TextColored(ImVec4(0.6f, 0.7f, 1.0f, 1.0f), "Memory Usage");
 
-                ImGui::TableNextRow(); ImGui::TableNextColumn(); ImGui::TextUnformatted("VRAM");
-                ImGui::TableNextColumn(); ImGui::Text(fmt::format(": {:.2f} MB", stats->GetVramUsage() / 1'000'000.0).c_str());
-
-                ImGui::TableNextRow(); ImGui::TableNextColumn(); ImGui::TextUnformatted("Elapsed");
-                ImGui::TableNextColumn(); ImGui::Text(fmt::format(": {}", TimeService::Get()->ToString(TimeService::Get()->GetTime())).c_str());
-
-                ImGui::EndTable();
-            }
-        });
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.6f, 0.7f, 1.0f, 1.0f));
+        ImGui::ProgressBar(ramPercent / 100.0f, ImVec2(-1, 0),
+            fmt::format("{:4.1f}%% of {:.0f} MB used", ramPercent, totalMB).c_str());
+        ImGui::PopStyleColor();
+    });
     }
 }

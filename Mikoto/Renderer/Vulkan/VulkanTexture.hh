@@ -175,6 +175,8 @@ namespace Mikoto {
     private:
         VkExtent2D m_Extent{};
         VkSwapchainKHR m_Swapchain{ VK_NULL_HANDLE };
+        VkSwapchainKHR m_OldSwapchain{ VK_NULL_HANDLE };
+
 
         VkFormat m_Format{};
         VkPresentModeKHR m_PresentMode{};

@@ -2,6 +2,9 @@
 // Created by zanet on 3/27/2025.
 //
 
+#include <utility>
+#include <ranges>
+
 #include <taskflow/taskflow.hpp>
 #include "Threading/TaskManager.hh"
 
@@ -56,11 +59,37 @@ namespace Mikoto {
             return;
         }
 
+        for (auto& running : m_PeriodicTaskCondition | std::ranges::views::values) {
+            running = false;
+        }
+
+        m_Executor.wait_for_all();
+
         MKT_CORE_LOGGER_DEBUG( "Shutting down TaskManager...");
     }
 
-    auto TaskManager::SubmitTask( std::function<void()> &&task ) -> void {
-        tf::Taskflow taskflow{};
-        m_Executor.silent_dependent_async([func = std::move(task)] { func(); });
+    auto TaskManager::SubmitTask( std::function<void()>&& task ) -> void {
+        m_Executor.silent_async( std::move( task ) );
+    }
+
+    auto TaskManager::DisablePeriodicTask( const UInt32 index ) -> void {
+        m_PeriodicTaskCondition.at( index ) = false;
+    }
+
+    auto TaskManager::AddNewTaskRunner(std::function<void()>&& task, UInt32 index) -> void {
+        m_Executor.silent_async( [func = std::move(task), this, index]() -> void {
+            const Size frequency{ m_PeriodicTasksFrequency.at( index ) };
+
+            while (m_PeriodicTaskCondition.at( index )) {
+                if (func) {
+                    func();
+                }
+
+                std::this_thread::sleep_for(std::chrono::seconds(frequency));
+            }
+
+            // FIXME:
+            //m_PeriodicTasksFrequency.erase( index );
+        });
     }
 }// namespace Mikoto

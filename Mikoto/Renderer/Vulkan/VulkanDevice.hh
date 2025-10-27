@@ -137,7 +137,6 @@ namespace Mikoto {
         MKT_NODISCARD auto AllocateDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo& layout) -> DescriptorSetLayoutHandle;
 
         auto FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void;
-        auto PresentToSwapChain( const FrameSynchronizationPrimitives& syncPrimitives, SwapChainHandle swapchain ) -> void;
 
         auto CreateSwapChain( const VulkanSwapChainCreateInfo& createInfo ) -> SwapChainHandle;
         auto CreateSwapChainTextures( const VkImageViewCreateInfo& createInfo, VkExtent2D extent ) -> TextureHandle;

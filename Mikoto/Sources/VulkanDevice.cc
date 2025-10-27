@@ -744,18 +744,6 @@ namespace Mikoto {
 
         // Wait for commands to finish execution so we can free them from pending queue, they can later be freed by calling RunGarbageCollection
         vkWaitForFences( m_LogicalDevice, 1, std::addressof( syncPrimitives.RenderFence ), VK_TRUE, ( std::numeric_limits<std::uint64_t>::max )() );
-    }
-
-    auto VulkanDevice::PresentToSwapChain( const FrameSynchronizationPrimitives& syncPrimitives, SwapChainHandle swapchain ) -> void {
-        // Presentation
-        const auto result{ swapchain->Present( VulkanContext::Get()->GetCurrentImageIndex(), syncPrimitives.RenderFinishedSemaphore ) };
-        if ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ) {
-            MKT_THROW_RUNTIME_ERROR( "Error presenting to swp chain" );
-        }
-
-        if ( result != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanDevice::PresentToSwapChain - Error failed present images to swapchain." );
-        }
 
         m_PendingCmdLists.clear();
     }

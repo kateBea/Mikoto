@@ -14,6 +14,8 @@
 #include <mutex>
 #include <condition_variable>
 
+#include <ankerl/unordered_dense.h>
+
 // Project Headers
 #include "Common/Common.hh"
 #include "Common/Service.hh"
@@ -33,22 +35,27 @@ namespace Mikoto
         UInt32 WorkerThreadCount{0};
     };
 
-    class TaskService final : public IService, public Singleton<TaskService>
-    {
+    class TaskService final : public IService, public Singleton<TaskService> {
     public:
-        explicit TaskService(const TaskServiceCreateInfo& options);
+        explicit TaskService( const TaskServiceCreateInfo& options );
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
-        auto Update(float dt) -> void override;
+        auto Update( float dt ) -> void override;
 
         template<typename Func, typename... Args>
-        auto Submit(Func&& func, Args&&... args) -> void {
+        auto Submit( Func&& func, Args&&... args ) -> void {
             auto newTask{
-                std::function<void()>{ std::bind(std::forward<Func>(func), std::forward<Args>(args)...) }
+                std::function<void()>{ std::bind( std::forward<Func>( func ), std::forward<Args>( args )... ) }
             };
 
-            m_TaskManager->SubmitTask( std::move(newTask) );
+            m_TaskManager->SubmitTask( std::move( newTask ) );
+        }
+
+        // TODO: Review
+        template<typename Func, typename... Args>
+        auto RunPeriodically(Size seconds, Func&& func, Args&&... args ) -> UInt32 {
+            return m_TaskManager->RunPeriodically(seconds, std::forward<Func>( func ), std::forward<Args>( args )... );
         }
 
         MKT_NODISCARD auto GetWorkersCount() const -> UInt32 { return m_ThreadCount; }
@@ -56,9 +63,12 @@ namespace Mikoto
         ~TaskService() override = default;
 
     private:
+        auto SetupPeriodicTaskRunner() -> void;
+
+    private:
         UInt32 m_ThreadCount{};
-        Unique<TaskManager> m_TaskManager{nullptr};
+        Unique<TaskManager> m_TaskManager{ nullptr };
     };
-}
+}// namespace Mikoto
 
 #endif // MIKOTO_TASK_MANAGER_HH

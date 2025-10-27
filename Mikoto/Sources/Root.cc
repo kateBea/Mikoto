@@ -15,10 +15,11 @@
 #include <Memory/MemoryService.hh>
 #include <Physics/PhysicService.hh>
 #include <Renderer/RenderService.hh>
-#include <Threading/TaskService.hh>
 #include <Scripting/ScriptingService.hh>
-
+#include <Threading/TaskService.hh>
 #include <Threading/ThreadUtility.hh>
+
+#include "Core/SystemStats.hh"
 
 namespace Mikoto {
 
@@ -130,6 +131,8 @@ namespace Mikoto {
     }
 
     auto Root::UpdateState( const float timeStep ) -> void {
+        // Can be done on another thread
+        SystemStats::Get()->Update();
 
         for (const auto &service: s_Services | std::views::values ) {
             if (service->IsInitialized()) {

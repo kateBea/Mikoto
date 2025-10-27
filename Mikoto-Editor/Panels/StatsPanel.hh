@@ -21,20 +21,15 @@ namespace Mikoto {
         auto OnUpdate(float timeStep) -> void override;
 
     private:
-        auto UpdateStatsInfo(float timeStep) -> void;
         auto DrawPerformance() -> void;
         auto DrawSystemInfo() -> void;
 
     private:
         float m_FrameRate{};
         float m_FrameTime{};
-        Int32_T m_ColumCount{ 2 };
+        float m_IntervalUpdate{};
 
-        // Interval in seconds
-        float m_IntervalUpdate{ 1 };
-        float m_LastTimeUpdate{};
-
-        SystemInfo m_SysInfo{};
+        Int32 m_ColumCount{ 2 };
     };
 }
 

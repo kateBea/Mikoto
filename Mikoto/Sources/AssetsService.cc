@@ -37,11 +37,6 @@ namespace Mikoto {
             m_MeshFactory->Init();
         }
 
-        ShaderLibraryDescription shaderLibraryDescription{
-            .Device{ m_GpuDevice },
-        };
-
-
         m_IsInitialized = true;
     }
 

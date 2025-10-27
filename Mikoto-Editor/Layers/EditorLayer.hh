@@ -41,7 +41,7 @@ namespace Mikoto {
         ~EditorLayer() override = default;
 
     private:
-        auto PushImGuiDrawItems(float timeStep) -> void;
+        auto UpdatePanels(float timeStep) -> void;
 
         auto SaveScene() const -> void;
         auto LoadScene() -> void;
@@ -66,6 +66,8 @@ namespace Mikoto {
         auto SetupRenderer(double timeStep) -> void;
         auto SetupCamera(double timeStep) -> void;
 
+        auto SetupRenderer() -> void ;
+
     private:
         struct DockControlFlags {
             bool ApplicationCloseFlag{};
@@ -82,8 +84,6 @@ namespace Mikoto {
 
     private:
         Window* m_Window{ nullptr };
-
-        Entity* m_SelectedEntity{};
 
         Path m_ModelsRootDirectory{};
         Path m_FontsRootDirectory{};

@@ -4,6 +4,7 @@
 
 #ifndef GPUALLOCATOR_H
 #define GPUALLOCATOR_H
+
 #include <Library/Utility/Types.hh>
 #include <Renderer/GpuDevice.hh>
 

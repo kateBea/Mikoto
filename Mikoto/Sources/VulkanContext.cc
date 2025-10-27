@@ -170,28 +170,6 @@ namespace Mikoto {
         vkDestroyInstance( GetInstance(), nullptr );
     }
 
-    auto VulkanContext::SubmitFrame() -> void {
-        // Prepare the submission to the queue. We want to wait on
-        // the present semaphore, which is signaled when the swapchain
-        // is ready (there's image available to render to). We will
-        // signal the render semaphore to signal that rendering has finished
-
-        VulkanDevice* device{ TO_VK_DEVICE( RenderService::Get()->GetGpuDevice() ) };
-
-        device->FlushPendingCommands( m_FrameSyncPrimitives[m_CurrentFrameIndex] );
-
-        const auto result{ m_Swapchain->Present( GetCurrentImageIndex(), m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFinishedSemaphore ) };
-        if ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ) {
-            RecreateSwapchain();
-            return;
-        }
-
-        if ( result != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanDevice::PresentToSwapChain - Error failed present images to swapchain." );
-        }
-
-        //m_Device->RunGarbageCollection();
-    }
 
     auto VulkanContext::RecreateSwapchain( const bool enableVsync ) -> void {
         const VkExtent2D newExtent{
@@ -294,6 +272,29 @@ namespace Mikoto {
 
     auto VulkanContext::SwitchSyncMode( const bool enable ) -> void {
         RecreateSwapchain();
+    }
+
+    auto VulkanContext::SubmitFrame() -> void {
+        // Prepare the submission to the queue. We want to wait on
+        // the present semaphore, which is signaled when the swapchain
+        // is ready (there's image available to render to). We will
+        // signal the render semaphore to signal that rendering has finished
+
+        VulkanDevice* device{ TO_VK_DEVICE( RenderService::Get()->GetGpuDevice() ) };
+
+        device->FlushPendingCommands( m_FrameSyncPrimitives[m_CurrentFrameIndex] );
+
+        const auto result{ m_Swapchain->Present( GetCurrentImageIndex(), m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFinishedSemaphore ) };
+        if ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ) {
+            RecreateSwapchain();
+            return;
+        }
+
+        if ( result != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanDevice::PresentToSwapChain - Error failed present images to swapchain." );
+        }
+
+        //m_Device->RunGarbageCollection();
     }
 
     auto VulkanContext::PrepareFrame() -> void {

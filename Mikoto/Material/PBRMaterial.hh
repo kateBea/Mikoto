@@ -72,7 +72,13 @@ namespace Mikoto {
         float m_AmbientOcclusion{ 0.4f };
         float m_ReflectanceFactor{ 0.4f };
 
+        // Note: Materials reference both textures and samplers.
+        // Textures provide the image data, while samplers define how that data is read
+        // (filtering, addressing, LOD behavior, etc.).
+        // This separation allows the same texture to be reused across materials
+        // with different sampling settings.
         ankerl::unordered_dense::map<MapType, TextureHandle> m_Textures{};
+        ankerl::unordered_dense::map<MapType, Sampler> m_Samplers{};
     };
 }// namespace Mikoto
 

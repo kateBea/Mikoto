@@ -738,9 +738,7 @@ namespace Mikoto {
         submit.commandBufferCount = vkCommands.size();
         submit.pCommandBuffers = vkCommands.data();
 
-        if ( vkQueueSubmit( m_Queues.Graphics->Queue, 1, std::addressof( submit ), syncPrimitives.RenderFence ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanDevice::FlushPendingCommands - Error trying to submit commands." );
-        }
+        MKT_VK_CHECK( vkQueueSubmit( m_Queues.Graphics->Queue, 1, std::addressof( submit ), syncPrimitives.RenderFence ) );
 
         // Wait for commands to finish execution so we can free them from pending queue, they can later be freed by calling RunGarbageCollection
         vkWaitForFences( m_LogicalDevice, 1, std::addressof( syncPrimitives.RenderFence ), VK_TRUE, ( std::numeric_limits<std::uint64_t>::max )() );

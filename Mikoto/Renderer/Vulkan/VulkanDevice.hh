@@ -69,6 +69,7 @@ namespace Mikoto {
 
         ~VulkanCommandPool() override;
 
+        auto DestroyCommandList(CommandListHandle cmd ) -> void;
 
         using DeviceObject::Initialize;
     public:
@@ -109,6 +110,8 @@ namespace Mikoto {
         MKT_NODISCARD auto CreatePipeline(const GraphicsPipelineDescription& description) -> PipelineHandle override;
         MKT_NODISCARD auto LoadShader(const Path& path, ShaderStage stage) -> ShaderModuleHandle override;
 
+        MKT_NODISCARD auto GetDeviceName() const -> std::string_view override;
+
         auto SubmitCommands( CommandListHandle cmd ) -> void override;
         auto RunGarbageCollection() -> void override;
 
@@ -119,6 +122,7 @@ namespace Mikoto {
         // Vulkan specifics ================================================
 
         auto WaitIdle() const -> void;
+        auto WaitQueuesIdle() const -> void;
 
         // Return the minimum required alignment (in bytes) for uniform buffers
         MKT_NODISCARD auto GetUniformBufferMinOffsetAlignment() const -> VkDeviceSize;
@@ -155,7 +159,6 @@ namespace Mikoto {
 
     private:
         // [Internal usage]
-        auto InitFences() -> void;
         auto InitMemoryAllocator() -> void;
         auto InitDescriptorAllocator() -> void;
         auto GetPrimaryPhysicalDevice() -> void;

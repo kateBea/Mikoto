@@ -116,8 +116,6 @@ namespace Mikoto {
     auto SystemStats::GetTotalRam() const -> double { return m_TotalRam; }
     auto SystemStats::GetCpuName() const -> const std::string& { return m_CpuName; }
     auto SystemStats::GetCpuUsage() const -> double { return m_CpuUsage; }
-    auto SystemStats::GetGpuName() const -> const std::string& { return m_GpuName; }
-    auto SystemStats::SetGpuName( const std::string& name ) -> void { m_GpuName = name; }
     auto SystemStats::GetVramUsage() const -> double { return m_VramUsage; }
     auto SystemStats::SetVramUsage( double usageBytes ) -> void { m_VramUsage = usageBytes; }
     auto SystemStats::GetProcessRamUsage() const -> double {

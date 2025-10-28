@@ -21,6 +21,8 @@
 
 namespace Mikoto {
 
+    class VulkanDevice;
+
     class DescriptorLayoutBuilder final {
     public:
 
@@ -80,7 +82,7 @@ namespace Mikoto {
             float Ratio{};
         };
 
-        auto Init(VkDevice device, UInt32 initialSets, std::span<PoolSizeRatio> poolRatios) -> void;
+        auto Init(VulkanDevice* device, UInt32 initialSets, std::span<PoolSizeRatio> poolRatios) -> void;
         auto Shutdown() -> void;
 
         auto ClearPools() -> void;
@@ -98,7 +100,7 @@ namespace Mikoto {
 
         float m_SetsPerPool{};
 
-        VkDevice m_Device{ VK_NULL_HANDLE };
+        VulkanDevice* m_Device{ VK_NULL_HANDLE };
 
 #if defined(MKT_USE_VULKAN_BINDLESS)
         const bool m_IsBindlessEnabled{ true };

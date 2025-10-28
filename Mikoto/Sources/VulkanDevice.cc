@@ -298,8 +298,6 @@ namespace Mikoto {
 
         InitDescriptorAllocator();
 
-        InitFences();
-
         m_IsInitialized = true;
     }
 
@@ -318,11 +316,7 @@ namespace Mikoto {
             { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
         };
 
-        m_DescriptorAllocator.Init( m_LogicalDevice, 1000, sizes );
-    }
-
-    auto VulkanDevice::InitFences() -> void {
-
+        m_DescriptorAllocator.Init( this, 1000, sizes );
     }
 
     auto VulkanDevice::InitMemoryAllocator() -> void {
@@ -461,7 +455,7 @@ namespace Mikoto {
         MKT_CORE_LOGGER_INFO( "VulkanDevice::Shutdown - Shutting down Vulkan Device." );
 
         // Wait for pending operations
-        WaitIdle();
+        WaitQueuesIdle();
 
         m_PendingCmdLists.clear();
 
@@ -493,6 +487,20 @@ namespace Mikoto {
         vkDeviceWaitIdle( m_LogicalDevice );
     }
 
+    auto VulkanDevice::WaitQueuesIdle() const -> void {
+        if (m_Queues.Graphics.has_value()) {
+            vkQueueWaitIdle( m_Queues.Graphics->Queue );
+        }
+
+        if (m_Queues.Compute.has_value()) {
+            vkQueueWaitIdle( m_Queues.Compute->Queue );
+        }
+
+        if (m_Queues.Present.has_value()) {
+            vkQueueWaitIdle( m_Queues.Present->Queue );
+        }
+    }
+
     auto VulkanDevice::CreateTexture( const TextureDescription& description ) -> TextureHandle {
         TextureHandle texture{ m_Textures.Allocate( description ) };
         if ( texture.IsEmpty() ) {
@@ -513,33 +521,39 @@ namespace Mikoto {
         return texture;
     }
 
-
     auto VulkanDevice::RunGarbageCollection() -> void {
-
-        // Commands have already been flushed I can get rid of them
-        // m_PendingCmdLists.clear();
-        //
-        // for ( VulkanCommandPoolHandle pool: m_CmdPools | std::views::values ) {
-        //     pool->RunGarbageCollection();
-        // }
-
-        const UInt32 currentFrame = VulkanContext::Get()->GetCurrentFrameIndex();
-        VkFence frameFence = m_FrameFences[currentFrame];
-
-        VkResult result = vkGetFenceStatus(m_LogicalDevice, frameFence);
-        if (result == VK_SUCCESS) {
-            // GPU finished work for this frame
-            vkResetFences(m_LogicalDevice, 1, &frameFence);
-
-            // Recycle command buffers associated with this frame
-            auto& cmdList{ m_PendingCmdLists[currentFrame] };
-            for (auto& cmd : cmdList) {
-                //cmd->Recycle(); // or return to pool
+        for (auto& [frameIndex, frameFence] : m_FrameFences) {
+            if (frameFence == VK_NULL_HANDLE) {
+                continue;
             }
 
-            cmdList.clear();
-        } else if (result != VK_NOT_READY) {
-            MKT_CORE_LOGGER_ERROR("VulkanDevice::RunGarbageCollection - Fence status check failed!");
+            vkWaitForFences(m_LogicalDevice, 1, &frameFence, VK_TRUE, UINT64_MAX);
+
+            VkResult result{ vkGetFenceStatus(m_LogicalDevice, frameFence) };
+            if (result == VK_SUCCESS) {
+                // GPU finished work for this frame
+                //vkResetFences(m_LogicalDevice, 1, &frameFence);
+
+                // Recycle commands for this frame
+                auto it{ m_PendingCmdLists.find(frameIndex) };
+                if (it != m_PendingCmdLists.end()) {
+                    for (auto& cmd : it->second) {
+                        if (!cmd.IsEmpty()) {
+                            // You might call cmd->Recycle() or return to pool
+                            if (VulkanCommandPoolHandle pool = m_CmdPools.GetResource(); !pool.IsEmpty()) {
+                                pool->DestroyCommandList( cmd );
+                            }
+                        }
+                    }
+
+                    it->second.clear();
+                }
+            } else if (result == VK_NOT_READY) {
+                continue;
+            }
+            else {
+                MKT_CORE_LOGGER_ERROR("VulkanDevice::RunGarbageCollection - Fence check failed (frame {}, result = {})!", frameIndex, static_cast<int>(result));
+            }
         }
     }
 
@@ -646,6 +660,10 @@ namespace Mikoto {
         }
 
         return result;
+    }
+
+    auto VulkanDevice::GetDeviceName() const -> std::string_view {
+        return m_PhysicalDeviceInfo.Properties.deviceName;
     }
 
     auto VulkanDevice::GetUniformBufferMinOffsetAlignment() const -> VkDeviceSize {
@@ -781,23 +799,18 @@ namespace Mikoto {
             .flags = 0,
             .waitSemaphoreInfoCount = 1,
             .pWaitSemaphoreInfos = &waitSemaphoreInfo,
-            .commandBufferInfoCount = static_cast<uint32_t>( cmdInfos.size() ),
+            .commandBufferInfoCount = static_cast<UInt32>( cmdInfos.size() ),
             .pCommandBufferInfos = cmdInfos.data(),
             .signalSemaphoreInfoCount = 1,
             .pSignalSemaphoreInfos = &signalSemaphoreInfo
         };
 
+        // Add the fence we will be waiting on later
         if (!m_FrameFences.contains( currentFrame )) {
             m_FrameFences[currentFrame] = syncPrimitives.RenderFence;
         }
 
-        // Get the per-frame fence
-        const VkFence frameFence{ m_FrameFences[currentFrame] };
-
-        MKT_VK_CHECK( vkQueueSubmit2( m_Queues.Graphics->Queue, 1, &submitInfo, frameFence ) );
-
-        // Don’t clear the command list yet; clear it only after fence signals,
-        // so RunGarbageCollection knows what to recycle.
+        MKT_VK_CHECK( vkQueueSubmit2( m_Queues.Graphics->Queue, 1, &submitInfo, syncPrimitives.RenderFence ) );
     }
 
     VulkanCmdList::VulkanCmdList( const VkCommandBufferAllocateInfo& createInfo )
@@ -978,6 +991,9 @@ namespace Mikoto {
         if ( m_IsAllocated ) {
             Release();
         }
+    }
+    auto VulkanCommandPool::DestroyCommandList( CommandListHandle cmd ) -> void {
+        m_CmdLists.Release( cmd->GetHandle() );
     }
 
     auto VulkanCommandPool::RunGarbageCollection() -> void {

@@ -69,6 +69,8 @@ namespace Mikoto {
 
         MKT_NODISCARD virtual auto LoadShader(const Path& path, ShaderStage stage) -> ShaderModuleHandle = 0;
 
+        MKT_NODISCARD virtual auto GetDeviceName() const -> std::string_view = 0;
+
         virtual auto SubmitCommands(CommandListHandle cmd) -> void = 0;
         MKT_NODISCARD virtual auto CreateCommandList(QueueType queue) -> CommandListHandle = 0;
 

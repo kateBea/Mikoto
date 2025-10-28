@@ -178,7 +178,7 @@ namespace Mikoto {
                      ImVec4( 0.8f, 0.8f, 0.5f, 1.0f ) );
                 Row( "RAM (Available)", fmt::format( "{:.2f} MB", freeMB ) );
                 Row( "RAM (Shared)", fmt::format( "{:.2f} MB", sharedMB ) );
-                Row( "GPU", stats->GetGpuName() );
+                Row( "GPU", fmt::format( "{}", RenderService::Get()->GetGpuDevice()->GetDeviceName() ));
                 Row( "VRAM Usage", fmt::format( "{:.2f} MB", stats->GetVramUsage() / 1'000'000.0 ),
                      ImVec4( 0.7f, 0.5f, 1.0f, 1.0f ) );
                 Row( "Elapsed Time", TimeService::Get()->ToString( TimeService::Get()->GetTime() ) );

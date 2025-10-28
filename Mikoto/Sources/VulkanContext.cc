@@ -293,23 +293,26 @@ namespace Mikoto {
         if ( result != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanDevice::PresentToSwapChain - Error failed present images to swapchain." );
         }
-
-        m_Device->RunGarbageCollection();
     }
 
     auto VulkanContext::PrepareFrame() -> void {
-
         m_CurrentFrameIndex = m_Swapchain->GetCurrentFrameIndex();
-        const auto ret{ m_Swapchain->GetNextRenderableImage( m_CurrentImageIndex,
-                                                     m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFence,
-                                                     m_FrameSyncPrimitives[m_CurrentFrameIndex].ImageAvailableSemaphore ) };
 
-        if ( ret == VK_ERROR_OUT_OF_DATE_KHR ) {
+        m_Device->RunGarbageCollection();
+
+        VkFence fence{ m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFence };
+
+        vkWaitForFences(VK_DEVICE(m_Device.get()), 1, &fence, VK_TRUE, UINT64_MAX);
+        vkResetFences(VK_DEVICE(m_Device.get()), 1, &fence);
+
+        // 4. Acquire swapchain image (no fence needed!)
+        VkResult ret{ m_Swapchain->GetNextRenderableImage(m_CurrentImageIndex, m_FrameSyncPrimitives[m_CurrentFrameIndex].ImageAvailableSemaphore) };
+        if (ret == VK_ERROR_OUT_OF_DATE_KHR) {
             RecreateSwapchain();
         }
 
-        if ( ret != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanContext::PrepareFrame - Failed to acquire swap chain Screenshots!" );
+        if (ret != VK_SUCCESS) {
+            MKT_THROW_RUNTIME_ERROR("VulkanContext::PrepareFrame - Failed to acquire swap chain image!");
         }
     }
 
@@ -345,6 +348,7 @@ namespace Mikoto {
             // can wait on it before using it on a GPU command (for the first frame)
             fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
+            // first fence signaled
             if ( vkCreateFence( VK_DEVICE(RenderService::Get()->GetGpuDevice()),
                                 std::addressof( fenceInfo ),
                                 nullptr,

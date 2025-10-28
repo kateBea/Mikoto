@@ -29,10 +29,6 @@ namespace Mikoto {
         auto GetCpuUsage() const -> double;
         auto GetCpuName() const -> const std::string&;
 
-        // GPU (filled externally, e.g., RenderService)
-        auto GetGpuName() const -> const std::string&;
-        auto SetGpuName( const std::string& name ) -> void;
-
         // VRAM (stub, later Vulkan/Allocator integration)
         auto GetVramUsage() const -> double;
         auto SetVramUsage( double usageBytes ) -> void;

@@ -62,6 +62,9 @@ namespace Mikoto {
 
 }
 
+/**
+ * Helper utility functions
+ */
 namespace Mikoto::VulkanHelpers {
 
     // We take a set because for instance graphics queue and present queue could be the same, if u try to create two queues of same index program will crash
@@ -170,6 +173,9 @@ namespace Mikoto::VulkanHelpers::Reflection {
 
 }
 
+/**
+* Initializers for vulkan structures.
+*/
 namespace Mikoto::VulkanHelpers::Initializers {
     /**
      *

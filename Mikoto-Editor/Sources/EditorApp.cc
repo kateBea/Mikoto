@@ -17,9 +17,10 @@
 #include <Core/CoreEvents.hh>
 #include <Core/Root.hh>
 #include <Core/TimeService.hh>
+#include <Core/Timer.hh>
 #include <EditorApp.hh>
-#include <Logging/Logger.hh>
 #include <Layers/EditorLayer.hh>
+#include <Logging/Logger.hh>
 
 namespace Mikoto {
 

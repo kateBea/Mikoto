@@ -134,7 +134,7 @@ namespace Mikoto {
         vkUpdateDescriptorSets(device, static_cast<UInt32>(m_Writes.size()), m_Writes.data(), 0, nullptr);
     }
 
-    auto DescriptorAllocator::Init( const VkDevice device, UInt32 initialSets, std::span<PoolSizeRatio> poolRatios ) -> void {
+    auto DescriptorAllocator::Init( VulkanDevice* device, UInt32 initialSets, std::span<PoolSizeRatio> poolRatios ) -> void {
         m_Device = device;
 
         m_Ratios.clear();
@@ -153,12 +153,12 @@ namespace Mikoto {
     auto DescriptorAllocator::ClearPools() -> void {
         for (const auto& pool : m_ReadyPools) {
             // This command does not return any failure codes
-            vkResetDescriptorPool(m_Device, pool, 0);
+            vkResetDescriptorPool(m_Device->GetLogicalDevice(), pool, 0);
         }
 
         for (const auto& pool : m_FullPools) {
             // This command does not return any failure codes
-            vkResetDescriptorPool(m_Device, pool, 0);
+            vkResetDescriptorPool(m_Device->GetLogicalDevice(), pool, 0);
             m_ReadyPools.push_back(pool);
         }
 
@@ -166,17 +166,18 @@ namespace Mikoto {
     }
 
     auto DescriptorAllocator::Shutdown() -> void {
+
         for (const auto& [descriptorSet, descriptorPool] : m_AllocatedSets) {
-            vkFreeDescriptorSets(m_Device, descriptorPool, 1, std::addressof(descriptorSet));
+            vkFreeDescriptorSets(m_Device->GetLogicalDevice(), descriptorPool, 1, std::addressof(descriptorSet));
         }
 
         for (const auto& pool : m_ReadyPools) {
-            vkDestroyDescriptorPool(m_Device, pool, nullptr);
+            vkDestroyDescriptorPool(m_Device->GetLogicalDevice(), pool, nullptr);
         }
         m_ReadyPools.clear();
 
         for (const auto& pool : m_FullPools) {
-            vkDestroyDescriptorPool(m_Device, pool, nullptr);
+            vkDestroyDescriptorPool(m_Device->GetLogicalDevice(), pool, nullptr);
         }
         m_FullPools.clear();
     }
@@ -194,7 +195,7 @@ namespace Mikoto {
         allocInfo.pSetLayouts = std::addressof( layout );
 
         VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
-        VkResult result{ vkAllocateDescriptorSets(m_Device, std::addressof( allocInfo ), &descriptorSet) };
+        VkResult result{ vkAllocateDescriptorSets(m_Device->GetLogicalDevice(), std::addressof( allocInfo ), &descriptorSet) };
 
         // Allocation failed. Try again
         if (result == VK_ERROR_OUT_OF_POOL_MEMORY || result == VK_ERROR_FRAGMENTED_POOL) {
@@ -204,7 +205,7 @@ namespace Mikoto {
             poolToUse = GetPool();
             allocInfo.descriptorPool = poolToUse;
 
-            if (vkAllocateDescriptorSets(m_Device, std::addressof( allocInfo ), std::addressof( descriptorSet )) != VK_SUCCESS) {
+            if (vkAllocateDescriptorSets(m_Device->GetLogicalDevice(), std::addressof( allocInfo ), std::addressof( descriptorSet )) != VK_SUCCESS) {
                 MKT_THROW_RUNTIME_ERROR( "VulkanDescriptorAllocator::Allocate - Failed to allocate descriptor set." );
             }
         }
@@ -260,7 +261,7 @@ namespace Mikoto {
         poolInfo.pPoolSizes = poolSizes.data();
 
         VkDescriptorPool newPool{};
-        if (vkCreateDescriptorPool(m_Device, std::addressof( poolInfo ), nullptr, std::addressof( newPool )) != VK_SUCCESS) {
+        if (vkCreateDescriptorPool(m_Device->GetLogicalDevice(), std::addressof( poolInfo ), nullptr, std::addressof( newPool )) != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR( "VulkanDescriptorAllocator::CreatePool - Failed to create pool." );
         }
         return newPool;

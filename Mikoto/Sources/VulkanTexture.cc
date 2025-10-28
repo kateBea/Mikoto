@@ -451,13 +451,8 @@ namespace Mikoto {
         return createInfo;
     }
 
-    auto VulkanSwapChain::GetNextRenderableImage( UInt32& imageIndex, const VkFence fence, const VkSemaphore imageAvailable ) const -> VkResult {
+    auto VulkanSwapChain::GetNextRenderableImage( UInt32& imageIndex, const VkSemaphore imageAvailable ) const -> VkResult {
         static VulkanDevice& device{ *TO_VK_DEVICE( m_Device ) };
-
-        // For simplicity, parenthesize std::numeric_limits<std::uint64_t>::max because windows has a macro literally called max that causes conflicts
-        vkWaitForFences( device.GetLogicalDevice(), 1, std::addressof( fence ), VK_TRUE, ( std::numeric_limits<std::uint64_t>::max )() );
-        vkResetFences( device.GetLogicalDevice(), 1, std::addressof( fence ) );
-
         return vkAcquireNextImageKHR( VK_DEVICE( m_Device ), m_Swapchain, ( std::numeric_limits<UInt64>::max )(), imageAvailable, VK_NULL_HANDLE, std::addressof( imageIndex ) );
     }
 
@@ -500,6 +495,7 @@ namespace Mikoto {
         if ( Present.has_value() && Present->Queue != VK_NULL_HANDLE ) {
             presentQueue = Present->Queue;
         } else if ( Graphics.has_value() && Graphics->Queue != VK_NULL_HANDLE ) {
+            // Not all hardware guarantees this, some allow graphics queue to be used for presentation
             presentQueue = Graphics->Queue;
         } else {
             MKT_CORE_LOGGER_ERROR( "VulkanSwapChain::Present - No presentation queue available." );

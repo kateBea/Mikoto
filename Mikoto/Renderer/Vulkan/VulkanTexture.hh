@@ -141,7 +141,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetCurrentFrameIndex() const -> UInt32 { return m_CurrentFrame; }
 
-        MKT_NODISCARD auto GetNextRenderableImage( UInt32& imageIndex, VkFence fence = VK_NULL_HANDLE, VkSemaphore imageAvailable = VK_NULL_HANDLE ) const -> VkResult;
+        MKT_NODISCARD auto GetNextRenderableImage( UInt32& imageIndex, VkSemaphore imageAvailable = VK_NULL_HANDLE ) const -> VkResult;
 
         // TODO: Destroy this swap chain and create a new one
         // you do not really want to do the swap chain of creating a new one, that is maybe in the cae you have another window
@@ -170,7 +170,7 @@ namespace Mikoto {
         /**
          * Maximum number of frames that can be processed concurrently.
          * */
-        static constexpr Int32 MAX_FRAMES_IN_FLIGHT{ 2 };
+        static constexpr Int32 MAX_FRAMES_IN_FLIGHT{ 3 };
 
     private:
         VkExtent2D m_Extent{};

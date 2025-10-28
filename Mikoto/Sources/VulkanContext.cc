@@ -294,7 +294,7 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR( "VulkanDevice::PresentToSwapChain - Error failed present images to swapchain." );
         }
 
-        //m_Device->RunGarbageCollection();
+        m_Device->RunGarbageCollection();
     }
 
     auto VulkanContext::PrepareFrame() -> void {

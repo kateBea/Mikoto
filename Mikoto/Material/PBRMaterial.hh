@@ -78,7 +78,7 @@ namespace Mikoto {
         // This separation allows the same texture to be reused across materials
         // with different sampling settings.
         ankerl::unordered_dense::map<MapType, TextureHandle> m_Textures{};
-        ankerl::unordered_dense::map<MapType, Sampler> m_Samplers{};
+        ankerl::unordered_dense::map<MapType, SamplerHandle> m_Samplers{};
     };
 }// namespace Mikoto
 

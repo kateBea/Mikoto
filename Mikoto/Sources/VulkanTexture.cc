@@ -406,6 +406,9 @@ namespace Mikoto {
         }
 
         m_IsAllocated = true;
+
+        //VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ), VK_OBJECT_TYPE_COMMAND_BUFFER, reinterpret_cast<UInt64>( m_Image ), fmt::format( "MKT Texture Image. Handle: {}", GetHandle() ).c_str() );
+        //VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ), VK_OBJECT_TYPE_COMMAND_BUFFER, reinterpret_cast<UInt64>( m_ImageView ), fmt::format( "MKT Texture ImageView. Handle: {}", GetHandle()).c_str() );
     }
 
     auto VulkanSwapChain::GetImages() -> void {

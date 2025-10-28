@@ -155,6 +155,7 @@ namespace Mikoto {
 
     private:
         // [Internal usage]
+        auto InitFences() -> void;
         auto InitMemoryAllocator() -> void;
         auto InitDescriptorAllocator() -> void;
         auto GetPrimaryPhysicalDevice() -> void;
@@ -169,8 +170,6 @@ namespace Mikoto {
 
         DescriptorAllocator m_DescriptorAllocator{};
 
-        std::vector<CommandListHandle> m_PendingCmdLists{};
-
         ResourcePoolTyped<VulkanBuffer> m_Buffers{};
         ResourcePoolTyped<VulkanTexture> m_Textures{};
         ResourcePoolTyped<VulkanCommandPool> m_CmdPools{};
@@ -181,6 +180,9 @@ namespace Mikoto {
         ResourcePoolTyped<VulkanShader> m_Shaders{};
         ResourcePoolTyped<VulkanSampler> m_Samplers{};
         ResourcePoolTyped<DescriptorSetLayout> m_DescriptorSetLayouts{};
+
+        ankerl::unordered_dense::map<UInt32, VkFence> m_FrameFences{};
+        ankerl::unordered_dense::map<UInt32, std::vector<CommandListHandle>> m_PendingCmdLists{};
 
         QueuesData m_Queues{};
 

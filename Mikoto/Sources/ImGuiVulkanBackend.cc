@@ -211,14 +211,17 @@ namespace Mikoto {
                 },
                 std::addressof( VulkanContext::Get()->GetInstance() ) );
 #else
-        ImGui_ImplVulkan_LoadFunctions( VulkanContext::Get()->GetApiVersion(), []( const char* functionName, void* vulkanInstance ) { return vkGetInstanceProcAddr( *static_cast<VkInstance*>( vulkanInstance ), functionName ); }, std::addressof( VulkanContext::Get().GetInstance() ) );
+        ImGui_ImplVulkan_LoadFunctions( VulkanContext::Get()->GetApiVersion(),
+            []( const char* functionName, void* vulkanInstance ) {
+            return vkGetInstanceProcAddr( *static_cast<VkInstance*>( vulkanInstance ), functionName );
+        }, std::addressof( VulkanContext::Get().GetInstance() ) );
 #endif
 
 
         ImGui_ImplGlfw_InitForVulkan( window, true );
 
         ImGui_ImplVulkan_InitInfo initInfo{
-            .Instance = VulkanContext::Get().GetInstance(),
+            .Instance = VulkanContext::Get()->GetInstance(),
             .PhysicalDevice = device.GetPhysicalDevice(),
             .Device = VK_DEVICE(m_GpuDevice),
             .Queue = device.GetLogicalDeviceQueues().Graphics->Queue,
@@ -257,13 +260,13 @@ namespace Mikoto {
         // Color Device attachment
         TextureDescription colorDesc{};
         colorDesc
-                .WithWidth( static_cast<Int32>( m_Extent2D.width ) )  // framebuffer width
-                .WithHeight( static_cast<Int32>( m_Extent2D.height ) )// framebuffer height
+                .WithWidth( static_cast<Int32>( m_Extent2D.width ) )
+                .WithHeight( static_cast<Int32>( m_Extent2D.height ) )
                 .WithChannelCount( 4 )          // RGBA
-                .WithData( nullptr )            // no initial data
+                .WithData( nullptr )
                 .WithType( TextureType::TEXTURE_2D )
                 .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
-                .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )// common for color attachments
+                .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
                 .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
         m_ColorImage = m_GpuDevice->CreateTexture( colorDesc );

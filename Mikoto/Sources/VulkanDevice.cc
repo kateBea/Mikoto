@@ -298,25 +298,31 @@ namespace Mikoto {
 
         InitDescriptorAllocator();
 
+        InitFences();
+
         m_IsInitialized = true;
     }
 
     auto VulkanDevice::InitDescriptorAllocator() -> void {
         std::vector<DescriptorAllocator::PoolSizeRatio> sizes{
-                { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
-                { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
-                { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
-                { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
-                { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
-                { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
-                { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
-                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
-                { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
-                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
-                { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+            { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+            { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+            { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+            { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
         };
 
-        m_DescriptorAllocator.Init( m_LogicalDevice , 1000, sizes );
+        m_DescriptorAllocator.Init( m_LogicalDevice, 1000, sizes );
+    }
+
+    auto VulkanDevice::InitFences() -> void {
+
     }
 
     auto VulkanDevice::InitMemoryAllocator() -> void {
@@ -488,7 +494,7 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreateTexture( const TextureDescription& description ) -> TextureHandle {
-        TextureHandle texture{ m_Textures.Allocate( description ).As<Texture>() };
+        TextureHandle texture{ m_Textures.Allocate( description ) };
         if ( texture.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateTexture - Failed to allocate texture resource." );
             return TextureHandle::CreateEmpty();
@@ -498,10 +504,10 @@ namespace Mikoto {
 
         // we use VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL for images to be sampled
         // we do not want to add to the descriptor depth images as we
-        if (texture->GetTextureUsage() != TextureUsage::TEXTURE_USAGE_DEPTH) {
+        if ( texture->GetTextureUsage() != TextureUsage::TEXTURE_USAGE_DEPTH ) {
             // We update the set later it might be in use
-            const auto renderer{ dynamic_cast<VulkanRenderer*>(RenderService::Get()->GetBackend()) };
-            renderer->RegisterTextureForRender(texture);
+            const auto renderer{ dynamic_cast<VulkanRenderer*>( RenderService::Get()->GetBackend() ) };
+            renderer->RegisterTextureForRender( texture );
         }
 
         return texture;
@@ -511,15 +517,34 @@ namespace Mikoto {
     auto VulkanDevice::RunGarbageCollection() -> void {
 
         // Commands have already been flushed I can get rid of them
-        m_PendingCmdLists.clear();
+        // m_PendingCmdLists.clear();
+        //
+        // for ( VulkanCommandPoolHandle pool: m_CmdPools | std::views::values ) {
+        //     pool->RunGarbageCollection();
+        // }
 
-        for ( const auto& pool: m_CmdPools | std::views::values ) {
-            pool.As<VulkanCommandPool>()->RunGarbageCollection();
+        const UInt32 currentFrame = VulkanContext::Get()->GetCurrentFrameIndex();
+        VkFence frameFence = m_FrameFences[currentFrame];
+
+        VkResult result = vkGetFenceStatus(m_LogicalDevice, frameFence);
+        if (result == VK_SUCCESS) {
+            // GPU finished work for this frame
+            vkResetFences(m_LogicalDevice, 1, &frameFence);
+
+            // Recycle command buffers associated with this frame
+            auto& cmdList{ m_PendingCmdLists[currentFrame] };
+            for (auto& cmd : cmdList) {
+                //cmd->Recycle(); // or return to pool
+            }
+
+            cmdList.clear();
+        } else if (result != VK_NOT_READY) {
+            MKT_CORE_LOGGER_ERROR("VulkanDevice::RunGarbageCollection - Fence status check failed!");
         }
     }
 
     auto VulkanDevice::GetNativeHandle( ObjectType type ) -> Object {
-        return Object(m_LogicalDevice);
+        return Object( m_LogicalDevice );
     }
 
 
@@ -612,8 +637,8 @@ namespace Mikoto {
                 .Stage{ stage }
             };
 
-            result = m_Shaders.Allocate(description).As<ShaderModule>();
-            if (!result.IsEmpty()) {
+            result = m_Shaders.Allocate( description ).As<ShaderModule>();
+            if ( !result.IsEmpty() ) {
                 result->Initialize( this );
             } else {
                 MKT_CORE_LOGGER_ERROR( "VulkanDevice::LoadShader - Failed to create shader." );
@@ -681,7 +706,9 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::SubmitCommands( CommandListHandle cmd ) -> void {
-        m_PendingCmdLists.emplace_back( cmd );
+        UInt32 currentFrame{ VulkanContext::Get()->GetCurrentFrameIndex() };
+
+        m_PendingCmdLists[currentFrame].emplace_back( cmd );
     }
 
     auto VulkanDevice::CreateSwapChain( const VulkanSwapChainCreateInfo& createInfo ) -> SwapChainHandle {
@@ -709,41 +736,68 @@ namespace Mikoto {
         return m_IsBindlessEnabled;
     }
 
-    auto VulkanDevice::FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives )  -> void {
-        if ( m_PendingCmdLists.empty() ) {
+    auto VulkanDevice::FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void {
+        const UInt32 currentFrame{ VulkanContext::Get()->GetCurrentFrameIndex() };
+
+        auto& cmdList = m_PendingCmdLists[currentFrame];
+        if ( cmdList.empty() ) {
             return;
         }
 
-        VkPipelineStageFlags waitStage{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-        VkSubmitInfo submit{ VulkanHelpers::Initializers::SubmitInfo() };
-        submit.pNext = nullptr;
-        submit.pWaitDstStageMask = std::addressof( waitStage );
+        std::vector<VkCommandBufferSubmitInfo> cmdInfos;
+        cmdInfos.reserve( cmdList.size() );
 
-        // Wait-on semaphores
-        submit.waitSemaphoreCount = 1;
-        submit.pWaitSemaphores = std::addressof( syncPrimitives.ImageAvailableSemaphore );
-
-        // Completion signal semaphores
-        submit.signalSemaphoreCount = 1;
-        submit.pSignalSemaphores = std::addressof( syncPrimitives.RenderFinishedSemaphore );
-
-        // Command buffers
-        std::vector<VkCommandBuffer> vkCommands{};
-        for ( auto& commandBuffer: m_PendingCmdLists ) {
-            VkCommandBuffer cmd{ commandBuffer->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
-
-            vkCommands.emplace_back( cmd );
+        for ( auto& commandBuffer: cmdList ) {
+            cmdInfos.push_back( VkCommandBufferSubmitInfo{
+                    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+                    .pNext = nullptr,
+                    .commandBuffer = commandBuffer->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
+                    .deviceMask = 0 } );
         }
 
-        submit.commandBufferCount = vkCommands.size();
-        submit.pCommandBuffers = vkCommands.data();
+        // Wait on image-available semaphore
+        VkSemaphoreSubmitInfo waitSemaphoreInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+            .pNext = nullptr,
+            .semaphore = syncPrimitives.ImageAvailableSemaphore,
+            .value = 0,
+            .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            .deviceIndex = 0
+        };
 
-        MKT_VK_CHECK( vkQueueSubmit( m_Queues.Graphics->Queue, 1, std::addressof( submit ), syncPrimitives.RenderFence ) );
+        // Signal render-finished semaphore
+        VkSemaphoreSubmitInfo signalSemaphoreInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+            .pNext = nullptr,
+            .semaphore = syncPrimitives.RenderFinishedSemaphore,
+            .value = 0,
+            .stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
+            .deviceIndex = 0
+        };
 
-        // Wait for commands to finish execution so we can free them from pending queue, they can later be freed by calling RunGarbageCollection
-        vkWaitForFences( m_LogicalDevice, 1, std::addressof( syncPrimitives.RenderFence ), VK_TRUE, ( std::numeric_limits<std::uint64_t>::max )() );
+        VkSubmitInfo2 submitInfo{
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+            .pNext = nullptr,
+            .flags = 0,
+            .waitSemaphoreInfoCount = 1,
+            .pWaitSemaphoreInfos = &waitSemaphoreInfo,
+            .commandBufferInfoCount = static_cast<uint32_t>( cmdInfos.size() ),
+            .pCommandBufferInfos = cmdInfos.data(),
+            .signalSemaphoreInfoCount = 1,
+            .pSignalSemaphoreInfos = &signalSemaphoreInfo
+        };
 
-        m_PendingCmdLists.clear();
+        if (!m_FrameFences.contains( currentFrame )) {
+            m_FrameFences[currentFrame] = syncPrimitives.RenderFence;
+        }
+
+        // Get the per-frame fence
+        const VkFence frameFence{ m_FrameFences[currentFrame] };
+
+        MKT_VK_CHECK( vkQueueSubmit2( m_Queues.Graphics->Queue, 1, &submitInfo, frameFence ) );
+
+        // Don’t clear the command list yet; clear it only after fence signals,
+        // so RunGarbageCollection knows what to recycle.
     }
 
     VulkanCmdList::VulkanCmdList( const VkCommandBufferAllocateInfo& createInfo )
@@ -768,28 +822,28 @@ namespace Mikoto {
 
     auto VulkanCmdList::FillTexture( Buffer* src, Texture* dest ) -> void {
         // Cast to Vulkan-specific implementations
-        auto* vkSrc{ dynamic_cast<VulkanBuffer*>(src) };
-        auto* vkDest{ dynamic_cast<VulkanTexture*>(dest) };
+        auto* vkSrc{ dynamic_cast<VulkanBuffer*>( src ) };
+        auto* vkDest{ dynamic_cast<VulkanTexture*>( dest ) };
 
-        if (!vkSrc || !vkDest) {
+        if ( !vkSrc || !vkDest ) {
             return;
         }
 
         // Ensure the destination image is in TRANSFER_DST layout
-        vkDest->SubmitLayoutTransition(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_CmdBuffer);
+        vkDest->SubmitLayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_CmdBuffer );
 
         // Describe the region to copy
         VkBufferImageCopy copyRegion{};
         copyRegion.bufferOffset = 0;
-        copyRegion.bufferRowLength = 0;   // Tightly packed
-        copyRegion.bufferImageHeight = 0; // Tightly packed
+        copyRegion.bufferRowLength = 0;  // Tightly packed
+        copyRegion.bufferImageHeight = 0;// Tightly packed
 
         copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         copyRegion.imageSubresource.mipLevel = 0;
         copyRegion.imageSubresource.baseArrayLayer = 0;
         copyRegion.imageSubresource.layerCount = 1;
 
-        copyRegion.imageOffset = {0, 0, 0};
+        copyRegion.imageOffset = { 0, 0, 0 };
         copyRegion.imageExtent = {
             vkDest->GetCreateInfo().extent.width,
             vkDest->GetCreateInfo().extent.height,
@@ -798,16 +852,15 @@ namespace Mikoto {
 
         // Issue the copy command
         vkCmdCopyBufferToImage(
-            m_CmdBuffer,
-            *vkSrc->GetImplHandle(),      // VkBuffer
-            *vkDest->GetImage(),          // VkImage
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            1,
-            &copyRegion
-        );
+                m_CmdBuffer,
+                *vkSrc->GetImplHandle(),// VkBuffer
+                *vkDest->GetImage(),    // VkImage
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                1,
+                &copyRegion );
 
         // Transition the image to SHADER_READ_ONLY for sampling
-        vkDest->SubmitLayoutTransition(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_CmdBuffer);
+        vkDest->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_CmdBuffer );
     }
 
     auto VulkanCmdList::CopyBuffer( Buffer* src, Buffer* dest ) -> void {
@@ -849,9 +902,9 @@ namespace Mikoto {
         // Here I can encapsulate all the logic about creating staging buffers, etc.
     }
 
-    auto VulkanCmdList::GetNativeHandle( ObjectType type )  -> Object {
-        if (type != ObjectType::Vk_CmdBuffer) {
-            return Object(nullptr);
+    auto VulkanCmdList::GetNativeHandle( ObjectType type ) -> Object {
+        if ( type != ObjectType::Vk_CmdBuffer ) {
+            return Object( nullptr );
         }
 
         return Object( m_CmdBuffer );
@@ -877,10 +930,10 @@ namespace Mikoto {
         SetDebugName( fmt::format( "Mikoto VkCommandList - ResourceID: {}", GetHandle() ) );
 
         VulkanHelpers::SetObjectDebugName(
-            VK_DEVICE( m_Device ),
-            VK_OBJECT_TYPE_COMMAND_BUFFER,
-            reinterpret_cast<UInt64>( m_CmdBuffer ),
-            m_DebugName.c_str() );
+                VK_DEVICE( m_Device ),
+                VK_OBJECT_TYPE_COMMAND_BUFFER,
+                reinterpret_cast<UInt64>( m_CmdBuffer ),
+                m_DebugName.c_str() );
     }
 
     auto VulkanCmdList::Release() -> void {
@@ -893,12 +946,12 @@ namespace Mikoto {
         m_CmdLists.Init( initialCmdListCount );
     }
 
-    auto VulkanCommandPool::GetNativeHandle( ObjectType type )  -> Object {
-        if (type != ObjectType::Vk_CmdPool) {
-            return Object(nullptr);
+    auto VulkanCommandPool::GetNativeHandle( ObjectType type ) -> Object {
+        if ( type != ObjectType::Vk_CmdPool ) {
+            return Object( nullptr );
         }
 
-        return Object(m_Pool);
+        return Object( m_Pool );
     }
 
     auto VulkanCommandPool::AllocateCmdList() -> CommandListHandle {

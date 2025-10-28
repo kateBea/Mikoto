@@ -54,6 +54,7 @@ namespace Mikoto {
         auto DisableVSync() -> void override { SwitchSyncMode( false ); }
 
         MKT_NODISCARD auto GetCurrentImageIndex() const -> UInt32 { return m_CurrentImageIndex; }
+        MKT_NODISCARD auto GetCurrentFrameIndex() const -> UInt32 { return m_CurrentFrameIndex; }
 
         // [General getters]
         MKT_NODISCARD auto GetSurface() const -> const VkSurfaceKHR& { return m_VulkanData.Surface; }

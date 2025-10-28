@@ -141,6 +141,11 @@ namespace Mikoto {
             return Ref<OtherRefCountedType>( dynamic_cast<OtherRefCountedType*>( m_Ptr ) );
         }
 
+        template<typename OtherRefCountedType>
+        operator Ref<OtherRefCountedType>() const {
+            return As<OtherRefCountedType>();
+        }
+
         ~Ref() {
             if ( m_Ptr ) {
                 m_Ptr->Free();

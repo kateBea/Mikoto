@@ -46,7 +46,6 @@ namespace Mikoto {
             ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), ImGuiWindowFlags_NoCollapse );
 
             constexpr ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_DefaultOpen |
-                                                     ImGuiTreeNodeFlags_AllowItemOverlap |
                                                      ImGuiTreeNodeFlags_Framed |
                                                      ImGuiTreeNodeFlags_SpanAvailWidth |
                                                      ImGuiTreeNodeFlags_FramePadding };

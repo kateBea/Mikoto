@@ -109,7 +109,6 @@ namespace Mikoto {
     template<typename ComponentType, typename UIFunction, typename... Args>
     static auto DrawComponent( const std::string_view componentLabel, Entity& entity, const UIFunction& uiFunc, const bool hasRemoveButton = true, Args&&... args ) -> void {
         static constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
-                                                           ImGuiTreeNodeFlags_AllowItemOverlap |
                                                            ImGuiTreeNodeFlags_Framed |
                                                            ImGuiTreeNodeFlags_SpanAvailWidth |
                                                            ImGuiTreeNodeFlags_FramePadding };
@@ -121,7 +120,7 @@ namespace Mikoto {
             ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2{ 4.0f, 4.0f } );
 
             // See ImGui implementation for button dimensions computation
-            const float lineHeight{ GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f };
+            const float lineHeight{ GImGui->FontSize + GImGui->Style.FramePadding.y * 2.0f };
 
             const bool componentNodeOpen{
                 ImGui::TreeNodeEx( reinterpret_cast<void*>( typeid( ComponentType ).hash_code() ), treeNodeFlags, "%s",
@@ -246,7 +245,6 @@ namespace Mikoto {
 
     static auto EditStandardMaterial( StandardMaterial& standardMat ) -> void {
         static constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
-                                                           ImGuiTreeNodeFlags_AllowItemOverlap |
                                                            ImGuiTreeNodeFlags_Framed |
                                                            ImGuiTreeNodeFlags_SpanAvailWidth |
                                                            ImGuiTreeNodeFlags_FramePadding };
@@ -405,7 +403,6 @@ namespace Mikoto {
 
     static auto DisplayTextureEditTreeNode(std::string_view title, PBRMaterial& standardMat, const std::function<void(PBRMaterial& standardMat)>& func) -> void {
         constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
-                                                           ImGuiTreeNodeFlags_AllowItemOverlap |
                                                            ImGuiTreeNodeFlags_Framed |
                                                            ImGuiTreeNodeFlags_SpanAvailWidth |
                                                            ImGuiTreeNodeFlags_FramePadding };
@@ -1015,7 +1012,7 @@ namespace Mikoto {
         ImGuiUtils::ImGuiScopedStyleVar frameBorderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
         ImGuiUtils::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 7.0f, 5.0f } };
 
-        const float lineHeight{ GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 3.0f };
+        const float lineHeight{ GImGui->FontSize + GImGui->Style.FramePadding.y * 3.0f };
         const ImVec2 buttonSize{ lineHeight + 3.0f, lineHeight };
 
         ImGui::PushStyleColor( ImGuiCol_Button, ImVec4{ 0.8f, 0.1f, 0.1f, 1.0f } );

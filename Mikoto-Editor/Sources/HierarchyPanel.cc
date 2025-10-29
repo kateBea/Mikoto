@@ -227,8 +227,7 @@ namespace Mikoto {
 
 
         const auto thisEntityIsSelected{ currentSelection != nullptr && tagCurrent.GetGUID() == currentSelection->GetComponent<TagComponent>().GetGUID() };
-        ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_AllowItemOverlap |
-                                                        ImGuiTreeNodeFlags_Framed |
+        ImGuiTreeNodeFlags styleFlags{  ImGuiTreeNodeFlags_Framed |
                                                         ImGuiTreeNodeFlags_SpanAvailWidth |
                                                         ImGuiTreeNodeFlags_FramePadding };
 

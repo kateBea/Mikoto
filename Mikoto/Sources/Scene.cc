@@ -64,9 +64,9 @@ namespace Mikoto {
             MaterialComponent &materialComponent{ m_Registry.get<MaterialComponent>( entity ) };
             TransformComponent &transformComponent{ m_Registry.get<TransformComponent>( entity ) };
 
-            m_SceneRenderer->AddToDrawQueue( {
+            m_SceneRenderer->AddToDrawQueue( EntityQueueInfo{
                 .Tag{ std::addressof( tagComponent ) },
-                .RenderComponent{ std::addressof( renderComponent ) },
+                .Render{ std::addressof( renderComponent ) },
                 .Material{ std::addressof( materialComponent ) },
                 .Transform{ std::addressof( transformComponent ) }
             } );
@@ -81,9 +81,9 @@ namespace Mikoto {
 
             textComponent.SetCamera( m_SceneCamera );
 
-            m_SceneRenderer->AddToDrawQueue( {
+            m_SceneRenderer->AddToDrawQueue( EntityQueueInfo{
                 .Tag{ std::addressof( tagComponent ) },
-                .TextComponent{ std::addressof( textComponent ) },
+                .TextInfo{ std::addressof( textComponent ) },
                 .Transform{ std::addressof( transformComponent ) }
             } );
         }

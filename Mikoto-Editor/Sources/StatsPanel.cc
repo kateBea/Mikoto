@@ -31,7 +31,7 @@ namespace Mikoto {
 
     template<typename FuncType, typename... Args>
     static auto DrawStatsSection( const std::string_view title, FuncType&& func, Args&&... args ) -> void {
-        static constexpr ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_AllowItemOverlap |
+        static constexpr ImGuiTreeNodeFlags styleFlags{ 
                                                         ImGuiTreeNodeFlags_Framed |
                                                         ImGuiTreeNodeFlags_SpanAvailWidth |
                                                         ImGuiTreeNodeFlags_FramePadding };

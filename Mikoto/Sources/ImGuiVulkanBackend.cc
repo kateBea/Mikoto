@@ -134,7 +134,7 @@ namespace Mikoto {
         }
 
 #if __linux__
-        ImGui_ImplVulkan_LoadFunctions(
+        ImGui_ImplVulkan_LoadFunctions(VK_API_VERSION_1_3,
                 []( const char* functionName, void* vulkanInstance ) {
                     return vkGetInstanceProcAddr( *static_cast<VkInstance*>( vulkanInstance ), functionName );
                 },
@@ -147,7 +147,6 @@ namespace Mikoto {
                     std::addressof( VulkanContext::Get().GetInstance() ) );
 #endif
 
-
         ImGui_ImplGlfw_InitForVulkan( window, true );
 
         ImGui_ImplVulkan_InitInfo initInfo{
@@ -156,21 +155,17 @@ namespace Mikoto {
             .Device = device.GetLogicalDevice(),
             .Queue = device.GetLogicalDeviceQueues().Graphics->Queue,
             .DescriptorPool = m_ImGuiDescriptorPool,
-            .RenderPass = m_ImGuiRenderPass,
             .MinImageCount = 3,
             .ImageCount = 3,
-            .MSAASamples = VK_SAMPLE_COUNT_1_BIT
+            .PipelineInfoMain{
+                    .RenderPass{ m_ImGuiRenderPass },
+                    .Subpass{ 0 },
+                    .MSAASamples{ VK_SAMPLE_COUNT_1_BIT } },
         };
 
 
         if ( !ImGui_ImplVulkan_Init( std::addressof( initInfo ) ) ) {
             MKT_THROW_RUNTIME_ERROR( "ImGuiVulkanBackend - Failed to initialize Vulkan for ImGui" );
-        }
-
-        if ( ImGui_ImplVulkan_CreateFontsTexture() ) {
-            MKT_CORE_LOGGER_DEBUG( "Successfully created ImGui fonts!" );
-        } else {
-            MKT_THROW_RUNTIME_ERROR( "Error creating ImGui fonts!" );
         }
     }
 

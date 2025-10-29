@@ -1278,9 +1278,9 @@ namespace Mikoto {
 
         const auto it{ m_DrawQueue.find( queueInfo.Tag->GetGUID() ) };
 
-        if (queueInfo.RenderComponent != nullptr) {
+        if (queueInfo.Render != nullptr) {
             MeshRenderInfo info{
-                .Object{ queueInfo.RenderComponent->GetMesh() },
+                .Object{ queueInfo.Render->GetMesh() },
                 .Transform{ queueInfo.Transform->GetTransform() },
                 .MaterialData{ std::addressof( queueInfo.Material->GetMaterial() ) },
                 .IsRendered{ queueInfo.Tag->IsVisible() }
@@ -1298,19 +1298,19 @@ namespace Mikoto {
             }
         }
 
-        if (queueInfo.TextComponent != nullptr) {
+        if (queueInfo.TextInfo!= nullptr) {
             auto textFindIt{ m_TextDrawQueue.find( queueInfo.Tag->GetGUID() ) };
 
             TextRenderInfo textRenderInfo {
-                .Contents{ queueInfo.TextComponent->GetTextContent() },
+                .Contents{ queueInfo.TextInfo->GetTextContent() },
                 .Transform{ queueInfo.Transform->GetTransform() },
-                .Color{ queueInfo.TextComponent->GetColor() },
+                .Color{ queueInfo.TextInfo->GetColor() },
                 .MaterialData{ nullptr }, // NO MATERIAL FOR NOW
                 .IsRendered{ true },
-                .LocalScaling{ queueInfo.TextComponent->GetFontSize() },
-                .LetterSpacing{ queueInfo.TextComponent->GetLetterSpacing() },
-                .Font{ dynamic_cast<VulkanFont*>(queueInfo.TextComponent->GetFont() ) },
-                .TextCamera{ queueInfo.TextComponent->GetCamera() }
+                .LocalScaling{ queueInfo.TextInfo->GetFontSize() },
+                .LetterSpacing{ queueInfo.TextInfo->GetLetterSpacing() },
+                .Font{ dynamic_cast<VulkanFont*>(queueInfo.TextInfo->GetFont() ) },
+                .TextCamera{ queueInfo.TextInfo->GetCamera() }
             };
 
             if (textFindIt != m_TextDrawQueue.end()) {

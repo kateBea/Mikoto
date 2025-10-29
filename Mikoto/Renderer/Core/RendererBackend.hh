@@ -52,9 +52,9 @@ namespace Mikoto {
 
     struct EntityQueueInfo {
         TagComponent* Tag{ nullptr };
-        RenderComponent* RenderComponent{ nullptr };
+        RenderComponent* Render{ nullptr };
         MaterialComponent* Material{ nullptr };
-        TextComponent* TextComponent{ nullptr };
+        TextComponent* TextInfo{ nullptr };
         TransformComponent* Transform{ nullptr };
     };
 

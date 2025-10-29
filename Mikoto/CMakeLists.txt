@@ -415,7 +415,6 @@ set(LIBRARIES
         unordered_dense::unordered_dense
         nlohmann_json::nlohmann_json
         sol2::sol2
-        profiler
 )
 
 if(UNIX)

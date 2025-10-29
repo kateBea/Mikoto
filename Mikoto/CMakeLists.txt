@@ -391,6 +391,8 @@ set(ALL_SOURCES
         ${MINIAUDIO_SOURCES}
         Core/SystemStats.cc
         Core/SystemStats.hh
+        Sources/ExecuteProcess.cc
+        Core/ExecuteProcess.hh
 )
 
 # ======================================

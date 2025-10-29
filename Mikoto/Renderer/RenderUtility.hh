@@ -181,6 +181,8 @@ namespace Mikoto {
 
         Byte* Data{ nullptr };
 
+        const File* TextureFile{ nullptr };
+
         TextureType Type{ TextureType::TEXTURE_2D };
         TextureUsage Usage{ TextureUsage::TEXTURE_USAGE_NORMAL };
         TextureFormat Format{ TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM };
@@ -189,6 +191,8 @@ namespace Mikoto {
         auto WithWidth( Int32 width ) -> TextureDescription&;
         auto WithHeight( Int32 height ) -> TextureDescription&;
         auto WithChannelCount( Int32 channels ) -> TextureDescription&;
+
+        auto WithFile( const File* file) -> TextureDescription&;
 
         auto WithData( Byte* data ) -> TextureDescription&;
         auto WithType( TextureType type ) -> TextureDescription&;

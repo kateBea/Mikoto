@@ -13,10 +13,12 @@
 
 // Project Headers
 #include <Core/InputService.hh>
+#include <Core/RuntimeConsole.hh>
 #include <ImGui/ImGuiUtility.hh>
 #include <Layers/EditorLayer.hh>
-#include <Renderer/RenderService.hh>
+#include <Panels/ConsolePanel.hh>
 #include <Panels/StatsPanel.hh>
+#include <Renderer/RenderService.hh>
 
 namespace Mikoto {
 
@@ -104,11 +106,16 @@ namespace Mikoto {
                rendererPanelVisible]{ m_ControlFlags };
 
         const auto statsPanel{ m_PanelRegistry.Get<StatsPanel>() };
-        statsPanel->SetVisible(statsPanelVisible);
+        statsPanel->SetVisible( statsPanelVisible );
+
+        const auto consolePanel{ m_PanelRegistry.Get<ConsolePanel>() };
+        consolePanel->SetVisible( consolePanel );
 
         statsPanel->OnUpdate( ts );
+        consolePanel->OnUpdate( ts );
 
         statsPanelVisible = statsPanel->IsVisible();
+        consolePanelVisible = consolePanel->IsVisible();
     }
 
     auto EditorLayer::SaveScene() const -> void {
@@ -147,7 +154,7 @@ namespace Mikoto {
         // we render to the window here not to an imgui viewport
         m_EditorCamera->SetViewportSize( m_Window->GetWidth(), m_Window->GetHeight() );
 
-        if (InputService::Get()->IsMouseKeyPressed( Mouse_Button_Right )) {
+        if ( InputService::Get()->IsMouseKeyPressed( Mouse_Button_Right ) ) {
             m_EditorCamera->EnableCamera( true );
         } else {
             m_EditorCamera->EnableCamera( false );
@@ -158,7 +165,7 @@ namespace Mikoto {
 
     auto EditorLayer::CreatePanels() -> void {
         m_PanelRegistry.Register<StatsPanel>();
-
+        m_PanelRegistry.Register<ConsolePanel>();
     }
 
     auto EditorLayer::CreateCameras() -> void {

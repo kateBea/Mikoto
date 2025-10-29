@@ -13,18 +13,14 @@ namespace Mikoto {
     class ConsolePanel final : public Panel {
     public:
         explicit ConsolePanel();
-        auto operator=(ConsolePanel && other) -> ConsolePanel& = default;
+        auto operator=(ConsolePanel&& other) -> ConsolePanel& = default;
 
         auto OnUpdate(float timeStep) -> void override;
 
         ~ConsolePanel() override = default;
 
     private:
-        auto DisplayMessages() -> void;
-
-    private:
-        ImGuiTextFilter m_SearchFilter{};
-
+        bool m_ScrollToBottom{ false };
     };
 }
 

@@ -1,98 +1,90 @@
-// //
-// // Created by kate on 10/12/23.
-// //
 //
-// #include <memory>
+// Created by kate on 10/12/23.
 //
-// #include <imgui.h>
-//
-// #include "Panels/ConsolePanel.hh"
-//
-// #include <GUI/Icons/IconsFontAwesome5.h>
-// #include <GUI/Icons/IconsMaterialDesign.h>
-// #include <GUI/Icons/IconsMaterialDesignIcons.h>
-//
-// #include <Common/Common.hh>
-// #include <Core/RuntimeConsole.hh>
-// #include <GUI/ImGuiService.hh>
-// #include <Library/String/String.hh>
-//
-// namespace Mikoto {
-//     static constexpr auto GetConsolePanelName() -> std::string_view {
-//         return "Console";
-//     }
-//
-//     ConsolePanel::ConsolePanel() {
-//         m_PanelHeaderName = StringUtils::MakePanelName(ICON_MD_TERMINAL, GetConsolePanelName());
-//     }
-//
-//     auto ConsolePanel::OnUpdate(float timeStep) -> void {
-//         if (m_PanelIsVisible) {
-//             ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible), ImGuiWindowFlags_NoCollapse);
-//
-//             if (ImGui::Button(fmt::format("{} Clear", ICON_MD_DELETE).c_str())) {
-//                 RuntimeConsole::GetInstance()->ClearMessages();
-//             }
-//
-//             if (ImGui::IsItemHovered()) {
-//                 ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-//             }
-//
-//             ImGui::SameLine();
-//
-//             const float cursorPosX{ ImGui::GetCursorPosX() };
-//             m_SearchFilter.Draw("###ContentBrowserFilter", ImGui::GetContentRegionAvail().x);
-//             if (!m_SearchFilter.IsActive()) {
-//                 ImGui::SameLine();
-//                 ImGui::SetCursorPosX(cursorPosX + ImGui::GetFontSize() * 0.5f);
-//
-//                 // TODO: grab the color from text color and lower alpha value
-//                 ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255,255,255,128));
-//                 ImGui::TextUnformatted(fmt::format("{} Search...", ICON_MD_SEARCH).c_str());
-//                 ImGui::PopStyleColor();
-//             }
-//
-//             ImGui::Spacing();
-//             ImGui::Spacing();
-//
-//             // TODO: refresh when there's new messages instead of every single loop
-//             DisplayMessages();
-//
-//             ImGui::End();
-//         }
-//     }
-//
-//     auto ConsolePanel::DisplayMessages() -> void {
-//         const auto& messages{ RuntimeConsole::GetInstance()->GetMessages() };
-//
-//         ImGui::PushFont(ImGuiService::GetInstance()->GetFonts()[2]);
-//
-//         for (const auto& [level, message] : messages) {
-//             switch (level) {
-//                 case ConsoleLogLevel::CONSOLE_WARNING:
-//                     ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 153, 51, 255));
-//                     break;
-//                 case ConsoleLogLevel::CONSOLE_DEBUG:
-//                     ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(36, 192, 19, 255));
-//                     break;
-//                 case ConsoleLogLevel::CONSOLE_INFO:
-//                     ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 255, 255, 255));
-//                     break;
-//                 case ConsoleLogLevel::CONSOLE_ERROR:
-//                     ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 50, 0, 255));
-//                     break;
-//             }
-//
-//             ImGui::TextUnformatted(message.c_str());
-//
-//             ImGui::Spacing();
-//
-//             ImGui::Separator();
-//
-//             ImGui::Spacing();
-//             ImGui::PopStyleColor();
-//         }
-//
-//         ImGui::PopFont();
-//     }
-// }
+
+#include <imgui.h>
+
+#include <ImGui/IconsMaterialDesign.h>
+#include <ImGui/ImGuiUtility.hh>
+
+#include <Panels/ConsolePanel.hh>
+#include <Core/RuntimeConsole.hh>
+
+namespace Mikoto {
+
+    static constexpr auto GetConsolePanelName() -> std::string_view {
+        return "Console";
+    }
+
+    ConsolePanel::ConsolePanel() : Panel(ImGuiUtils::MakePanelName(ICON_MD_TERMINAL, GetConsolePanelName())) {
+        m_PanelHeaderName = ImGuiUtils::MakePanelName(ICON_MD_TERMINAL, GetConsolePanelName());
+    }
+
+    auto ConsolePanel::OnUpdate(float timeStep) -> void {
+        if (!m_PanelIsVisible)
+            return;
+
+        auto& console = RuntimeConsole::Get();
+
+        ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible), ImGuiWindowFlags_NoCollapse);
+
+        // Filtering options
+        static bool showInfo{ true }, showWarn{ true }, showError{ true }, showDebug{ true };
+
+        ImGui::Checkbox("Info", &showInfo);
+        ImGui::SameLine();
+        ImGui::Checkbox("Warn", &showWarn);
+        ImGui::SameLine();
+        ImGui::Checkbox("Error", &showError);
+        ImGui::SameLine();
+        ImGui::Checkbox("Debug", &showDebug);
+
+        ImGui::Separator();
+
+        ImGui::BeginChild("ConsoleScrollRegion", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), false,
+                          ImGuiWindowFlags_HorizontalScrollbar);
+
+        const auto& logs = console.GetLogs();
+        for (const auto& line : logs) {
+            if (line.find("[INFO]") != std::string::npos && !showInfo) continue;
+            if (line.find("[WARN]") != std::string::npos && !showWarn) continue;
+            if (line.find("[ERROR]") != std::string::npos && !showError) continue;
+            if (line.find("[DEBUG]") != std::string::npos && !showDebug) continue;
+
+            ImVec4 color = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+            if (line.find("[ERROR]") != std::string::npos)
+                color = { 1.0f, 0.3f, 0.3f, 1.0f };
+            else if (line.find("[WARN]") != std::string::npos)
+                color = { 1.0f, 0.8f, 0.3f, 1.0f };
+            else if (line.find("[DEBUG]") != std::string::npos)
+                color = { 0.5f, 0.8f, 1.0f, 1.0f };
+
+            ImGui::PushStyleColor(ImGuiCol_Text, color);
+            ImGui::TextUnformatted(line.c_str());
+            ImGui::PopStyleColor();
+        }
+
+        if (m_ScrollToBottom)
+            ImGui::SetScrollHereY(1.0f);
+        m_ScrollToBottom = false;
+
+        ImGui::EndChild();
+        ImGui::Separator();
+
+        // Input text field
+        static char inputBuffer[256] = "";
+
+        if (ImGui::InputText("##ConsoleInput", inputBuffer, sizeof(inputBuffer),
+                             ImGuiInputTextFlags_EnterReturnsTrue)) {
+            std::string input = inputBuffer;
+            if (!input.empty()) {
+                console.ExecuteCommand(input);
+                inputBuffer[0] = '\0';
+                m_ScrollToBottom = true;
+            }
+        }
+
+        ImGui::End();
+    }
+
+} // namespace Mikoto

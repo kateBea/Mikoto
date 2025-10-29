@@ -101,7 +101,7 @@ namespace Mikoto::VulkanPasses {
         VkRenderingAttachmentInfo depthAttachment{};
         depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
         depthAttachment.imageView = m_DepthTarget.Image->GetNativeHandle( ObjectType::Vk_ImageView );
-        depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         depthAttachment.clearValue.depthStencil = { 1.0f, 0 };
@@ -115,6 +115,19 @@ namespace Mikoto::VulkanPasses {
         renderingInfo.pDepthAttachment = std::addressof( depthAttachment );
 
         vkCmdBeginRendering( vkCmd, &renderingInfo );
+
+        // m_Viewport.x = 0;
+        // m_Viewport.y = 0;
+        // m_Viewport.width = m_ColorTarget.Image->GetWidth();
+        // m_Viewport.height = m_ColorTarget.Image->GetHeight();
+        // m_Viewport.minDepth = 0.0f;
+        // m_Viewport.maxDepth = 1.0f;
+        //
+        // m_Scissor.offset = { static_cast<Int32>( 0 ), static_cast<Int32>( 0 ) };
+        // m_Scissor.extent = { static_cast<UInt32>( m_ColorTarget.Image->GetWidth() ), static_cast<UInt32>( m_ColorTarget.Image->GetHeight() ) };
+        //
+        // vkCmdSetViewport( vkCmd, 0, 1, std::addressof( m_Viewport ) );
+        // vkCmdSetScissor( vkCmd, 0, 1, std::addressof( m_Scissor ) );
 
         vkCmdBindPipeline( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetNativeHandle( ObjectType::Vk_Pipeline ) );
     }
@@ -154,17 +167,18 @@ namespace Mikoto::VulkanPasses {
             auto& materialComp { registry.get<MaterialComponent>( entity ) };
 
             MeshNode* meshNode{ meshComp.GetMesh() };
-            if ( !meshNode ) {
+            PBRMaterial* pbrMat{ dynamic_cast<PBRMaterial*>(materialComp.GetMaterial().GetRaw()) };
+
+            if ( !meshNode || !pbrMat ) {
                 continue;
             }
 
             ShadingPassMeshBufferUBO ubo{};
             ubo.Transform = transform.GetTransform();
-            ubo.Albedo = Vec4F( 1.0f );
-            ubo.Factors = Vec4F( 1.0f );
-
-            // Texture indices
-            const PBRMaterial* pbrMat{ dynamic_cast<PBRMaterial*>(materialComp.GetMaterial().GetRaw()) };
+            ubo.Albedo = pbrMat->GetColor();
+            ubo.Factors.x = pbrMat->GetMetallicFactor();
+            ubo.Factors.y = pbrMat->GetRoughnessFactor();
+            //ubo.Factors.z = pbrMat->GetAoFactor();
 
             ubo.AlbedoIndex = GetMeshTextureIndices( pbrMat->GetTextureType( MapType::ALBEDO_TEXTURE ) );
             ubo.NormalIndex = GetMeshTextureIndices( pbrMat->GetTextureType( MapType::NORMAL_TEXTURE ) );
@@ -265,13 +279,17 @@ namespace Mikoto::VulkanPasses {
             return;
         }
 
+        if ( batch.Mesh->GetVertexBuffer().IsEmpty() || batch.Mesh->GetIndexBuffer().IsEmpty() ) {
+            return;
+        }
+
         const VkCommandBuffer vkCmd { m_CmdList->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
 
         BufferHandle vertexBuffer{ batch.Mesh->GetVertexBuffer() };
         BufferHandle indexBuffer{ batch.Mesh->GetIndexBuffer() };
 
         constexpr std::array<VkDeviceSize, 1> offsets{};
-        const std::array<VkBuffer, 1> vertexBuffers{ indexBuffer->GetNativeHandle(ObjectType::Vk_Buffer) };
+        const std::array<VkBuffer, 1> vertexBuffers{ vertexBuffer->GetNativeHandle(ObjectType::Vk_Buffer) };
 
         vkCmdBindVertexBuffers( vkCmd, 0, 1, vertexBuffers.data(), offsets.data() );
         vkCmdBindIndexBuffer( vkCmd, indexBuffer->GetNativeHandle(ObjectType::Vk_Buffer), 0, VK_INDEX_TYPE_UINT32 );

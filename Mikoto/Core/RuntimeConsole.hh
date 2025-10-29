@@ -5,14 +5,17 @@
 #ifndef MIKOTO_CONSOLE_MANAGER_HH
 #define MIKOTO_CONSOLE_MANAGER_HH
 
-#include <vector>
 #include <string>
 #include <string_view>
-
-#include <Library/Utility/Types.hh>
+#include <vector>
+#include <unordered_map>
+#include <functional>
+#include <Common/Common.hh>
 #include <Common/Service.hh>
+#include <Common/Singleton.hh>
 
 namespace Mikoto {
+
     enum class ConsoleLogLevel {
         CONSOLE_ERROR,
         CONSOLE_INFO,
@@ -29,17 +32,40 @@ namespace Mikoto {
         std::string Message{};
     };
 
-    class RuntimeConsole : public IService<RuntimeConsole> {
+    /**
+     * @brief A runtime console service that manages command registration and log output.
+     * Used by the ConsolePanel to display logs and execute commands interactively.
+     */
+    class RuntimeConsole final : public IService, public Singleton<RuntimeConsole> {
     public:
+        struct Command {
+            std::string Name;
+            std::string Description;
+            std::function<void(const std::vector<std::string>& args)> Callback;
+        };
+
         explicit RuntimeConsole(const ConsoleManagerCreateInfo& createInfo);
 
-        auto ClearMessages() -> void;
-        auto GetMessages() -> const std::vector<ConsoleMessage>&;
-        auto PushMessage(ConsoleLogLevel level, std::string_view message) -> void;
+        auto Init() -> void override;
+        auto Shutdown() -> void override;
+
+        auto RegisterCommand(
+            const std::string& name,
+            const std::string& desc,
+            std::function<void(const std::vector<std::string>&)> callback
+        ) -> void;
+
+        auto ExecuteCommand(const std::string& input) -> void;
+        auto AddLog(ConsoleMessage level) -> void;
+
+        MKT_NODISCARD auto GetLogs() const -> const std::vector<std::string>& { return m_LogEntries; }
 
     private:
-        std::vector<ConsoleMessage> m_Messages{};
+        std::unordered_map<std::string, Command> m_Commands;
+        std::vector<std::string> m_LogEntries;
+        std::string m_Name;
     };
+
 }
 
 #endif // MIKOTO_CONSOLE_MANAGER_HH

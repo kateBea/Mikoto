@@ -15,6 +15,8 @@
 // Project Headers
 #include <Library/Random/Random.hh>
 #include <Physics/PhysicService.hh>
+#include <Renderer/RenderService.hh>
+#include <Renderer/RendererBackend.hh>
 #include <Scene/Component.hh>
 #include <Scene/Scene.hh>
 
@@ -31,9 +33,23 @@ namespace Mikoto {
         entity.AddComponent<TransformComponent>( initialPosition, initialSize, initialRotation );
     }
 
+    static auto OnMeshRendererAdded( entt::registry& reg, entt::entity e ) -> void {
+        if ( !reg.any_of<MaterialComponent>( e ) ) {
+            reg.emplace<MaterialComponent>( e );
+        }
+
+        // Construct default material
+        auto& material = reg.get<MaterialComponent>( e );
+
+        RendererBackend* backend{ RenderService::Get()->GetBackend() };
+        material.SetMaterial( backend->CreateMaterial() );
+    }
+
     Scene::Scene( const std::string_view name )
         : m_Name{ name } {
         // Install component listeners
+
+        m_Registry.on_construct<MeshComponent>().connect<&OnMeshRendererAdded>();
     }
 
     auto Scene::UpdateIdle( double deltaTime ) -> void {}
@@ -42,23 +58,23 @@ namespace Mikoto {
 
     auto Scene::RemoveEntity( UInt64 uniqueID ) -> void {}
 
-    auto Scene::AttachRigidBody( Entity *entity ) -> void {
-        if (entity == nullptr) {
+    auto Scene::AttachRigidBody( Entity* entity ) -> void {
+        if ( entity == nullptr ) {
             return;
         }
 
-        if (entity->HasComponent<RigidBodyComponent>()) {
+        if ( entity->HasComponent<RigidBodyComponent>() ) {
             RigidBodyComponent& rigidBodyComp{ entity->GetComponent<RigidBodyComponent>() };
-            PhysicService::Get()->OnRigidBodyAdded( *entity,  rigidBodyComp );
+            PhysicService::Get()->OnRigidBodyAdded( *entity, rigidBodyComp );
         } else {
             // Add the component if it does not exists
             RigidBodyComponent& rigidBodyComp{ entity->AddComponent<RigidBodyComponent>() };
-            PhysicService::Get()->OnRigidBodyAdded( *entity,  rigidBodyComp );
+            PhysicService::Get()->OnRigidBodyAdded( *entity, rigidBodyComp );
         }
     }
 
-    auto Scene::DetachRigidBody( Entity *entity ) -> void {
-        if (entity == nullptr || entity->HasComponent<RigidBodyComponent>()) {
+    auto Scene::DetachRigidBody( Entity* entity ) -> void {
+        if ( entity == nullptr || entity->HasComponent<RigidBodyComponent>() ) {
             return;
         }
 
@@ -133,7 +149,7 @@ namespace Mikoto {
             result = it->second.get();
 
             // if root is not empty this entity must be registered as child of root entity
-            if (createInfo.Root != nullptr) {
+            if ( createInfo.Root != nullptr ) {
                 Entity* parent{ createInfo.Root };
                 RelationComponent& relation{ parent->GetComponent<RelationComponent>() };
 
@@ -142,9 +158,9 @@ namespace Mikoto {
 
             // in root model is not empty we create a children for this entity
             // each children well hold a mesh
-            if (!createInfo.Model.IsEmpty()) {
-                if (createInfo.Model->GetMeshNodeCount() > 1) {
-                    for (Size index{}; index < createInfo.Model->GetMeshNodeCount(); index++) {
+            if ( !createInfo.Model.IsEmpty() ) {
+                if ( createInfo.Model->GetMeshNodeCount() > 1 ) {
+                    for ( Size index{}; index < createInfo.Model->GetMeshNodeCount(); index++ ) {
                         AddSingleEntityWithRoot( result, createInfo.Model, index );
                     }
                 } else {
@@ -580,12 +596,12 @@ namespace Mikoto {
         Clear();
     }
 
-    auto Scene::GetRegistry() -> entt::registry & {
+    auto Scene::GetRegistry() -> entt::registry& {
         return m_Registry;
     }
 
     auto Scene::AddSingleEntityWithRoot( Entity* root, ModelHandle model, Int32 index ) -> void {
-        if ( Entity * child{ CreateEntity( model->GetMeshNode( index ).GetName() ) }; child != nullptr) {
+        if ( Entity * child{ CreateEntity( model->GetMeshNode( index ).GetName() ) }; child != nullptr ) {
             child->AddComponent<MeshComponent>( model, index );
 
             RelationComponent& relationComponent{ root->AddComponent<RelationComponent>() };

@@ -216,7 +216,21 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::CreateMaterial() -> MaterialHandle {
-        return MaterialHandle::CreateEmpty();
+        MaterialHandle material{ m_Materials.Allocate(  ) };
+        if (material.IsEmpty()) {
+            MKT_CORE_LOGGER_ERROR( "VulkanRenderer::CreateMaterial - Failed to create material" );
+        } else {
+            PBRMaterial* pbrMat{ dynamic_cast<PBRMaterial*>(material.GetRaw()) };
+
+            pbrMat->SetTextureType( MapType::ALBEDO_TEXTURE, m_BindlessTextures[3] );
+            pbrMat->SetTextureType( MapType::NORMAL_TEXTURE, m_BindlessTextures[3] );
+            pbrMat->SetTextureType( MapType::EMISSIVE_TEXTURE, m_BindlessTextures[3] );
+            pbrMat->SetTextureType( MapType::METALLIC_TEXTURE, m_BindlessTextures[3] );
+            pbrMat->SetTextureType( MapType::ROUGHNESS_TEXTURE, m_BindlessTextures[3] );
+            pbrMat->SetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE, m_BindlessTextures[3] );
+        }
+
+        return material;
     }
 
     auto VulkanRenderer::GetFinalComposition() const -> TextureHandle {

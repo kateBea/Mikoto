@@ -37,6 +37,11 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR("Failed to allocate Vulkan buffer!");
         }
 
+        // Copy data over if created from a block
+        if (m_Data) {
+            CopyFromBlock( m_Data, m_SizeBytes );
+        }
+
         m_IsAllocated = true;
     }
 
@@ -45,7 +50,7 @@ namespace Mikoto {
     }
 
     VulkanBuffer::VulkanBuffer( const BufferDescription& createInfo )
-        : Buffer{ createInfo.Data, createInfo.SizeBytes, createInfo.Usage, createInfo.UsageType } {
+        : Buffer{ createInfo.Data, createInfo.SizeBytes, createInfo.Usage, createInfo.UsageType, createInfo.Type } {
         m_BufferCreateInfo = VulkanHelpers::Initializers::BufferCreateInfo();
 
         // Let a VMA library select the optimal memory type unless specified

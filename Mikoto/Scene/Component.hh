@@ -31,6 +31,7 @@
 #include <Material/Material.hh>
 #include <Renderer/Light.hh>
 #include <Scene/SceneCamera.hh>
+#include <utility>
 
 namespace Mikoto {
 
@@ -68,7 +69,9 @@ namespace Mikoto {
 
     class TransformComponent {
     public:
-        explicit TransformComponent() = default;
+        explicit TransformComponent() {
+            ComputeTransform(m_Translation, m_Scale, m_Rotation);
+        };
 
         TransformComponent(const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3(0.0f)) {
             ComputeTransform(position, size, angles);
@@ -179,7 +182,7 @@ namespace Mikoto {
 
     private:
         // Transform vectors
-        Vec3F m_Translation{ 0.0f, 100.0f, 0.0f };
+        Vec3F m_Translation{ 0.0f, 0.0f, 0.0f };
         Vec3F m_Rotation{};
         Vec3F m_Scale{};
 
@@ -225,14 +228,19 @@ namespace Mikoto {
      * */
     class MaterialComponent {
     public:
-        explicit MaterialComponent(MaterialHandle mat)
-            : m_Material{ mat } {
+        explicit MaterialComponent(MaterialHandle mat = MaterialHandle::CreateEmpty())
+            : m_Material{std::move( mat )} {
         }
 
         MaterialComponent(MaterialComponent&&) = default;
         auto operator=(MaterialComponent&&) -> MaterialComponent& = default;
 
         MKT_NODISCARD auto GetMaterial() -> MaterialHandle { return m_Material; }
+        MKT_NODISCARD auto SetMaterial(const MaterialHandle& mat) -> void {
+            if (!mat.IsEmpty()) {
+                m_Material = mat;
+            }
+        }
 
         ~MaterialComponent() = default;
 
@@ -269,6 +277,10 @@ namespace Mikoto {
         }
 
         MKT_NODISCARD auto GetMesh() -> MeshNode* {
+            if (!HasMesh()) {
+                return nullptr;
+            }
+
             return std::addressof(m_Model->GetMeshNode(static_cast<UInt32>(m_MeshIndex)));
         }
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Model->GetName(); }

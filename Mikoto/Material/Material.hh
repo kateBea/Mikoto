@@ -44,7 +44,7 @@ namespace Mikoto {
 
     protected:
         std::string m_Name{};
-        Vec4F m_Color{ 1.0f, 1.0f, 1.0f, 1.0f };
+        Vec4F m_Color{ 0.3f, 0.4f, 0.5f, 0.3f };
     };
 
     using MaterialHandle = Ref<Material>;

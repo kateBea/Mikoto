@@ -72,13 +72,13 @@ namespace Mikoto {
          * @brief Retrieves the vertex buffer of the mesh.
          * @return A pointer to the vertex buffer.
          */
-        MKT_NODISCARD auto GetVertexBuffer() -> BufferHandle { return std::move( m_Vertices ); }
+        MKT_NODISCARD auto GetVertexBuffer() -> BufferHandle { return  m_Vertices; }
 
         /**
          * @brief Retrieves the index buffer of the mesh.
          * @return A pointer to the index buffer.
          */
-        MKT_NODISCARD auto GetIndexBuffer() -> BufferHandle { return std::move( m_Indices ); }
+        MKT_NODISCARD auto GetIndexBuffer() -> BufferHandle { return m_Indices; }
 
         MKT_NODISCARD auto GetName() -> const std::string& { return m_Name; }
 

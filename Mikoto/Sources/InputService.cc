@@ -71,7 +71,7 @@ namespace Mikoto {
             const auto window{ std::any_cast<GLFWwindow*>( m_Handle->GetNativeWindow() ) };
             const auto state{ glfwGetMouseButton( window, button ) };
 
-            result = state == GLFW_RELEASE;
+            result = state == GLFW_PRESS;
         } catch ( const std::exception& exception ) {
             MKT_CORE_LOGGER_ERROR( "InputManager - {}", exception.what() );
         }
@@ -86,7 +86,7 @@ namespace Mikoto {
             const auto window{ std::any_cast<GLFWwindow*>( m_Handle->GetNativeWindow() ) };
             const auto state{ glfwGetMouseButton( window, button ) };
 
-            result = state == GLFW_PRESS;
+            result = state == GLFW_RELEASE;
         } catch ( const std::exception& exception ) {
             MKT_CORE_LOGGER_ERROR( "InputManager - {}", exception.what() );
         }

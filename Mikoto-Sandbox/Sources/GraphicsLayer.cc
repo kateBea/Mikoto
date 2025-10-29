@@ -202,6 +202,8 @@ namespace Mikoto {
         if (multipleNodesNoRoot) {
             multipleNodesNoRoot->AddComponent<ScriptComponent>( "idle.lua" );
             multipleNodesNoRoot->AddComponent<AudioSourceComponent>( "quack.mp3" );
+
+            multipleNodesNoRoot->AddComponent<MeshComponent>( );
         }
 
         // Load a model 1 node mesh nodes for testing
@@ -214,6 +216,8 @@ namespace Mikoto {
         if (rootNoMultiple) {
             rootNoMultiple->AddComponent<ScriptComponent>( "idle.lua" );
             rootNoMultiple->AddComponent<AudioSourceComponent>( "quack.mp3" );
+
+            rootNoMultiple->AddComponent<MeshComponent>( );
         }
 
         // This can hear sound and has a camera
@@ -287,7 +291,11 @@ namespace Mikoto {
         // we render to the window here not to an imgui viewport
         m_SceneCamera->SetViewportSize( m_Window->GetWidth(), m_Window->GetHeight() );
 
-        if (InputService::Get()->IsMouseKeyPressed( Mouse_Button_Right )) { m_SceneCamera->EnableCamera( true ); } else { m_SceneCamera->EnableCamera( false ); }
+        if (InputService::Get()->IsMouseKeyPressed( Mouse_Button_Right )) {
+            m_SceneCamera->EnableCamera( true );
+        } else {
+            m_SceneCamera->EnableCamera( false );
+        }
 
         m_SceneCamera->UpdateState( timeStep );
     }

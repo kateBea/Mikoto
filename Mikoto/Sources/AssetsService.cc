@@ -12,7 +12,7 @@
 #include <Filesystem/FileService.hh>
 #include <Library/Utility/Types.hh>
 #include <Material/TextureCube.hh>
-#include <Renderer/FontService.hh>
+#include <Renderer/FontFactory.hh>
 #include <Renderer/GpuDevice.hh>
 #include <Renderer/RenderService.hh>
 #include <Threading/TaskService.hh>
@@ -37,6 +37,14 @@ namespace Mikoto {
             m_MeshFactory->Init();
         }
 
+        // Font factory
+        FontFactoryCreateInfo fontFactoryCreateInfo{};
+
+        m_FontFactory = CreateScope<FontFactory>( fontFactoryCreateInfo );
+        if (m_FontFactory) {
+            m_FontFactory->Init();
+        }
+
         m_IsInitialized = true;
     }
 
@@ -56,6 +64,9 @@ namespace Mikoto {
 
         m_MeshFactory->Shutdown();
         m_MeshFactory.reset();
+
+        m_FontFactory->Shutdown();
+        m_FontFactory.reset();
 
         m_AudioDevice = nullptr;
         m_GpuDevice = nullptr;
@@ -115,6 +126,7 @@ namespace Mikoto {
             .WithChannelCount( image.GetChannels() )
 
             .WithData( image.GetData() )
+            .WithFile( textureFile )
 
             .WithType( description.Type )
             .WithFormat( TextureFormat::TEXTURE_FORMAT_SRGB8_ALPHA8 )
@@ -179,7 +191,7 @@ namespace Mikoto {
         fontDesc.WithFile( fontFile )
             .WithPixelSize( 1.0f );
 
-        FontHandle fontHandle{ FontService::Get()->LoadFont( fontDesc ) };
+        FontHandle fontHandle{ FontFactory::Get()->LoadFont( fontDesc ) };
         if (!fontHandle.IsEmpty()) {
             auto [it, success]{
                 m_Fonts.try_emplace( fontFile->GetPath(), fontHandle )

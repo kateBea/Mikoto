@@ -72,6 +72,12 @@ namespace Mikoto {
     VulkanTexture::VulkanTexture( const TextureDescription& data )
         : Texture2D{ data.Type, data.Width, data.Height, data.ChannelCount, data.Data, data.UsageType, data.Format, data.Usage } {
         m_ImageSize = m_Width * m_Height * m_Channels;
+
+        if (data.TextureFile) {
+            m_DebugName =fmt::format( "Mikoto Texture. Id: {}, Loaded from {}", GetHandle(), data.TextureFile->GetPathCStr() );
+        } else {
+            m_DebugName = fmt::format( "Mikoto Texture. Id: {}", GetHandle() );
+        }
     }
 
     VulkanTexture::VulkanTexture( const VkImageViewCreateInfo& viewCreateInfo, VkExtent2D extent )
@@ -82,6 +88,8 @@ namespace Mikoto {
           m_Image{ viewCreateInfo.image },
           m_ImageViewCreateInfo{ viewCreateInfo } {
         m_ImageSize = m_Width * m_Height * m_Channels;
+
+        m_DebugName =fmt::format( "Mikoto Swap chain Texture. Id:", GetHandle() );
     }
 
     auto VulkanTexture::Release() -> void {

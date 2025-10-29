@@ -218,8 +218,8 @@ namespace Mikoto {
          * @param usage The usage type of the buffer (e.g., vertex, index).
          * @param usageType The resource usage type (e.g., static, dynamic).
          */
-        Buffer( Byte* data, const Size sizeBytes, const BufferUsage usage, const ResourceUsageType usageType )
-            : DeviceObject{ usageType }, m_Data{ data}, m_SizeBytes{ sizeBytes }, m_Usage{ usage } {}
+        Buffer( Byte* data, const Size sizeBytes, const BufferUsage usage, const ResourceUsageType usageType, BufferDataType dataType )
+            : DeviceObject{ usageType }, m_Data{ data}, m_SizeBytes{ sizeBytes }, m_DataType{dataType}, m_Usage{ usage } {}
 
     protected:
         Byte* m_Data{ nullptr };

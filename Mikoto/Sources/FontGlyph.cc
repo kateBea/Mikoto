@@ -7,7 +7,7 @@
 // #include <Core/Logging/Logger.hh>
 //
 // #include "../Renderer/Text/FontGlyph.hh"
-// #include "../Renderer/Text/FontService.hh"
+// #include "../Renderer/Text/FontFactory.hh"
 //
 // namespace Mikoto {
 //

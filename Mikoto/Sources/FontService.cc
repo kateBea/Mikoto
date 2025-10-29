@@ -4,19 +4,19 @@
 
 #include <Logging/Logger.hh>
 
-#include "Renderer/FontService.hh"
+#include "Renderer/FontFactory.hh"
 
 namespace Mikoto {
 
-    FontService::FontService( const FontServiceCreateInfo &options ) {}
+    FontFactory::FontFactory( const FontFactoryCreateInfo &options ) {}
 
-    auto FontService::Init() -> void {
+    auto FontFactory::Init() -> void {
         m_FreeTypeHandle = msdfgen::initializeFreetype();
 
         m_IsInitialized = true;
     }
 
-    auto FontService::Shutdown() -> void {
+    auto FontFactory::Shutdown() -> void {
         if ( !m_IsInitialized ) {
             return;
         }
@@ -26,7 +26,7 @@ namespace Mikoto {
         m_IsInitialized = false;
     }
 
-    auto FontService::LoadFont( const FontLoadDescription &description ) -> FontHandle {
+    auto FontFactory::LoadFont( const FontLoadDescription &description ) -> FontHandle {
         Font* font{ nullptr };
 
         return FontHandle::CreateEmpty();

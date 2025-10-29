@@ -15,13 +15,13 @@
 
 namespace Mikoto {
 
-    struct FontServiceCreateInfo {
+    struct FontFactoryCreateInfo {
 
     };
 
-    class FontService final : public IService, public Singleton<FontService> {
+    class FontFactory final : public IService, public Singleton<FontFactory> {
     public:
-        explicit FontService( const FontServiceCreateInfo &options );
+        explicit FontFactory( const FontFactoryCreateInfo &options );
 
         auto Init() -> void override;
         auto Shutdown() -> void override;

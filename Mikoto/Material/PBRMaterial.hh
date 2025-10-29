@@ -27,8 +27,7 @@ namespace Mikoto {
     class PBRMaterial final : public Material {
     public:
 
-        explicit PBRMaterial( const std::string_view name = "PBR" )
-            : Material{ name } {}
+        explicit PBRMaterial( std::string_view name = "PBR" );
 
         auto RemoveTextureType( MapType type ) -> void;
         auto SetTextureType( MapType type, const TextureHandle &texture ) -> void;

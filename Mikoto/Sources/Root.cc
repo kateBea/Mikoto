@@ -18,6 +18,7 @@
 #include <Scripting/ScriptingService.hh>
 #include <Threading/TaskService.hh>
 #include <Threading/ThreadUtility.hh>
+#include <Core/RuntimeConsole.hh>
 
 #include "Core/SystemStats.hh"
 
@@ -105,6 +106,12 @@ namespace Mikoto {
         };
         ScriptingService *scriptingService{ s_Services.Register<ScriptingService>( luaServiceCreateInfo ) };
         scriptingService->Init();
+
+        // Console
+        ConsoleManagerCreateInfo consoleCreateInfo{
+        };
+        RuntimeConsole *runtimeConsole{ s_Services.Register<RuntimeConsole>( consoleCreateInfo ) };
+        runtimeConsole->Init();
 
         //TaskManager::Get()->RunPeriodically( 3, []() -> void { SystemStats::Get()->Update(); } );
     }

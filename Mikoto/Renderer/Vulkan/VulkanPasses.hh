@@ -59,6 +59,9 @@ namespace Mikoto::VulkanPasses {
     private:
         GpuDevice* m_Device{};
 
+        VkViewport m_Viewport{};
+        VkRect2D m_Scissor{};
+
         PipelineHandle m_Pipeline{};
         AttachmentInfo m_ColorTarget{};
         AttachmentInfo m_DepthTarget{};

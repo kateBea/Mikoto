@@ -29,7 +29,7 @@ namespace Mikoto {
         m_FieldOfView = fov;
         m_AspectRatio = aspectRatio;
 
-        m_Position = glm::vec3{ -31.07f, 48.06f, 100.0f };
+        m_Position = glm::vec3{ -3.07f, 4.06f, 1.0f };
         m_TargetPosition = m_Position;
         m_ForwardVector = glm::normalize( glm::vec3{ 15.0f, -10.0f, -30.0f } );
         m_TargetForwardVector = m_ForwardVector;

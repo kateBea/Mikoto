@@ -152,6 +152,10 @@ namespace Mikoto {
         ChannelCount = channels;
         return *this;
     }
+    auto TextureDescription::WithFile( const File* file ) -> TextureDescription& {
+        this->TextureFile = file;
+        return *this;
+    }
 
     auto TextureDescription::WithData( Byte* data ) -> TextureDescription& {
         Data = data;

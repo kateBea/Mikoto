@@ -7,6 +7,10 @@
 
 namespace Mikoto {
 
+    PBRMaterial::PBRMaterial( std::string_view name )
+        : Material{ name } {
+        Initialize();
+    }
     auto PBRMaterial::RemoveTextureType( MapType type ) -> void {
         m_Textures.erase( type );
     }

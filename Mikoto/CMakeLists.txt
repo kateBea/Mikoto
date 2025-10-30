@@ -332,6 +332,14 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(sol2)
 
+FetchContent_Declare(
+        asio
+        GIT_REPOSITORY https://github.com/chriskohlhoff/asio.git
+        GIT_TAG master
+)
+
+FetchContent_MakeAvailable(asio)
+
 # harfbuzz (not needed if you don't do complex text layout)
 #FetchContent_Declare(
 #        harfbuzz
@@ -389,10 +397,6 @@ set(ALL_SOURCES
         ${IMGUIZMO_SOURCES}
         ${SPIRV_REFLECT_SOURCES}
         ${MINIAUDIO_SOURCES}
-        Core/SystemStats.cc
-        Core/SystemStats.hh
-        Sources/ExecuteProcess.cc
-        Core/ExecuteProcess.hh
 )
 
 # ======================================
@@ -456,6 +460,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${vulkanmemoryallocator_SOURCE_DIR}/include
         ${taskflow_SOURCE_DIR}
         ${sol2_SOURCE_DIR}/include
+        ${asio_SOURCE_DIR}/asio/include
 )
 
 # ======================================

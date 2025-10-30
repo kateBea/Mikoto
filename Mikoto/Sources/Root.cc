@@ -8,17 +8,18 @@
 #include <Core/EventService.hh>
 #include <Core/InputService.hh>
 #include <Core/Root.hh>
+#include <Core/RuntimeConsole.hh>
 #include <Core/TimeService.hh>
 #include <Filesystem/FileService.hh>
 #include <ImGui/ImGuiService.hh>
 #include <Logging/Logger.hh>
 #include <Memory/MemoryService.hh>
+#include <Networking/NetworkService.hh>
 #include <Physics/PhysicService.hh>
 #include <Renderer/RenderService.hh>
 #include <Scripting/ScriptingService.hh>
 #include <Threading/TaskService.hh>
 #include <Threading/ThreadUtility.hh>
-#include <Core/RuntimeConsole.hh>
 
 #include "Core/SystemStats.hh"
 
@@ -112,6 +113,11 @@ namespace Mikoto {
         };
         RuntimeConsole *runtimeConsole{ s_Services.Register<RuntimeConsole>( consoleCreateInfo ) };
         runtimeConsole->Init();
+
+        NetworkServiceCreateInfo networkServiceCreate{
+        };
+        NetworkService *networkService{ s_Services.Register<NetworkService>( networkServiceCreate ) };
+        networkService->Init();
 
         //TaskManager::Get()->RunPeriodically( 3, []() -> void { SystemStats::Get()->Update(); } );
     }

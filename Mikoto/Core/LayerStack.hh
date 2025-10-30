@@ -5,15 +5,16 @@
 #ifndef LAYERSTACK_H
 #define LAYERSTACK_H
 
+#include <Library/Data/Registry.hh>
 #include <string>
 #include <string_view>
 
-#include <Library/Data/Registry.hh>
+#include <Core/Event.hh>
 
 namespace Mikoto {
     class ILayer {
       public:
-        explicit ILayer(std::string_view name)
+        explicit ILayer( const std::string_view name)
             : m_LayerName{ name } {}
         virtual ~ILayer() = default;
 
@@ -21,6 +22,11 @@ namespace Mikoto {
         virtual auto OnUpdate(float deltaTime) -> void = 0;
         virtual auto OnCreate() -> void = 0;
         virtual auto OnDestroy() -> void = 0;
+
+        // Layers are not subscribers, instead subscribers can propagate
+        // events to them through the layer stack. An event could be
+        // marked as handled if we do not want to further propagate it down the layer stack
+        virtual auto OnEvent(Event& event) -> void = 0;
 
     private:
         std::string m_LayerName{ "BaseLayer" };
@@ -52,6 +58,8 @@ namespace Mikoto {
 
         // Call OnUpdate on all registered layers
         auto OnUpdate(float deltaTime) -> void;
+
+        auto OnEvent(Event& event) -> void;
 
         // Iteration over registered layers
         constexpr auto begin() -> decltype(auto) { return m_Layers.begin(); }

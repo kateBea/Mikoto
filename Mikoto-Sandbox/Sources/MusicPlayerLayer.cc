@@ -27,7 +27,7 @@ namespace Mikoto {
     }
 
     auto MusicPlayerLayer::OnUpdate( float /*deltaTime*/ ) -> void {
-        ImGuiUtils::ImGuiScopedBorderColor borderColor{ {0, 200, 255, 255 } };
+        ImGuiUtils::ImGuiScopedBorderColor borderColor{ { 0, 200, 255, 255 } };
         ImGui::Begin( "\uf025 Music Player", nullptr, ImGuiWindowFlags_AlwaysAutoResize );
 
         DrawLoadAudioUI();
@@ -95,10 +95,10 @@ namespace Mikoto {
         }
         ImGui::SameLine();
 
-        if (!m_Target.IsEmpty()) {
+        if ( !m_Target.IsEmpty() ) {
             bool spatialized{ m_Target->IsSpatialized() };
 
-            if (ImGui::Checkbox( "Spatialized", std::addressof( spatialized ))) {
+            if ( ImGui::Checkbox( "Spatialized", std::addressof( spatialized ) ) ) {
                 m_Target->SetSpatialization( spatialized );
             }
         }
@@ -106,6 +106,10 @@ namespace Mikoto {
         ImGui::EndGroup();
 
         ImGui::End();
+    }
+
+    auto MusicPlayerLayer::OnEvent( Event& event ) -> void {
+
     }
 
     auto MusicPlayerLayer::DrawLoadAudioUI() -> void {

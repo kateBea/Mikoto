@@ -150,6 +150,10 @@ namespace Mikoto {
         DrawViewport();
     }
 
+    auto GraphicsLayer::OnEvent( Event &event ) -> void {
+
+    }
+
     auto GraphicsLayer::LoadModels() -> void {
         ModelLoadDescription descFirst{
             .ModelFile{ FileService::Get()->LoadFile( "./Resources/Models/3 - Dachniy house/source/Dachniy_Domik/D_House.FBX" ) },
@@ -210,14 +214,11 @@ namespace Mikoto {
         Entity *rootNoMultiple{ m_MainScene->CreateEntity( EntityCreateInfo{
             .Root{ multipleNodesNoRoot },
             .Name{ "Npc 2" },
-            .Model{ m_ModelSingleMesh },
         } ) };
 
         if (rootNoMultiple) {
             rootNoMultiple->AddComponent<ScriptComponent>( "idle.lua" );
             rootNoMultiple->AddComponent<AudioSourceComponent>( "quack.mp3" );
-
-            rootNoMultiple->AddComponent<MeshComponent>( );
         }
 
         // This can hear sound and has a camera
@@ -277,8 +278,8 @@ namespace Mikoto {
 
     auto GraphicsLayer::UpdateCamera( const float timeStep ) -> void {
 
-        m_SceneCamera->SetMovementSpeed( 13.f );
-        m_SceneCamera->SetRotationSpeed( 13.f );
+        m_SceneCamera->SetMovementSpeed( 50.f );
+        m_SceneCamera->SetRotationSpeed( 50.f );
 
         m_SceneCamera->SetFarPlane( 20000.0f );
         m_SceneCamera->SetNearPlane( 1.0f );
@@ -307,6 +308,8 @@ namespace Mikoto {
             const TextureHandle finalComposition{ m_Renderer->GetFinalComposition() };
 
             const ImVec2 dim{ ImGui::GetContentRegionAvail() };
+
+            m_SceneCamera->SetViewportSize( dim.x, dim.y );
 
             const ImTextureID textureID{ backend->ConstructImGuiTextureID( finalComposition ) };
             ImGui::Image( textureID, ImVec2{ dim.x, dim.y }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );

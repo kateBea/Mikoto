@@ -94,6 +94,10 @@ namespace Mikoto {
         UpdatePanels( timeStep );
     }
 
+    auto EditorLayer::OnEvent( Event& event ) -> void {
+
+    }
+
     auto EditorLayer::UpdatePanels( float ts ) -> void {
         auto& [applicationCloseFlag,
                hierarchyPanelVisible,

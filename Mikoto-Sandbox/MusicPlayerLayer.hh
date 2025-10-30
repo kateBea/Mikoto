@@ -19,6 +19,8 @@ namespace Mikoto {
         auto OnDestroy() -> void override;
         auto OnUpdate( float deltaTime ) -> void override;
 
+        auto OnEvent(Event &event) -> void override;
+
     private:
         auto LoadAudio( std::string_view path ) -> void;
         auto DrawLoadAudioUI() -> void;

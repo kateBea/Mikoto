@@ -6,6 +6,7 @@
 #define NETWORK_SERVICE_HH
 
 #include <asio.hpp>
+#include <asio/ssl.hpp>
 
 #include <Common/Service.hh>
 #include <Common/Singleton.hh>
@@ -27,7 +28,14 @@ namespace Mikoto {
     public:
         explicit NetworkService( const NetworkServiceCreateInfo& options );
 
-        auto CreateNewSocket( SocketType type, std::string_view address, UInt16 port ) -> SocketHandle;
+        auto CreateNewSocket( SocketType type, std::string_view hostName, UInt16 port, bool allowHttps = false ) -> SocketHandle;
+        auto CreateNewSocketSync( SocketType type, std::string_view hostName, UInt16 port, bool allowHttps = false ) -> SocketHandle;
+
+        auto CreateSocketForHTTPSync( std::string_view hostName) -> SocketHandle;
+        auto CreateSocketForHTTPSSync( std::string_view hostName) -> SocketHandle;
+
+        auto CreateSocketForHTTPAsync( std::string_view hostName) -> SocketHandle;
+        auto CreateSocketForHTTPSAsync( std::string_view hostName) -> SocketHandle;
 
         ~NetworkService() override = default;
 
@@ -37,6 +45,10 @@ namespace Mikoto {
 
     private:
         asio::io_context m_IoContext{};
+
+#if defined(MKT_ALLOW_HTTPS)
+        asio::ssl::context m_SslContext{ asio::ssl::context::tls_client };
+#endif
 
         ResourcePoolTyped<TcpSocket> m_TcpSockets{};
     };

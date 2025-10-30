@@ -15,10 +15,8 @@ namespace Mikoto {
 
     auto NetworkLayer::OnUpdate( float deltaTime ) -> void {
         if (m_Socket->IsConnected()) {
-            const std::string_view data{ "Hello world! " };
-
             // Void cast to avoid warning
-            (void)m_Socket->Send( data.data(), data.size() );
+            (void)m_Socket->SendSync( "Hello world! " );
         }
     }
 

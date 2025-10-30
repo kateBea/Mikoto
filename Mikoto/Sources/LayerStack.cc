@@ -17,7 +17,13 @@ namespace Mikoto {
 
     auto LayerStack::OnUpdate( const float deltaTime ) -> void {
         for ( const auto &layerPtr: m_Layers | std::views::values ) {
-            layerPtr->OnUpdate(deltaTime);
+            layerPtr->OnUpdate( deltaTime );
+        }
+    }
+
+    auto LayerStack::OnEvent( Event &event ) -> void {
+        for ( const auto &layerPtr: m_Layers | std::views::values ) {
+            layerPtr->OnEvent( event );
         }
     }
 }// namespace Mikoto

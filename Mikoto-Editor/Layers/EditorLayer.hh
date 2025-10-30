@@ -38,6 +38,8 @@ namespace Mikoto {
         auto OnDestroy() -> void override;
         auto OnUpdate(float timeStep) -> void override;
 
+        auto OnEvent(Event &event) -> void override;
+
         ~EditorLayer() override = default;
 
     private:

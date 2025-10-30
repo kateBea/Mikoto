@@ -6,6 +6,8 @@
 #ifndef MIKOTO_CAMERA_HH
 #define MIKOTO_CAMERA_HH
 
+#include <utility>
+
 // Third-Party Libraries
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -45,6 +47,9 @@ namespace Mikoto {
         MKT_NODISCARD auto GetNearPlane() const -> float { return m_NearClip; }
         MKT_NODISCARD auto GetFarPlane() const -> float { return m_FarClip; }
         MKT_NODISCARD auto GetAspectRatio() const -> float { return m_ViewportWidth / m_ViewportHeight; }
+        MKT_NODISCARD auto GetViewPort() const -> decltype(auto) { return std::make_pair(m_ViewportWidth, m_ViewportHeight); }
+
+
         /**
          * @brief Retrieve the view projection matrix.
          * @return The result of the projection matrix multiplied by the view matrix.

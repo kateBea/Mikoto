@@ -21,6 +21,8 @@ namespace Mikoto {
         auto OnCreate() -> void override;
         auto OnDestroy() -> void override;
 
+        auto OnEvent(Event &event) -> void override;
+
     private:
         bool m_ShowDemo{ false };
         bool m_ShowAnotherWindow{ false };

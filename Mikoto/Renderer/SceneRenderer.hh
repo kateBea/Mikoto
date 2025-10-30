@@ -12,6 +12,7 @@
 #include <Renderer/RendererBackend.hh>
 #include <Scene/Camera.hh>
 #include <Scene/Scene.hh>
+#include <Scene/SceneCamera.hh>
 
 namespace Mikoto {
 
@@ -87,7 +88,7 @@ namespace Mikoto {
          */
         auto OnResize( UInt32 width, UInt32 height ) -> void;
 
-        auto SetCamera( Camera* camera ) -> void;
+        auto SetCamera( SceneCamera* camera ) -> void;
 
         auto GetFinalComposition() const -> TextureHandle;
 
@@ -107,7 +108,7 @@ namespace Mikoto {
         GpuDevice* m_Device{ nullptr };
 
         Scene* m_Scene{ nullptr };
-        Camera* m_Camera{ nullptr };
+        SceneCamera* m_Camera{ nullptr };
 
         RendererBackend* m_RendererBackend{ nullptr };
     };

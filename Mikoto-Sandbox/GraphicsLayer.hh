@@ -25,6 +25,8 @@ namespace Mikoto {
         auto OnDestroy() -> void override;
         auto OnUpdate( float deltaTime ) -> void override;
 
+        auto OnEvent(Event &event) -> void override;
+
     private:
         auto LoadModels() -> void;
         auto SetupScene() -> void;

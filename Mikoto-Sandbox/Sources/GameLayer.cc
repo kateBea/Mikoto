@@ -65,4 +65,8 @@ namespace Mikoto {
     auto GameLayer::OnDestroy() -> void {
         MKT_CORE_LOGGER_DEBUG( "Destroying Layer GameLayer..." );
     }
+
+    auto GameLayer::OnEvent( Event &event ) -> void {
+
+    }
 }// namespace Mikoto

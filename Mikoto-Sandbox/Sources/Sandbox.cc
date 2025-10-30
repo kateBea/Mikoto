@@ -20,15 +20,17 @@
 #include <Core/InputService.hh>
 #include <Core/Root.hh>
 #include <Core/TimeService.hh>
+#include <Core/Timer.hh>
 #include <Filesystem/FileService.hh>
 #include <GameLayer.hh>
+#include <GraphicsLayer.hh>
 #include <Logging/Logger.hh>
+#include <MusicPlayerLayer.hh>
 #include <SandboxApp.hh>
 #include <Threading/TaskManager.hh>
 #include <Threading/TaskService.hh>
-#include <MusicPlayerLayer.hh>
-#include <GraphicsLayer.hh>
-#include <Core/Timer.hh>
+
+#include "NetworkLayer.hh"
 
 namespace Mikoto {
 
@@ -88,6 +90,7 @@ namespace Mikoto {
         m_LayerStack.PushLayer<GameLayer>( "Game - Layer" );
         m_LayerStack.PushLayer<MusicPlayerLayer>( "MusicPlayer - Layer" );
         m_LayerStack.PushLayer<GraphicsLayer>( "Graphics - Layer", m_Window.get() );
+        m_LayerStack.PushLayer<NetworkLayer>( "Network - Layer" );
     }
 
     auto SandboxApp::Shutdown() -> void {

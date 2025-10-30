@@ -21,19 +21,19 @@ namespace Mikoto {
         auto SetUpdateFrequency( Int32 frequency ) -> void;
 
         // RAM in bytes
-        auto GetSharedRam() const -> double;
-        auto GetFreeRam() const -> double;
-        auto GetTotalRam() const -> double;
+        MKT_NODISCARD auto GetSharedRam() const -> double;
+        MKT_NODISCARD auto GetFreeRam() const -> double;
+        MKT_NODISCARD auto GetTotalRam() const -> double;
 
         // CPU
-        auto GetCpuUsage() const -> double;
-        auto GetCpuName() const -> const std::string&;
+        MKT_NODISCARD auto GetCpuUsage() const -> double;
+        MKT_NODISCARD auto GetCpuName() const -> const std::string&;
 
         // VRAM (stub, later Vulkan/Allocator integration)
-        auto GetVramUsage() const -> double;
-        auto SetVramUsage( double usageBytes ) -> void;
+        MKT_NODISCARD auto GetVramUsage() const -> double;
+        MKT_NODISCARD auto SetVramUsage( double usageBytes ) -> void;
 
-        auto GetProcessRamUsage() const -> double;
+        MKT_NODISCARD auto GetProcessRamUsage() const -> double;
 
     private:
         double m_SharedRam{ 0.0 };
@@ -51,6 +51,4 @@ namespace Mikoto {
     };
 }
 
-
-
-#endif //
+#endif

@@ -35,7 +35,7 @@ namespace Mikoto {
         // here we will just submit it
         m_RendererBackend->BeginRender( cmd );
 
-        m_RendererBackend->SetViewport( 0, 0, 1920, 1080 );
+        m_RendererBackend->SetViewport( 0, 0, m_Camera->GetViewPort().first, m_Camera->GetViewPort().second );
         m_RendererBackend->DrawScene( m_Scene );
 
         m_RendererBackend->EndRender();
@@ -47,8 +47,9 @@ namespace Mikoto {
 
     }
 
-    auto SceneRenderer::SetCamera( Camera *camera ) -> void {
-        m_Camera = camera;
+    auto SceneRenderer::SetCamera( SceneCamera *camera ) -> void {
+
+        m_Camera = dynamic_cast<SceneCamera*>(camera);
     }
 
     auto SceneRenderer::GetFinalComposition() const -> TextureHandle {

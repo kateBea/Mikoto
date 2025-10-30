@@ -47,8 +47,10 @@ namespace Mikoto {
 
     auto PhysicService::SetSimulationScene( Scene *scene ) -> void {
         if (scene) {
-            m_PhysicsBase = CreateScope<PhysicsBase>( scene );
-            m_PhysicsBase->Init();
+            if (m_PhysicsBase == nullptr) {
+                m_PhysicsBase = CreateScope<PhysicsBase>( scene );
+                m_PhysicsBase->Init();
+            }
 
             m_PhysicsBase->SetGravity( EARTH_GRAVITY );
         }

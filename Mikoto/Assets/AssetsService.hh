@@ -137,6 +137,8 @@ namespace Mikoto {
             });
         }
 
+        auto GetDummyTexture() -> TextureHandle;
+
         ~AssetsService() override = default;
 
     private:
@@ -144,6 +146,8 @@ namespace Mikoto {
         auto LoadAssetTyped( const TextureLoadDescription& description) -> TextureHandle;
         auto LoadAssetTyped( const AudioLoadDescription& description) -> AudioHandle;
         auto LoadAssetTyped( const FontLoadDescription& description) -> FontHandle;
+
+        auto LoadDummyAssets() -> void;
 
     private:
         Unique<MeshFactory> m_MeshFactory{};

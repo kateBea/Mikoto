@@ -46,6 +46,13 @@ namespace Mikoto {
         return exitCode;
     }
 
+    auto EditorApp::GetPrefabUri( PrefabModels prefab ) -> const std::string & {
+        return m_PrefabModels[prefab];
+    }
+
+    auto EditorApp::InitPrefabs() -> void {
+    }
+
     auto EditorApp::Init() -> void {
         // Load configuration
         BaseConfiguration configApp{ "./app-config.toml" };
@@ -74,6 +81,8 @@ namespace Mikoto {
         Root::Init(config);
 
         SetupEventCallbacks();
+
+        InitPrefabs();
 
         m_LayerStack.PushLayer<EditorLayer>(EditorLayerCreateInfo{
             .Name{ "Editor Layer" },

@@ -4,6 +4,7 @@
 
 #include <ankerl/unordered_dense.h>
 
+#include <Assets/AssetsService.hh>
 #include <Filesystem/FileService.hh>
 #include <Logging/Logger.hh>
 #include <Renderer/RenderService.hh>
@@ -664,6 +665,10 @@ namespace Mikoto {
 
     auto VulkanDevice::GetDeviceName() const -> std::string_view {
         return m_PhysicalDeviceInfo.Properties.deviceName;
+    }
+
+    auto VulkanDevice::GetDummyTexture() -> TextureHandle {
+        return AssetsService::Get()->GetDummyTexture();
     }
 
     auto VulkanDevice::GetUniformBufferMinOffsetAlignment() const -> VkDeviceSize {

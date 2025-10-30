@@ -43,6 +43,33 @@ namespace Mikoto {
         return response;
     }
 
+    static auto HttpGetImgage( SocketHandle socket, const std::string &address, const std::string &path ) -> std::string {
+        // Build HTTP GET request using fmt
+        // Use keep-alive
+        // If we use close server will probably close the connection so we can no longer keep reading
+        std::string request;
+        request += "GET " + path + " HTTP/1.1\r\n";
+        request += "Host: " + address + "\r\n";
+        request += "User-Agent: MikotoSandbox/1.0\r\n";
+        request += "Accept: image/*\r\n";
+        request += "Connection: close\r\n";
+        request += "\r\n";
+
+        // avoid compiler warning void cast
+        ( void )socket->SendSync( request.c_str(), request.size() );
+
+        std::string response{};
+        std::array<char, 1024> buffer{};
+        Size readCharsCount{};
+
+        do {
+            readCharsCount = socket->ReceiveSync( buffer.data(), buffer.size() );
+            response.append( buffer.data(), readCharsCount );
+        } while ( readCharsCount > 0 );
+
+        return response;
+    }
+
     NetworkLayer::NetworkLayer( const std::string_view name )
         : ILayer{ name } {
     }
@@ -146,6 +173,13 @@ namespace Mikoto {
     auto NetworkLayer::OnCreate() -> void {
         m_LocalHostSocket = NetworkService::Get()->CreateNewSocket( SocketType::SOCKET_TCP, "localhost", 8000 );
 
+        // Test getting image from web
+        // Gotten from Jikan API https://api.jikan.moe/v4/anime/20/pictures
+        auto values{ Network::GetHost( "https://cdn.myanimelist.net/images/anime/1/20.jpg" ) };
+        SocketHandle imageSocket{ NetworkService::Get()->CreateSocketForHTTPSSync( values.first ) };
+
+        auto result{ HttpGetImgage( imageSocket, imageSocket->GetHost(), "/images/anime/1141/142503.jpg" ) };
+
         m_AnimeList = {
             { 1, "Cowboy Bebop" },
             { 20, "Naruto" },
@@ -171,7 +205,7 @@ namespace Mikoto {
                 try {
                     const std::string response{ HttpGet( socket, socket->GetHost(), fmt::format( "/v4/anime/{}/full", id ) ) };
 
-                    m_SelectedAnimeJsons[id] = Network::GetBody( response );
+                    m_SelectedAnimeJsons[id] = Network::GetHttpBody( response );
 
                     MKT_CORE_LOGGER_DEBUG( "Loaded successfully {}", title );
                 } catch ( const std::exception &e ) {

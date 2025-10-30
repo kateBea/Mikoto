@@ -222,12 +222,12 @@ namespace Mikoto {
         } else {
             PBRMaterial* pbrMat{ dynamic_cast<PBRMaterial*>(material.GetRaw()) };
 
-            pbrMat->SetTextureType( MapType::ALBEDO_TEXTURE, m_BindlessTextures[3] );
-            pbrMat->SetTextureType( MapType::NORMAL_TEXTURE, m_BindlessTextures[3] );
-            pbrMat->SetTextureType( MapType::EMISSIVE_TEXTURE, m_BindlessTextures[3] );
-            pbrMat->SetTextureType( MapType::METALLIC_TEXTURE, m_BindlessTextures[3] );
-            pbrMat->SetTextureType( MapType::ROUGHNESS_TEXTURE, m_BindlessTextures[3] );
-            pbrMat->SetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE, m_BindlessTextures[3] );
+            pbrMat->SetTextureType( MapType::ALBEDO_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
+            pbrMat->SetTextureType( MapType::NORMAL_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
+            pbrMat->SetTextureType( MapType::EMISSIVE_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
+            pbrMat->SetTextureType( MapType::METALLIC_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
+            pbrMat->SetTextureType( MapType::ROUGHNESS_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
+            pbrMat->SetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
         }
 
         return material;

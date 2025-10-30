@@ -13,7 +13,22 @@
 
 namespace Mikoto::Network {
 
-    MKT_NODISCARD auto GetBody(std::string_view apiResponse) -> std::string;
+    struct HttpResponse {
+        std::string statusLine;
+        std::unordered_map<std::string, std::string> headers;
+        std::string body;
+    };
+
+    class HttpRequestBuilder {
+    public:
+
+    };
+
+    // Returns the host and the port
+    MKT_NODISCARD auto GetHost(std::string_view apiResponse) -> std::pair<std::string, std::optional<std::string>>;
+
+    MKT_NODISCARD auto GetHttpBody(std::string_view apiResponse) -> std::string;
+    MKT_NODISCARD auto GetHttpResponse(std::string_view apiResponse) -> HttpResponse;
 
 } // Mikoto
 

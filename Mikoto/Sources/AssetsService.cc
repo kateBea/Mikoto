@@ -45,6 +45,8 @@ namespace Mikoto {
             m_FontFactory->Init();
         }
 
+        LoadDummyAssets();
+
         m_IsInitialized = true;
     }
 
@@ -72,6 +74,10 @@ namespace Mikoto {
         m_GpuDevice = nullptr;
 
         m_IsInitialized = false;
+    }
+
+    auto AssetsService::GetDummyTexture() -> TextureHandle {
+        return m_Textures["./texture"];
     }
 
     auto AssetsService::LoadAssetTyped( const ModelLoadDescription& description) -> ModelHandle {
@@ -176,32 +182,41 @@ namespace Mikoto {
         return AudioHandle::CreateEmpty();
     }
 
-    auto AssetsService::LoadAssetTyped( const FontLoadDescription& description) -> FontHandle {
+    auto AssetsService::LoadAssetTyped( const FontLoadDescription& description ) -> FontHandle {
         const File* fontFile{ description.FontFile };
-        if (!fontFile) {
+        if ( !fontFile ) {
             return FontHandle::CreateEmpty();
         }
 
         // if it exists
-        if (const auto itFind{ m_Fonts.find( fontFile->GetPath() ) }; itFind != m_Fonts.end() ) {
+        if ( const auto itFind{ m_Fonts.find( fontFile->GetPath() ) }; itFind != m_Fonts.end() ) {
             return itFind->second;
         }
 
         FontLoadDescription fontDesc{};
         fontDesc.WithFile( fontFile )
-            .WithPixelSize( 1.0f );
+                .WithPixelSize( 1.0f );
 
         FontHandle fontHandle{ FontFactory::Get()->LoadFont( fontDesc ) };
-        if (!fontHandle.IsEmpty()) {
+        if ( !fontHandle.IsEmpty() ) {
             auto [it, success]{
                 m_Fonts.try_emplace( fontFile->GetPath(), fontHandle )
             };
 
-            if (success) {
+            if ( success ) {
                 return m_Fonts[fontFile->GetPath()];
             }
         }
 
         return FontHandle::CreateEmpty();
     }
-}
+
+    auto AssetsService::LoadDummyAssets() -> void {
+        TextureLoadDescription loadDesc{};
+        loadDesc
+                .WithFile( FileService::Get()->LoadFile( "./texture.png" ) )
+                .WithType( TextureType::TEXTURE_2D );
+
+        LoadAsset<Texture>( loadDesc );
+    }
+}// namespace Mikoto

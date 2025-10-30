@@ -16,6 +16,17 @@
 #include <Core/LayerStack.hh>
 
 namespace Mikoto {
+
+    // There's a set of models that are loaded at start
+    // and made available for editor to use on scenes
+    enum class PrefabModels {
+        CUBE,
+        SPHERE,
+        CONE,
+        CYLINDER,
+        SPONZA,
+    };
+
     class EditorApp final : public Application, public Subscriber {
     public:
 
@@ -26,11 +37,19 @@ namespace Mikoto {
         auto Shutdown() -> void override;
         auto Update() -> void override;
 
+        auto GetPrefabUri(PrefabModels prefab) -> const std::string&;
+
     private:
+        auto InitPrefabs() -> void;
         auto SetupEventCallbacks() -> void;
+
+    private:
 
         Unique<Window> m_Window{};
         LayerStack m_LayerStack{};
+
+        // These path will be
+        ankerl::unordered_dense::map<PrefabModels, std::string> m_PrefabModels{};
     };
 }
 

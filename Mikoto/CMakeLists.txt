@@ -449,6 +449,8 @@ set(ALL_SOURCES
         ${IMGUIZMO_SOURCES}
         ${SPIRV_REFLECT_SOURCES}
         ${MINIAUDIO_SOURCES}
+        Sources/SceneManager.cc
+        Scene/SceneManager.hh
 )
 
 # ======================================

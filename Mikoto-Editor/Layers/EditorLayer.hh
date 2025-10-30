@@ -24,6 +24,16 @@
 
 namespace Mikoto {
 
+    struct EditorState {
+        Entity* SelectedEntity{};
+
+        // Used when scene is not simulating
+        SceneCamera* EditorCamera{};
+
+        // The final composition from the scene renderer
+        TextureHandle FinalComposition{};
+    };
+
     struct EditorLayerCreateInfo {
         std::string_view Name{ nullptr };
         Window* TargetWindow{ nullptr };
@@ -70,6 +80,8 @@ namespace Mikoto {
 
         auto SetupRenderer() -> void ;
 
+        auto SetupEditorState() -> void ;
+
     private:
         struct DockControlFlags {
             bool ApplicationCloseFlag{};
@@ -85,6 +97,8 @@ namespace Mikoto {
         };
 
     private:
+        Unique<EditorState> m_EditorState{};
+
         Window* m_Window{ nullptr };
 
         Path m_ModelsRootDirectory{};

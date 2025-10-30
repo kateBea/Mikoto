@@ -17,8 +17,11 @@
 #include <ImGui/ImGuiUtility.hh>
 #include <Layers/EditorLayer.hh>
 #include <Panels/ConsolePanel.hh>
+#include <Panels/ScenePanel.hh>
 #include <Panels/StatsPanel.hh>
+#include <Physics/PhysicService.hh>
 #include <Renderer/RenderService.hh>
+#include <Scene/Component.hh>
 
 namespace Mikoto {
 
@@ -50,6 +53,8 @@ namespace Mikoto {
 
         PrepareNewScene();
 
+        SetupEditorState();
+
         CreatePanels();
     }
 
@@ -65,7 +70,18 @@ namespace Mikoto {
         }
     }
 
+    auto EditorLayer::SetupEditorState() -> void {
+        m_EditorState = CreateScope<EditorState>();
+
+        m_EditorState->EditorCamera = m_EditorCamera.get();
+        m_EditorState->FinalComposition = m_SceneRenderer->GetFinalComposition();
+
+        m_EditorState->SelectedEntity = m_ActiveScene->FindFirstByName( "Npc" );
+    }
+
     auto EditorLayer::OnDestroy() -> void {
+        m_EditorState = nullptr;
+
         m_ActiveScene = nullptr;
 
         m_EditorCamera = nullptr;
@@ -95,7 +111,6 @@ namespace Mikoto {
     }
 
     auto EditorLayer::OnEvent( Event& event ) -> void {
-
     }
 
     auto EditorLayer::UpdatePanels( float ts ) -> void {
@@ -115,11 +130,16 @@ namespace Mikoto {
         const auto consolePanel{ m_PanelRegistry.Get<ConsolePanel>() };
         consolePanel->SetVisible( consolePanel );
 
+        const auto scenePanel{ m_PanelRegistry.Get<ScenePanel>() };
+        scenePanel->SetVisible( consolePanel );
+
         statsPanel->OnUpdate( ts );
         consolePanel->OnUpdate( ts );
+        scenePanel->OnUpdate( ts );
 
         statsPanelVisible = statsPanel->IsVisible();
         consolePanelVisible = consolePanel->IsVisible();
+        scenePanelVisible = scenePanel->IsVisible();
     }
 
     auto EditorLayer::SaveScene() const -> void {
@@ -170,6 +190,15 @@ namespace Mikoto {
     auto EditorLayer::CreatePanels() -> void {
         m_PanelRegistry.Register<StatsPanel>();
         m_PanelRegistry.Register<ConsolePanel>();
+
+        ScenePanelCreateInfo scenePanelCreateInfo{
+            .Width = m_Window->GetWidth(),
+            .Height = m_Window->GetHeight(),
+            .DisplayTarget = m_EditorState->FinalComposition,
+            .State = m_EditorState.get()
+        };
+
+        m_PanelRegistry.Register<ScenePanel>( scenePanelCreateInfo );
     }
 
     auto EditorLayer::CreateCameras() -> void {
@@ -428,6 +457,102 @@ namespace Mikoto {
 
     auto EditorLayer::InitializeEmptyScene( std::string_view name ) -> void {
         m_ActiveScene = CreateScope<Scene>( name );
+
+        ModelLoadDescription descFirst{
+            .ModelFile{ FileService::Get()->LoadFile( "./Resources/Models/3 - Dachniy house/source/Dachniy_Domik/D_House.FBX" ) },
+            .WantTextures{ true }
+        };
+
+        ModelHandle m_ModelMultipleMeshes = AssetsService::Get()->LoadAsset<Model>( descFirst );
+
+        ModelLoadDescription descSecond{
+            .ModelFile{ FileService::Get()->LoadFile( "./Resources/Models/1 - Box texture/BoxTexture.obj" ) },
+            .WantTextures{ true }
+        };
+
+        ModelHandle m_ModelSingleMesh = AssetsService::Get()->LoadAsset<Model>( descSecond );
+
+        m_ActiveScene = Scene::Create( "Hello World" );
+        m_ActiveScene->SetName( "Change name just for fun" );
+
+        // You need to specify the Scene the physics are simulated on
+        PhysicService::Get()->SetSimulationScene( m_ActiveScene.get() );
+
+        // This emitting sounds
+        Entity *entity{ m_ActiveScene->CreateEntity( "Ball" ) };
+        if (entity) {
+            entity->AddComponent<ScriptComponent>( "hello_world.lua" );
+            entity->AddComponent<AudioSourceComponent>( "my_song.mp3" );
+        }
+
+        // Load a model with multiple mesh nodes for testing
+        Entity *multipleNodes{ m_ActiveScene->CreateEntity( EntityCreateInfo{
+            .Root{ entity },
+            .Name{ "Npc" },
+            .Model{ m_ModelMultipleMeshes },
+        } ) };
+
+        if (entity) {
+            multipleNodes->AddComponent<ScriptComponent>( "idle.lua" );
+            multipleNodes->AddComponent<AudioSourceComponent>( "quack.mp3" );
+        }
+
+        // Load a model with multiple mesh nodes for testing
+        Entity *multipleNodesNoRoot{ m_ActiveScene->CreateEntity( EntityCreateInfo{
+            .Root{ nullptr },
+            .Name{ "Npc 1" },
+            .Model{ m_ModelMultipleMeshes },
+        } ) };
+
+        if (multipleNodesNoRoot) {
+            multipleNodesNoRoot->AddComponent<ScriptComponent>( "idle.lua" );
+            multipleNodesNoRoot->AddComponent<AudioSourceComponent>( "quack.mp3" );
+
+            multipleNodesNoRoot->AddComponent<MeshComponent>( );
+        }
+
+        // Load a model 1 node mesh nodes for testing
+        Entity *rootNoMultiple{ m_ActiveScene->CreateEntity( EntityCreateInfo{
+            .Root{ multipleNodesNoRoot },
+            .Name{ "Npc 2" },
+        } ) };
+
+        if (rootNoMultiple) {
+            rootNoMultiple->AddComponent<ScriptComponent>( "idle.lua" );
+            rootNoMultiple->AddComponent<AudioSourceComponent>( "quack.mp3" );
+        }
+
+        // This can hear sound and has a camera
+        // it would make sense as we generally want stuff close to the camera to be heard
+        // the further they are from the camera, the less we can hear sources
+        Entity* m_Listener = m_ActiveScene->CreateEntity( "PlushCat" );
+        if (m_Listener) {
+            m_Listener->AddComponent<CameraComponent>();
+            m_Listener->AddComponent<ScriptComponent>( "hello_world.lua" );
+            AudioListenerComponent &listenerComp{ m_Listener->AddComponent<AudioListenerComponent>() };
+            AudioListener &audioListener{ listenerComp.GetListener() };
+            audioListener.Apply();
+
+            RigidBodyComponent& rigidBody{ m_Listener->AddComponent<RigidBodyComponent>() };
+            rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
+            rigidBody.SetFriction( 0 );
+
+            // This requires the simulation scene to have been specified before
+            m_ActiveScene->AttachRigidBody( m_Listener );
+        }
+
+        // Some checks just to test the Scene interface
+        if (m_ActiveScene->ExistsByName( "PlushCat" )) {
+            MKT_CORE_LOGGER_WARN( "Entity with name {} exists.", "PlushCat" );
+        } else {
+            MKT_CORE_LOGGER_WARN( "Entity with name {} not exists.", "PlushCat" );
+        }
+
+        if (m_ActiveScene->ExistsByID( 4 )) {
+            MKT_CORE_LOGGER_WARN( "Entity with ID {} exists.", 4 );
+        } else {
+            MKT_CORE_LOGGER_WARN( "Entity with ID {} does not exist.", 4 );
+        }
     }
 
     auto EditorLayer::PrepareSerialization() -> void {

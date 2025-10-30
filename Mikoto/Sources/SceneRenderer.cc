@@ -2,13 +2,41 @@
 // Created by zanet on 4/5/2025.
 //
 
-#include <ranges>
-
 #include <Renderer/RenderService.hh>
 #include <Renderer/SceneRenderer.hh>
-#include <nlohmann/json.hpp>
 
 namespace Mikoto {
+
+    static auto TestCode() -> void {
+        // for reference usage framegraph later
+        // FrameGraph frameGraph;
+        //
+        // // Scene data
+        // std::vector<MeshHandle> shadowCasters = loadShadowCasters();
+        // std::vector<MeshHandle> opaqueObjects = loadOpaqueObjects();
+        // LightHandle sunLight = createDirectionalLight();
+        //
+        // // Text to render
+        // std::vector<TextPass::TextRenderData> uiTexts = {
+        //     { "FPS: 60", 10, 10, 1.0f, { 1, 1, 1, 1 }, defaultFont },
+        //     { "Score: 1337", 10, 40, 1.0f, { 1, 1, 0, 1 }, defaultFont }
+        // };
+        //
+        // // Create passes
+        // auto shadowPass = std::make_unique<ShadowPass>( sunLight, shadowCasters );
+        // auto pbrPass = std::make_unique<PBRPass>( opaqueObjects, shadowPass->getShadowMap() );
+        // auto textPass = std::make_unique<TextPass>( pbrPass->getColorOutput(), uiTexts );
+        //
+        // // Add to frame graph
+        // frameGraph.addPass( std::move( shadowPass ) );
+        // frameGraph.addPass( std::move( pbrPass ) );
+        // frameGraph.addPass( std::move( textPass ) );
+        //
+        // // Execute
+        // auto renderer = std::make_unique<VulkanBackend>();
+        // frameGraph.compile( *renderer );
+        // frameGraph.execute( *renderer );
+    }
 
     SceneRenderer::SceneRenderer( const SceneRendererCreateInfo &createInfo )
         : m_Device{ createInfo.Device } {}
@@ -44,17 +72,16 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::OnResize( UInt32 width, UInt32 height ) -> void {
-
     }
 
     auto SceneRenderer::SetCamera( SceneCamera *camera ) -> void {
 
-        m_Camera = dynamic_cast<SceneCamera*>(camera);
+        m_Camera = dynamic_cast<SceneCamera *>( camera );
     }
 
     auto SceneRenderer::GetFinalComposition() const -> TextureHandle {
         TextureHandle handle{ TextureHandle::CreateEmpty() };
-        if (m_RendererBackend) {
+        if ( m_RendererBackend ) {
             handle = m_RendererBackend->GetFinalComposition();
         }
 

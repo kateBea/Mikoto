@@ -1,270 +1,204 @@
-// /**
-//  * ScenePanel.cc
-//  * Created by kate on 6/27/23.
-//  * */
-//
-// // C++ Standard Library
-// #include <memory>
-//
-// // Third-Party Libraries
-// #include "glm/gtc/type_ptr.hpp"
-// #include "imgui.h"
-//
-// // Important to include after imgui
-// #include <volk.h>
-//
-// #include "ImGuizmo.h"
-//
-// // Project Headers
-// #include <Library/String/String.hh>
-//
-// #include "Core/Events/CoreEvents.hh"
-// #include "Core/System/EventSystem.hh"
-// #include "GUI/Icons/IconsMaterialDesign.h"
-// #include "Panels/HierarchyPanel.hh"
-// #include "Panels/ScenePanel.hh"
-// #include "Renderer/Vulkan/VulkanContext.hh"
-//
-// // Third-Party Libraries
-// #include "backends/imgui_impl_vulkan.h"
-// #include "volk.h"
-//
-// // Project Headers
-// #include <Core/Input/MouseCodes.hh>
-// #include <Core/System/GUISystem.hh>
-// #include <Core/System/InputSystem.hh>
-// #include <Library/Math/Math.hh>
-// #include <Scene/Scene/Scene.hh>
-//
-// #include "Common/Common.hh"
-// #include "Renderer/Vulkan/VulkanDeletionQueue.hh"
-// #include "Renderer/Vulkan/VulkanRenderer.hh"
-//
-// namespace Mikoto {
-//
-//     struct ScenePanelViewport_VKImplCreateInfo {
-//         RenderViewportCreateInfo ViewportCreateInfo{};
-//
-//         std::function<Entity *()> GetActiveEntityCallback{};
-//     };
-//
-//     class ScenePanelViewport_VKImpl final : public RenderViewport {
-//     public:
-//         explicit ScenePanelViewport_VKImpl( const ScenePanelViewport_VKImplCreateInfo &createInfo )
-//             : RenderViewport{ createInfo.ViewportCreateInfo },
-//               m_GetActiveEntityCallback{ createInfo.GetActiveEntityCallback } {}
-//
-//         auto Init() -> void override {
-//             m_ActiveManipulationMode = GuizmoManipulationMode::TRANSLATION;
-//
-//             // Create a Sampler for the texture we will display in the viewport
-//             VkSamplerCreateInfo samplerCreateInfo{ VulkanHelpers::Initializers::SamplerCreateInfo() };
-//             samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
-//             samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
-//             samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-//
-//             samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-//             samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-//             samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-//
-//             samplerCreateInfo.maxAnisotropy = 1.0f;
-//             samplerCreateInfo.mipLodBias = 0.0f;
-//             samplerCreateInfo.minLod = 0.0f;
-//             samplerCreateInfo.maxLod = 1.0f;
-//             samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
-//
-//             if ( vkCreateSampler( VulkanContext::Get().GetDevice().GetLogicalDevice(), &samplerCreateInfo, nullptr, &m_ColorAttachmentSampler ) != VK_SUCCESS ) { MKT_THROW_RUNTIME_ERROR( "Failed to create Vulkan sampler!" ); }
-//
-//             VulkanDeletionQueue::Push( [sampler = m_ColorAttachmentSampler]() -> void { vkDestroySampler( VulkanContext::Get().GetDevice().GetLogicalDevice(), sampler, nullptr ); } );
-//
-//             // Create the Descriptor set for the texture displayed in the ImGuiWindow scene
-//
-//             VulkanRenderer *vulkanSceneRenderer{ dynamic_cast<VulkanRenderer *>( m_Renderer ) };
-//
-//             m_ColorAttachmentDescriptorSet =
-//                     ImGui_ImplVulkan_AddTexture( m_ColorAttachmentSampler, vulkanSceneRenderer->GetFinalImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
-//
-//             GUISystem &guiSystem{ ServiceInitializer::GetSystem<GUISystem>() };
-//
-//             guiSystem.AddShutdownCallback( [ds = m_ColorAttachmentDescriptorSet]() -> void { ImGui_ImplVulkan_RemoveTexture( ds ); } );
-//
-//             vulkanSceneRenderer->RegisterResizeCallbacks( [&]() -> void {
-//                 VulkanRenderer *renderer{ dynamic_cast<VulkanRenderer *>( m_Renderer ) };
-//                 const VulkanImage &image{ renderer->GetFinalImage() };
-//
-//                 VulkanDevice& device{ VulkanContext::Get().GetDevice() };
-//                 device.WaitIdle();
-//
-//                 m_ColorAttachmentDescriptorSet =
-//                         ImGui_ImplVulkan_AddTexture( m_ColorAttachmentSampler, image.GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
-//
-//                 guiSystem.AddShutdownCallback( [colorDs = m_ColorAttachmentDescriptorSet]() -> void {
-//                     ImGui_ImplVulkan_RemoveTexture( colorDs );
-//                 } );
-//             } );
-//         }
-//
-//         auto SetManipulation( const GuizmoManipulationMode mode ) -> void { m_ActiveManipulationMode = mode; }
-//
-//         auto SetupGuizmos() const -> void {
-//             Entity *currentSelection{ m_GetActiveEntityCallback() };
-//             if ( currentSelection != nullptr && currentSelection->IsValid() ) {
-//                 if ( !currentSelection->GetComponent<TagComponent>().IsVisible() ) { return; }
-//
-//                 ImGuizmo::SetOrthographic( m_EditorMainCamera->IsOrthographic() );
-//                 ImGuizmo::SetDrawlist();
-//
-//                 const ImVec2 windowPosition{ ImGui::GetWindowPos() };
-//                 const ImVec2 windowDimensions{ ImGui::GetWindowSize() };
-//                 ImGuizmo::SetRect( windowPosition.x, windowPosition.y, windowDimensions.x, windowDimensions.y );
-//             }
-//         }
-//
-//         auto OnUpdate() -> void override {
-//             if ( m_Renderer->HasUpdatedResolution() ) {
-//                 VulkanRenderer *vulkanSceneRenderer{ dynamic_cast<VulkanRenderer *>( m_Renderer ) };
-//
-//                 vulkanSceneRenderer->RegisterResizeCallbacks( [&]() -> void {
-//                     GUISystem &guiSystem{ ServiceInitializer::GetSystem<GUISystem>() };
-//                     VulkanRenderer *renderer{ dynamic_cast<VulkanRenderer *>( m_Renderer ) };
-//                     const VulkanImage &image{ renderer->GetFinalImage() };
-//
-//                     VulkanDevice &device{ VulkanContext::Get().GetDevice() };
-//                     device.WaitIdle();
-//
-//                     m_ColorAttachmentDescriptorSet =
-//                             ImGui_ImplVulkan_AddTexture( m_ColorAttachmentSampler, image.GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
-//
-//                     guiSystem.AddShutdownCallback( [colorDs = m_ColorAttachmentDescriptorSet]() -> void {
-//                         ImGui_ImplVulkan_RemoveTexture( colorDs );
-//                     } );
-//                 } );
-//
-//                 return;
-//             }
-//
-//             const ImVec2 viewPortDimensions{ ImGui::GetContentRegionAvail() };
-//
-//             // If the window size has changed, we need to resize the scene viewport
-//             if ( m_ViewPortWidth != viewPortDimensions.x || m_ViewPortHeight != viewPortDimensions.y ) {
-//                 m_ViewPortWidth = viewPortDimensions.x;
-//                 m_ViewPortHeight = viewPortDimensions.y;
-//                 m_TargetScene->OnViewPortResize( viewPortDimensions.x, viewPortDimensions.y );
-//             }
-//
-//             ImGui::Image( reinterpret_cast<ImTextureID>( m_ColorAttachmentDescriptorSet ),
-//                           ImVec2{ m_ViewPortWidth, m_ViewPortHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
-//
-//             SetupGuizmos();
-//
-//             HandleManipulationMode();
-//         }
-//
-//     private:
-//         auto HandleManipulationMode() const -> void {
-//             Entity *currentSelection{ m_GetActiveEntityCallback() };
-//             if ( currentSelection == nullptr || !currentSelection->IsValid() ) { return; }
-//
-//             TransformComponent &transformComponent{ currentSelection->GetComponent<TransformComponent>() };
-//
-//             const glm::mat4 &cameraView{ m_EditorMainCamera->GetViewMatrix() };
-//             const glm::mat4 &cameraProjection{ m_EditorMainCamera->GetProjection() };
-//             glm::mat4 objectTransform{ transformComponent.GetTransform() };
-//             glm::vec3 oldTranslation{ transformComponent.GetTranslation() };
-//             glm::vec3 oldRotation{ transformComponent.GetRotation() };
-//             glm::vec3 oldScale{ transformComponent.GetScale() };
-//
-//             switch ( m_ActiveManipulationMode ) {
-//                 case GuizmoManipulationMode::TRANSLATION:
-//                     ImGuizmo::Manipulate( glm::value_ptr( cameraView ), glm::value_ptr( cameraProjection ), ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::MODE::LOCAL, glm::value_ptr( objectTransform ) );
-//                     break;
-//                 case GuizmoManipulationMode::ROTATION:
-//                     ImGuizmo::Manipulate( glm::value_ptr( cameraView ), glm::value_ptr( cameraProjection ), ImGuizmo::OPERATION::ROTATE, ImGuizmo::MODE::LOCAL, glm::value_ptr( objectTransform ) );
-//                     break;
-//                 case GuizmoManipulationMode::SCALE:
-//                     ImGuizmo::Manipulate( glm::value_ptr( cameraView ), glm::value_ptr( cameraProjection ), ImGuizmo::OPERATION::SCALE, ImGuizmo::MODE::LOCAL, glm::value_ptr( objectTransform ) );
-//                     break;
-//             }
-//
-//             if ( ImGuizmo::IsUsing() ) {
-//                 transformComponent.SetTransform( objectTransform );
-//
-//                 // Apply the transformation to the children
-//                 // For now Guizmos only change translation so thats the only thing we handle in the children
-//
-//                 const glm::vec3 offsetTranslation{ transformComponent.GetTranslation() - oldTranslation };
-//                 const glm::vec3 offsetRotation{ transformComponent.GetRotation() - oldRotation };
-//                 const glm::vec3 offsetScale{ transformComponent.GetScale() - oldScale };
-//
-//                 auto &hierarchy{ m_TargetScene->GetHierarchy() };
-//
-//                 hierarchy.ForAllChildren( [&]( Entity *child ) -> void {
-//                                               TransformComponent &childTransform{ child->GetComponent<TransformComponent>() };
-//
-//                                               childTransform.SetTranslation( childTransform.GetTranslation() + offsetTranslation );
-//                                               childTransform.SetRotation( childTransform.GetRotation() + offsetRotation );
-//                                               childTransform.SetScale( childTransform.GetScale() + offsetScale ); }, [&]( Entity *target ) -> bool { return target->GetComponent<TagComponent>().GetGUID() ==
-//                                                                                                                    currentSelection->GetComponent<TagComponent>().GetGUID(); } );
-//             }
-//         }
-//
-//     private:
-//         GuizmoManipulationMode m_ActiveManipulationMode{};
-//         std::function<Entity *()> m_GetActiveEntityCallback{};
-//
-//         VkSampler m_ColorAttachmentSampler{};
-//         VkDescriptorSet m_ColorAttachmentDescriptorSet{};
-//     };
-//
-//     static constexpr auto GetSceneName() -> std::string_view { return "Scene"; }
-//
-//     ScenePanel::ScenePanel( const ScenePanelCreateInfo &createInfo ) {
-//         m_PanelHeaderName = StringUtils::MakePanelName( ICON_MD_IMAGE, GetSceneName() );
-//
-//         // Initialize implementation
-//         ScenePanelViewport_VKImplCreateInfo sceneApiCreateInfo{
-//             .ViewportCreateInfo{
-//                     .ViewportWidth{ createInfo.Width },
-//                     .ViewportHeight{ createInfo.Height },
-//                     .TargetScene{ createInfo.TargetScene },
-//                     .Renderer{ createInfo.Renderer },
-//                     .MainCamera{ createInfo.EditorMainCamera },
-//             },
-//             .GetActiveEntityCallback{ createInfo.GetActiveEntityCallback },
-//         };
-//
-//         // Set scene panel implementation
-//         m_Implementation = CreateScope<ScenePanelViewport_VKImpl>( sceneApiCreateInfo );
-//
-//         if ( m_Implementation != nullptr ) {
-//             m_Implementation->Init();
-//         } else {
-//             MKT_APP_LOGGER_ERROR( "ScenePanel::ScenePanel - Failed to create Scene Panel ImGui implementation." );
-//         }
-//     }
-//
-//     auto ScenePanel::OnUpdate( MKT_UNUSED_VAR float ts ) -> void {
-//         if ( m_PanelIsVisible ) {
-//             constexpr ImGuiWindowFlags windowFlags{};
-//
-//             // Expand scene view to window bounds (no padding)
-//             ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f, 0.0f } );
-//             ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), windowFlags );
-//
-//             //DrawScenePlayButtons();
-//
-//             m_PanelIsFocused = ImGui::IsWindowFocused();
-//             m_PanelIsHovered = ImGui::IsWindowHovered();
-//
-//             m_Implementation->OnUpdate();
-//
-//             ImGui::End();
-//
-//             ImGui::PopStyleVar();
-//         }
-//     }
-//
-//     auto ScenePanel::SetGuizmoManipulationMode( const GuizmoManipulationMode mode ) const -> void {
-//         dynamic_cast<ScenePanelViewport_VKImpl *>( m_Implementation.get() )->SetManipulation( mode );
-//     }
-// }// namespace Mikoto
+/**
+ * ScenePanel.cc
+ * Created by kate on 6/27/23.
+ * */
+
+// C++ Standard Library
+#include <memory>
+
+// Third-Party Libraries
+#include "imgui.h"
+#include "glm/gtc/type_ptr.hpp"
+
+// Important to include after imgui
+#include <ImGuizmo.h>
+#include <imgui.h>
+
+// Project Headers
+#include <ImGui/IconsMaterialDesign.h>
+
+#include <Common/Common.hh>
+#include <ImGui/ImGuiService.hh>
+#include <ImGui/ImGuiUtility.hh>
+#include <Layers/EditorLayer.hh>
+#include <Library/Math/Math.hh>
+#include <Library/String/String.hh>
+#include <Panels/ScenePanel.hh>
+#include <Scene/Component.hh>
+
+namespace Mikoto {
+
+    static constexpr auto GetSceneName() -> std::string_view { return "Scene"; }
+
+    auto ShowGizmoToolbarOverlay(bool* open) -> void {
+        ImGuiWindowFlags window_flags =
+            ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking |
+            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
+            ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav |
+            ImGuiWindowFlags_NoMove;
+
+        const float PAD = 20.0f;
+
+        // Get the position and size of the Scene window
+        ImVec2 scenePos = ImGui::GetWindowPos();
+
+        // Position overlay relative to the Scene window’s top-left corner
+        ImVec2 window_pos = ImVec2(scenePos.x + PAD, scenePos.y + 2 * PAD);
+
+        ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always);
+        ImGui::SetNextWindowViewport(ImGui::GetWindowViewport()->ID); // match same viewport as Scene
+
+        ImGui::SetNextWindowBgAlpha(0.35f); // semi-transparent background
+
+        if (ImGui::Begin("##GizmoToolbar", open, window_flags))
+        {
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 0));
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 6));
+
+            ImGui::BeginGroup();
+
+            // These could be ImageButtons with icons instead
+            if (ImGui::Button(ICON_MD_TRANSFORM)) { /* Set translate gizmo */ }
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_MD_ROTATE_LEFT)) { /* Set rotate gizmo */ }
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_MD_SCALE)) { /* Set scale gizmo */ }
+
+            ImGui::EndGroup();
+
+            ImGui::Spacing();
+            ImGui::Spacing();
+            ImGui::Spacing();
+
+
+            ImGui::BeginGroup();
+
+            if (ImGui::Button(ICON_MD_PLAY_ARROW)) { /* Play */ }
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_MD_PAUSE)) { /* Pause */ }
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_MD_STOP)) { /* Stop */ }
+
+            ImGui::EndGroup();
+            ImGui::PopStyleVar(2);
+        }
+        ImGui::End();
+    }
+
+
+    ScenePanel::ScenePanel( const ScenePanelCreateInfo &createInfo )
+        : m_EditorState{ createInfo.State }, m_ViewPortWidth( createInfo.Width ), m_ViewPortHeight( createInfo.Height ) {
+        m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_IMAGE, GetSceneName() );
+
+        ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
+        m_DisplayTargetImGuiID = backend->ConstructImGuiTextureID( m_EditorState->FinalComposition );
+    }
+
+    auto ScenePanel::OnUpdate( MKT_UNUSED_VAR float ts ) -> void {
+        if ( m_PanelIsVisible ) {
+            constexpr ImGuiWindowFlags windowFlags{};
+
+            // Expand scene view to window bounds (no padding)
+            ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f, 0.0f } );
+            ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), windowFlags );
+
+            DrawScenePlayButtons();
+
+            m_PanelIsFocused = ImGui::IsWindowFocused();
+            m_PanelIsHovered = ImGui::IsWindowHovered();
+
+            UpdateViewport();
+
+            static bool open{ true };
+            ShowGizmoToolbarOverlay(&open);
+
+            SetupManipulation();
+            DrawManipulationGuizmos();
+
+            ImGui::End();
+
+            ImGui::PopStyleVar();
+        }
+    }
+
+    auto ScenePanel::SetManipulation( GuizmoType mode ) -> void {
+        m_GuizmoType = mode;
+    }
+
+    auto ScenePanel::GetViewportWidth() const -> float {
+        return m_ViewPortWidth;
+    }
+
+    auto ScenePanel::GetViewportHeight() const -> float {
+        return m_ViewPortHeight;
+    }
+
+    auto ScenePanel::UpdateViewport() -> void {
+        const ImVec2 dim{ ImGui::GetContentRegionAvail() };
+
+        if ( m_ViewPortWidth != dim.x || m_ViewPortHeight != dim.y ) {
+            m_ViewPortWidth = dim.x;
+            m_ViewPortHeight = dim.y;
+        }
+
+        ImGui::Image( m_DisplayTargetImGuiID, ImVec2{ dim.x, dim.y }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
+    }
+    auto ScenePanel::SetupManipulation() const -> void {
+        Entity *currentSelection{ m_EditorState->SelectedEntity };
+        if ( currentSelection != nullptr && currentSelection->IsValid() ) {
+            if ( !currentSelection->GetComponent<TagComponent>().IsActive() ) {
+                return;
+            }
+
+            ImGuizmo::SetOrthographic( m_EditorState->EditorCamera->IsOrthographic() );
+            ImGuizmo::SetDrawlist();
+
+            const ImVec2 windowPosition{ ImGui::GetWindowPos() };
+            const ImVec2 windowDimensions{ ImGui::GetWindowSize() };
+            ImGuizmo::SetRect( windowPosition.x, windowPosition.y, windowDimensions.x, windowDimensions.y );
+        }
+    }
+
+    auto ScenePanel::DrawManipulationGuizmos() -> void {
+        Entity *currentSelection{ m_EditorState->SelectedEntity };
+        if ( currentSelection == nullptr || !currentSelection->IsValid() ) { return; }
+
+        TransformComponent &transformComponent{ currentSelection->GetComponent<TransformComponent>() };
+
+        const glm::mat4 &cameraView{ m_EditorState->EditorCamera->GetViewMatrix() };
+        const glm::mat4 &cameraProjection{ m_EditorState->EditorCamera->GetProjection() };
+        glm::mat4 objectTransform{ transformComponent.GetTransform() };
+        glm::vec3 oldTranslation{ transformComponent.GetTranslation() };
+        glm::vec3 oldRotation{ transformComponent.GetRotation() };
+        glm::vec3 oldScale{ transformComponent.GetScale() };
+
+        switch ( m_GuizmoType ) {
+            case GuizmoType::TRANSLATION:
+                ImGuizmo::Manipulate( glm::value_ptr( cameraView ), glm::value_ptr( cameraProjection ), ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::MODE::LOCAL, glm::value_ptr( objectTransform ) );
+                break;
+            case GuizmoType::ROTATION:
+                ImGuizmo::Manipulate( glm::value_ptr( cameraView ), glm::value_ptr( cameraProjection ), ImGuizmo::OPERATION::ROTATE, ImGuizmo::MODE::LOCAL, glm::value_ptr( objectTransform ) );
+                break;
+            case GuizmoType::SCALE:
+                ImGuizmo::Manipulate( glm::value_ptr( cameraView ), glm::value_ptr( cameraProjection ), ImGuizmo::OPERATION::SCALE, ImGuizmo::MODE::LOCAL, glm::value_ptr( objectTransform ) );
+                break;
+        }
+
+        if ( ImGuizmo::IsUsing() ) {
+            transformComponent.SetTransform( objectTransform );
+
+            // Apply the transformation to the children
+            // For now Guizmos only change translation so thats the only thing we handle in the children
+
+            const glm::vec3 offsetTranslation{ transformComponent.GetTranslation() - oldTranslation };
+            const glm::vec3 offsetRotation{ transformComponent.GetRotation() - oldRotation };
+            const glm::vec3 offsetScale{ transformComponent.GetScale() - oldScale };
+
+            //propagate changes
+        }
+    }
+
+    auto ScenePanel::DrawScenePlayButtons() const -> void {
+
+    }
+}// namespace Mikoto

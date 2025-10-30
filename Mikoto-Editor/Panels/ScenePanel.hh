@@ -13,41 +13,28 @@
 #include <volk.h>
 
 // Project Headers
-#include <Common/Common.hh>
+#include <Assets/Texture.hh>
 #include <Library/Utility/Types.hh>
 #include <Panels/Panel.hh>
-#include <Renderer/Core/RendererBackend.hh>
-#include <Scene/Scene/Scene.hh>
-#include <GUI/RenderViewport.hh>
+#include <Scene/Scene.hh>
 
 namespace Mikoto {
 
-    struct SceneApiCreateInfo {
-        UInt32_T ViewportWidth{};
-        UInt32_T ViewportHeight{};
+    class EditorState;
 
-        Scene* TargetScene{};
-        const RendererBackend* Renderer{};
-
-        const SceneCamera* EditorMainCamera{};
-        std::function<Entity*()> GetActiveEntityCallback{};
-    };
-
-    enum class GuizmoManipulationMode {
+    enum class GuizmoType {
         TRANSLATION,
         ROTATION,
         SCALE,
     };
 
     struct ScenePanelCreateInfo {
-        UInt32_T Width{};
-        UInt32_T Height{};
+        UInt32 Width{};
+        UInt32 Height{};
 
-        Scene* TargetScene{};
-        RendererBackend* Renderer{};
-        const SceneCamera* EditorMainCamera{};
+        TextureHandle DisplayTarget{};
 
-        std::function<Entity*()> GetActiveEntityCallback{};
+        EditorState* State{};
     };
 
     class ScenePanel final : public Panel {
@@ -55,16 +42,28 @@ namespace Mikoto {
         explicit ScenePanel(const ScenePanelCreateInfo& createInfo);
 
         auto OnUpdate(float ts) -> void override;
-
-        auto SetGuizmoManipulationMode(GuizmoManipulationMode mode ) const -> void;
-
-        MKT_NODISCARD auto GetViewportWidth() const -> float { return m_Implementation->GetViewportWidth(); }
-        MKT_NODISCARD auto GetViewportHeight() const -> float { return m_Implementation->GetViewportHeight(); }
+        auto SetManipulation( GuizmoType mode ) -> void;
 
         ~ScenePanel() override = default;
 
-    protected:
-        Scope_T<RenderViewport> m_Implementation{};
+        MKT_NODISCARD auto GetViewportWidth() const -> float;
+        MKT_NODISCARD auto GetViewportHeight() const -> float;
+
+    private:
+        auto UpdateViewport() -> void;
+        auto SetupManipulation() const -> void;
+        auto DrawManipulationGuizmos() -> void;
+        auto DrawScenePlayButtons() const -> void;
+
+    private:
+        EditorState* m_EditorState{};
+
+        GuizmoType m_GuizmoType{ GuizmoType::TRANSLATION };
+
+        float m_ViewPortWidth{};
+        float m_ViewPortHeight{};
+
+        ImTextureID m_DisplayTargetImGuiID{};
     };
 }
 

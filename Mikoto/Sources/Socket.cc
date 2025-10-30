@@ -134,12 +134,12 @@ namespace Mikoto {
                                  [this]( std::error_code ec, const asio::ip::tcp::endpoint & ) -> void {
                                      if ( !ec ) {
                                          m_Connected = true;
-                                         MKT_CORE_LOGGER_INFO( "SSL Connected successfully" );
+                                         MKT_CORE_LOGGER_INFO( "SSL Connected successfully to host {}", m_HostName );
 
                                          // Perform TLS handshake
                                          m_SslSocket.handshake( asio::ssl::stream_base::client );
                                      } else {
-                                         MKT_CORE_LOGGER_ERROR( "SSL connection failed: {}", ec.message() );
+                                         MKT_CORE_LOGGER_ERROR( "SSL connection failed to host {}, message: {}",m_HostName, ec.message() );
                                      }
                                  } );
 
@@ -151,9 +151,9 @@ namespace Mikoto {
             asio::async_connect( m_Socket, endpoints, [this]( std::error_code ec, const asio::ip::tcp::endpoint & ) {
                 if ( !ec ) {
                     m_Connected = true;
-                    MKT_CORE_LOGGER_INFO( "TCP Connected successfully" );
+                    MKT_CORE_LOGGER_INFO( "TCP Connected successfully to host {}", m_HostName );
                 } else {
-                    MKT_CORE_LOGGER_ERROR( "TCP connection failed: {}", ec.message() );
+                    MKT_CORE_LOGGER_ERROR( "TCP connection failed to host{}, message: {}", m_HostName, ec.message() );
                 }
             } );
         }

@@ -2,23 +2,19 @@
 // Created by kate on 10/30/25.
 //
 
+#include <cctype>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <regex>
+#include <optional>
+#include <utility>
+
 #include "Networking/NetworkUtilities.hh"
 
-#include <cctype>
-#include <sstream>
-#include <stdexcept>
-#include <string>
-#include <string_view>
-#include <unordered_map>
 
 namespace Mikoto::Network {
-
-#include <cctype>
-#include <sstream>
-#include <stdexcept>
-#include <string>
-#include <string_view>
-#include <unordered_map>
 
     // Helper: trim whitespace from start and end
     inline std::string_view trim( std::string_view sv ) {
@@ -26,12 +22,6 @@ namespace Mikoto::Network {
         while ( !sv.empty() && std::isspace( sv.back() ) ) sv.remove_suffix( 1 );
         return sv;
     }
-
-    struct HttpResponse {
-        std::string statusLine;
-        std::unordered_map<std::string, std::string> headers;
-        std::string body;
-    };
 
     // Parse raw HTTP response
     auto ParseHttpResponse( std::string_view response ) -> HttpResponse {
@@ -112,8 +102,27 @@ namespace Mikoto::Network {
         return result;
     }
 
+    auto GetHost( std::string_view url ) -> std::pair<std::string, std::optional<std::string>> {
+        // Regex pattern for URL: scheme://host[:port][/...]
+        static const std::regex pattern(R"(^(?:https?:\/\/)?([^\/:]+)(?::(\d+))?.*$)",std::regex::icase);
+        std::smatch match{};
+        const std::string urlTarget{ url };
 
-    auto GetBody( std::string_view apiResponse ) -> std::string {
+        if (std::regex_match(urlTarget, match, pattern)) {
+            std::string host = match[1].str();
+            std::optional<std::string> port{};
+            if (match[2].matched) {
+                port = match[2].str();
+            }
+
+            return {host, port};
+        }
+
+        // Fallback: not a full URL, just a host
+        return std::make_pair( urlTarget, std::optional<std::string>() );
+    }
+
+    auto GetHttpBody( std::string_view apiResponse ) -> std::string {
         try {
             auto parsed = ParseHttpResponse( apiResponse );
             return parsed.body;
@@ -121,6 +130,17 @@ namespace Mikoto::Network {
             // Optional: handle parsing errors
             // For now, return empty string on failure
             return "";
+        }
+    }
+
+    auto GetHttpResponse( std::string_view apiResponse ) -> HttpResponse {
+        try {
+            auto parsed = ParseHttpResponse( apiResponse );
+            return parsed;
+        } catch ( const std::exception& e ) {
+            // Optional: handle parsing errors
+            // For now, return empty string on failure
+            return {};
         }
     }
 }// namespace Mikoto::Network

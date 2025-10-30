@@ -112,6 +112,8 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetDeviceName() const -> std::string_view override;
 
+        MKT_NODISCARD auto GetDummyTexture() -> TextureHandle override;
+
         auto SubmitCommands( CommandListHandle cmd ) -> void override;
         auto RunGarbageCollection() -> void override;
 

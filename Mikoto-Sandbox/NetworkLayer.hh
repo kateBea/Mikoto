@@ -5,7 +5,10 @@
 #ifndef NETWORK_LAYER_HH
 #define NETWORK_LAYER_HH
 
+#include <vector>
 #include <string_view>
+
+#include <ankerl/unordered_dense.h>
 
 #include <Assets/Audio.hh>
 #include <Core/LayerStack.hh>
@@ -24,7 +27,24 @@ namespace Mikoto {
         auto OnEvent(Event &event) -> void override;
 
     private:
-        SocketHandle m_Socket{};
+        auto DrawAnimeWindow() -> void;
+
+    private:
+        struct AnimeInfo {
+            Int32 id{};
+            std::string title{};
+        };
+
+    private:
+        SocketHandle m_LocalHostSocket{};
+
+        bool m_HasFetchedList{ false };
+        Int32 m_SelectedAnimeIndex{};
+
+        std::vector<AnimeInfo> m_AnimeList{};
+        ankerl::unordered_dense::map<Int32, std::string> m_SelectedAnimeJsons{};
+
+
     };
 }// namespace Mikoto
 

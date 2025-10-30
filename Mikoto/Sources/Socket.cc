@@ -24,7 +24,7 @@ namespace Mikoto {
     }
 
     auto TcpSocket::Connect( const std::string_view address, const UInt16 port ) -> bool {
-        if (m_Connected) {
+        if ( m_Connected ) {
             Disconnect();
         }
 
@@ -36,12 +36,16 @@ namespace Mikoto {
         return m_Connected;
     }
 
-    auto TcpSocket::Send( const void *data, const Size size ) -> bool {
+    auto TcpSocket::SendSync( const std::string_view data ) -> bool {
+        return SendSync( data.data(), data.size() );
+    }
+
+    auto TcpSocket::SendSync( const void *data, const Size size ) -> bool {
         asio::write(m_Socket, asio::buffer(data, size));
         return true;
     }
 
-    auto TcpSocket::Receive( void *buffer, const Size maxSize ) -> Size {
+    auto TcpSocket::ReceiveSync( void *buffer, const Size maxSize ) -> Size {
         return m_Socket.read_some(asio::buffer(buffer, maxSize));
     }
 
@@ -52,8 +56,8 @@ namespace Mikoto {
     }
 
     auto TcpSocket::Initialize() -> void {
-        asio::ip::tcp::resolver resolver(m_Socket.get_executor());
-        auto endpoints { resolver.resolve(m_Address, std::to_string(m_Port)) };
+        asio::ip::tcp::resolver resolver( m_Socket.get_executor() );
+        const auto endpoints { resolver.resolve(m_Address, std::to_string(m_Port)) };
 
         asio::async_connect(m_Socket, endpoints,
             [this](std::error_code ec, const asio::ip::tcp::endpoint&) {

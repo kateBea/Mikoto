@@ -371,7 +371,7 @@ namespace Mikoto {
             m_ImageCreateInfo.flags = 0;
 
             // Allocate image using GPU Allocator
-            const auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>( TO_VK_DEVICE( m_Device )->GetAllocator() ) };
+            auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>( TO_VK_DEVICE( m_Device )->GetAllocator() ) };
             if ( const VkResult result{ allocator->AllocateImage( this ) }; result != VK_SUCCESS ) {
                 MKT_THROW_RUNTIME_ERROR( "Failed to allocate Vulkan image!" );
             }
@@ -415,8 +415,9 @@ namespace Mikoto {
 
         m_IsAllocated = true;
 
-        //VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ), VK_OBJECT_TYPE_COMMAND_BUFFER, reinterpret_cast<UInt64>( m_Image ), fmt::format( "MKT Texture Image. Handle: {}", GetHandle() ).c_str() );
-        //VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ), VK_OBJECT_TYPE_COMMAND_BUFFER, reinterpret_cast<UInt64>( m_ImageView ), fmt::format( "MKT Texture ImageView. Handle: {}", GetHandle()).c_str() );
+        m_DebugName = fmt::format( "MikotoVulkanTexture Image: {}, ImageView: {}, Pool ID: {}", reinterpret_cast<UInt64>( m_Image ), reinterpret_cast<UInt64>( m_ImageView ), GetHandle() );
+        VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ),VK_OBJECT_TYPE_IMAGE, reinterpret_cast<UInt64>( m_Image ),m_DebugName.c_str() );
+        VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ),VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<UInt64>( m_ImageView ),m_DebugName.c_str() );
     }
 
     auto VulkanSwapChain::GetImages() -> void {

@@ -52,8 +52,9 @@ namespace Mikoto {
         m_DepthImage.Disable();
         m_DrawFrameBuffer.Disable();
 
-
         // Clear texture IDs
+        // Wait before cearing the IDs
+        TO_VK_DEVICE( m_GpuDevice )->WaitIdle();
         for (ImGuiTextIDInfo& info : m_ImGuiSets | std::ranges::views::values ) {
             ImGui_ImplVulkan_RemoveTexture( info.descriptorSet );
         }
@@ -318,27 +319,30 @@ namespace Mikoto {
             ImGui::RenderPlatformWindowsDefault();
         }
     }
-
-    auto ImGuiVulkanBackend::ConstructImGuiTextureID(TextureHandle texture) -> ImTextureID {
+    auto ImGuiVulkanBackend::ConstructImGuiTextureID( const Texture* texture ) -> ImTextureID {
         ImTextureID result{};
 
-        auto itFind{ m_ImGuiSets.find( texture->GetHandle() ) };
+        auto itFind{ m_ImGuiSets.find( texture ) };
         if ( itFind != m_ImGuiSets.end() ) {
             result = reinterpret_cast<ImTextureID>(itFind->second.descriptorSet);
         } else {
             SamplerHandle sampler{ m_GpuDevice->CreateSampler( SamplerDescription{} ) };
-            VulkanTexture* color{ dynamic_cast<VulkanTexture*>( texture.GetRaw() ) };
+            const VulkanTexture* color{ dynamic_cast<const VulkanTexture*>( texture ) };
 
             VkDescriptorSet ds{ ImGui_ImplVulkan_AddTexture( sampler->GetNativeHandle( ObjectType::Vk_Sampler ), *color->GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ) };
 
             const auto [it, success] {
-                m_ImGuiSets.try_emplace( texture->GetHandle(), ImGuiTextIDInfo{ sampler, texture, ds } )
+                m_ImGuiSets.try_emplace( texture, ImGuiTextIDInfo{ ds } )
             };
 
             result = reinterpret_cast<ImTextureID>(it->second.descriptorSet);
         }
 
         return result;
+    }
+
+    auto ImGuiVulkanBackend::ConstructImGuiTextureID(TextureHandle texture) -> ImTextureID {
+        return ConstructImGuiTextureID( texture.GetRaw() );
     }
 
     auto ImGuiVulkanBackend::CreateFrameBuffer() -> void {

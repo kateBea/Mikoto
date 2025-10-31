@@ -473,10 +473,12 @@ set(LIBRARIES
         unordered_dense::unordered_dense
         nlohmann_json::nlohmann_json
         sol2::sol2
+        OpenSSL::SSL
+        OpenSSL::Crypto
 )
 
 if(UNIX)
-    list(APPEND LIBRARIES pthread lua OpenSSL::SSL OpenSSL::Crypto)
+    list(APPEND LIBRARIES pthread lua)
 endif()
 
 

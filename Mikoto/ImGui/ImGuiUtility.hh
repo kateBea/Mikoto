@@ -50,9 +50,30 @@ namespace Mikoto::ImGuiUtils {
         }
     };
 
-    MKT_NODISCARD inline auto PushImageButton( UInt64 textureId, const VkDescriptorSet textureHandle, const ImVec2 size ) -> bool {
-        const ImTextureID icon{ reinterpret_cast<ImTextureID>( textureHandle ) };
-        return ImGui::ImageButton( StringUtils::ToString( textureId ).c_str(), icon, size, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
+    class ImGuiScopedTextFont {
+    public:
+        static constexpr Int8 Invalid{ -1 };
+
+        explicit ImGuiScopedTextFont( const Int8 index )
+            : m_Index{ index }
+        {
+            if (m_Index != Invalid) {
+                ImGui::PushFont( ImGui::GetIO().Fonts->Fonts[index] );
+            }
+        }
+
+        ~ImGuiScopedTextFont() {
+            if (m_Index != Invalid) {
+                ImGui::PopFont();
+            }
+        }
+
+    private:
+        Int8 m_Index{};
+    };
+
+    MKT_NODISCARD inline auto PushImageButton( UInt64 textureId, ImTextureID textureHandle, const ImVec2 size ) -> bool {
+        return ImGui::ImageButton( StringUtils::ToString( textureId ).c_str(), textureHandle, size, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
     }
 
     inline auto ThemeDarkModeAlt() -> void {

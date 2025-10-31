@@ -31,6 +31,17 @@ namespace Mikoto {
 
     class VulkanRenderer final : public RendererBackend, public Singleton<VulkanRenderer> {
     public:
+        // A texture can be sampled from in different ways
+        // when we add a new sampler to the bindless descriptor
+        // we the actual texture and the sampler, textures generally
+        // have a default sampler, but we can optionally specify a different sampler if we want
+        // The binding index is automatically increased by the renderer
+        struct TextureBinding {
+            SamplerHandle Sampler{};
+            TextureHandle Texture{};
+        };
+
+    public:
         explicit VulkanRenderer( GpuDevice* device, std::string_view name );
 
         auto Init() -> void override;
@@ -60,13 +71,58 @@ namespace Mikoto {
         // [Internal usage]
         auto InitGlobalShaderBuffers() -> void;
         auto CreateBindlessDescriptor() -> void;
-        auto UpdateBindlessTextureDescriptor( Int32 index, VulkanTexture* texture ) -> void;
+        auto UpdateBindlessTextureDescriptor( Int32 index, VulkanTexture* texture ) const -> void;
 
         auto InitCoreRenderPasses() -> void;
 
         auto RunComputeWorkflow() -> void;
 
+    private:
+        // TODO: temporary matches pbr_instance shaders layout
+#define MAX_LIGHTS 50
 
+        struct FrameUBO {
+            glm::mat4 View{};
+            glm::mat4 Projection{};
+            Vec4F CameraPosition{};
+        };
+
+        struct SpotLightShader {
+            Vec4F Position{};
+            Vec4F Direction{};
+            Vec4F Ambient{};
+            Vec4F Diffuse{};
+            Vec4F Specular{};
+            // x=cutOff, y=outerCutOff, z=intensity, w=radius
+            Vec4F CutOffValues{};
+        };
+
+        struct PointLightShader {
+            Vec4F Position{};
+            Vec4F Ambient{};
+            Vec4F Diffuse{};
+            Vec4F Specular{};
+            Vec4F AttenuationParams{};
+        };
+
+        struct DirectionalLightShader {
+            Vec4F Position{};
+            Vec4F Ambient{};
+            Vec4F Diffuse{};
+            Vec4F Specular{};
+        };
+
+
+        struct LightInfo {
+            SpotLightShader SpotLights[MAX_LIGHTS]{};
+            PointLightShader PointLights[MAX_LIGHTS]{};
+            DirectionalLightShader DirectionalLights[MAX_LIGHTS]{};
+            Int32 DirectionalLightCount{};
+            Int32 PointLightCount{};
+            Int32 SpotLightCount{};
+            Int32 DisplayMode{};
+            Int32 Wireframe{};
+        };
     private:
         // Per frame data
         BufferHandle m_FrameUBOBuffer{};
@@ -87,6 +143,8 @@ namespace Mikoto {
         ResourcePoolTyped<PBRMaterial> m_Materials{};
 
         Registry<IPass> m_Passes{};
+
+        LightInfo* m_LightsInfo{};
 
         VkViewport m_Viewport{};
         VkRect2D m_Scissor{};

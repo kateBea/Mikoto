@@ -12,7 +12,16 @@ namespace Mikoto {
 #if defined(__linux__)
     static auto TestCode() -> void {
         sol::state lua;
-        lua.open_libraries( sol::lib::base );// open basic Lua libraries
+
+        // Open basic libs
+        lua.open_libraries(
+            sol::lib::base,    // print, etc.
+            sol::lib::package, // require
+            sol::lib::string,  // string.* functions
+            sol::lib::table,   // table.* functions
+            sol::lib::math,    // math.* functions
+            sol::lib::os       // os.* functions
+        );
 
         // Load and execute the Lua script from file
         try {

@@ -17,7 +17,7 @@ namespace Mikoto {
             return;// nothing to free
         }
 
-        const auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( m_Device )->GetAllocator()) };
+        auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( m_Device )->GetAllocator()) };
         MKT_ASSERT(allocator != nullptr, "Allocator is null in VulkanBuffer::Release!");
 
         allocator->FreeBuffer(this);
@@ -29,7 +29,7 @@ namespace Mikoto {
     }
 
     auto VulkanBuffer::Initialize() -> void {
-        const auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( m_Device )->GetAllocator()) };
+        auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( m_Device )->GetAllocator()) };
         MKT_ASSERT(allocator != nullptr, "Allocator is null in VulkanBuffer::Allocate!");
 
         const VkResult result{ allocator->AllocateBuffer(this) };
@@ -41,6 +41,9 @@ namespace Mikoto {
         if (m_Data) {
             CopyFromBlock( m_Data, m_SizeBytes );
         }
+
+        m_DebugName = fmt::format( "MikotoBuffer {}, Pool ID: {}", reinterpret_cast<UInt64>( m_Buffer ), GetHandle() );
+        VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ),VK_OBJECT_TYPE_BUFFER, reinterpret_cast<UInt64>( m_Buffer ),m_DebugName.c_str() );
 
         m_IsAllocated = true;
     }

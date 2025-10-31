@@ -56,14 +56,21 @@ namespace Mikoto {
         ) -> void;
 
         auto ExecuteCommand(const std::string& input) -> void;
-        auto AddLog(ConsoleMessage level) -> void;
+
+        auto Error(std::string_view message) -> void;
+        auto Info(std::string_view message) -> void;
+        auto Debug(std::string_view message) -> void;
+        auto Warning(std::string_view message) -> void;
+
+        auto AddLog(ConsoleMessage message) -> void;
+        auto AddLog(ConsoleLogLevel level, std::string_view message) -> void;
 
         MKT_NODISCARD auto GetLogs() const -> const std::vector<std::string>& { return m_LogEntries; }
 
     private:
         std::unordered_map<std::string, Command> m_Commands;
-        std::vector<std::string> m_LogEntries;
-        std::string m_Name;
+        std::vector<std::string> m_LogEntries{};
+        std::string m_Name{};
     };
 
 }

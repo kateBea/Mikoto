@@ -10,9 +10,15 @@
 #include <Panels/Panel.hh>
 
 namespace Mikoto {
+    struct EditorState;
+
+    struct ConsolePanelCreateInfo {
+        EditorState *State{};
+    };
+
     class ConsolePanel final : public Panel {
     public:
-        explicit ConsolePanel();
+        explicit ConsolePanel(const ConsolePanelCreateInfo& info);
         auto operator=(ConsolePanel&& other) -> ConsolePanel& = default;
 
         auto OnUpdate(float timeStep) -> void override;
@@ -20,6 +26,8 @@ namespace Mikoto {
         ~ConsolePanel() override = default;
 
     private:
+        EditorState *m_State{};
+
         bool m_ScrollToBottom{ false };
     };
 }

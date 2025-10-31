@@ -9,35 +9,34 @@
 // C++ Standard Library
 #include <memory>
 
+#include <ankerl/unordered_dense.h>
+
 // Project Headers
 #include <Panels/Panel.hh>
-#include <Scene/Scene/Entity.hh>
-#include <Scene/Scene/Scene.hh>
+#include <Scene/Entity.hh>
+#include <Assets/Texture.hh>
 
 namespace Mikoto {
+    struct EditorState;
+
     struct InspectorPanelCreateInfo {
-        Scene* TargetScene{ nullptr };
-        std::function<Entity*()> GetActiveEntityCallback{};
-        std::function<void(Entity*)> SetActiveEntityCallback{};
+        EditorState* State{};
     };
 
     class InspectorPanel final : public Panel {
     public:
-        explicit InspectorPanel(const InspectorPanelCreateInfo& createInfo);
+        explicit InspectorPanel( const InspectorPanelCreateInfo& createInfo );
 
         auto OnUpdate( float timeStep ) -> void override;
 
         ~InspectorPanel() override = default;
 
     private:
-        auto DrawComponents( Entity& entity ) const -> void;
+        auto DrawComponents( Entity* entity ) const -> void;
 
     private:
-        Scene* m_TargetScene{ nullptr };
-
-        std::function<Entity*()> m_GetActiveEntityCallback{};
-        std::function<void(Entity*)> m_SetActiveEntityCallback{};
+        EditorState* m_State{};
     };
-}
+}// namespace Mikoto
 
 #endif// MIKOTO_INSPECTOR_PANEL_HH

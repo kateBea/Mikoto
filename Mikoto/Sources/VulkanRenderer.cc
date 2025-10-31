@@ -14,53 +14,7 @@
 #include <Renderer/Vulkan/VulkanRenderer.hh>
 #include <Scene/Component.hh>
 
-// TODO: temporary matches pbr_instance shaders layout
-#define MAX_LIGHTS 50
-
 namespace Mikoto {
-
-    struct FrameUBO {
-        glm::mat4 View{};
-        glm::mat4 Projection{};
-        Vec4F CameraPosition{};
-    };
-
-    struct SpotLightShader {
-        Vec4F Position;
-        Vec4F Direction;
-        Vec4F Ambient;
-        Vec4F Diffuse;
-        Vec4F Specular;
-        // x=cutOff, y=outerCutOff, z=intensity, w=radius
-        Vec4F CutOffValues;
-    };
-
-    struct PointLightShader {
-        Vec4F Position;
-        Vec4F ambient;
-        Vec4F Diffuse;
-        Vec4F specular;
-        Vec4F AttenuationParams;
-    };
-
-    struct DirectionalLightShader {
-        Vec4F Position;
-        Vec4F Ambient;
-        Vec4F Diffuse;
-        Vec4F Specular;
-    };
-
-
-    struct LightInfo {
-        SpotLight SpotLights[MAX_LIGHTS];
-        PointLightShader PointLights[MAX_LIGHTS];
-        DirectionalLightShader DirectionalLights[MAX_LIGHTS];
-        Int32 DirectionalLightCount{};
-        Int32 PointLightCount{};
-        Int32 SpotLightCount{};
-        Int32 DisplayMode{};
-        Int32 Wireframe{};
-    };
 
     template<typename UniformBufferT>
     static auto CreateUniformBuffer( GpuDevice* device ) -> BufferHandle {
@@ -98,6 +52,8 @@ namespace Mikoto {
 
         InitCoreRenderPasses();
 
+        m_LightsInfo = new LightInfo();
+
         m_IsInitialized = true;
     }
 
@@ -105,6 +61,8 @@ namespace Mikoto {
         if ( !m_IsInitialized ) {
             return;
         }
+
+        delete m_LightsInfo;
 
         m_Passes.Clear();
 
@@ -120,7 +78,7 @@ namespace Mikoto {
 
             // This is only for the render commands which share the same command buffer
             if ( const auto graphicsPass{ dynamic_cast<IRenderPass*>( pass.get() ) } ) {
-                graphicsPass->End( );
+                graphicsPass->End();
             }
         }
 
@@ -138,7 +96,7 @@ namespace Mikoto {
         m_GraphicsCommandList->Begin();
 
         // Prepare resources
-        if (m_UpdateTextureDescriptor) {
+        if ( m_UpdateTextureDescriptor ) {
             // We push all the textures we need, when we begin render
             // we make sure they are all visible through the descriptor set
             // do this once and only when is needed if the texture list hasn't changed
@@ -172,12 +130,74 @@ namespace Mikoto {
     auto VulkanRenderer::DrawScene( Scene* scene ) -> void {
         // Handle lights here which are also the same for all passes
         auto& registry{ scene->GetRegistry() };
-        auto lightsView{ registry.view<TagComponent, TransformComponent, LightComponent>() };
-        for ( auto& lightEntity: lightsView ) {
-            TagComponent& tagComp{ registry.get<TagComponent>( lightEntity ) };
-            LightComponent& lightComp{ registry.get<LightComponent>( lightEntity ) };
-            TransformComponent& transformCom{ registry.get<TransformComponent>( lightEntity ) };
+auto lightsView{ registry.view<TagComponent, TransformComponent, LightComponent>() };
+
+Int32 pointLightCount{};
+Int32 spotLightCount{};
+Int32 directionalLightCount{};
+
+for (auto& lightEntity : lightsView) {
+    LightComponent& lightComp{ registry.get<LightComponent>(lightEntity) };
+    TransformComponent& transformCom{ registry.get<TransformComponent>(lightEntity) };
+
+    switch (lightComp.GetActiveType()) {
+        case LightType::POINT_LIGHT_TYPE: {
+            if (pointLightCount >= MAX_LIGHTS) break;
+
+            auto& point{ lightComp.Get<PointLight>() };
+            auto& uboLight{ m_LightsInfo->PointLights[pointLightCount] };
+
+            uboLight.Position = Vec4F(transformCom.GetTranslation(), 1.0f);
+            uboLight.Ambient  = Vec4F(point.GetColor() * 0.1f, 1.0f);
+            uboLight.Diffuse  = Vec4F(point.GetColor() * point.GetIntensity(), 1.0f);
+            uboLight.Specular = Vec4F(point.GetColor(), 1.0f);
+            uboLight.AttenuationParams = Vec4F(1.0f, 0.0f, 0.0f, point.GetRadius());
+
+            ++pointLightCount;
+            break;
         }
+
+        case LightType::SPOT_LIGHT_TYPE: {
+            if (spotLightCount >= MAX_LIGHTS) break;
+
+            auto& spot{ lightComp.Get<SpotLight>() };
+            auto& uboLight{ m_LightsInfo->SpotLights[spotLightCount] };
+
+            uboLight.Position = Vec4F(transformCom.GetTranslation(), 1.0f);
+            uboLight.Direction = Vec4F(spot.GetDirection(), 0.0f);
+            uboLight.Ambient  = Vec4F(spot.GetColor() * 0.1f, 1.0f);
+            uboLight.Diffuse  = Vec4F(spot.GetColor() * spot.GetIntensity(), 1.0f);
+            uboLight.Specular = Vec4F(spot.GetColor(), 1.0f);
+            uboLight.CutOffValues = Vec4F(spot.GetCutOff(), spot.GetOuterCutOff(), spot.GetIntensity(), spot.GetRadius());
+
+            ++spotLightCount;
+            break;
+        }
+
+        case LightType::DIRECTIONAL_LIGHT_TYPE: {
+            if (directionalLightCount >= MAX_LIGHTS) break;
+
+            auto& dir{ lightComp.Get<DirectionalLight>() };
+            auto& uboLight{ m_LightsInfo->DirectionalLights[directionalLightCount] };
+
+            uboLight.Position = Vec4F(transformCom.GetTranslation(), 1.0f); // optional for shadows
+            uboLight.Ambient  = Vec4F(dir.GetColor() * 0.1f, 1.0f);
+            uboLight.Diffuse  = Vec4F(dir.GetColor() * dir.GetIntensity(), 1.0f);
+            uboLight.Specular = Vec4F(dir.GetColor(), 1.0f);
+
+            ++directionalLightCount;
+            break;
+        }
+    }
+}
+
+// Update counts in UBO
+m_LightsInfo->PointLightCount       = pointLightCount;
+m_LightsInfo->SpotLightCount        = spotLightCount;
+m_LightsInfo->DirectionalLightCount = directionalLightCount;
+
+// Copy to GPU buffer
+m_LightsBuffer->CopyFromBlock(m_LightsInfo, sizeof(LightInfo));
 
         // For all passes with a graphics pipeline
         for ( auto& pass: m_Passes | std::ranges::views::values ) {
@@ -216,11 +236,11 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::CreateMaterial() -> MaterialHandle {
-        MaterialHandle material{ m_Materials.Allocate(  ) };
-        if (material.IsEmpty()) {
+        MaterialHandle material{ m_Materials.Allocate() };
+        if ( material.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanRenderer::CreateMaterial - Failed to create material" );
         } else {
-            PBRMaterial* pbrMat{ dynamic_cast<PBRMaterial*>(material.GetRaw()) };
+            PBRMaterial* pbrMat{ dynamic_cast<PBRMaterial*>( material.GetRaw() ) };
 
             pbrMat->SetTextureType( MapType::ALBEDO_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
             pbrMat->SetTextureType( MapType::NORMAL_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
@@ -263,12 +283,11 @@ namespace Mikoto {
         m_FrameUBOBuffer = CreateUniformBuffer<FrameUBO>( m_GraphicsDevice );
         m_LightsBuffer = CreateUniformBuffer<LightInfo>( m_GraphicsDevice );
 
-
         DescriptorWriter descriptorWriter{};
 
-        descriptorWriter.WriteBuffer( 0, m_FrameUBOBuffer->GetNativeHandle(ObjectType::Vk_Buffer), m_FrameUBOBuffer->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-            .WriteBuffer( 1, m_LightsBuffer->GetNativeHandle(ObjectType::Vk_Buffer), m_LightsBuffer->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-            .UpdateSet( VK_DEVICE(m_GraphicsDevice), m_FrameSet );
+        descriptorWriter.WriteBuffer( 0, m_FrameUBOBuffer->GetNativeHandle( ObjectType::Vk_Buffer ), m_FrameUBOBuffer->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
+                .WriteBuffer( 1, m_LightsBuffer->GetNativeHandle( ObjectType::Vk_Buffer ), m_LightsBuffer->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
+                .UpdateSet( VK_DEVICE( m_GraphicsDevice ), m_FrameSet );
     }
 
     auto VulkanRenderer::CreateBindlessDescriptor() -> void {
@@ -296,6 +315,7 @@ namespace Mikoto {
 
         // Set = 0 → Frame + Light
         m_FrameSet = TO_VK_DEVICE( m_GraphicsDevice )->AllocateDescriptorSet( m_FrameLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ) );
+
 
         // ───────────────────────────────────────────────
         // [ Set = 1 ] Bindless textures
@@ -332,7 +352,7 @@ namespace Mikoto {
         m_TexturesSet = TO_VK_DEVICE( m_GraphicsDevice )->AllocateDescriptorSet( m_TextureLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ), std::addressof( variableCountInfo ) );
     }
 
-    auto VulkanRenderer::UpdateBindlessTextureDescriptor( const Int32 index, VulkanTexture* texture ) -> void {
+    auto VulkanRenderer::UpdateBindlessTextureDescriptor( const Int32 index, VulkanTexture* texture ) const -> void {
         if ( !texture->HasSampler() ) {
             texture->SetSampler( m_GraphicsDevice->CreateSampler( SamplerDescription{} ) );
         }
@@ -369,13 +389,13 @@ namespace Mikoto {
         computeBasic->Init( TO_VK_DEVICE( m_GraphicsDevice ) );
     }
 
-    auto VulkanRenderer::RunComputeWorkflow()-> void{
+    auto VulkanRenderer::RunComputeWorkflow() -> void {
         CommandListHandle computeCommandList{ m_GraphicsDevice->CreateCommandList( QueueType::COMPUTE_QUEUE ) };
         computeCommandList->Begin();
 
         for ( const auto& pass: m_Passes | std::ranges::views::values ) {
             if ( const auto computePass{ dynamic_cast<IComputePass*>( pass.get() ) } ) {
-                computePass->Begin(computeCommandList);
+                computePass->Begin( computeCommandList );
             }
         }
 

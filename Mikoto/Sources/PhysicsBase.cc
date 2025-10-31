@@ -333,7 +333,8 @@ namespace Mikoto {
             tr.SetTranslation(Vec3F(pos.GetX(), pos.GetY(), pos.GetZ()));
             tr.SetRotation(glm::quat(rot.GetW(), rot.GetX(), rot.GetY(), rot.GetZ()));
 
-            s_Impl->BodyInterface->ActivateBody( body->GetID() );
+            // Jolt puts bodies to sleep to save resources
+            //s_Impl->BodyInterface->ActivateBody( body->GetID() );
         }
     }
 

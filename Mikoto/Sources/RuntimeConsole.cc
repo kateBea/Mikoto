@@ -100,9 +100,25 @@ namespace Mikoto {
         }
     }
 
-    auto RuntimeConsole::AddLog( ConsoleMessage level ) -> void {
+    auto RuntimeConsole::Error( std::string_view message ) -> void {
+        AddLog( ConsoleLogLevel::CONSOLE_ERROR, message );
+    }
+
+    auto RuntimeConsole::Info( std::string_view message ) -> void {
+        AddLog( ConsoleLogLevel::CONSOLE_INFO, message );
+    }
+
+    auto RuntimeConsole::Debug( std::string_view message ) -> void {
+        AddLog( ConsoleLogLevel::CONSOLE_DEBUG, message );
+    }
+
+    auto RuntimeConsole::Warning( std::string_view message ) -> void {
+        AddLog( ConsoleLogLevel::CONSOLE_WARNING, message );
+    }
+
+    auto RuntimeConsole::AddLog( ConsoleMessage message ) -> void {
         std::string prefix;
-        switch ( level.Level ) {
+        switch ( message.Level ) {
             case ConsoleLogLevel::CONSOLE_ERROR:
                 prefix = "[ERROR] ";
                 break;
@@ -116,7 +132,11 @@ namespace Mikoto {
                 prefix = "[DEBUG] ";
                 break;
         }
-        m_LogEntries.emplace_back( prefix + level.Message );
+        m_LogEntries.emplace_back( prefix + message.Message );
+    }
+
+    auto RuntimeConsole::AddLog( const ConsoleLogLevel level, const std::string_view message ) -> void {
+        AddLog( ConsoleMessage{ level, message.data() } );
     }
 
 }// namespace Mikoto

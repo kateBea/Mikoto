@@ -2,14 +2,17 @@
 // Created by zanet on 10/6/2025.
 //
 
+#include <fmt/format.h>
+
 // Define VMA implementation in one source file
 #define VMA_IMPLEMENTATION
+
+#include <memory>
 
 #include "Renderer/Vulkan/VulkanMemoryAllocator.hh"
 
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
-#include <memory>
 
 namespace Mikoto {
 
@@ -43,37 +46,61 @@ namespace Mikoto {
 
     auto VulkanMemoryAllocator::Shutdown() -> void {
         // Check if we have stuff without freeing it first
+        // if (m_DebugNames.size() != 0) {
+        //     MKT_CORE_LOGGER_WARN( "VulkanMemoryAllocator::Shutdown - All resources were not freed previous to this allocator shutdown. Left {}", m_DebugNames.size() );
+        //
+        //     for (const auto& name : m_DebugNames) {
+        //         MKT_CORE_LOGGER_WARN( "VulkanMemoryAllocator::Shutdown - Did no free {}", name );
+        //     }
+        // }
 
         // Shutdown VMA here
         vmaDestroyAllocator( m_Allocator );
     }
 
-    auto VulkanMemoryAllocator::AllocateImage( VulkanTexture *texture ) const -> VkResult {
-        return vmaCreateImage(
+    auto VulkanMemoryAllocator::AllocateImage( VulkanTexture *texture ) -> VkResult {
+        VkResult res{
+            vmaCreateImage(
                 m_Allocator,
                 texture->GetImageCreateInfo(),
                 texture->GetAllocationCreateInfo(),
                 texture->GetImage(),
                 texture->GetVMAllocation(),
-                texture->GetVMAllocationInfo() );
+                texture->GetVMAllocationInfo() ) };
+
+        if ( res == VK_SUCCESS ) {
+            //m_DebugNames.insert( texture->GetDebugName() );
+        }
+
+        return res;
     }
 
-    auto VulkanMemoryAllocator::AllocateBuffer( VulkanBuffer *buffer ) const -> VkResult {
-        return vmaCreateBuffer(
+    auto VulkanMemoryAllocator::AllocateBuffer( VulkanBuffer *buffer ) -> VkResult {
+        VkResult res{ vmaCreateBuffer(
                 m_Allocator,
                 buffer->GetBufferCreateInfo(),
                 buffer->GetAllocationCreateInfo(),
                 buffer->GetBuffer(),
                 buffer->GetVmaAllocation(),
-                buffer->GetVmaAllocationInfo() );
+                buffer->GetVmaAllocationInfo() ) };
+
+        if ( res == VK_SUCCESS ) {
+            //m_DebugNames.insert( buffer->GetDebugName() );
+        }
+
+        return res;
     }
 
-    auto VulkanMemoryAllocator::FreeImage( VulkanTexture *texture ) const -> void {
+    auto VulkanMemoryAllocator::FreeImage( VulkanTexture *texture ) -> void {
         vmaDestroyImage( m_Allocator, *texture->GetImage(), *texture->GetVMAllocation() );
+
+        //m_DebugNames.erase( texture->GetDebugName() );
     }
 
-    auto VulkanMemoryAllocator::FreeBuffer( VulkanBuffer *buffer ) const -> void {
+    auto VulkanMemoryAllocator::FreeBuffer( VulkanBuffer *buffer ) -> void {
         vmaDestroyBuffer( m_Allocator, *buffer->GetBuffer(), *buffer->GetVmaAllocation() );
+
+        //m_DebugNames.erase( buffer->GetDebugName());
     }
 
     auto VulkanMemoryAllocator::MapBuffer( VulkanBuffer *buffer ) const -> void {

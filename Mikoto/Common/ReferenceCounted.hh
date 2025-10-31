@@ -166,6 +166,10 @@ namespace Mikoto {
         auto operator->() -> RefCountedType* { return m_Ptr; }
         auto operator->() const -> const RefCountedType* { return m_Ptr; }
 
+        operator bool () const {
+            return !IsEmpty();
+        }
+
         auto GetRaw() -> RefCountedType* { return m_Ptr; }
         auto GetRaw() const -> const RefCountedType* { return m_Ptr; }
 

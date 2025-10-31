@@ -32,12 +32,12 @@ namespace Mikoto {
 
         auto Run(Int32 argc, char** argv) -> Int32 override;
 
+        static auto GetPrefabUri(PrefabModels prefab) -> const std::string&;
+
     protected:
         auto Init() -> void override;
         auto Shutdown() -> void override;
         auto Update() -> void override;
-
-        auto GetPrefabUri(PrefabModels prefab) -> const std::string&;
 
     private:
         auto InitPrefabs() -> void;

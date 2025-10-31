@@ -41,6 +41,7 @@ namespace Mikoto {
         auto BeginFrame() -> void override;
         auto EndFrame() -> void override;
 
+        MKT_NODISCARD auto ConstructImGuiTextureID(const Texture* texture) -> ImTextureID override;
         MKT_NODISCARD auto ConstructImGuiTextureID(TextureHandle texture) -> ImTextureID override;
 
     private:
@@ -73,11 +74,9 @@ namespace Mikoto {
         VkExtent3D m_Extent3D{ 2560, 1440, 1 };
 
         struct ImGuiTextIDInfo {
-            SamplerHandle sampler{};
-            TextureHandle texture{};
             VkDescriptorSet descriptorSet{};
         };
-        ankerl::unordered_dense::map<Handle, ImGuiTextIDInfo> m_ImGuiSets{};
+        ankerl::unordered_dense::map<const Texture*, ImGuiTextIDInfo> m_ImGuiSets{};
 
     };
 }

@@ -54,7 +54,7 @@ namespace Mikoto {
             return m_Layers.Get<LayerType>();
         }
 
-        auto Clear() -> void;
+        auto Shutdown() -> void;
 
         // Call OnUpdate on all registered layers
         auto OnUpdate(float deltaTime) -> void;

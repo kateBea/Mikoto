@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <memory>
 #include <string_view>
+#include <optional>
 #include <utility>
 
 // Third-Party Libraries
@@ -22,14 +23,20 @@
 
 namespace Mikoto {
 
-    static auto SetupStandardComponents( Entity& entity, std::string_view name ) -> void {
+    static auto SetupStandardComponents( Entity& entity, const EntityCreateInfo& info ) -> void {
         // [Constants for default entity parameters]
         constexpr Vec3F initialSize{ 1.0f, 1.0f, 1.0f };
         constexpr Vec3F initialPosition{ 0.0, 0.0, 0.0 };
         constexpr Vec3F initialRotation{ 0.0f, 0.0f, 0.0f };
 
-        entity.AddComponent<RelationComponent>();
-        entity.AddComponent<TagComponent>( name );
+        if (info.Root != nullptr) {
+            TagComponent& parentTag{ info.Root->GetComponent<TagComponent>() };
+            entity.AddComponent<RelationComponent>( std::make_optional( parentTag.GetGUID() ));
+        } else {
+            entity.AddComponent<RelationComponent>();
+        }
+
+        entity.AddComponent<TagComponent>( info.Name );
         entity.AddComponent<TransformComponent>( initialPosition, initialSize, initialRotation );
     }
 
@@ -52,11 +59,17 @@ namespace Mikoto {
         m_Registry.on_construct<MeshComponent>().connect<&OnMeshRendererAdded>();
     }
 
-    auto Scene::UpdateIdle( double deltaTime ) -> void {}
+    auto Scene::UpdateIdle( double ) -> void {
+        RemoveQueuedEntities();
+    }
 
-    auto Scene::UpdateSimulate( double deltaTime ) -> void {}
+    auto Scene::UpdateSimulate( double ) -> void {
+        RemoveQueuedEntities();
+    }
 
-    auto Scene::RemoveEntity( UInt64 uniqueID ) -> void {}
+    auto Scene::RemoveEntity( UInt64 uniqueID ) -> void {
+        m_ToRemoveEntities.emplace_back( uniqueID );
+    }
 
     auto Scene::AttachRigidBody( Entity* entity ) -> void {
         if ( entity == nullptr ) {
@@ -67,7 +80,7 @@ namespace Mikoto {
             RigidBodyComponent& rigidBodyComp{ entity->GetComponent<RigidBodyComponent>() };
             PhysicService::Get()->OnRigidBodyAdded( *entity, rigidBodyComp );
         } else {
-            // Add the component if it does not exists
+            // Add the component if it does not exist
             RigidBodyComponent& rigidBodyComp{ entity->AddComponent<RigidBodyComponent>() };
             PhysicService::Get()->OnRigidBodyAdded( *entity, rigidBodyComp );
         }
@@ -136,8 +149,9 @@ namespace Mikoto {
     auto Scene::CreateEntity( const EntityCreateInfo& createInfo ) -> Entity* {
         Entity* result{ nullptr };
 
+        // Register the entity and setup default componenets
         Unique<Entity> newEntity{ new Entity( m_Registry ) };
-        SetupStandardComponents( *newEntity, createInfo.Name );
+        SetupStandardComponents( *newEntity, createInfo );
 
         UInt64 guid{ newEntity->GetComponent<TagComponent>().GetGUID() };
         const auto [it, success]{
@@ -151,13 +165,13 @@ namespace Mikoto {
             // if root is not empty this entity must be registered as child of root entity
             if ( createInfo.Root != nullptr ) {
                 Entity* parent{ createInfo.Root };
-                RelationComponent& relation{ parent->GetComponent<RelationComponent>() };
+                RelationComponent& parentRelation{ parent->GetComponent<RelationComponent>() };
+                RelationComponent& childRelation{ result->GetComponent<RelationComponent>() };
 
-                relation.RegisterChild( guid );
+                parentRelation.RegisterChild( guid );
             }
 
-            // in root model is not empty we create a children for this entity
-            // each children well hold a mesh
+            // in root model is not empty, we create the children for this entity each children well hold a mesh
             if ( !createInfo.Model.IsEmpty() ) {
                 if ( createInfo.Model->GetMeshNodeCount() > 1 ) {
                     for ( Size index{}; index < createInfo.Model->GetMeshNodeCount(); index++ ) {
@@ -170,6 +184,10 @@ namespace Mikoto {
         }
 
         return result;
+    }
+
+    auto Scene::GetEntityCount() const -> Size {
+        return m_Entities.size();
     }
 
 
@@ -596,16 +614,33 @@ namespace Mikoto {
         Clear();
     }
 
+    auto Scene::RemoveQueuedEntities() -> void {
+        for ( const auto &entity: m_ToRemoveEntities ) {
+            m_Registry.destroy( m_Entities[ entity ]->m_Handle );
+
+            m_Entities.erase( entity );
+        }
+    }
+
     auto Scene::GetRegistry() -> entt::registry& {
         return m_Registry;
     }
 
     auto Scene::AddSingleEntityWithRoot( Entity* root, ModelHandle model, Int32 index ) -> void {
-        if ( Entity * child{ CreateEntity( model->GetMeshNode( index ).GetName() ) }; child != nullptr ) {
-            child->AddComponent<MeshComponent>( model, index );
+        std::string name{ model->GetMeshNode( index ).GetName() };
+        if (name.empty()) {
+            name = fmt::format( "{} ({})", model->GetName(), index );
+        }
 
-            RelationComponent& relationComponent{ root->AddComponent<RelationComponent>() };
-            relationComponent.RegisterChild( child->GetComponent<TagComponent>().GetGUID() );
+        const EntityCreateInfo entityCreateInfo{
+            .Root{ root },
+            .Name{ name.c_str() },
+        };
+
+        Entity * child{ CreateEntity( entityCreateInfo ) };
+
+        if ( child != nullptr ) {
+            child->AddComponent<MeshComponent>( model, index );
         }
     }
 

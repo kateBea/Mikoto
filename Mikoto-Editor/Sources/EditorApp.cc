@@ -46,8 +46,8 @@ namespace Mikoto {
         return exitCode;
     }
 
-    auto EditorApp::GetPrefabUri( PrefabModels prefab ) -> const std::string & {
-        return m_PrefabModels[prefab];
+    auto EditorApp::GetPrefabUri( const PrefabModels prefab ) -> const std::string & {
+        return static_cast<EditorApp*>(s_Instance)->m_PrefabModels[prefab];
     }
 
     auto EditorApp::InitPrefabs() -> void {
@@ -94,7 +94,11 @@ namespace Mikoto {
     auto EditorApp::Shutdown() -> void {
         MKT_CORE_LOGGER_DEBUG("Shutting down Mikoto Editor...");
 
+        m_LayerStack.Shutdown();
+
         Root::Shutdown();
+
+        m_Window = nullptr;
     }
 
     auto EditorApp::Update() -> void {

@@ -69,10 +69,11 @@ namespace Mikoto {
         MKT_NODISCARD auto ExistsByName( std::string_view name ) -> bool;
 
         MKT_NODISCARD auto CreateEntity( std::string_view name ) -> Entity*;
-
         MKT_NODISCARD auto CreateEntity( const EntityCreateInfo& createInfo = {} ) -> Entity*;
 
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
+
+        MKT_NODISCARD auto GetEntityCount() const -> Size;
 
         MKT_NODISCARD auto GetEntities() const -> const ankerl::unordered_dense::map<Size, Unique<Entity>>& { return m_Entities; }
 
@@ -91,6 +92,7 @@ namespace Mikoto {
     private:
         friend class PhysicsBase;
 
+        auto RemoveQueuedEntities() -> void;
 
     private:
         auto AddSingleEntityWithRoot(Entity * root, ModelHandle model, Int32 index ) -> void;
@@ -99,6 +101,9 @@ namespace Mikoto {
         entt::registry m_Registry{};
 
         SceneState m_SceneState{ SceneState::IDLE };
+
+        // Deletion is deferred until we call update
+        std::vector<UInt64> m_ToRemoveEntities{};
 
         // Unique because iterators are invalidated on resize
         ankerl::unordered_dense::map<Size, Unique<Entity>> m_Entities{};

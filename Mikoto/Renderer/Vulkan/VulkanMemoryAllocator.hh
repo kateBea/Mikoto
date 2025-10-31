@@ -5,14 +5,15 @@
 #ifndef VULKANMEMORYALLOCATOR_H
 #define VULKANMEMORYALLOCATOR_H
 
+#include <unordered_set>
+
 // Volk must be included before VMA
 #include <volk.h>
 #include <vk_mem_alloc.h>
 
 #include <Memory/GpuAllocator.hh>
-
-#include "VulkanBuffer.hh"
-#include "VulkanTexture.hh"
+#include <Renderer/Vulkan/VulkanBuffer.hh>
+#include <Renderer/Vulkan/VulkanTexture.hh>
 
 namespace Mikoto {
 
@@ -25,11 +26,11 @@ namespace Mikoto {
         auto Init() -> void override;
         auto Shutdown() -> void override;
 
-        auto AllocateImage(VulkanTexture* texture ) const -> VkResult;
-        auto AllocateBuffer(VulkanBuffer* buffer ) const -> VkResult;
+        auto AllocateImage(VulkanTexture* texture ) -> VkResult;
+        auto AllocateBuffer(VulkanBuffer* buffer ) -> VkResult;
 
-        auto FreeImage(VulkanTexture* texture ) const -> void;
-        auto FreeBuffer(VulkanBuffer* buffer ) const -> void;
+        auto FreeImage(VulkanTexture* texture ) -> void;
+        auto FreeBuffer(VulkanBuffer* buffer ) -> void;
 
         auto MapBuffer(VulkanBuffer* buffer ) const -> void;
         auto UnmapBuffer(VulkanBuffer* buffer ) const -> void;
@@ -39,6 +40,11 @@ namespace Mikoto {
         auto MapBuffer( VulkanBuffer* buffer, bool map) const -> void;
 
     private:
+
+#if !defined(NDEBUG)
+        //std::unordered_set<std::string> m_DebugNames{};
+#endif
+
 
         VmaAllocator m_Allocator{};
     };

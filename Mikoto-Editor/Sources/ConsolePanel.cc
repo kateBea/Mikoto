@@ -2,13 +2,13 @@
 // Created by kate on 10/12/23.
 //
 
+#include <ImGui/IconsMaterialDesign.h>
 #include <imgui.h>
 
-#include <ImGui/IconsMaterialDesign.h>
-#include <ImGui/ImGuiUtility.hh>
-
-#include <Panels/ConsolePanel.hh>
 #include <Core/RuntimeConsole.hh>
+#include <ImGui/ImGuiUtility.hh>
+#include <Layers/EditorLayer.hh>
+#include <Panels/ConsolePanel.hh>
 
 namespace Mikoto {
 
@@ -16,8 +16,8 @@ namespace Mikoto {
         return "Console";
     }
 
-    ConsolePanel::ConsolePanel() : Panel(ImGuiUtils::MakePanelName(ICON_MD_TERMINAL, GetConsolePanelName())) {
-        m_PanelHeaderName = ImGuiUtils::MakePanelName(ICON_MD_TERMINAL, GetConsolePanelName());
+    ConsolePanel::ConsolePanel(const ConsolePanelCreateInfo& info)
+        : Panel(ImGuiUtils::MakePanelName(ICON_MD_TERMINAL, GetConsolePanelName())), m_State{ info.State } {
     }
 
     auto ConsolePanel::OnUpdate(float timeStep) -> void {
@@ -85,6 +85,8 @@ namespace Mikoto {
         }
 
         ImGui::End();
+
+        m_State->ConsolePanel = m_PanelIsVisible;
     }
 
 } // namespace Mikoto

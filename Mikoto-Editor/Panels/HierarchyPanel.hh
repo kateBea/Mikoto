@@ -11,15 +11,12 @@
 
 // Project Headers
 #include <Panels/Panel.hh>
-#include <Scene/Scene/Entity.hh>
-#include <Scene/Scene/Scene.hh>
-#include <Library/Data/GenTree.hh>
 
 namespace Mikoto {
+    struct EditorState;
+
     struct HierarchyPanelCreateInfo {
-        Scene* TargetScene{ nullptr };
-        std::function<Entity*()> GetActiveEntityCallback{};
-        std::function<void(Entity*)> SetActiveEntityCallback{};
+        EditorState* State{};
     };
 
     class HierarchyPanel final : public Panel {
@@ -31,19 +28,16 @@ namespace Mikoto {
         ~HierarchyPanel() override = default;
 
     private:
-        auto DrawNodeTree( const UInt64_T entityID  ) -> void;
-        auto OnEntityRightClickMenu( Entity& entity ) const -> void;
-        auto DrawModelLoadMenuItem() const -> void;
-        auto DrawTextMenuItems(const Entity* null ) const;
         auto BlankSpacePopupMenu() const -> void;
-        auto DrawPrefabMenuItems( const Entity* root ) const -> void;
-        auto DrawLightMenuItems( const Entity* root ) const -> void;
+        auto DrawModelLoadMenuItem() const -> void;
+        auto DrawNodeTree( UInt64 entity ) -> void;
+        auto DrawTextMenuItems(Entity* entity = nullptr) const;
+        auto OnEntityRightClickMenu( Entity* entity ) const -> void;
+        auto DrawPrefabMenuItems( Entity* root = nullptr ) const -> void;
+        auto DrawLightMenuItems( Entity* root = nullptr ) const -> void;
 
     private:
-        Scene* m_TargetScene{ nullptr };
-
-        std::function<Entity*()> m_GetActiveEntityCallback{};
-        std::function<void(Entity*)> m_SetActiveEntityCallback{};
+        EditorState* m_EditorState{};
     };
 }
 

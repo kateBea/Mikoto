@@ -18,7 +18,11 @@
 #include <Layers/EditorLayer.hh>
 #include <Panels/ConsolePanel.hh>
 #include <Panels/ScenePanel.hh>
+#include <Panels/SettingsPanel.hh>
+#include <Panels/HierarchyPanel.hh>
+#include <Panels/ContentBrowserPanel.hh>
 #include <Panels/StatsPanel.hh>
+#include <Panels/InspectorPanel.hh>
 #include <Physics/PhysicService.hh>
 #include <Renderer/RenderService.hh>
 #include <Scene/Component.hh>
@@ -51,8 +55,6 @@ namespace Mikoto {
         LoadPrefabModels();
         LoadPrefabFonts();
 
-        PrepareNewScene();
-
         SetupEditorState();
 
         CreatePanels();
@@ -75,6 +77,7 @@ namespace Mikoto {
 
         m_EditorState->EditorCamera = m_EditorCamera.get();
         m_EditorState->FinalComposition = m_SceneRenderer->GetFinalComposition();
+        m_EditorState->ActiveEditorScene = m_ActiveScene.get();
 
         m_EditorState->SelectedEntity = m_ActiveScene->FindFirstByName( "Npc" );
     }
@@ -113,33 +116,12 @@ namespace Mikoto {
     auto EditorLayer::OnEvent( Event& event ) -> void {
     }
 
-    auto EditorLayer::UpdatePanels( float ts ) -> void {
-        auto& [applicationCloseFlag,
-               hierarchyPanelVisible,
-               inspectorPanelVisible,
-               scenePanelVisible,
-               settingPanelVisible,
-               statsPanelVisible,
-               contentBrowserVisible,
-               consolePanelVisible,
-               rendererPanelVisible]{ m_ControlFlags };
+    auto EditorLayer::UpdatePanels( float timeStep ) -> void {
 
-        const auto statsPanel{ m_PanelRegistry.Get<StatsPanel>() };
-        statsPanel->SetVisible( statsPanelVisible );
+        for ( const auto& panel : m_PanelRegistry | std::ranges::views::values) {
+            panel->OnUpdate( timeStep );
+        }
 
-        const auto consolePanel{ m_PanelRegistry.Get<ConsolePanel>() };
-        consolePanel->SetVisible( consolePanel );
-
-        const auto scenePanel{ m_PanelRegistry.Get<ScenePanel>() };
-        scenePanel->SetVisible( consolePanel );
-
-        statsPanel->OnUpdate( ts );
-        consolePanel->OnUpdate( ts );
-        scenePanel->OnUpdate( ts );
-
-        statsPanelVisible = statsPanel->IsVisible();
-        consolePanelVisible = consolePanel->IsVisible();
-        scenePanelVisible = scenePanel->IsVisible();
     }
 
     auto EditorLayer::SaveScene() const -> void {
@@ -188,8 +170,13 @@ namespace Mikoto {
     }
 
     auto EditorLayer::CreatePanels() -> void {
-        m_PanelRegistry.Register<StatsPanel>();
-        m_PanelRegistry.Register<ConsolePanel>();
+        StatsPanelCreateInfo statsCreateInfo{};
+        statsCreateInfo.State = m_EditorState.get();
+        m_PanelRegistry.Register<StatsPanel>(statsCreateInfo);
+
+        ConsolePanelCreateInfo consoleCreateInfo{};
+        consoleCreateInfo.State = m_EditorState.get();
+        m_PanelRegistry.Register<ConsolePanel>(consoleCreateInfo);
 
         ScenePanelCreateInfo scenePanelCreateInfo{
             .Width = m_Window->GetWidth(),
@@ -199,6 +186,24 @@ namespace Mikoto {
         };
 
         m_PanelRegistry.Register<ScenePanel>( scenePanelCreateInfo );
+
+        SettingsPanelCreateInfo settingsPanelCreateInfo{};
+        settingsPanelCreateInfo.State = m_EditorState.get();
+
+        m_PanelRegistry.Register<SettingsPanel>( settingsPanelCreateInfo );
+
+        ContentBrowserPanelDescription contentsBrowserPanelCreateInfo{};
+        contentsBrowserPanelCreateInfo.Device = RenderService::Get()->GetGpuDevice();
+        contentsBrowserPanelCreateInfo.State = m_EditorState.get();
+        m_PanelRegistry.Register<ContentBrowserPanel>( contentsBrowserPanelCreateInfo );
+
+        HierarchyPanelCreateInfo hierarchyPanelCreateInfo{};
+        hierarchyPanelCreateInfo.State = m_EditorState.get();
+        m_PanelRegistry.Register<HierarchyPanel>( hierarchyPanelCreateInfo );
+
+        InspectorPanelCreateInfo inspectorPanelCreateInfo{};
+        inspectorPanelCreateInfo.State = m_EditorState.get();
+        m_PanelRegistry.Register<InspectorPanel>( inspectorPanelCreateInfo );
     }
 
     auto EditorLayer::CreateCameras() -> void {

@@ -17,6 +17,7 @@
 #include <Core/SystemStats.hh>
 #include <Core/TimeService.hh>
 #include <ImGui/ImGuiUtility.hh>
+#include <Layers/EditorLayer.hh>
 #include <Panels/StatsPanel.hh>
 #include <Renderer/RenderService.hh>
 
@@ -45,8 +46,10 @@ namespace Mikoto {
         ImGui::PopStyleVar();
     }
 
-    StatsPanel::StatsPanel() {
-        m_PanelHeaderName = ImGuiUtils::MakePanelName( "🧭", GetStatsPanelName() );
+    StatsPanel::StatsPanel(const StatsPanelCreateInfo& info)
+        : m_State{ info.State }
+    {
+        m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_TABLE_CHART, GetStatsPanelName() );
     }
 
     auto StatsPanel::OnUpdate( float timeStep ) -> void {
@@ -77,6 +80,8 @@ namespace Mikoto {
         ImGui::End();
         ImGui::PopStyleColor();
         ImGui::PopStyleVar();
+
+        m_State->StatsPanelVisible = m_PanelIsVisible;
     }
 
     auto StatsPanel::DrawPerformance() -> void {

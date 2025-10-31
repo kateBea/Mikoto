@@ -14,9 +14,15 @@
 #include <Panels/Panel.hh>
 
 namespace Mikoto {
+    struct EditorState;
+
+    struct StatsPanelCreateInfo {
+        EditorState *State{};
+    };
+
     class StatsPanel final : public Panel {
     public:
-        explicit StatsPanel();
+        explicit StatsPanel(const StatsPanelCreateInfo& info);
 
         auto OnUpdate(float timeStep) -> void override;
 
@@ -25,6 +31,8 @@ namespace Mikoto {
         auto DrawSystemInfo() -> void;
 
     private:
+        EditorState *m_State{};
+
         float m_FrameRate{};
         float m_FrameTime{};
 

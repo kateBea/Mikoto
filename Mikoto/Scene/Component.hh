@@ -9,7 +9,7 @@
 // C++ Standard Library
 #include <functional>
 #include <string>
-#include <unordered_set>
+#include <optional>
 
 // Third-Party Libraries
 #include <glm/glm.hpp>
@@ -56,16 +56,11 @@ namespace Mikoto {
         auto SetTag( const std::string_view newName) -> void { m_Tag = newName; }
         auto SetActive( const bool value) -> void { m_IsActive = value; }
 
-        auto OnComponentAttach() -> void {  }
-        auto OnComponentUpdate() -> void {  }
-        auto OnComponentRemoved() -> void {  }
     private:
         std::string m_Tag{};
         bool m_IsActive{};
         GlobalUniqueID m_GUID{};
     };
-
-
 
     class TransformComponent {
     public:
@@ -173,13 +168,6 @@ namespace Mikoto {
 
         ~TransformComponent() = default;
 
-        auto OnComponentAttach() -> void {  }
-        auto OnComponentUpdate() -> void {  }
-        auto OnComponentRemoved() -> void {  }
-
-    private:
-
-
     private:
         // Transform vectors
         Vec3F m_Translation{ 0.0f, 0.0f, 0.0f };
@@ -195,7 +183,9 @@ namespace Mikoto {
 
     class RelationComponent {
     public:
-        explicit RelationComponent() = default;
+        explicit RelationComponent( const std::optional<UInt64> parent = std::nullopt)
+            : m_Parent{ parent }
+        {}
 
         RelationComponent(const RelationComponent& other) = default;
         RelationComponent(RelationComponent&& other) = default;
@@ -209,17 +199,17 @@ namespace Mikoto {
         MKT_NODISCARD auto IsChild(const UInt64 id) const -> bool {return m_ChildrenIDs.contains(id); }
         MKT_NODISCARD auto HasChildren() const -> bool {return !m_ChildrenIDs.empty(); }
 
+        MKT_NODISCARD auto HasParent() const -> bool { return m_Parent.has_value(); }
+        MKT_NODISCARD auto SetParent(UInt64 uid) -> void { m_Parent = uid; }
+        MKT_NODISCARD auto GetParent() const -> const std::optional<UInt64>& { return m_Parent; }
+
         MKT_NODISCARD auto IsLeaf() const -> bool { return m_ChildrenIDs.empty(); }
         MKT_NODISCARD auto GetChildren() const -> decltype( auto ) { return (m_ChildrenIDs); }
-
-        auto OnComponentAttach() -> void {  }
-        auto OnComponentUpdate() -> void {  }
-        auto OnComponentRemoved() -> void {  }
 
         ~RelationComponent() = default;
 
     private:
-
+        std::optional<UInt64> m_Parent{};
         ankerl::unordered_dense::set<UInt64> m_ChildrenIDs{};
     };
 
@@ -235,6 +225,7 @@ namespace Mikoto {
         MaterialComponent(MaterialComponent&&) = default;
         auto operator=(MaterialComponent&&) -> MaterialComponent& = default;
 
+        MKT_NODISCARD auto HasMaterial() const -> bool { return !m_Material.IsEmpty(); }
         MKT_NODISCARD auto GetMaterial() -> MaterialHandle { return m_Material; }
         MKT_NODISCARD auto SetMaterial(const MaterialHandle& mat) -> void {
             if (!mat.IsEmpty()) {
@@ -243,10 +234,6 @@ namespace Mikoto {
         }
 
         ~MaterialComponent() = default;
-
-        auto OnComponentAttach() -> void {  }
-        auto OnComponentUpdate() -> void {  }
-        auto OnComponentRemoved() -> void {  }
 
     private:
         MaterialHandle m_Material{};
@@ -283,11 +270,10 @@ namespace Mikoto {
 
             return std::addressof(m_Model->GetMeshNode(static_cast<UInt32>(m_MeshIndex)));
         }
-        MKT_NODISCARD auto GetName() const -> const std::string& { return m_Model->GetName(); }
 
-        auto OnComponentAttach() -> void {  }
-        auto OnComponentUpdate() -> void {  }
-        auto OnComponentRemoved() -> void {  }
+        auto GetModel() -> ModelHandle { return m_Model; }
+
+        MKT_NODISCARD auto GetName() const -> const std::string& { return m_Model->GetName(); }
 
     private:
         Int32 m_MeshIndex{ -1 };
@@ -317,15 +303,26 @@ namespace Mikoto {
         MKT_NODISCARD auto GetActiveType() const -> LightType { return m_Type; }
         MKT_NODISCARD auto SetActiveType(const LightType type) -> void { m_Type = type; }
 
-        MKT_NODISCARD auto GetLight() -> Light& { return m_Data; }
-        MKT_NODISCARD auto GetLight() const -> const Light& { return m_Data; }
-
-        auto OnComponentAttach() -> void {  }
-        auto OnComponentUpdate() -> void {  }
-        auto OnComponentRemoved() -> void {  }
+        template<typename T>
+        MKT_NODISCARD auto Get() -> T& {
+            if constexpr (std::is_same_v<T, PointLight>) {
+                return m_PointLight;
+            }
+            else if constexpr (std::is_same_v<T, SpotLight>) {
+                return m_SpotLight;
+            }
+            else if constexpr (std::is_same_v<T, DirectionalLight>) {
+                return m_DirectionalLight;
+            } else {
+                MKT_STATIC_ASSERT(false, "Unsupported light type in LightComponent::Get()");
+            }
+        }
 
     private:
-        Light m_Data{};
+        SpotLight m_SpotLight{};
+        PointLight m_PointLight{};
+        DirectionalLight m_DirectionalLight{};
+
         LightType m_Type{ LightType::POINT_LIGHT_TYPE };
     };
 
@@ -360,16 +357,19 @@ namespace Mikoto {
         MKT_NODISCARD auto GetSource() const -> AudioSourceHandle { return m_AudioSource; }
 
         auto SetClip( const AudioHandle& clip ) -> void {
+            if (!clip) {
+                return;
+            }
+
+            if (m_AudioSource && m_AudioSource->IsPlaying()) {
+                m_AudioSource->Stop();
+            }
 
             m_Clip = clip;
             m_AudioSource = m_Clip->CreateSource();
         }
 
         MKT_NODISCARD auto GetClip() const -> AudioHandle { return m_Clip; }
-
-        auto OnComponentAttach() -> void {  }
-        auto OnComponentUpdate() -> void {  }
-        auto OnComponentRemoved() -> void {  }
 
     private:
         AudioHandle m_Clip{};
@@ -389,13 +389,8 @@ namespace Mikoto {
 
         ~AudioListenerComponent() = default;
 
-
         MKT_NODISCARD auto GetListener() -> AudioListener& { return m_Listener; }
         MKT_NODISCARD auto GetListener() const -> const AudioListener& { return m_Listener; }
-
-        auto OnComponentAttach() -> void {  }
-        auto OnComponentUpdate() -> void {  }
-        auto OnComponentRemoved() -> void {  }
 
     private:
         AudioListener m_Listener{};
@@ -434,11 +429,6 @@ namespace Mikoto {
         MKT_NODISCARD auto IsDynamic() const -> bool { return m_BodyType == BodyType::DYNAMIC; }
         auto SetBodyType(const BodyType type) -> void { m_BodyType = type; }
 
-        // Called by ECS lifecycle
-        auto OnComponentAttach() -> void {}
-        auto OnComponentUpdate(float dt) -> void {}
-        auto OnComponentRemoved() -> void {}
-
         MKT_NODISCARD auto GetInternalBodyHandle() const -> std::uintptr_t* { return m_InternalBodyHandle; }
         auto SetInternalBodyHandle(std::uintptr_t* ptr) -> void {
             if (ptr) {
@@ -472,11 +462,7 @@ namespace Mikoto {
 
         ~ColliderComponent() = default;
 
-        auto OnComponentAttach() -> void {  }
-        auto OnComponentUpdate() -> void {  }
-        auto OnComponentRemoved() -> void {  }
     };
-
 
     class CameraComponent {
     public:
@@ -492,18 +478,21 @@ namespace Mikoto {
         auto operator=(CameraComponent&& other) -> CameraComponent& = default;
 
         MKT_NODISCARD auto IsMainCamera() const -> bool { return m_MainCam; }
+        MKT_NODISCARD auto HasCamera() -> bool { return m_Camera != nullptr; }
         MKT_NODISCARD auto GetCamera() -> SceneCamera& { return *m_Camera; }
         MKT_NODISCARD auto GetCamera() const -> const SceneCamera& { return *m_Camera; }
         MKT_NODISCARD auto IsAspectRatioFixed() const -> bool { return m_FixedAspectRatio; }
+
+        auto AddCamera() -> void {
+            if (m_Camera == nullptr) {
+                m_Camera = CreateScope<SceneCamera>();
+            }
+        }
 
         auto EnableFixedAspectRatio() -> void { m_FixedAspectRatio = true; }
         auto DisableFixedAspectRatio() -> void { m_FixedAspectRatio = false; }
 
         ~CameraComponent() = default;
-
-        auto OnComponentAttach() -> void {  }
-        auto OnComponentUpdate() -> void {  }
-        auto OnComponentRemoved() -> void {  }
 
         // Camera component has its own camera not shared
         DISABLE_COPY_FOR( CameraComponent );
@@ -568,10 +557,6 @@ namespace Mikoto {
         template<typename... Args>
         auto SetColor(Args&&... args ) -> void  { m_Color = glm::vec4{ std::forward<Args>(args)...}; }
 
-        auto OnComponentAttach() -> void {  }
-        auto OnComponentUpdate() -> void {  }
-        auto OnComponentRemoved() -> void {  }
-
     private:
         std::string m_TextContent{};
 
@@ -595,10 +580,6 @@ namespace Mikoto {
 
         auto operator=(const ScriptComponent& other) -> ScriptComponent& = default;
         auto operator=(ScriptComponent&& other) -> ScriptComponent& = default;
-
-        auto OnComponentAttach() -> void {  }
-        auto OnComponentUpdate() -> void {  }
-        auto OnComponentRemoved() -> void {  }
 
         auto SetScript(const File* script ) -> void {
             m_Script = script;

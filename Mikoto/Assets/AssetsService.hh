@@ -120,7 +120,20 @@ namespace Mikoto {
         // see RenderUtility.hh for load descriptions
         template<typename AssetType>
         auto LoadAsset( auto&&... args ) -> Ref<AssetType> {
-            return LoadAssetTyped( std::forward<decltype(args)>(args)... );
+            if constexpr (std::is_same_v<AssetType, Model>) {
+                return LoadModel( std::forward<decltype(args)>(args)... );
+            }
+            else if constexpr (std::is_same_v<AssetType, Texture>) {
+                return LoadTexture( std::forward<decltype(args)>(args)... );
+            }
+            else if constexpr (std::is_same_v<AssetType, Audio>) {
+                return LoadAudio( std::forward<decltype(args)>(args)... );
+            }
+            else if constexpr (std::is_same_v<AssetType, Font>) {
+                return LoadFont( std::forward<decltype(args)>(args)... );
+            }
+
+            return Ref<AssetType>::CreateEmpty();
         }
 
         // Takes only the LoadDescription of the asset we want to load
@@ -142,10 +155,15 @@ namespace Mikoto {
         ~AssetsService() override = default;
 
     private:
-        auto LoadAssetTyped( const ModelLoadDescription& description) -> ModelHandle;
-        auto LoadAssetTyped( const TextureLoadDescription& description) -> TextureHandle;
-        auto LoadAssetTyped( const AudioLoadDescription& description) -> AudioHandle;
-        auto LoadAssetTyped( const FontLoadDescription& description) -> FontHandle;
+        auto LoadModel( std::string_view uri ) -> ModelHandle;
+        auto LoadModel( const ModelLoadDescription& description) -> ModelHandle;
+
+        auto LoadTexture( const Path& uri ) -> TextureHandle;
+        auto LoadTexture( std::string_view uri ) -> TextureHandle;
+        auto LoadTexture( const TextureLoadDescription& description) -> TextureHandle;
+
+        auto LoadAudio( const AudioLoadDescription& description) -> AudioHandle;
+        auto LoadFont( const FontLoadDescription& description) -> FontHandle;
 
         auto LoadDummyAssets() -> void;
 

@@ -30,8 +30,21 @@ namespace Mikoto {
         // Used when scene is not simulating
         SceneCamera* EditorCamera{};
 
+        // Scene currently active
+        Scene* ActiveEditorScene{};
+
         // The final composition from the scene renderer
         TextureHandle FinalComposition{};
+
+        // Panels close flags
+        bool StatsPanelVisible{ true };
+        bool ContentBrowser{ true };
+        bool ConsolePanel{ true };
+        bool RendererPanel{ true };
+        bool SettingPanelVisible{ true };
+        bool HierarchyPanelVisible{ true };
+        bool InspectorPanelVisible{ true };
+        bool ScenePanelVisible{ true };
     };
 
     struct EditorLayerCreateInfo {

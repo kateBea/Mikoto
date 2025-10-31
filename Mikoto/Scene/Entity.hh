@@ -100,8 +100,6 @@ namespace Mikoto {
         auto AddComponent(Args&&... args) -> ComponentType& {
             ComponentType& newComponent{ m_Registry->emplace_or_replace<ComponentType>(m_Handle, std::forward<Args>(args)...) };
 
-            newComponent.OnComponentAttach();
-
             return newComponent;
         }
 
@@ -114,8 +112,6 @@ namespace Mikoto {
             if ( !HasComponent<ComponentType>()) {
                 return;
             }
-
-            GetComponent<ComponentType>().OnComponentRemoved();
 
             m_Registry->remove<ComponentType>(m_Handle);
         }

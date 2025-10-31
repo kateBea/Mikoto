@@ -21,7 +21,6 @@
 #include <ImGui/ImGuiService.hh>
 #include <ImGui/ImGuiUtility.hh>
 #include <Layers/EditorLayer.hh>
-#include <Library/Math/Math.hh>
 #include <Library/String/String.hh>
 #include <Panels/ScenePanel.hh>
 #include <Scene/Component.hh>

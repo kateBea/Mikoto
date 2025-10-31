@@ -5,16 +5,17 @@
 #ifndef GUISYSTEM_HH
 #define GUISYSTEM_HH
 
-#include <deque>
-#include <functional>
-
 #include <imgui.h>
 
 #include <Common/Service.hh>
+#include <Library/Utility/Types.hh>
 #include <Platform/Window.hh>
 #include <Renderer/GpuDevice.hh>
 #include <Renderer/RenderUtility.hh>
-#include <Library/Utility/Types.hh>
+#include <deque>
+#include <functional>
+
+#include "ImGuiUtility.hh"
 
 namespace Mikoto {
 
@@ -44,6 +45,7 @@ namespace Mikoto {
 
         auto SetClearColor(const Vec4F& color) -> void { m_ClearColor = color; }
 
+        MKT_NODISCARD virtual auto ConstructImGuiTextureID(const Texture* texture) -> ImTextureID = 0;
         MKT_NODISCARD virtual auto ConstructImGuiTextureID(TextureHandle texture) -> ImTextureID = 0;
 
         virtual ~ImGuiBackend() = default;
@@ -78,18 +80,24 @@ namespace Mikoto {
         auto EndFrame() const -> void;
         auto PrepareFrame() const -> void;
 
-        auto GetFonts() -> std::vector<ImFont*>& { return m_Fonts; }
-
         auto SetImGuiBackGroundClearColor(const Vec4F& color) -> void;
+
+        MKT_NODISCARD auto GetTextureID(TextureHandle texture) -> ImTextureID;
+        MKT_NODISCARD auto GetTextureID(const Texture* texture) -> ImTextureID;
 
         MKT_NODISCARD auto GetBackend() -> ImGuiBackend*;
         MKT_NODISCARD auto GetBackend() const -> const ImGuiBackend*;
 
+        auto PushFont( std::string_view str ) -> ImGuiUtils::ImGuiScopedTextFont;
+
     private:
 
         auto InitImplementation() -> void;
+        auto AddFont(float fontSize, const std::string &path, const ImFontConfig* config = nullptr, const std::array<ImWchar, 3>* iconRanges = nullptr ) -> void;
         auto AddIconFont(float fontSize, const std::string &path, const std::array<ImWchar, 3> &iconRanges) -> void;
 
+    private:
+        static constexpr float FONT_BASE_SIZE{ 16.0f };
     private:
         GpuDevice* m_Device{ nullptr };
         std::string m_ImGuiFilesRootDir{};
@@ -97,8 +105,11 @@ namespace Mikoto {
 
         Window* m_Window{ nullptr };
 
-        std::vector<ImFont*> m_Fonts{};
         Unique<ImGuiBackend> m_Implementation{ nullptr };
+
+        // index into ImGui internal font structures and
+        // a path to keep track of where it is
+        ankerl::unordered_dense::map<std::string, Int8> m_ImGuiFonts{};
     };
 
 }

@@ -8,7 +8,7 @@
 
 namespace Mikoto {
 
-    auto LayerStack::Clear() -> void {
+    auto LayerStack::Shutdown() -> void {
         for ( const auto &layerPtr: m_Layers | std::views::values ) {
             layerPtr->OnDestroy();
         }

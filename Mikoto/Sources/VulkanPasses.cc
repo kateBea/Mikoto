@@ -116,19 +116,6 @@ namespace Mikoto::VulkanPasses {
 
         vkCmdBeginRendering( vkCmd, &renderingInfo );
 
-        // m_Viewport.x = 0;
-        // m_Viewport.y = 0;
-        // m_Viewport.width = m_ColorTarget.Image->GetWidth();
-        // m_Viewport.height = m_ColorTarget.Image->GetHeight();
-        // m_Viewport.minDepth = 0.0f;
-        // m_Viewport.maxDepth = 1.0f;
-        //
-        // m_Scissor.offset = { static_cast<Int32>( 0 ), static_cast<Int32>( 0 ) };
-        // m_Scissor.extent = { static_cast<UInt32>( m_ColorTarget.Image->GetWidth() ), static_cast<UInt32>( m_ColorTarget.Image->GetHeight() ) };
-        //
-        // vkCmdSetViewport( vkCmd, 0, 1, std::addressof( m_Viewport ) );
-        // vkCmdSetScissor( vkCmd, 0, 1, std::addressof( m_Scissor ) );
-
         vkCmdBindPipeline( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetNativeHandle( ObjectType::Vk_Pipeline ) );
     }
 

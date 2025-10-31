@@ -77,31 +77,39 @@ namespace Mikoto {
     }
 
     auto AssetsService::GetDummyTexture() -> TextureHandle {
-        return m_Textures["./texture"];
+        return m_Textures["./texture.png"];
     }
 
-    auto AssetsService::LoadAssetTyped( const ModelLoadDescription& description) -> ModelHandle {
+    auto AssetsService::LoadModel( const std::string_view uri ) -> ModelHandle {
+        const ModelLoadDescription modelLoadDescription{
+            .ModelFile{ FileService::Get()->LoadFile( uri ) },
+            .WantTextures{ true }
+        };
+
+        return LoadModel( modelLoadDescription );
+    }
+
+    auto AssetsService::LoadModel( const ModelLoadDescription& description ) -> ModelHandle {
         const File* modelFile{ description.ModelFile };
-        if (!modelFile) {
+        if ( !modelFile ) {
             return ModelHandle::CreateEmpty();
         }
 
         // if it exists
-        if (const auto itFind{ m_Models.find( modelFile->GetPath() ) }; itFind != m_Models.end() ) {
+        if ( const auto itFind{ m_Models.find( modelFile->GetPath() ) }; itFind != m_Models.end() ) {
             return itFind->second;
         }
 
-        ModelHandle model{ MeshFactory::Get()->ImportModel( ModelLoadDescription {
-            .ModelFile{ modelFile },
-            .WantTextures{ description.WantTextures }
-        } ) };
+        ModelHandle model{ MeshFactory::Get()->ImportModel( ModelLoadDescription{
+                .ModelFile{ modelFile },
+                .WantTextures{ description.WantTextures } } ) };
 
-        if (!model.IsEmpty()) {
+        if ( !model.IsEmpty() ) {
             auto [it, success]{
                 m_Models.try_emplace( modelFile->GetPath(), model )
             };
 
-            if (success) {
+            if ( success ) {
                 return m_Models[modelFile->GetPath()];
             }
         }
@@ -109,7 +117,20 @@ namespace Mikoto {
         return ModelHandle::CreateEmpty();
     }
 
-    auto AssetsService::LoadAssetTyped( const TextureLoadDescription& description) -> TextureHandle {
+    auto AssetsService::LoadTexture( const Path& uri ) -> TextureHandle {
+        const std::string uriString{ uri.string() };
+        return LoadTexture( std::string_view{ uriString } );
+    }
+
+    auto AssetsService::LoadTexture( std::string_view uri ) -> TextureHandle {
+        TextureLoadDescription loadDesc{};
+        loadDesc.WithFile( FileService::Get()->LoadFile( uri ) )
+                .WithType( TextureType::TEXTURE_2D );
+
+        return LoadTexture( loadDesc );
+    }
+
+    auto AssetsService::LoadTexture( const TextureLoadDescription& description) -> TextureHandle {
         const File* textureFile{ description.TextureFile  };
         if (!textureFile) {
             return TextureHandle::CreateEmpty();
@@ -153,7 +174,7 @@ namespace Mikoto {
         return TextureHandle::CreateEmpty();
     }
 
-    auto AssetsService::LoadAssetTyped( const AudioLoadDescription& description) -> AudioHandle {
+    auto AssetsService::LoadAudio( const AudioLoadDescription& description) -> AudioHandle {
         const File* audioFile{ description.AudioFile };
         if (!audioFile) {
             return AudioHandle::CreateEmpty();
@@ -182,7 +203,7 @@ namespace Mikoto {
         return AudioHandle::CreateEmpty();
     }
 
-    auto AssetsService::LoadAssetTyped( const FontLoadDescription& description ) -> FontHandle {
+    auto AssetsService::LoadFont( const FontLoadDescription& description ) -> FontHandle {
         const File* fontFile{ description.FontFile };
         if ( !fontFile ) {
             return FontHandle::CreateEmpty();

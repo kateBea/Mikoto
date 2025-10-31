@@ -19,6 +19,7 @@
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
 #include <Platform/MainWindow.hh>
+#include <Renderer/Vulkan/VulkanHelpers.hh>
 
 namespace Mikoto {
     MainWindow::MainWindow(const WindowProperties& properties )
@@ -33,16 +34,9 @@ namespace Mikoto {
         // Initialize GLFW Library
         InitGLFW();
 
-        // Major and minor values for render backend
-        UInt32 major{};
-        UInt32 minor{};
-
         switch(m_Properties.Backend) {
             case GraphicsAPI::VULKAN_API:
-                // TODO: load from config
-                major = 1;
-                minor = 3;
-                m_Properties.Title = fmt::format("{} (Vulkan Version {}.{})", m_Properties.Title, major, minor);
+                m_Properties.Title = fmt::format("{} (Vulkan Version {}.{})", m_Properties.Title, MKT_VULKAN_VERSION_MAJOR, MKT_VULKAN_VERSION_MINOR);
 
                 // Because GLFW was originally designed to create an OpenGL context,
                 // we need to tell it to not create an OpenGL context with a later call to glfwCreateWindow
@@ -57,6 +51,10 @@ namespace Mikoto {
         }
         else {
             glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        }
+
+        if (m_ScreenMode != ScreenMode::WINDOW_MODE_FULLSCREEN) {
+            glfwWindowHint(GLFW_MAXIMIZED, GLFW_FALSE);
         }
 
         MainWindowCreateSpec spec{

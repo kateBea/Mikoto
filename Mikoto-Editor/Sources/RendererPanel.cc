@@ -7,7 +7,6 @@
 // #include <Core/System/AssetsSystem.hh>
 // #include <Core/System/GUISystem.hh>
 // #include <GUI/ImGuiUtils.hh>
-// #include <GUI/RenderViewport.hh>
 // #include <Renderer/Vulkan/VulkanContext.hh>
 // #include <Renderer/Vulkan/VulkanDeletionQueue.hh>
 // #include <Renderer/Vulkan/VulkanRenderer.hh>

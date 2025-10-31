@@ -164,7 +164,7 @@ namespace Mikoto {
         ma_sound m_Sound{};
         Path m_Path{};
 
-        float m_Volume{ 10.0f };
+        float m_Volume{ 5.0f };
         bool m_Muted{ false };
         float m_Pitch{ 1.0f };
         float m_CurrentProgress{ 0.0f };

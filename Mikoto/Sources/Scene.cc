@@ -6,8 +6,8 @@
 // C++ Standard Library
 #include <algorithm>
 #include <memory>
-#include <string_view>
 #include <optional>
+#include <string_view>
 #include <utility>
 
 // Third-Party Libraries
@@ -29,9 +29,9 @@ namespace Mikoto {
         constexpr Vec3F initialPosition{ 0.0, 0.0, 0.0 };
         constexpr Vec3F initialRotation{ 0.0f, 0.0f, 0.0f };
 
-        if (info.Root != nullptr) {
+        if ( info.Root != nullptr ) {
             TagComponent& parentTag{ info.Root->GetComponent<TagComponent>() };
-            entity.AddComponent<RelationComponent>( std::make_optional( parentTag.GetGUID() ));
+            entity.AddComponent<RelationComponent>( std::make_optional( parentTag.GetGUID() ) );
         } else {
             entity.AddComponent<RelationComponent>();
         }
@@ -60,15 +60,18 @@ namespace Mikoto {
     }
 
     auto Scene::UpdateIdle( double ) -> void {
-        RemoveQueuedEntities();
+
     }
 
     auto Scene::UpdateSimulate( double ) -> void {
-        RemoveQueuedEntities();
+
     }
 
     auto Scene::RemoveEntity( UInt64 uniqueID ) -> void {
-        m_ToRemoveEntities.emplace_back( uniqueID );
+        m_EntityCommands.emplace_back( EntityCommand{
+                .Type{ EntityCommand::Type::DESTROY },
+                .EntityID{ uniqueID },
+        } );
     }
 
     auto Scene::AttachRigidBody( Entity* entity ) -> void {
@@ -97,6 +100,20 @@ namespace Mikoto {
 
     auto Scene::SetState( const SceneState state ) -> void {
         m_SceneState = state;
+    }
+
+    auto Scene::Update( const float timeStep ) -> void {
+        ProcessPendingCommands();
+
+        switch ( m_SceneState ) {
+
+            case SceneState::IDLE:
+                UpdateIdle( timeStep );
+                break;
+            case SceneState::SIMULATING:
+                UpdateSimulate( timeStep );
+                break;
+        }
     }
 
     auto Scene::SetName( const std::string_view name ) -> void {
@@ -136,17 +153,7 @@ namespace Mikoto {
         m_Registry.clear();
     }
 
-    auto Scene::CreateEntity( std::string_view name ) -> Entity* {
-        const EntityCreateInfo info{
-            .Root{ nullptr },
-            .Name{ name },
-            .Model{ ModelHandle::CreateEmpty() }
-        };
-
-        return CreateEntity( info );
-    }
-
-    auto Scene::CreateEntity( const EntityCreateInfo& createInfo ) -> Entity* {
+    auto Scene::CreateEntitySingle( const EntityCreateInfo& createInfo ) -> Entity* {
         Entity* result{ nullptr };
 
         // Register the entity and setup default componenets
@@ -166,7 +173,6 @@ namespace Mikoto {
             if ( createInfo.Root != nullptr ) {
                 Entity* parent{ createInfo.Root };
                 RelationComponent& parentRelation{ parent->GetComponent<RelationComponent>() };
-                RelationComponent& childRelation{ result->GetComponent<RelationComponent>() };
 
                 parentRelation.RegisterChild( guid );
             }
@@ -184,6 +190,36 @@ namespace Mikoto {
         }
 
         return result;
+    }
+
+    auto Scene::CreateEntity( const EntityCreateInfo& createInfo ) -> Entity* {
+        return CreateEntitySingle( createInfo );
+    }
+
+    auto Scene::QueueCreateEntity( std::string_view name ) -> void {
+        const EntityCreateInfo info{
+            .Root{ nullptr },
+            .Name{ name },
+            .Model{ ModelHandle::CreateEmpty() }
+        };
+
+        QueueCreateEntity( info );
+    }
+
+    auto Scene::QueueCreateEntity( const EntityCreateInfo& createInfo ) -> void {
+        // Lock and push the creation command
+        std::lock_guard lock( m_CommandQueueMutex );
+        m_EntityCommands.push_back( { EntityCommand::Type::CREATE, createInfo, 0 } );
+    }
+
+    auto Scene::CreateEntity( std::string_view name ) -> Entity* {
+        const EntityCreateInfo info{
+            .Root{ nullptr },
+            .Name{ name },
+            .Model{ ModelHandle::CreateEmpty() }
+        };
+
+        return CreateEntity( info );
     }
 
     auto Scene::GetEntityCount() const -> Size {
@@ -614,21 +650,66 @@ namespace Mikoto {
         Clear();
     }
 
-    auto Scene::RemoveQueuedEntities() -> void {
-        for ( const auto &entity: m_ToRemoveEntities ) {
-            m_Registry.destroy( m_Entities[ entity ]->m_Handle );
+    auto Scene::ProcessPendingCommands() -> void {
+        // Temporary vector to hold commands to process this frame
+        std::vector<EntityCommand> commandsCopy{};
 
-            m_Entities.erase( entity );
+        {
+            // Lock the command queue so no other thread modifies it while we swap
+            std::lock_guard lock( m_CommandQueueMutex );
+
+            // Swap the current queue with our temporary vector
+            // This effectively takes ownership of all pending commands
+            // and clears the original queue so other threads can keep pushing, swap is O(1)
+            commandsCopy.swap( m_EntityCommands );
         }
+
+        // Now we can process the commands without holding the lock
+        // This avoids blocking other threads that want to enqueue new commands
+        for ( auto& [Type, CreateInfo, EntityID]: commandsCopy ) {
+            switch ( Type ) {
+                case EntityCommand::Type::CREATE:
+                    // Create the entity immediately on the main thread
+                    // Safe because only the main thread writes to the registry
+                    ( void )CreateEntitySingle( CreateInfo );
+                    break;
+
+                case EntityCommand::Type::DESTROY:
+                    // Destroy the entity immediately on the main thread
+                    // Safe because only the main thread writes to the registry
+                    ( void )DestroyEntitySingle( EntityID );
+                    break;
+            }
+        }
+    }
+
+    auto Scene::DestroyEntitySingle( UInt64 entityID ) -> bool {
+        m_Registry.destroy( m_Entities[entityID]->m_Handle );
+        m_Entities.erase( entityID );
+
+        return m_Entities.erase( entityID ) != 0;
     }
 
     auto Scene::GetRegistry() -> entt::registry& {
         return m_Registry;
     }
 
+    auto Scene::GetRegistry() const -> const entt::registry& {
+        return m_Registry;
+    }
+
+    auto Scene::WorkerDestroyEntity( UInt64 entityID ) -> void {
+        std::lock_guard lock{ m_CommandQueueMutex };
+        m_EntityCommands.push_back( { EntityCommand::Type::DESTROY, {}, entityID } );
+    }
+    auto Scene::WorkerCreateEntity( const EntityCreateInfo& info ) -> void {
+        std::lock_guard lock{ m_CommandQueueMutex };
+        m_EntityCommands.push_back( { EntityCommand::Type::CREATE, info, 0 } );
+    }
+
     auto Scene::AddSingleEntityWithRoot( Entity* root, ModelHandle model, Int32 index ) -> void {
         std::string name{ model->GetMeshNode( index ).GetName() };
-        if (name.empty()) {
+        if ( name.empty() ) {
             name = fmt::format( "{} ({})", model->GetName(), index );
         }
 
@@ -637,7 +718,7 @@ namespace Mikoto {
             .Name{ name.c_str() },
         };
 
-        Entity * child{ CreateEntity( entityCreateInfo ) };
+        Entity* child{ CreateEntity( entityCreateInfo ) };
 
         if ( child != nullptr ) {
             child->AddComponent<MeshComponent>( model, index );

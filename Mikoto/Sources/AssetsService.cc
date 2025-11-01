@@ -77,7 +77,7 @@ namespace Mikoto {
     }
 
     auto AssetsService::GetDummyTexture() -> TextureHandle {
-        return m_Textures["./texture.png"];
+        return m_Textures[s_DummyTexturePath.data() ];
     }
 
     auto AssetsService::LoadModel( const std::string_view uri ) -> ModelHandle {
@@ -233,9 +233,10 @@ namespace Mikoto {
     }
 
     auto AssetsService::LoadDummyAssets() -> void {
+
         TextureLoadDescription loadDesc{};
         loadDesc
-                .WithFile( FileService::Get()->LoadFile( "./texture.png" ) )
+                .WithFile( FileService::Get()->LoadFile( s_DummyTexturePath ) )
                 .WithType( TextureType::TEXTURE_2D );
 
         LoadAsset<Texture>( loadDesc );

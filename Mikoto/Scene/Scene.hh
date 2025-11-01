@@ -7,6 +7,7 @@
 #define MIKOTO_SCENE_HH
 
 // C++ Standard Library
+#include <mutex>
 #include <memory>
 #include <string_view>
 
@@ -46,9 +47,6 @@ namespace Mikoto {
     public:
         explicit Scene( std::string_view name = "New Scene" );
 
-        auto UpdateIdle( double deltaTime ) -> void;
-        auto UpdateSimulate( double deltaTime ) -> void;
-
         /**
          * @brief Sets the state of the scene renderer.
          * This function changes the state of the renderer, such as transitioning from idle to simulating.
@@ -56,6 +54,7 @@ namespace Mikoto {
          */
         auto SetState( SceneState state ) -> void;
 
+        auto Update( float timeStep ) -> void;
 
         // Remove recursively check if its child of any entity
         auto RemoveEntity( UInt64 uniqueID ) -> void;
@@ -70,6 +69,9 @@ namespace Mikoto {
 
         MKT_NODISCARD auto CreateEntity( std::string_view name ) -> Entity*;
         MKT_NODISCARD auto CreateEntity( const EntityCreateInfo& createInfo = {} ) -> Entity*;
+
+        MKT_NODISCARD auto QueueCreateEntity( std::string_view name ) -> void;
+        MKT_NODISCARD auto QueueCreateEntity( const EntityCreateInfo& createInfo = {} ) -> void;
 
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 
@@ -92,18 +94,36 @@ namespace Mikoto {
     private:
         friend class PhysicsBase;
 
-        auto RemoveQueuedEntities() -> void;
+        struct EntityCommand {
+            enum class Type {
+                CREATE, DESTROY
+            } Type;
 
+            EntityCreateInfo CreateInfo{};  // only for CREATE
+            UInt64 EntityID{ 0 };          // only for DESTROY
+        };
+
+        auto ProcessPendingCommands() -> void;
+
+        MKT_NODISCARD auto DestroyEntitySingle( UInt64 entityID) -> bool;
+        MKT_NODISCARD auto CreateEntitySingle( const EntityCreateInfo& createInfo) -> Entity*;
+
+        auto UpdateIdle( double deltaTime ) -> void;
+        auto UpdateSimulate( double deltaTime ) -> void;
     private:
         auto AddSingleEntityWithRoot(Entity * root, ModelHandle model, Int32 index ) -> void;
+
+        auto WorkerDestroyEntity(UInt64 entityID) -> void;
+        auto WorkerCreateEntity(const EntityCreateInfo& info) -> void;
     private:
         std::string m_Name{};
         entt::registry m_Registry{};
 
         SceneState m_SceneState{ SceneState::IDLE };
 
-        // Deletion is deferred until we call update
-        std::vector<UInt64> m_ToRemoveEntities{};
+        // Deletion and creation is deferred until we call update
+        std::mutex m_CommandQueueMutex{};
+        std::vector<EntityCommand> m_EntityCommands{};
 
         // Unique because iterators are invalidated on resize
         ankerl::unordered_dense::map<Size, Unique<Entity>> m_Entities{};

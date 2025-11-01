@@ -57,7 +57,8 @@ namespace Mikoto {
         bindingDescriptions[0] = {};
         bindingDescriptions[0].binding = 0;
         bindingDescriptions[0].stride = layout.GetStride();
-        bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // not using instanced rendering, so we'll stick to per-vertex data. (Optional) to specify as parameter to this function
+        //bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // not using instanced rendering, so we'll stick to per-vertex data. (Optional) to specify as parameter to this function
+        bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
         return bindingDescriptions;
     }

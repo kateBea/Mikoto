@@ -130,74 +130,71 @@ namespace Mikoto {
     auto VulkanRenderer::DrawScene( Scene* scene ) -> void {
         // Handle lights here which are also the same for all passes
         auto& registry{ scene->GetRegistry() };
-auto lightsView{ registry.view<TagComponent, TransformComponent, LightComponent>() };
+        auto lightsView{ registry.view<TagComponent, TransformComponent, LightComponent>() };
 
-Int32 pointLightCount{};
-Int32 spotLightCount{};
-Int32 directionalLightCount{};
+        Int32 pointLightCount{};
+        Int32 spotLightCount{};
+        Int32 directionalLightCount{};
 
-for (auto& lightEntity : lightsView) {
-    LightComponent& lightComp{ registry.get<LightComponent>(lightEntity) };
-    TransformComponent& transformCom{ registry.get<TransformComponent>(lightEntity) };
+        for ( auto& lightEntity: lightsView ) {
+            LightComponent& lightComp{ registry.get<LightComponent>( lightEntity ) };
+            TransformComponent& transformCom{ registry.get<TransformComponent>( lightEntity ) };
 
-    switch (lightComp.GetActiveType()) {
-        case LightType::POINT_LIGHT_TYPE: {
-            if (pointLightCount >= MAX_LIGHTS) break;
+            switch ( lightComp.GetActiveType() ) {
+                case LightType::POINT_LIGHT_TYPE: {
+                    if ( pointLightCount >= MAX_LIGHTS ) break;
 
-            auto& point{ lightComp.Get<PointLight>() };
-            auto& uboLight{ m_LightsInfo->PointLights[pointLightCount] };
+                    auto& point{ lightComp.Get<PointLight>() };
+                    auto& uboLight{ m_LightsInfo->PointLights[pointLightCount] };
 
-            uboLight.Position = Vec4F(transformCom.GetTranslation(), 1.0f);
-            uboLight.Ambient  = Vec4F(point.GetColor() * 0.1f, 1.0f);
-            uboLight.Diffuse  = Vec4F(point.GetColor() * point.GetIntensity(), 1.0f);
-            uboLight.Specular = Vec4F(point.GetColor(), 1.0f);
-            uboLight.AttenuationParams = Vec4F(1.0f, 0.0f, 0.0f, point.GetRadius());
+                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
+                    uboLight.Ambient = Vec4F( point.GetColor() * 0.1f, 1.0f );
+                    uboLight.Diffuse = Vec4F( point.GetColor(), 0.0f );
+                    uboLight.AttenuationParams = Vec4F( point.GetIntensity(), point.GetRadius(), 0.0f, 0.0f );
 
-            ++pointLightCount;
-            break;
+                    ++pointLightCount;
+                    break;
+                }
+
+                case LightType::SPOT_LIGHT_TYPE: {
+                    if ( spotLightCount >= MAX_LIGHTS ) break;
+
+                    auto& spot{ lightComp.Get<SpotLight>() };
+                    auto& uboLight{ m_LightsInfo->SpotLights[spotLightCount] };
+
+                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
+                    uboLight.Direction = Vec4F( spot.GetDirection(), 0.0f );
+                    uboLight.Ambient = Vec4F( spot.GetColor() * 0.1f, 1.0f );
+                    uboLight.Diffuse = Vec4F( spot.GetColor() * spot.GetIntensity(), 1.0f );
+                    uboLight.CutOffValues = Vec4F( spot.GetCutOff(), spot.GetOuterCutOff(), spot.GetIntensity(), spot.GetRadius() );
+
+                    ++spotLightCount;
+                    break;
+                }
+
+                case LightType::DIRECTIONAL_LIGHT_TYPE: {
+                    if ( directionalLightCount >= MAX_LIGHTS ) break;
+
+                    auto& dir{ lightComp.Get<DirectionalLight>() };
+                    auto& uboLight{ m_LightsInfo->DirectionalLights[directionalLightCount] };
+
+                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );// optional for shadows
+                    uboLight.Ambient = Vec4F( dir.GetColor() * 0.1f, 1.0f );
+                    uboLight.Diffuse = Vec4F( dir.GetColor() * dir.GetIntensity(), 1.0f );
+
+                    ++directionalLightCount;
+                    break;
+                }
+            }
         }
 
-        case LightType::SPOT_LIGHT_TYPE: {
-            if (spotLightCount >= MAX_LIGHTS) break;
+        // Update counts in UBO
+        m_LightsInfo->PointLightCount = pointLightCount;
+        m_LightsInfo->SpotLightCount = spotLightCount;
+        m_LightsInfo->DirectionalLightCount = directionalLightCount;
 
-            auto& spot{ lightComp.Get<SpotLight>() };
-            auto& uboLight{ m_LightsInfo->SpotLights[spotLightCount] };
-
-            uboLight.Position = Vec4F(transformCom.GetTranslation(), 1.0f);
-            uboLight.Direction = Vec4F(spot.GetDirection(), 0.0f);
-            uboLight.Ambient  = Vec4F(spot.GetColor() * 0.1f, 1.0f);
-            uboLight.Diffuse  = Vec4F(spot.GetColor() * spot.GetIntensity(), 1.0f);
-            uboLight.Specular = Vec4F(spot.GetColor(), 1.0f);
-            uboLight.CutOffValues = Vec4F(spot.GetCutOff(), spot.GetOuterCutOff(), spot.GetIntensity(), spot.GetRadius());
-
-            ++spotLightCount;
-            break;
-        }
-
-        case LightType::DIRECTIONAL_LIGHT_TYPE: {
-            if (directionalLightCount >= MAX_LIGHTS) break;
-
-            auto& dir{ lightComp.Get<DirectionalLight>() };
-            auto& uboLight{ m_LightsInfo->DirectionalLights[directionalLightCount] };
-
-            uboLight.Position = Vec4F(transformCom.GetTranslation(), 1.0f); // optional for shadows
-            uboLight.Ambient  = Vec4F(dir.GetColor() * 0.1f, 1.0f);
-            uboLight.Diffuse  = Vec4F(dir.GetColor() * dir.GetIntensity(), 1.0f);
-            uboLight.Specular = Vec4F(dir.GetColor(), 1.0f);
-
-            ++directionalLightCount;
-            break;
-        }
-    }
-}
-
-// Update counts in UBO
-m_LightsInfo->PointLightCount       = pointLightCount;
-m_LightsInfo->SpotLightCount        = spotLightCount;
-m_LightsInfo->DirectionalLightCount = directionalLightCount;
-
-// Copy to GPU buffer
-m_LightsBuffer->CopyFromBlock(m_LightsInfo, sizeof(LightInfo));
+        // Copy to GPU buffer
+        m_LightsBuffer->CopyFromBlock( m_LightsInfo, sizeof( LightInfo ) );
 
         // For all passes with a graphics pipeline
         for ( auto& pass: m_Passes | std::ranges::views::values ) {
@@ -242,12 +239,12 @@ m_LightsBuffer->CopyFromBlock(m_LightsInfo, sizeof(LightInfo));
         } else {
             PBRMaterial* pbrMat{ dynamic_cast<PBRMaterial*>( material.GetRaw() ) };
 
-            pbrMat->SetTextureType( MapType::ALBEDO_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
-            pbrMat->SetTextureType( MapType::NORMAL_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
-            pbrMat->SetTextureType( MapType::EMISSIVE_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
-            pbrMat->SetTextureType( MapType::METALLIC_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
-            pbrMat->SetTextureType( MapType::ROUGHNESS_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
-            pbrMat->SetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
+            // pbrMat->SetTextureType( MapType::ALBEDO_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
+            // pbrMat->SetTextureType( MapType::NORMAL_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
+            // pbrMat->SetTextureType( MapType::EMISSIVE_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
+            // pbrMat->SetTextureType( MapType::METALLIC_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
+            // pbrMat->SetTextureType( MapType::ROUGHNESS_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
+            // pbrMat->SetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
         }
 
         return material;

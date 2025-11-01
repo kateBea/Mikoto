@@ -110,6 +110,12 @@ namespace Mikoto {
         PersistentUnmap();
     }
 
+    auto VulkanBuffer::CopyFromBlock( const void* ptr, Size size, Size offset ) -> void {
+        PersistentMap();
+        std::memcpy( m_VmaAllocationInfo.pMappedData + offset, ptr, size );
+        PersistentUnmap();
+    }
+
     auto VulkanBuffer::GetNativeHandle( ObjectType object ) -> Object {
         switch (object) {
 

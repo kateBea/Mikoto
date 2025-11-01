@@ -168,6 +168,9 @@ namespace Mikoto {
         auto LoadDummyAssets() -> void;
 
     private:
+        inline static constexpr std::string_view s_DummyTexturePath{ "./Resources/Textures/texture.png" };
+
+    private:
         Unique<MeshFactory> m_MeshFactory{};
         Unique<FontFactory> m_FontFactory{};
 

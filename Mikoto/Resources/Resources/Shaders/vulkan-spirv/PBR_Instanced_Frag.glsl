@@ -27,7 +27,6 @@ struct PointLight {
     vec4 Position;
     vec4 ambient;
     vec4 Diffuse;
-    vec4 specular;
     vec4 AttenuationParams;
 };
 
@@ -35,7 +34,6 @@ struct DirectionalLight {
     vec4 Direction;
     vec4 Ambient;
     vec4 Diffuse;
-    vec4 Specular;
 };
 
 struct SpotLight {
@@ -43,7 +41,6 @@ struct SpotLight {
     vec4 Direction;
     vec4 Ambient;
     vec4 Diffuse;
-    vec4 Specular;
 // x=cutOff, y=outerCutOff, z=intensity, w=radius
     vec4 CutOffValues;
 };
@@ -402,5 +399,5 @@ void main() {
     color = pow(color, vec3(1.0 / 2.2));
 
     out_Color = DetermineOutFragmentColor(N, color, metallic, roughness, ao);
-    //out_Color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    out_Color = vec4(color , 1.0);
 }

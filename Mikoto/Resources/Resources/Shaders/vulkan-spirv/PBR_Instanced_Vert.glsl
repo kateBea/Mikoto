@@ -62,7 +62,7 @@ void main() {
     out_Color        = a_Color;
     out_TexCoord     = a_TexCoord;
     out_CameraPos    = frame.CameraPosition.xyz;
-    out_VertexNormal = normalize(normalMatrix * a_Normal);
+    out_VertexNormal = normalMatrix * a_Normal;
     out_FragmentPos  = vec3(model * vec4(a_Position, 1.0));
     out_InstanceIndex = instanceIndex;
 

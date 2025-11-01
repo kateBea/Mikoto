@@ -50,7 +50,14 @@ namespace Mikoto {
         return static_cast<EditorApp*>(s_Instance)->m_PrefabModels[prefab];
     }
 
-    auto EditorApp::InitPrefabs() -> void {
+    auto EditorApp::InitPrefabsPaths() -> void {
+        m_PrefabModels = {
+            { PrefabModels::CUBE, "Resources/Models/Prefabs/cube/gltf/scene.gltf" },
+            { PrefabModels::CONE, "Resources/Models/Prefabs/cone/gltf/scene.gltf" },
+            { PrefabModels::SPHERE, "Resources/Models/Prefabs/sphere/gltf/scene.gltf" },
+            { PrefabModels::CYLINDER, "Resources/Models/Prefabs/cylinder/gltf/scene.gltf" },
+            { PrefabModels::SPONZA, "Resources/Models/Prefabs/sponza/sponza.obj" },
+        };
     }
 
     auto EditorApp::Init() -> void {
@@ -82,7 +89,7 @@ namespace Mikoto {
 
         SetupEventCallbacks();
 
-        InitPrefabs();
+        InitPrefabsPaths();
 
         m_LayerStack.PushLayer<EditorLayer>(EditorLayerCreateInfo{
             .Name{ "Editor Layer" },

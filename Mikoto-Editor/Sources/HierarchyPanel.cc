@@ -32,51 +32,29 @@ namespace Mikoto {
         return "Hierarchy";
     }
 
-    auto HierarchyPanel::DrawPrefabMenuItems( Entity* root ) const -> void {
-        EntityCreateInfo entityCreateInfo{
-            .Root{ root }
-        };
-
-        entityCreateInfo.Root = root;
+    auto HierarchyPanel::DrawPrefabMenuItems( Entity* root ) -> void {
 
         if ( ImGui::BeginMenu( "3D Object" ) ) {
             Entity* newEntity{ nullptr };
 
             if ( ImGui::MenuItem( "Cube" ) ) {
-                entityCreateInfo.Name = "Cube";
-                entityCreateInfo.Model = AssetsService::Get()->LoadAsset<Model>( EditorApp::GetPrefabUri( PrefabModels::CUBE ) );
-                newEntity = m_EditorState->ActiveEditorScene->CreateEntity( entityCreateInfo );
+                AddEntityWithModel( EditorApp::GetPrefabUri( PrefabModels::CUBE ), root );
             }
 
             if ( ImGui::MenuItem( "Cone" ) ) {
-                entityCreateInfo.Name = "Cone";
-                entityCreateInfo.Model = AssetsService::Get()->LoadAsset<Model>( EditorApp::GetPrefabUri( PrefabModels::CUBE ) );
-                newEntity = m_EditorState->ActiveEditorScene->CreateEntity( entityCreateInfo );
+                AddEntityWithModel( EditorApp::GetPrefabUri( PrefabModels::CONE ), root );
             }
 
             if ( ImGui::MenuItem( "Cylinder" ) ) {
-                entityCreateInfo.Name = "Cylinder";
-                entityCreateInfo.Model = AssetsService::Get()->LoadAsset<Model>( EditorApp::GetPrefabUri( PrefabModels::CYLINDER ) );
-                newEntity = m_EditorState->ActiveEditorScene->CreateEntity( entityCreateInfo );
+                AddEntityWithModel( EditorApp::GetPrefabUri( PrefabModels::CYLINDER ), root );
             }
 
             if ( ImGui::MenuItem( "Sphere" ) ) {
-                entityCreateInfo.Name = "Sphere";
-                entityCreateInfo.Model = AssetsService::Get()->LoadAsset<Model>( EditorApp::GetPrefabUri( PrefabModels::SPHERE ) );
-                newEntity = m_EditorState->ActiveEditorScene->CreateEntity( entityCreateInfo );
+                AddEntityWithModel( EditorApp::GetPrefabUri( PrefabModels::SPHERE ), root );
             }
 
             if ( ImGui::MenuItem( "Sponza" ) ) {
-                entityCreateInfo.Name = "Sponza";
-                entityCreateInfo.Model = AssetsService::Get()->LoadAsset<Model>( EditorApp::GetPrefabUri( PrefabModels::SPONZA ) );
-                newEntity = m_EditorState->ActiveEditorScene->CreateEntity( entityCreateInfo );
-            }
-
-            if ( newEntity != nullptr ) {
-                MKT_CORE_LOGGER_INFO( "Created new entity: {}", newEntity->GetComponent<TagComponent>().GetTag() );
-                RuntimeConsole::Get()->Debug( fmt::format( "Added entity: {}. Id => {}", newEntity->GetComponent<TagComponent>().GetTag(),
-                    StringUtils::ToHex( newEntity->GetComponent<TagComponent>().GetGUID() ) ) );
-
+                AddEntityWithModel( EditorApp::GetPrefabUri( PrefabModels::SPONZA ), root );
             }
 
             ImGui::EndMenu();
@@ -136,8 +114,7 @@ namespace Mikoto {
         if ( newEntity != nullptr ) {
             MKT_CORE_LOGGER_INFO( "Created new entity: {}", newEntity->GetComponent<TagComponent>().GetTag() );
             RuntimeConsole::Get()->Debug( fmt::format( "Added entity: {}. Id => {}", newEntity->GetComponent<TagComponent>().GetTag(),
-                StringUtils::ToHex( newEntity->GetComponent<TagComponent>().GetGUID() ) ) );
-
+                                                       StringUtils::ToHex( newEntity->GetComponent<TagComponent>().GetGUID() ) ) );
         }
     }
 
@@ -191,12 +168,13 @@ namespace Mikoto {
         const auto thisEntityIsSelected{ currentSelection != nullptr && entityID == currentSelection->GetComponent<TagComponent>().GetGUID() };
 
         const ImGuiTreeNodeFlags styleFlags{
-                ImGuiTreeNodeFlags_OpenOnArrow |
-                ImGuiTreeNodeFlags_OpenOnDoubleClick |
-                ImGuiTreeNodeFlags_SpanAvailWidth |
-                ImGuiTreeNodeFlags_FramePadding |
-                ( entityRelation.IsLeaf() ? ImGuiTreeNodeFlags_Leaf : ImGuiTreeNodeFlags_None ) |
-                ( thisEntityIsSelected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None ) };
+            ImGuiTreeNodeFlags_OpenOnArrow |
+            ImGuiTreeNodeFlags_OpenOnDoubleClick |
+            ImGuiTreeNodeFlags_SpanAvailWidth |
+            ImGuiTreeNodeFlags_FramePadding |
+            ( entityRelation.IsLeaf() ? ImGuiTreeNodeFlags_Leaf : ImGuiTreeNodeFlags_None ) |
+            ( thisEntityIsSelected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None )
+        };
 
         const ImGuiTreeNodeFlags flags{ styleFlags | ( thisEntityIsSelected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None ) };
         const bool expanded{ ImGui::TreeNodeEx( reinterpret_cast<void*>( entityTag.GetGUID() ), flags, "%s", fmt::format( " {} {}", ICON_MD_WIDGETS, entityTag.GetTag() ).c_str() ) };
@@ -217,7 +195,7 @@ namespace Mikoto {
     }
 
 
-    auto HierarchyPanel::OnEntityRightClickMenu( Entity* entity ) const -> void {
+    auto HierarchyPanel::OnEntityRightClickMenu( Entity* entity ) -> void {
         if ( entity == nullptr ) {
             return;
         }
@@ -308,31 +286,9 @@ namespace Mikoto {
         }
     }
 
-    auto HierarchyPanel::DrawModelLoadMenuItem() const -> void {
+    auto HierarchyPanel::DrawModelLoadMenuItem() -> void {
         if ( ImGui::MenuItem( "Load model" ) ) {
-
-            const std::initializer_list<std::pair<std::string, std::string>> filters{
-                { "Model files", "obj,gltf,fbx" },
-                { "OBJ files", "obj" },
-                { "glTF files", "gltf" },
-                { "FBX files", "fbx" }
-            };
-
-            const Path path{ FileService::Get()->OpenDialog( filters ) };
-            ModelLoadDescription description{
-                .ModelFile{ FileService::Get()->LoadFile( FileService::Get()->OpenDialog( filters ) ) },
-                .WantTextures{ true }
-            };
-
-            ModelHandle model{ AssetsService::Get()->LoadAsset<Model>( description ) };
-
-            const EntityCreateInfo entityCreateInfo{
-                .Name = path.stem().string(),
-                .Model = model,
-            };
-
-            // Void cast to avoid warning
-            ( void )m_EditorState->ActiveEditorScene->CreateEntity( entityCreateInfo );
+            AddEntityWithModel();
         }
     }
 
@@ -359,7 +315,58 @@ namespace Mikoto {
         }
     }
 
-    auto HierarchyPanel::BlankSpacePopupMenu() const -> void {
+    auto HierarchyPanel::AddEntityWithModel( const std::string_view uri, Entity* root ) -> void {
+        static bool loading{ false };
+
+        if ( !loading ) {
+            loading = true;
+            TaskService::Get()->Submit( [this, root, path = std::string{ uri }]() -> void {
+
+                ModelLoadDescription description{
+                    .ModelFile{ FileService::Get()->LoadFile( path ) },
+                    .WantTextures{ true }
+                };
+
+                const std::string name{ Path{ path }.stem().string() };
+                const ModelHandle model{ AssetsService::Get()->LoadAsset<Model>( description ) };
+
+                const EntityCreateInfo entityCreateInfo{
+                    .Root{ root },
+                    .Name =  name,
+                    .Model = model,
+                };
+
+                // Void cast to avoid warning
+                m_EditorState->ActiveEditorScene->QueueCreateEntity( entityCreateInfo );
+
+                loading = false;
+            } );
+        }
+    }
+
+    auto HierarchyPanel::AddEntityWithModel( Entity* root ) -> void {
+        static bool loading{ false };
+
+        if ( !loading ) {
+            loading = true;
+
+            TaskService::Get()->Submit( [&]() -> void {
+                const std::initializer_list<std::pair<std::string, std::string>> filters{
+                    { "Model files", "obj,gltf,fbx" },
+                    { "OBJ files", "obj" },
+                    { "glTF files", "gltf" },
+                    { "FBX files", "fbx" }
+                };
+
+                const std::string path{ FileService::Get()->OpenDialog( filters ) };
+                AddEntityWithModel(path, root);
+
+                loading = false;
+            });
+        }
+    }
+
+    auto HierarchyPanel::BlankSpacePopupMenu() -> void {
         constexpr ImGuiPopupFlags popupWindowFlags{
             ImGuiPopupFlags_NoOpenOverItems |
             ImGuiPopupFlags_MouseButtonRight

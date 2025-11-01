@@ -40,7 +40,7 @@ namespace Mikoto {
         auto Update() -> void override;
 
     private:
-        auto InitPrefabs() -> void;
+        auto InitPrefabsPaths() -> void;
         auto SetupEventCallbacks() -> void;
 
     private:

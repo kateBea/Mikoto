@@ -199,7 +199,7 @@ namespace Mikoto {
     auto Scene::QueueCreateEntity( std::string_view name ) -> void {
         const EntityCreateInfo info{
             .Root{ nullptr },
-            .Name{ name },
+            .Name{ name.data() },
             .Model{ ModelHandle::CreateEmpty() }
         };
 
@@ -215,7 +215,7 @@ namespace Mikoto {
     auto Scene::CreateEntity( std::string_view name ) -> Entity* {
         const EntityCreateInfo info{
             .Root{ nullptr },
-            .Name{ name },
+            .Name{ name.data() },
             .Model{ ModelHandle::CreateEmpty() }
         };
 

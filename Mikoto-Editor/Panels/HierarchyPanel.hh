@@ -28,12 +28,15 @@ namespace Mikoto {
         ~HierarchyPanel() override = default;
 
     private:
-        auto BlankSpacePopupMenu() const -> void;
-        auto DrawModelLoadMenuItem() const -> void;
+        auto AddEntityWithModel(Entity* root = nullptr) -> void;
+        auto AddEntityWithModel(std::string_view uri, Entity* root = nullptr) -> void;
+
+        auto BlankSpacePopupMenu() -> void;
+        auto DrawModelLoadMenuItem() -> void;
         auto DrawNodeTree( UInt64 entity ) -> void;
         auto DrawTextMenuItems(Entity* entity = nullptr) const;
-        auto OnEntityRightClickMenu( Entity* entity ) const -> void;
-        auto DrawPrefabMenuItems( Entity* root = nullptr ) const -> void;
+        auto OnEntityRightClickMenu( Entity* entity ) -> void;
+        auto DrawPrefabMenuItems( Entity* root = nullptr ) -> void;
         auto DrawLightMenuItems( Entity* root = nullptr ) const -> void;
 
     private:

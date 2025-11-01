@@ -35,7 +35,7 @@ namespace Mikoto {
 
     struct EntityCreateInfo {
         Entity* Root{};
-        std::string_view Name{};
+        std::string Name{};
         ModelHandle Model{};
 
         auto WithName( std::string_view name ) -> EntityCreateInfo&;

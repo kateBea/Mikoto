@@ -8,14 +8,14 @@
 
 #include <any>
 // C++ Standard Library
-#include <volk.h>
 #include <imgui.h>
 #include <imgui_internal.h>
-#include <glm/gtc/type_ptr.hpp>
+#include <volk.h>
 
 #include <Common/Common.hh>
 #include <Library/String/String.hh>
 #include <Library/Utility/Types.hh>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace Mikoto::ImGuiUtils {
 
@@ -40,8 +40,8 @@ namespace Mikoto::ImGuiUtils {
     class ImGuiScopedBorderColor {
     public:
         explicit ImGuiScopedBorderColor( Vec4F color, float thickness = 1.0f ) {
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, thickness );
-            ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(color.r, color.g, color.b, color.a));
+            ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, thickness );
+            ImGui::PushStyleColor( ImGuiCol_Border, IM_COL32( color.r, color.g, color.b, color.a ) );
         }
 
         ~ImGuiScopedBorderColor() {
@@ -55,15 +55,14 @@ namespace Mikoto::ImGuiUtils {
         static constexpr Int8 Invalid{ -1 };
 
         explicit ImGuiScopedTextFont( const Int8 index )
-            : m_Index{ index }
-        {
-            if (m_Index != Invalid) {
+            : m_Index{ index } {
+            if ( m_Index != Invalid ) {
                 ImGui::PushFont( ImGui::GetIO().Fonts->Fonts[index] );
             }
         }
 
         ~ImGuiScopedTextFont() {
-            if (m_Index != Invalid) {
+            if ( m_Index != Invalid ) {
                 ImGui::PopFont();
             }
         }
@@ -288,6 +287,24 @@ namespace Mikoto::ImGuiUtils {
         return active;
     }
 
+    inline auto ColorEdit3( const CStr label, glm::vec3& vect ) -> bool {
+        constexpr ImGuiColorEditFlags colorEditFlags{
+            ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_PickerHueBar
+        };
+
+        ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+        ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
+        ImGuiScopedStyleVar spacing{ ImGuiStyleVar_ItemInnerSpacing, ImVec2{ 5.0f, 5.0f } };
+
+        const bool active{ ImGui::ColorEdit3( label, value_ptr( vect ), colorEditFlags ) };
+
+        if ( ImGui::IsItemHovered() ) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        return active;
+    }
+
     inline auto Slider( const CStr label, float& value, const glm::vec2& bounds, std::string_view format = "%.2f" ) -> bool {
         constexpr ImGuiSliderFlags flags{ ImGuiSliderFlags_None };
 
@@ -318,7 +335,7 @@ namespace Mikoto::ImGuiUtils {
         return active;
     }
 
-    inline auto TextArea( std::string& buffer) -> bool {
+    inline auto TextArea( std::string& buffer ) -> bool {
         ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
         ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
 
@@ -547,8 +564,8 @@ namespace Mikoto::ImGuiUtils {
      * @param panelName Name of the panel.
      * @returns The panel's name including the icon.
      * */
-    MKT_NODISCARD inline auto MakePanelName(std::string_view panelIcon, std::string_view panelName) -> std::string {
-        return fmt::format("{} {}", panelIcon, panelName);
+    MKT_NODISCARD inline auto MakePanelName( std::string_view panelIcon, std::string_view panelName ) -> std::string {
+        return fmt::format( "{} {}", panelIcon, panelName );
     }
 }// namespace Mikoto::ImGuiUtils
 

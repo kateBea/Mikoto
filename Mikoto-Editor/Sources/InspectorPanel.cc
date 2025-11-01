@@ -153,9 +153,21 @@ namespace Mikoto {
         const Path path{ FileService::Get()->OpenDialog( filters ) };
 
         if ( !path.empty() ) {
-            TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( path ) };
-            if ( !texture.IsEmpty() ) {
-                standardMat.SetTextureType( mapType, texture );
+            static bool loading{ false };
+
+            if ( !loading ) {
+                loading = true;
+
+                TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( path ) };
+                if ( !texture.IsEmpty() ) {
+                    standardMat.SetTextureType( mapType, texture );
+                }
+
+                loading = false;
+
+                TaskService::Get()->Submit( [&]() -> void {
+
+                } );
             }
         }
     }
@@ -189,6 +201,9 @@ namespace Mikoto {
         ImGui::TextUnformatted( " Albedo" );
 
         TextureHandle diffuseMap{ material.GetTextureType( MapType::ALBEDO_TEXTURE ) };
+        if ( diffuseMap.IsEmpty() ) {
+            diffuseMap = AssetsService::Get()->GetDummyTexture();
+        }
 
         if ( ImGuiUtils::PushImageButton( diffuseMap->GetHandle(), ImGuiService::Get()->GetTextureID( diffuseMap.GetRaw() ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::ALBEDO_TEXTURE );
@@ -221,10 +236,11 @@ namespace Mikoto {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndex );
 
-            glm::vec4 color{};
+            glm::vec4 color{ material.GetColor() };
             constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
 
-            if ( ImGui::ColorEdit4( "Color", glm::value_ptr( color ), colorEditFlags ) ) {
+            if ( ImGui::ColorEdit3( "Color", glm::value_ptr( color ), colorEditFlags ) ) {
+                material.SetColor( color );
             }
 
             if ( ImGui::IsItemHovered() ) {
@@ -256,7 +272,10 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( " Metallic" );
 
-        Texture2D* metallicMap{ dynamic_cast<Texture2D*>( material.GetTextureType( MapType::METALLIC_TEXTURE ).GetRaw() ) };
+        TextureHandle metallicMap{ material.GetTextureType( MapType::METALLIC_TEXTURE ) };
+        if ( metallicMap.IsEmpty() ) {
+            metallicMap = AssetsService::Get()->GetDummyTexture();
+        }
 
         if ( ImGuiUtils::PushImageButton( metallicMap->GetHandle(), ImGuiService::Get()->GetTextureID( metallicMap ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::METALLIC_TEXTURE );
@@ -264,7 +283,7 @@ namespace Mikoto {
 
         if ( material.HasTextureType( MapType::METALLIC_TEXTURE ) ) {
             ImGuiUtils::ToolTip( [&]() -> void {
-                ShowTextureHoverTooltip( metallicMap );
+                ShowTextureHoverTooltip( metallicMap.GetRaw() );
             },
                                  ImGui::IsItemHovered() );
         }
@@ -317,7 +336,10 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( " Normal" );
 
-        Texture2D* normalMap{ dynamic_cast<Texture2D*>( material.GetTextureType( MapType::NORMAL_TEXTURE ).GetRaw() ) };
+        TextureHandle normalMap{ material.GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) };
+        if ( normalMap.IsEmpty() ) {
+            normalMap = AssetsService::Get()->GetDummyTexture();
+        }
 
         if ( ImGuiUtils::PushImageButton( normalMap->GetHandle(), ImGuiService::Get()->GetTextureID( normalMap ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::NORMAL_TEXTURE );
@@ -325,7 +347,7 @@ namespace Mikoto {
 
         if ( material.HasTextureType( MapType::NORMAL_TEXTURE ) ) {
             ImGuiUtils::ToolTip( [&]() -> void {
-                ShowTextureHoverTooltip( normalMap );
+                ShowTextureHoverTooltip( normalMap.GetRaw() );
             },
                                  ImGui::IsItemHovered() );
         }
@@ -375,7 +397,10 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( " Roughness" );
 
-        Texture2D* roughnessMap{ dynamic_cast<Texture2D*>( material.GetTextureType( MapType::ROUGHNESS_TEXTURE ).GetRaw() ) };
+        TextureHandle roughnessMap{ material.GetTextureType( MapType::ROUGHNESS_TEXTURE ) };
+        if ( roughnessMap.IsEmpty() ) {
+            roughnessMap = AssetsService::Get()->GetDummyTexture();
+        }
 
         if ( ImGuiUtils::PushImageButton( roughnessMap->GetHandle(), ImGuiService::Get()->GetTextureID( roughnessMap ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::ROUGHNESS_TEXTURE );
@@ -383,7 +408,7 @@ namespace Mikoto {
 
         if ( material.HasTextureType( MapType::ROUGHNESS_TEXTURE ) ) {
             ImGuiUtils::ToolTip( [&]() -> void {
-                ShowTextureHoverTooltip( roughnessMap );
+                ShowTextureHoverTooltip( roughnessMap.GetRaw() );
             },
                                  ImGui::IsItemHovered() );
         }
@@ -436,15 +461,18 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( " Ambient Occlusion" );
 
-        Texture2D* specularMap{ dynamic_cast<Texture2D*>( material.GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ).GetRaw() ) };
+        TextureHandle aoMap{ material.GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) };
+        if ( aoMap.IsEmpty() ) {
+            aoMap = AssetsService::Get()->GetDummyTexture();
+        }
 
-        if ( ImGuiUtils::PushImageButton( specularMap->GetHandle(), ImGuiService::Get()->GetTextureID( specularMap ), ImVec2{ 64, 64 } ) ) {
+        if ( ImGuiUtils::PushImageButton( aoMap->GetHandle(), ImGuiService::Get()->GetTextureID( aoMap ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::AMBIENT_OCCLUSION_TEXTURE );
         }
 
         if ( material.HasTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) ) {
             ImGuiUtils::ToolTip( [&]() -> void {
-                ShowTextureHoverTooltip( specularMap );
+                ShowTextureHoverTooltip( aoMap.GetRaw() );
             },
                                  ImGui::IsItemHovered() );
         }
@@ -950,26 +978,37 @@ namespace Mikoto {
 
         ImGui::SameLine();
 
+        static bool loading{ false };
         if ( ImGui::Button( fmt::format( " {} Load ", ICON_MD_SEARCH ).c_str() ) ) {
-            const std::initializer_list<std::pair<std::string, std::string>> filters{
-                { "Model files", "obj,gltf,fbx" },
-                { "OBJ files", "obj" },
-                { "glTF files", "gltf" },
-                { "FBX files", "fbx" }
-            };
 
-            path = FileService::Get()->OpenDialog( filters ).string();
+            if ( !loading ) {
 
-            if ( !path.empty() ) {
-                ModelHandle model{ AssetsService::Get()->LoadAsset<Model>( path.string() ) };
+                loading = true;
 
-                const EntityCreateInfo entityCreateInfo{
-                    .Root = std::addressof( entity ),
-                    .Name = model->GetName(),
-                    .Model = model,
-                };
+                TaskService::Get()->Submit( [rootEntity = std::addressof(entity), scene ]() -> void {
+                    const std::initializer_list<std::pair<std::string, std::string>> filters{
+                        { "Model files", "obj,gltf,fbx" },
+                        { "OBJ files", "obj" },
+                        { "glTF files", "gltf" },
+                        { "FBX files", "fbx" }
+                    };
 
-                ( void )scene->CreateEntity( entityCreateInfo );
+                    Path targetModelPath{ FileService::Get()->OpenDialog( filters ).string() };
+
+                    if ( !targetModelPath.empty() ) {
+                        ModelHandle model{ AssetsService::Get()->LoadAsset<Model>( targetModelPath.string() ) };
+
+                        const EntityCreateInfo entityCreateInfo{
+                            .Root{ rootEntity },
+                            .Name{ model->GetName().c_str() },
+                            .Model{ model },
+                        };
+
+                        scene->QueueCreateEntity( entityCreateInfo );
+                    }
+
+                    loading = false;
+                } );
             }
         }
 
@@ -1046,25 +1085,27 @@ namespace Mikoto {
             ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
-            glm::vec4 diffuseComponent{};
-            if ( ImGuiUtils::ColorEdit4( "Color", diffuseComponent ) ) {
+            glm::vec3 diffuseComponent{ pointLightData.GetColor() };
+            if ( ImGuiUtils::ColorEdit3( "Color", diffuseComponent ) ) {
+                pointLightData.SetColor( diffuseComponent );
             }
 
             ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
 
-            float intensity{};
-            if ( ImGuiUtils::Slider( "Intensity", intensity, { 1.0f, 30000.0f } ) ) {
+            float intensity{ pointLightData.GetIntensity() };
+            if ( ImGuiUtils::Slider( "Intensity", intensity, { 1.0f, 100.0f } ) ) {
+                pointLightData.SetIntensity( intensity );
             }
 
             ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
 
-            float radius{};
-
-            if ( ImGuiUtils::Slider( "Radius", radius, { 1.0f, 500.0f } ) ) {
+            float radius{ pointLightData.GetRadius() };
+            if ( ImGuiUtils::Slider( "Radius", radius, { 1.0f, 10.0f } ) ) {
+                pointLightData.SetRadius( radius );
             }
 
             if ( ImGui::IsItemHovered() ) {

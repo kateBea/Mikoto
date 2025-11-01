@@ -92,7 +92,6 @@ namespace Mikoto {
             Vec4F Direction{};
             Vec4F Ambient{};
             Vec4F Diffuse{};
-            Vec4F Specular{};
             // x=cutOff, y=outerCutOff, z=intensity, w=radius
             Vec4F CutOffValues{};
         };
@@ -101,7 +100,6 @@ namespace Mikoto {
             Vec4F Position{};
             Vec4F Ambient{};
             Vec4F Diffuse{};
-            Vec4F Specular{};
             Vec4F AttenuationParams{};
         };
 
@@ -109,7 +107,6 @@ namespace Mikoto {
             Vec4F Position{};
             Vec4F Ambient{};
             Vec4F Diffuse{};
-            Vec4F Specular{};
         };
 
 

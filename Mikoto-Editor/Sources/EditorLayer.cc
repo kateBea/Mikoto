@@ -97,13 +97,15 @@ namespace Mikoto {
     }
 
     auto EditorLayer::OnUpdate( float timeStep ) -> void {
+        m_ActiveScene->SetState( SceneState::IDLE );
+
         SetupCamera( timeStep );
         SetupRenderer( timeStep );
 
-        m_ActiveScene->SetState( SceneState::IDLE );
         m_SceneRenderer->SetScene( m_ActiveScene.get() );
         m_SceneRenderer->SetCamera( m_EditorCamera.get() );
 
+        m_ActiveScene->Update( timeStep );
         m_SceneRenderer->Render( timeStep );
 
         UpdateDockSpace();
@@ -464,18 +466,11 @@ namespace Mikoto {
         m_ActiveScene = CreateScope<Scene>( name );
 
         ModelLoadDescription descFirst{
-            .ModelFile{ FileService::Get()->LoadFile( "./Resources/Models/3 - Dachniy house/source/Dachniy_Domik/D_House.FBX" ) },
-            .WantTextures{ true }
-        };
-
-        ModelHandle m_ModelMultipleMeshes = AssetsService::Get()->LoadAsset<Model>( descFirst );
-
-        ModelLoadDescription descSecond{
             .ModelFile{ FileService::Get()->LoadFile( "./Resources/Models/1 - Box texture/BoxTexture.obj" ) },
             .WantTextures{ true }
         };
 
-        ModelHandle m_ModelSingleMesh = AssetsService::Get()->LoadAsset<Model>( descSecond );
+        ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( descFirst ) };
 
         m_ActiveScene = Scene::Create( "Hello World" );
         m_ActiveScene->SetName( "Change name just for fun" );
@@ -484,80 +479,120 @@ namespace Mikoto {
         PhysicService::Get()->SetSimulationScene( m_ActiveScene.get() );
 
         // This emitting sounds
-        Entity *entity{ m_ActiveScene->CreateEntity( "Ball" ) };
-        if (entity) {
-            entity->AddComponent<ScriptComponent>( "hello_world.lua" );
-            entity->AddComponent<AudioSourceComponent>( "my_song.mp3" );
-        }
-
-        // Load a model with multiple mesh nodes for testing
-        Entity *multipleNodes{ m_ActiveScene->CreateEntity( EntityCreateInfo{
-            .Root{ entity },
-            .Name{ "Npc" },
-            .Model{ m_ModelMultipleMeshes },
-        } ) };
-
-        if (entity) {
-            multipleNodes->AddComponent<ScriptComponent>( "idle.lua" );
-            multipleNodes->AddComponent<AudioSourceComponent>( "quack.mp3" );
-        }
-
-        // Load a model with multiple mesh nodes for testing
-        Entity *multipleNodesNoRoot{ m_ActiveScene->CreateEntity( EntityCreateInfo{
+        EntityCreateInfo groundDesc{
             .Root{ nullptr },
-            .Name{ "Npc 1" },
-            .Model{ m_ModelMultipleMeshes },
-        } ) };
+            .Name { "Ground" },
+            .Model{ box }
+        };
+        Entity *ground{ m_ActiveScene->CreateEntity( groundDesc ) };
+        if (ground) {
+            ground->AddComponent<ScriptComponent>( "./hello_world.lua" );
 
-        if (multipleNodesNoRoot) {
-            multipleNodesNoRoot->AddComponent<ScriptComponent>( "idle.lua" );
-            multipleNodesNoRoot->AddComponent<AudioSourceComponent>( "quack.mp3" );
-
-            multipleNodesNoRoot->AddComponent<MeshComponent>( );
+            TransformComponent& transformComponent{ ground->GetComponent<TransformComponent>() };
+            transformComponent.SetScale( { 5.0f, 0.5f, 5.00f } );
+            transformComponent.SetTranslation( { 0.0f, 0.0f, 0.0f } );
         }
 
-        // Load a model 1 node mesh nodes for testing
-        Entity *rootNoMultiple{ m_ActiveScene->CreateEntity( EntityCreateInfo{
-            .Root{ multipleNodesNoRoot },
-            .Name{ "Npc 2" },
-        } ) };
+        // Second ground
+        Entity* ground2{ m_ActiveScene->CreateEntity( groundDesc ) };
+        if (ground2) {
+            ground2->AddComponent<ScriptComponent>( "./hello_world.lua" );
 
-        if (rootNoMultiple) {
-            rootNoMultiple->AddComponent<ScriptComponent>( "idle.lua" );
-            rootNoMultiple->AddComponent<AudioSourceComponent>( "quack.mp3" );
+            TransformComponent& transformComponent{ ground2->GetComponent<TransformComponent>() };
+            transformComponent.SetScale( { 5.0f, 0.5f, 5.00f } );
+            transformComponent.SetTranslation( { -10.0f, 0.0f, 0.0f } );
         }
 
-        // This can hear sound and has a camera
-        // it would make sense as we generally want stuff close to the camera to be heard
-        // the further they are from the camera, the less we can hear sources
-        Entity* m_Listener = m_ActiveScene->CreateEntity( "PlushCat" );
-        if (m_Listener) {
-            m_Listener->AddComponent<CameraComponent>();
-            m_Listener->AddComponent<ScriptComponent>( "hello_world.lua" );
-            AudioListenerComponent &listenerComp{ m_Listener->AddComponent<AudioListenerComponent>() };
-            AudioListener &audioListener{ listenerComp.GetListener() };
-            audioListener.Apply();
+        Entity* light{ m_ActiveScene->CreateEntity( "Light" ) };
+        if (light) {
+            light->AddComponent<ScriptComponent>( "./hello_world.lua" );
+            LightComponent& lightComp{ light->AddComponent<LightComponent>() };
+            lightComp.SetActiveType( LightType::POINT_LIGHT_TYPE );
 
-            RigidBodyComponent& rigidBody{ m_Listener->AddComponent<RigidBodyComponent>() };
-            rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
-            rigidBody.SetFriction( 0 );
+            auto& pointLightData{ lightComp.Get<PointLight>() };
+            pointLightData.SetIntensity( 31.81f );
+            pointLightData.SetRadius( 7.44f );
 
-            // This requires the simulation scene to have been specified before
-            m_ActiveScene->AttachRigidBody( m_Listener );
+            TransformComponent& transformComponent{ light->GetComponent<TransformComponent>() };
+            transformComponent.SetTranslation( { 0.0f, 4.0f, 0.0f } );
         }
 
-        // Some checks just to test the Scene interface
-        if (m_ActiveScene->ExistsByName( "PlushCat" )) {
-            MKT_CORE_LOGGER_WARN( "Entity with name {} exists.", "PlushCat" );
-        } else {
-            MKT_CORE_LOGGER_WARN( "Entity with name {} not exists.", "PlushCat" );
-        }
-
-        if (m_ActiveScene->ExistsByID( 4 )) {
-            MKT_CORE_LOGGER_WARN( "Entity with ID {} exists.", 4 );
-        } else {
-            MKT_CORE_LOGGER_WARN( "Entity with ID {} does not exist.", 4 );
-        }
+        //
+        // // This emitting sounds
+        // Entity *entity{ m_ActiveScene->CreateEntity( "Ball" ) };
+        // if (entity) {
+        //     entity->AddComponent<ScriptComponent>( "hello_world.lua" );
+        //     entity->AddComponent<AudioSourceComponent>( "my_song.mp3" );
+        // }
+        //
+        // // Load a model with multiple mesh nodes for testing
+        // Entity *multipleNodes{ m_ActiveScene->CreateEntity( EntityCreateInfo{
+        //     .Root{ entity },
+        //     .Name{ "Npc" },
+        //     .Model{ m_ModelMultipleMeshes },
+        // } ) };
+        //
+        // if (entity) {
+        //     multipleNodes->AddComponent<ScriptComponent>( "idle.lua" );
+        //     multipleNodes->AddComponent<AudioSourceComponent>( "quack.mp3" );
+        // }
+        //
+        // // Load a model with multiple mesh nodes for testing
+        // Entity *multipleNodesNoRoot{ m_ActiveScene->CreateEntity( EntityCreateInfo{
+        //     .Root{ nullptr },
+        //     .Name{ "Npc 1" },
+        //     //.Model{ m_ModelMultipleMeshes },
+        // } ) };
+        //
+        // if (multipleNodesNoRoot) {
+        //     multipleNodesNoRoot->AddComponent<ScriptComponent>( "idle.lua" );
+        //     multipleNodesNoRoot->AddComponent<AudioSourceComponent>( "quack.mp3" );
+        //
+        //     multipleNodesNoRoot->AddComponent<MeshComponent>( );
+        // }
+        //
+        // // Load a model 1 node mesh nodes for testing
+        // Entity *rootNoMultiple{ m_ActiveScene->CreateEntity( EntityCreateInfo{
+        //     .Root{ multipleNodesNoRoot },
+        //     .Name{ "Npc 2" },
+        // } ) };
+        //
+        // if (rootNoMultiple) {
+        //     rootNoMultiple->AddComponent<ScriptComponent>( "idle.lua" );
+        //     rootNoMultiple->AddComponent<AudioSourceComponent>( "quack.mp3" );
+        // }
+        //
+        // // This can hear sound and has a camera
+        // // it would make sense as we generally want stuff close to the camera to be heard
+        // // the further they are from the camera, the less we can hear sources
+        // Entity* m_Listener = m_ActiveScene->CreateEntity( "PlushCat" );
+        // if (m_Listener) {
+        //     m_Listener->AddComponent<CameraComponent>();
+        //     m_Listener->AddComponent<ScriptComponent>( "hello_world.lua" );
+        //     AudioListenerComponent &listenerComp{ m_Listener->AddComponent<AudioListenerComponent>() };
+        //     AudioListener &audioListener{ listenerComp.GetListener() };
+        //     audioListener.Apply();
+        //
+        //     RigidBodyComponent& rigidBody{ m_Listener->AddComponent<RigidBodyComponent>() };
+        //     rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
+        //     rigidBody.SetFriction( 0 );
+        //
+        //     // This requires the simulation scene to have been specified before
+        //     m_ActiveScene->AttachRigidBody( m_Listener );
+        // }
+        //
+        // // Some checks just to test the Scene interface
+        // if (m_ActiveScene->ExistsByName( "PlushCat" )) {
+        //     MKT_CORE_LOGGER_WARN( "Entity with name {} exists.", "PlushCat" );
+        // } else {
+        //     MKT_CORE_LOGGER_WARN( "Entity with name {} not exists.", "PlushCat" );
+        // }
+        //
+        // if (m_ActiveScene->ExistsByID( 4 )) {
+        //     MKT_CORE_LOGGER_WARN( "Entity with ID {} exists.", 4 );
+        // } else {
+        //     MKT_CORE_LOGGER_WARN( "Entity with ID {} does not exist.", 4 );
+        // }
     }
 
     auto EditorLayer::PrepareSerialization() -> void {

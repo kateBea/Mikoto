@@ -165,7 +165,6 @@ namespace Mikoto::VulkanPasses {
             ubo.Albedo = pbrMat->GetColor();
             ubo.Factors.x = pbrMat->GetMetallicFactor();
             ubo.Factors.y = pbrMat->GetRoughnessFactor();
-            //ubo.Factors.z = pbrMat->GetAoFactor();
 
             ubo.AlbedoIndex = GetMeshTextureIndices( pbrMat->GetTextureType( MapType::ALBEDO_TEXTURE ) );
             ubo.NormalIndex = GetMeshTextureIndices( pbrMat->GetTextureType( MapType::NORMAL_TEXTURE ) );
@@ -210,15 +209,24 @@ namespace Mikoto::VulkanPasses {
     }
 
     auto ShadingPass::UploadInstanceData() -> void {
-        std::vector<ShadingPassMeshBufferUBO> allInstances;
+        std::vector<ShadingPassMeshBufferUBO> allInstances{};
 
         for ( auto& [meshNode, batch]: m_MeshBatches ) {
             m_BatchOffsetMap[meshNode] = allInstances.size();
             allInstances.insert( allInstances.end(), batch.Instances.begin(), batch.Instances.end() );
         }
 
-        const Size totalSize{ allInstances.size() * sizeof( ShadingPassMeshBufferUBO ) };
-        m_InstanceSSBO->CopyFromBlock( allInstances.data(), totalSize );
+        //const Size totalSize{ allInstances.size() * sizeof( ShadingPassMeshBufferUBO ) };
+
+        const VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE(m_Device)->GetUniformBufferMinOffsetAlignment() };
+        const VkDeviceSize paddedSize{ VulkanHelpers::GetUniformBufferPadding(sizeof(ShadingPassMeshBufferUBO), minOffsetAlignment) };
+
+        for (Size meshInstanceIndex{}; meshInstanceIndex < allInstances.size(); ++meshInstanceIndex) {
+            const VkDeviceSize dstOffset{ meshInstanceIndex * paddedSize };
+            m_InstanceSSBO->CopyFromBlock(&allInstances[meshInstanceIndex], sizeof(ShadingPassMeshBufferUBO), dstOffset);
+        }
+
+        //m_InstanceSSBO->CopyFromBlock( allInstances.data(), totalSize );
 
         auto vkCmd { m_CmdList->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
         vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -262,13 +270,8 @@ namespace Mikoto::VulkanPasses {
     }
 
     auto ShadingPass::DrawMeshBatch( const MeshBatch& batch ) -> void {
-        if ( !batch.Mesh || batch.Instances.empty() ) {
-            return;
-        }
-
-        if ( batch.Mesh->GetVertexBuffer().IsEmpty() || batch.Mesh->GetIndexBuffer().IsEmpty() ) {
-            return;
-        }
+        if (!batch.Mesh || batch.Instances.empty()) return;
+        if (batch.Mesh->GetVertexBuffer().IsEmpty() || batch.Mesh->GetIndexBuffer().IsEmpty()) return;
 
         const VkCommandBuffer vkCmd { m_CmdList->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
 
@@ -278,13 +281,21 @@ namespace Mikoto::VulkanPasses {
         constexpr std::array<VkDeviceSize, 1> offsets{};
         const std::array<VkBuffer, 1> vertexBuffers{ vertexBuffer->GetNativeHandle(ObjectType::Vk_Buffer) };
 
-        vkCmdBindVertexBuffers( vkCmd, 0, 1, vertexBuffers.data(), offsets.data() );
-        vkCmdBindIndexBuffer( vkCmd, indexBuffer->GetNativeHandle(ObjectType::Vk_Buffer), 0, VK_INDEX_TYPE_UINT32 );
+        vkCmdBindVertexBuffers(vkCmd, 0, 1, vertexBuffers.data(), offsets.data());
+        vkCmdBindIndexBuffer(vkCmd, indexBuffer->GetNativeHandle(ObjectType::Vk_Buffer), 0, VK_INDEX_TYPE_UINT32);
 
-        vkCmdDrawIndexed( vkCmd,
-                          indexBuffer->GetCount(),
-                          static_cast<UInt32>( batch.Instances.size() ),
-                          0, 0, 0 );
+        // find the base/firstInstance for this mesh
+        const Size baseInstance = m_BatchOffsetMap.at(batch.Mesh);
+        const UInt32 firstInstance = static_cast<UInt32>(baseInstance);
+
+        vkCmdDrawIndexed(
+            vkCmd,
+            indexBuffer->GetCount(),                            // indexCount
+            static_cast<UInt32>(batch.Instances.size()),       // instanceCount
+            0,                                                 // firstIndex
+            0,                                                 // vertexOffset
+            firstInstance                                      // firstInstance <- THIS IS THE FIX
+        );
     }
 
     auto ShadingPass::OnResize( UInt32 width, UInt32 height ) -> void {

@@ -4,8 +4,9 @@
 
 #include "Scripting/ScriptingService.hh"
 
-#include <Logging/Logger.hh>
+#include <Core/Profiler.hh>
 #include <Filesystem/FileService.hh>
+#include <Logging/Logger.hh>
 
 namespace Mikoto {
 
@@ -36,10 +37,12 @@ namespace Mikoto {
 #endif
 
 
-    ScriptingService::ScriptingService( const ScriptingServiceDescription &config ) {
+    ScriptingService::ScriptingService( const ScriptingServiceDescription & ) {
     }
 
     auto ScriptingService::Init() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_CORE_LOGGER_INFO("Initializing LuaService...");
 
 #if defined(__linux__)
@@ -49,6 +52,8 @@ namespace Mikoto {
         m_IsInitialized = true;
     }
     auto ScriptingService::Shutdown() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if (!m_IsInitialized) {
             return;
         }

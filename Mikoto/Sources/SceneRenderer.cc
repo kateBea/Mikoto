@@ -2,6 +2,7 @@
 // Created by zanet on 4/5/2025.
 //
 
+#include <Core/Profiler.hh>
 #include <Renderer/RenderService.hh>
 #include <Renderer/SceneRenderer.hh>
 
@@ -54,6 +55,8 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::Render( double ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
 
         CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
 

@@ -7,7 +7,7 @@
 
 #include <miniaudio.h>
 
-#include <Assets/Audio.hh>
+#include <Assets/AudioClip.hh>
 #include <Audio/AudioUtility.hh>
 #include <Library/Data/ResourcePool.hh>
 #include <Library/Utility/Types.hh>

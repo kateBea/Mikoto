@@ -35,6 +35,8 @@ namespace Mikoto {
         auto OnRigidBodyRemoved(RigidBodyComponent& rb) -> void;
         auto OnRigidBodyAdded(Entity& entity, RigidBodyComponent& rb) -> void;
 
+        auto OnRigidBodyAdded(TransformComponent& t, RigidBodyComponent& rb) -> void;
+
         Unique<PhysicsBase> m_PhysicsBase{};
     };
 

@@ -15,6 +15,7 @@
 #include <Core/CoreEvents.hh>
 #include <Core/EventService.hh>
 #include <Core/InputService.hh>
+#include <Core/Profiler.hh>
 #include <Library/Utility/Types.hh>
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
@@ -29,6 +30,8 @@ namespace Mikoto {
     }
 
     auto MainWindow::Init() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_CORE_LOGGER_INFO("MainWindow::Init - Initializing new GLFW Window.");
 
         // Initialize GLFW Library

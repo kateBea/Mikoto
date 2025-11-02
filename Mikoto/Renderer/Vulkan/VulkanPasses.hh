@@ -78,6 +78,11 @@ namespace Mikoto::VulkanPasses {
 
         BufferHandle m_InstanceSSBO{};
         VkDescriptorSet m_MeshDataSet{};
+
+#if !defined(NDEBUG)
+    UInt32 m_DrawCalls{};
+#endif
+
     };
 
     // Dummy compute pipeline we will use for testing only for now

@@ -2,19 +2,18 @@
 // Created by zanet on 1/26/2025.
 //
 
-#include <utility>
-#include <cstdarg>
-
-
 #include <Logging/Logger.hh>
 #include <Physics/PhysicService.hh>
-#include <Scene/Scene.hh>
 #include <Scene/Component.hh>
+#include <Scene/Scene.hh>
+#include <cstdarg>
+#include <tracy/Tracy.hpp>
+#include <utility>
 
 namespace Mikoto {
 
 
-    PhysicService::PhysicService( const PhysicServiceCreateInfo &options )
+    PhysicService::PhysicService( const PhysicServiceCreateInfo & )
     {}
 
     auto PhysicService::Init() -> void {
@@ -40,6 +39,8 @@ namespace Mikoto {
         m_IsInitialized = false;
     }
     void PhysicService::Update( float dt ) {
+        ZoneScopedNS("PhysicService::Update", 60);
+
         if (m_PhysicsBase) {
             m_PhysicsBase->Update( dt );
         }
@@ -63,8 +64,13 @@ namespace Mikoto {
     }
 
     auto PhysicService::OnRigidBodyAdded( Entity &entity, RigidBodyComponent &rb ) -> void {
-        if (m_PhysicsBase) {
+        if ( m_PhysicsBase ) {
             m_PhysicsBase->OnRigidBodyAdded( entity, rb );
+        }
+    }
+    auto PhysicService::OnRigidBodyAdded( TransformComponent &tr, RigidBodyComponent &rb ) -> void {
+        if ( m_PhysicsBase ) {
+            m_PhysicsBase->OnRigidBodyAdded( tr, rb );
         }
     }
 

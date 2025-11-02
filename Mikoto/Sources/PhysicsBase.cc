@@ -314,6 +314,9 @@ namespace Mikoto {
                 ToQuat(tr.GetRotation()),
                 JPH::EActivation::DontActivate
             );
+
+            // Jolt puts bodies to sleep to save resources
+            //s_Impl->BodyInterface->ActivateBody( body->GetID() );
         }
     }
 
@@ -332,9 +335,6 @@ namespace Mikoto {
 
             tr.SetTranslation(Vec3F(pos.GetX(), pos.GetY(), pos.GetZ()));
             tr.SetRotation(glm::quat(rot.GetW(), rot.GetX(), rot.GetY(), rot.GetZ()));
-
-            // Jolt puts bodies to sleep to save resources
-            //s_Impl->BodyInterface->ActivateBody( body->GetID() );
         }
     }
 
@@ -351,13 +351,13 @@ namespace Mikoto {
     }
 
     auto PhysicsBase::OnRigidBodyAdded( Entity &entity, RigidBodyComponent &rb ) -> void {
-        if (!s_Impl || !s_Impl->BodyInterface) {
+        if ( !s_Impl || !s_Impl->BodyInterface ) {
             return;
         }
 
         // Convert transform to Jolt space
-        auto& tr { entity.GetComponent<TransformComponent>() };
-        JPH::Vec3 pos(tr.GetTranslation().x, tr.GetTranslation().y, tr.GetTranslation().z);
+        auto &tr{ entity.GetComponent<TransformComponent>() };
+        JPH::Vec3 pos( tr.GetTranslation().x, tr.GetTranslation().y, tr.GetTranslation().z );
         //JPH::Quat rot(tr.GetRotation().x, tr.GetRotation().y, tr.GetRotation().z, 1.0f/*tr.GetRotation().w*/);
         JPH::Vec3 size{ ToVec3( tr.GetScale() ) };
 
@@ -366,18 +366,17 @@ namespace Mikoto {
         auto shape{ shapeSettings.Create().Get() };
 
         JPH::BodyCreationSettings settings(
-            shape,
-            pos,
-            JPH::Quat::sIdentity(),
-            ConvertToJoltMotionType( rb.GetBodyType() ),
-            Layers::MOVING
-        );
+                shape,
+                pos,
+                JPH::Quat::sIdentity(),
+                ConvertToJoltMotionType( rb.GetBodyType() ),
+                Layers::MOVING );
 
         settings.mFriction = rb.GetFriction();
         settings.mMassPropertiesOverride.mMass = rb.GetMass();
 
-        JPH::Body* body{ s_Impl->BodyInterface->CreateBody(settings) };
-        s_Impl->BodyInterface->AddBody(body->GetID(), JPH::EActivation::Activate);
+        JPH::Body *body{ s_Impl->BodyInterface->CreateBody( settings ) };
+        s_Impl->BodyInterface->AddBody( body->GetID(), JPH::EActivation::Activate );
 
         // Now you can interact with the dynamic body, in this case we're going to give it a velocity.
         // (note that if we had used CreateBody then we could have set the velocity straight on the body before adding it to the physics system)
@@ -385,7 +384,43 @@ namespace Mikoto {
         //s_Impl->BodyInterface->SetAngularVelocity(body->GetID(), JPH::Vec3(0.3f, 0.0f, 5.0f));
         //s_Impl->BodyInterface->AddImpulse(body->GetID(), JPH::Vec3(0.0f, -2.0f, 0.0f));
 
-        rb.SetInternalBodyHandle( reinterpret_cast<std::uintptr_t*>(body) );
+        rb.SetInternalBodyHandle( reinterpret_cast<std::uintptr_t *>( body ) );
+    }
+
+    auto PhysicsBase::OnRigidBodyAdded( TransformComponent &tr, RigidBodyComponent &rb ) -> void {
+        if ( !s_Impl || !s_Impl->BodyInterface ) {
+            return;
+        }
+
+        // Convert transform to Jolt space
+        JPH::Vec3 pos( tr.GetTranslation().x, tr.GetTranslation().y, tr.GetTranslation().z );
+        //JPH::Quat rot(tr.GetRotation().x, tr.GetRotation().y, tr.GetRotation().z, 1.0f/*tr.GetRotation().w*/);
+        JPH::Vec3 size{ ToVec3( tr.GetScale() ) };
+
+        // Simple shape for now (box)
+        const JPH::BoxShapeSettings shapeSettings{ JPH::Vec3( size ) };
+        auto shape{ shapeSettings.Create().Get() };
+
+        JPH::BodyCreationSettings settings(
+                shape,
+                pos,
+                JPH::Quat::sIdentity(),
+                ConvertToJoltMotionType( rb.GetBodyType() ),
+                Layers::MOVING );
+
+        settings.mFriction = rb.GetFriction();
+        settings.mMassPropertiesOverride.mMass = rb.GetMass();
+
+        JPH::Body *body{ s_Impl->BodyInterface->CreateBody( settings ) };
+        s_Impl->BodyInterface->AddBody( body->GetID(), JPH::EActivation::Activate );
+
+        // Now you can interact with the dynamic body, in this case we're going to give it a velocity.
+        // (note that if we had used CreateBody then we could have set the velocity straight on the body before adding it to the physics system)
+        //s_Impl->BodyInterface->SetLinearVelocity(body->GetID(), JPH::Vec3(0.0f, 0.0f, 0.0f));
+        //s_Impl->BodyInterface->SetAngularVelocity(body->GetID(), JPH::Vec3(0.3f, 0.0f, 5.0f));
+        //s_Impl->BodyInterface->AddImpulse(body->GetID(), JPH::Vec3(0.0f, -2.0f, 0.0f));
+
+        rb.SetInternalBodyHandle( reinterpret_cast<std::uintptr_t *>( body ) );
     }
 
     auto PhysicsBase::ToMat4F( const JPH::RMat44 &jphMat ) -> glm::mat4 {

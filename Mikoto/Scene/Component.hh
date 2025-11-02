@@ -18,7 +18,7 @@
 
 // Project Headers
 #include <Assets/AssetsService.hh>
-#include <Assets/Audio.hh>
+#include <Assets/AudioClip.hh>
 #include <Assets/Font.hh>
 #include <Assets/Model.hh>
 #include <Audio/AudioDevice.hh>

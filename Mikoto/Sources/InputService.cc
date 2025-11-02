@@ -15,6 +15,7 @@
 #include <Common/Common.hh>
 #include <Core/InputService.hh>
 #include <Core/MouseCodes.hh>
+#include <Core/Profiler.hh>
 #include <Library/Utility/Types.hh>
 #include <Logging/Logger.hh>
 
@@ -137,12 +138,16 @@ namespace Mikoto {
     }
 
     auto InputService::Init() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_CORE_LOGGER_INFO("Initializing InputManager...");
 
         m_IsInitialized = true;
     }
 
     auto InputService::Shutdown() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if (!m_IsInitialized) {
             return;
         }
@@ -155,6 +160,8 @@ namespace Mikoto {
     }
 
     auto InputService::Update( float ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if ( m_Handle != nullptr ) {
             m_Handle->ProcessEvents();
         }

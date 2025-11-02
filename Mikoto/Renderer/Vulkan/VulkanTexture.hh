@@ -170,12 +170,14 @@ namespace Mikoto {
         /**
          * Maximum number of frames that can be processed concurrently.
          * */
-        static constexpr Int32 MAX_FRAMES_IN_FLIGHT{ 3 };
+
 
     private:
         VkExtent2D m_Extent{};
         VkSwapchainKHR m_Swapchain{ VK_NULL_HANDLE };
         VkSwapchainKHR m_OldSwapchain{ VK_NULL_HANDLE };
+
+        Int32 m_FramesInFlight{ 3 };
 
 
         VkFormat m_Format{};

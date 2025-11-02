@@ -4,7 +4,13 @@
 
 #include <ankerl/unordered_dense.h>
 
+
+#include <volk.h>
+#include <vk_mem_alloc.h>
+
+// must include Vulkan headers before including TracyVulkan.hpp
 #include <Assets/AssetsService.hh>
+#include <Core/Profiler.hh>
 #include <Filesystem/FileService.hh>
 #include <Logging/Logger.hh>
 #include <Renderer/RenderService.hh>
@@ -15,6 +21,7 @@
 #include <Renderer/Vulkan/VulkanPipeline.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
 #include <Renderer/Vulkan/VulkanTexture.hh>
+#include <tracy/TracyVulkan.hpp>
 
 namespace Mikoto {
 
@@ -299,7 +306,32 @@ namespace Mikoto {
 
         InitDescriptorAllocator();
 
+        InitTracyContext();
+
         m_IsInitialized = true;
+    }
+
+    auto VulkanDevice::InitTracyContext() -> void {
+        VkCommandPoolCreateInfo poolInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+            .queueFamilyIndex = m_Queues.Graphics->FamilyIndex,
+        };
+        vkCreateCommandPool(m_LogicalDevice, &poolInfo, nullptr, &m_TracyPool);
+
+        VkCommandBufferAllocateInfo allocInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .commandPool = m_TracyPool,
+            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandBufferCount = 1
+        };
+
+        vkAllocateCommandBuffers(m_LogicalDevice, &allocInfo, &m_TracyCmd);
+
+        VulkanHelpers::SetObjectDebugName( m_LogicalDevice, VK_OBJECT_TYPE_COMMAND_POOL, reinterpret_cast<UInt64>(m_TracyPool), "Mikoto Tracy VkCommandPool" );
+        VulkanHelpers::SetObjectDebugName( m_LogicalDevice, VK_OBJECT_TYPE_COMMAND_BUFFER, reinterpret_cast<UInt64>(m_TracyCmd), "Mikoto Tract VkCommandBuffer" );
+
+        m_TracyContext = TracyVkContext(m_PhysicalDevice, m_LogicalDevice, m_Queues.Graphics->Queue, m_TracyCmd);
     }
 
     auto VulkanDevice::InitDescriptorAllocator() -> void {
@@ -447,6 +479,12 @@ namespace Mikoto {
         MKT_CORE_LOGGER_DEBUG( "VulkanDevice::CreatePrimaryLogicalDevice - Created primary logical device." );
     }
 
+    auto VulkanDevice::ShutdownTracyContext() -> void {
+        vkFreeCommandBuffers(m_LogicalDevice, m_TracyPool, 1, &m_TracyCmd);
+        vkDestroyCommandPool(m_LogicalDevice, m_TracyPool, nullptr);
+        TracyVkDestroy(m_TracyContext);
+    }
+
 
     auto VulkanDevice::Shutdown() -> void {
         if ( !m_IsInitialized ) {
@@ -479,6 +517,8 @@ namespace Mikoto {
             m_GpuAllocator = nullptr;
         }
 
+        ShutdownTracyContext();
+
         vkDestroyDevice( m_LogicalDevice, nullptr );
 
         m_IsInitialized = false;
@@ -489,17 +529,21 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::WaitQueuesIdle() const -> void {
-        if (m_Queues.Graphics.has_value()) {
+        if ( m_Queues.Graphics.has_value() ) {
             vkQueueWaitIdle( m_Queues.Graphics->Queue );
         }
 
-        if (m_Queues.Compute.has_value()) {
+        if ( m_Queues.Compute.has_value() ) {
             vkQueueWaitIdle( m_Queues.Compute->Queue );
         }
 
-        if (m_Queues.Present.has_value()) {
+        if ( m_Queues.Present.has_value() ) {
             vkQueueWaitIdle( m_Queues.Present->Queue );
         }
+    }
+
+    auto VulkanDevice::GetTracyContext() -> TracyVkCtx& {
+        return m_TracyContext;
     }
 
     auto VulkanDevice::CreateTexture( const TextureDescription& description ) -> TextureHandle {
@@ -523,37 +567,33 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::RunGarbageCollection() -> void {
-        for (auto& [frameIndex, frameFence] : m_FrameFences) {
-            if (frameFence == VK_NULL_HANDLE) {
-                continue;
-            }
+        MKT_BEGIN_PROFILER_NAMED();
 
-            vkWaitForFences(m_LogicalDevice, 1, &frameFence, VK_TRUE, UINT64_MAX);
+        UInt32 frameIndex{ dynamic_cast<VulkanContext*>( RenderService::Get()->GetContext() )->GetCurrentFrameIndex() };
+        VkFence frameFence{ m_FrameFences[frameIndex] };
 
+        if (frameFence != VK_NULL_HANDLE) {
             VkResult result{ vkGetFenceStatus(m_LogicalDevice, frameFence) };
-            if (result == VK_SUCCESS) {
-                // GPU finished work for this frame
-                //vkResetFences(m_LogicalDevice, 1, &frameFence);
 
-                // Recycle commands for this frame
+            if (result == VK_SUCCESS) {
                 auto it{ m_PendingCmdLists.find(frameIndex) };
                 if (it != m_PendingCmdLists.end()) {
-                    for (auto& cmd : it->second) {
-                        if (!cmd.IsEmpty()) {
-                            // You might call cmd->Recycle() or return to pool
-                            if (VulkanCommandPoolHandle pool = m_CmdPools.GetResource(); !pool.IsEmpty()) {
-                                pool->DestroyCommandList( cmd );
-                            }
-                        }
-                    }
 
                     it->second.clear();
+
+                    m_CmdPools.GetResource()->RunGarbageCollection();
+
+                    // for (auto& cmd : it->second) {
+                    //     if (!cmd.IsEmpty()) {
+                    //         // You might call cmd->Recycle() or return to pool
+                    //         if (VulkanCommandPoolHandle pool = m_CmdPools.GetResource(); !pool.IsEmpty()) {
+                    //             pool->DestroyCommandList( cmd );
+                    //         }
+                    //     }
+                    // }
+
+                    //it->second.clear();
                 }
-            } else if (result == VK_NOT_READY) {
-                continue;
-            }
-            else {
-                MKT_CORE_LOGGER_ERROR("VulkanDevice::RunGarbageCollection - Fence check failed (frame {}, result = {})!", frameIndex, static_cast<int>(result));
             }
         }
     }
@@ -729,6 +769,8 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::SubmitCommands( CommandListHandle cmd ) -> void {
+        ZoneScopedNS("VulkanDevice::SubmitCommands", 60);
+
         UInt32 currentFrame{ VulkanContext::Get()->GetCurrentFrameIndex() };
 
         m_PendingCmdLists[currentFrame].emplace_back( cmd );
@@ -760,6 +802,8 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void {
+        ZoneScopedNS("EditorApp::Update", 60); // Marks this whole function as a Tracy zone
+
         const UInt32 currentFrame{ VulkanContext::Get()->GetCurrentFrameIndex() };
 
         auto& cmdList = m_PendingCmdLists[currentFrame];
@@ -811,7 +855,7 @@ namespace Mikoto {
         };
 
         // Add the fence we will be waiting on later
-        if (!m_FrameFences.contains( currentFrame )) {
+        if (!m_FrameFences.contains( currentFrame ) ) {
             m_FrameFences[currentFrame] = syncPrimitives.RenderFence;
         }
 
@@ -825,14 +869,19 @@ namespace Mikoto {
     auto VulkanCmdList::Begin() -> void {
         // Begin recording command buffer
         VkCommandBufferBeginInfo beginInfo{ VulkanHelpers::Initializers::CommandBufferBeginInfo() };
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
         if ( vkBeginCommandBuffer( m_CmdBuffer, std::addressof( beginInfo ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanCmdList::Close - Failed to begin recording ImGui command buffer" );
         }
+
+        //TracyVkZone(TO_VK_DEVICE( m_Device )->GetTracyContext(), m_CmdBuffer, "VulkanCmdList::Begin");
     }
 
     auto VulkanCmdList::End() -> void {
         // End recording command buffer
+        //TracyVkCollect(TO_VK_DEVICE( m_Device )->GetTracyContext(), m_CmdBuffer);
+
         if ( vkEndCommandBuffer( m_CmdBuffer ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanCmdList::Close - Failed to record command buffer!" );
         }
@@ -920,6 +969,11 @@ namespace Mikoto {
         // Here I can encapsulate all the logic about creating staging buffers, etc.
     }
 
+    auto VulkanCmdList::SetDebugName( const std::string_view name ) -> void {
+        m_DebugName = name;
+        VulkanHelpers::SetObjectDebugName( VK_DEVICE(m_Device), VK_OBJECT_TYPE_COMMAND_BUFFER, reinterpret_cast<UInt64>(m_CmdBuffer), m_DebugName.data() );
+    }
+
     auto VulkanCmdList::GetNativeHandle( ObjectType type ) -> Object {
         if ( type != ObjectType::Vk_CmdBuffer ) {
             return Object( nullptr );
@@ -1002,7 +1056,14 @@ namespace Mikoto {
     }
 
     auto VulkanCommandPool::RunGarbageCollection() -> void {
-        m_CmdLists.Clear();
+        for (auto it = m_CmdLists.begin(); it != m_CmdLists.end(); it++) {
+            if (it->second->GetRefCount() == 1) {
+                m_CmdLists.Release( it->second->GetHandle() );
+
+                // FIXME: because pool uses erase() on the container
+                it = m_CmdLists.begin();
+            }
+        }
     }
 
     auto VulkanCommandPool::DetermineQueueIndex( const QueuesData& queues, QueueType queue ) -> UInt32 {

@@ -3,6 +3,7 @@
 //
 
 #include <Audio/AudioService.hh>
+#include <Core/Profiler.hh>
 
 namespace Mikoto {
 
@@ -19,6 +20,8 @@ namespace Mikoto {
     }
 
     auto AudioService::Init() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_CORE_LOGGER_INFO("Initializing AudioService...");
 
         constexpr AudioDeviceDescription description{};
@@ -32,6 +35,8 @@ namespace Mikoto {
     }
 
     auto AudioService::Shutdown() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if (!m_IsInitialized) {
             return;
         }

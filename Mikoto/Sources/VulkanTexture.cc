@@ -439,6 +439,8 @@ namespace Mikoto {
             auto& insertedImg{ m_Images.emplace_back( device.CreateSwapChainTextures( ConstructImgViewInfo( image, m_Format ), m_Extent ) ) };
             insertedImg->SetDebugName( fmt::format( "Swapchain Img - {}", imageIndex++ ) );
         }
+
+        m_FramesInFlight = imageCount;
     }
 
     auto VulkanSwapChain::ConstructImgViewInfo( VkImage image, const VkFormat& format ) -> VkImageViewCreateInfo {
@@ -461,7 +463,6 @@ namespace Mikoto {
     }
 
     auto VulkanSwapChain::GetNextRenderableImage( UInt32& imageIndex, const VkSemaphore imageAvailable ) const -> VkResult {
-        static VulkanDevice& device{ *TO_VK_DEVICE( m_Device ) };
         return vkAcquireNextImageKHR( VK_DEVICE( m_Device ), m_Swapchain, ( std::numeric_limits<UInt64>::max )(), imageAvailable, VK_NULL_HANDLE, std::addressof( imageIndex ) );
     }
 
@@ -496,7 +497,7 @@ namespace Mikoto {
         presentInfo.pWaitSemaphores = signalSemaphores.data();
 
         // Advance to next frame
-        m_CurrentFrame = ( m_CurrentFrame + 1 ) % MAX_FRAMES_IN_FLIGHT;
+        m_CurrentFrame = ( m_CurrentFrame + 1 ) % m_FramesInFlight;
 
         const auto& [Present, Graphics, Compute]{ device.GetLogicalDeviceQueues() };
         VkQueue presentQueue{ VK_NULL_HANDLE };

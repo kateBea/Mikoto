@@ -16,9 +16,10 @@
 #include <nfd.hpp>
 
 // Project Headers
+#include <Core/Profiler.hh>
+#include <Filesystem/FileService.hh>
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
-#include <Filesystem/FileService.hh>
 
 namespace Mikoto {
 
@@ -95,6 +96,8 @@ namespace Mikoto {
     }
 
     auto FileService::Init() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_CORE_LOGGER_INFO("Initializing FileService...");
 
         if ( const auto result{ NFD::Init() == NFD_OKAY }; !result) {
@@ -105,6 +108,8 @@ namespace Mikoto {
     }
 
     auto FileService::Shutdown() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if ( !m_IsInitialized ) {
             return;
         }
@@ -117,6 +122,8 @@ namespace Mikoto {
     }
 
     auto FileService::LoadFile( const Path &path, FileMode mode ) -> File * {
+        MKT_BEGIN_PROFILER_NAMED();
+
         File* result{ nullptr };
 
         // Use string because m_Files key is std::string, Path contained type is implementation defined

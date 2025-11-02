@@ -5,6 +5,7 @@
 #include <ImGui/IconsMaterialDesign.h>
 #include <imgui.h>
 
+#include <Core/Profiler.hh>
 #include <Core/RuntimeConsole.hh>
 #include <ImGui/ImGuiUtility.hh>
 #include <Layers/EditorLayer.hh>
@@ -21,6 +22,8 @@ namespace Mikoto {
     }
 
     auto ConsolePanel::OnUpdate(float timeStep) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if (!m_PanelIsVisible)
             return;
 

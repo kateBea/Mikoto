@@ -9,6 +9,7 @@
 // Third-Party Libraries
 #include <volk.h>
 
+#include <Core/Profiler.hh>
 #include <Renderer/Light.hh>
 #include <Renderer/Vulkan/VulkanPasses.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
@@ -43,6 +44,7 @@ namespace Mikoto {
         : RendererBackend{ { name, device } } {}
 
     auto VulkanRenderer::Init() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
 
         CreateBindlessDescriptor();
 
@@ -58,6 +60,8 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::Shutdown() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if ( !m_IsInitialized ) {
             return;
         }
@@ -74,6 +78,8 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::EndRender() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         for ( const auto& pass: m_Passes | std::ranges::views::values ) {
 
             // This is only for the render commands which share the same command buffer
@@ -87,6 +93,7 @@ namespace Mikoto {
 
     auto VulkanRenderer::BeginRender( const CommandListHandle cmd ) -> void {
         using namespace Mikoto::VulkanPasses;
+        MKT_BEGIN_PROFILER_NAMED();
 
         // Compute workflow first
         RunComputeWorkflow();
@@ -128,6 +135,8 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::DrawScene( Scene* scene ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         // Handle lights here which are also the same for all passes
         auto& registry{ scene->GetRegistry() };
         auto lightsView{ registry.view<TagComponent, TransformComponent, LightComponent>() };
@@ -262,6 +271,8 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::RegisterTextureForRender( TextureHandle texture ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         const auto vkTexture{ dynamic_cast<VulkanTexture*>( texture.GetRaw() ) };
 
         const Int32 textureIndex{ static_cast<Int32>( m_BindlessTextures.size() ) };
@@ -387,6 +398,8 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::RunComputeWorkflow() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         CommandListHandle computeCommandList{ m_GraphicsDevice->CreateCommandList( QueueType::COMPUTE_QUEUE ) };
         computeCommandList->Begin();
 

@@ -2,6 +2,7 @@
 // Created by zanet on 3/26/2025.
 //
 
+#include <Core/Profiler.hh>
 #include <Logging/Logger.hh>
 #include <Threading/TaskService.hh>
 
@@ -13,6 +14,8 @@ namespace Mikoto {
     {}
 
     auto TaskService::Init() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_CORE_LOGGER_INFO("Initializing TaskService...");
 
         m_TaskManager = CreateScope<TaskManager>( m_ThreadCount );
@@ -36,6 +39,8 @@ namespace Mikoto {
     }
 
     auto TaskService::Shutdown() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if (!m_IsInitialized) {
             return;
         }
@@ -45,7 +50,7 @@ namespace Mikoto {
         MKT_CORE_LOGGER_INFO( "Shutting down TaskService..." );
     }
 
-    auto TaskService::Update( float dt ) -> void {
+    auto TaskService::Update( float ) -> void {
 
 
     }

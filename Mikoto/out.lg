@@ -1,0 +1,799 @@
+.
+├── Assets
+│   ├── Assets.hh
+│   ├── AssetsService.hh
+│   ├── AudioClip.hh
+│   ├── Font.hh
+│   ├── MeshFactory.hh
+│   ├── Model.hh
+│   └── Texture.hh
+├── Audio
+│   ├── AudioDevice.hh
+│   ├── AudioDeviceObject.hh
+│   ├── Audio.hh
+│   ├── AudioListener.hh
+│   ├── AudioService.hh
+│   ├── AudioSource.hh
+│   └── AudioUtility.hh
+├── CMakeLists.txt
+├── Common
+│   ├── Application.hh
+│   ├── Common.hh
+│   ├── ReferenceCounted.hh
+│   ├── Service.hh
+│   └── Singleton.hh
+├── Core
+│   ├── ArgsParser.hh
+│   ├── Configuration.hh
+│   ├── CoreEvents.hh
+│   ├── Core.hh
+│   ├── Event.hh
+│   ├── EventService.hh
+│   ├── ExecuteProcess.hh
+│   ├── InputService.hh
+│   ├── KeyCodes.hh
+│   ├── LayerStack.hh
+│   ├── MouseCodes.hh
+│   ├── Profiler.hh
+│   ├── Root.hh
+│   ├── RuntimeConsole.hh
+│   ├── Serializer.hh
+│   ├── SystemStats.hh
+│   ├── Timer.hh
+│   └── TimeService.hh
+├── Filesystem
+│   └── FileService.hh
+├── ImGui
+│   ├── IconsFontAwesome5.h
+│   ├── IconsMaterialDesign.h
+│   ├── IconsMaterialDesignIcons.h
+│   ├── ImGuiService.hh
+│   ├── ImGuiUtility.hh
+│   └── ImGuiVulkanBackend.hh
+├── Library
+│   ├── Data
+│   │   ├── Registry.hh
+│   │   └── ResourcePool.hh
+│   ├── IO
+│   │   └── File.hh
+│   ├── Math
+│   │   └── Math.hh
+│   ├── Random
+│   │   └── Random.hh
+│   ├── String
+│   │   └── String.hh
+│   └── Utility
+│       └── Types.hh
+├── Logging
+│   ├── Assert.hh
+│   └── Logger.hh
+├── Material
+│   ├── Material.hh
+│   ├── PBRMaterial.hh
+│   ├── ShaderLibrary.hh
+│   ├── ShaderModule.hh
+│   ├── Texture2D.hh
+│   └── TextureCube.hh
+├── Memory
+│   ├── Allocator.hh
+│   ├── GpuAllocator.hh
+│   ├── HeapAllocator.hh
+│   └── MemoryService.hh
+├── Networking
+│   ├── NetworkService.hh
+│   ├── NetworkUtilities.hh
+│   └── Socket.hh
+├── out.lg
+├── Physics
+│   ├── PhysicsBase.hh
+│   ├── PhysicService.hh
+│   └── RayCast.hh
+├── Platform
+│   ├── MainWindow.hh
+│   └── Window.hh
+├── Renderer
+│   ├── Buffer.hh
+│   ├── DeviceObject.hh
+│   ├── FontFactory.hh
+│   ├── Framebuffer.hh
+│   ├── GpuDevice.hh
+│   ├── ImportFont.hh
+│   ├── Light.hh
+│   ├── Pipeline.hh
+│   ├── RendererBackend.hh
+│   ├── Rendering.hh
+│   ├── RenderPassBase.hh
+│   ├── RenderService.hh
+│   ├── RenderUtility.hh
+│   ├── SceneRenderer.hh
+│   └── Vulkan
+│       ├── VulkanBuffer.hh
+│       ├── VulkanContext.hh
+│       ├── VulkanDescriptorManager.hh
+│       ├── VulkanDevice.hh
+│       ├── VulkanFramebuffer.hh
+│       ├── VulkanHelpers.hh
+│       ├── VulkanMemoryAllocator.hh
+│       ├── VulkanPasses.hh
+│       ├── VulkanPipeline.hh
+│       ├── VulkanRenderer.hh
+│       ├── VulkanShader.hh
+│       └── VulkanTexture.hh
+├── Resources
+│   ├── app-config.toml
+│   ├── installs.sh
+│   └── Resources
+│       ├── Fonts
+│       │   ├── fa-regular-400.ttf
+│       │   ├── fa-solid-900.ttf
+│       │   ├── forkawesome-webfont.ttf
+│       │   ├── Google_Sans_Code
+│       │   │   ├── GoogleSansCode-Italic-VariableFont_wght.ttf
+│       │   │   ├── GoogleSansCode-VariableFont_wght.ttf
+│       │   │   ├── OFL.txt
+│       │   │   ├── README.txt
+│       │   │   └── static
+│       │   │       ├── GoogleSansCode-BoldItalic.ttf
+│       │   │       ├── GoogleSansCode-Bold.ttf
+│       │   │       ├── GoogleSansCode-ExtraBoldItalic.ttf
+│       │   │       ├── GoogleSansCode-ExtraBold.ttf
+│       │   │       ├── GoogleSansCode-Italic.ttf
+│       │   │       ├── GoogleSansCode-LightItalic.ttf
+│       │   │       ├── GoogleSansCode-Light.ttf
+│       │   │       ├── GoogleSansCode-MediumItalic.ttf
+│       │   │       ├── GoogleSansCode-Medium.ttf
+│       │   │       ├── GoogleSansCode-Regular.ttf
+│       │   │       ├── GoogleSansCode-SemiBoldItalic.ttf
+│       │   │       └── GoogleSansCode-SemiBold.ttf
+│       │   ├── Inter
+│       │   │   ├── Inter-VariableFont.ttf
+│       │   │   ├── OFL.txt
+│       │   │   ├── README.txt
+│       │   │   └── static
+│       │   │       ├── Inter-Black.ttf
+│       │   │       ├── Inter-Bold.ttf
+│       │   │       ├── Inter-ExtraBold.ttf
+│       │   │       ├── Inter-ExtraLight.ttf
+│       │   │       ├── Inter-Light.ttf
+│       │   │       ├── Inter-Medium.ttf
+│       │   │       ├── Inter-Regular.ttf
+│       │   │       ├── Inter-SemiBold.ttf
+│       │   │       └── Inter-Thin.ttf
+│       │   ├── JetBrainsMono
+│       │   │   ├── AUTHORS.txt
+│       │   │   ├── fonts
+│       │   │   │   ├── ttf
+│       │   │   │   │   ├── JetBrainsMono-BoldItalic.ttf
+│       │   │   │   │   ├── JetBrainsMono-Bold.ttf
+│       │   │   │   │   ├── JetBrainsMono-ExtraBoldItalic.ttf
+│       │   │   │   │   ├── JetBrainsMono-ExtraBold.ttf
+│       │   │   │   │   ├── JetBrainsMono-ExtraLightItalic.ttf
+│       │   │   │   │   ├── JetBrainsMono-ExtraLight.ttf
+│       │   │   │   │   ├── JetBrainsMono-Italic.ttf
+│       │   │   │   │   ├── JetBrainsMono-LightItalic.ttf
+│       │   │   │   │   ├── JetBrainsMono-Light.ttf
+│       │   │   │   │   ├── JetBrainsMono-MediumItalic.ttf
+│       │   │   │   │   ├── JetBrainsMono-Medium.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-BoldItalic.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-Bold.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-ExtraBoldItalic.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-ExtraBold.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-ExtraLightItalic.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-ExtraLight.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-Italic.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-LightItalic.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-Light.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-MediumItalic.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-Medium.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-Regular.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-SemiBoldItalic.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-SemiBold.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-ThinItalic.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-Thin.ttf
+│       │   │   │   │   ├── JetBrainsMono-Regular.ttf
+│       │   │   │   │   ├── JetBrainsMono-SemiBoldItalic.ttf
+│       │   │   │   │   ├── JetBrainsMono-SemiBold.ttf
+│       │   │   │   │   ├── JetBrainsMono-ThinItalic.ttf
+│       │   │   │   │   └── JetBrainsMono-Thin.ttf
+│       │   │   │   ├── variable
+│       │   │   │   │   ├── JetBrainsMono-Italic[wght].ttf
+│       │   │   │   │   └── JetBrainsMono[wght].ttf
+│       │   │   │   └── webfonts
+│       │   │   │       ├── JetBrainsMono-BoldItalic.woff2
+│       │   │   │       ├── JetBrainsMono-Bold.woff2
+│       │   │   │       ├── JetBrainsMono-ExtraBoldItalic.woff2
+│       │   │   │       ├── JetBrainsMono-ExtraBold.woff2
+│       │   │   │       ├── JetBrainsMono-ExtraLightItalic.woff2
+│       │   │   │       ├── JetBrainsMono-ExtraLight.woff2
+│       │   │   │       ├── JetBrainsMono-Italic.woff2
+│       │   │   │       ├── JetBrainsMono-LightItalic.woff2
+│       │   │   │       ├── JetBrainsMono-Light.woff2
+│       │   │   │       ├── JetBrainsMono-MediumItalic.woff2
+│       │   │   │       ├── JetBrainsMono-Medium.woff2
+│       │   │   │       ├── JetBrainsMono-Regular.woff2
+│       │   │   │       ├── JetBrainsMono-SemiBoldItalic.woff2
+│       │   │   │       ├── JetBrainsMono-SemiBold.woff2
+│       │   │   │       ├── JetBrainsMono-ThinItalic.woff2
+│       │   │   │       └── JetBrainsMono-Thin.woff2
+│       │   │   └── OFL.txt
+│       │   ├── materialdesignicons-webfont.ttf
+│       │   ├── MaterialIcons-Regular.ttf
+│       │   ├── NotoSansJP-VariableFont_wght.ttf
+│       │   └── Open_Sans
+│       │       ├── OFL.txt
+│       │       ├── OpenSans-Italic-VariableFont_wdth,wght.ttf
+│       │       ├── OpenSans-VariableFont.ttf
+│       │       ├── README.txt
+│       │       └── static
+│       │           ├── OpenSans-BoldItalic.ttf
+│       │           ├── OpenSans-Bold.ttf
+│       │           ├── OpenSans_Condensed-BoldItalic.ttf
+│       │           ├── OpenSans_Condensed-Bold.ttf
+│       │           ├── OpenSans_Condensed-ExtraBoldItalic.ttf
+│       │           ├── OpenSans_Condensed-ExtraBold.ttf
+│       │           ├── OpenSans_Condensed-Italic.ttf
+│       │           ├── OpenSans_Condensed-LightItalic.ttf
+│       │           ├── OpenSans_Condensed-Light.ttf
+│       │           ├── OpenSans_Condensed-MediumItalic.ttf
+│       │           ├── OpenSans_Condensed-Medium.ttf
+│       │           ├── OpenSans_Condensed-Regular.ttf
+│       │           ├── OpenSans_Condensed-SemiBoldItalic.ttf
+│       │           ├── OpenSans_Condensed-SemiBold.ttf
+│       │           ├── OpenSans-ExtraBoldItalic.ttf
+│       │           ├── OpenSans-ExtraBold.ttf
+│       │           ├── OpenSans-Italic.ttf
+│       │           ├── OpenSans-LightItalic.ttf
+│       │           ├── OpenSans-Light.ttf
+│       │           ├── OpenSans-MediumItalic.ttf
+│       │           ├── OpenSans-Medium.ttf
+│       │           ├── OpenSans-Regular.ttf
+│       │           ├── OpenSans-SemiBoldItalic.ttf
+│       │           ├── OpenSans-SemiBold.ttf
+│       │           ├── OpenSans_SemiCondensed-BoldItalic.ttf
+│       │           ├── OpenSans_SemiCondensed-Bold.ttf
+│       │           ├── OpenSans_SemiCondensed-ExtraBoldItalic.ttf
+│       │           ├── OpenSans_SemiCondensed-ExtraBold.ttf
+│       │           ├── OpenSans_SemiCondensed-Italic.ttf
+│       │           ├── OpenSans_SemiCondensed-LightItalic.ttf
+│       │           ├── OpenSans_SemiCondensed-Light.ttf
+│       │           ├── OpenSans_SemiCondensed-MediumItalic.ttf
+│       │           ├── OpenSans_SemiCondensed-Medium.ttf
+│       │           ├── OpenSans_SemiCondensed-Regular.ttf
+│       │           ├── OpenSans_SemiCondensed-SemiBoldItalic.ttf
+│       │           └── OpenSans_SemiCondensed-SemiBold.ttf
+│       ├── Icons
+│       │   ├── emptyTexture.png
+│       │   ├── file4.png
+│       │   ├── file5.png
+│       │   ├── files1.png
+│       │   ├── files2.png
+│       │   ├── files3.png
+│       │   ├── folder0.png
+│       │   ├── folder1.png
+│       │   ├── folder2.png
+│       │   ├── folder3.png
+│       │   ├── folder4.png
+│       │   ├── folder5.png
+│       │   ├── folder6.png
+│       │   ├── folder7.png
+│       │   ├── folder8.png
+│       │   ├── folder9.png
+│       │   └── PngItem_1004186.png
+│       ├── ImGui
+│       │   ├── fa-regular-400.ttf
+│       │   ├── fa-solid-900.ttf
+│       │   ├── forkawesome-webfont.ttf
+│       │   ├── imgui.ini
+│       │   ├── Inter
+│       │   │   ├── Inter-VariableFont.ttf
+│       │   │   ├── OFL.txt
+│       │   │   ├── README.txt
+│       │   │   └── static
+│       │   │       ├── Inter-Black.ttf
+│       │   │       ├── Inter-Bold.ttf
+│       │   │       ├── Inter-ExtraBold.ttf
+│       │   │       ├── Inter-ExtraLight.ttf
+│       │   │       ├── Inter-Light.ttf
+│       │   │       ├── Inter-Medium.ttf
+│       │   │       ├── Inter-Regular.ttf
+│       │   │       ├── Inter-SemiBold.ttf
+│       │   │       └── Inter-Thin.ttf
+│       │   ├── JetBrainsMono
+│       │   │   ├── AUTHORS.txt
+│       │   │   ├── fonts
+│       │   │   │   ├── ttf
+│       │   │   │   │   ├── JetBrainsMono-BoldItalic.ttf
+│       │   │   │   │   ├── JetBrainsMono-Bold.ttf
+│       │   │   │   │   ├── JetBrainsMono-ExtraBoldItalic.ttf
+│       │   │   │   │   ├── JetBrainsMono-ExtraBold.ttf
+│       │   │   │   │   ├── JetBrainsMono-ExtraLightItalic.ttf
+│       │   │   │   │   ├── JetBrainsMono-ExtraLight.ttf
+│       │   │   │   │   ├── JetBrainsMono-Italic.ttf
+│       │   │   │   │   ├── JetBrainsMono-LightItalic.ttf
+│       │   │   │   │   ├── JetBrainsMono-Light.ttf
+│       │   │   │   │   ├── JetBrainsMono-MediumItalic.ttf
+│       │   │   │   │   ├── JetBrainsMono-Medium.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-BoldItalic.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-Bold.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-ExtraBoldItalic.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-ExtraBold.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-ExtraLightItalic.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-ExtraLight.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-Italic.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-LightItalic.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-Light.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-MediumItalic.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-Medium.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-Regular.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-SemiBoldItalic.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-SemiBold.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-ThinItalic.ttf
+│       │   │   │   │   ├── JetBrainsMonoNL-Thin.ttf
+│       │   │   │   │   ├── JetBrainsMono-Regular.ttf
+│       │   │   │   │   ├── JetBrainsMono-SemiBoldItalic.ttf
+│       │   │   │   │   ├── JetBrainsMono-SemiBold.ttf
+│       │   │   │   │   ├── JetBrainsMono-ThinItalic.ttf
+│       │   │   │   │   └── JetBrainsMono-Thin.ttf
+│       │   │   │   ├── variable
+│       │   │   │   │   ├── JetBrainsMono-Italic[wght].ttf
+│       │   │   │   │   └── JetBrainsMono[wght].ttf
+│       │   │   │   └── webfonts
+│       │   │   │       ├── JetBrainsMono-BoldItalic.woff2
+│       │   │   │       ├── JetBrainsMono-Bold.woff2
+│       │   │   │       ├── JetBrainsMono-ExtraBoldItalic.woff2
+│       │   │   │       ├── JetBrainsMono-ExtraBold.woff2
+│       │   │   │       ├── JetBrainsMono-ExtraLightItalic.woff2
+│       │   │   │       ├── JetBrainsMono-ExtraLight.woff2
+│       │   │   │       ├── JetBrainsMono-Italic.woff2
+│       │   │   │       ├── JetBrainsMono-LightItalic.woff2
+│       │   │   │       ├── JetBrainsMono-Light.woff2
+│       │   │   │       ├── JetBrainsMono-MediumItalic.woff2
+│       │   │   │       ├── JetBrainsMono-Medium.woff2
+│       │   │   │       ├── JetBrainsMono-Regular.woff2
+│       │   │   │       ├── JetBrainsMono-SemiBoldItalic.woff2
+│       │   │   │       ├── JetBrainsMono-SemiBold.woff2
+│       │   │   │       ├── JetBrainsMono-ThinItalic.woff2
+│       │   │   │       └── JetBrainsMono-Thin.woff2
+│       │   │   └── OFL.txt
+│       │   ├── materialdesignicons-webfont.ttf
+│       │   ├── MaterialIcons-Regular.ttf
+│       │   ├── NotoSansJP-VariableFont_wght.ttf
+│       │   └── Open_Sans
+│       │       ├── OFL.txt
+│       │       ├── OpenSans-Italic-VariableFont_wdth,wght.ttf
+│       │       ├── OpenSans-VariableFont.ttf
+│       │       ├── README.txt
+│       │       └── static
+│       │           ├── OpenSans-BoldItalic.ttf
+│       │           ├── OpenSans-Bold.ttf
+│       │           ├── OpenSans_Condensed-BoldItalic.ttf
+│       │           ├── OpenSans_Condensed-Bold.ttf
+│       │           ├── OpenSans_Condensed-ExtraBoldItalic.ttf
+│       │           ├── OpenSans_Condensed-ExtraBold.ttf
+│       │           ├── OpenSans_Condensed-Italic.ttf
+│       │           ├── OpenSans_Condensed-LightItalic.ttf
+│       │           ├── OpenSans_Condensed-Light.ttf
+│       │           ├── OpenSans_Condensed-MediumItalic.ttf
+│       │           ├── OpenSans_Condensed-Medium.ttf
+│       │           ├── OpenSans_Condensed-Regular.ttf
+│       │           ├── OpenSans_Condensed-SemiBoldItalic.ttf
+│       │           ├── OpenSans_Condensed-SemiBold.ttf
+│       │           ├── OpenSans-ExtraBoldItalic.ttf
+│       │           ├── OpenSans-ExtraBold.ttf
+│       │           ├── OpenSans-Italic.ttf
+│       │           ├── OpenSans-LightItalic.ttf
+│       │           ├── OpenSans-Light.ttf
+│       │           ├── OpenSans-MediumItalic.ttf
+│       │           ├── OpenSans-Medium.ttf
+│       │           ├── OpenSans-Regular.ttf
+│       │           ├── OpenSans-SemiBoldItalic.ttf
+│       │           ├── OpenSans-SemiBold.ttf
+│       │           ├── OpenSans_SemiCondensed-BoldItalic.ttf
+│       │           ├── OpenSans_SemiCondensed-Bold.ttf
+│       │           ├── OpenSans_SemiCondensed-ExtraBoldItalic.ttf
+│       │           ├── OpenSans_SemiCondensed-ExtraBold.ttf
+│       │           ├── OpenSans_SemiCondensed-Italic.ttf
+│       │           ├── OpenSans_SemiCondensed-LightItalic.ttf
+│       │           ├── OpenSans_SemiCondensed-Light.ttf
+│       │           ├── OpenSans_SemiCondensed-MediumItalic.ttf
+│       │           ├── OpenSans_SemiCondensed-Medium.ttf
+│       │           ├── OpenSans_SemiCondensed-Regular.ttf
+│       │           ├── OpenSans_SemiCondensed-SemiBoldItalic.ttf
+│       │           └── OpenSans_SemiCondensed-SemiBold.ttf
+│       ├── Models
+│       │   ├── 1 - Box texture
+│       │   │   ├── BoxTexture.mtl
+│       │   │   ├── BoxTexture.obj
+│       │   │   └── CatStare.png
+│       │   ├── 2 - Cat with scarf
+│       │   │   ├── source
+│       │   │   │   ├── Pbr
+│       │   │   │   │   ├── base.obj
+│       │   │   │   │   ├── texture_diffuse.png
+│       │   │   │   │   ├── texture_metallic.png
+│       │   │   │   │   ├── texture_normal.png
+│       │   │   │   │   ├── texture_pbr.png
+│       │   │   │   │   └── texture_roughness.png
+│       │   │   │   └── Shaded
+│       │   │   │       ├── base.obj
+│       │   │   │       └── shaded.png
+│       │   │   └── textures
+│       │   │       ├── texture_diffuse.png
+│       │   │       ├── texture_metallic.png
+│       │   │       ├── texture_normal.png
+│       │   │       └── texture_roughness.png
+│       │   ├── 3 - Dachniy house
+│       │   │   ├── source
+│       │   │   │   └── Dachniy_Domik
+│       │   │   │       ├── D_House.FBX
+│       │   │   │       ├── pol_diff.png
+│       │   │   │       ├── pol_diff.tif
+│       │   │   │       ├── pol_normal.jpeg
+│       │   │   │       ├── pol_normal.jpg
+│       │   │   │       ├── shifer_diff.png
+│       │   │   │       ├── shifer_diff.tif
+│       │   │   │       ├── shifer_Normal.jpeg
+│       │   │   │       ├── shifer_Normal.jpg
+│       │   │   │       ├── White_Wood_Diff.tif
+│       │   │   │       ├── White_Wood_Normal.jpg
+│       │   │   │       ├── Windows_pod_Diff.tif
+│       │   │   │       ├── Windows_Pod_Normal.jpg
+│       │   │   │       ├── wood002_Normal.jpeg
+│       │   │   │       ├── wood002_Normal.jpg
+│       │   │   │       ├── wood002.png
+│       │   │   │       ├── wood002r_Normal.jpg
+│       │   │   │       ├── wood002r.tif
+│       │   │   │       ├── wood002.tif
+│       │   │   │       ├── Wood003_Diff.png
+│       │   │   │       ├── Wood003_Diff.tif
+│       │   │   │       ├── Wood003_Normal.jpeg
+│       │   │   │       ├── Wood003_Normal.jpg
+│       │   │   │       ├── Wood004_Diff.png
+│       │   │   │       ├── Wood004_Diff.tif
+│       │   │   │       ├── Wood004_Normal.jpeg
+│       │   │   │       ├── Wood004_Normal.jpg
+│       │   │   │       ├── WoodPlanksClean_diff.png
+│       │   │   │       ├── WoodPlanksClean_diff.tif
+│       │   │   │       ├── WoodPlanksClean_Normal.jpeg
+│       │   │   │       └── WoodPlanksClean_Normal.jpg
+│       │   │   └── textures
+│       │   │       ├── pol_diff.png
+│       │   │       ├── pol_normal.jpeg
+│       │   │       ├── shifer_diff.png
+│       │   │       ├── shifer_Normal.jpeg
+│       │   │       ├── wood002_Normal.jpeg
+│       │   │       ├── wood002.png
+│       │   │       ├── Wood003_Diff.png
+│       │   │       ├── Wood003_Normal.jpeg
+│       │   │       ├── Wood004_Diff.png
+│       │   │       ├── Wood004_Normal.jpeg
+│       │   │       ├── WoodPlanksClean_diff.png
+│       │   │       └── WoodPlanksClean_Normal.jpeg
+│       │   ├── 4 - Japanese paper lantern
+│       │   │   ├── JapaneseLamp.mtl
+│       │   │   ├── JapaneseLamp.obj
+│       │   │   ├── textures
+│       │   │   │   ├── untitled_Material.001_BaseColor.png
+│       │   │   │   ├── untitled_Material.001_Emissive.png
+│       │   │   │   ├── untitled_Material.001_Metallic.png
+│       │   │   │   ├── untitled_Material.001_Normal.png
+│       │   │   │   └── untitled_Material.001_Roughness.png
+│       │   │   ├── untitled_Material.001_BaseColor.png
+│       │   │   ├── untitled_Material.001_Emissive.png
+│       │   │   ├── untitled_Material.001_Height.png
+│       │   │   ├── untitled_Material.001_Metallic.png
+│       │   │   ├── untitled_Material.001_Normal.png
+│       │   │   └── untitled_Material.001_Roughness.png
+│       │   ├── 5 - Girl shading
+│       │   │   ├── source
+│       │   │   │   └── sketch
+│       │   │   │       ├── all.png
+│       │   │   │       ├── body.png
+│       │   │   │       ├── final_v01.mtl
+│       │   │   │       ├── final_v01.obj
+│       │   │   │       ├── head.png
+│       │   │   │       ├── internal_ground_ao_texture.jpeg
+│       │   │   │       └── just_a_girl.glb
+│       │   │   └── textures
+│       │   │       ├── all.png
+│       │   │       ├── body.png
+│       │   │       ├── head.png
+│       │   │       └── internal_ground_ao_texture.jpeg
+│       │   ├── 6 - Flat box
+│       │   │   └── spritebase.obj
+│       │   ├── 7 - 3D Girl Model
+│       │   │   ├── source
+│       │   │   │   └── model
+│       │   │   │       └── model
+│       │   │   │           ├── Alis.png
+│       │   │   │           ├── Baju.png
+│       │   │   │           ├── Dasi.png
+│       │   │   │           ├── Face.png
+│       │   │   │           ├── Rambut.png
+│       │   │   │           ├── Rok.png
+│       │   │   │           ├── test22.mtl
+│       │   │   │           ├── test22.obj
+│       │   │   │           ├── textures
+│       │   │   │           │   ├── Alis.png
+│       │   │   │           │   ├── Baju.png
+│       │   │   │           │   ├── Dasi.png
+│       │   │   │           │   ├── Face.png
+│       │   │   │           │   ├── Rambut.png
+│       │   │   │           │   ├── Rok.png
+│       │   │   │           │   └── Untitled.png
+│       │   │   │           └── Untitled.png
+│       │   │   └── textures
+│       │   │       ├── Alis.png
+│       │   │       ├── Baju.png
+│       │   │       ├── Dasi.png
+│       │   │       ├── Face.png
+│       │   │       ├── Rambut.png
+│       │   │       ├── Rok.png
+│       │   │       └── Untitled.png
+│       │   └── Prefabs
+│       │       ├── cone
+│       │       │   └── gltf
+│       │       │       ├── license.txt
+│       │       │       ├── scene.bin
+│       │       │       └── scene.gltf
+│       │       ├── cube
+│       │       │   └── gltf
+│       │       │       ├── license.txt
+│       │       │       ├── scene.bin
+│       │       │       └── scene.gltf
+│       │       ├── cylinder
+│       │       │   └── gltf
+│       │       │       ├── license.txt
+│       │       │       ├── scene.bin
+│       │       │       └── scene.gltf
+│       │       ├── sphere
+│       │       │   └── gltf
+│       │       │       ├── license.txt
+│       │       │       ├── scene.bin
+│       │       │       └── scene.gltf
+│       │       └── sponza
+│       │           ├── README.md
+│       │           ├── sponza.mtl
+│       │           ├── sponza.obj
+│       │           └── textures
+│       │               ├── background_bump.png
+│       │               ├── background_ddn.tga
+│       │               ├── background.png
+│       │               ├── background.tga
+│       │               ├── chain_texture_bump.png
+│       │               ├── chain_texture_ddn.tga
+│       │               ├── chain_texture_mask.png
+│       │               ├── chain_texture.png
+│       │               ├── chain_texture.tga
+│       │               ├── floor_gloss.png
+│       │               ├── lion2_bump.png
+│       │               ├── lion2_ddn.tga
+│       │               ├── lion_bump.png
+│       │               ├── lion_ddn.tga
+│       │               ├── lion.png
+│       │               ├── lion.tga
+│       │               ├── spnza_bricks_a_bump.png
+│       │               ├── spnza_bricks_a_ddn.tga
+│       │               ├── spnza_bricks_a_diff.png
+│       │               ├── spnza_bricks_a_diff.tga
+│       │               ├── spnza_bricks_a_spec.png
+│       │               ├── sponza_arch_bump.png
+│       │               ├── sponza_arch_ddn.tga
+│       │               ├── sponza_arch_diff.png
+│       │               ├── sponza_arch_diff.tga
+│       │               ├── sponza_arch_spec.png
+│       │               ├── sponza_ceiling_a_ddn.tga
+│       │               ├── sponza_ceiling_a_diff.png
+│       │               ├── sponza_ceiling_a_diff.tga
+│       │               ├── sponza_ceiling_a_spec.png
+│       │               ├── sponza_column_a_bump.png
+│       │               ├── sponza_column_a_ddn.tga
+│       │               ├── sponza_column_a_diff.png
+│       │               ├── sponza_column_a_diff.tga
+│       │               ├── sponza_column_a_spec.png
+│       │               ├── sponza_column_b_bump.png
+│       │               ├── sponza_column_b_ddn.tga
+│       │               ├── sponza_column_b_diff.png
+│       │               ├── sponza_column_b_diff.tga
+│       │               ├── sponza_column_b_spec.png
+│       │               ├── sponza_column_c_bump.png
+│       │               ├── sponza_column_c_ddn.tga
+│       │               ├── sponza_column_c_diff.png
+│       │               ├── sponza_column_c_diff.tga
+│       │               ├── sponza_column_c_spec.png
+│       │               ├── sponza_curtain_blue_diff.png
+│       │               ├── sponza_curtain_blue_diff.tga
+│       │               ├── sponza_curtain_ddn.tga
+│       │               ├── sponza_curtain_diff.png
+│       │               ├── sponza_curtain_diff.tga
+│       │               ├── sponza_curtain_green_diff.png
+│       │               ├── sponza_curtain_green_diff.tga
+│       │               ├── sponza_details_ddn.tga
+│       │               ├── sponza_details_diff.png
+│       │               ├── sponza_details_diff.tga
+│       │               ├── sponza_details_spec.png
+│       │               ├── sponza_fabric_blue_diff.png
+│       │               ├── sponza_fabric_blue_diff.tga
+│       │               ├── sponza_fabric_ddn.tga
+│       │               ├── sponza_fabric_diff.png
+│       │               ├── sponza_fabric_diff.tga
+│       │               ├── sponza_fabric_green_diff.png
+│       │               ├── sponza_fabric_green_diff.tga
+│       │               ├── sponza_fabric_purple.png
+│       │               ├── sponza_fabric_spec.png
+│       │               ├── sponza_flagpole_ddn.tga
+│       │               ├── sponza_flagpole_diff.png
+│       │               ├── sponza_flagpole_diff.tga
+│       │               ├── sponza_flagpole_spec.png
+│       │               ├── sponza_floor_a_ddn.tga
+│       │               ├── sponza_floor_a_diff.png
+│       │               ├── sponza_floor_a_diff.tga
+│       │               ├── sponza_floor_a_spec.png
+│       │               ├── sponza_roof_ddn.tga
+│       │               ├── sponza_roof_diff.png
+│       │               ├── sponza_roof_diff.tga
+│       │               ├── sponza_thorn_bump.png
+│       │               ├── sponza_thorn_ddn.tga
+│       │               ├── sponza_thorn_diff.png
+│       │               ├── sponza_thorn_diff.tga
+│       │               ├── sponza_thorn_mask.png
+│       │               ├── sponza_thorn_spec.png
+│       │               ├── Thumbs.db
+│       │               ├── vase_bump.png
+│       │               ├── vase_ddn.tga
+│       │               ├── vase_dif.png
+│       │               ├── vase_dif.tga
+│       │               ├── vase_hanging_ddn.tga
+│       │               ├── vase_hanging.png
+│       │               ├── vase_hanging.tga
+│       │               ├── vase_plant_mask.png
+│       │               ├── vase_plant.png
+│       │               ├── vase_plant_spec.png
+│       │               ├── vase_plant.tga
+│       │               ├── vase_round_bump.png
+│       │               ├── vase_round_ddn.tga
+│       │               ├── vase_round.png
+│       │               ├── vase_round_spec.png
+│       │               └── vase_round.tga
+│       ├── Screenshots
+│       │   ├── img10.png
+│       │   ├── img11.png
+│       │   ├── img12.png
+│       │   ├── img13.png
+│       │   ├── img14.png
+│       │   ├── img15.png
+│       │   ├── img1.png
+│       │   ├── img2.png
+│       │   ├── img3.png
+│       │   ├── img4.png
+│       │   ├── img5.png
+│       │   ├── img6.png
+│       │   ├── img7.png
+│       │   ├── img8.png
+│       │   └── img9.png
+│       ├── Script-Examples
+│       │   ├── console_rpg.lua
+│       │   └── hello_world.lua
+│       ├── Shaders
+│       │   └── vulkan-spirv
+│       │       ├── BasicCompute_Comp.glsl
+│       │       ├── BasicCompute_Comp.sprv
+│       │       ├── compile_shaders.bat
+│       │       ├── compile_shaders_linux.sh
+│       │       ├── Compute_Shader.glsl
+│       │       ├── Compute_Shader.sprv
+│       │       ├── Compute_Shader_Test.glsl
+│       │       ├── Compute_Shader_Test.sprv
+│       │       ├── FullscreenTriangle_Frag.glsl
+│       │       ├── FullscreenTriangle_Frag.sprv
+│       │       ├── FullscreenTriangle_Vert.glsl
+│       │       ├── FullscreenTriangle_Vert.sprv
+│       │       ├── Outline_Frag.glsl
+│       │       ├── Outline_Frag.sprv
+│       │       ├── Outline_Vert.glsl
+│       │       ├── Outline_Vert.sprv
+│       │       ├── PBRFragmentShader.glsl
+│       │       ├── PBRFragmentShader.sprv
+│       │       ├── PBR_Instanced_Frag.glsl
+│       │       ├── PBR_Instanced_Frag.sprv
+│       │       ├── PBR_Instanced_Frag.sprv.debug.json
+│       │       ├── PBR_Instanced_Vert.glsl
+│       │       ├── PBR_Instanced_Vert.sprv
+│       │       ├── PBRVertexShader.glsl
+│       │       ├── PBRVertexShader.sprv
+│       │       ├── StandardFragmentShader.glsl
+│       │       ├── StandardFragmentShader.sprv
+│       │       ├── StandardVertexShader.glsl
+│       │       ├── StandardVertexShader.sprv
+│       │       ├── Text_Frag.glsl
+│       │       ├── Text_Frag.sprv
+│       │       ├── Text_Vert.glsl
+│       │       ├── Text_Vert.sprv
+│       │       ├── WireframeFragmentShader.glsl
+│       │       └── WireframeFragmentShader.sprv
+│       └── Textures
+│           └── texture.png
+├── Scene
+│   ├── Camera.hh
+│   ├── Component.hh
+│   ├── Entity.hh
+│   ├── SceneCamera.hh
+│   ├── Scene.hh
+│   ├── SceneManager.hh
+│   ├── SceneSerializer.hh
+│   └── Scenes.hh
+├── Scripting
+│   └── ScriptingService.hh
+├── Sources
+│   ├── AssetsService.cc
+│   ├── Audio.cc
+│   ├── AudioDevice.cc
+│   ├── AudioListener.cc
+│   ├── AudioService.cc
+│   ├── AudioSource.cc
+│   ├── ConsoleManager.cc
+│   ├── EventService.cc
+│   ├── ExecuteProcess.cc
+│   ├── File.cc
+│   ├── FileService.cc
+│   ├── FontAtlas.cc
+│   ├── Font.cc
+│   ├── FontGlyph.cc
+│   ├── FontService.cc
+│   ├── GpuAllocator.cc
+│   ├── GpuDevice.cc
+│   ├── HeapAllocator.cc
+│   ├── ImGuiService.cc
+│   ├── ImGuiVulkanBackend.cc
+│   ├── ImportFont.cc
+│   ├── InputService.cc
+│   ├── LayerStack.cc
+│   ├── Logger.cc
+│   ├── MainWindow.cc
+│   ├── MemoryService.cc
+│   ├── MeshFactory.cc
+│   ├── Model.cc
+│   ├── NetworkService.cc
+│   ├── NetworkUtilities.cc
+│   ├── PBRMaterial.cc
+│   ├── PhysicsBase.cc
+│   ├── PhysicService.cc
+│   ├── Profiler.cc
+│   ├── RayCast.cc
+│   ├── RenderContext.cc
+│   ├── RenderService.cc
+│   ├── RenderUtility.cc
+│   ├── Root.cc
+│   ├── RuntimeConsole.cc
+│   ├── SceneCamera.cc
+│   ├── Scene.cc
+│   ├── SceneManager.cc
+│   ├── SceneRenderer.cc
+│   ├── SceneSerializer.cc
+│   ├── ScriptingService.cc
+│   ├── ShaderLibrary.cc
+│   ├── Socket.cc
+│   ├── SystemStats.cc
+│   ├── TaskManager.cc
+│   ├── TaskService.cc
+│   ├── Timer.cc
+│   ├── TimeService.cc
+│   ├── VulkanBuffer.cc
+│   ├── VulkanContext.cc
+│   ├── VulkanDescriptorManager.cc
+│   ├── VulkanDevice.cc
+│   ├── VulkanFrameBuffer.cc
+│   ├── VulkanHelpers.cc
+│   ├── VulkanMemoryAllocator.cc
+│   ├── VulkanPasses.cc
+│   ├── VulkanPipeline.cc
+│   ├── VulkanRenderer.cc
+│   ├── VulkanShader.cc
+│   ├── VulkanTexture.cc
+│   └── Window.cc
+└── Threading
+    ├── TaskManager.hh
+    ├── TaskService.hh
+    └── ThreadUtility.hh
+
+91 directories, 706 files

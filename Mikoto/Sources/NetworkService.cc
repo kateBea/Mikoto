@@ -2,9 +2,11 @@
 // Created by kate on 10/29/25.
 //
 
+#include <Core/Profiler.hh>
 #include <Logging/Logger.hh>
 #include <Networking/NetworkService.hh>
 #include <Threading/TaskService.hh>
+#include <tracy/Tracy.hpp>
 
 namespace Mikoto {
     NetworkService::NetworkService( const NetworkServiceCreateInfo& ) {
@@ -80,6 +82,7 @@ namespace Mikoto {
     }
 
     auto NetworkService::Init() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
 
         MKT_CORE_LOGGER_INFO("Initializing NetworkService...");
 
@@ -88,6 +91,8 @@ namespace Mikoto {
         m_IsInitialized = true;
     }
     auto NetworkService::Shutdown() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if (!m_IsInitialized) {
             return;
         }
@@ -98,6 +103,8 @@ namespace Mikoto {
     }
 
     auto NetworkService::Update( float dt ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         m_IoContext.poll();
     }
 }

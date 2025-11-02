@@ -11,6 +11,7 @@
 
 // Project Headers
 #include <Core/EventService.hh>
+#include <Core/Profiler.hh>
 #include <Library/Utility/Types.hh>
 #include <Logging/Logger.hh>
 
@@ -75,12 +76,16 @@ namespace Mikoto {
     }
 
     auto EventService::Init() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_CORE_LOGGER_INFO("Initializing EventService...");
 
         m_IsInitialized = true;
     }
 
     auto EventService::Update(float dt) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         // Process pending events if any
         ProcessEvents();
     }
@@ -104,6 +109,8 @@ namespace Mikoto {
     }
 
     auto EventService::Shutdown() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if (!m_IsInitialized) {
             return;
         }

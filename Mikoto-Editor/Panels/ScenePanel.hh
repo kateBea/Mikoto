@@ -50,10 +50,11 @@ namespace Mikoto {
         MKT_NODISCARD auto GetViewportHeight() const -> float;
 
     private:
+        auto IsDisplayTextureValid() const -> bool;
         auto UpdateViewport() -> void;
         auto SetupManipulation() const -> void;
         auto DrawManipulationGuizmos() -> void;
-        auto DrawScenePlayButtons() const -> void;
+        auto DrawSceneToolbar() const -> void;
 
     private:
         EditorState* m_EditorState{};

@@ -335,6 +335,10 @@ namespace Mikoto {
     auto ImGuiVulkanBackend::ConstructImGuiTextureID( const Texture* texture ) -> ImTextureID {
         ImTextureID result{};
 
+        if (dynamic_cast<const VulkanTexture*>(texture)->GetCurrentLayout() != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            return result;
+        }
+
         auto itFind{ m_ImGuiSets.find( texture ) };
         if ( itFind != m_ImGuiSets.end() ) {
             result = reinterpret_cast<ImTextureID>(itFind->second.descriptorSet);

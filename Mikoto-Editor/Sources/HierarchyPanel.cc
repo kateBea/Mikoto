@@ -372,7 +372,7 @@ namespace Mikoto {
                     { "FBX files", "fbx" }
                 };
 
-                const std::string path{ FileService::Get()->OpenDialog( filters ) };
+                const std::string path{ FileService::Get()->OpenDialog( filters ).string() };
                 AddEntityWithModel(path, root);
 
                 loading = false;

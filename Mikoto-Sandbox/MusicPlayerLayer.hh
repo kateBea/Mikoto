@@ -4,11 +4,13 @@
 
 #ifndef MUSICPLAYERLAYER_H
 #define MUSICPLAYERLAYER_H
-#include <Assets/Audio.hh>
-#include <Audio/AudioDevice.hh>
-#include <Core/LayerStack.hh>
+
 #include <string_view>
 #include <array>
+
+#include <Assets/AudioClip.hh>
+#include <Audio/AudioDevice.hh>
+#include <Core/LayerStack.hh>
 
 namespace Mikoto {
     class MusicPlayerLayer final : public ILayer {

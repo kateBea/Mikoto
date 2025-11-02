@@ -2,18 +2,17 @@
 // Created by kate on 10/29/25.
 //
 
-#include "Networking/Socket.hh"
+
+#include <Networking/Socket.hh>
 
 namespace Mikoto {
-
-    // ------------------ TCP Socket ------------------
 
 #if !defined( MKT_ALLOW_HTTPS )
     TcpSocket::TcpSocket( asio::io_context &ctx, std::string_view address, UInt16 port )
         : m_Socket{ ctx }, m_Port{ port }, m_HostName{ address } {
         Initialize();
     }
-#endif
+#else
 
     TcpSocket::TcpSocket( asio::io_context &ctx, asio::ssl::context &sslContext, const std::string_view address, const UInt16 port, bool ssl )
         : m_Socket{ ctx },
@@ -33,6 +32,8 @@ namespace Mikoto {
            m_InitSync( sync ) {
         Initialize();
     }
+#endif
+
 
     TcpSocket::~TcpSocket() {
         if ( m_IsAllocated ) {
@@ -42,7 +43,9 @@ namespace Mikoto {
 
     auto TcpSocket::Disconnect() -> void {
         try {
+#if defined( MKT_ALLOW_HTTPS )
             m_SslSocket.shutdown();
+#endif
             m_Socket.close();
 
         } catch ( ... ) {

@@ -351,56 +351,57 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(tracy)
 
-# SSL
-FetchContent_Declare(
-        openssl
-        URL https://www.openssl.org/source/openssl-3.6.0.tar.gz  # Replace with the version you want
-)
-
-FetchContent_MakeAvailable(openssl)
-
-
-# ================
-set(OPENSSL_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/openssl-src) # default path by CMake
-set(OPENSSL_INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/openssl)
-set(OPENSSL_INCLUDE_DIR ${OPENSSL_INSTALL_DIR}/include)
-set(OPENSSL_CONFIGURE_COMMAND ${OPENSSL_SOURCE_DIR}/config)
-ExternalProject_Add(
-        OpenSSL
-        SOURCE_DIR ${OPENSSL_SOURCE_DIR}
-        GIT_REPOSITORY https://github.com/openssl/openssl.git
-        GIT_TAG OpenSSL_1_1_1n
-        CONFIGURE_COMMAND ${OPENSSL_SOURCE_DIR}/config --prefix=${OPENSSL_INSTALL_DIR} --openssldir=${OPENSSL_INSTALL_DIR}
-        BUILD_COMMAND make
-        INSTALL_COMMAND make install
-        BUILD_BYPRODUCTS
-        ${OPENSSL_INSTALL_DIR}/lib/libssl.a
-        ${OPENSSL_INSTALL_DIR}/lib/libcrypto.a
-        UPDATE_COMMAND ""               # <— prevent automatic updates/rebuilds every time
-        BUILD_ALWAYS 0                  # <— do not always rebuild
-)
-
-
-# We cannot use find_library because ExternalProject_Add() is performed at build time.
-# And to please the property INTERFACE_INCLUDE_DIRECTORIES,
-# we make the include directory in advance.
-file(MAKE_DIRECTORY ${OPENSSL_INCLUDE_DIR})
-
-# Make sure the directories exist
-file(MAKE_DIRECTORY ${OPENSSL_INCLUDE_DIR})
-
 # SSL library
-add_library(OpenSSL::SSL STATIC IMPORTED GLOBAL)
-set_property(TARGET OpenSSL::SSL PROPERTY IMPORTED_LOCATION
-        ${OPENSSL_INSTALL_DIR}/lib/libssl.a)
-set_property(TARGET OpenSSL::SSL PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_INCLUDE_DIR})
-add_dependencies(OpenSSL::SSL OpenSSL)
+if (UNIX)
+    FetchContent_Declare(
+            openssl
+            URL https://www.openssl.org/source/openssl-3.6.0.tar.gz  # Replace with the version you want
+    )
 
-add_library(OpenSSL::Crypto STATIC IMPORTED GLOBAL)
-set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION
-        ${OPENSSL_INSTALL_DIR}/lib/libcrypto.a)
-set_property(TARGET OpenSSL::Crypto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_INCLUDE_DIR})
-add_dependencies(OpenSSL::Crypto OpenSSL)
+    FetchContent_MakeAvailable(openssl)
+
+
+    # ================
+    set(OPENSSL_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/openssl-src) # default path by CMake
+    set(OPENSSL_INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/openssl)
+    set(OPENSSL_INCLUDE_DIR ${OPENSSL_INSTALL_DIR}/include)
+    set(OPENSSL_CONFIGURE_COMMAND ${OPENSSL_SOURCE_DIR}/config)
+    ExternalProject_Add(
+            OpenSSL
+            SOURCE_DIR ${OPENSSL_SOURCE_DIR}
+            GIT_REPOSITORY https://github.com/openssl/openssl.git
+            GIT_TAG OpenSSL_1_1_1n
+            CONFIGURE_COMMAND ${OPENSSL_SOURCE_DIR}/config --prefix=${OPENSSL_INSTALL_DIR} --openssldir=${OPENSSL_INSTALL_DIR}
+            BUILD_COMMAND make
+            INSTALL_COMMAND make install
+            BUILD_BYPRODUCTS
+            ${OPENSSL_INSTALL_DIR}/lib/libssl.a
+            ${OPENSSL_INSTALL_DIR}/lib/libcrypto.a
+            UPDATE_COMMAND ""               # <— prevent automatic updates/rebuilds every time
+            BUILD_ALWAYS 0                  # <— do not always rebuild
+    )
+
+
+    # We cannot use find_library because ExternalProject_Add() is performed at build time.
+    # And to please the property INTERFACE_INCLUDE_DIRECTORIES,
+    # we make the include directory in advance.
+    file(MAKE_DIRECTORY ${OPENSSL_INCLUDE_DIR})
+
+    # Make sure the directories exist
+    file(MAKE_DIRECTORY ${OPENSSL_INCLUDE_DIR})
+
+    add_library(OpenSSL::SSL STATIC IMPORTED GLOBAL)
+    set_property(TARGET OpenSSL::SSL PROPERTY IMPORTED_LOCATION
+            ${OPENSSL_INSTALL_DIR}/lib/libssl.a)
+    set_property(TARGET OpenSSL::SSL PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_INCLUDE_DIR})
+    add_dependencies(OpenSSL::SSL OpenSSL)
+
+    add_library(OpenSSL::Crypto STATIC IMPORTED GLOBAL)
+    set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION
+            ${OPENSSL_INSTALL_DIR}/lib/libcrypto.a)
+    set_property(TARGET OpenSSL::Crypto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_INCLUDE_DIR})
+    add_dependencies(OpenSSL::Crypto OpenSSL)
+endif ()
 
 #find_package(OpenSSL REQUIRED)
 
@@ -484,13 +485,13 @@ set(LIBRARIES
         unordered_dense::unordered_dense
         nlohmann_json::nlohmann_json
         sol2::sol2
-        OpenSSL::SSL
-        OpenSSL::Crypto
         Tracy::TracyClient
 )
 
 if(UNIX)
-    list(APPEND LIBRARIES pthread lua)
+    # Asio HTTPS support on Linux requires linking OpenSSL
+    # which is build with Mikoto
+    list(APPEND LIBRARIES pthread lua OpenSSL::SSL OpenSSL::Crypto)
 endif()
 
 
@@ -498,8 +499,6 @@ endif()
 # Create Mikoto library
 # ======================================
 add_library(${PROJECT_NAME} STATIC ${ALL_SOURCES})
-
-add_dependencies(${PROJECT_NAME} OpenSSL)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARIES})
 
@@ -532,7 +531,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${vulkanmemoryallocator_SOURCE_DIR}/include
         ${taskflow_SOURCE_DIR}
         ${sol2_SOURCE_DIR}/include
-        ${asio_SOURCE_DIR}/asio/include
+        ${asio_SOURCE_DIR}/include
         ${tracy_SOURCE_DIR}/asio/include
 )
 
@@ -555,9 +554,12 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
 target_compile_definitions(${PROJECT_NAME} PRIVATE MKT_USE_VULKAN_BINDLESS)
 target_compile_definitions(${PROJECT_NAME} PRIVATE MKT_USE_VULKAN_DYNAMIC_RENDERING)
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE MKT_ALLOW_HTTPS)
-
 target_compile_definitions(${PROJECT_NAME} PRIVATE TRACY_ENABLE)
+
+# HTTPS only working on linux for now
+if(UNIX)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE MKT_ALLOW_HTTPS)
+endif()
 
 # ======================================
 # Custom Commands

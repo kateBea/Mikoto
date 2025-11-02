@@ -5,12 +5,17 @@
 #ifndef SOCKET_HH
 #define SOCKET_HH
 
-#include <Library/Data/ResourcePool.hh>
-#include <Library/Utility/Types.hh>
-#include <asio.hpp>
-#include <asio/ssl.hpp>
 #include <string>
 #include <string_view>
+
+#include <asio.hpp>
+
+#if defined(MKT_ALLOW_HTTPS)
+#include <asio/ssl.hpp>
+#endif
+
+#include <Library/Data/ResourcePool.hh>
+#include <Library/Utility/Types.hh>
 
 namespace Mikoto {
 
@@ -39,11 +44,12 @@ namespace Mikoto {
     public:
 #if !defined(MKT_ALLOW_HTTPS)
         TcpSocket( asio::io_context& ctx, std::string_view address, UInt16 port );
-#endif
-
+#else
       // HTTP Socket
-        TcpSocket( asio::io_context &ctx, asio::ssl::context &sslContext, std::string_view address, UInt16 port, bool ssl );
-        TcpSocket( asio::io_context &ctx, asio::ssl::context &sslContext, std::string_view address, UInt16 port, bool ssl, bool sync );
+      TcpSocket( asio::io_context &ctx, asio::ssl::context &sslContext, std::string_view address, UInt16 port, bool ssl );
+      TcpSocket( asio::io_context &ctx, asio::ssl::context &sslContext, std::string_view address, UInt16 port, bool ssl, bool sync );
+
+#endif
 
         auto Disconnect() -> void override;
 

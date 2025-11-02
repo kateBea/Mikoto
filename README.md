@@ -37,7 +37,7 @@ passes, amongst other features.
 | Platform | Status    |
 |----------|-----------|
 | Linux    | Supported |
-| Windows  | Supported |
+| Windows  | WIP       |
 
 ---
 

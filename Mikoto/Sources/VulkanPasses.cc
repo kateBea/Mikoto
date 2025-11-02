@@ -8,6 +8,7 @@
 // Third-Party Libraries
 #include <volk.h>
 
+#include <Core/Profiler.hh>
 #include <Material/PBRMaterial.hh>
 #include <Material/ShaderLibrary.hh>
 #include <Memory/MemoryService.hh>
@@ -30,6 +31,8 @@ namespace Mikoto::VulkanPasses {
     }
 
     auto ShadingPass::Init( GpuDevice* device ) -> void{
+        MKT_BEGIN_PROFILER_NAMED();
+
         m_Device = device;
 
         // Color attachment
@@ -85,6 +88,10 @@ namespace Mikoto::VulkanPasses {
     }
 
     auto ShadingPass::Begin( CommandListHandle cmd ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        m_DrawCalls = 0;
+
         m_CmdList = cmd;
         VkCommandBuffer vkCmd { cmd->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
 
@@ -120,12 +127,16 @@ namespace Mikoto::VulkanPasses {
     }
 
     void ShadingPass::End() {
+        MKT_BEGIN_PROFILER_NAMED();
+
         const auto vkCmd{ m_CmdList->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
         vkCmdEndRendering( vkCmd );
 
         // Transition color target to shader read
         const auto tex{ dynamic_cast<VulkanTexture*>( m_ColorTarget.Image.GetRaw() ) };
         tex->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, vkCmd );
+
+        //MKT_CORE_LOGGER_DEBUG( "ShadingPass::End - Draw call count {} ", m_DrawCalls );
     }
 
     auto ShadingPass::WantStoreOP( const bool enable ) -> void {
@@ -141,6 +152,8 @@ namespace Mikoto::VulkanPasses {
     }
 
     auto ShadingPass::Render( Scene* scene ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         // Clear previous batches
         m_MeshBatches.clear();
 
@@ -190,6 +203,7 @@ namespace Mikoto::VulkanPasses {
     }
 
     auto ShadingPass::InitInstanceData() -> void {
+
         constexpr Size elementCount{ 1024 };
         constexpr Size elementSize{ sizeof( ShadingPassMeshBufferUBO ) };
 
@@ -209,6 +223,8 @@ namespace Mikoto::VulkanPasses {
     }
 
     auto ShadingPass::UploadInstanceData() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         std::vector<ShadingPassMeshBufferUBO> allInstances{};
 
         for ( auto& [meshNode, batch]: m_MeshBatches ) {
@@ -270,6 +286,8 @@ namespace Mikoto::VulkanPasses {
     }
 
     auto ShadingPass::DrawMeshBatch( const MeshBatch& batch ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if (!batch.Mesh || batch.Instances.empty()) return;
         if (batch.Mesh->GetVertexBuffer().IsEmpty() || batch.Mesh->GetIndexBuffer().IsEmpty()) return;
 
@@ -288,6 +306,7 @@ namespace Mikoto::VulkanPasses {
         const Size baseInstance = m_BatchOffsetMap.at(batch.Mesh);
         const UInt32 firstInstance = static_cast<UInt32>(baseInstance);
 
+        ++m_DrawCalls;
         vkCmdDrawIndexed(
             vkCmd,
             indexBuffer->GetCount(),                            // indexCount
@@ -360,6 +379,8 @@ namespace Mikoto::VulkanPasses {
     }
 
     auto ComputeBasic::Begin( const CommandListHandle cmd ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         m_CmdList = cmd;
 
         std::vector<UInt32> data{};
@@ -369,9 +390,12 @@ namespace Mikoto::VulkanPasses {
     }
 
     auto ComputeBasic::End() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
     }
 
     auto ComputeBasic::Execute() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         VkCommandBuffer cmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
         VkPipeline pipeline{ m_Pipeline->GetNativeHandle( ObjectType::Vk_Pipeline ) };
         VkPipelineLayout pipelineLayout{ m_Pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ) };

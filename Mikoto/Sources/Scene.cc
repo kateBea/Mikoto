@@ -14,6 +14,7 @@
 #include <entt/entt.hpp>
 
 // Project Headers
+#include <Core/Profiler.hh>
 #include <Library/Random/Random.hh>
 #include <Physics/PhysicService.hh>
 #include <Renderer/RenderService.hh>
@@ -46,7 +47,7 @@ namespace Mikoto {
         }
 
         // Construct default material
-        auto& material = reg.get<MaterialComponent>( e );
+        auto& material{ reg.get<MaterialComponent>( e ) };
 
         RendererBackend* backend{ RenderService::Get()->GetBackend() };
         material.SetMaterial( backend->CreateMaterial() );
@@ -57,6 +58,7 @@ namespace Mikoto {
         // Install component listeners
 
         m_Registry.on_construct<MeshComponent>().connect<&OnMeshRendererAdded>();
+        m_Registry.on_construct<RigidBodyComponent>().connect<&Scene::OnRigidBodyAdded>(this);
     }
 
     auto Scene::UpdateIdle( double ) -> void {
@@ -65,6 +67,19 @@ namespace Mikoto {
 
     auto Scene::UpdateSimulate( double ) -> void {
 
+    }
+
+    auto Scene::OnRigidBodyAdded(entt::registry& reg, entt::entity e) -> void {
+
+        TransformComponent& transformCComponent{ reg.get<TransformComponent>(e) };
+        if ( reg.any_of<RigidBodyComponent>(e) ) {
+            RigidBodyComponent& rigidBodyComp{ reg.get<RigidBodyComponent>(e) };
+            PhysicService::Get()->OnRigidBodyAdded( transformCComponent, rigidBodyComp );
+        } else {
+            // Add the component if it does not exist
+            RigidBodyComponent& rigidBodyComp{ reg.emplace_or_replace<RigidBodyComponent>(e) };
+            PhysicService::Get()->OnRigidBodyAdded( transformCComponent, rigidBodyComp );
+        }
     }
 
     auto Scene::RemoveEntity( UInt64 uniqueID ) -> void {
@@ -103,6 +118,8 @@ namespace Mikoto {
     }
 
     auto Scene::Update( const float timeStep ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         ProcessPendingCommands();
 
         switch ( m_SceneState ) {
@@ -154,6 +171,8 @@ namespace Mikoto {
     }
 
     auto Scene::CreateEntitySingle( const EntityCreateInfo& createInfo ) -> Entity* {
+        MKT_BEGIN_PROFILER_NAMED();
+
         Entity* result{ nullptr };
 
         // Register the entity and setup default componenets
@@ -651,6 +670,8 @@ namespace Mikoto {
     }
 
     auto Scene::ProcessPendingCommands() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         // Temporary vector to hold commands to process this frame
         std::vector<EntityCommand> commandsCopy{};
 

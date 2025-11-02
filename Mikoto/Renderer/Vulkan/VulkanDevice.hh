@@ -8,6 +8,8 @@
 #include <volk.h>
 #include <vk_mem_alloc.h>
 
+#include <tracy/TracyVulkan.hpp>
+
 #include <Material/ShaderLibrary.hh>
 #include <Renderer/GpuDevice.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
@@ -35,6 +37,8 @@ namespace Mikoto {
 
         auto WriteBuffer(Buffer* target, Byte* data, Size size) -> void override;
         auto WriteTexture(Texture* target, Byte* data, Size size) -> void override;
+
+        auto SetDebugName(std::string_view name) -> void override;
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
 
@@ -126,6 +130,8 @@ namespace Mikoto {
         auto WaitIdle() const -> void;
         auto WaitQueuesIdle() const -> void;
 
+        auto GetTracyContext() -> TracyVkCtx&;
+
         // Return the minimum required alignment (in bytes) for uniform buffers
         MKT_NODISCARD auto GetUniformBufferMinOffsetAlignment() const -> VkDeviceSize;
 
@@ -166,6 +172,9 @@ namespace Mikoto {
         auto GetPrimaryPhysicalDevice() -> void;
         auto CreatePrimaryLogicalDevice() -> void;
 
+        auto InitTracyContext() -> void;
+        auto ShutdownTracyContext() -> void;
+
     private:
 #if defined(MKT_USE_VULKAN_BINDLESS)
         const bool m_IsBindlessEnabled{ true };
@@ -198,6 +207,10 @@ namespace Mikoto {
 
         PhysicalDeviceInfo m_PhysicalDeviceInfo{};
         std::vector<const char*> m_RequestedExtensions{};
+
+        VkCommandPool m_TracyPool{};
+        VkCommandBuffer m_TracyCmd{};
+        TracyVkCtx m_TracyContext{};
     };
 
 // Macro helper to get the VkDevice from a GpuDevice pointer

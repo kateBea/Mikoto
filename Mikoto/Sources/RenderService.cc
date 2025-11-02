@@ -7,8 +7,11 @@
 #include <memory>
 #include <utility>
 
+#include <tracy/Tracy.hpp>
+
 // Project Headers
 #include <Common/Common.hh>
+#include <Core/Profiler.hh>
 #include <Logging/Logger.hh>
 #include <Renderer/RenderService.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
@@ -20,6 +23,8 @@ namespace Mikoto {
     {}
 
     auto RenderService::Init() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_CORE_LOGGER_INFO("Initializing RenderService...");
 
         const RenderContextCreateInfo createInfo{
@@ -40,6 +45,8 @@ namespace Mikoto {
     }
 
     auto RenderService::Shutdown() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if (!m_IsInitialized) {
             return;
         }
@@ -60,16 +67,19 @@ namespace Mikoto {
         m_IsInitialized = false;
     }
 
-    auto RenderService::Update(float ts) -> void {
-
+    auto RenderService::Update(float) -> void {
+        ZoneScopedNS("RenderService::Update", 60);
 
     }
 
     auto RenderService::PrepareFrame() const -> void {
+        ZoneScopedNS("RenderService::PrepareFrame", 60);
+
         m_Context->PrepareFrame();
     }
 
     auto RenderService::EndFrame() -> void {
+        ZoneScopedNS("RenderService::EndFrame", 60);
         Flush();
     }
 
@@ -78,7 +88,6 @@ namespace Mikoto {
     }
 
     auto RenderService::Flush() -> void {
-
         m_Context->SubmitFrame();
     }
 

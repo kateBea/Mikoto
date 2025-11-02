@@ -15,6 +15,7 @@
 
 #include <Assets/AssetsService.hh>
 #include <Common/Common.hh>
+#include <Core/Profiler.hh>
 #include <Core/RuntimeConsole.hh>
 #include <EditorApp.hh>
 #include <EditorUtility.hh>
@@ -33,9 +34,9 @@ namespace Mikoto {
     }
 
     auto HierarchyPanel::DrawPrefabMenuItems( Entity* root ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
 
         if ( ImGui::BeginMenu( "3D Object" ) ) {
-            Entity* newEntity{ nullptr };
 
             if ( ImGui::MenuItem( "Cube" ) ) {
                 AddEntityWithModel( EditorApp::GetPrefabUri( PrefabModels::CUBE ), root );
@@ -62,6 +63,8 @@ namespace Mikoto {
     }
 
     auto HierarchyPanel::DrawLightMenuItems( Entity* root ) const -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         EntityCreateInfo entityCreateInfo{
             .Root{ root }
         };
@@ -123,6 +126,8 @@ namespace Mikoto {
           m_EditorState{ createInfo.State } {}
 
     auto HierarchyPanel::OnUpdate( float ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if ( m_PanelIsVisible ) {
             ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), ImGuiWindowFlags_NoCollapse );
 
@@ -154,6 +159,7 @@ namespace Mikoto {
 
 
     auto HierarchyPanel::DrawNodeTree( const UInt64 entityID ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
 
         Entity* entity{ m_EditorState->ActiveEditorScene->FindByID( entityID ) };
         if ( entity == nullptr ) {
@@ -196,6 +202,8 @@ namespace Mikoto {
 
 
     auto HierarchyPanel::OnEntityRightClickMenu( Entity* entity ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if ( entity == nullptr ) {
             return;
         }
@@ -287,12 +295,16 @@ namespace Mikoto {
     }
 
     auto HierarchyPanel::DrawModelLoadMenuItem() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if ( ImGui::MenuItem( "Load model" ) ) {
             AddEntityWithModel();
         }
     }
 
     auto HierarchyPanel::DrawTextMenuItems( Entity* root ) const {
+        MKT_BEGIN_PROFILER_NAMED();
+
         ImGui::Spacing();
         ImGui::Separator();
 
@@ -345,6 +357,8 @@ namespace Mikoto {
     }
 
     auto HierarchyPanel::AddEntityWithModel( Entity* root ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         static bool loading{ false };
 
         if ( !loading ) {
@@ -367,6 +381,8 @@ namespace Mikoto {
     }
 
     auto HierarchyPanel::BlankSpacePopupMenu() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         constexpr ImGuiPopupFlags popupWindowFlags{
             ImGuiPopupFlags_NoOpenOverItems |
             ImGuiPopupFlags_MouseButtonRight

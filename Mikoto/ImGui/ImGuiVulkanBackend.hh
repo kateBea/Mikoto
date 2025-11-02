@@ -25,15 +25,7 @@ namespace Mikoto {
     class ImGuiVulkanBackend final : public ImGuiBackend {
     public:
         explicit ImGuiVulkanBackend( const ImGuiBackendCreateInfo& createInfo )
-            : ImGuiBackend{ createInfo }, m_Extent2D{
-                  .width{ static_cast<UInt32>( createInfo.Handle->GetWidth() ) },
-                  .height{ static_cast<UInt32>( createInfo.Handle->GetHeight() ) }
-              },
-              m_Extent3D{
-                  .width{ static_cast<UInt32>( createInfo.Handle->GetWidth() ) },
-                  .height{ static_cast<UInt32>( createInfo.Handle->GetHeight() ) }, .depth{ 1 }
-              }
-        {}
+            : ImGuiBackend{ createInfo }, m_Extent2D{ .width{ static_cast<UInt32>( createInfo.Handle->GetWidth() ) }, .height{ static_cast<UInt32>( createInfo.Handle->GetHeight() ) } }, m_Extent3D{ .width{ static_cast<UInt32>( createInfo.Handle->GetWidth() ) }, .height{ static_cast<UInt32>( createInfo.Handle->GetHeight() ) }, .depth{ 1 } } {}
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
@@ -41,10 +33,11 @@ namespace Mikoto {
         auto BeginFrame() -> void override;
         auto EndFrame() -> void override;
 
-        MKT_NODISCARD auto ConstructImGuiTextureID(const Texture* texture) -> ImTextureID override;
-        MKT_NODISCARD auto ConstructImGuiTextureID(TextureHandle texture) -> ImTextureID override;
+        MKT_NODISCARD auto ConstructImGuiTextureID( const Texture* texture ) -> ImTextureID override;
+        MKT_NODISCARD auto ConstructImGuiTextureID( TextureHandle texture ) -> ImTextureID override;
 
     private:
+        auto InitializeCommands() -> void;
         auto InitImGuiForVulkan() -> void;
         auto CreateRenderPass() -> void;
         auto CreateImages() -> void;
@@ -56,8 +49,7 @@ namespace Mikoto {
         auto RecordCommands( TextureHandle swapChainDrawTarget, CommandListHandle cmdList  ) -> void;
 
     private:
-
-#if defined(MKT_USE_VULKAN_DYNAMIC_RENDERING)
+#if defined( MKT_USE_VULKAN_DYNAMIC_RENDERING )
         const bool m_UseDynamicRendering{ true };
 #else
         const bool m_UseDynamicRendering{ false };
@@ -65,6 +57,9 @@ namespace Mikoto {
 
         VkRenderPass m_ImGuiRenderPass{};
         VkDescriptorPool m_ImGuiDescriptorPool{};
+
+        VkCommandPool m_ImGuiCommandPool{};
+        std::vector<CommandListHandle> m_ImGuiCommandBuffers{};
 
         TextureHandle m_ColorImage{};
         TextureHandle m_DepthImage{};
@@ -77,9 +72,8 @@ namespace Mikoto {
             VkDescriptorSet descriptorSet{};
         };
         ankerl::unordered_dense::map<const Texture*, ImGuiTextIDInfo> m_ImGuiSets{};
-
     };
-}
+}// namespace Mikoto
 
 
 #endif // MIKOTO_IMGUI_VULKAN_BACKEND_HH

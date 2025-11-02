@@ -12,6 +12,7 @@
 #include <imgui_internal.h>
 
 #include <Assets/AssetsService.hh>
+#include <Core/Profiler.hh>
 #include <Filesystem/FileService.hh>
 #include <ImGui/ImGuiService.hh>
 #include <ImGui/ImGuiUtility.hh>
@@ -72,6 +73,8 @@ namespace Mikoto {
     }
 
     auto ContentBrowserPanel::DrawHeader() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 1.5f );// Rounded Buttons
 
         // Settings for the content browser
@@ -269,6 +272,8 @@ namespace Mikoto {
 
 
     auto ContentBrowserPanel::OnUpdate( float timeStep ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if ( m_PanelIsVisible ) {
             static constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_None };
             static constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_Resizable |

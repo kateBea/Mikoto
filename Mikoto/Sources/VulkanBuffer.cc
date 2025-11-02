@@ -17,6 +17,8 @@ namespace Mikoto {
             return;// nothing to free
         }
 
+        PersistentUnmap();
+
         auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( m_Device )->GetAllocator()) };
         MKT_ASSERT(allocator != nullptr, "Allocator is null in VulkanBuffer::Release!");
 
@@ -49,7 +51,9 @@ namespace Mikoto {
     }
 
     VulkanBuffer::~VulkanBuffer() {
-        Release();
+        if (m_IsAllocated) {
+            Release();
+        }
     }
 
     VulkanBuffer::VulkanBuffer( const BufferDescription& createInfo )
@@ -99,7 +103,6 @@ namespace Mikoto {
 
         PersistentMap();
         std::memcpy( ptr, m_VmaAllocationInfo.pMappedData, copyAmount );
-        PersistentUnmap();
     }
 
     auto VulkanBuffer::CopyFromBlock( const void* ptr, const Size size ) -> void {
@@ -107,13 +110,11 @@ namespace Mikoto {
 
         PersistentMap();
         std::memcpy( m_VmaAllocationInfo.pMappedData, ptr, size );
-        PersistentUnmap();
     }
 
     auto VulkanBuffer::CopyFromBlock( const void* ptr, Size size, Size offset ) -> void {
         PersistentMap();
         std::memcpy( m_VmaAllocationInfo.pMappedData + offset, ptr, size );
-        PersistentUnmap();
     }
 
     auto VulkanBuffer::GetNativeHandle( ObjectType object ) -> Object {
@@ -128,12 +129,24 @@ namespace Mikoto {
     }
 
     auto VulkanBuffer::PersistentMap() -> void {
+        // If it is not null then it has been mapped
+        if (m_VmaAllocationInfo.pMappedData != nullptr) {
+            return;
+        }
+
         const auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( m_Device )->GetAllocator()) };
         allocator->MapBuffer( this );
     }
 
     auto VulkanBuffer::PersistentUnmap() -> void {
+        // If it is not null, then we have something to unmap
+        if (m_VmaAllocationInfo.pMappedData != nullptr) {
+            return;
+        }
+
         const auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( m_Device )->GetAllocator()) };
         allocator->UnmapBuffer( this );
+
+        m_VmaAllocationInfo.pMappedData = nullptr;
     }
 }

@@ -3,8 +3,10 @@
 //
 
 #include <Common/Service.hh>
+#include <Core/Profiler.hh>
 #include <Core/TimeService.hh>
 #include <Logging/Logger.hh>
+#include <tracy/Tracy.hpp>
 
 namespace Mikoto {
 
@@ -18,6 +20,8 @@ namespace Mikoto {
         : m_DefaultUnits{ option.DefaultUnit } {}
 
     auto TimeService::Init() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_CORE_LOGGER_INFO( "Initializing TimeService..." );
 
         m_InitTimePoint = Clock::now();
@@ -26,6 +30,8 @@ namespace Mikoto {
     }
 
     auto TimeService::Update() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         const auto now{ Clock::now() };
         m_TimeStep = std::chrono::duration_cast<Sec>( now - m_LastFrameTime ).count();
         m_LastFrameTime = now;
@@ -90,6 +96,8 @@ namespace Mikoto {
     }
 
     auto TimeService::Shutdown() -> void {
+        MKT_BEGIN_PROFILER( __PRETTY_FUNCTION__ );
+
         if (!m_IsInitialized) {
             return;
         }

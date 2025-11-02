@@ -18,6 +18,7 @@
 // Important to include after imgui
 #include <ImGuizmo.h>
 
+#include <Core/Profiler.hh>
 #include <ImGui/ImGuiVulkanBackend.hh>
 #include <Logging/Logger.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
@@ -38,10 +39,14 @@ namespace Mikoto {
 
         InitImGuiForVulkan();
 
+        InitializeCommands();
+
         m_IsInitialized = true;
     }
 
     auto ImGuiVulkanBackend::Shutdown() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if ( !m_IsInitialized ) {
             return;
         }
@@ -67,11 +72,15 @@ namespace Mikoto {
         ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();
 
+        m_ImGuiCommandBuffers.clear();
+
         vkDestroyRenderPass( VK_DEVICE( m_GpuDevice ), m_ImGuiRenderPass, nullptr );
         vkDestroyDescriptorPool( VK_DEVICE( m_GpuDevice ), m_ImGuiDescriptorPool, nullptr );
     }
 
     auto ImGuiVulkanBackend::BeginFrame() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -290,6 +299,8 @@ namespace Mikoto {
     }
 
     auto ImGuiVulkanBackend::EndFrame() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         // If the swap chain has been resized, we need to recreate the framebuffers and images
         SwapChainHandle swapChain{ VulkanContext::Get()->GetSwapchain() };
         if ( swapChain->GetExtent().width != m_Extent2D.width ||
@@ -305,10 +316,12 @@ namespace Mikoto {
 
         ImGui::Render();
 
-        CommandListHandle commandList{ m_GpuDevice->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
+        const UInt32 frameIndex{ VulkanContext::Get()->GetCurrentFrameIndex() };
+        const UInt32 swapChainImageIndex{ VulkanContext::Get()->GetCurrentImageIndex() };
+
+        CommandListHandle commandList{ m_ImGuiCommandBuffers[swapChainImageIndex] };
         commandList->Begin();
 
-        const UInt32 swapChainImageIndex{ VulkanContext::Get()->GetCurrentImageIndex() };
         RecordCommands( swapChain->GetImage( swapChainImageIndex ), commandList );
 
         commandList->End();
@@ -327,7 +340,7 @@ namespace Mikoto {
             result = reinterpret_cast<ImTextureID>(itFind->second.descriptorSet);
         } else {
             SamplerHandle sampler{ m_GpuDevice->CreateSampler( SamplerDescription{} ) };
-            const VulkanTexture* color{ dynamic_cast<const VulkanTexture*>( texture ) };
+            const auto color{ dynamic_cast<const VulkanTexture*>( texture ) };
 
             VkDescriptorSet ds{ ImGui_ImplVulkan_AddTexture( sampler->GetNativeHandle( ObjectType::Vk_Sampler ), *color->GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ) };
 
@@ -361,7 +374,9 @@ namespace Mikoto {
         m_DrawFrameBuffer->SetDebugName( "ImGui Framebuffer" );
     }
 
-    auto ImGuiVulkanBackend::RecordRenderPassCommands( CommandListHandle cmdList ) -> void {
+    auto ImGuiVulkanBackend::RecordRenderPassCommands(CommandListHandle cmdList) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         // Begin ImGui-specific render pass
         VkRenderPassBeginInfo renderPassInfo{ VulkanHelpers::Initializers::RenderPassBeginInfo() };
         renderPassInfo.renderPass = m_ImGuiRenderPass;// Use the render pass for ImGui
@@ -409,6 +424,8 @@ namespace Mikoto {
     }
 
     auto ImGuiVulkanBackend::RecordDynamicRenderCommands( CommandListHandle cmdList ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         VulkanTexture* colorImage{ dynamic_cast<VulkanTexture *>(m_ColorImage.GetRaw()) };
         VulkanTexture* depthImage{ dynamic_cast<VulkanTexture *>(m_DepthImage.GetRaw()) };
 
@@ -452,14 +469,30 @@ namespace Mikoto {
     }
 
     auto ImGuiVulkanBackend::RecordCommands( TextureHandle swapChainDrawTarget, CommandListHandle cmdList ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         // Record imgui draw commands
         if (m_UseDynamicRendering) {
-            RecordDynamicRenderCommands(cmdList);
+            RecordDynamicRenderCommands( cmdList );
         } else {
             RecordRenderPassCommands( cmdList );
         }
 
         cmdList->CopyTexture( m_ColorImage.GetRaw(), swapChainDrawTarget.GetRaw() );
+    }
+
+    auto ImGuiVulkanBackend::InitializeCommands() -> void {
+
+        SwapChainHandle swp{ dynamic_cast<VulkanContext*>(RenderService::Get()->GetContext())->GetSwapchain() };
+        const Size swapchainImagesCount{  swp->GetImageCount() };
+
+        for (Size count{}; count < swapchainImagesCount; ++count) {
+            CommandListHandle cmd{ m_GpuDevice->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
+            if (!cmd.IsEmpty()) {
+                cmd->SetDebugName( fmt::format( "Mikoto ImGui VkCommandBuffer Index {}", count ) ) ;
+                m_ImGuiCommandBuffers.emplace_back( cmd );
+            }
+        }
     }
 
 }// namespace Mikoto

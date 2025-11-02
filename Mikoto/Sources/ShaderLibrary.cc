@@ -2,8 +2,9 @@
 // Created by zanet on 2/9/2025.
 //
 
-#include <Material/ShaderLibrary.hh>
+#include <Core/Profiler.hh>
 #include <Filesystem/FileService.hh>
+#include <Material/ShaderLibrary.hh>
 #include <Renderer/GpuDevice.hh>
 #include <Renderer/RenderService.hh>
 #include <Renderer/Vulkan/VulkanShader.hh>
@@ -15,10 +16,14 @@ namespace Mikoto {
     {}
 
     auto ShaderLibrary::Init() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         m_IsInitialized = true;
     }
 
     auto ShaderLibrary::Shutdown() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if (!m_IsInitialized) {
             return;
         }
@@ -39,6 +44,8 @@ namespace Mikoto {
     }
 
     auto ShaderLibrary::LoadShader( const Path &path, ShaderStage stage ) -> ShaderModuleHandle {
+        MKT_BEGIN_PROFILER_NAMED();
+
         auto it{ m_Shaders.find( path.string() ) };
         if ( it != m_Shaders.end() ) {
             return it->second;

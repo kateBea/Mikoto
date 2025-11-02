@@ -340,6 +340,17 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(asio)
 
+# Tracy
+FetchContent_Declare(
+        tracy
+        GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+        GIT_TAG master
+        GIT_SHALLOW TRUE
+        GIT_PROGRESS TRUE
+)
+
+FetchContent_MakeAvailable(tracy)
+
 # SSL
 FetchContent_Declare(
         openssl
@@ -347,6 +358,7 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(openssl)
+
 
 # ================
 set(OPENSSL_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/openssl-src) # default path by CMake
@@ -449,8 +461,7 @@ set(ALL_SOURCES
         ${IMGUIZMO_SOURCES}
         ${SPIRV_REFLECT_SOURCES}
         ${MINIAUDIO_SOURCES}
-        Sources/SceneManager.cc
-        Scene/SceneManager.hh
+        Audio/Audio.hh
 )
 
 # ======================================
@@ -475,6 +486,7 @@ set(LIBRARIES
         sol2::sol2
         OpenSSL::SSL
         OpenSSL::Crypto
+        Tracy::TracyClient
 )
 
 if(UNIX)
@@ -521,6 +533,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${taskflow_SOURCE_DIR}
         ${sol2_SOURCE_DIR}/include
         ${asio_SOURCE_DIR}/asio/include
+        ${tracy_SOURCE_DIR}/asio/include
 )
 
 # ======================================
@@ -543,6 +556,8 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE MKT_USE_VULKAN_BINDLESS)
 target_compile_definitions(${PROJECT_NAME} PRIVATE MKT_USE_VULKAN_DYNAMIC_RENDERING)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE MKT_ALLOW_HTTPS)
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE TRACY_ENABLE)
 
 # ======================================
 # Custom Commands

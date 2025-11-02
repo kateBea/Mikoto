@@ -21,6 +21,7 @@
 
 // Project Headers
 #include <Common/Common.hh>
+#include <Core/Profiler.hh>
 #include <Library/String/String.hh>
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
@@ -112,6 +113,8 @@ namespace Mikoto {
     }
 
     auto VulkanContext::Init() -> bool {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_CORE_LOGGER_INFO( "Initializing VulkanContext." );
 
         InitVolk();
@@ -147,6 +150,7 @@ namespace Mikoto {
     }
 
     auto VulkanContext::Shutdown() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
 
         m_Swapchain.Disable();
 
@@ -275,6 +279,8 @@ namespace Mikoto {
     }
 
     auto VulkanContext::SubmitFrame() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         // Prepare the submission to the queue. We want to wait on
         // the present semaphore, which is signaled when the swapchain
         // is ready (there's image available to render to). We will
@@ -296,16 +302,18 @@ namespace Mikoto {
     }
 
     auto VulkanContext::PrepareFrame() -> void {
-        m_CurrentFrameIndex = m_Swapchain->GetCurrentFrameIndex();
+        MKT_BEGIN_PROFILER_NAMED();
 
-        m_Device->RunGarbageCollection();
+        m_CurrentFrameIndex = m_Swapchain->GetCurrentFrameIndex();
 
         VkFence fence{ m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFence };
 
-        vkWaitForFences(VK_DEVICE(m_Device.get()), 1, &fence, VK_TRUE, UINT64_MAX);
-        vkResetFences(VK_DEVICE(m_Device.get()), 1, &fence);
+        // For simplicity, parenthesize std::numeric_limits<std::uint64_t>::max because windows has a macro literally called max that causes conflicts
+        vkWaitForFences( VK_DEVICE(m_Device.get()), 1, std::addressof( fence ), VK_TRUE, ( std::numeric_limits<std::uint64_t>::max )() );
+        vkResetFences( VK_DEVICE(m_Device.get()), 1, std::addressof( fence ) );
 
-        // 4. Acquire swapchain image (no fence needed!)
+        m_Device->RunGarbageCollection();
+
         VkResult ret{ m_Swapchain->GetNextRenderableImage(m_CurrentImageIndex, m_FrameSyncPrimitives[m_CurrentFrameIndex].ImageAvailableSemaphore) };
         if (ret == VK_ERROR_OUT_OF_DATE_KHR) {
             RecreateSwapchain();

@@ -7,14 +7,17 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <utility>
-
 #include <iostream>
 #include <string>
 
+#include <tracy/Tracy.hpp>
+
 // Project headers
+#include <Assets/AssetsService.hh>
 #include <Audio/AudioDevice.hh>
 #include <Core/Configuration.hh>
 #include <Core/CoreEvents.hh>
+#include <Core/Profiler.hh>
 #include <Core/Root.hh>
 #include <Core/TimeService.hh>
 #include <Core/Timer.hh>
@@ -25,6 +28,7 @@
 namespace Mikoto {
 
     auto EditorApp::Run( const Int32, char ** ) -> Int32 {
+        MKT_BEGIN_PROFILER( "EditorApp::Run" );
         MKT_CORE_LOGGER_DEBUG("Initializing Mikoto Editor...");
 
         Int32 exitCode{ EXIT_SUCCESS };
@@ -58,9 +62,15 @@ namespace Mikoto {
             { PrefabModels::CYLINDER, "Resources/Models/Prefabs/cylinder/gltf/scene.gltf" },
             { PrefabModels::SPONZA, "Resources/Models/Prefabs/sponza/sponza.obj" },
         };
+
+        // for ( const auto &prefab : m_PrefabModels ) {
+        //     AssetsService::Get()->LoadAsset<Model>( prefab.second );
+        // }
     }
 
     auto EditorApp::Init() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         // Load configuration
         BaseConfiguration configApp{ "./app-config.toml" };
 
@@ -109,15 +119,24 @@ namespace Mikoto {
     }
 
     auto EditorApp::Update() -> void {
-        TimeService::Get()->Update();
-        const double timeStep{ TimeService::Get().GetTimeStep( TimeUnit::SECONDS ) };
+        ZoneScopedNS("EditorApp::Update", 60);
 
-        if ( !m_Window->IsMinimized() ) {
+        TimeService::Get()->Update();
+        const double timeStep{ TimeService::Get().GetTimeStep(TimeUnit::SECONDS) };
+
+        if (!m_Window->IsMinimized()) {
+
             Root::StartFrame();
 
-            m_LayerStack.OnUpdate( static_cast<float>( timeStep ) );
+            {
+                //ZoneScopedNS("Editor Layers Update");
+                m_LayerStack.OnUpdate(static_cast<float>(timeStep));
+            }
 
-            Root::UpdateState( timeStep );
+            {
+                //ZoneScopedN("Root State Update");
+                Root::UpdateState(static_cast<float>(timeStep));
+            }
 
             Root::EndFrame();
         }

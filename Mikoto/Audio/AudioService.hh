@@ -5,7 +5,7 @@
 #ifndef AUDIOSYSTEM_HH
 #define AUDIOSYSTEM_HH
 
-#include <Assets/Audio.hh>
+#include <Assets/AudioClip.hh>
 #include <Common/Service.hh>
 #include <Library/Utility/Types.hh>
 

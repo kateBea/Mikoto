@@ -21,8 +21,8 @@
 #include <Renderer/RenderUtility.hh>
 #include <Threading/TaskService.hh>
 
-#include "Assets/Audio.hh"
-#include "MeshFactory.hh"
+#include "Assets/AudioClip.hh"
+#include "Assets/MeshFactory.hh"
 
 namespace Mikoto {
 

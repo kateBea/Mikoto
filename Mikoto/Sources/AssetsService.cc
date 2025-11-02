@@ -9,6 +9,7 @@
 #include <Assets/Texture.hh>
 #include <Audio/AudioDevice.hh>
 #include <Common/Common.hh>
+#include <Core/Profiler.hh>
 #include <Filesystem/FileService.hh>
 #include <Library/Utility/Types.hh>
 #include <Material/TextureCube.hh>
@@ -23,6 +24,8 @@ namespace Mikoto {
         : m_GpuDevice{ options.Device }, m_AudioDevice{ options.AudDevice } {}
 
     auto AssetsService::Init() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_CORE_LOGGER_INFO("Initializing AssetsService...");
 
         // Model importer library
@@ -51,6 +54,8 @@ namespace Mikoto {
     }
 
     auto AssetsService::Shutdown() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if ( !m_IsInitialized ) {
             return;
         }
@@ -81,6 +86,8 @@ namespace Mikoto {
     }
 
     auto AssetsService::LoadModel( const std::string_view uri ) -> ModelHandle {
+        MKT_BEGIN_PROFILER_NAMED();
+
         const ModelLoadDescription modelLoadDescription{
             .ModelFile{ FileService::Get()->LoadFile( uri ) },
             .WantTextures{ true }
@@ -90,6 +97,8 @@ namespace Mikoto {
     }
 
     auto AssetsService::LoadModel( const ModelLoadDescription& description ) -> ModelHandle {
+        MKT_BEGIN_PROFILER_NAMED();
+
         const File* modelFile{ description.ModelFile };
         if ( !modelFile ) {
             return ModelHandle::CreateEmpty();
@@ -118,11 +127,15 @@ namespace Mikoto {
     }
 
     auto AssetsService::LoadTexture( const Path& uri ) -> TextureHandle {
+        MKT_BEGIN_PROFILER_NAMED();
+
         const std::string uriString{ uri.string() };
         return LoadTexture( std::string_view{ uriString } );
     }
 
     auto AssetsService::LoadTexture( std::string_view uri ) -> TextureHandle {
+        MKT_BEGIN_PROFILER_NAMED();
+
         TextureLoadDescription loadDesc{};
         loadDesc.WithFile( FileService::Get()->LoadFile( uri ) )
                 .WithType( TextureType::TEXTURE_2D );
@@ -131,6 +144,8 @@ namespace Mikoto {
     }
 
     auto AssetsService::LoadTexture( const TextureLoadDescription& description) -> TextureHandle {
+        MKT_BEGIN_PROFILER_NAMED();
+
         const File* textureFile{ description.TextureFile  };
         if (!textureFile) {
             return TextureHandle::CreateEmpty();
@@ -175,6 +190,8 @@ namespace Mikoto {
     }
 
     auto AssetsService::LoadAudio( const AudioLoadDescription& description) -> AudioHandle {
+        MKT_BEGIN_PROFILER_NAMED();
+
         const File* audioFile{ description.AudioFile };
         if (!audioFile) {
             return AudioHandle::CreateEmpty();
@@ -204,6 +221,8 @@ namespace Mikoto {
     }
 
     auto AssetsService::LoadFont( const FontLoadDescription& description ) -> FontHandle {
+        MKT_BEGIN_PROFILER_NAMED();
+
         const File* fontFile{ description.FontFile };
         if ( !fontFile ) {
             return FontHandle::CreateEmpty();

@@ -2,11 +2,11 @@
 // Created by kate on 10/28/25.
 //
 
-#include <sstream>
-
-
+#include <Core/Profiler.hh>
 #include <Core/RuntimeConsole.hh>
 #include <Threading/TaskService.hh>
+#include <sstream>
+
 #include "Core/ExecuteProcess.hh"
 
 namespace Mikoto {
@@ -16,6 +16,8 @@ namespace Mikoto {
     }
 
     auto RuntimeConsole::Init() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         AddLog( { ConsoleLogLevel::CONSOLE_INFO, "RuntimeConsole initialized." } );
 
         RegisterCommand("echo", "Prints a message to the console",
@@ -69,6 +71,8 @@ namespace Mikoto {
     }
 
     auto RuntimeConsole::Shutdown() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         AddLog( { ConsoleLogLevel::CONSOLE_INFO, "RuntimeConsole shutting down." } );
         m_Commands.clear();
         m_LogEntries.clear();

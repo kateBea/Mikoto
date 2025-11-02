@@ -5,6 +5,8 @@
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 
+#include <tracy/Tracy.hpp>
+
     // Project Headers
 #include <ImGui/IconsFontAwesome5.h>
 #include <ImGui/IconsMaterialDesign.h>
@@ -12,6 +14,7 @@
 #include <imgui_impl_vulkan.h>
 
 #include <Common/Common.hh>
+#include <Core/Profiler.hh>
 #include <Filesystem/FileService.hh>
 #include <ImGui/ImGuiService.hh>
 #include <ImGui/ImGuiUtility.hh>
@@ -33,6 +36,8 @@ namespace Mikoto {
     {}
 
     auto ImGuiService::Init() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_CORE_LOGGER_INFO("Initializing ImGuiService...");
 
         IMGUI_CHECKVERSION();
@@ -147,6 +152,8 @@ namespace Mikoto {
     }
 
     auto ImGuiService::PushFont( std::string_view str ) -> ImGuiUtils::ImGuiScopedTextFont {
+        MKT_BEGIN_PROFILER_NAMED();
+
         auto it{ m_ImGuiFonts.find( std::string( str ) ) };
         if ( it == m_ImGuiFonts.end() ) {
             const File* fontFile{ FileService::Get()->LoadFile( Path{ str } ) };
@@ -206,6 +213,8 @@ namespace Mikoto {
     }
 
     auto ImGuiService::Shutdown() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if (!m_IsInitialized) {
             return;
         }
@@ -221,10 +230,14 @@ namespace Mikoto {
     }
 
     auto ImGuiService::EndFrame() const -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         m_Implementation->EndFrame();
     }
 
     auto ImGuiService::PrepareFrame() const -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         m_Implementation->BeginFrame();
     }
 

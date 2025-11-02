@@ -18,6 +18,7 @@
 #include <ImGui/IconsMaterialDesign.h>
 
 #include <Common/Common.hh>
+#include <Core/Profiler.hh>
 #include <Core/RuntimeConsole.hh>
 #include <ImGui/ImGuiService.hh>
 #include <ImGui/ImGuiUtility.hh>
@@ -34,6 +35,8 @@ namespace Mikoto {
 
     template<typename ComponentType, typename UIFunction, typename... Args>
     static auto DrawComponent( const std::string_view componentLabel, Entity& entity, const UIFunction& uiFunc, const bool hasRemoveButton = true, Args&&... args ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         static constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
                                                            ImGuiTreeNodeFlags_Framed |
                                                            ImGuiTreeNodeFlags_SpanAvailWidth |
@@ -532,6 +535,8 @@ namespace Mikoto {
     }
 
     static auto DrawComponentButton( Entity* entity ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if ( entity == nullptr ) {
             return;
         }
@@ -777,6 +782,8 @@ namespace Mikoto {
     }
 
     static auto DrawNameTextInput( Entity* entity ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if ( entity == nullptr ) {
             return;
         }
@@ -945,6 +952,64 @@ namespace Mikoto {
     }
 
     static auto SetupPhysicsComponentTab( Entity& entity ) -> void {
+        if (!entity.HasComponent<RigidBodyComponent>())
+            return;
+
+        auto& rb = entity.GetComponent<RigidBodyComponent>();
+
+        if (ImGui::CollapsingHeader("Rigid Body", ImGuiTreeNodeFlags_DefaultOpen)) {
+
+            // --- Body Type ---
+            {
+                const char* bodyTypes[] = { "Static", "Kinematic", "Dynamic" };
+                int currentType = static_cast<int>(rb.GetBodyType());
+
+                ImGui::Text("Body Type");
+                ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
+                if (ImGui::Combo("##BodyType", &currentType, bodyTypes, IM_ARRAYSIZE(bodyTypes))) {
+                    rb.SetBodyType(static_cast<RigidBodyComponent::BodyType>(currentType));
+                }
+            }
+
+            // --- Use Gravity ---
+            {
+                bool useGravity = rb.UseGravity();
+                if (ImGui::Checkbox("Use Gravity", &useGravity)) {
+                    rb.SetUseGravity(useGravity);
+                }
+            }
+
+            // --- Mass ---
+            {
+                float mass = rb.GetMass();
+                ImGui::Text("Mass");
+                ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
+                if (ImGui::DragFloat("##Mass", &mass, 0.1f, 0.0f, 1000.0f, "%.2f")) {
+                    rb.SetMass(mass);
+                }
+            }
+
+            // --- Friction ---
+            {
+                float friction = rb.GetFriction();
+                ImGui::Text("Friction");
+                ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
+                if (ImGui::SliderFloat("##Friction", &friction, 0.0f, 1.0f, "%.2f")) {
+                    rb.SetFriction(friction);
+                }
+            }
+
+            // --- Internal Handle Info (read-only) ---
+            if (auto handle = rb.GetInternalBodyHandle()) {
+                ImGui::Separator();
+                ImGui::TextDisabled("Internal Handle:");
+                ImGui::SameLine();
+                ImGui::Text("%p", reinterpret_cast<void*>(handle));
+            }
+
+            ImGui::Spacing();
+            ImGui::Separator();
+        }
     }
 
     static auto SetupRenderComponentTab( Entity& entity, Scene* scene ) -> void {
@@ -1564,6 +1629,8 @@ namespace Mikoto {
         : Panel{ ImGuiUtils::MakePanelName( ICON_MD_ERROR_OUTLINE, GetInspectorPanelName() ) }, m_State( createInfo.State ) {}
 
     auto InspectorPanel::DrawComponents( Entity* entity ) const -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if ( entity == nullptr ) {
             return;
         }
@@ -1588,6 +1655,8 @@ namespace Mikoto {
     }
 
     auto InspectorPanel::OnUpdate( MKT_UNUSED_VAR float timeStep ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if ( m_PanelIsVisible ) {
             ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), ImGuiWindowFlags_NoCollapse );
 

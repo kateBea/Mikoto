@@ -13,16 +13,17 @@
 
 // Project Headers
 #include <Core/InputService.hh>
+#include <Core/Profiler.hh>
 #include <Core/RuntimeConsole.hh>
 #include <ImGui/ImGuiUtility.hh>
 #include <Layers/EditorLayer.hh>
 #include <Panels/ConsolePanel.hh>
+#include <Panels/ContentBrowserPanel.hh>
+#include <Panels/HierarchyPanel.hh>
+#include <Panels/InspectorPanel.hh>
 #include <Panels/ScenePanel.hh>
 #include <Panels/SettingsPanel.hh>
-#include <Panels/HierarchyPanel.hh>
-#include <Panels/ContentBrowserPanel.hh>
 #include <Panels/StatsPanel.hh>
-#include <Panels/InspectorPanel.hh>
 #include <Physics/PhysicService.hh>
 #include <Renderer/RenderService.hh>
 #include <Scene/Component.hh>
@@ -45,6 +46,8 @@ namespace Mikoto {
         : ILayer{ createInfo.Name }, m_Window{ createInfo.TargetWindow } {}
 
     auto EditorLayer::OnCreate() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         SetupRenderer();
 
         CreateCameras();
@@ -97,6 +100,8 @@ namespace Mikoto {
     }
 
     auto EditorLayer::OnUpdate( float timeStep ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         m_ActiveScene->SetState( SceneState::IDLE );
 
         SetupCamera( timeStep );
@@ -119,6 +124,7 @@ namespace Mikoto {
     }
 
     auto EditorLayer::UpdatePanels( float timeStep ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
 
         for ( const auto& panel : m_PanelRegistry | std::ranges::views::values) {
             panel->OnUpdate( timeStep );
@@ -148,6 +154,8 @@ namespace Mikoto {
     }
 
     auto EditorLayer::SetupCamera( double timeStep ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         m_EditorCamera->SetMovementSpeed( 13.f );
         m_EditorCamera->SetRotationSpeed( 13.f );
 
@@ -221,6 +229,8 @@ namespace Mikoto {
     }
 
     auto EditorLayer::UpdateDockSpace() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         // If you strip some features of, this demo is pretty much equivalent to calling DockSpaceOverViewport()!
         // In most cases you should be able to just call DockSpaceOverViewport() and ignore all the code below!
         // In this specific demo, we are not using DockSpaceOverViewport() because:

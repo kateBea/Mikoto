@@ -7,11 +7,11 @@ passes, amongst other features.
 
 ---
 
-![Mikoto Engine](Resources/Screenshots/img1.png)
+![Mikoto Engine](Resources/Screenshots/img15.png)
 
 ---
 
-![Mikoto Engine](Resources/Screenshots/img2.png)
+![Mikoto Engine](Resources/Screenshots/img14.png)
 
 ---
 

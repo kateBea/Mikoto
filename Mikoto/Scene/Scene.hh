@@ -110,6 +110,8 @@ namespace Mikoto {
 
         auto UpdateIdle( double deltaTime ) -> void;
         auto UpdateSimulate( double deltaTime ) -> void;
+
+        auto OnRigidBodyAdded(entt::registry& reg, entt::entity e) -> void;
     private:
         auto AddSingleEntityWithRoot(Entity * root, ModelHandle model, Int32 index ) -> void;
 

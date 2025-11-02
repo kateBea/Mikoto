@@ -87,7 +87,7 @@ namespace Mikoto {
             Initialize();
         }
 
-        auto SetDebugName(const std::string_view name) -> void { m_DebugName = name; }
+        virtual auto SetDebugName(const std::string_view name) -> void { m_DebugName = name; }
         auto GetDebugName() const -> const std::string& { return m_DebugName; }
 
         /**

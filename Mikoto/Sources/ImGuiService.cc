@@ -112,8 +112,8 @@ namespace Mikoto {
         // ImGui pushes new fonts into the io.Fonts array when we add them using MergeMode == true
         // see imgui_draw_.cpp ImFont* ImFontAtlas::AddFont(const ImFontConfig* font_cfg_in)
         // Also first font cannot have MergeMode == true
-        if (m_ImGuiFonts.size() == 0 || result && (config == nullptr || !config->MergeMode)) {
-            m_ImGuiFonts.try_emplace( path, m_ImGuiFonts.size() );
+        if (m_ImGuiFonts.empty() || result && (config == nullptr || !config->MergeMode)) {
+            m_ImGuiFonts.try_emplace( path, static_cast<Int8>( m_ImGuiFonts.size() ) );
         }
     }
 

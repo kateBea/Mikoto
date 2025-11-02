@@ -189,8 +189,8 @@ namespace Mikoto {
         m_PanelRegistry.Register<ConsolePanel>(consoleCreateInfo);
 
         ScenePanelCreateInfo scenePanelCreateInfo{
-            .Width = m_Window->GetWidth(),
-            .Height = m_Window->GetHeight(),
+            .Width = static_cast<UInt32>( m_Window->GetWidth() ),
+            .Height = static_cast<UInt32>( m_Window->GetHeight() ),
             .DisplayTarget = m_EditorState->FinalComposition,
             .State = m_EditorState.get()
         };

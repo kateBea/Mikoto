@@ -5,7 +5,7 @@
 #ifndef MIKOTO_SANDBOX_APP_HH
 #define MIKOTO_SANDBOX_APP_HH
 
-#include <Assets/Audio.hh>
+#include <Assets/AudioClip.hh>
 #include <Audio/AudioDevice.hh>
 #include <Common/Application.hh>
 #include <Core/EventService.hh>

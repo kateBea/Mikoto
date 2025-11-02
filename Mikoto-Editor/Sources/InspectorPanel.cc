@@ -1506,7 +1506,7 @@ namespace Mikoto {
     static auto SetupCameraComponentTab( Entity& entity ) -> void {
         CameraComponent& cameraComponent{ entity.GetComponent<CameraComponent>() };
 
-        static constexpr std::array<std::string, 2> CAMERA_PROJECTION_TYPE_NAMES{
+        static const std::array<std::string, 2> cameraProjectionTypeNames{
             "Orthographic", "Perspective"
         };
 
@@ -1535,14 +1535,14 @@ namespace Mikoto {
             }
 
             ImGui::TableSetColumnIndex( 1 );
-            const auto& currentProjectionTypeStr{ CAMERA_PROJECTION_TYPE_NAMES[static_cast<UInt32>( cameraCurrentProjectionType )] };
+            const auto& currentProjectionTypeStr{ cameraProjectionTypeNames[static_cast<UInt32>( cameraCurrentProjectionType )] };
 
             if ( ImGui::BeginCombo( "##Projection", currentProjectionTypeStr.c_str() ) ) {
                 UInt32 projectionIndex{};
-                for ( const auto& projectionType: CAMERA_PROJECTION_TYPE_NAMES ) {
+                for ( const auto& projectionType: cameraProjectionTypeNames ) {
                     // Tells whether we want to highlight this projection in the ImGui combo.
                     // This will be the case if this projection type is the current one for this camera.
-                    bool isSelected{ projectionType == CAMERA_PROJECTION_TYPE_NAMES[static_cast<UInt32>( cameraCurrentProjectionType )] };
+                    bool isSelected{ projectionType == cameraProjectionTypeNames[static_cast<UInt32>( cameraCurrentProjectionType )] };
 
                     // Create a selectable combo item for each perspective
                     if ( ImGui::Selectable( projectionType.c_str(), isSelected ) ) {

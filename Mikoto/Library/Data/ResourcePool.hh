@@ -224,7 +224,8 @@ namespace Mikoto {
         */
         auto ReleaseResource( const Handle index ) -> void {
 
-            if ( m_Resources.erase(index) != 0 ) {
+            if ( const auto it{ m_Resources.find(index) }; it != m_Resources.end() ) {
+                it->second = ResourceHandle::CreateEmpty();
                 m_FreeHandles.emplace_back(index);
             }
         }

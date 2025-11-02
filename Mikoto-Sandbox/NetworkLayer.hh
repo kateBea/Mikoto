@@ -10,7 +10,7 @@
 
 #include <ankerl/unordered_dense.h>
 
-#include <Assets/Audio.hh>
+#include <Assets/AudioClip.hh>
 #include <Core/LayerStack.hh>
 #include <Networking/Socket.hh>
 

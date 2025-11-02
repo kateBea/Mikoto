@@ -3,6 +3,8 @@
  * Created by kate on 8/13/2023.
  * */
 
+#include <cstddef>
+
 // Project Headers
 #include <Library/Math/Math.hh>
 #include <Renderer/Vulkan/VulkanBuffer.hh>
@@ -114,7 +116,8 @@ namespace Mikoto {
 
     auto VulkanBuffer::CopyFromBlock( const void* ptr, Size size, Size offset ) -> void {
         PersistentMap();
-        std::memcpy( m_VmaAllocationInfo.pMappedData + offset, ptr, size );
+
+        std::memcpy(static_cast<std::byte*>(m_VmaAllocationInfo.pMappedData) + offset, ptr, size);
     }
 
     auto VulkanBuffer::GetNativeHandle( ObjectType object ) -> Object {

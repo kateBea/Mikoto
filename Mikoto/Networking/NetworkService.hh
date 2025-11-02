@@ -6,7 +6,10 @@
 #define NETWORK_SERVICE_HH
 
 #include <asio.hpp>
+
+#if defined(MKT_ALLOW_HTTPS)
 #include <asio/ssl.hpp>
+#endif
 
 #include <Common/Service.hh>
 #include <Common/Singleton.hh>

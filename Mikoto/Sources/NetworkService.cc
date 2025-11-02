@@ -2,11 +2,12 @@
 // Created by kate on 10/29/25.
 //
 
+#include <tracy/Tracy.hpp>
+
 #include <Core/Profiler.hh>
 #include <Logging/Logger.hh>
 #include <Networking/NetworkService.hh>
 #include <Threading/TaskService.hh>
-#include <tracy/Tracy.hpp>
 
 namespace Mikoto {
     NetworkService::NetworkService( const NetworkServiceCreateInfo& ) {
@@ -50,7 +51,7 @@ namespace Mikoto {
         SocketHandle handle{};
 
 #if !defined( MKT_ALLOW_HTTPS )
-        handle = m_TcpSockets.Allocate( m_IoContext, hostName, 80, false );
+        handle = m_TcpSockets.Allocate( m_IoContext, hostName, 80 );
 #endif
 
         if ( handle.IsEmpty() ) {

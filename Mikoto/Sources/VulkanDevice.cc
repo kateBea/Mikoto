@@ -569,33 +569,19 @@ namespace Mikoto {
     auto VulkanDevice::RunGarbageCollection() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        UInt32 frameIndex{ dynamic_cast<VulkanContext*>( RenderService::Get()->GetContext() )->GetCurrentFrameIndex() };
-        VkFence frameFence{ m_FrameFences[frameIndex] };
-
-        if (frameFence != VK_NULL_HANDLE) {
-            VkResult result{ vkGetFenceStatus(m_LogicalDevice, frameFence) };
-
-            if (result == VK_SUCCESS) {
-                auto it{ m_PendingCmdLists.find(frameIndex) };
-                if (it != m_PendingCmdLists.end()) {
-
-                    it->second.clear();
-
-                    m_CmdPools.GetResource()->RunGarbageCollection();
-
-                    // for (auto& cmd : it->second) {
-                    //     if (!cmd.IsEmpty()) {
-                    //         // You might call cmd->Recycle() or return to pool
-                    //         if (VulkanCommandPoolHandle pool = m_CmdPools.GetResource(); !pool.IsEmpty()) {
-                    //             pool->DestroyCommandList( cmd );
-                    //         }
-                    //     }
-                    // }
-
-                    //it->second.clear();
+        for (const auto&[ frameIndex, frameFence ] : m_FrameFences) {
+            if (frameFence != VK_NULL_HANDLE) {
+                VkResult result{ vkGetFenceStatus(m_LogicalDevice, frameFence) };
+                if (result == VK_SUCCESS) {
+                    auto it{ m_PendingCmdLists.find(frameIndex) };
+                    if (it != m_PendingCmdLists.end()) {
+                        it->second.clear();
+                    }
                 }
             }
         }
+
+        m_CmdPools.GetResource()->RunGarbageCollection();
     }
 
     auto VulkanDevice::GetNativeHandle( ObjectType type ) -> Object {
@@ -604,18 +590,23 @@ namespace Mikoto {
 
 
     auto VulkanDevice::CreateCommandList( QueueType queue ) -> CommandListHandle {
-        // Find pool we can allocate command lists for the specified type of queue
-        CommandListHandle resultCommandList{};
+        // Get one from available if any
+        if (m_NextAvailableGraphicsCommandBufferIndex == m_AvailableGraphicsCommandLists.size()) {
+            // Resize. Find pool we can allocate command lists for the specified type of queue
+            CommandListHandle resultCommandList{};
 
-        // Get the first available pool
-        if ( VulkanCommandPoolHandle pool{ m_CmdPools.GetResource() }; !pool.IsEmpty() ) {
-            resultCommandList = pool->AllocateCmdList();
-            if ( resultCommandList.IsEmpty() ) {
-                MKT_THROW_RUNTIME_ERROR( "VulkanDevice::CreateCommandList - Failed to allocate command list." );
+            // Get the first available pool
+            if ( VulkanCommandPoolHandle pool{ m_CmdPools.GetResource() }; !pool.IsEmpty() ) {
+                resultCommandList = pool->AllocateCmdList();
+                if ( resultCommandList.IsEmpty() ) {
+                    MKT_THROW_RUNTIME_ERROR( "VulkanDevice::CreateCommandList - Failed to allocate command list." );
+                }
             }
+
+            return resultCommandList;
         }
 
-        return resultCommandList;
+        return m_AvailableGraphicsCommandLists[m_NextAvailableGraphicsCommandBufferIndex++];
     }
 
     auto VulkanDevice::CreateBuffer( const BufferDescription& description ) -> BufferHandle {
@@ -769,11 +760,11 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::SubmitCommands( CommandListHandle cmd ) -> void {
-        ZoneScopedNS("VulkanDevice::SubmitCommands", 60);
+        MKT_BEGIN_PROFILER_NAMED();
 
-        UInt32 currentFrame{ VulkanContext::Get()->GetCurrentFrameIndex() };
+        const UInt32 currentFrame{ VulkanContext::Get()->GetCurrentFrameIndex() };
 
-        m_PendingCmdLists[currentFrame].emplace_back( cmd );
+        m_PendingCmdList.emplace_back( cmd );
     }
 
     auto VulkanDevice::CreateSwapChain( const VulkanSwapChainCreateInfo& createInfo ) -> SwapChainHandle {
@@ -802,19 +793,19 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void {
-        ZoneScopedNS("EditorApp::Update", 60); // Marks this whole function as a Tracy zone
+        MKT_BEGIN_PROFILER_NAMED();
 
         const UInt32 currentFrame{ VulkanContext::Get()->GetCurrentFrameIndex() };
 
-        auto& cmdList = m_PendingCmdLists[currentFrame];
-        if ( cmdList.empty() ) {
-            return;
-        }
+        // auto& cmdList = m_PendingCmdLists[currentFrame];
+        // if ( cmdList.empty() ) {
+        //     return;
+        // }
 
         std::vector<VkCommandBufferSubmitInfo> cmdInfos;
-        cmdInfos.reserve( cmdList.size() );
+        cmdInfos.reserve( m_PendingCmdList.size() );
 
-        for ( auto& commandBuffer: cmdList ) {
+        for ( auto& commandBuffer: m_PendingCmdList ) {
             cmdInfos.push_back( VkCommandBufferSubmitInfo{
                     .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
                     .pNext = nullptr,
@@ -855,11 +846,19 @@ namespace Mikoto {
         };
 
         // Add the fence we will be waiting on later
-        if (!m_FrameFences.contains( currentFrame ) ) {
+        if (!m_FrameFences.contains( currentFrame ) || m_FrameFences.at(currentFrame) == VK_NULL_HANDLE ) {
             m_FrameFences[currentFrame] = syncPrimitives.RenderFence;
         }
 
         MKT_VK_CHECK( vkQueueSubmit2( m_Queues.Graphics->Queue, 1, &submitInfo, syncPrimitives.RenderFence ) );
+
+        for (auto& cmd : m_PendingCmdList) {
+            cmd->SetIsSubmitted( true );
+        }
+
+        std::ranges::move(m_PendingCmdList, std::back_inserter(m_PendingCmdLists[currentFrame]));
+
+        m_PendingCmdList.clear();
     }
 
     VulkanCmdList::VulkanCmdList( const VkCommandBufferAllocateInfo& createInfo )
@@ -942,12 +941,17 @@ namespace Mikoto {
         dest->SubmitLayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_CmdBuffer );
 
         // Define copy region
-        VkExtent3D extent{};
-        extent.width = dest->GetWidth();
-        extent.height = dest->GetHeight();
-        extent.depth = 1;
+        VkExtent3D srcExtent{};
+        srcExtent.width = src->GetWidth();
+        srcExtent.height = src->GetHeight();
+        srcExtent.depth = 1;
 
-        VulkanHelpers::CopyImageToImage( m_CmdBuffer, *src->GetImplHandle(), *dest->GetImplHandle(), extent );
+        VkExtent3D dstExtent{};
+        dstExtent.width = dest->GetWidth();
+        dstExtent.height = dest->GetHeight();
+        dstExtent.depth = 1;
+
+        VulkanHelpers::CopyImageToImage( m_CmdBuffer, *src->GetImplHandle(), *dest->GetImplHandle(), srcExtent, dstExtent );
 
         // Reset layout
         src->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_CmdBuffer );
@@ -1056,12 +1060,9 @@ namespace Mikoto {
     }
 
     auto VulkanCommandPool::RunGarbageCollection() -> void {
-        for (auto it = m_CmdLists.begin(); it != m_CmdLists.end(); it++) {
-            if (it->second->GetRefCount() == 1) {
+        for (auto it = m_CmdLists.begin(); it != m_CmdLists.end(); ++it ) {
+            if (!it->second.IsEmpty() && it->second.As<VulkanCmdList>()->IsSubmitted() && it->second->GetRefCount() == 1) {
                 m_CmdLists.Release( it->second->GetHandle() );
-
-                // FIXME: because pool uses erase() on the container
-                it = m_CmdLists.begin();
             }
         }
     }

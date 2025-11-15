@@ -14,6 +14,7 @@
 #include <Library/Data/Registry.hh>
 #include <Material/TextureCube.hh>
 #include <Panels/Panel.hh>
+#include <ImGui/ImGuiUtility.hh>
 #include <Platform/Window.hh>
 #include <Scene/Entity.hh>
 #include <Scene/Scene.hh>
@@ -45,6 +46,8 @@ namespace Mikoto {
         bool HierarchyPanelVisible{ true };
         bool InspectorPanelVisible{ true };
         bool ScenePanelVisible{ true };
+
+        ImGuiUtils::GuizmoManipulationMode Manipulation{ ImGuiUtils::GuizmoManipulationMode::TRANSLATION };
     };
 
     struct EditorLayerCreateInfo {

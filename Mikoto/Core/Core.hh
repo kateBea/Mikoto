@@ -18,10 +18,11 @@
 #include <Core/ArgsParser.hh>
 #include <Core/Configuration.hh>
 #include <Core/ExecuteProcess.hh>
+#include <Core/Platform.hh>
 #include <Core/Serializer.hh>
 #include <Core/SystemStats.hh>
-#include <Core/Timer.hh>
 #include <Core/TimeService.hh>
+#include <Core/Timer.hh>
 
 // ===========================================================
  // Event System

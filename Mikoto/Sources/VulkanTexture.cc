@@ -334,7 +334,7 @@ namespace Mikoto {
                 BufferDescription stagingDesc{};
                 stagingDesc.WithData( nullptr )
                         .WithUsage( BufferUsage::BUFFER_USAGE_STAGING )
-                        .WithSizeBytes( InferSize<UInt32>( m_ImageSize ) )
+                        .WithSizeBytes( m_ImageSize )
                         .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
 
                 m_StagingBuffer = m_Device->CreateBuffer( stagingDesc );
@@ -439,8 +439,6 @@ namespace Mikoto {
             auto& insertedImg{ m_Images.emplace_back( device.CreateSwapChainTextures( ConstructImgViewInfo( image, m_Format ), m_Extent ) ) };
             insertedImg->SetDebugName( fmt::format( "Swapchain Img - {}", imageIndex++ ) );
         }
-
-        m_FramesInFlight = imageCount;
     }
 
     auto VulkanSwapChain::ConstructImgViewInfo( VkImage image, const VkFormat& format ) -> VkImageViewCreateInfo {
@@ -462,7 +460,7 @@ namespace Mikoto {
         return createInfo;
     }
 
-    auto VulkanSwapChain::GetNextRenderableImage( UInt32& imageIndex, const VkSemaphore imageAvailable ) const -> VkResult {
+    auto VulkanSwapChain::GetNextRenderableImageIndex( UInt32& imageIndex, const VkSemaphore imageAvailable ) const -> VkResult {
         return vkAcquireNextImageKHR( VK_DEVICE( m_Device ), m_Swapchain, ( std::numeric_limits<UInt64>::max )(), imageAvailable, VK_NULL_HANDLE, std::addressof( imageIndex ) );
     }
 
@@ -479,11 +477,11 @@ namespace Mikoto {
         Initialize();
     }
 
-    auto VulkanSwapChain::Present( const UInt32 imageIndex, const VkSemaphore& renderFinished ) -> VkResult {
+    auto VulkanSwapChain::Present( const UInt32 imageIndex, const VkSemaphore& renderFinished ) const -> VkResult {
         const VulkanDevice& device{ *TO_VK_DEVICE( m_Device ) };
 
         const std::array swapChains{ m_Swapchain };
-        const std::array signalSemaphores{ renderFinished };
+        const std::array waitSemaphores{ renderFinished };
 
         VkPresentInfoKHR presentInfo{ VulkanHelpers::Initializers::PresentInfoKHR() };
 
@@ -493,11 +491,8 @@ namespace Mikoto {
         presentInfo.pImageIndices = &imageIndex;
 
         // specifies the semaphores to wait for before issuing the present request.
-        presentInfo.waitSemaphoreCount = signalSemaphores.size();
-        presentInfo.pWaitSemaphores = signalSemaphores.data();
-
-        // Advance to next frame
-        m_CurrentFrame = ( m_CurrentFrame + 1 ) % m_FramesInFlight;
+        presentInfo.waitSemaphoreCount = waitSemaphores.size();
+        presentInfo.pWaitSemaphores = waitSemaphores.data();
 
         const auto& [Present, Graphics, Compute]{ device.GetLogicalDeviceQueues() };
         VkQueue presentQueue{ VK_NULL_HANDLE };

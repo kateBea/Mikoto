@@ -98,6 +98,7 @@ namespace Mikoto {
 
     private:
         static constexpr float FONT_BASE_SIZE{ 16.0f };
+
     private:
         GpuDevice* m_Device{ nullptr };
         std::string m_ImGuiFilesRootDir{};

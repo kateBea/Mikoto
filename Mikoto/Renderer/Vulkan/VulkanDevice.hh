@@ -5,12 +5,13 @@
 #ifndef VULKANDEVICE_HH
 #define VULKANDEVICE_HH
 
+#include <vector>
+
 #include <volk.h>
 #include <vk_mem_alloc.h>
 
 #include <tracy/TracyVulkan.hpp>
 
-#include <Material/ShaderLibrary.hh>
 #include <Renderer/GpuDevice.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
 
@@ -195,8 +196,16 @@ namespace Mikoto {
         ResourcePoolTyped<VulkanSampler> m_Samplers{};
         ResourcePoolTyped<DescriptorSetLayout> m_DescriptorSetLayouts{};
 
+        // We will keep a list of command buffers we can use per frame
+        // We reset them after submission. For now they are all cmd list from graphics queue
+        UInt32 m_NextAvailableGraphicsCommandBufferIndex{};
+        std::vector<CommandListHandle> m_AvailableGraphicsCommandLists{};
+
+
         ankerl::unordered_dense::map<UInt32, VkFence> m_FrameFences{};
         ankerl::unordered_dense::map<UInt32, std::vector<CommandListHandle>> m_PendingCmdLists{};
+
+        std::deque<CommandListHandle> m_PendingCmdList{};
 
         QueuesData m_Queues{};
 

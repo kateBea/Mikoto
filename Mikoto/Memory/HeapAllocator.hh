@@ -60,12 +60,6 @@ namespace Mikoto {
         MKT_NODISCARD auto GetAllocatedSize() const noexcept -> Size { return m_AllocatedSize; }
 
     private:
-        // Allocate a huge chuck when this object is created
-        // and manage that block internally. For now it will almost
-        // stateless, but in the future the idea is to implement a way
-        // to keep track of the allocated memory and minimazi actual
-        // system allocations
-        //void* m_MemoryBlock{ nullptr };
 
         //Size m_MaxSize{ 0 };
         Size m_AllocatedSize{ 0 };

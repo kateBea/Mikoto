@@ -21,7 +21,6 @@
 #include <Scripting/ScriptingService.hh>
 #include <Threading/TaskService.hh>
 #include <Threading/ThreadUtility.hh>
-#include <tracy/Tracy.hpp>
 
 #include "Core/SystemStats.hh"
 
@@ -127,7 +126,7 @@ namespace Mikoto {
     }
 
     auto Root::Shutdown() -> void {
-        ZoneScopedNS("Root::Shutdown", 60);
+        MKT_BEGIN_PROFILER_NAMED();
 
         MKT_CORE_LOGGER_DEBUG( "Shutting down Root..." );
 
@@ -141,19 +140,21 @@ namespace Mikoto {
     }
 
     auto Root::StartFrame() -> void {
-        ZoneScopedNS("Root::StartFrame", 60);
+        MKT_BEGIN_PROFILER_NAMED();
 
         RenderService::Get()->PrepareFrame();
         ImGuiService::Get()->PrepareFrame();
     }
 
     auto Root::EndFrame() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         ImGuiService::Get()->EndFrame();
         RenderService::Get()->EndFrame();
     }
 
     auto Root::UpdateState( const float timeStep ) -> void {
-        ZoneScopedNS("Root::UpdateState", 60);
+        MKT_BEGIN_PROFILER_NAMED();
 
         // Can be done on another thread
         SystemStats::Get()->Update();

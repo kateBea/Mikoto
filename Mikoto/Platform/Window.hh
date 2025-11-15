@@ -141,7 +141,7 @@ namespace Mikoto {
          * @param properties Determines the properties of the window to be created.
          * @returns A pointer to the newly created window.
          * */
-        static auto Create( const WindowProperties& properties ) -> Unique<Window>;
+        static auto Create( const WindowProperties& properties ) -> Window*;
 
         /**
          * @brief Default virtual destructor for this Window.

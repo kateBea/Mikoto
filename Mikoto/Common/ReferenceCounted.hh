@@ -56,7 +56,7 @@ namespace Mikoto {
             : m_Ptr{ ptr } {
             // RefCountedType must be a ReferenceCounted or inheriting from it
             // ReferenceCounted by default has the count set to one as the first usage counts
-            if (m_Ptr) {
+            if ( m_Ptr ) {
                 m_Ptr->Acquire();
             }
         }
@@ -89,7 +89,7 @@ namespace Mikoto {
         }
 
         auto operator=( const Ref& other ) -> Ref& {
-            if ( m_Ptr != other.m_Ptr ) {
+            if ( this != std::addressof( other ) && m_Ptr != other.m_Ptr ) {
                 // I need to free the implicit parameter first,
                 // in case other.m_Ptr is different from m_Ptr
                 if ( m_Ptr ) {
@@ -104,11 +104,12 @@ namespace Mikoto {
                     m_Ptr->Acquire();
                 }
             }
+
             return *this;
         }
 
-        auto Disable() -> void {
-            if (m_Ptr) {
+        auto Reset() -> void {
+            if ( m_Ptr ) {
                 m_Ptr->Free();
                 m_Ptr = nullptr;
             }
@@ -118,9 +119,9 @@ namespace Mikoto {
         // The idea came for cases when a class holds a standalone handle but we want to manually set to null the handle so that the inner ptr gets destroyed
         // problems is, think about calling new and then taking a reference from that pointer in two different Ref, that pointer will get freed by last handle
         // its dangerous to use the new-ed ptr anywhere after that.
-        auto operator=(RefCountedType* ptr) -> Ref& {
-            if (ptr == nullptr) {
-                if (m_Ptr != nullptr) {
+        auto operator=( RefCountedType* ptr ) -> Ref& {
+            if ( ptr == nullptr ) {
+                if ( m_Ptr != nullptr ) {
                     m_Ptr->Free();
                 }
             } else {
@@ -166,7 +167,7 @@ namespace Mikoto {
         auto operator->() -> RefCountedType* { return m_Ptr; }
         auto operator->() const -> const RefCountedType* { return m_Ptr; }
 
-        operator bool () const {
+        operator bool() const {
             return !IsEmpty();
         }
 

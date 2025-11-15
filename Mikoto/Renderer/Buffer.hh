@@ -16,7 +16,7 @@
 namespace Mikoto {
 
     /**
-     * Represents an data type within a vertex buffer
+     * Represents a data type within a vertex buffer
      * */
     class BufferElement {
     public:

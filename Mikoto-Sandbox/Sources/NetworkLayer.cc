@@ -176,7 +176,7 @@ namespace Mikoto {
         // Test getting image from web
         // Gotten from Jikan API https://api.jikan.moe/v4/anime/20/pictures
         auto values{ Network::GetHost( "https://cdn.myanimelist.net/images/anime/1/20.jpg" ) };
-        SocketHandle imageSocket{ NetworkService::Get()->CreateSocketForHTTPSSync( values.first ) };
+        SocketHandle imageSocket{ NetworkService::Get()->CreateSocketHTTPS( values.first, true ) };
 
         auto result{ HttpGetImgage( imageSocket, imageSocket->GetHost(), "/images/anime/1141/142503.jpg" ) };
 

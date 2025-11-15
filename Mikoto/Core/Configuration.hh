@@ -5,11 +5,10 @@
 #ifndef CONFIGLOADER_HH
 #define CONFIGLOADER_HH
 
-#include <Common/Service.hh>
-#include <Library/Utility/Types.hh>
 #include <any>
-#include <memory>
 #include <string>
+
+#include <Library/Utility/Types.hh>
 
 /**
  * Can disable exceptions in
@@ -20,15 +19,15 @@
  *  only necessary if you've left them enabled in your compiler #include <toml++/toml.hpp>
  * */
 #define TOML_EXCEPTIONS 0
-
-#include <ankerl/unordered_dense.h>
-#include <fmt/format.h>
-
-#include <Logging/Logger.hh>
 #include <toml++/toml.hpp>
+#include <ankerl/unordered_dense.h>
 
 namespace Mikoto {
 
+    /**
+     * Mikoto exposes toml for config loading but user can use any
+     *
+     */
     class Configuration {
     public:
         virtual ~Configuration() = default;
@@ -36,7 +35,7 @@ namespace Mikoto {
         virtual auto Load( const Path& filePath ) -> void = 0;
 
         template<typename T>
-        auto Get( const std::string& key, const T& defaultValue = {} ) -> T {
+        auto Get( const std::string& key, const T& defaultValue = {} ) const -> T {
             const auto it{ m_Data.find( key ) };
             if ( it != m_Data.end() ) {
                 if ( auto* val{ std::any_cast<T>( &it->second ) } ) {
@@ -47,64 +46,11 @@ namespace Mikoto {
             return defaultValue;
         }
 
+        auto IsLoaded() const  -> bool { return m_IsLoaded; }
+
     protected:
+        bool m_IsLoaded{ false };
         ankerl::unordered_dense::map<std::string, std::any> m_Data{};
-    };
-
-    class BaseConfiguration final : public Configuration {
-    public:
-        explicit BaseConfiguration(const Path& filePath) {
-            Load(filePath);
-        }
-
-        auto Load(const Path& filePath) -> void override {
-            toml::parse_result result{ toml::parse_file(filePath.string()) };
-
-            if (result.failed()) {
-                MKT_THROW_RUNTIME_ERROR(fmt::format("Failed to load configuration file: {}", filePath.string()));
-            }
-
-            m_Data.clear();
-
-            const toml::table& tbl { result.table() };
-            for (auto&& [sectionName, sectionValue] : tbl) {
-                if (auto* section = sectionValue.as_table()) {
-
-                    for (auto&& [key, value] : *section) {
-                        std::string fullKey = fmt::format("{}{}{}", sectionName.str(), SEPARATOR, key.str());
-
-                        value.visit([&](auto&& v) {
-                            m_Data[fullKey] = ToNativeType(v);
-                        });
-                    }
-                }
-            }
-        }
-
-    private:
-        // Separator between section and key
-        static constexpr std::string_view SEPARATOR{ "." };
-
-        /**
-         * Converts a TOML value to std::any
-         * @param v Toml value
-         * @return std::any containing the value, or null if the type is unsupported
-         */
-        static auto ToNativeType(const auto& v) -> std::any {
-            using VType = std::decay_t<decltype(v)>;
-
-            if constexpr (toml::is_boolean<VType>) {
-                return std::make_any<bool>(v);
-            } else if constexpr (toml::is_integer<VType>) {
-                return std::make_any<Int64>(v);
-            } else if constexpr (toml::is_floating_point<VType>) {
-                return std::make_any<double>(v);
-            } else if constexpr (toml::is_string<VType>) {
-                return std::make_any<std::string>(v);
-            }
-
-            return std::any{};
-        }
     };
 
 }// namespace Mikoto

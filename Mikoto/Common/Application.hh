@@ -8,10 +8,13 @@
 
 // C++ Standard Library
 #include <memory>
+#include <utility>
 
 // Project Headers
 #include <Common/Singleton.hh>
 #include <Library/Random/Random.hh>
+
+#include <Core/LayerStack.hh>
 
 namespace Mikoto {
 
@@ -47,7 +50,6 @@ namespace Mikoto {
          * */
         ~Application() override = default;
 
-    protected:
         /**
          * @brief Initializes this application. Must call once when
          * the application is created. Initializes the app.
@@ -66,6 +68,17 @@ namespace Mikoto {
          * */
         virtual auto Update() -> void = 0;
 
+
+        template<typename LayerType, typename... Args>
+        auto PushLayer(Args&&... args) -> void {
+            m_LayerStack.PushLayer<LayerType>( std::forward<Args>(args)... );
+        }
+
+        template<typename LayerType>
+        auto PushLayer() -> void {
+            m_LayerStack.PopLayer<LayerType>();
+        }
+
         /**
          * @brief Checks if the application is running.
          * @returns True if the application is running, false otherwise.
@@ -78,7 +91,12 @@ namespace Mikoto {
 
         /** Current state of the application. */
         ApplicationStatus m_State{ ApplicationStatus::RUNNING };
+
+        LayerStack m_LayerStack{};
     };
+
+    extern auto CreateApplication(int argc, char** argv) -> Application*;
+
 }// namespace Mikoto
 
 

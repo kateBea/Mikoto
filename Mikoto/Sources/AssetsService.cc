@@ -12,7 +12,6 @@
 #include <Core/Profiler.hh>
 #include <Filesystem/FileService.hh>
 #include <Library/Utility/Types.hh>
-#include <Material/TextureCube.hh>
 #include <Renderer/FontFactory.hh>
 #include <Renderer/GpuDevice.hh>
 #include <Renderer/RenderService.hh>
@@ -260,4 +259,4 @@ namespace Mikoto {
 
         LoadAsset<Texture>( loadDesc );
     }
-}// namespace Mikoto
+}

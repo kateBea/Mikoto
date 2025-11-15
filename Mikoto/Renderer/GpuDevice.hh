@@ -33,7 +33,12 @@ namespace Mikoto {
         virtual auto WriteBuffer(Buffer* target, Byte* data, Size size) -> void = 0;
         virtual auto WriteTexture(Texture* target, Byte* data, Size size) -> void = 0;
 
+        MKT_NODISCARD auto IsSubmitted() const -> bool { return m_IsSubmitted; }
+        auto SetIsSubmitted(const bool value) -> void { m_IsSubmitted = value; }
+
     private:
+        bool m_IsSubmitted{ false };
+
         QueueType m_Type{ QueueType::INVALID_QUEUE };
     };
 

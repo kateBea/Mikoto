@@ -27,6 +27,22 @@
 
 namespace Mikoto {
 
+    static auto InferManipulationMode(ImGuiUtils::GuizmoManipulationMode manipulation ) -> GuizmoType {
+        switch ( manipulation ) {
+
+            case ImGuiUtils::GuizmoManipulationMode::TRANSLATION:
+                return GuizmoType::TRANSLATION;
+            case ImGuiUtils::GuizmoManipulationMode::ROTATION:
+                return GuizmoType::ROTATION;
+            case ImGuiUtils::GuizmoManipulationMode::SCALE:
+                return GuizmoType::SCALE;
+
+            default:;
+        }
+
+        return GuizmoType::TRANSLATION;
+    }
+
     static constexpr auto GetSceneName() -> std::string_view { return "Scene"; }
 
 
@@ -71,11 +87,11 @@ namespace Mikoto {
         m_GuizmoType = mode;
     }
 
-    auto ScenePanel::GetViewportWidth() const -> float {
+    auto ScenePanel::GetWidth() const -> float {
         return m_ViewPortWidth;
     }
 
-    auto ScenePanel::GetViewportHeight() const -> float {
+    auto ScenePanel::GetHeight() const -> float {
         return m_ViewPortHeight;
     }
 
@@ -118,10 +134,13 @@ namespace Mikoto {
 
         const glm::mat4 &cameraView{ m_EditorState->EditorCamera->GetViewMatrix() };
         const glm::mat4 &cameraProjection{ m_EditorState->EditorCamera->GetProjection() };
+
         glm::mat4 objectTransform{ transformComponent.GetTransform() };
         glm::vec3 oldTranslation{ transformComponent.GetTranslation() };
         glm::vec3 oldRotation{ transformComponent.GetRotation() };
         glm::vec3 oldScale{ transformComponent.GetScale() };
+
+        m_GuizmoType = InferManipulationMode(m_EditorState->Manipulation);
 
         switch ( m_GuizmoType ) {
             case GuizmoType::TRANSLATION:

@@ -2,8 +2,8 @@
 // Created by zanet on 3/27/2025.
 //
 
-#ifndef THREADUTILS_HH
-#define THREADUTILS_HH
+#ifndef THREAD_UTILS_HH
+#define THREAD_UTILS_HH
 
 #include <thread>
 
@@ -18,5 +18,5 @@ namespace Mikoto::ThreadUtils {
     MKT_NODISCARD auto inline InferConcurrentThreads() -> UInt32 {
         return std::thread::hardware_concurrency();
     }
-}// namespace Mikoto::ThreadUtils
-#endif//THREADUTILS_HH
+}
+#endif//THREAD_UTILS_HH

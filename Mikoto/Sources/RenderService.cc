@@ -7,8 +7,6 @@
 #include <memory>
 #include <utility>
 
-#include <tracy/Tracy.hpp>
-
 // Project Headers
 #include <Common/Common.hh>
 #include <Core/Profiler.hh>
@@ -68,18 +66,19 @@ namespace Mikoto {
     }
 
     auto RenderService::Update(float) -> void {
-        ZoneScopedNS("RenderService::Update", 60);
+        MKT_BEGIN_PROFILER_NAMED();
 
     }
 
     auto RenderService::PrepareFrame() const -> void {
-        ZoneScopedNS("RenderService::PrepareFrame", 60);
+        MKT_BEGIN_PROFILER_NAMED();
 
         m_Context->PrepareFrame();
     }
 
     auto RenderService::EndFrame() -> void {
-        ZoneScopedNS("RenderService::EndFrame", 60);
+        MKT_BEGIN_PROFILER_NAMED();
+
         Flush();
     }
 
@@ -88,10 +87,14 @@ namespace Mikoto {
     }
 
     auto RenderService::Flush() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         m_Context->SubmitFrame();
     }
 
     auto RenderService::InitRendererBackend() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         switch ( m_ActiveAPI ) {
             case GraphicsAPI::VULKAN_API:
                 m_RenderBackend = CreateScope<VulkanRenderer>( GetGpuDevice(), "Vulkan Renderer" );

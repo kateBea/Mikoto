@@ -5,8 +5,8 @@
 #ifndef RENDERPASS_HH
 #define RENDERPASS_HH
 
-#include <Renderer/GpuDevice.hh>
 #include <Assets/Texture.hh>
+#include <Renderer/GpuDevice.hh>
 #include <Renderer/RendererBackend.hh>
 #include <Library/Utility/Types.hh>
 

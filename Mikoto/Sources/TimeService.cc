@@ -79,7 +79,6 @@ namespace Mikoto {
         std::chrono::seconds seconds{ ( static_cast<ULongLong>( time ) % static_cast<ULongLong>( SECONDS_PER_HOUR ) % SECONDS_PER_MINUTE ) };
 
         return fmt::format( "{:%H:%M:%S}", hours + minutes + seconds );
-        return "";
     }
 
     auto TimeService::TransformToSeconds( const double time, const TimeUnit unit ) -> double {

@@ -152,7 +152,7 @@ namespace Mikoto {
     auto VulkanContext::Shutdown() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        m_Swapchain.Disable();
+        m_Swapchain.Reset();
 
         for (const auto& framePrimitives : m_FrameSyncPrimitives) {
             // Destroy frame sync stuff
@@ -185,10 +185,6 @@ namespace Mikoto {
     }
 
     auto VulkanContext::CreateInstance() -> void {
-        if ( m_VulkanData.EnableValidationLayers && !CheckValidationLayerSupport() ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanContext::CreateInstance - Validation layers requested, but not available." );
-        }
-
         VkApplicationInfo appInfo{ VulkanHelpers::Initializers::ApplicationInfo() };
         appInfo.pApplicationName = "Mikoto Application";
         appInfo.pEngineName = "Mikoto";
@@ -201,8 +197,13 @@ namespace Mikoto {
 
         // Setup required extensions
         auto extensions{ GetGlfwRequiredExtensions() };
+
         if ( m_VulkanData.EnableValidationLayers ) {
-            extensions.push_back( VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
+            if (!CheckValidationLayerSupport()) {
+                MKT_THROW_RUNTIME_ERROR( "VulkanContext::CreateInstance - Validation layers requested, but not available." );
+            } else {
+                extensions.push_back( VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
+            }
         }
 
 #ifndef NDEBUG
@@ -278,6 +279,28 @@ namespace Mikoto {
         RecreateSwapchain();
     }
 
+    auto VulkanContext::PrepareFrame() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        VkFence& inFlightFrameFence{ m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFence };
+
+        // For simplicity, parenthesize std::numeric_limits<std::uint64_t>::max
+        // because windows has a macro called max that causes conflicts
+        vkWaitForFences( VK_DEVICE(m_Device.get()), 1, std::addressof( inFlightFrameFence ), VK_TRUE, ( std::numeric_limits<UInt64>::max )() );
+        vkResetFences( VK_DEVICE(m_Device.get()), 1, std::addressof( inFlightFrameFence ) );
+
+        const VkSemaphore& imageAvailableSemaphore{ m_FrameSyncPrimitives[m_CurrentFrameIndex].ImageAvailableSemaphore };
+        const VkResult ret{ m_Swapchain->GetNextRenderableImageIndex(m_CurrentImageIndex, imageAvailableSemaphore ) };
+
+        if (ret == VK_ERROR_OUT_OF_DATE_KHR) {
+            RecreateSwapchain();
+        }
+
+        if (ret != VK_SUCCESS) {
+            MKT_THROW_RUNTIME_ERROR("VulkanContext::PrepareFrame - Failed to acquire swap chain image!");
+        }
+    }
+
     auto VulkanContext::SubmitFrame() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -285,12 +308,13 @@ namespace Mikoto {
         // the present semaphore, which is signaled when the swapchain
         // is ready (there's image available to render to). We will
         // signal the render semaphore to signal that rendering has finished
-
-        VulkanDevice* device{ TO_VK_DEVICE( RenderService::Get()->GetGpuDevice() ) };
+        const auto device{ TO_VK_DEVICE( RenderService::Get()->GetGpuDevice() ) };
 
         device->FlushPendingCommands( m_FrameSyncPrimitives[m_CurrentFrameIndex] );
 
-        const auto result{ m_Swapchain->Present( GetCurrentImageIndex(), m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFinishedSemaphore ) };
+        const VkSemaphore& renderFinishedSemaphore{ m_FrameSyncPrimitives[m_CurrentImageIndex].RenderFinishedSemaphore };
+        const VkResult result{ m_Swapchain->Present( GetCurrentImageIndex(), renderFinishedSemaphore ) };
+
         if ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ) {
             RecreateSwapchain();
             return;
@@ -299,29 +323,10 @@ namespace Mikoto {
         if ( result != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanDevice::PresentToSwapChain - Error failed present images to swapchain." );
         }
-    }
-
-    auto VulkanContext::PrepareFrame() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        m_CurrentFrameIndex = m_Swapchain->GetCurrentFrameIndex();
-
-        VkFence fence{ m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFence };
-
-        // For simplicity, parenthesize std::numeric_limits<std::uint64_t>::max because windows has a macro literally called max that causes conflicts
-        vkWaitForFences( VK_DEVICE(m_Device.get()), 1, std::addressof( fence ), VK_TRUE, ( std::numeric_limits<std::uint64_t>::max )() );
-        vkResetFences( VK_DEVICE(m_Device.get()), 1, std::addressof( fence ) );
 
         m_Device->RunGarbageCollection();
 
-        VkResult ret{ m_Swapchain->GetNextRenderableImage(m_CurrentImageIndex, m_FrameSyncPrimitives[m_CurrentFrameIndex].ImageAvailableSemaphore) };
-        if (ret == VK_ERROR_OUT_OF_DATE_KHR) {
-            RecreateSwapchain();
-        }
-
-        if (ret != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR("VulkanContext::PrepareFrame - Failed to acquire swap chain image!");
-        }
+        m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % m_MaxFramesInFlight;
     }
 
     auto VulkanContext::InitVolk() -> void {
@@ -348,6 +353,8 @@ namespace Mikoto {
 
         const Size frameCount{ m_Swapchain->GetImageCount() };
         m_FrameSyncPrimitives.resize( frameCount );
+
+        m_MaxFramesInFlight = m_Swapchain->GetImageCount();
 
         for (auto& [ImageAvailableSemaphore, RenderFinishedSemaphore, RenderFence] : m_FrameSyncPrimitives) {
             VkFenceCreateInfo fenceInfo{ VulkanHelpers::Initializers::FenceCreateInfo() };

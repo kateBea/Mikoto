@@ -96,6 +96,8 @@ namespace Mikoto {
         UInt32 m_CurrentImageIndex{};
         std::vector<FrameSynchronizationPrimitives> m_FrameSyncPrimitives{};
 
+        UInt32 m_MaxFramesInFlight{};
+
         VulkanContextData m_VulkanData{
             .Instance{},
             .Surface{},

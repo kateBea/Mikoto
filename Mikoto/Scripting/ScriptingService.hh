@@ -7,7 +7,7 @@
 
 // Will temporarily disable lua on windows
 // until the build works for this platform properly
-#if defined(__linux__)
+#if defined( __linux__ )
 #include <sol/sol.hpp>
 #endif
 
@@ -15,26 +15,22 @@
 #include <Common/Singleton.hh>
 
 namespace Mikoto {
-  struct ScriptingServiceDescription {
+    struct ScriptingServiceDescription {
+    };
 
-  };
+    class ScriptingService final : public IService, public Singleton<ScriptingService> {
+    public:
+        explicit ScriptingService( const ScriptingServiceDescription& config );
 
-  class ScriptingService final : public IService, public Singleton<ScriptingService> {
-  public:
-    explicit ScriptingService(const ScriptingServiceDescription& config);
+        auto Init() -> void override;
+        auto Shutdown() -> void override;
 
-    auto Init() -> void override;
-    auto Shutdown() -> void override;
-
-  private:
-
-#if defined(__linux__)
-    sol::state m_LuaState{};
+    private:
+#if defined( __linux__ )
+        sol::state m_LuaState{};
 #endif
-
-  };
-}
-
+    };
+}// namespace Mikoto
 
 
-#endif //LUASERVICE_HH
+#endif//LUASERVICE_HH

@@ -11,60 +11,66 @@
 
 // Third-Party Libraries
 #include <fmt/format.h>
+#include <cpptrace/cpptrace.hpp>
+
 
 // Project Headers
 #include <Library/String/String.hh>
 
-#if defined(WIN32) || defined(WIN64)
-    #define __PRETTY_FUNCTION__  __FUNCTION__
+#if defined( WIN32 ) || defined( WIN64 )
+#define __PRETTY_FUNCTION__ __FUNCTION__
 #endif
 
-#if !defined(NDEBUG)
-    #define MKT_ENABLE_ASSERTIONS
+#if !defined( NDEBUG )
+#define MKT_ENABLE_ASSERTIONS
 #else
-    #undef MKT_ENABLE_ASSERTIONS
+#undef MKT_ENABLE_ASSERTIONS
 #endif
 
-#if defined(MKT_ENABLE_ASSERTIONS)
+#if defined( MKT_ENABLE_ASSERTIONS )
 
-    /**
+/**
      * Print __MESSAGE and abort program execution if __EXPR evaluates to false
      * */
-    #define MKT_ASSERT(__EXPR, __MESSAGE)                                 \
-    do {                                                                  \
-        if (!(__EXPR)) {                                                  \
-            MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_RED, "MESSAGE: {}\n"  \
-                                                         "FUNCTION: {}\n" \
-                                                         "SRC: {}\n"      \
-                                                         "LINE: {}\n",    \
-                                      __MESSAGE, __PRETTY_FUNCTION__,     \
-                                      __FILE__, __LINE__);                \
-            std::abort();                                                 \
-        }                                                                 \
-    } while (false)
+#define MKT_ASSERT( __EXPR, __MESSAGE )                                \
+    do {                                                               \
+        if ( !( __EXPR ) ) {                                           \
+            MKT_COLOR_PRINT_FORMATTED( MKT_FMT_COLOR_RED,              \
+                                       "MESSAGE: {}\n"                 \
+                                       "FUNCTION: {}\n"                \
+                                       "SRC: {}\n"                     \
+                                       "LINE: {}\n",                   \
+                                       __MESSAGE, __PRETTY_FUNCTION__, \
+                                       __FILE__, __LINE__ );           \
+            cpptrace::generate_trace().print();                        \
+            std::abort();                                              \
+        }                                                              \
+    } while ( false )
 
-    /**
+/**
      * Print __EXPR and abort program execution if __EXPR evaluates to false
      * */
-    #define MKT_ASSERT_EXPR(__EXPR)                                                 \
-    do {                                                                            \
-        if (!(__EXPR)) {                                                            \
-            MKT_COLOR_PRINT_FORMATTED(MKT_FMT_COLOR_RED, "Condition: {} failed\n"   \
-                                                      "FUNCTION: {}\n"              \
-                                                      "SRC: {}\n"                   \
-                                                      "LINE: {}\n",                 \
-                                     #__EXPR, __PRETTY_FUNCTION__,                  \
-                                     __FILE__, __LINE__);                           \
-            std::abort();                                                           \
-        }                                                                           \
-    } while (false)
+#define MKT_ASSERT_EXPR( __EXPR )                                    \
+    do {                                                             \
+        if ( !( __EXPR ) ) {                                         \
+            MKT_COLOR_PRINT_FORMATTED( MKT_FMT_COLOR_RED,            \
+                                       "Condition: {} failed\n"      \
+                                       "FUNCTION: {}\n"              \
+                                       "SRC: {}\n"                   \
+                                       "LINE: {}\n",                 \
+                                       #__EXPR, __PRETTY_FUNCTION__, \
+                                       __FILE__, __LINE__ );         \
+            cpptrace::generate_trace().print();                      \
+            std::abort();                                            \
+        }                                                            \
+    } while ( false )
 
-    #define MKT_STATIC_ASSERT(__EXPR, __MESSAGE) static_assert(__EXPR, __MESSAGE)
+#define MKT_STATIC_ASSERT( __EXPR, __MESSAGE ) static_assert( __EXPR, __MESSAGE )
 
 #else
-    #define MKT_ASSERT(__EXPR, __MESSAGE)
-    #define MKT_ASSERT_EXPR(__EXPR)
-    #define MKT_STATIC_ASSERT(__EXPR, __MESSAGE)
+#define MKT_ASSERT( __EXPR, __MESSAGE )
+#define MKT_ASSERT_EXPR( __EXPR )
+#define MKT_STATIC_ASSERT( __EXPR, __MESSAGE )
 #endif
 
-#endif // MIKOTO_ASSERT_HH
+#endif// MIKOTO_ASSERT_HH

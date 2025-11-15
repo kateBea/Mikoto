@@ -71,14 +71,17 @@ namespace Mikoto {
         style.PopupRounding  = 8.0f;  // Popups
         style.ScrollbarRounding = 8.0f;
 
-        constexpr float iconFontSize{ FONT_BASE_SIZE * 1.1f }; // FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly };
+        // FontAwesome fonts need to have their sizes
+        // reduced by 2.0f/3.0f in order to align correctly
+        constexpr float iconFontSize{ FONT_BASE_SIZE * 1.1f };
 
-        std::string path{ PathBuilder()
+        const std::string path{ PathBuilder()
                 .WithPath( m_ImGuiFilesRootDir )
                 .WithPath( "JetBrainsMono/fonts/ttf/" )
                 .WithPath( "JetBrainsMonoNL-Thin.ttf" )
                 .Build().string() };
 
+        // Add the main font
         AddFont(FONT_BASE_SIZE, path);
 
         const std::string fontPath{
@@ -86,6 +89,7 @@ namespace Mikoto {
             .WithPath( m_ImGuiFilesRootDir )
             .Build().string() };
 
+        // Made static because ImGui does not extend lifetime
         static constexpr std::array<ImWchar, 3> iconRanges1{ ICON_MIN_FA, ICON_MAX_16_FA, 0 };
         static const auto faRegular{ PathBuilder().WithPath( fontPath ).WithPath( FONT_ICON_FILE_NAME_FAS ).Build() };
         AddIconFont(iconFontSize, faRegular.string(), iconRanges1);

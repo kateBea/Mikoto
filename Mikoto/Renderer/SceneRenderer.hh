@@ -79,18 +79,18 @@ namespace Mikoto {
          * @brief Renders the current scene.
          * This function performs the rendering of the active scene using the renderer backend and frame graph.
          */
-        auto Render( double timeStep ) -> void;
+        auto Render( double timeStep ) const -> void;
 
         /**
          * @brief Handles viewport resizing. This function is called when the window is resized and updates the internal viewport size.
          * @param width The new width of the viewport.
          * @param height The new height of the viewport.
          */
-        auto OnResize( UInt32 width, UInt32 height ) -> void;
+        auto SetViewport( UInt32 width, UInt32 height ) -> void;
 
         auto SetCamera( SceneCamera* camera ) -> void;
 
-        auto GetFinalComposition() const -> TextureHandle;
+        MKT_NODISCARD auto GetFinalComposition() const -> TextureHandle;
 
         /**
          * @brief Creates a new `SceneRenderer` instance.
@@ -111,6 +111,9 @@ namespace Mikoto {
         SceneCamera* m_Camera{ nullptr };
 
         RendererBackend* m_RendererBackend{ nullptr };
+
+        UInt32 m_ViewportWidth{ 0u };
+        UInt32 m_ViewportHeight{ 0u };
     };
 }// namespace Mikoto
 

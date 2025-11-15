@@ -12,7 +12,7 @@
 
 namespace Mikoto {
 
-    auto Window::Create( const WindowProperties &properties ) -> Unique<Window> {
-        return CreateScope<MainWindow>( properties );
+    auto Window::Create( const WindowProperties &properties ) -> Window* {
+        return new MainWindow( properties );
     }
 }

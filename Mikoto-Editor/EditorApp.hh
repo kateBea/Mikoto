@@ -32,21 +32,21 @@ namespace Mikoto {
 
         auto Run(Int32 argc, char** argv) -> Int32 override;
 
-        static auto GetPrefabUri(PrefabModels prefab) -> const std::string&;
-
-    protected:
         auto Init() -> void override;
         auto Shutdown() -> void override;
         auto Update() -> void override;
 
+        auto SetWindow(Window* window) -> void;
+
+        static auto GetPrefabUri(PrefabModels prefab) -> const std::string&;
+
     private:
-        auto InitPrefabsPaths() -> void;
+        auto InitPrefabs() -> void;
         auto SetupEventCallbacks() -> void;
 
     private:
 
-        Unique<Window> m_Window{};
-        LayerStack m_LayerStack{};
+        Window* m_Window{};
 
         // These path will be
         ankerl::unordered_dense::map<PrefabModels, std::string> m_PrefabModels{};

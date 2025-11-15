@@ -10,8 +10,8 @@
 // Third-Party Libraries
 #include <spirv_reflect.h>
 
-#include "volk.h"
 #include "vk_mem_alloc.h"
+#include "volk.h"
 
 // Project Headers
 
@@ -87,35 +87,55 @@ namespace Mikoto::VulkanHelpers {
         nameInfo.objectHandle = objectHandle;
         nameInfo.pObjectName = name;
 
-        if (vkSetDebugUtilsObjectNameEXT) {
-            vkSetDebugUtilsObjectNameEXT(device, std::addressof( nameInfo ));
+        if ( vkSetDebugUtilsObjectNameEXT ) {
+            vkSetDebugUtilsObjectNameEXT( device, std::addressof( nameInfo ) );
         } else {
-            MKT_CORE_LOGGER_WARN("VulkanHelpers::SetObjectDebugName - vkGetDeviceProcAddr is null, cannot set debug name.");
+            MKT_CORE_LOGGER_WARN( "VulkanHelpers::SetObjectDebugName - vkGetDeviceProcAddr is null, cannot set debug name." );
         }
     }
 
     auto VkResultToString( VkResult result ) -> const char* {
-        switch (result) {
-            case VK_SUCCESS: return "VK_SUCCESS";
-            case VK_NOT_READY: return "VK_NOT_READY";
-            case VK_TIMEOUT: return "VK_TIMEOUT";
-            case VK_EVENT_SET: return "VK_EVENT_SET";
-            case VK_EVENT_RESET: return "VK_EVENT_RESET";
-            case VK_INCOMPLETE: return "VK_INCOMPLETE";
-            case VK_ERROR_OUT_OF_HOST_MEMORY: return "VK_ERROR_OUT_OF_HOST_MEMORY";
-            case VK_ERROR_OUT_OF_DEVICE_MEMORY: return "VK_ERROR_OUT_OF_DEVICE_MEMORY";
-            case VK_ERROR_INITIALIZATION_FAILED: return "VK_ERROR_INITIALIZATION_FAILED";
-            case VK_ERROR_DEVICE_LOST: return "VK_ERROR_DEVICE_LOST";
-            case VK_ERROR_MEMORY_MAP_FAILED: return "VK_ERROR_MEMORY_MAP_FAILED";
-            case VK_ERROR_LAYER_NOT_PRESENT: return "VK_ERROR_LAYER_NOT_PRESENT";
-            case VK_ERROR_EXTENSION_NOT_PRESENT: return "VK_ERROR_EXTENSION_NOT_PRESENT";
-            case VK_ERROR_FEATURE_NOT_PRESENT: return "VK_ERROR_FEATURE_NOT_PRESENT";
-            case VK_ERROR_INCOMPATIBLE_DRIVER: return "VK_ERROR_INCOMPATIBLE_DRIVER";
-            case VK_ERROR_TOO_MANY_OBJECTS: return "VK_ERROR_TOO_MANY_OBJECTS";
-            case VK_ERROR_FORMAT_NOT_SUPPORTED: return "VK_ERROR_FORMAT_NOT_SUPPORTED";
-            case VK_ERROR_FRAGMENTED_POOL: return "VK_ERROR_FRAGMENTED_POOL";
-            case VK_ERROR_UNKNOWN: return "VK_ERROR_UNKNOWN";
-            default: return "UNKNOWN_VK_RESULT";
+        switch ( result ) {
+            case VK_SUCCESS:
+                return "VK_SUCCESS";
+            case VK_NOT_READY:
+                return "VK_NOT_READY";
+            case VK_TIMEOUT:
+                return "VK_TIMEOUT";
+            case VK_EVENT_SET:
+                return "VK_EVENT_SET";
+            case VK_EVENT_RESET:
+                return "VK_EVENT_RESET";
+            case VK_INCOMPLETE:
+                return "VK_INCOMPLETE";
+            case VK_ERROR_OUT_OF_HOST_MEMORY:
+                return "VK_ERROR_OUT_OF_HOST_MEMORY";
+            case VK_ERROR_OUT_OF_DEVICE_MEMORY:
+                return "VK_ERROR_OUT_OF_DEVICE_MEMORY";
+            case VK_ERROR_INITIALIZATION_FAILED:
+                return "VK_ERROR_INITIALIZATION_FAILED";
+            case VK_ERROR_DEVICE_LOST:
+                return "VK_ERROR_DEVICE_LOST";
+            case VK_ERROR_MEMORY_MAP_FAILED:
+                return "VK_ERROR_MEMORY_MAP_FAILED";
+            case VK_ERROR_LAYER_NOT_PRESENT:
+                return "VK_ERROR_LAYER_NOT_PRESENT";
+            case VK_ERROR_EXTENSION_NOT_PRESENT:
+                return "VK_ERROR_EXTENSION_NOT_PRESENT";
+            case VK_ERROR_FEATURE_NOT_PRESENT:
+                return "VK_ERROR_FEATURE_NOT_PRESENT";
+            case VK_ERROR_INCOMPATIBLE_DRIVER:
+                return "VK_ERROR_INCOMPATIBLE_DRIVER";
+            case VK_ERROR_TOO_MANY_OBJECTS:
+                return "VK_ERROR_TOO_MANY_OBJECTS";
+            case VK_ERROR_FORMAT_NOT_SUPPORTED:
+                return "VK_ERROR_FORMAT_NOT_SUPPORTED";
+            case VK_ERROR_FRAGMENTED_POOL:
+                return "VK_ERROR_FRAGMENTED_POOL";
+            case VK_ERROR_UNKNOWN:
+                return "VK_ERROR_UNKNOWN";
+            default:
+                return "UNKNOWN_VK_RESULT";
         }
     }
 
@@ -484,17 +504,24 @@ namespace Mikoto::VulkanHelpers {
         }
     }
 
-    auto CopyImageToImage( const VkCommandBuffer cmd, const VkImage source, const VkImage destination, const VkExtent3D imageSize ) -> void {
+    auto CopyImageToImage( const VkCommandBuffer cmd, const VkImage source, const VkImage destination, const VkExtent3D srcSize, const VkExtent3D dstSize ) -> void {
         VkImageBlit2 blitRegion{};
         blitRegion.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
         blitRegion.pNext = nullptr;
 
-        blitRegion.srcOffsets[1].x = imageSize.width;
-        blitRegion.srcOffsets[1].y = imageSize.height;
+        // [0] zeroed so blit operation starts at the
+        // origin (top-left) of the image
+
+        // Source
+        blitRegion.srcOffsets[0] = { 0, 0, 0 };
+        blitRegion.srcOffsets[1].x = srcSize.width;
+        blitRegion.srcOffsets[1].y = srcSize.height;
         blitRegion.srcOffsets[1].z = 1;
 
-        blitRegion.dstOffsets[1].x = imageSize.width;
-        blitRegion.dstOffsets[1].y = imageSize.height;
+        // destination
+        blitRegion.dstOffsets[0] = { 0, 0, 0 };
+        blitRegion.dstOffsets[1].x = dstSize.width;
+        blitRegion.dstOffsets[1].y = dstSize.height;
         blitRegion.dstOffsets[1].z = 1;
 
         blitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -520,6 +547,30 @@ namespace Mikoto::VulkanHelpers {
 
         vkCmdBlitImage2( cmd, &blitInfo );
     }
+
+    auto CopyImage(VkCommandBuffer cmd, VkImage srcImage, VkImageLayout srcLayout, VkImage dstImage, VkImageLayout dstLayout, VkExtent3D extent ) -> void {
+        VkImageCopy copyRegion{};
+        copyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        copyRegion.srcSubresource.mipLevel = 0;
+        copyRegion.srcSubresource.baseArrayLayer = 0;
+        copyRegion.srcSubresource.layerCount = 1;
+
+        copyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        copyRegion.dstSubresource.mipLevel = 0;
+        copyRegion.dstSubresource.baseArrayLayer = 0;
+        copyRegion.dstSubresource.layerCount = 1;
+
+        copyRegion.srcOffset = { 0, 0, 0 };
+        copyRegion.dstOffset = { 0, 0, 0 };
+        copyRegion.extent = extent;// width, height, depth
+
+        vkCmdCopyImage(
+                cmd,
+                srcImage, srcLayout,
+                dstImage, dstLayout,
+                1, &copyRegion );
+    }
+
 }// namespace Mikoto::VulkanHelpers
 
 namespace Mikoto::VulkanHelpers::Reflection {
@@ -564,15 +615,14 @@ namespace Mikoto::VulkanHelpers::Reflection {
     }
 
     MKT_NODISCARD static auto IsBindlessEnabled() -> bool {
-#if defined(MKT_USE_VULKAN_BINDLESS)
+#if defined( MKT_USE_VULKAN_BINDLESS )
         return true;
 #else
         return false;
 #endif
-
     }
 
-    auto ReflectSPIRV(VkDevice device, const std::vector<std::vector<UInt32>>& spirvModules, ReflectedData& out) -> VkResult {
+    auto ReflectSPIRV( VkDevice device, const std::vector<std::vector<UInt32>>& spirvModules, ReflectedData& out ) -> VkResult {
         out = {};
 
         std::map<UInt32, std::unordered_map<UInt32, VkDescriptorSetLayoutBinding>> sets{};
@@ -588,7 +638,7 @@ namespace Mikoto::VulkanHelpers::Reflection {
                 return VK_ERROR_INITIALIZATION_FAILED;
 
             // The reason why we do this cast is that they are a map 1 to 1 (the enums values)
-            auto stage{ static_cast<VkShaderStageFlagBits>( mod.shader_stage) };
+            auto stage{ static_cast<VkShaderStageFlagBits>( mod.shader_stage ) };
 
             // === DESCRIPTOR SETS ===
             UInt32 setCount{};
@@ -607,7 +657,7 @@ namespace Mikoto::VulkanHelpers::Reflection {
                         bindingInfo.binding = reflectedBinding->binding;
                         bindingInfo.descriptorType = ToVkDescriptorType( reflectedBinding->descriptor_type );
 
-                        if (IsBindlessEnabled() && bindingInfo.descriptorType == SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER && reflectedBinding->type_description->op == SpvOpTypeRuntimeArray || reflectedBinding->type_description->op == SpvOpTypeArray ) {
+                        if ( IsBindlessEnabled() && bindingInfo.descriptorType == SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER && reflectedBinding->type_description->op == SpvOpTypeRuntimeArray || reflectedBinding->type_description->op == SpvOpTypeArray ) {
                             bindingInfo.descriptorCount = std::max( 1u, VulkanRenderer::GetMaxBindlessTextureCount() );
 
                         } else {
@@ -618,7 +668,7 @@ namespace Mikoto::VulkanHelpers::Reflection {
                         bindingMap[bindingInfo.binding] = bindingInfo;
 
                         out.bindingMap[{ set, bindingInfo.binding }] = ReflectedBindingInfo{
-                            reflectedBinding->name, set, bindingInfo.binding, bindingInfo.descriptorType, bindingInfo.descriptorCount, static_cast<VkShaderStageFlags>( stage)
+                            reflectedBinding->name, set, bindingInfo.binding, bindingInfo.descriptorType, bindingInfo.descriptorCount, static_cast<VkShaderStageFlags>( stage )
                         };
                     } else {
                         it->second.stageFlags |= stage;
@@ -695,38 +745,38 @@ namespace Mikoto::VulkanHelpers::Reflection {
         }
 
         // === CREATE DESCRIPTOR SET LAYOUTS ===
-        for (auto& [setIdx, bindings] : sets) {
+        for ( auto& [setIdx, bindings]: sets ) {
             std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
-            layoutBindings.reserve(bindings.size());
+            layoutBindings.reserve( bindings.size() );
 
-            for (auto& [_, b] : bindings) {
-                layoutBindings.push_back(b);
+            for ( auto& [_, b]: bindings ) {
+                layoutBindings.push_back( b );
             }
 
             VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-            layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
+            layoutInfo.bindingCount = static_cast<uint32_t>( layoutBindings.size() );
             layoutInfo.pBindings = layoutBindings.data();
 
-            std::vector<VkDescriptorBindingFlags> bindingFlags(layoutBindings.size(), 0);
+            std::vector<VkDescriptorBindingFlags> bindingFlags( layoutBindings.size(), 0 );
 
             // Attach the binding flags info via pNext
             VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{};
             flagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
-            flagsInfo.bindingCount = static_cast<UInt32>(bindingFlags.size());
+            flagsInfo.bindingCount = static_cast<UInt32>( bindingFlags.size() );
             flagsInfo.pBindingFlags = bindingFlags.data();
 
 
-            if (IsBindlessEnabled()) {
+            if ( IsBindlessEnabled() ) {
                 // Enable bindless flags for each binding
                 UInt8 index{ 0 };
-                for (auto& flags : bindingFlags) {
+                for ( auto& flags: bindingFlags ) {
 
                     // Image samplers are in the form of array by convention
                     // we dont bind them one by one but instead provide an array of combined image samplers
-                    if (bindings[index++].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
+                    if ( bindings[index++].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ) {
                         flags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
-                            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-                           VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+                                VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+                                VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
                     } else {
                         flags = 0;
                     }
@@ -737,11 +787,11 @@ namespace Mikoto::VulkanHelpers::Reflection {
             }
 
             VkDescriptorSetLayout layoutHandle{};
-            if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &layoutHandle) != VK_SUCCESS) {
+            if ( vkCreateDescriptorSetLayout( device, &layoutInfo, nullptr, &layoutHandle ) != VK_SUCCESS ) {
                 return VK_ERROR_INITIALIZATION_FAILED;
             }
 
-            out.setLayouts.push_back(layoutHandle);
+            out.setLayouts.push_back( layoutHandle );
         }
 
         // === PIPELINE LAYOUT ===
@@ -778,4 +828,4 @@ namespace Mikoto::VulkanHelpers::Reflection {
         reflected.pushConstantRanges.clear();
     }
 
-}
+}// namespace Mikoto::VulkanHelpers::Reflection

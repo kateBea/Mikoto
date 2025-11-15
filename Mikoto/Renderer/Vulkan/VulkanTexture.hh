@@ -129,7 +129,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetImplHandle() -> VkSwapchainKHR* { return std::addressof(m_Swapchain); }
 
-        MKT_NODISCARD auto Present( UInt32 imageIndex, const VkSemaphore& renderFinished ) -> VkResult;
+        MKT_NODISCARD auto Present( UInt32 imageIndex, const VkSemaphore& renderFinished ) const -> VkResult;
 
         MKT_NODISCARD auto GetImageCount() const -> Size;
 
@@ -139,9 +139,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto IsVsyncEnabled() const -> bool;
 
-        MKT_NODISCARD auto GetCurrentFrameIndex() const -> UInt32 { return m_CurrentFrame; }
-
-        MKT_NODISCARD auto GetNextRenderableImage( UInt32& imageIndex, VkSemaphore imageAvailable = VK_NULL_HANDLE ) const -> VkResult;
+        MKT_NODISCARD auto GetNextRenderableImageIndex( UInt32& imageIndex, VkSemaphore imageAvailable = VK_NULL_HANDLE ) const -> VkResult;
 
         // TODO: Destroy this swap chain and create a new one
         // you do not really want to do the swap chain of creating a new one, that is maybe in the cae you have another window
@@ -167,18 +165,9 @@ namespace Mikoto {
         MKT_NODISCARD static auto ChooseSurfaceFormat( const std::vector<VkSurfaceFormatKHR>& availableFormats ) -> VkSurfaceFormatKHR;
 
     private:
-        /**
-         * Maximum number of frames that can be processed concurrently.
-         * */
-
-
-    private:
         VkExtent2D m_Extent{};
         VkSwapchainKHR m_Swapchain{ VK_NULL_HANDLE };
         VkSwapchainKHR m_OldSwapchain{ VK_NULL_HANDLE };
-
-        Int32 m_FramesInFlight{ 3 };
-
 
         VkFormat m_Format{};
         VkPresentModeKHR m_PresentMode{};
@@ -188,8 +177,6 @@ namespace Mikoto {
         VkSurfaceKHR* m_Surface{ nullptr };
 
         bool m_IsVsyncEnabled{};
-
-        Size m_CurrentFrame{};
     };
 
     using SwapChainHandle = Ref<VulkanSwapChain>;

@@ -34,6 +34,64 @@
 
 namespace Mikoto {
 
+    class BaseConfiguration final : public Mikoto::Configuration {
+    public:
+        explicit BaseConfiguration( const Mikoto::Path& filePath ) {
+            Load( filePath );
+        }
+
+        auto Load( const Mikoto::Path& filePath ) -> void override {
+            toml::parse_result result{ toml::parse_file( filePath.string() ) };
+
+            if ( result.failed() ) {
+                MKT_THROW_RUNTIME_ERROR( fmt::format( "Failed to load configuration file: {}", filePath.string() ) );
+            }
+
+            m_Data.clear();
+
+            const toml::table& tbl{ result.table() };
+            for ( auto&& [sectionName, sectionValue]: tbl ) {
+                if ( auto* section = sectionValue.as_table() ) {
+
+                    for ( auto&& [key, value]: *section ) {
+                        std::string fullKey = fmt::format( "{}{}{}", sectionName.str(), SEPARATOR, key.str() );
+
+                        value.visit( [&]( auto&& v ) {
+                            m_Data[fullKey] = ToNativeType( v );
+                        } );
+                    }
+                }
+            }
+        }
+
+    private:
+        // Separator between section and key
+        static constexpr std::string_view SEPARATOR{ "." };
+
+        /**
+         * Converts a TOML value to std::any
+         * @param v Toml value
+         * @return std::any containing the value, or null if the type is unsupported
+         */
+        static auto ToNativeType( const auto& v ) -> std::any {
+            using namespace Mikoto;
+
+            using VType = std::decay_t<decltype( v )>;
+
+            if constexpr ( toml::is_boolean<VType> ) {
+                return std::make_any<bool>( v );
+            } else if constexpr ( toml::is_integer<VType> ) {
+                return std::make_any<Int64>( v );
+            } else if constexpr ( toml::is_floating_point<VType> ) {
+                return std::make_any<double>( v );
+            } else if constexpr ( toml::is_string<VType> ) {
+                return std::make_any<std::string>( v );
+            }
+
+            return std::any{};
+        }
+    };
+
     auto SandboxApp::Run( const Int32, char** ) -> Int32 {
         MKT_CORE_LOGGER_DEBUG( "Initializing Mikoto Sandbox..." );
 

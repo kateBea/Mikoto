@@ -7,33 +7,26 @@
 
 namespace Mikoto {
 
-#if !defined( MKT_ALLOW_HTTPS )
-    TcpSocket::TcpSocket( asio::io_context &ctx, std::string_view address, UInt16 port )
-        : m_Socket{ ctx }, m_Port{ port }, m_HostName{ address } {
-        Initialize();
-    }
-#else
-
-    TcpSocket::TcpSocket( asio::io_context &ctx, asio::ssl::context &sslContext, const std::string_view address, const UInt16 port, bool ssl )
-        : m_Socket{ ctx },
-          m_SslSocket{ std::move( asio::ip::tcp::socket{ ctx } ), sslContext },
-          m_Port{ port },
-          m_HostName{ address },
-          m_IsSsl{ ssl } {
+    TcpSocket::TcpSocket( asio::io_context &ctx, std::string_view address, UInt16 port, bool wait )
+        : m_Socket{ ctx }, m_Port{ port }, m_HostName{ address }, m_InitSync{ wait } {
         Initialize();
     }
 
-    TcpSocket::TcpSocket( asio::io_context &ctx, asio::ssl::context &sslContext, const std::string_view address, const UInt16 port, bool ssl, bool sync )
+#if defined( MKT_ALLOW_HTTPS )
+    TcpSocket::TcpSocket( asio::io_context &ctx, asio::ssl::context &sslContext, const std::string_view address, const UInt16 port, bool wait )
         : m_Socket{ ctx },
-          m_SslSocket{ std::move( asio::ip::tcp::socket{ ctx } ), sslContext },
+          m_SslSocket{
+              new asio::ssl::stream<asio::ip::tcp::socket>{
+                  asio::ip::tcp::socket{ ctx },
+                  sslContext
+              } },
           m_Port{ port },
           m_HostName{ address },
-          m_IsSsl{ ssl },
-           m_InitSync( sync ) {
+          m_IsSsl{ true },
+           m_InitSync( wait ) {
         Initialize();
     }
 #endif
-
 
     TcpSocket::~TcpSocket() {
         if ( m_IsAllocated ) {
@@ -44,13 +37,16 @@ namespace Mikoto {
     auto TcpSocket::Disconnect() -> void {
         try {
 #if defined( MKT_ALLOW_HTTPS )
-            m_SslSocket.shutdown();
+            m_SslSocket->shutdown();
 #endif
             m_Socket.close();
 
         } catch ( ... ) {
             // ignore errors
         }
+
+        delete m_SslSocket;
+        m_SslSocket = nullptr;
 
         m_Connected = false;
     }
@@ -79,7 +75,7 @@ namespace Mikoto {
         try {
             if ( m_IsSsl ) {
 #if defined( MKT_ALLOW_HTTPS )
-                asio::write( m_SslSocket, asio::buffer( data, size ) );
+                asio::write( *m_SslSocket, asio::buffer( data, size ) );
 #else
                 return false;
 #endif
@@ -104,7 +100,7 @@ namespace Mikoto {
 
             if ( m_IsSsl ) {
 #if defined( MKT_ALLOW_HTTPS )
-                return m_SslSocket.read_some( asio::buffer( buffer, maxSize ), m_ErrorCode );
+                return m_SslSocket->read_some( asio::buffer( buffer, maxSize ), m_ErrorCode );
 #else
                 return 0;
 #endif
@@ -130,17 +126,17 @@ namespace Mikoto {
 
         if ( m_IsSsl ) {
 #if defined( MKT_ALLOW_HTTPS )
-            asio::ip::tcp::resolver resolver( m_SslSocket.get_executor() );
+            asio::ip::tcp::resolver resolver( m_SslSocket->get_executor() );
             const auto endpoints{ resolver.resolve( m_HostName, std::to_string( m_Port ) ) };
 
-            asio::async_connect( m_SslSocket.next_layer(), endpoints,
+            asio::async_connect( m_SslSocket->next_layer(), endpoints,
                                  [this]( std::error_code ec, const asio::ip::tcp::endpoint & ) -> void {
                                      if ( !ec ) {
                                          m_Connected = true;
                                          MKT_CORE_LOGGER_INFO( "SSL Connected successfully to host {}", m_HostName );
 
                                          // Perform TLS handshake
-                                         m_SslSocket.handshake( asio::ssl::stream_base::client );
+                                         m_SslSocket->handshake( asio::ssl::stream_base::client );
                                      } else {
                                          MKT_CORE_LOGGER_ERROR( "SSL connection failed to host {}, message: {}",m_HostName, ec.message() );
                                      }
@@ -172,16 +168,16 @@ namespace Mikoto {
     auto TcpSocket::InitConnectionSync() -> void {
         if ( m_IsSsl ) {
 #if defined( MKT_ALLOW_HTTPS )
-            asio::ip::tcp::resolver resolver( m_SslSocket.get_executor() );
+            asio::ip::tcp::resolver resolver( m_SslSocket->get_executor() );
             const auto endpoints{ resolver.resolve( m_HostName, std::to_string( m_Port ) ) };
 
-            asio::connect( m_SslSocket.next_layer(), endpoints);
+            asio::connect( m_SslSocket->next_layer(), endpoints);
 
             m_Connected = true;
             MKT_CORE_LOGGER_INFO( "SSL Connected successfully" );
 
             // Perform TLS handshake
-            m_SslSocket.handshake( asio::ssl::stream_base::client );
+            m_SslSocket->handshake( asio::ssl::stream_base::client );
 
 #endif
         } else {

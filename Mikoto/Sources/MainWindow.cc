@@ -60,7 +60,7 @@ namespace Mikoto {
             glfwWindowHint(GLFW_MAXIMIZED, GLFW_FALSE);
         }
 
-        MainWindowCreateSpec spec{
+        const MainWindowCreateSpec spec{
             .Width{ GetWidth() },
             .Height{ GetHeight() },
             .Title{ GetTitle() },
@@ -81,6 +81,11 @@ namespace Mikoto {
     }
 
     auto MainWindow::InstallCallbacks() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+
+        // Here we are just registering list of callbacks for the different events supported
+
         glfwSetWindowUserPointer(m_Window, this);
 
         glfwSetWindowSizeCallback(m_Window,
@@ -89,29 +94,29 @@ namespace Mikoto {
                 data->m_Properties.Width = width;
                 data->m_Properties.Height = height;
 
-                EventService::Get().Queue<WindowResizedEvent>(width, height);
+                EventService::Get()->Queue<WindowResizedEvent>(width, height);
             }
         );
 
         glfwSetWindowCloseCallback(m_Window,
-            [](MKT_UNUSED_VAR GLFWwindow* window) {
-                EventService::Get().Queue<WindowCloseEvent>();
+            []( GLFWwindow* ) {
+                EventService::Get()->Queue<WindowCloseEvent>();
             }
         );
 
         glfwSetKeyCallback(m_Window,
-            [](MKT_UNUSED_VAR GLFWwindow* window, int key, MKT_UNUSED_VAR int scancode, int action, int mods) -> void {
+            []( GLFWwindow* , int key,  int , int action, int mods) -> void {
                 switch (action) {
                     case GLFW_PRESS: {
-                        EventService::Get().Queue<KeyPressedEvent>(key, false, mods);
+                        EventService::Get()->Queue<KeyPressedEvent>(key, false, mods);
                         break;
                     }
                     case GLFW_RELEASE: {
-                        EventService::Get().Queue<KeyReleasedEvent>(key);
+                        EventService::Get()->Queue<KeyReleasedEvent>(key);
                         break;
                     }
                     case GLFW_REPEAT: {
-                        EventService::Get().Queue<KeyPressedEvent>(key, true, mods);
+                        EventService::Get()->Queue<KeyPressedEvent>(key, true, mods);
                         break;
                     }
                     default: {
@@ -123,14 +128,14 @@ namespace Mikoto {
         );
 
         glfwSetMouseButtonCallback(m_Window,
-            [](MKT_UNUSED_VAR GLFWwindow* window, int button, int action, int mods) -> void {
+            []( GLFWwindow* , int button, int action, int mods) -> void {
                 switch (action) {
                     case GLFW_PRESS: {
-                        EventService::Get().Queue<MouseButtonPressedEvent>(button, mods);
+                        EventService::Get()->Queue<MouseButtonPressedEvent>(button, mods);
                         break;
                     }
                     case GLFW_RELEASE: {
-                        EventService::Get().Queue<MouseButtonReleasedEvent>(button);
+                        EventService::Get()->Queue<MouseButtonReleasedEvent>(button);
                         break;
                     }
                     default:
@@ -141,26 +146,26 @@ namespace Mikoto {
         );
 
         glfwSetScrollCallback(m_Window,
-            [](MKT_UNUSED_VAR GLFWwindow* window, double xOffset, double yOffset) -> void {
-                EventService::Get().Queue<MouseScrollEvent>(xOffset, yOffset);
+            []( GLFWwindow* , double xOffset, double yOffset) -> void {
+                EventService::Get()->Queue<MouseScrollEvent>(xOffset, yOffset);
             }
         );
 
         glfwSetCursorPosCallback(m_Window,
-            [](MKT_UNUSED_VAR GLFWwindow* window, double x, double y) -> void {
-                EventService::Get().Queue<MouseMovedEvent>(x, y);
+            [](GLFWwindow* , double x, double y) -> void {
+                EventService::Get()->Queue<MouseMovedEvent>(x, y);
             }
         );
 
         glfwSetCharCallback(m_Window,
-            [](MKT_UNUSED_VAR GLFWwindow* window, unsigned int codePoint) -> void {
-                EventService::Get().Queue<KeyCharEvent>(codePoint);
+            [](GLFWwindow* , unsigned int codePoint) -> void {
+                EventService::Get()->Queue<KeyCharEvent>(codePoint);
             }
         );
 
         glfwSetWindowCloseCallback(m_Window,
-            [](MKT_UNUSED_VAR GLFWwindow* window) -> void {
-                EventService::Get().Queue<WindowCloseEvent>();
+            [](GLFWwindow* ) -> void {
+                EventService::Get()->Queue<WindowCloseEvent>();
             }
         );
 
@@ -174,6 +179,8 @@ namespace Mikoto {
     }
 
     auto MainWindow::MoveToMonitorCenter() const -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         // See: https://www.glfw.org/docs/3.3/monitor_guide.html
         // The primary monitor is returned by glfwGetPrimaryMonitor. It is the user's
         // preferred monitor and is usually the one with global UI elements like task bar or menu bar.
@@ -194,6 +201,8 @@ namespace Mikoto {
     }
 
     auto MainWindow::InitGLFW() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if (!s_GLFWInitSuccess) {
             const auto ret{ glfwInit() };
             MKT_ASSERT(ret == GLFW_TRUE, "MainWindow::InitGLFW - Failed to initialized the GLFW library.");
@@ -315,10 +324,13 @@ namespace Mikoto {
     }
 
     auto MainWindow::Create(const MainWindowCreateSpec& spec) -> GLFWwindow* {
+        MKT_BEGIN_PROFILER_NAMED();
 
         // All windows are created in non-fullscreen mode because the monitor we pass is null, see docs for glfwCreateWindow
         GLFWwindow* window{ glfwCreateWindow(spec.Width, spec.Height, spec.Title.data(), nullptr, nullptr) };
+        MKT_ASSERT( window, "GLFWindow handle is NULL" );
         s_WindowsCount += 1;
+
         return window;
     }
 }

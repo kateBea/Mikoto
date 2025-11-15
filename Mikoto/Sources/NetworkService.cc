@@ -13,12 +13,12 @@ namespace Mikoto {
     NetworkService::NetworkService( const NetworkServiceCreateInfo& ) {
     }
 
-    auto NetworkService::CreateNewSocket( SocketType type, const std::string_view hostName, const UInt16 port, bool allowHttps ) -> SocketHandle {
+    auto NetworkService::CreateNewSocket( SocketType type, const std::string_view hostName, const UInt16 port ) -> SocketHandle {
         // SocketType::SOCKET_TCP ====================
         SocketHandle handle{};
 
 #if defined( MKT_ALLOW_HTTPS )
-        handle = m_TcpSockets.Allocate( m_IoContext, m_SslContext, hostName, port, allowHttps );
+        handle = m_TcpSockets.Allocate( m_IoContext, m_SslContext, hostName, port, false );
 #else
         handle = m_TcpSockets.Allocate( m_IoContext, hostName, port );
 #endif
@@ -30,12 +30,12 @@ namespace Mikoto {
         return handle;
     }
 
-    auto NetworkService::CreateNewSocketSync( SocketType type, std::string_view hostName, UInt16 port, bool allowHttps ) -> SocketHandle {
+    auto NetworkService::CreateNewSocketSync( SocketType type, std::string_view hostName, UInt16 port) -> SocketHandle {
         // SocketType::SOCKET_TCP ====================
         SocketHandle handle{};
 
 #if defined( MKT_ALLOW_HTTPS )
-        handle = m_TcpSockets.Allocate( m_IoContext, m_SslContext, hostName, port, allowHttps, true );
+        handle = m_TcpSockets.Allocate( m_IoContext, m_SslContext, hostName, port, true );
 #else
         handle = m_TcpSockets.Allocate( m_IoContext, hostName, port );
 #endif
@@ -46,8 +46,7 @@ namespace Mikoto {
 
         return handle;
     }
-
-    auto NetworkService::CreateSocketForHTTPSync( std::string_view hostName ) -> SocketHandle {
+    auto NetworkService::CreateSocketHTTP( std::string_view hostName, bool wait ) -> SocketHandle {
         SocketHandle handle{};
 
 #if !defined( MKT_ALLOW_HTTPS )
@@ -55,13 +54,13 @@ namespace Mikoto {
 #endif
 
         if ( handle.IsEmpty() ) {
-            MKT_CORE_LOGGER_ERROR( "NetworkService::CreateNewSocket - Failed to create new socket" );
+            MKT_CORE_LOGGER_ERROR( "NetworkService::CreateNewSocket - Failed to create new socket for HTTP" );
         }
 
         return handle;
     }
 
-    auto NetworkService::CreateSocketForHTTPSSync( std::string_view hostName ) -> SocketHandle {
+    auto NetworkService::CreateSocketHTTPS( std::string_view hostName, bool wait ) -> SocketHandle {
         SocketHandle handle{};
 
 #if defined( MKT_ALLOW_HTTPS )
@@ -69,17 +68,10 @@ namespace Mikoto {
 #endif
 
         if ( handle.IsEmpty() ) {
-            MKT_CORE_LOGGER_ERROR( "NetworkService::CreateNewSocket - Failed to create new socket" );
+            MKT_CORE_LOGGER_ERROR( "NetworkService::CreateNewSocket - Failed to create new socket for HTTPS" );
         }
 
         return handle;
-    }
-    auto NetworkService::CreateSocketForHTTPAsync( std::string_view hostName ) -> SocketHandle {
-        return SocketHandle::CreateEmpty();
-    }
-
-    auto NetworkService::CreateSocketForHTTPSAsync( std::string_view hostName ) -> SocketHandle {
-        return SocketHandle::CreateEmpty();
     }
 
     auto NetworkService::Init() -> void {
@@ -103,7 +95,7 @@ namespace Mikoto {
         m_TcpSockets.Shutdown();
     }
 
-    auto NetworkService::Update( float dt ) -> void {
+    auto NetworkService::Update( float ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         m_IoContext.poll();

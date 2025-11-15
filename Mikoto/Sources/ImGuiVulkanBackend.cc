@@ -53,9 +53,9 @@ namespace Mikoto {
 
         // Handles need to be disabled otherwise the destruction its deferred to this objects destruction where we might not have a context ready
         // Services in Mikoto do not do their cleanup in the destructor they do it on the Shutdown method
-        m_ColorImage.Disable();
-        m_DepthImage.Disable();
-        m_DrawFrameBuffer.Disable();
+        m_ColorImage.Reset();
+        m_DepthImage.Reset();
+        m_DrawFrameBuffer.Reset();
 
         // Clear texture IDs
         // Wait before cearing the IDs
@@ -231,6 +231,7 @@ namespace Mikoto {
         ImGui_ImplGlfw_InitForVulkan( window, true );
 
         ImGui_ImplVulkan_InitInfo initInfo{
+            .ApiVersion{ VulkanContext::Get()->GetApiVersion() },
             .Instance = VulkanContext::Get()->GetInstance(),
             .PhysicalDevice = device.GetPhysicalDevice(),
             .Device = VK_DEVICE(m_GpuDevice),
@@ -272,12 +273,12 @@ namespace Mikoto {
         colorDesc
                 .WithWidth( static_cast<Int32>( m_Extent2D.width ) )
                 .WithHeight( static_cast<Int32>( m_Extent2D.height ) )
-                .WithChannelCount( 4 )          // RGBA
+                .WithChannelCount( 4 )
                 .WithData( nullptr )
                 .WithType( TextureType::TEXTURE_2D )
                 .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
                 .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
-                .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+                .WithResourceType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
 
         m_ColorImage = m_GpuDevice->CreateTexture( colorDesc );
         m_ColorImage->SetDebugName( "ImGui Color image" );
@@ -292,7 +293,7 @@ namespace Mikoto {
                 .WithType( TextureType::TEXTURE_2D )
                 .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
                 .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
-                .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+                .WithResourceType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC);
 
         m_DepthImage = m_GpuDevice->CreateTexture( depthDesc );
         m_DepthImage->SetDebugName( "ImGui Depth image" );
@@ -316,7 +317,6 @@ namespace Mikoto {
 
         ImGui::Render();
 
-        const UInt32 frameIndex{ VulkanContext::Get()->GetCurrentFrameIndex() };
         const UInt32 swapChainImageIndex{ VulkanContext::Get()->GetCurrentImageIndex() };
 
         CommandListHandle commandList{ m_ImGuiCommandBuffers[swapChainImageIndex] };
@@ -335,9 +335,9 @@ namespace Mikoto {
     auto ImGuiVulkanBackend::ConstructImGuiTextureID( const Texture* texture ) -> ImTextureID {
         ImTextureID result{};
 
-        if (dynamic_cast<const VulkanTexture*>(texture)->GetCurrentLayout() != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-            return result;
-        }
+        // if (dynamic_cast<const VulkanTexture*>(texture)->GetCurrentLayout() != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+        //     return result;
+        // }
 
         auto itFind{ m_ImGuiSets.find( texture ) };
         if ( itFind != m_ImGuiSets.end() ) {

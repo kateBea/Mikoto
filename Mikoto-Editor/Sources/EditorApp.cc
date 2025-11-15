@@ -5,12 +5,11 @@
 
 // C++ Standard Library
 #include <cstdlib>
-#include <stdexcept>
-#include <utility>
 #include <iostream>
+#include <stdexcept>
 #include <string>
-
 #include <tracy/Tracy.hpp>
+#include <utility>
 
 // Project headers
 #include <Assets/AssetsService.hh>
@@ -28,88 +27,52 @@
 namespace Mikoto {
 
     auto EditorApp::Run( const Int32, char ** ) -> Int32 {
-        MKT_BEGIN_PROFILER( "EditorApp::Run" );
-        MKT_CORE_LOGGER_DEBUG("Initializing Mikoto Editor...");
+        MKT_BEGIN_PROFILER_NAMED();
 
-        Int32 exitCode{ EXIT_SUCCESS };
-
-        try {
-            Init();
-
-            while (IsRunning()) {
-                Update();
-            }
-
-        } catch ( const std::exception &e ) {
-            MKT_CORE_LOGGER_CRITICAL("Error occurred {}", e.what());
-            exitCode = EXIT_FAILURE;
+        while ( IsRunning() ) {
+            Update();
         }
 
-        Shutdown();
-
-        return exitCode;
+        return 0;
     }
 
     auto EditorApp::GetPrefabUri( const PrefabModels prefab ) -> const std::string & {
-        return static_cast<EditorApp*>(s_Instance)->m_PrefabModels[prefab];
+        return dynamic_cast<EditorApp *>( s_Instance )->m_PrefabModels[prefab];
     }
 
-    auto EditorApp::InitPrefabsPaths() -> void {
+    auto EditorApp::InitPrefabs() -> void {
         m_PrefabModels = {
             { PrefabModels::CUBE, "Resources/Models/Prefabs/cube/gltf/scene.gltf" },
             { PrefabModels::CONE, "Resources/Models/Prefabs/cone/gltf/scene.gltf" },
             { PrefabModels::SPHERE, "Resources/Models/Prefabs/sphere/gltf/scene.gltf" },
             { PrefabModels::CYLINDER, "Resources/Models/Prefabs/cylinder/gltf/scene.gltf" },
-            { PrefabModels::SPONZA, "Resources/Models/Prefabs/sponza/sponza.obj" },
+            //{ PrefabModels::SPONZA, "Resources/Models/Prefabs/sponza/sponza.obj" },
         };
 
-        // for ( const auto &prefab : m_PrefabModels ) {
-        //     AssetsService::Get()->LoadAsset<Model>( prefab.second );
-        // }
+        for ( const auto &val: m_PrefabModels | std::views::values ) {
+            AssetsService::Get()->LoadAsset<Model>( val );
+        }
     }
 
     auto EditorApp::Init() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        // Load configuration
-        BaseConfiguration configApp{ "./app-config.toml" };
-
-        // App window
-        m_Window = Window::Create( {
-            .Title{ configApp.Get<std::string>( "application.title" ) },
-            .Width{ static_cast<Int32>( configApp.Get<Int64>( "application.width" ) ) },
-            .Height{ static_cast<Int32>( configApp.Get<Int64>( "application.height" ) ) },
-            .Backend{ InferAPI( configApp.Get<std::string>( "renderer.api" ) ) },
-            .Resizable{ configApp.Get<bool>( "application.resizable" ) } } );
-
-        if ( m_Window ) {
-            m_Window->Init();
-        } else {
-            MKT_THROW_RUNTIME_ERROR( "Failed to create main application window!" );
-        }
-
-        // Configure and initialize the engine
+        MKT_CORE_LOGGER_DEBUG( "Initializing Mikoto Editor..." );
 
         const RootConfig config{
             .LockFrameRate{ false },
-            .TargetWindow{ m_Window.get() }
+            .TargetWindow{ m_Window }
         };
 
-        Root::Init(config);
+        Root::Init( config );
 
         SetupEventCallbacks();
 
-        InitPrefabsPaths();
-
-        m_LayerStack.PushLayer<EditorLayer>(EditorLayerCreateInfo{
-            .Name{ "Editor Layer" },
-            .TargetWindow{ m_Window.get() },
-            .ModelsRootDirectory{ configApp.Get<std::string>( "paths.assets" ) },
-        });
+        InitPrefabs();
     }
 
     auto EditorApp::Shutdown() -> void {
-        MKT_CORE_LOGGER_DEBUG("Shutting down Mikoto Editor...");
+        MKT_CORE_LOGGER_DEBUG( "Shutting down Mikoto Editor..." );
 
         m_LayerStack.Shutdown();
 
@@ -119,27 +82,28 @@ namespace Mikoto {
     }
 
     auto EditorApp::Update() -> void {
-        ZoneScopedNS("EditorApp::Update", 60);
+        MKT_BEGIN_PROFILER_NAMED();
 
         TimeService::Get()->Update();
-        const double timeStep{ TimeService::Get().GetTimeStep(TimeUnit::SECONDS) };
 
-        if (!m_Window->IsMinimized()) {
+        if ( !m_Window->IsMinimized() ) {
+            const double timeStep{ TimeService::Get()->GetTimeStep( TimeUnit::SECONDS ) };
 
+            // We start the frame
             Root::StartFrame();
 
-            {
-                //ZoneScopedNS("Editor Layers Update");
-                m_LayerStack.OnUpdate(static_cast<float>(timeStep));
-            }
+            m_LayerStack.OnUpdate( static_cast<float>( timeStep ) );
 
-            {
-                //ZoneScopedN("Root State Update");
-                Root::UpdateState(static_cast<float>(timeStep));
-            }
+            // Update engine state
+            Root::UpdateState( static_cast<float>( timeStep ) );
 
+            // End the current frame
             Root::EndFrame();
         }
+    }
+
+    auto EditorApp::SetWindow( Window *window ) -> void {
+        m_Window = window;
     }
 
     auto EditorApp::SetupEventCallbacks() -> void {
@@ -152,6 +116,6 @@ namespace Mikoto {
                         return true;
                     } );
 
-        EventService::Get().Subscribe( this );
+        EventService::Get()->Subscribe( this );
     }
 }// namespace Mikoto

@@ -47,6 +47,10 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::Shutdown() -> void {
+        m_Camera = nullptr;
+        m_Device = nullptr;
+        m_Scene = nullptr;
+        m_RendererBackend = nullptr;
     }
 
 
@@ -54,11 +58,11 @@ namespace Mikoto {
         m_Scene = scene;
     }
 
-    auto SceneRenderer::Render( double ) -> void {
+    auto SceneRenderer::Render( double ) const -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
 
-        CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
+        const CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
 
         m_RendererBackend->SetCamera( m_Camera );
 
@@ -66,7 +70,7 @@ namespace Mikoto {
         // here we will just submit it
         m_RendererBackend->BeginRender( cmd );
 
-        m_RendererBackend->SetViewport( 0, 0, m_Camera->GetViewPort().first, m_Camera->GetViewPort().second );
+        m_RendererBackend->SetViewport( 0, 0, m_ViewportWidth, m_ViewportHeight );
         m_RendererBackend->DrawScene( m_Scene );
 
         m_RendererBackend->EndRender();
@@ -74,7 +78,9 @@ namespace Mikoto {
         m_Device->SubmitCommands( cmd );
     }
 
-    auto SceneRenderer::OnResize( UInt32 width, UInt32 height ) -> void {
+    auto SceneRenderer::SetViewport( const UInt32 width, const UInt32 height ) -> void {
+        m_ViewportWidth = width;
+        m_ViewportHeight = height;
     }
 
     auto SceneRenderer::SetCamera( SceneCamera *camera ) -> void {

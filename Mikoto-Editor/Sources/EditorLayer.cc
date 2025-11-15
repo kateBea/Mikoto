@@ -109,6 +109,7 @@ namespace Mikoto {
 
         m_SceneRenderer->SetScene( m_ActiveScene.get() );
         m_SceneRenderer->SetCamera( m_EditorCamera.get() );
+        m_SceneRenderer->SetViewport( 1920, 1080 );
 
         m_ActiveScene->Update( timeStep );
         m_SceneRenderer->Render( timeStep );
@@ -166,9 +167,10 @@ namespace Mikoto {
 
         m_EditorCamera->SetFieldOfView( 45 );
 
-        // Get viewport dimensions from the window
-        // we render to the window here not to an imgui viewport
-        m_EditorCamera->SetViewportSize( m_Window->GetWidth(), m_Window->GetHeight() );
+        // Set viewport to the currently active window we can either expand
+        // the final composition to occupy the whole screen or just an ImGui viewport
+        ScenePanel* scenePanel{ m_PanelRegistry.Get<ScenePanel>() };
+        m_EditorCamera->SetViewportSize( scenePanel->GetWidth(), scenePanel->GetHeight() );
 
         if ( InputService::Get()->IsMouseKeyPressed( Mouse_Button_Right ) ) {
             m_EditorCamera->EnableCamera( true );
@@ -322,23 +324,19 @@ namespace Mikoto {
                 if ( ImGui::MenuItem( "Save project", "Ctrl + G" ) ) { SaveProject(); }
 
                 ImGui::Separator();
-                static ImGuiUtils::GuizmoManipulationMode manipulation{ ImGuiUtils::GuizmoManipulationMode::TRANSLATION };
 
                 if ( ImGui::BeginMenu( "Manipulation Mode" ) ) {
-                    if ( ImGui::MenuItem( "Translate", nullptr, manipulation == ImGuiUtils::GuizmoManipulationMode::TRANSLATION ) ) {
-                        manipulation = ImGuiUtils::GuizmoManipulationMode::TRANSLATION;
+                    if ( ImGui::MenuItem( "Translate", nullptr, m_EditorState->Manipulation == ImGuiUtils::GuizmoManipulationMode::TRANSLATION ) ) {
+                        m_EditorState->Manipulation = ImGuiUtils::GuizmoManipulationMode::TRANSLATION;
                     }
 
-                    if ( ImGui::MenuItem( "Rotate", nullptr, manipulation == ImGuiUtils::GuizmoManipulationMode::ROTATION ) ) {
-                        manipulation = ImGuiUtils::GuizmoManipulationMode::ROTATION;
+                    if ( ImGui::MenuItem( "Rotate", nullptr, m_EditorState->Manipulation == ImGuiUtils::GuizmoManipulationMode::ROTATION ) ) {
+                        m_EditorState->Manipulation = ImGuiUtils::GuizmoManipulationMode::ROTATION;
                     }
 
-                    if ( ImGui::MenuItem( "Scale", nullptr, manipulation == ImGuiUtils::GuizmoManipulationMode::SCALE ) ) {
-                        manipulation = ImGuiUtils::GuizmoManipulationMode::SCALE;
+                    if ( ImGui::MenuItem( "Scale", nullptr, m_EditorState->Manipulation == ImGuiUtils::GuizmoManipulationMode::SCALE ) ) {
+                        m_EditorState->Manipulation = ImGuiUtils::GuizmoManipulationMode::SCALE;
                     }
-
-                    // ScenePanel& scenePanel{ *m_PanelRegistry.Get<ScenePanel>() };
-                    // scenePanel.SetGuizmoManipulationMode( manipulation );
 
                     ImGui::EndMenu();
                 }

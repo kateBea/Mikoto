@@ -29,7 +29,6 @@ namespace Mikoto {
         auto SetupEventCallbacks() -> void;
 
         Unique<Window> m_Window{};
-        LayerStack m_LayerStack{};
     };
 }
 

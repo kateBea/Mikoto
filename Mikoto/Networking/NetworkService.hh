@@ -31,20 +31,20 @@ namespace Mikoto {
     public:
         explicit NetworkService( const NetworkServiceCreateInfo& options );
 
-        auto CreateNewSocket( SocketType type, std::string_view hostName, UInt16 port, bool allowHttps = false ) -> SocketHandle;
-        auto CreateNewSocketSync( SocketType type, std::string_view hostName, UInt16 port, bool allowHttps = false ) -> SocketHandle;
-
-        auto CreateSocketForHTTPSync( std::string_view hostName) -> SocketHandle;
-        auto CreateSocketForHTTPSSync( std::string_view hostName) -> SocketHandle;
-
-        auto CreateSocketForHTTPAsync( std::string_view hostName) -> SocketHandle;
-        auto CreateSocketForHTTPSAsync( std::string_view hostName) -> SocketHandle;
-
-        ~NetworkService() override = default;
-
         auto Init() -> void override;
         auto Shutdown() -> void override;
         auto Update( float dt ) -> void override;
+
+        auto CreateNewSocket( SocketType type, std::string_view hostName, UInt16 port) -> SocketHandle;
+        auto CreateNewSocketSync( SocketType type, std::string_view hostName, UInt16 port) -> SocketHandle;
+
+        // wait blocks the calling thread until this socket is fully created and rdy to use
+        auto CreateSocketHTTP( std::string_view hostName, bool wait) -> SocketHandle;
+
+        // wait blocks the calling thread until this socket is fully created and rdy to use
+        auto CreateSocketHTTPS( std::string_view hostName, bool wait) -> SocketHandle;
+
+        ~NetworkService() override = default;
 
     private:
         asio::io_context m_IoContext{};

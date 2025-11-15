@@ -70,7 +70,8 @@ namespace Mikoto::VulkanHelpers {
     // We take a set because for instance graphics queue and present queue could be the same, if u try to create two queues of same index program will crash
     MKT_NODISCARD auto SetupDeviceQueueCreateInfo(const std::set<UInt32>& uniqueQueueFamilies) -> std::vector<VkDeviceQueueCreateInfo>;
 
-    auto CopyImageToImage(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent3D imageSize) -> void;
+    auto CopyImageToImage(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent3D srcSize, VkExtent3D dstSize) -> void;
+    auto CopyImage(VkCommandBuffer cmd, VkImage srcImage, VkImageLayout srcLayout, VkImage dstImage, VkImageLayout dstLayout, VkExtent3D extent ) -> void;
 
     MKT_NODISCARD auto GetSwapChainSupport( const VkPhysicalDevice& device, const VkSurfaceKHR& surface ) -> SwapChainSupportDetails;
 

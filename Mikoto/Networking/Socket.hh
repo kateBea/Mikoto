@@ -5,12 +5,11 @@
 #ifndef SOCKET_HH
 #define SOCKET_HH
 
+#include <asio.hpp>
 #include <string>
 #include <string_view>
 
-#include <asio.hpp>
-
-#if defined(MKT_ALLOW_HTTPS)
+#if defined( MKT_ALLOW_HTTPS )
 #include <asio/ssl.hpp>
 #endif
 
@@ -39,16 +38,13 @@ namespace Mikoto {
     using SocketHandle = Ref<Socket>;
 
 
-    // TCP -------------------
     class TcpSocket final : public Socket {
     public:
-#if !defined(MKT_ALLOW_HTTPS)
-        TcpSocket( asio::io_context& ctx, std::string_view address, UInt16 port );
-#else
-      // HTTP Socket
-      TcpSocket( asio::io_context &ctx, asio::ssl::context &sslContext, std::string_view address, UInt16 port, bool ssl );
-      TcpSocket( asio::io_context &ctx, asio::ssl::context &sslContext, std::string_view address, UInt16 port, bool ssl, bool sync );
 
+        TcpSocket( asio::io_context& ctx, std::string_view address, UInt16 port, bool wait );
+
+#if defined( MKT_ALLOW_HTTPS )
+        TcpSocket( asio::io_context& ctx, asio::ssl::context& sslContext, std::string_view address, UInt16 port, bool wait = true );
 #endif
 
         auto Disconnect() -> void override;
@@ -69,17 +65,18 @@ namespace Mikoto {
         auto Initialize() -> void override;
         auto Release() -> void override;
 
-      auto InitConnectionSync() -> void;
+        auto InitConnectionSync() -> void;
 
     private:
         // To avoid keep reading if we reach eof
         asio::error_code m_ErrorCode{};
 
 #if defined( MKT_ALLOW_HTTPS )
-        asio::ssl::stream<asio::ip::tcp::socket> m_SslSocket;
         asio::ip::tcp::socket m_Socket;
+        asio::ssl::stream<asio::ip::tcp::socket>* m_SslSocket{ nullptr };
+
 #else
-        asio::ip::tcp::socket m_Socket;
+asio::ip::tcp::socket m_Socket;
 #endif
 
         UInt16 m_Port{};
@@ -88,7 +85,7 @@ namespace Mikoto {
         bool m_IsSsl{ false };
         bool m_Connected{ false };
 
-      bool m_InitSync{ false };
+        bool m_InitSync{ false };
     };
 }// namespace Mikoto
 

@@ -46,8 +46,8 @@ namespace Mikoto {
 
         ~ScenePanel() override = default;
 
-        MKT_NODISCARD auto GetViewportWidth() const -> float;
-        MKT_NODISCARD auto GetViewportHeight() const -> float;
+        MKT_NODISCARD auto GetWidth() const -> float;
+        MKT_NODISCARD auto GetHeight() const -> float;
 
     private:
         auto IsDisplayTextureValid() const -> bool;

@@ -496,7 +496,13 @@ namespace Mikoto {
         // Wait for pending operations
         WaitQueuesIdle();
 
-        m_PendingCmdLists.clear();
+        m_FrameCmdBuffers.clear();
+
+        m_AvailableGraphicsCommandLists.clear();
+        m_PendingGraphicsCommandLists.clear();
+
+        m_FrameCmdBuffers.clear();
+        m_FrameFences.clear();
 
         // Clear resources (pools, etc)
         m_Textures.Shutdown();
@@ -572,16 +578,20 @@ namespace Mikoto {
         for (const auto&[ frameIndex, frameFence ] : m_FrameFences) {
             if (frameFence != VK_NULL_HANDLE) {
                 VkResult result{ vkGetFenceStatus(m_LogicalDevice, frameFence) };
+
                 if (result == VK_SUCCESS) {
-                    auto it{ m_PendingCmdLists.find(frameIndex) };
-                    if (it != m_PendingCmdLists.end()) {
-                        it->second.clear();
+                    auto& frameCmdLists{ m_FrameCmdBuffers[frameIndex] };
+                    for (auto& frameCmdList : frameCmdLists) {
+                        vkResetCommandBuffer(frameCmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ), 0);
+
+                        m_AvailableGraphicsCommandLists.emplace_back( frameCmdList );
                     }
+
+                    frameCmdLists.clear();
                 }
             }
         }
 
-        m_CmdPools.GetResource()->RunGarbageCollection();
     }
 
     auto VulkanDevice::GetNativeHandle( ObjectType type ) -> Object {
@@ -589,24 +599,31 @@ namespace Mikoto {
     }
 
 
-    auto VulkanDevice::CreateCommandList( QueueType queue ) -> CommandListHandle {
-        // Get one from available if any
-        if (m_NextAvailableGraphicsCommandBufferIndex == m_AvailableGraphicsCommandLists.size()) {
-            // Resize. Find pool we can allocate command lists for the specified type of queue
-            CommandListHandle resultCommandList{};
+    auto VulkanDevice::CreateCommandList( QueueType ) -> CommandListHandle {
+        if (m_AvailableGraphicsCommandLists.empty() ) {
+            constexpr UInt32 growCount{ 10 };
 
-            // Get the first available pool
-            if ( VulkanCommandPoolHandle pool{ m_CmdPools.GetResource() }; !pool.IsEmpty() ) {
-                resultCommandList = pool->AllocateCmdList();
-                if ( resultCommandList.IsEmpty() ) {
-                    MKT_THROW_RUNTIME_ERROR( "VulkanDevice::CreateCommandList - Failed to allocate command list." );
+            m_AvailableGraphicsCommandLists.reserve( growCount );
+
+            for (UInt32 count{}; count < growCount; ++count) {
+                CommandListHandle cmd{};
+
+                if ( VulkanCommandPoolHandle pool{ m_CmdPools.GetResource() }; !pool.IsEmpty() ) {
+                    cmd = pool->AllocateCmdList();
+
+                    if ( cmd.IsEmpty() ) {
+                        MKT_THROW_RUNTIME_ERROR( "VulkanDevice::CreateCommandList - Failed to allocate command list." );
+                    }
+
+                    m_AvailableGraphicsCommandLists.emplace_back( cmd );
                 }
             }
-
-            return resultCommandList;
         }
 
-        return m_AvailableGraphicsCommandLists[m_NextAvailableGraphicsCommandBufferIndex++];
+        CommandListHandle resultCommandList{ m_AvailableGraphicsCommandLists.back() };
+        m_AvailableGraphicsCommandLists.pop_back();
+
+        return resultCommandList;
     }
 
     auto VulkanDevice::CreateBuffer( const BufferDescription& description ) -> BufferHandle {
@@ -698,10 +715,6 @@ namespace Mikoto {
         return m_PhysicalDeviceInfo.Properties.deviceName;
     }
 
-    auto VulkanDevice::GetDummyTexture() -> TextureHandle {
-        return AssetsService::Get()->GetDummyTexture();
-    }
-
     auto VulkanDevice::GetUniformBufferMinOffsetAlignment() const -> VkDeviceSize {
         return m_PhysicalDeviceInfo.Properties.limits.minUniformBufferOffsetAlignment;
     }
@@ -762,9 +775,8 @@ namespace Mikoto {
     auto VulkanDevice::SubmitCommands( CommandListHandle cmd ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        const UInt32 currentFrame{ VulkanContext::Get()->GetCurrentFrameIndex() };
-
-        m_PendingCmdList.emplace_back( cmd );
+        // TODO: thread safe
+        m_PendingGraphicsCommandLists.emplace_back( cmd );
     }
 
     auto VulkanDevice::CreateSwapChain( const VulkanSwapChainCreateInfo& createInfo ) -> SwapChainHandle {
@@ -797,15 +809,15 @@ namespace Mikoto {
 
         const UInt32 currentFrame{ VulkanContext::Get()->GetCurrentFrameIndex() };
 
-        // auto& cmdList = m_PendingCmdLists[currentFrame];
-        // if ( cmdList.empty() ) {
-        //     return;
-        // }
+        // This fence will be used to know the state of the commands submitted in this call
+        if (!m_FrameFences.contains( currentFrame ) || m_FrameFences.at(currentFrame) == VK_NULL_HANDLE ) {
+            m_FrameFences[currentFrame] = syncPrimitives.RenderFence;
+        }
 
         std::vector<VkCommandBufferSubmitInfo> cmdInfos;
-        cmdInfos.reserve( m_PendingCmdList.size() );
+        cmdInfos.reserve( m_PendingGraphicsCommandLists.size() );
 
-        for ( auto& commandBuffer: m_PendingCmdList ) {
+        for ( auto& commandBuffer: m_PendingGraphicsCommandLists ) {
             cmdInfos.push_back( VkCommandBufferSubmitInfo{
                     .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
                     .pNext = nullptr,
@@ -845,20 +857,15 @@ namespace Mikoto {
             .pSignalSemaphoreInfos = &signalSemaphoreInfo
         };
 
-        // Add the fence we will be waiting on later
-        if (!m_FrameFences.contains( currentFrame ) || m_FrameFences.at(currentFrame) == VK_NULL_HANDLE ) {
-            m_FrameFences[currentFrame] = syncPrimitives.RenderFence;
-        }
-
         MKT_VK_CHECK( vkQueueSubmit2( m_Queues.Graphics->Queue, 1, &submitInfo, syncPrimitives.RenderFence ) );
 
-        for (auto& cmd : m_PendingCmdList) {
+        for (auto& cmd : m_PendingGraphicsCommandLists) {
             cmd->SetIsSubmitted( true );
         }
 
-        std::ranges::move(m_PendingCmdList, std::back_inserter(m_PendingCmdLists[currentFrame]));
+        std::ranges::copy(m_PendingGraphicsCommandLists, std::back_inserter(m_FrameCmdBuffers[currentFrame]));
 
-        m_PendingCmdList.clear();
+        m_PendingGraphicsCommandLists.clear();
     }
 
     VulkanCmdList::VulkanCmdList( const VkCommandBufferAllocateInfo& createInfo )

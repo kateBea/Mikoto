@@ -191,6 +191,9 @@ namespace Mikoto {
             case ObjectType::Vk_ImageView:
                 return Object(m_ImageView );
 
+            case ObjectType::Vk_Format:
+                return Object( std::addressof( m_ImageCreateInfo.format ) );
+
             default:;
         }
 

@@ -37,7 +37,6 @@ namespace Mikoto {
         MKT_NODISCARD auto ConstructImGuiTextureID( TextureHandle texture ) -> ImTextureID override;
 
     private:
-        auto InitializeCommands() -> void;
         auto InitImGuiForVulkan() -> void;
         auto CreateRenderPass() -> void;
         auto CreateImages() -> void;
@@ -57,9 +56,6 @@ namespace Mikoto {
 
         VkRenderPass m_ImGuiRenderPass{};
         VkDescriptorPool m_ImGuiDescriptorPool{};
-
-        VkCommandPool m_ImGuiCommandPool{};
-        std::vector<CommandListHandle> m_ImGuiCommandBuffers{};
 
         TextureHandle m_ColorImage{};
         TextureHandle m_DepthImage{};

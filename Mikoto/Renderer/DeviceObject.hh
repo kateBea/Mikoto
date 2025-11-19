@@ -34,8 +34,6 @@ namespace Mikoto {
 
             return nullptr;
         }
-
-        bool IsValid() const { return type != Type::None; }
     };
 
 
@@ -43,6 +41,7 @@ namespace Mikoto {
         Vk_Device,
         Vk_Buffer,
         Vk_Sampler,
+        Vk_Format,
         Vk_Image,
         Vk_ImageView,
         Vk_Framebuffer,

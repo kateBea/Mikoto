@@ -299,6 +299,8 @@ namespace Mikoto {
         if (ret != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("VulkanContext::PrepareFrame - Failed to acquire swap chain image!");
         }
+
+        //m_Device->RunGarbageCollection();
     }
 
     auto VulkanContext::SubmitFrame() -> void {
@@ -323,8 +325,6 @@ namespace Mikoto {
         if ( result != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanDevice::PresentToSwapChain - Error failed present images to swapchain." );
         }
-
-        m_Device->RunGarbageCollection();
 
         m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % m_MaxFramesInFlight;
     }

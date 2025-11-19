@@ -142,8 +142,8 @@ sudo make mingw
 
 After this you would need to set the variables in your environment to point to the Lua installation path.
 - ``LUA_DIR``: Path to the Lua installation directory.
-- ``LUA_INCLUDE_DIR``: Path to the Lua include directory (usually ``<LUA_DIR>/include``).
-- ``LUA_LIBRARY``: Path to the Lua library file (usually ``<LUA_DIR>/lib/lua.a`` or ``<LUA_DIR>/lib/lua.lib`` or so).
+- ``LUA_INCLUDE_DIR``: Path to the Lua include directory.
+- ``LUA_LIBRARY``: Path to the Lua library file.
 
 If lua has been installed, the command ``lua -v`` should print something like the following:
 

@@ -117,14 +117,12 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetDeviceName() const -> std::string_view override;
 
-        MKT_NODISCARD auto GetDummyTexture() -> TextureHandle override;
-
         auto SubmitCommands( CommandListHandle cmd ) -> void override;
+        MKT_NODISCARD auto CreateCommandList( QueueType queue ) -> CommandListHandle override;
+
         auto RunGarbageCollection() -> void override;
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
-
-        MKT_NODISCARD auto CreateCommandList( QueueType queue ) -> CommandListHandle override;
 
         // Vulkan specifics ================================================
 
@@ -196,16 +194,11 @@ namespace Mikoto {
         ResourcePoolTyped<VulkanSampler> m_Samplers{};
         ResourcePoolTyped<DescriptorSetLayout> m_DescriptorSetLayouts{};
 
-        // We will keep a list of command buffers we can use per frame
-        // We reset them after submission. For now they are all cmd list from graphics queue
-        UInt32 m_NextAvailableGraphicsCommandBufferIndex{};
-        std::vector<CommandListHandle> m_AvailableGraphicsCommandLists{};
-
-
         ankerl::unordered_dense::map<UInt32, VkFence> m_FrameFences{};
-        ankerl::unordered_dense::map<UInt32, std::vector<CommandListHandle>> m_PendingCmdLists{};
+        ankerl::unordered_dense::map<UInt32, std::vector<CommandListHandle>> m_FrameCmdBuffers{};
 
-        std::deque<CommandListHandle> m_PendingCmdList{};
+        std::vector<CommandListHandle> m_AvailableGraphicsCommandLists{};
+        std::vector<CommandListHandle> m_PendingGraphicsCommandLists{};
 
         QueuesData m_Queues{};
 

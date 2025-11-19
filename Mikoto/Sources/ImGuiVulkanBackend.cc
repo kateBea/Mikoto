@@ -39,8 +39,6 @@ namespace Mikoto {
 
         InitImGuiForVulkan();
 
-        InitializeCommands();
-
         m_IsInitialized = true;
     }
 
@@ -51,31 +49,30 @@ namespace Mikoto {
             return;
         }
 
-        // Handles need to be disabled otherwise the destruction its deferred to this objects destruction where we might not have a context ready
+        // Handles need to be disabled as the destruction of the graphics context
+        // is deferred to the ImGuiService destruction where we might not have a context ready
         // Services in Mikoto do not do their cleanup in the destructor they do it on the Shutdown method
         m_ColorImage.Reset();
         m_DepthImage.Reset();
         m_DrawFrameBuffer.Reset();
 
-        // Clear texture IDs
-        // Wait before cearing the IDs
+        // Wait for remaining operations to complete
         TO_VK_DEVICE( m_GpuDevice )->WaitIdle();
-        for (ImGuiTextIDInfo& info : m_ImGuiSets | std::ranges::views::values ) {
-            ImGui_ImplVulkan_RemoveTexture( info.descriptorSet );
+
+        // Clear texture IDs
+        for (auto& [descriptorSet] : m_ImGuiSets | std::ranges::views::values ) {
+            ImGui_ImplVulkan_RemoveTexture( descriptorSet );
         }
 
         m_ImGuiSets.clear();
 
-        // Wait for remaining operations to complete
-        TO_VK_DEVICE( m_GpuDevice )->WaitIdle();
-
         ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();
 
-        m_ImGuiCommandBuffers.clear();
-
         vkDestroyRenderPass( VK_DEVICE( m_GpuDevice ), m_ImGuiRenderPass, nullptr );
         vkDestroyDescriptorPool( VK_DEVICE( m_GpuDevice ), m_ImGuiDescriptorPool, nullptr );
+
+        m_IsInitialized = false;
     }
 
     auto ImGuiVulkanBackend::BeginFrame() -> void {
@@ -179,7 +176,7 @@ namespace Mikoto {
         info.pSubpasses = &subpass;
 
         if ( vkCreateRenderPass( VK_DEVICE( m_GpuDevice ), std::addressof( info ), nullptr, std::addressof( m_ImGuiRenderPass ) ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "Failed to create render pass for the Vulkan Renderer!" );
+            MKT_THROW_RUNTIME_ERROR( "ImGuiVulkanBackend::CreateRenderPass - Failed to create render pass for the Vulkan Renderer!" );
         }
     }
 
@@ -248,16 +245,14 @@ namespace Mikoto {
         if (m_UseDynamicRendering) {
             initInfo.UseDynamicRendering = true;
 
-            const auto colorImage{ dynamic_cast<VulkanTexture *>(m_ColorImage.GetRaw()) };
-            const auto depthImage{ dynamic_cast<VulkanTexture *>(m_DepthImage.GetRaw()) };
-            VkFormat colorFormat{ colorImage->GetImageCreateInfo()->format };
-            VkFormat depthFormat{ depthImage->GetImageCreateInfo()->format };
+            VkFormat* colorFormat{ m_ColorImage->GetNativeHandle( ObjectType::Vk_Format ) };
+            VkFormat* depthFormat{ m_DepthImage->GetNativeHandle( ObjectType::Vk_Format ) };
 
             initInfo.PipelineInfoMain.PipelineRenderingCreateInfo = {
                 .sType{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO },
                 .colorAttachmentCount{ 1 },
-                .pColorAttachmentFormats{ std::addressof( colorFormat  ) },
-                .depthAttachmentFormat{ depthFormat },
+                .pColorAttachmentFormats{ colorFormat },
+                .depthAttachmentFormat{ *depthFormat },
             };
         }
 
@@ -317,12 +312,12 @@ namespace Mikoto {
 
         ImGui::Render();
 
-        const UInt32 swapChainImageIndex{ VulkanContext::Get()->GetCurrentImageIndex() };
+        const UInt32 swapchainAvailableImageIndex{ VulkanContext::Get()->GetCurrentImageIndex() };
 
-        CommandListHandle commandList{ m_ImGuiCommandBuffers[swapChainImageIndex] };
+        CommandListHandle commandList{ m_GpuDevice->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
         commandList->Begin();
 
-        RecordCommands( swapChain->GetImage( swapChainImageIndex ), commandList );
+        RecordCommands( swapChain->GetImage( swapchainAvailableImageIndex ), commandList );
 
         commandList->End();
         m_GpuDevice->SubmitCommands( commandList );
@@ -332,6 +327,7 @@ namespace Mikoto {
             ImGui::RenderPlatformWindowsDefault();
         }
     }
+
     auto ImGuiVulkanBackend::ConstructImGuiTextureID( const Texture* texture ) -> ImTextureID {
         ImTextureID result{};
 
@@ -363,6 +359,10 @@ namespace Mikoto {
     }
 
     auto ImGuiVulkanBackend::CreateFrameBuffer() -> void {
+        if (!m_UseDynamicRendering) {
+            return;
+        }
+
         FramebufferDescription description{};
         description
             .WithWidth( static_cast<Int32>( m_Extent2D.width ) )
@@ -430,17 +430,15 @@ namespace Mikoto {
     auto ImGuiVulkanBackend::RecordDynamicRenderCommands( CommandListHandle cmdList ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        VulkanTexture* colorImage{ dynamic_cast<VulkanTexture *>(m_ColorImage.GetRaw()) };
-        VulkanTexture* depthImage{ dynamic_cast<VulkanTexture *>(m_DepthImage.GetRaw()) };
-
-        std::array<VkClearValue, 2> clearValues{};                                                // Only one clear value for the color attachment
+        // Only one clear value for the color attachment
+        std::array<VkClearValue, 2> clearValues{};
         clearValues[0].color = { m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a };// Clear color for ImGui
         clearValues[1].depthStencil = { 1.0f, 0 };
 
         // Setup rendering color attachment
         VkRenderingAttachmentInfo colorAttachment{ VulkanHelpers::Initializers::RenderingAttachmentInfo() };
 
-        colorAttachment.imageView = *colorImage->GetView();
+        colorAttachment.imageView = m_ColorImage->GetNativeHandle( ObjectType::Vk_ImageView );
         colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -449,7 +447,7 @@ namespace Mikoto {
         // Setup rendering depth attachment
         VkRenderingAttachmentInfo depthAttachment{ VulkanHelpers::Initializers::RenderingAttachmentInfo() };
 
-        depthAttachment.imageView = *depthImage->GetView();
+        depthAttachment.imageView = m_DepthImage->GetNativeHandle( ObjectType::Vk_ImageView );
         depthAttachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -483,20 +481,6 @@ namespace Mikoto {
         }
 
         cmdList->CopyTexture( m_ColorImage.GetRaw(), swapChainDrawTarget.GetRaw() );
-    }
-
-    auto ImGuiVulkanBackend::InitializeCommands() -> void {
-
-        SwapChainHandle swp{ dynamic_cast<VulkanContext*>(RenderService::Get()->GetContext())->GetSwapchain() };
-        const Size swapchainImagesCount{  swp->GetImageCount() };
-
-        for (Size count{}; count < swapchainImagesCount; ++count) {
-            CommandListHandle cmd{ m_GpuDevice->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
-            if (!cmd.IsEmpty()) {
-                cmd->SetDebugName( fmt::format( "Mikoto ImGui VkCommandBuffer Index {}", count ) ) ;
-                m_ImGuiCommandBuffers.emplace_back( cmd );
-            }
-        }
     }
 
 }// namespace Mikoto

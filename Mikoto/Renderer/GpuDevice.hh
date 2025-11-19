@@ -81,8 +81,6 @@ namespace Mikoto {
 
         MKT_NODISCARD virtual auto GetNativeHandle( ObjectType type ) -> Object { return Object(nullptr); }
 
-        MKT_NODISCARD virtual auto GetDummyTexture( ) -> TextureHandle = 0;
-
         virtual auto RunGarbageCollection() -> void = 0;
 
         virtual ~GpuDevice() = default;

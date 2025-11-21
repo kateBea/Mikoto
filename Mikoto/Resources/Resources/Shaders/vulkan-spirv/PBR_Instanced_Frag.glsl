@@ -91,14 +91,14 @@ layout(set = 0, binding = 1) uniform LightUniformBuffer {
 // If a binding uses VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT, it must have the
 // highest binding number in that descriptor set. All other bindings must have smaller binding numbers.
 /**
-Since g_Textures has variable size
+Since g_BindlessTextures has variable size
 layout(set = 0, binding = 0) uniform FrameUBO { ... };
 layout(set = 0, binding = 1) uniform LightUniformBuffer { ... };
-layout(set = 1, binding = 0) uniform sampler2D g_Textures[];
+layout(set = 1, binding = 0) uniform sampler2D g_BindlessTextures[];
 
 layout(set = 2, binding = 0) readonly buffer InstanceData { ... };
 */
-layout(set = 1, binding = 0) uniform sampler2D g_Textures[];
+layout(set = 1, binding = 0) uniform sampler2D g_BindlessTextures[];
 
 // --------------------------------------------------
 // Per-instance storage buffer (same as vertex)
@@ -365,23 +365,23 @@ void main() {
     ShadingPassMeshBufferUBO materialParams = instances[inInstanceIndex];
 
     vec3 albedo     = materialParams.AlbedoIndex != INVALID_TEXTURE_INDEX ?
-    pow(texture(g_Textures[materialParams.AlbedoIndex], inTexCoord).rgb, vec3(2.2))
+    pow(texture(g_BindlessTextures[materialParams.AlbedoIndex], inTexCoord).rgb, vec3(2.2))
     : materialParams.Albedo.xyz;
 
     float metallic  = materialParams.MetallicIndex  != INVALID_TEXTURE_INDEX ?
-    texture(g_Textures[materialParams.MetallicIndex], inTexCoord).r
+    texture(g_BindlessTextures[materialParams.MetallicIndex], inTexCoord).r
     : materialParams.Factors.x;
 
     float roughness = materialParams.RoughnessIndex != INVALID_TEXTURE_INDEX ?
-    texture(g_Textures[materialParams.RoughnessIndex], inTexCoord).r
+    texture(g_BindlessTextures[materialParams.RoughnessIndex], inTexCoord).r
     : materialParams.Factors.y;
 
     float ao        = materialParams.AoIndex != INVALID_TEXTURE_INDEX ?
-    texture(g_Textures[materialParams.AoIndex], inTexCoord).r
+    texture(g_BindlessTextures[materialParams.AoIndex], inTexCoord).r
     : materialParams.Factors.z;
 
     vec3 N = materialParams.NormalIndex != INVALID_TEXTURE_INDEX
-    ? GetNormalFromMap(g_Textures[materialParams.NormalIndex])
+    ? GetNormalFromMap(g_BindlessTextures[materialParams.NormalIndex])
     : normalize(inNormals);
 
     vec3 V = normalize(inCameraPos - inFragmentPos);
@@ -399,5 +399,5 @@ void main() {
     color = pow(color, vec3(1.0 / 2.2));
 
     out_Color = DetermineOutFragmentColor(N, color, metallic, roughness, ao);
-    out_Color = vec4(color , 1.0);
+    out_Color = vec4(1.0,1.0,1.0 , 1.0);
 }

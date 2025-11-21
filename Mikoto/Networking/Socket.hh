@@ -41,7 +41,7 @@ namespace Mikoto {
     class TcpSocket final : public Socket {
     public:
 
-        TcpSocket( asio::io_context& ctx, std::string_view address, UInt16 port, bool wait );
+        TcpSocket( asio::io_context& ctx, std::string_view address, UInt16 port, bool wait = true );
 
 #if defined( MKT_ALLOW_HTTPS )
         TcpSocket( asio::io_context& ctx, asio::ssl::context& sslContext, std::string_view address, UInt16 port, bool wait = true );

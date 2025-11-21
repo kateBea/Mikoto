@@ -87,7 +87,7 @@ namespace Mikoto {
 
         auto ClearPools() -> void;
 
-        auto Allocate(VkDescriptorSetLayout layout, const void* pNext = nullptr) -> VkDescriptorSet*;
+        auto Allocate(const VkDescriptorSetLayout* layout, const void* pNext = nullptr) -> VkDescriptorSet*;
 
     private:
         auto GetPool() -> VkDescriptorPool;

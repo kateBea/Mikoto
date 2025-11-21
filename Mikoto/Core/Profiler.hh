@@ -14,12 +14,9 @@
 namespace Mikoto {
 
 #if !defined(NDEBUG)
-#define MKT_BEGIN_PROFILER(name)  ZoneScopedNS( name, 30 );
-#define MKT_BEGIN_PROFILER_NAMED()  ZoneScopedNS( __PRETTY_FUNCTION__ , 30 );
-#define MKT_END_PROFILER()   EndProfilingZone()
+#define MKT_BEGIN_PROFILER_NAMED() 
 #else
-#define MKT_BEGIN_PROFILER(name)
-#define MKT_END_PROFILER()
+#define MKT_BEGIN_PROFILER_NAMED()
 #endif
 
 

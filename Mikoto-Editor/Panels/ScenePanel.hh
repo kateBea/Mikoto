@@ -55,6 +55,7 @@ namespace Mikoto {
         auto SetupManipulation() const -> void;
         auto DrawManipulationGuizmos() -> void;
         auto DrawSceneToolbar() const -> void;
+        auto CreateImguiTextureID() -> void;
 
     private:
         EditorState* m_EditorState{};

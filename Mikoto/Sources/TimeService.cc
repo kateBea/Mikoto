@@ -95,8 +95,6 @@ namespace Mikoto {
     }
 
     auto TimeService::Shutdown() -> void {
-        MKT_BEGIN_PROFILER( __PRETTY_FUNCTION__ );
-
         if (!m_IsInitialized) {
             return;
         }

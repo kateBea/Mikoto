@@ -5,9 +5,7 @@
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 
-#include <tracy/Tracy.hpp>
-
-    // Project Headers
+// Project Headers
 #include <ImGui/IconsFontAwesome5.h>
 #include <ImGui/IconsMaterialDesign.h>
 #include <ImGui/IconsMaterialDesignIcons.h>

@@ -1,6 +1,13 @@
-cmake_minimum_required(VERSION 3.22)
+﻿cmake_minimum_required(VERSION 3.22)
 
+cmake_policy(SET CMP0091 NEW)
+
+# Disable IPO globally
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
+
+# Force disable for all targets (even if subprojects enable it)
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
+set_property(GLOBAL PROPERTY INTERPROCEDURAL_OPTIMIZATION FALSE)
 
 project(Mikoto
         VERSION 1.0
@@ -13,7 +20,7 @@ project(Mikoto
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CPP_RTTI_ENABLED ON)
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 
 # ===========================
 # Platform-specific settings
@@ -24,12 +31,14 @@ if(WIN32)
 
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+        # Propagate CRT type to all sub-targets
+        set_property(GLOBAL PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     else()
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
     endif()
 
-    #add_compile_options(/W4 /fsanitize=address)
-    #add_link_options(/fsanitize=address)
+    add_compile_options(/MP)
 
     set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
 

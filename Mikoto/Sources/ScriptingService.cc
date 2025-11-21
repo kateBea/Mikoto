@@ -2,15 +2,17 @@
 // Created by zanet on 4/16/2025.
 //
 
-#include "Scripting/ScriptingService.hh"
+
+#include <sol/sol.hpp>
+
 
 #include <Core/Profiler.hh>
 #include <Filesystem/FileService.hh>
 #include <Logging/Logger.hh>
+#include <Scripting/ScriptingService.hh>
 
 namespace Mikoto {
 
-#if defined(__linux__)
     static auto TestCode() -> void {
         sol::state lua;
 
@@ -34,7 +36,6 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR( fmt::format( "Lua exception: {}", e.what() ) );
         }
     }
-#endif
 
 
     ScriptingService::ScriptingService( const ScriptingServiceDescription & ) {
@@ -45,9 +46,7 @@ namespace Mikoto {
 
         MKT_CORE_LOGGER_INFO("Initializing LuaService...");
 
-#if defined(__linux__)
         TestCode();
-#endif
 
         m_IsInitialized = true;
     }

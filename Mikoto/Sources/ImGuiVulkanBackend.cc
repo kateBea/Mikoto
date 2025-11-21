@@ -9,11 +9,13 @@
 #include <ranges>
 
 // Third-Party Libraries
+#include <volk.h>
+
 #include <GLFW/glfw3.h>
+
+#include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_vulkan.h>
-#include <imgui.h>
-#include <volk.h>
 
 // Important to include after imgui
 #include <ImGuizmo.h>
@@ -331,9 +333,9 @@ namespace Mikoto {
     auto ImGuiVulkanBackend::ConstructImGuiTextureID( const Texture* texture ) -> ImTextureID {
         ImTextureID result{};
 
-        // if (dynamic_cast<const VulkanTexture*>(texture)->GetCurrentLayout() != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-        //     return result;
-        // }
+         if ( dynamic_cast<const VulkanTexture*>( texture )->GetCurrentLayout() != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ) {
+            return result;
+        }
 
         auto itFind{ m_ImGuiSets.find( texture ) };
         if ( itFind != m_ImGuiSets.end() ) {

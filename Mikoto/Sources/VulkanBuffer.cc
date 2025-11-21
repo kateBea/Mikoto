@@ -29,6 +29,11 @@ namespace Mikoto {
         m_Buffer = VK_NULL_HANDLE;
         m_VmaAllocation = nullptr;
 
+        if (m_Data) {
+            delete[] m_Data;
+            m_Data = nullptr;
+        }
+
         m_IsAllocated = false;
     }
 
@@ -44,6 +49,10 @@ namespace Mikoto {
         // Copy data over if created from a block
         if (m_Data) {
             CopyFromBlock( m_Data, m_SizeBytes );
+
+            // Free retained data after upload
+            delete[] m_Data;
+            m_Data = nullptr;
         }
 
         m_DebugName = fmt::format( "MikotoBuffer {}, Pool ID: {}", reinterpret_cast<UInt64>( m_Buffer ), GetHandle() );
@@ -61,6 +70,13 @@ namespace Mikoto {
     VulkanBuffer::VulkanBuffer( const BufferDescription& createInfo )
         : Buffer{ createInfo.Data, createInfo.SizeBytes, createInfo.Usage, createInfo.UsageType, createInfo.Type } {
         m_BufferCreateInfo = VulkanHelpers::Initializers::BufferCreateInfo();
+
+        // Retain data 
+        // FIXME: This is done because data held by m_Data must be valid until after Initialize is called
+        if ( createInfo.Data ) {
+            m_Data = new Byte[m_SizeBytes];
+            std::memcpy( static_cast<void*>(m_Data), static_cast<const void*>(createInfo.Data), m_SizeBytes );
+        }
 
         // Let a VMA library select the optimal memory type unless specified
         m_AllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;

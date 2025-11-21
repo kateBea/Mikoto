@@ -29,6 +29,8 @@ namespace Mikoto::VulkanPasses {
 
         auto BindDefaultSets(VkDescriptorSet& set, UInt32 setIndex ) -> void;
 
+        auto GetPipeline() const -> PipelineHandle { return m_Pipeline; }
+
         auto WantStoreOP(bool enable) -> void;
         auto SetClearColor(const Vec4F& color) -> void;
 
@@ -79,10 +81,7 @@ namespace Mikoto::VulkanPasses {
         BufferHandle m_InstanceSSBO{};
         VkDescriptorSet m_MeshDataSet{};
 
-#if !defined(NDEBUG)
-    UInt32 m_DrawCalls{};
-#endif
-
+        UInt32 m_DrawCalls{};
     };
 
     // Dummy compute pipeline we will use for testing only for now
@@ -106,7 +105,6 @@ namespace Mikoto::VulkanPasses {
 
         BufferHandle m_StorageBuffer{};
         VkDescriptorSet m_DescriptorSet{};
-        DescriptorSetLayoutHandle m_ComputeLayout{};
 
         CommandListHandle m_CmdList{};
     };

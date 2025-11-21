@@ -13,6 +13,7 @@
 #include <Common/ReferenceCounted.hh>
 
 namespace Mikoto {
+
     class IPipeline : public DeviceObject {
     public:
         ~IPipeline() override = default;
@@ -57,8 +58,6 @@ namespace Mikoto {
     public:
         explicit ComputePipeline(const ComputePipelineDescription& desc)
             : IPipeline{ PipelineType::COMPUTE_PIPELINE, { desc.Stage } } {}
-
-    private:
     };
 
     // Note: for now this will always be the same layout as the Models, see Model.hh
@@ -107,11 +106,140 @@ namespace Mikoto {
         std::vector<TextureHandle> ColorAttachments{};
     };
 
+    /**
+     * @class GraphicsPipeline
+     * @brief Represents a graphics pipeline in the graphics API.
+     *
+     * This class encapsulates the properties and methods required to create and manage a graphics pipeline.
+     * It is designed to be used with the Vulkan graphics API.
+     */
     class GraphicsPipeline : public IPipeline {
     public:
         explicit GraphicsPipeline(const std::vector<ShaderModuleHandle>& modules = {})
             : IPipeline{ PipelineType::GRAPHICS_PIPELINE, modules }
         {}
+
+
+        /**
+         * @brief Query whether backface culling is enabled.
+         * @return true if backface culling is enabled, false otherwise.
+         */
+        MKT_NODISCARD auto GetBackfaceCulling() const -> bool { return m_BackfaceCulling; }
+
+        /**
+         * @brief Enable or disable backface culling.
+         * @param enabled true to enable, false to disable.
+         */
+        auto SetBackfaceCulling(bool enabled) -> void { m_BackfaceCulling = enabled; }
+
+        /**
+         * @brief Query whether depth testing is enabled.
+         * @return true if depth testing is enabled, false otherwise.
+         */
+        MKT_NODISCARD auto GetDepthTest() const -> bool { return m_DepthTest; }
+
+        /**
+         * @brief Enable or disable depth testing.
+         * @param enabled true to enable, false to disable.
+         */
+        auto SetDepthTest(bool enabled) -> void { m_DepthTest = enabled; }
+
+        /**
+         * @brief Query whether depth writes to the depth buffer are enabled.
+         * @return true if depth writes are enabled, false otherwise.
+         */
+        MKT_NODISCARD auto GetDepthWrite() const -> bool { return m_DepthWrite; }
+
+        /**
+         * @brief Enable or disable writing to the depth buffer.
+         * @param enabled true to enable, false to disable.
+         */
+        auto SetDepthWrite(bool enabled) -> void { m_DepthWrite = enabled; }
+
+        /**
+         * @brief Query whether stencil testing is enabled.
+         * @return true if stencil testing is enabled, false otherwise.
+         */
+        MKT_NODISCARD auto GetStencilTest() const -> bool { return m_StencilTest; }
+
+        /**
+         * @brief Enable or disable stencil testing.
+         * @param enabled true to enable, false to disable.
+         */
+        auto SetStencilTest(bool enabled) -> void { m_StencilTest = enabled; }
+
+        /**
+         * @brief Query whether alpha blending is enabled for color attachments.
+         * @return true if alpha blending is enabled, false otherwise.
+         */
+        MKT_NODISCARD auto GetAlphaBlending() const -> bool { return m_AlphaBlending; }
+
+        /**
+         * @brief Enable or disable alpha blending for color attachments.
+         * @param enabled true to enable, false to disable.
+         */
+        auto SetAlphaBlending(bool enabled) -> void { m_AlphaBlending = enabled; }
+
+        /**
+         * @brief Query whether polygon rendering uses wireframe mode.
+         * @return true if wireframe mode is enabled, false otherwise.
+         */
+        MKT_NODISCARD auto GetWireframe() const -> bool { return m_Wireframe; }
+
+        /**
+         * @brief Enable or disable wireframe rendering.
+         * @param enabled true to enable wireframe, false to render filled polygons.
+         */
+        auto SetWireframe(bool enabled) -> void { m_Wireframe = enabled; }
+
+        /**
+         * @brief Get the line width used in wireframe rendering.
+         * @return The line width in pixels (or API's unit) used when wireframe is enabled.
+         */
+        MKT_NODISCARD auto GetWireframeLineWidth() const -> float { return m_WireframeLineWidth; }
+
+        /**
+         * @brief Set the line width for wireframe rendering.
+         * @param width Line width in pixels (or API-specific units). Must be > 0.
+         */
+        auto SetWireframeLineWidth(float width) -> void { m_WireframeLineWidth = width; }
+
+        /**
+         * @brief Get the depth compare operation used for depth testing.
+         * @return The configured DepthCompareOp.
+         */
+        MKT_NODISCARD auto GetDepthCompareOp() const -> DepthCompareOp { return m_DepthCompareOp; }
+
+        /**
+         * @brief Set the depth compare operation used when performing depth tests.
+         * @param op DepthCompareOp value describing the comparison function.
+         */
+        auto SetDepthCompareOp(DepthCompareOp op) -> void { m_DepthCompareOp = op; }
+
+        /**
+         * @brief Get the primitive topology used by the pipeline (triangles, lines, etc.).
+         * @return The configured Topology.
+         */
+        MKT_NODISCARD auto GetTopology() const -> Topology { return m_Topology; }
+
+        /**
+         * @brief Set the primitive topology for drawing.
+         * @param topology The Topology to use for draw calls.
+         */
+        auto SetTopology(Topology topology) -> void { m_Topology = topology; }
+
+        /**
+         * @brief Get the default vertex buffer layout used by the pipeline.
+         * @return A const reference to the BufferLayout used for vertex inputs.
+         * @note The returned reference is non-owning; do not modify unless intended.
+         */
+        MKT_NODISCARD auto GetDefaultVertexLayout() const -> const BufferLayout& { return DefaultVertexLayout; }
+
+        /**
+         * @brief Set the default vertex buffer layout for the pipeline.
+         * @param layout The BufferLayout describing vertex attributes and stride.
+         */
+        auto SetDefaultVertexLayout(const BufferLayout& layout) -> void { DefaultVertexLayout = layout; }
 
     protected:
         bool m_BackfaceCulling{ true };
@@ -122,8 +250,8 @@ namespace Mikoto {
         bool m_Wireframe{ false };
         float m_WireframeLineWidth{ 1.0f };
 
-        DepthCompareOp m_DepthCompareOp{};
         Topology m_Topology{ Topology::TRIANGLE_LIST };
+        DepthCompareOp m_DepthCompareOp{ DepthCompareOp::ALWAYS };
         BufferLayout DefaultVertexLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT };
     };
 }

@@ -138,7 +138,7 @@ namespace Mikoto {
         // Configure and initialize the engine
         const RootConfig config{
             .LockFrameRate{ configApp.Get<bool>( "renderer.vsync", false ) },
-            .TargetWindow{ m_Window.get() }
+            .TargetWindow{ m_Window }
         };
 
         Root::Init( config );
@@ -147,7 +147,7 @@ namespace Mikoto {
 
         m_LayerStack.PushLayer<GameLayer>( "Game - Layer" );
         m_LayerStack.PushLayer<MusicPlayerLayer>( "MusicPlayer - Layer" );
-        m_LayerStack.PushLayer<GraphicsLayer>( "Graphics - Layer", m_Window.get() );
+        m_LayerStack.PushLayer<GraphicsLayer>( "Graphics - Layer", m_Window );
         m_LayerStack.PushLayer<NetworkLayer>( "Network - Layer" );
     }
 
@@ -157,6 +157,10 @@ namespace Mikoto {
         m_LayerStack.Shutdown();
 
         Root::Shutdown();
+
+        m_Window->Shutdown();
+
+        delete m_Window;
     }
 
     auto SandboxApp::Update() -> void {

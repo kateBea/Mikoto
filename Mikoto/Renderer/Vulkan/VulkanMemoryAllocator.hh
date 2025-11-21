@@ -35,11 +35,17 @@ namespace Mikoto {
         auto MapBuffer(VulkanBuffer* buffer ) const -> void;
         auto UnmapBuffer(VulkanBuffer* buffer ) const -> void;
 
+        // These are slow use for debug only
+        MKT_NODISCARD auto GetMemoryUsage() const -> Size override;
+        MKT_NODISCARD auto GetMemoryTotal() const -> Size override;
+        MKT_NODISCARD auto GetMemoryAvailable() const -> Size override;
+
     private:
         // Map/Unmap Device memory to cpu accessible memory (map = true to map, false to unmap)
         auto MapBuffer( VulkanBuffer* buffer, bool map) const -> void;
 
     private:
+        mutable VmaTotalStatistics m_Stats{};
 
 #if !defined(NDEBUG)
         //std::unordered_set<std::string> m_DebugNames{};

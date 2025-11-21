@@ -66,8 +66,6 @@ namespace Mikoto {
 
         auto OnEvent(Event &event) -> void override;
 
-        ~EditorLayer() override = default;
-
     private:
         auto UpdatePanels(float timeStep) -> void;
 
@@ -87,9 +85,6 @@ namespace Mikoto {
 
         auto PrepareNewScene() -> void;
         auto PrepareSerialization() -> void;
-
-        auto LoadPrefabModels() const -> void;
-        auto LoadPrefabFonts() const -> void;
 
         auto SetupRenderer(double timeStep) -> void;
         auto SetupCamera(double timeStep) -> void;

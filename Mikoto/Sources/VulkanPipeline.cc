@@ -107,10 +107,18 @@ namespace Mikoto {
             case ObjectType::Vk_Pipeline:
                 return Object(m_Pipeline );
 
+            case ObjectType::Vk_DescriptorSetLayout:
+                return Object( m_ReflectionData.setLayouts.data() );
+
             default:;
         }
 
         return Object(nullptr);
+    }
+
+    auto VulkanGraphicsPipeline::GetDescriptorSetLayout( UInt32 index ) const -> const VkDescriptorSetLayout& {
+        MKT_ASSERT( index < m_ReflectionData.setLayouts.size(), "VulkanGraphicsPipeline::GetDescriptorSetLayout - Index out of bounds." );
+        return m_ReflectionData.setLayouts.at(index);
     }
 
     VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
@@ -226,6 +234,11 @@ namespace Mikoto {
         }
     }
 
+    auto VulkanComputePipeline::GetDescriptorSetLayout( UInt32 index ) const -> const VkDescriptorSetLayout& {
+        MKT_ASSERT( index < m_ReflectionData.setLayouts.size(), "VulkanGraphicsPipeline::GetDescriptorSetLayout - Index out of bounds." );
+        return m_ReflectionData.setLayouts.at( index );
+    }
+
     auto VulkanComputePipeline::Initialize() -> void {
         VkComputePipelineCreateInfo computePipelineCreateInfo{ VulkanHelpers::Initializers::ComputePipelineCreateInfo() };
 
@@ -261,12 +274,14 @@ namespace Mikoto {
 
     auto VulkanComputePipeline::GetNativeHandle( ObjectType type ) -> Object {
         switch (type) {
-
             case ObjectType::Vk_PipelineLayout:
                 return Object(m_ReflectionData.pipelineLayout);
 
             case ObjectType::Vk_Pipeline:
                 return Object(m_Pipeline );
+
+            case ObjectType::Vk_DescriptorSetLayout:
+                return Object( m_ReflectionData.setLayouts.data() );
 
             default:;
         }

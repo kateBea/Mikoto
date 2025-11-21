@@ -2,13 +2,14 @@
 // Created by zanet on 1/26/2025.
 //
 
+#include <cstdarg>
+#include <utility>
+
+#include <Core/Profiler.hh>
 #include <Logging/Logger.hh>
 #include <Physics/PhysicService.hh>
 #include <Scene/Component.hh>
 #include <Scene/Scene.hh>
-#include <cstdarg>
-#include <tracy/Tracy.hpp>
-#include <utility>
 
 namespace Mikoto {
 
@@ -38,8 +39,9 @@ namespace Mikoto {
 
         m_IsInitialized = false;
     }
-    void PhysicService::Update( float dt ) {
-        ZoneScopedNS("PhysicService::Update", 60);
+
+    auto PhysicService::Update( float dt ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
 
         if (m_PhysicsBase) {
             m_PhysicsBase->Update( dt );

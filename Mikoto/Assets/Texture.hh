@@ -87,18 +87,38 @@ namespace Mikoto {
             return m_Type;
         }
 
+        /**
+         * @brief Gets the usage of the texture.
+         *
+         * @return The texture usage (e.g., color, depth).
+         */
         MKT_NODISCARD auto GetTextureUsage() const -> TextureUsage {
             return m_TextureUsage;
         }
 
+        /**
+         * @brief Gets the associated sampler for the texture.
+         *
+         * @return The sampler handle associated with the texture.
+         */
         MKT_NODISCARD auto GetSampler() const -> SamplerHandle {
             return m_Sampler;
         }
 
+        /**
+         * @brief Checks if the texture has an associated sampler.
+         *
+         * @return `true` if a sampler is associated with the texture, otherwise `false`.
+         */
         MKT_NODISCARD auto HasSampler() const -> bool {
             return !m_Sampler.IsEmpty();
         }
 
+        /**
+         * @brief Sets the sampler for the texture.
+         *
+         * @param sampler The sampler handle to associate with the texture.
+         */
         auto SetSampler(const SamplerHandle& sampler) -> void {
             m_Sampler = sampler;
         }
@@ -110,6 +130,41 @@ namespace Mikoto {
          */
         ~Texture() override = default;
 
+        /**
+         * @brief Gets the URI of the texture.
+         *
+         * @return The URI of the texture as a string reference.
+         */
+        MKT_NODISCARD auto GetTextureUri() const -> const std::string& {
+            return m_TextureUri;
+        }
+
+        /**
+         * @brief Gets the name of the texture.
+         *
+         * @return The name of the texture as a string reference.
+         */
+        MKT_NODISCARD auto GetTextureName() const -> const std::string& {
+            return m_TextureName;
+        }
+
+        /**
+         * @brief Sets the URI of the texture.
+         *
+         * @param uri The URI to set for the texture.
+         */
+        auto SetTextureUri( const std::string_view uri ) -> void {
+            m_TextureUri = uri;
+        }
+
+        /**
+         * @brief Sets the name of the texture.
+         *
+         * @param name The name to set for the texture.
+         */
+        auto SetTextureName( const std::string_view name ) -> void {
+            m_TextureName = name;
+        }
     protected:
         /**
          * @brief Protected constructor for the Texture class.
@@ -138,6 +193,10 @@ namespace Mikoto {
         Int32 m_Channels{};
 
         SamplerHandle m_Sampler{};
+
+        std::string m_TextureUri{ "" };
+        std::string m_TextureName{ "" };
+
     };
 
     using TextureHandle = Ref<Texture>;

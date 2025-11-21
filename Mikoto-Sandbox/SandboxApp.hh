@@ -28,7 +28,7 @@ namespace Mikoto {
     private:
         auto SetupEventCallbacks() -> void;
 
-        Unique<Window> m_Window{};
+        Window* m_Window{};
     };
 }
 

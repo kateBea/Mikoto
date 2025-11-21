@@ -7,14 +7,18 @@
 #define MIKOTO_COMMON_HH
 
 // C++ Standard Libraries
-#include <filesystem>
-#include <fstream>
+#include <new>
 #include <string>
 #include <array>
-#include <new>
+#include <filesystem>
+#include <fstream>
+#include <cstdio>
 
 #include <fmt/format.h>
+#include <fmt/color.h>
 #include <cpptrace/cpptrace.hpp>
+
+#include <Core/Exception.hh>
 
 // Project Headers
 
@@ -40,7 +44,7 @@
 
 #define MKT_THROW_RUNTIME_ERROR(MESSAGE) \
     cpptrace::generate_trace().print(); \
-    throw std::runtime_error(fmt::format("Message: {}\n@File: {}\n@Line: {}", MESSAGE, __FILE__, __LINE__))
+    throw Mikoto::RuntimeException( fmt::format( "Message: {}\n@File: {}\n@Line: {}", MESSAGE, __FILE__, __LINE__ ) )
 
 /**
  * Disable copy constructor and operator, move constructor

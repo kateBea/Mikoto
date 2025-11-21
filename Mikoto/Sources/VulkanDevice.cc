@@ -572,32 +572,22 @@ namespace Mikoto {
         return texture;
     }
 
-    auto VulkanDevice::RunGarbageCollection() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        for (const auto&[ frameIndex, frameFence ] : m_FrameFences) {
-            if (frameFence != VK_NULL_HANDLE) {
-                VkResult result{ vkGetFenceStatus(m_LogicalDevice, frameFence) };
-
-                if (result == VK_SUCCESS) {
-                    auto& frameCmdLists{ m_FrameCmdBuffers[frameIndex] };
-                    for (auto& frameCmdList : frameCmdLists) {
-                        vkResetCommandBuffer(frameCmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ), 0);
-
-                        m_AvailableGraphicsCommandLists.emplace_back( frameCmdList );
-                    }
-
-                    frameCmdLists.clear();
-                }
-            }
-        }
-
-    }
-
     auto VulkanDevice::GetNativeHandle( ObjectType type ) -> Object {
         return Object( m_LogicalDevice );
     }
 
+
+    auto VulkanDevice::GetMemoryUsage() const -> Size {
+        return m_GpuAllocator->GetMemoryUsage();
+    }
+
+    auto VulkanDevice::GetMemoryTotal() const -> Size {
+        return m_GpuAllocator->GetMemoryTotal();
+    }
+
+    auto VulkanDevice::GetMemoryAvailable() const -> Size {
+        return m_GpuAllocator->GetMemoryAvailable();
+    }
 
     auto VulkanDevice::CreateCommandList( QueueType ) -> CommandListHandle {
         if (m_AvailableGraphicsCommandLists.empty() ) {
@@ -608,6 +598,7 @@ namespace Mikoto {
             for (UInt32 count{}; count < growCount; ++count) {
                 CommandListHandle cmd{};
 
+                // TODO: Support other queue types
                 if ( VulkanCommandPoolHandle pool{ m_CmdPools.GetResource() }; !pool.IsEmpty() ) {
                     cmd = pool->AllocateCmdList();
 
@@ -627,7 +618,7 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreateBuffer( const BufferDescription& description ) -> BufferHandle {
-        BufferHandle buffer{ m_Buffers.Allocate( description ).As<Buffer>() };
+        BufferHandle buffer{ m_Buffers.Allocate( description ) };
         if ( buffer.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateBuffer - Failed to allocate buffer resource." );
             return BufferHandle::CreateEmpty();
@@ -639,7 +630,7 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreateFrameBuffer( const FramebufferDescription& description ) -> FramebufferHandle {
-        FramebufferHandle framebuffer{ m_Framebuffers.Allocate( description ).As<Framebuffer>() };
+        FramebufferHandle framebuffer{ m_Framebuffers.Allocate( description ) };
         if ( framebuffer.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateFrameBuffer - Failed to allocate framebuffer resource." );
             return FramebufferHandle::CreateEmpty();
@@ -651,7 +642,7 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreateSampler( const SamplerDescription& description ) -> SamplerHandle {
-        SamplerHandle sampler{ m_Samplers.Allocate( description ).As<Sampler>() };
+        SamplerHandle sampler{ m_Samplers.Allocate( description ) };
         if ( sampler.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateSampler - Failed to allocate sampler resource." );
             return SamplerHandle::CreateEmpty();
@@ -663,7 +654,7 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreatePipeline( const ComputePipelineDescription& description ) -> PipelineHandle {
-        PipelineHandle computePipeline{ m_ComputePipelines.Allocate( description ).As<IPipeline>() };
+        PipelineHandle computePipeline{ m_ComputePipelines.Allocate( description ) };
         if ( computePipeline.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreatePipeline - Failed to allocate compute pipeline resource." );
             return PipelineHandle::CreateEmpty();
@@ -751,7 +742,7 @@ namespace Mikoto {
         return m_Queues;
     }
 
-    auto VulkanDevice::AllocateDescriptorSet( const VkDescriptorSetLayout& layout, const void* pNext ) -> VkDescriptorSet {
+    auto VulkanDevice::AllocateDescriptorSet( const VkDescriptorSetLayout* layout, const void* pNext ) -> VkDescriptorSet {
         VkDescriptorSet result{ *m_DescriptorAllocator.Allocate( layout, pNext ) };
         if ( result != VK_NULL_HANDLE ) {
             return result;
@@ -761,7 +752,7 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::AllocateDescriptorSetLayout( const VkDescriptorSetLayoutCreateInfo& layout ) -> DescriptorSetLayoutHandle {
-        DescriptorSetLayoutHandle setLayout{ m_DescriptorSetLayouts.Allocate( layout ).As<DescriptorSetLayout>() };
+        DescriptorSetLayoutHandle setLayout{ m_DescriptorSetLayouts.Allocate( layout ) };
         if ( setLayout.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::AllocateDescriptorSetLayout - Failed to allocate texture resource with VkImageViewCreateInfo." );
             return DescriptorSetLayoutHandle::CreateEmpty();
@@ -789,7 +780,7 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreateSwapChainTextures( const VkImageViewCreateInfo& createInfo, VkExtent2D extent ) -> TextureHandle {
-        TextureHandle texture{ m_Textures.Allocate( createInfo, extent ).As<Texture>() };
+        TextureHandle texture{ m_Textures.Allocate( createInfo, extent ) };
         if ( texture.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateBuffer - Failed to allocate texture resource with VkImageViewCreateInfo." );
             return TextureHandle::CreateEmpty();
@@ -802,6 +793,30 @@ namespace Mikoto {
 
     auto VulkanDevice::IsBindlessEnabled() const -> bool {
         return m_IsBindlessEnabled;
+    }
+
+    auto VulkanDevice::RunGarbageCollection() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        const UInt32 frameIndex{ VulkanContext::Get()->GetCurrentFrameIndex() };
+
+        if ( m_FrameFences.contains( frameIndex ) ) {
+            VkFence& inFlightFrameFence{ m_FrameFences[frameIndex] };
+
+            if ( inFlightFrameFence != VK_NULL_HANDLE ) {
+                //VkResult result{ vkGetFenceStatus( m_LogicalDevice, inFlightFrameFence ) };
+
+                auto& frameCmdLists{ m_FrameCmdBuffers[frameIndex] };
+
+                for ( auto& frameCmdList: frameCmdLists ) {
+                    vkResetCommandBuffer( frameCmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ), 0 );
+
+                    m_AvailableGraphicsCommandLists.emplace_back( frameCmdList );
+                }
+
+                frameCmdLists.clear();
+            }
+        }
     }
 
     auto VulkanDevice::FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void {
@@ -858,10 +873,6 @@ namespace Mikoto {
         };
 
         MKT_VK_CHECK( vkQueueSubmit2( m_Queues.Graphics->Queue, 1, &submitInfo, syncPrimitives.RenderFence ) );
-
-        for (auto& cmd : m_PendingGraphicsCommandLists) {
-            cmd->SetIsSubmitted( true );
-        }
 
         std::ranges::copy(m_PendingGraphicsCommandLists, std::back_inserter(m_FrameCmdBuffers[currentFrame]));
 
@@ -922,6 +933,10 @@ namespace Mikoto {
             vkDest->GetCreateInfo().extent.height,
             1
         };
+
+        if (src->GetUsage() == BufferUsage::BUFFER_USAGE_INDEX) {
+            MKT_CORE_LOGGER_ERROR( "VulkanCmdList::FillTexture - Trying to fill a texture from an index buffer. This is not supported." );
+        }
 
         // Issue the copy command
         vkCmdCopyBufferToImage(
@@ -1068,7 +1083,7 @@ namespace Mikoto {
 
     auto VulkanCommandPool::RunGarbageCollection() -> void {
         for (auto it = m_CmdLists.begin(); it != m_CmdLists.end(); ++it ) {
-            if (!it->second.IsEmpty() && it->second.As<VulkanCmdList>()->IsSubmitted() && it->second->GetRefCount() == 1) {
+            if (!it->second.IsEmpty() && it->second->GetRefCount() == 1) {
                 m_CmdLists.Release( it->second->GetHandle() );
             }
         }

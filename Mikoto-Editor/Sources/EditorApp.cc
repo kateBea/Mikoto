@@ -46,7 +46,7 @@ namespace Mikoto {
             { PrefabModels::CONE, "Resources/Models/Prefabs/cone/gltf/scene.gltf" },
             { PrefabModels::SPHERE, "Resources/Models/Prefabs/sphere/gltf/scene.gltf" },
             { PrefabModels::CYLINDER, "Resources/Models/Prefabs/cylinder/gltf/scene.gltf" },
-            //{ PrefabModels::SPONZA, "Resources/Models/Prefabs/sponza/sponza.obj" },
+            { PrefabModels::SPONZA, "Resources/Models/Prefabs/sponza/sponza.obj" }
         };
 
         for ( const auto &val: m_PrefabModels | std::views::values ) {

@@ -32,6 +32,8 @@ cmake_policy(SET CMP0069 NEW)
 cmake_policy(SET CMP0135 NEW)
 cmake_policy(SET CMP0077 NEW)
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 project(Mikoto)
 
 # ======================================
@@ -42,12 +44,31 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #set(CMAKE_CXX_EXTENSIONS OFF)
 
 # ======================================
+# Mikoto optional features
+# ======================================
+set(TF_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
+set(TF_BUILD_PROFILER OFF CACHE BOOL "" FORCE)
+set(TF_BUILD_CUDA OFF CACHE BOOL "" FORCE)
+set(TF_BUILD_SYCL OFF CACHE BOOL "" FORCE)  # optional, already commented
+set(TF_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(TF_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+
+# ======================================
 # GLFW options
 # ======================================
 set(GLFW_INSTALL OFF CACHE BOOL "")
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+
+# ======================================
+# SPIRV-Reflect minimal options
+# ======================================
+set(SPIRV_REFLECT_STATIC_LIB ON CACHE BOOL "Build SPIRV-Reflect as a static library")
+set(SPIRV_REFLECT_BUILD_TESTS OFF CACHE BOOL "Disable SPIRV-Reflect tests")
+set(SPIRV_REFLECT_ENABLE_ASSERTS OFF CACHE BOOL "Disable asserts for SPIRV-Reflect")
+set(SPIRV_REFLECT_ENABLE_ASAN OFF CACHE BOOL "Disable address sanitizer")
+set(SPIRV_REFLECT_INSTALL OFF CACHE BOOL "Disable SPIRV-Reflect install targets")
 
 # ======================================
 # MSDFGEN / MSDF Atlas options
@@ -66,6 +87,16 @@ set(MSDFGEN_BUILD_STANDALONE OFF)
 set(MSDFGEN_DISABLE_SVG ON)
 set(MSDFGEN_DISABLE_PNG ON)
 set(MSDFGEN_DYNAMIC_RUNTIME OFF)
+
+# ======================================
+# yaml-cpp minimal options
+# ======================================
+set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "Disable yaml-cpp contrib")
+set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "Disable yaml-cpp tools")
+set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "Disable yaml-cpp tests")
+set(YAML_CPP_FORMAT_SOURCE OFF CACHE BOOL "Disable source formatting")
+set(YAML_CPP_INSTALL OFF CACHE BOOL "Disable yaml-cpp install targets")
+set(YAML_BUILD_SHARED_LIBS OFF CACHE BOOL "Build yaml-cpp as static library")
 
 # ======================================
 # Assimp options
@@ -145,6 +176,7 @@ fetchcontent_declare(glfw
 )
 fetchcontent_makeavailable(glfw)
 
+
 # ImGui (docking branch)
 fetchcontent_declare(imgui
         GIT_REPOSITORY https://github.com/ocornut/imgui.git
@@ -187,6 +219,7 @@ fetchcontent_declare(entt
 )
 fetchcontent_makeavailable(entt)
 
+
 # nlohmann_json
 fetchcontent_declare(nlohmann_json
         URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
@@ -200,7 +233,6 @@ fetchcontent_declare(miniaudio
 )
 fetchcontent_makeavailable(miniaudio)
 
-
 # SpirV-Reflect
 fetchcontent_declare(spirv_reflect
         GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Reflect.git
@@ -208,15 +240,13 @@ fetchcontent_declare(spirv_reflect
 )
 fetchcontent_makeavailable(spirv_reflect)
 
-add_library(spirv_reflect_lib ${spirv_reflect_SOURCE_DIR}/spirv_reflect.c)
-target_include_directories(spirv_reflect_lib PUBLIC ${spirv_reflect_SOURCE_DIR})
-
 # volk
 fetchcontent_declare(volk
         GIT_REPOSITORY https://github.com/zeux/volk.git
         GIT_TAG 1.4.304
 )
 fetchcontent_makeavailable(volk)
+
 
 # VulkanMemoryAllocator
 fetchcontent_declare(VulkanMemoryAllocator
@@ -305,15 +335,6 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(glm)
 
-# Vulkan Memory Allocator (VMA)
-FetchContent_Declare(
-        VulkanMemoryAllocator
-        GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
-        GIT_TAG master
-)
-
-FetchContent_MakeAvailable(VulkanMemoryAllocator)
-
 # Taskflow
 FetchContent_Declare(
         taskflow
@@ -340,6 +361,7 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(asio)
 
+
 # Tracy
 FetchContent_Declare(
         tracy
@@ -359,7 +381,6 @@ if (UNIX)
     )
 
     FetchContent_MakeAvailable(openssl)
-
 
     # ================
     set(OPENSSL_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/openssl-src) # default path by CMake
@@ -403,8 +424,6 @@ if (UNIX)
     add_dependencies(OpenSSL::Crypto OpenSSL)
 endif ()
 
-#find_package(OpenSSL REQUIRED)
-
 # harfbuzz (not needed if you don't do complex text layout)
 #FetchContent_Declare(
 #        harfbuzz
@@ -412,6 +431,61 @@ endif ()
 #        GIT_TAG main
 #)
 #FetchContent_MakeAvailable(harfbuzz)
+
+# FIXME: group thriod parties into a Vendor
+function(set_folder_if_exists target folder)
+    if(TARGET ${target})
+        set_target_properties(${target} PROPERTIES FOLDER ${folder})
+    endif()
+endfunction()
+
+# Apply folder to third-party libraries
+set_folder_if_exists(fmt ThirdParty)
+set_folder_if_exists(glfw ThirdParty)
+set_folder_if_exists(volk ThirdParty)
+set_folder_if_exists(glm ThirdParty)
+set_folder_if_exists(cpptrace-lib ThirdParty)
+set_folder_if_exists(nfd ThirdParty)
+set_folder_if_exists(freetype ThirdParty)
+set_folder_if_exists(Jolt ThirdParty)
+set_folder_if_exists(spdlog ThirdParty)
+set_folder_if_exists(tomlplusplus ThirdParty)
+set_folder_if_exists(miniaudio ThirdParty)
+set_folder_if_exists(imgui ThirdParty)
+set_folder_if_exists(ImGuizmo ThirdParty)
+set_folder_if_exists(tomlplusplus ThirdParty)
+set_folder_if_exists(msdfgen ThirdParty)
+set_folder_if_exists(msdf_atlas_gen ThirdParty)
+#set_folder_if_exists(spirv_reflect_lib ThirdParty)
+set_folder_if_exists(unordered_dense ThirdParty)
+set_folder_if_exists(nlohmann_json ThirdParty)
+set_folder_if_exists(sol2 ThirdParty)
+set_folder_if_exists(tracy ThirdParty)
+set_folder_if_exists(assimp ThirdParty)
+set_folder_if_exists(yaml-cpp ThirdParty)
+set_folder_if_exists(stb ThirdParty)
+set_folder_if_exists(VulkanMemoryAllocator ThirdParty)
+set_folder_if_exists(taskflow ThirdParty)
+set_folder_if_exists(asio ThirdParty)
+set_folder_if_exists(OpenSSL::SSL ThirdParty)
+set_folder_if_exists(OpenSSL::Crypto ThirdParty)
+
+set_folder_if_exists(miniaudio_channel_combiner_node ThirdParty)
+set_folder_if_exists(miniaudio_channel_separator_node ThirdParty)
+set_folder_if_exists(miniaudio_ltrim_node ThirdParty)
+set_folder_if_exists(miniaudio_reverb_node ThirdParty)
+set_folder_if_exists(miniaudio_vocoder_node ThirdParty)
+set_folder_if_exists(msdf-atlas-gen ThirdParty)
+set_folder_if_exists(msdfgen-core ThirdParty)
+set_folder_if_exists(spirv-reflect ThirdParty)
+set_folder_if_exists(spirv-reflect-pp ThirdParty)
+set_folder_if_exists(TracyClient ThirdParty)
+set_folder_if_exists(yaml-cpp-parse ThirdParty)
+set_folder_if_exists(yaml-cpp-read ThirdParty)
+set_folder_if_exists(yaml-cpp-sandbox ThirdParty)
+set_folder_if_exists(zlibstatic ThirdParty)
+set_folder_if_exists(UpdateAssimpLibsDebugSymbolsAndDLLs ThirdParty)
+set_folder_if_exists(uninstall ThirdParty)
 
 # ======================================
 # Project sources
@@ -462,7 +536,6 @@ set(ALL_SOURCES
         ${IMGUIZMO_SOURCES}
         ${SPIRV_REFLECT_SOURCES}
         ${MINIAUDIO_SOURCES}
-        Audio/Audio.hh
 )
 
 # ======================================
@@ -489,18 +562,38 @@ set(LIBRARIES
 )
 
 if(UNIX)
+    #find_package(OpenSSL REQUIRED)
+    find_package(Lua REQUIRED)
+
     # Asio HTTPS support on Linux requires linking OpenSSL
     # which is build with Mikoto
-    list(APPEND LIBRARIES pthread lua OpenSSL::SSL OpenSSL::Crypto)
+    list(APPEND LIBRARIES pthread OpenSSL::SSL OpenSSL::Crypto)
 endif()
 
+if (MSVC)
+    target_compile_options(Jolt PRIVATE
+        /wd4865
+        /WX-
+        /Zc:enumTypes-
+    )
+endif()
 
 # ======================================
 # Create Mikoto library
 # ======================================
 add_library(${PROJECT_NAME} STATIC ${ALL_SOURCES})
 
-target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARIES})
+if (MSVC)
+    set(LUA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Lua/lua-5.4.2_Win64_vc17_lib")
+
+    set(LUA_INCLUDE_DIR "${LUA_ROOT}/include")
+    set(LUA_LIBRARIES     "${LUA_ROOT}/lua54.lib") 
+endif()
+
+message(STATUS "Linking against Lua library: ${LUA_LIBRARIES}")
+message(STATUS "Include against Lua library: ${LUA_INCLUDE_DIR}")
+
+target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARIES} ${LUA_LIBRARIES})
 
 # ======================================
 # Include directories
@@ -533,6 +626,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${sol2_SOURCE_DIR}/include
         ${asio_SOURCE_DIR}/include
         ${tracy_SOURCE_DIR}/asio/include
+        ${LUA_INCLUDE_DIR}
 )
 
 # ======================================

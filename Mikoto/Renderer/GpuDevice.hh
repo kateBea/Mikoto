@@ -33,11 +33,7 @@ namespace Mikoto {
         virtual auto WriteBuffer(Buffer* target, Byte* data, Size size) -> void = 0;
         virtual auto WriteTexture(Texture* target, Byte* data, Size size) -> void = 0;
 
-        MKT_NODISCARD auto IsSubmitted() const -> bool { return m_IsSubmitted; }
-        auto SetIsSubmitted(const bool value) -> void { m_IsSubmitted = value; }
-
     private:
-        bool m_IsSubmitted{ false };
 
         QueueType m_Type{ QueueType::INVALID_QUEUE };
     };
@@ -79,9 +75,16 @@ namespace Mikoto {
         virtual auto SubmitCommands(CommandListHandle cmd) -> void = 0;
         MKT_NODISCARD virtual auto CreateCommandList(QueueType queue) -> CommandListHandle = 0;
 
-        MKT_NODISCARD virtual auto GetNativeHandle( ObjectType type ) -> Object { return Object(nullptr); }
+        MKT_NODISCARD virtual auto GetNativeHandle( ObjectType ) -> Object { return Object(nullptr); }
+
+        MKT_NODISCARD virtual auto GetMemoryUsage() const -> Size = 0;
+        MKT_NODISCARD virtual auto GetMemoryTotal() const -> Size = 0;
+        MKT_NODISCARD virtual auto GetMemoryAvailable() const -> Size = 0;
 
         virtual auto RunGarbageCollection() -> void = 0;
+
+        MKT_NODISCARD auto GetApi() const -> GraphicsAPI { return m_Api; }
+        MKT_NODISCARD auto IsInitialized() const -> bool { return m_IsInitialized; }
 
         virtual ~GpuDevice() = default;
 

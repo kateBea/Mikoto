@@ -60,6 +60,8 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
 
+        MKT_NODISCARD auto GetDescriptorSetLayout( UInt32 index ) const -> const VkDescriptorSetLayout&;
+
         ~VulkanGraphicsPipeline() override;
 
     public:
@@ -90,6 +92,8 @@ namespace Mikoto {
         auto Bind(VkCommandBuffer commandBuffer) const -> void;
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
+
+        MKT_NODISCARD auto GetDescriptorSetLayout( UInt32 index ) const -> const VkDescriptorSetLayout&;
 
         ~VulkanComputePipeline() override;
 

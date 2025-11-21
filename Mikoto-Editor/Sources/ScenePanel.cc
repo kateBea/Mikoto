@@ -45,16 +45,19 @@ namespace Mikoto {
 
     static constexpr auto GetSceneName() -> std::string_view { return "Scene"; }
 
+    auto ScenePanel::CreateImguiTextureID() -> void {
+        ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
+
+        if ( const ImTextureID id{ backend->ConstructImGuiTextureID( m_EditorState->FinalComposition ) }; id != 0 ) {
+            m_DisplayTargetImGuiID = id;
+        }
+    }
 
     ScenePanel::ScenePanel( const ScenePanelCreateInfo &createInfo )
         : m_EditorState{ createInfo.State }, m_ViewPortWidth( createInfo.Width ), m_ViewPortHeight( createInfo.Height ) {
         m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_IMAGE, GetSceneName() );
 
-        ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
-
-        if ( const ImTextureID id{ backend->ConstructImGuiTextureID( m_EditorState->FinalComposition ) }; id != 0) {
-            m_DisplayTargetImGuiID = id;
-        }
+        CreateImguiTextureID();
     }
 
     auto ScenePanel::OnUpdate( MKT_UNUSED_VAR float ts ) -> void {
@@ -75,6 +78,11 @@ namespace Mikoto {
 
                 SetupManipulation();
                 DrawManipulationGuizmos();
+            } 
+
+            // Try validate the image id again in case the texture was recreated
+            if ( !IsDisplayTextureValid() ) {
+                CreateImguiTextureID();
             }
 
             ImGui::End();
@@ -223,4 +231,5 @@ namespace Mikoto {
         }
         ImGui::End();
     }
+
 }// namespace Mikoto

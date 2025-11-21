@@ -61,7 +61,6 @@ namespace Mikoto {
     auto SceneRenderer::Render( double ) const -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-
         const CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
 
         m_RendererBackend->SetCamera( m_Camera );
@@ -95,6 +94,14 @@ namespace Mikoto {
         }
 
         return handle;
+    }
+
+    auto SceneRenderer::SetRenderResolution( RenderResolution resolution ) -> void {
+        m_RenderResolution = resolution;
+    }
+
+    auto SceneRenderer::GetRenderResolution() const -> RenderResolution {
+        return m_RenderResolution;
     }
 
     auto SceneRenderer::Create( const SceneRendererCreateInfo &createInfo ) -> Unique<SceneRenderer> {

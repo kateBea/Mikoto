@@ -324,26 +324,9 @@ namespace Mikoto {
     }
 
     auto VulkanTexture::Initialize() -> void {
-        // Specify the current layout, it should be undefined as this is a newly created image
-        m_ImageCreateInfo.initialLayout = m_CurrentLayout;
-
-        // The case for swap chain images
+        // The case for non-swap chain images
         if ( m_Image == VK_NULL_HANDLE ) {
-            // This could be a texture that we want to fill from
-            // an image loaded from disc or a texture we will write to as a color image
-            // for the later we do not want to copy anything to it
-            if (m_Data) {
-                // Allocate staging buffer to copy over the texture data
-                BufferDescription stagingDesc{};
-                stagingDesc.WithData( nullptr )
-                        .WithUsage( BufferUsage::BUFFER_USAGE_STAGING )
-                        .WithSizeBytes( m_ImageSize )
-                        .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
-
-                m_StagingBuffer = m_Device->CreateBuffer( stagingDesc );
-                m_StagingBuffer->CopyFromBlock( m_Data, m_ImageSize );
-            }
-
+           
             m_ImageCreateInfo = VulkanHelpers::Initializers::ImageCreateInfo();
 
             const VkExtent3D extent{
@@ -358,7 +341,8 @@ namespace Mikoto {
                             m_TextureUsage,
                             TO_VK_DEVICE( m_Device )->GetPhysicalDevice() );
             m_ImageCreateInfo.extent = extent;
-            // Vulkan Texture is a 2D image always
+
+            // This texture is a 2D image always
             m_ImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
             m_ImageCreateInfo.usage = VulkanHelpers::ToVkImageUsage( m_TextureUsage );
 
@@ -373,21 +357,36 @@ namespace Mikoto {
             m_ImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             m_ImageCreateInfo.flags = 0;
 
-            // Allocate image using GPU Allocator
             auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>( TO_VK_DEVICE( m_Device )->GetAllocator() ) };
             if ( const VkResult result{ allocator->AllocateImage( this ) }; result != VK_SUCCESS ) {
-                MKT_THROW_RUNTIME_ERROR( "Failed to allocate Vulkan image!" );
+                MKT_THROW_RUNTIME_ERROR( "VulkanTexture::Initialize - Failed to allocate Vulkan image!" );
             }
 
-            //Specify optional type operation so we return for instance
-            //a command list to be submitted in transfer queue
-            CommandListHandle cmd{ m_Device->CreateCommandList(QueueType::TRANSFER_QUEUE) };
-            cmd->Begin();
+            // This could be a texture that we want to fill from
+            // an image loaded from disc or a texture we will write to as a color image
+            // for the later we do not want to copy anything to it
+            if ( m_Data ) {
+                // Allocate staging buffer to copy over the texture data
+                BufferDescription stagingDesc{};
+                stagingDesc.WithData( nullptr )
+                        .WithUsage( BufferUsage::BUFFER_USAGE_STAGING )
+                        .WithSizeBytes( m_ImageSize )
+                        .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
 
-            cmd->FillTexture( m_StagingBuffer.GetRaw(), this );
+                m_StagingBuffer = m_Device->CreateBuffer( stagingDesc );
 
-            cmd->End();
-            m_Device->SubmitCommands( cmd );
+                m_StagingBuffer->CopyFromBlock( m_Data, m_ImageSize );
+
+                //Specify optional type operation so we return for instance
+                //a command list to be submitted in transfer queue
+                CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE ) };
+                cmd->Begin();
+
+                cmd->FillTexture( m_StagingBuffer.GetRaw(), this );
+
+                cmd->End();
+                m_Device->SubmitCommands( cmd );
+            }
 
             // Prepare for view creation
             m_ImageViewCreateInfo = VulkanHelpers::Initializers::ImageViewCreateInfo();
@@ -418,7 +417,7 @@ namespace Mikoto {
 
         m_IsAllocated = true;
 
-        m_DebugName = fmt::format( "MikotoVulkanTexture Image: {}, ImageView: {}, Pool ID: {}", reinterpret_cast<UInt64>( m_Image ), reinterpret_cast<UInt64>( m_ImageView ), GetHandle() );
+        m_DebugName = fmt::format( "MikotoVulkanTexture (Loaded Text: '{}') Image: {}, ImageView: {}, Pool ID: {}", GetTextureUri(), reinterpret_cast<UInt64>( m_Image ), reinterpret_cast<UInt64>( m_ImageView ), GetHandle() );
         VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ),VK_OBJECT_TYPE_IMAGE, reinterpret_cast<UInt64>( m_Image ),m_DebugName.c_str() );
         VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ),VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<UInt64>( m_ImageView ),m_DebugName.c_str() );
     }
@@ -476,6 +475,8 @@ namespace Mikoto {
 
         vkDestroySwapchainKHR( VK_DEVICE( m_Device ), m_Swapchain, nullptr );
         m_OldSwapchain = m_Swapchain;
+
+        m_Images.clear();
 
         Initialize();
     }

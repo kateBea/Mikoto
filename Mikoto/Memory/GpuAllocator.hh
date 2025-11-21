@@ -8,7 +8,7 @@
 #include <Library/Utility/Types.hh>
 #include <Renderer/GpuDevice.hh>
 
-#include "Allocator.hh"
+#include <Memory/Allocator.hh>
 
 
 namespace Mikoto {
@@ -21,6 +21,10 @@ namespace Mikoto {
 
         virtual auto Init() -> void = 0;
         virtual auto Shutdown() -> void = 0;
+
+        MKT_NODISCARD virtual auto GetMemoryUsage() const -> Size = 0;
+        MKT_NODISCARD virtual auto GetMemoryTotal() const -> Size = 0;
+        MKT_NODISCARD virtual auto GetMemoryAvailable() const -> Size = 0;
 
         static auto Create(GpuDevice* device) -> Unique<GpuAllocator>;
 

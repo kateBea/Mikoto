@@ -161,6 +161,15 @@ namespace Mikoto {
                 } catch ( std::exception& e ) {
                     MKT_CORE_LOGGER_ERROR( "LoadTexture - Failed to load texture. Reason: {}", e.what() );
                 }
+
+                if ( !texture.IsEmpty() ) {
+                    // std::striong_view does not extend lifetime of the temporary string
+                    const auto& texturePath{ path.filename().string() };
+                    const auto& textureName{ path.filename().string() };
+
+                    texture->SetTextureUri( texturePath );
+                    texture->SetTextureName( textureName );
+                }
             }
 
             // Temporary. See if it is an embedded texture
@@ -291,12 +300,12 @@ namespace Mikoto {
     }
 
     auto MeshFactory::ImportModel( const ModelLoadDescription& loadInfo ) -> ModelHandle {
+        Model* result{ nullptr };
+
         if ( loadInfo.ModelFile == nullptr ) {
             MKT_CORE_LOGGER_ERROR( "MeshFactory::ImportModel - File is null." );
-            return ModelHandle::CreateEmpty();
+            return ModelHandle::Create( result );
         }
-
-        Model* result{ nullptr };
 
         // Find available importer and atomically acquire it
         const auto availableImporter{

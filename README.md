@@ -112,7 +112,7 @@ sudo apt install libwayland-dev libxkbcommon-dev xorg-dev
 
 ## Lua Scripting Pre-Setup
 
-Mikoto uses **Lua 5.4+** for scripting. To set it up on Linux, follow these steps:
+Mikoto uses **Lua 5.1+** for scripting. To set it up on Linux, follow these steps:
 
 1. Download Lua from the official Lua downloads page: [https://www.lua.org/download.html](https://www.lua.org/download.html) and get the `.tar.gz` file.
 
@@ -138,6 +138,9 @@ cd lua-5.4.8/src
 # Install and tests lua
 sudo make
 sudo make mingw
+
+# Alternatively, you can use winget to install Lua
+# winget install "Lua for Windows"
 ```
 
 After this you would need to set the variables in your environment to point to the Lua installation path.

@@ -16,6 +16,13 @@
 
 namespace Mikoto {
 
+    enum RenderResolution {
+        RESOLUTION_HD,
+        RESOLUTION_FHD,
+        RESOLUTION_QHD,
+        RESOLUTION_UHD
+    };
+
 
     /**
      * @brief Structure for creating a `SceneRenderer` instance.
@@ -88,9 +95,34 @@ namespace Mikoto {
          */
         auto SetViewport( UInt32 width, UInt32 height ) -> void;
 
+        /**
+         * @brief Sets the camera to be used for rendering the scene.
+         * This function assigns the camera that will be used to render the scene.
+         * @param camera A pointer to the `SceneCamera` to be used for rendering.
+         */
         auto SetCamera( SceneCamera* camera ) -> void;
 
+        
+        /**
+         * @brief Gets the final composition texture produced by the renderer.
+         * This function retrieves the final rendered texture that can be used for display or further processing.
+         * @return A `TextureHandle` representing the final composition texture.
+         */
         MKT_NODISCARD auto GetFinalComposition() const -> TextureHandle;
+
+        /**
+         * @brief Sets the render resolution for the renderer.
+         * This function updates the internal render resolution setting.
+         * @param resolution The desired render resolution.
+         */
+        auto SetRenderResolution( RenderResolution resolution ) -> void;
+
+        /**
+         * @brief Gets the current render resolution of the renderer.
+         * This function retrieves the internal render resolution setting.
+         * @return The current render resolution.
+         */
+        MKT_NODISCARD auto GetRenderResolution() const -> RenderResolution;
 
         /**
          * @brief Creates a new `SceneRenderer` instance.
@@ -104,6 +136,8 @@ namespace Mikoto {
         MKT_NODISCARD static auto Create(const SceneRendererCreateInfo& createInfo) -> Unique<SceneRenderer>;
 
     private:
+
+        RenderResolution m_RenderResolution{ RenderResolution::RESOLUTION_FHD };
 
         GpuDevice* m_Device{ nullptr };
 

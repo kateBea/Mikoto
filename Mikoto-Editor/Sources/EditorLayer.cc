@@ -27,6 +27,7 @@
 #include <Physics/PhysicService.hh>
 #include <Renderer/RenderService.hh>
 #include <Scene/Component.hh>
+#include <Scene/SceneManager.hh>
 
 namespace Mikoto {
 
@@ -54,9 +55,6 @@ namespace Mikoto {
 
         PrepareNewScene();
         PrepareSerialization();
-
-        LoadPrefabModels();
-        LoadPrefabFonts();
 
         SetupEditorState();
 
@@ -134,9 +132,27 @@ namespace Mikoto {
     }
 
     auto EditorLayer::SaveScene() const -> void {
+        // File filters
+        const std::initializer_list<std::pair<std::string, std::string>> filters{
+            { "Mikoto Scene files", "mkts,mktscene" },
+            { "Mikoto Project Files", "mkt,mktp,mktproject" }
+        };
+        
+        const Path savePath{ FileService::Get()->SaveDialog( "Mikoto Scene", filters ) };
+        
+        m_SceneSerializer->Serialize( *m_ActiveScene, savePath );
     }
 
     auto EditorLayer::LoadScene() -> void {
+        // File filters
+        const std::initializer_list<std::pair<std::string, std::string>> filters{
+            { "Mikoto Scene files", "mkts,mktscene" },
+            { "Mikoto Project Files", "mkt,mktp,mktproject" }
+        };
+
+        const Path savePath{ FileService::Get()->SaveDialog( "Mikoto Scene", filters ) };
+
+        // use the scene manager to add this loaded scene
     }
 
     auto EditorLayer::SaveProject() -> void {
@@ -149,9 +165,33 @@ namespace Mikoto {
     }
 
     auto EditorLayer::HandleWindowScreenMode() const -> void {
+        if ( !m_Window->IsMaximized() ) {
+            m_Window->SetScreenMode( ScreenMode::WINDOW_MODE_FULLSCREEN );
+        } else {
+            m_Window->SetScreenMode( ScreenMode::WINDOW_MODE_WINDOWED );
+        }
     }
 
     auto EditorLayer::SetRendererResolution() const -> void {
+        if ( ImGui::BeginMenu( "Resolution" ) ) {
+            if ( ImGui::MenuItem( "HD - 720p", nullptr, m_SceneRenderer->GetRenderResolution() == RenderResolution::RESOLUTION_HD ) ) {
+                m_SceneRenderer->SetRenderResolution( RenderResolution::RESOLUTION_HD );
+            }
+
+            if ( ImGui::MenuItem( "FHD - 1080p", nullptr, m_SceneRenderer->GetRenderResolution() == RenderResolution::RESOLUTION_FHD ) ) {
+                m_SceneRenderer->SetRenderResolution( RenderResolution::RESOLUTION_FHD );
+            }
+
+            if ( ImGui::MenuItem( "QHD - 1440p", nullptr, m_SceneRenderer->GetRenderResolution() == RenderResolution::RESOLUTION_QHD ) ) {
+                m_SceneRenderer->SetRenderResolution( RenderResolution::RESOLUTION_QHD );
+            }
+
+            if ( ImGui::MenuItem( "UHD - 2160p", nullptr, m_SceneRenderer->GetRenderResolution() == RenderResolution::RESOLUTION_UHD ) ) {
+                m_SceneRenderer->SetRenderResolution( RenderResolution::RESOLUTION_UHD );
+            }
+
+            ImGui::EndMenu();
+        }
     }
 
     auto EditorLayer::SetupCamera( double timeStep ) -> void {
@@ -607,75 +647,6 @@ namespace Mikoto {
         m_SceneSerializer = CreateScope<SceneSerializer>();
     }
 
-    auto EditorLayer::LoadPrefabModels() const -> void {
-        // ModelLoadDescription modelLoadInfo{
-        //     .WantTextures{ true }
-        // };
-        //
-        // std::string uri{ PathBuilder()
-        //                          .WithPath( m_ModelsRootDirectory.string() )
-        //                          .WithPath( "Prefabs" )
-        //                          .WithPath( "sponza" )
-        //                          .WithPath( "sponza.obj" )
-        //                          .Build()
-        //                          .string() };
-        // AssetsService::GetInstance()->LoadAssetAsync<Model>( modelLoadInfo, uri );
-        //
-        // uri = PathBuilder()
-        //               .WithPath( m_ModelsRootDirectory.string() )
-        //               .WithPath( "Prefabs" )
-        //               .WithPath( "cube" )
-        //               .WithPath( "gltf" )
-        //               .WithPath( "scene.gltf" )
-        //               .Build()
-        //               .string();
-        // AssetsService::GetInstance()->LoadAssetAsync<Model>( modelLoadInfo, uri );
-        //
-        // uri = PathBuilder()
-        //               .WithPath( m_ModelsRootDirectory.string() )
-        //               .WithPath( "Prefabs" )
-        //               .WithPath( "sphere" )
-        //               .WithPath( "gltf" )
-        //               .WithPath( "scene.gltf" )
-        //               .Build()
-        //               .string();
-        // AssetsService::GetInstance()->LoadAssetAsync<Model>( modelLoadInfo, uri );
-        //
-        // uri = PathBuilder()
-        //               .WithPath( m_ModelsRootDirectory.string() )
-        //               .WithPath( "Prefabs" )
-        //               .WithPath( "cylinder" )
-        //               .WithPath( "gltf" )
-        //               .WithPath( "scene.gltf" )
-        //               .Build()
-        //               .string();
-        // AssetsService::GetInstance()->LoadAssetAsync<Model>( modelLoadInfo, uri );
-        //
-        // uri = PathBuilder()
-        //               .WithPath( m_ModelsRootDirectory.string() )
-        //               .WithPath( "Prefabs" )
-        //               .WithPath( "cone" )
-        //               .WithPath( "gltf" )
-        //               .WithPath( "scene.gltf" )
-        //               .Build()
-        //               .string();
-        // AssetsService::GetInstance()->LoadAssetAsync<Model>( modelLoadInfo, uri );
-    }
-
-    auto EditorLayer::LoadPrefabFonts() const -> void {
-        // FileService::GetInstance()->LoadFileAsync(
-        //                                   PathBuilder()
-        //                                           .WithPath( m_FontsRootDirectory.string() )
-        //                                           .WithPath( "JetBrainsMono" )
-        //                                           .WithPath( "fonts" )
-        //                                           .WithPath( "ttf" )
-        //                                           .WithPath( "JetBrainsMono-Regular.ttf" )
-        //                                           .Build() )
-        //         ->SetOnCompleteTask( []( File* file ) -> void {
-        //             AssetsService::GetInstance()->LoadAsset<Font>( FontLoadDescription{ .FontFile{ file }, .PixelSize{ 1.0f } } );
-        //         } );
-    }
-
     auto EditorLayer::SetupRenderer( double timeStep ) -> void {
         // const SettingsPanel& settingsPanel{ *m_PanelRegistry.Get<SettingsPanel>() };
         //
@@ -719,138 +690,6 @@ namespace Mikoto {
 //     }
 //
 //
-//
-//     auto EditorLayer::PushImGuiDrawItems( const double timeStep ) -> void {
-//         UpdateDockSpace();
-//
-//         auto& [applicationCloseFlag,
-//                hierarchyPanelVisible,
-//                inspectorPanelVisible,
-//                scenePanelVisible,
-//                settingPanelVisible,
-//                statsPanelVisible,
-//                contentBrowserVisible,
-//                consolePanelVisible,
-//                rendererPanelVisible]{ m_ControlFlags };
-//
-//         auto& settingsPanel{ *m_PanelRegistry.Get<SettingsPanel>() };
-//         auto& hierarchyPanel{ *m_PanelRegistry.Get<HierarchyPanel>() };
-//         auto& inspectorPanel{ *m_PanelRegistry.Get<InspectorPanel>() };
-//         auto& scenePanel{ *m_PanelRegistry.Get<ScenePanel>() };
-//         auto& statsPanel{ *m_PanelRegistry.Get<StatsPanel>() };
-//         auto& contentsBrowserPanel{ *m_PanelRegistry.Get<ContentBrowserPanel>() };
-//         auto& consolePanel{ *m_PanelRegistry.Get<ConsolePanel>() };
-//         auto& rendererPanel{ *m_PanelRegistry.Get<RendererPanel>() };
-//
-//         settingsPanel.MakeVisible( settingPanelVisible );
-//         hierarchyPanel.MakeVisible( hierarchyPanelVisible );
-//         inspectorPanel.MakeVisible( inspectorPanelVisible );
-//         scenePanel.MakeVisible( scenePanelVisible );
-//         statsPanel.MakeVisible( statsPanelVisible );
-//         contentsBrowserPanel.MakeVisible( contentBrowserVisible );
-//         consolePanel.MakeVisible( consolePanelVisible );
-//         rendererPanel.MakeVisible( rendererPanelVisible );
-//
-//         settingsPanel.OnUpdate( timeStep );
-//         hierarchyPanel.OnUpdate( timeStep );
-//         inspectorPanel.OnUpdate( timeStep );
-//         scenePanel.OnUpdate( timeStep );
-//         statsPanel.OnUpdate( timeStep );
-//         contentsBrowserPanel.OnUpdate( timeStep );
-//         consolePanel.OnUpdate( timeStep );
-//         rendererPanel.OnUpdate( timeStep );
-//
-//         hierarchyPanelVisible = hierarchyPanel.IsVisible();
-//         inspectorPanelVisible = inspectorPanel.IsVisible();
-//         scenePanelVisible = scenePanel.IsVisible();
-//         settingPanelVisible = settingsPanel.IsVisible();
-//         statsPanelVisible = statsPanel.IsVisible();
-//         contentBrowserVisible = contentsBrowserPanel.IsVisible();
-//         consolePanelVisible = consolePanel.IsVisible();
-//         rendererPanelVisible = rendererPanel.IsVisible();
-//
-//         if ( applicationCloseFlag ) {
-//             EventService::GetInstance()->Trigger<AppClose>();
-//         }
-//     }
-//
-//     auto EditorLayer::CreatePanels() -> void {
-//         const auto getSelectedEntity{
-//             [&]() -> Entity* {
-//                 return m_SelectedEntity;
-//             }
-//         };
-//
-//         const auto setCurrentSelectedEntity{
-//             [&]( Entity* target ) -> void {
-//                 m_SelectedEntity = target;
-//
-//                 if ( target == nullptr ) {
-//                     m_EditorRenderer->EnableOutline( false );
-//                 } else {
-//                     m_EditorRenderer->EnableOutline( true );
-//                     m_EditorRenderer->SetOutlineRenderTargetEntity( target->GetComponent<TagComponent>().GetGUID() );
-//                 }
-//             }
-//         };
-//
-//         ScenePanelCreateInfo scenePanelCreateInfo{
-//             .Width{ static_cast<UInt32_T>( m_Window->GetWidth() ) },
-//             .Height{ static_cast<UInt32_T>( m_Window->GetHeight() ) },
-//             .TargetScene{ m_ActiveScene.get() },
-//             .Renderer{ m_EditorRenderer },
-//             .EditorMainCamera{ m_EditorCamera.get() },
-//
-//             .GetActiveEntityCallback{ getSelectedEntity }
-//         };
-//
-//         SettingsPanelCreateInfo settingsPanelCreateInfo{
-//             .Data{
-//                     .ClearColor{ glm::vec4( 0.2f, 0.2f, 0.2f, 1.0f ) },
-//                     .FieldOfView{ 45.0f },
-//                     .EditorCamera{ m_EditorCamera.get() } },
-//         };
-//
-//         HierarchyPanelCreateInfo hierarchyPanelCreateInfo{
-//             .TargetScene{ m_ActiveScene.get() },
-//             .GetActiveEntityCallback{ getSelectedEntity },
-//             .SetActiveEntityCallback{
-//                     setCurrentSelectedEntity },
-//         };
-//
-//         InspectorPanelCreateInfo inspectorPanelCreateInfo{
-//             .TargetScene{ m_ActiveScene.get() },
-//             .GetActiveEntityCallback{ getSelectedEntity },
-//             .SetActiveEntityCallback{ setCurrentSelectedEntity },
-//         };
-//
-//         RendererPanelCreateInfo rendererPanelCreateInfo{
-//             .Width{ static_cast<UInt32_T>( m_Window->GetWidth() ) },
-//             .Height{ static_cast<UInt32_T>( m_Window->GetHeight() ) },
-//             .TargetScene{ m_ActiveScene.get() },
-//             .Renderer{ m_EditorRenderer },
-//             .EditorMainCamera{ m_EditorCamera.get() },
-//         };
-//
-//         m_PanelRegistry.Register<StatsPanel>();
-//         m_PanelRegistry.Register<ConsolePanel>();
-//         m_PanelRegistry.Register<RendererPanel>( rendererPanelCreateInfo );
-//         m_PanelRegistry.Register<HierarchyPanel>( hierarchyPanelCreateInfo );
-//         m_PanelRegistry.Register<SettingsPanel>( settingsPanelCreateInfo );
-//         m_PanelRegistry.Register<InspectorPanel>( inspectorPanelCreateInfo );
-//         m_PanelRegistry.Register<ContentBrowserPanel>();
-//         m_PanelRegistry.Register<ScenePanel>( scenePanelCreateInfo );
-//     }
-//
-//
-//     auto EditorLayer::HandleWindowScreenMode() const -> void {
-//         if ( !m_Window->IsMaximized() ) {
-//             m_Window->SetScreenMode( ScreenMode::WINDOW_MODE_FULLSCREEN );
-//         } else {
-//             m_Window->SetScreenMode( ScreenMode::WINDOW_MODE_WINDOWED );
-//         }
-//     }
-//
 //     auto EditorLayer::SetRendererResolution() const -> void {
 //
 //         if ( ImGui::BeginMenu( "Resolution" ) ) {
@@ -878,22 +717,6 @@ namespace Mikoto {
 //         }
 //     }
 //
-//     auto EditorLayer::PrepareNewScene() -> void {
-//         InitializeEmptyScene( "Sandbox" );
-//     }
-//
-//
-//     auto EditorLayer::SaveScene() const -> void {
-//         // File filters
-//         const std::initializer_list<std::pair<std::string, std::string>> filters{
-//             { "Mikoto Scene files", "mkts,mktscene" },
-//             { "Mikoto Project Files", "mkt,mktp,mktproject" }
-//         };
-//
-//         const Path_T savePath{ FileService::GetInstance()->SaveDialog( "Mikoto Scene", filters ) };
-//
-//         m_SceneSerializer->Serialize( *m_ActiveScene, savePath );
-//     }
 //
 //     auto EditorLayer::LoadScene() -> void {
 //         // prepare filters for the dialog
@@ -997,82 +820,6 @@ namespace Mikoto {
 //     }
 //
 //
-//     auto EditorLayer::LoadPrefabModels() const -> void {
-//         ModelLoadDescription modelLoadInfo{
-//             .WantTextures{ true }
-//         };
-//
-//         std::string uri{ PathBuilder()
-//                                  .WithPath( m_ModelsRootDirectory.string() )
-//                                  .WithPath( "Prefabs" )
-//                                  .WithPath( "sponza" )
-//                                  .WithPath( "sponza.obj" )
-//                                  .Build()
-//                                  .string() };
-//         AssetsService::GetInstance()->LoadAssetAsync<Model>( modelLoadInfo, uri );
-//
-//         uri = PathBuilder()
-//                       .WithPath( m_ModelsRootDirectory.string() )
-//                       .WithPath( "Prefabs" )
-//                       .WithPath( "cube" )
-//                       .WithPath( "gltf" )
-//                       .WithPath( "scene.gltf" )
-//                       .Build()
-//                       .string();
-//         AssetsService::GetInstance()->LoadAssetAsync<Model>( modelLoadInfo, uri );
-//
-//         uri = PathBuilder()
-//                       .WithPath( m_ModelsRootDirectory.string() )
-//                       .WithPath( "Prefabs" )
-//                       .WithPath( "sphere" )
-//                       .WithPath( "gltf" )
-//                       .WithPath( "scene.gltf" )
-//                       .Build()
-//                       .string();
-//         AssetsService::GetInstance()->LoadAssetAsync<Model>( modelLoadInfo, uri );
-//
-//         uri = PathBuilder()
-//                       .WithPath( m_ModelsRootDirectory.string() )
-//                       .WithPath( "Prefabs" )
-//                       .WithPath( "cylinder" )
-//                       .WithPath( "gltf" )
-//                       .WithPath( "scene.gltf" )
-//                       .Build()
-//                       .string();
-//         AssetsService::GetInstance()->LoadAssetAsync<Model>( modelLoadInfo, uri );
-//
-//         uri = PathBuilder()
-//                       .WithPath( m_ModelsRootDirectory.string() )
-//                       .WithPath( "Prefabs" )
-//                       .WithPath( "cone" )
-//                       .WithPath( "gltf" )
-//                       .WithPath( "scene.gltf" )
-//                       .Build()
-//                       .string();
-//         AssetsService::GetInstance()->LoadAssetAsync<Model>( modelLoadInfo, uri );
-//     }
-//
-//     auto EditorLayer::LoadPrefabFonts() const -> void {
-//         FileService::GetInstance()->LoadFileAsync(
-//                                           PathBuilder()
-//                                                   .WithPath( m_FontsRootDirectory.string() )
-//                                                   .WithPath( "JetBrainsMono" )
-//                                                   .WithPath( "fonts" )
-//                                                   .WithPath( "ttf" )
-//                                                   .WithPath( "JetBrainsMono-Regular.ttf" )
-//                                                   .Build() )
-//                 ->SetOnCompleteTask( []( File* file ) -> void {
-//                     AssetsService::GetInstance()->LoadAsset<Font>( FontLoadDescription{ .FontFile{ file }, .PixelSize{ 1.0f } } );
-//                 } );
-//     }
-//
-//     auto EditorLayer::SetupRenderer( double timeStep ) -> void {
-//         const SettingsPanel& settingsPanel{ *m_PanelRegistry.Get<SettingsPanel>() };
-//
-//         // Setup renderer
-//         m_EditorRenderer->SetClearColor( settingsPanel.GetData().ClearColor );
-//         m_EditorRenderer->EnableWireframe( settingsPanel.GetData().RenderWireframeMode );
-//     }
 //
 //     auto EditorLayer::SetupCamera( const double timeStep ) -> void {
 //         const SettingsPanel& settingsPanel{ *m_PanelRegistry.Get<SettingsPanel>() };

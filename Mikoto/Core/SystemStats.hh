@@ -5,6 +5,10 @@
 #ifndef SYSTEMSTATS_HH
 #define SYSTEMSTATS_HH
 
+#if defined( _WIN32 )
+#include <windows.h>
+#endif
+
 #include <Common/Common.hh>
 #include <Common/Singleton.hh>
 #include <Library/Utility/Types.hh>
@@ -46,6 +50,12 @@ namespace Mikoto {
 
         std::string m_CpuName{};
         std::string m_GpuName{ "Unknown GPU" };
+
+#if defined( _WIN32 )
+        ULARGE_INTEGER m_LastIdleTime{};
+        ULARGE_INTEGER m_LastKernelTime{};
+        ULARGE_INTEGER m_LastUserTime{};
+#endif
 
         Int32 m_UpdateFrequency{ 1 };
     };

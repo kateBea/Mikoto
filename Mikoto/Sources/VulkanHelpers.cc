@@ -3,6 +3,9 @@
  * Created by kate on 8/5/2023.
  * */
 
+#ifndef VULKAN_HELPERS_CC_INCLUDED
+#define VULKAN_HELPERS_CC_INCLUDED
+
 // C++ Standard Library
 #include <set>
 #include <stdexcept>
@@ -574,6 +577,7 @@ namespace Mikoto::VulkanHelpers {
 }// namespace Mikoto::VulkanHelpers
 
 namespace Mikoto::VulkanHelpers::Reflection {
+
     auto ToVkDescriptorType( SpvReflectDescriptorType type ) -> VkDescriptorType {
         switch ( type ) {
             case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER:
@@ -594,19 +598,19 @@ namespace Mikoto::VulkanHelpers::Reflection {
                 return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
             case SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
                 return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-#if defined( VK_KHR_acceleration_structure )
+    #if defined( VK_KHR_acceleration_structure )
             case SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
                 return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-#endif
+    #endif
             default:
                 return VK_DESCRIPTOR_TYPE_MAX_ENUM;
         }
     }
 
-    auto MergePushConstantRange( std::vector<VkPushConstantRange>& dst, const UInt32 targetOffset, const UInt32 targetSize, const VkShaderStageFlags flags ) -> void {
-        for ( auto& [stageFlags, offset, size]: dst ) {
-            if ( offset == targetOffset && size == targetSize ) {
-                stageFlags |= flags;
+    static auto MergePushConstantRange( std::vector<VkPushConstantRange>& dst, const UInt32 targetOffset, const UInt32 targetSize, const VkShaderStageFlags flags ) -> void {
+        for ( auto& range: dst ) {
+            if ( range.offset == targetOffset && range.size == targetSize ) {
+                range.stageFlags |= flags;
                 return;
             }
         }
@@ -622,164 +626,153 @@ namespace Mikoto::VulkanHelpers::Reflection {
 #endif
     }
 
-    auto ReflectSPIRV( VkDevice device, const std::vector<std::vector<UInt32>>& spirvModules, ReflectedData& out ) -> VkResult {
-        out = {};
+    // NOTE: About bindless descriptors, for simplicity their name will contain "bindless", e.g., "bindless_textures"
+    // Helper: process descriptor sets for a single SPIR-V module and merge into `sets` and `out`
+    static void ProcessDescriptorSets(SpvReflectShaderModule& mod, VkShaderStageFlagBits stage, std::map<UInt32, std::unordered_map<UInt32, VkDescriptorSetLayoutBinding>>& sets, ReflectedData& out) {
+        UInt32 setCount{};
+        spvReflectEnumerateDescriptorSets(&mod, &setCount, nullptr);
 
-        std::map<UInt32, std::unordered_map<UInt32, VkDescriptorSetLayoutBinding>> sets{};
-        std::vector<VkPushConstantRange> pushConstants;
+        std::vector<SpvReflectDescriptorSet*> reflectedSets(setCount);
+        spvReflectEnumerateDescriptorSets(&mod, &setCount, reflectedSets.data());
 
-        for ( const auto& moduleData: spirvModules ) {
-            if ( moduleData.empty() ) {
+        for (auto* reflectedDescriptorSet: reflectedSets) {
+            for (UInt32 setBinding{}; setBinding < reflectedDescriptorSet->binding_count; ++setBinding) {
+                auto* reflectedBinding{ reflectedDescriptorSet->bindings[setBinding] };
+
+                UInt32 setIndex{ reflectedDescriptorSet->set };
+                auto& bindingMap{ sets[setIndex] };
+
+                if (auto it{ bindingMap.find(reflectedBinding->binding) }; it == bindingMap.end()) {
+                    // If this set does not have this binding yet, add it
+
+                    VkDescriptorSetLayoutBinding bindingInfo{};
+                    bindingInfo.binding = reflectedBinding->binding;
+                    bindingInfo.descriptorType = ToVkDescriptorType(reflectedBinding->descriptor_type);
+
+                    constexpr std::string_view bindlessPrefix{ "Bindless" };
+
+                    std::string_view bindingName{ reflectedBinding->name };
+
+                    bool isBindless{ IsBindlessEnabled() && ( bindingName.find( bindlessPrefix ) != std::string_view::npos ) };
+                    bindingInfo.descriptorCount = std::max(1u, isBindless ? VulkanRenderer::GetMaxBindlessTextureCount() : reflectedBinding->count );
+
+                    bindingInfo.stageFlags = stage;
+                    bindingMap[bindingInfo.binding] = bindingInfo;
+
+                    out.bindingMap[{ setIndex, bindingInfo.binding }] = ReflectedBindingInfo{
+                        reflectedBinding->name, 
+                        setIndex, 
+                        bindingInfo.binding, 
+                        bindingInfo.descriptorType, 
+                        bindingInfo.descriptorCount, 
+                        static_cast<VkShaderStageFlags>( stage ), 
+                        isBindless
+                    };
+                } else {
+                    // If this set already has this binding, just update stage flags
+                    it->second.stageFlags |= stage;
+                    out.bindingMap[{ reflectedDescriptorSet->set, it->second.binding }].stageFlags |= stage;
+                }
+            }
+        }
+    }
+
+    // Helper: collect push constants from a single SPIR-V module
+    static void ProcessPushConstants(SpvReflectShaderModule& mod, VkShaderStageFlagBits stage, std::vector<VkPushConstantRange>& pushConstants) {
+        UInt32 pcCount{};
+        spvReflectEnumeratePushConstantBlocks(&mod, &pcCount, nullptr);
+
+        std::vector<SpvReflectBlockVariable*> pcs(pcCount);
+        spvReflectEnumeratePushConstantBlocks(&mod, &pcCount, pcs.data());
+
+        for (auto* pc: pcs) {
+            MergePushConstantRange(pushConstants, pc->offset, pc->size, stage);
+        }
+    }
+
+    // Helper: collect vertex inputs for vertex-stage modules
+    static void ProcessVertexInputs(SpvReflectShaderModule& mod, ReflectedData& out) {
+        UInt32 inputCount{};
+        spvReflectEnumerateInputVariables(&mod, &inputCount, nullptr);
+        std::vector<SpvReflectInterfaceVariable*> inputs(inputCount);
+        spvReflectEnumerateInputVariables(&mod, &inputCount, inputs.data());
+
+        UInt32 binding{};
+        for (auto* v: inputs) {
+            if (v->decoration_flags & SPV_REFLECT_DECORATION_BUILT_IN) {
                 continue;
             }
 
-            SpvReflectShaderModule mod{};
-            if ( spvReflectCreateShaderModule( moduleData.size() * sizeof( UInt32 ), moduleData.data(), &mod ) != SPV_REFLECT_RESULT_SUCCESS )
-                return VK_ERROR_INITIALIZATION_FAILED;
+            VkVertexInputAttributeDescription attr{};
+            attr.binding = binding;
+            attr.location = v->location;
+            attr.offset = 0;
 
-            // The reason why we do this cast is that they are a map 1 to 1 (the enums values)
-            auto stage{ static_cast<VkShaderStageFlagBits>( mod.shader_stage ) };
-
-            // === DESCRIPTOR SETS ===
-            UInt32 setCount{};
-            spvReflectEnumerateDescriptorSets( &mod, &setCount, nullptr );
-            std::vector<SpvReflectDescriptorSet*> reflSets( setCount );
-            spvReflectEnumerateDescriptorSets( &mod, &setCount, reflSets.data() );
-
-            for ( auto* reflectDs: reflSets ) {
-                for ( UInt32 setBinding{}; setBinding < reflectDs->binding_count; ++setBinding ) {
-                    auto* reflectedBinding = reflectDs->bindings[setBinding];
-                    UInt32 set{ reflectDs->set };
-                    auto& bindingMap{ sets[set] };
-
-                    if ( auto it{ bindingMap.find( reflectedBinding->binding ) }; it == bindingMap.end() ) {
-                        VkDescriptorSetLayoutBinding bindingInfo{};
-                        bindingInfo.binding = reflectedBinding->binding;
-                        bindingInfo.descriptorType = ToVkDescriptorType( reflectedBinding->descriptor_type );
-
-                        if ( IsBindlessEnabled() && bindingInfo.descriptorType == SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER && reflectedBinding->type_description->op == SpvOpTypeRuntimeArray || reflectedBinding->type_description->op == SpvOpTypeArray ) {
-                            bindingInfo.descriptorCount = std::max( 1u, VulkanRenderer::GetMaxBindlessTextureCount() );
-
-                        } else {
-                            bindingInfo.descriptorCount = std::max( 1u, reflectedBinding->count );
-                        }
-
-                        bindingInfo.stageFlags = stage;
-                        bindingMap[bindingInfo.binding] = bindingInfo;
-
-                        out.bindingMap[{ set, bindingInfo.binding }] = ReflectedBindingInfo{
-                            reflectedBinding->name, set, bindingInfo.binding, bindingInfo.descriptorType, bindingInfo.descriptorCount, static_cast<VkShaderStageFlags>( stage )
-                        };
-                    } else {
-                        it->second.stageFlags |= stage;
-                        out.bindingMap[{ reflectDs->set, it->second.binding }].stageFlags |= stage;
-                    }
-                }
+            switch (v->format) {
+                case SPV_REFLECT_FORMAT_R32_SFLOAT:
+                    attr.format = VK_FORMAT_R32_SFLOAT;
+                    break;
+                case SPV_REFLECT_FORMAT_R32G32_SFLOAT:
+                    attr.format = VK_FORMAT_R32G32_SFLOAT;
+                    break;
+                case SPV_REFLECT_FORMAT_R32G32B32_SFLOAT:
+                    attr.format = VK_FORMAT_R32G32B32_SFLOAT;
+                    break;
+                case SPV_REFLECT_FORMAT_R32G32B32A32_SFLOAT:
+                    attr.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+                    break;
+                default:
+                    attr.format = VK_FORMAT_UNDEFINED;
+                    break;
             }
 
-            // === PUSH CONSTANTS ===
-            UInt32 pcCount{};
-            spvReflectEnumeratePushConstantBlocks( &mod, &pcCount, nullptr );
-            std::vector<SpvReflectBlockVariable*> pcs( pcCount );
-            spvReflectEnumeratePushConstantBlocks( &mod, &pcCount, pcs.data() );
-            for ( auto* pc: pcs )
-                MergePushConstantRange( pushConstants, pc->offset, pc->size, stage );
-
-            // === VERTEX INPUTS (vertex stage only) ===
-            if ( stage == VK_SHADER_STAGE_VERTEX_BIT ) {
-                UInt32 inputCount{};
-                spvReflectEnumerateInputVariables( &mod, &inputCount, nullptr );
-                std::vector<SpvReflectInterfaceVariable*> inputs( inputCount );
-                spvReflectEnumerateInputVariables( &mod, &inputCount, inputs.data() );
-
-                // Collect attributes
-                UInt32 binding{};
-                for ( auto* v: inputs ) {
-                    if ( v->decoration_flags & SPV_REFLECT_DECORATION_BUILT_IN ) {
-                        // skip built-ins like gl_VertexIndex
-                        continue;
-                    }
-
-                    VkVertexInputAttributeDescription attr{};
-                    attr.binding = binding;
-                    attr.location = v->location;
-                    attr.offset = 0;
-
-                    switch ( v->format ) {
-                        case SPV_REFLECT_FORMAT_R32_SFLOAT:
-                            attr.format = VK_FORMAT_R32_SFLOAT;
-                            break;
-                        case SPV_REFLECT_FORMAT_R32G32_SFLOAT:
-                            attr.format = VK_FORMAT_R32G32_SFLOAT;
-                            break;
-                        case SPV_REFLECT_FORMAT_R32G32B32_SFLOAT:
-                            attr.format = VK_FORMAT_R32G32B32_SFLOAT;
-                            break;
-                        case SPV_REFLECT_FORMAT_R32G32B32A32_SFLOAT:
-                            attr.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-                            break;
-                        default:
-                            attr.format = VK_FORMAT_UNDEFINED;
-                            break;
-                    }
-
-                    out.vertexAttributes.push_back( attr );
-                }
-
-                if ( !out.vertexAttributes.empty() ) {
-                    VkVertexInputBindingDescription bind{};
-                    bind.binding = 0;
-                    bind.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-                    // user-defined later
-                    // SPIR-V reflection can tell us which vertex attributes the shader expects
-                    // (e.g. positions, normals, UVs, etc.), along with their formats and offsets,
-                    // but it CANNOT tell us the total stride (the size of one vertex in bytes).
-                    bind.stride = 0;
-
-                    out.vertexBindings.push_back( bind );
-                }
-            }
-
-            spvReflectDestroyShaderModule( &mod );
+            out.vertexAttributes.push_back(attr);
         }
 
-        // === CREATE DESCRIPTOR SET LAYOUTS ===
-        for ( auto& [setIdx, bindings]: sets ) {
-            std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
-            layoutBindings.reserve( bindings.size() );
+        if (!out.vertexAttributes.empty()) {
+            VkVertexInputBindingDescription bind{};
+            bind.binding = 0;
+            bind.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+            bind.stride = 0; // user-defined later
+            out.vertexBindings.push_back(bind);
+        }
+    }
 
-            for ( auto& [_, b]: bindings ) {
-                layoutBindings.push_back( b );
+    // Helper: create descriptor set layouts from collected `sets`
+    static VkResult CreateDescriptorSetLayouts(VkDevice device, const std::map<UInt32, std::unordered_map<UInt32, VkDescriptorSetLayoutBinding>>& sets, ReflectedData& out) {
+        for (const auto& [setIndex, bindings] : sets) {
+            std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
+            layoutBindings.reserve(bindings.size());
+
+            for (const auto& binding : bindings | std::ranges::views::values) {
+                layoutBindings.push_back( binding );
             }
 
             VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-            layoutInfo.bindingCount = static_cast<uint32_t>( layoutBindings.size() );
+            layoutInfo.bindingCount = static_cast<UInt32>( layoutBindings.size() );
             layoutInfo.pBindings = layoutBindings.data();
 
-            std::vector<VkDescriptorBindingFlags> bindingFlags( layoutBindings.size(), 0 );
+            std::vector<VkDescriptorBindingFlags> bindingFlags(layoutBindings.size(), 0);
 
-            // Attach the binding flags info via pNext
             VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{};
             flagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
-            flagsInfo.bindingCount = static_cast<UInt32>( bindingFlags.size() );
+            flagsInfo.bindingCount = static_cast<UInt32>(bindingFlags.size());
             flagsInfo.pBindingFlags = bindingFlags.data();
 
+            if (IsBindlessEnabled() && false) {
+                UInt8 bindingIndex{ 0 };
+                for (auto& flags: bindingFlags) {
+                    auto& bindingInfo{ out.bindingMap[{ setIndex, 0 }] };
 
-            if ( IsBindlessEnabled() ) {
-                // Enable bindless flags for each binding
-                UInt8 index{ 0 };
-                for ( auto& flags: bindingFlags ) {
-
-                    // Image samplers are in the form of array by convention
-                    // we dont bind them one by one but instead provide an array of combined image samplers
-                    if ( bindings[index++].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ) {
+                    if ( bindingInfo.IsBindless ) {
                         flags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
                                 VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
                                 VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
                     } else {
                         flags = 0;
                     }
+
+                    ++bindingIndex;
                 }
 
                 layoutInfo.pNext = &flagsInfo;
@@ -787,26 +780,70 @@ namespace Mikoto::VulkanHelpers::Reflection {
             }
 
             VkDescriptorSetLayout layoutHandle{};
-            if ( vkCreateDescriptorSetLayout( device, &layoutInfo, nullptr, &layoutHandle ) != VK_SUCCESS ) {
+            if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &layoutHandle) != VK_SUCCESS) {
                 return VK_ERROR_INITIALIZATION_FAILED;
             }
 
-            out.setLayouts.push_back( layoutHandle );
+            out.setLayouts.push_back(layoutHandle);
         }
 
-        // === PIPELINE LAYOUT ===
+        return VK_SUCCESS;
+    }
+
+    static auto CreatePipelineLayout( VkDevice device, ReflectedData& out, std::vector<VkPushConstantRange>& pushConstants ) -> VkResult {
         VkPipelineLayoutCreateInfo plInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
-        plInfo.setLayoutCount = static_cast<UInt32>( out.setLayouts.size() );
+        plInfo.setLayoutCount = static_cast<UInt32>(out.setLayouts.size());
         plInfo.pSetLayouts = out.setLayouts.data();
 
-        plInfo.pushConstantRangeCount = static_cast<uint32_t>( pushConstants.size() );
+        plInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstants.size());
         plInfo.pPushConstantRanges = pushConstants.data();
 
-        if ( vkCreatePipelineLayout( device, &plInfo, nullptr, &out.pipelineLayout ) != VK_SUCCESS )
+        if (vkCreatePipelineLayout(device, &plInfo, nullptr, &out.pipelineLayout) != VK_SUCCESS) {
             return VK_ERROR_INITIALIZATION_FAILED;
+        }
 
-        out.pushConstantRanges = std::move( pushConstants );
+        out.pushConstantRanges = std::move(pushConstants);
+        return VK_SUCCESS;
+    }
+
+    auto ReflectSPIRV( VkDevice device, const std::vector<std::vector<UInt32>>& spirvModules, ReflectedData& out ) -> VkResult {
+        out = {};
+
+        std::vector<VkPushConstantRange> pushConstants{};
+        std::map<UInt32, std::unordered_map<UInt32, VkDescriptorSetLayoutBinding>> sets{};
+
+        for (const auto& moduleData : spirvModules) {
+            if ( moduleData.empty() ) {
+                MKT_CORE_LOGGER_ERROR( "VulkanHelpers::Reflection::ReflectSPIRV - Empty SPIR-V module data." );
+                continue;
+            }
+
+            SpvReflectShaderModule mod{};
+            if (spvReflectCreateShaderModule(moduleData.size() * sizeof(UInt32), moduleData.data(), &mod) != SPV_REFLECT_RESULT_SUCCESS) {
+                return VK_ERROR_INITIALIZATION_FAILED;
+            }
+
+            VkShaderStageFlagBits stage{ static_cast<VkShaderStageFlagBits>( mod.shader_stage ) };
+
+            ProcessDescriptorSets(mod, stage, sets, out);
+            ProcessPushConstants(mod, stage, pushConstants);
+
+            if ( stage == VK_SHADER_STAGE_VERTEX_BIT ) {
+                ProcessVertexInputs( mod, out );
+            }
+
+            // Cleanup
+            spvReflectDestroyShaderModule(&mod);
+        }
+
+        if ( CreateDescriptorSetLayouts( device, sets, out ) != VK_SUCCESS ) {
+            return VK_ERROR_INITIALIZATION_FAILED;
+        }
+
+        if ( CreatePipelineLayout( device, out, pushConstants ) != VK_SUCCESS ) {
+            return VK_ERROR_INITIALIZATION_FAILED;
+        }
 
         return VK_SUCCESS;
     }
@@ -828,4 +865,6 @@ namespace Mikoto::VulkanHelpers::Reflection {
         reflected.pushConstantRanges.clear();
     }
 
-}// namespace Mikoto::VulkanHelpers::Reflection
+} // namespace Mikoto::VulkanHelpers::Reflection
+
+#endif // VULKAN_HELPERS_CC_INCLUDED

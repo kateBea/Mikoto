@@ -252,20 +252,10 @@ namespace Mikoto::VulkanPasses {
 
     auto ShadingPass::CreateMeshesStorageDescriptorSet() -> void {
 
-        VkDescriptorSetLayoutBinding ssboBinding{};
-        ssboBinding.binding = 0;
-        ssboBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        ssboBinding.descriptorCount = 1;
-        ssboBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-        ssboBinding.pImmutableSamplers = nullptr;
+        VulkanGraphicsPipeline* vkPipeline{ dynamic_cast<VulkanGraphicsPipeline*>( m_Pipeline.GetRaw() ) };
+        const VkDescriptorSetLayout& layout{ vkPipeline->GetDescriptorSetLayout(2) };
 
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &ssboBinding;
-
-        m_EntitiesSetLayout = TO_VK_DEVICE(m_Device)->AllocateDescriptorSetLayout( layoutInfo );
-        m_MeshDataSet = TO_VK_DEVICE(m_Device)->AllocateDescriptorSet( m_EntitiesSetLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ) );
+        m_MeshDataSet = TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( &layout );
 
         // Write buffer info
         VkDescriptorBufferInfo bufferInfo{};
@@ -342,31 +332,19 @@ namespace Mikoto::VulkanPasses {
         m_StorageBuffer = m_Device->CreateBuffer( desc );
         m_StorageBuffer->SetDebugName( "ComputeBasic SSBO" );
 
-        // Descriptor set setup
-        VkDescriptorSetLayoutBinding binding{};
-        binding.binding = 0;
-        binding.descriptorCount = 1;
-        binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-
-        const VkDescriptorSetLayoutCreateInfo layoutInfo{
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            .bindingCount = 1,
-            .pBindings = &binding
-        };
-
-        m_ComputeLayout = TO_VK_DEVICE( m_Device )->AllocateDescriptorSetLayout( layoutInfo );
-        m_DescriptorSet = TO_VK_DEVICE( m_Device )->AllocateDescriptorSet(m_ComputeLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ) );
-
-
         // Pipeline setup
         ShaderModuleHandle compModule{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/BasicCompute_Comp.sprv", ShaderStage::COMPUTE_STAGE ) };
-
         ComputePipelineDescription description{
             .Stage{ compModule }
         };
 
         m_Pipeline = m_Device->CreatePipeline( description );
+
+        // Descriptor set setup
+        VulkanComputePipeline* vkPipeline{ dynamic_cast<VulkanComputePipeline*>( m_Pipeline.GetRaw() ) };
+        const VkDescriptorSetLayout& layout{ vkPipeline->GetDescriptorSetLayout( 0 ) };
+
+        m_DescriptorSet = TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( &layout );
 
         // Descriptor update
         DescriptorWriter descriptorWriter{};

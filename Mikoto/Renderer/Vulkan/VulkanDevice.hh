@@ -124,6 +124,10 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
 
+        MKT_NODISCARD auto GetMemoryUsage() const -> Size override;
+        MKT_NODISCARD auto GetMemoryTotal() const -> Size override;
+        MKT_NODISCARD auto GetMemoryAvailable() const -> Size override;
+
         // Vulkan specifics ================================================
 
         auto WaitIdle() const -> void;
@@ -144,7 +148,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetLogicalDevice() const -> const VkDevice&;
         MKT_NODISCARD auto GetLogicalDeviceQueues() const -> const QueuesData&;
 
-        MKT_NODISCARD auto AllocateDescriptorSet(const VkDescriptorSetLayout& layout, const void* pNext = nullptr) -> VkDescriptorSet;
+        MKT_NODISCARD auto AllocateDescriptorSet(const VkDescriptorSetLayout* layout, const void* pNext = nullptr) -> VkDescriptorSet;
         MKT_NODISCARD auto AllocateDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo& layout) -> DescriptorSetLayoutHandle;
 
         auto FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void;

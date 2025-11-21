@@ -45,8 +45,11 @@ namespace Mikoto {
             // ignore errors
         }
 
+#if defined( MKT_ALLOW_HTTPS )
         delete m_SslSocket;
         m_SslSocket = nullptr;
+#endif
+
 
         m_Connected = false;
     }

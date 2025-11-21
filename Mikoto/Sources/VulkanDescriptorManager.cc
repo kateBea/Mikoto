@@ -182,7 +182,7 @@ namespace Mikoto {
         m_FullPools.clear();
     }
 
-    auto DescriptorAllocator::Allocate( const VkDescriptorSetLayout layout, const void *pNext ) -> VkDescriptorSet* {
+    auto DescriptorAllocator::Allocate( const VkDescriptorSetLayout* layouts, const void *pNext ) -> VkDescriptorSet* {
         //get or create a pool to allocate from
         VkDescriptorPool poolToUse{ GetPool() };
 
@@ -191,8 +191,7 @@ namespace Mikoto {
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         allocInfo.descriptorPool = poolToUse;
         allocInfo.descriptorSetCount = 1;
-        allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = std::addressof( layout );
+        allocInfo.pSetLayouts = layouts;
 
         VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
         VkResult result{ vkAllocateDescriptorSets(m_Device->GetLogicalDevice(), std::addressof( allocInfo ), &descriptorSet) };

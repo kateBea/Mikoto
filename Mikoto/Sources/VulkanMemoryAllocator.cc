@@ -9,7 +9,7 @@
 
 #include <memory>
 
-#include "Renderer/Vulkan/VulkanMemoryAllocator.hh"
+#include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
 
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
@@ -111,7 +111,22 @@ namespace Mikoto {
         MapBuffer( buffer, false );
     }
 
-    auto VulkanMemoryAllocator::MapBuffer(VulkanBuffer* buffer, const bool map) const -> void {
+    auto VulkanMemoryAllocator::GetMemoryUsage() const -> Size {
+        vmaCalculateStatistics( m_Allocator, std::addressof( m_Stats ) );
+        return m_Stats.total.statistics.allocationBytes;
+    }
+
+    auto VulkanMemoryAllocator::GetMemoryTotal() const -> Size {
+        vmaCalculateStatistics( m_Allocator, std::addressof( m_Stats ) );
+        return 0;
+    }
+
+    auto VulkanMemoryAllocator::GetMemoryAvailable() const -> Size {
+        vmaCalculateStatistics( m_Allocator, std::addressof( m_Stats ) );
+        return m_Stats.total.unusedRangeSizeMax;
+    }
+
+    auto VulkanMemoryAllocator::MapBuffer( VulkanBuffer *buffer, const bool map ) const -> void {
         MKT_ASSERT(buffer != nullptr, "VulkanMemoryAllocator::MapBuffer - buffer is null!");
 
         if (map) {

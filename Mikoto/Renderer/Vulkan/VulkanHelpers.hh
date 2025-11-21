@@ -136,6 +136,7 @@ namespace Mikoto::VulkanHelpers::Reflection {
         VkDescriptorType type{};
         UInt32 count{};
         VkShaderStageFlags stageFlags{};
+        bool IsBindless{ false };
     };
 
     /**

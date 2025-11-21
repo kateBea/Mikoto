@@ -142,15 +142,21 @@ namespace Mikoto {
     auto Root::StartFrame() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        RenderService::Get()->PrepareFrame();
-        ImGuiService::Get()->PrepareFrame();
+        RenderService *renderService{ s_Services.Get<RenderService>() };
+        ImGuiService *imguiService{ s_Services.Get<ImGuiService>() };
+
+        renderService->PrepareFrame();
+        imguiService->PrepareFrame();
     }
 
     auto Root::EndFrame() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        ImGuiService::Get()->EndFrame();
-        RenderService::Get()->EndFrame();
+        RenderService *renderService{ s_Services.Get<RenderService>() };
+        ImGuiService *imguiService{ s_Services.Get<ImGuiService>() };
+
+        imguiService->EndFrame();
+        renderService->EndFrame();
     }
 
     auto Root::UpdateState( const float timeStep ) -> void {
@@ -160,7 +166,7 @@ namespace Mikoto {
         SystemStats::Get()->Update();
 
         for (const auto &service: s_Services | std::views::values ) {
-            if (service->IsInitialized()) {
+            if (service->IsInitialized() && !service->IsSleeping()) {
                 service->Update( timeStep );
             }
         }

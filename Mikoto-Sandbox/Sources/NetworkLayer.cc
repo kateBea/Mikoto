@@ -197,7 +197,7 @@ namespace Mikoto {
                 // To avoid 429, not sure the rate limit on jikan
                 std::this_thread::sleep_for( std::chrono::seconds( 2 * offset ) );
 
-                SocketHandle socket{ NetworkService::Get()->CreateNewSocketSync( SocketType::SOCKET_TCP, "api.jikan.moe", 443, true ) };
+                SocketHandle socket{ NetworkService::Get()->CreateNewSocketSync( SocketType::SOCKET_TCP, "api.jikan.moe", 443 ) };
                 if ( socket.IsEmpty() ) {
                     return;
                 }

@@ -2,14 +2,76 @@
 // Created by kate on 10/27/25.
 //
 
-#include <Core/SystemStats.hh>
 #include <map>
 #include <sstream>
 #include <string>
 
+#include <Core/SystemStats.hh>
+#include <Renderer/RenderService.hh>
+
 namespace Mikoto {
 
     static inline SystemStats g_SystemStats{};
+
+#if defined( _WIN32 )
+#include <pdh.h>
+#include <pdhmsg.h>
+#include <psapi.h>
+#include <windows.h>
+
+    static auto ReadCpuName() -> std::string {
+        int cpuInfo[4] = { -1 };
+        char cpuBrandString[0x40];
+        __cpuid( cpuInfo, 0x80000000 );
+        unsigned int nExIds = cpuInfo[0];
+        memset( cpuBrandString, 0, sizeof( cpuBrandString ) );
+
+        if ( nExIds >= 0x80000004 ) {
+            int cpuData[4];
+            __cpuid( cpuData, 0x80000002 );
+            memcpy( cpuBrandString, cpuData, sizeof( cpuData ) );
+            __cpuid( cpuData, 0x80000003 );
+            memcpy( cpuBrandString + 16, cpuData, sizeof( cpuData ) );
+            __cpuid( cpuData, 0x80000004 );
+            memcpy( cpuBrandString + 32, cpuData, sizeof( cpuData ) );
+        }
+        return std::string( cpuBrandString );
+    }
+
+    static auto GetProcessMemoryUsage() -> double {
+        PROCESS_MEMORY_COUNTERS pmc;
+        if ( GetProcessMemoryInfo( GetCurrentProcess(), &pmc, sizeof( pmc ) ) ) {
+            return static_cast<double>( pmc.WorkingSetSize );
+        }
+        return 0.0;
+    }
+
+    static auto GetCpuUsageWindows( ULARGE_INTEGER& lastIdleTime,
+                                    ULARGE_INTEGER& lastKernelTime,
+                                    ULARGE_INTEGER& lastUserTime ) -> double {
+        FILETIME idleTime, kernelTime, userTime;
+        if ( !GetSystemTimes( &idleTime, &kernelTime, &userTime ) )
+            return 0.0;
+
+        ULARGE_INTEGER idle, kernel, user;
+        idle.LowPart = idleTime.dwLowDateTime;
+        idle.HighPart = idleTime.dwHighDateTime;
+        kernel.LowPart = kernelTime.dwLowDateTime;
+        kernel.HighPart = kernelTime.dwHighDateTime;
+        user.LowPart = userTime.dwLowDateTime;
+        user.HighPart = userTime.dwHighDateTime;
+
+        ULONGLONG sys = ( kernel.QuadPart + user.QuadPart ) - ( lastKernelTime.QuadPart + lastUserTime.QuadPart );
+        ULONGLONG idleDiff = idle.QuadPart - lastIdleTime.QuadPart;
+
+        lastIdleTime = idle;
+        lastKernelTime = kernel;
+        lastUserTime = user;
+
+        if ( sys == 0 ) return 0.0;
+        return 100.0 * double( sys - idleDiff ) / double( sys );
+    }
+#endif
 
 #if defined( __linux__ )
 
@@ -71,6 +133,8 @@ namespace Mikoto {
 
     auto SystemStats::Update() -> void {
 
+        m_VramUsage = RenderService::Get()->GetGpuDevice()->GetMemoryUsage();
+
 #if defined( __linux__ )
         std::ifstream meminfo{ "/proc/meminfo" };
         if ( !meminfo.is_open() ) {
@@ -107,6 +171,20 @@ namespace Mikoto {
             m_CpuName = ReadCpuName();
 
         m_CpuUsage = ReadCpuUsage();
+        m_ProcessRamUsage = GetProcessMemoryUsage();
+#endif
+
+#if defined( _WIN32 )
+        MEMORYSTATUSEX memStatus{};
+        memStatus.dwLength = sizeof( memStatus );
+        if ( GlobalMemoryStatusEx( &memStatus ) ) {
+            m_TotalRam = static_cast<double>( memStatus.ullTotalPhys );
+            m_FreeRam = static_cast<double>( memStatus.ullAvailPhys );
+            m_SharedRam = 0.0;// Windows does not expose shared memory like Linux
+        }
+
+        if ( m_CpuName.empty() ) m_CpuName = ReadCpuName();
+        m_CpuUsage = GetCpuUsageWindows( m_LastIdleTime, m_LastKernelTime, m_LastUserTime );
         m_ProcessRamUsage = GetProcessMemoryUsage();
 #endif
     }

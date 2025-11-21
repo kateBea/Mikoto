@@ -49,6 +49,7 @@ namespace Mikoto {
          * This function can be overridden by derived classes to implement
          */
         virtual auto Update(float) -> void { }
+
         /**
          * @brief Checks if the service is initialized.
          *
@@ -58,7 +59,27 @@ namespace Mikoto {
             return m_IsInitialized;
         }
 
+        /**
+         * @brief Checks if the service is sleeping.
+         *
+         * @return True if the service is sleeping, false otherwise.
+         */
+        MKT_NODISCARD auto IsSleeping() const -> bool {
+            return m_IsSleeping;
+        }
+
+        /**
+         * @brief Sets the sleeping state of the service.
+         *
+         * @param sleep True to set the service to sleeping, false to wake it up.
+         */
+        auto SetSleeping( const bool sleep ) -> void {
+            m_IsSleeping = sleep;
+        }
+
     protected:
+        bool m_IsSleeping{ false };
+
         bool m_IsInitialized{ false };
     };
 

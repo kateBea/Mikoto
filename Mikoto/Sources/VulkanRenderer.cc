@@ -46,13 +46,13 @@ namespace Mikoto {
     auto VulkanRenderer::Init() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        CreateBindlessDescriptor();
+        InitCoreRenderPasses();
 
+        CreateBindlessDescriptor();
         InitGlobalShaderBuffers();
 
         m_Materials.Init( 10 );
 
-        InitCoreRenderPasses();
 
         m_LightsInfo = new LightInfo();
 
@@ -93,6 +93,7 @@ namespace Mikoto {
 
     auto VulkanRenderer::BeginRender( const CommandListHandle cmd ) -> void {
         using namespace Mikoto::VulkanPasses;
+
         MKT_BEGIN_PROFILER_NAMED();
 
         // Compute workflow first
@@ -301,63 +302,26 @@ namespace Mikoto {
     auto VulkanRenderer::CreateBindlessDescriptor() -> void {
         const UInt32 maxBindlessTextures{ GetMaxBindlessTextureCount() };
 
+        // We will be using the descriptor set layout from the shading pass it is in this pass that we use the bindless textures
+        PipelineHandle shadingPassPipeline{ m_Passes.Get<Mikoto::VulkanPasses::ShadingPass>()->GetPipeline() };
+        VulkanGraphicsPipeline* vkPipeline{ dynamic_cast<VulkanGraphicsPipeline*>( shadingPassPipeline.GetRaw() ) };
+
         // ───────────────────────────────────────────────
         // [ Set = 0 ] Frame + Light UBOs
         // ───────────────────────────────────────────────
-        std::array<VkDescriptorSetLayoutBinding, 2> frameBindings{};
-        frameBindings[0].binding = 0;
-        frameBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        frameBindings[0].descriptorCount = 1;
-        frameBindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-        frameBindings[1].binding = 1;
-        frameBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        frameBindings[1].descriptorCount = 1;
-        frameBindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-        VkDescriptorSetLayoutCreateInfo frameLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-        frameLayoutInfo.bindingCount = static_cast<uint32_t>( frameBindings.size() );
-        frameLayoutInfo.pBindings = frameBindings.data();
-
-        m_FrameLayout = TO_VK_DEVICE( m_GraphicsDevice )->AllocateDescriptorSetLayout( frameLayoutInfo );
-
-        // Set = 0 → Frame + Light
-        m_FrameSet = TO_VK_DEVICE( m_GraphicsDevice )->AllocateDescriptorSet( m_FrameLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ) );
-
+        const VkDescriptorSetLayout& layoutFrame{ vkPipeline->GetDescriptorSetLayout( 0 ) };
+        m_FrameSet = TO_VK_DEVICE( m_GraphicsDevice )->AllocateDescriptorSet( &layoutFrame );
 
         // ───────────────────────────────────────────────
         // [ Set = 1 ] Bindless textures
         // ───────────────────────────────────────────────
-        VkDescriptorSetLayoutBinding textureBinding{};
-        textureBinding.binding = 0;// matches layout(set=1, binding=0)
-        textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        textureBinding.descriptorCount = maxBindlessTextures;
-        textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-        VkDescriptorBindingFlags textureFlags =
-                VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-                VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT |
-                VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
-
-        VkDescriptorSetLayoutBindingFlagsCreateInfo textureFlagsInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO };
-        textureFlagsInfo.bindingCount = 1;
-        textureFlagsInfo.pBindingFlags = &textureFlags;
-
-        VkDescriptorSetLayoutCreateInfo textureLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-        textureLayoutInfo.pNext = &textureFlagsInfo;
-        textureLayoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
-        textureLayoutInfo.bindingCount = 1;
-        textureLayoutInfo.pBindings = &textureBinding;
-
-        m_TextureLayout = TO_VK_DEVICE( m_GraphicsDevice )->AllocateDescriptorSetLayout( textureLayoutInfo );
-
-        // Set = 1 → Bindless textures
         const UInt32 variableCount[] = { maxBindlessTextures };
         VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO };
         variableCountInfo.descriptorSetCount = 1;
         variableCountInfo.pDescriptorCounts = variableCount;
 
-        m_TexturesSet = TO_VK_DEVICE( m_GraphicsDevice )->AllocateDescriptorSet( m_TextureLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ), std::addressof( variableCountInfo ) );
+        const VkDescriptorSetLayout& layoutTextures{ vkPipeline->GetDescriptorSetLayout( 1 ) };
+        m_TexturesSet = TO_VK_DEVICE( m_GraphicsDevice )->AllocateDescriptorSet( &layoutTextures );
     }
 
     auto VulkanRenderer::UpdateBindlessTextureDescriptor( const Int32 index, VulkanTexture* texture ) const -> void {

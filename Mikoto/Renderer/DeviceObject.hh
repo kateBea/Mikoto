@@ -86,8 +86,21 @@ namespace Mikoto {
             Initialize();
         }
 
+        /**
+         * @brief Sets the debug name for the device object.
+         *
+         * This name can be used for debugging purposes to identify the object.
+         *
+         * @param name The debug name to assign to the device object.
+         */
         virtual auto SetDebugName(const std::string_view name) -> void { m_DebugName = name; }
-        auto GetDebugName() const -> const std::string& { return m_DebugName; }
+        
+        /**
+         * @brief Retrieves the debug name of the device object.
+         *
+         * @returns The debug name of the device object.
+         */
+        MKT_NODISCARD auto GetDebugName() const -> const std::string& { return m_DebugName; }
 
         /**
          * @brief Destructor for the DeviceObject class.
@@ -105,7 +118,15 @@ namespace Mikoto {
             return m_UsageType;
         }
 
-        // API specific object handle
+        /**
+         * @brief Retrieves the native handle of the device object.
+         *
+         * This method should be overridden by derived classes to return the appropriate
+         * native handle (e.g., Vulkan handle) for the specific object type.
+         *
+         * @param type The type of native object handle to retrieve.
+         * @returns The native handle wrapped in an Object structure.
+         */
         MKT_NODISCARD virtual auto GetNativeHandle( ObjectType ) -> Object { return Object(nullptr); }
 
 

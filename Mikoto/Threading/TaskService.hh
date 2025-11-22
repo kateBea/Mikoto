@@ -28,10 +28,9 @@
  * This subsystem is still a WIP.
  * Will not be available/operative for some time in the engine.
  * */
-namespace Mikoto
-{
-    struct TaskServiceCreateInfo
-    {
+namespace Mikoto {
+
+    struct TaskServiceCreateInfo {
         UInt32 WorkerThreadCount{0};
     };
 

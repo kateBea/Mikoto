@@ -29,13 +29,7 @@ namespace Mikoto {
     }
 
     auto TaskService::SetupPeriodicTaskRunner() -> void {
-        tf::Taskflow tf{};
 
-        auto runner{ [this]() -> void{
-            while (true) {
-                std::this_thread::sleep_for(std::chrono::seconds(1));
-            }
-        }};
     }
 
     auto TaskService::Shutdown() -> void {

@@ -548,7 +548,7 @@ namespace Mikoto {
 
             TransformComponent& transformComponent{ ground2->GetComponent<TransformComponent>() };
             transformComponent.SetScale( { 5.0f, 0.5f, 5.00f } );
-            transformComponent.SetTranslation( { -10.0f, 0.0f, 0.0f } );
+            transformComponent.SetTranslation( { -10.0f, 4.0f, -1.5f } );
         }
 
         Entity* light{ m_ActiveScene->CreateEntity( "Light" ) };

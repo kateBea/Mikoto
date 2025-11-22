@@ -25,15 +25,7 @@ namespace Mikoto {
 
         MKT_CORE_LOGGER_INFO("Initializing RenderService...");
 
-        const RenderContextCreateInfo createInfo{
-            .Api{ m_Options.RendererAPI },
-            .TargetWindow{ m_Options.TargetWindow },
-        };
-
-        m_Context = RenderContext::Create(createInfo);
-        if (!m_Context->Init()) {
-            MKT_THROW_RUNTIME_ERROR( "RenderSystem::Init - Could not initialize Render context." );
-        }
+        InitContext();
 
         InitShaderLibrary();
 
@@ -90,6 +82,18 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         m_Context->SubmitFrame();
+    }
+
+    auto RenderService::InitContext() -> void {
+        const RenderContextCreateInfo createInfo{
+            .Api{ m_Options.RendererAPI },
+            .TargetWindow{ m_Options.TargetWindow },
+        };
+
+        m_Context = RenderContext::Create(createInfo);
+        if (!m_Context->Init()) {
+            MKT_THROW_RUNTIME_ERROR( "RenderSystem::Init - Could not initialize Render context." );
+        }
     }
 
     auto RenderService::InitRendererBackend() -> void {

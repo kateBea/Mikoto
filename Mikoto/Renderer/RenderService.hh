@@ -82,6 +82,8 @@ namespace Mikoto {
 
     private:
         auto Flush() -> void;
+
+        auto InitContext() -> void;
         auto InitRendererBackend() -> void;
         auto InitShaderLibrary() -> void;
 

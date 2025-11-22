@@ -283,7 +283,7 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         // FIXME:
-        TO_VK_DEVICE( m_Device.get() )->WaitIdle();
+        //TO_VK_DEVICE( m_Device.get() )->WaitIdle();
 
         VkFence& inFlightFrameFence{ m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFence };
 

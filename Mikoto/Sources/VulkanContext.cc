@@ -282,6 +282,9 @@ namespace Mikoto {
     auto VulkanContext::PrepareFrame() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        // FIXME:
+        TO_VK_DEVICE( m_Device.get() )->WaitIdle();
+
         VkFence& inFlightFrameFence{ m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFence };
 
         // For simplicity, parenthesize std::numeric_limits<std::uint64_t>::max

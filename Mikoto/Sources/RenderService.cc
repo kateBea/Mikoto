@@ -71,17 +71,11 @@ namespace Mikoto {
     auto RenderService::EndFrame() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        Flush();
+        m_Context->SubmitFrame();
     }
 
     auto RenderService::IsGraphicsActive( const GraphicsAPI api ) const -> bool {
         return m_ActiveAPI == api;
-    }
-
-    auto RenderService::Flush() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        m_Context->SubmitFrame();
     }
 
     auto RenderService::InitContext() -> void {

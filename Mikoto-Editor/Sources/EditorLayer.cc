@@ -80,7 +80,7 @@ namespace Mikoto {
         m_EditorState->FinalComposition = m_SceneRenderer->GetFinalComposition();
         m_EditorState->ActiveEditorScene = m_ActiveScene.get();
 
-        m_EditorState->SelectedEntity = m_ActiveScene->FindFirstByName( "Npc" );
+        m_EditorState->SelectedEntity = m_ActiveScene->FindFirstByName( "Ground" );
     }
 
     auto EditorLayer::OnDestroy() -> void {
@@ -102,12 +102,8 @@ namespace Mikoto {
 
         m_ActiveScene->SetState( SceneState::IDLE );
 
-        SetupCamera( timeStep );
-        SetupRenderer( timeStep );
-
-        m_SceneRenderer->SetScene( m_ActiveScene.get() );
-        m_SceneRenderer->SetCamera( m_EditorCamera.get() );
-        m_SceneRenderer->SetViewport( 1920, 1080 );
+        PrepareCamera( timeStep );
+        PrepareRenderer( timeStep );
 
         m_ActiveScene->Update( timeStep );
         m_SceneRenderer->Render( timeStep );
@@ -194,7 +190,7 @@ namespace Mikoto {
         }
     }
 
-    auto EditorLayer::SetupCamera( double timeStep ) -> void {
+    auto EditorLayer::PrepareCamera( double timeStep ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         m_EditorCamera->SetMovementSpeed( 13.f );
@@ -212,7 +208,7 @@ namespace Mikoto {
         ScenePanel* scenePanel{ m_PanelRegistry.Get<ScenePanel>() };
         m_EditorCamera->SetViewportSize( scenePanel->GetWidth(), scenePanel->GetHeight() );
 
-        if ( InputService::Get()->IsMouseKeyPressed( Mouse_Button_Right ) ) {
+        if ( InputService::Get()->IsMouseKeyPressed( Mouse_Button_Right ) && scenePanel->IsHovered() ) {
             m_EditorCamera->EnableCamera( true );
         } else {
             m_EditorCamera->EnableCamera( false );
@@ -570,12 +566,16 @@ namespace Mikoto {
         m_SceneSerializer = CreateScope<SceneSerializer>();
     }
 
-    auto EditorLayer::SetupRenderer( double timeStep ) -> void {
+    auto EditorLayer::PrepareRenderer( double timeStep ) -> void {
          const SettingsPanel& settingsPanel{ *m_PanelRegistry.Get<SettingsPanel>() };
         
          // Setup renderer
          const Vec4F& color{ settingsPanel.GetData().ClearColor };
          m_SceneRenderer->SetClearColor( color.r, color.g, color.b, color.a );
+
+         m_SceneRenderer->SetScene( m_ActiveScene.get() );
+         m_SceneRenderer->SetCamera( m_EditorCamera.get() );
+         m_SceneRenderer->SetViewport( 1920, 1080 );
     }
 
 #if false

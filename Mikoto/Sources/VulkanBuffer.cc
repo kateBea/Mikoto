@@ -73,6 +73,7 @@ namespace Mikoto {
 
         // Retain data 
         // FIXME: This is done because data held by m_Data must be valid until after Initialize is called
+        // Block of memory must persist until Initialize is called
         if ( createInfo.Data ) {
             m_Data = new Byte[m_SizeBytes];
             std::memcpy( static_cast<void*>(m_Data), static_cast<const void*>(createInfo.Data), m_SizeBytes );

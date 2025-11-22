@@ -32,6 +32,10 @@ namespace Mikoto {
 
         for ( const auto &layerPtr: m_Layers | std::views::values ) {
             layerPtr->OnEvent( event );
+
+            if ( event.IsHandled() ) {
+                break;
+            }
         }
     }
 }// namespace Mikoto

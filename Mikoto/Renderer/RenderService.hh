@@ -81,8 +81,6 @@ namespace Mikoto {
         MKT_NODISCARD auto GetActiveGraphicsApi() const -> GraphicsAPI { return m_ActiveAPI; }
 
     private:
-        auto Flush() -> void;
-
         auto InitContext() -> void;
         auto InitRendererBackend() -> void;
         auto InitShaderLibrary() -> void;

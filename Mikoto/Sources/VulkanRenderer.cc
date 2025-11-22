@@ -49,10 +49,10 @@ namespace Mikoto {
         InitCoreRenderPasses();
 
         CreateBindlessDescriptor();
+
         InitGlobalShaderBuffers();
 
         m_Materials.Init( 10 );
-
 
         m_LightsInfo = new LightInfo();
 

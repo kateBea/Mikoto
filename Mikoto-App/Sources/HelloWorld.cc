@@ -12,6 +12,7 @@
 #include "Filesystem/FileService.hh"
 #include "Physics/PhysicService.hh"
 #include "Renderer/RenderService.hh"
+#include "Renderer/Vulkan/VulkanContext.hh"
 
 auto Mikoto::CreateApplication(int argc, char** argv) -> Application* {
     return new MikotoApp::HelloWorld();
@@ -164,6 +165,23 @@ namespace MikotoApp {
 
         m_ActiveScene->Update( timeStep );
         m_SceneRenderer->Render( timeStep );
+
+        /*CommandListHandle commandList{
+            RenderService::Get()->GetGpuDevice()->CreateCommandList( QueueType::GRAPHICS_QUEUE )
+        };
+
+        SwapChainHandle swapChain{ VulkanContext::Get()->GetSwapchain() };
+
+        const UInt32 swapchainAvailableImageIndex{ VulkanContext::Get()->GetCurrentImageIndex() };
+
+        TextureHandle swapChainDrawTarget{ swapChain->GetImage( swapchainAvailableImageIndex ) };
+
+        commandList->Begin();
+
+        commandList->CopyTexture( m_SceneRenderer->GetFinalComposition().GetRaw(), swapChainDrawTarget.GetRaw() );
+
+        commandList->End();
+        RenderService::Get()->GetGpuDevice()->SubmitCommands( commandList );*/
 
         // Update engine state
         Root::UpdateState( static_cast<float>( timeStep ) );

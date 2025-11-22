@@ -52,94 +52,6 @@ namespace Mikoto {
         const std::vector<const char*>* RequestedExtensions{};
     };
 
-    static auto GetDefaultGraphicsPipelineConfigInfo() -> VulkanGraphicsPipelineDescription {
-        VulkanGraphicsPipelineDescription configInfo{};
-
-        // [Input assembly]
-        configInfo.InputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        configInfo.InputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        //configInfo.InputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;// Every three vertices are group together into a separate triangle
-        configInfo.InputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
-
-        // [Viewport and Scissor]
-        configInfo.ViewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        configInfo.ViewportInfo.viewportCount = 1;// VK_DYNAMIC_VIEWPORT_WITH_COUNT has to be set for this to be 0
-        configInfo.ViewportInfo.pViewports = nullptr;
-        configInfo.ViewportInfo.scissorCount = 1;// VK_DYNAMIC_SCISSOR_WITH_COUNT has to be set for this to be 0
-        configInfo.ViewportInfo.pScissors = nullptr;
-
-        constexpr float GPU_STANDARD_LINE_WIDTH{ 1.0f };
-        configInfo.RasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        configInfo.RasterizationInfo.depthClampEnable = VK_FALSE;
-        configInfo.RasterizationInfo.rasterizerDiscardEnable = VK_FALSE;// requires extension if enabled
-        configInfo.RasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
-        // The maximum line width that is supported depends on the hardware, any line thicker than 1.0f requires you to enable the wideLines GPU feature.
-        configInfo.RasterizationInfo.lineWidth = configInfo.RasterizationInfo.polygonMode == VK_POLYGON_MODE_LINE ? GPU_STANDARD_LINE_WIDTH : 0.0f;
-        configInfo.RasterizationInfo.cullMode = VK_CULL_MODE_NONE;
-        configInfo.RasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-        configInfo.RasterizationInfo.depthBiasEnable = VK_FALSE;
-        configInfo.RasterizationInfo.depthBiasConstantFactor = 0.0f;
-        configInfo.RasterizationInfo.depthBiasClamp = 0.0f;
-        configInfo.RasterizationInfo.depthBiasSlopeFactor = 0.0f;
-
-        configInfo.MultisampleInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        configInfo.MultisampleInfo.sampleShadingEnable = VK_FALSE;
-        configInfo.MultisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-        configInfo.MultisampleInfo.minSampleShading = 1.0f;         // Optional
-        configInfo.MultisampleInfo.pSampleMask = nullptr;           // Optional
-        configInfo.MultisampleInfo.alphaToCoverageEnable = VK_FALSE;// Optional
-        configInfo.MultisampleInfo.alphaToOneEnable = VK_FALSE;     // Optional
-
-        // Blending enabled by default
-        configInfo.ColorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        configInfo.ColorBlendAttachment.blendEnable = VK_TRUE;
-        configInfo.ColorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        configInfo.ColorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        configInfo.ColorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-        configInfo.ColorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        configInfo.ColorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        configInfo.ColorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-
-        configInfo.ColorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-        configInfo.ColorBlendInfo.logicOpEnable = VK_FALSE;
-        configInfo.ColorBlendInfo.logicOp = VK_LOGIC_OP_COPY;
-        configInfo.ColorBlendInfo.attachmentCount = 1;
-        configInfo.ColorBlendInfo.pAttachments = &configInfo.ColorBlendAttachment;
-        configInfo.ColorBlendInfo.blendConstants[0] = 0.0f;
-        configInfo.ColorBlendInfo.blendConstants[1] = 0.0f;
-        configInfo.ColorBlendInfo.blendConstants[2] = 0.0f;
-        configInfo.ColorBlendInfo.blendConstants[3] = 0.0f;
-
-        configInfo.DepthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        configInfo.DepthStencilInfo.depthTestEnable = VK_TRUE;
-        configInfo.DepthStencilInfo.depthWriteEnable = VK_TRUE;
-        configInfo.DepthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-        configInfo.DepthStencilInfo.depthBoundsTestEnable = VK_FALSE;
-        configInfo.DepthStencilInfo.stencilTestEnable = VK_TRUE;          // Enable stencil test
-        configInfo.DepthStencilInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;// Always pass
-        configInfo.DepthStencilInfo.back.failOp = VK_STENCIL_OP_REPLACE;
-        configInfo.DepthStencilInfo.back.depthFailOp = VK_STENCIL_OP_REPLACE;
-        configInfo.DepthStencilInfo.back.passOp = VK_STENCIL_OP_REPLACE;// Write stencil value
-        configInfo.DepthStencilInfo.back.reference = 1;                 // Stencil value to write
-        configInfo.DepthStencilInfo.back.compareMask = 0xFF;
-        configInfo.DepthStencilInfo.back.writeMask = 0xFF;
-        configInfo.DepthStencilInfo.front = configInfo.DepthStencilInfo.back;// Use default settings for front faces
-
-        // VK_DYNAMIC_STATE_VERTEX_INPUT_EXT can reduce the amount of pipelines the application needs to create
-        // because it allows for vertex input binding and attribute descriptions to be dynamic. This is, of course, not a
-        // core feature as of Vulkan 1.3 and requires to be enabled when creating the device on which this pipeline will be created
-        // Make it static because pDynamicStates does not persist the value beyond this scope
-
-        static constexpr std::array dynamicStates{ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH, /*VK_DYNAMIC_STATE_VERTEX_INPUT_EXT*/ };
-        configInfo.DynamicStateEnables = dynamicStates;
-        configInfo.DynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        configInfo.DynamicStateInfo.pDynamicStates = configInfo.DynamicStateEnables.data();
-        configInfo.DynamicStateInfo.dynamicStateCount = configInfo.DynamicStateEnables.size();
-        configInfo.DynamicStateInfo.flags = 0;
-
-        return configInfo;
-    }
-
     static auto CheckExtensionSupport( const VkPhysicalDevice& device, const std::vector<const char*>& requested ) -> bool {
         UInt32 count{};
         vkEnumerateDeviceExtensionProperties( device, nullptr, &count, nullptr );
@@ -666,8 +578,7 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreatePipeline( const GraphicsPipelineDescription& description ) -> PipelineHandle {
-        auto defaultInfo{ GetDefaultGraphicsPipelineConfigInfo() };
-        defaultInfo.Layout = description.DefaultVertexLayout;
+        VulkanGraphicsPipelineDescription defaultInfo{};
         defaultInfo.Depth = description.DepthTexture;
         defaultInfo.ColorAttachments = description.ColorAttachments;
         defaultInfo.ShaderModules = description.ShaderStages;
@@ -831,9 +742,7 @@ namespace Mikoto {
         const UInt32 currentFrame{ VulkanContext::Get()->GetCurrentFrameIndex() };
 
         // This fence will be used to know the state of the commands submitted in this call
-        if (!m_FrameFences.contains( currentFrame ) || m_FrameFences.at(currentFrame) == VK_NULL_HANDLE ) {
-            m_FrameFences[currentFrame] = syncPrimitives.RenderFence;
-        }
+        m_FrameFences[currentFrame] = syncPrimitives.RenderFence;
 
         std::vector<VkCommandBufferSubmitInfo> cmdInfos;
         cmdInfos.reserve( m_PendingGraphicsCommandLists.size() );

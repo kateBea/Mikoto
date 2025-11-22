@@ -21,34 +21,21 @@
 namespace Mikoto {
 
     struct VulkanGraphicsPipelineDescription {
-        UInt32 Subpass{};
 
 #if !defined(MKT_USE_VULKAN_DYNAMIC_RENDERING)
         // Not needed if we do dynamic rendering
+        UInt32 Subpass{};
         VkRenderPass RenderPass{};
 #endif
 
-        BufferLayout Layout{};
-
-        VkPipelineViewportStateCreateInfo ViewportInfo{};
-        VkPipelineInputAssemblyStateCreateInfo InputAssemblyInfo{};
-        VkPipelineRasterizationStateCreateInfo RasterizationInfo{};
-        VkPipelineMultisampleStateCreateInfo MultisampleInfo{};
-        VkPipelineColorBlendAttachmentState ColorBlendAttachment{};
-        VkPipelineColorBlendStateCreateInfo ColorBlendInfo{};
-        VkPipelineDepthStencilStateCreateInfo DepthStencilInfo{};
-        VkPipelineDynamicStateCreateInfo DynamicStateInfo{};
-
-        std::span<const VkDynamicState> DynamicStateEnables{};
-
         TextureHandle Depth{};
         std::vector<TextureHandle> ColorAttachments{};
-
         std::vector<ShaderModuleHandle> ShaderModules{};
     };
 
     class VulkanGraphicsPipeline final : public GraphicsPipeline {
     public:
+
 
         explicit VulkanGraphicsPipeline(const VulkanGraphicsPipelineDescription& info);
 
@@ -72,17 +59,14 @@ namespace Mikoto {
         auto Release() -> void override;
 
     private:
+        VkPipeline m_Pipeline{};
+
         // Needed when using dynamic rendering
         // format is not dynamic
         VkFormat m_DepthAttachmentFormat{};
         std::vector<VkFormat> m_ColorAttachmentsFormats{};
 
-        BufferLayout m_BufferLayout{};
-
         VulkanHelpers::Reflection::ReflectedData m_ReflectionData{};
-
-        VkPipeline m_Pipeline{};
-        VulkanGraphicsPipelineDescription m_ConfigInfo{};
     };
 
     class VulkanComputePipeline final : public ComputePipeline {

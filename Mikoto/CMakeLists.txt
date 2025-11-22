@@ -127,15 +127,6 @@ set(ASSIMP_BUILD_DOCS OFF CACHE BOOL "")
 set(ASSIMP_BUILD_SAMPLES OFF CACHE BOOL "")
 
 # ======================================
-# EnkiTS options
-# ======================================
-set(ENKITS_BUILD_C_INTERFACE OFF CACHE BOOL "")
-set(ENKITS_BUILD_EXAMPLES OFF CACHE BOOL "")
-set(ENKITS_BUILD_SHARED OFF CACHE BOOL "")
-set(ENKITS_INSTALL OFF CACHE BOOL "")
-set(ENKITS_SANITIZE ON CACHE BOOL "")
-
-# ======================================
 # Freetype options
 # ======================================
 # FreeType can optionally use HarfBuzz for advanced text shaping (ligatures, kerning, etc.)

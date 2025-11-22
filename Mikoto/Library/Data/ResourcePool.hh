@@ -7,8 +7,9 @@
 
 #include <ranges>
 #include <type_traits>
-#include <ankerl/unordered_dense.h>
 #include <unordered_map>
+
+#include <ankerl/unordered_dense.h>
 
 #include <Common/Common.hh>
 #include <Common/ReferenceCounted.hh>
@@ -261,7 +262,7 @@ namespace Mikoto {
                 m_FreeHandles.emplace_back( i + m_PoolSize );
             }
 
-            m_PoolSize = m_FreeHandles.size();
+            m_PoolSize = m_PoolSize + m_FreeHandles.size();
         }
 
         MKT_NODISCARD auto IsPoolFull() const -> bool { return m_FreeHandles.size() == 0; }
@@ -274,8 +275,7 @@ namespace Mikoto {
 
         UInt32 m_PoolSize{ 100 };
         std::vector<Handle> m_FreeHandles{};
-        //std::unordered_map<Handle, ResourceHandle> m_Resources{};
-        ankerl::unordered_dense::map<Handle, ResourceHandle> m_Resources{};
+        std::unordered_map<Handle, ResourceHandle> m_Resources{};
     };
 
     /**
@@ -314,8 +314,8 @@ namespace Mikoto {
 
             const UInt32 index{ ObtainResource() };
 
-            Pointer p{ new (std::nothrow) T(std::forward<Args>(args)... ) };
-            auto newResource{ ResourceHandle::Create(p) };
+            Pointer ptr{ new (std::nothrow) T(std::forward<Args>(args)... ) };
+            ResourceHandle newResource{ ResourceHandle::Create(ptr) };
 
             m_Resources[index] = newResource;
             m_Resources[index]->SetHandle( index );

@@ -34,12 +34,10 @@ namespace Mikoto {
     auto SceneRenderer::Render( double ) const -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        const CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
+        CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
 
         m_RendererBackend->SetCamera( m_Camera );
 
-        // Renderer backend will know where it opens the command list
-        // here we will just submit it
         m_RendererBackend->BeginRender( cmd );
 
         m_RendererBackend->SetViewport( 0, 0, m_ViewportWidth, m_ViewportHeight );

@@ -86,8 +86,8 @@ namespace Mikoto {
         auto PrepareNewScene() -> void;
         auto PrepareSerialization() -> void;
 
-        auto SetupRenderer(double timeStep) -> void;
-        auto SetupCamera(double timeStep) -> void;
+        auto PrepareRenderer(double timeStep) -> void;
+        auto PrepareCamera(double timeStep) -> void;
 
         auto SetupRenderer() -> void ;
 

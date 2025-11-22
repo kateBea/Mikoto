@@ -475,7 +475,6 @@ namespace Mikoto {
     auto ImGuiVulkanBackend::RecordCommands( TextureHandle swapChainDrawTarget, CommandListHandle cmdList ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        // Record imgui draw commands
         if (m_UseDynamicRendering) {
             RecordDynamicRenderCommands( cmdList );
         } else {

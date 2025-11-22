@@ -2,6 +2,8 @@
 
 cmake_policy(SET CMP0091 NEW)
 
+option(MIKOTO_BUILD_TESTS "Build Mikoto unit tests" ON)
+
 # Disable IPO globally
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
 
@@ -62,3 +64,8 @@ endif()
 add_subdirectory(Mikoto)        # Core engine
 add_subdirectory(Mikoto-Editor) # Editor
 add_subdirectory(Mikoto-Sandbox) # Sandbox
+
+if (MIKOTO_BUILD_TESTS)
+    enable_testing()         # <-- recommended but not specific to GoogleTest
+    add_subdirectory(Mikoto-Tests)
+endif()

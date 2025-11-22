@@ -37,7 +37,7 @@ passes, amongst other features.
 | Platform | Status    |
 |----------|-----------|
 | Linux    | Supported |
-| Windows  | WIP       |
+| Windows  | Supported |
 
 ---
 
@@ -57,6 +57,7 @@ passes, amongst other features.
 - **`Mikoto-Engine/`**: The core engine that powers the editor.
 - **`Mikoto-Editor/`**: The editor project for creating and managing game scenes.
 - **`Mikoto-Sandbox/`**: A sample project that demonstrates some of the engine's features.
+- **`Mikoto-Tests/`**: Contains lists of tests against the core engine.
 
 ---
 
@@ -127,32 +128,14 @@ sudo make
 sudo make test
 sudo make install
 ```
-
-If you are on Windows and have MinGW installed, you can use the following commands to build and install Lua:
-
-```bash
-# Access contents
-tar -xvf lua-5.4.8.tar.gz
-cd lua-5.4.8/src
-
-# Install and tests lua
-sudo make
-sudo make mingw
-
-# Alternatively, you can use winget to install Lua
-# winget install "Lua for Windows"
-```
-
-After this you would need to set the variables in your environment to point to the Lua installation path.
-- ``LUA_DIR``: Path to the Lua installation directory.
-- ``LUA_INCLUDE_DIR``: Path to the Lua include directory.
-- ``LUA_LIBRARY``: Path to the Lua library file.
-
 If lua has been installed, the command ``lua -v`` should print something like the following:
 
 ```
 Lua 5.4.8  Copyright (C) 1994-2025 Lua.org, PUC-Rio
 ```
+
+>Precompiled binaries are shipped with Mikoto to compile with MSVC on Windows.
+
 ## Dependencies
 
 The development of Mikoto Engine is made possible thanks to these fantastic third-party libraries:

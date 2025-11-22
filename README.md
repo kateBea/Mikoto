@@ -58,6 +58,7 @@ passes, amongst other features.
 - **`Mikoto-Editor/`**: The editor project for creating and managing game scenes.
 - **`Mikoto-Sandbox/`**: A sample project that demonstrates some of the engine's features.
 - **`Mikoto-Tests/`**: Contains lists of tests against the core engine.
+- **`Mikoto-App/`**: Simple Application that uses Mikoto very basic features (to have something up and running).
 
 ---
 

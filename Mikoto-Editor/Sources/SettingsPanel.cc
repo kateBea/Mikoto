@@ -168,7 +168,7 @@ namespace Mikoto {
 
             ImGui::Spacing();
             if ( ImGui::TreeNodeEx( reinterpret_cast<const void*>( "SettingsPanel::OnUpdate::Color" ), styleFlags, "%s", "Clear" ) ) {
-                constexpr ImGuiColorEditFlags flags{ ImGuiColorEditFlags_None | ImGuiColorEditFlags_PickerHueWheel };
+                constexpr ImGuiColorEditFlags flags{ ImGuiColorEditFlags_None | ImGuiColorEditFlags_PickerHueBar | ImGuiColorEditFlags_DisplayRGB };
 
                 ImGui::Spacing();
                 ImGui::ColorEdit4( "Clear Color", value_ptr( m_Data.ClearColor ), flags );

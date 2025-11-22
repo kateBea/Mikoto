@@ -260,6 +260,15 @@ namespace Mikoto {
         return material;
     }
 
+    auto VulkanRenderer::SetClearColor( float r, float g, float b, float a ) -> void {
+        using namespace Mikoto::VulkanPasses;
+
+        MKT_BEGIN_PROFILER_NAMED();
+
+        ShadingPass* shadingPass{ m_Passes.Get<ShadingPass>() };
+        shadingPass->SetClearColor( Vec4F{ r, g, b, a } );
+    }
+
     auto VulkanRenderer::GetFinalComposition() const -> TextureHandle {
         using namespace Mikoto::VulkanPasses;
 

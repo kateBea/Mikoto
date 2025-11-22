@@ -95,7 +95,6 @@ namespace Mikoto::VulkanPasses {
         m_CmdList = cmd;
         VkCommandBuffer vkCmd { cmd->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
 
-        std::vector<VkRenderingAttachmentInfo> colorAttachments{};
         VkRenderingAttachmentInfo colorAttachment{};
         colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
         colorAttachment.imageView = m_ColorTarget.Image->GetNativeHandle( ObjectType::Vk_ImageView );
@@ -103,7 +102,8 @@ namespace Mikoto::VulkanPasses {
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         colorAttachment.clearValue.color = { m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a };
-        colorAttachments.push_back( colorAttachment );
+
+        std::array<VkRenderingAttachmentInfo, 1> colorAttachments{ colorAttachment };
 
         VkRenderingAttachmentInfo depthAttachment{};
         depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -117,7 +117,7 @@ namespace Mikoto::VulkanPasses {
         renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
         renderingInfo.renderArea = { { 0, 0 }, { 1920, 1080 } };
         renderingInfo.layerCount = 1;
-        renderingInfo.colorAttachmentCount = static_cast<uint32_t>( colorAttachments.size() );
+        renderingInfo.colorAttachmentCount = static_cast<UInt32>( colorAttachments.size() );
         renderingInfo.pColorAttachments = colorAttachments.data();
         renderingInfo.pDepthAttachment = std::addressof( depthAttachment );
 
@@ -232,8 +232,6 @@ namespace Mikoto::VulkanPasses {
             allInstances.insert( allInstances.end(), batch.Instances.begin(), batch.Instances.end() );
         }
 
-        //const Size totalSize{ allInstances.size() * sizeof( ShadingPassMeshBufferUBO ) };
-
         const VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE(m_Device)->GetUniformBufferMinOffsetAlignment() };
         const VkDeviceSize paddedSize{ VulkanHelpers::GetUniformBufferPadding(sizeof(ShadingPassMeshBufferUBO), minOffsetAlignment) };
 
@@ -241,8 +239,6 @@ namespace Mikoto::VulkanPasses {
             const VkDeviceSize dstOffset{ meshInstanceIndex * paddedSize };
             m_InstanceSSBO->CopyFromBlock(&allInstances[meshInstanceIndex], sizeof(ShadingPassMeshBufferUBO), dstOffset);
         }
-
-        //m_InstanceSSBO->CopyFromBlock( allInstances.data(), totalSize );
 
         auto vkCmd { m_CmdList->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
         vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -286,15 +282,15 @@ namespace Mikoto::VulkanPasses {
         BufferHandle vertexBuffer{ batch.Mesh->GetVertexBuffer() };
         BufferHandle indexBuffer{ batch.Mesh->GetIndexBuffer() };
 
-        constexpr std::array<VkDeviceSize, 1> offsets{};
+        const std::array<VkDeviceSize, 1> offsets{};
         const std::array<VkBuffer, 1> vertexBuffers{ vertexBuffer->GetNativeHandle(ObjectType::Vk_Buffer) };
 
         vkCmdBindVertexBuffers(vkCmd, 0, 1, vertexBuffers.data(), offsets.data());
         vkCmdBindIndexBuffer(vkCmd, indexBuffer->GetNativeHandle(ObjectType::Vk_Buffer), 0, VK_INDEX_TYPE_UINT32);
 
         // find the base/firstInstance for this mesh
-        const Size baseInstance = m_BatchOffsetMap.at(batch.Mesh);
-        const UInt32 firstInstance = static_cast<UInt32>(baseInstance);
+        const Size baseInstance{ m_BatchOffsetMap.at( batch.Mesh ) };
+        const UInt32 firstInstance{ static_cast<UInt32>( baseInstance ) };
 
         ++m_DrawCalls;
         vkCmdDrawIndexed(
@@ -303,7 +299,7 @@ namespace Mikoto::VulkanPasses {
             static_cast<UInt32>(batch.Instances.size()),       // instanceCount
             0,                                                 // firstIndex
             0,                                                 // vertexOffset
-            firstInstance                                      // firstInstance <- THIS IS THE FIX
+            firstInstance                                      // firstInstance
         );
     }
 

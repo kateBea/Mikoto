@@ -125,6 +125,16 @@ namespace Mikoto {
         MKT_NODISCARD auto GetRenderResolution() const -> RenderResolution;
 
         /**
+         * @brief Sets the clear color for the renderer.
+         * This function updates the clear color used when clearing the render target.
+         * @param r The red component of the clear color.
+         * @param g The green component of the clear color.
+         * @param b The blue component of the clear color.
+         * @param a The alpha component of the clear color.
+         */
+        auto SetClearColor( float r, float g, float b, float a ) -> void;
+
+        /**
          * @brief Creates a new `SceneRenderer` instance.
          *
          * This method provides a convenient way to create a scoped instance of the `SceneRenderer`.

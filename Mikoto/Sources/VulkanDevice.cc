@@ -672,6 +672,12 @@ namespace Mikoto {
         defaultInfo.ColorAttachments = description.ColorAttachments;
         defaultInfo.ShaderModules = description.ShaderStages;
 
+        //defaultInfo.DepthStencilInfo.depthTestEnable = description.DepthTest ? VK_TRUE : VK_FALSE;
+        //defaultInfo.DepthStencilInfo.depthWriteEnable = description.DepthWrite ? VK_TRUE : VK_FALSE;
+        //defaultInfo.ColorBlendAttachment.blendEnable = description.AlphaBlending ? VK_TRUE : VK_FALSE;
+
+        //defaultInfo.RasterizationInfo.cullMode = description.BackfaceCulling ? VK_CULL_MODE_BACK_BIT : VK_CULL_MODE_NONE;
+
         PipelineHandle graphicsPipeline{ m_GraphicsPipelines.Allocate( defaultInfo ).As<IPipeline>() };
         if ( graphicsPipeline.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreatePipeline - Failed to allocate graphics pipeline resource." );

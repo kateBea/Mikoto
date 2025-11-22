@@ -9,34 +9,7 @@
 namespace Mikoto {
 
     static auto TestCode() -> void {
-        // for reference usage framegraph later
-        // FrameGraph frameGraph;
-        //
-        // // Scene data
-        // std::vector<MeshHandle> shadowCasters = loadShadowCasters();
-        // std::vector<MeshHandle> opaqueObjects = loadOpaqueObjects();
-        // LightHandle sunLight = createDirectionalLight();
-        //
-        // // Text to render
-        // std::vector<TextPass::TextRenderData> uiTexts = {
-        //     { "FPS: 60", 10, 10, 1.0f, { 1, 1, 1, 1 }, defaultFont },
-        //     { "Score: 1337", 10, 40, 1.0f, { 1, 1, 0, 1 }, defaultFont }
-        // };
-        //
-        // // Create passes
-        // auto shadowPass = std::make_unique<ShadowPass>( sunLight, shadowCasters );
-        // auto pbrPass = std::make_unique<PBRPass>( opaqueObjects, shadowPass->getShadowMap() );
-        // auto textPass = std::make_unique<TextPass>( pbrPass->getColorOutput(), uiTexts );
-        //
-        // // Add to frame graph
-        // frameGraph.addPass( std::move( shadowPass ) );
-        // frameGraph.addPass( std::move( pbrPass ) );
-        // frameGraph.addPass( std::move( textPass ) );
-        //
-        // // Execute
-        // auto renderer = std::make_unique<VulkanBackend>();
-        // frameGraph.compile( *renderer );
-        // frameGraph.execute( *renderer );
+
     }
 
     SceneRenderer::SceneRenderer( const SceneRendererCreateInfo &createInfo )
@@ -102,6 +75,10 @@ namespace Mikoto {
 
     auto SceneRenderer::GetRenderResolution() const -> RenderResolution {
         return m_RenderResolution;
+    }
+
+    auto SceneRenderer::SetClearColor( float r, float g, float b, float a ) -> void {
+        m_RendererBackend->SetClearColor( r, g, b, a );
     }
 
     auto SceneRenderer::Create( const SceneRendererCreateInfo &createInfo ) -> Unique<SceneRenderer> {

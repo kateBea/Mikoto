@@ -20,7 +20,7 @@ namespace Mikoto {
     struct EditorState;
 
     struct SettingsPanelData {
-        Vec4F ClearColor{};
+        Vec4F ClearColor{ 0.2f, 0.3f, 0.5f, 1.0f  };
         Vec4F OutlineColor{ 1.0f, 1.0f, 1.0f, 1.0f };
         float EditorCameraMovementSpeed{ 70 };
         float EditorCameraRotationSpeed{ 30 };

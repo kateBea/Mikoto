@@ -44,6 +44,8 @@ namespace Mikoto {
         virtual auto SetCamera( const Camera* camera ) -> void = 0;
         virtual auto SetViewport( float x, float y, float width, float height ) -> void = 0;
 
+        virtual auto SetClearColor( float r, float g, float b, float a ) -> void = 0;
+
         MKT_NODISCARD virtual auto CreateMaterial( /* params */ ) -> MaterialHandle = 0;
 
         MKT_NODISCARD virtual auto GetFinalComposition() const -> TextureHandle = 0;

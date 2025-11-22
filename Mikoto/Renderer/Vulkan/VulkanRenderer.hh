@@ -58,6 +58,8 @@ namespace Mikoto {
         auto SetViewport( float x, float y, float width, float height ) -> void override;
 
         auto CreateMaterial( /* params */ ) -> MaterialHandle override;
+            
+        auto SetClearColor( float r, float g, float b, float a ) -> void override;
 
         auto GetFinalComposition() const -> TextureHandle override;
 

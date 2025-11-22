@@ -399,5 +399,5 @@ void main() {
     color = pow(color, vec3(1.0 / 2.2));
 
     out_Color = DetermineOutFragmentColor(N, color, metallic, roughness, ao);
-    out_Color = vec4(1.0, 1.0, 1.0, 1.0);
+    out_Color = vec4(color, 1.0);
 }

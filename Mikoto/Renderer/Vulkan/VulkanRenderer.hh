@@ -13,8 +13,8 @@
 #include <vector>
 
 // Third-Party Library
-#include <ankerl/unordered_dense.h>
 #include <volk.h>
+#include <ankerl/unordered_dense.h>
 
 #include <glm/glm.hpp>
 
@@ -111,16 +111,25 @@ namespace Mikoto {
             Vec4F Diffuse{};
         };
 
-
         struct LightInfo {
-            SpotLightShader SpotLights[MAX_LIGHTS]{};
-            PointLightShader PointLights[MAX_LIGHTS]{};
-            DirectionalLightShader DirectionalLights[MAX_LIGHTS]{};
+            enum class DisplayModes {
+                DISPLAY_NORMAL = 1,
+                DISPLAY_COLOR = 2,
+                DISPLAY_METAL = 3,
+                DISPLAY_AO = 4,
+                DISPLAY_ROUGH = 5,
+            };
+
+            std::array<SpotLightShader, MAX_LIGHTS> SpotLights{};
+            std::array<PointLightShader, MAX_LIGHTS> PointLights{};
+            std::array<DirectionalLightShader, MAX_LIGHTS> DirectionalLights{};
+
             Int32 DirectionalLightCount{};
             Int32 PointLightCount{};
             Int32 SpotLightCount{};
             Int32 DisplayMode{};
         };
+
     private:
         // Per frame data
         BufferHandle m_FrameUBOBuffer{};
@@ -142,7 +151,7 @@ namespace Mikoto {
 
         Registry<IPass> m_Passes{};
 
-        LightInfo* m_LightsInfo{};
+        Unique<LightInfo> m_LightsInfo{};
 
         VkViewport m_Viewport{};
         VkRect2D m_Scissor{};

@@ -1,0 +1,20 @@
+# base.mtl
+newmtl base_material
+
+map_Kd texture_diffuse.png
+
+map_Bump texture_normal.png
+
+map_Pm texture_metallic.png
+
+map_Pr texture_roughness.png
+
+# Fallback material parameters
+Kd 1.000 1.000 1.000
+Ka 0.000 0.000 0.000
+Ks 0.000 0.000 0.000
+Ns 1.0
+Ni 1.0
+d 1.0
+illum 2
+

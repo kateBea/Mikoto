@@ -33,6 +33,8 @@ namespace Mikoto {
         virtual auto WriteBuffer(Buffer* target, Byte* data, Size size) -> void = 0;
         virtual auto WriteTexture(Texture* target, Byte* data, Size size) -> void = 0;
 
+        using DeviceObject::Initialize;
+
     private:
 
         QueueType m_Type{ QueueType::INVALID_QUEUE };

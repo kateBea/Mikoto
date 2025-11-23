@@ -394,10 +394,4 @@ void main() {
     color = pow(color, vec3(1.0 / 2.2));
 
     out_Color = DetermineOutFragmentColor(N, color, metallic, roughness, ao);
-
-    // Test
-    vec3 albedoTest     = materialParams.AlbedoIndex != INVALID_TEXTURE_INDEX ?
-    texture(g_BindlessTextures[materialParams.AlbedoIndex], inTexCoord).rgb
-    : materialParams.Albedo.xyz;
-    out_Color = vec4(inTexCoord, 0.0f, 1.0f);
 }

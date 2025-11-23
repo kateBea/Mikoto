@@ -19,9 +19,7 @@ namespace Mikoto {
 
     class VulkanMemoryAllocator final : public GpuAllocator {
     public:
-        explicit VulkanMemoryAllocator( GpuDevice* device )
-            : GpuAllocator{ device }
-        {}
+        explicit VulkanMemoryAllocator( GpuDevice* device );
 
         auto Init() -> void override;
         auto Shutdown() -> void override;

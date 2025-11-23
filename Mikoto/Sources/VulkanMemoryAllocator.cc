@@ -1,13 +1,13 @@
 //
 // Created by zanet on 10/6/2025.
 //
+#include <memory>
 
+#include <volk.h>
 #include <fmt/format.h>
 
 // Define VMA implementation in one source file
 #define VMA_IMPLEMENTATION
-
-#include <memory>
 
 #include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
 
@@ -15,6 +15,9 @@
 #include <Renderer/Vulkan/VulkanDevice.hh>
 
 namespace Mikoto {
+
+    VulkanMemoryAllocator::VulkanMemoryAllocator( GpuDevice *device )
+        : GpuAllocator{ device } {}
 
     auto VulkanMemoryAllocator::Init() -> void {
         VmaAllocatorCreateInfo allocInfo{};
@@ -54,7 +57,7 @@ namespace Mikoto {
         //     }
         // }
 
-        // Shutdown VMA here
+        // Shutdown VMA
         vmaDestroyAllocator( m_Allocator );
     }
 

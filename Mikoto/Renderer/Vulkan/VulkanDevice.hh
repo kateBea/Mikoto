@@ -44,9 +44,11 @@ namespace Mikoto {
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
 
         ~VulkanCmdList() override;
+
     private:
         auto Initialize() -> void override;
         auto Release() -> void override;
+
     private:
         VkCommandBuffer m_CmdBuffer{ VK_NULL_HANDLE };
         VkCommandBufferAllocateInfo m_AllocInfo{};
@@ -143,6 +145,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetPhysicalDeviceFeatures() const -> const VkPhysicalDeviceFeatures&;
         MKT_NODISCARD auto GetPhysicalDeviceProperties() const -> const VkPhysicalDeviceProperties&;
         MKT_NODISCARD auto GetPhysicalDeviceMemoryProperties() const -> const VkPhysicalDeviceMemoryProperties&;
+
         MKT_NODISCARD auto GetAllocator() -> GpuAllocator*;
         MKT_NODISCARD auto GetAllocator() const -> const GpuAllocator*;
 
@@ -186,8 +189,8 @@ namespace Mikoto {
         const bool m_IsBindlessEnabled{ false };
 #endif
 
-        DescriptorAllocator m_DescriptorAllocator{};
 
+        // [Resource Pools]
         ResourcePoolTyped<VulkanBuffer> m_Buffers{};
         ResourcePoolTyped<VulkanTexture> m_Textures{};
         ResourcePoolTyped<VulkanCommandPool> m_CmdPools{};
@@ -199,22 +202,26 @@ namespace Mikoto {
         ResourcePoolTyped<VulkanSampler> m_Samplers{};
         ResourcePoolTyped<DescriptorSetLayout> m_DescriptorSetLayouts{};
 
+        DescriptorAllocator m_DescriptorAllocator{};
+
+        // [Command list management]
+        QueuesData m_Queues{};
+
         ankerl::unordered_dense::map<UInt32, VkFence> m_FrameFences{};
         ankerl::unordered_dense::map<UInt32, std::vector<CommandListHandle>> m_FrameCmdBuffers{};
 
         std::vector<CommandListHandle> m_AvailableGraphicsCommandLists{};
         std::vector<CommandListHandle> m_PendingGraphicsCommandLists{};
 
-        QueuesData m_Queues{};
-
-        Unique<GpuAllocator> m_GpuAllocator{ nullptr };
-
+        // [Device management]
         VkDevice m_LogicalDevice{};
         VkPhysicalDevice m_PhysicalDevice{};
 
         PhysicalDeviceInfo m_PhysicalDeviceInfo{};
         std::vector<const char*> m_RequestedExtensions{};
+        Unique<GpuAllocator> m_GpuAllocator{ nullptr };
 
+        // [Tracy debug]
         VkCommandPool m_TracyPool{};
         VkCommandBuffer m_TracyCmd{};
         TracyVkCtx m_TracyContext{};
@@ -227,7 +234,5 @@ namespace Mikoto {
 #define TO_VK_DEVICE(GPU_DEVICE_PTR) \
     dynamic_cast<VulkanDevice*>(GPU_DEVICE_PTR)
 }
-
-
 
 #endif //VULKANDEVICE_HH

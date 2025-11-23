@@ -5,6 +5,14 @@
 #ifndef FREETYPEMANAGER_HH
 #define FREETYPEMANAGER_HH
 
+// I love Windows.h defining min and max macros that break everything
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
 #include <msdf-atlas-gen/msdf-atlas-gen.h>
 
 #include <Common/Common.hh>

@@ -3,6 +3,17 @@
 //
 
 #include <fmt/format.h>
+
+// I love Windows.h defining min and max macros that break everything
+
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
+
 #include <msdf-atlas-gen/glyph-generators.h>
 #include <msdf-atlas-gen/msdf-atlas-gen.h>
 

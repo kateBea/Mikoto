@@ -5,7 +5,7 @@
 #ifndef MIKOTO_HELLOWORLD_HH
 #define MIKOTO_HELLOWORLD_HH
 
-#include <../../Mikoto/Renderer/Core/SceneRenderer.hh>
+#include <Renderer/Core/SceneRenderer.hh>
 #include <Common/Application.hh>
 #include <Core/EventService.hh>
 #include <Library/Utility/Types.hh>

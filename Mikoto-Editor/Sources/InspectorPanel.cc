@@ -196,7 +196,7 @@ namespace Mikoto {
         }
     }
 
-    static auto EditPBRMaterial_AlbedoMap( PBRMaterial& material ) -> void {
+    static auto EditPBRMaterialAlbedoMap( PBRMaterial& material ) -> void {
         // We use the standard default font with FONT_ICON_FILE_NAME_MD font icons
         // since the other fonts don't correctly display these icons
         ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
@@ -264,13 +264,14 @@ namespace Mikoto {
             ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
+                material.RemoveTextureType( MapType::ALBEDO_TEXTURE );
             }
 
             ImGui::EndTable();
         }
     }
 
-    static auto EditPBRMaterial_MetallicMap( PBRMaterial& material ) -> void {
+    static auto EditPBRMaterialMetallicMap( PBRMaterial& material ) -> void {
         ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
         ImGui::SameLine();
         ImGui::TextUnformatted( " Metallic" );
@@ -324,6 +325,7 @@ namespace Mikoto {
             ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
+                material.RemoveTextureType( MapType::METALLIC_TEXTURE );
             }
 
             if ( ImGui::IsItemHovered() ) {
@@ -334,12 +336,12 @@ namespace Mikoto {
         }
     }
 
-    static auto EditPBRMaterial_NormalMap( PBRMaterial& material ) -> void {
+    static auto EditPBRMaterialNormalMap( PBRMaterial& material ) -> void {
         ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
         ImGui::SameLine();
         ImGui::TextUnformatted( " Normal" );
 
-        TextureHandle normalMap{ material.GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) };
+        TextureHandle normalMap{ material.GetTextureType( MapType::NORMAL_TEXTURE ) };
         if ( normalMap.IsEmpty() ) {
             normalMap = AssetsService::Get()->GetDummyTexture();
         }
@@ -384,7 +386,9 @@ namespace Mikoto {
             ImGui::TableSetColumnIndex( columnIndexSpecular );
             ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
             ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+
             if ( ImGui::Button( "Remove Texture" ) ) {
+                material.RemoveTextureType( MapType::NORMAL_TEXTURE );
             }
 
             if ( ImGui::IsItemHovered() ) {
@@ -395,7 +399,7 @@ namespace Mikoto {
         }
     }
 
-    static auto EditPBRMaterial_RoughnessMap( PBRMaterial& material ) -> void {
+    static auto EditPBRMaterialRoughnessMap( PBRMaterial& material ) -> void {
         ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
         ImGui::SameLine();
         ImGui::TextUnformatted( " Roughness" );
@@ -449,6 +453,7 @@ namespace Mikoto {
             ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
+                material.RemoveTextureType( MapType::ROUGHNESS_TEXTURE );
             }
 
             if ( ImGui::IsItemHovered() ) {
@@ -459,7 +464,7 @@ namespace Mikoto {
         }
     }
 
-    static auto EditPBRMaterial_AmbientOcclusion( PBRMaterial& material ) -> void {
+    static auto EditPBRMaterialAmbientOcclusion( PBRMaterial& material ) -> void {
         ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
         ImGui::SameLine();
         ImGui::TextUnformatted( " Ambient Occlusion" );
@@ -512,6 +517,7 @@ namespace Mikoto {
             ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
+                material.RemoveTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE );
             }
 
             if ( ImGui::IsItemHovered() ) {
@@ -527,11 +533,11 @@ namespace Mikoto {
             return;
         }
 
-        DisplayTextureEditTreeNode( "Albedo", *material, EditPBRMaterial_AlbedoMap );
-        DisplayTextureEditTreeNode( "Metallic", *material, EditPBRMaterial_MetallicMap );
-        DisplayTextureEditTreeNode( "Roughness", *material, EditPBRMaterial_RoughnessMap );
-        DisplayTextureEditTreeNode( "Ambient Occlusion", *material, EditPBRMaterial_AmbientOcclusion );
-        DisplayTextureEditTreeNode( "Normal", *material, EditPBRMaterial_NormalMap );
+        DisplayTextureEditTreeNode( "Albedo", *material, EditPBRMaterialAlbedoMap );
+        DisplayTextureEditTreeNode( "Metallic", *material, EditPBRMaterialMetallicMap );
+        DisplayTextureEditTreeNode( "Roughness", *material, EditPBRMaterialRoughnessMap );
+        DisplayTextureEditTreeNode( "Ambient Occlusion", *material, EditPBRMaterialAmbientOcclusion );
+        DisplayTextureEditTreeNode( "Normal", *material, EditPBRMaterialNormalMap );
     }
 
     static auto DrawComponentButton( Entity* entity ) -> void {
@@ -1160,7 +1166,7 @@ namespace Mikoto {
             ImGui::TableSetColumnIndex( 0 );
 
             float intensity{ pointLightData.GetIntensity() };
-            if ( ImGuiUtils::Slider( "Intensity", intensity, { 1.0f, 100.0f } ) ) {
+            if ( ImGuiUtils::Slider( "Intensity", intensity, { 1.0f, 200.0f } ) ) {
                 pointLightData.SetIntensity( intensity );
             }
 
@@ -1169,7 +1175,7 @@ namespace Mikoto {
             ImGui::TableSetColumnIndex( 0 );
 
             float radius{ pointLightData.GetRadius() };
-            if ( ImGuiUtils::Slider( "Radius", radius, { 1.0f, 10.0f } ) ) {
+            if ( ImGuiUtils::Slider( "Radius", radius, { 1.0f, 500.0f } ) ) {
                 pointLightData.SetRadius( radius );
             }
 

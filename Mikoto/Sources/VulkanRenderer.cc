@@ -54,7 +54,7 @@ namespace Mikoto {
 
         m_Materials.Init( 10 );
 
-        m_LightsInfo = new LightInfo();
+        m_LightsInfo = CreateScope<LightInfo>();
 
         m_IsInitialized = true;
     }
@@ -66,7 +66,7 @@ namespace Mikoto {
             return;
         }
 
-        delete m_LightsInfo;
+        m_LightsInfo.reset();
 
         m_Passes.Clear();
 
@@ -203,17 +203,10 @@ namespace Mikoto {
         m_LightsInfo->SpotLightCount = spotLightCount;
         m_LightsInfo->DirectionalLightCount = directionalLightCount;
 
-        // FIXME: These match the pbr shader
-#define DISPLAY_NORMAL 1
-#define DISPLAY_COLOR  2
-#define DISPLAY_METAL  3
-#define DISPLAY_AO     4
-#define DISPLAY_ROUGH  5
-
-        m_LightsInfo->DisplayMode = DISPLAY_COLOR;
+        m_LightsInfo->DisplayMode = static_cast<Int32>(LightInfo::DisplayModes::DISPLAY_COLOR);
 
         // Copy to GPU buffer
-        m_LightsBuffer->CopyFromBlock( m_LightsInfo, sizeof( LightInfo ) );
+        m_LightsBuffer->CopyFromBlock( m_LightsInfo.get(), sizeof( LightInfo ) );
 
         // For all passes with a graphics pipeline
         for ( auto& pass: m_Passes | std::ranges::views::values ) {
@@ -333,10 +326,10 @@ namespace Mikoto {
         // ───────────────────────────────────────────────
         // [ Set = 1 ] Bindless textures
         // ───────────────────────────────────────────────
-        const UInt32 variableCount[] = { maxBindlessTextures };
+        std::array<UInt32, 1> variableCount{ maxBindlessTextures };
         VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO };
-        variableCountInfo.descriptorSetCount = 1;
-        variableCountInfo.pDescriptorCounts = variableCount;
+        variableCountInfo.descriptorSetCount = static_cast<UInt32>( variableCount.size() );
+        variableCountInfo.pDescriptorCounts = variableCount.data();
 
         const VkDescriptorSetLayout& layoutTextures{ vkPipeline->GetDescriptorSetLayout( 1 ) };
         m_TexturesSet = TO_VK_DEVICE( m_GraphicsDevice )->AllocateDescriptorSet( &layoutTextures );
@@ -348,11 +341,12 @@ namespace Mikoto {
         }
 
         VkSampler sampler{ texture->GetSampler()->GetNativeHandle( ObjectType::Vk_Sampler ) };
+
         VkDescriptorImageInfo imageInfo{};
         imageInfo.sampler = sampler;
         imageInfo.imageView = texture->GetNativeHandle( ObjectType::Vk_ImageView );
 
-        // is this the image's layout or the layout i want to to be for optimal sampling
+        // is this the image's layout or the layout I want to be for optimal sampling
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         VkWriteDescriptorSet write{};

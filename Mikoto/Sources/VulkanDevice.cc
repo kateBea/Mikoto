@@ -977,14 +977,14 @@ namespace Mikoto {
         allocInfo.commandPool = m_Pool;
         allocInfo.commandBufferCount = 1;
 
-        Ref<VulkanCmdList> handle{ m_CmdLists.Allocate( allocInfo ) };
+        CommandListHandle handle{ m_CmdLists.Allocate( allocInfo ) };
         if ( handle.IsEmpty() ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanCommandPool::AllocateCmdList - Failed to allocate  command list." );
-        } else {
-            handle.As<DeviceObject>()->Initialize( m_Device );
-        }
+        } 
 
-        return handle.As<ICommandList>();
+        handle->Initialize( m_Device );
+
+        return handle;
     }
 
     auto VulkanCommandPool::Clear() -> void {

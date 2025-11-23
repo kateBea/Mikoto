@@ -5,13 +5,13 @@
 #ifndef MIKOTO_VULKAN_PASSES_HH
 #define MIKOTO_VULKAN_PASSES_HH
 
-#include <volk.h>
 #include <ankerl/unordered_dense.h>
+#include <volk.h>
 
-#include <Renderer/Pipeline.hh>
-#include <Renderer/GpuDevice.hh>
-#include <Renderer/RendererBackend.hh>
-#include <Renderer/RenderPassBase.hh>
+#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Core/Pipeline.hh>
+#include <Renderer/Core/RenderPassBase.hh>
+#include <Renderer/Core/RendererBackend.hh>
 #include <Renderer/Vulkan/VulkanDescriptorManager.hh>
 
 namespace Mikoto::VulkanPasses {

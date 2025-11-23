@@ -7,6 +7,8 @@
 
 #include <ankerl/unordered_dense.h>
 
+#include <Renderer/Core/FontFactory.hh>
+#include <Renderer/Core/RenderUtility.hh>
 #include <Assets/Font.hh>
 #include <Assets/Model.hh>
 #include <Assets/Texture.hh>
@@ -17,8 +19,6 @@
 #include <Library/Data/ResourcePool.hh>
 #include <Library/Utility/Types.hh>
 #include <Material/ShaderLibrary.hh>
-#include <Renderer/FontFactory.hh>
-#include <Renderer/RenderUtility.hh>
 #include <Threading/TaskService.hh>
 
 #include "Assets/AudioClip.hh"

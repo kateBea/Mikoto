@@ -6,8 +6,8 @@
 #define RENDERPASS_HH
 
 #include <Assets/Texture.hh>
-#include <Renderer/GpuDevice.hh>
-#include <Renderer/RendererBackend.hh>
+#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Core/RendererBackend.hh>
 #include <Library/Utility/Types.hh>
 
 namespace Mikoto {

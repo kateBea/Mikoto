@@ -7,10 +7,10 @@
 
 #include <any>
 
-#include <Library/Utility/Types.hh>
+#include <Renderer/Core/DeviceObject.hh>
 #include <Library/Data/ResourcePool.hh>
-#include <Renderer/DeviceObject.hh>
-#include <Renderer/RenderUtility.hh>
+#include <Library/Utility/Types.hh>
+#include <Renderer/Core/RenderUtility.hh>
 
 namespace Mikoto {
 

@@ -3,6 +3,9 @@
 //
 #include <ankerl/unordered_dense.h>
 
+#include <Renderer/Core/FontFactory.hh>
+#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Core/RenderService.hh>
 #include <Assets/AssetsService.hh>
 #include <Assets/MeshFactory.hh>
 #include <Assets/Model.hh>
@@ -12,9 +15,6 @@
 #include <Core/Profiler.hh>
 #include <Filesystem/FileService.hh>
 #include <Library/Utility/Types.hh>
-#include <Renderer/FontFactory.hh>
-#include <Renderer/GpuDevice.hh>
-#include <Renderer/RenderService.hh>
 #include <Threading/TaskService.hh>
 
 namespace Mikoto {

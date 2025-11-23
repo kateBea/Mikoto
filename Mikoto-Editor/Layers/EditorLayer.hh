@@ -11,17 +11,17 @@
 
 // Project Headers
 #include <Assets/Model.hh>
+#include <Core/LayerStack.hh>
+#include <ImGui/ImGuiUtility.hh>
 #include <Library/Data/Registry.hh>
 #include <Material/TextureCube.hh>
 #include <Panels/Panel.hh>
-#include <ImGui/ImGuiUtility.hh>
 #include <Platform/Window.hh>
 #include <Scene/Entity.hh>
 #include <Scene/Scene.hh>
 #include <Scene/SceneCamera.hh>
 #include <Scene/SceneSerializer.hh>
-#include <Core/LayerStack.hh>
-#include <Renderer/SceneRenderer.hh>
+#include <Renderer/Core/SceneRenderer.hh>
 
 namespace Mikoto {
 

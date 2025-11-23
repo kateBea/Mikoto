@@ -12,7 +12,7 @@
 #include <Common/Singleton.hh>
 
 #include <Assets/Font.hh>
-#include <Renderer/GpuDevice.hh>
+#include <Renderer/Core/GpuDevice.hh>
 
 namespace Mikoto {
 
@@ -61,7 +61,7 @@ namespace Mikoto {
         };
 
     private:
-        auto GenerateAtlas( const CStr fontFilename ) -> MsdfData;
+        auto GenerateAtlas( const CStr fontFilename ) const -> MsdfData;
 
     private:
         GpuDevice *m_GpuDevice{ nullptr };

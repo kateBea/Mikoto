@@ -6,14 +6,14 @@
 #include <memory>
 #include <vector>
 
+#include <Renderer/Core/Pipeline.hh>
+#include <Renderer/Core/RenderService.hh>
 #include <Assets/AssetsService.hh>
 #include <Assets/MeshFactory.hh>
 #include <Assets/Model.hh>
 #include <Filesystem/FileService.hh>
-#include <Renderer/RenderUtility.hh>
-#include <Renderer/Pipeline.hh>
-#include <Renderer/RenderService.hh>
 #include <Library/Utility/Types.hh>
+#include <Renderer/Core/RenderUtility.hh>
 
 #include "assimp/DefaultLogger.hpp"
 #include "assimp/postprocess.h"

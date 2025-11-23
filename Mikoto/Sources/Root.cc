@@ -2,6 +2,7 @@
 // Created by zanet on 10/1/2025.
 //
 
+#include <Renderer/Core/RenderService.hh>
 #include <Assets/AssetsService.hh>
 #include <Audio/AudioService.hh>
 #include <Core/Configuration.hh>
@@ -17,7 +18,6 @@
 #include <Memory/MemoryService.hh>
 #include <Networking/NetworkService.hh>
 #include <Physics/PhysicService.hh>
-#include <Renderer/RenderService.hh>
 #include <Scripting/ScriptingService.hh>
 #include <Threading/TaskService.hh>
 #include <Threading/ThreadUtility.hh>

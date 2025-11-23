@@ -10,6 +10,7 @@
 #include <functional>
 #include <string>
 #include <optional>
+#include <utility>
 
 // Third-Party Libraries
 #include <glm/glm.hpp>
@@ -17,6 +18,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 // Project Headers
+#include <Renderer/Core/Light.hh>
 #include <Assets/AssetsService.hh>
 #include <Assets/AudioClip.hh>
 #include <Assets/Font.hh>
@@ -29,9 +31,7 @@
 #include <Library/Random/Random.hh>
 #include <Library/Utility/Types.hh>
 #include <Material/Material.hh>
-#include <Renderer/Light.hh>
 #include <Scene/SceneCamera.hh>
-#include <utility>
 
 namespace Mikoto {
 
@@ -519,6 +519,8 @@ namespace Mikoto {
                 m_Font = font;
             }
         }
+
+        MKT_NODISCARD auto HasFont() const -> bool { return !m_Font.IsEmpty(); }
 
         auto SetCamera(const Camera* camera) -> void {
             if (camera != nullptr) {

@@ -7,7 +7,7 @@
 #include <string>
 
 #include <Core/SystemStats.hh>
-#include <Renderer/RenderService.hh>
+#include <Renderer/Core/RenderService.hh>
 
 namespace Mikoto {
 

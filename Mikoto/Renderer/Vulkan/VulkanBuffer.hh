@@ -14,9 +14,9 @@
 #include <vk_mem_alloc.h>
 
 // Project Headers
+#include <Renderer/Core/Buffer.hh>
 #include <Common/Common.hh>
 #include <Library/Random/Random.hh>
-#include <Renderer/Buffer.hh>
 
 namespace Mikoto {
 

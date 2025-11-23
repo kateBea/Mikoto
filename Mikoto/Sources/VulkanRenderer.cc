@@ -10,8 +10,12 @@
 #include <volk.h>
 
 #include <Core/Profiler.hh>
-#include <Renderer/Light.hh>
+
 #include <Scene/Component.hh>
+
+#include <Renderer/Core/Buffer.hh>
+#include <Renderer/Core/Light.hh>
+#include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Vulkan/VulkanPasses.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
 

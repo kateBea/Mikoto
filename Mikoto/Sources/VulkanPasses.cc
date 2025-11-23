@@ -8,11 +8,10 @@
 // Third-Party Libraries
 #include <volk.h>
 
+#include <Renderer/Core/RenderUtility.hh>
 #include <Core/Profiler.hh>
 #include <Material/PBRMaterial.hh>
 #include <Material/ShaderLibrary.hh>
-#include <Memory/MemoryService.hh>
-#include <Renderer/RenderUtility.hh>
 #include <Scene/Component.hh>
 
 #include "Renderer/Vulkan/VulkanDevice.hh"

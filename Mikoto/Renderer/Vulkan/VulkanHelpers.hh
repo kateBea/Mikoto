@@ -22,11 +22,11 @@
 #include <fmt/format.h>
 
 // Project Headers
-#include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
-#include <Renderer/RenderUtility.hh>
+#include <Renderer/Core/RenderUtility.hh>
 #include <Assets/Texture.hh>
+#include <Common/Common.hh>
 #include <Core/Exception.hh>
+#include <Library/Utility/Types.hh>
 
 // Vulkan version
 #define MKT_VULKAN_VERSION_VARIANT 0

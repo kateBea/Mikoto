@@ -4,16 +4,15 @@
 
 #ifndef FONT_HH
 #define FONT_HH
-#include <string>
 
+#include <string>
 
 #include <ankerl/unordered_dense.h>
 
-
+#include <Renderer/Core/GpuDevice.hh>
 #include <Common/Common.hh>
 #include <Library/Data/ResourcePool.hh>
 #include <Library/Utility/Types.hh>
-#include <Renderer/GpuDevice.hh>
 
 namespace Mikoto {
 
@@ -94,6 +93,9 @@ namespace Mikoto {
 
 
         auto RegisterGlyph( UInt32 characterCode, const FontGlyph& glyph ) -> void;
+
+        auto SetName( std::string_view name ) -> void;
+        auto SetPath( std::string_view path ) -> void;
 
         MKT_NODISCARD auto GetGlyphCount() const -> Size;
 

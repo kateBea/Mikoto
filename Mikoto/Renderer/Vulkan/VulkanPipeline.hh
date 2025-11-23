@@ -15,8 +15,8 @@
 #include "volk.h"
 
 // Project Headers
+#include <Renderer/Core/Pipeline.hh>
 #include <Common/Common.hh>
-#include <Renderer/Pipeline.hh>
 
 namespace Mikoto {
 

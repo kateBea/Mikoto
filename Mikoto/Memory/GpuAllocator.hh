@@ -6,10 +6,8 @@
 #define GPUALLOCATOR_H
 
 #include <Library/Utility/Types.hh>
-#include <Renderer/GpuDevice.hh>
-
 #include <Memory/Allocator.hh>
-
+#include <Renderer/Core/GpuDevice.hh>
 
 namespace Mikoto {
     class GpuAllocator : public Allocator {

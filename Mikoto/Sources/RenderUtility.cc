@@ -11,8 +11,9 @@
 #include <Assets/Texture.hh>
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
-#include <Renderer/Framebuffer.hh>
-#include <Renderer/RenderUtility.hh>
+
+#include <Renderer/Core/Framebuffer.hh>
+#include <Renderer/Core/RenderUtility.hh>
 
 namespace Mikoto {
     MKT_NODISCARD auto LoadImageFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc* {

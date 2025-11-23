@@ -11,6 +11,7 @@
 #include <ImGui/IconsMaterialDesignIcons.h>
 #include <imgui_impl_vulkan.h>
 
+#include <Renderer/Core/RenderService.hh>
 #include <Common/Common.hh>
 #include <Core/Profiler.hh>
 #include <Filesystem/FileService.hh>
@@ -19,7 +20,6 @@
 #include <ImGui/ImGuiVulkanBackend.hh>
 #include <Library/Utility/Types.hh>
 #include <Logging/Logger.hh>
-#include <Renderer/RenderService.hh>
 
 namespace Mikoto {
 

@@ -5,15 +5,15 @@
 #ifndef MIKOTO_CONTENT_BROWSER_HH
 #define MIKOTO_CONTENT_BROWSER_HH
 
-#include <ankerl/unordered_dense.h>
-#include <imgui.h>
-
-#include <Library/Random/Random.hh>
-#include <Panels/Panel.hh>
-#include <Renderer/GpuDevice.hh>
 #include <filesystem>
 #include <memory>
 #include <stack>
+
+#include <imgui.h>
+#include <ankerl/unordered_dense.h>
+
+#include <Panels/Panel.hh>
+#include <Renderer/Core/GpuDevice.hh>
 
 namespace Mikoto {
 

@@ -17,9 +17,10 @@
 // Project Headers
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
-#include <Renderer/RenderService.hh>
-#include "VulkanHelpers.hh"
-#include "VulkanTexture.hh"
+
+#include <Renderer/Core/RenderService.hh>
+#include <Renderer/Vulkan/VulkanHelpers.hh>
+#include <Renderer/Vulkan/VulkanTexture.hh>
 
 namespace Mikoto {
 

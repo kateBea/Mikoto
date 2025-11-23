@@ -193,15 +193,18 @@ namespace Mikoto {
     auto EditorLayer::PrepareCamera( double timeStep ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        m_EditorCamera->SetMovementSpeed( 13.f );
-        m_EditorCamera->SetRotationSpeed( 13.f );
+        SettingsPanel* settingsPanel{ m_PanelRegistry.Get<SettingsPanel>() };
+        const auto& configuration{ settingsPanel->GetData() };
 
-        m_EditorCamera->SetFarPlane( 20000.0f );
-        m_EditorCamera->SetNearPlane( 1.0f );
+        m_EditorCamera->SetMovementSpeed( configuration.EditorCameraMovementSpeed );
+        m_EditorCamera->SetRotationSpeed( configuration.EditorCameraRotationSpeed );
 
-        m_EditorCamera->WantRotation( true, true );
+        m_EditorCamera->SetFarPlane( configuration.FarPlane );
+        m_EditorCamera->SetNearPlane( configuration.NearPlane );
 
-        m_EditorCamera->SetFieldOfView( 45 );
+        m_EditorCamera->WantRotation( configuration.WantXAxisRotation, configuration.WantYAxisRotation );
+
+        m_EditorCamera->SetFieldOfView( configuration.FieldOfView );
 
         // Set viewport to the currently active window we can either expand
         // the final composition to occupy the whole screen or just an ImGui viewport

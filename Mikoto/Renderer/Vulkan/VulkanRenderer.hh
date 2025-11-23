@@ -120,7 +120,6 @@ namespace Mikoto {
             Int32 PointLightCount{};
             Int32 SpotLightCount{};
             Int32 DisplayMode{};
-            Int32 Wireframe{};
         };
     private:
         // Per frame data

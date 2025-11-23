@@ -208,7 +208,7 @@ namespace Mikoto::VulkanPasses {
         constexpr Size elementSize{ sizeof( ShadingPassMeshBufferUBO ) };
 
         // UniformBuffer size padded. Vertex shader
-        const VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE( m_Device )->GetUniformBufferMinOffsetAlignment() };
+        const VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE( m_Device )->GetStorageBufferMinOffsetAlignment() };
         const VkDeviceSize paddedSize{ VulkanHelpers::GetUniformBufferPadding(elementSize, minOffsetAlignment) };
 
         const Size totalSize{ elementCount * paddedSize };
@@ -232,7 +232,7 @@ namespace Mikoto::VulkanPasses {
             allInstances.insert( allInstances.end(), batch.Instances.begin(), batch.Instances.end() );
         }
 
-        const VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE(m_Device)->GetUniformBufferMinOffsetAlignment() };
+        const VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE( m_Device )->GetStorageBufferMinOffsetAlignment() };
         const VkDeviceSize paddedSize{ VulkanHelpers::GetUniformBufferPadding(sizeof(ShadingPassMeshBufferUBO), minOffsetAlignment) };
 
         for (Size meshInstanceIndex{}; meshInstanceIndex < allInstances.size(); ++meshInstanceIndex) {

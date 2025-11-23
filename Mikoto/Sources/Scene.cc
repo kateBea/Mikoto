@@ -55,7 +55,6 @@ namespace Mikoto {
 
     Scene::Scene( const std::string_view name )
         : m_Name{ name } {
-        // Install component listeners
 
         m_Registry.on_construct<MeshComponent>().connect<&OnMeshRendererAdded>();
         m_Registry.on_construct<RigidBodyComponent>().connect<&Scene::OnRigidBodyAdded>(this);
@@ -175,7 +174,7 @@ namespace Mikoto {
 
         Entity* result{ nullptr };
 
-        // Register the entity and setup default componenets
+        // Register the entity and setup default components
         Unique<Entity> newEntity{ new Entity( m_Registry ) };
         SetupStandardComponents( *newEntity, createInfo );
 

@@ -627,6 +627,10 @@ namespace Mikoto {
         return m_PhysicalDeviceInfo.Properties.limits.minUniformBufferOffsetAlignment;
     }
 
+    auto VulkanDevice::GetStorageBufferMinOffsetAlignment() const -> VkDeviceSize {
+        return m_PhysicalDeviceInfo.Properties.limits.minStorageBufferOffsetAlignment;
+    }
+
     auto VulkanDevice::GetPhysicalDevice() const -> const VkPhysicalDevice& {
         return m_PhysicalDevice;
     }

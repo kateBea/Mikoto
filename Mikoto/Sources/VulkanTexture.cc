@@ -23,7 +23,7 @@
 
 namespace Mikoto {
 
-    VulkanSampler::VulkanSampler( const SamplerDescription& desc ) {
+    VulkanSampler::VulkanSampler( const SamplerDescription& ) {
         // Create a Sampler for the texture we will display in the viewport
         m_CreateInfo = VulkanHelpers::Initializers::SamplerCreateInfo();
 
@@ -226,7 +226,7 @@ namespace Mikoto {
 
         vkCmdPipelineBarrier2( cmd, std::addressof( depInfo ) );
 
-        // Update the current layout
+        // Update the current layout 
         m_CurrentLayout = newLayout;
     }
 

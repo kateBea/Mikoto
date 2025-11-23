@@ -5,10 +5,10 @@
 
 #include <volk.h>
 #include <vk_mem_alloc.h>
-#include <tracy/TracyVulkan.hpp>
-
 
 // must include Vulkan headers before including TracyVulkan.hpp
+#include <tracy/TracyVulkan.hpp>
+
 #include <Assets/AssetsService.hh>
 #include <Core/Profiler.hh>
 #include <Filesystem/FileService.hh>

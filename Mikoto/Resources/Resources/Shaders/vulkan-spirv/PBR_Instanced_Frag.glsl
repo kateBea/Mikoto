@@ -82,7 +82,6 @@ layout(set = 0, binding = 1) uniform LightUniformBuffer {
     int PointLightCount;
     int SpotLightCount;
     int DisplayMode;
-    int Wireframe;
 } LightsParams;
 
 // --------------------------------------------------
@@ -328,30 +327,26 @@ vec3 ComputeSpotLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, floa
 vec4 DetermineOutFragmentColor(vec3 N, vec3 color, float metallic, float roughness, float ao) {
     vec4 result = vec4(0.0);
 
-    if (LightsParams.Wireframe != 1) {
-        switch (LightsParams.DisplayMode) {
-            case DISPLAY_COLOR:
-            result = vec4(color , 1.0);
-            break;
+    switch (LightsParams.DisplayMode) {
+        case DISPLAY_COLOR:
+        result = vec4(color , 1.0);
+        break;
 
-            case DISPLAY_NORMAL:
-            result = vec4(N , 1.0);
-            break;
+        case DISPLAY_NORMAL:
+        result = vec4(N , 1.0);
+        break;
 
-            case DISPLAY_METAL:
-            result = vec4(metallic, metallic, metallic , 1.0);
-            break;
+        case DISPLAY_METAL:
+        result = vec4(metallic, metallic, metallic , 1.0);
+        break;
 
-            case DISPLAY_AO:
-            result = vec4(ao, ao, ao , 1.0);
-            break;
+        case DISPLAY_AO:
+        result = vec4(ao, ao, ao , 1.0);
+        break;
 
-            case DISPLAY_ROUGH:
-            result = vec4(roughness, roughness, roughness , 1.0);
-            break;
-        }
-    } else {
-        result = vec4(0.0f, 0.0f, 0.0f , 1.0);
+        case DISPLAY_ROUGH:
+        result = vec4(roughness, roughness, roughness , 1.0);
+        break;
     }
 
     return result;
@@ -399,5 +394,10 @@ void main() {
     color = pow(color, vec3(1.0 / 2.2));
 
     out_Color = DetermineOutFragmentColor(N, color, metallic, roughness, ao);
-    out_Color = vec4(color, 1.0);
+
+    // Test
+    vec3 albedoTest     = materialParams.AlbedoIndex != INVALID_TEXTURE_INDEX ?
+    texture(g_BindlessTextures[materialParams.AlbedoIndex], inTexCoord).rgb
+    : materialParams.Albedo.xyz;
+    out_Color = vec4(inTexCoord, 0.0f, 1.0f);
 }

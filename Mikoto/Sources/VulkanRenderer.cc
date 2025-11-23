@@ -203,6 +203,15 @@ namespace Mikoto {
         m_LightsInfo->SpotLightCount = spotLightCount;
         m_LightsInfo->DirectionalLightCount = directionalLightCount;
 
+        // FIXME: These match the pbr shader
+#define DISPLAY_NORMAL 1
+#define DISPLAY_COLOR  2
+#define DISPLAY_METAL  3
+#define DISPLAY_AO     4
+#define DISPLAY_ROUGH  5
+
+        m_LightsInfo->DisplayMode = DISPLAY_COLOR;
+
         // Copy to GPU buffer
         m_LightsBuffer->CopyFromBlock( m_LightsInfo, sizeof( LightInfo ) );
 

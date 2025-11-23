@@ -166,7 +166,7 @@ namespace MikotoApp {
         m_ActiveScene->Update( timeStep );
         m_SceneRenderer->Render( timeStep );
 
-        /*CommandListHandle commandList{
+        CommandListHandle commandList{
             RenderService::Get()->GetGpuDevice()->CreateCommandList( QueueType::GRAPHICS_QUEUE )
         };
 
@@ -181,7 +181,7 @@ namespace MikotoApp {
         commandList->CopyTexture( m_SceneRenderer->GetFinalComposition().GetRaw(), swapChainDrawTarget.GetRaw() );
 
         commandList->End();
-        RenderService::Get()->GetGpuDevice()->SubmitCommands( commandList );*/
+        RenderService::Get()->GetGpuDevice()->SubmitCommands( commandList );
 
         // Update engine state
         Root::UpdateState( static_cast<float>( timeStep ) );
@@ -198,19 +198,10 @@ namespace MikotoApp {
 
     auto HelloWorld::SetupCamera( const double timeStep ) const -> void {
 
-        m_Camera->SetMovementSpeed( 13.f );
-        m_Camera->SetRotationSpeed( 13.f );
+        // TODO: Keep in mind the Renderer redners geometries to a texture not to the window directly
+        // W e need a way to tell the graphics context we want that to be on the window instead
 
-        m_Camera->SetFarPlane( 20000.0f );
-        m_Camera->SetNearPlane( 1.0f );
-
-        m_Camera->WantRotation( true, true );
-
-        m_Camera->SetFieldOfView( 45 );
-
-        // Set viewport to the currently active window we can either expand
-        // the final composition to occupy the whole screen or just an ImGui viewport
-        m_Camera->SetViewportSize( m_Window->GetWidth(), m_Window->GetHeight() );
+        // Maybe at any point we could specify the render target for the renderer or instead copy its content to the target imnage we want
 
         if ( InputService::Get()->IsMouseKeyPressed( Mouse_Button_Right ) ) {
             m_Camera->EnableCamera( true );

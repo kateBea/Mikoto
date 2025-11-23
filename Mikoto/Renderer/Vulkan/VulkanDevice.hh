@@ -137,6 +137,7 @@ namespace Mikoto {
 
         // Return the minimum required alignment (in bytes) for uniform buffers
         MKT_NODISCARD auto GetUniformBufferMinOffsetAlignment() const -> VkDeviceSize;
+        MKT_NODISCARD auto GetStorageBufferMinOffsetAlignment() const -> VkDeviceSize;
 
         MKT_NODISCARD auto GetPhysicalDevice() const -> const VkPhysicalDevice&;
         MKT_NODISCARD auto GetPhysicalDeviceFeatures() const -> const VkPhysicalDeviceFeatures&;

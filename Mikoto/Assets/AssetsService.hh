@@ -163,6 +163,9 @@ namespace Mikoto {
         auto LoadTexture( const TextureLoadDescription& description) -> TextureHandle;
 
         auto LoadAudio( const AudioLoadDescription& description) -> AudioHandle;
+
+        auto LoadFont( const Path& uri ) -> FontHandle;
+        auto LoadFont( std::string_view uri ) -> FontHandle;
         auto LoadFont( const FontLoadDescription& description) -> FontHandle;
 
         auto LoadDummyAssets() -> void;

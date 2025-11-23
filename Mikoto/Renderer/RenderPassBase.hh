@@ -12,6 +12,13 @@
 
 namespace Mikoto {
 
+    enum class AttachmentType {
+        COLOR,
+        DEPTH,
+        STENCIL,
+        DEPTH_STENCIL
+    };
+
     struct AttachmentInfo {
         TextureHandle Image{};
 
@@ -21,6 +28,8 @@ namespace Mikoto {
 
         bool Clear{ true };
         bool Store{ true };
+
+        AttachmentType Type{ AttachmentType::COLOR };
     };
 
     class IPass {

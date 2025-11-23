@@ -48,6 +48,7 @@ namespace Mikoto::VulkanPasses {
 
         m_ColorTarget.Image = m_Device->CreateTexture( colorDesc );
         m_ColorTarget.Image->SetDebugName( "ShadingPass Color Target" );
+        m_ColorTarget.Type = AttachmentType::COLOR;
 
         // Depth attachment
         TextureDescription depthDesc{};
@@ -62,6 +63,7 @@ namespace Mikoto::VulkanPasses {
 
         m_DepthTarget.Image = m_Device->CreateTexture( depthDesc );
         m_DepthTarget.Image->SetDebugName( "ShadingPass Depth Target" );
+        m_ColorTarget.Type = AttachmentType::DEPTH;
 
         // Graphics pipeline
         ShaderModuleHandle vertShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/PBR_Instanced_Vert.sprv", ShaderStage::VERTEX_STAGE ) };
@@ -382,4 +384,42 @@ namespace Mikoto::VulkanPasses {
         const UInt32 groupCount{ (m_Limit + localSize - 1) / localSize };
         vkCmdDispatch(cmd, groupCount, 1, 1);
     }
+
+    auto TextPass::Init( GpuDevice* device ) -> void {
+
+    }
+
+    auto TextPass::Shutdown() -> void {
+    }
+
+    auto TextPass::Begin( CommandListHandle cmd ) -> void {
+    }
+
+    auto TextPass::End() -> void {
+    }
+
+    auto TextPass::Render( Scene* scene ) -> void {
+    }
+
+    auto TextPass::OnResize( UInt32 width, UInt32 height ) -> void {
+    }
+
+    auto ShadowPass::Init( GpuDevice* device ) -> void {
+    }
+
+    auto ShadowPass::Shutdown() -> void {
+    }
+
+    auto ShadowPass::Begin( CommandListHandle cmd ) -> void {
+    }
+
+    auto ShadowPass::End() -> void {
+    }
+
+    auto ShadowPass::Render( Scene* scene ) -> void {
+    }
+
+    auto ShadowPass::OnResize( UInt32 width, UInt32 height ) -> void {
+    }
+
 }// namespace Mikoto::VulkanPasses

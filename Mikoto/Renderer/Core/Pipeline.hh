@@ -8,11 +8,12 @@
 #include <string>
 
 #include <Common/Common.hh>
-#include <Renderer/Buffer.hh>
-#include <Renderer/DeviceObject.hh>
-#include <Renderer/RenderUtility.hh>
-#include <Material/ShaderModule.hh>
+#include <Assets/Texture.hh>
 #include <Common/ReferenceCounted.hh>
+#include <Renderer/Core/Buffer.hh>
+#include <Renderer/Core/DeviceObject.hh>
+#include <Material/ShaderModule.hh>
+#include <Renderer/Core/RenderUtility.hh>
 
 namespace Mikoto {
 

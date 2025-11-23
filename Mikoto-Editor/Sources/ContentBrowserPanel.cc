@@ -2,10 +2,9 @@
 // Created by kate on 10/8/23.
 //
 
-#include "Panels/ContentBrowserPanel.hh"
+#include <filesystem>
+#include <utility>
 
-#include <ImGui/IconsFontAwesome5.h>
-#include <ImGui/IconsMaterialDesign.h>
 #include <fmt/format.h>
 #include <imgui.h>
 #include <imgui_impl_vulkan.h>
@@ -18,10 +17,9 @@
 #include <ImGui/ImGuiUtility.hh>
 #include <Layers/EditorLayer.hh>
 #include <Library/String/String.hh>
-#include <Renderer/Vulkan/VulkanContext.hh>
-#include <Renderer/Vulkan/VulkanDevice.hh>
-#include <filesystem>
-#include <utility>
+#include <Panels/ContentBrowserPanel.hh>
+#include <ImGui/IconsFontAwesome5.h>
+#include <ImGui/IconsMaterialDesign.h>
 
 namespace Mikoto {
 

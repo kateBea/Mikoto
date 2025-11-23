@@ -8,11 +8,12 @@
 #include <Assets/Texture.hh>
 #include <Library/Utility/Types.hh>
 #include <Material/ShaderModule.hh>
-#include <Renderer/Buffer.hh>
-#include <Renderer/RenderUtility.hh>
+#include <Renderer/Core/Buffer.hh>
+#include <Renderer/Core/RenderUtility.hh>
 
-#include "Pipeline.hh"
-#include "Renderer/Framebuffer.hh"
+#include "Renderer/Core/DeviceObject.hh"
+#include "Renderer/Core/Framebuffer.hh"
+#include "Renderer/Core/Pipeline.hh"
 
 namespace Mikoto {
 

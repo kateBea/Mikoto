@@ -17,6 +17,7 @@
 #include <Core/MouseCodes.hh>
 #include <Library/Utility/Types.hh>
 #include <Platform/Window.hh>
+#include <Common/Singleton.hh>
 
 namespace Mikoto {
 

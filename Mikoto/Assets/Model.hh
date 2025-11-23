@@ -19,7 +19,7 @@
 // Project Libraries
 #include <Common/Common.hh>
 #include <Material/Texture2D.hh>
-#include <Renderer/Buffer.hh>
+#include <Renderer/Core/Buffer.hh>
 
 namespace Mikoto {
 

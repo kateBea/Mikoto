@@ -4,6 +4,7 @@
 
 #include <imgui.h>
 
+#include <../../Mikoto/Renderer/Core/RenderService.hh>
 #include <Assets/AssetsService.hh>
 #include <Core/InputService.hh>
 #include <Filesystem/FileService.hh>
@@ -12,7 +13,6 @@
 #include <ImGui/ImGuiUtility.hh>
 #include <Memory/Allocator.hh>
 #include <Physics/PhysicService.hh>
-#include <Renderer/RenderService.hh>
 #include <Renderer/RenderUtility.hh>
 #include <Scene/Component.hh>
 #include <glm/gtc/type_ptr.hpp>// For glm::value_ptr

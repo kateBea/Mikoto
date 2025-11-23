@@ -11,7 +11,8 @@
 #include <Common/Common.hh>
 #include <Core/Profiler.hh>
 #include <Logging/Logger.hh>
-#include <Renderer/RenderService.hh>
+
+#include <Renderer/Core/RenderService.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
 
 namespace Mikoto {

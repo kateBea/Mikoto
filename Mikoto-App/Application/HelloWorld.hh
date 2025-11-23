@@ -5,12 +5,12 @@
 #ifndef MIKOTO_HELLOWORLD_HH
 #define MIKOTO_HELLOWORLD_HH
 
+#include <../../Mikoto/Renderer/Core/SceneRenderer.hh>
 #include <Common/Application.hh>
+#include <Core/EventService.hh>
 #include <Library/Utility/Types.hh>
 #include <Platform/Window.hh>
-#include <Renderer/SceneRenderer.hh>
 #include <Scene/Scene.hh>
-#include <Core/EventService.hh>
 
 namespace MikotoApp {
     using namespace Mikoto;

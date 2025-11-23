@@ -17,9 +17,9 @@
 
 // Project Headers
 #include <Common/Service.hh>
+#include <Renderer/Core/GpuDevice.hh>
 #include <Library/Utility/Types.hh>
 #include <Material/Material.hh>
-#include <Renderer/GpuDevice.hh>
 #include <Scene/Camera.hh>
 #include <Scene/Scene.hh>
 

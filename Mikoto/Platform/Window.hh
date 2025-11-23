@@ -16,11 +16,11 @@
 #include <utility>
 
 // Project Headers
+#include <Renderer/Core/RenderUtility.hh>
 #include <Common/Common.hh>
 #include <Core/KeyCodes.hh>
 #include <Core/MouseCodes.hh>
 #include <Library/Utility/Types.hh>
-#include <Renderer/RenderUtility.hh>
 
 namespace Mikoto {
 

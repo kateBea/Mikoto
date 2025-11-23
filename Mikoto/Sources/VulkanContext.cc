@@ -26,7 +26,8 @@
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
 #include <Platform/Window.hh>
-#include <Renderer/RenderService.hh>
+
+#include <Renderer/Core/RenderService.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>

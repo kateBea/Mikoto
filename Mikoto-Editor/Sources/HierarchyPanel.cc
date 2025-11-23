@@ -13,12 +13,12 @@
 
 #include <ImGui/IconsMaterialDesign.h>
 
+#include <Application/EditorApp.hh>
+#include <Application/EditorUtility.hh>
 #include <Assets/AssetsService.hh>
 #include <Common/Common.hh>
 #include <Core/Profiler.hh>
 #include <Core/RuntimeConsole.hh>
-#include <EditorApp.hh>
-#include <EditorUtility.hh>
 #include <ImGui/ImGuiUtility.hh>
 #include <Layers/EditorLayer.hh>
 #include <Library/String/String.hh>

@@ -19,7 +19,7 @@
 #include <ImGui/ImGuiUtility.hh>
 #include <Layers/EditorLayer.hh>
 #include <Panels/StatsPanel.hh>
-#include <Renderer/RenderService.hh>
+#include <Renderer/Core/RenderService.hh>
 
 namespace Mikoto {
 

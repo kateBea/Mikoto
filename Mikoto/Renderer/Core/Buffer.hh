@@ -10,8 +10,8 @@
 
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
-#include <Renderer/DeviceObject.hh>
-#include <Renderer/RenderUtility.hh>
+#include <Renderer/Core/DeviceObject.hh>
+#include <Renderer/Core/RenderUtility.hh>
 
 namespace Mikoto {
 

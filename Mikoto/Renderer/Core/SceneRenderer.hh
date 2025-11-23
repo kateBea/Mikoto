@@ -6,10 +6,10 @@
 #define SCENERENDERER_HH
 
 #include <Common/Common.hh>
+#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Core/RenderPassBase.hh>
+#include <Renderer/Core/RendererBackend.hh>
 #include <Library/Data/Registry.hh>
-#include <Renderer/GpuDevice.hh>
-#include <Renderer/RenderPassBase.hh>
-#include <Renderer/RendererBackend.hh>
 #include <Scene/Camera.hh>
 #include <Scene/Scene.hh>
 #include <Scene/SceneCamera.hh>

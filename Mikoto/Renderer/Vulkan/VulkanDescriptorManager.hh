@@ -14,10 +14,10 @@
 #include <volk.h>
 
 // Project Headers
+#include <Renderer/Core/DeviceObject.hh>
 #include <Common/Common.hh>
 #include <Common/ReferenceCounted.hh>
 #include <Library/Utility/Types.hh>
-#include <Renderer/DeviceObject.hh>
 
 namespace Mikoto {
 

@@ -11,8 +11,8 @@
 #include <atomic>
 
 // Third-Party Libraries
-#include <GLFW/glfw3.h>
 #include <volk.h>
+#include <GLFW/glfw3.h>
 
 // Project Headers
 #include <Common/Common.hh>

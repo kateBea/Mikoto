@@ -31,7 +31,7 @@
 #include <Scene/Component.hh>
 #include <Scene/Entity.hh>
 
-#include "EditorUtility.hh"
+#include "../Application/EditorUtility.hh"
 
 namespace Mikoto {
 
@@ -1351,7 +1351,12 @@ namespace Mikoto {
 
         ImGuiUtils::HelpMarker( "Select the current font.", "(?)", true );
 
-        static std::string fontPath{};
+        std::string fontPath{ "Select font" };
+
+        if (textComponent.HasFont()) {
+            fontPath = textComponent.GetFont()->GetName();
+        }
+
         ImGui::InputText( "##FontPath", fontPath.data(), fontPath.size() + 1, ImGuiInputTextFlags_ReadOnly );
         ImGui::SameLine();
         if ( ImGui::Button( "Load Font" ) ) {

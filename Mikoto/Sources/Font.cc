@@ -31,7 +31,14 @@ namespace Mikoto {
         m_Glyphs.emplace( characterCode, glyph );
     }
 
-    
+    auto Font::SetName( std::string_view name ) -> void {
+        m_Name = name;
+    }
+    auto Font::SetPath( std::string_view path ) -> void {
+        m_Path = path;
+    }
+
+
     auto Font::GetGlyphCount() const -> Size {
         return m_Glyphs.size();
     }

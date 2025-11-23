@@ -9,12 +9,12 @@
 
 namespace Mikoto {
     template<typename ComponentType>
-        static auto IsPresent( Entity* entity ) -> bool {
+    static auto IsPresent( Entity* entity ) -> bool {
         if ( entity == nullptr ) {
             return false;
         }
 
-        return entity->HasComponent<ComponentType>();
+    return entity->HasComponent<ComponentType>();
     }
 }
 

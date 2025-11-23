@@ -2,7 +2,7 @@
 // Created by zanet on 3/25/2025.
 //
 
-#include <Renderer/GpuDevice.hh>
+#include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 
 namespace Mikoto {

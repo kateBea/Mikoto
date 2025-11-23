@@ -12,6 +12,7 @@
 #include "glm/gtc/type_ptr.hpp"
 
 // Project Headers
+#include <Renderer/Core/RenderService.hh>
 #include <Core/InputService.hh>
 #include <Core/Profiler.hh>
 #include <Core/RuntimeConsole.hh>
@@ -25,7 +26,6 @@
 #include <Panels/SettingsPanel.hh>
 #include <Panels/StatsPanel.hh>
 #include <Physics/PhysicService.hh>
-#include <Renderer/RenderService.hh>
 #include <Scene/Component.hh>
 #include <Scene/SceneManager.hh>
 

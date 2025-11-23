@@ -10,8 +10,9 @@
 
 // Project Headers
 #include <Common/Common.hh>
-#include <Renderer/DeviceObject.hh>
 #include <Common/ReferenceCounted.hh>
+
+#include <Renderer/Core/DeviceObject.hh>
 
 namespace Mikoto {
 

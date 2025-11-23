@@ -3,8 +3,9 @@
 //
 
 #include <Core/Profiler.hh>
-#include <Renderer/RenderService.hh>
-#include <Renderer/SceneRenderer.hh>
+
+#include <Renderer/Core/RenderService.hh>
+#include <Renderer/Core/SceneRenderer.hh>
 
 namespace Mikoto {
 

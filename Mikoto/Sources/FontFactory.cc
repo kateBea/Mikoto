@@ -6,12 +6,11 @@
 #include <msdf-atlas-gen/glyph-generators.h>
 #include <msdf-atlas-gen/msdf-atlas-gen.h>
 
-#include <Logging/Logger.hh>
-#include <Renderer/FontFactory.hh>
+#include <Renderer/Core/FontFactory.hh>
 
 namespace Mikoto {
 
-    auto FontFactory::GenerateAtlas( const CStr fontFilename ) -> MsdfData {
+    auto FontFactory::GenerateAtlas( const CStr fontFilename ) const -> MsdfData {
         using namespace msdf_atlas;
 
         MsdfData result{};
@@ -166,6 +165,9 @@ namespace Mikoto {
         // Construct font
         Font *newFont{ new Font( texture, description.PixelSize ) };
 
+        newFont->SetPath( description.FontFile->GetPath() );
+        newFont->SetName( description.FontFile->GetName() );
+
         // Fill glyph data
         for ( auto &g: result.GlyphData ) {
             msdfgen::unicode_t codepoint{ g.getCodepoint() };
@@ -186,28 +188,28 @@ namespace Mikoto {
 
             // Pixel space size (use atlas bounds)
             glyph.m_Size = glm::ivec2(
-                    static_cast<int>( texR - texL ),
-                    static_cast<int>( texT - texB ) );
+                    static_cast<UInt32>( texR - texL ),
+                    static_cast<UInt32>( texT - texB ) );
 
             // Plane bounds (used by shader to scale quad)
-            glyph.m_PlaneBoundsMin = glm::vec2( ( float )pl, ( float )pb );
-            glyph.m_PlaneBoundsMax = glm::vec2( ( float )pr, ( float )pt );
+            glyph.m_PlaneBoundsMin = glm::vec2( static_cast<float>( pl ), static_cast<float>( pb ) );
+            glyph.m_PlaneBoundsMax = glm::vec2( static_cast<float>( pr ), static_cast<float>( pt ) );
 
             // UV coords (we must normalize by atlas resolution)
             glyph.m_UVMin = glm::vec2(
-                    ( float )texL / ( float )result.AtlasWidth,
-                    ( float )texB / ( float )result.AtlasHeight );
+                    static_cast<float>( texL ) / static_cast<float>( result.AtlasWidth ),
+                    static_cast<float>( texB ) / static_cast<float>( result.AtlasHeight ) );
             glyph.m_UVMax = glm::vec2(
-                    ( float )texR / ( float )result.AtlasWidth,
-                    ( float )texT / ( float )result.AtlasHeight );
+                    static_cast<float>( texR ) / static_cast<float>( result.AtlasWidth ),
+                    static_cast<float>( texT ) / static_cast<float>( result.AtlasHeight ) );
 
             // --- IMPORTANT: FreeType bearing and advance are baked into the plane! --- //
-            glyph.m_Advance = static_cast<uint32_t>( advance );
+            glyph.m_Advance = static_cast<UInt32>( advance );
 
             // Bearing should be derived from plane bounds (only x matters)
             glyph.m_Bearing = glm::ivec2(
-                    static_cast<int>( pl ),// Left offset
-                    static_cast<int>( pt ) // Top offset
+                    static_cast<UInt32>( pl ),// Left offset
+                    static_cast<UInt32>( pt ) // Top offset
             );
 
             newFont->RegisterGlyph( codepoint, glyph );

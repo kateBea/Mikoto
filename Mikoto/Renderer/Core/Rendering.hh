@@ -15,7 +15,7 @@
 // ===========================================================
 // Core Renderer Abstractions
 // ===========================================================
-#include <Renderer/Buffer.hh>
+#include <Core/Buffer.hh>
 #include <Renderer/DeviceObject.hh>
 #include <Renderer/FontFactory.hh>
 #include <Renderer/Framebuffer.hh>
@@ -23,10 +23,10 @@
 #include <Renderer/ImportFont.hh>
 #include <Renderer/Light.hh>
 #include <Renderer/Pipeline.hh>
-#include <Renderer/RendererBackend.hh>
 #include <Renderer/RenderPassBase.hh>
 #include <Renderer/RenderService.hh>
 #include <Renderer/RenderUtility.hh>
+#include <Renderer/RendererBackend.hh>
 #include <Renderer/SceneRenderer.hh>
 
 // ===========================================================

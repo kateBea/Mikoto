@@ -7,15 +7,13 @@
 
 #include <imgui.h>
 
+#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Core/RenderUtility.hh>
 #include <Common/Service.hh>
 #include <Library/Utility/Types.hh>
 #include <Platform/Window.hh>
-#include <Renderer/GpuDevice.hh>
-#include <Renderer/RenderUtility.hh>
-#include <deque>
-#include <functional>
 
-#include "ImGuiUtility.hh"
+#include "ImGui/ImGuiUtility.hh"
 
 namespace Mikoto {
 

@@ -6,9 +6,9 @@
 #include <exception>
 
 // Project Headers
-#include <EditorApp.hh>
-#include <Core/Profiler.hh>
+#include <Application/EditorApp.hh>
 #include <Core/Configuration.hh>
+#include <Core/Profiler.hh>
 #include <Layers/EditorLayer.hh>
 #include <Library/Utility/Types.hh>
 #include <Logging/Logger.hh>

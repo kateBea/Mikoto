@@ -131,9 +131,9 @@ namespace Mikoto::ImGuiUtils {
         style.Colors[ImGuiCol_TitleBgActive] = ImVec4( 0.2f, 0.2f, 0.2f, 1.0f );
         style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4( 0.4f, 0.4f, 0.4f, 1.0f );
 
-        style.Colors[ImGuiCol_ResizeGrip]        = ImVec4(0.35f, 0.35f, 0.35f, 0.60f);
-        style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.45f, 0.45f, 0.45f, 0.90f);
-        style.Colors[ImGuiCol_ResizeGripActive]  = ImVec4(0.75f, 0.75f, 0.75f, 0.90f);
+        style.Colors[ImGuiCol_ResizeGrip]        = ImVec4(0.01f, 0.01f, 0.01f, 0.6f);
+        style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4( 0.01f, 0.01f, 0.01f, 0.5f );
+        style.Colors[ImGuiCol_ResizeGripActive]  = ImVec4( 0.01f, 0.01f, 0.01f, 0.5f );
 
         style.Colors[ImGuiCol_Tab] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
 
@@ -156,7 +156,7 @@ namespace Mikoto::ImGuiUtils {
         style.Colors[ImGuiCol_FrameBgHovered] = ImVec4( 0.2f, 0.2f, 0.2f, 1.0f );
         style.Colors[ImGuiCol_FrameBgActive] = ImVec4( 0.3f, 0.3f, 0.3f, 1.0f );
 
-        style.Colors[ImGuiCol_Border] = ImVec4( 0.26f, 0.26f, 0.26f, 1.0f );
+        style.Colors[ImGuiCol_Border] = ImVec4( 0.01f, 0.01f, 0.01f, 0.3f );
         style.Colors[ImGuiCol_BorderShadow] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
 
         style.Colors[ImGuiCol_SliderGrab] = ImVec4( 0.10f, 0.10f, 0.10f, 1.0f );

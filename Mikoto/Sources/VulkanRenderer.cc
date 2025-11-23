@@ -103,10 +103,6 @@ namespace Mikoto {
         // Compute workflow first
         RunComputeWorkflow();
 
-        // Graphics commands
-        m_GraphicsCommandList = cmd;
-        m_GraphicsCommandList->Begin();
-
         // Prepare resources
         if ( m_UpdateTextureDescriptor ) {
             // We push all the textures we need, when we begin render
@@ -123,6 +119,10 @@ namespace Mikoto {
 
             m_UpdateTextureDescriptor = false;
         }
+
+        // Graphics commands
+        m_GraphicsCommandList = cmd;
+        m_GraphicsCommandList->Begin();
 
         for ( const auto& pass: m_Passes | std::ranges::views::values ) {
             if ( const auto graphicsPass{ dynamic_cast<IRenderPass*>( pass.get() ) } ) {
@@ -338,7 +338,7 @@ namespace Mikoto {
         variableCountInfo.pDescriptorCounts = variableCount.data();
 
         const VkDescriptorSetLayout& layoutTextures{ vkPipeline->GetDescriptorSetLayout( 1 ) };
-        m_TexturesSet = TO_VK_DEVICE( m_GraphicsDevice )->AllocateDescriptorSet( &layoutTextures );
+        m_TexturesSet = TO_VK_DEVICE( m_GraphicsDevice )->AllocateDescriptorSet( &layoutTextures, std::addressof( variableCountInfo ) );
     }
 
     auto VulkanRenderer::UpdateBindlessTextureDescriptor( const Int32 index, VulkanTexture* texture ) const -> void {

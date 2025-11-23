@@ -4,7 +4,7 @@
 
 // C++ Standard Library
 #include <array>
-
+#include <cstdlib>
 // Third-Party Libraries
 #include <volk.h>
 
@@ -13,6 +13,7 @@
 #include <Material/PBRMaterial.hh>
 #include <Material/ShaderLibrary.hh>
 #include <Scene/Component.hh>
+#include <Memory/Allocator.hh>
 
 #include "Renderer/Vulkan/VulkanDevice.hh"
 #include "Renderer/Vulkan/VulkanHelpers.hh"
@@ -62,7 +63,7 @@ namespace Mikoto::VulkanPasses {
 
         m_DepthTarget.Image = m_Device->CreateTexture( depthDesc );
         m_DepthTarget.Image->SetDebugName( "ShadingPass Depth Target" );
-        m_ColorTarget.Type = AttachmentType::DEPTH;
+        m_DepthTarget.Type = AttachmentType::DEPTH;
 
         // Graphics pipeline
         ShaderModuleHandle vertShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/PBR_Instanced_Vert.sprv", ShaderStage::VERTEX_STAGE ) };
@@ -83,6 +84,8 @@ namespace Mikoto::VulkanPasses {
     }
 
     auto ShadingPass::Shutdown() -> void {
+
+        //MKT_NOTHROW_PLACEMENT_DELETE( m_InstanceDataPtr );
 
         m_BatchOffsetMap.clear();
         m_MeshBatches.clear();
@@ -221,6 +224,8 @@ namespace Mikoto::VulkanPasses {
 
         m_InstanceSSBO = m_Device->CreateBuffer( desc );
         m_InstanceSSBO->SetDebugName( "ShadingPass Instance SSBO" );
+
+        //m_InstanceDataPtr = MKT_NOTHROW_PLACEMENT_NEW( totalSize );
     }
 
     auto ShadingPass::UploadInstanceData() -> void {
@@ -229,8 +234,9 @@ namespace Mikoto::VulkanPasses {
         std::vector<ShadingPassMeshBufferUBO> allInstances{};
 
         for ( auto& [meshNode, batch]: m_MeshBatches ) {
-            m_BatchOffsetMap[meshNode] = allInstances.size();
             allInstances.insert( allInstances.end(), batch.Instances.begin(), batch.Instances.end() );
+
+            m_BatchOffsetMap[meshNode] = allInstances.size() - batch.Instances.size();
         }
 
         const VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE( m_Device )->GetStorageBufferMinOffsetAlignment() };
@@ -350,7 +356,7 @@ namespace Mikoto::VulkanPasses {
     }
 
     auto ComputeBasic::Shutdown() -> void {
-
+        
     }
 
     auto ComputeBasic::Begin( const CommandListHandle cmd ) -> void {

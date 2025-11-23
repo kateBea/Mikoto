@@ -514,8 +514,8 @@ namespace Mikoto {
         auto operator=(const TextComponent& other) -> TextComponent& = default;
         auto operator=(TextComponent&& other) -> TextComponent& = default;
 
-        auto SetFont( const Font* font) -> void {
-            if (font) {
+        auto SetFont( FontHandle font ) -> void {
+            if (!font.IsEmpty()) {
                 m_Font = font;
             }
         }
@@ -528,7 +528,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetCamera() const -> const Camera* { return m_Camera; }
 
-        MKT_NODISCARD auto GetFont() const -> const Font* { return m_Font; }
+        MKT_NODISCARD auto GetFont() const -> const Font* { return m_Font.GetRaw(); }
         MKT_NODISCARD auto GetColor() const -> const glm::vec4& { return m_Color; }
 
         MKT_NODISCARD auto GetSize() const -> float { return m_Size; }
@@ -565,7 +565,7 @@ namespace Mikoto {
         float m_Size{ 12 };
         float m_Spacing{ 0 };
 
-        const Font* m_Font{ nullptr };
+        FontHandle m_Font{};
         const Camera* m_Camera{ nullptr };
     };
 

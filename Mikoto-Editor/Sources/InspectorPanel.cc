@@ -9,6 +9,8 @@
 #include <iterator>
 
 // Third-Party Libraries
+#include <fmt/format.h>
+
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -599,9 +601,8 @@ namespace Mikoto {
             }
 
             if ( ImGui::MenuItem( "Text", menuItemShortcut, menuItemSelected, !IsPresent<TextComponent>( entity ) ) ) {
-                TextComponent& textComponent{ entity->AddComponent<TextComponent>() };
 
-                // TODO: logic to load new font
+                TextComponent& textComponent{ entity->AddComponent<TextComponent>() };
 
                 textComponent.SetSize( 12 );
                 textComponent.SetContents( "Example" );
@@ -1350,6 +1351,33 @@ namespace Mikoto {
 
         ImGuiUtils::HelpMarker( "Select the current font.", "(?)", true );
 
+        static std::string fontPath{};
+        ImGui::InputText( "##FontPath", fontPath.data(), fontPath.size() + 1, ImGuiInputTextFlags_ReadOnly );
+        ImGui::SameLine();
+        if ( ImGui::Button( "Load Font" ) ) {
+            static bool loading{ false };
+            if ( !loading ) {
+                loading = true;
+
+                TaskService::Get()->Submit( [&]() -> void {
+                    const std::initializer_list<std::pair<std::string, std::string>> filters{
+                        { "Font Files", "ttf" }
+                    };
+
+                    Path path{ FileService::Get()->OpenDialog( filters ) };
+                    if ( !path.empty() ) {
+                        FontHandle newFont{ AssetsService::Get()->LoadAsset<Font>( path ) };
+
+                        if ( !newFont.IsEmpty() ) {
+                            textComponent.SetFont( newFont );
+                        }
+                    }
+
+                    loading = false;
+                } );
+            }
+        }
+
         ImGui::Spacing();
         static std::array textAlignment{ "Center", "Left", "Right" };
 
@@ -1382,6 +1410,29 @@ namespace Mikoto {
         // Max scaling between 1 and 3
         if ( ImGuiUtils::TextArea( content ) ) {
             textComponent.SetContents( content );
+        }
+
+        // Optionally show atlas info
+        if ( ImGui::CollapsingHeader( "Font Atlas Info", ImGuiTreeNodeFlags_DefaultOpen ) ) {
+            const Font* font{ textComponent.GetFont() };
+            if ( font != nullptr ) {
+                TextureHandle atlas{ font->GetAtlas() };
+
+                if ( ImGuiUtils::PushImageButton( atlas->GetHandle(), ImGuiService::Get()->GetTextureID( atlas ), ImVec2{ 256, 256 } ) ) {
+                    
+                }
+
+                ImGuiUtils::ToolTip( [&]() -> void {
+                    ShowTextureHoverTooltip( atlas.GetRaw() );
+                },  ImGui::IsItemHovered() );
+
+                if ( ImGui::IsItemHovered() ) {
+                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+                }
+
+                ImGui::TextUnformatted( fmt::format( "Atlas Size: {} x {}", atlas->GetWidth(), atlas->GetHeight() ).c_str() );
+                ImGui::TextUnformatted( fmt::format( "Number of Glyphs: {}", font->GetGlyphCount() ).c_str() );
+            }
         }
     }
 

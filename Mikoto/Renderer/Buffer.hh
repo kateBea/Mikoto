@@ -5,12 +5,12 @@
 #ifndef BUFFER_HH
 #define BUFFER_HH
 
+#include <vector>
 #include <initializer_list>
 
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 #include <Renderer/DeviceObject.hh>
-#include <Renderer/RenderUtility.hh>
 #include <Renderer/RenderUtility.hh>
 
 namespace Mikoto {

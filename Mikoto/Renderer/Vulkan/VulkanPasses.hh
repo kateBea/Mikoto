@@ -8,10 +8,10 @@
 #include <volk.h>
 #include <ankerl/unordered_dense.h>
 
+#include <Renderer/Pipeline.hh>
 #include <Renderer/GpuDevice.hh>
 #include <Renderer/RendererBackend.hh>
 #include <Renderer/RenderPassBase.hh>
-#include <Renderer/Pipeline.hh>
 #include <Renderer/Vulkan/VulkanDescriptorManager.hh>
 
 namespace Mikoto::VulkanPasses {
@@ -82,6 +82,48 @@ namespace Mikoto::VulkanPasses {
         VkDescriptorSet m_MeshDataSet{};
 
         UInt32 m_DrawCalls{};
+    };
+
+    class TextPass final : public IRenderPass {
+    public:
+        auto Init(GpuDevice* device) -> void override;
+        auto Shutdown() -> void override;
+
+        auto Begin(CommandListHandle cmd) -> void override;
+        auto End() -> void override;
+
+        auto Render(Scene* scene) -> void override;
+        auto OnResize( UInt32 width, UInt32 height ) -> void override;
+
+    private:
+        VkRect2D m_Scissor{};
+        VkViewport m_Viewport{};
+
+        GpuDevice* m_Device{};
+        PipelineHandle m_Pipeline{};
+        
+        CommandListHandle m_CmdList{};
+    };
+
+    class ShadowPass final : public IRenderPass {
+    public:
+        auto Init(GpuDevice* device) -> void override;
+        auto Shutdown() -> void override;
+
+        auto Begin(CommandListHandle cmd) -> void override;
+        auto End() -> void override;
+
+        auto Render(Scene* scene) -> void override;
+        auto OnResize( UInt32 width, UInt32 height ) -> void override;
+
+    private:
+        VkRect2D m_Scissor{};
+        VkViewport m_Viewport{};
+
+        GpuDevice* m_Device{};
+        PipelineHandle m_Pipeline{};
+
+        CommandListHandle m_CmdList{};
     };
 
     // Dummy compute pipeline we will use for testing only for now

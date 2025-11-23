@@ -40,7 +40,9 @@ namespace Mikoto {
         }
 
         // Font factory
-        FontFactoryCreateInfo fontFactoryCreateInfo{};
+        FontFactoryCreateInfo fontFactoryCreateInfo{
+            .Device{ m_GpuDevice },
+        };
 
         m_FontFactory = CreateScope<FontFactory>( fontFactoryCreateInfo );
         if (m_FontFactory) {
@@ -217,6 +219,25 @@ namespace Mikoto {
         }
 
         return AudioHandle::CreateEmpty();
+    }
+
+    auto AssetsService::LoadFont(const Path& uri) -> FontHandle {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        const std::string uriString{ uri.string() };
+
+        return LoadFont( std::string_view{ uriString } );
+    }
+
+    auto AssetsService::LoadFont(std::string_view uri) -> FontHandle {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        const FontLoadDescription fontLoadDescription{
+            .FontFile{ FileService::Get()->LoadFile( uri ) },
+            .PixelSize{ 1.0f }
+        };
+
+        return LoadFont( fontLoadDescription );
     }
 
     auto AssetsService::LoadFont( const FontLoadDescription& description ) -> FontHandle {

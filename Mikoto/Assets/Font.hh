@@ -21,38 +21,33 @@ namespace Mikoto {
     class FontGlyph final {
     public:
 
-        explicit FontGlyph();
+        MKT_NODISCARD bool IsSpace() const { return m_Codepoint == ' '; }
+        MKT_NODISCARD bool IsLineFeed() const { return m_Codepoint == '\n'; }
 
-        MKT_NODISCARD static auto GetDefaultBufferLayout() -> const BufferLayout&;
-
-        MKT_NODISCARD auto IsSpace() const -> bool;
-        MKT_NODISCARD auto IsLineFeed() const -> bool;
+        MKT_NODISCARD auto GetUVMin() const -> const glm::vec2& { return m_UVMin; }
+        MKT_NODISCARD auto GetUVMax() const -> const glm::vec2& { return m_UVMax; }
+        MKT_NODISCARD auto GetPlaneMin() const -> const glm::vec2& { return m_PlaneBoundsMin; }
+        MKT_NODISCARD auto GetPlaneMax() const -> const glm::vec2& { return m_PlaneBoundsMax; }
 
         MKT_NODISCARD auto GetSize() const -> const glm::ivec2& { return m_Size; }
         MKT_NODISCARD auto GetBearing() const -> const glm::ivec2& { return m_Bearing; }
         MKT_NODISCARD auto GetAdvance() const -> UInt32 { return m_Advance; }
 
-        MKT_NODISCARD auto GetTexture() const -> BufferHandle;
-        MKT_NODISCARD auto GetVertexBuffer() const -> BufferHandle;
-        MKT_NODISCARD auto GetIndexBuffer() const -> BufferHandle;
-
     private:
 
-        auto CreateBuffers() -> void;
-
-    private:
-        static inline BufferLayout s_DefaultBufferLayout{
-                    { ShaderDataType::FLOAT3_TYPE, "a_Position" },
-                    { ShaderDataType::FLOAT3_TYPE, "a_Color" },
-                    { ShaderDataType::FLOAT2_TYPE, "a_TextureCoordinates" }
-        };
-
-        glm::ivec2   m_Size{};
-        glm::ivec2   m_Bearing{};
+        UInt32 m_Codepoint{};
+        glm::ivec2 m_Size{};
+        glm::ivec2 m_Bearing{};
         UInt32 m_Advance{};
 
-        BufferHandle m_VertexBuffer{};
-        BufferHandle m_IndexBuffer{};
+        glm::vec2 m_UVMin{};
+        glm::vec2 m_UVMax{};
+        glm::vec2 m_PlaneBoundsMin{};
+        glm::vec2 m_PlaneBoundsMax{};
+
+        // Parameters filled from FontFactory class
+        friend class Font;
+        friend class FontFactory;
     };
 
     /**
@@ -76,41 +71,52 @@ namespace Mikoto {
         * @brief Gets the path of the font file.
         * @return Reference to the font file path.
         */
-        MKT_NODISCARD auto GetPath() const -> const Path& { return m_Path; }
+        MKT_NODISCARD auto GetPath() const -> const Path&;
 
         /**
         * @brief Gets the name of the font.
         * @return Reference to the font name.
         */
-        MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
+        MKT_NODISCARD auto GetName() const -> const std::string&;
 
         /**
         * @brief Gets the font atlas containing glyph textures.
         * @return Pointer to the FontAtlas.
         */
-        MKT_NODISCARD auto GetAtlas() const -> TextureHandle { return m_Atlas; }
+        MKT_NODISCARD auto GetAtlas() const -> TextureHandle;
 
         /**
         * @brief Retrieves the glyph data for a given character.
         * @param characterCode Unicode code point of the character.
         * @return Pointer to the corresponding FontGlyph, or nullptr if not found.
         */
-        MKT_NODISCARD auto GetGlyph( UInt32 characterCode ) -> FontGlyph;
+        MKT_NODISCARD auto GetGlyph( UInt32 characterCode ) const -> const FontGlyph&;
+
+
+        auto RegisterGlyph( UInt32 characterCode, const FontGlyph& glyph ) -> void;
+
+        MKT_NODISCARD auto GetGlyphCount() const -> Size;
 
         /**
         * @brief Default destructor.
         */
         ~Font() override = default;
 
+    private:
+        // Parameters filled from FontFactory class
+        friend class FontFactory;
+
     protected:
 
         Path m_Path{};
-
         std::string m_Name{};
+        TextureHandle m_Atlas{};
 
-        float m_PixelSize{ 0.0f };
-
-        TextureHandle m_Atlas{ nullptr };
+        float m_PixelSize{};
+        float m_LineHeight{};
+        float m_Ascender{};
+        float m_Descender{};
+        float m_BaseLine{};
 
         ankerl::unordered_dense::map<UInt32, FontGlyph> m_Glyphs{};
     };

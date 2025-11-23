@@ -11,9 +11,9 @@
 
 #include <Core/Profiler.hh>
 #include <Renderer/Light.hh>
+#include <Scene/Component.hh>
 #include <Renderer/Vulkan/VulkanPasses.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
-#include <Scene/Component.hh>
 
 namespace Mikoto {
 
@@ -208,6 +208,8 @@ namespace Mikoto {
         // Copy to GPU buffer
         m_LightsBuffer->CopyFromBlock( m_LightsInfo.get(), sizeof( LightInfo ) );
 
+        // TODO: Sort execution order based on dependencies
+        
         // For all passes with a graphics pipeline
         for ( auto& pass: m_Passes | std::ranges::views::values ) {
             if ( const auto graphicsPass{ dynamic_cast<IRenderPass*>( pass.get() ) } ) {
@@ -385,6 +387,7 @@ namespace Mikoto {
             }
         }
 
+        // TODO: Sort execution order based on dependencies
         for ( const auto& pass: m_Passes | std::ranges::views::values ) {
             if ( const auto computePass{ dynamic_cast<IComputePass*>( pass.get() ) } ) {
                 computePass->Execute();

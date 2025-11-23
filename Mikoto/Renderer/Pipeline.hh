@@ -4,9 +4,11 @@
 
 #ifndef IPIPELINE_HH
 #define IPIPELINE_HH
+
 #include <string>
 
 #include <Common/Common.hh>
+#include <Renderer/Buffer.hh>
 #include <Renderer/DeviceObject.hh>
 #include <Renderer/RenderUtility.hh>
 #include <Material/ShaderModule.hh>
@@ -98,10 +100,16 @@ namespace Mikoto {
         bool Wireframe{ false };
         float WireframeLineWidth{ 1.0f };
 
-        BufferLayout DefaultVertexLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT };
-        DepthCompareOp DepthCompareOperation{ DepthCompareOp::GREATER_OR_EQUAL };
         std::vector<ShaderModuleHandle> ShaderStages{};
 
+        Topology PrimitiveTopology{ Topology::TRIANGLE_LIST };
+
+        DepthCompareOp DepthCompareOperation{ DepthCompareOp::GREATER_OR_EQUAL };
+
+        BufferLayout DefaultVertexLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT };
+
+        // TODO: review, this is only required because the 
+        // pipeline writes to a texture with a specific format
         TextureHandle DepthTexture{  };
         std::vector<TextureHandle> ColorAttachments{};
     };
@@ -233,13 +241,7 @@ namespace Mikoto {
          * @return A const reference to the BufferLayout used for vertex inputs.
          * @note The returned reference is non-owning; do not modify unless intended.
          */
-        MKT_NODISCARD auto GetDefaultVertexLayout() const -> const BufferLayout& { return DefaultVertexLayout; }
-
-        /**
-         * @brief Set the default vertex buffer layout for the pipeline.
-         * @param layout The BufferLayout describing vertex attributes and stride.
-         */
-        auto SetDefaultVertexLayout(const BufferLayout& layout) -> void { DefaultVertexLayout = layout; }
+        MKT_NODISCARD auto GetDefaultVertexLayout() const -> const BufferLayout& { return m_DefaultVertexLayout; }
 
     protected:
         bool m_BackfaceCulling{ true };
@@ -252,7 +254,7 @@ namespace Mikoto {
 
         Topology m_Topology{ Topology::TRIANGLE_LIST };
         DepthCompareOp m_DepthCompareOp{ DepthCompareOp::ALWAYS };
-        BufferLayout DefaultVertexLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT };
+        BufferLayout m_DefaultVertexLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT };
     };
 }
 #endif //IPIPELINE_HH

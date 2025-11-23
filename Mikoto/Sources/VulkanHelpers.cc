@@ -759,10 +759,10 @@ namespace Mikoto::VulkanHelpers::Reflection {
             flagsInfo.bindingCount = static_cast<UInt32>(bindingFlags.size());
             flagsInfo.pBindingFlags = bindingFlags.data();
 
-            if (IsBindlessEnabled() && false) {
+            if (IsBindlessEnabled()) {
                 UInt8 bindingIndex{ 0 };
                 for (auto& flags: bindingFlags) {
-                    auto& bindingInfo{ out.bindingMap[{ setIndex, 0 }] };
+                    auto& bindingInfo{ out.bindingMap[{ setIndex, bindingIndex }] };
 
                     if ( bindingInfo.IsBindless ) {
                         flags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |

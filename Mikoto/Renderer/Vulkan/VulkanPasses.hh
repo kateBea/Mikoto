@@ -49,8 +49,8 @@ namespace Mikoto::VulkanPasses {
         };
 
         struct MeshBatch {
-            MeshNode* Mesh = nullptr;
-            std::vector<ShadingPassMeshBufferUBO> Instances;
+            MeshNode* Mesh{ nullptr };
+            std::vector<ShadingPassMeshBufferUBO> Instances{};
         };
 
         auto InitInstanceData() -> void;
@@ -77,6 +77,8 @@ namespace Mikoto::VulkanPasses {
 
         std::unordered_map<MeshNode*, MeshBatch> m_MeshBatches{};
         std::unordered_map<MeshNode*, Size> m_BatchOffsetMap{};
+
+        //void* m_InstanceDataPtr{};
 
         BufferHandle m_InstanceSSBO{};
         VkDescriptorSet m_MeshDataSet{};

@@ -59,11 +59,11 @@ struct ShadingPassMeshBufferUBO {
 // --------------------------------------------------
 // Interpolated input (with flat for instance data)
 // --------------------------------------------------
-layout(location = 0) in vec3 inFragmentPos;
-layout(location = 1) in vec3 inNormals;
-layout(location = 2) in vec2 inTexCoord;
-layout(location = 3) in vec3 inVertexColor;
-layout(location = 4) in vec3 inCameraPos;
+layout(location = 0) in vec3 in_FragmentPos;
+layout(location = 1) in vec3 in_Normals;
+layout(location = 2) in vec2 in_TexCoord;
+layout(location = 3) in vec3 in_VertexColor;
+layout(location = 4) in vec3 in_CameraPos;
 
 layout(location = 5) flat in int in_AlbedoIndex;
 layout(location = 6) flat in int in_NormalIndex;
@@ -107,14 +107,14 @@ layout(set = 2, binding = 0) readonly buffer InstanceData { ... };
 layout(set = 1, binding = 0) uniform sampler2D g_BindlessTextures[];
 
 vec3 GetNormalFromMap(sampler2D normalMap) {
-    vec3 tangentNormal = texture(normalMap, inTexCoord).xyz * 2.0 - 1.0;
+    vec3 tangentNormal = texture(normalMap, in_TexCoord).xyz * 2.0 - 1.0;
 
-    vec3 Q1  = dFdx( inFragmentPos );
-    vec3 Q2  = dFdy( inFragmentPos );
-    vec2 st1 = dFdx( inTexCoord );
-    vec2 st2 = dFdy( inTexCoord );
+    vec3 Q1  = dFdx(in_FragmentPos);
+    vec3 Q2  = dFdy(in_FragmentPos);
+    vec2 st1 = dFdx(in_TexCoord);
+    vec2 st2 = dFdy(in_TexCoord);
 
-    vec3 N   = normalize(inNormals);
+    vec3 N   = normalize(in_Normals);
     vec3 T  = normalize( Q1 * st2.t - Q2 * st1.t);
     vec3 B  = -normalize(cross( N, T ));
     mat3 TBN = mat3( T, B, N );
@@ -186,9 +186,9 @@ vec3 ComputePointLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, flo
 
     for(int i = 0; i < LightsParams.PointLightCount; ++i) {
         // calculate per-light radiance
-        vec3 L = normalize( LightsParams.PointLights[i].Position.xyz - inFragmentPos);
+        vec3 L = normalize( LightsParams.PointLights[i].Position.xyz - in_FragmentPos);
         vec3 H = normalize( V + L );
-        float distance = length( LightsParams.PointLights[i].Position.xyz - inFragmentPos );
+        float distance = length( LightsParams.PointLights[i].Position.xyz - in_FragmentPos);
         float attenuation = ComputeAttenuation( distance, LightsParams.PointLights[i].AttenuationParams.y );
 
         vec3 radiance = LightsParams.PointLights[i].Diffuse.xyz * attenuation * LightsParams.PointLights[i].AttenuationParams.x;
@@ -275,8 +275,8 @@ vec3 ComputeSpotLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, floa
 
     for(int i = 0; i < LightsParams.SpotLightCount; ++i) {
         // calculate per-light radiance
-        vec3 L = normalize(LightsParams.SpotLights[i].Position.xyz - inFragmentPos);
-        float distance = length(LightsParams.SpotLights[i].Position.xyz - inFragmentPos);
+        vec3 L = normalize(LightsParams.SpotLights[i].Position.xyz - in_FragmentPos);
+        float distance = length(LightsParams.SpotLights[i].Position.xyz - in_FragmentPos);
         float attenuation = ComputeAttenuation(distance, LightsParams.SpotLights[i].CutOffValues.w);
         // This vec 3 should be the light color, we assume it is full white for now
         vec3 radiance = LightsParams.SpotLights[i].Diffuse.xyz * attenuation;
@@ -356,26 +356,26 @@ vec4 DetermineOutFragmentColor(vec3 N, vec3 color, float metallic, float roughne
 void main() {
 
     vec3 albedo     = in_AlbedoIndex != INVALID_TEXTURE_INDEX ?
-    pow(texture(g_BindlessTextures[in_AlbedoIndex], inTexCoord).rgb, vec3(2.2)) :
+    pow(texture(g_BindlessTextures[in_AlbedoIndex], in_TexCoord).rgb, vec3(2.2)) :
     in_Albedo.xyz;
 
     float metallic  = in_MetallicIndex != INVALID_TEXTURE_INDEX ?
-    texture(g_BindlessTextures[in_MetallicIndex], inTexCoord).r :
+    texture(g_BindlessTextures[in_MetallicIndex], in_TexCoord).r :
     in_Factors.x;
 
     float roughness = in_RoughnessIndex != INVALID_TEXTURE_INDEX ?
-    texture(g_BindlessTextures[in_RoughnessIndex], inTexCoord).r :
+    texture(g_BindlessTextures[in_RoughnessIndex], in_TexCoord).r :
     in_Factors.y;
 
     float ao        = in_AoIndex != INVALID_TEXTURE_INDEX ?
-    texture(g_BindlessTextures[in_AoIndex], inTexCoord).r :
+    texture(g_BindlessTextures[in_AoIndex], in_TexCoord).r :
     in_Factors.z;
 
     vec3 N = in_NormalIndex != INVALID_TEXTURE_INDEX ?
     GetNormalFromMap(g_BindlessTextures[in_NormalIndex]) :
-    normalize(inNormals);
+    normalize(in_Normals);
 
-    vec3 V = normalize(inCameraPos - inFragmentPos);
+    vec3 V = normalize(in_CameraPos - in_FragmentPos);
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
     vec3 Lo = vec3(0.0);

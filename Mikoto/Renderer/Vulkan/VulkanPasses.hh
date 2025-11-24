@@ -80,8 +80,6 @@ namespace Mikoto::VulkanPasses {
 
         BufferHandle m_InstanceSSBO{};
         VkDescriptorSet m_MeshDataSet{};
-
-        UInt32 m_DrawCalls{};
     };
 
     class TextPass final : public IRenderPass {

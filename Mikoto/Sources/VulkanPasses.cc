@@ -92,8 +92,6 @@ namespace Mikoto::VulkanPasses {
     auto ShadingPass::Begin( CommandListHandle cmd ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        m_DrawCalls = 0;
-
         m_CmdList = cmd;
         VkCommandBuffer vkCmd { cmd->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
 
@@ -293,7 +291,6 @@ namespace Mikoto::VulkanPasses {
         const Size baseInstance{ m_BatchOffsetMap.at( batch.Mesh ) };
         const UInt32 firstInstance{ static_cast<UInt32>( baseInstance ) };
 
-        ++m_DrawCalls;
         vkCmdDrawIndexed(
             vkCmd,
             indexBuffer->GetCount(),                            // indexCount

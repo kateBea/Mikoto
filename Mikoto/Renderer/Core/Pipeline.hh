@@ -113,6 +113,9 @@ namespace Mikoto {
         // pipeline writes to a texture with a specific format
         TextureHandle DepthTexture{  };
         std::vector<TextureHandle> ColorAttachments{};
+
+        std::vector<TextureFormat> ColorTexturesFormat{};
+        TextureFormat DepthTextureFormat{ TextureFormat::TEXTURE_FORMAT_D32_FLOAT_S8_UINT };
     };
 
     /**

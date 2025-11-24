@@ -3,21 +3,21 @@
 //
 
 #include <Core/Profiler.hh>
-
+#include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Core/FramePass.hh>
+#include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Core/RenderService.hh>
 #include <Renderer/Core/SceneRenderer.hh>
 
 namespace Mikoto {
-
-    static auto TestCode() -> void {
-
-    }
 
     SceneRenderer::SceneRenderer( const SceneRendererCreateInfo &createInfo )
         : m_Device{ createInfo.Device } {}
 
     auto SceneRenderer::Init() -> void {
         m_RendererBackend = RenderService::Get()->GetBackend();
+
+        InitCoreFramePasses();
     }
 
     auto SceneRenderer::Shutdown() -> void {
@@ -82,6 +82,15 @@ namespace Mikoto {
 
     auto SceneRenderer::Create( const SceneRendererCreateInfo &createInfo ) -> Unique<SceneRenderer> {
         return CreateScope<SceneRenderer>( createInfo );
+    }
+
+    auto SceneRenderer::InitCoreFramePasses() -> void {
+        m_FrameGraph.RegisterPass<FinalCompositionPass>();
+        m_FrameGraph.RegisterPass<ShadowPass>();
+        m_FrameGraph.RegisterPass<TextPass>();
+        m_FrameGraph.RegisterPass<SimpleComputePass>();
+
+        //m_FrameGraph.Compile(  );
     }
 
     auto SceneRendererCreateInfo::WithName( std::string_view name ) -> SceneRendererCreateInfo & {

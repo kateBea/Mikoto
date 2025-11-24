@@ -57,14 +57,21 @@ struct ShadingPassMeshBufferUBO {
 };
 
 // --------------------------------------------------
-// Inputs from vertex shader
+// Interpolated input (with flat for instance data)
 // --------------------------------------------------
 layout(location = 0) in vec3 inFragmentPos;
 layout(location = 1) in vec3 inNormals;
 layout(location = 2) in vec2 inTexCoord;
 layout(location = 3) in vec3 inVertexColor;
 layout(location = 4) in vec3 inCameraPos;
-layout(location = 5) flat in uint inInstanceIndex;
+
+layout(location = 5) flat in int in_AlbedoIndex;
+layout(location = 6) flat in int in_NormalIndex;
+layout(location = 7) flat in int in_MetallicIndex;
+layout(location = 8) flat in int in_RoughnessIndex;
+layout(location = 9) flat in int in_AoIndex;
+layout(location = 10) flat in vec4 in_Albedo;
+layout(location = 11) flat in vec4 in_Factors;
 
 // --------------------------------------------------
 // Output
@@ -98,15 +105,6 @@ layout(set = 1, binding = 0) uniform sampler2D g_BindlessTextures[];
 layout(set = 2, binding = 0) readonly buffer InstanceData { ... };
 */
 layout(set = 1, binding = 0) uniform sampler2D g_BindlessTextures[];
-
-// --------------------------------------------------
-// Per-instance storage buffer (same as vertex)
-// --------------------------------------------------
-layout(std430, set = 2, binding = 0) readonly buffer InstanceData {
-    ShadingPassMeshBufferUBO instances[];
-};
-
-
 
 vec3 GetNormalFromMap(sampler2D normalMap) {
     vec3 tangentNormal = texture(normalMap, inTexCoord).xyz * 2.0 - 1.0;
@@ -357,27 +355,25 @@ vec4 DetermineOutFragmentColor(vec3 N, vec3 color, float metallic, float roughne
 // --------------------------------------------------
 void main() {
 
-    ShadingPassMeshBufferUBO materialParams = instances[inInstanceIndex];
+    vec3 albedo     = in_AlbedoIndex != INVALID_TEXTURE_INDEX ?
+    pow(texture(g_BindlessTextures[in_AlbedoIndex], inTexCoord).rgb, vec3(2.2)) :
+    in_Albedo.xyz;
 
-    vec3 albedo     = materialParams.AlbedoIndex != INVALID_TEXTURE_INDEX ?
-    pow(texture(g_BindlessTextures[materialParams.AlbedoIndex], inTexCoord).rgb, vec3(2.2))
-    : materialParams.Albedo.xyz;
+    float metallic  = in_MetallicIndex != INVALID_TEXTURE_INDEX ?
+    texture(g_BindlessTextures[in_MetallicIndex], inTexCoord).r :
+    in_Factors.x;
 
-    float metallic  = materialParams.MetallicIndex  != INVALID_TEXTURE_INDEX ?
-    texture(g_BindlessTextures[materialParams.MetallicIndex], inTexCoord).r
-    : materialParams.Factors.x;
+    float roughness = in_RoughnessIndex != INVALID_TEXTURE_INDEX ?
+    texture(g_BindlessTextures[in_RoughnessIndex], inTexCoord).r :
+    in_Factors.y;
 
-    float roughness = materialParams.RoughnessIndex != INVALID_TEXTURE_INDEX ?
-    texture(g_BindlessTextures[materialParams.RoughnessIndex], inTexCoord).r
-    : materialParams.Factors.y;
+    float ao        = in_AoIndex != INVALID_TEXTURE_INDEX ?
+    texture(g_BindlessTextures[in_AoIndex], inTexCoord).r :
+    in_Factors.z;
 
-    float ao        = materialParams.AoIndex != INVALID_TEXTURE_INDEX ?
-    texture(g_BindlessTextures[materialParams.AoIndex], inTexCoord).r
-    : materialParams.Factors.z;
-
-    vec3 N = materialParams.NormalIndex != INVALID_TEXTURE_INDEX
-    ? GetNormalFromMap(g_BindlessTextures[materialParams.NormalIndex])
-    : normalize(inNormals);
+    vec3 N = in_NormalIndex != INVALID_TEXTURE_INDEX ?
+    GetNormalFromMap(g_BindlessTextures[in_NormalIndex]) :
+    normalize(inNormals);
 
     vec3 V = normalize(inCameraPos - inFragmentPos);
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
@@ -390,6 +386,7 @@ void main() {
     vec3 ambient = vec3(0.03) * albedo * ao;
     vec3 color = ambient + Lo;
 
+    // Tonemap + gamma correction
     color = color / (color + vec3(1.0));
     color = pow(color, vec3(1.0 / 2.2));
 

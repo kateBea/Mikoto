@@ -28,7 +28,6 @@ namespace Mikoto {
     SettingsPanel::SettingsPanel( const SettingsPanelCreateInfo& data )
         : m_EditorState( data.State )
     {
-        m_Data.EditorCamera = data.State->EditorCamera;
         m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_CONSTRUCTION, GetSettingsPanelName() );
     }
 
@@ -45,7 +44,7 @@ namespace Mikoto {
                 "Orthographic", "Perspective"
             };
 
-            SceneCamera& sceneCamera{ *m_Data.EditorCamera };
+            SceneCamera& sceneCamera{ *m_EditorState->EditorCamera };
             const ProjectionType cameraCurrentProjectionType{ sceneCamera.GetProjectionType() };
 
             if ( ImGui::TreeNodeEx( reinterpret_cast<const void*>( "SettingsPanel::OnUpdate::EditorCam" ), styleFlags, "%s", "Camera" ) ) {
@@ -97,7 +96,7 @@ namespace Mikoto {
 
                     ImGui::Spacing();
                     if ( ImGuiUtils::Slider( "##SettingsPanel::OnUpdate::Damping", m_Data.DampingFactor, { 5, 30 } ) ) {
-                        m_Data.EditorCamera->SetDampingFactor( m_Data.DampingFactor );
+                        m_EditorState->EditorCamera->SetDampingFactor( m_Data.DampingFactor );
                     }
                     ImGui::SameLine();
                     ImGuiUtils::HelpMarker( "Adjust camera smooth damping factor." );

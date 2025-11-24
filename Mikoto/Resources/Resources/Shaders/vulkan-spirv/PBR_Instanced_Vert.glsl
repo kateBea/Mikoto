@@ -40,23 +40,30 @@ layout(location = 2) in vec3 a_Color;
 layout(location = 3) in vec2 a_TexCoord;
 
 // --------------------------------------------------
-// Outputs to fragment shader
+// Outputs to fragment shader (flat when no interpolation)
 // --------------------------------------------------
 layout(location = 0) out vec3 out_FragmentPos;
 layout(location = 1) out vec3 out_VertexNormal;
 layout(location = 2) out vec2 out_TexCoord;
 layout(location = 3) out vec3 out_Color;
 layout(location = 4) out vec3 out_CameraPos;
-layout(location = 5) flat out uint out_InstanceIndex;
+
+// ---- Instance data (flat) ----
+layout(location = 5) flat out int out_AlbedoIndex;
+layout(location = 6) flat out int out_NormalIndex;
+layout(location = 7) flat out int out_MetallicIndex;
+layout(location = 8) flat out int out_RoughnessIndex;
+layout(location = 9) flat out int out_AoIndex;
+layout(location = 10) flat out vec4 out_Albedo;
+layout(location = 11) flat out vec4 out_Factors;
 
 // --------------------------------------------------
 // Main
 // --------------------------------------------------
 void main() {
-    int instanceIndex = gl_InstanceIndex;
-    ShadingPassMeshBufferUBO object = instances[gl_InstanceIndex];
+    ShadingPassMeshBufferUBO data = instances[gl_InstanceIndex];
 
-    mat4 model = object.Transform;
+    mat4 model = data.Transform;
     mat3 normalMatrix = mat3(model);
 
     out_Color        = a_Color;
@@ -64,7 +71,15 @@ void main() {
     out_CameraPos    = frame.CameraPosition.xyz;
     out_VertexNormal = normalMatrix * a_Normal;
     out_FragmentPos  = vec3(model * vec4(a_Position, 1.0));
-    out_InstanceIndex = instanceIndex;
+
+    // instance values passed flat
+    out_AlbedoIndex    = data.AlbedoIndex;
+    out_NormalIndex    = data.NormalIndex;
+    out_MetallicIndex  = data.MetallicIndex;
+    out_RoughnessIndex = data.RoughnessIndex;
+    out_AoIndex        = data.AoIndex;
+    out_Albedo         = data.Albedo;
+    out_Factors        = data.Factors;
 
     gl_Position = frame.Projection * frame.View * model * vec4(a_Position, 1.0);
 }

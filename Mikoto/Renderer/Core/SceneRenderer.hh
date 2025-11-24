@@ -14,6 +14,10 @@
 #include <Scene/Scene.hh>
 #include <Scene/SceneCamera.hh>
 
+#include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Core/FramePass.hh>
+#include <Renderer/Core/GraphicsContext.hh>
+
 namespace Mikoto {
 
     enum RenderResolution {
@@ -146,6 +150,10 @@ namespace Mikoto {
         MKT_NODISCARD static auto Create(const SceneRendererCreateInfo& createInfo) -> Unique<SceneRenderer>;
 
     private:
+        // [Internal usage]
+        auto InitCoreFramePasses() -> void;
+
+    private:
 
         RenderResolution m_RenderResolution{ RenderResolution::RESOLUTION_FHD };
 
@@ -155,6 +163,9 @@ namespace Mikoto {
         SceneCamera* m_Camera{ nullptr };
 
         RendererBackend* m_RendererBackend{ nullptr };
+
+        FrameGraph m_FrameGraph{};
+        GraphicsContext* m_RenderContex{ nullptr };
 
         UInt32 m_ViewportWidth{ 0u };
         UInt32 m_ViewportHeight{ 0u };

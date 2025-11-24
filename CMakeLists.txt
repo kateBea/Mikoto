@@ -59,12 +59,15 @@ elseif(LINUX)
 endif()
 
 # ===========================
-# Add engine and editor
+# Add engine and applications
 # ===========================
-add_subdirectory(Mikoto)        # Core engine
-add_subdirectory(Mikoto-Editor) # Editor
-add_subdirectory(Mikoto-Sandbox) # Sandbox
-add_subdirectory(Mikoto-Apps) # App
+add_subdirectory(Mikoto-Editor)
+add_subdirectory(Mikoto-Sandbox)
+add_subdirectory(Mikoto-Apps)
+
+# Mikoto added last so it builds with target
+# specified configurations
+add_subdirectory(Mikoto)
 
 if (MIKOTO_BUILD_TESTS)
     enable_testing()         # <-- recommended but not specific to GoogleTest

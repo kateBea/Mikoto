@@ -136,6 +136,8 @@ namespace Mikoto {
          MKT_NODISCARD virtual auto GetMouseY() const -> double = 0;
          MKT_NODISCARD virtual auto GetMousePos() const -> std::pair<double, double> = 0;
 
+        MKT_NODISCARD virtual auto ShouldClose() const -> bool = 0;
+
         /**
          * @brief Creates a Window for the currently active platform.
          * @param properties Determines the properties of the window to be created.

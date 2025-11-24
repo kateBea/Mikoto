@@ -9,4 +9,4 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Add engine and editor
 # ===========================
 add_subdirectory(HelloWorld)
-add_subdirectory(WIndowLinux)
+add_subdirectory(WindowLinux)

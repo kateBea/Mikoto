@@ -37,6 +37,12 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 project(Mikoto)
 
 # ======================================
+# Options
+# ======================================
+option(MIKOTO_USE_XCB_WINDOW "Use XCB for Linux windowing" OFF)
+option(MIKOTO_USE_WIN32_WINDOW "Use Win32 for Windows windowing" OFF)
+
+# ======================================
 # Language requirements
 # ======================================
 set(CMAKE_CXX_STANDARD 20)
@@ -640,6 +646,18 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE MKT_USE_VULKAN_BINDLESS)
 target_compile_definitions(${PROJECT_NAME} PRIVATE MKT_USE_VULKAN_DYNAMIC_RENDERING)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE TRACY_ENABLE)
+
+# Windowing system
+if(MIKOTO_USE_XCB_WINDOW)
+    message("Using XCB for window")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE MKT_USE_XCB_WINDOW)
+    target_link_libraries(${PROJECT_NAME} PRIVATE xcb xcb-keysyms xcb-xfixes xcb-xkb)
+endif()
+
+if(MIKOTO_USE_WIN32_WINDOW)
+    message("Using Win32 for window")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE MKT_USE_WIN32_WINDOW)
+endif()
 
 # HTTPS only working on linux for now
 if(UNIX)

@@ -312,6 +312,10 @@ namespace Mikoto {
         return std::make_pair( posX, posY );
     }
 
+    auto MainWindow::ShouldClose() const -> bool {
+        return glfwWindowShouldClose( m_Window );
+    }
+
     auto MainWindow::DestroyGLFWWindow(GLFWwindow* window) -> void {
         // Everytime we shut down a GLFW window, we decrease the number
         // of active windows, the last GLFW window to be shutdown calls glfwTerminate()

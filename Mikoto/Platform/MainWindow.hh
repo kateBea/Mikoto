@@ -70,6 +70,8 @@ namespace Mikoto {
         MKT_NODISCARD auto GetMouseY() const -> double override;
         MKT_NODISCARD auto GetMousePos() const -> std::pair<double, double> override;
 
+        MKT_NODISCARD auto ShouldClose() const -> bool override;
+
         /**
          * @brief Retrieves the native window as std::any.
          *

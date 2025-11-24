@@ -20,6 +20,10 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+# Mikoto Options
+set(MIKOTO_USE_XCB_WINDOW OFF CACHE BOOL "Use XCB windowing" FORCE)
+set(MIKOTO_USE_WIN32_WINDOW OFF CACHE BOOL "Disable Win32 windowing" FORCE)
+
 # ================================
 # Gather ALL .cc files as tests
 # ================================

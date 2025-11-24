@@ -151,6 +151,8 @@ namespace Mikoto {
 
         DISABLE_COPY_AND_MOVE_FOR( VulkanSwapChain );
 
+        using DeviceObject::Initialize;
+
     private:
         auto Release() -> void override;
         auto Initialize() -> void override;

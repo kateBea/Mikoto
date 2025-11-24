@@ -28,13 +28,11 @@ namespace Mikoto {
         float NearPlane{ 0.1f };
         float FarPlane{ 2000.0f };
         float FieldOfView{ 45.0f };
-        float DampingFactor{ 1.5f };
+        float DampingFactor{ 10.0f };
         bool WantXAxisRotation{ true };
         bool WantYAxisRotation{ true };
         bool VerticalSyncEnabled{ true };
         bool RenderWireframeMode{ false };
-
-        SceneCamera* EditorCamera{ nullptr };
     };
 
     struct SettingsPanelCreateInfo {

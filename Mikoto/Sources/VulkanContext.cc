@@ -347,7 +347,7 @@ namespace Mikoto {
                 .width { static_cast<UInt32>( m_TargetWindow->GetWidth() ) },
                 .height{ static_cast<UInt32>( m_TargetWindow->GetHeight() ) } },
             .Surface{ std::addressof( m_VulkanData.Surface ) },
-            .EnableVsync{ false },
+            .EnableVsync{ true },
         };
 
         m_Swapchain = TO_VK_DEVICE( m_Device.get() )->CreateSwapChain(createInfo);

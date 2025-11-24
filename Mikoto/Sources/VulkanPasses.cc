@@ -85,8 +85,6 @@ namespace Mikoto::VulkanPasses {
 
     auto ShadingPass::Shutdown() -> void {
 
-        //MKT_NOTHROW_PLACEMENT_DELETE( m_InstanceDataPtr );
-
         m_BatchOffsetMap.clear();
         m_MeshBatches.clear();
     }
@@ -139,8 +137,6 @@ namespace Mikoto::VulkanPasses {
         // Transition color target to shader read
         const auto tex{ dynamic_cast<VulkanTexture*>( m_ColorTarget.Image.GetRaw() ) };
         tex->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, vkCmd );
-
-        //MKT_CORE_LOGGER_DEBUG( "ShadingPass::End - Draw call count {} ", m_DrawCalls );
     }
 
     auto ShadingPass::WantStoreOP( const bool enable ) -> void {
@@ -224,8 +220,6 @@ namespace Mikoto::VulkanPasses {
 
         m_InstanceSSBO = m_Device->CreateBuffer( desc );
         m_InstanceSSBO->SetDebugName( "ShadingPass Instance SSBO" );
-
-        //m_InstanceDataPtr = MKT_NOTHROW_PLACEMENT_NEW( totalSize );
     }
 
     auto ShadingPass::UploadInstanceData() -> void {

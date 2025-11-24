@@ -64,7 +64,7 @@ endif()
 add_subdirectory(Mikoto)        # Core engine
 add_subdirectory(Mikoto-Editor) # Editor
 add_subdirectory(Mikoto-Sandbox) # Sandbox
-add_subdirectory(Mikoto-App) # App
+add_subdirectory(Mikoto-Apps) # App
 
 if (MIKOTO_BUILD_TESTS)
     enable_testing()         # <-- recommended but not specific to GoogleTest

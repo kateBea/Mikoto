@@ -693,7 +693,7 @@ namespace Mikoto {
     auto VulkanDevice::CreateSwapChain( const VulkanSwapChainCreateInfo& createInfo ) -> SwapChainHandle {
         SwapChainHandle result{ m_Swapchains.Allocate( createInfo ) };
         if ( !result.IsEmpty() ) {
-            result.As<DeviceObject>()->Initialize( this );
+            result->Initialize( this );
         }
 
         return result;
@@ -1030,7 +1030,7 @@ namespace Mikoto {
         // Command pool to allocate command buffers for compute queue operations
         VkCommandPoolCreateInfo createInfo{ VulkanHelpers::Initializers::CommandPoolCreateInfo() };
         createInfo.flags = 0;
-        createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         createInfo.queueFamilyIndex = DetermineQueueIndex( queues, m_QueueType );
 
         if ( vkCreateCommandPool( VK_DEVICE( m_Device ), std::addressof( createInfo ), nullptr, std::addressof( m_Pool ) ) != VK_SUCCESS ) {

@@ -97,6 +97,7 @@ namespace Mikoto {
         // Vertex buffers
         if ( m_Usage == BufferUsage::BUFFER_USAGE_VERTEX ) {
             m_BufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+            //m_AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT;
         }
 
         // Index buffers
@@ -112,7 +113,7 @@ namespace Mikoto {
 
         // Fill VMA specific structs
         //let the VMA library know that this data should be on CPU RAM
-        m_AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+        m_AllocationCreateInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
     }
 
     auto VulkanBuffer::CopyToBlock( void* ptr, const Size size ) -> void {

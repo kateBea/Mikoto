@@ -5,11 +5,13 @@ project(MikotoEditor)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Mikoto Options
+set(MIKOTO_USE_XCB_WINDOW OFF CACHE BOOL "Use XCB windowing" FORCE)
+set(MIKOTO_USE_WIN32_WINDOW OFF CACHE BOOL "Disable Win32 windowing" FORCE)
 
 file(GLOB SOURCE_FILES Sources/*.cc)
 
-add_executable(${PROJECT_NAME} ${SOURCE_FILES}
-        Application/EditorUtility.hh)
+add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 
 # Link the engine
 target_link_libraries(${PROJECT_NAME} PRIVATE Mikoto)

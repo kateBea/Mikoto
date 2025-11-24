@@ -4,7 +4,7 @@
 
 #include <exception>
 
-#include <Application/HelloWorld.hh>
+#include <HelloWorld.hh>
 
 // Globals
 Mikoto::Window* g_Window{};

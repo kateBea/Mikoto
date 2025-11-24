@@ -14,3 +14,6 @@ sudo apt install libwayland-dev libxkbcommon-dev xorg-dev
 
 # Optional: GLSL Compiler to SPIR-V
 sudo apt install glslc
+
+# (Optional) For using scb windows
+sudo apt install libxcb1-dev libxcb-xkb-dev

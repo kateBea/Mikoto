@@ -5,6 +5,10 @@
 #ifndef MIKOTO_RENDERCONTEXT_HH
 #define MIKOTO_RENDERCONTEXT_HH
 
+#include <string_view>
+
+#include <ankerl/unordered_dense.h>
+
 #include <Assets//Texture.hh>
 #include <Assets/Model.hh>
 #include <Library/Utility/Types.hh>
@@ -12,9 +16,6 @@
 #include <Renderer/Core/Buffer.hh>
 #include <Renderer/Core/Light.hh>
 #include <Renderer/Core/Pipeline.hh>
-#include <string_view>
-
-#include "RenderService.hh"
 
 namespace Mikoto {
 
@@ -38,6 +39,9 @@ namespace Mikoto {
     class GraphicsContext {
     public:
         virtual ~GraphicsContext() = default;
+
+        virtual auto Init() -> void = 0;
+        virtual auto Shutdown() -> void = 0;
 
         virtual auto BeginRender() -> void = 0;
         virtual auto EndRender() -> void = 0;
@@ -68,7 +72,7 @@ namespace Mikoto {
         virtual auto BindTexture(TextureHandle texture) -> void = 0;
         virtual auto BindSampler(SamplerHandle sampler) -> void = 0;
 
-        virtual auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void;
+        virtual auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void = 0;
 
         MKT_NODISCARD static auto Create(GraphicsAPI api ) -> Unique<GraphicsContext>;
     };
@@ -81,6 +85,12 @@ namespace Mikoto {
         auto BeginRender() -> void;
         auto EndRender() -> void;
 
+        auto SetColorRenderTarget(TextureHandle color) -> void;
+        auto SetColorRenderTarget(std::string_view color) -> void;
+
+        auto SetDepthRenderTarget(TextureHandle color) -> void;
+        auto SetDepthRenderTarget(std::string_view color) -> void;
+
         auto BeginCompute() -> void;
         auto EndCompute() -> void;
 
@@ -92,24 +102,57 @@ namespace Mikoto {
         // TODO
         auto BindVertexBuffer(BufferHandle vertices) -> void;
         auto BindIndexBuffer(BufferHandle indices) -> void;
-        auto DrawIndexed() -> void;
+        auto SubmitDraw() -> void;
 
         auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void;
 
-        // Or maybe by name?
-        auto BindBuffer(BufferHandle texture) -> void;
+        // In the case of textures we are not specifying index yet
+        // What we are going to do is basically specify the texture and for this
+        // pass command we will keep and index that determines the index of the texture
+        // this makes it easir to implement bindless in the vulkan side of things
+        // the sampler will simply target a specific texture
         auto BindTexture(TextureHandle texture) -> void;
+        auto BindTexture(std::string_view texture) -> void;
+
+        auto BindBuffer(BufferHandle buffer, UInt32 set, UInt32 index) -> void;
+        auto BindBuffer(std::string_view buffer, UInt32 set, UInt32 index) -> void;
 
         // A sampler tells how we sample from a texture when we bind a sampler we
-        // need to speficy the texture we will be sampling from with this sampler
+        // need to specify the texture we will be sampling from with this sampler
         auto BindSampler(SamplerHandle sampler, std::string_view textureName) -> void;
         auto BindSampler(SamplerHandle sampler, TextureHandle texture) -> void;
 
+    private:
+        struct DrawInstanceMetadata {
+            BufferHandle VertexBuffer{};
+            BufferHandle IndexBuffer{};
+
+            // Is the instance ID of the first instance to draw.
+            UInt32 FirstInstance{};
+
+            // Is the number of instances to draw.
+            UInt32 InstanceCount{};
+
+            // Number of vertices
+            UInt32 VertexCount{};
+
+            // Is the number of vertices to draw.
+            UInt32 IndexCount{};
+        };
 
     private:
         GraphicsContext* m_Context{};
-        // Draw state
 
+        // Draw state
+        std::vector<SamplerHandle> m_BoundSamplers{};
+        std::vector<TextureHandle> m_BoundTextures{};
+
+        std::vector<BufferHandle> m_BoundBuffers{};
+
+        TextureHandle m_DepthRenderTarget{};
+        std::vector<TextureHandle> m_ColorRenderTargets{};
+
+        ankerl::unordered_dense::map<std::pair<Buffer*, Buffer*>, DrawInstanceMetadata>  MeshData{};
 
         // Descriptor state
 

@@ -12,6 +12,7 @@
 
 #include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/RendererBackend.hh>
+#include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Core/RenderUtility.hh>
 
 namespace Mikoto {
@@ -74,6 +75,9 @@ namespace Mikoto {
         MKT_NODISCARD auto GetBackend() -> RendererBackend* { return m_RenderBackend.get(); }
         MKT_NODISCARD auto GetBackend() const -> const RendererBackend* { return m_RenderBackend.get(); }
 
+        MKT_NODISCARD auto GetGraphicsContext() -> GraphicsContext* { return m_GraphicsContext.get(); }
+        MKT_NODISCARD auto GetGraphicsContext() const -> const GraphicsContext* { return m_GraphicsContext.get(); }
+
         MKT_NODISCARD auto GetGpuDevice() -> GpuDevice* { return m_Context->GetGpuDevice(); }
         MKT_NODISCARD auto GetGpuDevice() const -> const GpuDevice* { return m_Context->GetGpuDevice(); }
 
@@ -90,6 +94,7 @@ namespace Mikoto {
 
         Unique<RenderContext> m_Context{};
         Unique<RendererBackend> m_RenderBackend{};
+        Unique<GraphicsContext> m_GraphicsContext{};
         Unique<ShaderLibrary> m_ShaderLibrary{};
 
         GraphicsAPI m_ActiveAPI{ GraphicsAPI::VULKAN_API };

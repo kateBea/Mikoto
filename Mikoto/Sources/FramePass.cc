@@ -61,8 +61,13 @@ namespace  Mikoto {
         // Declare its inputs and outputs
         RegisterInput( "ShadowPass_ColorTarget" );
         RegisterInput( "ShadowPass_LightsBuffer" );
+        RegisterInput( "ShadowPass_ObjectInfo" );
+
         RegisterOutput( "FinalCompositionPass_ColorTarget" );
         RegisterOutput( "FinalCompositionPass_DepthTarget" );
+
+        RegisterResource( "FinalCompositionPass_ColorTarget" );
+        RegisterResource( "FinalCompositionPass_DepthTarget" );
     }
 
     auto FinalCompositionPass::SetScene( Scene* scene ) -> void {
@@ -70,6 +75,8 @@ namespace  Mikoto {
     }
 
     auto FinalCompositionPass::Execute(PassCommandList& commandList) -> void {
+        commandList.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
+        commandList.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
 
         commandList.BeginRender();
 
@@ -78,6 +85,10 @@ namespace  Mikoto {
         commandList.SetScissor(0, 0, 1920, 1080);
 
         commandList.BindPipeline( "FinalCompositionPass_Pipeline" );
+
+        commandList.BindBuffer( "ShadowPass_CameraInfo", 0, 0 );
+        commandList.BindBuffer( "ShadowPass_LightsBuffer", 1, 0 );
+        commandList.BindBuffer( "ShadowPass_ObjectInfo", 2, 0 );
 
         // Meshes
         auto& registry{ m_Scene->GetRegistry() };
@@ -92,12 +103,12 @@ namespace  Mikoto {
             if (tag.IsActive() && meshComponent.HasMesh()) {
                 MeshNode* mesh{ meshComponent.GetMesh() };
 
-                // bind the materialo textures etc
+                // bind the textures etc
 
                 commandList.BindVertexBuffer(mesh->GetVertexBuffer());
                 commandList.BindIndexBuffer(mesh->GetIndexBuffer());
 
-                commandList.DrawIndexed();
+                commandList.SubmitDraw();
             }
 
         }
@@ -157,16 +168,44 @@ namespace  Mikoto {
             .WithSizeBytes( 0 ); // TODO
         context->CreateNamedBuffer( "ShadowPass_LightsBuffer", lightsBuffer );
 
+        // Transform, texture indices, etc
+        BufferDescription objectsInfo{};
+        objectsInfo.WithData( nullptr )
+            .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
+            .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+            .WithSizeBytes( 0 ); // TODO
+        context->CreateNamedBuffer( "ShadowPass_ObjectInfo", objectsInfo );
+
+        // Camera
+        BufferDescription camera{};
+        objectsInfo.WithData( nullptr )
+            .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
+            .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+            .WithSizeBytes( 0 ); // TODO
+        context->CreateNamedBuffer( "ShadowPass_CameraInfo", camera );
+
         // Declare its inputs and outputs
         RegisterOutput( "ShadowPass_ColorTarget" );
         RegisterOutput( "ShadowPass_DepthTarget" );
+        RegisterOutput( "ShadowPass_ObjectInfo" );
+        RegisterOutput( "ShadowPass_CameraInfo" );
 
         RegisterResource( "ShadowPass_ColorTarget" );
         RegisterResource( "ShadowPass_LightsBuffer" );
+        RegisterResource( "ShadowPass_ObjectInfo" );
+        RegisterResource( "ShadowPass_CameraInfo" );
     }
 
     auto ShadowPass::Execute( PassCommandList& commandList ) -> void {
+
+        commandList.SetColorRenderTarget( "ShadowPass_ColorTarget" );
+        commandList.SetDepthRenderTarget( "ShadowPass_LightsBuffer" );
+
         commandList.BeginRender();
+
+        commandList.BindBuffer( "ShadowPass_CameraInfo", 0, 0 );
+        commandList.BindBuffer( "ShadowPass_LightsBuffer", 1, 0 );
+        commandList.BindBuffer( "ShadowPass_ObjectInfo", 2, 0 );
 
         // Set render targets
         commandList.SetViewport(0, 0, 1920, 1080);
@@ -190,7 +229,7 @@ namespace  Mikoto {
                 commandList.BindVertexBuffer(mesh->GetVertexBuffer());
                 commandList.BindIndexBuffer(mesh->GetIndexBuffer());
 
-                commandList.DrawIndexed();
+                commandList.SubmitDraw();
             }
         }
 
@@ -220,10 +259,15 @@ namespace  Mikoto {
         context->CreateNamedPipeline( "TextPass_Pipeline", pipelineDesc );
 
         RegisterInput( "FinalCompositionPass_ColorTarget" );
+        RegisterInput( "FinalCompositionPass_DepthTarget" );
+
         RegisterOutput( "FinalCompositionPass_ColorTarget" );
     }
 
     auto TextPass::Execute( PassCommandList& commandList ) -> void {
+        commandList.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
+        commandList.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
+
         commandList.BeginRender();
 
         // Set render targets

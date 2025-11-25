@@ -17,9 +17,7 @@ namespace Mikoto {
         : m_Device{ createInfo.Device } {}
 
     auto SceneRenderer::Init() -> void {
-        m_RendererBackend = RenderService::Get()->GetBackend();
-
-        m_GraphicsContext = GraphicsContext::Create( RenderService::Get()->GetActiveGraphicsApi() );
+        InitGraphicsContex();
 
         InitCoreFramePasses();
     }
@@ -60,7 +58,7 @@ namespace Mikoto {
 
     auto SceneRenderer::SetCamera( SceneCamera *camera ) -> void {
 
-        m_Camera = dynamic_cast<SceneCamera *>( camera );
+        m_Camera = camera;
     }
 
     auto SceneRenderer::GetFinalComposition() const -> TextureHandle {
@@ -88,7 +86,15 @@ namespace Mikoto {
         return CreateScope<SceneRenderer>( createInfo );
     }
 
+    auto SceneRenderer::InitGraphicsContex() -> void {
+        m_RendererBackend = RenderService::Get()->GetBackend();
+        m_GraphicsContext = RenderService::Get()->GetGraphicsContext();
+    }
+
     auto SceneRenderer::InitCoreFramePasses() -> void {
+        //TODO: temporary early return
+        return;
+
         if (m_GraphicsContext == nullptr) {
             return;
         }
@@ -97,19 +103,19 @@ namespace Mikoto {
 
         // Create and configure shadow pass
         ShadowPass* shadowPass{ m_Registry.Register<ShadowPass>() };
-        shadowPass->Setup( m_GraphicsContext.get() );
+        shadowPass->Setup( m_GraphicsContext );
 
         // Create and configure final composition
         FinalCompositionPass* finalCompositionPass{ m_Registry.Register<FinalCompositionPass>() };
-        finalCompositionPass->Setup( m_GraphicsContext.get() );
+        finalCompositionPass->Setup( m_GraphicsContext );
 
         // Create and configure Text pass
         TextPass* textPass{ m_Registry.Register<TextPass>() };
-        textPass->Setup( m_GraphicsContext.get() );
+        textPass->Setup( m_GraphicsContext );
 
         // Create and configure Compute
         SimpleComputePass* simpleComputePass{ m_Registry.Register<SimpleComputePass>() };
-        simpleComputePass->Setup( m_GraphicsContext.get() );
+        simpleComputePass->Setup( m_GraphicsContext );
 
         // Register passes
         for (auto& pass : m_Registry | std::ranges::views::values) {

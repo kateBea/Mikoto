@@ -96,6 +96,11 @@ namespace Mikoto {
 
         auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void;
 
+        // Or maybe by name?
+        auto BindBuffer(BufferHandle texture) -> void;
+        auto BindTexture(TextureHandle texture) -> void;
+        auto BindSampler(SamplerHandle sampler) -> void;
+
 
     private:
         GraphicsContext* m_Context{};

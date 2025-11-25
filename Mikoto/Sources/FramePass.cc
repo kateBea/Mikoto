@@ -92,6 +92,8 @@ namespace  Mikoto {
             if (tag.IsActive() && meshComponent.HasMesh()) {
                 MeshNode* mesh{ meshComponent.GetMesh() };
 
+                // bind the materialo textures etc
+
                 commandList.BindVertexBuffer(mesh->GetVertexBuffer());
                 commandList.BindIndexBuffer(mesh->GetIndexBuffer());
 

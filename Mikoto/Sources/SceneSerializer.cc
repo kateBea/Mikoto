@@ -166,7 +166,7 @@ namespace Mikoto {
         emitter << YAML::EndMap;
     }
 
-    static auto SerializeNode( YAML::Emitter& emitter, const Scene* scene, const Entity* rootEntity ) -> void {
+    static auto SerializeNode( YAML::Emitter& emitter, const Scene& scene, const Entity* rootEntity ) -> void {
         emitter << YAML::BeginMap;
 
         emitter << YAML::Key << "Game Object";
@@ -223,17 +223,11 @@ namespace Mikoto {
             SerializeComponent( rootEntity->GetComponent<ScriptComponent>(), emitter );
         }
 
-        const RelationComponent& relation{ rootEntity->GetComponent<RelationComponent>() };
-
-        for ( auto& [id, childEntity]: scene->GetEntities() ) {
-            SerializeNode( emitter, scene, childEntity.get()  );
-        }
-
         emitter << YAML::EndMap;
     }
 
     auto SceneSerializer::Serialize( const Scene& scene, const Path& saveFilePath ) -> void {
-        File* outputFile{ FileService::Get()->LoadFile( saveFilePath, MKT_FILE_OPEN_MODE_WRITE ) };
+        File* outputFile{ FileService::Get()->CreateFile( saveFilePath ) };
 
         if ( outputFile == nullptr ) {
             MKT_CORE_LOGGER_ERROR( "Could not open file '{}' required for scene serialization", saveFilePath.string() );
@@ -246,6 +240,9 @@ namespace Mikoto {
         emitter << YAML::Key << "Scene" << YAML::Value << scene.GetName();
         emitter << YAML::Key << "Objects" << YAML::Value << YAML::BeginSeq;
 
+        for ( const auto& childEntity: scene.GetEntities() | std::views::values ) {
+            SerializeNode( emitter, scene, childEntity.get()  );
+        }
 
         emitter << YAML::EndSeq;
         emitter << YAML::EndMap;

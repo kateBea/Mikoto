@@ -37,8 +37,8 @@ namespace Mikoto {
         auto Shutdown() -> void override;
 
         // load from disc
-        auto LoadFile( const Path& path, FileMode mode = MKT_FILE_OPEN_MODE_NONE ) -> File*;
-        auto LoadFileAsync( const Path& path, FileMode mode = MKT_FILE_OPEN_MODE_NONE ) -> void; // Return a future
+        auto LoadFile( const Path& path, FileMode mode = MKT_FILE_OPEN_MODE_BINARY ) -> File*;
+        auto LoadFileAsync( const Path& path, FileMode mode = MKT_FILE_OPEN_MODE_BINARY ) -> void; // Return a future
 
         auto CreateFile( const Path& path ) -> File*;
         auto CreateFileAsync( const Path& path ) -> File*; // Return a future

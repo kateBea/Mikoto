@@ -48,9 +48,7 @@ namespace Mikoto {
 
         // Construct default material
         auto& material{ reg.get<MaterialComponent>( e ) };
-
-        RendererBackend* backend{ RenderService::Get()->GetBackend() };
-        material.SetMaterial( backend->CreateMaterial() );
+        material.SetMaterial( AssetsService::Get()->CreateMaterial() );
     }
 
     Scene::Scene( const std::string_view name )

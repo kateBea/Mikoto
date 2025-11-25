@@ -56,8 +56,6 @@ namespace Mikoto {
 
         InitGlobalShaderBuffers();
 
-        m_Materials.Init( 10 );
-
         m_LightsInfo = CreateScope<LightInfo>();
 
         m_IsInitialized = true;
@@ -73,8 +71,6 @@ namespace Mikoto {
         m_LightsInfo.reset();
 
         m_Passes.Clear();
-
-        m_Materials.Shutdown();
 
         m_BindlessTextures.clear();
 
@@ -248,24 +244,6 @@ namespace Mikoto {
 
         vkCmdSetViewport( cmd, 0, 1, std::addressof( m_Viewport ) );
         vkCmdSetScissor( cmd, 0, 1, std::addressof( m_Scissor ) );
-    }
-
-    auto VulkanRenderer::CreateMaterial() -> MaterialHandle {
-        MaterialHandle material{ m_Materials.Allocate() };
-        if ( material.IsEmpty() ) {
-            MKT_CORE_LOGGER_ERROR( "VulkanRenderer::CreateMaterial - Failed to create material" );
-        } else {
-            PBRMaterial* pbrMat{ dynamic_cast<PBRMaterial*>( material.GetRaw() ) };
-
-            // pbrMat->SetTextureType( MapType::ALBEDO_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
-            // pbrMat->SetTextureType( MapType::NORMAL_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
-            // pbrMat->SetTextureType( MapType::EMISSIVE_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
-            // pbrMat->SetTextureType( MapType::METALLIC_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
-            // pbrMat->SetTextureType( MapType::ROUGHNESS_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
-            // pbrMat->SetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE, m_GraphicsDevice->GetDummyTexture() );
-        }
-
-        return material;
     }
 
     auto VulkanRenderer::SetClearColor( float r, float g, float b, float a ) -> void {

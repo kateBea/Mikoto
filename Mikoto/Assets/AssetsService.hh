@@ -5,10 +5,9 @@
 #ifndef ASSETSSYSTEM_HH
 #define ASSETSSYSTEM_HH
 
+#include <vector>
 #include <ankerl/unordered_dense.h>
 
-#include <Renderer/Core/FontFactory.hh>
-#include <Renderer/Core/RenderUtility.hh>
 #include <Assets/Font.hh>
 #include <Assets/Model.hh>
 #include <Assets/Texture.hh>
@@ -16,15 +15,49 @@
 #include <Common/Common.hh>
 #include <Common/Service.hh>
 #include <Common/Singleton.hh>
+#include <Core/Serializer.hh>
 #include <Library/Data/ResourcePool.hh>
 #include <Library/Utility/Types.hh>
 #include <Material/ShaderLibrary.hh>
+#include <Renderer/Core/FontFactory.hh>
+#include <Renderer/Core/RenderUtility.hh>
 #include <Threading/TaskService.hh>
 
 #include "Assets/AudioClip.hh"
 #include "Assets/MeshFactory.hh"
+#include "Material/PBRMaterial.hh"
 
 namespace Mikoto {
+
+    enum class AssetType {
+        FONT_ASSET,
+        MODEL_ASSET,
+        TEXTURE_ASSET,
+        AUDIO_ASSET,
+        AUDIO_INVALID,
+    };
+
+    class Asset {
+    public:
+
+        explicit Asset( AssetType type );
+
+        MKT_NODISCARD auto GetType() const -> AssetType;
+        MKT_NODISCARD auto GetUri() const -> const std::string&;
+
+
+
+    private:
+        AssetType m_Type{ AssetType::AUDIO_INVALID };
+    };
+
+    class AssetsSerializer : public ISerializer<Asset> {
+    public:
+        explicit AssetsSerializer();
+
+        auto Serialize( const Asset& obj, const Path& savePath ) -> void override;
+        auto Deserialize( const Path& loadPath ) -> Unique<Asset> override;
+    };
 
     /**
     * @struct AssetsServiceDescription
@@ -112,6 +145,10 @@ namespace Mikoto {
                 if ( const auto it{ m_Fonts.find(std::string(uri)) }; it != m_Fonts.end())
                     return it->second;
             }
+            else if constexpr (std::is_same_v<AssetType, Material>) {
+                if ( const auto it{ m_Materials.find(std::string(uri)) }; it != m_Materials.end())
+                    return it->second;
+            }
 
             return Ref<AssetType>::CreateEmpty();
         }
@@ -131,6 +168,9 @@ namespace Mikoto {
             }
             else if constexpr (std::is_same_v<AssetType, Font>) {
                 return LoadFont( std::forward<decltype(args)>(args)... );
+            }
+            else if constexpr (std::is_same_v<AssetType, Material>) {
+                return LoadMaterial( std::forward<decltype(args)>(args)... );
             }
 
             return Ref<AssetType>::CreateEmpty();
@@ -152,6 +192,8 @@ namespace Mikoto {
 
         auto GetDummyTexture() -> TextureHandle;
 
+        auto CreateMaterial( /* params */ ) -> MaterialHandle;
+
         ~AssetsService() override = default;
 
     private:
@@ -168,6 +210,9 @@ namespace Mikoto {
         auto LoadFont( std::string_view uri ) -> FontHandle;
         auto LoadFont( const FontLoadDescription& description) -> FontHandle;
 
+        auto LoadMaterial( std::string_view uri) -> MaterialHandle;
+        auto LoadMaterial( const Path& uri) -> MaterialHandle;
+
         auto LoadDummyAssets() -> void;
 
     private:
@@ -180,6 +225,9 @@ namespace Mikoto {
         GpuDevice* m_GpuDevice{ nullptr };
         AudioDevice* m_AudioDevice{ nullptr };
 
+        ResourcePoolTyped<PBRMaterial> m_PBRMaterialsPool{};
+
+        ankerl::unordered_dense::map<std::string, MaterialHandle> m_Materials{};
         ankerl::unordered_dense::map<std::string, ModelHandle> m_Models{};
         ankerl::unordered_dense::map<std::string, TextureHandle> m_Textures{};
         ankerl::unordered_dense::map<std::string, AudioHandle> m_Audios{};

@@ -27,6 +27,8 @@
 #include <Scene/Component.hh>
 #include <Scene/Scene.hh>
 
+#include "ImGui/IconsMaterialDesignIcons.h"
+
 namespace Mikoto {
 
     static constexpr auto GetHierarchyName() -> std::string_view {
@@ -145,11 +147,16 @@ namespace Mikoto {
                 }
             }
 
+            // Debug
+            ICON_MD_ACCOUNT_BOX;
+
             if ( ImGui::IsMouseDown( ImGuiMouseButton_Left ) && ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered() ) {
                 m_EditorState->SelectedEntity = nullptr;
             }
 
             BlankSpacePopupMenu();
+
+            //ImGuiUtils::DebugShowMaterialIcons();
 
             ImGui::End();
         }
@@ -183,7 +190,15 @@ namespace Mikoto {
         };
 
         const ImGuiTreeNodeFlags flags{ styleFlags | ( thisEntityIsSelected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None ) };
-        const bool expanded{ ImGui::TreeNodeEx( reinterpret_cast<void*>( entityTag.GetGUID() ), flags, "%s", fmt::format( " {} {}", ICON_MD_WIDGETS, entityTag.GetTag() ).c_str() ) };
+
+        // Icons for ICON_MD for assets U+F1B2, U+F1B3, U+F6D1
+        // TODO: find the actual ICON_MD macros
+        // U+F6D1  ->  63185
+        // U+F1B2  ->  61874
+        // U+F1B3  ->  61875
+        const std::string icon { ImGuiUtils::GetStringFromUnicode( 63185 ) };
+
+        const bool expanded{ ImGui::TreeNodeEx( reinterpret_cast<void*>( entityTag.GetGUID() ), flags, "%s", fmt::format( " {} {}",  icon.data(), entityTag.GetTag() ).c_str() ) };
 
         if ( ImGui::IsItemClicked( ImGuiMouseButton_Left ) ) {
             m_EditorState->SelectedEntity = entity;

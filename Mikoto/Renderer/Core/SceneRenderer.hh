@@ -151,6 +151,7 @@ namespace Mikoto {
 
     private:
         // [Internal usage]
+        auto InitGraphicsContex() -> void;
         auto InitCoreFramePasses() -> void;
 
     private:
@@ -167,7 +168,7 @@ namespace Mikoto {
         Registry<FramePass> m_Registry{};
 
         FrameGraph m_FrameGraph{};
-        Unique<GraphicsContext> m_GraphicsContext{ nullptr };
+        GraphicsContext* m_GraphicsContext{ nullptr };
 
         UInt32 m_ViewportWidth{ 0u };
         UInt32 m_ViewportHeight{ 0u };

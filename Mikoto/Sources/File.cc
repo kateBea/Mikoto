@@ -8,9 +8,18 @@
 namespace Mikoto {
 
     auto File::Load( const Path &path, FileMode openMode ) -> Unique<File> {
+        if (openMode == MKT_FILE_OPEN_MODE_TRUNCATE ) {
+            if ( std::fstream stream{ path, std::ios::trunc | std::ios::in | std::ios::out } ) {
+                return Unique<File>( new File(path, std::move(stream), openMode) ) ;
+            }
+        }
+
+
         // Open the file once to import metadata and its contents
-        if ( std::fstream stream{ path, std::ios::binary | std::ios::in | std::ios::out } ) {
-            return Unique<File>( new File(path, std::move(stream), openMode) ) ;
+        if (openMode == MKT_FILE_OPEN_MODE_BINARY ) {
+            if ( std::fstream stream{ path, std::ios::binary | std::ios::in | std::ios::out } ) {
+                return Unique<File>( new File(path, std::move(stream), openMode) ) ;
+            }
         }
 
         return nullptr;
@@ -36,30 +45,20 @@ namespace Mikoto {
     }
 
     auto File::FlushContents() -> void {
-        if ( !IsModeSet( m_OpenMode, MKT_FILE_OPEN_MODE_WRITE ) ) {
-            MKT_CORE_LOGGER_WARN( "File::FlushContents - File was not opened for writing." );
-            return;
-        }
-
         auto openMode{ std::ios_base::out };
 
-        switch ( m_OpenMode ) {
+        if (IsModeSet( m_OpenMode, MKT_FILE_OPEN_MODE_WRITE )) {
+            openMode |= std::ios_base::trunc;
+        }
 
-            case MKT_FILE_OPEN_MODE_TRUNCATE:
-                openMode |= std::ios_base::trunc;
-                break;
-            case MKT_FILE_OPEN_MODE_APPEND:
-                openMode |= std::ios_base::app;
-                break;
-            default:
-                break;
+        if (IsModeSet( m_OpenMode, MKT_FILE_OPEN_MODE_APPEND )) {
+            openMode |= std::ios_base::app;
         }
 
         m_FileStream = std::move( std::fstream{ m_Path, openMode } );
 
         if ( m_FileStream.is_open() ) {
             m_FileStream << m_Contents;
-
             m_FileStream.close();
         }
     }

@@ -30,6 +30,8 @@ namespace Mikoto {
 
         MKT_FILE_OPEN_MODE_TRUNCATE = BIT_SET( 2 ),
         MKT_FILE_OPEN_MODE_APPEND = BIT_SET( 3 ),
+
+        MKT_FILE_OPEN_MODE_BINARY = BIT_SET( 3 ),
     };
 
     enum class FileType {

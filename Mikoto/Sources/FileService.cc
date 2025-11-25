@@ -3,14 +3,14 @@
 //
 
 // C++ Standard Library
-#include <memory>
+#include <algorithm>
 #include <fstream>
+#include <initializer_list>
+#include <memory>
 #include <sstream>
 #include <string>
-#include <vector>
 #include <utility>
-#include <algorithm>
-#include <initializer_list>
+#include <vector>
 
 // Third-Party Libraries
 #include <nfd.hpp>
@@ -24,17 +24,16 @@
 namespace Mikoto {
 
     FileService::FileService( const FileServiceCreateInfo& )
-        : m_CurrentWorkingDir{ std::filesystem::current_path() }
-    {}
+        : m_CurrentWorkingDir{ std::filesystem::current_path() } {}
 
-    auto FileService::SaveDialog(const std::string& defaultName, const std::initializer_list<std::pair<std::string, std::string>>& filters) -> Path {
+    auto FileService::SaveDialog( const std::string& defaultName, const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path {
         std::string saveFilePath{};
 
         // Process filters
         std::vector<nfdfilteritem_t> filterItems{};
 
-        for (const auto& [filterName, filterExtensions] : filters) {
-            filterItems.emplace_back(nfdfilteritem_t{ filterName.data(), filterExtensions.data() });
+        for ( const auto& [filterName, filterExtensions]: filters ) {
+            filterItems.emplace_back( nfdfilteritem_t{ filterName.data(), filterExtensions.data() } );
         }
 
         // initialize NFD
@@ -44,16 +43,14 @@ namespace Mikoto {
         NFD::UniquePath outPath{};
 
         // show the dialog
-        nfdresult_t result{ NFD::SaveDialog(outPath, filterItems.data(), filterItems.size(), nullptr, defaultName.data()) };
+        nfdresult_t result{ NFD::SaveDialog( outPath, filterItems.data(), filterItems.size(), nullptr, defaultName.data() ) };
 
-        if (result == NFD_OKAY) {
+        if ( result == NFD_OKAY ) {
             saveFilePath = outPath.get();
-        }
-        else if (result == NFD_CANCEL) {
-            MKT_CORE_LOGGER_INFO("Filesystem::SaveDialog - User canceled File open dialog");
-        }
-        else {
-            MKT_CORE_LOGGER_ERROR("Filesystem::SaveDialog - Error in  File open dialog: {}", NFD::GetError());
+        } else if ( result == NFD_CANCEL ) {
+            MKT_CORE_LOGGER_INFO( "Filesystem::SaveDialog - User canceled File open dialog" );
+        } else {
+            MKT_CORE_LOGGER_ERROR( "Filesystem::SaveDialog - Error in  File open dialog: {}", NFD::GetError() );
         }
 
         // NFD::Guard will automatically quit NFD.
@@ -61,14 +58,14 @@ namespace Mikoto {
         return saveFilePath;
     }
 
-    auto FileService::OpenDialog(const std::initializer_list<std::pair<std::string, std::string>>& filters) -> Path {
+    auto FileService::OpenDialog( const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path {
         std::string filePath{};
 
         // Process filters
         std::vector<nfdfilteritem_t> filterItems{};
 
-        for (const auto& [filterName, filterExtensions] : filters) {
-            filterItems.emplace_back(nfdfilteritem_t{ filterName.data(), filterExtensions.data() });
+        for ( const auto& [filterName, filterExtensions]: filters ) {
+            filterItems.emplace_back( nfdfilteritem_t{ filterName.data(), filterExtensions.data() } );
         }
 
         // initialize NFD
@@ -78,16 +75,14 @@ namespace Mikoto {
         NFD::UniquePath outPath{};
 
         // show the dialog
-        nfdresult_t result{ NFD::OpenDialog(outPath, filterItems.data(), filterItems.size()) };
+        nfdresult_t result{ NFD::OpenDialog( outPath, filterItems.data(), filterItems.size() ) };
 
-        if (result == NFD_OKAY) {
+        if ( result == NFD_OKAY ) {
             filePath = outPath.get();
-        }
-        else if (result == NFD_CANCEL) {
-            MKT_CORE_LOGGER_INFO("User canceled File open dialog");
-        }
-        else {
-            MKT_CORE_LOGGER_ERROR("Error in  File open dialog: {}", NFD::GetError());
+        } else if ( result == NFD_CANCEL ) {
+            MKT_CORE_LOGGER_INFO( "User canceled File open dialog" );
+        } else {
+            MKT_CORE_LOGGER_ERROR( "Error in  File open dialog: {}", NFD::GetError() );
         }
 
         // NFD::Guard will automatically quit NFD.
@@ -98,10 +93,10 @@ namespace Mikoto {
     auto FileService::Init() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        MKT_CORE_LOGGER_INFO("Initializing FileService...");
+        MKT_CORE_LOGGER_INFO( "Initializing FileService..." );
 
-        if ( const auto result{ NFD::Init() == NFD_OKAY }; !result) {
-            MKT_THROW_RUNTIME_ERROR("FileManager - Failed to initialized File dialog library NFD.");
+        if ( const auto result{ NFD::Init() == NFD_OKAY }; !result ) {
+            MKT_THROW_RUNTIME_ERROR( "FileManager - Failed to initialized File dialog library NFD." );
         }
 
         m_IsInitialized = true;
@@ -121,7 +116,7 @@ namespace Mikoto {
         NFD::Quit();
     }
 
-    auto FileService::LoadFile( const Path &path, FileMode mode ) -> File * {
+    auto FileService::LoadFile( const Path& path, FileMode mode ) -> File* {
         MKT_BEGIN_PROFILER_NAMED();
 
         File* result{ nullptr };
@@ -130,16 +125,16 @@ namespace Mikoto {
         // char on linux and wchar_t on windows
         const auto findIt{ m_Files.find( path.string() ) };
 
-        if (findIt != m_Files.end()) {
+        if ( findIt != m_Files.end() ) {
             result = findIt->second.get();
         } else {
             // File does not exist
             auto newFile{ File::Load( path, mode ) };
-            if (newFile) {
+            if ( newFile ) {
                 result = newFile.get();
 
-                const auto[insertIt, success] {
-                    m_Files.try_emplace( path.string(), std::move(newFile) )
+                const auto [insertIt, success]{
+                    m_Files.try_emplace( path.string(), std::move( newFile ) )
                 };
             } else {
                 MKT_CORE_LOGGER_ERROR( "Could not load file at {}", path.string() );
@@ -149,7 +144,7 @@ namespace Mikoto {
         return result;
     }
 
-    auto FileService::GetFile( const Path &path ) -> File * {
+    auto FileService::GetFile( const Path& path ) -> File* {
         auto it{ m_Files.find( path.string() ) };
         if ( it != m_Files.end() ) {
             return it->second.get();
@@ -158,11 +153,11 @@ namespace Mikoto {
         return nullptr;
     }
 
-    auto FileService::GetFile( const Path &path ) const -> const File * {
-        return const_cast<FileService*>(this)->GetFile( path );
+    auto FileService::GetFile( const Path& path ) const -> const File* {
+        return const_cast<FileService*>( this )->GetFile( path );
     }
 
-    auto  FileService::GetCurrentWorkingDirectory() const -> std::string {
+    auto FileService::GetCurrentWorkingDirectory() const -> std::string {
         return m_CurrentWorkingDir.string();
     }
 
@@ -172,6 +167,34 @@ namespace Mikoto {
 
         // TODO: create the task and return it
         //return nullptr;
+    }
+
+    auto FileService::CreateFile( const Path& path ) -> File* {
+        File* result{ nullptr };
+
+        // File does not exist
+        auto newFile{ File::Load( path, MKT_FILE_OPEN_MODE_TRUNCATE ) };
+        if ( newFile ) {
+            result = newFile.get();
+
+            const auto [insertIt, success]{
+                m_Files.try_emplace( path.string(), std::move( newFile ) )
+            };
+        } else {
+            MKT_CORE_LOGGER_ERROR( "Could not create file at {}", path.string() );
+        }
+
+        return result;
+    }
+
+    auto FileService::CreateFileAsync( const Path& path ) -> File* {
+        return nullptr;
+    }
+
+    auto FileService::SaveFile( const File* file ) -> void {
+    }
+
+    auto FileService::SaveFileAsync( const File* file ) -> void {
     }
 
 }// namespace Mikoto

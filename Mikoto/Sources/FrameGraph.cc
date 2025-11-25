@@ -6,8 +6,15 @@
 
 namespace Mikoto {
 
-    auto FrameGraph::Compile( GraphicsContext &backend ) -> void {
+    auto FrameGraph::RegisterPass( FramePass *pass ) -> FramePass * {
+
     }
+
+    auto FrameGraph::Compile( GraphicsContext &backend ) -> void {
+
+    }
+
     auto FrameGraph::Execute( GraphicsContext &backend ) -> void {
+
     }
 }

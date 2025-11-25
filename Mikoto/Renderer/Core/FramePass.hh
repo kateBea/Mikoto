@@ -5,6 +5,10 @@
 #ifndef MIKOTO_FRAMEPASS_HH
 #define MIKOTO_FRAMEPASS_HH
 
+#include <string>
+#include <string_view>
+#include <vector>
+
 #include <Assets//Texture.hh>
 #include <Assets/Model.hh>
 #include <Library/Data/ResourcePool.hh>
@@ -12,11 +16,9 @@
 #include <Renderer/Core/Buffer.hh>
 #include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/GraphicsContext.hh>
+#include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/Pipeline.hh>
 #include <Scene/Scene.hh>
-#include <string>
-#include <string_view>
-#include <vector>
 
 namespace Mikoto {
 
@@ -26,10 +28,8 @@ namespace Mikoto {
 
         virtual ~FramePass() = default;
 
-        virtual auto Setup(GpuDevice* device) -> void = 0;
-        virtual auto Execute(GraphicsContext& context) -> void = 0;
-
-        virtual auto RegisterInput(ResourceHandle resource) -> void = 0;
+        virtual auto Setup(GraphicsContext* device) -> void = 0;
+        virtual auto Execute(PassCommandList& cmdList) -> void = 0;
 
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 
@@ -37,12 +37,17 @@ namespace Mikoto {
         explicit FramePass(std::string_view name )
             : m_Name{ name } {}
 
+        auto RegisterInput(std::string_view name) -> void;
+        auto RegisterOutput(std::string_view name) -> void;
+        auto RegisterResource(std::string_view name) -> void;
+
     protected:
 
-        std::vector<ResourceHandle> m_Inputs{};
-        std::vector<ResourceHandle> m_Outputs{};
-
         std::string m_Name{};
+
+        std::vector<std::string> m_Inputs{};
+        std::vector<std::string> m_Outputs{};
+        std::vector<std::string> m_Resources{};
     };
 
     class FinalCompositionPass final : public FramePass {
@@ -51,10 +56,8 @@ namespace Mikoto {
         explicit FinalCompositionPass()
             : FramePass{ "FinalCompositionPass" } {}
 
-        auto Setup(GpuDevice* device) -> void override;
-        auto Execute(GraphicsContext& context) -> void override;
-
-        auto RegisterInput(ResourceHandle resource) -> void override;
+        auto Setup(GraphicsContext* device) -> void override;
+        auto Execute(PassCommandList& cmdList) -> void override;
 
         auto SetScene(Scene* scene) -> void;
 
@@ -62,13 +65,6 @@ namespace Mikoto {
         GpuDevice* m_Device{};
 
         Scene* m_Scene{};
-
-        UVec2 m_Scissor{};
-        UVec2 m_Viewport{};
-
-        PipelineHandle m_Pipeline{};
-        TextureHandle m_ColorTarget{};
-        TextureHandle m_DepthTarget{};
 
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
     };
@@ -79,10 +75,8 @@ namespace Mikoto {
         explicit ShadowPass()
             : FramePass{ "ShadowPass" } {}
 
-        auto Setup(GpuDevice* device) -> void override;
-        auto Execute(GraphicsContext& context) -> void override;
-
-        auto RegisterInput(ResourceHandle resource) -> void override;
+        auto Setup(GraphicsContext* device) -> void override;
+        auto Execute(PassCommandList& cmdList) -> void override;
 
         auto SetScene(Scene* scene) -> void;
 
@@ -90,13 +84,6 @@ namespace Mikoto {
         GpuDevice* m_Device{};
 
         Scene* m_Scene{};
-
-        UVec2 m_Scissor{};
-        UVec2 m_Viewport{};
-
-        PipelineHandle m_Pipeline{};
-        TextureHandle m_ColorTarget{};
-        TextureHandle m_DepthTarget{};
 
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
     };
@@ -106,46 +93,26 @@ namespace Mikoto {
         explicit TextPass()
             : FramePass{ "TextPass" } {}
 
-        auto Setup(GpuDevice* device) -> void override;
-        auto Execute(GraphicsContext& context) -> void override;
+        auto Setup(GraphicsContext* device) -> void override;
+        auto Execute(PassCommandList& cmdList) -> void override;
 
-        auto RegisterInput(ResourceHandle resource) -> void override;
+        auto SetScene(Scene* scene) -> void;
 
     private:
-        GpuDevice* m_Device{};
-
-        UVec2 m_Scissor{};
-        UVec2 m_Viewport{};
-
-        PipelineHandle m_Pipeline{};
-
-        // These come from the final composition
-        // this pass is supposed to run at the very end
-        TextureHandle m_ColorTarget{};
-        TextureHandle m_DepthTarget{};
+        Scene* m_Scene{};
     };
 
     // This class is kept for debug purposes
+    // just computes prime numbers
     class SimpleComputePass final : public FramePass {
     public:
         explicit SimpleComputePass()
             : FramePass{ "SimpleComputePass" } {}
 
-        auto Setup(GpuDevice* device) -> void override;
-        auto Execute(GraphicsContext& context) -> void override;
+        auto Setup(GraphicsContext* device) -> void override;
+        auto Execute(PassCommandList& cmdList) -> void override;
 
-        auto RegisterInput(ResourceHandle resource) -> void override;
 
-    private:
-        GpuDevice* m_Device{};
-
-        // Prime numbers up until this value
-        UInt32 m_Limit{ 30 };
-
-        PipelineHandle m_Pipeline{};
-        BufferHandle m_DepthTarget{};
-
-        BufferHandle m_StorageBuffer{};
     };
 
 }

@@ -2,6 +2,8 @@
 // Created by zanet on 4/5/2025.
 //
 
+#include <ranges>
+
 #include <Core/Profiler.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/FramePass.hh>
@@ -16,6 +18,8 @@ namespace Mikoto {
 
     auto SceneRenderer::Init() -> void {
         m_RendererBackend = RenderService::Get()->GetBackend();
+
+        m_GraphicsContext = GraphicsContext::Create( RenderService::Get()->GetActiveGraphicsApi() );
 
         InitCoreFramePasses();
     }
@@ -85,12 +89,34 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::InitCoreFramePasses() -> void {
-        m_FrameGraph.RegisterPass<FinalCompositionPass>();
-        m_FrameGraph.RegisterPass<ShadowPass>();
-        m_FrameGraph.RegisterPass<TextPass>();
-        m_FrameGraph.RegisterPass<SimpleComputePass>();
+        if (m_GraphicsContext == nullptr) {
+            return;
+        }
 
-        //m_FrameGraph.Compile(  );
+        // These passes will be configurable
+
+        // Create and configure shadow pass
+        ShadowPass* shadowPass{ m_Registry.Register<ShadowPass>() };
+        shadowPass->Setup( m_GraphicsContext.get() );
+
+        // Create and configure final composition
+        FinalCompositionPass* finalCompositionPass{ m_Registry.Register<FinalCompositionPass>() };
+        finalCompositionPass->Setup( m_GraphicsContext.get() );
+
+        // Create and configure Text pass
+        TextPass* textPass{ m_Registry.Register<TextPass>() };
+        textPass->Setup( m_GraphicsContext.get() );
+
+        // Create and configure Compute
+        SimpleComputePass* simpleComputePass{ m_Registry.Register<SimpleComputePass>() };
+        simpleComputePass->Setup( m_GraphicsContext.get() );
+
+        // Register passes
+        for (auto& pass : m_Registry | std::ranges::views::values) {
+            m_FrameGraph.RegisterPass( pass.get() );
+        }
+
+        m_FrameGraph.Compile( *m_GraphicsContext );
     }
 
     auto SceneRendererCreateInfo::WithName( std::string_view name ) -> SceneRendererCreateInfo & {

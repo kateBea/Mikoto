@@ -38,6 +38,11 @@ namespace Mikoto {
         auto WriteBuffer(Buffer* target, Byte* data, Size size) -> void override;
         auto WriteTexture(Texture* target, Byte* data, Size size) -> void override;
 
+        auto SetViewport(Int32 x, Int32 y, Int32 width, Int32 height) -> void override;
+        auto SetScissor(Int32 x, Int32 y, Int32 width, Int32 height) -> void override;
+
+        auto BindPipeline(PipelineHandle pipeline) -> void override;
+
         auto SetDebugName(std::string_view name) -> void override;
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;

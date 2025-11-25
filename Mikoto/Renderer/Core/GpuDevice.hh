@@ -34,6 +34,11 @@ namespace Mikoto {
         virtual auto WriteBuffer(Buffer* target, Byte* data, Size size) -> void = 0;
         virtual auto WriteTexture(Texture* target, Byte* data, Size size) -> void = 0;
 
+        virtual auto SetViewport(Int32 x, Int32 y, Int32 width, Int32 height) -> void = 0;
+        virtual auto SetScissor(Int32 x, Int32 y, Int32 width, Int32 height) -> void = 0;
+
+        virtual auto BindPipeline(PipelineHandle pipeline) -> void = 0;
+
         using DeviceObject::Initialize;
 
     private:

@@ -51,6 +51,8 @@ namespace Mikoto {
 
         LoadDummyAssets();
 
+        m_PBRMaterialsPool.Init( 10 );
+
         m_IsInitialized = true;
     }
 
@@ -64,6 +66,8 @@ namespace Mikoto {
         // The Log comes after so we know the service was
         // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down AssetsService..." );
+
+        m_PBRMaterialsPool.Shutdown();
 
         m_Textures.clear();
         m_Audios.clear();
@@ -84,6 +88,15 @@ namespace Mikoto {
 
     auto AssetsService::GetDummyTexture() -> TextureHandle {
         return m_Textures[s_DummyTexturePath.data() ];
+    }
+
+    auto AssetsService::CreateMaterial() -> MaterialHandle {
+        MaterialHandle material{ m_PBRMaterialsPool.Allocate() };
+        if ( material.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "AssetsService::CreateMaterial - Failed to create material" );
+        }
+
+        return material;
     }
 
     auto AssetsService::LoadModel( const std::string_view uri ) -> ModelHandle {
@@ -269,6 +282,16 @@ namespace Mikoto {
         }
 
         return FontHandle::CreateEmpty();
+    }
+
+    auto AssetsService::LoadMaterial( std::string_view uri ) -> MaterialHandle {
+        // TODO: implement logic of loading the material in memory
+        return CreateMaterial();
+    }
+
+    auto AssetsService::LoadMaterial( const Path& uri ) -> MaterialHandle {
+        // TODO: implement logic of loading the material in memory
+        return CreateMaterial();
     }
 
     auto AssetsService::LoadDummyAssets() -> void {

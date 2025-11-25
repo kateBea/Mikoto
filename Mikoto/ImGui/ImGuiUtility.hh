@@ -17,6 +17,8 @@
 #include <Library/Utility/Types.hh>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "IconsMaterialDesign.h"
+
 namespace Mikoto::ImGuiUtils {
 
     enum class GuizmoManipulationMode {
@@ -131,9 +133,9 @@ namespace Mikoto::ImGuiUtils {
         style.Colors[ImGuiCol_TitleBgActive] = ImVec4( 0.2f, 0.2f, 0.2f, 1.0f );
         style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4( 0.4f, 0.4f, 0.4f, 1.0f );
 
-        style.Colors[ImGuiCol_ResizeGrip]        = ImVec4(0.01f, 0.01f, 0.01f, 0.6f);
+        style.Colors[ImGuiCol_ResizeGrip] = ImVec4( 0.01f, 0.01f, 0.01f, 0.6f );
         style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4( 0.01f, 0.01f, 0.01f, 0.5f );
-        style.Colors[ImGuiCol_ResizeGripActive]  = ImVec4( 0.01f, 0.01f, 0.01f, 0.5f );
+        style.Colors[ImGuiCol_ResizeGripActive] = ImVec4( 0.01f, 0.01f, 0.01f, 0.5f );
 
         style.Colors[ImGuiCol_Tab] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
 
@@ -560,6 +562,49 @@ namespace Mikoto::ImGuiUtils {
 
             ImGui::TreePop();
         }
+    }
+
+    inline auto GetStringFromUnicode( UInt32 codePoint ) -> std::string {
+        std::array<char, 5>utf8{};
+        ImTextCharToUtf8( utf8.data(), codePoint );
+
+        return std::string{ utf8.data() };
+    }
+
+    inline auto DebugShowMaterialIcons() -> void {
+        ImGui::Begin( "Material Icons Debug" );
+
+        // Scrollable area
+        if ( ImGui::BeginChild( "IconScrollArea", ImVec2( 0, 0 ), true ) ) {
+            const UInt32 ICON_MIN{ ICON_MIN_MD };
+            const UInt32 ICON_MAX{ ICON_MAX_16_MD };
+            const UInt32 ICONS_PER_ROW{ 16 };
+
+            Int32 count{};
+            char utf8[5]{};
+
+            for ( UInt32 codepoint{ ICON_MIN }; codepoint <= ICON_MAX; ++codepoint ) {
+                ImTextCharToUtf8( utf8, codepoint );
+
+                // Render icon as selectable button
+                ImGui::PushID( codepoint );
+                if ( ImGui::Button( utf8, ImVec2( 24, 24 ) ) ) {
+                    // Optional: do something on click
+                }
+                if ( ImGui::IsItemHovered() ) {
+                    ImGui::SetTooltip( "Codepoint: U+%04X (%d)", codepoint, codepoint );
+                }
+                ImGui::PopID();
+
+                count++;
+                if ( count % ICONS_PER_ROW != 0 )
+                    ImGui::SameLine();
+            }
+
+            ImGui::EndChild();
+        }
+
+        ImGui::End();
     }
 
     /**

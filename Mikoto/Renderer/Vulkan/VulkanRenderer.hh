@@ -56,8 +56,6 @@ namespace Mikoto {
 
         auto SetCamera( const Camera* camera ) -> void override;
         auto SetViewport( float x, float y, float width, float height ) -> void override;
-
-        auto CreateMaterial( /* params */ ) -> MaterialHandle override;
             
         auto SetClearColor( float r, float g, float b, float a ) -> void override;
 
@@ -146,8 +144,6 @@ namespace Mikoto {
         bool m_UpdateTextureDescriptor{ false };
         std::vector<TextureHandle> m_BindlessTextures{};
 #endif
-
-        ResourcePoolTyped<PBRMaterial> m_Materials{};
 
         Registry<IPass> m_Passes{};
 

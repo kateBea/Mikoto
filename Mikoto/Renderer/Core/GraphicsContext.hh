@@ -99,7 +99,11 @@ namespace Mikoto {
         // Or maybe by name?
         auto BindBuffer(BufferHandle texture) -> void;
         auto BindTexture(TextureHandle texture) -> void;
-        auto BindSampler(SamplerHandle sampler) -> void;
+
+        // A sampler tells how we sample from a texture when we bind a sampler we
+        // need to speficy the texture we will be sampling from with this sampler
+        auto BindSampler(SamplerHandle sampler, std::string_view textureName) -> void;
+        auto BindSampler(SamplerHandle sampler, TextureHandle texture) -> void;
 
 
     private:

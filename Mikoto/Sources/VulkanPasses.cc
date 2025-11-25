@@ -380,42 +380,4 @@ namespace Mikoto::VulkanPasses {
         const UInt32 groupCount{ (m_Limit + localSize - 1) / localSize };
         vkCmdDispatch(cmd, groupCount, 1, 1);
     }
-
-    auto TextPass::Init( GpuDevice* device ) -> void {
-
-    }
-
-    auto TextPass::Shutdown() -> void {
-    }
-
-    auto TextPass::Begin( CommandListHandle cmd ) -> void {
-    }
-
-    auto TextPass::End() -> void {
-    }
-
-    auto TextPass::Render( Scene* scene ) -> void {
-    }
-
-    auto TextPass::OnResize( UInt32 width, UInt32 height ) -> void {
-    }
-
-    auto ShadowPass::Init( GpuDevice* device ) -> void {
-    }
-
-    auto ShadowPass::Shutdown() -> void {
-    }
-
-    auto ShadowPass::Begin( CommandListHandle cmd ) -> void {
-    }
-
-    auto ShadowPass::End() -> void {
-    }
-
-    auto ShadowPass::Render( Scene* scene ) -> void {
-    }
-
-    auto ShadowPass::OnResize( UInt32 width, UInt32 height ) -> void {
-    }
-
 }// namespace Mikoto::VulkanPasses

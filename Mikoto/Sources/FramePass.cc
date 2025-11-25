@@ -11,8 +11,26 @@
 
 namespace  Mikoto {
 
-    auto FinalCompositionPass::Setup( GpuDevice *device ) -> void {
-        m_Device = device;
+    auto FramePass::RegisterInput( std::string_view name ) -> void {
+        m_Inputs.emplace_back( name );
+    }
+
+    auto FramePass::RegisterOutput( std::string_view name ) -> void {
+        m_Outputs.emplace_back( name );
+    }
+
+    auto FramePass::RegisterResource( std::string_view name ) -> void {
+        m_Resources.emplace_back( name );
+    }
+
+    auto FinalCompositionPass::Setup( GraphicsContext* context ) -> void {
+        // Create resources it needs
+        PipelineDescription pipelineDesc{};
+
+        pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/PBR_Instanced_Vert.sprv" );
+        pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/PBR_Instanced_Frag.sprv" );
+
+        context->CreateNamedPipeline( "FinalCompositionPass_Pipeline", pipelineDesc );
 
         // Color attachment
         TextureDescription colorDesc{};
@@ -25,8 +43,7 @@ namespace  Mikoto {
             .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
-        m_ColorTarget = m_Device->CreateTexture( colorDesc );
-        m_ColorTarget->SetDebugName( "FinalCompositionPass Color Target" );
+        context->CreateNamedRenderTarget( "FinalCompositionPass_ColorTarget", colorDesc, RenderTargetType::COLOR );
 
         // Depth attachment
         TextureDescription depthDesc{};
@@ -39,81 +56,71 @@ namespace  Mikoto {
             .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
-        m_DepthTarget = m_Device->CreateTexture( depthDesc );
-        m_DepthTarget->SetDebugName( "FinalCompositionPass Depth Target" );
+        context->CreateNamedRenderTarget( "FinalCompositionPass_DepthTarget", depthDesc, RenderTargetType::DEPTH );
 
-        // Graphics pipeline
-        ShaderModuleHandle vertShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/PBR_Instanced_Vert.sprv", ShaderStage::VERTEX_STAGE ) };
-        ShaderModuleHandle fragShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/PBR_Instanced_Frag.sprv", ShaderStage::FRAGMENT_STAGE ) };
-
-        GraphicsPipelineDescription pipelineDesc{};
-        pipelineDesc.ShaderStages = { vertShader, fragShader };
-        pipelineDesc.DepthTest = true;
-        pipelineDesc.DepthWrite = true;
-        pipelineDesc.AlphaBlending = true;
-        pipelineDesc.DepthTexture = m_DepthTarget;
-        pipelineDesc.ColorAttachments = { m_ColorTarget };
-
-        m_Pipeline = m_Device->CreatePipeline( pipelineDesc );
-    }
-
-    auto FinalCompositionPass::RegisterInput( ResourceHandle resource ) -> void {
-        m_Inputs.emplace_back( resource );
-
+        // Declare its inputs and outputs
+        RegisterInput( "ShadowPass_ColorTarget" );
+        RegisterInput( "ShadowPass_LightsBuffer" );
+        RegisterOutput( "FinalCompositionPass_ColorTarget" );
+        RegisterOutput( "FinalCompositionPass_DepthTarget" );
     }
 
     auto FinalCompositionPass::SetScene( Scene* scene ) -> void {
         m_Scene = scene;
     }
 
-    auto FinalCompositionPass::Execute(GraphicsContext& context) -> void {
+    auto FinalCompositionPass::Execute(PassCommandList& commandList) -> void {
+
+        commandList.BeginRender();
 
         // Set render targets
-        context.SetRenderTarget(m_ColorTarget, m_DepthTarget);
-        context.SetViewport(0, 0, 1920, 1080);
-        context.ClearColor(m_ColorTarget, m_ClearColor);
-        context.ClearDepth(m_DepthTarget, 1.0f);
+        commandList.SetViewport(0, 0, 1920, 1080);
+        commandList.SetScissor(0, 0, 1920, 1080);
 
-        context.BeginRender();
+        commandList.BindPipeline( "FinalCompositionPass_Pipeline" );
 
-        // Bind PBR pipeline
-        context.BindPipeline(m_Pipeline);
-
-        // Build batches per mesh
+        // Meshes
         auto& registry{ m_Scene->GetRegistry() };
         auto renderables{ registry.view<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
 
         for ( auto& entity: renderables ) {
             auto& tag{ registry.get<TagComponent>( entity ) };
             auto& transform{ registry.get<TransformComponent>( entity ) };
-            auto& meshComp { registry.get<MeshComponent>( entity ) };
+            auto& meshComponent { registry.get<MeshComponent>( entity ) };
             auto& materialComp { registry.get<MaterialComponent>( entity ) };
 
-            if (tag.IsActive() && meshComp.HasMesh() && materialComp.HasMaterial()) {
-                context.Draw( meshComp.GetMesh(), materialComp.GetMaterial(), transform.GetTransform() );
+            if (tag.IsActive() && meshComponent.HasMesh()) {
+                MeshNode* mesh{ meshComponent.GetMesh() };
+
+                commandList.BindVertexBuffer(mesh->GetVertexBuffer());
+                commandList.BindIndexBuffer(mesh->GetIndexBuffer());
+
+                commandList.DrawIndexed();
             }
+
         }
 
+        // Lights
         auto lights{ registry.view<TagComponent, TransformComponent, LightComponent>() };
-
         for ( auto& entity: lights ) {
             auto& tag{ registry.get<TagComponent>( entity ) };
             auto& transform{ registry.get<TransformComponent>( entity ) };
             auto& lightComp { registry.get<LightComponent>( entity ) };
 
-            if (tag.IsActive()) {
-                if (lightComp.IsTypeActive( LightType::POINT_LIGHT_TYPE )) {
-                    context.RegisterLight( std::addressof( lightComp.Get<PointLight>() ) );
-                }
-            }
         }
 
-        context.EndRender();
+        commandList.EndRender();
 
     }
 
-    auto ShadowPass::Setup( GpuDevice *device ) -> void {
-        m_Device = device;
+    auto ShadowPass::Setup( GraphicsContext* context ) -> void {
+        // Create resources it needs
+        PipelineDescription pipelineDesc{};
+
+        pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/Shadowmap_Vert.sprv" );
+        pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/Shadowmap_Frag.sprv" );
+
+        context->CreateNamedPipeline( "ShadowPass_Pipeline", pipelineDesc );
 
         // Color attachment
         TextureDescription colorDesc{};
@@ -126,8 +133,7 @@ namespace  Mikoto {
             .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
-        m_ColorTarget = m_Device->CreateTexture( colorDesc );
-        m_ColorTarget->SetDebugName( "FinalCompositionPass Color Target" );
+        context->CreateNamedRenderTarget( "ShadowPass_ColorTarget", colorDesc, RenderTargetType::COLOR );
 
         // Depth attachment
         TextureDescription depthDesc{};
@@ -140,136 +146,140 @@ namespace  Mikoto {
             .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
-        m_DepthTarget = m_Device->CreateTexture( depthDesc );
-        m_DepthTarget->SetDebugName( "FinalCompositionPass Depth Target" );
+        context->CreateNamedRenderTarget( "ShadowPass_DepthTarget", depthDesc, RenderTargetType::DEPTH );
 
-        // Graphics pipeline
-        ShaderModuleHandle vertShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/Shadows.sprv", ShaderStage::VERTEX_STAGE ) };
-        ShaderModuleHandle fragShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/Shadows.sprv", ShaderStage::FRAGMENT_STAGE ) };
+        BufferDescription lightsBuffer{};
+        lightsBuffer.WithData( nullptr )
+            .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
+            .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+            .WithSizeBytes( 0 ); // TODO
+        context->CreateNamedBuffer( "ShadowPass_LightsBuffer", lightsBuffer );
 
-        GraphicsPipelineDescription pipelineDesc{};
-        pipelineDesc.ShaderStages = { vertShader, fragShader };
-        pipelineDesc.DepthTest = true;
-        pipelineDesc.DepthWrite = true;
-        pipelineDesc.AlphaBlending = true;
-        pipelineDesc.DepthTexture = m_DepthTarget;
-        pipelineDesc.ColorAttachments = { m_ColorTarget };
+        // Declare its inputs and outputs
+        RegisterOutput( "ShadowPass_ColorTarget" );
+        RegisterOutput( "ShadowPass_DepthTarget" );
 
-        m_Pipeline = m_Device->CreatePipeline( pipelineDesc );
+        RegisterResource( "ShadowPass_ColorTarget" );
+        RegisterResource( "ShadowPass_LightsBuffer" );
     }
 
-    auto ShadowPass::Execute( GraphicsContext &context ) -> void {
+    auto ShadowPass::Execute( PassCommandList& commandList ) -> void {
+        commandList.BeginRender();
+
         // Set render targets
-        context.SetRenderTarget(m_ColorTarget, m_DepthTarget);
-        context.SetViewport(0, 0, 1920, 1080);
-        context.ClearColor(m_ColorTarget, m_ClearColor);
-        context.ClearDepth(m_DepthTarget, 1.0f);
+        commandList.SetViewport(0, 0, 1920, 1080);
+        commandList.SetScissor(0, 0, 1920, 1080);
 
-        context.BeginRender();
+        commandList.BindPipeline( "ShadowPass_Pipeline" );
 
-        // Bind Shadow pipeline
-        context.BindPipeline(m_Pipeline);
-
-        // Build batches per mesh
+        // Meshes
         auto& registry{ m_Scene->GetRegistry() };
         auto renderables{ registry.view<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
 
         for ( auto& entity: renderables ) {
             auto& tag{ registry.get<TagComponent>( entity ) };
             auto& transform{ registry.get<TransformComponent>( entity ) };
-            auto& meshComp { registry.get<MeshComponent>( entity ) };
+            auto& meshComponent { registry.get<MeshComponent>( entity ) };
             auto& materialComp { registry.get<MaterialComponent>( entity ) };
 
-            if (tag.IsActive() && meshComp.HasMesh() && materialComp.HasMaterial()) {
-                context.Draw( meshComp.GetMesh(), materialComp.GetMaterial(), transform.GetTransform() );
+            if (tag.IsActive() && meshComponent.HasMesh()) {
+                MeshNode* mesh{ meshComponent.GetMesh() };
+
+                commandList.BindVertexBuffer(mesh->GetVertexBuffer());
+                commandList.BindIndexBuffer(mesh->GetIndexBuffer());
+
+                commandList.DrawIndexed();
             }
         }
 
+        // Lights
         auto lights{ registry.view<TagComponent, TransformComponent, LightComponent>() };
-
         for ( auto& entity: lights ) {
             auto& tag{ registry.get<TagComponent>( entity ) };
             auto& transform{ registry.get<TransformComponent>( entity ) };
             auto& lightComp { registry.get<LightComponent>( entity ) };
 
-            if (tag.IsActive()) {
-                if (lightComp.IsTypeActive( LightType::POINT_LIGHT_TYPE )) {
-                    context.RegisterLight( std::addressof( lightComp.Get<PointLight>() ) );
-                }
-            }
         }
 
-        context.EndRender();
-    }
-
-    auto ShadowPass::RegisterInput( ResourceHandle resource ) -> void {
-        m_Inputs.push_back( resource );
+        commandList.EndRender();
     }
 
     auto ShadowPass::SetScene( Scene* scene ) -> void {
         m_Scene = scene;
     }
 
-    auto TextPass::Setup( GpuDevice *device ) -> void {
-        m_Device = device;
+    auto TextPass::Setup( GraphicsContext* context ) -> void {
+        // Create resources it needs
+        PipelineDescription pipelineDesc{};
 
-        // This pass takes its output depth
-        // and color image from the final composition
+        pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/MSDFText_Vert.sprv" );
+        pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/MSDFText_Frag.sprv" );
 
-        // Graphics pipeline
-        ShaderModuleHandle vertShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/Text.sprv", ShaderStage::VERTEX_STAGE ) };
-        ShaderModuleHandle fragShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/Text.sprv", ShaderStage::FRAGMENT_STAGE ) };
+        context->CreateNamedPipeline( "TextPass_Pipeline", pipelineDesc );
 
-        GraphicsPipelineDescription pipelineDesc{};
-        pipelineDesc.ShaderStages = { vertShader, fragShader };
-        pipelineDesc.DepthTest = true;
-        pipelineDesc.DepthWrite = true;
-        pipelineDesc.AlphaBlending = true;
-        pipelineDesc.DepthTexture = m_DepthTarget;
-        pipelineDesc.ColorAttachments = { m_ColorTarget };
-
-        m_Pipeline = m_Device->CreatePipeline( pipelineDesc );
+        RegisterInput( "FinalCompositionPass_ColorTarget" );
+        RegisterOutput( "FinalCompositionPass_ColorTarget" );
     }
 
-    auto TextPass::Execute( GraphicsContext &context ) -> void {
+    auto TextPass::Execute( PassCommandList& commandList ) -> void {
+        commandList.BeginRender();
 
+        // Set render targets
+        commandList.SetViewport(0, 0, 1920, 1080);
+        commandList.SetScissor(0, 0, 1920, 1080);
+
+        commandList.BindPipeline( "ShadowPass_Pipeline" );
+
+        // Meshes
+        auto& registry{ m_Scene->GetRegistry() };
+        auto renderables{ registry.view<TagComponent, TransformComponent, MaterialComponent, TextComponent>() };
+
+        for ( auto& entity: renderables ) {
+            auto& tag{ registry.get<TagComponent>( entity ) };
+            auto& transform{ registry.get<TransformComponent>( entity ) };
+            auto& textComponent { registry.get<TextComponent>( entity ) };
+            auto& materialComp { registry.get<MaterialComponent>( entity ) };
+        }
+
+        commandList.EndRender();
     }
 
-    auto TextPass::RegisterInput( ResourceHandle resource ) -> void {
-        m_Inputs.emplace_back( resource );
+    auto TextPass::SetScene( Scene* scene ) -> void {
+        m_Scene = scene;
     }
 
-    auto SimpleComputePass::Setup( GpuDevice *device ) -> void {
-        m_Device = device;
+    auto SimpleComputePass::Setup( GraphicsContext* context ) -> void {
+        // Create resources it needs
+        PipelineDescription pipelineDesc{};
 
-        // Create small storage buffer
-        const Size totalSize{ sizeof( UInt32 ) * m_Limit };
-        BufferDescription desc{};
-        desc.WithSizeBytes( totalSize )
-                .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
-                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
+        pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/BasicCompute_Comp.sprv" );
 
-        m_StorageBuffer = m_Device->CreateBuffer( desc );
-        m_StorageBuffer->SetDebugName( "ComputeBasic SSBO" );
+        context->CreateNamedPipeline( "SimpleComputePass_Pipeline", pipelineDesc );
 
-        // Pipeline setup
-        ShaderModuleHandle compModule{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/BasicCompute_Comp.sprv", ShaderStage::COMPUTE_STAGE ) };
-        ComputePipelineDescription description{
-            .Stage{ compModule }
-        };
+        BufferDescription lightsBuffer{};
+        lightsBuffer.WithData( nullptr )
+            .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
+            .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+            .WithSizeBytes( 30 * sizeof(UInt32) ); // TODO
+        context->CreateNamedBuffer( "SimpleComputePass_Result", lightsBuffer );
 
-        m_Pipeline = m_Device->CreatePipeline( description );
+        RegisterResource( "SimpleComputePass_Result" );
+        RegisterOutput( "SimpleComputePass_Result" );
     }
 
-    auto SimpleComputePass::Execute( GraphicsContext &context ) -> void {
-        context.BindPipeline( m_Pipeline );
+    auto SimpleComputePass::Execute( PassCommandList& commandList ) -> void {
+        commandList.BeginCompute();
 
-        context.BindBuffer( m_StorageBuffer );
+        // Prime numbers up until this value
+        constexpr  UInt32 limitNumbers{ 30 };
 
-        context.Dispatch();
-    }
+        // matches shader's local_size_x
+        constexpr UInt32 localSize{ 64 };
+        constexpr UInt32 groupCount{ (limitNumbers + localSize - 1) / localSize };
 
-    auto SimpleComputePass::RegisterInput( ResourceHandle resource ) -> void {
-        m_Inputs.emplace_back( resource );
+        commandList.Dispatch( groupCount, 1, 1 );
+
+        commandList.EndCompute();
+
     }
 }// namespace Mikoto

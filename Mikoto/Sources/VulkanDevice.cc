@@ -913,6 +913,15 @@ namespace Mikoto {
         // Here I can encapsulate all the logic about creating staging buffers, etc.
     }
 
+    auto VulkanCmdList::SetViewport( Int32 x, Int32 y, Int32 width, Int32 height ) -> void {
+    }
+
+    auto VulkanCmdList::SetScissor( Int32 x, Int32 y, Int32 width, Int32 height ) -> void {
+    }
+
+    auto VulkanCmdList::BindPipeline( PipelineHandle pipeline ) -> void {
+    }
+
     auto VulkanCmdList::SetDebugName( const std::string_view name ) -> void {
         m_DebugName = name;
         VulkanHelpers::SetObjectDebugName( VK_DEVICE(m_Device), VK_OBJECT_TYPE_COMMAND_BUFFER, reinterpret_cast<UInt64>(m_CmdBuffer), m_DebugName.data() );

@@ -164,8 +164,10 @@ namespace Mikoto {
 
         RendererBackend* m_RendererBackend{ nullptr };
 
+        Registry<FramePass> m_Registry{};
+
         FrameGraph m_FrameGraph{};
-        GraphicsContext* m_RenderContex{ nullptr };
+        Unique<GraphicsContext> m_GraphicsContext{ nullptr };
 
         UInt32 m_ViewportWidth{ 0u };
         UInt32 m_ViewportHeight{ 0u };

@@ -7,7 +7,7 @@
 namespace Mikoto {
 
     auto FrameGraph::RegisterPass( FramePass *pass ) -> FramePass * {
-
+        return nullptr;
     }
 
     auto FrameGraph::Compile( GraphicsContext &backend ) -> void {

@@ -5,12 +5,15 @@
 #ifndef MIKOTO_ASSETS_MANAGER_PANEL_HH
 #define MIKOTO_ASSETS_MANAGER_PANEL_HH
 
+#include <imgui.h>
+
 #include <Panels/Panel.hh>
 
 namespace Mikoto {
+    struct EditorState;
 
     struct AssetsPanelDescription {
-
+        EditorState* State{};
     };
 
     /**
@@ -25,6 +28,19 @@ namespace Mikoto {
         explicit AssetsPanel( const AssetsPanelDescription& description );
 
         auto OnUpdate( float timeStep ) -> void override;
+
+    private:
+        auto CreateImguiTextureID() -> void;
+        auto IsDisplayTextureValid() const -> bool;
+        auto UpdateViewport() -> void;
+
+    private:
+        float m_ViewPortWidth{};
+        float m_ViewPortHeight{};
+
+        ImTextureID m_DisplayTargetImGuiID{};
+
+        EditorState* m_EditorState{};
     };
 }
 

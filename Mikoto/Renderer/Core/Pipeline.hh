@@ -245,7 +245,7 @@ namespace Mikoto {
          * @return A const reference to the BufferLayout used for vertex inputs.
          * @note The returned reference is non-owning; do not modify unless intended.
          */
-        MKT_NODISCARD auto GetDefaultVertexLayout() const -> const BufferLayout& { return m_DefaultVertexLayout; }
+        MKT_NODISCARD auto GetDefaultVertexLayout() const -> const BufferLayout& { return m_VertexBufferLayout; }
 
     protected:
         bool m_BackfaceCulling{ true };
@@ -258,7 +258,7 @@ namespace Mikoto {
 
         Topology m_Topology{ Topology::TRIANGLE_LIST };
         DepthCompareOp m_DepthCompareOp{ DepthCompareOp::ALWAYS };
-        BufferLayout m_DefaultVertexLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT };
+        BufferLayout m_VertexBufferLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT };
     };
 }
 #endif //IPIPELINE_HH

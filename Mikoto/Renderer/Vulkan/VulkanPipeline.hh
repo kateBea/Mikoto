@@ -28,6 +28,8 @@ namespace Mikoto {
         VkRenderPass RenderPass{};
 #endif
 
+        BufferLayout VertexBufferLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT };
+
         TextureHandle Depth{};
         std::vector<TextureHandle> ColorAttachments{};
         std::vector<ShaderModuleHandle> ShaderModules{};

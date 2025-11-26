@@ -64,7 +64,7 @@ namespace Mikoto {
 
         // Create Resources
         virtual auto CreateNamedBuffer(std::string_view name, BufferDescription description) -> void = 0;
-        virtual auto CreateNamedPipeline(std::string_view name, PipelineDescription description) -> void = 0;
+        virtual auto CreateNamedPipeline(std::string_view name, PipelineDescription description, PipelineType type) -> void = 0;
         virtual auto CreateNamedRenderTarget(std::string_view name, TextureDescription description, RenderTargetType) -> void = 0;
 
 

@@ -39,8 +39,7 @@ namespace Mikoto {
     }
     auto VulkanGraphicsContext::CreateNamedBuffer( std::string_view name, BufferDescription description ) -> void {
     }
-    auto VulkanGraphicsContext::CreateNamedPipeline( std::string_view name, PipelineDescription description ) -> void {
-    }
+
     auto VulkanGraphicsContext::CreateNamedRenderTarget( std::string_view name, TextureDescription description, RenderTargetType ) -> void {
     }
     auto VulkanGraphicsContext::BindBuffer( BufferHandle texture ) -> void {
@@ -50,5 +49,7 @@ namespace Mikoto {
     auto VulkanGraphicsContext::BindSampler( SamplerHandle sampler ) -> void {
     }
     auto VulkanGraphicsContext::Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void {
+    }
+    auto VulkanGraphicsContext::CreateNamedPipeline( std::string_view name, PipelineDescription description, PipelineType type ) -> void {
     }
 }// namespace Mikoto

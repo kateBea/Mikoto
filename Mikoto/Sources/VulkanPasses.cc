@@ -301,12 +301,131 @@ namespace Mikoto::VulkanPasses {
         );
     }
 
+    auto TextureRenderPass::Init( GpuDevice* device ) -> void {
+        m_Device = device;
+
+        // Color attachment
+        TextureDescription colorDesc{};
+        colorDesc.WithWidth( 1920 )
+            .WithHeight( 1080 )
+            .WithChannelCount( 4 )
+            .WithData( nullptr )
+            .WithType( TextureType::TEXTURE_2D )
+            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
+            .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
+            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+
+        m_ColorTarget.Image = m_Device->CreateTexture( colorDesc );
+        m_ColorTarget.Image->SetDebugName( "ShadingPass Color Target" );
+        m_ColorTarget.Type = AttachmentType::COLOR;
+
+        // Depth attachment
+        TextureDescription depthDesc{};
+        depthDesc.WithWidth( 1920 )
+            .WithHeight( 1080 )
+            .WithChannelCount( 1 )
+            .WithData( nullptr )
+            .WithType( TextureType::TEXTURE_2D )
+            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
+            .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
+            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+
+        m_DepthTarget.Image = m_Device->CreateTexture( depthDesc );
+        m_DepthTarget.Image->SetDebugName( "ShadingPass Depth Target" );
+        m_DepthTarget.Type = AttachmentType::DEPTH;
+
+        // Graphics pipeline
+        ShaderModuleHandle vertShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/FullscreenTriangle_Vert.sprv", ShaderStage::VERTEX_STAGE ) };
+        ShaderModuleHandle fragShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/FullscreenTriangle_Frag.sprv", ShaderStage::FRAGMENT_STAGE ) };
+
+        // we providing none as the shader expects none
+        BufferLayout layout{};
+
+        GraphicsPipelineDescription pipelineDesc{};
+        pipelineDesc.ShaderStages = { vertShader, fragShader };
+        pipelineDesc.DepthTest = true;
+        pipelineDesc.DepthWrite = true;
+        pipelineDesc.AlphaBlending = true;
+        pipelineDesc.DepthTexture = m_DepthTarget.Image;
+        pipelineDesc.ColorAttachments = { m_ColorTarget.Image };
+        pipelineDesc.DefaultVertexLayout = layout;
+
+        m_Pipeline = m_Device->CreatePipeline( pipelineDesc );
+    }
+
+    auto TextureRenderPass::Shutdown() -> void {
+    }
+
+    auto TextureRenderPass::Begin( CommandListHandle cmd ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        m_CmdList = cmd;
+        VkCommandBuffer vkCmd { cmd->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
+
+        VkRenderingAttachmentInfo colorAttachment{};
+        colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        colorAttachment.imageView = m_ColorTarget.Image->GetNativeHandle( ObjectType::Vk_ImageView );
+        colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachment.clearValue.color = { m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a };
+
+        std::array<VkRenderingAttachmentInfo, 1> colorAttachments{ colorAttachment };
+
+        VkRenderingAttachmentInfo depthAttachment{};
+        depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        depthAttachment.imageView = m_DepthTarget.Image->GetNativeHandle( ObjectType::Vk_ImageView );
+        depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        depthAttachment.clearValue.depthStencil = { 1.0f, 0 };
+
+        VkRenderingInfo renderingInfo{};
+        renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        renderingInfo.renderArea = { { 0, 0 }, { 1920, 1080 } };
+        renderingInfo.layerCount = 1;
+        renderingInfo.colorAttachmentCount = static_cast<UInt32>( colorAttachments.size() );
+        renderingInfo.pColorAttachments = colorAttachments.data();
+        renderingInfo.pDepthAttachment = std::addressof( depthAttachment );
+
+        vkCmdBeginRendering( vkCmd, &renderingInfo );
+
+        vkCmdBindPipeline( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetNativeHandle( ObjectType::Vk_Pipeline ) );
+    }
+
+    auto TextureRenderPass::End() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        const auto vkCmd{ m_CmdList->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
+        vkCmdEndRendering( vkCmd );
+
+        // Transition color target to shader read
+        const auto tex{ dynamic_cast<VulkanTexture*>( m_ColorTarget.Image.GetRaw() ) };
+        tex->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, vkCmd );
+    }
+
+    auto TextureRenderPass::Render( Scene* scene ) -> void {
+        vkCmdDraw(m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer  ),
+          4,   // vertexCount (matches gl_VertexIndex range)
+          1,   // instanceCount
+          0,   // firstVertex
+          0);  // firstInstance
+    }
+
+    auto TextureRenderPass::OnResize( UInt32 width, UInt32 height ) -> void {
+
+    }
+
+    auto TextureRenderPass::GetFinalComposition() const -> TextureHandle {
+        return m_ColorTarget.Image;
+    }
+
     auto ShadingPass::OnResize( UInt32 width, UInt32 height ) -> void {
         // TODO: resize color/depth targets
     }
 
-    auto ShadingPass::BindDefaultSets( VkDescriptorSet& set, const UInt32 setIndex ) -> void {
-        const VkCommandBuffer vkCmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
+    auto ShadingPass::BindDefaultSets(CommandListHandle cmd,  VkDescriptorSet& set, const UInt32 setIndex ) -> void {
+        const VkCommandBuffer vkCmd{ cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
         const VkPipelineLayout pipeline{ m_Pipeline->GetNativeHandle(ObjectType::Vk_PipelineLayout) };
 
         vkCmdBindDescriptorSets(vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline, setIndex, 1, std::addressof( set ), 0, nullptr);

@@ -1,8 +1,5 @@
 #version 450
 
-// This shader generates a triangle centered without a vertex buffer.
-// It uses gl_VertexIndex (0, 1, 2) to produce 3 vertices.
-
 layout(location = 0) out vec2 v_TexCoord;
 
 void main()

@@ -114,6 +114,8 @@ namespace Mikoto {
          */
         MKT_NODISCARD auto GetFinalComposition() const -> TextureHandle;
 
+        MKT_NODISCARD auto GetMaterialPreview() const -> TextureHandle;
+
         /**
          * @brief Sets the render resolution for the renderer.
          * This function updates the internal render resolution setting.

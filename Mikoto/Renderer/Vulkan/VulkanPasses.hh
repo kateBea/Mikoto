@@ -27,7 +27,7 @@ namespace Mikoto::VulkanPasses {
         auto Render(Scene* scene) -> void override;
         auto OnResize(UInt32 width, UInt32 height) -> void override;
 
-        auto BindDefaultSets(VkDescriptorSet& set, UInt32 setIndex ) -> void;
+        auto BindDefaultSets(CommandListHandle cmd, VkDescriptorSet& set, UInt32 setIndex ) -> void;
 
         auto GetPipeline() const -> PipelineHandle { return m_Pipeline; }
 
@@ -80,6 +80,37 @@ namespace Mikoto::VulkanPasses {
 
         BufferHandle m_InstanceSSBO{};
         VkDescriptorSet m_MeshDataSet{};
+    };
+
+    class TextureRenderPass final : public IRenderPass {
+    public:
+        auto Init(GpuDevice* device) -> void override;
+        auto Shutdown() -> void override;
+
+        auto Begin(CommandListHandle cmd) -> void override;
+        auto End() -> void override;
+
+        auto Render(Scene* scene) -> void override;
+        auto OnResize(UInt32 width, UInt32 height) -> void override;
+
+        auto GetFinalComposition() const -> TextureHandle;
+
+    private:
+        GpuDevice* m_Device{};
+
+        VkViewport m_Viewport{};
+        VkRect2D m_Scissor{};
+
+        PipelineHandle m_Pipeline{};
+        AttachmentInfo m_ColorTarget{};
+        AttachmentInfo m_DepthTarget{};
+
+        DescriptorSetLayoutHandle m_EntitiesSetLayout{  };
+
+        bool m_WantStoreOP{};
+        Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
+
+        CommandListHandle m_CmdList{};
     };
 
     // Dummy compute pipeline we will use for testing only for now

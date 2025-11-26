@@ -60,6 +60,7 @@ namespace Mikoto {
         auto SetClearColor( float r, float g, float b, float a ) -> void override;
 
         auto GetFinalComposition() const -> TextureHandle override;
+        auto GetMaterialPreview() const -> TextureHandle override;
 
         auto RegisterTextureForRender( TextureHandle texture ) -> void;
 
@@ -136,9 +137,8 @@ namespace Mikoto {
         VkDescriptorSet m_FrameSet{ VK_NULL_HANDLE };
         VkDescriptorSet m_TexturesSet{ VK_NULL_HANDLE };
 
-        DescriptorSetLayoutHandle m_TextureLayout{};
-        DescriptorSetLayoutHandle m_FrameLayout{};
-
+        VkDescriptorSet m_FrameSetTexture{ VK_NULL_HANDLE };
+        VkDescriptorSet m_TexturesSetTexture{ VK_NULL_HANDLE };
 
 #if defined( MKT_USE_VULKAN_BINDLESS )
         bool m_UpdateTextureDescriptor{ false };

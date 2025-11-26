@@ -70,7 +70,7 @@ namespace Mikoto {
     }
 
     VulkanTexture::VulkanTexture( const TextureDescription& data )
-        : Texture2D{ data.Type, data.Width, data.Height, data.ChannelCount, data.Data, data.UsageType, data.Format, data.Usage } {
+        : Texture2D{ data.Width, data.Height, data.ChannelCount, data.Data, data.UsageType, data.Format, data.Usage } {
         m_ImageSize = m_Width * m_Height * m_Channels;
 
         if (data.TextureFile) {
@@ -81,7 +81,7 @@ namespace Mikoto {
     }
 
     VulkanTexture::VulkanTexture( const VkImageViewCreateInfo& viewCreateInfo, VkExtent2D extent )
-        : Texture2D{ TextureType::TEXTURE_2D, static_cast<Int32>( extent.width ), static_cast<Int32>( extent.height ), 0, nullptr,
+        : Texture2D{ static_cast<Int32>( extent.width ), static_cast<Int32>( extent.height ), 0, nullptr,
                      ResourceUsageType::RESOURCE_USAGE_STATIC,
                      VulkanHelpers::ToTextureFormat( viewCreateInfo.format ) },
           m_IsImageExternal{ true },
@@ -106,6 +106,89 @@ namespace Mikoto {
             auto allocator{ dynamic_cast<VulkanMemoryAllocator*>( dynamic_cast<VulkanDevice*>( m_Device )->GetAllocator() ) };
             allocator->FreeImage( this );
         }
+
+        m_IsAllocated = false;
+    }
+
+    VulkanTextureCube::VulkanTextureCube( const TextureDescription& data )
+        :  TextureCube{ data.Width, data.Height, data.ChannelCount, data.Data, data.UsageType, data.Usage }
+    {}
+
+    auto VulkanTextureCube::GetNativeHandle( ObjectType type ) -> Object {
+        return TextureCube::GetNativeHandle( type );
+    }
+    auto VulkanTextureCube::GetImage() -> VkImage* {
+        return std::addressof( m_Image );
+    }
+
+    auto VulkanTextureCube::GetImage() const -> const VkImage* {
+        return std::addressof( m_Image );
+    }
+
+    auto VulkanTextureCube::GetView() -> VkImageView* {
+        return std::addressof( m_ImageView );
+    }
+
+    auto VulkanTextureCube::GetView() const -> const VkImageView* {
+        return std::addressof( m_ImageView );
+    }
+
+    auto VulkanTextureCube::GetCurrentLayout() const -> VkImageLayout {
+        return m_CurrentLayout;
+    }
+
+    auto VulkanTextureCube::GetCreateInfo() const -> const VkImageCreateInfo& {
+        return m_ImageCreateInfo;
+    }
+
+    auto VulkanTextureCube::GetViewCreateInfo() const -> const VkImageViewCreateInfo& {
+        return m_ImageViewCreateInfo;
+    }
+
+    auto VulkanTextureCube::SetTextureIndex( Int32 index ) -> void {
+        m_TextureArrayIndex = index;
+    }
+
+    auto VulkanTextureCube::GetTextureIndex() const -> Int32 {
+        return m_TextureArrayIndex;
+    }
+
+    auto VulkanTextureCube::HasBindlessIndex() const -> bool {
+        return m_TextureArrayIndex != -1;
+    }
+
+    auto VulkanTextureCube::SubmitLayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd ) -> void {
+    }
+
+    auto VulkanTextureCube::GetVMAllocation() -> VmaAllocation* {
+        return std::addressof( m_Allocation );
+    }
+
+    auto VulkanTextureCube::GetVMAllocationInfo() -> VmaAllocationInfo* {
+        return std::addressof( m_AllocationInfo );
+    }
+
+    auto VulkanTextureCube::GetImageCreateInfo() -> const VkImageCreateInfo* {
+        return std::addressof( m_ImageCreateInfo );
+    }
+
+    auto VulkanTextureCube::GetAllocationCreateInfo() -> const VmaAllocationCreateInfo* {
+        return std::addressof( m_AllocationCreateInfo );
+    }
+
+    VulkanTextureCube::~VulkanTextureCube() {
+        if (m_IsAllocated) {
+            Release();
+        }
+    }
+
+    auto VulkanTextureCube::Initialize() -> void {
+
+
+        m_IsAllocated = true;
+    }
+
+    auto VulkanTextureCube::Release() -> void {
 
         m_IsAllocated = false;
     }

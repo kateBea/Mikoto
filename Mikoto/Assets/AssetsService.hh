@@ -29,36 +29,6 @@
 
 namespace Mikoto {
 
-    enum class AssetType {
-        FONT_ASSET,
-        MODEL_ASSET,
-        TEXTURE_ASSET,
-        AUDIO_ASSET,
-        AUDIO_INVALID,
-    };
-
-    class Asset {
-    public:
-
-        explicit Asset( AssetType type );
-
-        MKT_NODISCARD auto GetType() const -> AssetType;
-        MKT_NODISCARD auto GetUri() const -> const std::string&;
-
-
-
-    private:
-        AssetType m_Type{ AssetType::AUDIO_INVALID };
-    };
-
-    class AssetsSerializer : public ISerializer<Asset> {
-    public:
-        explicit AssetsSerializer();
-
-        auto Serialize( const Asset& obj, const Path& savePath ) -> void override;
-        auto Deserialize( const Path& loadPath ) -> Unique<Asset> override;
-    };
-
     /**
     * @struct AssetsServiceDescription
     * @brief Holds the configuration for creating an AssetsService.

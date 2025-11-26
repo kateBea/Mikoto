@@ -47,6 +47,7 @@ namespace Mikoto {
         virtual auto SetClearColor( float r, float g, float b, float a ) -> void = 0;
 
         MKT_NODISCARD virtual auto GetFinalComposition() const -> TextureHandle = 0;
+        MKT_NODISCARD virtual auto GetMaterialPreview() const -> TextureHandle = 0;
 
     protected:
         explicit RendererBackend( const RendererDescription& createInfo )

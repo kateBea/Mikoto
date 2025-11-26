@@ -27,9 +27,9 @@ namespace Mikoto {
          * @param usage Type of resource usage
          * @param textureUsage Usage of this texture
          */
-        TextureCube(const TextureType type, const Int32 width, const Int32 height, const Int32 channels, Byte* data,
+        TextureCube(const Int32 width, const Int32 height, const Int32 channels, Byte* data,
                    const ResourceUsageType usage, TextureUsage textureUsage)
-            : Texture{ type, TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM, width, height, channels, usage, textureUsage }, m_Data{ data }
+            : Texture{ TextureType::TEXTURE_CUBE, TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM, width, height, channels, usage, textureUsage }, m_Data{ data }
         {}
 
     protected:

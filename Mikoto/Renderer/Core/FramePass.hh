@@ -48,6 +48,10 @@ namespace Mikoto {
         std::vector<std::string> m_Inputs{};
         std::vector<std::string> m_Outputs{};
         std::vector<std::string> m_Resources{};
+
+        // std::vector<FrameResource> m_Inputs{};
+        // std::vector<FrameResource> m_Outputs{};
+        // std::vector<FrameResource> m_Resources{};
     };
 
     class FinalCompositionPass final : public FramePass {

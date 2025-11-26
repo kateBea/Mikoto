@@ -347,6 +347,12 @@ namespace Mikoto {
                 ImTextureID icon{};
                 std::string fileType{};
 
+                // TODO:
+                TextureHandle thumbnail{};
+                if (entry.path().string().ends_with( ".png" ) || entry.path().string().ends_with( ".jpg" ) ) {
+                    thumbnail = AssetsService::Get()->LoadAsset<Texture>( entry.path() );
+                }
+
                 if ( entry.is_directory() ) {
                     icon = m_ImGuiTextureHandles[TextureIconType::ICON_FOLDER];
                     fileType = "Folder";
@@ -357,7 +363,11 @@ namespace Mikoto {
                 }
 
                 ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0, 0, 0, 0 ) );
-                if ( ImGui::ImageButton( entry.path().string().c_str(), icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } ) ) {
+                if (thumbnail.IsEmpty()) {
+                    if ( ImGui::ImageButton( entry.path().string().c_str(), icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } ) ) {}
+                } else {
+                    ImTextureID imguiTextID{ ImGuiService::Get()->GetTextureID( thumbnail ) };
+                    if ( ImGui::ImageButton( entry.path().string().c_str(), imguiTextID, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } ) ) {}
                 }
 
                 if ( ImGui::IsItemHovered() ) {

@@ -27,8 +27,6 @@ namespace Mikoto {
         if (!m_PanelIsVisible)
             return;
 
-        auto& console = RuntimeConsole::Get();
-
         ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible), ImGuiWindowFlags_NoCollapse);
 
         // Filtering options
@@ -47,7 +45,7 @@ namespace Mikoto {
         ImGui::BeginChild("ConsoleScrollRegion", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), false,
                           ImGuiWindowFlags_HorizontalScrollbar);
 
-        const auto& logs = console.GetLogs();
+        const auto& logs{ RuntimeConsole::Get()->GetLogs() };
         for (const auto& line : logs) {
             if (line.find("[INFO]") != std::string::npos && !showInfo) continue;
             if (line.find("[WARN]") != std::string::npos && !showWarn) continue;
@@ -67,8 +65,9 @@ namespace Mikoto {
             ImGui::PopStyleColor();
         }
 
-        if (m_ScrollToBottom)
+        if (m_ScrollToBottom) {
             ImGui::SetScrollHereY(1.0f);
+        }
         m_ScrollToBottom = false;
 
         ImGui::EndChild();
@@ -77,11 +76,10 @@ namespace Mikoto {
         // Input text field
         static char inputBuffer[256] = "";
 
-        if (ImGui::InputText("##ConsoleInput", inputBuffer, sizeof(inputBuffer),
-                             ImGuiInputTextFlags_EnterReturnsTrue)) {
-            std::string input = inputBuffer;
+        if (ImGui::InputText("##ConsoleInput", inputBuffer, sizeof(inputBuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
+            std::string input{ inputBuffer };
             if (!input.empty()) {
-                console.ExecuteCommand(input);
+                RuntimeConsole::Get()->ExecuteCommand(input);
                 inputBuffer[0] = '\0';
                 m_ScrollToBottom = true;
             }

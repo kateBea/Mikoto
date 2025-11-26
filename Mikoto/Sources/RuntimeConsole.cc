@@ -1,11 +1,13 @@
 //
 // Created by kate on 10/28/25.
 //
+#include <sstream>
+
+#include <fmt/format.h>
 
 #include <Core/Profiler.hh>
 #include <Core/RuntimeConsole.hh>
 #include <Threading/TaskService.hh>
-#include <sstream>
 
 #include "Core/ExecuteProcess.hh"
 
@@ -27,9 +29,9 @@ namespace Mikoto {
                     Get()->AddLog( { ConsoleLogLevel::CONSOLE_INFO, msg } );
                 } );
 
-        RegisterCommand( "/run_a", "Executes an external system command asynchronously", []( const std::vector<std::string>& args ) {
+        RegisterCommand( "/", "Executes an external system command asynchronously", []( const std::vector<std::string>& args ) {
             if ( args.empty() ) {
-                Get()->AddLog( { ConsoleLogLevel::CONSOLE_WARNING, "Usage: /mkt_ex <command>" } );
+                Get()->AddLog( { ConsoleLogLevel::CONSOLE_WARNING, "Usage: /<command> [ARGS]" } );
                 return;
             }
 
@@ -46,26 +48,26 @@ namespace Mikoto {
             } );
         } );
 
-        RegisterCommand( "/run", "Executes an external system command", []( const std::vector<std::string>& args ) {
-            if ( args.empty() ) {
-                Get()->AddLog( { ConsoleLogLevel::CONSOLE_WARNING, "Usage: /mkt_ex <command>" } );
-                return;
-            }
-
-            std::string cmd;
-            for ( const auto& arg: args ) {
-                cmd += arg + " ";
-            }
-
-            Get()->AddLog( { ConsoleLogLevel::CONSOLE_DEBUG, "Running external command: " + cmd } );
-
-            const auto output = ExecuteProcess::Run( cmd );
-            if ( output.empty() ) {
-                Get()->AddLog( { ConsoleLogLevel::CONSOLE_INFO, "[no output]" } );
-            } else {
-                Get()->AddLog( { ConsoleLogLevel::CONSOLE_INFO, output } );
-            }
-        } );
+        // RegisterCommand( "//", "Executes an external system command", []( const std::vector<std::string>& args ) {
+        //     if ( args.empty() ) {
+        //         Get()->AddLog( { ConsoleLogLevel::CONSOLE_WARNING, "Usage: //<command> [ARGS]" } );
+        //         return;
+        //     }
+        //
+        //     std::string cmd{};
+        //     for ( const auto& arg: args ) {
+        //         cmd += arg + " ";
+        //     }
+        //
+        //     Get()->AddLog( { ConsoleLogLevel::CONSOLE_DEBUG, "Running external command: " + cmd } );
+        //
+        //     const auto output{ ExecuteProcess::Run( cmd ) };
+        //     if ( output.empty() ) {
+        //         Get()->AddLog( { ConsoleLogLevel::CONSOLE_INFO, "[no output]" } );
+        //     } else {
+        //         Get()->AddLog( { ConsoleLogLevel::CONSOLE_INFO, output } );
+        //     }
+        // } );
 
         m_IsInitialized = true;
     }
@@ -87,16 +89,30 @@ namespace Mikoto {
     }
 
     auto RuntimeConsole::ExecuteCommand( const std::string& input ) -> void {
-        std::istringstream iss( input );
-        std::string cmd;
+        // TODO: Figure out a better way to do this
+        // The way to run an external command is /command_name (No space!)
+
+        std::string command{ input };
+
+        if ( input.starts_with( "/" ) ) {
+            command = fmt::format( "/ {}", input.substr( input.find( '/' ) + 1, input.length() ) );
+        }
+
+        std::string cmd{};
+        std::istringstream iss{ command };
+
+        // First word or group of letters is the command
         iss >> cmd;
 
-        std::vector<std::string> args;
-        std::string arg;
+        std::string arg{};
+        std::vector<std::string> args{};
+
         while ( iss >> arg )
             args.push_back( arg );
 
-        auto it = m_Commands.find( cmd );
+        // Find the command in the list of commands and run it
+        // with the set of parameters
+        auto it{ m_Commands.find( cmd ) };
         if ( it != m_Commands.end() ) {
             it->second.Callback( args );
         } else {

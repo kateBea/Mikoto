@@ -10,6 +10,7 @@
 
 #include <volk.h>
 
+#include <Renderer/Core/FramePass.hh>
 #include <Renderer/Core/GraphicsContext.hh>
 
 namespace Mikoto {
@@ -65,6 +66,9 @@ namespace Mikoto {
             // We will issue as many draws as we need for each pair
             ankerl::unordered_dense::map<std::pair<Buffer*, Buffer*>, UInt32>  MeshData{};
         };
+
+    private:
+        ankerl::unordered_dense::map<FramePass*, FramePassInfo> m_PassInfo{};
     };
 }
 

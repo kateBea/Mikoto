@@ -37,6 +37,9 @@ namespace Mikoto {
         // The final composition from the scene renderer
         TextureHandle FinalComposition{};
 
+        // Debug
+        TextureHandle PreviewMaterial{};
+
         // Panels close flags
         bool StatsPanelVisible{ true };
         bool ContentBrowser{ true };
@@ -46,6 +49,8 @@ namespace Mikoto {
         bool HierarchyPanelVisible{ true };
         bool InspectorPanelVisible{ true };
         bool ScenePanelVisible{ true };
+        bool AssetsPanelVisible{ true };
+        bool ApplicationCloseFlag{ true };
 
         ImGuiUtils::GuizmoManipulationMode Manipulation{ ImGuiUtils::GuizmoManipulationMode::TRANSLATION };
     };
@@ -94,20 +99,6 @@ namespace Mikoto {
         auto SetupEditorState() -> void ;
 
     private:
-        struct DockControlFlags {
-            bool ApplicationCloseFlag{};
-
-            bool HierarchyPanelVisible{ true };
-            bool InspectorPanelVisible{ true };
-            bool ScenePanelVisible{ true };
-            bool SettingPanelVisible{ true };
-            bool StatsPanelVisible{ true };
-            bool ContentBrowser{ true };
-            bool ConsolePanel{ true };
-            bool RendererPanel{ true };
-        };
-
-    private:
         Unique<EditorState> m_EditorState{};
 
         Window* m_Window{ nullptr };
@@ -122,8 +113,6 @@ namespace Mikoto {
 
         Unique<SceneCamera> m_EditorCamera{};
         Unique<SceneSerializer> m_SceneSerializer{};
-
-        DockControlFlags m_ControlFlags{};
 
         Registry<Panel> m_PanelRegistry{};
     };

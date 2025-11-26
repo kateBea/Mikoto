@@ -721,6 +721,8 @@ namespace Mikoto {
         const UInt32 frameIndex{ VulkanContext::Get()->GetCurrentFrameIndex() };
 
         if ( m_FrameFences.contains( frameIndex ) ) {
+            // TODO: Using always same sync primitives, see VulkanContext SubmitFrame
+
             VkFence& inFlightFrameFence{ m_FrameFences[frameIndex] };
 
             if ( inFlightFrameFence != VK_NULL_HANDLE ) {
@@ -891,7 +893,7 @@ namespace Mikoto {
         dstExtent.height = dest->GetHeight();
         dstExtent.depth = 1;
 
-        VulkanHelpers::CopyImageToImage( m_CmdBuffer, *src->GetImplHandle(), *dest->GetImplHandle(), srcExtent, dstExtent );
+        VulkanHelpers::CopyImageToImage( m_CmdBuffer, src->GetNativeHandle(ObjectType::Vk_Image), dest->GetNativeHandle(ObjectType::Vk_Image), srcExtent, dstExtent );
 
         // Reset layout
         src->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_CmdBuffer );

@@ -182,6 +182,8 @@ namespace Mikoto {
     VulkanGraphicsPipeline::VulkanGraphicsPipeline( const VulkanGraphicsPipelineDescription& info)
         : GraphicsPipeline{ info.ShaderModules } {
 
+        m_VertexBufferLayout = info.VertexBufferLayout;
+
         m_DepthAttachmentFormat = dynamic_cast<const VulkanTexture*>(info.Depth.GetRaw() )->GetViewCreateInfo().format;
 
         for (auto& attachment : info.ColorAttachments) {
@@ -269,13 +271,22 @@ namespace Mikoto {
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VulkanHelpers::Initializers::PipelineVertexInputStateCreateInfo() };
 
         // Binding descriptions (define data layout)
-        const auto& bindingDesc{ GetDefaultBindingDescriptions( DEFAULT_VERTEX_BUFFER_LAYOUT ) };
-        const auto& attributeDesc{ GetDefaultAttributeDescriptions( DEFAULT_VERTEX_BUFFER_LAYOUT ) };
-
-        vertexInputInfo.vertexBindingDescriptionCount = bindingDesc.size();
-        vertexInputInfo.vertexAttributeDescriptionCount = attributeDesc.size();
+        // Attribute layout is what we specify because we are the ones that know how is buffer data laid out in CPU side
+        const auto& attributeDesc{ GetDefaultAttributeDescriptions( m_VertexBufferLayout ) };
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<UInt32>( attributeDesc.size() );
         vertexInputInfo.pVertexAttributeDescriptions = attributeDesc.data();
-        vertexInputInfo.pVertexBindingDescriptions = bindingDesc.data();
+
+        // This is inferred from reflection
+        vertexInputInfo.vertexBindingDescriptionCount = static_cast<UInt32>( m_ReflectionData.vertexBindings.size() );
+        vertexInputInfo.pVertexBindingDescriptions = m_ReflectionData.vertexBindings.data();
+
+        if (m_ReflectionData.vertexBindings.empty()) {
+            vertexInputInfo.vertexBindingDescriptionCount = 0;
+            vertexInputInfo.pVertexBindingDescriptions = nullptr;
+
+            vertexInputInfo.vertexAttributeDescriptionCount = 0;
+            vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+        }
 
         // Create pipeline rendering info for dynamic rendering
         VkPipelineRenderingCreateInfo renderingInfo{};

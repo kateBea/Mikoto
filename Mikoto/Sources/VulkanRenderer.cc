@@ -80,14 +80,6 @@ namespace Mikoto {
     auto VulkanRenderer::EndRender() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        for ( const auto& pass: m_Passes | std::ranges::views::values ) {
-
-            // This is only for the render commands which share the same command buffer
-            if ( const auto graphicsPass{ dynamic_cast<IRenderPass*>( pass.get() ) } ) {
-                graphicsPass->End();
-            }
-        }
-
         m_GraphicsCommandList->End();
     }
 
@@ -119,23 +111,11 @@ namespace Mikoto {
         // Graphics commands
         m_GraphicsCommandList = cmd;
         m_GraphicsCommandList->Begin();
-
-        for ( const auto& pass: m_Passes | std::ranges::views::values ) {
-            if ( const auto graphicsPass{ dynamic_cast<IRenderPass*>( pass.get() ) } ) {
-                graphicsPass->Begin( m_GraphicsCommandList );
-            }
-        }
-
-        // Shading pass will bind the global renderer descriptor pass
-        // this pass is the main pass. These the lights and the texture sets are not changing between passes,
-        // shaders must declare them properly to align to this descriptor layout
-        // These descriptors go to set 0
-        ShadingPass* shadingPass{ m_Passes.Get<ShadingPass>() };
-        shadingPass->BindDefaultSets( m_FrameSet, 0 );
-        shadingPass->BindDefaultSets( m_TexturesSet, 1 );
     }
 
     auto VulkanRenderer::DrawScene( Scene* scene ) -> void {
+        using namespace Mikoto::VulkanPasses;
+
         MKT_BEGIN_PROFILER_NAMED();
 
         // Handle lights here which are also the same for all passes
@@ -208,14 +188,27 @@ namespace Mikoto {
         // Copy to GPU buffer
         m_LightsBuffer->CopyFromBlock( m_LightsInfo.get(), sizeof( LightInfo ) );
 
-        // TODO: Sort execution order based on dependencies
-        
-        // For all passes with a graphics pipeline
-        for ( auto& pass: m_Passes | std::ranges::views::values ) {
-            if ( const auto graphicsPass{ dynamic_cast<IRenderPass*>( pass.get() ) } ) {
-                graphicsPass->Render( scene );
-            }
-        }
+        TextureRenderPass* textureRenderPass{ m_Passes.Get<TextureRenderPass>() };
+        textureRenderPass->Begin( m_GraphicsCommandList );
+
+        textureRenderPass->Render( scene );
+
+        textureRenderPass->End();
+
+        // Shading pass will bind the global renderer descriptor pass
+        // this pass is the main pass. These the lights and the texture sets are not changing between passes,
+        // shaders must declare them properly to align to this descriptor layout
+        // These descriptors go to set 0
+        ShadingPass* shadingPass{ m_Passes.Get<ShadingPass>() };
+        shadingPass->BindDefaultSets( m_GraphicsCommandList, m_FrameSet, 0 );
+        shadingPass->BindDefaultSets( m_GraphicsCommandList, m_TexturesSet, 1 );
+
+        shadingPass->Begin( m_GraphicsCommandList );
+
+        shadingPass->Render( scene );
+
+        shadingPass->End();
+
     }
 
     auto VulkanRenderer::OnResize( UInt32 width, UInt32 height ) -> void {
@@ -261,6 +254,17 @@ namespace Mikoto {
         TextureHandle handle{ TextureHandle::CreateEmpty() };
         if ( const ShadingPass * shadingPass{ m_Passes.Get<ShadingPass>() } ) {
             handle = shadingPass->GetFinalComposition();
+        }
+
+        return handle;
+    }
+
+    auto VulkanRenderer::GetMaterialPreview() const -> TextureHandle {
+        using namespace Mikoto::VulkanPasses;
+
+        TextureHandle handle{ TextureHandle::CreateEmpty() };
+        if ( const TextureRenderPass * textureRenderPass{ m_Passes.Get<TextureRenderPass>() } ) {
+            handle = textureRenderPass->GetFinalComposition();
         }
 
         return handle;
@@ -351,6 +355,10 @@ namespace Mikoto {
         // Final composition
         ShadingPass* shadingPass{ m_Passes.Register<ShadingPass>() };
         shadingPass->Init( TO_VK_DEVICE( m_GraphicsDevice ) );
+
+        // Final composition
+        TextureRenderPass* textureRenderPass{ m_Passes.Register<TextureRenderPass>() };
+        textureRenderPass->Init( TO_VK_DEVICE( m_GraphicsDevice ) );
 
         // Compute basic
         ComputeBasic* computeBasic{ m_Passes.Register<ComputeBasic>() };

@@ -20,6 +20,8 @@
 #include <Library/Utility/Types.hh>
 #include <Material/Texture2D.hh>
 
+#include "Material/TextureCube.hh"
+
 namespace Mikoto {
 
     /**
@@ -59,8 +61,6 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
 
-        MKT_NODISCARD auto GetImplHandle() -> VkImage* { return std::addressof(m_Image); }
-
         MKT_NODISCARD auto GetImage() -> VkImage*;
         MKT_NODISCARD auto GetImage() const -> const VkImage*;
 
@@ -87,6 +87,64 @@ namespace Mikoto {
         auto GetAllocationCreateInfo() -> const VmaAllocationCreateInfo*;
 
         ~VulkanTexture() override;
+
+    private:
+        auto Initialize() -> void override;
+        auto Release() -> void override;
+
+    private:
+        bool m_IsImageExternal{ false };
+
+        BufferHandle m_StagingBuffer{};
+
+        VkDeviceSize m_ImageSize{ 0 };
+
+        VkImage m_Image{ VK_NULL_HANDLE };
+        VkImageView m_ImageView{ VK_NULL_HANDLE };
+
+        VmaAllocation m_Allocation{ VK_NULL_HANDLE };
+        VmaAllocationInfo m_AllocationInfo{};
+
+        VkImageCreateInfo m_ImageCreateInfo{};
+        VkImageViewCreateInfo m_ImageViewCreateInfo{};
+
+        VmaAllocationCreateInfo m_AllocationCreateInfo{};
+
+        VkImageLayout m_CurrentLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
+
+        // For Dynamic rendering
+        // Set by the device when created
+        Int32 m_TextureArrayIndex{ -1 };
+    };
+
+    class VulkanTextureCube final : public TextureCube {
+    public:
+        explicit VulkanTextureCube( const TextureDescription& data );
+
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
+
+        MKT_NODISCARD auto GetImage() -> VkImage*;
+        MKT_NODISCARD auto GetImage() const -> const VkImage*;
+
+        MKT_NODISCARD auto GetView() -> VkImageView*;
+        MKT_NODISCARD auto GetView() const -> const VkImageView*;
+
+        MKT_NODISCARD auto GetCurrentLayout() const -> VkImageLayout;
+        MKT_NODISCARD auto GetCreateInfo() const -> const VkImageCreateInfo&;
+        MKT_NODISCARD auto GetViewCreateInfo() const -> const VkImageViewCreateInfo&;
+
+        auto SetTextureIndex( Int32 index ) -> void;
+        MKT_NODISCARD auto GetTextureIndex() const -> Int32;
+        MKT_NODISCARD auto HasBindlessIndex() const -> bool;
+
+        auto SubmitLayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd ) -> void;
+
+        auto GetVMAllocation() -> VmaAllocation*;
+        auto GetVMAllocationInfo() -> VmaAllocationInfo*;
+        auto GetImageCreateInfo() -> const VkImageCreateInfo*;
+        auto GetAllocationCreateInfo() -> const VmaAllocationCreateInfo*;
+
+        ~VulkanTextureCube() override;
 
     private:
         auto Initialize() -> void override;

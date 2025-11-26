@@ -690,6 +690,26 @@ namespace Mikoto::VulkanHelpers::Reflection {
         }
     }
 
+    static auto InferSizeInBytesSpirVAttribute( SpvReflectFormat format ) -> Size {
+        switch (format) {
+            case SPV_REFLECT_FORMAT_R32_SFLOAT:
+                return 4;
+
+            case SPV_REFLECT_FORMAT_R32G32_SFLOAT:
+                return 8;
+
+            case SPV_REFLECT_FORMAT_R32G32B32_SFLOAT:
+                return 12;
+
+            case SPV_REFLECT_FORMAT_R32G32B32A32_SFLOAT:
+                return 16;
+
+            default:
+                // If unsupported or unknown, return 0 or handle however your engine expects
+                return 0;
+        }
+    }
+
     // Helper: collect vertex inputs for vertex-stage modules
     static void ProcessVertexInputs(SpvReflectShaderModule& mod, ReflectedData& out) {
         UInt32 inputCount{};
@@ -697,6 +717,7 @@ namespace Mikoto::VulkanHelpers::Reflection {
         std::vector<SpvReflectInterfaceVariable*> inputs(inputCount);
         spvReflectEnumerateInputVariables(&mod, &inputCount, inputs.data());
 
+        Size stride{};
         UInt32 binding{};
         for (auto* v: inputs) {
             if (v->decoration_flags & SPV_REFLECT_DECORATION_BUILT_IN) {
@@ -706,6 +727,10 @@ namespace Mikoto::VulkanHelpers::Reflection {
             VkVertexInputAttributeDescription attr{};
             attr.binding = binding;
             attr.location = v->location;
+
+            // It is the user who will decide how
+            // they want to pass the data in and how
+            // the attributes are layout in the buffer they will upload to the GPU
             attr.offset = 0;
 
             switch (v->format) {
@@ -726,6 +751,7 @@ namespace Mikoto::VulkanHelpers::Reflection {
                     break;
             }
 
+            stride += InferSizeInBytesSpirVAttribute(v->format);
             out.vertexAttributes.push_back(attr);
         }
 
@@ -733,7 +759,11 @@ namespace Mikoto::VulkanHelpers::Reflection {
             VkVertexInputBindingDescription bind{};
             bind.binding = 0;
             bind.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-            bind.stride = 0; // user-defined later
+
+            // This field will simply tell
+            // the minimum recorded byte offset between set of vertex attributes
+            bind.stride = stride;
+
             out.vertexBindings.push_back(bind);
         }
     }
@@ -791,12 +821,23 @@ namespace Mikoto::VulkanHelpers::Reflection {
     }
 
     static auto CreatePipelineLayout( VkDevice device, ReflectedData& out, std::vector<VkPushConstantRange>& pushConstants ) -> VkResult {
+        // IMPORTANT:
+        // In Vulkan, VkPipelineLayoutCreateInfo::pSetLayouts is an array where each element
+        // corresponds to a descriptor set index in order:
+        //    pSetLayouts[0] -> set = 0
+        //    pSetLayouts[1] -> set = 1
+        //    pSetLayouts[2] -> set = 2
+        // Vulkan does NOT sort or remap them automatically. If the layouts in out.setLayouts
+        // are not in the same order as the shader set indices, you will get validation errors.
+        // For example, if the fragment shader uses set = 1 but out.setLayouts[1] corresponds
+        // to set = 2, Vulkan will complain that the descriptor is missing.
+
         VkPipelineLayoutCreateInfo plInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
         plInfo.setLayoutCount = static_cast<UInt32>(out.setLayouts.size());
         plInfo.pSetLayouts = out.setLayouts.data();
 
-        plInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstants.size());
+        plInfo.pushConstantRangeCount = static_cast<UInt32>(pushConstants.size());
         plInfo.pPushConstantRanges = pushConstants.data();
 
         if (vkCreatePipelineLayout(device, &plInfo, nullptr, &out.pipelineLayout) != VK_SUCCESS) {

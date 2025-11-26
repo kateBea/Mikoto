@@ -30,7 +30,7 @@ namespace  Mikoto {
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/PBR_Instanced_Vert.sprv" );
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/PBR_Instanced_Frag.sprv" );
 
-        context->CreateNamedPipeline( "FinalCompositionPass_Pipeline", pipelineDesc );
+        context->CreateNamedPipeline( "FinalCompositionPass_Pipeline", pipelineDesc, PipelineType::GRAPHICS_PIPELINE );
 
         // Color attachment
         TextureDescription colorDesc{};
@@ -126,14 +126,14 @@ namespace  Mikoto {
 
     }
 
-    auto ShadowPass::Setup( GraphicsContext* context ) -> void {
+    auto ShadowPass:: Setup( GraphicsContext* context ) -> void {
         // Create resources it needs
         PipelineDescription pipelineDesc{};
 
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/Shadowmap_Vert.sprv" );
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/Shadowmap_Frag.sprv" );
 
-        context->CreateNamedPipeline( "ShadowPass_Pipeline", pipelineDesc );
+        context->CreateNamedPipeline( "ShadowPass_Pipeline", pipelineDesc, PipelineType::GRAPHICS_PIPELINE );
 
         // Color attachment
         TextureDescription colorDesc{};
@@ -256,7 +256,7 @@ namespace  Mikoto {
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/MSDFText_Vert.sprv" );
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/MSDFText_Frag.sprv" );
 
-        context->CreateNamedPipeline( "TextPass_Pipeline", pipelineDesc );
+        context->CreateNamedPipeline( "TextPass_Pipeline", pipelineDesc, PipelineType::GRAPHICS_PIPELINE );
 
         RegisterInput( "FinalCompositionPass_ColorTarget" );
         RegisterInput( "FinalCompositionPass_DepthTarget" );
@@ -300,7 +300,7 @@ namespace  Mikoto {
 
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/BasicCompute_Comp.sprv" );
 
-        context->CreateNamedPipeline( "SimpleComputePass_Pipeline", pipelineDesc );
+        context->CreateNamedPipeline( "SimpleComputePass_Pipeline", pipelineDesc, PipelineType::COMPUTE_PIPELINE );
 
         BufferDescription lightsBuffer{};
         lightsBuffer.WithData( nullptr )

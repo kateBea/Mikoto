@@ -283,9 +283,6 @@ namespace Mikoto {
     auto VulkanContext::PrepareFrame() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        // FIXME:
-        //TO_VK_DEVICE( m_Device.get() )->WaitIdle();
-
         VkFence& inFlightFrameFence{ m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFence };
 
         // For simplicity, parenthesize std::numeric_limits<std::uint64_t>::max
@@ -318,7 +315,7 @@ namespace Mikoto {
 
         device->FlushPendingCommands( m_FrameSyncPrimitives[m_CurrentFrameIndex] );
 
-        const VkSemaphore& renderFinishedSemaphore{ m_FrameSyncPrimitives[m_CurrentImageIndex].RenderFinishedSemaphore };
+        const VkSemaphore& renderFinishedSemaphore{ m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFinishedSemaphore };
         const VkResult result{ m_Swapchain->Present( GetCurrentImageIndex(), renderFinishedSemaphore ) };
 
         if ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ) {
@@ -330,7 +327,8 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR( "VulkanDevice::PresentToSwapChain - Error failed present images to swapchain." );
         }
 
-        m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % m_MaxFramesInFlight;
+        // TODO: Using always same sync primitives
+        m_CurrentFrameIndex = 0; //(m_CurrentFrameIndex + 1) % m_MaxFramesInFlight;
     }
 
     auto VulkanContext::InitVolk() -> void {
@@ -347,7 +345,7 @@ namespace Mikoto {
                 .width { static_cast<UInt32>( m_TargetWindow->GetWidth() ) },
                 .height{ static_cast<UInt32>( m_TargetWindow->GetHeight() ) } },
             .Surface{ std::addressof( m_VulkanData.Surface ) },
-            .EnableVsync{ true },
+            .EnableVsync{ false },
         };
 
         m_Swapchain = TO_VK_DEVICE( m_Device.get() )->CreateSwapChain(createInfo);

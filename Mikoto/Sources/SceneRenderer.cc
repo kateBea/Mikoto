@@ -70,6 +70,15 @@ namespace Mikoto {
         return handle;
     }
 
+    auto SceneRenderer::GetMaterialPreview() const -> TextureHandle {
+        TextureHandle handle{ TextureHandle::CreateEmpty() };
+        if ( m_RendererBackend ) {
+            handle = m_RendererBackend->GetMaterialPreview();
+        }
+
+        return handle;
+    }
+
     auto SceneRenderer::SetRenderResolution( RenderResolution resolution ) -> void {
         m_RenderResolution = resolution;
     }

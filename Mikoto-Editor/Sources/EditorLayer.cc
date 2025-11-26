@@ -12,7 +12,6 @@
 #include "glm/gtc/type_ptr.hpp"
 
 // Project Headers
-#include <Renderer/Core/RenderService.hh>
 #include <Core/InputService.hh>
 #include <Core/Profiler.hh>
 #include <Core/RuntimeConsole.hh>
@@ -26,8 +25,11 @@
 #include <Panels/SettingsPanel.hh>
 #include <Panels/StatsPanel.hh>
 #include <Physics/PhysicService.hh>
+#include <Renderer/Core/RenderService.hh>
 #include <Scene/Component.hh>
 #include <Scene/SceneManager.hh>
+
+#include "Panels/AssetsPanel.hh"
 
 namespace Mikoto {
 
@@ -78,6 +80,8 @@ namespace Mikoto {
 
         m_EditorState->EditorCamera = m_EditorCamera.get();
         m_EditorState->FinalComposition = m_SceneRenderer->GetFinalComposition();
+        m_EditorState->PreviewMaterial = m_SceneRenderer->GetMaterialPreview();
+
         m_EditorState->ActiveEditorScene = m_ActiveScene.get();
 
         m_EditorState->SelectedEntity = m_ActiveScene->FindFirstByName( "Ground" );
@@ -255,6 +259,10 @@ namespace Mikoto {
         InspectorPanelCreateInfo inspectorPanelCreateInfo{};
         inspectorPanelCreateInfo.State = m_EditorState.get();
         m_PanelRegistry.Register<InspectorPanel>( inspectorPanelCreateInfo );
+
+        AssetsPanelDescription assetsPanelDescription{};
+        assetsPanelDescription.State = m_EditorState.get();
+        m_PanelRegistry.Register<AssetsPanel>( assetsPanelDescription );
     }
 
     auto EditorLayer::CreateCameras() -> void {
@@ -317,7 +325,7 @@ namespace Mikoto {
             ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0.0f, 0.0f ) );
         }
 
-        ImGui::Begin( "DockSpace Demo", std::addressof( m_ControlFlags.ApplicationCloseFlag ), windowFlags );
+        ImGui::Begin( "DockSpace Demo", std::addressof( m_EditorState->ApplicationCloseFlag ), windowFlags );
 
         if constexpr ( !optPadding ) {
             ImGui::PopStyleVar();
@@ -389,7 +397,7 @@ namespace Mikoto {
                 ImGui::Separator();
 
                 if ( ImGui::MenuItem( "Close", nullptr, false ) ) {
-                    m_ControlFlags.ApplicationCloseFlag = true;
+                    m_EditorState->ApplicationCloseFlag = true;
                 }
 
                 ImGui::EndMenu();
@@ -414,14 +422,17 @@ namespace Mikoto {
 
             if ( ImGui::BeginMenu( "Window" ) ) {
                 if ( ImGui::BeginMenu( "Panels" ) ) {
-                    if ( ImGui::MenuItem( "Hierarchy", nullptr, m_ControlFlags.HierarchyPanelVisible ) ) m_ControlFlags.HierarchyPanelVisible = !m_ControlFlags.HierarchyPanelVisible;
-                    if ( ImGui::MenuItem( "Inspector", nullptr, m_ControlFlags.InspectorPanelVisible ) ) m_ControlFlags.InspectorPanelVisible = !m_ControlFlags.InspectorPanelVisible;
-                    if ( ImGui::MenuItem( "Scene", nullptr, m_ControlFlags.ScenePanelVisible ) ) m_ControlFlags.ScenePanelVisible = !m_ControlFlags.ScenePanelVisible;
-                    if ( ImGui::MenuItem( "Settings", nullptr, m_ControlFlags.SettingPanelVisible ) ) m_ControlFlags.SettingPanelVisible = !m_ControlFlags.SettingPanelVisible;
-                    if ( ImGui::MenuItem( "Statistics", nullptr, m_ControlFlags.StatsPanelVisible ) ) m_ControlFlags.StatsPanelVisible = !m_ControlFlags.StatsPanelVisible;
-                    if ( ImGui::MenuItem( "Content Browser", nullptr, m_ControlFlags.ContentBrowser ) ) m_ControlFlags.ContentBrowser = !m_ControlFlags.ContentBrowser;
-                    if ( ImGui::MenuItem( "Console", nullptr, m_ControlFlags.ConsolePanel ) ) m_ControlFlags.ConsolePanel = !m_ControlFlags.ConsolePanel;
-                    if ( ImGui::MenuItem( "Renderer", nullptr, m_ControlFlags.RendererPanel ) ) m_ControlFlags.RendererPanel = !m_ControlFlags.RendererPanel;
+
+                    // TODO: Loop
+                    if ( ImGui::MenuItem( "Hierarchy", nullptr, m_EditorState->HierarchyPanelVisible ) ) m_EditorState->HierarchyPanelVisible = !m_EditorState->HierarchyPanelVisible;
+                    if ( ImGui::MenuItem( "Inspector", nullptr, m_EditorState->InspectorPanelVisible ) ) m_EditorState->InspectorPanelVisible = !m_EditorState->InspectorPanelVisible;
+                    if ( ImGui::MenuItem( "Scene", nullptr, m_EditorState->ScenePanelVisible ) ) m_EditorState->ScenePanelVisible = !m_EditorState->ScenePanelVisible;
+                    if ( ImGui::MenuItem( "Settings", nullptr, m_EditorState->SettingPanelVisible ) ) m_EditorState->SettingPanelVisible = !m_EditorState->SettingPanelVisible;
+                    if ( ImGui::MenuItem( "Statistics", nullptr, m_EditorState->StatsPanelVisible ) ) m_EditorState->StatsPanelVisible = !m_EditorState->StatsPanelVisible;
+                    if ( ImGui::MenuItem( "Content Browser", nullptr, m_EditorState->ContentBrowser ) ) m_EditorState->ContentBrowser = !m_EditorState->ContentBrowser;
+                    if ( ImGui::MenuItem( "Console", nullptr, m_EditorState->ConsolePanel ) ) m_EditorState->ConsolePanel = !m_EditorState->ConsolePanel;
+                    if ( ImGui::MenuItem( "Renderer", nullptr, m_EditorState->RendererPanel ) ) m_EditorState->RendererPanel = !m_EditorState->RendererPanel;
+                    if ( ImGui::MenuItem( "Assets Preview", nullptr, m_EditorState->AssetsPanelVisible ) ) m_EditorState->AssetsPanelVisible = !m_EditorState->AssetsPanelVisible;
 
                     ImGui::EndMenu();
                 }

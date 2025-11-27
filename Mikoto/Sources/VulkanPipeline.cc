@@ -24,6 +24,19 @@
 
 namespace Mikoto {
 
+    static auto InferVulkanTopology(Topology topology) -> VkPrimitiveTopology {
+        switch (topology) {
+            case Topology::POINT_LIST: return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+            case Topology::LINE_LIST: return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+            case Topology::LINE_STRIP: return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+            case Topology::TRIANGLE_LIST: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+            case Topology::TRIANGLE_STRIP: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+            case Topology::TRIANGLE_FAN: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+        }
+
+        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    }
+
     static auto GetDefaultGraphicsPipelineConfigInfo() -> VulkanGraphicsPipelineConfiguration {
         VulkanGraphicsPipelineConfiguration configInfo{};
 
@@ -189,10 +202,7 @@ namespace Mikoto {
 
     auto VulkanGraphicsPipeline::SetupConfig( VulkanGraphicsPipelineConfiguration& config ) const -> void {
         config.ColorBlendInfo.pAttachments = &config.ColorBlendAttachment;
-
-        if (m_Topology == Topology::TRIANGLE_STRIP) {
-            config.InputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-        }
+        config.InputAssemblyInfo.topology = InferVulkanTopology(m_Topology);
     }
 
     auto VulkanGraphicsPipeline::Bind( const VkCommandBuffer commandBuffer ) const -> void {

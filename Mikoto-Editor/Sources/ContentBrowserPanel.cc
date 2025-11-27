@@ -279,7 +279,10 @@ namespace Mikoto {
 
             ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), windowFlags );
 
+            OnRightClick();
+
             DrawHeader();
+
 
             ImGui::Spacing();
             ImGui::Spacing();
@@ -298,8 +301,6 @@ namespace Mikoto {
 
                 ImGui::EndTable();
             }
-
-            OnRightClick();
 
             ImGui::End();
         }

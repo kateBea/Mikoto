@@ -12,6 +12,7 @@
 #include <Renderer/Core/Pipeline.hh>
 #include <Renderer/Core/RenderPassBase.hh>
 #include <Renderer/Core/RendererBackend.hh>
+#include <Renderer/Vulkan/VulkanTexture.hh>
 #include <Renderer/Vulkan/VulkanDescriptorManager.hh>
 
 namespace Mikoto::VulkanPasses {
@@ -97,6 +98,11 @@ namespace Mikoto::VulkanPasses {
         auto SetMaterialPreviewMat(MaterialHandle ref ) -> void;
         auto SetMaterialPreviewViewport(float width, float height ) -> void;
 
+        auto RegisterTextureForRender( TextureHandle texture ) -> void;
+
+    private:
+        auto UpdateBindlessTextureDescriptor( Int32 index, VulkanTexture* texture ) const -> void;
+
     private:
         GpuDevice* m_Device{};
 
@@ -109,7 +115,11 @@ namespace Mikoto::VulkanPasses {
 
         MaterialHandle m_Material{ };
 
-        DescriptorSetLayoutHandle m_EntitiesSetLayout{  };
+#if defined( MKT_USE_VULKAN_BINDLESS )
+        VkDescriptorSet m_TexturesSet{ VK_NULL_HANDLE };
+        bool m_UpdateTextureDescriptor{ false };
+        ankerl::unordered_dense::map<Texture*, TextureHandle> m_BindlessTextures{};
+#endif
 
         bool m_WantStoreOP{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };

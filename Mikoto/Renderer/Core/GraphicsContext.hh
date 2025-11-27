@@ -20,23 +20,6 @@
 namespace Mikoto {
     class PassCommandList;
 
-    enum class RenderTargetType {
-        COLOR,
-        DEPTH,
-    };
-
-    struct PipelineDescription {
-        PipelineType Type{};
-
-        // With std::variant
-        ComputePipelineDescription ComputeDesc{};
-        GraphicsPipelineDescription GraphicsDesc{};
-
-        std::vector<std::string> Shaders{};
-
-        auto AddShader(std::string_view path) -> void;
-    };
-
     class GraphicsContext {
     public:
         virtual ~GraphicsContext() = default;
@@ -62,11 +45,6 @@ namespace Mikoto {
         virtual auto ClearDepth(std::string_view resourceName,TextureHandle depthTarget, float depth) -> void = 0;
 
         virtual auto BindPipeline(PipelineHandle pipeline) -> void = 0;
-
-        // Create Resources
-        virtual auto CreateNamedBuffer(std::string_view name, BufferDescription description) -> void = 0;
-        virtual auto CreateNamedPipeline(std::string_view name, PipelineDescription description, PipelineType type) -> void = 0;
-        virtual auto CreateNamedRenderTarget(std::string_view name, TextureDescription description, RenderTargetType) -> void = 0;
 
         virtual auto CreateCommandList() -> PassCommandList* = 0;
 

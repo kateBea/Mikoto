@@ -5,12 +5,15 @@
 #ifndef MIKOTO_FRAME_GRAPH_HH
 #define MIKOTO_FRAME_GRAPH_HH
 
+#include <ankerl/unordered_dense.h>
+
+#include <Assets//Texture.hh>
+#include <Library/Data/ResourcePool.hh>
 #include <string>
 #include <variant>
 #include <vector>
 
-#include <Assets//Texture.hh>
-#include <Library/Data/ResourcePool.hh>
+#include "Renderer/Core/Pipeline.hh"
 
 namespace Mikoto {
 
@@ -19,23 +22,36 @@ namespace Mikoto {
 
     using ResourceHandle = Ref<IResource>;
 
-    enum class ResourceType { TEXTURE, BUFFER, PIPELINE };
+    enum class ResourceType { TEXTURE, BUFFER, PIPELINE, INVALID };
+
+    enum class RenderTargetType {
+        COLOR,
+        DEPTH,
+    };
+
+    struct PipelineDescription {
+        PipelineType Type{ };
+
+        // With std::variant
+        ComputePipelineDescription ComputeDesc{};
+        GraphicsPipelineDescription GraphicsDesc{};
+
+        std::vector<std::string> Shaders{};
+
+        auto AddShader(std::string_view path) -> void;
+    };
 
     struct ResourcePipelineDes {
-
     };
 
     struct ResourceBufferDes {
-
     };
 
     struct ResourceTextureDes {
-
     };
 
     struct ResourceDescription {
-
-        ResourceType Type{};
+        ResourceType Type{ ResourceType::INVALID };
 
         std::variant<ResourceHandle, ResourcePipelineDes, ResourceBufferDes> ResourceDesc{};
     };
@@ -49,8 +65,26 @@ namespace Mikoto {
     struct FrameNode {
         FramePass* Pass{};
 
-        std::vector<FrameResource> Inputs{};
-        std::vector<FrameResource> Outputs{};
+        std::vector<std::string> Inputs{};
+        std::vector<std::string> Outputs{};
+    };
+
+    class FrameGraphBuilder {
+    public:
+
+        auto RegisterInput(FramePass* node, std::string_view name) -> void;
+        auto RegisterOutput(FramePass* node, std::string_view name) -> void;
+
+        // Create Resources
+        auto CreateNamedBuffer(std::string_view name, BufferDescription description) -> void;
+        auto CreateNamedTexture(std::string_view name, TextureDescription description) -> void;
+        auto CreateNamedPipeline(std::string_view name, PipelineDescription description, PipelineType type) -> void;
+        auto CreateNamedRenderTarget(std::string_view name, TextureDescription description, RenderTargetType) -> void ;
+
+    private:
+        std::vector<FrameNode> m_Nodes{};
+        ankerl::unordered_dense::map<std::string, FrameResource> m_Resources{};
+
     };
 
     class FrameGraph final {
@@ -60,20 +94,21 @@ namespace Mikoto {
 
         auto RegisterPass(FramePass* pass) -> FramePass*;
 
-        auto Compile(GraphicsContext& backend) -> void;
+        auto Compile(FrameGraphBuilder& backend) -> void;
         auto Execute(GraphicsContext& backend) -> void;
 
         MKT_NODISCARD static auto Create(GraphicsContext * context ) -> Unique<FrameGraph>;
 
 
     private:
+        auto RegisterResource(FrameResource resource) -> void;
+
+        std::vector<FrameNode> m_Nodes{};
+        ankerl::unordered_dense::map<std::string, FrameResource> m_Resources{};
 
         GraphicsContext* m_GraphicsContex{};
 
         bool m_Compiled{ false };
-
-        std::vector<FrameNode> m_Nodes{};
-        std::vector<FrameResource> m_Resources{};
     };
 }
 

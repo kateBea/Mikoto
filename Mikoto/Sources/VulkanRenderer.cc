@@ -93,6 +93,8 @@ namespace Mikoto {
 
         // Prepare resources
         if ( m_UpdateTextureDescriptor ) {
+
+
             // We push all the textures we need, when we begin render
             // we make sure they are all visible through the descriptor set
             // do this once and only when is needed if the texture list hasn't changed
@@ -103,6 +105,10 @@ namespace Mikoto {
 
                 const Int32 textureIndex{ vkTexture->GetTextureIndex() };
                 UpdateBindlessTextureDescriptor( textureIndex, vkTexture );
+
+                // TODO: temporary for debugging only. Here we update all textures in material pass
+                TextureRenderPass* textureRenderPass{ m_Passes.Get<TextureRenderPass>() };
+                textureRenderPass->RegisterTextureForRender( texture );
             }
 
             m_UpdateTextureDescriptor = false;
@@ -287,6 +293,8 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::RegisterTextureForRender( TextureHandle texture ) -> void {
+        using namespace Mikoto::VulkanPasses;
+
         MKT_BEGIN_PROFILER_NAMED();
 
         const auto vkTexture{ dynamic_cast<VulkanTexture*>( texture.GetRaw() ) };
@@ -339,7 +347,9 @@ namespace Mikoto {
         m_TexturesSet = TO_VK_DEVICE( m_GraphicsDevice )->AllocateDescriptorSet( &layoutTextures, std::addressof( variableCountInfo ) );
     }
 
-    auto VulkanRenderer::UpdateBindlessTextureDescriptor( const Int32 index, VulkanTexture* texture ) const -> void {
+    auto VulkanRenderer::UpdateBindlessTextureDescriptor( const Int32 index, VulkanTexture* texture ) -> void {
+        using namespace Mikoto::VulkanPasses;
+
         if ( !texture->HasSampler() ) {
             texture->SetSampler( m_GraphicsDevice->CreateSampler( SamplerDescription{} ) );
         }

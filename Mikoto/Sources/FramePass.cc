@@ -11,26 +11,14 @@
 
 namespace  Mikoto {
 
-    auto FramePass::RegisterInput( std::string_view name ) -> void {
-        m_Inputs.emplace_back( name );
-    }
-
-    auto FramePass::RegisterOutput( std::string_view name ) -> void {
-        m_Outputs.emplace_back( name );
-    }
-
-    auto FramePass::RegisterResource( std::string_view name ) -> void {
-        m_Resources.emplace_back( name );
-    }
-
-    auto FinalCompositionPass::Setup( GraphicsContext* context ) -> void {
+    auto FinalCompositionPass::Setup( FrameGraphBuilder& builder ) -> void {
         // Create resources it needs
         PipelineDescription pipelineDesc{};
 
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/PBR_Instanced_Vert.sprv" );
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/PBR_Instanced_Frag.sprv" );
 
-        context->CreateNamedPipeline( "FinalCompositionPass_Pipeline", pipelineDesc, PipelineType::GRAPHICS_PIPELINE );
+        builder.CreateNamedPipeline( "FinalCompositionPass_Pipeline", pipelineDesc, PipelineType::GRAPHICS_PIPELINE );
 
         // Color attachment
         TextureDescription colorDesc{};
@@ -43,7 +31,7 @@ namespace  Mikoto {
             .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
-        context->CreateNamedRenderTarget( "FinalCompositionPass_ColorTarget", colorDesc, RenderTargetType::COLOR );
+        builder.CreateNamedRenderTarget( "FinalCompositionPass_ColorTarget", colorDesc, RenderTargetType::COLOR );
 
         // Depth attachment
         TextureDescription depthDesc{};
@@ -56,18 +44,15 @@ namespace  Mikoto {
             .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
-        context->CreateNamedRenderTarget( "FinalCompositionPass_DepthTarget", depthDesc, RenderTargetType::DEPTH );
+        builder.CreateNamedRenderTarget( "FinalCompositionPass_DepthTarget", depthDesc, RenderTargetType::DEPTH );
 
         // Declare its inputs and outputs
-        RegisterInput( "ShadowPass_ColorTarget" );
-        RegisterInput( "ShadowPass_LightsBuffer" );
-        RegisterInput( "ShadowPass_ObjectInfo" );
+        builder.RegisterInput( this, "ShadowPass_ColorTarget" );
+        builder.RegisterInput( this, "ShadowPass_LightsBuffer" );
+        builder.RegisterInput( this, "ShadowPass_ObjectInfo" );
 
-        RegisterOutput( "FinalCompositionPass_ColorTarget" );
-        RegisterOutput( "FinalCompositionPass_DepthTarget" );
-
-        RegisterResource( "FinalCompositionPass_ColorTarget" );
-        RegisterResource( "FinalCompositionPass_DepthTarget" );
+        builder.RegisterOutput( this, "FinalCompositionPass_ColorTarget" );
+        builder.RegisterOutput( this, "FinalCompositionPass_DepthTarget" );
     }
 
     auto FinalCompositionPass::SetScene( Scene* scene ) -> void {
@@ -126,14 +111,14 @@ namespace  Mikoto {
 
     }
 
-    auto ShadowPass:: Setup( GraphicsContext* context ) -> void {
+    auto ShadowPass:: Setup( FrameGraphBuilder& builder ) -> void {
         // Create resources it needs
         PipelineDescription pipelineDesc{};
 
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/Shadowmap_Vert.sprv" );
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/Shadowmap_Frag.sprv" );
 
-        context->CreateNamedPipeline( "ShadowPass_Pipeline", pipelineDesc, PipelineType::GRAPHICS_PIPELINE );
+        builder.CreateNamedPipeline( "ShadowPass_Pipeline", pipelineDesc, PipelineType::GRAPHICS_PIPELINE );
 
         // Color attachment
         TextureDescription colorDesc{};
@@ -146,7 +131,7 @@ namespace  Mikoto {
             .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
-        context->CreateNamedRenderTarget( "ShadowPass_ColorTarget", colorDesc, RenderTargetType::COLOR );
+        builder.CreateNamedRenderTarget( "ShadowPass_ColorTarget", colorDesc, RenderTargetType::COLOR );
 
         // Depth attachment
         TextureDescription depthDesc{};
@@ -159,14 +144,14 @@ namespace  Mikoto {
             .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
-        context->CreateNamedRenderTarget( "ShadowPass_DepthTarget", depthDesc, RenderTargetType::DEPTH );
+        builder.CreateNamedRenderTarget( "ShadowPass_DepthTarget", depthDesc, RenderTargetType::DEPTH );
 
         BufferDescription lightsBuffer{};
         lightsBuffer.WithData( nullptr )
             .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
             .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
             .WithSizeBytes( 0 ); // TODO
-        context->CreateNamedBuffer( "ShadowPass_LightsBuffer", lightsBuffer );
+        builder.CreateNamedBuffer( "ShadowPass_LightsBuffer", lightsBuffer );
 
         // Transform, texture indices, etc
         BufferDescription objectsInfo{};
@@ -174,7 +159,7 @@ namespace  Mikoto {
             .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
             .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
             .WithSizeBytes( 0 ); // TODO
-        context->CreateNamedBuffer( "ShadowPass_ObjectInfo", objectsInfo );
+        builder.CreateNamedBuffer( "ShadowPass_ObjectInfo", objectsInfo );
 
         // Camera
         BufferDescription camera{};
@@ -182,18 +167,13 @@ namespace  Mikoto {
             .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
             .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
             .WithSizeBytes( 0 ); // TODO
-        context->CreateNamedBuffer( "ShadowPass_CameraInfo", camera );
+        builder.CreateNamedBuffer( "ShadowPass_CameraInfo", camera );
 
         // Declare its inputs and outputs
-        RegisterOutput( "ShadowPass_ColorTarget" );
-        RegisterOutput( "ShadowPass_DepthTarget" );
-        RegisterOutput( "ShadowPass_ObjectInfo" );
-        RegisterOutput( "ShadowPass_CameraInfo" );
-
-        RegisterResource( "ShadowPass_ColorTarget" );
-        RegisterResource( "ShadowPass_LightsBuffer" );
-        RegisterResource( "ShadowPass_ObjectInfo" );
-        RegisterResource( "ShadowPass_CameraInfo" );
+        builder.RegisterOutput( this, "ShadowPass_ColorTarget" );
+        builder.RegisterOutput( this, "ShadowPass_DepthTarget" );
+        builder.RegisterOutput( this, "ShadowPass_ObjectInfo" );
+        builder.RegisterOutput( this, "ShadowPass_CameraInfo" );
     }
 
     auto ShadowPass::Execute( PassCommandList& commandList ) -> void {
@@ -249,19 +229,19 @@ namespace  Mikoto {
         m_Scene = scene;
     }
 
-    auto TextPass::Setup( GraphicsContext* context ) -> void {
+    auto TextPass::Setup( FrameGraphBuilder& builder ) -> void {
         // Create resources it needs
         PipelineDescription pipelineDesc{};
 
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/MSDFText_Vert.sprv" );
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/MSDFText_Frag.sprv" );
 
-        context->CreateNamedPipeline( "TextPass_Pipeline", pipelineDesc, PipelineType::GRAPHICS_PIPELINE );
+        builder.CreateNamedPipeline( "TextPass_Pipeline", pipelineDesc, PipelineType::GRAPHICS_PIPELINE );
 
-        RegisterInput( "FinalCompositionPass_ColorTarget" );
-        RegisterInput( "FinalCompositionPass_DepthTarget" );
+        builder.RegisterInput( this, "FinalCompositionPass_ColorTarget" );
+        builder.RegisterInput( this, "FinalCompositionPass_DepthTarget" );
 
-        RegisterOutput( "FinalCompositionPass_ColorTarget" );
+        builder.RegisterOutput( this, "FinalCompositionPass_ColorTarget" );
     }
 
     auto TextPass::Execute( PassCommandList& commandList ) -> void {
@@ -294,23 +274,22 @@ namespace  Mikoto {
         m_Scene = scene;
     }
 
-    auto SimpleComputePass::Setup( GraphicsContext* context ) -> void {
+    auto SimpleComputePass::Setup( FrameGraphBuilder& builder ) -> void {
         // Create resources it needs
         PipelineDescription pipelineDesc{};
 
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/BasicCompute_Comp.sprv" );
 
-        context->CreateNamedPipeline( "SimpleComputePass_Pipeline", pipelineDesc, PipelineType::COMPUTE_PIPELINE );
+        builder.CreateNamedPipeline( "SimpleComputePass_Pipeline", pipelineDesc, PipelineType::COMPUTE_PIPELINE );
 
         BufferDescription lightsBuffer{};
         lightsBuffer.WithData( nullptr )
             .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
             .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
             .WithSizeBytes( 30 * sizeof(UInt32) ); // TODO
-        context->CreateNamedBuffer( "SimpleComputePass_Result", lightsBuffer );
+        builder.CreateNamedBuffer( "SimpleComputePass_Result", lightsBuffer );
 
-        RegisterResource( "SimpleComputePass_Result" );
-        RegisterOutput( "SimpleComputePass_Result" );
+        builder.RegisterOutput( this, "SimpleComputePass_Result" );
     }
 
     auto SimpleComputePass::Execute( PassCommandList& commandList ) -> void {

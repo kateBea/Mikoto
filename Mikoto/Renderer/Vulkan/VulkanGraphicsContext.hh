@@ -34,13 +34,10 @@ namespace Mikoto {
         auto ClearColor( std::string_view resourceName, TextureHandle colorTarget, float r, float g, float b, float a ) -> void override;
         auto ClearDepth( std::string_view resourceName, TextureHandle depthTarget, float depth ) -> void override;
         auto BindPipeline( PipelineHandle pipeline ) -> void override;
-        auto CreateNamedBuffer( std::string_view name, BufferDescription description ) -> void override;
-        auto CreateNamedRenderTarget( std::string_view name, TextureDescription description, RenderTargetType ) -> void override;
         auto BindBuffer( BufferHandle texture ) -> void override;
         auto BindTexture( TextureHandle texture ) -> void override;
         auto BindSampler( SamplerHandle sampler ) -> void override;
         auto Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void override;
-        auto CreateNamedPipeline( std::string_view name, PipelineDescription description, PipelineType type ) -> void override;
 
         ~VulkanGraphicsContext() override = default;
         auto CreateCommandList() -> PassCommandList * override;

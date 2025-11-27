@@ -85,6 +85,8 @@ namespace Mikoto {
         m_EditorState->ActiveEditorScene = m_ActiveScene.get();
 
         m_EditorState->SelectedEntity = m_ActiveScene->FindFirstByName( "Ground" );
+
+        m_EditorState->MaterialVisualizer = m_SceneRenderer->GetMaterialPreviewer();
     }
 
     auto EditorLayer::OnDestroy() -> void {

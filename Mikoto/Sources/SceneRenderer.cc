@@ -20,6 +20,8 @@ namespace Mikoto {
         InitGraphicsContex();
 
         InitCoreFramePasses();
+
+        InitPreviewer();
     }
 
     auto SceneRenderer::Shutdown() -> void {
@@ -79,6 +81,10 @@ namespace Mikoto {
         return handle;
     }
 
+    auto SceneRenderer::GetMaterialPreviewer() const -> MaterialViewer* {
+        return m_MaterialViewer.get();
+    }
+
     auto SceneRenderer::SetRenderResolution( RenderResolution resolution ) -> void {
         m_RenderResolution = resolution;
     }
@@ -94,6 +100,9 @@ namespace Mikoto {
     auto SceneRenderer::Create( const SceneRendererCreateInfo &createInfo ) -> Unique<SceneRenderer> {
         return CreateScope<SceneRenderer>( createInfo );
     }
+    auto SceneRenderer::InitPreviewer() -> void {
+        m_MaterialViewer = CreateScope<MaterialViewer>( m_RendererBackend  );
+    }
 
     auto SceneRenderer::InitGraphicsContex() -> void {
         m_RendererBackend = RenderService::Get()->GetBackend();
@@ -107,6 +116,8 @@ namespace Mikoto {
         if (m_GraphicsContext == nullptr) {
             return;
         }
+
+        m_FrameGraph = FrameGraph::Create( m_GraphicsContext );
 
         // These passes will be configurable
 
@@ -128,10 +139,10 @@ namespace Mikoto {
 
         // Register passes
         for (auto& pass : m_Registry | std::ranges::views::values) {
-            m_FrameGraph.RegisterPass( pass.get() );
+            m_FrameGraph->RegisterPass( pass.get() );
         }
 
-        m_FrameGraph.Compile( *m_GraphicsContext );
+        m_FrameGraph->Compile( *m_GraphicsContext );
     }
 
     auto SceneRendererCreateInfo::WithName( std::string_view name ) -> SceneRendererCreateInfo & {
@@ -142,6 +153,18 @@ namespace Mikoto {
     auto SceneRendererCreateInfo::WithDevice( GpuDevice *device ) -> SceneRendererCreateInfo & {
         this->Device = device;
         return *this;
+    }
+
+    MaterialViewer::MaterialViewer( RendererBackend *backend )
+        : m_RendererBackend{ backend }
+    {
+    }
+    auto MaterialViewer::SetMaterial( MaterialHandle material ) -> void {
+        m_Material = material;
+    }
+    auto MaterialViewer::SetViewPort( float width, float height ) -> void {
+        m_ViewportWidth = width;
+        m_ViewportHeight = height;
     }
 
 }// namespace Mikoto

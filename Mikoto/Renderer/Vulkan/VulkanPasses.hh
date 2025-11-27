@@ -94,6 +94,8 @@ namespace Mikoto::VulkanPasses {
         auto OnResize(UInt32 width, UInt32 height) -> void override;
 
         auto GetFinalComposition() const -> TextureHandle;
+        auto SetMaterialPreviewMat(MaterialHandle ref ) -> void;
+        auto SetMaterialPreviewViewport(float width, float height ) -> void;
 
     private:
         GpuDevice* m_Device{};
@@ -104,6 +106,8 @@ namespace Mikoto::VulkanPasses {
         PipelineHandle m_Pipeline{};
         AttachmentInfo m_ColorTarget{};
         AttachmentInfo m_DepthTarget{};
+
+        MaterialHandle m_Material{ };
 
         DescriptorSetLayoutHandle m_EntitiesSetLayout{  };
 

@@ -52,6 +52,22 @@ namespace Mikoto {
         auto WithDevice(GpuDevice* device) -> SceneRendererCreateInfo&;
     };
 
+    class MaterialViewer {
+    public:
+        explicit MaterialViewer( RendererBackend* backend );
+
+        auto SetMaterial( MaterialHandle material ) -> void;
+
+        auto SetViewPort( float width, float height ) -> void;
+
+    private:
+        RendererBackend* m_RendererBackend{};
+        float m_ViewportWidth{ 0u };
+        float m_ViewportHeight{ 0u };
+
+        MaterialHandle m_Material{};
+    };
+
     /**
      * @brief SceneRenderer is responsible for rendering a scene in the engine.
      * The `SceneRenderer` handles the initialization, rendering, and management of scene rendering tasks.
@@ -115,6 +131,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetFinalComposition() const -> TextureHandle;
 
         MKT_NODISCARD auto GetMaterialPreview() const -> TextureHandle;
+        MKT_NODISCARD auto GetMaterialPreviewer() const -> MaterialViewer*;
 
         /**
          * @brief Sets the render resolution for the renderer.
@@ -153,10 +170,13 @@ namespace Mikoto {
 
     private:
         // [Internal usage]
+        auto InitPreviewer() -> void;
         auto InitGraphicsContex() -> void;
         auto InitCoreFramePasses() -> void;
 
     private:
+
+        Unique<MaterialViewer> m_MaterialViewer{};
 
         RenderResolution m_RenderResolution{ RenderResolution::RESOLUTION_FHD };
 
@@ -169,7 +189,7 @@ namespace Mikoto {
 
         Registry<FramePass> m_Registry{};
 
-        FrameGraph m_FrameGraph{};
+        Unique<FrameGraph> m_FrameGraph{};
         GraphicsContext* m_GraphicsContext{ nullptr };
 
         UInt32 m_ViewportWidth{ 0u };

@@ -74,6 +74,10 @@ namespace Mikoto {
 
         EditorState* m_EditorState{ nullptr };
 
+        // NOTE: texture is static because drag and
+        // drop needs this to persis
+        TextureHandle m_Thumbnail{};
+
         ankerl::unordered_dense::map<TextureIconType, TextureHandle> m_Textures{};
         ankerl::unordered_dense::map<TextureIconType, ImTextureID> m_ImGuiTextureHandles{};
     };

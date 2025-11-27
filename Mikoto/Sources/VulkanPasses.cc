@@ -422,6 +422,20 @@ namespace Mikoto::VulkanPasses {
         return m_ColorTarget.Image;
     }
 
+    auto TextureRenderPass::SetMaterialPreviewMat( MaterialHandle ref ) -> void {
+        m_Material = ref;
+    }
+
+    auto TextureRenderPass::SetMaterialPreviewViewport( float width, float height ) -> void {
+        m_Viewport.x = 0;
+        m_Viewport.y = 0;
+        m_Viewport.width = width;
+        m_Viewport.height = height;
+        m_Viewport.minDepth = 0.0f;
+        m_Viewport.maxDepth = 1.0f;
+
+    }
+
     auto ShadingPass::OnResize( UInt32 width, UInt32 height ) -> void {
         // TODO: resize color/depth targets
     }

@@ -5,19 +5,22 @@
 // C++ Standard Library
 #include <array>
 #include <cstdlib>
+#include <ranges>
+
 // Third-Party Libraries
 #include <volk.h>
 
-#include <Renderer/Core/RenderUtility.hh>
 #include <Core/Profiler.hh>
 #include <Material/PBRMaterial.hh>
 #include <Material/ShaderLibrary.hh>
-#include <Scene/Component.hh>
 #include <Memory/Allocator.hh>
+#include <Renderer/Core/RenderUtility.hh>
+#include <Scene/Component.hh>
 
 #include "Renderer/Vulkan/VulkanDevice.hh"
 #include "Renderer/Vulkan/VulkanHelpers.hh"
 #include "Renderer/Vulkan/VulkanPasses.hh"
+#include "Renderer/Vulkan/VulkanRenderer.hh"
 #include "Renderer/Vulkan/VulkanTexture.hh"
 
 namespace Mikoto::VulkanPasses {
@@ -352,6 +355,47 @@ namespace Mikoto::VulkanPasses {
         pipelineDesc.DefaultVertexLayout = layout;
 
         m_Pipeline = m_Device->CreatePipeline( pipelineDesc );
+
+        // ───────────────────────────────────────────────
+        // [ Set = 0 ] Bindless textures
+        // ───────────────────────────────────────────────
+        const UInt32 maxBindlessTextures{ VulkanRenderer::GetMaxBindlessTextureCount() };
+        std::array variableCount{ maxBindlessTextures };
+        VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO };
+        variableCountInfo.descriptorSetCount = static_cast<UInt32>( variableCount.size() );
+        variableCountInfo.pDescriptorCounts = variableCount.data();
+
+        VulkanGraphicsPipeline* vkPipeline{ dynamic_cast<VulkanGraphicsPipeline*>( m_Pipeline.GetRaw() ) };
+
+        // Bindless set is at set 0, see FullscreenTriangle_Frag.glsl
+        const VkDescriptorSetLayout& layoutTextures{ vkPipeline->GetDescriptorSetLayout( 0 ) };
+        m_TexturesSet = TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( &layoutTextures, std::addressof( variableCountInfo ) );
+    }
+
+    auto TextureRenderPass::UpdateBindlessTextureDescriptor( Int32 index, VulkanTexture* texture ) const -> void {
+        if ( !texture->HasSampler() ) {
+            texture->SetSampler( m_Device->CreateSampler( SamplerDescription{} ) );
+        }
+
+        VkSampler sampler{ texture->GetSampler()->GetNativeHandle( ObjectType::Vk_Sampler ) };
+
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.sampler = sampler;
+        imageInfo.imageView = texture->GetNativeHandle( ObjectType::Vk_ImageView );
+
+        // is this the image's layout or the layout I want to be for optimal sampling
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        VkWriteDescriptorSet write{};
+        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.dstSet = m_TexturesSet;
+        write.dstBinding = 0;
+        write.dstArrayElement = index;
+        write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        write.descriptorCount = 1;
+        write.pImageInfo = &imageInfo;
+
+        vkUpdateDescriptorSets( VK_DEVICE( m_Device ), 1, &write, 0, nullptr );
     }
 
     auto TextureRenderPass::Shutdown() -> void {
@@ -359,6 +403,24 @@ namespace Mikoto::VulkanPasses {
 
     auto TextureRenderPass::Begin( CommandListHandle cmd ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
+        // Prepare resources
+        if ( m_UpdateTextureDescriptor ) {
+
+            // We push all the textures we need, when we begin render
+            // we make sure they are all visible through the descriptor set
+            // do this once and only when is needed if the texture list hasn't changed
+            // there's no need to update this descriptor set
+            for ( TextureHandle& texture: m_BindlessTextures | std::ranges::views::values ) {
+
+                const auto vkTexture{ dynamic_cast<VulkanTexture*>( texture.GetRaw() ) };
+
+                const Int32 textureIndex{ vkTexture->GetTextureIndex() };
+                UpdateBindlessTextureDescriptor( textureIndex, vkTexture );
+            }
+
+            m_UpdateTextureDescriptor = false;
+        }
 
         m_CmdList = cmd;
         VkCommandBuffer vkCmd { cmd->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
@@ -389,6 +451,10 @@ namespace Mikoto::VulkanPasses {
         renderingInfo.colorAttachmentCount = static_cast<UInt32>( colorAttachments.size() );
         renderingInfo.pColorAttachments = colorAttachments.data();
         renderingInfo.pDepthAttachment = std::addressof( depthAttachment );
+
+        const VkPipelineLayout pipeline{ m_Pipeline->GetNativeHandle(ObjectType::Vk_PipelineLayout) };
+
+        vkCmdBindDescriptorSets(vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline, 0, 1, std::addressof( m_TexturesSet ), 0, nullptr);
 
         vkCmdBeginRendering( vkCmd, &renderingInfo );
 
@@ -434,6 +500,13 @@ namespace Mikoto::VulkanPasses {
         m_Viewport.minDepth = 0.0f;
         m_Viewport.maxDepth = 1.0f;
 
+    }
+
+    auto TextureRenderPass::RegisterTextureForRender( TextureHandle texture ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        m_BindlessTextures.try_emplace(texture.GetRaw(), texture );
+        m_UpdateTextureDescriptor = true;
     }
 
     auto ShadingPass::OnResize( UInt32 width, UInt32 height ) -> void {

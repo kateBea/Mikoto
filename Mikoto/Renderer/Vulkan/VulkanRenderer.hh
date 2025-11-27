@@ -75,7 +75,7 @@ namespace Mikoto {
         // [Internal usage]
         auto InitGlobalShaderBuffers() -> void;
         auto CreateBindlessDescriptor() -> void;
-        auto UpdateBindlessTextureDescriptor( Int32 index, VulkanTexture* texture ) const -> void;
+        auto UpdateBindlessTextureDescriptor( Int32 index, VulkanTexture* texture ) -> void;
 
         auto InitCoreRenderPasses() -> void;
 
@@ -139,9 +139,6 @@ namespace Mikoto {
 
         VkDescriptorSet m_FrameSet{ VK_NULL_HANDLE };
         VkDescriptorSet m_TexturesSet{ VK_NULL_HANDLE };
-
-        VkDescriptorSet m_FrameSetTexture{ VK_NULL_HANDLE };
-        VkDescriptorSet m_TexturesSetTexture{ VK_NULL_HANDLE };
 
 #if defined( MKT_USE_VULKAN_BINDLESS )
         bool m_UpdateTextureDescriptor{ false };

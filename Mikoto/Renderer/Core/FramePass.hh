@@ -28,7 +28,7 @@ namespace Mikoto {
 
         virtual ~FramePass() = default;
 
-        virtual auto Setup(GraphicsContext* device) -> void = 0;
+        virtual auto Setup(FrameGraphBuilder& device) -> void = 0;
         virtual auto Execute(PassCommandList& cmdList) -> void = 0;
 
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
@@ -37,21 +37,9 @@ namespace Mikoto {
         explicit FramePass(std::string_view name )
             : m_Name{ name } {}
 
-        auto RegisterInput(std::string_view name) -> void;
-        auto RegisterOutput(std::string_view name) -> void;
-        auto RegisterResource(std::string_view name) -> void;
-
     protected:
 
         std::string m_Name{};
-
-        std::vector<std::string> m_Inputs{};
-        std::vector<std::string> m_Outputs{};
-        std::vector<std::string> m_Resources{};
-
-        // std::vector<FrameResource> m_Inputs{};
-        // std::vector<FrameResource> m_Outputs{};
-        // std::vector<FrameResource> m_Resources{};
     };
 
     class FinalCompositionPass final : public FramePass {
@@ -60,7 +48,7 @@ namespace Mikoto {
         explicit FinalCompositionPass()
             : FramePass{ "FinalCompositionPass" } {}
 
-        auto Setup(GraphicsContext* device) -> void override;
+        auto Setup(FrameGraphBuilder& device) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
 
         auto SetScene(Scene* scene) -> void;
@@ -79,7 +67,7 @@ namespace Mikoto {
         explicit ShadowPass()
             : FramePass{ "ShadowPass" } {}
 
-        auto Setup(GraphicsContext* device) -> void override;
+        auto Setup(FrameGraphBuilder& device) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
 
         auto SetScene(Scene* scene) -> void;
@@ -97,7 +85,7 @@ namespace Mikoto {
         explicit TextPass()
             : FramePass{ "TextPass" } {}
 
-        auto Setup(GraphicsContext* device) -> void override;
+        auto Setup(FrameGraphBuilder& device) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
 
         auto SetScene(Scene* scene) -> void;
@@ -113,7 +101,7 @@ namespace Mikoto {
         explicit SimpleComputePass()
             : FramePass{ "SimpleComputePass" } {}
 
-        auto Setup(GraphicsContext* device) -> void override;
+        auto Setup(FrameGraphBuilder& device) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
 
 

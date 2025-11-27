@@ -121,28 +121,30 @@ namespace Mikoto {
 
         // These passes will be configurable
 
+        FrameGraphBuilder builder{};
+
         // Create and configure shadow pass
         ShadowPass* shadowPass{ m_Registry.Register<ShadowPass>() };
-        shadowPass->Setup( m_GraphicsContext );
+        shadowPass->Setup( builder );
 
         // Create and configure final composition
         FinalCompositionPass* finalCompositionPass{ m_Registry.Register<FinalCompositionPass>() };
-        finalCompositionPass->Setup( m_GraphicsContext );
+        finalCompositionPass->Setup( builder );
 
         // Create and configure Text pass
         TextPass* textPass{ m_Registry.Register<TextPass>() };
-        textPass->Setup( m_GraphicsContext );
+        textPass->Setup( builder );
 
         // Create and configure Compute
         SimpleComputePass* simpleComputePass{ m_Registry.Register<SimpleComputePass>() };
-        simpleComputePass->Setup( m_GraphicsContext );
+        simpleComputePass->Setup( builder );
 
         // Register passes
         for (auto& pass : m_Registry | std::ranges::views::values) {
             m_FrameGraph->RegisterPass( pass.get() );
         }
 
-        m_FrameGraph->Compile( *m_GraphicsContext );
+        m_FrameGraph->Compile( builder );
     }
 
     auto SceneRendererCreateInfo::WithName( std::string_view name ) -> SceneRendererCreateInfo & {

@@ -346,6 +346,7 @@ namespace Mikoto::VulkanPasses {
         pipelineDesc.DepthTest = true;
         pipelineDesc.DepthWrite = true;
         pipelineDesc.AlphaBlending = true;
+        pipelineDesc.PrimitiveTopology = Topology::TRIANGLE_STRIP;
         pipelineDesc.DepthTexture = m_DepthTarget.Image;
         pipelineDesc.ColorAttachments = { m_ColorTarget.Image };
         pipelineDesc.DefaultVertexLayout = layout;
@@ -383,6 +384,7 @@ namespace Mikoto::VulkanPasses {
         VkRenderingInfo renderingInfo{};
         renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
         renderingInfo.renderArea = { { 0, 0 }, { 1920, 1080 } };
+        renderingInfo.layerCount = 1;
         renderingInfo.layerCount = 1;
         renderingInfo.colorAttachmentCount = static_cast<UInt32>( colorAttachments.size() );
         renderingInfo.pColorAttachments = colorAttachments.data();

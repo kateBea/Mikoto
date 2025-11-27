@@ -24,21 +24,8 @@
 
 namespace Mikoto {
 
-    struct GraphicsPipelineConfiguration {
-        VkPipelineViewportStateCreateInfo ViewportInfo{};
-        VkPipelineInputAssemblyStateCreateInfo InputAssemblyInfo{};
-        VkPipelineRasterizationStateCreateInfo RasterizationInfo{};
-        VkPipelineMultisampleStateCreateInfo MultisampleInfo{};
-        VkPipelineColorBlendAttachmentState ColorBlendAttachment{};
-        VkPipelineColorBlendStateCreateInfo ColorBlendInfo{};
-        VkPipelineDepthStencilStateCreateInfo DepthStencilInfo{};
-        VkPipelineDynamicStateCreateInfo DynamicStateInfo{};
-
-        std::vector<VkDynamicState> DynamicStates{};
-    };
-
-    static auto GetDefaultGraphicsPipelineConfigInfo() -> GraphicsPipelineConfiguration {
-        GraphicsPipelineConfiguration configInfo{};
+    static auto GetDefaultGraphicsPipelineConfigInfo() -> VulkanGraphicsPipelineConfiguration {
+        VulkanGraphicsPipelineConfiguration configInfo{};
 
         // [Input assembly]
         configInfo.InputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -180,13 +167,15 @@ namespace Mikoto {
     }
 
     VulkanGraphicsPipeline::VulkanGraphicsPipeline( const VulkanGraphicsPipelineDescription& info)
-        : GraphicsPipeline{ info.ShaderModules } {
+        : GraphicsPipeline{ info.Desc.ShaderStages } {
 
-        m_VertexBufferLayout = info.VertexBufferLayout;
+        m_Topology = info.Desc.PrimitiveTopology;
 
-        m_DepthAttachmentFormat = dynamic_cast<const VulkanTexture*>(info.Depth.GetRaw() )->GetViewCreateInfo().format;
+        m_VertexBufferLayout = info.Desc.DefaultVertexLayout;
 
-        for (auto& attachment : info.ColorAttachments) {
+        m_DepthAttachmentFormat = dynamic_cast<const VulkanTexture*>(info.Desc.DepthTexture.GetRaw() )->GetViewCreateInfo().format;
+
+        for (auto& attachment : info.Desc.ColorAttachments) {
             m_ColorAttachmentsFormats.emplace_back( dynamic_cast<const VulkanTexture*>(attachment.GetRaw() )->GetViewCreateInfo().format );
         }
     }
@@ -196,6 +185,14 @@ namespace Mikoto {
 
         vkDestroyPipeline( VK_DEVICE(m_Device), m_Pipeline, nullptr );
         m_IsAllocated = false;
+    }
+
+    auto VulkanGraphicsPipeline::SetupConfig( VulkanGraphicsPipelineConfiguration& config ) const -> void {
+        config.ColorBlendInfo.pAttachments = &config.ColorBlendAttachment;
+
+        if (m_Topology == Topology::TRIANGLE_STRIP) {
+            config.InputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+        }
     }
 
     auto VulkanGraphicsPipeline::Bind( const VkCommandBuffer commandBuffer ) const -> void {
@@ -236,8 +233,7 @@ namespace Mikoto {
         // TODO: Memory corrupted after setting up the shaders Debug for more details and check ColorBlendInfo
         auto defaultInfo{ GetDefaultGraphicsPipelineConfigInfo() };
 
-        // FIXME: See GetDefaultGraphicsPipelineConfigInfo
-        defaultInfo.ColorBlendInfo.pAttachments = &defaultInfo.ColorBlendAttachment;
+        SetupConfig(defaultInfo);
 
         VkGraphicsPipelineCreateInfo pipelineInfo{ VulkanHelpers::Initializers::GraphicsPipelineCreateInfo() };
 

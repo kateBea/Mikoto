@@ -377,14 +377,15 @@ namespace Mikoto {
                     }
 
                     // DRAG SOURCE must be checked after drawing the item
-                    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+                    if (ImGui::BeginDragDropSource()) {
 
-                        // Send the texture ID as payload
+                        // Send the texture handle
                         ImGui::SetDragDropPayload("CONTENT_BROWSER_TEXT", std::addressof( m_Thumbnail ), sizeof(TextureHandle));
 
                         // Preview
-                        ImGui::Image(imguiTextID, ImVec2(48, 48), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
-                        ImGui::Text("  Move Icon  ");
+                        constexpr float previewDimensions{ 48.0f };
+                        ImGui::Image(imguiTextID, ImVec2(previewDimensions, previewDimensions), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+                        ImGuiUtils::CenteredText( fmt::format( "Move Icon" ).c_str(), previewDimensions );
 
                         ImGui::EndDragDropSource();
                     }

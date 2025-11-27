@@ -214,7 +214,7 @@ namespace Mikoto {
             UpdateMaterialTexture( material, MapType::ALBEDO_TEXTURE );
         }
 
-        // Target
+        // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
                 TextureHandle albedoMap{ *static_cast<TextureHandle*>( payload->Data ) };
@@ -298,6 +298,17 @@ namespace Mikoto {
             UpdateMaterialTexture( material, MapType::METALLIC_TEXTURE );
         }
 
+        // Target from content browser
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+                TextureHandle metallicMap{ *static_cast<TextureHandle*>( payload->Data ) };
+                material.SetTextureType( MapType::METALLIC_TEXTURE, metallicMap );
+
+                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+            }
+            ImGui::EndDragDropTarget();
+        }
+
         if ( material.HasTextureType( MapType::METALLIC_TEXTURE ) ) {
             ImGuiUtils::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( metallicMap.GetRaw() );
@@ -363,6 +374,17 @@ namespace Mikoto {
             UpdateMaterialTexture( material, MapType::NORMAL_TEXTURE );
         }
 
+        // Target from content browser
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+                TextureHandle normalMap{ *static_cast<TextureHandle*>( payload->Data ) };
+                material.SetTextureType( MapType::NORMAL_TEXTURE, normalMap );
+
+                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+            }
+            ImGui::EndDragDropTarget();
+        }
+
         if ( material.HasTextureType( MapType::NORMAL_TEXTURE ) ) {
             ImGuiUtils::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( normalMap.GetRaw() );
@@ -424,6 +446,17 @@ namespace Mikoto {
 
         if ( ImGuiUtils::PushImageButton( roughnessMap->GetHandle(), ImGuiService::Get()->GetTextureID( roughnessMap ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::ROUGHNESS_TEXTURE );
+        }
+
+        // Target from content browser
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+                TextureHandle roughnessMap{ *static_cast<TextureHandle*>( payload->Data ) };
+                material.SetTextureType( MapType::ROUGHNESS_TEXTURE, roughnessMap );
+
+                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+            }
+            ImGui::EndDragDropTarget();
         }
 
         if ( material.HasTextureType( MapType::ROUGHNESS_TEXTURE ) ) {
@@ -489,6 +522,17 @@ namespace Mikoto {
 
         if ( ImGuiUtils::PushImageButton( aoMap->GetHandle(), ImGuiService::Get()->GetTextureID( aoMap ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::AMBIENT_OCCLUSION_TEXTURE );
+        }
+
+        // Target from content browser
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+                TextureHandle aoMap{ *static_cast<TextureHandle*>( payload->Data ) };
+                material.SetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE, aoMap );
+
+                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+            }
+            ImGui::EndDragDropTarget();
         }
 
         if ( material.HasTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) ) {

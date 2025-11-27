@@ -18,6 +18,7 @@
 #include <Renderer/Core/Pipeline.hh>
 
 namespace Mikoto {
+    class PassCommandList;
 
     enum class RenderTargetType {
         COLOR,
@@ -67,6 +68,9 @@ namespace Mikoto {
         virtual auto CreateNamedPipeline(std::string_view name, PipelineDescription description, PipelineType type) -> void = 0;
         virtual auto CreateNamedRenderTarget(std::string_view name, TextureDescription description, RenderTargetType) -> void = 0;
 
+        virtual auto CreateCommandList() -> PassCommandList* = 0;
+
+        virtual auto SubmitCommandList(PassCommandList* cmd) -> void = 0;
 
         virtual auto BindBuffer(BufferHandle texture) -> void = 0;
         virtual auto BindTexture(TextureHandle texture) -> void = 0;
@@ -79,6 +83,9 @@ namespace Mikoto {
 
     class PassCommandList {
     public:
+
+        auto Begin() -> void;
+        auto End() -> void;
 
         explicit PassCommandList(GraphicsContext* context);
 

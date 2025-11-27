@@ -40,6 +40,8 @@ namespace Mikoto {
         // Debug
         TextureHandle PreviewMaterial{};
 
+        MaterialViewer* MaterialVisualizer{};
+
         // Panels close flags
         bool StatsPanelVisible{ true };
         bool ContentBrowser{ true };

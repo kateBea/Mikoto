@@ -52,4 +52,9 @@ namespace Mikoto {
     }
     auto VulkanGraphicsContext::CreateNamedPipeline( std::string_view name, PipelineDescription description, PipelineType type ) -> void {
     }
+    auto VulkanGraphicsContext::CreateCommandList() -> PassCommandList * {
+        return nullptr;
+    }
+    auto VulkanGraphicsContext::SubmitCommandList( PassCommandList *cmd ) -> void {
+    }
 }// namespace Mikoto

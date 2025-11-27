@@ -26,6 +26,10 @@ namespace Mikoto {
 
         return result;
     }
+    auto PassCommandList::Begin() -> void {
+    }
+    auto PassCommandList::End() -> void {
+    }
 
     PassCommandList::PassCommandList( GraphicsContext *context ) {
     }

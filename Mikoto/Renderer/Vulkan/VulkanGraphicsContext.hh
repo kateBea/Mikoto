@@ -43,6 +43,8 @@ namespace Mikoto {
         auto CreateNamedPipeline( std::string_view name, PipelineDescription description, PipelineType type ) -> void override;
 
         ~VulkanGraphicsContext() override = default;
+        auto CreateCommandList() -> PassCommandList * override;
+        auto SubmitCommandList( PassCommandList *cmd ) -> void override;
 
     private:
         // Information I store for each pass

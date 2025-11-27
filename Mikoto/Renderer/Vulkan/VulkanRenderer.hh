@@ -60,7 +60,10 @@ namespace Mikoto {
         auto SetClearColor( float r, float g, float b, float a ) -> void override;
 
         auto GetFinalComposition() const -> TextureHandle override;
+
         auto GetMaterialPreview() const -> TextureHandle override;
+        auto SetMaterialPreviewMat(MaterialHandle material) -> void override;
+        auto SetMaterialPreviewViewport(float width, float height) -> void override;
 
         auto RegisterTextureForRender( TextureHandle texture ) -> void;
 

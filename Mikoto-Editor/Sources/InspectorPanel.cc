@@ -214,6 +214,17 @@ namespace Mikoto {
             UpdateMaterialTexture( material, MapType::ALBEDO_TEXTURE );
         }
 
+        // Target
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+                TextureHandle albedoMap{ *static_cast<TextureHandle*>( payload->Data ) };
+                material.SetTextureType( MapType::ALBEDO_TEXTURE, albedoMap );
+
+                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+            }
+            ImGui::EndDragDropTarget();
+        }
+
         if ( material.HasTextureType( MapType::ALBEDO_TEXTURE ) ) {
             ImGuiUtils::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( material.GetTextureType( MapType::ALBEDO_TEXTURE ).GetRaw() );

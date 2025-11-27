@@ -347,10 +347,11 @@ namespace Mikoto {
                 ImTextureID icon{};
                 std::string fileType{};
 
-                // TODO:
-                TextureHandle thumbnail{};
+                // TODO: Figure a better way to preview explorer texture, this right now is costly
                 if (entry.path().string().ends_with( ".png" ) || entry.path().string().ends_with( ".jpg" ) ) {
-                    thumbnail = AssetsService::Get()->LoadAsset<Texture>( entry.path() );
+                    m_Thumbnail = AssetsService::Get()->LoadAsset<Texture>( entry.path() );
+                } else {
+                    m_Thumbnail = TextureHandle::CreateEmpty();
                 }
 
                 if ( entry.is_directory() ) {
@@ -363,11 +364,30 @@ namespace Mikoto {
                 }
 
                 ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0, 0, 0, 0 ) );
-                if (thumbnail.IsEmpty()) {
-                    if ( ImGui::ImageButton( entry.path().string().c_str(), icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } ) ) {}
+                if (m_Thumbnail.IsEmpty()) {
+                    if ( ImGui::ImageButton( entry.path().string().c_str(), icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } ) ) {
+
+                    }
                 } else {
-                    ImTextureID imguiTextID{ ImGuiService::Get()->GetTextureID( thumbnail ) };
-                    if ( ImGui::ImageButton( entry.path().string().c_str(), imguiTextID, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } ) ) {}
+                    static ImTextureID imguiTextID{};
+                    imguiTextID = ImGuiService::Get()->GetTextureID( m_Thumbnail );
+
+                    if ( ImGui::ImageButton( entry.path().string().c_str(), imguiTextID, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } ) ) {
+
+                    }
+
+                    // DRAG SOURCE must be checked after drawing the item
+                    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+
+                        // Send the texture ID as payload
+                        ImGui::SetDragDropPayload("CONTENT_BROWSER_TEXT", std::addressof( m_Thumbnail ), sizeof(TextureHandle));
+
+                        // Preview
+                        ImGui::Image(imguiTextID, ImVec2(48, 48), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+                        ImGui::Text("  Move Icon  ");
+
+                        ImGui::EndDragDropSource();
+                    }
                 }
 
                 if ( ImGui::IsItemHovered() ) {

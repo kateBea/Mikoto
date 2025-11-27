@@ -270,6 +270,22 @@ namespace Mikoto {
         return handle;
     }
 
+    auto VulkanRenderer::SetMaterialPreviewMat(MaterialHandle material) -> void {
+        using namespace Mikoto::VulkanPasses;
+
+        if ( TextureRenderPass* textureRenderPass{ m_Passes.Get<TextureRenderPass>() } ) {
+            textureRenderPass->SetMaterialPreviewMat(material);
+        }
+    }
+
+    auto VulkanRenderer::SetMaterialPreviewViewport( float width, float height ) -> void {
+        using namespace Mikoto::VulkanPasses;
+
+        if ( TextureRenderPass * textureRenderPass{ m_Passes.Get<TextureRenderPass>() } ) {
+            textureRenderPass->SetMaterialPreviewViewport(width, height);
+        }
+    }
+
     auto VulkanRenderer::RegisterTextureForRender( TextureHandle texture ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 

@@ -577,16 +577,9 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreatePipeline( const GraphicsPipelineDescription& description ) -> PipelineHandle {
-        VulkanGraphicsPipelineDescription defaultInfo{};
-        defaultInfo.Depth = description.DepthTexture;
-        defaultInfo.ColorAttachments = description.ColorAttachments;
-        defaultInfo.ShaderModules = description.ShaderStages;
-
-        //defaultInfo.DepthStencilInfo.depthTestEnable = description.DepthTest ? VK_TRUE : VK_FALSE;
-        //defaultInfo.DepthStencilInfo.depthWriteEnable = description.DepthWrite ? VK_TRUE : VK_FALSE;
-        //defaultInfo.ColorBlendAttachment.blendEnable = description.AlphaBlending ? VK_TRUE : VK_FALSE;
-
-        //defaultInfo.RasterizationInfo.cullMode = description.BackfaceCulling ? VK_CULL_MODE_BACK_BIT : VK_CULL_MODE_NONE;
+        VulkanGraphicsPipelineDescription defaultInfo{
+            .Desc{ description }
+        };
 
         PipelineHandle graphicsPipeline{ m_GraphicsPipelines.Allocate( defaultInfo ).As<IPipeline>() };
         if ( graphicsPipeline.IsEmpty() ) {

@@ -21,18 +21,26 @@
 namespace Mikoto {
 
     struct VulkanGraphicsPipelineDescription {
+        GraphicsPipelineDescription Desc{};
 
 #if !defined(MKT_USE_VULKAN_DYNAMIC_RENDERING)
         // Not needed if we do dynamic rendering
         UInt32 Subpass{};
         VkRenderPass RenderPass{};
 #endif
+    };
 
-        BufferLayout VertexBufferLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT };
+    struct VulkanGraphicsPipelineConfiguration {
+        VkPipelineViewportStateCreateInfo ViewportInfo{};
+        VkPipelineInputAssemblyStateCreateInfo InputAssemblyInfo{};
+        VkPipelineRasterizationStateCreateInfo RasterizationInfo{};
+        VkPipelineMultisampleStateCreateInfo MultisampleInfo{};
+        VkPipelineColorBlendAttachmentState ColorBlendAttachment{};
+        VkPipelineColorBlendStateCreateInfo ColorBlendInfo{};
+        VkPipelineDepthStencilStateCreateInfo DepthStencilInfo{};
+        VkPipelineDynamicStateCreateInfo DynamicStateInfo{};
 
-        TextureHandle Depth{};
-        std::vector<TextureHandle> ColorAttachments{};
-        std::vector<ShaderModuleHandle> ShaderModules{};
+        std::vector<VkDynamicState> DynamicStates{};
     };
 
     class VulkanGraphicsPipeline final : public GraphicsPipeline {
@@ -42,8 +50,6 @@ namespace Mikoto {
         explicit VulkanGraphicsPipeline(const VulkanGraphicsPipelineDescription& info);
 
         auto Bind(VkCommandBuffer commandBuffer) const -> void;
-
-        MKT_NODISCARD auto GetImplHandle() -> VulkanGraphicsPipeline* { return this; }
 
         MKT_NODISCARD auto Get() const -> const VkPipeline& { return m_Pipeline; }
 
@@ -60,6 +66,7 @@ namespace Mikoto {
         auto Initialize() -> void override;
         auto Release() -> void override;
 
+        auto SetupConfig(VulkanGraphicsPipelineConfiguration& config ) const -> void;
     private:
         VkPipeline m_Pipeline{};
 

@@ -5,6 +5,8 @@
 #ifndef MIKOTO_VULKAN_PASSES_HH
 #define MIKOTO_VULKAN_PASSES_HH
 
+#include <utility>
+
 #include <ankerl/unordered_dense.h>
 #include <volk.h>
 
@@ -51,7 +53,7 @@ namespace Mikoto::VulkanPasses {
 
         struct MeshBatch {
             MeshNode* Mesh{ nullptr };
-            std::vector<ShadingPassMeshBufferUBO> Instances{};
+            ankerl::unordered_dense::map<UInt64, ShadingPassMeshBufferUBO> Instances{};
         };
 
         auto InitInstanceData() -> void;

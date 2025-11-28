@@ -163,6 +163,7 @@ namespace Mikoto::VulkanPasses {
         auto renderables{ registry.view<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
 
         for ( auto& entity: renderables ) {
+            auto& tag{ registry.get<TagComponent>( entity ) };
             auto& transform{ registry.get<TransformComponent>( entity ) };
             auto& meshComp { registry.get<MeshComponent>( entity ) };
             auto& materialComp { registry.get<MaterialComponent>( entity ) };
@@ -174,7 +175,15 @@ namespace Mikoto::VulkanPasses {
                 continue;
             }
 
-            ShadingPassMeshBufferUBO ubo{};
+            auto& [Mesh, Instances]{ m_MeshBatches[meshNode] };
+
+            Mesh = meshNode;
+
+            if ( !Instances.contains( tag.GetGUID() ) ) {
+                Instances.try_emplace( tag.GetGUID(), ShadingPassMeshBufferUBO{} );
+            }
+
+            ShadingPassMeshBufferUBO& ubo{ Instances[tag.GetGUID()] };
             ubo.Transform = transform.GetTransform();
             ubo.Albedo = pbrMat->GetColor();
             ubo.Factors.x = pbrMat->GetMetallicFactor();
@@ -185,12 +194,12 @@ namespace Mikoto::VulkanPasses {
             ubo.MetallicIndex = GetMeshTextureIndices( pbrMat->GetTextureType( MapType::METALLIC_TEXTURE ) );
             ubo.RoughnessIndex = GetMeshTextureIndices( pbrMat->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
             ubo.AoIndex = GetMeshTextureIndices( pbrMat->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
-
-            auto& [Mesh, Instances]{ m_MeshBatches[meshNode] };
-
-            Mesh = meshNode;
-            Instances.push_back( ubo );
         }
+
+        auto vkCmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
+        vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                 m_Pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ),
+                                 2, 1, &m_MeshDataSet, 0, nullptr );
 
         // Upload instances into GPU buffer
         UploadInstanceData();
@@ -241,11 +250,6 @@ namespace Mikoto::VulkanPasses {
             const VkDeviceSize dstOffset{ meshInstanceIndex * paddedSize };
             m_InstanceSSBO->CopyFromBlock(&allInstances[meshInstanceIndex], sizeof(ShadingPassMeshBufferUBO), dstOffset);
         }
-
-        auto vkCmd { m_CmdList->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
-        vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                 m_Pipeline->GetNativeHandle(ObjectType::Vk_PipelineLayout),
-                                 2, 1, &m_MeshDataSet, 0, nullptr );
     }
 
     auto ShadingPass::CreateMeshesStorageDescriptorSet() -> void {

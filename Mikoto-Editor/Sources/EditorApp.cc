@@ -20,7 +20,6 @@
 #include <Core/Profiler.hh>
 #include <Core/Root.hh>
 #include <Core/TimeService.hh>
-#include <Core/Timer.hh>
 #include <Layers/EditorLayer.hh>
 #include <Logging/Logger.hh>
 

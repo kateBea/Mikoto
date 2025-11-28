@@ -84,7 +84,7 @@ namespace Mikoto {
         m_EditorState->FinalComposition = m_SceneRenderer->GetFinalComposition();
         m_EditorState->PreviewMaterial = m_SceneRenderer->GetMaterialPreview();
 
-        m_EditorState->ActiveEditorScene = m_ActiveScene.get();
+        m_EditorState->ActiveEditorScene = m_ActiveScene;
 
         m_EditorState->SelectedEntity = m_ActiveScene->FindFirstByName( "Ground" );
 
@@ -163,25 +163,10 @@ namespace Mikoto {
 
     auto EditorLayer::SaveScene() const -> void {
         // File filters
-        const std::initializer_list<std::pair<std::string, std::string>> filters{
-            { "Mikoto Scene files", "mkts,mktscene" },
-            { "Mikoto Project Files", "mkt,mktp,mktproject" }
-        };
-        
-        const Path savePath{ FileService::Get()->SaveDialog( "Mikoto Scene", filters ) };
-        
-        m_SceneSerializer->Serialize( *m_ActiveScene, savePath );
+        SceneManager::Get()->SaveSceneFromDisk( m_ActiveScene, m_SceneSerializer.get() );
     }
 
     auto EditorLayer::LoadScene() -> void {
-        // File filters
-        const std::initializer_list<std::pair<std::string, std::string>> filters{
-            { "Mikoto Scene files", "mkts,mktscene" },
-            { "Mikoto Project Files", "mkt,mktp,mktproject" }
-        };
-
-        const Path savePath{ FileService::Get()->SaveDialog( "Mikoto Scene", filters ) };
-
         // use the scene manager to add this loaded scene
     }
 
@@ -551,7 +536,7 @@ namespace Mikoto {
     }
 
     auto EditorLayer::InitializeEmptyScene( std::string_view name ) -> void {
-        m_ActiveScene = CreateScope<Scene>( name );
+        m_ActiveScene = SceneManager::Get()->CreateScene(name);
 
         ModelLoadDescription descFirst{
             .ModelFile{ FileService::Get()->LoadFile( "./Resources/Models/1 - Box texture/BoxTexture.obj" ) },
@@ -560,11 +545,10 @@ namespace Mikoto {
 
         ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( descFirst ) };
 
-        m_ActiveScene = Scene::Create( "Hello World" );
         m_ActiveScene->SetName( "Change name just for fun" );
 
         // You need to specify the Scene the physics are simulated on
-        PhysicService::Get()->SetSimulationScene( m_ActiveScene.get() );
+        PhysicService::Get()->SetSimulationScene( m_ActiveScene );
 
         // This emitting sounds
         EntityCreateInfo groundDesc{
@@ -617,7 +601,7 @@ namespace Mikoto {
          const Vec4F& color{ settingsPanel.GetData().ClearColor };
          m_SceneRenderer->SetClearColor( color.r, color.g, color.b, color.a );
 
-         m_SceneRenderer->SetScene( m_ActiveScene.get() );
+         m_SceneRenderer->SetScene( m_ActiveScene );
          m_SceneRenderer->SetCamera( m_EditorCamera.get() );
          m_SceneRenderer->SetViewport( 1920, 1080 );
     }

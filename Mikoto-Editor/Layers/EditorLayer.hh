@@ -116,7 +116,7 @@ namespace Mikoto {
         Path m_ModelsRootDirectory{};
         Path m_FontsRootDirectory{};
 
-        Unique<Scene> m_ActiveScene{};
+        Scene* m_ActiveScene{};
         Unique<SceneRenderer> m_SceneRenderer{};
 
         TextureHandle m_TextureCubeMap{};

@@ -658,10 +658,6 @@ namespace Mikoto {
 
 #endif
 
-    auto Scene::Create( std::string_view name ) -> Unique<Scene> {
-        return CreateScope<Scene>( name );
-    }
-
     Scene::~Scene() {
         Clear();
     }

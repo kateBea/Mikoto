@@ -2,7 +2,6 @@
 // Created by zanet on 10/1/2025.
 //
 
-#include <Renderer/Core/RenderService.hh>
 #include <Assets/AssetsService.hh>
 #include <Audio/AudioService.hh>
 #include <Core/Configuration.hh>
@@ -18,11 +17,13 @@
 #include <Memory/MemoryService.hh>
 #include <Networking/NetworkService.hh>
 #include <Physics/PhysicService.hh>
+#include <Renderer/Core/RenderService.hh>
 #include <Scripting/ScriptingService.hh>
 #include <Threading/TaskService.hh>
 #include <Threading/ThreadUtility.hh>
 
 #include "Core/SystemStats.hh"
+#include "Scene/SceneManager.hh"
 
 namespace Mikoto {
 
@@ -121,6 +122,9 @@ namespace Mikoto {
         };
         NetworkService *networkService{ s_Services.Register<NetworkService>( networkServiceCreate ) };
         networkService->Init();
+
+        SceneManager *sceneManager{ s_Services.Register<SceneManager>() };
+        sceneManager->Init();
 
         //TaskManager::Get()->RunPeriodically( 3, []() -> void { SystemStats::Get()->Update(); } );
     }

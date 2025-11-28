@@ -5,25 +5,30 @@
 #ifndef SCENE_MANAGER_HH
 #define SCENE_MANAGER_HH
 
-#include <vector>
-#include <string_view>
+#include <ankerl/unordered_dense.h>
 
 #include <Library/Utility/Types.hh>
 #include <Scene/Scene.hh>
+#include <Scene/SceneSerializer.hh>
+#include <string_view>
+
+#include "Common/Service.hh"
+
 
 namespace Mikoto {
-    class SceneManager {
+
+    class SceneManager final : public Singleton<SceneManager>, public IService {
     public:
-        /**
-         * Add a scene to the manager.
-         *
-         * Takes ownership of the provided scene and stores it internally. The
-         * manager will be responsible for the lifetime of the scene after this
-         * call.
-         *
-         * @param scene A unique pointer owning the scene to add.
-         */
-        auto AddScene( Unique<Scene> scene ) -> void;
+
+        auto Init() -> void override;
+        auto Shutdown() -> void override;
+
+        // Prompts the user with a native
+        // open dialog to select a file
+        auto LoadSceneFromDisk(SceneSerializer* serializer) -> Scene*;
+        auto SaveSceneFromDisk(Scene* scene, SceneSerializer* serializer) -> void;
+
+        auto CreateScene( std::string_view name ) -> Scene*;
 
         /**
          * Retrieve a scene by name.
@@ -39,7 +44,11 @@ namespace Mikoto {
         MKT_NODISCARD auto GetByName( std::string_view name ) -> Scene *;
 
     private:
-        std::vector<Unique<Scene>> m_Scenes{};
+        auto RegisterNewScene(std::string_view name, Unique<Scene>&& scene ) -> Scene*;
+
+    private:
+
+        ankerl::unordered_dense::map<std::string, Unique<Scene>> m_Scenes{};
     };
 }// namespace Mikoto
 

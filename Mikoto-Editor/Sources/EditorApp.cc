@@ -26,14 +26,12 @@
 
 namespace Mikoto {
 
-    auto EditorApp::Run( const Int32, char ** ) -> Int32 {
+    auto EditorApp::Run() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         while ( IsRunning() ) {
             Update();
         }
-
-        return 0;
     }
 
     auto EditorApp::GetPrefabUri( const PrefabModels prefab ) -> const std::string & {

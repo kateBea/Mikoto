@@ -30,7 +30,7 @@ namespace Mikoto {
     class EditorApp final : public Application, public Subscriber {
     public:
 
-        auto Run(Int32 argc, char** argv) -> Int32 override;
+        auto Run() -> void override;
 
         auto Init() -> void override;
         auto Shutdown() -> void override;

@@ -85,8 +85,6 @@ namespace Mikoto {
         auto GetRegistry() -> entt::registry&;
         auto GetRegistry() const -> const entt::registry&;
 
-        MKT_NODISCARD static auto Create( std::string_view name ) -> Unique<Scene>;
-
         auto Clear() -> void;
 
         ~Scene();

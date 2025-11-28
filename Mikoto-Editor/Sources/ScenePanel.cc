@@ -115,7 +115,9 @@ namespace Mikoto {
             m_ViewPortHeight = dim.y;
         }
 
-        ImGui::Image( m_DisplayTargetImGuiID, ImVec2{ dim.x, dim.y }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
+        // No flipping, the final image is already in the correct viewport coordinates
+        // In the case of vulkan this is also taken into account when setting up the vierwport
+        ImGui::Image( m_DisplayTargetImGuiID, ImVec2{ dim.x, dim.y } );
     }
 
     auto ScenePanel::SetupManipulation() const -> void {

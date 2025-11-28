@@ -116,6 +116,7 @@ namespace Mikoto {
          * this event in scenarios where polymorphism is used
          * */
         MKT_NODISCARD virtual auto GetType() const -> EventType = 0;
+        MKT_NODISCARD virtual auto IsType( const EventType type) const -> bool { return m_Type == type; }
         MKT_NODISCARD virtual auto GetCategoryFlags() const -> EventCategory { return m_Categories; };
 
         /**

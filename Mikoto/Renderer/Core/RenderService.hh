@@ -10,6 +10,7 @@
 #include <Material/ShaderLibrary.hh>
 #include <Platform/Window.hh>
 
+#include <Assets/Texture.hh>
 #include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/RendererBackend.hh>
 #include <Renderer/Core/GraphicsContext.hh>
@@ -31,6 +32,8 @@ namespace Mikoto {
 
         virtual auto SubmitFrame() -> void = 0;
         virtual auto PrepareFrame() -> void = 0;
+
+        virtual auto SetPresentTarget(TextureHandle texture) -> void = 0;
 
         MKT_NODISCARD auto GetGpuDevice() -> GpuDevice* { return m_Device.get(); }
         MKT_NODISCARD auto GetGpuDevice() const -> const GpuDevice* { return m_Device.get(); }
@@ -68,6 +71,9 @@ namespace Mikoto {
 
         auto PrepareFrame() const -> void;
         auto EndFrame() -> void;
+
+        // Must be called once per frame for now
+        auto SetPresentTarget(TextureHandle texture) -> void;
 
         MKT_NODISCARD auto GetContext() -> RenderContext* { return m_Context.get(); }
         MKT_NODISCARD auto GetContext() const -> const RenderContext* { return m_Context.get(); }

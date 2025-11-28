@@ -29,6 +29,8 @@
 #include <Scene/Component.hh>
 #include <Scene/SceneManager.hh>
 
+#include "Core/CoreEvents.hh"
+#include "ImGui/ImGuiService.hh"
 #include "Panels/AssetsPanel.hh"
 
 namespace Mikoto {
@@ -89,6 +91,21 @@ namespace Mikoto {
         m_EditorState->MaterialVisualizer = m_SceneRenderer->GetMaterialPreviewer();
     }
 
+    auto EditorLayer::SetupPresentTarget(Event& event) -> void {
+        if ( const auto* keyPressed{ dynamic_cast<KeyPressedEvent*>(std::addressof( event )) } ) {
+
+            if (keyPressed->GetKeyCode() == Key_F11) {
+                if (m_RenderScreenTarget == RenderScreenTarget::PANEL) {
+                    m_RenderScreenTarget = RenderScreenTarget::WINDOW;
+                } else {
+                    m_RenderScreenTarget = RenderScreenTarget::PANEL;
+                }
+
+                event.SetHandled( true );
+            }
+        }
+    }
+
     auto EditorLayer::OnDestroy() -> void {
         m_EditorState = nullptr;
 
@@ -119,9 +136,20 @@ namespace Mikoto {
         // Panels must appear after dock space
         // so they can become part of it
         UpdatePanels( timeStep );
+
+        if (m_RenderScreenTarget == RenderScreenTarget::PANEL) {
+            m_EditorState->RenderImage = ImGuiService::Get()->GetFinalComposition();
+        } else {
+            m_EditorState->RenderImage = m_EditorState->FinalComposition;
+        }
+
+        RenderService::Get()->SetPresentTarget( m_EditorState->RenderImage );
     }
 
     auto EditorLayer::OnEvent( Event& event ) -> void {
+        if (event.IsType(EventType::KEY_PRESSED_EVENT)) {
+            SetupPresentTarget( event );
+        }
     }
 
     auto EditorLayer::UpdatePanels( float timeStep ) -> void {

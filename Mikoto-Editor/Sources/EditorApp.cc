@@ -116,6 +116,12 @@ namespace Mikoto {
                         return true;
                     } );
 
+        AddHandler( EventType::KEY_PRESSED_EVENT,
+                    [this]( Event &event ) -> bool {
+                        m_LayerStack.OnEvent( event );
+                        return event.IsHandled();
+                    } );
+
         EventService::Get()->Subscribe( this );
     }
 }// namespace Mikoto

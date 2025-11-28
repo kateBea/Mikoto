@@ -33,6 +33,8 @@ namespace Mikoto {
         auto BeginFrame() -> void override;
         auto EndFrame() -> void override;
 
+        MKT_NODISCARD auto GetFinalComposition() -> TextureHandle override;
+
         MKT_NODISCARD auto ConstructImGuiTextureID( const Texture* texture ) -> ImTextureID override;
         MKT_NODISCARD auto ConstructImGuiTextureID( TextureHandle texture ) -> ImTextureID override;
 

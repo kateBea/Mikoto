@@ -175,6 +175,19 @@ namespace Mikoto {
         vkDestroyInstance( GetInstance(), nullptr );
     }
 
+    auto VulkanContext::SetPresentTarget( TextureHandle texture ) -> void {
+
+        // Present is done on the current corresponding swap chain image
+        const UInt32 swapchainAvailableImageIndex{ Get()->GetCurrentImageIndex() };
+
+        CommandListHandle cmdList{ m_Device->CreateCommandList( QueueType::PRESENT_QUEUE ) };
+        cmdList->Begin();
+
+        cmdList->CopyTexture( texture.GetRaw(), m_Swapchain->GetImage( swapchainAvailableImageIndex ).GetRaw() );
+
+        cmdList->End();
+        m_Device->SubmitCommands( cmdList );
+    }
 
     auto VulkanContext::RecreateSwapchain( const bool enableVsync ) -> void {
         const VkExtent2D newExtent{
@@ -316,6 +329,7 @@ namespace Mikoto {
         device->FlushPendingCommands( m_FrameSyncPrimitives[m_CurrentFrameIndex] );
 
         const VkSemaphore& renderFinishedSemaphore{ m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFinishedSemaphore };
+
         const VkResult result{ m_Swapchain->Present( GetCurrentImageIndex(), renderFinishedSemaphore ) };
 
         if ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ) {

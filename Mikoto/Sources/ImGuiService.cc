@@ -243,4 +243,8 @@ namespace Mikoto {
         m_Implementation->BeginFrame();
     }
 
+    auto ImGuiService::GetFinalComposition() const -> TextureHandle {
+        return m_Implementation->GetFinalComposition();
+    }
+
 }// namespace Mikoto

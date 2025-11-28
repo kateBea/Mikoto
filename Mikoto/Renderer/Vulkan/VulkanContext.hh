@@ -48,6 +48,8 @@ namespace Mikoto {
         auto Init() -> bool override;
         auto Shutdown() -> void override;
 
+        auto SetPresentTarget(TextureHandle texture) -> void override;
+
         auto SubmitFrame() -> void override;
         auto PrepareFrame() -> void override;
 

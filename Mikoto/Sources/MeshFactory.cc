@@ -109,9 +109,9 @@ namespace Mikoto {
             }
 
             // Texture coordinates -----
-            if ( mesh->mTextureCoords[0] != nullptr ) {
+            if ( mesh->HasTextureCoords(0) ) {
                 vertices.emplace_back( mesh->mTextureCoords[0][index].x );
-                vertices.emplace_back( invertY ? -mesh->mTextureCoords[0][index].y : mesh->mTextureCoords[0][index].y );
+                vertices.emplace_back( 1 - mesh->mTextureCoords[0][index].y );
             } else {
                 vertices.emplace_back( 0.0f );
                 vertices.emplace_back( 0.0f );

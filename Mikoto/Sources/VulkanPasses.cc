@@ -238,7 +238,9 @@ namespace Mikoto::VulkanPasses {
         std::vector<ShadingPassMeshBufferUBO> allInstances{};
 
         for ( auto& [meshNode, batch]: m_MeshBatches ) {
-            allInstances.insert( allInstances.end(), batch.Instances.begin(), batch.Instances.end() );
+            for ( auto&uboData: batch.Instances | std::views::values ) {
+                allInstances.emplace_back( uboData );
+            }
 
             m_BatchOffsetMap[meshNode] = allInstances.size() - batch.Instances.size();
         }

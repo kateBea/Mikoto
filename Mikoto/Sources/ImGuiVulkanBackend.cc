@@ -330,6 +330,10 @@ namespace Mikoto {
         }
     }
 
+    auto ImGuiVulkanBackend::GetFinalComposition() -> TextureHandle {
+        return m_ColorImage;
+    }
+
     auto ImGuiVulkanBackend::ConstructImGuiTextureID( const Texture* texture ) -> ImTextureID {
         ImTextureID result{};
 
@@ -480,8 +484,6 @@ namespace Mikoto {
         } else {
             RecordRenderPassCommands( cmdList );
         }
-
-        cmdList->CopyTexture( m_ColorImage.GetRaw(), swapChainDrawTarget.GetRaw() );
     }
 
 }// namespace Mikoto

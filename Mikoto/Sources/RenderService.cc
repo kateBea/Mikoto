@@ -78,6 +78,10 @@ namespace Mikoto {
         m_Context->SubmitFrame();
     }
 
+    auto RenderService::SetPresentTarget( TextureHandle texture ) -> void {
+        return m_Context->SetPresentTarget( texture );
+    }
+
     auto RenderService::IsGraphicsActive( const GraphicsAPI api ) const -> bool {
         return m_ActiveAPI == api;
     }

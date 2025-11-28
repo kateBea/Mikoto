@@ -12,6 +12,7 @@
 #include <Common/Service.hh>
 #include <Library/Utility/Types.hh>
 #include <Platform/Window.hh>
+#include <Assets/Texture.hh>
 
 #include "ImGui/ImGuiUtility.hh"
 
@@ -40,6 +41,8 @@ namespace Mikoto {
 
         virtual auto BeginFrame() -> void = 0;
         virtual auto EndFrame() -> void = 0;
+
+        MKT_NODISCARD virtual auto GetFinalComposition() -> TextureHandle = 0;
 
         auto SetClearColor(const Vec4F& color) -> void { m_ClearColor = color; }
 
@@ -77,6 +80,8 @@ namespace Mikoto {
 
         auto EndFrame() const -> void;
         auto PrepareFrame() const -> void;
+
+        MKT_NODISCARD auto GetFinalComposition() const -> TextureHandle;
 
         auto SetImGuiBackGroundClearColor(const Vec4F& color) -> void;
 

@@ -232,9 +232,9 @@ namespace Mikoto {
         VkCommandBuffer cmd{ m_GraphicsCommandList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
 
         m_Viewport.x = x;
-        m_Viewport.y = y;
+        m_Viewport.y = height;
         m_Viewport.width = width;
-        m_Viewport.height = height;
+        m_Viewport.height = -height;
         m_Viewport.minDepth = 0.0f;
         m_Viewport.maxDepth = 1.0f;
 

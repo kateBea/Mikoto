@@ -95,8 +95,6 @@ namespace Mikoto {
         LayerStack m_LayerStack{};
     };
 
-    extern auto CreateApplication(int argc, char** argv) -> Application*;
-
 }// namespace Mikoto
 
 

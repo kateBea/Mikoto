@@ -564,6 +564,10 @@ namespace Mikoto::ImGuiUtils {
         }
     }
 
+    MKT_NODISCARD inline auto ImImageVK( const ImTextureID image, const ImVec2 dim) {
+        return ImGui::Image( image, dim, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
+    }
+
     inline auto GetStringFromUnicode( UInt32 codePoint ) -> std::string {
         std::array<char, 5>utf8{};
         ImTextCharToUtf8( utf8.data(), codePoint );

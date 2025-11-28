@@ -40,6 +40,9 @@ namespace Mikoto {
         // Debug
         TextureHandle PreviewMaterial{};
 
+        // Editor specifies which texture gets rendered
+        TextureHandle RenderImage{};
+
         MaterialViewer* MaterialVisualizer{};
 
         // Panels close flags
@@ -100,6 +103,11 @@ namespace Mikoto {
 
         auto SetupEditorState() -> void ;
 
+        auto SetupPresentTarget(Event& event) -> void;
+
+    private:
+        enum class RenderScreenTarget { WINDOW, PANEL };
+
     private:
         Unique<EditorState> m_EditorState{};
 
@@ -117,6 +125,8 @@ namespace Mikoto {
         Unique<SceneSerializer> m_SceneSerializer{};
 
         Registry<Panel> m_PanelRegistry{};
+
+        RenderScreenTarget m_RenderScreenTarget{ RenderScreenTarget::PANEL };
     };
 }
 

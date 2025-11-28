@@ -73,11 +73,6 @@ private:
     }
 };
 
-auto Mikoto::CreateApplication( int, char** ) -> Application* {
-    return new EditorApp{ };
-}
-
-
 auto main( const int argc, char** argv ) -> int {
     MKT_BEGIN_PROFILER_NAMED();
 
@@ -113,7 +108,7 @@ auto main( const int argc, char** argv ) -> int {
         MKT_THROW_RUNTIME_ERROR( "Failed to create main application window!" );
     }
 
-    const auto app{ dynamic_cast<EditorApp*>( CreateApplication( argc, argv ) ) };
+    const auto app{ new EditorApp{} };
 
     app->SetWindow( window );
 

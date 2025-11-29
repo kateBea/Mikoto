@@ -5,13 +5,16 @@
 #ifndef PHYSICSSYSTEM_HH
 #define PHYSICSSYSTEM_HH
 
+#include <ankerl/unordered_dense.h>
+
 #include <Common/Service.hh>
-#include <Scene/Entity.hh>
-#include <Scene/Scene.hh>
+#include <Physics/PhysicsWorld.hh>
 #include <Scene/Component.hh>
-#include <Physics/PhysicsBase.hh>
+#include <Scene/Scene.hh>
 
 namespace Mikoto {
+    class Scene;
+
     struct PhysicServiceCreateInfo {
         Vec3F Gravity{ 0.0f, -9.81f, 0.0f };
         UInt32 MaxBodies{ 1024 };
@@ -27,17 +30,14 @@ namespace Mikoto {
         auto Shutdown() -> void override;
         auto Update(float dt) -> void override;
 
-        auto SetSimulationScene(Scene* scene) -> void;
+        auto SetSimulationTarget( Scene* scene ) -> void;
+        MKT_NODISCARD auto CreatePhysicsWorld(const PhysicsWorldCreateInfo& spec) -> PhysicsWorld*;
 
     private:
-        friend class Scene;
 
-        auto OnRigidBodyRemoved(RigidBodyComponent& rb) -> void;
-        auto OnRigidBodyAdded(Entity& entity, RigidBodyComponent& rb) -> void;
+        PhysicsWorld* m_ActiveWorld{};
 
-        auto OnRigidBodyAdded(TransformComponent& t, RigidBodyComponent& rb) -> void;
-
-        Unique<PhysicsBase> m_PhysicsBase{};
+        ankerl::unordered_dense::map<Scene*, Unique<PhysicsWorld>> m_Worlds{};
     };
 
 }

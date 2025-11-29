@@ -29,7 +29,7 @@ namespace Mikoto {
         m_IsInitialized = true;
     }
 
-    auto TimeService::Update() -> void {
+    auto TimeService::UpdateTimeStep() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         const auto now{ Clock::now() };

@@ -317,17 +317,7 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanContext::SubmitFrame() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        // Prepare the submission to the queue. We want to wait on
-        // the present semaphore, which is signaled when the swapchain
-        // is ready (there's image available to render to). We will
-        // signal the render semaphore to signal that rendering has finished
-        const auto device{ TO_VK_DEVICE( RenderService::Get()->GetGpuDevice() ) };
-
-        device->FlushPendingCommands( m_FrameSyncPrimitives[m_CurrentFrameIndex] );
-
+    auto VulkanContext::Present() -> void {
         const VkSemaphore& renderFinishedSemaphore{ m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFinishedSemaphore };
 
         const VkResult result{ m_Swapchain->Present( GetCurrentImageIndex(), renderFinishedSemaphore ) };
@@ -342,7 +332,19 @@ namespace Mikoto {
         }
 
         // TODO: Using always same sync primitives
-        m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % m_MaxFramesInFlight;
+        m_CurrentFrameIndex = 0; //  (m_CurrentFrameIndex + 1) % m_MaxFramesInFlight;
+    }
+
+    auto VulkanContext::SubmitFrame() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        // Prepare the submission to the queue. We want to wait on
+        // the present semaphore, which is signaled when the swapchain
+        // is ready (there's image available to render to). We will
+        // signal the render semaphore to signal that rendering has finished
+        const auto device{ TO_VK_DEVICE( RenderService::Get()->GetGpuDevice() ) };
+
+        device->FlushPendingCommands( m_FrameSyncPrimitives[m_CurrentFrameIndex] );
     }
 
     auto VulkanContext::InitVolk() -> void {

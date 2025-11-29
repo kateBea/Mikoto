@@ -33,7 +33,10 @@ namespace Mikoto {
         virtual auto SubmitFrame() -> void = 0;
         virtual auto PrepareFrame() -> void = 0;
 
+        virtual auto Present() -> void = 0;
+
         virtual auto SetPresentTarget(TextureHandle texture) -> void = 0;
+
 
         MKT_NODISCARD auto GetGpuDevice() -> GpuDevice* { return m_Device.get(); }
         MKT_NODISCARD auto GetGpuDevice() const -> const GpuDevice* { return m_Device.get(); }
@@ -71,6 +74,9 @@ namespace Mikoto {
 
         auto PrepareFrame() const -> void;
         auto EndFrame() -> void;
+
+        // Request presentation toi the submitted window if any
+        auto PresentFrame() -> void;
 
         // Must be called once per frame for now
         auto SetPresentTarget(TextureHandle texture) -> void;

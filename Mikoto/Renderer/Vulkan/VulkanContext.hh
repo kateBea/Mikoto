@@ -56,6 +56,8 @@ namespace Mikoto {
         auto EnableVSync() -> void override { SwitchSyncMode( true ); }
         auto DisableVSync() -> void override { SwitchSyncMode( false ); }
 
+        auto Present() -> void override;
+
         MKT_NODISCARD auto GetCurrentImageIndex() const -> UInt32 { return m_CurrentImageIndex; }
         MKT_NODISCARD auto GetCurrentFrameIndex() const -> UInt32 { return m_CurrentFrameIndex; }
 

@@ -28,6 +28,9 @@ namespace Mikoto {
 
         static auto StartFrame() -> void;
         static auto EndFrame() -> void;
+
+        static auto Present() -> void;
+
         static auto UpdateState(float timeStep) -> void;
 
         DISABLE_COPY_AND_MOVE_FOR(Root);

@@ -32,8 +32,6 @@ cmake_policy(SET CMP0069 NEW)
 cmake_policy(SET CMP0135 NEW)
 cmake_policy(SET CMP0077 NEW)
 
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
 project(Mikoto)
 
 # ======================================
@@ -42,12 +40,14 @@ project(Mikoto)
 option(MIKOTO_USE_XCB_WINDOW "Use XCB for Linux windowing" OFF)
 option(MIKOTO_USE_WIN32_WINDOW "Use Win32 for Windows windowing" OFF)
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 # ======================================
 # Language requirements
 # ======================================
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-#set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # ======================================
 # Mikoto optional features
@@ -123,9 +123,6 @@ set(ASSIMP_BUILD_STL_IMPORTER ON CACHE BOOL "")
 
 # Disable exporters if you don't need them
 set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF CACHE BOOL "")
-set(ASSIMP_BUILD_OBJ_EXPORTER OFF CACHE BOOL "")
-set(ASSIMP_BUILD_FBX_EXPORTER OFF CACHE BOOL "")
-set(ASSIMP_BUILD_GLTF_EXPORTER OFF CACHE BOOL "")
 
 # Disable tests, docs, examples
 set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "")
@@ -357,7 +354,6 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(asio)
-
 
 # Tracy
 FetchContent_Declare(

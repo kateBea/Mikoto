@@ -56,27 +56,44 @@ namespace Mikoto {
 
         m_Registry.on_construct<MeshComponent>().connect<&OnMeshRendererAdded>();
         m_Registry.on_construct<RigidBodyComponent>().connect<&Scene::OnRigidBodyAdded>(this);
+        m_Registry.on_destroy<RigidBodyComponent>().connect<&Scene::OnRigidBodyRemoved>(this);
+
+        PhysicsWorldCreateInfo spec{
+            .TargetScene{ this },
+            .Gravity{ PhysicsWorld::GetEarthGravity() }
+        };
+        m_PhysicsWorld = PhysicService::Get()->CreatePhysicsWorld( spec );
     }
 
     auto Scene::UpdateIdle( double ) -> void {
-
+        // This is only done on simulate but here too for debugging purposes
+        PhysicService::Get()->SetSimulationTarget( this );
     }
 
     auto Scene::UpdateSimulate( double ) -> void {
-
+        PhysicService::Get()->SetSimulationTarget( this );
     }
 
-    auto Scene::OnRigidBodyAdded(entt::registry& reg, entt::entity e) -> void {
-
-        TransformComponent& transformCComponent{ reg.get<TransformComponent>(e) };
-        if ( reg.any_of<RigidBodyComponent>(e) ) {
-            RigidBodyComponent& rigidBodyComp{ reg.get<RigidBodyComponent>(e) };
-            PhysicService::Get()->OnRigidBodyAdded( transformCComponent, rigidBodyComp );
-        } else {
-            // Add the component if it does not exist
-            RigidBodyComponent& rigidBodyComp{ reg.emplace_or_replace<RigidBodyComponent>(e) };
-            PhysicService::Get()->OnRigidBodyAdded( transformCComponent, rigidBodyComp );
+    auto Scene::OnRigidBodyAdded(entt::registry& reg, entt::entity e ) const -> void {
+        // Add the component if it does not exist
+        if (!reg.any_of<TransformComponent>( e ) ) {
+            reg.emplace_or_replace<RigidBodyComponent>(e);
         }
+
+        RigidBodyComponent& rigidBody{ reg.get<RigidBodyComponent>(e) };
+        TransformComponent& transform{ reg.get<TransformComponent>(e) };
+
+        m_PhysicsWorld->OnRigidBodyAdded( transform, rigidBody );
+    }
+
+    auto Scene::OnRigidBodyRemoved( entt::registry& reg, entt::entity e ) const -> void {
+        // Add the component if it does not exist
+        if (!reg.any_of<TransformComponent>( e ) ) {
+            reg.emplace_or_replace<RigidBodyComponent>(e);
+        }
+
+        RigidBodyComponent& rigidBody{ reg.get<RigidBodyComponent>(e) };
+        m_PhysicsWorld->OnRigidBodyRemoved( rigidBody );
     }
 
     auto Scene::RemoveEntity( UInt64 uniqueID ) -> void {
@@ -86,28 +103,24 @@ namespace Mikoto {
         } );
     }
 
-    auto Scene::AttachRigidBody( Entity* entity ) -> void {
+    auto Scene::AttachRigidBody( Entity* entity ) const -> void {
         if ( entity == nullptr ) {
             return;
         }
 
-        if ( entity->HasComponent<RigidBodyComponent>() ) {
-            RigidBodyComponent& rigidBodyComp{ entity->GetComponent<RigidBodyComponent>() };
-            PhysicService::Get()->OnRigidBodyAdded( *entity, rigidBodyComp );
-        } else {
-            // Add the component if it does not exist
-            RigidBodyComponent& rigidBodyComp{ entity->AddComponent<RigidBodyComponent>() };
-            PhysicService::Get()->OnRigidBodyAdded( *entity, rigidBodyComp );
+        if ( !entity->HasComponent<RigidBodyComponent>() ) {
+            entity->AddComponent<RigidBodyComponent>();
         }
+
+        m_PhysicsWorld->OnRigidBodyAdded( *entity );
     }
 
-    auto Scene::DetachRigidBody( Entity* entity ) -> void {
+    auto Scene::DetachRigidBody( Entity* entity ) const -> void {
         if ( entity == nullptr || entity->HasComponent<RigidBodyComponent>() ) {
             return;
         }
 
-        RigidBodyComponent& rigidBodyComp{ entity->AddComponent<RigidBodyComponent>() };
-        PhysicService::Get()->OnRigidBodyRemoved( rigidBodyComp );
+        m_PhysicsWorld->OnRigidBodyRemoved( *entity );
     }
 
     auto Scene::SetState( const SceneState state ) -> void {

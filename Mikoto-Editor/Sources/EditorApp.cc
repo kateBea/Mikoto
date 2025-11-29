@@ -81,21 +81,20 @@ namespace Mikoto {
     auto EditorApp::Update() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        TimeService::Get()->Update();
+        TimeService::Get()->UpdateTimeStep();
 
         if ( !m_Window->IsMinimized() ) {
             const double timeStep{ TimeService::Get()->GetTimeStep( TimeUnit::SECONDS ) };
 
-            // We start the frame
             Root::StartFrame();
 
             m_LayerStack.OnUpdate( static_cast<float>( timeStep ) );
 
-            // Update engine state
             Root::UpdateState( static_cast<float>( timeStep ) );
 
-            // End the current frame
             Root::EndFrame();
+
+            Root::Present();
         }
     }
 

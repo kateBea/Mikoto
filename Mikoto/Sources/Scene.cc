@@ -60,7 +60,7 @@ namespace Mikoto {
 
         PhysicsWorldCreateInfo spec{
             .TargetScene{ this },
-            .Gravity{ PhysicsWorld::GetEarthGravity() }
+            .Gravity{ PhysicsWorld::GetGravityFor( GravityBody::EARTH ) }
         };
         m_PhysicsWorld = PhysicService::Get()->CreatePhysicsWorld( spec );
     }

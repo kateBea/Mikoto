@@ -94,7 +94,6 @@ namespace Mikoto {
         struct SpotLightShader {
             Vec4F Position{};
             Vec4F Direction{};
-            Vec4F Ambient{};
             Vec4F Diffuse{};
             // x=cutOff, y=outerCutOff, z=intensity, w=radius
             Vec4F CutOffValues{};
@@ -102,14 +101,12 @@ namespace Mikoto {
 
         struct PointLightShader {
             Vec4F Position{};
-            Vec4F Ambient{};
             Vec4F Diffuse{};
             Vec4F AttenuationParams{};
         };
 
         struct DirectionalLightShader {
             Vec4F Position{};
-            Vec4F Ambient{};
             Vec4F Diffuse{};
         };
 

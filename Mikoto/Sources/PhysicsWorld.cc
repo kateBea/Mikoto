@@ -37,32 +37,6 @@ namespace Mikoto {
     auto PhysicsWorld::Init() -> void {
         MKT_CORE_LOGGER_INFO( "Initializing PhysicsBase..." );
 
-        // If you want your code to compile using single or double precision write
-        // 0.0_r to get a Real value that compiles to double or float depending
-        // if JPH_DOUBLE_PRECISION is set or not.
-        using namespace JPH::literals;
-
-        // Register allocation hook. In this example we'll just let Jolt use malloc / free
-        // but you can override these if you want (see Memory.h).
-        // This needs to be done before any other Jolt function is called.
-        JPH::RegisterDefaultAllocator();
-
-        // Install trace and assert callbacks
-        JPH::Trace = TraceImpl;
-        JPH_IF_ENABLE_ASSERTS( JPH::AssertFailed = AssertFailedImpl; )
-
-        // Create a factory, this class is responsible for creating instances of classes
-        // based on their name or hash and is mainly used for deserialization of saved data.
-        // It is not directly used in this example but still required.
-        JPH::Factory::sInstance = new JPH::Factory();
-
-        // Register all physics types with the factory and install their collision handlers
-        // with the CollisionDispatch class. If you have your own custom shape types you probably
-        // need to register their handlers with the CollisionDispatch before calling this function.
-        // If you implement your own default material (PhysicsMaterial::sDefault) make sure to
-        // initialize it before this function or else this function will create one for you.
-        JPH::RegisterTypes();
-
         m_Impl = CreateScope<Impl>();
 
         // We need a temp allocator for temporary allocations during the physics update. We're
@@ -137,10 +111,6 @@ namespace Mikoto {
         MKT_CORE_LOGGER_INFO( "Shutting down PhysicsBase..." );
 
         m_Impl.reset();
-        JPH::UnregisterTypes();
-
-        delete JPH::Factory::sInstance;
-        JPH::Factory::sInstance = nullptr;
 
         m_IsInitialized = false;
     }

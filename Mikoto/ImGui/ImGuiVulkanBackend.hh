@@ -47,7 +47,8 @@ namespace Mikoto {
         auto RecordRenderPassCommands(CommandListHandle cmdList ) -> void;
         auto RecordDynamicRenderCommands(CommandListHandle cmdList ) -> void;
 
-        auto RecordCommands( TextureHandle swapChainDrawTarget, CommandListHandle cmdList  ) -> void;
+        auto SetupViewportAndScissors( CommandListHandle cmdList ) -> void;
+        auto RecordCommands( CommandListHandle cmdList  ) -> void;
 
     private:
 #if defined( MKT_USE_VULKAN_DYNAMIC_RENDERING )

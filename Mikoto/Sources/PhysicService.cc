@@ -2,6 +2,7 @@
 // Created by zanet on 1/26/2025.
 //
 
+#include <ranges>
 #include <cstdarg>
 #include <utility>
 
@@ -32,10 +33,13 @@ namespace Mikoto {
         // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down PhysicService..." );
 
-        if (m_PhysicsBase != nullptr) {
-            m_PhysicsBase->Shutdown();
+        m_ActiveWorld = nullptr;
+
+        for ( auto &world: m_Worlds | std::views::values ) {
+            world->Shutdown();
         }
-        m_PhysicsBase.reset();
+
+        m_Worlds.clear();
 
         m_IsInitialized = false;
     }
@@ -43,37 +47,29 @@ namespace Mikoto {
     auto PhysicService::Update( float dt ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if (m_PhysicsBase) {
-            m_PhysicsBase->Update( dt );
+        if (m_ActiveWorld) {
+            m_ActiveWorld->Update( dt );
         }
     }
 
-    auto PhysicService::SetSimulationScene( Scene *scene ) -> void {
-        if (scene) {
-            if (m_PhysicsBase == nullptr) {
-                m_PhysicsBase = CreateScope<PhysicsBase>( scene );
-                m_PhysicsBase->Init();
-            }
+    auto PhysicService::SetSimulationTarget( Scene *scene ) -> void {
+        const auto it{ m_Worlds.find( scene  ) };
 
-            m_PhysicsBase->SetGravity( EARTH_GRAVITY );
+        if (it != m_Worlds.end()) {
+            m_ActiveWorld = it->second.get();
+        } else {
+            MKT_CORE_LOGGER_INFO( "No phyisics simulation world for scene {}", scene->GetName() );
         }
     }
 
-    auto PhysicService::OnRigidBodyRemoved( RigidBodyComponent &rb ) -> void {
-        if (m_PhysicsBase) {
-            m_PhysicsBase->OnRigidBodyRemoved( rb );
-        }
-    }
+    auto PhysicService::CreatePhysicsWorld( const PhysicsWorldCreateInfo &spec ) -> PhysicsWorld* {
+        const auto [it, success]{ m_Worlds.try_emplace( spec.TargetScene, PhysicsWorld::Create(spec) ) };
 
-    auto PhysicService::OnRigidBodyAdded( Entity &entity, RigidBodyComponent &rb ) -> void {
-        if ( m_PhysicsBase ) {
-            m_PhysicsBase->OnRigidBodyAdded( entity, rb );
+        if (success) {
+            it->second->Init();
         }
-    }
-    auto PhysicService::OnRigidBodyAdded( TransformComponent &tr, RigidBodyComponent &rb ) -> void {
-        if ( m_PhysicsBase ) {
-            m_PhysicsBase->OnRigidBodyAdded( tr, rb );
-        }
+
+        return it->second.get();
     }
 
 }// namespace Mikoto

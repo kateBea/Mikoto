@@ -232,7 +232,7 @@ namespace Mikoto {
             AudioListener &audioListener{ listenerComp.GetListener() };
             audioListener.Apply();
 
-            RigidBodyComponent& rigidBody{ m_Listener->AddComponent<RigidBodyComponent>() };
+            RigidBodyComponent& rigidBody{ m_Listener->GetComponent<RigidBodyComponent>() };
             rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
             rigidBody.SetFriction( 0 );
 

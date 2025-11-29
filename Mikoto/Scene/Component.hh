@@ -407,6 +407,9 @@ namespace Mikoto {
 
         explicit RigidBodyComponent() = default;
 
+        explicit RigidBodyComponent( const UInt64 bodyID )
+            : m_BodyID{ bodyID }, m_IsValidBody{ true } {}
+
         RigidBodyComponent(const RigidBodyComponent&) = default;
         RigidBodyComponent(RigidBodyComponent&&) noexcept = default;
 
@@ -429,15 +432,26 @@ namespace Mikoto {
         MKT_NODISCARD auto IsDynamic() const -> bool { return m_BodyType == BodyType::DYNAMIC; }
         auto SetBodyType(const BodyType type) -> void { m_BodyType = type; }
 
-        MKT_NODISCARD auto GetInternalBodyHandle() const -> std::uintptr_t* { return m_InternalBodyHandle; }
-        auto SetInternalBodyHandle(std::uintptr_t* ptr) -> void {
-            if (ptr) {
-                m_InternalBodyHandle = ptr;
-            }
+        MKT_NODISCARD auto GetBodyID() const -> UInt64 { return m_BodyID; }
+        MKT_NODISCARD auto IsValidBodyID() const -> UInt64 { return m_IsValidBody; }
+
+        auto SetLinearVelocity(float x, float y, float z) -> void {
+            m_LinearVelocity = { x, y, z };
         }
 
-        auto RemoveBodyHandle() -> void {
-            m_InternalBodyHandle = nullptr;
+        auto SetLinearVelocity(const Vec3F& velocity) -> void {
+            m_LinearVelocity = velocity;
+        }
+
+        MKT_NODISCARD auto GetLinearVelocity() const -> Vec3F { return m_LinearVelocity; }
+
+        auto SetBodyID(const UInt64 bodyID) -> void {
+            m_BodyID = bodyID;
+            m_IsValidBody = true;
+        }
+
+        auto RemoveBodyID() -> void {
+            m_IsValidBody = false;
         }
 
     private:
@@ -446,8 +460,10 @@ namespace Mikoto {
         bool m_UseGravity{true};
         BodyType m_BodyType{true};
 
-        // Internal handle (opaque, backend-specific)
-        std::uintptr_t* m_InternalBodyHandle{nullptr};
+        Vec3F m_LinearVelocity{ 0.0f, -2.0f, 0.0f };
+
+        UInt64 m_BodyID{};
+        bool m_IsValidBody{ false };
     };
 
     class ColliderComponent {

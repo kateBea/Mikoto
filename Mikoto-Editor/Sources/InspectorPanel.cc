@@ -1062,7 +1062,7 @@ namespace Mikoto {
             }
 
             // --- Internal Handle Info (read-only) ---
-            if (auto handle = rb.GetInternalBodyHandle()) {
+            if (auto handle = rb.GetBodyID()) {
                 ImGui::Separator();
                 ImGui::TextDisabled("Internal Handle:");
                 ImGui::SameLine();

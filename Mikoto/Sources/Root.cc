@@ -163,6 +163,13 @@ namespace Mikoto {
         renderService->EndFrame();
     }
 
+    auto Root::Present() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        RenderService *renderService{ s_Services.Get<RenderService>() };
+        renderService->PresentFrame();
+    }
+
     auto Root::UpdateState( const float timeStep ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 

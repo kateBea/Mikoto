@@ -314,12 +314,11 @@ namespace Mikoto {
 
         ImGui::Render();
 
-        const UInt32 swapchainAvailableImageIndex{ VulkanContext::Get()->GetCurrentImageIndex() };
 
         CommandListHandle commandList{ m_GpuDevice->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
         commandList->Begin();
 
-        RecordCommands( swapChain->GetImage( swapchainAvailableImageIndex ), commandList );
+        RecordCommands( commandList );
 
         commandList->End();
         m_GpuDevice->SubmitCommands( commandList );
@@ -403,27 +402,9 @@ namespace Mikoto {
         renderPassInfo.clearValueCount = static_cast<UInt32>( clearValues.size() );
         renderPassInfo.pClearValues = clearValues.data();
 
+        SetupViewportAndScissors( cmdList );
+
         const auto nativeCmdListHandle{ cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
-
-        SwapChainHandle vulkanSwapChain{ VulkanContext::Get()->GetSwapchain() };
-
-        // Set Viewport and Scissor
-        VkViewport viewport{
-            .x = 0.0f,
-            .y = 0.0f,
-            .width = static_cast<float>( vulkanSwapChain->GetExtent().width ),
-            .height = static_cast<float>( vulkanSwapChain->GetExtent().height ),
-            .minDepth = 0.0f,
-            .maxDepth = 1.0f,
-        };
-
-        VkRect2D scissor{
-            .offset{ 0, 0 },
-            .extent{ vulkanSwapChain->GetExtent() },
-        };
-
-        vkCmdSetViewport( nativeCmdListHandle, 0, 1, std::addressof( viewport ) );
-        vkCmdSetScissor( nativeCmdListHandle, 0, 1, std::addressof( scissor ) );
 
         vkCmdBeginRenderPass( nativeCmdListHandle, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE );
 
@@ -471,12 +452,37 @@ namespace Mikoto {
         const auto nativeCmdListHandle{ cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
         vkCmdBeginRendering(nativeCmdListHandle, std::addressof( renderInfo ));
 
+        SetupViewportAndScissors( cmdList );
+
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), nativeCmdListHandle);
 
         vkCmdEndRendering( nativeCmdListHandle );
     }
+    void ImGuiVulkanBackend::SetupViewportAndScissors( CommandListHandle cmdList ) {
+        const auto nativeCmdListHandle{ cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
 
-    auto ImGuiVulkanBackend::RecordCommands( TextureHandle swapChainDrawTarget, CommandListHandle cmdList ) -> void {
+        SwapChainHandle vulkanSwapChain{ VulkanContext::Get()->GetSwapchain() };
+
+        // Set Viewport and Scissor
+        VkViewport viewport{
+            .x = 0.0f,
+            .y = 0.0f,
+            .width = static_cast<float>( vulkanSwapChain->GetExtent().width ),
+            .height = static_cast<float>( vulkanSwapChain->GetExtent().height ),
+            .minDepth = 0.0f,
+            .maxDepth = 1.0f,
+        };
+
+        VkRect2D scissor{
+            .offset{ 0, 0 },
+            .extent{ vulkanSwapChain->GetExtent() },
+        };
+
+        vkCmdSetViewport( nativeCmdListHandle, 0, 1, std::addressof( viewport ) );
+        vkCmdSetScissor( nativeCmdListHandle, 0, 1, std::addressof( scissor ) );
+    }
+
+    auto ImGuiVulkanBackend::RecordCommands( CommandListHandle cmdList ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         if (m_UseDynamicRendering) {

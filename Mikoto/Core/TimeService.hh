@@ -57,7 +57,7 @@ namespace Mikoto {
         /**
          * @brief Updates the time step. Call once per loop.
          * */
-        auto Update() -> void;
+        auto UpdateTimeStep() -> void;
 
         MKT_NODISCARD auto GetDefaultUnit() const -> TimeUnit;
 

@@ -23,6 +23,8 @@
 
 namespace Mikoto {
 
+    class PhysicsWorld;
+
     /**
      * @brief Enum representing the current state of the scene renderer.
      *
@@ -79,8 +81,8 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetEntities() const -> const ankerl::unordered_dense::map<Size, Unique<Entity>>& { return m_Entities; }
 
-        auto AttachRigidBody(Entity* entity) -> void;
-        auto DetachRigidBody(Entity* entity) -> void;
+        auto AttachRigidBody(Entity* entity ) const -> void;
+        auto DetachRigidBody(Entity* entity ) const -> void;
 
         auto GetRegistry() -> entt::registry&;
         auto GetRegistry() const -> const entt::registry&;
@@ -90,7 +92,7 @@ namespace Mikoto {
         ~Scene();
 
     private:
-        friend class PhysicsBase;
+        friend class PhysicsWorld;
 
         struct EntityCommand {
             enum class Type {
@@ -109,7 +111,8 @@ namespace Mikoto {
         auto UpdateIdle( double deltaTime ) -> void;
         auto UpdateSimulate( double deltaTime ) -> void;
 
-        auto OnRigidBodyAdded(entt::registry& reg, entt::entity e) -> void;
+        auto OnRigidBodyAdded(entt::registry& reg, entt::entity e ) const -> void;
+        auto OnRigidBodyRemoved(entt::registry& reg, entt::entity e ) const -> void;
     private:
         auto AddSingleEntityWithRoot(Entity * root, ModelHandle model, Int32 index ) -> void;
 
@@ -118,6 +121,8 @@ namespace Mikoto {
     private:
         std::string m_Name{};
         entt::registry m_Registry{};
+
+        PhysicsWorld* m_PhysicsWorld{};
 
         SceneState m_SceneState{ SceneState::IDLE };
 

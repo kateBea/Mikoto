@@ -545,45 +545,67 @@ namespace Mikoto {
 
         ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( descFirst ) };
 
-        m_ActiveScene->SetName( "Change name just for fun" );
-
-        // You need to specify the Scene the physics are simulated on
-        PhysicService::Get()->SetSimulationScene( m_ActiveScene );
-
         // This emitting sounds
         EntityCreateInfo groundDesc{
             .Root{ nullptr },
             .Name { "Ground" },
             .Model{ box }
         };
-        Entity *ground{ m_ActiveScene->CreateEntity( groundDesc ) };
-        if (ground) {
-            ground->AddComponent<ScriptComponent>( "./hello_world.lua" );
+        Entity *groundEntity{ m_ActiveScene->CreateEntity( groundDesc ) };
+        if (groundEntity) {
+            groundEntity->AddComponent<ScriptComponent>( "Resources/Script-Examples/console_rpg.lua" );
 
-            TransformComponent& transformComponent{ ground->GetComponent<TransformComponent>() };
-            transformComponent.SetScale( { 5.0f, 0.5f, 5.00f } );
+            TransformComponent& transformComponent{ groundEntity->GetComponent<TransformComponent>() };
+            transformComponent.SetScale( { 15.0f, 0.5f, 15.00f } );
             transformComponent.SetTranslation( { 0.0f, 0.0f, 0.0f } );
+
+            RigidBodyComponent& rigidBody{ groundEntity->AddComponent<RigidBodyComponent>() };
+            rigidBody.SetBodyType( RigidBodyComponent::BodyType::STATIC );
         }
 
-        // Second ground
-        Entity* ground2{ m_ActiveScene->CreateEntity( groundDesc ) };
-        if (ground2) {
-            ground2->AddComponent<ScriptComponent>( "./hello_world.lua" );
+        // First box
+        EntityCreateInfo boxDesc{
+            .Root{ nullptr },
+            .Name { "FirstBox" },
+            .Model{ box }
+        };
+        Entity* boxEntity{ m_ActiveScene->CreateEntity( boxDesc ) };
+        if (boxEntity) {
+            boxEntity->AddComponent<ScriptComponent>( "Resources/Script-Examples/hello_world.lua" );
 
-            TransformComponent& transformComponent{ ground2->GetComponent<TransformComponent>() };
-            transformComponent.SetScale( { 5.0f, 0.5f, 5.00f } );
-            transformComponent.SetTranslation( { -10.0f, 4.0f, -1.5f } );
+            TransformComponent& transformComponent{ boxEntity->GetComponent<TransformComponent>() };
+            transformComponent.SetTranslation( { 0.0f, 10.0f, 0.0f } );
+
+            RigidBodyComponent& rigidBody{ boxEntity->AddComponent<RigidBodyComponent>() };
+            rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
+        }
+
+        // Second box
+        EntityCreateInfo box2Desc{
+            .Root{ nullptr },
+            .Name { "SecondBox" },
+            .Model{ box }
+        };
+        Entity* box2Entity{ m_ActiveScene->CreateEntity( box2Desc ) };
+        if (box2Entity) {
+            box2Entity->AddComponent<ScriptComponent>( "Resources/Script-Examples/hello_world.lua" );
+
+            TransformComponent& transformComponent{ box2Entity->GetComponent<TransformComponent>() };
+            transformComponent.SetTranslation( { 1.0f, 30.0f, 0.0f } );
+
+            RigidBodyComponent& rigidBody{ box2Entity->AddComponent<RigidBodyComponent>() };
+            rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
         }
 
         Entity* light{ m_ActiveScene->CreateEntity( "Light" ) };
         if (light) {
-            light->AddComponent<ScriptComponent>( "./hello_world.lua" );
+            light->AddComponent<ScriptComponent>( "Resources/Script-Examples/hello_world.lua" );
             LightComponent& lightComp{ light->AddComponent<LightComponent>() };
             lightComp.SetActiveType( LightType::POINT_LIGHT_TYPE );
 
             auto& pointLightData{ lightComp.Get<PointLight>() };
-            pointLightData.SetIntensity( 31.81f );
-            pointLightData.SetRadius( 7.44f );
+            pointLightData.SetIntensity( 112.81f );
+            pointLightData.SetRadius( 30.44f );
 
             TransformComponent& transformComponent{ light->GetComponent<TransformComponent>() };
             transformComponent.SetTranslation( { 0.0f, 4.0f, 0.0f } );
@@ -594,7 +616,7 @@ namespace Mikoto {
         m_SceneSerializer = CreateScope<SceneSerializer>();
     }
 
-    auto EditorLayer::PrepareRenderer( double timeStep ) -> void {
+    auto EditorLayer::PrepareRenderer( double ) -> void {
          const SettingsPanel& settingsPanel{ *m_PanelRegistry.Get<SettingsPanel>() };
         
          // Setup renderer

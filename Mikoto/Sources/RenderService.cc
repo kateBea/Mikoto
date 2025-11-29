@@ -78,6 +78,10 @@ namespace Mikoto {
         m_Context->SubmitFrame();
     }
 
+    auto RenderService::PresentFrame() -> void {
+        m_Context->Present();
+    }
+
     auto RenderService::SetPresentTarget( TextureHandle texture ) -> void {
         return m_Context->SetPresentTarget( texture );
     }

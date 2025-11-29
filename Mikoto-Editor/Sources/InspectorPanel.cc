@@ -31,7 +31,7 @@
 #include <Scene/Component.hh>
 #include <Scene/Entity.hh>
 
-#include "../Application/EditorUtility.hh"
+#include <Application/EditorUtility.hh>
 
 namespace Mikoto {
 
@@ -1062,11 +1062,36 @@ namespace Mikoto {
             }
 
             // --- Internal Handle Info (read-only) ---
-            if (auto handle = rb.GetBodyID()) {
+            if (rb.IsValidBodyID()) {
+                const auto handle { rb.GetBodyID() };
+
                 ImGui::Separator();
                 ImGui::TextDisabled("Internal Handle:");
                 ImGui::SameLine();
-                ImGui::Text("%p", reinterpret_cast<void*>(handle));
+                ImGui::Text("Body ID: %d", handle);
+            } else {
+                ImGui::TextDisabled("Internal Handle:");
+                ImGui::SameLine();
+                ImGui::Text("No BodyID");
+            }
+
+            {
+                Vec3F linearVel{ rb.GetLinearVelocity() };
+                ImGui::Text("Linear Velocity");
+                ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
+                if (ImGui::DragFloat3("##LinearVelocity", &linearVel.x, 0.1f)) {
+                    rb.SetLinearVelocity(linearVel);
+                }
+            }
+
+            // --- Angular Velocity ---
+            {
+                Vec3F angularVel{ rb.GetAngularVelocity() };
+                ImGui::Text("Angular Velocity");
+                ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
+                if (ImGui::DragFloat3("##AngularVelocity", &angularVel.x, 0.1f)) {
+                    rb.SetAngularVelocity(angularVel);
+                }
             }
 
             ImGui::Spacing();
@@ -1479,7 +1504,7 @@ namespace Mikoto {
                 TextureHandle atlas{ font->GetAtlas() };
 
                 if ( ImGuiUtils::PushImageButton( atlas->GetHandle(), ImGuiService::Get()->GetTextureID( atlas ), ImVec2{ 256, 256 } ) ) {
-                    
+
                 }
 
                 ImGuiUtils::ToolTip( [&]() -> void {

@@ -45,7 +45,7 @@ namespace Mikoto {
 
         if (result == SPV_REFLECT_RESULT_SUCCESS) {
             // Number of entrypoints
-            VkShaderStageFlags moduleStage{ (VkShaderStageFlags)module.shader_stage };
+            VkShaderStageFlags moduleStage{ static_cast<VkShaderStageFlags>( module.shader_stage ) };
 
             if (VulkanHelpers::ToVkStage( m_Stage ) != moduleStage) {
                 MKT_CORE_LOGGER_WARN( "VulkanShader::Initialize - Specified wrong stage for shader {}", m_DebugName );

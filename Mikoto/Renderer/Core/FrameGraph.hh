@@ -22,7 +22,7 @@ namespace Mikoto {
 
     using ResourceHandle = Ref<IResource>;
 
-    enum class ResourceType { TEXTURE, BUFFER, PIPELINE, INVALID };
+    enum class FrameResourceType { TEXTURE, BUFFER, PIPELINE, INVALID };
 
     enum class RenderTargetType {
         COLOR,
@@ -41,19 +41,10 @@ namespace Mikoto {
         auto AddShader(std::string_view path) -> void;
     };
 
-    struct ResourcePipelineDes {
-    };
-
-    struct ResourceBufferDes {
-    };
-
-    struct ResourceTextureDes {
-    };
-
     struct ResourceDescription {
-        ResourceType Type{ ResourceType::INVALID };
+        FrameResourceType Type{ FrameResourceType::INVALID };
 
-        std::variant<ResourceHandle, ResourcePipelineDes, ResourceBufferDes> ResourceDesc{};
+        std::variant<BufferDescription, PipelineDescription, TextureDescription> ResourceDesc{};
     };
 
     struct FrameResource {
@@ -82,7 +73,12 @@ namespace Mikoto {
         auto CreateNamedRenderTarget(std::string_view name, TextureDescription description, RenderTargetType) -> void ;
 
     private:
-        std::vector<FrameNode> m_Nodes{};
+        struct NodeData {
+            std::vector<std::string> Inputs{};
+            std::vector<std::string> Outputs{};
+        };
+
+        ankerl::unordered_dense::map<FramePass*, NodeData> m_Nodes{};
         ankerl::unordered_dense::map<std::string, FrameResource> m_Resources{};
 
     };
@@ -104,6 +100,8 @@ namespace Mikoto {
         auto RegisterResource(FrameResource resource) -> void;
 
         std::vector<FrameNode> m_Nodes{};
+
+        // Maybe it goes to the context after we build the graph this is not needed here
         ankerl::unordered_dense::map<std::string, FrameResource> m_Resources{};
 
         GraphicsContext* m_GraphicsContex{};

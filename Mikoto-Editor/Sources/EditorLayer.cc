@@ -228,7 +228,11 @@ namespace Mikoto {
         // Set viewport to the currently active window we can either expand
         // the final composition to occupy the whole screen or just an ImGui viewport
         ScenePanel* scenePanel{ m_PanelRegistry.Get<ScenePanel>() };
-        m_EditorCamera->SetViewportSize( scenePanel->GetWidth(), scenePanel->GetHeight() );
+        if (m_RenderScreenTarget == RenderScreenTarget::PANEL) {
+            m_EditorCamera->SetViewportSize( scenePanel->GetWidth(), scenePanel->GetHeight() );
+        } else {
+            m_EditorCamera->SetViewportSize( m_Window->GetWidth(), m_Window->GetHeight() );
+        }
 
         if ( InputService::Get()->IsMouseKeyPressed( Mouse_Button_Right ) && scenePanel->IsHovered() ) {
             m_EditorCamera->EnableCamera( true );

@@ -190,8 +190,10 @@ namespace Mikoto {
             m_Impl->BodyInterface->SetAngularVelocity( body->GetID(), ToVec3( rb.GetAngularVelocity() ) );
             m_Impl->BodyInterface->SetLinearVelocity( body->GetID(), ToVec3( rb.GetLinearVelocity() ) );
 
-            // Jolt puts bodies to sleep to save resources
-            m_Impl->BodyInterface->ActivateBody( body->GetID() );
+            if (m_Impl->BodyInterface->IsActive( body->GetID() ) ) {
+                // Jolt puts bodies to sleep to save resources
+                m_Impl->BodyInterface->ActivateBody( body->GetID() );
+            }
         }
     }
 
@@ -291,8 +293,16 @@ namespace Mikoto {
         }
     }
 
-    auto PhysicsWorld::GetEarthGravity() -> const Vec3F & {
-        return EARTH_GRAVITY;
+    auto PhysicsWorld::GetGravityFor( const GravityBody body) -> Vec3F {
+        // https://en.wikipedia.org/wiki/List_of_gravitationally_rounded_objects_of_the_Solar_System
+        switch (body) {
+            case GravityBody::EARTH:   return { 0.0f, -9.80665f, 0.0f };
+            case GravityBody::MOON:    return { 0.0f, -1.62f,    0.0f };
+            case GravityBody::MARS:    return { 0.0f, -3.721f,   0.0f };
+            case GravityBody::JUPITER: return { 0.0f, -24.79f,   0.0f };
+
+            default: return { 0.0f, -9.80665f, 0.0f }; // fallback: Earth
+        }
     }
 
     auto PhysicsWorld::Create( const PhysicsWorldCreateInfo &spec ) -> Unique<PhysicsWorld> {

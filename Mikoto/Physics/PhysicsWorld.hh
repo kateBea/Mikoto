@@ -192,6 +192,13 @@ namespace Mikoto {
         }
     };
 
+    enum class GravityBody {
+        EARTH,
+        MOON,
+        MARS,
+        JUPITER,
+    };
+
     // Controls physics API specifics
     class PhysicsWorld final : public IService, public Singleton<PhysicsWorld> {
     public:
@@ -211,12 +218,10 @@ namespace Mikoto {
         auto OnRigidBodyRemoved( RigidBodyComponent& rigidBody ) -> void;
         auto OnRigidBodyAdded( TransformComponent& transformComponent, RigidBodyComponent& rigidBodyComponent ) -> void;
 
-        MKT_NODISCARD static auto GetEarthGravity() -> const Vec3F&;
+        MKT_NODISCARD static auto GetGravityFor(GravityBody body) -> Vec3F;
         MKT_NODISCARD static auto Create( const PhysicsWorldCreateInfo& spec ) -> Unique<PhysicsWorld>;
 
     private:
-        static constexpr Vec3F EARTH_GRAVITY{ 0.0f, -9.81f, 0.0f };
-
         struct Impl {
             JPH::PhysicsSystem PhysicsSystem{};
             JPH::BodyInterface* BodyInterface{ nullptr };
@@ -264,7 +269,7 @@ namespace Mikoto {
         inline static Unique<Impl> m_Impl{};
 
         Scene* m_Scene{ nullptr };
-        Vec3F m_Gravity{ EARTH_GRAVITY };
+        Vec3F m_Gravity{ GetGravityFor( GravityBody::EARTH ) };
 
         UInt64 m_BodyIdCounter{ 0 };
         ankerl::unordered_dense::map<UInt64, JPH::Body*> m_Bodies{};

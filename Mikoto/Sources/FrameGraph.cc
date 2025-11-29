@@ -12,22 +12,43 @@
 namespace Mikoto {
 
     auto FrameGraphBuilder::RegisterInput( FramePass *node, std::string_view name ) -> void {
+        m_Nodes[node].Inputs.emplace_back( name );
     }
+
     auto FrameGraphBuilder::RegisterOutput( FramePass *node, std::string_view name ) -> void {
+        m_Nodes[node].Outputs.emplace_back( name );
     }
 
     auto FrameGraphBuilder::CreateNamedBuffer( std::string_view name, BufferDescription description ) -> void {
+        m_Resources[std::string{ name }].Name = name;
+        m_Resources[std::string{ name }].Description.Type = FrameResourceType::BUFFER;
+        m_Resources[std::string{ name }].Description.ResourceDesc = description;
+
     }
+
     auto FrameGraphBuilder::CreateNamedTexture( std::string_view name, TextureDescription description ) -> void {
+        m_Resources[std::string{ name }].Name = name;
+        m_Resources[std::string{ name }].Description.Type = FrameResourceType::TEXTURE;
+        m_Resources[std::string{ name }].Description.ResourceDesc = description;
     }
+
     auto FrameGraphBuilder::CreateNamedPipeline( std::string_view name, PipelineDescription description, PipelineType type ) -> void {
+        m_Resources[std::string{ name }].Name = name;
+        m_Resources[std::string{ name }].Description.Type = FrameResourceType::PIPELINE;
+        m_Resources[std::string{ name }].Description.ResourceDesc = description;
     }
+
     auto FrameGraphBuilder::CreateNamedRenderTarget( std::string_view name, TextureDescription description, RenderTargetType ) -> void {
+        m_Resources[std::string{ name }].Name = name;
+        m_Resources[std::string{ name }].Description.Type = FrameResourceType::TEXTURE;
+        m_Resources[std::string{ name }].Description.ResourceDesc = description;
     }
+
     FrameGraph::FrameGraph( GraphicsContext &context )
         : m_GraphicsContex{ std::addressof( context )}
     {
     }
+
     auto FrameGraph::RegisterPass( FramePass *pass ) -> FramePass * {
         return nullptr;
     }

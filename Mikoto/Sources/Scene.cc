@@ -55,6 +55,7 @@ namespace Mikoto {
         : m_Name{ name } {
 
         m_Registry.on_construct<MeshComponent>().connect<&OnMeshRendererAdded>();
+
         m_Registry.on_construct<RigidBodyComponent>().connect<&Scene::OnRigidBodyAdded>(this);
         m_Registry.on_destroy<RigidBodyComponent>().connect<&Scene::OnRigidBodyRemoved>(this);
 

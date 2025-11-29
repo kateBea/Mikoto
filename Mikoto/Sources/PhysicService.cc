@@ -81,7 +81,6 @@ namespace Mikoto {
         delete JPH::Factory::sInstance;
         JPH::Factory::sInstance = nullptr;
 
-
         m_IsInitialized = false;
     }
 

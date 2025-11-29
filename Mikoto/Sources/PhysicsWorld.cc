@@ -32,7 +32,6 @@
 
 namespace Mikoto {
 
-
     PhysicsWorld::PhysicsWorld( const PhysicsWorldCreateInfo &spec )
         : m_Scene{ spec.TargetScene }, m_Gravity{ spec.Gravity } {}
 
@@ -98,6 +97,11 @@ namespace Mikoto {
         m_SimulationInfo.PhysicsSystem.SetContactListener( std::addressof( m_SimulationInfo.ContactListener ) );
 #endif
 
+        // Optional step: Before starting the physics simulation you can optimize the broad phase. This improves collision detection performance (it's pointless here because we only have 2 bodies).
+        // You should definitely not call this every frame or when e.g. streaming in a new level section as it is an expensive operation.
+        // Instead insert all new objects in batches instead of 1 at a time to keep the broad phase efficient.
+        m_SimulationInfo.PhysicsSystem.OptimizeBroadPhase();
+
         m_IsInitialized = true;
     }
 
@@ -145,25 +149,44 @@ namespace Mikoto {
             }
 
             const auto body{ GetJoltBody( rb.GetBodyID() ) };
-            const auto motionType{ ConvertToJoltMotionType( rb.GetBodyType( ) ) };
 
-            // Line up motion types if it has been updated
-            if (motionType != body->GetMotionType()) {
-                m_SimulationInfo.BodyInterface->SetMotionType( body->GetID(), motionType, JPH::EActivation::Activate );
-            }
+            m_SimulationInfo.BodyInterface->SetPositionAndRotation( body->GetID(), ToVec3( tr.GetTranslation() ), ToQuat( tr.GetRotation() ), JPH::EActivation::Activate );
+
+            UpdateBodyProperties( body, rb );
 
             // Jolt puts bodies to sleep to save resources
             if (!rb.IsBodyType( RigidBodyComponent::BodyType::STATIC ) && !m_SimulationInfo.BodyInterface->IsActive( body->GetID() ) ) {
                 m_SimulationInfo.BodyInterface->ActivateBody( body->GetID() );
             }
 
-            m_SimulationInfo.BodyInterface->SetPositionAndRotation( body->GetID(), ToVec3( tr.GetTranslation() ), ToQuat( tr.GetRotation() ), JPH::EActivation::Activate );
-
-            if (rb.IsBodyType( RigidBodyComponent::BodyType::KINEMATIC )) {
-                m_SimulationInfo.BodyInterface->SetAngularVelocity( body->GetID(), ToVec3( rb.GetAngularVelocity() ) );
-                m_SimulationInfo.BodyInterface->SetLinearVelocity( body->GetID(), ToVec3( rb.GetLinearVelocity() ) );
-            }
         }
+    }
+
+    auto PhysicsWorld::UpdateBodyProperties(JPH::Body* body, RigidBodyComponent& rb ) const -> void {
+        const auto motionType{ ConvertToJoltMotionType( rb.GetBodyType( ) ) };
+
+        // Line up motion types if it has been updated
+        if (motionType != body->GetMotionType()) {
+            m_SimulationInfo.BodyInterface->SetMotionType( body->GetID(), motionType, JPH::EActivation::Activate );
+        }
+
+        if (rb.IsBodyType( RigidBodyComponent::BodyType::KINEMATIC )) {
+            m_SimulationInfo.BodyInterface->SetAngularVelocity( body->GetID(), ToVec3( rb.GetAngularVelocity() ) );
+            m_SimulationInfo.BodyInterface->SetLinearVelocity( body->GetID(), ToVec3( rb.GetLinearVelocity() ) );
+        }
+
+        // Mass and friction
+        if (rb.IsBodyType(RigidBodyComponent::BodyType::DYNAMIC) && (1.0f / rb.GetMass()) != body->GetMotionProperties()->GetInverseMass()) {
+            JPH::MassProperties	massPropertiesOverride{};
+            massPropertiesOverride.mMass = rb.GetMass(); // Jolt uses kg, see docs
+            body->GetMotionProperties()->SetMassProperties( body->GetMotionProperties()->GetAllowedDOFs(), massPropertiesOverride );
+        }
+
+        // Degrees of freedom dynamic objects (which axis the object is allowed to rotate, translate
+
+
+        // Restitution
+        body->SetRestitution( rb.GetRestitution() );
     }
 
     auto PhysicsWorld::PostUpdate() -> void {
@@ -252,6 +275,14 @@ namespace Mikoto {
 
         settings.mFriction = rigidBodyComponent.GetFriction();
         settings.mMassPropertiesOverride.mMass = rigidBodyComponent.GetMass();
+        settings.mRestitution = rigidBodyComponent.GetRestitution();
+
+        // When this body is created as static, this setting tells the system to create
+        // a MotionProperties object so that the object can be switched to kinematic or dynamic
+        settings.mAllowDynamicOrKinematic = true;
+
+        // Motion quality, or how well it detects collisions when it has a high velocity
+        settings.mMotionQuality = JPH::EMotionQuality::LinearCast;
 
         JPH::Body *body{ m_SimulationInfo.BodyInterface->CreateBody( settings ) };
         m_SimulationInfo.BodyInterface->AddBody( body->GetID(), JPH::EActivation::Activate );

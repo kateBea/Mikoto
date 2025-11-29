@@ -105,7 +105,7 @@ auto Usage(const int argc)-> bool {
     return true;
 }
 
-auto main( const int argc, char** argv ) -> int {
+auto main( const int argc, char** ) -> int {
     MKT_BEGIN_PROFILER_NAMED();
 
     if (!Usage( argc )) {

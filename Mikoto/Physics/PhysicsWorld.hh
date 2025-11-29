@@ -254,6 +254,8 @@ namespace Mikoto {
 
         auto GetJoltBody(UInt64 id) -> JPH::Body*;
 
+        auto UpdateBodyProperties(JPH::Body* body, RigidBodyComponent& rbComponent ) const -> void;
+
         MKT_NODISCARD static auto ToMat4F( const JPH::RMat44& jphMat ) -> glm::mat4;
         MKT_NODISCARD static auto ToVec3F( const JPH::Vec3& jphVec3 ) -> glm::vec3;
         MKT_NODISCARD static auto ToQuatF( const JPH::Quat& jphQuat ) -> glm::quat;

@@ -8,17 +8,16 @@
 
 // C++ Standard Library
 #include <functional>
-#include <string>
 #include <optional>
+#include <string>
 #include <utility>
 
 // Third-Party Libraries
 #include <glm/glm.hpp>
-#include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 // Project Headers
-#include <Renderer/Core/Light.hh>
 #include <Assets/AssetsService.hh>
 #include <Assets/AudioClip.hh>
 #include <Assets/Font.hh>
@@ -31,6 +30,7 @@
 #include <Library/Random/Random.hh>
 #include <Library/Utility/Types.hh>
 #include <Material/Material.hh>
+#include <Renderer/Core/Light.hh>
 #include <Scene/SceneCamera.hh>
 
 namespace Mikoto {
@@ -40,21 +40,20 @@ namespace Mikoto {
         explicit TagComponent() = default;
 
         explicit TagComponent( const std::string_view tag )
-            :   m_Tag{ tag }, m_IsActive{ true }
-        {}
+            : m_Tag{ tag }, m_IsActive{ true } {}
 
-        TagComponent(const TagComponent& other) = default;
-        TagComponent(TagComponent&& other) noexcept = default;
+        TagComponent( const TagComponent& other ) = default;
+        TagComponent( TagComponent&& other ) noexcept = default;
 
-        auto operator=(const TagComponent& other) -> TagComponent& = default;
-        auto operator=(TagComponent&& other) -> TagComponent& = default;
+        auto operator=( const TagComponent& other ) -> TagComponent& = default;
+        auto operator=( TagComponent&& other ) -> TagComponent& = default;
 
         MKT_NODISCARD auto IsActive() const -> bool { return m_IsActive; }
         MKT_NODISCARD auto GetTag() const -> const std::string& { return m_Tag; }
         MKT_NODISCARD auto GetGUID() const -> UInt64 { return m_GUID.Get(); }
 
-        auto SetTag( const std::string_view newName) -> void { m_Tag = newName; }
-        auto SetActive( const bool value) -> void { m_IsActive = value; }
+        auto SetTag( const std::string_view newName ) -> void { m_Tag = newName; }
+        auto SetActive( const bool value ) -> void { m_IsActive = value; }
 
     private:
         std::string m_Tag{};
@@ -65,18 +64,18 @@ namespace Mikoto {
     class TransformComponent {
     public:
         explicit TransformComponent() {
-            ComputeTransform(m_Translation, m_Scale, m_Rotation);
+            ComputeTransform( m_Translation, m_Scale, m_Rotation );
         };
 
-        TransformComponent(const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3(0.0f)) {
-            ComputeTransform(position, size, angles);
+        TransformComponent( const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3( 0.0f ) ) {
+            ComputeTransform( position, size, angles );
         }
 
-        TransformComponent(const TransformComponent& other) = default;
-        TransformComponent(TransformComponent&& other) = default;
+        TransformComponent( const TransformComponent& other ) = default;
+        TransformComponent( TransformComponent&& other ) = default;
 
-        auto operator=(const TransformComponent& other) -> TransformComponent& = default;
-        auto operator=(TransformComponent&& other) -> TransformComponent& = default;
+        auto operator=( const TransformComponent& other ) -> TransformComponent& = default;
+        auto operator=( TransformComponent&& other ) -> TransformComponent& = default;
 
         MKT_NODISCARD auto GetTranslation() const -> const glm::vec3& { return m_Translation; }
         MKT_NODISCARD auto GetRotation() const -> const glm::vec3& { return m_Rotation; }
@@ -85,7 +84,7 @@ namespace Mikoto {
         MKT_NODISCARD auto HasUniformScale() const -> bool { return m_HasUniformScale; }
 
         MKT_NODISCARD auto GetRotationQuat() const -> glm::quat {
-            return glm::quat(m_Rotation);
+            return glm::quat( m_Rotation );
         }
 
         /**
@@ -94,54 +93,54 @@ namespace Mikoto {
          * @param size specifies the object scaling value
          * @param angles specifies Euler angles rotations (each component represents an angle in radians)
          * */
-        auto ComputeTransform(const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3(0.0f)) -> void {
+        auto ComputeTransform( const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3( 0.0f ) ) -> void {
             m_Translation = position;
             m_Rotation = angles;
             m_Scale = size;
 
-            m_Transform = Math::RecomputeTransform(position, size, angles);
+            m_Transform = Math::RecomputeTransform( position, size, angles );
         }
 
-        auto SetTransform(const glm::mat4& transform) -> void {
+        auto SetTransform( const glm::mat4& transform ) -> void {
             m_Transform = transform;
 
             Vec3F translate{};
             Vec3F rotate{};
             Vec3F scale{};
 
-            const bool success{ Math::DecomposeTransform(m_Transform, translate, rotate, scale) };
+            const bool success{ Math::DecomposeTransform( m_Transform, translate, rotate, scale ) };
 
-            if (success) {
+            if ( success ) {
                 m_Scale = scale;
                 m_Translation = translate;
                 m_Rotation = rotate;
             }
         }
 
-        auto SetTranslation(const Vec3F& value) -> void {
+        auto SetTranslation( const Vec3F& value ) -> void {
             m_Translation = value;
 
-            m_Transform = Math::RecomputeTransform(m_Translation, m_Scale, m_Rotation);
+            m_Transform = Math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
         }
 
-        auto SetRotation(const Vec3F& value) -> void {
+        auto SetRotation( const Vec3F& value ) -> void {
             m_Rotation = value;
 
-            m_Transform = Math::RecomputeTransform(m_Translation, m_Scale, m_Rotation);
+            m_Transform = Math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
         }
 
-        auto SetRotation(const glm::quat& quaternion) -> void {
-            m_Rotation = glm::eulerAngles(quaternion);
+        auto SetRotation( const glm::quat& quaternion ) -> void {
+            m_Rotation = glm::eulerAngles( quaternion );
 
-            m_Transform = Math::RecomputeTransform(m_Translation, m_Scale, m_Rotation);
+            m_Transform = Math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
 
             // m_Transform = glm::translate(glm::mat4(1.0f), m_Translation)
             //             * glm::toMat4(quaternion)
             //             * glm::scale(glm::mat4(1.0f), m_Scale);
         }
 
-        auto SetScale(const Vec3F& value) -> void {
-            if (!m_HasUniformScale) {
+        auto SetScale( const Vec3F& value ) -> void {
+            if ( !m_HasUniformScale ) {
                 m_Scale = value;
             } else {
                 float offSet{ 0 };
@@ -154,17 +153,17 @@ namespace Mikoto {
                     offSet = value.z - m_Scale.z;
                 }
 
-                if (offSet != 0) {
+                if ( offSet != 0 ) {
                     m_Scale.x += offSet;
                     m_Scale.y += offSet;
                     m_Scale.z += offSet;
                 }
             }
 
-            m_Transform = Math::RecomputeTransform(m_Translation, m_Scale, m_Rotation);
+            m_Transform = Math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
         }
 
-        auto SetUniformSale(const bool value) -> void { m_HasUniformScale = value; }
+        auto SetUniformSale( const bool value ) -> void { m_HasUniformScale = value; }
 
         ~TransformComponent() = default;
 
@@ -183,28 +182,27 @@ namespace Mikoto {
 
     class RelationComponent {
     public:
-        explicit RelationComponent( const std::optional<UInt64> parent = std::nullopt)
-            : m_Parent{ parent }
-        {}
+        explicit RelationComponent( const std::optional<UInt64> parent = std::nullopt )
+            : m_Parent{ parent } {}
 
-        RelationComponent(const RelationComponent& other) = default;
-        RelationComponent(RelationComponent&& other) = default;
+        RelationComponent( const RelationComponent& other ) = default;
+        RelationComponent( RelationComponent&& other ) = default;
 
-        auto operator=(const RelationComponent& other) -> RelationComponent& = default;
-        auto operator=(RelationComponent&& other) -> RelationComponent& = default;
+        auto operator=( const RelationComponent& other ) -> RelationComponent& = default;
+        auto operator=( RelationComponent&& other ) -> RelationComponent& = default;
 
-        auto RegisterChild(const UInt64 id) -> void { m_ChildrenIDs.emplace(id); }
-        auto EraseChild(const UInt64 id) -> void { m_ChildrenIDs.erase(id); }
+        auto RegisterChild( const UInt64 id ) -> void { m_ChildrenIDs.emplace( id ); }
+        auto EraseChild( const UInt64 id ) -> void { m_ChildrenIDs.erase( id ); }
 
-        MKT_NODISCARD auto IsChild(const UInt64 id) const -> bool {return m_ChildrenIDs.contains(id); }
-        MKT_NODISCARD auto HasChildren() const -> bool {return !m_ChildrenIDs.empty(); }
+        MKT_NODISCARD auto IsChild( const UInt64 id ) const -> bool { return m_ChildrenIDs.contains( id ); }
+        MKT_NODISCARD auto HasChildren() const -> bool { return !m_ChildrenIDs.empty(); }
 
         MKT_NODISCARD auto HasParent() const -> bool { return m_Parent.has_value(); }
-        MKT_NODISCARD auto SetParent(UInt64 uid) -> void { m_Parent = uid; }
+        MKT_NODISCARD auto SetParent( UInt64 uid ) -> void { m_Parent = uid; }
         MKT_NODISCARD auto GetParent() const -> const std::optional<UInt64>& { return m_Parent; }
 
         MKT_NODISCARD auto IsLeaf() const -> bool { return m_ChildrenIDs.empty(); }
-        MKT_NODISCARD auto GetChildren() const -> decltype( auto ) { return (m_ChildrenIDs); }
+        MKT_NODISCARD auto GetChildren() const -> decltype( auto ) { return ( m_ChildrenIDs ); }
 
         ~RelationComponent() = default;
 
@@ -218,17 +216,17 @@ namespace Mikoto {
      * */
     class MaterialComponent {
     public:
-        explicit MaterialComponent(MaterialHandle mat = MaterialHandle::CreateEmpty())
-            : m_Material{std::move( mat )} {
+        explicit MaterialComponent( MaterialHandle mat = MaterialHandle::CreateEmpty() )
+            : m_Material{ std::move( mat ) } {
         }
 
-        MaterialComponent(MaterialComponent&&) = default;
-        auto operator=(MaterialComponent&&) -> MaterialComponent& = default;
+        MaterialComponent( MaterialComponent&& ) = default;
+        auto operator=( MaterialComponent&& ) -> MaterialComponent& = default;
 
         MKT_NODISCARD auto HasMaterial() const -> bool { return !m_Material.IsEmpty(); }
         MKT_NODISCARD auto GetMaterial() -> MaterialHandle { return m_Material; }
-        MKT_NODISCARD auto SetMaterial(const MaterialHandle& mat) -> void {
-            if (!mat.IsEmpty()) {
+        MKT_NODISCARD auto SetMaterial( const MaterialHandle& mat ) -> void {
+            if ( !mat.IsEmpty() ) {
                 m_Material = mat;
             }
         }
@@ -246,13 +244,13 @@ namespace Mikoto {
      * */
     class MeshComponent {
     public:
-        explicit MeshComponent(ModelHandle model = ModelHandle::CreateEmpty(), Int32 meshIndex = {})
-            : m_Model{ model }, m_MeshIndex { meshIndex } {};
+        explicit MeshComponent( ModelHandle model = ModelHandle::CreateEmpty(), Int32 meshIndex = {} )
+            : m_Model{ model }, m_MeshIndex{ meshIndex } {};
 
         ~MeshComponent() = default;
 
-        auto SetMesh(ModelHandle model, const Int32 meshIndex) {
-            if (!model.IsEmpty()) {
+        auto SetMesh( ModelHandle model, const Int32 meshIndex ) {
+            if ( !model.IsEmpty() ) {
                 m_Model = model;
                 m_MeshIndex = meshIndex;
             }
@@ -260,15 +258,15 @@ namespace Mikoto {
 
         MKT_NODISCARD auto HasMesh() const -> bool { return !m_Model.IsEmpty(); }
         MKT_NODISCARD auto GetMesh() const -> const MeshNode* {
-            return std::addressof(m_Model->GetMeshNode(static_cast<UInt32>(m_MeshIndex)));
+            return std::addressof( m_Model->GetMeshNode( static_cast<UInt32>( m_MeshIndex ) ) );
         }
 
         MKT_NODISCARD auto GetMesh() -> MeshNode* {
-            if (!HasMesh()) {
+            if ( !HasMesh() ) {
                 return nullptr;
             }
 
-            return std::addressof(m_Model->GetMeshNode(static_cast<UInt32>(m_MeshIndex)));
+            return std::addressof( m_Model->GetMeshNode( static_cast<UInt32>( m_MeshIndex ) ) );
         }
 
         auto GetModel() -> ModelHandle { return m_Model; }
@@ -288,33 +286,31 @@ namespace Mikoto {
     public:
         explicit LightComponent() = default;
 
-        LightComponent(const LightComponent & other) = default;
-        LightComponent(LightComponent && other) = default;
+        LightComponent( const LightComponent& other ) = default;
+        LightComponent( LightComponent&& other ) = default;
 
-        auto operator=(const LightComponent & other) -> LightComponent & = default;
-        auto operator=(LightComponent && other) -> LightComponent & = default;
+        auto operator=( const LightComponent& other ) -> LightComponent& = default;
+        auto operator=( LightComponent&& other ) -> LightComponent& = default;
 
         ~LightComponent() = default;
 
-        MKT_NODISCARD auto IsTypeActive(const LightType type ) const -> bool {
+        MKT_NODISCARD auto IsTypeActive( const LightType type ) const -> bool {
             return m_Type == type;
         }
 
         MKT_NODISCARD auto GetActiveType() const -> LightType { return m_Type; }
-        MKT_NODISCARD auto SetActiveType(const LightType type) -> void { m_Type = type; }
+        MKT_NODISCARD auto SetActiveType( const LightType type ) -> void { m_Type = type; }
 
         template<typename T>
         MKT_NODISCARD auto Get() -> T& {
-            if constexpr (std::is_same_v<T, PointLight>) {
+            if constexpr ( std::is_same_v<T, PointLight> ) {
                 return m_PointLight;
-            }
-            else if constexpr (std::is_same_v<T, SpotLight>) {
+            } else if constexpr ( std::is_same_v<T, SpotLight> ) {
                 return m_SpotLight;
-            }
-            else if constexpr (std::is_same_v<T, DirectionalLight>) {
+            } else if constexpr ( std::is_same_v<T, DirectionalLight> ) {
                 return m_DirectionalLight;
             } else {
-                MKT_STATIC_ASSERT(false, "Unsupported light type in LightComponent::Get()");
+                MKT_STATIC_ASSERT( false, "Unsupported light type in LightComponent::Get()" );
             }
         }
 
@@ -329,7 +325,7 @@ namespace Mikoto {
 
     class AudioSourceComponent {
     public:
-        explicit AudioSourceComponent(const Path& path = "") {
+        explicit AudioSourceComponent( const Path& path = "" ) {
             if ( auto file{ FileService::Get()->LoadFile( path ) }; !file ) {
                 MKT_CORE_LOGGER_ERROR( "AudioSourceComponent - Failed to load audio file: {}", path.string() );
             } else {
@@ -346,22 +342,22 @@ namespace Mikoto {
             }
         }
 
-        AudioSourceComponent(const AudioSourceComponent & other) = default;
-        AudioSourceComponent(AudioSourceComponent && other) = default;
+        AudioSourceComponent( const AudioSourceComponent& other ) = default;
+        AudioSourceComponent( AudioSourceComponent&& other ) = default;
 
-        auto operator=(const AudioSourceComponent & other) -> AudioSourceComponent & = default;
-        auto operator=(AudioSourceComponent && other) -> AudioSourceComponent & = default;
+        auto operator=( const AudioSourceComponent& other ) -> AudioSourceComponent& = default;
+        auto operator=( AudioSourceComponent&& other ) -> AudioSourceComponent& = default;
 
         ~AudioSourceComponent() = default;
 
         MKT_NODISCARD auto GetSource() const -> AudioSourceHandle { return m_AudioSource; }
 
         auto SetClip( const AudioHandle& clip ) -> void {
-            if (!clip) {
+            if ( !clip ) {
                 return;
             }
 
-            if (m_AudioSource && m_AudioSource->IsPlaying()) {
+            if ( m_AudioSource && m_AudioSource->IsPlaying() ) {
                 m_AudioSource->Stop();
             }
 
@@ -381,11 +377,11 @@ namespace Mikoto {
     public:
         explicit AudioListenerComponent() = default;
 
-        AudioListenerComponent(const AudioListenerComponent & other) = default;
-        AudioListenerComponent(AudioListenerComponent && other) = default;
+        AudioListenerComponent( const AudioListenerComponent& other ) = default;
+        AudioListenerComponent( AudioListenerComponent&& other ) = default;
 
-        auto operator=(const AudioListenerComponent & other) -> AudioListenerComponent & = default;
-        auto operator=(AudioListenerComponent && other) -> AudioListenerComponent & = default;
+        auto operator=( const AudioListenerComponent& other ) -> AudioListenerComponent& = default;
+        auto operator=( AudioListenerComponent&& other ) -> AudioListenerComponent& = default;
 
         ~AudioListenerComponent() = default;
 
@@ -398,7 +394,6 @@ namespace Mikoto {
 
     class RigidBodyComponent {
     public:
-
         enum class BodyType {
             STATIC,
             KINEMATIC,
@@ -410,51 +405,55 @@ namespace Mikoto {
         explicit RigidBodyComponent( const UInt64 bodyID )
             : m_BodyID{ bodyID }, m_IsValidBody{ true } {}
 
-        RigidBodyComponent(const RigidBodyComponent&) = default;
-        RigidBodyComponent(RigidBodyComponent&&) noexcept = default;
+        RigidBodyComponent( const RigidBodyComponent& ) = default;
+        RigidBodyComponent( RigidBodyComponent&& ) noexcept = default;
 
-        auto operator=(const RigidBodyComponent&) -> RigidBodyComponent& = default;
-        auto operator=(RigidBodyComponent&&) noexcept -> RigidBodyComponent& = default;
+        auto operator=( const RigidBodyComponent& ) -> RigidBodyComponent& = default;
+        auto operator=( RigidBodyComponent&& ) noexcept -> RigidBodyComponent& = default;
 
         ~RigidBodyComponent() = default;
 
         MKT_NODISCARD auto GetMass() const -> float { return m_Mass; }
-        auto SetMass(const float mass) -> void { m_Mass = mass; }
+        auto SetMass( const float mass ) -> void {
+            m_Mass = Math::Clamp( mass, 1.0f, GetMaxBodyMass() );
+        }
+
+        MKT_NODISCARD auto static GetMaxBodyMass() -> float { return 300000.0f; }
 
         MKT_NODISCARD auto GetFriction() const -> float { return m_Friction; }
-        auto SetFriction(const float friction) -> void { m_Friction = friction; }
+        auto SetFriction( const float friction ) -> void { m_Friction = friction; }
 
         MKT_NODISCARD auto UseGravity() const -> bool { return m_UseGravity; }
-        auto SetUseGravity(const bool enabled) -> void { m_UseGravity = enabled; }
+        auto SetUseGravity( const bool enabled ) -> void { m_UseGravity = enabled; }
 
         MKT_NODISCARD auto GetBodyType() const -> BodyType { return m_BodyType; }
-        MKT_NODISCARD auto IsBodyType(const BodyType type) const -> bool { return m_BodyType == type; }
+        MKT_NODISCARD auto IsBodyType( const BodyType type ) const -> bool { return m_BodyType == type; }
         MKT_NODISCARD auto IsDynamic() const -> bool { return m_BodyType == BodyType::DYNAMIC; }
-        auto SetBodyType(const BodyType type) -> void { m_BodyType = type; }
+        auto SetBodyType( const BodyType type ) -> void { m_BodyType = type; }
 
         MKT_NODISCARD auto GetBodyID() const -> UInt64 { return m_BodyID; }
         MKT_NODISCARD auto IsValidBodyID() const -> UInt64 { return m_IsValidBody; }
 
-        auto SetLinearVelocity(float x, float y, float z) -> void {
+        auto SetLinearVelocity( float x, float y, float z ) -> void {
             m_LinearVelocity = { x, y, z };
         }
 
-        auto SetLinearVelocity(const Vec3F& velocity) -> void {
+        auto SetLinearVelocity( const Vec3F& velocity ) -> void {
             m_LinearVelocity = velocity;
         }
 
-        auto SetAngularVelocity(float x, float y, float z) -> void {
+        auto SetAngularVelocity( float x, float y, float z ) -> void {
             m_AngularVelocity = { x, y, z };
         }
 
-        auto SetAngularVelocity(const Vec3F& velocity) -> void {
+        auto SetAngularVelocity( const Vec3F& velocity ) -> void {
             m_AngularVelocity = velocity;
         }
 
         MKT_NODISCARD auto GetLinearVelocity() const -> Vec3F { return m_LinearVelocity; }
         MKT_NODISCARD auto GetAngularVelocity() const -> Vec3F { return m_AngularVelocity; }
 
-        auto SetBodyID(const UInt64 bodyID) -> void {
+        auto SetBodyID( const UInt64 bodyID ) -> void {
             m_BodyID = bodyID;
             m_IsValidBody = true;
         }
@@ -463,10 +462,14 @@ namespace Mikoto {
             m_IsValidBody = false;
         }
 
+        auto SetRestitution(float value ) -> void { m_Restitution = value; }
+        MKT_NODISCARD auto GetRestitution()const  -> float { return m_Restitution; }
+
     private:
-        float m_Mass{1.0f};
-        float m_Friction{0.5f};
-        bool m_UseGravity{true};
+        float m_Mass{ 1.0f };
+        float m_Restitution{ 0.2f };
+        float m_Friction{ 1.0f };
+        bool m_UseGravity{ true };
         BodyType m_BodyType{ BodyType::DYNAMIC };
 
         Vec3F m_LinearVelocity{ 0.0f, -2.0f, 0.0f };
@@ -480,28 +483,25 @@ namespace Mikoto {
     public:
         explicit ColliderComponent() = default;
 
-        ColliderComponent(const ColliderComponent & other) = default;
-        ColliderComponent(ColliderComponent && other) = default;
+        ColliderComponent( const ColliderComponent& other ) = default;
+        ColliderComponent( ColliderComponent&& other ) = default;
 
-        auto operator=(const ColliderComponent & other) -> ColliderComponent & = default;
-        auto operator=(ColliderComponent && other) -> ColliderComponent & = default;
+        auto operator=( const ColliderComponent& other ) -> ColliderComponent& = default;
+        auto operator=( ColliderComponent&& other ) -> ColliderComponent& = default;
 
         ~ColliderComponent() = default;
-
     };
 
     class CameraComponent {
     public:
         explicit CameraComponent() = default;
 
-        explicit CameraComponent( Unique<SceneCamera>&& camera,  const bool mainCam = true, const bool fixedAspectRation = false)
-            :   m_Camera{ camera != nullptr ? std::move(camera) : CreateScope<SceneCamera>() }, m_MainCam{ mainCam }, m_FixedAspectRatio{ fixedAspectRation }
-        {
-
+        explicit CameraComponent( Unique<SceneCamera>&& camera, const bool mainCam = true, const bool fixedAspectRation = false )
+            : m_Camera{ camera != nullptr ? std::move( camera ) : CreateScope<SceneCamera>() }, m_MainCam{ mainCam }, m_FixedAspectRatio{ fixedAspectRation } {
         }
 
-        CameraComponent(CameraComponent&& other) noexcept = default;
-        auto operator=(CameraComponent&& other) -> CameraComponent& = default;
+        CameraComponent( CameraComponent&& other ) noexcept = default;
+        auto operator=( CameraComponent&& other ) -> CameraComponent& = default;
 
         MKT_NODISCARD auto IsMainCamera() const -> bool { return m_MainCam; }
         MKT_NODISCARD auto HasCamera() -> bool { return m_Camera != nullptr; }
@@ -510,7 +510,7 @@ namespace Mikoto {
         MKT_NODISCARD auto IsAspectRatioFixed() const -> bool { return m_FixedAspectRatio; }
 
         auto AddCamera() -> void {
-            if (m_Camera == nullptr) {
+            if ( m_Camera == nullptr ) {
                 m_Camera = CreateScope<SceneCamera>();
             }
         }
@@ -534,22 +534,22 @@ namespace Mikoto {
     public:
         explicit TextComponent() = default;
 
-        TextComponent(const TextComponent& other) = default;
-        TextComponent(TextComponent&& other) = default;
+        TextComponent( const TextComponent& other ) = default;
+        TextComponent( TextComponent&& other ) = default;
 
-        auto operator=(const TextComponent& other) -> TextComponent& = default;
-        auto operator=(TextComponent&& other) -> TextComponent& = default;
+        auto operator=( const TextComponent& other ) -> TextComponent& = default;
+        auto operator=( TextComponent&& other ) -> TextComponent& = default;
 
         auto SetFont( FontHandle font ) -> void {
-            if (!font.IsEmpty()) {
+            if ( !font.IsEmpty() ) {
                 m_Font = font;
             }
         }
 
         MKT_NODISCARD auto HasFont() const -> bool { return !m_Font.IsEmpty(); }
 
-        auto SetCamera(const Camera* camera) -> void {
-            if (camera != nullptr) {
+        auto SetCamera( const Camera* camera ) -> void {
+            if ( camera != nullptr ) {
                 m_Camera = camera;
             }
         }
@@ -569,21 +569,21 @@ namespace Mikoto {
         MKT_NODISCARD static auto GetMinLetterSize() -> float { return 1.0f; }
         MKT_NODISCARD static auto GetMaxLetterSize() -> float { return 10.0f; }
 
-        auto SetSize(const float value) -> void {
-            if (value != 0) {
+        auto SetSize( const float value ) -> void {
+            if ( value != 0 ) {
                 m_Size = value;
             }
         }
-        auto SetSpacing(const float value) -> void {
-            if (value != 0) {
+        auto SetSpacing( const float value ) -> void {
+            if ( value != 0 ) {
                 m_Spacing = value;
             }
         }
 
-        auto SetContents(const std::string_view content ) -> void { m_TextContent = content; }
+        auto SetContents( const std::string_view content ) -> void { m_TextContent = content; }
 
         template<typename... Args>
-        auto SetColor(Args&&... args ) -> void  { m_Color = glm::vec4{ std::forward<Args>(args)...}; }
+        auto SetColor( Args&&... args ) -> void { m_Color = glm::vec4{ std::forward<Args>( args )... }; }
 
     private:
         std::string m_TextContent{};
@@ -597,19 +597,19 @@ namespace Mikoto {
         const Camera* m_Camera{ nullptr };
     };
 
-    class ScriptComponent  {
+    class ScriptComponent {
     public:
         explicit ScriptComponent( const Path& script ) {
             m_Script = FileService::Get()->LoadFile( script );
         }
 
-        ScriptComponent(const ScriptComponent& other) = default;
-        ScriptComponent(ScriptComponent&& other) = default;
+        ScriptComponent( const ScriptComponent& other ) = default;
+        ScriptComponent( ScriptComponent&& other ) = default;
 
-        auto operator=(const ScriptComponent& other) -> ScriptComponent& = default;
-        auto operator=(ScriptComponent&& other) -> ScriptComponent& = default;
+        auto operator=( const ScriptComponent& other ) -> ScriptComponent& = default;
+        auto operator=( ScriptComponent&& other ) -> ScriptComponent& = default;
 
-        auto SetScript(const File* script ) -> void {
+        auto SetScript( const File* script ) -> void {
             m_Script = script;
         }
 
@@ -619,9 +619,8 @@ namespace Mikoto {
         ~ScriptComponent() = default;
 
     private:
-
         const File* m_Script{};
     };
-}
+}// namespace Mikoto
 
-#endif // MIKOTO_COMPONENT_HH
+#endif// MIKOTO_COMPONENT_HH

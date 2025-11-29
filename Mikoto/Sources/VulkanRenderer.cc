@@ -144,7 +144,6 @@ namespace Mikoto {
                     auto& uboLight{ m_LightsInfo->PointLights[pointLightCount] };
 
                     uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
-                    uboLight.Ambient = Vec4F( point.GetColor() * 0.1f, 1.0f );
                     uboLight.Diffuse = Vec4F( point.GetColor(), 0.0f );
                     uboLight.AttenuationParams = Vec4F( point.GetIntensity(), point.GetRadius(), 0.0f, 0.0f );
 
@@ -160,7 +159,6 @@ namespace Mikoto {
 
                     uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
                     uboLight.Direction = Vec4F( spot.GetDirection(), 0.0f );
-                    uboLight.Ambient = Vec4F( spot.GetColor() * 0.1f, 1.0f );
                     uboLight.Diffuse = Vec4F( spot.GetColor() * spot.GetIntensity(), 1.0f );
                     uboLight.CutOffValues = Vec4F( spot.GetCutOff(), spot.GetOuterCutOff(), spot.GetIntensity(), spot.GetRadius() );
 
@@ -175,7 +173,6 @@ namespace Mikoto {
                     auto& uboLight{ m_LightsInfo->DirectionalLights[directionalLightCount] };
 
                     uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );// optional for shadows
-                    uboLight.Ambient = Vec4F( dir.GetColor() * 0.1f, 1.0f );
                     uboLight.Diffuse = Vec4F( dir.GetColor() * dir.GetIntensity(), 1.0f );
 
                     ++directionalLightCount;

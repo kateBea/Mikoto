@@ -180,17 +180,15 @@ namespace Mikoto {
             // Update body type as of ECS
             m_Impl->BodyInterface->SetMotionType( body->GetID(), ConvertToJoltMotionType( rb.GetBodyType() ), JPH::EActivation::Activate );
 
+            // Dynamic bodies not affected by user code
             if ( rb.IsDynamic() ) {
                 continue;
             }
 
             m_Impl->BodyInterface->SetPositionAndRotation( body->GetID(), ToVec3( tr.GetTranslation() ), ToQuat( tr.GetRotation() ), JPH::EActivation::Activate );
 
-            // Now you can interact with the dynamic body, in this case we're going to give it a velocity.
-            // (note that if we had used CreateBody then we could have set the velocity straight on the body before adding it to the physics system)
-            //m_Impl->BodyInterface->SetLinearVelocity(body->GetID(), JPH::Vec3(0.0f, 0.0f, 0.0f));
-            //m_Impl->BodyInterface->SetAngularVelocity(body->GetID(), JPH::Vec3(0.3f, 0.0f, 5.0f));
-            //m_Impl->BodyInterface->SetLinearVelocity( body->GetID(), ToVec3( rb.GetLinearVelocity() ) );
+            m_Impl->BodyInterface->SetAngularVelocity( body->GetID(), ToVec3( rb.GetAngularVelocity() ) );
+            m_Impl->BodyInterface->SetLinearVelocity( body->GetID(), ToVec3( rb.GetLinearVelocity() ) );
 
             // Jolt puts bodies to sleep to save resources
             m_Impl->BodyInterface->ActivateBody( body->GetID() );
@@ -207,12 +205,16 @@ namespace Mikoto {
             const auto body{ GetJoltBody( rb.GetBodyID() ) };
             const JPH::RMat44 transform{ m_Impl->BodyInterface->GetCenterOfMassTransform( body->GetID() ) };
 
-            const JPH::Vec3 pos{ transform.GetTranslation() };
-            const JPH::Quat rot{ transform.GetRotation().GetQuaternion() };
+            const JPH::Vec3 position{ transform.GetTranslation() };
+            const JPH::Quat rotation{ transform.GetRotation().GetQuaternion() };
 
-            tr.SetTranslation( Vec3F( pos.GetX(), pos.GetY(), pos.GetZ() ) );
-            tr.SetRotation( glm::quat( rot.GetW(), rot.GetX(), rot.GetY(), rot.GetZ() ) );
+            tr.SetTranslation( ToVec3F( position ) );
+            tr.SetRotation( ToQuatF( rotation ) );
         }
+    }
+
+    auto PhysicsWorld::GenerateBodyID() -> UInt64 {
+        return m_BodyIdCounter++;
     }
 
     auto PhysicsWorld::GetJoltBody( UInt64 id ) -> JPH::Body * {
@@ -282,7 +284,7 @@ namespace Mikoto {
         JPH::Body *body{ m_Impl->BodyInterface->CreateBody( settings ) };
         m_Impl->BodyInterface->AddBody( body->GetID(), JPH::EActivation::Activate );
 
-        const auto [it, success]{ m_Bodies.try_emplace( m_Bodies.size(), body ) };
+        const auto [it, success]{ m_Bodies.try_emplace( GenerateBodyID(), body ) };
 
         if ( success ) {
             rigidBodyComponent.SetBodyID( it->first );

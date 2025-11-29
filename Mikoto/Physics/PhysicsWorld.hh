@@ -249,6 +249,8 @@ namespace Mikoto {
         auto PreUpdate() -> void;
         auto PostUpdate() -> void;
 
+        auto GenerateBodyID() -> UInt64;
+
         auto GetJoltBody(UInt64 id) -> JPH::Body*;
 
         MKT_NODISCARD static auto ToMat4F( const JPH::RMat44& jphMat ) -> glm::mat4;
@@ -264,6 +266,7 @@ namespace Mikoto {
         Scene* m_Scene{ nullptr };
         Vec3F m_Gravity{ EARTH_GRAVITY };
 
+        UInt64 m_BodyIdCounter{ 0 };
         ankerl::unordered_dense::map<UInt64, JPH::Body*> m_Bodies{};
     };
 }// namespace Mikoto

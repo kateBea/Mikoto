@@ -443,7 +443,16 @@ namespace Mikoto {
             m_LinearVelocity = velocity;
         }
 
+        auto SetAngularVelocity(float x, float y, float z) -> void {
+            m_AngularVelocity = { x, y, z };
+        }
+
+        auto SetAngularVelocity(const Vec3F& velocity) -> void {
+            m_AngularVelocity = velocity;
+        }
+
         MKT_NODISCARD auto GetLinearVelocity() const -> Vec3F { return m_LinearVelocity; }
+        MKT_NODISCARD auto GetAngularVelocity() const -> Vec3F { return m_AngularVelocity; }
 
         auto SetBodyID(const UInt64 bodyID) -> void {
             m_BodyID = bodyID;
@@ -461,6 +470,7 @@ namespace Mikoto {
         BodyType m_BodyType{true};
 
         Vec3F m_LinearVelocity{ 0.0f, -2.0f, 0.0f };
+        Vec3F m_AngularVelocity{ 0.0f, 0.0f, 0.0f };
 
         UInt64 m_BodyID{};
         bool m_IsValidBody{ false };

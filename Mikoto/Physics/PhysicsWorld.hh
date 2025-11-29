@@ -5,6 +5,8 @@
 #ifndef MIKOTO_PHYSICS_BASE_HH
 #define MIKOTO_PHYSICS_BASE_HH
 
+#include <atomic>
+
 #include <ankerl/unordered_dense.h>
 
 // The Jolt headers don't include Jolt.h. Always include Jolt.h before including any other Jolt header.
@@ -17,11 +19,7 @@
 #include <Jolt/Core/TempAllocator.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
-#include <Jolt/Physics/Collision/Shape/BoxShape.h>
-#include <Jolt/Physics/Collision/Shape/SphereShape.h>
-#include <Jolt/Physics/PhysicsSettings.h>
 #include <Jolt/Physics/PhysicsSystem.h>
-#include <Jolt/RegisterTypes.h>
 
 #include <Scene/Component.hh>
 
@@ -210,8 +208,6 @@ namespace Mikoto {
         auto Shutdown() -> void override;
         auto Update( float timeStep ) -> void override;
 
-        auto SetSimulationScene( Scene* scene ) -> void;
-
         auto OnRigidBodyRemoved( Entity& entity ) -> void;
         auto OnRigidBodyAdded( Entity& entity) -> void;
 
@@ -222,7 +218,7 @@ namespace Mikoto {
         MKT_NODISCARD static auto Create( const PhysicsWorldCreateInfo& spec ) -> Unique<PhysicsWorld>;
 
     private:
-        struct Impl {
+        struct SimulationInfo {
             JPH::PhysicsSystem PhysicsSystem{};
             JPH::BodyInterface* BodyInterface{ nullptr };
 
@@ -266,12 +262,12 @@ namespace Mikoto {
         MKT_NODISCARD static auto ToQuat( const glm::vec3& vec3EulerAnglesGLM ) -> JPH::Quat;
 
     private:
-        inline static Unique<Impl> m_Impl{};
+        SimulationInfo m_SimulationInfo{};
 
         Scene* m_Scene{ nullptr };
         Vec3F m_Gravity{ GetGravityFor( GravityBody::EARTH ) };
 
-        UInt64 m_BodyIdCounter{ 0 };
+        std::atomic_uint64_t m_BodyIdCounter{ 0 };
         ankerl::unordered_dense::map<UInt64, JPH::Body*> m_Bodies{};
     };
 }// namespace Mikoto

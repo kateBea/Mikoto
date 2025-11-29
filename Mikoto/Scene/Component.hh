@@ -467,7 +467,7 @@ namespace Mikoto {
         float m_Mass{1.0f};
         float m_Friction{0.5f};
         bool m_UseGravity{true};
-        BodyType m_BodyType{true};
+        BodyType m_BodyType{ BodyType::DYNAMIC };
 
         Vec3F m_LinearVelocity{ 0.0f, -2.0f, 0.0f };
         Vec3F m_AngularVelocity{ 0.0f, 0.0f, 0.0f };

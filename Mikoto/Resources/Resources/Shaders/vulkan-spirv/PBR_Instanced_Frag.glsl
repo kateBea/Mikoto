@@ -20,26 +20,25 @@
 #define DISPLAY_AO 4
 #define DISPLAY_ROUGH 5
 
+#define LIGHT_TYPE_POINT 1
+#define LIGHT_TYPE_SPOT 2
+#define LIGHT_TYPE_DIRECTIONAL 3
+#define LIGHT_TYPE_INACTIVE -1
+
 // --------------------------------------------------
 // Structs
 // --------------------------------------------------
-struct PointLight {
-    vec4 Position;
-    vec4 Diffuse;
-    vec4 AttenuationParams;
-};
-
-struct DirectionalLight {
-    vec4 Direction;
-    vec4 Diffuse;
-};
-
-struct SpotLight {
+struct LightInfo {
     vec4 Position;
     vec4 Direction;
-    vec4 Diffuse;
-// x=cutOff, y=outerCutOff, z=intensity, w=radius
     vec4 CutOffValues;
+
+    vec4 Diffuse;
+
+    // x=cutOff, y=outerCutOff, z=intensity, w=radius
+    vec4 AttenuationParams;
+
+    int ActiveLightType;
 };
 
 struct ShadingPassMeshBufferUBO {
@@ -73,14 +72,11 @@ layout(location = 11) flat in vec4 in_Factors;
 layout(location = 0) out vec4 out_Color;
 
 layout(set = 0, binding = 1) uniform LightUniformBuffer {
-    SpotLight SpotLights[MAX_LIGHTS];
-    PointLight PointLights[MAX_LIGHTS];
-    DirectionalLight DirectionalLights[MAX_LIGHTS];
-    int DirectionalLightCount;
-    int PointLightCount;
-    int SpotLightCount;
+    LightInfo Lights[MAX_LIGHTS];
+    int ActiveLightsCount;
     int DisplayMode;
-} LightsParams;
+
+} Lighting;
 
 layout(set = 1, binding = 0) uniform sampler2D g_BindlessTextures[];
 
@@ -149,99 +145,135 @@ float ComputeAttenuation(float distance, float radius) {
     return pow( max( 1.0 - pow( distance / radius, 4.0 ), 0.0 ), 2.0 ) / ( distance * distance + 1.0 );
 }
 
-// Custom attenuation
-float ComputeAttenuation(vec4 components, float distance) {
-    // In components x=constant, y=linear, z=quadratic, w=unused
-    float constant = components.x;
-    float linear = components.y;
-    float quadratic = components.z;
-
-    return 1.0 / (constant + linear * distance + quadratic * (distance * distance));
-}
-
-vec3 ComputePointLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, float metallic, vec3 albedo) {
+vec3 ComputePointLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, float metallic, vec3 albedo, int lightIndex) {
     vec3 Lo = vec3(0.0);
 
-    for(int i = 0; i < LightsParams.PointLightCount; ++i) {
-        vec3 L = normalize( LightsParams.PointLights[i].Position.xyz - in_FragmentPos);
-        vec3 H = normalize( V + L );
-        float distance = length( LightsParams.PointLights[i].Position.xyz - in_FragmentPos);
-        float attenuation = ComputeAttenuation( distance, LightsParams.PointLights[i].AttenuationParams.y );
+    vec3 L = normalize(Lighting.Lights[lightIndex].Position.xyz - in_FragmentPos);
+    vec3 H = normalize( V + L );
+    float distance = length(Lighting.Lights[lightIndex].Position.xyz - in_FragmentPos);
+    float attenuation = ComputeAttenuation(distance );
 
-        vec3 radiance = LightsParams.PointLights[i].Diffuse.xyz * attenuation * LightsParams.PointLights[i].AttenuationParams.x;
+    vec3 radiance = Lighting.Lights[lightIndex].Diffuse.xyz * attenuation * Lighting.Lights[lightIndex].AttenuationParams.x;
 
-        // Cook-Torrance BRDF
-        float NDF = DistributionGGX( N, H, roughness );
-        float G   = GeometrySmith( N, V, L, roughness );
-        vec3 F    = FresnelSchlick( clamp( dot( H, V ), 0.0, 1.0), F0 );
+    // Cook-Torrance BRDF
+    float NDF = DistributionGGX( N, H, roughness );
+    float G   = GeometrySmith( N, V, L, roughness );
+    vec3 F    = FresnelSchlick( max(dot(H, V), 0.0), F0 );
 
-        vec3 numerator    = NDF * G * F;
-        float denominator = 4.0 * max( dot( N, V ), 0.0) * max( dot( N, L ), 0.0 ) + 0.0001; // + 0.0001 to prevent divide by zero
-        vec3 specular = numerator / denominator;
+    vec3 numerator    = NDF * G * F;
+    float denominator = 4.0 * max( dot( N, V ), 0.0) * max( dot( N, L ), 0.0 ) + 0.0001; // + 0.0001 to prevent divide by zero
+    vec3 specular = numerator / denominator;
 
-        // kS is equal to Fresnel
-        vec3 kS = F;
+    // kS is equal to Fresnel
+    vec3 kS = F;
 
-        // for energy conservation, the diffuse and specular light can't
-        // be above 1.0 (unless the surface emits light); to preserve this
-        // relationship the diffuse component (kD) should equal 1.0 - kS.
-        vec3 kD = vec3(1.0) - kS;
+    // for energy conservation, the diffuse and specular light can't
+    // be above 1.0 (unless the surface emits light); to preserve this
+    // relationship the diffuse component (kD) should equal 1.0 - kS.
+    vec3 kD = vec3(1.0) - kS;
 
-        // multiply kD by the inverse metalness such that only non-metals
-        // have diffuse lighting, or a linear blend if partly metal (pure metals
-        // have no diffuse light).
-        kD *= 1.0 - metallic;
+    // multiply kD by the inverse metalness such that only non-metals
+    // have diffuse lighting, or a linear blend if partly metal (pure metals
+    // have no diffuse light).
+    kD *= 1.0 - metallic;
 
-        // scale light by NdotL
-        float NdotL = max(dot(N, L), 0.0);
+    // scale light by NdotL
+    float NdotL = max(dot(N, L), 0.0);
 
-        // add to outgoing radiance Lo
-        // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
-        Lo += (kD * albedo / PI + specular) * radiance * NdotL;
-    }
+    // add to outgoing radiance Lo
+    // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
+    Lo += (kD * albedo / PI + specular) * radiance * NdotL;
 
     return Lo;
 }
 
-vec3 ComputeDirectionalLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, float metallic, vec3 albedo) {
+vec3 ComputeSpotLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, float metallic, vec3 albedo, int lightIndex) {
     vec3 Lo = vec3(0.0);
 
-    for(int i = 0; i < LightsParams.DirectionalLightCount; ++i) {
-        vec3 L = normalize( -vec3(LightsParams.DirectionalLights[i].Direction.xyz ) );
-        vec3 H = normalize( V + L );
+    // calculate per-light radiance
+    vec3 L = normalize(Lighting.Lights[lightIndex].Position.xyz - in_FragmentPos);
+    float distance = length(Lighting.Lights[lightIndex].Position.xyz - in_FragmentPos);
+    float attenuation = ComputeAttenuation(distance, Lighting.Lights[lightIndex].CutOffValues.w);
+    // This vec 3 should be the light color, we assume it is full white for now
+    vec3 radiance = Lighting.Lights[lightIndex].Diffuse.xyz * attenuation;
 
-        // This vec 3 should be the light color, we assume it is full white for now
-        vec3 radiance = LightsParams.DirectionalLights[i].Diffuse.xyz;
+    // Spotlight intensity based on angle
+    float theta = dot(L, normalize(-vec3(Lighting.Lights[lightIndex].Direction.xyz)));
+    float epsilon = Lighting.Lights[lightIndex].CutOffValues.x - Lighting.Lights[lightIndex].CutOffValues.y;
+    float intensity = clamp((theta - Lighting.Lights[lightIndex].CutOffValues.y) / epsilon, 0.0, 1.0) * Lighting.Lights[lightIndex].CutOffValues.z;
+    radiance *= intensity;
 
-        // Cook-Torrance BRDF
-        float NDF = DistributionGGX( N, H, roughness );
-        float G   = GeometrySmith( N, V, L, roughness );
-        vec3 F    = FresnelSchlick( clamp( dot( H, V ), 0.0, 1.0 ), F0 );
+    vec3 H = normalize(V + L);
 
-        vec3 numerator    = NDF * G * F;
-        float denominator = 4.0 * max( dot( N, V ), 0.0 ) * max( dot( N, L ), 0.0 ) + 0.0001; // + 0.0001 to prevent divide by zero
-        vec3 specular = numerator / denominator;
+    // Cook-Torrance BRDF
+    float NDF = DistributionGGX(N, H, roughness);
+    float G   = GeometrySmith(N, V, L, roughness);
+    vec3 F    = FresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
 
-        // kS is equal to Fresnel
-        vec3 kS = F;
+    vec3 numerator    = NDF * G * F;
+    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001; // + 0.0001 to prevent divide by zero
+    vec3 specular = numerator / denominator;
 
-        // for energy conservation, the diffuse and specular light can't
-        // be above 1.0 (unless the surface emits light); to preserve this
-        // relationship the diffuse component (kD) should equal 1.0 - kS.
-        vec3 kD = vec3(1.0) - kS;
+    // kS is equal to Fresnel
+    vec3 kS = F;
 
-        // multiply kD by the inverse metalness such that only non-metals
-        // have diffuse lighting, or a linear blend if partly metal (pure metals
-        // have no diffuse light).
-        kD *= 1.0 - metallic;
+    // for energy conservation, the diffuse and specular light can't
+    // be above 1.0 (unless the surface emits light); to preserve this
+    // relationship the diffuse component (kD) should equal 1.0 - kS.
+    vec3 kD = vec3(1.0) - kS;
 
-        // scale light by NdotL
-        float NdotL = max(dot(N, L), 0.0);
+    // multiply kD by the inverse metalness such that only non-metals
+    // have diffuse lighting, or a linear blend if partly metal (pure metals
+    // have no diffuse light).
+    kD *= 1.0 - metallic;
 
-        // add to outgoing radiance Lo
-        // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
-        Lo += (kD * albedo / PI + specular) * radiance * NdotL;
-    }
+    // scale light by NdotL
+    float NdotL = max(dot(N, L), 0.0);
+
+    // add to outgoing radiance Lo
+    // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
+    Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+
+    return Lo;
+}
+
+vec3 ComputeDirectionalLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, float metallic, vec3 albedo, int lightIndex) {
+    vec3 Lo = vec3(0.0);
+
+    vec3 L = normalize( -vec3(Lighting.Lights[lightIndex].Direction.xyz ) );
+    vec3 H = normalize( V + L );
+
+    // This vec 3 should be the light color, we assume it is full white for now
+    vec3 radiance = Lighting.Lights[lightIndex].Diffuse.xyz;
+
+    // Cook-Torrance BRDF
+    float NDF = DistributionGGX( N, H, roughness );
+    float G   = GeometrySmith( N, V, L, roughness );
+    vec3 F    = FresnelSchlick( clamp( dot( H, V ), 0.0, 1.0 ), F0 );
+
+    vec3 numerator    = NDF * G * F;
+    float denominator = 4.0 * max( dot( N, V ), 0.0 ) * max( dot( N, L ), 0.0 ) + 0.0001; // + 0.0001 to prevent divide by zero
+    vec3 specular = numerator / denominator;
+
+    // kS is equal to Fresnel
+    vec3 kS = F;
+
+    // for energy conservation, the diffuse and specular light can't
+    // be above 1.0 (unless the surface emits light); to preserve this
+    // relationship the diffuse component (kD) should equal 1.0 - kS.
+    vec3 kD = vec3(1.0) - kS;
+
+    // multiply kD by the inverse metalness such that only non-metals
+    // have diffuse lighting, or a linear blend if partly metal (pure metals
+    // have no diffuse light).
+    kD *= 1.0 - metallic;
+
+    // scale light by NdotL
+    float NdotL = max(dot(N, L), 0.0);
+
+    // add to outgoing radiance Lo
+    // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
+    Lo += (kD * albedo / PI + specular) * radiance * NdotL;
 
     return Lo;
 }
@@ -249,7 +281,7 @@ vec3 ComputeDirectionalLightContribution(vec3 N, vec3 V, vec3 F0, float roughnes
 vec4 DetermineOutFragmentColor(vec3 N, vec3 color, float metallic, float roughness, float ao) {
     vec4 result = vec4(0.0);
 
-    switch (LightsParams.DisplayMode) {
+    switch (Lighting.DisplayMode) {
         case DISPLAY_COLOR:
         result = vec4(color , 1.0);
         break;
@@ -303,9 +335,21 @@ void main() {
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
     vec3 Lo = vec3(0.0);
-    Lo += ComputeDirectionalLightContribution(N, V, F0, roughness, metallic, albedo);
-    Lo += ComputePointLightContribution(N, V, F0, roughness, metallic, albedo);
-    //Lo += ComputeSpotLightContribution(N, V, F0, roughness, metallic, albedo);
+    for(int i = 0; i < Lighting.ActiveLightsCount; ++i)  {
+        switch (Lighting.Lights[i].ActiveLightType) {
+            case LIGHT_TYPE_POINT:
+                Lo += ComputePointLightContribution(N, V, F0, roughness, metallic, albedo, i);
+                break;
+            case LIGHT_TYPE_SPOT:
+                Lo += ComputeSpotLightContribution(N, V, F0, roughness, metallic, albedo, i);
+                break;
+            case LIGHT_TYPE_DIRECTIONAL:
+                Lo += ComputeDirectionalLightContribution(N, V, F0, roughness, metallic, albedo, i);
+                break;
+            default:
+                break;
+        }
+    }
 
     vec3 ambient = vec3(0.03) * albedo * ao;
     vec3 color = ambient + Lo;

@@ -1298,8 +1298,9 @@ namespace Mikoto {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
 
-            Vec4F color{};
-            if ( ImGuiUtils::ColorEdit4( "Color", color ) ) {
+            Vec3F color{ spotLightData.GetColor() };
+            if ( ImGuiUtils::ColorEdit3( "Color", color ) ) {
+                spotLightData.SetColor( color );
             }
 
             ImGui::Spacing();
@@ -1307,40 +1308,23 @@ namespace Mikoto {
             ImGui::TableSetColumnIndex( 0 );
 
 
-            float intensity{};
-            if ( ImGuiUtils::Slider( "Intensity", intensity, { 1.0f, 30000.0f } ) ) {
+            float intensity{ spotLightData.GetIntensity() };
+            if ( ImGuiUtils::Slider( "Intensity", intensity, { 1.0f, 120.0f } ) ) {
+                spotLightData.SetIntensity( intensity );
             }
 
             ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
 
-            float radius{};
+            float radius{ spotLightData.GetRadius() };
 
-            if ( ImGuiUtils::Slider( "Radius", radius, { 1.0f, 500.0f } ) ) {
+            if ( ImGuiUtils::Slider( "Cone Radius", radius, { 1.0f, 500.0f } ) ) {
+                spotLightData.SetRadius( radius );
             }
 
             if ( ImGui::IsItemHovered() ) {
                 ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-            }
-
-            ImGui::Spacing();
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-
-            float cutOff{};
-            if ( ImGuiUtils::Slider( "Cut-off", cutOff, { 0.0f, 180.0f } ) ) {
-            }
-
-            ImGui::SameLine();
-            ImGuiUtils::HelpMarker( "Angles in degrees" );
-
-            ImGui::Spacing();
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-
-            float outerCutOff{};
-            if ( ImGuiUtils::Slider( "Outer cut-off", outerCutOff, { 0.0f, 180.0f } ) ) {
             }
 
             ImGui::SameLine();

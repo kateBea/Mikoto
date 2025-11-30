@@ -88,7 +88,7 @@ namespace Mikoto {
 
         explicit FrameGraph( GraphicsContext& Context );
 
-        auto RegisterPass(FramePass* pass) -> FramePass*;
+        auto RegisterPass(FramePass* pass) -> void;
 
         auto Compile(FrameGraphBuilder& backend) -> void;
         auto Execute(GraphicsContext& backend) -> void;

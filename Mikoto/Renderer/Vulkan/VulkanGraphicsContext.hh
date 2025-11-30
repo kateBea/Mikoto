@@ -18,7 +18,7 @@ namespace Mikoto {
     class VulkanGraphicsContext final : public GraphicsContext {
     public:
 
-        explicit  VulkanGraphicsContext();
+        explicit  VulkanGraphicsContext(GpuDevice* device);
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
@@ -35,9 +35,10 @@ namespace Mikoto {
         auto ClearDepth( std::string_view resourceName, TextureHandle depthTarget, float depth ) -> void override;
         auto BindPipeline( PipelineHandle pipeline ) -> void override;
         auto BindBuffer( BufferHandle texture ) -> void override;
-        auto BindTexture( TextureHandle texture ) -> void override;
-        auto BindSampler( SamplerHandle sampler ) -> void override;
         auto Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void override;
+
+        auto RegisterImage( TextureHandle texture ) -> void override;
+        auto RegisterImage( TextureHandle texture, SamplerHandle sampler ) -> void override;
 
         ~VulkanGraphicsContext() override = default;
         auto CreateCommandList() -> PassCommandList * override;
@@ -67,6 +68,7 @@ namespace Mikoto {
         };
 
     private:
+        ankerl::unordered_dense::map<std::pair<Texture*, Sampler*>, UInt32> m_CombinedSamplerIndices{};
         ankerl::unordered_dense::map<FramePass*, FramePassInfo> m_PassInfo{};
     };
 }

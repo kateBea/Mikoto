@@ -89,6 +89,8 @@ namespace Mikoto {
         MKT_NODISCARD virtual auto GetMemoryTotal() const -> Size = 0;
         MKT_NODISCARD virtual auto GetMemoryAvailable() const -> Size = 0;
 
+        MKT_NODISCARD virtual auto GetDummySampler() const -> SamplerHandle = 0;
+
         virtual auto RunGarbageCollection() -> void = 0;
 
         MKT_NODISCARD auto GetApi() const -> GraphicsAPI { return m_Api; }

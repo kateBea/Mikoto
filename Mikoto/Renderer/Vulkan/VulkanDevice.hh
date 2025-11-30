@@ -134,6 +134,8 @@ namespace Mikoto {
         MKT_NODISCARD auto GetMemoryTotal() const -> Size override;
         MKT_NODISCARD auto GetMemoryAvailable() const -> Size override;
 
+        MKT_NODISCARD auto GetDummySampler() const -> SamplerHandle override;
+
         // Vulkan specifics ================================================
 
         auto WaitIdle() const -> void;

@@ -113,9 +113,6 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::InitCoreFramePasses() -> void {
-        //TODO: temporary early return
-        return;
-
         if (m_GraphicsContext == nullptr) {
             return;
         }

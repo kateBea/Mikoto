@@ -738,7 +738,6 @@ namespace Mikoto::VulkanPasses {
     }
 
     auto FontRenderPass::End() -> void {
-        m_FontRenderParams.clear();
 
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -748,6 +747,8 @@ namespace Mikoto::VulkanPasses {
         // Transition color target to shader read
         const auto tex{ dynamic_cast<VulkanTexture*>( m_ColorTarget.Image.GetRaw() ) };
         tex->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, vkCmd );
+
+        m_FontRenderParams.clear();
     }
 
     auto FontRenderPass::Render( Scene* scene ) -> void {
@@ -769,10 +770,10 @@ namespace Mikoto::VulkanPasses {
         m_UBO->CopyFromBlock( &proj, sizeof( proj ) );
 
         VkCommandBuffer vkCmd { m_CmdList->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
-        const VkPipelineLayout pipeline{ m_Pipeline->GetNativeHandle(ObjectType::Vk_PipelineLayout) };
+        const VkPipelineLayout pipelineLayout{ m_Pipeline->GetNativeHandle(ObjectType::Vk_PipelineLayout) };
 
-        vkCmdBindDescriptorSets(vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline, 0, 1, std::addressof( m_UBOSet ), 0, nullptr);
-        vkCmdBindDescriptorSets(vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline, 1, 1, std::addressof( m_FontParamsBufferSet ), 0, nullptr);
+        vkCmdBindDescriptorSets(vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, std::addressof( m_UBOSet ), 0, nullptr);
+        vkCmdBindDescriptorSets(vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, std::addressof( m_FontParamsBufferSet ), 0, nullptr);
         vkCmdBindPipeline( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetNativeHandle( ObjectType::Vk_Pipeline ) );
 
         const std::array<VkDeviceSize, 1> offsets{};
@@ -781,7 +782,7 @@ namespace Mikoto::VulkanPasses {
         vkCmdBindVertexBuffers(vkCmd, 0, 1, vertexBuffers.data(), offsets.data());
         vkCmdBindIndexBuffer(vkCmd, m_IndexBuffer->GetNativeHandle(ObjectType::Vk_Buffer), 0, VK_INDEX_TYPE_UINT32);
 
-        vkCmdDrawIndexed(vkCmd, static_cast<uint32_t>(m_Indices.size()), static_cast<uint32_t>(m_FontRenderParams.size()), 0, 0, 0);
+        vkCmdDrawIndexed(vkCmd, static_cast<UInt32>(m_Indices.size()), static_cast<UInt32>(m_FontRenderParams.size()), 0, 0, 0);
     }
 
     auto FontRenderPass::OnResize( UInt32 width, UInt32 height ) -> void {

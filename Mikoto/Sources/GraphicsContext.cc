@@ -50,6 +50,11 @@ namespace Mikoto {
 
     auto PassCommandList::BindTexture( TextureHandle texture ) const -> void {
         MKT_ASSERT( m_Context, "No valid context for this pass command list" );
+
+        if (texture.IsEmpty()) {
+            return;
+        }
+
         m_Context->RegisterImage(texture);
     }
 
@@ -63,6 +68,11 @@ namespace Mikoto {
 
     auto PassCommandList::BindTexture( TextureHandle texture, SamplerHandle sampler ) const -> void {
         MKT_ASSERT( m_Context, "No valid context for this pass command list" );
+
+        if (texture.IsEmpty() || sampler.IsEmpty()) {
+            return;
+        }
+
         m_Context->RegisterImage(texture, sampler );
     }
 

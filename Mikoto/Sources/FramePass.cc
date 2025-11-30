@@ -203,11 +203,25 @@ namespace  Mikoto {
             auto& meshComponent { registry.get<MeshComponent>( entity ) };
             auto& materialComp { registry.get<MaterialComponent>( entity ) };
 
-            if (tag.IsActive() && meshComponent.HasMesh()) {
+            MaterialHandle material{ materialComp.GetMaterial() };
+
+            if (tag.IsActive() && meshComponent.HasMesh() && !material.IsEmpty()) {
+                PBRMaterial* matPtr{ dynamic_cast<PBRMaterial*>( material.GetRaw() ) };
+
                 MeshNode* mesh{ meshComponent.GetMesh() };
+
+                commandList.BindTexture( matPtr->GetTextureType( MapType::ALBEDO_TEXTURE ) );
+                commandList.BindTexture( matPtr->GetTextureType( MapType::NORMAL_TEXTURE ) );
+                commandList.BindTexture( matPtr->GetTextureType( MapType::METALLIC_TEXTURE ) );
+                commandList.BindTexture( matPtr->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
+                commandList.BindTexture( matPtr->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
+                commandList.BindTexture( matPtr->GetTextureType( MapType::EMISSIVE_TEXTURE ) );
 
                 commandList.BindVertexBuffer(mesh->GetVertexBuffer());
                 commandList.BindIndexBuffer(mesh->GetIndexBuffer());
+
+                // We probably do not need the transform here the shadow pass should happen before
+                // this pass which creates and update the buffer that has the contents to render out geometry
 
                 commandList.SubmitDraw();
             }

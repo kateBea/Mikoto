@@ -128,64 +128,63 @@ namespace Mikoto {
         auto& registry{ scene->GetRegistry() };
         auto lightsView{ registry.view<TagComponent, TransformComponent, LightComponent>() };
 
-        Int32 pointLightCount{};
-        Int32 spotLightCount{};
-        Int32 directionalLightCount{};
+        Int32 lightsCount{};
 
         for ( auto& lightEntity: lightsView ) {
+            TagComponent& tag{ registry.get<TagComponent>( lightEntity ) };
             LightComponent& lightComp{ registry.get<LightComponent>( lightEntity ) };
             TransformComponent& transformCom{ registry.get<TransformComponent>( lightEntity ) };
 
+            if ( lightsCount >= MAX_LIGHTS ) break;
+
+            auto& uboLight{ m_LightsInfo->Lights[lightsCount] };
+
+            if (!tag.IsActive()) {
+                uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_INACTIVE);
+                continue;
+            }
+
             switch ( lightComp.GetActiveType() ) {
                 case LightType::POINT_LIGHT_TYPE: {
-                    if ( pointLightCount >= MAX_LIGHTS ) break;
 
                     auto& point{ lightComp.Get<PointLight>() };
-                    auto& uboLight{ m_LightsInfo->PointLights[pointLightCount] };
 
                     uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
                     uboLight.Diffuse = Vec4F( point.GetColor(), 0.0f );
                     uboLight.AttenuationParams = Vec4F( point.GetIntensity(), point.GetRadius(), 0.0f, 0.0f );
+                    uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_POINT);
 
-                    ++pointLightCount;
                     break;
                 }
 
                 case LightType::SPOT_LIGHT_TYPE: {
-                    if ( spotLightCount >= MAX_LIGHTS ) break;
-
                     auto& spot{ lightComp.Get<SpotLight>() };
-                    auto& uboLight{ m_LightsInfo->SpotLights[spotLightCount] };
 
                     uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
                     uboLight.Direction = Vec4F( spot.GetDirection(), 0.0f );
                     uboLight.Diffuse = Vec4F( spot.GetColor() * spot.GetIntensity(), 1.0f );
                     uboLight.CutOffValues = Vec4F( spot.GetCutOff(), spot.GetOuterCutOff(), spot.GetIntensity(), spot.GetRadius() );
+                    uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_SPOT);
 
-                    ++spotLightCount;
                     break;
                 }
 
                 case LightType::DIRECTIONAL_LIGHT_TYPE: {
-                    if ( directionalLightCount >= MAX_LIGHTS ) break;
-
                     auto& dir{ lightComp.Get<DirectionalLight>() };
-                    auto& uboLight{ m_LightsInfo->DirectionalLights[directionalLightCount] };
 
                     uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );// optional for shadows
                     uboLight.Diffuse = Vec4F( dir.GetColor() * dir.GetIntensity(), 1.0f );
+                    uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_DIRECTIONAL);
 
-                    ++directionalLightCount;
                     break;
                 }
             }
+
+            ++lightsCount;
         }
 
         // Update counts in UBO
-        m_LightsInfo->PointLightCount = pointLightCount;
-        m_LightsInfo->SpotLightCount = spotLightCount;
-        m_LightsInfo->DirectionalLightCount = directionalLightCount;
-
+        m_LightsInfo->ActiveLightsCount = lightsCount;
         m_LightsInfo->DisplayMode = static_cast<Int32>(LightInfo::DisplayModes::DISPLAY_COLOR);
 
         // Copy to GPU buffer

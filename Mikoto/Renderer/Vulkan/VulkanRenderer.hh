@@ -13,17 +13,17 @@
 #include <vector>
 
 // Third-Party Library
-#include <volk.h>
 #include <ankerl/unordered_dense.h>
+#include <volk.h>
 
 #include <glm/glm.hpp>
 
 // Project Headers
-#include <Renderer/Core/RenderPassBase.hh>
-#include <Renderer/Core/RendererBackend.hh>
 #include <Common/Common.hh>
 #include <Library/Data/Registry.hh>
 #include <Material/PBRMaterial.hh>
+#include <Renderer/Core/RenderPassBase.hh>
+#include <Renderer/Core/RendererBackend.hh>
 #include <Renderer/Vulkan/VulkanDescriptorManager.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 
@@ -56,14 +56,14 @@ namespace Mikoto {
 
         auto SetCamera( const Camera* camera ) -> void override;
         auto SetViewport( float x, float y, float width, float height ) -> void override;
-            
+
         auto SetClearColor( float r, float g, float b, float a ) -> void override;
 
         auto GetFinalComposition() const -> TextureHandle override;
 
         auto GetMaterialPreview() const -> TextureHandle override;
-        auto SetMaterialPreviewMat(MaterialHandle material) -> void override;
-        auto SetMaterialPreviewViewport(float width, float height) -> void override;
+        auto SetMaterialPreviewMat( MaterialHandle material ) -> void override;
+        auto SetMaterialPreviewViewport( float width, float height ) -> void override;
 
         auto RegisterTextureForRender( TextureHandle texture ) -> void;
 
@@ -91,23 +91,18 @@ namespace Mikoto {
             Vec4F CameraPosition{};
         };
 
-        struct SpotLightShader {
+        struct LightTypeInfo {
             Vec4F Position{};
             Vec4F Direction{};
-            Vec4F Diffuse{};
-            // x=cutOff, y=outerCutOff, z=intensity, w=radius
             Vec4F CutOffValues{};
-        };
 
-        struct PointLightShader {
-            Vec4F Position{};
             Vec4F Diffuse{};
+
+            // x=cutOff, y=outerCutOff, z=intensity, w=radius
             Vec4F AttenuationParams{};
-        };
 
-        struct DirectionalLightShader {
-            Vec4F Position{};
-            Vec4F Diffuse{};
+            // Meet shader uniform buffer alignment requirements
+            alignas(sizeof(Vec4F)) Int32 ActiveLightType{};
         };
 
         struct LightInfo {
@@ -119,13 +114,16 @@ namespace Mikoto {
                 DISPLAY_ROUGH = 5,
             };
 
-            std::array<SpotLightShader, MAX_LIGHTS> SpotLights{};
-            std::array<PointLightShader, MAX_LIGHTS> PointLights{};
-            std::array<DirectionalLightShader, MAX_LIGHTS> DirectionalLights{};
+            enum class ActiveLightType {
+                LIGHT_TYPE_INACTIVE = -1,
+                LIGHT_TYPE_POINT = 1,
+                LIGHT_TYPE_SPOT = 2,
+                LIGHT_TYPE_DIRECTIONAL = 3,
+            };
 
-            Int32 DirectionalLightCount{};
-            Int32 PointLightCount{};
-            Int32 SpotLightCount{};
+            std::array<LightTypeInfo, MAX_LIGHTS> Lights{};
+
+            Int32 ActiveLightsCount{};
             Int32 DisplayMode{};
         };
 

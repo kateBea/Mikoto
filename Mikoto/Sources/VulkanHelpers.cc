@@ -490,6 +490,8 @@ namespace Mikoto::VulkanHelpers {
 
             case ShaderDataType::INT_TYPE:
                 return VK_FORMAT_R32_SINT;
+            case ShaderDataType::UINT_TYPE:
+                return VK_FORMAT_R32_UINT;
             case ShaderDataType::INT2_TYPE:
                 return VK_FORMAT_R32G32_SINT;
             case ShaderDataType::INT3_TYPE:
@@ -654,6 +656,8 @@ namespace Mikoto::VulkanHelpers::Reflection {
                     std::string_view bindingName{ reflectedBinding->name };
 
                     bool isBindless{ IsBindlessEnabled() && ( bindingName.find( bindlessPrefix ) != std::string_view::npos ) };
+
+                    // IMPORTANT: bindless textures need to be the last binding if they are sharing a SET with oither bindings
                     bindingInfo.descriptorCount = std::max(1u, isBindless ? VulkanRenderer::GetMaxBindlessTextureCount() : reflectedBinding->count );
 
                     bindingInfo.stageFlags = stage;
@@ -786,28 +790,27 @@ namespace Mikoto::VulkanHelpers::Reflection {
 
             VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{};
             flagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
-            flagsInfo.bindingCount = static_cast<UInt32>(bindingFlags.size());
-            flagsInfo.pBindingFlags = bindingFlags.data();
 
             if (IsBindlessEnabled()) {
-                UInt8 bindingIndex{ 0 };
-                for (auto& flags: bindingFlags) {
-                    auto& bindingInfo{ out.bindingMap[{ setIndex, bindingIndex }] };
 
-                    if ( bindingInfo.IsBindless ) {
-                        flags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
-                                VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-                                VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
-                    } else {
-                        flags = 0;
+                for (Size i{}; i < layoutBindings.size(); i++) {
+                    auto bindingNumber{ layoutBindings[i].binding };
+                    auto& bindingInfo{ out.bindingMap[{ setIndex, bindingNumber }] };
+
+                    if (bindingInfo.IsBindless) {
+                        bindingFlags[i] =
+                            VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+                            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+                            VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
                     }
-
-                    ++bindingIndex;
                 }
 
                 layoutInfo.pNext = &flagsInfo;
                 layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
             }
+
+            flagsInfo.bindingCount = static_cast<UInt32>(bindingFlags.size());
+            flagsInfo.pBindingFlags = bindingFlags.data();
 
             VkDescriptorSetLayout layoutHandle{};
             if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &layoutHandle) != VK_SUCCESS) {

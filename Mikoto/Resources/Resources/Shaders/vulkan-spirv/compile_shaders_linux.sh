@@ -46,7 +46,7 @@ for file in *.glsl; do
     fi
 
     echo "-> Compiling $file → $output ($stage)"
-    glslc -O -fshader-stage="$stage" "$file" -o "$output" --target-env="vulkan1.3" --target-spv="spv1.6" -g
+    glslc -O -fshader-stage="$stage" "$file" -o "$output" --target-env="vulkan1.3" --target-spv="spv1.6" -g -O0
 done
 
 echo "------------------------------------------------------------"

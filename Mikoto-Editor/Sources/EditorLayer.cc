@@ -22,6 +22,7 @@
 #include <Panels/HierarchyPanel.hh>
 #include <Panels/InspectorPanel.hh>
 #include <Panels/ScenePanel.hh>
+#include <Panels/PassVisualizerPanel.hh>
 #include <Panels/SettingsPanel.hh>
 #include <Panels/StatsPanel.hh>
 #include <Physics/PhysicService.hh>
@@ -63,6 +64,11 @@ namespace Mikoto {
         SetupEditorState();
 
         CreatePanels();
+
+        // Add passes for panel preview visualizer
+        m_EditorState->PassesCompositions.try_emplace( "FinalComposition_Pass", m_EditorState->FinalComposition );
+        m_EditorState->PassesCompositions.try_emplace( "BasicTexture_Pass", m_EditorState->PreviewMaterial );
+        m_EditorState->PassesCompositions.try_emplace( "FontRenderPass", m_SceneRenderer->GetFontPassComposition() );
     }
 
     auto EditorLayer::SetupRenderer() -> void {
@@ -282,6 +288,10 @@ namespace Mikoto {
         AssetsPanelDescription assetsPanelDescription{};
         assetsPanelDescription.State = m_EditorState.get();
         m_PanelRegistry.Register<AssetsPanel>( assetsPanelDescription );
+
+        PassVisualizerDescription passVisualizerDescription{};
+        passVisualizerDescription.State = m_EditorState.get();
+        m_PanelRegistry.Register<PassVisualizerPanel>( passVisualizerDescription );
     }
 
     auto EditorLayer::CreateCameras() -> void {
@@ -452,6 +462,7 @@ namespace Mikoto {
                     if ( ImGui::MenuItem( "Console", nullptr, m_EditorState->ConsolePanel ) ) m_EditorState->ConsolePanel = !m_EditorState->ConsolePanel;
                     if ( ImGui::MenuItem( "Renderer", nullptr, m_EditorState->RendererPanel ) ) m_EditorState->RendererPanel = !m_EditorState->RendererPanel;
                     if ( ImGui::MenuItem( "Assets Preview", nullptr, m_EditorState->AssetsPanelVisible ) ) m_EditorState->AssetsPanelVisible = !m_EditorState->AssetsPanelVisible;
+                    if ( ImGui::MenuItem( "Passes Preview", nullptr, m_EditorState->PassPreviewPanelVisible ) ) m_EditorState->PassPreviewPanelVisible = !m_EditorState->PassPreviewPanelVisible;
 
                     ImGui::EndMenu();
                 }
@@ -565,6 +576,11 @@ namespace Mikoto {
 
             RigidBodyComponent& rigidBody{ groundEntity->AddComponent<RigidBodyComponent>() };
             rigidBody.SetBodyType( RigidBodyComponent::BodyType::STATIC );
+
+            FontHandle font{AssetsService::Get()->LoadAsset<Font>( Path{ "Resources/Fonts/Google_Sans_Code/GoogleSansCode-Italic-VariableFont_wght.ttf" } ) };
+
+            TextComponent& text{ groundEntity->AddComponent<TextComponent>() };
+            text.SetFont( font );
         }
 
         // First box

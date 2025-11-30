@@ -214,6 +214,9 @@ namespace Mikoto {
                         AddSingleEntityWithRoot( result, createInfo.Model, index );
                     }
                 } else {
+                    // TODO: The result can either be a root
+                    // or the root from the description in the case we
+                    // are creating an entity with one model
                     result->AddComponent<MeshComponent>( createInfo.Model, 0 );
                 }
             }
@@ -239,7 +242,7 @@ namespace Mikoto {
     auto Scene::QueueCreateEntity( const EntityCreateInfo& createInfo ) -> void {
         // Lock and push the creation command
         std::lock_guard lock( m_CommandQueueMutex );
-        m_EntityCommands.push_back( { EntityCommand::Type::CREATE, createInfo, 0 } );
+        m_EntityCommands.push_back( { EntityCommand::Type::CREATE, createInfo } );
     }
 
     auto Scene::CreateEntity( std::string_view name ) -> Entity* {

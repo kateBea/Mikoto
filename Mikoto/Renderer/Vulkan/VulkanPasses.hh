@@ -10,6 +10,9 @@
 #include <ankerl/unordered_dense.h>
 #include <volk.h>
 
+#include <Assets/Font.hh>
+#include <Assets/Texture.hh>
+
 #include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/Pipeline.hh>
 #include <Renderer/Core/RenderPassBase.hh>
@@ -71,8 +74,6 @@ namespace Mikoto::VulkanPasses {
         AttachmentInfo m_ColorTarget{};
         AttachmentInfo m_DepthTarget{};
 
-        DescriptorSetLayoutHandle m_EntitiesSetLayout{  };
-
         bool m_WantStoreOP{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
 
@@ -125,6 +126,92 @@ namespace Mikoto::VulkanPasses {
 
         bool m_WantStoreOP{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
+
+        CommandListHandle m_CmdList{};
+    };
+
+    class FontRenderPass final : public IRenderPass {
+    public:
+        auto Init(GpuDevice* device) -> void override;
+        auto Shutdown() -> void override;
+
+        auto Begin(CommandListHandle cmd) -> void override;
+        auto End() -> void override;
+
+        auto Render(Scene* scene) -> void override;
+        auto OnResize(UInt32 width, UInt32 height) -> void override;
+
+        auto GetFinalComposition() const -> TextureHandle;
+
+        auto RegisterTextureForRender( TextureHandle texture ) -> void;
+
+
+    private:
+        auto CreateAttributeBuffers() -> void;
+        auto InitBuffersAndSets() -> void;
+        auto UpdateBindlessTextureDescriptor( Int32 index, VulkanTexture* texture ) const -> void;
+
+        auto DrawText(glm::vec2 position, const std::string& text, double fontSize, Vec4F color) -> void;
+
+    private:
+        struct FontParams {
+            alignas(8) glm::vec2 Pos{};
+            alignas(8) glm::vec2 Size{};
+            alignas(16) glm::vec4 Color{};
+            alignas(4) UInt32 TexIndex{};
+            alignas(8) glm::vec2 TexCoords[4]{};
+        };
+
+        struct UBO {
+            glm::mat4 Proj{};
+        };
+
+        struct FontVertex {
+            glm::vec2 Pos{};
+            glm::vec2 Uv{};
+            UInt32 TexIndex{};
+        };
+
+        std::vector<FontVertex> m_Vertices{
+            { { 0.0f, 0.0f }, { 0.0f, 0.0f }, 0 },
+            { { 1.0f, 0.0f }, { 1.0f, 0.0f }, 1 },
+            { { 1.0f, 1.0f }, { 1.0f, 1.0f }, 2 },
+            { { 0.0f, 1.0f }, { 0.0f, 1.0f }, 3 }
+        };
+
+        std::vector<UInt32> m_Indices{
+            0, 1, 2, 2, 3, 0,
+        };
+
+        BufferHandle m_IndexBuffer{};
+        BufferHandle m_VertexBuffer{};
+
+    private:
+        std::vector<FontParams> m_FontRenderParams{};
+        GpuDevice* m_Device{};
+
+        VkViewport m_Viewport{};
+        VkRect2D m_Scissor{};
+
+        FontHandle m_FontTest{};
+
+        PipelineHandle m_Pipeline{};
+        AttachmentInfo m_ColorTarget{};
+        AttachmentInfo m_DepthTarget{};
+
+#if defined( MKT_USE_VULKAN_BINDLESS )
+        bool m_UpdateTextureDescriptor{ false };
+        ankerl::unordered_dense::map<Texture*, TextureHandle> m_BindlessTextures{};
+#endif
+
+        Vec4F m_ClearColor{ 0.4f, 0.2f, 0.7f, 1.0f };
+
+        BufferHandle m_UBO{};
+        VkDescriptorSet m_UBOSet{};
+
+        // For now i will not try instancing
+        BufferHandle m_FontParamsSSBO{};
+        VkDescriptorSet m_FontParamsBufferSet{};
 
         CommandListHandle m_CmdList{};
     };

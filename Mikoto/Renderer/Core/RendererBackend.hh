@@ -52,6 +52,8 @@ namespace Mikoto {
         virtual auto SetMaterialPreviewViewport(float width, float height) -> void = 0;
         MKT_NODISCARD virtual auto GetMaterialPreview() const -> TextureHandle = 0;
 
+        MKT_NODISCARD virtual  auto GetFontPassComposition() -> TextureHandle = 0;
+
     protected:
         explicit RendererBackend( const RendererDescription& createInfo )
             : m_Name{ createInfo.Name }, m_GraphicsDevice{ createInfo.Device } {}

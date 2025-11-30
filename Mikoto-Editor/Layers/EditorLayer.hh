@@ -9,6 +9,8 @@
 // C++ Standard Library
 #include <memory>
 
+#include <ankerl/unordered_dense.h>
+
 // Project Headers
 #include <Assets/Model.hh>
 #include <Core/LayerStack.hh>
@@ -40,6 +42,9 @@ namespace Mikoto {
         // Debug
         TextureHandle PreviewMaterial{};
 
+        // Pass name and output value
+        ankerl::unordered_dense::map<std::string, TextureHandle> PassesCompositions{};
+
         // Editor specifies which texture gets rendered
         TextureHandle RenderImage{};
 
@@ -55,6 +60,7 @@ namespace Mikoto {
         bool InspectorPanelVisible{ true };
         bool ScenePanelVisible{ true };
         bool AssetsPanelVisible{ true };
+        bool PassPreviewPanelVisible{ true };
         bool ApplicationCloseFlag{ true };
 
         ImGuiUtils::GuizmoManipulationMode Manipulation{ ImGuiUtils::GuizmoManipulationMode::TRANSLATION };

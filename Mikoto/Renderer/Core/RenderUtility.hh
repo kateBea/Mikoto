@@ -249,7 +249,7 @@ namespace Mikoto {
     */
     struct FontLoadDescription {
         const File* FontFile{};
-        float PixelSize{ 48 };
+        float FontSize{ 48 };
 
         /**
         * @brief Sets the path of the model.
@@ -282,6 +282,7 @@ namespace Mikoto {
         MAT3_TYPE,// Represents 3x3 float matrix data type
         MAT4_TYPE,// Represents 4x4 float matrix data type
 
+        UINT_TYPE, // Represents a single int data type
         INT_TYPE, // Represents a single int data type
         INT2_TYPE,// Represents a two int data type
         INT3_TYPE,// Represents a three int data type

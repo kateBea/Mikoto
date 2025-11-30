@@ -109,6 +109,9 @@ namespace Mikoto {
                 // TODO: temporary for debugging only. Here we update all textures in material pass
                 TextureRenderPass* textureRenderPass{ m_Passes.Get<TextureRenderPass>() };
                 textureRenderPass->RegisterTextureForRender( texture );
+
+                FontRenderPass* fontRenderPass{ m_Passes.Get<FontRenderPass>() };
+                fontRenderPass->RegisterTextureForRender( texture );
             }
 
             m_UpdateTextureDescriptor = false;
@@ -196,6 +199,13 @@ namespace Mikoto {
         textureRenderPass->Render( scene );
 
         textureRenderPass->End();
+
+        FontRenderPass* fontRenderPass{ m_Passes.Get<FontRenderPass>() };
+        fontRenderPass->Begin( m_GraphicsCommandList );
+
+        fontRenderPass->Render( scene );
+
+        fontRenderPass->End();
 
         // Shading pass will bind the global renderer descriptor pass
         // this pass is the main pass. These the lights and the texture sets are not changing between passes,
@@ -307,6 +317,13 @@ namespace Mikoto {
         return 4096;
     }
 
+    auto VulkanRenderer::GetFontPassComposition() -> TextureHandle {
+        using namespace Mikoto::VulkanPasses;
+
+        FontRenderPass * fontRenderPass{ m_Passes.Get<FontRenderPass>() };
+        return fontRenderPass->GetFinalComposition();
+    }
+
     auto VulkanRenderer::InitGlobalShaderBuffers() -> void {
         m_FrameUBOBuffer = CreateUniformBuffer<FrameUBO>( m_GraphicsDevice );
         m_LightsBuffer = CreateUniformBuffer<LightInfo>( m_GraphicsDevice );
@@ -378,9 +395,13 @@ namespace Mikoto {
         ShadingPass* shadingPass{ m_Passes.Register<ShadingPass>() };
         shadingPass->Init( TO_VK_DEVICE( m_GraphicsDevice ) );
 
-        // Final composition
+        // Texture composition
         TextureRenderPass* textureRenderPass{ m_Passes.Register<TextureRenderPass>() };
         textureRenderPass->Init( TO_VK_DEVICE( m_GraphicsDevice ) );
+
+        // Font composition
+        FontRenderPass* fontRenderPass{ m_Passes.Register<FontRenderPass>() };
+        fontRenderPass->Init( TO_VK_DEVICE( m_GraphicsDevice ) );
 
         // Compute basic
         ComputeBasic* computeBasic{ m_Passes.Register<ComputeBasic>() };

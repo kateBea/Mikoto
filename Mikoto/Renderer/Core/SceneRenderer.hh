@@ -157,6 +157,8 @@ namespace Mikoto {
          */
         auto SetClearColor( float r, float g, float b, float a ) -> void;
 
+        auto GetFontPassComposition() -> TextureHandle;
+
         /**
          * @brief Creates a new `SceneRenderer` instance.
          *

@@ -146,9 +146,6 @@ namespace Mikoto {
         const glm::mat4 &cameraProjection{ m_EditorState->EditorCamera->GetProjection() };
 
         glm::mat4 objectTransform{ transformComponent.GetTransform() };
-        glm::vec3 oldTranslation{ transformComponent.GetTranslation() };
-        glm::vec3 oldRotation{ transformComponent.GetRotation() };
-        glm::vec3 oldScale{ transformComponent.GetScale() };
 
         m_GuizmoType = InferManipulationMode(m_EditorState->Manipulation);
 
@@ -169,10 +166,13 @@ namespace Mikoto {
 
             // Apply the transformation to the children
             // For now Guizmos only change translation so thats the only thing we handle in the children
-
-            const glm::vec3 offsetTranslation{ transformComponent.GetTranslation() - oldTranslation };
-            const glm::vec3 offsetRotation{ transformComponent.GetRotation() - oldRotation };
-            const glm::vec3 offsetScale{ transformComponent.GetScale() - oldScale };
+            RelationComponent& relation{ m_EditorState->SelectedEntity->GetComponent<RelationComponent>() };
+            for (auto& childID : relation.GetChildren()) {
+                Entity* child{ m_EditorState->ActiveEditorScene->FindByID( childID ) };
+                if (child) {
+                    // TODO: World transform = ParentWorld * LocalTransform
+                }
+            }
 
             //propagate changes
         }

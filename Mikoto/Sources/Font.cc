@@ -27,6 +27,10 @@ namespace Mikoto {
         return m_Glyphs.at( characterCode );
     }
 
+    auto Font::GetGlyph( UInt32 characterCode ) -> FontGlyph& {
+        return m_Glyphs.at( characterCode );
+    }
+
     auto Font::RegisterGlyph( UInt32 characterCode, const FontGlyph& glyph ) -> void {
         m_Glyphs.emplace( characterCode, glyph );
     }

@@ -67,6 +67,7 @@ namespace Mikoto {
                 case ShaderDataType::MAT3_TYPE:     return s_DefaultShaderFloatSize * (3 * 3);
                 case ShaderDataType::MAT4_TYPE:     return s_DefaultShaderFloatSize * (4 * 4);
 
+                case ShaderDataType::UINT_TYPE:      return s_DefaultShaderIntSize;
                 case ShaderDataType::INT_TYPE:      return s_DefaultShaderIntSize;
                 case ShaderDataType::INT2_TYPE:     return s_DefaultShaderIntSize * 2;
                 case ShaderDataType::INT3_TYPE:     return s_DefaultShaderIntSize * 3;
@@ -95,6 +96,7 @@ namespace Mikoto {
                 case ShaderDataType::MAT3_TYPE:     return 3 * 3;
                 case ShaderDataType::MAT4_TYPE:     return 4 * 4;
 
+                case ShaderDataType::UINT_TYPE:      return 1;
                 case ShaderDataType::INT_TYPE:      return 1;
                 case ShaderDataType::INT2_TYPE:     return 2;
                 case ShaderDataType::INT3_TYPE:     return 3;

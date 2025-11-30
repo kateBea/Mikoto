@@ -25,6 +25,29 @@
 
 namespace Mikoto::VulkanPasses {
 
+    template<typename UniformBufferT>
+    static auto CreateUniformBuffer( GpuDevice* device ) -> BufferHandle {
+        BufferHandle buffer{ BufferHandle::CreateEmpty() };
+
+        constexpr Size elementCount{ 1 };
+        constexpr Size elementSize{ sizeof( UniformBufferT ) };
+
+        // UniformBuffer size padded. Vertex shader
+        const VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE( device )->GetUniformBufferMinOffsetAlignment() };
+        const VkDeviceSize paddedSize{ VulkanHelpers::GetUniformBufferPadding( elementSize, minOffsetAlignment ) };
+
+        const Size totalSize{ elementCount * paddedSize };
+
+        BufferDescription bufferDesc{};
+        bufferDesc.WithData( nullptr )
+                .WithUsage( BufferUsage::BUFFER_USAGE_UNIFORM )
+                .WithSizeBytes( totalSize )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
+        buffer = device->CreateBuffer( bufferDesc );
+
+        return buffer;
+    }
+
     static auto GetMeshTextureIndices(TextureHandle texture) -> Int32 {
         if ( const auto vkTexture{ dynamic_cast<VulkanTexture*>( texture.GetRaw() ) } ) {
             return vkTexture->GetTextureIndex();
@@ -212,6 +235,17 @@ namespace Mikoto::VulkanPasses {
         }
     }
 
+    auto ShadingPass::OnResize( UInt32 width, UInt32 height ) -> void {
+        // TODO: resize color/depth targets
+    }
+
+    auto ShadingPass::BindDefaultSets(CommandListHandle cmd,  VkDescriptorSet& set, const UInt32 setIndex ) -> void {
+        const VkCommandBuffer vkCmd{ cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
+        const VkPipelineLayout pipeline{ m_Pipeline->GetNativeHandle(ObjectType::Vk_PipelineLayout) };
+
+        vkCmdBindDescriptorSets(vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline, setIndex, 1, std::addressof( set ), 0, nullptr);
+    }
+
     auto ShadingPass::InitInstanceData() -> void {
 
         constexpr Size elementCount{ 1024 };
@@ -325,7 +359,7 @@ namespace Mikoto::VulkanPasses {
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
         m_ColorTarget.Image = m_Device->CreateTexture( colorDesc );
-        m_ColorTarget.Image->SetDebugName( "ShadingPass Color Target" );
+        m_ColorTarget.Image->SetDebugName( "TextureRenderPass Color Target" );
         m_ColorTarget.Type = AttachmentType::COLOR;
 
         // Depth attachment
@@ -340,7 +374,7 @@ namespace Mikoto::VulkanPasses {
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
         m_DepthTarget.Image = m_Device->CreateTexture( depthDesc );
-        m_DepthTarget.Image->SetDebugName( "ShadingPass Depth Target" );
+        m_DepthTarget.Image->SetDebugName( "TextureRenderPass Depth Target" );
         m_DepthTarget.Type = AttachmentType::DEPTH;
 
         // Graphics pipeline
@@ -515,15 +549,324 @@ namespace Mikoto::VulkanPasses {
         m_UpdateTextureDescriptor = true;
     }
 
-    auto ShadingPass::OnResize( UInt32 width, UInt32 height ) -> void {
-        // TODO: resize color/depth targets
+    auto FontRenderPass::Init( GpuDevice* device ) -> void {
+        m_Device = device;
+
+        // Color attachment
+        TextureDescription colorDesc{};
+        colorDesc.WithWidth( 1920 )
+            .WithHeight( 1080 )
+            .WithChannelCount( 4 )
+            .WithData( nullptr )
+            .WithType( TextureType::TEXTURE_2D )
+            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
+            .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
+            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+
+        m_ColorTarget.Image = m_Device->CreateTexture( colorDesc );
+        m_ColorTarget.Image->SetDebugName( "FontRenderPass Color Target" );
+        m_ColorTarget.Type = AttachmentType::COLOR;
+
+        // Depth attachment
+        TextureDescription depthDesc{};
+        depthDesc.WithWidth( 1920 )
+            .WithHeight( 1080 )
+            .WithChannelCount( 1 )
+            .WithData( nullptr )
+            .WithType( TextureType::TEXTURE_2D )
+            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
+            .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
+            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+
+        m_DepthTarget.Image = m_Device->CreateTexture( depthDesc );
+        m_DepthTarget.Image->SetDebugName( "FontRenderPass Depth Target" );
+        m_DepthTarget.Type = AttachmentType::DEPTH;
+
+        // Graphics pipeline
+        ShaderModuleHandle vertShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/Text_Vert.sprv", ShaderStage::VERTEX_STAGE ) };
+        ShaderModuleHandle fragShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/Text_Frag.sprv", ShaderStage::FRAGMENT_STAGE ) };
+
+        // we're providing none as the shader expects none
+        const BufferLayout layout{
+            { ShaderDataType::FLOAT2_TYPE, "a_Position" },
+            { ShaderDataType::FLOAT2_TYPE, "a_TexCoord" },
+            { ShaderDataType::UINT_TYPE, "a_TexCoordIndex" },
+        };
+
+        GraphicsPipelineDescription pipelineDesc{};
+
+        pipelineDesc.ShaderStages = { vertShader, fragShader };
+        pipelineDesc.DepthTest = true;
+        pipelineDesc.DepthWrite = true;
+        pipelineDesc.AlphaBlending = true;
+        pipelineDesc.PrimitiveTopology = Topology::TRIANGLE_STRIP;
+        pipelineDesc.DepthTexture = m_DepthTarget.Image;
+        pipelineDesc.ColorAttachments = { m_ColorTarget.Image };
+        pipelineDesc.DefaultVertexLayout = layout;
+
+        m_Pipeline = m_Device->CreatePipeline( pipelineDesc );
+
+        InitBuffersAndSets();
+
+        CreateAttributeBuffers();
     }
 
-    auto ShadingPass::BindDefaultSets(CommandListHandle cmd,  VkDescriptorSet& set, const UInt32 setIndex ) -> void {
-        const VkCommandBuffer vkCmd{ cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
+    auto FontRenderPass::UpdateBindlessTextureDescriptor( Int32 index, VulkanTexture* texture ) const -> void {
+        if ( !texture->HasSampler() ) {
+            texture->SetSampler( m_Device->CreateSampler( SamplerDescription{} ) );
+        }
+
+        VkSampler sampler{ texture->GetSampler()->GetNativeHandle( ObjectType::Vk_Sampler ) };
+
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.sampler = sampler;
+        imageInfo.imageView = texture->GetNativeHandle( ObjectType::Vk_ImageView );
+
+        // is this the image's layout or the layout I want to be for optimal sampling
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        VkWriteDescriptorSet write{};
+        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.dstSet = m_UBOSet;
+        write.dstBinding = 1;
+        write.dstArrayElement = index;
+        write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        write.descriptorCount = 1;
+        write.pImageInfo = &imageInfo;
+
+        vkUpdateDescriptorSets( VK_DEVICE( m_Device ), 1, &write, 0, nullptr );
+    }
+
+    auto FontRenderPass::DrawText( glm::vec2 position, const std::string& text, double fontSize, Vec4F color ) -> void {
+        double xPos = position.x;
+        double yPos = position.y;
+        double scale = fontSize / m_FontTest->GetSize();
+
+        for (size_t i = 0; i < text.length(); i++) {
+            FontGlyph& glyph{ m_FontTest->GetGlyph(static_cast<uint32_t>(text[i])) };
+
+            if (text[i] != ' ') {
+                // Quad Coordinates
+                double x0 = xPos + glyph.m_PlaneBounds.x * fontSize;
+                double y0 = yPos - glyph.m_PlaneBounds.y * fontSize;
+
+                // UV Coordinates
+                TextureHandle atlas{ m_FontTest->GetAtlas() };
+                double s0 = glyph.m_AtlasBounds.x / atlas->GetWidth();
+                double t0 = glyph.m_AtlasBounds.w / atlas->GetHeight();
+                double s1 = glyph.m_AtlasBounds.z / atlas->GetWidth();
+                double t1 = glyph.m_AtlasBounds.y / atlas->GetHeight();
+
+                FontParams fontParams{};
+                fontParams.Pos = { x0, y0 + std::round((m_FontTest->GetMaxHeight() * scale)) - (glyph.m_Height * scale)};
+                fontParams.Size = { glyph.m_Width * scale, glyph.m_Height * scale };
+                fontParams.Color = color;
+                fontParams.TexIndex = dynamic_cast<VulkanTexture*>(atlas.GetRaw())->GetTextureIndex();
+                fontParams.TexCoords[0] = { s0, t0 }; // top left
+                fontParams.TexCoords[1] = { s1, t0 }; // bottom left
+                fontParams.TexCoords[2] = { s1, t1 }; // bottom right
+                fontParams.TexCoords[3] = { s0, t1 }; // top right
+
+                m_FontRenderParams.emplace_back(fontParams);
+            }
+
+            xPos += glyph.m_AdvanceX * fontSize;
+        }
+    }
+
+    auto FontRenderPass::Shutdown() -> void {
+    }
+
+    auto FontRenderPass::Begin( CommandListHandle cmd ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        // Prepare resources
+        if ( m_UpdateTextureDescriptor ) {
+
+            // We push all the textures we need, when we begin render
+            // we make sure they are all visible through the descriptor set
+            // do this once and only when is needed if the texture list hasn't changed
+            // there's no need to update this descriptor set
+            for ( TextureHandle& texture: m_BindlessTextures | std::ranges::views::values ) {
+
+                const auto vkTexture{ dynamic_cast<VulkanTexture*>( texture.GetRaw() ) };
+
+                const Int32 textureIndex{ vkTexture->GetTextureIndex() };
+                UpdateBindlessTextureDescriptor( textureIndex, vkTexture );
+            }
+
+            DescriptorWriter descriptorWriterUBO{};
+            descriptorWriterUBO.WriteBuffer( 0, m_UBO->GetNativeHandle( ObjectType::Vk_Buffer ), m_UBO->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
+                    .UpdateSet( VK_DEVICE( m_Device ), m_UBOSet );
+
+            m_UpdateTextureDescriptor = false;
+        }
+
+        m_CmdList = cmd;
+        VkCommandBuffer vkCmd { cmd->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
+
+        VkRenderingAttachmentInfo colorAttachment{};
+        colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        colorAttachment.imageView = m_ColorTarget.Image->GetNativeHandle( ObjectType::Vk_ImageView );
+        colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachment.clearValue.color = { m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a };
+
+        std::array<VkRenderingAttachmentInfo, 1> colorAttachments{ colorAttachment };
+
+        VkRenderingAttachmentInfo depthAttachment{};
+        depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        depthAttachment.imageView = m_DepthTarget.Image->GetNativeHandle( ObjectType::Vk_ImageView );
+        depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        depthAttachment.clearValue.depthStencil = { 1.0f, 0 };
+
+        VkRenderingInfo renderingInfo{};
+        renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        renderingInfo.renderArea = { { 0, 0 }, { 1920, 1080 } };
+        renderingInfo.layerCount = 1;
+        renderingInfo.layerCount = 1;
+        renderingInfo.colorAttachmentCount = static_cast<UInt32>( colorAttachments.size() );
+        renderingInfo.pColorAttachments = colorAttachments.data();
+        renderingInfo.pDepthAttachment = std::addressof( depthAttachment );
+
+        vkCmdBeginRendering( vkCmd, &renderingInfo );
+
+        m_FontTest = AssetsService::Get()->LoadAsset<Font>( Path{ "Resources/Fonts/Google_Sans_Code/GoogleSansCode-Italic-VariableFont_wght.ttf" } );
+    }
+
+    auto FontRenderPass::End() -> void {
+        m_FontRenderParams.clear();
+
+        MKT_BEGIN_PROFILER_NAMED();
+
+        const auto vkCmd{ m_CmdList->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
+        vkCmdEndRendering( vkCmd );
+
+        // Transition color target to shader read
+        const auto tex{ dynamic_cast<VulkanTexture*>( m_ColorTarget.Image.GetRaw() ) };
+        tex->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, vkCmd );
+    }
+
+    auto FontRenderPass::Render( Scene* scene ) -> void {
+        // Prepare data
+        DrawText({0.0f, 0.0f }, "Hello", 10, { 0.2f, 0.5f, 0.2f, 1.0f });
+
+        const VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE( m_Device )->GetStorageBufferMinOffsetAlignment() };
+        const VkDeviceSize paddedSize{ VulkanHelpers::GetUniformBufferPadding(sizeof(FontParams), minOffsetAlignment) };
+
+        for (Size meshInstanceIndex{}; meshInstanceIndex < m_FontRenderParams.size(); ++meshInstanceIndex) {
+            const VkDeviceSize dstOffset{ meshInstanceIndex * paddedSize };
+            m_FontParamsSSBO->CopyFromBlock(&m_FontRenderParams[meshInstanceIndex], sizeof(FontParams), dstOffset);
+        }
+
+        // UBO
+        glm::mat4 proj{};
+        proj = glm::ortho(0.0f, static_cast<float>( m_ColorTarget.Image->GetWidth() ), static_cast<float>( m_ColorTarget.Image->GetHeight() ), 0.0f);
+
+        m_UBO->CopyFromBlock( &proj, sizeof( proj ) );
+
+        VkCommandBuffer vkCmd { m_CmdList->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
         const VkPipelineLayout pipeline{ m_Pipeline->GetNativeHandle(ObjectType::Vk_PipelineLayout) };
 
-        vkCmdBindDescriptorSets(vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline, setIndex, 1, std::addressof( set ), 0, nullptr);
+        vkCmdBindDescriptorSets(vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline, 0, 1, std::addressof( m_UBOSet ), 0, nullptr);
+        vkCmdBindDescriptorSets(vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline, 1, 1, std::addressof( m_FontParamsBufferSet ), 0, nullptr);
+        vkCmdBindPipeline( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetNativeHandle( ObjectType::Vk_Pipeline ) );
+
+        const std::array<VkDeviceSize, 1> offsets{};
+        const std::array<VkBuffer, 1> vertexBuffers{ m_VertexBuffer->GetNativeHandle(ObjectType::Vk_Buffer) };
+
+        vkCmdBindVertexBuffers(vkCmd, 0, 1, vertexBuffers.data(), offsets.data());
+        vkCmdBindIndexBuffer(vkCmd, m_IndexBuffer->GetNativeHandle(ObjectType::Vk_Buffer), 0, VK_INDEX_TYPE_UINT32);
+
+        vkCmdDrawIndexed(vkCmd, static_cast<uint32_t>(m_Indices.size()), static_cast<uint32_t>(m_FontRenderParams.size()), 0, 0, 0);
+    }
+
+    auto FontRenderPass::OnResize( UInt32 width, UInt32 height ) -> void {
+
+    }
+
+    auto FontRenderPass::GetFinalComposition() const -> TextureHandle {
+        return m_ColorTarget.Image;
+    }
+
+    auto FontRenderPass::RegisterTextureForRender( TextureHandle texture ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        m_BindlessTextures.try_emplace(texture.GetRaw(), texture );
+        m_UpdateTextureDescriptor = true;
+    }
+
+    auto FontRenderPass::CreateAttributeBuffers() -> void {
+        BufferDescription vertexDesc{};
+        vertexDesc.WithData(reinterpret_cast<Byte*>(m_Vertices.data()))
+                  .WithUsage(BufferUsage::BUFFER_USAGE_VERTEX)
+                  .WithBufferDataType(BufferDataType::BUFFER_DATA_FLOAT32)
+                  .WithSizeBytes(InferSize<FontVertex>(m_Vertices.size()))
+                  .WithResourceUsageType(ResourceUsageType::RESOURCE_USAGE_STATIC);
+        m_VertexBuffer = m_Device->CreateBuffer(vertexDesc);
+
+        BufferDescription indexDesc{};
+        indexDesc.WithData(reinterpret_cast<Byte*>(m_Indices.data()))
+                 .WithUsage(BufferUsage::BUFFER_USAGE_INDEX)
+                 .WithSizeBytes(InferSize<UInt32>(m_Indices.size()))
+                 .WithBufferDataType(BufferDataType::BUFFER_DATA_UINT32)
+                 .WithResourceUsageType(ResourceUsageType::RESOURCE_USAGE_STATIC);
+
+        m_IndexBuffer = m_Device->CreateBuffer(indexDesc);
+    }
+
+    auto FontRenderPass::InitBuffersAndSets() -> void {
+        VulkanGraphicsPipeline* vkPipeline{ dynamic_cast<VulkanGraphicsPipeline*>( m_Pipeline.GetRaw() ) };
+
+        // ───────────────────────────────────────────────
+        // Set 0, textures and UBO
+        // ───────────────────────────────────────────────
+        m_UBO = CreateUniformBuffer<UBO>( m_Device );
+
+        const VkDescriptorSetLayout& firstSetLayout{ vkPipeline->GetDescriptorSetLayout( 0 ) };
+        m_UBOSet = TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( &firstSetLayout );
+        DescriptorWriter descriptorWriterUBO{};
+        descriptorWriterUBO.WriteBuffer( 0, m_UBO->GetNativeHandle( ObjectType::Vk_Buffer ), m_UBO->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
+                .UpdateSet( VK_DEVICE( m_Device ), m_UBOSet );
+
+        // Textures bindless
+        const UInt32 maxBindlessTextures{ VulkanRenderer::GetMaxBindlessTextureCount() };
+        std::array variableCount{ maxBindlessTextures };
+        VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO };
+        variableCountInfo.descriptorSetCount = static_cast<UInt32>( variableCount.size() );
+        variableCountInfo.pDescriptorCounts = variableCount.data();
+
+        m_UBOSet = TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( &firstSetLayout, std::addressof( variableCountInfo ) );
+
+        // ───────────────────────────────────────────────
+        // Set 1, font parameters
+        // ───────────────────────────────────────────────
+        constexpr Size elementCount{ 1024 };
+        constexpr Size elementSize{ sizeof( FontParams ) };
+
+        // UniformBuffer size padded. Vertex shader
+        const VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE( m_Device )->GetStorageBufferMinOffsetAlignment() };
+        const VkDeviceSize paddedSize{ VulkanHelpers::GetUniformBufferPadding(elementSize, minOffsetAlignment) };
+
+        const Size totalSize{ elementCount * paddedSize };
+
+        BufferDescription desc{};
+        desc.WithSizeBytes( totalSize )
+                .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
+
+        m_FontParamsSSBO = m_Device->CreateBuffer( desc );
+        m_FontParamsSSBO->SetDebugName( "FontRenderPass Instance SSBO" );
+
+        const VkDescriptorSetLayout& secondSetLayout{ vkPipeline->GetDescriptorSetLayout( 1 ) };
+        m_FontParamsBufferSet = TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( &secondSetLayout );
+        DescriptorWriter descriptorWriter{};
+        descriptorWriter.WriteBuffer( 0, m_FontParamsSSBO->GetNativeHandle( ObjectType::Vk_Buffer ), m_FontParamsSSBO->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER )
+                .UpdateSet( VK_DEVICE( m_Device ), m_FontParamsBufferSet );
+
     }
 
     auto ComputeBasic::Init( GpuDevice* device ) -> void {

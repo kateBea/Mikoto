@@ -96,6 +96,9 @@ namespace Mikoto {
     auto SceneRenderer::SetClearColor( float r, float g, float b, float a ) -> void {
         m_RendererBackend->SetClearColor( r, g, b, a );
     }
+    auto SceneRenderer::GetFontPassComposition() -> TextureHandle {
+        return m_RendererBackend->GetFontPassComposition();
+    }
 
     auto SceneRenderer::Create( const SceneRendererCreateInfo &createInfo ) -> Unique<SceneRenderer> {
         return CreateScope<SceneRenderer>( createInfo );

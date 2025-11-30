@@ -242,12 +242,12 @@ namespace Mikoto {
         return LoadFont( std::string_view{ uriString } );
     }
 
-    auto AssetsService::LoadFont(std::string_view uri) -> FontHandle {
+    auto AssetsService::LoadFont( const std::string_view uri) -> FontHandle {
         MKT_BEGIN_PROFILER_NAMED();
 
         const FontLoadDescription fontLoadDescription{
             .FontFile{ FileService::Get()->LoadFile( uri ) },
-            .PixelSize{ 1.0f }
+            .FontSize{ 24.0f }
         };
 
         return LoadFont( fontLoadDescription );
@@ -268,7 +268,7 @@ namespace Mikoto {
 
         FontLoadDescription fontDesc{};
         fontDesc.WithFile( fontFile )
-                .WithPixelSize( 1.0f );
+                .WithPixelSize( description.FontSize );
 
         FontHandle fontHandle{ FontFactory::Get()->LoadFont( fontDesc ) };
         if ( !fontHandle.IsEmpty() ) {

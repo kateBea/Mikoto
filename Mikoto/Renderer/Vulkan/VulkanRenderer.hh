@@ -69,6 +69,8 @@ namespace Mikoto {
 
         MKT_NODISCARD static auto GetMaxBindlessTextureCount() -> UInt32;
 
+        MKT_NODISCARD  auto GetFontPassComposition() -> TextureHandle override;
+
         ~VulkanRenderer() override = default;
 
     private:

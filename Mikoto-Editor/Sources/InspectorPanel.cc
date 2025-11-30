@@ -1334,6 +1334,30 @@ namespace Mikoto {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
 
+            float cutOff{ spotLightData.GetCutOff() };
+            if ( ImGuiUtils::Slider( "Cut-off", cutOff, { 0.0f, 5.0f } ) ) {
+                spotLightData.SetCutOff( cutOff );
+            }
+
+            ImGui::SameLine();
+            ImGuiUtils::HelpMarker( "Angles in degrees" );
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+
+            float outerCutOff{ spotLightData.GetOuterCutOff() };
+            if ( ImGuiUtils::Slider( "Outer cut-off", outerCutOff, { 0.0f, 5.0f } ) ) {
+                spotLightData.SetOuterCutOff( outerCutOff );
+            }
+
+            ImGui::SameLine();
+            ImGuiUtils::HelpMarker( "Angles in degrees" );
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+
             static bool castShadows{};
             ImGuiUtils::CheckBox( "Cast shadows", castShadows );
 

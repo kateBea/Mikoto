@@ -32,8 +32,12 @@ namespace Mikoto {
         MKT_NODISCARD auto GetBearing() const -> const glm::ivec2& { return m_Bearing; }
         MKT_NODISCARD auto GetAdvance() const -> UInt32 { return m_Advance; }
 
-    private:
 
+    public:
+        // TODO: TEMPORAY
+        friend class FontRenderPass;
+
+        // adjust
         UInt32 m_Codepoint{};
         glm::ivec2 m_Size{};
         glm::ivec2 m_Bearing{};
@@ -44,9 +48,21 @@ namespace Mikoto {
         glm::vec2 m_PlaneBoundsMin{};
         glm::vec2 m_PlaneBoundsMax{};
 
+
+        // we will go with these
+        double m_Width{};
+        double m_Height{};
+        double m_BearingX{};
+        double m_BearingY{};
+        double m_AdvanceX{};
+        double m_BearingUnderline{};
+        Vec4F m_AtlasBounds{};
+        Vec4F m_PlaneBounds{};
+
         // Parameters filled from FontFactory class
         friend class Font;
         friend class FontFactory;
+
     };
 
     /**
@@ -90,7 +106,9 @@ namespace Mikoto {
         * @return Pointer to the corresponding FontGlyph, or nullptr if not found.
         */
         MKT_NODISCARD auto GetGlyph( UInt32 characterCode ) const -> const FontGlyph&;
+        MKT_NODISCARD auto GetGlyph( UInt32 characterCode ) -> FontGlyph&;
 
+        MKT_NODISCARD auto GetMaxHeight() const -> UInt32 { return m_MaxHeight; }
 
         auto RegisterGlyph( UInt32 characterCode, const FontGlyph& glyph ) -> void;
 
@@ -98,6 +116,8 @@ namespace Mikoto {
         auto SetPath( std::string_view path ) -> void;
 
         MKT_NODISCARD auto GetGlyphCount() const -> Size;
+
+        auto GetSize() -> double { return m_PixelSize; }
 
         /**
         * @brief Default destructor.
@@ -108,18 +128,17 @@ namespace Mikoto {
         // Parameters filled from FontFactory class
         friend class FontFactory;
 
+        // TODO: TEMPORAY
+        friend class FontRenderPass;
+
     protected:
 
         Path m_Path{};
         std::string m_Name{};
         TextureHandle m_Atlas{};
 
-        float m_PixelSize{};
-        float m_LineHeight{};
-        float m_Ascender{};
-        float m_Descender{};
-        float m_BaseLine{};
-
+        double m_PixelSize{ 5.0 };
+        double m_MaxHeight{};
         ankerl::unordered_dense::map<UInt32, FontGlyph> m_Glyphs{};
     };
 

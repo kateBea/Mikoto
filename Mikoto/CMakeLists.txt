@@ -74,6 +74,7 @@ set(SPIRV_REFLECT_BUILD_TESTS OFF CACHE BOOL "Disable SPIRV-Reflect tests")
 set(SPIRV_REFLECT_ENABLE_ASSERTS OFF CACHE BOOL "Disable asserts for SPIRV-Reflect")
 set(SPIRV_REFLECT_ENABLE_ASAN OFF CACHE BOOL "Disable address sanitizer")
 set(SPIRV_REFLECT_INSTALL OFF CACHE BOOL "Disable SPIRV-Reflect install targets")
+set(SPIRV_REFLECT_EXECUTABLE OFF CACHE BOOL "Build spirv-reflect executable")
 
 # ======================================
 # MSDFGEN / MSDF Atlas options
@@ -86,11 +87,12 @@ set(MSDF_ATLAS_MSDFGEN_EXTERNAL ON)
 set(MSDF_ATLAS_INSTALL OFF)
 set(BUILD_SHARED_LIBS OFF)
 
-set(MSDFGEN_CORE_ONLY ON)
+set(MSDFGEN_CORE_ONLY OFF)
 set(MSDFGEN_USE_VCPKG OFF)
 set(MSDFGEN_BUILD_STANDALONE OFF)
 set(MSDFGEN_DISABLE_SVG ON)
-set(MSDFGEN_DISABLE_PNG ON)
+set(MSDFGEN_USE_SKIA OFF)
+set(MSDFGEN_DISABLE_PNG OFF)
 set(MSDFGEN_DYNAMIC_RUNTIME OFF)
 
 # ======================================

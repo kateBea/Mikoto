@@ -96,7 +96,7 @@ namespace Mikoto {
     }
 
     auto FontLoadDescription::WithPixelSize( float pixelSize ) -> FontLoadDescription& {
-        this->PixelSize = pixelSize;
+        this->FontSize = pixelSize;
         return *this;
     }
     auto InferElementCount( const BufferDataType dataType, const Size blockSize ) -> Size {

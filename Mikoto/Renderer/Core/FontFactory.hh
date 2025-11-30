@@ -13,6 +13,10 @@
 #ifdef max
 #undef max
 #endif
+
+#include <vector>
+
+#include <ankerl/unordered_dense.h>
 #include <msdf-atlas-gen/msdf-atlas-gen.h>
 
 #include <Common/Common.hh>
@@ -35,7 +39,7 @@ namespace Mikoto {
         auto Init() -> void override;
         auto Shutdown() -> void override;
 
-        auto LoadFont(const FontLoadDescription& description) -> FontHandle;
+        auto LoadFont(const FontLoadDescription& description ) -> FontHandle;
 
     private:
         // =================================================================
@@ -54,22 +58,27 @@ namespace Mikoto {
 
         using MsdfGlyphGeometryList = std::vector<msdf_atlas::GlyphGeometry>;
 
-        // =================================================================
-        struct MsdfData {
-            Int32 AtlasWidth{};
-            Int32 AtlasHeight{};
-            std::vector<Byte> Bytes{};
+        using MTSDFGen = msdf_atlas::ImmediateAtlasGenerator<float, 4, &msdf_atlas::mtsdfGenerator,
+            msdf_atlas::BitmapAtlasStorage<msdf_atlas::byte, 4>>;
 
-            MsdfGlyphGeometryList GlyphData{};
-        };
+        // =================================================================
 
         struct CharsetRange {
             Int32 Start{};
             Int32 End{};
         };
 
+        struct MsdfData {
+
+            Int32 MaxHeight{};
+            TextureHandle TextureAtlas{};
+            MTSDFGen MTSDFAtlasInfo{};
+            ankerl::unordered_dense::map<msdf_atlas::unicode_t, FontGlyph> GlyphInfo{};
+        };
+
     private:
-        auto GenerateAtlas( const CStr fontFilename ) const -> MsdfData;
+        auto GenerateAtlas( CStr fontFilename, Int32 fontSize, bool expensiveColoring = true ) -> MsdfData;
+        auto SubmitAtlasBitmapAndLayout(const msdf_atlas::BitmapAtlasStorage<msdf_atlas::byte, 4>& atlas,std::vector<msdf_atlas::GlyphGeometry> glyphs, MsdfData& data, Int32 fontSize ) const -> void;
 
     private:
         GpuDevice *m_GpuDevice{ nullptr };

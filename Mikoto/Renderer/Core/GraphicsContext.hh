@@ -20,6 +20,14 @@
 namespace Mikoto {
     class PassCommandList;
 
+    struct PassViewport {
+        UInt32 X{}, Y{}, Width{}, Height{};
+    };
+
+    struct PassScissor {
+        UInt32 X{}, Y{}, Width{}, Height{};
+    };
+
     class GraphicsContext {
     public:
         virtual ~GraphicsContext() = default;
@@ -51,12 +59,26 @@ namespace Mikoto {
         virtual auto SubmitCommandList(PassCommandList* cmd) -> void = 0;
 
         virtual auto BindBuffer(BufferHandle texture) -> void = 0;
-        virtual auto BindTexture(TextureHandle texture) -> void = 0;
-        virtual auto BindSampler(SamplerHandle sampler) -> void = 0;
 
         virtual auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void = 0;
 
-        MKT_NODISCARD static auto Create(GraphicsAPI api ) -> Unique<GraphicsContext>;
+
+
+
+        // Current confirmed API ============================================
+        MKT_NODISCARD auto GetDevice() const -> GpuDevice* { return  m_Device; }
+
+        virtual auto RegisterImage(TextureHandle texture) -> void = 0;
+        virtual auto RegisterImage(TextureHandle texture, SamplerHandle sampler) -> void = 0;
+
+        MKT_NODISCARD static auto Create(GpuDevice* device) -> Unique<GraphicsContext>;
+
+    protected:
+        explicit GraphicsContext(GpuDevice* device)
+            : m_Device{ device } {}
+
+    protected:
+        GpuDevice* m_Device{ nullptr };
     };
 
     class PassCommandList {
@@ -88,24 +110,19 @@ namespace Mikoto {
         auto BindVertexBuffer(BufferHandle vertices) -> void;
         auto BindIndexBuffer(BufferHandle indices) -> void;
         auto SubmitDraw() -> void;
-
-        auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void;
-
-        // In the case of textures we are not specifying index yet
-        // What we are going to do is basically specify the texture and for this
-        // pass command we will keep and index that determines the index of the texture
-        // this makes it easir to implement bindless in the vulkan side of things
-        // the sampler will simply target a specific texture
-        auto BindTexture(TextureHandle texture) -> void;
-        auto BindTexture(std::string_view texture) -> void;
-
         auto BindBuffer(BufferHandle buffer, UInt32 set, UInt32 index) -> void;
         auto BindBuffer(std::string_view buffer, UInt32 set, UInt32 index) -> void;
 
-        // A sampler tells how we sample from a texture when we bind a sampler we
-        // need to specify the texture we will be sampling from with this sampler
-        auto BindSampler(SamplerHandle sampler, std::string_view textureName) -> void;
-        auto BindSampler(SamplerHandle sampler, TextureHandle texture) -> void;
+
+
+        // Current confirmed API ============================================
+        // These two will use the default sampler
+        auto BindTexture(TextureHandle texture ) const -> void;
+        auto BindTexture(std::string_view texture) const -> void;
+
+        auto BindTexture(TextureHandle texture, SamplerHandle sampler ) const -> void;
+
+        auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void;
 
     private:
         struct DrawInstanceMetadata {
@@ -143,6 +160,8 @@ namespace Mikoto {
 
 
         // Pass state
+        PassViewport m_Viewport{};
+        PassViewport m_Scissor{};
 
     };
 }

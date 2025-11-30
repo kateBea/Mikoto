@@ -499,6 +499,9 @@ namespace Mikoto {
     auto VulkanDevice::GetMemoryAvailable() const -> Size {
         return m_GpuAllocator->GetMemoryAvailable();
     }
+    auto VulkanDevice::GetDummySampler() const -> SamplerHandle {
+        return SamplerHandle::CreateEmpty(); // TODO
+    }
 
     auto VulkanDevice::CreateCommandList( QueueType ) -> CommandListHandle {
         if (m_AvailableGraphicsCommandLists.empty() ) {

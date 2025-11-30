@@ -6,8 +6,9 @@
 
 namespace Mikoto {
 
-    VulkanGraphicsContext::VulkanGraphicsContext() {
-    }
+    VulkanGraphicsContext::VulkanGraphicsContext(GpuDevice* device)
+        : GraphicsContext{ device }
+    {}
 
     auto VulkanGraphicsContext::Init() -> void {
     }
@@ -40,10 +41,21 @@ namespace Mikoto {
 
     auto VulkanGraphicsContext::BindBuffer( BufferHandle texture ) -> void {
     }
-    auto VulkanGraphicsContext::BindTexture( TextureHandle texture ) -> void {
+
+    auto VulkanGraphicsContext::RegisterImage( TextureHandle texture ) -> void {
+        SamplerHandle dummySampler{ m_Device->GetDummySampler() };
+        RegisterImage(texture, dummySampler);
     }
-    auto VulkanGraphicsContext::BindSampler( SamplerHandle sampler ) -> void {
+
+    auto VulkanGraphicsContext::RegisterImage( TextureHandle texture, SamplerHandle sampler ) -> void {
+        const auto it{ m_CombinedSamplerIndices.find( std::make_pair( texture.GetRaw(), sampler.GetRaw() ) ) };
+
+        // Combined image sampler does not exists
+        if (it == m_CombinedSamplerIndices.end()) {
+            m_CombinedSamplerIndices.emplace( std::make_pair( texture.GetRaw(), sampler.GetRaw() ), m_CombinedSamplerIndices.size() );
+        }
     }
+
     auto VulkanGraphicsContext::Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void {
     }
 

@@ -49,8 +49,7 @@ namespace Mikoto {
     {
     }
 
-    auto FrameGraph::RegisterPass( FramePass *pass ) -> FramePass * {
-        return nullptr;
+    auto FrameGraph::RegisterPass( FramePass *pass ) -> void {
     }
 
     auto FrameGraph::Compile( FrameGraphBuilder &builder ) -> void {

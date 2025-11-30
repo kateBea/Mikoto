@@ -108,7 +108,7 @@ namespace Mikoto {
         switch ( m_ActiveAPI ) {
             case GraphicsAPI::VULKAN_API:
                 m_RenderBackend = CreateScope<VulkanRenderer>( GetGpuDevice(), "Vulkan Renderer" );
-                m_GraphicsContext = GraphicsContext::Create( m_ActiveAPI );
+                m_GraphicsContext = GraphicsContext::Create( m_Context->GetGpuDevice() );
                 break;
             default:
                 MKT_CORE_LOGGER_CRITICAL( "RenderService::CreateRendererBackend - Error Unsupported renderer API!" );

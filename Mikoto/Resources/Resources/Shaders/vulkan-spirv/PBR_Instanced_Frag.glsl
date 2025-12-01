@@ -41,17 +41,6 @@ struct LightInfo {
     int ActiveLightType;
 };
 
-struct ShadingPassMeshBufferUBO {
-    mat4 Transform;
-    vec4 Albedo;
-    vec4 Factors;
-    int AlbedoIndex;
-    int NormalIndex;
-    int MetallicIndex;
-    int RoughnessIndex;
-    int AoIndex;
-};
-
 // --------------------------------------------------
 // Interpolated input (with flat for instance data)
 // --------------------------------------------------

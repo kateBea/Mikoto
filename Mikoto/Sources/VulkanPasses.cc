@@ -48,7 +48,7 @@ namespace Mikoto::VulkanPasses {
         return buffer;
     }
 
-    static auto GetMeshTextureIndices(TextureHandle texture) -> Int32 {
+    static auto GetMeshTextureIndices( TextureHandle texture ) -> Int32 {
         if ( const auto vkTexture{ dynamic_cast<VulkanTexture*>( texture.GetRaw() ) } ) {
             return vkTexture->GetTextureIndex();
         }
@@ -56,7 +56,7 @@ namespace Mikoto::VulkanPasses {
         return -1;
     }
 
-    auto ShadingPass::Init( GpuDevice* device ) -> void{
+    auto ShadingPass::Init( GpuDevice* device ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         m_Device = device;
@@ -64,13 +64,13 @@ namespace Mikoto::VulkanPasses {
         // Color attachment
         TextureDescription colorDesc{};
         colorDesc.WithWidth( 1920 )
-            .WithHeight( 1080 )
-            .WithChannelCount( 4 )
-            .WithData( nullptr )
-            .WithType( TextureType::TEXTURE_2D )
-            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
-            .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
-            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+                .WithHeight( 1080 )
+                .WithChannelCount( 4 )
+                .WithData( nullptr )
+                .WithType( TextureType::TEXTURE_2D )
+                .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
+                .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
+                .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
         m_ColorTarget.Image = m_Device->CreateTexture( colorDesc );
         m_ColorTarget.Image->SetDebugName( "ShadingPass Color Target" );
@@ -79,21 +79,21 @@ namespace Mikoto::VulkanPasses {
         // Depth attachment
         TextureDescription depthDesc{};
         depthDesc.WithWidth( 1920 )
-            .WithHeight( 1080 )
-            .WithChannelCount( 1 )
-            .WithData( nullptr )
-            .WithType( TextureType::TEXTURE_2D )
-            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
-            .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
-            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+                .WithHeight( 1080 )
+                .WithChannelCount( 1 )
+                .WithData( nullptr )
+                .WithType( TextureType::TEXTURE_2D )
+                .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
+                .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
+                .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
         m_DepthTarget.Image = m_Device->CreateTexture( depthDesc );
         m_DepthTarget.Image->SetDebugName( "ShadingPass Depth Target" );
         m_DepthTarget.Type = AttachmentType::DEPTH;
 
         // Graphics pipeline
-        ShaderModuleHandle vertShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/PBR_Instanced_Vert.sprv", ShaderStage::VERTEX_STAGE ) };
-        ShaderModuleHandle fragShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/PBR_Instanced_Frag.sprv", ShaderStage::FRAGMENT_STAGE ) };
+        ShaderModuleHandle vertShader{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/PBR_Instanced_Vert.sprv", ShaderStage::VERTEX_STAGE ) };
+        ShaderModuleHandle fragShader{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/PBR_Instanced_Frag.sprv", ShaderStage::FRAGMENT_STAGE ) };
 
         GraphicsPipelineDescription pipelineDesc{};
         pipelineDesc.ShaderStages = { vertShader, fragShader };
@@ -103,23 +103,49 @@ namespace Mikoto::VulkanPasses {
         pipelineDesc.DepthTexture = m_DepthTarget.Image;
         pipelineDesc.ColorAttachments = { m_ColorTarget.Image };
 
-        m_Pipeline = m_Device->CreatePipeline( pipelineDesc );
+        // Input rate
+        // Vertices
+        AttributesSpec verticesData{
+            .DefaultVertexLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT },
+            .InputRateSpec{ .BindingIndex{ 0 }, .AttributeRate{ InputRate::PER_VERTEX } }
+        };
 
-        InitInstanceData();
-        CreateMeshesStorageDescriptorSet();
+        // Attributes
+        AttributesSpec instancedData{
+            .DefaultVertexLayout{
+                // Model matrix columns
+                { ShaderDataType::FLOAT4_TYPE, "i_Model0" },// mat4 column 0
+                { ShaderDataType::FLOAT4_TYPE, "i_Model1" },// mat4 column 1
+                { ShaderDataType::FLOAT4_TYPE, "i_Model2" },// mat4 column 2
+                { ShaderDataType::FLOAT4_TYPE, "i_Model3" },// mat4 column 3
+
+                // Material properties
+                { ShaderDataType::FLOAT4_TYPE, "i_Albedo" },
+                { ShaderDataType::FLOAT4_TYPE, "i_Factors" },
+
+                // Texture indices (flat ints)
+                { ShaderDataType::INT_TYPE, "i_AlbedoIndex" },
+                { ShaderDataType::INT_TYPE, "i_NormalIndex" },
+                { ShaderDataType::INT_TYPE, "i_MetallicIndex" },
+                { ShaderDataType::INT_TYPE, "i_RoughnessIndex" },
+                { ShaderDataType::INT_TYPE, "i_AoIndex" } },
+            .InputRateSpec{ .BindingIndex{ 1 }, .AttributeRate{ InputRate::PER_INSTANCE } }
+        };
+
+        pipelineDesc.VertexAttributesSpec = { verticesData, instancedData };
+
+        m_Pipeline = m_Device->CreatePipeline( pipelineDesc );
     }
 
     auto ShadingPass::Shutdown() -> void {
-
-        m_BatchOffsetMap.clear();
-        m_MeshBatches.clear();
+        m_MeshInstanceData.clear();
     }
 
     auto ShadingPass::Begin( CommandListHandle cmd ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         m_CmdList = cmd;
-        VkCommandBuffer vkCmd { cmd->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
+        VkCommandBuffer vkCmd{ cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
 
         VkRenderingAttachmentInfo colorAttachment{};
         colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -155,7 +181,7 @@ namespace Mikoto::VulkanPasses {
     void ShadingPass::End() {
         MKT_BEGIN_PROFILER_NAMED();
 
-        const auto vkCmd{ m_CmdList->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
+        const auto vkCmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
         vkCmdEndRendering( vkCmd );
 
         // Transition color target to shader read
@@ -175,11 +201,38 @@ namespace Mikoto::VulkanPasses {
         return m_ColorTarget.Image;
     }
 
+    auto ShadingPass::UploadInstanceData() -> void {
+        for ( auto& meshInfo: m_MeshInstanceData | std::views::values ) {
+            std::vector<ShadingPassMeshBufferUBO> instancesData{};
+
+            for ( auto& instanceData: meshInfo.second | std::views::values ) {
+                instancesData.emplace_back( instanceData );
+            }
+
+            meshInfo.first->CopyFromBlock( instancesData.data(), instancesData.size() * sizeof( ShadingPassMeshBufferUBO ) );
+        }
+    }
+
+    auto ShadingPass::UpdateMeshInstanceData() -> void {
+        for ( auto& meshInfo: m_MeshInstanceData | std::views::values ) {
+            std::vector<ShadingPassMeshBufferUBO> instancesData{};
+
+            for ( auto& instanceData: meshInfo.second | std::views::values ) {
+                instancesData.emplace_back( instanceData );
+            }
+
+            BufferDescription vertexDesc{};
+            vertexDesc.WithUsage( BufferUsage::BUFFER_USAGE_VERTEX )
+                    .WithData( reinterpret_cast<Byte*>( instancesData.data() ) )
+                    .WithSizeBytes( InferSize<ShadingPassMeshBufferUBO>( instancesData.size() ) )
+                    .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+
+            meshInfo.first = m_Device->CreateBuffer( vertexDesc );
+        }
+    }
+
     auto ShadingPass::Render( Scene* scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
-        // Clear previous batches
-        m_MeshBatches.clear();
 
         // Build batches per mesh
         auto& registry{ scene->GetRegistry() };
@@ -188,26 +241,34 @@ namespace Mikoto::VulkanPasses {
         for ( auto& entity: renderables ) {
             auto& tag{ registry.get<TagComponent>( entity ) };
             auto& transform{ registry.get<TransformComponent>( entity ) };
-            auto& meshComp { registry.get<MeshComponent>( entity ) };
-            auto& materialComp { registry.get<MaterialComponent>( entity ) };
+            auto& meshComp{ registry.get<MeshComponent>( entity ) };
+            auto& materialComp{ registry.get<MaterialComponent>( entity ) };
 
             MeshNode* meshNode{ meshComp.GetMesh() };
-            PBRMaterial* pbrMat{ dynamic_cast<PBRMaterial*>(materialComp.GetMaterial().GetRaw()) };
+            PBRMaterial* pbrMat{ dynamic_cast<PBRMaterial*>( materialComp.GetMaterial().GetRaw() ) };
 
             if ( !meshNode || !pbrMat ) {
                 continue;
             }
 
-            auto& [Mesh, Instances]{ m_MeshBatches[meshNode] };
+            // We need to update this vertex buffer if we don't have this mesh
+            if ( !m_MeshInstanceData.contains( meshNode ) ) {
+                m_UpdateInstanceData = true;
+            }
 
-            Mesh = meshNode;
+            auto& [Mesh, Instances]{ m_MeshInstanceData[meshNode] };
 
+            // We need to update this vertex buffer if we don't have its contents
             if ( !Instances.contains( tag.GetGUID() ) ) {
-                Instances.try_emplace( tag.GetGUID(), ShadingPassMeshBufferUBO{} );
+                m_UpdateInstanceData = true;
             }
 
             ShadingPassMeshBufferUBO& ubo{ Instances[tag.GetGUID()] };
-            ubo.Transform = transform.GetTransform();
+            ubo.i_TransformCol0 = transform.GetTransform()[0];
+            ubo.i_TransformCol1 = transform.GetTransform()[1];
+            ubo.i_TransformCol2 = transform.GetTransform()[2];
+            ubo.i_TransformCol3 = transform.GetTransform()[3];
+
             ubo.Albedo = pbrMat->GetColor();
             ubo.Factors.x = pbrMat->GetMetallicFactor();
             ubo.Factors.y = pbrMat->GetRoughnessFactor();
@@ -219,19 +280,32 @@ namespace Mikoto::VulkanPasses {
             ubo.AoIndex = GetMeshTextureIndices( pbrMat->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
         }
 
-        auto vkCmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
-        vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                 m_Pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ),
-                                 2, 1, &m_MeshDataSet, 0, nullptr );
+        if ( m_UpdateInstanceData ) {
+            UpdateMeshInstanceData();
+            m_UpdateInstanceData = false;
+        }
 
-        // Upload instances into GPU buffer
+        // Copy contents
         UploadInstanceData();
 
-        // Draw each mesh with instancing
-        for ( auto& batch: m_MeshBatches | std::views::values ) {
-            if ( !batch.Instances.empty() ) {
-                DrawMeshBatch( batch );
-            }
+        // Draw
+        const VkCommandBuffer vkCmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
+
+        for ( auto& [meshNode, instanceData]: m_MeshInstanceData ) {
+            BufferHandle vertexBuffer{ meshNode->GetVertexBuffer() };
+            BufferHandle indexBuffer{ meshNode->GetIndexBuffer() };
+
+            const std::array<VkDeviceSize, 1> offsets{};
+            const std::array<VkBuffer, 1> vertexBuffers{ vertexBuffer->GetNativeHandle( ObjectType::Vk_Buffer ) };
+            const std::array<VkBuffer, 1> instanceBuffers{ instanceData.first->GetNativeHandle( ObjectType::Vk_Buffer ) };
+
+            vkCmdBindVertexBuffers( vkCmd, 0, 1, vertexBuffers.data(), offsets.data() );
+            vkCmdBindVertexBuffers( vkCmd, 1, 1, instanceBuffers.data(), offsets.data() );
+
+            vkCmdBindIndexBuffer( vkCmd, indexBuffer->GetNativeHandle( ObjectType::Vk_Buffer ), 0, VK_INDEX_TYPE_UINT32 );
+
+            const Size instanceCount{ ( Size )instanceData.second.size() };
+            vkCmdDrawIndexed( vkCmd, indexBuffer->GetCount(), instanceCount, 0, 0, 0 );
         }
     }
 
@@ -239,109 +313,11 @@ namespace Mikoto::VulkanPasses {
         // TODO: resize color/depth targets
     }
 
-    auto ShadingPass::BindDefaultSets(CommandListHandle cmd,  VkDescriptorSet& set, const UInt32 setIndex ) -> void {
+    auto ShadingPass::BindDefaultSets( CommandListHandle cmd, VkDescriptorSet& set, const UInt32 setIndex ) -> void {
         const VkCommandBuffer vkCmd{ cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
-        const VkPipelineLayout pipeline{ m_Pipeline->GetNativeHandle(ObjectType::Vk_PipelineLayout) };
+        const VkPipelineLayout pipeline{ m_Pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ) };
 
-        vkCmdBindDescriptorSets(vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline, setIndex, 1, std::addressof( set ), 0, nullptr);
-    }
-
-    auto ShadingPass::InitInstanceData() -> void {
-
-        constexpr Size elementCount{ 1024 };
-        constexpr Size elementSize{ sizeof( ShadingPassMeshBufferUBO ) };
-
-        // UniformBuffer size padded. Vertex shader
-        const VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE( m_Device )->GetStorageBufferMinOffsetAlignment() };
-        const VkDeviceSize paddedSize{ VulkanHelpers::GetUniformBufferPadding(elementSize, minOffsetAlignment) };
-
-        const Size totalSize{ elementCount * paddedSize };
-
-        BufferDescription desc{};
-        desc.WithSizeBytes( totalSize )
-                .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
-                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
-
-        m_InstanceSSBO = m_Device->CreateBuffer( desc );
-        m_InstanceSSBO->SetDebugName( "ShadingPass Instance SSBO" );
-    }
-
-    auto ShadingPass::UploadInstanceData() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        std::vector<ShadingPassMeshBufferUBO> allInstances{};
-
-        for ( auto& [meshNode, batch]: m_MeshBatches ) {
-            for ( auto&uboData: batch.Instances | std::views::values ) {
-                allInstances.emplace_back( uboData );
-            }
-
-            m_BatchOffsetMap[meshNode] = allInstances.size() - batch.Instances.size();
-        }
-
-        const VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE( m_Device )->GetStorageBufferMinOffsetAlignment() };
-        const VkDeviceSize paddedSize{ VulkanHelpers::GetUniformBufferPadding(sizeof(ShadingPassMeshBufferUBO), minOffsetAlignment) };
-
-        for (Size meshInstanceIndex{}; meshInstanceIndex < allInstances.size(); ++meshInstanceIndex) {
-            const VkDeviceSize dstOffset{ meshInstanceIndex * paddedSize };
-            m_InstanceSSBO->CopyFromBlock(&allInstances[meshInstanceIndex], sizeof(ShadingPassMeshBufferUBO), dstOffset);
-        }
-    }
-
-    auto ShadingPass::CreateMeshesStorageDescriptorSet() -> void {
-
-        VulkanGraphicsPipeline* vkPipeline{ dynamic_cast<VulkanGraphicsPipeline*>( m_Pipeline.GetRaw() ) };
-        const VkDescriptorSetLayout& layout{ vkPipeline->GetDescriptorSetLayout(2) };
-
-        m_MeshDataSet = TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( &layout );
-
-        // Write buffer info
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = m_InstanceSSBO->GetNativeHandle(ObjectType::Vk_Buffer);
-        bufferInfo.offset = 0;
-        bufferInfo.range = m_InstanceSSBO->GetSizeBytes(); // WHOLE_SIZE if dynamic (but count will be the total)
-
-        VkWriteDescriptorSet write{};
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstSet = m_MeshDataSet;
-        write.dstBinding = 0;
-        write.dstArrayElement = 0;
-        write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        write.descriptorCount = 1;
-        write.pBufferInfo = std::addressof( bufferInfo );
-
-        vkUpdateDescriptorSets(VK_DEVICE(m_Device), 1, &write, 0, nullptr);
-    }
-
-    auto ShadingPass::DrawMeshBatch( const MeshBatch& batch ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        if (!batch.Mesh || batch.Instances.empty()) return;
-        if (batch.Mesh->GetVertexBuffer().IsEmpty() || batch.Mesh->GetIndexBuffer().IsEmpty()) return;
-
-        const VkCommandBuffer vkCmd { m_CmdList->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
-
-        BufferHandle vertexBuffer{ batch.Mesh->GetVertexBuffer() };
-        BufferHandle indexBuffer{ batch.Mesh->GetIndexBuffer() };
-
-        const std::array<VkDeviceSize, 1> offsets{};
-        const std::array<VkBuffer, 1> vertexBuffers{ vertexBuffer->GetNativeHandle(ObjectType::Vk_Buffer) };
-
-        vkCmdBindVertexBuffers(vkCmd, 0, 1, vertexBuffers.data(), offsets.data());
-        vkCmdBindIndexBuffer(vkCmd, indexBuffer->GetNativeHandle(ObjectType::Vk_Buffer), 0, VK_INDEX_TYPE_UINT32);
-
-        // find the base/firstInstance for this mesh
-        const Size baseInstance{ m_BatchOffsetMap.at( batch.Mesh ) };
-        const UInt32 firstInstance{ static_cast<UInt32>( baseInstance ) };
-
-        vkCmdDrawIndexed(
-            vkCmd,
-            indexBuffer->GetCount(),                            // indexCount
-            static_cast<UInt32>(batch.Instances.size()),       // instanceCount
-            0,                                                 // firstIndex
-            0,                                                 // vertexOffset
-            firstInstance                                      // firstInstance
-        );
+        vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline, setIndex, 1, std::addressof( set ), 0, nullptr );
     }
 
     auto TextureRenderPass::Init( GpuDevice* device ) -> void {
@@ -350,13 +326,13 @@ namespace Mikoto::VulkanPasses {
         // Color attachment
         TextureDescription colorDesc{};
         colorDesc.WithWidth( 1920 )
-            .WithHeight( 1080 )
-            .WithChannelCount( 4 )
-            .WithData( nullptr )
-            .WithType( TextureType::TEXTURE_2D )
-            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
-            .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
-            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+                .WithHeight( 1080 )
+                .WithChannelCount( 4 )
+                .WithData( nullptr )
+                .WithType( TextureType::TEXTURE_2D )
+                .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
+                .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
+                .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
         m_ColorTarget.Image = m_Device->CreateTexture( colorDesc );
         m_ColorTarget.Image->SetDebugName( "TextureRenderPass Color Target" );
@@ -365,21 +341,21 @@ namespace Mikoto::VulkanPasses {
         // Depth attachment
         TextureDescription depthDesc{};
         depthDesc.WithWidth( 1920 )
-            .WithHeight( 1080 )
-            .WithChannelCount( 1 )
-            .WithData( nullptr )
-            .WithType( TextureType::TEXTURE_2D )
-            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
-            .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
-            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+                .WithHeight( 1080 )
+                .WithChannelCount( 1 )
+                .WithData( nullptr )
+                .WithType( TextureType::TEXTURE_2D )
+                .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
+                .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
+                .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
         m_DepthTarget.Image = m_Device->CreateTexture( depthDesc );
         m_DepthTarget.Image->SetDebugName( "TextureRenderPass Depth Target" );
         m_DepthTarget.Type = AttachmentType::DEPTH;
 
         // Graphics pipeline
-        ShaderModuleHandle vertShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/FullscreenTriangle_Vert.sprv", ShaderStage::VERTEX_STAGE ) };
-        ShaderModuleHandle fragShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/FullscreenTriangle_Frag.sprv", ShaderStage::FRAGMENT_STAGE ) };
+        ShaderModuleHandle vertShader{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/FullscreenTriangle_Vert.sprv", ShaderStage::VERTEX_STAGE ) };
+        ShaderModuleHandle fragShader{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/FullscreenTriangle_Frag.sprv", ShaderStage::FRAGMENT_STAGE ) };
 
         // we providing none as the shader expects none
         BufferLayout layout{};
@@ -392,7 +368,7 @@ namespace Mikoto::VulkanPasses {
         pipelineDesc.PrimitiveTopology = Topology::TRIANGLE_STRIP;
         pipelineDesc.DepthTexture = m_DepthTarget.Image;
         pipelineDesc.ColorAttachments = { m_ColorTarget.Image };
-        pipelineDesc.DefaultVertexLayout = layout;
+        pipelineDesc.VertexAttributesSpec = {};
 
         m_Pipeline = m_Device->CreatePipeline( pipelineDesc );
 
@@ -463,7 +439,7 @@ namespace Mikoto::VulkanPasses {
         }
 
         m_CmdList = cmd;
-        VkCommandBuffer vkCmd { cmd->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
+        VkCommandBuffer vkCmd{ cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
 
         VkRenderingAttachmentInfo colorAttachment{};
         colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -492,9 +468,9 @@ namespace Mikoto::VulkanPasses {
         renderingInfo.pColorAttachments = colorAttachments.data();
         renderingInfo.pDepthAttachment = std::addressof( depthAttachment );
 
-        const VkPipelineLayout pipeline{ m_Pipeline->GetNativeHandle(ObjectType::Vk_PipelineLayout) };
+        const VkPipelineLayout pipeline{ m_Pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ) };
 
-        vkCmdBindDescriptorSets(vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline, 0, 1, std::addressof( m_TexturesSet ), 0, nullptr);
+        vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline, 0, 1, std::addressof( m_TexturesSet ), 0, nullptr );
 
         vkCmdBeginRendering( vkCmd, &renderingInfo );
 
@@ -504,7 +480,7 @@ namespace Mikoto::VulkanPasses {
     auto TextureRenderPass::End() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        const auto vkCmd{ m_CmdList->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
+        const auto vkCmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
         vkCmdEndRendering( vkCmd );
 
         // Transition color target to shader read
@@ -513,15 +489,14 @@ namespace Mikoto::VulkanPasses {
     }
 
     auto TextureRenderPass::Render( Scene* scene ) -> void {
-        vkCmdDraw(m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer  ),
-          4,   // vertexCount (matches gl_VertexIndex range)
-          1,   // instanceCount
-          0,   // firstVertex
-          0);  // firstInstance
+        vkCmdDraw( m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
+                   4,  // vertexCount (matches gl_VertexIndex range)
+                   1,  // instanceCount
+                   0,  // firstVertex
+                   0 );// firstInstance
     }
 
     auto TextureRenderPass::OnResize( UInt32 width, UInt32 height ) -> void {
-
     }
 
     auto TextureRenderPass::GetFinalComposition() const -> TextureHandle {
@@ -539,13 +514,12 @@ namespace Mikoto::VulkanPasses {
         m_Viewport.height = height;
         m_Viewport.minDepth = 0.0f;
         m_Viewport.maxDepth = 1.0f;
-
     }
 
     auto TextureRenderPass::RegisterTextureForRender( TextureHandle texture ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        m_BindlessTextures.try_emplace(texture.GetRaw(), texture );
+        m_BindlessTextures.try_emplace( texture.GetRaw(), texture );
         m_UpdateTextureDescriptor = true;
     }
 
@@ -555,13 +529,13 @@ namespace Mikoto::VulkanPasses {
         // Color attachment
         TextureDescription colorDesc{};
         colorDesc.WithWidth( 1920 )
-            .WithHeight( 1080 )
-            .WithChannelCount( 4 )
-            .WithData( nullptr )
-            .WithType( TextureType::TEXTURE_2D )
-            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
-            .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
-            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+                .WithHeight( 1080 )
+                .WithChannelCount( 4 )
+                .WithData( nullptr )
+                .WithType( TextureType::TEXTURE_2D )
+                .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
+                .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
+                .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
         m_ColorTarget.Image = m_Device->CreateTexture( colorDesc );
         m_ColorTarget.Image->SetDebugName( "FontRenderPass Color Target" );
@@ -570,28 +544,21 @@ namespace Mikoto::VulkanPasses {
         // Depth attachment
         TextureDescription depthDesc{};
         depthDesc.WithWidth( 1920 )
-            .WithHeight( 1080 )
-            .WithChannelCount( 1 )
-            .WithData( nullptr )
-            .WithType( TextureType::TEXTURE_2D )
-            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
-            .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
-            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+                .WithHeight( 1080 )
+                .WithChannelCount( 1 )
+                .WithData( nullptr )
+                .WithType( TextureType::TEXTURE_2D )
+                .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
+                .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
+                .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
         m_DepthTarget.Image = m_Device->CreateTexture( depthDesc );
         m_DepthTarget.Image->SetDebugName( "FontRenderPass Depth Target" );
         m_DepthTarget.Type = AttachmentType::DEPTH;
 
         // Graphics pipeline
-        ShaderModuleHandle vertShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/Text_Vert.sprv", ShaderStage::VERTEX_STAGE ) };
-        ShaderModuleHandle fragShader{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/Text_Frag.sprv", ShaderStage::FRAGMENT_STAGE ) };
-
-        // we're providing none as the shader expects none
-        const BufferLayout layout{
-            { ShaderDataType::FLOAT2_TYPE, "a_Position" },
-            { ShaderDataType::FLOAT2_TYPE, "a_TexCoord" },
-            { ShaderDataType::UINT_TYPE, "a_TexCoordIndex" },
-        };
+        ShaderModuleHandle vertShader{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/Text_Vert.sprv", ShaderStage::VERTEX_STAGE ) };
+        ShaderModuleHandle fragShader{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/Text_Frag.sprv", ShaderStage::FRAGMENT_STAGE ) };
 
         GraphicsPipelineDescription pipelineDesc{};
 
@@ -602,7 +569,17 @@ namespace Mikoto::VulkanPasses {
         pipelineDesc.PrimitiveTopology = Topology::TRIANGLE_STRIP;
         pipelineDesc.DepthTexture = m_DepthTarget.Image;
         pipelineDesc.ColorAttachments = { m_ColorTarget.Image };
-        pipelineDesc.DefaultVertexLayout = layout;
+
+        // we're providing none as the shader expects none
+        const BufferLayout layout{
+                { ShaderDataType::FLOAT2_TYPE, "a_Position" },
+                { ShaderDataType::FLOAT2_TYPE, "a_TexCoord" },
+                { ShaderDataType::UINT_TYPE, "a_TexCoordIndex" },
+            };
+        pipelineDesc.VertexAttributesSpec = { AttributesSpec{
+            .DefaultVertexLayout { layout },
+            .InputRateSpec{ .BindingIndex = { 0 }, .AttributeRate { InputRate::PER_VERTEX} }
+        } };
 
         m_Pipeline = m_Device->CreatePipeline( pipelineDesc );
 
@@ -642,10 +619,10 @@ namespace Mikoto::VulkanPasses {
         double yPos = position.y;
         double scale = fontSize / m_FontTest->GetSize();
 
-        for (size_t i = 0; i < text.length(); i++) {
-            FontGlyph& glyph{ m_FontTest->GetGlyph(static_cast<uint32_t>(text[i])) };
+        for ( size_t i = 0; i < text.length(); i++ ) {
+            FontGlyph& glyph{ m_FontTest->GetGlyph( static_cast<uint32_t>( text[i] ) ) };
 
-            if (text[i] != ' ') {
+            if ( text[i] != ' ' ) {
                 // Quad Coordinates
                 double x0 = xPos + glyph.m_PlaneBounds.x * fontSize;
                 double y0 = yPos - glyph.m_PlaneBounds.y * fontSize;
@@ -658,16 +635,16 @@ namespace Mikoto::VulkanPasses {
                 double t1 = glyph.m_AtlasBounds.y / atlas->GetHeight();
 
                 FontParams fontParams{};
-                fontParams.Pos = { x0, y0 + std::round((m_FontTest->GetMaxHeight() * scale)) - (glyph.m_Height * scale)};
+                fontParams.Pos = { x0, y0 + std::round( ( m_FontTest->GetMaxHeight() * scale ) ) - ( glyph.m_Height * scale ) };
                 fontParams.Size = { glyph.m_Width * scale, glyph.m_Height * scale };
                 fontParams.Color = color;
-                fontParams.TexIndex = dynamic_cast<VulkanTexture*>(atlas.GetRaw())->GetTextureIndex();
-                fontParams.TexCoords[0] = { s0, t0 }; // top left
-                fontParams.TexCoords[1] = { s1, t0 }; // bottom left
-                fontParams.TexCoords[2] = { s1, t1 }; // bottom right
-                fontParams.TexCoords[3] = { s0, t1 }; // top right
+                fontParams.TexIndex = dynamic_cast<VulkanTexture*>( atlas.GetRaw() )->GetTextureIndex();
+                fontParams.TexCoords[0] = { s0, t0 };// top left
+                fontParams.TexCoords[1] = { s1, t0 };// bottom left
+                fontParams.TexCoords[2] = { s1, t1 };// bottom right
+                fontParams.TexCoords[3] = { s0, t1 };// top right
 
-                m_FontRenderParams.emplace_back(fontParams);
+                m_FontRenderParams.emplace_back( fontParams );
             }
 
             xPos += glyph.m_AdvanceX * fontSize;
@@ -703,7 +680,7 @@ namespace Mikoto::VulkanPasses {
         }
 
         m_CmdList = cmd;
-        VkCommandBuffer vkCmd { cmd->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
+        VkCommandBuffer vkCmd{ cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
 
         VkRenderingAttachmentInfo colorAttachment{};
         colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -741,7 +718,7 @@ namespace Mikoto::VulkanPasses {
 
         MKT_BEGIN_PROFILER_NAMED();
 
-        const auto vkCmd{ m_CmdList->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
+        const auto vkCmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
         vkCmdEndRendering( vkCmd );
 
         // Transition color target to shader read
@@ -753,40 +730,39 @@ namespace Mikoto::VulkanPasses {
 
     auto FontRenderPass::Render( Scene* scene ) -> void {
         // Prepare data
-        DrawText({0.0f, 0.0f }, "Hello", 10, { 0.2f, 0.5f, 0.2f, 1.0f });
+        DrawText( { 0.0f, 0.0f }, "Hello", 10, { 0.2f, 0.5f, 0.2f, 1.0f } );
 
         const VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE( m_Device )->GetStorageBufferMinOffsetAlignment() };
-        const VkDeviceSize paddedSize{ VulkanHelpers::GetUniformBufferPadding(sizeof(FontParams), minOffsetAlignment) };
+        const VkDeviceSize paddedSize{ VulkanHelpers::GetUniformBufferPadding( sizeof( FontParams ), minOffsetAlignment ) };
 
-        for (Size meshInstanceIndex{}; meshInstanceIndex < m_FontRenderParams.size(); ++meshInstanceIndex) {
+        for ( Size meshInstanceIndex{}; meshInstanceIndex < m_FontRenderParams.size(); ++meshInstanceIndex ) {
             const VkDeviceSize dstOffset{ meshInstanceIndex * paddedSize };
-            m_FontParamsSSBO->CopyFromBlock(&m_FontRenderParams[meshInstanceIndex], sizeof(FontParams), dstOffset);
+            m_FontParamsSSBO->CopyFromBlock( &m_FontRenderParams[meshInstanceIndex], sizeof( FontParams ), dstOffset );
         }
 
         // UBO
         glm::mat4 proj{};
-        proj = glm::ortho(0.0f, static_cast<float>( m_ColorTarget.Image->GetWidth() ), static_cast<float>( m_ColorTarget.Image->GetHeight() ), 0.0f);
+        proj = glm::ortho( 0.0f, static_cast<float>( m_ColorTarget.Image->GetWidth() ), static_cast<float>( m_ColorTarget.Image->GetHeight() ), 0.0f );
 
         m_UBO->CopyFromBlock( &proj, sizeof( proj ) );
 
-        VkCommandBuffer vkCmd { m_CmdList->GetNativeHandle(ObjectType::Vk_CmdBuffer) };
-        const VkPipelineLayout pipelineLayout{ m_Pipeline->GetNativeHandle(ObjectType::Vk_PipelineLayout) };
+        VkCommandBuffer vkCmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
+        const VkPipelineLayout pipelineLayout{ m_Pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ) };
 
-        vkCmdBindDescriptorSets(vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, std::addressof( m_UBOSet ), 0, nullptr);
-        vkCmdBindDescriptorSets(vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, std::addressof( m_FontParamsBufferSet ), 0, nullptr);
+        vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, std::addressof( m_UBOSet ), 0, nullptr );
+        vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, std::addressof( m_FontParamsBufferSet ), 0, nullptr );
         vkCmdBindPipeline( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetNativeHandle( ObjectType::Vk_Pipeline ) );
 
         const std::array<VkDeviceSize, 1> offsets{};
-        const std::array<VkBuffer, 1> vertexBuffers{ m_VertexBuffer->GetNativeHandle(ObjectType::Vk_Buffer) };
+        const std::array<VkBuffer, 1> vertexBuffers{ m_VertexBuffer->GetNativeHandle( ObjectType::Vk_Buffer ) };
 
-        vkCmdBindVertexBuffers(vkCmd, 0, 1, vertexBuffers.data(), offsets.data());
-        vkCmdBindIndexBuffer(vkCmd, m_IndexBuffer->GetNativeHandle(ObjectType::Vk_Buffer), 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindVertexBuffers( vkCmd, 0, 1, vertexBuffers.data(), offsets.data() );
+        vkCmdBindIndexBuffer( vkCmd, m_IndexBuffer->GetNativeHandle( ObjectType::Vk_Buffer ), 0, VK_INDEX_TYPE_UINT32 );
 
-        vkCmdDrawIndexed(vkCmd, static_cast<UInt32>(m_Indices.size()), static_cast<UInt32>(m_FontRenderParams.size()), 0, 0, 0);
+        vkCmdDrawIndexed( vkCmd, static_cast<UInt32>( m_Indices.size() ), static_cast<UInt32>( m_FontRenderParams.size() ), 0, 0, 0 );
     }
 
     auto FontRenderPass::OnResize( UInt32 width, UInt32 height ) -> void {
-
     }
 
     auto FontRenderPass::GetFinalComposition() const -> TextureHandle {
@@ -796,27 +772,27 @@ namespace Mikoto::VulkanPasses {
     auto FontRenderPass::RegisterTextureForRender( TextureHandle texture ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        m_BindlessTextures.try_emplace(texture.GetRaw(), texture );
+        m_BindlessTextures.try_emplace( texture.GetRaw(), texture );
         m_UpdateTextureDescriptor = true;
     }
 
     auto FontRenderPass::CreateAttributeBuffers() -> void {
         BufferDescription vertexDesc{};
-        vertexDesc.WithData(reinterpret_cast<Byte*>(m_Vertices.data()))
-                  .WithUsage(BufferUsage::BUFFER_USAGE_VERTEX)
-                  .WithBufferDataType(BufferDataType::BUFFER_DATA_FLOAT32)
-                  .WithSizeBytes(InferSize<FontVertex>(m_Vertices.size()))
-                  .WithResourceUsageType(ResourceUsageType::RESOURCE_USAGE_STATIC);
-        m_VertexBuffer = m_Device->CreateBuffer(vertexDesc);
+        vertexDesc.WithData( reinterpret_cast<Byte*>( m_Vertices.data() ) )
+                .WithUsage( BufferUsage::BUFFER_USAGE_VERTEX )
+                .WithBufferDataType( BufferDataType::BUFFER_DATA_FLOAT32 )
+                .WithSizeBytes( InferSize<FontVertex>( m_Vertices.size() ) )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+        m_VertexBuffer = m_Device->CreateBuffer( vertexDesc );
 
         BufferDescription indexDesc{};
-        indexDesc.WithData(reinterpret_cast<Byte*>(m_Indices.data()))
-                 .WithUsage(BufferUsage::BUFFER_USAGE_INDEX)
-                 .WithSizeBytes(InferSize<UInt32>(m_Indices.size()))
-                 .WithBufferDataType(BufferDataType::BUFFER_DATA_UINT32)
-                 .WithResourceUsageType(ResourceUsageType::RESOURCE_USAGE_STATIC);
+        indexDesc.WithData( reinterpret_cast<Byte*>( m_Indices.data() ) )
+                .WithUsage( BufferUsage::BUFFER_USAGE_INDEX )
+                .WithSizeBytes( InferSize<UInt32>( m_Indices.size() ) )
+                .WithBufferDataType( BufferDataType::BUFFER_DATA_UINT32 )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
-        m_IndexBuffer = m_Device->CreateBuffer(indexDesc);
+        m_IndexBuffer = m_Device->CreateBuffer( indexDesc );
     }
 
     auto FontRenderPass::InitBuffersAndSets() -> void {
@@ -850,7 +826,7 @@ namespace Mikoto::VulkanPasses {
 
         // UniformBuffer size padded. Vertex shader
         const VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE( m_Device )->GetStorageBufferMinOffsetAlignment() };
-        const VkDeviceSize paddedSize{ VulkanHelpers::GetUniformBufferPadding(elementSize, minOffsetAlignment) };
+        const VkDeviceSize paddedSize{ VulkanHelpers::GetUniformBufferPadding( elementSize, minOffsetAlignment ) };
 
         const Size totalSize{ elementCount * paddedSize };
 
@@ -867,7 +843,6 @@ namespace Mikoto::VulkanPasses {
         DescriptorWriter descriptorWriter{};
         descriptorWriter.WriteBuffer( 0, m_FontParamsSSBO->GetNativeHandle( ObjectType::Vk_Buffer ), m_FontParamsSSBO->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER )
                 .UpdateSet( VK_DEVICE( m_Device ), m_FontParamsBufferSet );
-
     }
 
     auto ComputeBasic::Init( GpuDevice* device ) -> void {
@@ -885,7 +860,7 @@ namespace Mikoto::VulkanPasses {
         m_StorageBuffer->SetDebugName( "ComputeBasic SSBO" );
 
         // Pipeline setup
-        ShaderModuleHandle compModule{ ShaderLibrary::Get()->LoadShader("./Resources/Shaders/vulkan-spirv/BasicCompute_Comp.sprv", ShaderStage::COMPUTE_STAGE ) };
+        ShaderModuleHandle compModule{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/BasicCompute_Comp.sprv", ShaderStage::COMPUTE_STAGE ) };
         ComputePipelineDescription description{
             .Stage{ compModule }
         };
@@ -900,12 +875,11 @@ namespace Mikoto::VulkanPasses {
 
         // Descriptor update
         DescriptorWriter descriptorWriter{};
-        descriptorWriter.WriteBuffer( 0, m_StorageBuffer->GetNativeHandle(ObjectType::Vk_Buffer), m_StorageBuffer->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
-            .UpdateSet( VK_DEVICE(m_Device), m_DescriptorSet );
+        descriptorWriter.WriteBuffer( 0, m_StorageBuffer->GetNativeHandle( ObjectType::Vk_Buffer ), m_StorageBuffer->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER )
+                .UpdateSet( VK_DEVICE( m_Device ), m_DescriptorSet );
     }
 
     auto ComputeBasic::Shutdown() -> void {
-        
     }
 
     auto ComputeBasic::Begin( const CommandListHandle cmd ) -> void {
@@ -930,12 +904,12 @@ namespace Mikoto::VulkanPasses {
         VkPipeline pipeline{ m_Pipeline->GetNativeHandle( ObjectType::Vk_Pipeline ) };
         VkPipelineLayout pipelineLayout{ m_Pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ) };
 
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &m_DescriptorSet, 0, nullptr);
+        vkCmdBindPipeline( cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline );
+        vkCmdBindDescriptorSets( cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &m_DescriptorSet, 0, nullptr );
 
         // Dispatch enough workgroups for 64 threads total
-        constexpr UInt32 localSize{ 64 }; // matches shader's local_size_x
-        const UInt32 groupCount{ (m_Limit + localSize - 1) / localSize };
-        vkCmdDispatch(cmd, groupCount, 1, 1);
+        constexpr UInt32 localSize{ 64 };// matches shader's local_size_x
+        const UInt32 groupCount{ ( m_Limit + localSize - 1 ) / localSize };
+        vkCmdDispatch( cmd, groupCount, 1, 1 );
     }
 }// namespace Mikoto::VulkanPasses

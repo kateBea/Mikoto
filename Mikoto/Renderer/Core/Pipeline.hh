@@ -71,6 +71,12 @@ namespace Mikoto {
         { ShaderDataType::FLOAT2_TYPE, "a_TextureCoordinates" }
     };
 
+    enum class InputRate { PER_VERTEX, PER_INSTANCE };
+    struct VertexAttributeInputRate {
+        Int32 BindingIndex{ 0 };
+        InputRate AttributeRate{ InputRate::PER_VERTEX };
+    };
+
     enum class Topology {
         POINT_LIST,
         LINE_LIST,
@@ -91,6 +97,10 @@ namespace Mikoto {
         ALWAYS
     };
 
+    struct AttributesSpec {
+        BufferLayout DefaultVertexLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT };
+        VertexAttributeInputRate InputRateSpec{ VertexAttributeInputRate{} };
+    };
 
     struct GraphicsPipelineDescription {
         bool BackfaceCulling{ true };
@@ -101,13 +111,19 @@ namespace Mikoto {
         bool Wireframe{ false };
         float WireframeLineWidth{ 1.0f };
 
+        // One input rate default
+        std::vector<AttributesSpec> VertexAttributesSpec{
+            AttributesSpec{
+                .DefaultVertexLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT },
+                .InputRateSpec{ .BindingIndex{ 0 }, .AttributeRate{ InputRate::PER_VERTEX } }
+            }
+        };
+
         std::vector<ShaderModuleHandle> ShaderStages{};
 
         Topology PrimitiveTopology{ Topology::TRIANGLE_LIST };
 
         DepthCompareOp DepthCompareOperation{ DepthCompareOp::GREATER_OR_EQUAL };
-
-        BufferLayout DefaultVertexLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT };
 
         // TODO: review, this is only required because the 
         // pipeline writes to a texture with a specific format
@@ -245,7 +261,6 @@ namespace Mikoto {
          * @return A const reference to the BufferLayout used for vertex inputs.
          * @note The returned reference is non-owning; do not modify unless intended.
          */
-        MKT_NODISCARD auto GetDefaultVertexLayout() const -> const BufferLayout& { return m_VertexBufferLayout; }
 
     protected:
         bool m_BackfaceCulling{ true };
@@ -258,7 +273,8 @@ namespace Mikoto {
 
         Topology m_Topology{ Topology::TRIANGLE_LIST };
         DepthCompareOp m_DepthCompareOp{ DepthCompareOp::ALWAYS };
-        BufferLayout m_VertexBufferLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT };
+
+        std::vector<AttributesSpec> m_VertexAttributesSpec{};
     };
 }
 #endif //IPIPELINE_HH

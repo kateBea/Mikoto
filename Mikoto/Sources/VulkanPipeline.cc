@@ -126,8 +126,13 @@ namespace Mikoto {
         return configInfo;
     }
 
-    static auto GetDefaultAttributeDescriptions(const BufferLayout& layout ) -> std::vector<VkVertexInputAttributeDescription> {
-        auto attributeDescriptions{ std::vector<VkVertexInputAttributeDescription>( layout.GetCount() ) };
+    static auto GetDefaultAttributeDescriptions( std::vector<AttributesSpec>& attributeSpec ) -> std::vector<VkVertexInputAttributeDescription> {
+        Size attributeCount{ };
+        for (Size attributeBinding{}; attributeBinding < attributeSpec.size(); ++attributeBinding ) {
+            attributeCount += attributeSpec[attributeBinding].DefaultVertexLayout.GetCount();
+        }
+
+        std::vector attributeDescriptions( attributeCount, VkVertexInputAttributeDescription{} );
 
         /**
          * The binding parameter tells Vulkan from which binding the per-vertex (if do per vertex and not instanced) data comes.
@@ -141,27 +146,46 @@ namespace Mikoto {
         // The index refers to how the vertex attributes are laid out according to s_DefaultBufferLayout
         // so index 0 -> s_DefaultBufferLayout first attribute,
         // index 1 -> s_DefaultBufferLayout second attribute, and so on
-        for ( Size index{}; index < attributeDescriptions.size(); ++index ) {
-            attributeDescriptions[index] = {};
-            attributeDescriptions[index].binding = 0;
-            attributeDescriptions[index].location = index;
-            attributeDescriptions[index].format = VulkanHelpers::ToVkShaderDataType( layout[index].GetType() );
-            attributeDescriptions[index].offset = layout[index].GetOffset();
+        Size attributeIndex{};
+        for (Size attributeBinding{}; attributeBinding < attributeSpec.size(); ++attributeBinding ) {
+            for ( Size currentBufferLayoutCount{}; currentBufferLayoutCount < attributeSpec[attributeBinding].DefaultVertexLayout.GetCount(); ++currentBufferLayoutCount ) {
+                const BufferLayout& layout{ attributeSpec[attributeBinding].DefaultVertexLayout };
+
+                attributeDescriptions[attributeIndex] = {};
+                attributeDescriptions[attributeIndex].binding = attributeBinding;
+                attributeDescriptions[attributeIndex].location = attributeIndex;
+                attributeDescriptions[attributeIndex].format = VulkanHelpers::ToVkShaderDataType( layout[currentBufferLayoutCount].GetType() );
+                attributeDescriptions[attributeIndex].offset = layout[currentBufferLayoutCount].GetOffset();
+
+                ++attributeIndex;
+            }
         }
+
 
         return attributeDescriptions;
     }
 
-    static auto GetDefaultBindingDescriptions(const BufferLayout& layout ) -> std::vector<VkVertexInputBindingDescription> {
+    // Helper function to convert Mikoto InputRate -> Vulkan VkVertexInputRate
+    inline VkVertexInputRate ToVulkanInputRate(InputRate rate) {
+        switch (rate) {
+            case InputRate::PER_VERTEX:   return VK_VERTEX_INPUT_RATE_VERTEX;
+            case InputRate::PER_INSTANCE: return VK_VERTEX_INPUT_RATE_INSTANCE;
+            default:                      return VK_VERTEX_INPUT_RATE_VERTEX; // fallback
+        }
+    }
+
+    static auto GetDefaultBindingDescriptions(std::vector<AttributesSpec>& attributeSpec ) -> std::vector<VkVertexInputBindingDescription> {
         // All of our per-vertex data is packed together in one array, so we're only going to have one binding.
         // See: https://vulkan-tutorial.com/Vertex_buffers/Vertex_input_description
 
-        auto bindingDescriptions{ std::vector<VkVertexInputBindingDescription>(1) };
+        auto bindingDescriptions{ std::vector<VkVertexInputBindingDescription>(attributeSpec.size()) };
 
-        bindingDescriptions[0] = {};
-        bindingDescriptions[0].binding = 0;
-        bindingDescriptions[0].stride = layout.GetStride();
-        bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+        for (Size attributeBinding{}; attributeBinding < attributeSpec.size(); ++attributeBinding ) {
+            bindingDescriptions[attributeBinding] = {};
+            bindingDescriptions[attributeBinding].binding = attributeBinding;
+            bindingDescriptions[attributeBinding].stride = attributeSpec[attributeBinding].DefaultVertexLayout.GetStride();
+            bindingDescriptions[attributeBinding].inputRate = ToVulkanInputRate(attributeSpec[attributeBinding].InputRateSpec.AttributeRate);
+        }
 
         return bindingDescriptions;
     }
@@ -184,7 +208,7 @@ namespace Mikoto {
 
         m_Topology = info.Desc.PrimitiveTopology;
 
-        m_VertexBufferLayout = info.Desc.DefaultVertexLayout;
+        m_VertexAttributesSpec = info.Desc.VertexAttributesSpec;
 
         m_DepthAttachmentFormat = dynamic_cast<const VulkanTexture*>(info.Desc.DepthTexture.GetRaw() )->GetViewCreateInfo().format;
 
@@ -278,15 +302,15 @@ namespace Mikoto {
 
         // Binding descriptions (define data layout)
         // Attribute layout is what we specify because we are the ones that know how is buffer data laid out in CPU side
-        const auto& attributeDesc{ GetDefaultAttributeDescriptions( m_VertexBufferLayout ) };
+        const auto& attributeDesc{ GetDefaultAttributeDescriptions( m_VertexAttributesSpec ) };
         vertexInputInfo.vertexAttributeDescriptionCount = static_cast<UInt32>( attributeDesc.size() );
         vertexInputInfo.pVertexAttributeDescriptions = attributeDesc.data();
 
-        // This is inferred from reflection
-        vertexInputInfo.vertexBindingDescriptionCount = static_cast<UInt32>( m_ReflectionData.vertexBindings.size() );
-        vertexInputInfo.pVertexBindingDescriptions = m_ReflectionData.vertexBindings.data();
+        const auto& bindingDescriptions{ GetDefaultBindingDescriptions( m_VertexAttributesSpec ) };
+        vertexInputInfo.vertexBindingDescriptionCount = static_cast<UInt32>( bindingDescriptions.size() );
+        vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
 
-        if (m_ReflectionData.vertexBindings.empty()) {
+        if (m_ReflectionData.vertexBindings.empty() || m_VertexAttributesSpec.empty()) {
             vertexInputInfo.vertexBindingDescriptionCount = 0;
             vertexInputInfo.pVertexBindingDescriptions = nullptr;
 

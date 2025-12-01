@@ -44,7 +44,11 @@ namespace Mikoto::VulkanPasses {
 
     private:
         struct ShadingPassMeshBufferUBO {
-            glm::mat4 Transform{};
+            Vec4F i_TransformCol0{};
+            Vec4F i_TransformCol1{};
+            Vec4F i_TransformCol2{};
+            Vec4F i_TransformCol3{};
+
             Vec4F Albedo{};
             Vec4F Factors{};
             Int32 AlbedoIndex{};
@@ -54,15 +58,8 @@ namespace Mikoto::VulkanPasses {
             Int32 AoIndex{};
         };
 
-        struct MeshBatch {
-            MeshNode* Mesh{ nullptr };
-            ankerl::unordered_dense::map<UInt64, ShadingPassMeshBufferUBO> Instances{};
-        };
-
-        auto InitInstanceData() -> void;
         auto UploadInstanceData() -> void;
-        auto CreateMeshesStorageDescriptorSet() -> void;
-        auto DrawMeshBatch(const MeshBatch& batch) -> void;
+        auto UpdateMeshInstanceData() -> void;
 
     private:
         GpuDevice* m_Device{};
@@ -79,11 +76,12 @@ namespace Mikoto::VulkanPasses {
 
         CommandListHandle m_CmdList{};
 
-        std::unordered_map<MeshNode*, MeshBatch> m_MeshBatches{};
-        std::unordered_map<MeshNode*, Size> m_BatchOffsetMap{};
+        // For every mesh I store the count of elements and its buffer with its instance data
+        bool m_UpdateInstanceData{ false };
 
-        BufferHandle m_InstanceSSBO{};
-        VkDescriptorSet m_MeshDataSet{};
+        // For every mesh node i store the vertex buffer that contains all the data for all instances of that mesh and the ID and instance data for individual meshes to know if an instance already exists
+        std::unordered_map<MeshNode*, std::pair<BufferHandle, std::unordered_map<UInt64, ShadingPassMeshBufferUBO>>> m_MeshInstanceData{};
+
     };
 
     class TextureRenderPass final : public IRenderPass {

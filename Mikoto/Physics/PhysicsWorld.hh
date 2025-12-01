@@ -262,6 +262,7 @@ namespace Mikoto {
 
         MKT_NODISCARD static auto ToVec3( const glm::vec3& vec3GLM ) -> JPH::Vec3;
         MKT_NODISCARD static auto ToQuat( const glm::vec3& vec3EulerAnglesGLM ) -> JPH::Quat;
+        MKT_NODISCARD static auto ToQuat( const glm::quat &q ) -> JPH::Quat;
 
     private:
         SimulationInfo m_SimulationInfo{};

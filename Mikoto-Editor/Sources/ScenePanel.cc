@@ -7,8 +7,8 @@
 #include <memory>
 
 // Third-Party Libraries
-#include "imgui.h"
 #include "glm/gtc/type_ptr.hpp"
+#include "imgui.h"
 
 // Important to include after imgui
 #include <ImGuizmo.h>
@@ -27,7 +27,7 @@
 
 namespace Mikoto {
 
-    static auto InferManipulationMode(ImGuiUtils::GuizmoManipulationMode manipulation ) -> GuizmoType {
+    static auto InferManipulationMode( ImGuiUtils::GuizmoManipulationMode manipulation ) -> GuizmoType {
         switch ( manipulation ) {
 
             case ImGuiUtils::GuizmoManipulationMode::TRANSLATION:
@@ -71,14 +71,14 @@ namespace Mikoto {
             m_PanelIsFocused = ImGui::IsWindowFocused();
             m_PanelIsHovered = ImGui::IsWindowHovered();
 
-            if (IsDisplayTextureValid()) {
+            if ( IsDisplayTextureValid() ) {
                 UpdateViewport();
 
-                //DrawSceneToolbar();
+                DrawSceneToolbar();
 
                 SetupManipulation();
                 DrawManipulationGuizmos();
-            } 
+            }
 
             // Try validate the image id again in case the texture was recreated
             if ( !IsDisplayTextureValid() ) {
@@ -147,7 +147,7 @@ namespace Mikoto {
 
         glm::mat4 objectTransform{ transformComponent.GetTransform() };
 
-        m_GuizmoType = InferManipulationMode(m_EditorState->Manipulation);
+        m_GuizmoType = InferManipulationMode( m_EditorState->Manipulation );
 
         switch ( m_GuizmoType ) {
             case GuizmoType::TRANSLATION:
@@ -166,10 +166,10 @@ namespace Mikoto {
 
             // Apply the transformation to the children
             // For now Guizmos only change translation so thats the only thing we handle in the children
-            RelationComponent& relation{ m_EditorState->SelectedEntity->GetComponent<RelationComponent>() };
-            for (auto& childID : relation.GetChildren()) {
-                Entity* child{ m_EditorState->ActiveEditorScene->FindByID( childID ) };
-                if (child) {
+            RelationComponent &relation{ m_EditorState->SelectedEntity->GetComponent<RelationComponent>() };
+            for ( auto &childID: relation.GetChildren() ) {
+                Entity *child{ m_EditorState->ActiveEditorScene->FindByID( childID ) };
+                if ( child ) {
                     // TODO: World transform = ParentWorld * LocalTransform
                 }
             }
@@ -179,59 +179,88 @@ namespace Mikoto {
     }
 
     auto ScenePanel::DrawSceneToolbar() const -> void {
-        static bool open{ true };
+        // Static so user dragging persists
+        static bool firstFrame{ true };
+        static ImVec2 toolbarPos{};
 
-        ImGuiWindowFlags window_flags =
-                    ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking |
-                    ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
-                    ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav |
-                    ImGuiWindowFlags_NoMove;
+        const ImVec2 windowPos{ ImGui::GetWindowPos() };
+        const ImVec2 windowSize{ ImGui::GetWindowSize() };
 
-        constexpr float padding{ 20.0f };
-
-        // Get the position and size of the Scene window
-        const ImVec2 scenePos{ ImGui::GetWindowPos() };
-
-        // Position overlay relative to the Scene window’s top-left corner
-        const ImVec2 windowPos{ ImVec2(scenePos.x + padding, scenePos.y + 2 * padding) };
-
-        ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
-        ImGui::SetNextWindowViewport(ImGui::GetWindowViewport()->ID); // match same viewport as Scene
-
-        ImGui::SetNextWindowBgAlpha(0.35f); // semi-transparent background
-
-        if (ImGui::Begin("##GizmoToolbar", &open, window_flags))
-        {
-            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 0));
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 6));
-
-            ImGui::BeginGroup();
-
-            // These could be ImageButtons with icons instead
-            if (ImGui::Button(ICON_MD_TRANSFORM)) { /* Set translate gizmo */ }
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_MD_ROTATE_LEFT)) { /* Set rotate gizmo */ }
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_MD_SCALE)) { /* Set scale gizmo */ }
-
-            ImGui::EndGroup();
-
-            ImGui::Spacing();
-            ImGui::Spacing();
-            ImGui::Spacing();
-
-            ImGui::BeginGroup();
-
-            if (ImGui::Button(ICON_MD_PLAY_ARROW)) { /* Play */ }
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_MD_PAUSE)) { /* Pause */ }
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_MD_STOP)) { /* Stop */ }
-
-            ImGui::EndGroup();
-            ImGui::PopStyleVar(2);
+        // Initial center positioning
+        if ( firstFrame ) {
+            toolbarPos = ImVec2{
+                windowPos.x + windowSize.x * 0.5f - 70.0f,
+                windowPos.y + 20.0f
+            };
+            firstFrame = false;
         }
+
+        ImGui::SetNextWindowPos( toolbarPos, ImGuiCond_Always );
+        ImGui::SetNextWindowBgAlpha( 0.20f );// transparent inner
+
+        // Styles
+        ImGui::PushStyleColor( ImGuiCol_WindowBg, ImVec4{ 0.0f, 0.0f, 0.0f, 0.20f } );// inner transparent
+        ImGui::PushStyleColor( ImGuiCol_Border, ImVec4{ 0.0f, 0.0f, 0.0f, 1.00f } );  // opaque border
+
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 6.0f );
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 1.3f );
+        ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 4.0f );
+
+        ImGuiWindowFlags flags{
+            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking
+        };
+
+        if ( ImGui::Begin( "SceneToolsOverlay", nullptr, flags ) ) {
+            // Drag anywhere inside window
+            if ( ImGui::IsWindowHovered() && ImGui::IsMouseDragging( ImGuiMouseButton_Left ) ) {
+                const ImVec2 delta{ ImGui::GetIO().MouseDelta };
+                toolbarPos.x += delta.x;
+                toolbarPos.y += delta.y;
+            }
+
+            auto makeTool = [&]( const char *icon, GuizmoType type ) {
+                const bool active{
+                    m_EditorState->Manipulation ==
+                    static_cast<ImGuiUtils::GuizmoManipulationMode>( type )
+                };
+
+                const ImVec2 btnSize{ 28.0f, 28.0f };
+                const ImVec2 iconPadding{ 2.0f, 2.0f };
+
+                if ( active )
+                    ImGui::PushStyleColor( ImGuiCol_Button, ImVec4{ 0.75f, 0.75f, 0.75f, 0.85f } );
+
+                ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, iconPadding );
+
+                if ( ImGui::Button( icon, btnSize ) ) {
+                    m_EditorState->Manipulation =
+                            static_cast<ImGuiUtils::GuizmoManipulationMode>( type );
+                }
+
+                ImGui::PopStyleVar();
+
+                if ( active )
+                    ImGui::PopStyleColor();
+
+                ImGui::SameLine();
+            };
+
+            // Extra spacing on first button
+            ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2{ 6.0f, 0.0f } );
+            makeTool( ICON_MD_OPEN_WITH, GuizmoType::TRANSLATION );
+            ImGui::PopStyleVar();
+
+            makeTool( ICON_MD_ROTATE_RIGHT, GuizmoType::ROTATION );
+            makeTool( ICON_MD_OPEN_IN_FULL, GuizmoType::SCALE );
+
+            ImGui::NewLine();
+        }
+
         ImGui::End();
+
+        ImGui::PopStyleVar( 3 );
+        ImGui::PopStyleColor( 2 );
     }
+
 
 }// namespace Mikoto

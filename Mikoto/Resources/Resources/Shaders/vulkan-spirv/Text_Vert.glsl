@@ -34,7 +34,7 @@ layout(location = 3) flat out uint out_TexCoordIndex;
 
 void main() {
     FontRenderParams params = fontParams.params[gl_InstanceIndex];
-    out_TexCoord = a_TexCoord;
+    out_TexCoord = params.texCoords[a_TexCoordIndex];
     out_TexCoordIndex = a_TexCoordIndex;
     out_TexIndex = float(params.texIndex);
     out_Color = params.color;

@@ -219,7 +219,7 @@ namespace Mikoto::VulkanPasses {
         };
 
         std::vector<UInt32> m_Indices{
-            0, 1, 2, 2, 3, 0,
+            0, 1, 3, 2
         };
 
         BufferHandle m_IndexBuffer{};

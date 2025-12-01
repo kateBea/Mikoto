@@ -310,50 +310,40 @@ namespace Mikoto {
         return CreateScope<PhysicsWorld>( spec );
     }
 
-    auto PhysicsWorld::ToMat4F( const JPH::RMat44 &jphMat ) -> glm::mat4 {
-        // JPH::RMat44 stores a 4x4 matrix in row-major RMat44::mMatrix (check your JPH version)
-        // We'll read elements by row/column to construct glm::mat4 (glm is column-major by default).
-        // Convert row-major -> column-major expected by glm::mat4
+    auto PhysicsWorld::ToMat4F( const JPH::RMat44 &m ) -> glm::mat4 {
         glm::mat4 out{};
 
-        // copy each column (Vec4 -> glm::vec4)
-        constexpr Int32 rowCount{ 4 };
-        for ( Int32 c{}; c < rowCount; ++c ) {
-            JPH::Vec4 col = jphMat.GetColumn4( c );// Vec4: (x,y,z,w)
-            out[c][0] = col.GetX();                // glm stores as out[column][row]
+        for (int c = 0; c < 4; ++c)
+        {
+            JPH::Vec4 col = m.GetColumn4(c);  // RMat44 stores row-major internally, Jolt provides columns.
+            out[c][0] = col.GetX();
             out[c][1] = col.GetY();
             out[c][2] = col.GetZ();
             out[c][3] = col.GetW();
         }
+
         return out;
     }
 
-    auto PhysicsWorld::ToVec3F( const JPH::Vec3 &jphVec3 ) -> glm::vec3 {
-        return { jphVec3.GetX(), jphVec3.GetY(), jphVec3.GetZ() };
+    auto PhysicsWorld::ToVec3F( const JPH::Vec3 &v ) -> glm::vec3 {
+        return glm::vec3{ v.GetX(), v.GetY(), v.GetZ() };
     }
 
-    auto PhysicsWorld::ToQuatF( const JPH::Quat &jphQuat ) -> glm::quat {
-        // JPH::Quat stores (x,y,z,w) typically; glm::quat constructor accepts (w, x, y, z)
-        return { ( jphQuat.GetW() ),
-                 ( jphQuat.GetX() ),
-                 ( jphQuat.GetY() ),
-                 ( jphQuat.GetZ() ) };
+    auto PhysicsWorld::ToQuatF( const JPH::Quat &q ) -> glm::quat {
+        return glm::quat{ q.GetW(), q.GetX(), q.GetY(), q.GetZ() };
     }
 
-    auto PhysicsWorld::ToVec3( const glm::vec3 &vec3GLM ) -> JPH::Vec3 {
-        return { vec3GLM.x, vec3GLM.y, vec3GLM.z };
+    auto PhysicsWorld::ToVec3( const glm::vec3 &v ) -> JPH::Vec3 {
+        return JPH::Vec3{ v.x, v.y, v.z };
     }
 
     auto PhysicsWorld::ToQuat( const glm::vec3 &vec3EulerAnglesGLM ) -> JPH::Quat {
-        // Convert Euler (pitch, yaw, roll) GLM's order to quaternion explicitly
-        // Requires GLM_RADIANS
-        glm::quat gq{ glm::quat( vec3EulerAnglesGLM ) };
-        // glm::quat is (w, x, y, z) layout for access
-
-        return { ( gq.x ),
-                 ( gq.y ),
-                 ( gq.z ),
-                 ( gq.w ) };
+        glm::quat gq{ glm::quat{vec3EulerAnglesGLM} }; // requires GLM_FORCE_RADIANS
+        return ToQuat(gq);
+    }
+    auto PhysicsWorld::ToQuat( const glm::quat &q ) -> JPH::Quat {
+        // glm stores (w, x, y, z)
+        return JPH::Quat{ q.x, q.y, q.z, q.w };
     }
 
 }// namespace Mikoto

@@ -107,6 +107,30 @@ namespace Mikoto {
 
     };
 
+    // Simple pass for testing purposes
+    // A triangle with interpolation
+    class HelloTrianglePass final : public FramePass {
+    public:
+        explicit HelloTrianglePass()
+            : FramePass{ "HelloTrianglePass" } {}
+
+        auto Setup(FrameGraphBuilder& device) -> void override;
+        auto Execute(PassCommandList& cmdList) -> void override;
+
+    };
+
+    // Simple pass for testing purposes
+    // A colored/textured cube
+    class HelloCubePass final : public FramePass {
+    public:
+        explicit HelloCubePass()
+            : FramePass{ "HelloTrianglePass" } {}
+
+        auto Setup(FrameGraphBuilder& device) -> void override;
+        auto Execute(PassCommandList& cmdList) -> void override;
+
+    };
+
 }
 
 

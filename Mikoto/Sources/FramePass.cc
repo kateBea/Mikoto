@@ -321,4 +321,15 @@ namespace  Mikoto {
         commandList.EndCompute();
 
     }
+
+    auto HelloTrianglePass::Setup( FrameGraphBuilder& device ) -> void {
+    }
+    auto HelloTrianglePass::Execute( PassCommandList& cmdList ) -> void {
+    }
+
+    auto HelloCubePass::Setup( FrameGraphBuilder& device ) -> void {
+    }
+    auto HelloCubePass::Execute( PassCommandList& cmdList ) -> void {
+    }
+
 }// namespace Mikoto

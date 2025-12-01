@@ -119,10 +119,9 @@ namespace Mikoto {
 
         m_FrameGraph = FrameGraph::Create( m_GraphicsContext );
 
-        // These passes will be configurable
-
         FrameGraphBuilder builder{};
 
+#if false
         // Create and configure shadow pass
         ShadowPass* shadowPass{ m_Registry.Register<ShadowPass>() };
         shadowPass->Setup( builder );
@@ -138,6 +137,18 @@ namespace Mikoto {
         // Create and configure Compute
         SimpleComputePass* simpleComputePass{ m_Registry.Register<SimpleComputePass>() };
         simpleComputePass->Setup( builder );
+
+#endif
+
+        // Go with these for now for debugging purposes
+
+        // Create and configure Compute
+        HelloTrianglePass* helloTrianglePass{ m_Registry.Register<HelloTrianglePass>() };
+        helloTrianglePass->Setup( builder );
+
+        // Create and configure Compute
+        HelloCubePass* helloCubePass{ m_Registry.Register<HelloCubePass>() };
+        helloCubePass->Setup( builder );
 
         // Register passes
         for (auto& pass : m_Registry | std::ranges::views::values) {

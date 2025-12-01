@@ -72,8 +72,8 @@ namespace Mikoto {
         MKT_NODISCARD auto CreateEntity( std::string_view name ) -> Entity*;
         MKT_NODISCARD auto CreateEntity( const EntityCreateInfo& createInfo = {} ) -> Entity*;
 
-        MKT_NODISCARD auto QueueCreateEntity( std::string_view name ) -> void;
-        MKT_NODISCARD auto QueueCreateEntity( const EntityCreateInfo& createInfo = {} ) -> void;
+        auto QueueCreateEntity( std::string_view name ) -> void;
+        auto QueueCreateEntity( const EntityCreateInfo& createInfo = {} ) -> void;
 
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 

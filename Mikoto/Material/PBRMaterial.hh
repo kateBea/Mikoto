@@ -7,11 +7,11 @@
 
 #include <ankerl/unordered_dense.h>
 
-#include <Renderer/Core/RenderUtility.hh>
 #include <Assets/Texture.hh>
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 #include <Material/Material.hh>
+#include <Renderer/Core/RenderUtility.hh>
 
 namespace Mikoto {
 

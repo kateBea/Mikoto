@@ -197,8 +197,8 @@ namespace Mikoto {
         MKT_NODISCARD auto IsChild( const UInt64 id ) const -> bool { return m_ChildrenIDs.contains( id ); }
         MKT_NODISCARD auto HasChildren() const -> bool { return !m_ChildrenIDs.empty(); }
 
+        auto SetParent( UInt64 uid ) -> void { m_Parent = uid; }
         MKT_NODISCARD auto HasParent() const -> bool { return m_Parent.has_value(); }
-        MKT_NODISCARD auto SetParent( UInt64 uid ) -> void { m_Parent = uid; }
         MKT_NODISCARD auto GetParent() const -> const std::optional<UInt64>& { return m_Parent; }
 
         MKT_NODISCARD auto IsLeaf() const -> bool { return m_ChildrenIDs.empty(); }
@@ -225,7 +225,8 @@ namespace Mikoto {
 
         MKT_NODISCARD auto HasMaterial() const -> bool { return !m_Material.IsEmpty(); }
         MKT_NODISCARD auto GetMaterial() -> MaterialHandle { return m_Material; }
-        MKT_NODISCARD auto SetMaterial( const MaterialHandle& mat ) -> void {
+
+        auto SetMaterial( const MaterialHandle& mat ) -> void {
             if ( !mat.IsEmpty() ) {
                 m_Material = mat;
             }

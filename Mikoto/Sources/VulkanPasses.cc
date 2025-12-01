@@ -598,7 +598,6 @@ namespace Mikoto::VulkanPasses {
         pipelineDesc.DepthTest = true;
         pipelineDesc.DepthWrite = true;
         pipelineDesc.AlphaBlending = true;
-        pipelineDesc.PrimitiveTopology = Topology::TRIANGLE_STRIP;
         pipelineDesc.DepthTexture = m_DepthTarget.Image;
         pipelineDesc.ColorAttachments = { m_ColorTarget.Image };
 
@@ -726,7 +725,8 @@ namespace Mikoto::VulkanPasses {
 
         // UBO
         glm::mat4 proj{};
-        proj = glm::ortho( 0.0f, static_cast<float>( m_ColorTarget.Image->GetWidth() ), static_cast<float>( m_ColorTarget.Image->GetHeight() ), 0.0f );
+        proj = glm::ortho(0.0f, static_cast<float>( m_ColorTarget.Image->GetWidth() ), 0.0f, static_cast<float>( m_ColorTarget.Image->GetHeight() ));
+        //proj = glm::ortho( 0.0f, static_cast<float>( m_ColorTarget.Image->GetWidth() ), static_cast<float>( m_ColorTarget.Image->GetHeight() ), 0.0f );
 
         m_UBO->CopyFromBlock( &proj, sizeof( proj ) );
 

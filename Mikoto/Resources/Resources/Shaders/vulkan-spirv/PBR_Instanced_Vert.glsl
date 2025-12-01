@@ -19,7 +19,7 @@ layout(location = 2) in vec3 a_Color;
 layout(location = 3) in vec2 a_TexCoord;
 
 // --------------------------------------------------
-// Per-instance attributes
+// Per-instance attributes (i_ indicates the data is provided per instance)
 // --------------------------------------------------
 
 // mat4 = 4 vec4 slots

@@ -15,11 +15,11 @@ struct FontRenderParams {
     vec2 texCoords[4];
 };
 
-layout(set = 0, binding = 0) uniform UniformBufferObject {
+layout(set = 1, binding = 0) uniform UniformBufferObject {
     mat4 proj;
 } ubo;
 
-layout(set = 1, binding = 0) readonly buffer FontRenderParamsBuffer {
+layout(set = 1, binding = 1) readonly buffer FontRenderParamsBuffer {
     FontRenderParams params[];
 } fontParams;
 

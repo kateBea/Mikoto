@@ -4,7 +4,7 @@
 // --------------------------------------------------
 // Per-frame uniform
 // --------------------------------------------------
-layout(set = 0, binding = 0) uniform FrameUBO {
+layout(set = 1, binding = 0) uniform FrameUBO {
     mat4 View;
     mat4 Projection;
     vec4 CameraPosition;

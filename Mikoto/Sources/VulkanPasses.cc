@@ -711,7 +711,7 @@ namespace Mikoto::VulkanPasses {
 
         vkCmdBeginRendering( vkCmd, &renderingInfo );
 
-        m_FontTest = AssetsService::Get()->LoadAsset<Font>( Path{ "Resources/Fonts/Google_Sans_Code/GoogleSansCode-Italic-VariableFont_wght.ttf" } );
+        m_FontTest = AssetsService::Get()->LoadAsset<Font>( Path{ "Resources/Fonts/Google_Sans_Code/GoogleSansCode-VariableFont_wght.ttf" } );
     }
 
     auto FontRenderPass::End() -> void {

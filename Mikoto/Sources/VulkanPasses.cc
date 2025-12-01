@@ -135,9 +135,13 @@ namespace Mikoto::VulkanPasses {
         pipelineDesc.VertexAttributesSpec = { verticesData, instancedData };
 
         m_Pipeline = m_Device->CreatePipeline( pipelineDesc );
+
+        InitGlobalShaderBuffers();
     }
 
     auto ShadingPass::Shutdown() -> void {
+        m_LightsInfo.reset();
+
         m_MeshInstanceData.clear();
     }
 
@@ -178,7 +182,29 @@ namespace Mikoto::VulkanPasses {
         vkCmdBindPipeline( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetNativeHandle( ObjectType::Vk_Pipeline ) );
     }
 
-    void ShadingPass::End() {
+    auto ShadingPass::InitGlobalShaderBuffers() -> void {
+        // We will be using the descriptor set layout from the shading pass it is in this pass that we use the bindless textures
+        VulkanGraphicsPipeline* vkPipeline{ dynamic_cast<VulkanGraphicsPipeline*>( m_Pipeline.GetRaw() ) };
+
+        // ───────────────────────────────────────────────
+        // [ Set = 1 ] Frame + Light UBOs
+        // ───────────────────────────────────────────────
+        const VkDescriptorSetLayout& layoutFrame{ vkPipeline->GetDescriptorSetLayout( 1 ) };
+        m_FrameSet = TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( &layoutFrame );
+
+        m_FrameUBOBuffer = CreateUniformBuffer<FrameUBO>( m_Device );
+        m_LightsBuffer = CreateUniformBuffer<LightInfo>( m_Device );
+
+        DescriptorWriter descriptorWriter{};
+
+        descriptorWriter.WriteBuffer( 0, m_FrameUBOBuffer->GetNativeHandle( ObjectType::Vk_Buffer ), m_FrameUBOBuffer->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
+                .WriteBuffer( 1, m_LightsBuffer->GetNativeHandle( ObjectType::Vk_Buffer ), m_LightsBuffer->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
+                .UpdateSet( VK_DEVICE( m_Device ), m_FrameSet );
+
+        m_LightsInfo = CreateScope<LightInfo>();
+    }
+
+    auto ShadingPass::End() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         const auto vkCmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
@@ -189,8 +215,77 @@ namespace Mikoto::VulkanPasses {
         tex->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, vkCmd );
     }
 
-    auto ShadingPass::WantStoreOP( const bool enable ) -> void {
-        m_WantStoreOP = enable;
+    auto ShadingPass::UpdateLightInformation(Scene* scene) -> void {
+        // Handle lights here which are also the same for all passes
+        auto& registry{ scene->GetRegistry() };
+        auto lightsView{ registry.view<TagComponent, TransformComponent, LightComponent>() };
+
+        Int32 lightsCount{};
+
+        for ( auto& lightEntity: lightsView ) {
+            TagComponent& tag{ registry.get<TagComponent>( lightEntity ) };
+            LightComponent& lightComp{ registry.get<LightComponent>( lightEntity ) };
+            TransformComponent& transformCom{ registry.get<TransformComponent>( lightEntity ) };
+
+            if ( lightsCount >= MAX_LIGHTS ) break;
+
+            auto& uboLight{ m_LightsInfo->Lights[lightsCount] };
+
+            if (!tag.IsActive()) {
+                uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_INACTIVE);
+                continue;
+            }
+
+            switch ( lightComp.GetActiveType() ) {
+                case LightType::POINT_LIGHT_TYPE: {
+
+                    auto& point{ lightComp.Get<PointLight>() };
+
+                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
+                    uboLight.Diffuse = Vec4F( point.GetColor(), 0.0f );
+                    uboLight.AttenuationParams = Vec4F( point.GetIntensity(), point.GetRadius(), 0.0f, 0.0f );
+                    uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_POINT);
+
+                    break;
+                }
+
+                case LightType::SPOT_LIGHT_TYPE: {
+                    auto& spot{ lightComp.Get<SpotLight>() };
+
+                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
+                    uboLight.Direction = Vec4F( spot.GetDirection(), 0.0f );
+                    uboLight.Diffuse = Vec4F( spot.GetColor() * spot.GetIntensity(), 1.0f );
+                    uboLight.CutOffValues = Vec4F( spot.GetCutOff(), spot.GetOuterCutOff(), spot.GetIntensity(), spot.GetRadius() );
+                    uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_SPOT);
+
+                    break;
+                }
+
+                case LightType::DIRECTIONAL_LIGHT_TYPE: {
+                    auto& dir{ lightComp.Get<DirectionalLight>() };
+
+                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );// optional for shadows
+                    uboLight.Diffuse = Vec4F( dir.GetColor() * dir.GetIntensity(), 1.0f );
+                    uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_DIRECTIONAL);
+
+                    break;
+                }
+            }
+
+            ++lightsCount;
+        }
+
+        // Update counts in UBO
+        m_LightsInfo->ActiveLightsCount = lightsCount;
+        m_LightsInfo->DisplayMode = static_cast<Int32>(LightInfo::DisplayModes::DISPLAY_COLOR);
+
+        // Copy to GPU buffer
+        m_LightsBuffer->CopyFromBlock( m_LightsInfo.get(), sizeof( LightInfo ) );
+
+        const VkCommandBuffer vkCmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
+        const VkPipelineLayout pipeline{ m_Pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ) };
+
+        vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline, 1, 1, std::addressof( m_FrameSet ), 0, nullptr );
     }
 
     auto ShadingPass::SetClearColor( const glm::vec4& color ) -> void {
@@ -231,8 +326,23 @@ namespace Mikoto::VulkanPasses {
         }
     }
 
+    auto ShadingPass::SetCamera( const Camera* camera ) -> void {
+        FrameUBO frameUBO{};
+        frameUBO.View = camera->GetViewMatrix();
+        frameUBO.Projection = camera->GetProjection();
+
+        m_FrameUBOBuffer->CopyFromBlock( std::addressof( frameUBO ), sizeof( FrameUBO ) );
+    }
+
     auto ShadingPass::Render( Scene* scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
+        UpdateLightInformation( scene );
+
+        const VkCommandBuffer vkCmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
+        const VkPipelineLayout pipeline{ m_Pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ) };
+
+        vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline, 1, 1, std::addressof( m_FrameSet ), 0, nullptr );
 
         // Build batches per mesh
         auto& registry{ scene->GetRegistry() };
@@ -289,8 +399,6 @@ namespace Mikoto::VulkanPasses {
         UploadInstanceData();
 
         // Draw
-        const VkCommandBuffer vkCmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
-
         for ( auto& [meshNode, instanceData]: m_MeshInstanceData ) {
             BufferHandle vertexBuffer{ meshNode->GetVertexBuffer() };
             BufferHandle indexBuffer{ meshNode->GetIndexBuffer() };
@@ -311,13 +419,6 @@ namespace Mikoto::VulkanPasses {
 
     auto ShadingPass::OnResize( UInt32 width, UInt32 height ) -> void {
         // TODO: resize color/depth targets
-    }
-
-    auto ShadingPass::BindDefaultSets( CommandListHandle cmd, VkDescriptorSet& set, const UInt32 setIndex ) -> void {
-        const VkCommandBuffer vkCmd{ cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
-        const VkPipelineLayout pipeline{ m_Pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ) };
-
-        vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline, setIndex, 1, std::addressof( set ), 0, nullptr );
     }
 
     auto TextureRenderPass::Init( GpuDevice* device ) -> void {
@@ -371,72 +472,14 @@ namespace Mikoto::VulkanPasses {
         pipelineDesc.VertexAttributesSpec = {};
 
         m_Pipeline = m_Device->CreatePipeline( pipelineDesc );
-
-        // ───────────────────────────────────────────────
-        // [ Set = 0 ] Bindless textures
-        // ───────────────────────────────────────────────
-        const UInt32 maxBindlessTextures{ VulkanRenderer::GetMaxBindlessTextureCount() };
-        std::array variableCount{ maxBindlessTextures };
-        VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO };
-        variableCountInfo.descriptorSetCount = static_cast<UInt32>( variableCount.size() );
-        variableCountInfo.pDescriptorCounts = variableCount.data();
-
-        VulkanGraphicsPipeline* vkPipeline{ dynamic_cast<VulkanGraphicsPipeline*>( m_Pipeline.GetRaw() ) };
-
-        // Bindless set is at set 0, see FullscreenTriangle_Frag.glsl
-        const VkDescriptorSetLayout& layoutTextures{ vkPipeline->GetDescriptorSetLayout( 0 ) };
-        m_TexturesSet = TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( &layoutTextures, std::addressof( variableCountInfo ) );
     }
 
-    auto TextureRenderPass::UpdateBindlessTextureDescriptor( Int32 index, VulkanTexture* texture ) const -> void {
-        if ( !texture->HasSampler() ) {
-            texture->SetSampler( m_Device->CreateSampler( SamplerDescription{} ) );
-        }
-
-        VkSampler sampler{ texture->GetSampler()->GetNativeHandle( ObjectType::Vk_Sampler ) };
-
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.sampler = sampler;
-        imageInfo.imageView = texture->GetNativeHandle( ObjectType::Vk_ImageView );
-
-        // is this the image's layout or the layout I want to be for optimal sampling
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-        VkWriteDescriptorSet write{};
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstSet = m_TexturesSet;
-        write.dstBinding = 0;
-        write.dstArrayElement = index;
-        write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        write.descriptorCount = 1;
-        write.pImageInfo = &imageInfo;
-
-        vkUpdateDescriptorSets( VK_DEVICE( m_Device ), 1, &write, 0, nullptr );
-    }
 
     auto TextureRenderPass::Shutdown() -> void {
     }
 
     auto TextureRenderPass::Begin( CommandListHandle cmd ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
-        // Prepare resources
-        if ( m_UpdateTextureDescriptor ) {
-
-            // We push all the textures we need, when we begin render
-            // we make sure they are all visible through the descriptor set
-            // do this once and only when is needed if the texture list hasn't changed
-            // there's no need to update this descriptor set
-            for ( TextureHandle& texture: m_BindlessTextures | std::ranges::views::values ) {
-
-                const auto vkTexture{ dynamic_cast<VulkanTexture*>( texture.GetRaw() ) };
-
-                const Int32 textureIndex{ vkTexture->GetTextureIndex() };
-                UpdateBindlessTextureDescriptor( textureIndex, vkTexture );
-            }
-
-            m_UpdateTextureDescriptor = false;
-        }
 
         m_CmdList = cmd;
         VkCommandBuffer vkCmd{ cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
@@ -467,10 +510,6 @@ namespace Mikoto::VulkanPasses {
         renderingInfo.colorAttachmentCount = static_cast<UInt32>( colorAttachments.size() );
         renderingInfo.pColorAttachments = colorAttachments.data();
         renderingInfo.pDepthAttachment = std::addressof( depthAttachment );
-
-        const VkPipelineLayout pipeline{ m_Pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ) };
-
-        vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline, 0, 1, std::addressof( m_TexturesSet ), 0, nullptr );
 
         vkCmdBeginRendering( vkCmd, &renderingInfo );
 
@@ -514,13 +553,6 @@ namespace Mikoto::VulkanPasses {
         m_Viewport.height = height;
         m_Viewport.minDepth = 0.0f;
         m_Viewport.maxDepth = 1.0f;
-    }
-
-    auto TextureRenderPass::RegisterTextureForRender( TextureHandle texture ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        m_BindlessTextures.try_emplace( texture.GetRaw(), texture );
-        m_UpdateTextureDescriptor = true;
     }
 
     auto FontRenderPass::Init( GpuDevice* device ) -> void {
@@ -588,32 +620,6 @@ namespace Mikoto::VulkanPasses {
         CreateAttributeBuffers();
     }
 
-    auto FontRenderPass::UpdateBindlessTextureDescriptor( Int32 index, VulkanTexture* texture ) const -> void {
-        if ( !texture->HasSampler() ) {
-            texture->SetSampler( m_Device->CreateSampler( SamplerDescription{} ) );
-        }
-
-        VkSampler sampler{ texture->GetSampler()->GetNativeHandle( ObjectType::Vk_Sampler ) };
-
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.sampler = sampler;
-        imageInfo.imageView = texture->GetNativeHandle( ObjectType::Vk_ImageView );
-
-        // is this the image's layout or the layout I want to be for optimal sampling
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-        VkWriteDescriptorSet write{};
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstSet = m_UBOSet;
-        write.dstBinding = 1;
-        write.dstArrayElement = index;
-        write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        write.descriptorCount = 1;
-        write.pImageInfo = &imageInfo;
-
-        vkUpdateDescriptorSets( VK_DEVICE( m_Device ), 1, &write, 0, nullptr );
-    }
-
     auto FontRenderPass::DrawText( glm::vec2 position, const std::string& text, double fontSize, Vec4F color ) -> void {
         double xPos = position.x;
         double yPos = position.y;
@@ -656,28 +662,6 @@ namespace Mikoto::VulkanPasses {
 
     auto FontRenderPass::Begin( CommandListHandle cmd ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
-        // Prepare resources
-        if ( m_UpdateTextureDescriptor ) {
-
-            // We push all the textures we need, when we begin render
-            // we make sure they are all visible through the descriptor set
-            // do this once and only when is needed if the texture list hasn't changed
-            // there's no need to update this descriptor set
-            for ( TextureHandle& texture: m_BindlessTextures | std::ranges::views::values ) {
-
-                const auto vkTexture{ dynamic_cast<VulkanTexture*>( texture.GetRaw() ) };
-
-                const Int32 textureIndex{ vkTexture->GetTextureIndex() };
-                UpdateBindlessTextureDescriptor( textureIndex, vkTexture );
-            }
-
-            DescriptorWriter descriptorWriterUBO{};
-            descriptorWriterUBO.WriteBuffer( 0, m_UBO->GetNativeHandle( ObjectType::Vk_Buffer ), m_UBO->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
-                    .UpdateSet( VK_DEVICE( m_Device ), m_UBOSet );
-
-            m_UpdateTextureDescriptor = false;
-        }
 
         m_CmdList = cmd;
         VkCommandBuffer vkCmd{ cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
@@ -749,8 +733,7 @@ namespace Mikoto::VulkanPasses {
         VkCommandBuffer vkCmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
         const VkPipelineLayout pipelineLayout{ m_Pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ) };
 
-        vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, std::addressof( m_UBOSet ), 0, nullptr );
-        vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, std::addressof( m_FontParamsBufferSet ), 0, nullptr );
+        vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, std::addressof( m_FontParamsSet ), 0, nullptr );
         vkCmdBindPipeline( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetNativeHandle( ObjectType::Vk_Pipeline ) );
 
         const std::array<VkDeviceSize, 1> offsets{};
@@ -767,13 +750,6 @@ namespace Mikoto::VulkanPasses {
 
     auto FontRenderPass::GetFinalComposition() const -> TextureHandle {
         return m_ColorTarget.Image;
-    }
-
-    auto FontRenderPass::RegisterTextureForRender( TextureHandle texture ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        m_BindlessTextures.try_emplace( texture.GetRaw(), texture );
-        m_UpdateTextureDescriptor = true;
     }
 
     auto FontRenderPass::CreateAttributeBuffers() -> void {
@@ -799,32 +775,16 @@ namespace Mikoto::VulkanPasses {
         VulkanGraphicsPipeline* vkPipeline{ dynamic_cast<VulkanGraphicsPipeline*>( m_Pipeline.GetRaw() ) };
 
         // ───────────────────────────────────────────────
-        // Set 0, textures and UBO
+        // Set 1, index 0, textures and UBO
         // ───────────────────────────────────────────────
         m_UBO = CreateUniformBuffer<UBO>( m_Device );
 
-        const VkDescriptorSetLayout& firstSetLayout{ vkPipeline->GetDescriptorSetLayout( 0 ) };
-        m_UBOSet = TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( &firstSetLayout );
-        DescriptorWriter descriptorWriterUBO{};
-        descriptorWriterUBO.WriteBuffer( 0, m_UBO->GetNativeHandle( ObjectType::Vk_Buffer ), m_UBO->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
-                .UpdateSet( VK_DEVICE( m_Device ), m_UBOSet );
-
-        // Textures bindless
-        const UInt32 maxBindlessTextures{ VulkanRenderer::GetMaxBindlessTextureCount() };
-        std::array variableCount{ maxBindlessTextures };
-        VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO };
-        variableCountInfo.descriptorSetCount = static_cast<UInt32>( variableCount.size() );
-        variableCountInfo.pDescriptorCounts = variableCount.data();
-
-        m_UBOSet = TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( &firstSetLayout, std::addressof( variableCountInfo ) );
-
         // ───────────────────────────────────────────────
-        // Set 1, font parameters
+        // Set 1, index 1, textures and UBO
         // ───────────────────────────────────────────────
         constexpr Size elementCount{ 1024 };
         constexpr Size elementSize{ sizeof( FontParams ) };
 
-        // UniformBuffer size padded. Vertex shader
         const VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE( m_Device )->GetStorageBufferMinOffsetAlignment() };
         const VkDeviceSize paddedSize{ VulkanHelpers::GetUniformBufferPadding( elementSize, minOffsetAlignment ) };
 
@@ -838,11 +798,15 @@ namespace Mikoto::VulkanPasses {
         m_FontParamsSSBO = m_Device->CreateBuffer( desc );
         m_FontParamsSSBO->SetDebugName( "FontRenderPass Instance SSBO" );
 
-        const VkDescriptorSetLayout& secondSetLayout{ vkPipeline->GetDescriptorSetLayout( 1 ) };
-        m_FontParamsBufferSet = TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( &secondSetLayout );
+        // Allocate set
+        const VkDescriptorSetLayout& firstSetLayout{ vkPipeline->GetDescriptorSetLayout( 1 ) };
+        m_FontParamsSet = TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( &firstSetLayout );
+
         DescriptorWriter descriptorWriter{};
-        descriptorWriter.WriteBuffer( 0, m_FontParamsSSBO->GetNativeHandle( ObjectType::Vk_Buffer ), m_FontParamsSSBO->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER )
-                .UpdateSet( VK_DEVICE( m_Device ), m_FontParamsBufferSet );
+        descriptorWriter
+            .WriteBuffer( 0, m_UBO->GetNativeHandle( ObjectType::Vk_Buffer ), m_UBO->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
+            .WriteBuffer( 1, m_FontParamsSSBO->GetNativeHandle( ObjectType::Vk_Buffer ), m_FontParamsSSBO->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER )
+        .UpdateSet( VK_DEVICE( m_Device ), m_FontParamsSet );
     }
 
     auto ComputeBasic::Init( GpuDevice* device ) -> void {

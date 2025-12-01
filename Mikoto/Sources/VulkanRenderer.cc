@@ -54,10 +54,6 @@ namespace Mikoto {
 
         CreateBindlessDescriptor();
 
-        InitGlobalShaderBuffers();
-
-        m_LightsInfo = CreateScope<LightInfo>();
-
         m_IsInitialized = true;
     }
 
@@ -67,8 +63,6 @@ namespace Mikoto {
         if ( !m_IsInitialized ) {
             return;
         }
-
-        m_LightsInfo.reset();
 
         m_Passes.Clear();
 
@@ -105,13 +99,6 @@ namespace Mikoto {
 
                 const Int32 textureIndex{ vkTexture->GetTextureIndex() };
                 UpdateBindlessTextureDescriptor( textureIndex, vkTexture );
-
-                // TODO: temporary for debugging only. Here we update all textures in material pass
-                TextureRenderPass* textureRenderPass{ m_Passes.Get<TextureRenderPass>() };
-                textureRenderPass->RegisterTextureForRender( texture );
-
-                FontRenderPass* fontRenderPass{ m_Passes.Get<FontRenderPass>() };
-                fontRenderPass->RegisterTextureForRender( texture );
             }
 
             m_UpdateTextureDescriptor = false;
@@ -127,99 +114,31 @@ namespace Mikoto {
 
         MKT_BEGIN_PROFILER_NAMED();
 
-        // Handle lights here which are also the same for all passes
-        auto& registry{ scene->GetRegistry() };
-        auto lightsView{ registry.view<TagComponent, TransformComponent, LightComponent>() };
-
-        Int32 lightsCount{};
-
-        for ( auto& lightEntity: lightsView ) {
-            TagComponent& tag{ registry.get<TagComponent>( lightEntity ) };
-            LightComponent& lightComp{ registry.get<LightComponent>( lightEntity ) };
-            TransformComponent& transformCom{ registry.get<TransformComponent>( lightEntity ) };
-
-            if ( lightsCount >= MAX_LIGHTS ) break;
-
-            auto& uboLight{ m_LightsInfo->Lights[lightsCount] };
-
-            if (!tag.IsActive()) {
-                uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_INACTIVE);
-                continue;
-            }
-
-            switch ( lightComp.GetActiveType() ) {
-                case LightType::POINT_LIGHT_TYPE: {
-
-                    auto& point{ lightComp.Get<PointLight>() };
-
-                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
-                    uboLight.Diffuse = Vec4F( point.GetColor(), 0.0f );
-                    uboLight.AttenuationParams = Vec4F( point.GetIntensity(), point.GetRadius(), 0.0f, 0.0f );
-                    uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_POINT);
-
-                    break;
-                }
-
-                case LightType::SPOT_LIGHT_TYPE: {
-                    auto& spot{ lightComp.Get<SpotLight>() };
-
-                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
-                    uboLight.Direction = Vec4F( spot.GetDirection(), 0.0f );
-                    uboLight.Diffuse = Vec4F( spot.GetColor() * spot.GetIntensity(), 1.0f );
-                    uboLight.CutOffValues = Vec4F( spot.GetCutOff(), spot.GetOuterCutOff(), spot.GetIntensity(), spot.GetRadius() );
-                    uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_SPOT);
-
-                    break;
-                }
-
-                case LightType::DIRECTIONAL_LIGHT_TYPE: {
-                    auto& dir{ lightComp.Get<DirectionalLight>() };
-
-                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );// optional for shadows
-                    uboLight.Diffuse = Vec4F( dir.GetColor() * dir.GetIntensity(), 1.0f );
-                    uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_DIRECTIONAL);
-
-                    break;
-                }
-            }
-
-            ++lightsCount;
-        }
-
-        // Update counts in UBO
-        m_LightsInfo->ActiveLightsCount = lightsCount;
-        m_LightsInfo->DisplayMode = static_cast<Int32>(LightInfo::DisplayModes::DISPLAY_COLOR);
-
-        // Copy to GPU buffer
-        m_LightsBuffer->CopyFromBlock( m_LightsInfo.get(), sizeof( LightInfo ) );
-
-        TextureRenderPass* textureRenderPass{ m_Passes.Get<TextureRenderPass>() };
-        textureRenderPass->Begin( m_GraphicsCommandList );
-
-        textureRenderPass->Render( scene );
-
-        textureRenderPass->End();
-
-        FontRenderPass* fontRenderPass{ m_Passes.Get<FontRenderPass>() };
-        fontRenderPass->Begin( m_GraphicsCommandList );
-
-        fontRenderPass->Render( scene );
-
-        fontRenderPass->End();
-
         // Shading pass will bind the global renderer descriptor pass
         // this pass is the main pass. These the lights and the texture sets are not changing between passes,
         // shaders must declare them properly to align to this descriptor layout
         // These descriptors go to set 0
         ShadingPass* shadingPass{ m_Passes.Get<ShadingPass>() };
-        shadingPass->BindDefaultSets( m_GraphicsCommandList, m_FrameSet, 0 );
-        shadingPass->BindDefaultSets( m_GraphicsCommandList, m_TexturesSet, 1 );
+
+        // Bind once bindless textures (uses pipeline layout at set index 0 as shading pass)
+        const VkCommandBuffer vkCmd{ m_GraphicsCommandList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
+        const VkPipelineLayout pipeline{ shadingPass->GetPipeline()->GetNativeHandle( ObjectType::Vk_PipelineLayout ) };
+
+        vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline, 0, 1, std::addressof( m_TexturesSet ), 0, nullptr );
 
         shadingPass->Begin( m_GraphicsCommandList );
-
         shadingPass->Render( scene );
-
         shadingPass->End();
+
+        TextureRenderPass* textureRenderPass{ m_Passes.Get<TextureRenderPass>() };
+        textureRenderPass->Begin( m_GraphicsCommandList );
+        textureRenderPass->Render( scene );
+        textureRenderPass->End();
+
+        FontRenderPass* fontRenderPass{ m_Passes.Get<FontRenderPass>() };
+        fontRenderPass->Begin( m_GraphicsCommandList );
+        fontRenderPass->Render( scene );
+        fontRenderPass->End();
 
     }
 
@@ -227,11 +146,16 @@ namespace Mikoto {
     }
 
     auto VulkanRenderer::SetCamera( const Camera* camera ) -> void {
-        FrameUBO frameUBO{};
-        frameUBO.View = camera->GetViewMatrix();
-        frameUBO.Projection = camera->GetProjection();
+        using namespace Mikoto::VulkanPasses;
 
-        m_FrameUBOBuffer->CopyFromBlock( std::addressof( frameUBO ), sizeof( FrameUBO ) );
+        MKT_BEGIN_PROFILER_NAMED();
+
+        // Shading pass will bind the global renderer descriptor pass
+        // this pass is the main pass. These the lights and the texture sets are not changing between passes,
+        // shaders must declare them properly to align to this descriptor layout
+        // These descriptors go to set 0
+        ShadingPass* shadingPass{ m_Passes.Get<ShadingPass>() };
+        shadingPass->SetCamera( camera );
     }
 
     auto VulkanRenderer::SetViewport( const float x, const float y, const float width, const float height ) -> void {
@@ -324,17 +248,6 @@ namespace Mikoto {
         return fontRenderPass->GetFinalComposition();
     }
 
-    auto VulkanRenderer::InitGlobalShaderBuffers() -> void {
-        m_FrameUBOBuffer = CreateUniformBuffer<FrameUBO>( m_GraphicsDevice );
-        m_LightsBuffer = CreateUniformBuffer<LightInfo>( m_GraphicsDevice );
-
-        DescriptorWriter descriptorWriter{};
-
-        descriptorWriter.WriteBuffer( 0, m_FrameUBOBuffer->GetNativeHandle( ObjectType::Vk_Buffer ), m_FrameUBOBuffer->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
-                .WriteBuffer( 1, m_LightsBuffer->GetNativeHandle( ObjectType::Vk_Buffer ), m_LightsBuffer->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER )
-                .UpdateSet( VK_DEVICE( m_GraphicsDevice ), m_FrameSet );
-    }
-
     auto VulkanRenderer::CreateBindlessDescriptor() -> void {
         const UInt32 maxBindlessTextures{ GetMaxBindlessTextureCount() };
 
@@ -343,20 +256,14 @@ namespace Mikoto {
         VulkanGraphicsPipeline* vkPipeline{ dynamic_cast<VulkanGraphicsPipeline*>( shadingPassPipeline.GetRaw() ) };
 
         // ───────────────────────────────────────────────
-        // [ Set = 0 ] Frame + Light UBOs
-        // ───────────────────────────────────────────────
-        const VkDescriptorSetLayout& layoutFrame{ vkPipeline->GetDescriptorSetLayout( 0 ) };
-        m_FrameSet = TO_VK_DEVICE( m_GraphicsDevice )->AllocateDescriptorSet( &layoutFrame );
-
-        // ───────────────────────────────────────────────
-        // [ Set = 1 ] Bindless textures
+        // [ Set = 0 ] Bindless textures
         // ───────────────────────────────────────────────
         std::array<UInt32, 1> variableCount{ maxBindlessTextures };
         VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO };
         variableCountInfo.descriptorSetCount = static_cast<UInt32>( variableCount.size() );
         variableCountInfo.pDescriptorCounts = variableCount.data();
 
-        const VkDescriptorSetLayout& layoutTextures{ vkPipeline->GetDescriptorSetLayout( 1 ) };
+        const VkDescriptorSetLayout& layoutTextures{ vkPipeline->GetDescriptorSetLayout( 0 ) };
         m_TexturesSet = TO_VK_DEVICE( m_GraphicsDevice )->AllocateDescriptorSet( &layoutTextures, std::addressof( variableCountInfo ) );
     }
 

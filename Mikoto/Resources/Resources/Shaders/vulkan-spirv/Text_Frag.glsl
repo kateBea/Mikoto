@@ -14,7 +14,7 @@ layout(location = 1) in float in_AtlasIndex;
 layout(location = 2) in vec4 in_Color;
 layout(location = 3) flat in uint in_TexCoordIndex;
 
-layout(set = 0, binding = 1) uniform sampler2D g_BindlessTextures[];
+layout(set = 0, binding = 0) uniform sampler2D g_BindlessTextures[];
 
 layout(location = 0) out vec4 outColor;
 

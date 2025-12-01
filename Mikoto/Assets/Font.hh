@@ -34,9 +34,6 @@ namespace Mikoto {
 
 
     public:
-        // TODO: TEMPORAY
-        friend class FontRenderPass;
-
         // adjust
         UInt32 m_Codepoint{};
         glm::ivec2 m_Size{};
@@ -58,10 +55,6 @@ namespace Mikoto {
         double m_BearingUnderline{};
         Vec4F m_AtlasBounds{};
         Vec4F m_PlaneBounds{};
-
-        // Parameters filled from FontFactory class
-        friend class Font;
-        friend class FontFactory;
 
     };
 
@@ -127,9 +120,6 @@ namespace Mikoto {
     private:
         // Parameters filled from FontFactory class
         friend class FontFactory;
-
-        // TODO: TEMPORAY
-        friend class FontRenderPass;
 
     protected:
 

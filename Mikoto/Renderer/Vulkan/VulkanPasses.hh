@@ -33,16 +33,69 @@ namespace Mikoto::VulkanPasses {
         auto Render(Scene* scene) -> void override;
         auto OnResize(UInt32 width, UInt32 height) -> void override;
 
-        auto BindDefaultSets(CommandListHandle cmd, VkDescriptorSet& set, UInt32 setIndex ) -> void;
+        auto SetCamera( const Camera* camera ) -> void;
 
         auto GetPipeline() const -> PipelineHandle { return m_Pipeline; }
 
-        auto WantStoreOP(bool enable) -> void;
         auto SetClearColor(const Vec4F& color) -> void;
 
         auto GetFinalComposition() const -> TextureHandle;
 
     private:
+        // TODO: temporary matches pbr_instance shaders layout
+#define MAX_LIGHTS 50
+
+        struct FrameUBO {
+            glm::mat4 View{};
+            glm::mat4 Projection{};
+            Vec4F CameraPosition{};
+        };
+
+        struct LightTypeInfo {
+            Vec4F Position{};
+            Vec4F Direction{};
+            Vec4F CutOffValues{};
+
+            Vec4F Diffuse{};
+
+            // x=cutOff, y=outerCutOff, z=intensity, w=radius
+            Vec4F AttenuationParams{};
+
+            // Meet shader uniform buffer alignment requirements
+            alignas(sizeof(Vec4F)) Int32 ActiveLightType{};
+        };
+
+        struct LightInfo {
+            enum class DisplayModes {
+                DISPLAY_NORMAL = 1,
+                DISPLAY_COLOR = 2,
+                DISPLAY_METAL = 3,
+                DISPLAY_AO = 4,
+                DISPLAY_ROUGH = 5,
+            };
+
+            enum class ActiveLightType {
+                LIGHT_TYPE_INACTIVE = -1,
+                LIGHT_TYPE_POINT = 1,
+                LIGHT_TYPE_SPOT = 2,
+                LIGHT_TYPE_DIRECTIONAL = 3,
+            };
+
+            std::array<LightTypeInfo, MAX_LIGHTS> Lights{};
+
+            Int32 ActiveLightsCount{};
+            Int32 DisplayMode{};
+        };
+
+        Unique<LightInfo> m_LightsInfo{};
+
+    private:
+        // Per frame data
+        BufferHandle m_FrameUBOBuffer{};
+        BufferHandle m_LightsBuffer{};
+        VkDescriptorSet m_FrameSet{ VK_NULL_HANDLE };
+
+
         struct ShadingPassMeshBufferUBO {
             Vec4F i_TransformCol0{};
             Vec4F i_TransformCol1{};
@@ -58,6 +111,9 @@ namespace Mikoto::VulkanPasses {
             Int32 AoIndex{};
         };
 
+        auto UpdateLightInformation(Scene* scene) -> void;
+        auto InitGlobalShaderBuffers() -> void;
+
         auto UploadInstanceData() -> void;
         auto UpdateMeshInstanceData() -> void;
 
@@ -71,7 +127,6 @@ namespace Mikoto::VulkanPasses {
         AttachmentInfo m_ColorTarget{};
         AttachmentInfo m_DepthTarget{};
 
-        bool m_WantStoreOP{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
 
         CommandListHandle m_CmdList{};
@@ -99,10 +154,6 @@ namespace Mikoto::VulkanPasses {
         auto SetMaterialPreviewMat(MaterialHandle ref ) -> void;
         auto SetMaterialPreviewViewport(float width, float height ) -> void;
 
-        auto RegisterTextureForRender( TextureHandle texture ) -> void;
-
-    private:
-        auto UpdateBindlessTextureDescriptor( Int32 index, VulkanTexture* texture ) const -> void;
 
     private:
         GpuDevice* m_Device{};
@@ -115,12 +166,6 @@ namespace Mikoto::VulkanPasses {
         AttachmentInfo m_DepthTarget{};
 
         MaterialHandle m_Material{ };
-
-#if defined( MKT_USE_VULKAN_BINDLESS )
-        VkDescriptorSet m_TexturesSet{ VK_NULL_HANDLE };
-        bool m_UpdateTextureDescriptor{ false };
-        ankerl::unordered_dense::map<Texture*, TextureHandle> m_BindlessTextures{};
-#endif
 
         bool m_WantStoreOP{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
@@ -141,13 +186,9 @@ namespace Mikoto::VulkanPasses {
 
         auto GetFinalComposition() const -> TextureHandle;
 
-        auto RegisterTextureForRender( TextureHandle texture ) -> void;
-
-
     private:
         auto CreateAttributeBuffers() -> void;
         auto InitBuffersAndSets() -> void;
-        auto UpdateBindlessTextureDescriptor( Int32 index, VulkanTexture* texture ) const -> void;
 
         auto DrawText(glm::vec2 position, const std::string& text, double fontSize, Vec4F color) -> void;
 
@@ -197,19 +238,13 @@ namespace Mikoto::VulkanPasses {
         AttachmentInfo m_ColorTarget{};
         AttachmentInfo m_DepthTarget{};
 
-#if defined( MKT_USE_VULKAN_BINDLESS )
-        bool m_UpdateTextureDescriptor{ false };
-        ankerl::unordered_dense::map<Texture*, TextureHandle> m_BindlessTextures{};
-#endif
-
         Vec4F m_ClearColor{ 0.4f, 0.2f, 0.7f, 1.0f };
 
         BufferHandle m_UBO{};
-        VkDescriptorSet m_UBOSet{};
+        VkDescriptorSet m_FontParamsSet{};
 
         // For now i will not try instancing
         BufferHandle m_FontParamsSSBO{};
-        VkDescriptorSet m_FontParamsBufferSet{};
 
         CommandListHandle m_CmdList{};
     };

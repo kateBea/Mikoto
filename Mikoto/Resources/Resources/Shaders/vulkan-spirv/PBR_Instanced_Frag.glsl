@@ -60,14 +60,14 @@ layout(location = 11) flat in vec4 in_Factors;
 
 layout(location = 0) out vec4 out_Color;
 
-layout(set = 0, binding = 1) uniform LightUniformBuffer {
+layout(set = 1, binding = 1) uniform LightUniformBuffer {
     LightInfo Lights[MAX_LIGHTS];
     int ActiveLightsCount;
     int DisplayMode;
 
 } Lighting;
 
-layout(set = 1, binding = 0) uniform sampler2D g_BindlessTextures[];
+layout(set = 0, binding = 0) uniform sampler2D g_BindlessTextures[];
 
 vec3 GetNormalFromMap(sampler2D normalMap) {
     vec3 tangentNormal = texture(normalMap, in_TexCoord).xyz * 2.0 - 1.0;

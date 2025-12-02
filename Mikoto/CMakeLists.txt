@@ -586,7 +586,7 @@ endif()
 # ======================================
 add_library(${PROJECT_NAME} STATIC ${ALL_SOURCES})
 
-if (MSVC)
+if (MSVC OR WIN32)
     set(LUA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Lua/lua-5.4.2_Win64_vc17_lib")
 
     set(LUA_INCLUDE_DIR "${LUA_ROOT}/include")

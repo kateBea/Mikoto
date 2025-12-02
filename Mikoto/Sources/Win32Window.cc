@@ -234,17 +234,17 @@ namespace Mikoto {
                 return 0;
 
             case WM_KEYDOWN:
-                MKT_CORE_LOGGER_INFO( "Key Down: {}", ( int )wParam );
+                MKT_CORE_LOGGER_INFO( "Key Down: {}", GetStringRepresentation(static_cast<KeyCode>( wParam )) );
                 //EventService::Get()->Queue<KeyPressedEvent>( ( KeyCode )wParam, false, 0 );
                 return 0;
 
             case WM_KEYUP:
-                MKT_CORE_LOGGER_INFO( "Key Up: {}", ( int )wParam );
+                MKT_CORE_LOGGER_INFO( "Key Up: {}", GetStringRepresentation(static_cast<KeyCode>( wParam )) );
                 //EventService::Get()->Queue<KeyReleasedEvent>( ( KeyCode )wParam );
                 return 0;
 
             case WM_CHAR:
-                MKT_CORE_LOGGER_INFO( "Key Char: {}", ( char )wParam );
+                MKT_CORE_LOGGER_INFO( "Key Char: {}", StringUtils::ToHex (( char )wParam, false) );
                 //EventService::Get()->Queue<KeyCharEvent>( ( uint32_t )wParam );
                 return 0;
 

@@ -27,6 +27,7 @@ struct Dx11Context {
 };
 
 static Window* g_Window{ nullptr };
+static Window* g_Window2{ nullptr };
 static Dx11Context g_Dx{};
 
 auto CompileShader( std::string_view source, std::string_view entry, std::string_view profile ) -> ID3DBlob* {
@@ -224,11 +225,19 @@ auto InitWindow() -> void {
 
     g_Window = Window::Create( props );
     g_Window->Init();
+
+    props.Title = "Mikoto D3D11 - Window 2";
+
+    g_Window2 = Window::Create( props );
+    g_Window2->Init();
 }
 
 auto CleanupWindow() -> void {
     g_Window->Shutdown();
     delete g_Window;
+
+    g_Window2->Shutdown();
+    delete g_Window2;
 }
 
 int main() {

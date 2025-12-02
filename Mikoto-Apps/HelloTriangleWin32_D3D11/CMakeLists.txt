@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(WindowWin32)
+project(HelloTriangleWin32_D3D11)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

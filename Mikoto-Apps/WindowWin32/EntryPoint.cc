@@ -16,7 +16,7 @@ auto InitializeWindow() -> void {
     WindowProperties properties{};
     properties.Resizable = true;
     properties.Title = "Hello World";
-    properties.Backend = GraphicsAPI::VULKAN_API;
+    properties.Backend = GraphicsAPI::DIRECTX_11;
     properties.Width = 1280;
     properties.Height = 720;
 

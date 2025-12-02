@@ -269,6 +269,8 @@ namespace Mikoto {
     enum class GraphicsAPI {
         INVALID_API = -1,
         VULKAN_API,
+        DIRECTX_12,
+        DIRECTX_11,
         UNKNOWN,
     };
 

@@ -87,12 +87,21 @@ set(MSDF_ATLAS_MSDFGEN_EXTERNAL ON)
 set(MSDF_ATLAS_INSTALL OFF)
 set(BUILD_SHARED_LIBS OFF)
 
-set(MSDFGEN_CORE_ONLY OFF)
+find_package(Freetype QUIET)
+
+if (NOT Freetype_FOUND)
+    message(WARNING "Freetype was not found! Using bundled Freetype")
+    set(MSDFGEN_CORE_ONLY ON)
+else()
+    message(STATUS "Freetype found: ${Freetype_INCLUDE_DIRS}")
+    set(MSDFGEN_CORE_ONLY OFF)
+endif()
+
 set(MSDFGEN_USE_VCPKG OFF)
 set(MSDFGEN_BUILD_STANDALONE OFF)
 set(MSDFGEN_DISABLE_SVG ON)
 set(MSDFGEN_USE_SKIA OFF)
-set(MSDFGEN_DISABLE_PNG OFF)
+set(MSDFGEN_DISABLE_PNG ON)
 set(MSDFGEN_DYNAMIC_RUNTIME OFF)
 
 # ======================================

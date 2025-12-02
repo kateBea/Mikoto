@@ -2,10 +2,10 @@
 // Created by kate on 11/22/25.
 //
 
-#include <Application/HelloWorld.hh>
+#include <HelloWorld.hh>
 #include <Core/Root.hh>
 
-#include "../../Mikoto/Renderer/Core/RenderService.hh"
+#include "Renderer/Core/RenderService.hh"
 #include "Assets/AssetsService.hh"
 #include "Core/EventService.hh"
 #include "Core/InputService.hh"
@@ -13,21 +13,16 @@
 #include "Filesystem/FileService.hh"
 #include "Physics/PhysicService.hh"
 #include "Renderer/Vulkan/VulkanContext.hh"
-
-auto Mikoto::CreateApplication(int argc, char** argv) -> Application* {
-    return new MikotoApp::HelloWorld();
-}
+#include <Scene/SceneManager.hh>
 
 namespace MikotoApp {
 
-
-    auto HelloWorld::Run( Int32 argc, char **argv ) -> Int32 {
+    auto HelloWorld::Run() -> void {
 
         while (IsRunning()) {
             Update();
         }
 
-        return 0;
     }
 
     auto HelloWorld::Init() -> void {
@@ -71,7 +66,7 @@ namespace MikotoApp {
 
         // =================================================================
         // Scene
-        m_ActiveScene = CreateScope<Scene>( "Hello World" );
+        m_ActiveScene = SceneManager::Get()->CreateScene( "Hello World" );
 
         ModelLoadDescription descFirst{
             .ModelFile{ FileService::Get()->LoadFile( "./Resources/Models/1 - Box texture/BoxTexture.obj" ) },
@@ -80,11 +75,11 @@ namespace MikotoApp {
 
         ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( descFirst ) };
 
-        m_ActiveScene = Scene::Create( "Hello World" );
+        m_ActiveScene = SceneManager::Get()->CreateScene( "Hello World" );
         m_ActiveScene->SetName( "Change name just for fun" );
 
         // You need to specify the Scene the physics are simulated on
-        PhysicService::Get()->SetSimulationScene( m_ActiveScene.get() );
+        PhysicService::Get()->SetSimulationTarget( m_ActiveScene );
 
         // This emitting sounds
         EntityCreateInfo groundDesc{
@@ -147,7 +142,7 @@ namespace MikotoApp {
 
     auto HelloWorld::Update() -> void {
         // Update time step
-        TimeService::Get()->Update();
+        TimeService::Get()->UpdateTimeStep();
 
         const double timeStep{ TimeService::Get()->GetTimeStep( TimeUnit::SECONDS ) };
 
@@ -159,7 +154,7 @@ namespace MikotoApp {
         SetupCamera( timeStep );
         SetupRenderer( timeStep );
 
-        m_SceneRenderer->SetScene( m_ActiveScene.get() );
+        m_SceneRenderer->SetScene( m_ActiveScene );
         m_SceneRenderer->SetCamera( m_Camera.get() );
         m_SceneRenderer->SetViewport( 1920, 1080 );
 

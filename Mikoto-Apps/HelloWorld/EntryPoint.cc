@@ -35,23 +35,21 @@ auto InitializeApplication( const int argc, char** argv ) -> void {
     using namespace Mikoto;
     using namespace MikotoApp;
 
-    g_Application = dynamic_cast<HelloWorld*>( CreateApplication( argc, argv ) );
+    g_Application = new HelloWorld();
 
     g_Application->SetWindow( g_Window );
 
     g_Application->Init();
 }
 
-auto RunApplication(  const int argc, char** argv ) -> Mikoto::Int32 {
-    Mikoto::Int32 returnCode{};
+auto RunApplication() -> void {
 
     try {
-        returnCode = g_Application->Run( argc, argv );
+        g_Application->Run();
     } catch ( std::exception& e ) {
         MKT_CORE_LOGGER_ERROR( "MikotoApp Exception: e.what() {}", e.what() );
     }
 
-    return returnCode;
 }
 
 auto RunCleanup() -> void {
@@ -70,9 +68,9 @@ auto main( const int argc, char** argv ) -> int {
     InitializeWindow();
     InitializeApplication( argc, argv );
 
-    const auto code{ RunApplication( argc, argv ) };
+    RunApplication();
 
     RunCleanup();
 
-    return code;
+    return 0;
 }

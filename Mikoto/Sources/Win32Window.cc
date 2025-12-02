@@ -18,6 +18,9 @@
 
 namespace Mikoto {
 
+    static constexpr const char* s_ClassName = "MikotoWin32Window";
+    static bool s_ClassRegistered = false;
+
     // Forward declaration
     LRESULT CALLBACK Win32WndProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam );
 
@@ -32,31 +35,24 @@ namespace Mikoto {
     }
 
     auto Win32Window::RegisterWindowClass() -> void {
-        if (s_ClassRegistered) {
+        if ( s_ClassRegistered ) {
             return;
         }
-
-        s_HInstance = GetModuleHandle( nullptr );
 
         WNDCLASSEX wc{};
         wc.cbSize = sizeof( wc );
         wc.lpfnWndProc = Win32WndProc;
-        wc.hInstance = s_HInstance;
+        wc.hInstance = m_Instance;
         wc.lpszClassName = s_ClassName;
         wc.hCursor = LoadCursor( nullptr, IDC_ARROW );
         wc.style = CS_HREDRAW | CS_VREDRAW;
-        wc.hbrBackground = ( HBRUSH )( COLOR_WINDOW + 1 );
-        wc.hIcon = LoadIcon( nullptr, IDI_APPLICATION );
-        wc.hIconSm = LoadIcon( nullptr, IDI_APPLICATION );
 
         RegisterClassEx( &wc );
         s_ClassRegistered = true;
 
-        MKT_CORE_LOGGER_INFO( "Registered Win32 Window Class: {}", s_ClassName );
-        MKT_CORE_LOGGER_INFO( "Instance Handle: {}", ( void* )s_HInstance );
         MKT_CORE_LOGGER_INFO( "Cursor Handle: {}", ( void* )wc.hCursor );
-        MKT_CORE_LOGGER_INFO( "Initialized Win32 Window Class successfully. Dimensions {}, {}", m_Properties.Width, m_Properties.Height);
-
+        MKT_CORE_LOGGER_INFO( "Registered Win32 Window Class: {}", s_ClassName );
+        MKT_CORE_LOGGER_INFO( "Initialized Win32 Window Class successfully. Dimensions {}, {}", m_Properties.Width, m_Properties.Height );
     }
 
     auto Win32Window::Init() -> void {
@@ -209,17 +205,17 @@ namespace Mikoto {
     }
 
     LRESULT CALLBACK Win32WndProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam ) {
-        Win32Window* window{ reinterpret_cast<Win32Window*>( GetWindowLongPtr( hwnd, GWLP_USERDATA ) ) };
+        Win32Window* window = reinterpret_cast<Win32Window*>(
+                GetWindowLongPtr( hwnd, GWLP_USERDATA ) );
 
         if ( msg == WM_NCCREATE ) {
-            CREATESTRUCT* cs{ reinterpret_cast<CREATESTRUCT*>( lParam ) };
+            CREATESTRUCT* cs = reinterpret_cast<CREATESTRUCT*>( lParam );
             window = reinterpret_cast<Win32Window*>( cs->lpCreateParams );
             SetWindowLongPtr( hwnd, GWLP_USERDATA, ( LONG_PTR )window );
         }
 
-        if (!window) {
+        if ( !window )
             return DefWindowProc( hwnd, msg, wParam, lParam );
-        }
 
         switch ( msg ) {
             case WM_CLOSE:
@@ -238,44 +234,48 @@ namespace Mikoto {
                 return 0;
 
             case WM_KEYDOWN:
+                MKT_CORE_LOGGER_INFO( "Key Down: {}", ( int )wParam );
                 //EventService::Get()->Queue<KeyPressedEvent>( ( KeyCode )wParam, false, 0 );
                 return 0;
 
             case WM_KEYUP:
+                MKT_CORE_LOGGER_INFO( "Key Up: {}", ( int )wParam );
                 //EventService::Get()->Queue<KeyReleasedEvent>( ( KeyCode )wParam );
                 return 0;
 
             case WM_CHAR:
+                MKT_CORE_LOGGER_INFO( "Key Char: {}", ( char )wParam );
                 //EventService::Get()->Queue<KeyCharEvent>( ( uint32_t )wParam );
                 return 0;
 
             case WM_LBUTTONDOWN:
             case WM_RBUTTONDOWN:
             case WM_MBUTTONDOWN:
+                MKT_CORE_LOGGER_INFO( "Mouse Button Down: {}", ( int )msg );
                 //EventService::Get()->Queue<MouseButtonPressedEvent>( ( MouseButton )msg, 0 );
                 return 0;
 
             case WM_LBUTTONUP:
             case WM_RBUTTONUP:
             case WM_MBUTTONUP:
+                MKT_CORE_LOGGER_INFO( "Mouse Button Up: {}", ( int )msg );
                 //EventService::Get()->Queue<MouseButtonReleasedEvent>( ( MouseButton )msg );
                 return 0;
 
-            case WM_MOUSEWHEEL: {
-                int delta = GET_WHEEL_DELTA_WPARAM( wParam );
+            case WM_MOUSEWHEEL:
+                MKT_CORE_LOGGER_INFO( "Mouse Wheel: {}", ( Int32 )GET_WHEEL_DELTA_WPARAM( wParam ) );
                 //EventService::Get()->Queue<MouseScrollEvent>( 0.0, ( double )delta / WHEEL_DELTA );
                 return 0;
-            }
 
-            case WM_MOUSEMOVE: {
+            case WM_MOUSEMOVE:
                 double x{ ( double )GET_X_LPARAM( lParam ) };
                 double y{ ( double )GET_Y_LPARAM( lParam ) };
+                MKT_CORE_LOGGER_INFO( "Mouse Move: {}, {}", x, y );
                 //EventService::Get()->Queue<MouseMovedEvent>( x, y );
                 return 0;
-            }
-
-            return DefWindowProc( hwnd, msg, wParam, lParam );
         }
+
+        return DefWindowProc( hwnd, msg, wParam, lParam );
     }
 }// namespace Mikoto
 

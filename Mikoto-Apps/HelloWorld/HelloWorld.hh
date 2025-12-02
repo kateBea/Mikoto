@@ -18,7 +18,7 @@ namespace MikotoApp {
     class HelloWorld final : public Application, public Subscriber {
     public:
 
-        auto Run(Int32 argc, char** argv) -> Int32 override;
+        auto Run() -> void override;
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
@@ -32,7 +32,7 @@ namespace MikotoApp {
 
         Window* m_Window{};
 
-        Unique<Scene> m_ActiveScene{};
+        Scene* m_ActiveScene{};
         Unique<SceneCamera> m_Camera{};
         Unique<SceneRenderer> m_SceneRenderer{};
 

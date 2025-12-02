@@ -10,3 +10,4 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # ===========================
 add_subdirectory(HelloWorld)
 add_subdirectory(WindowLinux)
+add_subdirectory(WindowWin32)

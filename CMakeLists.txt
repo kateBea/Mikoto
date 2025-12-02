@@ -27,7 +27,7 @@ set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 # ===========================
 # Platform-specific settings
 # ===========================
-if(WIN32)
+if(MSVC)
     # Static MSVC runtime
     message("Target platform Windows")
 
@@ -62,8 +62,8 @@ endif()
 # Add engine and applications
 # ===========================
 #add_subdirectory(Mikoto-Sandbox)
-add_subdirectory(Mikoto-Apps)
-#add_subdirectory(Mikoto-Editor)
+#add_subdirectory(Mikoto-Apps)
+add_subdirectory(Mikoto-Editor)
 
 # Important to only enable the target you want to build.
 # For the time being this has to be done manually here

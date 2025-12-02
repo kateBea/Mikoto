@@ -4,7 +4,6 @@
 
 #include <any>
 #include <array>
-#include <iostream>
 #include <string_view>
 
 #pragma comment( lib, "d3d11.lib" )

@@ -13,7 +13,7 @@ namespace Mikoto {
 
     static inline SystemStats g_SystemStats{};
 
-#if defined( _WIN32 )
+#if defined( _WIN32 ) && defined(_MSC_VER)
 #include <pdh.h>
 #include <pdhmsg.h>
 #include <psapi.h>
@@ -174,7 +174,7 @@ namespace Mikoto {
         m_ProcessRamUsage = GetProcessMemoryUsage();
 #endif
 
-#if defined( _WIN32 )
+#if defined( _WIN32 ) && defined(_MSC_VER)
         MEMORYSTATUSEX memStatus{};
         memStatus.dwLength = sizeof( memStatus );
         if ( GlobalMemoryStatusEx( &memStatus ) ) {

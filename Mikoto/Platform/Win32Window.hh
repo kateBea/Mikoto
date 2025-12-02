@@ -16,7 +16,8 @@
 
 namespace Mikoto {
 
-    class Win32Window final : public Window {
+    
+class Win32Window final : public Window {
     public:
         explicit Win32Window( const WindowProperties& props );
         ~Win32Window() override;
@@ -25,7 +26,7 @@ namespace Mikoto {
         auto Shutdown() -> void override;
         auto ProcessEvents() -> void override;
 
-        MKT_NODISCARD auto GetNativeWindow() const -> std::any override;
+        MKT_NODISCARD auto GetNativeWindow() const -> std::any override { return m_WindowHandle; }
 
         auto SetScreenMode( ScreenMode mode ) -> void override;
 
@@ -41,9 +42,23 @@ namespace Mikoto {
         MKT_NODISCARD auto GetMouseY() const -> double override;
         MKT_NODISCARD auto GetMousePos() const -> std::pair<double, double> override;
 
+        auto SetShouldClose( const bool value ) -> void { m_ShouldClose = value; }
+
+    private:
+        auto RegisterWindowClass() -> void;
+        auto CenterWindow() -> void;
+
     private:
         HWND m_WindowHandle{ nullptr };
         HINSTANCE m_Instance{ nullptr };
+        bool m_ShouldClose{ false };
+
+        inline static auto s_ClassName{ "MikotoWin32Window" };
+        inline static bool s_ClassRegistered{ false };
+        inline static HINSTANCE s_HInstance{ nullptr };
+
+        Int32 m_PrevW{ 0 };
+        Int32 m_PrevH{ 0 };
     };
 
 } // namespace Mikoto

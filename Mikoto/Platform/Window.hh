@@ -63,6 +63,9 @@ namespace Mikoto {
             : m_Properties{ props } {
         }
 
+        auto SetWidth( const Int32 width ) -> void { m_Properties.Width = width; }
+        auto SetHeight( const Int32 height ) -> void { m_Properties.Height = height; }
+
         /**
          * @brief Returns the width of this window.
          * @returns The width of the window.

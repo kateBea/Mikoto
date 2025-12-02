@@ -220,7 +220,7 @@ namespace Mikoto {
         result.TextureAtlas->SetDebugName( fmt::format( "FontAtlas {}", description.FontFile->GetPath() ) );
 
 
-#if false
+#if false && !defined(MSDFGEN_DISABLE_PNG)
         msdfgen::FontHandle *font = msdfgen::loadFont( m_FreeTypeHandle, description.FontFile->GetPath().c_str() );
 
         msdfgen::Shape shape;

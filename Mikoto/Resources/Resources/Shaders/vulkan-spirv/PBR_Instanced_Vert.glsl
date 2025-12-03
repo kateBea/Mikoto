@@ -57,7 +57,6 @@ layout(location = 9) flat out int out_AoIndex;
 layout(location = 10) flat out vec4 out_Albedo;
 layout(location = 11) flat out vec4 out_Factors;
 
-
 // --------------------------------------------------
 // Main
 // --------------------------------------------------
@@ -70,8 +69,7 @@ void main() {
     out_CameraPos    = frame.CameraPosition.xyz;
 
     // Normal transform
-    mat3 normalMatrix = mat3(model);
-    out_VertexNormal  = normalMatrix * a_Normal;
+    out_VertexNormal  = transpose(inverse(mat3(model))) * a_Normal;
 
     // Fragment position
     out_FragmentPos = vec3(model * vec4(a_Position, 1.0));

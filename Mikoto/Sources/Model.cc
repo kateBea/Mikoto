@@ -46,6 +46,7 @@ namespace Mikoto {
             return;
         }
 
+        m_Name = std::move( other.m_Name );
         m_Indices = other.m_Indices;
         m_Vertices = other.m_Vertices;
         m_MeshIndex = other.m_MeshIndex;

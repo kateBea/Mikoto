@@ -1,15 +1,15 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(MikotoEditor)
+project(Sockets)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Mikoto Options
-set(MIKOTO_USE_XCB_WINDOW OFF CACHE BOOL "Use XCB windowing" FORCE)
-set(MIKOTO_USE_WIN32_WINDOW OFF CACHE BOOL "Disable Win32 windowing" FORCE)
+set(MIKOTO_USE_XCB_WINDOW OFF CACHE BOOL "Disable XCB windowing" FORCE)
+set(MIKOTO_USE_WIN32_WINDOW ON CACHE BOOL "Use Win32 windowing" FORCE)
 
-file(GLOB SOURCE_FILES Sources/*.cc)
+file(GLOB SOURCE_FILES ./*.cc)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 
@@ -29,11 +29,10 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE)
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_RADIANS)
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE VK_NO_PROTOTYPES)
+# ======================================
+# Post build (Copy Engine Core Resources)
+# ======================================
 
-# ======================================
-# Post build
-# ======================================
 # Path to your resources folder (relative to project root)
 set(RESOURCE_DIR "${CMAKE_SOURCE_DIR}/Mikoto/Resources")
 

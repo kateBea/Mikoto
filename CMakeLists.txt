@@ -28,28 +28,19 @@ set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 # Platform-specific settings
 # ===========================
 if(MSVC)
-    # Static MSVC runtime
     message("Target platform Windows")
 
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
-        # Propagate CRT type to all sub-targets
-        set_property(GLOBAL PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     else()
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
     endif()
 
+    # Compile multithreaded
     add_compile_options(/MP)
-
-    set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
 
 elseif(LINUX)
     message("Target platform Linux")
-
-    # Easiest for now to run valgrind tests
-    #add_compile_options(-fsanitize=address -g3 -D_DEBUG -Wall -Wextra -Wpedantic )
-    #add_link_options(-fsanitize=address)
 
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         add_compile_options(-g3 -D_GLIBCXX_DEBUG -Wall -Wextra -Wpedantic)
@@ -62,8 +53,8 @@ endif()
 # Add engine and applications
 # ===========================
 #add_subdirectory(Mikoto-Sandbox)
-#add_subdirectory(Mikoto-Apps)
-add_subdirectory(Mikoto-Editor)
+add_subdirectory(Mikoto-Apps)
+#add_subdirectory(Mikoto-Editor)
 
 # Important to only enable the target you want to build.
 # For the time being this has to be done manually here

@@ -21,8 +21,7 @@ passes, amongst other features.
 |-------------------------|----------------------------------------------------------|---------------|
 | Model Loading           | Ability to load 3D models from various file types        | ✔️            |
 | Image Loading           | Support for loading and using textures/images            | ✔️            |
-| Blinn-Phong Lighting    | Basic lighting model implementation                      | ❌             |
-| Entity Component System | Management of scene game objects through ECS             | ❌             |
+| Entity Component System | Management of scene game objects through ECS             | ✔️            |
 | Scene Serialization     | Serialize scenes from the editor                         | ❌             |
 | Particle System         | Visual particle effects like smoke, fire, etc.           | ❌             |
 | Vulkan Ray Tracing      | Support for Vulkan RayTracing                            | ❌             |
@@ -47,6 +46,7 @@ passes, amongst other features.
 - **CMake** 3.22 or higher.
 - **The Vulkan SDK**: Available from [Vulkan](https://vulkan.lunarg.com/).
 - **C++20 Compiler**: Tested with GCC 13.3.0
+- - **Visual Studio (On Windows)**: Development done with VS 2022.
 - **GLSL-C**: Optional, as precompiled shader binaries are included.
 
 ---
@@ -65,7 +65,8 @@ passes, amongst other features.
 ## Building Mikoto Engine
 
 Follow the steps below to build Mikoto Engine.
-Currently, the building process has been tested on Linux and Windows.
+Currently, the building process has been tested on Linux and Windows. Windows users only need to 
+have the Vulkan SDK installed and Visual Studio.
 
 ### Steps:
 
@@ -80,7 +81,8 @@ mkdir build && cd build
 # This will pull the necessary third party repos
 cmake -S .. -B .
 
-# Build the application
+# Build the application (on Linux, on Windows open the
+# generated VS Solution and build from there)
 cmake --build . --config Release
    
    ```
@@ -164,6 +166,11 @@ The development of Mikoto Engine is made possible thanks to these fantastic thir
 | **Sol2**                      | Moder C++ Library for Scripting with Lua      | [https://github.com/ThePhD/sol2)                                                                                    |
 
 > **Note**: The required libraries are included as a submodules in the project and do not require separate installation, just need to clone the repository with ``--recursive`` flag.
+
+## Networking
+Mikoto includes a networking layer built on top of ASIO to support TCP sockets.
+The engine supports both HTTP and HTTPS connections, but HTTPS requires OpenSSL to be installed on your system.
+If OpenSSL is not available the engine falls back to HTTP support only.
 
 ## Goals
 

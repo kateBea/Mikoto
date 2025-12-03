@@ -162,6 +162,19 @@ set(FT2_BUILD_LIBRARY ON CACHE BOOL "" FORCE)
 set(FT_WITH_CMAKE ON CACHE BOOL "" FORCE)
 
 # ======================================
+# Configurarion for Networking
+# ======================================
+find_package(OpenSSL QUIET)
+
+if (NOT OpenSSL_FOUND)
+    message(WARNING "OpenSSL not found! Mikoto will use HTTP-only mode.")
+    set(MIKOTO_ALLOW_SSL OFF)
+else()
+    message(STATUS "OpenSSL found: ${OpenSSL_VERSION}")
+    set(MIKOTO_ALLOW_SSL ON)
+endif()
+
+# ======================================
 # External dependencies via FetchContent
 # ======================================
 include(FetchContent)
@@ -590,7 +603,9 @@ if (MSVC OR WIN32)
     set(LUA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Lua/lua-5.4.2_Win64_vc17_lib")
 
     set(LUA_INCLUDE_DIR "${LUA_ROOT}/include")
-    set(LUA_LIBRARIES     "${LUA_ROOT}/lua54.lib") 
+    set(LUA_LIBRARIES     "${LUA_ROOT}/lua54.lib")
+
+    set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
 endif()
 
 message(STATUS "Linking against Lua library: ${LUA_LIBRARIES}")
@@ -666,8 +681,9 @@ if(MIKOTO_USE_WIN32_WINDOW)
 endif()
 
 # HTTPS only working on linux for now
-if(UNIX)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE MKT_ALLOW_HTTPS)
+# Expose the macro to your sources
+if (MIKOTO_ALLOW_SSL)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE MIKOTO_OPENSSL_AVAILABLE)
 endif()
 
 # ======================================

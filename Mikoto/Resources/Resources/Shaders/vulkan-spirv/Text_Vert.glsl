@@ -30,12 +30,10 @@ layout(location = 2) in uint a_TexCoordIndex;
 layout(location = 0) out vec2 out_TexCoord;
 layout(location = 1) out float out_TexIndex;
 layout(location = 2) out vec4 out_Color;
-layout(location = 3) flat out uint out_TexCoordIndex;
 
 void main() {
     FontRenderParams params = fontParams.params[gl_InstanceIndex];
     out_TexCoord = params.texCoords[a_TexCoordIndex];
-    out_TexCoordIndex = a_TexCoordIndex;
     out_TexIndex = float(params.texIndex);
     out_Color = params.color;
 

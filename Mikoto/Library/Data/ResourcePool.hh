@@ -169,25 +169,6 @@ namespace Mikoto {
     public:
         using ResourceHandle = Ref<IResource>;
 
-        // WIP: not yet to use
-        auto Init(  const UInt32 poolSize, const Size resourceSize, HeapAllocator* allocator ) -> void {
-            MKT_ASSERT( MKT_SIZEOF( resourceSize ) != 0, "Invalid size for resource" );
-
-            m_PoolSize = poolSize;
-            m_FreeHandles.reserve( poolSize );
-            m_Resources.reserve( poolSize );
-
-            for ( Handle i{ 0 }; i < poolSize; ++i ) {
-                m_FreeHandles.emplace_back( i );
-
-                // TODO:
-                HeapAllocator::Block block{
-                    m_Allocator->Allocate( resourceSize )
-                };
-                m_Resources.try_emplace( i, nullptr );
-            }
-        }
-
         /**
         * @brief Initializes the resource pool.
         * @param poolSize The number of resources the pool can hold.
@@ -271,7 +252,8 @@ namespace Mikoto {
         static constexpr double POOL_RESIZE_RATE{ 2.5 };
 
     protected:
-        HeapAllocator* m_Allocator{ nullptr };
+        // TODO:
+        //HeapAllocator* m_Allocator{ nullptr };
 
         UInt32 m_PoolSize{ 100 };
         std::vector<Handle> m_FreeHandles{};
@@ -303,11 +285,6 @@ namespace Mikoto {
         */
         template<typename... Args>
         MKT_NODISCARD auto Allocate(Args&&... args) -> RefHandle {
-            // TODO: Implement preallocation. Extend ResourcePool to receive the size of the IResource to be stored
-            // the idea is to preallocate memory enough to hold the IResource and avoid further allocation unless necessary
-            // use emplace new to construct objects on previously allocated memory, every slot has same sized block = sizeof(T)
-            // See: http://www-igm.univ-mlv.fr/~dr/CPP/c++-faq/dtors.html#:~:text=my%20member%20objects%3F-,No.,the%20destructors%20for%20member%20objects.
-
             if (IsPoolFull()) {
                 Resize();
             }

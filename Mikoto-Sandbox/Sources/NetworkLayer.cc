@@ -171,7 +171,7 @@ namespace Mikoto {
     }
 
     auto NetworkLayer::OnCreate() -> void {
-        m_LocalHostSocket = NetworkService::Get()->CreateNewSocket( SocketType::SOCKET_TCP, "localhost", 8000 );
+        m_LocalHostSocket = NetworkService::Get()->CreateSocket( SocketType::SOCKET_TCP, "localhost", 8000 );
 
         // Test getting image from web
         // Gotten from Jikan API https://api.jikan.moe/v4/anime/20/pictures

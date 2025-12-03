@@ -9,7 +9,7 @@
 #include <string>
 #include <string_view>
 
-#if defined( MKT_ALLOW_HTTPS )
+#if defined( MIKOTO_OPENSSL_AVAILABLE )
 #include <asio/ssl.hpp>
 #endif
 
@@ -29,21 +29,22 @@ namespace Mikoto {
         MKT_NODISCARD virtual auto IsConnected() const -> bool = 0;
         MKT_NODISCARD virtual auto Connect( std::string_view address, UInt16 port ) -> bool = 0;
 
-        MKT_NODISCARD virtual auto SendSync( std::string_view data ) -> bool = 0;
-        MKT_NODISCARD virtual auto SendSync( const void* data, Size size ) -> bool = 0;
+        virtual auto SendSync( std::string_view data ) -> void = 0;
+        virtual auto SendSync( const void* data, Size size ) -> void = 0;
 
         MKT_NODISCARD virtual auto ReceiveSync( void* buffer, Size maxSize ) -> Size = 0;
+
+        using IResource::Initialize;
     };
 
     using SocketHandle = Ref<Socket>;
-
 
     class TcpSocket final : public Socket {
     public:
 
         TcpSocket( asio::io_context& ctx, std::string_view address, UInt16 port, bool wait = true );
 
-#if defined( MKT_ALLOW_HTTPS )
+#if defined( MIKOTO_OPENSSL_AVAILABLE )
         TcpSocket( asio::io_context& ctx, asio::ssl::context& sslContext, std::string_view address, UInt16 port, bool wait = true );
 #endif
 
@@ -52,8 +53,8 @@ namespace Mikoto {
         MKT_NODISCARD auto IsConnected() const -> bool override;
         MKT_NODISCARD auto Connect( std::string_view address, UInt16 port ) -> bool override;
 
-        MKT_NODISCARD auto SendSync( std::string_view data ) -> bool override;
-        MKT_NODISCARD auto SendSync( const void* data, Size size ) -> bool override;
+        auto SendSync( std::string_view data ) -> void override;
+        auto SendSync( const void* data, Size size ) -> void override;
 
         MKT_NODISCARD auto ReceiveSync( void* buffer, Size maxSize ) -> Size override;
 
@@ -71,12 +72,13 @@ namespace Mikoto {
         // To avoid keep reading if we reach eof
         asio::error_code m_ErrorCode{};
 
-#if defined( MKT_ALLOW_HTTPS )
+#if defined( MIKOTO_OPENSSL_AVAILABLE )
         asio::ip::tcp::socket m_Socket;
         asio::ssl::stream<asio::ip::tcp::socket>* m_SslSocket{ nullptr };
 
 #else
-asio::ip::tcp::socket m_Socket;
+        asio::ip::tcp::socket m_Socket;
+        asio::ip::tcp::endpoint m_TcpEndpoint{};
 #endif
 
         UInt16 m_Port{};

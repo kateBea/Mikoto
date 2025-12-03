@@ -332,7 +332,7 @@ namespace Mikoto {
         }
 
         // TODO: Using always same sync primitives
-        m_CurrentFrameIndex = 0; //  (m_CurrentFrameIndex + 1) % m_MaxFramesInFlight;
+        m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % m_MaxFramesInFlight;
     }
 
     auto VulkanContext::SubmitFrame() -> void {

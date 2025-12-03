@@ -23,8 +23,7 @@ namespace Mikoto {
 
     class CustomLogStream final : public Assimp::LogStream {
     public:
-        void write(const char* message) override {
-            // Redirect to your engine logger
+        auto write(const char* message) -> void override {
             MKT_CORE_LOGGER_DEBUG("[Assimp] {}", message);
         }
     };

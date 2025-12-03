@@ -7,7 +7,7 @@
 
 #include <asio.hpp>
 
-#if defined(MKT_ALLOW_HTTPS)
+#if defined(MIKOTO_OPENSSL_AVAILABLE)
 #include <asio/ssl.hpp>
 #endif
 

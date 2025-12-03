@@ -2,8 +2,6 @@
 // Created by kate on 10/29/25.
 //
 
-#include <tracy/Tracy.hpp>
-
 #include <Core/Profiler.hh>
 #include <Logging/Logger.hh>
 #include <Networking/NetworkService.hh>
@@ -101,6 +99,8 @@ namespace Mikoto {
         MKT_CORE_LOGGER_INFO( "Shutting down NetworkService..." );
 
         m_TcpSockets.Shutdown();
+
+        m_IsInitialized = false;
     }
 
     auto NetworkService::Update( float ) -> void {

@@ -85,6 +85,7 @@ namespace Mikoto {
 
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
         asio::ip::tcp::socket m_Socket;
+        asio::ip::tcp::endpoint m_TcpEndpoint{};
         asio::ssl::stream<asio::ip::tcp::socket>* m_SslSocket{ nullptr };
 
 #else

@@ -9,11 +9,37 @@
 // Project Headers
 #include <SandboxApp.hh>
 
-auto main(int argc, char** argv) -> int {
+Mikoto::Window* g_Window{ nullptr };
+Mikoto::SandboxApp* g_Application{ nullptr };
+
+auto InitializeWindow() -> void {
     using namespace Mikoto;
 
-    SandboxApp app{};
-    const auto ret{ app.Run(argc, argv) };
+    WindowProperties properties{};
+    properties.Resizable = true;
+    properties.Title = "Sandbox Application [Vulkan]";
+    properties.Backend = GraphicsAPI::VULKAN_API;
+    properties.Width = 1280;
+    properties.Height = 720;
 
-    return ret;
+    g_Window = Window::Create( properties );
+
+    g_Window->Init();
+}
+
+auto main(int, char**) -> int {
+    using namespace Mikoto;
+
+    InitializeWindow();
+
+    g_Application = new SandboxApp{};
+
+    g_Application->SetWindow( g_Window );
+    g_Application->Init();
+
+    g_Application->Run();
+
+    g_Application->Shutdown();
+
+    return 0;
 }

@@ -18,11 +18,14 @@ namespace Mikoto {
     class SandboxApp final : public Application, public Subscriber {
     public:
 
-        auto Run(Int32 argc, char** argv) -> Int32 override;
+        auto Run() -> void override;
 
-    protected:
         auto Init() -> void override;
         auto Shutdown() -> void override;
+
+        auto SetWindow(Window* window) -> void;
+
+    private:
         auto Update() -> void override;
 
     private:

@@ -53,8 +53,8 @@ endif()
 # Add engine and applications
 # ===========================
 #add_subdirectory(Mikoto-Sandbox)
-add_subdirectory(Mikoto-Apps)
-#add_subdirectory(Mikoto-Editor)
+#add_subdirectory(Mikoto-Apps)
+add_subdirectory(Mikoto-Editor)
 
 # Important to only enable the target you want to build.
 # For the time being this has to be done manually here

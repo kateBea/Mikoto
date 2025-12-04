@@ -31,6 +31,7 @@
 #include <Threading/TaskService.hh>
 
 #include "NetworkLayer.hh"
+#include "Renderer/Core/RenderService.hh"
 
 namespace Mikoto {
 
@@ -92,14 +93,10 @@ namespace Mikoto {
         }
     };
 
-    auto SandboxApp::Run( const Int32, char** ) -> Int32 {
+    auto SandboxApp::Run() -> void {
         MKT_CORE_LOGGER_DEBUG( "Initializing Mikoto Sandbox..." );
 
-        Int32 exitCode{ EXIT_SUCCESS };
-
         try {
-            Init();
-
             while ( IsRunning() ) {
                 Update();
             }
@@ -107,16 +104,13 @@ namespace Mikoto {
         } catch ( const std::exception &e ) {
             MKT_CORE_LOGGER_CRITICAL( "Error occurred {}", e.what() );
             MKT_FILE_LOGGER_ERROR( "Error occurred {}", e.what() );
-            exitCode = EXIT_FAILURE;
         }
-
-        Shutdown();
-
-        return exitCode;
     }
 
     auto SandboxApp::Init() -> void {
         MKT_PROFILE_SCOPE();
+
+        MKT_ASSERT( m_Window, "Window must not be NULL" );
 
         // Load configuration
         BaseConfiguration configApp{ "./app-config.toml" };
@@ -163,18 +157,25 @@ namespace Mikoto {
         delete m_Window;
     }
 
+    auto SandboxApp::SetWindow( Window *window ) -> void {
+        m_Window = window;
+    }
+
     auto SandboxApp::Update() -> void {
 
-        TimeService::Get()->Update();
+        TimeService::Get()->UpdateTimeStep();
         const double timeStep{ TimeService::Get()->GetTimeStep( TimeUnit::SECONDS ) };
 
         if ( !m_Window->IsMinimized() ) {
-            Root::StartFrame();
+            RenderService::Get()->PrepareFrame();
 
             m_LayerStack.OnUpdate( static_cast<float>( timeStep ) );
             Root::UpdateState( static_cast<float>( timeStep ) );
 
-            Root::EndFrame();
+            RenderService::Get()->SetPresentTarget( ImGuiService::Get()->GetFinalComposition() );
+
+            RenderService::Get()->EndFrame();
+            RenderService::Get()->PresentFrame();
         }
     }
 

@@ -309,7 +309,6 @@ namespace Mikoto {
     }
 
     auto VulkanContext::Present() -> void {
-        MKT_ASSERT( !m_PresentTarget.IsEmpty(), "VulkanContext::Present - Must specify a present target" );
         const VkSemaphore& renderFinishedSemaphore{ m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFinishedSemaphore };
 
         const VkResult result{ m_Swapchain->Present( GetCurrentImageIndex(), renderFinishedSemaphore ) };
@@ -329,6 +328,8 @@ namespace Mikoto {
 
     auto VulkanContext::SubmitFrame() -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
+        MKT_ASSERT( !m_PresentTarget.IsEmpty(), "VulkanContext::Present - Must specify a present target" );
 
         // Record commands to copy contents from present target to swap chain
         // Present is done on the current corresponding swap chain image

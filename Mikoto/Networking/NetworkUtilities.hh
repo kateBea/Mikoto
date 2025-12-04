@@ -11,25 +11,30 @@
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 
-namespace Mikoto::Network {
+namespace Mikoto {
 
-    struct HttpResponse {
-        std::string statusLine;
+    struct HttpRequest {
+        std::string Method;
+        std::string path;
         std::unordered_map<std::string, std::string> headers;
         std::string body;
     };
 
-    class HttpRequestBuilder {
-    public:
+    struct HttpResponse {
+        std::string Status{ -1 };
+        std::string Body{};
+        std::unordered_map<std::string, std::string> Headers{};
 
+        MKT_NODISCARD auto IsStatusOK() const -> bool;
+        MKT_NODISCARD auto IsStatus( std::string_view status ) const -> bool;
     };
 
     // Returns the host and the port
-    MKT_NODISCARD auto GetHost(std::string_view apiResponse) -> std::pair<std::string, std::optional<std::string>>;
+    MKT_NODISCARD auto GetHost( std::string_view apiResponse ) -> std::pair<std::string, std::optional<std::string>>;
 
-    MKT_NODISCARD auto GetHttpBody(std::string_view apiResponse) -> std::string;
-    MKT_NODISCARD auto GetHttpResponse(std::string_view apiResponse) -> HttpResponse;
+    MKT_NODISCARD auto GetHttpBody( std::string_view apiResponse ) -> std::string;
+    MKT_NODISCARD auto GetHttpResponse( std::string_view apiResponse ) -> HttpResponse;
 
-} // Mikoto
+}// Mikoto
 
 #endif

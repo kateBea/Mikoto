@@ -14,7 +14,7 @@
 #include "Networking/NetworkUtilities.hh"
 
 
-namespace Mikoto::Network {
+namespace Mikoto {
 
     // Helper: trim whitespace from start and end
     inline std::string_view trim( std::string_view sv ) {
@@ -32,7 +32,7 @@ namespace Mikoto::Network {
         if ( pos == std::string_view::npos )
             throw std::runtime_error( "Malformed HTTP response: missing status line" );
 
-        result.statusLine = std::string( response.substr( 0, pos ) );
+        result.Status = std::string( response.substr( 0, pos ) );
         response.remove_prefix( pos + 2 );
 
         // Step 2: Read headers
@@ -55,14 +55,14 @@ namespace Mikoto::Network {
 
             std::string key = std::string( trim( line.substr( 0, colon ) ) );
             std::string value = std::string( trim( line.substr( colon + 1 ) ) );
-            result.headers[key] = value;
+            result.Headers[key] = value;
         }
 
         // Step 3: Handle body
-        auto itTE = result.headers.find( "Transfer-Encoding" );
-        auto itCL = result.headers.find( "Content-Length" );
+        auto itTE = result.Headers.find( "Transfer-Encoding" );
+        auto itCL = result.Headers.find( "Content-Length" );
 
-        if ( itTE != result.headers.end() && itTE->second == "chunked" ) {
+        if ( itTE != result.Headers.end() && itTE->second == "chunked" ) {
             // Chunked transfer encoding
             std::string body;
             while ( !response.empty() ) {
@@ -84,19 +84,19 @@ namespace Mikoto::Network {
                 body.append( response.substr( 0, chunkSize ) );
                 response.remove_prefix( chunkSize + 2 );// skip \r\n after chunk
             }
-            result.body = std::move( body );
+            result.Body = std::move( body );
 
-        } else if ( itCL != result.headers.end() ) {
+        } else if ( itCL != result.Headers.end() ) {
             // Content-Length present
             size_t contentLength = std::stoul( itCL->second );
             if ( response.size() < contentLength )
                 throw std::runtime_error( "Content-Length exceeds remaining data" );
 
-            result.body = std::string( response.substr( 0, contentLength ) );
+            result.Body = std::string( response.substr( 0, contentLength ) );
 
         } else {
             // Neither Transfer-Encoding nor Content-Length → read till EOF
-            result.body = std::string( response );
+            result.Body = std::string( response );
         }
 
         return result;
@@ -125,7 +125,7 @@ namespace Mikoto::Network {
     auto GetHttpBody( std::string_view apiResponse ) -> std::string {
         try {
             auto parsed = ParseHttpResponse( apiResponse );
-            return parsed.body;
+            return parsed.Body;
         } catch ( const std::exception& e ) {
             // Optional: handle parsing errors
             // For now, return empty string on failure
@@ -142,5 +142,13 @@ namespace Mikoto::Network {
             // For now, return empty string on failure
             return {};
         }
+    }
+
+    auto HttpResponse::IsStatus( std::string_view status ) const -> bool {
+        return Status == status;
+    }
+
+    auto HttpResponse::IsStatusOK() const -> bool {
+        return Status == "200";
     }
 }// namespace Mikoto::Network

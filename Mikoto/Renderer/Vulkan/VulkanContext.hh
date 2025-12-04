@@ -91,6 +91,7 @@ namespace Mikoto {
 
     private:
 
+        TextureHandle m_PresentTarget{};
         SwapChainHandle m_Swapchain{};
 
         // Current frame

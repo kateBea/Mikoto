@@ -16,6 +16,8 @@
 #include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Core/RenderUtility.hh>
 
+#include "ImGui/ImGuiService.hh"
+
 namespace Mikoto {
 
     struct RenderContextCreateInfo {
@@ -101,6 +103,8 @@ namespace Mikoto {
         auto InitRendererBackend() -> void;
         auto InitShaderLibrary() -> void;
 
+        auto InitGuiService() -> void;
+
     private:
         RenderServiceCreateInfo m_Options{};
 
@@ -108,6 +112,8 @@ namespace Mikoto {
         Unique<RendererBackend> m_RenderBackend{};
         Unique<GraphicsContext> m_GraphicsContext{};
         Unique<ShaderLibrary> m_ShaderLibrary{};
+
+        Unique<ImGuiService> m_ImguiService{};
 
         GraphicsAPI m_ActiveAPI{ GraphicsAPI::VULKAN_API };
     };

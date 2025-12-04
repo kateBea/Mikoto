@@ -153,6 +153,7 @@ namespace Mikoto {
     auto VulkanContext::Shutdown() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        m_PresentTarget.Reset();
         m_Swapchain.Reset();
 
         for (const auto& framePrimitives : m_FrameSyncPrimitives) {
@@ -176,17 +177,7 @@ namespace Mikoto {
     }
 
     auto VulkanContext::SetPresentTarget( TextureHandle texture ) -> void {
-
-        // Present is done on the current corresponding swap chain image
-        const UInt32 swapchainAvailableImageIndex{ Get()->GetCurrentImageIndex() };
-
-        CommandListHandle cmdList{ m_Device->CreateCommandList( QueueType::PRESENT_QUEUE ) };
-        cmdList->Begin();
-
-        cmdList->CopyTexture( texture.GetRaw(), m_Swapchain->GetImage( swapchainAvailableImageIndex ).GetRaw() );
-
-        cmdList->End();
-        m_Device->SubmitCommands( cmdList );
+        m_PresentTarget = texture;
     }
 
     auto VulkanContext::RecreateSwapchain( const bool enableVsync ) -> void {
@@ -318,6 +309,7 @@ namespace Mikoto {
     }
 
     auto VulkanContext::Present() -> void {
+        MKT_ASSERT( !m_PresentTarget.IsEmpty(), "VulkanContext::Present - Must specify a present target" );
         const VkSemaphore& renderFinishedSemaphore{ m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFinishedSemaphore };
 
         const VkResult result{ m_Swapchain->Present( GetCurrentImageIndex(), renderFinishedSemaphore ) };
@@ -337,6 +329,18 @@ namespace Mikoto {
 
     auto VulkanContext::SubmitFrame() -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
+        // Record commands to copy contents from present target to swap chain
+        // Present is done on the current corresponding swap chain image
+        const UInt32 swapchainAvailableImageIndex{ this->Get()->GetCurrentImageIndex() };
+
+        CommandListHandle cmdList{ m_Device->CreateCommandList( QueueType::PRESENT_QUEUE ) };
+        cmdList->Begin();
+
+        cmdList->CopyTexture( m_PresentTarget.GetRaw(), m_Swapchain->GetImage( swapchainAvailableImageIndex ).GetRaw() );
+
+        cmdList->End();
+        m_Device->SubmitCommands( cmdList );
 
         // Prepare the submission to the queue. We want to wait on
         // the present semaphore, which is signaled when the swapchain

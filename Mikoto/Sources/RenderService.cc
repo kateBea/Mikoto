@@ -15,6 +15,8 @@
 #include <Renderer/Core/RenderService.hh>
 #include <Renderer/Vulkan/VulkanRenderer.hh>
 
+#include "ImGui/ImGuiService.hh"
+
 namespace Mikoto {
 
     RenderService::RenderService(const RenderServiceCreateInfo& options)
@@ -32,6 +34,8 @@ namespace Mikoto {
 
         InitRendererBackend();
 
+        InitGuiService();
+
         m_IsInitialized = true;
     }
 
@@ -45,6 +49,9 @@ namespace Mikoto {
         // The Log comes after so we know the service was
         // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down RenderService..." );
+
+        m_ImguiService->Shutdown();
+        m_ImguiService.reset();
 
         m_ShaderLibrary->Shutdown();
         m_ShaderLibrary.reset();
@@ -70,11 +77,13 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         m_Context->PrepareFrame();
+        m_ImguiService->PrepareFrame();
     }
 
     auto RenderService::EndFrame() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        m_ImguiService->EndFrame();
         m_Context->SubmitFrame();
     }
 
@@ -137,5 +146,17 @@ namespace Mikoto {
             m_ShaderLibrary->Init();
         }
 
+    }
+
+    auto RenderService::InitGuiService() -> void {
+        // Imgui service
+        ImGuiServiceDescription imguiServiceCreateInfo{
+            .Device{ GetGpuDevice() },
+            .BackendApi{ m_ActiveAPI },
+            .TargetWindow{ m_Options.TargetWindow }
+        };
+
+        m_ImguiService = CreateScope<ImGuiService>( imguiServiceCreateInfo );
+        m_ImguiService->Init();
     }
 }// namespace Mikoto

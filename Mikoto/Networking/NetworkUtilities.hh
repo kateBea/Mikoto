@@ -14,15 +14,15 @@
 namespace Mikoto {
 
     struct HttpRequest {
-        std::string Method;
-        std::string path;
-        std::unordered_map<std::string, std::string> headers;
-        std::string body;
+        std::string Method{};
+        std::string Path{};
+        std::string Body{};
+        std::unordered_map<std::string, std::string> Headers{};
     };
 
     struct HttpResponse {
-        std::string Status{ -1 };
         std::string Body{};
+        std::string Status{ "503" };
         std::unordered_map<std::string, std::string> Headers{};
 
         MKT_NODISCARD auto IsStatusOK() const -> bool;

@@ -88,16 +88,6 @@ namespace Mikoto {
         MemoryService *memoryService{ s_Services.Register<MemoryService>( memoryServiceCreateInfo ) };
         memoryService->Init();
 
-        //
-        // Imgui service
-        ImGuiServiceDescription imguiServiceCreateInfo{
-            .Device{ renderSystem->GetGpuDevice() },
-            .BackendApi{ GraphicsAPI::VULKAN_API },
-            .TargetWindow{ config.TargetWindow }
-        };
-        ImGuiService *imguiService{ s_Services.Register<ImGuiService>( imguiServiceCreateInfo ) };
-        imguiService->Init();
-
         // Assets service
         AssetsServiceDescription assetsServiceCreateInfo{
             .Device{ renderSystem->GetGpuDevice() },
@@ -141,33 +131,6 @@ namespace Mikoto {
         }
 
         MKT_CORE_LOGGER_DEBUG( "Final shutdown at Root and resource count is {}", IResource::s_ResourceCount );
-    }
-
-    auto Root::StartFrame() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        RenderService *renderService{ s_Services.Get<RenderService>() };
-        ImGuiService *imguiService{ s_Services.Get<ImGuiService>() };
-
-        renderService->PrepareFrame();
-        imguiService->PrepareFrame();
-    }
-
-    auto Root::EndFrame() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        RenderService *renderService{ s_Services.Get<RenderService>() };
-        ImGuiService *imguiService{ s_Services.Get<ImGuiService>() };
-
-        imguiService->EndFrame();
-        renderService->EndFrame();
-    }
-
-    auto Root::Present() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        RenderService *renderService{ s_Services.Get<RenderService>() };
-        renderService->PresentFrame();
     }
 
     auto Root::UpdateState( const float timeStep ) -> void {

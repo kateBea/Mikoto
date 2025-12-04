@@ -23,6 +23,8 @@
 #include <Layers/EditorLayer.hh>
 #include <Logging/Logger.hh>
 
+#include "Renderer/Core/RenderService.hh"
+
 namespace Mikoto {
 
     auto EditorApp::Run() -> void {
@@ -86,15 +88,14 @@ namespace Mikoto {
         if ( !m_Window->IsMinimized() ) {
             const double timeStep{ TimeService::Get()->GetTimeStep( TimeUnit::SECONDS ) };
 
-            Root::StartFrame();
+            RenderService::Get()->PrepareFrame();
 
             m_LayerStack.OnUpdate( static_cast<float>( timeStep ) );
 
             Root::UpdateState( static_cast<float>( timeStep ) );
 
-            Root::EndFrame();
-
-            Root::Present();
+            RenderService::Get()->EndFrame();
+            RenderService::Get()->PresentFrame();
         }
     }
 

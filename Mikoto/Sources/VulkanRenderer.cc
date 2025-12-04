@@ -267,7 +267,7 @@ namespace Mikoto {
         m_TexturesSet = TO_VK_DEVICE( m_GraphicsDevice )->AllocateDescriptorSet( &layoutTextures, std::addressof( variableCountInfo ) );
     }
 
-    auto VulkanRenderer::UpdateBindlessTextureDescriptor( const Int32 index, VulkanTexture* texture ) -> void {
+    auto VulkanRenderer::UpdateBindlessTextureDescriptor( const Int32 index, VulkanTexture* texture ) const -> void {
         using namespace Mikoto::VulkanPasses;
 
         if ( !texture->HasSampler() ) {
@@ -275,24 +275,11 @@ namespace Mikoto {
         }
 
         VkSampler sampler{ texture->GetSampler()->GetNativeHandle( ObjectType::Vk_Sampler ) };
+        VkImageView image{ texture->GetNativeHandle( ObjectType::Vk_ImageView ) };
 
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.sampler = sampler;
-        imageInfo.imageView = texture->GetNativeHandle( ObjectType::Vk_ImageView );
-
-        // is this the image's layout or the layout I want to be for optimal sampling
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-        VkWriteDescriptorSet write{};
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstSet = m_TexturesSet;
-        write.dstBinding = 0;
-        write.dstArrayElement = index;
-        write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        write.descriptorCount = 1;
-        write.pImageInfo = &imageInfo;
-
-        vkUpdateDescriptorSets( VK_DEVICE( m_GraphicsDevice ), 1, &write, 0, nullptr );
+        DescriptorWriter writer{};
+        writer.WriteImage( 0, image, sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, index )
+            .UpdateSet( VK_DEVICE( m_GraphicsDevice ), m_TexturesSet );
     }
 
     auto VulkanRenderer::InitCoreRenderPasses() -> void {

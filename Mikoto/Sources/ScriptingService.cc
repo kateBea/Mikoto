@@ -7,6 +7,7 @@
 
 
 #include <Core/Profiler.hh>
+#include <Core/Exception.hh>
 #include <Filesystem/FileService.hh>
 #include <Logging/Logger.hh>
 #include <Scripting/ScriptingService.hh>

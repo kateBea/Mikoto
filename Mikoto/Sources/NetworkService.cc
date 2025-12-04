@@ -8,21 +8,25 @@
 #include <Threading/TaskService.hh>
 
 namespace Mikoto {
-    NetworkService::NetworkService( const NetworkServiceCreateInfo& ) {
-    }
+    NetworkService::NetworkService( const NetworkServiceCreateInfo & ) {}
 
-    auto NetworkService::CreateSocket( SocketType type, const std::string_view hostName, const UInt16 port ) -> SocketHandle {
-        // SocketType::SOCKET_TCP ====================
-        SocketHandle handle{};
+    auto NetworkService::CreateSocket( SocketType type, const std::string_view hostName, const UInt16 port, SecurityProtocol sp ) -> SocketHandle {
+        SocketHandle handle{ SocketHandle::CreateEmpty() };
 
-#if defined( MIKOTO_OPENSSL_AVAILABLE )
-        handle = m_TcpSockets.Allocate( m_IoContext, m_SslContext, hostName, port, false );
-#else
-        handle = m_TcpSockets.Allocate( m_IoContext, hostName, port );
-#endif
+        switch (type) {
+            case SocketType::SOCKET_TCP:
+                handle = CreateSocketTcp( hostName, port, false, sp );
+                break;
+            case SocketType::SOCKET_UDP:
+                // Not supported for now
+                MKT_CORE_LOGGER_WARN( "NetworkService::CreateSocket - UDP Socket not yet supported" );
+                break;
+            default:
+                break;
+        }
 
-        if ( handle.IsEmpty() ) {
-            MKT_CORE_LOGGER_ERROR( "NetworkService::CreateNewSocket - Failed to create new socket" );
+        if (handle.IsEmpty()) {
+            MKT_CORE_LOGGER_ERROR( "NetworkService::CreateSocket - Failed to create new socket" );
         } else {
             handle->Initialize();
         }
@@ -30,33 +34,38 @@ namespace Mikoto {
         return handle;
     }
 
-    auto NetworkService::CreateSocketSync( SocketType type, std::string_view hostName, UInt16 port) -> SocketHandle {
-        // SocketType::SOCKET_TCP ====================
-        SocketHandle handle{};
+    auto NetworkService::CreateSocketSync( SocketType type, std::string_view hostName, UInt16 port, SecurityProtocol sp ) -> SocketHandle {
+        SocketHandle handle{ SocketHandle::CreateEmpty() };
 
-#if defined( MIKOTO_OPENSSL_AVAILABLE )
-        handle = m_TcpSockets.Allocate( m_IoContext, m_SslContext, hostName, port, true );
-#else
-        handle = m_TcpSockets.Allocate( m_IoContext, hostName, port );
-#endif
+        switch (type) {
+            case SocketType::SOCKET_TCP:
+                handle = CreateSocketTcp( hostName, port, true, sp );
+                break;
+            case SocketType::SOCKET_UDP:
+                // Not supported for now
+                MKT_CORE_LOGGER_WARN( "NetworkService::CreateSocketSync - UDP Socket not yet supported" );
+                break;
+            default:
+                break;
+        }
 
-        if ( handle.IsEmpty() ) {
-            MKT_CORE_LOGGER_ERROR( "NetworkService::CreateNewSocket - Failed to create new socket" );
+        if (handle.IsEmpty()) {
+            MKT_CORE_LOGGER_ERROR( "NetworkService::CreateSocketSync - Failed to create new socket" );
         } else {
             handle->Initialize();
         }
 
         return handle;
     }
+
     auto NetworkService::CreateSocketHttp( std::string_view hostName, bool wait ) -> SocketHandle {
         SocketHandle handle{};
 
-#if !defined( MIKOTO_OPENSSL_AVAILABLE )
-        handle = m_TcpSockets.Allocate( m_IoContext, hostName, 80 );
-#endif
+        constexpr UInt32 httPort{ 80 };
+        handle = CreateSocketTcp( hostName, httPort, wait, SecurityProtocol::NONE );
 
-        if ( handle.IsEmpty() ) {
-            MKT_CORE_LOGGER_ERROR( "NetworkService::CreateNewSocket - Failed to create new socket for HTTP" );
+        if (handle.IsEmpty()) {
+            MKT_CORE_LOGGER_ERROR( "CreateSocketHttp::CreateSocketHttp - Failed to create new socket" );
         } else {
             handle->Initialize();
         }
@@ -67,14 +76,30 @@ namespace Mikoto {
     auto NetworkService::CreateSocketHttps( std::string_view hostName, bool wait ) -> SocketHandle {
         SocketHandle handle{};
 
-#if defined( MIKOTO_OPENSSL_AVAILABLE )
-        handle = m_TcpSockets.Allocate( m_IoContext, m_SslContext, hostName, 443, true );
-#endif
+        constexpr UInt32 httPort{ 443 };
+        handle = CreateSocketTcp( hostName, httPort, wait, SecurityProtocol::TLS );
 
-        if ( handle.IsEmpty() ) {
-            MKT_CORE_LOGGER_ERROR( "NetworkService::CreateNewSocket - Failed to create new socket for HTTPS" );
+        if (handle.IsEmpty()) {
+            MKT_CORE_LOGGER_ERROR( "NetworkService::CreateSocketHttps - Failed to create new socket" );
         } else {
             handle->Initialize();
+        }
+
+        return handle;
+    }
+
+    auto NetworkService::CreateSocketTcp( const std::string_view hostName, const UInt16 port, bool wait, SecurityProtocol sp ) -> SocketHandle {
+        SocketHandle handle{ SocketHandle::CreateEmpty() };
+
+        switch (sp) {
+            case SecurityProtocol::NONE:
+                handle = m_TcpSockets.Allocate( m_IoContext, hostName, port, wait );
+                break;
+            case SecurityProtocol::TLS:
+#if defined( MIKOTO_OPENSSL_AVAILABLE )
+                handle = m_TcpSockets.Allocate( m_IoContext, m_SslContext, hostName, port, wait );
+#endif
+                break;
         }
 
         return handle;
@@ -83,12 +108,13 @@ namespace Mikoto {
     auto NetworkService::Init() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        MKT_CORE_LOGGER_INFO("Initializing NetworkService...");
+        MKT_CORE_LOGGER_INFO( "Initializing NetworkService..." );
 
         m_TcpSockets.Init( 10 );
 
         m_IsInitialized = true;
     }
+
     auto NetworkService::Shutdown() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -97,6 +123,15 @@ namespace Mikoto {
         }
 
         MKT_CORE_LOGGER_INFO( "Shutting down NetworkService..." );
+
+        for (auto &socket: m_TcpSockets | std::views::values) {
+            // Wait for pending connections to finish
+            while ( socket.As<TcpSocket>()->IsConnectionStatus( ConnectionStatus::PENDING ))
+                ;
+        }
+
+        // Run pending work if any
+        m_IoContext.run();
 
         m_TcpSockets.Shutdown();
 

@@ -6,10 +6,10 @@
 
 #include "Panels/AssetsPanel.hh"
 
-#include "ImGui/IconsMaterialDesign.h"
 #include "ImGui/ImGuiService.hh"
 #include "ImGui/ImGuiUtility.hh"
 #include "Layers/EditorLayer.hh"
+#include "ImGui/IconsMaterialDesign.h"
 
 namespace Mikoto {
 
@@ -78,6 +78,5 @@ namespace Mikoto {
         }
 
         m_EditorState->AssetsPanelVisible = m_PanelIsVisible;
-
     }
 }// namespace Mikoto

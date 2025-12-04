@@ -5,6 +5,9 @@
 #include <string>
 #include <utility>
 
+#include <fmt/format.h>
+#include <cpptrace/cpptrace.hpp>
+
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 
@@ -25,17 +28,21 @@ namespace Mikoto {
         RuntimeException( RuntimeException&& ) noexcept = default;
         RuntimeException& operator=( RuntimeException&& ) noexcept = default;
 
-        auto what() const noexcept -> const char* override {
+        MKT_NODISCARD auto what() const noexcept -> const char* override {
             return m_Message.c_str();
         }
 
-        auto Message() const noexcept -> const std::string& {
+        MKT_NODISCARD auto Message() const noexcept -> const std::string& {
             return m_Message;
         }
 
     private:
-        std::string m_Message;
+        std::string m_Message{};
     };
+
+#define MKT_THROW_RUNTIME_ERROR(MESSAGE) \
+    cpptrace::generate_trace().print(); \
+    throw Mikoto::RuntimeException( fmt::format( "Message: {}\n@File: {}\n@Line: {}", MESSAGE, __FILE__, __LINE__ ) )
 }
 
 #endif // MIKOTO_RUNTIME_EXCEPTION_HH

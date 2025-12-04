@@ -10,6 +10,7 @@
 
 #include <Assets/Texture.hh>
 #include <Common/Common.hh>
+#include <Core/Exception.hh>
 #include <Library/Utility/Types.hh>
 
 #include <Renderer/Core/Framebuffer.hh>

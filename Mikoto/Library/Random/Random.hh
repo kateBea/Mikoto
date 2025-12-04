@@ -18,6 +18,7 @@
 
 // Project Headers
 #include <Common/Common.hh>
+#include <Core/Exception.hh>
 #include <Library/Utility/Types.hh>
 
 namespace Mikoto {

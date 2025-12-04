@@ -60,7 +60,7 @@ namespace Mikoto {
     class DescriptorWriter final {
     public:
         auto WriteBuffer( UInt32 binding, VkBuffer buffer, Size size, Size offset, VkDescriptorType type ) -> DescriptorWriter&;
-        auto WriteImage( UInt32 binding, VkImageView image, VkSampler sampler, VkImageLayout layout, VkDescriptorType type ) -> DescriptorWriter&;
+        auto WriteImage( UInt32 binding, VkImageView image, VkSampler sampler, VkImageLayout layout, VkDescriptorType type, UInt32 arrayIndex = 0 ) -> DescriptorWriter&;
 
         auto Clear() -> void;
         auto UpdateSet(VkDevice device, VkDescriptorSet set) -> void;

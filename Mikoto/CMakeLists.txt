@@ -390,16 +390,16 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(tracy)
 
 # SSL library
-if (UNIX)
+if (UNIX AND NOT OpenSSL_FOUND)
     FetchContent_Declare(
             openssl
-            URL https://www.openssl.org/source/openssl-3.6.0.tar.gz  # Replace with the version you want
+            URL https://www.openssl.org/source/openssl-3.6.0.tar.gz
     )
 
     FetchContent_MakeAvailable(openssl)
 
     # ================
-    set(OPENSSL_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/openssl-src) # default path by CMake
+    set(OPENSSL_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/openssl-src)
     set(OPENSSL_INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/openssl)
     set(OPENSSL_INCLUDE_DIR ${OPENSSL_INSTALL_DIR}/include)
     set(OPENSSL_CONFIGURE_COMMAND ${OPENSSL_SOURCE_DIR}/config)

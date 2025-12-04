@@ -175,10 +175,12 @@ namespace Mikoto {
 
         // Test getting image from web
         // Gotten from Jikan API https://api.jikan.moe/v4/anime/20/pictures
-        auto values{ Network::GetHost( "https://cdn.myanimelist.net/images/anime/1/20.jpg" ) };
-        SocketHandle imageSocket{ NetworkService::Get()->CreateSocketHTTPS( values.first, true ) };
+        auto values{ GetHost( "https://cdn.myanimelist.net/images/anime/1/20.jpg" ) };
+        SocketHandle imageSocket{ NetworkService::Get()->CreateSocketHttps( values.first, true ) };
 
-        auto result{ HttpGetImgage( imageSocket, imageSocket->GetHost(), "/images/anime/1141/142503.jpg" ) };
+        if (!imageSocket.IsEmpty()) {
+            auto result{ HttpGetImgage( imageSocket, imageSocket->GetHost(), "/images/anime/1141/142503.jpg" ) };
+        }
 
         m_AnimeList = {
             { 1, "Cowboy Bebop" },
@@ -197,7 +199,7 @@ namespace Mikoto {
                 // To avoid 429, not sure the rate limit on jikan
                 std::this_thread::sleep_for( std::chrono::seconds( 2 * offset ) );
 
-                SocketHandle socket{ NetworkService::Get()->CreateNewSocketSync( SocketType::SOCKET_TCP, "api.jikan.moe", 443 ) };
+                SocketHandle socket{ NetworkService::Get()->CreateSocketSync( SocketType::SOCKET_TCP, "api.jikan.moe", 443 ) };
                 if ( socket.IsEmpty() ) {
                     return;
                 }
@@ -205,7 +207,7 @@ namespace Mikoto {
                 try {
                     const std::string response{ HttpGet( socket, socket->GetHost(), fmt::format( "/v4/anime/{}/full", id ) ) };
 
-                    m_SelectedAnimeJsons[id] = Network::GetHttpBody( response );
+                    m_SelectedAnimeJsons[id] = GetHttpBody( response );
 
                     MKT_CORE_LOGGER_DEBUG( "Loaded successfully {}", title );
                 } catch ( const std::exception &e ) {

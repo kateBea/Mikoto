@@ -17,6 +17,8 @@
 #include <Renderer/Core/RenderUtility.hh>
 #include <Scene/Component.hh>
 
+#include "Scene/SceneManager.hh"
+
 namespace Mikoto {
 
     static auto TestCode() -> void {
@@ -142,7 +144,7 @@ namespace Mikoto {
 
         m_MainScene->SetState( SceneState::IDLE );
 
-        m_Renderer->SetScene( m_MainScene.get() );
+        m_Renderer->SetScene( m_MainScene);
         m_Renderer->SetCamera( m_SceneCamera.get() );
 
         m_Renderer->Render( deltaTime );
@@ -171,11 +173,11 @@ namespace Mikoto {
     }
 
     auto GraphicsLayer::SetupScene() -> void {
-        m_MainScene = Scene::Create( "Hello World" );
+        m_MainScene = SceneManager::Get()->CreateScene( "Hello World" );
         m_MainScene->SetName( "Change name just for fun" );
 
         // You need to specify the Scene the physics are simulated on
-        PhysicService::Get()->SetSimulationScene( m_MainScene.get() );
+        PhysicService::Get()->SetSimulationTarget( m_MainScene );
 
         // This emitting sounds
         Entity *entity{ m_MainScene->CreateEntity( "Ball" ) };
@@ -232,7 +234,7 @@ namespace Mikoto {
             AudioListener &audioListener{ listenerComp.GetListener() };
             audioListener.Apply();
 
-            RigidBodyComponent& rigidBody{ m_Listener->GetComponent<RigidBodyComponent>() };
+            RigidBodyComponent& rigidBody{ m_Listener->AddComponent<RigidBodyComponent>() };
             rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
             rigidBody.SetFriction( 0 );
 

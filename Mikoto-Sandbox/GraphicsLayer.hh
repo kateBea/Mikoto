@@ -4,15 +4,15 @@
 
 #ifndef GRAPHICSLAYER_HH
 #define GRAPHICSLAYER_HH
-#include <../Mikoto/Renderer/Core/RenderService.hh>
-#include <../Mikoto/Renderer/Core/SceneRenderer.hh>
-#include <Assets/AssetsService.hh>
+
+#include <string_view>
+
+#include <Renderer/Core/SceneRenderer.hh>
 #include <Assets/Model.hh>
 #include <Core/LayerStack.hh>
 #include <Platform/Window.hh>
 #include <Scene/Scene.hh>
 #include <Scene/SceneCamera.hh>
-#include <string_view>
 
 namespace Mikoto {
 
@@ -41,7 +41,7 @@ namespace Mikoto {
     private:
         Entity* m_Listener{ nullptr };
 
-        Unique<Scene> m_MainScene{};
+        Scene* m_MainScene{};
         Unique<SceneCamera> m_SceneCamera{};
         Unique<SceneRenderer> m_Renderer{};
 

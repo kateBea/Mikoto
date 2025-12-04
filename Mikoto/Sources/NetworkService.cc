@@ -98,6 +98,8 @@ namespace Mikoto {
             case SecurityProtocol::TLS:
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
                 handle = m_TcpSockets.Allocate( m_IoContext, m_SslContext, hostName, port, wait );
+#else
+                MKT_CORE_LOGGER_WARN("NetworkService::CreateSocketTcp - Attempting to create TLS Socket but OpenSSL not available.");
 #endif
                 break;
         }

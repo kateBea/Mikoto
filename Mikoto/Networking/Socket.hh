@@ -5,6 +5,7 @@
 #ifndef SOCKET_HH
 #define SOCKET_HH
 
+#include <atomic>
 #include <asio.hpp>
 #include <string>
 #include <string_view>
@@ -18,6 +19,8 @@
 
 namespace Mikoto {
 
+    enum class ConnectionStatus { PENDING, CONNECTED, DISCONNECTED };
+
     class Socket : public IResource {
     public:
         explicit Socket() = default;
@@ -25,6 +28,10 @@ namespace Mikoto {
         virtual auto Disconnect() -> void = 0;
 
         MKT_NODISCARD virtual auto GetHost() const -> const std::string& = 0;
+
+        /// @brief Returns true if an asynchronous connection attempt is still ongoing.
+        MKT_NODISCARD auto GetConnectionStatus() const -> ConnectionStatus { return m_ConnectionStatus; }
+        MKT_NODISCARD auto IsConnectionStatus(const ConnectionStatus status ) const -> bool { return m_ConnectionStatus == status; }
 
         MKT_NODISCARD virtual auto IsConnected() const -> bool = 0;
         MKT_NODISCARD virtual auto Connect( std::string_view address, UInt16 port ) -> bool = 0;
@@ -35,6 +42,9 @@ namespace Mikoto {
         MKT_NODISCARD virtual auto ReceiveSync( void* buffer, Size maxSize ) -> Size = 0;
 
         using IResource::Initialize;
+
+    protected:
+        ConnectionStatus m_ConnectionStatus{ ConnectionStatus::DISCONNECTED };
     };
 
     using SocketHandle = Ref<Socket>;
@@ -66,6 +76,7 @@ namespace Mikoto {
         auto Initialize() -> void override;
         auto Release() -> void override;
 
+        auto InitConnection() -> void;
         auto InitConnectionSync() -> void;
 
     private:
@@ -85,8 +96,6 @@ namespace Mikoto {
         std::string m_HostName{};
 
         bool m_IsSsl{ false };
-        bool m_Connected{ false };
-
         bool m_InitSync{ false };
     };
 }// namespace Mikoto

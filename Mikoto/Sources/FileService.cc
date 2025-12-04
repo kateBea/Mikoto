@@ -20,6 +20,7 @@
 #include <Filesystem/FileService.hh>
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
+#include <Core/Exception.hh>
 
 namespace Mikoto {
 

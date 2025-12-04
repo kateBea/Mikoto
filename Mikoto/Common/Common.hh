@@ -16,9 +16,6 @@
 
 #include <fmt/format.h>
 #include <fmt/color.h>
-#include <cpptrace/cpptrace.hpp>
-
-#include <Core/Exception.hh>
 
 // Project Headers
 
@@ -41,10 +38,6 @@
 #define MKT_ENGINE_VERSION_MAJOR 1
 #define MKT_ENGINE_VERSION_MINOR 0
 #define MKT_ENGINE_VERSION_PATCH 0
-
-#define MKT_THROW_RUNTIME_ERROR(MESSAGE) \
-    cpptrace::generate_trace().print(); \
-    throw Mikoto::RuntimeException( fmt::format( "Message: {}\n@File: {}\n@Line: {}", MESSAGE, __FILE__, __LINE__ ) )
 
 /**
  * Disable copy constructor and operator, move constructor

@@ -650,40 +650,40 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 # ======================================
 # Compile definitions
 # ======================================
-target_compile_definitions(${PROJECT_NAME} PRIVATE GLFW_INCLUDE_NONE)
-target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_FMT_EXTERNAL)
-target_compile_definitions(${PROJECT_NAME} PRIVATE USE_GLFW_KEY_CODES)
-target_compile_definitions(${PROJECT_NAME} PRIVATE USE_GLFW_MOUSE_CODES)
-target_compile_definitions(${PROJECT_NAME} PRIVATE USE_GLFW_INPUT)
+target_compile_definitions(${PROJECT_NAME} PUBLIC GLFW_INCLUDE_NONE)
+target_compile_definitions(${PROJECT_NAME} PUBLIC SPDLOG_FMT_EXTERNAL)
+target_compile_definitions(${PROJECT_NAME} PUBLIC USE_GLFW_KEY_CODES)
+target_compile_definitions(${PROJECT_NAME} PUBLIC USE_GLFW_MOUSE_CODES)
+target_compile_definitions(${PROJECT_NAME} PUBLIC USE_GLFW_INPUT)
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE VK_NO_PROTOTYPES)
-target_compile_definitions(${PROJECT_NAME} PRIVATE IMGUI_IMPL_VULKAN_USE_VOLK)
+target_compile_definitions(${PROJECT_NAME} PUBLIC VK_NO_PROTOTYPES)
+target_compile_definitions(${PROJECT_NAME} PUBLIC IMGUI_IMPL_VULKAN_USE_VOLK)
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE)
-target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_FORCE_RADIANS)
-target_compile_definitions(${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
+target_compile_definitions(${PROJECT_NAME} PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE)
+target_compile_definitions(${PROJECT_NAME} PUBLIC GLM_FORCE_RADIANS)
+target_compile_definitions(${PROJECT_NAME} PUBLIC GLM_ENABLE_EXPERIMENTAL)
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE MKT_USE_VULKAN_BINDLESS)
-target_compile_definitions(${PROJECT_NAME} PRIVATE MKT_USE_VULKAN_DYNAMIC_RENDERING)
+target_compile_definitions(${PROJECT_NAME} PUBLIC MKT_USE_VULKAN_BINDLESS)
+target_compile_definitions(${PROJECT_NAME} PUBLIC MKT_USE_VULKAN_DYNAMIC_RENDERING)
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE TRACY_ENABLE)
+target_compile_definitions(${PROJECT_NAME} PUBLIC TRACY_ENABLE)
 
 # Windowing system
 if(MIKOTO_USE_XCB_WINDOW)
     message("Using XCB for window")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE MKT_USE_XCB_WINDOW)
-    target_link_libraries(${PROJECT_NAME} PRIVATE xcb xcb-keysyms xcb-xfixes xcb-xkb)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC MKT_USE_XCB_WINDOW)
+    target_link_libraries(${PROJECT_NAME} PUBLIC xcb xcb-keysyms xcb-xfixes xcb-xkb)
 endif()
 
 if(MIKOTO_USE_WIN32_WINDOW)
     message("Using Win32 for window")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE MKT_USE_WIN32_WINDOW)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC MKT_USE_WIN32_WINDOW)
 endif()
 
 # HTTPS only working on linux for now
 # Expose the macro to your sources
 if (MIKOTO_ALLOW_SSL)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE MIKOTO_OPENSSL_AVAILABLE)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC MIKOTO_OPENSSL_AVAILABLE)
 endif()
 
 # ======================================

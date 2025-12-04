@@ -4,6 +4,7 @@
 
 #include <miniaudio.h>
 
+#include <Core/Exception.hh>
 #include <Assets/AudioClip.hh>
 #include <Audio/AudioDevice.hh>
 #include <Library/Data/ResourcePool.hh>

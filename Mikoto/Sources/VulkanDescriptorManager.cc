@@ -95,7 +95,7 @@ namespace Mikoto {
         return *this;
     }
 
-    auto DescriptorWriter::WriteImage( UInt32 binding, VkImageView image, VkSampler sampler, VkImageLayout layout, VkDescriptorType type ) -> DescriptorWriter& {
+    auto DescriptorWriter::WriteImage( UInt32 binding, VkImageView image, VkSampler sampler, VkImageLayout layout, VkDescriptorType type,  UInt32 arrayIndex) -> DescriptorWriter& {
         // The layout is going to be almost always either VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         // the best layout to use for accessing textures in the shaders, or VK_IMAGE_LAYOUT_GENERAL
         // when we are using them from compute shaders and writing them.
@@ -112,6 +112,7 @@ namespace Mikoto {
         write.dstBinding = binding;
         write.dstSet = VK_NULL_HANDLE; //left empty for now until we to write it  in the updateSet()
         write.descriptorCount = 1;
+        write.dstArrayElement = arrayIndex;
         write.descriptorType = type;
         write.pImageInfo = std::addressof( info );
 

@@ -22,6 +22,7 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 
 // Project Headers
+#include <Core/Exception.hh>
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
 

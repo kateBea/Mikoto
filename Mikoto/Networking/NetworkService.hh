@@ -20,6 +20,23 @@
 namespace Mikoto {
 
     /**
+     * @enum SecurityProtocol
+     * @brief Specifies the security layer applied on top of a TCP connection.
+     *
+     * Determines whether a socket uses a plain, unencrypted connection,
+     * or a secure TLS session. TLS provides encryption, integrity, and
+     * authentication for data transmitted over the network.
+     *
+     * Usage:
+     *  - SecurityProtocol::NONE -> Raw TCP socket (no encryption)
+     *  - SecurityProtocol::TLS  -> Secure TLS session layered over TCP
+     */
+    enum class SecurityProtocol {
+        NONE,
+        TLS,
+    };
+
+    /**
      * @enum SocketType
      * @brief Specifies the type of socket to create within the NetworkService.
      *
@@ -103,14 +120,14 @@ namespace Mikoto {
         /**
          * @brief Creates a TCP socket.
          *
-         * The socket is created synchronously unless.
+         * The socket is created asynchronously.
          *
          * @param type The type of socket to create (currently only supports TCP).
          * @param hostName The remote host to connect to.
          * @param port The port to connect to.
          * @return A socket handle. The handle may be empty if creation failed.
          */
-        auto CreateSocket( SocketType type, std::string_view hostName, UInt16 port ) -> SocketHandle;
+        auto CreateSocket( SocketType type, std::string_view hostName, UInt16 port, SecurityProtocol sp = SecurityProtocol::NONE ) -> SocketHandle;
 
         /**
          * @brief Creates a socket and waits for a synchronous connection.
@@ -122,7 +139,7 @@ namespace Mikoto {
          * @param port The port.
          * @return A socket handle. May be empty on failure.
          */
-        auto CreateSocketSync( SocketType type, std::string_view hostName, UInt16 port ) -> SocketHandle;
+        auto CreateSocketSync( SocketType type, std::string_view hostName, UInt16 port, SecurityProtocol sp = SecurityProtocol::NONE ) -> SocketHandle;
 
         /**
          * @brief Creates an HTTP socket (port 80 by default).
@@ -152,6 +169,12 @@ namespace Mikoto {
 
         /// @brief Destructor. Automatically calls Shutdown() if the service was still running.
         ~NetworkService() override = default;
+
+    private:
+        // [Internal usage]
+
+        // If wait == true creation is asynchronous, synchronous otherwise
+        auto CreateSocketTcp(std::string_view hostName, UInt16 port, bool wait, SecurityProtocol sp = SecurityProtocol::NONE ) -> SocketHandle;
 
     private:
         /// @brief ASIO context used for all asynchronous network operations.

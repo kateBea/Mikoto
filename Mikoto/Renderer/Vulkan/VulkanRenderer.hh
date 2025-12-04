@@ -76,7 +76,7 @@ namespace Mikoto {
     private:
         // [Internal usage]
         auto CreateBindlessDescriptor() -> void;
-        auto UpdateBindlessTextureDescriptor( Int32 index, VulkanTexture* texture ) -> void;
+        auto UpdateBindlessTextureDescriptor( Int32 index, VulkanTexture* texture ) const -> void;
 
         auto InitCoreRenderPasses() -> void;
 

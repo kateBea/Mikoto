@@ -358,7 +358,6 @@ namespace  Mikoto {
 
         // Configure pipeline stage
         ComputePipelineDescription computeDesc{};
-
         pipelineDesc.Description = computeDesc;
 
         builder.CreateNamedPipeline( "SimpleComputePass_Pipeline", pipelineDesc );
@@ -367,7 +366,7 @@ namespace  Mikoto {
         lightsBuffer.WithData( nullptr )
             .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
             .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
-            .WithSizeBytes( 30 * sizeof(UInt32) ); // TODO
+            .WithSizeBytes( 30 * sizeof(float) ); // TODO
         builder.CreateNamedBuffer( "SimpleComputePass_Result", lightsBuffer );
 
         builder.RegisterOutput( this, "SimpleComputePass_Result" );
@@ -376,12 +375,16 @@ namespace  Mikoto {
     auto SimpleComputePass::Execute( PassCommandList& commandList ) -> void {
         commandList.BeginCompute();
 
+        commandList.BindPipeline( "SimpleComputePass_Pipeline" );
+
         // Prime numbers up until this value
         constexpr  UInt32 limitNumbers{ 30 };
 
         // matches shader's local_size_x
         constexpr UInt32 localSize{ 64 };
         constexpr UInt32 groupCount{ (limitNumbers + localSize - 1) / localSize };
+
+        commandList.BindBuffer( "SimpleComputePass_Result", 0, 0 );
 
         commandList.Dispatch( groupCount, 1, 1 );
 

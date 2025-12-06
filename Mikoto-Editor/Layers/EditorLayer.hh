@@ -45,7 +45,7 @@ namespace Mikoto {
         // Pass name and output value
         ankerl::unordered_dense::map<std::string, TextureHandle> PassesCompositions{};
 
-        // Editor specifies which texture gets rendered
+        // Editor specifies which texture gets rendered on the window
         TextureHandle RenderImage{};
 
         MaterialViewer* MaterialVisualizer{};

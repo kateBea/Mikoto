@@ -88,6 +88,7 @@ namespace Mikoto::VulkanHelpers {
     MKT_NODISCARD auto ToTextureFormat(VkFormat format) -> TextureFormat;
     MKT_NODISCARD auto ToVkShaderDataType(ShaderDataType type) -> VkFormat;
     MKT_NODISCARD auto ToVkStage(ShaderStage stage) -> VkShaderStageFlagBits;
+    MKT_NODISCARD auto FromVkStage(VkShaderStageFlagBits stage) -> ShaderStage;
     MKT_NODISCARD auto ToVkImageUsage(TextureUsage usage) -> VkImageUsageFlags;
 
     auto ImageUsageFlagsToString(Texture* texture) -> void;

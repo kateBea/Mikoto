@@ -8,7 +8,6 @@
 #include <Common/Common.hh>
 #include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/RenderPassBase.hh>
-#include <Renderer/Core/RendererBackend.hh>
 #include <Library/Data/Registry.hh>
 #include <Scene/Camera.hh>
 #include <Scene/Scene.hh>
@@ -122,42 +121,12 @@ namespace Mikoto {
          */
         auto SetCamera( SceneCamera* camera ) -> void;
 
-        
-        /**
-         * @brief Gets the final composition texture produced by the renderer.
-         * This function retrieves the final rendered texture that can be used for display or further processing.
-         * @return A `TextureHandle` representing the final composition texture.
-         */
-        MKT_NODISCARD auto GetFinalComposition() const -> TextureHandle;
+        template<typename T>
+        MKT_NODISCARD auto GetPass() -> T* {
+            return m_PassRegistry.Get<T>();
+        }
 
-        MKT_NODISCARD auto GetMaterialPreview() const -> TextureHandle;
-        MKT_NODISCARD auto GetMaterialPreviewer() const -> MaterialViewer*;
-
-        /**
-         * @brief Sets the render resolution for the renderer.
-         * This function updates the internal render resolution setting.
-         * @param resolution The desired render resolution.
-         */
-        auto SetRenderResolution( RenderResolution resolution ) -> void;
-
-        /**
-         * @brief Gets the current render resolution of the renderer.
-         * This function retrieves the internal render resolution setting.
-         * @return The current render resolution.
-         */
-        MKT_NODISCARD auto GetRenderResolution() const -> RenderResolution;
-
-        /**
-         * @brief Sets the clear color for the renderer.
-         * This function updates the clear color used when clearing the render target.
-         * @param r The red component of the clear color.
-         * @param g The green component of the clear color.
-         * @param b The blue component of the clear color.
-         * @param a The alpha component of the clear color.
-         */
-        auto SetClearColor( float r, float g, float b, float a ) -> void;
-
-        auto GetFontPassComposition() -> TextureHandle;
+        auto GetGraph() -> FrameGraph&;
 
         /**
          * @brief Creates a new `SceneRenderer` instance.
@@ -172,7 +141,6 @@ namespace Mikoto {
 
     private:
         // [Internal usage]
-        auto InitPreviewer() -> void;
         auto InitGraphicsContex() -> void;
         auto InitCoreFramePasses() -> void;
 
@@ -180,16 +148,12 @@ namespace Mikoto {
 
         Unique<MaterialViewer> m_MaterialViewer{};
 
-        RenderResolution m_RenderResolution{ RenderResolution::RESOLUTION_FHD };
-
         GpuDevice* m_Device{ nullptr };
 
         Scene* m_Scene{ nullptr };
         SceneCamera* m_Camera{ nullptr };
 
-        RendererBackend* m_RendererBackend{ nullptr };
-
-        Registry<FramePass> m_Registry{};
+        Registry<FramePass> m_PassRegistry{};
 
         Unique<FrameGraph> m_FrameGraph{};
         GraphicsContext* m_GraphicsContext{ nullptr };

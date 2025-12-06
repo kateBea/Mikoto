@@ -14,7 +14,6 @@
 
 #include "Common/Service.hh"
 
-
 namespace Mikoto {
 
     class SceneManager final : public Singleton<SceneManager>, public IService {
@@ -44,6 +43,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetByName( std::string_view name ) -> Scene *;
 
     private:
+        // [Internal usage]
         auto RegisterNewScene(std::string_view name, Unique<Scene>&& scene ) -> Scene*;
 
     private:

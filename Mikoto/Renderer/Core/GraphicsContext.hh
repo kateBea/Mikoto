@@ -17,15 +17,23 @@
 #include <Renderer/Core/Light.hh>
 #include <Renderer/Core/Pipeline.hh>
 
+#include "GpuDevice.hh"
+
 namespace Mikoto {
     class PassCommandList;
 
     struct PassViewport {
-        UInt32 X{}, Y{}, Width{}, Height{};
+        float X{}, Y{}, Width{}, Height{};
     };
 
     struct PassScissor {
-        UInt32 X{}, Y{}, Width{}, Height{};
+        float X{}, Y{}, Width{}, Height{};
+    };
+
+    struct GfxRenderInfo {
+        Vec4F ClearColor{};
+        TextureHandle DepthRenderTarget{};
+        std::vector<TextureHandle> ColorRenderTargets{};
     };
 
     class GraphicsContext {
@@ -35,41 +43,30 @@ namespace Mikoto {
         virtual auto Init() -> void = 0;
         virtual auto Shutdown() -> void = 0;
 
-        virtual auto BeginRender() -> void = 0;
-        virtual auto EndRender() -> void = 0;
+        virtual auto BeginRender(GfxRenderInfo& info) -> void = 0;
+        virtual auto EndRender(GfxRenderInfo& info) -> void = 0;
 
         virtual auto BeginCompute() -> void = 0;
         virtual auto EndCompute() -> void = 0;
 
-        // Render state
-        virtual auto SetRenderTarget(TextureHandle texture) -> void = 0;
-        virtual auto SetRenderTarget(TextureHandle color, TextureHandle depth) -> void = 0;
-
-        virtual auto SetScissor(Int32 x, Int32 y, Int32 width, Int32 height) -> void = 0;
-        virtual auto SetViewport(Int32 x, Int32 y, Int32 width, Int32 height) -> void = 0;
-
-        virtual auto ClearColor(std::string_view resourceName, TextureHandle colorTarget, const Vec4F& color) -> void = 0;
-        virtual auto ClearColor(std::string_view resourceName,TextureHandle colorTarget, float r, float g, float b, float a) -> void = 0;
-        virtual auto ClearDepth(std::string_view resourceName,TextureHandle depthTarget, float depth) -> void = 0;
-
-        virtual auto BindPipeline(PipelineHandle pipeline) -> void = 0;
-
-        virtual auto CreateCommandList() -> PassCommandList* = 0;
-
-        virtual auto SubmitCommandList(PassCommandList* cmd) -> void = 0;
-
         virtual auto BindBuffer(BufferHandle texture) -> void = 0;
-
-        virtual auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void = 0;
-
-
-
 
         // Current confirmed API ============================================
         MKT_NODISCARD auto GetDevice() const -> GpuDevice* { return  m_Device; }
 
+        virtual auto SetCommandList(CommandListHandle cmd)-> void = 0;
+
+        virtual auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void = 0;
+
         virtual auto RegisterImage(TextureHandle texture) -> void = 0;
         virtual auto RegisterImage(TextureHandle texture, SamplerHandle sampler) -> void = 0;
+
+        virtual auto SetViewport(const PassViewport& vp) -> void = 0;
+        virtual auto SetScissor(const PassScissor& vp) -> void = 0;
+
+        virtual auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance) -> void = 0;
+
+        virtual auto BindPipeline(PipelineHandle pipeline) -> void = 0;
 
         MKT_NODISCARD static auto Create(GpuDevice* device) -> Unique<GraphicsContext>;
 
@@ -81,22 +78,18 @@ namespace Mikoto {
         GpuDevice* m_Device{ nullptr };
     };
 
+    class FrameGraph;
+
     class PassCommandList {
     public:
-
-        auto Begin() -> void;
-        auto End() -> void;
-
-        explicit PassCommandList(GraphicsContext* context);
+        explicit PassCommandList(GraphicsContext* context, FrameGraph* graph);
 
         auto BeginRender() -> void;
         auto EndRender() -> void;
 
-        auto SetColorRenderTarget(TextureHandle color) -> void;
         auto SetColorRenderTarget(std::string_view color) -> void;
 
-        auto SetDepthRenderTarget(TextureHandle color) -> void;
-        auto SetDepthRenderTarget(std::string_view color) -> void;
+        auto SetDepthRenderTarget(std::string_view depth) -> void;
 
         auto BeginCompute() -> void;
         auto EndCompute() -> void;
@@ -104,7 +97,7 @@ namespace Mikoto {
         auto SetViewport(Int32 x, Int32 y, Int32 width, Int32 height) -> void ;
         auto SetScissor(Int32 x, Int32 y, Int32 width, Int32 height) -> void;
 
-        auto BindPipeline(std::string_view pipelineName) -> void;
+        auto BindPipeline(std::string_view pipelineName) const -> void;
 
         // TODO
         auto BindVertexBuffer(BufferHandle vertices) -> void;
@@ -116,6 +109,8 @@ namespace Mikoto {
 
 
         // Current confirmed API ============================================
+        auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance) -> void;
+
         // These two will use the default sampler
         auto BindTexture(TextureHandle texture ) const -> void;
         auto BindTexture(std::string_view texture) const -> void;
@@ -123,6 +118,8 @@ namespace Mikoto {
         auto BindTexture(TextureHandle texture, SamplerHandle sampler ) const -> void;
 
         auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void;
+
+        auto SetClearColor(const Vec4F& color) -> void;
 
     private:
         struct DrawInstanceMetadata {
@@ -143,16 +140,10 @@ namespace Mikoto {
         };
 
     private:
+        FrameGraph* m_Graph{};
         GraphicsContext* m_Context{};
 
-        // Draw state
-        std::vector<SamplerHandle> m_BoundSamplers{};
-        std::vector<TextureHandle> m_BoundTextures{};
-
         std::vector<BufferHandle> m_BoundBuffers{};
-
-        TextureHandle m_DepthRenderTarget{};
-        std::vector<TextureHandle> m_ColorRenderTargets{};
 
         ankerl::unordered_dense::map<std::pair<Buffer*, Buffer*>, DrawInstanceMetadata>  MeshData{};
 
@@ -161,7 +152,9 @@ namespace Mikoto {
 
         // Pass state
         PassViewport m_Viewport{};
-        PassViewport m_Scissor{};
+        PassScissor m_Scissor{};
+
+        GfxRenderInfo m_RenderInfo{};
 
     };
 }

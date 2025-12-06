@@ -20,15 +20,13 @@ namespace Mikoto {
         InitGraphicsContex();
 
         InitCoreFramePasses();
-
-        InitPreviewer();
     }
 
     auto SceneRenderer::Shutdown() -> void {
         m_Camera = nullptr;
         m_Device = nullptr;
         m_Scene = nullptr;
-        m_RendererBackend = nullptr;
+        m_GraphicsContext = nullptr;
     }
 
 
@@ -39,18 +37,7 @@ namespace Mikoto {
     auto SceneRenderer::Render( double ) const -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
-
-        m_RendererBackend->SetCamera( m_Camera );
-
-        m_RendererBackend->BeginRender( cmd );
-
-        m_RendererBackend->SetViewport( 0, 0, m_ViewportWidth, m_ViewportHeight );
-        m_RendererBackend->DrawScene( m_Scene );
-
-        m_RendererBackend->EndRender();
-
-        m_Device->SubmitCommands( cmd );
+        m_FrameGraph->Execute();
     }
 
     auto SceneRenderer::SetViewport( const UInt32 width, const UInt32 height ) -> void {
@@ -63,52 +50,15 @@ namespace Mikoto {
         m_Camera = camera;
     }
 
-    auto SceneRenderer::GetFinalComposition() const -> TextureHandle {
-        TextureHandle handle{ TextureHandle::CreateEmpty() };
-        if ( m_RendererBackend ) {
-            handle = m_RendererBackend->GetFinalComposition();
-        }
-
-        return handle;
-    }
-
-    auto SceneRenderer::GetMaterialPreview() const -> TextureHandle {
-        TextureHandle handle{ TextureHandle::CreateEmpty() };
-        if ( m_RendererBackend ) {
-            handle = m_RendererBackend->GetMaterialPreview();
-        }
-
-        return handle;
-    }
-
-    auto SceneRenderer::GetMaterialPreviewer() const -> MaterialViewer* {
-        return m_MaterialViewer.get();
-    }
-
-    auto SceneRenderer::SetRenderResolution( RenderResolution resolution ) -> void {
-        m_RenderResolution = resolution;
-    }
-
-    auto SceneRenderer::GetRenderResolution() const -> RenderResolution {
-        return m_RenderResolution;
-    }
-
-    auto SceneRenderer::SetClearColor( float r, float g, float b, float a ) -> void {
-        m_RendererBackend->SetClearColor( r, g, b, a );
-    }
-    auto SceneRenderer::GetFontPassComposition() -> TextureHandle {
-        return m_RendererBackend->GetFontPassComposition();
+    auto SceneRenderer::GetGraph() -> FrameGraph & {
+        return *m_FrameGraph;
     }
 
     auto SceneRenderer::Create( const SceneRendererCreateInfo &createInfo ) -> Unique<SceneRenderer> {
         return CreateScope<SceneRenderer>( createInfo );
     }
-    auto SceneRenderer::InitPreviewer() -> void {
-        m_MaterialViewer = CreateScope<MaterialViewer>( m_RendererBackend  );
-    }
 
     auto SceneRenderer::InitGraphicsContex() -> void {
-        m_RendererBackend = RenderService::Get()->GetBackend();
         m_GraphicsContext = RenderService::Get()->GetGraphicsContext();
     }
 
@@ -123,37 +73,26 @@ namespace Mikoto {
 
 #if false
         // Create and configure shadow pass
-        ShadowPass* shadowPass{ m_Registry.Register<ShadowPass>() };
+        ShadowPass* shadowPass{ m_PassRegistry.Register<ShadowPass>() };
         shadowPass->Setup( builder );
 
         // Create and configure final composition
-        FinalCompositionPass* finalCompositionPass{ m_Registry.Register<FinalCompositionPass>() };
+        FinalCompositionPass* finalCompositionPass{ m_PassRegistry.Register<FinalCompositionPass>() };
         finalCompositionPass->Setup( builder );
 
         // Create and configure Text pass
-        TextPass* textPass{ m_Registry.Register<TextPass>() };
+        TextPass* textPass{ m_PassRegistry.Register<TextPass>() };
         textPass->Setup( builder );
 
         // Create and configure Compute
-        SimpleComputePass* simpleComputePass{ m_Registry.Register<SimpleComputePass>() };
+        SimpleComputePass* simpleComputePass{ m_PassRegistry.Register<SimpleComputePass>() };
         simpleComputePass->Setup( builder );
 
 #endif
 
-        // Go with these for now for debugging purposes
-
         // Create and configure Compute
-        HelloTrianglePass* helloTrianglePass{ m_Registry.Register<HelloTrianglePass>() };
+        HelloTrianglePass* helloTrianglePass{ m_PassRegistry.Register<HelloTrianglePass>() };
         helloTrianglePass->Setup( builder );
-
-        // Create and configure Compute
-        HelloCubePass* helloCubePass{ m_Registry.Register<HelloCubePass>() };
-        helloCubePass->Setup( builder );
-
-        // Register passes
-        for (auto& pass : m_Registry | std::ranges::views::values) {
-            m_FrameGraph->RegisterPass( pass.get() );
-        }
 
         m_FrameGraph->Compile( builder );
     }

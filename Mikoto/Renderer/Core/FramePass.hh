@@ -116,7 +116,6 @@ namespace Mikoto {
 
         auto Setup(FrameGraphBuilder& device) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
-
     };
 
     // Simple pass for testing purposes

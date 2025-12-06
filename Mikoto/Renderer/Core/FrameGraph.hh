@@ -20,37 +20,23 @@ namespace Mikoto {
     class FramePass;
     class GraphicsContext;
 
-    using ResourceHandle = Ref<IResource>;
-
-    enum class FrameResourceType { TEXTURE, BUFFER, PIPELINE, INVALID };
-
-    enum class RenderTargetType {
-        COLOR,
-        DEPTH,
-    };
+    enum class FrameResourceType { RENDER_TARGET, TEXTURE, BUFFER, PIPELINE, INVALID };
 
     struct PipelineDescription {
-        PipelineType Type{ };
+        ankerl::unordered_dense::map<ShaderStage, std::string> Shaders{};
+        std::variant<GraphicsPipelineDescription, ComputePipelineDescription> Description{};
 
-        // With std::variant
-        ComputePipelineDescription ComputeDesc{};
-        GraphicsPipelineDescription GraphicsDesc{};
+        // TODO: temporary, we specify the textures this pipeline will output to
+        std::string DepthRenderTargets{};
+        std::vector<std::string> ColorRenderTargets{};
 
-        std::vector<std::string> Shaders{};
-
-        auto AddShader(std::string_view path) -> void;
+        auto AddShader(std::string_view path, ShaderStage stage) -> void;
     };
 
     struct ResourceDescription {
         FrameResourceType Type{ FrameResourceType::INVALID };
 
         std::variant<BufferDescription, PipelineDescription, TextureDescription> ResourceDesc{};
-    };
-
-    struct FrameResource {
-        std::string Name{};
-        ResourceDescription Description{};
-        ResourceHandle Resource{ ResourceHandle::CreateEmpty() };
     };
 
     struct FrameNode {
@@ -69,18 +55,19 @@ namespace Mikoto {
         // Create Resources
         auto CreateNamedBuffer(std::string_view name, BufferDescription description) -> void;
         auto CreateNamedTexture(std::string_view name, TextureDescription description) -> void;
-        auto CreateNamedPipeline(std::string_view name, PipelineDescription description, PipelineType type) -> void;
-        auto CreateNamedRenderTarget(std::string_view name, TextureDescription description, RenderTargetType) -> void ;
+        auto CreateNamedPipeline(std::string_view name, PipelineDescription description) -> void;
+        auto CreateNamedRenderTarget(std::string_view name, TextureDescription description) -> void ;
 
     private:
+        friend class FrameGraph;
+
         struct NodeData {
             std::vector<std::string> Inputs{};
             std::vector<std::string> Outputs{};
         };
 
         ankerl::unordered_dense::map<FramePass*, NodeData> m_Nodes{};
-        ankerl::unordered_dense::map<std::string, FrameResource> m_Resources{};
-
+        ankerl::unordered_dense::map<std::string, ResourceDescription> m_Resources{};
     };
 
     class FrameGraph final {
@@ -88,23 +75,30 @@ namespace Mikoto {
 
         explicit FrameGraph( GraphicsContext& Context );
 
-        auto RegisterPass(FramePass* pass) -> void;
-
         auto Compile(FrameGraphBuilder& backend) -> void;
-        auto Execute(GraphicsContext& backend) -> void;
+        auto Execute() -> void;
+
+        MKT_NODISCARD auto GetNamedTexture(std::string_view name) -> TextureHandle;
+        MKT_NODISCARD auto GetNamedPipeline(std::string_view name) -> PipelineHandle;
 
         MKT_NODISCARD static auto Create(GraphicsContext * context ) -> Unique<FrameGraph>;
 
-
     private:
-        auto RegisterResource(FrameResource resource) -> void;
+        auto RegisterTexture(std::string_view name, TextureDescription description) -> void;
+        auto RegisterPipeline(std::string_view name, PipelineDescription description) -> void;
+        auto RegisterRenderTarget(std::string_view name, TextureDescription description) -> void;
+        auto RegisterBuffer(std::string_view name, BufferDescription description) -> void;
+
+
+        auto RegisterResource(std::string_view name, ResourceDescription resource) -> void;
+
+        GraphicsContext* m_GraphicsContex{};
 
         std::vector<FrameNode> m_Nodes{};
 
-        // Maybe it goes to the context after we build the graph this is not needed here
-        ankerl::unordered_dense::map<std::string, FrameResource> m_Resources{};
-
-        GraphicsContext* m_GraphicsContex{};
+        ankerl::unordered_dense::map<std::string, TextureHandle> m_TexturesByNames{};
+        ankerl::unordered_dense::map<std::string, PipelineHandle> m_PipelinesByNames{};
+        ankerl::unordered_dense::map<std::string, BufferHandle> m_BuffersByNames{};
 
         bool m_Compiled{ false };
     };

@@ -56,9 +56,6 @@ namespace Mikoto {
         m_ShaderLibrary->Shutdown();
         m_ShaderLibrary.reset();
 
-        m_RenderBackend->Shutdown();
-        m_RenderBackend.reset();
-
         m_GraphicsContext->Shutdown();
         m_GraphicsContext.reset();
 
@@ -116,16 +113,11 @@ namespace Mikoto {
 
         switch ( m_ActiveAPI ) {
             case GraphicsAPI::VULKAN_API:
-                m_RenderBackend = CreateScope<VulkanRenderer>( GetGpuDevice(), "Vulkan Renderer" );
                 m_GraphicsContext = GraphicsContext::Create( m_Context->GetGpuDevice() );
                 break;
             default:
                 MKT_CORE_LOGGER_CRITICAL( "RenderService::CreateRendererBackend - Error Unsupported renderer API!" );
                 break;
-        }
-
-        if ( m_RenderBackend ) {
-            m_RenderBackend->Init();
         }
 
         if (m_GraphicsContext) {

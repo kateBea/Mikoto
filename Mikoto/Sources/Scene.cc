@@ -104,26 +104,6 @@ namespace Mikoto {
         } );
     }
 
-    auto Scene::AttachRigidBody( Entity* entity ) const -> void {
-        if ( entity == nullptr ) {
-            return;
-        }
-
-        if ( !entity->HasComponent<RigidBodyComponent>() ) {
-            entity->AddComponent<RigidBodyComponent>();
-        }
-
-        m_PhysicsWorld->OnRigidBodyAdded( *entity );
-    }
-
-    auto Scene::DetachRigidBody( Entity* entity ) const -> void {
-        if ( entity == nullptr || entity->HasComponent<RigidBodyComponent>() ) {
-            return;
-        }
-
-        m_PhysicsWorld->OnRigidBodyRemoved( *entity );
-    }
-
     auto Scene::SetState( const SceneState state ) -> void {
         m_SceneState = state;
     }

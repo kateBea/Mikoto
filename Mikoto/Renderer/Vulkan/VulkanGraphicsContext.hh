@@ -47,32 +47,19 @@ namespace Mikoto {
     private:
         // Information I store for each pass
         struct FramePassInfo {
-            std::string Name{};
-
-            PipelineHandle Pipeline{};
-
-            TextureHandle DepthRenderTarget{};
-            std::vector<TextureHandle> ColorRenderTargets{};
-
             // Set index -> Descriptor Set handle
             ankerl::unordered_dense::map<UInt32, VkDescriptorSet> DescriptorSets{};
 
             ankerl::unordered_dense::map<std::pair<UInt32, UInt32>, BufferHandle> BoundBuffers{};
             ankerl::unordered_dense::map<std::pair<UInt32, UInt32>, TextureHandle>  BoundTextures{};
-
-            // Meshes are submitted as index
-            // buffer and its vertices
-
-            // We will issue as many draws as we need for each pair
-            ankerl::unordered_dense::map<std::pair<Buffer*, Buffer*>, UInt32>  MeshData{};
         };
 
-        // TODO: Bfore we start rendering passes
+        // TODO: Before we start rendering passes
         // Descriptors are bound to a buffer so if we want to share descriptors they must be of same cmd buffer
         CommandListHandle m_CmdList{};
     private:
-        ankerl::unordered_dense::map<std::pair<Texture*, Sampler*>, UInt32> m_CombinedSamplerIndices{};
         ankerl::unordered_dense::map<FramePass*, FramePassInfo> m_PassInfo{};
+        ankerl::unordered_dense::map<std::pair<Texture*, Sampler*>, UInt32> m_CombinedSamplerIndices{};
     };
 }
 

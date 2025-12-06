@@ -86,9 +86,6 @@ namespace Mikoto {
         MKT_NODISCARD auto GetContext() -> RenderContext* { return m_Context.get(); }
         MKT_NODISCARD auto GetContext() const -> const RenderContext* { return m_Context.get(); }
 
-        MKT_NODISCARD auto GetBackend() -> RendererBackend* { return m_RenderBackend.get(); }
-        MKT_NODISCARD auto GetBackend() const -> const RendererBackend* { return m_RenderBackend.get(); }
-
         MKT_NODISCARD auto GetGraphicsContext() -> GraphicsContext* { return m_GraphicsContext.get(); }
         MKT_NODISCARD auto GetGraphicsContext() const -> const GraphicsContext* { return m_GraphicsContext.get(); }
 
@@ -109,7 +106,6 @@ namespace Mikoto {
         RenderServiceCreateInfo m_Options{};
 
         Unique<RenderContext> m_Context{};
-        Unique<RendererBackend> m_RenderBackend{};
         Unique<GraphicsContext> m_GraphicsContext{};
         Unique<ShaderLibrary> m_ShaderLibrary{};
 

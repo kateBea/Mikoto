@@ -2,8 +2,8 @@
 // Created by kate on 11/25/25.
 //
 
-#ifndef MIKOTO_VULKANGRAPHICSCONTEXT_HH
-#define MIKOTO_VULKANGRAPHICSCONTEXT_HH
+#ifndef MIKOTO_VULKAN_GRAPHIC_CONTEXT_HH
+#define MIKOTO_VULKAN_GRAPHIC_CONTEXT_HH
 
 #include <utility>
 #include <ankerl/unordered_dense.h>
@@ -22,28 +22,28 @@ namespace Mikoto {
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
-        auto BeginRender() -> void override;
-        auto EndRender() -> void override;
+
+        auto BeginRender(GfxRenderInfo& beginInfo) -> void override;
+        auto EndRender(GfxRenderInfo& info) -> void override;
+
         auto BeginCompute() -> void override;
         auto EndCompute() -> void override;
-        auto SetRenderTarget( TextureHandle texture ) -> void override;
-        auto SetRenderTarget( TextureHandle color, TextureHandle depth ) -> void override;
-        auto SetScissor( Int32 x, Int32 y, Int32 width, Int32 height ) -> void override;
-        auto SetViewport( Int32 x, Int32 y, Int32 width, Int32 height ) -> void override;
-        auto ClearColor( std::string_view resourceName, TextureHandle colorTarget, const Vec4F &color ) -> void override;
-        auto ClearColor( std::string_view resourceName, TextureHandle colorTarget, float r, float g, float b, float a ) -> void override;
-        auto ClearDepth( std::string_view resourceName, TextureHandle depthTarget, float depth ) -> void override;
+
+        auto SetCommandList(CommandListHandle cmd)-> void  override;
+
         auto BindPipeline( PipelineHandle pipeline ) -> void override;
         auto BindBuffer( BufferHandle texture ) -> void override;
+
         auto Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void override;
+        auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance) -> void  override;
+
+        auto SetViewport(const PassViewport& vp) -> void  override;
+        auto SetScissor(const PassScissor& vp) -> void  override;
 
         auto RegisterImage( TextureHandle texture ) -> void override;
         auto RegisterImage( TextureHandle texture, SamplerHandle sampler ) -> void override;
 
         ~VulkanGraphicsContext() override = default;
-        auto CreateCommandList() -> PassCommandList * override;
-        auto SubmitCommandList( PassCommandList *cmd ) -> void override;
-
     private:
         // Information I store for each pass
         struct FramePassInfo {
@@ -67,6 +67,9 @@ namespace Mikoto {
             ankerl::unordered_dense::map<std::pair<Buffer*, Buffer*>, UInt32>  MeshData{};
         };
 
+        // TODO: Bfore we start rendering passes
+        // Descriptors are bound to a buffer so if we want to share descriptors they must be of same cmd buffer
+        CommandListHandle m_CmdList{};
     private:
         ankerl::unordered_dense::map<std::pair<Texture*, Sampler*>, UInt32> m_CombinedSamplerIndices{};
         ankerl::unordered_dense::map<FramePass*, FramePassInfo> m_PassInfo{};
@@ -74,4 +77,4 @@ namespace Mikoto {
 }
 
 
-#endif//MIKOTO_VULKANGRAPHICSCONTEXT_HH
+#endif//MIKOTO_VULKAN_GRAPHIC_CONTEXT_HH

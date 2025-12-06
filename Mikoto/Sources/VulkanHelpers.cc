@@ -264,6 +264,15 @@ namespace Mikoto::VulkanHelpers {
         }
     }
 
+    auto FromVkStage( VkShaderStageFlagBits stage ) -> ShaderStage {
+        switch ( stage ) {
+            case VK_SHADER_STAGE_VERTEX_BIT: return ShaderStage::VERTEX_STAGE;
+            case VK_SHADER_STAGE_COMPUTE_BIT: return ShaderStage::COMPUTE_STAGE;
+            case VK_SHADER_STAGE_FRAGMENT_BIT: return ShaderStage::FRAGMENT_STAGE;
+            default: return ShaderStage::STAGE_UNKNOWN;
+        }
+    }
+
     auto ToVkFormat( const TextureFormat format ) -> VkFormat {
         switch ( format ) {
             case TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM:

@@ -126,7 +126,7 @@ namespace Mikoto {
         DepthCompareOp DepthCompareOperation{ DepthCompareOp::GREATER_OR_EQUAL };
 
         // TODO: review, this is only required because the 
-        // pipeline writes to a texture with a specific format
+        // pipeline writes to a texture with a specific format in Vulkan
         TextureHandle DepthTexture{  };
         std::vector<TextureHandle> ColorAttachments{};
 

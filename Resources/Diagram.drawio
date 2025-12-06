@@ -1,0 +1,25 @@
+<mxfile host="drawio-plugin" modified="2025-12-05T02:45:45.717Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" version="22.1.22" etag="aio2rKI5-DTm01YATmFq" type="embed">
+  <diagram id="HUINtt48khoz1jlOz7N1" name="Page-1">
+    <mxGraphModel dx="1637" dy="711" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="3" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="170" y="590" width="1230" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="4" value="&lt;font style=&quot;font-size: 29px;&quot;&gt;&lt;b&gt;CORE&lt;/b&gt;&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="170" y="590" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6" value="Math" style="html=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="200" y="670" width="110" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="7" value="STL" style="html=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="200" y="760" width="110" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="8" value="Logging/Asserts" style="html=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="200" y="850" width="110" height="50" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

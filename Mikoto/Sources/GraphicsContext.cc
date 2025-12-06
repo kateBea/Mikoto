@@ -2,14 +2,14 @@
 // Created by kate on 11/25/25.
 //
 
+#include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Vulkan/VulkanGraphicsContext.hh>
 
 namespace Mikoto {
-    auto PipelineDescription::AddShader( std::string_view path ) -> void {
-        Shaders.emplace_back( path );
+    auto PipelineDescription::AddShader( std::string_view path, ShaderStage stage ) -> void {
+        Shaders[stage] = path;
     }
-
 
     // Should probably be created by the render service instead
     auto GraphicsContext::Create( GpuDevice* device ) -> Unique<GraphicsContext> {
@@ -26,26 +26,35 @@ namespace Mikoto {
 
         return result;
     }
-    auto PassCommandList::Begin() -> void {
-    }
-    auto PassCommandList::End() -> void {
-    }
 
-    PassCommandList::PassCommandList( GraphicsContext *context )
-        : m_Context{ context }
+    PassCommandList::PassCommandList( GraphicsContext *context, FrameGraph* graph )
+        : m_Context{ context }, m_Graph{ graph }
     {}
 
     auto PassCommandList::BeginRender() -> void {
+        MKT_ASSERT( m_Context, "No valid context for this pass command list" );
+
+        m_Context->BeginRender( m_RenderInfo );
     }
+
     auto PassCommandList::EndRender() -> void {
+        MKT_ASSERT( m_Context, "No valid context for this pass command list" );
+
+        m_Context->EndRender( m_RenderInfo );
     }
-    auto PassCommandList::SetColorRenderTarget( TextureHandle color ) -> void {
-    }
+
     auto PassCommandList::SetColorRenderTarget( std::string_view color ) -> void {
+        TextureHandle colorHandle{ m_Graph->GetNamedTexture(color) };
+        MKT_ASSERT( !colorHandle.IsEmpty(), "PassCommandList::SetColorRenderTarget - Color render target must not be empty" );
+
+        m_RenderInfo.ColorRenderTargets.emplace_back( colorHandle );
     }
-    auto PassCommandList::SetDepthRenderTarget( TextureHandle color ) -> void {
-    }
-    auto PassCommandList::SetDepthRenderTarget( std::string_view color ) -> void {
+
+    auto PassCommandList::SetDepthRenderTarget( std::string_view depth ) -> void {
+        TextureHandle depthTexture{ m_Graph->GetNamedTexture(depth) };
+        MKT_ASSERT( !depthTexture.IsEmpty(), "PassCommandList::SetDepthRenderTarget - Depth render target must not be empty" );
+
+        m_RenderInfo.DepthRenderTarget = depthTexture;
     }
 
     auto PassCommandList::BindTexture( TextureHandle texture ) const -> void {
@@ -79,27 +88,46 @@ namespace Mikoto {
     auto PassCommandList::BindBuffer( std::string_view buffer, UInt32 set, UInt32 index ) -> void {
     }
 
+    auto PassCommandList::Draw( UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance ) -> void {
+        MKT_ASSERT( m_Context, "No valid context for this pass command list" );
+
+        m_Context->Draw(vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
     auto PassCommandList::BeginCompute() -> void {
     }
     auto PassCommandList::EndCompute() -> void {
     }
 
     auto PassCommandList::SetViewport( Int32 x, Int32 y, Int32 width, Int32 height ) -> void {
+        MKT_ASSERT( m_Context, "No valid context for this pass command list" );
+
         m_Viewport.X = x;
         m_Viewport.Y = y;
         m_Viewport.Width = width;
         m_Viewport.Height = height;
+
+        m_Context->SetViewport( m_Viewport );
     }
 
     auto PassCommandList::SetScissor( Int32 x, Int32 y, Int32 width, Int32 height ) -> void {
+        MKT_ASSERT( m_Context, "No valid context for this pass command list" );
+
         m_Scissor.X = x;
         m_Scissor.Y = y;
         m_Scissor.Width = width;
         m_Scissor.Height = height;
+
+        m_Context->SetScissor( m_Scissor );
     }
 
-    auto PassCommandList::BindPipeline( std::string_view pipelineName ) -> void {
+    auto PassCommandList::BindPipeline( std::string_view pipelineName ) const -> void {
+        PipelineHandle piepline{ m_Graph->GetNamedPipeline(pipelineName) };
+        MKT_ASSERT( !piepline.IsEmpty(), "PassCommandList::SetDepthRenderTarget - PipelineHandle must not be empty" );
+
+        m_Context->BindPipeline( piepline );
     }
+
     auto PassCommandList::BindVertexBuffer( BufferHandle vertices ) -> void {
     }
     auto PassCommandList::BindIndexBuffer( BufferHandle indices ) -> void {
@@ -108,6 +136,11 @@ namespace Mikoto {
     }
     auto PassCommandList::Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void {
     }
+
+    auto PassCommandList::SetClearColor( const Vec4F &color ) -> void {
+        m_RenderInfo.ClearColor = color;
+    }
+
     auto PassCommandList::BindBuffer( BufferHandle texture, UInt32 set, UInt32 index ) -> void {
     }
 

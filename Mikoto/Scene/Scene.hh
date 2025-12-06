@@ -81,11 +81,8 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetEntities() const -> const ankerl::unordered_dense::map<Size, Unique<Entity>>& { return m_Entities; }
 
-        auto AttachRigidBody(Entity* entity ) const -> void;
-        auto DetachRigidBody(Entity* entity ) const -> void;
-
         auto GetRegistry() -> entt::registry&;
-        auto GetRegistry() const -> const entt::registry&;
+        MKT_NODISCARD auto GetRegistry() const -> const entt::registry&;
 
         auto Clear() -> void;
 
@@ -97,10 +94,10 @@ namespace Mikoto {
         struct EntityCommand {
             enum class Type {
                 CREATE, DESTROY
-            } Type;
+            } Type{ Type::CREATE };
 
             EntityCreateInfo CreateInfo{};  // only for CREATE
-            UInt64 EntityID{ 0 };          // only for DESTROY
+            UInt64 EntityID{ 0 };           // only for DESTROY
         };
 
         auto ProcessPendingCommands() -> void;
@@ -113,6 +110,7 @@ namespace Mikoto {
 
         auto OnRigidBodyAdded(entt::registry& reg, entt::entity e ) const -> void;
         auto OnRigidBodyRemoved(entt::registry& reg, entt::entity e ) const -> void;
+
     private:
         auto AddSingleEntityWithRoot(Entity * root, ModelHandle model, Int32 index ) -> void;
 

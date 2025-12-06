@@ -334,6 +334,10 @@ namespace Mikoto {
     }
 
     auto ImGuiVulkanBackend::ConstructImGuiTextureID( const Texture* texture ) -> ImTextureID {
+        if (texture == nullptr) {
+            return 0;
+        }
+
         ImTextureID result{};
 
          if ( dynamic_cast<const VulkanTexture*>( texture )->GetCurrentLayout() != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ) {

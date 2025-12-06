@@ -66,9 +66,8 @@ namespace Mikoto {
         CreatePanels();
 
         // Add passes for panel preview visualizer
-        m_EditorState->PassesCompositions.try_emplace( "FinalComposition_Pass", m_EditorState->FinalComposition );
-        m_EditorState->PassesCompositions.try_emplace( "BasicTexture_Pass", m_EditorState->PreviewMaterial );
-        m_EditorState->PassesCompositions.try_emplace( "FontRenderPass", m_SceneRenderer->GetFontPassComposition() );
+        FrameGraph& graph{ m_SceneRenderer->GetGraph() };
+        m_EditorState->PassesCompositions.try_emplace( "TrianglePass", graph.GetNamedTexture( "HelloTrianglePass_ColorTarget" ) );
     }
 
     auto EditorLayer::SetupRenderer() -> void {
@@ -87,14 +86,14 @@ namespace Mikoto {
         m_EditorState = CreateScope<EditorState>();
 
         m_EditorState->EditorCamera = m_EditorCamera.get();
-        m_EditorState->FinalComposition = m_SceneRenderer->GetFinalComposition();
-        m_EditorState->PreviewMaterial = m_SceneRenderer->GetMaterialPreview();
 
         m_EditorState->ActiveEditorScene = m_ActiveScene;
 
+        FrameGraph& graph{ m_SceneRenderer->GetGraph() };
+        m_EditorState->FinalComposition = graph.GetNamedTexture( "HelloTrianglePass_ColorTarget" );
+
         m_EditorState->SelectedEntity = m_ActiveScene->FindFirstByName( "Ground" );
 
-        m_EditorState->MaterialVisualizer = m_SceneRenderer->GetMaterialPreviewer();
     }
 
     auto EditorLayer::SetupPresentTarget(Event& event) -> void {
@@ -195,21 +194,21 @@ namespace Mikoto {
 
     auto EditorLayer::SetRendererResolution() const -> void {
         if ( ImGui::BeginMenu( "Resolution" ) ) {
-            if ( ImGui::MenuItem( "HD - 720p", nullptr, m_SceneRenderer->GetRenderResolution() == RenderResolution::RESOLUTION_HD ) ) {
-                m_SceneRenderer->SetRenderResolution( RenderResolution::RESOLUTION_HD );
-            }
-
-            if ( ImGui::MenuItem( "FHD - 1080p", nullptr, m_SceneRenderer->GetRenderResolution() == RenderResolution::RESOLUTION_FHD ) ) {
-                m_SceneRenderer->SetRenderResolution( RenderResolution::RESOLUTION_FHD );
-            }
-
-            if ( ImGui::MenuItem( "QHD - 1440p", nullptr, m_SceneRenderer->GetRenderResolution() == RenderResolution::RESOLUTION_QHD ) ) {
-                m_SceneRenderer->SetRenderResolution( RenderResolution::RESOLUTION_QHD );
-            }
-
-            if ( ImGui::MenuItem( "UHD - 2160p", nullptr, m_SceneRenderer->GetRenderResolution() == RenderResolution::RESOLUTION_UHD ) ) {
-                m_SceneRenderer->SetRenderResolution( RenderResolution::RESOLUTION_UHD );
-            }
+            // if ( ImGui::MenuItem( "HD - 720p", nullptr, m_SceneRenderer->GetRenderResolution() == RenderResolution::RESOLUTION_HD ) ) {
+            //     m_SceneRenderer->SetRenderResolution( RenderResolution::RESOLUTION_HD );
+            // }
+            //
+            // if ( ImGui::MenuItem( "FHD - 1080p", nullptr, m_SceneRenderer->GetRenderResolution() == RenderResolution::RESOLUTION_FHD ) ) {
+            //     m_SceneRenderer->SetRenderResolution( RenderResolution::RESOLUTION_FHD );
+            // }
+            //
+            // if ( ImGui::MenuItem( "QHD - 1440p", nullptr, m_SceneRenderer->GetRenderResolution() == RenderResolution::RESOLUTION_QHD ) ) {
+            //     m_SceneRenderer->SetRenderResolution( RenderResolution::RESOLUTION_QHD );
+            // }
+            //
+            // if ( ImGui::MenuItem( "UHD - 2160p", nullptr, m_SceneRenderer->GetRenderResolution() == RenderResolution::RESOLUTION_UHD ) ) {
+            //     m_SceneRenderer->SetRenderResolution( RenderResolution::RESOLUTION_UHD );
+            // }
 
             ImGui::EndMenu();
         }
@@ -641,7 +640,6 @@ namespace Mikoto {
         
          // Setup renderer
          const Vec4F& color{ settingsPanel.GetData().ClearColor };
-         m_SceneRenderer->SetClearColor( color.r, color.g, color.b, color.a );
 
          m_SceneRenderer->SetScene( m_ActiveScene );
          m_SceneRenderer->SetCamera( m_EditorCamera.get() );

@@ -472,14 +472,6 @@ namespace Mikoto {
 
         texture->Initialize( this );
 
-        // we use VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL for images to be sampled
-        // we do not want to add to the descriptor depth images as we
-        if ( texture->GetTextureUsage() != TextureUsage::TEXTURE_USAGE_DEPTH ) {
-            // We update the set later it might be in use
-            const auto renderer{ dynamic_cast<VulkanRenderer*>( RenderService::Get()->GetBackend() ) };
-            renderer->RegisterTextureForRender( texture );
-        }
-
         return texture;
     }
 

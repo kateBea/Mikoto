@@ -73,7 +73,17 @@ namespace Mikoto {
 
         // Register for each pass the shader resources
         for (auto& [framePass, nodeData] : builder.m_Nodes) {
-            //m_GraphicsContex.RegisterShaderResources();
+            // This registers the pass and creates its resources which includes the descriptor sets
+            //m_GraphicsContex.RegisterPass();
+
+            // Now we iterate the resources it needs resolve them from the frame graph and update the corresponding binding in the set
+            for (auto& [groupIndex, shaderResource] : nodeData.ShaderResources) {
+                // Find the resource
+                //ResourceHandle handle{ this->GetNamedResource(shaderResource.Name) };
+
+                // Register the resource
+                //m_GraphicsContex.PushShaderResource(framePass, groupIndex, shaderResource.GroupBinding, shaderResource.Visibility);
+            }
         }
 
         // TODO: Sort passes according to dependencies

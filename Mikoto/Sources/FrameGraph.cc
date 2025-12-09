@@ -42,6 +42,14 @@ namespace Mikoto {
         m_Resources[std::string{ name }].ResourceDesc = description;
     }
 
+    auto FrameGraphBuilder::RegisterShaderResource( FramePass* pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceVisibility visibility ) -> void {
+        m_Nodes[pass].ShaderResources[groupIndex] = ShaderResourceInfo{
+            .Name{ name },
+            .GroupBinding{ groupBinding },
+            .Visibility{ visibility }
+        };
+    }
+
     FrameGraph::FrameGraph( GraphicsContext &context )
         : m_GraphicsContex{ std::addressof( context )}
     {
@@ -62,6 +70,12 @@ namespace Mikoto {
                 RegisterResource( resourceName, resourceDescription );
             }
         }
+
+        // Register for each pass the shader resources
+        for (auto& [framePass, nodeData] : builder.m_Nodes) {
+            //m_GraphicsContex.RegisterShaderResources();
+        }
+
         // TODO: Sort passes according to dependencies
         // Prepare input and outputs
         for (auto& [node, data] : builder.m_Nodes) {

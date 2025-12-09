@@ -46,6 +46,13 @@ namespace Mikoto {
         std::vector<std::string> Outputs{};
     };
 
+    enum ShaderResourceVisibility {
+        MKT_SHADER_RESOURCE_VISIBILITY_VERTEX,
+        MKT_SHADER_RESOURCE_VISIBILITY_PIXEL,
+        MKT_SHADER_RESOURCE_VISIBILITY_COMPUTE,
+        MKT_SHADER_RESOURCE_VISIBILITY_UNDEFINED,
+    };
+
     class FrameGraphBuilder {
     public:
 
@@ -58,12 +65,23 @@ namespace Mikoto {
         auto CreateNamedPipeline(std::string_view name, PipelineDescription description) -> void;
         auto CreateNamedRenderTarget(std::string_view name, TextureDescription description) -> void ;
 
+        auto RegisterShaderResource(FramePass* pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceVisibility visibility) -> void;
+
     private:
         friend class FrameGraph;
+
+        struct ShaderResourceInfo {
+            std::string Name{};
+            UInt32 GroupBinding{};
+            ShaderResourceVisibility Visibility{ MKT_SHADER_RESOURCE_VISIBILITY_UNDEFINED };
+        };
 
         struct NodeData {
             std::vector<std::string> Inputs{};
             std::vector<std::string> Outputs{};
+
+            // Group index -> (ShaderResourceInfo)
+            ankerl::unordered_dense::map<UInt32, ShaderResourceInfo> ShaderResources{};
         };
 
         ankerl::unordered_dense::map<FramePass*, NodeData> m_Nodes{};

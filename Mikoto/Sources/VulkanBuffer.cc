@@ -92,6 +92,12 @@ namespace Mikoto {
         if ( m_Usage == BufferUsage::BUFFER_USAGE_UNIFORM ) {
             m_BufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
             m_AllocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+            // When description has specified size and element count we need to apply alignment if needed for this GPU buffer
+            // We allocate space for a buffer large enough to contain ElementCount objects of ElementSize size (in bytes)
+            if (createInfo.ElementSize != 0 && createInfo.ElementCount != 0) {
+
+            }
         }
 
         // Vertex buffers

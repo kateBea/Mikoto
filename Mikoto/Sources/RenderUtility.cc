@@ -116,6 +116,12 @@ namespace Mikoto {
         return 0;
     }
 
+    auto BufferDescription::ForElement( const Size size, const Size count ) -> BufferDescription& {
+        this->ElementSize = size;
+        this->ElementCount = count;
+        return *this;
+    }
+
     auto BufferDescription::WithSizeBytes( Size size ) -> BufferDescription& {
         SizeBytes = size;
         return *this;

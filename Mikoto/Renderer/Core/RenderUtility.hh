@@ -163,10 +163,14 @@ namespace Mikoto {
         Size SizeBytes{};
         Byte* Data{ nullptr };
 
+        Size ElementCount{};
+        Size ElementSize{};
+
         BufferUsage Usage{ BufferUsage::BUFFER_USAGE_VERTEX };
         BufferDataType Type{ BufferDataType::BUFFER_DATA_TYPE_UNKNOWN };
         ResourceUsageType UsageType{ ResourceUsageType::RESOURCE_USAGE_STATIC };
 
+        auto ForElement( Size size, Size count ) -> BufferDescription&;
         auto WithSizeBytes( Size size ) -> BufferDescription&;
         auto WithData( Byte* data ) -> BufferDescription&;
         auto WithUsage( BufferUsage usage ) -> BufferDescription&;

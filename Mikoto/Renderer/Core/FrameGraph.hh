@@ -53,19 +53,33 @@ namespace Mikoto {
         MKT_SHADER_RESOURCE_VISIBILITY_UNDEFINED,
     };
 
+    enum class ShaderResourceType {
+        SHADER_STORAGE_BUFFER,
+        SHADER_RESOURCE_UNIFORM_BUFFER,
+        SHADER_RESOURCE_COMBINED_IMAGE_SAMPLER,
+        SHADER_RESOURCE_UNDEFINED,
+    };
+
     class FrameGraphBuilder {
     public:
 
         auto RegisterInput(FramePass* node, std::string_view name) -> void;
-        auto RegisterOutput(FramePass* node, std::string_view name) -> void;
+
+        // Declare Writes
+        auto WriteTexture(FramePass* node, std::string_view name) -> void;
+        auto WriteBuffer(FramePass* node, std::string_view name) -> void;
+
+        // Declare Reads
+        auto ReadTexture(FramePass* node, std::string_view name) -> void;
+        auto ReadBuffer(FramePass* node, std::string_view name) -> void;
 
         // Create Resources
         auto CreateNamedBuffer(std::string_view name, BufferDescription description) -> void;
         auto CreateNamedTexture(std::string_view name, TextureDescription description) -> void;
-        auto CreateNamedPipeline(std::string_view name, PipelineDescription description) -> void;
+        auto CreateNamedPipeline(FramePass* node, std::string_view name, PipelineDescription description) -> void;
         auto CreateNamedRenderTarget(std::string_view name, TextureDescription description) -> void ;
 
-        auto RegisterShaderResource(FramePass* pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceVisibility visibility) -> void;
+        auto RegisterShaderResource(FramePass* pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType type, ShaderResourceVisibility visibility) -> void;
 
     private:
         friend class FrameGraph;
@@ -73,12 +87,21 @@ namespace Mikoto {
         struct ShaderResourceInfo {
             std::string Name{};
             UInt32 GroupBinding{};
+            ShaderResourceType ResourceType{ ShaderResourceType::SHADER_RESOURCE_UNDEFINED };
             ShaderResourceVisibility Visibility{ MKT_SHADER_RESOURCE_VISIBILITY_UNDEFINED };
         };
 
         struct NodeData {
+            PipelineHandle Pipeline{};
+
             std::vector<std::string> Inputs{};
             std::vector<std::string> Outputs{};
+
+            std::vector<std::string> ReadBuffers{};
+            std::vector<std::string> WriteBuffers{};
+
+            std::vector<std::string> ReadTextures{};
+            std::vector<std::string> WriteTextures{};
 
             // Group index -> (ShaderResourceInfo)
             ankerl::unordered_dense::map<UInt32, ShaderResourceInfo> ShaderResources{};
@@ -96,6 +119,7 @@ namespace Mikoto {
         auto Compile(FrameGraphBuilder& backend) -> void;
         auto Execute() -> void;
 
+        MKT_NODISCARD auto GetNamedBuffer(std::string_view name ) -> BufferHandle;
         MKT_NODISCARD auto GetNamedTexture(std::string_view name) -> TextureHandle;
         MKT_NODISCARD auto GetNamedPipeline(std::string_view name) -> PipelineHandle;
 

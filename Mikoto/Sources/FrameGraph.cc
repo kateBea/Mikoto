@@ -17,8 +17,20 @@ namespace Mikoto {
         m_Nodes[node].Inputs.emplace_back( name );
     }
 
-    auto FrameGraphBuilder::RegisterOutput( FramePass *node, std::string_view name ) -> void {
+    auto FrameGraphBuilder::WriteTexture( FramePass *node, std::string_view name ) -> void {
         m_Nodes[node].Outputs.emplace_back( name );
+    }
+
+    auto FrameGraphBuilder::WriteBuffer( FramePass *node, std::string_view name ) -> void {
+
+    }
+
+    auto FrameGraphBuilder::ReadTexture( FramePass *node, std::string_view name ) -> void {
+
+    }
+
+    auto FrameGraphBuilder::ReadBuffer( FramePass *node, std::string_view name ) -> void {
+
     }
 
     auto FrameGraphBuilder::CreateNamedBuffer( std::string_view name, BufferDescription description ) -> void {
@@ -32,9 +44,15 @@ namespace Mikoto {
         m_Resources[std::string{ name }].ResourceDesc = description;
     }
 
-    auto FrameGraphBuilder::CreateNamedPipeline( std::string_view name, PipelineDescription description) -> void {
+    auto FrameGraphBuilder::RegisterPipeline( std::string_view name, PipelineDescription description) -> void {
         m_Resources[std::string{ name }].Type = FrameResourceType::PIPELINE;
         m_Resources[std::string{ name }].ResourceDesc = description;
+    }
+
+    auto FrameGraphBuilder::CreateNamedPipeline( FramePass *node, std::string_view name, PipelineDescription description ) -> void {
+        m_Resources[std::string{ name }].Type = FrameResourceType::PIPELINE;
+        m_Resources[std::string{ name }].ResourceDesc = description;
+
     }
 
     auto FrameGraphBuilder::CreateNamedRenderTarget( std::string_view name, TextureDescription description ) -> void {
@@ -42,10 +60,11 @@ namespace Mikoto {
         m_Resources[std::string{ name }].ResourceDesc = description;
     }
 
-    auto FrameGraphBuilder::RegisterShaderResource( FramePass* pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceVisibility visibility ) -> void {
+    auto FrameGraphBuilder::RegisterShaderResource( FramePass* pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType type, ShaderResourceVisibility visibility ) -> void {
         m_Nodes[pass].ShaderResources[groupIndex] = ShaderResourceInfo{
             .Name{ name },
             .GroupBinding{ groupBinding },
+            .ResourceType{ type },
             .Visibility{ visibility }
         };
     }
@@ -65,24 +84,42 @@ namespace Mikoto {
             }
         }
 
+        // Register for each pass the shader resources
         for (auto& [resourceName, resourceDescription] : builder.m_Resources) {
             if (resourceDescription.Type == FrameResourceType::PIPELINE) {
+                // Pass can only have one pipeline
                 RegisterResource( resourceName, resourceDescription );
             }
         }
 
-        // Register for each pass the shader resources
         for (auto& [framePass, nodeData] : builder.m_Nodes) {
+            PipelineHandle passPipeline{};
+            for (auto& resourceName : builder.m_Nodes) {
+                if (!passPipeline.IsEmpty()) {
+                    // Pass can only have one pipeline
+                    break;
+                }
+            }
+
+            MKT_ASSERT( !passPipeline.IsEmpty(), "There must be a valid pipeline" );
+
             // This registers the pass and creates its resources which includes the descriptor sets
-            //m_GraphicsContex.RegisterPass();
+            m_GraphicsContex->RegisterPass(framePass, passPipeline);
 
             // Now we iterate the resources it needs resolve them from the frame graph and update the corresponding binding in the set
             for (auto& [groupIndex, shaderResource] : nodeData.ShaderResources) {
                 // Find the resource
-                //ResourceHandle handle{ this->GetNamedResource(shaderResource.Name) };
-
-                // Register the resource
-                //m_GraphicsContex.PushShaderResource(framePass, groupIndex, shaderResource.GroupBinding, shaderResource.Visibility);
+                switch (shaderResource.ResourceType) {
+                    case ShaderResourceType::SHADER_STORAGE_BUFFER:
+                    case ShaderResourceType::SHADER_RESOURCE_UNIFORM_BUFFER:
+                        m_GraphicsContex->PushBuffer(framePass, groupIndex, shaderResource.GroupBinding, shaderResource.ResourceType, shaderResource.Visibility, GetNamedBuffer( shaderResource.Name ));
+                        break;
+                    case ShaderResourceType::SHADER_RESOURCE_COMBINED_IMAGE_SAMPLER:
+                        m_GraphicsContex->PushImage(framePass, groupIndex, shaderResource.GroupBinding, shaderResource.ResourceType, shaderResource.Visibility, GetNamedTexture( shaderResource.Name ));
+                        break;
+                    case ShaderResourceType::SHADER_RESOURCE_UNDEFINED:
+                        break;
+                }
             }
         }
 
@@ -101,12 +138,14 @@ namespace Mikoto {
         CommandListHandle gpuCmdList{ gpuDevice->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
         gpuCmdList->Begin();
 
-        m_GraphicsContex->SetCommandList(gpuCmdList);
+        m_GraphicsContex->BeginFrame(gpuCmdList);
 
         for ( const FrameNode & pass : m_Nodes) {
             PassCommandList passCommands{ m_GraphicsContex, this };
             pass.Pass->Execute( passCommands );
         }
+
+        m_GraphicsContex->EndFrame();
 
         gpuCmdList->End();
         gpuDevice->SubmitCommands( gpuCmdList );
@@ -219,5 +258,14 @@ namespace Mikoto {
                 MKT_CORE_LOGGER_WARN( "FrameGraph::RegisterResource - Invalid resource type." );
                 break;
         }
+    }
+
+    auto FrameGraph::GetNamedBuffer( std::string_view name ) -> BufferHandle {
+        const auto it{ m_BuffersByNames.find( std::string{ name } ) };
+        if (it != m_BuffersByNames.end()) {
+            return it->second;
+        }
+
+        return BufferHandle::CreateEmpty();
     }
 }// namespace Mikoto

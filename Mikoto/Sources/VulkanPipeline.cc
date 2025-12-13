@@ -243,9 +243,6 @@ namespace Mikoto {
             case ObjectType::Vk_Pipeline:
                 return Object(m_Pipeline );
 
-            case ObjectType::Vk_DescriptorSetLayout:
-                return Object( m_ReflectionData.setLayouts.data() );
-
             default:;
         }
 
@@ -418,9 +415,6 @@ namespace Mikoto {
 
             case ObjectType::Vk_Pipeline:
                 return Object(m_Pipeline );
-
-            case ObjectType::Vk_DescriptorSetLayout:
-                return Object( m_ReflectionData.setLayouts.data() );
 
             default:;
         }

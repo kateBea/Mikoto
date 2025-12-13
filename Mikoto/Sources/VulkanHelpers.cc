@@ -826,7 +826,7 @@ namespace Mikoto::VulkanHelpers::Reflection {
                 return VK_ERROR_INITIALIZATION_FAILED;
             }
 
-            out.setLayouts.push_back(layoutHandle);
+            out.setLayouts.emplace(setIndex, layoutHandle);
         }
 
         return VK_SUCCESS;
@@ -846,8 +846,13 @@ namespace Mikoto::VulkanHelpers::Reflection {
 
         VkPipelineLayoutCreateInfo plInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
-        plInfo.setLayoutCount = static_cast<UInt32>(out.setLayouts.size());
-        plInfo.pSetLayouts = out.setLayouts.data();
+        std::vector<VkDescriptorSetLayout> setLayouts{};
+        for (const auto &setLayout: out.setLayouts | std::views::values) {
+            setLayouts.emplace_back(setLayout);
+        }
+
+        plInfo.setLayoutCount = static_cast<UInt32>(setLayouts.size());
+        plInfo.pSetLayouts = setLayouts.data();
 
         plInfo.pushConstantRangeCount = static_cast<UInt32>(pushConstants.size());
         plInfo.pPushConstantRanges = pushConstants.data();
@@ -907,7 +912,7 @@ namespace Mikoto::VulkanHelpers::Reflection {
             reflected.pipelineLayout = VK_NULL_HANDLE;
         }
 
-        for ( const auto dsLayout: reflected.setLayouts ) {
+        for (const auto &dsLayout: reflected.setLayouts | std::views::values) {
             vkDestroyDescriptorSetLayout( device, dsLayout, nullptr );
         }
 

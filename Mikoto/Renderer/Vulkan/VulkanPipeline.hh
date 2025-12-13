@@ -67,6 +67,8 @@ namespace Mikoto {
         auto Release() -> void override;
 
         auto SetupConfig(VulkanGraphicsPipelineConfiguration& config ) const -> void;
+
+        friend class VulkanGraphicsContext;
     private:
         VkPipeline m_Pipeline{};
 
@@ -97,6 +99,7 @@ namespace Mikoto {
         auto Initialize() -> void override;
         auto Release() -> void override;
 
+        friend class VulkanGraphicsContext;
     private:
 
         VkPipeline m_Pipeline{};

@@ -60,7 +60,7 @@ namespace  Mikoto {
 
         builderPipelineDesc.Description = graphicsDesc;
 
-        builder.CreateNamedPipeline( "FinalCompositionPass_Pipeline", builderPipelineDesc );
+        builder.RegisterPipeline( "FinalCompositionPass_Pipeline", builderPipelineDesc );
 
         // Color attachment
         TextureDescription colorDesc{};
@@ -93,8 +93,8 @@ namespace  Mikoto {
         builder.RegisterInput( this, "ShadowPass_LightsBuffer" );
         builder.RegisterInput( this, "ShadowPass_ObjectInfo" );
 
-        builder.RegisterOutput( this, "FinalCompositionPass_ColorTarget" );
-        builder.RegisterOutput( this, "FinalCompositionPass_DepthTarget" );
+        builder.WriteTexture( this, "FinalCompositionPass_ColorTarget" );
+        builder.WriteTexture( this, "FinalCompositionPass_DepthTarget" );
     }
 
     auto FinalCompositionPass::SetScene( Scene* scene ) -> void {
@@ -173,7 +173,7 @@ namespace  Mikoto {
 
         pipelineDesc.Description = graphicseDesc;
 
-        builder.CreateNamedPipeline( "ShadowPass_Pipeline", pipelineDesc );
+        builder.RegisterPipeline( "ShadowPass_Pipeline", pipelineDesc );
 
         // Color attachment
         TextureDescription colorDesc{};
@@ -225,10 +225,10 @@ namespace  Mikoto {
         builder.CreateNamedBuffer( "ShadowPass_CameraInfo", camera );
 
         // Declare its inputs and outputs
-        builder.RegisterOutput( this, "ShadowPass_ColorTarget" );
-        builder.RegisterOutput( this, "ShadowPass_DepthTarget" );
-        builder.RegisterOutput( this, "ShadowPass_ObjectInfo" );
-        builder.RegisterOutput( this, "ShadowPass_CameraInfo" );
+        builder.WriteTexture( this, "ShadowPass_ColorTarget" );
+        builder.WriteTexture( this, "ShadowPass_DepthTarget" );
+        builder.WriteTexture( this, "ShadowPass_ObjectInfo" );
+        builder.WriteTexture( this, "ShadowPass_CameraInfo" );
     }
 
     auto ShadowPass::Execute( PassCommandList& commandList ) -> void {
@@ -307,17 +307,17 @@ namespace  Mikoto {
 
         pipelineDesc.Description = graphicseDesc;
 
-        builder.CreateNamedPipeline( "TextPass_Pipeline", pipelineDesc );
+        builder.RegisterPipeline( "TextPass_Pipeline", pipelineDesc );
 
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/MSDFText_Vert.sprv", ShaderStage::VERTEX_STAGE );
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/MSDFText_Frag.sprv", ShaderStage::FRAGMENT_STAGE);
 
-        builder.CreateNamedPipeline( "TextPass_Pipeline", pipelineDesc );
+        builder.RegisterPipeline( "TextPass_Pipeline", pipelineDesc );
 
         builder.RegisterInput( this, "FinalCompositionPass_ColorTarget" );
         builder.RegisterInput( this, "FinalCompositionPass_DepthTarget" );
 
-        builder.RegisterOutput( this, "FinalCompositionPass_ColorTarget" );
+        builder.WriteTexture( this, "FinalCompositionPass_ColorTarget" );
     }
 
     auto TextPass::Execute( PassCommandList& commandList ) -> void {
@@ -352,24 +352,21 @@ namespace  Mikoto {
 
     auto SimpleComputePass::Setup( FrameGraphBuilder& builder ) -> void {
         PipelineDescription pipelineDesc{};
+        pipelineDesc.Description = ComputePipelineDescription{};
 
         // Configure shader stages
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/BasicCompute_Comp.sprv", ShaderStage::COMPUTE_STAGE );
 
-        // Configure pipeline stage
-        ComputePipelineDescription computeDesc{};
-        pipelineDesc.Description = computeDesc;
-
-        builder.CreateNamedPipeline( "SimpleComputePass_Pipeline", pipelineDesc );
+        builder.CreateNamedPipeline( this, "SimpleComputePass_Pipeline", pipelineDesc );
 
         BufferDescription lightsBuffer{};
         lightsBuffer.WithData( nullptr )
             .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
             .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
-            .WithSizeBytes( 30 * sizeof(float) ); // TODO
+            .WithSizeBytes( 30 * sizeof(float) );
         builder.CreateNamedBuffer( "SimpleComputePass_Result", lightsBuffer );
 
-        builder.RegisterOutput( this, "SimpleComputePass_Result" );
+        builder.WriteBuffer( this, "SimpleComputePass_Result" );
     }
 
     auto SimpleComputePass::Execute( PassCommandList& commandList ) -> void {
@@ -421,7 +418,7 @@ namespace  Mikoto {
         pipelineDesc.ColorRenderTargets.emplace_back( "HelloTrianglePass_ColorTarget" );
         pipelineDesc.DepthRenderTargets = "HelloTrianglePass_DepthTarget";
 
-        builder.CreateNamedPipeline( "HelloTrianglePass_Pipeline", pipelineDesc );
+        builder.CreateNamedPipeline( this, "HelloTrianglePass_Pipeline", pipelineDesc );
 
         // Color attachment
         TextureDescription colorDesc{};
@@ -449,8 +446,8 @@ namespace  Mikoto {
 
         builder.CreateNamedRenderTarget( "HelloTrianglePass_DepthTarget", depthDesc );
 
-        builder.RegisterOutput( this, "HelloTrianglePass_ColorTarget" );
-        builder.RegisterOutput( this, "HelloTrianglePass_DepthTarget" );
+        builder.WriteTexture( this, "HelloTrianglePass_ColorTarget" );
+        builder.WriteTexture( this, "HelloTrianglePass_DepthTarget" );
     }
 
     auto HelloTrianglePass::Execute( PassCommandList& commandList ) -> void {

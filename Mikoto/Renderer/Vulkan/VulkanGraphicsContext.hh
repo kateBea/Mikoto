@@ -10,7 +10,10 @@
 
 #include <volk.h>
 
+#include <Assets/Texture.hh>
+#include <Renderer/Core/Buffer.hh>
 #include <Renderer/Core/FramePass.hh>
+#include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/GraphicsContext.hh>
 
 namespace Mikoto {
@@ -29,7 +32,10 @@ namespace Mikoto {
         auto BeginCompute() -> void override;
         auto EndCompute() -> void override;
 
-        auto SetCommandList(CommandListHandle cmd)-> void  override;
+        auto RegisterPass(FramePass* pass, PipelineHandle pipeline) -> void override;
+
+        auto BeginFrame(CommandListHandle cmd)-> void  override;
+        auto EndFrame()-> void  override;
 
         auto BindPipeline( PipelineHandle pipeline ) -> void override;
         auto BindBuffer( BufferHandle texture ) -> void override;
@@ -42,6 +48,9 @@ namespace Mikoto {
 
         auto RegisterImage( TextureHandle texture ) -> void override;
         auto RegisterImage( TextureHandle texture, SamplerHandle sampler ) -> void override;
+
+        auto PushBuffer( FramePass * pass, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType, ShaderResourceVisibility visibility, BufferHandle handle ) -> void override;
+        auto PushImage( FramePass * pass, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType, ShaderResourceVisibility visibility, TextureHandle handle ) -> void override;
 
         ~VulkanGraphicsContext() override = default;
     private:

@@ -94,6 +94,9 @@ namespace Mikoto {
         HelloTrianglePass* helloTrianglePass{ m_PassRegistry.Register<HelloTrianglePass>() };
         helloTrianglePass->Setup( builder );
 
+        SimpleComputePass* simpleComputePass{ m_PassRegistry.Register<SimpleComputePass>() };
+        simpleComputePass->Setup( builder );
+
         m_FrameGraph->Compile( builder );
     }
 

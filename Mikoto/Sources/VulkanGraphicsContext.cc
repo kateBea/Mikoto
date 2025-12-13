@@ -5,6 +5,8 @@
 #include "Renderer/Vulkan/VulkanGraphicsContext.hh"
 
 #include "Core/Profiler.hh"
+#include "Renderer/Vulkan/VulkanDevice.hh"
+#include "Renderer/Vulkan/VulkanPipeline.hh"
 #include "Renderer/Vulkan/VulkanTexture.hh"
 
 namespace Mikoto {
@@ -67,8 +69,40 @@ namespace Mikoto {
     auto VulkanGraphicsContext::BeginCompute() -> void {}
     auto VulkanGraphicsContext::EndCompute() -> void {}
 
-    auto VulkanGraphicsContext::SetCommandList( CommandListHandle cmd ) -> void {
+    auto VulkanGraphicsContext::RegisterPass( FramePass *pass, PipelineHandle pipeline ) -> void {
+        if (m_PassInfo.contains( pass )) {
+            return;
+        }
+
+        if (pipeline->GetPipelineType() == PipelineType::GRAPHICS_PIPELINE) {
+            VulkanGraphicsPipeline* graphicsPipeline{ dynamic_cast<VulkanGraphicsPipeline*>(pipeline.GetRaw()) };
+
+            for (auto& [setIndex, setLayout] : graphicsPipeline->m_ReflectionData.setLayouts) {
+                const VkDescriptorSetLayout& layoutTextures{ graphicsPipeline->GetDescriptorSetLayout( setIndex ) };
+                auto descriptorSet{ TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( std::addressof( layoutTextures ) ) };
+
+                m_PassInfo[pass].DescriptorSets.emplace( setIndex, descriptorSet );
+            }
+        }
+
+        if (pipeline->GetPipelineType() == PipelineType::COMPUTE_PIPELINE) {
+            VulkanComputePipeline* computePipeline{ dynamic_cast<VulkanComputePipeline*>(pipeline.GetRaw()) };
+
+            for (auto& [setIndex, setLayout] : computePipeline->m_ReflectionData.setLayouts) {
+                const VkDescriptorSetLayout& layoutTextures{ computePipeline->GetDescriptorSetLayout( setIndex ) };
+                auto descriptorSet{ TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( std::addressof( layoutTextures ) ) };
+
+                m_PassInfo[pass].DescriptorSets.emplace( setIndex, descriptorSet );
+            }
+        }
+    }
+
+    auto VulkanGraphicsContext::BeginFrame( CommandListHandle cmd ) -> void {
         m_CmdList = cmd;
+    }
+
+    auto VulkanGraphicsContext::EndFrame() -> void {
+
     }
 
     auto VulkanGraphicsContext::BindPipeline( PipelineHandle pipeline ) -> void {
@@ -103,6 +137,42 @@ namespace Mikoto {
 
         // Combined image sampler does not exist
         if (it == m_CombinedSamplerIndices.end()) { m_CombinedSamplerIndices.emplace( std::make_pair( texture.GetRaw(), sampler.GetRaw() ), m_CombinedSamplerIndices.size() ); }
+    }
+
+    auto VulkanGraphicsContext::PushBuffer( FramePass *pass, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType, ShaderResourceVisibility visibility, BufferHandle handle ) -> void {
+        const auto it{ m_PassInfo.find( pass  ) };
+        if (it == m_PassInfo.end()) {
+            MKT_CORE_LOGGER_WARN( "VulkanGraphicsContext::PushBuffer - Pass does not exist" );
+            return;
+        }
+
+        FramePassInfo& passInfo{ it->second };
+
+        passInfo.BoundBuffers.emplace( std::make_pair(groupIndex, groupBinding), handle );
+
+        DescriptorWriter writer{};
+        writer.WriteBuffer( groupBinding, handle->GetNativeHandle( ObjectType::Vk_Buffer ), handle->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_MAX_ENUM );
+
+        writer.UpdateSet( VK_DEVICE(m_Device), passInfo.DescriptorSets.at( groupIndex ) );
+    }
+
+    auto VulkanGraphicsContext::PushImage( FramePass *pass, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType, ShaderResourceVisibility visibility, TextureHandle handle ) -> void {
+        const auto it{ m_PassInfo.find( pass  ) };
+        if (it == m_PassInfo.end()) {
+            MKT_CORE_LOGGER_WARN( "VulkanGraphicsContext::PushImage - Pass does not exist" );
+            return;
+        }
+
+        FramePassInfo& passInfo{ it->second };
+
+        passInfo.BoundTextures.emplace( std::make_pair(groupIndex, groupBinding), handle );
+
+        DescriptorWriter writer{};
+        VkSampler sampler{ VK_NULL_HANDLE };
+        VkImageLayout layout{ dynamic_cast<VulkanTexture*>(handle.GetRaw())->GetCurrentLayout() };
+        writer.WriteImage( groupBinding, handle->GetNativeHandle( ObjectType::Vk_ImageView ), sampler, layout, VK_DESCRIPTOR_TYPE_MAX_ENUM );
+
+        writer.UpdateSet( VK_DEVICE(m_Device), passInfo.DescriptorSets.at( groupIndex ) );
     }
 
     auto VulkanGraphicsContext::Draw( UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance ) -> void {

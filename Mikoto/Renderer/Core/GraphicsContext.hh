@@ -16,10 +16,12 @@
 #include <Renderer/Core/Buffer.hh>
 #include <Renderer/Core/Light.hh>
 #include <Renderer/Core/Pipeline.hh>
+#include <Renderer/Core/FrameGraph.hh>
 
 #include "GpuDevice.hh"
 
 namespace Mikoto {
+    class FramePass;
     class PassCommandList;
 
     struct PassViewport {
@@ -54,7 +56,9 @@ namespace Mikoto {
         // Current confirmed API ============================================
         MKT_NODISCARD auto GetDevice() const -> GpuDevice* { return  m_Device; }
 
-        virtual auto SetCommandList(CommandListHandle cmd)-> void = 0;
+        virtual auto RegisterPass(FramePass* pass, PipelineHandle pipeline) -> void = 0;
+        virtual auto BeginFrame(CommandListHandle cmd)-> void = 0;
+        virtual auto EndFrame()-> void = 0;
 
         virtual auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void = 0;
 
@@ -67,6 +71,8 @@ namespace Mikoto {
         virtual auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance) -> void = 0;
 
         virtual auto BindPipeline(PipelineHandle pipeline) -> void = 0;
+        virtual auto PushBuffer( FramePass * pass, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType, ShaderResourceVisibility visibility, BufferHandle handle ) -> void = 0;
+        virtual auto PushImage( FramePass * pass, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType, ShaderResourceVisibility visibility, TextureHandle handle ) -> void = 0;
 
         MKT_NODISCARD static auto Create(GpuDevice* device) -> Unique<GraphicsContext>;
 
@@ -77,8 +83,6 @@ namespace Mikoto {
     protected:
         GpuDevice* m_Device{ nullptr };
     };
-
-    class FrameGraph;
 
     class PassCommandList {
     public:

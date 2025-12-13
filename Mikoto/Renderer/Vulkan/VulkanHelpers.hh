@@ -142,7 +142,8 @@ namespace Mikoto::VulkanHelpers::Reflection {
      * Reflected pipeline data container.
      */
     struct ReflectedData {
-        std::vector<VkDescriptorSetLayout> setLayouts{};
+        // Set index -> layout
+        ankerl::unordered_dense::map<UInt32, VkDescriptorSetLayout> setLayouts{};
         std::vector<VkPushConstantRange> pushConstantRanges{};
 
         VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };

@@ -350,6 +350,12 @@ namespace  Mikoto {
         m_Scene = scene;
     }
 
+    auto HelloCubePass::Setup( FrameGraphBuilder& device ) -> void {
+    }
+
+    auto HelloCubePass::Execute( PassCommandList& cmdList ) -> void {
+    }
+
     auto SimpleComputePass::Setup( FrameGraphBuilder& builder ) -> void {
         PipelineDescription pipelineDesc{};
         pipelineDesc.Description = ComputePipelineDescription{};
@@ -387,12 +393,6 @@ namespace  Mikoto {
 
         commandList.EndCompute();
 
-    }
-
-    auto HelloCubePass::Setup( FrameGraphBuilder& device ) -> void {
-    }
-
-    auto HelloCubePass::Execute( PassCommandList& cmdList ) -> void {
     }
 
     auto HelloTrianglePass::Setup( FrameGraphBuilder& builder ) -> void {

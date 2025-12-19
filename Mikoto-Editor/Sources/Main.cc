@@ -16,7 +16,7 @@
 Mikoto::Window* g_Window{ nullptr };
 Mikoto::EditorApp* g_Application{ nullptr };
 
-constexpr std::string_view g_ConfidPath{ "./app-config.toml" };
+constexpr std::string_view g_ConfidPath{ "app-config.toml" };
 const Mikoto::BaseConfiguration g_Config{ g_ConfidPath };
 
 auto InitializeWindow() -> void {

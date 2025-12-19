@@ -44,11 +44,6 @@ namespace Mikoto {
         m_Resources[std::string{ name }].ResourceDesc = description;
     }
 
-    auto FrameGraphBuilder::RegisterPipeline( std::string_view name, PipelineDescription description) -> void {
-        m_Resources[std::string{ name }].Type = FrameResourceType::PIPELINE;
-        m_Resources[std::string{ name }].ResourceDesc = description;
-    }
-
     auto FrameGraphBuilder::CreateNamedPipeline( FramePass *node, std::string_view name, PipelineDescription description ) -> void {
         m_Resources[std::string{ name }].Type = FrameResourceType::PIPELINE;
         m_Resources[std::string{ name }].ResourceDesc = description;
@@ -173,7 +168,9 @@ namespace Mikoto {
         return CreateScope<FrameGraph>( *context );
     }
 
-    auto FrameGraph::RegisterTexture( std::string_view name, TextureDescription description ) -> void {}
+    auto FrameGraph::RegisterTexture( std::string_view name, TextureDescription description ) -> void {
+
+    }
 
     auto FrameGraph::RegisterPipeline( std::string_view name, PipelineDescription description ) -> void {
         if (m_PipelinesByNames.contains( std::string{ name } )) {

@@ -4,6 +4,7 @@
 
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/GraphicsContext.hh>
+
 #include <Renderer/Vulkan/VulkanGraphicsContext.hh>
 
 namespace Mikoto {
@@ -27,9 +28,10 @@ namespace Mikoto {
         return result;
     }
 
-    PassCommandList::PassCommandList( GraphicsContext *context, FrameGraph* graph )
-        : m_Context{ context }, m_Graph{ graph }
-    {}
+    PassCommandList::PassCommandList( GraphicsContext *context, FrameBlackboard* blackboard )
+        : m_Context{ context }, m_Blackboard{ blackboard } {
+        MKT_ASSERT( m_Blackboard, "Tried to create PassCommandList with NULL blackboard" );
+    }
 
     auto PassCommandList::BeginRender() -> void {
         MKT_ASSERT( m_Context, "No valid context for this pass command list" );
@@ -44,14 +46,14 @@ namespace Mikoto {
     }
 
     auto PassCommandList::SetColorRenderTarget( std::string_view color ) -> void {
-        TextureHandle colorHandle{ m_Graph->GetNamedTexture(color) };
+        TextureHandle colorHandle{ m_Blackboard->GetTexture(color) };
         MKT_ASSERT( !colorHandle.IsEmpty(), "PassCommandList::SetColorRenderTarget - Color render target must not be empty" );
 
         m_RenderInfo.ColorRenderTargets.emplace_back( colorHandle );
     }
 
     auto PassCommandList::SetDepthRenderTarget( std::string_view depth ) -> void {
-        TextureHandle depthTexture{ m_Graph->GetNamedTexture(depth) };
+        TextureHandle depthTexture{ m_Blackboard->GetTexture(depth) };
         MKT_ASSERT( !depthTexture.IsEmpty(), "PassCommandList::SetDepthRenderTarget - Depth render target must not be empty" );
 
         m_RenderInfo.DepthRenderTarget = depthTexture;
@@ -122,7 +124,7 @@ namespace Mikoto {
     }
 
     auto PassCommandList::BindPipeline( std::string_view pipelineName ) const -> void {
-        PipelineHandle piepline{ m_Graph->GetNamedPipeline(pipelineName) };
+        PipelineHandle piepline{ m_Blackboard->GetPipeline(pipelineName) };
         MKT_ASSERT( !piepline.IsEmpty(), "PassCommandList::SetDepthRenderTarget - PipelineHandle must not be empty" );
 
         m_Context->BindPipeline( piepline );

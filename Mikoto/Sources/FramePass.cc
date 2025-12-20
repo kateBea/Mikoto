@@ -9,6 +9,8 @@
 #include <Scene/Scene.hh>
 #include <Scene/Component.hh>
 
+#include <Renderer/Core/FrameResource.hh>
+
 namespace  Mikoto {
 
     auto FinalCompositionPass::Setup( FrameGraphBuilder& builder ) -> void {
@@ -60,7 +62,7 @@ namespace  Mikoto {
 
         builderPipelineDesc.Description = graphicsDesc;
 
-        builder.RegisterPipeline( "FinalCompositionPass_Pipeline", builderPipelineDesc );
+        builder.CreateNamedPipeline( "FinalCompositionPass_Pipeline", builderPipelineDesc );
 
         // Color attachment
         TextureDescription colorDesc{};
@@ -89,9 +91,9 @@ namespace  Mikoto {
         builder.CreateNamedRenderTarget( "FinalCompositionPass_DepthTarget", depthDesc );
 
         // Declare its inputs and outputs
-        builder.RegisterInput( this, "ShadowPass_ColorTarget" );
-        builder.RegisterInput( this, "ShadowPass_LightsBuffer" );
-        builder.RegisterInput( this, "ShadowPass_ObjectInfo" );
+        builder.ReadTexture( this, "ShadowPass_ColorTarget" );
+        builder.ReadBuffer( this, "ShadowPass_LightsBuffer" );
+        builder.ReadBuffer( this, "ShadowPass_ObjectInfo" );
 
         builder.WriteTexture( this, "FinalCompositionPass_ColorTarget" );
         builder.WriteTexture( this, "FinalCompositionPass_DepthTarget" );
@@ -173,7 +175,7 @@ namespace  Mikoto {
 
         pipelineDesc.Description = graphicseDesc;
 
-        builder.RegisterPipeline( "ShadowPass_Pipeline", pipelineDesc );
+        builder.CreateNamedPipeline( "ShadowPass_Pipeline", pipelineDesc );
 
         // Color attachment
         TextureDescription colorDesc{};
@@ -227,8 +229,8 @@ namespace  Mikoto {
         // Declare its inputs and outputs
         builder.WriteTexture( this, "ShadowPass_ColorTarget" );
         builder.WriteTexture( this, "ShadowPass_DepthTarget" );
-        builder.WriteTexture( this, "ShadowPass_ObjectInfo" );
-        builder.WriteTexture( this, "ShadowPass_CameraInfo" );
+        builder.WriteBuffer( this, "ShadowPass_ObjectInfo" );
+        builder.WriteBuffer( this, "ShadowPass_CameraInfo" );
     }
 
     auto ShadowPass::Execute( PassCommandList& commandList ) -> void {
@@ -307,17 +309,13 @@ namespace  Mikoto {
 
         pipelineDesc.Description = graphicseDesc;
 
-        builder.RegisterPipeline( "TextPass_Pipeline", pipelineDesc );
-
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/MSDFText_Vert.sprv", ShaderStage::VERTEX_STAGE );
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/MSDFText_Frag.sprv", ShaderStage::FRAGMENT_STAGE);
 
-        builder.RegisterPipeline( "TextPass_Pipeline", pipelineDesc );
-
-        builder.RegisterInput( this, "FinalCompositionPass_ColorTarget" );
-        builder.RegisterInput( this, "FinalCompositionPass_DepthTarget" );
+        builder.CreateNamedPipeline( "TextPass_Pipeline", pipelineDesc );
 
         builder.WriteTexture( this, "FinalCompositionPass_ColorTarget" );
+        builder.WriteTexture( this, "FinalCompositionPass_DepthTarget" );
     }
 
     auto TextPass::Execute( PassCommandList& commandList ) -> void {
@@ -363,7 +361,7 @@ namespace  Mikoto {
         // Configure shader stages
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/BasicCompute_Comp.sprv", ShaderStage::COMPUTE_STAGE );
 
-        builder.CreateNamedPipeline( this, "SimpleComputePass_Pipeline", pipelineDesc );
+        builder.CreateNamedPipeline( "SimpleComputePass_Pipeline", pipelineDesc );
 
         BufferDescription lightsBuffer{};
         lightsBuffer.WithData( nullptr )
@@ -418,7 +416,7 @@ namespace  Mikoto {
         pipelineDesc.ColorRenderTargets.emplace_back( "HelloTrianglePass_ColorTarget" );
         pipelineDesc.DepthRenderTargets = "HelloTrianglePass_DepthTarget";
 
-        builder.CreateNamedPipeline( this, "HelloTrianglePass_Pipeline", pipelineDesc );
+        builder.CreateNamedPipeline( "HelloTrianglePass_Pipeline", pipelineDesc );
 
         // Color attachment
         TextureDescription colorDesc{};

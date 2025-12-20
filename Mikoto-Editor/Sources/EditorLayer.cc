@@ -27,6 +27,7 @@
 #include <Panels/StatsPanel.hh>
 #include <Physics/PhysicService.hh>
 #include <Renderer/Core/RenderService.hh>
+#include <Renderer/Core/FrameBlackboard.hh>
 #include <Scene/Component.hh>
 #include <Scene/SceneManager.hh>
 
@@ -66,8 +67,8 @@ namespace Mikoto {
         CreatePanels();
 
         // Add passes for panel preview visualizer
-        FrameGraph& graph{ m_SceneRenderer->GetGraph() };
-        m_EditorState->PassesCompositions.try_emplace( "TrianglePass", graph.GetNamedTexture( "HelloTrianglePass_ColorTarget" ) );
+        FrameBlackboard* blackboard{ m_SceneRenderer->GetGraph().GetBlackboard() };
+        m_EditorState->PassesCompositions.try_emplace( "TrianglePass", blackboard->GetTexture( "HelloTrianglePass_ColorTarget" ) );
     }
 
     auto EditorLayer::SetupRenderer() -> void {
@@ -89,8 +90,8 @@ namespace Mikoto {
 
         m_EditorState->ActiveEditorScene = m_ActiveScene;
 
-        FrameGraph& graph{ m_SceneRenderer->GetGraph() };
-        m_EditorState->FinalComposition = graph.GetNamedTexture( "HelloTrianglePass_ColorTarget" );
+        FrameBlackboard* blackboard{ m_SceneRenderer->GetGraph().GetBlackboard() };
+        m_EditorState->FinalComposition = blackboard->GetTexture( "HelloTrianglePass_ColorTarget" );
 
         m_EditorState->SelectedEntity = m_ActiveScene->FindFirstByName( "Ground" );
 

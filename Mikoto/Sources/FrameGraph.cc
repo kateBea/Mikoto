@@ -13,46 +13,45 @@
 
 namespace Mikoto {
 
-    auto FrameGraphBuilder::RegisterInput( FramePass *node, std::string_view name ) -> void {
-        m_Nodes[node].Inputs.emplace_back( name );
+    auto FrameGraphBuilder::RegisterPass( FramePass *pass ) -> void {
+        m_Nodes[pass] = NodeData{};
     }
 
     auto FrameGraphBuilder::WriteTexture( FramePass *node, std::string_view name ) -> void {
-        m_Nodes[node].Outputs.emplace_back( name );
+        m_Nodes[node].WriteTextures.emplace_back( name );
     }
 
     auto FrameGraphBuilder::WriteBuffer( FramePass *node, std::string_view name ) -> void {
-
+        m_Nodes[node].WriteBuffers.emplace_back( name );
     }
 
     auto FrameGraphBuilder::ReadTexture( FramePass *node, std::string_view name ) -> void {
-
+        m_Nodes[node].ReadTextures.emplace_back( name );
     }
 
     auto FrameGraphBuilder::ReadBuffer( FramePass *node, std::string_view name ) -> void {
-
+        m_Nodes[node].ReadBuffers.emplace_back( name );
     }
 
     auto FrameGraphBuilder::CreateNamedBuffer( std::string_view name, BufferDescription description ) -> void {
         m_Resources[std::string{ name }].Type = FrameResourceType::BUFFER;
-        m_Resources[std::string{ name }].ResourceDesc = description;
+        m_Resources[std::string{ name }].Description = description;
 
     }
 
     auto FrameGraphBuilder::CreateNamedTexture( std::string_view name, TextureDescription description ) -> void {
         m_Resources[std::string{ name }].Type = FrameResourceType::TEXTURE;
-        m_Resources[std::string{ name }].ResourceDesc = description;
+        m_Resources[std::string{ name }].Description = description;
     }
 
-    auto FrameGraphBuilder::CreateNamedPipeline( FramePass *node, std::string_view name, PipelineDescription description ) -> void {
+    auto FrameGraphBuilder::CreateNamedPipeline( std::string_view name, PipelineDescription description ) -> void {
         m_Resources[std::string{ name }].Type = FrameResourceType::PIPELINE;
-        m_Resources[std::string{ name }].ResourceDesc = description;
-
+        m_Resources[std::string{ name }].Description = description;
     }
 
     auto FrameGraphBuilder::CreateNamedRenderTarget( std::string_view name, TextureDescription description ) -> void {
         m_Resources[std::string{ name }].Type = FrameResourceType::RENDER_TARGET;
-        m_Resources[std::string{ name }].ResourceDesc = description;
+        m_Resources[std::string{ name }].Description = description;
     }
 
     auto FrameGraphBuilder::RegisterShaderResource( FramePass* pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType type, ShaderResourceVisibility visibility ) -> void {
@@ -67,6 +66,7 @@ namespace Mikoto {
     FrameGraph::FrameGraph( GraphicsContext &context )
         : m_GraphicsContex{ std::addressof( context )}
     {
+        m_Blackboard = CreateScope<FrameBlackboard>( m_GraphicsContex->GetDevice() );
     }
 
     auto FrameGraph::Compile( FrameGraphBuilder &builder ) -> void {
@@ -74,56 +74,24 @@ namespace Mikoto {
 
         // TODO: because pipeline need render targets to exists we create render targets first
         for (auto& [resourceName, resourceDescription] : builder.m_Resources) {
-            if (resourceDescription.Type == FrameResourceType::RENDER_TARGET) {
+            if (resourceDescription.Type != FrameResourceType::PIPELINE) {
                 RegisterResource( resourceName, resourceDescription );
             }
         }
 
-        // Register for each pass the shader resources
+        // Register the actual pipelines
         for (auto& [resourceName, resourceDescription] : builder.m_Resources) {
             if (resourceDescription.Type == FrameResourceType::PIPELINE) {
-                // Pass can only have one pipeline
                 RegisterResource( resourceName, resourceDescription );
             }
         }
 
-        for (auto& [framePass, nodeData] : builder.m_Nodes) {
-            PipelineHandle passPipeline{};
-            for (auto& resourceName : builder.m_Nodes) {
-                if (!passPipeline.IsEmpty()) {
-                    // Pass can only have one pipeline
-                    break;
-                }
-            }
-
-            MKT_ASSERT( !passPipeline.IsEmpty(), "There must be a valid pipeline" );
-
-            // This registers the pass and creates its resources which includes the descriptor sets
-            m_GraphicsContex->RegisterPass(framePass, passPipeline);
-
-            // Now we iterate the resources it needs resolve them from the frame graph and update the corresponding binding in the set
-            for (auto& [groupIndex, shaderResource] : nodeData.ShaderResources) {
-                // Find the resource
-                switch (shaderResource.ResourceType) {
-                    case ShaderResourceType::SHADER_STORAGE_BUFFER:
-                    case ShaderResourceType::SHADER_RESOURCE_UNIFORM_BUFFER:
-                        m_GraphicsContex->PushBuffer(framePass, groupIndex, shaderResource.GroupBinding, shaderResource.ResourceType, shaderResource.Visibility, GetNamedBuffer( shaderResource.Name ));
-                        break;
-                    case ShaderResourceType::SHADER_RESOURCE_COMBINED_IMAGE_SAMPLER:
-                        m_GraphicsContex->PushImage(framePass, groupIndex, shaderResource.GroupBinding, shaderResource.ResourceType, shaderResource.Visibility, GetNamedTexture( shaderResource.Name ));
-                        break;
-                    case ShaderResourceType::SHADER_RESOURCE_UNDEFINED:
-                        break;
-                }
-            }
+        // Register nodes
+        for (auto& [node, nodeData] : builder.m_Nodes) {
+            m_Nodes.emplace_back( node );
         }
 
         // TODO: Sort passes according to dependencies
-        // Prepare input and outputs
-        for (auto& [node, data] : builder.m_Nodes) {
-            // Register outputs only because those are the only ones that can be created, inputs are consumed
-            m_Nodes.emplace_back( FrameNode{ node, std::move(data.Inputs), std::move(data.Outputs) } );
-        }
     }
 
     auto FrameGraph::Execute() -> void {
@@ -136,7 +104,7 @@ namespace Mikoto {
         m_GraphicsContex->BeginFrame(gpuCmdList);
 
         for ( const FrameNode & pass : m_Nodes) {
-            PassCommandList passCommands{ m_GraphicsContex, this };
+            PassCommandList passCommands{ m_GraphicsContex, m_Blackboard.get() };
             pass.Pass->Execute( passCommands );
         }
 
@@ -146,123 +114,40 @@ namespace Mikoto {
         gpuDevice->SubmitCommands( gpuCmdList );
     }
 
-    auto FrameGraph::GetNamedTexture( std::string_view name ) -> TextureHandle {
-        const auto it{ m_TexturesByNames.find( std::string{ name } ) };
-        if (it != m_TexturesByNames.end()) {
-            return it->second;
-        }
-
-        return TextureHandle::CreateEmpty();
-    }
-
-    auto FrameGraph::GetNamedPipeline( std::string_view name ) -> PipelineHandle {
-        const auto it{ m_PipelinesByNames.find( std::string{ name } ) };
-        if (it != m_PipelinesByNames.end()) {
-            return it->second;
-        }
-
-        return PipelineHandle::CreateEmpty();
+    auto FrameGraph::GetBlackboard() const -> FrameBlackboard * {
+        return m_Blackboard.get();
     }
 
     auto FrameGraph::Create( GraphicsContext *context ) -> Unique<FrameGraph> {
         return CreateScope<FrameGraph>( *context );
     }
 
-    auto FrameGraph::RegisterTexture( std::string_view name, TextureDescription description ) -> void {
-
-    }
-
-    auto FrameGraph::RegisterPipeline( std::string_view name, PipelineDescription description ) -> void {
-        if (m_PipelinesByNames.contains( std::string{ name } )) {
-            MKT_CORE_LOGGER_WARN("FrameGraph::RegisterPipeline - Named pipeline [{}] already exists.", name);
-            return;
-        }
-
-        GpuDevice* gpuDevice{ m_GraphicsContex->GetDevice() };
-        PipelineHandle pipeline{ PipelineHandle::CreateEmpty() };
-
-        if (std::holds_alternative<GraphicsPipelineDescription>( description.Description )) {
-            // Graphics pipeline ====================================
-            GraphicsPipelineDescription& desc{ std::get<GraphicsPipelineDescription>( description.Description ) };
-
-            for (auto& [stage, shaderPath] : description.Shaders) {
-                desc.ShaderStages.emplace_back( ShaderLibrary::Get()->LoadShader(shaderPath, stage) );
-            }
-
-            // TODO: find render target formats
-            desc.DepthTexture = GetNamedTexture( description.DepthRenderTargets);
-            for (const auto& renderTargetName : description.ColorRenderTargets) {
-                desc.ColorAttachments.emplace_back( GetNamedTexture( renderTargetName) );
-            }
-
-            pipeline = gpuDevice->CreatePipeline( desc );
-        } else if (std::holds_alternative<ComputePipelineDescription>( description.Description )) {
-            // Compute pipeline ====================================
-            ComputePipelineDescription& desc{ std::get<ComputePipelineDescription>( description.Description ) };
-
-            for (auto& [stage, shaderPath] : description.Shaders) {
-                desc.Stage = ShaderLibrary::Get()->LoadShader(shaderPath, stage);
-            }
-
-            pipeline = gpuDevice->CreatePipeline( desc );
-        }
-
-        if (!pipeline.IsEmpty()) {
-            m_PipelinesByNames.emplace( std::string{ name }, pipeline );
-        }
-    }
-
-    auto FrameGraph::RegisterRenderTarget( std::string_view name, TextureDescription description ) -> void {
-        if (m_TexturesByNames.contains( std::string{ name } )) {
-            MKT_CORE_LOGGER_WARN("FrameGraph::RegisterPipeline - Named render target [{}] already exists.", name);
-            return;
-        }
-
-        GpuDevice* gpuDevice{ m_GraphicsContex->GetDevice() };
-        TextureHandle texture{ gpuDevice->CreateTexture( description ) };
-
-        if (!texture.IsEmpty()) {
-            m_TexturesByNames.emplace( std::string{ name }, texture );
-        }
-    }
-
-    auto FrameGraph::RegisterBuffer( std::string_view name, BufferDescription description ) -> void {}
-
-    auto FrameGraph::RegisterResource(std::string_view name, ResourceDescription resource ) -> void {
+    auto FrameGraph::RegisterResource(std::string_view name, FrameResource resource ) const -> void {
         switch (resource.Type) {
             case FrameResourceType::RENDER_TARGET:
-                if (std::holds_alternative<TextureDescription>( resource.ResourceDesc )) {
-                    RegisterRenderTarget( name, std::get<TextureDescription>( resource.ResourceDesc ) );
+                if (std::holds_alternative<TextureDescription>( resource.Description )) {
+                    m_Blackboard->RegisterTexture( name, std::get<TextureDescription>( resource.Description ) );
                 }
 
                 break;
             case FrameResourceType::TEXTURE:
-                if (std::holds_alternative<TextureDescription>( resource.ResourceDesc )) {
-                    RegisterTexture( name, std::get<TextureDescription>( resource.ResourceDesc ) );
+                if (std::holds_alternative<TextureDescription>( resource.Description )) {
+                    m_Blackboard->RegisterTexture( name, std::get<TextureDescription>( resource.Description ) );
                 }
                 break;
             case FrameResourceType::BUFFER:
-                if (std::holds_alternative<BufferDescription>( resource.ResourceDesc )) {
-                    RegisterBuffer( name, std::get<BufferDescription>( resource.ResourceDesc ) );
+                if (std::holds_alternative<BufferDescription>( resource.Description )) {
+                    m_Blackboard->RegisterBuffer( name, std::get<BufferDescription>( resource.Description ) );
                 }
                 break;
             case FrameResourceType::PIPELINE:
-                if (std::holds_alternative<PipelineDescription>( resource.ResourceDesc )) {
-                    RegisterPipeline( name, std::get<PipelineDescription>( resource.ResourceDesc ) );
+                if (std::holds_alternative<PipelineDescription>( resource.Description )) {
+                    m_Blackboard->RegisterPipeline( name, std::get<PipelineDescription>( resource.Description ) );
                 }
                 break;
             case FrameResourceType::INVALID:
                 MKT_CORE_LOGGER_WARN( "FrameGraph::RegisterResource - Invalid resource type." );
                 break;
         }
-    }
-
-    auto FrameGraph::GetNamedBuffer( std::string_view name ) -> BufferHandle {
-        const auto it{ m_BuffersByNames.find( std::string{ name } ) };
-        if (it != m_BuffersByNames.end()) {
-            return it->second;
-        }
-
-        return BufferHandle::CreateEmpty();
     }
 }// namespace Mikoto

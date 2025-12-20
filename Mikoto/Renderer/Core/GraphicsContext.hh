@@ -16,9 +16,8 @@
 #include <Renderer/Core/Buffer.hh>
 #include <Renderer/Core/Light.hh>
 #include <Renderer/Core/Pipeline.hh>
-#include <Renderer/Core/FrameGraph.hh>
-
-#include "GpuDevice.hh"
+#include <Renderer/Core/FrameBlackboard.hh>
+#include <Renderer/Core/GpuDevice.hh>
 
 namespace Mikoto {
     class FramePass;
@@ -86,7 +85,7 @@ namespace Mikoto {
 
     class PassCommandList {
     public:
-        explicit PassCommandList(GraphicsContext* context, FrameGraph* graph);
+        explicit PassCommandList(GraphicsContext* context, FrameBlackboard* blackboard);
 
         auto BeginRender() -> void;
         auto EndRender() -> void;
@@ -144,7 +143,7 @@ namespace Mikoto {
         };
 
     private:
-        FrameGraph* m_Graph{};
+        FrameBlackboard* m_Blackboard{};
         GraphicsContext* m_Context{};
 
         std::vector<BufferHandle> m_BoundBuffers{};

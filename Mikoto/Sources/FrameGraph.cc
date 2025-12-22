@@ -13,10 +13,6 @@
 
 namespace Mikoto {
 
-    auto FrameGraphBuilder::RegisterPass( FramePass *pass ) -> void {
-        m_Nodes[pass] = NodeData{};
-    }
-
     auto FrameGraphBuilder::WriteTexture( FramePass *node, std::string_view name ) -> void {
         m_Nodes[node].WriteTextures.emplace_back( name );
     }
@@ -45,8 +41,8 @@ namespace Mikoto {
     }
 
     auto FrameGraphBuilder::CreateNamedPipeline( std::string_view name, PipelineDescription description ) -> void {
-        m_Resources[std::string{ name }].Type = FrameResourceType::PIPELINE;
-        m_Resources[std::string{ name }].Description = description;
+        m_Pipelines[std::string{ name }].Type = FrameResourceType::PIPELINE;
+        m_Pipelines[std::string{ name }].Description = description;
     }
 
     auto FrameGraphBuilder::CreateNamedRenderTarget( std::string_view name, TextureDescription description ) -> void {
@@ -68,36 +64,29 @@ namespace Mikoto {
         m_Blackboard = CreateScope<FrameBlackboard>( device );
     }
 
+    auto FrameGraph::RegisterPass( FramePass *pass ) -> void {
+        m_Nodes.emplace_back( pass );
+    }
+
     auto FrameGraph::Compile( FrameGraphBuilder &builder ) -> void {
         // Create the actual resources on the GPU
-
-        // TODO: because pipeline need render targets to exists we create render targets first
         for (auto& [resourceName, resourceDescription] : builder.m_Resources) {
-            if (resourceDescription.Type != FrameResourceType::PIPELINE) {
-                RegisterResource( resourceName, resourceDescription );
-            }
+            RegisterResource( resourceName, resourceDescription );
         }
 
         // Register the actual pipelines
-        for (auto& [resourceName, resourceDescription] : builder.m_Resources) {
-            if (resourceDescription.Type == FrameResourceType::PIPELINE) {
-                RegisterResource( resourceName, resourceDescription );
-            }
-        }
-
-        // Register nodes
-        for (auto& [node, nodeData] : builder.m_Nodes) {
-            m_Nodes.emplace_back( node );
+        for (auto& [resourceName, resourceDescription] : builder.m_Pipelines) {
+            RegisterResource( resourceName, resourceDescription );
         }
 
         // TODO: Sort passes according to dependencies
     }
 
     auto FrameGraph::Execute() -> void {
-        m_GraphicsContex->BeginFrame( m_Blackboard.get() );
+        m_GraphicsContex->BeginFrame( GetBlackboard() );
 
         for ( const FrameNode & pass : m_Nodes) {
-            PassCommandList passCommands{ m_GraphicsContex, m_Blackboard.get() };
+            PassCommandList passCommands{ m_GraphicsContex, GetBlackboard() };
             pass.Pass->Execute( passCommands );
         }
 
@@ -114,8 +103,8 @@ namespace Mikoto {
 
     auto FrameGraph::RegisterResource(std::string_view name, FrameResource resource ) const -> void {
         switch (resource.Type) {
-            case FrameResourceType::RENDER_TARGET:
             case FrameResourceType::TEXTURE:
+            case FrameResourceType::RENDER_TARGET:
                 if (std::holds_alternative<TextureDescription>( resource.Description )) {
                     m_Blackboard->RegisterTexture( name, std::get<TextureDescription>( resource.Description ) );
                 }

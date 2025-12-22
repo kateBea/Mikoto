@@ -33,8 +33,6 @@ namespace Mikoto {
     class FrameGraphBuilder {
     public:
 
-        auto RegisterPass(FramePass* pass) -> void;
-
         // Declare Writes
         auto WriteTexture(FramePass* node, std::string_view name) -> void;
         auto WriteBuffer(FramePass* node, std::string_view name) -> void;
@@ -55,8 +53,6 @@ namespace Mikoto {
         friend class FrameGraph;
 
         struct NodeData {
-            PipelineHandle Pipeline{};
-
             std::vector<std::string> ReadBuffers{};
             std::vector<std::string> WriteBuffers{};
 
@@ -72,6 +68,7 @@ namespace Mikoto {
         ankerl::unordered_dense::map<FramePass*, NodeData> m_Nodes{};
 
         // Holds frame resources that need to be created
+        ankerl::unordered_dense::map<std::string, FrameResource> m_Pipelines{};
         ankerl::unordered_dense::map<std::string, FrameResource> m_Resources{};
     };
 
@@ -79,6 +76,8 @@ namespace Mikoto {
     public:
 
         explicit FrameGraph( GraphicsContext* context, GpuDevice* device );
+
+        auto RegisterPass(FramePass* pass) -> void;
 
         auto Compile(FrameGraphBuilder& backend) -> void;
         auto Execute() -> void;

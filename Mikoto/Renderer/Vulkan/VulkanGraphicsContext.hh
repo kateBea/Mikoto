@@ -50,6 +50,8 @@ namespace Mikoto {
         ~VulkanGraphicsContext() override = default;
 
     private:
+        MKT_NODISCARD auto HasDescriptorSets(IPipeline* pipeline) -> bool;
+
         auto CreatePassDescriptors(IPipeline* pipeline, PassResources& resources) -> void;
         auto PushBuffer( IPipeline* pipeline, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType) -> void;
         auto PushImage( IPipeline * pipeline, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType) -> void;
@@ -62,6 +64,9 @@ namespace Mikoto {
 
             ankerl::unordered_dense::map<std::pair<UInt32, UInt32>, BufferHandle> BoundBuffers{};
             ankerl::unordered_dense::map<std::pair<UInt32, UInt32>, TextureHandle>  BoundTextures{};
+
+            // Whether we need to update the descriptor sets or not
+            bool Dirty{ true };
         };
 
         // TODO: Before we start rendering passes

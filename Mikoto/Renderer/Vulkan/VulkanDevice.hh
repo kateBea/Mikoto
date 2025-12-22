@@ -41,6 +41,8 @@ namespace Mikoto {
         auto SetViewport(Int32 x, Int32 y, Int32 width, Int32 height) -> void override;
         auto SetScissor(Int32 x, Int32 y, Int32 width, Int32 height) -> void override;
 
+        auto Dispatch(UInt32 x, UInt32 y, UInt32 z) -> void  override;
+
         auto BindPipeline(PipelineHandle pipeline) -> void override;
 
         auto SetDebugName(std::string_view name) -> void override;

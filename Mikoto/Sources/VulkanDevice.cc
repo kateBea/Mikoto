@@ -909,6 +909,10 @@ namespace Mikoto {
     auto VulkanCmdList::SetScissor( Int32 x, Int32 y, Int32 width, Int32 height ) -> void {
     }
 
+    auto VulkanCmdList::Dispatch( UInt32 x, UInt32 y, UInt32 z ) -> void {
+        vkCmdDispatch(m_CmdBuffer, x, y, z);
+    }
+
     auto VulkanCmdList::BindPipeline( PipelineHandle pipeline ) -> void {
     }
 

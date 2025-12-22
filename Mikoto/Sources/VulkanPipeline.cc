@@ -249,6 +249,10 @@ namespace Mikoto {
         return Object(nullptr);
     }
 
+    auto VulkanGraphicsPipeline::GetDescriptorLayoutCount() const -> Size {
+        return m_ReflectionData.setLayouts.size();
+    }
+
     auto VulkanGraphicsPipeline::GetDescriptorSetLayout( UInt32 index ) const -> const VkDescriptorSetLayout& {
         MKT_ASSERT( index < m_ReflectionData.setLayouts.size(), "VulkanGraphicsPipeline::GetDescriptorSetLayout - Index out of bounds." );
         return m_ReflectionData.setLayouts.at(index);
@@ -362,6 +366,10 @@ namespace Mikoto {
     auto VulkanComputePipeline::Bind( const VkCommandBuffer commandBuffer ) const -> void {
         MKT_ASSERT( m_Pipeline != VK_NULL_HANDLE, "VulkanComputePipeline::Bind - Compute pipeline is null." );
         vkCmdBindPipeline( commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline );
+    }
+
+    auto VulkanComputePipeline::GetDescriptorLayoutCount() const -> Size {
+        return m_ReflectionData.setLayouts.size();
     }
 
     VulkanComputePipeline::~VulkanComputePipeline() {

@@ -37,6 +37,8 @@ namespace Mikoto {
         virtual auto SetViewport(Int32 x, Int32 y, Int32 width, Int32 height) -> void = 0;
         virtual auto SetScissor(Int32 x, Int32 y, Int32 width, Int32 height) -> void = 0;
 
+        virtual auto Dispatch(UInt32 x, UInt32 y, UInt32 z) -> void = 0;
+
         virtual auto BindPipeline(PipelineHandle pipeline) -> void = 0;
 
         using DeviceObject::Initialize;

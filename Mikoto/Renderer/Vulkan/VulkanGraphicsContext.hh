@@ -32,12 +32,10 @@ namespace Mikoto {
         auto BeginCompute() -> void override;
         auto EndCompute() -> void override;
 
-        auto RegisterPass(FramePass* pass, PipelineHandle pipeline) -> void override;
-
-        auto BeginFrame(CommandListHandle cmd)-> void  override;
+        auto BeginFrame(FrameBlackboard* blackboard)-> void  override;
         auto EndFrame()-> void  override;
 
-        auto BindPipeline( PipelineHandle pipeline ) -> void override;
+        auto BindPipeline( PipelineHandle pipeline, PassResources& resources ) -> void override;
         auto BindBuffer( BufferHandle texture ) -> void override;
 
         auto Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void override;
@@ -49,10 +47,13 @@ namespace Mikoto {
         auto RegisterImage( TextureHandle texture ) -> void override;
         auto RegisterImage( TextureHandle texture, SamplerHandle sampler ) -> void override;
 
-        auto PushBuffer( FramePass * pass, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType, ShaderResourceVisibility visibility, BufferHandle handle ) -> void override;
-        auto PushImage( FramePass * pass, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType, ShaderResourceVisibility visibility, TextureHandle handle ) -> void override;
-
         ~VulkanGraphicsContext() override = default;
+
+    private:
+        auto CreatePassDescriptors(IPipeline* pipeline, PassResources& resources) -> void;
+        auto PushBuffer( IPipeline* pipeline, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType) -> void;
+        auto PushImage( IPipeline * pipeline, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType) -> void;
+
     private:
         // Information I store for each pass
         struct FramePassInfo {
@@ -66,8 +67,10 @@ namespace Mikoto {
         // TODO: Before we start rendering passes
         // Descriptors are bound to a buffer so if we want to share descriptors they must be of same cmd buffer
         CommandListHandle m_CmdList{};
+
+        FrameBlackboard* m_Blackboard{};
     private:
-        ankerl::unordered_dense::map<FramePass*, FramePassInfo> m_PassInfo{};
+        ankerl::unordered_dense::map<IPipeline*, FramePassInfo> m_PassInfo{};
         ankerl::unordered_dense::map<std::pair<Texture*, Sampler*>, UInt32> m_CombinedSamplerIndices{};
     };
 }

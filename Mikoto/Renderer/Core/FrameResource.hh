@@ -11,11 +11,24 @@
 
 #include <ankerl/unordered_dense.h>
 
+#include <Common/Common.hh>
 #include <Assets//Texture.hh>
 #include <Renderer/Core/Pipeline.hh>
 
 namespace Mikoto {
-    enum class FrameResourceType { RENDER_TARGET, TEXTURE, BUFFER, PIPELINE, INVALID };
+    enum class FrameResourceType {
+        RENDER_TARGET,
+        TEXTURE,
+        BUFFER,
+        PIPELINE,
+        INVALID
+    };
+
+    struct FrameResourceBuffer {};
+
+    struct FrameResourceTexture {};
+
+    struct FrameResourcePipeline {};
 
     struct PipelineDescription {
         ankerl::unordered_dense::map<ShaderStage, std::string> Shaders{};
@@ -25,7 +38,7 @@ namespace Mikoto {
         std::string DepthRenderTargets{};
         std::vector<std::string> ColorRenderTargets{};
 
-        auto AddShader(std::string_view path, ShaderStage stage) -> void;
+        auto AddShader( std::string_view path, ShaderStage stage ) -> void;
     };
 
     struct FrameResource {
@@ -33,18 +46,17 @@ namespace Mikoto {
         std::variant<BufferDescription, PipelineDescription, TextureDescription> Description{};
     };
 
-    enum ShaderResourceVisibility {
-        MKT_SHADER_RESOURCE_VISIBILITY_VERTEX,
-        MKT_SHADER_RESOURCE_VISIBILITY_PIXEL,
-        MKT_SHADER_RESOURCE_VISIBILITY_COMPUTE,
-        MKT_SHADER_RESOURCE_VISIBILITY_UNDEFINED,
-    };
-
     enum class ShaderResourceType {
         SHADER_STORAGE_BUFFER,
         SHADER_RESOURCE_UNIFORM_BUFFER,
         SHADER_RESOURCE_COMBINED_IMAGE_SAMPLER,
         SHADER_RESOURCE_UNDEFINED,
+    };
+
+    struct ShaderResourceInfo {
+        std::string Name{};
+        UInt32 GroupBinding{};
+        ShaderResourceType ResourceType{ ShaderResourceType::SHADER_RESOURCE_UNDEFINED };
     };
 }
 #endif //MIKOTO_FRAMERESOURCE_H

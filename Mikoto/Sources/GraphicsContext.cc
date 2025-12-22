@@ -87,7 +87,36 @@ namespace Mikoto {
         m_Context->RegisterImage(texture, sampler );
     }
 
-    auto PassCommandList::BindBuffer( std::string_view buffer, UInt32 set, UInt32 index ) -> void {
+    auto PassCommandList::BindStorageBuffer( std::string_view buffer, UInt32 set, UInt32 index) -> void {
+        MKT_ASSERT( m_Context, "No valid context for this pass command list" );
+        MKT_ASSERT( m_Blackboard, "No valid blackboard for this pass command list" );
+
+        BufferHandle bufferHandle{ m_Blackboard->GetBuffer(buffer) };
+        if (!bufferHandle.IsEmpty()) {
+            m_ShaderResources.Bindings[set].emplace_back( ShaderResourceInfo{
+                .Name{ buffer },
+                .GroupBinding{ index },
+                .ResourceType{ ShaderResourceType::SHADER_STORAGE_BUFFER },
+            });
+        }
+    }
+
+    auto PassCommandList::BindUniformBuffer( BufferHandle buffer, UInt32 set, UInt32 index) -> void {
+
+    }
+
+    auto PassCommandList::BindUniformBuffer( std::string_view buffer, UInt32 set, UInt32 index) -> void {
+        MKT_ASSERT( m_Context, "No valid context for this pass command list" );
+        MKT_ASSERT( m_Blackboard, "No valid blackboard for this pass command list" );
+
+        BufferHandle bufferHandle{ m_Blackboard->GetBuffer(buffer) };
+        if (!bufferHandle.IsEmpty()) {
+            m_ShaderResources.Bindings[set].emplace_back(ShaderResourceInfo{
+                .Name{ buffer },
+                .GroupBinding{ index },
+                .ResourceType{ ShaderResourceType::SHADER_RESOURCE_UNIFORM_BUFFER },
+            });
+        }
     }
 
     auto PassCommandList::Draw( UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance ) -> void {
@@ -123,11 +152,11 @@ namespace Mikoto {
         m_Context->SetScissor( m_Scissor );
     }
 
-    auto PassCommandList::BindPipeline( std::string_view pipelineName ) const -> void {
+    auto PassCommandList::BindPipeline( std::string_view pipelineName ) -> void {
         PipelineHandle piepline{ m_Blackboard->GetPipeline(pipelineName) };
         MKT_ASSERT( !piepline.IsEmpty(), "PassCommandList::SetDepthRenderTarget - PipelineHandle must not be empty" );
 
-        m_Context->BindPipeline( piepline );
+        m_Context->BindPipeline( piepline, m_ShaderResources );
     }
 
     auto PassCommandList::BindVertexBuffer( BufferHandle vertices ) -> void {
@@ -136,14 +165,16 @@ namespace Mikoto {
     }
     auto PassCommandList::SubmitDraw() -> void {
     }
+
     auto PassCommandList::Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void {
+        m_Context->Dispatch( invX, invY, invZ );
     }
 
     auto PassCommandList::SetClearColor( const Vec4F &color ) -> void {
         m_RenderInfo.ClearColor = color;
     }
 
-    auto PassCommandList::BindBuffer( BufferHandle texture, UInt32 set, UInt32 index ) -> void {
+    auto PassCommandList::BindStorageBuffer( BufferHandle texture, UInt32 set, UInt32 index) -> void {
     }
 
 }// namespace Mikoto

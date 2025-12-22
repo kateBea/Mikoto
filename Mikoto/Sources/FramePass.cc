@@ -115,9 +115,9 @@ namespace  Mikoto {
 
         commandList.BindPipeline( "FinalCompositionPass_Pipeline" );
 
-        commandList.BindBuffer( "ShadowPass_CameraInfo", 0, 0 );
-        commandList.BindBuffer( "ShadowPass_LightsBuffer", 1, 0 );
-        commandList.BindBuffer( "ShadowPass_ObjectInfo", 2, 0 );
+        commandList.BindStorageBuffer( "ShadowPass_CameraInfo", 0, 0);
+        commandList.BindStorageBuffer( "ShadowPass_LightsBuffer", 1, 0);
+        commandList.BindStorageBuffer( "ShadowPass_ObjectInfo", 2, 0);
 
         // Meshes
         auto& registry{ m_Scene->GetRegistry() };
@@ -240,9 +240,9 @@ namespace  Mikoto {
 
         commandList.BeginRender();
 
-        commandList.BindBuffer( "ShadowPass_CameraInfo", 0, 0 );
-        commandList.BindBuffer( "ShadowPass_LightsBuffer", 1, 0 );
-        commandList.BindBuffer( "ShadowPass_ObjectInfo", 2, 0 );
+        commandList.BindStorageBuffer( "ShadowPass_CameraInfo", 0, 0);
+        commandList.BindStorageBuffer( "ShadowPass_LightsBuffer", 1, 0);
+        commandList.BindStorageBuffer( "ShadowPass_ObjectInfo", 2, 0);
 
         // Set render targets
         commandList.SetViewport(0, 0, 1920, 1080);
@@ -358,7 +358,6 @@ namespace  Mikoto {
         PipelineDescription pipelineDesc{};
         pipelineDesc.Description = ComputePipelineDescription{};
 
-        // Configure shader stages
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/BasicCompute_Comp.sprv", ShaderStage::COMPUTE_STAGE );
 
         builder.CreateNamedPipeline( "SimpleComputePass_Pipeline", pipelineDesc );
@@ -376,16 +375,16 @@ namespace  Mikoto {
     auto SimpleComputePass::Execute( PassCommandList& commandList ) -> void {
         commandList.BeginCompute();
 
+        commandList.BindStorageBuffer( "SimpleComputePass_Result", 0, 0);
+
         commandList.BindPipeline( "SimpleComputePass_Pipeline" );
 
         // Prime numbers up until this value
-        constexpr  UInt32 limitNumbers{ 30 };
+        constexpr UInt32 limitNumbers{ 30 };
 
         // matches shader's local_size_x
         constexpr UInt32 localSize{ 64 };
         constexpr UInt32 groupCount{ (limitNumbers + localSize - 1) / localSize };
-
-        commandList.BindBuffer( "SimpleComputePass_Result", 0, 0 );
 
         commandList.Dispatch( groupCount, 1, 1 );
 

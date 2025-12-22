@@ -54,19 +54,18 @@ namespace Mikoto {
         m_Resources[std::string{ name }].Description = description;
     }
 
-    auto FrameGraphBuilder::RegisterShaderResource( FramePass* pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType type, ShaderResourceVisibility visibility ) -> void {
+    auto FrameGraphBuilder::RegisterShaderResource( FramePass* pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType type) -> void {
         m_Nodes[pass].ShaderResources[groupIndex] = ShaderResourceInfo{
             .Name{ name },
             .GroupBinding{ groupBinding },
             .ResourceType{ type },
-            .Visibility{ visibility }
         };
     }
 
-    FrameGraph::FrameGraph( GraphicsContext &context )
-        : m_GraphicsContex{ std::addressof( context )}
+    FrameGraph::FrameGraph( GraphicsContext* context, GpuDevice* device)
+        : m_GraphicsContex{ context }
     {
-        m_Blackboard = CreateScope<FrameBlackboard>( m_GraphicsContex->GetDevice() );
+        m_Blackboard = CreateScope<FrameBlackboard>( device );
     }
 
     auto FrameGraph::Compile( FrameGraphBuilder &builder ) -> void {
@@ -95,13 +94,7 @@ namespace Mikoto {
     }
 
     auto FrameGraph::Execute() -> void {
-        GpuDevice* gpuDevice{ m_GraphicsContex->GetDevice() };
-
-        // Queue type according to command types, we could switch later depending on the type of pass
-        CommandListHandle gpuCmdList{ gpuDevice->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
-        gpuCmdList->Begin();
-
-        m_GraphicsContex->BeginFrame(gpuCmdList);
+        m_GraphicsContex->BeginFrame( m_Blackboard.get() );
 
         for ( const FrameNode & pass : m_Nodes) {
             PassCommandList passCommands{ m_GraphicsContex, m_Blackboard.get() };
@@ -109,27 +102,19 @@ namespace Mikoto {
         }
 
         m_GraphicsContex->EndFrame();
-
-        gpuCmdList->End();
-        gpuDevice->SubmitCommands( gpuCmdList );
     }
 
     auto FrameGraph::GetBlackboard() const -> FrameBlackboard * {
         return m_Blackboard.get();
     }
 
-    auto FrameGraph::Create( GraphicsContext *context ) -> Unique<FrameGraph> {
-        return CreateScope<FrameGraph>( *context );
+    auto FrameGraph::Create( GraphicsContext* context, GpuDevice* device ) -> Unique<FrameGraph> {
+        return CreateScope<FrameGraph>( context, device );
     }
 
     auto FrameGraph::RegisterResource(std::string_view name, FrameResource resource ) const -> void {
         switch (resource.Type) {
             case FrameResourceType::RENDER_TARGET:
-                if (std::holds_alternative<TextureDescription>( resource.Description )) {
-                    m_Blackboard->RegisterTexture( name, std::get<TextureDescription>( resource.Description ) );
-                }
-
-                break;
             case FrameResourceType::TEXTURE:
                 if (std::holds_alternative<TextureDescription>( resource.Description )) {
                     m_Blackboard->RegisterTexture( name, std::get<TextureDescription>( resource.Description ) );

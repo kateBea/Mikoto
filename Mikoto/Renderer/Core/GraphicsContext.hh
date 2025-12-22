@@ -5,6 +5,7 @@
 #ifndef MIKOTO_RENDERCONTEXT_HH
 #define MIKOTO_RENDERCONTEXT_HH
 
+#include <vector>
 #include <string_view>
 
 #include <ankerl/unordered_dense.h>
@@ -37,6 +38,11 @@ namespace Mikoto {
         std::vector<TextureHandle> ColorRenderTargets{};
     };
 
+    struct PassResources {
+        FrameBlackboard* Blackboard{ nullptr };
+        ankerl::unordered_dense::map<UInt32, std::vector<ShaderResourceInfo>> Bindings{};
+    };
+
     class GraphicsContext {
     public:
         virtual ~GraphicsContext() = default;
@@ -53,10 +59,7 @@ namespace Mikoto {
         virtual auto BindBuffer(BufferHandle texture) -> void = 0;
 
         // Current confirmed API ============================================
-        MKT_NODISCARD auto GetDevice() const -> GpuDevice* { return  m_Device; }
-
-        virtual auto RegisterPass(FramePass* pass, PipelineHandle pipeline) -> void = 0;
-        virtual auto BeginFrame(CommandListHandle cmd)-> void = 0;
+        virtual auto BeginFrame(FrameBlackboard* blackboard)-> void = 0;
         virtual auto EndFrame()-> void = 0;
 
         virtual auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void = 0;
@@ -69,9 +72,7 @@ namespace Mikoto {
 
         virtual auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance) -> void = 0;
 
-        virtual auto BindPipeline(PipelineHandle pipeline) -> void = 0;
-        virtual auto PushBuffer( FramePass * pass, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType, ShaderResourceVisibility visibility, BufferHandle handle ) -> void = 0;
-        virtual auto PushImage( FramePass * pass, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType, ShaderResourceVisibility visibility, TextureHandle handle ) -> void = 0;
+        virtual auto BindPipeline(PipelineHandle pipeline, PassResources& resources) -> void = 0;
 
         MKT_NODISCARD static auto Create(GpuDevice* device) -> Unique<GraphicsContext>;
 
@@ -100,16 +101,18 @@ namespace Mikoto {
         auto SetViewport(Int32 x, Int32 y, Int32 width, Int32 height) -> void ;
         auto SetScissor(Int32 x, Int32 y, Int32 width, Int32 height) -> void;
 
-        auto BindPipeline(std::string_view pipelineName) const -> void;
+        auto BindPipeline(std::string_view pipelineName) -> void;
 
         // TODO
         auto BindVertexBuffer(BufferHandle vertices) -> void;
         auto BindIndexBuffer(BufferHandle indices) -> void;
         auto SubmitDraw() -> void;
-        auto BindBuffer(BufferHandle buffer, UInt32 set, UInt32 index) -> void;
-        auto BindBuffer(std::string_view buffer, UInt32 set, UInt32 index) -> void;
 
+        auto BindStorageBuffer(BufferHandle buffer, UInt32 set, UInt32 index) -> void;
+        auto BindStorageBuffer(std::string_view buffer, UInt32 set, UInt32 index) -> void;
 
+        auto BindUniformBuffer(BufferHandle buffer, UInt32 set, UInt32 index) -> void;
+        auto BindUniformBuffer(std::string_view buffer, UInt32 set, UInt32 index) -> void;
 
         // Current confirmed API ============================================
         auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance) -> void;
@@ -154,8 +157,12 @@ namespace Mikoto {
 
 
         // Pass state
-        PassViewport m_Viewport{};
         PassScissor m_Scissor{};
+        PassViewport m_Viewport{};
+
+        // Pass shader resources
+        // TODO: Group index -> (ShaderResourceInfo)
+        PassResources m_ShaderResources{};
 
         GfxRenderInfo m_RenderInfo{};
 

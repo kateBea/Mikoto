@@ -59,18 +59,17 @@ namespace Mikoto {
         ImGui::Text( "Element count: %zu", data.size() );
         ImGui::Spacing();
 
-        // Display as a table (best readability)
         if (ImGui::BeginTable( "PrimeTable", 4,
                                ImGuiTableFlags_RowBg |
                                ImGuiTableFlags_Borders |
                                ImGuiTableFlags_Resizable )) {
             ImGui::TableSetupColumn( "Index" );
             ImGui::TableSetupColumn( "Value" );
-            ImGui::TableSetupColumn( "Prime?" );
+            ImGui::TableSetupColumn( "Is Prime" );
             ImGui::TableSetupColumn( "Raw" );
             ImGui::TableHeadersRow();
 
-            for (size_t i = 0; i < data.size(); ++i) {
+            for (Size i{}; i < data.size(); ++i) {
                 ImGui::TableNextRow();
 
                 ImGui::TableSetColumnIndex( 0 );

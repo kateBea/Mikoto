@@ -92,12 +92,13 @@ namespace Mikoto {
 
         // Create and configure Compute
         HelloTrianglePass* helloTrianglePass{ m_PassRegistry.Register<HelloTrianglePass>() };
-        builder.RegisterPass( helloTrianglePass );
         helloTrianglePass->Setup( builder );
 
         SimpleComputePass* simpleComputePass{ m_PassRegistry.Register<SimpleComputePass>() };
-        builder.RegisterPass( simpleComputePass );
         simpleComputePass->Setup( builder );
+
+        m_FrameGraph->RegisterPass( helloTrianglePass );
+        m_FrameGraph->RegisterPass( simpleComputePass );
 
         m_FrameGraph->Compile( builder );
     }

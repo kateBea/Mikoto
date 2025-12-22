@@ -107,7 +107,7 @@ namespace Mikoto {
         bool DepthTest{ true };
         bool DepthWrite{ true };
         bool StencilTest{ false };
-        bool AlphaBlending{ false };
+        bool AlphaBlending{ true };
         bool Wireframe{ false };
         float WireframeLineWidth{ 1.0f };
 

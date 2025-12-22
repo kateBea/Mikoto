@@ -400,16 +400,9 @@ namespace  Mikoto {
         pipelineDesc.AddShader( "Resources/Shaders/vulkan-spirv/HelloTriangle_Frag.sprv", ShaderStage::FRAGMENT_STAGE );
 
         // Configure pipeline stage
-        GraphicsPipelineDescription graphicsDesc{};
-        graphicsDesc.DepthTest = true;
-        graphicsDesc.DepthWrite = true;
-        graphicsDesc.AlphaBlending = true;
-        graphicsDesc.VertexAttributesSpec = {};
-
-        // Graphics context will specify the texture formats for the render targets we can redner to with this pipeline
-        // It will also create the shader modules first and assign them to this description which will be used to create the actual pipeline
-
-        pipelineDesc.Description = graphicsDesc;
+        pipelineDesc.Description = GraphicsPipelineDescription{
+            .VertexAttributesSpec{}
+        };;
 
         // TODO: temporary, specify the render targets this pipeline outputs to
         pipelineDesc.ColorRenderTargets.emplace_back( "HelloTrianglePass_ColorTarget" );
@@ -417,31 +410,8 @@ namespace  Mikoto {
 
         builder.CreateNamedPipeline( "HelloTrianglePass_Pipeline", pipelineDesc );
 
-        // Color attachment
-        TextureDescription colorDesc{};
-        colorDesc.WithWidth( 1920 )
-            .WithHeight( 1080 )
-            .WithChannelCount( 4 )
-            .WithData( nullptr )
-            .WithType( TextureType::TEXTURE_2D )
-            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
-            .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
-            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
-
-        builder.CreateNamedRenderTarget( "HelloTrianglePass_ColorTarget", colorDesc );
-
-        // Depth attachment
-        TextureDescription depthDesc{};
-        depthDesc.WithWidth( 1920 )
-            .WithHeight( 1080 )
-            .WithChannelCount( 1 )
-            .WithData( nullptr )
-            .WithType( TextureType::TEXTURE_2D )
-            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
-            .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
-            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
-
-        builder.CreateNamedRenderTarget( "HelloTrianglePass_DepthTarget", depthDesc );
+        builder.CreateColorRenderTarget( "HelloTrianglePass_ColorTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM );
+        builder.CreateDepthRenderTarget( "HelloTrianglePass_DepthTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_D32_FLOAT );
 
         builder.WriteTexture( this, "HelloTrianglePass_ColorTarget" );
         builder.WriteTexture( this, "HelloTrianglePass_DepthTarget" );

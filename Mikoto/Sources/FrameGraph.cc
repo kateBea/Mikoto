@@ -50,6 +50,34 @@ namespace Mikoto {
         m_Resources[std::string{ name }].Description = description;
     }
 
+    auto FrameGraphBuilder::CreateColorRenderTarget( std::string_view name, UInt32 width, UInt32 height, TextureFormat format ) -> void {
+        TextureDescription colorDesc{};
+        colorDesc.WithWidth( width )
+            .WithHeight( height )
+            .WithChannelCount( 4 )
+            .WithData( nullptr )
+            .WithType( TextureType::TEXTURE_2D )
+            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
+            .WithFormat( format )
+            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+
+        CreateNamedRenderTarget( name, colorDesc );
+    }
+
+    auto FrameGraphBuilder::CreateDepthRenderTarget( std::string_view name, UInt32 width, UInt32 height, TextureFormat format ) -> void {
+        TextureDescription depthDesc{};
+        depthDesc.WithWidth( width )
+            .WithHeight( height )
+            .WithChannelCount( 1 )
+            .WithData( nullptr )
+            .WithType( TextureType::TEXTURE_2D )
+            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
+            .WithFormat( format )
+            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+
+        CreateNamedRenderTarget( name, depthDesc );
+    }
+
     auto FrameGraphBuilder::RegisterShaderResource( FramePass* pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType type) -> void {
         m_Nodes[pass].ShaderResources[groupIndex] = ShaderResourceInfo{
             .Name{ name },
@@ -85,9 +113,9 @@ namespace Mikoto {
     auto FrameGraph::Execute() -> void {
         m_GraphicsContex->BeginFrame( GetBlackboard() );
 
-        for ( const FrameNode & pass : m_Nodes) {
+        for ( const auto& [pass, input, outputs] : m_Nodes) {
             PassCommandList passCommands{ m_GraphicsContex, GetBlackboard() };
-            pass.Pass->Execute( passCommands );
+            pass->Execute( passCommands );
         }
 
         m_GraphicsContex->EndFrame();

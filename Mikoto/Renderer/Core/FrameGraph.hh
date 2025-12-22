@@ -47,6 +47,9 @@ namespace Mikoto {
         auto CreateNamedPipeline(std::string_view name, PipelineDescription description) -> void;
         auto CreateNamedRenderTarget(std::string_view name, TextureDescription description) -> void ;
 
+        auto CreateColorRenderTarget(std::string_view name, UInt32 width, UInt32 height, TextureFormat format) -> void;
+        auto CreateDepthRenderTarget(std::string_view name, UInt32 width, UInt32 height, TextureFormat format) -> void;
+
         auto RegisterShaderResource(FramePass* pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType type) -> void;
 
     private:

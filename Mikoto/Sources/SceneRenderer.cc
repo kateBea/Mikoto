@@ -67,7 +67,7 @@ namespace Mikoto {
             return;
         }
 
-        m_FrameGraph = FrameGraph::Create( m_GraphicsContext );
+        m_FrameGraph = FrameGraph::Create( m_GraphicsContext, m_Device );
 
         FrameGraphBuilder builder{};
 
@@ -95,9 +95,9 @@ namespace Mikoto {
         builder.RegisterPass( helloTrianglePass );
         helloTrianglePass->Setup( builder );
 
-        //SimpleComputePass* simpleComputePass{ m_PassRegistry.Register<SimpleComputePass>() };
-        //builder.RegisterPass( simpleComputePass );
-        //simpleComputePass->Setup( builder );
+        SimpleComputePass* simpleComputePass{ m_PassRegistry.Register<SimpleComputePass>() };
+        builder.RegisterPass( simpleComputePass );
+        simpleComputePass->Setup( builder );
 
         m_FrameGraph->Compile( builder );
     }

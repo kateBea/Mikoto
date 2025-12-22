@@ -11,6 +11,24 @@
 
 namespace Mikoto {
 
+    constexpr auto ToVkDescriptorType(ShaderResourceType type) noexcept -> VkDescriptorType {
+        switch (type)
+        {
+            case ShaderResourceType::SHADER_STORAGE_BUFFER:
+                return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+
+            case ShaderResourceType::SHADER_RESOURCE_UNIFORM_BUFFER:
+                return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+            case ShaderResourceType::SHADER_RESOURCE_COMBINED_IMAGE_SAMPLER:
+                return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+            case ShaderResourceType::SHADER_RESOURCE_UNDEFINED:
+            default:
+                return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+        }
+    }
+
     VulkanGraphicsContext::VulkanGraphicsContext( GpuDevice *device )
         : GraphicsContext{ device } {}
 
@@ -69,43 +87,21 @@ namespace Mikoto {
     auto VulkanGraphicsContext::BeginCompute() -> void {}
     auto VulkanGraphicsContext::EndCompute() -> void {}
 
-    auto VulkanGraphicsContext::RegisterPass( FramePass *pass, PipelineHandle pipeline ) -> void {
-        if (m_PassInfo.contains( pass )) {
-            return;
-        }
+    auto VulkanGraphicsContext::BeginFrame(FrameBlackboard* blackboard) -> void {
+        // Queue type according to command types, we could switch later depending on the type of pass
+        m_CmdList = m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE );
+        m_CmdList->Begin();
 
-        if (pipeline->GetPipelineType() == PipelineType::GRAPHICS_PIPELINE) {
-            VulkanGraphicsPipeline* graphicsPipeline{ dynamic_cast<VulkanGraphicsPipeline*>(pipeline.GetRaw()) };
-
-            for (auto& [setIndex, setLayout] : graphicsPipeline->m_ReflectionData.setLayouts) {
-                const VkDescriptorSetLayout& layoutTextures{ graphicsPipeline->GetDescriptorSetLayout( setIndex ) };
-                auto descriptorSet{ TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( std::addressof( layoutTextures ) ) };
-
-                m_PassInfo[pass].DescriptorSets.emplace( setIndex, descriptorSet );
-            }
-        }
-
-        if (pipeline->GetPipelineType() == PipelineType::COMPUTE_PIPELINE) {
-            VulkanComputePipeline* computePipeline{ dynamic_cast<VulkanComputePipeline*>(pipeline.GetRaw()) };
-
-            for (auto& [setIndex, setLayout] : computePipeline->m_ReflectionData.setLayouts) {
-                const VkDescriptorSetLayout& layoutTextures{ computePipeline->GetDescriptorSetLayout( setIndex ) };
-                auto descriptorSet{ TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( std::addressof( layoutTextures ) ) };
-
-                m_PassInfo[pass].DescriptorSets.emplace( setIndex, descriptorSet );
-            }
-        }
-    }
-
-    auto VulkanGraphicsContext::BeginFrame( CommandListHandle cmd ) -> void {
-        m_CmdList = cmd;
+        m_Blackboard = blackboard;
+        MKT_ASSERT( m_Blackboard, "Blackboard must not be NULL" );
     }
 
     auto VulkanGraphicsContext::EndFrame() -> void {
-
+        m_CmdList->End();
+        m_Device->SubmitCommands( m_CmdList );
     }
 
-    auto VulkanGraphicsContext::BindPipeline( PipelineHandle pipeline ) -> void {
+    auto VulkanGraphicsContext::BindPipeline( PipelineHandle pipeline, PassResources& resources ) -> void {
         VkCommandBuffer vkCmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
         VkPipelineBindPoint bindPoint{ VK_PIPELINE_BIND_POINT_MAX_ENUM };
 
@@ -120,6 +116,27 @@ namespace Mikoto {
             default:
                 MKT_CORE_LOGGER_WARN( "VulkanGraphicsContext::BindPipeline - Unsupported pipeline type." );
                 break;
+        }
+
+        // Bind the resources that are viable for this pipeline.
+        // If they do not exist we create them first
+        CreatePassDescriptors( pipeline.GetRaw(), resources );
+
+        // Bind resources if any
+        const auto it{ m_PassInfo.find( pipeline.GetRaw() ) };
+        if (it != m_PassInfo.end()) {
+            VkPipelineLayout pipelineLayout{ pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ) };
+
+            for (const auto& [setIndex, descriptorSet] : it->second.DescriptorSets) {
+                switch (pipeline->GetPipelineType()) {
+                    case PipelineType::GRAPHICS_PIPELINE:
+                        vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, setIndex, 1, std::addressof( descriptorSet ), 0, nullptr );
+                        break;
+                    case PipelineType::COMPUTE_PIPELINE:
+                        vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, setIndex, 1, std::addressof( descriptorSet ), 0, nullptr );
+                        break;
+                }
+            }
         }
 
         vkCmdBindPipeline( vkCmd, bindPoint, pipeline->GetNativeHandle( ObjectType::Vk_Pipeline ) );
@@ -139,38 +156,86 @@ namespace Mikoto {
         if (it == m_CombinedSamplerIndices.end()) { m_CombinedSamplerIndices.emplace( std::make_pair( texture.GetRaw(), sampler.GetRaw() ), m_CombinedSamplerIndices.size() ); }
     }
 
-    auto VulkanGraphicsContext::PushBuffer( FramePass *pass, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType, ShaderResourceVisibility visibility, BufferHandle handle ) -> void {
-        const auto it{ m_PassInfo.find( pass  ) };
+    auto VulkanGraphicsContext::CreatePassDescriptors( IPipeline *pipeline, PassResources& resources ) -> void {
+        if (pipeline == nullptr) {
+            return;
+        }
+
+        // We first create the descriptors
+        if (pipeline->GetPipelineType() == PipelineType::COMPUTE_PIPELINE) {
+            VulkanComputePipeline* vulkanPipeline{ dynamic_cast<VulkanComputePipeline *>(pipeline) };
+
+            const Size descriptorLayoutCount{ vulkanPipeline->GetDescriptorLayoutCount() };
+            for (Size index{}; index < descriptorLayoutCount; ++index) {
+                const VkDescriptorSetLayout& layout{ vulkanPipeline->GetDescriptorSetLayout( index ) };
+                VkDescriptorSet descriptorSet{ TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( std::addressof( layout ) ) };
+                m_PassInfo[pipeline].DescriptorSets[index] = descriptorSet;
+            }
+        }
+
+        if (pipeline->GetPipelineType() == PipelineType::GRAPHICS_PIPELINE) {
+            VulkanGraphicsPipeline* vulkanPipeline{ dynamic_cast<VulkanGraphicsPipeline *>(pipeline) };
+
+            const Size descriptorLayoutCount{ vulkanPipeline->GetDescriptorLayoutCount() };
+            for (Size index{}; index < descriptorLayoutCount; ++index) {
+                const VkDescriptorSetLayout& layout{ vulkanPipeline->GetDescriptorSetLayout( index ) };
+                VkDescriptorSet descriptorSet{ TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( std::addressof( layout ) ) };
+                m_PassInfo[pipeline].DescriptorSets[index] = descriptorSet;
+            }
+        }
+
+        // Updates descriptors
+        for (auto& [setIndex, bindings] : resources.Bindings) {
+            for (auto& binding : bindings) {
+                switch (binding.ResourceType) {
+                    case ShaderResourceType::SHADER_STORAGE_BUFFER:
+                    case ShaderResourceType::SHADER_RESOURCE_UNIFORM_BUFFER:
+                        PushBuffer( pipeline, binding.Name, setIndex, binding.GroupBinding, binding.ResourceType);
+                        break;
+                    case ShaderResourceType::SHADER_RESOURCE_COMBINED_IMAGE_SAMPLER:
+                        PushImage( pipeline, binding.Name, setIndex, binding.GroupBinding, binding.ResourceType);
+                        break;
+                    case ShaderResourceType::SHADER_RESOURCE_UNDEFINED:
+                        break;
+                }
+            }
+        }
+    }
+
+    auto VulkanGraphicsContext::PushBuffer( IPipeline* pipeline, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType) -> void {
+        const auto it{ m_PassInfo.find( pipeline  ) };
         if (it == m_PassInfo.end()) {
             MKT_CORE_LOGGER_WARN( "VulkanGraphicsContext::PushBuffer - Pass does not exist" );
             return;
         }
 
         FramePassInfo& passInfo{ it->second };
+        BufferHandle handle{ m_Blackboard->GetBuffer( name ) };
 
         passInfo.BoundBuffers.emplace( std::make_pair(groupIndex, groupBinding), handle );
 
         DescriptorWriter writer{};
-        writer.WriteBuffer( groupBinding, handle->GetNativeHandle( ObjectType::Vk_Buffer ), handle->GetSizeBytes(), 0, VK_DESCRIPTOR_TYPE_MAX_ENUM );
+        writer.WriteBuffer( groupBinding, handle->GetNativeHandle( ObjectType::Vk_Buffer ), handle->GetSizeBytes(), 0, ToVkDescriptorType(shaderResourceType) );
 
         writer.UpdateSet( VK_DEVICE(m_Device), passInfo.DescriptorSets.at( groupIndex ) );
     }
 
-    auto VulkanGraphicsContext::PushImage( FramePass *pass, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType, ShaderResourceVisibility visibility, TextureHandle handle ) -> void {
-        const auto it{ m_PassInfo.find( pass  ) };
+    auto VulkanGraphicsContext::PushImage( IPipeline* pipeline, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType) -> void {
+        const auto it{ m_PassInfo.find( pipeline  ) };
         if (it == m_PassInfo.end()) {
             MKT_CORE_LOGGER_WARN( "VulkanGraphicsContext::PushImage - Pass does not exist" );
             return;
         }
 
         FramePassInfo& passInfo{ it->second };
+        TextureHandle handle{ m_Blackboard->GetTexture( name ) };
 
         passInfo.BoundTextures.emplace( std::make_pair(groupIndex, groupBinding), handle );
 
         DescriptorWriter writer{};
         VkSampler sampler{ VK_NULL_HANDLE };
         VkImageLayout layout{ dynamic_cast<VulkanTexture*>(handle.GetRaw())->GetCurrentLayout() };
-        writer.WriteImage( groupBinding, handle->GetNativeHandle( ObjectType::Vk_ImageView ), sampler, layout, VK_DESCRIPTOR_TYPE_MAX_ENUM );
+        writer.WriteImage( groupBinding, handle->GetNativeHandle( ObjectType::Vk_ImageView ), sampler, layout, ToVkDescriptorType(shaderResourceType) );
 
         writer.UpdateSet( VK_DEVICE(m_Device), passInfo.DescriptorSets.at( groupIndex ) );
     }
@@ -179,7 +244,9 @@ namespace Mikoto {
         vkCmdDraw( m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ), vertexCount, instanceCount, firstVertex, firstInstance );
     }
 
-    auto VulkanGraphicsContext::Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void {}
+    auto VulkanGraphicsContext::Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void {
+        m_CmdList->Dispatch( invX, invY, invZ );
+    }
 
     auto VulkanGraphicsContext::SetViewport( const PassViewport &vp ) -> void {
         VkCommandBuffer cmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };

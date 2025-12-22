@@ -41,7 +41,7 @@ namespace Mikoto {
 
     auto FrameBlackboard::RegisterTexture( std::string_view name, TextureDescription description ) -> void {
         if (m_TexturesByNames.contains( std::string{ name } )) {
-            MKT_CORE_LOGGER_WARN( "FrameBlackboard::RegisterPipeline - Named render target [{}] already exists.", name );
+            MKT_CORE_LOGGER_WARN( "FrameBlackboard::RegisterTexture - Named texture [{}] already exists.", name );
             return;
         }
 
@@ -84,6 +84,15 @@ namespace Mikoto {
     }
 
     auto FrameBlackboard::RegisterBuffer( std::string_view name, BufferDescription description ) -> void {
+        if (m_BuffersByNames.contains( std::string{ name } )) {
+            MKT_CORE_LOGGER_WARN( "FrameBlackboard::RegisterBuffer - Named buffer [{}] already exists.", name );
+            return;
+        }
 
+        BufferHandle texture{ m_Device->CreateBuffer( description ) };
+
+        if (!texture.IsEmpty()) {
+            m_BuffersByNames.emplace( std::string{ name }, texture );
+        }
     }
 }

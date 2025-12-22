@@ -49,16 +49,10 @@ namespace Mikoto {
         auto CreateNamedPipeline(std::string_view name, PipelineDescription description) -> void;
         auto CreateNamedRenderTarget(std::string_view name, TextureDescription description) -> void ;
 
-        auto RegisterShaderResource(FramePass* pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType type, ShaderResourceVisibility visibility) -> void;
+        auto RegisterShaderResource(FramePass* pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType type) -> void;
+
     private:
         friend class FrameGraph;
-
-        struct ShaderResourceInfo {
-            std::string Name{};
-            UInt32 GroupBinding{};
-            ShaderResourceType ResourceType{ ShaderResourceType::SHADER_RESOURCE_UNDEFINED };
-            ShaderResourceVisibility Visibility{ MKT_SHADER_RESOURCE_VISIBILITY_UNDEFINED };
-        };
 
         struct NodeData {
             PipelineHandle Pipeline{};
@@ -84,14 +78,14 @@ namespace Mikoto {
     class FrameGraph final {
     public:
 
-        explicit FrameGraph( GraphicsContext& Context );
+        explicit FrameGraph( GraphicsContext* context, GpuDevice* device );
 
         auto Compile(FrameGraphBuilder& backend) -> void;
         auto Execute() -> void;
 
         MKT_NODISCARD auto GetBlackboard() const -> FrameBlackboard*;
 
-        MKT_NODISCARD static auto Create(GraphicsContext * context ) -> Unique<FrameGraph>;
+        MKT_NODISCARD static auto Create(GraphicsContext* context, GpuDevice* device ) -> Unique<FrameGraph>;
 
     private:
 

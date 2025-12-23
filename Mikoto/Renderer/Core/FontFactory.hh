@@ -77,7 +77,7 @@ namespace Mikoto {
         };
 
     private:
-        auto GenerateAtlas( CStr fontFilename, Int32 fontSize, bool expensiveColoring = true ) -> MsdfData;
+        auto GenerateAtlas( CStr fontFilename, Int32 fontSize, bool expensiveColoring = true ) const -> MsdfData;
         auto SubmitAtlasBitmapAndLayout(const msdf_atlas::BitmapAtlasStorage<msdf_atlas::byte, 4>& atlas,std::vector<msdf_atlas::GlyphGeometry> glyphs, MsdfData& data, Int32 fontSize ) const -> void;
 
     private:

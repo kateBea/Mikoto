@@ -23,19 +23,19 @@ namespace Mikoto {
         return m_Atlas;
     }
 
-    auto Font::GetGlyph( UInt32 characterCode ) const -> const FontGlyph& {
+    auto Font::GetGlyph( const UInt32 characterCode ) const -> const FontGlyph& {
         return m_Glyphs.at( characterCode );
     }
 
-    auto Font::GetGlyph( UInt32 characterCode ) -> FontGlyph& {
+    auto Font::GetGlyph( const UInt32 characterCode ) -> FontGlyph& {
         return m_Glyphs.at( characterCode );
     }
 
-    auto Font::GetMaxHeight() const -> UInt32 {
+    auto Font::GetMaxHeight() const -> double {
         return m_MaxHeight;
     }
 
-    auto Font::SetMaxHeight( double maxHeight ) -> void {
+    auto Font::SetMaxHeight( const double maxHeight ) -> void {
         m_MaxHeight = maxHeight;
     }
 
@@ -43,13 +43,13 @@ namespace Mikoto {
         m_Glyphs.emplace( characterCode, glyph );
     }
 
-    auto Font::SetName( std::string_view name ) -> void {
+    auto Font::SetName( const std::string_view name ) -> void {
         m_Name = name;
     }
-    auto Font::SetPath( std::string_view path ) -> void {
+
+    auto Font::SetPath( const std::string_view path ) -> void {
         m_Path = path;
     }
-
 
     auto Font::GetGlyphCount() const -> Size {
         return m_Glyphs.size();

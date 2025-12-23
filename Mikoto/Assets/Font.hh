@@ -117,7 +117,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetGlyph( UInt32 characterCode ) const -> const FontGlyph&;
         MKT_NODISCARD auto GetGlyph( UInt32 characterCode ) -> FontGlyph&;
 
-        MKT_NODISCARD auto GetMaxHeight() const -> UInt32;
+        MKT_NODISCARD auto GetMaxHeight() const -> double;
 
         auto RegisterGlyph( UInt32 characterCode, const FontGlyph& glyph ) -> void;
 

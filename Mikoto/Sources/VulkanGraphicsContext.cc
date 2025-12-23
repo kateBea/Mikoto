@@ -102,20 +102,6 @@ namespace Mikoto {
 
     auto VulkanGraphicsContext::BindPipeline( PipelineHandle pipeline, PassResources &resources ) -> void {
         VkCommandBuffer vkCmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
-        VkPipelineBindPoint bindPoint{ VK_PIPELINE_BIND_POINT_MAX_ENUM };
-
-        switch (pipeline->GetPipelineType()) {
-            case PipelineType::GRAPHICS_PIPELINE:
-                bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-                break;
-            case PipelineType::COMPUTE_PIPELINE:
-                bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
-                break;
-            case PipelineType::RAY_TRACING_PIPELINE:
-            default:
-                MKT_CORE_LOGGER_WARN( "VulkanGraphicsContext::BindPipeline - Unsupported pipeline type." );
-                break;
-        }
 
         // Bind the resources that are viable for this pipeline.
         // If they do not exist we create them first
@@ -136,6 +122,21 @@ namespace Mikoto {
                         break;
                 }
             }
+        }
+
+        VkPipelineBindPoint bindPoint{ VK_PIPELINE_BIND_POINT_MAX_ENUM };
+
+        switch (pipeline->GetPipelineType()) {
+            case PipelineType::GRAPHICS_PIPELINE:
+                bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+                break;
+            case PipelineType::COMPUTE_PIPELINE:
+                bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
+                break;
+            case PipelineType::RAY_TRACING_PIPELINE:
+            default:
+                MKT_CORE_LOGGER_WARN( "VulkanGraphicsContext::BindPipeline - Unsupported pipeline type." );
+                break;
         }
 
         vkCmdBindPipeline( vkCmd, bindPoint, pipeline->GetNativeHandle( ObjectType::Vk_Pipeline ) );
@@ -192,18 +193,22 @@ namespace Mikoto {
         const auto it{ m_PassInfo.find( pipeline ) };
         if (it != m_PassInfo.end() && it->second.Dirty) {
 
-            for (auto &[setIndex, bindings]: resources.Bindings) {
-                for (auto &binding: bindings) {
-                    switch (binding.ResourceType) {
-                        case ShaderResourceType::SHADER_STORAGE_BUFFER:
-                        case ShaderResourceType::SHADER_RESOURCE_UNIFORM_BUFFER:
-                            PushBuffer( pipeline, binding.Name, setIndex, binding.GroupBinding, binding.ResourceType );
-                            break;
-                        case ShaderResourceType::SHADER_RESOURCE_COMBINED_IMAGE_SAMPLER:
-                            PushImage( pipeline, binding.Name, setIndex, binding.GroupBinding, binding.ResourceType );
-                            break;
-                        case ShaderResourceType::SHADER_RESOURCE_UNDEFINED:
-                            break;
+            for (auto &[srgType, group]: resources.m_SRGs) {
+
+                if (srgType == SRGType::SRG_PerCompute) {
+                    // This goes to set 0 of every compute pipeline
+                    for (auto &binding : group) {
+                        switch (binding.Type) {
+                            case ShaderResourceType::SHADER_STORAGE_BUFFER:
+                            case ShaderResourceType::SHADER_RESOURCE_UNIFORM_BUFFER:
+                                PushBuffer( pipeline, binding.Name, 0, binding.Binding, binding.Type );
+                                break;
+                            case ShaderResourceType::SHADER_RESOURCE_COMBINED_IMAGE_SAMPLER:
+                                PushImage( pipeline, binding.Name, 0, binding.Binding, binding.Type );
+                                break;
+                            case ShaderResourceType::SHADER_RESOURCE_UNDEFINED:
+                                break;
+                        }
                     }
                 }
             }

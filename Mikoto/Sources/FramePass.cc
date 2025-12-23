@@ -115,9 +115,9 @@ namespace  Mikoto {
 
         commandList.BindPipeline( "FinalCompositionPass_Pipeline" );
 
-        commandList.BindStorageBuffer( "ShadowPass_CameraInfo", 0, 0);
-        commandList.BindStorageBuffer( "ShadowPass_LightsBuffer", 1, 0);
-        commandList.BindStorageBuffer( "ShadowPass_ObjectInfo", 2, 0);
+        // commandList.BindStorageBuffer( "ShadowPass_CameraInfo", 0, 0);
+        // commandList.BindStorageBuffer( "ShadowPass_LightsBuffer", 1, 0);
+        // commandList.BindStorageBuffer( "ShadowPass_ObjectInfo", 2, 0);
 
         // Meshes
         auto& registry{ m_Scene->GetRegistry() };
@@ -240,9 +240,9 @@ namespace  Mikoto {
 
         commandList.BeginRender();
 
-        commandList.BindStorageBuffer( "ShadowPass_CameraInfo", 0, 0);
-        commandList.BindStorageBuffer( "ShadowPass_LightsBuffer", 1, 0);
-        commandList.BindStorageBuffer( "ShadowPass_ObjectInfo", 2, 0);
+        // commandList.BindStorageBuffer( "ShadowPass_CameraInfo", 0, 0);
+        // commandList.BindStorageBuffer( "ShadowPass_LightsBuffer", 1, 0);
+        // commandList.BindStorageBuffer( "ShadowPass_ObjectInfo", 2, 0);
 
         // Set render targets
         commandList.SetViewport(0, 0, 1920, 1080);
@@ -375,7 +375,7 @@ namespace  Mikoto {
     auto SimpleComputePass::Execute( PassCommandList& commandList ) -> void {
         commandList.BeginCompute();
 
-        commandList.BindStorageBuffer( "SimpleComputePass_Result", 0, 0);
+        commandList.BindStorageBuffer( SRGType::SRG_PerCompute, "SimpleComputePass_Result", 0);
 
         commandList.BindPipeline( "SimpleComputePass_Pipeline" );
 

@@ -20,31 +20,46 @@ namespace Mikoto {
     class FontGlyph final {
     public:
 
-        MKT_NODISCARD bool IsSpace() const { return m_Codepoint == ' '; }
-        MKT_NODISCARD bool IsLineFeed() const { return m_Codepoint == '\n'; }
+        explicit FontGlyph( const UInt32 characterCode ) noexcept
+            : m_Codepoint{ characterCode } {}
 
-        MKT_NODISCARD auto GetUVMin() const -> const glm::vec2& { return m_UVMin; }
-        MKT_NODISCARD auto GetUVMax() const -> const glm::vec2& { return m_UVMax; }
-        MKT_NODISCARD auto GetPlaneMin() const -> const glm::vec2& { return m_PlaneBoundsMin; }
-        MKT_NODISCARD auto GetPlaneMax() const -> const glm::vec2& { return m_PlaneBoundsMax; }
+        // Queries
+        MKT_NODISCARD auto IsSpace() const noexcept -> bool { return m_Codepoint == ' '; }
+        MKT_NODISCARD auto IsLineFeed() const noexcept -> bool { return m_Codepoint == '\n'; }
 
-        MKT_NODISCARD auto GetSize() const -> const glm::ivec2& { return m_Size; }
-        MKT_NODISCARD auto GetBearing() const -> const glm::ivec2& { return m_Bearing; }
-        MKT_NODISCARD auto GetAdvance() const -> UInt32 { return m_Advance; }
+        MKT_NODISCARD auto GetCodepoint() const noexcept -> UInt32 { return m_Codepoint; }
 
+        MKT_NODISCARD auto GetWidth() const noexcept -> double { return m_Width; }
+        MKT_NODISCARD auto GetHeight() const noexcept -> double { return m_Height; }
+
+        MKT_NODISCARD auto GetBearingX() const noexcept -> double { return m_BearingX; }
+        MKT_NODISCARD auto GetBearingY() const noexcept -> double { return m_BearingY; }
+
+        MKT_NODISCARD auto GetAdvanceX() const noexcept -> double { return m_AdvanceX; }
+
+        MKT_NODISCARD auto GetBearingUnderline() const noexcept -> double { return m_BearingUnderline; }
+
+        MKT_NODISCARD auto GetAtlasBounds() const noexcept -> const Vec4F& { return m_AtlasBounds; }
+        MKT_NODISCARD auto GetPlaneBounds() const noexcept -> const Vec4F& { return m_PlaneBounds; }
+
+        auto SetCodepoint( const UInt32 cp) noexcept -> void { m_Codepoint = cp; }
+
+        auto SetWidth( const double width) noexcept -> void { m_Width = width; }
+        auto SetHeight( const double height) noexcept -> void { m_Height = height; }
+
+        auto SetBearingX( const double bx) noexcept -> void { m_BearingX = bx; }
+        auto SetBearingY( const double by) noexcept -> void { m_BearingY = by; }
+
+        auto SetAdvanceX( const double adv) noexcept -> void { m_AdvanceX = adv; }
+
+        auto SetBearingUnderline( const double bu) noexcept -> void { m_BearingUnderline = bu; }
+
+        auto SetAtlasBounds(const Vec4F& bounds) noexcept -> void { m_AtlasBounds = bounds; }
+        auto SetPlaneBounds(const Vec4F& bounds) noexcept -> void { m_PlaneBounds = bounds; }
 
     public:
         // adjust
         UInt32 m_Codepoint{};
-        glm::ivec2 m_Size{};
-        glm::ivec2 m_Bearing{};
-        UInt32 m_Advance{};
-
-        glm::vec2 m_UVMin{};
-        glm::vec2 m_UVMax{};
-        glm::vec2 m_PlaneBoundsMin{};
-        glm::vec2 m_PlaneBoundsMax{};
-
 
         // we will go with these
         double m_Width{};
@@ -53,6 +68,7 @@ namespace Mikoto {
         double m_BearingY{};
         double m_AdvanceX{};
         double m_BearingUnderline{};
+
         Vec4F m_AtlasBounds{};
         Vec4F m_PlaneBounds{};
 
@@ -101,16 +117,17 @@ namespace Mikoto {
         MKT_NODISCARD auto GetGlyph( UInt32 characterCode ) const -> const FontGlyph&;
         MKT_NODISCARD auto GetGlyph( UInt32 characterCode ) -> FontGlyph&;
 
-        MKT_NODISCARD auto GetMaxHeight() const -> UInt32 { return m_MaxHeight; }
+        MKT_NODISCARD auto GetMaxHeight() const -> UInt32;
 
         auto RegisterGlyph( UInt32 characterCode, const FontGlyph& glyph ) -> void;
 
         auto SetName( std::string_view name ) -> void;
         auto SetPath( std::string_view path ) -> void;
 
-        MKT_NODISCARD auto GetGlyphCount() const -> Size;
+        auto SetMaxHeight( double maxHeight ) -> void;
 
-        auto GetSize() -> double { return m_PixelSize; }
+        MKT_NODISCARD auto GetGlyphCount() const -> Size;
+        MKT_NODISCARD auto GetSize() const -> double { return m_PixelSize; }
 
         /**
         * @brief Default destructor.

@@ -31,6 +31,14 @@ namespace Mikoto {
         return m_Glyphs.at( characterCode );
     }
 
+    auto Font::GetMaxHeight() const -> UInt32 {
+        return m_MaxHeight;
+    }
+
+    auto Font::SetMaxHeight( double maxHeight ) -> void {
+        m_MaxHeight = maxHeight;
+    }
+
     auto Font::RegisterGlyph( UInt32 characterCode, const FontGlyph& glyph ) -> void {
         m_Glyphs.emplace( characterCode, glyph );
     }

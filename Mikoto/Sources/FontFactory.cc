@@ -22,26 +22,25 @@
 #include <Renderer/Core/FontFactory.hh>
 
 namespace Mikoto {
-    auto FontFactory::GenerateAtlas( const CStr fontFilename, Int32 fontSize, bool expensiveColoring ) -> MsdfData {
+
+    auto FontFactory::GenerateAtlas( const CStr fontFilename, Int32 fontSize, bool expensiveColoring ) const -> MsdfData {
         MsdfData result{};
 
         Int32 fontWeight{};
         Int32 isVariableWeight{};
 
         // Initialize instance of FreeType library
-        if ( m_FreeTypeHandle != nullptr ) {
+        if (m_FreeTypeHandle != nullptr) {
             msdfgen::FontHandle *font{ msdfgen::loadFont( m_FreeTypeHandle, fontFilename ) };
 
-            if ( font != nullptr ) {
+            if (font != nullptr) {
                 // Storage for glyph geometry and their coordinates in the atlas
                 MsdfGlyphGeometryList glyphs{};
 
-                std::vector<msdfgen::FontVariationAxis> axes;
-                msdfgen::listFontVariationAxes(axes, m_FreeTypeHandle, font);
+                std::vector<msdfgen::FontVariationAxis> axes{};
+                msdfgen::listFontVariationAxes( axes, m_FreeTypeHandle, font );
 
-                if (!axes.empty()) {
-                    isVariableWeight = msdfgen::setFontVariationAxis(m_FreeTypeHandle, font, "Weight", fontWeight);
-                }
+                if (!axes.empty()) { isVariableWeight = msdfgen::setFontVariationAxis( m_FreeTypeHandle, font, "Weight", fontWeight ); }
                 // else {
                 //     fontWeight = getWeightFromString(m_MetaData.subFamily);
                 // }
@@ -63,11 +62,7 @@ namespace Mikoto {
                 };
 
                 msdf_atlas::Charset charset{};
-                for ( auto [Start, End]: charsetRanges ) {
-                    for ( Int32 c{ Start }; c <= End; c++ ) {
-                        charset.add( c );
-                    }
-                }
+                for (auto [Start, End]: charsetRanges) { for (Int32 c{ Start }; c <= End; c++) { charset.add( c ); } }
 
                 // The second argument can be ignored unless you mix different font sizes in one atlas.
                 // In the last argument, you can specify a charset other than ASCII.
@@ -78,22 +73,21 @@ namespace Mikoto {
                 unsigned long long glyphSeed{ 0 };
                 constexpr unsigned long long LCG_MULTIPLIER{ 6364136223846793005ull };
 
-                if (expensiveColoring ) {
+                if (expensiveColoring) {
                     constexpr UInt64 coloringSeed{ 0 };
                     constexpr unsigned long long LCG_INCREMENT{ 1442695040888963407ull };
 
-                    msdf_atlas::Workload([&glyphs = glyphs, &coloringSeed, &LCG_MULTIPLIER, &LCG_INCREMENT, &glyphSeed](int i, int threadNo) -> bool {
-                        glyphSeed = (LCG_MULTIPLIER * (coloringSeed ^ i) + LCG_INCREMENT) * !!coloringSeed;
-                        glyphs[i].edgeColoring(msdfgen::edgeColoringInkTrap, 3.0, glyphSeed);
+                    msdf_atlas::Workload( [&glyphs = glyphs, &coloringSeed, &LCG_MULTIPLIER, &LCG_INCREMENT, &glyphSeed]( int i, int threadNo ) -> bool {
+                        glyphSeed = ( LCG_MULTIPLIER * ( coloringSeed ^ i ) + LCG_INCREMENT ) * !!coloringSeed;
+                        glyphs[i].edgeColoring( msdfgen::edgeColoringInkTrap, 3.0, glyphSeed );
                         return true;
-                    }, glyphs.size()).finish(8);
-                }
-                else {
+                    }, glyphs.size() ).finish( 8 );
+                } else {
                     constexpr double maxCornerAngle{ 3.0 };
 
-                    for (msdf_atlas::GlyphGeometry& glyph : glyphs) {
+                    for (msdf_atlas::GlyphGeometry &glyph: glyphs) {
                         glyphSeed *= LCG_MULTIPLIER;
-                        glyph.edgeColoring(msdfgen::edgeColoringInkTrap, maxCornerAngle, glyphSeed);
+                        glyph.edgeColoring( msdfgen::edgeColoringInkTrap, maxCornerAngle, glyphSeed );
                     }
                 }
 
@@ -133,7 +127,7 @@ namespace Mikoto {
                 // Generate atlas bitmap
                 generator.generate( glyphs.data(), static_cast<Int32>( glyphs.size() ) );
 
-                SubmitAtlasBitmapAndLayout(generator.atlasStorage(), glyphs, result, fontSize);
+                SubmitAtlasBitmapAndLayout( generator.atlasStorage(), glyphs, result, fontSize );
 
                 // Cleanup
                 msdfgen::destroyFont( font );
@@ -143,54 +137,47 @@ namespace Mikoto {
         return result;
     }
 
-    auto FontFactory::SubmitAtlasBitmapAndLayout( const msdf_atlas::BitmapAtlasStorage<msdf_atlas::byte, 4> &atlas, std::vector<msdf_atlas::GlyphGeometry> glyphs,  MsdfData& data, Int32 fontSize ) const -> void {
-        msdfgen::BitmapConstRef bitmap{ (msdfgen::BitmapConstRef<unsigned char, 4>)atlas };
+    auto FontFactory::SubmitAtlasBitmapAndLayout( const msdf_atlas::BitmapAtlasStorage<msdf_atlas::byte, 4> &atlas, std::vector<msdf_atlas::GlyphGeometry> glyphs, MsdfData &data, Int32 fontSize ) const -> void {
+        msdfgen::BitmapConstRef bitmap{ ( msdfgen::BitmapConstRef<unsigned char, 4> )atlas };
 
         Int32 atlasWidth{ bitmap.width };
         Int32 atlasHeight{ bitmap.height };
 
-        uint32_t code = 0;
-
-        for (const auto& g : glyphs) {
-            FontGlyph glyphData{};
+        for (const auto &g: glyphs) {
+            FontGlyph glyphData{ g.getCodepoint() };
 
             double pLeft, pBottom, pRight, pTop;
             double aLeft, aBottom, aRight, aTop;
-            g.getQuadPlaneBounds(pLeft, pBottom, pRight, pTop);
-            g.getQuadAtlasBounds(aLeft, aBottom, aRight, aTop);
+            g.getQuadPlaneBounds( pLeft, pBottom, pRight, pTop );
+            g.getQuadAtlasBounds( aLeft, aBottom, aRight, aTop );
 
-            glyphData.m_AtlasBounds = { aLeft, aBottom, aRight, aTop };
-            glyphData.m_PlaneBounds = { pLeft, pBottom, pRight, pTop };
-            glyphData.m_AdvanceX = static_cast<float>(g.getAdvance());
-            glyphData.m_Width = aRight - aLeft;
-            glyphData.m_Height = aTop - aBottom;
-            glyphData.m_BearingUnderline = pBottom * fontSize;
+            glyphData.SetAtlasBounds({ aLeft, aBottom, aRight, aTop });
+            glyphData.SetPlaneBounds({ pLeft, pBottom, pRight, pTop });
+            glyphData.SetAdvanceX(g.getAdvance());
+            glyphData.SetWidth( aRight - aLeft );
+            glyphData.SetHeight( aTop - aBottom );
+            glyphData.SetBearingUnderline( pBottom * fontSize );
 
-            data.GlyphInfo.insert({ g.getCodepoint(), glyphData });
+            data.GlyphInfo.insert( { g .getCodepoint(), glyphData } );
 
             if (glyphData.m_Height > data.MaxHeight) {
-                code = g.getCodepoint();
+                //code = g.getCodepoint();
             }
 
-            data.MaxHeight = std::max(data.MaxHeight, (int)((float)glyphData.m_Height + glyphData.m_BearingUnderline));
+            data.MaxHeight = std::max( data.MaxHeight, static_cast<Int32>( static_cast<float>( glyphData.m_Height ) + glyphData.m_BearingUnderline ) );
         }
 
         // Create texture from the raw atlas data
         TextureDescription textureDesc{};
         textureDesc.WithWidth( atlasWidth )
-                .WithHeight( atlasHeight )
-                .WithChannelCount( 4 )
+                   .WithHeight( atlasHeight )
+                   .WithChannelCount( 4 )
+                   .WithData( const_cast<UChar *>( bitmap.pixels ) )
+                   .WithType( TextureType::TEXTURE_2D )
+                   .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
+                   .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
-                .WithData( (unsigned char*)bitmap.pixels )
-
-                .WithType( TextureType::TEXTURE_2D )
-                .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
-
-                .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
-
-        TextureHandle texture{ m_GpuDevice->CreateTexture( textureDesc ) };
-
-        data.TextureAtlas = texture;
+        data.TextureAtlas = m_GpuDevice->CreateTexture( textureDesc );
     }
 
     FontFactory::FontFactory( const FontFactoryCreateInfo &options )
@@ -203,9 +190,7 @@ namespace Mikoto {
     }
 
     auto FontFactory::Shutdown() -> void {
-        if ( !m_IsInitialized ) {
-            return;
-        }
+        if (!m_IsInitialized) { return; }
 
         msdfgen::deinitializeFreetype( m_FreeTypeHandle );
 
@@ -224,16 +209,15 @@ namespace Mikoto {
         msdfgen::FontHandle *font = msdfgen::loadFont( m_FreeTypeHandle, description.FontFile->GetPath().c_str() );
 
         msdfgen::Shape shape;
-        if (msdfgen::loadGlyph(shape, font, 'C'))
-        {
+        if (msdfgen::loadGlyph( shape, font, 'C' )) {
             shape.normalize();
-            //                      max. angle
-            msdfgen::edgeColoringSimple(shape, 3.0);
-            //           image width, height
-            msdfgen::Bitmap<float, 4> msdf(32, 32);
-            //                     range, scale, translation
-            msdfgen::generateMTSDF(msdf, shape, 4.0, 1.0, msdfgen::Vector2(4.0, 4.0));
-            msdfgen::savePng(msdf, "output.png");
+            // max. angle
+            msdfgen::edgeColoringSimple( shape, 3.0 );
+            // image width, height
+            msdfgen::Bitmap<float, 4> msdf( 32, 32 );
+            // range, scale, translation
+            msdfgen::generateMTSDF( msdf, shape, 4.0, 1.0, msdfgen::Vector2( 4.0, 4.0 ) );
+            msdfgen::savePng( msdf, "output.png" );
         }
 #endif
 
@@ -244,15 +228,13 @@ namespace Mikoto {
         newFont->SetName( description.FontFile->GetName() );
 
         // Fill glyph data
-        for ( auto &[codepoint, glyphData]: result.GlyphInfo ) {
-            if ( codepoint == 0 ) {
-                continue;
-            }
+        for (auto &[codepoint, glyphData]: result.GlyphInfo) {
+            if (codepoint == 0) { continue; }
 
             newFont->RegisterGlyph( codepoint, glyphData );
         }
 
-        newFont->m_MaxHeight = result.MaxHeight;
+        newFont->SetMaxHeight( result.MaxHeight );
 
         return FontHandle::Create( newFont );
     }

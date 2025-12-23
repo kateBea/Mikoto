@@ -119,6 +119,17 @@ namespace Mikoto {
     };
 
     // Simple pass for testing purposes
+    // Displays a texture
+    class HelloTexture final : public FramePass {
+    public:
+        explicit HelloTexture()
+            : FramePass{ "HelloTexture" } {}
+
+        auto Setup(FrameGraphBuilder& device) -> void override;
+        auto Execute(PassCommandList& cmdList) -> void override;
+    };
+
+    // Simple pass for testing purposes
     // A colored/textured cube
     class HelloCubePass final : public FramePass {
     public:

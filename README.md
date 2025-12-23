@@ -22,10 +22,10 @@ passes, amongst other features.
 | Model Loading           | Ability to load 3D models from various file types        | ✔️            |
 | Image Loading           | Support for loading and using textures/images            | ✔️            |
 | Entity Component System | Management of scene game objects through ECS             | ✔️            |
-| Scene Serialization     | Serialize scenes from the editor                         | ❌             |
+| Scene Serialization     | Serialize scenes from the editor                         | ✔️            |
 | Particle System         | Visual particle effects like smoke, fire, etc.           | ❌             |
 | Vulkan Ray Tracing      | Support for Vulkan RayTracing                            | ❌             |
-| Physics Integration     | Basic collision detection and response                   | ❌             |
+| Physics Integration     | Basic collision detection and response                   | ✔️            |
 | UI Integration (ImGui)  | Immediate mode GUI for the runtime                       | ✔️            |
 | Animation System        | Skeletal animation and keyframe interpolation            | ❌             |
 | Audio Support           | Load and play sound effects and background music         | ✔️            |
@@ -46,7 +46,7 @@ passes, amongst other features.
 - **CMake** 3.22 or higher.
 - **The Vulkan SDK**: Available from [Vulkan](https://vulkan.lunarg.com/).
 - **C++20 Compiler**: Tested with GCC 13.3.0
-- - **Visual Studio (On Windows)**: Development done with VS 2022.
+- **Visual Studio (On Windows)**: Development done with VS 2022.
 - **GLSL-C**: Optional, as precompiled shader binaries are included.
 
 ---
@@ -64,9 +64,9 @@ passes, amongst other features.
 
 ## Building Mikoto Engine
 
-Follow the steps below to build Mikoto Engine.
-Currently, the building process has been tested on Linux and Windows. Windows users only need to 
-have the Vulkan SDK installed and Visual Studio.
+Follow the steps below to build the Mikoto Engine.
+The build process is currently verified on both Linux and Windows.
+On Windows, the only requirements are the Vulkan SDK and Visual Studio.
 
 ### Steps:
 
@@ -81,21 +81,23 @@ mkdir build && cd build
 # This will pull the necessary third party repos
 cmake -S .. -B .
 
-# Build the application (on Linux, on Windows open the
-# generated VS Solution and build from there)
+# Build the application (on Linux)
 cmake --build . --config Release
-   
-   ```
+```
 ---
 
-For Visual Studio users, CMake will generate `.sln` files by default. Open the solution in Visual Studio and build from there. CLion users can open the project directly and build it without extra steps.
-The following are commands needed to install the necessary libraries on Linux, also available in the file [install.sh](/Mikoto/Resources/installs.sh)
-Optionally pass target InstallDependencies (``--target InstallDependencies``) to installa necessary dependencies by running the script, user will be prompted to give permissions:
+For Visual Studio users, CMake will generate `.sln` files by default. We want to open the solution in Visual Studio 
+and build from  there. CLion users can open the project directly and build it without extra steps. 
+
+On Linux, we can optionally pass target InstallDependencies (``--target InstallDependencies``) to CMake command
+to install necessary dependencies, user might be prompted to give permissions:
 
 ```
 cmake --build . --target InstallDependencies --config Release 
 cmake --build . --config Release
 ```
+
+Dependencies are also available from the file [install.sh](/Mikoto/Resources/installs.sh):
 
 ## Linux Required libraries
 

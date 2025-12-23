@@ -423,6 +423,8 @@ namespace  Mikoto {
         commandList.SetDepthRenderTarget( "HelloTrianglePass_DepthTarget" );
         commandList.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
 
+        commandList.BindStorageBuffer( SRGType::SRG_PerCompute, "SimpleComputePass_Result", 0);
+
         commandList.BeginRender();
 
         // Set render targets
@@ -432,6 +434,53 @@ namespace  Mikoto {
         commandList.BindPipeline( "HelloTrianglePass_Pipeline" );
 
         commandList.Draw(3, 1, 0, 0);
+
+        commandList.EndRender();
+    }
+
+    auto HelloTexture::Setup( FrameGraphBuilder& builder ) -> void {
+        // Create resources it needs
+        PipelineDescription pipelineDesc{};
+
+        pipelineDesc.AddShader( "Resources/Shaders/vulkan-spirv/FullscreenTriangle_Vert.sprv", ShaderStage::VERTEX_STAGE );
+        pipelineDesc.AddShader( "Resources/Shaders/vulkan-spirv/FullscreenTriangle_Frag.sprv", ShaderStage::FRAGMENT_STAGE );
+
+        // Configure pipeline stage
+        pipelineDesc.Description = GraphicsPipelineDescription{
+            .VertexAttributesSpec{},
+            .PrimitiveTopology{ Topology::TRIANGLE_STRIP }
+        };;
+
+        // TODO: temporary, specify the render targets this pipeline outputs to
+        pipelineDesc.ColorRenderTargets.emplace_back( "HelloTexture_ColorTarget" );
+        pipelineDesc.DepthRenderTargets = "HelloTexture_DepthTarget";
+
+        builder.CreateNamedPipeline( "HelloTexture_Pipeline", pipelineDesc );
+
+        builder.CreateColorRenderTarget( "HelloTexture_ColorTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM );
+        builder.CreateDepthRenderTarget( "HelloTexture_DepthTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_D32_FLOAT );
+
+        builder.WriteTexture( this, "HelloTexture_ColorTarget" );
+        builder.WriteTexture( this, "HelloTexture_DepthTarget" );
+    }
+
+    auto HelloTexture::Execute( PassCommandList& commandList ) -> void {
+
+        commandList.SetColorRenderTarget( "HelloTexture_ColorTarget" );
+        commandList.SetDepthRenderTarget( "HelloTexture_DepthTarget" );
+        commandList.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
+
+        //commandList.Bind(SRGType::SRG_Textures);
+
+        commandList.BeginRender();
+
+        // Set render targets
+        commandList.SetViewport(0, 0, 1920, 1080);
+        commandList.SetScissor(0, 0, 1920, 1080);
+
+        commandList.BindPipeline( "HelloTexture_Pipeline" );
+
+        commandList.Draw(4, 1, 0, 0);
 
         commandList.EndRender();
     }

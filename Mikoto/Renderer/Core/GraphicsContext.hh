@@ -20,6 +20,8 @@
 #include <Renderer/Core/FrameBlackboard.hh>
 #include <Renderer/Core/GpuDevice.hh>
 
+#include "ShaderResourceGroup.hh"
+
 namespace Mikoto {
     class FramePass;
     class PassCommandList;
@@ -40,7 +42,7 @@ namespace Mikoto {
 
     struct PassResources {
         FrameBlackboard* Blackboard{ nullptr };
-        ankerl::unordered_dense::map<UInt32, std::vector<ShaderResourceInfo>> Bindings{};
+        std::unordered_map<SRGType, ShaderResourceGroup> m_SRGs{};
     };
 
     class GraphicsContext {
@@ -82,6 +84,8 @@ namespace Mikoto {
 
     protected:
         GpuDevice* m_Device{ nullptr };
+
+        ShaderResourceGroup m_SRG{};
     };
 
     class PassCommandList {
@@ -108,11 +112,7 @@ namespace Mikoto {
         auto BindIndexBuffer(BufferHandle indices) -> void;
         auto SubmitDraw() -> void;
 
-        auto BindStorageBuffer(BufferHandle buffer, UInt32 set, UInt32 index) -> void;
-        auto BindStorageBuffer(std::string_view buffer, UInt32 set, UInt32 index) -> void;
-
-        auto BindUniformBuffer(BufferHandle buffer, UInt32 set, UInt32 index) -> void;
-        auto BindUniformBuffer(std::string_view buffer, UInt32 set, UInt32 index) -> void;
+        auto BindStorageBuffer(SRGType type, std::string_view buffer, UInt32 index) -> void;
 
         // Current confirmed API ============================================
         auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance) -> void;
@@ -152,9 +152,6 @@ namespace Mikoto {
         std::vector<BufferHandle> m_BoundBuffers{};
 
         ankerl::unordered_dense::map<std::pair<Buffer*, Buffer*>, DrawInstanceMetadata>  MeshData{};
-
-        // Descriptor state
-
 
         // Pass state
         PassScissor m_Scissor{};

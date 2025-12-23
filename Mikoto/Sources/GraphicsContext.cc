@@ -87,36 +87,11 @@ namespace Mikoto {
         m_Context->RegisterImage(texture, sampler );
     }
 
-    auto PassCommandList::BindStorageBuffer( std::string_view buffer, UInt32 set, UInt32 index) -> void {
+    auto PassCommandList::BindStorageBuffer( SRGType type, std::string_view buffer, UInt32 index ) -> void {
         MKT_ASSERT( m_Context, "No valid context for this pass command list" );
         MKT_ASSERT( m_Blackboard, "No valid blackboard for this pass command list" );
 
-        BufferHandle bufferHandle{ m_Blackboard->GetBuffer(buffer) };
-        if (!bufferHandle.IsEmpty()) {
-            m_ShaderResources.Bindings[set].emplace_back( ShaderResourceInfo{
-                .Name{ buffer },
-                .GroupBinding{ index },
-                .ResourceType{ ShaderResourceType::SHADER_STORAGE_BUFFER },
-            });
-        }
-    }
-
-    auto PassCommandList::BindUniformBuffer( BufferHandle buffer, UInt32 set, UInt32 index) -> void {
-
-    }
-
-    auto PassCommandList::BindUniformBuffer( std::string_view buffer, UInt32 set, UInt32 index) -> void {
-        MKT_ASSERT( m_Context, "No valid context for this pass command list" );
-        MKT_ASSERT( m_Blackboard, "No valid blackboard for this pass command list" );
-
-        BufferHandle bufferHandle{ m_Blackboard->GetBuffer(buffer) };
-        if (!bufferHandle.IsEmpty()) {
-            m_ShaderResources.Bindings[set].emplace_back(ShaderResourceInfo{
-                .Name{ buffer },
-                .GroupBinding{ index },
-                .ResourceType{ ShaderResourceType::SHADER_RESOURCE_UNIFORM_BUFFER },
-            });
-        }
+        m_ShaderResources.m_SRGs[type].SetStorageBuffer( buffer, index );
     }
 
     auto PassCommandList::Draw( UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance ) -> void {
@@ -173,8 +148,4 @@ namespace Mikoto {
     auto PassCommandList::SetClearColor( const Vec4F &color ) -> void {
         m_RenderInfo.ClearColor = color;
     }
-
-    auto PassCommandList::BindStorageBuffer( BufferHandle texture, UInt32 set, UInt32 index) -> void {
-    }
-
 }// namespace Mikoto

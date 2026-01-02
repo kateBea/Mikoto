@@ -484,11 +484,9 @@ namespace Mikoto {
             first = false;
         }
 
-        // This tells the command list this pass will be using the bindless textures list
         commandList.BindResourceGroup(SRGType::SRG_Textures);
         commandList.BindResourceGroup(SRGType::SRG_PerPass);
 
-        // Set render targets
         commandList.SetViewport( 0, 0, 1920, 1080 );
         commandList.SetScissor( 0, 0, 1920, 1080 );
 

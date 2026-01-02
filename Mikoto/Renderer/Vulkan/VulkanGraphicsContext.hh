@@ -5,16 +5,17 @@
 #ifndef MIKOTO_VULKAN_GRAPHIC_CONTEXT_HH
 #define MIKOTO_VULKAN_GRAPHIC_CONTEXT_HH
 
-#include <utility>
 #include <ankerl/unordered_dense.h>
-
 #include <volk.h>
 
 #include <Assets/Texture.hh>
 #include <Renderer/Core/Buffer.hh>
-#include <Renderer/Core/FramePass.hh>
 #include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Core/FramePass.hh>
 #include <Renderer/Core/GraphicsContext.hh>
+#include <utility>
+
+#include "VulkanDescriptorManager.hh"
 
 namespace Mikoto {
 
@@ -35,8 +36,7 @@ namespace Mikoto {
         auto BeginFrame(FrameBlackboard* blackboard)-> void  override;
         auto EndFrame()-> void  override;
 
-        auto BindPipeline( PipelineHandle pipeline, PassResources& resources ) -> void override;
-        auto BindBuffer( BufferHandle texture ) -> void override;
+        auto BindPipeline( PipelineHandle pipeline, FramePass* Pass ) -> void override;
 
         auto Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void override;
         auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance) -> void  override;
@@ -44,17 +44,32 @@ namespace Mikoto {
         auto SetViewport(const PassViewport& vp) -> void  override;
         auto SetScissor(const PassScissor& vp) -> void  override;
 
-        auto RegisterImage( TextureHandle texture ) -> void override;
-        auto RegisterImage( TextureHandle texture, SamplerHandle sampler ) -> void override;
+        auto BindTextureList() -> void override;
+
+        auto PushImage(TextureHandle texture) -> Int32 override;
+
+        auto BindPassResources(FramePass* pass) -> void override;
+
+        auto GetPassSRG( FramePass* pass ) -> SRGPerPass* override;
 
         ~VulkanGraphicsContext() override = default;
 
     private:
-        MKT_NODISCARD auto HasDescriptorSets(IPipeline* pipeline) -> bool;
+        MKT_NODISCARD auto HasDescriptorSets(FramePass* pipeline) -> bool;
 
-        auto CreatePassDescriptors(IPipeline* pipeline, PassResources& resources) -> void;
-        auto PushBuffer( IPipeline* pipeline, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType) -> void;
-        auto PushImage( IPipeline * pipeline, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType) -> void;
+        auto BindPassDescriptors(FramePass* pass) -> void;
+        auto CreatePassDescriptors(FramePass* pass) -> void;
+
+        auto PushBuffer( FramePass* pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType) -> void;
+        auto PushImage( FramePass* pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType) -> void;
+
+        auto CreateBindlessTexturesSet() -> void;
+        auto UpdateBindlessTexturesSet(Texture* texture, Sampler* sampler, Size setIndex ) const -> void;
+
+        auto InitSharedShaderResourceGroups() -> void;
+
+    private:
+        static constexpr UInt32 PER_PASS_DESCRIPTOR_SET_INDEX{ 2 };
 
     private:
         // Information I store for each pass
@@ -62,8 +77,9 @@ namespace Mikoto {
             // Set index -> Descriptor Set handle
             ankerl::unordered_dense::map<UInt32, VkDescriptorSet> DescriptorSets{};
 
-            ankerl::unordered_dense::map<std::pair<UInt32, UInt32>, BufferHandle> BoundBuffers{};
-            ankerl::unordered_dense::map<std::pair<UInt32, UInt32>, TextureHandle>  BoundTextures{};
+            SRGPerPass PassResources{};
+
+            PipelineHandle Pipeline{};
 
             // Whether we need to update the descriptor sets or not
             bool Dirty{ true };
@@ -74,11 +90,17 @@ namespace Mikoto {
         CommandListHandle m_CmdList{};
 
         FrameBlackboard* m_Blackboard{};
+
+#if defined( MKT_USE_VULKAN_BINDLESS )
+        DescriptorSetLayoutHandle m_LayoutTextures{};
+        VkDescriptorSet m_BindlessTexturesSet{};
+        VkPipelineLayout m_TexturesPipelineLayout{};
+        bool m_UpdateTextureDescriptor{ false };
+#endif
     private:
-        ankerl::unordered_dense::map<IPipeline*, FramePassInfo> m_PassInfo{};
-        ankerl::unordered_dense::map<std::pair<Texture*, Sampler*>, UInt32> m_CombinedSamplerIndices{};
+        ankerl::unordered_dense::map<FramePass*, FramePassInfo> m_PassInfo{};
     };
-}
+}// namespace Mikoto
 
 
 #endif//MIKOTO_VULKAN_GRAPHIC_CONTEXT_HH

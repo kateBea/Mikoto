@@ -29,6 +29,10 @@ namespace Mikoto {
         return Object(nullptr);
     }
 
+    auto DescriptorSetLayout::SetDebugName( const std::string_view name ) -> void {
+        VulkanHelpers::SetObjectDebugName( VK_DEVICE(m_Device), VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, reinterpret_cast<UInt64>(m_Layout), m_DebugName.data() );
+    }
+
     DescriptorSetLayout::~DescriptorSetLayout() {
         if (m_IsAllocated) {
             Release();
@@ -37,6 +41,10 @@ namespace Mikoto {
 
     auto DescriptorSetLayout::Initialize() -> void {
         MKT_VK_CHECK( vkCreateDescriptorSetLayout( VK_DEVICE(m_Device), std::addressof( m_CreateInfo ), nullptr, std::addressof( m_Layout ) ) );
+
+        // Specify a name by default,
+        // client can change it later if needed
+        SetDebugName( fmt::format( "DescriptorSetLayout - Resource handle {}", GetHandle()) );
 
         m_IsAllocated = true;
     }

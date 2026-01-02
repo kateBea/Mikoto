@@ -219,6 +219,8 @@ namespace Mikoto {
 
         InitTracyContext();
 
+        CreateDummyResources();
+
         m_IsInitialized = true;
     }
 
@@ -407,6 +409,8 @@ namespace Mikoto {
         // Wait for pending operations
         WaitQueuesIdle();
 
+        DestroyDummyResources();
+
         m_FrameCmdBuffers.clear();
 
         m_AvailableGraphicsCommandLists.clear();
@@ -492,7 +496,30 @@ namespace Mikoto {
         return m_GpuAllocator->GetMemoryAvailable();
     }
     auto VulkanDevice::GetDummySampler() const -> SamplerHandle {
-        return SamplerHandle::CreateEmpty(); // TODO
+        return m_sampler;
+    }
+
+    auto VulkanDevice::GetDummyDescriptorLayout() -> DescriptorSetLayoutHandle {
+        return m_EmptyDescriptorSetLayout;
+    }
+
+    auto VulkanDevice::CreateDummyResources() -> void {
+        // Descriptor set layout
+        VkDescriptorSetLayoutCreateInfo emptyInfo{
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .bindingCount = 0,
+            .pBindings = nullptr
+        };
+
+        m_EmptyDescriptorSetLayout = AllocateDescriptorSetLayout( emptyInfo );
+
+        // Sampler
+        m_sampler = CreateSampler( SamplerDescription{} );
+    }
+
+    auto VulkanDevice::DestroyDummyResources() -> void {
+        m_sampler.Reset();
+        m_EmptyDescriptorSetLayout.Reset();
     }
 
     auto VulkanDevice::CreateCommandList( QueueType ) -> CommandListHandle {

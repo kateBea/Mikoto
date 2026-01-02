@@ -1,9 +1,12 @@
 // Simple compute to calculate prime numbers
 
 #version 460
+
+#include "ShaderBase.glsl"
+
 layout(local_size_x = 64) in;
 
-layout(set = 0, binding = 0) buffer OutputBuffer {
+layout(set = PERPASS_SETINDEX, binding = 0) buffer OutputBuffer {
     uint data[];
 };
 

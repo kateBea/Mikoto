@@ -249,12 +249,21 @@ namespace Mikoto {
         return Object(nullptr);
     }
 
+    auto VulkanGraphicsPipeline::GetDescriptorSetIndices() const -> std::vector<UInt32> {
+        std::vector<UInt32> keys{};
+        keys.reserve(m_ReflectionData.setLayouts.size());
+
+        for ( const auto& key: m_ReflectionData.setLayouts | std::views::keys )
+            keys.push_back(key);
+
+        return keys;
+    }
+
     auto VulkanGraphicsPipeline::GetDescriptorLayoutCount() const -> Size {
         return m_ReflectionData.setLayouts.size();
     }
 
     auto VulkanGraphicsPipeline::GetDescriptorSetLayout( UInt32 index ) const -> const VkDescriptorSetLayout& {
-        MKT_ASSERT( index < m_ReflectionData.setLayouts.size(), "VulkanGraphicsPipeline::GetDescriptorSetLayout - Index out of bounds." );
         return m_ReflectionData.setLayouts.at(index);
     }
 
@@ -363,6 +372,16 @@ namespace Mikoto {
         m_IsAllocated = false;
     }
 
+    auto VulkanComputePipeline::GetDescriptorSetIndices() const -> std::vector<UInt32> {
+        std::vector<UInt32> keys{};
+        keys.reserve(m_ReflectionData.setLayouts.size());
+
+        for ( const auto& key: m_ReflectionData.setLayouts | std::views::keys )
+            keys.push_back(key);
+
+        return keys;
+    }
+
     auto VulkanComputePipeline::Bind( const VkCommandBuffer commandBuffer ) const -> void {
         MKT_ASSERT( m_Pipeline != VK_NULL_HANDLE, "VulkanComputePipeline::Bind - Compute pipeline is null." );
         vkCmdBindPipeline( commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline );
@@ -379,7 +398,6 @@ namespace Mikoto {
     }
 
     auto VulkanComputePipeline::GetDescriptorSetLayout( UInt32 index ) const -> const VkDescriptorSetLayout& {
-        MKT_ASSERT( index < m_ReflectionData.setLayouts.size(), "VulkanGraphicsPipeline::GetDescriptorSetLayout - Index out of bounds." );
         return m_ReflectionData.setLayouts.at( index );
     }
 

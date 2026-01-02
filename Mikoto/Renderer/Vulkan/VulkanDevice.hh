@@ -137,6 +137,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetMemoryAvailable() const -> Size override;
 
         MKT_NODISCARD auto GetDummySampler() const -> SamplerHandle override;
+        MKT_NODISCARD auto GetDummyDescriptorLayout() -> DescriptorSetLayoutHandle;
 
         // Vulkan specifics ================================================
 
@@ -190,6 +191,9 @@ namespace Mikoto {
         auto InitTracyContext() -> void;
         auto ShutdownTracyContext() -> void;
 
+        auto CreateDummyResources() -> void;
+        auto DestroyDummyResources() -> void;
+
     private:
 #if defined(MKT_USE_VULKAN_BINDLESS)
         const bool m_IsBindlessEnabled{ true };
@@ -197,6 +201,9 @@ namespace Mikoto {
         const bool m_IsBindlessEnabled{ false };
 #endif
 
+        // [Dummy resources]
+        SamplerHandle m_sampler{};
+        DescriptorSetLayoutHandle m_EmptyDescriptorSetLayout{};
 
         // [Resource Pools]
         ResourcePoolTyped<VulkanBuffer> m_Buffers{};

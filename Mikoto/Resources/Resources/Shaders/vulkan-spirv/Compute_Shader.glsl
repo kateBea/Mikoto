@@ -7,7 +7,9 @@
 
 #version 450
 
-layout(std140, binding = 0) buffer RandomBuffer {
+#include "ShaderBase.glsl"
+
+layout(std140, set = PERPASS_SETINDEX, binding = 0) buffer RandomBuffer {
     uint values[];
 };
 

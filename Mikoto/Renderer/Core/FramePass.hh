@@ -127,6 +127,12 @@ namespace Mikoto {
 
         auto Setup(FrameGraphBuilder& device) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
+
+    private:
+
+        struct HelloTextureUniformBuffer {
+            Int32 TextureIndex{ SRGTextures::INVALID_TEXTURE_INDEX };
+        };
     };
 
     // Simple pass for testing purposes

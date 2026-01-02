@@ -122,6 +122,7 @@ namespace Mikoto {
         // Add passes for panel preview visualizer
         FrameBlackboard *blackboard{ m_SceneRenderer->GetGraph().GetBlackboard() };
         m_EditorState->PassesCompositions.try_emplace( "TrianglePass", blackboard->GetTexture( "HelloTrianglePass_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "TexturePass", blackboard->GetTexture( "HelloTexture_ColorTarget" ) );
     }
 
     auto EditorLayer::SetupRenderer() -> void {

@@ -5,13 +5,11 @@
 #include <Material/ShaderLibrary.hh>
 #include <Material/ShaderModule.hh>
 #include <Renderer/Core/FramePass.hh>
-
-#include <Scene/Scene.hh>
-#include <Scene/Component.hh>
-
 #include <Renderer/Core/FrameResource.hh>
+#include <Scene/Component.hh>
+#include <Scene/Scene.hh>
 
-namespace  Mikoto {
+namespace Mikoto {
 
     auto FinalCompositionPass::Setup( FrameGraphBuilder& builder ) -> void {
         // Create resources it needs
@@ -39,23 +37,23 @@ namespace  Mikoto {
         // Attributes
         AttributesSpec instancedData{
             .DefaultVertexLayout{
-                // Model matrix columns
-                        { ShaderDataType::FLOAT4_TYPE, "i_Model0" },// mat4 column 0
-                        { ShaderDataType::FLOAT4_TYPE, "i_Model1" },// mat4 column 1
-                        { ShaderDataType::FLOAT4_TYPE, "i_Model2" },// mat4 column 2
-                        { ShaderDataType::FLOAT4_TYPE, "i_Model3" },// mat4 column 3
+                    // Model matrix columns
+                    { ShaderDataType::FLOAT4_TYPE, "i_Model0" },// mat4 column 0
+                    { ShaderDataType::FLOAT4_TYPE, "i_Model1" },// mat4 column 1
+                    { ShaderDataType::FLOAT4_TYPE, "i_Model2" },// mat4 column 2
+                    { ShaderDataType::FLOAT4_TYPE, "i_Model3" },// mat4 column 3
 
-                        // Material properties
-                        { ShaderDataType::FLOAT4_TYPE, "i_Albedo" },
-                        { ShaderDataType::FLOAT4_TYPE, "i_Factors" },
+                    // Material properties
+                    { ShaderDataType::FLOAT4_TYPE, "i_Albedo" },
+                    { ShaderDataType::FLOAT4_TYPE, "i_Factors" },
 
-                        // Texture indices (flat ints)
-                        { ShaderDataType::INT_TYPE, "i_AlbedoIndex" },
-                        { ShaderDataType::INT_TYPE, "i_NormalIndex" },
-                        { ShaderDataType::INT_TYPE, "i_MetallicIndex" },
-                        { ShaderDataType::INT_TYPE, "i_RoughnessIndex" },
-                        { ShaderDataType::INT_TYPE, "i_AoIndex" } },
-                    .InputRateSpec{ .BindingIndex{ 1 }, .AttributeRate{ InputRate::PER_INSTANCE } }
+                    // Texture indices (flat ints)
+                    { ShaderDataType::INT_TYPE, "i_AlbedoIndex" },
+                    { ShaderDataType::INT_TYPE, "i_NormalIndex" },
+                    { ShaderDataType::INT_TYPE, "i_MetallicIndex" },
+                    { ShaderDataType::INT_TYPE, "i_RoughnessIndex" },
+                    { ShaderDataType::INT_TYPE, "i_AoIndex" } },
+            .InputRateSpec{ .BindingIndex{ 1 }, .AttributeRate{ InputRate::PER_INSTANCE } }
         };
 
         graphicsDesc.VertexAttributesSpec = { verticesData, instancedData };
@@ -67,26 +65,26 @@ namespace  Mikoto {
         // Color attachment
         TextureDescription colorDesc{};
         colorDesc.WithWidth( 1920 )
-            .WithHeight( 1080 )
-            .WithChannelCount( 4 )
-            .WithData( nullptr )
-            .WithType( TextureType::TEXTURE_2D )
-            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
-            .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
-            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+                .WithHeight( 1080 )
+                .WithChannelCount( 4 )
+                .WithData( nullptr )
+                .WithType( TextureType::TEXTURE_2D )
+                .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
+                .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
+                .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
         builder.CreateNamedRenderTarget( "FinalCompositionPass_ColorTarget", colorDesc );
 
         // Depth attachment
         TextureDescription depthDesc{};
         depthDesc.WithWidth( 1920 )
-            .WithHeight( 1080 )
-            .WithChannelCount( 1 )
-            .WithData( nullptr )
-            .WithType( TextureType::TEXTURE_2D )
-            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
-            .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
-            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+                .WithHeight( 1080 )
+                .WithChannelCount( 1 )
+                .WithData( nullptr )
+                .WithType( TextureType::TEXTURE_2D )
+                .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
+                .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
+                .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
         builder.CreateNamedRenderTarget( "FinalCompositionPass_DepthTarget", depthDesc );
 
@@ -103,15 +101,15 @@ namespace  Mikoto {
         m_Scene = scene;
     }
 
-    auto FinalCompositionPass::Execute(PassCommandList& commandList) -> void {
+    auto FinalCompositionPass::Execute( PassCommandList& commandList ) -> void {
         commandList.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
         commandList.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
 
-        commandList.BeginRender();
+        commandList.BeginRender(this);
 
         // Set render targets
-        commandList.SetViewport(0, 0, 1920, 1080);
-        commandList.SetScissor(0, 0, 1920, 1080);
+        commandList.SetViewport( 0, 0, 1920, 1080 );
+        commandList.SetScissor( 0, 0, 1920, 1080 );
 
         commandList.BindPipeline( "FinalCompositionPass_Pipeline" );
 
@@ -126,28 +124,27 @@ namespace  Mikoto {
         for ( auto& entity: renderables ) {
             auto& tag{ registry.get<TagComponent>( entity ) };
             auto& transform{ registry.get<TransformComponent>( entity ) };
-            auto& meshComponent { registry.get<MeshComponent>( entity ) };
-            auto& materialComp { registry.get<MaterialComponent>( entity ) };
+            auto& meshComponent{ registry.get<MeshComponent>( entity ) };
+            auto& materialComp{ registry.get<MaterialComponent>( entity ) };
 
-            MaterialHandle material { materialComp.GetMaterial() };
+            MaterialHandle material{ materialComp.GetMaterial() };
 
-            if (tag.IsActive() && meshComponent.HasMesh() && !material.IsEmpty()) {
+            if ( tag.IsActive() && meshComponent.HasMesh() && !material.IsEmpty() ) {
                 MeshNode* mesh{ meshComponent.GetMesh() };
                 PBRMaterial* matPtr{ dynamic_cast<PBRMaterial*>( material.GetRaw() ) };
 
-                commandList.BindTexture( matPtr->GetTextureType( MapType::ALBEDO_TEXTURE ) );
-                commandList.BindTexture( matPtr->GetTextureType( MapType::NORMAL_TEXTURE ) );
-                commandList.BindTexture( matPtr->GetTextureType( MapType::METALLIC_TEXTURE ) );
-                commandList.BindTexture( matPtr->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
-                commandList.BindTexture( matPtr->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
-                commandList.BindTexture( matPtr->GetTextureType( MapType::EMISSIVE_TEXTURE ) );
+                // commandList.BindTexture( matPtr->GetTextureType( MapType::ALBEDO_TEXTURE ) );
+                // commandList.BindTexture( matPtr->GetTextureType( MapType::NORMAL_TEXTURE ) );
+                // commandList.BindTexture( matPtr->GetTextureType( MapType::METALLIC_TEXTURE ) );
+                // commandList.BindTexture( matPtr->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
+                // commandList.BindTexture( matPtr->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
+                // commandList.BindTexture( matPtr->GetTextureType( MapType::EMISSIVE_TEXTURE ) );
 
-                commandList.BindVertexBuffer(mesh->GetVertexBuffer());
-                commandList.BindIndexBuffer(mesh->GetIndexBuffer());
+                commandList.BindVertexBuffer( mesh->GetVertexBuffer() );
+                commandList.BindIndexBuffer( mesh->GetIndexBuffer() );
 
-                commandList.SubmitDraw();
+                commandList.DrawIndexed();
             }
-
         }
 
         // Lights
@@ -155,20 +152,18 @@ namespace  Mikoto {
         for ( auto& entity: lights ) {
             auto& tag{ registry.get<TagComponent>( entity ) };
             auto& transform{ registry.get<TransformComponent>( entity ) };
-            auto& lightComp { registry.get<LightComponent>( entity ) };
-
+            auto& lightComp{ registry.get<LightComponent>( entity ) };
         }
 
         commandList.EndRender();
-
     }
 
-    auto ShadowPass:: Setup( FrameGraphBuilder& builder ) -> void {
+    auto ShadowPass::Setup( FrameGraphBuilder& builder ) -> void {
         // Create resources it needs
         PipelineDescription pipelineDesc{};
 
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/Shadowmap_Vert.sprv", ShaderStage::VERTEX_STAGE );
-        pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/Shadowmap_Frag.sprv", ShaderStage::FRAGMENT_STAGE);
+        pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/Shadowmap_Frag.sprv", ShaderStage::FRAGMENT_STAGE );
 
         // Configure pipeline stage
         GraphicsPipelineDescription graphicseDesc{};
@@ -180,50 +175,50 @@ namespace  Mikoto {
         // Color attachment
         TextureDescription colorDesc{};
         colorDesc.WithWidth( 1920 )
-            .WithHeight( 1080 )
-            .WithChannelCount( 4 )
-            .WithData( nullptr )
-            .WithType( TextureType::TEXTURE_2D )
-            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
-            .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
-            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+                .WithHeight( 1080 )
+                .WithChannelCount( 4 )
+                .WithData( nullptr )
+                .WithType( TextureType::TEXTURE_2D )
+                .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
+                .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
+                .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
         builder.CreateNamedRenderTarget( "ShadowPass_ColorTarget", colorDesc );
 
         // Depth attachment
         TextureDescription depthDesc{};
         depthDesc.WithWidth( 1920 )
-            .WithHeight( 1080 )
-            .WithChannelCount( 1 )
-            .WithData( nullptr )
-            .WithType( TextureType::TEXTURE_2D )
-            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
-            .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
-            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+                .WithHeight( 1080 )
+                .WithChannelCount( 1 )
+                .WithData( nullptr )
+                .WithType( TextureType::TEXTURE_2D )
+                .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
+                .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
+                .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
         builder.CreateNamedRenderTarget( "ShadowPass_DepthTarget", depthDesc );
 
         BufferDescription lightsBuffer{};
         lightsBuffer.WithData( nullptr )
-            .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
-            .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
-            .WithSizeBytes( 0 ); // TODO
+                .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+                .WithSizeBytes( 0 );// TODO
         builder.CreateNamedBuffer( "ShadowPass_LightsBuffer", lightsBuffer );
 
         // Transform, texture indices, etc
         BufferDescription objectsInfo{};
         objectsInfo.WithData( nullptr )
-            .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
-            .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
-            .WithSizeBytes( 0 ); // TODO
+                .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+                .WithSizeBytes( 0 );// TODO
         builder.CreateNamedBuffer( "ShadowPass_ObjectInfo", objectsInfo );
 
         // Camera
         BufferDescription camera{};
         objectsInfo.WithData( nullptr )
-            .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
-            .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
-            .WithSizeBytes( 0 ); // TODO
+                .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+                .WithSizeBytes( 0 );// TODO
         builder.CreateNamedBuffer( "ShadowPass_CameraInfo", camera );
 
         // Declare its inputs and outputs
@@ -238,15 +233,15 @@ namespace  Mikoto {
         commandList.SetColorRenderTarget( "ShadowPass_ColorTarget" );
         commandList.SetDepthRenderTarget( "ShadowPass_LightsBuffer" );
 
-        commandList.BeginRender();
+        commandList.BeginRender(this);
 
         // commandList.BindStorageBuffer( "ShadowPass_CameraInfo", 0, 0);
         // commandList.BindStorageBuffer( "ShadowPass_LightsBuffer", 1, 0);
         // commandList.BindStorageBuffer( "ShadowPass_ObjectInfo", 2, 0);
 
         // Set render targets
-        commandList.SetViewport(0, 0, 1920, 1080);
-        commandList.SetScissor(0, 0, 1920, 1080);
+        commandList.SetViewport( 0, 0, 1920, 1080 );
+        commandList.SetScissor( 0, 0, 1920, 1080 );
 
         commandList.BindPipeline( "ShadowPass_Pipeline" );
 
@@ -257,30 +252,30 @@ namespace  Mikoto {
         for ( auto& entity: renderables ) {
             auto& tag{ registry.get<TagComponent>( entity ) };
             auto& transform{ registry.get<TransformComponent>( entity ) };
-            auto& meshComponent { registry.get<MeshComponent>( entity ) };
-            auto& materialComp { registry.get<MaterialComponent>( entity ) };
+            auto& meshComponent{ registry.get<MeshComponent>( entity ) };
+            auto& materialComp{ registry.get<MaterialComponent>( entity ) };
 
             MaterialHandle material{ materialComp.GetMaterial() };
 
-            if (tag.IsActive() && meshComponent.HasMesh() && !material.IsEmpty()) {
+            if ( tag.IsActive() && meshComponent.HasMesh() && !material.IsEmpty() ) {
                 PBRMaterial* matPtr{ dynamic_cast<PBRMaterial*>( material.GetRaw() ) };
 
                 MeshNode* mesh{ meshComponent.GetMesh() };
 
-                commandList.BindTexture( matPtr->GetTextureType( MapType::ALBEDO_TEXTURE ) );
-                commandList.BindTexture( matPtr->GetTextureType( MapType::NORMAL_TEXTURE ) );
-                commandList.BindTexture( matPtr->GetTextureType( MapType::METALLIC_TEXTURE ) );
-                commandList.BindTexture( matPtr->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
-                commandList.BindTexture( matPtr->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
-                commandList.BindTexture( matPtr->GetTextureType( MapType::EMISSIVE_TEXTURE ) );
+                // commandList.BindTexture( matPtr->GetTextureType( MapType::ALBEDO_TEXTURE ) );
+                // commandList.BindTexture( matPtr->GetTextureType( MapType::NORMAL_TEXTURE ) );
+                // commandList.BindTexture( matPtr->GetTextureType( MapType::METALLIC_TEXTURE ) );
+                // commandList.BindTexture( matPtr->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
+                // commandList.BindTexture( matPtr->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
+                // commandList.BindTexture( matPtr->GetTextureType( MapType::EMISSIVE_TEXTURE ) );
 
-                commandList.BindVertexBuffer(mesh->GetVertexBuffer());
-                commandList.BindIndexBuffer(mesh->GetIndexBuffer());
+                commandList.BindVertexBuffer( mesh->GetVertexBuffer() );
+                commandList.BindIndexBuffer( mesh->GetIndexBuffer() );
 
                 // We probably do not need the transform here the shadow pass should happen before
                 // this pass which creates and update the buffer that has the contents to render out geometry
 
-                commandList.SubmitDraw();
+                commandList.DrawIndexed();
             }
         }
 
@@ -289,8 +284,7 @@ namespace  Mikoto {
         for ( auto& entity: lights ) {
             auto& tag{ registry.get<TagComponent>( entity ) };
             auto& transform{ registry.get<TransformComponent>( entity ) };
-            auto& lightComp { registry.get<LightComponent>( entity ) };
-
+            auto& lightComp{ registry.get<LightComponent>( entity ) };
         }
 
         commandList.EndRender();
@@ -310,7 +304,7 @@ namespace  Mikoto {
         pipelineDesc.Description = graphicseDesc;
 
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/MSDFText_Vert.sprv", ShaderStage::VERTEX_STAGE );
-        pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/MSDFText_Frag.sprv", ShaderStage::FRAGMENT_STAGE);
+        pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/MSDFText_Frag.sprv", ShaderStage::FRAGMENT_STAGE );
 
         builder.CreateNamedPipeline( "TextPass_Pipeline", pipelineDesc );
 
@@ -322,11 +316,11 @@ namespace  Mikoto {
         commandList.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
         commandList.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
 
-        commandList.BeginRender();
+        commandList.BeginRender(this);
 
         // Set render targets
-        commandList.SetViewport(0, 0, 1920, 1080);
-        commandList.SetScissor(0, 0, 1920, 1080);
+        commandList.SetViewport( 0, 0, 1920, 1080 );
+        commandList.SetScissor( 0, 0, 1920, 1080 );
 
         commandList.BindPipeline( "ShadowPass_Pipeline" );
 
@@ -337,8 +331,8 @@ namespace  Mikoto {
         for ( auto& entity: renderables ) {
             auto& tag{ registry.get<TagComponent>( entity ) };
             auto& transform{ registry.get<TransformComponent>( entity ) };
-            auto& textComponent { registry.get<TextComponent>( entity ) };
-            auto& materialComp { registry.get<MaterialComponent>( entity ) };
+            auto& textComponent{ registry.get<TextComponent>( entity ) };
+            auto& materialComp{ registry.get<MaterialComponent>( entity ) };
         }
 
         commandList.EndRender();
@@ -364,32 +358,31 @@ namespace  Mikoto {
 
         BufferDescription lightsBuffer{};
         lightsBuffer.WithData( nullptr )
-            .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
-            .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
-            .WithSizeBytes( 30 * sizeof(float) );
+                .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+                .WithSizeBytes( 30 * sizeof( float ) );
         builder.CreateNamedBuffer( "SimpleComputePass_Result", lightsBuffer );
 
         builder.WriteBuffer( this, "SimpleComputePass_Result" );
     }
 
     auto SimpleComputePass::Execute( PassCommandList& commandList ) -> void {
-        commandList.BeginCompute();
-
-        commandList.BindStorageBuffer( SRGType::SRG_PerCompute, "SimpleComputePass_Result", 0);
-
+        commandList.BeginCompute(this);
         commandList.BindPipeline( "SimpleComputePass_Pipeline" );
+
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "SimpleComputePass_Result", 0 );
+        commandList.BindResourceGroup(SRGType::SRG_PerPass);
 
         // Prime numbers up until this value
         constexpr UInt32 limitNumbers{ 30 };
 
         // matches shader's local_size_x
         constexpr UInt32 localSize{ 64 };
-        constexpr UInt32 groupCount{ (limitNumbers + localSize - 1) / localSize };
+        constexpr UInt32 groupCount{ ( limitNumbers + localSize - 1 ) / localSize };
 
         commandList.Dispatch( groupCount, 1, 1 );
 
         commandList.EndCompute();
-
     }
 
     auto HelloTrianglePass::Setup( FrameGraphBuilder& builder ) -> void {
@@ -402,7 +395,7 @@ namespace  Mikoto {
         // Configure pipeline stage
         pipelineDesc.Description = GraphicsPipelineDescription{
             .VertexAttributesSpec{}
-        };;
+        };
 
         // TODO: temporary, specify the render targets this pipeline outputs to
         pipelineDesc.ColorRenderTargets.emplace_back( "HelloTrianglePass_ColorTarget" );
@@ -418,22 +411,18 @@ namespace  Mikoto {
     }
 
     auto HelloTrianglePass::Execute( PassCommandList& commandList ) -> void {
-
         commandList.SetColorRenderTarget( "HelloTrianglePass_ColorTarget" );
         commandList.SetDepthRenderTarget( "HelloTrianglePass_DepthTarget" );
         commandList.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
 
-        commandList.BindStorageBuffer( SRGType::SRG_PerCompute, "SimpleComputePass_Result", 0);
-
-        commandList.BeginRender();
-
-        // Set render targets
-        commandList.SetViewport(0, 0, 1920, 1080);
-        commandList.SetScissor(0, 0, 1920, 1080);
-
+        commandList.BeginRender(this);
         commandList.BindPipeline( "HelloTrianglePass_Pipeline" );
 
-        commandList.Draw(3, 1, 0, 0);
+        // Set render targets
+        commandList.SetViewport( 0, 0, 1920, 1080 );
+        commandList.SetScissor( 0, 0, 1920, 1080 );
+
+        commandList.Draw( 3, 1, 0, 0 );
 
         commandList.EndRender();
     }
@@ -449,13 +438,20 @@ namespace  Mikoto {
         pipelineDesc.Description = GraphicsPipelineDescription{
             .VertexAttributesSpec{},
             .PrimitiveTopology{ Topology::TRIANGLE_STRIP }
-        };;
+        };
 
         // TODO: temporary, specify the render targets this pipeline outputs to
         pipelineDesc.ColorRenderTargets.emplace_back( "HelloTexture_ColorTarget" );
         pipelineDesc.DepthRenderTargets = "HelloTexture_DepthTarget";
 
         builder.CreateNamedPipeline( "HelloTexture_Pipeline", pipelineDesc );
+
+        BufferDescription lightsBuffer{};
+        lightsBuffer.WithData( nullptr )
+                .WithUsage( BufferUsage::BUFFER_USAGE_UNIFORM )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+                .WithSizeBytes( sizeof( HelloTextureUniformBuffer ) );
+        builder.CreateNamedBuffer( "HelloTexture_TexturesBuffer", lightsBuffer );
 
         builder.CreateColorRenderTarget( "HelloTexture_ColorTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM );
         builder.CreateDepthRenderTarget( "HelloTexture_DepthTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_D32_FLOAT );
@@ -470,18 +466,35 @@ namespace  Mikoto {
         commandList.SetDepthRenderTarget( "HelloTexture_DepthTarget" );
         commandList.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
 
-        //commandList.Bind(SRGType::SRG_Textures);
-
-        commandList.BeginRender();
-
-        // Set render targets
-        commandList.SetViewport(0, 0, 1920, 1080);
-        commandList.SetScissor(0, 0, 1920, 1080);
-
+        commandList.BeginRender(this);
         commandList.BindPipeline( "HelloTexture_Pipeline" );
 
-        commandList.Draw(4, 1, 0, 0);
+        TextureHandle textureHandle{ AssetsService::Get()->LoadAsset<Texture>( Path{ "Resources/Textures/texture.png" } ) };
+
+        static bool first{ true };
+        if (first) {
+            Int32 srgTextureIndex{ commandList.PushTexture( textureHandle ) };
+
+            HelloTextureUniformBuffer uboData{};
+            uboData.TextureIndex = srgTextureIndex;
+
+            commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "HelloTexture_TexturesBuffer", 0 );
+            commandList.FillBuffer( "HelloTexture_TexturesBuffer", std::addressof( uboData ), sizeof( HelloTextureUniformBuffer ));
+
+            first = false;
+        }
+
+        // This tells the command list this pass will be using the bindless textures list
+        commandList.BindResourceGroup(SRGType::SRG_Textures);
+        commandList.BindResourceGroup(SRGType::SRG_PerPass);
+
+        // Set render targets
+        commandList.SetViewport( 0, 0, 1920, 1080 );
+        commandList.SetScissor( 0, 0, 1920, 1080 );
+
+        commandList.Draw( 4, 1, 0, 0 );
 
         commandList.EndRender();
     }
+
 }// namespace Mikoto

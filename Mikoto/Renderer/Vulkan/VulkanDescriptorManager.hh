@@ -43,6 +43,8 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetNativeHandle(ObjectType type ) -> Object override;
 
+        auto SetDebugName( const std::string_view name ) -> void override;
+
         ~DescriptorSetLayout() override;
 
     protected:

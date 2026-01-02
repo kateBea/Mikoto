@@ -5,8 +5,8 @@
 #ifndef MIKOTO_RENDERCONTEXT_HH
 #define MIKOTO_RENDERCONTEXT_HH
 
-#include <vector>
 #include <string_view>
+#include <vector>
 
 #include <ankerl/unordered_dense.h>
 
@@ -15,12 +15,12 @@
 #include <Library/Utility/Types.hh>
 #include <Material/Material.hh>
 #include <Renderer/Core/Buffer.hh>
-#include <Renderer/Core/Light.hh>
-#include <Renderer/Core/Pipeline.hh>
 #include <Renderer/Core/FrameBlackboard.hh>
 #include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Core/Light.hh>
+#include <Renderer/Core/Pipeline.hh>
 
-#include "ShaderResourceGroup.hh"
+#include "Renderer/Core/SRGBase.hh"
 
 namespace Mikoto {
     class FramePass;
@@ -41,8 +41,8 @@ namespace Mikoto {
     };
 
     struct PassResources {
+        FramePass* Pass{ nullptr };
         FrameBlackboard* Blackboard{ nullptr };
-        std::unordered_map<SRGType, ShaderResourceGroup> m_SRGs{};
     };
 
     class GraphicsContext {
@@ -58,23 +58,23 @@ namespace Mikoto {
         virtual auto BeginCompute() -> void = 0;
         virtual auto EndCompute() -> void = 0;
 
-        virtual auto BindBuffer(BufferHandle texture) -> void = 0;
-
-        // Current confirmed API ============================================
         virtual auto BeginFrame(FrameBlackboard* blackboard)-> void = 0;
         virtual auto EndFrame()-> void = 0;
 
         virtual auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void = 0;
 
-        virtual auto RegisterImage(TextureHandle texture) -> void = 0;
-        virtual auto RegisterImage(TextureHandle texture, SamplerHandle sampler) -> void = 0;
-
         virtual auto SetViewport(const PassViewport& vp) -> void = 0;
         virtual auto SetScissor(const PassScissor& vp) -> void = 0;
 
+        virtual auto PushImage(TextureHandle texture) -> Int32 = 0;
+
         virtual auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance) -> void = 0;
 
-        virtual auto BindPipeline(PipelineHandle pipeline, PassResources& resources) -> void = 0;
+        virtual auto BindPipeline(PipelineHandle pipeline, FramePass* Pass) -> void = 0;
+        virtual auto BindTextureList() -> void = 0;
+        virtual auto BindPassResources(FramePass* pass ) -> void = 0;
+
+        virtual auto GetPassSRG( FramePass* pass ) -> SRGPerPass* = 0;
 
         MKT_NODISCARD static auto Create(GpuDevice* device) -> Unique<GraphicsContext>;
 
@@ -85,47 +85,44 @@ namespace Mikoto {
     protected:
         GpuDevice* m_Device{ nullptr };
 
-        ShaderResourceGroup m_SRG{};
+        ankerl::unordered_dense::map<SRGType, Unique<SRGBase>> m_SRG{};
     };
 
     class PassCommandList {
     public:
         explicit PassCommandList(GraphicsContext* context, FrameBlackboard* blackboard);
 
-        auto BeginRender() -> void;
+        auto BeginRender(FramePass* pass) -> void;
         auto EndRender() -> void;
 
+        auto BeginCompute(FramePass* pass) -> void;
+        auto EndCompute() const -> void;
+
         auto SetColorRenderTarget(std::string_view color) -> void;
-
         auto SetDepthRenderTarget(std::string_view depth) -> void;
-
-        auto BeginCompute() -> void;
-        auto EndCompute() -> void;
 
         auto SetViewport(Int32 x, Int32 y, Int32 width, Int32 height) -> void ;
         auto SetScissor(Int32 x, Int32 y, Int32 width, Int32 height) -> void;
 
-        auto BindPipeline(std::string_view pipelineName) -> void;
+        auto BindPipeline(std::string_view pipelineName ) const -> void;
 
-        // TODO
         auto BindVertexBuffer(BufferHandle vertices) -> void;
         auto BindIndexBuffer(BufferHandle indices) -> void;
-        auto SubmitDraw() -> void;
+        auto DrawIndexed() -> void;
 
-        auto BindStorageBuffer(SRGType type, std::string_view buffer, UInt32 index) -> void;
+        auto SetBufferBindSlot(SRGType type, std::string_view buffer, UInt32 index ) const -> void;
+        auto SetTextureBindSlot(SRGType type, std::string_view buffer, UInt32 index) -> void;
 
-        // Current confirmed API ============================================
-        auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance) -> void;
-
-        // These two will use the default sampler
-        auto BindTexture(TextureHandle texture ) const -> void;
-        auto BindTexture(std::string_view texture) const -> void;
-
-        auto BindTexture(TextureHandle texture, SamplerHandle sampler ) const -> void;
+        auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance ) const -> void;
 
         auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void;
 
         auto SetClearColor(const Vec4F& color) -> void;
+
+        auto FillBuffer(std::string_view bufferName, const void* ptrSrc, Size size ) const -> void;
+        auto PushTexture(TextureHandle texture ) const -> Int32;
+
+        auto BindResourceGroup(SRGType srgType ) const -> void;
 
     private:
         struct DrawInstanceMetadata {
@@ -157,9 +154,8 @@ namespace Mikoto {
         PassScissor m_Scissor{};
         PassViewport m_Viewport{};
 
-        // Pass shader resources
-        // TODO: Group index -> (ShaderResourceInfo)
-        PassResources m_ShaderResources{};
+
+        FramePass* m_ActivePass{ nullptr };
 
         GfxRenderInfo m_RenderInfo{};
 

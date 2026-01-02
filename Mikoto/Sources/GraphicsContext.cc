@@ -33,10 +33,12 @@ namespace Mikoto {
         MKT_ASSERT( m_Blackboard, "Tried to create PassCommandList with NULL blackboard" );
     }
 
-    auto PassCommandList::BeginRender() -> void {
+    auto PassCommandList::BeginRender(FramePass* pass) -> void {
         MKT_ASSERT( m_Context, "No valid context for this pass command list" );
 
         m_Context->BeginRender( m_RenderInfo );
+
+        m_ActivePass = pass;
     }
 
     auto PassCommandList::EndRender() -> void {
@@ -59,50 +61,56 @@ namespace Mikoto {
         m_RenderInfo.DepthRenderTarget = depthTexture;
     }
 
-    auto PassCommandList::BindTexture( TextureHandle texture ) const -> void {
+    auto PassCommandList::SetBufferBindSlot( SRGType type, std::string_view buffer, UInt32 index ) const -> void {
         MKT_ASSERT( m_Context, "No valid context for this pass command list" );
 
-        if (texture.IsEmpty()) {
-            return;
+        if (IsSRGType( type, SRGType::SRG_PerPass)) {
+            SRGPerPass* perPassData{ m_Context->GetPassSRG( m_ActivePass ) };
+            MKT_ASSERT( perPassData, "Per pass data must not be NULL" );
+
+            BufferHandle bufferHandle{ m_Blackboard->GetBuffer( buffer ) };
+            if (bufferHandle.IsEmpty()) {
+                MKT_CORE_LOGGER_WARN( "PassCommandList::SetBufferBindSlot - Trying to bind buffer [{}] which does not exist. ", buffer );
+            } else {
+                ShaderResourceType resourceType{ ShaderResourceType::SHADER_RESOURCE_UNDEFINED };
+                switch (bufferHandle->GetUsage()) {
+
+                    case BufferUsage::BUFFER_USAGE_UNIFORM:
+                        resourceType = ShaderResourceType::SHADER_RESOURCE_UNIFORM_BUFFER;
+                        break;
+                    case BufferUsage::BUFFER_USAGE_SHADER_STORAGE:
+                        resourceType = ShaderResourceType::SHADER_STORAGE_BUFFER;
+                        break;
+                    default:;
+                }
+
+                perPassData->SetBuffer( buffer, index, resourceType );
+            }
         }
-
-        m_Context->RegisterImage(texture);
     }
 
-    auto PassCommandList::BindTexture( std::string_view texture ) const -> void {
-        // Find the texture by its name in the list of named resource
-        TextureHandle textureHandle{ /* TODO */ };
+    auto PassCommandList::SetTextureBindSlot( SRGType type, std::string_view buffer, UInt32 index ) -> void {
 
-        // Call bind texture with default sampler
-        BindTexture(textureHandle);
     }
 
-    auto PassCommandList::BindTexture( TextureHandle texture, SamplerHandle sampler ) const -> void {
-        MKT_ASSERT( m_Context, "No valid context for this pass command list" );
-
-        if (texture.IsEmpty() || sampler.IsEmpty()) {
-            return;
-        }
-
-        m_Context->RegisterImage(texture, sampler );
-    }
-
-    auto PassCommandList::BindStorageBuffer( SRGType type, std::string_view buffer, UInt32 index ) -> void {
-        MKT_ASSERT( m_Context, "No valid context for this pass command list" );
-        MKT_ASSERT( m_Blackboard, "No valid blackboard for this pass command list" );
-
-        m_ShaderResources.m_SRGs[type].SetStorageBuffer( buffer, index );
-    }
-
-    auto PassCommandList::Draw( UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance ) -> void {
+    auto PassCommandList::Draw( UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance ) const -> void {
         MKT_ASSERT( m_Context, "No valid context for this pass command list" );
 
         m_Context->Draw(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
-    auto PassCommandList::BeginCompute() -> void {
+    auto PassCommandList::BeginCompute(FramePass* pass) -> void {
+        MKT_ASSERT( m_Context, "No valid context for this pass command list" );
+
+        m_Context->BeginCompute();
+
+        m_ActivePass = pass;
     }
-    auto PassCommandList::EndCompute() -> void {
+
+    auto PassCommandList::EndCompute() const -> void {
+        MKT_ASSERT( m_Context, "No valid context for this pass command list" );
+
+        m_Context->EndCompute();
     }
 
     auto PassCommandList::SetViewport( Int32 x, Int32 y, Int32 width, Int32 height ) -> void {
@@ -127,18 +135,20 @@ namespace Mikoto {
         m_Context->SetScissor( m_Scissor );
     }
 
-    auto PassCommandList::BindPipeline( std::string_view pipelineName ) -> void {
-        PipelineHandle piepline{ m_Blackboard->GetPipeline(pipelineName) };
-        MKT_ASSERT( !piepline.IsEmpty(), "PassCommandList::SetDepthRenderTarget - PipelineHandle must not be empty" );
+    auto PassCommandList::BindPipeline( std::string_view pipelineName ) const -> void {
+        const PipelineHandle piepline{ m_Blackboard->GetPipeline(pipelineName) };
 
-        m_Context->BindPipeline( piepline, m_ShaderResources );
+        MKT_ASSERT( !piepline.IsEmpty(), "PassCommandList::SetDepthRenderTarget - PipelineHandle must not be empty" );
+        MKT_ASSERT( m_ActivePass, "Cannot bind pipeline without a valid pass." );
+
+        m_Context->BindPipeline( piepline, m_ActivePass );
     }
 
     auto PassCommandList::BindVertexBuffer( BufferHandle vertices ) -> void {
     }
     auto PassCommandList::BindIndexBuffer( BufferHandle indices ) -> void {
     }
-    auto PassCommandList::SubmitDraw() -> void {
+    auto PassCommandList::DrawIndexed() -> void {
     }
 
     auto PassCommandList::Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void {
@@ -147,5 +157,36 @@ namespace Mikoto {
 
     auto PassCommandList::SetClearColor( const Vec4F &color ) -> void {
         m_RenderInfo.ClearColor = color;
+    }
+
+    auto PassCommandList::FillBuffer( std::string_view bufferName, const void *ptrSrc, Size size ) const -> void {
+        MKT_ASSERT( m_Context, "No valid context for this pass command list" );
+
+        if ( BufferHandle buffer{ m_Blackboard->GetBuffer( bufferName ) }; !buffer.IsEmpty()) {
+            if (size > buffer->GetSizeBytes()) {
+                MKT_CORE_LOGGER_WARN( "PassCommandList::FillBuffer - [{}] size is [{}]. Trying to copy [{}] bytes", bufferName, buffer->GetSizeBytes(), size );
+            } else {
+                buffer->CopyFromBlock( ptrSrc, size );
+            }
+        }
+    }
+
+    auto PassCommandList::PushTexture( TextureHandle texture ) const -> Int32 {
+        return m_Context->PushImage(texture);
+    }
+
+    auto PassCommandList::BindResourceGroup( const SRGType srgType ) const -> void {
+        MKT_ASSERT( m_Context, "No valid context for this pass command list" );
+
+        switch (srgType) {
+
+            case SRGType::SRG_Textures:
+                m_Context->BindTextureList();
+                break;
+            case SRGType::SRG_PerPass:
+                m_Context->BindPassResources(m_ActivePass);
+                break;
+            default:;
+        }
     }
 }// namespace Mikoto

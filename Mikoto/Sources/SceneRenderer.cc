@@ -97,8 +97,12 @@ namespace Mikoto {
         SimpleComputePass* simpleComputePass{ m_PassRegistry.Register<SimpleComputePass>() };
         simpleComputePass->Setup( builder );
 
+        HelloTexture* helloTexture{ m_PassRegistry.Register<HelloTexture>() };
+        helloTexture->Setup( builder );
+
         m_FrameGraph->RegisterPass( helloTrianglePass );
         m_FrameGraph->RegisterPass( simpleComputePass );
+        m_FrameGraph->RegisterPass( helloTexture );
 
         m_FrameGraph->Compile( builder );
     }

@@ -69,6 +69,8 @@ namespace Mikoto {
         auto InitSharedShaderResourceGroups() -> void;
 
     private:
+        static constexpr UInt32 TEXTURES_DESCRIPTOR_SET_INDEX{ 0 };
+        static constexpr UInt32 PER_FRAME_DESCRIPTOR_SET_INDEX{ 1 };
         static constexpr UInt32 PER_PASS_DESCRIPTOR_SET_INDEX{ 2 };
 
     private:

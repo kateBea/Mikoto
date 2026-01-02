@@ -170,6 +170,11 @@ namespace Mikoto {
                 VulkanComputePipeline *vulkanPipeline{ dynamic_cast<VulkanComputePipeline *>( it->second.Pipeline.GetRaw() ) };
 
                 for (const auto& setIndex: vulkanPipeline->GetDescriptorSetIndices()) {
+                    // Skip creating descriptor sets for the frame and the textures as those already exist
+                    if (setIndex == TEXTURES_DESCRIPTOR_SET_INDEX || setIndex == PER_FRAME_DESCRIPTOR_SET_INDEX) {
+                        continue;
+                    }
+
                     const VkDescriptorSetLayout &layout{ vulkanPipeline->GetDescriptorSetLayout( setIndex ) };
                     VkDescriptorSet descriptorSet{ TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( std::addressof( layout ) ) };
 
@@ -181,6 +186,11 @@ namespace Mikoto {
                 VulkanGraphicsPipeline *vulkanPipeline{ dynamic_cast<VulkanGraphicsPipeline *>( it->second.Pipeline.GetRaw() ) };
 
                 for (const auto& setIndex: vulkanPipeline->GetDescriptorSetIndices()) {
+                    // Skip creating descriptor sets for the frame and the textures as those already exist
+                    if (setIndex == TEXTURES_DESCRIPTOR_SET_INDEX || setIndex == PER_FRAME_DESCRIPTOR_SET_INDEX) {
+                        continue;
+                    }
+
                     const VkDescriptorSetLayout &layout{ vulkanPipeline->GetDescriptorSetLayout( setIndex ) };
                     VkDescriptorSet descriptorSet{ TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( std::addressof( layout ) ) };
 
@@ -306,7 +316,7 @@ namespace Mikoto {
             m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
             VK_PIPELINE_BIND_POINT_GRAPHICS,
             m_TexturesPipelineLayout,
-            0, // firstSet corresponds to texture list wherever it is used
+            TEXTURES_DESCRIPTOR_SET_INDEX, // firstSet corresponds to texture list wherever it is used
             1,
             &m_BindlessTexturesSet,
             0,

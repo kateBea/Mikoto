@@ -469,7 +469,7 @@ namespace Mikoto {
         commandList.BeginRender(this);
         commandList.BindPipeline( "HelloTexture_Pipeline" );
 
-        TextureHandle textureHandle{ AssetsService::Get()->LoadAsset<Texture>( Path{ "Resources/Textures/texture.png" } ) };
+        TextureHandle textureHandle{ AssetsService::Get()->LoadAsset<Texture>( Path{ "Resources/Models/1 - Box texture/CatStare.png" } ) };
 
         static bool first{ true };
         if (first) {

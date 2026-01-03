@@ -398,14 +398,19 @@ namespace Mikoto {
             return SRGTextures::INVALID_TEXTURE_INDEX;
         }
 
-        SamplerHandle sampler{ m_Device->GetDummySampler() };
-
-        MKT_ASSERT( !sampler.IsEmpty(), "Dummy sampler cannot be empty" );
-
         SRGTextures* textureShaderGroup{ dynamic_cast<SRGTextures *>( m_SRG[SRGType::SRG_Textures].get() ) };
 
-        Int32 result{ textureShaderGroup->Bind( texture, sampler ) };
+        SamplerHandle sampler{ m_Device->GetDummySampler() };
+        MKT_ASSERT( !sampler.IsEmpty(), "Dummy sampler cannot be empty" );
 
+        // If combined sampler has already been registered return its index
+        Int32 index{ textureShaderGroup->GetIndex(texture, sampler) };
+        if (index != SRGTextures::INVALID_TEXTURE_INDEX) {
+            return index;
+        }
+
+        // If combined sampler does not exist, register it
+        Int32 result{ textureShaderGroup->Bind( texture, sampler ) };
         if (result != SRGTextures::INVALID_TEXTURE_INDEX) {
             UpdateBindlessTexturesSet( texture.GetRaw(), sampler.GetRaw(), result );
         }

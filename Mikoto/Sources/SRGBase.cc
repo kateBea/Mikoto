@@ -35,4 +35,17 @@ namespace Mikoto {
 
         return INVALID_TEXTURE_INDEX;
     }
+
+    auto SRGTextures::Contains( TextureHandle texture, SamplerHandle sampler ) -> bool {
+        return GetIndex( texture, sampler ) != INVALID_TEXTURE_INDEX;
+    }
+
+    auto SRGTextures::GetIndex( TextureHandle texture, SamplerHandle sampler ) -> Int32 {
+        const auto it{ m_Resources.find( std::make_pair(texture.GetRaw(), sampler.GetRaw() ) ) };
+        if (it != m_Resources.end()) {
+            return it->second;
+        }
+
+        return INVALID_TEXTURE_INDEX;
+    }
 }// namespace Mikoto

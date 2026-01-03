@@ -144,11 +144,16 @@ namespace Mikoto {
         m_Context->BindPipeline( piepline, m_ActivePass );
     }
 
-    auto PassCommandList::BindVertexBuffer( BufferHandle vertices ) -> void {
-    }
-    auto PassCommandList::BindIndexBuffer( BufferHandle indices ) -> void {
-    }
-    auto PassCommandList::DrawIndexed() -> void {
+    auto PassCommandList::DrawIndexed(const DrawIndexedState& info) const -> void {
+        MKT_ASSERT( m_Context, "No valid context for this pass command list" );
+        MKT_ASSERT( m_Blackboard, "Tried to create PassCommandList with NULL blackboard" );
+
+        for (auto& [vertexBuffer, binding] : info.VertexBuffers) {
+            m_Context->BindVertexBuffer(vertexBuffer, binding);
+        }
+
+        m_Context->BindIndexBuffer(info.IndexBuffer);
+        m_Context->DrawInstanced(info.IndexBuffer->GetCount(), info.InstancesCount, info.FirstIndex, info.VertexOffset, info.FirstInstance);
     }
 
     auto PassCommandList::Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void {
@@ -185,6 +190,9 @@ namespace Mikoto {
                 break;
             case SRGType::SRG_PerPass:
                 m_Context->BindPassResources(m_ActivePass);
+                break;
+            case SRGType::SRG_PerFrame:
+                m_Context->BindFrameResources();
                 break;
             default:;
         }

@@ -7,6 +7,7 @@
 
 #include <string_view>
 #include <vector>
+#include <initializer_list>
 
 #include <ankerl/unordered_dense.h>
 
@@ -72,9 +73,14 @@ namespace Mikoto {
 
         virtual auto BindPipeline(PipelineHandle pipeline, FramePass* Pass) -> void = 0;
         virtual auto BindTextureList() -> void = 0;
+        virtual auto BindFrameResources() -> void = 0;
         virtual auto BindPassResources(FramePass* pass ) -> void = 0;
 
         virtual auto GetPassSRG( FramePass* pass ) -> SRGPerPass* = 0;
+
+        virtual auto BindIndexBuffer( BufferHandle indexBuffer )-> void = 0;
+        virtual auto BindVertexBuffer( BufferHandle vertexBuffer, UInt32 binding ) -> void = 0;
+        virtual auto DrawInstanced( Size indexCount, UInt32 instanceCount, UInt32 firstIndex, UInt32 vertexOffset, UInt32 firstInstance )-> void = 0;
 
         MKT_NODISCARD static auto Create(GpuDevice* device) -> Unique<GraphicsContext>;
 
@@ -86,6 +92,20 @@ namespace Mikoto {
         GpuDevice* m_Device{ nullptr };
 
         ankerl::unordered_dense::map<SRGType, Unique<SRGBase>> m_SRG{};
+    };
+
+    struct DrawIndexedState {
+        BufferHandle IndexBuffer{};
+
+        // Specifies the buffer and its binding
+        std::vector<std::pair<BufferHandle, UInt32>> VertexBuffers{};
+
+        UInt32 IndicesCount{};
+        UInt32 InstancesCount{};
+
+        UInt32 FirstIndex{};
+        UInt32 VertexOffset{};
+        UInt32 FirstInstance{};
     };
 
     class PassCommandList {
@@ -106,9 +126,7 @@ namespace Mikoto {
 
         auto BindPipeline(std::string_view pipelineName ) const -> void;
 
-        auto BindVertexBuffer(BufferHandle vertices) -> void;
-        auto BindIndexBuffer(BufferHandle indices) -> void;
-        auto DrawIndexed() -> void;
+        auto DrawIndexed(const DrawIndexedState& info) const -> void;
 
         auto SetBufferBindSlot(SRGType type, std::string_view buffer, UInt32 index ) const -> void;
         auto SetTextureBindSlot(SRGType type, std::string_view buffer, UInt32 index) -> void;

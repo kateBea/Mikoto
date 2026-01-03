@@ -109,6 +109,7 @@ namespace Mikoto {
     }
 
     auto RenderService::InitRendererBackend() -> void {
+        // TODO: move graphics context to the scene renderer
         MKT_BEGIN_PROFILER_NAMED();
 
         switch ( m_ActiveAPI ) {

@@ -10,6 +10,8 @@
 #version 450
 #extension GL_EXT_nonuniform_qualifier : require
 
+#include "ShaderBase.glsl"
+
 #define PI 3.14159265359
 #define INVALID_TEXTURE_INDEX -1
 #define MAX_LIGHTS 50
@@ -60,14 +62,13 @@ layout(location = 11) flat in vec4 in_Factors;
 
 layout(location = 0) out vec4 out_Color;
 
-layout(set = 1, binding = 1) uniform LightUniformBuffer {
+layout(set = TEXTURES_SETINDEX, binding = 0) uniform sampler2D g_BindlessTextures[];
+layout(set = PERPASS_SETINDEX, binding = 1) uniform LightUniformBuffer {
     LightInfo Lights[MAX_LIGHTS];
     int ActiveLightsCount;
     int DisplayMode;
 
 } Lighting;
-
-layout(set = 0, binding = 0) uniform sampler2D g_BindlessTextures[];
 
 vec3 GetNormalFromMap(sampler2D normalMap) {
     vec3 tangentNormal = texture(normalMap, in_TexCoord).xyz * 2.0 - 1.0;
@@ -110,7 +111,6 @@ float GeometrySchlickGGX(float NdotV, float roughness) {
     return nom / denom;
 }
 
-
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
     float NdotV = max(dot( N, V ), 0.0);
     float NdotL = max(dot( N, L ), 0.0);
@@ -119,7 +119,6 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
 
     return ggx1 * ggx2;
 }
-
 
 vec3 FresnelSchlick(float cosTheta, vec3 F0) {
     return F0 + ( 1.0 - F0 ) * pow( clamp( 1.0 - cosTheta, 0.0, 1.0 ), 5.0 );
@@ -295,9 +294,6 @@ vec4 DetermineOutFragmentColor(vec3 N, vec3 color, float metallic, float roughne
     return result;
 }
 
-// --------------------------------------------------
-// Main
-// --------------------------------------------------
 void main() {
 
     vec3 albedo     = in_AlbedoIndex != INVALID_TEXTURE_INDEX ?

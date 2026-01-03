@@ -123,6 +123,7 @@ namespace Mikoto {
         FrameBlackboard *blackboard{ m_SceneRenderer->GetGraph().GetBlackboard() };
         m_EditorState->PassesCompositions.try_emplace( "TrianglePass", blackboard->GetTexture( "HelloTrianglePass_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "TexturePass", blackboard->GetTexture( "HelloTexture_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "FinalComposition", blackboard->GetTexture( "FinalCompositionPass_ColorTarget" ) );
     }
 
     auto EditorLayer::SetupRenderer() -> void {
@@ -143,7 +144,7 @@ namespace Mikoto {
         m_EditorState->ActiveEditorScene = m_ActiveScene;
 
         FrameBlackboard *blackboard{ m_SceneRenderer->GetGraph().GetBlackboard() };
-        m_EditorState->FinalComposition = blackboard->GetTexture( "HelloTrianglePass_ColorTarget" );
+        m_EditorState->FinalComposition = blackboard->GetTexture( "FinalCompositionPass_ColorTarget" );
 
         m_EditorState->SelectedEntity = m_ActiveScene->FindFirstByName( "Ground" );
 

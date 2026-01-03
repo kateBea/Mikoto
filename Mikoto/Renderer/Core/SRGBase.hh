@@ -47,7 +47,9 @@ namespace  Mikoto {
 
         explicit SRGTextures() : SRGBase{ SRGType::SRG_Textures } {}
 
-        auto Bind(TextureHandle texture, SamplerHandle sampler) -> Int32;
+        MKT_NODISCARD auto Bind(TextureHandle texture, SamplerHandle sampler) -> Int32;
+        MKT_NODISCARD auto Contains(TextureHandle texture, SamplerHandle sampler) -> bool;
+        MKT_NODISCARD auto GetIndex(TextureHandle texture, SamplerHandle sampler) -> Int32;
 
         auto begin() -> decltype(auto) { return m_Resources.begin(); }
         auto end() -> decltype(auto) { return m_Resources.end(); }

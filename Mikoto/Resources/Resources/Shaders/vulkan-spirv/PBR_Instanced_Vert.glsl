@@ -1,10 +1,12 @@
 #version 450
 #extension GL_EXT_nonuniform_qualifier : require
 
+#include "ShaderBase.glsl"
+
 // --------------------------------------------------
 // Per-frame uniform
 // --------------------------------------------------
-layout(set = 1, binding = 0) uniform FrameUBO {
+layout(set = PERPASS_SETINDEX, binding = 0) uniform FrameUBO {
     mat4 View;
     mat4 Projection;
     vec4 CameraPosition;

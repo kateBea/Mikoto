@@ -60,6 +60,11 @@ namespace Mikoto {
         auto Initialize() -> void override;
 
     private:
+        // When creating uniforms we need specify a minimum size for GPU memory alignment
+        // S o basically store the size of the element individually and the count, this information is to be used later in the initialization
+        Size m_ElementSize{};
+        Size m_ElementCount{};
+
         VkBuffer m_Buffer{};
 
         // See vmaCreteBuffer for details on these

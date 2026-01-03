@@ -316,12 +316,16 @@ namespace Mikoto {
             m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
             VK_PIPELINE_BIND_POINT_GRAPHICS,
             m_TexturesPipelineLayout,
-            TEXTURES_DESCRIPTOR_SET_INDEX, // firstSet corresponds to texture list wherever it is used
+            TEXTURES_DESCRIPTOR_SET_INDEX,
             1,
             &m_BindlessTexturesSet,
             0,
             nullptr
         );
+    }
+
+    auto VulkanGraphicsContext::BindFrameResources() -> void {
+
     }
 
     auto VulkanGraphicsContext::UpdateBindlessTexturesSet(Texture* texture, Sampler* sampler, Size setIndex ) const -> void {
@@ -339,7 +343,28 @@ namespace Mikoto {
         m_SRG[SRGType::SRG_Textures] = CreateScope<SRGTextures>();
     }
 
-    auto VulkanGraphicsContext::Draw( UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance ) -> void { vkCmdDraw( m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ), vertexCount, instanceCount, firstVertex, firstInstance ); }
+    auto VulkanGraphicsContext::Draw( UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance ) -> void {
+        vkCmdDraw( m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ), vertexCount, instanceCount, firstVertex, firstInstance );
+    }
+
+    auto VulkanGraphicsContext::BindIndexBuffer( BufferHandle indexBuffer ) -> void {
+        VkCommandBuffer cmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
+        vkCmdBindIndexBuffer( cmd, indexBuffer->GetNativeHandle( ObjectType::Vk_Buffer ), 0, VK_INDEX_TYPE_UINT32 ); // TODO: infer index buffer data type
+    }
+
+    auto VulkanGraphicsContext::BindVertexBuffer( BufferHandle vertexBuffer, UInt32 binding ) -> void {
+        VkCommandBuffer cmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
+
+        const std::array<VkDeviceSize, 1> offsets{};
+        const std::array<VkBuffer, 1> vertexBuffers{ vertexBuffer->GetNativeHandle( ObjectType::Vk_Buffer ) };
+
+        vkCmdBindVertexBuffers( cmd, binding, 1, vertexBuffers.data(), offsets.data() );
+    }
+
+    auto VulkanGraphicsContext::DrawInstanced( Size indexCount, UInt32 instanceCount, UInt32 firstIndex, UInt32 vertexOffset, UInt32 firstInstance ) -> void {
+        VkCommandBuffer cmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
+        vkCmdDrawIndexed( cmd, indexCount, instanceCount, 0, 0, 0 );
+    }
 
     auto VulkanGraphicsContext::Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void { m_CmdList->Dispatch( invX, invY, invZ ); }
 
@@ -369,9 +394,12 @@ namespace Mikoto {
     }
 
     auto VulkanGraphicsContext::PushImage( TextureHandle texture ) -> Int32 {
+        if (texture.IsEmpty()) {
+            return SRGTextures::INVALID_TEXTURE_INDEX;
+        }
+
         SamplerHandle sampler{ m_Device->GetDummySampler() };
 
-        MKT_ASSERT( !texture.IsEmpty(), "Texture cannot be empty" );
         MKT_ASSERT( !sampler.IsEmpty(), "Dummy sampler cannot be empty" );
 
         SRGTextures* textureShaderGroup{ dynamic_cast<SRGTextures *>( m_SRG[SRGType::SRG_Textures].get() ) };

@@ -12,7 +12,6 @@
 namespace Mikoto {
 
     auto FinalCompositionPass::Setup( FrameGraphBuilder& builder ) -> void {
-        // Create resources it needs
         PipelineDescription builderPipelineDesc{};
 
         builderPipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/PBR_Instanced_Vert.sprv", ShaderStage::VERTEX_STAGE );
@@ -24,11 +23,6 @@ namespace Mikoto {
         graphicsDesc.DepthWrite = true;
         graphicsDesc.AlphaBlending = true;
 
-        // Graphics context will specify the texture formats for the render targets we can redner to with this pipeline
-        // It will also create the shader modules first and assign them to this description which will be used to create the actual pipeline
-
-        // Input rate
-        // Vertices
         AttributesSpec verticesData{
             .DefaultVertexLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT },
             .InputRateSpec{ .BindingIndex{ 0 }, .AttributeRate{ InputRate::PER_VERTEX } }
@@ -58,66 +52,42 @@ namespace Mikoto {
 
         graphicsDesc.VertexAttributesSpec = { verticesData, instancedData };
 
+        // Graphics context will specify the texture formats for the render targets we can redner to with this pipeline
+        // It will also create the shader modules first and assign them to this description which will be used to create the actual pipeline
+        // TODO: temporary, specify the render targets this pipeline outputs to
+        builderPipelineDesc.ColorRenderTargets.emplace_back( "FinalCompositionPass_ColorTarget" );
+        builderPipelineDesc.DepthRenderTargets = "FinalCompositionPass_DepthTarget";
         builderPipelineDesc.Description = graphicsDesc;
 
         builder.CreateNamedPipeline( "FinalCompositionPass_Pipeline", builderPipelineDesc );
 
-        // Color attachment
-        TextureDescription colorDesc{};
-        colorDesc.WithWidth( 1920 )
-                .WithHeight( 1080 )
-                .WithChannelCount( 4 )
-                .WithData( nullptr )
-                .WithType( TextureType::TEXTURE_2D )
-                .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
-                .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
-                .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+        builder.CreateColorRenderTarget( "FinalCompositionPass_ColorTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM );
+        builder.CreateDepthRenderTarget( "FinalCompositionPass_DepthTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_D32_FLOAT );
 
-        builder.CreateNamedRenderTarget( "FinalCompositionPass_ColorTarget", colorDesc );
+        // Create fram buffers
+        BufferDescription lightsBuffer{};
+        lightsBuffer.WithData( nullptr )
+                .WithUsage( BufferUsage::BUFFER_USAGE_UNIFORM )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+                .ForElement( sizeof(LightInfo), 1 );
+        builder.CreateNamedBuffer( "PerFrame_LightsBuffer", lightsBuffer );
 
-        // Depth attachment
-        TextureDescription depthDesc{};
-        depthDesc.WithWidth( 1920 )
-                .WithHeight( 1080 )
-                .WithChannelCount( 1 )
-                .WithData( nullptr )
-                .WithType( TextureType::TEXTURE_2D )
-                .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
-                .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
-                .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
-
-        builder.CreateNamedRenderTarget( "FinalCompositionPass_DepthTarget", depthDesc );
+        BufferDescription cameraInfo{};
+        cameraInfo.WithData( nullptr )
+                .WithUsage( BufferUsage::BUFFER_USAGE_UNIFORM )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+                .ForElement( sizeof(FrameUBO), 1 );
+        builder.CreateNamedBuffer( "PerFrame_CameraInfo", cameraInfo );
 
         // Declare its inputs and outputs
-        builder.ReadTexture( this, "ShadowPass_ColorTarget" );
-        builder.ReadBuffer( this, "ShadowPass_LightsBuffer" );
-        builder.ReadBuffer( this, "ShadowPass_ObjectInfo" );
+        builder.ReadBuffer( this, "PerFrame_LightsBuffer" );
+        builder.ReadBuffer( this, "PerFrame_CameraInfo" );
 
         builder.WriteTexture( this, "FinalCompositionPass_ColorTarget" );
         builder.WriteTexture( this, "FinalCompositionPass_DepthTarget" );
     }
 
-    auto FinalCompositionPass::SetScene( Scene* scene ) -> void {
-        m_Scene = scene;
-    }
-
-    auto FinalCompositionPass::Execute( PassCommandList& commandList ) -> void {
-        commandList.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
-        commandList.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
-
-        commandList.BeginRender(this);
-
-        // Set render targets
-        commandList.SetViewport( 0, 0, 1920, 1080 );
-        commandList.SetScissor( 0, 0, 1920, 1080 );
-
-        commandList.BindPipeline( "FinalCompositionPass_Pipeline" );
-
-        // commandList.BindStorageBuffer( "ShadowPass_CameraInfo", 0, 0);
-        // commandList.BindStorageBuffer( "ShadowPass_LightsBuffer", 1, 0);
-        // commandList.BindStorageBuffer( "ShadowPass_ObjectInfo", 2, 0);
-
-        // Meshes
+    auto FinalCompositionPass::TraverseMeshList(PassCommandList& commandList) -> void {
         auto& registry{ m_Scene->GetRegistry() };
         auto renderables{ registry.view<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
 
@@ -130,30 +100,192 @@ namespace Mikoto {
             MaterialHandle material{ materialComp.GetMaterial() };
 
             if ( tag.IsActive() && meshComponent.HasMesh() && !material.IsEmpty() ) {
-                MeshNode* mesh{ meshComponent.GetMesh() };
-                PBRMaterial* matPtr{ dynamic_cast<PBRMaterial*>( material.GetRaw() ) };
+                MeshNode* meshNode{ meshComponent.GetMesh() };
+                PBRMaterial* pbrMat{ dynamic_cast<PBRMaterial*>( material.GetRaw() ) };
 
-                // commandList.BindTexture( matPtr->GetTextureType( MapType::ALBEDO_TEXTURE ) );
-                // commandList.BindTexture( matPtr->GetTextureType( MapType::NORMAL_TEXTURE ) );
-                // commandList.BindTexture( matPtr->GetTextureType( MapType::METALLIC_TEXTURE ) );
-                // commandList.BindTexture( matPtr->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
-                // commandList.BindTexture( matPtr->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
-                // commandList.BindTexture( matPtr->GetTextureType( MapType::EMISSIVE_TEXTURE ) );
+                // We need to update this vertex buffer if we don't have this mesh
+                if ( !m_MeshInstanceData.contains( meshNode ) ) {
+                    m_UpdateInstanceData = true;
+                }
 
-                commandList.BindVertexBuffer( mesh->GetVertexBuffer() );
-                commandList.BindIndexBuffer( mesh->GetIndexBuffer() );
+                auto& [Mesh, Instances]{ m_MeshInstanceData[meshNode] };
 
-                commandList.DrawIndexed();
+                // We need to update this vertex buffer if we don't have its contents
+                if ( !Instances.contains( tag.GetGUID() ) ) {
+                    m_UpdateInstanceData = true;
+                }
+
+                ShadingPassMeshBufferUBO& ubo{ Instances[tag.GetGUID()] };
+                ubo.i_TransformCol0 = transform.GetTransform()[0];
+                ubo.i_TransformCol1 = transform.GetTransform()[1];
+                ubo.i_TransformCol2 = transform.GetTransform()[2];
+                ubo.i_TransformCol3 = transform.GetTransform()[3];
+
+                ubo.Albedo = pbrMat->GetColor();
+                ubo.Factors.x = pbrMat->GetMetallicFactor();
+                ubo.Factors.y = pbrMat->GetRoughnessFactor();
+
+                ubo.AlbedoIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::ALBEDO_TEXTURE ) );
+                ubo.NormalIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::NORMAL_TEXTURE ) );
+                ubo.MetallicIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::METALLIC_TEXTURE ) );
+                ubo.RoughnessIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
+                ubo.AoIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
             }
         }
 
-        // Lights
-        auto lights{ registry.view<TagComponent, TransformComponent, LightComponent>() };
-        for ( auto& entity: lights ) {
-            auto& tag{ registry.get<TagComponent>( entity ) };
-            auto& transform{ registry.get<TransformComponent>( entity ) };
-            auto& lightComp{ registry.get<LightComponent>( entity ) };
+        if ( m_UpdateInstanceData ) {
+            UpdateInstancedData();
+            m_UpdateInstanceData = false;
         }
+
+        // Copy contents
+        UploadInstanceData();
+
+        for ( auto& [meshNode, instanceData]: m_MeshInstanceData ) {
+            DrawIndexedState drawIndexedState{};
+
+            drawIndexedState.IndexBuffer = meshNode->GetIndexBuffer();
+            drawIndexedState.VertexBuffers.emplace_back( meshNode->GetVertexBuffer(), 0);
+            drawIndexedState.VertexBuffers.emplace_back(instanceData.first, 1 );
+
+            drawIndexedState.IndicesCount = meshNode->GetIndexBuffer()->GetCount();
+            drawIndexedState.InstancesCount = instanceData.second.size();
+
+            commandList.DrawIndexed(drawIndexedState);
+        }
+    }
+
+    auto FinalCompositionPass::TraverseLightsList( PassCommandList &commandList ) -> void {
+        auto& registry{ m_Scene->GetRegistry() };
+        auto lightsView{ registry.view<TagComponent, TransformComponent, LightComponent>() };
+
+        Int32 lightsCount{};
+
+        for ( auto& lightEntity: lightsView ) {
+            TagComponent& tag{ registry.get<TagComponent>( lightEntity ) };
+            LightComponent& lightComp{ registry.get<LightComponent>( lightEntity ) };
+            TransformComponent& transformCom{ registry.get<TransformComponent>( lightEntity ) };
+
+            if ( lightsCount >= MAX_LIGHTS ) break;
+
+            auto& uboLight{ m_LightsInfo.Lights[lightsCount] };
+
+            if (!tag.IsActive()) {
+                uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_INACTIVE);
+                continue;
+            }
+
+            switch ( lightComp.GetActiveType() ) {
+                case LightType::POINT_LIGHT_TYPE: {
+
+                    auto& point{ lightComp.Get<PointLight>() };
+
+                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
+                    uboLight.Diffuse = Vec4F( point.GetColor(), 0.0f );
+                    uboLight.AttenuationParams = Vec4F( point.GetIntensity(), point.GetRadius(), 0.0f, 0.0f );
+                    uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_POINT);
+
+                    break;
+                }
+
+                case LightType::SPOT_LIGHT_TYPE: {
+                    auto& spot{ lightComp.Get<SpotLight>() };
+
+                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
+                    uboLight.Direction = Vec4F( spot.GetDirection(), 0.0f );
+                    uboLight.Diffuse = Vec4F( spot.GetColor() * spot.GetIntensity(), 1.0f );
+                    uboLight.CutOffValues = Vec4F( spot.GetCutOff(), spot.GetOuterCutOff(), spot.GetIntensity(), spot.GetRadius() );
+                    uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_SPOT);
+
+                    break;
+                }
+
+                case LightType::DIRECTIONAL_LIGHT_TYPE: {
+                    auto& dir{ lightComp.Get<DirectionalLight>() };
+
+                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );// optional for shadows
+                    uboLight.Diffuse = Vec4F( dir.GetColor() * dir.GetIntensity(), 1.0f );
+                    uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_DIRECTIONAL);
+
+                    break;
+                }
+            }
+
+            ++lightsCount;
+        }
+
+        // Update counts in UBO
+        m_LightsInfo.ActiveLightsCount = lightsCount;
+        m_LightsInfo.DisplayMode = static_cast<Int32>(LightInfo::DisplayModes::DISPLAY_COLOR);
+
+        // Copy to GPU buffer
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "PerFrame_LightsBuffer", 1 );
+        commandList.FillBuffer( "PerFrame_LightsBuffer", std::addressof( m_LightsInfo ), sizeof( LightInfo ));
+    }
+
+    auto FinalCompositionPass::SetScene( Scene* scene ) -> void {
+        m_Scene = scene;
+    }
+
+    auto FinalCompositionPass::SetCamera( const Camera* camera ) -> void {
+        m_FrameUBO.View = camera->GetViewMatrix();
+        m_FrameUBO.Projection = camera->GetProjection();
+    }
+
+    auto FinalCompositionPass::UploadInstanceData() -> void {
+        for ( auto& meshInfo: m_MeshInstanceData | std::views::values ) {
+            std::vector<ShadingPassMeshBufferUBO> instancesData{};
+
+            for ( auto& instanceData: meshInfo.second | std::views::values ) {
+                instancesData.emplace_back( instanceData );
+            }
+
+            meshInfo.first->CopyFromBlock( instancesData.data(), instancesData.size() * sizeof( ShadingPassMeshBufferUBO ) );
+        }
+    }
+
+    auto FinalCompositionPass::UpdateInstancedData() -> void{
+        for ( auto& meshInfo: m_MeshInstanceData | std::views::values ) {
+            std::vector<ShadingPassMeshBufferUBO> instancesData{};
+
+            for ( auto& instanceData: meshInfo.second | std::views::values ) {
+                instancesData.emplace_back( instanceData );
+            }
+
+            BufferDescription vertexDesc{};
+            vertexDesc.WithUsage( BufferUsage::BUFFER_USAGE_VERTEX )
+                    .WithData( reinterpret_cast<Byte*>( instancesData.data() ) )
+                    .WithSizeBytes( InferSize<ShadingPassMeshBufferUBO>( instancesData.size() ) )
+                    .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+
+            meshInfo.first = m_Device->CreateBuffer( vertexDesc );
+        }
+    }
+
+    auto FinalCompositionPass::Execute( PassCommandList& commandList ) -> void {
+        commandList.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
+        commandList.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
+        commandList.SetClearColor( m_ClearColor );
+
+        commandList.BeginRender(this);
+        commandList.BindPipeline( "FinalCompositionPass_Pipeline" );
+
+        // Set render targets
+        commandList.SetViewport( 0, 0, 1920, 1080 );
+        commandList.SetScissor( 0, 0, 1920, 1080 );
+
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "PerFrame_LightsBuffer", 1 );
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "PerFrame_CameraInfo", 0 );
+
+        commandList.BindResourceGroup(SRGType::SRG_Textures);
+        commandList.BindResourceGroup(SRGType::SRG_PerPass);
+
+        commandList.FillBuffer( "PerFrame_LightsBuffer", std::addressof( m_LightsInfo ), sizeof( m_LightsInfo ) );
+        commandList.FillBuffer( "PerFrame_CameraInfo", std::addressof( m_FrameUBO ), sizeof( m_FrameUBO ) );
+
+        TraverseLightsList(commandList);
+
+        TraverseMeshList(commandList);
 
         commandList.EndRender();
     }
@@ -166,9 +298,9 @@ namespace Mikoto {
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/Shadowmap_Frag.sprv", ShaderStage::FRAGMENT_STAGE );
 
         // Configure pipeline stage
-        GraphicsPipelineDescription graphicseDesc{};
+        GraphicsPipelineDescription graphicsDesc{};
 
-        pipelineDesc.Description = graphicseDesc;
+        pipelineDesc.Description = graphicsDesc;
 
         builder.CreateNamedPipeline( "ShadowPass_Pipeline", pipelineDesc );
 
@@ -262,20 +394,7 @@ namespace Mikoto {
 
                 MeshNode* mesh{ meshComponent.GetMesh() };
 
-                // commandList.BindTexture( matPtr->GetTextureType( MapType::ALBEDO_TEXTURE ) );
-                // commandList.BindTexture( matPtr->GetTextureType( MapType::NORMAL_TEXTURE ) );
-                // commandList.BindTexture( matPtr->GetTextureType( MapType::METALLIC_TEXTURE ) );
-                // commandList.BindTexture( matPtr->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
-                // commandList.BindTexture( matPtr->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
-                // commandList.BindTexture( matPtr->GetTextureType( MapType::EMISSIVE_TEXTURE ) );
 
-                commandList.BindVertexBuffer( mesh->GetVertexBuffer() );
-                commandList.BindIndexBuffer( mesh->GetIndexBuffer() );
-
-                // We probably do not need the transform here the shadow pass should happen before
-                // this pass which creates and update the buffer that has the contents to render out geometry
-
-                commandList.DrawIndexed();
             }
         }
 

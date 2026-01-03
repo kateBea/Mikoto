@@ -32,6 +32,11 @@ namespace Mikoto {
 
     auto SceneRenderer::SetScene( Scene *scene ) -> void {
         m_Scene = scene;
+
+        FinalCompositionPass* finalCompositionPass{ m_PassRegistry.Get<FinalCompositionPass>() };
+        MKT_ASSERT( finalCompositionPass, "Trying to set scene for final composition pass while it is NULL" );
+
+        finalCompositionPass->SetScene( m_Scene );
     }
 
     auto SceneRenderer::Render( double ) const -> void {
@@ -46,8 +51,12 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::SetCamera( SceneCamera *camera ) -> void {
-
         m_Camera = camera;
+
+        FinalCompositionPass* finalCompositionPass{ m_PassRegistry.Get<FinalCompositionPass>() };
+        MKT_ASSERT( finalCompositionPass, "Trying to set scene for final composition pass while it is NULL" );
+
+        finalCompositionPass->SetCamera( m_Camera );
     }
 
     auto SceneRenderer::GetGraph() -> FrameGraph & {
@@ -100,9 +109,13 @@ namespace Mikoto {
         HelloTexture* helloTexture{ m_PassRegistry.Register<HelloTexture>() };
         helloTexture->Setup( builder );
 
+        FinalCompositionPass* finalCompositionPass{ m_PassRegistry.Register<FinalCompositionPass>( m_Device ) };
+        finalCompositionPass->Setup( builder );
+
         m_FrameGraph->RegisterPass( helloTrianglePass );
         m_FrameGraph->RegisterPass( simpleComputePass );
         m_FrameGraph->RegisterPass( helloTexture );
+        m_FrameGraph->RegisterPass( finalCompositionPass );
 
         m_FrameGraph->Compile( builder );
     }

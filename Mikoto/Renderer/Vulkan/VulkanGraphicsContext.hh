@@ -41,10 +41,15 @@ namespace Mikoto {
         auto Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void override;
         auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance) -> void  override;
 
+        auto BindIndexBuffer( BufferHandle indexBuffer )-> void  override;
+        auto BindVertexBuffer( BufferHandle vertexBuffer, UInt32 binding ) -> void  override;
+        auto DrawInstanced( Size indexCount, UInt32 instanceCount, UInt32 firstIndex, UInt32 vertexOffset, UInt32 firstInstance )-> void  override;
+
         auto SetViewport(const PassViewport& vp) -> void  override;
         auto SetScissor(const PassScissor& vp) -> void  override;
 
         auto BindTextureList() -> void override;
+        auto BindFrameResources() -> void  override;
 
         auto PushImage(TextureHandle texture) -> Int32 override;
 

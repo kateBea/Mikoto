@@ -9,6 +9,8 @@
 #include <string_view>
 #include <vector>
 
+#include <ankerl/unordered_dense.h>
+
 #include <Assets//Texture.hh>
 #include <Assets/Model.hh>
 #include <Library/Data/ResourcePool.hh>
@@ -19,6 +21,8 @@
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/Pipeline.hh>
 #include <Scene/Scene.hh>
+
+#include "Scene/Camera.hh"
 
 namespace Mikoto {
 
@@ -45,20 +49,97 @@ namespace Mikoto {
     class FinalCompositionPass final : public FramePass {
     public:
 
-        explicit FinalCompositionPass()
-            : FramePass{ "FinalCompositionPass" } {}
+        explicit FinalCompositionPass(GpuDevice* device)
+            : FramePass{ "FinalCompositionPass" }, m_Device{ device } {}
 
         auto Setup(FrameGraphBuilder& device) -> void override;
-        auto Execute(PassCommandList& cmdList) -> void override;
+        auto Execute(PassCommandList& commandList) -> void override;
 
         auto SetScene(Scene* scene) -> void;
+        auto SetCamera( const Camera* camera ) -> void;
 
     private:
+
+        auto UploadInstanceData() -> void;
+        auto UpdateInstancedData() -> void;
+
+        auto TraverseMeshList(PassCommandList& commandList) -> void;
+        auto TraverseLightsList(PassCommandList& commandList) -> void;
+
+    private:
+        struct ShadingPassMeshBufferUBO {
+            Vec4F i_TransformCol0{};
+            Vec4F i_TransformCol1{};
+            Vec4F i_TransformCol2{};
+            Vec4F i_TransformCol3{};
+
+            Vec4F Albedo{};
+            Vec4F Factors{};
+            Int32 AlbedoIndex{};
+            Int32 NormalIndex{};
+            Int32 MetallicIndex{};
+            Int32 RoughnessIndex{};
+            Int32 AoIndex{};
+        };
+
+        static constexpr UInt32 MAX_LIGHTS{ 50 };
+
+        struct FrameUBO {
+            glm::mat4 View{};
+            glm::mat4 Projection{};
+            Vec4F CameraPosition{};
+        };
+
+        struct LightTypeInfo {
+            Vec4F Position{};
+            Vec4F Direction{};
+            Vec4F CutOffValues{};
+
+            Vec4F Diffuse{};
+
+            // x=cutOff, y=outerCutOff, z=intensity, w=radius
+            Vec4F AttenuationParams{};
+
+            // Meet shader uniform buffer alignment requirements
+            alignas(sizeof(Vec4F)) Int32 ActiveLightType{};
+        };
+
+        struct LightInfo {
+            enum class DisplayModes {
+                DISPLAY_NORMAL = 1,
+                DISPLAY_COLOR = 2,
+                DISPLAY_METAL = 3,
+                DISPLAY_AO = 4,
+                DISPLAY_ROUGH = 5,
+            };
+
+            enum class ActiveLightType {
+                LIGHT_TYPE_INACTIVE = -1,
+                LIGHT_TYPE_POINT = 1,
+                LIGHT_TYPE_SPOT = 2,
+                LIGHT_TYPE_DIRECTIONAL = 3,
+            };
+
+            std::array<LightTypeInfo, MAX_LIGHTS> Lights{};
+
+            Int32 ActiveLightsCount{};
+            Int32 DisplayMode{};
+        };
+
+    private:
+        LightInfo m_LightsInfo{};
+        FrameUBO m_FrameUBO{};
+
         GpuDevice* m_Device{};
 
         Scene* m_Scene{};
-
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
+
+        // For every mesh I store the count of elements and its buffer with its instance data
+        bool m_UpdateInstanceData{ false };
+
+        // For every mesh node i store the vertex buffer that contains all the data for all instances of that mesh and the ID and instance data for individual meshes to know if an instance already exists
+        ankerl::unordered_dense::map<MeshNode*, std::pair<BufferHandle, ankerl::unordered_dense::map<UInt64, ShadingPassMeshBufferUBO>>> m_MeshInstanceData{};
     };
 
     class ShadowPass final : public FramePass {

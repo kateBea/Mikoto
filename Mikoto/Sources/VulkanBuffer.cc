@@ -38,6 +38,17 @@ namespace Mikoto {
     }
 
     auto VulkanBuffer::Initialize() -> void {
+        // When description has specified size and element count we need to apply alignment if needed for this GPU buffer
+        // We allocate space for a buffer large enough to contain ElementCount objects of ElementSize size (in bytes)
+        if (m_ElementSize != 0 && m_ElementCount != 0) {
+
+            const VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE( m_Device )->GetUniformBufferMinOffsetAlignment() };
+            const VkDeviceSize paddedSize{ VulkanHelpers::GetUniformBufferPadding( m_ElementSize, minOffsetAlignment ) };
+
+            m_SizeBytes = m_ElementCount * paddedSize;
+            m_BufferCreateInfo.size = static_cast<UInt32>( m_SizeBytes );
+        }
+
         auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( m_Device )->GetAllocator()) };
         MKT_ASSERT(allocator != nullptr, "Allocator is null in VulkanBuffer::Allocate!");
 
@@ -96,7 +107,8 @@ namespace Mikoto {
             // When description has specified size and element count we need to apply alignment if needed for this GPU buffer
             // We allocate space for a buffer large enough to contain ElementCount objects of ElementSize size (in bytes)
             if (createInfo.ElementSize != 0 && createInfo.ElementCount != 0) {
-
+                m_ElementSize = createInfo.ElementSize;
+                m_ElementCount = createInfo.ElementCount;
             }
         }
 

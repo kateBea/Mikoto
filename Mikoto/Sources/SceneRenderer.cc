@@ -37,6 +37,11 @@ namespace Mikoto {
         MKT_ASSERT( finalCompositionPass, "Trying to set scene for final composition pass while it is NULL" );
 
         finalCompositionPass->SetScene( m_Scene );
+
+        LightCullingComp* lightCullingComp{ m_PassRegistry.Get<LightCullingComp>() };
+        MKT_ASSERT( lightCullingComp, "Trying to set scene for light culling compute pass while it is NULL" );
+
+        lightCullingComp->SetScene( m_Scene );
     }
 
     auto SceneRenderer::Render( double ) const -> void {
@@ -80,25 +85,6 @@ namespace Mikoto {
 
         FrameGraphBuilder builder{};
 
-#if false
-        // Create and configure shadow pass
-        ShadowPass* shadowPass{ m_PassRegistry.Register<ShadowPass>() };
-        shadowPass->Setup( builder );
-
-        // Create and configure final composition
-        FinalCompositionPass* finalCompositionPass{ m_PassRegistry.Register<FinalCompositionPass>() };
-        finalCompositionPass->Setup( builder );
-
-        // Create and configure Text pass
-        TextPass* textPass{ m_PassRegistry.Register<TextPass>() };
-        textPass->Setup( builder );
-
-        // Create and configure Compute
-        SimpleComputePass* simpleComputePass{ m_PassRegistry.Register<SimpleComputePass>() };
-        simpleComputePass->Setup( builder );
-
-#endif
-
         // Create and configure Compute
         HelloTrianglePass* helloTrianglePass{ m_PassRegistry.Register<HelloTrianglePass>() };
         helloTrianglePass->Setup( builder );
@@ -112,10 +98,22 @@ namespace Mikoto {
         FinalCompositionPass* finalCompositionPass{ m_PassRegistry.Register<FinalCompositionPass>( m_Device ) };
         finalCompositionPass->Setup( builder );
 
+        AABBGenComp* aabbGenComp { m_PassRegistry.Register<AABBGenComp>() };
+        aabbGenComp->Setup( builder );
+
+        LightCullingComp* lightCullingComp { m_PassRegistry.Register<LightCullingComp>() };
+        lightCullingComp->Setup( builder );
+
+        LightBatchingComp* lightBatchingComp { m_PassRegistry.Register<LightBatchingComp>() };
+        lightBatchingComp->Setup( builder );
+
         m_FrameGraph->RegisterPass( helloTrianglePass );
         m_FrameGraph->RegisterPass( simpleComputePass );
         m_FrameGraph->RegisterPass( helloTexture );
         m_FrameGraph->RegisterPass( finalCompositionPass );
+        m_FrameGraph->RegisterPass( aabbGenComp );
+        m_FrameGraph->RegisterPass( lightCullingComp );
+        m_FrameGraph->RegisterPass( lightBatchingComp );
 
         m_FrameGraph->Compile( builder );
     }

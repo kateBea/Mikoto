@@ -142,6 +142,40 @@ namespace Mikoto {
         ankerl::unordered_dense::map<MeshNode*, std::pair<BufferHandle, ankerl::unordered_dense::map<UInt64, ShadingPassMeshBufferUBO>>> m_MeshInstanceData{};
     };
 
+    class AABBGenComp final : public FramePass {
+    public:
+        explicit AABBGenComp()
+            : FramePass{ "AABBGenComp" } {}
+
+        auto Setup(FrameGraphBuilder& builder) -> void override;
+        auto Execute(PassCommandList& cmdList) -> void override;
+
+    };
+
+    class LightCullingComp final : public FramePass {
+    public:
+        explicit LightCullingComp()
+            : FramePass{ "LightCullingComp" } {}
+
+        auto Setup(FrameGraphBuilder& builder) -> void override;
+        auto Execute(PassCommandList& commandList) -> void override;
+
+        auto SetScene(Scene* scene) -> void;
+
+    private:
+        Scene* m_Scene{};
+    };
+
+    class LightBatchingComp final : public FramePass {
+    public:
+        explicit LightBatchingComp()
+            : FramePass{ "LightBatchingComp" } {}
+
+        auto Setup(FrameGraphBuilder& builder) -> void override;
+        auto Execute(PassCommandList& commandList) -> void override;
+
+    };
+
     class ShadowPass final : public FramePass {
     public:
 
@@ -149,7 +183,7 @@ namespace Mikoto {
             : FramePass{ "ShadowPass" } {}
 
         auto Setup(FrameGraphBuilder& device) -> void override;
-        auto Execute(PassCommandList& cmdList) -> void override;
+        auto Execute(PassCommandList& commandList) -> void override;
 
         auto SetScene(Scene* scene) -> void;
 

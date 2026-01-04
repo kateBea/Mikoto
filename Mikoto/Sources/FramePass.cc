@@ -290,6 +290,109 @@ namespace Mikoto {
         commandList.EndRender();
     }
 
+    auto AABBGenComp::Setup( FrameGraphBuilder &builder ) -> void {
+        PipelineDescription pipelineDesc{};
+        pipelineDesc.Description = ComputePipelineDescription{};
+
+        pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/AABBGen_Comp.sprv", ShaderStage::COMPUTE_STAGE );
+
+        builder.CreateNamedPipeline( "AABBGenComp_Pipeline", pipelineDesc );
+    }
+
+    auto AABBGenComp::Execute( PassCommandList &commandList ) -> void {
+        commandList.BeginCompute(this);
+        commandList.BindPipeline( "AABBGenComp_Pipeline" );
+
+        // commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_Result", 0 );
+        // commandList.BindResourceGroup(SRGType::SRG_PerPass);
+
+        constexpr UInt32 TILE_SIZE{ 16 };
+
+        // MLater will match final composition size
+        constexpr UInt32 screenWidth{ 1920 };
+        constexpr UInt32 screenHeight{ 1080 };
+
+        constexpr UInt32 tilesX{ (screenWidth  + TILE_SIZE - 1) / TILE_SIZE };
+        constexpr UInt32 tilesY{ (screenHeight + TILE_SIZE - 1) / TILE_SIZE };
+
+        constexpr UInt32 tileCount{ tilesX * tilesY };
+
+        // 1 invocation = 1 tile
+        commandList.Dispatch(tileCount, 1, 1);
+
+        commandList.EndCompute();
+    }
+
+    auto LightCullingComp::Setup( FrameGraphBuilder &builder ) -> void {
+        PipelineDescription pipelineDesc{};
+        pipelineDesc.Description = ComputePipelineDescription{};
+
+        pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/LightCulling_Comp.sprv", ShaderStage::COMPUTE_STAGE );
+
+        builder.CreateNamedPipeline( "LightCullingComp_Pipeline", pipelineDesc );
+    }
+
+    auto LightCullingComp::Execute( PassCommandList &commandList ) -> void {
+        commandList.BeginCompute(this);
+        commandList.BindPipeline( "LightCullingComp_Pipeline" );
+
+        // commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_Result", 0 );
+        // commandList.BindResourceGroup(SRGType::SRG_PerPass);
+
+        constexpr UInt32 TILE_SIZE{ 16 };
+
+        // MLater will match final composition size
+        constexpr UInt32 screenWidth{ 1920 };
+        constexpr UInt32 screenHeight{ 1080 };
+
+        constexpr UInt32 tilesX{ (screenWidth  + TILE_SIZE - 1) / TILE_SIZE };
+        constexpr UInt32 tilesY{ (screenHeight + TILE_SIZE - 1) / TILE_SIZE };
+
+        constexpr UInt32 tileCount{ tilesX * tilesY };
+
+        // 1 invocation = 1 tile
+        commandList.Dispatch(tileCount, 1, 1);
+
+        commandList.EndCompute();
+    }
+
+    auto LightCullingComp::SetScene( Scene *scene ) -> void {
+        m_Scene = scene;
+    }
+
+    auto LightBatchingComp::Setup( FrameGraphBuilder &builder ) -> void {
+        PipelineDescription pipelineDesc{};
+        pipelineDesc.Description = ComputePipelineDescription{};
+
+        pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/LightBatching_Comp.sprv", ShaderStage::COMPUTE_STAGE );
+
+        builder.CreateNamedPipeline( "LightBatchingComp_Pipeline", pipelineDesc );
+    }
+
+    auto LightBatchingComp::Execute( PassCommandList &commandList ) -> void {
+        commandList.BeginCompute(this);
+        commandList.BindPipeline( "LightBatchingComp_Pipeline" );
+
+        // commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightBatchingComp_Result", 0 );
+        // commandList.BindResourceGroup(SRGType::SRG_PerPass);
+
+        constexpr UInt32 TILE_SIZE{ 16 };
+
+        // MLater will match final composition size
+        constexpr UInt32 screenWidth{ 1920 };
+        constexpr UInt32 screenHeight{ 1080 };
+
+        constexpr UInt32 tilesX{ (screenWidth  + TILE_SIZE - 1) / TILE_SIZE };
+        constexpr UInt32 tilesY{ (screenHeight + TILE_SIZE - 1) / TILE_SIZE };
+
+        constexpr UInt32 tileCount{ tilesX * tilesY };
+
+        // 1 invocation = 1 tile
+        commandList.Dispatch(tileCount, 1, 1);
+
+        commandList.EndCompute();
+    }
+
     auto ShadowPass::Setup( FrameGraphBuilder& builder ) -> void {
         // Create resources it needs
         PipelineDescription pipelineDesc{};

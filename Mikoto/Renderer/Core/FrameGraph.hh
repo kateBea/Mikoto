@@ -50,8 +50,6 @@ namespace Mikoto {
         auto CreateColorRenderTarget(std::string_view name, UInt32 width, UInt32 height, TextureFormat format) -> void;
         auto CreateDepthRenderTarget(std::string_view name, UInt32 width, UInt32 height, TextureFormat format) -> void;
 
-        auto RegisterShaderResource(FramePass* pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType type) -> void;
-
     private:
         friend class FrameGraph;
 
@@ -61,9 +59,6 @@ namespace Mikoto {
 
             std::vector<std::string> ReadTextures{};
             std::vector<std::string> WriteTextures{};
-
-            // TODO: Group index -> (ShaderResourceInfo)
-            ankerl::unordered_dense::map<UInt32, ShaderResourceInfo> ShaderResources{};
         };
 
         // Hold nodes and their dependencies, what textures
@@ -82,7 +77,7 @@ namespace Mikoto {
 
         auto RegisterPass(FramePass* pass) -> void;
 
-        auto Compile(FrameGraphBuilder& backend) -> void;
+        auto Compile(FrameGraphBuilder& builder) -> void;
         auto Execute() -> void;
 
         MKT_NODISCARD auto GetBlackboard() const -> FrameBlackboard*;
@@ -90,7 +85,7 @@ namespace Mikoto {
         MKT_NODISCARD static auto Create(GraphicsContext* context, GpuDevice* device ) -> Unique<FrameGraph>;
 
     private:
-
+        auto SortPassExecution(FrameGraphBuilder& builder) -> void;
         auto RegisterResource(std::string_view name, FrameResource resource) const -> void;
 
     private:

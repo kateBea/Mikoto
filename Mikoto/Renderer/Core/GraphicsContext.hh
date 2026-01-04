@@ -82,6 +82,8 @@ namespace Mikoto {
         virtual auto BindVertexBuffer( BufferHandle vertexBuffer, UInt32 binding ) -> void = 0;
         virtual auto DrawInstanced( Size indexCount, UInt32 instanceCount, UInt32 firstIndex, UInt32 vertexOffset, UInt32 firstInstance )-> void = 0;
 
+        virtual auto InsertResourceBarrier( FramePass * pass ) -> void = 0;
+
         MKT_NODISCARD static auto Create(GpuDevice* device) -> Unique<GraphicsContext>;
 
     protected:

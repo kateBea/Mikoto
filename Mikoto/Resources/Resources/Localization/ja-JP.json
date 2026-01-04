@@ -1,0 +1,12 @@
+{
+  "button_close": "閉じる",
+  "button_cancel": "キャンセル",
+  "menu_file": "ファイル",
+  "menu_edit": "編集",
+  "menu_view": "表示",
+  "menu_language": "言語",
+  "window_scene": "シーン",
+  "window_inspector": "インスペクター",
+  "window_console": "コンソール",
+  "tooltip_save_scene": "現在のシーンを保存します"
+}

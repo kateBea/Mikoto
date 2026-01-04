@@ -21,6 +21,7 @@
 #include <Scripting/ScriptingService.hh>
 #include <Threading/TaskService.hh>
 #include <Threading/ThreadUtility.hh>
+#include <Core/LocalizationService.hh>
 
 #include "Core/SystemStats.hh"
 #include "Scene/SceneManager.hh"
@@ -115,6 +116,14 @@ namespace Mikoto {
 
         SceneManager *sceneManager{ s_Services.Register<SceneManager>() };
         sceneManager->Init();
+
+        LocalizationServiceCreateInfo localizationServiceCreateInfo{
+            .LocalizationRoot{ "Resources/Localization" },
+            .DefaultLanguage{ ISOLanguage::ES_ES }
+        };
+
+        LocalizationService* localizationService{ s_Services.Register<LocalizationService>( localizationServiceCreateInfo ) };
+        localizationService->Init();
 
         //TaskManager::Get()->RunPeriodically( 3, []() -> void { SystemStats::Get()->Update(); } );
     }

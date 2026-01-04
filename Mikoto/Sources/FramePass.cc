@@ -297,14 +297,35 @@ namespace Mikoto {
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/AABBGen_Comp.sprv", ShaderStage::COMPUTE_STAGE );
 
         builder.CreateNamedPipeline( "AABBGenComp_Pipeline", pipelineDesc );
+
+        BufferDescription cameraUBO{};
+        cameraUBO.WithData( nullptr )
+                .WithUsage( BufferUsage::BUFFER_USAGE_UNIFORM )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+                .ForElement( sizeof( CameraUBO ), 1 );
+        builder.CreateNamedBuffer( "AABBGenComp_CameraUBO", cameraUBO );
+
+        BufferDescription aabbBuffer{};
+        aabbBuffer.WithData( nullptr )
+                .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+                .WithSizeBytes( sizeof( TileAABB ) );
+        builder.CreateNamedBuffer( "AABBGenComp_AABBBuffer", aabbBuffer );
+
+        builder.WriteBuffer( this, "AABBGenComp_AABBBuffer" );
+        builder.WriteBuffer( this, "AABBGenComp_CameraUBO" );
     }
 
     auto AABBGenComp::Execute( PassCommandList &commandList ) -> void {
         commandList.BeginCompute(this);
         commandList.BindPipeline( "AABBGenComp_Pipeline" );
 
-        // commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_Result", 0 );
-        // commandList.BindResourceGroup(SRGType::SRG_PerPass);
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 0 );
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_AABBBuffer", 1 );
+        commandList.BindResourceGroup(SRGType::SRG_PerPass);
+
+        CameraUBO cameraUBO{};
+        commandList.FillBuffer( "AABBGenComp_CameraUBO", std::addressof( cameraUBO ), sizeof( CameraUBO ));
 
         constexpr UInt32 TILE_SIZE{ 16 };
 
@@ -330,14 +351,47 @@ namespace Mikoto {
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/LightCulling_Comp.sprv", ShaderStage::COMPUTE_STAGE );
 
         builder.CreateNamedPipeline( "LightCullingComp_Pipeline", pipelineDesc );
+
+        BufferDescription lightsBuffer{};
+        lightsBuffer.WithData( nullptr )
+                .WithUsage( BufferUsage::BUFFER_USAGE_UNIFORM )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+                .ForElement( sizeof(FinalCompositionPass::LightInfo), 1 );
+        builder.CreateNamedBuffer( "LightCullingComp_LightsBuffer", lightsBuffer );
+
+        constexpr UInt32 TILE_SIZE{ 16 };
+
+        // MLater will match final composition size
+        constexpr UInt32 screenWidth{ 1920 };
+        constexpr UInt32 screenHeight{ 1080 };
+
+        constexpr UInt32 tilesX{ (screenWidth  + TILE_SIZE - 1) / TILE_SIZE };
+        constexpr UInt32 tilesY{ (screenHeight + TILE_SIZE - 1) / TILE_SIZE };
+
+        constexpr UInt32 tileCount{ tilesX * tilesY };
+
+        BufferDescription tileLightsCount{};
+        tileLightsCount.WithData( nullptr )
+                .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+                .WithSizeBytes( tileCount * sizeof( UInt32 ) );
+        builder.CreateNamedBuffer( "LightCullingComp_TileLightsCount", tileLightsCount );
+
+        builder.ReadBuffer( this, "AABBGenComp_AABBBuffer" );
+        builder.WriteBuffer( this, "LightCullingComp_LightsBuffer" );
+        builder.WriteBuffer( this, "LightCullingComp_TileLightsCount" );
     }
 
     auto LightCullingComp::Execute( PassCommandList &commandList ) -> void {
         commandList.BeginCompute(this);
         commandList.BindPipeline( "LightCullingComp_Pipeline" );
 
-        // commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_Result", 0 );
-        // commandList.BindResourceGroup(SRGType::SRG_PerPass);
+        TraverseLights( commandList );
+
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_AABBBuffer", 1 );
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 0 );
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_TileLightsCount", 2 );
+        commandList.BindResourceGroup(SRGType::SRG_PerPass);
 
         constexpr UInt32 TILE_SIZE{ 16 };
 
@@ -360,6 +414,74 @@ namespace Mikoto {
         m_Scene = scene;
     }
 
+    auto LightCullingComp::TraverseLights( const PassCommandList &commandList ) -> void {
+        auto& registry{ m_Scene->GetRegistry() };
+        auto lightsView{ registry.view<TagComponent, TransformComponent, LightComponent>() };
+
+        Int32 lightsCount{};
+
+        for ( auto& lightEntity: lightsView ) {
+            TagComponent& tag{ registry.get<TagComponent>( lightEntity ) };
+            LightComponent& lightComp{ registry.get<LightComponent>( lightEntity ) };
+            TransformComponent& transformCom{ registry.get<TransformComponent>( lightEntity ) };
+
+            if ( lightsCount >= FinalCompositionPass::MAX_LIGHTS ) break;
+
+            auto& uboLight{ m_LightsInfo.Lights[lightsCount] };
+
+            if (!tag.IsActive()) {
+                uboLight.ActiveLightType = static_cast<Int32>(FinalCompositionPass::LightInfo::ActiveLightType::LIGHT_TYPE_INACTIVE);
+                continue;
+            }
+
+            switch ( lightComp.GetActiveType() ) {
+                case LightType::POINT_LIGHT_TYPE: {
+
+                    auto& point{ lightComp.Get<PointLight>() };
+
+                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
+                    uboLight.Diffuse = Vec4F( point.GetColor(), 0.0f );
+                    uboLight.AttenuationParams = Vec4F( point.GetIntensity(), point.GetRadius(), 0.0f, 0.0f );
+                    uboLight.ActiveLightType = static_cast<Int32>(FinalCompositionPass::LightInfo::ActiveLightType::LIGHT_TYPE_POINT);
+
+                    break;
+                }
+
+                case LightType::SPOT_LIGHT_TYPE: {
+                    auto& spot{ lightComp.Get<SpotLight>() };
+
+                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
+                    uboLight.Direction = Vec4F( spot.GetDirection(), 0.0f );
+                    uboLight.Diffuse = Vec4F( spot.GetColor() * spot.GetIntensity(), 1.0f );
+                    uboLight.CutOffValues = Vec4F( spot.GetCutOff(), spot.GetOuterCutOff(), spot.GetIntensity(), spot.GetRadius() );
+                    uboLight.ActiveLightType = static_cast<Int32>(FinalCompositionPass::LightInfo::ActiveLightType::LIGHT_TYPE_SPOT);
+
+                    break;
+                }
+
+                case LightType::DIRECTIONAL_LIGHT_TYPE: {
+                    auto& dir{ lightComp.Get<DirectionalLight>() };
+
+                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );// optional for shadows
+                    uboLight.Diffuse = Vec4F( dir.GetColor() * dir.GetIntensity(), 1.0f );
+                    uboLight.ActiveLightType = static_cast<Int32>(FinalCompositionPass::LightInfo::ActiveLightType::LIGHT_TYPE_DIRECTIONAL);
+
+                    break;
+                }
+            }
+
+            ++lightsCount;
+        }
+
+        // Update counts in UBO
+        m_LightsInfo.ActiveLightsCount = lightsCount;
+        m_LightsInfo.DisplayMode = static_cast<Int32>(FinalCompositionPass::LightInfo::DisplayModes::DISPLAY_COLOR);
+
+        // Copy to GPU buffer
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 1 );
+        commandList.FillBuffer( "LightCullingComp_LightsBuffer", std::addressof( m_LightsInfo ), sizeof( FinalCompositionPass::LightInfo ));
+    }
+
     auto LightBatchingComp::Setup( FrameGraphBuilder &builder ) -> void {
         PipelineDescription pipelineDesc{};
         pipelineDesc.Description = ComputePipelineDescription{};
@@ -367,14 +489,47 @@ namespace Mikoto {
         pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/LightBatching_Comp.sprv", ShaderStage::COMPUTE_STAGE );
 
         builder.CreateNamedPipeline( "LightBatchingComp_Pipeline", pipelineDesc );
+
+        constexpr UInt32 TILE_SIZE{ 16 };
+
+        // MLater will match final composition size
+        constexpr UInt32 screenWidth{ 1920 };
+        constexpr UInt32 screenHeight{ 1080 };
+
+        constexpr UInt32 tilesX{ (screenWidth  + TILE_SIZE - 1) / TILE_SIZE };
+        constexpr UInt32 tilesY{ (screenHeight + TILE_SIZE - 1) / TILE_SIZE };
+
+        constexpr UInt32 tileCount{ tilesX * tilesY };
+
+        BufferDescription lightBatching{};
+        lightBatching.WithData( nullptr )
+                .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+                .WithSizeBytes( tileCount * sizeof( UInt32 ) );
+        builder.CreateNamedBuffer( "LightBatchingComp_Indices", lightBatching );
+
+        BufferDescription tileLightsOffsets{};
+        tileLightsOffsets.WithData( nullptr )
+                .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+                .WithSizeBytes( tileCount * sizeof( UInt32 ) );
+        builder.CreateNamedBuffer( "LightBatchingComp_Offsets", tileLightsOffsets );
+
+        builder.ReadBuffer( this, "AABBGenComp_AABBBuffer" );
+        builder.ReadBuffer( this, "LightCullingComp_LightsBuffer" );
+        builder.WriteBuffer( this, "LightBatchingComp_Indices" );
+        builder.WriteBuffer( this, "LightBatchingComp_Offsets" );
     }
 
     auto LightBatchingComp::Execute( PassCommandList &commandList ) -> void {
         commandList.BeginCompute(this);
         commandList.BindPipeline( "LightBatchingComp_Pipeline" );
 
-        // commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightBatchingComp_Result", 0 );
-        // commandList.BindResourceGroup(SRGType::SRG_PerPass);
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_AABBBuffer", 1 );
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 0 );
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightBatchingComp_Indices", 3 );
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightBatchingComp_Offsets", 2 );
+        commandList.BindResourceGroup(SRGType::SRG_PerPass);
 
         constexpr UInt32 TILE_SIZE{ 16 };
 

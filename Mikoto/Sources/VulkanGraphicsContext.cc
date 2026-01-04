@@ -428,4 +428,35 @@ namespace Mikoto {
     auto VulkanGraphicsContext::GetPassSRG( FramePass* pass ) -> SRGPerPass * {
         return std::addressof( m_PassInfo[pass].PassResources );
     }
+
+    auto VulkanGraphicsContext::InsertResourceBarrier( FramePass *pass ) -> void {
+        static VkPipelineStageFlags lastStage{ VK_PIPELINE_STAGE_NONE };
+
+        VkPipelineStageFlagBits dstStage{ pass->IsCompute()
+                ? VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+                : VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT };
+
+        if (lastStage == VK_PIPELINE_STAGE_NONE) {
+            lastStage = dstStage;
+            return;
+        }
+
+        VkMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+        barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        vkCmdPipelineBarrier(
+            m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
+            lastStage,
+            dstStage,
+            0,
+            1, &barrier,
+            0, nullptr,
+            0, nullptr
+        );
+
+        lastStage = dstStage;
+    }
+
 }// namespace Mikoto

@@ -57,6 +57,8 @@ namespace Mikoto {
 
         auto GetPassSRG( FramePass* pass ) -> SRGPerPass* override;
 
+        auto InsertResourceBarrier( FramePass * pass ) -> void override;
+
         ~VulkanGraphicsContext() override = default;
 
     private:

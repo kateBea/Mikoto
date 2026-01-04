@@ -28,6 +28,8 @@ namespace Mikoto {
 
     class FramePass {
     public:
+        enum class PassType { RENDER, COMPUTE };
+
         using ResourceHandle = Ref<IResource>;
 
         virtual ~FramePass() = default;
@@ -35,14 +37,19 @@ namespace Mikoto {
         virtual auto Setup(FrameGraphBuilder& device) -> void = 0;
         virtual auto Execute(PassCommandList& cmdList) -> void = 0;
 
+        MKT_NODISCARD auto GetPassType() const -> PassType { return m_PassType; }
+
+        MKT_NODISCARD auto IsCompute() const -> bool { return m_PassType == PassType::COMPUTE; }
+        MKT_NODISCARD auto IsRender() const -> bool { return m_PassType == PassType::RENDER; }
+
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 
     protected:
-        explicit FramePass(std::string_view name )
+        explicit FramePass( std::string_view name, PassType passType )
             : m_Name{ name } {}
 
     protected:
-
+        PassType m_PassType{};
         std::string m_Name{};
     };
 
@@ -50,7 +57,7 @@ namespace Mikoto {
     public:
 
         explicit FinalCompositionPass(GpuDevice* device)
-            : FramePass{ "FinalCompositionPass" }, m_Device{ device } {}
+            : FramePass{ "FinalCompositionPass", PassType::RENDER }, m_Device{ device } {}
 
         auto Setup(FrameGraphBuilder& device) -> void override;
         auto Execute(PassCommandList& commandList) -> void override;
@@ -66,7 +73,7 @@ namespace Mikoto {
         auto TraverseMeshList(PassCommandList& commandList) -> void;
         auto TraverseLightsList(PassCommandList& commandList) -> void;
 
-    private:
+    public:
         struct ShadingPassMeshBufferUBO {
             Vec4F i_TransformCol0{};
             Vec4F i_TransformCol1{};
@@ -144,8 +151,19 @@ namespace Mikoto {
 
     class AABBGenComp final : public FramePass {
     public:
+        struct TileAABB {
+            Vec4F Min{};
+            Vec4F Max{};
+        };
+
+        struct CameraUBO {
+            glm::mat4 Projection{};
+            glm::mat4 InvProjection{};
+            glm::vec2 ScreenSize{};
+        };
+
         explicit AABBGenComp()
-            : FramePass{ "AABBGenComp" } {}
+            : FramePass{ "AABBGenComp", PassType::COMPUTE } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
@@ -155,7 +173,7 @@ namespace Mikoto {
     class LightCullingComp final : public FramePass {
     public:
         explicit LightCullingComp()
-            : FramePass{ "LightCullingComp" } {}
+            : FramePass{ "LightCullingComp", PassType::COMPUTE } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(PassCommandList& commandList) -> void override;
@@ -163,13 +181,18 @@ namespace Mikoto {
         auto SetScene(Scene* scene) -> void;
 
     private:
+        auto TraverseLights( const PassCommandList & commandList ) -> void;
+
+    private:
+        FinalCompositionPass::LightInfo m_LightsInfo{};
+
         Scene* m_Scene{};
     };
 
     class LightBatchingComp final : public FramePass {
     public:
         explicit LightBatchingComp()
-            : FramePass{ "LightBatchingComp" } {}
+            : FramePass{ "LightBatchingComp", PassType::COMPUTE } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(PassCommandList& commandList) -> void override;
@@ -180,7 +203,7 @@ namespace Mikoto {
     public:
 
         explicit ShadowPass()
-            : FramePass{ "ShadowPass" } {}
+            : FramePass{ "ShadowPass", PassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& device) -> void override;
         auto Execute(PassCommandList& commandList) -> void override;
@@ -198,7 +221,7 @@ namespace Mikoto {
     class TextPass final : public FramePass {
     public:
         explicit TextPass()
-            : FramePass{ "TextPass" } {}
+            : FramePass{ "TextPass", PassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& device) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
@@ -214,7 +237,7 @@ namespace Mikoto {
     class SimpleComputePass final : public FramePass {
     public:
         explicit SimpleComputePass()
-            : FramePass{ "SimpleComputePass" } {}
+            : FramePass{ "SimpleComputePass", PassType::COMPUTE } {}
 
         auto Setup(FrameGraphBuilder& device) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
@@ -227,7 +250,7 @@ namespace Mikoto {
     class HelloTrianglePass final : public FramePass {
     public:
         explicit HelloTrianglePass()
-            : FramePass{ "HelloTrianglePass" } {}
+            : FramePass{ "HelloTrianglePass", PassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& device) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
@@ -238,7 +261,7 @@ namespace Mikoto {
     class HelloTexture final : public FramePass {
     public:
         explicit HelloTexture()
-            : FramePass{ "HelloTexture" } {}
+            : FramePass{ "HelloTexture", PassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& device) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
@@ -255,11 +278,10 @@ namespace Mikoto {
     class HelloCubePass final : public FramePass {
     public:
         explicit HelloCubePass()
-            : FramePass{ "HelloTrianglePass" } {}
+            : FramePass{ "HelloTrianglePass", PassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& device) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
-
     };
 
 }

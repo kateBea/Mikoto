@@ -3,6 +3,7 @@
 //
 
 #include <memory>
+#include <queue>
 #include <variant>
 
 #include <Renderer/Core/FrameGraph.hh>
@@ -78,14 +79,6 @@ namespace Mikoto {
         CreateNamedRenderTarget( name, depthDesc );
     }
 
-    auto FrameGraphBuilder::RegisterShaderResource( FramePass* pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType type) -> void {
-        m_Nodes[pass].ShaderResources[groupIndex] = ShaderResourceInfo{
-            .Name{ name },
-            .GroupBinding{ groupBinding },
-            .ResourceType{ type },
-        };
-    }
-
     FrameGraph::FrameGraph( GraphicsContext* context, GpuDevice* device)
         : m_GraphicsContex{ context }
     {
@@ -108,12 +101,15 @@ namespace Mikoto {
         }
 
         // TODO: Sort passes according to dependencies
+        SortPassExecution( builder );
     }
 
     auto FrameGraph::Execute() -> void {
         m_GraphicsContex->BeginFrame( GetBlackboard() );
 
         for ( const auto& [pass, input, outputs] : m_Nodes) {
+            m_GraphicsContex->InsertResourceBarrier(pass);
+
             PassCommandList passCommands{ m_GraphicsContex, GetBlackboard() };
             pass->Execute( passCommands );
         }
@@ -127,6 +123,87 @@ namespace Mikoto {
 
     auto FrameGraph::Create( GraphicsContext* context, GpuDevice* device ) -> Unique<FrameGraph> {
         return CreateScope<FrameGraph>( context, device );
+    }
+
+    auto FrameGraph::SortPassExecution( FrameGraphBuilder &builder ) -> void {
+        ankerl::unordered_dense::map<std::string, FramePass*> resourceWriters{};
+
+        // Assumption (fine for now):
+        // One writer per resource per frame
+
+        for (auto& [pass, nodeData] : builder.m_Nodes) {
+            for (const auto& buf : nodeData.WriteBuffers) {
+                resourceWriters[buf] = pass;
+            }
+
+            for (const auto& tex : nodeData.WriteTextures) {
+                resourceWriters[tex] = pass;
+            }
+        }
+
+        struct SortNode {
+            FrameNode* Node{};
+            UInt32 Incoming{};
+            std::vector<SortNode*> Outgoing{};
+        };
+
+        ankerl::unordered_dense::map<FramePass*, SortNode> sortNodes{};
+
+        for (FrameNode& node : m_Nodes) {
+            sortNodes[node.Pass].Node = std::addressof( node );
+        }
+
+        for (auto& [pass, nodeData] : builder.m_Nodes) {
+            SortNode& readerNode = sortNodes[pass];
+
+            auto addDependency{ [&](const std::string& resource) {
+                auto it{ resourceWriters.find(resource) };
+                if (it == resourceWriters.end())
+                    return;
+
+                FramePass* writer{ it->second };
+                if (writer == pass)
+                    return; // same pass, ignore
+
+                SortNode& writerNode{ sortNodes[writer] };
+                writerNode.Outgoing.push_back(&readerNode);
+                readerNode.Incoming++;
+            }};
+
+            for (const auto& buf : nodeData.ReadBuffers)
+                addDependency(buf);
+
+            for (const auto& tex : nodeData.ReadTextures)
+                addDependency(tex);
+        }
+
+        std::vector<FrameNode> sorted{};
+        std::queue<SortNode*> ready{};
+
+        for (auto& [_, sn] : sortNodes) {
+            if (sn.Incoming == 0)
+                ready.push(&sn);
+        }
+
+        while (!ready.empty()) {
+            SortNode* sn{ ready.front() };
+            ready.pop();
+
+            sorted.push_back(*sn->Node);
+
+            for (SortNode* dependent : sn->Outgoing) {
+                if (--dependent->Incoming == 0)
+                    ready.push(dependent);
+            }
+        }
+
+        if (sorted.size() != m_Nodes.size()) {
+            MKT_CORE_LOGGER_ERROR("FrameGraph cycle detected!");
+
+        }
+
+        m_Nodes = std::move(sorted);
+        m_Compiled = true;
     }
 
     auto FrameGraph::RegisterResource(std::string_view name, FrameResource resource ) const -> void {

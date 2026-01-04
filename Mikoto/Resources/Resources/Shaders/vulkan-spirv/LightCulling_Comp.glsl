@@ -11,9 +11,58 @@
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
+#define MAX_LIGHTS 50
+
+struct LightInfo {
+    vec4 Position;
+    vec4 Direction;
+    vec4 CutOffValues;
+    vec4 Diffuse;
+    vec4 AttenuationParams;
+    int  ActiveLightType;
+};
+
+layout(std140, set = PERPASS_SETINDEX, binding = 0) uniform LightUBO {
+    LightInfo Lights[MAX_LIGHTS];
+    int ActiveLightsCount;
+    int DisplayMode;
+} Lighting;
+
+struct TileAABB {
+    vec4 min;
+    vec4 max;
+};
+
+layout(std430, set = PERPASS_SETINDEX, binding = 1) buffer TileAABBs {
+    TileAABB aabbs[];
+};
+
+layout(std430, set = PERPASS_SETINDEX, binding = 2) buffer TileLightCounts {
+    uint counts[];
+};
+
+bool SphereIntersectsAABB(vec3 center, float radius, vec3 minP, vec3 maxP) {
+    vec3 closest = clamp(center, minP, maxP);
+    float dist2 = dot(closest - center, closest - center);
+    return dist2 <= radius * radius;
+}
+
 void main() {
-    uint idx = gl_GlobalInvocationID.x;
+    uint tile = gl_GlobalInvocationID.x;
+    TileAABB box = aabbs[tile];
 
-    // Fake "culling"
+    uint count = 0;
 
+    for (uint i = 0; i < Lighting.ActiveLightsCount; ++i) {
+        if (Lighting.Lights[i].ActiveLightType <= 0)
+        continue;
+
+        vec3 pos = Lighting.Lights[i].Position.xyz;
+        float radius = Lighting.Lights[i].AttenuationParams.y;
+
+        if (SphereIntersectsAABB(pos, radius, box.min.xyz, box.max.xyz))
+        count++;
+    }
+
+    counts[tile] = count;
 }

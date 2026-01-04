@@ -1,0 +1,15 @@
+{
+  "menu_file": "文件",
+  "menu_edit": "编辑",
+  "menu_view": "视图",
+  "menu_language": "语言",
+
+  "window_scene": "场景",
+  "window_inspector": "检查器",
+  "window_console": "控制台",
+
+  "button_close": "关闭",
+  "button_cancel": "取消",
+
+  "tooltip_save_scene": "保存当前场景"
+}

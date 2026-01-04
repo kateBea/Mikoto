@@ -1,0 +1,12 @@
+{
+  "button_close": "Cerrar",
+  "button_cancel": "Cancelar",
+  "menu_file": "Archivo",
+  "menu_edit": "Editar",
+  "menu_view": "Vista",
+  "menu_language": "Idioma",
+  "window_scene": "Escena",
+  "window_inspector": "Inspector",
+  "window_console": "Consola",
+  "tooltip_save_scene": "Guardar la escena actual"
+}

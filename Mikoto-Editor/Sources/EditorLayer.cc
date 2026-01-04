@@ -32,6 +32,7 @@
 #include <Scene/SceneManager.hh>
 
 #include "Core/CoreEvents.hh"
+#include "Core/LocalizationService.hh"
 #include "ImGui/ImGuiService.hh"
 #include "Panels/AssetsPanel.hh"
 
@@ -515,6 +516,32 @@ namespace Mikoto {
             }
 
             ImGuiUtils::HelpMarker( "Configuration about the main scene rendering." );
+
+            if (ImGui::BeginMenu( "Language" )) {
+                static constexpr std::array languages{
+                    ISOLanguage::EN_US,
+                    ISOLanguage::EN_GB,
+                    ISOLanguage::ES_ES,
+                    ISOLanguage::JA_JP,
+                    ISOLanguage::ZH_CN
+                };
+
+                if (ImGui::BeginMenu( MKT_LOC( "menu_language" ).c_str() )) {
+                    const ISOLanguage current{ LocalizationService::Get()->GetCurrentLanguage() };
+
+                    for (ISOLanguage lang: languages) {
+                        const bool isSelected{ ( lang == current ) };
+
+                        if (ImGui::MenuItem( GetISOName( lang ).data(), nullptr, isSelected )) {
+                            LocalizationService::Get()->SetLanguage( lang );
+                        }
+                    }
+
+                    ImGui::EndMenu();
+                }
+
+                ImGui::EndMenu();
+            }
 
             if (ImGui::BeginMenu( "Help" )) {
                 constexpr ImGuiPopupFlags popUpFlags{ ImGuiPopupFlags_None };

@@ -500,7 +500,10 @@ namespace Mikoto {
 
         m_IsAllocated = true;
 
-        m_DebugName = fmt::format( "MikotoVulkanTexture (Loaded Text: '{}') Image: {}, ImageView: {}, Pool ID: {}", GetTextureUri(), reinterpret_cast<UInt64>( m_Image ), reinterpret_cast<UInt64>( m_ImageView ), GetHandle() );
+        if (m_DebugName == GetDefaultDebugName()) {
+            m_DebugName = fmt::format( "MikotoVulkanTexture (Loaded Text: '{}') Image: {}, ImageView: {}, Pool ID: {}", GetTextureUri(), reinterpret_cast<UInt64>( m_Image ), reinterpret_cast<UInt64>( m_ImageView ), GetHandle() );
+        }
+
         VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ),VK_OBJECT_TYPE_IMAGE, reinterpret_cast<UInt64>( m_Image ),m_DebugName.c_str() );
         VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ),VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<UInt64>( m_ImageView ),m_DebugName.c_str() );
     }

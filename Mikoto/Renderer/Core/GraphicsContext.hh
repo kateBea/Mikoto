@@ -135,7 +135,7 @@ namespace Mikoto {
 
         auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance ) const -> void;
 
-        auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void;
+        auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) const -> void;
 
         auto SetClearColor(const Vec4F& color) -> void;
 

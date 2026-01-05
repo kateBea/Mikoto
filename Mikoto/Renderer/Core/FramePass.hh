@@ -71,7 +71,6 @@ namespace Mikoto {
         auto UpdateInstancedData() -> void;
 
         auto TraverseMeshList(PassCommandList& commandList) -> void;
-        auto TraverseLightsList(PassCommandList& commandList) -> void;
 
     public:
         struct ShadingPassMeshBufferUBO {
@@ -97,18 +96,18 @@ namespace Mikoto {
             Vec4F CameraPosition{};
         };
 
-        struct LightTypeInfo {
+        struct alignas(sizeof(Vec4F)) LightTypeInfo {
             Vec4F Position{};
             Vec4F Direction{};
-            Vec4F CutOffValues{};
 
-            Vec4F Diffuse{};
+            Vec3F Diffuse{};
 
-            // x=cutOff, y=outerCutOff, z=intensity, w=radius
-            Vec4F AttenuationParams{};
+            float CutOff{};
+            float OuterCutOff{};
+            float Intensity{};
+            float Radius{};
 
-            // Meet shader uniform buffer alignment requirements
-            alignas(sizeof(Vec4F)) Int32 ActiveLightType{};
+            Int32 ActiveLightType{};
         };
 
         struct LightInfo {
@@ -151,15 +150,25 @@ namespace Mikoto {
 
     class AABBGenComp final : public FramePass {
     public:
-        struct TileAABB {
-            Vec4F Min{};
-            Vec4F Max{};
+        constexpr static UInt32 MAX_LIGHT_CLUSTERS{ 100 };
+        struct CameraUBO {
+            glm::mat4 ViewMatrix{};
+            glm::mat4 InverseProjection{};
+            glm::vec4 GridSize{};
+
+            // x = zNear
+            // y = zFar
+            // z, w = Screen dimensions (width, height)
+            glm::vec4 Screen{};
+
+            Int32 ShowHeatMap{ 0 };
         };
 
-        struct CameraUBO {
-            glm::mat4 Projection{};
-            glm::mat4 InvProjection{};
-            glm::vec2 ScreenSize{};
+        struct alignas(sizeof(glm::vec4)) Cluster  {
+            glm::vec4 MinPoint{};
+            glm::vec4 MaxPoint{};
+            UInt32 Count{};
+            UInt32 LightIndices[MAX_LIGHT_CLUSTERS];
         };
 
         explicit AABBGenComp()
@@ -168,6 +177,16 @@ namespace Mikoto {
         auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
 
+        auto SetCamera(const Camera* camera) -> void;
+
+        unsigned int gridSizeX = 12;
+        unsigned int gridSizeY = 12;
+        unsigned int gridSizeZ = 24;
+        unsigned int numClusters = gridSizeX * gridSizeY * gridSizeZ;
+
+    private:
+        const Camera* m_Camera{};
+        CameraUBO m_CameraUBO{};
     };
 
     class LightCullingComp final : public FramePass {
@@ -184,19 +203,9 @@ namespace Mikoto {
         auto TraverseLights( const PassCommandList & commandList ) -> void;
 
     private:
-        FinalCompositionPass::LightInfo m_LightsInfo{};
+        std::array<FinalCompositionPass::LightTypeInfo, FinalCompositionPass::MAX_LIGHTS> m_Lights{};
 
         Scene* m_Scene{};
-    };
-
-    class LightBatchingComp final : public FramePass {
-    public:
-        explicit LightBatchingComp()
-            : FramePass{ "LightBatchingComp", PassType::COMPUTE } {}
-
-        auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(PassCommandList& commandList) -> void override;
-
     };
 
     class ShadowPass final : public FramePass {

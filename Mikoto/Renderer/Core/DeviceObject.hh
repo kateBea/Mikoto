@@ -103,6 +103,13 @@ namespace Mikoto {
         MKT_NODISCARD auto GetDebugName() const -> const std::string& { return m_DebugName; }
 
         /**
+         * @brief Retrieves the default debug name
+         *
+         * @returns The default debug name
+         */
+        MKT_NODISCARD static auto GetDefaultDebugName() -> std::string_view { return "DeviceObject"; }
+
+        /**
          * @brief Destructor for the DeviceObject class.
          *
          * Ensures proper cleanup of resources when the device object is destroyed.

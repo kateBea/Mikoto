@@ -11,37 +11,10 @@
 #extension GL_EXT_nonuniform_qualifier : require
 
 #include "ShaderBase.glsl"
+#include "ClusteredShading.glsl"
 
 #define PI 3.14159265359
 #define INVALID_TEXTURE_INDEX -1
-#define MAX_LIGHTS 50
-
-#define DISPLAY_NORMAL 1
-#define DISPLAY_COLOR 2
-#define DISPLAY_METAL 3
-#define DISPLAY_AO 4
-#define DISPLAY_ROUGH 5
-
-#define LIGHT_TYPE_POINT 1
-#define LIGHT_TYPE_SPOT 2
-#define LIGHT_TYPE_DIRECTIONAL 3
-#define LIGHT_TYPE_INACTIVE -1
-
-// --------------------------------------------------
-// Structs
-// --------------------------------------------------
-struct LightInfo {
-    vec4 Position;
-    vec4 Direction;
-    vec4 CutOffValues;
-
-    vec4 Diffuse;
-
-    // x=cutOff, y=outerCutOff, z=intensity, w=radius
-    vec4 AttenuationParams;
-
-    int ActiveLightType;
-};
 
 // --------------------------------------------------
 // Interpolated input (with flat for instance data)
@@ -63,12 +36,27 @@ layout(location = 11) flat in vec4 in_Factors;
 layout(location = 0) out vec4 out_Color;
 
 layout(set = TEXTURES_SETINDEX, binding = 0) uniform sampler2D g_BindlessTextures[];
-layout(set = PERPASS_SETINDEX, binding = 1) uniform LightUniformBuffer {
-    LightInfo Lights[MAX_LIGHTS];
-    int ActiveLightsCount;
-    int DisplayMode;
 
-} Lighting;
+layout(set = PERPASS_SETINDEX, binding = 1) uniform CameraUBO {
+    mat4 ViewMatrix;
+    mat4 InverseProjection;
+    vec4 GridSize;
+
+    // x = zNear
+    // y = zFar
+    // z, w = Screen dimensions (width, height)
+    vec4 Screen;
+
+    int ShowHeatMap;
+} Camera;
+
+layout(std430, set = PERPASS_SETINDEX, binding = 2) readonly buffer ClusterSSBO {
+    Cluster Clusters[];
+};
+
+layout(std430, set = PERPASS_SETINDEX, binding = 3) readonly buffer LightSSBO {
+    LightInfo Lights[];
+};
 
 vec3 GetNormalFromMap(sampler2D normalMap) {
     vec3 tangentNormal = texture(normalMap, in_TexCoord).xyz * 2.0 - 1.0;
@@ -133,15 +121,15 @@ float ComputeAttenuation(float distance, float radius) {
     return pow( max( 1.0 - pow( distance / radius, 4.0 ), 0.0 ), 2.0 ) / ( distance * distance + 1.0 );
 }
 
-vec3 ComputePointLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, float metallic, vec3 albedo, int lightIndex) {
+vec3 ComputePointLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, float metallic, vec3 albedo, LightInfo lightInfo) {
     vec3 Lo = vec3(0.0);
 
-    vec3 L = normalize(Lighting.Lights[lightIndex].Position.xyz - in_FragmentPos);
+    vec3 L = normalize(lightInfo.Position.xyz - in_FragmentPos);
     vec3 H = normalize( V + L );
-    float distance = length(Lighting.Lights[lightIndex].Position.xyz - in_FragmentPos);
+    float distance = length(lightInfo.Position.xyz - in_FragmentPos);
     float attenuation = ComputeAttenuation(distance );
 
-    vec3 radiance = Lighting.Lights[lightIndex].Diffuse.xyz * attenuation * Lighting.Lights[lightIndex].AttenuationParams.x;
+    vec3 radiance = lightInfo.Diffuse.xyz * attenuation * lightInfo.Intensity;
 
     // Cook-Torrance BRDF
     float NDF = DistributionGGX( N, H, roughness );
@@ -175,20 +163,20 @@ vec3 ComputePointLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, flo
     return Lo;
 }
 
-vec3 ComputeSpotLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, float metallic, vec3 albedo, int lightIndex) {
+vec3 ComputeSpotLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, float metallic, vec3 albedo, LightInfo lightInfo) {
     vec3 Lo = vec3(0.0);
 
     // calculate per-light radiance
-    vec3 L = normalize(Lighting.Lights[lightIndex].Position.xyz - in_FragmentPos);
-    float distance = length(Lighting.Lights[lightIndex].Position.xyz - in_FragmentPos);
-    float attenuation = ComputeAttenuation(distance, Lighting.Lights[lightIndex].CutOffValues.w);
+    vec3 L = normalize(lightInfo.Position.xyz - in_FragmentPos);
+    float distance = length(lightInfo.Position.xyz - in_FragmentPos);
+    float attenuation = ComputeAttenuation(distance, lightInfo.Radius);
     // This vec 3 should be the light color, we assume it is full white for now
-    vec3 radiance = Lighting.Lights[lightIndex].Diffuse.xyz * attenuation;
+    vec3 radiance = lightInfo.Diffuse.xyz * attenuation;
 
     // Spotlight intensity based on angle
-    float theta = dot(L, normalize(-vec3(Lighting.Lights[lightIndex].Direction.xyz)));
-    float epsilon = Lighting.Lights[lightIndex].CutOffValues.x - Lighting.Lights[lightIndex].CutOffValues.y;
-    float intensity = clamp((theta - Lighting.Lights[lightIndex].CutOffValues.y) / epsilon, 0.0, 1.0) * Lighting.Lights[lightIndex].CutOffValues.z;
+    float theta = dot(L, normalize(-vec3(lightInfo.Direction.xyz)));
+    float epsilon = lightInfo.CutOff - lightInfo.OuterCutOff;
+    float intensity = clamp((theta - lightInfo.OuterCutOff) / epsilon, 0.0, 1.0) * lightInfo.Radius;
     radiance *= intensity;
 
     vec3 H = normalize(V + L);
@@ -225,14 +213,14 @@ vec3 ComputeSpotLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, floa
     return Lo;
 }
 
-vec3 ComputeDirectionalLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, float metallic, vec3 albedo, int lightIndex) {
+vec3 ComputeDirectionalLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, float metallic, vec3 albedo, LightInfo lightInfo) {
     vec3 Lo = vec3(0.0);
 
-    vec3 L = normalize( -vec3(Lighting.Lights[lightIndex].Direction.xyz ) );
+    vec3 L = normalize( -vec3(lightInfo.Direction.xyz ) );
     vec3 H = normalize( V + L );
 
     // This vec 3 should be the light color, we assume it is full white for now
-    vec3 radiance = Lighting.Lights[lightIndex].Diffuse.xyz;
+    vec3 radiance = lightInfo.Diffuse.xyz;
 
     // Cook-Torrance BRDF
     float NDF = DistributionGGX( N, H, roughness );
@@ -266,10 +254,10 @@ vec3 ComputeDirectionalLightContribution(vec3 N, vec3 V, vec3 F0, float roughnes
     return Lo;
 }
 
-vec4 DetermineOutFragmentColor(vec3 N, vec3 color, float metallic, float roughness, float ao) {
+vec4 DetermineOutFragmentColor(vec3 N, vec3 color, float metallic, float roughness, float ao, int displayMode) {
     vec4 result = vec4(0.0);
 
-    switch (Lighting.DisplayMode) {
+    switch (displayMode) {
         case DISPLAY_COLOR:
         result = vec4(color , 1.0);
         break;
@@ -320,28 +308,68 @@ void main() {
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
     vec3 Lo = vec3(0.0);
-    for(int i = 0; i < Lighting.ActiveLightsCount; ++i)  {
-        switch (Lighting.Lights[i].ActiveLightType) {
-            case LIGHT_TYPE_POINT:
-                Lo += ComputePointLightContribution(N, V, F0, roughness, metallic, albedo, i);
-                break;
-            case LIGHT_TYPE_SPOT:
-                Lo += ComputeSpotLightContribution(N, V, F0, roughness, metallic, albedo, i);
-                break;
-            case LIGHT_TYPE_DIRECTIONAL:
-                Lo += ComputeDirectionalLightContribution(N, V, F0, roughness, metallic, albedo, i);
-                break;
-            default:
-                break;
+
+    // Locating which cluster this fragment is part of
+    // Convert fragment position to view space
+    vec3 fragViewPos = vec3(Camera.ViewMatrix * vec4(in_FragmentPos, 1.0));
+    float viewZ = -fragViewPos.z;
+
+    // Compute Z cluster
+    float z = clamp(viewZ, Camera.Screen.x, Camera.Screen.y);
+    float zSlice = log(z / Camera.Screen.x) /
+    log(Camera.Screen.y / Camera.Screen.x);
+
+    uint zTile = uint(zSlice * Camera.GridSize.z);
+    zTile = min(zTile, uint(Camera.GridSize.z - 1));
+
+    // Compute XY cluster
+    vec2 tileSize = Camera.Screen.zw / Camera.GridSize.xy;
+    uvec2 tileXY = uvec2(gl_FragCoord.xy / tileSize);
+
+    // Flatten cluster index
+    uint tileIndex =
+    tileXY.x +
+    tileXY.y * uint(Camera.GridSize.x) +
+    zTile   * uint(Camera.GridSize.x * Camera.GridSize.y);
+
+    uint lightCount = Clusters[tileIndex].Count;
+
+    if (Camera.ShowHeatMap == MKT_SHADER_TRUE) {
+
+        // Normalize to [0,1] for visualization
+        float intensity = clamp(float(lightCount) / 10.0, 0.0, 1.0);
+
+        // Heatmap style (blue -> red)
+        vec3 color = vec3(intensity, 0.0, 1.0 - intensity);
+
+        out_Color = vec4(color, 1.0);
+    } else {
+        for(int i = 0; i < lightCount; ++i)  {
+            uint lightIndex = Clusters[tileIndex].LightIndices[i];
+            LightInfo light = Lights[lightIndex];
+
+            switch (light.ActiveLightType) {
+                case LIGHT_TYPE_POINT:
+                    Lo += ComputePointLightContribution(N, V, F0, roughness, metallic, albedo, light);
+                    break;
+                case LIGHT_TYPE_SPOT:
+            //Lo += ComputeSpotLightContribution(N, V, F0, roughness, metallic, albedo, light);
+                    break;
+                case LIGHT_TYPE_DIRECTIONAL:
+            //Lo += ComputeDirectionalLightContribution(N, V, F0, roughness, metallic, albedo, light);
+                    break;
+                default:
+                    break;
+            }
         }
+
+        vec3 ambient = vec3(0.03) * albedo * ao;
+        vec3 color = ambient + Lo;
+
+        // Tonemap + gamma correction
+        color = color / (color + vec3(1.0));
+        color = pow(color, vec3(1.0 / 2.2));
+
+        out_Color = vec4(color , 1.0);
     }
-
-    vec3 ambient = vec3(0.03) * albedo * ao;
-    vec3 color = ambient + Lo;
-
-    // Tonemap + gamma correction
-    color = color / (color + vec3(1.0));
-    color = pow(color, vec3(1.0 / 2.2));
-
-    out_Color = DetermineOutFragmentColor(N, color, metallic, roughness, ao);
 }

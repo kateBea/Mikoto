@@ -64,14 +64,6 @@ namespace Mikoto {
         builder.CreateColorRenderTarget( "FinalCompositionPass_ColorTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM );
         builder.CreateDepthRenderTarget( "FinalCompositionPass_DepthTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_D32_FLOAT );
 
-        // Create fram buffers
-        BufferDescription lightsBuffer{};
-        lightsBuffer.WithData( nullptr )
-                .WithUsage( BufferUsage::BUFFER_USAGE_UNIFORM )
-                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
-                .ForElement( sizeof(LightInfo), 1 );
-        builder.CreateNamedBuffer( "PerFrame_LightsBuffer", lightsBuffer );
-
         BufferDescription cameraInfo{};
         cameraInfo.WithData( nullptr )
                 .WithUsage( BufferUsage::BUFFER_USAGE_UNIFORM )
@@ -80,7 +72,10 @@ namespace Mikoto {
         builder.CreateNamedBuffer( "PerFrame_CameraInfo", cameraInfo );
 
         // Declare its inputs and outputs
-        builder.ReadBuffer( this, "PerFrame_LightsBuffer" );
+        builder.ReadBuffer( this, "AABBGenComp_CameraUBO" );
+        builder.ReadBuffer( this, "AABBGenComp_Clusters" );
+        builder.ReadBuffer( this, "LightCullingComp_LightsBuffer" );
+
         builder.ReadBuffer( this, "PerFrame_CameraInfo" );
 
         builder.WriteTexture( this, "FinalCompositionPass_ColorTarget" );
@@ -155,74 +150,6 @@ namespace Mikoto {
         }
     }
 
-    auto FinalCompositionPass::TraverseLightsList( PassCommandList &commandList ) -> void {
-        auto& registry{ m_Scene->GetRegistry() };
-        auto lightsView{ registry.view<TagComponent, TransformComponent, LightComponent>() };
-
-        Int32 lightsCount{};
-
-        for ( auto& lightEntity: lightsView ) {
-            TagComponent& tag{ registry.get<TagComponent>( lightEntity ) };
-            LightComponent& lightComp{ registry.get<LightComponent>( lightEntity ) };
-            TransformComponent& transformCom{ registry.get<TransformComponent>( lightEntity ) };
-
-            if ( lightsCount >= MAX_LIGHTS ) break;
-
-            auto& uboLight{ m_LightsInfo.Lights[lightsCount] };
-
-            if (!tag.IsActive()) {
-                uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_INACTIVE);
-                continue;
-            }
-
-            switch ( lightComp.GetActiveType() ) {
-                case LightType::POINT_LIGHT_TYPE: {
-
-                    auto& point{ lightComp.Get<PointLight>() };
-
-                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
-                    uboLight.Diffuse = Vec4F( point.GetColor(), 0.0f );
-                    uboLight.AttenuationParams = Vec4F( point.GetIntensity(), point.GetRadius(), 0.0f, 0.0f );
-                    uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_POINT);
-
-                    break;
-                }
-
-                case LightType::SPOT_LIGHT_TYPE: {
-                    auto& spot{ lightComp.Get<SpotLight>() };
-
-                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
-                    uboLight.Direction = Vec4F( spot.GetDirection(), 0.0f );
-                    uboLight.Diffuse = Vec4F( spot.GetColor() * spot.GetIntensity(), 1.0f );
-                    uboLight.CutOffValues = Vec4F( spot.GetCutOff(), spot.GetOuterCutOff(), spot.GetIntensity(), spot.GetRadius() );
-                    uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_SPOT);
-
-                    break;
-                }
-
-                case LightType::DIRECTIONAL_LIGHT_TYPE: {
-                    auto& dir{ lightComp.Get<DirectionalLight>() };
-
-                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );// optional for shadows
-                    uboLight.Diffuse = Vec4F( dir.GetColor() * dir.GetIntensity(), 1.0f );
-                    uboLight.ActiveLightType = static_cast<Int32>(LightInfo::ActiveLightType::LIGHT_TYPE_DIRECTIONAL);
-
-                    break;
-                }
-            }
-
-            ++lightsCount;
-        }
-
-        // Update counts in UBO
-        m_LightsInfo.ActiveLightsCount = lightsCount;
-        m_LightsInfo.DisplayMode = static_cast<Int32>(LightInfo::DisplayModes::DISPLAY_COLOR);
-
-        // Copy to GPU buffer
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "PerFrame_LightsBuffer", 1 );
-        commandList.FillBuffer( "PerFrame_LightsBuffer", std::addressof( m_LightsInfo ), sizeof( LightInfo ));
-    }
-
     auto FinalCompositionPass::SetScene( Scene* scene ) -> void {
         m_Scene = scene;
     }
@@ -274,16 +201,15 @@ namespace Mikoto {
         commandList.SetViewport( 0, 0, 1920, 1080 );
         commandList.SetScissor( 0, 0, 1920, 1080 );
 
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "PerFrame_LightsBuffer", 1 );
         commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "PerFrame_CameraInfo", 0 );
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 1 );
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 2 );
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 3 );
 
         commandList.BindResourceGroup(SRGType::SRG_Textures);
         commandList.BindResourceGroup(SRGType::SRG_PerPass);
 
-        commandList.FillBuffer( "PerFrame_LightsBuffer", std::addressof( m_LightsInfo ), sizeof( m_LightsInfo ) );
         commandList.FillBuffer( "PerFrame_CameraInfo", std::addressof( m_FrameUBO ), sizeof( m_FrameUBO ) );
-
-        TraverseLightsList(commandList);
 
         TraverseMeshList(commandList);
 
@@ -305,25 +231,14 @@ namespace Mikoto {
                 .ForElement( sizeof( CameraUBO ), 1 );
         builder.CreateNamedBuffer( "AABBGenComp_CameraUBO", cameraUBO );
 
-        constexpr UInt32 TILE_SIZE{ 16 };
-
-        // MLater will match final composition size
-        constexpr UInt32 screenWidth{ 1920 };
-        constexpr UInt32 screenHeight{ 1080 };
-
-        constexpr UInt32 tilesX{ (screenWidth  + TILE_SIZE - 1) / TILE_SIZE };
-        constexpr UInt32 tilesY{ (screenHeight + TILE_SIZE - 1) / TILE_SIZE };
-
-        constexpr UInt32 tileCount{ tilesX * tilesY };
-
         BufferDescription aabbBuffer{};
         aabbBuffer.WithData( nullptr )
                 .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
                 .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
-                .WithSizeBytes( tileCount * sizeof( TileAABB ) );
-        builder.CreateNamedBuffer( "AABBGenComp_AABBBuffer", aabbBuffer );
+                .WithSizeBytes( numClusters * sizeof( Cluster ) );
+        builder.CreateNamedBuffer( "AABBGenComp_Clusters", aabbBuffer );
 
-        builder.WriteBuffer( this, "AABBGenComp_AABBBuffer" );
+        builder.WriteBuffer( this, "AABBGenComp_Clusters" );
         builder.WriteBuffer( this, "AABBGenComp_CameraUBO" );
     }
 
@@ -332,27 +247,25 @@ namespace Mikoto {
         commandList.BindPipeline( "AABBGenComp_Pipeline" );
 
         commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 0 );
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_AABBBuffer", 1 );
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
         commandList.BindResourceGroup(SRGType::SRG_PerPass);
 
-        CameraUBO cameraUBO{};
+        CameraUBO cameraUBO{
+            .ViewMatrix{ m_Camera->GetViewMatrix() },
+            .InverseProjection{ glm::inverse(m_Camera->GetProjection()) },
+            .GridSize{ glm::vec4{ gridSizeX, gridSizeY, gridSizeZ, 0.0f } }, // from the repo on clustered shading
+            .Screen{ glm::vec4{m_Camera->GetNearPlane(), m_Camera->GetFarPlane(), 1920.0f, 1080.0f } },
+        };
+
         commandList.FillBuffer( "AABBGenComp_CameraUBO", std::addressof( cameraUBO ), sizeof( CameraUBO ));
 
-        constexpr UInt32 TILE_SIZE{ 16 };
-
-        // MLater will match final composition size
-        constexpr UInt32 screenWidth{ 1920 };
-        constexpr UInt32 screenHeight{ 1080 };
-
-        constexpr UInt32 tilesX{ (screenWidth  + TILE_SIZE - 1) / TILE_SIZE };
-        constexpr UInt32 tilesY{ (screenHeight + TILE_SIZE - 1) / TILE_SIZE };
-
-        constexpr UInt32 tileCount{ tilesX * tilesY };
-
-        // 1 invocation = 1 tile
-        commandList.Dispatch(tileCount, 1, 1);
+        commandList.Dispatch(gridSizeX, gridSizeY, gridSizeZ);
 
         commandList.EndCompute();
+    }
+
+    auto AABBGenComp::SetCamera( const Camera *camera ) -> void {
+        m_Camera = camera;
     }
 
     auto LightCullingComp::Setup( FrameGraphBuilder &builder ) -> void {
@@ -365,32 +278,15 @@ namespace Mikoto {
 
         BufferDescription lightsBuffer{};
         lightsBuffer.WithData( nullptr )
-                .WithUsage( BufferUsage::BUFFER_USAGE_UNIFORM )
-                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
-                .ForElement( sizeof(FinalCompositionPass::LightInfo), 1 );
-        builder.CreateNamedBuffer( "LightCullingComp_LightsBuffer", lightsBuffer );
-
-        constexpr UInt32 TILE_SIZE{ 16 };
-
-        // MLater will match final composition size
-        constexpr UInt32 screenWidth{ 1920 };
-        constexpr UInt32 screenHeight{ 1080 };
-
-        constexpr UInt32 tilesX{ (screenWidth  + TILE_SIZE - 1) / TILE_SIZE };
-        constexpr UInt32 tilesY{ (screenHeight + TILE_SIZE - 1) / TILE_SIZE };
-
-        constexpr UInt32 tileCount{ tilesX * tilesY };
-
-        BufferDescription tileLightsCount{};
-        tileLightsCount.WithData( nullptr )
                 .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
                 .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
-                .WithSizeBytes( tileCount * sizeof( UInt32 ) );
-        builder.CreateNamedBuffer( "LightCullingComp_TileLightsCount", tileLightsCount );
+                .WithSizeBytes( sizeof(FinalCompositionPass::LightTypeInfo) * m_Lights.size()  );
+        builder.CreateNamedBuffer( "LightCullingComp_LightsBuffer", lightsBuffer );
 
-        builder.ReadBuffer( this, "AABBGenComp_AABBBuffer" );
-        builder.ReadBuffer( this, "LightCullingComp_LightsBuffer" );
-        builder.WriteBuffer( this, "LightCullingComp_TileLightsCount" );
+        builder.ReadBuffer( this, "AABBGenComp_CameraUBO" );
+        builder.ReadBuffer( this, "AABBGenComp_Clusters" );
+
+        builder.WriteBuffer( this, "LightCullingComp_LightsBuffer" );
     }
 
     auto LightCullingComp::Execute( PassCommandList &commandList ) -> void {
@@ -399,23 +295,12 @@ namespace Mikoto {
 
         TraverseLights( commandList );
 
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_AABBBuffer", 1 );
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_TileLightsCount", 2 );
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 0 );
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
         commandList.BindResourceGroup(SRGType::SRG_PerPass);
 
-        constexpr UInt32 TILE_SIZE{ 16 };
-
-        // MLater will match final composition size
-        constexpr UInt32 screenWidth{ 1920 };
-        constexpr UInt32 screenHeight{ 1080 };
-
-        constexpr UInt32 tilesX{ (screenWidth  + TILE_SIZE - 1) / TILE_SIZE };
-        constexpr UInt32 tilesY{ (screenHeight + TILE_SIZE - 1) / TILE_SIZE };
-
-        constexpr UInt32 tileCount{ tilesX * tilesY };
-
         // 1 invocation = 1 tile
-        commandList.Dispatch(tileCount, 1, 1);
+        commandList.Dispatch(27, 1, 1);
 
         commandList.EndCompute();
     }
@@ -437,7 +322,7 @@ namespace Mikoto {
 
             if ( lightsCount >= FinalCompositionPass::MAX_LIGHTS ) break;
 
-            auto& uboLight{ m_LightsInfo.Lights[lightsCount] };
+            auto& uboLight{ m_Lights[lightsCount] };
 
             if (!tag.IsActive()) {
                 uboLight.ActiveLightType = static_cast<Int32>(FinalCompositionPass::LightInfo::ActiveLightType::LIGHT_TYPE_INACTIVE);
@@ -451,7 +336,10 @@ namespace Mikoto {
 
                     uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
                     uboLight.Diffuse = Vec4F( point.GetColor(), 0.0f );
-                    uboLight.AttenuationParams = Vec4F( point.GetIntensity(), point.GetRadius(), 0.0f, 0.0f );
+
+                    uboLight.Intensity = point.GetIntensity();
+                    uboLight.Radius = point.GetRadius();
+
                     uboLight.ActiveLightType = static_cast<Int32>(FinalCompositionPass::LightInfo::ActiveLightType::LIGHT_TYPE_POINT);
 
                     break;
@@ -463,7 +351,13 @@ namespace Mikoto {
                     uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
                     uboLight.Direction = Vec4F( spot.GetDirection(), 0.0f );
                     uboLight.Diffuse = Vec4F( spot.GetColor() * spot.GetIntensity(), 1.0f );
-                    uboLight.CutOffValues = Vec4F( spot.GetCutOff(), spot.GetOuterCutOff(), spot.GetIntensity(), spot.GetRadius() );
+
+                    uboLight.CutOff = spot.GetCutOff();
+                    uboLight.OuterCutOff = spot.GetOuterCutOff();
+
+                    uboLight.Intensity = spot.GetIntensity();
+                    uboLight.Radius = spot.GetRadius();
+
                     uboLight.ActiveLightType = static_cast<Int32>(FinalCompositionPass::LightInfo::ActiveLightType::LIGHT_TYPE_SPOT);
 
                     break;
@@ -483,80 +377,9 @@ namespace Mikoto {
             ++lightsCount;
         }
 
-        // Update counts in UBO
-        m_LightsInfo.ActiveLightsCount = lightsCount;
-        m_LightsInfo.DisplayMode = static_cast<Int32>(FinalCompositionPass::LightInfo::DisplayModes::DISPLAY_COLOR);
-
         // Copy to GPU buffer
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 0 );
-        commandList.FillBuffer( "LightCullingComp_LightsBuffer", std::addressof( m_LightsInfo ), sizeof( FinalCompositionPass::LightInfo ));
-    }
-
-    auto LightBatchingComp::Setup( FrameGraphBuilder &builder ) -> void {
-        PipelineDescription pipelineDesc{};
-        pipelineDesc.Description = ComputePipelineDescription{};
-
-        pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/LightBatching_Comp.sprv", ShaderStage::COMPUTE_STAGE );
-
-        builder.CreateNamedPipeline( "LightBatchingComp_Pipeline", pipelineDesc );
-
-        constexpr UInt32 TILE_SIZE{ 16 };
-        constexpr UInt32 MAX_LIGHTS_PER_TILE{ 64 }; // from LightBatching_Comp shader
-
-        // MLater will match final composition size
-        constexpr UInt32 screenWidth{ 1920 };
-        constexpr UInt32 screenHeight{ 1080 };
-
-        constexpr UInt32 tilesX{ (screenWidth  + TILE_SIZE - 1) / TILE_SIZE };
-        constexpr UInt32 tilesY{ (screenHeight + TILE_SIZE - 1) / TILE_SIZE };
-
-        constexpr UInt32 tileCount{ tilesX * tilesY };
-
-        BufferDescription lightBatching{};
-        lightBatching.WithData( nullptr )
-                .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
-                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
-                .WithSizeBytes( tileCount * MAX_LIGHTS_PER_TILE * sizeof(UInt32) );
-        builder.CreateNamedBuffer( "LightBatchingComp_Indices", lightBatching );
-
-        BufferDescription tileLightsOffsets{};
-        tileLightsOffsets.WithData( nullptr )
-                .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
-                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
-                .WithSizeBytes( tileCount * sizeof( UInt32 ) );
-        builder.CreateNamedBuffer( "LightBatchingComp_Offsets", tileLightsOffsets );
-
-        builder.ReadBuffer( this, "AABBGenComp_AABBBuffer" );
-        builder.ReadBuffer( this, "LightCullingComp_LightsBuffer" );
-        builder.WriteBuffer( this, "LightBatchingComp_Indices" );
-        builder.WriteBuffer( this, "LightBatchingComp_Offsets" );
-    }
-
-    auto LightBatchingComp::Execute( PassCommandList &commandList ) -> void {
-        commandList.BeginCompute(this);
-        commandList.BindPipeline( "LightBatchingComp_Pipeline" );
-
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_AABBBuffer", 1 );
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 0 );
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightBatchingComp_Indices", 3 );
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightBatchingComp_Offsets", 2 );
-        commandList.BindResourceGroup(SRGType::SRG_PerPass);
-
-        constexpr UInt32 TILE_SIZE{ 16 };
-
-        // MLater will match final composition size
-        constexpr UInt32 screenWidth{ 1920 };
-        constexpr UInt32 screenHeight{ 1080 };
-
-        constexpr UInt32 tilesX{ (screenWidth  + TILE_SIZE - 1) / TILE_SIZE };
-        constexpr UInt32 tilesY{ (screenHeight + TILE_SIZE - 1) / TILE_SIZE };
-
-        constexpr UInt32 tileCount{ tilesX * tilesY };
-
-        // 1 invocation = 1 tile
-        commandList.Dispatch(tileCount, 1, 1);
-
-        commandList.EndCompute();
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 2 );
+        commandList.FillBuffer( "LightCullingComp_LightsBuffer", m_Lights.data(), m_Lights.size() * sizeof(FinalCompositionPass::LightTypeInfo));
     }
 
     auto ShadowPass::Setup( FrameGraphBuilder& builder ) -> void {

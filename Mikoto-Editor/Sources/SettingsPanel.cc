@@ -108,7 +108,7 @@ namespace Mikoto {
                     ImGuiUtils::HelpMarker( "Adjust camera near plane." );
 
                     ImGui::Spacing();
-                    ImGuiUtils::Slider( "##SettingsPanel::OnUpdate::FarClip", m_Data.FarPlane, { 5, 1000 } );
+                    ImGuiUtils::Slider( "##SettingsPanel::OnUpdate::FarClip", m_Data.FarPlane, { 5, 200000 } );
                     ImGui::SameLine();
                     ImGuiUtils::HelpMarker( "Adjust camera far clip." );
 

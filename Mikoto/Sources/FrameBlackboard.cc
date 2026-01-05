@@ -48,6 +48,7 @@ namespace Mikoto {
         TextureHandle texture{ m_Device->CreateTexture( description ) };
 
         if (!texture.IsEmpty()) {
+            texture->SetDebugName( name );
             m_TexturesByNames.emplace( std::string{ name }, texture );
         }
     }
@@ -80,7 +81,10 @@ namespace Mikoto {
             pipeline = m_Device->CreatePipeline( desc );
         }
 
-        if (!pipeline.IsEmpty()) { m_PipelinesByNames.emplace( std::string{ name }, pipeline ); }
+        if (!pipeline.IsEmpty()) {
+            pipeline->SetDebugName( name );
+            m_PipelinesByNames.emplace( std::string{ name }, pipeline );
+        }
     }
 
     auto FrameBlackboard::RegisterBuffer( std::string_view name, BufferDescription description ) -> void {
@@ -89,10 +93,11 @@ namespace Mikoto {
             return;
         }
 
-        BufferHandle texture{ m_Device->CreateBuffer( description ) };
+        BufferHandle buffer{ m_Device->CreateBuffer( description ) };
 
-        if (!texture.IsEmpty()) {
-            m_BuffersByNames.emplace( std::string{ name }, texture );
+        if (!buffer.IsEmpty()) {
+            buffer->SetDebugName( name );
+            m_BuffersByNames.emplace( std::string{ name }, buffer );
         }
     }
 }

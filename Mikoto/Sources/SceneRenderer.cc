@@ -62,6 +62,11 @@ namespace Mikoto {
         MKT_ASSERT( finalCompositionPass, "Trying to set scene for final composition pass while it is NULL" );
 
         finalCompositionPass->SetCamera( m_Camera );
+
+        AABBGenComp* aabbGenComp{ m_PassRegistry.Get<AABBGenComp>() };
+        MKT_ASSERT( aabbGenComp, "Trying to set scene for aabb gen comp pass while it is NULL" );
+
+        aabbGenComp->SetCamera( m_Camera );
     }
 
     auto SceneRenderer::GetGraph() -> FrameGraph & {
@@ -104,16 +109,12 @@ namespace Mikoto {
         LightCullingComp* lightCullingComp { m_PassRegistry.Register<LightCullingComp>() };
         lightCullingComp->Setup( builder );
 
-        LightBatchingComp* lightBatchingComp { m_PassRegistry.Register<LightBatchingComp>() };
-        lightBatchingComp->Setup( builder );
-
         m_FrameGraph->RegisterPass( helloTrianglePass );
         m_FrameGraph->RegisterPass( simpleComputePass );
         m_FrameGraph->RegisterPass( helloTexture );
         m_FrameGraph->RegisterPass( finalCompositionPass );
         m_FrameGraph->RegisterPass( aabbGenComp );
         m_FrameGraph->RegisterPass( lightCullingComp );
-        m_FrameGraph->RegisterPass( lightBatchingComp );
 
         m_FrameGraph->Compile( builder );
     }

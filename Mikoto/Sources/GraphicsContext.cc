@@ -156,7 +156,7 @@ namespace Mikoto {
         m_Context->DrawInstanced(info.IndexBuffer->GetCount(), info.InstancesCount, info.FirstIndex, info.VertexOffset, info.FirstInstance);
     }
 
-    auto PassCommandList::Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void {
+    auto PassCommandList::Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) const -> void {
         m_Context->Dispatch( invX, invY, invZ );
     }
 

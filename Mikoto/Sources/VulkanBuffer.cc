@@ -66,7 +66,10 @@ namespace Mikoto {
             m_Data = nullptr;
         }
 
-        m_DebugName = fmt::format( "MikotoBuffer {}, Pool ID: {}", reinterpret_cast<UInt64>( m_Buffer ), GetHandle() );
+        if (m_DebugName == GetDefaultDebugName()) {
+            m_DebugName = fmt::format( "MikotoBuffer {}, Pool ID: {}", reinterpret_cast<UInt64>( m_Buffer ), GetHandle() );
+        }
+
         VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ),VK_OBJECT_TYPE_BUFFER, reinterpret_cast<UInt64>( m_Buffer ),m_DebugName.c_str() );
 
         m_IsAllocated = true;

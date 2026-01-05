@@ -356,6 +356,11 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR( "VulkanGraphicsPipeline::Initialize - Failed to create Graphics pipeline" );
         }
 
+        if (m_DebugName == GetDefaultDebugName()) {
+            m_DebugName = fmt::format( "MikotoPipeline {}, Pool ID: {}", reinterpret_cast<UInt64>( m_Pipeline ), GetHandle() );
+        }
+        VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ),VK_OBJECT_TYPE_PIPELINE, reinterpret_cast<UInt64>( m_Pipeline ),m_DebugName.c_str() );
+
         m_IsAllocated = true;
     }
 
@@ -430,6 +435,11 @@ namespace Mikoto {
         if ( vkCreateComputePipelines( VK_DEVICE(m_Device), VK_NULL_HANDLE, 1, std::addressof( computePipelineCreateInfo ), nullptr, std::addressof( m_Pipeline ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanComputePipeline::Initialize - Failed to create compute pipeline" );
         }
+
+        if (m_DebugName == GetDefaultDebugName()) {
+            m_DebugName = fmt::format( "MikotoPipeline {}, Pool ID: {}", reinterpret_cast<UInt64>( m_Pipeline ), GetHandle() );
+        }
+        VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ),VK_OBJECT_TYPE_PIPELINE, reinterpret_cast<UInt64>( m_Pipeline ),m_DebugName.c_str() );
 
         m_IsAllocated = true;
     }

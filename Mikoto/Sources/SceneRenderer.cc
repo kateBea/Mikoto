@@ -10,6 +10,7 @@
 #include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Core/RenderService.hh>
 #include <Renderer/Core/SceneRenderer.hh>
+#include <Renderer/Passes/DebugPasses.hh>
 
 namespace Mikoto {
 

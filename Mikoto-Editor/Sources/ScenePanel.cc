@@ -28,8 +28,7 @@
 namespace Mikoto {
 
     static auto InferManipulationMode( ImGuiUtils::GuizmoManipulationMode manipulation ) -> GuizmoType {
-        switch ( manipulation ) {
-
+        switch (manipulation) {
             case ImGuiUtils::GuizmoManipulationMode::TRANSLATION:
                 return GuizmoType::TRANSLATION;
             case ImGuiUtils::GuizmoManipulationMode::ROTATION:
@@ -37,7 +36,7 @@ namespace Mikoto {
             case ImGuiUtils::GuizmoManipulationMode::SCALE:
                 return GuizmoType::SCALE;
 
-            default:;
+            default: ;
         }
 
         return GuizmoType::TRANSLATION;
@@ -48,9 +47,7 @@ namespace Mikoto {
     auto ScenePanel::CreateImguiTextureID() -> void {
         ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
 
-        if ( const ImTextureID id{ backend->ConstructImGuiTextureID( m_EditorState->FinalComposition ) }; id != 0 ) {
-            m_DisplayTargetImGuiID = id;
-        }
+        if (const ImTextureID id{ backend->ConstructImGuiTextureID( m_EditorState->FinalComposition ) }; id != 0) { m_DisplayTargetImGuiID = id; }
     }
 
     ScenePanel::ScenePanel( const ScenePanelCreateInfo &createInfo )
@@ -60,8 +57,73 @@ namespace Mikoto {
         CreateImguiTextureID();
     }
 
-    auto ScenePanel::OnUpdate( MKT_UNUSED_VAR float ts ) -> void {
-        if ( m_PanelIsVisible ) {
+    auto ScenePanel::ShowStatsOverlay(float timeStep) -> void {
+        if (!m_PanelIsFocused) {
+            return;
+        }
+
+        static int location = -1;
+        ImGuiIO &io = ImGui::GetIO();
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+        if (location >= 0) {
+            const float PAD = 10.0f;
+            const ImGuiViewport *viewport = ImGui::GetMainViewport();
+            ImVec2 work_pos = viewport->WorkPos;// Use work area to avoid menu-bar/task-bar, if any!
+            ImVec2 work_size = viewport->WorkSize;
+            ImVec2 window_pos, window_pos_pivot;
+            window_pos.x = ( location & 1 ) ? ( work_pos.x + work_size.x - PAD ) : ( work_pos.x + PAD );
+            window_pos.y = ( location & 2 ) ? ( work_pos.y + work_size.y - PAD ) : ( work_pos.y + PAD );
+            window_pos_pivot.x = ( location & 1 ) ? 1.0f : 0.0f;
+            window_pos_pivot.y = ( location & 2 ) ? 1.0f : 0.0f;
+            ImGui::SetNextWindowPos( window_pos, ImGuiCond_Always, window_pos_pivot );
+            ImGui::SetNextWindowViewport( viewport->ID );
+            window_flags |= ImGuiWindowFlags_NoMove;
+        } else if (location == -2) {
+            // Center window
+            ImGui::SetNextWindowPos( ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
+            window_flags |= ImGuiWindowFlags_NoMove;
+        }
+        ImGui::SetNextWindowBgAlpha( 0.6f );// Transparent background
+        if (ImGui::Begin( "Performance Overlay", nullptr, window_flags )) {
+            ImGui::Separator();
+            if (ImGui::IsMousePosValid()) {
+                ImGui::Text( "Mouse Position: (%.1f,%.1f)", io.MousePos.x, io.MousePos.y );
+            }
+            else {
+                ImGui::Text( "Mouse Position: <invalid>" );
+            }
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Text( "FPS: %.1f", 1.0f / timeStep );
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Text( "TimeStep: %.1f ms", timeStep * 1000.0f);
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Text( "Total lights: %d", m_EditorState->ActiveEditorScene->GetLightCount());
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Text( "Total active lights: %d", m_EditorState->ActiveEditorScene->GetActiveLightCount());
+
+            if (ImGui::BeginPopupContextWindow()) {
+                if (ImGui::MenuItem( "Custom", NULL, location == -1 )) location = -1;
+                if (ImGui::MenuItem( "Center", NULL, location == -2 )) location = -2;
+                if (ImGui::MenuItem( "Top-left", NULL, location == 0 )) location = 0;
+                if (ImGui::MenuItem( "Top-right", NULL, location == 1 )) location = 1;
+                if (ImGui::MenuItem( "Bottom-left", NULL, location == 2 )) location = 2;
+                if (ImGui::MenuItem( "Bottom-right", NULL, location == 3 )) location = 3;
+                ImGui::EndPopup();
+            }
+        }
+        ImGui::End();
+    }
+
+    auto ScenePanel::OnUpdate( float ts ) -> void {
+        if (m_PanelIsVisible) {
             constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse };
 
             // Expand scene view to window bounds (no padding)
@@ -71,19 +133,18 @@ namespace Mikoto {
             m_PanelIsFocused = ImGui::IsWindowFocused();
             m_PanelIsHovered = ImGui::IsWindowHovered();
 
-            if ( IsDisplayTextureValid() ) {
+            if (IsDisplayTextureValid()) {
                 UpdateViewport();
 
                 //DrawSceneToolbar();
+                ShowStatsOverlay(ts);
 
                 SetupManipulation();
                 DrawManipulationGuizmos();
             }
 
             // Try validate the image id again in case the texture was recreated
-            if ( !IsDisplayTextureValid() ) {
-                CreateImguiTextureID();
-            }
+            if (!IsDisplayTextureValid()) { CreateImguiTextureID(); }
 
             ImGui::End();
 
@@ -91,26 +152,18 @@ namespace Mikoto {
         }
     }
 
-    auto ScenePanel::SetManipulation( GuizmoType mode ) -> void {
-        m_GuizmoType = mode;
-    }
+    auto ScenePanel::SetManipulation( GuizmoType mode ) -> void { m_GuizmoType = mode; }
 
-    auto ScenePanel::GetWidth() const -> float {
-        return m_ViewPortWidth;
-    }
+    auto ScenePanel::GetWidth() const -> float { return m_ViewPortWidth; }
 
-    auto ScenePanel::GetHeight() const -> float {
-        return m_ViewPortHeight;
-    }
+    auto ScenePanel::GetHeight() const -> float { return m_ViewPortHeight; }
 
-    auto ScenePanel::IsDisplayTextureValid() const -> bool {
-        return m_DisplayTargetImGuiID != 0;
-    }
+    auto ScenePanel::IsDisplayTextureValid() const -> bool { return m_DisplayTargetImGuiID != 0; }
 
     auto ScenePanel::UpdateViewport() -> void {
         const ImVec2 dim{ ImGui::GetContentRegionAvail() };
 
-        if ( m_ViewPortWidth != dim.x || m_ViewPortHeight != dim.y ) {
+        if (m_ViewPortWidth != dim.x || m_ViewPortHeight != dim.y) {
             m_ViewPortWidth = dim.x;
             m_ViewPortHeight = dim.y;
         }
@@ -122,10 +175,8 @@ namespace Mikoto {
 
     auto ScenePanel::SetupManipulation() const -> void {
         Entity *currentSelection{ m_EditorState->SelectedEntity };
-        if ( currentSelection != nullptr && currentSelection->IsValid() ) {
-            if ( !currentSelection->GetComponent<TagComponent>().IsActive() ) {
-                return;
-            }
+        if (currentSelection != nullptr && currentSelection->IsValid()) {
+            if (!currentSelection->GetComponent<TagComponent>().IsActive()) { return; }
 
             ImGuizmo::SetOrthographic( m_EditorState->EditorCamera->IsOrthographic() );
             ImGuizmo::SetDrawlist();
@@ -138,7 +189,7 @@ namespace Mikoto {
 
     auto ScenePanel::DrawManipulationGuizmos() -> void {
         Entity *currentSelection{ m_EditorState->SelectedEntity };
-        if ( currentSelection == nullptr || !currentSelection->IsValid() ) { return; }
+        if (currentSelection == nullptr || !currentSelection->IsValid()) { return; }
 
         TransformComponent &transformComponent{ currentSelection->GetComponent<TransformComponent>() };
 
@@ -149,7 +200,7 @@ namespace Mikoto {
 
         m_GuizmoType = InferManipulationMode( m_EditorState->Manipulation );
 
-        switch ( m_GuizmoType ) {
+        switch (m_GuizmoType) {
             case GuizmoType::TRANSLATION:
                 ImGuizmo::Manipulate( glm::value_ptr( cameraView ), glm::value_ptr( cameraProjection ), ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::MODE::LOCAL, glm::value_ptr( objectTransform ) );
                 break;
@@ -161,15 +212,15 @@ namespace Mikoto {
                 break;
         }
 
-        if ( ImGuizmo::IsUsing() ) {
+        if (ImGuizmo::IsUsing()) {
             transformComponent.SetTransform( objectTransform );
 
             // Apply the transformation to the children
             // For now Guizmos only change translation so thats the only thing we handle in the children
             RelationComponent &relation{ m_EditorState->SelectedEntity->GetComponent<RelationComponent>() };
-            for ( auto &childID: relation.GetChildren() ) {
+            for (auto &childID: relation.GetChildren()) {
                 Entity *child{ m_EditorState->ActiveEditorScene->FindByID( childID ) };
-                if ( child ) {
+                if (child) {
                     // TODO: World transform = ParentWorld * LocalTransform
                 }
             }
@@ -187,7 +238,7 @@ namespace Mikoto {
         const ImVec2 windowSize{ ImGui::GetWindowSize() };
 
         // Initial center positioning
-        if ( firstFrame ) {
+        if (firstFrame) {
             toolbarPos = ImVec2{
                 windowPos.x + windowSize.x * 0.5f - 70.0f,
                 windowPos.y + 20.0f
@@ -210,9 +261,9 @@ namespace Mikoto {
             ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking
         };
 
-        if ( ImGui::Begin( "SceneToolsOverlay", nullptr, flags ) ) {
+        if (ImGui::Begin( "SceneToolsOverlay", nullptr, flags )) {
             // Drag anywhere inside window
-            if ( ImGui::IsWindowHovered() && ImGui::IsMouseDragging( ImGuiMouseButton_Left ) ) {
+            if (ImGui::IsWindowHovered() && ImGui::IsMouseDragging( ImGuiMouseButton_Left )) {
                 const ImVec2 delta{ ImGui::GetIO().MouseDelta };
                 toolbarPos.x += delta.x;
                 toolbarPos.y += delta.y;
@@ -227,20 +278,18 @@ namespace Mikoto {
                 const ImVec2 btnSize{ 28.0f, 28.0f };
                 const ImVec2 iconPadding{ 2.0f, 2.0f };
 
-                if ( active )
-                    ImGui::PushStyleColor( ImGuiCol_Button, ImVec4{ 0.75f, 0.75f, 0.75f, 0.85f } );
+                if (active) ImGui::PushStyleColor( ImGuiCol_Button, ImVec4{ 0.75f, 0.75f, 0.75f, 0.85f } );
 
                 ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, iconPadding );
 
-                if ( ImGui::Button( icon, btnSize ) ) {
+                if (ImGui::Button( icon, btnSize )) {
                     m_EditorState->Manipulation =
                             static_cast<ImGuiUtils::GuizmoManipulationMode>( type );
                 }
 
                 ImGui::PopStyleVar();
 
-                if ( active )
-                    ImGui::PopStyleColor();
+                if (active) ImGui::PopStyleColor();
 
                 ImGui::SameLine();
             };

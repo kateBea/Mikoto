@@ -25,7 +25,7 @@ namespace Mikoto {
     auto LocalizationService::Init() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        MKT_CORE_LOGGER_INFO( "LocalizationService InputManager..." );
+        MKT_CORE_LOGGER_INFO( "Initializing LocalizationService..." );
 
         LoadAllLanguages();
 

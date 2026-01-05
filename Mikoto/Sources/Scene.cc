@@ -122,6 +122,8 @@ namespace Mikoto {
                 UpdateSimulate( timeStep );
                 break;
         }
+
+        ComputeStats();
     }
 
     auto Scene::SetName( const std::string_view name ) -> void {
@@ -225,9 +227,27 @@ namespace Mikoto {
         m_EntityCommands.push_back( { EntityCommand::Type::CREATE, createInfo } );
     }
 
+    auto Scene::GetLightCount() const -> UInt32 {
+        return m_TotalLightCount;
+    }
+
+    auto Scene::GetActiveLightCount() const -> UInt32 {
+        return m_ActiveLightCount;
+    }
+
     auto Scene::CreateEntity( std::string_view name ) -> Entity* {
         const EntityCreateInfo info{
             .Root{ nullptr },
+            .Name{ name.data() },
+            .Model{ ModelHandle::CreateEmpty() }
+        };
+
+        return CreateEntity( info );
+    }
+
+    auto Scene::CreateEntity( Entity *root, std::string_view name ) -> Entity * {
+        const EntityCreateInfo info{
+            .Root{ root },
             .Name{ name.data() },
             .Model{ ModelHandle::CreateEmpty() }
         };
@@ -716,6 +736,25 @@ namespace Mikoto {
     auto Scene::WorkerCreateEntity( const EntityCreateInfo& info ) -> void {
         std::lock_guard lock{ m_CommandQueueMutex };
         m_EntityCommands.push_back( { EntityCommand::Type::CREATE, info, 0 } );
+    }
+
+    auto Scene::ComputeStats() -> void {
+        m_TotalLightCount  = 0;
+        m_ActiveLightCount = 0;
+
+        // View entities that have a LightComponent
+        auto view{ m_Registry.view<LightComponent>() };
+
+        m_TotalLightCount = static_cast<UInt32>(view.size());
+
+        for (const auto& entity : view) {
+            // All entities from Scene are constructed with a Tag
+            const auto& tag{ m_Registry.get<TagComponent>(entity) };
+            if (!tag.IsActive())
+                continue;
+
+            ++m_ActiveLightCount;
+        }
     }
 
     auto Scene::AddSingleEntityWithRoot( Entity* root, ModelHandle model, Int32 index ) -> void {

@@ -31,6 +31,7 @@
 #include <Scene/Component.hh>
 #include <Scene/SceneManager.hh>
 
+#include "Application/EditorUtility.hh"
 #include "Core/CoreEvents.hh"
 #include "Core/LocalizationService.hh"
 #include "ImGui/ImGuiService.hh"
@@ -658,6 +659,25 @@ namespace Mikoto {
 
             TransformComponent &transformComponent{ light->GetComponent<TransformComponent>() };
             transformComponent.SetTranslation( { 0.0f, 4.0f, 0.0f } );
+        }
+
+        // This is just to test clustered forward shading
+        // We generate an empty object and 'lightCount' lights in random positions attached to it
+        constexpr UInt32 lightCount{ 1500 };
+        Entity* lightCluster{ m_ActiveScene->CreateEntity( "LightCluster" ) };
+        for (UInt32 count{}; count < lightCount; count++) {
+            if (Entity *clusteredLight{ m_ActiveScene->CreateEntity( lightCluster, fmt::format( "Light {}", count ) ) }) {
+                LightComponent &lightComp{ clusteredLight->AddComponent<LightComponent>() };
+                lightComp.SetActiveType( LightType::POINT_LIGHT_TYPE );
+
+                auto &pointLightData{ lightComp.Get<PointLight>() };
+                pointLightData.SetIntensity( 50.0f );
+                pointLightData.SetRadius( 15.0f );
+                pointLightData.SetColor( GetRandomizedVec3F(0.0f, 1.0f ) );
+
+                TransformComponent &transformComponent{ clusteredLight->GetComponent<TransformComponent>() };
+                transformComponent.SetTranslation( { GetRandomReal(-66.0f, 125.0f), 2.0f, GetRandomReal(-100.0f, 100.0f) } );
+            }
         }
     }
 

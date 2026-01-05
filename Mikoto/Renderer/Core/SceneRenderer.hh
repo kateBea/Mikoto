@@ -139,6 +139,9 @@ namespace Mikoto {
          */
         MKT_NODISCARD static auto Create(const SceneRendererCreateInfo& createInfo) -> Unique<SceneRenderer>;
 
+        // Public api to modify core passes
+        auto SetClusterDebugVisualizer(bool enable) -> void;
+
     private:
         // [Internal usage]
         auto InitGraphicsContex() -> void;
@@ -156,7 +159,7 @@ namespace Mikoto {
         Registry<FramePass> m_PassRegistry{};
 
         Unique<FrameGraph> m_FrameGraph{};
-        GraphicsContext* m_GraphicsContext{ nullptr };
+        Unique<GraphicsContext> m_GraphicsContext{};
 
         UInt32 m_ViewportWidth{ 0u };
         UInt32 m_ViewportHeight{ 0u };

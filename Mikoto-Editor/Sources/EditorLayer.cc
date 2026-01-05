@@ -663,7 +663,7 @@ namespace Mikoto {
 
         // This is just to test clustered forward shading
         // We generate an empty object and 'lightCount' lights in random positions attached to it
-        constexpr UInt32 lightCount{ 1500 };
+        constexpr UInt32 lightCount{ 64 };
         Entity* lightCluster{ m_ActiveScene->CreateEntity( "LightCluster" ) };
         for (UInt32 count{}; count < lightCount; count++) {
             if (Entity *clusteredLight{ m_ActiveScene->CreateEntity( lightCluster, fmt::format( "Light {}", count ) ) }) {
@@ -687,11 +687,12 @@ namespace Mikoto {
         const SettingsPanel &settingsPanel{ *m_PanelRegistry.Get<SettingsPanel>() };
 
         // Setup renderer
-        const Vec4F &color{ settingsPanel.GetData().ClearColor };
+        const auto& settings{ settingsPanel.GetData() };
 
         m_SceneRenderer->SetScene( m_ActiveScene );
         m_SceneRenderer->SetCamera( m_EditorCamera.get() );
         m_SceneRenderer->SetViewport( 1920, 1080 );
+        m_SceneRenderer->SetClusterDebugVisualizer( m_EditorState->HeatMapVisualizer );
     }
 
 #if false

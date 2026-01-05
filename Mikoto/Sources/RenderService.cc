@@ -32,8 +32,6 @@ namespace Mikoto {
 
         InitShaderLibrary();
 
-        InitRendererBackend();
-
         InitGuiService();
 
         m_IsInitialized = true;
@@ -55,9 +53,6 @@ namespace Mikoto {
 
         m_ShaderLibrary->Shutdown();
         m_ShaderLibrary.reset();
-
-        m_GraphicsContext->Shutdown();
-        m_GraphicsContext.reset();
 
         m_Context->Shutdown();
         m_Context = nullptr;
@@ -106,25 +101,6 @@ namespace Mikoto {
         if (!m_Context->Init()) {
             MKT_THROW_RUNTIME_ERROR( "RenderSystem::Init - Could not initialize Render context." );
         }
-    }
-
-    auto RenderService::InitRendererBackend() -> void {
-        // TODO: move graphics context to the scene renderer
-        MKT_BEGIN_PROFILER_NAMED();
-
-        switch ( m_ActiveAPI ) {
-            case GraphicsAPI::VULKAN_API:
-                m_GraphicsContext = GraphicsContext::Create( m_Context->GetGpuDevice() );
-                break;
-            default:
-                MKT_CORE_LOGGER_CRITICAL( "RenderService::CreateRendererBackend - Error Unsupported renderer API!" );
-                break;
-        }
-
-        if (m_GraphicsContext) {
-            m_GraphicsContext->Init();
-        }
-
     }
 
     auto RenderService::InitShaderLibrary() -> void {

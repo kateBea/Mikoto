@@ -26,7 +26,9 @@ namespace Mikoto {
         m_Camera = nullptr;
         m_Device = nullptr;
         m_Scene = nullptr;
-        m_GraphicsContext = nullptr;
+
+        m_GraphicsContext->Shutdown();
+        m_GraphicsContext.reset();
     }
 
 
@@ -77,8 +79,28 @@ namespace Mikoto {
         return CreateScope<SceneRenderer>( createInfo );
     }
 
+    auto SceneRenderer::SetClusterDebugVisualizer( bool enable ) -> void {
+        AABBGenComp* aabbGenComp{ m_PassRegistry.Get<AABBGenComp>() };
+        MKT_ASSERT( aabbGenComp, "Trying to set scene for aabb gen comp pass while it is NULL" );
+
+        aabbGenComp->SetHeatMap( enable );
+    }
+
     auto SceneRenderer::InitGraphicsContex() -> void {
-        m_GraphicsContext = RenderService::Get()->GetGraphicsContext();
+        MKT_BEGIN_PROFILER_NAMED();
+
+        switch ( m_Device->GetApi() ) {
+            case GraphicsAPI::VULKAN_API:
+                m_GraphicsContext = GraphicsContext::Create( m_Device );
+                break;
+            default:
+                MKT_CORE_LOGGER_CRITICAL( "SceneRenderer::InitGraphicsContex - Error Unsupported renderer API!" );
+                break;
+        }
+
+        if (m_GraphicsContext) {
+            m_GraphicsContext->Init();
+        }
     }
 
     auto SceneRenderer::InitCoreFramePasses() -> void {
@@ -86,7 +108,7 @@ namespace Mikoto {
             return;
         }
 
-        m_FrameGraph = FrameGraph::Create( m_GraphicsContext, m_Device );
+        m_FrameGraph = FrameGraph::Create( m_GraphicsContext.get(), m_Device );
 
         FrameGraphBuilder builder{};
 

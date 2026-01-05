@@ -86,9 +86,6 @@ namespace Mikoto {
         MKT_NODISCARD auto GetContext() -> RenderContext* { return m_Context.get(); }
         MKT_NODISCARD auto GetContext() const -> const RenderContext* { return m_Context.get(); }
 
-        MKT_NODISCARD auto GetGraphicsContext() -> GraphicsContext* { return m_GraphicsContext.get(); }
-        MKT_NODISCARD auto GetGraphicsContext() const -> const GraphicsContext* { return m_GraphicsContext.get(); }
-
         MKT_NODISCARD auto GetGpuDevice() -> GpuDevice* { return m_Context->GetGpuDevice(); }
         MKT_NODISCARD auto GetGpuDevice() const -> const GpuDevice* { return m_Context->GetGpuDevice(); }
 
@@ -97,7 +94,6 @@ namespace Mikoto {
 
     private:
         auto InitContext() -> void;
-        auto InitRendererBackend() -> void;
         auto InitShaderLibrary() -> void;
 
         auto InitGuiService() -> void;
@@ -106,7 +102,6 @@ namespace Mikoto {
         RenderServiceCreateInfo m_Options{};
 
         Unique<RenderContext> m_Context{};
-        Unique<GraphicsContext> m_GraphicsContext{};
         Unique<ShaderLibrary> m_ShaderLibrary{};
 
         Unique<ImGuiService> m_ImguiService{};

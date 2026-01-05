@@ -1,5 +1,5 @@
 // Parameters
-#define MAX_LIGHT_CLUSTERS 100
+#define MAX_LIGHT_CLUSTERS 256
 
 #define MAX_LIGHTS 50
 
@@ -34,3 +34,15 @@ struct Cluster  {
     uint Count;
     uint LightIndices[MAX_LIGHT_CLUSTERS];
 };
+
+vec3 GetHeatMapColor(uint count) {
+    // Define density levels (adjust based on expected max light per cluster)
+    float intensity = clamp(float(count) / MAX_LIGHT_CLUSTERS, 0.0, 1.0);
+
+    // Simple Blue -> Green -> Red gradient
+    vec3 color = vec3(0.0);
+    color.r = intensity;
+    color.g = 1.0 - abs(intensity - 0.5) * 2.0;
+    color.b = 1.0 - intensity;
+    return color;
+}

@@ -334,14 +334,7 @@ void main() {
     uint lightCount = Clusters[tileIndex].Count;
 
     if (Camera.ShowHeatMap == MKT_SHADER_TRUE) {
-
-        // Normalize to [0,1] for visualization
-        float intensity = clamp(float(lightCount) / 10.0, 0.0, 1.0);
-
-        // Heatmap style (blue -> red)
-        vec3 color = vec3(intensity, 0.0, 1.0 - intensity);
-
-        out_Color = vec4(color, 1.0);
+        out_Color = vec4(GetHeatMapColor(lightCount), 1.0);
     } else {
         for(int i = 0; i < lightCount; ++i)  {
             uint lightIndex = Clusters[tileIndex].LightIndices[i];

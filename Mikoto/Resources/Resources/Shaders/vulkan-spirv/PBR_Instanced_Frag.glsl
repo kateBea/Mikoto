@@ -41,11 +41,10 @@ layout(set = PERPASS_SETINDEX, binding = 1) uniform CameraUBO {
     mat4 ViewMatrix;
     mat4 InverseProjection;
     vec4 GridSize;
+    vec4 ViewPosition;
 
-    // x = zNear
-    // y = zFar
-    // z, w = Screen dimensions (width, height)
-    vec4 Screen;
+    vec2 Planes;
+    vec2 ScreenDimensions;
 
     int ShowHeatMap;
 } Camera;
@@ -315,15 +314,15 @@ void main() {
     float viewZ = -fragViewPos.z;
 
     // Compute Z cluster
-    float z = clamp(viewZ, Camera.Screen.x, Camera.Screen.y);
-    float zSlice = log(z / Camera.Screen.x) /
-    log(Camera.Screen.y / Camera.Screen.x);
+    float z = clamp(viewZ, Camera.Planes.x, Camera.Planes.y);
+    float zSlice = log(z / Camera.Planes.x) /
+    log(Camera.Planes.y / Camera.Planes.x);
 
     uint zTile = uint(zSlice * Camera.GridSize.z);
     zTile = min(zTile, uint(Camera.GridSize.z - 1));
 
     // Compute XY cluster
-    vec2 tileSize = Camera.Screen.zw / Camera.GridSize.xy;
+    vec2 tileSize = Camera.ScreenDimensions / Camera.GridSize.xy;
     uvec2 tileXY = uvec2(gl_FragCoord.xy / tileSize);
 
     // Flatten cluster index

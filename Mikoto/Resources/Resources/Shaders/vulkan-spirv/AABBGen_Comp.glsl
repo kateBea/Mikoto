@@ -16,14 +16,15 @@ layout(set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
     mat4 ViewMatrix;
     mat4 InverseProjection;
     vec4 GridSize;
+    vec4 ViewPosition;
 
-    // x = zNear
-    // y = zFar
-    // z, w = Screen dimensions (width, height)
-    vec4 Screen;
+    vec2 Planes;
+    vec2 ScreenDimensions;
+
+    int ShowHeatMap;
 } Camera;
 
-layout(std430, set = PERPASS_SETINDEX, binding = 1) restrict buffer ClusterSSBO {
+layout(std430, set = PERPASS_SETINDEX, binding = 1) buffer ClusterSSBO {
     Cluster clusters[];
 };
 
@@ -40,7 +41,7 @@ vec3 LineIntersectionWithZPlane(vec3 startPoint, vec3 endPoint, float zDistance)
 
 vec3 ScreenToView(vec2 screenCoord)  {
     // Convert screen coords to NDC
-    vec2 ndcXY = screenCoord / Camera.Screen.zw * 2.0f - 1.0f;
+    vec2 ndcXY = screenCoord / Camera.ScreenDimensions * 2.0f - 1.0f;
 
     // Vulkan NDC: z = 0 at near plane
     vec4 ndc = vec4(ndcXY, 0.0, 1.0);
@@ -59,7 +60,7 @@ vec3 ScreenToView(vec2 screenCoord)  {
 */
 void main() {
     uint tileIndex = uint(gl_WorkGroupID.x + (gl_WorkGroupID.y * Camera.GridSize.x) + (gl_WorkGroupID.z * Camera.GridSize.x * Camera.GridSize.y));
-    vec2 tileSize = Camera.Screen.zw / Camera.GridSize.xy;
+    vec2 tileSize = Camera.ScreenDimensions / Camera.GridSize.xy;
 
     // tile in screen-space
     vec2 minTile_screenspace = vec2(gl_WorkGroupID.xy * tileSize);
@@ -69,17 +70,17 @@ void main() {
     vec3 minTile = ScreenToView(minTile_screenspace);
     vec3 maxTile = ScreenToView(maxTile_screenspace);
 
-    float planeNear =
-    Camera.Screen.x * pow(Camera.Screen.y / Camera.Screen.x, gl_WorkGroupID.z / float(Camera.GridSize.z));
-    float planeFar =
-    Camera.Screen.x * pow(Camera.Screen.y / Camera.Screen.x, (gl_WorkGroupID.z + 1) / float(Camera.GridSize.z));
+    float planeNear = Camera.Planes.x * pow(Camera.Planes.y / Camera.Planes.x, gl_WorkGroupID.z / float(Camera.GridSize.z));
+    float planeFar = Camera.Planes.x * pow(Camera.Planes.y / Camera.Planes.x, (gl_WorkGroupID.z + 1) / float(Camera.GridSize.z));
 
     // the line goes from the eye position in view space (0, 0, 0)
     // through the min/max points of a tile to intersect with a given cluster's near-far planes
-    vec3 minPointNear = LineIntersectionWithZPlane(vec3(0, 0, 0), minTile, planeNear);
-    vec3 minPointFar = LineIntersectionWithZPlane(vec3(0, 0, 0), minTile, planeFar);
-    vec3 maxPointNear = LineIntersectionWithZPlane(vec3(0, 0, 0), maxTile, planeNear);
-    vec3 maxPointFar = LineIntersectionWithZPlane(vec3(0, 0, 0), maxTile, planeFar);
+    vec3 cameraPositionViewSpace = vec3(0, 0, 0);
+
+    vec3 minPointNear = LineIntersectionWithZPlane(cameraPositionViewSpace, minTile, planeNear);
+    vec3 minPointFar = LineIntersectionWithZPlane(cameraPositionViewSpace, minTile, planeFar);
+    vec3 maxPointNear = LineIntersectionWithZPlane(cameraPositionViewSpace, maxTile, planeNear);
+    vec3 maxPointFar = LineIntersectionWithZPlane(cameraPositionViewSpace, maxTile, planeFar);
 
     clusters[tileIndex].MinPoint = vec4(min(minPointNear, minPointFar), 0.0);
     clusters[tileIndex].MaxPoint = vec4(max(maxPointNear, maxPointFar), 0.0);

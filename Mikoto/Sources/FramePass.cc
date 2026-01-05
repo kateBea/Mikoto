@@ -235,7 +235,7 @@ namespace Mikoto {
         aabbBuffer.WithData( nullptr )
                 .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
                 .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
-                .WithSizeBytes( numClusters * sizeof( Cluster ) );
+                .WithSizeBytes( m_NumClusters * sizeof( Cluster ) );
         builder.CreateNamedBuffer( "AABBGenComp_Clusters", aabbBuffer );
 
         builder.WriteBuffer( this, "AABBGenComp_Clusters" );
@@ -250,16 +250,21 @@ namespace Mikoto {
         commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
         commandList.BindResourceGroup(SRGType::SRG_PerPass);
 
-        CameraUBO cameraUBO{
+        float width{ m_Camera->GetViewPort().first };
+        float height{ m_Camera->GetViewPort().second };
+
+        m_CameraUBO = {
             .ViewMatrix{ m_Camera->GetViewMatrix() },
             .InverseProjection{ glm::inverse(m_Camera->GetProjection()) },
-            .GridSize{ glm::vec4{ gridSizeX, gridSizeY, gridSizeZ, 0.0f } }, // from the repo on clustered shading
-            .Screen{ glm::vec4{m_Camera->GetNearPlane(), m_Camera->GetFarPlane(), 1920.0f, 1080.0f } },
+            .GridSize{ glm::vec4{ m_GridSizeX, m_GridSizeY, m_GridSizeZ, 0.0f } }, // from the repo on clustered shading
+            .ViewPosition{ glm::vec4{ m_Camera->GetPosition(), 0.0f } },
+            .Planes{ m_Camera->GetNearPlane(), m_Camera->GetFarPlane() },
+            .ScreenDimensions{ width, height },
         };
 
-        commandList.FillBuffer( "AABBGenComp_CameraUBO", std::addressof( cameraUBO ), sizeof( CameraUBO ));
+        commandList.FillBuffer( "AABBGenComp_CameraUBO", std::addressof( m_CameraUBO ), sizeof( CameraUBO ));
 
-        commandList.Dispatch(gridSizeX, gridSizeY, gridSizeZ);
+        commandList.Dispatch(m_GridSizeX, m_GridSizeY, m_GridSizeZ);
 
         commandList.EndCompute();
     }

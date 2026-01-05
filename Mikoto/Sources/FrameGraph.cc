@@ -100,7 +100,6 @@ namespace Mikoto {
             RegisterResource( resourceName, resourceDescription );
         }
 
-        // TODO: Sort passes according to dependencies
         SortPassExecution( builder );
     }
 

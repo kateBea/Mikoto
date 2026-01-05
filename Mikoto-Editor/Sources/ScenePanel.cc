@@ -74,7 +74,7 @@ namespace Mikoto {
             if ( IsDisplayTextureValid() ) {
                 UpdateViewport();
 
-                DrawSceneToolbar();
+                //DrawSceneToolbar();
 
                 SetupManipulation();
                 DrawManipulationGuizmos();

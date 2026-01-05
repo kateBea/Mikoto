@@ -155,13 +155,12 @@ namespace Mikoto {
             glm::mat4 ViewMatrix{};
             glm::mat4 InverseProjection{};
             glm::vec4 GridSize{};
+            glm::vec4 ViewPosition{};
 
-            // x = zNear
-            // y = zFar
-            // z, w = Screen dimensions (width, height)
-            glm::vec4 Screen{};
+            alignas(sizeof(glm::vec4)) glm::vec2 Planes{};
+            alignas(sizeof(glm::vec4)) glm::vec2 ScreenDimensions{};
 
-            Int32 ShowHeatMap{ 0 };
+            alignas(sizeof(glm::vec4)) Int32 ShowHeatMap{ 0 };
         };
 
         struct alignas(sizeof(glm::vec4)) Cluster  {
@@ -179,12 +178,12 @@ namespace Mikoto {
 
         auto SetCamera(const Camera* camera) -> void;
 
-        unsigned int gridSizeX = 12;
-        unsigned int gridSizeY = 12;
-        unsigned int gridSizeZ = 24;
-        unsigned int numClusters = gridSizeX * gridSizeY * gridSizeZ;
-
     private:
+        UInt32 m_GridSizeX{ 12 };
+        UInt32 m_GridSizeY{ 12 };
+        UInt32 m_GridSizeZ{ 24 };
+        UInt32 m_NumClusters{ m_GridSizeX * m_GridSizeY * m_GridSizeZ };
+
         const Camera* m_Camera{};
         CameraUBO m_CameraUBO{};
     };
@@ -203,9 +202,8 @@ namespace Mikoto {
         auto TraverseLights( const PassCommandList & commandList ) -> void;
 
     private:
-        std::array<FinalCompositionPass::LightTypeInfo, FinalCompositionPass::MAX_LIGHTS> m_Lights{};
-
         Scene* m_Scene{};
+        std::array<FinalCompositionPass::LightTypeInfo, FinalCompositionPass::MAX_LIGHTS> m_Lights{};
     };
 
     class ShadowPass final : public FramePass {

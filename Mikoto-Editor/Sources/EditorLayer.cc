@@ -600,7 +600,7 @@ namespace Mikoto {
             groundEntity->AddComponent<ScriptComponent>( "Resources/Script-Examples/console_rpg.lua" );
 
             TransformComponent &transformComponent{ groundEntity->GetComponent<TransformComponent>() };
-            transformComponent.SetScale( { 15.0f, 0.5f, 15.00f } );
+            transformComponent.SetScale( { 100.0f, 0.5f, 100.00f } );
             transformComponent.SetTranslation( { 0.0f, 0.0f, 0.0f } );
 
             RigidBodyComponent &rigidBody{ groundEntity->AddComponent<RigidBodyComponent>() };

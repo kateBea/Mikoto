@@ -389,7 +389,9 @@ namespace Mikoto {
 
         // Copy to GPU buffer
         commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 2 );
-        commandList.FillBuffer( "LightCullingComp_LightsBuffer", m_Lights.data(), m_Lights.size() * sizeof(FinalCompositionPass::LightTypeInfo));
+
+        // Just copy the amount of active lights we visited
+        commandList.FillBuffer( "LightCullingComp_LightsBuffer", m_Lights.data(), lightsCount * sizeof(FinalCompositionPass::LightTypeInfo));
     }
 
     auto ShadowPass::Setup( FrameGraphBuilder& builder ) -> void {

@@ -50,6 +50,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetHeight() const -> float;
 
     private:
+        auto ShowStatsOverlay(float timeStep) -> void;
         auto IsDisplayTextureValid() const -> bool;
         auto UpdateViewport() -> void;
         auto SetupManipulation() const -> void;

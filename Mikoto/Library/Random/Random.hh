@@ -66,9 +66,10 @@ namespace Mikoto {
      * @return random integer in the range [lowerBound, upperbound)
      * @throws std::runtime_error if the range is invalid
      * */
-    MKT_NODISCARD inline auto GetRandomInt(Int32 lowerBound, Int32 upperbound, auto& seed = GetSeed()) -> Int32 {
-        if (lowerBound > upperbound)
-            throw std::runtime_error(fmt::format("Invalid range for random integer generation. Lower bound is {}, upperbound is {}", lowerBound, upperbound));
+    MKT_NODISCARD inline auto GetRandomInt(Int32 lowerBound, Int32 upperbound, std::random_device& seed = GetSeed()) -> Int32 {
+        if (lowerBound > upperbound) {
+            MKT_THROW_RUNTIME_ERROR(fmt::format("Invalid range for random integer generation. Lower bound is {}, upperbound is {}", lowerBound, upperbound));
+        }
 
         thread_local std::mt19937 mt{ seed() };
         return std::uniform_int_distribution{ lowerBound, upperbound }(mt);
@@ -81,16 +82,17 @@ namespace Mikoto {
      * @return random integer in the range [lowerBound, upperbound)
      * @throws std::runtime_error if the range is invalid
      * */
-    MKT_NODISCARD inline auto GetRandomReal(double lowerBound, double upperbound, auto& seed = GetSeed()) -> double {
-        if (lowerBound > upperbound)
+    MKT_NODISCARD inline auto GetRandomReal(double lowerBound, double upperbound, std::random_device& seed = GetSeed()) -> double {
+        if (lowerBound > upperbound) {
             MKT_THROW_RUNTIME_ERROR(fmt::format("Invalid range for random integer generation. Lower bound is {}, upperbound is {}", lowerBound, upperbound));
+        }
 
         thread_local std::mt19937 mt{ seed() };
         return std::uniform_real_distribution{ lowerBound, upperbound }(mt);
     }
 
 
-    MKT_NODISCARD inline auto GetRandomIntNumberList(Size length, Int32 lowerBound = -1000, Int32 upperbound = 1000, auto& seed = GetSeed()) -> std::vector<Int32> {
+    MKT_NODISCARD inline auto GetRandomIntNumberList(Size length, Int32 lowerBound = -1000, Int32 upperbound = 1000, std::random_device& seed = GetSeed()) -> std::vector<Int32> {
         std::vector<Int32> result{};
 
         Size count{};
@@ -102,7 +104,7 @@ namespace Mikoto {
     }
 
 
-    MKT_NODISCARD inline auto GetRandomRealNumberList(Size length, double lowerBound = -1000.0, double upperbound = 1000.0, auto& seed = GetSeed()) -> std::vector<double> {
+    MKT_NODISCARD inline auto GetRandomRealNumberList(Size length, double lowerBound = -1000.0, double upperbound = 1000.0, std::random_device& seed = GetSeed()) -> std::vector<double> {
         std::vector<double> result{};
 
         Size count{};

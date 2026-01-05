@@ -70,10 +70,14 @@ namespace Mikoto {
         MKT_NODISCARD auto ExistsByName( std::string_view name ) -> bool;
 
         MKT_NODISCARD auto CreateEntity( std::string_view name ) -> Entity*;
+        MKT_NODISCARD auto CreateEntity( Entity* root, std::string_view name ) -> Entity*;
         MKT_NODISCARD auto CreateEntity( const EntityCreateInfo& createInfo = {} ) -> Entity*;
 
         auto QueueCreateEntity( std::string_view name ) -> void;
         auto QueueCreateEntity( const EntityCreateInfo& createInfo = {} ) -> void;
+
+        MKT_NODISCARD auto GetLightCount() const -> UInt32;
+        MKT_NODISCARD auto GetActiveLightCount() const -> UInt32;
 
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 
@@ -87,6 +91,7 @@ namespace Mikoto {
         auto Clear() -> void;
 
         ~Scene();
+
 
     private:
         friend class PhysicsWorld;
@@ -116,6 +121,8 @@ namespace Mikoto {
 
         auto WorkerDestroyEntity(UInt64 entityID) -> void;
         auto WorkerCreateEntity(const EntityCreateInfo& info) -> void;
+
+        auto ComputeStats() -> void;
     private:
         std::string m_Name{};
         entt::registry m_Registry{};
@@ -130,6 +137,11 @@ namespace Mikoto {
 
         // Unique because iterators are invalidated on resize
         ankerl::unordered_dense::map<Size, Unique<Entity>> m_Entities{};
+
+        // Stats
+        UInt32 m_TotalLightCount{ 0 };
+        UInt32 m_ActiveLightCount{ 0 };
+
     };
 }// namespace Mikoto
 

@@ -305,11 +305,22 @@ namespace Mikoto {
                 .ForElement( sizeof( CameraUBO ), 1 );
         builder.CreateNamedBuffer( "AABBGenComp_CameraUBO", cameraUBO );
 
+        constexpr UInt32 TILE_SIZE{ 16 };
+
+        // MLater will match final composition size
+        constexpr UInt32 screenWidth{ 1920 };
+        constexpr UInt32 screenHeight{ 1080 };
+
+        constexpr UInt32 tilesX{ (screenWidth  + TILE_SIZE - 1) / TILE_SIZE };
+        constexpr UInt32 tilesY{ (screenHeight + TILE_SIZE - 1) / TILE_SIZE };
+
+        constexpr UInt32 tileCount{ tilesX * tilesY };
+
         BufferDescription aabbBuffer{};
         aabbBuffer.WithData( nullptr )
                 .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
                 .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
-                .WithSizeBytes( sizeof( TileAABB ) );
+                .WithSizeBytes( tileCount * sizeof( TileAABB ) );
         builder.CreateNamedBuffer( "AABBGenComp_AABBBuffer", aabbBuffer );
 
         builder.WriteBuffer( this, "AABBGenComp_AABBBuffer" );
@@ -378,7 +389,7 @@ namespace Mikoto {
         builder.CreateNamedBuffer( "LightCullingComp_TileLightsCount", tileLightsCount );
 
         builder.ReadBuffer( this, "AABBGenComp_AABBBuffer" );
-        builder.WriteBuffer( this, "LightCullingComp_LightsBuffer" );
+        builder.ReadBuffer( this, "LightCullingComp_LightsBuffer" );
         builder.WriteBuffer( this, "LightCullingComp_TileLightsCount" );
     }
 
@@ -389,7 +400,6 @@ namespace Mikoto {
         TraverseLights( commandList );
 
         commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_AABBBuffer", 1 );
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 0 );
         commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_TileLightsCount", 2 );
         commandList.BindResourceGroup(SRGType::SRG_PerPass);
 
@@ -478,7 +488,7 @@ namespace Mikoto {
         m_LightsInfo.DisplayMode = static_cast<Int32>(FinalCompositionPass::LightInfo::DisplayModes::DISPLAY_COLOR);
 
         // Copy to GPU buffer
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 1 );
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 0 );
         commandList.FillBuffer( "LightCullingComp_LightsBuffer", std::addressof( m_LightsInfo ), sizeof( FinalCompositionPass::LightInfo ));
     }
 
@@ -491,6 +501,7 @@ namespace Mikoto {
         builder.CreateNamedPipeline( "LightBatchingComp_Pipeline", pipelineDesc );
 
         constexpr UInt32 TILE_SIZE{ 16 };
+        constexpr UInt32 MAX_LIGHTS_PER_TILE{ 64 }; // from LightBatching_Comp shader
 
         // MLater will match final composition size
         constexpr UInt32 screenWidth{ 1920 };
@@ -505,7 +516,7 @@ namespace Mikoto {
         lightBatching.WithData( nullptr )
                 .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
                 .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
-                .WithSizeBytes( tileCount * sizeof( UInt32 ) );
+                .WithSizeBytes( tileCount * MAX_LIGHTS_PER_TILE * sizeof(UInt32) );
         builder.CreateNamedBuffer( "LightBatchingComp_Indices", lightBatching );
 
         BufferDescription tileLightsOffsets{};

@@ -154,7 +154,7 @@ namespace Mikoto {
         }
 
         for (auto& [pass, nodeData] : builder.m_Nodes) {
-            SortNode& readerNode = sortNodes[pass];
+            SortNode& readerNode{ sortNodes[pass] };
 
             auto addDependency{ [&](const std::string& resource) {
                 auto it{ resourceWriters.find(resource) };

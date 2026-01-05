@@ -256,10 +256,11 @@ namespace Mikoto {
         m_CameraUBO = {
             .ViewMatrix{ m_Camera->GetViewMatrix() },
             .InverseProjection{ glm::inverse(m_Camera->GetProjection()) },
-            .GridSize{ glm::vec4{ m_GridSizeX, m_GridSizeY, m_GridSizeZ, 0.0f } }, // from the repo on clustered shading
+            .GridSize{ glm::vec4{ m_GridSizeX, m_GridSizeY, m_GridSizeZ, 0.0f } },
             .ViewPosition{ glm::vec4{ m_Camera->GetPosition(), 0.0f } },
             .Planes{ m_Camera->GetNearPlane(), m_Camera->GetFarPlane() },
             .ScreenDimensions{ width, height },
+            .ShowHeatMap{ m_CameraUBO.ShowHeatMap }
         };
 
         commandList.FillBuffer( "AABBGenComp_CameraUBO", std::addressof( m_CameraUBO ), sizeof( CameraUBO ));
@@ -271,6 +272,10 @@ namespace Mikoto {
 
     auto AABBGenComp::SetCamera( const Camera *camera ) -> void {
         m_Camera = camera;
+    }
+
+    auto AABBGenComp::SetHeatMap( bool enable ) -> void {
+        m_CameraUBO.ShowHeatMap = enable == 1;
     }
 
     auto LightCullingComp::Setup( FrameGraphBuilder &builder ) -> void {
@@ -287,7 +292,7 @@ namespace Mikoto {
                 .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
                 .WithSizeBytes( sizeof(FinalCompositionPass::LightTypeInfo) * m_Lights.size()  );
         builder.CreateNamedBuffer( "LightCullingComp_LightsBuffer", lightsBuffer );
-
+        
         builder.ReadBuffer( this, "AABBGenComp_CameraUBO" );
         builder.ReadBuffer( this, "AABBGenComp_Clusters" );
 

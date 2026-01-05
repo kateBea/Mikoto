@@ -128,6 +128,12 @@ namespace Mikoto {
                     ImGui::SameLine();
                     ImGuiUtils::HelpMarker( "Lock rotation in the X axis. Cannot look from left to right and viceversa." );
 
+                    // Heatmap
+                    ImGui::Spacing();
+                    ImGuiUtils::CheckBox( "Show heatmap", m_EditorState->HeatMapVisualizer );
+                    ImGui::SameLine();
+                    ImGuiUtils::HelpMarker( "Visualize heatmap for clusters" );
+
                     // Outline
                     ImGui::Spacing();
                     ImGuiUtils::Slider( "##SettingsPanel::OnUpdate::Outline", m_Data.Outline, { 0.5f, 2.0f } );

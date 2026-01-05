@@ -88,7 +88,7 @@ namespace Mikoto {
             Int32 AoIndex{};
         };
 
-        static constexpr UInt32 MAX_LIGHTS{ 10000 };
+        static constexpr UInt32 MAX_LIGHTS{ 5096 };
 
         struct FrameUBO {
             glm::mat4 View{};
@@ -150,7 +150,7 @@ namespace Mikoto {
 
     class AABBGenComp final : public FramePass {
     public:
-        constexpr static UInt32 MAX_LIGHT_CLUSTERS{ 100 };
+        constexpr static UInt32 MAX_LIGHT_CLUSTERS{ 256 };
         struct CameraUBO {
             glm::mat4 ViewMatrix{};
             glm::mat4 InverseProjection{};
@@ -177,6 +177,7 @@ namespace Mikoto {
         auto Execute(PassCommandList& cmdList) -> void override;
 
         auto SetCamera(const Camera* camera) -> void;
+        auto SetHeatMap(bool enable) -> void;
 
     private:
         UInt32 m_GridSizeX{ 12 };

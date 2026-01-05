@@ -64,6 +64,8 @@ namespace Mikoto {
         bool ApplicationCloseFlag{ true };
 
         ImGuiUtils::GuizmoManipulationMode Manipulation{ ImGuiUtils::GuizmoManipulationMode::TRANSLATION };
+
+        bool HeatMapVisualizer{ false };
     };
 
     struct EditorLayerCreateInfo {

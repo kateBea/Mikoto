@@ -17,11 +17,12 @@ layout(set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
     mat4 ViewMatrix;
     mat4 InverseProjection;
     vec4 GridSize;
+    vec4 ViewPosition;
 
-    // x = zNear
-    // y = zFar
-    // z, w = Screen dimensions (width, height)
-    vec4 Screen;
+    vec2 Planes;
+    vec2 ScreenDimensions;
+
+    int ShowHeatMap;
 } Camera;
 
 layout(std430, set = PERPASS_SETINDEX, binding = 1) buffer ClusterSSBO  {
@@ -62,7 +63,7 @@ void main() {
 
     for (uint i = 0; i < lightCount; ++i)
     {
-        if (TestSphereAABB(i, cluster) && cluster.Count < 100)
+        if (TestSphereAABB(i, cluster) && cluster.Count < MAX_LIGHT_CLUSTERS)
         {
             cluster.LightIndices[cluster.Count] = i;
             cluster.Count++;

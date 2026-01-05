@@ -88,7 +88,7 @@ namespace Mikoto {
             Int32 AoIndex{};
         };
 
-        static constexpr UInt32 MAX_LIGHTS{ 50 };
+        static constexpr UInt32 MAX_LIGHTS{ 10000 };
 
         struct FrameUBO {
             glm::mat4 View{};

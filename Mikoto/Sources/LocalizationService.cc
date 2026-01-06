@@ -129,7 +129,9 @@ namespace Mikoto {
         map.reserve( data.size() );
 
         for (auto &[key, value]: data.items()) {
-            map[key] = value.get<std::string>();
+            if (value.is_string()) {
+                map[key] = value.get<std::string>();
+            }
         }
     }
 }

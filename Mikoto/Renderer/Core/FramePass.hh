@@ -70,11 +70,10 @@ namespace Mikoto {
         auto TraverseTextList(PassCommandList& commandList) -> void;
 
         auto SetupRenderParams(PassCommandList &commandList) -> void;
-        auto SetupTextForRender(FontHandle font, Vec4F position, Mat4F model, std::string_view text, double fontSize, Vec4F color, PassCommandList& commandList) -> void;
+        auto SetupTextForRender(FontHandle font, Vec4F position, std::string_view text, double fontSize, Vec4F color, PassCommandList& commandList) -> void;
 
     private:
         struct alignas(16) TextRenderParams {
-            Mat4F Model{};
             Vec4F Position{};
             Vec4F Size{};
             Vec4F Color{};

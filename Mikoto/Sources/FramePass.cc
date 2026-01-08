@@ -91,8 +91,6 @@ namespace Mikoto {
         MKT_ASSERT( m_Camera != nullptr, "Camera cannot be NULL" );
 
         commandList.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
-        //commandList.SetDepthRenderTarget( "TextRenderPass_DepthTarget" );
-        //commandList.SetClearColor( m_ClearColor );
 
         commandList.BeginRender(this, LoadOp::LOAD);
         commandList.BindPipeline( "TextRenderPass_Pipeline" );
@@ -156,7 +154,7 @@ namespace Mikoto {
             const glm::vec4 color{ textComponent.GetColor() };
             const glm::vec4 position{ transform.GetTranslation(), 1.0f };
 
-            SetupTextForRender(textComponent.GetFontHandle(), position, transform.GetTransform(), textComponent.GetContents(), textSize, color, commandList );
+            SetupTextForRender(textComponent.GetFontHandle(), position, textComponent.GetContents(), textSize, color, commandList );
         }
 
         commandList.FillBuffer( "TextRenderPass_TextRenderParams", m_TextRenderParams.data(), m_TextRenderParams.size() * sizeof( TextRenderParams ) );
@@ -165,19 +163,20 @@ namespace Mikoto {
     auto TextRenderPass::SetupRenderParams(PassCommandList &commandList) -> void {
         m_TextRenderUBO.OutlineWidth = 0.0f;
 
-        bool is3D{ false };
+        bool is3D{ true };
 
         if (!is3D) {
             m_TextRenderUBO.Proj = glm::ortho(0.0f, 1920.0f,1080.0f, 0.0f,-1.0f, 1.0f);
             m_TextRenderUBO.View = glm::mat4{ 1.0f };
         } else {
-            m_TextRenderUBO.Proj = m_TextRenderUBO.Proj = m_Camera->GetProjection();
+            m_TextRenderUBO.Proj = m_Camera->GetProjection();
             m_TextRenderUBO.View = m_Camera->GetViewMatrix();
         }
+
         commandList.FillBuffer( "TextRenderPass_FontParams", std::addressof( m_TextRenderUBO ), sizeof( m_TextRenderUBO ) );
     }
 
-    auto TextRenderPass::SetupTextForRender( FontHandle font, Vec4F position, Mat4F model, std::string_view text, double fontSize, Vec4F color, PassCommandList& commandList ) -> void {
+    auto TextRenderPass::SetupTextForRender( FontHandle font, Vec4F position, std::string_view text, double fontSize, Vec4F color, PassCommandList& commandList ) -> void {
         double xPos{ position.x };
         double yPos{ position.y };
         double scale{ fontSize / font->GetSize() };
@@ -187,7 +186,7 @@ namespace Mikoto {
         for ( Size i{}; i < text.length(); ++i ) {
             if (text[i] == '\n') {
                 xPos = position.x;
-                yPos += lineHeight;
+                yPos -= lineHeight;
                 continue;
             }
 
@@ -195,8 +194,8 @@ namespace Mikoto {
 
             if ( text[i] != ' ' ) {
                 // Quad Coordinates
-                double x0 = xPos + glyph.m_PlaneBounds.x * fontSize;
-                double y0 = yPos - glyph.m_PlaneBounds.y * fontSize;
+                double x0{ xPos + glyph.m_PlaneBounds.x * fontSize };
+                double y0{ yPos - glyph.m_PlaneBounds.y * fontSize };
 
                 // UV Coordinates
                 TextureHandle atlas{ font->GetAtlas() };
@@ -209,7 +208,6 @@ namespace Mikoto {
                 fontParams.Position = { x0, y0 + std::round( ( font->GetMaxHeight() * scale ) ) - ( glyph.m_Height * scale ), position.z, position.w };
                 fontParams.Size = { glyph.m_Width * scale, glyph.m_Height * scale, 0.0f, 0.0f };
                 fontParams.Color = color;
-                fontParams.Model = model;
                 fontParams.TexIndex = commandList.PushTexture( atlas );
                 fontParams.TexCoords[0] = { s0, t0 };// top left
                 fontParams.TexCoords[1] = { s1, t0 };// bottom left

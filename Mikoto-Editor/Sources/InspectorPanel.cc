@@ -1247,7 +1247,7 @@ namespace Mikoto {
             ImGui::TableSetColumnIndex( 0 );
 
             float intensity{ pointLightData.GetIntensity() };
-            if ( ImGuiUtils::Slider( "Intensity", intensity, { 1.0f, 200.0f } ) ) {
+            if ( ImGuiUtils::Slider( "Intensity", intensity, { 1.0f, 1000.0f } ) ) {
                 pointLightData.SetIntensity( intensity );
             }
 
@@ -1307,9 +1307,8 @@ namespace Mikoto {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
 
-
             float intensity{ spotLightData.GetIntensity() };
-            if ( ImGuiUtils::Slider( "Intensity", intensity, { 1.0f, 120.0f } ) ) {
+            if ( ImGuiUtils::Slider( "Intensity", intensity, { 1.0f, 1000.0f } ) ) {
                 spotLightData.SetIntensity( intensity );
             }
 

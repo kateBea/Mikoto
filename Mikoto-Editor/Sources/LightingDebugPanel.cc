@@ -118,6 +118,9 @@ namespace Mikoto {
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Text( "TimeStep: %.1f ms", timeStep * 1000.0f );
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Text( "Scene Name: %s", m_EditorState->ActiveEditorScene->GetName().c_str());
 
         ImGui::Spacing();
         ImGui::Separator();

@@ -58,7 +58,7 @@ namespace Mikoto {
 
         float m_Alpha{ 1.0f };
         float m_Metallic{ 0.2f };
-        float m_Roughness{ 0.4f };
+        float m_Roughness{ 5.4f };
         float m_Emissive{ 0.4f };
         float m_AmbientOcclusion{ 0.4f };
         float m_ReflectanceFactor{ 0.4f };

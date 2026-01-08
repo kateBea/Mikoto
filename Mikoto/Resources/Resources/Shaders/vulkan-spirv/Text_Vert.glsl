@@ -10,7 +10,6 @@
 #include "ShaderBase.glsl"
 
 struct FontRenderParams {
-    mat4 Model;
     vec4 Position;
     vec4 Size;
     vec4 Color;
@@ -38,7 +37,6 @@ layout(location = 1) out float out_TexIndex;
 layout(location = 2) out vec4 out_Color;
 
 layout(location = 3) out vec4 out_OutlineColor;
-layout(location = 4) out float out_OutlineWidth;
 
 void main() {
     FontRenderParams params = fontParams.params[gl_InstanceIndex];
@@ -48,10 +46,8 @@ void main() {
     out_Color = params.Color;
 
     out_OutlineColor = Ubo.OutlineColor;
-    out_OutlineWidth = Ubo.OutlineWidth;
 
     vec3 pos = a_Position * params.Size.xyz + params.Position.xyz;
 
-    //gl_Position = Ubo.Projection * Ubo.View * params.Model * vec4(pos, 1.0);
-    gl_Position = Ubo.Projection * vec4(pos, 1.0);
+    gl_Position = Ubo.Projection * Ubo.View * vec4(pos, 1.0);
 }

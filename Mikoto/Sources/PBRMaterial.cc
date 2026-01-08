@@ -11,6 +11,7 @@ namespace Mikoto {
         : Material{ name } {
         Initialize();
     }
+
     auto PBRMaterial::RemoveTextureType( MapType type ) -> void {
         m_Textures.erase( type );
     }

@@ -33,6 +33,8 @@ layout(location = 9) flat in int in_AoIndex;
 layout(location = 10) flat in vec4 in_Albedo;
 layout(location = 11) flat in vec4 in_Factors;
 
+layout(location = 12) in vec3 out_ViewFragmentPos;
+
 layout(location = 0) out vec4 out_Color;
 
 layout(set = TEXTURES_SETINDEX, binding = 0) uniform sampler2D g_BindlessTextures[];
@@ -40,13 +42,15 @@ layout(set = TEXTURES_SETINDEX, binding = 0) uniform sampler2D g_BindlessTexture
 layout(set = PERPASS_SETINDEX, binding = 1) uniform CameraUBO {
     mat4 ViewMatrix;
     mat4 InverseProjection;
+
     vec4 GridSize;
     vec4 ViewPosition;
 
-    vec2 Planes;
-    vec2 ScreenDimensions;
+    // xy = Planes, zw = ScreenDimensions
+    vec4 Screen;
 
-    int ShowHeatMap;
+    // x = show heat map
+    vec4 ShowHeatMap;
 } Camera;
 
 layout(std430, set = PERPASS_SETINDEX, binding = 2) readonly buffer ClusterSSBO {
@@ -309,59 +313,42 @@ void main() {
     vec3 Lo = vec3(0.0);
 
     // Locating which cluster this fragment is part of
-    // Convert fragment position to view space
-    vec3 fragViewPos = vec3(Camera.ViewMatrix * vec4(in_FragmentPos, 1.0));
-    float viewZ = -fragViewPos.z;
-
-    // Compute Z cluster
-    float z = clamp(viewZ, Camera.Planes.x, Camera.Planes.y);
-    float zSlice = log(z / Camera.Planes.x) /
-    log(Camera.Planes.y / Camera.Planes.x);
-
-    uint zTile = uint(zSlice * Camera.GridSize.z);
-    zTile = min(zTile, uint(Camera.GridSize.z - 1));
-
-    // Compute XY cluster
-    vec2 tileSize = Camera.ScreenDimensions / Camera.GridSize.xy;
-    uvec2 tileXY = uvec2(gl_FragCoord.xy / tileSize);
-
-    // Flatten cluster index
-    uint tileIndex =
-    tileXY.x +
-    tileXY.y * uint(Camera.GridSize.x) +
-    zTile   * uint(Camera.GridSize.x * Camera.GridSize.y);
+    uint zTile = uint((log(abs(out_ViewFragmentPos.z) / Camera.Screen.x) * Camera.GridSize.z) / log(Camera.Screen.y / Camera.Screen.x));
+    vec2 tileSize = Camera.Screen.zw / Camera.GridSize.xy;
+    uvec3 tile = uvec3(gl_FragCoord.xy / tileSize, zTile);
+    uint tileIndex = uint(tile.x + (tile.y * Camera.GridSize.x) + (tile.z * Camera.GridSize.x * Camera.GridSize.y));
 
     uint lightCount = Clusters[tileIndex].Count;
 
-    if (Camera.ShowHeatMap == MKT_SHADER_TRUE) {
-        out_Color = vec4(GetHeatMapColor(lightCount), 1.0);
-    } else {
-        for(int i = 0; i < lightCount; ++i)  {
-            uint lightIndex = Clusters[tileIndex].LightIndices[i];
-            LightInfo light = Lights[lightIndex];
+    for(int i = 0; i < lightCount; ++i)  {
+        uint lightIndex = Clusters[tileIndex].LightIndices[i];
+        LightInfo light = Lights[lightIndex];
 
-            switch (light.ActiveLightType) {
-                case LIGHT_TYPE_POINT:
-                    Lo += ComputePointLightContribution(N, V, F0, roughness, metallic, albedo, light);
-                    break;
-                case LIGHT_TYPE_SPOT:
-            //Lo += ComputeSpotLightContribution(N, V, F0, roughness, metallic, albedo, light);
-                    break;
-                case LIGHT_TYPE_DIRECTIONAL:
-            //Lo += ComputeDirectionalLightContribution(N, V, F0, roughness, metallic, albedo, light);
-                    break;
-                default:
-                    break;
-            }
+        switch (light.ActiveLightType) {
+            case LIGHT_TYPE_POINT:
+                Lo += ComputePointLightContribution(N, V, F0, roughness, metallic, albedo, light);
+                break;
+            case LIGHT_TYPE_SPOT:
+                Lo += ComputeSpotLightContribution(N, V, F0, roughness, metallic, albedo, light);
+                break;
+            case LIGHT_TYPE_DIRECTIONAL:
+                Lo += ComputeDirectionalLightContribution(N, V, F0, roughness, metallic, albedo, light);
+                break;
+            default:
+                break;
         }
+    }
 
-        vec3 ambient = vec3(0.03) * albedo * ao;
-        vec3 color = ambient + Lo;
+    vec3 ambient = vec3(0.03) * albedo * ao;
+    vec3 color = ambient + Lo;
 
-        // Tonemap + gamma correction
-        color = color / (color + vec3(1.0));
-        color = pow(color, vec3(1.0 / 2.2));
+    // Tonemap + gamma correction
+    color = color / (color + vec3(1.0));
+    color = pow(color, vec3(1.0 / 2.2));
 
-        out_Color = vec4(color , 1.0);
+    out_Color = vec4(color , 1.0);
+
+    if (Camera.ShowHeatMap.x == MKT_SHADER_TRUE) {
+        out_Color = mix(vec4(GetHeatMapColor(lightCount), 1.0), out_Color, 0.9f);
     }
 }

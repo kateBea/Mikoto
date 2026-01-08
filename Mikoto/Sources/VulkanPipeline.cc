@@ -210,7 +210,9 @@ namespace Mikoto {
 
         m_VertexAttributesSpec = info.Desc.VertexAttributesSpec;
 
-        m_DepthAttachmentFormat = dynamic_cast<const VulkanTexture*>(info.Desc.DepthTexture.GetRaw() )->GetViewCreateInfo().format;
+        if (!info.Desc.DepthTexture.IsEmpty()) {
+            m_DepthAttachmentFormat = dynamic_cast<const VulkanTexture*>(info.Desc.DepthTexture.GetRaw() )->GetViewCreateInfo().format;
+        }
 
         for (auto& attachment : info.Desc.ColorAttachments) {
             m_ColorAttachmentsFormats.emplace_back( dynamic_cast<const VulkanTexture*>(attachment.GetRaw() )->GetViewCreateInfo().format );

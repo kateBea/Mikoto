@@ -53,10 +53,10 @@ namespace Mikoto {
                 std::array charsetRanges{
                     CharsetRange{ 0x0020, 0x007F },// Basic Latin
                     CharsetRange{ 0x3040, 0x309F },// Hiragana
-                    CharsetRange{ 0x30A0, 0x30FF } // Katakana
+                    CharsetRange{ 0x30A0, 0x30FF }, // Katakana
                     //CharsetRange{ 0x00A0, 0x00FF },// Latin-1 Supplementº
-                    //CharsetRange{ 0x0100, 0x017F },// Latin Extended-A
-                    //CharsetRange{ 0x0180, 0x024F },// Latin Extended-B
+                    CharsetRange{ 0x0100, 0x017F },// Latin Extended-A
+                    CharsetRange{ 0x0180, 0x024F },// Latin Extended-B
                     //CharsetRange{ 0x0370, 0x03FF },// Greek & Coptic
                     //CharsetRange{ 0x0400, 0x04FF } // Cyrillic
                 };
@@ -77,9 +77,11 @@ namespace Mikoto {
                     constexpr UInt64 coloringSeed{ 0 };
                     constexpr unsigned long long LCG_INCREMENT{ 1442695040888963407ull };
 
+                    constexpr double maxCornerAngle{ 3.0 };
+
                     msdf_atlas::Workload( [&glyphs = glyphs, &coloringSeed, &LCG_MULTIPLIER, &LCG_INCREMENT, &glyphSeed]( int i, int threadNo ) -> bool {
                         glyphSeed = ( LCG_MULTIPLIER * ( coloringSeed ^ i ) + LCG_INCREMENT ) * !!coloringSeed;
-                        glyphs[i].edgeColoring( msdfgen::edgeColoringInkTrap, 3.0, glyphSeed );
+                        glyphs[i].edgeColoring( msdfgen::edgeColoringInkTrap, maxCornerAngle, glyphSeed );
                         return true;
                     }, glyphs.size() ).finish( 8 );
                 } else {
@@ -102,7 +104,7 @@ namespace Mikoto {
                 packer.setScale( fontSize );
 
                 // setPixelRange or setUnitRange
-                packer.setPixelRange( 2.0 );
+                packer.setPixelRange( 2.0f );
                 packer.setMiterLimit( 1.0 );
 
                 // Compute atlas layout - pack glyphs

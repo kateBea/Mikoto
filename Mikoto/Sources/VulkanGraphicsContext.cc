@@ -48,22 +48,25 @@ namespace Mikoto {
         std::vector<VkRenderingAttachmentInfo> colorImages{};
 
         for (auto &colorImage: beginInfo.ColorRenderTargets) {
+            VkAttachmentLoadOp loadOp{ beginInfo.LoadOp == LoadOp::CLEAR ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD };
             VkRenderingAttachmentInfo &colorAttachment{ colorImages.emplace_back( VkRenderingAttachmentInfo{} ) };
             colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
             colorAttachment.imageView = colorImage->GetNativeHandle( ObjectType::Vk_ImageView );
             colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            colorAttachment.loadOp = loadOp;
             colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             colorAttachment.clearValue.color = { beginInfo.ClearColor.r, beginInfo.ClearColor.g, beginInfo.ClearColor.b, beginInfo.ClearColor.a };
         }
 
         VkRenderingAttachmentInfo depthAttachment{};
-        depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-        depthAttachment.imageView = beginInfo.DepthRenderTarget->GetNativeHandle( ObjectType::Vk_ImageView );
-        depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        depthAttachment.clearValue.depthStencil = { 1.0f, 0 };
+        if (!beginInfo.DepthRenderTarget.IsEmpty()) {
+            depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+            depthAttachment.imageView = beginInfo.DepthRenderTarget->GetNativeHandle( ObjectType::Vk_ImageView );
+            depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            depthAttachment.clearValue.depthStencil = { 1.0f, 0 };
+        }
 
         VkRenderingInfo renderingInfo{};
         renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -72,7 +75,7 @@ namespace Mikoto {
         renderingInfo.layerCount = 1;
         renderingInfo.colorAttachmentCount = static_cast<UInt32>( colorImages.size() );
         renderingInfo.pColorAttachments = colorImages.data();
-        renderingInfo.pDepthAttachment = std::addressof( depthAttachment );
+        renderingInfo.pDepthAttachment = beginInfo.DepthRenderTarget.IsEmpty() ? nullptr : std::addressof( depthAttachment );
 
         vkCmdBeginRendering( vkCmd, std::addressof( renderingInfo ) );
     }

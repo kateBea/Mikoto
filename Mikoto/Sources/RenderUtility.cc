@@ -160,6 +160,12 @@ namespace Mikoto {
         ChannelCount = channels;
         return *this;
     }
+
+    auto TextureDescription::WithMapType( MapType type ) -> TextureDescription & {
+        this->Map = type;
+        return *this;
+    }
+
     auto TextureDescription::WithFile( const File* file ) -> TextureDescription& {
         this->TextureFile = file;
         return *this;
@@ -187,6 +193,11 @@ namespace Mikoto {
 
     auto TextureDescription::WithResourceType( ResourceUsageType type ) -> TextureDescription& {
         UsageType = type;
+        return *this;
+    }
+
+    auto TextureLoadDescription::WithMapType( MapType type ) -> TextureLoadDescription & {
+        Map = type;
         return *this;
     }
 

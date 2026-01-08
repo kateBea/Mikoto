@@ -60,6 +60,32 @@ namespace Mikoto {
         }
     }
 
+    static auto InferMapType( const aiTextureType type ) -> MapType {
+        switch (type) {
+            case aiTextureType_DIFFUSE:
+                // Base color / albedo in PBR
+                return MapType::ALBEDO_TEXTURE;
+
+            case aiTextureType_NORMALS:
+                return MapType::NORMAL_TEXTURE;
+
+            case aiTextureType_METALNESS:
+                return MapType::METALLIC_TEXTURE;
+
+            case aiTextureType_DIFFUSE_ROUGHNESS:
+                return MapType::ROUGHNESS_TEXTURE;
+
+            case aiTextureType_AMBIENT_OCCLUSION:
+                return MapType::AMBIENT_OCCLUSION_TEXTURE;
+
+            case aiTextureType_EMISSIVE:
+                return MapType::EMISSIVE_TEXTURE;
+
+            default:
+                return MapType::ALBEDO_TEXTURE;
+        }
+    }
+
     static auto LoadVertices( const aiMesh* mesh ) -> std::vector<float> {
         // special case for vulkan
         const bool invertY{ RenderService::Get()->IsGraphicsActive( GraphicsAPI::VULKAN_API ) };
@@ -142,18 +168,19 @@ namespace Mikoto {
         TextureHandle texture{};
 
         for ( Size index{}; index < material->GetTextureCount( type ); index++ ) {
-            aiString texturePath{};
+            aiString assimpTexturePath{};
 
-            if ( material->GetTexture( type, index, std::addressof( texturePath ) ) == AI_SUCCESS ) {
+            if ( material->GetTexture( type, index, std::addressof( assimpTexturePath ) ) == AI_SUCCESS ) {
                 // Assumes the textures are in the same directory as the model files
                 Path path{ PathBuilder()
                     .WithPath( modelRootPath )
-                    .WithPath( texturePath.C_Str() )
+                    .WithPath( assimpTexturePath.C_Str() )
                     .Build() };
 
                 TextureLoadDescription loadInfo{};
                 loadInfo.WithFile( FileService::Get()->LoadFile( path ) )
-                    .WithType( InferMikotoTextureType( type ) );
+                    .WithType( InferMikotoTextureType( type ) )
+                    .WithMapType( InferMapType( type ) );
 
                 try {
                     texture = AssetsService::Get()->LoadAsset<Texture>( loadInfo );
@@ -162,7 +189,7 @@ namespace Mikoto {
                 }
 
                 if ( !texture.IsEmpty() ) {
-                    // std::striong_view does not extend lifetime of the temporary string
+                    // std::string_view does not extend lifetime of the temporary string
                     const auto& texturePath{ path.filename().string() };
                     const auto& textureName{ path.filename().string() };
 
@@ -174,7 +201,7 @@ namespace Mikoto {
             // Temporary. See if it is an embedded texture
             // This one will probably be loaded in the device directly and not cached in the assets service??
             auto [embeddedTexturePtr, embeddedTextureIndex] {
-                scene->GetEmbeddedTextureAndIndex( texturePath.C_Str() )
+                scene->GetEmbeddedTextureAndIndex( assimpTexturePath.C_Str() )
             };
 
             if ( embeddedTextureIndex != -1 ) {

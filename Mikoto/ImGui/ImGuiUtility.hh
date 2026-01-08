@@ -30,13 +30,9 @@ namespace Mikoto::ImGuiUtils {
     class ImGuiScopedStyleVar {
     public:
         template<typename... Args>
-        explicit ImGuiScopedStyleVar( Args&&... args ) {
-            ImGui::PushStyleVar( std::forward<Args>( args )... );
-        }
+        explicit ImGuiScopedStyleVar( Args &&... args ) { ImGui::PushStyleVar( std::forward<Args>( args )... ); }
 
-        ~ImGuiScopedStyleVar() {
-            ImGui::PopStyleVar();
-        }
+        ~ImGuiScopedStyleVar() { ImGui::PopStyleVar(); }
     };
 
     class ImGuiScopedBorderColor {
@@ -57,29 +53,19 @@ namespace Mikoto::ImGuiUtils {
         static constexpr Int8 Invalid{ -1 };
 
         explicit ImGuiScopedTextFont( const Int8 index )
-            : m_Index{ index } {
-            if ( m_Index != Invalid ) {
-                ImGui::PushFont( ImGui::GetIO().Fonts->Fonts[index] );
-            }
-        }
+            : m_Index{ index } { if (m_Index != Invalid) { ImGui::PushFont( ImGui::GetIO().Fonts->Fonts[index] ); } }
 
-        ~ImGuiScopedTextFont() {
-            if ( m_Index != Invalid ) {
-                ImGui::PopFont();
-            }
-        }
+        ~ImGuiScopedTextFont() { if (m_Index != Invalid) { ImGui::PopFont(); } }
 
     private:
         Int8 m_Index{};
     };
 
-    MKT_NODISCARD inline auto PushImageButton( UInt64 textureId, ImTextureID textureHandle, const ImVec2 size ) -> bool {
-        return ImGui::ImageButton( StringUtils::ToString( textureId ).c_str(), textureHandle, size, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
-    }
+    MKT_NODISCARD inline auto PushImageButton( UInt64 textureId, ImTextureID textureHandle, const ImVec2 size ) -> bool { return ImGui::ImageButton( StringUtils::ToString( textureId ).c_str(), textureHandle, size, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } ); }
 
     inline auto ThemeDarkModeAlt() -> void {
         // Setup Dear ImGui style
-        ImGuiStyle& style = ImGui::GetStyle();
+        ImGuiStyle &style = ImGui::GetStyle();
 
         style.Colors[ImGuiCol_WindowBg] = ImVec4{ 0.1f, 0.105f, 0.11f, 1.0f };
 
@@ -127,7 +113,7 @@ namespace Mikoto::ImGuiUtils {
 
     inline auto ThemeDarkModeDefault() -> void {
         // Setup Dear ImGui style
-        ImGuiStyle& style = ImGui::GetStyle();
+        ImGuiStyle &style = ImGui::GetStyle();
 
         style.Colors[ImGuiCol_TitleBg] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
         style.Colors[ImGuiCol_TitleBgActive] = ImVec4( 0.2f, 0.2f, 0.2f, 1.0f );
@@ -186,17 +172,13 @@ namespace Mikoto::ImGuiUtils {
     }
 
     MKT_NODISCARD inline auto ComputeWidth() -> float {
-        const ImGuiContext& globalContext{ *GImGui };
-        const ImGuiWindow* currentWindow{ globalContext.CurrentWindow };
+        const ImGuiContext &globalContext{ *GImGui };
+        const ImGuiWindow *currentWindow{ globalContext.CurrentWindow };
         float width{};
 
-        if ( globalContext.NextItemData.HasFlags & ImGuiNextItemDataFlags_HasWidth ) {
-            width = globalContext.NextItemData.Width;
-        } else {
-            width = currentWindow->DC.ItemWidth;
-        }
+        if (globalContext.NextItemData.HasFlags & ImGuiNextItemDataFlags_HasWidth) { width = globalContext.NextItemData.Width; } else { width = currentWindow->DC.ItemWidth; }
 
-        if ( width < 0.0f ) {
+        if (width < 0.0f) {
             float regionAvailableX{ ImGui::GetContentRegionAvail().x };
             width = ImMax( 1.0f, regionAvailableX + width );
         }
@@ -207,12 +189,10 @@ namespace Mikoto::ImGuiUtils {
     }
 
     inline auto HelpMarker( const std::string_view description, const std::string_view placeHolder = "(?)", const bool sameLine = false ) -> void {
-        if ( sameLine ) {
-            ImGui::SameLine();
-        }
+        if (sameLine) { ImGui::SameLine(); }
 
         ImGui::TextDisabled( "%s", placeHolder.data() );
-        if ( ImGui::IsItemHovered( ImGuiHoveredFlags_DelayShort ) && ImGui::BeginTooltip() ) {
+        if (ImGui::IsItemHovered( ImGuiHoveredFlags_DelayShort ) && ImGui::BeginTooltip()) {
             ImGui::PushTextWrapPos( ImGui::GetFontSize() * 35.0f );
             ImGui::TextUnformatted( description.data() );
             ImGui::PopTextWrapPos();
@@ -220,15 +200,13 @@ namespace Mikoto::ImGuiUtils {
         }
     }
 
-    inline auto CheckBox( const CStr label, bool& value ) -> bool {
+    inline auto CheckBox( const CStr label, bool &value ) -> bool {
         ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
         ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 3.5f };
 
         bool active{ ImGui::Checkbox( label, std::addressof( value ) ) };
 
-        if ( ImGui::IsItemHovered() ) {
-            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-        }
+        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
 
         return active;
     }
@@ -236,7 +214,7 @@ namespace Mikoto::ImGuiUtils {
     inline auto ToolTip( const std::string_view description ) -> void {
         ImGui::PushStyleVar( ImGuiStyleVar_PopupBorderSize, 1.0f );
 
-        if ( ImGui::BeginTooltip() ) {
+        if (ImGui::BeginTooltip()) {
             ImGui::PushTextWrapPos( ImGui::GetFontSize() * 35.0f );
             ImGui::TextUnformatted( description.data() );
             ImGui::PopTextWrapPos();
@@ -246,10 +224,10 @@ namespace Mikoto::ImGuiUtils {
         ImGui::PopStyleVar();
     }
 
-    inline auto ToolTip( const std::function<void()>& func, const bool enable ) -> void {
+    inline auto ToolTip( const std::function<void()> &func, const bool enable ) -> void {
         ImGui::PushStyleVar( ImGuiStyleVar_PopupBorderSize, 1.0f );
 
-        if ( enable && ImGui::BeginTooltip() ) {
+        if (enable && ImGui::BeginTooltip()) {
             ImGui::PushTextWrapPos( ImGui::GetFontSize() * 35.0f );
 
             func();
@@ -261,21 +239,19 @@ namespace Mikoto::ImGuiUtils {
         ImGui::PopStyleVar();
     }
 
-    inline auto DragFloat4( const CStr label, const CStr format, glm::vec4& vect, float speed, float minVal, float maxVal ) -> bool {
+    inline auto DragFloat4( const CStr label, const CStr format, glm::vec4 &vect, float speed, float minVal, float maxVal ) -> bool {
         ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
         ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 3.5f };
         ImGuiScopedStyleVar spacing{ ImGuiStyleVar_ItemInnerSpacing, ImVec2{ 5.0f, 5.0f } };
 
         bool active{ ImGui::DragFloat4( label, value_ptr( vect ), speed, minVal, maxVal, format ) };
 
-        if ( ImGui::IsItemHovered() ) {
-            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-        }
+        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
 
         return active;
     }
 
-    inline auto ColorEdit4( const CStr label, glm::vec4& vect ) -> bool {
+    inline auto ColorEdit4( const CStr label, glm::vec4 &vect ) -> bool {
         constexpr ImGuiColorEditFlags colorEditFlags{
             ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_PickerHueBar
         };
@@ -286,14 +262,12 @@ namespace Mikoto::ImGuiUtils {
 
         const bool active{ ImGui::ColorEdit4( label, value_ptr( vect ), colorEditFlags ) };
 
-        if ( ImGui::IsItemHovered() ) {
-            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-        }
+        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
 
         return active;
     }
 
-    inline auto ColorEdit3( const CStr label, glm::vec3& vect ) -> bool {
+    inline auto ColorEdit3( const CStr label, glm::vec3 &vect ) -> bool {
         constexpr ImGuiColorEditFlags colorEditFlags{
             ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_PickerHueBar
         };
@@ -304,14 +278,12 @@ namespace Mikoto::ImGuiUtils {
 
         const bool active{ ImGui::ColorEdit3( label, value_ptr( vect ), colorEditFlags ) };
 
-        if ( ImGui::IsItemHovered() ) {
-            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-        }
+        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
 
         return active;
     }
 
-    inline auto Slider( const CStr label, float& value, const glm::vec2& bounds, std::string_view format = "%.2f" ) -> bool {
+    inline auto Slider( const CStr label, float &value, const glm::vec2 &bounds, std::string_view format = "%.2f" ) -> bool {
         constexpr ImGuiSliderFlags flags{ ImGuiSliderFlags_None };
 
         ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
@@ -319,9 +291,7 @@ namespace Mikoto::ImGuiUtils {
 
         const bool active{ ImGui::SliderFloat( label, std::addressof( value ), bounds.x, bounds.y, format.data(), flags ) };
 
-        if ( ImGui::IsItemHovered() ) {
-            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-        }
+        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
 
         return active;
     }
@@ -334,20 +304,18 @@ namespace Mikoto::ImGuiUtils {
 
         const bool active{ ImGui::Button( fmt::format( "{}", icon ).c_str(), size ) };
 
-        if ( ImGui::IsItemHovered() ) {
-            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-        }
+        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
 
         return active;
     }
 
-    inline auto TextArea( std::string& buffer ) -> bool {
+    inline auto TextArea( std::string &buffer ) -> bool {
         ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
         ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
 
-        const auto resizeCallback{ []( ImGuiInputTextCallbackData* data ) -> Int32 {
-            if ( data->EventFlag == ImGuiInputTextFlags_CallbackResize ) {
-                std::string* str{ static_cast<std::string*>( data->UserData ) };
+        const auto resizeCallback{ []( ImGuiInputTextCallbackData *data ) -> Int32 {
+            if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
+                std::string *str{ static_cast<std::string *>( data->UserData ) };
 
                 str->resize( data->BufTextLen );
                 data->Buf = str->data();
@@ -365,9 +333,7 @@ namespace Mikoto::ImGuiUtils {
         const bool active{ ImGui::InputTextMultiline( "##TextArea:Input", buffer.data(), buffer.capacity() + 1,
                                                       ImVec2( ComputeWidth(), windowSize.y * 0.3f ), flags, resizeCallback, std::addressof( buffer ) ) };
 
-        if ( ImGui::IsItemHovered() ) {
-            ImGui::SetMouseCursor( ImGuiMouseCursor_TextInput );
-        }
+        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_TextInput ); }
 
         ImGui::SetWindowFontScale( minScale );
 
@@ -375,7 +341,7 @@ namespace Mikoto::ImGuiUtils {
     }
 
     template<typename InputIt, typename Pred>
-    inline auto ComboList( InputIt start, InputIt end, std::string& currentlyActive, Pred&& isSelectedPred, const CStr label ) -> void {
+    inline auto ComboList( InputIt start, InputIt end, std::string &currentlyActive, Pred &&isSelectedPred, const CStr label ) -> void {
         ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
         ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
         ImGuiScopedStyleVar popUpRounding{ ImGuiStyleVar_PopupRounding, 2.5f };
@@ -384,40 +350,31 @@ namespace Mikoto::ImGuiUtils {
         constexpr ImGuiComboFlags comboFlags{ ImGuiComboFlags_None };
         constexpr ImGuiSelectableFlags selectableFlags{ ImGuiSelectableFlags_None };
 
-        if ( ImGui::BeginCombo( fmt::format( "##{}", label ).c_str(), currentlyActive.c_str(), comboFlags ) ) {
-
-            for ( ; start != end; ++start ) {
+        if (ImGui::BeginCombo( fmt::format( "##{}", label ).c_str(), currentlyActive.c_str(), comboFlags )) {
+            for (; start != end; ++start) {
                 const bool isSelected{ isSelectedPred( *start ) };
 
-                if ( ImGui::Selectable( fmt::format( " {}", *start ).c_str(), isSelected, selectableFlags ) ) {
-                    currentlyActive = *start;
-                }
+                if (ImGui::Selectable( fmt::format( " {}", *start ).c_str(), isSelected, selectableFlags )) { currentlyActive = *start; }
 
-                if ( ImGui::IsItemHovered() ) {
-                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-                }
+                if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
 
-                if ( isSelected ) {
-                    ImGui::SetItemDefaultFocus();
-                }
+                if (isSelected) { ImGui::SetItemDefaultFocus(); }
             }
 
             ImGui::EndCombo();
         }
 
-        if ( ImGui::IsItemHovered() ) {
-            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-        }
+        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
     }
 
-    inline auto CenteredText( const char* label, const float width, float height = 20.0f ) -> void {
+    inline auto CenteredText( const char *label, const float width, float height = 20.0f ) -> void {
         // https://github.com/phicore/ImGuiStylingTricks/wiki/Custom-MessageBox#step-5-removed-title-bar-and-homemade-centered-text
 
-        ImGuiContext& g{ *GImGui };
-        const ImGuiStyle& style{ g.Style };
+        ImGuiContext &g{ *GImGui };
+        const ImGuiStyle &style{ g.Style };
 
         const ImVec2 textSize{ width, height };
-        const ImGuiWindow* window{ ImGui::GetCurrentWindow() };
+        const ImGuiWindow *window{ ImGui::GetCurrentWindow() };
 
         const ImVec2 labelSize{ ImGui::CalcTextSize( label, nullptr, true ) };
 
@@ -436,8 +393,8 @@ namespace Mikoto::ImGuiUtils {
     }
 
     inline auto DragDropDemo() -> void {
-        if ( ImGui::TreeNode( "Drag and Drop" ) ) {
-            if ( ImGui::TreeNode( "Drag and drop in standard widgets" ) ) {
+        if (ImGui::TreeNode( "Drag and Drop" )) {
+            if (ImGui::TreeNode( "Drag and drop in standard widgets" )) {
                 // ColorEdit widgets automatically act as drag source and drag target.
                 // They are using standardized payload strings IMGUI_PAYLOAD_TYPE_COLOR_3F and IMGUI_PAYLOAD_TYPE_COLOR_4F
                 // to allow your own widgets to use colors in their drag and drop interaction.
@@ -450,54 +407,51 @@ namespace Mikoto::ImGuiUtils {
                 ImGui::TreePop();
             }
 
-            if ( ImGui::TreeNode( "Drag and drop to copy/swap items" ) ) {
+            if (ImGui::TreeNode( "Drag and drop to copy/swap items" )) {
                 enum Mode {
                     Mode_Copy,
                     Mode_Move,
                     Mode_Swap
                 };
                 static int mode = 0;
-                if ( ImGui::RadioButton( "Copy", mode == Mode_Copy ) ) { mode = Mode_Copy; }
+                if (ImGui::RadioButton( "Copy", mode == Mode_Copy )) { mode = Mode_Copy; }
                 ImGui::SameLine();
-                if ( ImGui::RadioButton( "Move", mode == Mode_Move ) ) { mode = Mode_Move; }
+                if (ImGui::RadioButton( "Move", mode == Mode_Move )) { mode = Mode_Move; }
                 ImGui::SameLine();
-                if ( ImGui::RadioButton( "Swap", mode == Mode_Swap ) ) { mode = Mode_Swap; }
-                static const char* names[9] = {
+                if (ImGui::RadioButton( "Swap", mode == Mode_Swap )) { mode = Mode_Swap; }
+                static const char *names[9] = {
                     "Bobby", "Beatrice", "Betty",
                     "Brianna", "Barry", "Bernard",
                     "Bibi", "Blaine", "Bryn"
                 };
-                for ( int n = 0; n < IM_ARRAYSIZE( names ); n++ ) {
+                for (int n = 0; n < IM_ARRAYSIZE( names ); n++) {
                     ImGui::PushID( n );
-                    if ( ( n % 3 ) != 0 )
-                        ImGui::SameLine();
+                    if (( n % 3 ) != 0) ImGui::SameLine();
                     ImGui::Button( names[n], ImVec2( 60, 60 ) );
 
                     // Our buttons are both drag sources and drag targets here!
-                    if ( ImGui::BeginDragDropSource( ImGuiDragDropFlags_None ) ) {
+                    if (ImGui::BeginDragDropSource( ImGuiDragDropFlags_None )) {
                         // Set payload to carry the index of our item (could be anything)
                         ImGui::SetDragDropPayload( "DND_DEMO_CELL", &n, sizeof( int ) );
 
                         // Display preview (could be anything, e.g. when dragging an image we could decide to display
                         // the filename and a small preview of the image, etc.)
-                        if ( mode == Mode_Copy ) { ImGui::Text( "Copy %s", names[n] ); }
-                        if ( mode == Mode_Move ) { ImGui::Text( "Move %s", names[n] ); }
-                        if ( mode == Mode_Swap ) { ImGui::Text( "Swap %s", names[n] ); }
+                        if (mode == Mode_Copy) { ImGui::Text( "Copy %s", names[n] ); }
+                        if (mode == Mode_Move) { ImGui::Text( "Move %s", names[n] ); }
+                        if (mode == Mode_Swap) { ImGui::Text( "Swap %s", names[n] ); }
                         ImGui::EndDragDropSource();
                     }
-                    if ( ImGui::BeginDragDropTarget() ) {
-                        if ( const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( "DND_DEMO_CELL" ) ) {
+                    if (ImGui::BeginDragDropTarget()) {
+                        if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload( "DND_DEMO_CELL" )) {
                             IM_ASSERT( payload->DataSize == sizeof( int ) );
-                            int payload_n = *( const int* )payload->Data;
-                            if ( mode == Mode_Copy ) {
-                                names[n] = names[payload_n];
-                            }
-                            if ( mode == Mode_Move ) {
+                            int payload_n = *( const int * )payload->Data;
+                            if (mode == Mode_Copy) { names[n] = names[payload_n]; }
+                            if (mode == Mode_Move) {
                                 names[n] = names[payload_n];
                                 names[payload_n] = "";
                             }
-                            if ( mode == Mode_Swap ) {
-                                const char* tmp = names[n];
+                            if (mode == Mode_Swap) {
+                                const char *tmp = names[n];
                                 names[n] = names[payload_n];
                                 names[payload_n] = tmp;
                             }
@@ -509,7 +463,7 @@ namespace Mikoto::ImGuiUtils {
                 ImGui::TreePop();
             }
 
-            if ( ImGui::TreeNode( "Drag to reorder items (simple)" ) ) {
+            if (ImGui::TreeNode( "Drag to reorder items (simple)" )) {
                 // FIXME: there is temporary (usually single-frame) ID Conflict during reordering as a same item may be submitting twice.
                 // This code was always slightly faulty but in a way which was not easily noticeable.
                 // Until we fix this, enable ImGuiItemFlags_AllowDuplicateId to disable detecting the issue.
@@ -519,14 +473,14 @@ namespace Mikoto::ImGuiUtils {
                 HelpMarker(
                         "We don't use the drag and drop api at all here! "
                         "Instead we query when the item is held but not hovered, and order items accordingly." );
-                static const char* item_names[] = { "Item One", "Item Two", "Item Three", "Item Four", "Item Five" };
-                for ( int n = 0; n < IM_ARRAYSIZE( item_names ); n++ ) {
-                    const char* item = item_names[n];
+                static const char *item_names[] = { "Item One", "Item Two", "Item Three", "Item Four", "Item Five" };
+                for (int n = 0; n < IM_ARRAYSIZE( item_names ); n++) {
+                    const char *item = item_names[n];
                     ImGui::Selectable( item );
 
-                    if ( ImGui::IsItemActive() && !ImGui::IsItemHovered() ) {
+                    if (ImGui::IsItemActive() && !ImGui::IsItemHovered()) {
                         int n_next = n + ( ImGui::GetMouseDragDelta( 0 ).y < 0.f ? -1 : 1 );
-                        if ( n_next >= 0 && n_next < IM_ARRAYSIZE( item_names ) ) {
+                        if (n_next >= 0 && n_next < IM_ARRAYSIZE( item_names )) {
                             item_names[n] = item_names[n_next];
                             item_names[n_next] = item;
                             ImGui::ResetMouseDragDelta();
@@ -538,13 +492,13 @@ namespace Mikoto::ImGuiUtils {
                 ImGui::TreePop();
             }
 
-            if ( ImGui::TreeNode( "Tooltip at target location" ) ) {
-                for ( int n = 0; n < 2; n++ ) {
+            if (ImGui::TreeNode( "Tooltip at target location" )) {
+                for (int n = 0; n < 2; n++) {
                     // Drop targets
                     ImGui::Button( n ? "drop here##1" : "drop here##0" );
-                    if ( ImGui::BeginDragDropTarget() ) {
+                    if (ImGui::BeginDragDropTarget()) {
                         ImGuiDragDropFlags drop_target_flags = ImGuiDragDropFlags_AcceptBeforeDelivery | ImGuiDragDropFlags_AcceptNoPreviewTooltip;
-                        if ( const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( IMGUI_PAYLOAD_TYPE_COLOR_4F, drop_target_flags ) ) {
+                        if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload( IMGUI_PAYLOAD_TYPE_COLOR_4F, drop_target_flags )) {
                             IM_UNUSED( payload );
                             ImGui::SetMouseCursor( ImGuiMouseCursor_NotAllowed );
                             ImGui::SetTooltip( "Cannot drop here!" );
@@ -554,8 +508,7 @@ namespace Mikoto::ImGuiUtils {
 
                     // Drop source
                     static ImVec4 col4 = { 1.0f, 0.0f, 0.2f, 1.0f };
-                    if ( n == 0 )
-                        ImGui::ColorButton( "drag me", col4 );
+                    if (n == 0) ImGui::ColorButton( "drag me", col4 );
                 }
                 ImGui::TreePop();
             }
@@ -564,12 +517,10 @@ namespace Mikoto::ImGuiUtils {
         }
     }
 
-    MKT_NODISCARD inline auto ImImageVK( const ImTextureID image, const ImVec2 dim) {
-        return ImGui::Image( image, dim, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
-    }
+    MKT_NODISCARD inline auto ImImageVK( const ImTextureID image, const ImVec2 dim ) { return ImGui::Image( image, dim, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } ); }
 
     inline auto GetStringFromUnicode( UInt32 codePoint ) -> std::string {
-        std::array<char, 5>utf8{};
+        std::array<char, 5> utf8{};
         ImTextCharToUtf8( utf8.data(), codePoint );
 
         return std::string{ utf8.data() };
@@ -579,7 +530,7 @@ namespace Mikoto::ImGuiUtils {
         ImGui::Begin( "Material Icons Debug" );
 
         // Scrollable area
-        if ( ImGui::BeginChild( "IconScrollArea", ImVec2( 0, 0 ), true ) ) {
+        if (ImGui::BeginChild( "IconScrollArea", ImVec2( 0, 0 ), true )) {
             const UInt32 ICON_MIN{ ICON_MIN_MD };
             const UInt32 ICON_MAX{ ICON_MAX_16_MD };
             const UInt32 ICONS_PER_ROW{ 16 };
@@ -587,22 +538,19 @@ namespace Mikoto::ImGuiUtils {
             Int32 count{};
             char utf8[5]{};
 
-            for ( UInt32 codepoint{ ICON_MIN }; codepoint <= ICON_MAX; ++codepoint ) {
+            for (UInt32 codepoint{ ICON_MIN }; codepoint <= ICON_MAX; ++codepoint) {
                 ImTextCharToUtf8( utf8, codepoint );
 
                 // Render icon as selectable button
                 ImGui::PushID( codepoint );
-                if ( ImGui::Button( utf8, ImVec2( 24, 24 ) ) ) {
+                if (ImGui::Button( utf8, ImVec2( 24, 24 ) )) {
                     // Optional: do something on click
                 }
-                if ( ImGui::IsItemHovered() ) {
-                    ImGui::SetTooltip( "Codepoint: U+%04X (%d)", codepoint, codepoint );
-                }
+                if (ImGui::IsItemHovered()) { ImGui::SetTooltip( "Codepoint: U+%04X (%d)", codepoint, codepoint ); }
                 ImGui::PopID();
 
                 count++;
-                if ( count % ICONS_PER_ROW != 0 )
-                    ImGui::SameLine();
+                if (count % ICONS_PER_ROW != 0) ImGui::SameLine();
             }
 
             ImGui::EndChild();
@@ -612,14 +560,124 @@ namespace Mikoto::ImGuiUtils {
     }
 
     /**
+     * @brief Visualizes raw memory in a read-only ImGui table.
+     *
+     * Displays a debug-friendly, table-based view of a contiguous memory region.
+     * Intended for inspecting CPU-mapped GPU buffers such as UBOs, SSBOs,
+     * staging buffers, and compute shader outputs.
+     *
+     * The table presents:
+     * - Absolute addresses derived from a base address
+     * - Byte offsets relative to the base address
+     * - Raw byte values in hexadecimal format
+     * - Raw byte values in decimal format
+     *
+     * This function is purely visual and never mutates the underlying memory.
+     *
+     * @param memory
+     * Pointer to the beginning of the memory region to visualize.
+     * Must remain valid for the duration of the ImGui frame.
+     * If nullptr, no table is drawn.
+     *
+     * @param size
+     * Size of the memory region in bytes.
+     * Defines how many bytes are displayed.
+     * If zero, the function returns early.
+     *
+     * @param baseAddress
+     * Reference base address used for display purposes.
+     * This does not need to match the actual CPU pointer value.
+     * Common use cases include GPU device addresses or synthetic base offsets.
+     *
+     * @param bytesPerRow
+     * Number of bytes displayed per table row.
+     * Defaults to 16, matching standard hex-dump conventions.
+     * Smaller values produce a compact view, larger values increase horizontal density.
+     *
+     * @note
+     * - Read-only debug utility
+     * - No dynamic allocations
+     * - No RTTI usage
+     * - Safe for real-time debug panels
+     *
+     * @warning
+     * The memory pointer must remain valid while this function is executing.
+     * Passing dangling or unmapped memory results in undefined behavior.
+     *
+     * @see ImGui::BeginTable
+     * @see ImGui::TableSetupColumn
+     */
+    static auto DrawMemoryTable(
+            const void *memory,
+            std::size_t size,
+            std::uintptr_t baseAddress,
+            std::size_t bytesPerRow = 16
+            ) -> void;
+
+    inline auto DrawMemoryVisualizer( const void *memory, std::size_t size, std::uintptr_t baseAddress, std::size_t bytesPerRow = 16 ) -> void {
+        if (memory == nullptr || size == 0) {
+            ImGui::TextUnformatted( "No memory to display." );
+            return;
+        }
+
+        const auto *bytes{ static_cast<const std::uint8_t *>( memory ) };
+
+        constexpr ImGuiTableFlags flags{
+            ImGuiTableFlags_Borders
+            | ImGuiTableFlags_RowBg
+            | ImGuiTableFlags_ScrollY
+            | ImGuiTableFlags_SizingFixedFit
+        };
+
+        if (ImGui::BeginTable( "MemoryTable", 4, flags, ImVec2{ 0.0f, 320.0f } )) {
+            ImGui::TableSetupColumn( "Address", ImGuiTableColumnFlags_WidthFixed, 120.0f );
+            ImGui::TableSetupColumn( "Offset", ImGuiTableColumnFlags_WidthFixed, 80.0f );
+            ImGui::TableSetupColumn( "Hex", ImGuiTableColumnFlags_WidthStretch );
+            ImGui::TableSetupColumn( "Decimal", ImGuiTableColumnFlags_WidthStretch );
+            ImGui::TableHeadersRow();
+
+            for (std::size_t row{ 0 }; row < size; row += bytesPerRow) {
+                const std::uintptr_t address{ baseAddress + row };
+
+                ImGui::TableNextRow();
+
+                // Address
+                ImGui::TableSetColumnIndex( 0 );
+                ImGui::Text( "0x%08llX", static_cast<unsigned long long>( address ) );
+
+                // Offset
+                ImGui::TableSetColumnIndex( 1 );
+                ImGui::Text( "+0x%06llX", static_cast<unsigned long long>( row ) );
+
+                // Hex
+                ImGui::TableSetColumnIndex( 2 );
+                for (std::size_t col{ 0 }; col < bytesPerRow; ++col) {
+                    const std::size_t index{ row + col };
+                    if (index < size) { ImGui::Text( "%02X", bytes[index] ); } else { ImGui::TextUnformatted( "  " ); }
+                    ImGui::SameLine();
+                }
+
+                // Decimal
+                ImGui::TableSetColumnIndex( 3 );
+                for (std::size_t col{ 0 }; col < bytesPerRow; ++col) {
+                    const std::size_t index{ row + col };
+                    if (index < size) { ImGui::Text( "%3u", static_cast<unsigned int>( bytes[index] ) ); } else { ImGui::TextUnformatted( "   " ); }
+                    ImGui::SameLine();
+                }
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
+
+    /**
      * Utility function to make panel names for ImGui windows.
      * @param panelIcon Panel's icon value.
      * @param panelName Name of the panel.
      * @returns The panel's name including the icon.
      * */
-    MKT_NODISCARD inline auto MakePanelName( std::string_view panelIcon, std::string_view panelName ) -> std::string {
-        return fmt::format( "{} {}", panelIcon, panelName );
-    }
+    MKT_NODISCARD inline auto MakePanelName( std::string_view panelIcon, std::string_view panelName ) -> std::string { return fmt::format( "{} {}", panelIcon, panelName ); }
 }// namespace Mikoto::ImGuiUtils
 
 #endif// MIKOTO_IMGUI_UTILS_HH

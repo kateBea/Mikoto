@@ -200,6 +200,10 @@ namespace Mikoto {
             return m_DataType;
         }
 
+        MKT_NODISCARD auto GetData() const -> const Byte* {
+            return m_Data;
+        }
+
         // Copy from CPU to GPU ( this buffer must be accessible from CPU)
         virtual auto CopyToBlock( void* ptr, Size size ) -> void = 0;
         virtual auto CopyFromBlock(const void* ptr, Size size) -> void = 0;

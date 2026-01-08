@@ -11,18 +11,10 @@
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 #include <Material/Material.hh>
+#include <Material/Texture2D.hh>
 #include <Renderer/Core/RenderUtility.hh>
 
 namespace Mikoto {
-
-    enum class MapType {
-        ALBEDO_TEXTURE,
-        NORMAL_TEXTURE,
-        METALLIC_TEXTURE,
-        ROUGHNESS_TEXTURE,
-        AMBIENT_OCCLUSION_TEXTURE,
-        EMISSIVE_TEXTURE,
-    };
 
     class PBRMaterial final : public Material {
     public:

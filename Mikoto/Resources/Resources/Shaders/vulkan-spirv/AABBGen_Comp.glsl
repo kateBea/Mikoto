@@ -15,13 +15,15 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 layout(set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
     mat4 ViewMatrix;
     mat4 InverseProjection;
+
     vec4 GridSize;
     vec4 ViewPosition;
 
-    vec2 Planes;
-    vec2 ScreenDimensions;
+    // xy = Planes, zw = ScreenDimensions
+    vec4 Screen;
 
-    int ShowHeatMap;
+    // x = show heat map
+    vec4 ShowHeatMap;
 } Camera;
 
 layout(std430, set = PERPASS_SETINDEX, binding = 1) buffer ClusterSSBO {
@@ -40,15 +42,10 @@ vec3 LineIntersectionWithZPlane(vec3 startPoint, vec3 endPoint, float zDistance)
 }
 
 vec3 ScreenToView(vec2 screenCoord)  {
-    // Convert screen coords to NDC
-    vec2 ndcXY = screenCoord / Camera.ScreenDimensions * 2.0f - 1.0f;
-
-    // Vulkan NDC: z = 0 at near plane
-    vec4 ndc = vec4(ndcXY, 0.0, 1.0);
+    vec4 ndc = vec4(screenCoord / Camera.Screen.zw * 2.0 - 1.0, 0.0, 1.0);
 
     vec4 viewCoord = Camera.InverseProjection * ndc;
     viewCoord /= viewCoord.w;
-
     return viewCoord.xyz;
 }
 
@@ -60,7 +57,7 @@ vec3 ScreenToView(vec2 screenCoord)  {
 */
 void main() {
     uint tileIndex = uint(gl_WorkGroupID.x + (gl_WorkGroupID.y * Camera.GridSize.x) + (gl_WorkGroupID.z * Camera.GridSize.x * Camera.GridSize.y));
-    vec2 tileSize = Camera.ScreenDimensions / Camera.GridSize.xy;
+    vec2 tileSize = Camera.Screen.zw / Camera.GridSize.xy;
 
     // tile in screen-space
     vec2 minTile_screenspace = vec2(gl_WorkGroupID.xy * tileSize);
@@ -70,8 +67,8 @@ void main() {
     vec3 minTile = ScreenToView(minTile_screenspace);
     vec3 maxTile = ScreenToView(maxTile_screenspace);
 
-    float planeNear = Camera.Planes.x * pow(Camera.Planes.y / Camera.Planes.x, gl_WorkGroupID.z / float(Camera.GridSize.z));
-    float planeFar = Camera.Planes.x * pow(Camera.Planes.y / Camera.Planes.x, (gl_WorkGroupID.z + 1) / float(Camera.GridSize.z));
+    float planeNear = Camera.Screen.x * pow(Camera.Screen.y / Camera.Screen.x, gl_WorkGroupID.z / float(Camera.GridSize.z));
+    float planeFar = Camera.Screen.x * pow(Camera.Screen.y / Camera.Screen.x, (gl_WorkGroupID.z + 1) / float(Camera.GridSize.z));
 
     // the line goes from the eye position in view space (0, 0, 0)
     // through the min/max points of a tile to intersect with a given cluster's near-far planes

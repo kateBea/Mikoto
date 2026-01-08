@@ -59,6 +59,8 @@ layout(location = 9) flat out int out_AoIndex;
 layout(location = 10) flat out vec4 out_Albedo;
 layout(location = 11) flat out vec4 out_Factors;
 
+layout(location = 12) out vec3 out_ViewFragmentPos;
+
 // --------------------------------------------------
 // Main
 // --------------------------------------------------
@@ -75,6 +77,7 @@ void main() {
 
     // Fragment position
     out_FragmentPos = vec3(model * vec4(a_Position, 1.0));
+    out_ViewFragmentPos = vec3(frame.View * model * vec4(a_Position, 1.0));
 
     // Per-instance material values
     out_AlbedoIndex    = i_AlbedoIndex;

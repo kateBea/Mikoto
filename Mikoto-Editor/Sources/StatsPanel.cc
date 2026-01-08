@@ -23,8 +23,6 @@
 
 namespace Mikoto {
 
-    static constexpr auto GetStatsPanelName() -> std::string_view { return "Engine Dashboard"; }
-
     template<typename FuncType>
     static auto DrawStatsSection( const std::string_view title, FuncType&& func ) -> void {
         ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 6, 6 ) );
@@ -47,22 +45,23 @@ namespace Mikoto {
     }
 
     StatsPanel::StatsPanel(const StatsPanelCreateInfo& info)
-        : m_State{ info.State }
+        : Panel{ "Engine Dashboard" }, m_State{ info.State }
     {
-        m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_TABLE_CHART, GetStatsPanelName() );
+        m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_TABLE_CHART, m_PanelName );
     }
 
     auto StatsPanel::OnUpdate( float timeStep ) -> void {
-        if ( !m_PanelIsVisible ) return;
+        if ( !m_PanelIsVisible ) {
+            return;
+        }
 
-        m_FrameRate = 1 / timeStep;
+        m_FrameRate = 1.0f / timeStep;
         m_FrameTime = timeStep;
 
         ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 12, 12 ) );
         ImGui::PushStyleColor( ImGuiCol_WindowBg, ImVec4( 0.12f, 0.12f, 0.14f, 1.0f ) );
 
-        ImGui::Begin( m_PanelHeaderName.c_str(), &m_PanelIsVisible,
-                      ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize );
+        ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize );
 
         ImGui::TextUnformatted( "Statistics refresh interval (seconds)" );
         ImGui::SameLine();
@@ -80,8 +79,6 @@ namespace Mikoto {
         ImGui::End();
         ImGui::PopStyleColor();
         ImGui::PopStyleVar();
-
-        m_State->StatsPanelVisible = m_PanelIsVisible;
     }
 
     auto StatsPanel::DrawPerformance() -> void {

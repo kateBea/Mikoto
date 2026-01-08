@@ -35,7 +35,15 @@ namespace Mikoto {
         float X{}, Y{}, Width{}, Height{};
     };
 
+    enum class LoadOp {
+        CLEAR,
+        LOAD,
+        UNDEFINED,
+    };
+
     struct GfxRenderInfo {
+        LoadOp LoadOp{ LoadOp::CLEAR };
+
         Vec4F ClearColor{};
         TextureHandle DepthRenderTarget{};
         std::vector<TextureHandle> ColorRenderTargets{};
@@ -114,7 +122,7 @@ namespace Mikoto {
     public:
         explicit PassCommandList(GraphicsContext* context, FrameBlackboard* blackboard);
 
-        auto BeginRender(FramePass* pass) -> void;
+        auto BeginRender(FramePass* pass, LoadOp loadOp = LoadOp::CLEAR) -> void;
         auto EndRender() -> void;
 
         auto BeginCompute(FramePass* pass) -> void;
@@ -143,6 +151,8 @@ namespace Mikoto {
         auto PushTexture(TextureHandle texture ) const -> Int32;
 
         auto BindResourceGroup(SRGType srgType ) const -> void;
+
+        MKT_NODISCARD auto GetNamedBuffer( std::string_view ) const -> BufferHandle;
 
     private:
         struct DrawInstanceMetadata {

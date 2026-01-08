@@ -105,7 +105,7 @@ namespace Mikoto {
          * @brief Renders the current scene.
          * This function performs the rendering of the active scene using the renderer backend and frame graph.
          */
-        auto Render( double timeStep ) const -> void;
+        auto Render( double timeStep ) -> void;
 
         /**
          * @brief Handles viewport resizing. This function is called when the window is resized and updates the internal viewport size.
@@ -146,6 +146,8 @@ namespace Mikoto {
         // [Internal usage]
         auto InitGraphicsContex() -> void;
         auto InitCoreFramePasses() -> void;
+
+        auto PassPreSetup() -> void;
 
     private:
 

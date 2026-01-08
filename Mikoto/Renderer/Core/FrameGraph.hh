@@ -30,6 +30,14 @@ namespace Mikoto {
         std::vector<std::string> Outputs{};
     };
 
+    // Used for resource transitioning
+    enum class FrameResourceState {
+        RenderTarget_Read,
+        RenderTarget_Write,
+        ShaderResource_Read,
+        ShaderResource_Write,
+    };
+
     class FrameGraphBuilder {
     public:
 

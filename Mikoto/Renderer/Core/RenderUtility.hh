@@ -12,6 +12,17 @@
 
 namespace Mikoto {
 
+    // If the texture2D represents a type of Map for pbr materials
+    enum class MapType {
+        ALBEDO_TEXTURE,
+        NORMAL_TEXTURE,
+        METALLIC_TEXTURE,
+        ROUGHNESS_TEXTURE,
+        AMBIENT_OCCLUSION_TEXTURE,
+        EMISSIVE_TEXTURE,
+        UNDEFINED_TEXTURE,
+    };
+
     enum class QueueType {
         TRANSFER_QUEUE,
         GRAPHICS_QUEUE,
@@ -187,6 +198,8 @@ namespace Mikoto {
 
         const File* TextureFile{ nullptr };
 
+        MapType Map{ MapType::UNDEFINED_TEXTURE };
+
         TextureType Type{ TextureType::TEXTURE_2D };
         TextureUsage Usage{ TextureUsage::TEXTURE_USAGE_NORMAL };
         TextureFormat Format{ TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM };
@@ -195,6 +208,8 @@ namespace Mikoto {
         auto WithWidth( Int32 width ) -> TextureDescription&;
         auto WithHeight( Int32 height ) -> TextureDescription&;
         auto WithChannelCount( Int32 channels ) -> TextureDescription&;
+
+        auto WithMapType( MapType type ) -> TextureDescription&;
 
         auto WithFile( const File* file) -> TextureDescription&;
 
@@ -217,9 +232,11 @@ namespace Mikoto {
     */
     struct TextureLoadDescription {
         const File* TextureFile{};
+        MapType Map{ MapType::UNDEFINED_TEXTURE };
         TextureType Type{ TextureType::TEXTURE_UNKNOWN };
 
 
+        auto WithMapType( MapType type ) -> TextureLoadDescription&;
         auto WithFile( const File* file ) -> TextureLoadDescription&;
         auto WithType( TextureType type ) -> TextureLoadDescription&;
     };

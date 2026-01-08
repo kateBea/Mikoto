@@ -44,7 +44,7 @@ layout(location = 14) in int i_AoIndex;
 // --------------------------------------------------
 // Outputs to fragment shader
 // --------------------------------------------------
-layout(location = 0) out vec3 out_FragmentPos;
+layout(location = 0) out vec3 out_FragmentWorldPos;
 layout(location = 1) out vec3 out_VertexNormal;
 layout(location = 2) out vec2 out_TexCoord;
 layout(location = 3) out vec3 out_Color;
@@ -59,7 +59,7 @@ layout(location = 9) flat out int out_AoIndex;
 layout(location = 10) flat out vec4 out_Albedo;
 layout(location = 11) flat out vec4 out_Factors;
 
-layout(location = 12) out vec3 out_ViewFragmentPos;
+layout(location = 12) out vec3 out_FragmentViewPos;
 
 // --------------------------------------------------
 // Main
@@ -76,8 +76,8 @@ void main() {
     out_VertexNormal  = transpose(inverse(mat3(model))) * a_Normal;
 
     // Fragment position
-    out_FragmentPos = vec3(model * vec4(a_Position, 1.0));
-    out_ViewFragmentPos = vec3(frame.View * vec4(a_Position, 1.0));
+    out_FragmentWorldPos = vec3(model * vec4(a_Position, 1.0));
+    out_FragmentViewPos = vec3(frame.View * vec4(a_Position, 1.0));
 
     // Per-instance material values
     out_AlbedoIndex    = i_AlbedoIndex;

@@ -19,7 +19,7 @@
 // --------------------------------------------------
 // Interpolated input (with flat for instance data)
 // --------------------------------------------------
-layout(location = 0) in vec3 in_FragmentPos;
+layout(location = 0) in vec3 in_FragmentWorldPos;
 layout(location = 1) in vec3 in_Normals;
 layout(location = 2) in vec2 in_TexCoord;
 layout(location = 3) in vec3 in_VertexColor;
@@ -33,7 +33,7 @@ layout(location = 9) flat in int in_AoIndex;
 layout(location = 10) flat in vec4 in_Albedo;
 layout(location = 11) flat in vec4 in_Factors;
 
-layout(location = 12) in vec3 out_ViewFragmentPos;
+layout(location = 12) in vec3 in_FragmentViewPos;
 
 layout(location = 0) out vec4 out_Color;
 
@@ -64,8 +64,8 @@ layout(std430, set = PERPASS_SETINDEX, binding = 3) readonly buffer LightSSBO {
 vec3 GetNormalFromMap(sampler2D normalMap) {
     vec3 tangentNormal = texture(normalMap, in_TexCoord).xyz * 2.0 - 1.0;
 
-    vec3 Q1  = dFdx(in_FragmentPos);
-    vec3 Q2  = dFdy(in_FragmentPos);
+    vec3 Q1  = dFdx(in_FragmentWorldPos);
+    vec3 Q2  = dFdy(in_FragmentWorldPos);
     vec2 st1 = dFdx(in_TexCoord);
     vec2 st2 = dFdy(in_TexCoord);
 
@@ -127,9 +127,9 @@ float ComputeAttenuation(float distance, float radius) {
 vec3 ComputePointLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, float metallic, vec3 albedo, LightInfo lightInfo) {
     vec3 Lo = vec3(0.0);
 
-    vec3 L = normalize(lightInfo.Position.xyz - in_FragmentPos);
+    vec3 L = normalize(lightInfo.Position.xyz - in_FragmentWorldPos);
     vec3 H = normalize( V + L );
-    float distance = length(lightInfo.Position.xyz - in_FragmentPos);
+    float distance = length(lightInfo.Position.xyz - in_FragmentWorldPos);
     float attenuation = ComputeAttenuation(distance );
 
     vec3 radiance = lightInfo.Diffuse.xyz * attenuation * lightInfo.Intensity;
@@ -170,8 +170,8 @@ vec3 ComputeSpotLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, floa
     vec3 Lo = vec3(0.0);
 
     // calculate per-light radiance
-    vec3 L = normalize(lightInfo.Position.xyz - in_FragmentPos);
-    float distance = length(lightInfo.Position.xyz - in_FragmentPos);
+    vec3 L = normalize(lightInfo.Position.xyz - in_FragmentWorldPos);
+    float distance = length(lightInfo.Position.xyz - in_FragmentWorldPos);
     float attenuation = ComputeAttenuation(distance, lightInfo.Radius);
     // This vec 3 should be the light color, we assume it is full white for now
     vec3 radiance = lightInfo.Diffuse.xyz * attenuation;
@@ -285,22 +285,6 @@ vec4 DetermineOutFragmentColor(vec3 N, vec3 color, float metallic, float roughne
     return result;
 }
 
-vec3 HashColor(uint id)  {
-    // Cheap integer hash → [0,1]
-    id ^= id >> 16;
-    id *= 0x7feb352d;
-    id ^= id >> 15;
-    id *= 0x846ca68b;
-    id ^= id >> 16;
-
-    // Split bits into RGB
-    return vec3(
-    float((id >>  0) & 255u),
-    float((id >>  8) & 255u),
-    float((id >> 16) & 255u)
-    ) / 255.0;
-}
-
 void main() {
 
     vec3 albedo     = in_AlbedoIndex != INVALID_TEXTURE_INDEX ?
@@ -323,18 +307,16 @@ void main() {
         GetNormalFromMap(g_BindlessTextures[in_NormalIndex]) :
         normalize(in_Normals);
 
-    vec3 V = normalize(in_CameraPos - in_FragmentPos);
+    vec3 V = normalize(in_CameraPos - in_FragmentWorldPos);
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
     vec3 Lo = vec3(0.0);
 
     // Locating which cluster this fragment is part of
-    uint zTile = uint((log(abs(out_ViewFragmentPos.z) / Camera.Screen.y) * Camera.GridSize.z) / log(Camera.Screen.x / Camera.Screen.y));
+    uint zTile = uint((log(abs(in_FragmentViewPos.z) / Camera.Screen.y) * Camera.GridSize.z) / log(Camera.Screen.x / Camera.Screen.y));
     vec2 tileSize = Camera.Screen.zw / Camera.GridSize.xy;
 
-    vec2 virtualScreenCoord = (gl_FragCoord.xy - Camera.Screen.zw);
-
-    uvec3 tile = uvec3(virtualScreenCoord / tileSize, zTile);
+    uvec3 tile = uvec3(gl_FragCoord.xy / tileSize, zTile);
     uint tileIndex = uint(tile.x + (tile.y * Camera.GridSize.x) + (tile.z * Camera.GridSize.x * Camera.GridSize.y));
 
     uint lightCount = Clusters[tileIndex].Count;
@@ -368,9 +350,6 @@ void main() {
     out_Color = vec4(color , 1.0);
 
     if (Camera.ShowHeatMap.x == MKT_SHADER_TRUE) {
-        //vec3 clusterColor = HashColor(tileIndex);
-        //out_Color = vec4(clusterColor, 1.0);
-
-        out_Color = mix(vec4(GetHeatMapColor(lightCount), 1.0), out_Color, 0.9f);
+        out_Color = mix(vec4(GetHeatMapColor(lightCount), 1.0), out_Color, 0.67f);
     }
 }

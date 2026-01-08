@@ -49,25 +49,32 @@ namespace Mikoto {
                 // It can also be used to get additional font metrics, kerning information, etc.
                 msdf_atlas::FontGeometry fontGeometry( std::addressof( glyphs ) );
 
-                // Specify a set of character glyphs
-                std::array charsetRanges{
-                    CharsetRange{ 0x0020, 0x007F },// Basic Latin
-                    CharsetRange{ 0x3040, 0x309F },// Hiragana
-                    CharsetRange{ 0x30A0, 0x30FF }, // Katakana
-                    //CharsetRange{ 0x00A0, 0x00FF },// Latin-1 Supplementº
-                    CharsetRange{ 0x0100, 0x017F },// Latin Extended-A
-                    CharsetRange{ 0x0180, 0x024F },// Latin Extended-B
-                    //CharsetRange{ 0x0370, 0x03FF },// Greek & Coptic
-                    //CharsetRange{ 0x0400, 0x04FF } // Cyrillic
-                };
+                constexpr float fontScale{ 2.0f };
+                constexpr bool customCharset{ true };
 
-                msdf_atlas::Charset charset{};
-                for (auto [Start, End]: charsetRanges) { for (Int32 c{ Start }; c <= End; c++) { charset.add( c ); } }
+                if (customCharset) {
+                    // Specify a set of character glyphs
+                    std::array charsetRanges{
+                        CharsetRange{ 0x0020, 0x007F },// Basic Latin
+                        CharsetRange{ 0x3040, 0x309F },// Hiragana
+                        CharsetRange{ 0x30A0, 0x30FF }, // Katakana
+                        //CharsetRange{ 0x00A0, 0x00FF },// Latin-1 Supplementº
+                        //CharsetRange{ 0x0100, 0x017F },// Latin Extended-A
+                        //CharsetRange{ 0x0180, 0x024F },// Latin Extended-B
+                        //CharsetRange{ 0x0370, 0x03FF },// Greek & Coptic
+                        //CharsetRange{ 0x0400, 0x04FF } // Cyrillic
+                    };
 
-                // The second argument can be ignored unless you mix different font sizes in one atlas.
-                // In the last argument, you can specify a charset other than ASCII.
-                // To load specific glyph indices, use loadGlyphs instead.
-                fontGeometry.loadCharset( font, 1.0, charset );
+                    msdf_atlas::Charset charset{};
+                    for (auto [Start, End]: charsetRanges) { for (Int32 c{ Start }; c <= End; c++) { charset.add( c ); } }
+
+                    // The second argument can be ignored unless you mix different font sizes in one atlas.
+                    // In the last argument, you can specify a charset other than ASCII.
+                    // To load specific glyph indices, use loadGlyphs instead.
+                    fontGeometry.loadCharset( font, fontScale, charset );
+                } else {
+                    fontGeometry.loadCharset( font, fontScale, msdf_atlas::Charset::ASCII );
+                }
 
                 // Apply MSDF edge coloring. See edge-coloring.h for other coloring strategies.
                 unsigned long long glyphSeed{ 0 };
@@ -83,7 +90,7 @@ namespace Mikoto {
                         glyphSeed = ( LCG_MULTIPLIER * ( coloringSeed ^ i ) + LCG_INCREMENT ) * !!coloringSeed;
                         glyphs[i].edgeColoring( msdfgen::edgeColoringInkTrap, maxCornerAngle, glyphSeed );
                         return true;
-                    }, glyphs.size() ).finish( 8 );
+                    }, glyphs.size() ).finish( std::thread::hardware_concurrency() );
                 } else {
                     constexpr double maxCornerAngle{ 3.0 };
 

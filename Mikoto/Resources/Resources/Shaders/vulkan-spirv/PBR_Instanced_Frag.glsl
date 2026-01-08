@@ -285,6 +285,22 @@ vec4 DetermineOutFragmentColor(vec3 N, vec3 color, float metallic, float roughne
     return result;
 }
 
+vec3 HashColor(uint id)  {
+    // Cheap integer hash → [0,1]
+    id ^= id >> 16;
+    id *= 0x7feb352d;
+    id ^= id >> 15;
+    id *= 0x846ca68b;
+    id ^= id >> 16;
+
+    // Split bits into RGB
+    return vec3(
+    float((id >>  0) & 255u),
+    float((id >>  8) & 255u),
+    float((id >> 16) & 255u)
+    ) / 255.0;
+}
+
 void main() {
 
     vec3 albedo     = in_AlbedoIndex != INVALID_TEXTURE_INDEX ?
@@ -313,9 +329,12 @@ void main() {
     vec3 Lo = vec3(0.0);
 
     // Locating which cluster this fragment is part of
-    uint zTile = uint((log(abs(out_ViewFragmentPos.z) / Camera.Screen.x) * Camera.GridSize.z) / log(Camera.Screen.y / Camera.Screen.x));
+    uint zTile = uint((log(abs(out_ViewFragmentPos.z) / Camera.Screen.y) * Camera.GridSize.z) / log(Camera.Screen.x / Camera.Screen.y));
     vec2 tileSize = Camera.Screen.zw / Camera.GridSize.xy;
-    uvec3 tile = uvec3(gl_FragCoord.xy / tileSize, zTile);
+
+    vec2 virtualScreenCoord = (gl_FragCoord.xy - Camera.Screen.zw);
+
+    uvec3 tile = uvec3(virtualScreenCoord / tileSize, zTile);
     uint tileIndex = uint(tile.x + (tile.y * Camera.GridSize.x) + (tile.z * Camera.GridSize.x * Camera.GridSize.y));
 
     uint lightCount = Clusters[tileIndex].Count;
@@ -349,6 +368,9 @@ void main() {
     out_Color = vec4(color , 1.0);
 
     if (Camera.ShowHeatMap.x == MKT_SHADER_TRUE) {
+        //vec3 clusterColor = HashColor(tileIndex);
+        //out_Color = vec4(clusterColor, 1.0);
+
         out_Color = mix(vec4(GetHeatMapColor(lightCount), 1.0), out_Color, 0.9f);
     }
 }

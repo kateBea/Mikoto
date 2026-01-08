@@ -3,6 +3,8 @@
 
     Stage: Compute
     Version: GLSL 4.5.0
+
+    @ref https://github.com/DaveH355/clustered-shading
 **************************************************/
 
 #version 450
@@ -41,8 +43,8 @@ vec3 LineIntersectionWithZPlane(vec3 startPoint, vec3 endPoint, float zDistance)
     return startPoint + t * direction; // the parametric form of the line equation
 }
 
-vec3 ScreenToView(vec2 screenCoord)  {
-    vec4 ndc = vec4(screenCoord / Camera.Screen.zw * 2.0 - 1.0, 0.0, 1.0);
+vec3 ScreenToView(vec2 screenCoord) {
+    vec4 ndc = vec4(screenCoord / Camera.Screen.zw * 2.0 - 1.0, 0.0f, 1.0);
 
     vec4 viewCoord = Camera.InverseProjection * ndc;
     viewCoord /= viewCoord.w;
@@ -67,8 +69,8 @@ void main() {
     vec3 minTile = ScreenToView(minTile_screenspace);
     vec3 maxTile = ScreenToView(maxTile_screenspace);
 
-    float planeNear = Camera.Screen.x * pow(Camera.Screen.y / Camera.Screen.x, gl_WorkGroupID.z / float(Camera.GridSize.z));
-    float planeFar = Camera.Screen.x * pow(Camera.Screen.y / Camera.Screen.x, (gl_WorkGroupID.z + 1) / float(Camera.GridSize.z));
+    float planeNear = Camera.Screen.y * pow(Camera.Screen.x / Camera.Screen.y, gl_WorkGroupID.z / float(Camera.GridSize.z));
+    float planeFar = Camera.Screen.y * pow(Camera.Screen.x / Camera.Screen.y, (gl_WorkGroupID.z + 1) / float(Camera.GridSize.z));
 
     // the line goes from the eye position in view space (0, 0, 0)
     // through the min/max points of a tile to intersect with a given cluster's near-far planes

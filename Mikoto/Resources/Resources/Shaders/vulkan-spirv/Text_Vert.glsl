@@ -50,12 +50,8 @@ void main() {
     out_OutlineColor = Ubo.OutlineColor;
     out_OutlineWidth = Ubo.OutlineWidth;
 
-//    gl_Position = Ubo.proj * vec4(a_Position.x * params.Size.x + params.Position.x,
-//            a_Position.y * params.Size.y + params.Position.y,
-//            a_Position.z * params.Size.z + params.Position.z, 1.0);
-
     vec3 pos = a_Position * params.Size.xyz + params.Position.xyz;
 
-    //gl_Position = Ubo.proj * Ubo.View * params.Model * vec4(pos, 1.0);
+    //gl_Position = Ubo.Projection * Ubo.View * params.Model * vec4(pos, 1.0);
     gl_Position = Ubo.Projection * vec4(pos, 1.0);
 }

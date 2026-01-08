@@ -116,6 +116,8 @@ namespace Mikoto {
         auto OnRigidBodyAdded(entt::registry& reg, entt::entity e ) const -> void;
         auto OnRigidBodyRemoved(entt::registry& reg, entt::entity e ) const -> void;
 
+        auto SetupMeshComponent(Entity* entity, ModelHandle model, Int32 index) -> void;
+
     private:
         auto AddSingleEntityWithRoot(Entity * root, ModelHandle model, Int32 index ) -> void;
 

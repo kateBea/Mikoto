@@ -13,8 +13,6 @@
 
 namespace Mikoto {
 
-    static constexpr auto GetSceneName() -> std::string_view { return "Assets"; }
-
     auto AssetsPanel::CreateImguiTextureID() -> void {
         ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
 
@@ -39,7 +37,7 @@ namespace Mikoto {
     }
 
     AssetsPanel::AssetsPanel( const AssetsPanelDescription &description )
-        : m_EditorState{ description.State }
+        : Panel{ "Assets" }, m_EditorState{ description.State }
     {
         // Icons for ICON_MD for assets U+F1B2, U+F1B3, U+F6D1
         // TODO: find the actual ICON_MD macros
@@ -48,7 +46,7 @@ namespace Mikoto {
         // U+F1B3  ->  61875
         const std::string icon { ImGuiUtils::GetStringFromUnicode( 61875 ) };
 
-        m_PanelHeaderName = ImGuiUtils::MakePanelName( fmt::format("{}", icon), GetSceneName() );
+        m_PanelHeaderName = ImGuiUtils::MakePanelName( fmt::format("{}", icon), m_PanelName );
 
         CreateImguiTextureID();
     }
@@ -76,7 +74,5 @@ namespace Mikoto {
 
             ImGui::PopStyleVar();
         }
-
-        m_EditorState->AssetsPanelVisible = m_PanelIsVisible;
     }
 }// namespace Mikoto

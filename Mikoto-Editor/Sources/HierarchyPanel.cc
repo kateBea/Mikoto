@@ -31,10 +31,6 @@
 
 namespace Mikoto {
 
-    static constexpr auto GetHierarchyName() -> std::string_view {
-        return "Hierarchy";
-    }
-
     auto HierarchyPanel::DrawPrefabMenuItems( Entity* root ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -124,44 +120,41 @@ namespace Mikoto {
     }
 
     HierarchyPanel::HierarchyPanel( const HierarchyPanelCreateInfo& createInfo )
-        : Panel{ ImGuiUtils::MakePanelName( ICON_MD_MERGE, GetHierarchyName() ) },
-          m_EditorState{ createInfo.State } {}
+        : Panel{ "Hierarchy",  },
+          m_EditorState{ createInfo.State } {
+        m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_MERGE, m_PanelName );
+    }
 
     auto HierarchyPanel::OnUpdate( float ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if ( m_PanelIsVisible ) {
-            ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), ImGuiWindowFlags_NoCollapse );
-
-            m_PanelIsHovered = ImGui::IsWindowHovered();
-            m_PanelIsFocused = ImGui::IsWindowFocused();
-
-            auto& entityList{ m_EditorState->ActiveEditorScene->GetEntities() };
-
-            for ( auto& [entityID, entity]: entityList ) {
-                const RelationComponent& relation{ entity->GetComponent<RelationComponent>() };
-
-                // only root entities are shown at upper level
-                if ( !relation.HasParent() ) {
-                    DrawNodeTree( entityID );
-                }
-            }
-
-            // Debug
-            ICON_MD_ACCOUNT_BOX;
-
-            if ( ImGui::IsMouseDown( ImGuiMouseButton_Left ) && ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered() ) {
-                m_EditorState->SelectedEntity = nullptr;
-            }
-
-            BlankSpacePopupMenu();
-
-            //ImGuiUtils::DebugShowMaterialIcons();
-
-            ImGui::End();
+        if ( !m_PanelIsVisible ) {
+            return;
         }
 
-        m_EditorState->HierarchyPanelVisible = m_PanelIsVisible;
+        ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), ImGuiWindowFlags_NoCollapse );
+
+        m_PanelIsHovered = ImGui::IsWindowHovered();
+        m_PanelIsFocused = ImGui::IsWindowFocused();
+
+        auto& entityList{ m_EditorState->ActiveEditorScene->GetEntities() };
+
+        for ( auto& [entityID, entity]: entityList ) {
+            const RelationComponent& relation{ entity->GetComponent<RelationComponent>() };
+
+            // only root entities are shown at upper level
+            if ( !relation.HasParent() ) {
+                DrawNodeTree( entityID );
+            }
+        }
+
+        if ( ImGui::IsMouseDown( ImGuiMouseButton_Left ) && ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered() ) {
+            m_EditorState->SelectedEntity = nullptr;
+        }
+
+        BlankSpacePopupMenu();
+
+        ImGui::End();
     }
 
 
@@ -379,7 +372,7 @@ namespace Mikoto {
         if ( !loading ) {
             loading = true;
 
-            TaskService::Get()->Submit( [&]() -> void {
+            TaskService::Get()->Submit( [this, rootEntity = root]() -> void {
                 const std::initializer_list<std::pair<std::string, std::string>> filters{
                     { "Model files", "obj,gltf,fbx" },
                     { "OBJ files", "obj" },
@@ -388,7 +381,7 @@ namespace Mikoto {
                 };
 
                 const std::string path{ FileService::Get()->OpenDialog( filters ).string() };
-                AddEntityWithModel(path, root);
+                AddEntityWithModel(path, rootEntity);
 
                 loading = false;
             });

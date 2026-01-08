@@ -25,8 +25,8 @@ namespace Mikoto {
         /**
          * @brief Constructs this panel with the icon from the given path.
          * */
-        explicit Panel(const std::string_view name = "Panel")
-            : m_PanelHeaderName{ name }, m_PanelIsHovered{ false }, m_PanelIsFocused{ false }, m_PanelIsVisible{ true } {
+        explicit Panel(const std::string_view name = "Panel", const std::string_view headerName = "Panel")
+            : m_PanelName{ name }, m_PanelHeaderName{ headerName }, m_PanelIsVisible{ true } {
         }
 
 
@@ -79,6 +79,9 @@ namespace Mikoto {
          * */
         MKT_NODISCARD auto IsVisible() const -> bool { return m_PanelIsVisible; }
 
+        MKT_NODISCARD auto GetName() const -> std::string_view { return m_PanelName; }
+        MKT_NODISCARD auto GetHeaderName() const -> std::string_view { return m_PanelHeaderName; }
+
 
         /**
          * Destructor, defaulted
@@ -87,6 +90,9 @@ namespace Mikoto {
 
 
     protected:
+        /** Panel name. */
+        std::string m_PanelName{};
+
         /** Panel title. */
         std::string m_PanelHeaderName{};
 

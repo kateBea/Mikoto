@@ -48,19 +48,8 @@ namespace Mikoto {
         // Editor specifies which texture gets rendered on the window
         TextureHandle RenderImage{};
 
-        MaterialViewer* MaterialVisualizer{};
+        SceneRenderer* SceneRenderer{};
 
-        // Panels close flags
-        bool StatsPanelVisible{ true };
-        bool ContentBrowser{ true };
-        bool ConsolePanel{ true };
-        bool RendererPanel{ true };
-        bool SettingPanelVisible{ true };
-        bool HierarchyPanelVisible{ true };
-        bool InspectorPanelVisible{ true };
-        bool ScenePanelVisible{ true };
-        bool AssetsPanelVisible{ true };
-        bool PassPreviewPanelVisible{ true };
         bool ApplicationCloseFlag{ true };
 
         ImGuiUtils::GuizmoManipulationMode Manipulation{ ImGuiUtils::GuizmoManipulationMode::TRANSLATION };

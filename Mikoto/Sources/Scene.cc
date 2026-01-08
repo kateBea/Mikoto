@@ -97,6 +97,32 @@ namespace Mikoto {
         m_PhysicsWorld->OnRigidBodyRemoved( rigidBody );
     }
 
+    auto Scene::SetupMeshComponent( Entity *entity, ModelHandle model, Int32 index ) -> void {
+        MKT_ASSERT( index > -1, "Index must be a positive integer" );
+        MKT_ASSERT( entity != nullptr, "Entity cannot bet null" );
+        MKT_ASSERT( !model.IsEmpty(), "Model cannot be empty" );
+
+        entity->AddComponent<MeshComponent>( model, index );
+
+        MeshNode& meshNode{ model->GetMeshNode( index ) };
+        auto& textures{ meshNode.GetTextures() };
+
+        for (TextureHandle texture : textures) {
+            if (!entity->HasComponent<MaterialComponent>()) {
+                entity->AddComponent<MaterialComponent>( AssetsService::Get()->CreateMaterial() );
+            }
+
+            MaterialComponent& material{ entity->GetComponent<MaterialComponent>() };
+            PBRMaterial* defaultMaterial{ dynamic_cast<PBRMaterial *>(material.GetMaterial().GetRaw()) };
+
+            if (Texture2D* map{ dynamic_cast<Texture2D *>(texture.GetRaw()) } ) {
+                if (!map->IsMapType(MapType::UNDEFINED_TEXTURE)) {
+                    defaultMaterial->SetTextureType( map->GetMapType(), texture );
+                }
+            }
+        }
+    }
+
     auto Scene::RemoveEntity( UInt64 uniqueID ) -> void {
         m_EntityCommands.emplace_back( EntityCommand{
                 .Type{ EntityCommand::Type::DESTROY },
@@ -199,7 +225,7 @@ namespace Mikoto {
                     // TODO: The result can either be a root
                     // or the root from the description in the case we
                     // are creating an entity with one model
-                    result->AddComponent<MeshComponent>( createInfo.Model, 0 );
+                    SetupMeshComponent( result, createInfo.Model, 0 );
                 }
             }
         }
@@ -771,7 +797,7 @@ namespace Mikoto {
         Entity* child{ CreateEntity( entityCreateInfo ) };
 
         if ( child != nullptr ) {
-            child->AddComponent<MeshComponent>( model, index );
+            SetupMeshComponent(child, model, index);
         }
     }
 

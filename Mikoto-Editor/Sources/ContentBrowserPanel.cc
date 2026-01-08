@@ -23,15 +23,13 @@
 
 namespace Mikoto {
 
-    MKT_NODISCARD static constexpr auto GetContentBrowserName() -> std::string_view {
-        return "Project";
-    }
-
     ContentBrowserPanel::ContentBrowserPanel( const ContentBrowserPanelDescription& desc )
-        : Panel{ ImGuiUtils::MakePanelName( ICON_MD_DNS, GetContentBrowserName() ) },
+        : Panel{ "Project" },
           m_Device{ desc.Device },
           m_ProjectRoot{ desc.ProjectRootDirectory },
           m_AssetsRootDirectory{ desc.AssetsRootDirectory }, m_EditorState{ desc.State } {
+        m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_DNS, m_PanelName );
+
         LoadIcons();
 
         m_CurrentDirectory = m_ProjectRoot;
@@ -268,44 +266,43 @@ namespace Mikoto {
         DrawCurrentDirItems();
     }
 
-
     auto ContentBrowserPanel::OnUpdate( float timeStep ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if ( m_PanelIsVisible ) {
-            static constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_None };
-            static constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_Resizable |
-                                                         ImGuiTableFlags_ContextMenuInBody | ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_SizingFixedSame };
-
-            ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), windowFlags );
-
-            OnRightClick();
-
-            DrawHeader();
-
-
-            ImGui::Spacing();
-            ImGui::Spacing();
-
-            ImGui::Separator();
-
-            const ImVec2 availableRegion{ ImGui::GetContentRegionAvail() };
-
-            if ( ImGui::BeginTable( "ContentBrowserMainViewTable", 2, tableFlags, availableRegion ) ) {
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                DrawSideView();
-
-                ImGui::TableNextColumn();
-                DrawMainBody();
-
-                ImGui::EndTable();
-            }
-
-            ImGui::End();
+        if ( !m_PanelIsVisible ) {
+            return;
         }
 
-        m_EditorState->ContentBrowser = m_PanelIsVisible;
+        static constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_None };
+        static constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_Resizable |
+                                                     ImGuiTableFlags_ContextMenuInBody | ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_SizingFixedSame };
+
+        ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), windowFlags );
+
+        OnRightClick();
+
+        DrawHeader();
+
+
+        ImGui::Spacing();
+        ImGui::Spacing();
+
+        ImGui::Separator();
+
+        const ImVec2 availableRegion{ ImGui::GetContentRegionAvail() };
+
+        if ( ImGui::BeginTable( "ContentBrowserMainViewTable", 2, tableFlags, availableRegion ) ) {
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            DrawSideView();
+
+            ImGui::TableNextColumn();
+            DrawMainBody();
+
+            ImGui::EndTable();
+        }
+
+        ImGui::End();
     }
 
     auto ContentBrowserPanel::DrawProjectDirTree( const Path& root ) const -> void {

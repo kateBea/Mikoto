@@ -11,6 +11,218 @@
 
 namespace Mikoto {
 
+    auto TextRenderPass::Setup( FrameGraphBuilder &builder ) -> void {
+        // Create resources it needs
+        PipelineDescription pipelineDesc{};
+
+        pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/Text_Vert.sprv", ShaderStage::VERTEX_STAGE );
+        pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/Text_Frag.sprv", ShaderStage::FRAGMENT_STAGE );
+
+        // Configure pipeline stage
+        GraphicsPipelineDescription graphicsDesc{};
+
+        graphicsDesc.DepthTest = true;
+        graphicsDesc.DepthWrite = true;
+        graphicsDesc.AlphaBlending = true;
+
+        // we're providing none as the shader expects none
+        const BufferLayout layout{
+                        { ShaderDataType::FLOAT3_TYPE, "a_Position" },
+                        { ShaderDataType::UINT_TYPE, "a_TexCoordIndex" },
+                    };
+        graphicsDesc.VertexAttributesSpec = { AttributesSpec{
+            .DefaultVertexLayout { layout },
+            .InputRateSpec{ .BindingIndex = { 0 }, .AttributeRate { InputRate::PER_VERTEX } }
+        } };
+        graphicsDesc.PrimitiveTopology = Topology::TRIANGLE_LIST;
+
+        pipelineDesc.Description = graphicsDesc;
+
+        pipelineDesc.ColorRenderTargets.emplace_back( "FinalCompositionPass_ColorTarget" );
+        //pipelineDesc.DepthRenderTargets = "FinalCompositionPass_DepthTarget";
+
+        builder.CreateNamedPipeline( "TextRenderPass_Pipeline", pipelineDesc );
+
+        // TODO: use the final composition render target because this pass render text on the final composition target
+        //builder.CreateColorRenderTarget( "TextRenderPass_ColorTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM );
+        //builder.CreateDepthRenderTarget( "TextRenderPass_DepthTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_D32_FLOAT );
+
+        BufferDescription fontRenderParams{};
+        fontRenderParams.WithData( nullptr )
+                .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+                .WithSizeBytes( sizeof(TextRenderParams) * MAX_STRING );
+        builder.CreateNamedBuffer( "TextRenderPass_TextRenderParams", fontRenderParams );
+
+        BufferDescription fontParamsUBO{};
+        fontParamsUBO.WithData( nullptr )
+                .WithUsage( BufferUsage::BUFFER_USAGE_UNIFORM )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+                .ForElement( sizeof(TextParamsUBO), 1 );
+        builder.CreateNamedBuffer( "TextRenderPass_FontParams", fontParamsUBO );
+
+        // Vertex buffer and index buffer for the quads
+        BufferDescription vertexDesc{};
+        vertexDesc.WithData( reinterpret_cast<Byte*>( VERTICES.data() ) )
+                .WithUsage( BufferUsage::BUFFER_USAGE_VERTEX )
+                .WithSizeBytes( InferSize<FontVertex>( VERTICES.size() ) )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+        builder.CreateNamedBuffer( "TextRenderPass_FontVertexBuffer", vertexDesc );
+
+        BufferDescription indexDesc{};
+        indexDesc.WithData( reinterpret_cast<Byte*>( INDICES.data() ) )
+                .WithUsage( BufferUsage::BUFFER_USAGE_INDEX )
+                .WithSizeBytes( InferSize<UInt32>( INDICES.size() ) )
+                .WithBufferDataType( BufferDataType::BUFFER_DATA_UINT32 )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+        builder.CreateNamedBuffer( "TextRenderPass_FontIndexBuffer", indexDesc );
+
+        builder.ReadTexture( this, "FinalCompositionPass_ColorTarget" );
+        //builder.ReadTexture( this, "FinalCompositionPass_DepthTarget" );
+
+        builder.WriteBuffer( this, "TextRenderPass_FontVertexBuffer" );
+        builder.WriteBuffer( this, "TextRenderPass_FontIndexBuffer" );
+        builder.WriteBuffer( this, "TextRenderPass_FontParams" );
+        builder.WriteBuffer( this, "TextRenderPass_TextRenderParams" );
+    }
+
+    auto TextRenderPass::Execute( PassCommandList &commandList ) -> void {
+        MKT_ASSERT( m_Scene != nullptr, "Scene cannot be NULL" );
+        MKT_ASSERT( m_Camera != nullptr, "Camera cannot be NULL" );
+
+        commandList.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
+        //commandList.SetDepthRenderTarget( "TextRenderPass_DepthTarget" );
+        //commandList.SetClearColor( m_ClearColor );
+
+        commandList.BeginRender(this, LoadOp::LOAD);
+        commandList.BindPipeline( "TextRenderPass_Pipeline" );
+
+        // Set render targets
+        commandList.SetViewport( 0, 0, 1920, 1080 );
+        commandList.SetScissor( 0, 0, 1920, 1080 );
+
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "TextRenderPass_FontParams", 0 );
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "TextRenderPass_TextRenderParams", 1 );
+
+        commandList.BindResourceGroup(SRGType::SRG_Textures);
+        commandList.BindResourceGroup(SRGType::SRG_PerPass);
+
+        TraverseTextList(commandList);
+        SetupRenderParams(commandList);
+
+        DrawIndexedState drawIndexedState{};
+
+        BufferHandle vertexBuffer{ commandList.GetNamedBuffer("TextRenderPass_FontVertexBuffer") };
+        BufferHandle indexBuffer{ commandList.GetNamedBuffer("TextRenderPass_FontIndexBuffer") };
+
+        drawIndexedState.IndexBuffer = indexBuffer;
+        drawIndexedState.VertexBuffers.emplace_back( vertexBuffer, 0);
+
+        drawIndexedState.IndicesCount = indexBuffer->GetCount();
+        drawIndexedState.InstancesCount = m_TextRenderParams.size();
+
+        commandList.DrawIndexed(drawIndexedState);
+
+        commandList.EndRender();
+    }
+
+    auto TextRenderPass::SetScene( Scene *scene ) -> void {
+        m_Scene = scene;
+    }
+
+    auto TextRenderPass::SetCamera( const Camera *camera ) -> void {
+        m_Camera = camera;
+    }
+
+    auto TextRenderPass::TraverseTextList( PassCommandList &commandList ) -> void {
+        FontHandle testFont{ AssetsService::Get()->LoadAsset<Font>( Path{ "Resources/Fonts/Google_Sans_Code/GoogleSansCode-VariableFont_wght.ttf" } ) };
+
+        // Clear text data as we refill it every frame
+        m_TextRenderParams.clear();
+
+        auto& registry{ m_Scene->GetRegistry() };
+        auto renderables{ registry.view<TagComponent, TransformComponent, TextComponent>() };
+
+        for (auto& entity : renderables) {
+            auto& tag{ registry.get<TagComponent>( entity ) };
+            auto& transform{ registry.get<TransformComponent>( entity ) };
+            auto& textComponent{ registry.get<TextComponent>( entity ) };
+
+            if (!textComponent.HasFont()) {
+                continue;
+            }
+
+            const float textSize{ textComponent.GetSize() };
+            const glm::vec4 color{ textComponent.GetColor() };
+            const glm::vec4 position{ transform.GetTranslation(), 1.0f };
+
+            SetupTextForRender(textComponent.GetFontHandle(), position, transform.GetTransform(), textComponent.GetContents(), textSize, color, commandList );
+        }
+
+        commandList.FillBuffer( "TextRenderPass_TextRenderParams", m_TextRenderParams.data(), m_TextRenderParams.size() * sizeof( TextRenderParams ) );
+    }
+
+    auto TextRenderPass::SetupRenderParams(PassCommandList &commandList) -> void {
+        m_TextRenderUBO.OutlineWidth = 0.0f;
+
+        bool is3D{ false };
+
+        if (!is3D) {
+            m_TextRenderUBO.Proj = glm::ortho(0.0f, 1920.0f,1080.0f, 0.0f,-1.0f, 1.0f);
+            m_TextRenderUBO.View = glm::mat4{ 1.0f };
+        } else {
+            m_TextRenderUBO.Proj = m_TextRenderUBO.Proj = m_Camera->GetProjection();
+            m_TextRenderUBO.View = m_Camera->GetViewMatrix();
+        }
+        commandList.FillBuffer( "TextRenderPass_FontParams", std::addressof( m_TextRenderUBO ), sizeof( m_TextRenderUBO ) );
+    }
+
+    auto TextRenderPass::SetupTextForRender( FontHandle font, Vec4F position, Mat4F model, std::string_view text, double fontSize, Vec4F color, PassCommandList& commandList ) -> void {
+        double xPos{ position.x };
+        double yPos{ position.y };
+        double scale{ fontSize / font->GetSize() };
+
+        double lineHeight{ font->GetMaxHeight() * scale };
+
+        for ( Size i{}; i < text.length(); ++i ) {
+            if (text[i] == '\n') {
+                xPos = position.x;
+                yPos += lineHeight;
+                continue;
+            }
+
+            FontGlyph& glyph{ font->GetGlyph( static_cast<UInt32>( text[i] ) ) };
+
+            if ( text[i] != ' ' ) {
+                // Quad Coordinates
+                double x0 = xPos + glyph.m_PlaneBounds.x * fontSize;
+                double y0 = yPos - glyph.m_PlaneBounds.y * fontSize;
+
+                // UV Coordinates
+                TextureHandle atlas{ font->GetAtlas() };
+                double s0 = glyph.m_AtlasBounds.x / atlas->GetWidth();
+                double t0 = glyph.m_AtlasBounds.w / atlas->GetHeight();
+                double s1 = glyph.m_AtlasBounds.z / atlas->GetWidth();
+                double t1 = glyph.m_AtlasBounds.y / atlas->GetHeight();
+
+                TextRenderParams fontParams{};
+                fontParams.Position = { x0, y0 + std::round( ( font->GetMaxHeight() * scale ) ) - ( glyph.m_Height * scale ), position.z, position.w };
+                fontParams.Size = { glyph.m_Width * scale, glyph.m_Height * scale, 0.0f, 0.0f };
+                fontParams.Color = color;
+                fontParams.Model = model;
+                fontParams.TexIndex = commandList.PushTexture( atlas );
+                fontParams.TexCoords[0] = { s0, t0 };// top left
+                fontParams.TexCoords[1] = { s1, t0 };// bottom left
+                fontParams.TexCoords[2] = { s1, t1 };// bottom right
+                fontParams.TexCoords[3] = { s0, t1 };// top right
+
+                m_TextRenderParams.emplace_back( fontParams );
+            }
+
+            xPos += glyph.m_AdvanceX * fontSize;
+        }
+    }
+
     auto FinalCompositionPass::Setup( FrameGraphBuilder& builder ) -> void {
         PipelineDescription builderPipelineDesc{};
 
@@ -250,17 +462,15 @@ namespace Mikoto {
         commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
         commandList.BindResourceGroup(SRGType::SRG_PerPass);
 
-        float width{ m_Camera->GetViewPort().first };
-        float height{ m_Camera->GetViewPort().second };
-
         m_CameraUBO = {
             .ViewMatrix{ m_Camera->GetViewMatrix() },
             .InverseProjection{ glm::inverse(m_Camera->GetProjection()) },
+
             .GridSize{ glm::vec4{ m_GridSizeX, m_GridSizeY, m_GridSizeZ, 0.0f } },
             .ViewPosition{ glm::vec4{ m_Camera->GetPosition(), 0.0f } },
-            .Planes{ m_Camera->GetNearPlane(), m_Camera->GetFarPlane() },
-            .ScreenDimensions{ width, height },
-            .ShowHeatMap{ m_CameraUBO.ShowHeatMap }
+
+            .Screen{ m_Camera->GetNearPlane(), m_Camera->GetFarPlane(), 1920.0f, 1080.0f },
+            .LightInfo{ m_CameraUBO.LightInfo.x }
         };
 
         commandList.FillBuffer( "AABBGenComp_CameraUBO", std::addressof( m_CameraUBO ), sizeof( CameraUBO ));
@@ -275,7 +485,7 @@ namespace Mikoto {
     }
 
     auto AABBGenComp::SetHeatMap( bool enable ) -> void {
-        m_CameraUBO.ShowHeatMap = enable == 1;
+        m_CameraUBO.LightInfo.x = enable == 1 ? 1.0 : 0.0;
     }
 
     auto LightCullingComp::Setup( FrameGraphBuilder &builder ) -> void {
@@ -293,13 +503,23 @@ namespace Mikoto {
                 .WithSizeBytes( sizeof(FinalCompositionPass::LightTypeInfo) * m_Lights.size()  );
         builder.CreateNamedBuffer( "LightCullingComp_LightsBuffer", lightsBuffer );
 
+        BufferDescription lightCulling{};
+        lightCulling.WithData( nullptr )
+                .WithUsage( BufferUsage::BUFFER_USAGE_UNIFORM )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+                .ForElement(  sizeof(LightCullingUBO), 1 );
+        builder.CreateNamedBuffer( "LightCullingComp_LightsCullingInfo", lightCulling );
+
         builder.ReadBuffer( this, "AABBGenComp_CameraUBO" );
         builder.ReadBuffer( this, "AABBGenComp_Clusters" );
 
         builder.WriteBuffer( this, "LightCullingComp_LightsBuffer" );
+        builder.WriteBuffer( this, "LightCullingComp_LightsCullingInfo" );
     }
 
     auto LightCullingComp::Execute( PassCommandList &commandList ) -> void {
+        MKT_ASSERT( m_NumClusters != 0, "Number of cluster must different to 0" );
+
         commandList.BeginCompute(this);
         commandList.BindPipeline( "LightCullingComp_Pipeline" );
 
@@ -309,10 +529,14 @@ namespace Mikoto {
         commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
         commandList.BindResourceGroup(SRGType::SRG_PerPass);
 
-        // 1 invocation = 1 tile
-        commandList.Dispatch(27, 1, 1);
+        const auto numWorkGroupsX{ (m_NumClusters + m_LocalSize - 1) / m_LocalSize };
+        commandList.Dispatch(numWorkGroupsX, 1, 1);
 
         commandList.EndCompute();
+    }
+
+    auto LightCullingComp::SetClusterCount( UInt32 clusterCount ) -> void {
+        m_NumClusters = clusterCount;
     }
 
     auto LightCullingComp::SetScene( Scene *scene ) -> void {
@@ -330,7 +554,9 @@ namespace Mikoto {
             LightComponent& lightComp{ registry.get<LightComponent>( lightEntity ) };
             TransformComponent& transformCom{ registry.get<TransformComponent>( lightEntity ) };
 
-            if ( lightsCount >= FinalCompositionPass::MAX_LIGHTS ) break;
+            if ( lightsCount >= FinalCompositionPass::MAX_LIGHTS ) {
+                break;
+            }
 
             auto& uboLight{ m_Lights[lightsCount] };
 
@@ -387,11 +613,15 @@ namespace Mikoto {
             ++lightsCount;
         }
 
+        m_LightCullingUBO.LightInfo.x = static_cast<float>( lightsCount );
+
         // Copy to GPU buffer
         commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 2 );
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_LightsCullingInfo", 3 );
 
         // Just copy the amount of active lights we visited
-        commandList.FillBuffer( "LightCullingComp_LightsBuffer", m_Lights.data(), lightsCount * sizeof(FinalCompositionPass::LightTypeInfo));
+        commandList.FillBuffer( "LightCullingComp_LightsBuffer", m_Lights.data(), lightsCount  * sizeof(FinalCompositionPass::LightTypeInfo));
+        commandList.FillBuffer( "LightCullingComp_LightsCullingInfo", std::addressof( m_LightCullingUBO ), sizeof(LightCullingUBO) );
     }
 
     auto ShadowPass::Setup( FrameGraphBuilder& builder ) -> void {
@@ -408,38 +638,8 @@ namespace Mikoto {
 
         builder.CreateNamedPipeline( "ShadowPass_Pipeline", pipelineDesc );
 
-        // Color attachment
-        TextureDescription colorDesc{};
-        colorDesc.WithWidth( 1920 )
-                .WithHeight( 1080 )
-                .WithChannelCount( 4 )
-                .WithData( nullptr )
-                .WithType( TextureType::TEXTURE_2D )
-                .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
-                .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
-                .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
-
-        builder.CreateNamedRenderTarget( "ShadowPass_ColorTarget", colorDesc );
-
-        // Depth attachment
-        TextureDescription depthDesc{};
-        depthDesc.WithWidth( 1920 )
-                .WithHeight( 1080 )
-                .WithChannelCount( 1 )
-                .WithData( nullptr )
-                .WithType( TextureType::TEXTURE_2D )
-                .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
-                .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
-                .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
-
-        builder.CreateNamedRenderTarget( "ShadowPass_DepthTarget", depthDesc );
-
-        BufferDescription lightsBuffer{};
-        lightsBuffer.WithData( nullptr )
-                .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
-                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
-                .WithSizeBytes( 0 );// TODO
-        builder.CreateNamedBuffer( "ShadowPass_LightsBuffer", lightsBuffer );
+        builder.CreateColorRenderTarget( "ShadowPass_ColorTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM );
+        builder.CreateDepthRenderTarget( "ShadowPass_DepthTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_D32_FLOAT );
 
         // Transform, texture indices, etc
         BufferDescription objectsInfo{};

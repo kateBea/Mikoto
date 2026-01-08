@@ -45,10 +45,17 @@ namespace Mikoto {
         MKT_ASSERT( lightCullingComp, "Trying to set scene for light culling compute pass while it is NULL" );
 
         lightCullingComp->SetScene( m_Scene );
+
+        TextRenderPass* textRenderPass{ m_PassRegistry.Get<TextRenderPass>() };
+        MKT_ASSERT( textRenderPass, "Trying to set scene for text render pass while it is NULL" );
+
+        textRenderPass->SetScene( m_Scene );
     }
 
-    auto SceneRenderer::Render( double ) const -> void {
+    auto SceneRenderer::Render( double ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
+        PassPreSetup();
 
         m_FrameGraph->Execute();
     }
@@ -70,6 +77,11 @@ namespace Mikoto {
         MKT_ASSERT( aabbGenComp, "Trying to set scene for aabb gen comp pass while it is NULL" );
 
         aabbGenComp->SetCamera( m_Camera );
+
+        TextRenderPass* textRenderPass{ m_PassRegistry.Get<TextRenderPass>() };
+        MKT_ASSERT( textRenderPass, "Trying to set scene for text render pass while it is NULL" );
+
+        textRenderPass->SetCamera( m_Camera );
     }
 
     auto SceneRenderer::GetGraph() -> FrameGraph & {
@@ -132,14 +144,25 @@ namespace Mikoto {
         LightCullingComp* lightCullingComp { m_PassRegistry.Register<LightCullingComp>() };
         lightCullingComp->Setup( builder );
 
+        TextRenderPass* textRenderPass{ m_PassRegistry.Register<TextRenderPass>() };
+        textRenderPass->Setup( builder );
+
         m_FrameGraph->RegisterPass( helloTrianglePass );
         m_FrameGraph->RegisterPass( simpleComputePass );
         m_FrameGraph->RegisterPass( helloTexture );
         m_FrameGraph->RegisterPass( finalCompositionPass );
         m_FrameGraph->RegisterPass( aabbGenComp );
         m_FrameGraph->RegisterPass( lightCullingComp );
+        m_FrameGraph->RegisterPass( textRenderPass );
 
         m_FrameGraph->Compile( builder );
+    }
+
+    auto SceneRenderer::PassPreSetup() -> void {
+        AABBGenComp* aabbGenComp{ m_PassRegistry.Get<AABBGenComp>() };
+        LightCullingComp* lightCullingComp{ m_PassRegistry.Get<LightCullingComp>() };
+
+        lightCullingComp->SetClusterCount( aabbGenComp->GetClusterCount() );
     }
 
     auto SceneRendererCreateInfo::WithName( std::string_view name ) -> SceneRendererCreateInfo & {

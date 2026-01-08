@@ -42,8 +42,6 @@ namespace Mikoto {
         return GuizmoType::TRANSLATION;
     }
 
-    static constexpr auto GetSceneName() -> std::string_view { return "Scene"; }
-
     auto ScenePanel::CreateImguiTextureID() -> void {
         ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
 
@@ -51,8 +49,8 @@ namespace Mikoto {
     }
 
     ScenePanel::ScenePanel( const ScenePanelCreateInfo &createInfo )
-        : m_EditorState{ createInfo.State }, m_ViewPortWidth( createInfo.Width ), m_ViewPortHeight( createInfo.Height ) {
-        m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_IMAGE, GetSceneName() );
+        : Panel{ "Scene" },  m_EditorState{ createInfo.State }, m_ViewPortWidth( createInfo.Width ), m_ViewPortHeight( createInfo.Height ) {
+        m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_IMAGE, m_PanelName );
 
         CreateImguiTextureID();
     }
@@ -62,7 +60,7 @@ namespace Mikoto {
             return;
         }
 
-        static int location = -1;
+        static int location{ -1 };
         ImGuiIO &io = ImGui::GetIO();
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
         if (location >= 0) {
@@ -110,12 +108,12 @@ namespace Mikoto {
             ImGui::Text( "Total active lights: %d", m_EditorState->ActiveEditorScene->GetActiveLightCount());
 
             if (ImGui::BeginPopupContextWindow()) {
-                if (ImGui::MenuItem( "Custom", NULL, location == -1 )) location = -1;
-                if (ImGui::MenuItem( "Center", NULL, location == -2 )) location = -2;
-                if (ImGui::MenuItem( "Top-left", NULL, location == 0 )) location = 0;
-                if (ImGui::MenuItem( "Top-right", NULL, location == 1 )) location = 1;
-                if (ImGui::MenuItem( "Bottom-left", NULL, location == 2 )) location = 2;
-                if (ImGui::MenuItem( "Bottom-right", NULL, location == 3 )) location = 3;
+                if (ImGui::MenuItem( "Custom", nullptr, location == -1 )) location = -1;
+                if (ImGui::MenuItem( "Center", nullptr, location == -2 )) location = -2;
+                if (ImGui::MenuItem( "Top-left", nullptr, location == 0 )) location = 0;
+                if (ImGui::MenuItem( "Top-right", nullptr, location == 1 )) location = 1;
+                if (ImGui::MenuItem( "Bottom-left", nullptr, location == 2 )) location = 2;
+                if (ImGui::MenuItem( "Bottom-right", nullptr, location == 3 )) location = 3;
                 ImGui::EndPopup();
             }
         }
@@ -123,33 +121,36 @@ namespace Mikoto {
     }
 
     auto ScenePanel::OnUpdate( float ts ) -> void {
-        if (m_PanelIsVisible) {
-            constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse };
-
-            // Expand scene view to window bounds (no padding)
-            ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f, 0.0f } );
-            ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), windowFlags );
-
-            m_PanelIsFocused = ImGui::IsWindowFocused();
-            m_PanelIsHovered = ImGui::IsWindowHovered();
-
-            if (IsDisplayTextureValid()) {
-                UpdateViewport();
-
-                //DrawSceneToolbar();
-                ShowStatsOverlay(ts);
-
-                SetupManipulation();
-                DrawManipulationGuizmos();
-            }
-
-            // Try validate the image id again in case the texture was recreated
-            if (!IsDisplayTextureValid()) { CreateImguiTextureID(); }
-
-            ImGui::End();
-
-            ImGui::PopStyleVar();
+        if (!m_PanelIsVisible) {
+            return;
         }
+
+        constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse };
+
+        // Expand scene view to window bounds (no padding)
+        ImGuiUtils::ImGuiScopedStyleVar winPad ( ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f, 0.0f } );
+
+        ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), windowFlags );
+
+        m_PanelIsFocused = ImGui::IsWindowFocused();
+        m_PanelIsHovered = ImGui::IsWindowHovered();
+
+        if (IsDisplayTextureValid()) {
+            UpdateViewport();
+
+            //DrawSceneToolbar();
+            ShowStatsOverlay(ts);
+
+            SetupManipulation();
+            DrawManipulationGuizmos();
+        }
+
+        // Try validating the image id again in case the texture was recreated
+        if (!IsDisplayTextureValid()) {
+            CreateImguiTextureID();
+        }
+
+        ImGui::End();
     }
 
     auto ScenePanel::SetManipulation( GuizmoType mode ) -> void { m_GuizmoType = mode; }

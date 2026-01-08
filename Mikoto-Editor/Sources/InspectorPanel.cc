@@ -1482,7 +1482,7 @@ namespace Mikoto {
         // Slider float font size
         float currentSize{ textComponent.GetSize() };
         ImGui::Spacing();
-        if ( ImGuiUtils::Slider( "##WorldSize", currentSize, { TextComponent::GetMinLetterSize(), 35.0f } ) ) {
+        if ( ImGuiUtils::Slider( "##WorldSize", currentSize, { TextComponent::GetMinLetterSize(), 500.0f } ) ) {
             textComponent.SetSize( currentSize );
         }
 
@@ -1771,12 +1771,11 @@ namespace Mikoto {
         }
     }
 
-    static auto GetInspectorPanelName() -> std::string_view {
-        return "Inspector";
-    }
-
     InspectorPanel::InspectorPanel( const InspectorPanelCreateInfo& createInfo )
-        : Panel{ ImGuiUtils::MakePanelName( ICON_MD_ERROR_OUTLINE, GetInspectorPanelName() ) }, m_State( createInfo.State ) {}
+        : Panel{  "Inspector" }, m_State( createInfo.State ) {
+
+        m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_ERROR_OUTLINE, m_PanelName );
+    }
 
     auto InspectorPanel::DrawComponents( Entity* entity ) const -> void {
         MKT_BEGIN_PROFILER_NAMED();
@@ -1804,32 +1803,32 @@ namespace Mikoto {
         DrawComponent<ScriptComponent>( fmt::format( "{} Script", ICON_MD_CODE ), *entity, SetupScriptingComponentTab );
     }
 
-    auto InspectorPanel::OnUpdate( MKT_UNUSED_VAR float timeStep ) -> void {
+    auto InspectorPanel::OnUpdate( float ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if ( m_PanelIsVisible ) {
-            ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), ImGuiWindowFlags_NoCollapse );
-
-            Entity* target{ m_State->SelectedEntity };
-
-            if ( target != nullptr ) {
-                DrawVisibilityCheckBox( target );
-
-                ImGui::SameLine();
-
-                DrawNameTextInput( target );
-                DrawComponentButton( target );
-
-                ImGui::Spacing();
-                ImGui::Separator();
-                ImGui::Spacing();
-
-                DrawComponents( target );
-            }
-
-            ImGui::End();
+        if ( !m_PanelIsVisible ) {
+            return;
         }
 
-        m_State->InspectorPanelVisible = m_PanelIsVisible;
+        ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), ImGuiWindowFlags_NoCollapse );
+
+        Entity* target{ m_State->SelectedEntity };
+
+        if ( target != nullptr ) {
+            DrawVisibilityCheckBox( target );
+
+            ImGui::SameLine();
+
+            DrawNameTextInput( target );
+            DrawComponentButton( target );
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            DrawComponents( target );
+        }
+
+        ImGui::End();
     }
 }// namespace Mikoto

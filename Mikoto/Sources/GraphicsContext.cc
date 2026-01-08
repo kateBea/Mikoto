@@ -33,8 +33,10 @@ namespace Mikoto {
         MKT_ASSERT( m_Blackboard, "Tried to create PassCommandList with NULL blackboard" );
     }
 
-    auto PassCommandList::BeginRender(FramePass* pass) -> void {
+    auto PassCommandList::BeginRender(FramePass* pass, LoadOp loadOp) -> void {
         MKT_ASSERT( m_Context, "No valid context for this pass command list" );
+
+        m_RenderInfo.LoadOp = loadOp;
 
         m_Context->BeginRender( m_RenderInfo );
 
@@ -196,5 +198,11 @@ namespace Mikoto {
                 break;
             default:;
         }
+    }
+
+    auto PassCommandList::GetNamedBuffer( std::string_view name ) const -> BufferHandle {
+        MKT_ASSERT( m_Blackboard, "No valid blackboard for this pass command list" );
+
+        return m_Blackboard->GetBuffer( name );
     }
 }// namespace Mikoto

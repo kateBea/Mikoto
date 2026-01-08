@@ -13,19 +13,17 @@
 
 namespace Mikoto {
 
-    static constexpr auto GetConsolePanelName() -> std::string_view {
-        return "Console";
-    }
-
     ConsolePanel::ConsolePanel(const ConsolePanelCreateInfo& info)
-        : Panel(ImGuiUtils::MakePanelName(ICON_MD_TERMINAL, GetConsolePanelName())), m_State{ info.State } {
+        : Panel{ "Console" }, m_State{ info.State } {
+        m_PanelHeaderName = ImGuiUtils::MakePanelName(ICON_MD_TERMINAL, m_PanelName);
     }
 
     auto ConsolePanel::OnUpdate(float timeStep) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if (!m_PanelIsVisible)
+        if (!m_PanelIsVisible) {
             return;
+        }
 
         ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible), ImGuiWindowFlags_NoCollapse);
 
@@ -53,12 +51,15 @@ namespace Mikoto {
             if (line.find("[DEBUG]") != std::string::npos && !showDebug) continue;
 
             ImVec4 color = ImGui::GetStyleColorVec4(ImGuiCol_Text);
-            if (line.find("[ERROR]") != std::string::npos)
+            if (line.find("[ERROR]") != std::string::npos) {
                 color = { 1.0f, 0.3f, 0.3f, 1.0f };
-            else if (line.find("[WARN]") != std::string::npos)
+            }
+            else if (line.find("[WARN]") != std::string::npos) {
                 color = { 1.0f, 0.8f, 0.3f, 1.0f };
-            else if (line.find("[DEBUG]") != std::string::npos)
+            }
+            else if (line.find("[DEBUG]") != std::string::npos) {
                 color = { 0.5f, 0.8f, 1.0f, 1.0f };
+            }
 
             ImGui::PushStyleColor(ImGuiCol_Text, color);
             ImGui::TextUnformatted(line.c_str());
@@ -68,13 +69,14 @@ namespace Mikoto {
         if (m_ScrollToBottom) {
             ImGui::SetScrollHereY(1.0f);
         }
+
         m_ScrollToBottom = false;
 
         ImGui::EndChild();
         ImGui::Separator();
 
         // Input text field
-        static char inputBuffer[256] = "";
+        static char inputBuffer[256]{ "" };
 
         if (ImGui::InputText("##ConsoleInput", inputBuffer, sizeof(inputBuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
             std::string input{ inputBuffer };
@@ -86,8 +88,6 @@ namespace Mikoto {
         }
 
         ImGui::End();
-
-        m_State->ConsolePanel = m_PanelIsVisible;
     }
 
 } // namespace Mikoto

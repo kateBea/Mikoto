@@ -24,6 +24,7 @@
 #include <Panels/ScenePanel.hh>
 #include <Panels/PassVisualizerPanel.hh>
 #include <Panels/SettingsPanel.hh>
+#include <Panels/LightingDebugPanel.hh>
 #include <Panels/StatsPanel.hh>
 #include <Physics/PhysicService.hh>
 #include <Renderer/Core/RenderService.hh>
@@ -110,6 +111,8 @@ namespace Mikoto {
     auto EditorLayer::OnCreate() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        m_EditorState = CreateScope<EditorState>();
+
         SetupRenderer();
 
         CreateCameras();
@@ -126,6 +129,7 @@ namespace Mikoto {
         m_EditorState->PassesCompositions.try_emplace( "TrianglePass", blackboard->GetTexture( "HelloTrianglePass_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "TexturePass", blackboard->GetTexture( "HelloTexture_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "FinalComposition", blackboard->GetTexture( "FinalCompositionPass_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "FontRenderPass", blackboard->GetTexture( "TextRenderPass_ColorTarget" ) );
     }
 
     auto EditorLayer::SetupRenderer() -> void {
@@ -136,11 +140,11 @@ namespace Mikoto {
         m_SceneRenderer = SceneRenderer::Create( spec );
 
         if (m_SceneRenderer) { m_SceneRenderer->Init(); }
+
+        m_EditorState->SceneRenderer = m_SceneRenderer.get();
     }
 
     auto EditorLayer::SetupEditorState() -> void {
-        m_EditorState = CreateScope<EditorState>();
-
         m_EditorState->EditorCamera = m_EditorCamera.get();
 
         m_EditorState->ActiveEditorScene = m_ActiveScene;
@@ -325,6 +329,10 @@ namespace Mikoto {
         PassVisualizerDescription passVisualizerDescription{};
         passVisualizerDescription.State = m_EditorState.get();
         m_PanelRegistry.Register<PassVisualizerPanel>( passVisualizerDescription );
+
+        LightingDebugPanelCreateInfo lightingDebugPanelCreateInfo{};
+        lightingDebugPanelCreateInfo.State = m_EditorState.get();
+        m_PanelRegistry.Register<LightingDebugPanel>( lightingDebugPanelCreateInfo );
     }
 
     auto EditorLayer::CreateCameras() -> void {
@@ -470,16 +478,13 @@ namespace Mikoto {
                 if (ImGui::BeginMenu( "Panels" )) {
 
                     // TODO: Loop
-                    if (ImGui::MenuItem( "Hierarchy", nullptr, m_EditorState->HierarchyPanelVisible )) m_EditorState->HierarchyPanelVisible = !m_EditorState->HierarchyPanelVisible;
-                    if (ImGui::MenuItem( "Inspector", nullptr, m_EditorState->InspectorPanelVisible )) m_EditorState->InspectorPanelVisible = !m_EditorState->InspectorPanelVisible;
-                    if (ImGui::MenuItem( "Scene", nullptr, m_EditorState->ScenePanelVisible )) m_EditorState->ScenePanelVisible = !m_EditorState->ScenePanelVisible;
-                    if (ImGui::MenuItem( "Settings", nullptr, m_EditorState->SettingPanelVisible )) m_EditorState->SettingPanelVisible = !m_EditorState->SettingPanelVisible;
-                    if (ImGui::MenuItem( "Statistics", nullptr, m_EditorState->StatsPanelVisible )) m_EditorState->StatsPanelVisible = !m_EditorState->StatsPanelVisible;
-                    if (ImGui::MenuItem( "Content Browser", nullptr, m_EditorState->ContentBrowser )) m_EditorState->ContentBrowser = !m_EditorState->ContentBrowser;
-                    if (ImGui::MenuItem( "Console", nullptr, m_EditorState->ConsolePanel )) m_EditorState->ConsolePanel = !m_EditorState->ConsolePanel;
-                    if (ImGui::MenuItem( "Renderer", nullptr, m_EditorState->RendererPanel )) m_EditorState->RendererPanel = !m_EditorState->RendererPanel;
-                    if (ImGui::MenuItem( "Assets Preview", nullptr, m_EditorState->AssetsPanelVisible )) m_EditorState->AssetsPanelVisible = !m_EditorState->AssetsPanelVisible;
-                    if (ImGui::MenuItem( "Passes Preview", nullptr, m_EditorState->PassPreviewPanelVisible )) m_EditorState->PassPreviewPanelVisible = !m_EditorState->PassPreviewPanelVisible;
+
+                    for (auto& panel : m_PanelRegistry | std::ranges::views::values) {
+                        bool isActive{ panel->IsVisible() };
+                        if (ImGui::MenuItem( panel->GetName().data(), nullptr, std::addressof( isActive ) )) {
+                            panel->SetVisible( isActive );
+                        }
+                    }
 
                     ImGui::EndMenu();
                 }
@@ -663,7 +668,7 @@ namespace Mikoto {
 
         // This is just to test clustered forward shading
         // We generate an empty object and 'lightCount' lights in random positions attached to it
-        constexpr UInt32 lightCount{ 12 };
+        constexpr UInt32 lightCount{ 1500 };
         Entity* lightCluster{ m_ActiveScene->CreateEntity( "LightCluster" ) };
         for (UInt32 count{}; count < lightCount; count++) {
             if (Entity *clusteredLight{ m_ActiveScene->CreateEntity( lightCluster, fmt::format( "Light {}", count ) ) }) {
@@ -677,6 +682,9 @@ namespace Mikoto {
 
                 TransformComponent &transformComponent{ clusteredLight->GetComponent<TransformComponent>() };
                 transformComponent.SetTranslation( { GetRandomReal(-66.0f, 125.0f), 2.0f, GetRandomReal(-100.0f, 100.0f) } );
+
+                // Test heatmaps
+                //transformComponent.SetTranslation( { GetRandomReal(0, 10.0f), 2.0f, GetRandomReal(0, 15) } );
             }
         }
     }

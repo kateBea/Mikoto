@@ -184,6 +184,8 @@ namespace Mikoto {
             .WithData( image.GetData() )
             .WithFile( textureFile )
 
+            .WithMapType( description.Map )
+
             .WithType( description.Type )
             .WithFormat( TextureFormat::TEXTURE_FORMAT_SRGB8_ALPHA8 )
 

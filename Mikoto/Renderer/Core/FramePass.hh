@@ -22,6 +22,7 @@
 #include <Renderer/Core/Pipeline.hh>
 #include <Scene/Scene.hh>
 
+#include "Assets/Font.hh"
 #include "Scene/Camera.hh"
 
 namespace Mikoto {
@@ -34,7 +35,7 @@ namespace Mikoto {
 
         virtual ~FramePass() = default;
 
-        virtual auto Setup(FrameGraphBuilder& device) -> void = 0;
+        virtual auto Setup(FrameGraphBuilder& builder) -> void = 0;
         virtual auto Execute(PassCommandList& cmdList) -> void = 0;
 
         MKT_NODISCARD auto GetPassType() const -> PassType { return m_PassType; }
@@ -53,8 +54,75 @@ namespace Mikoto {
         std::string m_Name{};
     };
 
+    class TextRenderPass final : public FramePass {
+    public:
+
+        explicit TextRenderPass()
+            : FramePass{ "TextRenderPass", PassType::RENDER } {}
+
+        auto Setup(FrameGraphBuilder& builder) -> void override;
+        auto Execute(PassCommandList& commandList) -> void override;
+
+        auto SetScene(Scene* scene) -> void;
+        auto SetCamera( const Camera* camera ) -> void;
+
+    private:
+        auto TraverseTextList(PassCommandList& commandList) -> void;
+
+        auto SetupRenderParams(PassCommandList &commandList) -> void;
+        auto SetupTextForRender(FontHandle font, Vec4F position, Mat4F model, std::string_view text, double fontSize, Vec4F color, PassCommandList& commandList) -> void;
+
+    private:
+        struct alignas(16) TextRenderParams {
+            Mat4F Model{};
+            Vec4F Position{};
+            Vec4F Size{};
+            Vec4F Color{};
+            Vec2F TexCoords[4]{};
+            UInt32 TexIndex{};
+        };
+
+        struct alignas(16) TextParamsUBO {
+            glm::mat4 Proj{};
+            glm::mat4 View{};
+            Vec4F OutlineColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+            float OutlineWidth{ 2.0f };
+        };
+
+        struct FontVertex {
+            glm::vec3 Pos{};
+            UInt32 TexIndex{};
+        };
+
+        static constexpr UInt32 MAX_STRING{ 8096 * 10 };
+
+        std::vector<TextRenderParams> m_TextRenderParams{};
+
+        std::array<FontVertex, 4> VERTICES{
+                FontVertex{ { 0.0f, 0.0f, 0.0f }, 0 },
+                FontVertex{ { 1.0f, 0.0f, 0.0f }, 1 },
+                FontVertex{ { 1.0f, 1.0f, 0.0f }, 2 },
+                FontVertex{ { 0.0f, 1.0f, 0.0f }, 3 }
+        };
+
+        std::array<UInt32, 6> INDICES{
+            0, 1, 2,  // first triangle
+            2, 3, 0   // second triangle
+        };
+
+        Scene* m_Scene{};
+        const Camera* m_Camera{};
+
+        TextParamsUBO m_TextRenderUBO{};
+
+        Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
+    };
+
     class FinalCompositionPass final : public FramePass {
     public:
+        enum class RenderResolution {
+            FULL_HD,
+        };
 
         explicit FinalCompositionPass(GpuDevice* device)
             : FramePass{ "FinalCompositionPass", PassType::RENDER }, m_Device{ device } {}
@@ -69,7 +137,6 @@ namespace Mikoto {
 
         auto UploadInstanceData() -> void;
         auto UpdateInstancedData() -> void;
-
         auto TraverseMeshList(PassCommandList& commandList) -> void;
 
     public:
@@ -154,13 +221,15 @@ namespace Mikoto {
         struct CameraUBO {
             glm::mat4 ViewMatrix{};
             glm::mat4 InverseProjection{};
+
             glm::vec4 GridSize{};
             glm::vec4 ViewPosition{};
 
-            alignas(sizeof(glm::vec4)) glm::vec2 Planes{};
-            alignas(sizeof(glm::vec4)) glm::vec2 ScreenDimensions{};
+            // xy = Planes, zw = ScreenDimensions
+            glm::vec4 Screen{};
 
-            alignas(sizeof(glm::vec4)) Int32 ShowHeatMap{ 0 };
+            // x = show heat map
+            glm::vec4 LightInfo{};
         };
 
         struct alignas(sizeof(glm::vec4)) Cluster  {
@@ -178,6 +247,8 @@ namespace Mikoto {
 
         auto SetCamera(const Camera* camera) -> void;
         auto SetHeatMap(bool enable) -> void;
+
+        MKT_NODISCARD auto GetClusterCount() const -> UInt32 { return m_NumClusters; }
 
     private:
         UInt32 m_GridSizeX{ 12 };
@@ -197,12 +268,25 @@ namespace Mikoto {
         auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(PassCommandList& commandList) -> void override;
 
+        auto SetClusterCount(UInt32 clusterCount) -> void;
+
         auto SetScene(Scene* scene) -> void;
 
     private:
         auto TraverseLights( const PassCommandList & commandList ) -> void;
 
+        struct LightCullingUBO {
+            // x = Active light count
+            glm::vec4 LightInfo{};
+        };
+
     private:
+
+        UInt32 m_LocalSize{ 128 }; // from light culling comp shader
+        UInt32 m_NumClusters{ 0 };
+
+        LightCullingUBO m_LightCullingUBO{};
+
         Scene* m_Scene{};
         std::array<FinalCompositionPass::LightTypeInfo, FinalCompositionPass::MAX_LIGHTS> m_Lights{};
     };

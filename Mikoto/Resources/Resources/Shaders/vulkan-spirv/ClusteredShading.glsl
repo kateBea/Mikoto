@@ -31,7 +31,7 @@ struct LightInfo {
 struct Cluster  {
     vec4 MinPoint;
     vec4 MaxPoint;
-    uint Count;
+    uint Count; // Active lights affecting this cluster
     uint LightIndices[MAX_LIGHT_CLUSTERS];
 };
 

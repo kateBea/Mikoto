@@ -70,7 +70,7 @@ namespace Mikoto {
     }
 
     VulkanTexture::VulkanTexture( const TextureDescription& data )
-        : Texture2D{ data.Width, data.Height, data.ChannelCount, data.Data, data.UsageType, data.Format, data.Usage } {
+        : Texture2D{ data.Width, data.Height, data.ChannelCount, data.Data, data.UsageType, data.Format, data.Usage, data.Map } {
         m_ImageSize = m_Width * m_Height * m_Channels;
 
         if (data.TextureFile) {

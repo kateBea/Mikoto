@@ -233,6 +233,10 @@ namespace Mikoto {
         };
 
         struct alignas(sizeof(glm::vec4)) Cluster  {
+            glm::vec4 Center{};
+            glm::vec4 ClosestPoint{};
+            glm::vec4 DistanceSquared{};
+
             glm::vec4 MinPoint{};
             glm::vec4 MaxPoint{};
             UInt32 Count{};
@@ -275,9 +279,8 @@ namespace Mikoto {
     private:
         auto TraverseLights( const PassCommandList & commandList ) -> void;
 
-        struct LightCullingUBO {
-            // x = Active light count
-            glm::vec4 LightInfo{};
+        struct alignas(16) LightCullingUBO {
+            UInt32 LightCount{};
         };
 
     private:

@@ -369,6 +369,7 @@ namespace Mikoto {
     auto FinalCompositionPass::SetCamera( const Camera* camera ) -> void {
         m_FrameUBO.View = camera->GetViewMatrix();
         m_FrameUBO.Projection = camera->GetProjection();
+        m_FrameUBO.CameraPosition = Vec4F{ camera->GetPosition(), 1.0f };
     }
 
     auto FinalCompositionPass::UploadInstanceData() -> void {
@@ -613,7 +614,7 @@ namespace Mikoto {
             ++lightsCount;
         }
 
-        m_LightCullingUBO.LightInfo.x = static_cast<float>( lightsCount );
+        m_LightCullingUBO.LightCount = lightsCount;
 
         // Copy to GPU buffer
         commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 2 );

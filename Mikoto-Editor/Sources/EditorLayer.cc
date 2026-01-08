@@ -24,6 +24,7 @@
 #include <Panels/ScenePanel.hh>
 #include <Panels/PassVisualizerPanel.hh>
 #include <Panels/SettingsPanel.hh>
+#include <Panels/ScenePropertiesPanel.hh>
 #include <Panels/LightingDebugPanel.hh>
 #include <Panels/StatsPanel.hh>
 #include <Physics/PhysicService.hh>
@@ -333,6 +334,10 @@ namespace Mikoto {
         LightingDebugPanelCreateInfo lightingDebugPanelCreateInfo{};
         lightingDebugPanelCreateInfo.State = m_EditorState.get();
         m_PanelRegistry.Register<LightingDebugPanel>( lightingDebugPanelCreateInfo );
+
+        ScenePropertiesPanelCreateInfo scenePropertiesPanel{};
+        scenePropertiesPanel.State = m_EditorState.get();
+        m_PanelRegistry.Register<ScenePropertiesPanel>( scenePropertiesPanel );
     }
 
     auto EditorLayer::CreateCameras() -> void {
@@ -681,10 +686,10 @@ namespace Mikoto {
                 pointLightData.SetColor( GetRandomizedVec3F(0.0f, 1.0f ) );
 
                 TransformComponent &transformComponent{ clusteredLight->GetComponent<TransformComponent>() };
-                transformComponent.SetTranslation( { GetRandomReal(-66.0f, 125.0f), 2.0f, GetRandomReal(-100.0f, 100.0f) } );
+                //transformComponent.SetTranslation( { GetRandomReal(-66.0f, 125.0f), 2.0f, GetRandomReal(-100.0f, 100.0f) } );
 
                 // Test heatmaps
-                //transformComponent.SetTranslation( { GetRandomReal(0, 10.0f), 2.0f, GetRandomReal(0, 15) } );
+                transformComponent.SetTranslation( { GetRandomReal(0, 10.0f), 2.0f, GetRandomReal(0, 15) } );
             }
         }
     }

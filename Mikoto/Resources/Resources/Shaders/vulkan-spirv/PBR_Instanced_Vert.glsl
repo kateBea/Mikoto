@@ -77,7 +77,7 @@ void main() {
 
     // Fragment position
     out_FragmentPos = vec3(model * vec4(a_Position, 1.0));
-    out_ViewFragmentPos = vec3(frame.View * model * vec4(a_Position, 1.0));
+    out_ViewFragmentPos = vec3(frame.View * vec4(a_Position, 1.0));
 
     // Per-instance material values
     out_AlbedoIndex    = i_AlbedoIndex;

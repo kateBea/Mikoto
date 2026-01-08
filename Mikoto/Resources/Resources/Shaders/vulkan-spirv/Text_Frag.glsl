@@ -50,7 +50,7 @@ void main() {
     float sd = Median(msd);
 
     float pxRange = ScreenPxRange();
-    //float pxRange = ScreenPxRange3D(g_BindlessTextures[int(in_AtlasIndex)]);
+
     float screenPxDist = pxRange * (sd - threshold);
 
     // Fill alpha
@@ -67,6 +67,4 @@ void main() {
     vec4 outline = in_OutlineColor * outlineOnlyAlpha;
 
     outColor = fill + outline;
-
-
 }

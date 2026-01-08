@@ -1,4 +1,6 @@
-// Parameters
+//@ref https://github.com/RavEngine/RavEngine/blob/master/shaders/cluster_shared.glsl
+
+
 #define MAX_LIGHT_CLUSTERS 256
 
 #define MAX_LIGHTS 50
@@ -13,6 +15,8 @@
 #define LIGHT_TYPE_SPOT 2
 #define LIGHT_TYPE_DIRECTIONAL 3
 #define LIGHT_TYPE_INACTIVE -1
+
+#define LIGHT_MIN_INFLUENCE 0.001f
 
 // Definitions
 struct LightInfo {
@@ -29,11 +33,25 @@ struct LightInfo {
 };
 
 struct Cluster  {
+    // For debug
+    vec4 Center;
+    vec4 ClosestPoint;
+    vec4 DistanceSquared;
+
     vec4 MinPoint;
     vec4 MaxPoint;
     uint Count; // Active lights affecting this cluster
     uint LightIndices[MAX_LIGHT_CLUSTERS];
 };
+
+float GetPointLightRadius(float intensity){
+    // for quadratic falloff (influence = intensity / dist^2 ), the radius is equal to sqrt(intensity / min_influence)
+    return sqrt(intensity / LIGHT_MIN_INFLUENCE);
+}
+
+float GetLightAttenuation(float dist){
+    return 1 / (dist * dist);
+}
 
 vec3 GetHeatMapColor(uint count) {
     // Define density levels (adjust based on expected max light per cluster)

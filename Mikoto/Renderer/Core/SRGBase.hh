@@ -89,6 +89,9 @@ namespace  Mikoto {
 
         std::vector<Entry> m_Resources{};
 
+        ankerl::unordered_dense::set<std::string> m_RegisteredBuffers{};
+        ankerl::unordered_dense::map<std::string, std::string> m_RegisteredTextures{};
+
     };
 
     class SRGPerFrame : public SRGBase {

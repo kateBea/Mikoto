@@ -7,6 +7,10 @@
 namespace Mikoto {
 
     auto SRGPerPass::SetBuffer( std::string_view name, UInt32 binding, ShaderResourceType type ) -> void {
+        if (m_RegisteredBuffers.contains( std::string{ name } )) {
+            return;
+        }
+
         Entry newEntry{
             .Name{ name },
             .Binding{ binding },
@@ -14,9 +18,15 @@ namespace Mikoto {
         };
 
         m_Resources.emplace_back( std::move(newEntry) );
+        m_RegisteredBuffers.emplace( std::string{ name });
     }
 
     auto SRGPerPass::SetTexture( std::string_view textureName, std::string_view samplerName, UInt32 binding ) -> void {
+        const auto it{ m_RegisteredTextures.find( std::string{ textureName } ) };
+        if ( it != m_RegisteredTextures.end() && it->second == samplerName ) {
+            return;
+        }
+
         Entry newEntry{
             .Name{ textureName },
             .SamplerName{ samplerName },
@@ -25,6 +35,7 @@ namespace Mikoto {
         };
 
         m_Resources.emplace_back( std::move(newEntry) );
+        m_RegisteredTextures.emplace( std::string{ textureName }, std::string{ samplerName } );
     }
 
     auto SRGTextures::GetMaxBindlessTextureCount() -> UInt32 {

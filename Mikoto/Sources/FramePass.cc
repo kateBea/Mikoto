@@ -92,16 +92,6 @@ namespace Mikoto {
 
         commandList.BindResourceGroup(SRGType::SRG_PerPass);
 
-        DrawIndexedState drawIndexedState{};
-
-        ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( "Resources/Models/Prefabs/cube/gltf/scene.gltf" ) };
-        MeshNode& mesh{ box->GetMeshNode( 0 ) };
-        drawIndexedState.IndexBuffer = mesh.GetIndexBuffer();
-        drawIndexedState.VertexBuffers.emplace_back( mesh.GetVertexBuffer(), 0);
-        drawIndexedState.IndicesCount = mesh.GetIndexBuffer()->GetCount();
-        drawIndexedState.InstancesCount = 1;
-
-        //commandList.DrawIndexed(drawIndexedState );
         commandList.Draw(36, 1, 0, 0 );
 
         commandList.EndRender();

@@ -158,11 +158,14 @@ namespace Mikoto {
         m_FrameGraph->RegisterPass( helloTrianglePass );
         m_FrameGraph->RegisterPass( simpleComputePass );
         m_FrameGraph->RegisterPass( helloTexture );
-        m_FrameGraph->RegisterPass( finalCompositionPass );
+
         m_FrameGraph->RegisterPass( aabbGenComp );
         m_FrameGraph->RegisterPass( lightCullingComp );
-        m_FrameGraph->RegisterPass( textRenderPass );
         m_FrameGraph->RegisterPass( skyboxPass );
+
+        m_FrameGraph->RegisterPass( textRenderPass );
+
+        m_FrameGraph->RegisterPass( finalCompositionPass );
 
         m_FrameGraph->Compile( builder );
     }

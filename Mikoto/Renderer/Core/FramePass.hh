@@ -152,9 +152,6 @@ namespace Mikoto {
 
     class FinalCompositionPass final : public FramePass {
     public:
-        enum class RenderResolution {
-            FULL_HD,
-        };
 
         explicit FinalCompositionPass(GpuDevice* device)
             : FramePass{ "FinalCompositionPass", PassType::RENDER }, m_Device{ device } {}

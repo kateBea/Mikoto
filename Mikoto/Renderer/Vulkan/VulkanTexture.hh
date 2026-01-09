@@ -119,7 +119,7 @@ namespace Mikoto {
 
     class VulkanTextureCube final : public TextureCube {
     public:
-        explicit VulkanTextureCube( const TextureDescription& data );
+        explicit VulkanTextureCube( const TextureCubeCreateDescription& data );
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
 
@@ -133,16 +133,12 @@ namespace Mikoto {
         MKT_NODISCARD auto GetCreateInfo() const -> const VkImageCreateInfo&;
         MKT_NODISCARD auto GetViewCreateInfo() const -> const VkImageViewCreateInfo&;
 
-        auto SetTextureIndex( Int32 index ) -> void;
-        MKT_NODISCARD auto GetTextureIndex() const -> Int32;
-        MKT_NODISCARD auto HasBindlessIndex() const -> bool;
-
-        auto SubmitLayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd ) -> void;
-
         auto GetVMAllocation() -> VmaAllocation*;
         auto GetVMAllocationInfo() -> VmaAllocationInfo*;
         auto GetImageCreateInfo() -> const VkImageCreateInfo*;
         auto GetAllocationCreateInfo() -> const VmaAllocationCreateInfo*;
+
+        auto SubmitLayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd ) -> void;
 
         ~VulkanTextureCube() override;
 
@@ -150,9 +146,9 @@ namespace Mikoto {
         auto Initialize() -> void override;
         auto Release() -> void override;
 
-    private:
-        bool m_IsImageExternal{ false };
+        auto CreateImageResource() -> void;
 
+    private:
         BufferHandle m_StagingBuffer{};
 
         VkDeviceSize m_ImageSize{ 0 };
@@ -170,9 +166,7 @@ namespace Mikoto {
 
         VkImageLayout m_CurrentLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
 
-        // For Dynamic rendering
-        // Set by the device when created
-        Int32 m_TextureArrayIndex{ -1 };
+        std::vector<const File*> m_TextureFaces{};
     };
 
     struct VulkanSwapChainCreateInfo {

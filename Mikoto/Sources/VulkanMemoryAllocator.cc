@@ -78,6 +78,29 @@ namespace Mikoto {
         return res;
     }
 
+    auto VulkanMemoryAllocator::AllocateImage( VulkanTextureCube *texture ) -> VkResult {
+        VkResult res{
+            vmaCreateImage(
+                m_Allocator,
+                texture->GetImageCreateInfo(),
+                texture->GetAllocationCreateInfo(),
+                texture->GetImage(),
+                texture->GetVMAllocation(),
+                texture->GetVMAllocationInfo() ) };
+
+        if ( res == VK_SUCCESS ) {
+            //m_DebugNames.insert( texture->GetDebugName() );
+        }
+
+        return res;
+    }
+
+    auto VulkanMemoryAllocator::FreeImage( VulkanTextureCube *texture ) -> void {
+        vmaDestroyImage( m_Allocator, *texture->GetImage(), *texture->GetVMAllocation() );
+
+        //m_DebugNames.erase( texture->GetDebugName() );
+    }
+
     auto VulkanMemoryAllocator::AllocateBuffer( VulkanBuffer *buffer ) -> VkResult {
         VkResult res{ vmaCreateBuffer(
                 m_Allocator,

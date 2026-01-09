@@ -16,6 +16,17 @@ namespace Mikoto {
         m_Resources.emplace_back( std::move(newEntry) );
     }
 
+    auto SRGPerPass::SetTexture( std::string_view textureName, std::string_view samplerName, UInt32 binding ) -> void {
+        Entry newEntry{
+            .Name{ textureName },
+            .SamplerName{ samplerName },
+            .Binding{ binding },
+            .Type{ ShaderResourceType::SHADER_RESOURCE_COMBINED_IMAGE_SAMPLER }
+        };
+
+        m_Resources.emplace_back( std::move(newEntry) );
+    }
+
     auto SRGTextures::GetMaxBindlessTextureCount() -> UInt32 {
         return 4096;
     }

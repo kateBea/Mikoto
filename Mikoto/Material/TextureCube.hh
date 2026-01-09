@@ -14,26 +14,23 @@ namespace Mikoto {
     class TextureCube : public Texture {
     public:
 
+        auto GetMipLevels() const -> Int32 { return m_MipLevels; }
+
         ~TextureCube() override = default;
 
     protected:
+        static constexpr UInt32 MAX_CUBE_MAP_FACES{ 6 };
+
         /**
          * @brief Constructs a 2D texture with specified parameters.
-         * @param type Type of the texture.
-         * @param width Width of the texture in pixels.
-         * @param height Height of the texture in pixels.
-         * @param channels Number of color channels in the texture.
-         * @param data Pointer to the texture data
          * @param usage Type of resource usage
-         * @param textureUsage Usage of this texture
          */
-        TextureCube(const Int32 width, const Int32 height, const Int32 channels, Byte* data,
-                   const ResourceUsageType usage, TextureUsage textureUsage)
-            : Texture{ TextureType::TEXTURE_CUBE, TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM, width, height, channels, usage, textureUsage }, m_Data{ data }
+        explicit TextureCube(const ResourceUsageType usage)
+            : Texture{ TextureType::TEXTURE_CUBE, TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM, 0, 0, 0, usage, TextureUsage::TEXTURE_USAGE_CUBE }
         {}
 
-    protected:
-        Byte* m_Data{ nullptr };
+        // Cube map faces all share same dimensions
+        Int32 m_MipLevels{ 1 };
     };
 }// namespace Mikoto
 

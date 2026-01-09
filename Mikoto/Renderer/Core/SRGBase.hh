@@ -68,6 +68,7 @@ namespace  Mikoto {
         explicit SRGPerPass() : SRGBase{ SRGType::SRG_PerPass } {}
 
         auto SetBuffer(std::string_view name, UInt32 binding, ShaderResourceType type) -> void;
+        auto SetTexture(std::string_view textureName, std::string_view samplerName, UInt32 binding) -> void;
 
         auto begin() -> decltype(auto) { return m_Resources.begin(); }
         auto end() -> decltype(auto) { return m_Resources.end(); }
@@ -78,6 +79,10 @@ namespace  Mikoto {
     private:
         struct Entry {
             std::string Name{};
+
+            // If this is an image
+            std::string SamplerName{};
+
             UInt32 Binding{};
             ShaderResourceType Type{ ShaderResourceType::SHADER_RESOURCE_UNDEFINED };
         };

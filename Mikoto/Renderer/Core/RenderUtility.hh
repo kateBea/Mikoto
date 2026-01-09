@@ -221,7 +221,6 @@ namespace Mikoto {
         auto WithResourceType( ResourceUsageType type ) -> TextureDescription&;
     };
 
-
     /**
     * @struct TextureLoadDescription
     * @brief Holds information for loading a texture.
@@ -241,6 +240,30 @@ namespace Mikoto {
         auto WithType( TextureType type ) -> TextureLoadDescription&;
     };
 
+    struct TextureCubeLoadDescription {
+        Path BasePath{};
+        std::vector<Path> FacesRelativePaths{};
+        TextureType Type{ TextureType::TEXTURE_UNKNOWN };
+
+        TextureUsage Usage{ TextureUsage::TEXTURE_USAGE_CUBE };
+        ResourceUsageType ResourceUsage{ ResourceUsageType::RESOURCE_USAGE_STATIC };
+
+        auto WithResourceUsage( ResourceUsageType usage ) -> TextureCubeLoadDescription&;
+        auto WithTextureUsage( TextureUsage usage ) -> TextureCubeLoadDescription&;
+
+        auto WithFacePath( const Path& file ) -> TextureCubeLoadDescription&;
+        auto WithBasePath( const Path& file ) -> TextureCubeLoadDescription&;
+        auto WithType( TextureType type ) -> TextureCubeLoadDescription&;
+    };
+
+    struct TextureCubeCreateDescription {
+        std::vector<const File*> Faces{};
+        ResourceUsageType ResourceUsage{ ResourceUsageType::RESOURCE_USAGE_STATIC };
+
+        auto WithResourceUsage( ResourceUsageType usage ) -> TextureCubeCreateDescription&;
+        auto WithFacePath( const File* file ) -> TextureCubeCreateDescription&;
+    };
+
     struct ShaderModuleDescription {
         const File* ShaderFile{};
         ShaderStage Stage{ ShaderStage::VERTEX_STAGE };
@@ -250,6 +273,8 @@ namespace Mikoto {
     };
 
     struct SamplerDescription {
+        bool CubeSampler{};
+
         SamplerFilter MinFilter{ SamplerFilter::FILTER_NEAREST };
         SamplerFilter MagFilter{ SamplerFilter::FILTER_NEAREST };
         SamplerWrapMode WrapS{ SamplerWrapMode::WRAP_REPEAT };

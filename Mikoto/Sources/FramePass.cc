@@ -9,7 +9,103 @@
 #include <Scene/Component.hh>
 #include <Scene/Scene.hh>
 
+#include <Material/TextureCube.hh>
+
 namespace Mikoto {
+
+    auto SkyboxPass::Setup( FrameGraphBuilder &builder ) -> void {
+        PipelineDescription pipelineDesc{};
+
+        pipelineDesc.AddShader("./Resources/Shaders/vulkan-spirv/Skybox_Vert.sprv", ShaderStage::VERTEX_STAGE);
+        pipelineDesc.AddShader("./Resources/Shaders/vulkan-spirv/Skybox_Frag.sprv", ShaderStage::FRAGMENT_STAGE);
+
+        GraphicsPipelineDescription graphicsDesc{};
+        graphicsDesc.DepthTest  = false;
+        graphicsDesc.DepthWrite = false;
+        graphicsDesc.AlphaBlending = false;
+        graphicsDesc.PipelineCullMode = CullMode::NONE;
+        graphicsDesc.PrimitiveTopology = Topology::TRIANGLE_LIST;
+
+        graphicsDesc.VertexAttributesSpec = {};
+
+        pipelineDesc.Description = graphicsDesc;
+        pipelineDesc.ColorRenderTargets.emplace_back("FinalCompositionPass_ColorTarget");
+
+        builder.CreateNamedPipeline("SkyboxPass_Pipeline", pipelineDesc);
+
+        //builder.CreateColorRenderTarget( "SkyboxPass_ColorTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM );
+
+        BufferDescription cameraInfo{};
+        cameraInfo.WithData( nullptr )
+                .WithUsage( BufferUsage::BUFFER_USAGE_UNIFORM )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+                .ForElement( sizeof(SkyboxUBO), 1 );
+        builder.CreateNamedBuffer( "SkyboxPass_CameraInfo", cameraInfo );
+
+        builder.WriteBuffer(this, "SkyboxPass_CameraInfo");
+
+        // For now will use its own render target but should use final composition one
+        builder.WriteTexture(this, "FinalCompositionPass_ColorTarget");
+    }
+
+    auto SkyboxPass::Execute( PassCommandList &commandList ) -> void {
+
+        TextureCubeLoadDescription loadDesc{};
+        loadDesc.WithType( TextureType::TEXTURE_CUBE )
+            .WithBasePath("Resources/Cubemaps/skybox")
+            .WithFacePath( "right.jpg" )
+            .WithFacePath( "left.jpg" )
+        .WithFacePath( "bottom.jpg" )
+            .WithFacePath( "top.jpg" )
+
+            .WithFacePath( "front.jpg" )
+            .WithFacePath( "back.jpg" );
+
+        TextureHandle skybox{ AssetsService::Get()->LoadAsset<TextureCube>( loadDesc ) };
+
+        // TODO: proper sampler
+        SamplerDescription samplerDescription{ .CubeSampler{ true } };
+        commandList.CreateNamedSampler("SkyboxPass_Sampler", samplerDescription);
+        commandList.RegisterNamedTexture("SkyboxPass_TextureCube", skybox);
+
+        commandList.SetColorRenderTarget("FinalCompositionPass_ColorTarget");
+
+        commandList.BeginRender(this, LoadOp::CLEAR);
+        commandList.BindPipeline("SkyboxPass_Pipeline");
+
+        commandList.SetViewport(0, 0, 1920, 1080);
+        commandList.SetScissor(0, 0, 1920, 1080);
+
+        commandList.SetBufferBindSlot(SRGType::SRG_PerPass,"SkyboxPass_CameraInfo", 0);
+        commandList.SetTextureBindSlot(SRGType::SRG_PerPass, "SkyboxPass_TextureCube", "SkyboxPass_Sampler", 1);
+
+        commandList.FillBuffer( "SkyboxPass_CameraInfo", std::addressof( m_SkyboxUBO ), sizeof(SkyboxUBO) );
+
+        commandList.BindResourceGroup(SRGType::SRG_PerPass);
+
+        DrawIndexedState drawIndexedState{};
+
+        ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( "Resources/Models/Prefabs/cube/gltf/scene.gltf" ) };
+        MeshNode& mesh{ box->GetMeshNode( 0 ) };
+        drawIndexedState.IndexBuffer = mesh.GetIndexBuffer();
+        drawIndexedState.VertexBuffers.emplace_back( mesh.GetVertexBuffer(), 0);
+        drawIndexedState.IndicesCount = mesh.GetIndexBuffer()->GetCount();
+        drawIndexedState.InstancesCount = 1;
+
+        //commandList.DrawIndexed(drawIndexedState );
+        commandList.Draw(36, 1, 0, 0 );
+
+        commandList.EndRender();
+    }
+
+    auto SkyboxPass::SetCamera( const Camera *camera ) -> void {
+        m_SkyboxUBO.Projection = camera->GetProjection();
+        m_SkyboxUBO.View = camera->GetViewMatrix();
+    }
+
+    auto SkyboxPass::SetCubeMap( TextureHandle cubeMap ) -> void {
+        m_CubeMap = cubeMap;
+    }
 
     auto TextRenderPass::Setup( FrameGraphBuilder &builder ) -> void {
         // Create resources it needs
@@ -42,10 +138,6 @@ namespace Mikoto {
         //pipelineDesc.DepthRenderTargets = "FinalCompositionPass_DepthTarget";
 
         builder.CreateNamedPipeline( "TextRenderPass_Pipeline", pipelineDesc );
-
-        // TODO: use the final composition render target because this pass render text on the final composition target
-        //builder.CreateColorRenderTarget( "TextRenderPass_ColorTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM );
-        //builder.CreateDepthRenderTarget( "TextRenderPass_DepthTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_D32_FLOAT );
 
         BufferDescription fontRenderParams{};
         fontRenderParams.WithData( nullptr )
@@ -288,7 +380,7 @@ namespace Mikoto {
 
         builder.ReadBuffer( this, "PerFrame_CameraInfo" );
 
-        builder.WriteTexture( this, "FinalCompositionPass_ColorTarget" );
+        builder.ReadTexture( this, "FinalCompositionPass_ColorTarget" );
         builder.WriteTexture( this, "FinalCompositionPass_DepthTarget" );
     }
 
@@ -403,9 +495,9 @@ namespace Mikoto {
     auto FinalCompositionPass::Execute( PassCommandList& commandList ) -> void {
         commandList.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
         commandList.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
-        commandList.SetClearColor( m_ClearColor );
+        //commandList.SetClearColor( m_ClearColor );
 
-        commandList.BeginRender(this);
+        commandList.BeginRender(this, LoadOp::LOAD);
         commandList.BindPipeline( "FinalCompositionPass_Pipeline" );
 
         // Set render targets

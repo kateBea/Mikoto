@@ -55,11 +55,20 @@ namespace Mikoto {
             .WithBasePath("Resources/Cubemaps/skybox")
             .WithFacePath( "right.jpg" )
             .WithFacePath( "left.jpg" )
-        .WithFacePath( "bottom.jpg" )
+
+            // Needed to flip these cause Vulkan I think
+            .WithFacePath( "bottom.jpg" )
             .WithFacePath( "top.jpg" )
 
             .WithFacePath( "front.jpg" )
             .WithFacePath( "back.jpg" );
+
+        // +X -> right.jpg
+        // -X -> left.jpg
+        // +Y -> top.jpg      // often needs vertical flip
+        // -Y -> bottom.jpg   // often needs vertical flip
+        // -Z -> front.jpg
+        // +Z -> back.jpg
 
         TextureHandle skybox{ AssetsService::Get()->LoadAsset<TextureCube>( loadDesc ) };
 

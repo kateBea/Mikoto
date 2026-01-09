@@ -9,7 +9,7 @@ layout(set = PERPASS_SETINDEX, binding = 0) uniform SkyBoxUBO {
     mat4 Projection;
 } u_Camera;
 
-// Your cube, embedded directly in the shader
+// https://learnopengl.com/code_viewer.php?code=advanced/cubemaps_skybox_data
 const vec3 SKYBOX_VERTICES[36] = vec3[](
     vec3(-1.0,  1.0, -1.0),
     vec3(-1.0, -1.0, -1.0),
@@ -55,7 +55,7 @@ const vec3 SKYBOX_VERTICES[36] = vec3[](
 );
 
 void main() {
-    vec3 pos = SKYBOX_VERTICES[gl_VertexIndex];
+    vec3 pos = vec3(SKYBOX_VERTICES[gl_VertexIndex]);
 
     // Remove translation from view matrix
     mat4 view = mat4(mat3(u_Camera.View));
@@ -66,5 +66,7 @@ void main() {
 
     // Force skybox to far plane
     vec4 clip = u_Camera.Projection * view * vec4(pos, 1.0);
-    gl_Position = clip.xyww;
+
+    gl_Position = clip;
+    //gl_Position = clip.xyww;
 }

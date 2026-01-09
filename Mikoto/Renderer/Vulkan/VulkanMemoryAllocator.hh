@@ -25,9 +25,13 @@ namespace Mikoto {
         auto Shutdown() -> void override;
 
         auto AllocateImage(VulkanTexture* texture ) -> VkResult;
+        auto AllocateImage(VulkanTextureCube* texture ) -> VkResult;
+
         auto AllocateBuffer(VulkanBuffer* buffer ) -> VkResult;
 
         auto FreeImage(VulkanTexture* texture ) -> void;
+        auto FreeImage(VulkanTextureCube* texture ) -> void;
+
         auto FreeBuffer(VulkanBuffer* buffer ) -> void;
 
         auto MapBuffer(VulkanBuffer* buffer ) const -> void;

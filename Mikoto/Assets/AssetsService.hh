@@ -26,6 +26,7 @@
 #include "Assets/AudioClip.hh"
 #include "Assets/MeshFactory.hh"
 #include "Material/PBRMaterial.hh"
+#include "Material/TextureCube.hh"
 
 namespace Mikoto {
 
@@ -133,6 +134,9 @@ namespace Mikoto {
             else if constexpr (std::is_same_v<AssetType, Texture>) {
                 return LoadTexture( std::forward<decltype(args)>(args)... );
             }
+            else if constexpr (std::is_same_v<AssetType, TextureCube>) {
+                return LoadCubeMap( std::forward<decltype(args)>(args)... );
+            }
             else if constexpr (std::is_same_v<AssetType, Audio>) {
                 return LoadAudio( std::forward<decltype(args)>(args)... );
             }
@@ -173,6 +177,9 @@ namespace Mikoto {
         auto LoadTexture( const Path& uri ) -> TextureHandle;
         auto LoadTexture( std::string_view uri ) -> TextureHandle;
         auto LoadTexture( const TextureLoadDescription& description) -> TextureHandle;
+
+        auto LoadCubeMap( const Path& uri ) -> TextureHandle;
+        auto LoadCubeMap( const TextureCubeLoadDescription& description) -> TextureHandle;
 
         auto LoadAudio( const AudioLoadDescription& description) -> AudioHandle;
 

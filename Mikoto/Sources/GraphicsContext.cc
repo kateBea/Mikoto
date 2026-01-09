@@ -91,13 +91,20 @@ namespace Mikoto {
         }
     }
 
-    auto PassCommandList::SetTextureBindSlot( SRGType type, std::string_view buffer, UInt32 index ) -> void {
+    auto PassCommandList::SetTextureBindSlot( SRGType type, std::string_view texture, std::string_view sampler, UInt32 index ) -> void {
+        MKT_ASSERT( m_Context, "No valid context for this pass command list" );
+        MKT_ASSERT( m_Blackboard, "Tried to create PassCommandList with NULL blackboard" );
 
+        if (IsSRGType( type, SRGType::SRG_PerPass)) {
+            SRGPerPass* perPassData{ m_Context->GetPassSRG( m_ActivePass ) };
+            MKT_ASSERT( perPassData, "Per pass data must not be NULL" );
+
+            perPassData->SetTexture(  texture, sampler, index );
+        }
     }
 
     auto PassCommandList::Draw( UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance ) const -> void {
         MKT_ASSERT( m_Context, "No valid context for this pass command list" );
-
         m_Context->Draw(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
@@ -204,5 +211,20 @@ namespace Mikoto {
         MKT_ASSERT( m_Blackboard, "No valid blackboard for this pass command list" );
 
         return m_Blackboard->GetBuffer( name );
+    }
+
+    auto PassCommandList::RegisterNamedTexture( std::string_view name, TextureHandle handle ) const -> void {
+        MKT_ASSERT( m_Blackboard, "No valid blackboard for this pass command list" );
+        m_Blackboard->RegisterTexture( name, handle );
+    }
+
+    auto PassCommandList::CreateNamedSampler( std::string_view name, SamplerDescription samplerDescription ) -> void {
+        MKT_ASSERT( m_Blackboard, "No valid blackboard for this pass command list" );
+
+        if (!m_Blackboard->GetSampler( name ).IsEmpty()) {
+            return;
+        }
+
+        m_Blackboard->RegisterSample( name, samplerDescription );
     }
 }// namespace Mikoto

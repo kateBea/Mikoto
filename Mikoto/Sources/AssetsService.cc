@@ -205,6 +205,50 @@ namespace Mikoto {
         return TextureHandle::CreateEmpty();
     }
 
+    auto AssetsService::LoadCubeMap( const Path &uri ) -> TextureHandle {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        // Traverse all faces for simplicity fetch the first 6 images
+        // LoadCubeMap( const TextureCubeLoadDescription &description );
+
+        return TextureHandle::CreateEmpty();
+    }
+
+    auto AssetsService::LoadCubeMap( const TextureCubeLoadDescription &description ) -> TextureHandle {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        // if it exists
+        if (const auto itFind{ m_Textures.find( description.BasePath.string() ) }; itFind != m_Textures.end() ) {
+            return itFind->second;
+        }
+
+        TextureCubeCreateDescription textureDesc{};
+        textureDesc.WithResourceUsage( description.ResourceUsage );
+
+        for (const auto& path : description.FacesRelativePaths ) {
+            PathBuilder pathBuilder{};
+            pathBuilder.WithPath( description.BasePath.string() )
+                .WithPath( path.string() );
+
+            if (const File* file{ FileService::Get()->LoadFile( pathBuilder.Build() ) }) {
+                textureDesc.WithFacePath( file );
+            }
+        }
+
+        TextureHandle texture{ m_GpuDevice->CreateTexture( textureDesc ) };
+        if (!texture.IsEmpty()) {
+            auto [it, success]{
+                m_Textures.try_emplace( description.BasePath.string(), texture )
+            };
+
+            if (success) {
+                return m_Textures[description.BasePath.string()];
+            }
+        }
+
+        return TextureHandle::CreateEmpty();
+    }
+
     auto AssetsService::LoadAudio( const AudioLoadDescription& description) -> AudioHandle {
         MKT_BEGIN_PROFILER_NAMED();
 

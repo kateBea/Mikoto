@@ -12,6 +12,12 @@ namespace Mikoto {
         MKT_ASSERT( m_Device, "Tried to create a frame blackboard with a NULL devide" );
     }
 
+    auto FrameBlackboard::RegisterTexture( std::string_view name, TextureHandle handle ) -> void {
+        if (!m_TexturesByNames.contains( std::string{ name } )) {
+            m_TexturesByNames.emplace( std::string{ name }, handle );
+        }
+    }
+
     auto FrameBlackboard::GetTexture( std::string_view name ) -> TextureHandle {
         const auto it{ m_TexturesByNames.find( std::string{ name } ) };
         if (it != m_TexturesByNames.end()) {
@@ -37,6 +43,15 @@ namespace Mikoto {
         }
 
         return BufferHandle::CreateEmpty();
+    }
+
+    auto FrameBlackboard::GetSampler( std::string_view name ) -> SamplerHandle {
+        const auto it{ m_SamplersByNames.find( std::string{ name } ) };
+        if (it != m_SamplersByNames.end()) {
+            return it->second;
+        }
+
+        return SamplerHandle::CreateEmpty();
     }
 
     auto FrameBlackboard::RegisterTexture( std::string_view name, TextureDescription description ) -> void {
@@ -98,6 +113,20 @@ namespace Mikoto {
         if (!buffer.IsEmpty()) {
             buffer->SetDebugName( name );
             m_BuffersByNames.emplace( std::string{ name }, buffer );
+        }
+    }
+
+    auto FrameBlackboard::RegisterSample( std::string_view name, SamplerDescription description ) -> void {
+        if (m_SamplersByNames.contains( std::string{ name } )) {
+            MKT_CORE_LOGGER_WARN( "FrameBlackboard::RegisterSampler - Named sampler [{}] already exists.", name );
+            return;
+        }
+
+        SamplerHandle buffer{ m_Device->CreateSampler( description ) };
+
+        if (!buffer.IsEmpty()) {
+            buffer->SetDebugName( name );
+            m_SamplersByNames.emplace( std::string{ name }, buffer );
         }
     }
 }

@@ -139,7 +139,7 @@ namespace Mikoto {
         auto DrawIndexed(const DrawIndexedState& info) const -> void;
 
         auto SetBufferBindSlot(SRGType type, std::string_view buffer, UInt32 index ) const -> void;
-        auto SetTextureBindSlot(SRGType type, std::string_view buffer, UInt32 index) -> void;
+        auto SetTextureBindSlot(SRGType type, std::string_view texture, std::string_view sampler, UInt32 index) -> void;
 
         auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance ) const -> void;
 
@@ -153,6 +153,10 @@ namespace Mikoto {
         auto BindResourceGroup(SRGType srgType ) const -> void;
 
         MKT_NODISCARD auto GetNamedBuffer( std::string_view ) const -> BufferHandle;
+
+        auto RegisterNamedTexture( std::string_view name, TextureHandle handle ) const -> void;
+
+        auto CreateNamedSampler( std::string_view name, SamplerDescription samplerDescription ) -> void;
 
     private:
         struct DrawInstanceMetadata {

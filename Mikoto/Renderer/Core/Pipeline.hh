@@ -86,6 +86,12 @@ namespace Mikoto {
         TRIANGLE_FAN
     };
 
+    enum class CullMode {
+        NONE,
+        CULL_FRONT,
+        CULL_BACK,
+    };
+
     enum class DepthCompareOp {
         NEVER,
         LESS,
@@ -110,6 +116,8 @@ namespace Mikoto {
         bool AlphaBlending{ true };
         bool Wireframe{ false };
         float WireframeLineWidth{ 1.0f };
+
+        CullMode PipelineCullMode{ CullMode::NONE };
 
         // One input rate default
         std::vector<AttributesSpec> VertexAttributesSpec{
@@ -270,6 +278,8 @@ namespace Mikoto {
         bool m_AlphaBlending{ false };
         bool m_Wireframe{ false };
         float m_WireframeLineWidth{ 1.0f };
+
+        CullMode m_CullMode{ CullMode::NONE };
 
         Topology m_Topology{ Topology::TRIANGLE_LIST };
         DepthCompareOp m_DepthCompareOp{ DepthCompareOp::ALWAYS };

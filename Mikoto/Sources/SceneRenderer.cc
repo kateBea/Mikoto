@@ -82,6 +82,11 @@ namespace Mikoto {
         MKT_ASSERT( textRenderPass, "Trying to set scene for text render pass while it is NULL" );
 
         textRenderPass->SetCamera( m_Camera );
+
+        SkyboxPass* skyboxPass{ m_PassRegistry.Get<SkyboxPass>() };
+        MKT_ASSERT( skyboxPass, "Trying to set scene for Skybox pass while it is NULL" );
+
+        skyboxPass->SetCamera( m_Camera );
     }
 
     auto SceneRenderer::GetGraph() -> FrameGraph & {
@@ -147,6 +152,9 @@ namespace Mikoto {
         TextRenderPass* textRenderPass{ m_PassRegistry.Register<TextRenderPass>() };
         textRenderPass->Setup( builder );
 
+        SkyboxPass* skyboxPass{ m_PassRegistry.Register<SkyboxPass>( m_Device ) };
+        skyboxPass->Setup( builder );
+
         m_FrameGraph->RegisterPass( helloTrianglePass );
         m_FrameGraph->RegisterPass( simpleComputePass );
         m_FrameGraph->RegisterPass( helloTexture );
@@ -154,6 +162,7 @@ namespace Mikoto {
         m_FrameGraph->RegisterPass( aabbGenComp );
         m_FrameGraph->RegisterPass( lightCullingComp );
         m_FrameGraph->RegisterPass( textRenderPass );
+        m_FrameGraph->RegisterPass( skyboxPass );
 
         m_FrameGraph->Compile( builder );
     }

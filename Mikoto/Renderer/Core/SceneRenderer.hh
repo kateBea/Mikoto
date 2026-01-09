@@ -19,14 +19,6 @@
 
 namespace Mikoto {
 
-    enum RenderResolution {
-        RESOLUTION_HD,
-        RESOLUTION_FHD,
-        RESOLUTION_QHD,
-        RESOLUTION_UHD
-    };
-
-
     /**
      * @brief Structure for creating a `SceneRenderer` instance.
      *

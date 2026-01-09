@@ -23,13 +23,19 @@ namespace Mikoto {
 
         explicit FrameBlackboard(GpuDevice* device);
 
+        auto RegisterTexture(std::string_view name, TextureHandle handle) -> void;
         auto RegisterTexture(std::string_view name, TextureDescription description) -> void;
+
         auto RegisterPipeline(std::string_view name, PipelineDescription description) -> void;
         auto RegisterBuffer(std::string_view name, BufferDescription description) -> void;
 
+        auto RegisterSample( std::string_view name, SamplerDescription description ) -> void;
+
+        auto GetSampler(std::string_view name) -> SamplerHandle;
         auto GetTexture(std::string_view name) -> TextureHandle;
         auto GetPipeline(std::string_view name) -> PipelineHandle;
         auto GetBuffer(std::string_view name) -> BufferHandle;
+
 
     private:
         GpuDevice* m_Device{ nullptr };
@@ -37,6 +43,7 @@ namespace Mikoto {
         ankerl::unordered_dense::map<std::string, TextureHandle> m_TexturesByNames{};
         ankerl::unordered_dense::map<std::string, PipelineHandle> m_PipelinesByNames{};
         ankerl::unordered_dense::map<std::string, BufferHandle> m_BuffersByNames{};
+        ankerl::unordered_dense::map<std::string, SamplerHandle> m_SamplersByNames{};
     };
 
 }

@@ -54,6 +54,39 @@ namespace Mikoto {
         std::string m_Name{};
     };
 
+    enum class RenderResolution {
+        FULL_HD,
+        QUAD_HD,
+        ULTRA_HD,
+    };
+
+    // function to infer image size based on render resolution
+
+    class SkyboxPass final : public FramePass {
+    public:
+        explicit SkyboxPass(GpuDevice* device)
+           : FramePass{ "SkyboxPass", PassType::RENDER } {}
+
+        auto Setup(FrameGraphBuilder& builder) -> void override;
+        auto Execute(PassCommandList& commandList) -> void override;
+
+        auto SetCamera(const Camera* camera) -> void;
+        auto SetCubeMap(TextureHandle cubeMap) -> void;
+
+    private:
+
+        struct SkyboxUBO {
+            Mat4F View{};
+            Mat4F Projection{};
+        };
+
+    private:
+        SamplerHandle m_Sampler{};
+
+        SkyboxUBO m_SkyboxUBO{};
+        TextureHandle m_CubeMap{};
+    };
+
     class TextRenderPass final : public FramePass {
     public:
 

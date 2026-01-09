@@ -37,6 +37,16 @@ namespace Mikoto {
         return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     }
 
+    static auto InferCullMode(CullMode cullMode) -> VkCullModeFlagBits {
+        switch (cullMode) {
+            case CullMode::NONE: return VK_CULL_MODE_NONE;
+            case CullMode::CULL_BACK: return VK_CULL_MODE_BACK_BIT;
+            case CullMode::CULL_FRONT: return VK_CULL_MODE_FRONT_BIT;
+        }
+
+        return VK_CULL_MODE_NONE;
+    }
+
     static auto GetDefaultGraphicsPipelineConfigInfo() -> VulkanGraphicsPipelineConfiguration {
         VulkanGraphicsPipelineConfiguration configInfo{};
 
@@ -208,6 +218,8 @@ namespace Mikoto {
 
         m_Topology = info.Desc.PrimitiveTopology;
 
+        m_CullMode = info.Desc.PipelineCullMode;
+
         m_VertexAttributesSpec = info.Desc.VertexAttributesSpec;
 
         if (!info.Desc.DepthTexture.IsEmpty()) {
@@ -229,6 +241,11 @@ namespace Mikoto {
     auto VulkanGraphicsPipeline::SetupConfig( VulkanGraphicsPipelineConfiguration& config ) const -> void {
         config.ColorBlendInfo.pAttachments = &config.ColorBlendAttachment;
         config.InputAssemblyInfo.topology = InferVulkanTopology(m_Topology);
+
+        config.DepthStencilInfo.depthWriteEnable = m_DepthWrite ? VK_TRUE : VK_FALSE;
+        config.DepthStencilInfo.depthTestEnable = m_DepthTest ? VK_TRUE : VK_FALSE;
+
+        config.RasterizationInfo.cullMode = InferCullMode(m_CullMode);
     }
 
     auto VulkanGraphicsPipeline::Bind( const VkCommandBuffer commandBuffer ) const -> void {

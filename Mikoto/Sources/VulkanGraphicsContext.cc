@@ -72,7 +72,6 @@ namespace Mikoto {
         renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
         renderingInfo.renderArea = { { 0, 0 }, { 1920, 1080 } };
         renderingInfo.layerCount = 1;
-        renderingInfo.layerCount = 1;
         renderingInfo.colorAttachmentCount = static_cast<UInt32>( colorImages.size() );
         renderingInfo.pColorAttachments = colorImages.data();
         renderingInfo.pDepthAttachment = beginInfo.DepthRenderTarget.IsEmpty() ? nullptr : std::addressof( depthAttachment );
@@ -203,7 +202,7 @@ namespace Mikoto {
         }
 
         if (it != m_PassInfo.end() && it->second.Dirty) {
-            for (const auto& [Name, Binding, Type]: it->second.PassResources) {
+            for (const auto& [Name, SamplerName, Binding, Type]: it->second.PassResources) {
 
                 switch (Type) {
                     case ShaderResourceType::SHADER_STORAGE_BUFFER:
@@ -211,7 +210,7 @@ namespace Mikoto {
                         PushBuffer( pass, Name, PER_PASS_DESCRIPTOR_SET_INDEX, Binding, Type );
                         break;
                     case ShaderResourceType::SHADER_RESOURCE_COMBINED_IMAGE_SAMPLER:
-                        PushImage( pass, Name, PER_PASS_DESCRIPTOR_SET_INDEX, Binding, Type );
+                        PushImage( pass, Name, SamplerName,  PER_PASS_DESCRIPTOR_SET_INDEX, Binding, Type );
                         break;
                     case ShaderResourceType::SHADER_RESOURCE_UNDEFINED:
                         break;
@@ -239,7 +238,7 @@ namespace Mikoto {
         writer.UpdateSet( VK_DEVICE( m_Device ), passInfo.DescriptorSets.at( groupIndex ) );
     }
 
-    auto VulkanGraphicsContext::PushImage( FramePass *pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType ) -> void {
+    auto VulkanGraphicsContext::PushImage( FramePass *pass,std::string_view textureName, std::string_view samplerName, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType ) -> void {
         const auto it{ m_PassInfo.find( pass ) };
         if (it == m_PassInfo.end()) {
             MKT_CORE_LOGGER_WARN( "VulkanGraphicsContext::PushImage - Pass does not exist" );
@@ -247,12 +246,24 @@ namespace Mikoto {
         }
 
         FramePassInfo &passInfo{ it->second };
-        TextureHandle handle{ m_Blackboard->GetTexture( name ) };
+        TextureHandle textureHandle{ m_Blackboard->GetTexture( textureName ) };
+
+        SamplerHandle samplerHandle{ m_Blackboard->GetSampler( samplerName ) };
+        VkSampler sampler{ VK_NULL_HANDLE };
+
+        if (!samplerHandle.IsEmpty()) {
+            sampler = samplerHandle->GetNativeHandle(ObjectType::Vk_Sampler);
+        }
 
         DescriptorWriter writer{};
-        VkSampler sampler{ VK_NULL_HANDLE };
-        VkImageLayout layout{ dynamic_cast<VulkanTexture *>( handle.GetRaw() )->GetCurrentLayout() };
-        writer.WriteImage( groupBinding, handle->GetNativeHandle( ObjectType::Vk_ImageView ), sampler, layout, ToVkDescriptorType( shaderResourceType ) );
+
+        VkImageLayout layout{ VK_IMAGE_LAYOUT_UNDEFINED };
+        if (textureHandle->GetTextureUsage() == TextureUsage::TEXTURE_USAGE_CUBE) {
+            layout = dynamic_cast<VulkanTextureCube *>( textureHandle.GetRaw() )->GetCurrentLayout();
+        } else {
+            layout = dynamic_cast<VulkanTexture *>( textureHandle.GetRaw() )->GetCurrentLayout();
+        }
+        writer.WriteImage( groupBinding, textureHandle->GetNativeHandle( ObjectType::Vk_ImageView ), sampler, layout, ToVkDescriptorType( shaderResourceType ) );
 
         writer.UpdateSet( VK_DEVICE( m_Device ), passInfo.DescriptorSets.at( groupIndex ) );
     }

@@ -211,6 +211,41 @@ namespace Mikoto {
         return *this;
     }
 
+    auto TextureCubeLoadDescription::WithResourceUsage( ResourceUsageType usage ) -> TextureCubeLoadDescription & {
+        this->ResourceUsage = usage;
+        return *this;
+    }
+
+    auto TextureCubeLoadDescription::WithTextureUsage( TextureUsage usage ) -> TextureCubeLoadDescription & {
+        this->Usage = usage;
+        return *this;
+    }
+
+    auto TextureCubeLoadDescription::WithFacePath( const Path &file ) -> TextureCubeLoadDescription & {
+        this->FacesRelativePaths.emplace_back( file );
+        return *this;
+    }
+
+    auto TextureCubeLoadDescription::WithBasePath( const Path &file ) -> TextureCubeLoadDescription & {
+        this->BasePath = file;
+        return *this;
+    }
+
+    auto TextureCubeLoadDescription::WithType( TextureType type ) -> TextureCubeLoadDescription & {
+        this->Type = type;
+        return *this;
+    }
+
+    auto TextureCubeCreateDescription::WithResourceUsage( ResourceUsageType usage ) -> TextureCubeCreateDescription & {
+        this->ResourceUsage = usage;
+        return *this;
+    }
+
+    auto TextureCubeCreateDescription::WithFacePath( const File *file ) -> TextureCubeCreateDescription & {
+        this->Faces.emplace_back( file );
+        return *this;
+    }
+
     auto ShaderModuleDescription::WithShaderFile( const File* file ) -> ShaderModuleDescription& {
         ShaderFile = file;
         return *this;

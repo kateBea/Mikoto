@@ -55,6 +55,8 @@ namespace Mikoto {
         auto Initialize() -> void override;
         auto Release() -> void override;
 
+        auto FillCubeTexture(Buffer* src, Texture* dest) -> void;
+
     private:
         VkCommandBuffer m_CmdBuffer{ VK_NULL_HANDLE };
         VkCommandBufferAllocateInfo m_AllocInfo{};
@@ -114,6 +116,7 @@ namespace Mikoto {
         auto Init() -> void override;
         auto Shutdown() -> void override;
 
+        MKT_NODISCARD auto CreateTexture(const TextureCubeCreateDescription& description) -> TextureHandle  override;
         MKT_NODISCARD auto CreateTexture( const TextureDescription& description ) -> TextureHandle override;
         MKT_NODISCARD auto CreateBuffer( const BufferDescription& description ) -> BufferHandle override;
         MKT_NODISCARD auto CreateFrameBuffer( const FramebufferDescription& description ) -> FramebufferHandle override;
@@ -208,6 +211,7 @@ namespace Mikoto {
         // [Resource Pools]
         ResourcePoolTyped<VulkanBuffer> m_Buffers{};
         ResourcePoolTyped<VulkanTexture> m_Textures{};
+        ResourcePoolTyped<VulkanTextureCube> m_TexturesCube{};
         ResourcePoolTyped<VulkanCommandPool> m_CmdPools{};
         ResourcePoolTyped<VulkanFramebuffer> m_Framebuffers{};
         ResourcePoolTyped<VulkanGraphicsPipeline> m_GraphicsPipelines{};

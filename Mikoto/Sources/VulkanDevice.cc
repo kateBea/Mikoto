@@ -197,6 +197,7 @@ namespace Mikoto {
         // Init pools
         m_Buffers.Init( 10 );
         m_Textures.Init( 10 );
+        m_TexturesCube.Init( 10 );
         m_Framebuffers.Init( 10 );
         m_Swapchains.Init( 10 );
         m_GraphicsPipelines.Init( 10 );
@@ -421,6 +422,7 @@ namespace Mikoto {
 
         // Clear resources (pools, etc)
         m_Textures.Shutdown();
+        m_TexturesCube.Shutdown();
         m_Buffers.Shutdown();
         m_CmdPools.Shutdown();
         m_Framebuffers.Shutdown();
@@ -443,6 +445,18 @@ namespace Mikoto {
         vkDestroyDevice( m_LogicalDevice, nullptr );
 
         m_IsInitialized = false;
+    }
+
+    auto VulkanDevice::CreateTexture( const TextureCubeCreateDescription &description ) -> TextureHandle {
+        TextureHandle texture{ m_TexturesCube.Allocate( description ) };
+        if ( texture.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateTextureCube - Failed to allocate texture cube resource." );
+            return TextureHandle::CreateEmpty();
+        }
+
+        texture->Initialize( this );
+
+        return texture;
     }
 
     auto VulkanDevice::WaitIdle() const -> void {
@@ -844,6 +858,10 @@ namespace Mikoto {
         auto* vkSrc{ dynamic_cast<VulkanBuffer*>( src ) };
         auto* vkDest{ dynamic_cast<VulkanTexture*>( dest ) };
 
+        if (dest != nullptr && dest->GetTextureUsage() == TextureUsage::TEXTURE_USAGE_CUBE) {
+            FillCubeTexture( src, dest );
+        }
+
         if ( !vkSrc || !vkDest ) {
             return;
         }
@@ -858,9 +876,16 @@ namespace Mikoto {
         copyRegion.bufferImageHeight = 0;// Tightly packed
 
         copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
         copyRegion.imageSubresource.mipLevel = 0;
         copyRegion.imageSubresource.baseArrayLayer = 0;
         copyRegion.imageSubresource.layerCount = 1;
+
+        if (auto cube{ dynamic_cast<VulkanTextureCube*>( dest ) }) {
+            copyRegion.imageSubresource.mipLevel = cube->GetMipLevels();
+            copyRegion.imageSubresource.baseArrayLayer = 0;
+            copyRegion.imageSubresource.layerCount = 6;
+        }
 
         copyRegion.imageOffset = { 0, 0, 0 };
         copyRegion.imageExtent = {
@@ -985,6 +1010,54 @@ namespace Mikoto {
     auto VulkanCmdList::Release() -> void {
         vkFreeCommandBuffers( VK_DEVICE( m_Device ), m_AllocInfo.commandPool, 1, std::addressof( m_CmdBuffer ) );
         m_IsAllocated = false;
+    }
+
+    auto VulkanCmdList::FillCubeTexture(Buffer* src, Texture* dest) -> void {
+        // Cast to Vulkan-specific implementations
+        auto* vkSrc{ dynamic_cast<VulkanBuffer*>( src ) };
+        auto* vkDest{ dynamic_cast<VulkanTextureCube*>( dest ) };
+
+        if ( !vkSrc || !vkDest ) {
+            return;
+        }
+
+        // Ensure the destination image is in TRANSFER_DST layout
+        vkDest->SubmitLayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_CmdBuffer );
+
+        // Describe the region to copy
+        VkBufferImageCopy copyRegion{};
+        copyRegion.bufferOffset = 0;
+        copyRegion.bufferRowLength = 0;  // Tightly packed
+        copyRegion.bufferImageHeight = 0;// Tightly packed
+
+        copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+        copyRegion.imageSubresource.mipLevel = 0;
+        copyRegion.imageSubresource.baseArrayLayer = 0;
+        copyRegion.imageSubresource.layerCount = 6;
+
+        copyRegion.imageOffset = { 0, 0, 0 };
+        copyRegion.imageExtent = {
+            vkDest->GetCreateInfo().extent.width,
+            vkDest->GetCreateInfo().extent.height,
+            1
+        };
+
+        if (src->GetUsage() == BufferUsage::BUFFER_USAGE_INDEX) {
+            MKT_CORE_LOGGER_ERROR( "VulkanCmdList::FillTexture - Trying to fill a texture from an index buffer. This is not supported." );
+        }
+
+        // Issue the copy command
+        vkCmdCopyBufferToImage(
+                m_CmdBuffer,
+                *vkSrc->GetImplHandle(),// VkBuffer
+                *vkDest->GetImage(),    // VkImage
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                1,
+                &copyRegion );
+
+        // Transition the image to SHADER_READ_ONLY for sampling
+        vkDest->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_CmdBuffer );
     }
 
     VulkanCommandPool::VulkanCommandPool( QueueType queue, Size initialCmdListCount )

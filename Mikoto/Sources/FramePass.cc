@@ -402,6 +402,8 @@ namespace Mikoto {
         UInt32 firstInstance{};
 
         Size meshIndex{};
+
+        // Prepare
         for ( auto& [meshNode, instanceInfo]: m_MeshDrawState ) {
             DrawIndexedState& drawState{ instanceInfo.InstanceDrawState };
 
@@ -420,11 +422,16 @@ namespace Mikoto {
             }
 
             firstInstance += instanceInfo.InstanceInfos.size();
-
-            commandList.DrawIndexed(drawState);
         }
 
+        // Upload data
         commandList.FillBufferElement( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMeshInfo ), firstInstance );
+
+        // Draw
+        for ( auto& [meshNode, instanceInfo]: m_MeshDrawState ) {
+            DrawIndexedState& drawState{ instanceInfo.InstanceDrawState };
+            commandList.DrawIndexed(drawState);
+        }
     }
 
     auto FinalCompositionPass::Execute( PassCommandList& commandList ) -> void {

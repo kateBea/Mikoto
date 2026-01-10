@@ -190,10 +190,9 @@ namespace Mikoto {
         // Skybox
         SkyboxPass* skyboxPass{ m_PassRegistry.Get<SkyboxPass>() };
         FinalCompositionPass* finalCompositionPass{ m_PassRegistry.Get<FinalCompositionPass>() };
-        if (m_UseSkybox) {
-            skyboxPass->SetCubeMap( m_SkyBoxTexture );
-            finalCompositionPass->EnableSkybox( m_UseSkybox );
-        }
+
+        skyboxPass->SetCubeMap( m_SkyBoxTexture );
+        finalCompositionPass->EnableSkybox( m_UseSkybox );
 
         finalCompositionPass->SetClearColor(m_ClearColor);
     }

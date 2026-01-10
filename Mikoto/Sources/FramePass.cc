@@ -428,13 +428,8 @@ namespace Mikoto {
             drawState.InstancesCount = instanceInfo.InstanceInfos.size();
             drawState.FirstInstance = firstInstance;
 
-            const Size totalInstancesOffsetSizeBytes{ firstInstance * sizeof( ShaderMeshInfo ) };
-
-            UInt32 instanceIndex{ 0 };
             for (const auto &meshInstanceInfo: instanceInfo.InstanceInfos | std::views::values) {
-                //commandList.FillBuffer( "FinalCompositionPass_MeshInfo", std::addressof(  meshInstanceInfo ), sizeof( ShaderMeshInfo ), totalInstancesOffsetSizeBytes + sizeof( ShaderMeshInfo ) * instanceIndex );
                 m_Meshes[meshIndex++] = meshInstanceInfo;
-                ++instanceIndex;
             }
 
             firstInstance += instanceInfo.InstanceInfos.size();

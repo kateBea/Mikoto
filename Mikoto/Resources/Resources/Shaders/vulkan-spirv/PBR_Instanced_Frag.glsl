@@ -130,7 +130,7 @@ vec3 ComputePointLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, flo
     vec3 L = normalize(lightInfo.Position.xyz - in_FragmentWorldPos);
     vec3 H = normalize( V + L );
     float distance = length(lightInfo.Position.xyz - in_FragmentWorldPos);
-    float attenuation = ComputeAttenuation(distance );
+    float attenuation = ComputeAttenuation(distance, lightInfo.Radius );
 
     vec3 radiance = lightInfo.Diffuse.xyz * attenuation * lightInfo.Intensity;
 

@@ -162,6 +162,14 @@ namespace Mikoto {
             ImGui::Spacing();
             ImGui::ColorEdit4( "Clear Color", value_ptr( m_Data.ClearColor ), flags );
 
+            ImGui::Spacing();
+            bool useSkybox{ m_EditorState->ActiveEditorScene->IsSkyboxEnabled() };
+            if (ImGuiUtils::CheckBox( "Use Skybox", useSkybox )) {
+                m_EditorState->ActiveEditorScene->EnableSkybox( useSkybox );
+            }
+            ImGui::SameLine();
+            ImGuiUtils::HelpMarker( "Use skybox instead of clear color" );
+
             ImGui::TreePop();
         }
 

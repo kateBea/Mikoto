@@ -134,6 +134,10 @@ namespace Mikoto {
         // Public api to modify core passes
         auto SetClusterDebugVisualizer(bool enable) -> void;
 
+        auto SetSkyBox(TextureHandle cubeMap) -> void;
+        auto SetClearColor(const Vec4F& color) -> void;
+        auto EnableSkybox(bool enable) -> void;
+
     private:
         // [Internal usage]
         auto InitGraphicsContex() -> void;
@@ -157,6 +161,10 @@ namespace Mikoto {
 
         UInt32 m_ViewportWidth{ 0u };
         UInt32 m_ViewportHeight{ 0u };
+
+        bool m_UseSkybox{ false };
+        Vec4F m_ClearColor{ 0.1f, 0.2f, 0.5f, 1.0f };
+        TextureHandle m_SkyBoxTexture{};
     };
 }// namespace Mikoto
 

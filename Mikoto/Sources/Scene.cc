@@ -237,6 +237,22 @@ namespace Mikoto {
         return CreateEntitySingle( createInfo );
     }
 
+    auto Scene::EnableSkybox( bool useSkybox ) -> void {
+        m_UseSkybox = useSkybox;
+    }
+
+    auto Scene::IsSkyboxEnabled() const -> bool {
+        return m_UseSkybox;
+    }
+
+    auto Scene::SetSkybox( TextureHandle cubeMap ) -> void {
+        m_Skybox = cubeMap;
+    }
+
+    auto Scene::GetSkybox() -> TextureHandle {
+        return m_Skybox;
+    }
+
     auto Scene::QueueCreateEntity( std::string_view name ) -> void {
         const EntityCreateInfo info{
             .Root{ nullptr },

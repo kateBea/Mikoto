@@ -33,8 +33,6 @@ namespace Mikoto {
 
         builder.CreateNamedPipeline("SkyboxPass_Pipeline", pipelineDesc);
 
-        //builder.CreateColorRenderTarget( "SkyboxPass_ColorTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM );
-
         BufferDescription cameraInfo{};
         cameraInfo.WithData( nullptr )
                 .WithUsage( BufferUsage::BUFFER_USAGE_UNIFORM )
@@ -52,16 +50,15 @@ namespace Mikoto {
 
         TextureCubeLoadDescription loadDesc{};
         loadDesc.WithType( TextureType::TEXTURE_CUBE )
-            .WithBasePath("Resources/Cubemaps/skybox")
-            .WithFacePath( "right.jpg" )
-            .WithFacePath( "left.jpg" )
+            .WithBasePath("Resources/Cubemaps/Lycksele2")
+            .WithFacePath( "posx.jpg" )
+            .WithFacePath( "negx.jpg" )
 
-            // Needed to flip these cause Vulkan I think
-            .WithFacePath( "bottom.jpg" )
-            .WithFacePath( "top.jpg" )
+            .WithFacePath( "negy.jpg" )
+            .WithFacePath( "posy.jpg" )
 
-            .WithFacePath( "front.jpg" )
-            .WithFacePath( "back.jpg" );
+            .WithFacePath( "posz.jpg" )
+            .WithFacePath( "negz.jpg" );
 
         // +X -> right.jpg
         // -X -> left.jpg
@@ -72,7 +69,6 @@ namespace Mikoto {
 
         TextureHandle skybox{ AssetsService::Get()->LoadAsset<TextureCube>( loadDesc ) };
 
-        // TODO: proper sampler
         SamplerDescription samplerDescription{ .CubeSampler{ true } };
         commandList.CreateNamedSampler("SkyboxPass_Sampler", samplerDescription);
         commandList.RegisterNamedTexture("SkyboxPass_TextureCube", skybox);

@@ -319,35 +319,6 @@ namespace Mikoto {
         graphicsDesc.DepthWrite = true;
         graphicsDesc.AlphaBlending = true;
 
-        AttributesSpec verticesData{
-            .DefaultVertexLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT },
-            .InputRateSpec{ .BindingIndex{ 0 }, .AttributeRate{ InputRate::PER_VERTEX } }
-        };
-
-        // Attributes
-        AttributesSpec instancedData{
-            .DefaultVertexLayout{
-                    // Model matrix columns
-                    { ShaderDataType::FLOAT4_TYPE, "i_Model0" },// mat4 column 0
-                    { ShaderDataType::FLOAT4_TYPE, "i_Model1" },// mat4 column 1
-                    { ShaderDataType::FLOAT4_TYPE, "i_Model2" },// mat4 column 2
-                    { ShaderDataType::FLOAT4_TYPE, "i_Model3" },// mat4 column 3
-
-                    // Material properties
-                    { ShaderDataType::FLOAT4_TYPE, "i_Albedo" },
-                    { ShaderDataType::FLOAT4_TYPE, "i_Factors" },
-
-                    // Texture indices (flat ints)
-                    { ShaderDataType::INT_TYPE, "i_AlbedoIndex" },
-                    { ShaderDataType::INT_TYPE, "i_NormalIndex" },
-                    { ShaderDataType::INT_TYPE, "i_MetallicIndex" },
-                    { ShaderDataType::INT_TYPE, "i_RoughnessIndex" },
-                    { ShaderDataType::INT_TYPE, "i_AoIndex" } },
-            .InputRateSpec{ .BindingIndex{ 1 }, .AttributeRate{ InputRate::PER_INSTANCE } }
-        };
-
-        graphicsDesc.VertexAttributesSpec = { verticesData, instancedData };
-
         // Graphics context will specify the texture formats for the render targets we can redner to with this pipeline
         // It will also create the shader modules first and assign them to this description which will be used to create the actual pipeline
         // TODO: temporary, specify the render targets this pipeline outputs to
@@ -367,12 +338,21 @@ namespace Mikoto {
                 .ForElement( sizeof(FrameUBO), 1 );
         builder.CreateNamedBuffer( "PerFrame_CameraInfo", cameraInfo );
 
+        BufferDescription meshInstanceInfo{};
+        meshInstanceInfo.WithData( nullptr )
+                .WithUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )
+                .ForElement( sizeof(ShaderMeshInfo), MAX_RENDER_ENTITIES );
+        builder.CreateNamedBuffer( "FinalCompositionPass_MeshInfo", meshInstanceInfo );
+
         // Declare its inputs and outputs
         builder.ReadBuffer( this, "AABBGenComp_CameraUBO" );
         builder.ReadBuffer( this, "AABBGenComp_Clusters" );
         builder.ReadBuffer( this, "LightCullingComp_LightsBuffer" );
 
         builder.ReadBuffer( this, "PerFrame_CameraInfo" );
+
+        builder.WriteBuffer( this, "FinalCompositionPass_MeshInfo" );
 
         builder.ReadTexture( this, "FinalCompositionPass_ColorTarget" );
         builder.WriteTexture( this, "FinalCompositionPass_DepthTarget" );
@@ -394,23 +374,10 @@ namespace Mikoto {
                 MeshNode* meshNode{ meshComponent.GetMesh() };
                 PBRMaterial* pbrMat{ dynamic_cast<PBRMaterial*>( material.GetRaw() ) };
 
-                // We need to update this vertex buffer if we don't have this mesh
-                if ( !m_MeshInstanceData.contains( meshNode ) ) {
-                    m_UpdateInstanceData = true;
-                }
+                auto& [DrawIndexedState, Instances]{ m_MeshDrawState[meshNode] };
 
-                auto& [Mesh, Instances]{ m_MeshInstanceData[meshNode] };
-
-                // We need to update this vertex buffer if we don't have its contents
-                if ( !Instances.contains( tag.GetGUID() ) ) {
-                    m_UpdateInstanceData = true;
-                }
-
-                ShadingPassMeshBufferUBO& ubo{ Instances[tag.GetGUID()] };
-                ubo.i_TransformCol0 = transform.GetTransform()[0];
-                ubo.i_TransformCol1 = transform.GetTransform()[1];
-                ubo.i_TransformCol2 = transform.GetTransform()[2];
-                ubo.i_TransformCol3 = transform.GetTransform()[3];
+                ShaderMeshInfo& ubo{ Instances[tag.GetGUID()] };
+                ubo.Transform = transform.GetTransform();
 
                 ubo.Albedo = pbrMat->GetColor();
                 ubo.Factors.x = pbrMat->GetMetallicFactor();
@@ -422,27 +389,6 @@ namespace Mikoto {
                 ubo.RoughnessIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
                 ubo.AoIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
             }
-        }
-
-        if ( m_UpdateInstanceData ) {
-            UpdateInstancedData();
-            m_UpdateInstanceData = false;
-        }
-
-        // Copy contents
-        UploadInstanceData();
-
-        for ( auto& [meshNode, instanceData]: m_MeshInstanceData ) {
-            DrawIndexedState drawIndexedState{};
-
-            drawIndexedState.IndexBuffer = meshNode->GetIndexBuffer();
-            drawIndexedState.VertexBuffers.emplace_back( meshNode->GetVertexBuffer(), 0);
-            drawIndexedState.VertexBuffers.emplace_back(instanceData.first, 1 );
-
-            drawIndexedState.IndicesCount = meshNode->GetIndexBuffer()->GetCount();
-            drawIndexedState.InstancesCount = instanceData.second.size();
-
-            commandList.DrawIndexed(drawIndexedState);
         }
     }
 
@@ -456,42 +402,59 @@ namespace Mikoto {
         m_FrameUBO.CameraPosition = Vec4F{ camera->GetPosition(), 1.0f };
     }
 
-    auto FinalCompositionPass::UploadInstanceData() -> void {
-        for ( auto& meshInfo: m_MeshInstanceData | std::views::values ) {
-            std::vector<ShadingPassMeshBufferUBO> instancesData{};
-
-            for ( auto& instanceData: meshInfo.second | std::views::values ) {
-                instancesData.emplace_back( instanceData );
-            }
-
-            meshInfo.first->CopyFromBlock( instancesData.data(), instancesData.size() * sizeof( ShadingPassMeshBufferUBO ) );
-        }
+    auto FinalCompositionPass::SetCamera( const Vec4F &color ) -> void {
+        m_ClearColor = color;
     }
 
-    auto FinalCompositionPass::UpdateInstancedData() -> void{
-        for ( auto& meshInfo: m_MeshInstanceData | std::views::values ) {
-            std::vector<ShadingPassMeshBufferUBO> instancesData{};
+    auto FinalCompositionPass::EnableSkybox( bool enable ) -> void {
+        m_UseSkybox = enable;
+    }
 
-            for ( auto& instanceData: meshInfo.second | std::views::values ) {
-                instancesData.emplace_back( instanceData );
+    auto FinalCompositionPass::UploadInstanceData(PassCommandList& commandList) -> void {
+        UInt32 firstInstance{};
+
+        Size meshIndex{};
+        for ( auto& [meshNode, instanceInfo]: m_MeshDrawState ) {
+            DrawIndexedState& drawState{ instanceInfo.InstanceDrawState };
+
+            drawState.IndexBuffer = meshNode->GetIndexBuffer();
+
+            if (drawState.VertexBuffers.empty()) {
+                drawState.VertexBuffers.emplace_back( meshNode->GetVertexBuffer(), 0);
             }
 
-            BufferDescription vertexDesc{};
-            vertexDesc.WithUsage( BufferUsage::BUFFER_USAGE_VERTEX )
-                    .WithData( reinterpret_cast<Byte*>( instancesData.data() ) )
-                    .WithSizeBytes( InferSize<ShadingPassMeshBufferUBO>( instancesData.size() ) )
-                    .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+            drawState.IndicesCount = meshNode->GetIndexBuffer()->GetCount();
+            drawState.InstancesCount = instanceInfo.InstanceInfos.size();
+            drawState.FirstInstance = firstInstance;
 
-            meshInfo.first = m_Device->CreateBuffer( vertexDesc );
+            const Size totalInstancesOffsetSizeBytes{ firstInstance * sizeof( ShaderMeshInfo ) };
+
+            UInt32 instanceIndex{ 0 };
+            for (const auto &meshInstanceInfo: instanceInfo.InstanceInfos | std::views::values) {
+                //commandList.FillBuffer( "FinalCompositionPass_MeshInfo", std::addressof(  meshInstanceInfo ), sizeof( ShaderMeshInfo ), totalInstancesOffsetSizeBytes + sizeof( ShaderMeshInfo ) * instanceIndex );
+                m_Meshes[meshIndex++] = meshInstanceInfo;
+                ++instanceIndex;
+            }
+
+            commandList.FillBufferElement( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMeshInfo ), m_Meshes.size() );
+
+            firstInstance += instanceInfo.InstanceInfos.size();
+
+            commandList.DrawIndexed(drawState);
         }
     }
 
     auto FinalCompositionPass::Execute( PassCommandList& commandList ) -> void {
         commandList.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
         commandList.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
-        //commandList.SetClearColor( m_ClearColor );
 
-        commandList.BeginRender(this, LoadOp::LOAD);
+        LoadOp colorTargetLoadOP{ LoadOp::LOAD };
+        if (!m_UseSkybox) {
+            colorTargetLoadOP = LoadOp::CLEAR;
+            commandList.SetClearColor( m_ClearColor );
+        }
+
+        commandList.BeginRender(this, colorTargetLoadOP);
         commandList.BindPipeline( "FinalCompositionPass_Pipeline" );
 
         // Set render targets
@@ -502,6 +465,7 @@ namespace Mikoto {
         commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 1 );
         commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 2 );
         commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 3 );
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 4 );
 
         commandList.BindResourceGroup(SRGType::SRG_Textures);
         commandList.BindResourceGroup(SRGType::SRG_PerPass);
@@ -509,6 +473,8 @@ namespace Mikoto {
         commandList.FillBuffer( "PerFrame_CameraInfo", std::addressof( m_FrameUBO ), sizeof( m_FrameUBO ) );
 
         TraverseMeshList(commandList);
+
+        UploadInstanceData(commandList);
 
         commandList.EndRender();
     }

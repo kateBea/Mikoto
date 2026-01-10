@@ -122,7 +122,7 @@ namespace Mikoto {
     public:
         explicit PassCommandList(GraphicsContext* context, FrameBlackboard* blackboard);
 
-        auto BeginRender(FramePass* pass, LoadOp loadOp = LoadOp::CLEAR) -> void;
+        auto BeginRender(FramePass* pass, LoadOp colorTargetLoadOp = LoadOp::CLEAR) -> void;
         auto EndRender() -> void;
 
         auto BeginCompute(FramePass* pass) -> void;
@@ -147,7 +147,9 @@ namespace Mikoto {
 
         auto SetClearColor(const Vec4F& color) -> void;
 
-        auto FillBuffer(std::string_view bufferName, const void* ptrSrc, Size size ) const -> void;
+        auto FillBufferElement(std::string_view bufferName, const void* buffer, Size elementSize, Size elementCount) const -> void;
+        auto FillBuffer(std::string_view bufferName, const void* ptrSrc, Size size, Size offset = 0 ) const -> void;
+
         auto PushTexture(TextureHandle texture ) const -> Int32;
 
         auto BindResourceGroup(SRGType srgType ) const -> void;

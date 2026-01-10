@@ -140,7 +140,7 @@ namespace Mikoto {
         HelloTexture* helloTexture{ m_PassRegistry.Register<HelloTexture>() };
         helloTexture->Setup( builder );
 
-        FinalCompositionPass* finalCompositionPass{ m_PassRegistry.Register<FinalCompositionPass>( m_Device ) };
+        FinalCompositionPass* finalCompositionPass{ m_PassRegistry.Register<FinalCompositionPass>() };
         finalCompositionPass->Setup( builder );
 
         AABBGenComp* aabbGenComp { m_PassRegistry.Register<AABBGenComp>() };

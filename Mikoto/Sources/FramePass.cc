@@ -48,30 +48,13 @@ namespace Mikoto {
 
     auto SkyboxPass::Execute( PassCommandList &commandList ) -> void {
 
-        TextureCubeLoadDescription loadDesc{};
-        loadDesc.WithType( TextureType::TEXTURE_CUBE )
-            .WithBasePath("Resources/Cubemaps/Lycksele2")
-            .WithFacePath( "posx.jpg" )
-            .WithFacePath( "negx.jpg" )
-
-            .WithFacePath( "negy.jpg" )
-            .WithFacePath( "posy.jpg" )
-
-            .WithFacePath( "posz.jpg" )
-            .WithFacePath( "negz.jpg" );
-
-        // +X -> right.jpg
-        // -X -> left.jpg
-        // +Y -> top.jpg      // often needs vertical flip
-        // -Y -> bottom.jpg   // often needs vertical flip
-        // -Z -> front.jpg
-        // +Z -> back.jpg
-
-        TextureHandle skybox{ AssetsService::Get()->LoadAsset<TextureCube>( loadDesc ) };
+        if (m_CubeMap.IsEmpty()) {
+            return;
+        }
 
         SamplerDescription samplerDescription{ .CubeSampler{ true } };
         commandList.CreateNamedSampler("SkyboxPass_Sampler", samplerDescription);
-        commandList.RegisterNamedTexture("SkyboxPass_TextureCube", skybox);
+        commandList.RegisterNamedTexture("SkyboxPass_TextureCube", m_CubeMap);
 
         commandList.SetColorRenderTarget("FinalCompositionPass_ColorTarget");
 
@@ -408,6 +391,10 @@ namespace Mikoto {
 
     auto FinalCompositionPass::EnableSkybox( bool enable ) -> void {
         m_UseSkybox = enable;
+    }
+
+    auto FinalCompositionPass::SetClearColor( const Vec4F& vec ) -> void {
+        m_ClearColor = vec;
     }
 
     auto FinalCompositionPass::UploadInstanceData(PassCommandList& commandList) -> void {

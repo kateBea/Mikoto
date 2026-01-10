@@ -164,6 +164,7 @@ namespace Mikoto {
         auto SetCamera( const Vec4F& color ) -> void;
 
         auto EnableSkybox(bool enable) -> void;
+        auto SetClearColor(const Vec4F& vec ) -> void;
 
     private:
 
@@ -237,7 +238,7 @@ namespace Mikoto {
         LightInfo m_LightsInfo{};
         FrameUBO m_FrameUBO{};
 
-        bool m_UseSkybox{ true };
+        bool m_UseSkybox{ false };
 
         Scene* m_Scene{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };

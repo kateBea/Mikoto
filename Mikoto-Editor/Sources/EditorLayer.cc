@@ -185,6 +185,31 @@ namespace Mikoto {
     auto EditorLayer::OnUpdate( float timeStep ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        TextureCubeLoadDescription loadDesc{};
+        loadDesc.WithType( TextureType::TEXTURE_CUBE )
+            .WithBasePath("Resources/Cubemaps/Lycksele2")
+            .WithFacePath( "posx.jpg" )
+            .WithFacePath( "negx.jpg" )
+
+            .WithFacePath( "negy.jpg" )
+            .WithFacePath( "posy.jpg" )
+
+            .WithFacePath( "posz.jpg" )
+            .WithFacePath( "negz.jpg" );
+
+        // +X -> right.jpg
+        // -X -> left.jpg
+        // +Y -> top.jpg      // often needs vertical flip
+        // -Y -> bottom.jpg   // often needs vertical flip
+        // -Z -> front.jpg
+        // +Z -> back.jpg
+
+        TextureHandle skybox{ AssetsService::Get()->LoadAsset<TextureCube>( loadDesc ) };
+
+        if (m_ActiveScene->IsSkyboxEnabled()) {
+            m_ActiveScene->SetSkybox( skybox );
+        }
+
         m_ActiveScene->SetState( SceneState::IDLE );
 
         PrepareCamera( timeStep );
@@ -707,5 +732,9 @@ namespace Mikoto {
         m_SceneRenderer->SetCamera( m_EditorCamera.get() );
         m_SceneRenderer->SetViewport( 1920, 1080 );
         m_SceneRenderer->SetClusterDebugVisualizer( m_EditorState->HeatMapVisualizer );
+
+        m_SceneRenderer->SetSkyBox( m_ActiveScene->GetSkybox() );
+
+        m_SceneRenderer->SetClearColor( settings.ClearColor );
     }
 }// namespace Mikoto

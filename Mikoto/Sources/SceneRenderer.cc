@@ -103,6 +103,17 @@ namespace Mikoto {
 
         aabbGenComp->SetHeatMap( enable );
     }
+    auto SceneRenderer::SetSkyBox( TextureHandle cubeMap ) -> void {
+        m_SkyBoxTexture = cubeMap;
+    }
+
+    auto SceneRenderer::SetClearColor( const Vec4F& color ) -> void {
+        m_ClearColor = color;
+    }
+
+    auto SceneRenderer::EnableSkybox( bool enable ) -> void {
+        m_UseSkybox = enable;
+    }
 
     auto SceneRenderer::InitGraphicsContex() -> void {
         MKT_BEGIN_PROFILER_NAMED();
@@ -175,6 +186,16 @@ namespace Mikoto {
         LightCullingComp* lightCullingComp{ m_PassRegistry.Get<LightCullingComp>() };
 
         lightCullingComp->SetClusterCount( aabbGenComp->GetClusterCount() );
+
+        // Skybox
+        SkyboxPass* skyboxPass{ m_PassRegistry.Get<SkyboxPass>() };
+        FinalCompositionPass* finalCompositionPass{ m_PassRegistry.Get<FinalCompositionPass>() };
+        if (m_UseSkybox) {
+            skyboxPass->SetCubeMap( m_SkyBoxTexture );
+            finalCompositionPass->EnableSkybox( m_UseSkybox );
+        }
+
+        finalCompositionPass->SetClearColor(m_ClearColor);
     }
 
     auto SceneRendererCreateInfo::WithName( std::string_view name ) -> SceneRendererCreateInfo & {

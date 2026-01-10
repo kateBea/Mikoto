@@ -73,6 +73,14 @@ namespace Mikoto {
         MKT_NODISCARD auto CreateEntity( Entity* root, std::string_view name ) -> Entity*;
         MKT_NODISCARD auto CreateEntity( const EntityCreateInfo& createInfo = {} ) -> Entity*;
 
+
+        // Whether to render scene with skybox
+        auto EnableSkybox( bool useSkybox ) -> void;
+        MKT_NODISCARD auto IsSkyboxEnabled() const -> bool;
+
+        auto SetSkybox( TextureHandle cubeMap ) -> void;
+        MKT_NODISCARD auto GetSkybox( ) -> TextureHandle;
+
         auto QueueCreateEntity( std::string_view name ) -> void;
         auto QueueCreateEntity( const EntityCreateInfo& createInfo = {} ) -> void;
 
@@ -91,7 +99,6 @@ namespace Mikoto {
         auto Clear() -> void;
 
         ~Scene();
-
 
     private:
         friend class PhysicsWorld;
@@ -143,6 +150,9 @@ namespace Mikoto {
         // Stats
         UInt32 m_TotalLightCount{ 0 };
         UInt32 m_ActiveLightCount{ 0 };
+
+        bool m_UseSkybox{ false };
+        TextureHandle m_Skybox{ nullptr };
 
     };
 }// namespace Mikoto

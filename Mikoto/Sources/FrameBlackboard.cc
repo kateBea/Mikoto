@@ -13,9 +13,7 @@ namespace Mikoto {
     }
 
     auto FrameBlackboard::RegisterTexture( std::string_view name, TextureHandle handle ) -> void {
-        if (!m_TexturesByNames.contains( std::string{ name } )) {
-            m_TexturesByNames.emplace( std::string{ name }, handle );
-        }
+        m_TexturesByNames[std::string{ name }] = handle;
     }
 
     auto FrameBlackboard::GetTexture( std::string_view name ) -> TextureHandle {

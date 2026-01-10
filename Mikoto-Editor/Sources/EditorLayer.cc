@@ -734,6 +734,7 @@ namespace Mikoto {
         m_SceneRenderer->SetClusterDebugVisualizer( m_EditorState->HeatMapVisualizer );
 
         m_SceneRenderer->SetSkyBox( m_ActiveScene->GetSkybox() );
+        m_SceneRenderer->EnableSkybox( m_ActiveScene->IsSkyboxEnabled() );
 
         m_SceneRenderer->SetClearColor( settings.ClearColor );
     }

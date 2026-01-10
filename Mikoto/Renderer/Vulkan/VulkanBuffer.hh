@@ -64,6 +64,7 @@ namespace Mikoto {
         // S o basically store the size of the element individually and the count, this information is to be used later in the initialization
         Size m_ElementSize{};
         Size m_ElementCount{};
+        Size m_MinPaddedSize{};
 
         VkBuffer m_Buffer{};
 

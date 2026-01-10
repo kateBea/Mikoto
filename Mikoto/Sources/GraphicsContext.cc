@@ -33,10 +33,10 @@ namespace Mikoto {
         MKT_ASSERT( m_Blackboard, "Tried to create PassCommandList with NULL blackboard" );
     }
 
-    auto PassCommandList::BeginRender(FramePass* pass, LoadOp loadOp) -> void {
+    auto PassCommandList::BeginRender(FramePass* pass, LoadOp colorTargetLoadOp) -> void {
         MKT_ASSERT( m_Context, "No valid context for this pass command list" );
 
-        m_RenderInfo.LoadOp = loadOp;
+        m_RenderInfo.LoadOp = colorTargetLoadOp;
 
         m_Context->BeginRender( m_RenderInfo );
 
@@ -166,6 +166,8 @@ namespace Mikoto {
     }
 
     auto PassCommandList::Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) const -> void {
+        MKT_ASSERT( m_Context, "No valid context for this pass command list" );
+
         m_Context->Dispatch( invX, invY, invZ );
     }
 
@@ -173,14 +175,25 @@ namespace Mikoto {
         m_RenderInfo.ClearColor = color;
     }
 
-    auto PassCommandList::FillBuffer( std::string_view bufferName, const void *ptrSrc, Size size ) const -> void {
+    auto PassCommandList::FillBufferElement( std::string_view bufferName, const void *buffer, Size elementSize, Size elementCount ) const -> void {
+        MKT_ASSERT( m_Context, "No valid context for this pass command list" );
+
+        if ( BufferHandle bufferHandle{ m_Blackboard->GetBuffer( bufferName ) }; !bufferHandle.IsEmpty()) {
+            for (Size count{}; count < elementCount; ++count) {
+                //const auto* src{ static_cast<const std::byte*>(buffer) };
+                bufferHandle->CopyFromBlock( std::addressof( src[count] ), elementSize, count * elementSize );
+            }
+        }
+    }
+
+    auto PassCommandList::FillBuffer( std::string_view bufferName, const void *ptrSrc, Size size, Size offset ) const -> void {
         MKT_ASSERT( m_Context, "No valid context for this pass command list" );
 
         if ( BufferHandle buffer{ m_Blackboard->GetBuffer( bufferName ) }; !buffer.IsEmpty()) {
             if (size > buffer->GetSizeBytes()) {
                 MKT_CORE_LOGGER_WARN( "PassCommandList::FillBuffer - [{}] size is [{}]. Trying to copy [{}] bytes", bufferName, buffer->GetSizeBytes(), size );
             } else {
-                buffer->CopyFromBlock( ptrSrc, size );
+                buffer->CopyFromBlock( ptrSrc, size, offset );
             }
         }
     }

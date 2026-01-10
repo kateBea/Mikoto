@@ -153,30 +153,30 @@ namespace Mikoto {
     class FinalCompositionPass final : public FramePass {
     public:
 
-        explicit FinalCompositionPass(GpuDevice* device)
-            : FramePass{ "FinalCompositionPass", PassType::RENDER }, m_Device{ device } {}
+        explicit FinalCompositionPass()
+            : FramePass{ "FinalCompositionPass", PassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& device) -> void override;
         auto Execute(PassCommandList& commandList) -> void override;
 
         auto SetScene(Scene* scene) -> void;
         auto SetCamera( const Camera* camera ) -> void;
+        auto SetCamera( const Vec4F& color ) -> void;
+
+        auto EnableSkybox(bool enable) -> void;
 
     private:
 
-        auto UploadInstanceData() -> void;
-        auto UpdateInstancedData() -> void;
+        auto UploadInstanceData(PassCommandList& commandList) -> void;
         auto TraverseMeshList(PassCommandList& commandList) -> void;
 
     public:
-        struct ShadingPassMeshBufferUBO {
-            Vec4F i_TransformCol0{};
-            Vec4F i_TransformCol1{};
-            Vec4F i_TransformCol2{};
-            Vec4F i_TransformCol3{};
+        struct ShaderMeshInfo {
+            Mat4F Transform{};
 
             Vec4F Albedo{};
             Vec4F Factors{};
+
             Int32 AlbedoIndex{};
             Int32 NormalIndex{};
             Int32 MetallicIndex{};
@@ -184,6 +184,7 @@ namespace Mikoto {
             Int32 AoIndex{};
         };
 
+        static constexpr UInt32 MAX_RENDER_ENTITIES{ 4096 * 10 };
         static constexpr UInt32 MAX_LIGHTS{ 5096 };
 
         struct FrameUBO {
@@ -228,20 +229,21 @@ namespace Mikoto {
             Int32 DisplayMode{};
         };
 
+        struct MeshInstanceInfo {
+            DrawIndexedState InstanceDrawState{};
+            ankerl::unordered_dense::map<UInt64, ShaderMeshInfo> InstanceInfos{};
+        };
     private:
         LightInfo m_LightsInfo{};
         FrameUBO m_FrameUBO{};
 
-        GpuDevice* m_Device{};
+        bool m_UseSkybox{ true };
 
         Scene* m_Scene{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
 
-        // For every mesh I store the count of elements and its buffer with its instance data
-        bool m_UpdateInstanceData{ false };
-
-        // For every mesh node i store the vertex buffer that contains all the data for all instances of that mesh and the ID and instance data for individual meshes to know if an instance already exists
-        ankerl::unordered_dense::map<MeshNode*, std::pair<BufferHandle, ankerl::unordered_dense::map<UInt64, ShadingPassMeshBufferUBO>>> m_MeshInstanceData{};
+        std::array<ShaderMeshInfo, MAX_RENDER_ENTITIES> m_Meshes{};
+        ankerl::unordered_dense::map<MeshNode*, MeshInstanceInfo> m_MeshDrawState{};
     };
 
     class AABBGenComp final : public FramePass {

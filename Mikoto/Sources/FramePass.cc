@@ -411,6 +411,7 @@ namespace Mikoto {
     }
 
     auto FinalCompositionPass::UploadInstanceData(PassCommandList& commandList) -> void {
+        // Will represent the total instances that are to render
         UInt32 firstInstance{};
 
         Size meshIndex{};
@@ -436,12 +437,12 @@ namespace Mikoto {
                 ++instanceIndex;
             }
 
-            commandList.FillBufferElement( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMeshInfo ), m_Meshes.size() );
-
             firstInstance += instanceInfo.InstanceInfos.size();
 
             commandList.DrawIndexed(drawState);
         }
+
+        commandList.FillBufferElement( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMeshInfo ), firstInstance );
     }
 
     auto FinalCompositionPass::Execute( PassCommandList& commandList ) -> void {

@@ -48,7 +48,7 @@ namespace Mikoto {
         // Editor specifies which texture gets rendered on the window
         TextureHandle RenderImage{};
 
-        SceneRenderer* SceneRenderer{};
+        SceneRenderer* EditorSceneRenderer{};
 
         bool ApplicationCloseFlag{ true };
 

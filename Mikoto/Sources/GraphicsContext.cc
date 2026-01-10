@@ -36,7 +36,7 @@ namespace Mikoto {
     auto PassCommandList::BeginRender(FramePass* pass, LoadOp colorTargetLoadOp) -> void {
         MKT_ASSERT( m_Context, "No valid context for this pass command list" );
 
-        m_RenderInfo.LoadOp = colorTargetLoadOp;
+        m_RenderInfo.ColorLoadOp = colorTargetLoadOp;
 
         m_Context->BeginRender( m_RenderInfo );
 
@@ -180,8 +180,8 @@ namespace Mikoto {
 
         if ( BufferHandle bufferHandle{ m_Blackboard->GetBuffer( bufferName ) }; !bufferHandle.IsEmpty()) {
             for (Size count{}; count < elementCount; ++count) {
-                //const auto* src{ static_cast<const std::byte*>(buffer) };
-                bufferHandle->CopyFromBlock( std::addressof( src[count] ), elementSize, count * elementSize );
+                const auto* src{ static_cast<const std::byte*>(buffer) };
+                bufferHandle->CopyFromBlock( std::addressof( src[elementSize * count]), elementSize, count * elementSize );
             }
         }
     }

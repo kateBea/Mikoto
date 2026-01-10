@@ -165,7 +165,6 @@ namespace Mikoto {
         builder.CreateNamedBuffer( "TextRenderPass_FontIndexBuffer", indexDesc );
 
         builder.ReadTexture( this, "FinalCompositionPass_ColorTarget" );
-        //builder.ReadTexture( this, "FinalCompositionPass_DepthTarget" );
 
         builder.WriteBuffer( this, "TextRenderPass_FontVertexBuffer" );
         builder.WriteBuffer( this, "TextRenderPass_FontIndexBuffer" );
@@ -688,6 +687,7 @@ namespace Mikoto {
                 case LightType::DIRECTIONAL_LIGHT_TYPE: {
                     auto& dir{ lightComp.Get<DirectionalLight>() };
 
+                    uboLight.Direction = Vec4F( dir.GetDirection(), 0.0f );
                     uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );// optional for shadows
                     uboLight.Diffuse = Vec4F( dir.GetColor() * dir.GetIntensity(), 1.0f );
                     uboLight.ActiveLightType = static_cast<Int32>(FinalCompositionPass::LightInfo::ActiveLightType::LIGHT_TYPE_DIRECTIONAL);

@@ -251,6 +251,18 @@ namespace Mikoto::ImGuiUtils {
         return active;
     }
 
+    inline auto DragFloat3( const CStr label, const CStr format, glm::vec3 &vect, float speed, float minVal, float maxVal ) -> bool {
+        ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+        ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 3.5f };
+        ImGuiScopedStyleVar spacing{ ImGuiStyleVar_ItemInnerSpacing, ImVec2{ 5.0f, 5.0f } };
+
+        bool active{ ImGui::DragFloat3( label, value_ptr( vect ), speed, minVal, maxVal, format ) };
+
+        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
+
+        return active;
+    }
+
     inline auto ColorEdit4( const CStr label, glm::vec4 &vect ) -> bool {
         constexpr ImGuiColorEditFlags colorEditFlags{
             ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_PickerHueBar

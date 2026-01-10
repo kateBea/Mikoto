@@ -377,7 +377,7 @@ namespace Mikoto {
 
     auto VulkanGraphicsContext::DrawInstanced( Size indexCount, UInt32 instanceCount, UInt32 firstIndex, UInt32 vertexOffset, UInt32 firstInstance ) -> void {
         VkCommandBuffer cmd{ m_CmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
-        vkCmdDrawIndexed( cmd, indexCount, instanceCount, 0, 0, 0 );
+        vkCmdDrawIndexed( cmd, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
     }
 
     auto VulkanGraphicsContext::Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void { m_CmdList->Dispatch( invX, invY, invZ ); }

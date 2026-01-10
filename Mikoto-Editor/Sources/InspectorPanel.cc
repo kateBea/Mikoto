@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <iterator>
+#include <numbers>
 
 // Third-Party Libraries
 #include <fmt/format.h>
@@ -864,6 +865,27 @@ namespace Mikoto {
         }
     }
 
+    static auto ApplyTransformRecursive(Entity& parent, TransformComponent& parentOldTransform, Scene* scene) -> void {
+        TransformComponent& parentTransform{ parent.GetComponent<TransformComponent>() };
+        glm::vec3 offsetTranslation{ parentTransform.GetTranslation() - parentOldTransform.GetTranslation() };
+        glm::vec3 offsetRotation{ parentTransform.GetRotation() - parentOldTransform.GetRotation() };
+        glm::vec3 offsetScale{ parentTransform.GetScale() - parentOldTransform.GetScale() };
+
+        // propagate change to children
+        RelationComponent& relation{ parent.GetComponent<RelationComponent>() };
+        for (const auto& childID : relation.GetChildren()) {
+            Entity* child{ scene->FindByID( childID ) };
+            if (child) {
+                ApplyTransformRecursive( parent, parentOldTransform, scene );
+            }
+
+            TransformComponent& childTransform{ child->GetComponent<TransformComponent>() };
+            childTransform.SetTranslation( offsetTranslation );
+            childTransform.SetRotation( offsetRotation );
+            //childTransform.SetScale( offsetScale );
+        }
+    }
+
     static auto SetupTransformComponentTab( Entity& entity, Scene* scene ) -> void {
         TransformComponent& transformComponent{ entity.GetComponent<TransformComponent>() };
 
@@ -871,9 +893,7 @@ namespace Mikoto {
         glm::vec3 newRotation{ transformComponent.GetRotation() };
         glm::vec3 newScale{ transformComponent.GetScale() };
 
-        const glm::vec3 oldTranslation{ transformComponent.GetTranslation() };
-        const glm::vec3 oldScale{ transformComponent.GetScale() };
-        const glm::vec3 oldRotation{ transformComponent.GetRotation() };
+        //ApplyTransformRecursive( entity, transformComponent, scene );
 
         ImGui::Spacing();
 
@@ -896,15 +916,6 @@ namespace Mikoto {
         transformComponent.SetTranslation( newTranslation );
         transformComponent.SetRotation( newRotation );
         transformComponent.SetScale( newScale );
-
-        // Apply the transformation to the children
-        // For now Guizmos only change translation so thats the only thing we handle in the children
-
-        glm::vec3 offsetTranslation{ transformComponent.GetTranslation() - oldTranslation };
-        glm::vec3 offsetRotation{ transformComponent.GetRotation() - oldRotation };
-        glm::vec3 offsetScale{ transformComponent.GetScale() - oldScale };
-
-        // propagate change to children
     }
 
     static auto SetupScriptingComponentTab( Entity& entity ) -> void {
@@ -1193,8 +1204,9 @@ namespace Mikoto {
 
             ImGui::TableSetColumnIndex( 1 );
 
-            glm::vec4 diffuse{};
+            glm::vec4 diffuse{ direLightData.GetColor(), 1.0f };
             if ( ImGuiUtils::ColorEdit4( "##DirectionalLightDiffuse", diffuse ) ) {
+                direLightData.SetColor( diffuse );
             }
 
             ImGui::Spacing();
@@ -1211,8 +1223,11 @@ namespace Mikoto {
 
             ImGui::TableSetColumnIndex( 1 );
 
-            glm::vec4 direction{};
-            if ( ImGuiUtils::DragFloat4( "##DirectionalLightDirection", "%.2f", direction, 0.1f, 0.0f, 512.0f ) ) {
+            constexpr float PI{ std::numbers::pi_v<float> };
+            glm::vec3 direction{ direLightData.GetDirection() };
+
+            if ( ImGuiUtils::DragFloat3( "##DirectionalLightDirection", "%.2f", direction, 0.01f, -PI, PI ) ) {
+                direLightData.SetDirection( direction );
             }
 
             ImGui::Spacing();

@@ -674,7 +674,7 @@ namespace Mikoto {
 
         // This is just to test clustered forward shading
         // We generate an empty object and 'lightCount' lights in random positions attached to it
-        constexpr UInt32 lightCount{ 1500 };
+        constexpr UInt32 lightCount{ 64 };
         Entity* lightCluster{ m_ActiveScene->CreateEntity( "LightCluster" ) };
         for (UInt32 count{}; count < lightCount; count++) {
             if (Entity *clusteredLight{ m_ActiveScene->CreateEntity( lightCluster, fmt::format( "Light {}", count ) ) }) {
@@ -708,33 +708,4 @@ namespace Mikoto {
         m_SceneRenderer->SetViewport( 1920, 1080 );
         m_SceneRenderer->SetClusterDebugVisualizer( m_EditorState->HeatMapVisualizer );
     }
-
-#if false
-    //     auto EditorLayer::SetupCamera( const double timeStep ) -> void {
-    //         const SettingsPanel& settingsPanel{ *m_PanelRegistry.Get<SettingsPanel>() };
-    //         const SettingsPanelData& settingsPanelCurrentData{ settingsPanel.GetData() };
-    //
-    //         // Setup camera
-    //         m_EditorCamera->SetMovementSpeed( settingsPanelCurrentData.EditorCameraMovementSpeed );
-    //         m_EditorCamera->SetRotationSpeed( settingsPanelCurrentData.EditorCameraRotationSpeed );
-    //
-    //         m_EditorCamera->SetFarPlane( settingsPanelCurrentData.FarPlane );
-    //         m_EditorCamera->SetNearPlane( settingsPanelCurrentData.NearPlane );
-    //
-    //         m_EditorCamera->WantRotation( settingsPanelCurrentData.WantXAxisRotation, settingsPanelCurrentData.WantYAxisRotation );
-    //
-    //         m_EditorCamera->SetFieldOfView( settingsPanelCurrentData.FieldOfView );
-    //
-    //         const ScenePanel& scenePanel{ *m_PanelRegistry.Get<ScenePanel>() };
-    //         m_EditorCamera->SetViewportSize( scenePanel.GetViewportWidth(), scenePanel.GetViewportHeight() );
-    //
-    //         if ( scenePanel.IsHovered() && InputService::GetInstance()->IsMouseKeyPressed( Mouse_Button_Right ) ) {
-    //             m_EditorCamera->EnableCamera( true );
-    //         } else {
-    //             m_EditorCamera->EnableCamera( false );
-    //         }
-    //
-    //         m_EditorCamera->UpdateState( timeStep );
-    //     }
-#endif
 }// namespace Mikoto

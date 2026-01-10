@@ -19,7 +19,7 @@
 #include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Core/Pipeline.hh>
+#include <Renderer/Passes/ShardRenderParams.hh>
 #include <Scene/Scene.hh>
 
 #include "Assets/Font.hh"

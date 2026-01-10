@@ -92,6 +92,8 @@ void main() {
                 break;
 
             case LIGHT_TYPE_DIRECTIONAL:
+            // All clusters are affected by directional light
+            // Reconsider for clusters where there is no geometry
                 visible = true;
                 break;
         }

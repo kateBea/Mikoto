@@ -132,7 +132,7 @@ namespace Mikoto {
 
         DisplaySelectedLightProperties();
 
-        FrameBlackboard* frameBlackboard{ m_EditorState->SceneRenderer->GetGraph().GetBlackboard() };
+        FrameBlackboard* frameBlackboard{ m_EditorState->EditorSceneRenderer->GetGraph().GetBlackboard() };
         BufferHandle storage{ frameBlackboard->GetBuffer( "SimpleComputePass_Result" ) };
 
         // Display list of buffers involved and make it to display info about selected buffer
@@ -176,11 +176,11 @@ namespace Mikoto {
         }
 
         // Lighting passes
-        AABBGenComp* aabbGenComPass{ m_EditorState->SceneRenderer->GetPass<AABBGenComp>() };
-        LightCullingComp* lightCullingComp{ m_EditorState->SceneRenderer->GetPass<LightCullingComp>() };
-        FinalCompositionPass* finalCompositionPass{ m_EditorState->SceneRenderer->GetPass<FinalCompositionPass>() };
+        AABBGenComp* aabbGenComPass{ m_EditorState->EditorSceneRenderer->GetPass<AABBGenComp>() };
+        LightCullingComp* lightCullingComp{ m_EditorState->EditorSceneRenderer->GetPass<LightCullingComp>() };
+        FinalCompositionPass* finalCompositionPass{ m_EditorState->EditorSceneRenderer->GetPass<FinalCompositionPass>() };
 
-        FrameBlackboard* frameBlackboard{ m_EditorState->SceneRenderer->GetGraph().GetBlackboard() };
+        FrameBlackboard* frameBlackboard{ m_EditorState->EditorSceneRenderer->GetGraph().GetBlackboard() };
         BufferHandle storage{ frameBlackboard->GetBuffer( "SimpleComputePass_Result" ) };
 
         // Display list of buffers involved and make it to display info about selected buffer

@@ -42,7 +42,7 @@ namespace Mikoto {
     };
 
     struct GfxRenderInfo {
-        LoadOp LoadOp{ LoadOp::CLEAR };
+        LoadOp ColorLoadOp{ LoadOp::CLEAR };
 
         Vec4F ClearColor{};
         TextureHandle DepthRenderTarget{};

@@ -143,7 +143,7 @@ namespace Mikoto {
 
         if (m_SceneRenderer) { m_SceneRenderer->Init(); }
 
-        m_EditorState->SceneRenderer = m_SceneRenderer.get();
+        m_EditorState->EditorSceneRenderer = m_SceneRenderer.get();
     }
 
     auto EditorLayer::SetupEditorState() -> void {

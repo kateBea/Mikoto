@@ -48,7 +48,7 @@ namespace Mikoto {
         std::vector<VkRenderingAttachmentInfo> colorImages{};
 
         for (auto &colorImage: beginInfo.ColorRenderTargets) {
-            VkAttachmentLoadOp loadOp{ beginInfo.LoadOp == LoadOp::CLEAR ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD };
+            VkAttachmentLoadOp loadOp{ beginInfo.ColorLoadOp == LoadOp::CLEAR ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD };
             VkRenderingAttachmentInfo &colorAttachment{ colorImages.emplace_back( VkRenderingAttachmentInfo{} ) };
             colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
             colorAttachment.imageView = colorImage->GetNativeHandle( ObjectType::Vk_ImageView );

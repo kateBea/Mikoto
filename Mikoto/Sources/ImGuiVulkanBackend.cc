@@ -314,7 +314,6 @@ namespace Mikoto {
 
         ImGui::Render();
 
-
         CommandListHandle commandList{ m_GpuDevice->CreateCommandList( QueueType::GRAPHICS_QUEUE ) };
         commandList->Begin();
 

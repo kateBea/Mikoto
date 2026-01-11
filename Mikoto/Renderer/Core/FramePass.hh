@@ -5,10 +5,6 @@
 #ifndef MIKOTO_FRAMEPASS_HH
 #define MIKOTO_FRAMEPASS_HH
 
-#include <string>
-#include <string_view>
-#include <vector>
-
 #include <ankerl/unordered_dense.h>
 
 #include <Assets//Texture.hh>
@@ -16,11 +12,14 @@
 #include <Library/Data/ResourcePool.hh>
 #include <Library/Utility/Types.hh>
 #include <Renderer/Core/Buffer.hh>
+#include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/GraphicsContext.hh>
-#include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Passes/ShardRenderParams.hh>
+#include <Renderer/Passes/ShaderRenderParams.hh>
 #include <Scene/Scene.hh>
+#include <string>
+#include <string_view>
+#include <vector>
 
 #include "Assets/Font.hh"
 #include "Scene/Camera.hh"
@@ -172,177 +171,22 @@ namespace Mikoto {
         auto TraverseMeshList(PassCommandList& commandList) -> void;
 
     public:
-        struct ShaderMeshInfo {
-            Mat4F Transform{};
-
-            Vec4F Albedo{};
-            Vec4F Factors{};
-
-            Int32 AlbedoIndex{};
-            Int32 NormalIndex{};
-            Int32 MetallicIndex{};
-            Int32 RoughnessIndex{};
-            Int32 AoIndex{};
-        };
-
-        static constexpr UInt32 MAX_RENDER_ENTITIES{ 4096 * 10 };
-        static constexpr UInt32 MAX_LIGHTS{ 5096 };
-
-        struct FrameUBO {
-            glm::mat4 View{};
-            glm::mat4 Projection{};
-            Vec4F CameraPosition{};
-        };
-
-        struct alignas(sizeof(Vec4F)) LightTypeInfo {
-            Vec4F Position{};
-            Vec4F Direction{};
-
-            Vec3F Diffuse{};
-
-            float CutOff{};
-            float OuterCutOff{};
-            float Intensity{};
-            float Radius{};
-
-            Int32 ActiveLightType{};
-        };
-
-        struct LightInfo {
-            enum class DisplayModes {
-                DISPLAY_NORMAL = 1,
-                DISPLAY_COLOR = 2,
-                DISPLAY_METAL = 3,
-                DISPLAY_AO = 4,
-                DISPLAY_ROUGH = 5,
-            };
-
-            enum class ActiveLightType {
-                LIGHT_TYPE_INACTIVE = -1,
-                LIGHT_TYPE_POINT = 1,
-                LIGHT_TYPE_SPOT = 2,
-                LIGHT_TYPE_DIRECTIONAL = 3,
-            };
-
-            std::array<LightTypeInfo, MAX_LIGHTS> Lights{};
-
-            Int32 ActiveLightsCount{};
-            Int32 DisplayMode{};
-        };
 
         struct MeshInstanceInfo {
             DrawIndexedState InstanceDrawState{};
-            ankerl::unordered_dense::map<UInt64, ShaderMeshInfo> InstanceInfos{};
+            ankerl::unordered_dense::map<UInt64, ShaderMaterialParams> InstanceInfos{};
         };
     private:
-        LightInfo m_LightsInfo{};
-        FrameUBO m_FrameUBO{};
+        ShaderLightListParams m_LightsInfo{};
+        ShaderCameraParams m_FrameUBO{};
 
         bool m_UseSkybox{ false };
 
         Scene* m_Scene{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
 
-        std::array<ShaderMeshInfo, MAX_RENDER_ENTITIES> m_Meshes{};
+        std::array<ShaderMaterialParams, MAX_RENDERABLE_ENTITIES> m_Meshes{};
         ankerl::unordered_dense::map<MeshNode*, MeshInstanceInfo> m_MeshDrawState{};
-    };
-
-    class AABBGenComp final : public FramePass {
-    public:
-        constexpr static UInt32 MAX_LIGHT_CLUSTERS{ 256 };
-        struct CameraUBO {
-            glm::mat4 ViewMatrix{};
-            glm::mat4 InverseProjection{};
-
-            glm::vec4 GridSize{};
-            glm::vec4 ViewPosition{};
-
-            // xy = Planes, zw = ScreenDimensions
-            glm::vec4 Screen{};
-
-            // x = show heat map
-            glm::vec4 LightInfo{};
-        };
-
-        struct alignas(sizeof(glm::vec4)) Cluster  {
-            glm::vec4 Center{};
-            glm::vec4 ClosestPoint{};
-            glm::vec4 DistanceSquared{};
-
-            glm::vec4 MinPoint{};
-            glm::vec4 MaxPoint{};
-            UInt32 Count{};
-            UInt32 LightIndices[MAX_LIGHT_CLUSTERS];
-        };
-
-        explicit AABBGenComp()
-            : FramePass{ "AABBGenComp", PassType::COMPUTE } {}
-
-        auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(PassCommandList& cmdList) -> void override;
-
-        auto SetCamera(const Camera* camera) -> void;
-        auto SetHeatMap(bool enable) -> void;
-
-        MKT_NODISCARD auto GetClusterCount() const -> UInt32 { return m_NumClusters; }
-
-    private:
-        UInt32 m_GridSizeX{ 12 };
-        UInt32 m_GridSizeY{ 12 };
-        UInt32 m_GridSizeZ{ 24 };
-        UInt32 m_NumClusters{ m_GridSizeX * m_GridSizeY * m_GridSizeZ };
-
-        const Camera* m_Camera{};
-        CameraUBO m_CameraUBO{};
-    };
-
-    class LightCullingComp final : public FramePass {
-    public:
-        explicit LightCullingComp()
-            : FramePass{ "LightCullingComp", PassType::COMPUTE } {}
-
-        auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(PassCommandList& commandList) -> void override;
-
-        auto SetClusterCount(UInt32 clusterCount) -> void;
-
-        auto SetScene(Scene* scene) -> void;
-
-    private:
-        auto TraverseLights( const PassCommandList & commandList ) -> void;
-
-        struct alignas(16) LightCullingUBO {
-            UInt32 LightCount{};
-        };
-
-    private:
-
-        UInt32 m_LocalSize{ 128 }; // from light culling comp shader
-        UInt32 m_NumClusters{ 0 };
-
-        LightCullingUBO m_LightCullingUBO{};
-
-        Scene* m_Scene{};
-        std::array<FinalCompositionPass::LightTypeInfo, FinalCompositionPass::MAX_LIGHTS> m_Lights{};
-    };
-
-    class ShadowPass final : public FramePass {
-    public:
-
-        explicit ShadowPass()
-            : FramePass{ "ShadowPass", PassType::RENDER } {}
-
-        auto Setup(FrameGraphBuilder& device) -> void override;
-        auto Execute(PassCommandList& commandList) -> void override;
-
-        auto SetScene(Scene* scene) -> void;
-
-    private:
-        GpuDevice* m_Device{};
-
-        Scene* m_Scene{};
-
-        Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
     };
 
 }

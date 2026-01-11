@@ -5,11 +5,12 @@
 #ifndef REFERENCECOUNTED_HH
 #define REFERENCECOUNTED_HH
 
+#include <atomic>
+#include <functional>
+
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 #include <Logging/Assert.hh>
-#include <atomic>
-#include <functional>
 
 namespace Mikoto {
     /**
@@ -24,7 +25,7 @@ namespace Mikoto {
         DISABLE_COPY_AND_MOVE_FOR( ReferenceCounted );
 
         virtual ~ReferenceCounted() {
-            MKT_ASSERT( m_RefCount == 0, "Object destroyed while references still exist!" );
+            MKT_ASSERT( m_RefCount == 0u, "Object destroyed while references still exist!" );
         }
 
         auto Acquire() const noexcept -> void {
@@ -42,7 +43,7 @@ namespace Mikoto {
             return m_RefCount;
         }
 
-        mutable UInt32 m_RefCount{ 0 };
+        mutable std::atomic<UInt32> m_RefCount{ 0 };
     };
 
     /**

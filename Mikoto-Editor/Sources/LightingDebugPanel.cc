@@ -19,6 +19,7 @@
 #include <ImGui/ImGuiUtility.hh>
 #include <Layers/EditorLayer.hh>
 #include <Renderer/Core/RenderService.hh>
+#include <Renderer/Passes/ClusteredShading.hh>
 
 #include <Panels/LightingDebugPanel.hh>
 

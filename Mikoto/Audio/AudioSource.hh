@@ -152,6 +152,9 @@ namespace Mikoto {
         MKT_NODISCARD auto IsSameSource( const AudioSource* source ) const -> bool;
         MKT_NODISCARD auto IsSameAudio( const AudioSource* source ) const -> bool;
 
+        auto SetDopplerFactor(float value) -> float;
+        MKT_NODISCARD auto GetDopplerFactor() const -> float;
+
     private:
 
         auto Initialize() -> void override;
@@ -164,6 +167,7 @@ namespace Mikoto {
         ma_sound m_Sound{};
         Path m_Path{};
 
+        float m_DopplerEffect{ 1.0f };
         float m_Volume{ 5.0f };
         bool m_Muted{ false };
         float m_Pitch{ 1.0f };

@@ -149,6 +149,15 @@ namespace Mikoto {
         return m_Path == source->m_Path;
     }
 
+    auto AudioSource::SetDopplerFactor( const float value ) -> float {
+        m_DopplerEffect = Math::Clamp( value, 0.f, 10.f );
+        ma_sound_set_doppler_factor(std::addressof( m_Sound ), m_DopplerEffect);
+    }
+
+    auto AudioSource::GetDopplerFactor() const -> float {
+        return m_DopplerEffect;
+    }
+
     auto AudioSource::Initialize() -> void {
         if ( m_Path.empty() ) {
             return;

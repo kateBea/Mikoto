@@ -51,6 +51,8 @@ namespace Mikoto {
         if (ImGui::SmallButton( "Click here" )) { io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; }
     }
 
+
+    // Used for debugging purposes. This method was used to display array of integers from the Prime number compute pass
     static auto DrawSimpleComputeDebugWindow( const std::vector<UInt32> &data ) -> void {
         if (!ImGui::Begin( "Simple Compute Pass – Primes" )) {
             ImGui::End();
@@ -216,7 +218,7 @@ namespace Mikoto {
         PrepareRenderer( timeStep );
 
         m_ActiveScene->Update( timeStep );
-        m_SceneRenderer->Render( timeStep );
+        //m_SceneRenderer->Render( timeStep );
 
         UpdateDockSpace();
 
@@ -224,27 +226,27 @@ namespace Mikoto {
         // so they can become part of it
         UpdatePanels( timeStep );
 
-        if (m_RenderScreenTarget == RenderScreenTarget::PANEL) { m_EditorState->RenderImage = ImGuiService::Get()->GetFinalComposition(); } else { m_EditorState->RenderImage = m_EditorState->FinalComposition; }
+        if (m_RenderScreenTarget == RenderScreenTarget::PANEL) {
+            m_EditorState->RenderImage = ImGuiService::Get()->GetFinalComposition();
+        } else {
+            m_EditorState->RenderImage = m_EditorState->FinalComposition;
+        }
 
         RenderService::Get()->SetPresentTarget( m_EditorState->RenderImage );
-
-
-        // DEBUG: se the prime numbers from the debug compute pass
-        std::vector<UInt32> data{};
-        data.resize( 40 );
-        FrameBlackboard *blackboard{ m_SceneRenderer->GetGraph().GetBlackboard() };
-        BufferHandle storage{ blackboard->GetBuffer( "SimpleComputePass_Result" ) };
-        storage->CopyToBlock( data.data(), data.size() * sizeof( UInt32 ) );
-
-        DrawSimpleComputeDebugWindow( data );
     }
 
-    auto EditorLayer::OnEvent( Event &event ) -> void { if (event.IsType( EventType::KEY_PRESSED_EVENT )) { SetupPresentTarget( event ); } }
+    auto EditorLayer::OnEvent( Event &event ) -> void {
+        if (event.IsType( EventType::KEY_PRESSED_EVENT )) {
+            SetupPresentTarget( event );
+        }
+    }
 
-    auto EditorLayer::UpdatePanels( float timeStep ) -> void {
+    auto EditorLayer::UpdatePanels( const float timeStep ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        for (const auto &panel: m_PanelRegistry | std::ranges::views::values) { panel->OnUpdate( timeStep ); }
+        for (const auto &panel: m_PanelRegistry | std::ranges::views::values) {
+            panel->OnUpdate( timeStep );
+        }
 
     }
 
@@ -263,25 +265,31 @@ namespace Mikoto {
 
     auto EditorLayer::CreateProject() -> void {}
 
-    auto EditorLayer::HandleWindowScreenMode() const -> void { if (!m_Window->IsMaximized()) { m_Window->SetScreenMode( ScreenMode::WINDOW_MODE_FULLSCREEN ); } else { m_Window->SetScreenMode( ScreenMode::WINDOW_MODE_WINDOWED ); } }
+    auto EditorLayer::HandleWindowScreenMode() const -> void {
+        if (!m_Window->IsMaximized()) {
+            m_Window->SetScreenMode( ScreenMode::WINDOW_MODE_FULLSCREEN );
+        } else {
+            m_Window->SetScreenMode( ScreenMode::WINDOW_MODE_WINDOWED );
+        }
+    }
 
     auto EditorLayer::SetRendererResolution() const -> void {
         if (ImGui::BeginMenu( "Resolution" )) {
-            // if ( ImGui::MenuItem( "HD - 720p", nullptr, m_SceneRenderer->GetRenderResolution() == RenderResolution::RESOLUTION_HD ) ) {
-            //     m_SceneRenderer->SetRenderResolution( RenderResolution::RESOLUTION_HD );
-            // }
-            //
-            // if ( ImGui::MenuItem( "FHD - 1080p", nullptr, m_SceneRenderer->GetRenderResolution() == RenderResolution::RESOLUTION_FHD ) ) {
-            //     m_SceneRenderer->SetRenderResolution( RenderResolution::RESOLUTION_FHD );
-            // }
-            //
-            // if ( ImGui::MenuItem( "QHD - 1440p", nullptr, m_SceneRenderer->GetRenderResolution() == RenderResolution::RESOLUTION_QHD ) ) {
-            //     m_SceneRenderer->SetRenderResolution( RenderResolution::RESOLUTION_QHD );
-            // }
-            //
-            // if ( ImGui::MenuItem( "UHD - 2160p", nullptr, m_SceneRenderer->GetRenderResolution() == RenderResolution::RESOLUTION_UHD ) ) {
-            //     m_SceneRenderer->SetRenderResolution( RenderResolution::RESOLUTION_UHD );
-            // }
+            if ( ImGui::MenuItem( "HD - 720p", nullptr, m_SceneRenderer->IsRenderResolution(RenderResolution::RES_HD_720P)) ) {
+                m_SceneRenderer->SetRenderResolution( RenderResolution::RES_HD_720P );
+            }
+
+            if ( ImGui::MenuItem( "FHD - 1080p", nullptr, m_SceneRenderer->IsRenderResolution(RenderResolution::RES_FHD_1080)) ) {
+                m_SceneRenderer->SetRenderResolution( RenderResolution::RES_FHD_1080 );
+            }
+
+            if ( ImGui::MenuItem( "QHD - 1440p", nullptr, m_SceneRenderer->IsRenderResolution(RenderResolution::RES_QHD_1440P)) ) {
+                m_SceneRenderer->SetRenderResolution( RenderResolution::RES_QHD_1440P );
+            }
+
+            if ( ImGui::MenuItem( "UHD - 2160p", nullptr, m_SceneRenderer->IsRenderResolution(RenderResolution::RES_UHD_3120P)) ) {
+                m_SceneRenderer->SetRenderResolution( RenderResolution::RES_UHD_3120P );
+            }
 
             ImGui::EndMenu();
         }

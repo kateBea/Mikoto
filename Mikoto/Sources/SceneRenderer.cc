@@ -56,6 +56,12 @@ namespace Mikoto {
     auto SceneRenderer::Render( double ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        // If SetRenderResolution was called we will need to
+        // Reconstruct render target which will require recompiling the frame graph
+        if (m_WantResize) {
+
+        }
+
         PassPreSetup();
 
         m_FrameGraph->Execute();
@@ -114,6 +120,21 @@ namespace Mikoto {
 
     auto SceneRenderer::EnableSkybox( bool enable ) -> void {
         m_UseSkybox = enable;
+    }
+
+    auto SceneRenderer::GetRenderResolution() const -> RenderResolution {
+        return m_RenderResolution;
+    }
+
+    auto SceneRenderer::IsRenderResolution( RenderResolution resolution ) const -> bool {
+        return m_RenderResolution == resolution;
+    }
+
+    auto SceneRenderer::SetRenderResolution( RenderResolution resolution ) -> void {
+        m_RenderResolution = resolution;
+        m_WantResize = true;
+
+        m_RenderTargetDimensions = InferDimensions(m_RenderResolution);
     }
 
     auto SceneRenderer::InitGraphicsContex() -> void {

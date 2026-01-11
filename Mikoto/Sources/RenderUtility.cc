@@ -116,6 +116,17 @@ namespace Mikoto {
         return 0;
     }
 
+    auto InferDimensions( RenderResolution resolution ) -> std::pair<float, float> {
+        switch (resolution ) {
+            case RenderResolution::RES_HD_720P: return std::make_pair( 1280.0f, 720.0f );
+            case RenderResolution::RES_FHD_1080: return std::make_pair( 1920.0f, 1080.0f );
+            case RenderResolution::RES_QHD_1440P: return std::make_pair( 2560.0f, 1440.0f );
+            case RenderResolution::RES_UHD_3120P: return std::make_pair( 3840.0f, 2160.0f );
+        }
+
+        return std::make_pair( 1920.0f, 1080.0f );
+    }
+
     auto BufferDescription::ForElement( const Size size, const Size count ) -> BufferDescription& {
         this->ElementSize = size;
         this->ElementCount = count;

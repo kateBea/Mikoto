@@ -53,12 +53,6 @@ namespace Mikoto {
         std::string m_Name{};
     };
 
-    enum class RenderResolution {
-        FULL_HD,
-        QUAD_HD,
-        ULTRA_HD,
-    };
-
     // function to infer image size based on render resolution
 
     class SkyboxPass final : public FramePass {

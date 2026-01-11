@@ -42,19 +42,12 @@ namespace Mikoto {
         // We allocate space for a buffer large enough to contain ElementCount objects of ElementSize size (in bytes)
         if (m_ElementSize != 0 && m_ElementCount != 0) {
 
-            VkDeviceSize minOffsetAlignment{};
-
             if (m_Usage == BufferUsage::BUFFER_USAGE_SHADER_STORAGE) {
-                VkDeviceSize minOffsetAlignment{1};
+                VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE(m_Device)->GetStorageBufferMinOffsetAlignment() };
+                m_MinPaddedSize = VulkanHelpers::GetStorageBufferPadding( m_ElementSize, minOffsetAlignment );
 
-                if (m_Usage == BufferUsage::BUFFER_USAGE_SHADER_STORAGE) {
-                    minOffsetAlignment =
-                        TO_VK_DEVICE(m_Device)->GetStorageBufferMinOffsetAlignment();
-                }
-
-                m_MinPaddedSize = (m_ElementSize + minOffsetAlignment - 1) & ~(minOffsetAlignment - 1);
             } else if (m_Usage == BufferUsage::BUFFER_USAGE_UNIFORM) {
-                minOffsetAlignment = TO_VK_DEVICE( m_Device )->GetUniformBufferMinOffsetAlignment();
+                VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE(m_Device)->GetUniformBufferMinOffsetAlignment() };
                 m_MinPaddedSize = VulkanHelpers::GetUniformBufferPadding( m_ElementSize, minOffsetAlignment );
             }
 
@@ -153,7 +146,7 @@ namespace Mikoto {
         }
 
         // Fill VMA specific structs
-        //let the VMA library know that this data should be on CPU RAM
+        // Let the VMA library know that this data should be on CPU RAM
         m_AllocationCreateInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
     }
 
@@ -173,12 +166,12 @@ namespace Mikoto {
         std::memcpy( m_VmaAllocationInfo.pMappedData, ptr, size );
     }
 
-    auto VulkanBuffer::CopyFromBlock( const void* ptr, Size size, Size offset ) -> void {
+    auto VulkanBuffer::CopyFromBlock( const void* ptr, const Size size, const Size offset ) -> void {
         PersistentMap();
 
         if (m_ElementSize != 0 && (m_Usage == BufferUsage::BUFFER_USAGE_SHADER_STORAGE || m_Usage == BufferUsage::BUFFER_USAGE_UNIFORM)) {
             // if this buffer is supposed to hold elements we need to handle element padding depending on whether this is uniform or storage
-            Size minJumps{ offset / m_MinPaddedSize };
+            const Size minJumps{ offset / m_MinPaddedSize };
             Size newOffset{ (minJumps + 1 ) * m_MinPaddedSize };
 
             if (offset == 0) {

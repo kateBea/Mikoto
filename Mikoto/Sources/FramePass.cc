@@ -419,16 +419,12 @@ namespace Mikoto {
             }
 
             firstInstance += instanceInfo.InstanceInfos.size();
+
+            commandList.DrawIndexed(drawState);
         }
 
         // Upload data
         commandList.FillBufferElement( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMaterialParams ), firstInstance );
-
-        // Draw
-        for ( auto& [InstanceDrawState, InstanceInfos]: m_MeshDrawState | std::views::values ) {
-            DrawIndexedState& drawState{ InstanceDrawState };
-            commandList.DrawIndexed(drawState);
-        }
     }
 
     auto FinalCompositionPass::Execute( PassCommandList& commandList ) -> void {

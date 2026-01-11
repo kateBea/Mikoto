@@ -43,6 +43,7 @@ namespace Mikoto {
 
     struct GfxRenderInfo {
         LoadOp ColorLoadOp{ LoadOp::CLEAR };
+        LoadOp DephtLoadOp{ LoadOp::CLEAR };
 
         Vec4F ClearColor{};
         TextureHandle DepthRenderTarget{};
@@ -122,7 +123,7 @@ namespace Mikoto {
     public:
         explicit PassCommandList(GraphicsContext* context, FrameBlackboard* blackboard);
 
-        auto BeginRender(FramePass* pass, LoadOp colorTargetLoadOp = LoadOp::CLEAR) -> void;
+        auto BeginRender(FramePass* pass, LoadOp colorTargetLoadOp = LoadOp::CLEAR, LoadOp depthTargetLoadOp = LoadOp::CLEAR) -> void;
         auto EndRender() -> void;
 
         auto BeginCompute(FramePass* pass) -> void;

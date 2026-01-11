@@ -110,7 +110,7 @@ namespace Mikoto {
         pipelineDesc.Description = graphicsDesc;
 
         pipelineDesc.ColorRenderTargets.emplace_back( "FinalCompositionPass_ColorTarget" );
-        //pipelineDesc.DepthRenderTargets = "FinalCompositionPass_DepthTarget";
+        pipelineDesc.DepthRenderTargets = "FinalCompositionPass_DepthTarget";
 
         builder.CreateNamedPipeline( "TextRenderPass_Pipeline", pipelineDesc );
 
@@ -145,6 +145,7 @@ namespace Mikoto {
         builder.CreateNamedBuffer( "TextRenderPass_FontIndexBuffer", indexDesc );
 
         builder.ReadTexture( this, "FinalCompositionPass_ColorTarget" );
+        builder.ReadTexture( this, "FinalCompositionPass_DepthTarget" );
 
         builder.WriteBuffer( this, "TextRenderPass_FontVertexBuffer" );
         builder.WriteBuffer( this, "TextRenderPass_FontIndexBuffer" );
@@ -157,8 +158,9 @@ namespace Mikoto {
         MKT_ASSERT( m_Camera != nullptr, "Camera cannot be NULL" );
 
         commandList.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
+        commandList.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
 
-        commandList.BeginRender(this, LoadOp::LOAD);
+        commandList.BeginRender(this, LoadOp::LOAD, LoadOp::LOAD);
         commandList.BindPipeline( "TextRenderPass_Pipeline" );
 
         // Set render targets

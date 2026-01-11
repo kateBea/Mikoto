@@ -17,7 +17,7 @@ namespace Mikoto {
             return false;
         }
 
-    return entity->HasComponent<ComponentType>();
+        return entity->HasComponent<ComponentType>();
     }
 
     MKT_NODISCARD inline auto GetRandomizedVec3F(float lowerBound, float upperBound) -> glm::vec3 {

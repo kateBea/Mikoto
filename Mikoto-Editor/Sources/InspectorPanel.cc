@@ -130,8 +130,10 @@ namespace Mikoto {
             ImGui::TextUnformatted( "Type" );
 
             // Second row - second colum
+            constexpr auto type{ FileType::UNKNOWN_FILE_TYPE };
+
             ImGui::TableSetColumnIndex( 1 );
-            ImGui::TextUnformatted( GetFileExtensionName( FileType::MP3_AUDIO_TYPE ).data() );
+            ImGui::TextUnformatted( GetFileExtensionName( type ).data() );
 
             // Third row - first colum
             ImGui::TableNextRow();
@@ -246,10 +248,11 @@ namespace Mikoto {
 
         // Table to control albedo mix color and ambient value
         // Table has two rows and one colum
-        constexpr auto columnIndex{ 0 };
         constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_None };
 
         if ( ImGui::BeginTable( "AlbedoMapEditContentsTable", 1, tableFlags ) ) {
+            constexpr auto columnIndex{ 0 };
+
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndex );
 
@@ -1631,12 +1634,13 @@ namespace Mikoto {
         }
 
         // --- Playback controls ---
-        ImGui::TableNextRow();
-        ImGui::TableSetColumnIndex( 0 );
-        ImGui::TextUnformatted( "Playback" );
-        ImGui::TableSetColumnIndex( 1 );
+        if (!source.IsEmpty()) {
 
-        if ( source ) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+            ImGui::TextUnformatted( "Playback" );
+            ImGui::TableSetColumnIndex( 1 );
+
             if ( ImGui::Button( StringUtils::Concat( ICON_MD_PLAY_ARROW, " Play" ).c_str() ) ) {
                 source->Play();
             }
@@ -1650,20 +1654,112 @@ namespace Mikoto {
             if ( ImGui::Button( StringUtils::Concat( ICON_MD_STOP, " Stop" ).c_str() ) ) {
                 source->Stop();
             }
-        }
 
-        // --- Progress bar ---
-        ImGui::TableNextRow();
-        ImGui::TableSetColumnIndex( 0 );
-        ImGui::TextUnformatted( "Progress" );
-        ImGui::TableSetColumnIndex( 1 );
-        if ( source ) {
+            // --- Progress bar ---
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+            ImGui::TextUnformatted( "Progress" );
+            ImGui::TableSetColumnIndex( 1 );
+
             float duration{ source->GetAudioDuration() };
             float progress{ source->GetCurrentProgress() };
             ImGui::ProgressBar( duration > 0.0f ? progress / duration : 0.0f, ImVec2( -1, 0 ) );
         }
 
         ImGui::EndTable();
+
+        constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
+                                                        ImGuiTreeNodeFlags_Framed |
+                                                        ImGuiTreeNodeFlags_SpanAvailWidth |
+                                                        ImGuiTreeNodeFlags_FramePadding };
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        if ( ImGui::IsItemHovered() ) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        if (source) {
+            if ( ImGui::TreeNodeEx( "##SetupAudioComponentTab3DAudioSettings{}", treeNodeFlags, "3D Audio Settings" ) ) {
+
+            // Doppler
+            static float dopplerLevel{ source->GetDopplerFactor() };
+            ImGui::TextUnformatted("Doppler Level");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(160.0f);
+            if ( ImGui::DragFloat(
+                "##DopplerLevel",
+                std::addressof( dopplerLevel ),
+                0.01f,
+                0.0f,
+                5.0f,
+                "%.2f"
+            )) {
+                source->SetDopplerFactor( dopplerLevel );
+            }
+
+            // Spread
+            static float spread{};
+            ImGui::TextUnformatted("Spread");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(160.0f);
+            ImGui::SliderFloat(
+                "##Spread",
+                std::addressof( spread ),
+                0.0f,
+                180.0f,
+                "%.0f°"
+            );
+
+            // Rolloff
+            static constexpr const char* rolloffItems[] {
+                "Logarithmic",
+                "Linear",
+                "Custom"
+            };
+
+
+            static int rolloffIndex{};
+
+            ImGui::TextUnformatted("Volume Rolloff");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(160.0f);
+            if (ImGui::Combo("##SetupAudioComponentRolloff", &rolloffIndex, rolloffItems, IM_ARRAYSIZE(rolloffItems))) {
+            }
+
+            // Min Distance
+            static float minDistance{};
+            static float maxDistance{};
+
+            ImGui::TextUnformatted("Min Distance");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(160.0f);
+            ImGui::DragFloat(
+                "##MinDistance",
+                &minDistance,
+                0.1f,
+                0.0f,
+                maxDistance,
+                "%.2f"
+            );
+
+            // Max Distance
+            ImGui::TextUnformatted("Max Distance");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(160.0f);
+            ImGui::DragFloat(
+                "##MaxDistance",
+                &maxDistance,
+                1.0f,
+                minDistance,
+                10000.0f,
+                "%.1f"
+            );
+
+            ImGui::TreePop();
+        }
+        }
     }
 
 

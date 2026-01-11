@@ -132,8 +132,6 @@ namespace Mikoto {
         m_EditorState->PassesCompositions.try_emplace( "TrianglePass", blackboard->GetTexture( "HelloTrianglePass_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "TexturePass", blackboard->GetTexture( "HelloTexture_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "FinalComposition", blackboard->GetTexture( "FinalCompositionPass_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "FontRenderPass", blackboard->GetTexture( "TextRenderPass_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "SkyBox", blackboard->GetTexture( "SkyboxPass_ColorTarget" ) );
     }
 
     auto EditorLayer::SetupRenderer() -> void {

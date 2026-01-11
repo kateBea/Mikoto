@@ -151,6 +151,15 @@ namespace Mikoto::VulkanHelpers {
         return alignedSize;
     }
 
+    auto GetStorageBufferPadding( VkDeviceSize bufferOriginalSize, VkDeviceSize deviceMinOffsetAlignment ) -> VkDeviceSize {
+        VkDeviceSize alignedSize{ bufferOriginalSize };
+
+        if ( deviceMinOffsetAlignment > 0 )
+            alignedSize = ( alignedSize + deviceMinOffsetAlignment - 1 ) & ~( deviceMinOffsetAlignment - 1 );
+
+        return alignedSize;
+    }
+
     auto InferVulkanIndexType( const BufferDataType format ) -> VkIndexType {
         switch ( format ) {
             case BufferDataType::BUFFER_DATA_UINT16:

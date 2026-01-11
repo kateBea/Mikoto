@@ -339,7 +339,16 @@ namespace Mikoto {
         COUNT,
     };
 
+    enum class RenderResolution {
+        RES_HD_720P,
+        RES_FHD_1080,
+        RES_QHD_1440P,
+        RES_UHD_3120P,
+    };
+
     auto InferElementCount(BufferDataType dataType, Size blockSize) -> Size;
+
+    MKT_NODISCARD auto InferDimensions(RenderResolution resolution) -> std::pair<float, float>;
 
     // By default, textures are loaded with rgba format which is supported by most of gpus
     auto FreeImageData( Byte* data ) -> void;

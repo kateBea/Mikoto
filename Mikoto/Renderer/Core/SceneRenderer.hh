@@ -14,6 +14,7 @@
 #include <Scene/SceneCamera.hh>
 
 #include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Core/RenderUtility.hh>
 #include <Renderer/Core/FramePass.hh>
 #include <Renderer/Core/GraphicsContext.hh>
 
@@ -138,6 +139,10 @@ namespace Mikoto {
         auto SetClearColor(const Vec4F& color) -> void;
         auto EnableSkybox(bool enable) -> void;
 
+        MKT_NODISCARD auto GetRenderResolution() const -> RenderResolution;
+        MKT_NODISCARD auto IsRenderResolution(RenderResolution resolution) const -> bool;
+        auto SetRenderResolution( RenderResolution resolution ) -> void;
+
     private:
         // [Internal usage]
         auto InitGraphicsContex() -> void;
@@ -158,6 +163,10 @@ namespace Mikoto {
 
         Unique<FrameGraph> m_FrameGraph{};
         Unique<GraphicsContext> m_GraphicsContext{};
+
+        bool m_WantResize{ false };
+        RenderResolution m_RenderResolution{ RenderResolution::RES_FHD_1080 };
+        std::pair<float, float> m_RenderTargetDimensions{ InferDimensions( m_RenderResolution ) };
 
         UInt32 m_ViewportWidth{ 0u };
         UInt32 m_ViewportHeight{ 0u };

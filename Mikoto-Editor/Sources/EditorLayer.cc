@@ -143,7 +143,9 @@ namespace Mikoto {
 
         m_SceneRenderer = SceneRenderer::Create( spec );
 
-        if (m_SceneRenderer) { m_SceneRenderer->Init(); }
+        if (m_SceneRenderer) {
+            m_SceneRenderer->Init();
+        }
 
         m_EditorState->EditorSceneRenderer = m_SceneRenderer.get();
     }
@@ -199,13 +201,6 @@ namespace Mikoto {
             .WithFacePath( "posz.jpg" )
             .WithFacePath( "negz.jpg" );
 
-        // +X -> right.jpg
-        // -X -> left.jpg
-        // +Y -> top.jpg      // often needs vertical flip
-        // -Y -> bottom.jpg   // often needs vertical flip
-        // -Z -> front.jpg
-        // +Z -> back.jpg
-
         TextureHandle skybox{ AssetsService::Get()->LoadAsset<TextureCube>( loadDesc ) };
 
         if (m_ActiveScene->IsSkyboxEnabled()) {
@@ -218,7 +213,7 @@ namespace Mikoto {
         PrepareRenderer( timeStep );
 
         m_ActiveScene->Update( timeStep );
-        //m_SceneRenderer->Render( timeStep );
+        m_SceneRenderer->Render( timeStep );
 
         UpdateDockSpace();
 

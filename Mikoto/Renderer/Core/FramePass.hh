@@ -49,15 +49,14 @@ namespace Mikoto {
             : m_Name{ name } {}
 
     protected:
-        PassType m_PassType{};
         std::string m_Name{};
+        PassType m_PassType{};
     };
 
-    // function to infer image size based on render resolution
 
     class SkyboxPass final : public FramePass {
     public:
-        explicit SkyboxPass(GpuDevice* device)
+        explicit SkyboxPass()
            : FramePass{ "SkyboxPass", PassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
@@ -179,7 +178,7 @@ namespace Mikoto {
         Scene* m_Scene{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
 
-        std::array<ShaderMaterialParams, MAX_RENDERABLE_ENTITIES> m_Meshes{};
+        std::vector<ShaderMaterialParams> m_Meshes{};
         ankerl::unordered_dense::map<MeshNode*, MeshInstanceInfo> m_MeshDrawState{};
     };
 

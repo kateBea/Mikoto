@@ -70,7 +70,10 @@ namespace Mikoto {
     };
 
     struct ShaderLightListParams {
-        std::array<ShaderLightTypeParams, MAX_LIGHTS> Lights{};
+        std::vector<ShaderLightTypeParams> Lights{
+            MAX_LIGHTS,
+            ShaderLightTypeParams()
+        };
 
         Int32 ActiveLightsCount{};
         Int32 DisplayMode{};

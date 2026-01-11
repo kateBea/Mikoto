@@ -38,7 +38,7 @@ namespace Mikoto {
         m_RegisteredTextures.emplace( std::string{ textureName }, std::string{ samplerName } );
     }
 
-    auto SRGTextures::GetMaxBindlessTextureCount() -> UInt32 {
+    auto SRGTextures::GetMaxTextureCount() -> UInt32 {
         return 4096;
     }
 

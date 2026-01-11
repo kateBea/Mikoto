@@ -19,9 +19,9 @@
 // Project Headers
 
 #include <Renderer/Vulkan/VulkanDevice.hh>
-#include <Renderer/Vulkan/VulkanRenderer.hh>
 
 #include "Renderer/Vulkan/VulkanContext.hh"
+#include "Renderer/Vulkan/VulkanGraphicsContext.hh"
 #include "Renderer/Vulkan/VulkanHelpers.hh"
 
 namespace Mikoto::VulkanHelpers {
@@ -674,8 +674,8 @@ namespace Mikoto::VulkanHelpers::Reflection {
 
                     bool isBindless{ IsBindlessEnabled() && ( bindingName.find( bindlessPrefix ) != std::string_view::npos ) };
 
-                    // IMPORTANT: bindless textures need to be the last binding if they are sharing a SET with oither bindings
-                    bindingInfo.descriptorCount = std::max(1u, isBindless ? VulkanRenderer::GetMaxBindlessTextureCount() : reflectedBinding->count );
+                    // IMPORTANT: bindless textures need to be the last binding if they are sharing a SET with other bindings
+                    bindingInfo.descriptorCount = std::max(1u, isBindless ? SRGTextures::GetMaxTextureCount() : reflectedBinding->count );
 
                     bindingInfo.stageFlags = stage;
                     bindingMap[bindingInfo.binding] = bindingInfo;

@@ -15,12 +15,23 @@
 
 namespace Mikoto {
 
+    // Material Pass that renders a sphere with a texture on a sphere
+    // Uses IBL precomputed info
+    class MaterialPreviewPass final : public FramePass {
+    public:
+        explicit MaterialPreviewPass()
+            : FramePass{ "MaterialPreviewPass", PassType::RENDER } {}
+
+        auto Setup(FrameGraphBuilder& builder) -> void override;
+        auto Execute(PassCommandList& cmdList) -> void override;
+    };
+
     class TextPass final : public FramePass {
     public:
         explicit TextPass()
             : FramePass{ "TextPass", PassType::RENDER } {}
 
-        auto Setup(FrameGraphBuilder& device) -> void override;
+        auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
 
         auto SetScene(Scene* scene) -> void;
@@ -36,7 +47,7 @@ namespace Mikoto {
         explicit SimpleComputePass()
             : FramePass{ "SimpleComputePass", PassType::COMPUTE } {}
 
-        auto Setup(FrameGraphBuilder& device) -> void override;
+        auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
 
 
@@ -49,7 +60,7 @@ namespace Mikoto {
         explicit HelloTrianglePass()
             : FramePass{ "HelloTrianglePass", PassType::RENDER } {}
 
-        auto Setup(FrameGraphBuilder& device) -> void override;
+        auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
     };
 
@@ -60,7 +71,7 @@ namespace Mikoto {
         explicit HelloTexture()
             : FramePass{ "HelloTexture", PassType::RENDER } {}
 
-        auto Setup(FrameGraphBuilder& device) -> void override;
+        auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
 
     private:
@@ -77,7 +88,7 @@ namespace Mikoto {
         explicit HelloCubePass()
             : FramePass{ "HelloTrianglePass", PassType::RENDER } {}
 
-        auto Setup(FrameGraphBuilder& device) -> void override;
+        auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
     };
 

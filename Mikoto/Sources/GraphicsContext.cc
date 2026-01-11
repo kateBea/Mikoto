@@ -33,10 +33,11 @@ namespace Mikoto {
         MKT_ASSERT( m_Blackboard, "Tried to create PassCommandList with NULL blackboard" );
     }
 
-    auto PassCommandList::BeginRender(FramePass* pass, LoadOp colorTargetLoadOp) -> void {
+    auto PassCommandList::BeginRender(FramePass* pass, LoadOp colorTargetLoadOp, LoadOp depthTargetLoadOp) -> void {
         MKT_ASSERT( m_Context, "No valid context for this pass command list" );
 
         m_RenderInfo.ColorLoadOp = colorTargetLoadOp;
+        m_RenderInfo.DephtLoadOp = depthTargetLoadOp;
 
         m_Context->BeginRender( m_RenderInfo );
 

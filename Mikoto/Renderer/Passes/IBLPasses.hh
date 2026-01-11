@@ -12,6 +12,11 @@
 
 namespace Mikoto {
 
+    // These passes are supposed to be run once
+    // IBL passes are not frame work (run every frame).
+    // Maybe we should extend the or handle in in a way to specify a set of passes that need to be ran before anything else
+    // Future passes that depend on them might need to be delayed until data is ready
+
     class EnvCubePass final : public FramePass {
     public:
         explicit EnvCubePass()

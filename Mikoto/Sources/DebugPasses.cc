@@ -9,6 +9,15 @@
 #include <Renderer/Passes/DebugPasses.hh>
 
 namespace Mikoto {
+
+    auto MaterialPreviewPass::Setup( FrameGraphBuilder& builder ) -> void {
+
+    }
+
+    auto MaterialPreviewPass::Execute( PassCommandList& cmdList ) -> void {
+
+    }
+
     auto TextPass::Setup( FrameGraphBuilder& builder ) -> void {
         // Create resources it needs
         PipelineDescription pipelineDesc{};
@@ -57,7 +66,7 @@ namespace Mikoto {
         m_Scene = scene;
     }
 
-    auto HelloCubePass::Setup( FrameGraphBuilder& device ) -> void {
+    auto HelloCubePass::Setup( FrameGraphBuilder& builder ) -> void {
     }
 
     auto HelloCubePass::Execute( PassCommandList& cmdList ) -> void {

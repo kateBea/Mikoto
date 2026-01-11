@@ -7,7 +7,6 @@
 
 #include <Common/Common.hh>
 #include <Renderer/Core/GpuDevice.hh>
-#include <Renderer/Core/RenderPassBase.hh>
 #include <Library/Data/Registry.hh>
 #include <Scene/Camera.hh>
 #include <Scene/Scene.hh>
@@ -42,22 +41,6 @@ namespace Mikoto {
         auto WithName(std::string_view name) -> SceneRendererCreateInfo&;
 
         auto WithDevice(GpuDevice* device) -> SceneRendererCreateInfo&;
-    };
-
-    class MaterialViewer {
-    public:
-        explicit MaterialViewer( RendererBackend* backend );
-
-        auto SetMaterial( MaterialHandle material ) -> void;
-
-        auto SetViewPort( float width, float height ) -> void;
-
-    private:
-        RendererBackend* m_RendererBackend{};
-        float m_ViewportWidth{ 0u };
-        float m_ViewportHeight{ 0u };
-
-        MaterialHandle m_Material{};
     };
 
     /**
@@ -151,8 +134,6 @@ namespace Mikoto {
         auto PassPreSetup() -> void;
 
     private:
-
-        Unique<MaterialViewer> m_MaterialViewer{};
 
         GpuDevice* m_Device{ nullptr };
 

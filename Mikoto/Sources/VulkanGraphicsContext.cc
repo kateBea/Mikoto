@@ -132,7 +132,6 @@ namespace Mikoto {
         vkCmdBindPipeline( vkCmd, bindPoint, pipeline->GetNativeHandle( ObjectType::Vk_Pipeline ) );
     }
 
-
     auto VulkanGraphicsContext::HasDescriptorSets( FramePass *pipeline ) -> bool {
         const auto it{ m_PassInfo.find( pipeline ) };
         return it != m_PassInfo.end() && !it->second.DescriptorSets.empty();
@@ -269,7 +268,7 @@ namespace Mikoto {
     }
 
     auto VulkanGraphicsContext::CreateBindlessTexturesSet() -> void {
-        const UInt32 maxBindlessTextures{ SRGTextures::GetMaxBindlessTextureCount() };
+        const UInt32 maxBindlessTextures{ SRGTextures::GetMaxTextureCount() };
 
         VkDescriptorSetLayoutBinding binding{};
         binding.binding = 0;
@@ -343,7 +342,7 @@ namespace Mikoto {
     }
 
     auto VulkanGraphicsContext::UpdateBindlessTexturesSet(Texture* texture, Sampler* sampler, Size setIndex ) const -> void {
-        MKT_ASSERT(setIndex < SRGTextures::GetMaxBindlessTextureCount(), "Set index must be smaller than max bindless textures");
+        MKT_ASSERT(setIndex < SRGTextures::GetMaxTextureCount(), "Set index must be smaller than max bindless textures");
 
         VkSampler vkSampler{ sampler->GetNativeHandle( ObjectType::Vk_Sampler ) };
         VkImageView vkImageView{ texture->GetNativeHandle( ObjectType::Vk_ImageView ) };

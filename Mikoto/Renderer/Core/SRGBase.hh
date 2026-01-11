@@ -57,7 +57,7 @@ namespace  Mikoto {
         auto cbegin() const -> decltype(auto) { return m_Resources.cbegin(); }
         auto cend() const -> decltype(auto) { return m_Resources.cend(); }
 
-        MKT_NODISCARD static auto GetMaxBindlessTextureCount() -> UInt32;
+        MKT_NODISCARD static auto GetMaxTextureCount() -> UInt32;
 
     private:
         ankerl::unordered_dense::map<std::pair<Texture*, Sampler*>, Size> m_Resources{};

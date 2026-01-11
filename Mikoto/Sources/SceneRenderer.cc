@@ -185,7 +185,7 @@ namespace Mikoto {
         TextRenderPass* textRenderPass{ m_PassRegistry.Register<TextRenderPass>() };
         textRenderPass->Setup( builder );
 
-        SkyboxPass* skyboxPass{ m_PassRegistry.Register<SkyboxPass>( m_Device ) };
+        SkyboxPass* skyboxPass{ m_PassRegistry.Register<SkyboxPass>() };
         skyboxPass->Setup( builder );
 
         m_FrameGraph->RegisterPass( helloTrianglePass );
@@ -228,17 +228,4 @@ namespace Mikoto {
         this->Device = device;
         return *this;
     }
-
-    MaterialViewer::MaterialViewer( RendererBackend *backend )
-        : m_RendererBackend{ backend }
-    {
-    }
-    auto MaterialViewer::SetMaterial( MaterialHandle material ) -> void {
-        m_Material = material;
-    }
-    auto MaterialViewer::SetViewPort( float width, float height ) -> void {
-        m_ViewportWidth = width;
-        m_ViewportHeight = height;
-    }
-
 }// namespace Mikoto

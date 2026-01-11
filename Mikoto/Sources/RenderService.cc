@@ -10,12 +10,10 @@
 // Project Headers
 #include <Common/Common.hh>
 #include <Core/Profiler.hh>
+#include <Core/Exception.hh>
 #include <Logging/Logger.hh>
-
+#include <ImGui/ImGuiService.hh>
 #include <Renderer/Core/RenderService.hh>
-#include <Renderer/Vulkan/VulkanRenderer.hh>
-
-#include "ImGui/ImGuiService.hh"
 
 namespace Mikoto {
 

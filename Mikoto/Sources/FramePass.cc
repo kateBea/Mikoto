@@ -336,6 +336,9 @@ namespace Mikoto {
 
         builder.ReadTexture( this, "FinalCompositionPass_ColorTarget" );
         builder.WriteTexture( this, "FinalCompositionPass_DepthTarget" );
+
+        // Prepare to have at least MAX_RENDERABLE_ENTITIES
+        m_Meshes.resize( MAX_RENDERABLE_ENTITIES );
     }
 
     auto FinalCompositionPass::TraverseMeshList(PassCommandList& commandList) -> void {

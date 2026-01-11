@@ -241,6 +241,13 @@ namespace Mikoto {
     };
 
     struct TextureCubeLoadDescription {
+        // +X -> right.jpg
+        // -X -> left.jpg
+        // +Y -> top.jpg      // might need vertical flip for vulkan
+        // -Y -> bottom.jpg   // might need vertical flip for vulkan
+        // -Z -> front.jpg
+        // +Z -> back.jpg
+
         Path BasePath{};
         std::vector<Path> FacesRelativePaths{};
         TextureType Type{ TextureType::TEXTURE_UNKNOWN };

@@ -11,6 +11,7 @@
 #include <Renderer/Core/RenderService.hh>
 #include <Renderer/Core/SceneRenderer.hh>
 #include <Renderer/Passes/DebugPasses.hh>
+#include <Renderer/Passes/IBLPasses.hh>
 #include <Renderer/Passes/ClusteredShading.hh>
 
 namespace Mikoto {

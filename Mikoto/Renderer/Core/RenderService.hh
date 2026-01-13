@@ -100,6 +100,8 @@ namespace Mikoto {
         RenderServiceCreateInfo m_Options{};
 
         Unique<RenderContext> m_Context{};
+
+        // Move to the graphics context
         Unique<ShaderLibrary> m_ShaderLibrary{};
 
         Unique<ImGuiService> m_ImguiService{};

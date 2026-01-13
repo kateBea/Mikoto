@@ -107,10 +107,15 @@ namespace Mikoto {
         m_GraphicsContex->BeginFrame( GetBlackboard() );
 
         for ( const auto& [pass, input, outputs] : m_Nodes) {
-            m_GraphicsContex->InsertResourceBarrier(pass);
 
-            PassCommandList passCommands{ m_GraphicsContex, GetBlackboard() };
-            pass->Execute( passCommands );
+            if (pass->ShouldRun()) {
+                m_GraphicsContex->InsertResourceBarrier(pass);
+
+                PassCommandList passCommands{ m_GraphicsContex, GetBlackboard() };
+                pass->Execute( passCommands );
+
+                pass->PostExecute();
+            }
         }
 
         m_GraphicsContex->EndFrame();

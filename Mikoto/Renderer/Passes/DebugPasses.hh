@@ -15,12 +15,30 @@
 
 namespace Mikoto {
 
+    class ObjectOutlinePass final : public FramePass {
+    public:
+        explicit ObjectOutlinePass()
+            : FramePass{ "ObjectOutlinePass", FramePassType::RENDER } {}
+
+        auto Setup(FrameGraphBuilder& builder) -> void override;
+        auto Execute(PassCommandList& cmdList) -> void override;
+    };
+
+    class WireFramePass final : public FramePass {
+    public:
+        explicit WireFramePass()
+            : FramePass{ "WireFramePass", FramePassType::RENDER } {}
+
+        auto Setup(FrameGraphBuilder& builder) -> void override;
+        auto Execute(PassCommandList& cmdList) -> void override;
+    };
+
     // Material Pass that renders a sphere with a texture on a sphere
     // Uses IBL precomputed info
     class MaterialPreviewPass final : public FramePass {
     public:
         explicit MaterialPreviewPass()
-            : FramePass{ "MaterialPreviewPass", PassType::RENDER } {}
+            : FramePass{ "MaterialPreviewPass", FramePassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
@@ -29,7 +47,7 @@ namespace Mikoto {
     class TextPass final : public FramePass {
     public:
         explicit TextPass()
-            : FramePass{ "TextPass", PassType::RENDER } {}
+            : FramePass{ "TextPass", FramePassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
@@ -45,7 +63,7 @@ namespace Mikoto {
     class SimpleComputePass final : public FramePass {
     public:
         explicit SimpleComputePass()
-            : FramePass{ "SimpleComputePass", PassType::COMPUTE } {}
+            : FramePass{ "SimpleComputePass", FramePassType::COMPUTE } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
@@ -58,7 +76,7 @@ namespace Mikoto {
     class HelloTrianglePass final : public FramePass {
     public:
         explicit HelloTrianglePass()
-            : FramePass{ "HelloTrianglePass", PassType::RENDER } {}
+            : FramePass{ "HelloTrianglePass", FramePassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
@@ -69,7 +87,7 @@ namespace Mikoto {
     class HelloTexture final : public FramePass {
     public:
         explicit HelloTexture()
-            : FramePass{ "HelloTexture", PassType::RENDER } {}
+            : FramePass{ "HelloTexture", FramePassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
@@ -86,7 +104,7 @@ namespace Mikoto {
     class HelloCubePass final : public FramePass {
     public:
         explicit HelloCubePass()
-            : FramePass{ "HelloTrianglePass", PassType::RENDER } {}
+            : FramePass{ "HelloTrianglePass", FramePassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;

@@ -461,7 +461,8 @@ namespace Mikoto {
 
         vkCmdEndRendering( nativeCmdListHandle );
     }
-    void ImGuiVulkanBackend::SetupViewportAndScissors( CommandListHandle cmdList ) {
+
+    auto ImGuiVulkanBackend::SetupViewportAndScissors( CommandListHandle cmdList ) -> void {
         const auto nativeCmdListHandle{ cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
 
         SwapChainHandle vulkanSwapChain{ VulkanContext::Get()->GetSwapchain() };

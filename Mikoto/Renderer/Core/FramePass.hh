@@ -1,9 +1,19 @@
+//    Copyright 2025 ケイト
 //
-// Created by kate on 11/24/25.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef MIKOTO_FRAMEPASS_HH
-#define MIKOTO_FRAMEPASS_HH
+#ifndef MIKOTO_FRAME_PASS_HH
+#define MIKOTO_FRAME_PASS_HH
 
 #include <string>
 #include <string_view>
@@ -11,189 +21,215 @@
 
 #include <ankerl/unordered_dense.h>
 
-#include <Assets//Texture.hh>
 #include <Assets/Model.hh>
-#include <Library/Data/ResourcePool.hh>
-#include <Library/Utility/Types.hh>
-#include <Renderer/Core/Buffer.hh>
-#include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Core/GpuDevice.hh>
-#include <Renderer/Core/GraphicsContext.hh>
-#include <Renderer/Passes/ShaderRenderParams.hh>
 #include <Scene/Scene.hh>
-
-#include "Assets/Font.hh"
-#include "Scene/Camera.hh"
+#include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Core/GraphicsContext.hh>
 
 namespace Mikoto {
 
+    enum class FramePassStatus { ACTIVE,
+                                 SLEEPING };
+
+    enum class FramePassExecutionPolicy { PER_FRAME,
+                                          ON_CHANGE,
+                                          ONCE };
+
     class FramePass {
     public:
-        enum class PassType { RENDER, COMPUTE };
+        enum class FramePassType { RENDER,
+                                   COMPUTE,
+                                   UNDEFINED };
 
         using ResourceHandle = Ref<IResource>;
 
+        /**
+        * @brief Virtual destructor for frame passes.
+        *
+        * Ensures proper cleanup of derived pass implementations.
+        */
         virtual ~FramePass() = default;
 
+
+        /**
+        * @brief Declares resource dependencies and execution parameters for the pass.
+        *
+        * This method is called during frame graph construction and must describe:
+        * - Resources read by the pass
+        * - Resources written by the pass
+        */
         virtual auto Setup(FrameGraphBuilder& builder) -> void = 0;
+
+
+        /**
+        * @brief Records GPU commands for this pass.
+        *
+        * This method is invoked by the frame graph when the pass is scheduled
+        * for execution. All rendering or compute commands must be recorded
+        * into the provided command list.
+        */
         virtual auto Execute(PassCommandList& cmdList) -> void = 0;
 
-        MKT_NODISCARD auto GetPassType() const -> PassType { return m_PassType; }
+        /**
+         * @brief Finalizes pass state after successful execution.
+         *
+         * Updates internal execution state such as:
+         * - Execution flags
+         * - Dirty state
+         * - Automatic transition to sleeping status when applicable
+         *
+         * This method is called by the frame graph after Execute().
+         */
+        auto PostExecute() -> void;
 
-        MKT_NODISCARD auto IsCompute() const -> bool { return m_PassType == PassType::COMPUTE; }
-        MKT_NODISCARD auto IsRender() const -> bool { return m_PassType == PassType::RENDER; }
 
+        /**
+         * @brief Returns the pipeline type used by this pass.
+         *
+         * Determines whether the pass is executed using a graphics or compute pipeline.
+         */
+        MKT_NODISCARD auto GetPassType() const -> FramePassType { return m_PassType; }
+
+        /**
+         * @brief Checks whether this pass uses a compute pipeline.
+         */
+        MKT_NODISCARD auto IsCompute() const -> bool { return m_PassType == FramePassType::COMPUTE; }
+
+        /**
+        * @brief Checks whether this pass uses a graphics (render) pipeline.
+        */
+        MKT_NODISCARD auto IsRender() const -> bool { return m_PassType == FramePassType::RENDER; }
+
+        /**
+         * @brief Returns the debug name of the pass.
+         *
+         * Used for profiling, logging, and render graph visualization.
+         */
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 
-    protected:
-        explicit FramePass( std::string_view name, PassType passType )
-            : m_Name{ name } {}
+        /**
+         * @brief Checks whether the pass is currently in the specified status.
+         */
+        MKT_NODISCARD auto IsStatus(FramePassStatus status) const -> bool { return m_Status == status; }
+
+        /**
+        * @brief Sets the current execution status of the pass.
+        *
+        * Status controls whether the pass is eligible to be executed by the frame graph.
+        */
+        auto SetPassStatus(FramePassStatus status) -> void { m_Status = status; }
+
+        /**
+         * @brief Sets the execution policy that determines when the pass runs.
+         */
+        auto SetExecutionPolicy(FramePassExecutionPolicy executionPolicy) -> void { m_ExecutePolicy = executionPolicy; }
+
+        /**
+        * @brief Returns the execution policy of the pass.
+        */
+        MKT_NODISCARD auto GetExecutionPolicy() const -> FramePassExecutionPolicy { return m_ExecutePolicy; }
+
+
+        /**
+        * @brief Marks the pass as dirty and reactivates it if necessary.
+        *
+        * Dirty passes with an ON_DIRTY execution policy will be scheduled
+        * for execution on the next frame graph evaluation.
+        */
+
+        auto MarkDirty() -> void;
+
+        /**
+        * @brief Determines whether the pass should execute during the current frame graph run.
+        *
+        * This decision is based on:
+        * - Pass status
+        * - Execution policy
+        * - Dirty and execution state flags
+        */
+        MKT_NODISCARD auto ShouldRun() const -> bool;
 
     protected:
-        std::string m_Name{};
-        PassType m_PassType{};
+        explicit FramePass( std::string_view name, FramePassType passType )
+            : m_Name{ name }, m_PassType{ passType } {}
+
+    protected:
+        std::string m_Name{ "BasePass" };
+        FramePassType m_PassType{ FramePassType::UNDEFINED };
+
+        /**
+        * @brief Current execution status of the frame pass.
+        *
+        * Controls whether the pass is eligible for execution by the frame graph.
+        *
+        * - ACTIVE:
+        *   The pass is allowed to execute if its execution policy allows it.
+        *
+        * - SLEEPING:
+        *   The pass is temporarily inactive and will not be executed until it is
+        *   explicitly reactivated (e.g. via MarkDirty()).
+        *
+        * - INACTIVE:
+        *   The pass is disabled and will never execute until manually re-enabled.
+        *
+        * Status does not imply *when* the pass executes — only whether it is
+        * eligible to be considered.
+        */
+        FramePassStatus m_Status{ FramePassStatus::ACTIVE };
+
+        /**
+        * @brief Indicates whether the pass has pending changes that require re-execution.
+        *
+        * This flag is primarily used by passes with an execution policy of
+        * ON_DIRTY. When set to true, the pass becomes eligible for execution
+        * and will be run on the next frame graph evaluation.
+        *
+        * The dirty state is typically triggered by:
+        * - Changes to input resources
+        * - Asset hot-reloads like environment maps
+        *
+        * The flag is automatically cleared after successful execution.
+        */
+        bool m_IsDirty{ false };
+
+        /**
+        * @brief Indicates whether the pass has already executed at least once.
+        *
+        * Used by execution policies such as ONCE to ensure that the pass is
+        * only executed a single time during its lifetime.
+        *
+        * This flag is set to true immediately after the pass successfully
+        * completes execution.
+        *
+        * The flag may be reset when the pass is explicitly invalidated or
+        * reactivated.
+        */
+        bool m_HasExecuted{ false };
+
+        /**
+        * @brief Defines how often the frame pass is eligible for execution.
+        *
+        * The execution policy determines when the pass should run relative
+        * to frame updates and state changes.
+        *
+        * Policies include:
+        * - PER_FRAME:
+        *   The pass executes every frame while active.
+        *
+        * - ONCE:
+        *   The pass executes a single time and then automatically transitions
+        *   to a sleeping state.
+        *
+        * - ON_DIRTY:
+        *   The pass executes only when marked dirty and then returns to a
+        *   sleeping state.
+        *
+        * The execution policy is evaluated only if the pass status is ACTIVE.
+        */
+        FramePassExecutionPolicy m_ExecutePolicy{ FramePassExecutionPolicy::PER_FRAME };
     };
 
-
-    class SkyboxPass final : public FramePass {
-    public:
-        explicit SkyboxPass()
-           : FramePass{ "SkyboxPass", PassType::RENDER } {}
-
-        auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(PassCommandList& commandList) -> void override;
-
-        auto SetCamera(const Camera* camera) -> void;
-        auto SetCubeMap(TextureHandle cubeMap) -> void;
-
-    private:
-
-        struct SkyboxUBO {
-            Mat4F View{};
-            Mat4F Projection{};
-        };
-
-    private:
-        SamplerHandle m_Sampler{};
-
-        SkyboxUBO m_SkyboxUBO{};
-        TextureHandle m_CubeMap{};
-    };
-
-    class TextRenderPass final : public FramePass {
-    public:
-
-        explicit TextRenderPass()
-            : FramePass{ "TextRenderPass", PassType::RENDER } {}
-
-        auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(PassCommandList& commandList) -> void override;
-
-        auto SetScene(Scene* scene) -> void;
-
-    private:
-        auto TraverseTextList(PassCommandList& commandList) -> void;
-
-        auto SetupRenderParams(PassCommandList &commandList) -> void;
-        auto SetupTextForRender(FontHandle font, const Camera* camera, Vec4F position, std::string_view text, double fontSize, Vec4F color, PassCommandList& commandList) -> void;
-
-    private:
-        struct alignas(16) TextRenderParams {
-            Mat4F Proj{};
-            Mat4F View{};
-
-            Vec4F Position{};
-            Vec4F Size{};
-            Vec4F Color{};
-            Vec2F TexCoords[4]{};
-            UInt32 TexIndex{};
-        };
-
-        struct alignas(16) TextParamsUBO {
-            Vec4F OutlineColor{ 1.0f, 1.0f, 1.0f, 1.0f };
-            float OutlineWidth{ 2.0f };
-        };
-
-        struct FontVertex {
-            glm::vec3 Pos{};
-            UInt32 TexIndex{};
-        };
-
-        static constexpr UInt32 MAX_STRING{ 8096 * 10 };
-
-        std::vector<TextRenderParams> m_TextRenderParams{};
-
-        std::array<FontVertex, 4> VERTICES{
-                FontVertex{ { 0.0f, 0.0f, 0.0f }, 0 },
-                FontVertex{ { 1.0f, 0.0f, 0.0f }, 1 },
-                FontVertex{ { 1.0f, 1.0f, 0.0f }, 2 },
-                FontVertex{ { 0.0f, 1.0f, 0.0f }, 3 }
-        };
-
-        std::array<UInt32, 6> INDICES{
-            0, 1, 2,  // first triangle
-            2, 3, 0   // second triangle
-        };
-
-        Scene* m_Scene{};
-        TextParamsUBO m_TextRenderUBO{};
-
-        Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
-    };
-
-    class FinalCompositionPass final : public FramePass {
-    public:
-
-        explicit FinalCompositionPass()
-            : FramePass{ "FinalCompositionPass", PassType::RENDER } {}
-
-        auto Setup(FrameGraphBuilder& device) -> void override;
-        auto Execute(PassCommandList& commandList) -> void override;
-
-        auto SetScene(Scene* scene) -> void;
-        auto SetCamera( const Camera* camera ) -> void;
-        auto SetCamera( const Vec4F& color ) -> void;
-
-        auto EnableSkybox(bool enable) -> void;
-        auto SetClearColor(const Vec4F& vec ) -> void;
-
-    private:
-
-        auto UploadInstanceData(PassCommandList& commandList) -> void;
-        auto TraverseMeshList(PassCommandList& commandList) -> void;
-
-    public:
-
-        struct MeshInstanceInfo {
-            DrawIndexedState InstanceDrawState{};
-            ankerl::unordered_dense::map<UInt64, bool> ActiveEntities{};
-            ankerl::unordered_dense::map<UInt64, ShaderMaterialParams> InstanceInfos{};
-
-            MKT_NODISCARD auto IsActive(UInt64 entityID) const -> bool {
-                bool result{ false };
-                const auto it{ ActiveEntities.find( entityID ) };
-
-                if (it != ActiveEntities.end()) {
-                    result = it->second;
-                }
-
-                return result;
-            }
-        };
-    private:
-        ShaderLightListParams m_LightsInfo{};
-        ShaderCameraParams m_FrameUBO{};
-
-        bool m_UseSkybox{ false };
-
-        Scene* m_Scene{};
-        Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
-
-        std::vector<ShaderMaterialParams> m_Meshes{};
-        ankerl::unordered_dense::map<MeshNode*, MeshInstanceInfo> m_MeshDrawState{};
-    };
-
-}
+}// namespace Mikoto
 
 
-#endif//MIKOTO_FRAMEPASS_HH
+#endif//MIKOTO_FRAME_PASS_HH

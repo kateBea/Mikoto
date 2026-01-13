@@ -51,7 +51,7 @@ namespace Mikoto {
         };
 
         explicit AABBGenComp()
-            : FramePass{ "AABBGenComp", PassType::COMPUTE } {}
+            : FramePass{ "AABBGenComp", FramePassType::COMPUTE } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(PassCommandList& cmdList) -> void override;
@@ -74,7 +74,7 @@ namespace Mikoto {
     class LightCullingComp final : public FramePass {
     public:
         explicit LightCullingComp()
-            : FramePass{ "LightCullingComp", PassType::COMPUTE } {}
+            : FramePass{ "LightCullingComp", FramePassType::COMPUTE } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(PassCommandList& commandList) -> void override;
@@ -105,7 +105,7 @@ namespace Mikoto {
     public:
 
         explicit ShadowPass()
-            : FramePass{ "ShadowPass", PassType::RENDER } {}
+            : FramePass{ "ShadowPass", FramePassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& device) -> void override;
         auto Execute(PassCommandList& commandList) -> void override;

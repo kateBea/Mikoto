@@ -12,6 +12,7 @@
 #include <Renderer/Core/SceneRenderer.hh>
 #include <Renderer/Passes/DebugPasses.hh>
 #include <Renderer/Passes/IBLPasses.hh>
+#include <Renderer/Passes/PostEffectsPasses.hh>
 #include <Renderer/Passes/ClusteredShading.hh>
 
 namespace Mikoto {
@@ -38,7 +39,7 @@ namespace Mikoto {
     auto SceneRenderer::SetScene( Scene *scene ) -> void {
         m_Scene = scene;
 
-        FinalCompositionPass* finalCompositionPass{ m_PassRegistry.Get<FinalCompositionPass>() };
+        ShadingPass* finalCompositionPass{ m_PassRegistry.Get<ShadingPass>() };
         MKT_ASSERT( finalCompositionPass, "Trying to set scene for final composition pass while it is NULL" );
 
         finalCompositionPass->SetScene( m_Scene );
@@ -76,7 +77,7 @@ namespace Mikoto {
     auto SceneRenderer::SetCamera( SceneCamera *camera ) -> void {
         m_Camera = camera;
 
-        FinalCompositionPass* finalCompositionPass{ m_PassRegistry.Get<FinalCompositionPass>() };
+        ShadingPass* finalCompositionPass{ m_PassRegistry.Get<ShadingPass>() };
         MKT_ASSERT( finalCompositionPass, "Trying to set scene for final composition pass while it is NULL" );
 
         finalCompositionPass->SetCamera( m_Camera );
@@ -159,7 +160,36 @@ namespace Mikoto {
 
         FrameGraphBuilder builder{};
 
-        // Create and configure Compute
+        CreateDebugPasses( builder );
+
+        CreateMainPasses( builder );
+
+        // Add object outline and Wireframe
+        for ( auto& passPtr: m_PassRegistry | std::views::values ) {
+            m_FrameGraph->RegisterPass(  passPtr.get() );
+        }
+
+        m_FrameGraph->Compile( builder );
+    }
+
+    auto SceneRenderer::PassPreSetup() -> void {
+        AABBGenComp* aabbGenComp{ m_PassRegistry.Get<AABBGenComp>() };
+        LightCullingComp* lightCullingComp{ m_PassRegistry.Get<LightCullingComp>() };
+
+        lightCullingComp->SetClusterCount( aabbGenComp->GetClusterCount() );
+
+        // Skybox
+        SkyboxPass* skyboxPass{ m_PassRegistry.Get<SkyboxPass>() };
+        ShadingPass* finalCompositionPass{ m_PassRegistry.Get<ShadingPass>() };
+
+        skyboxPass->SetCubeMap( m_SkyBoxTexture );
+        finalCompositionPass->EnableSkybox( m_UseSkybox );
+
+        finalCompositionPass->SetClearColor(m_ClearColor);
+    }
+
+    auto SceneRenderer::CreateDebugPasses( FrameGraphBuilder& builder ) -> void {
+        // Debug Passes
         HelloTrianglePass* helloTrianglePass{ m_PassRegistry.Register<HelloTrianglePass>() };
         helloTrianglePass->Setup( builder );
 
@@ -169,7 +199,16 @@ namespace Mikoto {
         HelloTexture* helloTexture{ m_PassRegistry.Register<HelloTexture>() };
         helloTexture->Setup( builder );
 
-        FinalCompositionPass* finalCompositionPass{ m_PassRegistry.Register<FinalCompositionPass>() };
+        // Wireframe and Outlining
+        ObjectOutlinePass* outlinePass{ m_PassRegistry.Register<ObjectOutlinePass>() };
+        outlinePass->Setup( builder );
+
+        WireFramePass* wireFramePass{ m_PassRegistry.Register<WireFramePass>() };
+        wireFramePass->Setup( builder );
+    }
+
+    auto SceneRenderer::CreateMainPasses( FrameGraphBuilder& builder ) -> void {
+        ShadingPass* finalCompositionPass{ m_PassRegistry.Register<ShadingPass>() };
         finalCompositionPass->Setup( builder );
 
         AABBGenComp* aabbGenComp { m_PassRegistry.Register<AABBGenComp>() };
@@ -184,35 +223,24 @@ namespace Mikoto {
         SkyboxPass* skyboxPass{ m_PassRegistry.Register<SkyboxPass>() };
         skyboxPass->Setup( builder );
 
-        m_FrameGraph->RegisterPass( helloTrianglePass );
-        m_FrameGraph->RegisterPass( simpleComputePass );
-        m_FrameGraph->RegisterPass( helloTexture );
+        // Add IBL pre passes
+        // For now the execution policy for these will be once, the idea is that they change
+        // if we upload a new environment map
+        EnvCubePass* cubePass{ m_PassRegistry.Register<EnvCubePass>() };
+        cubePass->Setup( builder );
+        cubePass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
 
-        m_FrameGraph->RegisterPass( aabbGenComp );
-        m_FrameGraph->RegisterPass( lightCullingComp );
-        m_FrameGraph->RegisterPass( skyboxPass );
+        IrradiancePass* irradiancePass{ m_PassRegistry.Register<IrradiancePass>() };
+        cubePass->Setup( builder );
+        cubePass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
 
-        m_FrameGraph->RegisterPass( textRenderPass );
+        PrefilterPass* prefilterPass{ m_PassRegistry.Get<PrefilterPass>() };
+        cubePass->Setup( builder );
+        cubePass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
 
-        m_FrameGraph->RegisterPass( finalCompositionPass );
-
-        m_FrameGraph->Compile( builder );
-    }
-
-    auto SceneRenderer::PassPreSetup() -> void {
-        AABBGenComp* aabbGenComp{ m_PassRegistry.Get<AABBGenComp>() };
-        LightCullingComp* lightCullingComp{ m_PassRegistry.Get<LightCullingComp>() };
-
-        lightCullingComp->SetClusterCount( aabbGenComp->GetClusterCount() );
-
-        // Skybox
-        SkyboxPass* skyboxPass{ m_PassRegistry.Get<SkyboxPass>() };
-        FinalCompositionPass* finalCompositionPass{ m_PassRegistry.Get<FinalCompositionPass>() };
-
-        skyboxPass->SetCubeMap( m_SkyBoxTexture );
-        finalCompositionPass->EnableSkybox( m_UseSkybox );
-
-        finalCompositionPass->SetClearColor(m_ClearColor);
+        BRDFLutPass* brdfLutPass{ m_PassRegistry.Get<BRDFLutPass>() };
+        cubePass->Setup( builder );
+        cubePass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
     }
 
     auto SceneRendererCreateInfo::WithName( std::string_view name ) -> SceneRendererCreateInfo & {

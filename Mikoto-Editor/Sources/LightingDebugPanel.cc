@@ -19,11 +19,13 @@
 #include <ImGui/ImGuiUtility.hh>
 #include <Layers/EditorLayer.hh>
 #include <Renderer/Core/RenderService.hh>
+#include <Renderer/Passes/IBLPasses.hh>
+#include <Renderer/Passes/ClusteredShading.hh>
 #include <Renderer/Passes/ClusteredShading.hh>
 
 #include <Panels/LightingDebugPanel.hh>
 
-#include "Scene/Component.hh"
+#include <Scene/Component.hh>
 
 namespace Mikoto {
 
@@ -179,7 +181,7 @@ namespace Mikoto {
         // Lighting passes
         AABBGenComp* aabbGenComPass{ m_EditorState->EditorSceneRenderer->GetPass<AABBGenComp>() };
         LightCullingComp* lightCullingComp{ m_EditorState->EditorSceneRenderer->GetPass<LightCullingComp>() };
-        FinalCompositionPass* finalCompositionPass{ m_EditorState->EditorSceneRenderer->GetPass<FinalCompositionPass>() };
+        ShadingPass* finalCompositionPass{ m_EditorState->EditorSceneRenderer->GetPass<ShadingPass>() };
 
         FrameBlackboard* frameBlackboard{ m_EditorState->EditorSceneRenderer->GetGraph().GetBlackboard() };
         BufferHandle storage{ frameBlackboard->GetBuffer( "SimpleComputePass_Result" ) };

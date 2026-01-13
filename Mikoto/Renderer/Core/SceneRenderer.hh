@@ -133,6 +133,9 @@ namespace Mikoto {
 
         auto PassPreSetup() -> void;
 
+        auto CreateDebugPasses(FrameGraphBuilder& builder) -> void;
+        auto CreateMainPasses(FrameGraphBuilder& builder) -> void;
+
     private:
 
         GpuDevice* m_Device{ nullptr };

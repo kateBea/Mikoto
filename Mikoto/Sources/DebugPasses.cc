@@ -10,6 +10,21 @@
 
 namespace Mikoto {
 
+    auto ObjectOutlinePass::Setup( FrameGraphBuilder& builder ) -> void {
+
+    }
+
+    auto ObjectOutlinePass::Execute( PassCommandList& cmdList ) -> void {
+    }
+
+    auto WireFramePass::Setup( FrameGraphBuilder& builder ) -> void {
+
+    }
+
+    auto WireFramePass::Execute( PassCommandList& cmdList ) -> void {
+
+    }
+
     auto MaterialPreviewPass::Setup( FrameGraphBuilder& builder ) -> void {
 
     }

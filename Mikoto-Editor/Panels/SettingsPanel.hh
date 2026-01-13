@@ -32,7 +32,6 @@ namespace Mikoto {
         bool WantXAxisRotation{ true };
         bool WantYAxisRotation{ true };
         bool VerticalSyncEnabled{ true };
-        bool RenderWireframeMode{ false };
     };
 
     struct SettingsPanelCreateInfo {

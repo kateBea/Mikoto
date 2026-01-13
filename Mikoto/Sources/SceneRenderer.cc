@@ -41,18 +41,19 @@ namespace Mikoto {
 
         ShadingPass* finalCompositionPass{ m_PassRegistry.Get<ShadingPass>() };
         MKT_ASSERT( finalCompositionPass, "Trying to set scene for final composition pass while it is NULL" );
-
         finalCompositionPass->SetScene( m_Scene );
 
         LightCullingComp* lightCullingComp{ m_PassRegistry.Get<LightCullingComp>() };
         MKT_ASSERT( lightCullingComp, "Trying to set scene for light culling compute pass while it is NULL" );
-
         lightCullingComp->SetScene( m_Scene );
 
         TextRenderPass* textRenderPass{ m_PassRegistry.Get<TextRenderPass>() };
         MKT_ASSERT( textRenderPass, "Trying to set scene for text render pass while it is NULL" );
-
         textRenderPass->SetScene( m_Scene );
+
+        WireFramePass* wireframePass{ m_PassRegistry.Get<WireFramePass>() };
+        MKT_ASSERT( wireframePass, "Trying to set scene for wireframe render pass while it is NULL" );
+        wireframePass->SetScene( m_Scene );
     }
 
     auto SceneRenderer::Render( double ) -> void {
@@ -107,6 +108,7 @@ namespace Mikoto {
 
         aabbGenComp->SetHeatMap( enable );
     }
+
     auto SceneRenderer::SetSkyBox( TextureHandle cubeMap ) -> void {
         m_SkyBoxTexture = cubeMap;
     }

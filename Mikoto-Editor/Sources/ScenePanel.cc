@@ -45,7 +45,16 @@ namespace Mikoto {
     auto ScenePanel::CreateImguiTextureID() -> void {
         ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
 
-        if (const ImTextureID id{ backend->ConstructImGuiTextureID( m_EditorState->FinalComposition ) }; id != 0) { m_DisplayTargetImGuiID = id; }
+        if (const ImTextureID id{ backend->ConstructImGuiTextureID( m_EditorState->FinalComposition ) }; id != 0) { m_ColorImageID = id; }
+    }
+
+    auto ScenePanel::CreateWireframeImguiTextureID() -> void {
+        ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
+        const ImTextureID id{ backend->ConstructImGuiTextureID( m_EditorState->WireframeComposition ) };
+
+        if ( id != 0) {
+            m_WireframeImageID = id;
+        }
     }
 
     ScenePanel::ScenePanel( const ScenePanelCreateInfo &createInfo )
@@ -148,6 +157,7 @@ namespace Mikoto {
         // Try validating the image id again in case the texture was recreated
         if (!IsDisplayTextureValid()) {
             CreateImguiTextureID();
+            CreateWireframeImguiTextureID();
         }
 
         ImGui::End();
@@ -159,7 +169,9 @@ namespace Mikoto {
 
     auto ScenePanel::GetHeight() const -> float { return m_ViewPortHeight; }
 
-    auto ScenePanel::IsDisplayTextureValid() const -> bool { return m_DisplayTargetImGuiID != 0; }
+    auto ScenePanel::IsDisplayTextureValid() const -> bool {
+        return m_ColorImageID != 0 || m_WireframeImageID != 0;
+    }
 
     auto ScenePanel::UpdateViewport() -> void {
         const ImVec2 dim{ ImGui::GetContentRegionAvail() };
@@ -171,7 +183,11 @@ namespace Mikoto {
 
         // No flipping, the final image is already in the correct viewport coordinates
         // In the case of vulkan this is also taken into account when setting up the vierwport
-        ImGui::Image( m_DisplayTargetImGuiID, ImVec2{ dim.x, dim.y } );
+        if (!m_EditorState->ShowWireframe) {
+            ImGui::Image( m_ColorImageID, ImVec2{ dim.x, dim.y } );
+        } else {
+            ImGui::Image( m_WireframeImageID, ImVec2{ dim.x, dim.y } );
+        }
     }
 
     auto ScenePanel::SetupManipulation() const -> void {

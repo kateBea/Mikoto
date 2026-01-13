@@ -220,10 +220,6 @@ namespace Mikoto {
         m_FrameUBO.CameraPosition = Vec4F{ camera->GetPosition(), 1.0f };
     }
 
-    auto ShadingPass::SetCamera( const Vec4F &color ) -> void {
-        m_ClearColor = color;
-    }
-
     auto ShadingPass::EnableSkybox( bool enable ) -> void {
         m_UseSkybox = enable;
     }

@@ -109,14 +109,13 @@ namespace Mikoto {
     class ShadingPass final : public FramePass {
     public:
         explicit ShadingPass()
-            : FramePass{ "FinalCompositionPass", FramePassType::RENDER } {}
+            : FramePass{ "ShadingPass", FramePassType::RENDER } {}
 
         auto Setup( FrameGraphBuilder& device ) -> void override;
         auto Execute( PassCommandList& commandList ) -> void override;
 
         auto SetScene( Scene* scene ) -> void;
         auto SetCamera( const Camera* camera ) -> void;
-        auto SetCamera( const Vec4F& color ) -> void;
 
         auto EnableSkybox( bool enable ) -> void;
         auto SetClearColor( const Vec4F& vec ) -> void;

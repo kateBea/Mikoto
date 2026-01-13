@@ -1,17 +1,28 @@
+//    Copyright 2025 ケイト
 //
-// Created by zanet on 1/5/2026.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_DEBUG_PASSES_HH
 #define MIKOTO_DEBUG_PASSES_HH
 
 #include <string_view>
 
+#include <Scene/Scene.hh>
 #include <Library/Utility/Types.hh>
-#include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/FramePass.hh>
-#include <Scene/Scene.hh>
+#include <Renderer/Core/GraphicsContext.hh>
+#include <Renderer/Passes/ShaderRenderParams.hh>
 
 namespace Mikoto {
 
@@ -29,8 +40,41 @@ namespace Mikoto {
         explicit WireFramePass()
             : FramePass{ "WireFramePass", FramePassType::RENDER } {}
 
-        auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(PassCommandList& cmdList) -> void override;
+        auto Setup( FrameGraphBuilder& device ) -> void override;
+        auto Execute( PassCommandList& commandList ) -> void override;
+
+        auto SetScene( Scene* scene ) -> void;
+        auto SetClearColor( const Vec4F& vec ) -> void;
+
+    private:
+        auto DrawObjects( PassCommandList& commandList ) -> void;
+        auto TraverseMeshList( PassCommandList& commandList ) -> void;
+
+    public:
+        struct MeshInstanceInfo {
+            DrawIndexedState InstanceDrawState{};
+            ankerl::unordered_dense::map<UInt64, bool> ActiveEntities{};
+            ankerl::unordered_dense::map<UInt64, ShaderMaterialParams> InstanceInfos{};
+
+            MKT_NODISCARD auto IsActive( UInt64 entityID ) const -> bool {
+                bool result{ false };
+                const auto it{ ActiveEntities.find( entityID ) };
+
+                if ( it != ActiveEntities.end() ) {
+                    result = it->second;
+                }
+
+                return result;
+            }
+        };
+
+    private:
+
+        Scene* m_Scene{};
+        Vec4F m_ClearColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+
+        std::vector<ShaderMaterialParams> m_Meshes{};
+        ankerl::unordered_dense::map<MeshNode*, MeshInstanceInfo> m_MeshDrawState{};
     };
 
     // Material Pass that renders a sphere with a texture on a sphere

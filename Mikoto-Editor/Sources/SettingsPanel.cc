@@ -118,7 +118,7 @@ namespace Mikoto {
 
                 // Heatmap
                 ImGui::Spacing();
-                ImGuiUtils::CheckBox( "Show heatmap", m_EditorState->HeatMapVisualizer );
+                ImGuiUtils::CheckBox( "Show heatmap", m_EditorState->ShowHeatMap );
                 ImGui::SameLine();
                 ImGuiUtils::HelpMarker( "Visualize heatmap for clusters" );
 
@@ -150,7 +150,7 @@ namespace Mikoto {
             if (ImGuiUtils::CheckBox( "Vertical Sync", m_Data.VerticalSyncEnabled )) {}
 
             ImGui::Spacing();
-            ImGuiUtils::CheckBox( "Wireframe render", m_Data.RenderWireframeMode );
+            ImGuiUtils::CheckBox( "Wireframe render", m_EditorState->ShowWireframe );
 
             ImGui::TreePop();
         }

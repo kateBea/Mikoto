@@ -56,6 +56,9 @@ namespace Mikoto {
 
         VmaAllocator m_Allocator{};
     };
+
+
+#define MKT_VMA_ALLOC_PTR(GPU_DEVICE) dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( GPU_DEVICE )->GetAllocator())
 }
 
 

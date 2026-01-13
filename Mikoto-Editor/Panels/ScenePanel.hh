@@ -58,6 +58,8 @@ namespace Mikoto {
         auto DrawSceneToolbar() const -> void;
         auto CreateImguiTextureID() -> void;
 
+        auto CreateWireframeImguiTextureID() -> void;
+
     private:
         EditorState* m_EditorState{};
 
@@ -66,7 +68,8 @@ namespace Mikoto {
         float m_ViewPortWidth{};
         float m_ViewPortHeight{};
 
-        ImTextureID m_DisplayTargetImGuiID{};
+        ImTextureID m_ColorImageID{};
+        ImTextureID m_WireframeImageID{};
     };
 }
 

@@ -38,6 +38,7 @@ namespace Mikoto {
 
         // The final composition from the scene renderer
         TextureHandle FinalComposition{};
+        TextureHandle WireframeComposition{};
 
         // Debug
         TextureHandle PreviewMaterial{};
@@ -50,11 +51,11 @@ namespace Mikoto {
 
         SceneRenderer* EditorSceneRenderer{};
 
-        bool ApplicationCloseFlag{ true };
-
         ImGuiUtils::GuizmoManipulationMode Manipulation{ ImGuiUtils::GuizmoManipulationMode::TRANSLATION };
 
-        bool HeatMapVisualizer{ false };
+        bool ApplicationCloseFlag{ true };
+        bool ShowHeatMap{ false };
+        bool ShowWireframe{ false };
     };
 
     struct EditorLayerCreateInfo {

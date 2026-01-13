@@ -18,11 +18,146 @@ namespace Mikoto {
     }
 
     auto WireFramePass::Setup( FrameGraphBuilder& builder ) -> void {
+        PipelineDescription builderPipelineDesc{};
 
+        builderPipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/Wireframe_Vert.sprv", ShaderStage::VERTEX_STAGE );
+        builderPipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/Wireframe_Frag.sprv", ShaderStage::FRAGMENT_STAGE );
+
+        // Configure pipeline stage
+        GraphicsPipelineDescription graphicsDesc{};
+        graphicsDesc.DepthTest = true;
+        graphicsDesc.DepthWrite = true;
+        graphicsDesc.AlphaBlending = true;
+        graphicsDesc.Wireframe = true;
+
+        // Graphics context will specify the texture formats for the render targets we can redner to with this pipeline
+        // It will also create the shader modules first and assign them to this description which will be used to create the actual pipeline
+        // TODO: temporary, specify the render targets this pipeline outputs to
+        builderPipelineDesc.ColorRenderTargets.emplace_back( "WireFramePass_ColorTarget" );
+        builderPipelineDesc.DepthRenderTargets = "WireFramePass_DepthTarget";
+        builderPipelineDesc.Description = graphicsDesc;
+
+        builder.CreateNamedPipeline( "WireFramePass_Pipeline", builderPipelineDesc );
+
+        builder.CreateColorRenderTarget( "WireFramePass_ColorTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM );
+        builder.CreateDepthRenderTarget( "WireFramePass_DepthTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_D32_FLOAT );
+
+        // Declare its inputs and outputs
+        builder.ReadBuffer( this, "PerFrame_CameraInfo" );
+        builder.ReadBuffer( this, "FinalCompositionPass_MeshInfo" );
+
+        builder.WriteTexture( this, "WireFramePass_ColorTarget" );
+        builder.WriteTexture( this, "WireFramePass_DepthTarget" );
+
+        // Prepare to have at least MAX_RENDERABLE_ENTITIES
+        m_Meshes.resize( MAX_RENDERABLE_ENTITIES );
     }
 
-    auto WireFramePass::Execute( PassCommandList& cmdList ) -> void {
+    auto WireFramePass::TraverseMeshList(PassCommandList& commandList) -> void {
+        auto& registry{ m_Scene->GetRegistry() };
+        auto renderables{ registry.view<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
 
+        for ( auto& entity: renderables ) {
+            auto& tag{ registry.get<TagComponent>( entity ) };
+            auto& transform{ registry.get<TransformComponent>( entity ) };
+            auto& meshComponent{ registry.get<MeshComponent>( entity ) };
+            auto& materialComp{ registry.get<MaterialComponent>( entity ) };
+
+            MaterialHandle material{ materialComp.GetMaterial() };
+
+            if ( meshComponent.HasMesh() && !material.IsEmpty() ) {
+                MeshNode* meshNode{ meshComponent.GetMesh() };
+                PBRMaterial* pbrMat{ dynamic_cast<PBRMaterial*>( material.GetRaw() ) };
+
+                auto& [DrawIndexedState, ActiveEntities, Instances] {
+                    m_MeshDrawState[meshNode]
+                };
+
+                ActiveEntities[tag.GetGUID()] = tag.IsActive();
+
+                if (tag.IsActive() ) {
+                    ShaderMaterialParams& ubo{ Instances[tag.GetGUID()] };
+
+                    ubo.Transform = transform.GetTransform();
+
+                    ubo.Albedo = pbrMat->GetColor();
+                    ubo.Factors.x = pbrMat->GetMetallicFactor();
+                    ubo.Factors.y = pbrMat->GetRoughnessFactor();
+
+                    ubo.AlbedoIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::ALBEDO_TEXTURE ) );
+                    ubo.NormalIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::NORMAL_TEXTURE ) );
+                    ubo.MetallicIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::METALLIC_TEXTURE ) );
+                    ubo.RoughnessIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
+                    ubo.AoIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
+                }
+            }
+        }
+    }
+
+    auto WireFramePass::SetScene( Scene* scene ) -> void {
+        m_Scene = scene;
+    }
+
+    auto WireFramePass::SetClearColor( const Vec4F& vec ) -> void {
+        m_ClearColor = vec;
+    }
+
+    auto WireFramePass::DrawObjects(PassCommandList& commandList) -> void {
+        Size meshIndex{};
+        Size firstInstance{};
+
+        for ( auto& [meshNode, instanceInfo]: m_MeshDrawState ) {
+
+            DrawIndexedState& drawState{ instanceInfo.InstanceDrawState };
+
+            drawState.IndexBuffer = meshNode->GetIndexBuffer();
+
+            if (drawState.VertexBuffers.empty()) {
+                drawState.VertexBuffers.emplace_back( meshNode->GetVertexBuffer(), 0);
+            }
+
+            Size drawCount{};
+            for (const auto& [entityID, meshInstanceInfo]: instanceInfo.InstanceInfos) {
+                if (instanceInfo.IsActive( entityID )) {
+                    m_Meshes[meshIndex++] = meshInstanceInfo;
+                    ++drawCount;
+                }
+            }
+
+            drawState.IndicesCount = meshNode->GetIndexBuffer()->GetCount();
+            drawState.FirstInstance = firstInstance;
+            drawState.InstancesCount = drawCount;
+
+            firstInstance += drawCount;
+
+            commandList.DrawIndexed(drawState);
+        }
+    }
+
+    auto WireFramePass::Execute( PassCommandList& commandList ) -> void {
+        commandList.SetColorRenderTarget( "WireFramePass_ColorTarget" );
+        commandList.SetDepthRenderTarget( "WireFramePass_DepthTarget" );
+
+        commandList.SetClearColor( m_ClearColor );
+
+        commandList.BeginRender(this);
+        commandList.BindPipeline( "WireFramePass_Pipeline" );
+
+        // Set render targets
+        commandList.SetViewport( 0, 0, 1920, 1080 );
+        commandList.SetScissor( 0, 0, 1920, 1080 );
+
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "PerFrame_CameraInfo", 0 );
+        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 1 );
+
+        commandList.BindResourceGroup(SRGType::SRG_Textures);
+        commandList.BindResourceGroup(SRGType::SRG_PerPass);
+
+        TraverseMeshList(commandList);
+
+        DrawObjects(commandList);
+
+        commandList.EndRender();
     }
 
     auto MaterialPreviewPass::Setup( FrameGraphBuilder& builder ) -> void {

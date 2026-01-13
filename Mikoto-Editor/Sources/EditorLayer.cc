@@ -132,6 +132,9 @@ namespace Mikoto {
         m_EditorState->PassesCompositions.try_emplace( "TrianglePass", blackboard->GetTexture( "HelloTrianglePass_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "TexturePass", blackboard->GetTexture( "HelloTexture_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "FinalComposition", blackboard->GetTexture( "FinalCompositionPass_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "Wireframe", blackboard->GetTexture( "WireFramePass_ColorTarget" ) );
+
+        m_EditorState->WireframeComposition = blackboard->GetTexture( "WireFramePass_ColorTarget" );
     }
 
     auto EditorLayer::SetupRenderer() -> void {
@@ -222,7 +225,11 @@ namespace Mikoto {
         if (m_RenderScreenTarget == RenderScreenTarget::PANEL) {
             m_EditorState->RenderImage = ImGuiService::Get()->GetFinalComposition();
         } else {
-            m_EditorState->RenderImage = m_EditorState->FinalComposition;
+            if (!m_EditorState->ShowWireframe) {
+                m_EditorState->RenderImage = m_EditorState->FinalComposition;
+            } else {
+                m_EditorState->RenderImage = m_EditorState->WireframeComposition;
+            }
         }
 
         RenderService::Get()->SetPresentTarget( m_EditorState->RenderImage );
@@ -734,7 +741,7 @@ namespace Mikoto {
         m_SceneRenderer->SetScene( m_ActiveScene );
         m_SceneRenderer->SetCamera( m_EditorCamera.get() );
         m_SceneRenderer->SetViewport( 1920, 1080 );
-        m_SceneRenderer->SetClusterDebugVisualizer( m_EditorState->HeatMapVisualizer );
+        m_SceneRenderer->SetClusterDebugVisualizer( m_EditorState->ShowHeatMap );
 
         m_SceneRenderer->SetSkyBox( m_ActiveScene->GetSkybox() );
         m_SceneRenderer->EnableSkybox( m_ActiveScene->IsSkyboxEnabled() );

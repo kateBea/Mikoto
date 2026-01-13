@@ -68,6 +68,7 @@ namespace Mikoto {
         configInfo.RasterizationInfo.depthClampEnable = VK_FALSE;
         configInfo.RasterizationInfo.rasterizerDiscardEnable = VK_FALSE;// requires extension if enabled
         configInfo.RasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
+
         // The maximum line width that is supported depends on the hardware, any line thicker than 1.0f requires you to enable the wideLines GPU feature.
         configInfo.RasterizationInfo.lineWidth = configInfo.RasterizationInfo.polygonMode == VK_POLYGON_MODE_LINE ? GPU_STANDARD_LINE_WIDTH : 0.0f;
         configInfo.RasterizationInfo.cullMode = VK_CULL_MODE_NONE;
@@ -220,6 +221,8 @@ namespace Mikoto {
 
         m_CullMode = info.Desc.PipelineCullMode;
 
+        m_Wireframe = info.Desc.Wireframe;
+
         m_VertexAttributesSpec = info.Desc.VertexAttributesSpec;
 
         if (!info.Desc.DepthTexture.IsEmpty()) {
@@ -246,6 +249,11 @@ namespace Mikoto {
         config.DepthStencilInfo.depthTestEnable = m_DepthTest ? VK_TRUE : VK_FALSE;
 
         config.RasterizationInfo.cullMode = InferCullMode(m_CullMode);
+
+        if (m_Wireframe) {
+            config.RasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
+        }
+
     }
 
     auto VulkanGraphicsPipeline::Bind( const VkCommandBuffer commandBuffer ) const -> void {

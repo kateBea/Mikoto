@@ -190,7 +190,9 @@ namespace Mikoto {
 
     auto ScenePanel::DrawManipulationGuizmos() -> void {
         Entity *currentSelection{ m_EditorState->SelectedEntity };
-        if (currentSelection == nullptr || !currentSelection->IsValid()) { return; }
+        if (currentSelection == nullptr || !currentSelection->IsValid() || !currentSelection->GetComponent<TagComponent>().IsActive()) {
+            return;
+        }
 
         TransformComponent &transformComponent{ currentSelection->GetComponent<TransformComponent>() };
 

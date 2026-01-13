@@ -86,11 +86,6 @@ namespace Mikoto {
 
         aabbGenComp->SetCamera( m_Camera );
 
-        TextRenderPass* textRenderPass{ m_PassRegistry.Get<TextRenderPass>() };
-        MKT_ASSERT( textRenderPass, "Trying to set scene for text render pass while it is NULL" );
-
-        textRenderPass->SetCamera( m_Camera );
-
         SkyboxPass* skyboxPass{ m_PassRegistry.Get<SkyboxPass>() };
         MKT_ASSERT( skyboxPass, "Trying to set scene for Skybox pass while it is NULL" );
 

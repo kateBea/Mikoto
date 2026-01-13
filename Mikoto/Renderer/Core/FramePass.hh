@@ -90,16 +90,18 @@ namespace Mikoto {
         auto Execute(PassCommandList& commandList) -> void override;
 
         auto SetScene(Scene* scene) -> void;
-        auto SetCamera( const Camera* camera ) -> void;
 
     private:
         auto TraverseTextList(PassCommandList& commandList) -> void;
 
         auto SetupRenderParams(PassCommandList &commandList) -> void;
-        auto SetupTextForRender(FontHandle font, Vec4F position, std::string_view text, double fontSize, Vec4F color, PassCommandList& commandList) -> void;
+        auto SetupTextForRender(FontHandle font, const Camera* camera, Vec4F position, std::string_view text, double fontSize, Vec4F color, PassCommandList& commandList) -> void;
 
     private:
         struct alignas(16) TextRenderParams {
+            Mat4F Proj{};
+            Mat4F View{};
+
             Vec4F Position{};
             Vec4F Size{};
             Vec4F Color{};
@@ -108,8 +110,6 @@ namespace Mikoto {
         };
 
         struct alignas(16) TextParamsUBO {
-            glm::mat4 Proj{};
-            glm::mat4 View{};
             Vec4F OutlineColor{ 1.0f, 1.0f, 1.0f, 1.0f };
             float OutlineWidth{ 2.0f };
         };
@@ -136,8 +136,6 @@ namespace Mikoto {
         };
 
         Scene* m_Scene{};
-        const Camera* m_Camera{};
-
         TextParamsUBO m_TextRenderUBO{};
 
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };

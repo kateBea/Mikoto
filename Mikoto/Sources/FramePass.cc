@@ -155,7 +155,6 @@ namespace Mikoto {
 
     auto TextRenderPass::Execute( PassCommandList &commandList ) -> void {
         MKT_ASSERT( m_Scene != nullptr, "Scene cannot be NULL" );
-        MKT_ASSERT( m_Camera != nullptr, "Camera cannot be NULL" );
 
         commandList.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
         commandList.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
@@ -196,10 +195,6 @@ namespace Mikoto {
         m_Scene = scene;
     }
 
-    auto TextRenderPass::SetCamera( const Camera *camera ) -> void {
-        m_Camera = camera;
-    }
-
     auto TextRenderPass::TraverseTextList( PassCommandList &commandList ) -> void {
         FontHandle testFont{ AssetsService::Get()->LoadAsset<Font>( Path{ "Resources/Fonts/Google_Sans_Code/GoogleSansCode-VariableFont_wght.ttf" } ) };
 
@@ -221,8 +216,9 @@ namespace Mikoto {
             const float textSize{ textComponent.GetSize() };
             const glm::vec4 color{ textComponent.GetColor() };
             const glm::vec4 position{ transform.GetTranslation(), 1.0f };
+            const Camera* textCamera{ textComponent.GetCamera() };
 
-            SetupTextForRender(textComponent.GetFontHandle(), position, textComponent.GetContents(), textSize, color, commandList );
+            SetupTextForRender(textComponent.GetFontHandle(), textCamera, position, textComponent.GetContents(), textSize, color, commandList );
         }
 
         commandList.FillBuffer( "TextRenderPass_TextRenderParams", m_TextRenderParams.data(), m_TextRenderParams.size() * sizeof( TextRenderParams ) );
@@ -231,20 +227,10 @@ namespace Mikoto {
     auto TextRenderPass::SetupRenderParams(PassCommandList &commandList) -> void {
         m_TextRenderUBO.OutlineWidth = 0.0f;
 
-        bool is3D{ true };
-
-        if (!is3D) {
-            m_TextRenderUBO.Proj = glm::ortho(0.0f, 1920.0f,1080.0f, 0.0f,-1.0f, 1.0f);
-            m_TextRenderUBO.View = glm::mat4{ 1.0f };
-        } else {
-            m_TextRenderUBO.Proj = m_Camera->GetProjection();
-            m_TextRenderUBO.View = m_Camera->GetViewMatrix();
-        }
-
         commandList.FillBuffer( "TextRenderPass_FontParams", std::addressof( m_TextRenderUBO ), sizeof( m_TextRenderUBO ) );
     }
 
-    auto TextRenderPass::SetupTextForRender( FontHandle font, Vec4F position, std::string_view text, double fontSize, Vec4F color, PassCommandList& commandList ) -> void {
+    auto TextRenderPass::SetupTextForRender( FontHandle font, const Camera* camera, Vec4F position, std::string_view text, double fontSize, Vec4F color, PassCommandList& commandList ) -> void {
         double xPos{ position.x };
         double yPos{ position.y };
         double scale{ fontSize / font->GetSize() };
@@ -281,6 +267,14 @@ namespace Mikoto {
                 fontParams.TexCoords[1] = { s1, t0 };// bottom left
                 fontParams.TexCoords[2] = { s1, t1 };// bottom right
                 fontParams.TexCoords[3] = { s0, t1 };// top right
+
+                if (camera != nullptr) {
+                    fontParams.Proj = camera->GetProjection();
+                    fontParams.View = camera->GetViewMatrix();
+                } else {
+                    fontParams.Proj = glm::ortho(0.0f, 1920.0f,1080.0f, 0.0f,-1.0f, 1.0f);
+                    fontParams.View = glm::mat4{ 1.0f };
+                }
 
                 m_TextRenderParams.emplace_back( fontParams );
             }

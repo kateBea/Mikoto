@@ -55,11 +55,8 @@ namespace Mikoto {
             m_BufferCreateInfo.size = static_cast<UInt32>( m_SizeBytes );
         }
 
-        auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( m_Device )->GetAllocator()) };
-        MKT_ASSERT(allocator != nullptr, "Allocator is null in VulkanBuffer::Allocate!");
-
-        const VkResult result{ allocator->AllocateBuffer(this) };
-        if (result != VK_SUCCESS) {
+        auto* allocator{ MKT_VMA_ALLOC_PTR(m_Device) };
+        if ( const VkResult result{ allocator->AllocateBuffer( this ) }; result != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("Failed to allocate Vulkan buffer!");
         }
 

@@ -10,6 +10,9 @@
 #include "ShaderBase.glsl"
 
 struct FontRenderParams {
+    mat4 Projection;
+    mat4 View;
+
     vec4 Position;
     vec4 Size;
     vec4 Color;
@@ -18,9 +21,6 @@ struct FontRenderParams {
 };
 
 layout(set = PERPASS_SETINDEX, binding = 0) uniform UniformBufferObject {
-    mat4 Projection;
-    mat4 View;
-
     vec4 OutlineColor;
     float OutlineWidth;
 } Ubo;
@@ -49,5 +49,5 @@ void main() {
 
     vec3 pos = a_Position * params.Size.xyz + params.Position.xyz;
 
-    gl_Position = Ubo.Projection * Ubo.View * vec4(pos, 1.0);
+    gl_Position = params.Projection * params.View * vec4(pos, 1.0);
 }

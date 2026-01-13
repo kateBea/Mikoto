@@ -355,24 +355,31 @@ namespace Mikoto {
 
             MaterialHandle material{ materialComp.GetMaterial() };
 
-            if ( tag.IsActive() && meshComponent.HasMesh() && !material.IsEmpty() ) {
+            if ( meshComponent.HasMesh() && !material.IsEmpty() ) {
                 MeshNode* meshNode{ meshComponent.GetMesh() };
                 PBRMaterial* pbrMat{ dynamic_cast<PBRMaterial*>( material.GetRaw() ) };
 
-                auto& [DrawIndexedState, Instances]{ m_MeshDrawState[meshNode] };
+                auto& [DrawIndexedState, ActiveEntities, Instances] {
+                    m_MeshDrawState[meshNode]
+                };
 
-                ShaderMaterialParams& ubo{ Instances[tag.GetGUID()] };
-                ubo.Transform = transform.GetTransform();
+                ActiveEntities[tag.GetGUID()] = tag.IsActive();
 
-                ubo.Albedo = pbrMat->GetColor();
-                ubo.Factors.x = pbrMat->GetMetallicFactor();
-                ubo.Factors.y = pbrMat->GetRoughnessFactor();
+                if (tag.IsActive() ) {
+                    ShaderMaterialParams& ubo{ Instances[tag.GetGUID()] };
 
-                ubo.AlbedoIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::ALBEDO_TEXTURE ) );
-                ubo.NormalIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::NORMAL_TEXTURE ) );
-                ubo.MetallicIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::METALLIC_TEXTURE ) );
-                ubo.RoughnessIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
-                ubo.AoIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
+                    ubo.Transform = transform.GetTransform();
+
+                    ubo.Albedo = pbrMat->GetColor();
+                    ubo.Factors.x = pbrMat->GetMetallicFactor();
+                    ubo.Factors.y = pbrMat->GetRoughnessFactor();
+
+                    ubo.AlbedoIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::ALBEDO_TEXTURE ) );
+                    ubo.NormalIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::NORMAL_TEXTURE ) );
+                    ubo.MetallicIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::METALLIC_TEXTURE ) );
+                    ubo.RoughnessIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
+                    ubo.AoIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
+                }
             }
         }
     }
@@ -400,13 +407,11 @@ namespace Mikoto {
     }
 
     auto FinalCompositionPass::UploadInstanceData(PassCommandList& commandList) -> void {
-        // Will represent the total instances that are to render
-        UInt32 firstInstance{};
-
         Size meshIndex{};
+        Size firstInstance{};
 
-        // Prepare
         for ( auto& [meshNode, instanceInfo]: m_MeshDrawState ) {
+
             DrawIndexedState& drawState{ instanceInfo.InstanceDrawState };
 
             drawState.IndexBuffer = meshNode->GetIndexBuffer();
@@ -415,15 +420,19 @@ namespace Mikoto {
                 drawState.VertexBuffers.emplace_back( meshNode->GetVertexBuffer(), 0);
             }
 
-            drawState.IndicesCount = meshNode->GetIndexBuffer()->GetCount();
-            drawState.InstancesCount = instanceInfo.InstanceInfos.size();
-            drawState.FirstInstance = firstInstance;
-
-            for (const auto &meshInstanceInfo: instanceInfo.InstanceInfos | std::views::values) {
-                m_Meshes[meshIndex++] = meshInstanceInfo;
+            Size drawCount{};
+            for (const auto& [entityID, meshInstanceInfo]: instanceInfo.InstanceInfos) {
+                if (instanceInfo.IsActive( entityID )) {
+                    m_Meshes[meshIndex++] = meshInstanceInfo;
+                    ++drawCount;
+                }
             }
 
-            firstInstance += instanceInfo.InstanceInfos.size();
+            drawState.IndicesCount = meshNode->GetIndexBuffer()->GetCount();
+            drawState.FirstInstance = firstInstance;
+            drawState.InstancesCount = drawCount;
+
+            firstInstance += drawCount;
 
             commandList.DrawIndexed(drawState);
         }

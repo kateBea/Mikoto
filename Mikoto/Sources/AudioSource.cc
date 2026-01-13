@@ -60,7 +60,6 @@ namespace Mikoto {
 
     auto AudioSource::Pause() -> void {
         if ( m_IsPlaying ) {
-            // Save current progress
             ma_sound_get_cursor_in_seconds( &m_Sound, &m_CurrentProgress );
             ma_sound_stop( &m_Sound );
 
@@ -120,7 +119,6 @@ namespace Mikoto {
 
         ma_sound_get_length_in_seconds( &m_Sound, &duration );
 
-        // Clamp to 32-bit if needed
         return duration;
     }
 
@@ -129,7 +127,6 @@ namespace Mikoto {
 
         ma_sound_get_cursor_in_seconds( &m_Sound, &duration );
 
-        // Clamp to 32-bit if needed
         return duration;
     }
 

@@ -168,7 +168,19 @@ namespace Mikoto {
 
         struct MeshInstanceInfo {
             DrawIndexedState InstanceDrawState{};
+            ankerl::unordered_dense::map<UInt64, bool> ActiveEntities{};
             ankerl::unordered_dense::map<UInt64, ShaderMaterialParams> InstanceInfos{};
+
+            MKT_NODISCARD auto IsActive(UInt64 entityID) const -> bool {
+                bool result{ false };
+                const auto it{ ActiveEntities.find( entityID ) };
+
+                if (it != ActiveEntities.end()) {
+                    result = it->second;
+                }
+
+                return result;
+            }
         };
     private:
         ShaderLightListParams m_LightsInfo{};

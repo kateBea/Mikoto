@@ -96,7 +96,7 @@ namespace Mikoto {
         // Block of memory must persist until Initialize is called
         if ( createInfo.Data ) {
             m_Data = new Byte[m_SizeBytes];
-            std::memcpy( static_cast<void*>(m_Data), static_cast<const void*>(createInfo.Data), m_SizeBytes );
+            std::memcpy( m_Data, createInfo.Data, m_SizeBytes );
         }
 
         // Let a VMA library select the optimal memory type unless specified

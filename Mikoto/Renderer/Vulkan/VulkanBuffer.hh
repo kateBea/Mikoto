@@ -50,7 +50,7 @@ namespace Mikoto {
         auto PersistentMap() -> void;
         auto PersistentUnmap() -> void;
 
-        MKT_NODISCARD auto IsMapped() const -> bool { return m_VmaAllocationInfo.pMappedData != nullptr; }
+        MKT_NODISCARD auto IsMapped() const -> bool { return m_IsMapped; }
         MKT_NODISCARD auto GetMappedAddress() const -> const void* { return m_VmaAllocationInfo.pMappedData; }
 
         ~VulkanBuffer() override;
@@ -67,6 +67,8 @@ namespace Mikoto {
         Size m_MinPaddedSize{};
 
         VkBuffer m_Buffer{};
+
+        bool m_IsMapped{ false };
 
         // See vmaCreteBuffer for details on these
         VmaAllocation m_VmaAllocation{};

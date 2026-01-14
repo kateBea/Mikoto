@@ -46,6 +46,8 @@ namespace Mikoto {
         auto SetScene( Scene* scene ) -> void;
         auto SetClearColor( const Vec4F& vec ) -> void;
 
+        auto ShowColorImage( bool value ) -> void;
+
     private:
         auto DrawObjects( PassCommandList& commandList ) -> void;
         auto TraverseMeshList( PassCommandList& commandList ) -> void;
@@ -75,6 +77,8 @@ namespace Mikoto {
 
         std::vector<ShaderMaterialParams> m_Meshes{};
         ankerl::unordered_dense::map<MeshNode*, MeshInstanceInfo> m_MeshDrawState{};
+
+        bool m_ShowColor{ false };
     };
 
     // Material Pass that renders a sphere with a texture on a sphere

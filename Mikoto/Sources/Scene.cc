@@ -23,23 +23,6 @@
 
 namespace Mikoto {
 
-    static auto SetupStandardComponents( Entity& entity, const EntityCreateInfo& info ) -> void {
-        // [Constants for default entity parameters]
-        constexpr Vec3F initialSize{ 1.0f, 1.0f, 1.0f };
-        constexpr Vec3F initialPosition{ 0.0, 0.0, 0.0 };
-        constexpr Vec3F initialRotation{ 0.0f, 0.0f, 0.0f };
-
-        if ( info.Root != nullptr ) {
-            TagComponent& parentTag{ info.Root->GetComponent<TagComponent>() };
-            entity.AddComponent<RelationComponent>( std::make_optional( parentTag.GetGUID() ) );
-        } else {
-            entity.AddComponent<RelationComponent>();
-        }
-
-        entity.AddComponent<TagComponent>( info.Name );
-        entity.AddComponent<TransformComponent>( initialPosition, initialSize, initialRotation );
-    }
-
     static auto OnMeshRendererAdded( entt::registry& reg, entt::entity e ) -> void {
         if ( !reg.any_of<MaterialComponent>( e ) ) {
             reg.emplace<MaterialComponent>( e );
@@ -188,22 +171,39 @@ namespace Mikoto {
         m_Registry.clear();
     }
 
+    auto Scene::CreateEntityDefault(const EntityCreateInfo& info ) -> Entity* {
+        const auto entity{ new Entity{ m_Registry } };
+
+        // [Constants for default entity parameters]
+        constexpr Vec3F initialSize{ 1.0f, 1.0f, 1.0f };
+        constexpr Vec3F initialPosition{ 0.0, 0.0, 0.0 };
+        constexpr Vec3F initialRotation{ 0.0f, 0.0f, 0.0f };
+
+        if ( info.Root != nullptr ) {
+            const TagComponent& parentTag{ info.Root->GetComponent<TagComponent>() };
+            entity->AddComponent<RelationComponent>( std::make_optional( parentTag.GetGUID() ) );
+        } else {
+            entity->AddComponent<RelationComponent>();
+        }
+
+        entity->AddComponent<TagComponent>( info.Name );
+        entity->AddComponent<TransformComponent>( initialPosition, initialSize, initialRotation );
+
+        return entity;
+    }
+
     auto Scene::CreateEntitySingle( const EntityCreateInfo& createInfo ) -> Entity* {
         MKT_BEGIN_PROFILER_NAMED();
 
-        Entity* result{ nullptr };
+        Entity* result{ CreateEntityDefault( createInfo) };
 
-        // Register the entity and setup default components
-        Unique<Entity> newEntity{ new Entity( m_Registry ) };
-        SetupStandardComponents( *newEntity, createInfo );
+        const UInt64 guid{ result->GetComponent<TagComponent>().GetGUID() };
 
-        UInt64 guid{ newEntity->GetComponent<TagComponent>().GetGUID() };
         const auto [it, success]{
-            m_Entities.try_emplace( guid, std::move( newEntity ) )
+            m_Entities.try_emplace( guid, result )
         };
 
         if ( success ) {
-            // We managed to register the new entity
             result = it->second.get();
 
             // if root is not empty this entity must be registered as child of root entity
@@ -217,13 +217,12 @@ namespace Mikoto {
             // in root model is not empty, we create the children for this entity each children well hold a mesh
             if ( !createInfo.Model.IsEmpty() ) {
                 if ( createInfo.Model->GetMeshNodeCount() > 1 ) {
+
                     for ( Size index{}; index < createInfo.Model->GetMeshNodeCount(); index++ ) {
                         AddSingleEntityWithRoot( result, createInfo.Model, index );
                     }
+
                 } else {
-                    // TODO: The result can either be a root
-                    // or the root from the description in the case we
-                    // are creating an entity with one model
                     SetupMeshComponent( result, createInfo.Model, 0 );
                 }
             }
@@ -809,9 +808,7 @@ namespace Mikoto {
             .Name{ name.c_str() },
         };
 
-        Entity* child{ CreateEntity( entityCreateInfo ) };
-
-        if ( child != nullptr ) {
+        if ( Entity* child{ CreateEntity( entityCreateInfo ) } ) {
             SetupMeshComponent(child, model, index);
         }
     }

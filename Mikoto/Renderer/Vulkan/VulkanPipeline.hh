@@ -69,7 +69,7 @@ namespace Mikoto {
         auto Initialize() -> void override;
         auto Release() -> void override;
 
-        auto SetupConfig(VulkanGraphicsPipelineConfiguration& config ) const -> void;
+        auto SetupConfig(VulkanGraphicsPipelineConfiguration& config ) -> void;
 
         friend class VulkanGraphicsContext;
     private:
@@ -79,6 +79,9 @@ namespace Mikoto {
         // format is not dynamic
         VkFormat m_DepthAttachmentFormat{};
         std::vector<VkFormat> m_ColorAttachmentsFormats{};
+
+        // Dynamic states
+        std::vector<VkDynamicState> m_DynamicStates{};
 
         VulkanHelpers::Reflection::ReflectedData m_ReflectionData{};
     };

@@ -287,14 +287,14 @@ namespace Mikoto {
     auto VulkanContext::PrepareFrame() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        VkFence& inFlightFrameFence{ m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFence };
-
         // For simplicity, parenthesize std::numeric_limits<std::uint64_t>::max
         // because windows has a macro called max that causes conflicts
+        VkFence& inFlightFrameFence{ m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFence };
         vkWaitForFences( VK_DEVICE(m_Device.get()), 1, std::addressof( inFlightFrameFence ), VK_TRUE, ( std::numeric_limits<UInt64>::max )() );
         vkResetFences( VK_DEVICE(m_Device.get()), 1, std::addressof( inFlightFrameFence ) );
 
         m_Device->RunGarbageCollection();
+        TO_VK_DEVICE( m_Device.get() ) ->SetCurrentFrameIndex( m_CurrentFrameIndex );
 
         const VkSemaphore& imageAvailableSemaphore{ m_FrameSyncPrimitives[m_CurrentFrameIndex].ImageAvailableSemaphore };
         const VkResult ret{ m_Swapchain->GetNextRenderableImageIndex(m_CurrentImageIndex, imageAvailableSemaphore ) };
@@ -311,7 +311,7 @@ namespace Mikoto {
     auto VulkanContext::Present() -> void {
         const VkSemaphore& renderFinishedSemaphore{ m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFinishedSemaphore };
 
-        const VkResult result{ m_Swapchain->Present( GetCurrentImageIndex(), renderFinishedSemaphore ) };
+        const VkResult result{ m_Swapchain->Present( m_CurrentImageIndex, renderFinishedSemaphore ) };
 
         if ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ) {
             RecreateSwapchain();
@@ -322,8 +322,7 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR( "VulkanDevice::PresentToSwapChain - Error failed present images to swapchain." );
         }
 
-        // TODO: Using always same sync primitives
-        m_CurrentFrameIndex = 0; //(m_CurrentFrameIndex + 1) % m_MaxFramesInFlight;
+        m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % m_MaxFramesInFlight;
     }
 
     auto VulkanContext::SubmitFrame() -> void {
@@ -333,12 +332,10 @@ namespace Mikoto {
 
         // Record commands to copy contents from present target to swap chain
         // Present is done on the current corresponding swap chain image
-        const UInt32 swapchainAvailableImageIndex{ this->Get()->GetCurrentImageIndex() };
-
         CommandListHandle cmdList{ m_Device->CreateCommandList( QueueType::PRESENT_QUEUE ) };
         cmdList->Begin();
 
-        cmdList->CopyTexture( m_PresentTarget.GetRaw(), m_Swapchain->GetImage( swapchainAvailableImageIndex ).GetRaw() );
+        cmdList->CopyTexture( m_PresentTarget.GetRaw(), m_Swapchain->GetImage( m_CurrentImageIndex ).GetRaw() );
 
         cmdList->End();
         m_Device->SubmitCommands( cmdList );
@@ -374,10 +371,8 @@ namespace Mikoto {
 
     auto VulkanContext::CreateSynchronizationPrimitives() -> void {
 
-        const Size frameCount{ m_Swapchain->GetImageCount() };
-        m_FrameSyncPrimitives.resize( frameCount );
-
-        m_MaxFramesInFlight = m_Swapchain->GetImageCount();
+        m_MaxFramesInFlight = 3;
+        m_FrameSyncPrimitives.resize( m_MaxFramesInFlight );
 
         for (auto& [ImageAvailableSemaphore, RenderFinishedSemaphore, RenderFence] : m_FrameSyncPrimitives) {
             VkFenceCreateInfo fenceInfo{ VulkanHelpers::Initializers::FenceCreateInfo() };

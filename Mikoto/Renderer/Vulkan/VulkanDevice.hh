@@ -140,7 +140,6 @@ namespace Mikoto {
         MKT_NODISCARD auto GetMemoryAvailable() const -> Size override;
 
         MKT_NODISCARD auto GetDummySampler() const -> SamplerHandle override;
-        MKT_NODISCARD auto GetDummyDescriptorLayout() -> DescriptorSetLayoutHandle;
 
         // Vulkan specifics ================================================
 
@@ -149,7 +148,10 @@ namespace Mikoto {
 
         auto GetTracyContext() -> TracyVkCtx&;
 
-        // Return the minimum required alignment (in bytes) for uniform buffers
+        auto SetCurrentFrameIndex(UInt32 frameIndex) -> void;
+
+        MKT_NODISCARD auto GetDummyDescriptorLayout() -> DescriptorSetLayoutHandle;
+
         MKT_NODISCARD auto GetUniformBufferMinOffsetAlignment() const -> VkDeviceSize;
         MKT_NODISCARD auto GetStorageBufferMinOffsetAlignment() const -> VkDeviceSize;
 
@@ -226,11 +228,10 @@ namespace Mikoto {
         // [Command list management]
         QueuesData m_Queues{};
 
+        UInt32 m_CurrentFrameIndex{};
         ankerl::unordered_dense::map<UInt32, VkFence> m_FrameFences{};
-        ankerl::unordered_dense::map<UInt32, std::vector<CommandListHandle>> m_FrameCmdBuffers{};
-
-        std::vector<CommandListHandle> m_AvailableGraphicsCommandLists{};
-        std::vector<CommandListHandle> m_PendingGraphicsCommandLists{};
+        ankerl::unordered_dense::map<UInt32, std::vector<CommandListHandle>> m_AvailableGraphicsCommandLists{};
+        ankerl::unordered_dense::map<UInt32, std::vector<CommandListHandle>> m_PendingGraphicsCommandLists{};
 
         // [Device management]
         VkDevice m_LogicalDevice{};

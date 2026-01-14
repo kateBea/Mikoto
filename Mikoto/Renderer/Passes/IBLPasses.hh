@@ -140,6 +140,14 @@ namespace Mikoto {
 
                 return result;
             }
+
+            auto Disable(UInt64 entityID )-> void {
+                const auto it{ ActiveEntities.find( entityID ) };
+
+                if ( it != ActiveEntities.end() ) {
+                    it->second = false;
+                }
+            }
         };
 
     private:

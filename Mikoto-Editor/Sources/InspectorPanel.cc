@@ -1007,7 +1007,7 @@ namespace Mikoto {
             ImGui::Spacing();
             if ( ImGui::Button( fmt::format( "{} Open in External Editor", ICON_MD_OPEN_IN_NEW ).c_str() ) ) {
                 RuntimeConsole::Get()->ExecuteCommand(
-                        StringUtils::Concat( "/run_a", " code ", scriptComponent.GetScript()->GetPath() ) );
+                        StringUtils::Concat( "/", " code ", scriptComponent.GetScript()->GetPath() ) );
             }
         }
     }

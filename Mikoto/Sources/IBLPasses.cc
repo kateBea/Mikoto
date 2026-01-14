@@ -247,6 +247,10 @@ namespace Mikoto {
                 if (instanceInfo.IsActive( entityID )) {
                     m_Meshes[meshIndex++] = meshInstanceInfo;
                     ++drawCount;
+
+
+                    // We need to ensure it does not get drawn later
+                    instanceInfo.Disable( entityID );
                 }
             }
 

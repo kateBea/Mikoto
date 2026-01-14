@@ -134,6 +134,7 @@ namespace Mikoto {
         auto WorkerCreateEntity(const EntityCreateInfo& info) -> void;
 
         auto ComputeStats() -> void;
+
     private:
         std::string m_Name{};
         entt::registry m_Registry{};
@@ -153,7 +154,7 @@ namespace Mikoto {
         UInt32 m_TotalLightCount{ 0 };
         UInt32 m_ActiveLightCount{ 0 };
 
-        bool m_UseSkybox{ false };
+        bool m_UseSkybox{ true };
         TextureHandle m_Skybox{ nullptr };
 
     };

@@ -126,6 +126,8 @@ namespace Mikoto {
                 if (instanceInfo.IsActive( entityID )) {
                     m_Meshes[meshIndex++] = meshInstanceInfo;
                     ++drawCount;
+
+                    instanceInfo.Disable( entityID );
                 }
             }
 

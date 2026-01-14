@@ -63,14 +63,13 @@ namespace Mikoto {
         configInfo.ViewportInfo.scissorCount = 1;// VK_DYNAMIC_SCISSOR_WITH_COUNT has to be set for this to be 0
         configInfo.ViewportInfo.pScissors = nullptr;
 
-        constexpr float GPU_STANDARD_LINE_WIDTH{ 1.0f };
         configInfo.RasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         configInfo.RasterizationInfo.depthClampEnable = VK_FALSE;
         configInfo.RasterizationInfo.rasterizerDiscardEnable = VK_FALSE;// requires extension if enabled
         configInfo.RasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
 
         // The maximum line width that is supported depends on the hardware, any line thicker than 1.0f requires you to enable the wideLines GPU feature.
-        configInfo.RasterizationInfo.lineWidth = configInfo.RasterizationInfo.polygonMode == VK_POLYGON_MODE_LINE ? GPU_STANDARD_LINE_WIDTH : 0.0f;
+        configInfo.RasterizationInfo.lineWidth = 0.0f;
         configInfo.RasterizationInfo.cullMode = VK_CULL_MODE_NONE;
         configInfo.RasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         configInfo.RasterizationInfo.depthBiasEnable = VK_FALSE;
@@ -120,19 +119,6 @@ namespace Mikoto {
         configInfo.DepthStencilInfo.back.compareMask = 0xFF;
         configInfo.DepthStencilInfo.back.writeMask = 0xFF;
         configInfo.DepthStencilInfo.front = configInfo.DepthStencilInfo.back;// Use default settings for front faces
-
-        // VK_DYNAMIC_STATE_VERTEX_INPUT_EXT can reduce the amount of pipelines the application needs to create
-        // because it allows for vertex input binding and attribute descriptions to be dynamic. This is, of course, not a
-        // core feature as of Vulkan 1.3 and requires to be enabled when creating the device on which this pipeline will be created
-        // Make it static because pDynamicStates does not persist the value beyond this scope
-
-        constexpr std::array dynamicStates{ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH, /*VK_DYNAMIC_STATE_VERTEX_INPUT_EXT*/ };
-        std::ranges::copy( dynamicStates, std::back_inserter( configInfo.DynamicStates ) );
-        
-        configInfo.DynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        configInfo.DynamicStateInfo.pDynamicStates = configInfo.DynamicStates.data();
-        configInfo.DynamicStateInfo.dynamicStateCount = configInfo.DynamicStates.size();
-        configInfo.DynamicStateInfo.flags = 0;
 
         return configInfo;
     }
@@ -241,7 +227,7 @@ namespace Mikoto {
         m_IsAllocated = false;
     }
 
-    auto VulkanGraphicsPipeline::SetupConfig( VulkanGraphicsPipelineConfiguration& config ) const -> void {
+    auto VulkanGraphicsPipeline::SetupConfig( VulkanGraphicsPipelineConfiguration& config ) -> void {
         config.ColorBlendInfo.pAttachments = &config.ColorBlendAttachment;
         config.InputAssemblyInfo.topology = InferVulkanTopology(m_Topology);
 
@@ -250,9 +236,30 @@ namespace Mikoto {
 
         config.RasterizationInfo.cullMode = InferCullMode(m_CullMode);
 
+        // lineWidth is 0.000000, but the line width state is static
+        // (pCreateInfos[0].pDynamicState->pDynamicStates does not contain
+        // VK_DYNAMIC_STATE_LINE_WIDTH) and wideLines feature was not enabled.
+        constexpr float GPU_STANDARD_LINE_WIDTH{ 1.0f };
+        config.RasterizationInfo.lineWidth = GPU_STANDARD_LINE_WIDTH;
+
         if (m_Wireframe) {
             config.RasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
+            //m_DynamicStates.emplace_back( VK_DYNAMIC_STATE_LINE_WIDTH );
         }
+
+        // VK_DYNAMIC_STATE_VERTEX_INPUT_EXT can reduce the amount of pipelines the application needs to create
+        // because it allows for vertex input binding and attribute descriptions to be dynamic. This is, of course, not a
+        // core feature as of Vulkan 1.3 and requires to be enabled when creating the device on which this pipeline will be created
+        // Make it static because pDynamicStates does not persist the value beyond this scope
+        m_DynamicStates.emplace_back( VK_DYNAMIC_STATE_VIEWPORT );
+        m_DynamicStates.emplace_back( VK_DYNAMIC_STATE_SCISSOR );
+
+        std::ranges::copy( m_DynamicStates, std::back_inserter( config.DynamicStates ) );
+
+        config.DynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        config.DynamicStateInfo.pDynamicStates = config.DynamicStates.data();
+        config.DynamicStateInfo.dynamicStateCount = config.DynamicStates.size();
+        config.DynamicStateInfo.flags = 0;
 
     }
 
@@ -362,7 +369,6 @@ namespace Mikoto {
         renderingInfo.pColorAttachmentFormats = m_ColorAttachmentsFormats.data();
         renderingInfo.depthAttachmentFormat = m_DepthAttachmentFormat;
         renderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
-
 
         // Pipeline create info submit
         pipelineInfo.pNext = std::addressof( renderingInfo );

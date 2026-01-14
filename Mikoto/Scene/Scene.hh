@@ -125,6 +125,8 @@ namespace Mikoto {
 
         auto SetupMeshComponent(Entity* entity, ModelHandle model, Int32 index) -> void;
 
+        auto CreateEntityDefault(const EntityCreateInfo& info ) -> Entity*;
+
     private:
         auto AddSingleEntityWithRoot(Entity * root, ModelHandle model, Int32 index ) -> void;
 

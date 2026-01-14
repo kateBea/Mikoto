@@ -29,6 +29,7 @@ namespace Mikoto {
         graphicsDesc.DepthWrite = true;
         graphicsDesc.AlphaBlending = true;
         graphicsDesc.Wireframe = true;
+        graphicsDesc.PipelineCullMode = CullMode::CULL_BACK;
 
         // Graphics context will specify the texture formats for the render targets we can redner to with this pipeline
         // It will also create the shader modules first and assign them to this description which will be used to create the actual pipeline
@@ -102,6 +103,10 @@ namespace Mikoto {
         m_ClearColor = vec;
     }
 
+    auto WireFramePass::ShowColorImage( bool value ) -> void {
+        m_ShowColor = value;
+    }
+
     auto WireFramePass::DrawObjects(PassCommandList& commandList) -> void {
         Size meshIndex{};
         Size firstInstance{};
@@ -135,12 +140,18 @@ namespace Mikoto {
     }
 
     auto WireFramePass::Execute( PassCommandList& commandList ) -> void {
-        commandList.SetColorRenderTarget( "WireFramePass_ColorTarget" );
-        commandList.SetDepthRenderTarget( "WireFramePass_DepthTarget" );
 
-        commandList.SetClearColor( m_ClearColor );
+        if (m_ShowColor) {
+            commandList.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
+            commandList.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
+            commandList.BeginRender(this, LoadOp::LOAD, LoadOp::LOAD);
+        } else {
+            commandList.SetClearColor( m_ClearColor );
+            commandList.SetColorRenderTarget( "WireFramePass_ColorTarget" );
+            commandList.SetDepthRenderTarget( "WireFramePass_DepthTarget" );
+            commandList.BeginRender(this );
+        }
 
-        commandList.BeginRender(this);
         commandList.BindPipeline( "WireFramePass_Pipeline" );
 
         // Set render targets

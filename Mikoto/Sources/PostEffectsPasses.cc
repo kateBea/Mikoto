@@ -103,7 +103,7 @@ namespace Mikoto {
             double advance{ 0 };
 
             if ( font->HasGlyph(character)) {
-                FontGlyph& glyph{ font->GetGlyph( static_cast<UInt32>( character ) ) };
+                const FontGlyph& glyph{ font->GetGlyph( static_cast<UInt32>( character ) ) };
 
                 if (!IsSpace(character)) {
                     // Quad Coordinates
@@ -140,7 +140,7 @@ namespace Mikoto {
             } else {
                 // If the character does not exist just insert space
                 // equal to Space character.
-                FontGlyph& glyph{ font->GetGlyph( static_cast<UInt32>( ' ' ) ) };
+                const FontGlyph& glyph{ font->GetGlyph( static_cast<UInt32>( ' ' ) ) };
                 advance = glyph.m_AdvanceX * fontSize;
             }
 

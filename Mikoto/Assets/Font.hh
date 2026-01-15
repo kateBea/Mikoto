@@ -115,7 +115,6 @@ namespace Mikoto {
         * @return Pointer to the corresponding FontGlyph, or nullptr if not found.
         */
         MKT_NODISCARD auto GetGlyph( UInt32 characterCode ) const -> const FontGlyph&;
-        MKT_NODISCARD auto GetGlyph( UInt32 characterCode ) -> FontGlyph&;
 
         MKT_NODISCARD auto GetMaxHeight() const -> double;
         MKT_NODISCARD auto GetMaxWidth() const -> double;

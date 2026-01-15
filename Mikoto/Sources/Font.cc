@@ -27,10 +27,6 @@ namespace Mikoto {
         return m_Glyphs.at( characterCode );
     }
 
-    auto Font::GetGlyph( const UInt32 characterCode ) -> FontGlyph& {
-        return m_Glyphs.at( characterCode );
-    }
-
     auto Font::GetMaxHeight() const -> double {
         return m_MaxHeight;
     }

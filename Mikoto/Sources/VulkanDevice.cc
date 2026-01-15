@@ -418,7 +418,7 @@ namespace Mikoto {
 
         m_FrameFences.clear();
 
-        // Clear resources (pools, etc)
+        // Clear resources pools
         m_Textures.Shutdown();
         m_TexturesCube.Shutdown();
         m_Buffers.Shutdown();
@@ -847,13 +847,14 @@ namespace Mikoto {
     }
 
     auto VulkanCmdList::FillTexture( Buffer* src, Texture* dest ) -> void {
-        // Cast to Vulkan-specific implementations
-        auto* vkSrc{ dynamic_cast<VulkanBuffer*>( src ) };
-        auto* vkDest{ dynamic_cast<VulkanTexture*>( dest ) };
 
         if (dest != nullptr && dest->GetTextureUsage() == TextureUsage::TEXTURE_USAGE_CUBE) {
             FillCubeTexture( src, dest );
         }
+
+        // Cast to Vulkan-specific implementations
+        auto* vkSrc{ dynamic_cast<VulkanBuffer*>( src ) };
+        auto* vkDest{ dynamic_cast<VulkanTexture*>( dest ) };
 
         if ( !vkSrc || !vkDest ) {
             return;
@@ -873,12 +874,6 @@ namespace Mikoto {
         copyRegion.imageSubresource.mipLevel = 0;
         copyRegion.imageSubresource.baseArrayLayer = 0;
         copyRegion.imageSubresource.layerCount = 1;
-
-        if (auto cube{ dynamic_cast<VulkanTextureCube*>( dest ) }) {
-            copyRegion.imageSubresource.mipLevel = cube->GetMipLevels();
-            copyRegion.imageSubresource.baseArrayLayer = 0;
-            copyRegion.imageSubresource.layerCount = 6;
-        }
 
         copyRegion.imageOffset = { 0, 0, 0 };
         copyRegion.imageExtent = {

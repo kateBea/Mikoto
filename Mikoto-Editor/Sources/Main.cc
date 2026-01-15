@@ -27,12 +27,13 @@ auto InitializeWindow() -> void {
         return;
     }
 
-    WindowProperties properties{};
-    properties.Resizable = g_Config.Get<bool>( "application.resizable" );
-    properties.Title = g_Config.Get<std::string>( "application.title" );
-    properties.Backend = InferAPI( g_Config.Get<std::string>( "renderer.api" ) );
-    properties.Width = static_cast<Int32>( g_Config.Get<Int64>( "application.width" ) );
-    properties.Height = static_cast<Int32>( g_Config.Get<Int64>( "application.height" ));
+    WindowProperties properties{
+        .Title{ g_Config.Get<std::string>( "application.title" ) },
+        .Width{ static_cast<Int32>( g_Config.Get<Int64>( "application.width" ) ) },
+        .Height{ static_cast<Int32>( g_Config.Get<Int64>( "application.height" )) },
+        .Backend{ InferAPI( g_Config.Get<std::string>( "renderer.api" ) ) },
+        .Resizable{ g_Config.Get<bool>( "application.resizable" ) }
+    };
 
     g_Window = Window::Create( properties );
 

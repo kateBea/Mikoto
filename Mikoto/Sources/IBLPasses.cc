@@ -12,11 +12,62 @@
 namespace Mikoto {
 
     auto EnvCubePass::Setup( FrameGraphBuilder &builder ) -> void {
+        PipelineDescription pipelineDesc{};
 
+        pipelineDesc.AddShader("./Resources/Shaders/vulkan-spirv/EnvironmentMap_Vert.sprv", ShaderStage::VERTEX_STAGE);
+        pipelineDesc.AddShader("./Resources/Shaders/vulkan-spirv/EnvironmentMap_Frag.sprv", ShaderStage::FRAGMENT_STAGE);
+
+        GraphicsPipelineDescription graphicsDesc{};
+        graphicsDesc.DepthTest  = false;
+        graphicsDesc.DepthWrite = false;
+        graphicsDesc.AlphaBlending = false;
+        graphicsDesc.PipelineCullMode = CullMode::NONE;
+        graphicsDesc.PrimitiveTopology = Topology::TRIANGLE_LIST;
+
+        graphicsDesc.VertexAttributesSpec = {};
+
+        pipelineDesc.Description = graphicsDesc;
+        pipelineDesc.ColorRenderTargets.emplace_back("EnvCubePass_ColorTarget");
+
+        builder.CreateNamedPipeline("EnvCubePass_Pipeline", pipelineDesc);
+
+        // CUbemap render target
+        builder.CreateColorRenderTarget( "EnvCubePass_ColorTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM );
+
+        builder.WriteTexture(this, "EnvCubePass_ColorTarget");
     }
 
     auto EnvCubePass::Execute( PassCommandList &commandList ) -> void {
+        if (m_Hdr.IsEmpty()) {
+            return;
+        }
 
+        commandList.SetColorRenderTarget("EnvCubePass_ColorTarget");
+
+        commandList.BeginRender(this);
+        commandList.BindPipeline("EnvCubePass_Pipeline");
+
+        commandList.SetViewport(0, 0, 1920, 1080);
+        commandList.SetScissor(0, 0, 1920, 1080);
+
+        m_UBO.HDRTextureIndex = commandList.PushTexture( m_Hdr );
+
+        commandList.FillBuffer( "EnvCubePass_Uniform", std::addressof( m_UBO ), sizeof(m_UBO) );
+
+        commandList.BindResourceGroup(SRGType::SRG_PerPass);
+        commandList.BindResourceGroup(SRGType::SRG_Textures);
+
+        commandList.Draw(36, 1, 0, 0 );
+
+        commandList.EndRender();
+    }
+
+    auto EnvCubePass::SetTextureHDR( TextureHandle hdr ) -> void {
+        if (!hdr.IsEmpty()) {
+            m_Hdr = hdr;
+
+            MarkDirty();
+        }
     }
 
     auto IrradiancePass::Setup( FrameGraphBuilder &builder ) -> void {

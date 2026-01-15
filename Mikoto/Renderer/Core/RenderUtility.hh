@@ -363,6 +363,10 @@ namespace Mikoto {
 
     MKT_NODISCARD auto InferAPI( std::string_view apiName ) -> GraphicsAPI;
 
+    class STBImageHDR final {
+
+    };
+
     class StbImage final {
     public:
         explicit StbImage( const File* textureFile );

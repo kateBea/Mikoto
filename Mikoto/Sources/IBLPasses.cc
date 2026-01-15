@@ -126,6 +126,7 @@ namespace Mikoto {
         graphicsDesc.DepthTest = true;
         graphicsDesc.DepthWrite = true;
         graphicsDesc.AlphaBlending = true;
+        graphicsDesc.PipelineCullMode = CullMode::CULL_BACK;
 
         // Graphics context will specify the texture formats for the render targets we can redner to with this pipeline
         // It will also create the shader modules first and assign them to this description which will be used to create the actual pipeline

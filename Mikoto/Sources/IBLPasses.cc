@@ -31,16 +31,23 @@ namespace Mikoto {
 
         builder.CreateNamedPipeline("EnvCubePass_Pipeline", pipelineDesc);
 
-        // CUbemap render target
+        // Cubemap render target
         builder.CreateColorRenderTarget( "EnvCubePass_ColorTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM );
 
         builder.WriteTexture(this, "EnvCubePass_ColorTarget");
+
+        // For testing, ideally this pass should be the first to setup this data
+        builder.ReadBuffer(this, "SkyboxPass_CameraInfo");
     }
 
     auto EnvCubePass::Execute( PassCommandList &commandList ) -> void {
         if (m_Hdr.IsEmpty()) {
             return;
         }
+
+        SamplerDescription samplerDescription{};
+        commandList.CreateNamedSampler("EnvCubePass_Sampler", samplerDescription);
+        commandList.RegisterNamedTexture("EnvCubePass_EquirectangularMap", m_Hdr);
 
         commandList.SetColorRenderTarget("EnvCubePass_ColorTarget");
 
@@ -50,12 +57,10 @@ namespace Mikoto {
         commandList.SetViewport(0, 0, 1920, 1080);
         commandList.SetScissor(0, 0, 1920, 1080);
 
-        m_UBO.HDRTextureIndex = commandList.PushTexture( m_Hdr );
-
-        commandList.FillBuffer( "EnvCubePass_Uniform", std::addressof( m_UBO ), sizeof(m_UBO) );
+        commandList.SetBufferBindSlot(SRGType::SRG_PerPass,"SkyboxPass_CameraInfo", 0);
+        commandList.SetTextureBindSlot(SRGType::SRG_PerPass, "EnvCubePass_EquirectangularMap", "EnvCubePass_Sampler", 1);
 
         commandList.BindResourceGroup(SRGType::SRG_PerPass);
-        commandList.BindResourceGroup(SRGType::SRG_Textures);
 
         commandList.Draw(36, 1, 0, 0 );
 

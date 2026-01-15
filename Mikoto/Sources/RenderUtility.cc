@@ -17,7 +17,7 @@
 #include <Renderer/Core/RenderUtility.hh>
 
 namespace Mikoto {
-    MKT_NODISCARD auto LoadImageFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc* {
+    auto LoadImageFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc* {
         stbi_set_flip_vertically_on_load( true );
 
         constexpr int targetChannelCount{ STBI_rgb_alpha };
@@ -37,6 +37,25 @@ namespace Mikoto {
         return data;
     }
 
+    auto LoadHDRImageFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc* {
+        stbi_set_flip_vertically_on_load( true );
+
+        constexpr int targetChannelCount{ STBI_rgb_alpha };
+        stbi_uc* data{ reinterpret_cast<stbi_uc*>( stbi_loadf(
+                textureFile->GetPathCStr(),
+                std::addressof( outWidth ),
+                std::addressof( outHeight ),
+                std::addressof( outChannels ),
+                targetChannelCount ) ) };
+
+        if ( !data ) {
+            MKT_THROW_RUNTIME_ERROR( fmt::format( "LoadHDRImageFromFile - Failed to load HDR: [{}]", textureFile->GetPathCStr() ) );
+        }
+
+        outChannels = 4;
+        return data;
+    }
+
     MKT_NODISCARD auto FreeImageData( Byte* data ) -> void {
         stbi_image_free( data );
     }
@@ -47,6 +66,48 @@ namespace Mikoto {
         }
 
         return GraphicsAPI::UNKNOWN;
+    }
+
+    STBImageHDR::STBImageHDR( const File* textureFile ) {
+        m_Data = LoadHDRImageFromFile( textureFile, m_Width, m_Height, m_Channels );
+    }
+
+    STBImageHDR::~STBImageHDR() {
+        if ( m_Data ) {
+            stbi_image_free( m_Data );
+            m_Data = nullptr;
+        }
+    }
+
+    STBImageHDR::STBImageHDR( STBImageHDR&& other ) noexcept
+        : m_Width( other.m_Width ),
+          m_Height( other.m_Height ),
+          m_Channels( other.m_Channels ),
+          m_Data( other.m_Data ) {
+            other.m_Data = nullptr;
+            other.m_Width = 0;
+            other.m_Height = 0;
+            other.m_Channels = 0;
+    }
+
+    auto STBImageHDR::operator=( STBImageHDR&& other ) noexcept -> STBImageHDR& {
+        if ( this != &other ) {
+            if ( m_Data ) {
+                stbi_image_free( m_Data );
+            }
+
+            m_Data = other.m_Data;
+            m_Width = other.m_Width;
+            m_Height = other.m_Height;
+            m_Channels = other.m_Channels;
+
+            other.m_Data = nullptr;
+            other.m_Width = 0;
+            other.m_Height = 0;
+            other.m_Channels = 0;
+        }
+
+        return *this;
     }
 
     StbImage::StbImage( const File* textureFile ) {
@@ -222,6 +283,11 @@ namespace Mikoto {
         return *this;
     }
 
+    auto TextureCubeLoadDescription::IsHDR( const bool value ) -> TextureCubeLoadDescription& {
+        this->IsHdrMap = value;
+        return *this;
+    }
+
     auto TextureCubeLoadDescription::WithResourceUsage( ResourceUsageType usage ) -> TextureCubeLoadDescription & {
         this->ResourceUsage = usage;
         return *this;
@@ -244,6 +310,11 @@ namespace Mikoto {
 
     auto TextureCubeLoadDescription::WithType( TextureType type ) -> TextureCubeLoadDescription & {
         this->Type = type;
+        return *this;
+    }
+
+    auto TextureCubeCreateDescription::IsHDR( bool value ) -> TextureCubeCreateDescription& {
+        this->IsHdrMap = value;
         return *this;
     }
 

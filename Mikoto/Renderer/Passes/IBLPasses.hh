@@ -49,12 +49,8 @@ namespace Mikoto {
         auto SetTextureHDR(TextureHandle hdr) -> void;
 
     private:
-        struct EnvCubeUBO {
-            Int32 HDRTextureIndex{};
-        };
 
         TextureHandle m_Hdr{};
-        EnvCubeUBO m_UBO{};
     };
 
     class IrradiancePass final : public FramePass {

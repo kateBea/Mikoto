@@ -14,7 +14,8 @@ namespace Mikoto {
     class TextureCube : public Texture {
     public:
 
-        auto GetMipLevels() const -> Int32 { return m_MipLevels; }
+        MKT_NODISCARD auto IsHDR() const -> bool { return m_IsHDR; }
+        MKT_NODISCARD auto GetMipLevels() const -> Int32 { return m_MipLevels; }
 
         ~TextureCube() override = default;
 
@@ -31,6 +32,8 @@ namespace Mikoto {
 
         // Cube map faces all share same dimensions
         Int32 m_MipLevels{ 1 };
+
+        bool m_IsHDR{ false };
     };
 }// namespace Mikoto
 

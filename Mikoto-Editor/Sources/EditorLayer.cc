@@ -21,15 +21,15 @@
 #include <Panels/ContentBrowserPanel.hh>
 #include <Panels/HierarchyPanel.hh>
 #include <Panels/InspectorPanel.hh>
-#include <Panels/ScenePanel.hh>
-#include <Panels/PassVisualizerPanel.hh>
-#include <Panels/SettingsPanel.hh>
-#include <Panels/ScenePropertiesPanel.hh>
 #include <Panels/LightingDebugPanel.hh>
+#include <Panels/PassVisualizerPanel.hh>
+#include <Panels/ScenePanel.hh>
+#include <Panels/ScenePropertiesPanel.hh>
+#include <Panels/SettingsPanel.hh>
 #include <Panels/StatsPanel.hh>
 #include <Physics/PhysicService.hh>
-#include <Renderer/Core/RenderService.hh>
 #include <Renderer/Core/FrameBlackboard.hh>
+#include <Renderer/Core/RenderService.hh>
 #include <Scene/Component.hh>
 #include <Scene/SceneManager.hh>
 
@@ -38,6 +38,7 @@
 #include "Core/LocalizationService.hh"
 #include "ImGui/ImGuiService.hh"
 #include "Panels/AssetsPanel.hh"
+#include "Renderer/Passes/IBLPasses.hh"
 
 namespace Mikoto {
 
@@ -133,8 +134,20 @@ namespace Mikoto {
         m_EditorState->PassesCompositions.try_emplace( "TexturePass", blackboard->GetTexture( "HelloTexture_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "FinalComposition", blackboard->GetTexture( "FinalCompositionPass_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "Wireframe", blackboard->GetTexture( "WireFramePass_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "Environemtn Cube", blackboard->GetTexture( "EnvCubePass_ColorTarget" ) );
 
         m_EditorState->WireframeComposition = blackboard->GetTexture( "WireFramePass_ColorTarget" );
+
+        // Load HDR
+        TextureCubeLoadDescription loadDesc{};
+        loadDesc.WithType( TextureType::TEXTURE_CUBE )
+            .IsHDR( true )
+            .WithBasePath("Resources/HDR/newport_loft.hdr");
+
+        TextureHandle hdr{ AssetsService::Get()->LoadAsset<TextureCube>( loadDesc ) };
+
+        EnvCubePass* cubePass{ m_SceneRenderer->GetPass<EnvCubePass>() };
+        cubePass->SetTextureHDR( hdr );
     }
 
     auto EditorLayer::SetupRenderer() -> void {

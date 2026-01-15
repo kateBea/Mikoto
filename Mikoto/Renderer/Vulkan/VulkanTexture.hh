@@ -75,10 +75,6 @@ namespace Mikoto {
 
         MKT_NODISCARD auto IsSwapChainImage() const -> bool;
 
-        auto SetTextureIndex( Int32 index ) -> void;
-        MKT_NODISCARD auto GetTextureIndex() const -> Int32;
-        MKT_NODISCARD auto HasBindlessIndex() const -> bool;
-
         auto SubmitLayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd ) -> void;
 
         auto GetVMAllocation() -> VmaAllocation*;
@@ -111,12 +107,9 @@ namespace Mikoto {
         VmaAllocationCreateInfo m_AllocationCreateInfo{};
 
         VkImageLayout m_CurrentLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
-
-        // For Dynamic rendering
-        // Set by the device when created
-        Int32 m_TextureArrayIndex{ -1 };
     };
 
+    // This is either an HDR or a Cubemap with 6 faces
     class VulkanTextureCube final : public TextureCube {
     public:
         explicit VulkanTextureCube( const TextureCubeCreateDescription& data );
@@ -147,6 +140,9 @@ namespace Mikoto {
         auto Release() -> void override;
 
         auto CreateImageResource() -> void;
+
+        auto LoadCubeFaces() -> void;
+        auto LoadEquirectangular() -> void;
 
     private:
         BufferHandle m_StagingBuffer{};

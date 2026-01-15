@@ -223,14 +223,24 @@ namespace Mikoto {
         }
 
         TextureCubeCreateDescription textureDesc{};
-        textureDesc.WithResourceUsage( description.ResourceUsage );
+        textureDesc
+            .IsHDR( description.IsHdrMap )
+            .WithResourceUsage( description.ResourceUsage );
 
-        for (const auto& path : description.FacesRelativePaths ) {
-            PathBuilder pathBuilder{};
-            pathBuilder.WithPath( description.BasePath.string() )
-                .WithPath( path.string() );
+        // Assume CubeMap faces if it's not HDR
+        if (!textureDesc.IsHdrMap) {
+            for (const auto& path : description.FacesRelativePaths ) {
+                PathBuilder pathBuilder{};
+                pathBuilder.WithPath( description.BasePath.string() )
+                    .WithPath( path.string() );
 
-            if (const File* file{ FileService::Get()->LoadFile( pathBuilder.Build() ) }) {
+                if (const File* file{ FileService::Get()->LoadFile( pathBuilder.Build() ) }) {
+                    textureDesc.WithFacePath( file );
+                }
+            }
+        } else {
+            // Just store the path as first element of the vector
+            if (const File* file{ FileService::Get()->LoadFile( description.BasePath.string() ) }) {
                 textureDesc.WithFacePath( file );
             }
         }

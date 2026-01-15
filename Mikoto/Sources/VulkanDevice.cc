@@ -1022,7 +1022,7 @@ namespace Mikoto {
 
         copyRegion.imageSubresource.mipLevel = 0;
         copyRegion.imageSubresource.baseArrayLayer = 0;
-        copyRegion.imageSubresource.layerCount = 6;
+        copyRegion.imageSubresource.layerCount = vkDest->IsHDR() ? 1 : 6;
 
         copyRegion.imageOffset = { 0, 0, 0 };
         copyRegion.imageExtent = {

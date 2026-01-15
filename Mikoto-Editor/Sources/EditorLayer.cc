@@ -363,7 +363,8 @@ namespace Mikoto {
 
         PassVisualizerDescription passVisualizerDescription{};
         passVisualizerDescription.State = m_EditorState.get();
-        m_PanelRegistry.Register<PassVisualizerPanel>( passVisualizerDescription );
+        auto* passVisualizer{ m_PanelRegistry.Register<PassVisualizerPanel>( passVisualizerDescription ) };
+        passVisualizer->SetVisible( false );
 
         LightingDebugPanelCreateInfo lightingDebugPanelCreateInfo{};
         lightingDebugPanelCreateInfo.State = m_EditorState.get();
@@ -709,7 +710,7 @@ namespace Mikoto {
 
         // This is just to test clustered forward shading
         // We generate an empty object and 'lightCount' lights in random positions attached to it
-        constexpr UInt32 lightCount{ 16 };
+        constexpr UInt32 lightCount{ 12 };
         Entity* lightCluster{ m_ActiveScene->CreateEntity( "LightCluster" ) };
         for (UInt32 count{}; count < lightCount; count++) {
             if (Entity *clusteredLight{ m_ActiveScene->CreateEntity( lightCluster, fmt::format( "Light {}", count ) ) }) {

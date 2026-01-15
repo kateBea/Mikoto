@@ -227,23 +227,22 @@ namespace Mikoto {
         m_IsAllocated = false;
     }
 
-    auto VulkanGraphicsPipeline::SetupConfig( VulkanGraphicsPipelineConfiguration& config ) -> void {
-        config.ColorBlendInfo.pAttachments = &config.ColorBlendAttachment;
-        config.InputAssemblyInfo.topology = InferVulkanTopology(m_Topology);
+    auto VulkanGraphicsPipeline::SetupDefaultConfiguration() -> void {
+        m_PipelineConfig = GetDefaultGraphicsPipelineConfigInfo();
 
-        config.DepthStencilInfo.depthWriteEnable = m_DepthWrite ? VK_TRUE : VK_FALSE;
-        config.DepthStencilInfo.depthTestEnable = m_DepthTest ? VK_TRUE : VK_FALSE;
+        m_PipelineConfig.ColorBlendInfo.pAttachments = &m_PipelineConfig.ColorBlendAttachment;
+        m_PipelineConfig.InputAssemblyInfo.topology = InferVulkanTopology(m_Topology);
 
-        config.RasterizationInfo.cullMode = InferCullMode(m_CullMode);
+        m_PipelineConfig.DepthStencilInfo.depthWriteEnable = m_DepthWrite ? VK_TRUE : VK_FALSE;
+        m_PipelineConfig.DepthStencilInfo.depthTestEnable = m_DepthTest ? VK_TRUE : VK_FALSE;
 
-        // lineWidth is 0.000000, but the line width state is static
-        // (pCreateInfos[0].pDynamicState->pDynamicStates does not contain
-        // VK_DYNAMIC_STATE_LINE_WIDTH) and wideLines feature was not enabled.
+        m_PipelineConfig.RasterizationInfo.cullMode = InferCullMode(m_CullMode);
+
         constexpr float GPU_STANDARD_LINE_WIDTH{ 1.0f };
-        config.RasterizationInfo.lineWidth = GPU_STANDARD_LINE_WIDTH;
+        m_PipelineConfig.RasterizationInfo.lineWidth = GPU_STANDARD_LINE_WIDTH;
 
         if (m_Wireframe) {
-            config.RasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
+            m_PipelineConfig.RasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
             //m_DynamicStates.emplace_back( VK_DYNAMIC_STATE_LINE_WIDTH );
         }
 
@@ -254,18 +253,13 @@ namespace Mikoto {
         m_DynamicStates.emplace_back( VK_DYNAMIC_STATE_VIEWPORT );
         m_DynamicStates.emplace_back( VK_DYNAMIC_STATE_SCISSOR );
 
-        std::ranges::copy( m_DynamicStates, std::back_inserter( config.DynamicStates ) );
+        std::ranges::copy( m_DynamicStates, std::back_inserter( m_PipelineConfig.DynamicStates ) );
 
-        config.DynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        config.DynamicStateInfo.pDynamicStates = config.DynamicStates.data();
-        config.DynamicStateInfo.dynamicStateCount = config.DynamicStates.size();
-        config.DynamicStateInfo.flags = 0;
+        m_PipelineConfig.DynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        m_PipelineConfig.DynamicStateInfo.pDynamicStates = m_PipelineConfig.DynamicStates.data();
+        m_PipelineConfig.DynamicStateInfo.dynamicStateCount = m_PipelineConfig.DynamicStates.size();
+        m_PipelineConfig.DynamicStateInfo.flags = 0;
 
-    }
-
-    auto VulkanGraphicsPipeline::Bind( const VkCommandBuffer commandBuffer ) const -> void {
-        MKT_ASSERT( m_Pipeline != VK_NULL_HANDLE, "VulkanGraphicsPipeline::Bind - Graphics pipeline is null." );
-        vkCmdBindPipeline( commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline );
     }
 
     auto VulkanGraphicsPipeline::GetNativeHandle( ObjectType type ) -> Object {
@@ -308,12 +302,7 @@ namespace Mikoto {
     }
 
     auto VulkanGraphicsPipeline::Initialize() -> void {
-        // TODO: Memory corrupted after setting up the shaders Debug for more details and check ColorBlendInfo
-        auto defaultInfo{ GetDefaultGraphicsPipelineConfigInfo() };
-
-        SetupConfig(defaultInfo);
-
-        VkGraphicsPipelineCreateInfo pipelineInfo{ VulkanHelpers::Initializers::GraphicsPipelineCreateInfo() };
+        SetupDefaultConfiguration();
 
         // Setup Shaders
         const auto& shaderStageInfos{ GetShaderStagesInfo(m_ShaderModules) };
@@ -321,6 +310,7 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR( "VulkanGraphicsPipeline::Initialize - stage infos is empty" );
         }
 
+        VkGraphicsPipelineCreateInfo pipelineInfo{ VulkanHelpers::Initializers::GraphicsPipelineCreateInfo() };
         pipelineInfo.stageCount = shaderStageInfos.size();
         pipelineInfo.pStages = shaderStageInfos.data();
 
@@ -373,17 +363,17 @@ namespace Mikoto {
         // Pipeline create info submit
         pipelineInfo.pNext = std::addressof( renderingInfo );
         pipelineInfo.pVertexInputState = std::addressof( vertexInputInfo );
-        pipelineInfo.pInputAssemblyState = std::addressof( defaultInfo.InputAssemblyInfo );
-        pipelineInfo.pViewportState = std::addressof( defaultInfo.ViewportInfo );
-        pipelineInfo.pRasterizationState = std::addressof( defaultInfo.RasterizationInfo );
-        pipelineInfo.pMultisampleState = std::addressof( defaultInfo.MultisampleInfo );
-        pipelineInfo.pColorBlendState = std::addressof( defaultInfo.ColorBlendInfo );
-        pipelineInfo.pDepthStencilState = std::addressof( defaultInfo.DepthStencilInfo );
+        pipelineInfo.pInputAssemblyState = std::addressof( m_PipelineConfig.InputAssemblyInfo );
+        pipelineInfo.pViewportState = std::addressof( m_PipelineConfig.ViewportInfo );
+        pipelineInfo.pRasterizationState = std::addressof( m_PipelineConfig.RasterizationInfo );
+        pipelineInfo.pMultisampleState = std::addressof( m_PipelineConfig.MultisampleInfo );
+        pipelineInfo.pColorBlendState = std::addressof( m_PipelineConfig.ColorBlendInfo );
+        pipelineInfo.pDepthStencilState = std::addressof( m_PipelineConfig.DepthStencilInfo );
         pipelineInfo.layout = m_ReflectionData.pipelineLayout;
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineIndex = -1;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-        pipelineInfo.pDynamicState = std::addressof( defaultInfo.DynamicStateInfo );
+        pipelineInfo.pDynamicState = std::addressof( m_PipelineConfig.DynamicStateInfo );
 
         if ( vkCreateGraphicsPipelines( VK_DEVICE( m_Device ), VK_NULL_HANDLE, 1, std::addressof( pipelineInfo ), nullptr, std::addressof( m_Pipeline ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanGraphicsPipeline::Initialize - Failed to create Graphics pipeline" );
@@ -392,6 +382,7 @@ namespace Mikoto {
         if (m_DebugName == GetDefaultDebugName()) {
             m_DebugName = fmt::format( "MikotoPipeline {}, Pool ID: {}", reinterpret_cast<UInt64>( m_Pipeline ), GetHandle() );
         }
+
         VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ),VK_OBJECT_TYPE_PIPELINE, reinterpret_cast<UInt64>( m_Pipeline ),m_DebugName.c_str() );
 
         m_IsAllocated = true;
@@ -414,15 +405,11 @@ namespace Mikoto {
         std::vector<UInt32> keys{};
         keys.reserve(m_ReflectionData.setLayouts.size());
 
-        for ( const auto& key: m_ReflectionData.setLayouts | std::views::keys )
-            keys.push_back(key);
+        for ( const auto& setLayout: m_ReflectionData.setLayouts | std::views::keys ) {
+            keys.push_back(setLayout);
+        }
 
         return keys;
-    }
-
-    auto VulkanComputePipeline::Bind( const VkCommandBuffer commandBuffer ) const -> void {
-        MKT_ASSERT( m_Pipeline != VK_NULL_HANDLE, "VulkanComputePipeline::Bind - Compute pipeline is null." );
-        vkCmdBindPipeline( commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline );
     }
 
     auto VulkanComputePipeline::GetDescriptorLayoutCount() const -> Size {

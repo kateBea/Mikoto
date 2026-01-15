@@ -103,6 +103,12 @@ namespace Mikoto {
         ALWAYS
     };
 
+    enum class PolygonMode {
+        LINES,
+        POINT,
+        FILL
+    };
+
     struct AttributesSpec {
         BufferLayout DefaultVertexLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT };
         VertexAttributeInputRate InputRateSpec{ VertexAttributeInputRate{} };
@@ -116,6 +122,8 @@ namespace Mikoto {
         bool AlphaBlending{ true };
         bool Wireframe{ false };
         float WireframeLineWidth{ 1.0f };
+
+        PolygonMode PipelinePoligonMode{ PolygonMode::LINES };
 
         CullMode PipelineCullMode{ CullMode::NONE };
 

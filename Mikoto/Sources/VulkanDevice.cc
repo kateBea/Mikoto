@@ -414,6 +414,7 @@ namespace Mikoto {
 
         m_AvailableGraphicsCommandLists.clear();
         m_PendingGraphicsCommandLists.clear();
+        m_SubmittedGraphicsCommandLists.clear();
 
         m_FrameFences.clear();
 
@@ -481,9 +482,16 @@ namespace Mikoto {
     auto VulkanDevice::SetCurrentFrameIndex( const UInt32 frameIndex ) -> void {
         m_CurrentFrameIndex = frameIndex;
 
-        for (auto& cmdList : m_AvailableGraphicsCommandLists[m_CurrentFrameIndex]) {
+        for (auto& cmdList : m_SubmittedGraphicsCommandLists[m_CurrentFrameIndex]) {
             vkResetCommandBuffer(cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ), 0);
         }
+
+        std::ranges::move(
+            m_SubmittedGraphicsCommandLists[m_CurrentFrameIndex],
+            std::back_inserter(m_AvailableGraphicsCommandLists[m_CurrentFrameIndex]));
+
+        m_SubmittedGraphicsCommandLists[m_CurrentFrameIndex].clear();
+
     }
 
     auto VulkanDevice::CreateTexture( const TextureDescription& description ) -> TextureHandle {
@@ -805,7 +813,10 @@ namespace Mikoto {
 
         MKT_VK_CHECK( vkQueueSubmit2( m_Queues.Graphics->Queue, 1, &submitInfo, syncPrimitives.RenderFence ) );
 
-        std::ranges::move(m_PendingGraphicsCommandLists[m_CurrentFrameIndex], std::back_inserter(m_AvailableGraphicsCommandLists[m_CurrentFrameIndex]));
+
+        std::ranges::move(
+            m_PendingGraphicsCommandLists[m_CurrentFrameIndex],
+            std::back_inserter(m_SubmittedGraphicsCommandLists[m_CurrentFrameIndex]));
 
         m_PendingGraphicsCommandLists[m_CurrentFrameIndex].clear();
     }

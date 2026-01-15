@@ -49,8 +49,6 @@ namespace Mikoto {
 
         explicit VulkanGraphicsPipeline(const VulkanGraphicsPipelineDescription& info);
 
-        auto Bind(VkCommandBuffer commandBuffer) const -> void;
-
         MKT_NODISCARD auto Get() const -> const VkPipeline& { return m_Pipeline; }
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
@@ -69,9 +67,8 @@ namespace Mikoto {
         auto Initialize() -> void override;
         auto Release() -> void override;
 
-        auto SetupConfig(VulkanGraphicsPipelineConfiguration& config ) -> void;
+        auto SetupDefaultConfiguration() -> void;
 
-        friend class VulkanGraphicsContext;
     private:
         VkPipeline m_Pipeline{};
 
@@ -84,14 +81,13 @@ namespace Mikoto {
         std::vector<VkDynamicState> m_DynamicStates{};
 
         VulkanHelpers::Reflection::ReflectedData m_ReflectionData{};
+
+        VulkanGraphicsPipelineConfiguration m_PipelineConfig{};
     };
 
     class VulkanComputePipeline final : public ComputePipeline {
     public:
         explicit VulkanComputePipeline( const ComputePipelineDescription& info );
-
-        auto Bind(VkCommandBuffer commandBuffer) const -> void;
-
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
 

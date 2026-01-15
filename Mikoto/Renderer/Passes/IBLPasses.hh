@@ -46,7 +46,11 @@ namespace Mikoto {
         auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(PassCommandList& commandList) -> void override;
 
+        auto SetTextureHDR(TextureHandle hdr) -> void;
 
+    private:
+
+        TextureHandle m_Hdr{};
     };
 
     class IrradiancePass final : public FramePass {

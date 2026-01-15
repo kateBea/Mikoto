@@ -133,6 +133,7 @@ namespace Mikoto {
         :  TextureCube{ data.ResourceUsage } {
 
         m_TextureFaces = data.Faces;
+        m_IsHDR = data.IsHdrMap;
 
     }
 
@@ -211,7 +212,7 @@ namespace Mikoto {
 
         VkImageAspectFlags aspectMask{ static_cast<VkImageAspectFlags>( newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT ) };
         imageBarrier.subresourceRange = VulkanHelpers::Initializers::ImageSubresourceRange( aspectMask );
-        imageBarrier.subresourceRange.layerCount = 6;
+        imageBarrier.subresourceRange.layerCount = IsHDR() ? 1 : 6;
         imageBarrier.image = m_Image;
 
         VkDependencyInfo depInfo{};
@@ -234,57 +235,11 @@ namespace Mikoto {
     }
 
     auto VulkanTextureCube::Initialize() -> void {
-        MKT_ASSERT( m_TextureFaces.size() == MAX_CUBE_MAP_FACES, "Texture cube must have only 6 faces." );
-
-        std::vector<StbImage> images{};
-        for (const File* file : m_TextureFaces) {
-            images.emplace_back( file );
+        if (!m_IsHDR) {
+            LoadCubeFaces();
+        } else {
+            LoadEquirectangular();
         }
-
-        // Calculate the image size and the layer size.
-        // CubeMaps share dimensions
-        const StbImage& frontImage{ images.front() };
-        m_Width = frontImage.GetWidth();
-        m_Height = frontImage.GetHeight();
-
-        constexpr VkDeviceSize layerCount{ 6 };
-
-        // Multiply it by 6 because the image must have 6 layers for a cube.
-        m_ImageSize = m_Width * m_Height * frontImage.GetChannels() * layerCount;
-
-        // This is just the size of each layer.
-        const VkDeviceSize layerSize{ m_ImageSize / 6 };
-
-        // Allocate staging buffer to copy over the texture data
-        BufferDescription stagingDesc{};
-        stagingDesc.WithData( nullptr )
-                .WithUsage( BufferUsage::BUFFER_USAGE_STAGING )
-                .WithSizeBytes( m_ImageSize )
-                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
-
-        m_StagingBuffer = m_Device->CreateBuffer( stagingDesc );
-
-        Size layerIndex{};
-        for (StbImage& image : images) {
-            const Size offset{ layerIndex * layerSize };
-
-            m_StagingBuffer->CopyFromBlock( image.GetData(), layerSize, offset );
-            layerIndex++;
-        }
-
-        CreateImageResource();
-
-        // Copy stuff to the image
-        CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE ) };
-        cmd->Begin();
-
-        cmd->FillTexture( m_StagingBuffer.GetRaw(), this );
-
-        // Have the texture ready to sample from shaders after copying
-        SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
-
-        cmd->End();
-        m_Device->SubmitCommands( cmd );
 
         if (m_DebugName == GetDefaultDebugName()) {
             m_DebugName = fmt::format( "MikotoVulkanTextureCube (Loaded Text: '{}') Image: {}, ImageView: {}, Pool ID: {}",
@@ -353,6 +308,154 @@ namespace Mikoto {
         // usable for the swapchain as well, however, if the latter is the case,
         // we are responsible for releasing the image views, not the actual images.
         if ( vkCreateImageView( VK_DEVICE( m_Device ), std::addressof( m_ImageViewCreateInfo ), nullptr, std::addressof( m_ImageView ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanTextureCube::CreateImageResource - Failed to create the Vulkan Image View!" );
+        }
+    }
+
+    auto VulkanTextureCube::LoadCubeFaces() -> void {
+        MKT_ASSERT( m_TextureFaces.size() == MAX_CUBE_MAP_FACES, "Texture cube must have only 6 faces." );
+
+        std::vector<StbImage> images{};
+        for (const File* file : m_TextureFaces) {
+            images.emplace_back( file );
+        }
+
+        // Calculate the image size and the layer size.
+        // CubeMaps share dimensions
+        const StbImage& frontImage{ images.front() };
+        m_Width = frontImage.GetWidth();
+        m_Height = frontImage.GetHeight();
+
+        constexpr VkDeviceSize layerCount{ 6 };
+
+        // Multiply it by 6 because the image must have 6 layers for a cube.
+        m_ImageSize = m_Width * m_Height * frontImage.GetChannels() * layerCount;
+
+        // This is just the size of each layer.
+        const VkDeviceSize layerSize{ m_ImageSize / 6 };
+
+        // Allocate staging buffer to copy over the texture data
+        BufferDescription stagingDesc{};
+        stagingDesc.WithData( nullptr )
+                .WithUsage( BufferUsage::BUFFER_USAGE_STAGING )
+                .WithSizeBytes( m_ImageSize )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
+
+        m_StagingBuffer = m_Device->CreateBuffer( stagingDesc );
+
+        Size layerIndex{};
+        for (StbImage& image : images) {
+            const Size offset{ layerIndex * layerSize };
+
+            m_StagingBuffer->CopyFromBlock( image.GetData(), layerSize, offset );
+            layerIndex++;
+        }
+
+        CreateImageResource();
+
+        // Copy stuff to the image
+        CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE ) };
+        cmd->Begin();
+
+        cmd->FillTexture( m_StagingBuffer.GetRaw(), this );
+
+        // Have the texture ready to sample from shaders after copying
+        SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
+
+        cmd->End();
+        m_Device->SubmitCommands( cmd );
+    }
+
+    auto VulkanTextureCube::LoadEquirectangular() -> void {
+        STBImageHDR stbHdr{ m_TextureFaces[0] };
+
+        m_Width = stbHdr.GetWidth();
+        m_Height = stbHdr.GetHeight();
+        m_Channels = stbHdr.GetChannels();
+
+        // Multiply by 2 because VK_FORMAT_R16G16B16A16_SFLOAT
+        m_ImageSize = m_Width * m_Height * stbHdr.GetChannels() * 2;
+
+        m_ImageCreateInfo = VulkanHelpers::Initializers::ImageCreateInfo();
+
+        const VkExtent3D extent{
+            static_cast<UInt32>( m_Width ),
+            static_cast<UInt32>( m_Height ),
+            1
+        };
+
+        m_ImageCreateInfo.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+        m_ImageCreateInfo.extent = extent;
+
+        // This texture is a 2D image always
+        m_ImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+        m_ImageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+        m_ImageCreateInfo.mipLevels = 1;
+        m_ImageCreateInfo.arrayLayers = 1;
+        m_ImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        m_ImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        m_ImageCreateInfo.initialLayout = m_CurrentLayout;
+
+        // The image will only be used by one queue family:
+        // the one that supports transfer operations, often graphics one suffices.
+        m_ImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        m_ImageCreateInfo.flags = 0;
+
+        auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>( TO_VK_DEVICE( m_Device )->GetAllocator() ) };
+        if ( const VkResult result{ allocator->AllocateImage( this ) }; result != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanTexture::Initialize - Failed to allocate Vulkan image!" );
+        }
+
+        // This could be a texture that we want to fill from
+        // an image loaded from disc or a texture we will write to as a color image
+        // for the later we do not want to copy anything to it
+        if ( stbHdr.IsValid() ) {
+            // Allocate staging buffer to copy over the texture data
+            BufferDescription stagingDesc{};
+            stagingDesc.WithData( nullptr )
+                    .WithUsage( BufferUsage::BUFFER_USAGE_STAGING )
+                    .WithSizeBytes( m_ImageSize )
+                    .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
+
+            m_StagingBuffer = m_Device->CreateBuffer( stagingDesc );
+
+            m_StagingBuffer->CopyFromBlock( stbHdr.GetData(), m_ImageSize );
+
+            //Specify optional type operation so we return for instance
+            //a command list to be submitted in transfer queue
+            CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE ) };
+            cmd->Begin();
+
+            cmd->FillTexture( m_StagingBuffer.GetRaw(), this );
+
+            cmd->End();
+            m_Device->SubmitCommands( cmd );
+        }
+
+        // Prepare for view creation
+        m_ImageViewCreateInfo = VulkanHelpers::Initializers::ImageViewCreateInfo();
+        m_ImageViewCreateInfo.pNext = nullptr;
+        m_ImageViewCreateInfo.flags = 0;
+        m_ImageViewCreateInfo.image = m_Image;
+        m_ImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        m_ImageViewCreateInfo.format = m_ImageCreateInfo.format;
+
+        VkImageAspectFlags aspectFlags{ VK_IMAGE_ASPECT_COLOR_BIT };
+        if ( m_TextureUsage == TextureUsage::TEXTURE_USAGE_DEPTH ) {
+            aspectFlags = m_ImageCreateInfo.format < VK_FORMAT_D16_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT : ( VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT );
+        }
+
+        m_ImageViewCreateInfo.subresourceRange.aspectMask = aspectFlags;
+        m_ImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+        m_ImageViewCreateInfo.subresourceRange.levelCount = 1;
+        m_ImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+        m_ImageViewCreateInfo.subresourceRange.layerCount = 1;
+
+        // the caller can optionally pass a valid image because this VulkanTexture is supposed be
+        // usable for the swapchain as well, however, if the latter is the case,
+        // we are responsible for releasing the image views, not the actual images.
+        if ( vkCreateImageView( VK_DEVICE( m_Device ), std::addressof( m_ImageViewCreateInfo ), nullptr, std::addressof( m_ImageView ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanTexture::Allocate - Failed to create the Vulkan Image View!" );
         }
     }
@@ -415,21 +518,6 @@ namespace Mikoto {
         return m_IsImageExternal;
     }
 
-    auto VulkanTexture::SetTextureIndex( Int32 index ) -> void {
-        if (m_TextureArrayIndex < 0) {
-            // Texture has not been set
-            m_TextureArrayIndex = index;
-        }
-    }
-
-    auto VulkanTexture::GetTextureIndex() const -> Int32 {
-        return m_TextureArrayIndex;
-    }
-
-    auto VulkanTexture::HasBindlessIndex() const -> bool {
-        return m_TextureArrayIndex != -1;
-    }
-
     auto VulkanTexture::GetNativeHandle( ObjectType type ) -> Object {
         switch (type) {
             case ObjectType::Vk_Image:
@@ -478,103 +566,10 @@ namespace Mikoto {
         m_CurrentLayout = newLayout;
     }
 
-    VulkanSwapChain::VulkanSwapChain( const VulkanSwapChainCreateInfo& createInfo )
-        : m_Extent{ createInfo.Extent },
-          m_Surface{ createInfo.Surface },
-          m_IsVsyncEnabled{ createInfo.EnableVsync } {
-    }
-
-    auto VulkanSwapChain::Initialize() -> void {
-        if ( m_Surface == nullptr ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanSwapChain::Initialize - Error the surface for the swapchain is null." );
-        }
-
-        /**
-         * [00:11:36] CORE LOG [thread 10211] Validation layer: Validation Error: [ VUID-VkSwapchainCreateInfoKHR-imageExtent-01274 ] Object 0:
-         * handle = 0x62e000018450, type = VK_OBJECT_TYPE_DEVICE; | MessageID = 0x7cd0911d | vkCreateSwapchainKHR() called with imageExtent = (1494,921),
-         * which is outside the bounds returned by vkGetPhysicalDeviceSurfaceCapabilitiesKHR(): currentExtent = (1495,925), minImageExtent = (1495,925),
-         * maxImageExtent = (1495,925). The Vulkan spec states: imageExtent must be between minImageExtent and maxImageExtent, inclusive, where
-         * minImageExtent and maxImageExtent are members of the VkSurfaceCapabilitiesKHR structure returned by vkGetPhysicalDeviceSurfaceCapabilitiesKHR
-         * for the surface (https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/vkspec.html#VUID-VkSwapchainCreateInfoKHR-imageExtent-01274)
-         *
-         * this validation error is triggered at times when resizing the main window (GLFW window)
-         * */
-        CreateSwpChain();
-
-        GetImages();
-
-        m_IsAllocated = true;
-    }
-
-    auto VulkanSwapChain::CreateSwpChain() -> void {
-        const auto [Capabilities, Formats, PresentModes]{
-            VulkanHelpers::GetSwapChainSupport( TO_VK_DEVICE( m_Device )->GetPhysicalDevice(), *m_Surface )
-        };
-
-        const auto [format, colorSpace]{ ChooseSurfaceFormat( Formats ) };
-        const VkPresentModeKHR presentMode{ ChoosePresentMode( PresentModes ) };
-        const VkExtent2D extent{ ChooseExtent( Capabilities ) };
-
-        // Save for later use
-        m_Format = format;
-        m_PresentMode = presentMode;
-
-        /**
-         * We may sometimes have to wait on the driver to complete internal operations
-         * before we can acquire another image to render to. Therefore, it is recommended
-         * to request at least one more image, hence why we add 1. Likely the image count
-         * results in the maximum swap chain image count so we do the check and clamp the resulting image count
-         * */
-        UInt32 imageCount{ Capabilities.minImageCount + 1 };
-        if ( Capabilities.maxImageCount > 0 && imageCount > Capabilities.maxImageCount ) {
-            imageCount = Capabilities.maxImageCount;
-        }
-
-        VkSwapchainCreateInfoKHR createInfo{ VulkanHelpers::Initializers::SwapchainCreateInfoKHR() };
-        createInfo.surface = *m_Surface;
-        createInfo.minImageCount = imageCount;
-        createInfo.imageFormat = format;
-        createInfo.imageColorSpace = colorSpace;
-        createInfo.imageExtent = extent;
-        createInfo.imageArrayLayers = 1;
-
-        // Only the GUI is directly rendering to the swapchain images at the moment.
-        // Generally, the renderer is drawing to a texture which can then be copied to a
-        // swap chain image ready for render and then be presented
-        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-
-        const auto& [Present, Graphics, Compute]{
-            TO_VK_DEVICE( m_Device )->GetLogicalDeviceQueues()
-        };
-
-        // Let swapchain to share images between queues or not. We need to account for it
-        // in the case the present queue and the graphics queue are not actually the same
-        const std::array queueFamilyIndices{ Graphics->FamilyIndex, Present->FamilyIndex };
-        if ( Graphics->FamilyIndex != Present->FamilyIndex ) {
-            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-            createInfo.queueFamilyIndexCount = queueFamilyIndices.size();
-            createInfo.pQueueFamilyIndices = queueFamilyIndices.data();
-        } else {
-            createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-            createInfo.queueFamilyIndexCount = 0;
-            createInfo.pQueueFamilyIndices = nullptr;
-        }
-
-        createInfo.preTransform = Capabilities.currentTransform;      // Image transform ot perform on swapchain images
-        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;// Handle blending, just draw as it is (perform no blending)
-        createInfo.presentMode = presentMode;
-        createInfo.clipped = VK_TRUE;
-        createInfo.oldSwapchain = VK_NULL_HANDLE;// TODO: pass old swap chain (need debug currently old swapchain becoming retired which can't be passed here)
-
-        if ( vkCreateSwapchainKHR( VK_DEVICE( m_Device ), std::addressof( createInfo ), nullptr, std::addressof( m_Swapchain ) ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanSwapChain::CreateSwapChain - Failed to create swap chain." );
-        }
-    }
-
     auto VulkanTexture::Initialize() -> void {
         // The case for non-swap chain images
         if ( m_Image == VK_NULL_HANDLE ) {
-           
+
             m_ImageCreateInfo = VulkanHelpers::Initializers::ImageCreateInfo();
 
             const VkExtent3D extent{
@@ -671,6 +666,99 @@ namespace Mikoto {
 
         VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ),VK_OBJECT_TYPE_IMAGE, reinterpret_cast<UInt64>( m_Image ),m_DebugName.c_str() );
         VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ),VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<UInt64>( m_ImageView ),m_DebugName.c_str() );
+    }
+
+    VulkanSwapChain::VulkanSwapChain( const VulkanSwapChainCreateInfo& createInfo )
+        : m_Extent{ createInfo.Extent },
+          m_Surface{ createInfo.Surface },
+          m_IsVsyncEnabled{ createInfo.EnableVsync } {
+    }
+
+    auto VulkanSwapChain::Initialize() -> void {
+        if ( m_Surface == nullptr ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanSwapChain::Initialize - Error the surface for the swapchain is null." );
+        }
+
+        /**
+         * [00:11:36] CORE LOG [thread 10211] Validation layer: Validation Error: [ VUID-VkSwapchainCreateInfoKHR-imageExtent-01274 ] Object 0:
+         * handle = 0x62e000018450, type = VK_OBJECT_TYPE_DEVICE; | MessageID = 0x7cd0911d | vkCreateSwapchainKHR() called with imageExtent = (1494,921),
+         * which is outside the bounds returned by vkGetPhysicalDeviceSurfaceCapabilitiesKHR(): currentExtent = (1495,925), minImageExtent = (1495,925),
+         * maxImageExtent = (1495,925). The Vulkan spec states: imageExtent must be between minImageExtent and maxImageExtent, inclusive, where
+         * minImageExtent and maxImageExtent are members of the VkSurfaceCapabilitiesKHR structure returned by vkGetPhysicalDeviceSurfaceCapabilitiesKHR
+         * for the surface (https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/vkspec.html#VUID-VkSwapchainCreateInfoKHR-imageExtent-01274)
+         *
+         * this validation error is triggered at times when resizing the main window (GLFW window)
+         * */
+        CreateSwpChain();
+
+        GetImages();
+
+        m_IsAllocated = true;
+    }
+
+    auto VulkanSwapChain::CreateSwpChain() -> void {
+        const auto [Capabilities, Formats, PresentModes]{
+            VulkanHelpers::GetSwapChainSupport( TO_VK_DEVICE( m_Device )->GetPhysicalDevice(), *m_Surface )
+        };
+
+        const auto [format, colorSpace]{ ChooseSurfaceFormat( Formats ) };
+        const VkPresentModeKHR presentMode{ ChoosePresentMode( PresentModes ) };
+        const VkExtent2D extent{ ChooseExtent( Capabilities ) };
+
+        // Save for later use
+        m_Format = format;
+        m_PresentMode = presentMode;
+
+        /**
+         * We may sometimes have to wait on the driver to complete internal operations
+         * before we can acquire another image to render to. Therefore, it is recommended
+         * to request at least one more image, hence why we add 1. Likely the image count
+         * results in the maximum swap chain image count so we do the check and clamp the resulting image count
+         * */
+        UInt32 imageCount{ Capabilities.minImageCount + 1 };
+        if ( Capabilities.maxImageCount > 0 && imageCount > Capabilities.maxImageCount ) {
+            imageCount = Capabilities.maxImageCount;
+        }
+
+        VkSwapchainCreateInfoKHR createInfo{ VulkanHelpers::Initializers::SwapchainCreateInfoKHR() };
+        createInfo.surface = *m_Surface;
+        createInfo.minImageCount = imageCount;
+        createInfo.imageFormat = format;
+        createInfo.imageColorSpace = colorSpace;
+        createInfo.imageExtent = extent;
+        createInfo.imageArrayLayers = 1;
+
+        // Only the GUI is directly rendering to the swapchain images at the moment.
+        // Generally, the renderer is drawing to a texture which can then be copied to a
+        // swap chain image ready for render and then be presented
+        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+        const auto& [Present, Graphics, Compute]{
+            TO_VK_DEVICE( m_Device )->GetLogicalDeviceQueues()
+        };
+
+        // Let swapchain to share images between queues or not. We need to account for it
+        // in the case the present queue and the graphics queue are not actually the same
+        const std::array queueFamilyIndices{ Graphics->FamilyIndex, Present->FamilyIndex };
+        if ( Graphics->FamilyIndex != Present->FamilyIndex ) {
+            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+            createInfo.queueFamilyIndexCount = queueFamilyIndices.size();
+            createInfo.pQueueFamilyIndices = queueFamilyIndices.data();
+        } else {
+            createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            createInfo.queueFamilyIndexCount = 0;
+            createInfo.pQueueFamilyIndices = nullptr;
+        }
+
+        createInfo.preTransform = Capabilities.currentTransform;      // Image transform ot perform on swapchain images
+        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;// Handle blending, just draw as it is (perform no blending)
+        createInfo.presentMode = presentMode;
+        createInfo.clipped = VK_TRUE;
+        createInfo.oldSwapchain = VK_NULL_HANDLE;// TODO: pass old swap chain (need debug currently old swapchain becoming retired which can't be passed here)
+
+        if ( vkCreateSwapchainKHR( VK_DEVICE( m_Device ), std::addressof( createInfo ), nullptr, std::addressof( m_Swapchain ) ) != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanSwapChain::CreateSwapChain - Failed to create swap chain." );
+        }
     }
 
     auto VulkanSwapChain::GetImages() -> void {

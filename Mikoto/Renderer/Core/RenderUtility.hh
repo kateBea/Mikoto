@@ -255,6 +255,10 @@ namespace Mikoto {
         TextureUsage Usage{ TextureUsage::TEXTURE_USAGE_CUBE };
         ResourceUsageType ResourceUsage{ ResourceUsageType::RESOURCE_USAGE_STATIC };
 
+        bool IsHdrMap{ false };
+
+        auto IsHDR( bool value ) -> TextureCubeLoadDescription&;
+
         auto WithResourceUsage( ResourceUsageType usage ) -> TextureCubeLoadDescription&;
         auto WithTextureUsage( TextureUsage usage ) -> TextureCubeLoadDescription&;
 
@@ -264,8 +268,13 @@ namespace Mikoto {
     };
 
     struct TextureCubeCreateDescription {
+        // If this is an HDR Faces[0] must have the path to the 2D image
         std::vector<const File*> Faces{};
         ResourceUsageType ResourceUsage{ ResourceUsageType::RESOURCE_USAGE_STATIC };
+
+        bool IsHdrMap{ false };
+
+        auto IsHDR( bool value ) -> TextureCubeCreateDescription&;
 
         auto WithResourceUsage( ResourceUsageType usage ) -> TextureCubeCreateDescription&;
         auto WithFacePath( const File* file ) -> TextureCubeCreateDescription&;
@@ -353,15 +362,42 @@ namespace Mikoto {
         RES_UHD_3120P,
     };
 
-    auto InferElementCount(BufferDataType dataType, Size blockSize) -> Size;
+    MKT_NODISCARD auto InferAPI( std::string_view apiName ) -> GraphicsAPI;
+
+    MKT_NODISCARD auto InferElementCount(BufferDataType dataType, Size blockSize) -> Size;
 
     MKT_NODISCARD auto InferDimensions(RenderResolution resolution) -> std::pair<float, float>;
 
-    // By default, textures are loaded with rgba format which is supported by most of gpus
     auto FreeImageData( Byte* data ) -> void;
     MKT_NODISCARD auto LoadImageFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
+    MKT_NODISCARD auto LoadHDRImageFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
 
-    MKT_NODISCARD auto InferAPI( std::string_view apiName ) -> GraphicsAPI;
+    class STBImageHDR final {
+    public:
+        explicit STBImageHDR( const File* textureFile );
+
+        ~STBImageHDR();
+
+        DISABLE_COPY_FOR( STBImageHDR );
+
+        STBImageHDR( STBImageHDR&& other ) noexcept;
+
+        auto operator=( STBImageHDR&& other ) noexcept -> STBImageHDR&;
+
+        MKT_NODISCARD auto GetData() const -> Byte* { return m_Data; }
+        MKT_NODISCARD auto GetWidth() const -> Int32 { return m_Width; }
+        MKT_NODISCARD auto GetHeight() const -> Int32 { return m_Height; }
+        MKT_NODISCARD auto GetChannels() const -> Int32 { return m_Channels; }
+
+        MKT_NODISCARD auto IsValid() const -> bool { return m_Data != nullptr; }
+
+    private:
+        Int32 m_Width{};
+        Int32 m_Height{};
+        Int32 m_Channels{};
+
+        Byte* m_Data{ nullptr };
+    };
 
     class StbImage final {
     public:

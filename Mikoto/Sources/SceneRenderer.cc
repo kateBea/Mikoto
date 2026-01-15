@@ -233,16 +233,16 @@ namespace Mikoto {
         cubePass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
 
         IrradiancePass* irradiancePass{ m_PassRegistry.Register<IrradiancePass>() };
-        cubePass->Setup( builder );
-        cubePass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
+        irradiancePass->Setup( builder );
+        irradiancePass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
 
-        PrefilterPass* prefilterPass{ m_PassRegistry.Get<PrefilterPass>() };
-        cubePass->Setup( builder );
-        cubePass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
+        PrefilterPass* prefilterPass{ m_PassRegistry.Register<PrefilterPass>() };
+        prefilterPass->Setup( builder );
+        prefilterPass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
 
-        BRDFLutPass* brdfLutPass{ m_PassRegistry.Get<BRDFLutPass>() };
-        cubePass->Setup( builder );
-        cubePass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
+        BRDFLutPass* brdfLutPass{ m_PassRegistry.Register<BRDFLutPass>() };
+        brdfLutPass->Setup( builder );
+        brdfLutPass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
     }
 
     auto SceneRendererCreateInfo::WithName( std::string_view name ) -> SceneRendererCreateInfo & {

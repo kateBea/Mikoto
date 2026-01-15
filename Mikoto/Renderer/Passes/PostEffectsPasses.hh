@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_POSTEFFECTSPASSES_HH
-#define MIKOTO_POSTEFFECTSPASSES_HH
+#ifndef MIKOTO_POST_EFFECTS_PASSES_HH
+#define MIKOTO_POST_EFFECTS_PASSES_HH
 
 #include <string>
 #include <string_view>
@@ -98,5 +98,5 @@ namespace Mikoto {
 }// namespace Mikoto
 
 
-#endif
+#endif // MIKOTO_POST_EFFECTS_PASSES_HH
 

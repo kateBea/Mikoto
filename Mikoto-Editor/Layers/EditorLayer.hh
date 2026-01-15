@@ -118,6 +118,7 @@ namespace Mikoto {
         Unique<SceneRenderer> m_SceneRenderer{};
 
         TextureHandle m_TextureCubeMap{};
+        TextureHandle m_TextureHDR{};
 
         Unique<SceneCamera> m_EditorCamera{};
         Unique<SceneSerializer> m_SceneSerializer{};

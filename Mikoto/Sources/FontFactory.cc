@@ -174,6 +174,7 @@ namespace Mikoto {
             }
 
             data.MaxHeight = std::max( data.MaxHeight, static_cast<Int32>( static_cast<float>( glyphData.m_Height ) + glyphData.m_BearingUnderline ) );
+            data.MaxHeight = std::max( data.MaxHeight, static_cast<Int32>( g.getAdvance() ) );
         }
 
         // Create texture from the raw atlas data
@@ -244,6 +245,7 @@ namespace Mikoto {
         }
 
         newFont->SetMaxHeight( result.MaxHeight );
+        newFont->SetMaxWidth( result.MaxHeight );
 
         return FontHandle::Create( newFont );
     }

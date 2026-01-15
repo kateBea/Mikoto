@@ -12,11 +12,67 @@
 namespace Mikoto {
 
     auto EnvCubePass::Setup( FrameGraphBuilder &builder ) -> void {
+        PipelineDescription pipelineDesc{};
 
+        pipelineDesc.AddShader("./Resources/Shaders/vulkan-spirv/EnvironmentMap_Vert.sprv", ShaderStage::VERTEX_STAGE);
+        pipelineDesc.AddShader("./Resources/Shaders/vulkan-spirv/EnvironmentMap_Frag.sprv", ShaderStage::FRAGMENT_STAGE);
+
+        GraphicsPipelineDescription graphicsDesc{};
+        graphicsDesc.DepthTest  = false;
+        graphicsDesc.DepthWrite = false;
+        graphicsDesc.AlphaBlending = false;
+        graphicsDesc.PipelineCullMode = CullMode::NONE;
+        graphicsDesc.PrimitiveTopology = Topology::TRIANGLE_LIST;
+
+        graphicsDesc.VertexAttributesSpec = {};
+
+        pipelineDesc.Description = graphicsDesc;
+        pipelineDesc.ColorRenderTargets.emplace_back("EnvCubePass_ColorTarget");
+
+        builder.CreateNamedPipeline("EnvCubePass_Pipeline", pipelineDesc);
+
+        // Cubemap render target
+        builder.CreateColorRenderTarget( "EnvCubePass_ColorTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM );
+
+        builder.WriteTexture(this, "EnvCubePass_ColorTarget");
+
+        // For testing, ideally this pass should be the first to setup this data
+        builder.ReadBuffer(this, "SkyboxPass_CameraInfo");
     }
 
     auto EnvCubePass::Execute( PassCommandList &commandList ) -> void {
+        if (m_Hdr.IsEmpty()) {
+            return;
+        }
 
+        SamplerDescription samplerDescription{};
+        commandList.CreateNamedSampler("EnvCubePass_Sampler", samplerDescription);
+        commandList.RegisterNamedTexture("EnvCubePass_EquirectangularMap", m_Hdr);
+
+        commandList.SetColorRenderTarget("EnvCubePass_ColorTarget");
+
+        commandList.BeginRender(this);
+        commandList.BindPipeline("EnvCubePass_Pipeline");
+
+        commandList.SetViewport(0, 0, 1920, 1080);
+        commandList.SetScissor(0, 0, 1920, 1080);
+
+        commandList.SetBufferBindSlot(SRGType::SRG_PerPass,"SkyboxPass_CameraInfo", 0);
+        commandList.SetTextureBindSlot(SRGType::SRG_PerPass, "EnvCubePass_EquirectangularMap", "EnvCubePass_Sampler", 1);
+
+        commandList.BindResourceGroup(SRGType::SRG_PerPass);
+
+        commandList.Draw(36, 1, 0, 0 );
+
+        commandList.EndRender();
+    }
+
+    auto EnvCubePass::SetTextureHDR( TextureHandle hdr ) -> void {
+        if (!hdr.IsEmpty()) {
+            m_Hdr = hdr;
+
+            MarkDirty();
+        }
     }
 
     auto IrradiancePass::Setup( FrameGraphBuilder &builder ) -> void {
@@ -126,6 +182,7 @@ namespace Mikoto {
         graphicsDesc.DepthTest = true;
         graphicsDesc.DepthWrite = true;
         graphicsDesc.AlphaBlending = true;
+        graphicsDesc.PipelineCullMode = CullMode::CULL_BACK;
 
         // Graphics context will specify the texture formats for the render targets we can redner to with this pipeline
         // It will also create the shader modules first and assign them to this description which will be used to create the actual pipeline

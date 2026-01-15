@@ -27,16 +27,24 @@ namespace Mikoto {
         return m_Glyphs.at( characterCode );
     }
 
-    auto Font::GetGlyph( const UInt32 characterCode ) -> FontGlyph& {
-        return m_Glyphs.at( characterCode );
-    }
-
     auto Font::GetMaxHeight() const -> double {
         return m_MaxHeight;
     }
 
+    auto Font::GetMaxWidth() const -> double {
+        return m_MaxWidth;
+    }
+
     auto Font::SetMaxHeight( const double maxHeight ) -> void {
         m_MaxHeight = maxHeight;
+    }
+
+    auto Font::SetMaxWidth( const double maxWidth ) -> void {
+        m_MaxWidth = maxWidth;
+    }
+
+    auto Font::HasGlyph( const UInt32 unicodePoint ) const -> bool {
+        return m_Glyphs.contains( unicodePoint );
     }
 
     auto Font::RegisterGlyph( UInt32 characterCode, const FontGlyph& glyph ) -> void {

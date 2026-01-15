@@ -88,6 +88,8 @@ namespace Mikoto {
         : Buffer{ createInfo.Data, createInfo.SizeBytes, createInfo.Usage, createInfo.UsageType, createInfo.Type } {
         m_BufferCreateInfo = VulkanHelpers::Initializers::BufferCreateInfo();
 
+        // TODO: See to make this GPU only visible memory if needed
+
         // Retain data 
         // FIXME: This is done because data held by m_Data must be valid until after Initialize is called
         // Block of memory must persist until Initialize is called

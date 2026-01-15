@@ -232,6 +232,7 @@ namespace Mikoto {
         ankerl::unordered_dense::map<UInt32, VkFence> m_FrameFences{};
         ankerl::unordered_dense::map<UInt32, std::vector<CommandListHandle>> m_AvailableGraphicsCommandLists{};
         ankerl::unordered_dense::map<UInt32, std::vector<CommandListHandle>> m_PendingGraphicsCommandLists{};
+        ankerl::unordered_dense::map<UInt32, std::vector<CommandListHandle>> m_SubmittedGraphicsCommandLists{};
 
         // [Device management]
         VkDevice m_LogicalDevice{};

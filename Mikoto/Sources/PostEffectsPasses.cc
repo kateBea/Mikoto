@@ -1,9 +1,6 @@
-//
-// Created by kate on 1/13/26.
-//
-
 #include <Scene/Scene.hh>
 #include <Scene/Component.hh>
+#include <Library/String/String.hh>
 #include <Renderer/Core/FramePass.hh>
 #include <Renderer/Core/FrameResource.hh>
 #include <Renderer/Passes/ShaderRenderParams.hh>
@@ -88,55 +85,66 @@ namespace Mikoto {
     }
 
     auto TextRenderPass::SetupTextForRender( FontHandle font, const Camera* camera, Vec4F position, std::string_view text, double fontSize, Vec4F color, PassCommandList& commandList ) -> void {
+        using namespace StringUtils;
+
         double xPos{ position.x };
         double yPos{ position.y };
         double scale{ fontSize / font->GetSize() };
 
         double lineHeight{ font->GetMaxHeight() * scale };
 
-        for ( Size i{}; i < text.length(); ++i ) {
-            if (text[i] == '\n') {
+        for ( const auto& character : text ) {
+            if ( IsLineFeed(character) ) {
                 xPos = position.x;
                 yPos -= lineHeight;
                 continue;
             }
 
-            FontGlyph& glyph{ font->GetGlyph( static_cast<UInt32>( text[i] ) ) };
+            double advance{ 0 };
 
-            if ( text[i] != ' ' ) {
-                // Quad Coordinates
-                double x0{ xPos + glyph.m_PlaneBounds.x * fontSize };
-                double y0{ yPos - glyph.m_PlaneBounds.y * fontSize };
+            if ( font->HasGlyph(character)) {
+                const FontGlyph& glyph{ font->GetGlyph( static_cast<UInt32>( character ) ) };
 
-                // UV Coordinates
-                TextureHandle atlas{ font->GetAtlas() };
-                double s0 = glyph.m_AtlasBounds.x / atlas->GetWidth();
-                double t0 = glyph.m_AtlasBounds.w / atlas->GetHeight();
-                double s1 = glyph.m_AtlasBounds.z / atlas->GetWidth();
-                double t1 = glyph.m_AtlasBounds.y / atlas->GetHeight();
+                if (!IsSpace(character)) {
+                    // Quad Coordinates
+                    double x0{ xPos + glyph.m_PlaneBounds.x * fontSize };
+                    double y0{ yPos - glyph.m_PlaneBounds.y * fontSize };
 
-                TextRenderParams fontParams{};
-                fontParams.Position = { x0, y0 + std::round( ( font->GetMaxHeight() * scale ) ) - ( glyph.m_Height * scale ), position.z, position.w };
-                fontParams.Size = { glyph.m_Width * scale, glyph.m_Height * scale, 0.0f, 0.0f };
-                fontParams.Color = color;
-                fontParams.TexIndex = commandList.PushTexture( atlas );
-                fontParams.TexCoords[0] = { s0, t0 };// top left
-                fontParams.TexCoords[1] = { s1, t0 };// bottom left
-                fontParams.TexCoords[2] = { s1, t1 };// bottom right
-                fontParams.TexCoords[3] = { s0, t1 };// top right
+                    // UV Coordinates
+                    TextureHandle atlas{ font->GetAtlas() };
+                    double s0{ glyph.m_AtlasBounds.x / atlas->GetWidth() };
+                    double t0{ glyph.m_AtlasBounds.w / atlas->GetHeight() };
+                    double s1{ glyph.m_AtlasBounds.z / atlas->GetWidth() };
+                    double t1{ glyph.m_AtlasBounds.y / atlas->GetHeight() };
 
-                if (camera != nullptr) {
-                    fontParams.Proj = camera->GetProjection();
-                    fontParams.View = camera->GetViewMatrix();
-                } else {
-                    fontParams.Proj = glm::ortho(0.0f, 1920.0f,1080.0f, 0.0f,-1.0f, 1.0f);
-                    fontParams.View = glm::mat4{ 1.0f };
+                    TextRenderParams fontParams{
+                        .Position{ x0, y0 + std::round( ( font->GetMaxHeight() * scale ) ) - ( glyph.m_Height * scale ), position.z, position.w },
+                        .Size{ glyph.m_Width * scale, glyph.m_Height * scale, 0.0f, 0.0f },
+                        .Color{ color },
+                        .TexCoords{ { s0, t0 }, { s1, t0 }, { s1, t1 }, { s0, t1 } },
+                        .TexIndex{ static_cast<UInt32>( commandList.PushTexture( atlas ) ) }
+                    };
+
+                    if (camera != nullptr) {
+                        fontParams.Proj = camera->GetProjection();
+                        fontParams.View = camera->GetViewMatrix();
+                    } else {
+                        fontParams.Proj = glm::ortho(0.0f, 1920.0f,1080.0f, 0.0f,-1.0f, 1.0f);
+                        fontParams.View = glm::mat4{ 1.0f };
+                    }
+
+                    m_TextRenderParams.emplace_back( fontParams );
                 }
 
-                m_TextRenderParams.emplace_back( fontParams );
+                advance = glyph.m_AdvanceX * fontSize;
+            } else {
+                // If the character does not exist just insert space
+                // equal to Space character.
+                const FontGlyph& glyph{ font->GetGlyph( static_cast<UInt32>( ' ' ) ) };
+                advance = glyph.m_AdvanceX * fontSize;
             }
 
-            xPos += glyph.m_AdvanceX * fontSize;
+            xPos += advance;
         }
     }
 

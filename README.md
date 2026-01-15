@@ -7,6 +7,10 @@ passes, amongst other features.
 
 ---
 
+![Mikoto Engine](Resources/Screenshots/img16.png)
+
+---
+
 ![Mikoto Engine](Resources/Screenshots/img15.png)
 
 ---
@@ -59,6 +63,8 @@ passes, amongst other features.
 - **`Mikoto-Sandbox/`**: A sample project that demonstrates some of the engine's features.
 - **`Mikoto-Tests/`**: Contains lists of tests against the core engine.
 - **`Mikoto-Apps/`**: Standalone applications that showcase Mikoto features
+
+>Some models used for demos were downloaded from Morgan McGuire's Computer Graphics Archive https://casual-effects.com/data
 
 ---
 

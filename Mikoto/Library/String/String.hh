@@ -293,6 +293,15 @@ namespace Mikoto::StringUtils {
 
         return result;
     }
+
+    MKT_NODISCARD inline auto IsLineFeed( const char value ) -> bool {
+        return value == '\n';
+    }
+
+    MKT_NODISCARD inline auto IsSpace( const char value ) -> bool {
+        return value == ' ';
+    }
+
 }// namespace Mikoto::StringUtils
 
 #endif// MIKOTO_STRING_UTILS_HH

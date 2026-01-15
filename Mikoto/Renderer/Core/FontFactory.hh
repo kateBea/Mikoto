@@ -71,6 +71,7 @@ namespace Mikoto {
         struct MsdfData {
 
             Int32 MaxHeight{};
+            Int32 MaxWidth{};
             TextureHandle TextureAtlas{};
             MTSDFGen MTSDFAtlasInfo{};
             ankerl::unordered_dense::map<msdf_atlas::unicode_t, FontGlyph> GlyphInfo{};

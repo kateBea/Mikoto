@@ -118,6 +118,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetGlyph( UInt32 characterCode ) -> FontGlyph&;
 
         MKT_NODISCARD auto GetMaxHeight() const -> double;
+        MKT_NODISCARD auto GetMaxWidth() const -> double;
 
         auto RegisterGlyph( UInt32 characterCode, const FontGlyph& glyph ) -> void;
 
@@ -125,6 +126,9 @@ namespace Mikoto {
         auto SetPath( std::string_view path ) -> void;
 
         auto SetMaxHeight( double maxHeight ) -> void;
+        auto SetMaxWidth(double maxWidth ) -> void;
+
+        MKT_NODISCARD auto HasGlyph(UInt32 unicodePoint ) const -> bool;
 
         MKT_NODISCARD auto GetGlyphCount() const -> Size;
         MKT_NODISCARD auto GetSize() const -> double { return m_PixelSize; }
@@ -146,6 +150,7 @@ namespace Mikoto {
 
         double m_PixelSize{ 5.0 };
         double m_MaxHeight{};
+        double m_MaxWidth{};
         ankerl::unordered_dense::map<UInt32, FontGlyph> m_Glyphs{};
     };
 

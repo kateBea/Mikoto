@@ -1,7 +1,3 @@
-//
-// Created by kate on 1/13/26.
-//
-
 #include <Scene/Scene.hh>
 #include <Scene/Component.hh>
 #include <Library/String/String.hh>

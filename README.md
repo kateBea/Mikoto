@@ -64,6 +64,8 @@ passes, amongst other features.
 - **`Mikoto-Tests/`**: Contains lists of tests against the core engine.
 - **`Mikoto-Apps/`**: Standalone applications that showcase Mikoto features
 
+>Some models used for demos were downloaded from Morgan McGuire's Computer Graphics Archive https://casual-effects.com/data
+
 ---
 
 ## Building Mikoto Engine

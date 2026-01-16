@@ -38,21 +38,6 @@ namespace Mikoto {
     // Maybe we should extend the or handle in in a way to specify a set of passes that need to be ran before anything else
     // Future passes that depend on them might need to be delayed until data is ready
 
-    class EnvCubePass final : public FramePass {
-    public:
-        explicit EnvCubePass()
-           : FramePass{ "EnvCubePass", FramePassType::RENDER } {}
-
-        auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(PassCommandList& commandList) -> void override;
-
-        auto SetTextureHDR(TextureHandle hdr) -> void;
-
-    private:
-
-        TextureHandle m_Hdr{};
-    };
-
     class IrradiancePass final : public FramePass {
     public:
         explicit IrradiancePass()

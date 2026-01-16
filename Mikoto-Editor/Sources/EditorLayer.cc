@@ -138,16 +138,26 @@ namespace Mikoto {
 
         m_EditorState->WireframeComposition = blackboard->GetTexture( "WireFramePass_ColorTarget" );
 
-        // Load HDR
+        TextureCubeLoadDescription loadDesc2{};
+        loadDesc2.WithType( TextureType::TEXTURE_CUBE )
+            .IsHDR( true )
+            .WithBasePath("Resources/HDR/scifi_desert_beach/Scifi Desert Beach/Scifi-Desert-Beach.hdr");
+
+        m_TextureHDR = AssetsService::Get()->LoadAsset<TextureCube>( loadDesc2 );
+
         TextureCubeLoadDescription loadDesc{};
         loadDesc.WithType( TextureType::TEXTURE_CUBE )
-            .IsHDR( true )
-            .WithBasePath("Resources/HDR/newport_loft.hdr");
+            .WithBasePath("Resources/Cubemaps/Lycksele2")
+            .WithFacePath( "posx.jpg" )
+            .WithFacePath( "negx.jpg" )
 
-        TextureHandle hdr{ AssetsService::Get()->LoadAsset<TextureCube>( loadDesc ) };
+            .WithFacePath( "negy.jpg" )
+            .WithFacePath( "posy.jpg" )
 
-        EnvCubePass* cubePass{ m_SceneRenderer->GetPass<EnvCubePass>() };
-        cubePass->SetTextureHDR( hdr );
+            .WithFacePath( "posz.jpg" )
+            .WithFacePath( "negz.jpg" );
+
+        m_TextureCubeMap = AssetsService::Get()->LoadAsset<TextureCube>( loadDesc );
     }
 
     auto EditorLayer::SetupRenderer() -> void {
@@ -203,22 +213,8 @@ namespace Mikoto {
     auto EditorLayer::OnUpdate( float timeStep ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        TextureCubeLoadDescription loadDesc{};
-        loadDesc.WithType( TextureType::TEXTURE_CUBE )
-            .WithBasePath("Resources/Cubemaps/Lycksele2")
-            .WithFacePath( "posx.jpg" )
-            .WithFacePath( "negx.jpg" )
-
-            .WithFacePath( "negy.jpg" )
-            .WithFacePath( "posy.jpg" )
-
-            .WithFacePath( "posz.jpg" )
-            .WithFacePath( "negz.jpg" );
-
-        TextureHandle skybox{ AssetsService::Get()->LoadAsset<TextureCube>( loadDesc ) };
-
         if (m_ActiveScene->IsSkyboxEnabled()) {
-            m_ActiveScene->SetSkybox( skybox );
+            m_ActiveScene->SetSkybox( m_TextureHDR );
         }
 
         m_ActiveScene->SetState( SceneState::IDLE );
@@ -762,4 +758,4 @@ namespace Mikoto {
 
         m_SceneRenderer->SetClearColor( settings.ClearColor );
     }
-}// namespace Mikoto
+} // namespace Mikoto

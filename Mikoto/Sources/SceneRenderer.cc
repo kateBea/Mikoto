@@ -228,9 +228,6 @@ namespace Mikoto {
         // Add IBL pre passes
         // For now the execution policy for these will be once, the idea is that they change
         // if we upload a new environment map
-        EnvCubePass* cubePass{ m_PassRegistry.Register<EnvCubePass>() };
-        cubePass->Setup( builder );
-        cubePass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
 
         IrradiancePass* irradiancePass{ m_PassRegistry.Register<IrradiancePass>() };
         irradiancePass->Setup( builder );

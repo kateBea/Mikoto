@@ -81,11 +81,15 @@ namespace Mikoto {
 
         auto SetCamera( const Camera* camera ) -> void;
         auto SetCubeMap( TextureHandle cubeMap ) -> void;
+        auto SetExposure( float value ) -> void;
+        auto SetGamma( float value ) -> void;
 
     private:
-        struct SkyboxUBO {
+        struct alignas(16) SkyboxUBO {
             Mat4F View{};
             Mat4F Projection{};
+            float Exposure{};
+            float Gamma{};
         };
 
     private:

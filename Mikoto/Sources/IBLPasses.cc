@@ -107,6 +107,14 @@ namespace Mikoto {
         m_CubeMap = cubeMap;
     }
 
+    auto SkyboxPass::SetExposure( float value ) -> void {
+        m_SkyboxUBO.Exposure = value;
+    }
+
+    auto SkyboxPass::SetGamma( float value ) -> void {
+        m_SkyboxUBO.Gamma = value;
+    }
+
     auto ShadingPass::Setup( FrameGraphBuilder& builder ) -> void {
         PipelineDescription builderPipelineDesc{};
 

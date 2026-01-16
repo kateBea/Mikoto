@@ -126,6 +126,9 @@ namespace Mikoto {
         MKT_NODISCARD auto IsRenderResolution(RenderResolution resolution) const -> bool;
         auto SetRenderResolution( RenderResolution resolution ) -> void;
 
+        auto SetEnvironmentGamma(float value) -> void;
+        auto SetEnvironmentExposure(float value) -> void;
+
     private:
         // [Internal usage]
         auto InitGraphicsContex() -> void;

@@ -757,5 +757,8 @@ namespace Mikoto {
         m_SceneRenderer->EnableSkybox( m_ActiveScene->IsSkyboxEnabled() );
 
         m_SceneRenderer->SetClearColor( settings.ClearColor );
+
+        m_SceneRenderer->SetEnvironmentGamma( m_ActiveScene->GetGamma() );
+        m_SceneRenderer->SetEnvironmentExposure( m_ActiveScene->GetExposure() );
     }
 } // namespace Mikoto

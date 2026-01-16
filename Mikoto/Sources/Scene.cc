@@ -275,6 +275,22 @@ namespace Mikoto {
         return m_ActiveLightCount;
     }
 
+    auto Scene::GetGamma() const -> float {
+        return m_Gamma;
+    }
+
+    auto Scene::GetExposure() const -> float {
+        return m_Exposure;
+    }
+
+    auto Scene::SetGamma( float gamma ) -> void {
+        m_Gamma = gamma;
+    }
+
+    auto Scene::SetExposure( float exposure ) -> void {
+        m_Exposure = exposure;
+    }
+
     auto Scene::CreateEntity( std::string_view name ) -> Entity* {
         const EntityCreateInfo info{
             .Root{ nullptr },

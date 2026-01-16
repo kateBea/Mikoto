@@ -136,6 +136,20 @@ namespace Mikoto {
         m_RenderTargetDimensions = InferDimensions(m_RenderResolution);
     }
 
+    auto SceneRenderer::SetEnvironmentGamma( float value ) -> void {
+        SkyboxPass* skyboxPass{ m_PassRegistry.Get<SkyboxPass>() };
+        if (skyboxPass) {
+            skyboxPass->SetGamma( value );
+        }
+    }
+
+    auto SceneRenderer::SetEnvironmentExposure( float value ) -> void {
+        SkyboxPass* skyboxPass{ m_PassRegistry.Get<SkyboxPass>() };
+        if (skyboxPass) {
+            skyboxPass->SetExposure( value );
+        }
+    }
+
     auto SceneRenderer::InitGraphicsContex() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 

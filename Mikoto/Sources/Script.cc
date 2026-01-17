@@ -35,10 +35,6 @@ namespace Mikoto {
         // Store the environment as the object table
         m_Object = env;
 
-        // Extract the callbacks from the environment
-        m_OnCreate = env["OnCreate"];
-        m_OnUpdate = env["OnUpdate"];
-
         // Call inside ctor resolved at compile time
         Script::Initialize();
     }

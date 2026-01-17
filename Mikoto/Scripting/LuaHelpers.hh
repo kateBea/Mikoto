@@ -15,7 +15,7 @@ namespace Mikoto {
             sol::protected_function protected_fn = ( fn );                       \
             sol::protected_function_result result = protected_fn( __VA_ARGS__ ); \
             if ( !result.valid() ) {                                             \
-                sol::error err{ result };                                        \
+                sol::error err = result;                                         \
                 MKT_CORE_LOGGER_ERROR( "Lua Error: {}", err.what() );            \
             }                                                                    \
         }                                                                        \

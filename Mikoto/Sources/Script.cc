@@ -26,7 +26,9 @@ namespace Mikoto {
         };
 
         if (!result.valid()) {
-            const sol::error err { result };
+            // This works because protected_function_result has an implicit conversion
+            // operator to sol::error, but only for assignment, not brace init.
+            const sol::error err = result;
             MKT_THROW_RUNTIME_ERROR(fmt::format("Lua error in {}: {}", m_File->GetPath(), err.what()));
         }
 
@@ -49,7 +51,7 @@ namespace Mikoto {
         MKT_SOL_CALL(m_OnUpdate, dt);
     }
 
-    auto Script::Update( float dt ) -> void {
+    auto Script::Update( const float dt ) -> void {
         // called every frame when scene is simulating
         if (!m_Enabled) {
             return;

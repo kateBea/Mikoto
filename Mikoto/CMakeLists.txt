@@ -378,14 +378,6 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(asio)
 
-FetchContent_Declare(
-        HdriToCubemap
-        GIT_REPOSITORY https://github.com/ivarout/HdriToCubemap.git
-        GIT_TAG master
-)
-
-FetchContent_MakeAvailable(HdriToCubemap)
-
 # Tracy
 FetchContent_Declare(
         tracy

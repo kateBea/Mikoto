@@ -930,7 +930,7 @@ namespace Mikoto {
         const File* file{ FileService::Get()->LoadFile( scriptComponent.GetFilePath() ) };
 
         if ( file != nullptr ) {
-            formattedPath = fmt::format( "{}", file->GetFileContents() );
+            formattedPath = fmt::format( "{}", file->GetPath() );
         }
 
         ImGui::InputText( "##PathToScript", formattedPath.data(), formattedPath.size() + 1, ImGuiInputTextFlags_ReadOnly );

@@ -18,6 +18,7 @@
 // Project Headers
 #include <Core/Profiler.hh>
 #include <Filesystem/FileService.hh>
+#include <Filesystem/FileWatcherService.hh>
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
 #include <Core/Exception.hh>

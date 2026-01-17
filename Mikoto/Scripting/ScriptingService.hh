@@ -5,6 +5,7 @@
 #ifndef LUASERVICE_HH
 #define LUASERVICE_HH
 #include <sol/sol.hpp>
+#include <ankerl/unordered_dense.h>
 
 #include <Common/Service.hh>
 #include <Common/Singleton.hh>
@@ -39,6 +40,8 @@ namespace Mikoto {
 
         Registry<ScriptingBinding> m_Bindings{};
         ResourcePoolTyped<Script> m_ScriptPool{};
+
+        ankerl::unordered_dense::map<std::string, std::vector<ScriptHandle>> m_Scripts{};
     };
 }// namespace Mikoto
 

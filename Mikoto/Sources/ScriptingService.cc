@@ -10,6 +10,7 @@
 #include <ranges>
 #include <sol/sol.hpp>
 
+#include "Filesystem/FileWatcherService.hh"
 #include "Scripting/InputBinding.hh"
 #include "Scripting/MathBindings.hh"
 #include "Scripting/SceneBinding.hh"
@@ -71,6 +72,15 @@ namespace Mikoto {
     }
 
     auto ScriptingService::Update( const float timeStep ) -> void {
+        for (auto& [path, scripts] : m_Scripts) {
+            if ( FileWatcherService::Get()->CheckStatus( path, FileWatchEvent::MODIFIED ) ) {
+                // Update all scripts using the file in this path
+                for (auto& scripts : scripts) {
+                    //scripts->Reload();
+                }
+            }
+        }
+
         for (auto& script : m_ScriptPool | std::ranges::views::values) {
             script.As<Script>()->Update( timeStep );
         }
@@ -82,6 +92,8 @@ namespace Mikoto {
         if (const File* file{ FileService::Get()->LoadFile( path ) }) {
             try {
                 handle = m_ScriptPool.Allocate( file,  m_LuaState, entity );
+
+                FileWatcherService::Get()->Watch( file->GetPath() );
 
             } catch ( const sol::error &e ) {
                 MKT_CORE_LOGGER_ERROR( "ScriptingService::LoadScript - exception: '{}'", e.what() );

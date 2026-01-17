@@ -16,7 +16,6 @@ function OnUpdate(dt)
 		print("Pressed Up")
 		position.z = position.z - speed * dt
 
-		Console.Debug("You pressed Up key")
 	end
 
 	if Input.IsKeyPressed(KeyCode.Down) then

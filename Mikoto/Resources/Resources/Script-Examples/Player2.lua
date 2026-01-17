@@ -12,25 +12,24 @@ function OnUpdate(dt)
     local transform = Entity:GetTransform()
     local position = transform:GetTranslation()
 
-    if Input.IsKeyPressed(KeyCode.W) then
-        print("Pressed W")
+    if Input.IsKeyPressed(KeyCode.I) then
+        print("Pressed I")
         position.z = position.z - speed * dt
 
-        Console.Debug("You pressed Up key")
     end
 
-    if Input.IsKeyPressed(KeyCode.S) then
-        print("Pressed S")
+    if Input.IsKeyPressed(KeyCode.K) then
+        print("Pressed K")
         position.z = position.z + speed * dt
     end
 
-    if Input.IsKeyPressed(KeyCode.A) then
-        print("Pressed A")
+    if Input.IsKeyPressed(KeyCode.J) then
+        print("Pressed J")
         position.x = position.x - speed * dt
     end
 
-    if Input.IsKeyPressed(KeyCode.D) then
-        print("Pressed D")
+    if Input.IsKeyPressed(KeyCode.L) then
+        print("Pressed L")
         position.x = position.x + speed * dt
     end
 

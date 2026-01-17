@@ -126,6 +126,8 @@ namespace Mikoto {
         auto UpdateIdle( double deltaTime ) -> void;
         auto UpdateSimulate( double deltaTime ) -> void;
 
+        auto OnScriptAdded(entt::registry& reg, entt::entity e ) -> void;
+
         auto OnRigidBodyAdded(entt::registry& reg, entt::entity e ) const -> void;
         auto OnRigidBodyRemoved(entt::registry& reg, entt::entity e ) const -> void;
 

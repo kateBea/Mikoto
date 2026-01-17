@@ -4,11 +4,15 @@
 
 #ifndef LUASERVICE_HH
 #define LUASERVICE_HH
-
 #include <sol/sol.hpp>
 
 #include <Common/Service.hh>
 #include <Common/Singleton.hh>
+#include <Library/Data/ResourcePool.hh>
+#include <Scripting/Script.hh>
+#include <Scene/Entity.hh>
+#include "Library/Data/Registry.hh"
+#include "ScriptingBinding.hh"
 
 namespace Mikoto {
     struct ScriptingServiceDescription {
@@ -21,8 +25,20 @@ namespace Mikoto {
         auto Init() -> void override;
         auto Shutdown() -> void override;
 
+        auto Update(float timeStep) -> void override;
+
+        auto LoadScript(const Path& path, Entity* entity) -> ScriptHandle;
+
+    private:
+
+        auto InitState() -> void;
+        auto InitBindings() -> void;
+
     private:
         sol::state m_LuaState{};
+
+        Registry<ScriptingBinding> m_Bindings{};
+        ResourcePoolTyped<Script> m_ScriptPool{};
     };
 }// namespace Mikoto
 

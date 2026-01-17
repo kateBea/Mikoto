@@ -652,10 +652,8 @@ namespace Mikoto {
             .Name{ "Ground" },
             .Model{ box }
         };
-        Entity *groundEntity{ m_ActiveScene->CreateEntity( groundDesc ) };
-        if (groundEntity) {
-            groundEntity->AddComponent<ScriptComponent>( "Resources/Script-Examples/console_rpg.lua" );
 
+        if (Entity *groundEntity{ m_ActiveScene->CreateEntity( groundDesc ) }) {
             TransformComponent &transformComponent{ groundEntity->GetComponent<TransformComponent>() };
             transformComponent.SetScale( { 100.0f, 0.5f, 100.00f } );
             transformComponent.SetTranslation( { 0.0f, 0.0f, 0.0f } );
@@ -675,10 +673,9 @@ namespace Mikoto {
             .Name{ "FirstBox" },
             .Model{ box }
         };
-        Entity *boxEntity{ m_ActiveScene->CreateEntity( boxDesc ) };
-        if (boxEntity) {
-            boxEntity->AddComponent<ScriptComponent>( "Resources/Script-Examples/hello_world.lua" );
 
+        if (Entity *boxEntity{ m_ActiveScene->CreateEntity( boxDesc ) }) {
+            boxEntity->AddComponent<ScriptComponent>( "Resources/Script-Examples/Player1.lua" );
             TransformComponent &transformComponent{ boxEntity->GetComponent<TransformComponent>() };
             transformComponent.SetTranslation( { 0.0f, 10.0f, 0.0f } );
 
@@ -692,10 +689,9 @@ namespace Mikoto {
             .Name{ "SecondBox" },
             .Model{ box }
         };
-        Entity *box2Entity{ m_ActiveScene->CreateEntity( box2Desc ) };
-        if (box2Entity) {
-            box2Entity->AddComponent<ScriptComponent>( "Resources/Script-Examples/hello_world.lua" );
 
+        if (Entity *box2Entity{ m_ActiveScene->CreateEntity( box2Desc ) }) {
+            box2Entity->AddComponent<ScriptComponent>( "Resources/Script-Examples/Player2.lua" );
             TransformComponent &transformComponent{ box2Entity->GetComponent<TransformComponent>() };
             transformComponent.SetTranslation( { 1.0f, 30.0f, 0.0f } );
 
@@ -705,7 +701,6 @@ namespace Mikoto {
 
         Entity *light{ m_ActiveScene->CreateEntity( "Light" ) };
         if (light) {
-            light->AddComponent<ScriptComponent>( "Resources/Script-Examples/hello_world.lua" );
             LightComponent &lightComp{ light->AddComponent<LightComponent>() };
             lightComp.SetActiveType( LightType::POINT_LIGHT_TYPE );
 

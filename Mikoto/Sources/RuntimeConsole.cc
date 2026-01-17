@@ -40,7 +40,7 @@ namespace Mikoto {
                 cmd += arg + " ";
             }
 
-            Get()->AddLog( { ConsoleLogLevel::CONSOLE_DEBUG, "Running external command (async): " + cmd } );
+            Get()->AddLog( { ConsoleLogLevel::CONSOLE_DEBUG, "Running command: " + cmd } );
 
             ExecuteProcess::RunAsync( cmd, []( const std::string& line ) {
                 // Push each line into the console output

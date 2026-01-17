@@ -33,6 +33,8 @@
 #include <Renderer/Core/Light.hh>
 #include <Scene/SceneCamera.hh>
 
+#include "Scripting/Script.hh"
+
 namespace Mikoto {
 
     class TagComponent {
@@ -601,9 +603,8 @@ namespace Mikoto {
 
     class ScriptComponent {
     public:
-        explicit ScriptComponent( const Path& script ) {
-            m_Script = FileService::Get()->LoadFile( script );
-        }
+        explicit ScriptComponent(const Path& filePath)
+            : m_FilePath{ filePath } {}
 
         ScriptComponent( const ScriptComponent& other ) = default;
         ScriptComponent( ScriptComponent&& other ) = default;
@@ -611,17 +612,22 @@ namespace Mikoto {
         auto operator=( const ScriptComponent& other ) -> ScriptComponent& = default;
         auto operator=( ScriptComponent&& other ) -> ScriptComponent& = default;
 
-        auto SetScript( const File* script ) -> void {
-            m_Script = script;
+        auto SetScript( ScriptHandle handle ) -> void {
+            if ( !handle.IsEmpty( ) ) {
+                m_Script = handle;
+                m_FilePath = m_Script->GetFile()->GetPath();
+            }
         }
 
-        MKT_NODISCARD auto GetScript() const -> const File* { return m_Script; }
-        MKT_NODISCARD auto HasScript() const -> bool { return m_Script != nullptr; }
+
+        MKT_NODISCARD auto GetHandle() -> ScriptHandle { return m_Script; }
+        MKT_NODISCARD auto GetFilePath() const -> const Path& { return m_FilePath; }
 
         ~ScriptComponent() = default;
 
     private:
-        const File* m_Script{};
+        Path m_FilePath{};
+        ScriptHandle m_Script{};
     };
 }// namespace Mikoto
 

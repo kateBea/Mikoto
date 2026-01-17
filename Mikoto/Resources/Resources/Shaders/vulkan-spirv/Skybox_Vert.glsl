@@ -3,10 +3,14 @@
 #include "ShaderBase.glsl"
 
 layout(location = 0) out vec3 v_Direction;
+layout(location = 1) flat out float v_Exposure;
+layout(location = 2) flat out float v_Gamma;
 
 layout(set = PERPASS_SETINDEX, binding = 0) uniform SkyBoxUBO {
     mat4 View;
     mat4 Projection;
+    float Exposure;
+    float Gamma;
 } u_Camera;
 
 // https://learnopengl.com/code_viewer.php?code=advanced/cubemaps_skybox_data
@@ -55,6 +59,9 @@ const vec3 SKYBOX_VERTICES[36] = vec3[](
 );
 
 void main() {
+    v_Exposure = u_Camera.Exposure;
+    v_Gamma = u_Camera.Gamma;
+
     vec3 pos = vec3(SKYBOX_VERTICES[gl_VertexIndex]);
 
     // Remove translation from view matrix

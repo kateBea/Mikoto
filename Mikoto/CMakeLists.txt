@@ -378,6 +378,14 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(asio)
 
+FetchContent_Declare(
+        HdriToCubemap
+        GIT_REPOSITORY https://github.com/ivarout/HdriToCubemap.git
+        GIT_TAG master
+)
+
+FetchContent_MakeAvailable(HdriToCubemap)
+
 # Tracy
 FetchContent_Declare(
         tracy
@@ -480,10 +488,10 @@ set(SPIRV_REFLECT_SOURCES
         ${spirv_reflect_SOURCE_DIR}/spirv_reflect.c
 )
 
-#get_cmake_property(_variableNames VARIABLES)
-#    foreach(_variableName ${_variableNames})
-#        message(STATUS "${_variableName}=${${_variableName}}")
-#endforeach()
+get_cmake_property(_variableNames VARIABLES)
+    foreach(_variableName ${_variableNames})
+        message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()
 
 # Miniaudio sources
 set(MINIAUDIO_SOURCES

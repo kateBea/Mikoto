@@ -35,7 +35,17 @@ namespace Mikoto {
         ImGui::Separator();
         ImGui::Text( "Skybox");
 
-        // Imgui::Image
+        float gamma    { m_EditorState->ActiveEditorScene->GetGamma() };
+        float exposure { m_EditorState->ActiveEditorScene->GetExposure() };
+
+        ImGui::SliderFloat("Gamma", &gamma, 0.1f, 5.0f, "%.2f");
+        ImGui::SliderFloat("Exposure", &exposure, 0.0f, 10.0f, "%.2f");
+
+        // Optional: Show preview or values
+        ImGui::Text("Gamma: %.2f  Exposure: %.2f", gamma, exposure);
+
+        m_EditorState->ActiveEditorScene->SetGamma(gamma);
+        m_EditorState->ActiveEditorScene->SetExposure(exposure);
 
         ImGui::End();
     }

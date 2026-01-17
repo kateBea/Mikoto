@@ -136,6 +136,20 @@ namespace Mikoto {
         m_RenderTargetDimensions = InferDimensions(m_RenderResolution);
     }
 
+    auto SceneRenderer::SetEnvironmentGamma( float value ) -> void {
+        SkyboxPass* skyboxPass{ m_PassRegistry.Get<SkyboxPass>() };
+        if (skyboxPass) {
+            skyboxPass->SetGamma( value );
+        }
+    }
+
+    auto SceneRenderer::SetEnvironmentExposure( float value ) -> void {
+        SkyboxPass* skyboxPass{ m_PassRegistry.Get<SkyboxPass>() };
+        if (skyboxPass) {
+            skyboxPass->SetExposure( value );
+        }
+    }
+
     auto SceneRenderer::InitGraphicsContex() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -228,9 +242,6 @@ namespace Mikoto {
         // Add IBL pre passes
         // For now the execution policy for these will be once, the idea is that they change
         // if we upload a new environment map
-        EnvCubePass* cubePass{ m_PassRegistry.Register<EnvCubePass>() };
-        cubePass->Setup( builder );
-        cubePass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
 
         IrradiancePass* irradiancePass{ m_PassRegistry.Register<IrradiancePass>() };
         irradiancePass->Setup( builder );

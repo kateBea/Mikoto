@@ -7,6 +7,7 @@
 #include <Core/Configuration.hh>
 #include <Core/EventService.hh>
 #include <Core/InputService.hh>
+#include <Core/LocalizationService.hh>
 #include <Core/Profiler.hh>
 #include <Core/Root.hh>
 #include <Core/RuntimeConsole.hh>
@@ -21,9 +22,9 @@
 #include <Scripting/ScriptingService.hh>
 #include <Threading/TaskService.hh>
 #include <Threading/ThreadUtility.hh>
-#include <Core/LocalizationService.hh>
 
 #include "Core/SystemStats.hh"
+#include "Filesystem/FileWatcherService.hh"
 #include "Scene/SceneManager.hh"
 
 namespace Mikoto {
@@ -39,6 +40,10 @@ namespace Mikoto {
         };
         TimeService *timeService{ s_Services.Register<TimeService>( timeServiceCreateInfo ) };
         timeService->Init();
+
+        FileWatcherServiceCreateInfo fileWatcherServiceCreateInfo{};
+        FileWatcherService *fileWatcherService{ s_Services.Register<FileWatcherService>( fileWatcherServiceCreateInfo ) };
+        fileWatcherService->Init();
 
         // Task service
         TaskServiceCreateInfo taskServiceCreateInfo{

@@ -19,8 +19,8 @@
 #include <Library/IO/File.hh>
 #include <Library/Utility/Types.hh>
 #include <Material/Texture2D.hh>
-
-#include "Material/TextureCube.hh"
+#include <Renderer/Core/Buffer.hh>
+#include <Material/TextureCube.hh>
 
 namespace Mikoto {
 
@@ -142,7 +142,6 @@ namespace Mikoto {
         auto CreateImageResource() -> void;
 
         auto LoadCubeFaces() -> void;
-        auto LoadEquirectangular() -> void;
 
     private:
         BufferHandle m_StagingBuffer{};

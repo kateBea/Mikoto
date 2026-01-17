@@ -14,12 +14,14 @@
 #include <entt/entt.hpp>
 
 // Project Headers
-#include <Scene/Scene.hh>
 #include <Core/Profiler.hh>
-#include <Scene/Component.hh>
 #include <Library/Random/Random.hh>
 #include <Physics/PhysicService.hh>
 #include <Renderer/Core/RenderService.hh>
+#include <Scene/Component.hh>
+#include <Scene/Scene.hh>
+
+#include "Scripting/ScriptingService.hh"
 
 namespace Mikoto {
 
@@ -32,11 +34,13 @@ namespace Mikoto {
         auto& material{ reg.get<MaterialComponent>( e ) };
         material.SetMaterial( AssetsService::Get()->CreateMaterial() );
     }
-
+    
     Scene::Scene( const std::string_view name )
         : m_Name{ name } {
 
         m_Registry.on_construct<MeshComponent>().connect<&OnMeshRendererAdded>();
+
+        m_Registry.on_construct<ScriptComponent>().connect<&Scene::OnScriptAdded>(this);
 
         m_Registry.on_construct<RigidBodyComponent>().connect<&Scene::OnRigidBodyAdded>(this);
         m_Registry.on_destroy<RigidBodyComponent>().connect<&Scene::OnRigidBodyRemoved>(this);
@@ -51,10 +55,34 @@ namespace Mikoto {
     auto Scene::UpdateIdle( double ) -> void {
         // This is only done on simulate but here too for debugging purposes
         PhysicService::Get()->SetSimulationTarget( this );
+
+        // Update scripts
+        auto scriptEntities{ m_Registry.view<ScriptComponent>() };
+        for (auto& entity : scriptEntities) {
+            ScriptComponent& script{ m_Registry.get<ScriptComponent>(entity) };
+            ScriptHandle handle{ script.GetHandle() };
+
+            if (!handle.IsEmpty()) {
+                // Should be false here. But will remain tru for testing purposes
+                handle->SetEnable( true );
+            }
+        }
     }
 
     auto Scene::UpdateSimulate( double ) -> void {
         PhysicService::Get()->SetSimulationTarget( this );
+
+        // Update scripts
+        auto scriptEntities{ m_Registry.view<ScriptComponent>() };
+        for (auto& entity : scriptEntities) {
+            ScriptComponent& script{ m_Registry.get<ScriptComponent>(entity) };
+            ScriptHandle handle{ script.GetHandle() };
+
+            if (!handle.IsEmpty()) {
+                // Should be false here. But will remain tru for testing purposes
+                handle->SetEnable( true );
+            }
+        }
     }
 
     auto Scene::OnRigidBodyAdded(entt::registry& reg, entt::entity e ) const -> void {
@@ -67,6 +95,17 @@ namespace Mikoto {
         TransformComponent& transform{ reg.get<TransformComponent>(e) };
 
         m_PhysicsWorld->OnRigidBodyAdded( transform, rigidBody );
+    }
+
+    auto Scene::OnScriptAdded( entt::registry& reg, entt::entity e ) -> void {
+        TagComponent& tag{ reg.get<TagComponent>(e) };
+        ScriptComponent& script{ reg.get<ScriptComponent>(e) };
+
+        if (Entity* entity{ FindByID( tag.GetGUID() ) }) {
+            ScriptHandle scriptHandle{ ScriptingService::Get()->LoadScript( script.GetFilePath(), entity ) };
+            script.SetScript( scriptHandle );
+        }
+
     }
 
     auto Scene::OnRigidBodyRemoved( entt::registry& reg, entt::entity e ) const -> void {
@@ -273,6 +312,22 @@ namespace Mikoto {
 
     auto Scene::GetActiveLightCount() const -> UInt32 {
         return m_ActiveLightCount;
+    }
+
+    auto Scene::GetGamma() const -> float {
+        return m_Gamma;
+    }
+
+    auto Scene::GetExposure() const -> float {
+        return m_Exposure;
+    }
+
+    auto Scene::SetGamma( float gamma ) -> void {
+        m_Gamma = gamma;
+    }
+
+    auto Scene::SetExposure( float exposure ) -> void {
+        m_Exposure = exposure;
     }
 
     auto Scene::CreateEntity( std::string_view name ) -> Entity* {

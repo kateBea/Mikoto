@@ -20,6 +20,7 @@
 // Project Headers
 #include <ImGui/IconsMaterialDesign.h>
 
+#include <Application/EditorUtility.hh>
 #include <Common/Common.hh>
 #include <Core/Profiler.hh>
 #include <Core/RuntimeConsole.hh>
@@ -32,7 +33,7 @@
 #include <Scene/Component.hh>
 #include <Scene/Entity.hh>
 
-#include <Application/EditorUtility.hh>
+#include "Scripting/ScriptingService.hh"
 
 namespace Mikoto {
 
@@ -926,9 +927,10 @@ namespace Mikoto {
 
         // Static so ImGui input buffer persists
         static std::string formattedPath{};
+        const File* file{ FileService::Get()->LoadFile( scriptComponent.GetFilePath() ) };
 
-        if ( scriptComponent.HasScript() ) {
-            formattedPath = fmt::format( "{}", scriptComponent.GetScript()->GetFileContents() );
+        if ( file != nullptr ) {
+            formattedPath = fmt::format( "{}", file->GetFileContents() );
         }
 
         ImGui::InputText( "##PathToScript", formattedPath.data(), formattedPath.size() + 1, ImGuiInputTextFlags_ReadOnly );
@@ -941,7 +943,7 @@ namespace Mikoto {
 
             Path path{ FileService::Get()->OpenDialog( filters ).string() };
             if ( !path.empty() ) {
-                scriptComponent.SetScript( FileService::Get()->LoadFile( path ) );
+                scriptComponent.SetScript( ScriptingService::Get()->LoadScript( path, std::addressof( entity ) ) );
             }
         }
 
@@ -949,11 +951,11 @@ namespace Mikoto {
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
 
         // ---- Script Preview ----
-        if ( scriptComponent.HasScript() ) {
+        if ( file != nullptr ) {
             ImGui::Spacing();
             ImGui::SeparatorText( "Script Preview" );
 
-            const std::string& contents = scriptComponent.GetScript()->GetFileContents();
+            const std::string& contents{ file->GetFileContents() };
 
             // Cap preview for performance
             constexpr Size kMaxPreviewSize{ 8192 * 4 };// more generous limit
@@ -1007,7 +1009,7 @@ namespace Mikoto {
             ImGui::Spacing();
             if ( ImGui::Button( fmt::format( "{} Open in External Editor", ICON_MD_OPEN_IN_NEW ).c_str() ) ) {
                 RuntimeConsole::Get()->ExecuteCommand(
-                        StringUtils::Concat( "/", " code ", scriptComponent.GetScript()->GetPath() ) );
+                        StringUtils::Concat( "/", " code ", file->GetPath() ) );
             }
         }
     }

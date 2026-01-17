@@ -89,6 +89,12 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 
+        MKT_NODISCARD auto GetGamma() const -> float;
+        MKT_NODISCARD auto GetExposure() const -> float;
+
+        auto SetGamma( float gamma ) -> void;
+        auto SetExposure( float exposure ) -> void;
+
         MKT_NODISCARD auto GetEntityCount() const -> Size;
 
         MKT_NODISCARD auto GetEntities() const -> const ankerl::unordered_dense::map<Size, Unique<Entity>>& { return m_Entities; }
@@ -119,6 +125,8 @@ namespace Mikoto {
 
         auto UpdateIdle( double deltaTime ) -> void;
         auto UpdateSimulate( double deltaTime ) -> void;
+
+        auto OnScriptAdded(entt::registry& reg, entt::entity e ) -> void;
 
         auto OnRigidBodyAdded(entt::registry& reg, entt::entity e ) const -> void;
         auto OnRigidBodyRemoved(entt::registry& reg, entt::entity e ) const -> void;
@@ -156,6 +164,9 @@ namespace Mikoto {
 
         bool m_UseSkybox{ true };
         TextureHandle m_Skybox{ nullptr };
+
+        float m_Gamma{ 2.20f };
+        float m_Exposure{ 1.0f };
 
     };
 }// namespace Mikoto

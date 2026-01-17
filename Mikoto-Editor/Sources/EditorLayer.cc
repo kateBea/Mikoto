@@ -138,16 +138,26 @@ namespace Mikoto {
 
         m_EditorState->WireframeComposition = blackboard->GetTexture( "WireFramePass_ColorTarget" );
 
-        // Load HDR
+        TextureCubeLoadDescription loadDesc2{};
+        loadDesc2.WithType( TextureType::TEXTURE_CUBE )
+            .IsHDR( true )
+            .WithBasePath("Resources/HDR/scifi_desert_beach/Scifi Desert Beach/Scifi-Desert-Beach.hdr");
+
+        m_TextureHDR = AssetsService::Get()->LoadAsset<TextureCube>( loadDesc2 );
+
         TextureCubeLoadDescription loadDesc{};
         loadDesc.WithType( TextureType::TEXTURE_CUBE )
-            .IsHDR( true )
-            .WithBasePath("Resources/HDR/newport_loft.hdr");
+            .WithBasePath("Resources/Cubemaps/Lycksele2")
+            .WithFacePath( "posx.jpg" )
+            .WithFacePath( "negx.jpg" )
 
-        TextureHandle hdr{ AssetsService::Get()->LoadAsset<TextureCube>( loadDesc ) };
+            .WithFacePath( "negy.jpg" )
+            .WithFacePath( "posy.jpg" )
 
-        EnvCubePass* cubePass{ m_SceneRenderer->GetPass<EnvCubePass>() };
-        cubePass->SetTextureHDR( hdr );
+            .WithFacePath( "posz.jpg" )
+            .WithFacePath( "negz.jpg" );
+
+        m_TextureCubeMap = AssetsService::Get()->LoadAsset<TextureCube>( loadDesc );
     }
 
     auto EditorLayer::SetupRenderer() -> void {
@@ -203,22 +213,8 @@ namespace Mikoto {
     auto EditorLayer::OnUpdate( float timeStep ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        TextureCubeLoadDescription loadDesc{};
-        loadDesc.WithType( TextureType::TEXTURE_CUBE )
-            .WithBasePath("Resources/Cubemaps/Lycksele2")
-            .WithFacePath( "posx.jpg" )
-            .WithFacePath( "negx.jpg" )
-
-            .WithFacePath( "negy.jpg" )
-            .WithFacePath( "posy.jpg" )
-
-            .WithFacePath( "posz.jpg" )
-            .WithFacePath( "negz.jpg" );
-
-        TextureHandle skybox{ AssetsService::Get()->LoadAsset<TextureCube>( loadDesc ) };
-
         if (m_ActiveScene->IsSkyboxEnabled()) {
-            m_ActiveScene->SetSkybox( skybox );
+            m_ActiveScene->SetSkybox( m_TextureHDR );
         }
 
         m_ActiveScene->SetState( SceneState::IDLE );
@@ -656,10 +652,8 @@ namespace Mikoto {
             .Name{ "Ground" },
             .Model{ box }
         };
-        Entity *groundEntity{ m_ActiveScene->CreateEntity( groundDesc ) };
-        if (groundEntity) {
-            groundEntity->AddComponent<ScriptComponent>( "Resources/Script-Examples/console_rpg.lua" );
 
+        if (Entity *groundEntity{ m_ActiveScene->CreateEntity( groundDesc ) }) {
             TransformComponent &transformComponent{ groundEntity->GetComponent<TransformComponent>() };
             transformComponent.SetScale( { 100.0f, 0.5f, 100.00f } );
             transformComponent.SetTranslation( { 0.0f, 0.0f, 0.0f } );
@@ -679,10 +673,9 @@ namespace Mikoto {
             .Name{ "FirstBox" },
             .Model{ box }
         };
-        Entity *boxEntity{ m_ActiveScene->CreateEntity( boxDesc ) };
-        if (boxEntity) {
-            boxEntity->AddComponent<ScriptComponent>( "Resources/Script-Examples/hello_world.lua" );
 
+        if (Entity *boxEntity{ m_ActiveScene->CreateEntity( boxDesc ) }) {
+            boxEntity->AddComponent<ScriptComponent>( "Resources/Script-Examples/Player1.lua" );
             TransformComponent &transformComponent{ boxEntity->GetComponent<TransformComponent>() };
             transformComponent.SetTranslation( { 0.0f, 10.0f, 0.0f } );
 
@@ -696,10 +689,9 @@ namespace Mikoto {
             .Name{ "SecondBox" },
             .Model{ box }
         };
-        Entity *box2Entity{ m_ActiveScene->CreateEntity( box2Desc ) };
-        if (box2Entity) {
-            box2Entity->AddComponent<ScriptComponent>( "Resources/Script-Examples/hello_world.lua" );
 
+        if (Entity *box2Entity{ m_ActiveScene->CreateEntity( box2Desc ) }) {
+            box2Entity->AddComponent<ScriptComponent>( "Resources/Script-Examples/Player2.lua" );
             TransformComponent &transformComponent{ box2Entity->GetComponent<TransformComponent>() };
             transformComponent.SetTranslation( { 1.0f, 30.0f, 0.0f } );
 
@@ -709,7 +701,6 @@ namespace Mikoto {
 
         Entity *light{ m_ActiveScene->CreateEntity( "Light" ) };
         if (light) {
-            light->AddComponent<ScriptComponent>( "Resources/Script-Examples/hello_world.lua" );
             LightComponent &lightComp{ light->AddComponent<LightComponent>() };
             lightComp.SetActiveType( LightType::POINT_LIGHT_TYPE );
 
@@ -761,5 +752,8 @@ namespace Mikoto {
         m_SceneRenderer->EnableSkybox( m_ActiveScene->IsSkyboxEnabled() );
 
         m_SceneRenderer->SetClearColor( settings.ClearColor );
+
+        m_SceneRenderer->SetEnvironmentGamma( m_ActiveScene->GetGamma() );
+        m_SceneRenderer->SetEnvironmentExposure( m_ActiveScene->GetExposure() );
     }
-}// namespace Mikoto
+} // namespace Mikoto

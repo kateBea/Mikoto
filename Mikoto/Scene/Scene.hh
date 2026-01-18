@@ -84,6 +84,9 @@ namespace Mikoto {
         auto QueueCreateEntity( std::string_view name ) -> void;
         auto QueueCreateEntity( const EntityCreateInfo& createInfo = {} ) -> void;
 
+        // Call if the viewport where this scene is being rendered is resized
+        auto OnViewPortResize( float width, float height ) -> void;
+
         MKT_NODISCARD auto GetLightCount() const -> UInt32;
         MKT_NODISCARD auto GetActiveLightCount() const -> UInt32;
 

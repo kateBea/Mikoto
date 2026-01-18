@@ -29,7 +29,7 @@ namespace Mikoto {
                     Get()->AddLog( { ConsoleLogLevel::CONSOLE_INFO, msg } );
                 } );
 
-        RegisterCommand( "/", "Executes an external system command asynchronously", []( const std::vector<std::string>& args ) {
+        RegisterCommand( "/", "Executes an external system command", []( const std::vector<std::string>& args ) {
             if ( args.empty() ) {
                 Get()->AddLog( { ConsoleLogLevel::CONSOLE_WARNING, "Usage: /<command> [ARGS]" } );
                 return;
@@ -47,27 +47,6 @@ namespace Mikoto {
                 Get()->AddLog( { ConsoleLogLevel::CONSOLE_INFO, line } );
             } );
         } );
-
-        // RegisterCommand( "//", "Executes an external system command", []( const std::vector<std::string>& args ) {
-        //     if ( args.empty() ) {
-        //         Get()->AddLog( { ConsoleLogLevel::CONSOLE_WARNING, "Usage: //<command> [ARGS]" } );
-        //         return;
-        //     }
-        //
-        //     std::string cmd{};
-        //     for ( const auto& arg: args ) {
-        //         cmd += arg + " ";
-        //     }
-        //
-        //     Get()->AddLog( { ConsoleLogLevel::CONSOLE_DEBUG, "Running external command: " + cmd } );
-        //
-        //     const auto output{ ExecuteProcess::Run( cmd ) };
-        //     if ( output.empty() ) {
-        //         Get()->AddLog( { ConsoleLogLevel::CONSOLE_INFO, "[no output]" } );
-        //     } else {
-        //         Get()->AddLog( { ConsoleLogLevel::CONSOLE_INFO, output } );
-        //     }
-        // } );
 
         m_IsInitialized = true;
     }

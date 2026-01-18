@@ -499,27 +499,16 @@ namespace Mikoto {
     public:
         explicit CameraComponent() = default;
 
-        explicit CameraComponent( Unique<SceneCamera>&& camera, const bool mainCam = true, const bool fixedAspectRation = false )
-            : m_Camera{ camera != nullptr ? std::move( camera ) : CreateScope<SceneCamera>() }, m_MainCam{ mainCam }, m_FixedAspectRatio{ fixedAspectRation } {
-        }
-
         CameraComponent( CameraComponent&& other ) noexcept = default;
         auto operator=( CameraComponent&& other ) -> CameraComponent& = default;
 
         MKT_NODISCARD auto IsMainCamera() const -> bool { return m_MainCam; }
-        MKT_NODISCARD auto HasCamera() -> bool { return m_Camera != nullptr; }
+        MKT_NODISCARD auto HasCamera() const -> bool { return m_Camera != nullptr; }
         MKT_NODISCARD auto GetCamera() -> SceneCamera& { return *m_Camera; }
         MKT_NODISCARD auto GetCamera() const -> const SceneCamera& { return *m_Camera; }
         MKT_NODISCARD auto IsAspectRatioFixed() const -> bool { return m_FixedAspectRatio; }
 
-        auto AddCamera() -> void {
-            if ( m_Camera == nullptr ) {
-                m_Camera = CreateScope<SceneCamera>();
-            }
-        }
-
-        auto EnableFixedAspectRatio() -> void { m_FixedAspectRatio = true; }
-        auto DisableFixedAspectRatio() -> void { m_FixedAspectRatio = false; }
+        auto SetFixedAspectRatio(const bool value) -> void { m_FixedAspectRatio = value; }
 
         ~CameraComponent() = default;
 

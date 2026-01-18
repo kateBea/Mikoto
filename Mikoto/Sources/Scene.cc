@@ -354,101 +354,16 @@ namespace Mikoto {
         return m_Entities.size();
     }
 
+    auto Scene::OnViewPortResize( const float width, const float height ) -> void {
+        // Resize non-fixed aspect ratio cameras
+        for ( const auto &entity: m_Registry.view<CameraComponent>() ) {
+            CameraComponent& cameraComponent{ m_Registry.get<CameraComponent>( entity ) };
 
-#if false
-
-        auto Scene::RemoveFromHierarchy( Entity & target ) -> void {
-        // List of entities to erase from hierarchy
-        std::vector<entt::entity> entitiesToErase{};
-
-        // we add the root node
-        entitiesToErase.emplace_back( target.Get() );
-
-        // If they are lights erase them
-        m_Hierarchy.ForAllChildren(
-                [&]( Entity *ent ) {
-                    if ( ent->HasComponent<LightComponent>() ) { RemoveFromLights( ent->GetComponent<TagComponent>().GetGUID() ); }
-
-                    // Add children to be erased
-                    entitiesToErase.emplace_back( ent->Get() );
-                },
-                [&target]( Entity *ent ) {
-                    return ent->GetComponent<TagComponent>().GetGUID() ==
-                           target.GetComponent<TagComponent>().GetGUID();
-                } );
-
-        // Erase node and its children from the hierarchy
-        const auto result{ m_Hierarchy.Erase(
-                [&target]( Entity *ent ) {
-                    return ent->GetComponent<TagComponent>().GetGUID() ==
-                           target.GetComponent<TagComponent>().GetGUID();
-                } ) };
-
-        if ( result ) {
-            // Erase entities from entt structures
-            for ( const entt::entity &entity: entitiesToErase ) { m_Registry.destroy( entity ); }
-        }
-    }
-
-        auto Scene::DestroyEntity( const UInt64_T uniqueID ) -> bool {
-            const Scope_T<Entity> target{ RemoveFromEntities( uniqueID ) };
-
-            if ( target == nullptr ) { return false; }
-
-            // Erase children from hierarchy, entities and lights
-            const auto children{ FindChildrenByID( uniqueID ) };
-
-            // Temporarily hold the children to remove them from lights
-            std::vector<Scope_T<Entity>> childrenPtrs{};
-
-            for ( Entity *child: children ) {
-                // Hold the pointer otherwise it gets deleted and then we can't remove it from lights because it's not valid
-                childrenPtrs.emplace_back( RemoveFromEntities( child->GetComponent<TagComponent>().GetGUID() ) );
-
-                if ( childrenPtrs.back()->HasComponent<LightComponent>() ) { RemoveFromLights( child->GetComponent<TagComponent>().GetGUID() ); }
-            }
-
-            // Erase parent (which erases children too)
-            if ( target->HasComponent<LightComponent>() ) { RemoveFromLights( uniqueID ); }
-
-            RemoveFromHierarchy( *target );
-
-            return true;
-        }
-
-        auto Scene::FindFirstEntityByName( const std::string_view name ) -> Entity * {
-            const auto result{
-                std::ranges::find_if( m_Entities,
-                                      [&]( const Scope_T<Entity> &entity ) -> bool { return entity->GetComponent<TagComponent>().GetTag() == name; } )
-            };
-
-            return result == m_Entities.end() ? nullptr : result->get();
-        }
-
-        auto Scene::FindChildrenByID( UInt64_T uniqueID ) -> std::vector<Entity *> {
-            std::vector<Entity *> children{};
-
-            m_Hierarchy.ForAllChildren(
-                    [&]( Entity *entity ) { children.emplace_back( entity ); },
-                    [&uniqueID]( Entity *entity ) { return entity->GetComponent<TagComponent>().GetGUID() == uniqueID; } );
-
-            return children;
-        }
-
-        auto Scene::OnViewPortResize( const float width, const float height ) -> void {
-            // Resize non-fixed aspect ratio cameras
-            const auto view{ m_Registry.view<TransformComponent, CameraComponent>() };
-
-            for ( const auto &entity: view ) {
-                TransformComponent &transformComponent{ view.get<TransformComponent>( entity ) };
-                CameraComponent &cameraComponent{ view.get<CameraComponent>( entity ) };
-
-                if ( !cameraComponent.IsAspectRatioFixed() ) { cameraComponent.GetCamera().SetViewportSize( width, height ); }
+            if ( !cameraComponent.IsAspectRatioFixed() ) {
+                cameraComponent.GetCamera().SetViewportSize( width, height );
             }
         }
-
     }
-#endif
 
     Scene::~Scene() {
         Clear();

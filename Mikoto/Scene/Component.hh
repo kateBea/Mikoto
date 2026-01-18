@@ -603,7 +603,7 @@ namespace Mikoto {
 
     class ScriptComponent {
     public:
-        explicit ScriptComponent(const Path& filePath)
+        explicit ScriptComponent(const Path& filePath = {})
             : m_FilePath{ filePath } {}
 
         ScriptComponent( const ScriptComponent& other ) = default;

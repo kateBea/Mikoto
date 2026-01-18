@@ -110,7 +110,7 @@ namespace Mikoto {
 
         ImGui::SameLine();
 
-        // Table showings texture properties
+        // Table showing texture properties
         constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
 
         if ( ImGui::BeginTable( "MaterialEditorDiffusePropertiesTable", 2, tableFlags ) ) {
@@ -181,7 +181,7 @@ namespace Mikoto {
         }
     }
 
-    static auto DisplayTextureEditTreeNode( std::string_view title, PBRMaterial& standardMat, const std::function<void( PBRMaterial& standardMat )>& func ) -> void {
+    static auto DisplayTextureEditTreeNode( const std::string_view title, PBRMaterial& standardMat, const std::function<void( PBRMaterial& standardMat )>& func ) -> void {
         constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
                                                     ImGuiTreeNodeFlags_Framed |
                                                     ImGuiTreeNodeFlags_SpanAvailWidth |
@@ -190,8 +190,9 @@ namespace Mikoto {
         ImGui::Separator();
         ImGui::Spacing();
 
-        if ( ImGui::TreeNodeEx( fmt::format( "##{}:{}", "DisplayTextureEditTreeNode", title.data() ).c_str(), treeNodeFlags, title.data() ) ) {
+        const std::string nodeLabel{ fmt::format( "##{}:{}", "DisplayTextureEditTreeNode", title.data() ) };
 
+        if ( ImGui::TreeNodeEx( nodeLabel.c_str(), treeNodeFlags, "%s", title.data() ) ) {
             func( standardMat );
 
             ImGui::TreePop();
@@ -203,8 +204,6 @@ namespace Mikoto {
     }
 
     static auto EditPBRMaterialAlbedoMap( PBRMaterial& material ) -> void {
-        // We use the standard default font with FONT_ICON_FILE_NAME_MD font icons
-        // since the other fonts don't correctly display these icons
         ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
         ImGui::SameLine();
         ImGui::TextUnformatted( " Albedo" );
@@ -221,8 +220,8 @@ namespace Mikoto {
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
-                TextureHandle albedoMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTextureType( MapType::ALBEDO_TEXTURE, albedoMap );
+                TextureHandle dstAlbedoMap{ *static_cast<TextureHandle*>( payload->Data ) };
+                material.SetTextureType( MapType::ALBEDO_TEXTURE, dstAlbedoMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
@@ -306,8 +305,8 @@ namespace Mikoto {
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
-                TextureHandle metallicMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTextureType( MapType::METALLIC_TEXTURE, metallicMap );
+                TextureHandle dstMetallicMap{ *static_cast<TextureHandle*>( payload->Data ) };
+                material.SetTextureType( MapType::METALLIC_TEXTURE, dstMetallicMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
@@ -382,8 +381,8 @@ namespace Mikoto {
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
-                TextureHandle normalMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTextureType( MapType::NORMAL_TEXTURE, normalMap );
+                TextureHandle dstNormalMap{ *static_cast<TextureHandle*>( payload->Data ) };
+                material.SetTextureType( MapType::NORMAL_TEXTURE, dstNormalMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
@@ -456,8 +455,8 @@ namespace Mikoto {
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
-                TextureHandle roughnessMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTextureType( MapType::ROUGHNESS_TEXTURE, roughnessMap );
+                TextureHandle dstRoughnessMap{ *static_cast<TextureHandle*>( payload->Data ) };
+                material.SetTextureType( MapType::ROUGHNESS_TEXTURE, dstRoughnessMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
@@ -532,8 +531,8 @@ namespace Mikoto {
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
-                TextureHandle aoMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE, aoMap );
+                TextureHandle dstAoMap{ *static_cast<TextureHandle*>( payload->Data ) };
+                material.SetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE, dstAoMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
@@ -630,7 +629,7 @@ namespace Mikoto {
             }
 
             if ( ImGui::MenuItem( "Script", menuItemShortcut, menuItemSelected, !IsPresent<ScriptComponent>( entity ) ) ) {
-                entity->AddComponent<ScriptComponent>( "TODO: PATH" );
+                entity->AddComponent<ScriptComponent>();
                 ImGui::CloseCurrentPopup();
             }
 
@@ -861,32 +860,12 @@ namespace Mikoto {
         constexpr ImGuiTextFlags flags{ ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll };
 
         // Copy the entity's name into the array we will modify
-        std::array<char, 1024> name{};
+        constexpr UInt32 MAX_NAME_LENGTH{ 1024 };
+        std::array<char, MAX_NAME_LENGTH> name{};
         std::ranges::copy( tag.GetTag(), name.data() );
 
         if ( ImGui::InputText( "##DrawNameTextInputTag", name.data(), name.max_size(), flags ) ) {
             tag.SetTag( name.data() );
-        }
-    }
-
-    static auto ApplyTransformRecursive(Entity& parent, TransformComponent& parentOldTransform, Scene* scene) -> void {
-        TransformComponent& parentTransform{ parent.GetComponent<TransformComponent>() };
-        glm::vec3 offsetTranslation{ parentTransform.GetTranslation() - parentOldTransform.GetTranslation() };
-        glm::vec3 offsetRotation{ parentTransform.GetRotation() - parentOldTransform.GetRotation() };
-        glm::vec3 offsetScale{ parentTransform.GetScale() - parentOldTransform.GetScale() };
-
-        // propagate change to children
-        RelationComponent& relation{ parent.GetComponent<RelationComponent>() };
-        for (const auto& childID : relation.GetChildren()) {
-            Entity* child{ scene->FindByID( childID ) };
-            if (child) {
-                ApplyTransformRecursive( parent, parentOldTransform, scene );
-            }
-
-            TransformComponent& childTransform{ child->GetComponent<TransformComponent>() };
-            childTransform.SetTranslation( offsetTranslation );
-            childTransform.SetRotation( offsetRotation );
-            //childTransform.SetScale( offsetScale );
         }
     }
 
@@ -896,8 +875,6 @@ namespace Mikoto {
         glm::vec3 newTranslation{ transformComponent.GetTranslation() };
         glm::vec3 newRotation{ transformComponent.GetRotation() };
         glm::vec3 newScale{ transformComponent.GetScale() };
-
-        //ApplyTransformRecursive( entity, transformComponent, scene );
 
         ImGui::Spacing();
 
@@ -920,6 +897,8 @@ namespace Mikoto {
         transformComponent.SetTranslation( newTranslation );
         transformComponent.SetRotation( newRotation );
         transformComponent.SetScale( newScale );
+
+        // TODO: Recursively apply transformations to children entities
     }
 
     static auto SetupScriptingComponentTab( Entity& entity ) -> void {
@@ -1016,8 +995,8 @@ namespace Mikoto {
 
 
     static auto SetupMaterialComponentTab( Entity& entity ) -> void {
-        // ImGui by default will indent because the items in this function are supposed to be
-        // within a Tree Node, items within a tree node appear indented by default when you expand it
+        // ImGui by default will indent because the items in this function because this method is run inside the DrawComponent function,
+        // so we are within a Tree Node, items within a tree node appear indented by default when you expand it
         ImGui::Unindent();
 
         MaterialComponent& materialComponent{ entity.GetComponent<MaterialComponent>() };
@@ -1554,14 +1533,6 @@ namespace Mikoto {
         AudioSourceHandle source{ audioComponent.GetSource() };
         AudioHandle clip{ audioComponent.GetClip() };
 
-        // if ( !clip ) {
-        //     if ( !ImGuiUtils::ButtonTextIcon( StringUtils::Concat( ICON_MD_ADD, " Add clip" ).c_str() ) ) {
-        //         return;
-        //     }
-        //
-        //     audioComponent.SetClip( clip );
-        // }
-
         constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
         if ( !ImGui::BeginTable( "AudioComponentTable", 2, tableFlags ) ) {
             return;
@@ -1897,21 +1868,13 @@ namespace Mikoto {
         }
 
         DrawComponent<TransformComponent>( fmt::format( "{} Transform", ICON_MD_DEVICE_HUB ), *entity, [&]( Entity& target ) -> void { SetupTransformComponentTab( target, m_State->ActiveEditorScene ); }, false );
-
         DrawComponent<MaterialComponent>( fmt::format( "{} Material", ICON_MD_INSIGHTS ), *entity, SetupMaterialComponentTab );
-
+        DrawComponent<MeshComponent>( fmt::format( "{} Mesh", ICON_MD_VIEW_IN_AR ), *entity, [&]( Entity& target ) -> void { SetupRenderComponentTab( target, m_State->ActiveEditorScene ); } );
         DrawComponent<RigidBodyComponent>( fmt::format( "{} Physics", ICON_MD_FITNESS_CENTER ), *entity, SetupPhysicsComponentTab );
-
-        DrawComponent<MeshComponent>( fmt::format( "{} Mesh", ICON_MD_VIEW_IN_AR ), *entity, [&]( Entity& target ) -> void { SetupRenderComponentTab( target, m_State->ActiveEditorScene ); }, false );
-
         DrawComponent<LightComponent>( fmt::format( "{} Light", ICON_MD_LIGHT ), *entity, SetupLightComponentTab );
-
         DrawComponent<AudioSourceComponent>( fmt::format( "{} Audio", ICON_MD_AUDIOTRACK ), *entity, SetupAudioComponentTab );
-
         DrawComponent<TextComponent>( fmt::format( "{} Text", ICON_MD_MESSAGE ), *entity, SetupTextComponentTab );
-
         DrawComponent<CameraComponent>( fmt::format( "{} Camera", ICON_MD_CAMERA_ALT ), *entity, SetupCameraComponentTab );
-
         DrawComponent<ScriptComponent>( fmt::format( "{} Script", ICON_MD_CODE ), *entity, SetupScriptingComponentTab );
     }
 

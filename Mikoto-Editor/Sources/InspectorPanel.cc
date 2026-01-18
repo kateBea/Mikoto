@@ -640,7 +640,7 @@ namespace Mikoto {
             }
 
             if ( ImGui::MenuItem( "Camera", menuItemShortcut, menuItemSelected, !IsPresent<CameraComponent>( entity ) ) ) {
-                entity->AddComponent<CameraComponent>( CreateScope<SceneCamera>() );
+                entity->AddComponent<CameraComponent>();
                 ImGui::CloseCurrentPopup();
             }
 
@@ -1747,8 +1747,6 @@ namespace Mikoto {
             if ( !ImGuiUtils::ButtonTextIcon( StringUtils::Concat( ICON_MD_ADD, " Add camera" ).c_str() ) ) {
                 return;
             }
-
-            cameraComponent.AddCamera();
         }
 
         SceneCamera& sceneCamera{ cameraComponent.GetCamera() };

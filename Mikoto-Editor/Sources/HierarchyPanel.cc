@@ -246,7 +246,7 @@ namespace Mikoto {
                 }
 
                 if ( ImGui::MenuItem( "Camera", menuItemShortcut, menuItemSelected, !IsPresent<CameraComponent>( entity ) ) ) {
-                    entity->AddComponent<CameraComponent>( CreateScope<SceneCamera>() );
+                    entity->AddComponent<CameraComponent>();
                     ImGui::CloseCurrentPopup();
                 }
 

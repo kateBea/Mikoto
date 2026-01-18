@@ -173,8 +173,6 @@ The development of Mikoto Engine is made possible thanks to these fantastic thir
 | **TaskFlow**                  | Moder C++ Task library                        | [https://github.com/taskflow/taskflow)                                                                              |
 | **Sol2**                      | Moder C++ Library for Scripting with Lua      | [https://github.com/ThePhD/sol2)                                                                                    |
 
-> **Note**: The required libraries are included as a submodules in the project and do not require separate installation, just need to clone the repository with ``--recursive`` flag.
-
 ## Networking
 Mikoto includes a networking layer built on top of ASIO to support TCP sockets.
 The engine supports both HTTP and HTTPS connections, but HTTPS requires OpenSSL to be installed on your system.

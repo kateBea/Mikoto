@@ -13,8 +13,10 @@
 
 namespace Mikoto {
 
+// This should use Tracy ZoneMacros, temporarily disabled as it leaks memory if
+// the profiler is not running
 #if !defined(NDEBUG)
-#define MKT_BEGIN_PROFILER_NAMED() 
+#define MKT_BEGIN_PROFILER_NAMED() /*ZoneScopedNS( __PRETTY_FUNCTION__ , 30 );*/
 #else
 #define MKT_BEGIN_PROFILER_NAMED()
 #endif

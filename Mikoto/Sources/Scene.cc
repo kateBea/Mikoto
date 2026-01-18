@@ -490,6 +490,12 @@ namespace Mikoto {
     }
 
     auto Scene::DestroyEntitySingle( UInt64 entityID ) -> bool {
+        RelationComponent& relationComponent{ m_Entities[entityID]->GetComponent<RelationComponent>() };
+
+        for (const auto& childID : relationComponent.GetChildren()) {
+            (void)DestroyEntitySingle(childID);
+        }
+
         m_Registry.destroy( m_Entities[entityID]->m_Handle );
         m_Entities.erase( entityID );
 

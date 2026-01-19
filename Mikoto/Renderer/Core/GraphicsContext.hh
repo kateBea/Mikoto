@@ -41,13 +41,15 @@ namespace Mikoto {
         UNDEFINED,
     };
 
-    struct GfxRenderInfo {
+    struct RenderInfo {
         LoadOp ColorLoadOp{ LoadOp::CLEAR };
         LoadOp DephtLoadOp{ LoadOp::CLEAR };
 
         Vec4F ClearColor{};
         TextureHandle DepthRenderTarget{};
         std::vector<TextureHandle> ColorRenderTargets{};
+
+        FramePass* Pass{};
     };
 
     struct PassResources {
@@ -62,34 +64,34 @@ namespace Mikoto {
         virtual auto Init() -> void = 0;
         virtual auto Shutdown() -> void = 0;
 
-        virtual auto BeginRender(GfxRenderInfo& info) -> void = 0;
-        virtual auto EndRender(GfxRenderInfo& info) -> void = 0;
+        virtual auto BeginRender(RenderInfo& info) -> void = 0;
+        virtual auto EndRender(RenderInfo& info) -> void = 0;
 
-        virtual auto BeginCompute() -> void = 0;
-        virtual auto EndCompute() -> void = 0;
+        virtual auto BeginCompute(FramePass* pass) -> void = 0;
+        virtual auto EndCompute(FramePass* pass) -> void = 0;
 
         virtual auto BeginFrame(FrameBlackboard* blackboard)-> void = 0;
         virtual auto EndFrame()-> void = 0;
 
-        virtual auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void = 0;
+        virtual auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ, FramePass* pass) -> void = 0;
 
-        virtual auto SetViewport(const PassViewport& vp) -> void = 0;
-        virtual auto SetScissor(const PassScissor& vp) -> void = 0;
+        virtual auto SetViewport(const PassViewport& vp, FramePass* pass) -> void = 0;
+        virtual auto SetScissor(const PassScissor& vp, FramePass* pass) -> void = 0;
 
         virtual auto PushImage(TextureHandle texture) -> Int32 = 0;
 
-        virtual auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance) -> void = 0;
+        virtual auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance, FramePass* pass) -> void = 0;
 
         virtual auto BindPipeline(PipelineHandle pipeline, FramePass* Pass) -> void = 0;
-        virtual auto BindTextureList() -> void = 0;
+        virtual auto BindTextureList(FramePass* pass) -> void = 0;
         virtual auto BindFrameResources() -> void = 0;
         virtual auto BindPassResources(FramePass* pass ) -> void = 0;
 
         virtual auto GetPassSRG( FramePass* pass ) -> SRGPerPass* = 0;
 
-        virtual auto BindIndexBuffer( BufferHandle indexBuffer )-> void = 0;
-        virtual auto BindVertexBuffer( BufferHandle vertexBuffer, UInt32 binding ) -> void = 0;
-        virtual auto DrawInstanced( Size indexCount, UInt32 instanceCount, UInt32 firstIndex, UInt32 vertexOffset, UInt32 firstInstance )-> void = 0;
+        virtual auto BindIndexBuffer( BufferHandle indexBuffer, FramePass* pass )-> void = 0;
+        virtual auto BindVertexBuffer( BufferHandle vertexBuffer, UInt32 binding, FramePass* pass ) -> void = 0;
+        virtual auto DrawInstanced( Size indexCount, UInt32 instanceCount, UInt32 firstIndex, UInt32 vertexOffset, UInt32 firstInstance, FramePass* pass )-> void = 0;
 
         virtual auto InsertResourceBarrier( FramePass * pass ) -> void = 0;
 
@@ -194,7 +196,7 @@ namespace Mikoto {
 
         FramePass* m_ActivePass{ nullptr };
 
-        GfxRenderInfo m_RenderInfo{};
+        RenderInfo m_RenderInfo{};
 
     };
 }

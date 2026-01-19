@@ -27,28 +27,28 @@ namespace Mikoto {
         auto Init() -> void override;
         auto Shutdown() -> void override;
 
-        auto BeginRender(GfxRenderInfo& beginInfo) -> void override;
-        auto EndRender(GfxRenderInfo& info) -> void override;
+        auto BeginRender(RenderInfo& beginInfo) -> void override;
+        auto EndRender(RenderInfo& info) -> void override;
 
-        auto BeginCompute() -> void override;
-        auto EndCompute() -> void override;
+        auto BeginCompute(FramePass* pass) -> void override;
+        auto EndCompute(FramePass* pass) -> void override;
 
         auto BeginFrame(FrameBlackboard* blackboard)-> void  override;
         auto EndFrame()-> void  override;
 
         auto BindPipeline( PipelineHandle pipeline, FramePass* Pass ) -> void override;
 
-        auto Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void override;
-        auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance) -> void  override;
+        auto Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ, FramePass* pass ) -> void override;
+        auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance, FramePass* pass) -> void  override;
 
-        auto BindIndexBuffer( BufferHandle indexBuffer )-> void  override;
-        auto BindVertexBuffer( BufferHandle vertexBuffer, UInt32 binding ) -> void  override;
-        auto DrawInstanced( Size indexCount, UInt32 instanceCount, UInt32 firstIndex, UInt32 vertexOffset, UInt32 firstInstance )-> void  override;
+        auto BindIndexBuffer( BufferHandle indexBuffer, FramePass* pass )-> void  override;
+        auto BindVertexBuffer( BufferHandle vertexBuffer, UInt32 binding, FramePass* pass ) -> void  override;
+        auto DrawInstanced( Size indexCount, UInt32 instanceCount, UInt32 firstIndex, UInt32 vertexOffset, UInt32 firstInstance, FramePass* pass )-> void  override;
 
-        auto SetViewport(const PassViewport& vp) -> void  override;
-        auto SetScissor(const PassScissor& vp) -> void  override;
+        auto SetViewport(const PassViewport& vp, FramePass* pass) -> void  override;
+        auto SetScissor(const PassScissor& vp, FramePass* pass) -> void  override;
 
-        auto BindTextureList() -> void override;
+        auto BindTextureList(FramePass* pass) -> void override;
         auto BindFrameResources() -> void  override;
 
         auto PushImage(TextureHandle texture) -> Int32 override;
@@ -94,9 +94,7 @@ namespace Mikoto {
             bool Dirty{ true };
         };
 
-        // TODO: Before we start rendering passes
-        // Descriptors are bound to a buffer so if we want to share descriptors they must be of same cmd buffer
-        CommandListHandle m_CmdList{};
+        ankerl::unordered_dense::map<FramePass*, CommandListHandle> m_CmdLists{};
 
         FrameBlackboard* m_Blackboard{};
 

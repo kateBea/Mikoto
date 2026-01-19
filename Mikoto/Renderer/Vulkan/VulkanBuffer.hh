@@ -47,7 +47,7 @@ namespace Mikoto {
         auto UploadHostData() -> void;
         auto UploadHostDataToStaging() -> void;
 
-        auto InitBuffer() -> void;
+        auto InitMainBuffer() -> void;
         auto InitStaging() -> void;
 
     private:

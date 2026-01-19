@@ -6,6 +6,7 @@
 #define VULKANDEVICE_HH
 
 #include <vector>
+#include <mutex>
 
 #include <volk.h>
 #include <vk_mem_alloc.h>
@@ -62,13 +63,12 @@ namespace Mikoto {
         VkCommandBufferAllocateInfo m_AllocInfo{};
     };
 
+    // Command pool and Command buffers from the same command pool can only be used by a single thread
     class VulkanCommandPool final : public DeviceObject {
     public:
         explicit VulkanCommandPool(QueueType queue, Size initialCmdListCount = 10);
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
-
-        MKT_NODISCARD auto IsPoolLocked() const -> bool { return m_InUse.load(); }
 
         auto AllocateCmdList() -> CommandListHandle;
 
@@ -96,9 +96,6 @@ namespace Mikoto {
         auto Release() -> void override;
 
     private:
-        // Command pools cannot be shared between threads
-        std::atomic_bool m_InUse{};
-
         QueueType m_QueueType{ QueueType::GRAPHICS_QUEUE };
 
         VkCommandPool m_Pool{ VK_NULL_HANDLE };
@@ -227,6 +224,9 @@ namespace Mikoto {
 
         // [Command list management]
         QueuesData m_Queues{};
+
+        std::mutex m_CommandSubmitMutex{};
+        std::mutex m_CommandCreateMutex{};
 
         UInt32 m_CurrentFrameIndex{};
         ankerl::unordered_dense::map<UInt32, VkFence> m_FrameFences{};

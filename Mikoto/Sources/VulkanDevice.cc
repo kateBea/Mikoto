@@ -550,6 +550,8 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreateCommandList( QueueType ) -> CommandListHandle {
+        // FIXME: Command pools cannot be shared, also command buffers from same pool cannot be used by multiple threads in paralel
+
         auto& currentFrameCmdLists{ m_AvailableGraphicsCommandLists[m_CurrentFrameIndex] };
 
         if (currentFrameCmdLists.empty() ) {
@@ -729,6 +731,8 @@ namespace Mikoto {
 
     auto VulkanDevice::SubmitCommands( CommandListHandle cmd ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
+        std::lock_guard lock{ m_CommandSubmitMutex };
         m_PendingGraphicsCommandLists[m_CurrentFrameIndex].emplace_back( cmd );
     }
 
@@ -1062,6 +1066,7 @@ namespace Mikoto {
     }
 
     auto VulkanCommandPool::AllocateCmdList() -> CommandListHandle {
+        MKT_BEGIN_PROFILER_NAMED();
         VkCommandBufferAllocateInfo allocInfo{ VulkanHelpers::Initializers::CommandBufferAllocateInfo() };
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandPool = m_Pool;

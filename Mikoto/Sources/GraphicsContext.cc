@@ -38,6 +38,7 @@ namespace Mikoto {
 
         m_RenderInfo.ColorLoadOp = colorTargetLoadOp;
         m_RenderInfo.DephtLoadOp = depthTargetLoadOp;
+        m_RenderInfo.Pass = pass;
 
         m_Context->BeginRender( m_RenderInfo );
 
@@ -106,13 +107,13 @@ namespace Mikoto {
 
     auto PassCommandList::Draw( UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance ) const -> void {
         MKT_ASSERT( m_Context, "No valid context for this pass command list" );
-        m_Context->Draw(vertexCount, instanceCount, firstVertex, firstInstance);
+        m_Context->Draw(vertexCount, instanceCount, firstVertex, firstInstance, m_ActivePass);
     }
 
     auto PassCommandList::BeginCompute(FramePass* pass) -> void {
         MKT_ASSERT( m_Context, "No valid context for this pass command list" );
 
-        m_Context->BeginCompute();
+        m_Context->BeginCompute(pass);
 
         m_ActivePass = pass;
     }
@@ -120,7 +121,7 @@ namespace Mikoto {
     auto PassCommandList::EndCompute() const -> void {
         MKT_ASSERT( m_Context, "No valid context for this pass command list" );
 
-        m_Context->EndCompute();
+        m_Context->EndCompute(m_ActivePass);
     }
 
     auto PassCommandList::SetViewport( Int32 x, Int32 y, Int32 width, Int32 height ) -> void {
@@ -131,7 +132,7 @@ namespace Mikoto {
         m_Viewport.Width = width;
         m_Viewport.Height = height;
 
-        m_Context->SetViewport( m_Viewport );
+        m_Context->SetViewport( m_Viewport, m_ActivePass );
     }
 
     auto PassCommandList::SetScissor( Int32 x, Int32 y, Int32 width, Int32 height ) -> void {
@@ -142,7 +143,7 @@ namespace Mikoto {
         m_Scissor.Width = width;
         m_Scissor.Height = height;
 
-        m_Context->SetScissor( m_Scissor );
+        m_Context->SetScissor( m_Scissor, m_ActivePass );
     }
 
     auto PassCommandList::BindPipeline( std::string_view pipelineName ) const -> void {
@@ -159,17 +160,17 @@ namespace Mikoto {
         MKT_ASSERT( m_Blackboard, "Tried to create PassCommandList with NULL blackboard" );
 
         for (auto& [vertexBuffer, binding] : info.VertexBuffers) {
-            m_Context->BindVertexBuffer(vertexBuffer, binding);
+            m_Context->BindVertexBuffer(vertexBuffer, binding, m_ActivePass);
         }
 
-        m_Context->BindIndexBuffer(info.IndexBuffer);
-        m_Context->DrawInstanced(info.IndexBuffer->GetCount(), info.InstancesCount, info.FirstIndex, info.VertexOffset, info.FirstInstance);
+        m_Context->BindIndexBuffer(info.IndexBuffer, m_ActivePass);
+        m_Context->DrawInstanced(info.IndexBuffer->GetCount(), info.InstancesCount, info.FirstIndex, info.VertexOffset, info.FirstInstance, m_ActivePass);
     }
 
     auto PassCommandList::Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) const -> void {
         MKT_ASSERT( m_Context, "No valid context for this pass command list" );
 
-        m_Context->Dispatch( invX, invY, invZ );
+        m_Context->Dispatch( invX, invY, invZ, m_ActivePass );
     }
 
     auto PassCommandList::SetClearColor( const Vec4F &color ) -> void {
@@ -209,7 +210,7 @@ namespace Mikoto {
         switch (srgType) {
 
             case SRGType::SRG_Textures:
-                m_Context->BindTextureList();
+                m_Context->BindTextureList(m_ActivePass);
                 break;
             case SRGType::SRG_PerPass:
                 m_Context->BindPassResources(m_ActivePass);

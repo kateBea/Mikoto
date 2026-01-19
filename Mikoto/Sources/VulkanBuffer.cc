@@ -61,12 +61,12 @@ namespace Mikoto {
                 m_Allocation.BufferCreateInfo.size = static_cast<UInt32>( m_SizeBytes );
             }
 
-            InitBuffer();
+            InitMainBuffer();
             UploadHostData();
         }
 
         if (IsUsage( BufferUsage::BUFFER_USAGE_VERTEX ) || IsUsage(BufferUsage::BUFFER_USAGE_INDEX)) {
-            InitBuffer();
+            InitMainBuffer();
             InitStaging();
 
             UploadHostDataToStaging();
@@ -82,11 +82,33 @@ namespace Mikoto {
 
             vkCmdCopyBuffer(cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ), m_StagingAllocation.Buffer, m_Allocation.Buffer, 1, std::addressof(copy));
 
-            // TODO:
-            // Make sure copying from staging buffer to the actual
-            // buffer has finished by inserting a buffer memory barrier.
-            // VkBufferMemoryBarrier bufMemBarrier2{}
-            // vkCmdPipelineBarrier
+            VkAccessFlags accessFlags{ VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT };
+
+            // It is either vertex or index
+            if (IsUsage(BufferUsage::BUFFER_USAGE_INDEX)) {
+                accessFlags = VK_ACCESS_INDEX_READ_BIT;
+            }
+
+            VkBufferMemoryBarrier barrier{
+                .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+                .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+                .dstAccessMask = accessFlags,
+                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .buffer = m_Allocation.Buffer,
+                .offset = 0,
+                .size = m_SizeBytes
+            };
+
+            vkCmdPipelineBarrier(
+                cmd->GetNativeHandle(ObjectType::Vk_CmdBuffer),
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+                0,
+                0, nullptr,
+                1, &barrier,
+                0, nullptr
+            );
 
             cmd->End();
             m_Device->SubmitCommands( cmd );
@@ -129,7 +151,7 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanBuffer::InitBuffer() -> void {
+    auto VulkanBuffer::InitMainBuffer() -> void {
         auto* allocator{ MKT_VMA_ALLOC_PTR(m_Device) };
         if ( const VkResult result{ allocator->AllocateBuffer( m_Allocation ) }; result != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("VulkanBuffer::InitBuffer - Failed to allocate Vulkan buffer!");

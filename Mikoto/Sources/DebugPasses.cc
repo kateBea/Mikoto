@@ -143,16 +143,22 @@ namespace Mikoto {
 
     auto WireFramePass::Execute( PassCommandList& commandList ) -> void {
 
+        LoadOp colorLoadOp{ LoadOp::CLEAR };
+        LoadOp depthLoadOp{ LoadOp::CLEAR };
+
         if (m_ShowColor) {
             commandList.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
             commandList.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
-            commandList.BeginRender(this, LoadOp::LOAD, LoadOp::LOAD);
+            colorLoadOp = LoadOp::LOAD;
+            depthLoadOp = LoadOp::LOAD;
         } else {
-            commandList.SetClearColor( m_ClearColor );
             commandList.SetColorRenderTarget( "WireFramePass_ColorTarget" );
             commandList.SetDepthRenderTarget( "WireFramePass_DepthTarget" );
-            commandList.BeginRender(this );
         }
+
+        commandList.BeginRender(this, colorLoadOp, depthLoadOp );
+
+        commandList.SetClearColor( m_ClearColor );
 
         commandList.BindPipeline( "WireFramePass_Pipeline" );
 
@@ -300,9 +306,10 @@ namespace Mikoto {
     auto HelloTrianglePass::Execute( PassCommandList& commandList ) -> void {
         commandList.SetColorRenderTarget( "HelloTrianglePass_ColorTarget" );
         commandList.SetDepthRenderTarget( "HelloTrianglePass_DepthTarget" );
-        commandList.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
 
         commandList.BeginRender(this);
+
+        commandList.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
         commandList.BindPipeline( "HelloTrianglePass_Pipeline" );
 
         // Set render targets
@@ -351,9 +358,11 @@ namespace Mikoto {
 
         commandList.SetColorRenderTarget( "HelloTexture_ColorTarget" );
         commandList.SetDepthRenderTarget( "HelloTexture_DepthTarget" );
-        commandList.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
 
         commandList.BeginRender(this);
+
+        commandList.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
+
         commandList.BindPipeline( "HelloTexture_Pipeline" );
 
         TextureHandle textureHandle{ AssetsService::Get()->LoadAsset<Texture>( Path{ "Resources/Models/1 - Box texture/CatStare.png" } ) };

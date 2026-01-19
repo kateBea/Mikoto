@@ -105,7 +105,7 @@ namespace Mikoto {
         * @struct ImporterInfo
         * @brief Contains information related to Assimp importers.
         *
-        * Each importer instance is assigned to a thread for safe multi-threaded operation.
+        * Each importer instance is assigned to a thread.
         */
         struct ImporterInfo {
             Assimp::Importer MeshImporter{};

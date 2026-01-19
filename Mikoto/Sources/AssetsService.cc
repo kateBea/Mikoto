@@ -17,6 +17,8 @@
 #include <Library/Utility/Types.hh>
 #include <Threading/TaskService.hh>
 
+#include "Threading/ThreadUtility.hh"
+
 namespace Mikoto {
 
     AssetsService::AssetsService( const AssetsServiceDescription& options )
@@ -29,7 +31,7 @@ namespace Mikoto {
 
         // Model importer library
         MeshFactoryCreateInfo meshFactoryCreateInfo{
-            .ImportersCount{ 5 },
+            .ImportersCount{ ThreadUtils::InferConcurrentThreads() },
             .UseCustomLogger{ true },
             .Device{ m_GpuDevice },
         };

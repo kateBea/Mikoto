@@ -23,9 +23,7 @@ namespace Mikoto {
 
     class CustomLogStream final : public Assimp::LogStream {
     public:
-        auto write(const char* message) -> void override {
-            MKT_CORE_LOGGER_DEBUG("[Assimp] {}", message);
-        }
+        auto write( const char *message ) -> void override { MKT_CORE_LOGGER_DEBUG( "[Assimp] {}", message ); }
     };
 
     struct MeshNodeCreateInfo {
@@ -46,7 +44,7 @@ namespace Mikoto {
     };
 
     static auto InferMikotoTextureType( const aiTextureType type ) -> TextureType {
-        switch ( type ) {
+        switch (type) {
             case aiTextureType_DIFFUSE:
             case aiTextureType_SPECULAR:
             case aiTextureType_NORMALS:
@@ -86,7 +84,7 @@ namespace Mikoto {
         }
     }
 
-    static auto LoadVertices( const aiMesh* mesh ) -> std::vector<float> {
+    static auto LoadVertices( const aiMesh *mesh ) -> std::vector<float> {
         // special case for vulkan
         const bool invertY{ RenderService::Get()->IsGraphicsActive( GraphicsAPI::VULKAN_API ) };
 
@@ -98,12 +96,12 @@ namespace Mikoto {
 
         std::vector<float> vertices{};
 
-        const BufferLayout& defaultBufferLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT };
+        const BufferLayout &defaultBufferLayout{ DEFAULT_VERTEX_BUFFER_LAYOUT };
 
         // floats per vertex (for instance, position is 3 floats, normals with 3 floats, etc.) times number of vertices
         vertices.reserve( ( defaultBufferLayout.GetStride() / sizeof( float ) ) * mesh->mNumVertices );
 
-        for ( UInt64 index{}; index < mesh->mNumVertices; index++ ) {
+        for (UInt64 index{}; index < mesh->mNumVertices; index++) {
             // This must follow the order of the default buffer layout
 
             // Vertices -----
@@ -112,7 +110,7 @@ namespace Mikoto {
             vertices.emplace_back( mesh->mVertices[index].z );
 
             // Normals -----
-            if ( mesh->HasNormals() ) {
+            if (mesh->HasNormals()) {
                 vertices.emplace_back( mesh->mNormals[index].x );
                 vertices.emplace_back( mesh->mNormals[index].y );
                 vertices.emplace_back( mesh->mNormals[index].z );
@@ -123,7 +121,7 @@ namespace Mikoto {
             }
 
             // Colors -----
-            if ( mesh->HasVertexColors( index ) ) {
+            if (mesh->HasVertexColors( index )) {
                 vertices.emplace_back( mesh->mColors[index]->r );
                 vertices.emplace_back( mesh->mColors[index]->g );
                 vertices.emplace_back( mesh->mColors[index]->b );
@@ -134,7 +132,7 @@ namespace Mikoto {
             }
 
             // Texture coordinates -----
-            if ( mesh->HasTextureCoords(0) ) {
+            if (mesh->HasTextureCoords( 0 )) {
                 vertices.emplace_back( mesh->mTextureCoords[0][index].x );
                 vertices.emplace_back( 1 - mesh->mTextureCoords[0][index].y );
             } else {
@@ -143,55 +141,48 @@ namespace Mikoto {
             }
 
             // Tangents and Bi tangents
-            if ( mesh->HasTangentsAndBitangents() ) {
-            }
+            if (mesh->HasTangentsAndBitangents()) {}
         }
 
         return vertices;
     }
 
-    static auto LoadIndices( const aiMesh* mesh ) -> std::vector<UInt32> {
+    static auto LoadIndices( const aiMesh *mesh ) -> std::vector<UInt32> {
         std::vector<UInt32> indices{};
 
-        for ( UInt64 i{}; i < mesh->mNumFaces; i++ ) {
+        for (UInt64 i{}; i < mesh->mNumFaces; i++) {
             const auto face{ mesh->mFaces[i] };
 
-            for ( UInt64 index{}; index < face.mNumIndices; index++ ) {
-                indices.emplace_back( face.mIndices[index] );
-            }
+            for (UInt64 index{}; index < face.mNumIndices; index++) { indices.emplace_back( face.mIndices[index] ); }
         }
 
         return indices;
     }
 
-    static auto LoadTexture( const std::string& modelRootPath, const aiMaterial* material, const aiTextureType type, const aiScene* scene ) -> TextureHandle {
+    static auto LoadTexture( const std::string &modelRootPath, const aiMaterial *material, const aiTextureType type, const aiScene *scene ) -> TextureHandle {
         TextureHandle texture{};
 
-        for ( Size index{}; index < material->GetTextureCount( type ); index++ ) {
+        for (Size index{}; index < material->GetTextureCount( type ); index++) {
             aiString assimpTexturePath{};
 
-            if ( material->GetTexture( type, index, std::addressof( assimpTexturePath ) ) == AI_SUCCESS ) {
+            if (material->GetTexture( type, index, std::addressof( assimpTexturePath ) ) == AI_SUCCESS) {
                 // Assumes the textures are in the same directory as the model files
                 Path path{ PathBuilder()
-                    .WithPath( modelRootPath )
-                    .WithPath( assimpTexturePath.C_Str() )
-                    .Build() };
+                           .WithPath( modelRootPath )
+                           .WithPath( assimpTexturePath.C_Str() )
+                           .Build() };
 
                 TextureLoadDescription loadInfo{};
                 loadInfo.WithFile( FileService::Get()->LoadFile( path ) )
-                    .WithType( InferMikotoTextureType( type ) )
-                    .WithMapType( InferMapType( type ) );
+                        .WithType( InferMikotoTextureType( type ) )
+                        .WithMapType( InferMapType( type ) );
 
-                try {
-                    texture = AssetsService::Get()->LoadAsset<Texture>( loadInfo );
-                } catch ( std::exception& e ) {
-                    MKT_CORE_LOGGER_ERROR( "LoadTexture - Failed to load texture. Reason: {}", e.what() );
-                }
+                try { texture = AssetsService::Get()->LoadAsset<Texture>( loadInfo ); } catch (std::exception &e) { MKT_CORE_LOGGER_ERROR( "LoadTexture - Failed to load texture. Reason: {}", e.what() ); }
 
-                if ( !texture.IsEmpty() ) {
+                if (!texture.IsEmpty()) {
                     // std::string_view does not extend lifetime of the temporary string
-                    const auto& texturePath{ path.filename().string() };
-                    const auto& textureName{ path.filename().string() };
+                    const auto &texturePath{ path.filename().string() };
+                    const auto &textureName{ path.filename().string() };
 
                     texture->SetTextureUri( texturePath );
                     texture->SetTextureName( textureName );
@@ -200,65 +191,59 @@ namespace Mikoto {
 
             // Temporary. See if it is an embedded texture
             // This one will probably be loaded in the device directly and not cached in the assets service??
-            auto [embeddedTexturePtr, embeddedTextureIndex] {
+            auto [embeddedTexturePtr, embeddedTextureIndex]{
                 scene->GetEmbeddedTextureAndIndex( assimpTexturePath.C_Str() )
             };
 
-            if ( embeddedTextureIndex != -1 ) {
-                MKT_CORE_LOGGER_WARN( "Model::LoadTextures - Texture is embedded! Index is {}", embeddedTextureIndex );
-            }
+            if (embeddedTextureIndex != -1) { MKT_CORE_LOGGER_WARN( "Model::LoadTextures - Texture is embedded! Index is {}", embeddedTextureIndex ); }
         }
 
         return texture;
     }
 
-    static auto LoadTextures(const std::string& modelRootPath, const aiMesh* mesh, const aiScene* scene ) -> std::vector<TextureHandle> {
+    static auto LoadTextures( const std::string &modelRootPath, const aiMesh *mesh, const aiScene *scene ) -> std::vector<TextureHandle> {
         std::vector<TextureHandle> textures{};
 
-        if ( mesh->mMaterialIndex > 0 ) {
-            const aiMaterial* material{ scene->mMaterials[mesh->mMaterialIndex] };
-            for ( const aiTextureType& type: ASSIMP_TEXTURE_TYPES ) {
+        if (mesh->mMaterialIndex > 0) {
+            const aiMaterial *material{ scene->mMaterials[mesh->mMaterialIndex] };
+            for (const aiTextureType &type: ASSIMP_TEXTURE_TYPES) {
                 TextureHandle handle{ LoadTexture( modelRootPath, material, type, scene ) };
 
-                if (!handle.IsEmpty()) {
-                    textures.emplace_back( handle );
-                }
+                if (!handle.IsEmpty()) { textures.emplace_back( handle ); }
             }
         }
 
         return textures;
     }
 
-    static auto ConstructMeshNode(GpuDevice* device, const std::string& rootPath,
-                              const aiMesh* mesh, const aiScene* scene)
-    -> std::tuple<BufferHandle, BufferHandle, std::vector<TextureHandle>, std::string>
-    {
+    static auto ConstructMeshNode( GpuDevice *device, const std::string &rootPath,
+                                   const aiMesh *mesh, const aiScene *scene )
+        -> std::tuple<BufferHandle, BufferHandle, std::vector<TextureHandle>, std::string> {
         const std::string name{ mesh->mName.C_Str() };
 
-        auto vertices{ LoadVertices(mesh) };
-        auto indices{ LoadIndices(mesh) };
-        auto textures{ LoadTextures(rootPath, mesh, scene) };
+        auto vertices{ LoadVertices( mesh ) };
+        auto indices{ LoadIndices( mesh ) };
+        auto textures{ LoadTextures( rootPath, mesh, scene ) };
 
         BufferDescription vertexDesc{};
-        vertexDesc.WithData(reinterpret_cast<Byte*>(vertices.data()))
-                  .WithUsage(BufferUsage::BUFFER_USAGE_VERTEX)
-                  .WithBufferDataType(BufferDataType::BUFFER_DATA_FLOAT32)
-                  .WithSizeBytes(InferSize<float>(vertices.size()))
-                  .WithResourceUsageType(ResourceUsageType::RESOURCE_USAGE_STATIC);
+        vertexDesc.WithData( reinterpret_cast<Byte *>( vertices.data() ) )
+                  .WithUsage( BufferUsage::BUFFER_USAGE_VERTEX )
+                  .WithBufferDataType( BufferDataType::BUFFER_DATA_FLOAT32 )
+                  .WithSizeBytes( InferSize<float>( vertices.size() ) )
+                  .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
         BufferDescription indexDesc{};
-        indexDesc.WithData(reinterpret_cast<Byte*>(indices.data()))
-                 .WithUsage(BufferUsage::BUFFER_USAGE_INDEX)
-                 .WithSizeBytes(InferSize<UInt32>(indices.size()))
-                 .WithBufferDataType(BufferDataType::BUFFER_DATA_UINT32)
-                 .WithResourceUsageType(ResourceUsageType::RESOURCE_USAGE_STATIC);
+        indexDesc.WithData( reinterpret_cast<Byte *>( indices.data() ) )
+                 .WithUsage( BufferUsage::BUFFER_USAGE_INDEX )
+                 .WithSizeBytes( InferSize<UInt32>( indices.size() ) )
+                 .WithBufferDataType( BufferDataType::BUFFER_DATA_UINT32 )
+                 .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
-        return { device->CreateBuffer(vertexDesc), device->CreateBuffer(indexDesc), std::move(textures), name };
+        return { device->CreateBuffer( vertexDesc ), device->CreateBuffer( indexDesc ), std::move( textures ), name };
     }
 
-    static auto LoadNodes(GpuDevice* device, const std::string& rootPath, const aiNode* node,
-                      const aiScene* scene, const ModelLoadDescription& loadInfo) -> std::vector<MeshNode>
-    {
+    static auto LoadNodes( GpuDevice *device, const std::string &rootPath, const aiNode *node,
+                           const aiScene *scene, const ModelLoadDescription &loadInfo ) -> std::vector<MeshNode> {
         // Assimp structures a scene like a hierarchy of nodes where
         // each node has child nodes and a list of meshes attached to it (the node only holds indices the actual meshes are in the aiScene structure).
         // We will first load all the meshes from the current node and recursively do the same task with children nodes.
@@ -266,88 +251,88 @@ namespace Mikoto {
 
         // Process all the meshes from this node
         for (UInt64 i{}; i < node->mNumMeshes; ++i) {
-            auto [vertexBuf, indexBuf, textures, name] {
-                ConstructMeshNode(device, rootPath, scene->mMeshes[node->mMeshes[i]], scene)
+            auto [vertexBuf, indexBuf, textures, name]{
+                ConstructMeshNode( device, rootPath, scene->mMeshes[node->mMeshes[i]], scene )
             };
 
-            result.emplace_back( static_cast<Size>(node->mMeshes[i]), std::move(vertexBuf),std::move(indexBuf), std::move(textures), std::move(name) );
+            result.emplace_back( static_cast<Size>( node->mMeshes[i] ), std::move( vertexBuf ), std::move( indexBuf ), std::move( textures ), std::move( name ) );
         }
 
         // Do the same for all the children nodex from this node
         for (UInt64 i{}; i < node->mNumChildren; ++i) {
-            auto children{ LoadNodes(device, rootPath, node->mChildren[i], scene, loadInfo) };
-            std::ranges::move(children, std::back_inserter(result));
+            auto children{ LoadNodes( device, rootPath, node->mChildren[i], scene, loadInfo ) };
+            std::ranges::move( children, std::back_inserter( result ) );
         }
 
         return result;
     }
 
-    auto MeshFactory::ImportModel(GpuDevice* device, Assimp::Importer& importer, const ModelLoadDescription& loadInfo ) -> Model* {
-        Model* result{ nullptr };
+    auto MeshFactory::ImportModel( GpuDevice *device, Assimp::Importer &importer, const ModelLoadDescription &loadInfo ) -> Model * {
+        Model *result{ nullptr };
 
         // See more postprocessing options: https://assimp.sourceforge.net/lib_html/postprocess_8h.html
         constexpr auto importerFlags{ static_cast<aiPostProcessSteps>( aiProcess_Triangulate |
                                                                        aiProcess_FlipUVs |
                                                                        aiProcess_GenSmoothNormals |
                                                                        aiProcess_JoinIdenticalVertices ) };
-        const File* file{ loadInfo.ModelFile };
+        const File *file{ loadInfo.ModelFile };
         const std::string absolutePath{ file->GetPath() };
         const std::string fileName{ Path{ absolutePath }.stem().string() };
 
-        const aiScene* scene{ importer.ReadFile( absolutePath.c_str(), importerFlags ) };
+        const aiScene *scene{ importer.ReadFile( absolutePath.c_str(), importerFlags ) };
         //const aiScene* scene{ importer.ReadFileFromMemory(  file->GetFileBytes(), file->GetSizeBytes(), importerFlags ) };
-        if ( scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || scene->mRootNode == nullptr ) {
-            MKT_CORE_LOGGER_ERROR( "ImportModel - Model load failed. Assimp error: '{}'", importer.GetErrorString() );
-        } else {
-
-            Path rootPath{file->GetPath() };
+        if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || scene->mRootNode == nullptr) { MKT_CORE_LOGGER_ERROR( "ImportModel - Model load failed. Assimp error: '{}'", importer.GetErrorString() ); } else {
+            Path rootPath{ file->GetPath() };
             rootPath.remove_filename();
 
-            if ( auto nodes{ LoadNodes(device, rootPath.string(), scene->mRootNode, scene, loadInfo ) }; !nodes.empty() ) {
+            if (auto nodes{ LoadNodes( device, rootPath.string(), scene->mRootNode, scene, loadInfo ) }; !nodes.empty()) {
                 result = new Model( fileName, absolutePath );
 
-                for ( MeshNode& node: nodes ) {
-                    result->AddMeshNode( node.GetMeshIndex(), std::move( node ) );
-                }
+                for (MeshNode &node: nodes) { result->AddMeshNode( node.GetMeshIndex(), std::move( node ) ); }
             }
         }
 
         return result;
     }
 
-    MeshFactory::MeshFactory( const MeshFactoryCreateInfo& createInfo )
+    MeshFactory::MeshFactory( const MeshFactoryCreateInfo &createInfo )
         : m_Device{ createInfo.Device },
-            m_WantCustomLog{ createInfo.UseCustomLogger } {
+          m_WantCustomLog{ createInfo.UseCustomLogger } {
         m_Importers.resize( createInfo.ImportersCount );
 
-        for (auto& importerInfo : m_Importers) {
+        for (auto &importerInfo: m_Importers) {
             importerInfo = CreateScope<ImporterInfo>();
         }
     }
 
-    auto MeshFactory::ImportModel( const ModelLoadDescription& loadInfo ) -> ModelHandle {
-        Model* result{ nullptr };
+    auto MeshFactory::ImportModel( const ModelLoadDescription &loadInfo ) -> ModelHandle {
+        Model *result{ nullptr };
 
-        if ( loadInfo.ModelFile == nullptr ) {
+        if (loadInfo.ModelFile == nullptr) {
             MKT_CORE_LOGGER_ERROR( "MeshFactory::ImportModel - File is null." );
             return ModelHandle::Create( result );
         }
 
-        // Find available importer and atomically acquire it
-        const auto availableImporter{
-            std::ranges::find_if( m_Importers, []( const Unique<ImporterInfo>& info ) {
-                bool expected{ true };
-                return info->IsFree.compare_exchange_strong( expected, false );
-            } )
-        };
+        // Try to acquire a free importer
+        ImporterInfo *acquiredImporter{};
+        Size acquiredIndex{};
 
-        if ( availableImporter != m_Importers.end() ) {
-            result = ImportModel(m_Device, (*availableImporter)->MeshImporter, loadInfo );
+        for (Size i{ 0 }; i < m_Importers.size(); ++i) {
+            bool expected{ true };
+            if (m_Importers[i]->IsFree.compare_exchange_strong( expected, false,
+                                                                std::memory_order_acquire )) {
+                acquiredImporter = m_Importers[i].get();
+                acquiredIndex = i;
+                break;
+            }
+        }
 
-            // Mark importer as free again,
-            // std::memory_order_release ensures that any thread that later
-            // reads IsFree == true will see all previous writings to the object
-            (*availableImporter)->IsFree.store( true, std::memory_order_release );
+        if (acquiredImporter) {
+            result = ImportModel( m_Device, acquiredImporter->MeshImporter, loadInfo );
+
+            acquiredImporter->IsFree.store( true, std::memory_order_release );
+
+            MKT_CORE_LOGGER_DEBUG( "Using importer {}", acquiredIndex );
         }
 
         return ModelHandle::Create( result );
@@ -357,50 +342,46 @@ namespace Mikoto {
         if (m_WantCustomLog) {
             m_CustomLoggingImpl = CreateScope<CustomLogStream>();
 
-            Assimp::DefaultLogger::create("", Assimp::Logger::VERBOSE);
-            Assimp::DefaultLogger::get()->attachStream(m_CustomLoggingImpl.get(), Assimp::Logger::VERBOSE);
+            Assimp::DefaultLogger::create( "", Assimp::Logger::VERBOSE );
+            Assimp::DefaultLogger::get()->attachStream( m_CustomLoggingImpl.get(), Assimp::Logger::VERBOSE );
         }
     }
 
     auto MeshFactory::Init() -> void {
         // Allocate importers
-        for ( const auto& importerInfo : m_Importers) {
+        for (const auto &importerInfo: m_Importers) {
             importerInfo->CustomFileHandlingImpl = nullptr;
-            importerInfo->MeshImporter.SetIOHandler(importerInfo->CustomFileHandlingImpl.get());
+            importerInfo->MeshImporter.SetIOHandler( importerInfo->CustomFileHandlingImpl.get() );
         }
 
         // Configure custom logger
-        if ( m_WantCustomLog ) {
-            SetupCustomAssimpLogger();
-        }
+        if (m_WantCustomLog) { SetupCustomAssimpLogger(); }
 
         m_IsInitialized = true;
     }
 
     auto MeshFactory::Shutdown() -> void {
 
-        if ( !m_IsInitialized ) {
-            return;
-        }
+        if (!m_IsInitialized) { return; }
 
         MKT_CORE_LOGGER_INFO( "Shutting down AssetsService..." );
 
         m_Importers.clear();
     }
 
-    auto MeshFactoryCreateInfo::WithImportersCount( const Size count ) -> MeshFactoryCreateInfo& {
+    auto MeshFactoryCreateInfo::WithImportersCount( const Size count ) -> MeshFactoryCreateInfo & {
         this->ImportersCount = count;
 
         return *this;
     }
 
-    auto MeshFactoryCreateInfo::WithCustomLogger( const bool enable ) -> MeshFactoryCreateInfo& {
+    auto MeshFactoryCreateInfo::WithCustomLogger( const bool enable ) -> MeshFactoryCreateInfo & {
         this->UseCustomLogger = enable;
 
         return *this;
     }
 
-    auto MeshFactoryCreateInfo::WithCustomLoader( const bool enable ) -> MeshFactoryCreateInfo& {
+    auto MeshFactoryCreateInfo::WithCustomLoader( const bool enable ) -> MeshFactoryCreateInfo & {
         this->UseCustomLoader = enable;
 
         return *this;

@@ -1,6 +1,18 @@
+//    Copyright 2025 ケイト
 //
-// Created by zanet on 10/6/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
 #include <memory>
 
 #include <volk.h>
@@ -9,10 +21,9 @@
 // Define VMA implementation in one source file
 #define VMA_IMPLEMENTATION
 
-#include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
-
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
 
 namespace Mikoto {
 
@@ -61,42 +72,17 @@ namespace Mikoto {
         vmaDestroyAllocator( m_Allocator );
     }
 
-    auto VulkanMemoryAllocator::AllocateImage( VulkanTexture *texture ) -> VkResult {
+    auto VulkanMemoryAllocator::AllocateImage( ImageAllocation& allocation ) -> VkResult {
         VkResult res{
             vmaCreateImage(
                 m_Allocator,
-                texture->GetImageCreateInfo(),
-                texture->GetAllocationCreateInfo(),
-                texture->GetImage(),
-                texture->GetVMAllocation(),
-                texture->GetVMAllocationInfo() ) };
-
-        if ( res == VK_SUCCESS ) {
-            //m_DebugNames.insert( texture->GetDebugName() );
-        }
+                std::addressof( allocation.ImageCreateInfo ),
+                std::addressof( allocation.AllocationCreateInfo ),
+                std::addressof( allocation.Image ),
+                std::addressof( allocation.Allocation ),
+                std::addressof( allocation.AllocationInfo ) ) };
 
         return res;
-    }
-
-    auto VulkanMemoryAllocator::AllocateImage( VulkanTextureCube *texture ) -> VkResult {
-        VkResult res{
-            vmaCreateImage(
-                m_Allocator,
-                texture->GetImageCreateInfo(),
-                texture->GetAllocationCreateInfo(),
-                texture->GetImage(),
-                texture->GetVMAllocation(),
-                texture->GetVMAllocationInfo() ) };
-
-        if ( res == VK_SUCCESS ) {
-            //m_DebugNames.insert( texture->GetDebugName() );
-        }
-
-        return res;
-    }
-
-    auto VulkanMemoryAllocator::FreeImage( VulkanTextureCube *texture ) -> void {
-        vmaDestroyImage( m_Allocator, *texture->GetImage(), *texture->GetVMAllocation() );
     }
 
     auto VulkanMemoryAllocator::AllocateBuffer( BufferAllocation& allocation ) -> VkResult {
@@ -116,8 +102,8 @@ namespace Mikoto {
         vmaDestroyBuffer( m_Allocator, allocation.Buffer, allocation.Allocation );
     }
 
-    auto VulkanMemoryAllocator::FreeImage( VulkanTexture *texture ) -> void {
-        vmaDestroyImage( m_Allocator, *texture->GetImage(), *texture->GetVMAllocation() );
+    auto VulkanMemoryAllocator::FreeImage( ImageAllocation& allocation ) -> void {
+        vmaDestroyImage( m_Allocator, allocation.Image, allocation.Allocation );
     }
 
     auto VulkanMemoryAllocator::MapBuffer( BufferAllocation& allocation ) const -> void {

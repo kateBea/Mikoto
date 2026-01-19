@@ -53,12 +53,12 @@ namespace Mikoto {
         m_CreateInfo.layers = 1;
 
         std::vector<VkImageView> attachments{};
-        for (const auto& texture : m_Spec.ColorAttachments) {
-            attachments.emplace_back( *dynamic_cast<const VulkanTexture*>(texture.GetRaw())->GetView() );
+        for (auto& texture : m_Spec.ColorAttachments) {
+            attachments.emplace_back( texture->GetNativeHandle( ObjectType::Vk_ImageView ) );
         }
 
-        for (const auto& texture : m_Spec.DepthAttachment) {
-            attachments.emplace_back( *dynamic_cast<const VulkanTexture*>(texture.GetRaw())->GetView() );
+        for (auto& texture : m_Spec.DepthAttachment) {
+            attachments.emplace_back( texture->GetNativeHandle( ObjectType::Vk_ImageView ) );
         }
 
         m_CreateInfo.attachmentCount = static_cast<UInt32>( attachments.size() );

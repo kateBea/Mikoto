@@ -1,18 +1,25 @@
+//    Copyright 2025 ケイト
 //
-// Created by zanet on 10/6/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef VULKANMEMORYALLOCATOR_H
-#define VULKANMEMORYALLOCATOR_H
-
-#include <unordered_set>
+#ifndef MIKOTO_VULKAN_MEMORY_ALLOCATOR_H
+#define MIKOTO_VULKAN_MEMORY_ALLOCATOR_H
 
 // Volk must be included before VMA
 #include <volk.h>
 #include <vk_mem_alloc.h>
 
 #include <Memory/GpuAllocator.hh>
-#include <Renderer/Vulkan/VulkanTexture.hh>
 
 namespace Mikoto {
 
@@ -27,7 +34,13 @@ namespace Mikoto {
     };
 
     struct ImageAllocation {
+        VkImage Image{ VK_NULL_HANDLE };
 
+        VkImageCreateInfo ImageCreateInfo{};
+        VmaAllocationInfo AllocationInfo{};
+        VmaAllocation Allocation{ VK_NULL_HANDLE };
+
+        VmaAllocationCreateInfo AllocationCreateInfo{};
     };
 
     class VulkanMemoryAllocator final : public GpuAllocator {
@@ -37,11 +50,8 @@ namespace Mikoto {
         auto Init() -> void override;
         auto Shutdown() -> void override;
 
-        auto AllocateImage(VulkanTexture* texture ) -> VkResult;
-        auto AllocateImage(VulkanTextureCube* texture ) -> VkResult;
-
-        auto FreeImage(VulkanTexture* texture ) -> void;
-        auto FreeImage(VulkanTextureCube* texture ) -> void;
+        auto FreeImage( ImageAllocation& allocation ) -> void;
+        auto AllocateImage( ImageAllocation& allocation ) -> VkResult;
 
         auto FreeBuffer( BufferAllocation& allocation ) -> void;
         auto AllocateBuffer( BufferAllocation& allocation ) -> VkResult;
@@ -56,18 +66,15 @@ namespace Mikoto {
 
     private:
         // Map/Unmap Device memory to cpu accessible memory (map = true to map, false to unmap)
-        auto MapBuffer( BufferAllocation& allocation, bool map) const -> void;
+        auto MapBuffer( BufferAllocation& allocation, bool map ) const -> void;
 
     private:
-        mutable VmaTotalStatistics m_Stats{};
-
         VmaAllocator m_Allocator{};
+        mutable VmaTotalStatistics m_Stats{};
     };
 
-
-#define MKT_VMA_ALLOC_PTR(GPU_DEVICE) dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( GPU_DEVICE )->GetAllocator())
-}
-
+#define MKT_VMA_ALLOC_PTR( GPU_DEVICE ) dynamic_cast<VulkanMemoryAllocator*>( TO_VK_DEVICE( GPU_DEVICE )->GetAllocator() )
+}// namespace Mikoto
 
 
-#endif //VULKANMEMORYALLOCATOR_H
+#endif//MIKOTO_VULKAN_MEMORY_ALLOCATOR_H

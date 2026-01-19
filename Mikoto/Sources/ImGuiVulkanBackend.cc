@@ -350,7 +350,8 @@ namespace Mikoto {
             SamplerHandle sampler{ m_GpuDevice->GetDummySampler() };
             const auto color{ dynamic_cast<const VulkanTexture*>( texture ) };
 
-            VkDescriptorSet ds{ ImGui_ImplVulkan_AddTexture( sampler->GetNativeHandle( ObjectType::Vk_Sampler ), *color->GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ) };
+            VkImageView view{ color->GetNativeHandle(ObjectType::Vk_ImageView) };
+            VkDescriptorSet ds{ ImGui_ImplVulkan_AddTexture( sampler->GetNativeHandle( ObjectType::Vk_Sampler ), view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ) };
 
             const auto [it, success] {
                 m_ImGuiSets.try_emplace( texture, ImGuiTextIDInfo{ ds } )

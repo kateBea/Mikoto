@@ -270,6 +270,10 @@ namespace Mikoto {
         return Object(nullptr);
     }
 
+    auto VulkanBuffer::GetNativeHandle( ObjectType type ) const -> Object {
+        return const_cast<VulkanBuffer*>(this)->GetNativeHandle( type );
+    }
+
     auto VulkanBuffer::PersistentMap() -> void {
         // If it is not null then it has been mapped
         if (m_Allocation.AllocationInfo.pMappedData != nullptr) {

@@ -19,8 +19,10 @@
 #include <Library/IO/File.hh>
 #include <Library/Utility/Types.hh>
 #include <Material/Texture2D.hh>
-#include <Renderer/Core/Buffer.hh>
 #include <Material/TextureCube.hh>
+#include <Renderer/Core/Buffer.hh>
+
+#include "VulkanMemoryAllocator.hh"
 
 namespace Mikoto {
 
@@ -60,12 +62,7 @@ namespace Mikoto {
         explicit VulkanTexture( const VkImageViewCreateInfo& viewCreateInfo, VkExtent2D extent);
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
-
-        MKT_NODISCARD auto GetImage() -> VkImage*;
-        MKT_NODISCARD auto GetImage() const -> const VkImage*;
-
-        MKT_NODISCARD auto GetView() -> VkImageView*;
-        MKT_NODISCARD auto GetView() const -> const VkImageView*;
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
 
         MKT_NODISCARD auto HasExternalImage() const -> bool;
 
@@ -77,16 +74,13 @@ namespace Mikoto {
 
         auto SubmitLayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd ) -> void;
 
-        auto GetVMAllocation() -> VmaAllocation*;
-        auto GetVMAllocationInfo() -> VmaAllocationInfo*;
-        auto GetImageCreateInfo() -> const VkImageCreateInfo*;
-        auto GetAllocationCreateInfo() -> const VmaAllocationCreateInfo*;
-
         ~VulkanTexture() override;
 
     private:
         auto Initialize() -> void override;
         auto Release() -> void override;
+
+        auto SetDebugInfo() -> void;
 
     private:
         bool m_IsImageExternal{ false };
@@ -95,16 +89,10 @@ namespace Mikoto {
 
         VkDeviceSize m_ImageSize{ 0 };
 
-        VkImage m_Image{ VK_NULL_HANDLE };
+        ImageAllocation m_ImageAllocation{};
+
         VkImageView m_ImageView{ VK_NULL_HANDLE };
-
-        VmaAllocation m_Allocation{ VK_NULL_HANDLE };
-        VmaAllocationInfo m_AllocationInfo{};
-
-        VkImageCreateInfo m_ImageCreateInfo{};
         VkImageViewCreateInfo m_ImageViewCreateInfo{};
-
-        VmaAllocationCreateInfo m_AllocationCreateInfo{};
 
         VkImageLayout m_CurrentLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
     };
@@ -115,21 +103,11 @@ namespace Mikoto {
         explicit VulkanTextureCube( const TextureCubeCreateDescription& data );
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
-
-        MKT_NODISCARD auto GetImage() -> VkImage*;
-        MKT_NODISCARD auto GetImage() const -> const VkImage*;
-
-        MKT_NODISCARD auto GetView() -> VkImageView*;
-        MKT_NODISCARD auto GetView() const -> const VkImageView*;
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
 
         MKT_NODISCARD auto GetCurrentLayout() const -> VkImageLayout;
         MKT_NODISCARD auto GetCreateInfo() const -> const VkImageCreateInfo&;
         MKT_NODISCARD auto GetViewCreateInfo() const -> const VkImageViewCreateInfo&;
-
-        auto GetVMAllocation() -> VmaAllocation*;
-        auto GetVMAllocationInfo() -> VmaAllocationInfo*;
-        auto GetImageCreateInfo() -> const VkImageCreateInfo*;
-        auto GetAllocationCreateInfo() -> const VmaAllocationCreateInfo*;
 
         auto SubmitLayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd ) -> void;
 
@@ -143,21 +121,17 @@ namespace Mikoto {
 
         auto LoadCubeFaces() -> void;
 
+        auto SetDebugInfo() -> void;
+
     private:
         BufferHandle m_StagingBuffer{};
 
         VkDeviceSize m_ImageSize{ 0 };
 
-        VkImage m_Image{ VK_NULL_HANDLE };
+        ImageAllocation m_ImageAllocation{};
+
         VkImageView m_ImageView{ VK_NULL_HANDLE };
-
-        VmaAllocation m_Allocation{ VK_NULL_HANDLE };
-        VmaAllocationInfo m_AllocationInfo{};
-
-        VkImageCreateInfo m_ImageCreateInfo{};
         VkImageViewCreateInfo m_ImageViewCreateInfo{};
-
-        VmaAllocationCreateInfo m_AllocationCreateInfo{};
 
         VkImageLayout m_CurrentLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
 

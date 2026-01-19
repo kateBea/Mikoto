@@ -135,7 +135,7 @@ namespace Mikoto {
          * @returns The native handle wrapped in an Object structure.
          */
         MKT_NODISCARD virtual auto GetNativeHandle( ObjectType ) -> Object { return Object(nullptr); }
-
+        MKT_NODISCARD virtual auto GetNativeHandle( ObjectType type ) const -> Object { return const_cast<DeviceObject*>(this)->GetNativeHandle( type ); }
 
     protected:
 

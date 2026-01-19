@@ -12,10 +12,23 @@
 #include <vk_mem_alloc.h>
 
 #include <Memory/GpuAllocator.hh>
-#include <Renderer/Vulkan/VulkanBuffer.hh>
 #include <Renderer/Vulkan/VulkanTexture.hh>
 
 namespace Mikoto {
+
+    struct BufferAllocation {
+        VkBuffer Buffer{};
+
+        VmaAllocation Allocation{};
+        VmaAllocationInfo AllocationInfo{};
+
+        VkBufferCreateInfo BufferCreateInfo{};
+        VmaAllocationCreateInfo AllocationCreateInfo{};
+    };
+
+    struct ImageAllocation {
+
+    };
 
     class VulkanMemoryAllocator final : public GpuAllocator {
     public:
@@ -27,15 +40,14 @@ namespace Mikoto {
         auto AllocateImage(VulkanTexture* texture ) -> VkResult;
         auto AllocateImage(VulkanTextureCube* texture ) -> VkResult;
 
-        auto AllocateBuffer(VulkanBuffer* buffer ) -> VkResult;
-
         auto FreeImage(VulkanTexture* texture ) -> void;
         auto FreeImage(VulkanTextureCube* texture ) -> void;
 
-        auto FreeBuffer(VulkanBuffer* buffer ) -> void;
+        auto FreeBuffer( BufferAllocation& allocation ) -> void;
+        auto AllocateBuffer( BufferAllocation& allocation ) -> VkResult;
 
-        auto MapBuffer(VulkanBuffer* buffer ) const -> void;
-        auto UnmapBuffer(VulkanBuffer* buffer ) const -> void;
+        auto MapBuffer( BufferAllocation& allocation ) const -> void;
+        auto UnmapBuffer( BufferAllocation& allocation ) const -> void;
 
         // These are slow use for debug only
         MKT_NODISCARD auto GetMemoryUsage() const -> Size override;
@@ -44,15 +56,10 @@ namespace Mikoto {
 
     private:
         // Map/Unmap Device memory to cpu accessible memory (map = true to map, false to unmap)
-        auto MapBuffer( VulkanBuffer* buffer, bool map) const -> void;
+        auto MapBuffer( BufferAllocation& allocation, bool map) const -> void;
 
     private:
         mutable VmaTotalStatistics m_Stats{};
-
-#if !defined(NDEBUG)
-        //std::unordered_set<std::string> m_DebugNames{};
-#endif
-
 
         VmaAllocator m_Allocator{};
     };

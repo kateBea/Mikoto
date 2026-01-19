@@ -14,9 +14,9 @@
 #include <vk_mem_alloc.h>
 
 // Project Headers
-#include <Renderer/Core/Buffer.hh>
 #include <Common/Common.hh>
-#include <Library/Random/Random.hh>
+#include <Renderer/Core/Buffer.hh>
+#include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
 
 namespace Mikoto {
 
@@ -28,36 +28,26 @@ namespace Mikoto {
         auto CopyFromBlock(const void* ptr, Size size) -> void override;
         auto CopyFromBlock( const void* ptr, Size size, Size offset ) -> void override;
 
-        MKT_NODISCARD auto GetImplHandle() -> VkBuffer* { return std::addressof(m_Buffer); }
-
-        MKT_NODISCARD auto GetNativeHandle( ObjectType ) -> Object override;
-
-        MKT_NODISCARD auto GetBuffer() -> VkBuffer* { return std::addressof(m_Buffer); }
-        MKT_NODISCARD auto GetBuffer() const -> const VkBuffer* { return std::addressof(m_Buffer); }
-
-        MKT_NODISCARD auto GetVmaAllocation() -> VmaAllocation* { return std::addressof(m_VmaAllocation); }
-        MKT_NODISCARD auto GetVmaAllocation() const -> const VmaAllocation* { return std::addressof(m_VmaAllocation);; }
-
-        MKT_NODISCARD auto GetVmaAllocationInfo() -> VmaAllocationInfo* { return std::addressof(m_VmaAllocationInfo); }
-        MKT_NODISCARD auto GetVmaAllocationInfo() const -> const VmaAllocationInfo* { return std::addressof(m_VmaAllocationInfo); }
-
-        MKT_NODISCARD auto GetBufferCreateInfo() -> VkBufferCreateInfo* { return std::addressof(m_BufferCreateInfo); }
-        MKT_NODISCARD auto GetBufferCreateInfo() const -> const VkBufferCreateInfo* { return std::addressof(m_BufferCreateInfo); }
-
-        MKT_NODISCARD auto GetAllocationCreateInfo() -> VmaAllocationCreateInfo* { return std::addressof(m_AllocationCreateInfo); }
-        MKT_NODISCARD auto GetAllocationCreateInfo() const -> const VmaAllocationCreateInfo* { return std::addressof(m_AllocationCreateInfo); }
-
         auto PersistentMap() -> void;
         auto PersistentUnmap() -> void;
 
-        MKT_NODISCARD auto IsMapped() const -> bool { return m_VmaAllocationInfo.pMappedData != nullptr; }
-        MKT_NODISCARD auto GetMappedAddress() const -> const void* { return m_VmaAllocationInfo.pMappedData; }
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
+
+        MKT_NODISCARD auto IsMapped() const -> bool { return m_Allocation.AllocationInfo.pMappedData != nullptr; }
+        MKT_NODISCARD auto GetMappedAddress() const -> const void* { return m_Allocation.AllocationInfo.pMappedData; }
 
         ~VulkanBuffer() override;
 
     private:
         auto Release() -> void override;
         auto Initialize() -> void override;
+
+        auto SetDebugInfo() -> void;
+        auto UploadHostData() -> void;
+        auto UploadHostDataToStaging() -> void;
+
+        auto InitBuffer() -> void;
+        auto InitStaging() -> void;
 
     private:
         // When creating uniforms we need specify a minimum size for GPU memory alignment
@@ -66,14 +56,8 @@ namespace Mikoto {
         Size m_ElementCount{};
         Size m_MinPaddedSize{};
 
-        VkBuffer m_Buffer{};
-
-        // See vmaCreteBuffer for details on these
-        VmaAllocation m_VmaAllocation{};
-        VmaAllocationInfo m_VmaAllocationInfo{};
-
-        VkBufferCreateInfo m_BufferCreateInfo{};
-        VmaAllocationCreateInfo m_AllocationCreateInfo{};
+        BufferAllocation m_Allocation{};
+        BufferAllocation m_StagingAllocation{};
     };
 }// namespace Mikoto
 

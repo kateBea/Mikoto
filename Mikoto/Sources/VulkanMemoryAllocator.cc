@@ -97,44 +97,35 @@ namespace Mikoto {
 
     auto VulkanMemoryAllocator::FreeImage( VulkanTextureCube *texture ) -> void {
         vmaDestroyImage( m_Allocator, *texture->GetImage(), *texture->GetVMAllocation() );
-
-        //m_DebugNames.erase( texture->GetDebugName() );
     }
 
-    auto VulkanMemoryAllocator::AllocateBuffer( VulkanBuffer *buffer ) -> VkResult {
+    auto VulkanMemoryAllocator::AllocateBuffer( BufferAllocation& allocation ) -> VkResult {
         VkResult res{ vmaCreateBuffer(
                 m_Allocator,
-                buffer->GetBufferCreateInfo(),
-                buffer->GetAllocationCreateInfo(),
-                buffer->GetBuffer(),
-                buffer->GetVmaAllocation(),
-                buffer->GetVmaAllocationInfo() ) };
+                std::addressof( allocation.BufferCreateInfo ),
+                std::addressof( allocation.AllocationCreateInfo ),
+                std::addressof( allocation.Buffer ),
+                std::addressof( allocation.Allocation ),
+                std::addressof( allocation.AllocationInfo ) ) };
 
-        if ( res == VK_SUCCESS ) {
-            //m_DebugNames.insert( buffer->GetDebugName() );
-        }
 
         return res;
     }
 
+    auto VulkanMemoryAllocator::FreeBuffer( BufferAllocation& allocation ) -> void {
+        vmaDestroyBuffer( m_Allocator, allocation.Buffer, allocation.Allocation );
+    }
+
     auto VulkanMemoryAllocator::FreeImage( VulkanTexture *texture ) -> void {
         vmaDestroyImage( m_Allocator, *texture->GetImage(), *texture->GetVMAllocation() );
-
-        //m_DebugNames.erase( texture->GetDebugName() );
     }
 
-    auto VulkanMemoryAllocator::FreeBuffer( VulkanBuffer *buffer ) -> void {
-        vmaDestroyBuffer( m_Allocator, *buffer->GetBuffer(), *buffer->GetVmaAllocation() );
-
-        //m_DebugNames.erase( buffer->GetDebugName());
+    auto VulkanMemoryAllocator::MapBuffer( BufferAllocation& allocation ) const -> void {
+        MapBuffer( allocation, true );
     }
 
-    auto VulkanMemoryAllocator::MapBuffer( VulkanBuffer *buffer ) const -> void {
-        MapBuffer( buffer, true );
-    }
-
-    auto VulkanMemoryAllocator::UnmapBuffer( VulkanBuffer *buffer ) const -> void {
-        MapBuffer( buffer, false );
+    auto VulkanMemoryAllocator::UnmapBuffer( BufferAllocation& allocation ) const -> void {
+        MapBuffer( allocation, false );
     }
 
     auto VulkanMemoryAllocator::GetMemoryUsage() const -> Size {
@@ -152,14 +143,12 @@ namespace Mikoto {
         return m_Stats.total.unusedRangeSizeMax;
     }
 
-    auto VulkanMemoryAllocator::MapBuffer( VulkanBuffer *buffer, const bool map ) const -> void {
-        MKT_ASSERT(buffer != nullptr, "VulkanMemoryAllocator::MapBuffer - buffer is null!");
-
+    auto VulkanMemoryAllocator::MapBuffer( BufferAllocation& allocation, const bool map ) const -> void {
         if (map) {
             const VkResult result{ vmaMapMemory(
                 m_Allocator,
-                *buffer->GetVmaAllocation(),
-                std::addressof( buffer->GetVmaAllocationInfo()->pMappedData )
+                allocation.Allocation,
+                std::addressof( allocation.AllocationInfo.pMappedData )
             )};
 
             if (result != VK_SUCCESS) {
@@ -168,9 +157,9 @@ namespace Mikoto {
         }
         else {
             // Unmap buffer memory from CPU
-            if (buffer->GetVmaAllocation() && buffer->GetVmaAllocationInfo()->pMappedData) {
-                vmaUnmapMemory(m_Allocator, *buffer->GetVmaAllocation());
-                buffer->GetVmaAllocationInfo()->pMappedData = nullptr;
+            if (allocation.AllocationInfo.pMappedData) {
+                vmaUnmapMemory(m_Allocator, allocation.Allocation);
+                allocation.AllocationInfo.pMappedData = nullptr;
             }
         }
     }

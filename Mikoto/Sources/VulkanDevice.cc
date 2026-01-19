@@ -889,8 +889,8 @@ namespace Mikoto {
         // Issue the copy command
         vkCmdCopyBufferToImage(
                 m_CmdBuffer,
-                *vkSrc->GetImplHandle(),// VkBuffer
-                *vkDest->GetImage(),    // VkImage
+                vkSrc->GetNativeHandle(ObjectType::Vk_Buffer),
+                vkDest->GetNativeHandle(ObjectType::Vk_Image),
                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 1,
                 &copyRegion );
@@ -1038,8 +1038,8 @@ namespace Mikoto {
         // Issue the copy command
         vkCmdCopyBufferToImage(
                 m_CmdBuffer,
-                *vkSrc->GetImplHandle(),// VkBuffer
-                *vkDest->GetImage(),    // VkImage
+                vkSrc->GetNativeHandle(ObjectType::Vk_Buffer),
+                vkDest->GetNativeHandle(ObjectType::Vk_Image),
                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 1,
                 &copyRegion );

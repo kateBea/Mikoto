@@ -204,6 +204,7 @@ namespace Mikoto {
             return m_Data;
         }
 
+        MKT_NODISCARD auto IsUsage(BufferUsage usage) const -> bool { return m_Usage == usage; }
         // Copy from CPU to GPU ( this buffer must be accessible from CPU)
         virtual auto CopyToBlock( void* ptr, Size size ) -> void = 0;
         virtual auto CopyFromBlock(const void* ptr, Size size) -> void = 0;

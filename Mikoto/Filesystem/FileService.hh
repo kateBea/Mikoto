@@ -6,6 +6,8 @@
 #ifndef MIKOTO_FILE_MANAGER_HH
 #define MIKOTO_FILE_MANAGER_HH
 
+#include <mutex>
+
 #include <ankerl/unordered_dense.h>
 
 #include <Common/Common.hh>
@@ -40,7 +42,7 @@ namespace Mikoto {
         auto LoadFile( const Path& path, FileMode mode = MKT_FILE_OPEN_MODE_BINARY ) -> File*;
         auto LoadFileAsync( const Path& path, FileMode mode = MKT_FILE_OPEN_MODE_BINARY ) -> void; // Return a future
 
-        auto CreateFile( const Path& path ) -> File*;
+        auto CreateNewFile( const Path& path ) -> File*;
         auto CreateFileAsync( const Path& path ) -> File*; // Return a future
 
         auto SaveFile( const File* file ) -> void;
@@ -58,6 +60,8 @@ namespace Mikoto {
 
     private:
         Path m_CurrentWorkingDir{};
+
+        std::mutex m_FileLoadMutex{};
         ankerl::unordered_dense::map<std::string, Unique<File>> m_Files{};
     };
 }// namespace Mikoto

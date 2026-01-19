@@ -76,6 +76,10 @@ namespace Mikoto {
         m_PeriodicTaskCondition.at( index ) = false;
     }
 
+    auto TaskManager::ExecuteGraph( TaskGraph &graph ) -> void {
+        m_Executor.run(graph).wait();
+    }
+
     auto TaskManager::AddNewTaskRunner(std::function<void()>&& task, UInt32 index) -> void {
         m_Executor.silent_async( [func = std::move(task), this, index]() -> void {
             const Size frequency{ m_PeriodicTasksFrequency.at( index ) };

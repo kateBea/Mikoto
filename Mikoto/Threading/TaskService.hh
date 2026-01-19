@@ -21,6 +21,7 @@
 #include "Common/Service.hh"
 #include <Library/Utility/Types.hh>
 
+#include <Threading/TaskGraph.hh>
 #include <Threading/TaskManager.hh>
 
 /**
@@ -51,11 +52,7 @@ namespace Mikoto {
             m_TaskManager->SubmitTask( std::move( newTask ) );
         }
 
-        // TODO: Review
-        template<typename Func, typename... Args>
-        auto RunPeriodically(Size seconds, Func&& func, Args&&... args ) -> UInt32 {
-            return m_TaskManager->RunPeriodically(seconds, std::forward<Func>( func ), std::forward<Args>( args )... );
-        }
+        auto WaitForExecution(TaskGraph& graph) -> void;
 
         MKT_NODISCARD auto GetWorkersCount() const -> UInt32 { return m_ThreadCount; }
 

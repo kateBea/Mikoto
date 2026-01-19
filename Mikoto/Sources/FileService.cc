@@ -121,6 +121,8 @@ namespace Mikoto {
     auto FileService::LoadFile( const Path& path, FileMode mode ) -> File* {
         MKT_BEGIN_PROFILER_NAMED();
 
+        std::lock_guard lock{ m_FileLoadMutex };
+
         File* result{ nullptr };
 
         // Use string because m_Files key is std::string, Path contained type is implementation defined
@@ -167,11 +169,10 @@ namespace Mikoto {
     auto FileService::LoadFileAsync( const Path& path, const FileMode mode ) -> void {
         File* result{ LoadFile( path, mode ) };
 
-        // TODO: create the task and return it
         //return nullptr;
     }
 
-    auto FileService::CreateFile( const Path& path ) -> File* {
+    auto FileService::CreateNewFile( const Path& path ) -> File* {
         File* result{ nullptr };
 
         // File does not exist

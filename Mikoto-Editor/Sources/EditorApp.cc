@@ -23,6 +23,7 @@
 #include <Layers/EditorLayer.hh>
 #include <Logging/Logger.hh>
 
+#include "Core/Timer.hh"
 #include "Renderer/Core/RenderService.hh"
 
 namespace Mikoto {
@@ -45,11 +46,26 @@ namespace Mikoto {
             { PrefabModels::CONE, "Resources/Models/Prefabs/cone/gltf/scene.gltf" },
             { PrefabModels::SPHERE, "Resources/Models/Prefabs/sphere/gltf/scene.gltf" },
             { PrefabModels::CYLINDER, "Resources/Models/Prefabs/cylinder/gltf/scene.gltf" },
-            //{ PrefabModels::SPONZA, "Resources/Models/Prefabs/sponza/sponza.obj" }
+            { PrefabModels::SPONZA, "Resources/Models/Prefabs/sponza/sponza.obj" }
         };
 
-        for ( const auto &val: m_PrefabModels | std::views::values ) {
-            AssetsService::Get()->LoadAsset<Model>( val );
+        {
+            MKT_PROFILE_SCOPE();
+
+            TaskGraph loaders{};
+            for ( const auto &val: m_PrefabModels | std::views::values ) {
+                loaders.Emplace( [&]() -> void { AssetsService::Get()->LoadAsset<Model>( val ); } );
+            }
+
+            TaskService::Get()->WaitForExecution( loaders );
+        }
+
+        {
+            // MKT_PROFILE_SCOPE();
+            //
+            // for ( const auto &val: m_PrefabModels | std::views::values ) {
+            //     AssetsService::Get()->LoadAsset<Model>( val );
+            // }
         }
     }
 

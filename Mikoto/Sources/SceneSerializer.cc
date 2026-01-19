@@ -227,7 +227,7 @@ namespace Mikoto {
     }
 
     auto SceneSerializer::Serialize( const Scene& scene, const Path& saveFilePath ) -> void {
-        File* outputFile{ FileService::Get()->CreateFile( saveFilePath ) };
+        File* outputFile{ FileService::Get()->CreateNewFile( saveFilePath ) };
 
         if ( outputFile == nullptr ) {
             MKT_CORE_LOGGER_ERROR( "Could not open file '{}' required for scene serialization", saveFilePath.string() );

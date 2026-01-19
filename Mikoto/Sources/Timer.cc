@@ -49,7 +49,7 @@ namespace Mikoto {
     }
 
     Timer::~Timer() {
-        const auto units{ TimeUnit::MILLISECONDS };
+        const auto units{ TimeUnit::SECONDS };
         MKT_CORE_LOGGER_DEBUG("{} End Timer. Elapsed {} {}",
             __PRETTY_FUNCTION__, GetCurrentProgress(units), GetUnitStr(units));
     }

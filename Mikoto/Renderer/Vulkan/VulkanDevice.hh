@@ -220,6 +220,19 @@ namespace Mikoto {
         ResourcePoolTyped<VulkanSampler> m_Samplers{};
         ResourcePoolTyped<DescriptorSetLayout> m_DescriptorSetLayouts{};
 
+        // [Pool Mutexes]
+        std::mutex m_BufferPoolMutex{};
+        std::mutex m_TexturePoolMutex{};
+        std::mutex m_TextureCubePoolMutex{};
+        std::mutex m_CommandPoolMutex{};
+        std::mutex m_FramebufferPoolMutex{};
+        std::mutex m_GraphicsPipelinePoolMutex{};
+        std::mutex m_ComputePipelinePoolMutex{};
+        std::mutex m_SwapchainPoolMutex{};
+        std::mutex m_ShaderPoolMutex{};
+        std::mutex m_SamplerPoolMutex{};
+        std::mutex m_DescriptorSetLayoutPoolMutex{};
+
         DescriptorAllocator m_DescriptorAllocator{};
 
         // [Command list management]

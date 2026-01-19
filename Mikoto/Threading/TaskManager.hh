@@ -16,6 +16,8 @@
 
 #include <ankerl/unordered_dense.h>
 
+#include "TaskGraph.hh"
+
 namespace Mikoto {
 
     class TaskManager final : public IService, public Singleton<TaskManager> {
@@ -42,6 +44,7 @@ namespace Mikoto {
         }
 
         auto DisablePeriodicTask(UInt32 index) -> void;
+        auto ExecuteGraph( TaskGraph & graph ) -> void;
 
     private:
         auto AddNewTaskRunner(std::function<void()>&& task, UInt32 index) -> void;

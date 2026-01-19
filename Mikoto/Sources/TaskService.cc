@@ -46,6 +46,9 @@ namespace Mikoto {
 
     auto TaskService::Update( float ) -> void {
 
+    }
 
+    auto TaskService::WaitForExecution( TaskGraph &graph ) -> void {
+        m_TaskManager->ExecuteGraph(graph);
     }
 }// namespace Mikoto

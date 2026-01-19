@@ -446,6 +446,8 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreateTexture( const TextureCubeCreateDescription &description ) -> TextureHandle {
+        std::lock_guard lock{ m_TextureCubePoolMutex };
+
         TextureHandle texture{ m_TexturesCube.Allocate( description ) };
         if ( texture.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateTextureCube - Failed to allocate texture cube resource." );
@@ -495,6 +497,8 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreateTexture( const TextureDescription& description ) -> TextureHandle {
+        std::lock_guard lock{ m_TexturePoolMutex };
+
         TextureHandle texture{ m_Textures.Allocate( description ) };
         if ( texture.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateTexture - Failed to allocate texture resource." );
@@ -550,6 +554,7 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreateCommandList( QueueType ) -> CommandListHandle {
+        std::lock_guard lock{ m_CommandCreateMutex };
         // FIXME: Command pools cannot be shared, also command buffers from same pool cannot be used by multiple threads in paralel
 
         auto& currentFrameCmdLists{ m_AvailableGraphicsCommandLists[m_CurrentFrameIndex] };
@@ -582,6 +587,8 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreateBuffer( const BufferDescription& description ) -> BufferHandle {
+        std::lock_guard lock{ m_BufferPoolMutex };
+
         BufferHandle buffer{ m_Buffers.Allocate( description ) };
         if ( buffer.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateBuffer - Failed to allocate buffer resource." );
@@ -594,6 +601,8 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreateFrameBuffer( const FramebufferDescription& description ) -> FramebufferHandle {
+        std::lock_guard lock{ m_FramebufferPoolMutex };
+
         FramebufferHandle framebuffer{ m_Framebuffers.Allocate( description ) };
         if ( framebuffer.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateFrameBuffer - Failed to allocate framebuffer resource." );
@@ -606,6 +615,8 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreateSampler( const SamplerDescription& description ) -> SamplerHandle {
+        std::lock_guard lock{ m_SamplerPoolMutex };
+
         SamplerHandle sampler{ m_Samplers.Allocate( description ) };
         if ( sampler.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateSampler - Failed to allocate sampler resource." );
@@ -618,6 +629,8 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreatePipeline( const ComputePipelineDescription& description ) -> PipelineHandle {
+        std::lock_guard lock{ m_ComputePipelinePoolMutex };
+
         PipelineHandle computePipeline{ m_ComputePipelines.Allocate( description ) };
         if ( computePipeline.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreatePipeline - Failed to allocate compute pipeline resource." );
@@ -630,6 +643,8 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreatePipeline( const GraphicsPipelineDescription& description ) -> PipelineHandle {
+        std::lock_guard lock{ m_GraphicsPipelinePoolMutex };
+
         VulkanGraphicsPipelineDescription defaultInfo{
             .Desc{ description }
         };
@@ -646,6 +661,8 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::LoadShader( const Path& path, ShaderStage stage ) -> ShaderModuleHandle {
+        std::lock_guard lock{ m_ShaderPoolMutex };
+
         ShaderModuleHandle result{ ShaderModuleHandle::CreateEmpty() };
         if ( const File * shaderFile{ FileService::Get()->LoadFile( path ) } ) {
             ShaderModuleDescription description{
@@ -718,6 +735,8 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::AllocateDescriptorSetLayout( const VkDescriptorSetLayoutCreateInfo& layout ) -> DescriptorSetLayoutHandle {
+        std::lock_guard lock{ m_DescriptorSetLayoutPoolMutex };
+
         DescriptorSetLayoutHandle setLayout{ m_DescriptorSetLayouts.Allocate( layout ) };
         if ( setLayout.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::AllocateDescriptorSetLayout - Failed to allocate texture resource with VkImageViewCreateInfo." );

@@ -29,7 +29,7 @@ namespace Mikoto {
         graphicsDesc.DepthWrite = true;
         graphicsDesc.AlphaBlending = true;
         graphicsDesc.Wireframe = true;
-        graphicsDesc.PipelineCullMode = CullMode::CULL_BACK;
+        graphicsDesc.PipelineCullMode = CullMode::NONE;
 
         // Graphics context will specify the texture formats for the render targets we can redner to with this pipeline
         // It will also create the shader modules first and assign them to this description which will be used to create the actual pipeline
@@ -156,9 +156,9 @@ namespace Mikoto {
             commandList.SetDepthRenderTarget( "WireFramePass_DepthTarget" );
         }
 
-        commandList.BeginRender(this, colorLoadOp, depthLoadOp );
-
         commandList.SetClearColor( m_ClearColor );
+
+        commandList.BeginRender(this, colorLoadOp, depthLoadOp );
 
         commandList.BindPipeline( "WireFramePass_Pipeline" );
 
@@ -307,9 +307,9 @@ namespace Mikoto {
         commandList.SetColorRenderTarget( "HelloTrianglePass_ColorTarget" );
         commandList.SetDepthRenderTarget( "HelloTrianglePass_DepthTarget" );
 
-        commandList.BeginRender(this);
-
         commandList.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
+
+        commandList.BeginRender(this);
         commandList.BindPipeline( "HelloTrianglePass_Pipeline" );
 
         // Set render targets
@@ -359,9 +359,9 @@ namespace Mikoto {
         commandList.SetColorRenderTarget( "HelloTexture_ColorTarget" );
         commandList.SetDepthRenderTarget( "HelloTexture_DepthTarget" );
 
-        commandList.BeginRender(this);
-
         commandList.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
+
+        commandList.BeginRender(this);
 
         commandList.BindPipeline( "HelloTexture_Pipeline" );
 

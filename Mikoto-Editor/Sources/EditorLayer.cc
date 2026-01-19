@@ -177,6 +177,8 @@ namespace Mikoto {
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
         m_EditorState->TextureHDR_2D = RenderService::Get()->GetGpuDevice()->CreateTexture( textureDesc );
+
+        m_ActiveScene->SetSkybox( m_TextureHDR );
     }
 
     auto EditorLayer::SetupRenderer() -> void {
@@ -231,10 +233,6 @@ namespace Mikoto {
 
     auto EditorLayer::OnUpdate( float timeStep ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
-        if (m_ActiveScene->IsSkyboxEnabled()) {
-            m_ActiveScene->SetSkybox( m_TextureHDR );
-        }
 
         m_ActiveScene->SetState( SceneState::IDLE );
 
@@ -342,9 +340,17 @@ namespace Mikoto {
         // Set viewport to the currently active window we can either expand
         // the final composition to occupy the whole screen or just an ImGui viewport
         ScenePanel *scenePanel{ m_PanelRegistry.Get<ScenePanel>() };
-        if (m_RenderScreenTarget == RenderScreenTarget::PANEL) { m_EditorCamera->SetViewportSize( scenePanel->GetWidth(), scenePanel->GetHeight() ); } else { m_EditorCamera->SetViewportSize( m_Window->GetWidth(), m_Window->GetHeight() ); }
+        if (m_RenderScreenTarget == RenderScreenTarget::PANEL) {
+            m_EditorCamera->SetViewportSize( scenePanel->GetWidth(), scenePanel->GetHeight() );
+        } else {
+            m_EditorCamera->SetViewportSize( m_Window->GetWidth(), m_Window->GetHeight() );
+        }
 
-        if (InputService::Get()->IsMouseKeyPressed( Mouse_Button_Right ) && scenePanel->IsHovered()) { m_EditorCamera->EnableCamera( true ); } else { m_EditorCamera->EnableCamera( false ); }
+        if (InputService::Get()->IsMouseKeyPressed( Mouse_Button_Right ) && (scenePanel->IsHovered() || m_RenderScreenTarget == RenderScreenTarget::WINDOW)) {
+            m_EditorCamera->EnableCamera( true );
+        } else {
+            m_EditorCamera->EnableCamera( false );
+        }
 
         m_EditorCamera->UpdateState( timeStep );
     }

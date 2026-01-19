@@ -368,7 +368,7 @@ namespace Mikoto {
     }
 
     auto ImGuiVulkanBackend::CreateFrameBuffer() -> void {
-        if (!m_UseDynamicRendering) {
+        if (m_UseDynamicRendering) {
             return;
         }
 

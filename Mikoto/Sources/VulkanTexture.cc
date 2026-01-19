@@ -99,6 +99,11 @@ namespace Mikoto {
         } else {
             m_DebugName = fmt::format( "Mikoto Texture. Id: {}", GetHandle() );
         }
+
+        if (data.TextureFile) {
+            SetTextureUri( data.TextureFile->GetPathCStr() );
+            SetTextureName( data.TextureFile->GetName() );
+        }
     }
 
     VulkanTexture::VulkanTexture( const VkImageViewCreateInfo& viewCreateInfo, VkExtent2D extent )
@@ -145,6 +150,11 @@ namespace Mikoto {
 
         m_TextureFaces = data.Faces;
         m_IsHDR = data.IsHdrMap;
+
+        if (!data.Faces.empty() && data.Faces[0]) {
+            SetTextureUri( data.Faces[0]->GetPathCStr() );
+            SetTextureName( data.Faces[0]->GetName() );
+        }
     }
 
     auto VulkanTextureCube::GetNativeHandle( ObjectType type ) -> Object {

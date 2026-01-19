@@ -8,6 +8,8 @@
 #include <Common/Common.hh>
 #include <Panels/Panel.hh>
 
+#include "imgui.h"
+
 namespace Mikoto {
     struct EditorState;
 
@@ -24,6 +26,7 @@ namespace Mikoto {
     private:
         EditorState *m_EditorState{};
 
+        ImTextureID m_SkyboxImageID{};
     };
 }
 

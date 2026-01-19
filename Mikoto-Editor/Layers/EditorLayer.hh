@@ -43,6 +43,8 @@ namespace Mikoto {
         // Debug
         TextureHandle PreviewMaterial{};
 
+        TextureHandle TextureHDR_2D{};
+
         // Pass name and output value
         ankerl::unordered_dense::map<std::string, TextureHandle> PassesCompositions{};
 

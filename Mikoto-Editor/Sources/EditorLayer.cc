@@ -158,6 +158,25 @@ namespace Mikoto {
             .WithFacePath( "negz.jpg" );
 
         m_TextureCubeMap = AssetsService::Get()->LoadAsset<TextureCube>( loadDesc );
+
+        // For Debug, move to scene properties panel
+        const File* textureFile{ FileService::Get()->LoadFile( "Resources/HDR/scifi_desert_beach/Scifi Desert Beach/Scifi-Desert-Beach.hdr" )  };
+        const StbImage image{ textureFile };
+        TextureDescription textureDesc{};
+        textureDesc.WithWidth( image.GetWidth() )
+            .WithHeight( image.GetHeight() )
+            .WithChannelCount( image.GetChannels() )
+
+            .WithData( image.GetData() )
+            .WithFile( textureFile )
+
+
+            .WithType( TextureType::TEXTURE_2D )
+            .WithFormat( TextureFormat::TEXTURE_FORMAT_SRGB8_ALPHA8 )
+
+            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+
+        m_EditorState->TextureHDR_2D = RenderService::Get()->GetGpuDevice()->CreateTexture( textureDesc );
     }
 
     auto EditorLayer::SetupRenderer() -> void {

@@ -14,8 +14,75 @@
 
 #include <Logging/Logger.hh>
 
-auto main( const int, char** ) -> int {
+#include <Platform/Window.hh>
+
+Mikoto::Window* g_Window{ nullptr };
+
+auto InitializeWindow() -> void {
     using namespace Mikoto;
+
+    WindowProperties properties{
+        .Title{ "Hello Application - Direct3D12" },
+        .Width{ 1280 },
+        .Height{ 720 },
+        .Backend{ GraphicsAPI::DIRECTX_12 },
+        .Resizable{ true }
+    };
+
+    g_Window = Window::Create( properties );
+
+    g_Window->Init();
+}
+
+auto InitializeApplication() -> void {
+    using namespace Mikoto;
+
+    if (!g_Window) {
+        return;
+    }
+
+    try {
+
+    } catch ( const std::exception& e ) {
+        MKT_CORE_LOGGER_ERROR( "Initializing application - Exception: e.what(): {}", e.what() );
+    }
+}
+
+auto RunCleanup() -> void {
+    if (g_Window) {
+        g_Window->Shutdown();
+    }
+
+    delete g_Window;
+}
+
+auto RunApplication() -> void {
+    try {
+
+    } catch ( const std::exception& e ) {
+        MKT_CORE_LOGGER_ERROR( "Running application - Exception: e.what(): {}", e.what() );
+    }
+}
+
+
+auto Usage(const int argc)-> bool {
+    if ( argc != 1 ) {
+        std::printf( "Application takes no arguments." );
+        return false;
+    }
+
+    return true;
+}
+
+auto main( const int argc, char** ) -> int {
+    if (!Usage( argc )) {
+        return 1;
+    }
+
+    InitializeWindow();
+    InitializeApplication();
+    RunApplication();
+    RunCleanup();
 
     return 0;
 }

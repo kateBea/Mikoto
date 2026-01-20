@@ -15,32 +15,40 @@
 #ifndef MIKOTO_FILE_WATCHER_HH
 #define MIKOTO_FILE_WATCHER_HH
 
+#include <efsw/efsw.hpp>
 #include <ankerl/unordered_dense.h>
 
 #include <Common/Common.hh>
 #include <Common/Service.hh>
 #include <Library/IO/File.hh>
 #include <Library/Utility/Types.hh>
+#include <Filesystem/FileWatcher.hh>
 
 namespace Mikoto {
 
-    enum class FileWatchEvent { MODIFIED, CREATED, DELETED, UNDEFINED };
-
-    struct FileWatcherServiceCreateInfo {};
+    struct FileWatcherServiceCreateInfo {
+        bool FollowSymLinks{ false };
+    };
 
     class FileWatcherService final : public IService, public Singleton<FileWatcherService> {
     public:
-        using FileWatchCallback = std::function< void( const Path& path, FileWatchEvent ) >;
 
         explicit FileWatcherService( const FileWatcherServiceCreateInfo& info);
 
-        auto Watch(const Path& path, FileWatchCallback&& callback) -> void;
+        MKT_NODISCARD auto UnWatch(const Path &path, UInt64 watchID) -> bool;
+        MKT_NODISCARD auto Watch(const Path& path, FileWatcher::WatcherCallback&& callback) -> UInt64;
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
 
     private:
-        ankerl::unordered_dense::map<std::string, std::vector<FileWatchCallback>> m_WatchedPaths{};
+        // efsw
+        Unique<efsw::FileWatcher> m_FileWatcher{};
+
+    private:
+        ankerl::unordered_dense::map<std::string, Unique<FileWatcher>> m_WatchedPaths{};
+
+        bool m_FollowSymLinks{ false };
     };
 }// namespace Mikoto
 

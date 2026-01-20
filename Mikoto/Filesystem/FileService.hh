@@ -54,13 +54,9 @@ namespace Mikoto {
         auto OpenDialog( const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path;
         auto SaveDialog( const std::string& filename, const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path;
 
-        MKT_NODISCARD auto GetCurrentWorkingDirectory() const -> std::string;
-
         ~FileService() override = default;
 
     private:
-        Path m_CurrentWorkingDir{};
-
         std::mutex m_FileLoadMutex{};
         ankerl::unordered_dense::map<std::string, Unique<File>> m_Files{};
     };

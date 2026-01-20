@@ -25,8 +25,7 @@
 
 namespace Mikoto {
 
-    FileService::FileService( const FileServiceCreateInfo& )
-        : m_CurrentWorkingDir{ std::filesystem::current_path() } {}
+    FileService::FileService( const FileServiceCreateInfo& ) {}
 
     auto FileService::SaveDialog( const std::string& defaultName, const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path {
         std::string saveFilePath{};
@@ -141,6 +140,14 @@ namespace Mikoto {
                         m_Files.try_emplace( path.string(), std::move( newFile ) )
                     };
                 }
+
+                // If we managed to load the file listen on update notifications to update the file contents
+                (void)FileWatcherService::Get()->Watch( result->GetPath(), [result](const Path& pathCallable, FileWatchEvent event) mutable -> void {
+                    if (event == FileWatchEvent::MODIFIED) {
+                        result->UpdateContents();
+                        MKT_CORE_LOGGER_INFO( "File at path {} was modified. Updating it's contents", pathCallable.string());
+                    }
+                } );
             } else {
                 MKT_CORE_LOGGER_ERROR( "Could not load file at {}", path.string() );
             }
@@ -161,11 +168,6 @@ namespace Mikoto {
     auto FileService::GetFile( const Path& path ) const -> const File* {
         return const_cast<FileService*>( this )->GetFile( path );
     }
-
-    auto FileService::GetCurrentWorkingDirectory() const -> std::string {
-        return m_CurrentWorkingDir.string();
-    }
-
 
     auto FileService::LoadFileAsync( const Path& path, const FileMode mode ) -> void {
         File* result{ LoadFile( path, mode ) };

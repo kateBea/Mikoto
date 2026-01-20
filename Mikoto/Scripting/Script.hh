@@ -23,6 +23,8 @@ namespace Mikoto {
 
         auto Update(float dt ) -> void;
 
+        auto ReloadScript(sol::state& state) -> void;
+
         auto SetEnable(bool value) -> void;
 
         MKT_NODISCARD auto IsEnabled() const -> bool;

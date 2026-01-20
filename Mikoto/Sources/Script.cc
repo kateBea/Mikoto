@@ -22,7 +22,7 @@ namespace Mikoto {
 
         // Execute the script inside this environment
         sol::protected_function_result result{
-            state.safe_script(m_File->GetFileContents(), env, sol::script_default_on_error)
+            state.script_file(m_File->GetPath(), env, sol::script_default_on_error)
         };
 
         if (!result.valid()) {
@@ -54,6 +54,32 @@ namespace Mikoto {
         }
 
         OnUpdate( dt );
+    }
+
+    auto Script::ReloadScript(sol::state& state) -> void {
+        // Create an isolated environment for THIS script
+        sol::environment env{ state, sol::create, state.globals() };
+
+        // Inject global Entity before executing script so it is available
+        env["Entity"] = m_Entity;
+
+        // Execute the script inside this environment
+        sol::protected_function_result result{
+            state.script_file(m_File->GetPath(), env, sol::script_default_on_error)
+        };
+
+        if (!result.valid()) {
+            // This works because protected_function_result has an implicit conversion
+            // operator to sol::error, but only for assignment, not brace init.
+            const sol::error err = result;
+            MKT_THROW_RUNTIME_ERROR(fmt::format("Lua error reloading {}: {}", m_File->GetPath(), err.what()));
+        }
+
+        // Store the environment as the object table
+        m_Object = env;
+
+        // Call inside ctor resolved at compile time
+        Script::Initialize();
     }
 
     auto Script::SetEnable( const bool value ) -> void {

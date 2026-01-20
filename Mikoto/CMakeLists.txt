@@ -87,6 +87,15 @@ set(MSDF_ATLAS_MSDFGEN_EXTERNAL ON)
 set(MSDF_ATLAS_INSTALL OFF)
 set(BUILD_SHARED_LIBS OFF)
 
+# ======================================
+# File system watcher
+# ======================================
+set(VERBOSE OFF CACHE BOOL "Disable verbose mode" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Do not build shared libs" FORCE)
+set(BUILD_STATIC_LIBS ON CACHE BOOL "Build static libs only" FORCE)
+set(BUILD_TEST_APP OFF CACHE BOOL "Disable test app" FORCE)
+set(EFSW_INSTALL OFF CACHE BOOL "Disable install targets" FORCE)
+
 find_package(Freetype QUIET)
 
 if (NOT Freetype_FOUND)
@@ -389,6 +398,15 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(tracy)
 
+# ESFW
+FetchContent_Declare(
+        efsw
+        GIT_REPOSITORY https://github.com/SpartanJ/efsw.git
+        GIT_TAG master
+)
+
+FetchContent_MakeAvailable(efsw)
+
 # SSL library
 if (UNIX AND NOT OpenSSL_FOUND)
     FetchContent_Declare(
@@ -520,6 +538,7 @@ set(LIBRARIES
         nlohmann_json::nlohmann_json
         sol2::sol2
         Tracy::TracyClient
+        efsw-static
 )
 
 if(UNIX)
@@ -589,6 +608,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${sol2_SOURCE_DIR}/include
         ${asio_SOURCE_DIR}/include
         ${tracy_SOURCE_DIR}/asio/include
+        ${efsw_SOURCE_DIR}/include
         ${LUA_INCLUDE_DIR}
 )
 

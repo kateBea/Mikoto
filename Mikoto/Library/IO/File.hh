@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <mutex>
 
 #define MKT_CSTRING_PATH(path) path.string().c_str()
 
@@ -79,7 +80,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetExtension() const -> const std::string& { return m_Extension; }
         MKT_NODISCARD auto GetPathCStr() const -> CStr { return m_Path.c_str(); }
         MKT_NODISCARD auto GetFileBytes() const -> const void* { return m_Contents.c_str(); }
-        MKT_NODISCARD auto GetFileContents() const -> const std::string& { return m_Contents; }
+        MKT_NODISCARD auto GetFileContents() const -> const std::string&;
         MKT_NODISCARD auto GetSize() const -> double { return static_cast<double>( m_Size ) / 1'000'000.0; }
         MKT_NODISCARD auto GetType() const -> FileType { return m_Type; }
         MKT_NODISCARD auto GetSizeBytes() const -> Size { return m_Size; }
@@ -88,6 +89,8 @@ namespace Mikoto {
 
         auto FlushContents() -> void;
         auto SetContents( CStr contents ) -> void;
+
+        auto UpdateContents() -> void;
 
         static auto Load( const Path& path, FileMode openMode = MKT_FILE_OPEN_MODE_NONE ) -> Unique<File>;
 
@@ -121,6 +124,8 @@ namespace Mikoto {
         std::string m_Contents{};
         FileType m_Type{ FileType::UNKNOWN_FILE_TYPE };
         FileMode m_OpenMode{ MKT_FILE_OPEN_MODE_NONE };
+
+        mutable std::mutex m_FileUpdateMutex{};
     };
 
     using FileHandle = Ref<File>;

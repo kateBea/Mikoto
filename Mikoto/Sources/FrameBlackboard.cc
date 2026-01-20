@@ -66,6 +66,20 @@ namespace Mikoto {
         }
     }
 
+    auto FrameBlackboard::RegisterTexture( std::string_view name, TextureCubeCreateDescription description ) -> void {
+        if (m_TexturesByNames.contains( std::string{ name } )) {
+            MKT_CORE_LOGGER_WARN( "FrameBlackboard::RegisterTexture - Named texture cube [{}] already exists.", name );
+            return;
+        }
+
+        TextureHandle texture{ m_Device->CreateTexture( description ) };
+
+        if (!texture.IsEmpty()) {
+            texture->SetDebugName( name );
+            m_TexturesByNames.emplace( std::string{ name }, texture );
+        }
+    }
+
     auto FrameBlackboard::RegisterPipeline( std::string_view name, PipelineDescription description ) -> void {
         if (m_PipelinesByNames.contains( std::string{ name } )) {
             MKT_CORE_LOGGER_WARN( "FrameBlackboard::RegisterPipeline - Named pipeline [{}] already exists.", name );

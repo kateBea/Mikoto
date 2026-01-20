@@ -135,6 +135,7 @@ namespace Mikoto {
         m_EditorState->PassesCompositions.try_emplace( "FinalComposition", blackboard->GetTexture( "FinalCompositionPass_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "Wireframe", blackboard->GetTexture( "WireFramePass_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "Environemtn Cube", blackboard->GetTexture( "EnvCubePass_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "BRDF", blackboard->GetTexture( "BRDFLutPass_ColorTarget" ) );
 
         m_EditorState->WireframeComposition = blackboard->GetTexture( "WireFramePass_ColorTarget" );
 

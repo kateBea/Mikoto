@@ -216,7 +216,11 @@ namespace Mikoto {
         }
 
         for (auto& attachment : info.Desc.ColorAttachments) {
-            m_ColorAttachmentsFormats.emplace_back( dynamic_cast<const VulkanTexture*>(attachment.GetRaw() )->GetViewCreateInfo().format );
+            if (attachment->IsTextureType( TextureType::TEXTURE_CUBE )) {
+                m_ColorAttachmentsFormats.emplace_back( dynamic_cast<const VulkanTextureCube*>(attachment.GetRaw() )->GetViewCreateInfo().format );
+            } else {
+                m_ColorAttachmentsFormats.emplace_back( dynamic_cast<const VulkanTexture*>(attachment.GetRaw() )->GetViewCreateInfo().format );
+            }
         }
     }
 

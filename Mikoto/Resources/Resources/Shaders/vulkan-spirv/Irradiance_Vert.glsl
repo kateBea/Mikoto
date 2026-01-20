@@ -1,6 +1,64 @@
+// Credits: https://github.com/SaschaWillems/Vulkan/tree/master/examples
+
 #version 450
-#extension GL_EXT_nonuniform_qualifier : require
+
+#include "ShaderBase.glsl"
+
+layout(location = 0) out vec3 v_Direction;
+
+layout(set = PERPASS_SETINDEX, binding = 0) uniform IrradianceCamUBO {
+    mat4 MVP;
+} u_Camera;
+
+// https://learnopengl.com/code_viewer.php?code=advanced/cubemaps_skybox_data
+const vec3 SKYBOX_VERTICES[36] = vec3[](
+vec3(-1.0,  1.0, -1.0),
+vec3(-1.0, -1.0, -1.0),
+vec3( 1.0, -1.0, -1.0),
+vec3( 1.0, -1.0, -1.0),
+vec3( 1.0,  1.0, -1.0),
+vec3(-1.0,  1.0, -1.0),
+
+vec3(-1.0, -1.0,  1.0),
+vec3(-1.0, -1.0, -1.0),
+vec3(-1.0,  1.0, -1.0),
+vec3(-1.0,  1.0, -1.0),
+vec3(-1.0,  1.0,  1.0),
+vec3(-1.0, -1.0,  1.0),
+
+vec3( 1.0, -1.0, -1.0),
+vec3( 1.0, -1.0,  1.0),
+vec3( 1.0,  1.0,  1.0),
+vec3( 1.0,  1.0,  1.0),
+vec3( 1.0,  1.0, -1.0),
+vec3( 1.0, -1.0, -1.0),
+
+vec3(-1.0, -1.0,  1.0),
+vec3(-1.0,  1.0,  1.0),
+vec3( 1.0,  1.0,  1.0),
+vec3( 1.0,  1.0,  1.0),
+vec3( 1.0, -1.0,  1.0),
+vec3(-1.0, -1.0,  1.0),
+
+vec3(-1.0,  1.0, -1.0),
+vec3( 1.0,  1.0, -1.0),
+vec3( 1.0,  1.0,  1.0),
+vec3( 1.0,  1.0,  1.0),
+vec3(-1.0,  1.0,  1.0),
+vec3(-1.0,  1.0, -1.0),
+
+vec3(-1.0, -1.0, -1.0),
+vec3(-1.0, -1.0,  1.0),
+vec3( 1.0, -1.0, -1.0),
+vec3( 1.0, -1.0, -1.0),
+vec3(-1.0, -1.0,  1.0),
+vec3( 1.0, -1.0,  1.0)
+);
 
 void main() {
+    vec3 pos = vec3(SKYBOX_VERTICES[gl_VertexIndex]);
 
+    v_Direction = pos;
+
+    gl_Position = u_Camera.MVP * vec4(pos, 1.0);
 }

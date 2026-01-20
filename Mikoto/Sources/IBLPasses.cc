@@ -12,7 +12,26 @@
 namespace Mikoto {
 
     auto IrradiancePass::Setup( FrameGraphBuilder &builder ) -> void {
+        // Create resources it needs
+        PipelineDescription pipelineDesc{};
 
+        pipelineDesc.AddShader( "Resources/Shaders/vulkan-spirv/Irradiance_Vert.sprv", ShaderStage::VERTEX_STAGE );
+        pipelineDesc.AddShader( "Resources/Shaders/vulkan-spirv/Irradiance_Frag.sprv", ShaderStage::FRAGMENT_STAGE );
+
+        // Configure pipeline stage
+        pipelineDesc.Description = GraphicsPipelineDescription{
+            .VertexAttributesSpec{}
+        };
+
+        // TODO: temporary, specify the render targets this pipeline outputs to
+        pipelineDesc.ColorRenderTargets.emplace_back( "IrradiancePass_ColorTarget" );
+
+        builder.CreateNamedPipeline( "IrradiancePass_Pipeline", pipelineDesc );
+
+        constexpr UInt32 dimensions{ 64 };
+        builder.CreateCubeRenderTarget( "IrradiancePass_ColorTarget", dimensions, TextureFormat::TEXTURE_FORMAT_RGBA32_FLOAT );
+
+        builder.WriteTexture( this, "IrradiancePass_ColorTarget" );
     }
 
     auto IrradiancePass::Execute( PassCommandList &commandList ) -> void {
@@ -20,7 +39,26 @@ namespace Mikoto {
     }
 
     auto PrefilterPass::Setup( FrameGraphBuilder &builder ) -> void {
+        // Create resources it needs
+        PipelineDescription pipelineDesc{};
 
+        pipelineDesc.AddShader( "Resources/Shaders/vulkan-spirv/Prefilter_Vert.sprv", ShaderStage::VERTEX_STAGE );
+        pipelineDesc.AddShader( "Resources/Shaders/vulkan-spirv/Prefilter_Frag.sprv", ShaderStage::FRAGMENT_STAGE );
+
+        // Configure pipeline stage
+        pipelineDesc.Description = GraphicsPipelineDescription{
+            .VertexAttributesSpec{}
+        };
+
+        // TODO: temporary, specify the render targets this pipeline outputs to
+        pipelineDesc.ColorRenderTargets.emplace_back( "PrefilterPass_ColorTarget" );
+
+        builder.CreateNamedPipeline( "PrefilterPass_Pipeline", pipelineDesc );
+
+        constexpr UInt32 dimensions{ 512 };
+        builder.CreateCubeRenderTarget( "PrefilterPass_ColorTarget", dimensions, TextureFormat::TEXTURE_FORMAT_RGBA16_FLOAT );
+
+        builder.WriteTexture( this, "PrefilterPass_ColorTarget" );
     }
 
     auto PrefilterPass::Execute( PassCommandList &commandList ) -> void {
@@ -28,11 +66,46 @@ namespace Mikoto {
     }
 
     auto BRDFLutPass::Setup( FrameGraphBuilder &builder ) -> void {
+        // Create resources it needs
+        PipelineDescription pipelineDesc{};
 
+        pipelineDesc.AddShader( "Resources/Shaders/vulkan-spirv/BRDFLut_Vert.sprv", ShaderStage::VERTEX_STAGE );
+        pipelineDesc.AddShader( "Resources/Shaders/vulkan-spirv/BRDFLut_Frag.sprv", ShaderStage::FRAGMENT_STAGE );
+
+        // Configure pipeline stage
+        pipelineDesc.Description = GraphicsPipelineDescription{
+            .VertexAttributesSpec{}
+        };
+
+        // TODO: temporary, specify the render targets this pipeline outputs to
+        pipelineDesc.ColorRenderTargets.emplace_back( "BRDFLutPass_ColorTarget" );
+        pipelineDesc.DepthRenderTargets = "BRDFLutPass_DepthTarget";
+
+        builder.CreateNamedPipeline( "BRDFLutPass_Pipeline", pipelineDesc );
+
+        builder.CreateColorRenderTarget( "BRDFLutPass_ColorTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_RG16_FLOAT );
+        builder.CreateDepthRenderTarget( "BRDFLutPass_DepthTarget", 1920, 1080, TextureFormat::TEXTURE_FORMAT_D32_FLOAT );
+
+        builder.WriteTexture( this, "BRDFLutPass_ColorTarget" );
+        builder.WriteTexture( this, "BRDFLutPass_DepthTarget" );
     }
 
     auto BRDFLutPass::Execute( PassCommandList &commandList ) -> void {
+        commandList.SetColorRenderTarget( "BRDFLutPass_ColorTarget" );
+        commandList.SetDepthRenderTarget( "BRDFLutPass_DepthTarget" );
 
+        commandList.SetClearColor( { 0.0f, 0.0f, 0.0f, 1.0f } );
+
+        commandList.BeginRender(this);
+        commandList.BindPipeline( "BRDFLutPass_Pipeline" );
+
+        // Set render targets
+        commandList.SetViewport( 0, 0, 1920, 1080 );
+        commandList.SetScissor( 0, 0, 1920, 1080 );
+
+        commandList.Draw( 3, 1, 0, 0 );
+
+        commandList.EndRender();
     }
 
     auto SkyboxPass::Setup( FrameGraphBuilder &builder ) -> void {

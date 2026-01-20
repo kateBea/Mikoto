@@ -96,6 +96,14 @@ namespace Mikoto {
             return m_TextureUsage;
         }
 
+        MKT_NODISCARD auto IsTextureUsage(const TextureUsage usage ) const -> bool {
+            return m_TextureUsage == usage;
+        }
+
+        MKT_NODISCARD auto IsTextureType(const TextureType type ) const -> bool {
+            return m_Type == type;
+        }
+
         /**
          * @brief Gets the associated sampler for the texture.
          *

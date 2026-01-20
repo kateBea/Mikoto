@@ -25,6 +25,7 @@ namespace Mikoto {
 
         auto RegisterTexture(std::string_view name, TextureHandle handle) -> void;
         auto RegisterTexture(std::string_view name, TextureDescription description) -> void;
+        auto RegisterTexture(std::string_view name, TextureCubeCreateDescription description) -> void;
 
         auto RegisterPipeline(std::string_view name, PipelineDescription description) -> void;
         auto RegisterBuffer(std::string_view name, BufferDescription description) -> void;

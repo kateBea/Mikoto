@@ -45,7 +45,7 @@ namespace Mikoto {
     auto VulkanGraphicsContext::BeginRender( RenderInfo &beginInfo ) -> void {
         MKT_ASSERT( beginInfo.Pass != nullptr, "Frame Pass cannot be NULL" );
 
-        m_CmdLists[beginInfo.Pass] = m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE );
+        m_CmdLists[beginInfo.Pass] = m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE, false );
         m_CmdLists[beginInfo.Pass]->Begin();
 
         const VkCommandBuffer vkCmd{  m_CmdLists[beginInfo.Pass]->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
@@ -107,7 +107,7 @@ namespace Mikoto {
     auto VulkanGraphicsContext::BeginCompute(FramePass* pass) -> void {
         MKT_ASSERT( pass != nullptr, "Frame Pass cannot be NULL" );
 
-        m_CmdLists[pass] = m_Device->CreateCommandList( QueueType::COMPUTE_QUEUE );
+        m_CmdLists[pass] = m_Device->CreateCommandList( QueueType::COMPUTE_QUEUE, false );
         m_CmdLists[pass]->Begin();
     }
 

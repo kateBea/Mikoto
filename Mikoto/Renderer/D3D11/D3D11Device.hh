@@ -35,7 +35,7 @@ namespace Mikoto {
         MKT_NODISCARD auto CreatePipeline( const ComputePipelineDescription &description ) -> PipelineHandle override;
         MKT_NODISCARD auto CreatePipeline( const GraphicsPipelineDescription &description ) -> PipelineHandle override;
 
-        MKT_NODISCARD auto CreateCommandList( QueueType queue ) -> CommandListHandle override;
+        MKT_NODISCARD auto CreateCommandList( QueueType queue, bool immediate ) -> CommandListHandle override;
 
         MKT_NODISCARD auto LoadShader( const Path &path, ShaderStage stage ) -> ShaderModuleHandle override;
 

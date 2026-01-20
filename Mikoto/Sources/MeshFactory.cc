@@ -216,14 +216,48 @@ namespace Mikoto {
         return textures;
     }
 
+    auto LoadMaterial(aiMaterial const* mat) -> MaterialProperties {
+        MaterialProperties properties{};
+
+        aiString name{};
+        if(mat->Get(AI_MATKEY_NAME, name) == AI_SUCCESS) {
+            properties.Name = name.C_Str();
+        }
+
+        aiColor3D diffuse{};
+        if(mat->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse) == AI_SUCCESS) {
+            properties.DiffuseColor = Vec3F{ diffuse.r, diffuse.g, diffuse.b };
+        }
+
+        float value{};
+
+        if(mat->Get(AI_MATKEY_METALLIC_FACTOR, value) == AI_SUCCESS) {
+            properties.Metallic = value;
+        }
+        if(mat->Get(AI_MATKEY_ROUGHNESS_FACTOR, value) == AI_SUCCESS) {
+            properties.Roughness = value;
+        }
+        if(mat->Get(AI_MATKEY_SHININESS, value) == AI_SUCCESS) {
+            properties.Shininess = value;
+        }
+
+        return properties;
+    }
+
     static auto ConstructMeshNode( GpuDevice *device, const std::string &rootPath,
                                    const aiMesh *mesh, const aiScene *scene )
-        -> std::tuple<BufferHandle, BufferHandle, std::vector<TextureHandle>, std::string> {
+        -> std::tuple<BufferHandle, BufferHandle, std::vector<TextureHandle>, std::string, MaterialProperties> {
         const std::string name{ mesh->mName.C_Str() };
 
         auto vertices{ LoadVertices( mesh ) };
         auto indices{ LoadIndices( mesh ) };
         auto textures{ LoadTextures( rootPath, mesh, scene ) };
+
+        MaterialProperties properties{};
+        // Load mesh physical properties
+        if (mesh->mMaterialIndex >= 0U) {
+            properties = LoadMaterial( scene->mMaterials[mesh->mMaterialIndex] );
+        }
 
         BufferDescription vertexDesc{};
         vertexDesc.WithData( reinterpret_cast<Byte *>( vertices.data() ) )
@@ -239,7 +273,7 @@ namespace Mikoto {
                  .WithBufferDataType( BufferDataType::BUFFER_DATA_UINT32 )
                  .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
-        return { device->CreateBuffer( vertexDesc ), device->CreateBuffer( indexDesc ), std::move( textures ), name };
+        return { device->CreateBuffer( vertexDesc ), device->CreateBuffer( indexDesc ), std::move( textures ), name, properties };
     }
 
     static auto LoadNodes( GpuDevice *device, const std::string &rootPath, const aiNode *node,
@@ -251,11 +285,11 @@ namespace Mikoto {
 
         // Process all the meshes from this node
         for (UInt64 i{}; i < node->mNumMeshes; ++i) {
-            auto [vertexBuf, indexBuf, textures, name]{
+            auto [vertexBuf, indexBuf, textures, name, materialProperties]{
                 ConstructMeshNode( device, rootPath, scene->mMeshes[node->mMeshes[i]], scene )
             };
 
-            result.emplace_back( static_cast<Size>( node->mMeshes[i] ), std::move( vertexBuf ), std::move( indexBuf ), std::move( textures ), std::move( name ) );
+            result.emplace_back( static_cast<Size>( node->mMeshes[i] ), std::move( vertexBuf ), std::move( indexBuf ), std::move( textures ), std::move( name ), std::move( materialProperties ) );
         }
 
         // Do the same for all the children nodex from this node
@@ -280,8 +314,10 @@ namespace Mikoto {
         const std::string fileName{ Path{ absolutePath }.stem().string() };
 
         const aiScene *scene{ importer.ReadFile( absolutePath.c_str(), importerFlags ) };
-        //const aiScene* scene{ importer.ReadFileFromMemory(  file->GetFileBytes(), file->GetSizeBytes(), importerFlags ) };
-        if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || scene->mRootNode == nullptr) { MKT_CORE_LOGGER_ERROR( "ImportModel - Model load failed. Assimp error: '{}'", importer.GetErrorString() ); } else {
+
+        if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || scene->mRootNode == nullptr) {
+            MKT_CORE_LOGGER_ERROR( "ImportModel - Model load failed. Assimp error: '{}'", importer.GetErrorString() );
+        } else {
             Path rootPath{ file->GetPath() };
             rootPath.remove_filename();
 

@@ -51,6 +51,11 @@ namespace Mikoto {
         m_Resources[std::string{ name }].Description = description;
     }
 
+    auto FrameGraphBuilder::CreateNamedRenderTarget( std::string_view name, TextureCubeCreateDescription description ) -> void {
+        m_Resources[std::string{ name }].Type = FrameResourceType::RENDER_TARGET;
+        m_Resources[std::string{ name }].Description = description;
+    }
+
     auto FrameGraphBuilder::CreateColorRenderTarget( std::string_view name, UInt32 width, UInt32 height, TextureFormat format ) -> void {
         TextureDescription colorDesc{};
         colorDesc.WithWidth( width )
@@ -75,6 +80,15 @@ namespace Mikoto {
             .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
             .WithFormat( format )
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+
+        CreateNamedRenderTarget( name, depthDesc );
+    }
+
+    auto FrameGraphBuilder::CreateCubeRenderTarget( std::string_view name, UInt32 dimensions, TextureFormat format ) -> void {
+        TextureCubeCreateDescription depthDesc{};
+        depthDesc.WithUsageType( TextureUsage::TEXTURE_USAGE_RENDER_TARGET )
+            .WithDimensions( dimensions )
+            .WithResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
 
         CreateNamedRenderTarget( name, depthDesc );
     }
@@ -216,6 +230,8 @@ namespace Mikoto {
             case FrameResourceType::RENDER_TARGET:
                 if (std::holds_alternative<TextureDescription>( resource.Description )) {
                     m_Blackboard->RegisterTexture( name, std::get<TextureDescription>( resource.Description ) );
+                } else if (std::holds_alternative<TextureCubeCreateDescription>( resource.Description )) {
+                    m_Blackboard->RegisterTexture( name, std::get<TextureCubeCreateDescription>( resource.Description ) );
                 }
                 break;
             case FrameResourceType::BUFFER:

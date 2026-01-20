@@ -19,9 +19,8 @@ namespace Mikoto {
 
     class ICommandList : public DeviceObject {
     public:
-        explicit ICommandList( const QueueType queue = QueueType::INVALID_QUEUE )
-            : m_Type{ queue }
-        {  }
+        explicit ICommandList( const bool immediate )
+            : m_IsImmediate{ immediate } {}
 
         virtual auto Begin() -> void = 0;
         virtual auto End() -> void = 0;
@@ -41,11 +40,12 @@ namespace Mikoto {
 
         virtual auto BindPipeline(PipelineHandle pipeline) -> void = 0;
 
+        MKT_NODISCARD auto IsImmediate() -> bool { return m_IsImmediate; }
+
         using DeviceObject::Initialize;
 
-    private:
-
-        QueueType m_Type{ QueueType::INVALID_QUEUE };
+    protected:
+        bool m_IsImmediate{ false };
     };
 
     class IQueue {
@@ -84,7 +84,7 @@ namespace Mikoto {
         MKT_NODISCARD virtual auto GetDeviceName() const -> std::string_view = 0;
 
         virtual auto SubmitCommands(CommandListHandle cmd) -> void = 0;
-        MKT_NODISCARD virtual auto CreateCommandList(QueueType queue) -> CommandListHandle = 0;
+        MKT_NODISCARD virtual auto CreateCommandList(QueueType queue, bool immediate) -> CommandListHandle = 0;
 
         MKT_NODISCARD virtual auto GetNativeHandle( ObjectType ) -> Object { return Object(nullptr); }
 

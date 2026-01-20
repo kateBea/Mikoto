@@ -37,10 +37,13 @@ passes, amongst other features.
 
 ## Supported Platforms
 
-| Platform | Status    |
-|----------|-----------|
-| Linux    | Supported |
-| Windows  | Supported |
+| Platform     | Status             |
+|--------------|--------------------|
+| Ubuntu 24.04 | Supported (Tested) |
+| Windows      | Supported          |
+
+> Note: This project has been tested on Ubuntu 24.04 for Linux compatibility. While it 
+> works properly on Windows, other Linux distributions are currently untested.
 
 ---
 
@@ -95,8 +98,9 @@ cmake --build . --config Release
 For Visual Studio users, CMake will generate `.sln` files by default. We want to open the solution in Visual Studio 
 and build from  there. CLion users can open the project directly and build it without extra steps. 
 
-On Linux, we can optionally pass target InstallDependencies (``--target InstallDependencies``) to CMake command
-to install necessary dependencies, user might be prompted to give permissions:
+On Linux, we need to install certain dependencies, we can do so by passing target InstallDependencies 
+(``--target InstallDependencies``) to CMake command to install necessary dependencies, user might be 
+prompted to give permissions:
 
 ```
 cmake --build . --target InstallDependencies --config Release 

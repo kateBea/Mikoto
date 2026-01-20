@@ -42,7 +42,7 @@ namespace Mikoto {
         return PipelineHandle::CreateEmpty();
     }
 
-    auto D3D11Device::CreateCommandList( QueueType queue ) -> CommandListHandle {
+    auto D3D11Device::CreateCommandList( QueueType queue, bool immediate ) -> CommandListHandle {
         return CommandListHandle::CreateEmpty();
     }
 

@@ -40,7 +40,7 @@ namespace Mikoto {
             ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
             m_SkyboxImageID = backend->ConstructImGuiTextureID( m_EditorState->TextureHDR_2D );
         } else {
-            ImGuiUtils::PushImageButton( m_EditorState->TextureHDR_2D->GetHandle(), m_SkyboxImageID, ImVec2{ 500, 250 } );
+            (void)ImGuiUtils::PushImageButton( m_EditorState->TextureHDR_2D->GetHandle(), m_SkyboxImageID, ImVec2{ 500, 250 } );
         }
 
         float gamma    { m_EditorState->ActiveEditorScene->GetGamma() };

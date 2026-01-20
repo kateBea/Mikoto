@@ -27,7 +27,7 @@ namespace Mikoto {
 
     class VulkanCmdList final : public ICommandList {
     public:
-        explicit VulkanCmdList(const VkCommandBufferAllocateInfo& createInfo);
+        explicit VulkanCmdList(const VkCommandBufferAllocateInfo& createInfo, bool immediate);
 
         auto Begin() -> void override;
         auto End() -> void override;
@@ -70,7 +70,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
 
-        auto AllocateCmdList() -> CommandListHandle;
+        auto AllocateCmdList(bool immediate) -> CommandListHandle;
 
         auto RunGarbageCollection() -> void;
 
@@ -126,7 +126,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetDeviceName() const -> std::string_view override;
 
         auto SubmitCommands( CommandListHandle cmd ) -> void override;
-        MKT_NODISCARD auto CreateCommandList( QueueType queue ) -> CommandListHandle override;
+        MKT_NODISCARD auto CreateCommandList( QueueType queue, bool immediate ) -> CommandListHandle override;
 
         auto RunGarbageCollection() -> void override;
 
@@ -238,8 +238,13 @@ namespace Mikoto {
         // [Command list management]
         QueuesData m_Queues{};
 
+        std::mutex m_OneTimeSubmitMutex{};
+        VulkanCommandPoolHandle m_OneTimeSubmitPool{};
+
         std::mutex m_CommandSubmitMutex{};
         std::mutex m_CommandCreateMutex{};
+
+        VulkanCommandPoolHandle m_MainTimeSubmitPool{};
 
         UInt32 m_CurrentFrameIndex{};
         ankerl::unordered_dense::map<UInt32, VkFence> m_FrameFences{};

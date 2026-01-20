@@ -151,6 +151,13 @@ namespace Mikoto {
         m_TextureFaces = data.Faces;
         m_IsHDR = data.IsHdrMap;
 
+        m_Format = data.Format;
+
+        m_Width = data.Dimensions;
+        m_Height = data.Dimensions;
+
+        m_TextureUsage = data.Usage;
+
         if (!data.Faces.empty() && data.Faces[0]) {
             SetTextureUri( data.Faces[0]->GetPathCStr() );
             SetTextureName( data.Faces[0]->GetName() );
@@ -228,21 +235,20 @@ namespace Mikoto {
     }
 
     auto VulkanTextureCube::Initialize() -> void {
-        LoadCubeFaces();
+        if (IsTextureUsage( TextureUsage::TEXTURE_USAGE_RENDER_TARGET )) {
+            CreateImageResource();
+        }
 
-        CreateImageResource();
+        if (IsTextureUsage( TextureUsage::TEXTURE_USAGE_CUBE )) {
+            LoadCubeFaces();
+            CreateImageResource();
 
-        // Copy stuff to the image
-        CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE ) };
-        cmd->Begin();
-
-        cmd->FillTexture( m_StagingBuffer.GetRaw(), this );
-
-        // Have the texture ready to sample from shaders after copying
-        SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
-
-        cmd->End();
-        m_Device->SubmitCommands( cmd );
+            CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE, true ) };
+            cmd->Begin();
+            cmd->FillTexture( m_StagingBuffer.GetRaw(), this );
+            cmd->End();
+            m_Device->SubmitCommands( cmd );
+        }
 
         SetDebugInfo();
 
@@ -268,7 +274,7 @@ namespace Mikoto {
         };
 
         m_ImageAllocation.ImageCreateInfo = VulkanHelpers::Initializers::ImageCreateInfo();
-        m_ImageAllocation.ImageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+        m_ImageAllocation.ImageCreateInfo.format = VulkanHelpers::ToVkFormat( m_Format );
         m_ImageAllocation.ImageCreateInfo.extent = extent;
 
         // This texture is a 2D image always
@@ -301,9 +307,6 @@ namespace Mikoto {
         m_ImageViewCreateInfo.subresourceRange.layerCount = 6;
         m_ImageViewCreateInfo.subresourceRange.levelCount = m_MipLevels;
 
-        // the caller can optionally pass a valid image because this VulkanTexture is supposed be
-        // usable for the swapchain as well, however, if the latter is the case,
-        // we are responsible for releasing the image views, not the actual images.
         if ( vkCreateImageView( VK_DEVICE( m_Device ), std::addressof( m_ImageViewCreateInfo ), nullptr, std::addressof( m_ImageView ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanTextureCube::CreateImageResource - Failed to create the Vulkan Image View!" );
         }
@@ -521,7 +524,7 @@ namespace Mikoto {
 
                 //Specify optional type operation so we return for instance
                 //a command list to be submitted in transfer queue
-                CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE ) };
+                CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE, true ) };
                 cmd->Begin();
 
                 cmd->FillTexture( m_StagingBuffer.GetRaw(), this );

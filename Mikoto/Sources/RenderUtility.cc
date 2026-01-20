@@ -318,6 +318,21 @@ namespace Mikoto {
         return *this;
     }
 
+    auto TextureCubeCreateDescription::WithTextureFormat( TextureFormat format ) -> TextureCubeCreateDescription & {
+        this->Format = format;
+        return *this;
+    }
+
+    auto TextureCubeCreateDescription::WithDimensions( UInt32 dimensions ) -> TextureCubeCreateDescription & {
+        this->Dimensions = dimensions;
+        return *this;
+    }
+
+    auto TextureCubeCreateDescription::WithUsageType( TextureUsage usage ) -> TextureCubeCreateDescription & {
+        this->Usage = usage;
+        return *this;
+    }
+
     auto TextureCubeCreateDescription::WithResourceUsage( ResourceUsageType usage ) -> TextureCubeCreateDescription & {
         this->ResourceUsage = usage;
         return *this;

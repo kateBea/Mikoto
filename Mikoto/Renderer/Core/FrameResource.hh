@@ -43,7 +43,7 @@ namespace Mikoto {
 
     struct FrameResource {
         FrameResourceType Type{ FrameResourceType::INVALID };
-        std::variant<BufferDescription, PipelineDescription, TextureDescription> Description{};
+        std::variant<BufferDescription, PipelineDescription, TextureDescription, TextureCubeCreateDescription> Description{};
     };
 
     enum class ShaderResourceType {

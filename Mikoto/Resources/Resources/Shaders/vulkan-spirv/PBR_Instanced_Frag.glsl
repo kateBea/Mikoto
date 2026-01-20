@@ -13,7 +13,6 @@
 #include "ShaderBase.glsl"
 #include "ClusteredShading.glsl"
 
-#define PI 3.14159265359
 #define INVALID_TEXTURE_INDEX -1
 
 // --------------------------------------------------

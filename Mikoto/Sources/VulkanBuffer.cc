@@ -9,6 +9,7 @@
 #include <Library/Math/Math.hh>
 #include <Renderer/Vulkan/VulkanBuffer.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Vulkan/VulkanHelpers.hh>
 #include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
 
 namespace Mikoto {
@@ -71,7 +72,7 @@ namespace Mikoto {
 
             UploadHostDataToStaging();
 
-            CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE ) };
+            CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE, true ) };
             cmd->Begin();
 
             VkBufferCopy copy{
@@ -80,7 +81,12 @@ namespace Mikoto {
                 .size{ m_SizeBytes },
             };
 
-            vkCmdCopyBuffer(cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ), m_StagingAllocation.Buffer, m_Allocation.Buffer, 1, std::addressof(copy));
+            vkCmdCopyBuffer(
+                cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
+                m_StagingAllocation.Buffer,
+                m_Allocation.Buffer,
+                1,
+                std::addressof(copy));
 
             VkAccessFlags accessFlags{ VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT };
 
@@ -89,7 +95,11 @@ namespace Mikoto {
                 accessFlags = VK_ACCESS_INDEX_READ_BIT;
             }
 
-            VkBufferMemoryBarrier barrier{
+            // VK_QUEUE_FAMILY_IGNORED Because queue family indices are
+            // unified see https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples
+            // Otherwise we would need to specify the indices explicitly
+
+            const VkBufferMemoryBarrier barrier{
                 .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
                 .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
                 .dstAccessMask = accessFlags,
@@ -104,7 +114,7 @@ namespace Mikoto {
                 cmd->GetNativeHandle(ObjectType::Vk_CmdBuffer),
                 VK_PIPELINE_STAGE_TRANSFER_BIT,
                 VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-                0,
+                VK_FLAGS_NONE,
                 0, nullptr,
                 1, &barrier,
                 0, nullptr

@@ -5,6 +5,8 @@
 #define MKT_SHADER_TRUE 1
 #define MKT_SHADER_FALSE 0
 
+#define PI 3.1415926535897932384626433832795
+
 struct MeshInfo {
     mat4 Transform;
 

@@ -332,7 +332,7 @@ namespace Mikoto {
 
         // Record commands to copy contents from present target to swap chain
         // Present is done on the current corresponding swap chain image
-        CommandListHandle cmdList{ m_Device->CreateCommandList( QueueType::PRESENT_QUEUE ) };
+        CommandListHandle cmdList{ m_Device->CreateCommandList( QueueType::PRESENT_QUEUE, false ) };
         cmdList->Begin();
 
         cmdList->CopyTexture( m_PresentTarget.GetRaw(), m_Swapchain->GetImage( m_CurrentImageIndex ).GetRaw() );

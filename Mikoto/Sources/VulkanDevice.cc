@@ -205,15 +205,12 @@ namespace Mikoto {
         m_Samplers.Init( 10 );
         m_DescriptorSetLayouts.Init( 10 );
 
-        // Pre-initialize available pools
-        constexpr UInt32 poolCount{ 2 };
-        m_CmdPools.Init( poolCount );
-        for ( auto count{ 0 }; count < poolCount; ++count ) {
-            // Temporary. On my machine, this queue is powerful xdd
-            // This will depend on command recording to avoid resizing the pool often
-            auto pool{ m_CmdPools.Allocate( QueueType::GRAPHICS_QUEUE, 100 ) };
-            pool->Initialize( this );
-        }
+        // Init Pools
+        m_MainTimeSubmitPool = m_CmdPools.Allocate( QueueType::GRAPHICS_QUEUE, 100 );
+        m_MainTimeSubmitPool->Initialize( this );
+
+        m_OneTimeSubmitPool = m_CmdPools.Allocate( QueueType::GRAPHICS_QUEUE, 100 );
+        m_OneTimeSubmitPool->Initialize( this );
 
         InitDescriptorAllocator();
 
@@ -440,6 +437,9 @@ namespace Mikoto {
 
         ShutdownTracyContext();
 
+        m_MainTimeSubmitPool.Reset();
+        m_OneTimeSubmitPool.Reset();
+
         vkDestroyDevice( m_LogicalDevice, nullptr );
 
         m_IsInitialized = false;
@@ -553,35 +553,42 @@ namespace Mikoto {
         m_EmptyDescriptorSetLayout.Reset();
     }
 
-    auto VulkanDevice::CreateCommandList( QueueType ) -> CommandListHandle {
-        std::lock_guard lock{ m_CommandCreateMutex };
-        // FIXME: Command pools cannot be shared, also command buffers from same pool cannot be used by multiple threads in paralel
+    auto VulkanDevice::CreateCommandList( QueueType queueType, bool immediate ) -> CommandListHandle {
+        CommandListHandle resultCommandList{};
 
-        auto& currentFrameCmdLists{ m_AvailableGraphicsCommandLists[m_CurrentFrameIndex] };
+        if (!immediate) {
+            std::lock_guard lock{ m_CommandCreateMutex };
+            // FIXME: Command pools cannot be shared, also command buffers from same pool cannot be used by multiple threads in paralel
 
-        if (currentFrameCmdLists.empty() ) {
-            constexpr UInt32 growCount{ 10 };
+            auto& currentFrameCmdLists{ m_AvailableGraphicsCommandLists[m_CurrentFrameIndex] };
 
-            currentFrameCmdLists.reserve( growCount );
+            if (currentFrameCmdLists.empty() ) {
+                constexpr UInt32 growCount{ 10 };
 
-            for (UInt32 count{}; count < growCount; ++count) {
-                CommandListHandle cmd{};
+                currentFrameCmdLists.reserve( growCount );
 
-                // TODO: Support other queue types
-                if ( VulkanCommandPoolHandle pool{ m_CmdPools.GetResource() }; !pool.IsEmpty() ) {
-                    cmd = pool->AllocateCmdList();
+                for (UInt32 count{}; count < growCount; ++count) {
+                    CommandListHandle cmd{};
 
-                    if ( cmd.IsEmpty() ) {
-                        MKT_THROW_RUNTIME_ERROR( "VulkanDevice::CreateCommandList - Failed to allocate command list." );
+                    // TODO: Support other queue types
+                    if ( !m_MainTimeSubmitPool.IsEmpty() ) {
+                        cmd = m_MainTimeSubmitPool->AllocateCmdList( immediate );
+
+                        if ( cmd.IsEmpty() ) {
+                            MKT_THROW_RUNTIME_ERROR( "VulkanDevice::CreateCommandList - Failed to allocate command list." );
+                        }
+
+                        currentFrameCmdLists.emplace_back( cmd );
                     }
-
-                    currentFrameCmdLists.emplace_back( cmd );
                 }
             }
-        }
 
-        CommandListHandle resultCommandList{ currentFrameCmdLists.back() };
-        currentFrameCmdLists.pop_back();
+            resultCommandList = currentFrameCmdLists.back();
+            currentFrameCmdLists.pop_back();
+        } else {
+            std::lock_guard lock{ m_OneTimeSubmitMutex };
+            resultCommandList = m_OneTimeSubmitPool->AllocateCmdList( immediate );
+        }
 
         return resultCommandList;
     }
@@ -751,8 +758,28 @@ namespace Mikoto {
     auto VulkanDevice::SubmitCommands( CommandListHandle cmd ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        std::lock_guard lock{ m_CommandSubmitMutex };
-        m_PendingGraphicsCommandLists[m_CurrentFrameIndex].emplace_back( cmd );
+        if (cmd->IsImmediate()) {
+            std::lock_guard lock{ m_OneTimeSubmitMutex };
+
+            VkCommandBufferSubmitInfo cmdInfo{
+                .sType{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO },
+                .commandBuffer{ cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) },
+                .deviceMask{ 0 }
+            };
+
+            VkSubmitInfo2 submitInfo{
+                .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+                .pNext = nullptr,
+                .flags = 0,
+                .commandBufferInfoCount = 1,
+                .pCommandBufferInfos = std::addressof( cmdInfo ),
+            };
+
+            MKT_VK_CHECK( vkQueueSubmit2( m_Queues.Graphics->Queue, 1, &submitInfo, VK_NULL_HANDLE ) );
+        } else {
+            std::lock_guard lock{ m_CommandSubmitMutex };
+            m_PendingGraphicsCommandLists[m_CurrentFrameIndex].emplace_back( cmd );
+        }
     }
 
     auto VulkanDevice::CreateSwapChain( const VulkanSwapChainCreateInfo& createInfo ) -> SwapChainHandle {
@@ -834,8 +861,10 @@ namespace Mikoto {
             .pSignalSemaphoreInfos = &signalSemaphoreInfo
         };
 
-        MKT_VK_CHECK( vkQueueSubmit2( m_Queues.Graphics->Queue, 1, &submitInfo, syncPrimitives.RenderFence ) );
+        {
 
+        }
+        MKT_VK_CHECK( vkQueueSubmit2( m_Queues.Graphics->Queue, 1, &submitInfo, syncPrimitives.RenderFence ) );
 
         std::ranges::move(
             m_PendingGraphicsCommandLists[m_CurrentFrameIndex],
@@ -844,14 +873,19 @@ namespace Mikoto {
         m_PendingGraphicsCommandLists[m_CurrentFrameIndex].clear();
     }
 
-    VulkanCmdList::VulkanCmdList( const VkCommandBufferAllocateInfo& createInfo )
-        : m_AllocInfo{ createInfo } {
+    VulkanCmdList::VulkanCmdList( const VkCommandBufferAllocateInfo& createInfo, bool immediate )
+        : ICommandList{ immediate }, m_AllocInfo{ createInfo } {
     }
 
     auto VulkanCmdList::Begin() -> void {
         // Begin recording command buffer
         VkCommandBufferBeginInfo beginInfo{ VulkanHelpers::Initializers::CommandBufferBeginInfo() };
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+
+        if (m_IsImmediate) {
+            // Overwrite flag, one time submit and simultaneous are exclusive
+            beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        }
 
         if ( vkBeginCommandBuffer( m_CmdBuffer, std::addressof( beginInfo ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanCmdList::Close - Failed to begin recording ImGui command buffer" );
@@ -861,7 +895,6 @@ namespace Mikoto {
     }
 
     auto VulkanCmdList::End() -> void {
-        // End recording command buffer
         //TracyVkCollect(TO_VK_DEVICE( m_Device )->GetTracyContext(), m_CmdBuffer);
 
         if ( vkEndCommandBuffer( m_CmdBuffer ) != VK_SUCCESS ) {
@@ -1084,14 +1117,14 @@ namespace Mikoto {
         return Object( m_Pool );
     }
 
-    auto VulkanCommandPool::AllocateCmdList() -> CommandListHandle {
+    auto VulkanCommandPool::AllocateCmdList(bool immediate) -> CommandListHandle {
         MKT_BEGIN_PROFILER_NAMED();
         VkCommandBufferAllocateInfo allocInfo{ VulkanHelpers::Initializers::CommandBufferAllocateInfo() };
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandPool = m_Pool;
         allocInfo.commandBufferCount = 1;
 
-        CommandListHandle handle{ m_CmdLists.Allocate( allocInfo ) };
+        CommandListHandle handle{ m_CmdLists.Allocate( allocInfo, immediate ) };
         if ( handle.IsEmpty() ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanCommandPool::AllocateCmdList - Failed to allocate  command list." );
         } 

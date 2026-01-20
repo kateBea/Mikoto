@@ -37,8 +37,8 @@ namespace Mikoto {
         return *this;
     }
 
-    MeshNode::MeshNode( Size index, BufferHandle vertices, BufferHandle indices, std::vector<TextureHandle>&& textures, std::string_view name )
-        : m_MeshIndex{ index }, m_Name{ name }, m_Vertices{ vertices }, m_Indices{ indices }, m_OriginalTextures{ std::move( textures ) }
+    MeshNode::MeshNode( Size index, BufferHandle vertices, BufferHandle indices, std::vector<TextureHandle>&& textures, std::string_view name, MaterialProperties&& properties )
+        : m_MeshIndex{ index }, m_Name{ name }, m_Vertices{ vertices }, m_Indices{ indices }, m_OriginalTextures{ std::move( textures ) }, m_Properties{ std::move(properties) }
     {}
 
     MeshNode::MeshNode( MeshNode &&other ) noexcept {

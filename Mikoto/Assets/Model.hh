@@ -49,6 +49,14 @@ namespace Mikoto {
         auto LoadTextures( bool value ) -> ModelLoadDescription&;
     };
 
+    struct MaterialProperties {
+        std::string Name{};
+        Vec3F DiffuseColor{0.f, 0.f, 0.f};
+        float Metallic{0.f};
+        float Roughness{0.f};
+        float Shininess{0.f};
+    };
+
     /**
      * @class MeshNode
      * @brief Represents a single mesh node within a 3D model.
@@ -64,7 +72,7 @@ namespace Mikoto {
          * @param indices Handle to the index buffer.
          * @param textures Vector of texture Handles associated with the mesh.
          */
-        explicit MeshNode( Size index, BufferHandle vertices, BufferHandle indices, std::vector<TextureHandle>&& textures, std::string_view name );
+        explicit MeshNode( Size index, BufferHandle vertices, BufferHandle indices, std::vector<TextureHandle>&& textures, std::string_view name, MaterialProperties&& properties );
 
         MeshNode(MeshNode&& other) noexcept;
 
@@ -81,6 +89,8 @@ namespace Mikoto {
         MKT_NODISCARD auto GetIndexBuffer() -> BufferHandle { return m_Indices; }
 
         MKT_NODISCARD auto GetName() -> const std::string& { return m_Name; }
+
+        MKT_NODISCARD auto GetProperties() const -> const MaterialProperties& { return m_Properties; }
 
         /**
          * @brief Retrieves the index of the mesh into its corresponding model.
@@ -103,6 +113,8 @@ namespace Mikoto {
 
         BufferHandle m_Vertices{};
         BufferHandle m_Indices{};
+
+        MaterialProperties m_Properties{};
 
         std::vector<TextureHandle> m_OriginalTextures{};
     };

@@ -34,6 +34,9 @@
 #define MKT_VULKAN_VERSION_MINOR 3
 #define MKT_VULKAN_VERSION_PATCH 0
 
+// For readability
+#define VK_FLAGS_NONE 0
+
 namespace Mikoto {
 
     struct VulkanQueueData {

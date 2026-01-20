@@ -53,10 +53,13 @@ namespace Mikoto {
         auto CreateNamedBuffer(std::string_view name, BufferDescription description) -> void;
         auto CreateNamedTexture(std::string_view name, TextureDescription description) -> void;
         auto CreateNamedPipeline(std::string_view name, PipelineDescription description) -> void;
+
         auto CreateNamedRenderTarget(std::string_view name, TextureDescription description) -> void ;
+        auto CreateNamedRenderTarget(std::string_view name, TextureCubeCreateDescription description) -> void ;
 
         auto CreateColorRenderTarget(std::string_view name, UInt32 width, UInt32 height, TextureFormat format) -> void;
         auto CreateDepthRenderTarget(std::string_view name, UInt32 width, UInt32 height, TextureFormat format) -> void;
+        auto CreateCubeRenderTarget(std::string_view name, UInt32 dimensions, TextureFormat format) -> void;
 
     private:
         friend class FrameGraph;

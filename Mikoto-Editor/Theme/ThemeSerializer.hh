@@ -12,24 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_PROJECT_HH
-#define MIKOTO_PROJECT_HH
+#ifndef MIKOTO_THEME_SERIALIZER_HH
+#define MIKOTO_THEME_SERIALIZER_HH
 
-#include <Library/Utility/Types.hh>
+#include <Theme/Theme.hh>
+#include <Core/Serializer.hh>
 
 namespace Mikoto {
-
-    class Project final {
+    class ThemeSerializer final : public ISerializer<Theme> {
     public:
-
-        explicit Project(const Path& path);
-        ~Project() = default;
-
-    private:
-
+        auto Serialize( const Theme& obj, const Path& savePath ) -> void override;
+        auto Deserialize( const Path& loadPath ) -> Unique<Theme> override;
     };
 }
 
-
-
-#endif //MIKOTO_PROJECT_HH
+#endif //MIKOTO_THEME_SERIALIZER_HH

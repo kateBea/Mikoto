@@ -12,24 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_PROJECT_HH
-#define MIKOTO_PROJECT_HH
-
-#include <Library/Utility/Types.hh>
+#include <Theme/Theme.hh>
 
 namespace Mikoto {
 
-    class Project final {
-    public:
-
-        explicit Project(const Path& path);
-        ~Project() = default;
-
-    private:
-
-    };
 }
-
-
-
-#endif //MIKOTO_PROJECT_HH

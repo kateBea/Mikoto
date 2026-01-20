@@ -182,6 +182,18 @@ Mikoto includes a networking layer built on top of ASIO to support TCP sockets.
 The engine supports both HTTP and HTTPS connections, but HTTPS requires OpenSSL to be installed on your system.
 If OpenSSL is not available the engine falls back to HTTP support only.
 
+## Profiling with Tracy
+
+Mikoto integrates the Tracy Profiler for CPU, GPU, and memory profiling.
+>When Tracy instrumentation is enabled, the Tracy Profiler GUI must be running.
+If the profiler is not connected, Tracy will continue to run internally, 
+which can lead to unbounded memory growth over time, so basically memory leaks.
+> By default Tracy is disabled, in order to enabled one must compile with the ``MIKOTO_ENABLE_TRACY_PROFILING``
+> flag enabled in the ``CmakeLists.txt`` file. See the [Editor CMake](Mikoto-Editor/CMakeLists.txt) file for reference.
+> 
+> User will need to run Mikoto with latest Tracy's Profiler build or, more specifically the Profiler from the version used to build
+> the engine.
+
 ## Goals
 
 The primary goal of Mikoto Engine is to serve as a learning platform for exploring modern graphics programming techniques. Features are implemented progressively as new concepts and ideas are explored.

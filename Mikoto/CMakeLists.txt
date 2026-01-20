@@ -38,6 +38,7 @@ project(Mikoto)
 # ======================================
 option(MIKOTO_USE_XCB_WINDOW "Use XCB for Linux windowing" OFF)
 option(MIKOTO_USE_WIN32_WINDOW "Use Win32 for Windows windowing" OFF)
+option(MIKOTO_ENABLE_TRACY_PROFILING "Enable tracy profiling" OFF)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -632,6 +633,12 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC MKT_USE_VULKAN_BINDLESS)
 target_compile_definitions(${PROJECT_NAME} PUBLIC MKT_USE_VULKAN_DYNAMIC_RENDERING)
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC TRACY_ENABLE)
+
+# Tracy
+if(MIKOTO_ENABLE_TRACY_PROFILING)
+    message("Using Win32 for window")
+    target_compile_definitions(${PROJECT_NAME} PUBLIC MIKOTO_ENABLE_TRACY)
+endif()
 
 # Windowing system
 if(MIKOTO_USE_XCB_WINDOW)

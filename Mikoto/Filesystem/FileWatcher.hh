@@ -34,8 +34,7 @@ namespace Mikoto {
 
         explicit FileWatcher( const Path& path );
 
-        MKT_NODISCARD auto UnRegisterWatchCallback(UInt64 watcherID) -> bool;
-        MKT_NODISCARD auto RegisterWatchCallback(const Path& absolutePath, WatcherCallback&& callback) -> UInt64;
+        auto RegisterWatchCallback(const Path& absolutePath, WatcherCallback&& callback) -> void;
 
     private:
         // From efsw::FileWatchListener
@@ -47,8 +46,7 @@ namespace Mikoto {
 
     private:
         Path m_WatchedPath{};
-        ankerl::unordered_dense::map<UInt64, WatcherCallback> m_Callbacks{};
-        ankerl::unordered_dense::map<UInt64, std::string> m_CallbacksByPath{};
+        ankerl::unordered_dense::map<std::string, std::vector<WatcherCallback>> m_Callbacks{};
     };
 }
 

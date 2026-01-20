@@ -50,22 +50,10 @@ namespace Mikoto {
 
     }
 
-    auto FileWatcherService::UnWatch(const Path &path, UInt64 watchID ) -> bool {
-        const std::string fileAbsolutePath{ Filesystem::GetGetAbsolutePathString( path ) };
-        const auto it{ m_WatchedPaths.find( fileAbsolutePath ) };
-
-        bool removed{ false };
-        if (it == m_WatchedPaths.end()) {
-            removed = it->second->UnRegisterWatchCallback( watchID );
-        }
-
-        return removed;
-    }
-
-    auto FileWatcherService::Watch( const Path &path, FileWatcher::WatcherCallback&& callback ) -> UInt64 {
+    auto FileWatcherService::Watch( const Path &path, FileWatcher::WatcherCallback&& callback ) -> void {
         const std::string fileAbsolutePath{ Filesystem::GetGetAbsolutePathString( path ) };
 
-        // File watcher watches whole directory, not individual files
+        // EFSW watches whole directory, not individual files
         Path absolutePath{ fileAbsolutePath };
         absolutePath.remove_filename();
 
@@ -73,18 +61,17 @@ namespace Mikoto {
         const auto it{ m_WatchedPaths.find( directoryString ) };
 
         if (it == m_WatchedPaths.end()) {
-            // Single watcher per directory
+            // W want a single watcher per directory
             m_WatchedPaths[directoryString] = CreateScope<FileWatcher>( directoryString );
 
-            // For now, we make it non-recursive so each watcher monitors a specific directory
+            // For now, we make it non-recursive so each watcher monitors a specific directory and avoid multiple watchers per directory tree
             efsw::WatchID watchID{ m_FileWatcher->addWatch( directoryString, m_WatchedPaths[directoryString].get(), false ) };
             if (IS_WATCH_ID_ERROR(watchID)) {
                 MKT_CORE_LOGGER_ERROR( "Error registering callback for watched path [{}]. Error {}", directoryString, efsw::Errors::Log::getLastErrorLog().c_str() );
             }
         }
 
-        // Cast to void to avoid warnings
-        return m_WatchedPaths[directoryString]->RegisterWatchCallback( fileAbsolutePath, std::move( callback ) );
+        m_WatchedPaths[directoryString]->RegisterWatchCallback( fileAbsolutePath, std::move( callback ) );
     }
 
     auto FileWatcherService::Init() -> void {

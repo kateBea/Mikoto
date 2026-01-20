@@ -35,14 +35,12 @@ namespace Mikoto {
 
         explicit FileWatcherService( const FileWatcherServiceCreateInfo& info);
 
-        MKT_NODISCARD auto UnWatch(const Path &path, UInt64 watchID) -> bool;
-        MKT_NODISCARD auto Watch(const Path& path, FileWatcher::WatcherCallback&& callback) -> UInt64;
-
         auto Init() -> void override;
         auto Shutdown() -> void override;
 
+        auto Watch(const Path& path, FileWatcher::WatcherCallback&& callback) -> void;
+
     private:
-        // efsw
         Unique<efsw::FileWatcher> m_FileWatcher{};
 
     private:

@@ -45,33 +45,15 @@ namespace Mikoto {
         m_WatchedPath = Filesystem::GetGetAbsolutePath( path.string() );
     }
 
-    auto FileWatcher::UnRegisterWatchCallback( UInt64 watcherID ) -> bool {
-        auto result{ m_Callbacks.erase( watcherID ) };
-        auto resultPaths{ m_CallbacksByPath.erase( watcherID ) };
-
-        return result != 0 && resultPaths != 0;
-    }
-
-    auto FileWatcher::RegisterWatchCallback(const Path& absolutePath, WatcherCallback &&callback ) -> UInt64 {
-        UInt64 watcherID{ m_Callbacks.size() };
-
-        const std::string absPath{ Filesystem::GetGetAbsolutePathString( absolutePath ) };
-
-        const auto [it, success]{ m_Callbacks.try_emplace( watcherID, std::move(callback) ) };
-        const auto [itPath, successPath]{ m_CallbacksByPath.try_emplace( watcherID, absPath ) };
-
-        if (!success || !successPath) {
-            MKT_THROW_RUNTIME_ERROR( "Error registering watch callback!" );
-        }
-
-        return watcherID;
+    auto FileWatcher::RegisterWatchCallback(const Path& absolutePath, WatcherCallback &&callback ) -> void {
+        const std::string filename{ Filesystem::GetGetAbsolutePath( absolutePath.string() ).filename().string() };
+        m_Callbacks[filename].emplace_back( std::move(callback) );
     }
 
     auto FileWatcher::handleFileAction( efsw::WatchID watchID, const std::string &dir, const std::string &filename, efsw::Action action, std::string oldFilename ) -> void {
-        for (const auto& [watchedFileID, callback] : m_Callbacks) {
-            const std::string watchedFile{ Filesystem::GetGetAbsolutePath(  m_CallbacksByPath[watchedFileID] ).filename().string() };
-
-            if (filename == watchedFile) {
+        const auto it{ m_Callbacks.find( filename ) };
+        if (it != m_Callbacks.end()) {
+            for (const auto& callback : it->second) {
                 callback(m_WatchedPath, ConverEventType( action ));
             }
         }

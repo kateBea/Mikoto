@@ -97,6 +97,13 @@ set(BUILD_STATIC_LIBS ON CACHE BOOL "Build static libs only" FORCE)
 set(BUILD_TEST_APP OFF CACHE BOOL "Disable test app" FORCE)
 set(EFSW_INSTALL OFF CACHE BOOL "Disable install targets" FORCE)
 
+# ======================================
+# OpenCL-SDK
+# ======================================
+set(OPENCL_SDK_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
+set(OPENCL_SDK_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
+set(OPENCL_SDK_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+
 find_package(Freetype QUIET)
 
 if (NOT Freetype_FOUND)
@@ -408,6 +415,17 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(efsw)
 
+# -------------------------------------------------------
+# Fetch OpenCL-SDK
+# -------------------------------------------------------
+FetchContent_Declare(
+        OpenCL-SDK
+        GIT_REPOSITORY https://github.com/KhronosGroup/OpenCL-SDK.git
+        GIT_TAG        main   # You can lock to a specific release
+)
+
+FetchContent_MakeAvailable(OpenCL-SDK)
+
 # SSL library
 if (UNIX AND NOT OpenSSL_FOUND)
     FetchContent_Declare(
@@ -540,6 +558,7 @@ set(LIBRARIES
         sol2::sol2
         Tracy::TracyClient
         efsw-static
+        OpenCL::OpenCL
 )
 
 if(UNIX)
@@ -611,6 +630,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${tracy_SOURCE_DIR}/asio/include
         ${efsw_SOURCE_DIR}/include
         ${LUA_INCLUDE_DIR}
+
+        ${OpenCL-SDK_SOURCE_DIR}/lib/include
+        ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-Headers
+        ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-CLHPP/include
 )
 
 # ======================================

@@ -1,5 +1,5 @@
 /**
- * @file HdriToCubemap.hpp
+ * @file HdriToCubemap.hh
  *
  * @brief Simple single-header library to convert an equirectangular hdri image to cubemap images.
  *
@@ -11,20 +11,24 @@
 
 // From: https://github.com/ivarout/HdriToCubemap
 
-#pragma once
+#ifndef HDRICUBEMAP_HH
+#define HDRICUBEMAP_HH
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image.h"
 #include "stb_image_write.h"
 
 #define _USE_MATH_DEFINES
-#include <math.h>
+#include <cmath>
 #include <algorithm>
 #include <array>
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <vector>
+#include <numbers>
+
+//#define USE_OPENCL
 
 template <typename T>
 class HdriToCubemap
@@ -162,11 +166,11 @@ void HdriToCubemap<T>::calculateCubemap()
                 pixelDirection3d.y = start.y + ((float)col * 2.0f + 0.5f)/(float)m_cubemapResolution * right.y + ((float)row * 2.0f + 0.5f)/(float)m_cubemapResolution * up.y;
                 pixelDirection3d.z = start.z + ((float)col * 2.0f + 0.5f)/(float)m_cubemapResolution * right.z + ((float)row * 2.0f + 0.5f)/(float)m_cubemapResolution * up.z;
 
-                float azimuth = atan2f(pixelDirection3d.x, -pixelDirection3d.z) + (float)M_PI; // add pi to move range to 0-360 deg
-                float elevation = atanf(pixelDirection3d.y / sqrtf(pixelDirection3d.x * pixelDirection3d.x + pixelDirection3d.z * pixelDirection3d.z)) + (float)M_PI/2.0f;
+                float azimuth = atan2f(pixelDirection3d.x, -pixelDirection3d.z) + std::numbers::pi_v<float>; // add pi to move range to 0-360 deg
+                float elevation = atanf(pixelDirection3d.y / sqrtf(pixelDirection3d.x * pixelDirection3d.x + pixelDirection3d.z * pixelDirection3d.z)) + std::numbers::pi_v<float>/2.0f;
 
-                float colHdri = (azimuth / (float)M_PI / 2.0f) * m_width; // add pi to azimuth to move range to 0-360 deg
-                float rowHdri = (elevation / (float)M_PI ) * m_height;
+                float colHdri = (azimuth / std::numbers::pi_v<float> / 2.0f) * m_width; // add pi to azimuth to move range to 0-360 deg
+                float rowHdri = (elevation / std::numbers::pi_v<float> ) * m_height;
 
                 if (!m_filterLinear)
                 {
@@ -225,7 +229,7 @@ void HdriToCubemap<T>::calculateCubemap()
 }
 #else // opencl implementation
 
-#include <CL/cl.hpp>
+#include <CL/opencl.hpp>
 
 template<typename T>
 void HdriToCubemap<T>::calculateCubemap()
@@ -296,7 +300,7 @@ void HdriToCubemap<T>::calculateCubemap()
     cl::Image2D imgHdri(context, CL_MEM_READ_ONLY, format, m_width, m_height);
     cl::Image2D imgFace(context, CL_MEM_WRITE_ONLY, format, m_cubemapResolution, m_cubemapResolution);
     cl::CommandQueue queue(context, device);
-    cl::size_t<3> origin;
+    cl::size<3> origin;
     origin[0] = 0;
     origin[1] = 0;
     origin[2] = 0;
@@ -333,4 +337,6 @@ void HdriToCubemap<T>::calculateCubemap()
         cl::finish();
     }
 }
+#endif
+
 #endif

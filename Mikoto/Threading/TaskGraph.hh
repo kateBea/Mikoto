@@ -20,13 +20,22 @@
 #include <taskflow/taskflow.hpp>
 
 namespace Mikoto {
+
+    enum class DumpDst {
+        STANDARD_OUTPUT,
+        STANDARD_ERROR,
+    };
+
     class TaskGraph final {
     public:
 
-        template <typename... Args>
-        auto Emplace(Args&&... args) -> void {
-            m_Taskflow.emplace( std::forward<Args>(args)... );
+        template <typename Callable>
+        auto Emplace(Callable&& c) -> TaskGraph& {
+            m_Taskflow.emplace( std::forward<Callable>(c) );
+            return *this;
         }
+
+        auto Dump(DumpDst out) -> void;
 
         operator tf::Taskflow&() noexcept {
             return m_Taskflow;

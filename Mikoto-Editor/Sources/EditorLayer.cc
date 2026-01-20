@@ -659,10 +659,11 @@ namespace Mikoto {
     }
 
     auto EditorLayer::PrepareNewScene() -> void {
-        InitializeEmptyScene( "Sandbox" );
+        constexpr std::string_view sceneDefaultName{ "Sandbox" };
+        InitializeEmptyScene( sceneDefaultName );
     }
 
-    auto EditorLayer::InitializeEmptyScene( std::string_view name ) -> void {
+    auto EditorLayer::InitializeEmptyScene( const std::string_view name ) -> void {
         m_ActiveScene = SceneManager::Get()->CreateScene( name );
 
         ModelLoadDescription descFirst{
@@ -755,8 +756,8 @@ namespace Mikoto {
                 TransformComponent &transformComponent{ clusteredLight->GetComponent<TransformComponent>() };
                 transformComponent.SetTranslation( { GetRandomReal(-66.0f, 125.0f), 2.0f, GetRandomReal(-100.0f, 100.0f) } );
 
-                // Test heatmaps
-                //transformComponent.SetTranslation( { GetRandomReal(0, 10.0f), 2.0f, GetRandomReal(0, 15) } );
+                // Test heatmaps, by accumulating many lights into small area
+                // transformComponent.SetTranslation( { GetRandomReal(0, 10.0f), 2.0f, GetRandomReal(0, 15) } );
             }
         }
     }

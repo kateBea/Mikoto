@@ -97,7 +97,7 @@ namespace Mikoto {
         VkImageLayout m_CurrentLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
     };
 
-    // This is either an HDR or a Cubemap with 6 faces
+    // This is either an HDR or a Cubemap with 6 faces, can also be used as render target
     class VulkanTextureCube final : public TextureCube {
     public:
         explicit VulkanTextureCube( const TextureCubeCreateDescription& data );
@@ -117,9 +117,8 @@ namespace Mikoto {
         auto Initialize() -> void override;
         auto Release() -> void override;
 
-        auto CreateImageResource() -> void;
-
         auto LoadCubeFaces() -> void;
+        auto CreateImageResource() -> void;
 
         auto SetDebugInfo() -> void;
 

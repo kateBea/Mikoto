@@ -121,8 +121,6 @@ namespace Mikoto {
     auto FileService::LoadFile( const Path& path, FileMode mode ) -> File* {
         MKT_BEGIN_PROFILER_NAMED();
 
-        std::lock_guard lock{ m_FileLoadMutex };
-
         File* result{ nullptr };
 
         // Use string because m_Files key is std::string, Path contained type is implementation defined
@@ -137,9 +135,12 @@ namespace Mikoto {
             if ( newFile ) {
                 result = newFile.get();
 
-                const auto [insertIt, success]{
-                    m_Files.try_emplace( path.string(), std::move( newFile ) )
-                };
+                {
+                    std::lock_guard lock{ m_FileLoadMutex };
+                    const auto [insertIt, success]{
+                        m_Files.try_emplace( path.string(), std::move( newFile ) )
+                    };
+                }
             } else {
                 MKT_CORE_LOGGER_ERROR( "Could not load file at {}", path.string() );
             }

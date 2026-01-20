@@ -24,6 +24,7 @@
 #include <Logging/Logger.hh>
 
 #include "Core/Timer.hh"
+#include "Filesystem/FileWatch.hh"
 #include "Renderer/Core/RenderService.hh"
 
 namespace Mikoto {

@@ -72,15 +72,6 @@ namespace Mikoto {
     }
 
     auto ScriptingService::Update( const float timeStep ) -> void {
-        for (auto& [path, scripts] : m_Scripts) {
-            if ( FileWatcherService::Get()->CheckStatus( path, FileWatchEvent::MODIFIED ) ) {
-                // Update all scripts using the file in this path
-                for (auto& scripts : scripts) {
-                    //scripts->Reload();
-                }
-            }
-        }
-
         for (auto& script : m_ScriptPool | std::ranges::views::values) {
             script.As<Script>()->Update( timeStep );
         }
@@ -93,7 +84,11 @@ namespace Mikoto {
             try {
                 handle = m_ScriptPool.Allocate( file,  m_LuaState, entity );
 
-                FileWatcherService::Get()->Watch( file->GetPath() );
+                FileWatcherService::Get()->Watch( file->GetPath(), [](const Path& pathCallable, FileWatchEvent event)-> void {
+                    if (event == FileWatchEvent::MODIFIED) {
+                        MKT_CORE_LOGGER_INFO( "File at path {} was modified", pathCallable.string());
+                    }
+                } );
 
             } catch ( const sol::error &e ) {
                 MKT_CORE_LOGGER_ERROR( "ScriptingService::LoadScript - exception: '{}'", e.what() );

@@ -30,6 +30,21 @@ namespace Mikoto {
         WINDOW_MODE_BORDERLESS,
     };
 
+    enum class CursorMode {
+        NORMAL,
+        HIDDEN,
+        DISABLED
+    };
+
+    enum class CursorType {
+        ARROW,
+        HAND,
+        TEXT,
+        CROSSHAIR,
+        RESIZE_HORIZONTAL,
+        RESIZE_VERTICAL
+    };
+
     struct WindowProperties {
         std::string Title{};
 
@@ -141,6 +156,17 @@ namespace Mikoto {
 
         MKT_NODISCARD virtual auto ShouldClose() const -> bool = 0;
 
+        MKT_NODISCARD auto IsCursorMode(CursorMode mode) const -> bool { return m_CursorMode == mode; }
+        MKT_NODISCARD auto IsCursorType(CursorType type) const -> bool { return m_CursorType == type; }
+
+        MKT_NODISCARD auto GetCursorMode() const -> CursorMode { return m_CursorMode; }
+        MKT_NODISCARD auto GetCursorType() const -> CursorType { return m_CursorType; }
+
+        virtual auto SetCursorMode(CursorMode mode) -> void = 0;
+        virtual auto SetCursorType(CursorType type) -> void = 0;
+
+        virtual auto ResetCursorType() -> void = 0;
+
         /**
          * @brief Creates a Window for the currently active platform.
          * @param properties Determines the properties of the window to be created.
@@ -157,6 +183,9 @@ namespace Mikoto {
         DISABLE_COPY_FOR( Window );
 
     protected:
+        CursorMode m_CursorMode{ CursorMode::NORMAL };
+        CursorType m_CursorType{ CursorType::ARROW };
+
         WindowProperties m_Properties{};
         ScreenMode m_ScreenMode{ ScreenMode::WINDOW_MODE_WINDOWED }; /**< The current screen mode for this window. */
     };

@@ -20,6 +20,7 @@
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
 #include <Platform/MainWindow.hh>
+
 #include <Renderer/Vulkan/VulkanHelpers.hh>
 
 namespace Mikoto {
@@ -31,53 +32,45 @@ namespace Mikoto {
 
     auto MainWindow::Init() -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
         MKT_CORE_LOGGER_INFO("MainWindow::Init - Initializing new GLFW Window.");
 
-        // Initialize GLFW Library
         InitGLFW();
 
         switch(m_Properties.Backend) {
             case GraphicsAPI::VULKAN_API:
                 m_Properties.Title = fmt::format("{} (Vulkan Version {}.{})", m_Properties.Title, MKT_VULKAN_VERSION_MAJOR, MKT_VULKAN_VERSION_MINOR);
-
-                // Because GLFW was originally designed to create an OpenGL context,
-                // we need to tell it to not create an OpenGL context with a later call to glfwCreateWindow
-                glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
                 break;
             default:;
         }
 
-        // Allow resizing?
-        if (IsResizable()) {
-            glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        }
-        else {
-            glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-        }
+        SetBasicHints();
 
-        if (m_ScreenMode != ScreenMode::WINDOW_MODE_FULLSCREEN) {
-            glfwWindowHint(GLFW_MAXIMIZED, GLFW_FALSE);
-        }
+        m_Window = Create(GetWidth(), GetHeight(), GetTitle());
 
-        const MainWindowCreateSpec spec{
-            .Width{ GetWidth() },
-            .Height{ GetHeight() },
-            .Title{ GetTitle() },
-        };
-
-        m_Window = Create(spec);
-
-        MKT_CORE_LOGGER_INFO("Created MainWindow '{}' [{} x {}]", GetTitle(), GetWidth(), GetHeight());
+        SetCursorMode( GetCursorMode() );
+        SetCursorType( GetCursorType() );
 
         MoveToMonitorCenter();
 
         InstallCallbacks();
+
+        MKT_CORE_LOGGER_INFO("Created MainWindow '{}' [{} x {}]", GetTitle(), GetWidth(), GetHeight());
     }
 
     auto MainWindow::Shutdown() -> void {
         MKT_CORE_LOGGER_INFO("Shutting MainWindow '{}'", GetTitle());
         DestroyGLFWWindow(m_Window);
+    }
+
+    auto MainWindow::SetBasicHints() -> void {
+        // Because GLFW was originally designed to create an OpenGL context,
+        // we need to tell it to not create an OpenGL context with a later call to glfwCreateWindow
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_RESIZABLE, IsResizable() ? GLFW_TRUE : GLFW_FALSE);
+
+        if (m_ScreenMode != ScreenMode::WINDOW_MODE_FULLSCREEN) {
+            glfwWindowHint(GLFW_MAXIMIZED, GLFW_FALSE);
+        }
     }
 
     auto MainWindow::InstallCallbacks() -> void {
@@ -273,6 +266,65 @@ namespace Mikoto {
         }
     }
 
+    auto MainWindow::SetCursorMode( CursorMode mode ) -> void {
+        MKT_ASSERT( m_Window != nullptr, "Trying to set cursor mode on NULL Window" );
+
+        switch (mode) {
+            case CursorMode::NORMAL:
+                glfwSetInputMode( m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
+                break;
+            case CursorMode::HIDDEN:
+                glfwSetInputMode( m_Window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN );
+                break;
+            case CursorMode::DISABLED:
+                glfwSetInputMode( m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
+                break;
+        }
+
+        m_CursorMode = mode;
+    }
+
+    auto MainWindow::SetCursorType( CursorType type ) -> void {
+        MKT_ASSERT( m_Window != nullptr, "Trying to set cursor type on NULL Window" );
+
+        GLFWcursor *cursor{ nullptr };
+
+        switch (type) {
+            case CursorType::ARROW:
+                cursor = glfwCreateStandardCursor( GLFW_ARROW_CURSOR );
+                break;
+            case CursorType::HAND:
+                cursor = glfwCreateStandardCursor( GLFW_HAND_CURSOR );
+                break;
+            case CursorType::TEXT:
+                cursor = glfwCreateStandardCursor( GLFW_IBEAM_CURSOR );
+                break;
+            case CursorType::RESIZE_VERTICAL:
+                cursor = glfwCreateStandardCursor( GLFW_VRESIZE_CURSOR );
+                break;
+            case CursorType::RESIZE_HORIZONTAL:
+                cursor = glfwCreateStandardCursor( GLFW_HRESIZE_CURSOR );
+                break;
+            case CursorType::CROSSHAIR:
+                cursor = glfwCreateStandardCursor( GLFW_CROSSHAIR_CURSOR );
+                break;
+            default:
+                cursor = glfwCreateStandardCursor( GLFW_ARROW_CURSOR );
+                break;
+        }
+
+        glfwSetCursor( m_Window, cursor );
+
+        m_CursorType = type;
+    }
+
+    auto MainWindow::ResetCursorType() -> void {
+        GLFWcursor *cursor{ glfwCreateStandardCursor( GLFW_ARROW_CURSOR ) };
+        glfwSetCursor( m_Window, cursor );
+
+        m_CursorType = CursorType::ARROW;
+    }
+
     auto MainWindow::IsKeyPressed( KeyCode keyCode ) const -> bool {
         const auto state{ glfwGetKey( m_Window, keyCode ) };
 
@@ -327,11 +379,11 @@ namespace Mikoto {
         }
     }
 
-    auto MainWindow::Create(const MainWindowCreateSpec& spec) -> GLFWwindow* {
+    auto MainWindow::Create(Int32 width,  Int32 height, std::string_view title) -> GLFWwindow* {
         MKT_BEGIN_PROFILER_NAMED();
 
         // All windows are created in non-fullscreen mode because the monitor we pass is null, see docs for glfwCreateWindow
-        GLFWwindow* window{ glfwCreateWindow(spec.Width, spec.Height, spec.Title.data(), nullptr, nullptr) };
+        GLFWwindow* window{ glfwCreateWindow(width, height, title.data(), nullptr, nullptr) };
         MKT_ASSERT( window, "GLFWindow handle is NULL" );
         s_WindowsCount += 1;
 

@@ -1,7 +1,16 @@
-/**
- * MainWindow.hh
- * Created by kate on 5/26/23.
- * */
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_MAIN_WINDOW_HH
 #define MIKOTO_MAIN_WINDOW_HH
@@ -22,43 +31,23 @@
 #include <Core/MouseCodes.hh>
 
 namespace Mikoto {
-    /**
-     * @brief Represents a platform-agnostic window using GLFW.
-     * */
+
     class MainWindow final : public Window {
     public:
-        /**
-         * @brief Constructs a GLFW window with given properties.
-         *
-         * @param properties The properties specifying the window's characteristics.
-         * */
         explicit MainWindow( const WindowProperties& properties );
 
-
-        /**
-         * @brief Default destructor for this GLFW window.
-         * */
         ~MainWindow() override = default;
 
 
-        /**
-         * @brief Initializes this GLFW window.
-         * */
         auto Init() -> void override;
-
-
-        /**
-         * @brief Shuts down this GLFW window.
-         * */
         auto Shutdown() -> void override;
-
-
-        /**
-         * @brief Processes events for this GLFW window.
-         * */
         auto ProcessEvents() -> void override;
 
         auto SetScreenMode( ScreenMode mode ) -> void override;
+        auto SetCursorMode( CursorMode mode ) -> void override;
+        auto SetCursorType( CursorType type ) -> void override;
+
+        auto ResetCursorType() -> void override;
 
         MKT_NODISCARD auto IsKeyPressed( KeyCode keyCode ) const -> bool override;
         MKT_NODISCARD auto IsKeyReleased( KeyCode keyCode ) const -> bool override;
@@ -72,64 +61,24 @@ namespace Mikoto {
 
         MKT_NODISCARD auto ShouldClose() const -> bool override;
 
-        /**
-         * @brief Retrieves the native window as std::any.
-         *
-         * @return The native window wrapped in std::any.
-         * */
         MKT_NODISCARD auto GetNativeWindow() const -> std::any override { return m_Window; }
 
     private:
-        /**
-         * @brief Represents specifications for creating a GLFW window.
-         *
-         * This struct encapsulates specifications for creating a GLFW window,
-         * including width, height, and the title of the window.
-         * */
-        struct MainWindowCreateSpec {
-            Int32 Width{};          /**< The width of the GLFW window. Default is 0. */
-            Int32 Height{};         /**< The height of the GLFW window. Default is 0. */
-            std::string Title{}; /**< The title of the GLFW window. Default is an empty string. */
-        };
-
-
-        /**
-         * @brief Installs necessary callbacks for the GLFW window.
-         * */
+        // [Internal usage]
+        auto SetBasicHints() -> void;
         auto InstallCallbacks() -> void;
-
-
-        /**
-         * @brief Spawns the window at the center of the screen.
-         * */
         auto MoveToMonitorCenter() const -> void;
 
-
-        /**
-         * @brief Initializes the GLFW library.
-         * */
         static auto InitGLFW() -> void;
 
-
-        /**
-         * @brief Destroys the GLFW window.
-         *
-         * @param window The GLFW window to be destroyed.
-         * */
         static auto DestroyGLFWWindow( GLFWwindow *window ) -> void;
-
-
-        /**
-         * @brief Creates a GLFW window based on the given specifications.
-         * @param spec Specifications for creating the GLFW window.
-         * @return The created GLFW window.
-         * */
-        static auto Create( const MainWindowCreateSpec &spec ) -> GLFWwindow *;
+        static auto Create( Int32 width,  Int32 height, std::string_view title ) -> GLFWwindow *;
 
     private:
         static inline std::atomic_uint32_t s_WindowsCount{ 0 };
         static inline std::atomic_bool s_GLFWInitSuccess{ false };
 
+        // To restore dimensions on exiting full screen mode
         Int32 m_WidthPreFullScreen{};
         Int32 m_HeightPreFullScreen{};
 

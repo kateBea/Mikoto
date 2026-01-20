@@ -349,7 +349,13 @@ namespace Mikoto {
 
         if (InputService::Get()->IsMouseKeyPressed( Mouse_Button_Right ) && (scenePanel->IsHovered() || m_RenderScreenTarget == RenderScreenTarget::WINDOW)) {
             m_EditorCamera->EnableCamera( true );
+
+            if (!m_Window->IsCursorMode( CursorMode::DISABLED )) {
+                m_Window->SetCursorMode( CursorMode::DISABLED );
+            }
+
         } else {
+            m_Window->SetCursorMode( CursorMode::NORMAL );
             m_EditorCamera->EnableCamera( false );
         }
 

@@ -28,6 +28,11 @@ namespace Mikoto {
 
         auto SetScreenMode( ScreenMode mode ) -> void override;
 
+        auto SetCursorMode( CursorMode mode ) -> void override;
+        auto SetCursorType( CursorType type ) -> void override;
+
+        auto ResetCursorType() -> void override;
+
         MKT_NODISCARD auto IsKeyPressed( KeyCode keyCode ) const -> bool override;
         MKT_NODISCARD auto IsKeyReleased( KeyCode keyCode ) const -> bool override;
 

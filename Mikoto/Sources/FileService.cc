@@ -142,12 +142,12 @@ namespace Mikoto {
                 }
 
                 // If we managed to load the file listen on update notifications to update the file contents
-                (void)FileWatcherService::Get()->Watch( result->GetPath(), [result](const Path& pathCallable, FileWatchEvent event) mutable -> void {
-                    if (event == FileWatchEvent::MODIFIED) {
-                        result->UpdateContents();
-                        MKT_CORE_LOGGER_INFO( "File at path {} was modified. Updating it's contents", pathCallable.string());
-                    }
-                } );
+                // (void)FileWatcherService::Get()->Watch( result->GetPath(), [result](const Path& pathCallable, FileWatchEvent event) mutable -> void {
+                //     if (event == FileWatchEvent::MODIFIED) {
+                //         result->UpdateContents();
+                //         MKT_CORE_LOGGER_INFO( "File at path {} was modified. Updating it's contents", pathCallable.string());
+                //     }
+                // } );
             } else {
                 MKT_CORE_LOGGER_ERROR( "Could not load file at {}", path.string() );
             }

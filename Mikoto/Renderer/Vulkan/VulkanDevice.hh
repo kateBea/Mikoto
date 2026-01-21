@@ -1,12 +1,24 @@
+//    Copyright 2025 ケイト
 //
-// Created by zanet on 1/26/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef VULKANDEVICE_HH
-#define VULKANDEVICE_HH
+#ifndef MIKOTO_VULKAN_DEVICE_HH
+#define MIKOTO_VULKAN_DEVICE_HH
 
 #include <vector>
 #include <mutex>
+#include <deque>
+#include <functional>
 
 #include <volk.h>
 #include <vk_mem_alloc.h>
@@ -104,6 +116,17 @@ namespace Mikoto {
 
     using VulkanCommandPoolHandle = Ref<VulkanCommandPool>;
 
+    class VulkanDeletionQueue final {
+    public:
+
+        auto Flush() -> void;
+        auto Push(std::function<void()>&& callback ) -> void;
+
+    private:
+        std::mutex m_PushMutex{};
+        std::deque<std::function<void()>> m_Callbacks{};
+    };
+
     class VulkanDevice final : public GpuDevice {
     public:
         explicit VulkanDevice( const GpuDeviceCreateInfo& createInfo );
@@ -146,6 +169,8 @@ namespace Mikoto {
         auto GetTracyContext() -> TracyVkCtx&;
 
         auto SetCurrentFrameIndex(UInt32 frameIndex) -> void;
+
+        auto SubmitDeletion(std::function<void()>&& callback) -> void;
 
         MKT_NODISCARD auto GetDummyDescriptorLayout() -> DescriptorSetLayoutHandle;
 
@@ -235,6 +260,8 @@ namespace Mikoto {
 
         DescriptorAllocator m_DescriptorAllocator{};
 
+        VulkanDeletionQueue m_DeletionQueue{};
+
         // [Command list management]
         QueuesData m_Queues{};
 
@@ -274,4 +301,4 @@ namespace Mikoto {
     dynamic_cast<VulkanDevice*>(GPU_DEVICE_PTR)
 }
 
-#endif //VULKANDEVICE_HH
+#endif //MIKOTO_VULKAN_DEVICE_HH

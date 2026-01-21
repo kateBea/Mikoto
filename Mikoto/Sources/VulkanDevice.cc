@@ -172,6 +172,17 @@ namespace Mikoto {
         return extensionsSupported && deviceSupportsRequiredQueues && deviceHasSwapchainSupport && supportRequiredPhysicalFeatures;
     }
 
+    auto VulkanDeletionQueue::Flush() -> void {
+        for (const auto& callback : m_Callbacks) {
+            callback();
+        }
+    }
+
+    auto VulkanDeletionQueue::Push( std::function<void()>&& callback ) -> void {
+        std::lock_guard lock{ m_PushMutex };
+        m_Callbacks.emplace_back( std::move( callback ) );
+    }
+
     VulkanDevice::VulkanDevice( const GpuDeviceCreateInfo& createInfo )
         : GpuDevice{ createInfo.Api },
           // For now, we use all these. The idea is to enable extensions based on user request
@@ -408,7 +419,6 @@ namespace Mikoto {
 
         DestroyDummyResources();
 
-
         m_AvailableGraphicsCommandLists.clear();
         m_PendingGraphicsCommandLists.clear();
         m_SubmittedGraphicsCommandLists.clear();
@@ -494,6 +504,10 @@ namespace Mikoto {
 
         m_SubmittedGraphicsCommandLists[m_CurrentFrameIndex].clear();
 
+    }
+
+    auto VulkanDevice::SubmitDeletion( std::function<void()> &&callback ) -> void {
+        m_DeletionQueue.Push( std::move(callback) );
     }
 
     auto VulkanDevice::CreateTexture( const TextureDescription& description ) -> TextureHandle {
@@ -810,6 +824,10 @@ namespace Mikoto {
     auto VulkanDevice::RunGarbageCollection() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        // Check reference counting and delete those
+        // that are being held by the pool exclusively
+
+        m_DeletionQueue.Flush();
     }
 
     auto VulkanDevice::FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void {

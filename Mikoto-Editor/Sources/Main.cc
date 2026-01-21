@@ -100,7 +100,6 @@ auto RunApplication() -> void {
     }
 }
 
-
 auto Usage(const int argc)-> bool {
     if ( argc != 1 ) {
         std::printf( "MikotoEditor takes no arguments." );

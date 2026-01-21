@@ -47,6 +47,7 @@ namespace Mikoto {
                 }
             } catch(std::exception& e) {
                 MKT_CORE_LOGGER_ERROR( "Failed to register service. Error: {}", e.what() );
+                return false;
             }
 
             return true;

@@ -1,13 +1,24 @@
+//    Copyright 2025 ケイト
 //
-// Created by zanet on 10/1/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef ROOT_HH
-#define ROOT_HH
+#ifndef MIKOTO_ROOT_HH
+#define MIKOTO_ROOT_HH
 
 #include <Common/Common.hh>
 #include <Common/Service.hh>
 #include <Library/Data/Registry.hh>
+
 #include <Platform/Window.hh>
 
 namespace Mikoto {
@@ -19,8 +30,7 @@ namespace Mikoto {
         GraphicsAPI TargetApi{ GraphicsAPI::VULKAN_API };
     };
 
-    // handles services lifetime and dependencies
-    class Root {
+    class Root final {
     public:
 
         static auto Init(const RootConfig& config) -> void;
@@ -28,14 +38,26 @@ namespace Mikoto {
 
         static auto UpdateState(float timeStep) -> void;
 
+        template<typename ServiceType, typename... Args>
+        MKT_NODISCARD static auto RegisterService(Args&&... args) -> bool {
+            try {
+                if (ServiceType *service{
+                s_Services.Register<ServiceType>( std::forward<Args>(args)... ) }) {
+                    service->Init();
+                }
+            } catch(std::exception& e) {
+                MKT_CORE_LOGGER_ERROR( "Failed to register service. Error: {}", e.what() );
+            }
+
+            return true;
+        }
+
         DISABLE_COPY_AND_MOVE_FOR(Root);
 
     private:
-
         static inline Registry<IService> s_Services{};
     };
 
 }
 
-
-#endif //ROOT_HH
+#endif //MIKOTO_ROOT_HH

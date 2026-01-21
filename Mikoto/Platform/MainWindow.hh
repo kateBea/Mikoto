@@ -15,15 +15,12 @@
 #ifndef MIKOTO_MAIN_WINDOW_HH
 #define MIKOTO_MAIN_WINDOW_HH
 
-// C++ Standard Library
 #include <any>
 #include <atomic>
 
-// Third-Party Libraries
 #include <volk.h>
 #include <GLFW/glfw3.h>
 
-// Project Headers
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 #include <Platform/Window.hh>
@@ -35,9 +32,6 @@ namespace Mikoto {
     class MainWindow final : public Window {
     public:
         explicit MainWindow( const WindowProperties& properties );
-
-        ~MainWindow() override = default;
-
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
@@ -63,21 +57,19 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetNativeWindow() const -> std::any override { return m_Window; }
 
+        ~MainWindow() override = default;
+
     private:
         // [Internal usage]
         auto SetBasicHints() -> void;
         auto InstallCallbacks() -> void;
+        auto SetCustomTitle() -> void;
+
         auto MoveToMonitorCenter() const -> void;
 
-        static auto InitGLFW() -> void;
-
-        static auto DestroyGLFWWindow( GLFWwindow *window ) -> void;
-        static auto Create( Int32 width,  Int32 height, std::string_view title ) -> GLFWwindow *;
+        auto CreateNativeHandle() -> void;
 
     private:
-        static inline std::atomic_uint32_t s_WindowsCount{ 0 };
-        static inline std::atomic_bool s_GLFWInitSuccess{ false };
-
         // To restore dimensions on exiting full screen mode
         Int32 m_WidthPreFullScreen{};
         Int32 m_HeightPreFullScreen{};

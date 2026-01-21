@@ -109,6 +109,17 @@ namespace Mikoto {
         return std::make_pair( posX, posY );
     }
 
+    auto InputService::GetClipBoardContents() const -> std::string {
+        // glfwSetClipboardString
+        return "";
+    }
+
+    auto InputService::GetDroppedPaths( Window *window ) const -> std::vector<std::string> {
+        // It will return the last files dropped on the target window
+        // glfwSetDropCallback
+        return {};
+    }
+
     auto InputService::GetMouseX() const -> double {
         const auto [mouseX, mouseY]{ GetMousePos() };
         return mouseX;

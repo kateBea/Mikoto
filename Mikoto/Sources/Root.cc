@@ -1,6 +1,16 @@
+//    Copyright 2025 ケイト
 //
-// Created by zanet on 10/1/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <Assets/AssetsService.hh>
 #include <Audio/AudioService.hh>
@@ -34,7 +44,6 @@ namespace Mikoto {
 
         MKT_CORE_LOGGER_DEBUG( "Initializing Root..." );
 
-        // Time service
         TimeServiceCreateInfo timeServiceCreateInfo{
             .DefaultUnit{ TimeUnit::SECONDS }
         };
@@ -45,36 +54,30 @@ namespace Mikoto {
         FileWatcherService *fileWatcherService{ s_Services.Register<FileWatcherService>( fileWatcherServiceCreateInfo ) };
         fileWatcherService->Init();
 
-        // Task service
         TaskServiceCreateInfo taskServiceCreateInfo{
             .WorkerThreadCount{ ThreadUtils::InferConcurrentThreads() }
         };
         TaskService *taskService{ s_Services.Register<TaskService>( taskServiceCreateInfo ) };
         taskService->Init();
 
-        // Input service
         InputServiceCreateInfo inputServiceCreateInfo{
             .MainWindow{ config.TargetWindow }
         };
         InputService *inputService{ s_Services.Register<InputService>( inputServiceCreateInfo ) };
         inputService->Init();
 
-        // Event service
         EventServiceCreateInfo eventServiceCreateInfo{};
         EventService *eventService{ s_Services.Register<EventService>( eventServiceCreateInfo ) };
         eventService->Init();
 
-        // File service
         FileServiceCreateInfo fileServiceCreateInfo{};
         FileService *fileService{ s_Services.Register<FileService>( fileServiceCreateInfo ) };
         fileService->Init();
 
-        // Physics service
         PhysicServiceCreateInfo physicsServiceCreateInfo{};
         PhysicService *physicService{ s_Services.Register<PhysicService>( physicsServiceCreateInfo ) };
         physicService->Init();
 
-        // Audio service
         AudioServiceCreateInfo audioServiceCreateInfo{};
         AudioService *audioService{ s_Services.Register<AudioService>( audioServiceCreateInfo ) };
         audioService->Init();
@@ -89,12 +92,10 @@ namespace Mikoto {
         RenderService *renderSystem{ s_Services.Register<RenderService>( renderServiceCreateInfo ) };
         renderSystem->Init();
 
-        // Memory service
         MemoryServiceCreateInfo memoryServiceCreateInfo{};
         MemoryService *memoryService{ s_Services.Register<MemoryService>( memoryServiceCreateInfo ) };
         memoryService->Init();
 
-        // Assets service
         AssetsServiceDescription assetsServiceCreateInfo{
             .Device{ renderSystem->GetGpuDevice() },
             .AudDevice{ audioService->GetDevice() },
@@ -102,13 +103,11 @@ namespace Mikoto {
         AssetsService *assetsService{ s_Services.Register<AssetsService>( assetsServiceCreateInfo ) };
         assetsService->Init();
 
-        // Scripting service
         ScriptingServiceDescription luaServiceCreateInfo{
         };
         ScriptingService *scriptingService{ s_Services.Register<ScriptingService>( luaServiceCreateInfo ) };
         scriptingService->Init();
 
-        // Console
         ConsoleManagerCreateInfo consoleCreateInfo{
         };
         RuntimeConsole *runtimeConsole{ s_Services.Register<RuntimeConsole>( consoleCreateInfo ) };
@@ -159,5 +158,4 @@ namespace Mikoto {
             }
         }
     }
-
 }// namespace Mikoto

@@ -127,7 +127,7 @@ namespace Mikoto {
         Vec3F m_TargetForwardVector{ 0.0f, 0.0f, -1.0f };
 
         // Controls how quickly the camera moves towards the target. Higher values mean faster smoothing.
-        float m_DampingFactor{ 5.0f };
+        float m_DampingFactor{ 15.0f };
 
         bool m_WantCameraRotationX{ true };
         bool m_WantCameraRotationY{ true };

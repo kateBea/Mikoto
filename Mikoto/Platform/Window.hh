@@ -75,29 +75,33 @@ namespace Mikoto {
          * @param props Properties for the window.
          * */
         explicit Window( const WindowProperties& props = WindowProperties{} )
-            : m_Properties{ props } {
-        }
+            : m_Title{ props.Title },
+            m_Width{ props.Width },
+            m_Height{ props.Height },
+            m_Backend{ props.Backend },
+            m_IsResizable{ props.Resizable }
+        {}
 
-        auto SetWidth( const Int32 width ) -> void { m_Properties.Width = width; }
-        auto SetHeight( const Int32 height ) -> void { m_Properties.Height = height; }
+        auto SetWidth( const Int32 width ) -> void { m_Width = width; }
+        auto SetHeight( const Int32 height ) -> void { m_Height = height; }
 
         /**
          * @brief Returns the width of this window.
          * @returns The width of the window.
          * */
-        MKT_NODISCARD auto GetWidth() const -> Int32 { return m_Properties.Width; }
+        MKT_NODISCARD auto GetWidth() const -> Int32 { return m_Width; }
 
         /**
          * @brief Returns the height of this window.
          * @returns The height of the window.
          * */
-        MKT_NODISCARD auto GetHeight() const -> Int32 { return m_Properties.Height; }
+        MKT_NODISCARD auto GetHeight() const -> Int32 { return m_Height; }
 
         /**
          * @brief Returns the title of this window.
          * @returns The title of the window.
          * */
-        MKT_NODISCARD auto GetTitle() const -> const std::string& { return m_Properties.Title; }
+        MKT_NODISCARD auto GetTitle() const -> const std::string& { return m_Title; }
 
         MKT_NODISCARD auto GetScreenMode() const -> ScreenMode { return m_ScreenMode; }
 
@@ -118,13 +122,13 @@ namespace Mikoto {
          * @brief Checks if the window is resizable.
          * @returns A boolean indicating if the window is resizable.
          * */
-        MKT_NODISCARD auto IsResizable() const -> bool { return m_Properties.Resizable; }
+        MKT_NODISCARD auto IsResizable() const -> bool { return m_IsResizable; }
 
         /**
          * @brief Allows or disallows resizing of the window.
          * @param value The value indicating whether the window should be resizable.
          * */
-        auto AllowResizing( const bool value ) -> void { m_Properties.Resizable = value; }
+        auto AllowResizing( const bool value ) -> void { m_IsResizable = value; }
 
         virtual auto SetScreenMode( ScreenMode mode ) -> void = 0;
 
@@ -156,8 +160,8 @@ namespace Mikoto {
 
         MKT_NODISCARD virtual auto ShouldClose() const -> bool = 0;
 
-        MKT_NODISCARD auto IsCursorMode(CursorMode mode) const -> bool { return m_CursorMode == mode; }
-        MKT_NODISCARD auto IsCursorType(CursorType type) const -> bool { return m_CursorType == type; }
+        MKT_NODISCARD auto IsCursorMode( const CursorMode mode) const -> bool { return m_CursorMode == mode; }
+        MKT_NODISCARD auto IsCursorType( const CursorType type) const -> bool { return m_CursorType == type; }
 
         MKT_NODISCARD auto GetCursorMode() const -> CursorMode { return m_CursorMode; }
         MKT_NODISCARD auto GetCursorType() const -> CursorType { return m_CursorType; }
@@ -167,27 +171,25 @@ namespace Mikoto {
 
         virtual auto ResetCursorType() -> void = 0;
 
-        /**
-         * @brief Creates a Window for the currently active platform.
-         * @param properties Determines the properties of the window to be created.
-         * @returns A pointer to the newly created window.
-         * */
-        static auto Create( const WindowProperties& properties ) -> Window*;
-
-        /**
-         * @brief Default virtual destructor for this Window.
-         * */
         virtual ~Window() = default;
 
     public:
         DISABLE_COPY_FOR( Window );
 
     protected:
+        std::string m_Title{};
+
+        Int32 m_Width{};
+        Int32 m_Height{};
+
+        GraphicsAPI m_Backend{};
+
         CursorMode m_CursorMode{ CursorMode::NORMAL };
         CursorType m_CursorType{ CursorType::ARROW };
 
-        WindowProperties m_Properties{};
-        ScreenMode m_ScreenMode{ ScreenMode::WINDOW_MODE_WINDOWED }; /**< The current screen mode for this window. */
+        bool m_IsResizable{ false };
+
+        ScreenMode m_ScreenMode{ ScreenMode::WINDOW_MODE_WINDOWED };
     };
 }// namespace Mikoto
 

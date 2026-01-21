@@ -1,17 +1,32 @@
-/**
- * EntryPoint.cc
- * Created by kate on 8/26/23.
- * */
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <exception>
+#include <string_view>
 
-// Project Headers
+#include <Core/Root.hh>
+#include <Core/Profiler.hh>
+#include <Logging/Logger.hh>
+
+#include <Library/Utility/Types.hh>
+
+#include <Layers/EditorLayer.hh>
 #include <Application/EditorApp.hh>
 #include <Application/EditorConfigLoader.hh>
-#include <Core/Profiler.hh>
-#include <Layers/EditorLayer.hh>
-#include <Library/Utility/Types.hh>
-#include <Logging/Logger.hh>
+
+#include <Platform/Window.hh>
+#include <Platform/WindowsService.hh>
 
 Mikoto::Window* g_Window{ nullptr };
 Mikoto::EditorApp* g_Application{ nullptr };
@@ -21,6 +36,11 @@ const Mikoto::BaseConfiguration g_Config{ g_ConfidPath };
 
 auto InitializeWindow() -> void {
     using namespace Mikoto;
+
+    // Initialize the window service so we can use windows
+    if (!Root::RegisterService<WindowsService>( WindowsServiceCreateInfo{} )) {
+        return;
+    }
 
     if (!g_Config.IsLoaded()) {
         std::printf( "Could not load file at %s·", g_ConfidPath.data() );
@@ -35,9 +55,7 @@ auto InitializeWindow() -> void {
         .Resizable{ g_Config.Get<bool>( "application.resizable" ) }
     };
 
-    g_Window = Window::Create( properties );
-
-    g_Window->Init();
+    g_Window = WindowsService::Get()->CreateNewWindow( properties );
 }
 
 auto InitializeApplication() -> void {
@@ -74,12 +92,6 @@ auto RunCleanup() -> void {
     }
 
     delete g_Application;
-
-    if (g_Window) {
-        g_Window->Shutdown();
-    }
-
-    delete g_Window;
 }
 
 auto RunApplication() -> void {
@@ -88,7 +100,6 @@ auto RunApplication() -> void {
     }
 
     try {
-
         g_Application->Run();
 
     } catch ( const std::exception& e ) {
@@ -114,11 +125,8 @@ auto main( const int argc, char** ) -> int {
     }
 
     InitializeWindow();
-
     InitializeApplication();
-
     RunApplication();
-
     RunCleanup();
 
     return 0;

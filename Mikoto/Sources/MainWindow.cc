@@ -1,7 +1,16 @@
-/**
- * MainWindow.cc
- * Created by kate on 5/26/23.
- * */
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 // C++ Standard Library
 #include <any>
@@ -34,18 +43,10 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
         MKT_CORE_LOGGER_INFO("MainWindow::Init - Initializing new GLFW Window.");
 
-        InitGLFW();
-
-        switch(m_Properties.Backend) {
-            case GraphicsAPI::VULKAN_API:
-                m_Properties.Title = fmt::format("{} (Vulkan Version {}.{})", m_Properties.Title, MKT_VULKAN_VERSION_MAJOR, MKT_VULKAN_VERSION_MINOR);
-                break;
-            default:;
-        }
-
+        SetCustomTitle();
         SetBasicHints();
 
-        m_Window = Create(GetWidth(), GetHeight(), GetTitle());
+        CreateNativeHandle();
 
         SetCursorMode( GetCursorMode() );
         SetCursorType( GetCursorType() );
@@ -59,7 +60,8 @@ namespace Mikoto {
 
     auto MainWindow::Shutdown() -> void {
         MKT_CORE_LOGGER_INFO("Shutting MainWindow '{}'", GetTitle());
-        DestroyGLFWWindow(m_Window);
+
+        glfwDestroyWindow(m_Window);
     }
 
     auto MainWindow::SetBasicHints() -> void {
@@ -76,16 +78,13 @@ namespace Mikoto {
     auto MainWindow::InstallCallbacks() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-
-        // Here we are just registering list of callbacks for the different events supported
-
         glfwSetWindowUserPointer(m_Window, this);
 
         glfwSetWindowSizeCallback(m_Window,
             [](GLFWwindow* window, int width, int height) -> void {
                 const auto data{ static_cast<MainWindow*>(glfwGetWindowUserPointer(window)) };
-                data->m_Properties.Width = width;
-                data->m_Properties.Height = height;
+                data->m_Width = width;
+                data->m_Height = height;
 
                 EventService::Get()->Queue<WindowResizedEvent>(width, height);
             }
@@ -171,6 +170,15 @@ namespace Mikoto {
             });
     }
 
+    auto MainWindow::SetCustomTitle() -> void {
+        switch(m_Backend) {
+            case GraphicsAPI::VULKAN_API:
+                m_Title = fmt::format("{} (Vulkan Version {}.{})", m_Title, MKT_VULKAN_VERSION_MAJOR, MKT_VULKAN_VERSION_MINOR);
+                break;
+            default:;
+        }
+    }
+
     auto MainWindow::MoveToMonitorCenter() const -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -190,22 +198,18 @@ namespace Mikoto {
         }
 
         glfwGetMonitorWorkarea(primary, std::addressof( monitorX  ), std::addressof( monitorY  ), std::addressof(monitorWidth), std::addressof(monitorHeight));
-        glfwSetWindowPos(m_Window, monitorWidth / 2 - m_Properties.Width / 2, monitorHeight / 2 - m_Properties.Height / 2);
+        glfwSetWindowPos(m_Window, monitorWidth / 2 - m_Width / 2, monitorHeight / 2 - m_Height / 2);
     }
 
-    auto MainWindow::InitGLFW() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        if (!s_GLFWInitSuccess) {
-            const auto ret{ glfwInit() };
-            MKT_ASSERT(ret == GLFW_TRUE, "MainWindow::InitGLFW - Failed to initialized the GLFW library.");
-
-            s_GLFWInitSuccess = true;
-
-            glfwSetErrorCallback([](Int32 errCode, const char* desc) -> void {
-                    MKT_CORE_LOGGER_ERROR("GLFW error code: {} Description: {}", errCode, desc);
-                }
-            );
+    auto MainWindow::CreateNativeHandle() -> void {
+        try {
+            m_Window = glfwCreateWindow(GetWidth(), GetHeight(), GetTitle().data(), nullptr, nullptr);
+            if (m_Window == nullptr) {
+                MKT_THROW_RUNTIME_ERROR( "GLFWindow handle is NULL" );
+            }
+        } catch( std::exception& e ) {
+            const auto result{  glfwGetError( nullptr ) };
+            MKT_CORE_LOGGER_ERROR("Error creating native window. Last error code {}", e.what(), result);
         }
     }
 
@@ -222,8 +226,8 @@ namespace Mikoto {
                 GLFWmonitor* monitor{ glfwGetPrimaryMonitor() };
                 const GLFWvidmode* videoMode{ glfwGetVideoMode( monitor ) };
 
-                m_WidthPreFullScreen = m_Properties.Width;
-                m_HeightPreFullScreen = m_Properties.Height;
+                m_WidthPreFullScreen = m_Width;
+                m_HeightPreFullScreen = m_Height;
 
                 glfwSetWindowMonitor( m_Window, monitor, 0, 0, videoMode->width, videoMode->height, videoMode->refreshRate );
                 break;
@@ -233,8 +237,8 @@ namespace Mikoto {
                 GLFWmonitor* monitor{ glfwGetPrimaryMonitor() };
                 const GLFWvidmode* videoMode{ glfwGetVideoMode( monitor ) };
 
-                m_Properties.Width = m_WidthPreFullScreen;
-                m_Properties.Height = m_HeightPreFullScreen;
+                m_Width = m_WidthPreFullScreen;
+                m_Height = m_HeightPreFullScreen;
 
                 glfwSetWindowMonitor( m_Window, nullptr, 0, 0, videoMode->width, videoMode->height, videoMode->refreshRate );
                 glfwSetWindowSize( m_Window, m_WidthPreFullScreen, m_HeightPreFullScreen );
@@ -259,7 +263,6 @@ namespace Mikoto {
                 const GLFWvidmode* videoMode{ glfwGetVideoMode( monitor ) };
 
                 glfwSetWindowSize( m_Window, monitorWidth, monitorHeight );
-
                 glfwSetWindowMonitor( m_Window, monitor, 0, 0, videoMode->width, videoMode->height, videoMode->refreshRate );
                 break;
             }
@@ -366,27 +369,5 @@ namespace Mikoto {
 
     auto MainWindow::ShouldClose() const -> bool {
         return glfwWindowShouldClose( m_Window );
-    }
-
-    auto MainWindow::DestroyGLFWWindow(GLFWwindow* window) -> void {
-        // Everytime we shut down a GLFW window, we decrease the number
-        // of active windows, the last GLFW window to be shutdown calls glfwTerminate()
-        glfwDestroyWindow(window);
-        s_WindowsCount -= 1;
-
-        if (s_WindowsCount == 0) {
-            glfwTerminate();
-        }
-    }
-
-    auto MainWindow::Create(Int32 width,  Int32 height, std::string_view title) -> GLFWwindow* {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        // All windows are created in non-fullscreen mode because the monitor we pass is null, see docs for glfwCreateWindow
-        GLFWwindow* window{ glfwCreateWindow(width, height, title.data(), nullptr, nullptr) };
-        MKT_ASSERT( window, "GLFWindow handle is NULL" );
-        s_WindowsCount += 1;
-
-        return window;
     }
 }

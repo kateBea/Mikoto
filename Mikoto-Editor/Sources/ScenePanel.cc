@@ -148,7 +148,7 @@ namespace Mikoto {
             UpdateViewport();
 
             //DrawSceneToolbar();
-            ShowStatsOverlay(ts);
+            //ShowStatsOverlay(ts);
 
             SetupManipulation();
             DrawManipulationGuizmos();

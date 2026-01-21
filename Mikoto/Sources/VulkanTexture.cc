@@ -146,7 +146,7 @@ namespace Mikoto {
     }
 
     VulkanTextureCube::VulkanTextureCube( const TextureCubeCreateDescription& data )
-        : TextureCube{ data.ResourceUsage } {
+        : TextureCube{ data.ResourceUsage, data.MipLevels } {
 
         m_TextureFaces = data.Faces;
         m_IsHDR = data.IsHdrMap;

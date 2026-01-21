@@ -318,6 +318,11 @@ namespace Mikoto {
         return *this;
     }
 
+    auto TextureCubeCreateDescription::WithMipLevels( UInt32 levels ) -> TextureCubeCreateDescription & {
+        this->MipLevels = levels;
+        return *this;
+    }
+
     auto TextureCubeCreateDescription::WithTextureFormat( TextureFormat format ) -> TextureCubeCreateDescription & {
         this->Format = format;
         return *this;

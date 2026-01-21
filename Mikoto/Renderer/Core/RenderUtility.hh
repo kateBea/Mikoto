@@ -272,6 +272,7 @@ namespace Mikoto {
         std::vector<const File*> Faces{};
         ResourceUsageType ResourceUsage{ ResourceUsageType::RESOURCE_USAGE_STATIC };
 
+        UInt32 MipLevels{ 1 };
         UInt32 Dimensions{};
         TextureFormat Format{ TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM };
         TextureUsage Usage{ TextureUsage::TEXTURE_USAGE_CUBE };
@@ -280,6 +281,7 @@ namespace Mikoto {
 
         auto IsHDR( bool value ) -> TextureCubeCreateDescription&;
 
+        auto WithMipLevels( UInt32 levels ) -> TextureCubeCreateDescription&;
         auto WithTextureFormat( TextureFormat format ) -> TextureCubeCreateDescription&;
         auto WithDimensions( UInt32 dimensions ) -> TextureCubeCreateDescription&;
         auto WithUsageType( TextureUsage usage ) -> TextureCubeCreateDescription&;

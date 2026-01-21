@@ -1,9 +1,19 @@
+//    Copyright 2025 ケイト
 //
-// Created by zanet on 3/2/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef TEXTURECUBEMAP_HH
-#define TEXTURECUBEMAP_HH
+#ifndef MIKOTO_TEXTURE_CUBE_MAP_HH
+#define MIKOTO_TEXTURE_CUBE_MAP_HH
 
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
@@ -15,26 +25,21 @@ namespace Mikoto {
     public:
 
         MKT_NODISCARD auto IsHDR() const -> bool { return m_IsHDR; }
-        MKT_NODISCARD auto GetMipLevels() const -> Int32 { return m_MipLevels; }
+        MKT_NODISCARD auto GetMipLevels() const -> UInt32 { return m_MipLevels; }
 
         ~TextureCube() override = default;
 
     protected:
         static constexpr UInt32 MAX_CUBE_MAP_FACES{ 6 };
 
-        /**
-         * @brief Constructs a 2D texture with specified parameters.
-         * @param usage Type of resource usage
-         */
-        explicit TextureCube(const ResourceUsageType usage)
-            : Texture{ TextureType::TEXTURE_CUBE, TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM, 0, 0, 0, usage, TextureUsage::TEXTURE_USAGE_CUBE }
+        explicit TextureCube(const ResourceUsageType usage, const UInt32 mipLevels = 1)
+            : Texture{ TextureType::TEXTURE_CUBE, TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM,
+                0, 0, 0, usage, TextureUsage::TEXTURE_USAGE_CUBE }, m_MipLevels{ mipLevels }
         {}
 
-        // Cube map faces all share same dimensions
-        Int32 m_MipLevels{ 1 };
-
+        UInt32 m_MipLevels{ 1 };
         bool m_IsHDR{ false };
     };
 }// namespace Mikoto
 
-#endif//TEXTURECUBEMAP_HH
+#endif//MIKOTO_TEXTURE_CUBE_MAP_HH

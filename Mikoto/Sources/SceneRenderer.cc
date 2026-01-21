@@ -29,34 +29,31 @@ namespace Mikoto {
     auto SceneRenderer::Shutdown() -> void {
         m_Camera = nullptr;
         m_Device = nullptr;
-        m_Scene = nullptr;
 
         m_GraphicsContext->Shutdown();
         m_GraphicsContext.reset();
     }
 
 
-    auto SceneRenderer::SetScene( Scene *scene ) -> void {
-        m_Scene = scene;
-
+    auto SceneRenderer::SetSceneParameters( Scene *scene ) -> void {
         ShadingPass* finalCompositionPass{ m_PassRegistry.Get<ShadingPass>() };
         MKT_ASSERT( finalCompositionPass, "Trying to set scene for final composition pass while it is NULL" );
-        finalCompositionPass->SetScene( m_Scene );
+        finalCompositionPass->SetScene( scene );
 
         LightCullingComp* lightCullingComp{ m_PassRegistry.Get<LightCullingComp>() };
         MKT_ASSERT( lightCullingComp, "Trying to set scene for light culling compute pass while it is NULL" );
-        lightCullingComp->SetScene( m_Scene );
+        lightCullingComp->SetScene( scene );
 
         TextRenderPass* textRenderPass{ m_PassRegistry.Get<TextRenderPass>() };
         MKT_ASSERT( textRenderPass, "Trying to set scene for text render pass while it is NULL" );
-        textRenderPass->SetScene( m_Scene );
+        textRenderPass->SetScene( scene );
 
         WireFramePass* wireframePass{ m_PassRegistry.Get<WireFramePass>() };
         MKT_ASSERT( wireframePass, "Trying to set scene for wireframe render pass while it is NULL" );
-        wireframePass->SetScene( m_Scene );
+        wireframePass->SetScene( scene );
     }
 
-    auto SceneRenderer::Render( double ) -> void {
+    auto SceneRenderer::Render( Scene* scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         // If SetRenderResolution was called we will need to
@@ -64,6 +61,8 @@ namespace Mikoto {
         if (m_WantResize) {
 
         }
+
+        SetSceneParameters( scene );
 
         PassPreSetup();
 
@@ -96,10 +95,6 @@ namespace Mikoto {
 
     auto SceneRenderer::GetGraph() -> FrameGraph & {
         return *m_FrameGraph;
-    }
-
-    auto SceneRenderer::Create( const SceneRendererCreateInfo &createInfo ) -> Unique<SceneRenderer> {
-        return CreateScope<SceneRenderer>( createInfo );
     }
 
     auto SceneRenderer::SetClusterDebugVisualizer( bool enable ) -> void {

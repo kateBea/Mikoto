@@ -1,17 +1,23 @@
-/**
- * EditorLayer.cc
- * Created by kate on 6/12/23.
- * */
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// C++ Standard Library
 #include <memory>
 
-// Third-Party Libraries
 #include <imgui.h>
 
-#include "glm/gtc/type_ptr.hpp"
+#include <glm/gtc/type_ptr.hpp>
 
-// Project Headers
 #include <Core/InputService.hh>
 #include <Core/Profiler.hh>
 #include <Core/RuntimeConsole.hh>
@@ -34,6 +40,8 @@
 #include <Scene/Component.hh>
 #include <Scene/SceneManager.hh>
 
+#include <Renderer/Core/DebugRenderer.hh>
+
 #include "Application/EditorUtility.hh"
 #include "Core/CoreEvents.hh"
 #include "Core/LocalizationService.hh"
@@ -53,65 +61,8 @@ namespace Mikoto {
         if (ImGui::SmallButton( "Click here" )) { io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; }
     }
 
-
-    // Used for debugging purposes. This method was used to display array of integers from the Prime number compute pass
-    static auto DrawSimpleComputeDebugWindow( const std::vector<UInt32> &data ) -> void {
-        if (!ImGui::Begin( "Simple Compute Pass – Primes" )) {
-            ImGui::End();
-            return;
-        }
-
-        ImGui::Text( "Compute buffer output (SSBO readback)" );
-        ImGui::Separator();
-
-        ImGui::Text( "Element count: %zu", data.size() );
-        ImGui::Spacing();
-
-        if (ImGui::BeginTable( "PrimeTable", 4,
-                               ImGuiTableFlags_RowBg |
-                               ImGuiTableFlags_Borders |
-                               ImGuiTableFlags_Resizable )) {
-            ImGui::TableSetupColumn( "Index" );
-            ImGui::TableSetupColumn( "Value" );
-            ImGui::TableSetupColumn( "Is Prime" );
-            ImGui::TableSetupColumn( "Raw" );
-            ImGui::TableHeadersRow();
-
-            for (Size i{}; i < data.size(); ++i) {
-                ImGui::TableNextRow();
-
-                ImGui::TableSetColumnIndex( 0 );
-                ImGui::Text( "%zu", i );
-
-                ImGui::TableSetColumnIndex( 1 );
-                ImGui::Text( "%u", data[i] );
-
-                ImGui::TableSetColumnIndex( 2 );
-                if (data[i] != 0) {
-                    ImGui::TextColored(
-                            ImVec4( 0.2f, 0.9f, 0.2f, 1.0f ),
-                            "YES"
-                            );
-                } else {
-                    ImGui::TextColored(
-                            ImVec4( 0.9f, 0.2f, 0.2f, 1.0f ),
-                            "NO"
-                            );
-                }
-
-                ImGui::TableSetColumnIndex( 3 );
-                ImGui::Text( "0x%08X", data[i] );
-            }
-
-            ImGui::EndTable();
-        }
-
-        ImGui::End();
-    }
-
-
-    EditorLayer::EditorLayer( const EditorLayerCreateInfo &createInfo )
-        : ILayer{ createInfo.Name }, m_Window{ createInfo.TargetWindow } {}
+    EditorLayer::EditorLayer( Window* window)
+        : ILayer{ "Editor Layer" }, m_Window{ window } {}
 
     auto EditorLayer::OnCreate() -> void {
         MKT_BEGIN_PROFILER_NAMED();
@@ -188,8 +139,7 @@ namespace Mikoto {
         spec.WithName( "Scene renderer" )
             .WithDevice( RenderService::Get()->GetGpuDevice() );
 
-        m_SceneRenderer = SceneRenderer::Create( spec );
-
+        m_SceneRenderer = CreateScope<SceneRenderer>( spec );
         if (m_SceneRenderer) {
             m_SceneRenderer->Init();
         }
@@ -242,7 +192,7 @@ namespace Mikoto {
         PrepareRenderer( timeStep );
 
         m_ActiveScene->Update( timeStep );
-        m_SceneRenderer->Render( timeStep );
+        m_SceneRenderer->Render( m_ActiveScene );
 
         UpdateDockSpace();
 
@@ -275,7 +225,6 @@ namespace Mikoto {
         for (const auto &panel: m_PanelRegistry | std::ranges::views::values) {
             panel->OnUpdate( timeStep );
         }
-
     }
 
     auto EditorLayer::SaveScene() const -> void {
@@ -777,7 +726,6 @@ namespace Mikoto {
         // Setup renderer
         const auto& settings{ settingsPanel.GetData() };
 
-        m_SceneRenderer->SetScene( m_ActiveScene );
         m_SceneRenderer->SetCamera( m_EditorCamera.get() );
         m_SceneRenderer->SetViewport( 1920, 1080 );
         m_SceneRenderer->SetClusterDebugVisualizer( m_EditorState->ShowHeatMap );

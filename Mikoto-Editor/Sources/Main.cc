@@ -72,14 +72,7 @@ auto InitializeApplication() -> void {
         g_Application->SetWindow( g_Window );
         g_Application->Init();
 
-        // Register the editor
-        EditorLayerCreateInfo spec{
-            .Name{ "Editor Layer" },
-            .TargetWindow{ g_Window },
-            .ModelsRootDirectory{ g_Config.Get<std::string>( "assets.path" ) }
-        };
-
-        g_Application->PushLayer<EditorLayer>( spec );
+        g_Application->PushLayer<EditorLayer>(g_Window );
 
     } catch ( const std::exception& e ) {
         MKT_CORE_LOGGER_ERROR( "Initializing application - Exception: e.what(): {}", e.what() );

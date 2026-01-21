@@ -1,4 +1,3 @@
-
 //    Copyright 2025 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,20 +28,6 @@ namespace Mikoto {
 
 // For better readability
 #define IS_WATCH_ID_ERROR(EFSW_ID) !(EFSW_ID > 0)
-
-    static auto TestCode() -> void {
-
-        // Create the instance of your efsw::FileWatcherListener implementation
-        //UpdateListener* listener = new UpdateListener();
-
-        // Add a folder to watch, and get the efsw::WatchID
-        // It will watch the /tmp folder recursively ( the third parameter indicates that is recursive )
-        // Reporting the files and directories changes to the instance of the listener
-        //efsw::WatchID watchID = fileWatcher->addWatch( ".", listener, true );
-
-        // Adds another directory to watch. This time as non-recursive.
-        //efsw::WatchID watchID2 = fileWatcher->addWatch( "/usr", listener, false );
-    }
 
     FileWatcherService::FileWatcherService( const FileWatcherServiceCreateInfo& info)
         : m_FollowSymLinks{ info.FollowSymLinks }

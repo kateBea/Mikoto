@@ -1,47 +1,34 @@
+//    Copyright 2025 ケイト
 //
-// Created by zanet on 4/16/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include <ranges>
+
+#include <sol/sol.hpp>
 
 #include <Core/Exception.hh>
 #include <Core/Profiler.hh>
 #include <Filesystem/FileService.hh>
 #include <Logging/Logger.hh>
 #include <Scripting/ScriptingService.hh>
-#include <ranges>
-#include <sol/sol.hpp>
 
-#include "Filesystem/FileWatcherService.hh"
 #include "Scripting/InputBinding.hh"
 #include "Scripting/MathBindings.hh"
 #include "Scripting/SceneBinding.hh"
 #include "Scripting/SystemBindings.hh"
+#include "Filesystem/FileWatcherService.hh"
 
 namespace Mikoto {
-
-    static auto TestCode() -> void {
-        sol::state lua;
-
-        // Open basic libs
-        lua.open_libraries(
-            sol::lib::base,    // print, etc.
-            sol::lib::package, // require
-            sol::lib::string,  // string.* functions
-            sol::lib::table,   // table.* functions
-            sol::lib::math,    // math.* functions
-            sol::lib::os       // os.* functions
-        );
-
-        // Load and execute the Lua script from file
-        try {
-            const File* file{ FileService::Get()->LoadFile( "./Resources/Script-Examples/hello_world.lua" ) };
-
-            lua.script_file( file->GetPathCStr() );
-
-        } catch ( const sol::error &e ) {
-            MKT_THROW_RUNTIME_ERROR( fmt::format( "Lua exception: {}", e.what() ) );
-        }
-    }
-
 
     ScriptingService::ScriptingService( const ScriptingServiceDescription & ) {
     }
@@ -50,8 +37,6 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         MKT_CORE_LOGGER_INFO("Initializing LuaService...");
-
-        TestCode();
 
         InitState();
 

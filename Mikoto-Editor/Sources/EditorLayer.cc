@@ -24,6 +24,7 @@
 #include <Panels/LightingDebugPanel.hh>
 #include <Panels/PassVisualizerPanel.hh>
 #include <Panels/ScenePanel.hh>
+#include <Panels/GamePreviewPanel.hh>
 #include <Panels/ScenePropertiesPanel.hh>
 #include <Panels/SettingsPanel.hh>
 #include <Panels/StatsPanel.hh>

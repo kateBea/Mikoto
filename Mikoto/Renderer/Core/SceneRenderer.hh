@@ -1,9 +1,20 @@
+//    Copyright 2025 ケイト
 //
-// Created by zanet on 4/5/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef SCENERENDERER_HH
-#define SCENERENDERER_HH
+
+#ifndef MIKOTO_SCENE_RENDERER_HH
+#define MIKOTO_SCENE_RENDERER_HH
 
 #include <Common/Common.hh>
 #include <Renderer/Core/GpuDevice.hh>
@@ -12,12 +23,11 @@
 #include <Scene/Scene.hh>
 #include <Scene/SceneCamera.hh>
 
+#include <Renderer/Core/Renderer.hh>
+#include <Renderer/Core/FramePass.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/RenderUtility.hh>
-#include <Renderer/Core/FramePass.hh>
 #include <Renderer/Core/GraphicsContext.hh>
-
-#include "Renderer.hh"
 
 namespace Mikoto {
 
@@ -99,5 +109,4 @@ namespace Mikoto {
     };
 }// namespace Mikoto
 
-
-#endif//SCENERENDERER_HH
+#endif// MIKOTO_SCENE_RENDERER_HH

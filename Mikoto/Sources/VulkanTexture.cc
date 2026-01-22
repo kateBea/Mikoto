@@ -625,9 +625,7 @@ namespace Mikoto {
         createInfo.imageExtent = extent;
         createInfo.imageArrayLayers = 1;
 
-        // Only the GUI is directly rendering to the swapchain images at the moment.
-        // Generally, the renderer is drawing to a texture which can then be copied to a
-        // swap chain image ready for render and then be presented
+        // Swap chain images are used for drawing or copying to it (in case we render first to a texture and copy it to a swap chain image)
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
         const auto& [Present, Graphics, Compute]{
@@ -647,8 +645,8 @@ namespace Mikoto {
             createInfo.pQueueFamilyIndices = nullptr;
         }
 
-        createInfo.preTransform = Capabilities.currentTransform;      // Image transform ot perform on swapchain images
-        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;// Handle blending, just draw as it is (perform no blending)
+        createInfo.preTransform = Capabilities.currentTransform;
+        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;// no blending
         createInfo.presentMode = presentMode;
         createInfo.clipped = VK_TRUE;
         createInfo.oldSwapchain = VK_NULL_HANDLE;// TODO: pass old swap chain (need debug currently old swapchain becoming retired which can't be passed here)

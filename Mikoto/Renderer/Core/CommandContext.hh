@@ -93,24 +93,7 @@ namespace Mikoto {
         auto CreateNamedSampler( std::string_view name, SamplerDescription samplerDescription ) -> void;
 
     private:
-        struct DrawInstanceMetadata {
-            BufferHandle VertexBuffer{};
-            BufferHandle IndexBuffer{};
 
-            // Is the instance ID of the first instance to draw.
-            UInt32 FirstInstance{};
-
-            // Is the number of instances to draw.
-            UInt32 InstanceCount{};
-
-            // Number of vertices
-            UInt32 VertexCount{};
-
-            // Is the number of vertices to draw.
-            UInt32 IndexCount{};
-        };
-
-    private:
         CommandListHandle m_Commands{};
 
         FrameBlackboard* m_Blackboard{};

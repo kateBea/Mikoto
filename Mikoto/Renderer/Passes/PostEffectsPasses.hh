@@ -23,13 +23,18 @@
 
 #include <Assets/Model.hh>
 #include <Scene/Scene.hh>
-#include <Assets/Font.hh>
 #include <Scene/Camera.hh>
+
+#include <Assets/Font.hh>
+
 #include <Assets//Texture.hh>
+
 #include <Library/Utility/Types.hh>
+#include <Library/Data/ResourcePool.hh>
+
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/FramePass.hh>
-#include <Library/Data/ResourcePool.hh>
+#include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Passes/ShaderRenderParams.hh>
 
@@ -41,15 +46,15 @@ namespace Mikoto {
             : FramePass{ "TextRenderPass", FramePassType::RENDER } {}
 
         auto Setup( FrameGraphBuilder& builder ) -> void override;
-        auto Execute( PassCommandList& commandList ) -> void override;
+        auto Execute( CommandContext& context ) -> void override;
 
         auto SetScene( Scene* scene ) -> void;
 
     private:
-        auto TraverseTextList( PassCommandList& commandList ) -> void;
+        auto TraverseTextList( CommandContext& commandList ) -> void;
 
-        auto SetupRenderParams( PassCommandList& commandList ) -> void;
-        auto SetupTextForRender( FontHandle font, const Camera* camera, Vec4F position, std::string_view text, double fontSize, Vec4F color, PassCommandList& commandList ) -> void;
+        auto SetupRenderParams( CommandContext& context ) -> void;
+        auto SetupTextForRender( FontHandle font, const Camera* camera, Vec4F position, std::string_view text, double fontSize, Vec4F color, CommandContext& commandList ) -> void;
 
     private:
         struct alignas( 16 ) TextRenderParams {
@@ -96,7 +101,6 @@ namespace Mikoto {
     };
 
 }// namespace Mikoto
-
 
 #endif // MIKOTO_POST_EFFECTS_PASSES_HH
 

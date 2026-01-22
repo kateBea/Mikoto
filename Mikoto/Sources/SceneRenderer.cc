@@ -238,17 +238,17 @@ namespace Mikoto {
         // For now the execution policy for these will be once, the idea is that they change
         // if we upload a new environment map
 
-        IrradiancePass* irradiancePass{ m_PassRegistry.Register<IrradiancePass>() };
-        irradiancePass->Setup( builder );
-        irradiancePass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
-
-        PrefilterPass* prefilterPass{ m_PassRegistry.Register<PrefilterPass>() };
-        prefilterPass->Setup( builder );
-        prefilterPass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
-
-        BRDFLutPass* brdfLutPass{ m_PassRegistry.Register<BRDFLutPass>() };
-        brdfLutPass->Setup( builder );
-        brdfLutPass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
+        // IrradiancePass* irradiancePass{ m_PassRegistry.Register<IrradiancePass>() };
+        // irradiancePass->Setup( builder );
+        // irradiancePass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
+        //
+        // PrefilterPass* prefilterPass{ m_PassRegistry.Register<PrefilterPass>() };
+        // prefilterPass->Setup( builder );
+        // prefilterPass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
+        //
+        // BRDFLutPass* brdfLutPass{ m_PassRegistry.Register<BRDFLutPass>() };
+        // brdfLutPass->Setup( builder );
+        // brdfLutPass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
     }
 
     auto SceneRendererCreateInfo::WithName( std::string_view name ) -> SceneRendererCreateInfo & {

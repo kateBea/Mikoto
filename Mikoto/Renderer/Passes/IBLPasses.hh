@@ -16,18 +16,23 @@
 #define MIKOTO_IBL_PASSES_HH
 
 #include <string>
-#include <string_view>
 #include <vector>
+#include <string_view>
 
 #include <ankerl/unordered_dense.h>
 
 #include <Assets/Model.hh>
+
 #include <Scene/Scene.hh>
 #include <Scene/Camera.hh>
+
 #include <Assets//Texture.hh>
+
 #include <Library/Utility/Types.hh>
-#include <Renderer/Core/FrameGraph.hh>
 #include <Library/Data/ResourcePool.hh>
+
+#include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Passes/ShaderRenderParams.hh>
 
@@ -44,9 +49,25 @@ namespace Mikoto {
            : FramePass{ "IrradiancePass", FramePassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(PassCommandList& commandList) -> void override;
+        auto Execute(CommandContext& context) -> void override;
 
+        auto SetDeltaPhi(float value) -> void;
+        auto SetDeltaTheta(float value) -> void;
 
+    private:
+        struct alignas(16) IrradianceParameters {
+            float DeltaPhi{};
+            float DeltaTheta{};
+        };
+
+        struct alignas(16) IrradianceCamInfo {
+            Mat4F MVP{};
+        };
+
+    private:
+        static constexpr UInt32 MAX_CUBE_FACES{ 6 };
+
+        IrradianceParameters m_Parameters{};
     };
 
     class PrefilterPass final : public FramePass {
@@ -55,8 +76,24 @@ namespace Mikoto {
            : FramePass{ "PrefilterPass", FramePassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(PassCommandList& commandList) -> void override;
+        auto Execute(CommandContext& context) -> void override;
 
+    private:
+        struct alignas(16) PrefilterParameters {
+            float Roughness{};
+            UInt32 NumSamples{};
+        };
+
+        struct alignas(16) PrefilterCamInfo {
+            Mat4F MVP{};
+        };
+
+    private:
+        static constexpr UInt32 MAX_MIP_LEVELS{ 7 }; // TODO: Compute properly
+        static constexpr UInt32 MAX_CUBE_FACES{ 6 };
+
+        PrefilterParameters m_Parameters{};
+        PrefilterCamInfo m_CameraInfo{};
 
     };
 
@@ -66,9 +103,7 @@ namespace Mikoto {
            : FramePass{ "BRDFLutPass", FramePassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(PassCommandList& commandList) -> void override;
-
-
+        auto Execute(CommandContext& context) -> void override;
     };
 
     class SkyboxPass final : public FramePass {
@@ -77,7 +112,7 @@ namespace Mikoto {
             : FramePass{ "SkyboxPass", FramePassType::RENDER } {}
 
         auto Setup( FrameGraphBuilder& builder ) -> void override;
-        auto Execute( PassCommandList& commandList ) -> void override;
+        auto Execute( CommandContext& context ) -> void override;
 
         auto SetCamera( const Camera* camera ) -> void;
         auto SetCubeMap( TextureHandle cubeMap ) -> void;
@@ -105,7 +140,7 @@ namespace Mikoto {
             : FramePass{ "ShadingPass", FramePassType::RENDER } {}
 
         auto Setup( FrameGraphBuilder& device ) -> void override;
-        auto Execute( PassCommandList& commandList ) -> void override;
+        auto Execute( CommandContext& context ) -> void override;
 
         auto SetScene( Scene* scene ) -> void;
         auto SetCamera( const Camera* camera ) -> void;
@@ -114,8 +149,8 @@ namespace Mikoto {
         auto SetClearColor( const Vec4F& vec ) -> void;
 
     private:
-        auto UploadInstanceData( PassCommandList& commandList ) -> void;
-        auto TraverseMeshList( PassCommandList& commandList ) -> void;
+        auto UploadInstanceData( CommandContext& context ) -> void;
+        auto TraverseMeshList( CommandContext& context ) -> void;
 
     public:
         struct MeshInstanceInfo {

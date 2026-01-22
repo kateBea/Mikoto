@@ -7,9 +7,9 @@
 
 #include <string_view>
 
+#include <Common/Common.hh>
 #include <Renderer/Core/DeviceObject.hh>
 #include <Renderer/Core/RenderUtility.hh>
-#include <Common/Common.hh>
 #include <Common/ReferenceCounted.hh>
 #include <Library/Utility/Types.hh>
 

@@ -1,9 +1,19 @@
+//    Copyright 2025 ケイト
 //
-// Created by zanet on 3/25/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef GPUDEVICE_HH
-#define GPUDEVICE_HH
+#ifndef MIKOTO_GPU_DEVICE_HH
+#define MIKOTO_GPU_DEVICE_HH
 
 #include <Assets/Texture.hh>
 #include <Library/Utility/Types.hh>
@@ -17,6 +27,17 @@
 
 namespace Mikoto {
 
+    struct RenderInfo {
+        LoadOp ColorLoadOp{ LoadOp::CLEAR };
+        LoadOp DephtLoadOp{ LoadOp::CLEAR };
+
+        Vec4F ClearColor{};
+        TextureHandle DepthRenderTarget{};
+        std::vector<TextureHandle> ColorRenderTargets{};
+
+        auto Clear() -> void;
+    };
+
     class ICommandList : public DeviceObject {
     public:
         explicit ICommandList( const bool immediate )
@@ -24,6 +45,9 @@ namespace Mikoto {
 
         virtual auto Begin() -> void = 0;
         virtual auto End() -> void = 0;
+
+        virtual auto BeginRender(RenderInfo& info) -> void = 0;
+        virtual auto EndRender(RenderInfo& info) -> void = 0;
 
         virtual auto FillTexture(Buffer* src, Texture* dest) -> void = 0;
         virtual auto CopyBuffer(Buffer* src, Buffer* dest) -> void = 0;
@@ -35,6 +59,12 @@ namespace Mikoto {
 
         virtual auto SetViewport(Int32 x, Int32 y, Int32 width, Int32 height) -> void = 0;
         virtual auto SetScissor(Int32 x, Int32 y, Int32 width, Int32 height) -> void = 0;
+
+        virtual auto BindIndexBuffer( BufferHandle indexBuffer)-> void = 0;
+        virtual auto BindVertexBuffer( BufferHandle vertexBuffer, UInt32 binding) -> void = 0;
+
+        virtual auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance) -> void = 0;
+        virtual auto DrawIndexed( Size indexCount, UInt32 instanceCount, UInt32 firstIndex, UInt32 vertexOffset, UInt32 firstInstance)-> void = 0;
 
         virtual auto Dispatch(UInt32 x, UInt32 y, UInt32 z) -> void = 0;
 
@@ -115,4 +145,4 @@ namespace Mikoto {
 
 
 
-#endif //GPUDEVICE_HH
+#endif //MIKOTO_GPU_DEVICE_HH

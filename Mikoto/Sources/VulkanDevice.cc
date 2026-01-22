@@ -1,7 +1,16 @@
+//    Copyright 2025 ケイト
 //
-// Created by kate on 1/26/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
-
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <volk.h>
 #include <vk_mem_alloc.h>
@@ -920,6 +929,55 @@ namespace Mikoto {
         }
     }
 
+    auto VulkanCmdList::BeginRender( RenderInfo &info ) -> void {
+        // This path requires dynamic re
+        std::vector<VkRenderingAttachmentInfo> colorImages{};
+
+        for (auto &colorImage: info.ColorRenderTargets) {
+            VkAttachmentLoadOp loadOp{ info.ColorLoadOp == LoadOp::CLEAR ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD };
+            VkRenderingAttachmentInfo &colorAttachment{ colorImages.emplace_back( VkRenderingAttachmentInfo{} ) };
+            colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+            colorAttachment.imageView = colorImage->GetNativeHandle( ObjectType::Vk_ImageView );
+            colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            colorAttachment.loadOp = loadOp;
+            colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            colorAttachment.clearValue.color = { info.ClearColor.r, info.ClearColor.g, info.ClearColor.b, info.ClearColor.a };
+        }
+
+        VkRenderingAttachmentInfo depthAttachment{};
+        if (!info.DepthRenderTarget.IsEmpty()) {
+            VkAttachmentLoadOp loadOp{ info.DephtLoadOp == LoadOp::CLEAR ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD };
+
+            depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+            depthAttachment.imageView = info.DepthRenderTarget->GetNativeHandle( ObjectType::Vk_ImageView );
+            depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            depthAttachment.loadOp = loadOp;
+            depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            depthAttachment.clearValue.depthStencil = { 1.0f, 0 };
+        }
+
+        VkRenderingInfo renderingInfo{};
+        renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        renderingInfo.renderArea = { { 0, 0 }, { 1920, 1080 } };
+        renderingInfo.layerCount = 1;
+        renderingInfo.colorAttachmentCount = static_cast<UInt32>( colorImages.size() );
+        renderingInfo.pColorAttachments = colorImages.data();
+        renderingInfo.pDepthAttachment = info.DepthRenderTarget.IsEmpty() ? nullptr : std::addressof( depthAttachment );
+
+        vkCmdBeginRendering( m_CmdBuffer, std::addressof( renderingInfo ) );
+    }
+
+    auto VulkanCmdList::EndRender(RenderInfo& info) -> void {
+        vkCmdEndRendering( m_CmdBuffer );
+
+        // Temporary: transition images to shader sample layout, if it is a 2D texture
+        // Transition color target to shader read
+        for (auto &texture: info.ColorRenderTargets) {
+            const auto vulkanTexture{ dynamic_cast<VulkanTexture*>( texture.GetRaw() ) };
+            vulkanTexture->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_CmdBuffer );
+        }
+    }
+
     auto VulkanCmdList::FillTexture( Buffer* src, Texture* dest ) -> void {
 
         if (dest != nullptr && dest->GetTextureUsage() == TextureUsage::TEXTURE_USAGE_CUBE) {
@@ -1018,16 +1076,67 @@ namespace Mikoto {
     }
 
     auto VulkanCmdList::SetViewport( Int32 x, Int32 y, Int32 width, Int32 height ) -> void {
+        VkViewport viewport{};
+
+        viewport.x = x;
+        viewport.y = height;
+        viewport.width = width;
+        viewport.height = -height;
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+
+        vkCmdSetViewport( m_CmdBuffer, 0, 1, std::addressof( viewport ) );
     }
 
     auto VulkanCmdList::SetScissor( Int32 x, Int32 y, Int32 width, Int32 height ) -> void {
+        VkRect2D scissor{};
+        scissor.offset = { x, x };
+        scissor.extent = { static_cast<UInt32>( width ), static_cast<UInt32>( height ) };
+
+        vkCmdSetScissor( m_CmdBuffer, 0, 1, std::addressof( scissor ) );
     }
 
     auto VulkanCmdList::Dispatch( UInt32 x, UInt32 y, UInt32 z ) -> void {
         vkCmdDispatch(m_CmdBuffer, x, y, z);
     }
 
+    auto VulkanCmdList::BindIndexBuffer( BufferHandle indexBuffer ) -> void {
+        // TODO: infer index buffer data type instead of hardcoded VK_INDEX_TYPE_UINT32
+        vkCmdBindIndexBuffer( m_CmdBuffer, indexBuffer->GetNativeHandle( ObjectType::Vk_Buffer ), 0, VK_INDEX_TYPE_UINT32 );
+    }
+
+    auto VulkanCmdList::BindVertexBuffer( BufferHandle vertexBuffer, const UInt32 binding ) -> void {
+        constexpr std::array<VkDeviceSize, 1> offsets{};
+        const std::array<VkBuffer, 1> vertexBuffers{ vertexBuffer->GetNativeHandle( ObjectType::Vk_Buffer ) };
+
+        vkCmdBindVertexBuffers( m_CmdBuffer, binding, 1, vertexBuffers.data(), offsets.data() );
+    }
+
+    auto VulkanCmdList::Draw( UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance ) -> void {
+        vkCmdDraw( m_CmdBuffer, vertexCount, instanceCount, firstVertex, firstInstance );
+    }
+
+    auto VulkanCmdList::DrawIndexed( Size indexCount, UInt32 instanceCount, UInt32 firstIndex, UInt32 vertexOffset, UInt32 firstInstance ) -> void {
+        vkCmdDrawIndexed( m_CmdBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
+    }
+
     auto VulkanCmdList::BindPipeline( PipelineHandle pipeline ) -> void {
+        VkPipelineBindPoint bindPoint{ VK_PIPELINE_BIND_POINT_MAX_ENUM };
+
+        switch (pipeline->GetPipelineType()) {
+            case PipelineType::GRAPHICS_PIPELINE:
+                bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+                break;
+            case PipelineType::COMPUTE_PIPELINE:
+                bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
+                break;
+            case PipelineType::RAY_TRACING_PIPELINE:
+            default:
+                MKT_CORE_LOGGER_WARN( "VulkanGraphicsContext::BindPipeline - Unsupported pipeline type." );
+                break;
+        }
+
+        vkCmdBindPipeline( m_CmdBuffer, bindPoint, pipeline->GetNativeHandle( ObjectType::Vk_Pipeline ) );
     }
 
     auto VulkanCmdList::SetDebugName( const std::string_view name ) -> void {

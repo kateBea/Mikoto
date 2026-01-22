@@ -1,13 +1,23 @@
+//    Copyright 2025 ケイト
 //
-// Created by kate on 11/25/25.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#include "Renderer/Vulkan/VulkanGraphicsContext.hh"
+#include <Core/Profiler.hh>
 
-#include "Core/Profiler.hh"
-#include "Renderer/Vulkan/VulkanDevice.hh"
-#include "Renderer/Vulkan/VulkanPipeline.hh"
-#include "Renderer/Vulkan/VulkanTexture.hh"
+#include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Vulkan/VulkanPipeline.hh>
+#include <Renderer/Vulkan/VulkanTexture.hh>
+#include <Renderer/Vulkan/VulkanGraphicsContext.hh>
 
 namespace Mikoto {
 
@@ -33,7 +43,6 @@ namespace Mikoto {
 
     auto VulkanGraphicsContext::Init() -> void {
         CreateBindlessTexturesSet();
-
         InitSharedShaderResourceGroups();
     }
 
@@ -42,80 +51,18 @@ namespace Mikoto {
         vkDestroyPipelineLayout( VK_DEVICE(m_Device), m_TexturesPipelineLayout, nullptr );
     }
 
-    auto VulkanGraphicsContext::BeginRender( RenderInfo &beginInfo ) -> void {
-        MKT_ASSERT( beginInfo.Pass != nullptr, "Frame Pass cannot be NULL" );
-
-        m_CmdLists[beginInfo.Pass] = m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE, false );
-        m_CmdLists[beginInfo.Pass]->Begin();
-
-        const VkCommandBuffer vkCmd{  m_CmdLists[beginInfo.Pass]->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
-
-        std::vector<VkRenderingAttachmentInfo> colorImages{};
-
-        for (auto &colorImage: beginInfo.ColorRenderTargets) {
-            VkAttachmentLoadOp loadOp{ beginInfo.ColorLoadOp == LoadOp::CLEAR ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD };
-            VkRenderingAttachmentInfo &colorAttachment{ colorImages.emplace_back( VkRenderingAttachmentInfo{} ) };
-            colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-            colorAttachment.imageView = colorImage->GetNativeHandle( ObjectType::Vk_ImageView );
-            colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            colorAttachment.loadOp = loadOp;
-            colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            colorAttachment.clearValue.color = { beginInfo.ClearColor.r, beginInfo.ClearColor.g, beginInfo.ClearColor.b, beginInfo.ClearColor.a };
-        }
-
-        VkRenderingAttachmentInfo depthAttachment{};
-        if (!beginInfo.DepthRenderTarget.IsEmpty()) {
-            VkAttachmentLoadOp loadOp{ beginInfo.DephtLoadOp == LoadOp::CLEAR ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD };
-
-            depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-            depthAttachment.imageView = beginInfo.DepthRenderTarget->GetNativeHandle( ObjectType::Vk_ImageView );
-            depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            depthAttachment.loadOp = loadOp;
-            depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            depthAttachment.clearValue.depthStencil = { 1.0f, 0 };
-        }
-
-        VkRenderingInfo renderingInfo{};
-        renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-        renderingInfo.renderArea = { { 0, 0 }, { 1920, 1080 } };
-        renderingInfo.layerCount = 1;
-        renderingInfo.colorAttachmentCount = static_cast<UInt32>( colorImages.size() );
-        renderingInfo.pColorAttachments = colorImages.data();
-        renderingInfo.pDepthAttachment = beginInfo.DepthRenderTarget.IsEmpty() ? nullptr : std::addressof( depthAttachment );
-
-        vkCmdBeginRendering( vkCmd, std::addressof( renderingInfo ) );
-    }
-
-    auto VulkanGraphicsContext::EndRender( RenderInfo &info ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        const auto it{ m_CmdLists.find( info.Pass ) };
-        if (it != m_CmdLists.end()) {
-            CommandListHandle cmd{ it->second };
-            vkCmdEndRendering( cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
-
-            // Transition color target to shader read
-            for (auto &texture: info.ColorRenderTargets) {
-                const auto tex{ dynamic_cast<VulkanTexture *>( texture.GetRaw() ) };
-                tex->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
-            }
-
-            it->second->End();
+    auto VulkanGraphicsContext::BeginPass( FramePass *pass ) -> void {
+        // We create the pass resources if they don't exist yet
+        const auto it{ m_PassInfo.find( pass ) };
+        if (it == m_PassInfo.end()) {
+            const auto[insertIt, success] {
+                m_PassInfo.try_emplace( pass, FramePassInfo{} )
+            };
         }
     }
 
-    auto VulkanGraphicsContext::BeginCompute(FramePass* pass) -> void {
-        MKT_ASSERT( pass != nullptr, "Frame Pass cannot be NULL" );
+    auto VulkanGraphicsContext::EndPass( FramePass *pass ) -> void {
 
-        m_CmdLists[pass] = m_Device->CreateCommandList( QueueType::COMPUTE_QUEUE, false );
-        m_CmdLists[pass]->Begin();
-    }
-
-    auto VulkanGraphicsContext::EndCompute(FramePass* pass) -> void {
-        const auto it{ m_CmdLists.find( pass ) };
-        if (it != m_CmdLists.end()) {
-            it->second->End();
-        }
     }
 
     auto VulkanGraphicsContext::BeginFrame( FrameBlackboard *blackboard ) -> void {
@@ -124,36 +71,7 @@ namespace Mikoto {
     }
 
     auto VulkanGraphicsContext::EndFrame() -> void {
-        for (auto& cmd : m_CmdLists | std::ranges::views::values) {
-            if (!cmd.IsEmpty()) {
-                m_Device->SubmitCommands( cmd );
-            }
-        }
 
-        m_CmdLists.clear();
-    }
-
-    auto VulkanGraphicsContext::BindPipeline( PipelineHandle pipeline, FramePass* Pass ) -> void {
-        m_PassInfo[Pass].Pipeline = pipeline;
-
-        VkCommandBuffer vkCmd{ m_CmdLists[Pass]->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
-
-        VkPipelineBindPoint bindPoint{ VK_PIPELINE_BIND_POINT_MAX_ENUM };
-
-        switch (pipeline->GetPipelineType()) {
-            case PipelineType::GRAPHICS_PIPELINE:
-                bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-                break;
-            case PipelineType::COMPUTE_PIPELINE:
-                bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
-                break;
-            case PipelineType::RAY_TRACING_PIPELINE:
-            default:
-                MKT_CORE_LOGGER_WARN( "VulkanGraphicsContext::BindPipeline - Unsupported pipeline type." );
-                break;
-        }
-
-        vkCmdBindPipeline( vkCmd, bindPoint, pipeline->GetNativeHandle( ObjectType::Vk_Pipeline ) );
     }
 
     auto VulkanGraphicsContext::HasDescriptorSets( FramePass *pipeline ) -> bool {
@@ -161,8 +79,8 @@ namespace Mikoto {
         return it != m_PassInfo.end() && !it->second.DescriptorSets.empty();
     }
 
-    auto VulkanGraphicsContext::BindPassDescriptors( FramePass *pass ) -> void {
-        VkCommandBuffer vkCmd{ m_CmdLists[pass]->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
+    auto VulkanGraphicsContext::BindPassDescriptors( FramePass *pass, CommandListHandle cmdList ) -> void {
+        VkCommandBuffer vkCmd{ cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
 
         const auto it{ m_PassInfo.find( pass ) };
         if (it != m_PassInfo.end()) {
@@ -223,6 +141,14 @@ namespace Mikoto {
                 }
             }
         }
+    }
+
+    auto VulkanGraphicsContext::UpdatePassDescriptors( FramePass *pass ) -> void {
+        if (pass == nullptr) {
+            return;
+        }
+
+        const auto it{ m_PassInfo.find( pass ) };
 
         if (it != m_PassInfo.end() && it->second.Dirty) {
             for (const auto& [Name, SamplerName, Binding, Type]: it->second.PassResources) {
@@ -348,9 +274,9 @@ namespace Mikoto {
         );
     }
 
-    auto VulkanGraphicsContext::BindTextureList(FramePass* pass) -> void {
+    auto VulkanGraphicsContext::BindTextureList(CommandListHandle cmdList) -> void {
         vkCmdBindDescriptorSets(
-            m_CmdLists[pass]->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
+            cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
             VK_PIPELINE_BIND_POINT_GRAPHICS,
             m_TexturesPipelineLayout,
             TEXTURES_DESCRIPTOR_SET_INDEX,
@@ -359,10 +285,6 @@ namespace Mikoto {
             0,
             nullptr
         );
-    }
-
-    auto VulkanGraphicsContext::BindFrameResources() -> void {
-
     }
 
     auto VulkanGraphicsContext::UpdateBindlessTexturesSet(Texture* texture, Sampler* sampler, Size setIndex ) const -> void {
@@ -378,58 +300,6 @@ namespace Mikoto {
 
     auto VulkanGraphicsContext::InitSharedShaderResourceGroups() -> void {
         m_SRG[SRGType::SRG_Textures] = CreateScope<SRGTextures>();
-    }
-
-    auto VulkanGraphicsContext::Draw( UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance, FramePass* pass ) -> void {
-        vkCmdDraw( m_CmdLists[pass]->GetNativeHandle( ObjectType::Vk_CmdBuffer ), vertexCount, instanceCount, firstVertex, firstInstance );
-    }
-
-    auto VulkanGraphicsContext::BindIndexBuffer( BufferHandle indexBuffer, FramePass* pass ) -> void {
-        VkCommandBuffer cmd{ m_CmdLists[pass]->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
-        vkCmdBindIndexBuffer( cmd, indexBuffer->GetNativeHandle( ObjectType::Vk_Buffer ), 0, VK_INDEX_TYPE_UINT32 ); // TODO: infer index buffer data type
-    }
-
-    auto VulkanGraphicsContext::BindVertexBuffer( BufferHandle vertexBuffer, UInt32 binding, FramePass* pass ) -> void {
-        VkCommandBuffer cmd{ m_CmdLists[pass]->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
-
-        const std::array<VkDeviceSize, 1> offsets{};
-        const std::array<VkBuffer, 1> vertexBuffers{ vertexBuffer->GetNativeHandle( ObjectType::Vk_Buffer ) };
-
-        vkCmdBindVertexBuffers( cmd, binding, 1, vertexBuffers.data(), offsets.data() );
-    }
-
-    auto VulkanGraphicsContext::DrawInstanced( Size indexCount, UInt32 instanceCount, UInt32 firstIndex, UInt32 vertexOffset, UInt32 firstInstance, FramePass* pass ) -> void {
-        VkCommandBuffer cmd{ m_CmdLists[pass]->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
-        vkCmdDrawIndexed( cmd, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
-    }
-
-    auto VulkanGraphicsContext::Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ, FramePass* pass ) -> void {
-        m_CmdLists[pass]->Dispatch( invX, invY, invZ );
-    }
-
-    auto VulkanGraphicsContext::SetViewport( const PassViewport &vp, FramePass* pass ) -> void {
-        VkCommandBuffer cmd{ m_CmdLists[pass]->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
-
-        VkViewport viewport{};
-
-        viewport.x = vp.X;
-        viewport.y = vp.Height;
-        viewport.width = vp.Width;
-        viewport.height = -vp.Height;
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-
-        vkCmdSetViewport( cmd, 0, 1, std::addressof( viewport ) );
-    }
-
-    auto VulkanGraphicsContext::SetScissor( const PassScissor &vp, FramePass* pass ) -> void {
-        VkCommandBuffer cmd{ m_CmdLists[pass]->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
-
-        VkRect2D scissor{};
-        scissor.offset = { static_cast<Int32>( vp.X ), static_cast<Int32>( vp.X ) };
-        scissor.extent = { static_cast<UInt32>( vp.Width ), static_cast<UInt32>( vp.Height ) };
-
-        vkCmdSetScissor( cmd, 0, 1, std::addressof( scissor ) );
     }
 
     auto VulkanGraphicsContext::PushImage( TextureHandle texture ) -> Int32 {
@@ -458,19 +328,31 @@ namespace Mikoto {
 
     }
 
-    auto VulkanGraphicsContext::BindPassResources( FramePass* pass ) -> void {
-        CreatePassDescriptors( pass );
+    auto VulkanGraphicsContext::BindPassResources( FramePass* pass, CommandListHandle cmdList ) -> void {
+        BindPassDescriptors( pass, cmdList );
+    }
 
-        BindPassDescriptors( pass );
+    auto VulkanGraphicsContext::CommitShaderResources( FramePass *pass ) -> void {
+        UpdatePassDescriptors( pass );
+    }
+
+    auto VulkanGraphicsContext::CreatePipelineResources( FramePass *pass, PipelineHandle pipeline ) -> void {
+        const auto it{ m_PassInfo.find( pass ) };
+        if (it != m_PassInfo.end()) {
+            if (it->second.Pipeline.IsEmpty()) {
+                it->second.Pipeline = pipeline;
+                CreatePassDescriptors( pass );
+            }
+        }
     }
 
     auto VulkanGraphicsContext::GetPassSRG( FramePass* pass ) -> SRGPerPass * {
         return std::addressof( m_PassInfo[pass].PassResources );
     }
 
-    auto VulkanGraphicsContext::InsertResourceBarrier( FramePass *pass ) -> void {
+    auto VulkanGraphicsContext::InsertResourceBarrier( FramePass* pass, CommandListHandle cmdList ) -> void {
         // FIXME: if it is the first time this pass runs it will not have a cmd buffer
-        if (m_CmdLists[pass].IsEmpty()) {
+        if (cmdList.IsEmpty()) {
             return;
         }
 
@@ -491,7 +373,7 @@ namespace Mikoto {
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
         vkCmdPipelineBarrier(
-            m_CmdLists[pass]->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
+            cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
             lastStage,
             dstStage,
             0,

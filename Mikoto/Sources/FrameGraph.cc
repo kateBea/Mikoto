@@ -1,16 +1,27 @@
+//    Copyright 2025 ケイト
 //
-// Created by kate on 11/24/25.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <memory>
 #include <queue>
 #include <variant>
 
-#include <Renderer/Core/FrameGraph.hh>
+#include <Material/ShaderLibrary.hh>
 
-#include "Material/ShaderLibrary.hh"
-#include "Renderer/Core/FramePass.hh"
-#include "Renderer/Core/GraphicsContext.hh"
+#include <Renderer/Core/FramePass.hh>
+#include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Core/GraphicsContext.hh>
 
 namespace Mikoto {
 
@@ -84,9 +95,11 @@ namespace Mikoto {
         CreateNamedRenderTarget( name, depthDesc );
     }
 
-    auto FrameGraphBuilder::CreateCubeRenderTarget( std::string_view name, UInt32 dimensions, TextureFormat format ) -> void {
+    auto FrameGraphBuilder::CreateCubeRenderTarget( std::string_view name, UInt32 dimensions, TextureFormat format, UInt32 mipLevels ) -> void {
         TextureCubeCreateDescription depthDesc{};
         depthDesc.WithUsageType( TextureUsage::TEXTURE_USAGE_RENDER_TARGET )
+            .WithMipLevels( mipLevels )
+            .WithTextureFormat( format )
             .WithDimensions( dimensions )
             .WithResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
 
@@ -94,7 +107,7 @@ namespace Mikoto {
     }
 
     FrameGraph::FrameGraph( GraphicsContext* context, GpuDevice* device)
-        : m_GraphicsContex{ context }
+        : m_GraphicsContex{ context }, m_Device{ device }
     {
         m_Blackboard = CreateScope<FrameBlackboard>( device );
     }
@@ -123,10 +136,10 @@ namespace Mikoto {
         for ( const auto& [pass, input, outputs] : m_Nodes) {
 
             if (pass->ShouldRun()) {
-                m_GraphicsContex->InsertResourceBarrier(pass);
+                const std::string name{ pass->GetName() };
 
-                PassCommandList passCommands{ m_GraphicsContex, GetBlackboard() };
-                pass->Execute( passCommands );
+                CommandContext context{ m_GraphicsContex, GetBlackboard(), m_Device };
+                pass->Execute( context );
 
                 pass->PostExecute();
             }

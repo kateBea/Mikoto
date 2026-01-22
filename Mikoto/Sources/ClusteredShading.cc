@@ -1,16 +1,27 @@
+//    Copyright 2025 ケイト
 //
-// Created by kate on 1/11/26.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <Material/ShaderLibrary.hh>
 #include <Material/ShaderModule.hh>
-#include <Renderer/Core/FramePass.hh>
-#include <Renderer/Core/FrameResource.hh>
+#include <Material/TextureCube.hh>
+
 #include <Scene/Component.hh>
 #include <Scene/Scene.hh>
 
-#include <Material/TextureCube.hh>
-
+#include <Renderer/Core/FramePass.hh>
+#include <Renderer/Core/FrameResource.hh>
+#include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Passes/ClusteredShading.hh>
 
 namespace Mikoto {
@@ -40,13 +51,14 @@ namespace Mikoto {
         builder.WriteBuffer( this, "AABBGenComp_CameraUBO" );
     }
 
-    auto AABBGenComp::Execute( PassCommandList &commandList ) -> void {
-        commandList.BeginCompute(this);
-        commandList.BindPipeline( "AABBGenComp_Pipeline" );
+    auto AABBGenComp::Execute( CommandContext &context ) -> void {
+        context.BeginPass(this);
 
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 0 );
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
-        commandList.BindResourceGroup(SRGType::SRG_PerPass);
+        context.BindPipeline( "AABBGenComp_Pipeline" );
+
+        context.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 0 );
+        context.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
+        context.BindResourceGroup(SRGType::SRG_PerPass);
 
         m_CameraUBO = {
             .ViewMatrix{ m_Camera->GetViewMatrix() },
@@ -59,11 +71,11 @@ namespace Mikoto {
             .LightInfo{ m_CameraUBO.LightInfo.x }
         };
 
-        commandList.FillBuffer( "AABBGenComp_CameraUBO", std::addressof( m_CameraUBO ), sizeof( CameraUBO ));
+        context.FillBuffer( "AABBGenComp_CameraUBO", std::addressof( m_CameraUBO ), sizeof( CameraUBO ));
 
-        commandList.Dispatch(m_GridSizeX, m_GridSizeY, m_GridSizeZ);
+        context.Dispatch(m_GridSizeX, m_GridSizeY, m_GridSizeZ);
 
-        commandList.EndCompute();
+        context.EndPass();
     }
 
     auto AABBGenComp::SetCamera( const Camera *camera ) -> void {
@@ -103,22 +115,26 @@ namespace Mikoto {
         builder.WriteBuffer( this, "LightCullingComp_LightsCullingInfo" );
     }
 
-    auto LightCullingComp::Execute( PassCommandList &commandList ) -> void {
+    auto LightCullingComp::Execute( CommandContext &context ) -> void {
         MKT_ASSERT( m_NumClusters != 0, "Number of cluster must different to 0" );
 
-        commandList.BeginCompute(this);
-        commandList.BindPipeline( "LightCullingComp_Pipeline" );
+        context.BeginPass(this);
 
-        TraverseLights( commandList );
+        context.BindPipeline( "LightCullingComp_Pipeline" );
 
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 0 );
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
-        commandList.BindResourceGroup(SRGType::SRG_PerPass);
+        context.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 0 );
+        context.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
+        context.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 2 );
+        context.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_LightsCullingInfo", 3 );
+
+        context.BindResourceGroup(SRGType::SRG_PerPass);
+
+        TraverseLights( context );
 
         const auto numWorkGroupsX{ (m_NumClusters + m_LocalSize - 1) / m_LocalSize };
-        commandList.Dispatch(numWorkGroupsX, 1, 1);
+        context.Dispatch(numWorkGroupsX, 1, 1);
 
-        commandList.EndCompute();
+        context.EndPass();
     }
 
     auto LightCullingComp::SetClusterCount( UInt32 clusterCount ) -> void {
@@ -129,7 +145,7 @@ namespace Mikoto {
         m_Scene = scene;
     }
 
-    auto LightCullingComp::TraverseLights( const PassCommandList &commandList ) -> void {
+    auto LightCullingComp::TraverseLights( const CommandContext &commandList ) -> void {
         auto& registry{ m_Scene->GetRegistry() };
         auto lightsView{ registry.view<TagComponent, TransformComponent, LightComponent>() };
 
@@ -251,22 +267,23 @@ namespace Mikoto {
         builder.WriteBuffer( this, "ShadowPass_CameraInfo" );
     }
 
-    auto ShadowPass::Execute( PassCommandList& commandList ) -> void {
+    auto ShadowPass::Execute( CommandContext& context ) -> void {
+        context.BeginPass( this );
 
-        commandList.SetColorRenderTarget( "ShadowPass_ColorTarget" );
-        commandList.SetDepthRenderTarget( "ShadowPass_LightsBuffer" );
+        context.SetColorRenderTarget( "ShadowPass_ColorTarget" );
+        context.SetDepthRenderTarget( "ShadowPass_LightsBuffer" );
 
-        commandList.BeginRender(this);
 
-        // commandList.BindStorageBuffer( "ShadowPass_CameraInfo", 0, 0);
-        // commandList.BindStorageBuffer( "ShadowPass_LightsBuffer", 1, 0);
-        // commandList.BindStorageBuffer( "ShadowPass_ObjectInfo", 2, 0);
+        context.BeginRender(PassRenderInfo{});
 
-        // Set render targets
-        commandList.SetViewport( 0, 0, 1920, 1080 );
-        commandList.SetScissor( 0, 0, 1920, 1080 );
+        context.BindPipeline( "ShadowPass_Pipeline" );
 
-        commandList.BindPipeline( "ShadowPass_Pipeline" );
+        // context.BindStorageBuffer( "ShadowPass_CameraInfo", 0, 0);
+        // context.BindStorageBuffer( "ShadowPass_LightsBuffer", 1, 0);
+        // context.BindStorageBuffer( "ShadowPass_ObjectInfo", 2, 0);
+
+        context.SetViewport( 0, 0, 1920, 1080 );
+        context.SetScissor( 0, 0, 1920, 1080 );
 
         // Meshes
         auto& registry{ m_Scene->GetRegistry() };
@@ -282,10 +299,7 @@ namespace Mikoto {
 
             if ( tag.IsActive() && meshComponent.HasMesh() && !material.IsEmpty() ) {
                 PBRMaterial* matPtr{ dynamic_cast<PBRMaterial*>( material.GetRaw() ) };
-
                 MeshNode* mesh{ meshComponent.GetMesh() };
-
-
             }
         }
 
@@ -297,7 +311,9 @@ namespace Mikoto {
             auto& lightComp{ registry.get<LightComponent>( entity ) };
         }
 
-        commandList.EndRender();
+        context.EndRender();
+
+        context.EndPass();
     }
 
     auto ShadowPass::SetScene( Scene* scene ) -> void {

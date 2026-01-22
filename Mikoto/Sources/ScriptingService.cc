@@ -70,7 +70,7 @@ namespace Mikoto {
                 handle = m_ScriptPool.Allocate( file,  m_LuaState, entity );
 
                 // Mark lambda as mutable to modify "its members"
-                (void)FileWatcherService::Get()->Watch( file->GetPath(), [handle, this](const Path& pathCallable, FileWatchEvent event) mutable -> void {
+                FileWatcherService::Get()->Watch( file->GetPath(), [handle, this](const Path& pathCallable, FileWatchEvent event) mutable -> void {
                     if (event == FileWatchEvent::MODIFIED) {
                         handle->ReloadScript(m_LuaState);
                         MKT_CORE_LOGGER_INFO( "File at path {} was modified", pathCallable.string());

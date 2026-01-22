@@ -1,6 +1,16 @@
+//    Copyright 2025 ケイト
 //
-// Created by kate on 1/11/26.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_CLUSTERED_SHADING_HH
 #define MIKOTO_CLUSTERED_SHADING_HH
@@ -16,8 +26,9 @@
 #include <Scene/Camera.hh>
 #include <Library/Utility/Types.hh>
 #include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Core/FramePass.hh>
+#include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Passes/ShaderRenderParams.hh>
 
 namespace Mikoto {
@@ -54,7 +65,7 @@ namespace Mikoto {
             : FramePass{ "AABBGenComp", FramePassType::COMPUTE } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(PassCommandList& cmdList) -> void override;
+        auto Execute(CommandContext& context) -> void override;
 
         auto SetCamera(const Camera* camera) -> void;
         auto SetHeatMap(bool enable) -> void;
@@ -77,14 +88,14 @@ namespace Mikoto {
             : FramePass{ "LightCullingComp", FramePassType::COMPUTE } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(PassCommandList& commandList) -> void override;
+        auto Execute(CommandContext& context) -> void override;
 
         auto SetClusterCount(UInt32 clusterCount) -> void;
 
         auto SetScene(Scene* scene) -> void;
 
     private:
-        auto TraverseLights( const PassCommandList & commandList ) -> void;
+        auto TraverseLights( const CommandContext & commandList ) -> void;
 
         struct alignas(16) LightCullingUBO {
             UInt32 LightCount{};
@@ -108,7 +119,7 @@ namespace Mikoto {
             : FramePass{ "ShadowPass", FramePassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& device) -> void override;
-        auto Execute(PassCommandList& commandList) -> void override;
+        auto Execute(CommandContext& context) -> void override;
 
         auto SetScene(Scene* scene) -> void;
 

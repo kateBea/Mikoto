@@ -68,7 +68,7 @@ namespace Mikoto {
         * for execution. All rendering or compute commands must be recorded
         * into the provided command list.
         */
-        virtual auto Execute(PassCommandList& cmdList) -> void = 0;
+        virtual auto Execute(CommandContext& cmdList) -> void = 0;
 
         /**
          * @brief Finalizes pass state after successful execution.

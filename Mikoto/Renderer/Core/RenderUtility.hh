@@ -165,6 +165,12 @@ namespace Mikoto {
         BUFFER_DATA_FLOAT32,
     };
 
+    enum class LoadOp {
+        CLEAR,
+        LOAD,
+        UNDEFINED,
+    };
+
     template<typename T>
     MKT_NODISCARD auto InferSize( const Size elemCount ) -> Size {
         return sizeof( T ) * elemCount;

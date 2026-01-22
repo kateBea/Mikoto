@@ -1,9 +1,20 @@
+//    Copyright 2025 ケイト
 //
-// Created by zanet on 1/5/2026.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <Scene/Scene.hh>
 #include <Scene/Component.hh>
+
 #include <Renderer/Core/FramePass.hh>
 #include <Renderer/Core/FrameResource.hh>
 #include <Renderer/Passes/DebugPasses.hh>
@@ -14,7 +25,7 @@ namespace Mikoto {
 
     }
 
-    auto ObjectOutlinePass::Execute( PassCommandList& cmdList ) -> void {
+    auto ObjectOutlinePass::Execute( CommandContext& context ) -> void {
     }
 
     auto WireFramePass::Setup( FrameGraphBuilder& builder ) -> void {
@@ -54,7 +65,7 @@ namespace Mikoto {
         m_Meshes.resize( MAX_RENDERABLE_ENTITIES );
     }
 
-    auto WireFramePass::TraverseMeshList(PassCommandList& commandList) -> void {
+    auto WireFramePass::TraverseMeshList(CommandContext& context) -> void {
         auto& registry{ m_Scene->GetRegistry() };
         auto renderables{ registry.view<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
 
@@ -85,11 +96,11 @@ namespace Mikoto {
                     ubo.Factors.x = pbrMat->GetMetallicFactor();
                     ubo.Factors.y = pbrMat->GetRoughnessFactor();
 
-                    ubo.AlbedoIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::ALBEDO_TEXTURE ) );
-                    ubo.NormalIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::NORMAL_TEXTURE ) );
-                    ubo.MetallicIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::METALLIC_TEXTURE ) );
-                    ubo.RoughnessIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
-                    ubo.AoIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
+                    ubo.AlbedoIndex = context.PushTexture( pbrMat->GetTextureType( MapType::ALBEDO_TEXTURE ) );
+                    ubo.NormalIndex = context.PushTexture( pbrMat->GetTextureType( MapType::NORMAL_TEXTURE ) );
+                    ubo.MetallicIndex = context.PushTexture( pbrMat->GetTextureType( MapType::METALLIC_TEXTURE ) );
+                    ubo.RoughnessIndex = context.PushTexture( pbrMat->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
+                    ubo.AoIndex = context.PushTexture( pbrMat->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
                 }
             }
         }
@@ -107,7 +118,7 @@ namespace Mikoto {
         m_ShowColor = value;
     }
 
-    auto WireFramePass::DrawObjects(PassCommandList& commandList) -> void {
+    auto WireFramePass::UploadObjectsData(CommandContext& context) -> void {
         Size meshIndex{};
         Size firstInstance{};
 
@@ -137,108 +148,62 @@ namespace Mikoto {
 
             firstInstance += drawCount;
 
-            commandList.DrawIndexed(drawState);
+            context.DrawIndexed(drawState);
         }
     }
 
-    auto WireFramePass::Execute( PassCommandList& commandList ) -> void {
+    auto WireFramePass::Execute( CommandContext& context ) -> void {
+        context.BeginPass( this );
 
         LoadOp colorLoadOp{ LoadOp::CLEAR };
         LoadOp depthLoadOp{ LoadOp::CLEAR };
 
         if (m_ShowColor) {
-            commandList.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
-            commandList.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
+            context.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
+            context.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
             colorLoadOp = LoadOp::LOAD;
             depthLoadOp = LoadOp::LOAD;
         } else {
-            commandList.SetColorRenderTarget( "WireFramePass_ColorTarget" );
-            commandList.SetDepthRenderTarget( "WireFramePass_DepthTarget" );
+            context.SetColorRenderTarget( "WireFramePass_ColorTarget" );
+            context.SetDepthRenderTarget( "WireFramePass_DepthTarget" );
         }
 
-        commandList.SetClearColor( m_ClearColor );
+        context.SetClearColor( m_ClearColor );
 
-        commandList.BeginRender(this, colorLoadOp, depthLoadOp );
+        PassRenderInfo renderInfo{
+            .ColorLoadOp{ colorLoadOp },
+            .DephtLoadOp{ depthLoadOp }
+        };
 
-        commandList.BindPipeline( "WireFramePass_Pipeline" );
+        context.BeginRender( renderInfo );
+        context.BindPipeline( "WireFramePass_Pipeline" );
 
-        // Set render targets
-        commandList.SetViewport( 0, 0, 1920, 1080 );
-        commandList.SetScissor( 0, 0, 1920, 1080 );
+        context.SetBufferBindSlot( SRGType::SRG_PerPass, "PerFrame_CameraInfo", 0 );
+        context.SetBufferBindSlot( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 1 );
 
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "PerFrame_CameraInfo", 0 );
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 1 );
+        context.BindResourceGroup(SRGType::SRG_Textures);
+        context.BindResourceGroup(SRGType::SRG_PerPass);
 
-        commandList.BindResourceGroup(SRGType::SRG_Textures);
-        commandList.BindResourceGroup(SRGType::SRG_PerPass);
+        context.SetViewport( 0, 0, 1920, 1080 );
+        context.SetScissor( 0, 0, 1920, 1080 );
 
-        TraverseMeshList(commandList);
+        TraverseMeshList(context);
+        UploadObjectsData(context);
 
-        DrawObjects(commandList);
+        context.EndRender();
 
-        commandList.EndRender();
+        context.EndPass();
     }
 
     auto MaterialPreviewPass::Setup( FrameGraphBuilder& builder ) -> void {
 
     }
 
-    auto MaterialPreviewPass::Execute( PassCommandList& cmdList ) -> void {
+    auto MaterialPreviewPass::Execute( CommandContext& context ) -> void {
 
     }
 
-    auto TextPass::Setup( FrameGraphBuilder& builder ) -> void {
-        // Create resources it needs
-        PipelineDescription pipelineDesc{};
-
-        // Configure pipeline stage
-        GraphicsPipelineDescription graphicseDesc{};
-
-        pipelineDesc.Description = graphicseDesc;
-
-        pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/MSDFText_Vert.sprv", ShaderStage::VERTEX_STAGE );
-        pipelineDesc.AddShader( "./Resources/Shaders/vulkan-spirv/MSDFText_Frag.sprv", ShaderStage::FRAGMENT_STAGE );
-
-        builder.CreateNamedPipeline( "TextPass_Pipeline", pipelineDesc );
-
-        builder.WriteTexture( this, "FinalCompositionPass_ColorTarget" );
-        builder.WriteTexture( this, "FinalCompositionPass_DepthTarget" );
-    }
-
-    auto TextPass::Execute( PassCommandList& commandList ) -> void {
-        commandList.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
-        commandList.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
-
-        commandList.BeginRender(this);
-
-        // Set render targets
-        commandList.SetViewport( 0, 0, 1920, 1080 );
-        commandList.SetScissor( 0, 0, 1920, 1080 );
-
-        commandList.BindPipeline( "ShadowPass_Pipeline" );
-
-        // Meshes
-        auto& registry{ m_Scene->GetRegistry() };
-        auto renderables{ registry.view<TagComponent, TransformComponent, MaterialComponent, TextComponent>() };
-
-        for ( auto& entity: renderables ) {
-            auto& tag{ registry.get<TagComponent>( entity ) };
-            auto& transform{ registry.get<TransformComponent>( entity ) };
-            auto& textComponent{ registry.get<TextComponent>( entity ) };
-            auto& materialComp{ registry.get<MaterialComponent>( entity ) };
-        }
-
-        commandList.EndRender();
-    }
-
-    auto TextPass::SetScene( Scene* scene ) -> void {
-        m_Scene = scene;
-    }
-
-    auto HelloCubePass::Setup( FrameGraphBuilder& builder ) -> void {
-    }
-
-    auto HelloCubePass::Execute( PassCommandList& cmdList ) -> void {
+    auto HelloCubePass::Execute( CommandContext& context ) -> void {
     }
 
     auto SimpleComputePass::Setup( FrameGraphBuilder& builder ) -> void {
@@ -259,12 +224,13 @@ namespace Mikoto {
         builder.WriteBuffer( this, "SimpleComputePass_Result" );
     }
 
-    auto SimpleComputePass::Execute( PassCommandList& commandList ) -> void {
-        commandList.BeginCompute(this);
-        commandList.BindPipeline( "SimpleComputePass_Pipeline" );
+    auto SimpleComputePass::Execute( CommandContext& context ) -> void {
+        context.BeginPass( this );
 
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "SimpleComputePass_Result", 0 );
-        commandList.BindResourceGroup(SRGType::SRG_PerPass);
+        context.BindPipeline( "SimpleComputePass_Pipeline" );
+
+        context.SetBufferBindSlot( SRGType::SRG_PerPass, "SimpleComputePass_Result", 0 );
+        context.BindResourceGroup(SRGType::SRG_PerPass);
 
         // Prime numbers up until this value
         constexpr UInt32 limitNumbers{ 30 };
@@ -273,9 +239,9 @@ namespace Mikoto {
         constexpr UInt32 localSize{ 64 };
         constexpr UInt32 groupCount{ ( limitNumbers + localSize - 1 ) / localSize };
 
-        commandList.Dispatch( groupCount, 1, 1 );
+        context.Dispatch( groupCount, 1, 1 );
 
-        commandList.EndCompute();
+        context.EndPass();
     }
 
     auto HelloTrianglePass::Setup( FrameGraphBuilder& builder ) -> void {
@@ -303,22 +269,25 @@ namespace Mikoto {
         builder.WriteTexture( this, "HelloTrianglePass_DepthTarget" );
     }
 
-    auto HelloTrianglePass::Execute( PassCommandList& commandList ) -> void {
-        commandList.SetColorRenderTarget( "HelloTrianglePass_ColorTarget" );
-        commandList.SetDepthRenderTarget( "HelloTrianglePass_DepthTarget" );
+    auto HelloTrianglePass::Execute( CommandContext& context ) -> void {
+        context.BeginPass( this );
 
-        commandList.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
+        context.SetColorRenderTarget( "HelloTrianglePass_ColorTarget" );
+        context.SetDepthRenderTarget( "HelloTrianglePass_DepthTarget" );
 
-        commandList.BeginRender(this);
-        commandList.BindPipeline( "HelloTrianglePass_Pipeline" );
+        context.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
 
-        // Set render targets
-        commandList.SetViewport( 0, 0, 1920, 1080 );
-        commandList.SetScissor( 0, 0, 1920, 1080 );
+        context.BeginRender(PassRenderInfo{});
+        context.BindPipeline( "HelloTrianglePass_Pipeline" );
 
-        commandList.Draw( 3, 1, 0, 0 );
+        context.SetViewport( 0, 0, 1920, 1080 );
+        context.SetScissor( 0, 0, 1920, 1080 );
 
-        commandList.EndRender();
+        context.Draw( 3, 1, 0, 0 );
+
+        context.EndRender();
+
+        context.EndPass();
     }
 
     auto HelloTexture::Setup( FrameGraphBuilder& builder ) -> void {
@@ -354,40 +323,41 @@ namespace Mikoto {
         builder.WriteTexture( this, "HelloTexture_DepthTarget" );
     }
 
-    auto HelloTexture::Execute( PassCommandList& commandList ) -> void {
+    auto HelloTexture::Execute( CommandContext& context ) -> void {
+        context.BeginPass( this );
 
-        commandList.SetColorRenderTarget( "HelloTexture_ColorTarget" );
-        commandList.SetDepthRenderTarget( "HelloTexture_DepthTarget" );
+        context.SetColorRenderTarget( "HelloTexture_ColorTarget" );
+        context.SetDepthRenderTarget( "HelloTexture_DepthTarget" );
 
-        commandList.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
+        context.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
 
-        commandList.BeginRender(this);
-
-        commandList.BindPipeline( "HelloTexture_Pipeline" );
+        context.BindPipeline( "HelloTexture_Pipeline" );
 
         TextureHandle textureHandle{ AssetsService::Get()->LoadAsset<Texture>( Path{ "Resources/Models/1 - Box texture/CatStare.png" } ) };
 
         static bool first{ true };
         if (first) {
-            Int32 srgTextureIndex{ commandList.PushTexture( textureHandle ) };
+            Int32 srgTextureIndex{ context.PushTexture( textureHandle ) };
 
             HelloTextureUniformBuffer uboData{};
             uboData.TextureIndex = srgTextureIndex;
 
-            commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "HelloTexture_TexturesBuffer", 0 );
-            commandList.FillBuffer( "HelloTexture_TexturesBuffer", std::addressof( uboData ), sizeof( HelloTextureUniformBuffer ));
+            context.SetBufferBindSlot( SRGType::SRG_PerPass, "HelloTexture_TexturesBuffer", 0 );
+            context.FillBuffer( "HelloTexture_TexturesBuffer", std::addressof( uboData ), sizeof( HelloTextureUniformBuffer ));
 
             first = false;
         }
 
-        commandList.BindResourceGroup(SRGType::SRG_Textures);
-        commandList.BindResourceGroup(SRGType::SRG_PerPass);
+        context.BindResourceGroup(SRGType::SRG_Textures);
+        context.BindResourceGroup(SRGType::SRG_PerPass);
 
-        commandList.SetViewport( 0, 0, 1920, 1080 );
-        commandList.SetScissor( 0, 0, 1920, 1080 );
+        context.BeginRender(PassRenderInfo{});
 
-        commandList.Draw( 4, 1, 0, 0 );
+        context.SetViewport( 0, 0, 1920, 1080 );
+        context.SetScissor( 0, 0, 1920, 1080 );
 
-        commandList.EndRender();
+        context.Draw( 4, 1, 0, 0 );
+
+        context.EndRender();
     }
 }

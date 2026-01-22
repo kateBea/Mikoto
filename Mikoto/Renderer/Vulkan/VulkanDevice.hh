@@ -44,6 +44,9 @@ namespace Mikoto {
         auto Begin() -> void override;
         auto End() -> void override;
 
+        auto BeginRender(RenderInfo& info) -> void override;
+        auto EndRender(RenderInfo& info) -> void override;
+
         auto FillTexture(Buffer* src, Texture* dest) -> void override;
         auto CopyBuffer(Buffer* src, Buffer* dest) -> void override;
         auto CopyTexture(Texture* src, Texture* dest) -> void override;
@@ -55,6 +58,12 @@ namespace Mikoto {
         auto SetScissor(Int32 x, Int32 y, Int32 width, Int32 height) -> void override;
 
         auto Dispatch(UInt32 x, UInt32 y, UInt32 z) -> void  override;
+
+        auto BindIndexBuffer( BufferHandle indexBuffer)-> void  override;
+        auto BindVertexBuffer( BufferHandle vertexBuffer, UInt32 binding) -> void  override;
+
+        auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance) -> void  override;
+        auto DrawIndexed( Size indexCount, UInt32 instanceCount, UInt32 firstIndex, UInt32 vertexOffset, UInt32 firstInstance)-> void  override;
 
         auto BindPipeline(PipelineHandle pipeline) -> void override;
 

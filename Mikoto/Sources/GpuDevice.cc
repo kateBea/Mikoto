@@ -7,6 +7,11 @@
 
 namespace Mikoto {
 
+    auto RenderInfo::Clear() -> void {
+        this->ColorRenderTargets.clear();
+        this->DepthRenderTarget = TextureHandle::CreateEmpty();
+    }
+
     auto GpuDevice::Create( const GpuDeviceCreateInfo &createInfo ) -> Unique<GpuDevice> {
         switch ( createInfo.Api ) {
             case GraphicsAPI::VULKAN_API:

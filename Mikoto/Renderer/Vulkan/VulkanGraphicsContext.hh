@@ -1,71 +1,69 @@
+//    Copyright 2025 ケイト
 //
-// Created by kate on 11/25/25.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_VULKAN_GRAPHIC_CONTEXT_HH
 #define MIKOTO_VULKAN_GRAPHIC_CONTEXT_HH
 
-#include <ankerl/unordered_dense.h>
+#include <utility>
+
 #include <volk.h>
+#include <ankerl/unordered_dense.h>
 
 #include <Assets/Texture.hh>
+
 #include <Renderer/Core/Buffer.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/FramePass.hh>
 #include <Renderer/Core/GraphicsContext.hh>
-#include <utility>
-
-#include "VulkanDescriptorManager.hh"
+#include <Renderer/Vulkan/VulkanDescriptorManager.hh>
 
 namespace Mikoto {
 
     class VulkanGraphicsContext final : public GraphicsContext {
     public:
-
         explicit  VulkanGraphicsContext(GpuDevice* device);
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
 
-        auto BeginRender(RenderInfo& beginInfo) -> void override;
-        auto EndRender(RenderInfo& info) -> void override;
+        auto BeginPass(FramePass* pass) -> void override;
+        auto EndPass(FramePass* pass) -> void override;
 
-        auto BeginCompute(FramePass* pass) -> void override;
-        auto EndCompute(FramePass* pass) -> void override;
-
-        auto BeginFrame(FrameBlackboard* blackboard)-> void  override;
+        auto BeginFrame(FrameBlackboard* blackboard)-> void override;
         auto EndFrame()-> void  override;
-
-        auto BindPipeline( PipelineHandle pipeline, FramePass* Pass ) -> void override;
-
-        auto Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ, FramePass* pass ) -> void override;
-        auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance, FramePass* pass) -> void  override;
-
-        auto BindIndexBuffer( BufferHandle indexBuffer, FramePass* pass )-> void  override;
-        auto BindVertexBuffer( BufferHandle vertexBuffer, UInt32 binding, FramePass* pass ) -> void  override;
-        auto DrawInstanced( Size indexCount, UInt32 instanceCount, UInt32 firstIndex, UInt32 vertexOffset, UInt32 firstInstance, FramePass* pass )-> void  override;
-
-        auto SetViewport(const PassViewport& vp, FramePass* pass) -> void  override;
-        auto SetScissor(const PassScissor& vp, FramePass* pass) -> void  override;
-
-        auto BindTextureList(FramePass* pass) -> void override;
-        auto BindFrameResources() -> void  override;
 
         auto PushImage(TextureHandle texture) -> Int32 override;
 
-        auto BindPassResources(FramePass* pass) -> void override;
+        auto BindTextureList(CommandListHandle cmdList) -> void override;
+        auto BindPassResources(FramePass* pass, CommandListHandle cmdList ) -> void override;
+        auto CommitShaderResources(FramePass* pass ) -> void override;
+
+        auto CreatePipelineResources(FramePass* pass, PipelineHandle pipeline) -> void override;
 
         auto GetPassSRG( FramePass* pass ) -> SRGPerPass* override;
 
-        auto InsertResourceBarrier( FramePass * pass ) -> void override;
+        auto InsertResourceBarrier(FramePass* pass, CommandListHandle cmdList ) -> void override;
 
         ~VulkanGraphicsContext() override = default;
 
     private:
         MKT_NODISCARD auto HasDescriptorSets(FramePass* pipeline) -> bool;
 
-        auto BindPassDescriptors(FramePass* pass) -> void;
         auto CreatePassDescriptors(FramePass* pass) -> void;
+        auto UpdatePassDescriptors(FramePass* pass) -> void;
+
+        auto BindPassDescriptors(FramePass* pass, CommandListHandle cmdList) -> void;
 
         auto PushBuffer( FramePass* pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType) -> void;
         auto PushImage( FramePass* pass, std::string_view textureName, std::string_view samplerName, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType) -> void;
@@ -93,8 +91,6 @@ namespace Mikoto {
             // Whether we need to update the descriptor sets or not
             bool Dirty{ true };
         };
-
-        ankerl::unordered_dense::map<FramePass*, CommandListHandle> m_CmdLists{};
 
         FrameBlackboard* m_Blackboard{};
 

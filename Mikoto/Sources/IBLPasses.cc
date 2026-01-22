@@ -1,11 +1,23 @@
+//    Copyright 2025 ケイト
 //
-// Created by kate on 1/12/26.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 
 #include <Scene/Scene.hh>
 #include <Scene/Component.hh>
 #include <Renderer/Core/FramePass.hh>
 #include <Renderer/Core/FrameResource.hh>
+#include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Passes/ShaderRenderParams.hh>
 #include <Renderer/Passes/IBLPasses.hh>
 
@@ -34,8 +46,39 @@ namespace Mikoto {
         builder.WriteTexture( this, "IrradiancePass_ColorTarget" );
     }
 
-    auto IrradiancePass::Execute( PassCommandList &commandList ) -> void {
+    auto IrradiancePass::Execute( CommandContext &context ) -> void {
+        context.BeginPass(this);
 
+        context.SetViewport( 0, 0, 1920, 1080 );
+        context.SetScissor( 0, 0, 1920, 1080 );
+
+        context.BindPipeline( "IrradiancePass_Pipeline" );
+
+        context.SetBufferBindSlot( SRGType::SRG_PerPass, "IrradiancePass_CameraInfo", 0 );
+        context.SetBufferBindSlot( SRGType::SRG_PerPass, "IrradiancePass_Parameters", 1 );
+
+        context.BindResourceGroup(SRGType::SRG_PerPass);
+
+        for (Size count{}; count < MAX_CUBE_FACES; ++count) {
+            context.SetColorRenderTarget( "IrradiancePass_ColorTarget" );
+
+            context.FillBuffer( "IrradiancePass_Parameters", std::addressof( m_Parameters ), sizeof(IrradianceParameters) );
+
+            PassRenderInfo renderInfo{
+                .ColorLoadOp{ LoadOp::CLEAR },
+                .DephtLoadOp{ LoadOp::CLEAR },
+            };
+
+            context.SetClearColor( { 0.0f, 0.0f, 0.0f, 1.0f } );
+
+            context.BeginRender(renderInfo);
+            context.BindPipeline( "IrradiancePass_Pipeline" );
+            context.Draw(6, 1, 0, 0 );
+
+            context.EndRender();
+        }
+
+        context.EndPass();
     }
 
     auto PrefilterPass::Setup( FrameGraphBuilder &builder ) -> void {
@@ -61,8 +104,45 @@ namespace Mikoto {
         builder.WriteTexture( this, "PrefilterPass_ColorTarget" );
     }
 
-    auto PrefilterPass::Execute( PassCommandList &commandList ) -> void {
+    auto PrefilterPass::Execute( CommandContext &context ) -> void {
+        context.BeginPass(this);
 
+        context.SetViewport( 0, 0, 1920, 1080 );
+        context.SetScissor( 0, 0, 1920, 1080 );
+
+        // For different mip levels we render the same cube
+        for (Size mipLevel{}; mipLevel < MAX_MIP_LEVELS; ++mipLevel) {
+            m_Parameters.Roughness = static_cast<float>( mipLevel ) / static_cast<float>( MAX_MIP_LEVELS - 1 );
+
+            context.FillBuffer( "IrradiancePass_Parameters", std::addressof( m_Parameters ), sizeof(m_Parameters) );
+
+            for (Size count{}; count < MAX_CUBE_FACES; ++count) {
+                context.SetColorRenderTarget( "IrradiancePass_ColorTarget" );
+                context.SetClearColor( { 0.0f, 0.0f, 0.0f, 1.0f } );
+
+                PassRenderInfo renderInfo{
+                    .ColorLoadOp{ LoadOp::CLEAR },
+                    .DephtLoadOp{ LoadOp::CLEAR },
+                };
+
+                context.BeginRender(renderInfo);
+                context.BindPipeline( "IrradiancePass_Pipeline" );
+
+                context.SetBufferBindSlot( SRGType::SRG_PerPass, "IrradiancePass_CameraInfo", 0 );
+                context.SetBufferBindSlot( SRGType::SRG_PerPass, "IrradiancePass_Parameters", 1 );
+                context.BindResourceGroup(SRGType::SRG_PerPass);
+
+                context.FillBuffer( "IrradiancePass_CameraInfo", std::addressof( m_CameraInfo ), sizeof(m_CameraInfo) );
+
+                context.Draw(6, 1, 0, 0 );
+
+                context.EndRender();
+            }
+        }
+
+        context.Draw( 3, 1, 0, 0 );
+
+        context.EndPass();
     }
 
     auto BRDFLutPass::Setup( FrameGraphBuilder &builder ) -> void {
@@ -90,22 +170,25 @@ namespace Mikoto {
         builder.WriteTexture( this, "BRDFLutPass_DepthTarget" );
     }
 
-    auto BRDFLutPass::Execute( PassCommandList &commandList ) -> void {
-        commandList.SetColorRenderTarget( "BRDFLutPass_ColorTarget" );
-        commandList.SetDepthRenderTarget( "BRDFLutPass_DepthTarget" );
+    auto BRDFLutPass::Execute( CommandContext &context ) -> void {
+        context.BeginPass( this );
 
-        commandList.SetClearColor( { 0.0f, 0.0f, 0.0f, 1.0f } );
+        context.SetColorRenderTarget( "BRDFLutPass_ColorTarget" );
+        context.SetDepthRenderTarget( "BRDFLutPass_DepthTarget" );
 
-        commandList.BeginRender(this);
-        commandList.BindPipeline( "BRDFLutPass_Pipeline" );
+        context.SetClearColor( { 0.0f, 0.0f, 0.0f, 1.0f } );
 
-        // Set render targets
-        commandList.SetViewport( 0, 0, 1920, 1080 );
-        commandList.SetScissor( 0, 0, 1920, 1080 );
+        context.BeginRender(PassRenderInfo{});
+        context.BindPipeline( "BRDFLutPass_Pipeline" );
 
-        commandList.Draw( 3, 1, 0, 0 );
+        context.SetViewport( 0, 0, 1920, 1080 );
+        context.SetScissor( 0, 0, 1920, 1080 );
 
-        commandList.EndRender();
+        context.Draw( 3, 1, 0, 0 );
+
+        context.EndRender();
+
+        context.EndPass();
     }
 
     auto SkyboxPass::Setup( FrameGraphBuilder &builder ) -> void {
@@ -141,34 +224,37 @@ namespace Mikoto {
         builder.WriteTexture(this, "FinalCompositionPass_ColorTarget");
     }
 
-    auto SkyboxPass::Execute( PassCommandList &commandList ) -> void {
+    auto SkyboxPass::Execute( CommandContext &context ) -> void {
+        context.BeginPass( this );
 
         if (m_CubeMap.IsEmpty()) {
             return;
         }
 
+        context.SetColorRenderTarget("FinalCompositionPass_ColorTarget");
+
+        context.BeginRender(PassRenderInfo{});
+        context.BindPipeline("SkyboxPass_Pipeline");
+
         SamplerDescription samplerDescription{ .CubeSampler{ true } };
-        commandList.CreateNamedSampler("SkyboxPass_Sampler", samplerDescription);
-        commandList.RegisterNamedTexture("SkyboxPass_TextureCube", m_CubeMap);
+        context.CreateNamedSampler("SkyboxPass_Sampler", samplerDescription);
+        context.RegisterNamedTexture("SkyboxPass_TextureCube", m_CubeMap);
 
-        commandList.SetColorRenderTarget("FinalCompositionPass_ColorTarget");
+        context.SetBufferBindSlot(SRGType::SRG_PerPass,"SkyboxPass_CameraInfo", 0);
+        context.SetTextureBindSlot(SRGType::SRG_PerPass, "SkyboxPass_TextureCube", "SkyboxPass_Sampler", 1);
 
-        commandList.BeginRender(this, LoadOp::CLEAR);
-        commandList.BindPipeline("SkyboxPass_Pipeline");
+        context.BindResourceGroup(SRGType::SRG_PerPass);
 
-        commandList.SetViewport(0, 0, 1920, 1080);
-        commandList.SetScissor(0, 0, 1920, 1080);
+        context.SetViewport(0, 0, 1920, 1080);
+        context.SetScissor(0, 0, 1920, 1080);
 
-        commandList.SetBufferBindSlot(SRGType::SRG_PerPass,"SkyboxPass_CameraInfo", 0);
-        commandList.SetTextureBindSlot(SRGType::SRG_PerPass, "SkyboxPass_TextureCube", "SkyboxPass_Sampler", 1);
+        context.FillBuffer( "SkyboxPass_CameraInfo", std::addressof( m_SkyboxUBO ), sizeof(SkyboxUBO) );
 
-        commandList.FillBuffer( "SkyboxPass_CameraInfo", std::addressof( m_SkyboxUBO ), sizeof(SkyboxUBO) );
+        context.Draw(36, 1, 0, 0 );
 
-        commandList.BindResourceGroup(SRGType::SRG_PerPass);
+        context.EndRender();
 
-        commandList.Draw(36, 1, 0, 0 );
-
-        commandList.EndRender();
+        context.EndPass();
     }
 
     auto SkyboxPass::SetCamera( const Camera *camera ) -> void {
@@ -243,7 +329,7 @@ namespace Mikoto {
         m_Meshes.resize( MAX_RENDERABLE_ENTITIES );
     }
 
-    auto ShadingPass::TraverseMeshList(PassCommandList& commandList) -> void {
+    auto ShadingPass::TraverseMeshList(CommandContext& context) -> void {
         auto& registry{ m_Scene->GetRegistry() };
         auto renderables{ registry.view<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
 
@@ -274,11 +360,11 @@ namespace Mikoto {
                     ubo.Factors.x = pbrMat->GetMetallicFactor();
                     ubo.Factors.y = pbrMat->GetRoughnessFactor();
 
-                    ubo.AlbedoIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::ALBEDO_TEXTURE ) );
-                    ubo.NormalIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::NORMAL_TEXTURE ) );
-                    ubo.MetallicIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::METALLIC_TEXTURE ) );
-                    ubo.RoughnessIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
-                    ubo.AoIndex = commandList.PushTexture( pbrMat->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
+                    ubo.AlbedoIndex = context.PushTexture( pbrMat->GetTextureType( MapType::ALBEDO_TEXTURE ) );
+                    ubo.NormalIndex = context.PushTexture( pbrMat->GetTextureType( MapType::NORMAL_TEXTURE ) );
+                    ubo.MetallicIndex = context.PushTexture( pbrMat->GetTextureType( MapType::METALLIC_TEXTURE ) );
+                    ubo.RoughnessIndex = context.PushTexture( pbrMat->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
+                    ubo.AoIndex = context.PushTexture( pbrMat->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
                 }
             }
         }
@@ -302,7 +388,7 @@ namespace Mikoto {
         m_ClearColor = vec;
     }
 
-    auto ShadingPass::UploadInstanceData(PassCommandList& commandList) -> void {
+    auto ShadingPass::UploadInstanceData(CommandContext& context) -> void {
         Size meshIndex{};
         Size firstInstance{};
 
@@ -334,46 +420,54 @@ namespace Mikoto {
 
             firstInstance += drawCount;
 
-            commandList.DrawIndexed(drawState);
+            context.DrawIndexed(drawState);
         }
 
         // Upload data
-        commandList.FillBufferElement( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMaterialParams ), firstInstance );
+        context.FillBufferElement( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMaterialParams ), firstInstance );
     }
 
-    auto ShadingPass::Execute( PassCommandList& commandList ) -> void {
-        commandList.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
-        commandList.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
+    auto ShadingPass::Execute( CommandContext& context ) -> void {
+        context.BeginPass( this );
 
         LoadOp colorTargetLoadOP{ LoadOp::LOAD };
         if (!m_UseSkybox) {
             colorTargetLoadOP = LoadOp::CLEAR;
-            commandList.SetClearColor( m_ClearColor );
+            context.SetClearColor( m_ClearColor );
         }
 
-        commandList.BeginRender(this, colorTargetLoadOP);
-        commandList.BindPipeline( "FinalCompositionPass_Pipeline" );
+        PassRenderInfo renderInfo{
+            .ColorLoadOp{ colorTargetLoadOP },
+        };
 
-        // Set render targets
-        commandList.SetViewport( 0, 0, 1920, 1080 );
-        commandList.SetScissor( 0, 0, 1920, 1080 );
+        context.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
+        context.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
 
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "PerFrame_CameraInfo", 0 );
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 1 );
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 2 );
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 3 );
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 4 );
+        context.BeginRender(renderInfo);
 
-        commandList.BindResourceGroup(SRGType::SRG_Textures);
-        commandList.BindResourceGroup(SRGType::SRG_PerPass);
+        context.BindPipeline( "FinalCompositionPass_Pipeline" );
 
-        commandList.FillBuffer( "PerFrame_CameraInfo", std::addressof( m_FrameUBO ), sizeof( m_FrameUBO ) );
+        context.SetBufferBindSlot( SRGType::SRG_PerPass, "PerFrame_CameraInfo", 0 );
+        context.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 1 );
+        context.SetBufferBindSlot( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 2 );
+        context.SetBufferBindSlot( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 3 );
+        context.SetBufferBindSlot( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 4 );
 
-        TraverseMeshList(commandList);
+        context.BindResourceGroup(SRGType::SRG_Textures);
+        context.BindResourceGroup(SRGType::SRG_PerPass);
 
-        UploadInstanceData(commandList);
+        context.FillBuffer( "PerFrame_CameraInfo", std::addressof( m_FrameUBO ), sizeof( m_FrameUBO ) );
 
-        commandList.EndRender();
+        context.SetViewport( 0, 0, 1920, 1080 );
+        context.SetScissor( 0, 0, 1920, 1080 );
+
+        TraverseMeshList(context);
+
+        UploadInstanceData(context);
+
+        context.EndRender();
+
+        context.EndPass();
     }
 
 }// namespace Mikoto

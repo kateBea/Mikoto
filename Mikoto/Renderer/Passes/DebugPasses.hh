@@ -18,9 +18,12 @@
 #include <string_view>
 
 #include <Scene/Scene.hh>
+
 #include <Library/Utility/Types.hh>
+
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/FramePass.hh>
+#include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Passes/ShaderRenderParams.hh>
 
@@ -32,7 +35,7 @@ namespace Mikoto {
             : FramePass{ "ObjectOutlinePass", FramePassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(PassCommandList& cmdList) -> void override;
+        auto Execute(CommandContext& context) -> void override;
     };
 
     class WireFramePass final : public FramePass {
@@ -41,16 +44,18 @@ namespace Mikoto {
             : FramePass{ "WireFramePass", FramePassType::RENDER } {}
 
         auto Setup( FrameGraphBuilder& device ) -> void override;
-        auto Execute( PassCommandList& commandList ) -> void override;
+        auto Execute( CommandContext& context ) -> void override;
 
         auto SetScene( Scene* scene ) -> void;
         auto SetClearColor( const Vec4F& vec ) -> void;
 
+        auto SetLinesColor( const Vec4F& color ) -> void;
+
         auto ShowColorImage( bool value ) -> void;
 
     private:
-        auto DrawObjects( PassCommandList& commandList ) -> void;
-        auto TraverseMeshList( PassCommandList& commandList ) -> void;
+        auto UploadObjectsData( CommandContext& context ) -> void;
+        auto TraverseMeshList( CommandContext& context ) -> void;
 
     public:
         struct MeshInstanceInfo {
@@ -97,21 +102,7 @@ namespace Mikoto {
             : FramePass{ "MaterialPreviewPass", FramePassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(PassCommandList& cmdList) -> void override;
-    };
-
-    class TextPass final : public FramePass {
-    public:
-        explicit TextPass()
-            : FramePass{ "TextPass", FramePassType::RENDER } {}
-
-        auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(PassCommandList& cmdList) -> void override;
-
-        auto SetScene(Scene* scene) -> void;
-
-    private:
-        Scene* m_Scene{};
+        auto Execute(CommandContext& context) -> void override;
     };
 
     // This class is kept for debug purposes
@@ -122,7 +113,7 @@ namespace Mikoto {
             : FramePass{ "SimpleComputePass", FramePassType::COMPUTE } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(PassCommandList& cmdList) -> void override;
+        auto Execute(CommandContext& cmdList) -> void override;
 
 
     };
@@ -135,7 +126,7 @@ namespace Mikoto {
             : FramePass{ "HelloTrianglePass", FramePassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(PassCommandList& cmdList) -> void override;
+        auto Execute(CommandContext& context) -> void override;
     };
 
     // Simple pass for testing purposes
@@ -146,7 +137,7 @@ namespace Mikoto {
             : FramePass{ "HelloTexture", FramePassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(PassCommandList& cmdList) -> void override;
+        auto Execute(CommandContext& context) -> void override;
 
     private:
 
@@ -163,7 +154,7 @@ namespace Mikoto {
             : FramePass{ "HelloTrianglePass", FramePassType::RENDER } {}
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(PassCommandList& cmdList) -> void override;
+        auto Execute(CommandContext& context) -> void override;
     };
 
 }

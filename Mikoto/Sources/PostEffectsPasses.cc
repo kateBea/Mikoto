@@ -1,38 +1,59 @@
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <Scene/Scene.hh>
 #include <Scene/Component.hh>
 #include <Library/String/String.hh>
 #include <Renderer/Core/FramePass.hh>
 #include <Renderer/Core/FrameResource.hh>
+#include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Passes/ShaderRenderParams.hh>
 #include <Renderer/Passes/PostEffectsPasses.hh>
 
 namespace Mikoto {
-    auto TextRenderPass::Execute( PassCommandList &commandList ) -> void {
+    auto TextRenderPass::Execute( CommandContext &context ) -> void {
         MKT_ASSERT( m_Scene != nullptr, "Scene cannot be NULL" );
 
-        commandList.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
-        commandList.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
+        context.BeginPass( this );
 
-        commandList.BeginRender(this, LoadOp::LOAD, LoadOp::LOAD);
-        commandList.BindPipeline( "TextRenderPass_Pipeline" );
+        context.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
+        context.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
 
-        // Set render targets
-        commandList.SetViewport( 0, 0, 1920, 1080 );
-        commandList.SetScissor( 0, 0, 1920, 1080 );
+        PassRenderInfo renderInfo{
+            .ColorLoadOp{ LoadOp::LOAD },
+            .DephtLoadOp{LoadOp::LOAD }
+        };
 
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "TextRenderPass_FontParams", 0 );
-        commandList.SetBufferBindSlot( SRGType::SRG_PerPass, "TextRenderPass_TextRenderParams", 1 );
+        context.BeginRender(renderInfo);
+        context.BindPipeline( "TextRenderPass_Pipeline" );
 
-        commandList.BindResourceGroup(SRGType::SRG_Textures);
-        commandList.BindResourceGroup(SRGType::SRG_PerPass);
+        context.SetBufferBindSlot( SRGType::SRG_PerPass, "TextRenderPass_FontParams", 0 );
+        context.SetBufferBindSlot( SRGType::SRG_PerPass, "TextRenderPass_TextRenderParams", 1 );
 
-        TraverseTextList(commandList);
-        SetupRenderParams(commandList);
+        context.BindResourceGroup(SRGType::SRG_Textures);
+        context.BindResourceGroup(SRGType::SRG_PerPass);
+
+        context.SetViewport( 0, 0, 1920, 1080 );
+        context.SetScissor( 0, 0, 1920, 1080 );
+
+        TraverseTextList(context);
+        SetupRenderParams(context);
 
         DrawIndexedState drawIndexedState{};
 
-        BufferHandle vertexBuffer{ commandList.GetNamedBuffer("TextRenderPass_FontVertexBuffer") };
-        BufferHandle indexBuffer{ commandList.GetNamedBuffer("TextRenderPass_FontIndexBuffer") };
+        BufferHandle vertexBuffer{ context.GetNamedBuffer("TextRenderPass_FontVertexBuffer") };
+        BufferHandle indexBuffer{ context.GetNamedBuffer("TextRenderPass_FontIndexBuffer") };
 
         drawIndexedState.IndexBuffer = indexBuffer;
         drawIndexedState.VertexBuffers.emplace_back( vertexBuffer, 0);
@@ -40,16 +61,18 @@ namespace Mikoto {
         drawIndexedState.IndicesCount = indexBuffer->GetCount();
         drawIndexedState.InstancesCount = m_TextRenderParams.size();
 
-        commandList.DrawIndexed(drawIndexedState);
+        context.DrawIndexed(drawIndexedState);
 
-        commandList.EndRender();
+        context.EndRender();
+
+        context.EndPass();
     }
 
     auto TextRenderPass::SetScene( Scene *scene ) -> void {
         m_Scene = scene;
     }
 
-    auto TextRenderPass::TraverseTextList( PassCommandList &commandList ) -> void {
+    auto TextRenderPass::TraverseTextList( CommandContext &commandList ) -> void {
         FontHandle testFont{ AssetsService::Get()->LoadAsset<Font>( Path{ "Resources/Fonts/Google_Sans_Code/GoogleSansCode-VariableFont_wght.ttf" } ) };
 
         // Clear text data as we refill it every frame
@@ -78,13 +101,12 @@ namespace Mikoto {
         commandList.FillBuffer( "TextRenderPass_TextRenderParams", m_TextRenderParams.data(), m_TextRenderParams.size() * sizeof( TextRenderParams ) );
     }
 
-    auto TextRenderPass::SetupRenderParams(PassCommandList &commandList) -> void {
+    auto TextRenderPass::SetupRenderParams(CommandContext& context) -> void {
         m_TextRenderUBO.OutlineWidth = 0.0f;
-
-        commandList.FillBuffer( "TextRenderPass_FontParams", std::addressof( m_TextRenderUBO ), sizeof( m_TextRenderUBO ) );
+        context.FillBuffer( "TextRenderPass_FontParams", std::addressof( m_TextRenderUBO ), sizeof( m_TextRenderUBO ) );
     }
 
-    auto TextRenderPass::SetupTextForRender( FontHandle font, const Camera* camera, Vec4F position, std::string_view text, double fontSize, Vec4F color, PassCommandList& commandList ) -> void {
+    auto TextRenderPass::SetupTextForRender( FontHandle font, const Camera* camera, Vec4F position, std::string_view text, double fontSize, Vec4F color, CommandContext& commandList ) -> void {
         using namespace StringUtils;
 
         double xPos{ position.x };

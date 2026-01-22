@@ -16,4 +16,10 @@
 
 namespace Mikoto {
 
-}
+    auto ThemeSerializer::Serialize( const Theme &obj, const Path &savePath ) -> void {
+
+    }
+    auto ThemeSerializer::Deserialize( const Path &loadPath ) -> Unique<Theme> {
+        return Unique<Theme>(); // TODO:
+    }
+}// namespace Mikoto

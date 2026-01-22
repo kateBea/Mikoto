@@ -3,8 +3,8 @@
  * Created by kate on 10/6/23.
  * */
 
-#ifndef MIKOTO_MATH_HH
-#define MIKOTO_MATH_HH
+#ifndef MIKOTO_MATH_DEPRECATED__HH
+#define MIKOTO_MATH_DEPRECATED__HH
 
 #include <cmath>
 
@@ -17,6 +17,7 @@
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 
+// TODO: delete this file and use the one at Math/Math.hh
 
 namespace Mikoto::Math {
     constexpr Vec3F UNIT_VECTOR_X{ 1.0f, 0.0f, 0.0f };

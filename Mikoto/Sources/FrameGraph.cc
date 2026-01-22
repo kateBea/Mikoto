@@ -136,8 +136,6 @@ namespace Mikoto {
         for ( const auto& [pass, input, outputs] : m_Nodes) {
 
             if (pass->ShouldRun()) {
-                const std::string name{ pass->GetName() };
-
                 CommandContext context{ m_GraphicsContex, GetBlackboard(), m_Device };
                 pass->Execute( context );
 

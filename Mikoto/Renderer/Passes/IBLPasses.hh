@@ -55,6 +55,22 @@ namespace Mikoto {
         auto SetDeltaTheta(float value) -> void;
 
     private:
+        inline static const std::vector<glm::mat4> s_Matrices{
+            // POSITIVE_X
+            glm::rotate(glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            // NEGATIVE_X
+            glm::rotate(glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f)), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            // POSITIVE_Y
+            glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            // NEGATIVE_Y
+            glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            // POSITIVE_Z
+            glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            // NEGATIVE_Z
+            glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+        };
+
+    private:
         struct alignas(16) IrradianceParameters {
             float DeltaPhi{};
             float DeltaTheta{};
@@ -67,7 +83,11 @@ namespace Mikoto {
     private:
         static constexpr UInt32 MAX_CUBE_FACES{ 6 };
 
+        UInt32 m_MipLevels{};
+        UInt32 m_Dimensions{ 64 };
+
         IrradianceParameters m_Parameters{};
+        IrradianceCamInfo m_CameraInfo{};
     };
 
     class PrefilterPass final : public FramePass {

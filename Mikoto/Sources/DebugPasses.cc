@@ -360,6 +360,6 @@ namespace Mikoto {
 
         context.EndRender();
 
-        context.EndRender();
+        context.EndPass();
     }
 }

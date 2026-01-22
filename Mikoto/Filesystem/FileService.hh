@@ -12,6 +12,8 @@
 
 #include <Common/Common.hh>
 #include <Common/Service.hh>
+#include <Filesystem/File.hh>
+
 #include <Library/IO/File.hh>
 #include <Library/Utility/Types.hh>
 
@@ -25,17 +27,8 @@ namespace Mikoto {
     public:
         explicit FileService( const FileServiceCreateInfo& options );
 
-        /**
-         * Initializes the serializer utilities and some libraries it requires
-         * like NFD. The later is very important to be initialized after any
-         * platform windowing abstraction framework such as SDL or GLFW.
-         * */
         auto Init() -> void override;
 
-        /**
-         * Releases resources from the Serializer namespace and shuts down
-         * associated libraries.
-         * */
         auto Shutdown() -> void override;
 
         // load from disc

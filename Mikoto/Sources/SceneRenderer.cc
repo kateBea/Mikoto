@@ -77,8 +77,6 @@ namespace Mikoto {
 
         PassPreSetup();
 
-
-
         m_FrameGraph->Execute();
     }
 

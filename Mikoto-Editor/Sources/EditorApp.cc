@@ -23,6 +23,7 @@
 #include <Layers/EditorLayer.hh>
 #include <Logging/Logger.hh>
 
+#include "Core/SystemStats.hh"
 #include "Core/Timer.hh"
 #include "Filesystem/FileWatcher.hh"
 #include "Renderer/Core/RenderService.hh"

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <memory>
-
 #include <imgui.h>
-
-#include <glm/gtc/type_ptr.hpp>
 
 #include <Core/InputService.hh>
 #include <Core/Profiler.hh>
@@ -25,26 +21,28 @@
 #include <Layers/EditorLayer.hh>
 #include <Panels/ConsolePanel.hh>
 #include <Panels/ContentBrowserPanel.hh>
+#include <Panels/GamePreviewPanel.hh>
 #include <Panels/HierarchyPanel.hh>
 #include <Panels/InspectorPanel.hh>
 #include <Panels/LightingDebugPanel.hh>
 #include <Panels/PassVisualizerPanel.hh>
 #include <Panels/ScenePanel.hh>
-#include <Panels/GamePreviewPanel.hh>
 #include <Panels/ScenePropertiesPanel.hh>
 #include <Panels/SettingsPanel.hh>
 #include <Panels/StatsPanel.hh>
 #include <Physics/PhysicService.hh>
+#include <Renderer/Core/DebugRenderer.hh>
 #include <Renderer/Core/FrameBlackboard.hh>
 #include <Renderer/Core/RenderService.hh>
 #include <Scene/Component.hh>
 #include <Scene/SceneManager.hh>
-
-#include <Renderer/Core/DebugRenderer.hh>
+#include <glm/gtc/type_ptr.hpp>
+#include <memory>
 
 #include "Application/EditorUtility.hh"
 #include "Core/CoreEvents.hh"
 #include "Core/LocalizationService.hh"
+#include "Core/SystemStats.hh"
 #include "ImGui/ImGuiService.hh"
 #include "Panels/AssetsPanel.hh"
 #include "Renderer/Passes/IBLPasses.hh"
@@ -97,6 +95,9 @@ namespace Mikoto {
             .WithBasePath("Resources/HDR/scifi_desert_beach/Scifi Desert Beach/Scifi-Desert-Beach.hdr");
 
         m_TextureHDR = AssetsService::Get()->LoadAsset<TextureCube>( loadDesc2 );
+
+        SystemStats::Get()->Update();
+        MKT_CORE_LOGGER_DEBUG( "After Scifi-Desert-Beach ram usage: {}", SystemStats::Get()->GetProcessRamUsage() );
 
         TextureCubeLoadDescription loadDesc{};
         loadDesc.WithType( TextureType::TEXTURE_CUBE )

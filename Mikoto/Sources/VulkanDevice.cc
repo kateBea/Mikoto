@@ -16,19 +16,20 @@
 #include <vk_mem_alloc.h>
 
 // must include Vulkan headers before including TracyVulkan.hpp
-#include <tracy/TracyVulkan.hpp>
-
 #include <Assets/AssetsService.hh>
 #include <Core/Profiler.hh>
 #include <Filesystem/FileService.hh>
 #include <Logging/Logger.hh>
 #include <Renderer/Core/RenderService.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
+#include <Renderer/Vulkan/VulkanDescriptorManager.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>
 #include <Renderer/Vulkan/VulkanTexture.hh>
-#include <Renderer/Vulkan/VulkanDescriptorManager.hh>
+#include <tracy/TracyVulkan.hpp>
+
+#include "Core/SystemStats.hh"
 
 namespace Mikoto {
 
@@ -467,6 +468,10 @@ namespace Mikoto {
     auto VulkanDevice::CreateTexture( const TextureCubeCreateDescription &description ) -> TextureHandle {
         std::lock_guard lock{ m_TextureCubePoolMutex };
 
+        SystemStats::Get()->Update();
+        auto valueBefore{ SystemStats::Get()->GetProcessRamUsage() };
+
+
         TextureHandle texture{ m_TexturesCube.Allocate( description ) };
         if ( texture.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateTextureCube - Failed to allocate texture cube resource." );
@@ -474,6 +479,11 @@ namespace Mikoto {
         }
 
         texture->Initialize( this );
+
+        SystemStats::Get()->Update();
+        auto valueAfter{ SystemStats::Get()->GetProcessRamUsage() };
+
+        MKT_CORE_LOGGER_DEBUG( "Creating texture ram usage: {}. Before {}, After {}", valueAfter - valueBefore, valueBefore, valueAfter );
 
         return texture;
     }
@@ -522,6 +532,9 @@ namespace Mikoto {
     auto VulkanDevice::CreateTexture( const TextureDescription& description ) -> TextureHandle {
         std::lock_guard lock{ m_TexturePoolMutex };
 
+        SystemStats::Get()->Update();
+        auto valueBefore{ SystemStats::Get()->GetProcessRamUsage() };
+
         TextureHandle texture{ m_Textures.Allocate( description ) };
         if ( texture.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateTexture - Failed to allocate texture resource." );
@@ -529,6 +542,11 @@ namespace Mikoto {
         }
 
         texture->Initialize( this );
+
+        SystemStats::Get()->Update();
+        auto valueAfter{ SystemStats::Get()->GetProcessRamUsage() };
+
+        MKT_CORE_LOGGER_DEBUG( "Creating texture ram usage: {}. Before {}, After {}", valueAfter - valueBefore, valueBefore, valueAfter );
 
         return texture;
     }
@@ -619,6 +637,9 @@ namespace Mikoto {
     auto VulkanDevice::CreateBuffer( const BufferDescription& description ) -> BufferHandle {
         std::lock_guard lock{ m_BufferPoolMutex };
 
+        SystemStats::Get()->Update();
+        auto valueBefore{ SystemStats::Get()->GetProcessRamUsage() };
+
         BufferHandle buffer{ m_Buffers.Allocate( description ) };
         if ( buffer.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateBuffer - Failed to allocate buffer resource." );
@@ -626,6 +647,11 @@ namespace Mikoto {
         }
 
         buffer->Initialize( this );
+
+        SystemStats::Get()->Update();
+        auto valueAfter{ SystemStats::Get()->GetProcessRamUsage() };
+
+        MKT_CORE_LOGGER_DEBUG( "Creating buffer ram usage: {}. Before {}, After {}", valueAfter - valueBefore, valueBefore, valueAfter );
 
         return buffer;
     }

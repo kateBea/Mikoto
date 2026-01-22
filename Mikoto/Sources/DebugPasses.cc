@@ -359,5 +359,7 @@ namespace Mikoto {
         context.Draw( 4, 1, 0, 0 );
 
         context.EndRender();
+
+        context.EndRender();
     }
 }

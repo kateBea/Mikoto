@@ -306,11 +306,14 @@ namespace Mikoto {
     struct SamplerDescription {
         bool CubeSampler{};
 
+        float MipLevels{ 1.0f };
+
         SamplerFilter MinFilter{ SamplerFilter::FILTER_NEAREST };
         SamplerFilter MagFilter{ SamplerFilter::FILTER_NEAREST };
         SamplerWrapMode WrapS{ SamplerWrapMode::WRAP_REPEAT };
         SamplerWrapMode WrapT{ SamplerWrapMode::WRAP_REPEAT };
 
+        auto WithMipLevels(float mipLevels) -> SamplerDescription&;
         auto WithMinFilter( SamplerFilter filter ) -> SamplerDescription&;
         auto WithMagFilter( SamplerFilter filter ) -> SamplerDescription&;
         auto WithWrapS( SamplerWrapMode wrap ) -> SamplerDescription&;

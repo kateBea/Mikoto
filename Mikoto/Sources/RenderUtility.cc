@@ -358,6 +358,11 @@ namespace Mikoto {
         return *this;
     }
 
+    auto SamplerDescription::WithMipLevels( float mipLevels ) -> SamplerDescription& {
+        this->MipLevels = mipLevels;
+        return *this;
+    }
+
     auto SamplerDescription::WithMinFilter( SamplerFilter filter ) -> SamplerDescription& {
         MinFilter = filter;
         return *this;

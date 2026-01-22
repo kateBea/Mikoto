@@ -40,23 +40,11 @@ namespace Mikoto {
         m_CreateInfo.maxAnisotropy = 1.0f;
         m_CreateInfo.mipLodBias = 0.0f;
         m_CreateInfo.minLod = 0.0f;
-        m_CreateInfo.maxLod = 1.0f;
+        m_CreateInfo.maxLod = info.MipLevels;
         m_CreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
 
-        if ( info.CubeSampler ) {
-            m_CreateInfo.magFilter = VK_FILTER_LINEAR;
-            m_CreateInfo.minFilter = VK_FILTER_LINEAR;
-            m_CreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-            m_CreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-            m_CreateInfo.addressModeV = m_CreateInfo.addressModeU;
-            m_CreateInfo.addressModeW = m_CreateInfo.addressModeU;
-            m_CreateInfo.mipLodBias = 0.0f;
-            m_CreateInfo.compareOp = VK_COMPARE_OP_NEVER;
-            m_CreateInfo.minLod = 0.0f;
-            m_CreateInfo.maxLod = static_cast<float>( 1 );
+        if (info.CubeSampler) {
             m_CreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-            m_CreateInfo.maxAnisotropy = 1.0f;
-
             m_CreateInfo.anisotropyEnable = VK_TRUE;
         }
     }

@@ -29,6 +29,14 @@
 
 namespace Mikoto {
 
+    // These will register pass callbacks and their execute methods
+    auto RegisterObjectOutline( FrameGraph& pass ) -> void;
+    auto RegisterWireFrame( FrameGraph& pass ) -> void;
+    auto RegisterMaterialPreview( FrameGraph& pass ) -> void;
+    auto RegisterHelloTriangle( FrameGraph& pass ) -> void;
+    auto RegisterInfiniteGrid( FrameGraph& pass ) -> void;
+    auto RegisterHelloCube( FrameGraph& pass ) -> void;
+
     class ObjectOutlinePass final : public FramePass {
     public:
         explicit ObjectOutlinePass()

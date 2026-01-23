@@ -40,6 +40,9 @@
 
 namespace Mikoto {
 
+    // These will register pass callbacks and their execute methods
+    auto RegisterTextRender( FrameGraph& pass ) -> void;
+
     class TextRenderPass final : public FramePass {
     public:
         explicit TextRenderPass()

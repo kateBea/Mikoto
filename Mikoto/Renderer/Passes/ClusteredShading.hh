@@ -33,6 +33,11 @@
 
 namespace Mikoto {
 
+    // These will register pass callbacks and their execute methods
+    auto RegisterAABBGen( FrameGraph& pass ) -> void;
+    auto RegisterLightCulling( FrameGraph& pass ) -> void;
+    auto RegisterShadowMapping( FrameGraph& pass ) -> void;
+
     class AABBGenComp final : public FramePass {
     public:
         constexpr static UInt32 MAX_LIGHT_CLUSTERS{ 256 };

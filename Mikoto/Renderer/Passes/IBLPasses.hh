@@ -38,6 +38,13 @@
 
 namespace Mikoto {
 
+    // These will register pass callbacks and their execute methods
+    auto RegisterIrradiance( FrameGraph& pass ) -> void;
+    auto RegisterPrefilter( FrameGraph& pass ) -> void;
+    auto RegisterBRDFLut( FrameGraph& pass ) -> void;
+    auto RegisterSkybox( FrameGraph& pass ) -> void;
+    auto RegisterShading( FrameGraph& pass ) -> void;
+
     // These passes are supposed to be run once
     // IBL passes are not frame work (run every frame).
     // Maybe we should extend the or handle in in a way to specify a set of passes that need to be ran before anything else

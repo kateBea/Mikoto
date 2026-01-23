@@ -145,6 +145,18 @@ namespace Mikoto {
 
         for ( const auto& [pass, input, outputs] : m_Nodes) {
 
+            // SetShaderResourceGroups(node);
+            // BindShaderResourceGroups(node);
+
+            // if (pass->ShouldRun()) {
+            //     CommandContext context{ m_GraphicsContex, GetBlackboard(), m_Device };
+            //     context.Begin(pass);
+            //
+            //     pass->ExecuteCallback( context, GetBlackboard() );
+            //
+            //     context.End();
+            // }
+
             if (pass->ShouldRun()) {
                 CommandContext context{ m_GraphicsContex, GetBlackboard(), m_Device };
                 pass->Execute( context );
@@ -169,6 +181,21 @@ namespace Mikoto {
             pass.Pass->Setup( m_Builder );
         }
     }
+
+    // auto FrameGraph::SetShaderResourceGroups(PassNode& node) -> void {
+    //     // Check if dirty and then update otherwise dont update
+    //     if (!node->IsSRGDirty()) { retur; }
+    //
+    //     for (auto& bind : node.bufferBindings) {
+    //         m_Context.SetBufferBindSlot(bind.srgType, ResolveResource(bind.resource), bind.bindingSlot);
+    //     }
+    //
+    //     for (auto& bind : node.textureBindings) {
+    //         m_Context.SetTextureBindSlot(bind.srgType, ResolveResource(bind.resource), bind.samplerName, bind.bindingSlot);
+    //     }
+    //
+    //     m_Context->CommitShaderResources(node);
+    // }
 
     auto FrameGraph::RunPassDependencyCallbacks() -> void {
         for (const auto &pass: m_Nodes) {

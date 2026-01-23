@@ -34,11 +34,28 @@ namespace Mikoto {
     class GraphicsContext;
 
     struct FrameNode {
-        FramePass* Pass{};
+        FramePass *Pass{};
 
         std::vector<std::string> Inputs{};
         std::vector<std::string> Outputs{};
     };
+
+    // struct ResourceAccess {
+    //     ResourceHandle resource;
+    //     FrameResourceUsage usage;
+    // };
+    //
+    // struct PassNode {
+    //     std::string Name;
+    //
+    //     std::vector<ResourceAccess> Reads;
+    //     std::vector<ResourceAccess> Writes;
+    //
+    //     std::function<void( CommandContext&, FrameBlackboard& )> ExecuteCallback;
+    //     void *passData{ nullptr };
+    //
+    //     SRGPerPass PerPasSRG{};
+    // };
 
     // Used for resource state transitioning
     enum class FrameResourceState {
@@ -55,26 +72,25 @@ namespace Mikoto {
 
     class FrameGraphBuilder {
     public:
-
         // Declare Writes
-        auto WriteTexture(FramePass* node, std::string_view name) -> void;
-        auto WriteBuffer(FramePass* node, std::string_view name) -> void;
+        auto WriteTexture( FramePass *node, std::string_view name ) -> void;
+        auto WriteBuffer( FramePass *node, std::string_view name ) -> void;
 
         // Declare Reads
-        auto ReadTexture(FramePass* node, std::string_view name) -> void;
-        auto ReadBuffer(FramePass* node, std::string_view name) -> void;
+        auto ReadTexture( FramePass *node, std::string_view name ) -> void;
+        auto ReadBuffer( FramePass *node, std::string_view name ) -> void;
 
         // Create Resources
-        auto CreateNamedBuffer(std::string_view name, BufferDescription description) -> void;
-        auto CreateNamedTexture(std::string_view name, TextureDescription description) -> void;
-        auto CreateNamedPipeline(std::string_view name, PipelineDescription description) -> void;
+        auto CreateNamedBuffer( std::string_view name, BufferDescription description ) -> void;
+        auto CreateNamedTexture( std::string_view name, TextureDescription description ) -> void;
+        auto CreateNamedPipeline( std::string_view name, PipelineDescription description ) -> void;
 
-        auto CreateNamedRenderTarget(std::string_view name, TextureDescription description) -> void ;
-        auto CreateNamedRenderTarget(std::string_view name, TextureCubeCreateDescription description) -> void ;
+        auto CreateNamedRenderTarget( std::string_view name, TextureDescription description ) -> void;
+        auto CreateNamedRenderTarget( std::string_view name, TextureCubeCreateDescription description ) -> void;
 
-        auto CreateColorRenderTarget(std::string_view name, UInt32 width, UInt32 height, TextureFormat format) -> void;
-        auto CreateDepthRenderTarget(std::string_view name, UInt32 width, UInt32 height, TextureFormat format) -> void;
-        auto CreateCubeRenderTarget(std::string_view name, UInt32 dimensions, TextureFormat format, UInt32 mipLevels = 1) -> void;
+        auto CreateColorRenderTarget( std::string_view name, UInt32 width, UInt32 height, TextureFormat format ) -> void;
+        auto CreateDepthRenderTarget( std::string_view name, UInt32 width, UInt32 height, TextureFormat format ) -> void;
+        auto CreateCubeRenderTarget( std::string_view name, UInt32 dimensions, TextureFormat format, UInt32 mipLevels = 1 ) -> void;
 
         auto Clear() -> void;
 
@@ -91,7 +107,7 @@ namespace Mikoto {
 
         // Hold nodes and their dependencies, what textures
         // they read from and write to, same for buffers
-        ankerl::unordered_dense::map<FramePass*, NodeData> m_Nodes{};
+        ankerl::unordered_dense::map<FramePass *, NodeData> m_Nodes{};
 
         // Holds frame resources that need to be created
         ankerl::unordered_dense::map<std::string, FrameResource> m_Pipelines{};
@@ -100,30 +116,46 @@ namespace Mikoto {
 
     class FrameGraph final {
     public:
-
-        explicit FrameGraph( GraphicsContext* context, GpuDevice* device );
+        explicit FrameGraph( GraphicsContext *context, GpuDevice *device );
 
         // Will be deprecated
-        auto RegisterPass(FramePass* pass) -> void;
+        auto RegisterPass( FramePass *pass ) -> void;
+
+        // template<typename PassData, typename SetupFn, typename ExecuteFn>
+        // auto RegisterPass( std::string_view name, SetupFn &&setup, ExecuteFn &&execute ) -> void {
+        //     PassNode &node{ CreatePassNode( name ) };
+        //
+        //     // store into blackboard
+        //     PassData *data{ m_Blackboard->AllocatePassData<PassData>() };
+        //
+        //     FramePassBuilder builder{ this, &node };
+        //     setup( builder, *data );
+        //
+        //     node.ExecuteCallback = [execute](const CommandContext &ctx, FrameBlackboard& blackboard) {
+        //         execute( ctx, blackboard );
+        //     };
+        // }
 
         auto Compile() -> void;
         auto Execute() -> void;
 
-        MKT_NODISCARD auto GetBlackboard() const -> FrameBlackboard*;
+        MKT_NODISCARD auto GetBlackboard() const -> FrameBlackboard *;
 
-        MKT_NODISCARD static auto Create(GraphicsContext* context, GpuDevice* device ) -> Unique<FrameGraph>;
+        MKT_NODISCARD static auto Create( GraphicsContext *context, GpuDevice *device ) -> Unique<FrameGraph>;
 
     private:
+        //auto SetShaderResourceGroups(PassNode& node) -> void;
+
         auto RunPassSetups() -> void;
         auto RunPassDependencyCallbacks() -> void;
 
         auto SortPassExecution() -> void;
-        auto RegisterResource(std::string_view name, FrameResource resource) const -> void;
+        auto RegisterResource( std::string_view name, FrameResource resource ) const -> void;
 
     private:
         std::vector<FrameNode> m_Nodes{};
-        GpuDevice* m_Device{};
-        GraphicsContext* m_GraphicsContex{};
+        GpuDevice *m_Device{};
+        GraphicsContext *m_GraphicsContex{};
 
         Unique<FrameBlackboard> m_Blackboard{};
 

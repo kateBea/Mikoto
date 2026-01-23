@@ -6,36 +6,36 @@
 
 namespace Mikoto {
 
-    auto SRGPerPass::SetBuffer( std::string_view name, UInt32 binding, ShaderResourceType type ) -> void {
-        if (m_RegisteredBuffers.contains( std::string{ name } )) {
+    auto SRGPerPass::SetBuffer( std::string_view name, UInt32 binding ) -> void {
+        if (m_Resources.contains( std::string{ name } )) {
             return;
         }
 
         Entry newEntry{
             .Name{ name },
             .Binding{ binding },
-            .Type{ type }
+            .Type{ ShaderResourceType::BUFFER }
         };
 
-        m_Resources.emplace_back( std::move(newEntry) );
-        m_RegisteredBuffers.emplace( std::string{ name });
+        m_Resources.emplace( std::string{ name }, newEntry);
     }
 
     auto SRGPerPass::SetTexture( std::string_view textureName, std::string_view samplerName, UInt32 binding ) -> void {
-        const auto it{ m_RegisteredTextures.find( std::string{ textureName } ) };
-        if ( it != m_RegisteredTextures.end() && it->second == samplerName ) {
+        const auto it{ m_Resources.find( std::string{ textureName } ) };
+        const auto itS{ m_Resources.find( std::string{ samplerName } ) };
+
+        // Check if combined image sampler already exists
+        if ( it != m_Resources.end() && itS != m_Resources.end() ) {
             return;
         }
 
         Entry newEntry{
             .Name{ textureName },
-            .SamplerName{ samplerName },
             .Binding{ binding },
-            .Type{ ShaderResourceType::SHADER_RESOURCE_COMBINED_IMAGE_SAMPLER }
         };
 
-        m_Resources.emplace_back( std::move(newEntry) );
-        m_RegisteredTextures.emplace( std::string{ textureName }, std::string{ samplerName } );
+        m_Resources.emplace( std::string{ textureName }, Entry{.Name{ textureName }, .SamplerName{ samplerName }, .Binding{ binding }, .Type{ ShaderResourceType::COMBINED_IMAGE_SAMPLER } } );
+        m_Resources.emplace( std::string{ samplerName }, Entry{.Name{ samplerName }, .Binding{ binding }, .Type{ ShaderResourceType::SAMPLER } } );
     }
 
     auto SRGTextures::GetMaxTextureCount() -> UInt32 {

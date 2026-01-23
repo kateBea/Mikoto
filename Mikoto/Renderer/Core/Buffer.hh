@@ -233,7 +233,7 @@ namespace Mikoto {
         Byte* m_Data{ nullptr };
         Size m_SizeBytes{};
         BufferDataType m_DataType{ BufferDataType::BUFFER_DATA_TYPE_UNKNOWN };
-        BufferUsage m_Usage{ BufferUsage::BUFFER_USAGE_VERTEX };
+        BufferUsage m_Usage{ BufferUsage::VERTEX };
     };
 
     using BufferHandle = Ref<Buffer>;

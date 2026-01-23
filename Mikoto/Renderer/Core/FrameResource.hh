@@ -30,34 +30,24 @@ namespace Mikoto {
     };
 
     enum class FrameResourceType {
-        RENDER_TARGET,
         TEXTURE,
         BUFFER,
-        PIPELINE,
-        INVALID
+        INVALID,
     };
 
-    struct FrameResourceBuffer {};
-
-    struct FrameResourceTexture {};
-
-    struct FrameResourcePipeline {};
-
     struct PipelineDescription {
+        std::string Name{};
+
+        std::variant<GraphicsPipelineDescription,
+            ComputePipelineDescription> Description{};
         ankerl::unordered_dense::map<ShaderStage, std::string> Shaders{};
-        std::variant<GraphicsPipelineDescription, ComputePipelineDescription> Description{};
 
-        // TODO: temporary, we specify the textures this pipeline will output to
-        std::string DepthRenderTargets{};
-        std::vector<std::string> ColorRenderTargets{};
-
-        auto AddShader( std::string_view path, ShaderStage stage ) -> void;
+        auto UseShader( std::string_view path, ShaderStage stage ) -> void;
     };
 
     struct FrameResource {
         std::variant<
             BufferDescription,
-            PipelineDescription,
             TextureDescription,
             TextureCubeCreateDescription> Description{};
 
@@ -65,16 +55,16 @@ namespace Mikoto {
     };
 
     enum class ShaderResourceType {
-        SHADER_STORAGE_BUFFER,
-        SHADER_RESOURCE_UNIFORM_BUFFER,
-        SHADER_RESOURCE_COMBINED_IMAGE_SAMPLER,
-        SHADER_RESOURCE_UNDEFINED,
+        BUFFER,
+        COMBINED_IMAGE_SAMPLER,
+        SAMPLER,
+        UNDEFINED,
     };
 
     struct ShaderResourceInfo {
         std::string Name{};
         UInt32 GroupBinding{};
-        ShaderResourceType ResourceType{ ShaderResourceType::SHADER_RESOURCE_UNDEFINED };
+        ShaderResourceType ResourceType{ ShaderResourceType::UNDEFINED };
     };
 }
 #endif //MIKOTO_FRAMERESOURCE_H

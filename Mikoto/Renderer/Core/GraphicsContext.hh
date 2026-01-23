@@ -27,6 +27,7 @@
 #include <Material/Material.hh>
 #include <Renderer/Core/Buffer.hh>
 #include <Renderer/Core/FrameBlackboard.hh>
+#include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/Light.hh>
 #include <Renderer/Core/Pipeline.hh>
@@ -34,7 +35,7 @@
 #include <Renderer/Core/SRGBase.hh>
 
 namespace Mikoto {
-    class FramePass;
+    class CommandContext;
     class CommandContext;
 
     struct PassViewport {
@@ -46,7 +47,7 @@ namespace Mikoto {
     };
 
     struct PassResources {
-        FramePass* Pass{ nullptr };
+        FramePassNode* Pass{ nullptr };
         FrameBlackboard* Blackboard{ nullptr };
     };
 
@@ -62,25 +63,32 @@ namespace Mikoto {
         virtual auto Init() -> void = 0;
         virtual auto Shutdown() -> void = 0;
 
-        virtual auto BeginPass(FramePass* pass) -> void = 0;
-        virtual auto EndPass(FramePass* pass) -> void = 0;
-
-        virtual auto BeginFrame(FrameBlackboard* blackboard)-> void = 0;
+        virtual auto BeginFrame()-> void = 0;
         virtual auto EndFrame()-> void = 0;
 
-        virtual auto PushImage(TextureHandle texture) -> Int32 = 0;
+        virtual auto GetSampler(std::string_view name) -> SamplerHandle = 0;
+        virtual auto GetTexture(std::string_view name) -> TextureHandle = 0;
+        virtual auto GetPipeline(std::string_view name) -> PipelineHandle = 0;
+        virtual auto GetBuffer(std::string_view name) -> BufferHandle = 0;
 
-        virtual auto BindTextureList(CommandListHandle cmdList) -> void = 0;
-        virtual auto BindPassResources(FramePass* pass, CommandListHandle cmdList  ) -> void = 0;
-        virtual auto CommitShaderResources(FramePass* pass ) -> void = 0;
+        virtual auto CreateTexture(std::string_view name, const TextureDescription &description) -> void = 0;
+        virtual auto CreateTexture(std::string_view name, const TextureCubeCreateDescription& description) -> void = 0;
 
-        virtual auto CreatePipelineResources(FramePass* pass, PipelineHandle pipeline) -> void = 0;
+        virtual auto CreateBuffer(std::string_view name, BufferDescription description) -> void = 0;
 
-        virtual auto GetPassSRG( FramePass* pass ) -> SRGPerPass* = 0;
+        virtual auto CreateSample( std::string_view name, const SamplerDescription& description ) -> void = 0;
 
-        virtual auto InsertResourceBarrier(FramePass* pass, CommandListHandle cmdList ) -> void = 0;
+        virtual auto PushImage( TextureHandle texture ) -> Int32 = 0;
+
+        virtual auto CommitShaderResources(std::string_view passName, SRGPerPass& passData ) -> void = 0;
+        virtual auto CreateShaderResources(std::string_view passName, PipelineDescription& desc) -> void = 0;
+        virtual auto BindShaderResources(std::string_view passName, CommandListHandle cmdList  ) -> void = 0;
 
         MKT_NODISCARD static auto Create(GpuDevice* device) -> Unique<GraphicsContext>;
+
+        // virtual auto PushImage(TextureHandle texture) -> Int32 = 0;
+        // virtual auto BindTextureList(CommandListHandle cmdList) -> void = 0;
+
 
     protected:
         explicit GraphicsContext(GpuDevice* device)
@@ -89,7 +97,8 @@ namespace Mikoto {
     protected:
         GpuDevice* m_Device{ nullptr };
 
-        ankerl::unordered_dense::map<SRGType, Unique<SRGBase>> m_SRG{};
+        // Global list of sampled textures
+        SRGTextures m_SrgTextures{};
     };
 }
 

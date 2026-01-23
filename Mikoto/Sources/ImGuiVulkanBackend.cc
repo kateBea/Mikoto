@@ -273,7 +273,7 @@ namespace Mikoto {
                 .WithChannelCount( 4 )
                 .WithData( nullptr )
                 .WithType( TextureType::TEXTURE_2D )
-                .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
+                .WithTextureUsage( TextureUsage::COLOR )
                 .WithFormat( TextureFormat::RGBA8_UNORM )
                 .WithResourceType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
 
@@ -288,7 +288,7 @@ namespace Mikoto {
                 .WithChannelCount( 1 )
                 .WithData( nullptr )
                 .WithType( TextureType::TEXTURE_2D )
-                .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
+                .WithTextureUsage( TextureUsage::DEPTH )
                 .WithFormat( TextureFormat::D32_FLOAT_S8_UINT )
                 .WithResourceType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC);
 

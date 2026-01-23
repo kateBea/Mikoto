@@ -135,10 +135,11 @@ namespace Mikoto {
 
         DisplaySelectedLightProperties();
 
-        // Display list of buffers involved and make it to display info about selected buffer
+        BufferHandle storage{  m_EditorState->EditorSceneRenderer->GetBuffer( "SimpleCompute_Results" ) };
 
         // Example buffer display
         static std::vector<UInt32> data(40);
+        storage->CopyToBlock( data.data(), data.size() * sizeof( UInt32 ) );
         const void* bufferMemory{ data.data() };
         const Size bufferSize{ data.size() * sizeof( UInt32 ) };
         const std::uintptr_t baseAddress{ reinterpret_cast<const std::uintptr_t>( data.data() ) };

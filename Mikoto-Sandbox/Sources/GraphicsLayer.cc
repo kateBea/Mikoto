@@ -60,7 +60,7 @@ namespace Mikoto {
 
         texture = AssetsService::Get()->LoadAsset<Texture>( loadDesc );
 
-        ShaderModuleHandle pbrVertex{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/PBRVertexShader.sprv", ShaderStage::VERTEX_STAGE ) };
+        ShaderModuleHandle pbrVertex{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/PBRVertexShader.sprv", ShaderStage::VERTEX ) };
         ShaderModuleHandle pbrFragment{ ShaderLibrary::Get()->LoadShader( "./Resources/Shaders/vulkan-spirv/StandardFragmentShader.sprv", ShaderStage::FRAGMENT_STAGE ) };
     }
 

@@ -36,41 +36,44 @@ namespace Mikoto {
         auto Init() -> void override;
         auto Shutdown() -> void override;
 
-        auto BeginPass(FramePass* pass) -> void override;
-        auto EndPass(FramePass* pass) -> void override;
-
-        auto BeginFrame(FrameBlackboard* blackboard)-> void override;
+        auto BeginFrame()-> void override;
         auto EndFrame()-> void  override;
 
-        auto PushImage(TextureHandle texture) -> Int32 override;
+        auto GetSampler(std::string_view name) -> SamplerHandle override;
+        auto GetTexture(std::string_view name) -> TextureHandle override;
+        auto GetPipeline(std::string_view name) -> PipelineHandle override;
+        auto GetBuffer(std::string_view name) -> BufferHandle override;
 
-        auto BindTextureList(CommandListHandle cmdList) -> void override;
-        auto BindPassResources(FramePass* pass, CommandListHandle cmdList ) -> void override;
-        auto CommitShaderResources(FramePass* pass ) -> void override;
+        auto CreateTexture(std::string_view name, const TextureDescription &description) -> void override;
+        auto CreateTexture(std::string_view name, const TextureCubeCreateDescription& description) -> void override;
 
-        auto CreatePipelineResources(FramePass* pass, PipelineHandle pipeline) -> void override;
+        auto CreateBuffer(std::string_view name, BufferDescription description) -> void override;
 
-        auto GetPassSRG( FramePass* pass ) -> SRGPerPass* override;
+        auto CreateSample( std::string_view name, const SamplerDescription& description ) -> void override;
 
-        auto InsertResourceBarrier(FramePass* pass, CommandListHandle cmdList ) -> void override;
+        auto PushImage( TextureHandle texture ) -> Int32  override;
+
+        auto CommitShaderResources( std::string_view passName, SRGPerPass& passData ) -> void override;
+        auto CreateShaderResources( std::string_view passName, PipelineDescription& desc ) -> void override;
+        auto BindShaderResources( std::string_view passName, CommandListHandle cmdList ) -> void override;
+
+        // auto BindTextureList(CommandListHandle cmdList) -> void override;
+        // auto BindShaderResources(FramePassNode* pass, CommandListHandle cmdList ) -> void override;
+        // auto CommitShaderResources(FramePassNode* pass ) -> void override;
+        // auto CreatePipelineResources(FramePassNode* pass, PipelineHandle pipeline) -> void override;
 
         ~VulkanGraphicsContext() override = default;
 
     private:
-        MKT_NODISCARD auto HasDescriptorSets(FramePass* pipeline) -> bool;
+        auto UpdatePassDescriptors(std::string_view passName, SRGPerPass& passData) -> void;
+        auto CreatePassDescriptors(std::string_view passName, PipelineDescription& desc) -> void;
+        auto CreatePipeline( PipelineDescription& description ) -> PipelineHandle;
 
-        auto CreatePassDescriptors(FramePass* pass) -> void;
-        auto UpdatePassDescriptors(FramePass* pass) -> void;
-
-        auto BindPassDescriptors(FramePass* pass, CommandListHandle cmdList) -> void;
-
-        auto PushBuffer( FramePass* pass, std::string_view name, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType) -> void;
-        auto PushImage( FramePass* pass, std::string_view textureName, std::string_view samplerName, UInt32 groupIndex, UInt32 groupBinding, ShaderResourceType shaderResourceType) -> void;
+        auto PushBuffer( BufferHandle handle, UInt32 groupBinding, VkDescriptorSet set) -> void;
+        auto PushImage( TextureHandle textureHandle, SamplerHandle samplerHandle, UInt32 groupBinding, VkDescriptorSet set) -> void;
 
         auto CreateBindlessTexturesSet() -> void;
         auto UpdateBindlessTexturesSet(Texture* texture, Sampler* sampler, Size setIndex ) const -> void;
-
-        auto InitSharedShaderResourceGroups() -> void;
 
     private:
         static constexpr UInt32 TEXTURES_DESCRIPTOR_SET_INDEX{ 0 };
@@ -82,16 +85,8 @@ namespace Mikoto {
         struct FramePassInfo {
             // Set index -> Descriptor Set handle
             ankerl::unordered_dense::map<UInt32, VkDescriptorSet> DescriptorSets{};
-
-            SRGPerPass PassResources{};
-
             PipelineHandle Pipeline{};
-
-            // Whether we need to update the descriptor sets or not
-            bool Dirty{ true };
         };
-
-        FrameBlackboard* m_Blackboard{};
 
 #if defined( MKT_USE_VULKAN_BINDLESS )
         DescriptorSetLayoutHandle m_LayoutTextures{};
@@ -100,7 +95,13 @@ namespace Mikoto {
         bool m_UpdateTextureDescriptor{ false };
 #endif
     private:
-        ankerl::unordered_dense::map<FramePass*, FramePassInfo> m_PassInfo{};
+        ankerl::unordered_dense::map<std::string, FramePassInfo> m_PassInfo{};
+
+        // Resources by names
+        ankerl::unordered_dense::map<std::string, TextureHandle> m_TexturesByNames{};
+        ankerl::unordered_dense::map<std::string, PipelineHandle> m_PipelinesByNames{};
+        ankerl::unordered_dense::map<std::string, BufferHandle> m_BuffersByNames{};
+        ankerl::unordered_dense::map<std::string, SamplerHandle> m_SamplersByNames{};
     };
 }// namespace Mikoto
 

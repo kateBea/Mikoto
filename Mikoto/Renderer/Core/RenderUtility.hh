@@ -39,11 +39,11 @@ namespace Mikoto {
     };
 
     enum class BufferUsage {
-        BUFFER_USAGE_VERTEX,
-        BUFFER_USAGE_INDEX,
-        BUFFER_USAGE_STAGING,
-        BUFFER_USAGE_UNIFORM,
-        BUFFER_USAGE_SHADER_STORAGE,
+        VERTEX,
+        INDEX,
+        STAGING,
+        UNIFORM,
+        SSBO,
     };
 
     enum class SamplerFilter {
@@ -74,9 +74,9 @@ namespace Mikoto {
      */
     enum class ShaderStage : UInt32 {
         STAGE_UNKNOWN,
-        VERTEX_STAGE,
-        FRAGMENT_STAGE,
-        COMPUTE_STAGE,
+        VERTEX,
+        FRAGMENT,
+        COMPUTE,
     };
 
     /**
@@ -94,11 +94,11 @@ namespace Mikoto {
     };
 
     enum class TextureUsage {
-        TEXTURE_USAGE_COLOR,
-        TEXTURE_USAGE_DEPTH,
-        TEXTURE_USAGE_NORMAL,
-        TEXTURE_USAGE_STORAGE,      // compute shader writable
-        TEXTURE_USAGE_CUBE,         // for environment maps
+        COLOR,
+        DEPTH,
+        NORMAL,
+        STORAGE,      // compute shader writable
+        CUBE,         // for environment maps
         TEXTURE_USAGE_RENDER_TARGET,// render target attachments
     };
 
@@ -182,7 +182,7 @@ namespace Mikoto {
         Size ElementCount{};
         Size ElementSize{};
 
-        BufferUsage Usage{ BufferUsage::BUFFER_USAGE_VERTEX };
+        BufferUsage Usage{ BufferUsage::VERTEX };
         BufferDataType Type{ BufferDataType::BUFFER_DATA_TYPE_UNKNOWN };
         ResourceUsageType UsageType{ ResourceUsageType::RESOURCE_USAGE_STATIC };
 
@@ -206,7 +206,7 @@ namespace Mikoto {
         MapType Map{ MapType::UNDEFINED_TEXTURE };
 
         TextureType Type{ TextureType::TEXTURE_2D };
-        TextureUsage Usage{ TextureUsage::TEXTURE_USAGE_NORMAL };
+        TextureUsage Usage{ TextureUsage::NORMAL };
         TextureFormat Format{ TextureFormat::RGBA8_SNORM };
         ResourceUsageType UsageType{ ResourceUsageType::RESOURCE_USAGE_STATIC };
 
@@ -257,7 +257,7 @@ namespace Mikoto {
         std::vector<Path> FacesRelativePaths{};
         TextureType Type{ TextureType::TEXTURE_UNKNOWN };
 
-        TextureUsage Usage{ TextureUsage::TEXTURE_USAGE_CUBE };
+        TextureUsage Usage{ TextureUsage::CUBE };
         ResourceUsageType ResourceUsage{ ResourceUsageType::RESOURCE_USAGE_STATIC };
 
         bool IsHdrMap{ false };
@@ -280,7 +280,7 @@ namespace Mikoto {
         UInt32 MipLevels{ 1 };
         UInt32 Dimensions{};
         TextureFormat Format{ TextureFormat::RGBA8_UNORM };
-        TextureUsage Usage{ TextureUsage::TEXTURE_USAGE_CUBE };
+        TextureUsage Usage{ TextureUsage::CUBE };
 
         bool IsHdrMap{ false };
 
@@ -296,7 +296,7 @@ namespace Mikoto {
 
     struct ShaderModuleDescription {
         const File* ShaderFile{};
-        ShaderStage Stage{ ShaderStage::VERTEX_STAGE };
+        ShaderStage Stage{ ShaderStage::VERTEX };
 
         auto WithShaderFile( const File* file ) -> ShaderModuleDescription&;
         auto WithStage( ShaderStage stage ) -> ShaderModuleDescription&;
@@ -373,10 +373,10 @@ namespace Mikoto {
     };
 
     enum class RenderResolution {
-        RES_HD_720P,
-        RES_FHD_1080,
-        RES_QHD_1440P,
-        RES_UHD_3120P,
+        HD_720P,
+        FHD_1080,
+        QHD_1440P,
+        UHD_3120P,
     };
 
     MKT_NODISCARD auto InferAPI( std::string_view apiName ) -> GraphicsAPI;

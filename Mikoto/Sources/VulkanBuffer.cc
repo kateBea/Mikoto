@@ -28,7 +28,7 @@ namespace Mikoto {
         m_Allocation.Buffer = VK_NULL_HANDLE;
         m_Allocation.Allocation = nullptr;
 
-        if (IsUsage( BufferUsage::BUFFER_USAGE_VERTEX ) || IsUsage(BufferUsage::BUFFER_USAGE_INDEX)) {
+        if (IsUsage( BufferUsage::VERTEX ) || IsUsage(BufferUsage::INDEX)) {
             allocator->UnmapBuffer( m_StagingAllocation );
             allocator->FreeBuffer( m_StagingAllocation );
         }
@@ -42,18 +42,18 @@ namespace Mikoto {
     }
 
     auto VulkanBuffer::Initialize() -> void {
-        if (IsUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE ) ||
-            IsUsage(BufferUsage::BUFFER_USAGE_UNIFORM) ||
-            IsUsage(BufferUsage::BUFFER_USAGE_STAGING)) {
+        if (IsUsage( BufferUsage::SSBO ) ||
+            IsUsage(BufferUsage::UNIFORM) ||
+            IsUsage(BufferUsage::STAGING)) {
             // When description has specified size and element count we need to apply alignment if needed for this GPU buffer
             // We allocate space for a buffer large enough to contain ElementCount objects of ElementSize size (in bytes)
             if (m_ElementSize != 0 && m_ElementCount != 0) {
 
-                if (IsUsage( BufferUsage::BUFFER_USAGE_SHADER_STORAGE )) {
+                if (IsUsage( BufferUsage::SSBO )) {
                     VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE(m_Device)->GetStorageBufferMinOffsetAlignment() };
                     m_MinPaddedSize = VulkanHelpers::GetStorageBufferPadding( m_ElementSize, minOffsetAlignment );
 
-                } else if (IsUsage(BufferUsage::BUFFER_USAGE_UNIFORM)) {
+                } else if (IsUsage(BufferUsage::UNIFORM)) {
                     VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE(m_Device)->GetUniformBufferMinOffsetAlignment() };
                     m_MinPaddedSize = VulkanHelpers::GetUniformBufferPadding( m_ElementSize, minOffsetAlignment );
                 }
@@ -66,7 +66,7 @@ namespace Mikoto {
             UploadHostData();
         }
 
-        if (IsUsage( BufferUsage::BUFFER_USAGE_VERTEX ) || IsUsage(BufferUsage::BUFFER_USAGE_INDEX)) {
+        if (IsUsage( BufferUsage::VERTEX ) || IsUsage(BufferUsage::INDEX)) {
             InitMainBuffer();
             InitStaging();
 
@@ -91,7 +91,7 @@ namespace Mikoto {
             VkAccessFlags accessFlags{ VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT };
 
             // It is either vertex or index
-            if (IsUsage(BufferUsage::BUFFER_USAGE_INDEX)) {
+            if (IsUsage(BufferUsage::INDEX)) {
                 accessFlags = VK_ACCESS_INDEX_READ_BIT;
             }
 
@@ -204,7 +204,7 @@ namespace Mikoto {
         m_Allocation.BufferCreateInfo.size = static_cast<UInt32>( m_SizeBytes );
 
         // For buffers, we copy CPU data and later use to transfer its data to other CPU buffer/image
-        if ( m_Usage == BufferUsage::BUFFER_USAGE_STAGING ) {
+        if ( m_Usage == BufferUsage::STAGING ) {
             m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
             m_Allocation.AllocationCreateInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
@@ -212,7 +212,7 @@ namespace Mikoto {
         }
 
         // Uniform buffers for shaders
-        if ( m_Usage == BufferUsage::BUFFER_USAGE_UNIFORM ) {
+        if ( m_Usage == BufferUsage::UNIFORM ) {
             m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
             m_Allocation.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
@@ -228,7 +228,7 @@ namespace Mikoto {
         }
 
         // Storage buffers
-        if ( m_Usage == BufferUsage::BUFFER_USAGE_SHADER_STORAGE ) {
+        if ( m_Usage == BufferUsage::SSBO ) {
             m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
             m_Allocation.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
@@ -245,13 +245,13 @@ namespace Mikoto {
         }
 
         // Vertex buffers
-        if ( m_Usage == BufferUsage::BUFFER_USAGE_VERTEX ) {
+        if ( m_Usage == BufferUsage::VERTEX ) {
             m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
             m_Allocation.AllocationCreateInfo.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
         }
 
         // Index buffers
-        if ( m_Usage == BufferUsage::BUFFER_USAGE_INDEX ) {
+        if ( m_Usage == BufferUsage::INDEX ) {
             m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
             m_Allocation.AllocationCreateInfo.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
         }
@@ -276,7 +276,7 @@ namespace Mikoto {
     auto VulkanBuffer::CopyFromBlock( const void* ptr, const Size size, const Size offset ) -> void {
         PersistentMap();
 
-        if (m_ElementSize != 0 && (m_Usage == BufferUsage::BUFFER_USAGE_SHADER_STORAGE || m_Usage == BufferUsage::BUFFER_USAGE_UNIFORM)) {
+        if (m_ElementSize != 0 && (m_Usage == BufferUsage::SSBO || m_Usage == BufferUsage::UNIFORM)) {
             // if this buffer is supposed to hold elements we need to handle element padding depending on whether this is uniform or storage
             const Size minJumps{ offset / m_MinPaddedSize };
             Size newOffset{ (minJumps + 1 ) * m_MinPaddedSize };

@@ -34,7 +34,7 @@ namespace Mikoto {
 
         explicit TextureCube(const ResourceUsageType usage, const UInt32 mipLevels = 1)
             : Texture{ TextureType::TEXTURE_CUBE, TextureFormat::RGBA8_SNORM,
-                0, 0, 0, usage, TextureUsage::TEXTURE_USAGE_CUBE }, m_MipLevels{ mipLevels }
+                0, 0, 0, usage, TextureUsage::CUBE }, m_MipLevels{ mipLevels }
         {}
 
         UInt32 m_MipLevels{ 1 };

@@ -24,17 +24,16 @@ namespace Mikoto {
         graph.RegisterPass(
                 "HelloTriangle",
                 []( FramePassBuilder &b ) {
-                    b.Create<Texture>( "HelloTriangle_ColorTarget", 1920, 1080, TextureFormat::RGBA8_UNORM );
-                    b.Create<Texture>( "HelloTriangle_DepthTarget", 1920, 1080, TextureFormat::D32_FLOAT );
+                    b.Create<Texture>( "HelloTriangle_ColorTarget", RenderResolution::FHD_1080, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                    b.Create<Texture>( "HelloTriangle_DepthTarget", RenderResolution::FHD_1080, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
-                    PipelineDescription desc{ .Description{ GraphicsPipelineDescription{ .VertexAttributesSpec{} } } };
-                    desc.AddShader( "HelloTriangle_Vert.sprv", ShaderStage::VERTEX_STAGE );
-                    desc.AddShader( "HelloTriangle_Vert.sprv", ShaderStage::FRAGMENT_STAGE );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/HelloTriangle_Vert.sprv", ShaderStage::VERTEX );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/HelloTriangle_Frag.sprv", ShaderStage::FRAGMENT );
 
-                    b.Create<Pipeline>( "HelloTriangle_Pipeline", desc );
+                    b.Create<Pipeline>( "HelloTriangle_Pipeline", GraphicsPipelineDescription{ .VertexAttributesSpec{} } );
 
-                    b.Write( "HelloTriangle_ColorTarget", FrameResourceState::RenderTarget_Color, FrameResourceState::ShaderResource_Read );
-                    b.Write( "HelloTriangle_DepthTarget", FrameResourceState::RenderTarget_Depth, FrameResourceState::ShaderResource_Read );
+                    b.Write( "HelloTriangle_ColorTarget", FrameResourceState::ShaderResource_Read );
+                    b.Write( "HelloTriangle_DepthTarget", FrameResourceState::ShaderResource_Read );
                 },
                 []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     ctx.BindPipeline( "HelloTriangle_Pipeline" );
@@ -42,14 +41,42 @@ namespace Mikoto {
                     ctx.SetViewport( 0, 0, 1920, 1080 );
                     ctx.SetScissor( 0, 0, 1920, 1080 );
 
+                    ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
                     ctx.SetColorRenderTarget( "HelloTriangle_ColorTarget" );
                     ctx.BeginRender();
-
-                    ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
 
                     ctx.Draw( 3, 1, 0, 0 );
 
                     ctx.EndRender();
+                } );
+    }
+
+    auto RegisterSimpleCompute( FrameGraph &graph ) -> void {
+        graph.RegisterPass(
+                "SimpleCompute",
+                []( FramePassBuilder &b ) {
+                    b.Create<Buffer>( "SimpleCompute_Results", BufferUsage::SSBO, 30 * sizeof( float ) );
+
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/BasicCompute_Comp.sprv", ShaderStage::COMPUTE );
+
+                    b.Create<Pipeline>( "SimpleCompute_Pipeline", ComputePipelineDescription{} );
+
+                    b.Write( "SimpleCompute_Results", FrameResourceState::Transfer_Src );
+
+                    // Shader resources
+                    b.SetBufferSR( SRGType::SRG_PerPass, "SimpleCompute_Results", 0 );
+                },
+                []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    ctx.BindPipeline( "SimpleCompute_Pipeline" );
+
+                    // Prime numbers up until this value
+                    constexpr UInt32 limitNumbers{ 30 };
+
+                    // matches shader's local_size_x
+                    constexpr UInt32 localSize{ 64 };
+                    constexpr UInt32 groupCount{ ( limitNumbers + localSize - 1 ) / localSize };
+
+                    ctx.Dispatch( groupCount, 1, 1 );
                 } );
     }
 }

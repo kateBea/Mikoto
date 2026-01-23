@@ -88,7 +88,7 @@ namespace Mikoto {
         Unique<GraphicsContext> m_GraphicsContext{};
 
         bool m_WantResize{ false };
-        RenderResolution m_RenderResolution{ RenderResolution::RES_FHD_1080 };
+        RenderResolution m_RenderResolution{ RenderResolution::FHD_1080 };
         std::pair<float, float> m_RenderTargetDimensions{ InferDimensions( m_RenderResolution ) };
 
         UInt32 m_ViewportWidth{ 0u };

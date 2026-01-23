@@ -85,26 +85,6 @@ namespace Mikoto {
         configInfo.MultisampleInfo.alphaToCoverageEnable = VK_FALSE;// Optional
         configInfo.MultisampleInfo.alphaToOneEnable = VK_FALSE;     // Optional
 
-        // Blending enabled by default
-        configInfo.ColorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        configInfo.ColorBlendAttachment.blendEnable = VK_TRUE;
-        configInfo.ColorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        configInfo.ColorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        configInfo.ColorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-        configInfo.ColorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        configInfo.ColorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        configInfo.ColorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-
-        configInfo.ColorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-        configInfo.ColorBlendInfo.logicOpEnable = VK_FALSE;
-        configInfo.ColorBlendInfo.logicOp = VK_LOGIC_OP_COPY;
-        configInfo.ColorBlendInfo.attachmentCount = 1;
-        configInfo.ColorBlendInfo.pAttachments = &configInfo.ColorBlendAttachment;
-        configInfo.ColorBlendInfo.blendConstants[0] = 0.0f;
-        configInfo.ColorBlendInfo.blendConstants[1] = 0.0f;
-        configInfo.ColorBlendInfo.blendConstants[2] = 0.0f;
-        configInfo.ColorBlendInfo.blendConstants[3] = 0.0f;
-
         configInfo.DepthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
         configInfo.DepthStencilInfo.depthTestEnable = VK_TRUE;
         configInfo.DepthStencilInfo.depthWriteEnable = VK_TRUE;
@@ -204,24 +184,18 @@ namespace Mikoto {
         : GraphicsPipeline{ info.Desc.ShaderStages } {
 
         m_Topology = info.Desc.PrimitiveTopology;
-
         m_CullMode = info.Desc.PipelineCullMode;
-
         m_Wireframe = info.Desc.Wireframe;
-
         m_VertexAttributesSpec = info.Desc.VertexAttributesSpec;
 
-        // if (!info.Desc.DepthTexture.IsEmpty()) {
-        //     m_DepthAttachmentFormat = dynamic_cast<const VulkanTexture*>(info.Desc.DepthTexture.GetRaw() )->GetViewCreateInfo().format;
-        // }
-        //
-        // for (auto& attachment : info.Desc.ColorAttachments) {
-        //     if (attachment->IsTextureType( TextureType::TEXTURE_CUBE )) {
-        //         m_ColorAttachmentsFormats.emplace_back( dynamic_cast<const VulkanTextureCube*>(attachment.GetRaw() )->GetViewCreateInfo().format );
-        //     } else {
-        //         m_ColorAttachmentsFormats.emplace_back( dynamic_cast<const VulkanTexture*>(attachment.GetRaw() )->GetViewCreateInfo().format );
-        //     }
-        // }
+        // Depth Render target format
+        m_DepthAttachmentFormat = VulkanHelpers::ToVkFormat( info.Desc.DepthAttachmentFormat );
+
+        // Color render target formats
+        for (auto& attachment : info.Desc.ColorAttachmentFormats) {
+            // TODO: configure blend for each attachment in this order
+            m_ColorAttachmentsFormats.emplace_back(VulkanHelpers::ToVkFormat( attachment ));
+        }
     }
 
     auto VulkanGraphicsPipeline::Release() -> void {
@@ -234,7 +208,29 @@ namespace Mikoto {
     auto VulkanGraphicsPipeline::SetupDefaultConfiguration() -> void {
         m_PipelineConfig = GetDefaultGraphicsPipelineConfigInfo();
 
-        m_PipelineConfig.ColorBlendInfo.pAttachments = &m_PipelineConfig.ColorBlendAttachment;
+        for (const auto& _ : m_ColorAttachmentsFormats) {
+            auto& blendAttachmentInfo{ m_PipelineConfig.ColorBlendAttachment.emplace_back() };
+            // Blending enabled by default
+            blendAttachmentInfo.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+            blendAttachmentInfo.blendEnable = VK_TRUE;
+            blendAttachmentInfo.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+            blendAttachmentInfo.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            blendAttachmentInfo.colorBlendOp = VK_BLEND_OP_ADD;
+            blendAttachmentInfo.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+            blendAttachmentInfo.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            blendAttachmentInfo.alphaBlendOp = VK_BLEND_OP_ADD;
+        }
+
+        m_PipelineConfig.ColorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        m_PipelineConfig.ColorBlendInfo.logicOpEnable = VK_FALSE;
+        m_PipelineConfig.ColorBlendInfo.logicOp = VK_LOGIC_OP_COPY;
+        m_PipelineConfig.ColorBlendInfo.attachmentCount = static_cast<UInt32>(m_PipelineConfig.ColorBlendAttachment.size());
+        m_PipelineConfig.ColorBlendInfo.pAttachments = m_PipelineConfig.ColorBlendAttachment.data();
+        m_PipelineConfig.ColorBlendInfo.blendConstants[0] = 0.0f;
+        m_PipelineConfig.ColorBlendInfo.blendConstants[1] = 0.0f;
+        m_PipelineConfig.ColorBlendInfo.blendConstants[2] = 0.0f;
+        m_PipelineConfig.ColorBlendInfo.blendConstants[3] = 0.0f;
+
         m_PipelineConfig.InputAssemblyInfo.topology = InferVulkanTopology(m_Topology);
 
         m_PipelineConfig.DepthStencilInfo.depthWriteEnable = m_DepthWrite ? VK_TRUE : VK_FALSE;

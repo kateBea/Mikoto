@@ -21,19 +21,40 @@
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Core/GraphicsContext.hh>
+#include <Renderer/Core/RenderUtility.hh>
 
 namespace Mikoto {
 
     FramePassBuilder::FramePassBuilder( FramePassNode &node )
-        : m_Node{ std::addressof( node ) }
-    {}
+        : m_Node{ std::addressof( node ) } {}
 
-    auto FramePassBuilder::Write( std::string_view name, FrameResourceState inState, FrameResourceState outState ) -> void {
-        m_Node->Writes.emplace_back( StringUtil::From( name ), inState, outState );
+    auto FramePassBuilder::Write( std::string_view name, FrameResourceState outState ) -> void {
+        m_Node->Writes.emplace_back( StringUtil::From( name ), outState );
     }
 
-    auto FramePassBuilder::Read( std::string_view name, FrameResourceState inState, FrameResourceState outState ) -> void {
-        m_Node->Writes.emplace_back( StringUtil::From( name ), inState, outState );
+    auto FramePassBuilder::Read( std::string_view name, FrameResourceState outState ) -> void {
+        m_Node->Writes.emplace_back( StringUtil::From( name ), outState );
+    }
+
+    auto FramePassBuilder::UseShader( std::string_view path, ShaderStage stage ) -> void {
+        m_PipelineDescription.UseShader( path, stage );
+    }
+
+    auto FramePassBuilder::SetBufferSR( SRGType type, std::string_view name, UInt32 bindSlot ) -> void {
+        switch (type) {
+            case SRGType::SRG_PerPass:
+                m_PassShaderResources.SetBuffer( name, bindSlot );
+                break;
+            default: ;
+        }
+    }
+
+    auto FramePassBuilder::GetPass() -> FramePassNode * {
+        return m_Node;
+    }
+
+    auto FramePassBuilder::GetShaderResources() const -> const SRGPerPass & {
+        return m_PassShaderResources;
     }
 
     auto FramePassBuilder::CreateBuffer( std::string_view name, BufferDescription description ) -> void {
@@ -41,31 +62,49 @@ namespace Mikoto {
         m_Creates[std::string{ name }].Description = description;
     }
 
+    auto FramePassBuilder::CreateBuffer( std::string_view name, BufferUsage usage, Size sizeBytes ) -> void {
+        BufferDescription description{};
+        description
+                .WithUsage( usage )
+                .WithSizeBytes( sizeBytes );
+        CreateBuffer( name, description );
+    }
+
     auto FramePassBuilder::CreateTexture( std::string_view name, TextureDescription description ) -> void {
         m_Creates[std::string{ name }].Type = FrameResourceType::TEXTURE;
         m_Creates[std::string{ name }].Description = description;
     }
 
-    auto FramePassBuilder::CreatePipeline( std::string_view name, PipelineDescription description ) -> void {
-        m_Creates[std::string{ name }].Type = FrameResourceType::PIPELINE;
-        m_Creates[std::string{ name }].Description = description;
+    auto FramePassBuilder::CreatePipeline( std::string_view name, const GraphicsPipelineDescription &description ) -> void {
+        m_PipelineDescription.Name = name;
+        m_PipelineDescription.Description = description;
+    }
+
+    auto FramePassBuilder::CreatePipeline( std::string_view name, const ComputePipelineDescription &description ) -> void {
+        m_PipelineDescription.Name = name;
+        m_PipelineDescription.Description = description;
     }
 
     auto FramePassBuilder::CreateTexture( std::string_view name, TextureCubeCreateDescription description ) -> void {
-        m_Creates[std::string{ name }].Type = FrameResourceType::RENDER_TARGET;
+        m_Creates[std::string{ name }].Type = FrameResourceType::TEXTURE;
         m_Creates[std::string{ name }].Description = description;
     }
 
-    auto FramePassBuilder::CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format ) -> void {
+    auto FramePassBuilder::CreateTexture( std::string_view name, RenderResolution resolution, TextureFormat format, TextureUsage usage ) -> void {
+        auto scale{ InferDimensions( resolution ) };
+        CreateTexture( name, scale.first, scale.second, format, usage );
+    }
+
+    auto FramePassBuilder::CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format, TextureUsage usage ) -> void {
         TextureDescription colorDesc{};
         colorDesc.WithWidth( width )
-            .WithHeight( height )
-            .WithChannelCount( 4 )
-            .WithData( nullptr )
-            .WithType( TextureType::TEXTURE_2D )
-            .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
-            .WithFormat( format )
-            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+                 .WithHeight( height )
+                 .WithChannelCount( 4 )
+                 .WithData( nullptr )
+                 .WithType( TextureType::TEXTURE_2D )
+                 .WithTextureUsage( usage )
+                 .WithFormat( format )
+                 .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
         CreateTexture( name, colorDesc );
     }
@@ -73,61 +112,45 @@ namespace Mikoto {
     auto FramePassBuilder::CreateTexture( std::string_view name, UInt32 dimensions, TextureFormat format, UInt32 mipLevels ) -> void {
         TextureCubeCreateDescription depthDesc{};
         depthDesc.WithUsageType( TextureUsage::TEXTURE_USAGE_RENDER_TARGET )
-            .WithMipLevels( mipLevels )
-            .WithTextureFormat( format )
-            .WithDimensions( dimensions )
-            .WithResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
+                 .WithMipLevels( mipLevels )
+                 .WithTextureFormat( format )
+                 .WithDimensions( dimensions )
+                 .WithResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
 
         CreateTexture( name, depthDesc );
     }
 
-    FrameGraph::FrameGraph( GraphicsContext* context, GpuDevice* device)
-        : m_GraphicsContex{ context }, m_Device{ device }
-    {}
+    FrameGraph::FrameGraph( GraphicsContext *context, GpuDevice *device )
+        : m_GraphicsContex{ context }, m_Device{ device } {}
 
-    auto FrameGraph::Compile( ) -> void {
-
-
+    auto FrameGraph::Compile() -> void {
         SortPassExecution();
     }
 
     auto FrameGraph::Execute() -> void {
-        // m_GraphicsContex->BeginFrame();
-        //
-        // for ( auto& [name, node] : m_Passes) {
-        //     CommandContext commandContext{ m_GraphicsContex, m_Device };
-        //     SetShaderResourceGroups(node);
-        //
-        //     commandContext.Begin(node);
-        //
-        //     BindShaderResourceGroups(node);
-        //
-        //     node.ExecuteCallback( commandContext, m_GraphBlackboard );
-        //
-        //     commandContext.End();
-        // }
-        //
-        // m_GraphicsContex->EndFrame();
+        m_GraphicsContex->BeginFrame();
+
+        for (auto & node: m_Passes | std::views::values) {
+            CommandContext commandContext{ m_GraphicsContex, m_Device };
+            commandContext.BeginPass(node);
+
+            node.ExecuteCallback( commandContext, m_GraphBlackboard );
+
+            commandContext.EndPass();
+        }
+
+        m_GraphicsContex->EndFrame();
     }
 
     auto FrameGraph::GetTexture( std::string_view name ) const -> TextureHandle {
-        const auto it{ m_TexturesByNames.find( StringUtil::From( name ) ) };
-        if (it != m_TexturesByNames.end()) {
-            return it->second;
-        }
-
-        return TextureHandle::CreateEmpty();
+        return m_GraphicsContex->GetTexture( name );
     }
 
     auto FrameGraph::GetBuffer( std::string_view name ) const -> BufferHandle {
-        const auto it{ m_BuffersByNames.find( StringUtil::From( name ) ) };
-        if (it != m_BuffersByNames.end()) {
-            return it->second;
-        }
-        return BufferHandle::CreateEmpty();
+        return m_GraphicsContex->GetBuffer( name );
     }
 
-    auto FrameGraph::Create( GraphicsContext* context, GpuDevice* device ) -> Unique<FrameGraph> {
+    auto FrameGraph::Create( GraphicsContext *context, GpuDevice *device ) -> Unique<FrameGraph> {
         return CreateScope<FrameGraph>( context, device );
     }
 
@@ -137,142 +160,121 @@ namespace Mikoto {
 
     auto FrameGraph::CreatePassNode( std::string_view name ) -> FramePassNode & {
         MKT_ASSERT( !IsFramePassPresent( name ), StringUtil::Format("Cannot register pass {} more than once", name) );
-        return m_Passes.emplace( StringUtil::From( name ), FramePassNode{} ).first->second;
-    }
-
-    auto FrameGraph::SetShaderResourceGroups( FramePassNode &node ) -> void {
-
+        return m_Passes.emplace( StringUtil::From( name ), FramePassNode{ .Name{ name }} ).first->second;
     }
 
     auto FrameGraph::CreateCommitedResources( FramePassBuilder &builder ) -> void {
-        // Create the actual resources on the GPU
-        // for (auto& [resourceName, resourceDescription] : builder.m_Resources) {
-        //     RegisterResource( resourceName, resourceDescription );
-        // }
+        for (auto &[resourceName, resourceDescription]: builder.m_Creates) {
+            CreateResource( resourceName, resourceDescription );
+        }
 
-        // Register the actual pipelines
-        // RegisterResource( resourceName, builder.m_Pipeline );
+        m_GraphicsContex->CreateShaderResources(builder.GetPass()->Name, builder.m_PipelineDescription);
+        m_GraphicsContex->CommitShaderResources( builder.GetPass()->Name, builder.m_PassShaderResources );
     }
-
-    // auto FrameGraph::SetShaderResourceGroups(PassNode& node) -> void {
-    //     // Check if dirty and then update otherwise dont update
-    //     if (!node->IsSRGDirty()) { retur; }
-    //
-    //     for (auto& bind : node.bufferBindings) {
-    //         m_Context.SetBufferBindSlot(bind.srgType, ResolveResource(bind.resource), bind.bindingSlot);
-    //     }
-    //
-    //     for (auto& bind : node.textureBindings) {
-    //         m_Context.SetTextureBindSlot(bind.srgType, ResolveResource(bind.resource), bind.samplerName, bind.bindingSlot);
-    //     }
-    //
-    //     m_Context->CommitShaderResources(node);
-    // }
-
 
     auto FrameGraph::SortPassExecution() -> void {
-        // ankerl::unordered_dense::map<std::string, FramePass*> resourceWriters{};
-        //
-        // // Assumption: One writer per resource per frame
-        //
-        // for (auto& [pass, nodeData] : m_Builder.m_Nodes) {
-        //     for (const auto& buf : nodeData.WriteBuffers) {
-        //         resourceWriters[buf] = pass;
-        //     }
-        //
-        //     for (const auto& tex : nodeData.WriteTextures) {
-        //         resourceWriters[tex] = pass;
-        //     }
-        // }
-        //
-        // struct SortNode {
-        //     FrameNode* Node{};
-        //     UInt32 Incoming{};
-        //     std::vector<SortNode*> Outgoing{};
-        // };
-        //
-        // ankerl::unordered_dense::map<FramePass*, SortNode> sortNodes{};
-        //
-        // for (FrameNode& node : m_Nodes) {
-        //     sortNodes[node.Pass].Node = std::addressof( node );
-        // }
-        //
-        // for (auto& [pass, nodeData] : m_Builder.m_Nodes) {
-        //     SortNode& readerNode{ sortNodes[pass] };
-        //
-        //     auto addDependency{ [&](const std::string& resource) {
-        //         auto it{ resourceWriters.find(resource) };
-        //         if (it == resourceWriters.end())
-        //             return;
-        //
-        //         FramePass* writer{ it->second };
-        //         if (writer == pass)
-        //             return; // same pass, ignore
-        //
-        //         SortNode& writerNode{ sortNodes[writer] };
-        //         writerNode.Outgoing.push_back(&readerNode);
-        //         readerNode.Incoming++;
-        //     }};
-        //
-        //     for (const auto& buf : nodeData.ReadBuffers)
-        //         addDependency(buf);
-        //
-        //     for (const auto& tex : nodeData.ReadTextures)
-        //         addDependency(tex);
-        // }
-        //
-        // std::vector<FrameNode> sorted{};
-        // std::queue<SortNode*> ready{};
-        //
-        // for (auto& [_, sn] : sortNodes) {
-        //     if (sn.Incoming == 0)
-        //         ready.push(&sn);
-        // }
-        //
-        // while (!ready.empty()) {
-        //     SortNode* sn{ ready.front() };
-        //     ready.pop();
-        //
-        //     sorted.push_back(*sn->Node);
-        //
-        //     for (SortNode* dependent : sn->Outgoing) {
-        //         if (--dependent->Incoming == 0)
-        //             ready.push(dependent);
-        //     }
-        // }
-        //
-        // if (sorted.size() != m_Nodes.size()) {
-        //     MKT_CORE_LOGGER_ERROR("FrameGraph cycle detected!");
-        //
-        // }
-        //
-        // m_Nodes = std::move(sorted);
-        // m_Compiled = true;
+        ankerl::unordered_dense::map<std::string, std::string> resourceWriters;
+
+        for (auto &[passName, node]: m_Passes) {
+            for (const auto &w: node.Writes) {
+                resourceWriters[w.Name] = passName;
+            }
+        }
+
+        struct SortNode {
+            FramePassNode *Node{};
+            UInt32 Incoming{};               // number of prerequisites
+            std::vector<SortNode *> Outgoing{};// passes that depend on this pass
+        };
+
+        // Create SortNode objects
+        ankerl::unordered_dense::map<std::string, SortNode> sortNodes;
+
+        for (auto &[passName, node]: m_Passes) {
+            sortNodes[passName].Node = &node;
+        }
+
+        // Build edges
+        for (auto &[passName, node]: m_Passes) {
+            SortNode &reader{ sortNodes[passName] };
+
+            auto addDependency = [&]( const ResourceNode &res ) {
+                auto it = resourceWriters.find( res.Name );
+                if (it == resourceWriters.end()) return;
+
+                const std::string &writerName{ it->second };
+
+                // ignore self-dependency
+                if (writerName == passName) {
+                    return;
+                }
+
+                SortNode &writer{ sortNodes[writerName] };
+
+                writer.Outgoing.push_back( &reader );
+                reader.Incoming++;
+            };
+
+            // Add dependencies for reads only
+            for (const auto &r: node.Reads) {
+                addDependency( r );
+            }
+        }
+
+        std::vector<FramePassNode> sorted{};
+        sorted.reserve( m_Passes.size() );
+
+        std::queue<SortNode *> ready{};
+
+        // Push all passes with no incoming edges
+        for (auto &[name, sn]: sortNodes) {
+            if (sn.Incoming == 0) {
+                ready.push( &sn );
+            }
+        }
+
+        while (!ready.empty()) {
+            SortNode *sn{ ready.front() };
+            ready.pop();
+
+            sorted.push_back( *sn->Node );
+
+            for (SortNode *dep: sn->Outgoing) {
+                if (--dep->Incoming == 0) {
+                    ready.push( dep );
+                }
+            }
+        }
+
+        if (sorted.size() != m_Passes.size()) {
+            MKT_CORE_LOGGER_ERROR( "FrameGraph cycle detected in pass dependencies!" );
+            return;
+        }
+
+        ankerl::unordered_dense::map<std::string, FramePassNode> newOrder{};
+
+        for (auto &pass: sorted) {
+            newOrder[pass.Name] = pass;
+        }
+
+        m_Passes = std::move( newOrder );
+        m_Compiled = true;
     }
 
-    // auto FrameGraph::RegisterResource(std::string_view name, FrameResource resource ) const -> void {
-    //     switch (resource.Type) {
-    //         case FrameResourceType::TEXTURE:
-    //         case FrameResourceType::RENDER_TARGET:
-    //             if (std::holds_alternative<TextureDescription>( resource.Description )) {
-    //                 m_Blackboard->RegisterTexture( name, std::get<TextureDescription>( resource.Description ) );
-    //             } else if (std::holds_alternative<TextureCubeCreateDescription>( resource.Description )) {
-    //                 m_Blackboard->RegisterTexture( name, std::get<TextureCubeCreateDescription>( resource.Description ) );
-    //             }
-    //             break;
-    //         case FrameResourceType::BUFFER:
-    //             if (std::holds_alternative<BufferDescription>( resource.Description )) {
-    //                 m_Blackboard->RegisterBuffer( name, std::get<BufferDescription>( resource.Description ) );
-    //             }
-    //             break;
-    //         case FrameResourceType::PIPELINE:
-    //             if (std::holds_alternative<PipelineDescription>( resource.Description )) {
-    //                 m_Blackboard->RegisterPipeline( name, std::get<PipelineDescription>( resource.Description ) );
-    //             }
-    //             break;
-    //         case FrameResourceType::INVALID:
-    //             MKT_CORE_LOGGER_WARN( "FrameGraph::RegisterResource - Invalid resource type." );
-    //             break;
-    //     }
-    // }
+    auto FrameGraph::CreateResource( std::string_view name, FrameResource resource ) -> void {
+        switch (resource.Type) {
+            case FrameResourceType::TEXTURE:
+                if (std::holds_alternative<TextureDescription>( resource.Description )) {
+                    m_GraphicsContex->CreateTexture( name, std::get<TextureDescription>( resource.Description ) );
+                } else if (std::holds_alternative<TextureCubeCreateDescription>( resource.Description )) {
+                    m_GraphicsContex->CreateTexture( name, std::get<TextureCubeCreateDescription>( resource.Description ) );
+                }
+                break;
+            case FrameResourceType::BUFFER:
+                if (std::holds_alternative<BufferDescription>( resource.Description )) {
+                    m_GraphicsContex->CreateBuffer( name, std::get<BufferDescription>( resource.Description ) );
+                }
+                break;
+        }
+    }
 }// namespace Mikoto

@@ -227,7 +227,7 @@ namespace Mikoto {
             CreateImageResource();
         }
 
-        if (IsTextureUsage( TextureUsage::TEXTURE_USAGE_CUBE )) {
+        if (IsTextureUsage( TextureUsage::CUBE )) {
             LoadCubeFaces();
             CreateImageResource();
 
@@ -352,7 +352,7 @@ namespace Mikoto {
         // Allocate staging buffer to copy over the texture data
         BufferDescription stagingDesc{};
         stagingDesc.WithData( nullptr )
-                .WithUsage( BufferUsage::BUFFER_USAGE_STAGING )
+                .WithUsage( BufferUsage::STAGING )
                 .WithSizeBytes( m_ImageSize )
                 .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
 
@@ -498,7 +498,7 @@ namespace Mikoto {
                 // Allocate staging buffer to copy over the texture data
                 BufferDescription stagingDesc{};
                 stagingDesc.WithData( nullptr )
-                        .WithUsage( BufferUsage::BUFFER_USAGE_STAGING )
+                        .WithUsage( BufferUsage::STAGING )
                         .WithSizeBytes( m_ImageSize )
                         .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
 
@@ -526,7 +526,7 @@ namespace Mikoto {
             m_ImageViewCreateInfo.format = m_ImageAllocation.ImageCreateInfo.format;
 
             VkImageAspectFlags aspectFlags{ VK_IMAGE_ASPECT_COLOR_BIT };
-            if ( m_TextureUsage == TextureUsage::TEXTURE_USAGE_DEPTH ) {
+            if ( m_TextureUsage == TextureUsage::DEPTH ) {
                 aspectFlags = m_ImageAllocation.ImageCreateInfo.format < VK_FORMAT_D16_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT : ( VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT );
             }
 

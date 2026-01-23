@@ -35,7 +35,7 @@ namespace Mikoto {
         VkPipelineInputAssemblyStateCreateInfo InputAssemblyInfo{};
         VkPipelineRasterizationStateCreateInfo RasterizationInfo{};
         VkPipelineMultisampleStateCreateInfo MultisampleInfo{};
-        VkPipelineColorBlendAttachmentState ColorBlendAttachment{};
+        std::vector<VkPipelineColorBlendAttachmentState> ColorBlendAttachment{};
         VkPipelineColorBlendStateCreateInfo ColorBlendInfo{};
         VkPipelineDepthStencilStateCreateInfo DepthStencilInfo{};
         VkPipelineDynamicStateCreateInfo DynamicStateInfo{};

@@ -1006,7 +1006,7 @@ namespace Mikoto {
 
     auto VulkanCmdList::FillTexture( Buffer* src, Texture* dest ) -> void {
 
-        if (dest != nullptr && dest->GetTextureUsage() == TextureUsage::TEXTURE_USAGE_CUBE) {
+        if (dest != nullptr && dest->GetTextureUsage() == TextureUsage::CUBE) {
             FillCubeTexture( src, dest );
         }
 
@@ -1040,7 +1040,7 @@ namespace Mikoto {
             1
         };
 
-        if (src->GetUsage() == BufferUsage::BUFFER_USAGE_INDEX) {
+        if (src->GetUsage() == BufferUsage::INDEX) {
             MKT_CORE_LOGGER_ERROR( "VulkanCmdList::FillTexture - Trying to fill a texture from an index buffer. This is not supported." );
         }
 
@@ -1240,7 +1240,7 @@ namespace Mikoto {
             1
         };
 
-        if (src->GetUsage() == BufferUsage::BUFFER_USAGE_INDEX) {
+        if (src->GetUsage() == BufferUsage::INDEX) {
             MKT_CORE_LOGGER_ERROR( "VulkanCmdList::FillTexture - Trying to fill a texture from an index buffer. This is not supported." );
         }
 

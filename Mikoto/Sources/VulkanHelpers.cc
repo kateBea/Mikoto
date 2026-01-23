@@ -206,26 +206,26 @@ namespace Mikoto::VulkanHelpers {
 
     auto ToVkImageUsage( const TextureUsage usage ) -> VkImageUsageFlags {
         switch ( usage ) {
-            case TextureUsage::TEXTURE_USAGE_COLOR:
+            case TextureUsage::COLOR:
                 // Textures that I will print to and can copy them to toehr textures like the color image from ImGui Backend
                 return VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;// | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-            case TextureUsage::TEXTURE_USAGE_DEPTH:
+            case TextureUsage::DEPTH:
                 return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
                        VK_IMAGE_USAGE_SAMPLED_BIT |
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-            case TextureUsage::TEXTURE_USAGE_NORMAL:
+            case TextureUsage::NORMAL:
                 // For example textures that I load from disc
                 return VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-            case TextureUsage::TEXTURE_USAGE_STORAGE:
+            case TextureUsage::STORAGE:
                 return VK_IMAGE_USAGE_STORAGE_BIT |
                        VK_IMAGE_USAGE_SAMPLED_BIT |
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                        VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
-            case TextureUsage::TEXTURE_USAGE_CUBE:
+            case TextureUsage::CUBE:
                 return VK_IMAGE_USAGE_SAMPLED_BIT |
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
@@ -261,11 +261,11 @@ namespace Mikoto::VulkanHelpers {
 
     auto ToVkStage( const ShaderStage stage ) -> VkShaderStageFlagBits {
         switch ( stage ) {
-            case ShaderStage::VERTEX_STAGE:
+            case ShaderStage::VERTEX:
                 return VK_SHADER_STAGE_VERTEX_BIT;
-            case ShaderStage::COMPUTE_STAGE:
+            case ShaderStage::COMPUTE:
                 return VK_SHADER_STAGE_COMPUTE_BIT;
-            case ShaderStage::FRAGMENT_STAGE:
+            case ShaderStage::FRAGMENT:
                 return VK_SHADER_STAGE_FRAGMENT_BIT;
             default:
                 return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
@@ -274,9 +274,9 @@ namespace Mikoto::VulkanHelpers {
 
     auto FromVkStage( VkShaderStageFlagBits stage ) -> ShaderStage {
         switch ( stage ) {
-            case VK_SHADER_STAGE_VERTEX_BIT: return ShaderStage::VERTEX_STAGE;
-            case VK_SHADER_STAGE_COMPUTE_BIT: return ShaderStage::COMPUTE_STAGE;
-            case VK_SHADER_STAGE_FRAGMENT_BIT: return ShaderStage::FRAGMENT_STAGE;
+            case VK_SHADER_STAGE_VERTEX_BIT: return ShaderStage::VERTEX;
+            case VK_SHADER_STAGE_COMPUTE_BIT: return ShaderStage::COMPUTE;
+            case VK_SHADER_STAGE_FRAGMENT_BIT: return ShaderStage::FRAGMENT;
             default: return ShaderStage::STAGE_UNKNOWN;
         }
     }
@@ -413,7 +413,7 @@ namespace Mikoto::VulkanHelpers {
             VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT
         };
 
-        if ( usage == TextureUsage::TEXTURE_USAGE_COLOR ) {
+        if ( usage == TextureUsage::COLOR ) {
             result = FindSupportedFormat(
                     device,
                     targetColorFormats,
@@ -421,7 +421,7 @@ namespace Mikoto::VulkanHelpers {
                     VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT );
         }
 
-        if ( usage == TextureUsage::TEXTURE_USAGE_DEPTH ) {
+        if ( usage == TextureUsage::DEPTH ) {
             result = FindSupportedFormat(
                     device,
                     targetDepthFormats,

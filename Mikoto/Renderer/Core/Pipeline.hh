@@ -1,9 +1,19 @@
+//    Copyright 2025 ケイト
 //
-// Created by zanet on 4/9/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef IPIPELINE_HH
-#define IPIPELINE_HH
+#ifndef MIKOTO_PIPELINE_HH
+#define MIKOTO_PIPELINE_HH
 
 #include <string>
 
@@ -138,8 +148,9 @@ namespace Mikoto {
 
         std::vector<ShaderModuleHandle> ShaderStages{};
 
-        std::vector<TextureFormat> ColorTexturesFormat{};
-        TextureFormat DepthTextureFormat{ TextureFormat::D32_FLOAT_S8_UINT };
+        // Generally supported formats for render targets,user can specify more
+        std::vector<TextureFormat> ColorAttachmentFormats{ TextureFormat::RGBA8_UNORM };
+        TextureFormat DepthAttachmentFormat{ TextureFormat::D32_FLOAT_S8_UINT };
     };
 
     /**
@@ -287,4 +298,4 @@ namespace Mikoto {
         std::vector<AttributesSpec> m_VertexAttributesSpec{};
     };
 }
-#endif //IPIPELINE_HH
+#endif //MIKOTO_PIPELINE_HH

@@ -261,14 +261,14 @@ namespace Mikoto {
 
         BufferDescription vertexDesc{};
         vertexDesc.WithData( reinterpret_cast<Byte *>( vertices.data() ) )
-                  .WithUsage( BufferUsage::BUFFER_USAGE_VERTEX )
+                  .WithUsage( BufferUsage::VERTEX )
                   .WithBufferDataType( BufferDataType::BUFFER_DATA_FLOAT32 )
                   .WithSizeBytes( InferSize<float>( vertices.size() ) )
                   .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
         BufferDescription indexDesc{};
         indexDesc.WithData( reinterpret_cast<Byte *>( indices.data() ) )
-                 .WithUsage( BufferUsage::BUFFER_USAGE_INDEX )
+                 .WithUsage( BufferUsage::INDEX )
                  .WithSizeBytes( InferSize<UInt32>( indices.size() ) )
                  .WithBufferDataType( BufferDataType::BUFFER_DATA_UINT32 )
                  .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );

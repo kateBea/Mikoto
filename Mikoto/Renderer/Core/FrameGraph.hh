@@ -27,17 +27,18 @@
 #include <Renderer/Core/FrameBlackboard.hh>
 #include <Renderer/Core/FrameGraphBlackboard.hh>
 #include <Renderer/Core/FrameResource.hh>
-#include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Core/RenderUtility.hh>
 #include <Renderer/Core/SRGBase.hh>
 
 #include <Assets/AssetsService.hh>
 #include <Material/TextureCube.hh>
 
 namespace Mikoto {
+    class CommandContext;
+    class GraphicsContext;
 
     struct ResourceNode {
         std::string Name{};
-        FrameResourceState InState{};
         FrameResourceState OutState{};
     };
 
@@ -47,8 +48,6 @@ namespace Mikoto {
         std::vector<ResourceNode> Reads{};
         std::vector<ResourceNode> Writes{};
 
-        SRGPerPass PerPasSRG{};
-
         std::function<void( CommandContext& , FrameGraphBlackboard& )> ExecuteCallback{};
     };
 
@@ -56,40 +55,53 @@ namespace Mikoto {
     public:
         explicit FramePassBuilder(FramePassNode& node);
 
-        auto Write( std::string_view name, FrameResourceState inState, FrameResourceState outState ) -> void;
-        auto Read( std::string_view name, FrameResourceState inState, FrameResourceState outState ) -> void;
+        auto Write( std::string_view name, FrameResourceState outState ) -> void;
+        auto Read( std::string_view name, FrameResourceState outState ) -> void;
 
         template<typename ResourceType, typename... Args>
         auto Create(Args&&... args) -> void {
             if constexpr (std::is_same_v<ResourceType, Buffer>) {
                 CreateBuffer(std::forward<Args>(args)...);
-            }
-            else if constexpr (std::is_same_v<ResourceType, Texture>) {
+            } else if constexpr (std::is_same_v<ResourceType, Texture>
+                || std::is_same_v<ResourceType, TextureCube>) {
                 CreateTexture(std::forward<Args>(args)...);
-            }
-            else if constexpr (std::is_same_v<ResourceType, TextureCube>) {
-                CreateTexture(std::forward<Args>(args)...);
-            }
-            else if constexpr (std::is_same_v<ResourceType, Pipeline>) {
+            } else if constexpr (std::is_same_v<ResourceType, Pipeline>) {
                 CreatePipeline(std::forward<Args>(args)...);
             }
         }
 
+        auto UseShader( std::string_view path, ShaderStage stage ) -> void;
+
+        auto SetBufferSR(SRGType type, std::string_view name, UInt32 bindSlot) -> void;
+
+        MKT_NODISCARD auto GetPass() -> FramePassNode*;
+        MKT_NODISCARD auto GetShaderResources() const -> const SRGPerPass&;
+
     private:
-        // Create Resources
         auto CreateBuffer( std::string_view name, BufferDescription description ) -> void;
+        auto CreateBuffer( std::string_view name, BufferUsage usage, Size sizeBytes ) -> void;
+
         auto CreateTexture( std::string_view name, TextureDescription description ) -> void;
-        auto CreatePipeline( std::string_view name, PipelineDescription description ) -> void;
+
+        auto CreatePipeline( std::string_view name, const GraphicsPipelineDescription &description ) -> void;
+        auto CreatePipeline( std::string_view name, const ComputePipelineDescription &description ) -> void;
 
         auto CreateTexture( std::string_view name, TextureCubeCreateDescription description ) -> void;
 
-        auto CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format ) -> void;
+        // For 2D
+        auto CreateTexture( std::string_view name, RenderResolution resolution, TextureFormat format, TextureUsage usage ) -> void;
+        auto CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format, TextureUsage usage ) -> void;
+
+        // For cubes
         auto CreateTexture( std::string_view name, UInt32 dimensions, TextureFormat format, UInt32 mipLevels = 1 ) -> void;
 
     private:
         friend class FrameGraph;
 
+        PipelineDescription m_PipelineDescription{};
+
         FramePassNode* m_Node{};
+        SRGPerPass m_PassShaderResources{};
         ankerl::unordered_dense::map<std::string, FrameResource> m_Creates{};
     };
 
@@ -98,7 +110,7 @@ namespace Mikoto {
         explicit FrameGraph( GraphicsContext *context, GpuDevice *device );
 
         template<typename PassData, typename SetupFn, typename ExecuteFn>
-        auto RegisterPass( std::string_view name, SetupFn &&setup, ExecuteFn &&execute ) -> void {
+        auto RegisterPass( const std::string_view name, SetupFn &&setup, ExecuteFn &&execute ) -> void {
             FramePassNode &node{ CreatePassNode( name ) };
 
             PassData *data{ m_GraphBlackboard.Add<PassData>() };
@@ -113,7 +125,7 @@ namespace Mikoto {
         }
 
         template<typename SetupFn, typename ExecuteFn>
-        auto RegisterPass( std::string_view name, SetupFn &&setup, ExecuteFn &&execute ) -> void {
+        auto RegisterPass( const std::string_view name, SetupFn &&setup, ExecuteFn &&execute ) -> void {
             FramePassNode& node{ CreatePassNode( name ) };
 
             FramePassBuilder builder{ node };
@@ -137,25 +149,18 @@ namespace Mikoto {
 
         MKT_NODISCARD auto IsFramePassPresent(std::string_view name) const -> bool;
 
+        auto SortPassExecution() -> void;
+
         auto CreatePassNode( std::string_view name ) -> FramePassNode&;
-        auto SetShaderResourceGroups(FramePassNode& node) -> void;
         auto CreateCommitedResources(FramePassBuilder& builder) -> void;
 
         auto CreateResource( std::string_view name, FrameResource resource ) -> void;
-
-        auto SortPassExecution() -> void;
 
     private:
         // Backend resource creation and control
         GpuDevice *m_Device{};
         GraphicsContext *m_GraphicsContex{};
         FrameGraphBlackboard m_GraphBlackboard{};
-
-        // Resources by names
-        ankerl::unordered_dense::map<std::string, TextureHandle> m_TexturesByNames{};
-        ankerl::unordered_dense::map<std::string, PipelineHandle> m_PipelinesByNames{};
-        ankerl::unordered_dense::map<std::string, BufferHandle> m_BuffersByNames{};
-        ankerl::unordered_dense::map<std::string, SamplerHandle> m_SamplersByNames{};
 
         // List of registered nodes
         ankerl::unordered_dense::map<std::string, FramePassNode> m_Passes{};

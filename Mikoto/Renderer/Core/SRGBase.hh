@@ -33,10 +33,17 @@ namespace  Mikoto {
 
         MKT_NODISCARD auto GetType() const -> SRGType { return m_Type; }
 
+        MKT_NODISCARD auto IsDirty() const -> bool { return m_IsDirty; }
+
+        auto MarkDirty() -> void { m_IsDirty = true; }
+        auto ClearDirty() -> void { m_IsDirty = false; }
+
     protected:
         explicit SRGBase( const SRGType type) : m_Type{ type } {}
 
         SRGType m_Type{};
+
+        bool m_IsDirty{ true };
     };
 
     class SRGTextures : public SRGBase {
@@ -67,7 +74,7 @@ namespace  Mikoto {
     public:
         explicit SRGPerPass() : SRGBase{ SRGType::SRG_PerPass } {}
 
-        auto SetBuffer(std::string_view name, UInt32 binding, ShaderResourceType type) -> void;
+        auto SetBuffer(std::string_view name, UInt32 binding) -> void;
         auto SetTexture(std::string_view textureName, std::string_view samplerName, UInt32 binding) -> void;
 
         auto begin() -> decltype(auto) { return m_Resources.begin(); }
@@ -79,18 +86,13 @@ namespace  Mikoto {
     private:
         struct Entry {
             std::string Name{};
-
-            // If this is an image
             std::string SamplerName{};
 
             UInt32 Binding{};
-            ShaderResourceType Type{ ShaderResourceType::SHADER_RESOURCE_UNDEFINED };
+            ShaderResourceType Type{};
         };
 
-        std::vector<Entry> m_Resources{};
-
-        ankerl::unordered_dense::set<std::string> m_RegisteredBuffers{};
-        ankerl::unordered_dense::map<std::string, std::string> m_RegisteredTextures{};
+        ankerl::unordered_dense::map<std::string, Entry> m_Resources{};
 
     };
 

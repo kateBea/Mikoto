@@ -194,7 +194,7 @@ namespace Mikoto {
     protected:
         TextureType m_Type{ TextureType::TEXTURE_UNKNOWN };
         TextureFormat m_Format{ TextureFormat::INVALID };
-        TextureUsage m_TextureUsage{ TextureUsage::TEXTURE_USAGE_NORMAL };
+        TextureUsage m_TextureUsage{ TextureUsage::NORMAL };
 
         Int32 m_Width{};
         Int32 m_Height{};

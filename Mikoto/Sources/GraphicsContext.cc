@@ -18,7 +18,7 @@
 #include <Renderer/Vulkan/VulkanGraphicsContext.hh>
 
 namespace Mikoto {
-    auto PipelineDescription::AddShader( std::string_view path, ShaderStage stage ) -> void {
+    auto PipelineDescription::UseShader( std::string_view path, ShaderStage stage ) -> void {
         Shaders[stage] = path;
     }
 

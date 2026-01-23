@@ -32,8 +32,9 @@
 #include <Renderer/Core/Pipeline.hh>
 #include <Renderer/Core/SRGBase.hh>
 #include <Renderer/Core/GpuDevice.hh>
-#include <Renderer/Core/FrameBlackboard.hh>
 #include <Renderer/Core/GraphicsContext.hh>
+
+#include "FrameGraph.hh"
 
 namespace Mikoto {
 
@@ -53,9 +54,9 @@ namespace Mikoto {
 
     class CommandContext final {
     public:
-        explicit CommandContext(GraphicsContext *context, FrameBlackboard *blackboard, GpuDevice* device);
+        explicit CommandContext(GraphicsContext *context, GpuDevice* device);
 
-        auto BeginPass(FramePass* pass) -> void;
+        auto BeginPass(FramePassNode& pass) -> void;
         auto EndPass() -> void;
 
         auto BeginRender( const PassRenderInfo& renderInfo = PassRenderInfo{}) -> void;
@@ -70,9 +71,6 @@ namespace Mikoto {
         // Need to bind pipeline before specifying resources
         auto BindPipeline(std::string_view pipelineName ) -> void;
 
-        auto SetBufferBindSlot(SRGType type, std::string_view buffer, UInt32 index ) const -> void;
-        auto SetTextureBindSlot(SRGType type, std::string_view texture, std::string_view sampler, UInt32 index) -> void;
-
         auto SetClearColor(const Vec4F& color) -> void;
 
         auto DrawIndexed(const DrawIndexedState& info) -> void;
@@ -83,9 +81,6 @@ namespace Mikoto {
         auto FillBuffer(std::string_view bufferName, const void* ptrSrc, Size size, Size offset = 0 ) const -> void;
 
         MKT_NODISCARD auto PushTexture(TextureHandle texture ) const -> Int32;
-
-        auto BindResourceGroup(SRGType srgType ) const -> void;
-
         MKT_NODISCARD auto GetNamedBuffer( std::string_view ) const -> BufferHandle;
 
         auto RegisterNamedTexture( std::string_view name, TextureHandle handle ) const -> void;
@@ -96,13 +91,12 @@ namespace Mikoto {
 
         CommandListHandle m_Commands{};
 
-        FrameBlackboard* m_Blackboard{};
         GraphicsContext* m_Context{};
         GpuDevice* m_Device{};
 
         PipelineHandle m_Pipeline{};
 
-        FramePass* m_ActivePass{ nullptr };
+        FramePassNode* m_ActivePass{ nullptr };
 
         RenderInfo m_RenderInfo{};
     };

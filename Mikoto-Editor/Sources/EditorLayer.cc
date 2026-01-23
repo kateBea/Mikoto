@@ -139,11 +139,8 @@ namespace Mikoto {
 
     auto EditorLayer::SetupEditorState() -> void {
         m_EditorState->EditorCamera = m_EditorCamera.get();
-
         m_EditorState->ActiveEditorScene = m_ActiveScene;
-
-        m_EditorState->FinalComposition = m_SceneRenderer->GetTexture( "FinalCompositionPass_ColorTarget" );
-
+        m_EditorState->FinalComposition = m_SceneRenderer->GetTexture( "HelloTriangle_ColorTarget" );
         m_EditorState->SelectedEntity = m_ActiveScene->FindFirstByName( "Ground" );
 
     }
@@ -181,7 +178,7 @@ namespace Mikoto {
         PrepareRenderer( timeStep );
 
         m_ActiveScene->Update( timeStep );
-        //m_SceneRenderer->Render( m_ActiveScene );
+        m_SceneRenderer->Render( m_ActiveScene );
 
         UpdateDockSpace();
 
@@ -241,20 +238,20 @@ namespace Mikoto {
 
     auto EditorLayer::SetRendererResolution() const -> void {
         if (ImGui::BeginMenu( "Resolution" )) {
-            if ( ImGui::MenuItem( "HD - 720p", nullptr, m_SceneRenderer->IsRenderResolution(RenderResolution::RES_HD_720P)) ) {
-                m_SceneRenderer->SetRenderResolution( RenderResolution::RES_HD_720P );
+            if ( ImGui::MenuItem( "HD - 720p", nullptr, m_SceneRenderer->IsRenderResolution(RenderResolution::HD_720P)) ) {
+                m_SceneRenderer->SetRenderResolution( RenderResolution::HD_720P );
             }
 
-            if ( ImGui::MenuItem( "FHD - 1080p", nullptr, m_SceneRenderer->IsRenderResolution(RenderResolution::RES_FHD_1080)) ) {
-                m_SceneRenderer->SetRenderResolution( RenderResolution::RES_FHD_1080 );
+            if ( ImGui::MenuItem( "FHD - 1080p", nullptr, m_SceneRenderer->IsRenderResolution(RenderResolution::FHD_1080)) ) {
+                m_SceneRenderer->SetRenderResolution( RenderResolution::FHD_1080 );
             }
 
-            if ( ImGui::MenuItem( "QHD - 1440p", nullptr, m_SceneRenderer->IsRenderResolution(RenderResolution::RES_QHD_1440P)) ) {
-                m_SceneRenderer->SetRenderResolution( RenderResolution::RES_QHD_1440P );
+            if ( ImGui::MenuItem( "QHD - 1440p", nullptr, m_SceneRenderer->IsRenderResolution(RenderResolution::QHD_1440P)) ) {
+                m_SceneRenderer->SetRenderResolution( RenderResolution::QHD_1440P );
             }
 
-            if ( ImGui::MenuItem( "UHD - 2160p", nullptr, m_SceneRenderer->IsRenderResolution(RenderResolution::RES_UHD_3120P)) ) {
-                m_SceneRenderer->SetRenderResolution( RenderResolution::RES_UHD_3120P );
+            if ( ImGui::MenuItem( "UHD - 2160p", nullptr, m_SceneRenderer->IsRenderResolution(RenderResolution::UHD_3120P)) ) {
+                m_SceneRenderer->SetRenderResolution( RenderResolution::UHD_3120P );
             }
 
             ImGui::EndMenu();

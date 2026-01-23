@@ -111,7 +111,7 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::GetBuffer( std::string_view name ) const -> BufferHandle {
-        return m_FrameGraph->GetTexture(name);
+        return m_FrameGraph->GetBuffer(name);
     }
 
     auto SceneRenderer::SetSceneParameters( Scene *scene ) -> void {
@@ -147,36 +147,12 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::CreateDebugPasses() -> void {
-        // Debug Passes
-        // HelloTrianglePass* helloTrianglePass{ m_PassRegistry.Register<HelloTrianglePass>() };
-        // SimpleComputePass* simpleComputePass{ m_PassRegistry.Register<SimpleComputePass>() };
-        // HelloTexture* helloTexture{ m_PassRegistry.Register<HelloTexture>() };
-        //
-        // // Wireframe and Outlining
-        // ObjectOutlinePass* outlinePass{ m_PassRegistry.Register<ObjectOutlinePass>() };
-        // WireFramePass* wireFramePass{ m_PassRegistry.Register<WireFramePass>() };
-
         RegisterHelloTriangle( *m_FrameGraph );
+        RegisterSimpleCompute( *m_FrameGraph );
     }
 
     auto SceneRenderer::CreateMainPasses() -> void {
-        // ShadingPass* finalCompositionPass{ m_PassRegistry.Register<ShadingPass>() };
-        // AABBGenComp* aabbGenComp { m_PassRegistry.Register<AABBGenComp>() };
-        // LightCullingComp* lightCullingComp { m_PassRegistry.Register<LightCullingComp>() };
-        //
-        // TextRenderPass* textRenderPass{ m_PassRegistry.Register<TextRenderPass>() };
-        // SkyboxPass* skyboxPass{ m_PassRegistry.Register<SkyboxPass>() };
 
-        // Add IBL pre passes
-
-        // IrradiancePass* irradiancePass{ m_PassRegistry.Register<IrradiancePass>() };
-        // irradiancePass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
-        //
-        // PrefilterPass* prefilterPass{ m_PassRegistry.Register<PrefilterPass>() };
-        // prefilterPass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
-        //
-        // BRDFLutPass* brdfLutPass{ m_PassRegistry.Register<BRDFLutPass>() };
-        // brdfLutPass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
     }
 
     auto SceneRendererCreateInfo::WithName( std::string_view name ) -> SceneRendererCreateInfo & {

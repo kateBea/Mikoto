@@ -211,17 +211,17 @@ namespace Mikoto {
 
         m_VertexAttributesSpec = info.Desc.VertexAttributesSpec;
 
-        if (!info.Desc.DepthTexture.IsEmpty()) {
-            m_DepthAttachmentFormat = dynamic_cast<const VulkanTexture*>(info.Desc.DepthTexture.GetRaw() )->GetViewCreateInfo().format;
-        }
-
-        for (auto& attachment : info.Desc.ColorAttachments) {
-            if (attachment->IsTextureType( TextureType::TEXTURE_CUBE )) {
-                m_ColorAttachmentsFormats.emplace_back( dynamic_cast<const VulkanTextureCube*>(attachment.GetRaw() )->GetViewCreateInfo().format );
-            } else {
-                m_ColorAttachmentsFormats.emplace_back( dynamic_cast<const VulkanTexture*>(attachment.GetRaw() )->GetViewCreateInfo().format );
-            }
-        }
+        // if (!info.Desc.DepthTexture.IsEmpty()) {
+        //     m_DepthAttachmentFormat = dynamic_cast<const VulkanTexture*>(info.Desc.DepthTexture.GetRaw() )->GetViewCreateInfo().format;
+        // }
+        //
+        // for (auto& attachment : info.Desc.ColorAttachments) {
+        //     if (attachment->IsTextureType( TextureType::TEXTURE_CUBE )) {
+        //         m_ColorAttachmentsFormats.emplace_back( dynamic_cast<const VulkanTextureCube*>(attachment.GetRaw() )->GetViewCreateInfo().format );
+        //     } else {
+        //         m_ColorAttachmentsFormats.emplace_back( dynamic_cast<const VulkanTexture*>(attachment.GetRaw() )->GetViewCreateInfo().format );
+        //     }
+        // }
     }
 
     auto VulkanGraphicsPipeline::Release() -> void {

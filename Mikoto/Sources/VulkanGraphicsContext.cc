@@ -358,9 +358,7 @@ namespace Mikoto {
 
         static VkPipelineStageFlags lastStage{ VK_PIPELINE_STAGE_NONE };
 
-        VkPipelineStageFlagBits dstStage{ pass->IsCompute()
-                ? VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
-                : VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT };
+        VkPipelineStageFlagBits dstStage{ /*TODO*/};
 
         if (lastStage == VK_PIPELINE_STAGE_NONE) {
             lastStage = dstStage;

@@ -58,7 +58,7 @@ namespace Mikoto {
         auto BeginPass(FramePass* pass) -> void;
         auto EndPass() -> void;
 
-        auto BeginRender( const PassRenderInfo& renderInfo) -> void;
+        auto BeginRender( const PassRenderInfo& renderInfo = PassRenderInfo{}) -> void;
         auto EndRender() -> void;
 
         auto SetColorRenderTarget(std::string_view color) -> void;

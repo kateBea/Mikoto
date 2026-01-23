@@ -12,17 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Scene/Scene.hh>
-#include <Scene/Component.hh>
-#include <Library/String/String.hh>
-#include <Renderer/Core/FrameResource.hh>
-#include <Renderer/Core/CommandContext.hh>
-#include <Renderer/Passes/ShaderRenderParams.hh>
-#include <Renderer/Passes/PostEffectsPasses.hh>
+#ifndef MIKOTO_STRING_HH
+#define MIKOTO_STRING_HH
 
-namespace Mikoto {
+#include <string>
+#include <string_view>
+#include <utility>
 
-    auto RegisterTextRender( FrameGraph &pass ) -> void {
+#include <fmt/format.h>
 
+#include <Common/Common.hh>
+
+namespace Mikoto::StringUtil {
+
+    template<typename... Args>
+    MKT_NODISCARD std::string Format(fmt::format_string<Args...> fmt, Args&&... args) {
+        return fmt::format(fmt, std::forward<Args>(args)...);
+    }
+
+    MKT_NODISCARD inline auto From( const std::string_view fmt) -> std::string {
+        return std::string{ fmt.data() };
     }
 }
+
+
+#endif //MIKOTO_STRING_HH

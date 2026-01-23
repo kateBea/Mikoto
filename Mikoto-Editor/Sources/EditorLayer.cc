@@ -78,17 +78,6 @@ namespace Mikoto {
 
         CreatePanels();
 
-        // Add passes for panel preview visualizer
-        FrameBlackboard *blackboard{ m_SceneRenderer->GetGraph().GetBlackboard() };
-        m_EditorState->PassesCompositions.try_emplace( "TrianglePass", blackboard->GetTexture( "HelloTrianglePass_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "TexturePass", blackboard->GetTexture( "HelloTexture_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "FinalComposition", blackboard->GetTexture( "FinalCompositionPass_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "Wireframe", blackboard->GetTexture( "WireFramePass_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "Environemtn Cube", blackboard->GetTexture( "EnvCubePass_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "BRDF", blackboard->GetTexture( "BRDFLutPass_ColorTarget" ) );
-
-        m_EditorState->WireframeComposition = blackboard->GetTexture( "WireFramePass_ColorTarget" );
-
         TextureCubeLoadDescription loadDesc2{};
         loadDesc2.WithType( TextureType::TEXTURE_CUBE )
             .IsHDR( true )
@@ -126,7 +115,7 @@ namespace Mikoto {
 
 
             .WithType( TextureType::TEXTURE_2D )
-            .WithFormat( TextureFormat::TEXTURE_FORMAT_SRGB8_ALPHA8 )
+            .WithFormat( TextureFormat::SRGB8_ALPHA8 )
 
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
@@ -153,8 +142,7 @@ namespace Mikoto {
 
         m_EditorState->ActiveEditorScene = m_ActiveScene;
 
-        FrameBlackboard *blackboard{ m_SceneRenderer->GetGraph().GetBlackboard() };
-        m_EditorState->FinalComposition = blackboard->GetTexture( "FinalCompositionPass_ColorTarget" );
+        m_EditorState->FinalComposition = m_SceneRenderer->GetTexture( "FinalCompositionPass_ColorTarget" );
 
         m_EditorState->SelectedEntity = m_ActiveScene->FindFirstByName( "Ground" );
 
@@ -193,7 +181,7 @@ namespace Mikoto {
         PrepareRenderer( timeStep );
 
         m_ActiveScene->Update( timeStep );
-        m_SceneRenderer->Render( m_ActiveScene );
+        //m_SceneRenderer->Render( m_ActiveScene );
 
         UpdateDockSpace();
 

@@ -95,8 +95,6 @@ namespace Mikoto {
             for (auto &[stage, shaderPath]: description.Shaders) { desc.ShaderStages.emplace_back( ShaderLibrary::Get()->LoadShader( shaderPath, stage ) ); }
 
             // TODO: find render target formats. We need to remove the need of passing the textures right now we do it because vulkan dynamic rendering arch needs it
-            desc.DepthTexture = GetTexture( description.DepthRenderTargets );
-            for (const auto &renderTargetName: description.ColorRenderTargets) { desc.ColorAttachments.emplace_back( GetTexture( renderTargetName ) ); }
 
             pipeline = m_Device->CreatePipeline( desc );
         } else if (std::holds_alternative<ComputePipelineDescription>( description.Description )) {

@@ -105,7 +105,8 @@ namespace Mikoto {
         MKT_CORE_LOGGER_INFO( "Initializing ShaderLibrary..." );
 
         const ShaderLibraryDescription description{
-            .Device{ GetGpuDevice() }
+            .RootPath{ "Resources/Shaders/vulkan-spirv" },
+            .Device{ GetGpuDevice() },
         };
 
         m_ShaderLibrary = CreateScope<ShaderLibrary>( description );

@@ -135,15 +135,10 @@ namespace Mikoto {
 
         DisplaySelectedLightProperties();
 
-        FrameBlackboard* frameBlackboard{ m_EditorState->EditorSceneRenderer->GetGraph().GetBlackboard() };
-        BufferHandle storage{ frameBlackboard->GetBuffer( "SimpleComputePass_Result" ) };
-
         // Display list of buffers involved and make it to display info about selected buffer
 
         // Example buffer display
         static std::vector<UInt32> data(40);
-        storage->CopyToBlock( data.data(), data.size() * sizeof( UInt32 ) );
-
         const void* bufferMemory{ data.data() };
         const Size bufferSize{ data.size() * sizeof( UInt32 ) };
         const std::uintptr_t baseAddress{ reinterpret_cast<const std::uintptr_t>( data.data() ) };
@@ -179,12 +174,7 @@ namespace Mikoto {
         }
 
         // Lighting passes
-        AABBGenComp* aabbGenComPass{ m_EditorState->EditorSceneRenderer->GetPass<AABBGenComp>() };
-        LightCullingComp* lightCullingComp{ m_EditorState->EditorSceneRenderer->GetPass<LightCullingComp>() };
-        ShadingPass* finalCompositionPass{ m_EditorState->EditorSceneRenderer->GetPass<ShadingPass>() };
 
-        FrameBlackboard* frameBlackboard{ m_EditorState->EditorSceneRenderer->GetGraph().GetBlackboard() };
-        BufferHandle storage{ frameBlackboard->GetBuffer( "SimpleComputePass_Result" ) };
 
         // Display list of buffers involved and make it to display info about selected buffer
 

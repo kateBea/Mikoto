@@ -12,17 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Scene/Scene.hh>
-#include <Scene/Component.hh>
-#include <Library/String/String.hh>
-#include <Renderer/Core/FrameResource.hh>
-#include <Renderer/Core/CommandContext.hh>
-#include <Renderer/Passes/ShaderRenderParams.hh>
-#include <Renderer/Passes/PostEffectsPasses.hh>
+#include <Common/String.hh>
 
 namespace Mikoto {
 
-    auto RegisterTextRender( FrameGraph &pass ) -> void {
-
-    }
 }

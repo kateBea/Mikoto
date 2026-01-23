@@ -47,7 +47,7 @@ namespace Mikoto {
          * @param usage Type of resource usage
          */
         Texture2D( const Int32 width, const Int32 height, const Int32 channels, Byte* data,
-                   const ResourceUsageType usage, TextureFormat format = TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM, TextureUsage textureUsage = TextureUsage::TEXTURE_USAGE_NORMAL, MapType mapType = MapType::UNDEFINED_TEXTURE)
+                   const ResourceUsageType usage, TextureFormat format = TextureFormat::RGBA8_UNORM, TextureUsage textureUsage = TextureUsage::TEXTURE_USAGE_NORMAL, MapType mapType = MapType::UNDEFINED_TEXTURE)
             : Texture{ TextureType::TEXTURE_2D, format, width, height, channels, usage, textureUsage }, m_Data{ data }, m_MapType{ mapType }
         {}
 

@@ -283,45 +283,45 @@ namespace Mikoto::VulkanHelpers {
 
     auto ToVkFormat( const TextureFormat format ) -> VkFormat {
         switch ( format ) {
-            case TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM:
+            case TextureFormat::RGBA8_SNORM:
                 return VK_FORMAT_R8G8B8A8_SNORM;
-            case TextureFormat::TEXTURE_FORMAT_R8_UNORM:
+            case TextureFormat::R8_UNORM:
                 return VK_FORMAT_R8_UNORM;
-            case TextureFormat::TEXTURE_FORMAT_RG8_UNORM:
+            case TextureFormat::RG8_UNORM:
                 return VK_FORMAT_R8G8_UNORM;
-            case TextureFormat::TEXTURE_FORMAT_RGB8_UNORM:
+            case TextureFormat::RGB8_UNORM:
                 return VK_FORMAT_R8G8B8_UNORM;
-            case TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM:
+            case TextureFormat::RGBA8_UNORM:
                 return VK_FORMAT_R8G8B8A8_UNORM;
-            case TextureFormat::TEXTURE_FORMAT_RG8_SNORM:
+            case TextureFormat::RG8_SNORM:
                 return VK_FORMAT_R8G8B8_SNORM;
-            case TextureFormat::TEXTURE_FORMAT_SRGB8:
+            case TextureFormat::SRGB8:
                 return VK_FORMAT_R8G8B8_SRGB;
-            case TextureFormat::TEXTURE_FORMAT_SRGB8_ALPHA8:
+            case TextureFormat::SRGB8_ALPHA8:
                 return VK_FORMAT_R8G8B8A8_SRGB;
-            case TextureFormat::TEXTURE_FORMAT_R16_FLOAT:
+            case TextureFormat::R16_FLOAT:
                 return VK_FORMAT_R16_SFLOAT;
-            case TextureFormat::TEXTURE_FORMAT_RG16_FLOAT:
+            case TextureFormat::RG16_FLOAT:
                 return VK_FORMAT_R16G16_SFLOAT;
-            case TextureFormat::TEXTURE_FORMAT_RGB16_FLOAT:
+            case TextureFormat::RGB16_FLOAT:
                 return VK_FORMAT_R16G16B16_SFLOAT;
-            case TextureFormat::TEXTURE_FORMAT_RGBA16_FLOAT:
+            case TextureFormat::RGBA16_FLOAT:
                 return VK_FORMAT_R16G16B16A16_SFLOAT;
-            case TextureFormat::TEXTURE_FORMAT_R32_FLOAT:
+            case TextureFormat::R32_FLOAT:
                 return VK_FORMAT_R32_SFLOAT;
-            case TextureFormat::TEXTURE_FORMAT_RG32_FLOAT:
+            case TextureFormat::RG32_FLOAT:
                 return VK_FORMAT_R32G32_SFLOAT;
-            case TextureFormat::TEXTURE_FORMAT_RGB32_FLOAT:
+            case TextureFormat::RGB32_FLOAT:
                 return VK_FORMAT_R32G32B32_SFLOAT;
-            case TextureFormat::TEXTURE_FORMAT_RGBA32_FLOAT:
+            case TextureFormat::RGBA32_FLOAT:
                 return VK_FORMAT_R32G32B32A32_SFLOAT;
-            case TextureFormat::TEXTURE_FORMAT_D16_UNORM:
+            case TextureFormat::D16_UNORM:
                 return VK_FORMAT_D16_UNORM;
-            case TextureFormat::TEXTURE_FORMAT_D24_UNORM_S8_UINT:
+            case TextureFormat::D24_UNORM_S8_UINT:
                 return VK_FORMAT_D24_UNORM_S8_UINT;
-            case TextureFormat::TEXTURE_FORMAT_D32_FLOAT:
+            case TextureFormat::D32_FLOAT:
                 return VK_FORMAT_D32_SFLOAT;
-            case TextureFormat::TEXTURE_FORMAT_D32_FLOAT_S8_UINT:
+            case TextureFormat::D32_FLOAT_S8_UINT:
                 return VK_FORMAT_D32_SFLOAT_S8_UINT;
             default:
                 return VK_FORMAT_UNDEFINED;
@@ -332,74 +332,74 @@ namespace Mikoto::VulkanHelpers {
         switch ( format ) {
             // --- 8-bit normalized ---
             case VK_FORMAT_R8_UNORM:
-                return TextureFormat::TEXTURE_FORMAT_R8_UNORM;
+                return TextureFormat::R8_UNORM;
             case VK_FORMAT_R8G8_UNORM:
-                return TextureFormat::TEXTURE_FORMAT_RG8_UNORM;
+                return TextureFormat::RG8_UNORM;
             case VK_FORMAT_R8G8B8_UNORM:
-                return TextureFormat::TEXTURE_FORMAT_RGB8_UNORM;
+                return TextureFormat::RGB8_UNORM;
             case VK_FORMAT_R8G8B8A8_UNORM:
-                return TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM;
+                return TextureFormat::RGBA8_UNORM;
 
             // --- 8-bit signed normalized ---
             case VK_FORMAT_R8_SNORM:
-                return TextureFormat::TEXTURE_FORMAT_R8_SNORM;
+                return TextureFormat::R8_SNORM;
             case VK_FORMAT_R8G8_SNORM:
-                return TextureFormat::TEXTURE_FORMAT_RG8_SNORM;
+                return TextureFormat::RG8_SNORM;
             case VK_FORMAT_R8G8B8_SNORM:
-                return TextureFormat::TEXTURE_FORMAT_RGB8_SNORM;
+                return TextureFormat::RGB8_SNORM;
             case VK_FORMAT_R8G8B8A8_SNORM:
-                return TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM;
+                return TextureFormat::RGBA8_SNORM;
 
             // --- 16-bit normalized ---
             case VK_FORMAT_R16_UNORM:
-                return TextureFormat::TEXTURE_FORMAT_R16_UNORM;
+                return TextureFormat::R16_UNORM;
             case VK_FORMAT_R16G16_UNORM:
-                return TextureFormat::TEXTURE_FORMAT_RG16_UNORM;
+                return TextureFormat::RG16_UNORM;
             case VK_FORMAT_R16G16B16_UNORM:
-                return TextureFormat::TEXTURE_FORMAT_RGB16_UNORM;
+                return TextureFormat::RGB16_UNORM;
             case VK_FORMAT_R16G16B16A16_UNORM:
-                return TextureFormat::TEXTURE_FORMAT_RGBA16_UNORM;
+                return TextureFormat::RGBA16_UNORM;
 
             // --- 16-bit float ---
             case VK_FORMAT_R16_SFLOAT:
-                return TextureFormat::TEXTURE_FORMAT_R16_FLOAT;
+                return TextureFormat::R16_FLOAT;
             case VK_FORMAT_R16G16_SFLOAT:
-                return TextureFormat::TEXTURE_FORMAT_RG16_FLOAT;
+                return TextureFormat::RG16_FLOAT;
             case VK_FORMAT_R16G16B16_SFLOAT:
-                return TextureFormat::TEXTURE_FORMAT_RGB16_FLOAT;
+                return TextureFormat::RGB16_FLOAT;
             case VK_FORMAT_R16G16B16A16_SFLOAT:
-                return TextureFormat::TEXTURE_FORMAT_RGBA16_FLOAT;
+                return TextureFormat::RGBA16_FLOAT;
 
             // --- 32-bit float ---
             case VK_FORMAT_R32_SFLOAT:
-                return TextureFormat::TEXTURE_FORMAT_R32_FLOAT;
+                return TextureFormat::R32_FLOAT;
             case VK_FORMAT_R32G32_SFLOAT:
-                return TextureFormat::TEXTURE_FORMAT_RG32_FLOAT;
+                return TextureFormat::RG32_FLOAT;
             case VK_FORMAT_R32G32B32_SFLOAT:
-                return TextureFormat::TEXTURE_FORMAT_RGB32_FLOAT;
+                return TextureFormat::RGB32_FLOAT;
             case VK_FORMAT_R32G32B32A32_SFLOAT:
-                return TextureFormat::TEXTURE_FORMAT_RGBA32_FLOAT;
+                return TextureFormat::RGBA32_FLOAT;
 
             // --- sRGB ---
             case VK_FORMAT_R8G8B8_SRGB:
-                return TextureFormat::TEXTURE_FORMAT_SRGB8;
+                return TextureFormat::SRGB8;
             case VK_FORMAT_R8G8B8A8_SRGB:
-                return TextureFormat::TEXTURE_FORMAT_SRGB8_ALPHA8;
+                return TextureFormat::SRGB8_ALPHA8;
 
             // --- Depth / Stencil ---
             case VK_FORMAT_D16_UNORM:
-                return TextureFormat::TEXTURE_FORMAT_D16_UNORM;
+                return TextureFormat::D16_UNORM;
             case VK_FORMAT_D24_UNORM_S8_UINT:
-                return TextureFormat::TEXTURE_FORMAT_D24_UNORM_S8_UINT;
+                return TextureFormat::D24_UNORM_S8_UINT;
             case VK_FORMAT_D32_SFLOAT:
-                return TextureFormat::TEXTURE_FORMAT_D32_FLOAT;
+                return TextureFormat::D32_FLOAT;
             case VK_FORMAT_D32_SFLOAT_S8_UINT:
-                return TextureFormat::TEXTURE_FORMAT_D32_FLOAT_S8_UINT;
+                return TextureFormat::D32_FLOAT_S8_UINT;
 
             default:;
         }
 
-        return TextureFormat::TEXTURE_FORMAT_INVALID;
+        return TextureFormat::INVALID;
     }
 
     auto GetVkFormatFromTextureFormat( TextureFormat format, TextureUsage usage, VkPhysicalDevice device ) -> VkFormat {

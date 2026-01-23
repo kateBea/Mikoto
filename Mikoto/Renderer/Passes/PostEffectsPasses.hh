@@ -33,7 +33,6 @@
 #include <Library/Data/ResourcePool.hh>
 
 #include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Core/FramePass.hh>
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Passes/ShaderRenderParams.hh>
@@ -42,66 +41,6 @@ namespace Mikoto {
 
     // These will register pass callbacks and their execute methods
     auto RegisterTextRender( FrameGraph& pass ) -> void;
-
-    class TextRenderPass final : public FramePass {
-    public:
-        explicit TextRenderPass()
-            : FramePass{ "TextRenderPass", FramePassType::RENDER } {}
-
-        auto Setup( FrameGraphBuilder& builder ) -> void override;
-        auto Execute( CommandContext& context ) -> void override;
-
-        auto SetScene( Scene* scene ) -> void;
-
-    private:
-        auto TraverseTextList( CommandContext& commandList ) -> void;
-
-        auto SetupRenderParams( CommandContext& context ) -> void;
-        auto SetupTextForRender( FontHandle font, const Camera* camera, Vec4F position, std::string_view text, double fontSize, Vec4F color, CommandContext& commandList ) -> void;
-
-    private:
-        struct alignas( 16 ) TextRenderParams {
-            Mat4F Proj{};
-            Mat4F View{};
-
-            Vec4F Position{};
-            Vec4F Size{};
-            Vec4F Color{};
-            Vec2F TexCoords[4]{};
-            UInt32 TexIndex{};
-        };
-
-        struct alignas( 16 ) TextParamsUBO {
-            Vec4F OutlineColor{ 1.0f, 1.0f, 1.0f, 1.0f };
-            float OutlineWidth{ 2.0f };
-        };
-
-        struct FontVertex {
-            glm::vec3 Pos{};
-            UInt32 TexIndex{};
-        };
-
-        static constexpr UInt32 MAX_STRING{ 8096 * 10 };
-
-        std::vector<TextRenderParams> m_TextRenderParams{};
-
-        std::array<FontVertex, 4> VERTICES{
-            FontVertex{ { 0.0f, 0.0f, 0.0f }, 0 },
-            FontVertex{ { 1.0f, 0.0f, 0.0f }, 1 },
-            FontVertex{ { 1.0f, 1.0f, 0.0f }, 2 },
-            FontVertex{ { 0.0f, 1.0f, 0.0f }, 3 }
-        };
-
-        std::array<UInt32, 6> INDICES{
-            0, 1, 2,// first triangle
-            2, 3, 0 // second triangle
-        };
-
-        Scene* m_Scene{};
-        TextParamsUBO m_TextRenderUBO{};
-
-        Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
-    };
 
 }// namespace Mikoto
 

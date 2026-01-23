@@ -468,11 +468,7 @@ namespace Mikoto {
                 1
             };
 
-            m_ImageAllocation.ImageCreateInfo.format =
-                    VulkanHelpers::GetVkFormatFromTextureFormat(
-                            m_Format,
-                            m_TextureUsage,
-                            TO_VK_DEVICE( m_Device )->GetPhysicalDevice() );
+            m_ImageAllocation.ImageCreateInfo.format = VulkanHelpers::ToVkFormat( m_Format );
             m_ImageAllocation.ImageCreateInfo.extent = extent;
 
             // This texture is a 2D image always

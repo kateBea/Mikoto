@@ -24,7 +24,6 @@
 
 #include <Renderer/Core/Buffer.hh>
 #include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Core/FramePass.hh>
 #include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Vulkan/VulkanDescriptorManager.hh>
 

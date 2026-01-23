@@ -705,7 +705,7 @@ namespace Mikoto {
             .Desc{ description }
         };
 
-        PipelineHandle graphicsPipeline{ m_GraphicsPipelines.Allocate( defaultInfo ).As<IPipeline>() };
+        PipelineHandle graphicsPipeline{ m_GraphicsPipelines.Allocate( defaultInfo ).As<Pipeline>() };
         if ( graphicsPipeline.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreatePipeline - Failed to allocate graphics pipeline resource." );
             return PipelineHandle::CreateEmpty();

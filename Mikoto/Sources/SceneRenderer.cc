@@ -16,7 +16,6 @@
 
 #include <Core/Profiler.hh>
 #include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Core/FramePass.hh>
 #include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Core/RenderService.hh>
 #include <Renderer/Core/SceneRenderer.hh>
@@ -32,7 +31,6 @@ namespace Mikoto {
 
     auto SceneRenderer::Init() -> void {
         InitGraphicsContex();
-
         InitCoreFramePasses();
     }
 
@@ -42,25 +40,6 @@ namespace Mikoto {
 
         m_GraphicsContext->Shutdown();
         m_GraphicsContext.reset();
-    }
-
-
-    auto SceneRenderer::SetSceneParameters( Scene *scene ) -> void {
-        ShadingPass* finalCompositionPass{ m_PassRegistry.Get<ShadingPass>() };
-        MKT_ASSERT( finalCompositionPass, "Trying to set scene for final composition pass while it is NULL" );
-        finalCompositionPass->SetScene( scene );
-
-        LightCullingComp* lightCullingComp{ m_PassRegistry.Get<LightCullingComp>() };
-        MKT_ASSERT( lightCullingComp, "Trying to set scene for light culling compute pass while it is NULL" );
-        lightCullingComp->SetScene( scene );
-
-        TextRenderPass* textRenderPass{ m_PassRegistry.Get<TextRenderPass>() };
-        MKT_ASSERT( textRenderPass, "Trying to set scene for text render pass while it is NULL" );
-        textRenderPass->SetScene( scene );
-
-        WireFramePass* wireframePass{ m_PassRegistry.Get<WireFramePass>() };
-        MKT_ASSERT( wireframePass, "Trying to set scene for wireframe render pass while it is NULL" );
-        wireframePass->SetScene( scene );
     }
 
     auto SceneRenderer::Render( Scene* scene ) -> void {
@@ -79,39 +58,17 @@ namespace Mikoto {
         m_FrameGraph->Execute();
     }
 
+    auto SceneRenderer::SetCamera( SceneCamera *camera ) -> void {
+
+    }
+
     auto SceneRenderer::SetViewport( const UInt32 width, const UInt32 height ) -> void {
         m_ViewportWidth = width;
         m_ViewportHeight = height;
     }
 
-    auto SceneRenderer::SetCamera( SceneCamera *camera ) -> void {
-        m_Camera = camera;
-
-        ShadingPass* finalCompositionPass{ m_PassRegistry.Get<ShadingPass>() };
-        MKT_ASSERT( finalCompositionPass, "Trying to set scene for final composition pass while it is NULL" );
-
-        finalCompositionPass->SetCamera( m_Camera );
-
-        AABBGenComp* aabbGenComp{ m_PassRegistry.Get<AABBGenComp>() };
-        MKT_ASSERT( aabbGenComp, "Trying to set scene for aabb gen comp pass while it is NULL" );
-
-        aabbGenComp->SetCamera( m_Camera );
-
-        SkyboxPass* skyboxPass{ m_PassRegistry.Get<SkyboxPass>() };
-        MKT_ASSERT( skyboxPass, "Trying to set scene for Skybox pass while it is NULL" );
-
-        skyboxPass->SetCamera( m_Camera );
-    }
-
-    auto SceneRenderer::GetGraph() -> FrameGraph & {
-        return *m_FrameGraph;
-    }
-
     auto SceneRenderer::SetClusterDebugVisualizer( bool enable ) -> void {
-        AABBGenComp* aabbGenComp{ m_PassRegistry.Get<AABBGenComp>() };
-        MKT_ASSERT( aabbGenComp, "Trying to set scene for aabb gen comp pass while it is NULL" );
 
-        aabbGenComp->SetHeatMap( enable );
     }
 
     auto SceneRenderer::SetSkyBox( TextureHandle cubeMap ) -> void {
@@ -142,17 +99,23 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::SetEnvironmentGamma( float value ) -> void {
-        SkyboxPass* skyboxPass{ m_PassRegistry.Get<SkyboxPass>() };
-        if (skyboxPass) {
-            skyboxPass->SetGamma( value );
-        }
+
     }
 
     auto SceneRenderer::SetEnvironmentExposure( float value ) -> void {
-        SkyboxPass* skyboxPass{ m_PassRegistry.Get<SkyboxPass>() };
-        if (skyboxPass) {
-            skyboxPass->SetExposure( value );
-        }
+
+    }
+
+    auto SceneRenderer::GetTexture( std::string_view name ) const -> TextureHandle {
+        return m_FrameGraph->GetTexture(name);
+    }
+
+    auto SceneRenderer::GetBuffer( std::string_view name ) const -> BufferHandle {
+        return m_FrameGraph->GetTexture(name);
+    }
+
+    auto SceneRenderer::SetSceneParameters( Scene *scene ) -> void {
+
     }
 
     auto SceneRenderer::InitGraphicsContex() -> void {
@@ -176,48 +139,33 @@ namespace Mikoto {
 
         CreateMainPasses();
 
-        // Add object outline and Wireframe
-        for ( auto& passPtr: m_PassRegistry | std::views::values ) {
-            m_FrameGraph->RegisterPass(  passPtr.get() );
-        }
-
         m_FrameGraph->Compile();
     }
 
     auto SceneRenderer::PassPreSetup() -> void {
-        AABBGenComp* aabbGenComp{ m_PassRegistry.Get<AABBGenComp>() };
 
-        LightCullingComp* lightCullingComp{ m_PassRegistry.Get<LightCullingComp>() };
-        lightCullingComp->SetClusterCount( aabbGenComp->GetClusterCount() );
-
-        // Skybox
-        SkyboxPass* skyboxPass{ m_PassRegistry.Get<SkyboxPass>() };
-        ShadingPass* finalCompositionPass{ m_PassRegistry.Get<ShadingPass>() };
-
-        skyboxPass->SetCubeMap( m_SkyBoxTexture );
-
-        finalCompositionPass->EnableSkybox( m_UseSkybox );
-        finalCompositionPass->SetClearColor(m_ClearColor);
     }
 
     auto SceneRenderer::CreateDebugPasses() -> void {
         // Debug Passes
-        HelloTrianglePass* helloTrianglePass{ m_PassRegistry.Register<HelloTrianglePass>() };
-        SimpleComputePass* simpleComputePass{ m_PassRegistry.Register<SimpleComputePass>() };
-        HelloTexture* helloTexture{ m_PassRegistry.Register<HelloTexture>() };
+        // HelloTrianglePass* helloTrianglePass{ m_PassRegistry.Register<HelloTrianglePass>() };
+        // SimpleComputePass* simpleComputePass{ m_PassRegistry.Register<SimpleComputePass>() };
+        // HelloTexture* helloTexture{ m_PassRegistry.Register<HelloTexture>() };
+        //
+        // // Wireframe and Outlining
+        // ObjectOutlinePass* outlinePass{ m_PassRegistry.Register<ObjectOutlinePass>() };
+        // WireFramePass* wireFramePass{ m_PassRegistry.Register<WireFramePass>() };
 
-        // Wireframe and Outlining
-        ObjectOutlinePass* outlinePass{ m_PassRegistry.Register<ObjectOutlinePass>() };
-        WireFramePass* wireFramePass{ m_PassRegistry.Register<WireFramePass>() };
+        RegisterHelloTriangle( *m_FrameGraph );
     }
 
     auto SceneRenderer::CreateMainPasses() -> void {
-        ShadingPass* finalCompositionPass{ m_PassRegistry.Register<ShadingPass>() };
-        AABBGenComp* aabbGenComp { m_PassRegistry.Register<AABBGenComp>() };
-        LightCullingComp* lightCullingComp { m_PassRegistry.Register<LightCullingComp>() };
-
-        TextRenderPass* textRenderPass{ m_PassRegistry.Register<TextRenderPass>() };
-        SkyboxPass* skyboxPass{ m_PassRegistry.Register<SkyboxPass>() };
+        // ShadingPass* finalCompositionPass{ m_PassRegistry.Register<ShadingPass>() };
+        // AABBGenComp* aabbGenComp { m_PassRegistry.Register<AABBGenComp>() };
+        // LightCullingComp* lightCullingComp { m_PassRegistry.Register<LightCullingComp>() };
+        //
+        // TextRenderPass* textRenderPass{ m_PassRegistry.Register<TextRenderPass>() };
+        // SkyboxPass* skyboxPass{ m_PassRegistry.Register<SkyboxPass>() };
 
         // Add IBL pre passes
 

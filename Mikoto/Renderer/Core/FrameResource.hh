@@ -16,6 +16,19 @@
 #include <Renderer/Core/Pipeline.hh>
 
 namespace Mikoto {
+    // Used for resource state transitioning
+    enum class FrameResourceState {
+        RenderTarget_Color,
+        RenderTarget_Depth,
+        ShaderResource_Read,
+        ShaderResource_Write,
+
+        Transfer_Src,
+        Transfer_Dst,
+
+        Undefined,
+    };
+
     enum class FrameResourceType {
         RENDER_TARGET,
         TEXTURE,
@@ -42,8 +55,13 @@ namespace Mikoto {
     };
 
     struct FrameResource {
+        std::variant<
+            BufferDescription,
+            PipelineDescription,
+            TextureDescription,
+            TextureCubeCreateDescription> Description{};
+
         FrameResourceType Type{ FrameResourceType::INVALID };
-        std::variant<BufferDescription, PipelineDescription, TextureDescription, TextureCubeCreateDescription> Description{};
     };
 
     enum class ShaderResourceType {

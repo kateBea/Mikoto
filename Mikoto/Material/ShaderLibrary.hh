@@ -14,6 +14,7 @@
 namespace Mikoto {
 
     struct ShaderLibraryDescription {
+        Path RootPath{};
         GpuDevice* Device{ nullptr };
     };
 
@@ -32,6 +33,7 @@ namespace Mikoto {
         ~ShaderLibrary() override = default;
 
     private:
+        Path m_RootPath{};
         GpuDevice *m_Device{ nullptr };
         ankerl::unordered_dense::map<std::string, ShaderModuleHandle> m_Shaders{};
     };

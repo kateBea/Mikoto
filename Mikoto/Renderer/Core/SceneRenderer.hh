@@ -24,7 +24,6 @@
 #include <Scene/SceneCamera.hh>
 
 #include <Renderer/Core/Renderer.hh>
-#include <Renderer/Core/FramePass.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/RenderUtility.hh>
 #include <Renderer/Core/GraphicsContext.hh>
@@ -52,14 +51,6 @@ namespace Mikoto {
         auto SetCamera( SceneCamera* camera ) -> void;
         auto SetViewport( UInt32 width, UInt32 height ) -> void;
 
-        template<typename T>
-        MKT_NODISCARD auto GetPass() -> T* {
-            return m_PassRegistry.Get<T>();
-        }
-
-        auto GetGraph() -> FrameGraph&;
-
-        // Public api to modify core passes
         auto SetClusterDebugVisualizer(bool enable) -> void;
 
         auto SetSkyBox(TextureHandle cubeMap) -> void;
@@ -72,6 +63,9 @@ namespace Mikoto {
 
         auto SetEnvironmentGamma(float value) -> void;
         auto SetEnvironmentExposure(float value) -> void;
+
+        MKT_NODISCARD auto GetTexture(std::string_view name) const -> TextureHandle;
+        MKT_NODISCARD auto GetBuffer(std::string_view name) const -> BufferHandle;
 
     private:
         // [Internal usage]
@@ -89,8 +83,6 @@ namespace Mikoto {
 
         GpuDevice* m_Device{ nullptr };
         SceneCamera* m_Camera{ nullptr };
-
-        Registry<FramePass> m_PassRegistry{};
 
         Unique<FrameGraph> m_FrameGraph{};
         Unique<GraphicsContext> m_GraphicsContext{};

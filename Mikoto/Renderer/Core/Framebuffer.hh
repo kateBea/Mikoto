@@ -18,8 +18,8 @@ namespace Mikoto {
         Int32 Width{};
         Int32 Height{};
 
-        TextureFormat ColorFormat{ TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM };
-        TextureFormat DepthFormat{ TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM };
+        TextureFormat ColorFormat{ TextureFormat::RGBA8_SNORM };
+        TextureFormat DepthFormat{ TextureFormat::RGBA8_SNORM };
 
         std::vector<TextureHandle> DepthAttachment{};
         std::vector<TextureHandle> ColorAttachments{};

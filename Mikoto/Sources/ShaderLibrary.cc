@@ -12,7 +12,7 @@
 namespace Mikoto {
 
     ShaderLibrary::ShaderLibrary( const ShaderLibraryDescription &options )
-        : m_Device{ options.Device }
+        : m_Device{ options.Device }, m_RootPath{ options.RootPath }
     {}
 
     auto ShaderLibrary::Init() -> void {
@@ -34,6 +34,7 @@ namespace Mikoto {
     }
 
     auto ShaderLibrary::GetShader( const std::string_view uri ) -> ShaderModuleHandle {
+        // conmvert path to absolute first
         auto it{ m_Shaders.find( uri.data() ) };
 
         if ( it != m_Shaders.end() ) {
@@ -45,6 +46,8 @@ namespace Mikoto {
 
     auto ShaderLibrary::LoadShader( const Path &path, ShaderStage stage ) -> ShaderModuleHandle {
         MKT_BEGIN_PROFILER_NAMED();
+
+        // Get the file name and concat wioth root, create the whole path and store with it
 
         auto it{ m_Shaders.find( path.string() ) };
         if ( it != m_Shaders.end() ) {

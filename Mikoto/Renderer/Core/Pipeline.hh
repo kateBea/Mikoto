@@ -17,9 +17,9 @@
 
 namespace Mikoto {
 
-    class IPipeline : public DeviceObject {
+    class Pipeline : public DeviceObject {
     public:
-        ~IPipeline() override = default;
+        ~Pipeline() override = default;
 
         MKT_NODISCARD auto GetPipelineType() const -> PipelineType {
             return m_PipelineType;
@@ -32,10 +32,10 @@ namespace Mikoto {
         }
 
     protected:
-        explicit IPipeline(const PipelineType pipelineType)
+        explicit Pipeline(const PipelineType pipelineType)
             : m_PipelineType{ pipelineType } {}
 
-        explicit IPipeline(const PipelineType pipelineType, const std::vector<ShaderModuleHandle>& shaderModules)
+        explicit Pipeline(const PipelineType pipelineType, const std::vector<ShaderModuleHandle>& shaderModules)
             : m_PipelineType{ pipelineType }, m_ShaderModules{ shaderModules } {}
 
     protected:
@@ -44,7 +44,7 @@ namespace Mikoto {
         std::vector<ShaderModuleHandle> m_ShaderModules{};
     };
 
-    using PipelineHandle = Ref<IPipeline>;
+    using PipelineHandle = Ref<Pipeline>;
 
     struct ComputePipelineDescription {
         ShaderModuleHandle Stage{};
@@ -57,10 +57,10 @@ namespace Mikoto {
     * This class encapsulates the properties and methods required to create and manage a compute pipeline.
     * It is designed to be used with the Vulkan graphics API.
     */
-    class ComputePipeline : public IPipeline {
+    class ComputePipeline : public Pipeline {
     public:
         explicit ComputePipeline(const ComputePipelineDescription& desc)
-            : IPipeline{ PipelineType::COMPUTE_PIPELINE, { desc.Stage } } {}
+            : Pipeline{ PipelineType::COMPUTE_PIPELINE, { desc.Stage } } {}
     };
 
     // Note: for now this will always be the same layout as the Models, see Model.hh
@@ -123,9 +123,10 @@ namespace Mikoto {
         bool Wireframe{ false };
         float WireframeLineWidth{ 1.0f };
 
-        PolygonMode PipelinePoligonMode{ PolygonMode::LINES };
-
         CullMode PipelineCullMode{ CullMode::NONE };
+        PolygonMode PipelinePolygonMode{ PolygonMode::LINES };
+        Topology PrimitiveTopology{ Topology::TRIANGLE_LIST };
+        DepthCompareOp DepthCompareOperation{ DepthCompareOp::GREATER_OR_EQUAL };
 
         // One input rate default
         std::vector<AttributesSpec> VertexAttributesSpec{
@@ -137,17 +138,8 @@ namespace Mikoto {
 
         std::vector<ShaderModuleHandle> ShaderStages{};
 
-        Topology PrimitiveTopology{ Topology::TRIANGLE_LIST };
-
-        DepthCompareOp DepthCompareOperation{ DepthCompareOp::GREATER_OR_EQUAL };
-
-        // TODO: review, this is only required because the 
-        // pipeline writes to a texture with a specific format in Vulkan
-        TextureHandle DepthTexture{  };
-        std::vector<TextureHandle> ColorAttachments{};
-
         std::vector<TextureFormat> ColorTexturesFormat{};
-        TextureFormat DepthTextureFormat{ TextureFormat::TEXTURE_FORMAT_D32_FLOAT_S8_UINT };
+        TextureFormat DepthTextureFormat{ TextureFormat::D32_FLOAT_S8_UINT };
     };
 
     /**
@@ -157,10 +149,10 @@ namespace Mikoto {
      * This class encapsulates the properties and methods required to create and manage a graphics pipeline.
      * It is designed to be used with the Vulkan graphics API.
      */
-    class GraphicsPipeline : public IPipeline {
+    class GraphicsPipeline : public Pipeline {
     public:
         explicit GraphicsPipeline(const std::vector<ShaderModuleHandle>& modules = {})
-            : IPipeline{ PipelineType::GRAPHICS_PIPELINE, modules }
+            : Pipeline{ PipelineType::GRAPHICS_PIPELINE, modules }
         {}
 
 

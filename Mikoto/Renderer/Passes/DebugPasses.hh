@@ -22,7 +22,6 @@
 #include <Library/Utility/Types.hh>
 
 #include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Core/FramePass.hh>
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Passes/ShaderRenderParams.hh>
@@ -30,152 +29,12 @@
 namespace Mikoto {
 
     // These will register pass callbacks and their execute methods
-    auto RegisterObjectOutline( FrameGraph& pass ) -> void;
-    auto RegisterWireFrame( FrameGraph& pass ) -> void;
-    auto RegisterMaterialPreview( FrameGraph& pass ) -> void;
-    auto RegisterHelloTriangle( FrameGraph& pass ) -> void;
-    auto RegisterInfiniteGrid( FrameGraph& pass ) -> void;
-    auto RegisterHelloCube( FrameGraph& pass ) -> void;
-
-    class ObjectOutlinePass final : public FramePass {
-    public:
-        explicit ObjectOutlinePass()
-            : FramePass{ "ObjectOutlinePass", FramePassType::RENDER } {}
-
-        auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(CommandContext& context) -> void override;
-    };
-
-    class WireFramePass final : public FramePass {
-    public:
-        explicit WireFramePass()
-            : FramePass{ "WireFramePass", FramePassType::RENDER } {}
-
-        auto Setup( FrameGraphBuilder& device ) -> void override;
-        auto Execute( CommandContext& context ) -> void override;
-
-        auto SetScene( Scene* scene ) -> void;
-        auto SetClearColor( const Vec4F& vec ) -> void;
-
-        auto SetLinesColor( const Vec4F& color ) -> void;
-
-        auto ShowColorImage( bool value ) -> void;
-
-    private:
-        auto UploadObjectsData( CommandContext& context ) -> void;
-        auto TraverseMeshList( CommandContext& context ) -> void;
-
-    public:
-        struct MeshInstanceInfo {
-            DrawIndexedState InstanceDrawState{};
-            ankerl::unordered_dense::map<UInt64, bool> ActiveEntities{};
-            ankerl::unordered_dense::map<UInt64, ShaderMaterialParams> InstanceInfos{};
-
-            MKT_NODISCARD auto IsActive( UInt64 entityID ) const -> bool {
-                bool result{ false };
-                const auto it{ ActiveEntities.find( entityID ) };
-
-                if ( it != ActiveEntities.end() ) {
-                    result = it->second;
-                }
-
-                return result;
-            }
-
-            auto Disable(UInt64 entityID )-> void {
-                const auto it{ ActiveEntities.find( entityID ) };
-
-                if ( it != ActiveEntities.end() ) {
-                    it->second = false;
-                }
-            }
-        };
-
-    private:
-
-        Scene* m_Scene{};
-        Vec4F m_ClearColor{ 1.0f, 1.0f, 1.0f, 1.0f };
-
-        std::vector<ShaderMaterialParams> m_Meshes{};
-        ankerl::unordered_dense::map<MeshNode*, MeshInstanceInfo> m_MeshDrawState{};
-
-        bool m_ShowColor{ false };
-    };
-
-    // Material Pass that renders a sphere with a texture on a sphere
-    // Uses IBL precomputed info
-    class MaterialPreviewPass final : public FramePass {
-    public:
-        explicit MaterialPreviewPass()
-            : FramePass{ "MaterialPreviewPass", FramePassType::RENDER } {}
-
-        auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(CommandContext& context) -> void override;
-    };
-
-    // This class is kept for debug purposes
-    // just computes prime numbers
-    class SimpleComputePass final : public FramePass {
-    public:
-        explicit SimpleComputePass()
-            : FramePass{ "SimpleComputePass", FramePassType::COMPUTE } {}
-
-        auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(CommandContext& cmdList) -> void override;
-
-
-    };
-
-    // Simple pass for testing purposes
-    // A triangle with interpolation
-    class HelloTrianglePass final : public FramePass {
-    public:
-        explicit HelloTrianglePass()
-            : FramePass{ "HelloTrianglePass", FramePassType::RENDER } {}
-
-        auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(CommandContext& context) -> void override;
-    };
-
-    // Simple pass for testing purposes
-    // Displays a texture
-    class HelloTexture final : public FramePass {
-    public:
-        explicit HelloTexture()
-            : FramePass{ "HelloTexture", FramePassType::RENDER } {}
-
-        auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(CommandContext& context) -> void override;
-
-    private:
-
-        struct HelloTextureUniformBuffer {
-            Int32 TextureIndex{ SRGTextures::INVALID_TEXTURE_INDEX };
-        };
-    };
-
-    // Simple pass for testing purposes
-    // A colored/textured cube
-    class HelloCubePass final : public FramePass {
-    public:
-        explicit HelloCubePass()
-            : FramePass{ "HelloTrianglePass", FramePassType::RENDER } {}
-
-        auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(CommandContext& context) -> void override;
-    };
-
-    class InfiniteGridPass final : public FramePass {
-    public:
-        explicit InfiniteGridPass()
-            : FramePass{ "InfiniteGridPass", FramePassType::RENDER } {}
-
-        auto Setup(FrameGraphBuilder& builder) -> void override;
-        auto Execute(CommandContext& context) -> void override;
-
-        auto SetDependencies( FrameGraphBuilder &builder ) -> void override;
-    };
-
+    auto RegisterObjectOutline( FrameGraph& graph ) -> void;
+    auto RegisterWireFrame( FrameGraph& graph ) -> void;
+    auto RegisterMaterialPreview( FrameGraph& graph ) -> void;
+    auto RegisterHelloTriangle( FrameGraph& graph ) -> void;
+    auto RegisterInfiniteGrid( FrameGraph& graph ) -> void;
+    auto RegisterHelloCube( FrameGraph& graph ) -> void;
 }
 
 #endif //MIKOTO_DEBUG_PASSES_HH

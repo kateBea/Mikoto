@@ -110,41 +110,40 @@ namespace Mikoto {
      * It includes formats such as RGBA and RGB, which describe how color data is represented per pixel.
      */
     enum class TextureFormat {
-        TEXTURE_FORMAT_INVALID = -1,
+        INVALID = -1,
 
-        TEXTURE_FORMAT_R8_UNORM,
-        TEXTURE_FORMAT_RG8_UNORM,
-        TEXTURE_FORMAT_RGB8_UNORM,
-        TEXTURE_FORMAT_RGBA8_UNORM,
+        R8_UNORM,
+        RG8_UNORM,
+        RGB8_UNORM,
+        RGBA8_UNORM,
 
-        TEXTURE_FORMAT_R8_SNORM,
-        TEXTURE_FORMAT_RG8_SNORM,
-        TEXTURE_FORMAT_RGB8_SNORM,
-        TEXTURE_FORMAT_RGBA8_SNORM,
+        R8_SNORM,
+        RG8_SNORM,
+        RGB8_SNORM,
+        RGBA8_SNORM,
 
-        TEXTURE_FORMAT_R16_UNORM,
-        TEXTURE_FORMAT_RG16_UNORM,
-        TEXTURE_FORMAT_RGB16_UNORM,
-        TEXTURE_FORMAT_RGBA16_UNORM,
+        R16_UNORM,
+        RG16_UNORM,
+        RGB16_UNORM,
+        RGBA16_UNORM,
 
-        TEXTURE_FORMAT_R16_FLOAT,
-        TEXTURE_FORMAT_RG16_FLOAT,
-        TEXTURE_FORMAT_RGB16_FLOAT,
-        TEXTURE_FORMAT_RGBA16_FLOAT,
+        R16_FLOAT,
+        RG16_FLOAT,
+        RGB16_FLOAT,
+        RGBA16_FLOAT,
 
-        TEXTURE_FORMAT_R32_FLOAT,
-        TEXTURE_FORMAT_RG32_FLOAT,
-        TEXTURE_FORMAT_RGB32_FLOAT,
-        TEXTURE_FORMAT_RGBA32_FLOAT,
+        R32_FLOAT,
+        RG32_FLOAT,
+        RGB32_FLOAT,
+        RGBA32_FLOAT,
 
-        TEXTURE_FORMAT_SRGB8,
-        TEXTURE_FORMAT_SRGB8_ALPHA8,
+        SRGB8,
+        SRGB8_ALPHA8,
 
-        TEXTURE_FORMAT_D16_UNORM,
-        TEXTURE_FORMAT_D24_UNORM_S8_UINT,
-        TEXTURE_FORMAT_D32_FLOAT,
-        TEXTURE_FORMAT_D32_FLOAT_S8_UINT,
-
+        D16_UNORM,
+        D24_UNORM_S8_UINT,
+        D32_FLOAT,
+        D32_FLOAT_S8_UINT,
     };
 
     enum class ResourceUsageType {
@@ -208,7 +207,7 @@ namespace Mikoto {
 
         TextureType Type{ TextureType::TEXTURE_2D };
         TextureUsage Usage{ TextureUsage::TEXTURE_USAGE_NORMAL };
-        TextureFormat Format{ TextureFormat::TEXTURE_FORMAT_RGBA8_SNORM };
+        TextureFormat Format{ TextureFormat::RGBA8_SNORM };
         ResourceUsageType UsageType{ ResourceUsageType::RESOURCE_USAGE_STATIC };
 
         auto WithWidth( Int32 width ) -> TextureDescription&;
@@ -280,7 +279,7 @@ namespace Mikoto {
 
         UInt32 MipLevels{ 1 };
         UInt32 Dimensions{};
-        TextureFormat Format{ TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM };
+        TextureFormat Format{ TextureFormat::RGBA8_UNORM };
         TextureUsage Usage{ TextureUsage::TEXTURE_USAGE_CUBE };
 
         bool IsHdrMap{ false };

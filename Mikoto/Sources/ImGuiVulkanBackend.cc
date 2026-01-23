@@ -274,7 +274,7 @@ namespace Mikoto {
                 .WithData( nullptr )
                 .WithType( TextureType::TEXTURE_2D )
                 .WithTextureUsage( TextureUsage::TEXTURE_USAGE_COLOR )
-                .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
+                .WithFormat( TextureFormat::RGBA8_UNORM )
                 .WithResourceType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
 
         m_ColorImage = m_GpuDevice->CreateTexture( colorDesc );
@@ -289,7 +289,7 @@ namespace Mikoto {
                 .WithData( nullptr )
                 .WithType( TextureType::TEXTURE_2D )
                 .WithTextureUsage( TextureUsage::TEXTURE_USAGE_DEPTH )
-                .WithFormat( TextureFormat::TEXTURE_FORMAT_D32_FLOAT )
+                .WithFormat( TextureFormat::D32_FLOAT_S8_UINT )
                 .WithResourceType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC);
 
         m_DepthImage = m_GpuDevice->CreateTexture( depthDesc );

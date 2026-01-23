@@ -184,7 +184,7 @@ namespace Mikoto {
                    .WithChannelCount( 4 )
                    .WithData( const_cast<UChar *>( bitmap.pixels ) )
                    .WithType( TextureType::TEXTURE_2D )
-                   .WithFormat( TextureFormat::TEXTURE_FORMAT_RGBA8_UNORM )
+                   .WithFormat( TextureFormat::RGBA8_UNORM )
                    .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
         data.TextureAtlas = m_GpuDevice->CreateTexture( textureDesc );

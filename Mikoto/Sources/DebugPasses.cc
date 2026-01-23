@@ -211,7 +211,11 @@ namespace Mikoto {
     }
 
     auto InfiniteGridPass::Execute( CommandContext &context ) -> void {
-        
+
+    }
+
+    auto InfiniteGridPass::SetDependencies( FrameGraphBuilder &builder ) -> void {
+
     }
 
     auto SimpleComputePass::Setup( FrameGraphBuilder& builder ) -> void {

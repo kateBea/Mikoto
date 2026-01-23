@@ -164,6 +164,8 @@ namespace Mikoto {
 
         auto Setup(FrameGraphBuilder& builder) -> void override;
         auto Execute(CommandContext& context) -> void override;
+
+        auto SetDependencies( FrameGraphBuilder &builder ) -> void override;
     };
 
 }

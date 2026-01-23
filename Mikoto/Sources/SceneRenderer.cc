@@ -158,14 +158,7 @@ namespace Mikoto {
     auto SceneRenderer::InitGraphicsContex() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        switch ( m_Device->GetApi() ) {
-            case GraphicsAPI::VULKAN_API:
-                m_GraphicsContext = GraphicsContext::Create( m_Device );
-                break;
-            default:
-                MKT_CORE_LOGGER_CRITICAL( "SceneRenderer::InitGraphicsContex - Error Unsupported renderer API!" );
-                break;
-        }
+        m_GraphicsContext = GraphicsContext::Create( m_Device );
 
         if (m_GraphicsContext) {
             m_GraphicsContext->Init();

@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 #include <ranges>
 
 #include <Core/Profiler.hh>
@@ -180,24 +179,22 @@ namespace Mikoto {
 
         m_FrameGraph = FrameGraph::Create( m_GraphicsContext.get(), m_Device );
 
-        FrameGraphBuilder builder{};
+        CreateDebugPasses( );
 
-        CreateDebugPasses( builder );
-
-        CreateMainPasses( builder );
+        CreateMainPasses();
 
         // Add object outline and Wireframe
         for ( auto& passPtr: m_PassRegistry | std::views::values ) {
             m_FrameGraph->RegisterPass(  passPtr.get() );
         }
 
-        m_FrameGraph->Compile( builder );
+        m_FrameGraph->Compile();
     }
 
     auto SceneRenderer::PassPreSetup() -> void {
         AABBGenComp* aabbGenComp{ m_PassRegistry.Get<AABBGenComp>() };
-        LightCullingComp* lightCullingComp{ m_PassRegistry.Get<LightCullingComp>() };
 
+        LightCullingComp* lightCullingComp{ m_PassRegistry.Get<LightCullingComp>() };
         lightCullingComp->SetClusterCount( aabbGenComp->GetClusterCount() );
 
         // Skybox
@@ -205,60 +202,39 @@ namespace Mikoto {
         ShadingPass* finalCompositionPass{ m_PassRegistry.Get<ShadingPass>() };
 
         skyboxPass->SetCubeMap( m_SkyBoxTexture );
-        finalCompositionPass->EnableSkybox( m_UseSkybox );
 
+        finalCompositionPass->EnableSkybox( m_UseSkybox );
         finalCompositionPass->SetClearColor(m_ClearColor);
     }
 
-    auto SceneRenderer::CreateDebugPasses( FrameGraphBuilder& builder ) -> void {
+    auto SceneRenderer::CreateDebugPasses() -> void {
         // Debug Passes
         HelloTrianglePass* helloTrianglePass{ m_PassRegistry.Register<HelloTrianglePass>() };
-        helloTrianglePass->Setup( builder );
-
         SimpleComputePass* simpleComputePass{ m_PassRegistry.Register<SimpleComputePass>() };
-        simpleComputePass->Setup( builder );
-
         HelloTexture* helloTexture{ m_PassRegistry.Register<HelloTexture>() };
-        helloTexture->Setup( builder );
 
         // Wireframe and Outlining
         ObjectOutlinePass* outlinePass{ m_PassRegistry.Register<ObjectOutlinePass>() };
-        outlinePass->Setup( builder );
-
         WireFramePass* wireFramePass{ m_PassRegistry.Register<WireFramePass>() };
-        wireFramePass->Setup( builder );
     }
 
-    auto SceneRenderer::CreateMainPasses( FrameGraphBuilder& builder ) -> void {
+    auto SceneRenderer::CreateMainPasses() -> void {
         ShadingPass* finalCompositionPass{ m_PassRegistry.Register<ShadingPass>() };
-        finalCompositionPass->Setup( builder );
-
         AABBGenComp* aabbGenComp { m_PassRegistry.Register<AABBGenComp>() };
-        aabbGenComp->Setup( builder );
-
         LightCullingComp* lightCullingComp { m_PassRegistry.Register<LightCullingComp>() };
-        lightCullingComp->Setup( builder );
 
         TextRenderPass* textRenderPass{ m_PassRegistry.Register<TextRenderPass>() };
-        textRenderPass->Setup( builder );
-
         SkyboxPass* skyboxPass{ m_PassRegistry.Register<SkyboxPass>() };
-        skyboxPass->Setup( builder );
 
         // Add IBL pre passes
-        // For now the execution policy for these will be once, the idea is that they change
-        // if we upload a new environment map
 
         // IrradiancePass* irradiancePass{ m_PassRegistry.Register<IrradiancePass>() };
-        // irradiancePass->Setup( builder );
         // irradiancePass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
         //
         // PrefilterPass* prefilterPass{ m_PassRegistry.Register<PrefilterPass>() };
-        // prefilterPass->Setup( builder );
         // prefilterPass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
         //
         // BRDFLutPass* brdfLutPass{ m_PassRegistry.Register<BRDFLutPass>() };
-        // brdfLutPass->Setup( builder );
         // brdfLutPass->SetExecutionPolicy( FramePassExecutionPolicy::ONCE );
     }
 

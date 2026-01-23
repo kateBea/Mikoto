@@ -71,6 +71,8 @@ namespace Mikoto {
         auto CreateDepthRenderTarget(std::string_view name, UInt32 width, UInt32 height, TextureFormat format) -> void;
         auto CreateCubeRenderTarget(std::string_view name, UInt32 dimensions, TextureFormat format, UInt32 mipLevels = 1) -> void;
 
+        auto Clear() -> void;
+
     private:
         friend class FrameGraph;
 
@@ -96,9 +98,10 @@ namespace Mikoto {
 
         explicit FrameGraph( GraphicsContext* context, GpuDevice* device );
 
+        // Will be deprecated
         auto RegisterPass(FramePass* pass) -> void;
 
-        auto Compile(FrameGraphBuilder& builder) -> void;
+        auto Compile() -> void;
         auto Execute() -> void;
 
         MKT_NODISCARD auto GetBlackboard() const -> FrameBlackboard*;
@@ -106,7 +109,10 @@ namespace Mikoto {
         MKT_NODISCARD static auto Create(GraphicsContext* context, GpuDevice* device ) -> Unique<FrameGraph>;
 
     private:
-        auto SortPassExecution(FrameGraphBuilder& builder) -> void;
+        auto RunPassSetups() -> void;
+        auto RunPassDependencyCallbacks() -> void;
+
+        auto SortPassExecution() -> void;
         auto RegisterResource(std::string_view name, FrameResource resource) const -> void;
 
     private:
@@ -115,6 +121,8 @@ namespace Mikoto {
         GraphicsContext* m_GraphicsContex{};
 
         Unique<FrameBlackboard> m_Blackboard{};
+
+        FrameGraphBuilder m_Builder{};
 
         bool m_Compiled{ false };
     };

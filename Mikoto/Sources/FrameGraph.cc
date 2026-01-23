@@ -106,6 +106,12 @@ namespace Mikoto {
         CreateNamedRenderTarget( name, depthDesc );
     }
 
+    auto FrameGraphBuilder::Clear() -> void {
+        m_Nodes.clear();
+        m_Pipelines.clear();
+        m_Resources.clear();
+    }
+
     FrameGraph::FrameGraph( GraphicsContext* context, GpuDevice* device)
         : m_GraphicsContex{ context }, m_Device{ device }
     {
@@ -116,18 +122,22 @@ namespace Mikoto {
         m_Nodes.emplace_back( pass );
     }
 
-    auto FrameGraph::Compile( FrameGraphBuilder &builder ) -> void {
+    auto FrameGraph::Compile( ) -> void {
+        RunPassSetups();
+
+        RunPassDependencyCallbacks();
+
         // Create the actual resources on the GPU
-        for (auto& [resourceName, resourceDescription] : builder.m_Resources) {
+        for (auto& [resourceName, resourceDescription] : m_Builder.m_Resources) {
             RegisterResource( resourceName, resourceDescription );
         }
 
         // Register the actual pipelines
-        for (auto& [resourceName, resourceDescription] : builder.m_Pipelines) {
+        for (auto& [resourceName, resourceDescription] : m_Builder.m_Pipelines) {
             RegisterResource( resourceName, resourceDescription );
         }
 
-        SortPassExecution( builder );
+        SortPassExecution();
     }
 
     auto FrameGraph::Execute() -> void {
@@ -154,13 +164,23 @@ namespace Mikoto {
         return CreateScope<FrameGraph>( context, device );
     }
 
-    auto FrameGraph::SortPassExecution( FrameGraphBuilder &builder ) -> void {
+    auto FrameGraph::RunPassSetups() -> void {
+        for (const auto &pass: m_Nodes) {
+            pass.Pass->Setup( m_Builder );
+        }
+    }
+
+    auto FrameGraph::RunPassDependencyCallbacks() -> void {
+
+    }
+
+    auto FrameGraph::SortPassExecution() -> void {
         ankerl::unordered_dense::map<std::string, FramePass*> resourceWriters{};
 
         // Assumption (fine for now):
         // One writer per resource per frame
 
-        for (auto& [pass, nodeData] : builder.m_Nodes) {
+        for (auto& [pass, nodeData] : m_Builder.m_Nodes) {
             for (const auto& buf : nodeData.WriteBuffers) {
                 resourceWriters[buf] = pass;
             }
@@ -182,7 +202,7 @@ namespace Mikoto {
             sortNodes[node.Pass].Node = std::addressof( node );
         }
 
-        for (auto& [pass, nodeData] : builder.m_Nodes) {
+        for (auto& [pass, nodeData] : m_Builder.m_Nodes) {
             SortNode& readerNode{ sortNodes[pass] };
 
             auto addDependency{ [&](const std::string& resource) {

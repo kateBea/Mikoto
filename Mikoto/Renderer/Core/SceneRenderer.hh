@@ -80,15 +80,14 @@ namespace Mikoto {
 
         auto PassPreSetup() -> void;
 
-        auto CreateDebugPasses(FrameGraphBuilder& builder) -> void;
-        auto CreateMainPasses(FrameGraphBuilder& builder) -> void;
+        auto CreateDebugPasses() -> void;
+        auto CreateMainPasses() -> void;
 
         auto SetSceneParameters( Scene* scene ) -> void;
 
     private:
 
         GpuDevice* m_Device{ nullptr };
-
         SceneCamera* m_Camera{ nullptr };
 
         Registry<FramePass> m_PassRegistry{};

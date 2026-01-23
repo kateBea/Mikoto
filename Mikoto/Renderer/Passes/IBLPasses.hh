@@ -168,11 +168,12 @@ namespace Mikoto {
         auto EnableSkybox( bool enable ) -> void;
         auto SetClearColor( const Vec4F& vec ) -> void;
 
+        auto SetDependencies( FrameGraphBuilder &builder ) -> void override;
+
     private:
         auto UploadInstanceData( CommandContext& context ) -> void;
         auto TraverseMeshList( CommandContext& context ) -> void;
 
-    public:
         struct MeshInstanceInfo {
             DrawIndexedState InstanceDrawState{};
             ankerl::unordered_dense::map<UInt64, bool> ActiveEntities{};

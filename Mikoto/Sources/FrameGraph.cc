@@ -171,14 +171,15 @@ namespace Mikoto {
     }
 
     auto FrameGraph::RunPassDependencyCallbacks() -> void {
-
+        for (const auto &pass: m_Nodes) {
+            pass.Pass->SetDependencies( m_Builder );
+        }
     }
 
     auto FrameGraph::SortPassExecution() -> void {
         ankerl::unordered_dense::map<std::string, FramePass*> resourceWriters{};
 
-        // Assumption (fine for now):
-        // One writer per resource per frame
+        // Assumption: One writer per resource per frame
 
         for (auto& [pass, nodeData] : m_Builder.m_Nodes) {
             for (const auto& buf : nodeData.WriteBuffers) {

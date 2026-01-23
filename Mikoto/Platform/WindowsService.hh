@@ -36,7 +36,7 @@ namespace Mikoto {
         auto Init() -> void override;
         auto Shutdown() -> void override;
 
-        MKT_NODISCARD auto CreateNewWindow(const WindowProperties& properties) -> Window*;
+        MKT_NODISCARD auto Create(const WindowProperties& properties) -> Window*;
 
     private:
         auto InitWindowHandling() -> void;

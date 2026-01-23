@@ -206,6 +206,14 @@ namespace Mikoto {
     auto HelloCubePass::Execute( CommandContext& context ) -> void {
     }
 
+    auto InfiniteGridPass::Setup( FrameGraphBuilder &builder ) -> void {
+
+    }
+
+    auto InfiniteGridPass::Execute( CommandContext &context ) -> void {
+        
+    }
+
     auto SimpleComputePass::Setup( FrameGraphBuilder& builder ) -> void {
         PipelineDescription pipelineDesc{};
         pipelineDesc.Description = ComputePipelineDescription{};

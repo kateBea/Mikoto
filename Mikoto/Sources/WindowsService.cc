@@ -55,7 +55,7 @@ namespace Mikoto {
         m_IsInitialized = false;
     }
 
-    auto WindowsService::CreateNewWindow( const WindowProperties &properties ) -> Window * {
+    auto WindowsService::Create( const WindowProperties &properties ) -> Window * {
         Window* result{ nullptr };
 
         try {

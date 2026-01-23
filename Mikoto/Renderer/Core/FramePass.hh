@@ -70,6 +70,8 @@ namespace Mikoto {
         */
         virtual auto Execute(CommandContext& cmdList) -> void = 0;
 
+        virtual auto SetDependencies(FrameGraphBuilder& builder) -> void {}
+
         /**
          * @brief Finalizes pass state after successful execution.
          *

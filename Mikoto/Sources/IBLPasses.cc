@@ -317,7 +317,11 @@ namespace Mikoto {
                         .ForElement( sizeof( ShaderMaterialParams ), MAX_RENDERABLE_ENTITIES );
         builder.CreateNamedBuffer( "FinalCompositionPass_MeshInfo", meshInstanceInfo );
 
-        // Declare its inputs and outputs
+        // Prepare to have at least MAX_RENDERABLE_ENTITIES
+        m_Meshes.resize( MAX_RENDERABLE_ENTITIES );
+    }
+
+    auto ShadingPass::SetDependencies( FrameGraphBuilder &builder ) -> void {
         builder.ReadBuffer( this, "AABBGenComp_CameraUBO" );
         builder.ReadBuffer( this, "AABBGenComp_Clusters" );
         builder.ReadBuffer( this, "LightCullingComp_LightsBuffer" );
@@ -328,9 +332,6 @@ namespace Mikoto {
 
         builder.ReadTexture( this, "FinalCompositionPass_ColorTarget" );
         builder.WriteTexture( this, "FinalCompositionPass_DepthTarget" );
-
-        // Prepare to have at least MAX_RENDERABLE_ENTITIES
-        m_Meshes.resize( MAX_RENDERABLE_ENTITIES );
     }
 
     auto ShadingPass::TraverseMeshList( CommandContext &context ) -> void {

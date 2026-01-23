@@ -157,6 +157,15 @@ namespace Mikoto {
         auto Execute(CommandContext& context) -> void override;
     };
 
+    class InfiniteGridPass final : public FramePass {
+    public:
+        explicit InfiniteGridPass()
+            : FramePass{ "InfiniteGridPass", FramePassType::RENDER } {}
+
+        auto Setup(FrameGraphBuilder& builder) -> void override;
+        auto Execute(CommandContext& context) -> void override;
+    };
+
 }
 
 #endif //MIKOTO_DEBUG_PASSES_HH

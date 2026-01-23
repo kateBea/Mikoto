@@ -55,7 +55,7 @@ auto InitializeWindow() -> void {
         .Resizable{ g_Config.Get<bool>( "application.resizable" ) }
     };
 
-    g_Window = WindowsService::Get()->CreateNewWindow( properties );
+    g_Window = WindowsService::Get()->Create( properties );
 }
 
 auto InitializeApplication() -> void {

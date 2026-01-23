@@ -149,6 +149,7 @@ namespace Mikoto {
     auto SceneRenderer::CreateDebugPasses() -> void {
         RegisterHelloTriangle( *m_FrameGraph );
         RegisterSimpleCompute( *m_FrameGraph );
+        RegisterHelloTexture( *m_FrameGraph );
     }
 
     auto SceneRenderer::CreateMainPasses() -> void {

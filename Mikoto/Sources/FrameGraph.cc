@@ -40,7 +40,11 @@ namespace Mikoto {
         m_PipelineDescription.UseShader( path, stage );
     }
 
-    auto FramePassBuilder::SetBufferSR( SRGType type, std::string_view name, UInt32 bindSlot ) -> void {
+    auto FramePassBuilder::UseSrg( SRGType type ) -> void {
+
+    }
+
+    auto FramePassBuilder::UseSrg( SRGType type, std::string_view name, UInt32 bindSlot ) -> void {
         switch (type) {
             case SRGType::SRG_PerPass:
                 m_PassShaderResources.SetBuffer( name, bindSlot );

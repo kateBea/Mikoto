@@ -36,6 +36,7 @@ namespace Mikoto {
     auto RegisterSimpleCompute( FrameGraph& graph ) -> void;
     auto RegisterInfiniteGrid( FrameGraph& graph ) -> void;
     auto RegisterHelloCube( FrameGraph& graph ) -> void;
+    auto RegisterHelloTexture( FrameGraph& graph ) -> void;
 }
 
 #endif //MIKOTO_DEBUG_PASSES_HH

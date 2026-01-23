@@ -32,7 +32,6 @@
 #include <Panels/StatsPanel.hh>
 #include <Physics/PhysicService.hh>
 #include <Renderer/Core/DebugRenderer.hh>
-#include <Renderer/Core/FrameBlackboard.hh>
 #include <Renderer/Core/RenderService.hh>
 #include <Scene/Component.hh>
 #include <Scene/SceneManager.hh>

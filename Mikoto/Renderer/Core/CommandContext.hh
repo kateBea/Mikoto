@@ -78,6 +78,12 @@ namespace Mikoto {
         auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void;
 
         auto FillBufferElement(std::string_view bufferName, const void* buffer, Size elementSize, Size elementCount) const -> void;
+
+        template<typename T>
+        auto FillBuffer(std::string_view bufferName, const void* ptrSrc ) const -> void {
+            FillBuffer( bufferName, ptrSrc, sizeof(T));
+        }
+
         auto FillBuffer(std::string_view bufferName, const void* ptrSrc, Size size, Size offset = 0 ) const -> void;
 
         MKT_NODISCARD auto PushTexture(TextureHandle texture ) const -> Int32;

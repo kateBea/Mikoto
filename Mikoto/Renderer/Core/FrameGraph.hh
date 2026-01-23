@@ -24,7 +24,6 @@
 #include <Assets//Texture.hh>
 
 #include <Renderer/Core/Pipeline.hh>
-#include <Renderer/Core/FrameBlackboard.hh>
 #include <Renderer/Core/FrameGraphBlackboard.hh>
 #include <Renderer/Core/FrameResource.hh>
 #include <Renderer/Core/RenderUtility.hh>
@@ -72,7 +71,8 @@ namespace Mikoto {
 
         auto UseShader( std::string_view path, ShaderStage stage ) -> void;
 
-        auto SetBufferSR(SRGType type, std::string_view name, UInt32 bindSlot) -> void;
+        auto UseSrg(SRGType type) -> void;
+        auto UseSrg(SRGType type, std::string_view name, UInt32 bindSlot) -> void;
 
         MKT_NODISCARD auto GetPass() -> FramePassNode*;
         MKT_NODISCARD auto GetShaderResources() const -> const SRGPerPass&;
@@ -113,10 +113,10 @@ namespace Mikoto {
         auto RegisterPass( const std::string_view name, SetupFn &&setup, ExecuteFn &&execute ) -> void {
             FramePassNode &node{ CreatePassNode( name ) };
 
-            PassData *data{ m_GraphBlackboard.Add<PassData>() };
+            PassData& data{ m_GraphBlackboard.Add<PassData>() };
 
             FramePassBuilder builder{ node };
-            setup( builder, *data );
+            setup( builder, data );
 
             CreateCommitedResources(builder);
             node.ExecuteCallback = [execute](CommandContext &ctx, FrameGraphBlackboard& blackboard) {

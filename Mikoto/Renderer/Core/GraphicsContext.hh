@@ -26,7 +26,6 @@
 #include <Library/Utility/Types.hh>
 #include <Material/Material.hh>
 #include <Renderer/Core/Buffer.hh>
-#include <Renderer/Core/FrameBlackboard.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/Light.hh>
@@ -44,11 +43,6 @@ namespace Mikoto {
 
     struct PassScissor {
         float X{}, Y{}, Width{}, Height{};
-    };
-
-    struct PassResources {
-        FramePassNode* Pass{ nullptr };
-        FrameBlackboard* Blackboard{ nullptr };
     };
 
     struct PassRenderInfo {

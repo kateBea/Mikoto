@@ -2,8 +2,9 @@
 // Created by kate on 10/12/23.
 //
 
-#include <ImGui/IconsMaterialDesign.h>
 #include <imgui.h>
+
+#include <ImGui/IconsMaterialDesign.h>
 
 #include <Core/Profiler.hh>
 #include <Core/RuntimeConsole.hh>

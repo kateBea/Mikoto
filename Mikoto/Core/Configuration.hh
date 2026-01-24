@@ -1,33 +1,29 @@
+//    Copyright 2025 ケイト
 //
-// Created by kate on 1/4/25.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-
-#ifndef CONFIGLOADER_HH
-#define CONFIGLOADER_HH
+#ifndef MIKOTO_CONFIG_LOADER_HH
+#define MIKOTO_CONFIG_LOADER_HH
 
 #include <any>
 #include <string>
 
-#include <Library/Utility/Types.hh>
-
-/**
- * Can disable exceptions in
- * compiler flags and/or explicitly disable the library's use of them by setting the option
- * #TOML_EXCEPTIONS to 0. In either case, the parsing functions return a
- * toml::parse_result instead of a toml::table:
- *
- *  only necessary if you've left them enabled in your compiler #include <toml++/toml.hpp>
- * */
-#define TOML_EXCEPTIONS 0
-#include <toml++/toml.hpp>
 #include <ankerl/unordered_dense.h>
+
+#include <Library/Utility/Types.hh>
 
 namespace Mikoto {
 
-    /**
-     * Mikoto exposes toml for config loading but user can use any
-     *
-     */
     class Configuration {
     public:
         virtual ~Configuration() = default;
@@ -46,7 +42,7 @@ namespace Mikoto {
             return defaultValue;
         }
 
-        auto IsLoaded() const  -> bool { return m_IsLoaded; }
+        MKT_NODISCARD auto IsLoaded() const  -> bool { return m_IsLoaded; }
 
     protected:
         bool m_IsLoaded{ false };
@@ -55,4 +51,4 @@ namespace Mikoto {
 
 }// namespace Mikoto
 
-#endif//CONFIGLOADER_HH
+#endif //MIKOTO_CONFIG_LOADER_HH

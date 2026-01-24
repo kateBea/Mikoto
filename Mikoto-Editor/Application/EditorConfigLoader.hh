@@ -1,14 +1,34 @@
+//    Copyright 2025 ケイト
 //
-// Created by kate on 11/28/25.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef MIKOTO_EDITORCONFIGLOADER_HH
-#define MIKOTO_EDITORCONFIGLOADER_HH
+#ifndef MIKOTO_EDITOR_CONFIG_LOADER_HH
+#define MIKOTO_EDITOR_CONFIG_LOADER_HH
 
 #include <any>
 #include <string_view>
 
+/**
+ * Can disable exceptions in
+ * compiler flags and/or explicitly disable the library's use of them by setting the option
+ * #TOML_EXCEPTIONS to 0. In either case, the parsing functions return a
+ * toml::parse_result instead of a toml::table:
+ *
+ *  only necessary if you've left them enabled in your compiler #include <toml++/toml.hpp>
+ * */
+#define TOML_EXCEPTIONS 0
 #include <toml++/toml.hpp>
+#include <ankerl/unordered_dense.h>
 
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
@@ -76,4 +96,4 @@ namespace Mikoto {
     };
 }
 
-#endif//MIKOTO_EDITORCONFIGLOADER_HH
+#endif//MIKOTO_EDITOR_CONFIG_LOADER_HH

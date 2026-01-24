@@ -28,6 +28,10 @@
 #include <Renderer/Core/RenderUtility.hh>
 #include <Renderer/Core/GraphicsContext.hh>
 
+#include "Renderer/Passes/DebugPasses.hh"
+#include "Renderer/Passes/IBLPasses.hh"
+#include "Renderer/Passes/PostEffectsPasses.hh"
+
 namespace Mikoto {
 
     struct SceneRendererCreateInfo {
@@ -73,10 +77,6 @@ namespace Mikoto {
         auto InitCoreFramePasses() -> void;
 
         auto PassPreSetup() -> void;
-
-        auto CreateDebugPasses() -> void;
-        auto CreateMainPasses() -> void;
-
         auto SetSceneParameters( Scene* scene ) -> void;
 
     private:
@@ -93,6 +93,11 @@ namespace Mikoto {
 
         UInt32 m_ViewportWidth{ 0u };
         UInt32 m_ViewportHeight{ 0u };
+
+        // Passes
+        IBLPasses m_IBLPasses{ m_RenderResolution };
+        PostEffectsPass m_PostEffectsPasses{ m_RenderResolution };
+        DebugPasses m_DebugPasses{ m_RenderResolution };
 
         bool m_UseSkybox{ false };
         Vec4F m_ClearColor{ 0.1f, 0.2f, 0.5f, 1.0f };

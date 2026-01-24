@@ -41,6 +41,12 @@ namespace Mikoto {
     }
 
     auto FramePassBuilder::UseSrg( SRGType type ) -> void {
+        switch (type) {
+            case SRGType::SRG_Textures:
+                m_UsesTextures = true;
+                break;
+            default: ;
+        }
 
     }
 
@@ -71,6 +77,14 @@ namespace Mikoto {
         description
                 .WithUsage( usage )
                 .WithSizeBytes( sizeBytes );
+        CreateBuffer( name, description );
+    }
+
+    auto FramePassBuilder::CreateBuffer( std::string_view name, BufferUsage usage, Size elementCount, Size size ) -> void {
+        BufferDescription description{};
+        description
+                .WithUsage( usage )
+                .ForElement( size, elementCount );
         CreateBuffer( name, description );
     }
 
@@ -138,6 +152,10 @@ namespace Mikoto {
             CommandContext commandContext{ m_GraphicsContex, m_Device };
             commandContext.BeginPass(node);
 
+            if (UsesTextureList( node.Name )) {
+                commandContext.UseTextureList();
+            }
+
             node.ExecuteCallback( commandContext, m_GraphBlackboard );
 
             commandContext.EndPass();
@@ -158,6 +176,10 @@ namespace Mikoto {
         return CreateScope<FrameGraph>( context, device );
     }
 
+    auto FrameGraph::UsesTextureList(std::string_view nodeName) const -> bool {
+        return m_TexturePasses.contains( StringUtil::From( nodeName ) );
+    }
+
     auto FrameGraph::IsFramePassPresent( const std::string_view name ) const -> bool {
         return m_Passes.contains( std::string{ name } );
     }
@@ -170,6 +192,10 @@ namespace Mikoto {
     auto FrameGraph::CreateCommitedResources( FramePassBuilder &builder ) -> void {
         for (auto &[resourceName, resourceDescription]: builder.m_Creates) {
             CreateResource( resourceName, resourceDescription );
+        }
+
+        if (builder.m_UsesTextures) {
+            m_TexturePasses.emplace( builder.GetPass()->Name );
         }
 
         m_GraphicsContex->CreateShaderResources(builder.GetPass()->Name, builder.m_PipelineDescription);

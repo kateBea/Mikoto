@@ -231,18 +231,18 @@ namespace Mikoto {
         );
     }
 
-    // auto VulkanGraphicsContext::BindTextureList(CommandListHandle cmdList) -> void {
-    //     vkCmdBindDescriptorSets(
-    //         cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
-    //         VK_PIPELINE_BIND_POINT_GRAPHICS,
-    //         m_TexturesPipelineLayout,
-    //         TEXTURES_DESCRIPTOR_SET_INDEX,
-    //         1,
-    //         &m_BindlessTexturesSet,
-    //         0,
-    //         nullptr
-    //     );
-    // }
+    auto VulkanGraphicsContext::BindTextureList(CommandListHandle cmdList) -> void {
+        vkCmdBindDescriptorSets(
+            cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_TexturesPipelineLayout,
+            TEXTURES_DESCRIPTOR_SET_INDEX,
+            1,
+            &m_BindlessTexturesSet,
+            0,
+            nullptr
+        );
+    }
 
     auto VulkanGraphicsContext::UpdateBindlessTexturesSet(Texture* texture, Sampler* sampler, Size setIndex ) const -> void {
         MKT_ASSERT(setIndex < SRGTextures::GetMaxTextureCount(), "Set index must be smaller than max bindless textures");

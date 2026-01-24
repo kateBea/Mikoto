@@ -28,15 +28,39 @@
 
 namespace Mikoto {
 
-    // These will register pass callbacks and their execute methods
-    auto RegisterObjectOutline( FrameGraph& graph ) -> void;
-    auto RegisterWireFrame( FrameGraph& graph ) -> void;
-    auto RegisterMaterialPreview( FrameGraph& graph ) -> void;
-    auto RegisterHelloTriangle( FrameGraph& graph ) -> void;
-    auto RegisterSimpleCompute( FrameGraph& graph ) -> void;
-    auto RegisterInfiniteGrid( FrameGraph& graph ) -> void;
-    auto RegisterHelloCube( FrameGraph& graph ) -> void;
-    auto RegisterHelloTexture( FrameGraph& graph ) -> void;
+    class DebugPasses {
+    public:
+        explicit DebugPasses( RenderResolution resolution);
+
+        auto SetScene( const Scene* scene) -> void;
+
+        auto RegisterPasses(FrameGraph& graph) -> void;
+
+        auto SetClearColor( const Vec4F& vec ) -> void;
+        auto SetLinesColor( const Vec4F& color ) -> void;
+        auto ShowColorImage( bool value ) -> void;
+
+    private:
+        auto RegisterObjectOutline( FrameGraph& graph ) -> void;
+        auto RegisterWireFrame( FrameGraph& graph ) -> void;
+        auto RegisterMaterialPreview( FrameGraph& graph ) -> void;
+        auto RegisterHelloTriangle( FrameGraph& graph ) -> void;
+        auto RegisterSimpleCompute( FrameGraph& graph ) -> void;
+        auto RegisterInfiniteGrid( FrameGraph& graph ) -> void;
+        auto RegisterHelloCube( FrameGraph& graph ) -> void;
+        auto RegisterHelloTexture( FrameGraph& graph ) -> void;
+    private:
+
+        // Texture to be displayed in the Texture debug pass
+        TextureHandle m_TextureHandle{};
+
+        const Scene* m_Scene{};
+        Vec4F m_ClearColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+        Vec4F m_LinesColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+
+        bool m_ShowColorImageWireframe{ false };
+        RenderResolution m_Resolution{ RenderResolution::FHD_1080 };
+    };
 }
 
 #endif //MIKOTO_DEBUG_PASSES_HH

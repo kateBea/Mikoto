@@ -22,7 +22,147 @@
 
 namespace Mikoto {
 
-    auto RegisterTextRender( FrameGraph &pass ) -> void {
+    PostEffectsPass::PostEffectsPass( RenderResolution resolution )
+        : m_Resolution{ resolution }
+    {
 
+    }
+
+    auto PostEffectsPass::SetScene( const Scene *scene ) -> void {
+        m_Scene = scene;
+    }
+
+    auto PostEffectsPass::RegisterPasses( FrameGraph &graph ) -> void {
+        RegisterTextRender( graph );
+    }
+
+    auto PostEffectsPass::RegisterTextRender( FrameGraph &graph ) -> void {
+        graph.RegisterPass(
+                        "3DTextRenderingPass",
+                        []( FramePassBuilder &b ) {
+                            b.Create<Texture>( "HelloTriangle_ColorTarget", RenderResolution::FHD_1080, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                            b.Create<Texture>( "HelloTriangle_DepthTarget", RenderResolution::FHD_1080, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
+
+                            b.UseShader( "Resources/Shaders/vulkan-spirv/HelloTriangle_Vert.sprv", ShaderStage::VERTEX );
+                            b.UseShader( "Resources/Shaders/vulkan-spirv/HelloTriangle_Frag.sprv", ShaderStage::FRAGMENT );
+
+                            b.Create<Pipeline>( "HelloTriangle_Pipeline", GraphicsPipelineDescription{ .VertexAttributesSpec{} } );
+
+                            b.Write( "HelloTriangle_ColorTarget", FrameResourceState::ShaderResource_Read );
+                            b.Write( "HelloTriangle_DepthTarget", FrameResourceState::ShaderResource_Read );
+                        },
+                        []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                            ctx.BindPipeline( "HelloTriangle_Pipeline" );
+
+                            ctx.SetViewport( 0, 0, 1920, 1080 );
+                            ctx.SetScissor( 0, 0, 1920, 1080 );
+
+                            ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
+                            ctx.SetColorRenderTarget( "HelloTriangle_ColorTarget" );
+                            ctx.SetDepthRenderTarget( "HelloTriangle_DepthTarget" );
+                            ctx.BeginRender();
+
+                            ctx.Draw( 3, 1, 0, 0 );
+
+                            ctx.EndRender();
+                        } );
+    }
+
+    auto PostEffectsPass::TraverseTextList( CommandContext &commandList ) -> void {
+        FontHandle testFont{ AssetsService::Get()->LoadAsset<Font>( Path{ "Resources/Fonts/Google_Sans_Code/GoogleSansCode-VariableFont_wght.ttf" } ) };
+
+        // Clear text data as we refill it every frame
+        m_TextRenderParams.clear();
+
+        auto& registry{ m_Scene->GetRegistry() };
+        auto renderables{ registry.view<TagComponent, TransformComponent, TextComponent>() };
+
+        for (auto& entity : renderables) {
+            auto& tag{ registry.get<TagComponent>( entity ) };
+            auto& transform{ registry.get<TransformComponent>( entity ) };
+            auto& textComponent{ registry.get<TextComponent>( entity ) };
+
+            if (!textComponent.HasFont()) {
+                continue;
+            }
+
+            const float textSize{ textComponent.GetSize() };
+            const glm::vec4 color{ textComponent.GetColor() };
+            const glm::vec4 position{ transform.GetTranslation(), 1.0f };
+            const Camera* textCamera{ textComponent.GetCamera() };
+
+            SetupTextForRender(textComponent.GetFontHandle(), textCamera, position, textComponent.GetContents(), textSize, color, commandList );
+        }
+
+        commandList.UploadBuffer( "TextRenderPass_TextRenderParams", m_TextRenderParams.data(), m_TextRenderParams.size() * sizeof( TextRenderParams ) );
+    }
+
+    auto PostEffectsPass::SetupRenderParams( CommandContext &context ) -> void {
+        m_TextRenderUBO.OutlineWidth = 0.0f;
+        context.UploadBuffer( "TextRenderPass_FontParams", std::addressof( m_TextRenderUBO ), sizeof( m_TextRenderUBO ) );
+    }
+
+    auto PostEffectsPass::SetupTextForRender( FontHandle font, const Camera *camera, Vec4F position, std::string_view text, double fontSize, Vec4F color, CommandContext &commandList ) -> void {
+using namespace StringUtils;
+
+        double xPos{ position.x };
+        double yPos{ position.y };
+        double scale{ fontSize / font->GetSize() };
+
+        double lineHeight{ font->GetMaxHeight() * scale };
+
+        for ( const auto& character : text ) {
+            if ( IsLineFeed(character) ) {
+                xPos = position.x;
+                yPos -= lineHeight;
+                continue;
+            }
+
+            double advance{ 0 };
+
+            if ( font->HasGlyph(character)) {
+                const FontGlyph& glyph{ font->GetGlyph( static_cast<UInt32>( character ) ) };
+
+                if (!IsSpace(character)) {
+                    // Quad Coordinates
+                    double x0{ xPos + glyph.m_PlaneBounds.x * fontSize };
+                    double y0{ yPos - glyph.m_PlaneBounds.y * fontSize };
+
+                    // UV Coordinates
+                    TextureHandle atlas{ font->GetAtlas() };
+                    double s0{ glyph.m_AtlasBounds.x / atlas->GetWidth() };
+                    double t0{ glyph.m_AtlasBounds.w / atlas->GetHeight() };
+                    double s1{ glyph.m_AtlasBounds.z / atlas->GetWidth() };
+                    double t1{ glyph.m_AtlasBounds.y / atlas->GetHeight() };
+
+                    TextRenderParams fontParams{
+                        .Position{ x0, y0 + std::round( ( font->GetMaxHeight() * scale ) ) - ( glyph.m_Height * scale ), position.z, position.w },
+                        .Size{ glyph.m_Width * scale, glyph.m_Height * scale, 0.0f, 0.0f },
+                        .Color{ color },
+                        .TexCoords{ { s0, t0 }, { s1, t0 }, { s1, t1 }, { s0, t1 } },
+                        .TexIndex{ static_cast<UInt32>( commandList.PushTexture( atlas ) ) }
+                    };
+
+                    if (camera != nullptr) {
+                        fontParams.Proj = camera->GetProjection();
+                        fontParams.View = camera->GetViewMatrix();
+                    } else {
+                        fontParams.Proj = glm::ortho(0.0f, 1920.0f,1080.0f, 0.0f,-1.0f, 1.0f);
+                        fontParams.View = glm::mat4{ 1.0f };
+                    }
+
+                    m_TextRenderParams.emplace_back( fontParams );
+                }
+
+                advance = glyph.m_AdvanceX * fontSize;
+            } else {
+                // If the character does not exist just insert space
+                // equal to Space character.
+                const FontGlyph& glyph{ font->GetGlyph( static_cast<UInt32>( ' ' ) ) };
+                advance = glyph.m_AdvanceX * fontSize;
+            }
+
+            xPos += advance;
+        }
     }
 }

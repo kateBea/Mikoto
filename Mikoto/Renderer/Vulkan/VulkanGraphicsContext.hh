@@ -57,7 +57,8 @@ namespace Mikoto {
         auto CreateShaderResources( std::string_view passName, PipelineDescription& desc ) -> void override;
         auto BindShaderResources( std::string_view passName, CommandListHandle cmdList ) -> void override;
 
-        // auto BindTextureList(CommandListHandle cmdList) -> void override;
+        auto BindTextureList(CommandListHandle cmdList) -> void override;
+
         // auto BindShaderResources(FramePassNode* pass, CommandListHandle cmdList ) -> void override;
         // auto CommitShaderResources(FramePassNode* pass ) -> void override;
         // auto CreatePipelineResources(FramePassNode* pass, PipelineHandle pipeline) -> void override;

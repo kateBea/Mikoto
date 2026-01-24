@@ -80,6 +80,7 @@ namespace Mikoto {
     private:
         auto CreateBuffer( std::string_view name, BufferDescription description ) -> void;
         auto CreateBuffer( std::string_view name, BufferUsage usage, Size sizeBytes ) -> void;
+        auto CreateBuffer( std::string_view name, BufferUsage usage, Size elementCount, Size size ) -> void;
 
         auto CreateTexture( std::string_view name, TextureDescription description ) -> void;
 
@@ -103,6 +104,8 @@ namespace Mikoto {
         FramePassNode* m_Node{};
         SRGPerPass m_PassShaderResources{};
         ankerl::unordered_dense::map<std::string, FrameResource> m_Creates{};
+
+        bool m_UsesTextures{ false };
     };
 
     class FrameGraph final {
@@ -147,6 +150,7 @@ namespace Mikoto {
 
     private:
 
+        MKT_NODISCARD auto UsesTextureList(std::string_view nodeName) const -> bool;
         MKT_NODISCARD auto IsFramePassPresent(std::string_view name) const -> bool;
 
         auto SortPassExecution() -> void;
@@ -164,6 +168,9 @@ namespace Mikoto {
 
         // List of registered nodes
         ankerl::unordered_dense::map<std::string, FramePassNode> m_Passes{};
+
+        // Passes that use global array of textures
+        ankerl::unordered_dense::set<std::string> m_TexturePasses{};
 
         // Compile flag
         bool m_Compiled{ false };

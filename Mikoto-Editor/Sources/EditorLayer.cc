@@ -121,6 +121,9 @@ namespace Mikoto {
         m_EditorState->TextureHDR_2D = RenderService::Get()->GetGpuDevice()->CreateTexture( textureDesc );
 
         m_ActiveScene->SetSkybox( m_TextureHDR );
+
+        m_EditorState->PassesCompositions.try_emplace( "Triangle", m_SceneRenderer->GetTexture( "HelloTriangle_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "Texture2D", m_SceneRenderer->GetTexture( "HelloTexture_ColorTarget" ) );
     }
 
     auto EditorLayer::SetupRenderer() -> void {

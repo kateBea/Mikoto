@@ -68,23 +68,25 @@ namespace Mikoto {
         auto SetViewport(Int32 x, Int32 y, Int32 width, Int32 height) -> void ;
         auto SetScissor(Int32 x, Int32 y, Int32 width, Int32 height) -> void;
 
+        auto UseTextureList() -> void;
+
         // Need to bind pipeline before specifying resources
         auto BindPipeline(std::string_view pipelineName ) -> void;
 
         auto SetClearColor(const Vec4F& color) -> void;
 
         auto DrawIndexed(const DrawIndexedState& info) -> void;
-        auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance ) -> void;
+        auto Draw(UInt32 vertexCount, UInt32 instanceCount = 1, UInt32 firstVertex = 0, UInt32 firstInstance = 0 ) -> void;
         auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void;
 
-        auto FillBufferElement(std::string_view bufferName, const void* buffer, Size elementSize, Size elementCount) const -> void;
+        auto UploadBufferData(std::string_view bufferName, const void* buffer, Size elementSize, Size elementCount) const -> void;
 
         template<typename T>
-        auto FillBuffer(std::string_view bufferName, const void* ptrSrc ) const -> void {
-            FillBuffer( bufferName, ptrSrc, sizeof(T));
+        auto UploadBuffer(std::string_view bufferName, const void* ptrSrc ) const -> void {
+            UploadBuffer( bufferName, ptrSrc, sizeof(T));
         }
 
-        auto FillBuffer(std::string_view bufferName, const void* ptrSrc, Size size, Size offset = 0 ) const -> void;
+        auto UploadBuffer(std::string_view bufferName, const void* ptrSrc, Size size, Size offset = 0 ) const -> void;
 
         MKT_NODISCARD auto PushTexture(TextureHandle texture ) const -> Int32;
         MKT_NODISCARD auto GetNamedBuffer( std::string_view ) const -> BufferHandle;

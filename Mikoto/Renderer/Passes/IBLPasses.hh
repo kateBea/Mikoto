@@ -15,36 +15,140 @@
 #ifndef MIKOTO_IBL_PASSES_HH
 #define MIKOTO_IBL_PASSES_HH
 
-#include <string>
-#include <vector>
-#include <string_view>
-
-#include <ankerl/unordered_dense.h>
-
-#include <Assets/Model.hh>
+#include <glm/glm.hpp>
 
 #include <Scene/Scene.hh>
-#include <Scene/Camera.hh>
-
-#include <Assets//Texture.hh>
-
-#include <Library/Utility/Types.hh>
-#include <Library/Data/ResourcePool.hh>
-
 #include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Core/CommandContext.hh>
-#include <Renderer/Core/GraphicsContext.hh>
+#include <Renderer/Core/RenderUtility.hh>
 #include <Renderer/Passes/ShaderRenderParams.hh>
 
 namespace Mikoto {
 
-    // These will register pass callbacks and their execute methods
-    auto RegisterIrradiance( FrameGraph& pass ) -> void;
-    auto RegisterPrefilter( FrameGraph& pass ) -> void;
-    auto RegisterBRDFLut( FrameGraph& pass ) -> void;
-    auto RegisterSkybox( FrameGraph& pass ) -> void;
-    auto RegisterShading( FrameGraph& pass ) -> void;
-}
+    class IBLPasses {
+    public:
+        explicit IBLPasses( RenderResolution resolution);
 
+        auto SetScene( Scene* scene) -> void;
+        auto SetCamera( const Camera *camera ) -> void;
+        auto RegisterPasses( FrameGraph& graph ) -> void;
+
+        auto SetResolution( RenderResolution resolution) -> void;
+
+        auto EnableSkybox(bool enable) -> void;
+
+    private:
+        auto RegisterIrradiance( FrameGraph& graph ) -> void;
+        auto RegisterPrefilter( FrameGraph& graph ) -> void;
+        auto RegisterBRDFLut( FrameGraph& graph ) -> void;
+        auto RegisterSkybox( FrameGraph& graph ) -> void;
+        auto RegisterShading( FrameGraph& graph ) -> void;
+
+    private:
+        inline static const std::vector<glm::mat4> s_Matrices{
+            // POSITIVE_X
+            glm::rotate(glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            // NEGATIVE_X
+            glm::rotate(glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f)), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            // POSITIVE_Y
+            glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            // NEGATIVE_Y
+            glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            // POSITIVE_Z
+            glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            // NEGATIVE_Z
+            glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+        };
+
+    private:
+        struct alignas(16) IrradianceParameters {
+            float DeltaPhi{};
+            float DeltaTheta{};
+        };
+
+        struct alignas(16) IrradianceCamInfo {
+            Mat4F MVP{};
+        };
+
+        struct alignas(16) PrefilterParameters {
+            float Roughness{};
+            UInt32 NumSamples{};
+        };
+
+        struct alignas(16) PrefilterCamInfo {
+            Mat4F MVP{};
+        };
+
+        struct alignas(16) SkyboxUBO {
+            Mat4F View{};
+            Mat4F Projection{};
+            float Exposure{};
+            float Gamma{};
+        };
+
+        struct MeshInstanceInfo {
+            DrawIndexedState InstanceDrawState{};
+            ankerl::unordered_dense::map<UInt64, bool> ActiveEntities{};
+            ankerl::unordered_dense::map<UInt64, ShaderMaterialParams> InstanceInfos{};
+
+            MKT_NODISCARD auto IsActive( UInt64 entityID ) const -> bool {
+                bool result{ false };
+                const auto it{ ActiveEntities.find( entityID ) };
+
+                if ( it != ActiveEntities.end() ) {
+                    result = it->second;
+                }
+
+                return result;
+            }
+
+            auto Disable(UInt64 entityID )-> void {
+                const auto it{ ActiveEntities.find( entityID ) };
+
+                if ( it != ActiveEntities.end() ) {
+                    it->second = false;
+                }
+            }
+        };
+
+    private:
+
+        static constexpr UInt32 MAX_MIP_LEVELS{ 7 };
+        static constexpr UInt32 MAX_CUBE_FACES{ 6 };
+
+    private:
+
+        auto UploadInstanceData( CommandContext& context ) -> void;
+        auto TraverseMeshList( CommandContext& context ) -> void;
+
+    private:
+
+        UInt32 m_MipLevels{};
+        UInt32 m_Dimensions{ 64 };
+
+        PrefilterParameters m_PrefilterParameters{};
+        PrefilterCamInfo m_PrefilterCameraInfo{};
+
+        IrradianceCamInfo m_CameraInfo{};
+        IrradianceParameters m_Parameters{};
+
+        SamplerHandle m_Sampler{};
+
+        SkyboxUBO m_SkyboxUBO{};
+        TextureHandle m_CubeMap{};
+
+        ShaderLightListParams m_LightsInfo{};
+        ShaderCameraParams m_FrameUBO{};
+
+        bool m_UseSkybox{ false };
+
+        Scene* m_Scene{};
+        Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
+
+        std::vector<ShaderMaterialParams> m_Meshes{};
+        ankerl::unordered_dense::map<MeshNode*, MeshInstanceInfo> m_MeshDrawState{};
+
+        RenderResolution m_Resolution{ RenderResolution::FHD_1080 };
+    };
+}
 
 #endif//MIKOTO_IBL_PASSES_HH

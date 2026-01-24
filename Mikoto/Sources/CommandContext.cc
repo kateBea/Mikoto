@@ -80,6 +80,11 @@ namespace Mikoto {
         m_Commands->SetScissor( x, y, width, height );
     }
 
+    auto CommandContext::UseTextureList() -> void {
+        MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
+        m_Context->BindTextureList( m_Commands );
+    }
+
     auto CommandContext::BindPipeline( std::string_view pipelineName ) -> void {
         const PipelineHandle piepline{ m_Context->GetPipeline( pipelineName ) };
 
@@ -114,7 +119,7 @@ namespace Mikoto {
         m_Commands->Dispatch( invX, invY, invZ );
     }
 
-    auto CommandContext::FillBufferElement( std::string_view bufferName, const void *buffer, Size elementSize, Size elementCount ) const -> void {
+    auto CommandContext::UploadBufferData( std::string_view bufferName, const void *buffer, Size elementSize, Size elementCount ) const -> void {
         if (BufferHandle bufferHandle{ m_Context->GetBuffer( bufferName ) }; !bufferHandle.IsEmpty()) {
             for (Size count{}; count < elementCount; ++count) {
                 const auto *src{ static_cast<const std::byte *>( buffer ) };
@@ -123,7 +128,7 @@ namespace Mikoto {
         }
     }
 
-    auto CommandContext::FillBuffer( std::string_view bufferName, const void *ptrSrc, Size size, Size offset ) const -> void {
+    auto CommandContext::UploadBuffer( std::string_view bufferName, const void *ptrSrc, Size size, Size offset ) const -> void {
         if (BufferHandle buffer{ m_Context->GetBuffer( bufferName ) }; !buffer.IsEmpty()) {
             if (size > buffer->GetSizeBytes()) {
                 MKT_CORE_LOGGER_WARN( "PassCommandList::FillBuffer - [{}] size is [{}]. Trying to copy [{}] bytes", bufferName, buffer->GetSizeBytes(), size );
@@ -131,7 +136,9 @@ namespace Mikoto {
         }
     }
 
-    auto CommandContext::PushTexture( TextureHandle texture ) const -> Int32 { return m_Context->PushImage( texture ); }
+    auto CommandContext::PushTexture( TextureHandle texture ) const -> Int32 {
+        return m_Context->PushImage( texture );
+    }
 
     auto CommandContext::GetNamedBuffer( std::string_view name ) const -> BufferHandle {
         return m_Context->GetBuffer( name );

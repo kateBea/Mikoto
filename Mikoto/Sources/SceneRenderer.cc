@@ -135,24 +135,14 @@ namespace Mikoto {
 
         m_FrameGraph = FrameGraph::Create( m_GraphicsContext.get(), m_Device );
 
-        CreateDebugPasses( );
-
-        CreateMainPasses();
+        m_DebugPasses.RegisterPasses( *m_FrameGraph );
+        //m_IBLPasses.RegisterPasses( *m_FrameGraph );
+        //m_PostEffectsPasses.RegisterPasses( *m_FrameGraph );
 
         m_FrameGraph->Compile();
     }
 
     auto SceneRenderer::PassPreSetup() -> void {
-
-    }
-
-    auto SceneRenderer::CreateDebugPasses() -> void {
-        RegisterHelloTriangle( *m_FrameGraph );
-        RegisterSimpleCompute( *m_FrameGraph );
-        RegisterHelloTexture( *m_FrameGraph );
-    }
-
-    auto SceneRenderer::CreateMainPasses() -> void {
 
     }
 

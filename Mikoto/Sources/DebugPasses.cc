@@ -20,12 +20,47 @@
 
 namespace Mikoto {
 
-    auto RegisterHelloTriangle( FrameGraph &graph ) -> void {
+    DebugPasses::DebugPasses( RenderResolution resolution )
+        : m_Resolution{ resolution }
+    {
+
+    }
+
+    auto DebugPasses::SetScene( const Scene *scene ) -> void {
+        m_Scene = scene;
+    }
+
+    auto DebugPasses::SetClearColor( const Vec4F &vec ) -> void {
+        m_ClearColor = vec;
+    }
+
+    auto DebugPasses::SetLinesColor( const Vec4F &color ) -> void {
+        m_LinesColor = color;
+    }
+
+    auto DebugPasses::ShowColorImage( bool value ) -> void {
+        m_ShowColorImageWireframe = value;
+    }
+
+    auto DebugPasses::RegisterPasses( FrameGraph &graph ) -> void {
+        RegisterHelloTexture( graph );
+        RegisterSimpleCompute( graph );
+        RegisterHelloTriangle( graph );
+        RegisterWireFrame( graph );
+    }
+
+    auto DebugPasses::RegisterObjectOutline( FrameGraph &graph ) -> void {}
+
+    auto DebugPasses::RegisterWireFrame( FrameGraph &graph ) -> void {}
+
+    auto DebugPasses::RegisterMaterialPreview( FrameGraph &graph ) -> void {}
+
+    auto DebugPasses::RegisterHelloTriangle( FrameGraph &graph ) -> void {
         graph.RegisterPass(
                 "HelloTriangle",
-                []( FramePassBuilder &b ) {
-                    b.Create<Texture>( "HelloTriangle_ColorTarget", RenderResolution::FHD_1080, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                    b.Create<Texture>( "HelloTriangle_DepthTarget", RenderResolution::FHD_1080, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
+                [this]( FramePassBuilder &b ) {
+                    b.Create<Texture>( "HelloTriangle_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                    b.Create<Texture>( "HelloTriangle_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/HelloTriangle_Vert.sprv", ShaderStage::VERTEX );
                     b.UseShader( "Resources/Shaders/vulkan-spirv/HelloTriangle_Frag.sprv", ShaderStage::FRAGMENT );
@@ -43,6 +78,7 @@ namespace Mikoto {
 
                     ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
                     ctx.SetColorRenderTarget( "HelloTriangle_ColorTarget" );
+                    ctx.SetDepthRenderTarget( "HelloTriangle_DepthTarget" );
                     ctx.BeginRender();
 
                     ctx.Draw( 3, 1, 0, 0 );
@@ -51,7 +87,8 @@ namespace Mikoto {
                 } );
     }
 
-    auto RegisterSimpleCompute( FrameGraph &graph ) -> void {
+    auto DebugPasses::RegisterSimpleCompute( FrameGraph &graph ) -> void {
+
         graph.RegisterPass(
                 "SimpleCompute",
                 []( FramePassBuilder &b ) {
@@ -75,20 +112,24 @@ namespace Mikoto {
 
                     ctx.Dispatch( groupCount, 1, 1 );
                 } );
+
     }
 
-    auto RegisterHelloTexture( FrameGraph &graph ) -> void {
+    auto DebugPasses::RegisterInfiniteGrid( FrameGraph &graph ) -> void {}
+
+    auto DebugPasses::RegisterHelloCube( FrameGraph &graph ) -> void {}
+
+    auto DebugPasses::RegisterHelloTexture( FrameGraph &graph ) -> void {
         struct HelloTextureData {
-            TextureHandle TextureHandle{};
             Int32 TextureIndex{ SRGTextures::INVALID_TEXTURE_INDEX };
         };
 
         graph.RegisterPass<HelloTextureData>(
                 "HelloTexture",
-                []( FramePassBuilder &b, HelloTextureData& data ) -> void {
+                [this]( FramePassBuilder &b, HelloTextureData& ) -> void {
                     b.Create<Buffer>( "HelloTexture_TexturesBuffer", BufferUsage::UNIFORM, sizeof( HelloTextureData ) );
-                    b.Create<Texture>( "HelloTexture_ColorTarget", RenderResolution::FHD_1080, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                    b.Create<Texture>( "HelloTexture_DepthTarget", RenderResolution::FHD_1080, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
+                    b.Create<Texture>( "HelloTexture_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                    b.Create<Texture>( "HelloTexture_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/FullscreenTriangle_Vert.sprv", ShaderStage::VERTEX );
                     b.UseShader( "Resources/Shaders/vulkan-spirv/FullscreenTriangle_Frag.sprv", ShaderStage::FRAGMENT );
@@ -105,21 +146,22 @@ namespace Mikoto {
                     b.UseSrg( SRGType::SRG_Textures );
 
                     // Texture used later
-                    data.TextureHandle = AssetsService::Get()->LoadAsset<Texture>( Path{ "Resources/Models/1 - Box texture/CatStare.png" } );
+                    m_TextureHandle = AssetsService::Get()->LoadAsset<Texture>( Path{ "Resources/Models/1 - Box texture/CatStare.png" } );
                 },
-                []( CommandContext &ctx, FrameGraphBlackboard & blackboard) -> void {
+                [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard) -> void {
                     auto& data{ blackboard.Get<HelloTextureData>() };
-                    data.TextureIndex = ctx.PushTexture( data.TextureHandle );
+                    data.TextureIndex = ctx.PushTexture( m_TextureHandle );
 
-                    ctx.FillBuffer<HelloTextureData>( "HelloTexture_TexturesBuffer", std::addressof( data ) );
+                    ctx.UploadBuffer<HelloTextureData>( "HelloTexture_TexturesBuffer", std::addressof( data ) );
 
                     ctx.BindPipeline( "HelloTexture_Pipeline" );
 
                     ctx.SetViewport( 0, 0, 1920, 1080 );
                     ctx.SetScissor( 0, 0, 1920, 1080 );
 
-                    ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
+                    ctx.SetClearColor( { 0.5f, 0.2f, 0.3f, 1.0f } );
                     ctx.SetColorRenderTarget( "HelloTexture_ColorTarget" );
+                    ctx.SetDepthRenderTarget( "HelloTexture_DepthTarget" );
                     ctx.BeginRender();
 
                     ctx.Draw( 4, 1, 0, 0 );

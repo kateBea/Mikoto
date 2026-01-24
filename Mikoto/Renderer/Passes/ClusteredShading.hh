@@ -15,27 +15,75 @@
 #ifndef MIKOTO_CLUSTERED_SHADING_HH
 #define MIKOTO_CLUSTERED_SHADING_HH
 
-#include <string>
-#include <string_view>
-#include <vector>
-
-#include <glm/glm.hpp>
-#include <ankerl/unordered_dense.h>
-
 #include <Scene/Scene.hh>
 #include <Scene/Camera.hh>
-#include <Library/Utility/Types.hh>
 #include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Core/CommandContext.hh>
-#include <Renderer/Core/GraphicsContext.hh>
+#include <Renderer/Core/RenderUtility.hh>
 #include <Renderer/Passes/ShaderRenderParams.hh>
 
 namespace Mikoto {
 
-    // These will register pass callbacks and their execute methods
-    auto RegisterAABBGen( FrameGraph& pass ) -> void;
-    auto RegisterLightCulling( FrameGraph& pass ) -> void;
-    auto RegisterShadowMapping( FrameGraph& pass ) -> void;
+    class ClusteredShading {
+    public:
+        explicit ClusteredShading(RenderResolution resolution);
+
+        auto SetScene(const Scene* scene) -> void;
+        auto SetCamera(const Camera *camera) -> void;
+        auto RegisterPasses(FrameGraph &graph) -> void;
+
+    private:
+        auto BuildAABB( FrameGraph& graph ) -> void;
+        auto BuildLightCulling( FrameGraph& graph ) -> void;
+        auto BuildShadowMapping( FrameGraph& graph ) -> void;
+
+    private:
+        constexpr static UInt32 MAX_LIGHT_CLUSTERS{ 256 };
+        struct CameraUBO {
+            glm::mat4 ViewMatrix{};
+            glm::mat4 InverseProjection{};
+
+            glm::vec4 GridSize{};
+            glm::vec4 ViewPosition{};
+
+            // xy = Planes, zw = ScreenDimensions
+            glm::vec4 Screen{};
+
+            // x = show heat map
+            glm::vec4 LightInfo{};
+        };
+
+        struct alignas(sizeof(glm::vec4)) Cluster  {
+            glm::vec4 Center{};
+            glm::vec4 ClosestPoint{};
+            glm::vec4 DistanceSquared{};
+
+            glm::vec4 MinPoint{};
+            glm::vec4 MaxPoint{};
+            UInt32 Count{};
+            UInt32 LightIndices[MAX_LIGHT_CLUSTERS];
+        };
+
+        struct alignas(16) LightCullingUBO {
+            UInt32 LightCount{};
+        };
+
+    private:
+        const Scene* m_Scene{};
+        const Camera* m_Camera{};
+
+        UInt32 m_GridSizeX{ 12 };
+        UInt32 m_GridSizeY{ 12 };
+        UInt32 m_GridSizeZ{ 24 };
+        UInt32 m_NumClusters{ m_GridSizeX * m_GridSizeY * m_GridSizeZ };
+        UInt32 m_LocalSize{ 128 }; // for light culling
+
+        CameraUBO m_CameraUBO{};
+        LightCullingUBO m_LightCullingUBO{};
+
+        RenderResolution m_Resolution{ RenderResolution::FHD_1080 };
+
+        std::vector<ShaderLightTypeParams> m_Lights{};
+    };
 }
 
 

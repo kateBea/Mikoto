@@ -72,6 +72,8 @@ namespace Mikoto {
 
         virtual auto CreateSample( std::string_view name, const SamplerDescription& description ) -> void = 0;
 
+        virtual auto BindTextureList(CommandListHandle cmdList) -> void = 0;
+
         virtual auto PushImage( TextureHandle texture ) -> Int32 = 0;
 
         virtual auto CommitShaderResources(std::string_view passName, SRGPerPass& passData ) -> void = 0;
@@ -81,8 +83,6 @@ namespace Mikoto {
         MKT_NODISCARD static auto Create(GpuDevice* device) -> Unique<GraphicsContext>;
 
         // virtual auto PushImage(TextureHandle texture) -> Int32 = 0;
-        // virtual auto BindTextureList(CommandListHandle cmdList) -> void = 0;
-
 
     protected:
         explicit GraphicsContext(GpuDevice* device)

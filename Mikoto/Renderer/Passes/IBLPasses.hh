@@ -117,7 +117,6 @@ namespace Mikoto {
     private:
 
         static constexpr UInt32 MAX_MIP_LEVELS{ 7 };
-        static constexpr UInt32 MAX_CUBE_FACES{ 6 };
 
     private:
 
@@ -130,8 +129,11 @@ namespace Mikoto {
         TextureHandle m_CubeMap{};
         bool m_UseSkybox{ false };
 
-        UInt32 m_MipLevels{};
-        UInt32 m_Dimensions{ 64 };
+        UInt32 m_IrradianceMipLevels{};
+        UInt32 m_PrefilterMipLevels{};
+
+        UInt32 m_IrradianceDimensions{ 64 };
+        UInt32 m_PrefilterDimensions{ 512 };
 
         PrefilterParameters m_PrefilterParameters{};
         PrefilterCamInfo m_PrefilterCameraInfo{};

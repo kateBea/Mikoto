@@ -55,7 +55,9 @@ namespace Mikoto {
         ImGui::Text( "Set io.ConfigFlags |= ImGuiConfigFlags_DockingEnable in your code" );
         ImGui::SameLine( 0.0f, 0.0f );
 
-        if (ImGui::SmallButton( "Click here" )) { io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; }
+        if (ImGui::SmallButton( "Click here" )) {
+            io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+        }
     }
 
     EditorLayer::EditorLayer( Window* window)
@@ -77,6 +79,46 @@ namespace Mikoto {
 
         CreatePanels();
 
+        LoadResources();
+
+        m_EditorState->PassesCompositions.try_emplace( "Triangle", m_SceneRenderer->GetTexture( "HelloTriangle_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "Texture2D", m_SceneRenderer->GetTexture( "HelloTexture_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "BRDF LUT", m_SceneRenderer->GetTexture( "BRDFLutPass_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "Skybox", m_SceneRenderer->GetTexture( "FinalShadingPass_ColorTarget" ) );
+    }
+
+    auto EditorLayer::SetupRenderer() -> void {
+        SceneRendererCreateInfo spec{};
+        spec.WithName( "Scene renderer" )
+            .WithDevice( RenderService::Get()->GetGpuDevice() );
+
+        m_SceneRenderer = CreateScope<SceneRenderer>( spec );
+        if (m_SceneRenderer) {
+            m_SceneRenderer->Init();
+        }
+
+        m_EditorState->EditorSceneRenderer = m_SceneRenderer.get();
+    }
+
+    auto EditorLayer::SetupEditorState() -> void {
+        m_EditorState->EditorCamera = m_EditorCamera.get();
+        m_EditorState->ActiveEditorScene = m_ActiveScene;
+        m_EditorState->FinalComposition = m_SceneRenderer->GetTexture( "FinalShadingPass_ColorTarget" );
+        m_EditorState->SelectedEntity = m_ActiveScene->FindFirstByName( "Ground" );
+
+    }
+
+    auto EditorLayer::SetupPresentTarget( Event &event ) -> void {
+        if (const auto *keyPressed{ dynamic_cast<KeyPressedEvent *>( std::addressof( event ) ) }) {
+            if (keyPressed->GetKeyCode() == Key_F11) {
+                if (m_RenderScreenTarget == RenderScreenTarget::PANEL) { m_RenderScreenTarget = RenderScreenTarget::WINDOW; } else { m_RenderScreenTarget = RenderScreenTarget::PANEL; }
+
+                event.SetHandled( true );
+            }
+        }
+    }
+
+    auto EditorLayer::LoadResources() -> void {
         TextureCubeLoadDescription loadDesc2{};
         loadDesc2.WithType( TextureType::TEXTURE_CUBE )
             .IsHDR( true )
@@ -121,42 +163,6 @@ namespace Mikoto {
         m_EditorState->TextureHDR_2D = RenderService::Get()->GetGpuDevice()->CreateTexture( textureDesc );
 
         m_ActiveScene->SetSkybox( m_TextureHDR );
-
-        m_EditorState->PassesCompositions.try_emplace( "Triangle", m_SceneRenderer->GetTexture( "HelloTriangle_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "Texture2D", m_SceneRenderer->GetTexture( "HelloTexture_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "BRDF LUT", m_SceneRenderer->GetTexture( "BRDFLutPass_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "Skybox", m_SceneRenderer->GetTexture( "FinalShadingPass_ColorTarget" ) );
-    }
-
-    auto EditorLayer::SetupRenderer() -> void {
-        SceneRendererCreateInfo spec{};
-        spec.WithName( "Scene renderer" )
-            .WithDevice( RenderService::Get()->GetGpuDevice() );
-
-        m_SceneRenderer = CreateScope<SceneRenderer>( spec );
-        if (m_SceneRenderer) {
-            m_SceneRenderer->Init();
-        }
-
-        m_EditorState->EditorSceneRenderer = m_SceneRenderer.get();
-    }
-
-    auto EditorLayer::SetupEditorState() -> void {
-        m_EditorState->EditorCamera = m_EditorCamera.get();
-        m_EditorState->ActiveEditorScene = m_ActiveScene;
-        m_EditorState->FinalComposition = m_SceneRenderer->GetTexture( "FinalShadingPass_ColorTarget" );
-        m_EditorState->SelectedEntity = m_ActiveScene->FindFirstByName( "Ground" );
-
-    }
-
-    auto EditorLayer::SetupPresentTarget( Event &event ) -> void {
-        if (const auto *keyPressed{ dynamic_cast<KeyPressedEvent *>( std::addressof( event ) ) }) {
-            if (keyPressed->GetKeyCode() == Key_F11) {
-                if (m_RenderScreenTarget == RenderScreenTarget::PANEL) { m_RenderScreenTarget = RenderScreenTarget::WINDOW; } else { m_RenderScreenTarget = RenderScreenTarget::PANEL; }
-
-                event.SetHandled( true );
-            }
-        }
     }
 
     auto EditorLayer::OnDestroy() -> void {

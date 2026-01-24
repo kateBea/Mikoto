@@ -21,7 +21,7 @@ namespace Mikoto {
     }
 
     auto PBRMaterial::IsOpaque() const -> bool {
-        return m_Alpha == 1.0f;
+        return !IsTransparent();
     }
 
     auto PBRMaterial::IsTransparent() const -> bool {

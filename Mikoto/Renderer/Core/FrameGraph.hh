@@ -41,71 +41,92 @@ namespace Mikoto {
         FrameResourceState OutState{};
     };
 
+    enum class FramePassNodeStatus {
+        ACTIVE,
+        SLEEPING
+    };
+
+    enum class FramePassExecutionPolicy {
+        PER_FRAME,
+        ON_CHANGE,
+        ONCE
+    };
+
     struct FramePassNode {
         std::string Name{};
 
         std::vector<ResourceNode> Reads{};
         std::vector<ResourceNode> Writes{};
 
-        std::function<void( CommandContext& , FrameGraphBlackboard& )> ExecuteCallback{};
+        std::function<void( CommandContext &, FrameGraphBlackboard & )> ExecuteCallback{};
+
+        FramePassNodeStatus Status{ FramePassNodeStatus::ACTIVE };
+        FramePassExecutionPolicy ExecutionPolicy{ FramePassExecutionPolicy::PER_FRAME };
+
+        MKT_NODISCARD auto IsActive() const -> bool;
+        MKT_NODISCARD auto IsSleeping() const -> bool;
+        MKT_NODISCARD auto IsStatus(FramePassNodeStatus status) const -> bool;
     };
 
     class FramePassBuilder final {
     public:
-        explicit FramePassBuilder(FramePassNode& node);
+        explicit FramePassBuilder( FramePassNode &node );
 
-        auto Write( std::string_view name, FrameResourceState outState ) -> void;
-        auto Read( std::string_view name, FrameResourceState outState ) -> void;
+        auto Write( std::string_view name, FrameResourceState outState = FrameResourceState::ShaderResource_Read ) -> void;
+        auto Read( std::string_view name, FrameResourceState outState = FrameResourceState::ShaderResource_Read ) -> void;
 
         template<typename ResourceType, typename... Args>
-        auto Create(Args&&... args) -> void {
+        auto Create( Args &&... args ) -> void {
             if constexpr (std::is_same_v<ResourceType, Buffer>) {
-                CreateBuffer(std::forward<Args>(args)...);
+                CreateBuffer( std::forward<Args>( args )... );
             } else if constexpr (std::is_same_v<ResourceType, Texture>
-                || std::is_same_v<ResourceType, TextureCube>) {
-                CreateTexture(std::forward<Args>(args)...);
+                    || std::is_same_v<ResourceType, TextureCube>) {
+                CreateTexture( std::forward<Args>( args )... );
             } else if constexpr (std::is_same_v<ResourceType, Pipeline>) {
-                CreatePipeline(std::forward<Args>(args)...);
+                CreatePipeline( std::forward<Args>( args )... );
             }
         }
 
+        // Resources to be used in the shader can be specified at creation or later in
+        // the execute callback via calling the corresponding bind methods
         auto UseShader( std::string_view path, ShaderStage stage ) -> void;
 
-        auto UseSrg(SRGType type) -> void;
-        auto UseSrg(SRGType type, std::string_view name, UInt32 bindSlot) -> void;
+        auto UseSrg( SRGType type ) -> void;
+        auto UseSrg( SRGType type, std::string_view name, UInt32 bindSlot ) -> void;
 
-        MKT_NODISCARD auto GetPass() -> FramePassNode*;
-        MKT_NODISCARD auto GetShaderResources() const -> const SRGPerPass&;
+        MKT_NODISCARD auto GetPass() -> FramePassNode *;
+        MKT_NODISCARD auto GetShaderResources() const -> const SRGPerPass &;
 
-        // TODO: builser helpers for pipleine creation
-        // auto SetDepthWrite(bool enable) -> PipelineDesc&;
+        // TODO: builder helpers for pipeline creation
+        // e.g: auto SetDepthTest(bool enable) -> PipelineDesc&;
+        // e.g: auto SetDepthWrite(bool enable) -> PipelineDesc&;
 
     private:
         auto CreateBuffer( std::string_view name, BufferDescription description ) -> void;
         auto CreateBuffer( std::string_view name, BufferUsage usage, Size sizeBytes ) -> void;
         auto CreateBuffer( std::string_view name, BufferUsage usage, Size size, Size elementCount ) -> void;
 
-        auto CreateTexture( std::string_view name, TextureDescription description ) -> void;
-
         auto CreatePipeline( std::string_view name, const GraphicsPipelineDescription &description ) -> void;
         auto CreatePipeline( std::string_view name, const ComputePipelineDescription &description ) -> void;
 
-        auto CreateTexture( std::string_view name, TextureCubeCreateDescription description ) -> void;
-
         // For 2D
+        auto CreateTexture( std::string_view name, TextureDescription description ) -> void;
         auto CreateTexture( std::string_view name, RenderResolution resolution, TextureFormat format, TextureUsage usage ) -> void;
         auto CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format, TextureUsage usage ) -> void;
 
         // For cubes
+        auto CreateTexture( std::string_view name, TextureCubeCreateDescription description ) -> void;
         auto CreateTexture( std::string_view name, UInt32 dimensions, TextureFormat format, UInt32 mipLevels = 1 ) -> void;
 
     private:
         friend class FrameGraph;
 
+        FramePassNode *m_Node{};
+
+        SRGPerPass m_PassShaderResources{};
+
         PipelineDescription m_PipelineDescription{};
 
-        FramePassNode* m_Node{};
-        SRGPerPass m_PassShaderResources{};
         ankerl::unordered_dense::map<std::string, FrameResource> m_Creates{};
 
         bool m_UsesTextures{ false };
@@ -119,47 +140,44 @@ namespace Mikoto {
         auto RegisterPass( const std::string_view name, SetupFn &&setup, ExecuteFn &&execute ) -> void {
             FramePassNode &node{ CreatePassNode( name ) };
 
-            PassData& data{ m_GraphBlackboard.Add<PassData>() };
+            PassData &data{ m_GraphBlackboard.Add<PassData>() };
 
             FramePassBuilder builder{ node };
             setup( builder, data );
 
-            CreateCommitedResources(builder);
-            node.ExecuteCallback = [execute](CommandContext &ctx, FrameGraphBlackboard& blackboard) {
-                execute( ctx, blackboard );
-            };
+            CreateCommitedResources( builder );
+            node.ExecuteCallback = [execute]( CommandContext &ctx, FrameGraphBlackboard &blackboard ) { execute( ctx, blackboard ); };
         }
 
         template<typename SetupFn, typename ExecuteFn>
         auto RegisterPass( const std::string_view name, SetupFn &&setup, ExecuteFn &&execute ) -> void {
-            FramePassNode& node{ CreatePassNode( name ) };
+            FramePassNode &node{ CreatePassNode( name ) };
 
             FramePassBuilder builder{ node };
             setup( builder );
 
-            CreateCommitedResources(builder);
-            node.ExecuteCallback = [execute](CommandContext &ctx, FrameGraphBlackboard& blackboard) {
-                execute( ctx, blackboard );
-            };
+            CreateCommitedResources( builder );
+            node.ExecuteCallback = [execute]( CommandContext &ctx, FrameGraphBlackboard &blackboard ) { execute( ctx, blackboard ); };
         }
 
         auto Compile() -> void;
         auto Execute() -> void;
 
-        MKT_NODISCARD auto GetTexture(std::string_view name) const -> TextureHandle;
-        MKT_NODISCARD auto GetBuffer(std::string_view name) const -> BufferHandle;
+        MKT_NODISCARD auto IsCompiled() const -> bool;
+
+        MKT_NODISCARD auto GetTexture( std::string_view name ) const -> TextureHandle;
+        MKT_NODISCARD auto GetBuffer( std::string_view name ) const -> BufferHandle;
 
         MKT_NODISCARD static auto Create( GraphicsContext *context, GpuDevice *device ) -> Unique<FrameGraph>;
 
     private:
-
-        MKT_NODISCARD auto UsesTextureList(std::string_view nodeName) const -> bool;
-        MKT_NODISCARD auto IsFramePassPresent(std::string_view name) const -> bool;
+        MKT_NODISCARD auto UsesTextureList( std::string_view nodeName ) const -> bool;
+        MKT_NODISCARD auto IsFramePassPresent( std::string_view name ) const -> bool;
 
         auto SortPassExecution() -> void;
 
-        auto CreatePassNode( std::string_view name ) -> FramePassNode&;
-        auto CreateCommitedResources(FramePassBuilder& builder) -> void;
+        auto CreatePassNode( std::string_view name ) -> FramePassNode &;
+        auto CreateCommitedResources( FramePassBuilder &builder ) -> void;
 
         auto CreateResource( std::string_view name, FrameResource resource ) -> void;
 

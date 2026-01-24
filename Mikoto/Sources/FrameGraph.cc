@@ -23,7 +23,21 @@
 #include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Core/RenderUtility.hh>
 
+#include "Core/Profiler.hh"
+
 namespace Mikoto {
+
+    auto FramePassNode::IsActive() const -> bool {
+        return IsStatus( FramePassNodeStatus::ACTIVE );
+    }
+
+    auto FramePassNode::IsSleeping() const -> bool {
+        return IsStatus( FramePassNodeStatus::SLEEPING );
+    }
+
+    auto FramePassNode::IsStatus(FramePassNodeStatus status) const -> bool {
+        return Status == status;
+    }
 
     FramePassBuilder::FramePassBuilder( FramePassNode &node )
         : m_Node{ std::addressof( node ) } {}
@@ -146,22 +160,34 @@ namespace Mikoto {
     }
 
     auto FrameGraph::Execute() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        if (!IsCompiled()) {
+            return;
+        }
+
         m_GraphicsContex->BeginFrame();
 
         for (auto & node: m_Passes | std::views::values) {
-            CommandContext commandContext{ m_GraphicsContex, m_Device };
-            commandContext.BeginPass(node);
+            if (node.IsActive()) {
+                CommandContext commandContext{ m_GraphicsContex, m_Device };
+                commandContext.BeginPass(node);
 
-            if (UsesTextureList( node.Name )) {
-                commandContext.UseTextureList();
+                if (UsesTextureList( node.Name )) {
+                    commandContext.UseTextureList();
+                }
+
+                node.ExecuteCallback( commandContext, m_GraphBlackboard );
+
+                commandContext.EndPass();
             }
-
-            node.ExecuteCallback( commandContext, m_GraphBlackboard );
-
-            commandContext.EndPass();
         }
 
         m_GraphicsContex->EndFrame();
+    }
+
+    auto FrameGraph::IsCompiled() const -> bool {
+        return m_Compiled;
     }
 
     auto FrameGraph::GetTexture( std::string_view name ) const -> TextureHandle {
@@ -218,7 +244,7 @@ namespace Mikoto {
         };
 
         // Create SortNode objects
-        ankerl::unordered_dense::map<std::string, SortNode> sortNodes;
+        ankerl::unordered_dense::map<std::string, SortNode> sortNodes{};
 
         for (auto &[passName, node]: m_Passes) {
             sortNodes[passName].Node = &node;
@@ -229,8 +255,10 @@ namespace Mikoto {
             SortNode &reader{ sortNodes[passName] };
 
             auto addDependency = [&]( const ResourceNode &res ) {
-                auto it = resourceWriters.find( res.Name );
-                if (it == resourceWriters.end()) return;
+                auto it{ resourceWriters.find( res.Name ) };
+                if (it == resourceWriters.end()) {
+                    return;
+                }
 
                 const std::string &writerName{ it->second };
 

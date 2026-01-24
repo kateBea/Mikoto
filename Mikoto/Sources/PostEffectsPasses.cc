@@ -12,9 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <Core/Profiler.hh>
+
 #include <Scene/Scene.hh>
 #include <Scene/Component.hh>
+
 #include <Library/String/String.hh>
+
 #include <Renderer/Core/FrameResource.hh>
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Passes/ShaderRenderParams.hh>
@@ -29,43 +33,89 @@ namespace Mikoto {
     }
 
     auto PostEffectsPass::SetScene( const Scene *scene ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         m_Scene = scene;
     }
 
     auto PostEffectsPass::RegisterPasses( FrameGraph &graph ) -> void {
-        RegisterTextRender( graph );
+        MKT_BEGIN_PROFILER_NAMED();
+
+        //RegisterTextRender( graph );
     }
 
     auto PostEffectsPass::RegisterTextRender( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         graph.RegisterPass(
-                        "3DTextRenderingPass",
-                        []( FramePassBuilder &b ) {
-                            b.Create<Texture>( "HelloTriangle_ColorTarget", RenderResolution::FHD_1080, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                            b.Create<Texture>( "HelloTriangle_DepthTarget", RenderResolution::FHD_1080, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
+                "3DTextRenderingPass",
+                [this]( FramePassBuilder &b ) {
+                    MKT_BEGIN_PROFILER_NAMED();
 
-                            b.UseShader( "Resources/Shaders/vulkan-spirv/HelloTriangle_Vert.sprv", ShaderStage::VERTEX );
-                            b.UseShader( "Resources/Shaders/vulkan-spirv/HelloTriangle_Frag.sprv", ShaderStage::FRAGMENT );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/Text_Vert.sprv", ShaderStage::VERTEX );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/Text_Frag.sprv", ShaderStage::FRAGMENT );
 
-                            b.Create<Pipeline>( "HelloTriangle_Pipeline", GraphicsPipelineDescription{ .VertexAttributesSpec{} } );
+                    GraphicsPipelineDescription graphicsDesc{};
 
-                            b.Write( "HelloTriangle_ColorTarget", FrameResourceState::ShaderResource_Read );
-                            b.Write( "HelloTriangle_DepthTarget", FrameResourceState::ShaderResource_Read );
-                        },
-                        []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
-                            ctx.BindPipeline( "HelloTriangle_Pipeline" );
+                    graphicsDesc.DepthTest = true;
+                    graphicsDesc.DepthWrite = true;
+                    graphicsDesc.AlphaBlending = true;
 
-                            ctx.SetViewport( 0, 0, 1920, 1080 );
-                            ctx.SetScissor( 0, 0, 1920, 1080 );
+                    // we're providing none as the shader expects none
+                    const BufferLayout layout{
+                        { ShaderDataType::FLOAT3_TYPE, "a_Position" },
+                        { ShaderDataType::UINT_TYPE, "a_TexCoordIndex" },
+                    };
+                    graphicsDesc.VertexAttributesSpec = { AttributesSpec{
+                        .DefaultVertexLayout{ layout },
+                        .InputRateSpec{ .BindingIndex = { 0 }, .AttributeRate{ InputRate::PER_VERTEX } }
+                    } };
+                    graphicsDesc.PrimitiveTopology = Topology::TRIANGLE_LIST;
+                    b.Create<Pipeline>( "TextRenderPass_Pipeline", graphicsDesc );
 
-                            ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
-                            ctx.SetColorRenderTarget( "HelloTriangle_ColorTarget" );
-                            ctx.SetDepthRenderTarget( "HelloTriangle_DepthTarget" );
-                            ctx.BeginRender();
+                    b.Write( "FinalCompositionPass_ColorTarget", FrameResourceState::RenderTarget_Color );
+                    b.Write( "FinalCompositionPass_DepthTarget", FrameResourceState::RenderTarget_Depth );
 
-                            ctx.Draw( 3, 1, 0, 0 );
+                    b.UseSrg( SRGType::SRG_PerPass, "TextRenderPass_FontParams", 0 );
+                    b.UseSrg( SRGType::SRG_PerPass, "TextRenderPass_TextRenderParams", 1 );
+                },
+                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
 
-                            ctx.EndRender();
-                        } );
+                    MKT_ASSERT( m_Scene != nullptr, "Scene cannot be NULL" );
+
+                    ctx.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
+                    ctx.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
+
+                    PassRenderInfo renderInfo{
+                        .ColorLoadOp{ LoadOp::LOAD },
+                        .DephtLoadOp{ LoadOp::LOAD }
+                    };
+
+                    ctx.BeginRender( renderInfo );
+                    ctx.BindPipeline( "TextRenderPass_Pipeline" );
+
+                    ctx.SetViewport( 0, 0, 1920, 1080 );
+                    ctx.SetScissor( 0, 0, 1920, 1080 );
+
+                    TraverseTextList( ctx );
+                    SetupRenderParams( ctx );
+
+                    DrawIndexedState drawIndexedState{};
+
+                    BufferHandle vertexBuffer{ ctx.GetNamedBuffer( "TextRenderPass_FontVertexBuffer" ) };
+                    BufferHandle indexBuffer{ ctx.GetNamedBuffer( "TextRenderPass_FontIndexBuffer" ) };
+
+                    drawIndexedState.IndexBuffer = indexBuffer;
+                    drawIndexedState.VertexBuffers.emplace_back( vertexBuffer, 0 );
+
+                    drawIndexedState.IndicesCount = indexBuffer->GetCount();
+                    drawIndexedState.InstancesCount = m_TextRenderParams.size();
+
+                    ctx.DrawIndexed( drawIndexedState );
+
+                    ctx.EndRender();
+                } );
     }
 
     auto PostEffectsPass::TraverseTextList( CommandContext &commandList ) -> void {
@@ -103,7 +153,7 @@ namespace Mikoto {
     }
 
     auto PostEffectsPass::SetupTextForRender( FontHandle font, const Camera *camera, Vec4F position, std::string_view text, double fontSize, Vec4F color, CommandContext &commandList ) -> void {
-using namespace StringUtils;
+        using namespace StringUtils;
 
         double xPos{ position.x };
         double yPos{ position.y };

@@ -106,6 +106,8 @@ namespace Mikoto {
 
         auto SetupPresentTarget(Event& event) -> void;
 
+        auto LoadResources() -> void;
+
     private:
         enum class RenderScreenTarget { WINDOW, PANEL };
 

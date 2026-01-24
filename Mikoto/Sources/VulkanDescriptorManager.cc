@@ -250,28 +250,32 @@ namespace Mikoto {
     auto DescriptorAllocator::CreatePool( const UInt32 setCount, const std::span<PoolSizeRatio> poolRatios ) -> VkDescriptorPool {
         std::vector<VkDescriptorPoolSize> poolSizes{};
 
-        for (const auto& [Type, Ratio] : poolRatios) {
-            poolSizes.emplace_back(VkDescriptorPoolSize{
+        for (const auto &[Type, Ratio]: poolRatios) {
+            poolSizes.emplace_back( VkDescriptorPoolSize{
                 .type{ Type },
-                .descriptorCount{ static_cast<UInt32>(Ratio) * setCount },
-            });
+                .descriptorCount{ static_cast<UInt32>( Ratio ) * setCount },
+            } );
         }
 
         VkDescriptorPoolCreateInfo poolInfo{ VulkanHelpers::Initializers::DescriptorPoolCreateInfo() };
-        poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        poolInfo.flags =
+                VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT |
+                VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
 
-        if (m_IsBindlessEnabled) {
-            poolInfo.flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
-        }
 
         poolInfo.maxSets = setCount;
-        poolInfo.poolSizeCount = static_cast<UInt32>(poolSizes.size());
+        poolInfo.poolSizeCount = static_cast<UInt32>( poolSizes.size() );
         poolInfo.pPoolSizes = poolSizes.data();
 
         VkDescriptorPool newPool{};
-        if (vkCreateDescriptorPool(m_Device->GetLogicalDevice(), std::addressof( poolInfo ), nullptr, std::addressof( newPool )) != VK_SUCCESS) {
+        if (vkCreateDescriptorPool(
+                    m_Device->GetLogicalDevice(),
+                    std::addressof( poolInfo ),
+                    nullptr,
+                    std::addressof( newPool ) ) != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR( "VulkanDescriptorAllocator::CreatePool - Failed to create pool." );
         }
+
         return newPool;
     }
 

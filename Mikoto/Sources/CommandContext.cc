@@ -82,7 +82,7 @@ namespace Mikoto {
 
     auto CommandContext::UseTextureList() -> void {
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
-        m_Context->BindTextureList( m_Commands );
+        m_Context->BindGlobalTextures( m_Commands );
     }
 
     auto CommandContext::BindPipeline( std::string_view pipelineName ) -> void {
@@ -137,7 +137,7 @@ namespace Mikoto {
     }
 
     auto CommandContext::PushTexture( TextureHandle texture ) const -> Int32 {
-        return m_Context->PushImage( texture );
+        return m_Context->PushGlobalTexture( texture );
     }
 
     auto CommandContext::GetNamedBuffer( std::string_view name ) const -> BufferHandle {

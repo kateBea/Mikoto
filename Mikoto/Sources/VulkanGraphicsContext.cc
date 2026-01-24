@@ -231,7 +231,7 @@ namespace Mikoto {
         );
     }
 
-    auto VulkanGraphicsContext::BindTextureList(CommandListHandle cmdList) -> void {
+    auto VulkanGraphicsContext::BindGlobalTextures(CommandListHandle cmdList) -> void {
         vkCmdBindDescriptorSets(
             cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
             VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -242,6 +242,14 @@ namespace Mikoto {
             0,
             nullptr
         );
+    }
+
+    auto VulkanGraphicsContext::PushBuffer( BufferHandle handle, std::string_view passName, UInt32 bindingSlot ) -> void {
+
+    }
+
+    auto VulkanGraphicsContext::PushTexture( TextureHandle handle, SamplerHandle sampler, std::string_view passName, UInt32 bindingSlot ) -> void {
+
     }
 
     auto VulkanGraphicsContext::UpdateBindlessTexturesSet(Texture* texture, Sampler* sampler, Size setIndex ) const -> void {
@@ -255,7 +263,7 @@ namespace Mikoto {
             .UpdateSet( VK_DEVICE( m_Device ), m_BindlessTexturesSet );
     }
 
-    auto VulkanGraphicsContext::PushImage( TextureHandle texture ) -> Int32 {
+    auto VulkanGraphicsContext::PushGlobalTexture( TextureHandle texture ) -> Int32 {
         if (texture.IsEmpty()) {
             return SRGTextures::INVALID_TEXTURE_INDEX;
         }

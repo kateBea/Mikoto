@@ -139,7 +139,7 @@ namespace Mikoto {
         IrradianceCamInfo m_CameraInfo{};
         IrradianceParameters m_Parameters{};
 
-        SamplerHandle m_Sampler{};
+        SamplerHandle m_CubeMapSampler{};
 
         ShaderLightListParams m_LightsInfo{};
         ShaderCameraParams m_FrameUBO{};

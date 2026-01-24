@@ -95,9 +95,11 @@ namespace Mikoto {
         MKT_NODISCARD auto PushTexture(TextureHandle texture ) const -> Int32;
         MKT_NODISCARD auto GetNamedBuffer( std::string_view ) const -> BufferHandle;
 
+        auto BindImage(TextureHandle handle, SamplerHandle sampler, UInt32 bindingSlot) -> void;
+
         auto RegisterNamedTexture( std::string_view name, TextureHandle handle ) const -> void;
 
-        auto CreateNamedSampler( std::string_view name, SamplerDescription samplerDescription ) -> void;
+        auto CreateSampler( SamplerDescription samplerDescription ) -> SamplerHandle;
 
     private:
 

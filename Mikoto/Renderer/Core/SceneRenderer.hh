@@ -75,7 +75,6 @@ namespace Mikoto {
 
         auto OnPreRender() -> void;
         auto OnPostRender() -> void;
-        auto SetSceneParameters( Scene* scene ) -> void;
 
     private:
         // Scene graph
@@ -97,9 +96,7 @@ namespace Mikoto {
         DebugPasses m_DebugPasses{ m_RenderResolution };
 
         // Skybox
-        bool m_UseSkybox{ false };
         Vec4F m_ClearColor{ 0.1f, 0.2f, 0.5f, 1.0f };
-        TextureHandle m_SkyBoxTexture{};
     };
 }// namespace Mikoto
 

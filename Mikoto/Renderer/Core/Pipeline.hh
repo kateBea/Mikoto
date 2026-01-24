@@ -151,6 +151,8 @@ namespace Mikoto {
         // Generally supported formats for render targets,user can specify more
         std::vector<TextureFormat> ColorAttachmentFormats{ TextureFormat::RGBA8_UNORM };
         TextureFormat DepthAttachmentFormat{ TextureFormat::D32_FLOAT_S8_UINT };
+
+
     };
 
     /**

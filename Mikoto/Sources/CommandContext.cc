@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <Core/Profiler.hh>
 #include <Renderer/Core/CommandContext.hh>
 
 namespace Mikoto {
@@ -21,6 +22,8 @@ namespace Mikoto {
     }
 
     auto CommandContext::BeginPass( FramePassNode& pass ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_ASSERT( m_Commands.IsEmpty(), "Pass is ongoing, cannot call begin pass again" );
 
         m_ActivePass = std::addressof( pass );
@@ -28,15 +31,21 @@ namespace Mikoto {
         m_Commands = m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE, false );
         m_Commands->Begin();
 
+        m_Context->InsertResourceBarrier(m_ActivePass->Name, m_Commands);
+
         m_Context->BindShaderResources( pass.Name, m_Commands );
     }
 
     auto CommandContext::EndPass() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         m_Commands->End();
         m_Device->SubmitCommands( m_Commands );
     }
 
     auto CommandContext::BeginRender( const PassRenderInfo& renderInfo ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
 
         // There must be at least one valid color target
@@ -50,6 +59,7 @@ namespace Mikoto {
     }
 
     auto CommandContext::EndRender() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
         // Clear render info so we can render again
         m_Commands->EndRender( m_RenderInfo );
 
@@ -57,6 +67,8 @@ namespace Mikoto {
     }
 
     auto CommandContext::SetColorRenderTarget( std::string_view color ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         TextureHandle colorHandle{ m_Context->GetTexture( color ) };
         MKT_ASSERT( !colorHandle.IsEmpty(), "Color render target must not be empty" );
 
@@ -64,6 +76,8 @@ namespace Mikoto {
     }
 
     auto CommandContext::SetDepthRenderTarget( std::string_view depth ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         TextureHandle depthTexture{ m_Context->GetTexture( depth ) };
         MKT_ASSERT( !depthTexture.IsEmpty(), "Depth render target must not be empty" );
 
@@ -71,21 +85,29 @@ namespace Mikoto {
     }
 
     auto CommandContext::SetViewport( Int32 x, Int32 y, Int32 width, Int32 height ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
         m_Commands->SetViewport( x, y, width, height );
     }
 
     auto CommandContext::SetScissor( Int32 x, Int32 y, Int32 width, Int32 height ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
         m_Commands->SetScissor( x, y, width, height );
     }
 
     auto CommandContext::UseTextureList() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
         m_Context->BindGlobalTextures( m_Commands );
     }
 
     auto CommandContext::BindPipeline( std::string_view pipelineName ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         const PipelineHandle piepline{ m_Context->GetPipeline( pipelineName ) };
 
         MKT_ASSERT( !piepline.IsEmpty(), "PipelineHandle must not be empty" );
@@ -95,15 +117,21 @@ namespace Mikoto {
     }
 
     auto CommandContext::SetClearColor( const Vec4F &color ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         m_RenderInfo.ClearColor = color;
     }
 
     auto CommandContext::Draw( UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
         m_Commands->Draw( vertexCount, instanceCount, firstVertex, firstInstance );
     }
 
     auto CommandContext::DrawIndexed( const DrawIndexedState &info ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
 
         for (auto &[vertexBuffer, binding]: info.VertexBuffers) {
@@ -115,11 +143,15 @@ namespace Mikoto {
     }
 
     auto CommandContext::Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
         m_Commands->Dispatch( invX, invY, invZ );
     }
 
     auto CommandContext::UploadBufferData( std::string_view bufferName, const void *buffer, Size elementSize, Size elementCount ) const -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if (BufferHandle bufferHandle{ m_Context->GetBuffer( bufferName ) }; !bufferHandle.IsEmpty()) {
             for (Size count{}; count < elementCount; ++count) {
                 const auto *src{ static_cast<const std::byte *>( buffer ) };
@@ -129,6 +161,8 @@ namespace Mikoto {
     }
 
     auto CommandContext::UploadBuffer( std::string_view bufferName, const void *ptrSrc, Size size, Size offset ) const -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if (BufferHandle buffer{ m_Context->GetBuffer( bufferName ) }; !buffer.IsEmpty()) {
             if (size > buffer->GetSizeBytes()) {
                 MKT_CORE_LOGGER_WARN( "PassCommandList::FillBuffer - [{}] size is [{}]. Trying to copy [{}] bytes", bufferName, buffer->GetSizeBytes(), size );
@@ -137,20 +171,32 @@ namespace Mikoto {
     }
 
     auto CommandContext::PushTexture( TextureHandle texture ) const -> Int32 {
+        MKT_BEGIN_PROFILER_NAMED();
+
         return m_Context->PushGlobalTexture( texture );
     }
 
     auto CommandContext::GetNamedBuffer( std::string_view name ) const -> BufferHandle {
+        MKT_BEGIN_PROFILER_NAMED();
+
         return m_Context->GetBuffer( name );
     }
 
+    auto CommandContext::BindImage( TextureHandle handle, SamplerHandle sampler, UInt32 bindingSlot ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        m_Context->PushTexture( handle, sampler, m_ActivePass->Name, bindingSlot );
+    }
+
     auto CommandContext::RegisterNamedTexture( std::string_view name, TextureHandle handle ) const -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         //m_Blackboard->RegisterTexture( name, handle );
     }
 
-    auto CommandContext::CreateNamedSampler( std::string_view name, SamplerDescription samplerDescription ) -> void {
-        if (!m_Context->GetSampler( name ).IsEmpty()) { return; }
+    auto CommandContext::CreateSampler( SamplerDescription samplerDescription ) -> SamplerHandle {
+        MKT_BEGIN_PROFILER_NAMED();
 
-        //m_Context->RegisterSample( name, samplerDescription );
+        return m_Context->CreateSampler( samplerDescription );
     }
 }

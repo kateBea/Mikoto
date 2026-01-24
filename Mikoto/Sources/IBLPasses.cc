@@ -14,6 +14,8 @@
 
 #include <Math/Math.hh>
 
+#include <Core/Profiler.hh>
+
 #include <Scene/Scene.hh>
 #include <Scene/Component.hh>
 
@@ -31,10 +33,11 @@ namespace Mikoto {
 
     auto IBLPasses::RegisterPasses( FrameGraph &graph ) -> void {
         RegisterSkybox( graph );
-        RegisterPrefilter( graph );
-        RegisterIrradiance( graph );
-        RegisterBRDFLut( graph );
-        RegisterShading( graph );
+        //RegisterBRDFLut( graph );
+
+        //RegisterPrefilter( graph );
+        //RegisterIrradiance( graph );
+        //RegisterShading( graph );
     }
 
     auto IBLPasses::SetResolution( RenderResolution resolution ) -> void {
@@ -151,25 +154,29 @@ namespace Mikoto {
         graph.RegisterPass(
                 "BRDFLut",
                 [this]( FramePassBuilder &b ) {
-                    b.Create<Texture>( "BRDFLutPass_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                    b.Create<Texture>( "BRDFLutPass_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
+                    b.Create<Texture>( "BRDFLutPass_ColorTarget", m_Resolution, TextureFormat::RG16_FLOAT, TextureUsage::COLOR );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/BRDFLut_Vert.sprv", ShaderStage::VERTEX );
                     b.UseShader( "Resources/Shaders/vulkan-spirv/BRDFLut_Frag.sprv", ShaderStage::FRAGMENT );
 
-                    b.Create<Pipeline>( "BRDFLutPass_Pipeline", GraphicsPipelineDescription{ .VertexAttributesSpec{} } );
+                    b.Create<Pipeline>( "BRDFLutPass_Pipeline", GraphicsPipelineDescription{
+                        .VertexAttributesSpec{},
+                        .ColorAttachmentFormats{ TextureFormat::RG16_FLOAT }
+                    } );
 
                     b.Write( "BRDFLutPass_ColorTarget", FrameResourceState::ShaderResource_Read );
-                    b.Write( "BRDFLutPass_DepthTarget", FrameResourceState::ShaderResource_Read );
                 },
                 []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+
                     ctx.BindPipeline( "BRDFLutPass_Pipeline" );
 
                     ctx.SetViewport( 0, 0, 1920, 1080 );
                     ctx.SetScissor( 0, 0, 1920, 1080 );
 
+                    ctx.SetClearColor( { 0.0f, 0.0f, 0.0f, 1.0f } );
+
                     ctx.SetColorRenderTarget( "BRDFLutPass_ColorTarget" );
-                    ctx.SetDepthRenderTarget( "BRDFLutPass_DepthTarget" );
 
                     ctx.BeginRender();
 
@@ -179,15 +186,24 @@ namespace Mikoto {
                 } );
     }
 
-    auto IBLPasses::EnableSkybox( bool enable ) -> void { m_UseSkybox = enable; }
+    auto IBLPasses::EnableSkybox( bool enable ) -> void {
+        m_UseSkybox = enable;
+    }
 
-    auto IBLPasses::SetCubeMap( TextureHandle cubeMap ) -> void { m_CubeMap = cubeMap; }
+    auto IBLPasses::SetCubeMap( TextureHandle cubeMap ) -> void {
+        m_CubeMap = cubeMap;
+    }
 
-    auto IBLPasses::SetExposure( float value ) -> void { m_SkyboxUBO.Exposure = value; }
+    auto IBLPasses::SetExposure( float value ) -> void {
+        m_SkyboxUBO.Exposure = value;
+    }
 
-    auto IBLPasses::SetGamma( float value ) -> void { m_SkyboxUBO.Gamma = value; }
+    auto IBLPasses::SetGamma( float value ) -> void {
+        m_SkyboxUBO.Gamma = value;
+    }
 
     auto IBLPasses::RegisterSkybox( FrameGraph &graph ) -> void {
+
         graph.RegisterPass(
                 "Skybox",
                 [this]( FramePassBuilder &b ) {
@@ -199,26 +215,39 @@ namespace Mikoto {
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Skybox_Vert.sprv", ShaderStage::VERTEX );
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Skybox_Frag.sprv", ShaderStage::FRAGMENT );
 
-                    GraphicsPipelineDescription graphicsDesc{};
-                    graphicsDesc.DepthTest = false;
-                    graphicsDesc.DepthWrite = false;
-                    graphicsDesc.AlphaBlending = false;
-                    graphicsDesc.PipelineCullMode = CullMode::NONE;
-                    graphicsDesc.PrimitiveTopology = Topology::TRIANGLE_LIST;
+                    GraphicsPipelineDescription graphicsDesc{
+                        .DepthTest{ false },
+                        .DepthWrite{ false },
+                        .AlphaBlending{ false },
+                        .PipelineCullMode{ CullMode::NONE },
+                        .PrimitiveTopology{ Topology::TRIANGLE_LIST },
+                    };
                     b.Create<Pipeline>( "SkyboxPass_Pipeline", graphicsDesc );
 
                     b.Write( "FinalShadingPass_ColorTarget", FrameResourceState::ShaderResource_Read );
                     b.Write( "FinalShadingPass_DepthTarget", FrameResourceState::ShaderResource_Read );
                     b.Write( "SkyboxPass_CameraInfo", FrameResourceState::Transfer_Dst );
+
+                    b.UseSrg( SRGType::SRG_PerPass, "SkyboxPass_CameraInfo", 0 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
-                    if (!m_UseSkybox) { return; }
+                    MKT_BEGIN_PROFILER_NAMED();
 
-                    ctx.BindPipeline( "SkyboxPass_CameraInfo" );
+                    if (!m_UseSkybox || m_CubeMap.IsEmpty()) {
+                        return;
+                    }
+
+                    if (m_CubeMapSampler.IsEmpty()) {
+                        SamplerDescription samplerDescription{ .CubeSampler{ true } };
+                        m_CubeMapSampler = ctx.CreateSampler( samplerDescription );
+                    }
+
+                    ctx.BindPipeline( "SkyboxPass_Pipeline" );
 
                     ctx.SetViewport( 0, 0, 1920, 1080 );
                     ctx.SetScissor( 0, 0, 1920, 1080 );
 
+                    ctx.BindImage(m_CubeMap, m_CubeMapSampler, 1);
                     ctx.UploadBuffer<SkyboxUBO>( "SkyboxPass_CameraInfo", m_SkyboxUBO );
 
                     ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
@@ -237,6 +266,9 @@ namespace Mikoto {
         m_FrameUBO.View = camera->GetViewMatrix();
         m_FrameUBO.Projection = camera->GetProjection();
         m_FrameUBO.CameraPosition = Vec4F{ camera->GetPosition(), 1.0f };
+
+        m_SkyboxUBO.View = m_FrameUBO.View;
+        m_SkyboxUBO.Projection = m_FrameUBO.Projection;
     }
 
     auto IBLPasses::RegisterShading( FrameGraph &graph ) -> void {

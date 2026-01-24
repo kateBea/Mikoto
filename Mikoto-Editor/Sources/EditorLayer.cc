@@ -124,6 +124,8 @@ namespace Mikoto {
 
         m_EditorState->PassesCompositions.try_emplace( "Triangle", m_SceneRenderer->GetTexture( "HelloTriangle_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "Texture2D", m_SceneRenderer->GetTexture( "HelloTexture_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "BRDF LUT", m_SceneRenderer->GetTexture( "BRDFLutPass_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "Skybox", m_SceneRenderer->GetTexture( "FinalShadingPass_ColorTarget" ) );
     }
 
     auto EditorLayer::SetupRenderer() -> void {
@@ -142,7 +144,7 @@ namespace Mikoto {
     auto EditorLayer::SetupEditorState() -> void {
         m_EditorState->EditorCamera = m_EditorCamera.get();
         m_EditorState->ActiveEditorScene = m_ActiveScene;
-        m_EditorState->FinalComposition = m_SceneRenderer->GetTexture( "HelloTriangle_ColorTarget" );
+        m_EditorState->FinalComposition = m_SceneRenderer->GetTexture( "FinalShadingPass_ColorTarget" );
         m_EditorState->SelectedEntity = m_ActiveScene->FindFirstByName( "Ground" );
 
     }

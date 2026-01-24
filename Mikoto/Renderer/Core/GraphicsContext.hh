@@ -60,6 +60,8 @@ namespace Mikoto {
         virtual auto BeginFrame()-> void = 0;
         virtual auto EndFrame()-> void = 0;
 
+        virtual auto InsertResourceBarrier(std::string_view passName, CommandListHandle cmd) -> void = 0;
+
         virtual auto GetSampler(std::string_view name) -> SamplerHandle = 0;
         virtual auto GetTexture(std::string_view name) -> TextureHandle = 0;
         virtual auto GetPipeline(std::string_view name) -> PipelineHandle = 0;
@@ -70,7 +72,8 @@ namespace Mikoto {
 
         virtual auto CreateBuffer(std::string_view name, BufferDescription description) -> void = 0;
 
-        virtual auto CreateSample( std::string_view name, const SamplerDescription& description ) -> void = 0;
+        virtual auto CreateSampler( SamplerDescription& description ) -> SamplerHandle = 0;
+        virtual auto CreateSampler( std::string_view name, const SamplerDescription& description ) -> void = 0;
 
         virtual auto CommitShaderResources(std::string_view passName, SRGPerPass& passData ) -> void = 0;
         virtual auto CreateShaderResources(std::string_view passName, PipelineDescription& desc) -> void = 0;

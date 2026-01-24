@@ -19,6 +19,7 @@
 #include <Scene/Camera.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/RenderUtility.hh>
+#include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Passes/ShaderRenderParams.hh>
 
 namespace Mikoto {
@@ -27,7 +28,7 @@ namespace Mikoto {
     public:
         explicit ClusteredShading(RenderResolution resolution);
 
-        auto SetScene(const Scene* scene) -> void;
+        auto SetScene(Scene* scene) -> void;
         auto SetCamera(const Camera *camera) -> void;
         auto RegisterPasses(FrameGraph &graph) -> void;
 
@@ -35,6 +36,8 @@ namespace Mikoto {
         auto BuildAABB( FrameGraph& graph ) -> void;
         auto BuildLightCulling( FrameGraph& graph ) -> void;
         auto BuildShadowMapping( FrameGraph& graph ) -> void;
+
+        auto SetupLightList(CommandContext& ctx) -> void;
 
     private:
         constexpr static UInt32 MAX_LIGHT_CLUSTERS{ 256 };
@@ -68,7 +71,7 @@ namespace Mikoto {
         };
 
     private:
-        const Scene* m_Scene{};
+        Scene* m_Scene{};
         const Camera* m_Camera{};
 
         UInt32 m_GridSizeX{ 12 };

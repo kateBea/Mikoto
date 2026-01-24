@@ -45,7 +45,6 @@ namespace Mikoto {
     auto SceneRenderer::Render( Scene* scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        SetSceneParameters( scene );
         OnPreRender();
 
         m_FrameGraph->Execute();
@@ -54,7 +53,7 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::SetCamera( SceneCamera *camera ) -> void {
-
+        m_IBLPasses.SetCamera( camera );
     }
 
     auto SceneRenderer::SetViewport( const UInt32 width, const UInt32 height ) -> void {
@@ -63,7 +62,7 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::SetSkyBox( TextureHandle cubeMap ) -> void {
-        m_SkyBoxTexture = cubeMap;
+        m_IBLPasses.SetCubeMap( cubeMap );
     }
 
     auto SceneRenderer::SetClearColor( const Vec4F& color ) -> void {
@@ -71,7 +70,7 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::EnableSkybox( bool enable ) -> void {
-        m_UseSkybox = enable;
+        m_IBLPasses.EnableSkybox( enable );
     }
 
     auto SceneRenderer::GetRenderResolution() const -> RenderResolution {
@@ -90,11 +89,11 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::SetEnvironmentGamma( float value ) -> void {
-
+        m_IBLPasses.SetGamma( value );
     }
 
     auto SceneRenderer::SetEnvironmentExposure( float value ) -> void {
-
+        m_IBLPasses.SetExposure( value );
     }
 
     auto SceneRenderer::GetTexture( std::string_view name ) const -> TextureHandle {
@@ -103,10 +102,6 @@ namespace Mikoto {
 
     auto SceneRenderer::GetBuffer( std::string_view name ) const -> BufferHandle {
         return m_FrameGraph->GetBuffer(name);
-    }
-
-    auto SceneRenderer::SetSceneParameters( Scene *scene ) -> void {
-
     }
 
     auto SceneRenderer::InitGraphicsContex() -> void {
@@ -127,7 +122,7 @@ namespace Mikoto {
         m_FrameGraph = FrameGraph::Create( m_GraphicsContext.get(), m_Device );
 
         m_DebugPasses.RegisterPasses( *m_FrameGraph );
-        //m_IBLPasses.RegisterPasses( *m_FrameGraph );
+        m_IBLPasses.RegisterPasses( *m_FrameGraph );
         //m_PostEffectsPasses.RegisterPasses( *m_FrameGraph );
 
         m_FrameGraph->Compile();

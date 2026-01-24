@@ -39,6 +39,8 @@ namespace Mikoto {
         auto BeginFrame()-> void override;
         auto EndFrame()-> void  override;
 
+        auto InsertResourceBarrier(std::string_view passName, CommandListHandle cmd) -> void override;
+
         auto GetSampler(std::string_view name) -> SamplerHandle override;
         auto GetTexture(std::string_view name) -> TextureHandle override;
         auto GetPipeline(std::string_view name) -> PipelineHandle override;
@@ -49,7 +51,8 @@ namespace Mikoto {
 
         auto CreateBuffer(std::string_view name, BufferDescription description) -> void override;
 
-        auto CreateSample( std::string_view name, const SamplerDescription& description ) -> void override;
+        auto CreateSampler( SamplerDescription& description ) -> SamplerHandle  override;
+        auto CreateSampler( std::string_view name, const SamplerDescription& description ) -> void override;
 
         auto CommitShaderResources( std::string_view passName, SRGPerPass& passData ) -> void override;
         auto CreateShaderResources( std::string_view passName, PipelineDescription& desc ) -> void override;
@@ -89,6 +92,10 @@ namespace Mikoto {
             // Set index -> Descriptor Set handle
             ankerl::unordered_dense::map<UInt32, VkDescriptorSet> DescriptorSets{};
             PipelineHandle Pipeline{};
+
+            // Buffers this pass is using
+            ankerl::unordered_dense::set<Buffer*> Buffers{};
+            ankerl::unordered_dense::set<std::pair<Texture*, Sampler*>> CombinedImageSampler{};
         };
 
 #if defined( MKT_USE_VULKAN_BINDLESS )
@@ -105,6 +112,8 @@ namespace Mikoto {
         ankerl::unordered_dense::map<std::string, PipelineHandle> m_PipelinesByNames{};
         ankerl::unordered_dense::map<std::string, BufferHandle> m_BuffersByNames{};
         ankerl::unordered_dense::map<std::string, SamplerHandle> m_SamplersByNames{};
+
+        std::vector<SamplerHandle> m_Samplers{};
     };
 }// namespace Mikoto
 

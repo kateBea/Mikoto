@@ -77,10 +77,13 @@ namespace Mikoto {
         MKT_NODISCARD auto GetPass() -> FramePassNode*;
         MKT_NODISCARD auto GetShaderResources() const -> const SRGPerPass&;
 
+        // TODO: builser helpers for pipleine creation
+        // auto SetDepthWrite(bool enable) -> PipelineDesc&;
+
     private:
         auto CreateBuffer( std::string_view name, BufferDescription description ) -> void;
         auto CreateBuffer( std::string_view name, BufferUsage usage, Size sizeBytes ) -> void;
-        auto CreateBuffer( std::string_view name, BufferUsage usage, Size elementCount, Size size ) -> void;
+        auto CreateBuffer( std::string_view name, BufferUsage usage, Size size, Size elementCount ) -> void;
 
         auto CreateTexture( std::string_view name, TextureDescription description ) -> void;
 

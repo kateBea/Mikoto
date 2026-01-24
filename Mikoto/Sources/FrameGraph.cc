@@ -80,7 +80,7 @@ namespace Mikoto {
         CreateBuffer( name, description );
     }
 
-    auto FramePassBuilder::CreateBuffer( std::string_view name, BufferUsage usage, Size elementCount, Size size ) -> void {
+    auto FramePassBuilder::CreateBuffer( std::string_view name, BufferUsage usage, Size size, Size elementCount ) -> void {
         BufferDescription description{};
         description
                 .WithUsage( usage )

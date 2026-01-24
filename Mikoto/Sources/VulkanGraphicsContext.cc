@@ -53,6 +53,14 @@ namespace Mikoto {
 
     }
 
+    auto VulkanGraphicsContext::InsertResourceBarrier( std::string_view passName, CommandListHandle cmd ) -> void {
+        const auto it{ m_PassInfo.find( std::string{ passName } ) };
+        if (it == m_PassInfo.end()) {
+            return;
+        }
+
+    }
+
     auto VulkanGraphicsContext::BindShaderResources( std::string_view passName, CommandListHandle cmdList ) -> void {
         // Here we only bind the PerPass shader resources
         VkCommandBuffer vkCmd{ cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
@@ -245,11 +253,35 @@ namespace Mikoto {
     }
 
     auto VulkanGraphicsContext::PushBuffer( BufferHandle handle, std::string_view passName, UInt32 bindingSlot ) -> void {
+        // Verify the pass exists and is not already using that buffer
 
+        const auto it{ m_PassInfo.find( std::string{ passName } ) };
+        if (it == m_PassInfo.end()) {
+            return;
+        }
+
+        // If the combined image sampler does not exist
+        if (!it->second.Buffers.contains( handle.GetRaw() )) {
+            PushBuffer( handle, bindingSlot, it->second.DescriptorSets[PER_PASS_DESCRIPTOR_SET_INDEX] );
+
+            it->second.Buffers.emplace( handle.GetRaw() );
+        }
     }
 
     auto VulkanGraphicsContext::PushTexture( TextureHandle handle, SamplerHandle sampler, std::string_view passName, UInt32 bindingSlot ) -> void {
+        // Verify the pass exists and is not already using the texture and sampler
 
+        const auto it{ m_PassInfo.find( std::string{ passName } ) };
+        if (it == m_PassInfo.end()) {
+            return;
+        }
+
+        // If the combined image sampler does not exist
+        if (!it->second.CombinedImageSampler.contains( std::make_pair( handle.GetRaw(), sampler.GetRaw() ) )) {
+            PushImage( handle, sampler, bindingSlot, it->second.DescriptorSets[PER_PASS_DESCRIPTOR_SET_INDEX] );
+
+            it->second.CombinedImageSampler.emplace( std::make_pair( handle.GetRaw(), sampler.GetRaw() ) );
+        }
     }
 
     auto VulkanGraphicsContext::UpdateBindlessTexturesSet(Texture* texture, Sampler* sampler, Size setIndex ) const -> void {
@@ -404,7 +436,17 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanGraphicsContext::CreateSample( std::string_view name, const SamplerDescription& description ) -> void {
+    auto VulkanGraphicsContext::CreateSampler( SamplerDescription &description ) -> SamplerHandle {
+        SamplerHandle samplerHandle{ m_Device->CreateSampler( description ) };
+
+        if (!samplerHandle.IsEmpty()) {
+            m_Samplers.push_back( samplerHandle );
+        }
+
+        return samplerHandle;
+    }
+
+    auto VulkanGraphicsContext::CreateSampler( std::string_view name, const SamplerDescription& description ) -> void {
         if (m_SamplersByNames.contains( std::string{ name } )) {
             MKT_CORE_LOGGER_WARN( "FrameGraph::CreateSample - Named sampler [{}] already exists.", name );
             return;

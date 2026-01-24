@@ -1,32 +1,36 @@
-/**
- * EditorApp.cc
- * Created by kate on 6/7/23.
- * */
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// C++ Standard Library
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string>
-#include <tracy/Tracy.hpp>
 #include <utility>
 
-// Project headers
-#include <Application/EditorApp.hh>
-#include <Assets/AssetsService.hh>
-#include <Audio/AudioDevice.hh>
-#include <Core/Configuration.hh>
-#include <Core/CoreEvents.hh>
-#include <Core/Profiler.hh>
 #include <Core/Root.hh>
+#include <Core/Profiler.hh>
+#include <Core/CoreEvents.hh>
 #include <Core/TimeService.hh>
-#include <Layers/EditorLayer.hh>
+#include <Core/Configuration.hh>
+
 #include <Logging/Logger.hh>
 
-#include "Core/SystemStats.hh"
-#include "Core/Timer.hh"
-#include "Filesystem/FileWatcher.hh"
-#include "Renderer/Core/RenderService.hh"
+#include <Layers/EditorLayer.hh>
+#include <Application/EditorApp.hh>
+
+#include <Assets/AssetsService.hh>
+#include <Renderer/Core/RenderService.hh>
 
 namespace Mikoto {
 
@@ -43,6 +47,8 @@ namespace Mikoto {
     }
 
     auto EditorApp::InitPrefabs() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         m_PrefabModels = {
             { PrefabModels::CUBE, "Resources/Models/Prefabs/cube/gltf/scene.gltf" },
             { PrefabModels::CONE, "Resources/Models/Prefabs/cone/gltf/scene.gltf" },
@@ -55,8 +61,6 @@ namespace Mikoto {
         for ( const auto &val: m_PrefabModels | std::views::values ) {
             loaders.Emplace( [&]() -> void { AssetsService::Get()->LoadAsset<Model>( val ); } );
         }
-
-        loaders.Dump(DumpDst::STANDARD_OUTPUT);
 
         TaskService::Get()->WaitForExecution( loaders );
     }
@@ -79,6 +83,8 @@ namespace Mikoto {
     }
 
     auto EditorApp::Shutdown() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         MKT_CORE_LOGGER_DEBUG( "Shutting down Mikoto Editor..." );
 
         m_LayerStack.Shutdown();
@@ -108,10 +114,13 @@ namespace Mikoto {
     }
 
     auto EditorApp::SetWindow( Window *window ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         m_Window = window;
     }
 
     auto EditorApp::SetupEventCallbacks() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
 
         AddHandler( EventType::WINDOW_CLOSE_EVENT,
                     [this]( Event &event ) -> bool {

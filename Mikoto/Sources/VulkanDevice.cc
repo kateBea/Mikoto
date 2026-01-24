@@ -468,10 +468,6 @@ namespace Mikoto {
     auto VulkanDevice::CreateTexture( const TextureCubeCreateDescription &description ) -> TextureHandle {
         std::lock_guard lock{ m_TextureCubePoolMutex };
 
-        SystemStats::Get()->Update();
-        auto valueBefore{ SystemStats::Get()->GetProcessRamUsage() };
-
-
         TextureHandle texture{ m_TexturesCube.Allocate( description ) };
         if ( texture.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateTextureCube - Failed to allocate texture cube resource." );
@@ -479,11 +475,6 @@ namespace Mikoto {
         }
 
         texture->Initialize( this );
-
-        SystemStats::Get()->Update();
-        auto valueAfter{ SystemStats::Get()->GetProcessRamUsage() };
-
-        MKT_CORE_LOGGER_DEBUG( "Creating texture ram usage: {}. Before {}, After {}", valueAfter - valueBefore, valueBefore, valueAfter );
 
         return texture;
     }
@@ -530,11 +521,6 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreateTexture( const TextureDescription& description ) -> TextureHandle {
-        std::lock_guard lock{ m_TexturePoolMutex };
-
-        SystemStats::Get()->Update();
-        auto valueBefore{ SystemStats::Get()->GetProcessRamUsage() };
-
         TextureHandle texture{ m_Textures.Allocate( description ) };
         if ( texture.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateTexture - Failed to allocate texture resource." );
@@ -542,11 +528,6 @@ namespace Mikoto {
         }
 
         texture->Initialize( this );
-
-        SystemStats::Get()->Update();
-        auto valueAfter{ SystemStats::Get()->GetProcessRamUsage() };
-
-        MKT_CORE_LOGGER_DEBUG( "Creating texture ram usage: {}. Before {}, After {}", valueAfter - valueBefore, valueBefore, valueAfter );
 
         return texture;
     }
@@ -637,9 +618,6 @@ namespace Mikoto {
     auto VulkanDevice::CreateBuffer( const BufferDescription& description ) -> BufferHandle {
         std::lock_guard lock{ m_BufferPoolMutex };
 
-        SystemStats::Get()->Update();
-        auto valueBefore{ SystemStats::Get()->GetProcessRamUsage() };
-
         BufferHandle buffer{ m_Buffers.Allocate( description ) };
         if ( buffer.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateBuffer - Failed to allocate buffer resource." );
@@ -647,11 +625,6 @@ namespace Mikoto {
         }
 
         buffer->Initialize( this );
-
-        SystemStats::Get()->Update();
-        auto valueAfter{ SystemStats::Get()->GetProcessRamUsage() };
-
-        MKT_CORE_LOGGER_DEBUG( "Creating buffer ram usage: {}. Before {}, After {}", valueAfter - valueBefore, valueBefore, valueAfter );
 
         return buffer;
     }

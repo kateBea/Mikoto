@@ -33,8 +33,7 @@
 #include <Renderer/Core/SRGBase.hh>
 #include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/GraphicsContext.hh>
-
-#include "FrameGraph.hh"
+#include <Renderer/Core/FrameGraph.hh>
 
 namespace Mikoto {
 
@@ -84,6 +83,11 @@ namespace Mikoto {
         template<typename T>
         auto UploadBuffer(std::string_view bufferName, const void* ptrSrc ) const -> void {
             UploadBuffer( bufferName, ptrSrc, sizeof(T));
+        }
+
+        template<typename T>
+        auto UploadBuffer(std::string_view bufferName, T& ref ) const -> void {
+            UploadBuffer( bufferName, std::addressof( ref ), sizeof(T));
         }
 
         auto UploadBuffer(std::string_view bufferName, const void* ptrSrc, Size size, Size offset = 0 ) const -> void;

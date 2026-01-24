@@ -15,15 +15,12 @@
 #ifndef MIKOTO_DEBUG_PASSES_HH
 #define MIKOTO_DEBUG_PASSES_HH
 
-#include <string_view>
 
 #include <Scene/Scene.hh>
 
 #include <Library/Utility/Types.hh>
 
 #include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Core/CommandContext.hh>
-#include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Passes/ShaderRenderParams.hh>
 
 namespace Mikoto {

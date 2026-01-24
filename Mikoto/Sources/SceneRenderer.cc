@@ -45,17 +45,12 @@ namespace Mikoto {
     auto SceneRenderer::Render( Scene* scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        // If SetRenderResolution was called we will need to
-        // Reconstruct render target which will require recompiling the frame graph
-        if (m_WantResize) {
-
-        }
-
         SetSceneParameters( scene );
-
-        PassPreSetup();
+        OnPreRender();
 
         m_FrameGraph->Execute();
+
+        OnPostRender();
     }
 
     auto SceneRenderer::SetCamera( SceneCamera *camera ) -> void {
@@ -65,10 +60,6 @@ namespace Mikoto {
     auto SceneRenderer::SetViewport( const UInt32 width, const UInt32 height ) -> void {
         m_ViewportWidth = width;
         m_ViewportHeight = height;
-    }
-
-    auto SceneRenderer::SetClusterDebugVisualizer( bool enable ) -> void {
-
     }
 
     auto SceneRenderer::SetSkyBox( TextureHandle cubeMap ) -> void {
@@ -142,7 +133,15 @@ namespace Mikoto {
         m_FrameGraph->Compile();
     }
 
-    auto SceneRenderer::PassPreSetup() -> void {
+    auto SceneRenderer::OnPreRender() -> void {
+        // If SetRenderResolution was called we will need to
+        // Reconstruct render target which will require recompiling the frame graph
+        if (m_WantResize) {
+
+        }
+    }
+
+    auto SceneRenderer::OnPostRender() -> void {
 
     }
 

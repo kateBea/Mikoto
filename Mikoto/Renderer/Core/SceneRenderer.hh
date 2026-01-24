@@ -55,18 +55,15 @@ namespace Mikoto {
         auto SetCamera( SceneCamera* camera ) -> void;
         auto SetViewport( UInt32 width, UInt32 height ) -> void;
 
-        auto SetClusterDebugVisualizer(bool enable) -> void;
-
         auto SetSkyBox(TextureHandle cubeMap) -> void;
         auto SetClearColor(const Vec4F& color) -> void;
         auto EnableSkybox(bool enable) -> void;
-
-        MKT_NODISCARD auto GetRenderResolution() const -> RenderResolution;
-        MKT_NODISCARD auto IsRenderResolution(RenderResolution resolution) const -> bool;
-        auto SetRenderResolution( RenderResolution resolution ) -> void;
-
         auto SetEnvironmentGamma(float value) -> void;
         auto SetEnvironmentExposure(float value) -> void;
+
+        auto SetRenderResolution( RenderResolution resolution ) -> void;
+        MKT_NODISCARD auto GetRenderResolution() const -> RenderResolution;
+        MKT_NODISCARD auto IsRenderResolution(RenderResolution resolution) const -> bool;
 
         MKT_NODISCARD auto GetTexture(std::string_view name) const -> TextureHandle;
         MKT_NODISCARD auto GetBuffer(std::string_view name) const -> BufferHandle;
@@ -76,29 +73,30 @@ namespace Mikoto {
         auto InitGraphicsContex() -> void;
         auto InitCoreFramePasses() -> void;
 
-        auto PassPreSetup() -> void;
+        auto OnPreRender() -> void;
+        auto OnPostRender() -> void;
         auto SetSceneParameters( Scene* scene ) -> void;
 
     private:
-
+        // Scene graph
         GpuDevice* m_Device{ nullptr };
-        SceneCamera* m_Camera{ nullptr };
-
         Unique<FrameGraph> m_FrameGraph{};
         Unique<GraphicsContext> m_GraphicsContext{};
 
+        // ViewPort
         bool m_WantResize{ false };
-        RenderResolution m_RenderResolution{ RenderResolution::FHD_1080 };
-        std::pair<float, float> m_RenderTargetDimensions{ InferDimensions( m_RenderResolution ) };
-
         UInt32 m_ViewportWidth{ 0u };
         UInt32 m_ViewportHeight{ 0u };
+        SceneCamera* m_Camera{ nullptr };
+        RenderResolution m_RenderResolution{ RenderResolution::FHD_1080 };
+        std::pair<float, float> m_RenderTargetDimensions{ InferDimensions( m_RenderResolution ) };
 
         // Passes
         IBLPasses m_IBLPasses{ m_RenderResolution };
         PostEffectsPass m_PostEffectsPasses{ m_RenderResolution };
         DebugPasses m_DebugPasses{ m_RenderResolution };
 
+        // Skybox
         bool m_UseSkybox{ false };
         Vec4F m_ClearColor{ 0.1f, 0.2f, 0.5f, 1.0f };
         TextureHandle m_SkyBoxTexture{};

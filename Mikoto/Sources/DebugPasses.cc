@@ -17,6 +17,7 @@
 
 #include <Renderer/Core/FrameResource.hh>
 #include <Renderer/Passes/DebugPasses.hh>
+#include <Renderer/Core/CommandContext.hh>
 
 namespace Mikoto {
 
@@ -49,11 +50,17 @@ namespace Mikoto {
         RegisterWireFrame( graph );
     }
 
-    auto DebugPasses::RegisterObjectOutline( FrameGraph &graph ) -> void {}
+    auto DebugPasses::RegisterObjectOutline( FrameGraph &graph ) -> void {
 
-    auto DebugPasses::RegisterWireFrame( FrameGraph &graph ) -> void {}
+    }
 
-    auto DebugPasses::RegisterMaterialPreview( FrameGraph &graph ) -> void {}
+    auto DebugPasses::RegisterWireFrame( FrameGraph &graph ) -> void {
+
+    }
+
+    auto DebugPasses::RegisterMaterialPreview( FrameGraph &graph ) -> void {
+
+    }
 
     auto DebugPasses::RegisterHelloTriangle( FrameGraph &graph ) -> void {
         graph.RegisterPass(
@@ -98,6 +105,7 @@ namespace Mikoto {
                     b.Create<Pipeline>( "SimpleCompute_Pipeline", ComputePipelineDescription{} );
 
                     b.Write( "SimpleCompute_Results", FrameResourceState::Transfer_Src );
+
                     b.UseSrg( SRGType::SRG_PerPass, "SimpleCompute_Results", 0 );
                 },
                 []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
@@ -115,9 +123,13 @@ namespace Mikoto {
 
     }
 
-    auto DebugPasses::RegisterInfiniteGrid( FrameGraph &graph ) -> void {}
+    auto DebugPasses::RegisterInfiniteGrid( FrameGraph &graph ) -> void {
 
-    auto DebugPasses::RegisterHelloCube( FrameGraph &graph ) -> void {}
+    }
+
+    auto DebugPasses::RegisterHelloCube( FrameGraph &graph ) -> void {
+
+    }
 
     auto DebugPasses::RegisterHelloTexture( FrameGraph &graph ) -> void {
         struct HelloTextureData {

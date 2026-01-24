@@ -25,14 +25,9 @@
 namespace Mikoto {
 
     IBLPasses::IBLPasses( RenderResolution resolution )
-        : m_Resolution{ resolution }
-    {
+        : m_Resolution{ resolution } {}
 
-    }
-
-    auto IBLPasses::SetScene( Scene *scene ) -> void {
-        m_Scene = scene;
-    }
+    auto IBLPasses::SetScene( Scene *scene ) -> void { m_Scene = scene; }
 
     auto IBLPasses::RegisterPasses( FrameGraph &graph ) -> void {
         RegisterSkybox( graph );
@@ -46,10 +41,6 @@ namespace Mikoto {
         m_Resolution = resolution;
 
         // Update passes
-    }
-
-    auto IBLPasses::EnableSkybox( bool enable ) -> void {
-        m_UseSkybox = enable;
     }
 
     auto IBLPasses::RegisterIrradiance( FrameGraph &graph ) -> void {
@@ -159,65 +150,87 @@ namespace Mikoto {
     auto IBLPasses::RegisterBRDFLut( FrameGraph &graph ) -> void {
         graph.RegisterPass(
                 "BRDFLut",
-                []( FramePassBuilder &b ) {
-                    b.Create<Texture>( "HelloTriangle_ColorTarget", RenderResolution::FHD_1080, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                    b.Create<Texture>( "HelloTriangle_DepthTarget", RenderResolution::FHD_1080, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
+                [this]( FramePassBuilder &b ) {
+                    b.Create<Texture>( "BRDFLutPass_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                    b.Create<Texture>( "BRDFLutPass_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/HelloTriangle_Vert.sprv", ShaderStage::VERTEX );
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/HelloTriangle_Frag.sprv", ShaderStage::FRAGMENT );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/BRDFLut_Vert.sprv", ShaderStage::VERTEX );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/BRDFLut_Frag.sprv", ShaderStage::FRAGMENT );
 
-                    b.Create<Pipeline>( "HelloTriangle_Pipeline", GraphicsPipelineDescription{ .VertexAttributesSpec{} } );
+                    b.Create<Pipeline>( "BRDFLutPass_Pipeline", GraphicsPipelineDescription{ .VertexAttributesSpec{} } );
 
-                    b.Write( "HelloTriangle_ColorTarget", FrameResourceState::ShaderResource_Read );
-                    b.Write( "HelloTriangle_DepthTarget", FrameResourceState::ShaderResource_Read );
+                    b.Write( "BRDFLutPass_ColorTarget", FrameResourceState::ShaderResource_Read );
+                    b.Write( "BRDFLutPass_DepthTarget", FrameResourceState::ShaderResource_Read );
                 },
                 []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
-                    ctx.BindPipeline( "HelloTriangle_Pipeline" );
+                    ctx.BindPipeline( "BRDFLutPass_Pipeline" );
 
                     ctx.SetViewport( 0, 0, 1920, 1080 );
                     ctx.SetScissor( 0, 0, 1920, 1080 );
 
-                    ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
-                    ctx.SetColorRenderTarget( "HelloTriangle_ColorTarget" );
-                    ctx.SetDepthRenderTarget( "HelloTriangle_DepthTarget" );
+                    ctx.SetColorRenderTarget( "BRDFLutPass_ColorTarget" );
+                    ctx.SetDepthRenderTarget( "BRDFLutPass_DepthTarget" );
+
                     ctx.BeginRender();
 
-                    ctx.Draw( 3, 1, 0, 0 );
+                    ctx.Draw( 3 );
 
                     ctx.EndRender();
                 } );
     }
 
+    auto IBLPasses::EnableSkybox( bool enable ) -> void { m_UseSkybox = enable; }
+
+    auto IBLPasses::SetCubeMap( TextureHandle cubeMap ) -> void { m_CubeMap = cubeMap; }
+
+    auto IBLPasses::SetExposure( float value ) -> void { m_SkyboxUBO.Exposure = value; }
+
+    auto IBLPasses::SetGamma( float value ) -> void { m_SkyboxUBO.Gamma = value; }
+
     auto IBLPasses::RegisterSkybox( FrameGraph &graph ) -> void {
         graph.RegisterPass(
-                        "Skybox",
-                        []( FramePassBuilder &b ) {
-                            b.Create<Texture>( "HelloTriangle_ColorTarget", RenderResolution::FHD_1080, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                            b.Create<Texture>( "HelloTriangle_DepthTarget", RenderResolution::FHD_1080, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
+                "Skybox",
+                [this]( FramePassBuilder &b ) {
+                    b.Create<Texture>( "FinalShadingPass_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                    b.Create<Texture>( "FinalShadingPass_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
-                            b.UseShader( "Resources/Shaders/vulkan-spirv/HelloTriangle_Vert.sprv", ShaderStage::VERTEX );
-                            b.UseShader( "Resources/Shaders/vulkan-spirv/HelloTriangle_Frag.sprv", ShaderStage::FRAGMENT );
+                    b.Create<Buffer>( "SkyboxPass_CameraInfo", BufferUsage::UNIFORM, sizeof( SkyboxUBO ), 1 );
 
-                            b.Create<Pipeline>( "HelloTriangle_Pipeline", GraphicsPipelineDescription{ .VertexAttributesSpec{} } );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/Skybox_Vert.sprv", ShaderStage::VERTEX );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/Skybox_Frag.sprv", ShaderStage::FRAGMENT );
 
-                            b.Write( "HelloTriangle_ColorTarget", FrameResourceState::ShaderResource_Read );
-                            b.Write( "HelloTriangle_DepthTarget", FrameResourceState::ShaderResource_Read );
-                        },
-                        []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
-                            ctx.BindPipeline( "HelloTriangle_Pipeline" );
+                    GraphicsPipelineDescription graphicsDesc{};
+                    graphicsDesc.DepthTest = false;
+                    graphicsDesc.DepthWrite = false;
+                    graphicsDesc.AlphaBlending = false;
+                    graphicsDesc.PipelineCullMode = CullMode::NONE;
+                    graphicsDesc.PrimitiveTopology = Topology::TRIANGLE_LIST;
+                    b.Create<Pipeline>( "SkyboxPass_Pipeline", graphicsDesc );
 
-                            ctx.SetViewport( 0, 0, 1920, 1080 );
-                            ctx.SetScissor( 0, 0, 1920, 1080 );
+                    b.Write( "FinalShadingPass_ColorTarget", FrameResourceState::ShaderResource_Read );
+                    b.Write( "FinalShadingPass_DepthTarget", FrameResourceState::ShaderResource_Read );
+                    b.Write( "SkyboxPass_CameraInfo", FrameResourceState::Transfer_Dst );
+                },
+                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    if (!m_UseSkybox) { return; }
 
-                            ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
-                            ctx.SetColorRenderTarget( "HelloTriangle_ColorTarget" );
-                            ctx.SetDepthRenderTarget( "HelloTriangle_DepthTarget" );
-                            ctx.BeginRender();
+                    ctx.BindPipeline( "SkyboxPass_CameraInfo" );
 
-                            ctx.Draw( 3, 1, 0, 0 );
+                    ctx.SetViewport( 0, 0, 1920, 1080 );
+                    ctx.SetScissor( 0, 0, 1920, 1080 );
 
-                            ctx.EndRender();
-                        } );
+                    ctx.UploadBuffer<SkyboxUBO>( "SkyboxPass_CameraInfo", m_SkyboxUBO );
+
+                    ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
+                    ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );
+                    ctx.SetDepthRenderTarget( "FinalShadingPass_DepthTarget" );
+
+                    ctx.BeginRender();
+
+                    ctx.Draw( 36 );
+
+                    ctx.EndRender();
+                } );
     }
 
     auto IBLPasses::SetCamera( const Camera *camera ) -> void {
@@ -228,12 +241,12 @@ namespace Mikoto {
 
     auto IBLPasses::RegisterShading( FrameGraph &graph ) -> void {
         struct FinalShading {
-            Scene* ActiveScene{};
+            Scene *ActiveScene{};
         };
 
         graph.RegisterPass<FinalShading>(
                 "FinalShading",
-                []( FramePassBuilder &b, FinalShading& data ) -> void {
+                []( FramePassBuilder &b, FinalShading &data ) -> void {
                     b.Create<Buffer>( "HelloTexture_TexturesBuffer", BufferUsage::UNIFORM, sizeof( FinalShading ) );
                     b.Create<Texture>( "HelloTexture_ColorTarget", RenderResolution::FHD_1080, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
                     b.Create<Texture>( "HelloTexture_DepthTarget", RenderResolution::FHD_1080, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
@@ -243,7 +256,7 @@ namespace Mikoto {
 
                     b.Create<Pipeline>( "HelloTexture_Pipeline", GraphicsPipelineDescription{
                                             .PrimitiveTopology{ Topology::TRIANGLE_STRIP },
-                                            .VertexAttributesSpec{},} );
+                                            .VertexAttributesSpec{}, } );
 
                     b.Write( "HelloTexture_ColorTarget", FrameResourceState::ShaderResource_Read );
                     b.Write( "HelloTexture_DepthTarget", FrameResourceState::ShaderResource_Read );
@@ -252,8 +265,8 @@ namespace Mikoto {
                     b.UseSrg( SRGType::SRG_PerPass, "HelloTexture_TexturesBuffer", 0 );
                     b.UseSrg( SRGType::SRG_Textures );
                 },
-                []( CommandContext &ctx, FrameGraphBlackboard & blackboard) -> void {
-                    auto& data{ blackboard.Get<FinalShading>() };
+                []( CommandContext &ctx, FrameGraphBlackboard &blackboard ) -> void {
+                    auto &data{ blackboard.Get<FinalShading>() };
 
                     ctx.UploadBuffer<FinalShading>( "HelloTexture_TexturesBuffer", std::addressof( data ) );
 

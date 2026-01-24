@@ -20,6 +20,7 @@
 #include <Scene/Scene.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/RenderUtility.hh>
+#include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Passes/ShaderRenderParams.hh>
 
 namespace Mikoto {
@@ -34,6 +35,9 @@ namespace Mikoto {
 
         auto SetResolution( RenderResolution resolution) -> void;
 
+        auto SetCubeMap( TextureHandle cubeMap ) -> void;
+        auto SetExposure( float value ) -> void;
+        auto SetGamma( float value ) -> void;
         auto EnableSkybox(bool enable) -> void;
 
     private:
@@ -121,6 +125,10 @@ namespace Mikoto {
         auto TraverseMeshList( CommandContext& context ) -> void;
 
     private:
+        // Skybox
+        SkyboxUBO m_SkyboxUBO{};
+        TextureHandle m_CubeMap{};
+        bool m_UseSkybox{ false };
 
         UInt32 m_MipLevels{};
         UInt32 m_Dimensions{ 64 };
@@ -133,13 +141,8 @@ namespace Mikoto {
 
         SamplerHandle m_Sampler{};
 
-        SkyboxUBO m_SkyboxUBO{};
-        TextureHandle m_CubeMap{};
-
         ShaderLightListParams m_LightsInfo{};
         ShaderCameraParams m_FrameUBO{};
-
-        bool m_UseSkybox{ false };
 
         Scene* m_Scene{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };

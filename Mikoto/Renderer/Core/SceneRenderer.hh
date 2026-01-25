@@ -54,7 +54,6 @@ namespace Mikoto {
         auto Render( Scene* scene ) -> void override;
 
         auto SetCamera( SceneCamera* camera ) -> void;
-        auto SetViewport( UInt32 width, UInt32 height ) -> void;
 
         auto SetSkyBox(TextureHandle cubeMap) -> void;
         auto SetClearColor(const Vec4F& color) -> void;
@@ -85,8 +84,6 @@ namespace Mikoto {
 
         // ViewPort
         bool m_WantResize{ false };
-        UInt32 m_ViewportWidth{ 0u };
-        UInt32 m_ViewportHeight{ 0u };
         SceneCamera* m_Camera{ nullptr };
         RenderResolution m_RenderResolution{ RenderResolution::FHD_1080 };
         std::pair<float, float> m_RenderTargetDimensions{ InferDimensions( m_RenderResolution ) };

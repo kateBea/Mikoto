@@ -62,11 +62,6 @@ namespace Mikoto {
         m_ClusteredShadingPasses.SetCamera( camera );
     }
 
-    auto SceneRenderer::SetViewport( const UInt32 width, const UInt32 height ) -> void {
-        m_ViewportWidth = width;
-        m_ViewportHeight = height;
-    }
-
     auto SceneRenderer::SetSkyBox( TextureHandle cubeMap ) -> void {
         m_IBLPasses.SetCubeMap( cubeMap );
     }

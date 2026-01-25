@@ -721,8 +721,6 @@ namespace Mikoto {
         const auto& settings{ settingsPanel.GetData() };
 
         m_SceneRenderer->SetCamera( m_EditorCamera.get() );
-        m_SceneRenderer->SetViewport( 1920, 1080 );
-
         m_SceneRenderer->SetSkyBox( m_ActiveScene->GetSkybox() );
         m_SceneRenderer->EnableSkybox( m_ActiveScene->IsSkyboxEnabled() );
 

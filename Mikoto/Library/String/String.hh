@@ -2,6 +2,8 @@
 // Created by kate on 10/12/23.
 //
 
+// This header will eventually get deprecated and removed in favor for Commor/String.hh
+
 #ifndef MIKOTO_STRING_UTILS_HH
 #define MIKOTO_STRING_UTILS_HH
 

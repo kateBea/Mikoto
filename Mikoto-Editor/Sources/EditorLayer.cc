@@ -71,13 +71,10 @@ namespace Mikoto {
         SetupRenderer();
 
         CreateCameras();
-
         PrepareNewScene();
-
         PrepareSerialization();
 
         SetupEditorState();
-
         CreatePanels();
 
         LoadResources();
@@ -89,6 +86,8 @@ namespace Mikoto {
     }
 
     auto EditorLayer::SetupRenderer() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         SceneRendererCreateInfo spec{};
         spec.WithName( "Scene renderer" )
             .WithDevice( RenderService::Get()->GetGpuDevice() );
@@ -102,17 +101,24 @@ namespace Mikoto {
     }
 
     auto EditorLayer::SetupEditorState() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         m_EditorState->EditorCamera = m_EditorCamera.get();
         m_EditorState->ActiveEditorScene = m_ActiveScene;
         m_EditorState->FinalComposition = m_SceneRenderer->GetTexture( "FinalShadingPass_ColorTarget" );
         m_EditorState->SelectedEntity = m_ActiveScene->FindFirstByName( "Ground" );
-
     }
 
     auto EditorLayer::SetupPresentTarget( Event &event ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if (const auto *keyPressed{ dynamic_cast<KeyPressedEvent *>( std::addressof( event ) ) }) {
             if (keyPressed->GetKeyCode() == Key_F11) {
-                if (m_RenderScreenTarget == RenderScreenTarget::PANEL) { m_RenderScreenTarget = RenderScreenTarget::WINDOW; } else { m_RenderScreenTarget = RenderScreenTarget::PANEL; }
+                if (m_RenderScreenTarget == RenderScreenTarget::PANEL) {
+                    m_RenderScreenTarget = RenderScreenTarget::WINDOW;
+                } else {
+                    m_RenderScreenTarget = RenderScreenTarget::PANEL;
+                }
 
                 event.SetHandled( true );
             }
@@ -120,6 +126,8 @@ namespace Mikoto {
     }
 
     auto EditorLayer::LoadResources() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         TextureCubeLoadDescription loadDesc2{};
         loadDesc2.WithType( TextureType::TEXTURE_CUBE )
             .IsHDR( true )
@@ -164,6 +172,8 @@ namespace Mikoto {
     }
 
     auto EditorLayer::OnDestroy() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         m_EditorState = nullptr;
 
         m_ActiveScene = nullptr;
@@ -208,6 +218,8 @@ namespace Mikoto {
     }
 
     auto EditorLayer::OnEvent( Event &event ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if (event.IsType( EventType::KEY_PRESSED_EVENT )) {
             SetupPresentTarget( event );
         }
@@ -222,21 +234,36 @@ namespace Mikoto {
     }
 
     auto EditorLayer::SaveScene() const -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         // File filters
         SceneManager::Get()->SaveSceneFromDisk( m_ActiveScene, m_SceneSerializer.get() );
     }
 
     auto EditorLayer::LoadScene() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         // use the scene manager to add this loaded scene
     }
 
-    auto EditorLayer::SaveProject() -> void {}
+    auto EditorLayer::SaveProject() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
 
-    auto EditorLayer::OpenProject() -> void {}
+    }
 
-    auto EditorLayer::CreateProject() -> void {}
+    auto EditorLayer::OpenProject() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+    }
+
+    auto EditorLayer::CreateProject() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+    }
 
     auto EditorLayer::HandleWindowScreenMode() const -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if (!m_Window->IsMaximized()) {
             m_Window->SetScreenMode( ScreenMode::WINDOW_MODE_FULLSCREEN );
         } else {
@@ -245,6 +272,8 @@ namespace Mikoto {
     }
 
     auto EditorLayer::SetRendererResolution() const -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if (ImGui::BeginMenu( "Resolution" )) {
             if ( ImGui::MenuItem( "HD - 720p", nullptr, m_SceneRenderer->IsRenderResolution(RenderResolution::HD_720P)) ) {
                 m_SceneRenderer->SetRenderResolution( RenderResolution::HD_720P );
@@ -307,6 +336,8 @@ namespace Mikoto {
     }
 
     auto EditorLayer::CreatePanels() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         StatsPanelCreateInfo statsCreateInfo{};
         statsCreateInfo.State = m_EditorState.get();
         m_PanelRegistry.Register<StatsPanel>( statsCreateInfo );
@@ -361,6 +392,8 @@ namespace Mikoto {
     }
 
     auto EditorLayer::CreateCameras() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         constexpr float NEAR_PLANE{ 0.1f };
         constexpr float FAR_PLANE{ 1000.0f };
         constexpr float FIELD_OF_VIEW{ 45.0f };
@@ -433,7 +466,9 @@ namespace Mikoto {
         if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
             const ImGuiID dockSpaceId = ImGui::GetID( "MikotoDockEditor" );
             ImGui::DockSpace( dockSpaceId, ImVec2( 0.0f, 0.0f ), dockSpaceConfigFlags );
-        } else { ShowDockingDisabledMessage(); }
+        } else {
+            ShowDockingDisabledMessage();
+        }
 
         style.WindowMinSize.x = minimumPanelsWidth;
 
@@ -609,11 +644,15 @@ namespace Mikoto {
     }
 
     auto EditorLayer::PrepareNewScene() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         constexpr std::string_view sceneDefaultName{ "Sandbox" };
         InitializeEmptyScene( sceneDefaultName );
     }
 
     auto EditorLayer::InitializeEmptyScene( const std::string_view name ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         m_ActiveScene = SceneManager::Get()->CreateScene( name );
 
         ModelLoadDescription descFirst{
@@ -712,12 +751,16 @@ namespace Mikoto {
         }
     }
 
-    auto EditorLayer::PrepareSerialization() -> void { m_SceneSerializer = CreateScope<SceneSerializer>(); }
+    auto EditorLayer::PrepareSerialization() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+        m_SceneSerializer = CreateScope<SceneSerializer>();
+    }
 
     auto EditorLayer::PrepareRenderer( double ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         const SettingsPanel &settingsPanel{ *m_PanelRegistry.Get<SettingsPanel>() };
 
-        // Setup renderer
         const auto& settings{ settingsPanel.GetData() };
 
         m_SceneRenderer->SetCamera( m_EditorCamera.get() );

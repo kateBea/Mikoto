@@ -119,8 +119,6 @@ namespace Mikoto {
     }
 
     auto PostEffectsPass::TraverseTextList( CommandContext &commandList ) -> void {
-        FontHandle testFont{ AssetsService::Get()->LoadAsset<Font>( Path{ "Resources/Fonts/Google_Sans_Code/GoogleSansCode-VariableFont_wght.ttf" } ) };
-
         // Clear text data as we refill it every frame
         m_TextRenderParams.clear();
 
@@ -137,8 +135,8 @@ namespace Mikoto {
             }
 
             const float textSize{ textComponent.GetSize() };
-            const glm::vec4 color{ textComponent.GetColor() };
-            const glm::vec4 position{ transform.GetTranslation(), 1.0f };
+            const glm::vec4& color{ textComponent.GetColor() };
+            const glm::vec4& position{ transform.GetTranslation(), 1.0f };
             const Camera* textCamera{ textComponent.GetCamera() };
 
             SetupTextForRender(textComponent.GetFontHandle(), textCamera, position, textComponent.GetContents(), textSize, color, commandList );

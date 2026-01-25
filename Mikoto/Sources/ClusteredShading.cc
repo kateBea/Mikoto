@@ -20,7 +20,7 @@
 
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Passes/ClusteredShading.hh>
-#include <Renderer/Passes/ShaderRenderParams.hh>
+#include <Renderer/Passes/ShaderParameteres.hh>
 
 namespace Mikoto {
 
@@ -71,6 +71,8 @@ namespace Mikoto {
                     MKT_BEGIN_PROFILER_NAMED();
                     ctx.BindPipeline( "AABBGenComp_Pipeline" );
 
+                    const auto dimensions{ InferDimensions( m_Resolution ) };
+
                     m_CameraUBO = {
                         .ViewMatrix{ m_Camera->GetViewMatrix() },
                         .InverseProjection{ glm::inverse( m_Camera->GetProjection() ) },
@@ -78,7 +80,7 @@ namespace Mikoto {
                         .GridSize{ glm::vec4{ m_GridSizeX, m_GridSizeY, m_GridSizeZ, 0.0f } },
                         .ViewPosition{ glm::vec4{ m_Camera->GetPosition(), 0.0f } },
 
-                        .Screen{ m_Camera->GetNearPlane(), m_Camera->GetFarPlane(), 1920.0f, 1080.0f },
+                        .Screen{ m_Camera->GetNearPlane(), m_Camera->GetFarPlane(), dimensions.first, dimensions.second },
                         .LightInfo{ m_CameraUBO.LightInfo.x }
                     };
 
@@ -124,17 +126,21 @@ namespace Mikoto {
     }
 
     auto ClusteredShading::SetupLightList( CommandContext &ctx ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         auto &registry{ m_Scene->GetRegistry() };
-        auto lightsView{ registry.view<TagComponent, TransformComponent, LightComponent>() };
+        const auto lightsView{ registry.view<TagComponent, TransformComponent, LightComponent>() };
 
         Int32 lightsCount{};
 
         for (auto &lightEntity: lightsView) {
+            if (lightsCount >= MAX_LIGHTS) {
+                break;
+            }
+
             TagComponent &tag{ registry.get<TagComponent>( lightEntity ) };
             LightComponent &lightComp{ registry.get<LightComponent>( lightEntity ) };
             TransformComponent &transformCom{ registry.get<TransformComponent>( lightEntity ) };
-
-            if (lightsCount >= MAX_LIGHTS) { break; }
 
             auto &uboLight{ m_Lights[lightsCount] };
 
@@ -163,7 +169,7 @@ namespace Mikoto {
 
                     uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
                     uboLight.Direction = Vec4F( spot.GetDirection(), 0.0f );
-                    uboLight.Diffuse = Vec4F( spot.GetColor() * spot.GetIntensity(), 1.0f );
+                    uboLight.Diffuse = Vec4F( spot.GetColor(), 1.0f );
 
                     uboLight.CutOff = spot.GetCutOff();
                     uboLight.OuterCutOff = spot.GetOuterCutOff();
@@ -180,7 +186,7 @@ namespace Mikoto {
                     auto &dir{ lightComp.Get<DirectionalLight>() };
 
                     uboLight.Direction = Vec4F( dir.GetDirection(), 0.0f );
-                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );// optional for shadows
+                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
                     uboLight.Diffuse = Vec4F( dir.GetColor() * dir.GetIntensity(), 1.0f );
                     uboLight.ActiveLightType = static_cast<Int32>( ShaderActiveLightType::LIGHT_TYPE_DIRECTIONAL );
 

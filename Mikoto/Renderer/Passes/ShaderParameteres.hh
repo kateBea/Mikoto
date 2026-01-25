@@ -1,6 +1,16 @@
+//    Copyright 2026 ケイト
 //
-// Created by zanet on 1/10/2026.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_SHADER_RENDER_PARAMS_HH
 #define MIKOTO_SHADER_RENDER_PARAMS_HH
@@ -17,7 +27,7 @@
 
 namespace Mikoto {
 
-    static constexpr UInt32 MAX_LIGHTS{ 5096 };
+    static constexpr UInt32 MAX_LIGHTS{ 10000 };
     static constexpr UInt32 MAX_CUBE_MAP_FACES{ 6 };
     static constexpr UInt32 MAX_RENDERABLE_ENTITIES{ 4096 * 10 };
 
@@ -35,8 +45,8 @@ namespace Mikoto {
     };
 
     struct ShaderCameraParams {
-        glm::mat4 View{};
-        glm::mat4 Projection{};
+        Mat4F View{};
+        Mat4F Projection{};
         Vec4F CameraPosition{};
     };
 

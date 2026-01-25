@@ -39,7 +39,7 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         RegisterSkybox( graph );
-        //RegisterBRDFLut( graph );
+        RegisterBRDFLut( graph );
 
         //RegisterPrefilter( graph );
         //RegisterIrradiance( graph );
@@ -165,6 +165,7 @@ namespace Mikoto {
                 [this]( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
+                    // R16G16 is supported commonly
                     b.Create<Texture>( "BRDFLutPass_ColorTarget", m_Resolution, TextureFormat::RG16_FLOAT, TextureUsage::COLOR );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/BRDFLut_Vert.sprv", ShaderStage::VERTEX );
@@ -195,6 +196,10 @@ namespace Mikoto {
 
                     ctx.EndRender();
                 } );
+
+        // After a call to RegisterPass the node is guaranteed to exist already
+        // BRDFLut is quite expensive to run every frame so we limit it to a single execution
+        graph.SetNodeExecutionPolicy( "BRDFLut", FramePassExecutionPolicy::ONCE );
     }
 
     auto IBLPasses::EnableSkybox( bool enable ) -> void {

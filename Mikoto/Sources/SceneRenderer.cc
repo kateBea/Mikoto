@@ -45,6 +45,8 @@ namespace Mikoto {
     auto SceneRenderer::Render( Scene* scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        m_ClusteredShadingPasses.SetScene( scene );
+
         OnPreRender();
 
         m_FrameGraph->Execute();
@@ -54,6 +56,7 @@ namespace Mikoto {
 
     auto SceneRenderer::SetCamera( SceneCamera *camera ) -> void {
         m_IBLPasses.SetCamera( camera );
+        m_ClusteredShadingPasses.SetCamera( camera );
     }
 
     auto SceneRenderer::SetViewport( const UInt32 width, const UInt32 height ) -> void {
@@ -124,6 +127,7 @@ namespace Mikoto {
         m_DebugPasses.RegisterPasses( *m_FrameGraph );
         m_IBLPasses.RegisterPasses( *m_FrameGraph );
         m_PostEffectsPasses.RegisterPasses( *m_FrameGraph );
+        m_ClusteredShadingPasses.RegisterPasses( *m_FrameGraph );
 
         m_FrameGraph->Compile();
     }

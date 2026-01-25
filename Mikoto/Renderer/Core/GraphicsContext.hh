@@ -60,7 +60,8 @@ namespace Mikoto {
         virtual auto BeginFrame()-> void = 0;
         virtual auto EndFrame()-> void = 0;
 
-        virtual auto InsertResourceBarrier(std::string_view passName, CommandListHandle cmd) -> void = 0;
+        virtual auto InsertReadResourceBarrier(FramePassNode* node, CommandListHandle cmd) -> void = 0;
+        virtual auto InsertWriteResourceBarrier(FramePassNode* node, CommandListHandle cmd) -> void = 0;
 
         virtual auto GetSampler(std::string_view name) -> SamplerHandle = 0;
         virtual auto GetTexture(std::string_view name) -> TextureHandle = 0;

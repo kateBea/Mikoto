@@ -28,6 +28,7 @@
 #include <Renderer/Core/RenderUtility.hh>
 #include <Renderer/Core/GraphicsContext.hh>
 
+#include "Renderer/Passes/ClusteredShading.hh"
 #include "Renderer/Passes/DebugPasses.hh"
 #include "Renderer/Passes/IBLPasses.hh"
 #include "Renderer/Passes/PostEffectsPasses.hh"
@@ -94,6 +95,7 @@ namespace Mikoto {
         IBLPasses m_IBLPasses{ m_RenderResolution };
         PostEffectsPass m_PostEffectsPasses{ m_RenderResolution };
         DebugPasses m_DebugPasses{ m_RenderResolution };
+        ClusteredShading m_ClusteredShadingPasses{ m_RenderResolution };
 
         // Skybox
         Vec4F m_ClearColor{ 0.1f, 0.2f, 0.5f, 1.0f };

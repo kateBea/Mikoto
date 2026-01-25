@@ -4,12 +4,12 @@
 
 #include <fmt/format.h>
 
-#include "Panels/AssetsPanel.hh"
+#include <Panels/AssetsPanel.hh>
 
-#include "ImGui/ImGuiService.hh"
-#include "ImGui/ImGuiUtility.hh"
-#include "Layers/EditorLayer.hh"
-#include "ImGui/IconsMaterialDesign.h"
+#include <ImGui/ImGuiService.hh>
+#include <ImGui/ImGuiUtility.hh>
+#include <Layers/EditorLayer.hh>
+#include <ImGui/IconsMaterialDesign.h>
 
 namespace Mikoto {
 

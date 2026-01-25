@@ -1,7 +1,6 @@
 // Credits: https://github.com/SaschaWillems/Vulkan/tree/master/examples
 
 #version 450
-#extension GL_EXT_nonuniform_qualifier : require
 
 layout (location = 0) out vec2 o_UV;
 

@@ -27,6 +27,11 @@
 
 namespace Mikoto {
 
+    auto FramePassNode::MarkDirty() -> void {
+        IsDirty = true;
+        Status = FramePassNodeStatus::ACTIVE;
+    }
+
     auto FramePassNode::IsActive() const -> bool {
         return IsStatus( FramePassNodeStatus::ACTIVE );
     }
@@ -37,6 +42,29 @@ namespace Mikoto {
 
     auto FramePassNode::IsStatus(FramePassNodeStatus status) const -> bool {
         return Status == status;
+    }
+
+    auto FramePassNode::IsExecutionPolicy( FramePassExecutionPolicy status ) const -> bool {
+        return ExecutionPolicy == status;
+    }
+
+    auto FramePassNode::ShouldRun() const -> bool {
+        if (!IsStatus(FramePassNodeStatus::ACTIVE)) {
+            return false;
+        }
+
+        switch (ExecutionPolicy) {
+            case FramePassExecutionPolicy::PER_FRAME:
+                return true;
+
+            case FramePassExecutionPolicy::ONCE:
+                return !HasExecuted;
+
+            case FramePassExecutionPolicy::ON_CHANGE:
+                return IsDirty;
+        }
+
+        return false;
     }
 
     FramePassBuilder::FramePassBuilder( FramePassNode &node )
@@ -169,7 +197,7 @@ namespace Mikoto {
         m_GraphicsContex->BeginFrame();
 
         for (auto & node: m_Passes | std::views::values) {
-            if (node.IsActive()) {
+            if (node.ShouldRun()) {
                 CommandContext commandContext{ m_GraphicsContex, m_Device };
                 commandContext.BeginPass(node);
 
@@ -184,6 +212,11 @@ namespace Mikoto {
         }
 
         m_GraphicsContex->EndFrame();
+    }
+
+    auto FrameGraph::SetNodeExecutionPolicy( std::string_view name, FramePassExecutionPolicy policy ) -> void {
+        MKT_ASSERT( IsFramePassPresent( name ), StringUtil::Format( "Node {} does not exist.", name ) );
+        m_Passes[std::string{ name }].ExecutionPolicy = policy;
     }
 
     auto FrameGraph::IsCompiled() const -> bool {

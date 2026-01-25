@@ -63,9 +63,17 @@ namespace Mikoto {
         FramePassNodeStatus Status{ FramePassNodeStatus::ACTIVE };
         FramePassExecutionPolicy ExecutionPolicy{ FramePassExecutionPolicy::PER_FRAME };
 
+        bool IsDirty{ true };
+        bool HasExecuted{ false };
+
+        auto MarkDirty() -> void;
+
         MKT_NODISCARD auto IsActive() const -> bool;
         MKT_NODISCARD auto IsSleeping() const -> bool;
         MKT_NODISCARD auto IsStatus(FramePassNodeStatus status) const -> bool;
+        MKT_NODISCARD auto IsExecutionPolicy(FramePassExecutionPolicy status) const -> bool;
+
+        MKT_NODISCARD auto ShouldRun() const -> bool;
     };
 
     class FramePassBuilder final {
@@ -162,6 +170,8 @@ namespace Mikoto {
 
         auto Compile() -> void;
         auto Execute() -> void;
+
+        auto SetNodeExecutionPolicy(std::string_view name, FramePassExecutionPolicy policy) -> void;
 
         MKT_NODISCARD auto IsCompiled() const -> bool;
 

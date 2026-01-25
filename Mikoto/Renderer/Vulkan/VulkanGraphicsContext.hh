@@ -39,7 +39,8 @@ namespace Mikoto {
         auto BeginFrame()-> void override;
         auto EndFrame()-> void  override;
 
-        auto InsertResourceBarrier(std::string_view passName, CommandListHandle cmd) -> void override;
+        auto InsertReadResourceBarrier(FramePassNode* node, CommandListHandle cmd) -> void override;
+        auto InsertWriteResourceBarrier(FramePassNode* node, CommandListHandle cmd) -> void override;
 
         auto GetSampler(std::string_view name) -> SamplerHandle override;
         auto GetTexture(std::string_view name) -> TextureHandle override;

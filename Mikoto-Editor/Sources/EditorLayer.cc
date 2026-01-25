@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <memory>
+
 #include <imgui.h>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <Core/InputService.hh>
 #include <Core/Profiler.hh>
@@ -35,8 +38,6 @@
 #include <Renderer/Core/RenderService.hh>
 #include <Scene/Component.hh>
 #include <Scene/SceneManager.hh>
-#include <glm/gtc/type_ptr.hpp>
-#include <memory>
 
 #include "Application/EditorUtility.hh"
 #include "Core/CoreEvents.hh"
@@ -44,7 +45,6 @@
 #include "Core/SystemStats.hh"
 #include "ImGui/ImGuiService.hh"
 #include "Panels/AssetsPanel.hh"
-#include "Renderer/Passes/IBLPasses.hh"
 
 namespace Mikoto {
 
@@ -73,6 +73,7 @@ namespace Mikoto {
         CreateCameras();
 
         PrepareNewScene();
+
         PrepareSerialization();
 
         SetupEditorState();
@@ -125,9 +126,6 @@ namespace Mikoto {
             .WithBasePath("Resources/HDR/scifi_desert_beach/Scifi Desert Beach/Scifi-Desert-Beach.hdr");
 
         m_TextureHDR = AssetsService::Get()->LoadAsset<TextureCube>( loadDesc2 );
-
-        SystemStats::Get()->Update();
-        MKT_CORE_LOGGER_DEBUG( "After Scifi-Desert-Beach ram usage: {}", SystemStats::Get()->GetProcessRamUsage() );
 
         TextureCubeLoadDescription loadDesc{};
         loadDesc.WithType( TextureType::TEXTURE_CUBE )

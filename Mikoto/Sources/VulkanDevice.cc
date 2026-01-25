@@ -968,13 +968,6 @@ namespace Mikoto {
 
     auto VulkanCmdList::EndRender(RenderInfo& info) -> void {
         vkCmdEndRendering( m_CmdBuffer );
-
-        // Temporary: transition images to shader sample layout, if it is a 2D texture
-        // Transition color target to shader read
-        for (auto &texture: info.ColorRenderTargets) {
-            const auto vulkanTexture{ dynamic_cast<VulkanTexture*>( texture.GetRaw() ) };
-            vulkanTexture->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_CmdBuffer );
-        }
     }
 
     auto VulkanCmdList::FillTexture( Buffer* src, Texture* dest ) -> void {

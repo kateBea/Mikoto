@@ -21,7 +21,7 @@
 
 #include <Renderer/Core/FrameResource.hh>
 #include <Renderer/Core/CommandContext.hh>
-#include <Renderer/Passes/ShaderRenderParams.hh>
+#include <Renderer/Passes/ShaderParameteres.hh>
 #include <Renderer/Passes/PostEffectsPasses.hh>
 
 namespace Mikoto {

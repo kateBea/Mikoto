@@ -31,16 +31,25 @@ namespace Mikoto {
         m_Commands = m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE, false );
         m_Commands->Begin();
 
-        m_Context->InsertResourceBarrier(m_ActivePass->Name, m_Commands);
-
+        m_Context->InsertReadResourceBarrier(m_ActivePass, m_Commands);
         m_Context->BindShaderResources( pass.Name, m_Commands );
     }
 
     auto CommandContext::EndPass() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        m_Context->InsertWriteResourceBarrier(m_ActivePass, m_Commands);
+
         m_Commands->End();
         m_Device->SubmitCommands( m_Commands );
+
+        m_ActivePass->HasExecuted = true;
+        m_ActivePass->IsDirty = false;
+
+        // Put the node to sleep if it is not supposed to run every frame
+        if (!m_ActivePass->IsExecutionPolicy(FramePassExecutionPolicy::PER_FRAME)) {
+            m_ActivePass->Status = FramePassNodeStatus::SLEEPING;
+        }
     }
 
     auto CommandContext::BeginRender( const PassRenderInfo& renderInfo ) -> void {

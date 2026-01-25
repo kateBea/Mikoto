@@ -21,7 +21,7 @@
 #include <Library/Utility/Types.hh>
 
 #include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Passes/ShaderRenderParams.hh>
+#include <Renderer/Passes/ShaderParameteres.hh>
 
 namespace Mikoto {
 

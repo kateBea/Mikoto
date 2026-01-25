@@ -56,6 +56,8 @@ namespace Mikoto {
     }
 
     auto WindowsService::Create( const WindowProperties &properties ) -> Window * {
+        MKT_BEGIN_PROFILER_NAMED();
+
         Window* result{ nullptr };
 
         try {

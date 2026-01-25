@@ -35,6 +35,8 @@ constexpr std::string_view g_ConfidPath{ "app-config.toml" };
 const Mikoto::BaseConfiguration g_Config{ g_ConfidPath };
 
 auto InitializeWindow() -> void {
+    MKT_BEGIN_PROFILER_NAMED();
+
     using namespace Mikoto;
 
     // Initialize the window service so we can use windows
@@ -61,6 +63,8 @@ auto InitializeWindow() -> void {
 auto InitializeApplication() -> void {
     using namespace Mikoto;
 
+    MKT_BEGIN_PROFILER_NAMED();
+
     if (!g_Window) {
         return;
     }
@@ -80,6 +84,8 @@ auto InitializeApplication() -> void {
 }
 
 auto RunCleanup() -> void {
+    MKT_BEGIN_PROFILER_NAMED();
+
     if (g_Application) {
         g_Application->Shutdown();
     }
@@ -88,6 +94,8 @@ auto RunCleanup() -> void {
 }
 
 auto RunApplication() -> void {
+    MKT_BEGIN_PROFILER_NAMED();
+
     if (!g_Application || !g_Window) {
         return;
     }
@@ -101,6 +109,8 @@ auto RunApplication() -> void {
 }
 
 auto Usage(const int argc)-> bool {
+    MKT_BEGIN_PROFILER_NAMED();
+
     if ( argc != 1 ) {
         std::printf( "MikotoEditor takes no arguments." );
         return false;

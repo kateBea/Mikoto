@@ -64,8 +64,8 @@ namespace Mikoto {
                     b.Write( "AABBGenComp_Clusters", FrameResourceState::ShaderResource_Read );
                     b.Write( "AABBGenComp_CameraUBO", FrameResourceState::ShaderResource_Read );
 
-                    b.UseSrg( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 0 );
-                    b.UseSrg( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
+                    b.Use( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 0 );
+                    b.Use( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -107,10 +107,10 @@ namespace Mikoto {
                     b.Write( "LightCullingComp_LightsBuffer", FrameResourceState::ShaderResource_Read );
                     b.Write( "LightCullingComp_LightsCullingInfo", FrameResourceState::ShaderResource_Read );
 
-                    b.UseSrg( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 0 );
-                    b.UseSrg( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
-                    b.UseSrg( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 2 );
-                    b.UseSrg( SRGType::SRG_PerPass, "LightCullingComp_LightsCullingInfo", 3 );
+                    b.Use( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 0 );
+                    b.Use( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
+                    b.Use( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 2 );
+                    b.Use( SRGType::SRG_PerPass, "LightCullingComp_LightsCullingInfo", 3 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();

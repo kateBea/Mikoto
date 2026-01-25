@@ -70,19 +70,22 @@ namespace Mikoto {
     FramePassBuilder::FramePassBuilder( FramePassNode &node )
         : m_Node{ std::addressof( node ) } {}
 
-    auto FramePassBuilder::Write( std::string_view name, FrameResourceState outState ) -> void {
+    auto FramePassBuilder::Write( std::string_view name, FrameResourceState outState ) -> FramePassBuilder& {
         m_Node->Writes.emplace_back( StringUtil::From( name ), outState );
+        return *this;
     }
 
-    auto FramePassBuilder::Read( std::string_view name, FrameResourceState outState ) -> void {
+    auto FramePassBuilder::Read( std::string_view name, FrameResourceState outState ) -> FramePassBuilder& {
         m_Node->Writes.emplace_back( StringUtil::From( name ), outState );
+        return *this;
     }
 
-    auto FramePassBuilder::UseShader( std::string_view path, ShaderStage stage ) -> void {
+    auto FramePassBuilder::UseShader( std::string_view path, ShaderStage stage ) -> FramePassBuilder& {
         m_PipelineDescription.UseShader( path, stage );
+        return *this;
     }
 
-    auto FramePassBuilder::UseSrg( SRGType type ) -> void {
+    auto FramePassBuilder::Use( SRGType type ) -> FramePassBuilder& {
         switch (type) {
             case SRGType::SRG_Textures:
                 m_UsesTextures = true;
@@ -90,15 +93,18 @@ namespace Mikoto {
             default: ;
         }
 
+        return *this;
     }
 
-    auto FramePassBuilder::UseSrg( SRGType type, std::string_view name, UInt32 bindSlot ) -> void {
+    auto FramePassBuilder::Use( SRGType type, std::string_view name, UInt32 bindSlot ) -> FramePassBuilder& {
         switch (type) {
             case SRGType::SRG_PerPass:
                 m_PassShaderResources.SetBuffer( name, bindSlot );
                 break;
             default: ;
         }
+
+        return *this;
     }
 
     auto FramePassBuilder::GetPass() -> FramePassNode * {

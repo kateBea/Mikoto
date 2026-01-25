@@ -175,6 +175,9 @@ namespace Mikoto {
         auto GetRaw() -> RefCountedType* { return m_Ptr; }
         auto GetRaw() const -> const RefCountedType* { return m_Ptr; }
 
+        template<typename T>
+        auto Dynamic() -> decltype(auto) { return dynamic_cast<T*>(m_Ptr); }
+
     private:
         friend class ReferenceCounted;
 

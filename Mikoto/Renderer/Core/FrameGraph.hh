@@ -80,11 +80,14 @@ namespace Mikoto {
     public:
         explicit FramePassBuilder( FramePassNode &node );
 
-        auto Write( std::string_view name, FrameResourceState outState = FrameResourceState::ShaderResource_Read ) -> void;
-        auto Read( std::string_view name, FrameResourceState outState = FrameResourceState::ShaderResource_Read ) -> void;
+        auto Use( SRGType type ) -> FramePassBuilder&;
+        auto Use( SRGType type, std::string_view name, UInt32 bindSlot ) -> FramePassBuilder&;
+
+        auto Write( std::string_view name, FrameResourceState outState = FrameResourceState::ShaderResource_Read ) -> FramePassBuilder&;
+        auto Read( std::string_view name, FrameResourceState outState = FrameResourceState::ShaderResource_Read ) -> FramePassBuilder&;
 
         template<typename ResourceType, typename... Args>
-        auto Create( Args &&... args ) -> void {
+        auto Create( Args &&... args ) -> FramePassBuilder& {
             if constexpr (std::is_same_v<ResourceType, Buffer>) {
                 CreateBuffer( std::forward<Args>( args )... );
             } else if constexpr (std::is_same_v<ResourceType, Texture>
@@ -93,14 +96,13 @@ namespace Mikoto {
             } else if constexpr (std::is_same_v<ResourceType, Pipeline>) {
                 CreatePipeline( std::forward<Args>( args )... );
             }
+
+            return *this;
         }
 
         // Resources to be used in the shader can be specified at creation or later in
         // the execute callback via calling the corresponding bind methods
-        auto UseShader( std::string_view path, ShaderStage stage ) -> void;
-
-        auto UseSrg( SRGType type ) -> void;
-        auto UseSrg( SRGType type, std::string_view name, UInt32 bindSlot ) -> void;
+        auto UseShader( std::string_view path, ShaderStage stage ) -> FramePassBuilder&;
 
         MKT_NODISCARD auto GetPass() -> FramePassNode *;
         MKT_NODISCARD auto GetShaderResources() const -> const SRGPerPass &;

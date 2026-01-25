@@ -35,7 +35,7 @@ namespace Mikoto {
         Mat4F Transform{};
 
         Vec4F Albedo{};
-        Vec4F Factors{};
+        Vec4F Factors{}; // Metallnes, Roughness, AO
 
         Int32 AlbedoIndex{};
         Int32 NormalIndex{};

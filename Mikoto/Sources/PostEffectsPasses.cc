@@ -76,8 +76,8 @@ namespace Mikoto {
                     b.Write( "FinalCompositionPass_ColorTarget", FrameResourceState::RenderTarget_Color );
                     b.Write( "FinalCompositionPass_DepthTarget", FrameResourceState::RenderTarget_Depth );
 
-                    b.UseSrg( SRGType::SRG_PerPass, "TextRenderPass_FontParams", 0 );
-                    b.UseSrg( SRGType::SRG_PerPass, "TextRenderPass_TextRenderParams", 1 );
+                    b.Use( SRGType::SRG_PerPass, "TextRenderPass_FontParams", 0 );
+                    b.Use( SRGType::SRG_PerPass, "TextRenderPass_TextRenderParams", 1 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();

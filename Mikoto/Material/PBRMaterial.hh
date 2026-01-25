@@ -37,11 +37,13 @@ namespace Mikoto {
         auto SetMetallicFactor( float metallic ) -> void;
         auto SetRoughnessFactor( float roughness ) -> void;
         auto SetReflectanceFactor( float reflectance ) -> void;
+        auto SetAoFactor( float ao ) -> void;
         auto SetEmissiveFactor( float emissive ) -> void;
 
         MKT_NODISCARD auto GetAlpha() const -> float;
         MKT_NODISCARD auto GetMetallicFactor() const -> float;
         MKT_NODISCARD auto GetRoughnessFactor() const -> float;
+        MKT_NODISCARD auto GetAoFactor() const -> float;
         MKT_NODISCARD auto GetReflectanceFactor() const -> float;
         MKT_NODISCARD auto GetEmissiveFactor() const -> float;
 

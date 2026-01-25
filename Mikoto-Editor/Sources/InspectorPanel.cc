@@ -536,6 +536,7 @@ namespace Mikoto {
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
+
             ImGui::EndDragDropTarget();
         }
 
@@ -566,9 +567,10 @@ namespace Mikoto {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
-            float strength{};
+            float factor{ material.GetAoFactor() };
 
-            if ( ImGuiUtils::Slider( "Strength", strength, { 0.0f, 10.0f } ) ) {
+            if ( ImGuiUtils::Slider( "AO Factor", factor, { 0.0f, 10.0f } ) ) {
+                material.SetAoFactor( factor );
             }
 
             ImGui::TableNextRow();

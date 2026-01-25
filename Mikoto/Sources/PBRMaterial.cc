@@ -64,6 +64,14 @@ namespace Mikoto {
         m_ReflectanceFactor = reflectance;
     }
 
+    auto PBRMaterial::SetAoFactor( float ao ) -> void {
+        m_AmbientOcclusion = ao;
+    }
+
+    auto PBRMaterial::GetAoFactor() const -> float {
+        return m_AmbientOcclusion;
+    }
+
     auto PBRMaterial::SetEmissiveFactor( float emissive ) -> void {
         m_Emissive = emissive;
     }

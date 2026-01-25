@@ -66,20 +66,15 @@ namespace Mikoto {
                     b.Create<TextureCube>( "IrradiancePass_ColorTarget", m_IrradianceDimensions, TextureFormat::RGBA32_FLOAT, m_IrradianceMipLevels );
 
                     // Create pipeline
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/Irradiance_Vert.sprv", ShaderStage::VERTEX );
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/Irradiance_Frag.sprv", ShaderStage::FRAGMENT );
-                    b.Create<Pipeline>( "IrradiancePass_Pipeline", GraphicsPipelineDescription{ .VertexAttributesSpec{} } );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/Irradiance_Vert.sprv", ShaderStage::VERTEX )
+                        .UseShader( "Resources/Shaders/vulkan-spirv/Irradiance_Frag.sprv", ShaderStage::FRAGMENT )
+                        .Create<Pipeline>( "IrradiancePass_Pipeline", GraphicsPipelineDescription{ .VertexAttributesSpec{} } );
 
-                    b.Write( "IrradiancePass_ColorTarget", FrameResourceState::RenderTarget_Color );
-                    b.Write( "IrradiancePass_CameraInfo", FrameResourceState::ShaderResource_Read );
-                    b.Write( "IrradiancePass_Parameters", FrameResourceState::ShaderResource_Read );
+                    b.Write( "IrradiancePass_ColorTarget", FrameResourceState::RenderTarget_Color )
+                        .Write( "IrradiancePass_CameraInfo", FrameResourceState::ShaderResource_Read )
+                        .Write( "IrradiancePass_Parameters", FrameResourceState::ShaderResource_Read );
 
                     b.Read( "SkyboxPass_TextureCube", FrameResourceState::ShaderResource_Read );
-
-                    // TODO:
-                    // b.UseSrg( "IrradiancePass_CameraInfo", SRGType::SRG_PerPass, 0 );
-                    // b.UseSrg( "IrradiancePass_Parameters", SRGType::SRG_PerPass, 1 );
-                    // b.UseSrg( "SkyboxPass_TextureCube", SRGType::SRG_PerPass, 2 );
                 },
 
                 [&]( CommandContext &ctx, FrameGraphBlackboard &blackboard ) {
@@ -88,6 +83,9 @@ namespace Mikoto {
                     ctx.BindPipeline( "IrradiancePass_Pipeline" );
                     ctx.SetViewport( 0, 0, 1920, 1080 );
                     ctx.SetScissor( 0, 0, 1920, 1080 );
+
+                    // The skybox is bound once
+                    ctx.BindImage( m_CubeMap, m_CubeMapSampler, 1 );
 
                     for (UInt32 mip = 0; mip < m_IrradianceDimensions; ++mip) {
                         for (UInt32 face{}; face < MAX_CUBE_MAP_FACES; ++face) {
@@ -126,10 +124,6 @@ namespace Mikoto {
 
                     b.Write( "Prefilter_ColorTarget", FrameResourceState::ShaderResource_Read );
                     b.Read( "SkyboxPass_TextureCube", FrameResourceState::ShaderResource_Read );
-
-                    // b.BindBuffer( "IrradiancePass_CameraInfo", SRGType::SRG_PerPass, 0 );
-                    // b.BindBuffer( "IrradiancePass_Parameters", SRGType::SRG_PerPass, 1 );
-                    // b.BindTexture( "SkyboxPass_TextureCube", SRGType::SRG_PerPass, 2, "SkyboxPass_Sampler" );
                 },
 
                 [&]( CommandContext &ctx, FrameGraphBlackboard & ) {
@@ -139,8 +133,11 @@ namespace Mikoto {
                     ctx.SetViewport( 0, 0, 1920, 1080 );
                     ctx.SetScissor( 0, 0, 1920, 1080 );
 
+                    // The skybox is bound once
+                    ctx.BindImage( m_CubeMap, m_CubeMapSampler, 1 );
+
                     for (UInt32 mip = 0; mip < m_IrradianceMipLevels; ++mip) {
-                        for (uint32_t face = 0; face < MAX_CUBE_MAP_FACES; ++face) {
+                        for (UInt32 face = 0; face < MAX_CUBE_MAP_FACES; ++face) {
                             ctx.SetColorRenderTarget( "IrradiancePass_ColorTarget" );
 
                             // Update face data
@@ -247,7 +244,7 @@ namespace Mikoto {
                     b.Write( "FinalShadingPass_DepthTarget", FrameResourceState::ShaderResource_Read );
                     b.Write( "SkyboxPass_CameraInfo", FrameResourceState::Transfer_Dst );
 
-                    b.UseSrg( SRGType::SRG_PerPass, "SkyboxPass_CameraInfo", 0 );
+                    b.Use( SRGType::SRG_PerPass, "SkyboxPass_CameraInfo", 0 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -294,11 +291,8 @@ namespace Mikoto {
                 []( FramePassBuilder &b ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    b.Create<Buffer>( "PerFrame_CameraInfo", BufferUsage::UNIFORM, sizeof( ShaderCameraParams ), 1 );
-                    b.Create<Buffer>( "FinalCompositionPass_MeshInfo", BufferUsage::SSBO, sizeof( ShaderMaterialParams ), MAX_RENDERABLE_ENTITIES );
-
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/FullscreenTriangle_Vert.sprv", ShaderStage::VERTEX );
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/FullscreenTriangle_Frag.sprv", ShaderStage::FRAGMENT );
+                    b.Create<Buffer>( "FinalCompositionPass_CameraInfo", BufferUsage::UNIFORM, sizeof( ShaderCameraParams ), 1 )
+                        .Create<Buffer>( "FinalCompositionPass_MeshInfo", BufferUsage::SSBO, sizeof( ShaderMaterialParams ), MAX_RENDERABLE_ENTITIES );
 
                     GraphicsPipelineDescription graphicsDesc{
                         .DepthTest{ true },
@@ -306,26 +300,27 @@ namespace Mikoto {
                         .AlphaBlending{ true },
                         .PipelineCullMode{ CullMode::CULL_BACK },
                     };
-                    b.Create<Pipeline>( "FinalCompositionPass_Pipeline", graphicsDesc );
 
-                    b.Read( "AABBGenComp_CameraUBO" );
-                    b.Read( "AABBGenComp_Clusters" );
-                    b.Read( "LightCullingComp_LightsBuffer" );
-                    b.Read( "PerFrame_CameraInfo" );
-                    b.Read( "FinalCompositionPass_ColorTarget" );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/FullscreenTriangle_Vert.sprv", ShaderStage::VERTEX )
+                        .UseShader( "Resources/Shaders/vulkan-spirv/FullscreenTriangle_Frag.sprv", ShaderStage::FRAGMENT )
+                        .Create<Pipeline>( "FinalCompositionPass_Pipeline", graphicsDesc );
 
-                    b.Write( "FinalCompositionPass_MeshInfo" );
-                    b.Write( "FinalCompositionPass_DepthTarget" );
-                    b.Write( "HelloTexture_ColorTarget" );
-                    b.Write( "HelloTexture_DepthTarget" );
-                    b.Write( "FinalCompositionPass_ColorTarget" );
+                    b.Read( "AABBGenComp_CameraUBO" )
+                        .Read( "AABBGenComp_Clusters" )
+                        .Read( "LightCullingComp_LightsBuffer" )
+                        .Read( "FinalCompositionPass_CameraInfo" )
+                        .Read( "FinalCompositionPass_ColorTarget" );
 
-                    b.UseSrg( SRGType::SRG_PerPass, "PerFrame_CameraInfo", 0 );
-                    b.UseSrg( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 1 );
-                    b.UseSrg( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 2 );
-                    b.UseSrg( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 3 );
-                    b.UseSrg( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 4 );
-                    b.UseSrg( SRGType::SRG_Textures );
+                    b.Write( "FinalCompositionPass_MeshInfo" )
+                        .Write( "FinalCompositionPass_DepthTarget" )
+                        .Write( "FinalCompositionPass_ColorTarget" );
+
+                    b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_CameraInfo", 0 )
+                        .Use( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 1 )
+                        .Use( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 2 )
+                        .Use( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 3 )
+                        .Use( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 4 )
+                        .Use( SRGType::SRG_Textures );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -346,7 +341,7 @@ namespace Mikoto {
                         .ColorLoadOp{ colorTargetLoadOP },
                     };
 
-                    ctx.UploadBuffer<ShaderCameraParams>( "PerFrame_CameraInfo", m_FrameUBO );
+                    ctx.UploadBuffer<ShaderCameraParams>( "FinalCompositionPass_CameraInfo", m_FrameUBO );
 
                     ctx.BeginRender( renderInfo );
 
@@ -405,11 +400,9 @@ namespace Mikoto {
             auto &meshComponent{ registry.get<MeshComponent>( entity ) };
             auto &materialComp{ registry.get<MaterialComponent>( entity ) };
 
-            MaterialHandle material{ materialComp.GetMaterial() };
-
-            if (meshComponent.HasMesh() && !material.IsEmpty()) {
+            if (meshComponent.HasMesh() && materialComp.HasMaterial()) {
                 MeshNode *meshNode{ meshComponent.GetMesh() };
-                PBRMaterial *pbrMat{ dynamic_cast<PBRMaterial *>( material.GetRaw() ) };
+                PBRMaterial *pbrMat{ materialComp.GetMaterial().Dynamic<PBRMaterial>() };
 
                 auto &[DrawIndexedState, ActiveEntities, Instances]{
                     m_MeshDrawState[meshNode]
@@ -425,6 +418,7 @@ namespace Mikoto {
                     ubo.Albedo = pbrMat->GetColor();
                     ubo.Factors.x = pbrMat->GetMetallicFactor();
                     ubo.Factors.y = pbrMat->GetRoughnessFactor();
+                    ubo.Factors.z = pbrMat->GetAoFactor();
 
                     ubo.AlbedoIndex = context.PushTexture( pbrMat->GetTextureType( MapType::ALBEDO_TEXTURE ) );
                     ubo.NormalIndex = context.PushTexture( pbrMat->GetTextureType( MapType::NORMAL_TEXTURE ) );
@@ -435,4 +429,4 @@ namespace Mikoto {
             }
         }
     }
-}// namespace Mikoto
+} // namespace Mikoto

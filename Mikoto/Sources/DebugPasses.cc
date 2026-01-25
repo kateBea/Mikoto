@@ -106,7 +106,7 @@ namespace Mikoto {
 
                     b.Write( "SimpleCompute_Results", FrameResourceState::Transfer_Src );
 
-                    b.UseSrg( SRGType::SRG_PerPass, "SimpleCompute_Results", 0 );
+                    b.Use( SRGType::SRG_PerPass, "SimpleCompute_Results", 0 );
                 },
                 []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     ctx.BindPipeline( "SimpleCompute_Pipeline" );
@@ -154,8 +154,8 @@ namespace Mikoto {
                     b.Write( "HelloTexture_DepthTarget", FrameResourceState::ShaderResource_Read );
 
                     b.Write( "HelloTexture_TexturesBuffer", FrameResourceState::ShaderResource_Read );
-                    b.UseSrg( SRGType::SRG_PerPass, "HelloTexture_TexturesBuffer", 0 );
-                    b.UseSrg( SRGType::SRG_Textures );
+                    b.Use( SRGType::SRG_PerPass, "HelloTexture_TexturesBuffer", 0 );
+                    b.Use( SRGType::SRG_Textures );
 
                     // Texture used later
                     m_TextureHandle = AssetsService::Get()->LoadAsset<Texture>( Path{ "Resources/Models/1 - Box texture/CatStare.png" } );

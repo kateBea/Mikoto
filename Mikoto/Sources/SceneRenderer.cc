@@ -45,6 +45,9 @@ namespace Mikoto {
     auto SceneRenderer::Render( Scene* scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        m_IBLPasses.SetScene( scene );
+        m_DebugPasses.SetScene( scene );
+        m_PostEffectsPasses.SetScene( scene );
         m_ClusteredShadingPasses.SetScene( scene );
 
         OnPreRender();
@@ -69,7 +72,7 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::SetClearColor( const Vec4F& color ) -> void {
-        m_ClearColor = color;
+        m_IBLPasses.SetClearColor( color );
     }
 
     auto SceneRenderer::EnableSkybox( bool enable ) -> void {

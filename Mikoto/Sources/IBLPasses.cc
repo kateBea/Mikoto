@@ -46,6 +46,10 @@ namespace Mikoto {
         //RegisterShading( graph );
     }
 
+    auto IBLPasses::SetClearColor( const Vec4F &color ) -> void {
+        m_ClearColor = color;
+    }
+
     auto IBLPasses::SetResolution( RenderResolution resolution ) -> void {
         m_Resolution = resolution;
 

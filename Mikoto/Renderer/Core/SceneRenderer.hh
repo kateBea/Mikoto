@@ -96,9 +96,6 @@ namespace Mikoto {
         PostEffectsPass m_PostEffectsPasses{ m_RenderResolution };
         DebugPasses m_DebugPasses{ m_RenderResolution };
         ClusteredShading m_ClusteredShadingPasses{ m_RenderResolution };
-
-        // Skybox
-        Vec4F m_ClearColor{ 0.1f, 0.2f, 0.5f, 1.0f };
     };
 }// namespace Mikoto
 

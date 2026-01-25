@@ -33,6 +33,8 @@ namespace Mikoto {
         auto SetCamera( const Camera *camera ) -> void;
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
+        auto SetClearColor( const Vec4F& color ) -> void;
+
         auto SetResolution( RenderResolution resolution) -> void;
 
         auto SetCubeMap( TextureHandle cubeMap ) -> void;

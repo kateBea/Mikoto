@@ -25,7 +25,7 @@
 
 #include <Renderer/Core/Pipeline.hh>
 #include <Renderer/Core/FrameGraphBlackboard.hh>
-#include <Renderer/Core/FrameResource.hh>
+#include <Renderer/Core/FramePassResource.hh>
 #include <Renderer/Core/RenderUtility.hh>
 #include <Renderer/Core/SRGBase.hh>
 
@@ -137,7 +137,7 @@ namespace Mikoto {
 
         PipelineDescription m_PipelineDescription{};
 
-        ankerl::unordered_dense::map<std::string, FrameResource> m_Creates{};
+        ankerl::unordered_dense::map<std::string, FramePassResourceDescription> m_Creates{};
 
         bool m_UsesTextures{ false };
     };
@@ -183,6 +183,9 @@ namespace Mikoto {
         MKT_NODISCARD static auto Create( GraphicsContext *context, GpuDevice *device ) -> Unique<FrameGraph>;
 
     private:
+        auto TransitionWrites(FramePassNode& node, CommandListHandle cmd) -> void;
+        auto InsertResourceBarriers(FramePassNode& node, CommandListHandle cmd) -> void;
+
         MKT_NODISCARD auto UsesTextureList( std::string_view nodeName ) const -> bool;
         MKT_NODISCARD auto IsFramePassPresent( std::string_view name ) const -> bool;
 
@@ -191,7 +194,9 @@ namespace Mikoto {
         auto CreatePassNode( std::string_view name ) -> FramePassNode &;
         auto CreateCommitedResources( FramePassBuilder &builder ) -> void;
 
-        auto CreateResource( std::string_view name, FrameResource resource ) -> void;
+        auto CreateResource( std::string_view name, FramePassResourceDescription resource ) -> void;
+
+        auto DebugDumpResources() -> void;
 
     private:
         // Backend resource creation and control
@@ -204,6 +209,9 @@ namespace Mikoto {
 
         // Passes that use global array of textures
         ankerl::unordered_dense::set<std::string> m_TexturePasses{};
+
+        // Resources by names to be used for resource transition and barriers
+        ankerl::unordered_dense::map<std::string, FramePassResource> m_ResourcesByNames{};
 
         // Compile flag
         bool m_Compiled{ false };

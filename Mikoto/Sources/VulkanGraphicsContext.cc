@@ -53,131 +53,6 @@ namespace Mikoto {
 
     }
 
-    static auto InsertBarrier( BufferHandle buffer, FrameResourceState newState, CommandListHandle cmd ) -> void {
-        // For now only handle from shader read to shader read
-        FrameResourceState oldState{ FrameResourceState::ShaderResource_Read };
-
-        VkPipelineStageFlags srcStage{ VK_FLAGS_NONE };
-        VkPipelineStageFlags dstStage{ VK_FLAGS_NONE };
-
-        VkAccessFlags srcAccess{ VK_FLAGS_NONE };
-        VkAccessFlags dstAccess{ VK_FLAGS_NONE };
-
-        // --- Map old state ---
-        switch (oldState) {
-            case FrameResourceState::ShaderResource_Read:
-                srcStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-                srcAccess = VK_ACCESS_SHADER_READ_BIT;
-                break;
-            default: ;
-        }
-
-        // --- Map new state ---
-        switch (newState) {
-            case FrameResourceState::ShaderResource_Read:
-                dstStage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
-                dstAccess = VK_ACCESS_SHADER_READ_BIT;
-                break;
-
-            case FrameResourceState::Undefined:
-            default:
-                dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-                dstAccess = 0;
-                break;
-        }
-
-        const VkBufferMemoryBarrier barrier{
-            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-            .srcAccessMask = srcAccess,
-            .dstAccessMask = dstAccess,
-            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .buffer = buffer->GetNativeHandle( ObjectType::Vk_Buffer ),
-            .offset = 0,
-            .size = buffer->GetSizeBytes(),
-        };
-
-
-        vkCmdPipelineBarrier(
-                cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
-                srcStage,
-                dstStage,
-                0,
-                0, nullptr,
-                1, &barrier,
-                0, nullptr
-                );
-    }
-
-    static auto InsertBarrier(TextureHandle texture, FrameResourceState state, CommandListHandle cmd ) -> void {
-        // Temporary: transition images to shader sample layout, if it is a 2D texture
-        // Transition color target to shader read
-        const auto vulkanTexture{ dynamic_cast<VulkanTexture*>( texture.GetRaw() ) };
-
-        switch (state) {
-            case FrameResourceState::ShaderResource_Read:
-                vulkanTexture->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
-                break;
-            case FrameResourceState::ShaderResource_Write:
-                break;
-            case FrameResourceState::Transfer_Src:
-                break;
-            case FrameResourceState::Transfer_Dst:
-                break;
-            case FrameResourceState::Undefined:
-                break;
-            default: ;
-        }
-    }
-
-    auto VulkanGraphicsContext::InsertReadResourceBarrier( FramePassNode* node, CommandListHandle cmd ) -> void {
-        const auto it{ m_PassInfo.find( node->Name ) };
-        if (it == m_PassInfo.end()) {
-            return;
-        }
-
-        auto& readResources{ node->Reads };
-
-        for (auto& [Name, OutState] : readResources) {
-            switch (OutState) {
-                case FrameResourceState::ShaderResource_Read:
-                    break;
-                case FrameResourceState::ShaderResource_Write:
-                    break;
-                case FrameResourceState::Transfer_Src:
-                    break;
-                case FrameResourceState::Transfer_Dst:
-                    break;
-                case FrameResourceState::Undefined:
-                    break;
-                default: ;
-            }
-        }
-    }
-
-    auto VulkanGraphicsContext::InsertWriteResourceBarrier( FramePassNode* node, CommandListHandle cmd ) -> void {
-        const auto it{ m_PassInfo.find( node->Name ) };
-        if (it == m_PassInfo.end()) {
-            return;
-        }
-
-        auto& writeResources{ node->Writes };
-        for (auto& [Name, OutState] : writeResources) {
-            BufferHandle buffer{ GetBuffer( Name ) };
-            TextureHandle texture{ GetTexture( Name ) };
-
-            if (!buffer.IsEmpty()) {
-                InsertBarrier(buffer, OutState, cmd);
-            }
-
-            // Skipping depth images for now
-            if (!texture.IsEmpty() && !texture->IsTextureUsage( TextureUsage::DEPTH )) {
-                // Properly handle transition for depth images
-                InsertBarrier(texture, OutState, cmd);
-            }
-        }
-    }
-
     auto VulkanGraphicsContext::BindShaderResources( std::string_view passName, CommandListHandle cmdList ) -> void {
         // Here we only bind the PerPass shader resources
         VkCommandBuffer vkCmd{ cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
@@ -401,6 +276,91 @@ namespace Mikoto {
         }
     }
 
+    auto VulkanGraphicsContext::InsertResourceBarrier( BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd ) -> bool {
+        FrameResourceState oldState{ previousState };
+
+        VkPipelineStageFlags srcStage{ VK_FLAGS_NONE };
+        VkPipelineStageFlags dstStage{ VK_FLAGS_NONE };
+
+        VkAccessFlags srcAccess{ VK_FLAGS_NONE };
+        VkAccessFlags dstAccess{ VK_FLAGS_NONE };
+
+        // --- Map old state ---
+        switch (oldState) {
+            case FrameResourceState::ShaderResource_Read:
+                srcStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+                srcAccess = VK_ACCESS_SHADER_READ_BIT;
+                break;
+            default: ;
+        }
+
+        // --- Map new state ---
+        switch (newState) {
+            case FrameResourceState::ShaderResource_Read:
+                dstStage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+                dstAccess = VK_ACCESS_SHADER_READ_BIT;
+                break;
+
+            case FrameResourceState::Undefined:
+            default:
+                dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+                dstAccess = 0;
+                break;
+        }
+
+        const VkBufferMemoryBarrier barrier{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+            .srcAccessMask = srcAccess,
+            .dstAccessMask = dstAccess,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .buffer = buffer->GetNativeHandle( ObjectType::Vk_Buffer ),
+            .offset = 0,
+            .size = buffer->GetSizeBytes(),
+        };
+
+
+        vkCmdPipelineBarrier(
+                cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
+                srcStage,
+                dstStage,
+                0,
+                0, nullptr,
+                1, &barrier,
+                0, nullptr
+                );
+
+        return true;
+    }
+
+    auto VulkanGraphicsContext::InsertResourceBarrier( TextureHandle texture, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd ) -> bool {
+        // skipping depth images for now
+        if (texture->IsTextureUsage( TextureUsage::DEPTH ) ) {
+            return false;
+        }
+
+        // Temporary: transition images to shader sample layout, if it is a 2D texture
+        // Transition color target to shader read
+        const auto vulkanTexture{ dynamic_cast<VulkanTexture*>( texture.GetRaw() ) };
+
+        switch (newState) {
+            case FrameResourceState::ShaderResource_Read:
+                vulkanTexture->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
+                break;
+            case FrameResourceState::ShaderResource_Write:
+                break;
+            case FrameResourceState::Transfer_Src:
+                break;
+            case FrameResourceState::Transfer_Dst:
+                break;
+            case FrameResourceState::Undefined:
+                break;
+            default: ;
+        }
+
+        return true;
+    }
+
     auto VulkanGraphicsContext::UpdateBindlessTexturesSet(Texture* texture, Sampler* sampler, Size setIndex ) const -> void {
         MKT_ASSERT(setIndex < SRGTextures::GetMaxTextureCount(), "Set index must be smaller than max bindless textures");
 
@@ -477,10 +437,10 @@ namespace Mikoto {
         CreatePassDescriptors( passName, desc );
     }
 
-    auto VulkanGraphicsContext::CreateTexture( std::string_view name, const TextureDescription &description ) -> void {
+    auto VulkanGraphicsContext::CreateTexture( std::string_view name, const TextureDescription &description ) -> TextureHandle {
         if (m_TexturesByNames.contains( std::string{ name } )) {
             MKT_CORE_LOGGER_WARN( "FrameGraph::CreateTexture - Named texture [{}] already exists.", name );
-            return;
+            return m_TexturesByNames[std::string{ name }];;
         }
 
         TextureHandle texture{ m_Device->CreateTexture( description ) };
@@ -489,12 +449,14 @@ namespace Mikoto {
             texture->SetDebugName( name );
             m_TexturesByNames.emplace( std::string{ name }, texture );
         }
+
+        return texture;
     }
 
-    auto VulkanGraphicsContext::CreateTexture( std::string_view name, const TextureCubeCreateDescription &description ) -> void {
+    auto VulkanGraphicsContext::CreateTexture( std::string_view name, const TextureCubeCreateDescription &description ) -> TextureHandle {
         if (m_TexturesByNames.contains( std::string{ name } )) {
             MKT_CORE_LOGGER_WARN( "FrameGraph::CreateTexture - Named texture cube [{}] already exists.", name );
-            return;
+            return m_TexturesByNames[std::string{ name }];
         }
 
         TextureHandle texture{ m_Device->CreateTexture( description ) };
@@ -503,6 +465,8 @@ namespace Mikoto {
             texture->SetDebugName( name );
             m_TexturesByNames.emplace( std::string{ name }, texture );
         }
+
+        return texture;
     }
 
     auto VulkanGraphicsContext::CreatePipeline( PipelineDescription& description ) -> PipelineHandle {
@@ -539,10 +503,10 @@ namespace Mikoto {
         return pipeline;
     }
 
-    auto VulkanGraphicsContext::CreateBuffer( std::string_view name, BufferDescription description ) -> void {
+    auto VulkanGraphicsContext::CreateBuffer( std::string_view name, BufferDescription description ) -> BufferHandle {
         if (m_BuffersByNames.contains( std::string{ name } )) {
             MKT_CORE_LOGGER_WARN( "FrameGraph::CreateBuffer - Named buffer [{}] already exists.", name );
-            return;
+            return m_BuffersByNames[std::string{ name }];
         }
 
         BufferHandle buffer{ m_Device->CreateBuffer( description ) };
@@ -551,6 +515,8 @@ namespace Mikoto {
             buffer->SetDebugName( name );
             m_BuffersByNames.emplace( std::string{ name }, buffer );
         }
+
+        return buffer;
     }
 
     auto VulkanGraphicsContext::CreateSampler( SamplerDescription &description ) -> SamplerHandle {

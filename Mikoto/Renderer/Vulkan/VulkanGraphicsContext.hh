@@ -39,18 +39,15 @@ namespace Mikoto {
         auto BeginFrame()-> void override;
         auto EndFrame()-> void  override;
 
-        auto InsertReadResourceBarrier(FramePassNode* node, CommandListHandle cmd) -> void override;
-        auto InsertWriteResourceBarrier(FramePassNode* node, CommandListHandle cmd) -> void override;
-
         auto GetSampler(std::string_view name) -> SamplerHandle override;
         auto GetTexture(std::string_view name) -> TextureHandle override;
         auto GetPipeline(std::string_view name) -> PipelineHandle override;
         auto GetBuffer(std::string_view name) -> BufferHandle override;
 
-        auto CreateTexture(std::string_view name, const TextureDescription &description) -> void override;
-        auto CreateTexture(std::string_view name, const TextureCubeCreateDescription& description) -> void override;
+        auto CreateTexture(std::string_view name, const TextureDescription &description) -> TextureHandle override;
+        auto CreateTexture(std::string_view name, const TextureCubeCreateDescription& description) -> TextureHandle override;
 
-        auto CreateBuffer(std::string_view name, BufferDescription description) -> void override;
+        auto CreateBuffer(std::string_view name, BufferDescription description) -> BufferHandle override;
 
         auto CreateSampler( SamplerDescription& description ) -> SamplerHandle  override;
         auto CreateSampler( std::string_view name, const SamplerDescription& description ) -> void override;
@@ -64,6 +61,9 @@ namespace Mikoto {
 
         auto PushBuffer(BufferHandle handle, std::string_view passName, UInt32 bindingSlot) -> void  override;
         auto PushTexture(TextureHandle handle, SamplerHandle sampler, std::string_view passName, UInt32 bindingSlot) -> void  override;
+
+        auto InsertResourceBarrier(BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool  override;
+        auto InsertResourceBarrier(TextureHandle texture, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool  override;
 
         // auto BindShaderResources(FramePassNode* pass, CommandListHandle cmdList ) -> void override;
         // auto CommitShaderResources(FramePassNode* pass ) -> void override;

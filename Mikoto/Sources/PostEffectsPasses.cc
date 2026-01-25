@@ -19,7 +19,7 @@
 
 #include <Library/String/String.hh>
 
-#include <Renderer/Core/FrameResource.hh>
+#include <Renderer/Core/FramePassResource.hh>
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Passes/ShaderParameteres.hh>
 #include <Renderer/Passes/PostEffectsPasses.hh>

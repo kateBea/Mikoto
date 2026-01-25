@@ -15,7 +15,7 @@
 #include <Scene/Scene.hh>
 #include <Scene/Component.hh>
 
-#include <Renderer/Core/FrameResource.hh>
+#include <Renderer/Core/FramePassResource.hh>
 #include <Renderer/Passes/DebugPasses.hh>
 #include <Renderer/Core/CommandContext.hh>
 

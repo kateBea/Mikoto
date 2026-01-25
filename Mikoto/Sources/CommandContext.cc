@@ -16,32 +16,20 @@
 #include <Renderer/Core/CommandContext.hh>
 
 namespace Mikoto {
-    CommandContext::CommandContext( GraphicsContext *context, GpuDevice* device )
-        : m_Context{ context }, m_Device{ device } {
-        MKT_ASSERT( m_Device, "Command context must have a valid device" );
+    CommandContext::CommandContext( GraphicsContext *context, CommandListHandle cmd )
+        : m_Context{ context }, m_Commands{ cmd } {
+        MKT_ASSERT( !m_Commands.IsEmpty(), "Command context must have a valid command list handle" );
     }
 
     auto CommandContext::BeginPass( FramePassNode& pass ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
-        MKT_ASSERT( m_Commands.IsEmpty(), "Pass is ongoing, cannot call begin pass again" );
-
         m_ActivePass = std::addressof( pass );
 
-        m_Commands = m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE, false );
-        m_Commands->Begin();
-
-        m_Context->InsertReadResourceBarrier(m_ActivePass, m_Commands);
         m_Context->BindShaderResources( pass.Name, m_Commands );
     }
 
     auto CommandContext::EndPass() -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
-        m_Context->InsertWriteResourceBarrier(m_ActivePass, m_Commands);
-
-        m_Commands->End();
-        m_Device->SubmitCommands( m_Commands );
 
         m_ActivePass->HasExecuted = true;
         m_ActivePass->IsDirty = false;
@@ -107,7 +95,7 @@ namespace Mikoto {
         m_Commands->SetScissor( x, y, width, height );
     }
 
-    auto CommandContext::UseTextureList() -> void {
+    auto CommandContext::BindGlobalTextures() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );

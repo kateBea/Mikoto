@@ -12,7 +12,7 @@
 #include <ankerl/unordered_dense.h>
 
 #include <Library/Utility/Types.hh>
-#include <Renderer/Core/FrameResource.hh>
+#include <Renderer/Core/FramePassResource.hh>
 
 namespace  Mikoto {
 

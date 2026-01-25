@@ -53,7 +53,7 @@ namespace Mikoto {
 
     class CommandContext final {
     public:
-        explicit CommandContext(GraphicsContext *context, GpuDevice* device);
+        explicit CommandContext(GraphicsContext *context, CommandListHandle cmd);
 
         auto BeginPass(FramePassNode& pass) -> void;
         auto EndPass() -> void;
@@ -67,7 +67,7 @@ namespace Mikoto {
         auto SetViewport(Int32 x, Int32 y, Int32 width, Int32 height) -> void ;
         auto SetScissor(Int32 x, Int32 y, Int32 width, Int32 height) -> void;
 
-        auto UseTextureList() -> void;
+        auto BindGlobalTextures() -> void;
 
         // Need to bind pipeline before specifying resources
         auto BindPipeline(std::string_view pipelineName ) -> void;
@@ -106,8 +106,6 @@ namespace Mikoto {
         CommandListHandle m_Commands{};
 
         GraphicsContext* m_Context{};
-        GpuDevice* m_Device{};
-
         PipelineHandle m_Pipeline{};
 
         FramePassNode* m_ActivePass{ nullptr };

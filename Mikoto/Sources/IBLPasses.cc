@@ -19,7 +19,7 @@
 #include <Scene/Scene.hh>
 #include <Scene/Component.hh>
 
-#include <Renderer/Core/FrameResource.hh>
+#include <Renderer/Core/FramePassResource.hh>
 #include <Renderer/Core/FrameGraphBlackboard.hh>
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Passes/IBLPasses.hh>
@@ -313,11 +313,10 @@ namespace Mikoto {
                         .Read( "AABBGenComp_Clusters" )
                         .Read( "LightCullingComp_LightsBuffer" )
                         .Read( "FinalCompositionPass_CameraInfo" )
-                        .Read( "FinalCompositionPass_ColorTarget" );
+                        .Read( "FinalShadingPass_DepthTarget" )
+                        .Read( "FinalShadingPass_ColorTarget" );
 
-                    b.Write( "FinalCompositionPass_MeshInfo" )
-                        .Write( "FinalCompositionPass_DepthTarget" )
-                        .Write( "FinalCompositionPass_ColorTarget" );
+                    b.Write( "FinalCompositionPass_MeshInfo" );
 
                     b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_CameraInfo", 0 )
                         .Use( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 1 )
@@ -332,8 +331,8 @@ namespace Mikoto {
                     ctx.BindPipeline( "FinalCompositionPass_Pipeline" );
 
                     ctx.SetClearColor( { 0.5f, 0.2f, 0.3f, 1.0f } );
-                    ctx.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
-                    ctx.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
+                    ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );
+                    ctx.SetDepthRenderTarget( "FinalShadingPass_DepthTarget" );
 
                     LoadOp colorTargetLoadOP{ LoadOp::LOAD };
                     if (!m_UseSkybox) {

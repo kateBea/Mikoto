@@ -76,7 +76,7 @@ namespace Mikoto {
     }
 
     auto FramePassBuilder::Read( std::string_view name, FrameResourceState outState ) -> FramePassBuilder& {
-        m_Node->Writes.emplace_back( StringUtil::From( name ), outState );
+        m_Node->Reads.emplace_back( StringUtil::From( name ), outState );
         return *this;
     }
 
@@ -204,16 +204,28 @@ namespace Mikoto {
 
         for (auto & node: m_Passes | std::views::values) {
             if (node.ShouldRun()) {
-                CommandContext commandContext{ m_GraphicsContex, m_Device };
+                CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE, false ) };
+                cmd->Begin();
+
+                CommandContext commandContext{ m_GraphicsContex, cmd };
                 commandContext.BeginPass(node);
 
+                // Make sure the resources this pass consumes are in proper state
+                InsertResourceBarriers(node, cmd);
+
+                // Bindless textures bound once and active for the entire recording of the command buffer
                 if (UsesTextureList( node.Name )) {
-                    commandContext.UseTextureList();
+                    commandContext.BindGlobalTextures();
                 }
 
                 node.ExecuteCallback( commandContext, m_GraphBlackboard );
 
                 commandContext.EndPass();
+
+                TransitionWrites(node, cmd);
+
+                cmd->End();
+                m_Device->SubmitCommands( cmd );
             }
         }
 
@@ -239,6 +251,44 @@ namespace Mikoto {
 
     auto FrameGraph::Create( GraphicsContext *context, GpuDevice *device ) -> Unique<FrameGraph> {
         return CreateScope<FrameGraph>( context, device );
+    }
+
+    auto FrameGraph::TransitionWrites( FramePassNode &node, CommandListHandle cmd ) -> void {
+        for (const auto &resourceNode : node.Writes) {
+            const auto it{ m_ResourcesByNames.find( resourceNode.Name ) };
+            if (it != m_ResourcesByNames.end()) {
+                // This is temporary because these texture might used somewhere else for sampling from shaders (like ImGui viewports)
+                // But the passes should either ask this explicitly in the Write method from the builder where
+                // they would specify the state they leave the resource as
+                if (it->second.IsResource( FrameResourceType::TEXTURE )) {
+                    if (m_GraphicsContex->InsertResourceBarrier( it->second.Handle.As<Texture>(),
+                        it->second.CurrentState, resourceNode.OutState, cmd )) {
+                        it->second.CurrentState = resourceNode.OutState;
+                    }
+                }
+            }
+        }
+    }
+
+    auto FrameGraph::InsertResourceBarriers( FramePassNode& node, CommandListHandle cmd ) -> void {
+        for (const auto &resourceNode : node.Reads) {
+            const auto it{ m_ResourcesByNames.find( resourceNode.Name ) };
+            if (it != m_ResourcesByNames.end()) {
+
+                bool success{ false };
+                if (it->second.IsResource( FrameResourceType::BUFFER )) {
+                    success = m_GraphicsContex->InsertResourceBarrier( it->second.Handle.As<Buffer>(), it->second.CurrentState, resourceNode.OutState, cmd );
+                }
+
+                if (it->second.IsResource( FrameResourceType::TEXTURE )) {
+                   success = m_GraphicsContex->InsertResourceBarrier( it->second.Handle.As<Texture>(), it->second.CurrentState, resourceNode.OutState, cmd );
+                }
+
+                if (success) {
+                    it->second.CurrentState = resourceNode.OutState;
+                }
+            }
+        }
     }
 
     auto FrameGraph::UsesTextureList(std::string_view nodeName) const -> bool {
@@ -358,20 +408,45 @@ namespace Mikoto {
         m_Compiled = true;
     }
 
-    auto FrameGraph::CreateResource( std::string_view name, FrameResource resource ) -> void {
+    auto FrameGraph::CreateResource( std::string_view name, FramePassResourceDescription resource ) -> void {
+        BufferHandle buffer{};
+        TextureHandle texture{};
+
         switch (resource.Type) {
             case FrameResourceType::TEXTURE:
                 if (std::holds_alternative<TextureDescription>( resource.Description )) {
-                    m_GraphicsContex->CreateTexture( name, std::get<TextureDescription>( resource.Description ) );
+                    texture = m_GraphicsContex->CreateTexture( name, std::get<TextureDescription>( resource.Description ) );
                 } else if (std::holds_alternative<TextureCubeCreateDescription>( resource.Description )) {
-                    m_GraphicsContex->CreateTexture( name, std::get<TextureCubeCreateDescription>( resource.Description ) );
+                    texture = m_GraphicsContex->CreateTexture( name, std::get<TextureCubeCreateDescription>( resource.Description ) );
                 }
                 break;
             case FrameResourceType::BUFFER:
                 if (std::holds_alternative<BufferDescription>( resource.Description )) {
-                    m_GraphicsContex->CreateBuffer( name, std::get<BufferDescription>( resource.Description ) );
+                    buffer = m_GraphicsContex->CreateBuffer( name, std::get<BufferDescription>( resource.Description ) );
                 }
                 break;
+            default: ;
         }
+
+        // The resource can either be a texture or a buffer
+        if (!texture.IsEmpty()) {
+            m_ResourcesByNames.emplace( name, FramePassResource{
+                .Handle{ texture },
+                .Type{ FrameResourceType::TEXTURE },
+                .CurrentState{ FrameResourceState::Undefined }
+            } );
+        }
+
+        if (!buffer.IsEmpty()) {
+            m_ResourcesByNames.emplace( name,  FramePassResource{
+                .Handle{ buffer },
+                .Type{ FrameResourceType::BUFFER },
+                .CurrentState{ FrameResourceState::Undefined }
+            } );
+        }
+    }
+
+    auto FrameGraph::DebugDumpResources() -> void {
+
     }
 }// namespace Mikoto

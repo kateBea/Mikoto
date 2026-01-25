@@ -60,18 +60,15 @@ namespace Mikoto {
         virtual auto BeginFrame()-> void = 0;
         virtual auto EndFrame()-> void = 0;
 
-        virtual auto InsertReadResourceBarrier(FramePassNode* node, CommandListHandle cmd) -> void = 0;
-        virtual auto InsertWriteResourceBarrier(FramePassNode* node, CommandListHandle cmd) -> void = 0;
-
         virtual auto GetSampler(std::string_view name) -> SamplerHandle = 0;
         virtual auto GetTexture(std::string_view name) -> TextureHandle = 0;
         virtual auto GetPipeline(std::string_view name) -> PipelineHandle = 0;
         virtual auto GetBuffer(std::string_view name) -> BufferHandle = 0;
 
-        virtual auto CreateTexture(std::string_view name, const TextureDescription &description) -> void = 0;
-        virtual auto CreateTexture(std::string_view name, const TextureCubeCreateDescription& description) -> void = 0;
+        virtual auto CreateTexture(std::string_view name, const TextureDescription &description) -> TextureHandle = 0;
+        virtual auto CreateTexture(std::string_view name, const TextureCubeCreateDescription& description) -> TextureHandle = 0;
 
-        virtual auto CreateBuffer(std::string_view name, BufferDescription description) -> void = 0;
+        virtual auto CreateBuffer(std::string_view name, BufferDescription description) -> BufferHandle = 0;
 
         virtual auto CreateSampler( SamplerDescription& description ) -> SamplerHandle = 0;
         virtual auto CreateSampler( std::string_view name, const SamplerDescription& description ) -> void = 0;
@@ -89,6 +86,9 @@ namespace Mikoto {
         virtual auto PushTexture(TextureHandle handle, SamplerHandle sampler, std::string_view passName, UInt32 bindingSlot) -> void = 0;
 
         MKT_NODISCARD static auto Create(GpuDevice* device) -> Unique<GraphicsContext>;
+
+        virtual auto InsertResourceBarrier(BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool = 0;
+        virtual auto InsertResourceBarrier(TextureHandle texture, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool = 0;
 
         // virtual auto PushImage(TextureHandle texture) -> Int32 = 0;
 

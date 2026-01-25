@@ -16,6 +16,9 @@
 #include <Renderer/Core/Pipeline.hh>
 
 namespace Mikoto {
+
+    using ResourceHandle = Ref<IResource>;
+
     // Used for resource state transitioning
     enum class FrameResourceState {
         RenderTarget_Color,
@@ -45,13 +48,21 @@ namespace Mikoto {
         auto UseShader( std::string_view path, ShaderStage stage ) -> void;
     };
 
-    struct FrameResource {
+    struct FramePassResourceDescription {
         std::variant<
             BufferDescription,
             TextureDescription,
             TextureCubeCreateDescription> Description{};
 
         FrameResourceType Type{ FrameResourceType::INVALID };
+    };
+
+    struct FramePassResource {
+        ResourceHandle Handle{};
+        FrameResourceType Type{ FrameResourceType::INVALID };
+        FrameResourceState CurrentState{ FrameResourceState::Undefined };
+
+        MKT_NODISCARD auto IsResource(FrameResourceType type) const -> bool { return Type == type; }
     };
 
     enum class ShaderResourceType {

@@ -95,6 +95,8 @@ namespace Mikoto {
                 CreateTexture( std::forward<Args>( args )... );
             } else if constexpr (std::is_same_v<ResourceType, Pipeline>) {
                 CreatePipeline( std::forward<Args>( args )... );
+            } else {
+                MKT_STATIC_ASSERT( false, "Not valid Create type" );
             }
 
             return *this;

@@ -92,7 +92,7 @@ namespace Mikoto {
         spec.WithName( "Scene renderer" )
             .WithDevice( RenderService::Get()->GetGpuDevice() );
 
-        m_SceneRenderer = CreateScope<SceneRenderer>( spec );
+        m_SceneRenderer = SceneRenderer::Create( spec );
         if (m_SceneRenderer) {
             m_SceneRenderer->Init();
         }

@@ -4,43 +4,27 @@ cmake_minimum_required(VERSION 3.22)
 # CMake Policy Settings
 # ======================================
 # CMP0069: INTERPROCEDURAL_OPTIMIZATION (IPO / LTO)
-# --------------------------------------
-# When enabled, this policy ensures that CMake enforces interprocedural
-# optimization (also known as link-time optimization, or LTO) properly.
-# Some external dependencies (like FreeType or Assimp) declare the
-# INTERPROCEDURAL_OPTIMIZATION property, but older policies would silently
-# ignore it. Setting CMP0069 to NEW ensures consistent LTO behavior and
-# silences related warnings.
-#
 # Reference: https://cmake.org/cmake/help/latest/policy/CMP0069.html
-#
-# CMP0135: DOWNLOAD_EXTRACT_TIMESTAMP
 # --------------------------------------
-# When using FetchContent_Declare() with a URL, this policy controls the
-# timestamps applied to extracted files.
-#   - OLD behavior: keeps timestamps from the original archive.
-#   - NEW behavior: sets timestamps to the extraction time.
-# Setting CMP0135 to NEW improves build reproducibility and avoids
-# unnecessary rebuilds when dependencies are updated.
-#
+# CMP0135: DOWNLOAD_EXTRACT_TIMESTAMP
 # Reference: https://cmake.org/cmake/help/latest/policy/CMP0135.html
-#
+# --------------------------------------
 # CMP0077
 # For NFD
+# Reference: https://cmake.org/cmake/help/latest/policy/CMP0077.html
 # ======================================
+cmake_policy(SET CMP0069 NEW)
 cmake_policy(SET CMP0135 NEW)
 cmake_policy(SET CMP0077 NEW)
 
 project(Mikoto)
 
 # ======================================
-# Options
+# Mikoto Options
 # ======================================
 option(MIKOTO_USE_XCB_WINDOW "Use XCB for Linux windowing" OFF)
 option(MIKOTO_USE_WIN32_WINDOW "Use Win32 for Windows windowing" OFF)
 option(MIKOTO_ENABLE_TRACY_PROFILING "Enable tracy profiling" OFF)
-
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # ======================================
 # Language requirements
@@ -50,12 +34,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # ======================================
-# Mikoto optional features
+# CMake includes
+# ======================================
+include(FetchContent)
+
+# ======================================
+# Taskflow
 # ======================================
 set(TF_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
 set(TF_BUILD_PROFILER OFF CACHE BOOL "" FORCE)
 set(TF_BUILD_CUDA OFF CACHE BOOL "" FORCE)
-set(TF_BUILD_SYCL OFF CACHE BOOL "" FORCE)  # optional, already commented
+set(TF_BUILD_SYCL OFF CACHE BOOL "" FORCE)
 set(TF_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(TF_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
@@ -68,7 +57,7 @@ set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
 # ======================================
-# SPIRV-Reflect minimal options
+# SPIR-V-Reflect minimal options
 # ======================================
 set(SPIRV_REFLECT_STATIC_LIB ON CACHE BOOL "Build SPIRV-Reflect as a static library")
 set(SPIRV_REFLECT_BUILD_TESTS OFF CACHE BOOL "Disable SPIRV-Reflect tests")
@@ -88,6 +77,45 @@ set(MSDF_ATLAS_MSDFGEN_EXTERNAL ON)
 set(MSDF_ATLAS_INSTALL OFF)
 set(BUILD_SHARED_LIBS OFF)
 
+find_package(Freetype QUIET)
+
+if (NOT Freetype_FOUND)
+    message(WARNING "Freetype was not found! Using bundled Freetype")
+    set(MSDFGEN_CORE_ONLY ON)
+else()
+    message(STATUS "Freetype found: ${Freetype_INCLUDE_DIRS}")
+    set(MSDFGEN_CORE_ONLY OFF)
+endif()
+
+# ======================================
+# Freetype options
+# ======================================
+# FreeType can optionally use HarfBuzz for advanced text shaping (ligatures, kerning, etc.)
+# Mikoto only uses FreeType to rasterize glyphs for MSDF generation — no need for HarfBuzz.
+#
+# Setting FT_REQUIRE_HARFBUZZ and FT_DISABLE_HARFBUZZ disables the dependency entirely,
+# preventing the "Required version higher than found version ()" warning.
+set(FT_REQUIRE_HARFBUZZ OFF CACHE BOOL "Disable HarfBuzz requirement in FreeType" FORCE)
+set(FT_DISABLE_HARFBUZZ TRUE CACHE BOOL "Disable HarfBuzz support in FreeType" FORCE)
+set(FT_WITH_HARFBUZZ OFF CACHE BOOL "Don't build with HarfBuzz" FORCE)
+
+set(FT_DISABLE_ZLIB ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_BZIP2 ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_PNG ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_HARFBUZZ ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_BROTLI ON CACHE BOOL "" FORCE)
+
+# Force CMake-based build (not the legacy Windows one)
+set(FT2_BUILD_LIBRARY ON CACHE BOOL "" FORCE)
+set(FT_WITH_CMAKE ON CACHE BOOL "" FORCE)
+
+set(MSDFGEN_USE_VCPKG OFF)
+set(MSDFGEN_BUILD_STANDALONE OFF)
+set(MSDFGEN_DISABLE_SVG ON)
+set(MSDFGEN_USE_SKIA OFF)
+set(MSDFGEN_DISABLE_PNG ON)
+set(MSDFGEN_DYNAMIC_RUNTIME OFF)
+
 # ======================================
 # File system watcher
 # ======================================
@@ -103,23 +131,6 @@ set(EFSW_INSTALL OFF CACHE BOOL "Disable install targets" FORCE)
 set(OPENCL_SDK_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
 set(OPENCL_SDK_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
 set(OPENCL_SDK_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-
-find_package(Freetype QUIET)
-
-if (NOT Freetype_FOUND)
-    message(WARNING "Freetype was not found! Using bundled Freetype")
-    set(MSDFGEN_CORE_ONLY ON)
-else()
-    message(STATUS "Freetype found: ${Freetype_INCLUDE_DIRS}")
-    set(MSDFGEN_CORE_ONLY OFF)
-endif()
-
-set(MSDFGEN_USE_VCPKG OFF)
-set(MSDFGEN_BUILD_STANDALONE OFF)
-set(MSDFGEN_DISABLE_SVG ON)
-set(MSDFGEN_USE_SKIA OFF)
-set(MSDFGEN_DISABLE_PNG ON)
-set(MSDFGEN_DYNAMIC_RUNTIME OFF)
 
 # ======================================
 # yaml-cpp minimal options
@@ -157,29 +168,7 @@ set(ASSIMP_BUILD_DOCS OFF CACHE BOOL "")
 set(ASSIMP_BUILD_SAMPLES OFF CACHE BOOL "")
 
 # ======================================
-# Freetype options
-# ======================================
-# FreeType can optionally use HarfBuzz for advanced text shaping (ligatures, kerning, etc.)
-# Mikoto only uses FreeType to rasterize glyphs for MSDF generation — no need for HarfBuzz.
-#
-# Setting FT_REQUIRE_HARFBUZZ and FT_DISABLE_HARFBUZZ disables the dependency entirely,
-# preventing the "Required version higher than found version ()" warning.
-set(FT_REQUIRE_HARFBUZZ OFF CACHE BOOL "Disable HarfBuzz requirement in FreeType" FORCE)
-set(FT_DISABLE_HARFBUZZ TRUE CACHE BOOL "Disable HarfBuzz support in FreeType" FORCE)
-set(FT_WITH_HARFBUZZ OFF CACHE BOOL "Don't build with HarfBuzz" FORCE)
-
-set(FT_DISABLE_ZLIB ON CACHE BOOL "" FORCE)
-set(FT_DISABLE_BZIP2 ON CACHE BOOL "" FORCE)
-set(FT_DISABLE_PNG ON CACHE BOOL "" FORCE)
-set(FT_DISABLE_HARFBUZZ ON CACHE BOOL "" FORCE)
-set(FT_DISABLE_BROTLI ON CACHE BOOL "" FORCE)
-
-# Force CMake-based build (not the legacy Windows one)
-set(FT2_BUILD_LIBRARY ON CACHE BOOL "" FORCE)
-set(FT_WITH_CMAKE ON CACHE BOOL "" FORCE)
-
-# ======================================
-# Configurarion for Networking
+# Configuration for Networking
 # ======================================
 find_package(OpenSSL QUIET)
 
@@ -192,173 +181,172 @@ else()
 endif()
 
 # ======================================
-# External dependencies via FetchContent
+# Third-Party dependencies import
 # ======================================
-include(FetchContent)
 
 # fmt
-fetchcontent_declare(fmt
+FetchContent_Declare(fmt
         GIT_REPOSITORY https://github.com/fmtlib/fmt.git
         GIT_TAG 11.0.2
 )
-fetchcontent_makeavailable(fmt)
+FetchContent_MakeAvailable(fmt)
 
 # glfw
-fetchcontent_declare(glfw
+FetchContent_Declare(glfw
         GIT_REPOSITORY https://github.com/glfw/glfw.git
         GIT_TAG 3.3.9
 )
-fetchcontent_makeavailable(glfw)
+FetchContent_MakeAvailable(glfw)
 
 
 # ImGui (docking branch)
-fetchcontent_declare(imgui
+FetchContent_Declare(imgui
         GIT_REPOSITORY https://github.com/ocornut/imgui.git
         GIT_TAG docking
 )
-fetchcontent_makeavailable(imgui)
+FetchContent_MakeAvailable(imgui)
 
 # ImGuizmo
-fetchcontent_declare(ImGuizmo
+FetchContent_Declare(ImGuizmo
         GIT_REPOSITORY https://github.com/CedricGuillemet/ImGuizmo.git
         GIT_TAG master
 )
-fetchcontent_makeavailable(ImGuizmo)
+FetchContent_MakeAvailable(ImGuizmo)
 
 # toml++ (header-only)
-fetchcontent_declare(tomlplusplus
+FetchContent_Declare(tomlplusplus
         GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
         GIT_TAG v3.4.0
 )
-fetchcontent_makeavailable(tomlplusplus)
+FetchContent_MakeAvailable(tomlplusplus)
 
 # cpptrace
-fetchcontent_declare(cpptrace
+FetchContent_Declare(cpptrace
         GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
         GIT_TAG v0.7.3
 )
-fetchcontent_makeavailable(cpptrace)
+FetchContent_MakeAvailable(cpptrace)
 
 # unordered_dense (header-only)
-fetchcontent_declare(unordered_dense
+FetchContent_Declare(unordered_dense
         GIT_REPOSITORY https://github.com/martinus/unordered_dense.git
         GIT_TAG v4.4.0
 )
-fetchcontent_makeavailable(unordered_dense)
+FetchContent_MakeAvailable(unordered_dense)
 
 # EnTT
-fetchcontent_declare(entt
+FetchContent_Declare(entt
         GIT_REPOSITORY https://github.com/skypjack/entt.git
         GIT_TAG v3.13.0
 )
-fetchcontent_makeavailable(entt)
+FetchContent_MakeAvailable(entt)
 
 
 # nlohmann_json
-fetchcontent_declare(nlohmann_json
+FetchContent_Declare(nlohmann_json
         URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
 )
-fetchcontent_makeavailable(nlohmann_json)
+FetchContent_MakeAvailable(nlohmann_json)
 
 # Miniaudio
-fetchcontent_declare(miniaudio
+FetchContent_Declare(miniaudio
         GIT_REPOSITORY https://github.com/mackron/miniaudio.git
         GIT_TAG 0.11.23
 )
-fetchcontent_makeavailable(miniaudio)
+FetchContent_MakeAvailable(miniaudio)
 
 # SpirV-Reflect
-fetchcontent_declare(spirv_reflect
+FetchContent_Declare(spirv_reflect
         GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Reflect.git
         GIT_TAG main
 )
-fetchcontent_makeavailable(spirv_reflect)
+FetchContent_MakeAvailable(spirv_reflect)
 
 # volk
-fetchcontent_declare(volk
+FetchContent_Declare(volk
         GIT_REPOSITORY https://github.com/zeux/volk.git
         GIT_TAG 1.4.304
 )
-fetchcontent_makeavailable(volk)
+FetchContent_MakeAvailable(volk)
 
 
 # VulkanMemoryAllocator
-fetchcontent_declare(VulkanMemoryAllocator
+FetchContent_Declare(VulkanMemoryAllocator
         GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
         GIT_TAG v3.3.0
 )
-fetchcontent_makeavailable(VulkanMemoryAllocator)
+FetchContent_MakeAvailable(VulkanMemoryAllocator)
 
 # yaml-cpp
-fetchcontent_declare(yaml_cpp
+FetchContent_Declare(yaml_cpp
         GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
         GIT_TAG 0.8.0
 )
-fetchcontent_makeavailable(yaml_cpp)
+FetchContent_MakeAvailable(yaml_cpp)
 
 # nativefiledialog-extended
-fetchcontent_declare(nfd
+FetchContent_Declare(nfd
         GIT_REPOSITORY https://github.com/btzy/nativefiledialog-extended.git
         GIT_TAG v1.1.1
 )
-fetchcontent_makeavailable(nfd)
+FetchContent_MakeAvailable(nfd)
 
 # freetype
-fetchcontent_declare(freetype
+FetchContent_Declare(freetype
         GIT_REPOSITORY https://gitlab.freedesktop.org/freetype/freetype.git
         GIT_TAG VER-2-13-2
 )
-fetchcontent_makeavailable(freetype)
+FetchContent_MakeAvailable(freetype)
 
 # JoltPhysics
-fetchcontent_declare(JoltPhysics
+FetchContent_Declare(JoltPhysics
         GIT_REPOSITORY https://github.com/jrouwe/JoltPhysics.git
         GIT_TAG v5.3.0
         SOURCE_SUBDIR Build
 )
-fetchcontent_makeavailable(JoltPhysics)
+FetchContent_MakeAvailable(JoltPhysics)
 
 # assimp
-fetchcontent_declare(assimp
+FetchContent_Declare(assimp
         GIT_REPOSITORY https://github.com/assimp/assimp.git
         GIT_TAG v5.4.3
 )
-fetchcontent_makeavailable(assimp)
+FetchContent_MakeAvailable(assimp)
 
 # msdfgen
-fetchcontent_declare(msdfgen
+FetchContent_Declare(msdfgen
         GIT_REPOSITORY https://github.com/Chlumsky/msdfgen.git
         GIT_TAG v1.12
 )
-fetchcontent_makeavailable(msdfgen)
+FetchContent_MakeAvailable(msdfgen)
 
 # msdf-atlas-gen
-fetchcontent_declare(msdf_atlas_gen
+FetchContent_Declare(msdf_atlas_gen
         GIT_REPOSITORY https://github.com/Chlumsky/msdf-atlas-gen.git
         GIT_TAG v1.3
 )
-fetchcontent_makeavailable(msdf_atlas_gen)
+FetchContent_MakeAvailable(msdf_atlas_gen)
 
 # spdlog
-fetchcontent_declare(spdlog
+FetchContent_Declare(spdlog
         GIT_REPOSITORY https://github.com/gabime/spdlog.git
         GIT_TAG v1.12.0  # latest stable release
 )
-fetchcontent_makeavailable(spdlog)
+FetchContent_MakeAvailable(spdlog)
 
 # stb (header-only)
-fetchcontent_declare(stb
+FetchContent_Declare(stb
         GIT_REPOSITORY https://github.com/nothings/stb.git
         GIT_TAG master  # stable is usually master for stb
 )
-fetchcontent_makeavailable(stb)
+FetchContent_MakeAvailable(stb)
 
 # Tom plus plus
 fetchcontent_declare(tomlplusplus
         GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
         GIT_TAG v3.4.0
 )
-fetchcontent_makeavailable(tomlplusplus)
+FetchContent_MakeAvailable(tomlplusplus)
 
 # GLM
 FetchContent_Declare(
@@ -426,7 +414,16 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(OpenCL-SDK)
 
-# SSL library
+# harfbuzz (not needed if you don't do complex text layout)
+#FetchContent_Declare(
+#        harfbuzz
+#        GIT_REPOSITORY https://github.com/harfbuzz/harfbuzz.git
+#        GIT_TAG main
+#)
+#FetchContent_MakeAvailable(harfbuzz)
+
+# On linux OpenSSL can be fetched and build with Mikoto
+# for HTTPS support
 if (UNIX AND NOT OpenSSL_FOUND)
     FetchContent_Declare(
             openssl
@@ -477,14 +474,6 @@ if (UNIX AND NOT OpenSSL_FOUND)
     add_dependencies(OpenSSL::Crypto OpenSSL)
 endif ()
 
-# harfbuzz (not needed if you don't do complex text layout)
-#FetchContent_Declare(
-#        harfbuzz
-#        GIT_REPOSITORY https://github.com/harfbuzz/harfbuzz.git
-#        GIT_TAG main
-#)
-#FetchContent_MakeAvailable(harfbuzz)
-
 # ======================================
 # Project sources
 # ======================================
@@ -516,11 +505,6 @@ set(IMGUIZMO_SOURCES
 set(SPIRV_REFLECT_SOURCES
         ${spirv_reflect_SOURCE_DIR}/spirv_reflect.c
 )
-
-get_cmake_property(_variableNames VARIABLES)
-    foreach(_variableName ${_variableNames})
-        message(STATUS "${_variableName}=${${_variableName}}")
-endforeach()
 
 # Miniaudio sources
 set(MINIAUDIO_SOURCES
@@ -561,39 +545,51 @@ set(LIBRARIES
         OpenCL::OpenCL
 )
 
-if(UNIX)
-    #find_package(OpenSSL REQUIRED)
-    find_package(Lua REQUIRED)
-
-    # Asio HTTPS support on Linux requires linking OpenSSL
-    # which is build with Mikoto
-    list(APPEND LIBRARIES pthread OpenSSL::SSL OpenSSL::Crypto)
-endif()
-
-if (MSVC)
-    target_compile_options(Jolt PRIVATE
-        /wd4865
-        /WX-
-        /Zc:enumTypes-
-    )
-endif()
+# ======================================
+# Debug print Cmake variables
+# ======================================
+#get_cmake_property(_variableNames VARIABLES)
+#    foreach(_variableName ${_variableNames})
+#        message(STATUS "${_variableName}=${${_variableName}}")
+#endforeach()
 
 # ======================================
 # Create Mikoto library
 # ======================================
 add_library(${PROJECT_NAME} STATIC ${ALL_SOURCES})
 
+# ======================================
+# Link kibraries
+# ======================================
+
+if(UNIX)
+    find_package(Lua REQUIRED)
+    list(APPEND LIBRARIES pthread OpenSSL::SSL OpenSSL::Crypto)
+endif()
+
 if (MSVC OR WIN32)
     set(LUA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Lua/lua-5.4.2_Win64_vc17_lib")
 
     set(LUA_INCLUDE_DIR "${LUA_ROOT}/include")
-    set(LUA_LIBRARIES     "${LUA_ROOT}/lua54.lib")
+    set(LUA_LIBRARIES "${LUA_ROOT}/lua54.lib")
 
     set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
+
+    target_compile_options(Jolt PRIVATE
+            /wd4865
+            /WX-
+            /Zc:enumTypes-
+    )
+
+    message(STATUS "Linking against Lua library: ${LUA_LIBRARIES}")
+    message(STATUS "Include against Lua library: ${LUA_INCLUDE_DIR}")
 endif()
 
-message(STATUS "Linking against Lua library: ${LUA_LIBRARIES}")
-message(STATUS "Include against Lua library: ${LUA_INCLUDE_DIR}")
+# Windowing system
+if(MIKOTO_USE_XCB_WINDOW)
+    message("Using XCB for window")
+    list(APPEND LIBRARIES xcb xcb-keysyms xcb-xfixes xcb-xkb)
+endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARIES} ${LUA_LIBRARIES})
 
@@ -630,7 +626,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${tracy_SOURCE_DIR}/asio/include
         ${efsw_SOURCE_DIR}/include
         ${LUA_INCLUDE_DIR}
-
         ${OpenCL-SDK_SOURCE_DIR}/lib/include
         ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-Headers
         ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-CLHPP/include
@@ -659,7 +654,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC TRACY_ENABLE)
 
 # Tracy
 if(MIKOTO_ENABLE_TRACY_PROFILING)
-    message("Using Win32 for window")
+    message("Enabling Tracy profiling")
     target_compile_definitions(${PROJECT_NAME} PUBLIC MIKOTO_ENABLE_TRACY)
 endif()
 
@@ -667,7 +662,6 @@ endif()
 if(MIKOTO_USE_XCB_WINDOW)
     message("Using XCB for window")
     target_compile_definitions(${PROJECT_NAME} PUBLIC MKT_USE_XCB_WINDOW)
-    target_link_libraries(${PROJECT_NAME} PUBLIC xcb xcb-keysyms xcb-xfixes xcb-xkb)
 endif()
 
 if(MIKOTO_USE_WIN32_WINDOW)
@@ -675,8 +669,6 @@ if(MIKOTO_USE_WIN32_WINDOW)
     target_compile_definitions(${PROJECT_NAME} PUBLIC MKT_USE_WIN32_WINDOW)
 endif()
 
-# HTTPS only working on linux for now
-# Expose the macro to your sources
 if (MIKOTO_ALLOW_SSL)
     target_compile_definitions(${PROJECT_NAME} PUBLIC MIKOTO_OPENSSL_AVAILABLE)
 endif()

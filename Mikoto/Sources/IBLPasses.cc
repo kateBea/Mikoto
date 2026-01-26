@@ -290,6 +290,9 @@ namespace Mikoto {
     }
 
     auto IBLPasses::RegisterShading( FrameGraph &graph ) -> void {
+        // Prepare buffer of meshes
+        m_Meshes.resize( MAX_RENDERABLE_ENTITIES );
+
         graph.RegisterPass(
                 "FinalShading",
                 []( FramePassBuilder &b ) -> void {
@@ -367,7 +370,9 @@ namespace Mikoto {
 
             drawState.IndexBuffer = meshNode->GetIndexBuffer();
 
-            if (drawState.VertexBuffers.empty()) { drawState.VertexBuffers.emplace_back( meshNode->GetVertexBuffer(), 0 ); }
+            if (drawState.VertexBuffers.empty()) {
+                drawState.VertexBuffers.emplace_back( meshNode->GetVertexBuffer(), 0 );
+            }
 
             Size drawCount{};
             for (const auto &[entityID, meshInstanceInfo]: instanceInfo.InstanceInfos) {

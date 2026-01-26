@@ -81,7 +81,7 @@ namespace Mikoto {
                     b.Read( "SkyboxPass_TextureCube", FrameResourceState::ShaderResource_Read );
                 },
 
-                [&]( CommandContext &ctx, FrameGraphBlackboard &blackboard ) {
+                [&]( CommandContext &ctx, FrameGraphBlackboard & ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
                     ctx.BindPipeline( "IrradiancePass_Pipeline" );
@@ -107,6 +107,8 @@ namespace Mikoto {
 
                     ctx.EndPass();
                 } );
+
+        graph.SetNodeExecutionPolicy( "BRDFLut", FramePassExecutionPolicy::ON_CHANGE );
     }
 
     auto IBLPasses::RegisterPrefilter( FrameGraph &graph ) -> void {
@@ -156,6 +158,8 @@ namespace Mikoto {
 
                     ctx.EndPass();
                 } );
+
+        graph.SetNodeExecutionPolicy( "BRDFLut", FramePassExecutionPolicy::ON_CHANGE );
     }
 
     auto IBLPasses::RegisterBRDFLut( FrameGraph &graph ) -> void {

@@ -1,12 +1,23 @@
+//    Copyright 2026 ケイト
 //
-// Created by kate on 11/13/23.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_ASSETS_MANAGER_PANEL_HH
 #define MIKOTO_ASSETS_MANAGER_PANEL_HH
 
 #include <imgui.h>
 
+#include <Common/Common.hh>
 #include <Panels/Panel.hh>
 
 namespace Mikoto {
@@ -18,10 +29,7 @@ namespace Mikoto {
 
     /**
      * @class AssetsPanel
-     * @brief A panel for managing assets in the editor.
-     *
-     * This class provides functionality to manage and display assets in the editor.
-     * It inherits from the Panel class and overrides the OnUpdate method.
+     * @brief A panel for managing assets currently in use by the editor.
      */
     class AssetsPanel final : public Panel {
     public:
@@ -30,17 +38,17 @@ namespace Mikoto {
         auto OnUpdate( float timeStep ) -> void override;
 
     private:
-        auto CreateImguiTextureID() -> void;
-        auto IsDisplayTextureValid() const -> bool;
         auto UpdateViewport() -> void;
+        auto CreateImguiTextureID() -> void;
+
+        MKT_NODISCARD auto IsDisplayTextureValid() const -> bool;
 
     private:
-        float m_ViewPortWidth{};
-        float m_ViewPortHeight{};
-
-        ImTextureID m_DisplayTargetImGuiID{};
+        float m_ViewportWidth{};
+        float m_ViewportHeight{};
 
         EditorState* m_EditorState{};
+        ImTextureID m_DisplayTargetImGuiID{};
     };
 }
 

@@ -1,6 +1,16 @@
+//    Copyright 2026 ケイト
 //
-// Created by kate on 11/13/23.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <fmt/format.h>
 
@@ -28,9 +38,9 @@ namespace Mikoto {
     auto AssetsPanel::UpdateViewport() -> void {
         const ImVec2 dim{ ImGui::GetContentRegionAvail() };
 
-        if ( m_ViewPortWidth != dim.x || m_ViewPortHeight != dim.y ) {
-            m_ViewPortWidth = dim.x;
-            m_ViewPortHeight = dim.y;
+        if ( m_ViewportWidth != dim.x || m_ViewportHeight != dim.y ) {
+            m_ViewportWidth = dim.x;
+            m_ViewportHeight = dim.y;
         }
 
         ImGui::Image( m_DisplayTargetImGuiID, ImVec2{ dim.x, dim.y }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );

@@ -15,6 +15,15 @@
 #ifndef MIKOTO_MATH_HH
 #define MIKOTO_MATH_HH
 
+// I love Windows.h defining min and max macros that break everything
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
+
 #include <numbers>
 
 #include <Common/Common.hh>

@@ -6,6 +6,15 @@
 #ifndef MIKOTO_MATH_DEPRECATED__HH
 #define MIKOTO_MATH_DEPRECATED__HH
 
+// I love Windows.h defining min and max macros that break everything
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
+
 #include <cmath>
 
 // Third-Party Libraries

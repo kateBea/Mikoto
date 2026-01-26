@@ -46,7 +46,6 @@ namespace Mikoto {
 
         BuildAABB( graph );
         BuildLightCulling( graph );
-        BuildShadowMapping( graph );
     }
 
     auto ClusteredShading::BuildAABB( FrameGraph &graph ) -> void {

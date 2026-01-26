@@ -1,15 +1,6 @@
 ﻿cmake_minimum_required(VERSION 3.22)
 
-cmake_policy(SET CMP0091 NEW)
-
 option(MIKOTO_BUILD_TESTS "Build Mikoto unit tests" ON)
-
-# Disable IPO globally
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
-
-# Force disable for all targets (even if subprojects enable it)
-set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
-set_property(GLOBAL PROPERTY INTERPROCEDURAL_OPTIMIZATION FALSE)
 
 project(Mikoto
         VERSION 1.0
@@ -56,14 +47,11 @@ endif()
 #add_subdirectory(Mikoto-Apps)
 add_subdirectory(Mikoto-Editor)
 
-# Important to only enable the target you want to build.
-# For the time being this has to be done manually here
-
 # Mikoto added last so it builds with target
 # specified configurations.
 add_subdirectory(Mikoto)
 
 if (MIKOTO_BUILD_TESTS)
-    enable_testing()         # <-- recommended but not specific to GoogleTest
+    enable_testing()
     add_subdirectory(Mikoto-Tests)
 endif()

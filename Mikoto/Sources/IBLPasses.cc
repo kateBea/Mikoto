@@ -43,7 +43,7 @@ namespace Mikoto {
 
         //RegisterPrefilter( graph );
         //RegisterIrradiance( graph );
-        //RegisterShading( graph );
+        RegisterShading( graph );
     }
 
     auto IBLPasses::SetClearColor( const Vec4F &color ) -> void {
@@ -305,8 +305,8 @@ namespace Mikoto {
                         .PipelineCullMode{ CullMode::CULL_BACK },
                     };
 
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/FullscreenTriangle_Vert.sprv", ShaderStage::VERTEX )
-                        .UseShader( "Resources/Shaders/vulkan-spirv/FullscreenTriangle_Frag.sprv", ShaderStage::FRAGMENT )
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/PBR_Instanced_Vert.sprv", ShaderStage::VERTEX )
+                        .UseShader( "Resources/Shaders/vulkan-spirv/PBR_Instanced_Frag.sprv", ShaderStage::FRAGMENT )
                         .Create<Pipeline>( "FinalCompositionPass_Pipeline", graphicsDesc );
 
                     b.Read( "AABBGenComp_CameraUBO" )

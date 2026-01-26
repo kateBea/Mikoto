@@ -22,7 +22,10 @@
 
 #include <Core/LocalizationService.hh>
 
+#include <Core/TimeService.hh>
 #include <Core/InputService.hh>
 #include <Core/RuntimeConsole.hh>
+
+#include <Core/Root.hh>
 
 #endif // MIKOTO_CORE_HH

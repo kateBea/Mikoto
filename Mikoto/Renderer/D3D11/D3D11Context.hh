@@ -16,7 +16,7 @@
 #define MIKOTO_D3D11CONTEXT_HH
 
 #include <Common/Common.hh>
-#include <Core//Platform.hh>
+#include <Core/Platform.hh>
 #include <Library/Utility/Types.hh>
 #include <Renderer/Core/RenderService.hh>
 
@@ -52,10 +52,8 @@ namespace Mikoto {
         ~D3D11Context() override = default;
 
     private:
-        Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_DeviceContext{};
         Microsoft::WRL::ComPtr<IDXGIFactory2> m_DxgiFactory{};
-        Microsoft::WRL::ComPtr<IDXGISwapChain1> m_SwapChain{};
-        Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_RenderTarget{};
+        Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_DeviceContext{};
     };
 }
 

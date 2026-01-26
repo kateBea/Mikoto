@@ -82,26 +82,29 @@ namespace Mikoto {
         AudioService *audioService{ s_Services.Register<AudioService>( audioServiceCreateInfo ) };
         audioService->Init();
 
-        // Render service
-        // ImGui and the asset service must be initialized after the render system
-        // because it requires a valid render context active
-        RenderServiceCreateInfo renderServiceCreateInfo{
-            .TargetWindow{ config.TargetWindow },
-            .RendererAPI{ config.TargetApi },
-        };
-        RenderService *renderSystem{ s_Services.Register<RenderService>( renderServiceCreateInfo ) };
-        renderSystem->Init();
+        if (config.EnableRenderService) {
+            // Render service
+            // ImGui and the asset service must be initialized after the render system
+            // because it requires a valid render context active
+            RenderServiceCreateInfo renderServiceCreateInfo{
+                .TargetWindow{ config.TargetWindow },
+                .RendererAPI{ config.TargetApi },
+                .EnableImGui{ config.EnableImGui },
+            };
+            RenderService *renderSystem{ s_Services.Register<RenderService>( renderServiceCreateInfo ) };
+            renderSystem->Init();
+
+            AssetsServiceDescription assetsServiceCreateInfo{
+                .Device{ renderSystem->GetGpuDevice() },
+                .AudDevice{ audioService->GetDevice() },
+            };
+            AssetsService *assetsService{ s_Services.Register<AssetsService>( assetsServiceCreateInfo ) };
+            assetsService->Init();
+        }
 
         MemoryServiceCreateInfo memoryServiceCreateInfo{};
         MemoryService *memoryService{ s_Services.Register<MemoryService>( memoryServiceCreateInfo ) };
         memoryService->Init();
-
-        AssetsServiceDescription assetsServiceCreateInfo{
-            .Device{ renderSystem->GetGpuDevice() },
-            .AudDevice{ audioService->GetDevice() },
-        };
-        AssetsService *assetsService{ s_Services.Register<AssetsService>( assetsServiceCreateInfo ) };
-        assetsService->Init();
 
         ScriptingServiceDescription luaServiceCreateInfo{
         };

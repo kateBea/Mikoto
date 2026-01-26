@@ -145,7 +145,10 @@ namespace Mikoto {
     auto SystemStats::Update() -> void {
         std::lock_guard lock{ m_UpdateMutex };
 
-        m_VramUsage = RenderService::Get()->GetGpuDevice()->GetMemoryUsage();
+        // FIXME: if the render service was initialized then we have a render context we can get device info from
+        if (RenderService::GetPtr()) {
+            m_VramUsage = RenderService::Get()->GetGpuDevice()->GetMemoryUsage();
+        }
 
 #if defined( __linux__ )
         std::ifstream meminfo{ "/proc/meminfo" };

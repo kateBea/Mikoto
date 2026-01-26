@@ -124,6 +124,9 @@ namespace Mikoto {
          * */
         MKT_NODISCARD auto IsResizable() const -> bool { return m_IsResizable; }
 
+        MKT_NODISCARD auto IsApi(GraphicsAPI api) const -> bool { return m_Backend == api; }
+        MKT_NODISCARD auto GetApi() const -> GraphicsAPI { return m_Backend; }
+
         /**
          * @brief Allows or disallows resizing of the window.
          * @param value The value indicating whether the window should be resizable.

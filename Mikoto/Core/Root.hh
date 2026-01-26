@@ -24,7 +24,10 @@
 namespace Mikoto {
 
     struct RootConfig {
+        bool EnableImGui{ true };
         bool LockFrameRate{ false };
+
+        bool EnableRenderService{ false };
 
         Window* TargetWindow{ nullptr };
         GraphicsAPI TargetApi{ GraphicsAPI::VULKAN_API };

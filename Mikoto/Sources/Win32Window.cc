@@ -52,7 +52,7 @@ namespace Mikoto {
 
         MKT_CORE_LOGGER_INFO( "Cursor Handle: {}", ( void* )wc.hCursor );
         MKT_CORE_LOGGER_INFO( "Registered Win32 Window Class: {}", s_ClassName );
-        MKT_CORE_LOGGER_INFO( "Initialized Win32 Window Class successfully. Dimensions {}, {}", m_Properties.Width, m_Properties.Height );
+        MKT_CORE_LOGGER_INFO( "Initialized Win32 Window Class successfully. Dimensions {}, {}", m_Width, m_Height );
     }
 
     auto Win32Window::Init() -> void {
@@ -62,17 +62,17 @@ namespace Mikoto {
         DWORD style{ WS_OVERLAPPEDWINDOW };
         DWORD exStyle{ WS_EX_APPWINDOW };
 
-        if (!m_Properties.Resizable) {
+        if (!m_IsResizable) {
             style &= ~WS_THICKFRAME;
         }
 
-        RECT rect{ 0, 0, m_Properties.Width, m_Properties.Height };
+        RECT rect{ 0, 0, m_Width, m_Height };
         AdjustWindowRectEx( &rect, style, FALSE, exStyle );
 
         m_WindowHandle = CreateWindowEx(
                 exStyle,
                 s_ClassName,
-                m_Properties.Title.c_str(),
+                m_Title.c_str(),
                 style,
                 CW_USEDEFAULT, CW_USEDEFAULT,
                 rect.right - rect.left,
@@ -173,8 +173,8 @@ namespace Mikoto {
                 HMONITOR mon = MonitorFromWindow( m_WindowHandle, MONITOR_DEFAULTTOPRIMARY );
                 GetMonitorInfo( mon, &mi );
 
-                m_PrevW = m_Properties.Width;
-                m_PrevH = m_Properties.Height;
+                m_PrevW = m_Width;
+                m_PrevH = m_Height;
 
                 SetWindowLongPtr( m_WindowHandle, GWL_STYLE, WS_POPUP );
                 SetWindowPos( m_WindowHandle, HWND_TOP,
@@ -190,8 +190,8 @@ namespace Mikoto {
                 HMONITOR mon = MonitorFromWindow( m_WindowHandle, MONITOR_DEFAULTTOPRIMARY );
                 GetMonitorInfo( mon, &mi );
 
-                m_PrevW = m_Properties.Width;
-                m_PrevH = m_Properties.Height;
+                m_PrevW = m_Width;
+                m_PrevH = m_Height;
 
                 SetWindowLongPtr( m_WindowHandle, GWL_STYLE, WS_POPUP );
                 SetWindowPos( m_WindowHandle, HWND_TOP,
@@ -202,6 +202,18 @@ namespace Mikoto {
                 break;
             }
         }
+    }
+
+    auto Win32Window::SetCursorMode( CursorMode mode ) -> void {
+
+    }
+
+    auto Win32Window::SetCursorType( CursorType type ) -> void {
+
+    }
+
+    auto Win32Window::ResetCursorType() -> void {
+
     }
 
     LRESULT CALLBACK Win32WndProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam ) {

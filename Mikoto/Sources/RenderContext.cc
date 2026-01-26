@@ -31,6 +31,7 @@ namespace Mikoto {
         switch (config.Api) {
             case GraphicsAPI::VULKAN_API:
                 result = CreateScope<VulkanContext>( config );
+                break;
 #if defined(MIKOTO_PLATFORM_WINDOWS)
             case GraphicsAPI::DIRECTX_11:
                 result = CreateScope<D3D11Context>( config );

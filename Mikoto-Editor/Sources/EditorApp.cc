@@ -71,8 +71,11 @@ namespace Mikoto {
         MKT_CORE_LOGGER_DEBUG( "Initializing Mikoto Editor..." );
 
         const RootConfig config{
+            .EnableImGui{ true },
             .LockFrameRate{ false },
-            .TargetWindow{ m_Window }
+            .EnableRenderService{ true },
+            .TargetWindow{ m_Window },
+            .TargetApi{ m_Window->GetApi() }
         };
 
         Root::Init( config );

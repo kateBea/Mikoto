@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// C++ Standard Library
 #include <any>
 
-// Third-Party Libraries
 #include <volk.h>
 #include <GLFW/glfw3.h>
 
-// Projects headers
 #include <Common/Common.hh>
 #include <Core/CoreEvents.hh>
 #include <Core/EventService.hh>

@@ -1,6 +1,5 @@
 // Taken from MSDFGEN extensions as we include freetype as DEP
-
-
+// Because MSDFGEN extensions are disabled I am compiling this as part of Mikoto
 #include <Renderer/Core/ImportFont.hh>
 
 #include <cstring>

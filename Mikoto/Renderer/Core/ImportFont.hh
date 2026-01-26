@@ -1,8 +1,7 @@
+// Taken from MSDFGEN extensions as we include freetype as DEP
+// Because MSDFGEN extensions are disabled I am compiling this as part of Mikoto
 
 #pragma once
-
-// Taken from MSDFGEN extensions as we include freetype as DEP
-
 
 #include <core/Shape.h>
 

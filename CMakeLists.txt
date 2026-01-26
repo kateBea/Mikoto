@@ -44,8 +44,8 @@ endif()
 # Add engine and applications
 # ===========================
 #add_subdirectory(Mikoto-Sandbox)
-add_subdirectory(Mikoto-Apps)
-#add_subdirectory(Mikoto-Editor)
+#add_subdirectory(Mikoto-Apps)
+add_subdirectory(Mikoto-Editor)
 
 # Mikoto added last so it builds with target
 # specified configurations.

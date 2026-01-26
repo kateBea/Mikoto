@@ -203,8 +203,4 @@ namespace Mikoto {
         ctx.UploadBuffer( "LightCullingComp_LightsBuffer", m_Lights.data(), lightsCount * sizeof( ShaderLightTypeParams ) );
         ctx.UploadBuffer( "LightCullingComp_LightsCullingInfo", std::addressof( m_LightCullingUBO ), sizeof( LightCullingUBO ) );
     }
-
-    auto ClusteredShading::BuildShadowMapping( FrameGraph &graph ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-    }
 }

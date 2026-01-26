@@ -41,6 +41,8 @@ namespace Mikoto {
         RegisterSkybox( graph );
         RegisterBRDFLut( graph );
 
+        RegisterDirShadowMap( graph );
+
         //RegisterPrefilter( graph );
         //RegisterIrradiance( graph );
         RegisterShading( graph );
@@ -291,6 +293,10 @@ namespace Mikoto {
 
         m_SkyboxUBO.View = m_FrameUBO.View;
         m_SkyboxUBO.Projection = m_FrameUBO.Projection;
+    }
+
+    auto IBLPasses::RegisterDirShadowMap( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
     }
 
     auto IBLPasses::RegisterShading( FrameGraph &graph ) -> void {

@@ -48,6 +48,7 @@ namespace Mikoto {
         auto RegisterBRDFLut( FrameGraph& graph ) -> void;
         auto RegisterSkybox( FrameGraph& graph ) -> void;
         auto RegisterShading( FrameGraph& graph ) -> void;
+        auto RegisterDirShadowMap( FrameGraph& graph ) -> void;
 
     private:
         inline static const std::vector<glm::mat4> s_Matrices{

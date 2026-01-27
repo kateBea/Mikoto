@@ -36,6 +36,7 @@
 
 #include "Assets/AudioClip.hh"
 #include "Assets/MeshFactory.hh"
+#include "Filesystem/FileSystem.hh"
 #include "Material/PBRMaterial.hh"
 #include "Material/TextureCube.hh"
 
@@ -111,20 +112,22 @@ namespace Mikoto {
         */
         template<typename AssetType>
         MKT_NODISCARD auto GetAssetByUri( const std::string_view uri ) -> Ref<AssetType> {
+            const auto fullpath{ Filesystem::GetGetAbsolutePathString( uri ) };
+
             if constexpr (std::is_same_v<AssetType, Model>) {
-                if ( const auto it{ m_Models.find(std::string(uri)) }; it != m_Models.end())
+                if ( const auto it{ m_Models.find(fullpath) }; it != m_Models.end())
                     return it->second;
             }
             else if constexpr (std::is_same_v<AssetType, Texture>) {
-                if ( const auto it{ m_Textures.find(std::string(uri)) }; it != m_Textures.end())
+                if ( const auto it{ m_Textures.find(fullpath) }; it != m_Textures.end())
                     return it->second;
             }
             else if constexpr (std::is_same_v<AssetType, Audio>) {
-                if ( const auto it{ m_Audios.find(std::string(uri)) }; it != m_Audios.end())
+                if ( const auto it{ m_Audios.find(fullpath) }; it != m_Audios.end())
                     return it->second;
             }
             else if constexpr (std::is_same_v<AssetType, Font>) {
-                if ( const auto it{ m_Fonts.find(std::string(uri)) }; it != m_Fonts.end())
+                if ( const auto it{ m_Fonts.find(fullpath) }; it != m_Fonts.end())
                     return it->second;
             }
             else if constexpr (std::is_same_v<AssetType, Material>) {

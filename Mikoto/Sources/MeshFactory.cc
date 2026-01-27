@@ -177,15 +177,10 @@ namespace Mikoto {
                         .WithType( InferMikotoTextureType( type ) )
                         .WithMapType( InferMapType( type ) );
 
-                try { texture = AssetsService::Get()->LoadAsset<Texture>( loadInfo ); } catch (std::exception &e) { MKT_CORE_LOGGER_ERROR( "LoadTexture - Failed to load texture. Reason: {}", e.what() ); }
-
-                if (!texture.IsEmpty()) {
-                    // std::string_view does not extend lifetime of the temporary string
-                    const auto &texturePath{ path.filename().string() };
-                    const auto &textureName{ path.filename().string() };
-
-                    texture->SetTextureUri( texturePath );
-                    texture->SetTextureName( textureName );
+                try {
+                    texture = AssetsService::Get()->LoadAsset<Texture>( loadInfo );
+                } catch (std::exception &e) {
+                    MKT_CORE_LOGGER_ERROR( "LoadTexture - Failed to load texture. Reason: {}", e.what() );
                 }
             }
 
@@ -391,7 +386,9 @@ namespace Mikoto {
         }
 
         // Configure custom logger
-        if (m_WantCustomLog) { SetupCustomAssimpLogger(); }
+        if (m_WantCustomLog) {
+            SetupCustomAssimpLogger();
+        }
 
         m_IsInitialized = true;
     }

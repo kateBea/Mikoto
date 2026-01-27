@@ -16,7 +16,7 @@
 #include <iostream>
 #include <filesystem>
 
-#include <FileWatch.hpp>
+#include <FileWatch.hh>
 
 #include <Logging/Logger.hh>
 #include <Core/Exception.hh>
@@ -46,14 +46,14 @@ namespace Mikoto {
     }
 
     FileWatcher::FileWatcher( const Path &path ) {
-        m_WatchedPathAbsolute = Filesystem::GetGetAbsolutePath( path.string() );
-        const std::string absolutePathStr{ m_WatchedPathAbsolute.string() };
+        m_WatchedPath = path.string();
+        const std::string watchedPathStr{ m_WatchedPath.string() };
 
-        filewatch::FileWatch<std::string> watch(
-                absolutePathStr, [this]( const std::string &p, const filewatch::Event event ) -> void {
+        m_Watcher = CreateScope<filewatch::FileWatch<std::string>>(
+                watchedPathStr, [this]( const std::string &, const filewatch::Event event ) -> void {
                     MKT_CORE_LOGGER_ERROR( "MODIFIED" );
                     for (const auto& callback : m_Callbacks) {
-                        callback(m_WatchedPathAbsolute, ConverEventType( event ));
+                        callback(m_WatchedPath, ConverEventType( event ));
                     }
                 });
     }

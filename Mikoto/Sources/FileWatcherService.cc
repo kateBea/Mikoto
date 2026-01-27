@@ -17,7 +17,7 @@
 #include <filesystem>
 #include <iostream>
 
-#include <FileWatch.hpp>
+#include <FileWatch.hh>
 
 #include <Core/Profiler.hh>
 #include <Filesystem/FileWatcher.hh>
@@ -29,25 +29,14 @@ namespace Mikoto {
     FileWatcherService::FileWatcherService( const FileWatcherServiceCreateInfo& info)
         : m_FollowSymLinks{ info.FollowSymLinks }
     {
-
-        std::filesystem::path processPath{ std::filesystem::current_path() };
-        MKT_CORE_LOGGER_DEBUG( "Curren working path {}", processPath.string() );
-        filewatch::FileWatch<std::filesystem::path> watch {
-            processPath,
-            [] (const std::filesystem::path& path, const filewatch::Event event) {
-                MKT_CORE_LOGGER_INFO( "Changes at . directory" );
-                std::cout << path << ' ' << filewatch::event_to_string(event) << '\n';
-            }
-        };
     }
 
     auto FileWatcherService::Watch( const Path &path, FileWatcher::WatcherCallback&& callback ) -> void {
-        const std::string fileAbsolutePath{ Filesystem::GetGetAbsolutePathString( path ) };
+        const std::string fileAbsolutePath{ path.string() };
         const auto it{ m_WatchedPaths.find( fileAbsolutePath ) };
 
         if (it == m_WatchedPaths.end()) {
-            // W want a single watcher per directory
-            m_WatchedPaths[fileAbsolutePath] = CreateScope<FileWatcher>( fileAbsolutePath );
+            m_WatchedPaths[fileAbsolutePath] = CreateScope<FileWatcher>( Filesystem::GetGetAbsolutePath( path ) );
         }
 
         m_WatchedPaths[fileAbsolutePath]->RegisterWatchCallback( std::move( callback ) );

@@ -17,6 +17,7 @@
 
 #include <vector>
 
+#include <FileWatch.hh>
 #include <ankerl/unordered_dense.h>
 
 #include <Common/Common.hh>
@@ -35,8 +36,10 @@ namespace Mikoto {
         auto RegisterWatchCallback(WatcherCallback&& callback) -> void;
 
     private:
-        Path m_WatchedPathAbsolute{};
+        Path m_WatchedPath{};
         std::vector<WatcherCallback> m_Callbacks{};
+
+        Unique<filewatch::FileWatch<std::string>> m_Watcher{};
     };
 }
 

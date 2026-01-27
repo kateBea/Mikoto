@@ -136,6 +136,7 @@ namespace Mikoto {
             Int32 TextureIndex{ SRGTextures::INVALID_TEXTURE_INDEX };
         };
 
+        // Example with pass data
         graph.RegisterPass<HelloTextureData>(
                 "HelloTexture",
                 [this]( FramePassBuilder &b, HelloTextureData& ) -> void {
@@ -156,11 +157,10 @@ namespace Mikoto {
                     b.Write( "HelloTexture_TexturesBuffer", FrameResourceState::ShaderResource_Read );
                     b.Use( SRGType::SRG_PerPass, "HelloTexture_TexturesBuffer", 0 );
                     b.Use( SRGType::SRG_Textures );
-
-                    // Texture used later
-                    m_TextureHandle = AssetsService::Get()->LoadAsset<Texture>( Path{ "Resources/Models/1 - Box texture/CatStare.png" } );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard) -> void {
+                    m_TextureHandle = AssetsService::Get()->LoadAsset<Texture>( Path{ "Resources/Models/1 - Box texture/CatStare.png" } );
+
                     auto& data{ blackboard.Get<HelloTextureData>() };
                     data.TextureIndex = ctx.PushTexture( m_TextureHandle );
 

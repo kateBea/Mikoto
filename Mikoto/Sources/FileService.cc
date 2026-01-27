@@ -23,6 +23,8 @@
 #include <Logging/Logger.hh>
 #include <Core/Exception.hh>
 
+#include "Filesystem/FileSystem.hh"
+
 namespace Mikoto {
 
     FileService::FileService( const FileServiceCreateInfo& ) {}
@@ -117,50 +119,47 @@ namespace Mikoto {
         NFD::Quit();
     }
 
-    auto FileService::LoadFile( const Path& path, FileMode mode ) -> File* {
+    auto FileService::LoadFile( const Path &path, FileMode mode ) -> File * {
         MKT_BEGIN_PROFILER_NAMED();
 
-        File* result{ nullptr };
+        const auto absolutePath{ Filesystem::GetGetAbsolutePathString( path ) };
+        const auto findIt{ m_Files.find( absolutePath ) };
 
-        // Use string because m_Files key is std::string, Path contained type is implementation defined
-        // char on linux and wchar_t on windows
-        const auto findIt{ m_Files.find( path.string() ) };
+        if (findIt != m_Files.end()) { return findIt->second.get(); }
 
-        if ( findIt != m_Files.end() ) {
-            result = findIt->second.get();
-        } else {
-            // File does not exist
-            auto newFile{ File::Load( path, mode ) };
-            if ( newFile ) {
-                result = newFile.get();
+        File *result{ nullptr };
 
-                {
-                    std::lock_guard lock{ m_FileLoadMutex };
-                    const auto [insertIt, success]{
-                        m_Files.try_emplace( path.string(), std::move( newFile ) )
-                    };
-                }
+        auto newFile{ File::Load( absolutePath, mode ) };
+        if (newFile) {
+            result = newFile.get();
 
-                //If we managed to load the file listen on update notifications to update the file contents
-                FileWatcherService::Get()->Watch( result->GetPath(), [result](const Path& pathCallable, FileWatchEvent event) mutable -> void {
-                    if (event == FileWatchEvent::MODIFIED) {
-                        result->UpdateContents();
-                        MKT_CORE_LOGGER_INFO( "File at path {} was modified. Updating it's contents", pathCallable.string());
-                    }
-                } );
-            } else {
-                MKT_CORE_LOGGER_ERROR( "Could not load file at {}", path.string() );
+            {
+                std::lock_guard lock{ m_FileLoadMutex };
+                const auto [insertIt, success]{
+                    m_Files.try_emplace( absolutePath, std::move( newFile ) )
+                };
             }
+
+            //If we managed to load the file listen on update notifications to update the file contents
+            FileWatcherService::Get()->Watch( result->GetPath(),
+                                              [result]( const Path &pathCallable, FileWatchEvent event ) mutable -> void {
+                                                  if (event == FileWatchEvent::MODIFIED) {
+                                                      result->UpdateContents();
+                                                      MKT_CORE_LOGGER_INFO( "File at path {} was modified. Updating it's contents", pathCallable.string() );
+                                                  }
+                                              } );
+        } else {
+            MKT_CORE_LOGGER_ERROR( "Could not load file at {}", absolutePath );
         }
 
         return result;
     }
 
-    auto FileService::GetFile( const Path& path ) -> File* {
-        auto it{ m_Files.find( path.string() ) };
-        if ( it != m_Files.end() ) {
-            return it->second.get();
-        }
+    auto FileService::GetFile( const Path &path ) -> File * {
+        const auto absolutePath{ Filesystem::GetGetAbsolutePathString( path ) };
+
+        auto it{ m_Files.find( absolutePath ) };
+        if (it != m_Files.end()) { return it->second.get(); }
 
         return nullptr;
     }

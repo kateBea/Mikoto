@@ -33,6 +33,7 @@ namespace Mikoto {
         filewatch::FileWatch<std::string> watch {
             ".",
             [] (const std::string& path, const filewatch::Event event) {
+                MKT_CORE_LOGGER_INFO( "Changes at . directory" );
                 std::cout << path << ' ' << filewatch::event_to_string(event) << '\n';
             }
         };

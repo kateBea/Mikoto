@@ -30,9 +30,11 @@ namespace Mikoto {
         : m_FollowSymLinks{ info.FollowSymLinks }
     {
 
-        filewatch::FileWatch<std::string> watch {
-            ".",
-            [] (const std::string& path, const filewatch::Event event) {
+        std::filesystem::path processPath{ std::filesystem::current_path() };
+        MKT_CORE_LOGGER_DEBUG( "Curren working path {}", processPath.string() );
+        filewatch::FileWatch<std::filesystem::path> watch {
+            processPath,
+            [] (const std::filesystem::path& path, const filewatch::Event event) {
                 MKT_CORE_LOGGER_INFO( "Changes at . directory" );
                 std::cout << path << ' ' << filewatch::event_to_string(event) << '\n';
             }

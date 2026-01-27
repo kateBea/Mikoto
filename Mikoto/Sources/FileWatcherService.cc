@@ -17,7 +17,7 @@
 #include <filesystem>
 #include <iostream>
 
-#include <efsw/efsw.hpp>
+#include <FileWatch.hpp>
 
 #include <Core/Profiler.hh>
 #include <Filesystem/FileWatcher.hh>
@@ -26,53 +26,32 @@
 
 namespace Mikoto {
 
-// For better readability
-#define IS_WATCH_ID_ERROR(EFSW_ID) !(EFSW_ID > 0)
-
     FileWatcherService::FileWatcherService( const FileWatcherServiceCreateInfo& info)
         : m_FollowSymLinks{ info.FollowSymLinks }
     {
 
+        filewatch::FileWatch<std::string> watch {
+            ".",
+            [] (const std::string& path, const filewatch::Event event) {
+                std::cout << path << ' ' << filewatch::event_to_string(event) << '\n';
+            }
+        };
     }
 
     auto FileWatcherService::Watch( const Path &path, FileWatcher::WatcherCallback&& callback ) -> void {
         const std::string fileAbsolutePath{ Filesystem::GetGetAbsolutePathString( path ) };
-
-        // EFSW watches whole directory, not individual files
-        Path absolutePath{ fileAbsolutePath };
-        absolutePath.remove_filename();
-
-        const std::string directoryString{ absolutePath.string() };
-        const auto it{ m_WatchedPaths.find( directoryString ) };
+        const auto it{ m_WatchedPaths.find( fileAbsolutePath ) };
 
         if (it == m_WatchedPaths.end()) {
             // W want a single watcher per directory
-            m_WatchedPaths[directoryString] = CreateScope<FileWatcher>( directoryString );
-
-            // For now, we make it non-recursive so each watcher monitors a specific directory and avoid multiple watchers per directory tree
-            efsw::WatchID watchID{ m_FileWatcher->addWatch( directoryString, m_WatchedPaths[directoryString].get(), false ) };
-            if (IS_WATCH_ID_ERROR(watchID)) {
-                MKT_CORE_LOGGER_ERROR( "Error registering callback for watched path [{}]. Error {}", directoryString, efsw::Errors::Log::getLastErrorLog().c_str() );
-            }
+            m_WatchedPaths[fileAbsolutePath] = CreateScope<FileWatcher>( fileAbsolutePath );
         }
 
-        m_WatchedPaths[directoryString]->RegisterWatchCallback( fileAbsolutePath, std::move( callback ) );
+        m_WatchedPaths[fileAbsolutePath]->RegisterWatchCallback( std::move( callback ) );
     }
 
     auto FileWatcherService::Init() -> void {
         MKT_CORE_LOGGER_INFO( "Initializing FileWatcherService..." );
-
-        // Create the file system watcher instance
-        // efsw::FileWatcher allow a first boolean parameter that indicates if it should start with the
-        // generic file watcher instead of the platform specific backend
-        m_FileWatcher = CreateScope<efsw::FileWatcher>();
-
-        // Some configurations
-        //m_FileWatcher->followSymlinks( m_FollowSymLinks );
-        //m_FileWatcher->allowOutOfScopeLinks( false );
-
-        // Start watching asynchronously the directories
-        m_FileWatcher->watch();
 
         m_IsInitialized = true;
     }
@@ -83,8 +62,6 @@ namespace Mikoto {
         if (!m_IsInitialized) {
             return;
         }
-
-        m_FileWatcher = nullptr;
 
         m_WatchedPaths.clear();
 

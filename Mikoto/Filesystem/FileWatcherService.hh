@@ -15,7 +15,6 @@
 #ifndef MIKOTO_FILE_WATCHER_HH
 #define MIKOTO_FILE_WATCHER_HH
 
-#include <efsw/efsw.hpp>
 #include <ankerl/unordered_dense.h>
 
 #include <Common/Common.hh>
@@ -41,11 +40,7 @@ namespace Mikoto {
         auto Watch(const Path& path, FileWatcher::WatcherCallback&& callback) -> void;
 
     private:
-        Unique<efsw::FileWatcher> m_FileWatcher{};
-
-    private:
         ankerl::unordered_dense::map<std::string, Unique<FileWatcher>> m_WatchedPaths{};
-
         bool m_FollowSymLinks{ false };
     };
 }// namespace Mikoto

@@ -17,7 +17,6 @@
 
 #include <vector>
 
-#include <efsw/efsw.hpp>
 #include <ankerl/unordered_dense.h>
 
 #include <Common/Common.hh>
@@ -27,26 +26,17 @@ namespace Mikoto {
 
     enum class FileWatchEvent { MODIFIED, CREATED, DELETED, MOVED };
 
-    // Watches a given directory for changes in its list of items
-    class FileWatcher final : public efsw::FileWatchListener {
+    class FileWatcher final {
     public:
         using WatcherCallback = std::function< void( const Path& path, FileWatchEvent ) >;
 
         explicit FileWatcher( const Path& path );
 
-        auto RegisterWatchCallback(const Path& absolutePath, WatcherCallback&& callback) -> void;
+        auto RegisterWatchCallback(WatcherCallback&& callback) -> void;
 
     private:
-        // From efsw::FileWatchListener
-        auto handleFileAction( efsw::WatchID watchID,
-            const std::string &dir,
-            const std::string &filename,
-            efsw::Action action,
-            std::string oldFilename ) -> void override;
-
-    private:
-        Path m_WatchedPath{};
-        ankerl::unordered_dense::map<std::string, std::vector<WatcherCallback>> m_Callbacks{};
+        Path m_WatchedPathAbsolute{};
+        std::vector<WatcherCallback> m_Callbacks{};
     };
 }
 

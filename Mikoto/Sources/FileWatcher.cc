@@ -16,9 +16,7 @@
 #include <iostream>
 #include <filesystem>
 
-#include <efsw/efsw.hpp>
-#include <efsw/FileSystem.hpp>
-#include <efsw/System.hpp>
+#include <FileWatch.hpp>
 
 #include <Logging/Logger.hh>
 #include <Core/Exception.hh>
@@ -27,12 +25,18 @@
 
 namespace Mikoto {
 
-    MKT_NODISCARD static auto ConverEventType(efsw::Action action) -> FileWatchEvent {
-        switch ( action ) {
-            case efsw::Actions::Add: return FileWatchEvent::CREATED;
-            case efsw::Actions::Delete: return FileWatchEvent::DELETED;
-            case efsw::Actions::Modified: return FileWatchEvent::MODIFIED;
-            case efsw::Actions::Moved: return FileWatchEvent::MOVED;
+    MKT_NODISCARD static auto ConverEventType( filewatch::Event action ) -> FileWatchEvent {
+        switch (action) {
+            case filewatch::Event::added:
+                return FileWatchEvent::CREATED;
+            case filewatch::Event::removed:
+                return FileWatchEvent::DELETED;
+            case filewatch::Event::modified:
+                return FileWatchEvent::MODIFIED;
+
+            case filewatch::Event::renamed_old:
+            case filewatch::Event::renamed_new:
+                return FileWatchEvent::MOVED;
             default:
                 MKT_CORE_LOGGER_ERROR( "Error undefined backend file watch action!" );
         }
@@ -42,20 +46,19 @@ namespace Mikoto {
     }
 
     FileWatcher::FileWatcher( const Path &path ) {
-        m_WatchedPath = Filesystem::GetGetAbsolutePath( path.string() );
+        m_WatchedPathAbsolute = Filesystem::GetGetAbsolutePath( path.string() );
+        const std::string absolutePathStr{ m_WatchedPathAbsolute.string() };
+
+        filewatch::FileWatch<std::string> watch(
+                absolutePathStr, [this]( const std::string &p, const filewatch::Event event ) -> void {
+                    MKT_CORE_LOGGER_ERROR( "MODIFIED" );
+                    for (const auto& callback : m_Callbacks) {
+                        callback(m_WatchedPathAbsolute, ConverEventType( event ));
+                    }
+                });
     }
 
-    auto FileWatcher::RegisterWatchCallback(const Path& absolutePath, WatcherCallback &&callback ) -> void {
-        const std::string filename{ Filesystem::GetGetAbsolutePath( absolutePath.string() ).filename().string() };
-        m_Callbacks[filename].emplace_back( std::move(callback) );
-    }
-
-    auto FileWatcher::handleFileAction( efsw::WatchID watchID, const std::string &dir, const std::string &filename, efsw::Action action, std::string oldFilename ) -> void {
-        const auto it{ m_Callbacks.find( filename ) };
-        if (it != m_Callbacks.end()) {
-            for (const auto& callback : it->second) {
-                callback(m_WatchedPath, ConverEventType( action ));
-            }
-        }
+    auto FileWatcher::RegisterWatchCallback( WatcherCallback &&callback ) -> void {
+        m_Callbacks.emplace_back( std::move( callback ) );
     }
 }

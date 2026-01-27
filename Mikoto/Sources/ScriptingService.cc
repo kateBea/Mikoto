@@ -69,17 +69,15 @@ namespace Mikoto {
             try {
                 handle = m_ScriptPool.Allocate( file,  m_LuaState, entity );
 
-                // Mark lambda as mutable to modify "its members"
-                FileWatcherService::Get()->Watch( file->GetPath(), [handle, this](const Path& pathCallable, FileWatchEvent event) mutable -> void {
+                FileWatcherService::Get()->Watch( file->GetPath(), 
+                [handle, this](const Path& pathCallable, FileWatchEvent event) mutable -> void {
                     if (event == FileWatchEvent::MODIFIED) {
                         handle->ReloadScript(m_LuaState);
-                        MKT_CORE_LOGGER_INFO( "File at path {} was modified", pathCallable.string());
                     }
                 } );
 
-            } catch ( const sol::error &e ) {
-                MKT_CORE_LOGGER_ERROR( "ScriptingService::LoadScript - exception: '{}'", e.what() );
-                MKT_CORE_LOGGER_ERROR( "ScriptingService::LoadScript - Could create script '{}'", file->GetPath() );
+            } catch ( const std::exception &e ) {
+                MKT_CORE_LOGGER_ERROR( "ScriptingService::LoadScript. File {}. Exception: '{}'", file->GetPath(), e.what() );
             }
         }
 

@@ -10,7 +10,7 @@ layout(set = PERPASS_SETINDEX, binding = 1) uniform IrradianceParamsUBO {
     float DeltaTheta;
 } u_Constants;
 
-layout (binding = 0) uniform samplerCube u_SamplerEnv;
+layout (set = PERPASS_SETINDEX, binding = 2) uniform samplerCube u_SamplerEnv;
 
 // In variables
 layout (location = 0) in vec3 v_Pos;

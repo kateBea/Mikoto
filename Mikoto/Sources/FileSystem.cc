@@ -24,11 +24,16 @@ namespace Mikoto {
         return absolutePath;
     }
 
+    auto Filesystem::GetGetAbsolutePath( const Path &path ) -> Path {
+        Path absolutePath{ std::filesystem::absolute( path ) };
+        return absolutePath;
+    }
+
     auto Filesystem::GetGetAbsolutePathString( std::string_view path ) -> std::string {
         return GetGetAbsolutePath(path).string();
     }
 
     auto Filesystem::GetGetAbsolutePathString( const Path &path ) -> std::string {
-        return GetGetAbsolutePath(path.string()).string();
+        return GetGetAbsolutePath(path).string();
     }
 }

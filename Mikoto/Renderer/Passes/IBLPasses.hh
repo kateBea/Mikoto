@@ -48,6 +48,7 @@ namespace Mikoto {
         auto RegisterBRDFLut( FrameGraph& graph ) -> void;
         auto RegisterSkybox( FrameGraph& graph ) -> void;
         auto RegisterShading( FrameGraph& graph ) -> void;
+        auto RegisterDirShadowMap( FrameGraph& graph ) -> void;
 
     private:
         inline static const std::vector<glm::mat4> s_Matrices{
@@ -140,8 +141,8 @@ namespace Mikoto {
         PrefilterParameters m_PrefilterParameters{};
         PrefilterCamInfo m_PrefilterCameraInfo{};
 
-        IrradianceCamInfo m_CameraInfo{};
-        IrradianceParameters m_Parameters{};
+        IrradianceCamInfo m_IrradianceCameraInfo{};
+        IrradianceParameters m_IrradianceParameters{};
 
         SamplerHandle m_CubeMapSampler{};
 

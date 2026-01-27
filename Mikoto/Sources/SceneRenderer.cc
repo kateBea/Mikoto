@@ -105,6 +105,10 @@ namespace Mikoto {
         return m_FrameGraph->GetBuffer(name);
     }
 
+    auto SceneRenderer::Create( const SceneRendererCreateInfo &spec ) -> Unique<SceneRenderer> {
+        return CreateScope<SceneRenderer>( spec );
+    }
+
     auto SceneRenderer::InitGraphicsContex() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 

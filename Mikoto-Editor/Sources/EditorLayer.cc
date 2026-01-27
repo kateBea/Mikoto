@@ -17,34 +17,24 @@
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <Core/InputService.hh>
-#include <Core/Profiler.hh>
-#include <Core/RuntimeConsole.hh>
-#include <ImGui/ImGuiUtility.hh>
-#include <Layers/EditorLayer.hh>
-#include <Panels/ConsolePanel.hh>
-#include <Panels/ContentBrowserPanel.hh>
-#include <Panels/GamePreviewPanel.hh>
-#include <Panels/HierarchyPanel.hh>
-#include <Panels/InspectorPanel.hh>
-#include <Panels/LightingDebugPanel.hh>
-#include <Panels/PassVisualizerPanel.hh>
-#include <Panels/ScenePanel.hh>
-#include <Panels/ScenePropertiesPanel.hh>
-#include <Panels/SettingsPanel.hh>
-#include <Panels/StatsPanel.hh>
-#include <Physics/PhysicService.hh>
-#include <Renderer/Core/DebugRenderer.hh>
-#include <Renderer/Core/RenderService.hh>
+#include <Core/Core.hh>
+
+#include <Panels/Panels.hh>
+
 #include <Scene/Component.hh>
 #include <Scene/SceneManager.hh>
 
-#include "Application/EditorUtility.hh"
-#include "Core/CoreEvents.hh"
-#include "Core/LocalizationService.hh"
-#include "Core/SystemStats.hh"
-#include "ImGui/ImGuiService.hh"
-#include "Panels/AssetsPanel.hh"
+#include <ImGui/ImGuiService.hh>
+#include <ImGui/ImGuiUtility.hh>
+
+#include <Layers/EditorLayer.hh>
+
+#include <Physics/PhysicService.hh>
+
+#include <Renderer/Core/DebugRenderer.hh>
+#include <Renderer/Core/RenderService.hh>
+
+#include <Application/EditorUtility.hh>
 
 namespace Mikoto {
 
@@ -92,7 +82,7 @@ namespace Mikoto {
         spec.WithName( "Scene renderer" )
             .WithDevice( RenderService::Get()->GetGpuDevice() );
 
-        m_SceneRenderer = CreateScope<SceneRenderer>( spec );
+        m_SceneRenderer = SceneRenderer::Create( spec );
         if (m_SceneRenderer) {
             m_SceneRenderer->Init();
         }

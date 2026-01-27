@@ -14,42 +14,40 @@
 
 #include <Core/Platform.hh>
 
+#include <ImGui/ImGuiD3D11Backend.hh>
+
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
-#include <Renderer/D3D12/D3D12Context.hh>
+#include <imgui_impl_dx11.h>
 
 namespace Mikoto {
 
-    auto D3D12Context::Init() -> bool {
-        return true;
-    }
-
-    auto D3D12Context::Shutdown() -> void {
+    auto ImGuiD3D11Backend::Init() -> void {
 
     }
 
-    auto D3D12Context::SubmitFrame() -> void {
+    auto ImGuiD3D11Backend::Shutdown() -> void {
 
     }
 
-    auto D3D12Context::PrepareFrame() -> void {
+    auto ImGuiD3D11Backend::BeginFrame() -> void {
 
     }
 
-    auto D3D12Context::Present() -> void {
+    auto ImGuiD3D11Backend::EndFrame() -> void {
 
     }
 
-    auto D3D12Context::SetPresentTarget( TextureHandle texture ) -> void {
-
+    auto ImGuiD3D11Backend::GetFinalComposition() -> TextureHandle {
+        return TextureHandle::CreateEmpty();
     }
 
-    auto D3D12Context::EnableVSync() -> void {
-
+    auto ImGuiD3D11Backend::ConstructImGuiTextureID( const Texture *texture ) -> ImTextureID {
+        return 0;
     }
 
-    auto D3D12Context::DisableVSync() -> void {
-
+    auto ImGuiD3D11Backend::ConstructImGuiTextureID( TextureHandle texture ) -> ImTextureID {
+        return 0;
     }
 }
 

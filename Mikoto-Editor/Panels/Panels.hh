@@ -12,15 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Renderer/D3D11/D3D11Texture.hh>
+#ifndef MIKOTO_PANELS_HH
+#define MIKOTO_PANELS_HH
 
-#if defined(MIKOTO_PLATFORM_WINDOWS)
+#include <Panels/ScenePanel.hh>
+#include <Panels/StatsPanel.hh>
+#include <Panels/AssetsPanel.hh>
+#include <Panels/ConsolePanel.hh>
+#include <Panels/SettingsPanel.hh>
+#include <Panels/HierarchyPanel.hh>
+#include <Panels/InspectorPanel.hh>
+#include <Panels/GamePreviewPanel.hh>
+#include <Panels/LightingDebugPanel.hh>
+#include <Panels/PassVisualizerPanel.hh>
+#include <Panels/ContentBrowserPanel.hh>
+#include <Panels/ScenePropertiesPanel.hh>
 
-namespace Mikoto {
-    auto D3D11SwapChain::Present() -> void {
-
-    }
-
-}
-
-#endif
+#endif //MIKOTO_PANELS_HH

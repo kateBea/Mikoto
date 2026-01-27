@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,16 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// C++ Standard Library
 #include <any>
 
-// Third-Party Libraries
 #include <volk.h>
 #include <GLFW/glfw3.h>
 
-// Projects headers
 #include <Common/Common.hh>
 #include <Core/CoreEvents.hh>
+#include <Common/String.hh>
 #include <Core/EventService.hh>
 #include <Core/InputService.hh>
 #include <Core/Profiler.hh>
@@ -173,7 +171,13 @@ namespace Mikoto {
     auto MainWindow::SetCustomTitle() -> void {
         switch(m_Backend) {
             case GraphicsAPI::VULKAN_API:
-                m_Title = fmt::format("{} (Vulkan Version {}.{})", m_Title, MKT_VULKAN_VERSION_MAJOR, MKT_VULKAN_VERSION_MINOR);
+                m_Title = StringUtil::Format("{} (Vulkan Version {}.{})", m_Title, MKT_VULKAN_VERSION_MAJOR, MKT_VULKAN_VERSION_MINOR);
+                break;
+            case GraphicsAPI::DIRECTX_11:
+                m_Title = StringUtil::Format("{} Direct3D11", m_Title);
+                break;
+            case GraphicsAPI::DIRECTX_12:
+                m_Title = StringUtil::Format("{} Direct3D12", m_Title);
                 break;
             default:;
         }

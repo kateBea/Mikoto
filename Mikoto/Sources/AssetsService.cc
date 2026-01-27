@@ -28,6 +28,7 @@
 #include <Library/Utility/Types.hh>
 #include <Threading/TaskService.hh>
 
+#include "Filesystem/FileSystem.hh"
 #include "Threading/ThreadUtility.hh"
 
 namespace Mikoto {
@@ -100,7 +101,7 @@ namespace Mikoto {
     }
 
     auto AssetsService::GetDummyTexture() -> TextureHandle {
-        return m_Textures[s_DummyTexturePath.data() ];
+        return m_Textures[Filesystem::GetGetAbsolutePathString( s_DummyTexturePath)];
     }
 
     auto AssetsService::CreateMaterial() -> MaterialHandle {

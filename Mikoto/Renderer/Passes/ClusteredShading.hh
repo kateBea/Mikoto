@@ -35,7 +35,6 @@ namespace Mikoto {
     private:
         auto BuildAABB( FrameGraph& graph ) -> void;
         auto BuildLightCulling( FrameGraph& graph ) -> void;
-        auto BuildShadowMapping( FrameGraph& graph ) -> void;
 
         auto SetupLightList(CommandContext& ctx) -> void;
 

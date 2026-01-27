@@ -5,6 +5,11 @@ project(HelloDirect3D11)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Mikoto Options
+set(MIKOTO_USE_XCB_WINDOW OFF CACHE BOOL "Use XCB windowing" FORCE)
+set(MIKOTO_USE_WIN32_WINDOW OFF CACHE BOOL "Disable Win32 windowing" FORCE)
+set(MIKOTO_ENABLE_TRACY_PROFILING OFF CACHE BOOL "Disable Tracy profiling" FORCE)
+
 file(GLOB SOURCE_FILES ./*.cc)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})

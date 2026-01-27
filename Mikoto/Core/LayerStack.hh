@@ -1,15 +1,26 @@
+//    Copyright 2026 ケイト
 //
-// Created by zanet on 10/10/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef LAYERSTACK_H
-#define LAYERSTACK_H
+#ifndef MIKOTO_LAYER_STACK_HH
+#define MIKOTO_LAYER_STACK_HH
 
-#include <Library/Data/Registry.hh>
 #include <string>
 #include <string_view>
 
 #include <Core/Event.hh>
+#include <Common/Common.hh>
+#include <Library/Data/Registry.hh>
 
 namespace Mikoto {
     class ILayer {
@@ -62,10 +73,10 @@ namespace Mikoto {
         auto OnEvent(Event& event) -> void;
 
         // Iteration over registered layers
-        constexpr auto begin() -> decltype(auto) { return m_Layers.begin(); }
-        constexpr auto end() -> decltype(auto) { return m_Layers.end(); }
-        constexpr auto begin() const -> decltype(auto) { return m_Layers.begin(); }
-        constexpr auto end() const -> decltype(auto) { return m_Layers.end(); }
+        MKT_NODISCARD constexpr auto begin() -> decltype(auto) { return m_Layers.begin(); }
+        MKT_NODISCARD constexpr auto end() -> decltype(auto) { return m_Layers.end(); }
+        MKT_NODISCARD constexpr auto begin() const -> decltype(auto) { return m_Layers.begin(); }
+        MKT_NODISCARD constexpr auto end() const -> decltype(auto) { return m_Layers.end(); }
 
     private:
         Registry<ILayer> m_Layers{};

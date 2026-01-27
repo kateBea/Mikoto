@@ -68,6 +68,8 @@ namespace Mikoto {
         MKT_NODISCARD auto GetTexture(std::string_view name) const -> TextureHandle;
         MKT_NODISCARD auto GetBuffer(std::string_view name) const -> BufferHandle;
 
+        MKT_NODISCARD static auto Create( const SceneRendererCreateInfo& spec) -> Unique<SceneRenderer>;
+
     private:
         // [Internal usage]
         auto InitGraphicsContex() -> void;

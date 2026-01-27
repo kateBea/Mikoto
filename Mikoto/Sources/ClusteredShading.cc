@@ -46,7 +46,6 @@ namespace Mikoto {
 
         BuildAABB( graph );
         BuildLightCulling( graph );
-        BuildShadowMapping( graph );
     }
 
     auto ClusteredShading::BuildAABB( FrameGraph &graph ) -> void {
@@ -202,9 +201,5 @@ namespace Mikoto {
         // Just copy the amount of active lights we visited
         ctx.UploadBuffer( "LightCullingComp_LightsBuffer", m_Lights.data(), lightsCount * sizeof( ShaderLightTypeParams ) );
         ctx.UploadBuffer( "LightCullingComp_LightsCullingInfo", std::addressof( m_LightCullingUBO ), sizeof( LightCullingUBO ) );
-    }
-
-    auto ClusteredShading::BuildShadowMapping( FrameGraph &graph ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
     }
 }

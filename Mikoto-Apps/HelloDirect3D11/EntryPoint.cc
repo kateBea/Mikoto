@@ -12,26 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <Core/Core.hh>
 #include <Logging/Logger.hh>
 
 #include <Platform/Window.hh>
+#include <Platform/WindowsService.hh>
+
+#include <Renderer/Core/RenderService.hh>
 
 Mikoto::Window* g_Window{ nullptr };
 
 auto InitializeWindow() -> void {
     using namespace Mikoto;
 
+    // Initialize the window service so we can use windows
+    if (!Root::RegisterService<WindowsService>( WindowsServiceCreateInfo{} )) {
+        return;
+    }
+
     WindowProperties properties{
-        .Title{ "Hello Application - Direct3D11" },
+        .Title{ "Hello Application" },
         .Width{ 1280 },
         .Height{ 720 },
         .Backend{ GraphicsAPI::DIRECTX_11 },
         .Resizable{ true }
     };
 
-    g_Window = Window::Create( properties );
-
-    g_Window->Init();
+    g_Window = WindowsService::Get()->Create( properties );
 }
 
 auto InitializeApplication() -> void {
@@ -42,22 +49,40 @@ auto InitializeApplication() -> void {
     }
 
     try {
+        const RootConfig config{
+            .EnableImGui{ false },
+            .LockFrameRate{ false },
+            .EnableRenderService{ false },
+            .TargetWindow{ g_Window },
+            .TargetApi{ g_Window->GetApi() }
+        };
 
+        Root::Init( config );
     } catch ( const std::exception& e ) {
         MKT_CORE_LOGGER_ERROR( "Initializing application - Exception: e.what(): {}", e.what() );
     }
 }
 
 auto RunCleanup() -> void {
-    if (g_Window) {
-        g_Window->Shutdown();
-    }
+    using namespace Mikoto;
 
-    delete g_Window;
+    Root::Shutdown();
 }
 
 auto RunApplication() -> void {
+    using namespace Mikoto;
+
     try {
+
+        while (!g_Window->ShouldClose()) {
+            TimeService::Get()->UpdateTimeStep();
+
+            if ( !g_Window->IsMinimized() ) {
+                const double timeStep{ TimeService::Get()->GetTimeStep( TimeUnit::SECONDS ) };
+
+                Root::UpdateState( static_cast<float>( timeStep ) );
+            }
+        }
 
     } catch ( const std::exception& e ) {
         MKT_CORE_LOGGER_ERROR( "Running application - Exception: e.what(): {}", e.what() );

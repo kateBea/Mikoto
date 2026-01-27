@@ -394,17 +394,14 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(tracy)
 
-# ESFW
-FetchContent_Declare(
-        efsw
-        GIT_REPOSITORY https://github.com/SpartanJ/efsw.git
-        GIT_TAG master
-)
-
-FetchContent_MakeAvailable(efsw)
+#Filewatch
+# Using https://github.com/ThomasMonkman/filewatch/tree/feature/fix-filesystem (currently working branch)
+# It is single header
+set(FILEWATCH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Filewatch")
+set(FILEWATCH_INCLUDE_DIR "${FILEWATCH_ROOT}")
 
 # -------------------------------------------------------
-# Fetch OpenCL-SDK
+# OpenCL-SDK
 # -------------------------------------------------------
 FetchContent_Declare(
         OpenCL-SDK
@@ -541,7 +538,6 @@ set(LIBRARIES
         nlohmann_json::nlohmann_json
         sol2::sol2
         Tracy::TracyClient
-        efsw-static
         OpenCL::OpenCL
 )
 
@@ -624,8 +620,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${sol2_SOURCE_DIR}/include
         ${asio_SOURCE_DIR}/include
         ${tracy_SOURCE_DIR}/asio/include
-        ${efsw_SOURCE_DIR}/include
         ${LUA_INCLUDE_DIR}
+        ${FILEWATCH_INCLUDE_DIR}
         ${OpenCL-SDK_SOURCE_DIR}/lib/include
         ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-Headers
         ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-CLHPP/include

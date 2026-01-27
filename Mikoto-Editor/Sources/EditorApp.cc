@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -71,8 +71,11 @@ namespace Mikoto {
         MKT_CORE_LOGGER_DEBUG( "Initializing Mikoto Editor..." );
 
         const RootConfig config{
+            .EnableImGui{ true },
             .LockFrameRate{ false },
-            .TargetWindow{ m_Window }
+            .EnableRenderService{ true },
+            .TargetWindow{ m_Window },
+            .TargetApi{ m_Window->GetApi() }
         };
 
         Root::Init( config );

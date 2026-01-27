@@ -12,15 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Renderer/D3D11/D3D11Texture.hh>
+#ifndef MIKOTO_CORE_HH
+#define MIKOTO_CORE_HH
 
-#if defined(MIKOTO_PLATFORM_WINDOWS)
+#include <Core/Profiler.hh>
+#include <Core/SystemStats.hh>
 
-namespace Mikoto {
-    auto D3D11SwapChain::Present() -> void {
+#include <Core/CoreEvents.hh>
 
-    }
+#include <Core/LocalizationService.hh>
 
-}
+#include <Core/TimeService.hh>
+#include <Core/InputService.hh>
+#include <Core/RuntimeConsole.hh>
 
-#endif
+#include <Core/Root.hh>
+
+#endif // MIKOTO_CORE_HH

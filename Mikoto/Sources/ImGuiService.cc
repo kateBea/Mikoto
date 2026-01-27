@@ -1,25 +1,51 @@
+//    Copyright 2026 ケイト
 //
-// Created by zanet on 1/26/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 
-// Project Headers
+#include <Core/Platform.hh>
 #include <ImGui/IconsFontAwesome5.h>
 #include <ImGui/IconsMaterialDesign.h>
 #include <ImGui/IconsMaterialDesignIcons.h>
+
 #include <imgui_impl_vulkan.h>
 
-#include <Renderer/Core/RenderService.hh>
+#if defined(MIKOTO_PLATFORM_WINDOWS)
+#include <imgui_impl_dx11.h>
+#include <imgui_impl_dx12.h>
+#endif
+
 #include <Common/Common.hh>
 #include <Core/Profiler.hh>
+#include <Logging/Logger.hh>
+
 #include <Filesystem/FileService.hh>
+#include <Library/Utility/Types.hh>
+
+#include <Renderer/Core/RenderService.hh>
+
 #include <ImGui/ImGuiService.hh>
 #include <ImGui/ImGuiUtility.hh>
 #include <ImGui/ImGuiVulkanBackend.hh>
-#include <Library/Utility/Types.hh>
-#include <Logging/Logger.hh>
+
+
+#if defined(MIKOTO_PLATFORM_WINDOWS)
+#include <ImGui/ImGuiD3D11Backend.hh>
+#include <ImGui/ImGuiD3D12Backend.hh>
+#endif
+
 
 namespace Mikoto {
 
@@ -208,6 +234,13 @@ namespace Mikoto {
         switch (info.API) {
             case GraphicsAPI::VULKAN_API:
                 return CreateScope<ImGuiVulkanBackend>(info);
+#if defined(MIKOTO_PLATFORM_WINDOWS)
+            case GraphicsAPI::DIRECTX_11:
+                return CreateScope<ImGuiD3D11Backend>(info);
+            case GraphicsAPI::DIRECTX_12:
+                return CreateScope<ImGuiD3D12Backend>(info);
+#endif
+
             default:;
         }
 

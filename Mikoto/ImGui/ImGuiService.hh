@@ -1,20 +1,32 @@
+//    Copyright 2026 ケイト
 //
-// Created by zanet on 1/26/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef GUISYSTEM_HH
-#define GUISYSTEM_HH
+#ifndef MIKOTO_IMGUI_SERVICE_HH
+#define MIKOTO_IMGUI_SERVICE_HH
 
 #include <imgui.h>
 
+#include <Common/Service.hh>
+#include <Assets/Texture.hh>
+#include <ImGui/ImGuiUtility.hh>
+
+#include <Platform/Window.hh>
+
+#include <Library/Utility/Types.hh>
+
 #include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/RenderUtility.hh>
-#include <Common/Service.hh>
-#include <Library/Utility/Types.hh>
-#include <Platform/Window.hh>
-#include <Assets/Texture.hh>
-
-#include "ImGui/ImGuiUtility.hh"
 
 namespace Mikoto {
 
@@ -118,5 +130,4 @@ namespace Mikoto {
 
 }
 
-
-#endif //GUISYSTEM_HH
+#endif // MIKOTO_IMGUI_SERVICE_HH

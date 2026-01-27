@@ -397,7 +397,7 @@ FetchContent_MakeAvailable(tracy)
 #Filewatch
 # Using https://github.com/ThomasMonkman/filewatch/tree/feature/fix-filesystem (currently working branch)
 # It is single header
-set(FILEWATCH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/filewatch")
+set(FILEWATCH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Filewatch")
 set(FILEWATCH_INCLUDE_DIR "${FILEWATCH_ROOT}")
 
 # -------------------------------------------------------

@@ -43,8 +43,8 @@ namespace Mikoto {
 
         RegisterDirShadowMap( graph );
 
+        RegisterIrradiance( graph );
         //RegisterPrefilter( graph );
-        //RegisterIrradiance( graph );
         RegisterShading( graph );
     }
 
@@ -66,51 +66,61 @@ namespace Mikoto {
 
                 [&]( FramePassBuilder &b) {
                     MKT_BEGIN_PROFILER_NAMED();
+                    b.Create<Buffer>( "IrradiancePass_CameraInfo", BufferUsage::UNIFORM, sizeof( IrradianceCamInfo ), 1 );
+                    b.Create<Buffer>( "IrradiancePass_Parameters", BufferUsage::UNIFORM, sizeof( IrradianceParameters ), 1 );
 
                     // Create target
-                    m_IrradianceMipLevels = static_cast<UInt32>( Math::Floor( Math::Log2( m_IrradianceMipLevels ) ) ) + 1;
-                    b.Create<TextureCube>( "IrradiancePass_ColorTarget", m_IrradianceDimensions, TextureFormat::RGBA32_FLOAT, m_IrradianceMipLevels );
+                    m_IrradianceMipLevels = 1;
+                    b.Create<TextureCube>( "IrradiancePass_ColorTarget", m_IrradianceDimensions, TextureFormat::RGBA16_FLOAT, m_IrradianceMipLevels );
 
                     // Create pipeline
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Irradiance_Vert.sprv", ShaderStage::VERTEX )
                         .UseShader( "Resources/Shaders/vulkan-spirv/Irradiance_Frag.sprv", ShaderStage::FRAGMENT )
-                        .Create<Pipeline>( "IrradiancePass_Pipeline", GraphicsPipelineDescription{ .VertexAttributesSpec{} } );
+                        .Create<Pipeline>( "IrradiancePass_Pipeline", GraphicsPipelineDescription{
+                            .VertexAttributesSpec{},
+                            .ColorAttachmentFormats{ TextureFormat::RGBA16_FLOAT }
+                        } );
 
                     b.Write( "IrradiancePass_ColorTarget", FrameResourceState::RenderTarget_Color )
-                        .Write( "IrradiancePass_CameraInfo", FrameResourceState::ShaderResource_Read )
-                        .Write( "IrradiancePass_Parameters", FrameResourceState::ShaderResource_Read );
+                        .Write( "IrradiancePass_CameraInfo")
+                        .Write( "IrradiancePass_Parameters");
 
-                    b.Read( "SkyboxPass_TextureCube", FrameResourceState::ShaderResource_Read );
+                    b.Use( SRGType::SRG_PerPass, "IrradiancePass_CameraInfo", 0 )
+                        .Use( SRGType::SRG_PerPass, "IrradiancePass_Parameters", 1 );
                 },
 
                 [&]( CommandContext &ctx, FrameGraphBlackboard & ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    ctx.BindPipeline( "IrradiancePass_Pipeline" );
-                    ctx.SetViewport( 0, 0, 1920, 1080 );
-                    ctx.SetScissor( 0, 0, 1920, 1080 );
-
                     // The skybox is bound once
-                    ctx.BindImage( m_CubeMap, m_CubeMapSampler, 1 );
+                    ctx.BindImage( m_CubeMap, m_CubeMapSampler, 2 );
 
-                    for (UInt32 mip = 0; mip < m_IrradianceDimensions; ++mip) {
-                        for (UInt32 face{}; face < MAX_CUBE_MAP_FACES; ++face) {
-                            ctx.SetColorRenderTarget( "IrradiancePass_ColorTarget" );
+                    m_IrradianceParameters.DeltaTheta = 0.5f * Math::Constants::PI / 64.0;
+                    m_IrradianceParameters.DeltaPhi = 2.0f * Math::Constants::PI / 180.0f;
 
-                            // Update face data
+                    for ( UInt32 face{}; face < MAX_CUBE_MAP_FACES; ++face ) {
+                        ctx.SetViewport( 0, 0, m_IrradianceDimensions, m_IrradianceDimensions );
+                        ctx.SetScissor( 0, 0, m_IrradianceDimensions, m_IrradianceDimensions );
 
-                            ctx.BeginRender();
+                        ctx.UploadBuffer<IrradianceParameters>( "IrradiancePass_CameraInfo", m_IrradianceParameters );
 
-                            // Draw
+                        m_IrradianceCameraInfo.MVP = glm::perspective( static_cast<float>( Math::Constants::PI / 2.0 ),
+                                                                       1.0f, 0.1f, 512.0f ) *
+                                                     s_Matrices[face];
+                        ctx.UploadBuffer<IrradianceCamInfo>( "IrradiancePass_CameraInfo", m_IrradianceCameraInfo );
 
-                            ctx.EndRender();
-                        }
+                        ctx.SetColorRenderTarget( "IrradiancePass_ColorTarget" );
+
+                        ctx.BeginRender();
+                        ctx.BindPipeline( "IrradiancePass_Pipeline" );
+                        //ctx.Draw( 36 );
+                        ctx.EndRender();
                     }
 
                     ctx.EndPass();
                 } );
 
-        graph.SetNodeExecutionPolicy( "BRDFLut", FramePassExecutionPolicy::ON_CHANGE );
+        graph.SetNodeExecutionPolicy( "BRDFLut", FramePassExecutionPolicy::ONCE );
     }
 
     auto IBLPasses::RegisterPrefilter( FrameGraph &graph ) -> void {
@@ -131,13 +141,12 @@ namespace Mikoto {
                     b.Create<Pipeline>( "Prefilter_Pipeline", GraphicsPipelineDescription{ .VertexAttributesSpec{} } );
 
                     b.Write( "Prefilter_ColorTarget", FrameResourceState::ShaderResource_Read );
-                    b.Read( "SkyboxPass_TextureCube", FrameResourceState::ShaderResource_Read );
                 },
 
                 [&]( CommandContext &ctx, FrameGraphBlackboard & ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    ctx.BindPipeline( "IrradiancePass_Pipeline" );
+                    ctx.BindPipeline( "Prefilter_Pipeline" );
                     ctx.SetViewport( 0, 0, 1920, 1080 );
                     ctx.SetScissor( 0, 0, 1920, 1080 );
 

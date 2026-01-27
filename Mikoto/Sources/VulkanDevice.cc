@@ -955,9 +955,13 @@ namespace Mikoto {
             depthAttachment.clearValue.depthStencil = { 1.0f, 0 };
         }
 
+        // Dimensions
+        const UInt32 width{ static_cast<UInt32>( static_cast<float>( info.ColorRenderTargets.front()->GetWidth() ) ) };
+        const UInt32 height{ static_cast<UInt32>( static_cast<float>( info.ColorRenderTargets.front()->GetHeight() ) ) };
+
         VkRenderingInfo renderingInfo{};
         renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-        renderingInfo.renderArea = { { 0, 0 }, { 1920, 1080 } };
+        renderingInfo.renderArea = { { 0, 0 }, { width, height } };
         renderingInfo.layerCount = 1;
         renderingInfo.colorAttachmentCount = static_cast<UInt32>( colorImages.size() );
         renderingInfo.pColorAttachments = colorImages.data();

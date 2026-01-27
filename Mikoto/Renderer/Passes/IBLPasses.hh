@@ -141,8 +141,8 @@ namespace Mikoto {
         PrefilterParameters m_PrefilterParameters{};
         PrefilterCamInfo m_PrefilterCameraInfo{};
 
-        IrradianceCamInfo m_CameraInfo{};
-        IrradianceParameters m_Parameters{};
+        IrradianceCamInfo m_IrradianceCameraInfo{};
+        IrradianceParameters m_IrradianceParameters{};
 
         SamplerHandle m_CubeMapSampler{};
 

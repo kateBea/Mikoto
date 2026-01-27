@@ -44,7 +44,7 @@ namespace Mikoto {
         RegisterDirShadowMap( graph );
 
         RegisterIrradiance( graph );
-        //RegisterPrefilter( graph );
+        RegisterPrefilter( graph );
         RegisterShading( graph );
     }
 
@@ -120,7 +120,7 @@ namespace Mikoto {
                     ctx.EndPass();
                 } );
 
-        graph.SetNodeExecutionPolicy( "BRDFLut", FramePassExecutionPolicy::ONCE );
+        graph.SetNodeExecutionPolicy( "IrradiancePass", FramePassExecutionPolicy::ONCE );
     }
 
     auto IBLPasses::RegisterPrefilter( FrameGraph &graph ) -> void {
@@ -129,35 +129,45 @@ namespace Mikoto {
         graph.RegisterPass(
                 "PrefilterPass",
 
-                [&]( FramePassBuilder &b) {
+                [&]( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
+                    b.Create<Buffer>( "PrefilterPass_CameraInfo", BufferUsage::UNIFORM, sizeof( PrefilterCamInfo ), 1 );
+                    b.Create<Buffer>( "PrefilterPass_Parameters", BufferUsage::UNIFORM, sizeof( PrefilterParameters ), 1 );
+
                     m_PrefilterMipLevels = static_cast<UInt32>( Math::Floor( Math::Log2( m_PrefilterDimensions ) ) ) + 1;
-                    b.Create<TextureCube>( "IrradiancePass_ColorTarget", m_PrefilterDimensions, TextureFormat::RGBA32_FLOAT, m_PrefilterMipLevels );
+                    b.Create<TextureCube>( "Prefilter_ColorTarget", m_PrefilterDimensions, TextureFormat::RGBA32_FLOAT, m_PrefilterMipLevels );
 
                     // Create pipeline
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Prefilter_Vert.sprv", ShaderStage::VERTEX );
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Prefilter_Frag.sprv", ShaderStage::FRAGMENT );
-                    b.Create<Pipeline>( "Prefilter_Pipeline", GraphicsPipelineDescription{ .VertexAttributesSpec{} } );
+                    b.Create<Pipeline>( "Prefilter_Pipeline", GraphicsPipelineDescription{
+                        .VertexAttributesSpec{},
+                        .ColorAttachmentFormats{ TextureFormat::RGBA32_FLOAT }
+                    } );
 
-                    b.Write( "Prefilter_ColorTarget", FrameResourceState::ShaderResource_Read );
+                    b.Write( "Prefilter_ColorTarget", FrameResourceState::RenderTarget_Color )
+                       .Write( "PrefilterPass_CameraInfo")
+                       .Write( "PrefilterPass_Parameters");
+
+                   b.Use( SRGType::SRG_PerPass, "PrefilterPass_CameraInfo", 0 )
+                       .Use( SRGType::SRG_PerPass, "PrefilterPass_Parameters", 1 );
                 },
 
                 [&]( CommandContext &ctx, FrameGraphBlackboard & ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    ctx.BindPipeline( "Prefilter_Pipeline" );
-                    ctx.SetViewport( 0, 0, 1920, 1080 );
-                    ctx.SetScissor( 0, 0, 1920, 1080 );
-
                     // The skybox is bound once
-                    ctx.BindImage( m_CubeMap, m_CubeMapSampler, 1 );
+                    ctx.BindImage( m_CubeMap, m_CubeMapSampler, 2 );
 
-                    for (UInt32 mip = 0; mip < m_IrradianceMipLevels; ++mip) {
-                        for (UInt32 face = 0; face < MAX_CUBE_MAP_FACES; ++face) {
-                            ctx.SetColorRenderTarget( "IrradiancePass_ColorTarget" );
+                    for ( UInt32 mip = 0; mip < m_PrefilterMipLevels; ++mip ) {
+                        for ( UInt32 face = 0; face < MAX_CUBE_MAP_FACES; ++face ) {
+                            ctx.SetViewport( 0, 0, m_PrefilterDimensions, m_PrefilterDimensions );
+                            ctx.SetScissor( 0, 0, m_PrefilterDimensions, m_PrefilterDimensions );
 
-                            // Update face data
+                            ctx.BindPipeline( "Prefilter_Pipeline" );
+
+                            ctx.SetColorRenderTarget( "Prefilter_ColorTarget" );
 
                             ctx.BeginRender();
 
@@ -170,7 +180,7 @@ namespace Mikoto {
                     ctx.EndPass();
                 } );
 
-        graph.SetNodeExecutionPolicy( "BRDFLut", FramePassExecutionPolicy::ON_CHANGE );
+        graph.SetNodeExecutionPolicy( "PrefilterPass", FramePassExecutionPolicy::ONCE );
     }
 
     auto IBLPasses::RegisterBRDFLut( FrameGraph &graph ) -> void {

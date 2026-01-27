@@ -5,7 +5,7 @@
 
 #include "ShaderBase.glsl"
 
-layout (binding = 0) uniform samplerCube u_SamplerEnv;
+layout (set = PERPASS_SETINDEX, binding = 2) uniform samplerCube u_SamplerEnv;
 
 layout(set = PERPASS_SETINDEX, binding = 1) uniform IrradianceParamsUBO {
     float Roughness;

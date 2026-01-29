@@ -12,7 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <Core/Platform.hh>
+#include <Core/Exception.hh>
+#include <Logging/Logger.hh>
+
 #include <Renderer/D3D11/D3D11Device.hh>
+#include <Renderer/D3D11/Direct3D11Helpers.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
@@ -22,7 +27,23 @@ namespace Mikoto {
         : GpuDevice{ createInfo.Api }
     {}
 
-    auto D3D11Device::Init() -> void {}
+    auto D3D11Device::Init() -> void {
+
+        if (FAILED(D3D11CreateDevice(
+            nullptr,
+            D3D_DRIVER_TYPE::D3D_DRIVER_TYPE_HARDWARE,
+            nullptr,
+            MKT_D3D11_NO_FLAGS,
+            m_DeviceFeatureLevel.data(),
+            static_cast<UINT>(m_DeviceFeatureLevel.size()),
+            D3D11_SDK_VERSION,
+            &m_Device,
+            nullptr,
+            &m_DeviceContext)))
+            {
+            MKT_THROW_RUNTIME_ERROR( "D3D11: Failed to create device and device Context");
+        }
+    }
 
     auto D3D11Device::Shutdown() -> void {}
 
@@ -70,7 +91,14 @@ namespace Mikoto {
         return std::string_view{ "D3D11Device" };
     }
 
-    Object D3D11Device::GetNativeHandle( ObjectType object ) { return Object(m_Device.GetAddressOf()); }
+    auto D3D11Device::GetNativeHandle( ObjectType object ) -> Object {
+        switch (object ) {
+            case ObjectType::D3D11_Device: return Object( std::addressof( m_Device ) );
+            default:;
+        }
+
+        return Object( m_Device.GetAddressOf() );
+    }
 
     auto D3D11Device::GetMemoryUsage() const -> Size {
         return Size{ 0 };
@@ -91,6 +119,10 @@ namespace Mikoto {
     auto D3D11Device::SubmitCommands( CommandListHandle cmd ) -> void {
 
     }
-}
+
+    auto D3D11Device::GetDevice() const -> ID3D11Device * {
+        return m_Device.Get();
+    }
+}// namespace Mikoto
 
 #endif

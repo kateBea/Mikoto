@@ -52,8 +52,6 @@ namespace Mikoto {
         for ( const auto &service: s_Services | std::views::values ) {
             service->Init();
         }
-
-        //TaskManager::Get()->RunPeriodically( 3, []() -> void { SystemStats::Get()->Update(); } );
     }
 
     auto Root::Shutdown() -> void {

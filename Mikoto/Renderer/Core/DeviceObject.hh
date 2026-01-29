@@ -50,6 +50,9 @@ namespace Mikoto {
         Vk_DescriptorSetLayout,
         Vk_Pipeline,
         Vk_PipelineLayout,
+
+        // D3D11
+        D3D11_Device,
     };
 
 

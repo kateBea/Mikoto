@@ -52,6 +52,10 @@ namespace Mikoto {
         ~D3D11Context() override = default;
 
     private:
+        MKT_NODISCARD auto CreateSwapChain() -> bool;
+
+    private:
+        Microsoft::WRL::ComPtr<IDXGISwapChain1> m_SwapChain{};
         Microsoft::WRL::ComPtr<IDXGIFactory2> m_DxgiFactory{};
         Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_DeviceContext{};
     };

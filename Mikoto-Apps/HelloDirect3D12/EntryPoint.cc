@@ -13,8 +13,9 @@
 // limitations under the License.
 
 #include <Core/Core.hh>
+#include <Core/EventService.hh>
+
 #include <Logging/Logger.hh>
-#include <Platform/Window.hh>
 
 #include <Platform/Window.hh>
 #include <Platform/WindowsService.hh>
@@ -26,10 +27,7 @@ Mikoto::Window* g_Window{ nullptr };
 auto InitializeWindow() -> void {
     using namespace Mikoto;
 
-    // Initialize the window service so we can use windows
-    if (!Root::RegisterService<WindowsService>( WindowsServiceCreateInfo{} )) {
-        return;
-    }
+    Root::Register<WindowsService>( WindowsServiceCreateInfo{} );
 
     WindowProperties properties{
         .Title{ "Hello Application" },
@@ -40,6 +38,8 @@ auto InitializeWindow() -> void {
     };
 
     g_Window = WindowsService::Get()->Create( properties );
+
+    Root::Register<InputService>( InputServiceCreateInfo{ .MainWindow{ g_Window } } );
 }
 
 auto InitializeApplication() -> void {
@@ -50,15 +50,14 @@ auto InitializeApplication() -> void {
     }
 
     try {
-        const RootConfig config{
-            .EnableImGui{ false },
-            .LockFrameRate{ false },
-            .EnableRenderService{ false },
+        Root::RegisterDeferred<EventService>(EventServiceCreateInfo{});
+        Root::RegisterDeferred<RenderService>( RenderServiceCreateInfo{
             .TargetWindow{ g_Window },
-            .TargetApi{ g_Window->GetApi() }
-        };
+            .RendererAPI{ g_Window->GetApi() },
+            .EnableImGui{ false }
+        } );
+        Root::Init( RootConfig{ .EnableCoreServices{ true } } );
 
-        Root::Init( config );
     } catch ( const std::exception& e ) {
         MKT_CORE_LOGGER_ERROR( "Initializing application - Exception: e.what(): {}", e.what() );
     }

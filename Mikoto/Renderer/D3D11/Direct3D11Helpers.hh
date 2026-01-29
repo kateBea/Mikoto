@@ -17,6 +17,9 @@
 
 namespace Mikoto {
 
+    // For readability
+#define MKT_D3D11_NO_FLAGS 0
+
 }
 
 #endif //MIKOTO_DIRECT3D11HELPERS_HH

@@ -55,8 +55,10 @@ namespace Mikoto {
         // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down RenderService..." );
 
-        m_ImguiService->Shutdown();
-        m_ImguiService.reset();
+        if (m_Options.EnableImGui) {
+            m_ImguiService->Shutdown();
+            m_ImguiService.reset();
+        }
 
         m_ShaderLibrary->Shutdown();
         m_ShaderLibrary.reset();

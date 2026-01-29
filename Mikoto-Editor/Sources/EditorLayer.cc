@@ -716,7 +716,7 @@ namespace Mikoto {
 
         // This is just to test clustered forward shading
         // We generate an empty object and 'lightCount' lights in random positions attached to it
-        constexpr UInt32 lightCount{ 2000 };
+        constexpr UInt32 lightCount{ 18 };
         Entity* lightCluster{ m_ActiveScene->CreateEntity( "LightCluster" ) };
         for (UInt32 count{}; count < lightCount; count++) {
             if (Entity *clusteredLight{ m_ActiveScene->CreateEntity( lightCluster, fmt::format( "Light {}", count ) ) }) {

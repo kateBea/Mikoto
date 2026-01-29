@@ -1287,8 +1287,8 @@ namespace Mikoto {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
 
-            glm::vec4 direction{};
-            if ( ImGuiUtils::DragFloat4( "Direction", "%.2f", direction, 0.01f, -1.0f, 1.0f ) ) {
+            glm::vec3 direction{ spotLightData.GetDirection() };
+            if ( ImGuiUtils::DragFloat3( "Direction", "%.2f", direction, 0.01f, -1.0f, 1.0f ) ) {
                 spotLightData.SetDirection( direction );
             }
 

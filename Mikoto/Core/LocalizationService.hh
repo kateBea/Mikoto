@@ -140,5 +140,4 @@ namespace Mikoto {
     #define MKT_IS_CURRENT_ISO_STR(ISO_STR) LocalizationService::Get()->IsCurrentLanguage(InferISO(ISO_STR))
 }
 
-
 #endif //MIKOTO_LOCALIZATION_SERVICE_HH

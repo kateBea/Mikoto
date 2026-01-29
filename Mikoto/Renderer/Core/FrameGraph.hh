@@ -58,6 +58,8 @@ namespace Mikoto {
         std::vector<ResourceNode> Reads{};
         std::vector<ResourceNode> Writes{};
 
+        SRGPerPass PerPassShaderResources{};
+
         std::function<void( CommandContext &, FrameGraphBlackboard & )> ExecuteCallback{};
 
         FramePassNodeStatus Status{ FramePassNodeStatus::ACTIVE };
@@ -105,7 +107,6 @@ namespace Mikoto {
         auto UseShader( std::string_view path, ShaderStage stage ) -> FramePassBuilder&;
 
         MKT_NODISCARD auto GetPass() -> FramePassNode *;
-        MKT_NODISCARD auto GetShaderResources() const -> const SRGPerPass &;
 
         // TODO: builder helpers for pipeline creation
         // e.g: auto SetDepthTest(bool enable) -> PipelineDesc&;
@@ -132,8 +133,6 @@ namespace Mikoto {
         friend class FrameGraph;
 
         FramePassNode *m_Node{};
-
-        SRGPerPass m_PassShaderResources{};
 
         PipelineDescription m_PipelineDescription{};
 

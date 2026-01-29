@@ -43,6 +43,6 @@ namespace Mikoto {
         ankerl::unordered_dense::map<std::string, Unique<FileWatcher>> m_WatchedPaths{};
         bool m_FollowSymLinks{ false };
     };
-}// namespace Mikoto
+}
 
 #endif// MIKOTO_FILE_WATCHER_HH

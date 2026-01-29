@@ -432,7 +432,7 @@ namespace Mikoto {
         return SamplerHandle::CreateEmpty();
     }
 
-    auto VulkanGraphicsContext::CreateShaderResources( std::string_view passName, PipelineDescription& desc ) -> void {
+    auto VulkanGraphicsContext::PrepareResourceBindings( std::string_view passName, PipelineDescription& desc ) -> void {
         m_PassInfo.try_emplace( std::string{ passName }, FramePassInfo{} );
         CreatePassDescriptors( passName, desc );
     }
@@ -543,7 +543,7 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanGraphicsContext::CommitShaderResources( std::string_view passName, SRGPerPass& passData ) -> void {
+    auto VulkanGraphicsContext::UpdateResourceBindings( std::string_view passName, SRGPerPass& passData ) -> void {
         UpdatePassDescriptors( passName, passData );
     }
 

@@ -95,7 +95,6 @@ namespace Mikoto {
         auto UpdateDockSpace() -> void;
 
         auto PrepareNewScene() -> void;
-        auto PrepareSerialization() -> void;
 
         auto PrepareRenderer(double timeStep) -> void;
         auto PrepareCamera(double timeStep) -> void;
@@ -126,7 +125,6 @@ namespace Mikoto {
         TextureHandle m_TextureHDR{};
 
         Unique<SceneCamera> m_EditorCamera{};
-        Unique<SceneSerializer> m_SceneSerializer{};
 
         Registry<Panel> m_PanelRegistry{};
 

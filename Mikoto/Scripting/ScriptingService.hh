@@ -57,6 +57,6 @@ namespace Mikoto {
 
         ankerl::unordered_dense::map<std::string, std::vector<ScriptHandle>> m_Scripts{};
     };
-}// namespace Mikoto
+}
 
 #endif//MIKOTO_SCRIPTING_SERVICE_HH

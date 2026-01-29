@@ -24,13 +24,7 @@
 namespace Mikoto {
 
     struct RootConfig {
-        bool EnableImGui{ true };
-        bool LockFrameRate{ false };
-
-        bool EnableRenderService{ false };
-
-        Window* TargetWindow{ nullptr };
-        GraphicsAPI TargetApi{ GraphicsAPI::VULKAN_API };
+        bool EnableCoreServices{ false };
     };
 
     class Root final {
@@ -42,18 +36,24 @@ namespace Mikoto {
         static auto UpdateState(float timeStep) -> void;
 
         template<typename ServiceType, typename... Args>
-        MKT_NODISCARD static auto RegisterService(Args&&... args) -> bool {
+        static auto RegisterDeferred(Args&&... args) -> void {
             try {
-                if (ServiceType *service{
-                s_Services.Register<ServiceType>( std::forward<Args>(args)... ) }) {
+                s_Services.Register<ServiceType>( std::forward<Args>(args)... );
+
+            } catch(std::exception& e) {
+                MKT_CORE_LOGGER_ERROR( "Failed to register service. Error: {}", e.what() );
+            }
+        }
+
+        template<typename ServiceType, typename... Args>
+        static auto Register(Args&&... args) -> void {
+            try {
+                if (ServiceType *service{ s_Services.Register<ServiceType>( std::forward<Args>(args)... ) }) {
                     service->Init();
                 }
             } catch(std::exception& e) {
                 MKT_CORE_LOGGER_ERROR( "Failed to register service. Error: {}", e.what() );
-                return false;
             }
-
-            return true;
         }
 
         DISABLE_COPY_AND_MOVE_FOR(Root);

@@ -62,7 +62,6 @@ namespace Mikoto {
 
         CreateCameras();
         PrepareNewScene();
-        PrepareSerialization();
 
         SetupEditorState();
         CreatePanels();
@@ -169,7 +168,6 @@ namespace Mikoto {
         m_ActiveScene = nullptr;
 
         m_EditorCamera = nullptr;
-        m_SceneSerializer = nullptr;
 
         m_SceneRenderer->Shutdown();
         m_SceneRenderer = nullptr;
@@ -225,9 +223,7 @@ namespace Mikoto {
 
     auto EditorLayer::SaveScene() const -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
-        // File filters
-        SceneManager::Get()->SaveSceneFromDisk( m_ActiveScene, m_SceneSerializer.get() );
+        SceneManager::Get()->SaveToDisk( m_ActiveScene );
     }
 
     auto EditorLayer::LoadScene() -> void {
@@ -720,7 +716,7 @@ namespace Mikoto {
 
         // This is just to test clustered forward shading
         // We generate an empty object and 'lightCount' lights in random positions attached to it
-        constexpr UInt32 lightCount{ 12 };
+        constexpr UInt32 lightCount{ 2000 };
         Entity* lightCluster{ m_ActiveScene->CreateEntity( "LightCluster" ) };
         for (UInt32 count{}; count < lightCount; count++) {
             if (Entity *clusteredLight{ m_ActiveScene->CreateEntity( lightCluster, fmt::format( "Light {}", count ) ) }) {
@@ -739,11 +735,6 @@ namespace Mikoto {
                 // transformComponent.SetTranslation( { GetRandomReal(0, 10.0f), 2.0f, GetRandomReal(0, 15) } );
             }
         }
-    }
-
-    auto EditorLayer::PrepareSerialization() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-        m_SceneSerializer = CreateScope<SceneSerializer>();
     }
 
     auto EditorLayer::PrepareRenderer( double ) -> void {

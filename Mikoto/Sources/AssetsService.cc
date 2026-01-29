@@ -14,9 +14,6 @@
 
 #include <ankerl/unordered_dense.h>
 
-#include <Renderer/Core/FontFactory.hh>
-#include <Renderer/Core/GpuDevice.hh>
-#include <Renderer/Core/RenderService.hh>
 #include <Assets/AssetsService.hh>
 #include <Assets/MeshFactory.hh>
 #include <Assets/Model.hh>
@@ -26,15 +23,19 @@
 #include <Core/Profiler.hh>
 #include <Filesystem/FileService.hh>
 #include <Library/Utility/Types.hh>
+#include <Renderer/Core/FontFactory.hh>
+#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Core/RenderService.hh>
 #include <Threading/TaskService.hh>
 
+#include "Audio/AudioService.hh"
 #include "Filesystem/FileSystem.hh"
 #include "Threading/ThreadUtility.hh"
 
 namespace Mikoto {
 
-    AssetsService::AssetsService( const AssetsServiceDescription& options )
-        : m_GpuDevice{ options.Device }, m_AudioDevice{ options.AudDevice } {}
+    AssetsService::AssetsService( const AssetsServiceDescription& )
+        : m_GpuDevice{ RenderService::Get()->GetGpuDevice() }, m_AudioDevice{ AudioService::Get()->GetDevice() } {}
 
     auto AssetsService::Init() -> void {
         MKT_BEGIN_PROFILER_NAMED();

@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44,93 +44,14 @@ namespace Mikoto {
 
         MKT_CORE_LOGGER_DEBUG( "Initializing Root..." );
 
-        TimeServiceCreateInfo timeServiceCreateInfo{
-            .DefaultUnit{ TimeUnit::SECONDS }
-        };
-        TimeService *timeService{ s_Services.Register<TimeService>( timeServiceCreateInfo ) };
-        timeService->Init();
-
-        FileWatcherServiceCreateInfo fileWatcherServiceCreateInfo{};
-        FileWatcherService *fileWatcherService{ s_Services.Register<FileWatcherService>( fileWatcherServiceCreateInfo ) };
-        fileWatcherService->Init();
-
-        TaskServiceCreateInfo taskServiceCreateInfo{
-            .WorkerThreadCount{ ThreadUtils::InferConcurrentThreads() }
-        };
-        TaskService *taskService{ s_Services.Register<TaskService>( taskServiceCreateInfo ) };
-        taskService->Init();
-
-        InputServiceCreateInfo inputServiceCreateInfo{
-            .MainWindow{ config.TargetWindow }
-        };
-        InputService *inputService{ s_Services.Register<InputService>( inputServiceCreateInfo ) };
-        inputService->Init();
-
-        EventServiceCreateInfo eventServiceCreateInfo{};
-        EventService *eventService{ s_Services.Register<EventService>( eventServiceCreateInfo ) };
-        eventService->Init();
-
-        FileServiceCreateInfo fileServiceCreateInfo{};
-        FileService *fileService{ s_Services.Register<FileService>( fileServiceCreateInfo ) };
-        fileService->Init();
-
-        PhysicServiceCreateInfo physicsServiceCreateInfo{};
-        PhysicService *physicService{ s_Services.Register<PhysicService>( physicsServiceCreateInfo ) };
-        physicService->Init();
-
-        AudioServiceCreateInfo audioServiceCreateInfo{};
-        AudioService *audioService{ s_Services.Register<AudioService>( audioServiceCreateInfo ) };
-        audioService->Init();
-
-        if (config.EnableRenderService) {
-            // Render service
-            // ImGui and the asset service must be initialized after the render system
-            // because it requires a valid render context active
-            RenderServiceCreateInfo renderServiceCreateInfo{
-                .TargetWindow{ config.TargetWindow },
-                .RendererAPI{ config.TargetApi },
-                .EnableImGui{ config.EnableImGui },
-            };
-            RenderService *renderSystem{ s_Services.Register<RenderService>( renderServiceCreateInfo ) };
-            renderSystem->Init();
-
-            AssetsServiceDescription assetsServiceCreateInfo{
-                .Device{ renderSystem->GetGpuDevice() },
-                .AudDevice{ audioService->GetDevice() },
-            };
-            AssetsService *assetsService{ s_Services.Register<AssetsService>( assetsServiceCreateInfo ) };
-            assetsService->Init();
+        if (config.EnableCoreServices) {
+            RegisterDeferred<TimeService>( TimeServiceCreateInfo{} );
+            RegisterDeferred<TaskService>( TaskServiceCreateInfo{ .WorkerThreadCount{ ThreadUtils::InferConcurrentThreads() } } );
         }
 
-        MemoryServiceCreateInfo memoryServiceCreateInfo{};
-        MemoryService *memoryService{ s_Services.Register<MemoryService>( memoryServiceCreateInfo ) };
-        memoryService->Init();
-
-        ScriptingServiceDescription luaServiceCreateInfo{
-        };
-        ScriptingService *scriptingService{ s_Services.Register<ScriptingService>( luaServiceCreateInfo ) };
-        scriptingService->Init();
-
-        ConsoleManagerCreateInfo consoleCreateInfo{
-        };
-        RuntimeConsole *runtimeConsole{ s_Services.Register<RuntimeConsole>( consoleCreateInfo ) };
-        runtimeConsole->Init();
-
-        NetworkServiceCreateInfo networkServiceCreate{
-        };
-        NetworkService *networkService{ s_Services.Register<NetworkService>( networkServiceCreate ) };
-        networkService->Init();
-
-        SceneManager *sceneManager{ s_Services.Register<SceneManager>() };
-        sceneManager->Init();
-
-        LocalizationServiceCreateInfo localizationServiceCreateInfo{
-            .LocalizationRoot{ "Resources/Localization" },
-            .DefaultLanguage{ ISOLanguage::ES_ES }
-        };
-
-        LocalizationService* localizationService{ s_Services.Register<LocalizationService>( localizationServiceCreateInfo ) };
-        localizationService->Init();
+        for ( const auto &service: s_Services | std::views::values ) {
+            service->Init();
+        }
 
         //TaskManager::Get()->RunPeriodically( 3, []() -> void { SystemStats::Get()->Update(); } );
     }
@@ -140,10 +61,8 @@ namespace Mikoto {
 
         MKT_CORE_LOGGER_DEBUG( "Shutting down Root..." );
 
-        for (const auto& [id, system] : std::views::reverse(s_Services)) {
-            // Services need to be shutdown in the order they were initialized
-            // Registry does not guarantee any order for now
-            system->Shutdown();
+        for (const auto& [id, service] : std::views::reverse(s_Services)) {
+            service->Shutdown();
         }
 
         MKT_CORE_LOGGER_DEBUG( "Final shutdown at Root and resource count is {}", IResource::s_ResourceCount );

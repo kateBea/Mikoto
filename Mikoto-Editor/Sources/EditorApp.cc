@@ -70,16 +70,6 @@ namespace Mikoto {
 
         MKT_CORE_LOGGER_DEBUG( "Initializing Mikoto Editor..." );
 
-        const RootConfig config{
-            .EnableImGui{ true },
-            .LockFrameRate{ false },
-            .EnableRenderService{ true },
-            .TargetWindow{ m_Window },
-            .TargetApi{ m_Window->GetApi() }
-        };
-
-        Root::Init( config );
-
         SetupEventCallbacks();
 
         InitPrefabs();
@@ -91,8 +81,6 @@ namespace Mikoto {
         MKT_CORE_LOGGER_DEBUG( "Shutting down Mikoto Editor..." );
 
         m_LayerStack.Shutdown();
-
-        Root::Shutdown();
 
         m_Window = nullptr;
     }

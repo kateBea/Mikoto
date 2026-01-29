@@ -1,56 +1,58 @@
+//    Copyright 2026 ケイト
 //
-// Created by kate on 10/30/25.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef SCENE_MANAGER_HH
-#define SCENE_MANAGER_HH
+#ifndef MIKOTO_SCENE_MANAGER_HH
+#define MIKOTO_SCENE_MANAGER_HH
+
+#include <string_view>
 
 #include <ankerl/unordered_dense.h>
 
-#include <Library/Utility/Types.hh>
 #include <Scene/Scene.hh>
+#include <Common/Service.hh>
+#include <Library/Utility/Types.hh>
 #include <Scene/SceneSerializer.hh>
-#include <string_view>
-
-#include "Common/Service.hh"
 
 namespace Mikoto {
 
+    // Manages scenes currently active. Scenes are identified uniquely by their name for now.
     class SceneManager final : public Singleton<SceneManager>, public IService {
     public:
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
 
-        // Prompts the user with a native
-        // open dialog to select a file
-        auto LoadSceneFromDisk(SceneSerializer* serializer) -> Scene*;
-        auto SaveSceneFromDisk(Scene* scene, SceneSerializer* serializer) -> void;
+        // Opens a file dialog
+        auto LoadFromDisk() -> Scene*;
+        auto Load(const Path& path) -> Scene*;
+
+        // Opens a file dialog
+        auto SaveToDisk( const Scene* scene) -> void;
+        auto Save( const Scene* scene, const Path& path ) -> void;
 
         auto CreateScene( std::string_view name ) -> Scene*;
 
-        /**
-         * Retrieve a scene by name.
-         *
-         * Searches the scenes owned by the manager and returns a raw pointer to
-         * the first scene whose name matches the provided string view. The
-         * returned pointer is non-owning; the caller must not delete it. If no
-         * matching scene is found, returns nullptr.
-         *
-         * @param name The name of the scene to search for.
-         * @return A non-owning pointer to the Scene if found, otherwise nullptr.
-         */
         MKT_NODISCARD auto GetByName( std::string_view name ) -> Scene *;
 
     private:
         // [Internal usage]
-        auto RegisterNewScene(std::string_view name, Unique<Scene>&& scene ) -> Scene*;
+        auto Register(std::string_view name, Unique<Scene>&& scene ) -> Scene*;
 
     private:
-
+        SceneSerializer m_Serializer{};
         ankerl::unordered_dense::map<std::string, Unique<Scene>> m_Scenes{};
     };
-}// namespace Mikoto
+}
 
-
-#endif//
+#endif // MIKOTO_SCENE_MANAGER_HH

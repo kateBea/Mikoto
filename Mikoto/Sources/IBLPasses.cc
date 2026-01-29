@@ -113,7 +113,7 @@ namespace Mikoto {
 
                         ctx.BeginRender();
                         ctx.BindPipeline( "IrradiancePass_Pipeline" );
-                        //ctx.Draw( 36 );
+                        //ctx.Draw( 36 ); // Crashes
                         ctx.EndRender();
                     }
 

@@ -42,32 +42,7 @@
 
 namespace Mikoto {
 
-    /**
-    * @struct AssetsServiceDescription
-    * @brief Holds the configuration for creating an AssetsService.
-    *
-    * The `AssetsServiceCreateInfo` structure contains initialization parameters
-    * for setting up an `AssetsService`, such as the initial size of the resource pool.
-    * It provides a fluent interface for setting its properties.
-    */
-    struct AssetsServiceDescription {
-        GpuDevice* Device{ nullptr };
-        AudioDevice* AudDevice{ nullptr };
-
-        /**
-        * @brief Sets the device on which we load the assets.
-        * @param Device The device to be assigned.
-        * @return A reference to the modified `AssetsServiceCreateInfo` instance.
-        */
-        auto WithDevice( GpuDevice* Device ) -> AssetsServiceDescription&;
-
-        /**
-        * @brief Sets the device on which we load the audios.
-        * @param Device The device to be assigned.
-        * @return A reference to the modified `AssetsServiceCreateInfo` instance.
-        */
-        auto WithAudioDevice( AudioDevice* Device ) -> AssetsServiceDescription&;
-    };
+    struct AssetsServiceDescription {};
 
     /**
     * @class AssetsService
@@ -76,8 +51,6 @@ namespace Mikoto {
     * The `AssetsService` class provides an interface for handling assets such as models,
     * textures, fonts, and audio files. It supports both synchronous and asynchronous
     * loading of resources, and provides functionality to manage and clean up resources.
-    * This service is part of the overall service-based architecture and helps
-    * to avoid reloading ready-to-use resources.
     */
     class AssetsService final : public IService, public Singleton<AssetsService> {
     public:
@@ -89,13 +62,13 @@ namespace Mikoto {
 
         /**
         * @brief Initializes the AssetsService.
-        * This method is called during the service initialization phase.
+        * Initializes this service structures. After this call user can safely load assets.
         */
         auto Init() -> void override;
 
         /**
         * @brief Shuts down the AssetsService.
-        * This method is called during the service shutdown phase.
+        * Destroys this service structures. No other methods should be called after a call to Shutdown()
         */
         auto Shutdown() -> void override;
 
@@ -103,8 +76,8 @@ namespace Mikoto {
         * @brief Retrieves an asset of the specified type by its URI.
         *
         * This function searches for an asset associated with the given URI and attempts
-        * to return it as the specified `AssetType`. If the asset is not found or cannot be
-        * cast to the requested type, it returns `nullptr`.
+        * to return it as a handle to the specified `AssetType`. If the asset is not found
+        * returns an empty handle.
         *
         * @tparam AssetType The type of the asset to retrieve. Must be a type derived from the base asset type.
         * @param uri A string view representing the URI or identifier of the asset.
@@ -138,8 +111,6 @@ namespace Mikoto {
             return Ref<AssetType>::CreateEmpty();
         }
 
-        // Takes only the LoadDescription of the asset we want to load
-        // see RenderUtility.hh for load descriptions
         template<typename AssetType>
         auto LoadAsset( auto&&... args ) -> Ref<AssetType> {
             if constexpr (std::is_same_v<AssetType, Model>) {
@@ -167,7 +138,6 @@ namespace Mikoto {
         // TODO: finish implementation and test
         template<typename AssetType>
         auto LoadAssetAsync( auto&&... args ) -> std::future<Ref<AssetType>> {
-            // LoadAsset used to accept more parameters
             auto tuple{ std::make_tuple(std::forward<decltype(args)>(args)...) };
 
             TaskService::Get()->Submit([this, argsTuple = std::move(tuple)]() mutable -> void {
@@ -208,7 +178,7 @@ namespace Mikoto {
         auto LoadDummyAssets() -> void;
 
     private:
-        inline static constexpr std::string_view s_DummyTexturePath{ "./Resources/Textures/texture.png" };
+        static constexpr std::string_view s_DummyTexturePath{ "./Resources/Textures/texture.png" };
 
     private:
         Unique<MeshFactory> m_MeshFactory{};

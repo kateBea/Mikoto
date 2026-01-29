@@ -73,8 +73,8 @@ namespace Mikoto {
         virtual auto CreateSampler( SamplerDescription& description ) -> SamplerHandle = 0;
         virtual auto CreateSampler( std::string_view name, const SamplerDescription& description ) -> void = 0;
 
-        virtual auto CommitShaderResources(std::string_view passName, SRGPerPass& passData ) -> void = 0;
-        virtual auto CreateShaderResources(std::string_view passName, PipelineDescription& desc) -> void = 0;
+        virtual auto UpdateResourceBindings(std::string_view passName, SRGPerPass& passData ) -> void = 0;
+        virtual auto PrepareResourceBindings(std::string_view passName, PipelineDescription& desc) -> void = 0;
         virtual auto BindShaderResources(std::string_view passName, CommandListHandle cmdList  ) -> void = 0;
 
         // Managing global sampler 2D images

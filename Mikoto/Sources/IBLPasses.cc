@@ -344,7 +344,6 @@ namespace Mikoto {
                     b.Read( "AABBGenComp_CameraUBO" )
                         .Read( "AABBGenComp_Clusters" )
                         .Read( "LightCullingComp_LightsBuffer" )
-                        .Read( "FinalCompositionPass_CameraInfo" )
                         .Read( "FinalShadingPass_DepthTarget" )
                         .Read( "FinalShadingPass_ColorTarget" );
 

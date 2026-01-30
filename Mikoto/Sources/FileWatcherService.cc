@@ -36,10 +36,11 @@ namespace Mikoto {
         const auto it{ m_WatchedPaths.find( fileAbsolutePath ) };
 
         if (it == m_WatchedPaths.end()) {
+            std::lock_guard lock{ m_WatcherInsertMutex };
             m_WatchedPaths[fileAbsolutePath] = CreateScope<FileWatcher>( Filesystem::GetGetAbsolutePath( path ) );
         }
 
-        m_WatchedPaths[fileAbsolutePath]->RegisterWatchCallback( std::move( callback ) );
+        m_WatchedPaths.at(fileAbsolutePath)->RegisterWatchCallback( std::move( callback ) );
     }
 
     auto FileWatcherService::Init() -> void {

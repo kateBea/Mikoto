@@ -40,7 +40,9 @@ namespace Mikoto {
         auto Watch(const Path& path, FileWatcher::WatcherCallback&& callback) -> void;
 
     private:
+        std::mutex m_WatcherInsertMutex{};
         ankerl::unordered_dense::map<std::string, Unique<FileWatcher>> m_WatchedPaths{};
+
         bool m_FollowSymLinks{ false };
     };
 }

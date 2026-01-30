@@ -26,19 +26,17 @@
 #include <Common/Common.hh>
 #include <Common/Service.hh>
 #include <Common/Singleton.hh>
-#include <Core/Serializer.hh>
 #include <Library/Data/ResourcePool.hh>
 #include <Library/Utility/Types.hh>
-#include <Material/ShaderLibrary.hh>
 #include <Renderer/Core/FontFactory.hh>
 #include <Renderer/Core/RenderUtility.hh>
 #include <Threading/TaskService.hh>
 
-#include "Assets/AudioClip.hh"
-#include "Assets/MeshFactory.hh"
-#include "Filesystem/FileSystem.hh"
-#include "Material/PBRMaterial.hh"
-#include "Material/TextureCube.hh"
+#include <Assets/AudioClip.hh>
+#include <Assets/MeshFactory.hh>
+#include <Material/PBRMaterial.hh>
+#include <Material/TextureCube.hh>
+#include <Filesystem/FileSystem.hh>
 
 namespace Mikoto {
 
@@ -149,9 +147,9 @@ namespace Mikoto {
             return {};
         }
 
-        auto GetDummyTexture() -> TextureHandle;
+        MKT_NODISCARD auto GetDummyTexture() -> TextureHandle;
 
-        auto CreateMaterial( /* params */ ) -> MaterialHandle;
+        MKT_NODISCARD auto CreateMaterial( const MaterialCreateInfo& spec = {} ) -> MaterialHandle;
 
         ~AssetsService() override = default;
 

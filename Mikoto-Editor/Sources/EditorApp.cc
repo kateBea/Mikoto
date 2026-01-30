@@ -88,16 +88,16 @@ namespace Mikoto {
     auto EditorApp::Update() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        TimeService::Get()->UpdateTimeStep();
+        TimeService::Get()->Tick();
 
         if ( !m_Window->IsMinimized() ) {
             const double timeStep{ TimeService::Get()->GetTimeStep( TimeUnit::SECONDS ) };
 
             RenderService::Get()->PrepareFrame();
 
-            m_LayerStack.OnUpdate( static_cast<float>( timeStep ) );
+            m_LayerStack.OnUpdate( timeStep );
 
-            Root::UpdateState( static_cast<float>( timeStep ) );
+            Root::UpdateSubsystems( timeStep );
 
             RenderService::Get()->EndFrame();
             RenderService::Get()->PresentFrame();

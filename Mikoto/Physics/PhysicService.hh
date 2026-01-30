@@ -17,7 +17,8 @@
 
 #include <ankerl/unordered_dense.h>
 
-#include <Common/Service.hh>
+#include <Common/Common.hh>
+#include <Common/Subsystem.hh>
 
 #include <Scene/Scene.hh>
 #include <Scene/Component.hh>
@@ -30,11 +31,9 @@ namespace Mikoto {
         Vec3F Gravity{ PhysicsWorld::GetGravityFor( GravityBody::EARTH ) };
     };
 
-    class PhysicService final : public IService, public Singleton<PhysicService> {
+    class PhysicService final : public Subsystem, public Singleton<PhysicService> {
     public:
         explicit PhysicService(const PhysicServiceCreateInfo& options);
-
-        ~PhysicService() override = default;
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
@@ -42,6 +41,8 @@ namespace Mikoto {
 
         auto SetSimulationTarget( Scene* scene ) -> void;
         MKT_NODISCARD auto CreatePhysicsWorld(const PhysicsWorldCreateInfo& spec) -> PhysicsWorld*;
+
+        ~PhysicService() override = default;
 
     private:
 

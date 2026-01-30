@@ -98,7 +98,7 @@ namespace Mikoto {
         return "Unknown Language";
     }
 
-    class LocalizationService final : public Singleton<LocalizationService>, public IService {
+    class LocalizationService final : public IService, public Singleton<LocalizationService> {
     public:
         explicit LocalizationService( const LocalizationServiceCreateInfo& createInfo );
 

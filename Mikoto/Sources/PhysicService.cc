@@ -120,5 +120,4 @@ namespace Mikoto {
 
         return it->second.get();
     }
-
-}// namespace Mikoto
+}

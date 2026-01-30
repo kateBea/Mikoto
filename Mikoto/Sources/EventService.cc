@@ -105,7 +105,7 @@ namespace Mikoto {
             return;
         }
 
-        const auto it{ m_Subscribers.erase( static_cast<UInt64>(subscriber->GetID()) )  };
+        m_Subscribers.erase( static_cast<UInt64>(subscriber->GetID()) );
     }
 
     auto EventService::Shutdown() -> void {

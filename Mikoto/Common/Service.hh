@@ -1,9 +1,19 @@
+//    Copyright 2026 ケイト
 //
-// Created by kate on 3/25/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef SERVICE_HH
-#define SERVICE_HH
+#ifndef MIKOTO_SERVICE_HH
+#define MIKOTO_SERVICE_HH
 
 #include <Common/Common.hh>
 
@@ -12,10 +22,6 @@ namespace Mikoto {
     /**
     * @brief Base class for services following the singleton pattern.
     *
-    * This class provides a common interface for services that follow a singleton pattern.
-    * It inherits from `Singleton<ServiceType>`, ensuring that only one instance of the service exists.
-    *
-    * Services inherited from this class must implement the `Init` and `Shutdown` methods.
     */
     class IService {
     public:
@@ -42,13 +48,6 @@ namespace Mikoto {
          * cleanup and resource deallocation when the service is stopped.
          */
         virtual auto Shutdown() -> void = 0;
-
-        /**
-         * @brief Updates the service.
-         *
-         * This function can be overridden by derived classes to implement
-         */
-        virtual auto Update(float) -> void { }
 
         /**
          * @brief Checks if the service is initialized.

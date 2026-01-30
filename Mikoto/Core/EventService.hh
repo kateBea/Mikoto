@@ -23,9 +23,11 @@
 
 #include <ankerl/unordered_dense.h>
 
-#include <Common/Common.hh>
-#include <Common/Service.hh>
 #include <Core/Event.hh>
+
+#include <Common/Common.hh>
+#include <Common/Subsystem.hh>
+
 #include <Library/Random/Random.hh>
 #include <Library/Utility/Types.hh>
 
@@ -117,7 +119,7 @@ namespace Mikoto {
 
     };
 
-    class EventService final : public IService, public Singleton<EventService> {
+    class EventService final : public Subsystem, public Singleton<EventService> {
     public:
         explicit EventService( const EventServiceCreateInfo& options );
 

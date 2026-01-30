@@ -13,11 +13,12 @@
 // limitations under the License.
 
 #include <Core/Profiler.hh>
-
 #include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Vulkan/VulkanGraphicsContext.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>
 #include <Renderer/Vulkan/VulkanTexture.hh>
-#include <Renderer/Vulkan/VulkanGraphicsContext.hh>
+
+#include <Material/ShaderLibrary.hh>
 
 namespace Mikoto {
 

@@ -59,39 +59,17 @@ auto InitRenderServices() -> void {
 
     g_Window = WindowsService::Get()->Create( properties );
 
-    Root::Register<InputService>( InputServiceCreateInfo{ .MainWindow{ g_Window } } );
-
-    RenderServiceCreateInfo renderServiceCreateInfo{
-        .TargetWindow{ g_Window },
-        .RendererAPI{ g_Window->GetApi() },
-        .EnableImGui{ true },
-    };
-    Root::Register<RenderService>( renderServiceCreateInfo );
-    Root::Register<AssetsService>( AssetsServiceDescription{} );
-
-    // FIXME: because service are shutdown in reverse order i must free the scenes first
-    Root::Register<SceneManager>();
+    Root::EnableRenderSubsystems( g_Window );
 }
 auto InitializeEngine() -> void {
     MKT_BEGIN_PROFILER_NAMED();
 
     using namespace Mikoto;
 
-    Root::RegisterDeferred<WindowsService>( WindowsServiceCreateInfo{} );
-    Root::RegisterDeferred<EventService>( EventServiceCreateInfo{} );
-    Root::RegisterDeferred<FileService>( FileServiceCreateInfo{} );
-    Root::RegisterDeferred<PhysicService>( PhysicServiceCreateInfo{} );
-    Root::RegisterDeferred<AudioService>( AudioServiceCreateInfo{} );
-    Root::RegisterDeferred<ScriptingService>( ScriptingServiceDescription{} );
-    Root::RegisterDeferred<RuntimeConsole>( ConsoleManagerCreateInfo{} );
-    Root::RegisterDeferred<FileWatcherService>( FileWatcherServiceCreateInfo{} );
-
-    Root::RegisterDeferred<LocalizationService>(LocalizationServiceCreateInfo{
-        .LocalizationRoot{ "Resources/Localization" },
-            .DefaultLanguage{ ISOLanguage::ES_ES }
-    });
-
-    Root::Init( RootConfig{ .EnableCoreServices{ true } } );
+    Root::Init( RootConfig{
+        .EnableAllServices{ true },
+        .EnableAllSubsystems{ true },
+    } );
 }
 
 auto InitializeApplication() -> void {

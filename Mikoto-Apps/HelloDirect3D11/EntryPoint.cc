@@ -75,7 +75,7 @@ auto RunApplication() -> void {
     try {
 
         while (!g_Window->ShouldClose()) {
-            TimeService::Get()->UpdateTimeStep();
+            TimeService::Get()->Tick();
 
             if ( !g_Window->IsMinimized() ) {
                 const double timeStep{ TimeService::Get()->GetTimeStep( TimeUnit::SECONDS ) };

@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,32 +20,29 @@
 #include <string>
 
 #include <Common/Common.hh>
-#include <Common/Service.hh>
-#include <Core/KeyCodes.hh>
-#include <Core/MouseCodes.hh>
-#include <Library/Utility/Types.hh>
-#include <Platform/Window.hh>
+#include <Common/Subsystem.hh>
 #include <Common/Singleton.hh>
 
-namespace Mikoto {
+#include <Core/KeyCodes.hh>
+#include <Core/MouseCodes.hh>
 
-    enum class CursorInputMode {
-        CURSOR_NORMAL,
-        CURSOR_HIDDEN,
-        CURSOR_DISABLED,
-    };
+#include <Platform/Window.hh>
+
+#include <Library/Utility/Types.hh>
+
+namespace Mikoto {
 
     struct InputServiceCreateInfo {
         Window* MainWindow{ nullptr };
     };
 
-    class InputService final : public IService, public Singleton<InputService> {
+    class InputService final : public Subsystem, public Singleton<InputService> {
     public:
         explicit InputService( const InputServiceCreateInfo& options );
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
-        auto Update(float dt ) -> void override;
+        auto Update(float timeStep) -> void override;
 
         MKT_NODISCARD auto IsKeyPressed( KeyCode keyCode ) const -> bool;
         MKT_NODISCARD auto IsKeyReleased( KeyCode keyCode ) const -> bool;
@@ -63,7 +60,6 @@ namespace Mikoto {
         MKT_NODISCARD auto GetDroppedPaths(Window* window) const -> std::vector<std::string>;
 
         auto SetFocus( Window* newHandle ) -> void;
-        auto SetCursorMode( CursorInputMode mode ) const -> void;
 
         ~InputService() override = default;
 

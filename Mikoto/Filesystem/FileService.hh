@@ -16,6 +16,7 @@
 #define MIKOTO_FILE_SERVICE_HH
 
 #include <mutex>
+#include <future>
 
 #include <ankerl/unordered_dense.h>
 
@@ -35,23 +36,20 @@ namespace Mikoto {
         explicit FileService( const FileServiceCreateInfo& options );
 
         auto Init() -> void override;
-
         auto Shutdown() -> void override;
 
-        auto LoadFile( const Path& path, FileMode mode = MKT_FILE_OPEN_MODE_BINARY ) -> File*;
-        auto LoadFileAsync( const Path& path, FileMode mode = MKT_FILE_OPEN_MODE_BINARY ) -> void; // Return a future
+        auto SaveFile( const File* file ) -> bool;
 
-        auto CreateNewFile( const Path& path ) -> File*;
-        auto CreateFileAsync( const Path& path ) -> File*; // Return a future
+        MKT_NODISCARD auto LoadFile( const Path& path, FileMode mode = MKT_FILE_OPEN_MODE_BINARY ) -> File*;
 
-        auto SaveFile( const File* file ) -> void;
-        auto SaveFileAsync( const File* file ) -> void; // Return a future
+        MKT_NODISCARD auto CreateNewFile( const Path& path ) -> File*;
 
-        auto GetFile( const Path& path ) -> File*;
-        auto GetFile( const Path& path ) const -> const File*;
+        MKT_NODISCARD auto GetFile( const Path& path ) -> File*;
+        MKT_NODISCARD auto GetFile( const Path& path ) const -> const File*;
 
-        auto OpenDialog( const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path;
-        auto SaveDialog( const std::string& filename, const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path;
+        // TODO: move to Filesystem helpers
+        MKT_NODISCARD auto OpenDialog( const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path;
+        MKT_NODISCARD auto SaveDialog( const std::string& filename, const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path;
 
         ~FileService() override = default;
 

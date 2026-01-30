@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SYSTEMSTATS_HH
-#define SYSTEMSTATS_HH
+#ifndef MIKOTO_SYSTEM_STATS_HH
+#define MIKOTO_SYSTEM_STATS_HH
 
 #if defined( _WIN32 )
 #include <windows.h>
@@ -22,16 +22,20 @@
 #include <mutex>
 
 #include <Common/Common.hh>
+#include <Common/Subsystem.hh>
 #include <Common/Singleton.hh>
 #include <Library/Utility/Types.hh>
 
 namespace Mikoto {
 
-    class SystemStats final : public Singleton<SystemStats> {
+    class SystemStats final : public Subsystem, public Singleton<SystemStats> {
     public:
+        auto Init() -> void override;
+        auto Shutdown() -> void override;
+
         // Can be called by background thread every x time
         // to avoid overhead spinning cpu
-        auto Update() -> void;
+        auto Update(float) -> void override;
 
         // Tells how often we fetch system stats (in seconds)
         auto SetUpdateFrequency( Int32 frequency ) -> void;
@@ -56,7 +60,7 @@ namespace Mikoto {
         double m_FreeRam{ 0.0 };
         double m_TotalRam{ 0.0 };
         double m_CpuUsage{ 0.0 };
-        double m_VramUsage{ 0.0 };
+        double m_VRAMUsage{ 0.0 };
 
         double m_ProcessRamUsage{ 0.0 };
 
@@ -74,4 +78,4 @@ namespace Mikoto {
     };
 }
 
-#endif
+#endif // MIKOTO_SYSTEM_STATS_HH

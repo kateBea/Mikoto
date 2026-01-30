@@ -105,7 +105,7 @@ namespace Mikoto {
         return m_Textures[Filesystem::GetGetAbsolutePathString( s_DummyTexturePath)];
     }
 
-    auto AssetsService::CreateMaterial() -> MaterialHandle {
+    auto AssetsService::CreateMaterial( const MaterialCreateInfo& ) -> MaterialHandle {
         MaterialHandle material{ m_PBRMaterialsPool.Allocate() };
         if ( material.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "AssetsService::CreateMaterial - Failed to create material" );

@@ -18,7 +18,7 @@
 #include <sol/sol.hpp>
 #include <ankerl/unordered_dense.h>
 
-#include <Common/Service.hh>
+#include <Common/Subsystem.hh>
 #include <Common/Singleton.hh>
 
 #include <Library/Data/Registry.hh>
@@ -33,7 +33,7 @@ namespace Mikoto {
     struct ScriptingServiceDescription {
     };
 
-    class ScriptingService final : public IService, public Singleton<ScriptingService> {
+    class ScriptingService final : public Subsystem, public Singleton<ScriptingService> {
     public:
         explicit ScriptingService( const ScriptingServiceDescription& config );
 

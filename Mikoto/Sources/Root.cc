@@ -35,21 +35,60 @@
 
 #include "Core/SystemStats.hh"
 #include "Filesystem/FileWatcherService.hh"
+#include "Platform/WindowsService.hh"
 #include "Scene/SceneManager.hh"
 
 namespace Mikoto {
+
+#define SHUTDOWN_SERVICE( ServiceType )                                    \
+    do {                                                                   \
+        if ( auto ptr{ s_Services.Get<ServiceType>() }; ptr != nullptr ) { \
+            ptr->Shutdown();                                               \
+        }                                                                  \
+    } while ( 0 )
+
+#define SHUTDOWN_SUBSYSTEM( SubsystemType )                    \
+    do {                                                       \
+        if ( auto ptr{ s_Subsystems.Get<SubsystemType>() } ) { \
+            ptr->Shutdown();                                   \
+        }                                                      \
+    } while ( 0 )
+
 
     auto Root::Init( const RootConfig &config ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         MKT_CORE_LOGGER_DEBUG( "Initializing Root..." );
 
-        if (config.EnableCoreServices) {
-            RegisterDeferred<TimeService>( TimeServiceCreateInfo{} );
-            RegisterDeferred<TaskService>( TaskServiceCreateInfo{ .WorkerThreadCount{ ThreadUtils::InferConcurrentThreads() } } );
+        if (config.EnableAllServices) {
+            PushService<TimeService>( TimeServiceCreateInfo{} );
+            PushService<WindowsService>( WindowsServiceCreateInfo{} );
+            PushService<FileService>( FileServiceCreateInfo{} );
+            PushService<AudioService>( AudioServiceCreateInfo{} );
+            PushService<RuntimeConsole>( ConsoleManagerCreateInfo{} );
+            PushService<FileWatcherService>( FileWatcherServiceCreateInfo{} );
+
+            PushService<LocalizationService>(LocalizationServiceCreateInfo{
+                .LocalizationRoot{ "Resources/Localization" },
+                    .DefaultLanguage{ ISOLanguage::ES_ES }
+            });
+        }
+
+        if (config.EnableAllSubsystems) {
+            PushSubsystem<SystemStats>();
+            PushSubsystem<EventService>( EventServiceCreateInfo{} );
+            PushSubsystem<PhysicService>( PhysicServiceCreateInfo{} );
+            PushSubsystem<NetworkService>( NetworkServiceCreateInfo{} );
+            PushSubsystem<ScriptingService>( ScriptingServiceDescription{} );
+
+            PushSubsystem<TaskService>( TaskServiceCreateInfo{ .WorkerThreadCount{ ThreadUtils::InferConcurrentThreads() } } );
         }
 
         for ( const auto &service: s_Services | std::views::values ) {
+            service->Init();
+        }
+
+        for ( const auto &service: s_Subsystems | std::views::values ) {
             service->Init();
         }
     }
@@ -59,23 +98,54 @@ namespace Mikoto {
 
         MKT_CORE_LOGGER_DEBUG( "Shutting down Root..." );
 
-        for (const auto& [id, service] : std::views::reverse(s_Services)) {
-            service->Shutdown();
-        }
+        SHUTDOWN_SERVICE(TimeService);
+        SHUTDOWN_SERVICE(FileService);
+        SHUTDOWN_SERVICE(AudioService);
+        SHUTDOWN_SERVICE(RuntimeConsole);
+        SHUTDOWN_SERVICE(FileWatcherService);
+        SHUTDOWN_SERVICE(LocalizationService);
+
+        SHUTDOWN_SUBSYSTEM(SystemStats);
+        SHUTDOWN_SUBSYSTEM(EventService);
+        SHUTDOWN_SUBSYSTEM(PhysicService);
+        SHUTDOWN_SUBSYSTEM(NetworkService);
+        SHUTDOWN_SUBSYSTEM(ScriptingService);
+        SHUTDOWN_SUBSYSTEM(TaskService);
+
+        SHUTDOWN_SERVICE(SceneManager);
+        SHUTDOWN_SERVICE(AssetsService);
+
+        SHUTDOWN_SUBSYSTEM(RenderService);
+        SHUTDOWN_SUBSYSTEM(InputService);
+
+        SHUTDOWN_SERVICE(WindowsService);
 
         MKT_CORE_LOGGER_DEBUG( "Final shutdown at Root and resource count is {}", IResource::s_ResourceCount );
     }
 
-    auto Root::UpdateState( const float timeStep ) -> void {
+    auto Root::UpdateSubsystems(double timeStep) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        // Can be done on another thread
-        SystemStats::Get()->Update();
-
-        for (const auto &service: s_Services | std::views::values ) {
+        for (const auto &service: s_Subsystems | std::views::values ) {
             if (service->IsInitialized() && !service->IsSleeping()) {
                 service->Update( timeStep );
             }
         }
     }
-}// namespace Mikoto
+
+    auto Root::EnableRenderSubsystems( Window *window ) -> void {
+        RegisterSubsystem<InputService>( InputServiceCreateInfo{ .MainWindow{ window } } );
+
+        RenderServiceCreateInfo renderServiceCreateInfo{
+            .TargetWindow{ window },
+            .RendererAPI{ window->GetApi() },
+            .EnableImGui{ true },
+        };
+
+        RegisterSubsystem<RenderService>( renderServiceCreateInfo );
+        RegisterService<AssetsService>( AssetsServiceDescription{} );
+
+        // FIXME: because service are shutdown in reverse order i must free the scenes first
+        RegisterService<SceneManager>();
+    }
+}

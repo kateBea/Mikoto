@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <Core/Platform.hh>
+#include <Core/Exception.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
@@ -21,6 +22,13 @@
 namespace Mikoto {
 
     auto D3D12Context::Init() -> bool {
+        // Init the device when the context is ready
+        m_Device = GpuDevice::Create({ .Api = GraphicsAPI::DIRECTX_12 });
+        if (!m_Device) {
+            MKT_THROW_RUNTIME_ERROR( "D3D12Context::Create - Could not initialize DIRECTX_12 GPU Device." );
+        }
+        m_Device->Init();
+
         return true;
     }
 

@@ -1,21 +1,27 @@
-/**
- * TimeService.hh
- * Created by kate on 6/8/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_TIME_MANAGER_HH
 #define MIKOTO_TIME_MANAGER_HH
 
-// C++ Standard Library
 #include <ratio>
 #include <chrono>
 #include <string>
 
-// Third-Party Libraries
 #include <fmt/chrono.h>
 #include <fmt/format.h>
 
-// Project Headers
 #include <Common/Common.hh>
 #include <Common/Service.hh>
 #include <Common/Singleton.hh>
@@ -23,9 +29,6 @@
 
 namespace Mikoto {
 
-    /**
-     * @brief Time units.
-     * */
     enum class TimeUnit {
         SECONDS,
         MILLISECONDS,
@@ -38,61 +41,23 @@ namespace Mikoto {
 
         auto WithDefaultUnit(TimeUnit unit) -> TimeServiceCreateInfo&;
     };
-    
-    /**
-     * @brief A utility class to manage time-related operations.
-     * */
+
     class TimeService final : public IService, public Singleton<TimeService> {
     public:
         explicit TimeService(const TimeServiceCreateInfo& option);
 
         ~TimeService() override = default;
 
-        /**
-         * @brief Initializes the time manager.
-         * This function sets an initial time point.
-         * */
         auto Init() -> void override;
+        auto Shutdown() -> void override;
 
-        /**
-         * @brief Updates the time step. Call once per loop.
-         * */
-        auto UpdateTimeStep() -> void;
+        auto Tick() -> void;
 
         MKT_NODISCARD auto GetDefaultUnit() const -> TimeUnit;
-
-        /**
-         * @brief Returns the time step. Allows conversion
-         * of the time step value to different time units.
-         * @param unit The time step unit of the returned value, default unit is seconds.
-         * @returns Time step value in the specified time unit.
-         * */
         MKT_NODISCARD auto GetTimeStep( TimeUnit unit = TimeUnit::SECONDS) const -> double;
-
-        /**
-         * @brief Returns the time since the first call to Init().
-         * @param unit The time unit of the returned value, default unit is seconds.
-         * @returns The amount of time has passed since the first call to Init().
-         * */
         MKT_NODISCARD auto GetTime( TimeUnit unit = TimeUnit::SECONDS ) const -> double;
-
-        /**
-         * @brief Returns a formatted string representing the time.
-         * @param time The time to be represented.
-         * @param unit The time unit. Specifies the unit for the first argument.
-         * @returns A string representing the time in HH:MM:SS format.
-         * */
         MKT_NODISCARD static auto ToString(double time, TimeUnit unit = TimeUnit::SECONDS) -> std::string;
-
-        /**
-         * @brief Converts time to seconds.
-         * @param time The time to be converted.
-         * @param unit The units of the time provided.
-         * @returns The time converted to seconds.
-         * */
-        MKT_UNUSED_FUNC static auto TransformToSeconds( double time, TimeUnit unit ) -> double;
-
-        auto Shutdown() -> void override;
+        MKT_NODISCARD static auto TransformToSeconds( double time, TimeUnit unit ) -> double;
 
         // Conversion constants
         static constexpr UInt32 SECONDS_PER_HOUR{ 3'600 };        /**< Seconds per hour. */

@@ -52,8 +52,8 @@ namespace Mikoto {
         auto CreateSampler( SamplerDescription& description ) -> SamplerHandle  override;
         auto CreateSampler( std::string_view name, const SamplerDescription& description ) -> void override;
 
-        auto CommitShaderResources( std::string_view passName, SRGPerPass& passData ) -> void override;
-        auto CreateShaderResources( std::string_view passName, PipelineDescription& desc ) -> void override;
+        auto UpdateResourceBindings( std::string_view passName, SRGPerPass& passData ) -> void override;
+        auto PrepareResourceBindings( std::string_view passName, PipelineDescription& desc ) -> void override;
         auto BindShaderResources( std::string_view passName, CommandListHandle cmdList ) -> void override;
 
         auto PushGlobalTexture( TextureHandle texture ) -> Int32  override;

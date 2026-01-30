@@ -82,7 +82,5 @@ namespace Mikoto {
         std::vector<std::string> m_LogEntries{};
         std::string m_Name{};
     };
-
 }
-
 #endif // MIKOTO_CONSOLE_MANAGER_HH

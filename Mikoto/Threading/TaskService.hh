@@ -18,7 +18,7 @@
 
 // Project Headers
 #include "Common/Common.hh"
-#include "Common/Service.hh"
+#include "Common/Subsystem.hh"
 #include <Library/Utility/Types.hh>
 
 #include <Threading/TaskGraph.hh>
@@ -35,7 +35,7 @@ namespace Mikoto {
         UInt32 WorkerThreadCount{0};
     };
 
-    class TaskService final : public IService, public Singleton<TaskService> {
+    class TaskService final : public Subsystem, public Singleton<TaskService> {
     public:
         explicit TaskService( const TaskServiceCreateInfo& options );
 

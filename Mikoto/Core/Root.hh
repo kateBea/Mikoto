@@ -17,6 +17,7 @@
 
 #include <Common/Common.hh>
 #include <Common/Service.hh>
+#include <Common/Subsystem.hh>
 #include <Library/Data/Registry.hh>
 
 #include <Platform/Window.hh>
@@ -24,13 +25,8 @@
 namespace Mikoto {
 
     struct RootConfig {
-        bool EnableImGui{ true };
-        bool LockFrameRate{ false };
-
-        bool EnableRenderService{ false };
-
-        Window* TargetWindow{ nullptr };
-        GraphicsAPI TargetApi{ GraphicsAPI::VULKAN_API };
+        bool EnableAllServices{ false };
+        bool EnableAllSubsystems{ false };
     };
 
     class Root final {
@@ -39,27 +35,57 @@ namespace Mikoto {
         static auto Init(const RootConfig& config) -> void;
         static auto Shutdown() -> void;
 
-        static auto UpdateState(float timeStep) -> void;
+        static auto UpdateSubsystems(double timeStep) -> void;
 
         template<typename ServiceType, typename... Args>
-        MKT_NODISCARD static auto RegisterService(Args&&... args) -> bool {
+        static auto PushService(Args&&... args) -> void {
             try {
-                if (ServiceType *service{
-                s_Services.Register<ServiceType>( std::forward<Args>(args)... ) }) {
+                s_Services.Register<ServiceType>( std::forward<Args>(args)... );
+
+            } catch(std::exception& e) {
+                MKT_CORE_LOGGER_ERROR( "Failed to register service. Error: {}", e.what() );
+            }
+        }
+
+        template<typename ServiceType, typename... Args>
+        static auto RegisterService(Args&&... args) -> void {
+            try {
+                if (ServiceType *service{ s_Services.Register<ServiceType>( std::forward<Args>(args)... ) }) {
                     service->Init();
                 }
             } catch(std::exception& e) {
                 MKT_CORE_LOGGER_ERROR( "Failed to register service. Error: {}", e.what() );
-                return false;
             }
-
-            return true;
         }
+
+        template<typename ServiceType, typename... Args>
+        static auto PushSubsystem(Args&&... args) -> void {
+            try {
+                s_Subsystems.Register<ServiceType>( std::forward<Args>(args)... );
+
+            } catch(std::exception& e) {
+                MKT_CORE_LOGGER_ERROR( "Failed to register subsystem. Error: {}", e.what() );
+            }
+        }
+
+        template<typename ServiceType, typename... Args>
+        static auto RegisterSubsystem(Args&&... args) -> void {
+            try {
+                if (ServiceType *service{ s_Subsystems.Register<ServiceType>( std::forward<Args>(args)... ) }) {
+                    service->Init();
+                }
+            } catch(std::exception& e) {
+                MKT_CORE_LOGGER_ERROR( "Failed to register subsystem. Error: {}", e.what() );
+            }
+        }
+
+        static auto EnableRenderSubsystems(Window* window) -> void;
 
         DISABLE_COPY_AND_MOVE_FOR(Root);
 
     private:
         static inline Registry<IService> s_Services{};
+        static inline Registry<Subsystem> s_Subsystems{};
     };
 
 }

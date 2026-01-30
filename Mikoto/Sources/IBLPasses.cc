@@ -113,7 +113,7 @@ namespace Mikoto {
 
                         ctx.BeginRender();
                         ctx.BindPipeline( "IrradiancePass_Pipeline" );
-                        //ctx.Draw( 36 );
+                        //ctx.Draw( 36 ); // Crashes
                         ctx.EndRender();
                     }
 
@@ -344,7 +344,6 @@ namespace Mikoto {
                     b.Read( "AABBGenComp_CameraUBO" )
                         .Read( "AABBGenComp_Clusters" )
                         .Read( "LightCullingComp_LightsBuffer" )
-                        .Read( "FinalCompositionPass_CameraInfo" )
                         .Read( "FinalShadingPass_DepthTarget" )
                         .Read( "FinalShadingPass_ColorTarget" );
 

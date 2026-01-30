@@ -16,7 +16,7 @@
 #define MIKOTO_RENDER_SERVICE_HH
 
 #include <Common/Common.hh>
-#include <Common/Service.hh>
+#include <Common/Subsystem.hh>
 #include <Material/ShaderLibrary.hh>
 #include <Platform/Window.hh>
 
@@ -74,7 +74,7 @@ namespace Mikoto {
         bool EnableImGui{ true };
     };
 
-    class RenderService final : public IService, public Singleton<RenderService> {
+    class RenderService final : public Subsystem, public Singleton<RenderService> {
     public:
         explicit RenderService(const RenderServiceCreateInfo& options);
 

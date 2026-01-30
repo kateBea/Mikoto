@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -46,6 +46,5 @@ namespace Mikoto {
         std::vector<Unique<Window>> m_Windows{};
     };
 }
-
 
 #endif // MIKOTO_WINDOWS_SYSTEM_HH

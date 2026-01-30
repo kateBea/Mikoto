@@ -99,7 +99,7 @@ namespace Mikoto {
     auto FramePassBuilder::Use( SRGType type, std::string_view name, UInt32 bindSlot ) -> FramePassBuilder& {
         switch (type) {
             case SRGType::SRG_PerPass:
-                m_PassShaderResources.SetBuffer( name, bindSlot );
+                m_Node->PerPassShaderResources.SetBuffer( name, bindSlot );
                 break;
             default: ;
         }
@@ -109,10 +109,6 @@ namespace Mikoto {
 
     auto FramePassBuilder::GetPass() -> FramePassNode * {
         return m_Node;
-    }
-
-    auto FramePassBuilder::GetShaderResources() const -> const SRGPerPass & {
-        return m_PassShaderResources;
     }
 
     auto FramePassBuilder::CreateBuffer( std::string_view name, BufferDescription description ) -> void {
@@ -190,6 +186,10 @@ namespace Mikoto {
         : m_GraphicsContex{ context }, m_Device{ device } {}
 
     auto FrameGraph::Compile() -> void {
+        for (auto& node : m_Passes | std::views::values) {
+            m_GraphicsContex->UpdateResourceBindings( node.Name, node.PerPassShaderResources );
+        }
+
         SortPassExecution();
     }
 
@@ -314,8 +314,7 @@ namespace Mikoto {
             m_TexturePasses.emplace( builder.GetPass()->Name );
         }
 
-        m_GraphicsContex->CreateShaderResources(builder.GetPass()->Name, builder.m_PipelineDescription);
-        m_GraphicsContex->CommitShaderResources( builder.GetPass()->Name, builder.m_PassShaderResources );
+        m_GraphicsContex->PrepareResourceBindings(builder.GetPass()->Name, builder.m_PipelineDescription);
     }
 
     auto FrameGraph::SortPassExecution() -> void {

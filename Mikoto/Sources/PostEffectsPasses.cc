@@ -38,19 +38,38 @@ namespace Mikoto {
         m_Scene = scene;
     }
 
-    auto PostEffectsPass::RegisterPasses( FrameGraph &graph ) -> void {
+    auto PostEffectsPass::RegisterPasses( FrameGraph &graph, GpuDevice* device) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        //RegisterTextRender( graph );
+        RegisterTextRender( graph, device );
     }
 
-    auto PostEffectsPass::RegisterTextRender( FrameGraph &graph ) -> void {
+    auto PostEffectsPass::RegisterTextRender( FrameGraph &graph, GpuDevice* device) -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
+        // Vertex buffer and index buffer for the quads
+        BufferDescription vertexDesc{};
+        vertexDesc.WithData( reinterpret_cast<Byte*>( VERTICES.data() ) )
+                .WithUsage( BufferUsage::VERTEX )
+                .WithSizeBytes( InferSize<FontVertex>( VERTICES.size() ) )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+        m_TextVertexBuffer = device->CreateBuffer( vertexDesc );
+
+        BufferDescription indexDesc{};
+        indexDesc.WithData( reinterpret_cast<Byte*>( INDICES.data() ) )
+                .WithUsage( BufferUsage::INDEX )
+                .WithSizeBytes( InferSize<UInt32>( INDICES.size() ) )
+                .WithBufferDataType( BufferDataType::BUFFER_DATA_UINT32 )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+        m_TextIndexBuffer = device->CreateBuffer( indexDesc );
 
         graph.RegisterPass(
                 "3DTextRenderingPass",
                 [this]( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
+
+                    b.Create<Buffer>( "TextRenderPass_TextRenderParams", BufferUsage::SSBO, sizeof(TextRenderParams) * MAX_STRING )
+                        .Create<Buffer>( "TextRenderPass_FontParams", BufferUsage::UNIFORM, sizeof(TextParamsUBO), 1 );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Text_Vert.sprv", ShaderStage::VERTEX );
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Text_Frag.sprv", ShaderStage::FRAGMENT );
@@ -73,19 +92,21 @@ namespace Mikoto {
                     graphicsDesc.PrimitiveTopology = Topology::TRIANGLE_LIST;
                     b.Create<Pipeline>( "TextRenderPass_Pipeline", graphicsDesc );
 
-                    b.Write( "FinalCompositionPass_ColorTarget", FrameResourceState::RenderTarget_Color );
-                    b.Write( "FinalCompositionPass_DepthTarget", FrameResourceState::RenderTarget_Depth );
+                    b.Read( "FinalShadingPass_DepthTarget" )
+                        .Read( "FinalShadingPass_ColorTarget" )
+                    .Read( "FinalCompositionPass_CameraInfo" );
 
                     b.Use( SRGType::SRG_PerPass, "TextRenderPass_FontParams", 0 );
                     b.Use( SRGType::SRG_PerPass, "TextRenderPass_TextRenderParams", 1 );
+                    b.Use( SRGType::SRG_Textures);
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
 
                     MKT_ASSERT( m_Scene != nullptr, "Scene cannot be NULL" );
 
-                    ctx.SetColorRenderTarget( "FinalCompositionPass_ColorTarget" );
-                    ctx.SetDepthRenderTarget( "FinalCompositionPass_DepthTarget" );
+                    ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );
+                    ctx.SetDepthRenderTarget( "FinalShadingPass_DepthTarget" );
 
                     PassRenderInfo renderInfo{
                         .ColorLoadOp{ LoadOp::LOAD },
@@ -95,21 +116,20 @@ namespace Mikoto {
                     ctx.BeginRender( renderInfo );
                     ctx.BindPipeline( "TextRenderPass_Pipeline" );
 
-                    ctx.SetViewport( 0, 0, 1920, 1080 );
-                    ctx.SetScissor( 0, 0, 1920, 1080 );
+                    const auto dimensions{ InferDimensions( m_Resolution ) };
+
+                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
                     TraverseTextList( ctx );
                     SetupRenderParams( ctx );
 
                     DrawIndexedState drawIndexedState{};
 
-                    BufferHandle vertexBuffer{ ctx.GetNamedBuffer( "TextRenderPass_FontVertexBuffer" ) };
-                    BufferHandle indexBuffer{ ctx.GetNamedBuffer( "TextRenderPass_FontIndexBuffer" ) };
+                    drawIndexedState.IndexBuffer = m_TextIndexBuffer;
+                    drawIndexedState.VertexBuffers.emplace_back( m_TextVertexBuffer, 0 );
 
-                    drawIndexedState.IndexBuffer = indexBuffer;
-                    drawIndexedState.VertexBuffers.emplace_back( vertexBuffer, 0 );
-
-                    drawIndexedState.IndicesCount = indexBuffer->GetCount();
+                    drawIndexedState.IndicesCount = m_TextIndexBuffer->GetCount();
                     drawIndexedState.InstancesCount = m_TextRenderParams.size();
 
                     ctx.DrawIndexed( drawIndexedState );

@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,10 +36,11 @@ namespace Mikoto {
         const auto it{ m_WatchedPaths.find( fileAbsolutePath ) };
 
         if (it == m_WatchedPaths.end()) {
+            std::lock_guard lock{ m_WatcherInsertMutex };
             m_WatchedPaths[fileAbsolutePath] = CreateScope<FileWatcher>( Filesystem::GetGetAbsolutePath( path ) );
         }
 
-        m_WatchedPaths[fileAbsolutePath]->RegisterWatchCallback( std::move( callback ) );
+        m_WatchedPaths.at(fileAbsolutePath)->RegisterWatchCallback( std::move( callback ) );
     }
 
     auto FileWatcherService::Init() -> void {

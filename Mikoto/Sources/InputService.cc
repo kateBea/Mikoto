@@ -1,17 +1,23 @@
-/**
- * InputManager.cc
- * Created by kate on 6/9/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// C++ Standard Library
 #include <any>
 #include <memory>
 #include <utility>
 
-// Third-Party Libraries
 #include <GLFW/glfw3.h>
 
-// Project Headers
 #include <Common/Common.hh>
 #include <Core/InputService.hh>
 #include <Core/MouseCodes.hh>
@@ -22,18 +28,6 @@
 namespace Mikoto {
 
 #if defined( USE_GLFW_INPUT )
-    static auto GetMode( const CursorInputMode mode ) -> Int32 {
-        switch ( mode ) {
-            case CursorInputMode::CURSOR_NORMAL:
-                return GLFW_CURSOR_NORMAL;
-            case CursorInputMode::CURSOR_HIDDEN:
-                return GLFW_CURSOR_HIDDEN;
-            case CursorInputMode::CURSOR_DISABLED:
-                return GLFW_CURSOR_DISABLED;
-        }
-
-        return GLFW_CURSOR_NORMAL;
-    }
 
     auto InputService::IsKeyPressed( const KeyCode keyCode ) const -> bool {
         bool result{ false };
@@ -130,28 +124,17 @@ namespace Mikoto {
         return mouseY;
     }
 
-    auto InputService::SetCursorMode( const CursorInputMode mode ) const -> void {
-        try {
-            const auto window{ std::any_cast<GLFWwindow*>( m_Handle->GetNativeWindow() ) };
-            glfwSetInputMode( window, GLFW_CURSOR, GetMode( mode ) );
-        } catch ( const std::exception& exception ) {
-            MKT_CORE_LOGGER_ERROR( "InputManager - {}", exception.what() );
-        }
-    }
 #endif
 
     InputService::InputService( const InputServiceCreateInfo& options )
         : m_Handle{ options.MainWindow } {
-
-        if ( m_Handle == nullptr ) {
-            MKT_CORE_LOGGER_WARN( "InputSystem::InputSystem - Handle for input system is null." );
-        }
+        MKT_ASSERT( m_Handle, "Handle for InputService cannot be null." );
     }
 
     auto InputService::Init() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        MKT_CORE_LOGGER_INFO("Initializing InputManager...");
+        MKT_CORE_LOGGER_INFO("Initializing InputService...");
 
         m_IsInitialized = true;
     }
@@ -186,4 +169,4 @@ namespace Mikoto {
             MKT_CORE_LOGGER_WARN( "InputManager - Attempted to set focus for input handling on null window handle." );
         }
     }
-}// namespace Mikoto
+}

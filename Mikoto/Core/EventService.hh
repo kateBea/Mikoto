@@ -1,31 +1,40 @@
-/**
- * EventService.hh
- * Created by kate on 10/7/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef MIKOTO_EVENT_MANAGER_HH
-#define MIKOTO_EVENT_MANAGER_HH
+#ifndef MIKOTO_EVENT_SERVICER_HH
+#define MIKOTO_EVENT_SERVICER_HH
 
-#include <Common/Common.hh>
-#include <Common/Service.hh>
-#include <Core/Event.hh>
-#include <Library/Random/Random.hh>
-#include <Library/Utility/Types.hh>
-#include <functional>
 #include <set>
-#include <type_traits>
-#include <unordered_map>
 #include <vector>
 #include <ranges>
+#include <functional>
+#include <type_traits>
 
 #include <ankerl/unordered_dense.h>
+
+#include <Core/Event.hh>
+
+#include <Common/Common.hh>
+#include <Common/Subsystem.hh>
+
+#include <Library/Random/Random.hh>
+#include <Library/Utility/Types.hh>
+
 #include <Common/Singleton.hh>
 
 namespace Mikoto {
 
-    /**
-     * EventClassType must be derived from the base Event class
-     * */
     template<typename EventClassType>
     concept IsEventDerived = std::is_base_of_v<Event, EventClassType>;
 
@@ -36,7 +45,7 @@ namespace Mikoto {
         }
 
         EventHandler( const EventCategory category, HandlerFunc&& func )
-            : m_Type{ EventType::UNKNOWN_EVENT }, m_Category{ category }, m_Handler{ std::move( func ) } {
+            : m_Category{ category }, m_Handler{ std::move( func ) } {
         }
 
         EventHandler( EventHandler&& other ) = default;
@@ -83,7 +92,7 @@ namespace Mikoto {
     * };
     *
     * // Somewhere during initialization:
-    * EventService::GetInstance()->Subscribe(myListenerPtr);
+    * EventService::Get()->Subscribe(myListenerPtr);
     * @endcode
     *
     * The event system will then deliver matching events to the subscriber's registered handler.
@@ -110,7 +119,7 @@ namespace Mikoto {
 
     };
 
-    class EventService final : public IService, public Singleton<EventService> {
+    class EventService final : public Subsystem, public Singleton<EventService> {
     public:
         explicit EventService( const EventServiceCreateInfo& options );
 
@@ -176,6 +185,6 @@ namespace Mikoto {
         std::vector<Unique<Event>> m_EventQueue{};
         ankerl::unordered_dense::map<UInt64, Subscriber*> m_Subscribers{};
     };
-}// namespace Mikoto
+}
 
-#endif// MIKOTO_EVENT_MANAGER_HH
+#endif// MIKOTO_EVENT_SERVICER_HH

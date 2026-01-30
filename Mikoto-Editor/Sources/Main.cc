@@ -12,21 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <Application/EditorApp.hh>
+#include <Application/EditorConfigLoader.hh>
+#include <Audio/AudioService.hh>
+#include <Core/InputService.hh>
+#include <Core/Profiler.hh>
+#include <Core/Root.hh>
+#include <Filesystem/FileService.hh>
+#include <Layers/EditorLayer.hh>
+#include <Library/Utility/Types.hh>
+#include <Logging/Logger.hh>
+#include <Physics/PhysicService.hh>
+#include <Platform/Window.hh>
+#include <Platform/WindowsService.hh>
 #include <exception>
 #include <string_view>
 
-#include <Core/Root.hh>
-#include <Core/Profiler.hh>
-#include <Logging/Logger.hh>
-
-#include <Library/Utility/Types.hh>
-
-#include <Layers/EditorLayer.hh>
-#include <Application/EditorApp.hh>
-#include <Application/EditorConfigLoader.hh>
-
-#include <Platform/Window.hh>
-#include <Platform/WindowsService.hh>
+#include "Core/LocalizationService.hh"
+#include "Core/RuntimeConsole.hh"
+#include "Filesystem/FileWatcherService.hh"
+#include "Renderer/Core/RenderService.hh"
+#include "Scene/SceneManager.hh"
+#include <Scripting/ScriptingService.hh>
 
 Mikoto::Window* g_Window{ nullptr };
 Mikoto::EditorApp* g_Application{ nullptr };
@@ -34,15 +41,8 @@ Mikoto::EditorApp* g_Application{ nullptr };
 constexpr std::string_view g_ConfidPath{ "app-config.toml" };
 const Mikoto::BaseConfiguration g_Config{ g_ConfidPath };
 
-auto InitializeWindow() -> void {
-    MKT_BEGIN_PROFILER_NAMED();
-
+auto InitRenderServices() -> void {
     using namespace Mikoto;
-
-    // Initialize the window service so we can use windows
-    if (!Root::RegisterService<WindowsService>( WindowsServiceCreateInfo{} )) {
-        return;
-    }
 
     if (!g_Config.IsLoaded()) {
         std::printf( "Could not load file at %s·", g_ConfidPath.data() );
@@ -58,6 +58,18 @@ auto InitializeWindow() -> void {
     };
 
     g_Window = WindowsService::Get()->Create( properties );
+
+    Root::EnableRenderSubsystems( g_Window );
+}
+auto InitializeEngine() -> void {
+    MKT_BEGIN_PROFILER_NAMED();
+
+    using namespace Mikoto;
+
+    Root::Init( RootConfig{
+        .EnableAllServices{ true },
+        .EnableAllSubsystems{ true },
+    } );
 }
 
 auto InitializeApplication() -> void {
@@ -84,6 +96,8 @@ auto InitializeApplication() -> void {
 }
 
 auto RunCleanup() -> void {
+    using namespace Mikoto;
+
     MKT_BEGIN_PROFILER_NAMED();
 
     if (g_Application) {
@@ -91,6 +105,8 @@ auto RunCleanup() -> void {
     }
 
     delete g_Application;
+
+    Root::Shutdown();
 }
 
 auto RunApplication() -> void {
@@ -126,8 +142,10 @@ auto main( const int argc, char** ) -> int {
         return 1;
     }
 
-    InitializeWindow();
+    InitializeEngine();
+    InitRenderServices();
     InitializeApplication();
+
     RunApplication();
     RunCleanup();
 

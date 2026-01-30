@@ -22,6 +22,7 @@
 #include <Library/Utility/Types.hh>
 
 #include <Scene/Scene.hh>
+#include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/CommandContext.hh>
 
@@ -32,10 +33,10 @@ namespace Mikoto {
         explicit PostEffectsPass( RenderResolution resolution);
 
         auto SetScene(const Scene* scene) -> void;
-        auto RegisterPasses(FrameGraph& graph) -> void;
+        auto RegisterPasses(FrameGraph& graph, GpuDevice* device) -> void;
 
     private:
-        auto RegisterTextRender( FrameGraph& graph ) -> void;
+        auto RegisterTextRender( FrameGraph& graph, GpuDevice* device) -> void;
 
         auto TraverseTextList( CommandContext& commandList ) -> void;
 
@@ -81,6 +82,9 @@ namespace Mikoto {
         };
 
     private:
+        BufferHandle m_TextVertexBuffer{};
+        BufferHandle m_TextIndexBuffer{};
+
         const Scene* m_Scene{};
         TextParamsUBO m_TextRenderUBO{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };

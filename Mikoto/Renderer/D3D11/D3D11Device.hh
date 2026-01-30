@@ -15,6 +15,8 @@
 #ifndef MIKOTO_D3D11DEVICE_HH
 #define MIKOTO_D3D11DEVICE_HH
 
+#include <vector>
+
 #include <Common/Common.hh>
 #include <Core//Platform.hh>
 #include <Library/Utility/Types.hh>
@@ -25,6 +27,7 @@
 #include <d3d11.h>
 #include <dxgi1_3.h>
 #include <wrl.h>
+#include <d3dcommon.h>
 
 #include <Renderer/D3D11/Direct3D11Libraries.hh>
 
@@ -60,11 +63,19 @@ namespace Mikoto {
         auto RunGarbageCollection() -> void override;
         auto SubmitCommands( CommandListHandle cmd ) -> void override;
 
+        // Direct3D 11 specifics
+        auto GetDevice() const -> ID3D11Device*;
+
         ~D3D11Device() override = default;
 
     private:
+        std::vector<D3D_FEATURE_LEVEL> m_DeviceFeatureLevel{ D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0 };
+
         Microsoft::WRL::ComPtr<ID3D11Device> m_Device{};
+        Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_DeviceContext{};
     };
+
+#define TO_D3D11_DEVICE(GPU_DEVICE) dynamic_cast<D3D11Device*>(GPU_DEVICE)->GetDevice()
 }
 
 #endif

@@ -98,7 +98,7 @@ namespace Mikoto {
         return "Unknown Language";
     }
 
-    class LocalizationService final : public Singleton<LocalizationService>, public IService {
+    class LocalizationService final : public IService, public Singleton<LocalizationService> {
     public:
         explicit LocalizationService( const LocalizationServiceCreateInfo& createInfo );
 
@@ -139,6 +139,5 @@ namespace Mikoto {
     #define MKT_IS_CURRENT_ISO(ISO) LocalizationService::Get()->IsCurrentLanguage(ISO)
     #define MKT_IS_CURRENT_ISO_STR(ISO_STR) LocalizationService::Get()->IsCurrentLanguage(InferISO(ISO_STR))
 }
-
 
 #endif //MIKOTO_LOCALIZATION_SERVICE_HH

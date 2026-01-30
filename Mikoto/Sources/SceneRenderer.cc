@@ -129,7 +129,7 @@ namespace Mikoto {
         m_DebugPasses.RegisterPasses( *m_FrameGraph );
         m_ClusteredShadingPasses.RegisterPasses( *m_FrameGraph );
         m_IBLPasses.RegisterPasses( *m_FrameGraph );
-        m_PostEffectsPasses.RegisterPasses( *m_FrameGraph );
+        m_PostEffectsPasses.RegisterPasses( *m_FrameGraph, m_Device );
 
         m_FrameGraph->Compile();
     }

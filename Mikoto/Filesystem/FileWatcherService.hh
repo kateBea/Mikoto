@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -40,9 +40,11 @@ namespace Mikoto {
         auto Watch(const Path& path, FileWatcher::WatcherCallback&& callback) -> void;
 
     private:
+        std::mutex m_WatcherInsertMutex{};
         ankerl::unordered_dense::map<std::string, Unique<FileWatcher>> m_WatchedPaths{};
+
         bool m_FollowSymLinks{ false };
     };
-}// namespace Mikoto
+}
 
 #endif// MIKOTO_FILE_WATCHER_HH

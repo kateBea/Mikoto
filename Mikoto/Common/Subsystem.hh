@@ -12,14 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_DIRECT3D11HELPERS_HH
-#define MIKOTO_DIRECT3D11HELPERS_HH
+#ifndef MIKOTO_SUBSYSTEM_H
+#define MIKOTO_SUBSYSTEM_H
 
+#include <Common/Common.hh>
+#include <Common/Service.hh>
 namespace Mikoto {
 
-    // For readability
-#define MKT_D3D11_NO_FLAGS 0
+    class Subsystem : public IService {
+    public:
 
+        virtual auto Update(float timeStep) -> void = 0;
+    };
 }
 
-#endif //MIKOTO_DIRECT3D11HELPERS_HH
+#endif//MIKOTO_SUBSYSTEM_H

@@ -22,8 +22,6 @@
 
 namespace Mikoto {
 
-    static inline SystemStats g_SystemStats{};
-
 #if defined( _WIN32 ) && defined(_MSC_VER)
 #include <pdh.h>
 #include <pdhmsg.h>
@@ -142,12 +140,12 @@ namespace Mikoto {
 
 #endif
 
-    auto SystemStats::Update() -> void {
+    auto SystemStats::Update( float ) -> void {
         std::lock_guard lock{ m_UpdateMutex };
 
         // FIXME: if the render service was initialized then we have a render context we can get device info from
         if (RenderService::GetPtr()) {
-            m_VramUsage = RenderService::Get()->GetGpuDevice()->GetMemoryUsage();
+            m_VRAMUsage = RenderService::Get()->GetGpuDevice()->GetMemoryUsage();
         }
 
 #if defined( __linux__ )
@@ -204,13 +202,31 @@ namespace Mikoto {
 #endif
     }
 
+    auto SystemStats::Init() -> void {
+        MKT_CORE_LOGGER_DEBUG( "Initializing SystemStats" );
+
+        m_IsInitialized = true;
+    }
+
+    auto SystemStats::Shutdown() -> void {
+        if (!m_IsInitialized) {
+            return;
+        }
+
+        MKT_CORE_LOGGER_DEBUG( "Shutting down SystemStats" );
+    }
+
+    auto SystemStats::SetUpdateFrequency( Int32 frequency ) -> void {
+        m_UpdateFrequency = frequency;
+    }
+
     auto SystemStats::GetSharedRam() const -> double { return m_SharedRam; }
     auto SystemStats::GetFreeRam() const -> double { return m_FreeRam; }
     auto SystemStats::GetTotalRam() const -> double { return m_TotalRam; }
     auto SystemStats::GetCpuName() const -> const std::string& { return m_CpuName; }
     auto SystemStats::GetCpuUsage() const -> double { return m_CpuUsage; }
-    auto SystemStats::GetVramUsage() const -> double { return m_VramUsage; }
-    auto SystemStats::SetVramUsage( double usageBytes ) -> void { m_VramUsage = usageBytes; }
+    auto SystemStats::GetVramUsage() const -> double { return m_VRAMUsage; }
+    auto SystemStats::SetVramUsage( double usageBytes ) -> void { m_VRAMUsage = usageBytes; }
     auto SystemStats::GetProcessRamUsage() const -> double {
         return m_ProcessRamUsage;
     }

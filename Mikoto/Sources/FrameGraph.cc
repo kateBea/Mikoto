@@ -70,13 +70,13 @@ namespace Mikoto {
     FramePassBuilder::FramePassBuilder( FramePassNode &node )
         : m_Node{ std::addressof( node ) } {}
 
-    auto FramePassBuilder::Write( std::string_view name, FrameResourceState outState ) -> FramePassBuilder& {
-        m_Node->Writes.emplace_back( StringUtil::From( name ), outState );
+    auto FramePassBuilder::Write( std::string_view name, FrameResourceState state ) -> FramePassBuilder& {
+        m_Node->Writes.emplace_back( StringUtil::From( name ), state );
         return *this;
     }
 
-    auto FramePassBuilder::Read( std::string_view name, FrameResourceState outState ) -> FramePassBuilder& {
-        m_Node->Reads.emplace_back( StringUtil::From( name ), outState );
+    auto FramePassBuilder::Read( std::string_view name, FrameResourceState state ) -> FramePassBuilder& {
+        m_Node->Reads.emplace_back( StringUtil::From( name ), state );
         return *this;
     }
 
@@ -271,23 +271,33 @@ namespace Mikoto {
         }
     }
 
+    auto FrameGraph::InsertBarrier( FramePassResource& resource, FrameResourceState newState, CommandListHandle cmd ) -> void {
+        bool success{ false };
+        if (resource.IsResource( FrameResourceType::BUFFER )) {
+            success = m_GraphicsContex->InsertResourceBarrier( resource.Handle.As<Buffer>(), resource.CurrentState, newState, cmd );
+        }
+
+        if (resource.IsResource( FrameResourceType::TEXTURE )) {
+            success = m_GraphicsContex->InsertResourceBarrier( resource.Handle.As<Texture>(), resource.CurrentState, newState, cmd );
+        }
+
+        if (success) {
+            resource.CurrentState = newState;
+        }
+    }
+
     auto FrameGraph::InsertResourceBarriers( FramePassNode& node, CommandListHandle cmd ) -> void {
         for (const auto &resourceNode : node.Reads) {
             const auto it{ m_ResourcesByNames.find( resourceNode.Name ) };
             if (it != m_ResourcesByNames.end()) {
+                InsertBarrier( it->second, resourceNode.OutState, cmd );
+            }
+        }
 
-                bool success{ false };
-                if (it->second.IsResource( FrameResourceType::BUFFER )) {
-                    success = m_GraphicsContex->InsertResourceBarrier( it->second.Handle.As<Buffer>(), it->second.CurrentState, resourceNode.OutState, cmd );
-                }
-
-                if (it->second.IsResource( FrameResourceType::TEXTURE )) {
-                   success = m_GraphicsContex->InsertResourceBarrier( it->second.Handle.As<Texture>(), it->second.CurrentState, resourceNode.OutState, cmd );
-                }
-
-                if (success) {
-                    it->second.CurrentState = resourceNode.OutState;
-                }
+        for (const auto &resourceNode : node.Writes) {
+            const auto it{ m_ResourcesByNames.find( resourceNode.Name ) };
+            if (it != m_ResourcesByNames.end()) {
+                InsertBarrier( it->second, resourceNode.OutState, cmd );
             }
         }
     }

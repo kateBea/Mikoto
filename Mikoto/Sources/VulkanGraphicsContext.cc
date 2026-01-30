@@ -22,6 +22,41 @@
 
 namespace Mikoto {
 
+    struct VulkanResourceStateInfo {
+        VkPipelineStageFlags Stages{ VK_FLAGS_NONE };
+        VkAccessFlags Access{ VK_FLAGS_NONE };
+        VkImageLayout Layout{ VK_IMAGE_LAYOUT_UNDEFINED }; // Buffers ignore this
+    };
+
+    MKT_NODISCARD constexpr auto GetAspectMask(VkFormat format) -> VkImageAspectFlags {
+        switch (format) {
+            // Color formats
+            case VK_FORMAT_R8_UNORM:
+            case VK_FORMAT_R8G8B8A8_UNORM:
+            case VK_FORMAT_B8G8R8A8_UNORM:
+            case VK_FORMAT_R16G16B16A16_SFLOAT:
+            case VK_FORMAT_R32G32B32A32_SFLOAT:
+                return VK_IMAGE_ASPECT_COLOR_BIT;
+
+                // Depth-only formats
+            case VK_FORMAT_D16_UNORM:
+            case VK_FORMAT_D32_SFLOAT:
+                return VK_IMAGE_ASPECT_DEPTH_BIT;
+
+                // Depth + Stencil formats
+            case VK_FORMAT_D24_UNORM_S8_UINT:
+            case VK_FORMAT_D32_SFLOAT_S8_UINT:
+                return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+
+                // Stencil-only formats (rare)
+            case VK_FORMAT_S8_UINT:
+                return VK_IMAGE_ASPECT_STENCIL_BIT;
+
+            default:
+                return VK_IMAGE_ASPECT_COLOR_BIT;
+        }
+    }
+
     constexpr auto GetBufferDescriptorType( BufferUsage type ) noexcept -> VkDescriptorType {
         switch (type) {
             case BufferUsage::SSBO:
@@ -34,6 +69,89 @@ namespace Mikoto {
 
         return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     }
+
+    MKT_NODISCARD constexpr auto GetVulkanState(FrameResourceState state) -> VulkanResourceStateInfo {
+    switch (state) {
+
+        case FrameResourceState::ShaderRead_GraphicsPipeline:
+            return {
+                .Stages = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                .Access = VK_ACCESS_SHADER_READ_BIT,
+                .Layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+            };
+
+        case FrameResourceState::ShaderRead_ComputePipeline:
+            return {
+                .Stages = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                .Access = VK_ACCESS_SHADER_READ_BIT,
+                .Layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+            };
+
+        case FrameResourceState::UniformBuffer:
+            return {
+                .Stages = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                .Access = VK_ACCESS_UNIFORM_READ_BIT,
+                .Layout = VK_IMAGE_LAYOUT_UNDEFINED // N/A for buffers
+            };
+
+        case FrameResourceState::VertexIndexBuffer:
+            return {
+                .Stages = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+                .Access = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT | VK_ACCESS_INDEX_READ_BIT,
+                .Layout = VK_IMAGE_LAYOUT_UNDEFINED
+            };
+
+        case FrameResourceState::UnorderedAccess:
+            return {
+                .Stages = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                .Access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                .Layout = VK_IMAGE_LAYOUT_GENERAL
+            };
+
+        case FrameResourceState::DepthWrite:
+            return {
+                .Stages = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+                .Access = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                .Layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+            };
+
+        case FrameResourceState::DepthRead:
+            return {
+                .Stages = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                .Access = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+                .Layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+            };
+
+        case FrameResourceState::TransferSrc:
+            return {
+                .Stages = VK_PIPELINE_STAGE_TRANSFER_BIT,
+                .Access = VK_ACCESS_TRANSFER_READ_BIT,
+                .Layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+            };
+
+        case FrameResourceState::TransferDst:
+            return {
+                .Stages = VK_PIPELINE_STAGE_TRANSFER_BIT,
+                .Access = VK_ACCESS_TRANSFER_WRITE_BIT,
+                .Layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+            };
+
+        case FrameResourceState::Present:
+            return {
+                .Stages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                .Access = 0,
+                .Layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+            };
+
+        case FrameResourceState::Undefined:
+        default:
+            return {
+                .Stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                .Access = 0,
+                .Layout = VK_IMAGE_LAYOUT_UNDEFINED
+            };
+    }
+}
 
     VulkanGraphicsContext::VulkanGraphicsContext( GpuDevice *device )
         : GraphicsContext{ device } {}
@@ -278,86 +396,68 @@ namespace Mikoto {
     }
 
     auto VulkanGraphicsContext::InsertResourceBarrier( BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd ) -> bool {
-        FrameResourceState oldState{ previousState };
-
-        VkPipelineStageFlags srcStage{ VK_FLAGS_NONE };
-        VkPipelineStageFlags dstStage{ VK_FLAGS_NONE };
-
-        VkAccessFlags srcAccess{ VK_FLAGS_NONE };
-        VkAccessFlags dstAccess{ VK_FLAGS_NONE };
-
-        // --- Map old state ---
-        switch (oldState) {
-            case FrameResourceState::ShaderResource_Read:
-                srcStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-                srcAccess = VK_ACCESS_SHADER_READ_BIT;
-                break;
-            default: ;
+        if (previousState == newState) {
+            return false;
         }
 
-        // --- Map new state ---
-        switch (newState) {
-            case FrameResourceState::ShaderResource_Read:
-                dstStage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
-                dstAccess = VK_ACCESS_SHADER_READ_BIT;
-                break;
+        auto oldInfo{ GetVulkanState(previousState) };
+        auto newInfo{ GetVulkanState(newState) };
 
-            case FrameResourceState::Undefined:
-            default:
-                dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-                dstAccess = 0;
-                break;
-        }
-
-        const VkBufferMemoryBarrier barrier{
-            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-            .srcAccessMask = srcAccess,
-            .dstAccessMask = dstAccess,
-            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+        VkBufferMemoryBarrier2 barrier{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+            .srcStageMask = oldInfo.Stages,
+            .srcAccessMask = oldInfo.Access,
+            .dstStageMask = newInfo.Stages,
+            .dstAccessMask = newInfo.Access,
             .buffer = buffer->GetNativeHandle( ObjectType::Vk_Buffer ),
             .offset = 0,
-            .size = buffer->GetSizeBytes(),
+            .size = VK_WHOLE_SIZE
         };
 
+        VkDependencyInfo depInfo{
+            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .bufferMemoryBarrierCount = 1,
+            .pBufferMemoryBarriers = &barrier
+        };
 
-        vkCmdPipelineBarrier(
-                cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
-                srcStage,
-                dstStage,
-                0,
-                0, nullptr,
-                1, &barrier,
-                0, nullptr
-                );
+        vkCmdPipelineBarrier2(cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ), &depInfo);
 
         return true;
     }
 
     auto VulkanGraphicsContext::InsertResourceBarrier( TextureHandle texture, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd ) -> bool {
-        // skipping depth images for now
-        if (texture->IsTextureUsage( TextureUsage::DEPTH ) ) {
+        if (previousState == newState) {
             return false;
         }
 
-        // Temporary: transition images to shader sample layout, if it is a 2D texture
-        // Transition color target to shader read
-        const auto vulkanTexture{ dynamic_cast<VulkanTexture*>( texture.GetRaw() ) };
+        auto oldInfo{ GetVulkanState(previousState) };
+        auto newInfo{ GetVulkanState(newState) };
 
-        switch (newState) {
-            case FrameResourceState::ShaderResource_Read:
-                vulkanTexture->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
-                break;
-            case FrameResourceState::ShaderResource_Write:
-                break;
-            case FrameResourceState::Transfer_Src:
-                break;
-            case FrameResourceState::Transfer_Dst:
-                break;
-            case FrameResourceState::Undefined:
-                break;
-            default: ;
-        }
+        VkImageMemoryBarrier2 barrier{
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+            .srcStageMask = oldInfo.Stages,
+            .srcAccessMask = oldInfo.Access,
+            .dstStageMask = newInfo.Stages,
+            .dstAccessMask = newInfo.Access,
+            .oldLayout = oldInfo.Layout,
+            .newLayout = newInfo.Layout,
+            .image = texture->GetNativeHandle( ObjectType::Vk_Image ),
+            .subresourceRange = {
+                .aspectMask = GetAspectMask(VulkanHelpers::ToVkFormat( texture->GetFormat() )),
+                .baseMipLevel = 0,
+                .levelCount = VK_REMAINING_MIP_LEVELS,
+                .baseArrayLayer = 0,
+                .layerCount = VK_REMAINING_ARRAY_LAYERS
+            }
+        };
+
+        VkDependencyInfo depInfo{
+            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .imageMemoryBarrierCount = 1,
+            .pImageMemoryBarriers = std::addressof( barrier )
+        };
+
+        vkCmdPipelineBarrier2(cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ), std::addressof( depInfo ) );
 
         return true;
     }

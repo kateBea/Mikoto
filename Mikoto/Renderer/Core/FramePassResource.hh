@@ -19,16 +19,30 @@ namespace Mikoto {
 
     using ResourceHandle = Ref<IResource>;
 
-    // Used for resource state transitioning
     enum class FrameResourceState {
-        RenderTarget_Color,
-        RenderTarget_Depth,
-        ShaderResource_Read,
-        ShaderResource_Write,
+        // Shader read-only (Textures, Buffers)
+        ShaderRead_GraphicsPipeline,  // sampled images, uniform texel buffers
+        ShaderRead_ComputePipeline,   // compute shader sampled/readonly
 
-        Transfer_Src,
-        Transfer_Dst,
+        // Geometry input
+        VertexIndexBuffer,            // vertex/index input buffers
+        UniformBuffer,                // constant/uniform buffer
+        IndirectArgument,             // indirect draw/dispatch
 
+        // Render targets
+        RenderTarget,                 // color attachment write
+        DepthWrite,                   // depth/stencil write
+        DepthRead,                    // depth read (sampling or read-only)
+        UnorderedAccess,              // RWTexture / storage image/buffer
+
+        // Transfer / copies
+        TransferSrc,                  // copy src
+        TransferDst,                  // copy dst
+
+        // Presentable state (swapchain images)
+        Present,
+
+        // Unknown / initial
         Undefined,
     };
 

@@ -81,9 +81,9 @@ namespace Mikoto {
                             .ColorAttachmentFormats{ TextureFormat::RGBA16_FLOAT }
                         } );
 
-                    b.Write( "IrradiancePass_ColorTarget", FrameResourceState::RenderTarget_Color )
-                        .Write( "IrradiancePass_CameraInfo")
-                        .Write( "IrradiancePass_Parameters");
+                    b.Write( "IrradiancePass_ColorTarget", FrameResourceState::RenderTarget )
+                        .Write( "IrradiancePass_CameraInfo", FrameResourceState::UniformBuffer)
+                        .Write( "IrradiancePass_Parameters", FrameResourceState::UniformBuffer);
 
                     b.Use( SRGType::SRG_PerPass, "IrradiancePass_CameraInfo", 0 )
                         .Use( SRGType::SRG_PerPass, "IrradiancePass_Parameters", 1 );
@@ -146,9 +146,9 @@ namespace Mikoto {
                         .ColorAttachmentFormats{ TextureFormat::RGBA32_FLOAT }
                     } );
 
-                    b.Write( "Prefilter_ColorTarget", FrameResourceState::RenderTarget_Color )
-                       .Write( "PrefilterPass_CameraInfo")
-                       .Write( "PrefilterPass_Parameters");
+                    b.Write( "Prefilter_ColorTarget", FrameResourceState::RenderTarget )
+                       .Write( "PrefilterPass_CameraInfo", FrameResourceState::UniformBuffer)
+                       .Write( "PrefilterPass_Parameters", FrameResourceState::UniformBuffer);
 
                    b.Use( SRGType::SRG_PerPass, "PrefilterPass_CameraInfo", 0 )
                        .Use( SRGType::SRG_PerPass, "PrefilterPass_Parameters", 1 );
@@ -202,7 +202,7 @@ namespace Mikoto {
                                             .ColorAttachmentFormats{ TextureFormat::RG16_FLOAT }
                                         } );
 
-                    b.Write( "BRDFLutPass_ColorTarget", FrameResourceState::ShaderResource_Read );
+                    b.Write( "BRDFLutPass_ColorTarget", FrameResourceState::RenderTarget );
                 },
                 []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -269,9 +269,9 @@ namespace Mikoto {
                     };
                     b.Create<Pipeline>( "SkyboxPass_Pipeline", graphicsDesc );
 
-                    b.Write( "FinalShadingPass_ColorTarget", FrameResourceState::ShaderResource_Read );
-                    b.Write( "FinalShadingPass_DepthTarget", FrameResourceState::ShaderResource_Read );
-                    b.Write( "SkyboxPass_CameraInfo", FrameResourceState::Transfer_Dst );
+                    b.Write( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
+                    b.Write( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite );
+                    b.Write( "SkyboxPass_CameraInfo", FrameResourceState::UniformBuffer );
 
                     b.Use( SRGType::SRG_PerPass, "SkyboxPass_CameraInfo", 0 );
                 },
@@ -341,13 +341,13 @@ namespace Mikoto {
                         .UseShader( "Resources/Shaders/vulkan-spirv/PBR_Instanced_Frag.sprv", ShaderStage::FRAGMENT )
                         .Create<Pipeline>( "FinalCompositionPass_Pipeline", graphicsDesc );
 
-                    b.Read( "AABBGenComp_CameraUBO" )
-                        .Read( "AABBGenComp_Clusters" )
-                        .Read( "LightCullingComp_LightsBuffer" )
-                        .Read( "FinalShadingPass_DepthTarget" )
-                        .Read( "FinalShadingPass_ColorTarget" );
+                    b.Read( "AABBGenComp_CameraUBO", FrameResourceState::UnorderedAccess )
+                        .Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess )
+                        .Read( "LightCullingComp_LightsBuffer", FrameResourceState::UnorderedAccess )
+                        .Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite)
+                        .Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
 
-                    b.Write( "FinalCompositionPass_MeshInfo" );
+                    b.Write( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
 
                     b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_CameraInfo", 0 )
                         .Use( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 1 )

@@ -92,9 +92,9 @@ namespace Mikoto {
                     graphicsDesc.PrimitiveTopology = Topology::TRIANGLE_LIST;
                     b.Create<Pipeline>( "TextRenderPass_Pipeline", graphicsDesc );
 
-                    b.Read( "FinalShadingPass_DepthTarget" )
-                        .Read( "FinalShadingPass_ColorTarget" )
-                    .Read( "FinalCompositionPass_CameraInfo" );
+                    b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthRead )
+                        .Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget )
+                        .Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
 
                     b.Use( SRGType::SRG_PerPass, "TextRenderPass_FontParams", 0 );
                     b.Use( SRGType::SRG_PerPass, "TextRenderPass_TextRenderParams", 1 );

@@ -74,8 +74,8 @@ namespace Mikoto {
 
                     b.Create<Pipeline>( "HelloTriangle_Pipeline", GraphicsPipelineDescription{ .VertexAttributesSpec{} } );
 
-                    b.Write( "HelloTriangle_ColorTarget", FrameResourceState::ShaderResource_Read );
-                    b.Write( "HelloTriangle_DepthTarget", FrameResourceState::ShaderResource_Read );
+                    b.Write( "HelloTriangle_ColorTarget", FrameResourceState::RenderTarget );
+                    b.Write( "HelloTriangle_DepthTarget", FrameResourceState::DepthWrite );
                 },
                 []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     ctx.BindPipeline( "HelloTriangle_Pipeline" );
@@ -104,7 +104,7 @@ namespace Mikoto {
                     b.UseShader( "Resources/Shaders/vulkan-spirv/BasicCompute_Comp.sprv", ShaderStage::COMPUTE );
                     b.Create<Pipeline>( "SimpleCompute_Pipeline", ComputePipelineDescription{} );
 
-                    b.Write( "SimpleCompute_Results", FrameResourceState::Transfer_Src );
+                    b.Write( "SimpleCompute_Results", FrameResourceState::UnorderedAccess );
 
                     b.Use( SRGType::SRG_PerPass, "SimpleCompute_Results", 0 );
                 },
@@ -151,10 +151,10 @@ namespace Mikoto {
                                             .PrimitiveTopology{ Topology::TRIANGLE_STRIP },
                                             .VertexAttributesSpec{},} );
 
-                    b.Write( "HelloTexture_ColorTarget", FrameResourceState::ShaderResource_Read );
-                    b.Write( "HelloTexture_DepthTarget", FrameResourceState::ShaderResource_Read );
+                    b.Write( "HelloTexture_ColorTarget", FrameResourceState::RenderTarget );
+                    b.Write( "HelloTexture_DepthTarget", FrameResourceState::DepthWrite );
 
-                    b.Write( "HelloTexture_TexturesBuffer", FrameResourceState::ShaderResource_Read );
+                    b.Write( "HelloTexture_TexturesBuffer", FrameResourceState::UniformBuffer );
                     b.Use( SRGType::SRG_PerPass, "HelloTexture_TexturesBuffer", 0 );
                     b.Use( SRGType::SRG_Textures );
                 },

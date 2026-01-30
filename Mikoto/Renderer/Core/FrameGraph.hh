@@ -85,8 +85,10 @@ namespace Mikoto {
         auto Use( SRGType type ) -> FramePassBuilder&;
         auto Use( SRGType type, std::string_view name, UInt32 bindSlot ) -> FramePassBuilder&;
 
-        auto Write( std::string_view name, FrameResourceState outState = FrameResourceState::ShaderResource_Read ) -> FramePassBuilder&;
-        auto Read( std::string_view name, FrameResourceState outState = FrameResourceState::ShaderResource_Read ) -> FramePassBuilder&;
+        // state indicates the state the resource needs to be in for this pass, this may imply setting
+        // a barrier for transition on the resource before the pass starts (only if needed)
+        auto Write( std::string_view name, FrameResourceState state) -> FramePassBuilder&;
+        auto Read( std::string_view name, FrameResourceState state) -> FramePassBuilder&;
 
         template<typename ResourceType, typename... Args>
         auto Create( Args &&... args ) -> FramePassBuilder& {
@@ -183,6 +185,7 @@ namespace Mikoto {
 
     private:
         auto TransitionWrites(FramePassNode& node, CommandListHandle cmd) -> void;
+        auto InsertBarrier(FramePassResource& resource, FrameResourceState newState, CommandListHandle cmd) -> void;
         auto InsertResourceBarriers(FramePassNode& node, CommandListHandle cmd) -> void;
 
         MKT_NODISCARD auto UsesTextureList( std::string_view nodeName ) const -> bool;

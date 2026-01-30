@@ -60,8 +60,8 @@ namespace Mikoto {
                     b.UseShader( "Resources/Shaders/vulkan-spirv/AABBGen_Comp.sprv", ShaderStage::COMPUTE );
                     b.Create<Pipeline>( "AABBGenComp_Pipeline", ComputePipelineDescription{} );
 
-                    b.Write( "AABBGenComp_Clusters", FrameResourceState::ShaderResource_Read );
-                    b.Write( "AABBGenComp_CameraUBO", FrameResourceState::ShaderResource_Read );
+                    b.Write( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess );
+                    b.Write( "AABBGenComp_CameraUBO", FrameResourceState::UnorderedAccess );
 
                     b.Use( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 0 );
                     b.Use( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
@@ -100,11 +100,11 @@ namespace Mikoto {
                     b.UseShader( "Resources/Shaders/vulkan-spirv/LightCulling_Comp.sprv", ShaderStage::COMPUTE );
                     b.Create<Pipeline>( "LightCullingComp_Pipeline", ComputePipelineDescription{} );
 
-                    b.Read( "AABBGenComp_CameraUBO", FrameResourceState::ShaderResource_Read );
-                    b.Read( "AABBGenComp_Clusters", FrameResourceState::ShaderResource_Read );
+                    b.Read( "AABBGenComp_CameraUBO", FrameResourceState::UnorderedAccess );
+                    b.Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess );
 
-                    b.Write( "LightCullingComp_LightsBuffer", FrameResourceState::ShaderResource_Read );
-                    b.Write( "LightCullingComp_LightsCullingInfo", FrameResourceState::ShaderResource_Read );
+                    b.Write( "LightCullingComp_LightsBuffer", FrameResourceState::UnorderedAccess );
+                    b.Write( "LightCullingComp_LightsCullingInfo", FrameResourceState::UnorderedAccess );
 
                     b.Use( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 0 );
                     b.Use( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );

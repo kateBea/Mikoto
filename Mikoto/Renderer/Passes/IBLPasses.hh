@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/RenderUtility.hh>
 #include <Renderer/Core/CommandContext.hh>
+
+#include <Renderer/Passes/MeshCulling.hh>
 #include <Renderer/Passes/ShaderParameteres.hh>
 
 namespace Mikoto {
@@ -41,6 +43,8 @@ namespace Mikoto {
         auto SetExposure( float value ) -> void;
         auto SetGamma( float value ) -> void;
         auto EnableSkybox(bool enable) -> void;
+
+        auto SetMeshCulling(MeshCulling& cullingPass) -> void;
 
     private:
         auto RegisterIrradiance( FrameGraph& graph ) -> void;
@@ -94,43 +98,13 @@ namespace Mikoto {
         };
 
         struct alignas(16) DirectionalShadowMapCameraInfo {
-            Mat4F MVP{};
-        };
-
-        struct MeshInstanceInfo {
-            DrawIndexedState InstanceDrawState{};
-            ankerl::unordered_dense::map<UInt64, bool> ActiveEntities{};
-            ankerl::unordered_dense::map<UInt64, ShaderMaterialParams> InstanceInfos{};
-
-            MKT_NODISCARD auto IsActive( UInt64 entityID ) const -> bool {
-                bool result{ false };
-                const auto it{ ActiveEntities.find( entityID ) };
-
-                if ( it != ActiveEntities.end() ) {
-                    result = it->second;
-                }
-
-                return result;
-            }
-
-            auto Disable(UInt64 entityID )-> void {
-                const auto it{ ActiveEntities.find( entityID ) };
-
-                if ( it != ActiveEntities.end() ) {
-                    it->second = false;
-                }
-            }
+            Mat4F LightView{};
+            Mat4F LightProjection{};
         };
 
     private:
 
         static constexpr UInt32 MAX_MIP_LEVELS{ 7 };
-
-    private:
-
-        auto DrawInstances( CommandContext& context ) -> void;
-        auto UploadInstanceData( CommandContext& context ) -> void;
-        auto TraverseMeshList( CommandContext& context ) -> void;
 
     private:
         // Skybox
@@ -157,13 +131,10 @@ namespace Mikoto {
 
         DirectionalShadowMapCameraInfo m_DirectionalShadowMapCameraInfo{};
 
-        Size m_ActiveMeshCount{};
-
         Scene* m_Scene{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
 
-        std::vector<ShaderMaterialParams> m_Meshes{};
-        ankerl::unordered_dense::map<MeshNode*, MeshInstanceInfo> m_MeshDrawState{};
+        MeshCulling* m_MeshCullingPass{};
 
         RenderResolution m_Resolution{ RenderResolution::FHD_1080 };
     };

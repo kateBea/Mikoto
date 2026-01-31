@@ -21,6 +21,7 @@
 #include <Renderer/Core/SceneRenderer.hh>
 #include <Renderer/Passes/DebugPasses.hh>
 #include <Renderer/Passes/IBLPasses.hh>
+#include <Renderer/Passes/MeshCulling.hh>
 #include <Renderer/Passes/PostEffectsPasses.hh>
 #include <Renderer/Passes/ClusteredShading.hh>
 
@@ -45,6 +46,7 @@ namespace Mikoto {
     auto SceneRenderer::Render( Scene* scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        m_MeshCulling.SetScene( scene );
         m_IBLPasses.SetScene( scene );
         m_DebugPasses.SetScene( scene );
         m_PostEffectsPasses.SetScene( scene );
@@ -126,6 +128,7 @@ namespace Mikoto {
 
         m_FrameGraph = FrameGraph::Create( m_GraphicsContext.get(), m_Device );
 
+        m_MeshCulling.RegisterPasses( *m_FrameGraph );
         m_DebugPasses.RegisterPasses( *m_FrameGraph );
         m_ClusteredShadingPasses.RegisterPasses( *m_FrameGraph );
         m_IBLPasses.RegisterPasses( *m_FrameGraph );
@@ -140,6 +143,8 @@ namespace Mikoto {
         if (m_WantResize) {
 
         }
+
+        m_IBLPasses.SetMeshCulling( m_MeshCulling );
     }
 
     auto SceneRenderer::OnPostRender() -> void {

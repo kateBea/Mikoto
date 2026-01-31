@@ -65,7 +65,7 @@ namespace Mikoto {
 
         graph.RegisterPass(
                 "3DTextRenderingPass",
-                [this]( FramePassBuilder &b ) {
+                []( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
                     b.Create<Buffer>( "TextRenderPass_TextRenderParams", BufferUsage::SSBO, sizeof(TextRenderParams) * MAX_STRING )
@@ -95,6 +95,9 @@ namespace Mikoto {
                     b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthRead )
                         .Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget )
                         .Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
+
+                    b.Write( "TextRenderPass_FontParams", FrameResourceState::UniformBuffer );
+                    b.Write( "TextRenderPass_TextRenderParams", FrameResourceState::UniformBuffer );
 
                     b.Use( SRGType::SRG_PerPass, "TextRenderPass_FontParams", 0 );
                     b.Use( SRGType::SRG_PerPass, "TextRenderPass_TextRenderParams", 1 );

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <memory>
+
 #include <Math/Math.hh>
 
 #include <Core/Profiler.hh>
@@ -236,6 +238,10 @@ namespace Mikoto {
         m_UseSkybox = enable;
     }
 
+    auto IBLPasses::SetMeshCulling( MeshCulling& cullingPass ) -> void {
+        m_MeshCullingPass = std::addressof( cullingPass );
+    }
+
     auto IBLPasses::SetCubeMap( TextureHandle cubeMap ) -> void {
         m_CubeMap = cubeMap;
     }
@@ -345,9 +351,12 @@ namespace Mikoto {
                     b.Write( "DirectionalShadowMapPass_DepthTarget", FrameResourceState::DepthWrite );
 
                     b.Use( SRGType::SRG_PerPass, "DirectionalShadowMapPass_CameraInfo", 0 );
+                    b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 1 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
+
+                    MKT_ASSERT( m_MeshCullingPass, "Mesh culling must be valid" );
 
                     const auto dimensions{ InferDimensions( m_Resolution ) };
 
@@ -374,16 +383,12 @@ namespace Mikoto {
                             constexpr float zFar{ 2000.0f };
                             constexpr float degreesFOV{ 45.0f };
 
-                            Mat4F depthProjectionMatrix{ glm::perspective(glm::radians(degreesFOV), 1.0f, zNear, zFar) };
-                            Mat4F depthViewMatrix{ glm::lookAt(transform.GetTranslation(), glm::vec3(0.0f), glm::vec3(0, 1, 0)) };
-                            Mat4F depthModelMatrix{ glm::mat4(1.0f) };
+                            m_DirectionalShadowMapCameraInfo.LightView = glm::lookAt(transform.GetTranslation(), glm::vec3(0.0f), glm::vec3(0, 1, 0));
+                            m_DirectionalShadowMapCameraInfo.LightProjection = glm::perspective(glm::radians(degreesFOV), 1.0f, zNear, zFar);
 
-                            m_DirectionalShadowMapCameraInfo.MVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
                             ctx.UploadBuffer<DirectionalShadowMapCameraInfo>( "DirectionalShadowMapPass_CameraInfo", m_DirectionalShadowMapCameraInfo );
 
-                            // TODO: submit instanced draw, missing meshes
-                            TraverseMeshList( ctx );
-                            DrawInstances( ctx );
+                            m_MeshCullingPass->DrawInstances( ctx );
                         }
                     }
 
@@ -394,6 +399,8 @@ namespace Mikoto {
     auto IBLPasses::RegisterDebugViewsPass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        // This has to be the very last pass
+
         graph.RegisterPass(
                 "DebugViewsPass",
                 []( FramePassBuilder &b ) -> void {
@@ -401,26 +408,26 @@ namespace Mikoto {
                     b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
                     b.Read( "DirectionalShadowMapPass_DepthTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
                     b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
+                    b.Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
+                    b.Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
+
+                    b.Read( "TextRenderPass_FontParams", FrameResourceState::UniformBuffer );
+                    b.Read( "TextRenderPass_TextRenderParams", FrameResourceState::UniformBuffer );
                 },
                 []( CommandContext &, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
-
                 });
     }
 
     auto IBLPasses::RegisterShading( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        // Prepare buffer of meshes
-        m_Meshes.resize( MAX_RENDERABLE_ENTITIES );
-
         graph.RegisterPass(
                 "FinalShading",
                 []( FramePassBuilder &b ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    b.Create<Buffer>( "FinalCompositionPass_CameraInfo", BufferUsage::UNIFORM, sizeof( ShaderCameraParams ), 1 )
-                        .Create<Buffer>( "FinalCompositionPass_MeshInfo", BufferUsage::SSBO, sizeof( ShaderMaterialParams ), MAX_RENDERABLE_ENTITIES );
+                    b.Create<Buffer>( "FinalCompositionPass_CameraInfo", BufferUsage::UNIFORM, sizeof( ShaderCameraParams ), 1 );
 
                     GraphicsPipelineDescription graphicsDesc{
                         .DepthTest{ true },
@@ -439,7 +446,8 @@ namespace Mikoto {
                         .Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite)
                         .Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
 
-                    b.Write( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
+                    b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
+                    b.Write( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
 
                     b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_CameraInfo", 0 )
                         .Use( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 1 )
@@ -450,6 +458,8 @@ namespace Mikoto {
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
+
+                    MKT_ASSERT( m_MeshCullingPass, "Mesh culling must be valid" );
 
                     ctx.BindPipeline( "FinalCompositionPass_Pipeline" );
 
@@ -474,90 +484,9 @@ namespace Mikoto {
                     ctx.SetViewport( 0, 0, 1920, 1080 );
                     ctx.SetScissor( 0, 0, 1920, 1080 );
 
-                    TraverseMeshList( ctx );
-                    DrawInstances( ctx );
-                    UploadInstanceData( ctx );
+                    m_MeshCullingPass->DrawInstances( ctx );
 
                     ctx.EndRender();
                 } );
-    }
-
-    auto IBLPasses::DrawInstances( CommandContext &context ) -> void {
-        Size meshIndex{};
-
-        m_ActiveMeshCount = 0;
-
-        for (auto &[meshNode, instanceInfo]: m_MeshDrawState) {
-            DrawIndexedState &drawState{ instanceInfo.InstanceDrawState };
-
-            drawState.IndexBuffer = meshNode->GetIndexBuffer();
-
-            if (drawState.VertexBuffers.empty()) {
-                drawState.VertexBuffers.emplace_back( meshNode->GetVertexBuffer(), 0 );
-            }
-
-            Size drawCount{};
-            for (const auto &[entityID, meshInstanceInfo]: instanceInfo.InstanceInfos) {
-                if (instanceInfo.IsActive( entityID )) {
-                    m_Meshes[meshIndex++] = meshInstanceInfo;
-                    ++drawCount;
-
-                    // We need to ensure it does not get drawn later
-                    instanceInfo.Disable( entityID );
-                }
-            }
-
-            drawState.IndicesCount = meshNode->GetIndexBuffer()->GetCount();
-            drawState.FirstInstance = m_ActiveMeshCount;
-            drawState.InstancesCount = drawCount;
-
-            m_ActiveMeshCount += drawCount;
-
-            context.DrawIndexed( drawState );
-        }
-    }
-
-    auto IBLPasses::UploadInstanceData( CommandContext &context ) -> void {
-        context.UploadBufferData( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMaterialParams ), m_ActiveMeshCount );
-    }
-
-    auto IBLPasses::TraverseMeshList( CommandContext &context ) -> void {
-        auto &registry{ m_Scene->GetRegistry() };
-        auto renderables{ registry.view<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
-
-        for (auto &entity: renderables) {
-            auto &tag{ registry.get<TagComponent>( entity ) };
-            auto &transform{ registry.get<TransformComponent>( entity ) };
-            auto &meshComponent{ registry.get<MeshComponent>( entity ) };
-            auto &materialComp{ registry.get<MaterialComponent>( entity ) };
-
-            if (meshComponent.HasMesh() && materialComp.HasMaterial()) {
-                MeshNode *meshNode{ meshComponent.GetMesh() };
-                PBRMaterial *pbrMat{ materialComp.GetMaterial().Dynamic<PBRMaterial>() };
-
-                auto &[DrawIndexedState, ActiveEntities, Instances]{
-                    m_MeshDrawState[meshNode]
-                };
-
-                ActiveEntities[tag.GetGUID()] = tag.IsActive();
-
-                if (tag.IsActive()) {
-                    ShaderMaterialParams &ubo{ Instances[tag.GetGUID()] };
-
-                    ubo.Transform = transform.GetTransform();
-
-                    ubo.Albedo = pbrMat->GetColor();
-                    ubo.Factors.x = pbrMat->GetMetallicFactor();
-                    ubo.Factors.y = pbrMat->GetRoughnessFactor();
-                    ubo.Factors.z = pbrMat->GetAoFactor();
-
-                    ubo.AlbedoIndex = context.PushTexture( pbrMat->GetTextureType( MapType::ALBEDO_TEXTURE ) );
-                    ubo.NormalIndex = context.PushTexture( pbrMat->GetTextureType( MapType::NORMAL_TEXTURE ) );
-                    ubo.MetallicIndex = context.PushTexture( pbrMat->GetTextureType( MapType::METALLIC_TEXTURE ) );
-                    ubo.RoughnessIndex = context.PushTexture( pbrMat->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
-                    ubo.AoIndex = context.PushTexture( pbrMat->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
-                }
-            }
-        }
     }
 } // namespace Mikoto

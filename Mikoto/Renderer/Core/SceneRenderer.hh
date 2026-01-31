@@ -32,6 +32,7 @@
 #include "Renderer/Passes/DebugPasses.hh"
 #include "Renderer/Passes/IBLPasses.hh"
 #include "Renderer/Passes/PostEffectsPasses.hh"
+#include <Renderer/Passes/MeshCulling.hh>
 
 namespace Mikoto {
 
@@ -91,6 +92,7 @@ namespace Mikoto {
         std::pair<float, float> m_RenderTargetDimensions{ InferDimensions( m_RenderResolution ) };
 
         // Passes
+        MeshCulling m_MeshCulling{};
         IBLPasses m_IBLPasses{ m_RenderResolution };
         PostEffectsPass m_PostEffectsPasses{ m_RenderResolution };
         DebugPasses m_DebugPasses{ m_RenderResolution };

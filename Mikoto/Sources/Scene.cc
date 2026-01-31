@@ -79,7 +79,6 @@ namespace Mikoto {
             ScriptHandle handle{ script.GetHandle() };
 
             if (!handle.IsEmpty()) {
-                // Should be false here. But will remain tru for testing purposes
                 handle->SetEnable( true );
             }
         }

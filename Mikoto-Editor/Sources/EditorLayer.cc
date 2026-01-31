@@ -72,6 +72,7 @@ namespace Mikoto {
         m_EditorState->PassesCompositions.try_emplace( "Texture2D", m_SceneRenderer->GetTexture( "HelloTexture_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "BRDF LUT", m_SceneRenderer->GetTexture( "BRDFLutPass_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "Skybox", m_SceneRenderer->GetTexture( "FinalShadingPass_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "DirectionalShadowMapDepth", m_SceneRenderer->GetTexture( "DirectionalShadowMapPass_DepthTarget" ) );
     }
 
     auto EditorLayer::SetupRenderer() -> void {

@@ -67,6 +67,10 @@ namespace Mikoto {
         return false;
     }
 
+    auto FramePassNode::HasResources() const -> bool {
+        return !this->PerPassShaderResources.IsEmpty();
+    }
+
     FramePassBuilder::FramePassBuilder( FramePassNode &node )
         : m_Node{ std::addressof( node ) } {}
 
@@ -140,11 +144,15 @@ namespace Mikoto {
     auto FramePassBuilder::CreatePipeline( std::string_view name, const GraphicsPipelineDescription &description ) -> void {
         m_PipelineDescription.Name = name;
         m_PipelineDescription.Description = description;
+
+        m_HasActivePipeline = true;
     }
 
     auto FramePassBuilder::CreatePipeline( std::string_view name, const ComputePipelineDescription &description ) -> void {
         m_PipelineDescription.Name = name;
         m_PipelineDescription.Description = description;
+
+        m_HasActivePipeline = true;
     }
 
     auto FramePassBuilder::CreateTexture( std::string_view name, TextureCubeCreateDescription description ) -> void {
@@ -221,8 +229,6 @@ namespace Mikoto {
                 node.ExecuteCallback( commandContext, m_GraphBlackboard );
 
                 commandContext.EndPass();
-
-                TransitionWrites(node, cmd);
 
                 cmd->End();
                 m_Device->SubmitCommands( cmd );
@@ -324,7 +330,9 @@ namespace Mikoto {
             m_TexturePasses.emplace( builder.GetPass()->Name );
         }
 
-        m_GraphicsContex->PrepareResourceBindings(builder.GetPass()->Name, builder.m_PipelineDescription);
+        if (builder.m_HasActivePipeline) {
+            m_GraphicsContex->PrepareResourceBindings(builder.GetPass()->Name, builder.m_PipelineDescription);
+        }
     }
 
     auto FrameGraph::SortPassExecution() -> void {

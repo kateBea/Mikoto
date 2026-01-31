@@ -72,9 +72,13 @@ namespace Mikoto {
 
         MKT_NODISCARD auto IsSwapChainImage() const -> bool;
 
+        // Assume external synchronization and barrier used
+        auto SetCurrentLayout(VkImageLayout layout ) -> void;
+
         auto SubmitLayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd ) -> void;
 
         ~VulkanTexture() override;
+
 
     private:
         auto Initialize() -> void override;
@@ -108,6 +112,9 @@ namespace Mikoto {
         MKT_NODISCARD auto GetCurrentLayout() const -> VkImageLayout;
         MKT_NODISCARD auto GetCreateInfo() const -> const VkImageCreateInfo&;
         MKT_NODISCARD auto GetViewCreateInfo() const -> const VkImageViewCreateInfo&;
+
+        // Assume external synchronization and barrier used
+        auto SetCurrentLayout(VkImageLayout layout ) -> void;
 
         auto SubmitLayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd ) -> void;
 

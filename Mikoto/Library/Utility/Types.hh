@@ -13,6 +13,8 @@
 #include <filesystem>
 #include <memory>
 #include <utility>
+#include <variant>
+#include <type_traits>
 
 #include <glm/glm.hpp>
 
@@ -115,6 +117,28 @@ namespace Mikoto {
             DynamicallyCastable<From, To> &&
             ( std::is_base_of_v<std::remove_pointer_t<From>, std::remove_pointer_t<To>> ||
               std::is_base_of_v<std::remove_pointer_t<To>, std::remove_pointer_t<From>> );
+
+    // Compile time check any_of
+    template<typename... Types, typename Variant>
+    auto AnyOf(const Variant& v) -> bool {
+        return (std::holds_alternative<Types>(v) || ...);
+    }
+
+    // Runtime check any_of
+    template<typename... Ts>
+    struct IsOneOf {
+        template<typename T>
+        static constexpr auto Check() -> bool {
+            return ( std::is_same_v<T, Ts> || ... );
+        }
+    };
+
+    template<typename Variant, typename... Ts>
+    bool AnyOf_V( const Variant &v ) {
+        return std::visit( []<typename T0>( [[maybe_unused]] T0&& value ) {
+            return IsOneOf<Ts...>::template Check<std::decay_t<T0>>();
+        }, v );
+    }
 
     /**
      * @class PathBuilder

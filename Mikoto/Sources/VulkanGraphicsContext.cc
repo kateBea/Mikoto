@@ -143,6 +143,13 @@ namespace Mikoto {
                 .Layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
             };
 
+        case FrameResourceState::RenderTarget:
+            return {
+                .Stages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                .Access = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                .Layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+            };
+
         case FrameResourceState::Undefined:
         default:
             return {
@@ -450,6 +457,15 @@ namespace Mikoto {
                 .layerCount = VK_REMAINING_ARRAY_LAYERS
             }
         };
+
+        // TODO: update layout of underlying VulkanTexture
+        if (const auto vulkanTexture{ dynamic_cast<VulkanTexture*>(texture.GetRaw()) }) {
+            vulkanTexture->SetCurrentLayout(newInfo.Layout);
+        }
+
+        if (const auto vulkanTexture{ dynamic_cast<VulkanTextureCube*>(texture.GetRaw()) }) {
+            vulkanTexture->SetCurrentLayout(newInfo.Layout);
+        }
 
         VkDependencyInfo depInfo{
             .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,

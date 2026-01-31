@@ -25,7 +25,9 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
         m_ActivePass = std::addressof( pass );
 
-        m_Context->BindShaderResources( pass.Name, m_Commands );
+        if (m_ActivePass->HasResources()) {
+            m_Context->BindShaderResources( pass.Name, m_Commands );
+        }
     }
 
     auto CommandContext::EndPass() -> void {
@@ -46,8 +48,9 @@ namespace Mikoto {
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
 
         // There must be at least one valid color target
-        MKT_ASSERT( !m_RenderInfo.ColorRenderTargets.empty() && !m_RenderInfo.ColorRenderTargets.front().IsEmpty(),
-            "No valid color target" );
+        MKT_ASSERT( !m_RenderInfo.ColorRenderTargets.empty() && !m_RenderInfo.ColorRenderTargets.front().IsEmpty() ||
+                !m_RenderInfo.DepthRenderTarget.IsEmpty(),
+            "No valid color or depth target" );
 
         m_RenderInfo.ColorLoadOp = renderInfo.ColorLoadOp;
         m_RenderInfo.DephtLoadOp = renderInfo.DephtLoadOp;

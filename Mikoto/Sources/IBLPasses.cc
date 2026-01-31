@@ -46,6 +46,10 @@ namespace Mikoto {
         RegisterIrradiance( graph );
         RegisterPrefilter( graph );
         RegisterShading( graph );
+
+        // This pass will force transitions into
+        // states we can display in the editor
+        RegisterDebugViewsPass( graph );
     }
 
     auto IBLPasses::SetClearColor( const Vec4F &color ) -> void {
@@ -316,9 +320,97 @@ namespace Mikoto {
 
     auto IBLPasses::RegisterDirShadowMap( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass(
+                "DirectionalShadowMapPass",
+                [this]( FramePassBuilder &b ) {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                    b.Create<Texture>( "DirectionalShadowMapPass_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                    b.Create<Texture>( "DirectionalShadowMapPass_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
+
+                    b.Create<Buffer>( "DirectionalShadowMapPass_CameraInfo", BufferUsage::UNIFORM, sizeof( DirectionalShadowMapCameraInfo ), 1 );
+
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/DirectionalShadowMap_Frag.sprv", ShaderStage::VERTEX );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/DirectionalShadowMap_Vert.sprv", ShaderStage::FRAGMENT );
+
+                    GraphicsPipelineDescription graphicsDesc{
+                        .DepthTest{ true },
+                        .DepthWrite{ true },
+                        .DepthAttachmentFormat{ TextureFormat::D32_FLOAT }
+                    };
+                    b.Create<Pipeline>( "DirectionalShadowMapPass_Pipeline", graphicsDesc );
+
+                    b.Write( "DirectionalShadowMapPass_ColorTarget", FrameResourceState::RenderTarget );
+                    b.Write( "DirectionalShadowMapPass_DepthTarget", FrameResourceState::DepthWrite );
+
+                    b.Use( SRGType::SRG_PerPass, "DirectionalShadowMapPass_CameraInfo", 0 );
+                },
+                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                    const auto dimensions{ InferDimensions( m_Resolution ) };
+
+                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+
+                    ctx.SetColorRenderTarget( "DirectionalShadowMapPass_ColorTarget" );
+                    ctx.SetDepthRenderTarget( "DirectionalShadowMapPass_DepthTarget" );
+
+                    ctx.BeginRender();
+
+                    ctx.BindPipeline( "DirectionalShadowMapPass_Pipeline" );
+
+                    auto &registry{ m_Scene->GetRegistry() };
+                    auto lights{ registry.view<TransformComponent, LightComponent>() };
+
+                    for (const auto &light : lights) {
+                        auto &lightComp{ registry.get<LightComponent>( light ) };
+
+                        if (lightComp.IsTypeActive( LightType::DIRECTIONAL_LIGHT_TYPE )) {
+                            auto &transform{ registry.get<TransformComponent>( light ) };
+
+                            constexpr float zNear{ 0.01f };
+                            constexpr float zFar{ 2000.0f };
+                            constexpr float degreesFOV{ 45.0f };
+
+                            Mat4F depthProjectionMatrix{ glm::perspective(glm::radians(degreesFOV), 1.0f, zNear, zFar) };
+                            Mat4F depthViewMatrix{ glm::lookAt(transform.GetTranslation(), glm::vec3(0.0f), glm::vec3(0, 1, 0)) };
+                            Mat4F depthModelMatrix{ glm::mat4(1.0f) };
+
+                            m_DirectionalShadowMapCameraInfo.MVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
+                            ctx.UploadBuffer<DirectionalShadowMapCameraInfo>( "DirectionalShadowMapPass_CameraInfo", m_DirectionalShadowMapCameraInfo );
+
+                            // TODO: submit instanced draw, missing meshes
+                            TraverseMeshList( ctx );
+                            DrawInstances( ctx );
+                        }
+                    }
+
+                    ctx.EndRender();
+                } );
+    }
+
+    auto IBLPasses::RegisterDebugViewsPass( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass(
+                "DebugViewsPass",
+                []( FramePassBuilder &b ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+                    b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+                    b.Read( "DirectionalShadowMapPass_DepthTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+                    b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
+                },
+                []( CommandContext &, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                });
     }
 
     auto IBLPasses::RegisterShading( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         // Prepare buffer of meshes
         m_Meshes.resize( MAX_RENDERABLE_ENTITIES );
 
@@ -383,15 +475,17 @@ namespace Mikoto {
                     ctx.SetScissor( 0, 0, 1920, 1080 );
 
                     TraverseMeshList( ctx );
+                    DrawInstances( ctx );
                     UploadInstanceData( ctx );
 
                     ctx.EndRender();
                 } );
     }
 
-    auto IBLPasses::UploadInstanceData( CommandContext &context ) -> void {
+    auto IBLPasses::DrawInstances( CommandContext &context ) -> void {
         Size meshIndex{};
-        Size firstInstance{};
+
+        m_ActiveMeshCount = 0;
 
         for (auto &[meshNode, instanceInfo]: m_MeshDrawState) {
             DrawIndexedState &drawState{ instanceInfo.InstanceDrawState };
@@ -414,16 +508,17 @@ namespace Mikoto {
             }
 
             drawState.IndicesCount = meshNode->GetIndexBuffer()->GetCount();
-            drawState.FirstInstance = firstInstance;
+            drawState.FirstInstance = m_ActiveMeshCount;
             drawState.InstancesCount = drawCount;
 
-            firstInstance += drawCount;
+            m_ActiveMeshCount += drawCount;
 
             context.DrawIndexed( drawState );
         }
+    }
 
-        // Upload data
-        context.UploadBufferData( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMaterialParams ), firstInstance );
+    auto IBLPasses::UploadInstanceData( CommandContext &context ) -> void {
+        context.UploadBufferData( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMaterialParams ), m_ActiveMeshCount );
     }
 
     auto IBLPasses::TraverseMeshList( CommandContext &context ) -> void {

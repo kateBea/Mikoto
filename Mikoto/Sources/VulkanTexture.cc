@@ -185,6 +185,10 @@ namespace Mikoto {
         return m_ImageViewCreateInfo;
     }
 
+    auto VulkanTextureCube::SetCurrentLayout( VkImageLayout layout ) -> void {
+        m_CurrentLayout = layout;
+    }
+
     auto VulkanTextureCube::SubmitLayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd ) -> void {
         VkImageMemoryBarrier2 imageBarrier{};
         imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
@@ -402,6 +406,10 @@ namespace Mikoto {
 
     auto VulkanTexture::IsSwapChainImage() const -> bool {
         return m_IsImageExternal;
+    }
+
+    auto VulkanTexture::SetCurrentLayout( VkImageLayout layout ) -> void {
+        m_CurrentLayout = layout;
     }
 
     auto VulkanTexture::GetNativeHandle( ObjectType type ) -> Object {

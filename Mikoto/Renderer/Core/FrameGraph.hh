@@ -76,6 +76,10 @@ namespace Mikoto {
         MKT_NODISCARD auto IsExecutionPolicy(FramePassExecutionPolicy status) const -> bool;
 
         MKT_NODISCARD auto ShouldRun() const -> bool;
+
+        MKT_NODISCARD auto HasResources() const -> bool;
+
+
     };
 
     class FramePassBuilder final {
@@ -136,6 +140,7 @@ namespace Mikoto {
 
         FramePassNode *m_Node{};
 
+        bool m_HasActivePipeline{ false };
         PipelineDescription m_PipelineDescription{};
 
         ankerl::unordered_dense::map<std::string, FramePassResourceDescription> m_Creates{};

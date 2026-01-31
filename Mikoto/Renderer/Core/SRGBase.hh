@@ -83,6 +83,8 @@ namespace  Mikoto {
         auto cbegin() const -> decltype(auto) { return m_Resources.cbegin(); }
         auto cend() const -> decltype(auto) { return m_Resources.cend(); }
 
+        MKT_NODISCARD auto IsEmpty() const -> bool { return m_Resources.empty(); }
+
     private:
         struct Entry {
             std::string Name{};

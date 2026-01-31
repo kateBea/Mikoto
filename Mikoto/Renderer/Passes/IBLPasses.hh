@@ -49,6 +49,7 @@ namespace Mikoto {
         auto RegisterSkybox( FrameGraph& graph ) -> void;
         auto RegisterShading( FrameGraph& graph ) -> void;
         auto RegisterDirShadowMap( FrameGraph& graph ) -> void;
+        auto RegisterDebugViewsPass( FrameGraph& graph ) -> void;
 
     private:
         inline static const std::vector<glm::mat4> s_Matrices{
@@ -92,6 +93,10 @@ namespace Mikoto {
             float Gamma{};
         };
 
+        struct alignas(16) DirectionalShadowMapCameraInfo {
+            Mat4F MVP{};
+        };
+
         struct MeshInstanceInfo {
             DrawIndexedState InstanceDrawState{};
             ankerl::unordered_dense::map<UInt64, bool> ActiveEntities{};
@@ -123,6 +128,7 @@ namespace Mikoto {
 
     private:
 
+        auto DrawInstances( CommandContext& context ) -> void;
         auto UploadInstanceData( CommandContext& context ) -> void;
         auto TraverseMeshList( CommandContext& context ) -> void;
 
@@ -148,6 +154,10 @@ namespace Mikoto {
 
         ShaderLightListParams m_LightsInfo{};
         ShaderCameraParams m_FrameUBO{};
+
+        DirectionalShadowMapCameraInfo m_DirectionalShadowMapCameraInfo{};
+
+        Size m_ActiveMeshCount{};
 
         Scene* m_Scene{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };

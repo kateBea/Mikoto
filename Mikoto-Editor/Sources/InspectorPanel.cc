@@ -1186,6 +1186,17 @@ namespace Mikoto {
             ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
+            ImGui::TextUnformatted( "Intensity" );
+
+            ImGui::TableSetColumnIndex( 1 );
+            float intensity{ direLightData.GetIntensity() };
+            if ( ImGuiUtils::Slider( "##Intensity", intensity, { 1.0f, 10.0f } ) ) {
+                direLightData.SetIntensity( intensity );
+            }
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
             ImGui::TextUnformatted( "Color" );
 
             ImGui::TableSetColumnIndex( 1 );

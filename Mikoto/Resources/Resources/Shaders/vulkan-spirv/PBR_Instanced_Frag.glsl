@@ -173,7 +173,7 @@ vec3 ComputeSpotLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, floa
     float distance = length(lightInfo.Position.xyz - in_FragmentWorldPos);
     float attenuation = ComputeAttenuation(distance, lightInfo.Radius);
     // This vec 3 should be the light color, we assume it is full white for now
-    vec3 radiance = lightInfo.Diffuse.xyz * attenuation;
+    vec3 radiance = lightInfo.Diffuse.xyz * attenuation * lightInfo.Intensity;
 
     // Spotlight intensity based on angle
     float theta = dot(L, normalize(-vec3(lightInfo.Direction.xyz)));
@@ -222,7 +222,7 @@ vec3 ComputeDirectionalLightContribution(vec3 N, vec3 V, vec3 F0, float roughnes
     vec3 H = normalize( V + L );
 
     // This vec 3 should be the light color, we assume it is full white for now
-    vec3 radiance = lightInfo.Diffuse.xyz;
+    vec3 radiance = lightInfo.Diffuse.xyz * lightInfo.Intensity;
 
     // Cook-Torrance BRDF
     float NDF = DistributionGGX( N, H, roughness );

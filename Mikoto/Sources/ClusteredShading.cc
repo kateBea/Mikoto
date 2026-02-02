@@ -320,6 +320,7 @@ namespace Mikoto {
                 case LightType::DIRECTIONAL_LIGHT_TYPE: {
                     auto &dir{ lightComp.Get<DirectionalLight>() };
 
+                    uboLight.Intensity = dir.GetIntensity();
                     uboLight.Direction = Vec4F( dir.GetDirection(), 0.0f );
                     uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
                     uboLight.Diffuse = Vec4F( dir.GetColor() * dir.GetIntensity(), 1.0f );

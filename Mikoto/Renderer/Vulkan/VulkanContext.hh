@@ -53,6 +53,8 @@ namespace Mikoto {
         auto SubmitFrame() -> void override;
         auto PrepareFrame() -> void override;
 
+        auto Update() -> void override;
+
         auto EnableVSync() -> void override { SwitchSyncMode( true ); }
         auto DisableVSync() -> void override { SwitchSyncMode( false ); }
 

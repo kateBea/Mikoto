@@ -520,6 +520,31 @@ namespace Mikoto {
         m_DeletionQueue.Push( std::move(callback) );
     }
 
+    auto VulkanDevice::FlushImmediateCommands() -> void {
+        std::vector<VkCommandBufferSubmitInfo> cmds{};
+        for (const auto& cmd : m_ImmediateSubmitCmds) {
+            VkCommandBufferSubmitInfo cmdInfo{
+                .sType{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO },
+                .commandBuffer{ cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) },
+                .deviceMask{ 0 }
+            };
+
+            cmds.emplace_back( cmdInfo );
+        }
+
+        VkSubmitInfo2 submitInfo{
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+            .pNext = nullptr,
+            .flags = 0,
+            .commandBufferInfoCount = static_cast<UInt32>( cmds.size() ),
+            .pCommandBufferInfos = cmds.data(),
+        };
+
+        MKT_VK_CHECK( vkQueueSubmit2( m_Queues.Graphics->Queue, 1, &submitInfo, VK_NULL_HANDLE ) );
+
+        m_ImmediateSubmitCmds.clear();
+    }
+
     auto VulkanDevice::CreateTexture( const TextureDescription& description ) -> TextureHandle {
         TextureHandle texture{ m_Textures.Allocate( description ) };
         if ( texture.IsEmpty() ) {
@@ -782,22 +807,7 @@ namespace Mikoto {
 
         if (cmd->IsImmediate()) {
             std::lock_guard lock{ m_OneTimeSubmitMutex };
-
-            VkCommandBufferSubmitInfo cmdInfo{
-                .sType{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO },
-                .commandBuffer{ cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) },
-                .deviceMask{ 0 }
-            };
-
-            VkSubmitInfo2 submitInfo{
-                .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-                .pNext = nullptr,
-                .flags = 0,
-                .commandBufferInfoCount = 1,
-                .pCommandBufferInfos = std::addressof( cmdInfo ),
-            };
-
-            MKT_VK_CHECK( vkQueueSubmit2( m_Queues.Graphics->Queue, 1, &submitInfo, VK_NULL_HANDLE ) );
+            m_ImmediateSubmitCmds.push_back( cmd );
         } else {
             std::lock_guard lock{ m_CommandSubmitMutex };
             m_PendingGraphicsCommandLists[m_CurrentFrameIndex].emplace_back( cmd );

@@ -308,6 +308,10 @@ namespace Mikoto {
         }
     }
 
+    auto VulkanContext::Update() -> void {
+        TO_VK_DEVICE( m_Device.get() )->FlushImmediateCommands();
+    }
+
     auto VulkanContext::Present() -> void {
         const VkSemaphore& renderFinishedSemaphore{ m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFinishedSemaphore };
 

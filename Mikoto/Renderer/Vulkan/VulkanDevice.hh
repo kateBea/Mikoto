@@ -181,6 +181,8 @@ namespace Mikoto {
 
         auto SubmitDeletion(std::function<void()>&& callback) -> void;
 
+        auto FlushImmediateCommands() -> void;
+
         MKT_NODISCARD auto GetDummyDescriptorLayout() -> DescriptorSetLayoutHandle;
 
         MKT_NODISCARD auto GetUniformBufferMinOffsetAlignment() const -> VkDeviceSize;
@@ -287,6 +289,8 @@ namespace Mikoto {
         ankerl::unordered_dense::map<UInt32, std::vector<CommandListHandle>> m_AvailableGraphicsCommandLists{};
         ankerl::unordered_dense::map<UInt32, std::vector<CommandListHandle>> m_PendingGraphicsCommandLists{};
         ankerl::unordered_dense::map<UInt32, std::vector<CommandListHandle>> m_SubmittedGraphicsCommandLists{};
+
+        std::vector<CommandListHandle> m_ImmediateSubmitCmds{};
 
         // [Device management]
         VkDevice m_LogicalDevice{};

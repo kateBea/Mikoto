@@ -474,7 +474,7 @@ namespace Mikoto {
                         .DepthTest{ true },
                         .DepthWrite{ true },
                         .AlphaBlending{ true },
-                        .PipelineCullMode{ CullMode::CULL_BACK },
+                        .PipelineCullMode{ CullMode::NONE },
                     };
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/PBR_Instanced_Vert.sprv", ShaderStage::VERTEX )

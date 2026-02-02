@@ -44,6 +44,10 @@ namespace Mikoto {
 
     }
 
+    auto D3D12Context::Update() -> void {
+
+    }
+
     auto D3D12Context::Present() -> void {
 
     }

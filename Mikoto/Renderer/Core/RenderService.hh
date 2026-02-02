@@ -43,6 +43,8 @@ namespace Mikoto {
         virtual auto SubmitFrame() -> void = 0;
         virtual auto PrepareFrame() -> void = 0;
 
+        virtual auto Update() -> void = 0;
+
         virtual auto Present() -> void = 0;
 
         virtual auto SetPresentTarget(TextureHandle texture) -> void = 0;

@@ -1,23 +1,33 @@
-/**
- * ImGuiUtility.hh
- * Created by kate on 9/17/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_IMGUI_UTILS_HH
 #define MIKOTO_IMGUI_UTILS_HH
 
 #include <any>
-// C++ Standard Library
+
 #include <imgui.h>
 #include <imgui_internal.h>
-#include <volk.h>
-
-#include <Common/Common.hh>
-#include <Library/String/String.hh>
-#include <Library/Utility/Types.hh>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "IconsMaterialDesign.h"
+#include <Common/Common.hh>
+
+#include <Library/String/String.hh>
+#include <Library/Utility/Types.hh>
+
+#include <Logging/Assert.hh>
+#include <ImGui/IconsMaterialDesign.h>
 
 namespace Mikoto::ImGuiUtils {
 
@@ -690,6 +700,39 @@ namespace Mikoto::ImGuiUtils {
      * @returns The panel's name including the icon.
      * */
     MKT_NODISCARD inline auto MakePanelName( std::string_view panelIcon, std::string_view panelName ) -> std::string { return fmt::format( "{} {}", panelIcon, panelName ); }
-}// namespace Mikoto::ImGuiUtils
+
+    template<typename UIFunction, typename... Args>
+    auto DrawNode( const std::string_view label, const UIFunction& uiFunc, Args&&... args ) -> void {
+        static constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
+                                                           ImGuiTreeNodeFlags_Framed |
+                                                           ImGuiTreeNodeFlags_SpanAvailWidth |
+                                                           ImGuiTreeNodeFlags_FramePadding };
+
+        ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2{ 4.0f, 4.0f } );
+
+        const std::string panelName{ fmt::format( "{}{}", __PRETTY_FUNCTION__, label ) };
+        const bool componentNodeOpen{
+            ImGui::TreeNodeEx( reinterpret_cast<const void*>( label.data() ), treeNodeFlags, "%s", label.data() )
+        };
+
+        // Node frame is hovered
+        if ( ImGui::IsItemHovered() ) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        ImGui::PopStyleVar();
+
+        if ( componentNodeOpen ) {
+
+            uiFunc( std::forward<Args>( args )... );
+
+            ImGui::TreePop();
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+    }
+}
 
 #endif// MIKOTO_IMGUI_UTILS_HH

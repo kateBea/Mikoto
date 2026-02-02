@@ -22,6 +22,7 @@
 #include <Library/Utility/Types.hh>
 
 #include <Scene/Scene.hh>
+#include <Scene/Camera.hh>
 #include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/CommandContext.hh>
@@ -33,10 +34,13 @@ namespace Mikoto {
         explicit PostEffectsPass( RenderResolution resolution);
 
         auto SetScene(const Scene* scene) -> void;
+        auto SetCamera(const Camera* camera) -> void;
         auto RegisterPasses(FrameGraph& graph, GpuDevice* device) -> void;
 
     private:
         auto RegisterTextRender( FrameGraph& graph, GpuDevice* device) -> void;
+        auto RegisterObjectOutline( FrameGraph& graph, GpuDevice* device) -> void;
+        auto RegisterInfiniteGrid( FrameGraph& graph ) -> void;
 
         auto TraverseTextList( CommandContext& commandList ) -> void;
 
@@ -65,6 +69,12 @@ namespace Mikoto {
             UInt32 TexIndex{};
         };
 
+        struct alignas( 16 ) InfiniteGridParameters {
+            Mat4F CameraView{};
+            Mat4F CameraProj{};
+            Vec4F CameraPos{};
+        };
+
         static constexpr UInt32 MAX_STRING{ 8096 * 10 };
 
         std::vector<TextRenderParams> m_TextRenderParams{};
@@ -90,6 +100,8 @@ namespace Mikoto {
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
 
         RenderResolution m_Resolution{ RenderResolution::FHD_1080 };
+
+        InfiniteGridParameters m_InfiniteGridParameters{};
     };
 
 }// namespace Mikoto

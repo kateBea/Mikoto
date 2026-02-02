@@ -61,6 +61,7 @@ namespace Mikoto {
 
     auto SceneRenderer::SetCamera( SceneCamera *camera ) -> void {
         m_IBLPasses.SetCamera( camera );
+        m_PostEffectsPasses.SetCamera( camera );
         m_ClusteredShadingPasses.SetCamera( camera );
     }
 

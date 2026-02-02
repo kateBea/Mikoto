@@ -38,10 +38,17 @@ namespace Mikoto {
         m_Scene = scene;
     }
 
+    auto PostEffectsPass::SetCamera( const Camera* camera ) -> void {
+        m_InfiniteGridParameters.CameraPos = Vec4F{ camera->GetPosition(), 1.0f };
+        m_InfiniteGridParameters.CameraView = camera->GetViewMatrix();
+        m_InfiniteGridParameters.CameraProj = camera->GetProjection();
+    }
+
     auto PostEffectsPass::RegisterPasses( FrameGraph &graph, GpuDevice* device) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         RegisterTextRender( graph, device );
+        RegisterInfiniteGrid( graph );
     }
 
     auto PostEffectsPass::RegisterTextRender( FrameGraph &graph, GpuDevice* device) -> void {
@@ -136,6 +143,82 @@ namespace Mikoto {
                     drawIndexedState.InstancesCount = m_TextRenderParams.size();
 
                     ctx.DrawIndexed( drawIndexedState );
+
+                    ctx.EndRender();
+                } );
+    }
+
+    auto PostEffectsPass::RegisterObjectOutline( FrameGraph& graph, GpuDevice* device ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+
+        graph.RegisterPass(
+                "ObjectOutline",
+                []( FramePassBuilder &b ) {
+                    MKT_BEGIN_PROFILER_NAMED();
+                },
+                []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                } );
+    }
+
+    auto PostEffectsPass::RegisterInfiniteGrid( FrameGraph& graph) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+
+        graph.RegisterPass(
+                "InfiniteGrid",
+                [this]( FramePassBuilder &b ) {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                    b.Create<Buffer>( "InfiniteGrid_CameraInfo", BufferUsage::UNIFORM, sizeof( InfiniteGridParameters ), 1 );
+
+                    b.Create<Texture>( "InfiniteGrid_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/InfiniteGrid_Vert.sprv", ShaderStage::VERTEX );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/InfiniteGrid_Frag.sprv", ShaderStage::FRAGMENT );
+
+                    b.Create<Pipeline>( "InfiniteGrid_Pipeline", GraphicsPipelineDescription{
+                        .DepthTest{ true },
+                        .DepthWrite{ false },
+                        .PrimitiveTopology{ Topology::TRIANGLE_LIST },
+                        .VertexAttributesSpec{} } );
+
+                    b.Write( "InfiniteGrid_ColorTarget", FrameResourceState::RenderTarget );
+                    b.Write( "InfiniteGrid_CameraInfo", FrameResourceState::UniformBuffer );
+
+                    b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
+                    b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthRead );
+
+                    b.Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UnorderedAccess );
+
+                    b.Use( SRGType::SRG_PerPass, "InfiniteGrid_CameraInfo", 0 );
+                },
+                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                    const auto dimensions{ InferDimensions( m_Resolution ) };
+
+                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+
+                    ctx.SetClearColor( { 0.0f, 0.0f, 0.0f, 1.0f } );
+
+                    ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );
+                    ctx.SetDepthRenderTarget( "FinalShadingPass_DepthTarget" );
+
+                    PassRenderInfo renderInfo{
+                        .ColorLoadOp{ LoadOp::LOAD },
+                        .DephtLoadOp{ LoadOp::LOAD },
+                    };
+                    ctx.BeginRender( renderInfo );
+
+                    ctx.UploadBuffer<InfiniteGridParameters>( "InfiniteGrid_CameraInfo", m_InfiniteGridParameters );
+
+                    ctx.BindPipeline( "InfiniteGrid_Pipeline" );
+
+                    ctx.Draw( 4 );
 
                     ctx.EndRender();
                 } );

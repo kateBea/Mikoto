@@ -73,6 +73,7 @@ namespace Mikoto {
         m_EditorState->PassesCompositions.try_emplace( "BRDF LUT", m_SceneRenderer->GetTexture( "BRDFLutPass_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "Skybox", m_SceneRenderer->GetTexture( "FinalShadingPass_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "DirectionalShadowMapDepth", m_SceneRenderer->GetTexture( "DirectionalShadowMapPass_DepthTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "InfGrid", m_SceneRenderer->GetTexture( "InfiniteGrid_ColorTarget" ) );
     }
 
     auto EditorLayer::SetupRenderer() -> void {
@@ -748,8 +749,6 @@ namespace Mikoto {
         m_SceneRenderer->SetCamera( m_EditorCamera.get() );
         m_SceneRenderer->SetSkyBox( m_ActiveScene->GetSkybox() );
         m_SceneRenderer->EnableSkybox( m_ActiveScene->IsSkyboxEnabled() );
-
-        m_SceneRenderer->SetClearColor( settings.ClearColor );
 
         m_SceneRenderer->SetEnvironmentGamma( m_ActiveScene->GetGamma() );
         m_SceneRenderer->SetEnvironmentExposure( m_ActiveScene->GetExposure() );

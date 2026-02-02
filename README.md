@@ -23,8 +23,8 @@ passes, amongst other features.
 
 | **Feature Name**         | **Feature Description**                                   | **Supported** |
 |--------------------------|-----------------------------------------------------------|---------------|
-| Model Loading            | Load 3D models (FBX, OBJ, GLTF, etc.) via Assimp          | ✔️            |
-| Image Loading            | Texture loading (PNG, HDR, EXR, etc.) via STB_Image       | ✔️            |
+| Model Loading            | Load 3D models via Assimp                                 | ✔️            |
+| Image Loading            | Texture/Image loading via STB_Image                       | ✔️            |
 | Cube maps                | Load equirectangular HDR images and use them as cube maps | ✔️            |
 | Entity Component System  | ECS for scene/game object management                      | ✔️            |
 | Scene Serialization      | Editor scene save/load                                    | ❌ (WIP)       |

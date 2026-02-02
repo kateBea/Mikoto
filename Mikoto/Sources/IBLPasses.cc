@@ -43,7 +43,14 @@ namespace Mikoto {
         RegisterSkybox( graph );
         RegisterBRDFLut( graph );
 
+        // These would ideally render and update the shadow maps
+        // for dynamic shadow casters in a shadow texture atlas
+        // TODO: investigate. Start by first integrating shadows for one dir light and proceed with atlas integration
+        //https://www.adriancourreges.com/blog/2016/09/09/doom-2016-graphics-study/
+
         RegisterDirShadowMap( graph );
+        RegisterSpotShadowMap( graph );
+        RegisterPointShadowMap( graph );
 
         RegisterIrradiance( graph );
         RegisterPrefilter( graph );
@@ -399,6 +406,32 @@ namespace Mikoto {
                     }
 
                     ctx.EndRender();
+                } );
+    }
+
+    auto IBLPasses::RegisterPointShadowMap( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass(
+                "PointLightShadowMapPass",
+                []( FramePassBuilder &b ) {
+                    MKT_BEGIN_PROFILER_NAMED();
+                },
+                []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+                } );
+    }
+
+    auto IBLPasses::RegisterSpotShadowMap( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass(
+                "SpotLightShadowMapPass",
+                []( FramePassBuilder &b ) {
+                    MKT_BEGIN_PROFILER_NAMED();
+                },
+                []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
                 } );
     }
 

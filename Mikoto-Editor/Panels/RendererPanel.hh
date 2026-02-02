@@ -31,6 +31,10 @@ namespace Mikoto {
         auto OnUpdate(float timeStep) -> void override;
 
         ~RendererPanel() override = default;
+
+    private:
+
+        auto DrawPassInfo() -> void;
     private:
 
         EditorState* m_EditorState{};

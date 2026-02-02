@@ -153,7 +153,6 @@ namespace Mikoto {
     auto PostEffectsPass::RegisterObjectOutline( FrameGraph& graph, GpuDevice* device ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-
         graph.RegisterPass(
                 "ObjectOutline",
                 []( FramePassBuilder &b ) {

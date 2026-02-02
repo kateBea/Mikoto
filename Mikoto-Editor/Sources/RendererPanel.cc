@@ -12,10 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <ImGui/ImGuiUtility.hh>
 #include <ImGui/IconsMaterialDesign.h>
 
+#include <ImGui/ImGuiUtility.hh>
 #include <Panels/RendererPanel.hh>
+
+#include "Common/String.hh"
+#include "Layers/EditorLayer.hh"
 
 namespace Mikoto {
 
@@ -31,7 +34,21 @@ namespace Mikoto {
 
         ImGui::Begin( m_PanelHeaderName.c_str(), &m_PanelIsVisible, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize );
 
+        ImGuiUtils::DrawNode( "Passes", [this] () -> void {
+            DrawPassInfo();
+        });
 
         ImGui::End();
     }
-}
+
+    auto RendererPanel::DrawPassInfo() -> void {
+        const auto& passList{ m_EditorState->EditorSceneRenderer->GetPassList() };
+        ImGui::TextUnformatted( StringUtil::Format("Pass count: {}", passList.size() ).c_str() );
+        ImGui::TextUnformatted( StringUtil::Format("Pass List --------").c_str() );
+
+        for (const auto& pass : passList) {
+            ImGui::TextUnformatted( StringUtil::Format("{}", pass.first).c_str() );
+        }
+
+    }
+}// namespace Mikoto

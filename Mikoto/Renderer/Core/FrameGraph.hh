@@ -148,6 +148,8 @@ namespace Mikoto {
         bool m_UsesTextures{ false };
     };
 
+    using PassList = ankerl::unordered_dense::map<std::string, FramePassNode>;
+
     class FrameGraph final {
     public:
         explicit FrameGraph( GraphicsContext *context, GpuDevice *device );
@@ -183,6 +185,8 @@ namespace Mikoto {
 
         MKT_NODISCARD auto IsCompiled() const -> bool;
 
+        MKT_NODISCARD auto GetPassList() const -> const PassList&;
+
         MKT_NODISCARD auto GetTexture( std::string_view name ) const -> TextureHandle;
         MKT_NODISCARD auto GetBuffer( std::string_view name ) const -> BufferHandle;
 
@@ -212,7 +216,7 @@ namespace Mikoto {
         FrameGraphBlackboard m_GraphBlackboard{};
 
         // List of registered nodes
-        ankerl::unordered_dense::map<std::string, FramePassNode> m_Passes{};
+        PassList m_Passes{};
 
         // Passes that use global array of textures
         ankerl::unordered_dense::set<std::string> m_TexturePasses{};

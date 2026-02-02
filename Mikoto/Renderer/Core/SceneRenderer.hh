@@ -62,6 +62,8 @@ namespace Mikoto {
         auto SetEnvironmentGamma(float value) -> void;
         auto SetEnvironmentExposure(float value) -> void;
 
+        MKT_NODISCARD auto GetPassList() const -> const PassList&;
+
         auto SetRenderResolution( RenderResolution resolution ) -> void;
         MKT_NODISCARD auto GetRenderResolution() const -> RenderResolution;
         MKT_NODISCARD auto IsRenderResolution(RenderResolution resolution) const -> bool;

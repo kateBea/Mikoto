@@ -53,6 +53,8 @@ namespace Mikoto {
         auto RegisterSkybox( FrameGraph& graph ) -> void;
         auto RegisterShading( FrameGraph& graph ) -> void;
         auto RegisterDirShadowMap( FrameGraph& graph ) -> void;
+        auto RegisterPointShadowMap( FrameGraph& graph ) -> void;
+        auto RegisterSpotShadowMap( FrameGraph& graph ) -> void;
         auto RegisterDebugViewsPass( FrameGraph& graph ) -> void;
 
     private:

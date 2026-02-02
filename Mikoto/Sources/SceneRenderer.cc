@@ -100,6 +100,10 @@ namespace Mikoto {
         m_IBLPasses.SetExposure( value );
     }
 
+    auto SceneRenderer::GetPassList() const -> const PassList & {
+        return m_FrameGraph->GetPassList();
+    }
+
     auto SceneRenderer::GetTexture( std::string_view name ) const -> TextureHandle {
         return m_FrameGraph->GetTexture(name);
     }

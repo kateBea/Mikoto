@@ -247,6 +247,10 @@ namespace Mikoto {
         return m_Compiled;
     }
 
+    auto FrameGraph::GetPassList() const -> const PassList& {
+        return m_Passes;
+    }
+
     auto FrameGraph::GetTexture( std::string_view name ) const -> TextureHandle {
         return m_GraphicsContex->GetTexture( name );
     }

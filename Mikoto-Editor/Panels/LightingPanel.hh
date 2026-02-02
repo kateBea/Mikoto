@@ -12,30 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RENDERER_PANEL_HH
-#define MIKOTO_RENDERER_PANEL_HH
+#ifndef MIKOTO_LIGHTING_PANEL_HH
+#define MIKOTO_LIGHTING_PANEL_HH
 
 #include <Panels/Panel.hh>
 
 namespace Mikoto {
+
     struct EditorState;
 
-    struct RendererPanelCreateInfo {
+    struct LightingPanelCreateInfo {
         EditorState* State{};
     };
 
-    class RendererPanel final : public Panel {
+    class LightingPanel final : public Panel {
     public:
-        explicit RendererPanel(const RendererPanelCreateInfo& info);
 
-        auto OnUpdate(float timeStep) -> void override;
+        explicit LightingPanel( const LightingPanelCreateInfo& info );
 
-        ~RendererPanel() override = default;
+        auto OnUpdate( float timeStep ) -> void override;
+
+        ~LightingPanel() override = default;
+
     private:
+        auto DrawBackgroundSettings() -> void;
 
+    private:
         EditorState* m_EditorState{};
     };
 }
 
-
-#endif//MIKOTO_RENDERER_PANEL_HH
+#endif // MIKOTO_LIGHTING_PANEL_HH

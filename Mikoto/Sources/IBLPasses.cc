@@ -98,6 +98,9 @@ namespace Mikoto {
                 [&]( CommandContext &ctx, FrameGraphBlackboard & ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
+                    //TODO: disabled for now
+                    return;
+
                     // The skybox is bound once
                     ctx.BindImage( m_CubeMap, m_CubeMapSampler, 2 );
 
@@ -162,6 +165,9 @@ namespace Mikoto {
 
                 [&]( CommandContext &ctx, FrameGraphBlackboard & ) {
                     MKT_BEGIN_PROFILER_NAMED();
+
+                    //TODO: disabled for now
+                    return;
 
                     // The skybox is bound once
                     ctx.BindImage( m_CubeMap, m_CubeMapSampler, 2 );

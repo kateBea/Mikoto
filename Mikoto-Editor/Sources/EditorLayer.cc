@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -162,6 +162,20 @@ namespace Mikoto {
         m_ActiveScene->SetSkybox( m_TextureHDR );
     }
 
+    auto EditorLayer::SetPresentTarget() -> void {
+        if (m_RenderScreenTarget == RenderScreenTarget::PANEL) {
+            m_EditorState->RenderImage = ImGuiService::Get()->GetFinalComposition();
+        } else {
+            if (!m_EditorState->ShowWireframe) {
+                m_EditorState->RenderImage = m_EditorState->FinalComposition;
+            } else {
+                m_EditorState->RenderImage = m_EditorState->WireframeComposition;
+            }
+        }
+
+        RenderService::Get()->SetPresentTarget( m_EditorState->RenderImage );
+    }
+
     auto EditorLayer::OnDestroy() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -180,12 +194,12 @@ namespace Mikoto {
     auto EditorLayer::OnUpdate( float timeStep ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        m_ActiveScene->SetState( SceneState::IDLE );
-
         PrepareCamera( timeStep );
         PrepareRenderer( timeStep );
 
+        m_ActiveScene->SetState( SceneState::IDLE );
         m_ActiveScene->Update( timeStep );
+
         m_SceneRenderer->Render( m_ActiveScene );
 
         UpdateDockSpace();
@@ -194,17 +208,7 @@ namespace Mikoto {
         // so they can become part of it
         UpdatePanels( timeStep );
 
-        if (m_RenderScreenTarget == RenderScreenTarget::PANEL) {
-            m_EditorState->RenderImage = ImGuiService::Get()->GetFinalComposition();
-        } else {
-            if (!m_EditorState->ShowWireframe) {
-                m_EditorState->RenderImage = m_EditorState->FinalComposition;
-            } else {
-                m_EditorState->RenderImage = m_EditorState->WireframeComposition;
-            }
-        }
-
-        RenderService::Get()->SetPresentTarget( m_EditorState->RenderImage );
+        SetPresentTarget();
     }
 
     auto EditorLayer::OnEvent( Event &event ) -> void {
@@ -377,6 +381,14 @@ namespace Mikoto {
         ScenePropertiesPanelCreateInfo scenePropertiesPanel{};
         scenePropertiesPanel.State = m_EditorState.get();
         m_PanelRegistry.Register<ScenePropertiesPanel>( scenePropertiesPanel );
+
+        RendererPanelCreateInfo rendererPanelCreateInfo{};
+        rendererPanelCreateInfo.State = m_EditorState.get();
+        m_PanelRegistry.Register<RendererPanel>( rendererPanelCreateInfo );
+
+        LightingPanelCreateInfo lightingPanelCreateInfo{};
+        lightingPanelCreateInfo.State = m_EditorState.get();
+        m_PanelRegistry.Register<LightingPanel>( lightingPanelCreateInfo );
     }
 
     auto EditorLayer::CreateCameras() -> void {
@@ -742,15 +754,11 @@ namespace Mikoto {
     auto EditorLayer::PrepareRenderer( double ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        const SettingsPanel &settingsPanel{ *m_PanelRegistry.Get<SettingsPanel>() };
-
-        const auto& settings{ settingsPanel.GetData() };
-
         m_SceneRenderer->SetCamera( m_EditorCamera.get() );
         m_SceneRenderer->SetSkyBox( m_ActiveScene->GetSkybox() );
-        m_SceneRenderer->EnableSkybox( m_ActiveScene->IsSkyboxEnabled() );
-
         m_SceneRenderer->SetEnvironmentGamma( m_ActiveScene->GetGamma() );
         m_SceneRenderer->SetEnvironmentExposure( m_ActiveScene->GetExposure() );
+
+        m_SceneRenderer->EnableSkybox( m_ActiveScene->IsSceneBackground(SceneBackground::SKYBOX) );
     }
-} // namespace Mikoto
+}

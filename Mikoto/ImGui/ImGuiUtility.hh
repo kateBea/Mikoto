@@ -16,6 +16,7 @@
 #define MIKOTO_IMGUI_UTILS_HH
 
 #include <any>
+#include <span>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -732,6 +733,61 @@ namespace Mikoto::ImGuiUtils {
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
+    }
+
+
+    template<typename EnumType>
+    MKT_NODISCARD auto Combo(std::span<std::string> choices, EnumType currentSelection) -> EnumType {
+        MKT_ASSERT( static_cast<UInt32>( currentSelection ) < choices.size(), "Enum value must be lower than choices size" );
+
+        EnumType result{ currentSelection };
+
+        const std::string &currentChoiceStr{ choices[static_cast<UInt32>( currentSelection )] };
+        const std::string labelName{ fmt::format( "##{}{}", __PRETTY_FUNCTION__, currentChoiceStr ) };
+
+        if ( ImGui::BeginCombo( labelName.data(), currentChoiceStr.c_str() ) ) {
+            UInt32 selectionIndex{};
+
+            for ( const std::string &selectionStr: choices ) {
+                const bool isSelected{ selectionStr == choices[static_cast<UInt32>( currentSelection )] };
+
+                if ( ImGui::Selectable( fmt::format( " {}", selectionStr ).c_str(), isSelected ) ) {
+                    result = static_cast<EnumType>( selectionIndex );
+                }
+
+                if ( ImGui::IsItemHovered() ) {
+                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+                }
+
+                if ( isSelected ) {
+                    ImGui::SetItemDefaultFocus();
+                }
+
+                ++selectionIndex;
+            }
+
+            ImGui::EndCombo();
+        }
+
+        if ( ImGui::IsItemHovered() ) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        return result;
+    }
+
+    inline auto InputText(std::string_view viewData, bool readOnly = false) -> bool {
+        ImGuiTextFlags flags{ ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll };
+
+        if (readOnly) {
+            flags |= ImGuiInputTextFlags_ReadOnly;
+        }
+
+        constexpr UInt32 MAX_LENGTH{ 1024 };
+        std::array<char, MAX_LENGTH> name{};
+        std::ranges::copy( viewData, name.data() );
+
+        return ImGui::InputText( "##DrawNameTextInputTag", name.data(), name.max_size(), flags );
     }
 }
 

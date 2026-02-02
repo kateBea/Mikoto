@@ -174,10 +174,5 @@ namespace Mikoto {
                 break;
         }
 
-        // Lighting passes
-
-
-        // Display list of buffers involved and make it to display info about selected buffer
-
     }
 }

@@ -39,7 +39,9 @@ namespace Mikoto {
     private:
         auto BuildAABB( FrameGraph& graph ) -> void;
         auto BuildGBuffer( FrameGraph& graph ) -> void;
+        auto BuildDepthPrepass( FrameGraph& graph ) -> void;
         auto BuildLightCulling( FrameGraph& graph ) -> void;
+        auto BuildCameraInfo( FrameGraph& graph ) -> void;
 
         auto SetupLightList(CommandContext& ctx) -> void;
 

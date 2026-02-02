@@ -46,6 +46,8 @@ namespace Mikoto {
 
         BuildAABB( graph );
         BuildGBuffer( graph );
+        BuildCameraInfo( graph );
+        BuildDepthPrepass( graph );
         BuildLightCulling( graph );
     }
 
@@ -101,7 +103,7 @@ namespace Mikoto {
                 [this]( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
                     b.Create<Texture>( "GBuffer_Position", m_Resolution, TextureFormat::RGBA16_FLOAT, TextureUsage::COLOR );
-                    b.Create<Texture>( "GBuffer_Normal", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                    b.Create<Texture>( "GBuffer_Normal", m_Resolution, TextureFormat::RGBA16_FLOAT, TextureUsage::COLOR );
                     b.Create<Texture>( "GBuffer_Color", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/GBuffer_Vert.sprv", ShaderStage::VERTEX );
@@ -112,7 +114,11 @@ namespace Mikoto {
                         .DepthWrite{ false },
                         .AlphaBlending{ false },
                         .PipelineCullMode{ CullMode::NONE },
-                        .ColorAttachmentFormats{ TextureFormat::RGBA16_FLOAT, TextureFormat::RGBA16_FLOAT, TextureFormat::RGBA8_UNORM  }
+                        .ColorAttachmentFormats{
+                            TextureFormat::RGBA16_FLOAT,
+                            TextureFormat::RGBA16_FLOAT,
+                            TextureFormat::RGBA8_UNORM
+                        }
                     };
                     b.Create<Pipeline>( "GBuffer_Pipeline", graphicsDesc );
 
@@ -145,6 +151,62 @@ namespace Mikoto {
 
                     ctx.EndRender();
 
+                } );
+    }
+
+    auto ClusteredShading::BuildDepthPrepass( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass(
+                "DepthPrePass",
+                [this]( FramePassBuilder &b ) {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                    b.Create<Texture>("DepthPrePass_Color", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                    b.Create<Texture>("DepthPrePass_Depth", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
+
+                    b.UseShader("Resources/Shaders/vulkan-spirv/DepthPrePass_Vert.sprv", ShaderStage::VERTEX );
+                    b.UseShader("Resources/Shaders/vulkan-spirv/DepthPrePass_Frag.sprv", ShaderStage::FRAGMENT );
+
+                    GraphicsPipelineDescription graphicsDesc{
+                        .DepthTest{ true },
+                        .DepthWrite{ true },
+                        .AlphaBlending{ false },
+                        .PipelineCullMode{ CullMode::NONE },
+                    };
+
+                    b.Create<Pipeline>( "DepthPrePass_Pipeline", graphicsDesc );
+
+                    b.Write( "DepthPrePass_Color", FrameResourceState::RenderTarget );
+                    b.Write( "DepthPrePass_Depth", FrameResourceState::DepthWrite );
+
+                    b.Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
+                    b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
+
+                    b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_CameraInfo", 0 );
+                    b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 1 );
+                },
+
+                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                    ctx.BindPipeline( "DepthPrePass_Pipeline" );
+
+                    ctx.SetColorRenderTarget( "DepthPrePass_Color" );
+                    ctx.SetDepthRenderTarget( "DepthPrePass_Depth" );
+
+                    ctx.SetClearColor( { 0.0f, 0.0f, 0.0f, 1.0f } );
+
+                    ctx.BeginRender();
+
+                    const auto dimensions{ InferDimensions( m_Resolution ) };
+
+                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+
+                    m_MeshCullingPass->DrawInstances( ctx );
+
+                    ctx.EndRender();
                 } );
     }
 
@@ -181,6 +243,20 @@ namespace Mikoto {
                     const auto numWorkGroupsX{ ( m_NumClusters + m_LocalSize - 1 ) / m_LocalSize };
 
                     ctx.Dispatch( numWorkGroupsX, 1, 1 );
+                } );
+    }
+
+    auto ClusteredShading::BuildCameraInfo( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass(
+                "SceneCameraInfo",
+                []( FramePassBuilder &b ) {
+                    MKT_BEGIN_PROFILER_NAMED();
+                },
+                []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+
                 } );
     }
 

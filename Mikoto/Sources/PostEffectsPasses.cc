@@ -49,6 +49,8 @@ namespace Mikoto {
 
         RegisterTextRender( graph, device );
         RegisterInfiniteGrid( graph );
+        RegisterSSAO( graph );
+        RegisterBloom( graph );
     }
 
     auto PostEffectsPass::RegisterTextRender( FrameGraph &graph, GpuDevice* device) -> void {
@@ -154,6 +156,34 @@ namespace Mikoto {
 
         graph.RegisterPass(
                 "ObjectOutline",
+                []( FramePassBuilder &b ) {
+                    MKT_BEGIN_PROFILER_NAMED();
+                },
+                []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                } );
+    }
+
+    auto PostEffectsPass::RegisterSSAO( FrameGraph& graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass(
+                "SSAO",
+                []( FramePassBuilder &b ) {
+                    MKT_BEGIN_PROFILER_NAMED();
+                },
+                []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                } );
+    }
+
+    auto PostEffectsPass::RegisterBloom( FrameGraph& graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass(
+                "Bloom",
                 []( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
                 },

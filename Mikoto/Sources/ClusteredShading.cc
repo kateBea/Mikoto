@@ -45,6 +45,7 @@ namespace Mikoto {
         m_Lights.resize( MAX_LIGHTS );
 
         BuildAABB( graph );
+        BuildGBuffer( graph );
         BuildLightCulling( graph );
     }
 
@@ -85,6 +86,20 @@ namespace Mikoto {
 
                     ctx.UploadBuffer<CameraUBO>( "AABBGenComp_CameraUBO", m_CameraUBO );
                     ctx.Dispatch( m_GridSizeX, m_GridSizeY, m_GridSizeZ );
+                } );
+    }
+
+    auto ClusteredShading::BuildGBuffer( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass(
+                "GBuffer",
+                []( FramePassBuilder &b ) {
+                    MKT_BEGIN_PROFILER_NAMED();
+                },
+                []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+
                 } );
     }
 

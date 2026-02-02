@@ -40,6 +40,8 @@ namespace Mikoto {
     private:
         auto RegisterTextRender( FrameGraph& graph, GpuDevice* device) -> void;
         auto RegisterObjectOutline( FrameGraph& graph, GpuDevice* device) -> void;
+        auto RegisterSSAO( FrameGraph& graph ) -> void;
+        auto RegisterBloom( FrameGraph& graph ) -> void;
         auto RegisterInfiniteGrid( FrameGraph& graph ) -> void;
 
         auto TraverseTextList( CommandContext& commandList ) -> void;

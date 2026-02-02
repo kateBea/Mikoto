@@ -549,20 +549,15 @@ set(LIBRARIES
 #        message(STATUS "${_variableName}=${${_variableName}}")
 #endforeach()
 
-# ======================================
-# Create Mikoto library
-# ======================================
 add_library(${PROJECT_NAME} STATIC ${ALL_SOURCES})
 
-# ======================================
-# Link kibraries
-# ======================================
-
+# Lua needs to be installed on Linux
 if(UNIX)
     find_package(Lua REQUIRED)
     list(APPEND LIBRARIES pthread OpenSSL::SSL OpenSSL::Crypto)
 endif()
 
+# For MSVC we find lua from Mikoto/Vendors folder
 if (MSVC OR WIN32)
     set(LUA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Lua/lua-5.4.2_Win64_vc17_lib")
 
@@ -571,14 +566,14 @@ if (MSVC OR WIN32)
 
     set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
 
+    message(STATUS "Linking against Lua library: ${LUA_LIBRARIES}")
+    message(STATUS "Include against Lua library: ${LUA_INCLUDE_DIR}")
+
     target_compile_options(Jolt PRIVATE
             /wd4865
             /WX-
             /Zc:enumTypes-
     )
-
-    message(STATUS "Linking against Lua library: ${LUA_LIBRARIES}")
-    message(STATUS "Include against Lua library: ${LUA_INCLUDE_DIR}")
 endif()
 
 # Windowing system
@@ -666,6 +661,7 @@ if(MIKOTO_USE_WIN32_WINDOW)
 endif()
 
 if (MIKOTO_ALLOW_SSL)
+    message("Using OpenSSL for HTTPS support")
     target_compile_definitions(${PROJECT_NAME} PUBLIC MIKOTO_OPENSSL_AVAILABLE)
 endif()
 
@@ -683,10 +679,10 @@ add_custom_command(
         OUTPUT ${RESOURCES_DST}
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${RESOURCES_SRC} ${RESOURCES_DST}
         COMMAND chmod +x ${INSTALL_SCRIPT}
-        COMMENT "Copying all resources and making installs.sh executable"
+        COMMENT "Copying all resources to build directory"
 )
 
-# Create a target that depends on the copied files
+# For installing dependencies on Linux
 if(UNIX)
     add_custom_target(InstallDependencies
             DEPENDS ${RESOURCES_DST}

@@ -64,71 +64,6 @@ namespace Mikoto {
         CreateImguiTextureID();
     }
 
-    auto ScenePanel::ShowStatsOverlay(float timeStep) -> void {
-        if (!m_PanelIsFocused) {
-            return;
-        }
-
-        static int location{ -1 };
-        ImGuiIO &io = ImGui::GetIO();
-        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-        if (location >= 0) {
-            const float PAD = 10.0f;
-            const ImGuiViewport *viewport = ImGui::GetMainViewport();
-            ImVec2 work_pos = viewport->WorkPos;// Use work area to avoid menu-bar/task-bar, if any!
-            ImVec2 work_size = viewport->WorkSize;
-            ImVec2 window_pos, window_pos_pivot;
-            window_pos.x = ( location & 1 ) ? ( work_pos.x + work_size.x - PAD ) : ( work_pos.x + PAD );
-            window_pos.y = ( location & 2 ) ? ( work_pos.y + work_size.y - PAD ) : ( work_pos.y + PAD );
-            window_pos_pivot.x = ( location & 1 ) ? 1.0f : 0.0f;
-            window_pos_pivot.y = ( location & 2 ) ? 1.0f : 0.0f;
-            ImGui::SetNextWindowPos( window_pos, ImGuiCond_Always, window_pos_pivot );
-            ImGui::SetNextWindowViewport( viewport->ID );
-            window_flags |= ImGuiWindowFlags_NoMove;
-        } else if (location == -2) {
-            // Center window
-            ImGui::SetNextWindowPos( ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
-            window_flags |= ImGuiWindowFlags_NoMove;
-        }
-        ImGui::SetNextWindowBgAlpha( 0.6f );// Transparent background
-        if (ImGui::Begin( "Performance Overlay", nullptr, window_flags )) {
-            ImGui::Separator();
-            if (ImGui::IsMousePosValid()) {
-                ImGui::Text( "Mouse Position: (%.1f,%.1f)", io.MousePos.x, io.MousePos.y );
-            }
-            else {
-                ImGui::Text( "Mouse Position: <invalid>" );
-            }
-
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Text( "FPS: %.1f", 1.0f / timeStep );
-
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Text( "TimeStep: %.1f ms", timeStep * 1000.0f);
-
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Text( "Total lights: %d", m_EditorState->ActiveEditorScene->GetLightCount());
-
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Text( "Total active lights: %d", m_EditorState->ActiveEditorScene->GetActiveLightCount());
-
-            if (ImGui::BeginPopupContextWindow()) {
-                if (ImGui::MenuItem( "Custom", nullptr, location == -1 )) location = -1;
-                if (ImGui::MenuItem( "Center", nullptr, location == -2 )) location = -2;
-                if (ImGui::MenuItem( "Top-left", nullptr, location == 0 )) location = 0;
-                if (ImGui::MenuItem( "Top-right", nullptr, location == 1 )) location = 1;
-                if (ImGui::MenuItem( "Bottom-left", nullptr, location == 2 )) location = 2;
-                if (ImGui::MenuItem( "Bottom-right", nullptr, location == 3 )) location = 3;
-                ImGui::EndPopup();
-            }
-        }
-        ImGui::End();
-    }
-
     auto ScenePanel::OnUpdate( float ts ) -> void {
         if (!m_PanelIsVisible) {
             return;
@@ -148,7 +83,7 @@ namespace Mikoto {
             UpdateViewport();
 
             //DrawSceneToolbar();
-            //ShowStatsOverlay(ts);
+            //ShowUtilitiesOverlay();
 
             SetupManipulation();
             DrawManipulationGuizmos();
@@ -168,6 +103,9 @@ namespace Mikoto {
     auto ScenePanel::GetWidth() const -> float { return m_ViewPortWidth; }
 
     auto ScenePanel::GetHeight() const -> float { return m_ViewPortHeight; }
+
+    auto ScenePanel::ShowUtilitiesOverlay() -> void {
+    }
 
     auto ScenePanel::IsDisplayTextureValid() const -> bool {
         return m_ColorImageID != 0 || m_WireframeImageID != 0;

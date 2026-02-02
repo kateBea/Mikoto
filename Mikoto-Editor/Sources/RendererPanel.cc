@@ -16,6 +16,7 @@
 
 #include <ImGui/ImGuiUtility.hh>
 #include <Panels/RendererPanel.hh>
+#include <GraphNodes/GraphEditor.hh>
 
 #include "Common/String.hh"
 #include "Layers/EditorLayer.hh"
@@ -36,6 +37,9 @@ namespace Mikoto {
 
         ImGuiUtils::DrawNode( "Passes", [this] () -> void {
             DrawPassInfo();
+
+            static bool open{ true };
+            ShowExampleAppCustomNodeGraph(&open);
         });
 
         ImGui::End();

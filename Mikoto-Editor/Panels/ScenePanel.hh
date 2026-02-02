@@ -50,7 +50,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetHeight() const -> float;
 
     private:
-        auto ShowStatsOverlay(float timeStep) -> void;
+        auto ShowUtilitiesOverlay() -> void;
         auto IsDisplayTextureValid() const -> bool;
         auto UpdateViewport() -> void;
         auto SetupManipulation() const -> void;
@@ -67,6 +67,9 @@ namespace Mikoto {
 
         float m_ViewPortWidth{};
         float m_ViewPortHeight{};
+
+        glm::vec2 m_ViewportBounds[2]{};
+        glm::vec2 m_GizmoPosition = glm::vec2(1.0f);
 
         ImTextureID m_ColorImageID{};
         ImTextureID m_WireframeImageID{};

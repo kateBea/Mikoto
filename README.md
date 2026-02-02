@@ -19,21 +19,47 @@ passes, amongst other features.
 
 ---
 
-### Supported Features
+### Feature List
 
-| **Feature Name**        | **Feature Description**                                  | **Supported** |
-|-------------------------|----------------------------------------------------------|---------------|
-| Model Loading           | Ability to load 3D models from various file types        | ✔️            |
-| Image Loading           | Support for loading and using textures/images            | ✔️            |
-| Entity Component System | Management of scene game objects through ECS             | ✔️            |
-| Scene Serialization     | Serialize scenes from the editor                         | ✔️            |
-| Particle System         | Visual particle effects like smoke, fire, etc.           | ❌             |
-| Vulkan Ray Tracing      | Support for Vulkan RayTracing                            | ❌             |
-| Physics Integration     | Basic collision detection and response                   | ✔️            |
-| UI Integration (ImGui)  | Immediate mode GUI for the runtime                       | ✔️            |
-| Animation System        | Skeletal animation and keyframe interpolation            | ❌             |
-| Audio Support           | Load and play sound effects and background music         | ✔️            |
-| Text Rendering          | Ability to render text in the 3D world and as an overlay | ❌             |
+| **Feature Name**         | **Feature Description**                                   | **Supported** |
+|--------------------------|-----------------------------------------------------------|---------------|
+| Model Loading            | Load 3D models (FBX, OBJ, GLTF, etc.) via Assimp          | ✔️            |
+| Image Loading            | Texture loading (PNG, HDR, EXR, etc.) via STB_Image       | ✔️            |
+| Cube maps                | Load equirectangular HDR images and use them as cube maps | ✔️            |
+| Entity Component System  | ECS for scene/game object management                      | ✔️            |
+| Scene Serialization      | Editor scene save/load                                    | ❌ (WIP)       |
+| Particle System          | GPU particle simulation (fire, smoke, sparks, etc.)       | ❌             |
+| Vulkan Ray Tracing       | Hardware accelerated RT                                   | ❌             |
+| Physics Integration      | Basic collision detection with Jolt                       | ✔️            |
+| UI Integration (ImGui)   | Runtime + editor ImGui                                    | ✔️            |
+| Animation System         | Skeletal animation, skinning                              | ❌             |
+| Audio Support            | Load and play audio                                       | ✔️            |
+| Text Rendering / Overlay | MSDF-based text rendering                                 | ❌             |
+
+### **Visual Effects**
+| **Feature**                    | **Description**                                   | **Supported** |
+|--------------------------------|---------------------------------------------------|---------------|
+| Clustered Forward+             | Main render path with clustered/forward+ lighting | ✔️            |
+| Clustered Light Culling        | Per-tile/cluster light assignment                 | ✔️            |
+| Mesh Culling                   | CPU mesh visibility culling                       | ✔️            |
+| IBL (Image-Based Lighting)     | Diffuse irradiance + specular reflections         | ❌             |
+| Shadows                        | Directional, point, spot shadows                  | ❌             |
+| Cascaded Shadow Maps (CSM)     | Multi-split directional shadows                   | ❌             |
+| Outline Pass                   | Object outlining effect                           | ❌             |
+| Infinite Grid                  | Procedural grid for editor/world                  | ❌             |
+| Bloom                          | Multi-pass bright blur                            | ❌             |
+| Depth of Field (DoF)           | DoF effect                                        | ❌             |
+| Screen-Space Reflections (SSR) | Reflections in screen space                       | ❌             |
+| Screen-Space GI (SSGI)         | Screen-space diffuse bounce lighting              | ❌             |
+
+### **Editor / Engine Tools**
+| **Feature**            | **Description**                    | **Supported**              |
+|------------------------|------------------------------------|----------------------------|
+| Gizmos (ImGuizmo)      | Move/rotate/scale gizmos           | ✔️ (Positions only)        |
+| Profiling / GPU Timers | Pass timing, pipeline stats        | ❌ (WIP)                    |
+| Asset Streaming        | Task-based async resource loading  | ❌                          |
+| Shader hot reloading   | Shader hot reload                  | ❌                          |
+| Asset hot reloading    | Asset hot reload for scripts, etc. | ✔️ (Limited, Scripts only) |
 
 ## Supported Platforms
 
@@ -73,60 +99,10 @@ passes, amongst other features.
 
 ## Building Mikoto Engine
 
-Follow the steps below to build the Mikoto Engine.
 The build process is currently verified on both Linux and Windows.
 On Windows, the only requirements are the Vulkan SDK and Visual Studio.
 
-### Steps:
-
-```shell
-# Fetch the repository. Recurse to pull the submodules
-git clone --recursive https://github.com/kateBea/Mikoto.git
-cd Mikoto
-
-# Generate platform specific build system files
-mkdir build && cd build
-
-# This will pull the necessary third party repos
-cmake -S .. -B .
-
-# Build the application (on Linux)
-cmake --build . --config Release
-```
----
-
-For Visual Studio users, CMake will generate `.sln` files by default. We want to open the solution in Visual Studio 
-and build from  there. CLion users can open the project directly and build it without extra steps. 
-
-On Linux, we need to install certain dependencies, we can do so by passing target InstallDependencies 
-(``--target InstallDependencies``) to CMake command to install necessary dependencies, user might be 
-prompted to give permissions:
-
-```
-cmake --build . --target InstallDependencies --config Release 
-cmake --build . --config Release
-```
-
-Dependencies are also available from the file [install.sh](/Mikoto/Resources/installs.sh):
-
-## Linux Required libraries
-
-```shell
-# Vulkan
-sudo apt install vulkan-tools
-sudo apt install libvulkan-dev  vulkan-validationlayers
-sudo apt install vulkan-utility-libraries-dev spirv-tools
-
-# Native file dialog
-sudo apt-get install libgtk-3-dev
-
-# GLFW
-sudo apt install libwayland-dev libxkbcommon-dev xorg-dev
-   
-   ```
----
-
-## Lua Scripting Pre-Setup
+## Pre-Setup
 
 Mikoto uses **Lua 5.1+** for scripting. To set it up on Linux, follow these steps:
 
@@ -150,6 +126,56 @@ Lua 5.4.8  Copyright (C) 1994-2025 Lua.org, PUC-Rio
 ```
 
 >Precompiled binaries are shipped with Mikoto to compile with MSVC on Windows.
+
+## Project Build
+
+On Linux, we need to install certain dependencies to get started, we can do so by passing target InstallDependencies
+(``--target InstallDependencies``) to CMake command to install necessary dependencies, user might be
+prompted to give permissions:
+
+```
+cmake --build . --target InstallDependencies --config Release 
+cmake --build . --config Release
+```
+
+### Linux Required libraries
+
+Following there's an example installation directly from the terminal on Ubuntu 24.04 (commands extracted from [install.sh](/Mikoto/Resources/installs.sh)):
+
+```shell
+# Vulkan
+sudo apt install vulkan-tools
+sudo apt install libvulkan-dev  vulkan-validationlayers
+sudo apt install vulkan-utility-libraries-dev spirv-tools
+
+# Native file dialog
+sudo apt-get install libgtk-3-dev
+
+# GLFW
+sudo apt install libwayland-dev libxkbcommon-dev xorg-dev
+   
+   ```
+---
+
+With the dependencies installed we can proceed with building the project:
+
+```shell
+# Fetch the repository. Recurse to pull the submodules
+git clone --recursive https://github.com/kateBea/Mikoto.git
+cd Mikoto
+
+# Generate platform specific build system files
+mkdir build && cd build
+
+# This will pull the necessary third party repos
+cmake -S .. -B .
+
+# Build the application
+cmake --build . --config Release
+```
+---
+For Visual Studio users, CMake will generate `.sln` files by default. We want to open the solution in Visual Studio 
+and build from  there. CLion users can open the project directly and build it without extra steps.
 
 ## Dependencies
 

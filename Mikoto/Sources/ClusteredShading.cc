@@ -49,6 +49,10 @@ namespace Mikoto {
         BuildLightCulling( graph );
     }
 
+    auto ClusteredShading::SetMeshCulling( MeshCulling &cullingPass ) -> void {
+        m_MeshCullingPass = std::addressof( cullingPass );
+    }
+
     auto ClusteredShading::BuildAABB( FrameGraph &graph ) -> void {
         graph.RegisterPass(
                 "GenerateAABB",
@@ -94,11 +98,52 @@ namespace Mikoto {
 
         graph.RegisterPass(
                 "GBuffer",
-                []( FramePassBuilder &b ) {
+                [this]( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
+                    b.Create<Texture>( "GBuffer_Position", m_Resolution, TextureFormat::RGBA16_FLOAT, TextureUsage::COLOR );
+                    b.Create<Texture>( "GBuffer_Normal", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                    b.Create<Texture>( "GBuffer_Color", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/GBuffer_Vert.sprv", ShaderStage::VERTEX );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/GBuffer_Frag.sprv", ShaderStage::FRAGMENT );
+
+                    GraphicsPipelineDescription graphicsDesc{
+                        .DepthTest{ false },
+                        .DepthWrite{ false },
+                        .AlphaBlending{ false },
+                        .PipelineCullMode{ CullMode::NONE },
+                        .ColorAttachmentFormats{ TextureFormat::RGBA16_FLOAT, TextureFormat::RGBA16_FLOAT, TextureFormat::RGBA8_UNORM  }
+                    };
+                    b.Create<Pipeline>( "GBuffer_Pipeline", graphicsDesc );
+
+                    b.Write( "GBuffer_Position", FrameResourceState::RenderTarget );
+                    b.Write( "GBuffer_Normal", FrameResourceState::RenderTarget );
+                    b.Write( "GBuffer_Color", FrameResourceState::RenderTarget );
+
+                    b.Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
+                    b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
+
+                    b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_CameraInfo", 0 );
+                    b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 1 );
+                    b.Use( SRGType::SRG_Textures );
                 },
-                []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
+
+                    ctx.BindPipeline( "GBuffer_Pipeline" );
+
+                    ctx.SetColorRenderTarget( "GBuffer_Position" );
+                    ctx.SetColorRenderTarget( "GBuffer_Normal" );
+                    ctx.SetColorRenderTarget( "GBuffer_Color" );
+
+                    ctx.BeginRender();
+
+                    ctx.SetViewport( 0, 0, 1920, 1080 );
+                    ctx.SetScissor( 0, 0, 1920, 1080 );
+
+                    m_MeshCullingPass->DrawInstances( ctx );
+
+                    ctx.EndRender();
 
                 } );
     }

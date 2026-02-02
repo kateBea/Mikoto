@@ -15,10 +15,12 @@
 #ifndef MIKOTO_CLUSTERED_SHADING_HH
 #define MIKOTO_CLUSTERED_SHADING_HH
 
-#include <Scene/Scene.hh>
 #include <Scene/Camera.hh>
+#include <Scene/Scene.hh>
+
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/RenderUtility.hh>
+#include <Renderer/Passes/MeshCulling.hh>
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Passes/ShaderParameteres.hh>
 
@@ -31,6 +33,8 @@ namespace Mikoto {
         auto SetScene(Scene* scene) -> void;
         auto SetCamera(const Camera *camera) -> void;
         auto RegisterPasses(FrameGraph &graph) -> void;
+
+        auto SetMeshCulling(MeshCulling& cullingPass) -> void;
 
     private:
         auto BuildAABB( FrameGraph& graph ) -> void;
@@ -86,6 +90,8 @@ namespace Mikoto {
         RenderResolution m_Resolution{ RenderResolution::FHD_1080 };
 
         std::vector<ShaderLightTypeParams> m_Lights{};
+
+        MeshCulling* m_MeshCullingPass{};
     };
 }
 

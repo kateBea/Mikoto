@@ -109,6 +109,10 @@ namespace Mikoto {
 
         auto SetPresentTarget() -> void;
 
+        auto SimpleScene() -> void;
+        auto DebugManyLightsTest() -> void;
+        auto DebugInstancingTest() -> void;
+
     private:
         enum class RenderScreenTarget { WINDOW, PANEL };
 

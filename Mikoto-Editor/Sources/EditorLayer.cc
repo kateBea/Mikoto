@@ -177,6 +177,140 @@ namespace Mikoto {
         RenderService::Get()->SetPresentTarget( m_EditorState->RenderImage );
     }
 
+    auto EditorLayer::SimpleScene() -> void {
+        ModelLoadDescription descFirst{
+            .ModelFile{ FileService::Get()->LoadFile( "./Resources/Models/1 - Box texture/BoxTexture.obj" ) },
+            .WantTextures{ true }
+        };
+
+        ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( descFirst ) };
+
+        // This emitting sounds
+        EntityCreateInfo groundDesc{
+            .Root{ nullptr },
+            .Name{ "Ground" },
+            .Model{ box }
+        };
+
+        if (Entity *groundEntity{ m_ActiveScene->CreateEntity( groundDesc ) }) {
+            TransformComponent &transformComponent{ groundEntity->GetComponent<TransformComponent>() };
+            transformComponent.SetScale( { 100.0f, 0.5f, 100.00f } );
+            transformComponent.SetTranslation( { 0.0f, 0.0f, 0.0f } );
+
+            RigidBodyComponent &rigidBody{ groundEntity->AddComponent<RigidBodyComponent>() };
+            rigidBody.SetBodyType( RigidBodyComponent::BodyType::STATIC );
+
+            FontHandle font{ AssetsService::Get()->LoadAsset<Font>( Path{ "Resources/Fonts/Google_Sans_Code/GoogleSansCode-Italic-VariableFont_wght.ttf" } ) };
+
+            TextComponent &text{ groundEntity->AddComponent<TextComponent>() };
+            text.SetFont( font );
+        }
+
+        // First box
+        EntityCreateInfo boxDesc{
+            .Root{ nullptr },
+            .Name{ "FirstBox" },
+            .Model{ box }
+        };
+
+        if (Entity *boxEntity{ m_ActiveScene->CreateEntity( boxDesc ) }) {
+            boxEntity->AddComponent<ScriptComponent>( "Resources/Script-Examples/Player1.lua" );
+            TransformComponent &transformComponent{ boxEntity->GetComponent<TransformComponent>() };
+            transformComponent.SetTranslation( { 0.0f, 10.0f, 0.0f } );
+
+            RigidBodyComponent &rigidBody{ boxEntity->AddComponent<RigidBodyComponent>() };
+            rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
+        }
+
+        // Second box
+        EntityCreateInfo box2Desc{
+            .Root{ nullptr },
+            .Name{ "SecondBox" },
+            .Model{ box }
+        };
+
+        if (Entity *box2Entity{ m_ActiveScene->CreateEntity( box2Desc ) }) {
+            box2Entity->AddComponent<ScriptComponent>( "Resources/Script-Examples/Player2.lua" );
+            TransformComponent &transformComponent{ box2Entity->GetComponent<TransformComponent>() };
+            transformComponent.SetTranslation( { 1.0f, 30.0f, 0.0f } );
+
+            RigidBodyComponent &rigidBody{ box2Entity->AddComponent<RigidBodyComponent>() };
+            rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
+        }
+
+        Entity *light{ m_ActiveScene->CreateEntity( "Light" ) };
+        if (light) {
+            LightComponent &lightComp{ light->AddComponent<LightComponent>() };
+            lightComp.SetActiveType( LightType::POINT_LIGHT_TYPE );
+
+            auto &pointLightData{ lightComp.Get<PointLight>() };
+            pointLightData.SetIntensity( 112.81f );
+            pointLightData.SetRadius( 30.44f );
+
+            TransformComponent &transformComponent{ light->GetComponent<TransformComponent>() };
+            transformComponent.SetTranslation( { 0.0f, 4.0f, 0.0f } );
+        }
+    }
+
+    auto EditorLayer::DebugManyLightsTest() -> void {
+        // This is just to test clustered forward shading
+        // We generate an empty object and 'lightCount' lights in random positions attached to it
+        constexpr UInt32 lightCount{ 18 };
+        Entity* lightCluster{ m_ActiveScene->CreateEntity( "LightCluster" ) };
+        for (UInt32 count{}; count < lightCount; count++) {
+            if (Entity *clusteredLight{ m_ActiveScene->CreateEntity( lightCluster, fmt::format( "Light {}", count ) ) }) {
+                LightComponent &lightComp{ clusteredLight->AddComponent<LightComponent>() };
+                lightComp.SetActiveType( LightType::POINT_LIGHT_TYPE );
+
+                auto &pointLightData{ lightComp.Get<PointLight>() };
+                pointLightData.SetIntensity( 50.0f );
+                pointLightData.SetRadius( 15.0f );
+                pointLightData.SetColor( GetRandomizedVec3F(0.0f, 1.0f ) );
+
+                TransformComponent &transformComponent{ clusteredLight->GetComponent<TransformComponent>() };
+                transformComponent.SetTranslation( { GetRandomReal(-66.0f, 125.0f), 2.0f, GetRandomReal(-100.0f, 100.0f) } );
+
+                // Test heatmaps, by accumulating many lights into small area
+                // transformComponent.SetTranslation( { GetRandomReal(0, 10.0f), 2.0f, GetRandomReal(0, 15) } );
+            }
+        }
+    }
+
+    auto EditorLayer::DebugInstancingTest() -> void {
+        ModelLoadDescription desc{
+            .ModelFile{ FileService::Get()->LoadFile(
+                    "./Resources/Models/1 - Box texture/BoxTexture.obj" ) },
+            .WantTextures{ true }
+        };
+
+        ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( desc ) };
+
+        constexpr UInt32 gridSize{ 10 }; // gridSize * gridSize cubes
+        constexpr float spacing{ 4.0f }; // Distance between cubes
+
+        Entity *root{ m_ActiveScene->CreateEntity( "InstancingGrid" ) };
+
+        EntityCreateInfo info{
+            .Root{ root },
+            .Name{ "" },
+            .Model{ box }
+        };
+
+        for ( UInt32 x{}; x < gridSize; ++x ) {
+            for ( UInt32 z{}; z < gridSize; ++z ) {
+
+                info.Name = fmt::format( "Cube_{}_{}", x, z );
+
+                if ( Entity * e{ m_ActiveScene->CreateEntity( info ) } ) {
+                    auto &t = e->GetComponent<TransformComponent>();
+                    t.SetTranslation( { static_cast<float>( x ) * spacing,
+                                        0.0f,
+                                        static_cast<float>( z ) * spacing } );
+                }
+            }
+        }
+    }
+
     auto EditorLayer::OnDestroy() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -656,100 +790,10 @@ namespace Mikoto {
 
         m_ActiveScene = SceneManager::Get()->CreateScene( name );
 
-        ModelLoadDescription descFirst{
-            .ModelFile{ FileService::Get()->LoadFile( "./Resources/Models/1 - Box texture/BoxTexture.obj" ) },
-            .WantTextures{ true }
-        };
+        //SimpleScene();
 
-        ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( descFirst ) };
-
-        // This emitting sounds
-        EntityCreateInfo groundDesc{
-            .Root{ nullptr },
-            .Name{ "Ground" },
-            .Model{ box }
-        };
-
-        if (Entity *groundEntity{ m_ActiveScene->CreateEntity( groundDesc ) }) {
-            TransformComponent &transformComponent{ groundEntity->GetComponent<TransformComponent>() };
-            transformComponent.SetScale( { 100.0f, 0.5f, 100.00f } );
-            transformComponent.SetTranslation( { 0.0f, 0.0f, 0.0f } );
-
-            RigidBodyComponent &rigidBody{ groundEntity->AddComponent<RigidBodyComponent>() };
-            rigidBody.SetBodyType( RigidBodyComponent::BodyType::STATIC );
-
-            FontHandle font{ AssetsService::Get()->LoadAsset<Font>( Path{ "Resources/Fonts/Google_Sans_Code/GoogleSansCode-Italic-VariableFont_wght.ttf" } ) };
-
-            TextComponent &text{ groundEntity->AddComponent<TextComponent>() };
-            text.SetFont( font );
-        }
-
-        // First box
-        EntityCreateInfo boxDesc{
-            .Root{ nullptr },
-            .Name{ "FirstBox" },
-            .Model{ box }
-        };
-
-        if (Entity *boxEntity{ m_ActiveScene->CreateEntity( boxDesc ) }) {
-            boxEntity->AddComponent<ScriptComponent>( "Resources/Script-Examples/Player1.lua" );
-            TransformComponent &transformComponent{ boxEntity->GetComponent<TransformComponent>() };
-            transformComponent.SetTranslation( { 0.0f, 10.0f, 0.0f } );
-
-            RigidBodyComponent &rigidBody{ boxEntity->AddComponent<RigidBodyComponent>() };
-            rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
-        }
-
-        // Second box
-        EntityCreateInfo box2Desc{
-            .Root{ nullptr },
-            .Name{ "SecondBox" },
-            .Model{ box }
-        };
-
-        if (Entity *box2Entity{ m_ActiveScene->CreateEntity( box2Desc ) }) {
-            box2Entity->AddComponent<ScriptComponent>( "Resources/Script-Examples/Player2.lua" );
-            TransformComponent &transformComponent{ box2Entity->GetComponent<TransformComponent>() };
-            transformComponent.SetTranslation( { 1.0f, 30.0f, 0.0f } );
-
-            RigidBodyComponent &rigidBody{ box2Entity->AddComponent<RigidBodyComponent>() };
-            rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
-        }
-
-        Entity *light{ m_ActiveScene->CreateEntity( "Light" ) };
-        if (light) {
-            LightComponent &lightComp{ light->AddComponent<LightComponent>() };
-            lightComp.SetActiveType( LightType::POINT_LIGHT_TYPE );
-
-            auto &pointLightData{ lightComp.Get<PointLight>() };
-            pointLightData.SetIntensity( 112.81f );
-            pointLightData.SetRadius( 30.44f );
-
-            TransformComponent &transformComponent{ light->GetComponent<TransformComponent>() };
-            transformComponent.SetTranslation( { 0.0f, 4.0f, 0.0f } );
-        }
-
-        // This is just to test clustered forward shading
-        // We generate an empty object and 'lightCount' lights in random positions attached to it
-        constexpr UInt32 lightCount{ 18 };
-        Entity* lightCluster{ m_ActiveScene->CreateEntity( "LightCluster" ) };
-        for (UInt32 count{}; count < lightCount; count++) {
-            if (Entity *clusteredLight{ m_ActiveScene->CreateEntity( lightCluster, fmt::format( "Light {}", count ) ) }) {
-                LightComponent &lightComp{ clusteredLight->AddComponent<LightComponent>() };
-                lightComp.SetActiveType( LightType::POINT_LIGHT_TYPE );
-
-                auto &pointLightData{ lightComp.Get<PointLight>() };
-                pointLightData.SetIntensity( 50.0f );
-                pointLightData.SetRadius( 15.0f );
-                pointLightData.SetColor( GetRandomizedVec3F(0.0f, 1.0f ) );
-
-                TransformComponent &transformComponent{ clusteredLight->GetComponent<TransformComponent>() };
-                transformComponent.SetTranslation( { GetRandomReal(-66.0f, 125.0f), 2.0f, GetRandomReal(-100.0f, 100.0f) } );
-
-                // Test heatmaps, by accumulating many lights into small area
-                // transformComponent.SetTranslation( { GetRandomReal(0, 10.0f), 2.0f, GetRandomReal(0, 15) } );
-            }
-        }
+        DebugInstancingTest();
+        DebugManyLightsTest();
     }
 
     auto EditorLayer::PrepareRenderer( double ) -> void {

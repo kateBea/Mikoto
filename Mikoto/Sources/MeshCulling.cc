@@ -103,6 +103,7 @@ namespace Mikoto {
             activeMeshCount += drawCount;
         }
 
+        MKT_ASSERT( activeMeshCount <= MAX_RENDERABLE_ENTITIES, "Exceeded limit of renderable entities" );
         context.UploadBufferData( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMaterialParams ), activeMeshCount );
     }
 

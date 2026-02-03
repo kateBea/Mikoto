@@ -33,6 +33,8 @@ namespace Mikoto {
         auto operator=(const Camera& other) -> Camera& = default;
         auto operator=(Camera&& other) -> Camera& = default;
 
+        auto SetViwMatrix(const glm::mat4& matrix) -> void { m_ViewMatrix = matrix; }
+
         MKT_NODISCARD auto GetProjection() const -> const glm::mat4& { return m_Projection; }
         MKT_NODISCARD auto GetViewMatrix() const -> const glm::mat4& { return m_ViewMatrix; }
 

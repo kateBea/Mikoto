@@ -50,6 +50,8 @@ namespace Mikoto {
         MKT_NODISCARD auto GetHeight() const -> float;
 
     private:
+        auto DrawOrientationAxis() -> void;
+
         auto ShowUtilitiesOverlay() -> void;
         auto IsDisplayTextureValid() const -> bool;
         auto UpdateViewport() -> void;

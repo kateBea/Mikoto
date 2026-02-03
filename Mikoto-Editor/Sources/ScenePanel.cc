@@ -12,6 +12,7 @@
 
 // Important to include after imgui
 #include <ImGuizmo.h>
+#include <ImOGuizmo.hh>
 #include <imgui.h>
 
 // Project Headers
@@ -87,6 +88,7 @@ namespace Mikoto {
 
             SetupManipulation();
             DrawManipulationGuizmos();
+            DrawOrientationAxis();
         }
 
         // Try validating the image id again in case the texture was recreated
@@ -98,11 +100,32 @@ namespace Mikoto {
         ImGui::End();
     }
 
-    auto ScenePanel::SetManipulation( GuizmoType mode ) -> void { m_GuizmoType = mode; }
+    auto ScenePanel::SetManipulation( GuizmoType mode ) -> void {
+        m_GuizmoType = mode;
+    }
 
-    auto ScenePanel::GetWidth() const -> float { return m_ViewPortWidth; }
+    auto ScenePanel::GetWidth() const -> float {
+        return m_ViewPortWidth;
+    }
 
-    auto ScenePanel::GetHeight() const -> float { return m_ViewPortHeight; }
+    auto ScenePanel::GetHeight() const -> float {
+        return m_ViewPortHeight;
+    }
+
+    auto ScenePanel::DrawOrientationAxis() -> void {
+        ImVec2 winPos{ ImGui::GetWindowPos() };
+
+        const float widgetSize{ 100.0f };
+        const float gizmoX{ winPos.x };
+        const float gizmoY{ winPos.y + m_ViewPortHeight - widgetSize };
+
+        ImOGuizmo::SetRect(gizmoX, gizmoY, widgetSize);
+
+        glm::mat4 view{ m_EditorState->EditorCamera->GetViewMatrix() };
+        glm::mat4 proj{ glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 1000.0f) };
+
+        ImOGuizmo::DrawGizmo(glm::value_ptr(view), glm::value_ptr(proj));
+    }
 
     auto ScenePanel::ShowUtilitiesOverlay() -> void {
     }

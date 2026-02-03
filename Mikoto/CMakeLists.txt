@@ -400,6 +400,12 @@ FetchContent_MakeAvailable(tracy)
 set(FILEWATCH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Filewatch")
 set(FILEWATCH_INCLUDE_DIR "${FILEWATCH_ROOT}")
 
+# ImOGuizmo
+# Using https://github.com/fknfilewalker/imoguizmo.git
+# It is single header
+set(IMOGUIZMO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/ImOGuizmo")
+set(IMOGUIZMO_INCLUDE_DIR "${IMOGUIZMO_ROOT}")
+
 # -------------------------------------------------------
 # OpenCL-SDK
 # -------------------------------------------------------
@@ -617,6 +623,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${tracy_SOURCE_DIR}/asio/include
         ${LUA_INCLUDE_DIR}
         ${FILEWATCH_INCLUDE_DIR}
+        ${IMOGUIZMO_INCLUDE_DIR}
         ${OpenCL-SDK_SOURCE_DIR}/lib/include
         ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-Headers
         ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-CLHPP/include

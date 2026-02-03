@@ -68,8 +68,6 @@ namespace Mikoto {
         Scene* m_Scene{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
 
-        Size m_ActiveMeshCount{};
-
         std::vector<ShaderMaterialParams> m_Meshes{};
         ankerl::unordered_dense::map<MeshNode*, MeshInstanceInfo> m_MeshDrawState{};
     };

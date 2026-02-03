@@ -67,9 +67,17 @@ namespace Mikoto {
     auto MeshCulling::DrawInstances( CommandContext &context ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        Size meshIndex{};
+        for ( auto &instanceInfo: m_MeshDrawState | std::views::values ) {
+            DrawIndexedState &drawState{ instanceInfo.InstanceDrawState };
+            context.DrawIndexed( drawState );
+        }
+    }
 
-        m_ActiveMeshCount = 0;
+    auto MeshCulling::UploadInstanceData( CommandContext &context ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        Size meshIndex{};
+        Size activeMeshCount{};
 
         for (auto &[meshNode, instanceInfo]: m_MeshDrawState) {
             DrawIndexedState &drawState{ instanceInfo.InstanceDrawState };
@@ -89,18 +97,13 @@ namespace Mikoto {
             }
 
             drawState.IndicesCount = meshNode->GetIndexBuffer()->GetCount();
-            drawState.FirstInstance = m_ActiveMeshCount;
+            drawState.FirstInstance = activeMeshCount;
             drawState.InstancesCount = drawCount;
 
-            m_ActiveMeshCount += drawCount;
-
-            context.DrawIndexed( drawState );
+            activeMeshCount += drawCount;
         }
-    }
 
-    auto MeshCulling::UploadInstanceData( CommandContext &context ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-        context.UploadBufferData( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMaterialParams ), m_ActiveMeshCount );
+        context.UploadBufferData( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMaterialParams ), activeMeshCount );
     }
 
     auto MeshCulling::SetupInstanceData( CommandContext &context ) -> void {
@@ -125,22 +128,19 @@ namespace Mikoto {
 
                 ActiveEntities[tag.GetGUID()] = tag.IsActive();
 
-                if (tag.IsActive()) {
-                    ShaderMaterialParams &ubo{ Instances[tag.GetGUID()] };
+                ShaderMaterialParams &ubo{ Instances[tag.GetGUID()] };
 
-                    ubo.Transform = transform.GetTransform();
+                ubo.Transform = transform.GetTransform();
+                ubo.Albedo = pbrMat->GetColor();
+                ubo.Factors.x = pbrMat->GetMetallicFactor();
+                ubo.Factors.y = pbrMat->GetRoughnessFactor();
+                ubo.Factors.z = pbrMat->GetAoFactor();
 
-                    ubo.Albedo = pbrMat->GetColor();
-                    ubo.Factors.x = pbrMat->GetMetallicFactor();
-                    ubo.Factors.y = pbrMat->GetRoughnessFactor();
-                    ubo.Factors.z = pbrMat->GetAoFactor();
-
-                    ubo.AlbedoIndex = context.PushTexture( pbrMat->GetTextureType( MapType::ALBEDO_TEXTURE ) );
-                    ubo.NormalIndex = context.PushTexture( pbrMat->GetTextureType( MapType::NORMAL_TEXTURE ) );
-                    ubo.MetallicIndex = context.PushTexture( pbrMat->GetTextureType( MapType::METALLIC_TEXTURE ) );
-                    ubo.RoughnessIndex = context.PushTexture( pbrMat->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
-                    ubo.AoIndex = context.PushTexture( pbrMat->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
-                }
+                ubo.AlbedoIndex = context.PushTexture( pbrMat->GetTextureType( MapType::ALBEDO_TEXTURE ) );
+                ubo.NormalIndex = context.PushTexture( pbrMat->GetTextureType( MapType::NORMAL_TEXTURE ) );
+                ubo.MetallicIndex = context.PushTexture( pbrMat->GetTextureType( MapType::METALLIC_TEXTURE ) );
+                ubo.RoughnessIndex = context.PushTexture( pbrMat->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
+                ubo.AoIndex = context.PushTexture( pbrMat->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
             }
         }
     }

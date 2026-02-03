@@ -129,6 +129,8 @@ namespace Mikoto {
 
                         ctx.BeginRender();
                         ctx.BindPipeline( "IrradiancePass_Pipeline" );
+
+                        //ctx.Bind(SRGType::SRG_Constants, std::addressof( m_Params ), sizeof( m_Params ) );
                         //ctx.Draw( 36 ); // Crashes
                         ctx.EndRender();
                     }
@@ -189,6 +191,8 @@ namespace Mikoto {
                             ctx.SetColorRenderTarget( "Prefilter_ColorTarget" );
 
                             ctx.BeginRender();
+
+                            //ctx.Bind(SRGType::SRG_Constants, std::addressof( m_Params ), sizeof( m_Params ) );
 
                             // Draw
 

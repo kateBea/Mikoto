@@ -100,6 +100,10 @@ namespace Mikoto {
         m_IBLPasses.SetExposure( value );
     }
 
+    auto SceneRenderer::SetWireframeEnable( bool enable ) -> void {
+        m_DebugPasses.SetWireframeEnable(enable);
+    }
+
     auto SceneRenderer::GetPassList() const -> const PassList & {
         return m_FrameGraph->GetPassList();
     }
@@ -150,6 +154,7 @@ namespace Mikoto {
         }
 
         m_IBLPasses.SetMeshCulling( m_MeshCulling );
+        m_DebugPasses.SetMeshCulling( m_MeshCulling );
         m_ClusteredShadingPasses.SetMeshCulling( m_MeshCulling );
     }
 

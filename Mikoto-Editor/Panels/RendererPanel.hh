@@ -30,14 +30,20 @@ namespace Mikoto {
 
         auto OnUpdate(float timeStep) -> void override;
 
+        MKT_NODISCARD auto IsWireframeEnabled() const -> bool;
+
         ~RendererPanel() override = default;
 
     private:
 
         auto DrawPassInfo() -> void;
+        auto DrawRendererConfig() -> void;
+
     private:
 
         EditorState* m_EditorState{};
+
+        bool m_IsWireframeEnabled{ false };
     };
 }
 

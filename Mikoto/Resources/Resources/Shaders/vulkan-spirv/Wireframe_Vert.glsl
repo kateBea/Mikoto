@@ -3,9 +3,6 @@
 
 #include "ShaderBase.glsl"
 
-// --------------------------------------------------
-// Per-frame uniform
-// --------------------------------------------------
 layout(set = PERPASS_SETINDEX, binding = 0) uniform FrameUBO {
     mat4 View;
     mat4 Projection;
@@ -16,17 +13,11 @@ layout(std430, set = PERPASS_SETINDEX, binding = 1) readonly buffer MeshInfoSSBO
     MeshInfo Meshes[];
 };
 
-// --------------------------------------------------
-// Per-vertex attributes (mesh)
-// --------------------------------------------------
 layout(location = 0) in vec3 a_Position;
 layout(location = 1) in vec3 a_Normal;
 layout(location = 2) in vec3 a_Color;
 layout(location = 3) in vec2 a_TexCoord;
 
-// --------------------------------------------------
-// Main
-// --------------------------------------------------
 void main() {
     MeshInfo meshInfo = Meshes[gl_InstanceIndex];
 

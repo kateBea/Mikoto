@@ -17,10 +17,9 @@
 
 
 #include <Scene/Scene.hh>
-
 #include <Library/Utility/Types.hh>
-
 #include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Passes/MeshCulling.hh>
 #include <Renderer/Passes/ShaderParameteres.hh>
 
 namespace Mikoto {
@@ -36,6 +35,8 @@ namespace Mikoto {
         auto SetClearColor( const Vec4F& vec ) -> void;
         auto SetLinesColor( const Vec4F& color ) -> void;
         auto ShowColorImage( bool value ) -> void;
+        auto SetMeshCulling( MeshCulling& culling ) -> void;
+        auto SetWireframeEnable( bool enable ) -> void;
 
     private:
         auto RegisterObjectOutline( FrameGraph& graph ) -> void;
@@ -54,6 +55,10 @@ namespace Mikoto {
         const Scene* m_Scene{};
         Vec4F m_ClearColor{ 1.0f, 1.0f, 1.0f, 1.0f };
         Vec4F m_LinesColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+
+        MeshCulling* m_Culling{};
+
+        bool m_RunWireframe{ false };
 
         bool m_ShowColorImageWireframe{ false };
         RenderResolution m_Resolution{ RenderResolution::FHD_1080 };

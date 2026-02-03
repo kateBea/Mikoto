@@ -350,8 +350,8 @@ namespace Mikoto {
 
                     b.Create<Buffer>( "DirectionalShadowMapPass_CameraInfo", BufferUsage::UNIFORM, sizeof( DirectionalShadowMapCameraInfo ), 1 );
 
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/DirectionalShadowMap_Frag.sprv", ShaderStage::VERTEX );
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/DirectionalShadowMap_Vert.sprv", ShaderStage::FRAGMENT );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/DirectionalShadowMap_Frag.sprv", ShaderStage::FRAGMENT );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/DirectionalShadowMap_Vert.sprv", ShaderStage::VERTEX );
 
                     GraphicsPipelineDescription graphicsDesc{
                         .DepthTest{ true },

@@ -761,5 +761,9 @@ namespace Mikoto {
         m_SceneRenderer->SetEnvironmentExposure( m_ActiveScene->GetExposure() );
 
         m_SceneRenderer->EnableSkybox( m_ActiveScene->IsSceneBackground(SceneBackground::SKYBOX) );
+
+        // Wireframe
+        RendererPanel* settings{ m_PanelRegistry.Get<RendererPanel>() };
+        m_SceneRenderer->SetWireframeEnable(settings->IsWireframeEnabled());
     }
 }

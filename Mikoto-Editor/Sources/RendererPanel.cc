@@ -38,11 +38,19 @@ namespace Mikoto {
         ImGuiUtils::DrawNode( "Passes", [this] () -> void {
             DrawPassInfo();
 
-            static bool open{ true };
-            ShowExampleAppCustomNodeGraph(&open);
+            //static bool open{ true };
+            //ShowExampleAppCustomNodeGraph(&open);
+        });
+
+        ImGuiUtils::DrawNode( "Renderer", [this] () -> void {
+            DrawRendererConfig();
         });
 
         ImGui::End();
+    }
+
+    auto RendererPanel::IsWireframeEnabled() const -> bool {
+        return m_IsWireframeEnabled;
     }
 
     auto RendererPanel::DrawPassInfo() -> void {
@@ -54,5 +62,11 @@ namespace Mikoto {
             ImGui::TextUnformatted( StringUtil::Format("{}", pass.first).c_str() );
         }
 
+    }
+
+    auto RendererPanel::DrawRendererConfig() -> void {
+        ImGuiUtils::CheckBox( "##RendererPanel::DrawRendererConfig::Checkbox", m_IsWireframeEnabled );
+        ImGui::SameLine();
+        ImGui::TextUnformatted( "Render wireframe" );
     }
 }// namespace Mikoto

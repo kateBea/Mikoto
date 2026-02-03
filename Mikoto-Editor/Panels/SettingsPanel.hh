@@ -62,6 +62,7 @@ namespace Mikoto {
         auto DrawInfiniteGridConfig() -> void;
 
     private:
+
         EditorState* m_EditorState{};
         SettingsPanelData m_Data{};
     };

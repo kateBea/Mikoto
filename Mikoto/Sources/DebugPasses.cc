@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Scene/Scene.hh>
-#include <Scene/Component.hh>
-
+#include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Core/FramePassResource.hh>
 #include <Renderer/Passes/DebugPasses.hh>
-#include <Renderer/Core/CommandContext.hh>
+#include <Scene/Component.hh>
+#include <Scene/Scene.hh>
+
+#include "Core/Profiler.hh"
 
 namespace Mikoto {
 
@@ -43,6 +44,14 @@ namespace Mikoto {
         m_ShowColorImageWireframe = value;
     }
 
+    auto DebugPasses::SetMeshCulling( MeshCulling &culling ) -> void {
+        m_Culling = std::addressof( culling );
+    }
+
+    auto DebugPasses::SetWireframeEnable( bool enable ) -> void {
+        m_RunWireframe = enable;
+    }
+
     auto DebugPasses::RegisterPasses( FrameGraph &graph ) -> void {
         RegisterHelloTexture( graph );
         RegisterSimpleCompute( graph );
@@ -55,7 +64,67 @@ namespace Mikoto {
     }
 
     auto DebugPasses::RegisterWireFrame( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
 
+        graph.RegisterPass(
+                "Wireframe",
+                [this]( FramePassBuilder &b ) {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                    b.Create<Texture>( "Wireframe_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                    b.Create<Texture>( "Wireframe_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
+
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/Wireframe_Vert.sprv", ShaderStage::VERTEX );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/Wireframe_Frag.sprv", ShaderStage::FRAGMENT );
+
+                    GraphicsPipelineDescription graphicsDesc{};
+                    graphicsDesc.DepthTest = true;
+                    graphicsDesc.DepthWrite = true;
+                    graphicsDesc.AlphaBlending = true;
+                    graphicsDesc.Wireframe = true;
+                    graphicsDesc.PipelinePolygonMode = PolygonMode::LINES;
+                    graphicsDesc.PipelineCullMode = CullMode::NONE;
+                    b.Create<Pipeline>( "Wireframe_Pipeline", graphicsDesc );
+
+                    b.Write( "Wireframe_ColorTarget", FrameResourceState::RenderTarget );
+                    b.Write( "Wireframe_DepthTarget", FrameResourceState::DepthWrite );
+
+                    b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
+                    b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthRead );
+
+                    b.Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
+                    b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
+
+                    b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_CameraInfo", 0 );
+                    b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 1 );
+                },
+                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+                    if ( !m_RunWireframe ) {
+                        return;
+                    }
+
+                    const auto dimensions{ InferDimensions( m_Resolution ) };
+
+                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+
+                    ctx.SetClearColor( { 1.0f, 1.0f, 1.0f, 1.0f } );
+                    ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );
+                    ctx.SetDepthRenderTarget( "FinalShadingPass_DepthTarget" );
+
+                    PassRenderInfo render{
+                        .ColorLoadOp{ LoadOp::CLEAR },
+                        .DephtLoadOp{  LoadOp::LOAD }
+                    };
+                    ctx.BeginRender(render);
+
+                    ctx.BindPipeline( "Wireframe_Pipeline" );
+
+                    m_Culling->DrawInstances( ctx );
+
+                    ctx.EndRender();
+                } );
     }
 
     auto DebugPasses::RegisterMaterialPreview( FrameGraph &graph ) -> void {

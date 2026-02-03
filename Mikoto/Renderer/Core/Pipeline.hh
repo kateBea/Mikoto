@@ -134,7 +134,7 @@ namespace Mikoto {
         float WireframeLineWidth{ 1.0f };
 
         CullMode PipelineCullMode{ CullMode::NONE };
-        PolygonMode PipelinePolygonMode{ PolygonMode::LINES };
+        PolygonMode PipelinePolygonMode{ PolygonMode::FILL };
         Topology PrimitiveTopology{ Topology::TRIANGLE_LIST };
         DepthCompareOp DepthCompareOperation{ DepthCompareOp::GREATER_OR_EQUAL };
 

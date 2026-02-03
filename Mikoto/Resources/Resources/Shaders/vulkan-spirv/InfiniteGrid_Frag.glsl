@@ -1,56 +1,94 @@
 #version 450
 
-layout(location = 0) in vec3 v_CameraPos;
-layout(location = 1) in vec2 v_Coords;
+layout(location = 0) in vec3 in_WordlPos;
+layout(location = 1) in vec3 in_CameraWorldPos;
 
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out vec4 o_Color;
 
 // Grid settings
-const float cellSize      = 1.0;
-const float subcellSize   = 0.1;
+const float gGridSize                   = 100.0;
+const float gGridMinPixelsBetweenCells  = 2.0;
+const float gGridCellSize               = 0.025;
+const vec4  gGridColorThin              = vec4(0.5, 0.5, 0.5, 1.0);
+const vec4  gGridColorThick             = vec4(0.3, 0.2, 0.5, 1.0);
 
-const float halfCell      = cellSize * 0.5;
-const float halfSubcell   = subcellSize * 0.5;
 
-const float cellThickness    = 0.005;
-const float subcellThickness = 0.001;
+float log10(float x)
+{
+    float f = log(x) / log(10.0);
+    return f;
+}
 
-const vec4 cellColor    = vec4(0.75, 0.75, 0.75, 0.9);
-const vec4 subcellColor = vec4(0.50, 0.50, 0.50, 0.9);
 
-const float heightToFadeRatio = 25.0;
-const float minFadeDistance   = 100.0 * 0.05;
-const float maxFadeDistance   = 100.0 * 0.5;
+float satf(float x)
+{
+    float f = clamp(x, 0.0, 1.0);
+    return f;
+}
 
-void main() {
-    // First: compute periodic cell coordinates
-    vec2 cellCoords    = mod(v_Coords + halfCell, cellSize);
-    vec2 subcellCoords = mod(v_Coords + halfSubcell, subcellSize);
 
-    // Distance to nearest line
-    vec2 distCell    = abs(cellCoords    - halfCell);
-    vec2 distSubcell = abs(subcellCoords - halfSubcell);
+vec2 satv(vec2 x)
+{
+    vec2 v = clamp(x, vec2(0.0), vec2(1.0));
+    return v;
+}
 
-    // Stabilize line thickness using fwidth
-    vec2 d = fwidth(v_Coords);
-    float adjCellThickness    = 0.5 * (cellThickness    + max(d.x, d.y));
-    float adjSubcellThickness = 0.5 * (subcellThickness + max(d.x, d.y));
 
-    vec4 color = vec4(0.0);
+float max2(vec2 v)
+{
+    float f = max(v.x, v.y);
+    return f;
+}
 
-    if (any(lessThan(distSubcell, vec2(adjSubcellThickness))))
-        color = subcellColor;
 
-    if (any(lessThan(distCell, vec2(adjCellThickness))))
-        color = cellColor;
+void main()
+{
+    vec2 dvx = vec2(dFdx(in_WordlPos.x), dFdy(in_WordlPos.x));
+    vec2 dvy = vec2(dFdx(in_WordlPos.z), dFdy(in_WordlPos.z));
 
-    // Fade near the camera to hide seams
-    float distToCam = length(v_Coords - v_CameraPos.xz);
+    float lx = length(dvx);
+    float ly = length(dvy);
 
-    float fadeDist = abs(v_CameraPos.y) * heightToFadeRatio;
-    fadeDist = clamp(fadeDist, minFadeDistance, maxFadeDistance);
+    vec2 dudv = vec2(lx, ly);
 
-    float opacity = smoothstep(1.0, 0.0, distToCam / fadeDist);
+    float l = length(dudv);
 
-    outColor = color * opacity;
+    float LOD = max(0.0, log10(l * gGridMinPixelsBetweenCells / gGridCellSize) + 1.0);
+
+    float GridCellSizeLod0 = gGridCellSize * pow(10.0, floor(LOD));
+    float GridCellSizeLod1 = GridCellSizeLod0 * 10.0;
+    float GridCellSizeLod2 = GridCellSizeLod1 * 10.0;
+
+    dudv *= 4.0;
+
+    vec2 mod_div_dudv = mod(in_WordlPos.xz, GridCellSizeLod0) / dudv;
+    float Lod0a = max2(vec2(1.0) - abs(satv(mod_div_dudv) * 2.0 - vec2(1.0)) );
+
+    mod_div_dudv = mod(in_WordlPos.xz, GridCellSizeLod1) / dudv;
+    float Lod1a = max2(vec2(1.0) - abs(satv(mod_div_dudv) * 2.0 - vec2(1.0)) );
+
+    mod_div_dudv = mod(in_WordlPos.xz, GridCellSizeLod2) / dudv;
+    float Lod2a = max2(vec2(1.0) - abs(satv(mod_div_dudv) * 2.0 - vec2(1.0)) );
+
+    float LOD_fade = fract(LOD);
+    vec4 Color;
+
+    if (Lod2a > 0.0) {
+        Color = gGridColorThick;
+        Color.a *= Lod2a;
+    } else {
+        if (Lod1a > 0.0) {
+            Color = mix(gGridColorThick, gGridColorThin, LOD_fade);
+            Color.a *= Lod1a;
+        } else {
+            Color = gGridColorThin;
+            Color.a *= (Lod0a * (1.0 - LOD_fade));
+        }
+    }
+
+    float OpacityFalloff = (1.0 - satf(length(in_WordlPos.xz - in_CameraWorldPos.xz) / gGridSize));
+
+    Color.a *= OpacityFalloff;
+
+    o_Color = Color;
 }

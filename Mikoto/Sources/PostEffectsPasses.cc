@@ -211,6 +211,7 @@ namespace Mikoto {
                     b.Create<Pipeline>( "InfiniteGrid_Pipeline", GraphicsPipelineDescription{
                         .DepthTest{ true },
                         .DepthWrite{ false },
+                        .PipelinePolygonMode{ PolygonMode::LINES },
                         .PrimitiveTopology{ Topology::TRIANGLE_LIST },
                         .VertexAttributesSpec{} } );
 
@@ -232,14 +233,13 @@ namespace Mikoto {
                     ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
                     ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
-                    ctx.SetClearColor( { 0.0f, 0.0f, 0.0f, 1.0f } );
+                    ctx.SetClearColor( { 1.0f, 1.0f, 1.0f, 1.0f } );
 
-                    ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );
-                    ctx.SetDepthRenderTarget( "FinalShadingPass_DepthTarget" );
+                    ctx.SetColorRenderTarget( "InfiniteGrid_ColorTarget" );
 
                     PassRenderInfo renderInfo{
-                        .ColorLoadOp{ LoadOp::LOAD },
-                        .DephtLoadOp{ LoadOp::LOAD },
+                        .ColorLoadOp{ LoadOp::CLEAR },
+                        .DephtLoadOp{ LoadOp::CLEAR },
                     };
                     ctx.BeginRender( renderInfo );
 

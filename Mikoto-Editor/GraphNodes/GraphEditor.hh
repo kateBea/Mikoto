@@ -22,6 +22,8 @@ namespace Mikoto {
     class GraphEditor {
     public:
 
+        auto Render() -> void;
+
     private:
 
     };

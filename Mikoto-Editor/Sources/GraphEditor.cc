@@ -242,4 +242,8 @@ namespace Mikoto {
 
         ImGui::End();
     }
-}
+
+    auto GraphEditor::Render() -> void {
+
+    }
+}// namespace Mikoto

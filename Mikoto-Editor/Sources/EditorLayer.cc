@@ -73,7 +73,7 @@ namespace Mikoto {
         m_EditorState->PassesCompositions.try_emplace( "BRDF LUT", m_SceneRenderer->GetTexture( "BRDFLutPass_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "Skybox", m_SceneRenderer->GetTexture( "FinalShadingPass_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "DirectionalShadowMapDepth", m_SceneRenderer->GetTexture( "DirectionalShadowMapPass_DepthTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "InfGrid", m_SceneRenderer->GetTexture( "InfiniteGrid_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "InfiniteGrid", m_SceneRenderer->GetTexture( "InfiniteGrid_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "DepthPrePass", m_SceneRenderer->GetTexture( "DepthPrePass_Depth" ) );
     }
 

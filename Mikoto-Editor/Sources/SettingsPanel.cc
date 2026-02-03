@@ -84,7 +84,7 @@ namespace Mikoto {
             ImGuiUtils::HelpMarker( "Adjust camera smooth damping factor." );
 
             ImGui::Spacing();
-            ImGuiUtils::Slider( "##SettingsPanel::OnUpdate::NearClip", m_Data.NearPlane, { 0.1f, 2.0f } );
+            ImGuiUtils::Slider( "##SettingsPanel::OnUpdate::NearClip", m_Data.NearPlane, { -10.0f, 100.0f } );
             ImGui::SameLine();
             ImGuiUtils::HelpMarker( "Adjust camera near plane." );
 

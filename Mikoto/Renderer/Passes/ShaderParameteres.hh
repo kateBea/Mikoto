@@ -29,7 +29,7 @@ namespace Mikoto {
 
     static constexpr UInt32 MAX_LIGHTS{ 10000 };
     static constexpr UInt32 MAX_CUBE_MAP_FACES{ 6 };
-    static constexpr UInt32 MAX_RENDERABLE_ENTITIES{ 4096 * 10 };
+    static constexpr UInt32 MAX_RENDERABLE_ENTITIES{ 500'000 }; // Arbitrary number
 
     struct ShaderMaterialParams {
         Mat4F Transform{};

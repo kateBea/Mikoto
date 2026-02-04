@@ -15,23 +15,19 @@
 // Credits: https://github.com/SaschaWillems/Vulkan/tree/master/examples
 
 #version 450
+
 #extension GL_EXT_nonuniform_qualifier : require
 #extension GL_EXT_scalar_block_layout : require
 
 #include "ShaderBase.glsl"
 
-layout(scalar, set = PERPASS_SETINDEX, binding = 1) uniform IrradianceParamsUBO {
-    float DeltaPhi;
-    float DeltaTheta;
-} u_Params;
+layout(location = 0) in vec3 v_Pos;
+layout(location = 1) in float v_DeltaPhi;
+layout(location = 2) in float v_DeltaTheta;
 
-layout (set = PERPASS_SETINDEX, binding = 2) uniform samplerCube u_SamplerEnv;
-
-// In variables
-layout (location = 0) in vec3 v_Pos;
-
-// Out variables
 layout (location = 0) out vec4 o_Color;
+
+layout (set = PERPASS_SETINDEX, binding = 0) uniform samplerCube u_SamplerEnv;
 
 void main() {
     vec3 N = normalize(v_Pos);
@@ -44,8 +40,9 @@ void main() {
 
     vec3 color = vec3(0.0);
     uint sampleCount = 0u;
-    for (float phi = 0.0; phi < TWO_PI; phi += u_Params.DeltaPhi) {
-        for (float theta = 0.0; theta < HALF_PI; theta += u_Params.DeltaTheta) {
+
+    for (float phi = 0.0; phi < TWO_PI; phi += v_DeltaPhi) {
+        for (float theta = 0.0; theta < HALF_PI; theta += v_DeltaTheta) {
             vec3 tempVec = cos(phi) * right + sin(phi) * up;
             vec3 sampleVector = cos(theta) * N + sin(theta) * tempVec;
             color += texture(u_SamplerEnv, sampleVector).rgb * cos(theta) * sin(theta);

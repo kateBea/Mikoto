@@ -715,7 +715,7 @@ namespace Mikoto {
 
         VkPresentInfoKHR presentInfo{ VulkanHelpers::Initializers::PresentInfoKHR() };
 
-        presentInfo.swapchainCount = swapChains.size();
+        presentInfo.swapchainCount = static_cast<UInt32>(swapChains.size());
         presentInfo.pSwapchains = swapChains.data();
 
         presentInfo.pImageIndices = &imageIndex;

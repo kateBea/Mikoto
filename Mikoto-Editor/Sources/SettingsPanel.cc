@@ -12,19 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <memory>
-
-#include <imgui.h>
-#include <glm/gtc/type_ptr.hpp>
-
 #include <ImGui/IconsMaterialDesign.h>
-
-#include <ImGui/ImGuiUtility.hh>
-#include <Layers/EditorLayer.hh>
+#include <imgui.h>
 
 #include <Core/Profiler.hh>
+#include <ImGui/ImGuiUtility.hh>
+#include <Layers/EditorLayer.hh>
 #include <Library/String/String.hh>
 #include <Panels/SettingsPanel.hh>
+#include <glm/gtc/type_ptr.hpp>
+#include <memory>
+
+#include "Renderer/Core/RenderService.hh"
 
 namespace Mikoto {
 
@@ -107,6 +106,21 @@ namespace Mikoto {
             ImGuiUtils::CheckBox( "Lock Rotation ( Y )", m_Data.WantYAxisRotation );
             ImGui::SameLine();
             ImGuiUtils::HelpMarker( "Lock rotation in the X axis. Cannot look from left to right and viceversa." );
+
+            // Limit FPS
+            ImGui::Spacing();
+
+            bool isVsyncEnabled{ RenderService::Get()->GetContext()->IsVsyncEnabled() };
+
+            if ( ImGuiUtils::CheckBox( "Limit FPS", isVsyncEnabled ) ) {
+                if (isVsyncEnabled) {
+                    RenderService::Get()->GetContext()->EnableVSync();
+                } else {
+                    RenderService::Get()->GetContext()->DisableVSync();
+                }
+            }
+            ImGui::SameLine();
+            ImGuiUtils::HelpMarker( "Enable Vertical Sync" );
 
             // Heatmap
             ImGui::Spacing();

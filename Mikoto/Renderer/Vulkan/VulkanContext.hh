@@ -55,8 +55,10 @@ namespace Mikoto {
 
         auto Update() -> void override;
 
-        auto EnableVSync() -> void override { SwitchSyncMode( true ); }
-        auto DisableVSync() -> void override { SwitchSyncMode( false ); }
+        auto EnableVSync() -> void override;
+        auto DisableVSync() -> void override;
+
+        MKT_NODISCARD auto IsVsyncEnabled() const -> bool override;
 
         auto Present() -> void override;
 

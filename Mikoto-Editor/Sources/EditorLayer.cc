@@ -285,7 +285,7 @@ namespace Mikoto {
 
         ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( desc ) };
 
-        constexpr UInt32 gridSize{ 10 }; // gridSize * gridSize cubes
+        constexpr UInt32 gridSize{ 100 }; // gridSize * gridSize cubes
         constexpr float spacing{ 4.0f }; // Distance between cubes
 
         Entity *root{ m_ActiveScene->CreateEntity( "InstancingGrid" ) };
@@ -790,9 +790,9 @@ namespace Mikoto {
 
         m_ActiveScene = SceneManager::Get()->CreateScene( name );
 
-        SimpleScene();
-        //DebugInstancingTest();
-        //DebugManyLightsTest();
+        //SimpleScene();
+        DebugInstancingTest();
+        DebugManyLightsTest();
     }
 
     auto EditorLayer::PrepareRenderer( double ) -> void {

@@ -51,6 +51,8 @@ namespace Mikoto {
         auto EnableVSync() -> void override;
         auto DisableVSync() -> void override;
 
+        MKT_NODISCARD auto IsVsyncEnabled() const -> bool override;
+
         ~D3D11Context() override = default;
 
     private:

@@ -56,6 +56,8 @@ namespace Mikoto {
         virtual auto EnableVSync() -> void = 0;
         virtual auto DisableVSync() -> void = 0;
 
+        MKT_NODISCARD virtual auto IsVsyncEnabled() const -> bool = 0;
+
         static auto Create(const RenderContextCreateInfo& config) -> Unique<RenderContext>;
 
     protected:

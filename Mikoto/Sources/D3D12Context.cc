@@ -63,6 +63,10 @@ namespace Mikoto {
     auto D3D12Context::DisableVSync() -> void {
 
     }
-}
+
+    auto D3D12Context::IsVsyncEnabled() const -> bool {
+        return false;
+    }
+}// namespace Mikoto
 
 #endif

@@ -86,6 +86,10 @@ namespace Mikoto {
 
     }
 
+    auto D3D11Context::IsVsyncEnabled() const -> bool {
+        return false;
+    }
+
     auto D3D11Context::CreateSwapChain() -> bool {
         DXGI_SWAP_CHAIN_DESC1 swapChainDescriptor = {};
         swapChainDescriptor.Width = m_TargetWindow->GetWidth();

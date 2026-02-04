@@ -312,6 +312,18 @@ namespace Mikoto {
         TO_VK_DEVICE( m_Device.get() )->FlushImmediateCommands();
     }
 
+    auto VulkanContext::EnableVSync() -> void {
+        // TODO: Request swap chain recreation with FIFO present mode
+    }
+
+    auto VulkanContext::DisableVSync() -> void {
+        // TODO: Request swap chain recreation with available non FIFO present mode
+    }
+
+    auto VulkanContext::IsVsyncEnabled() const -> bool {
+        return m_Swapchain->IsVsyncEnabled();
+    }
+
     auto VulkanContext::Present() -> void {
         const VkSemaphore& renderFinishedSemaphore{ m_FrameSyncPrimitives[m_CurrentFrameIndex].RenderFinishedSemaphore };
 

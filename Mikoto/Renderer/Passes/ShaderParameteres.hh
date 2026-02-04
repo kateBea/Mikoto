@@ -29,13 +29,13 @@ namespace Mikoto {
 
     static constexpr UInt32 MAX_LIGHTS{ 10000 };
     static constexpr UInt32 MAX_CUBE_MAP_FACES{ 6 };
-    static constexpr UInt32 MAX_RENDERABLE_ENTITIES{ 500'000 }; // Arbitrary number
+    static constexpr UInt32 MAX_RENDERABLE_ENTITIES{ 524'288 }; // 2^19
 
     struct ShaderMaterialParams {
         Mat4F Transform{};
 
         Vec4F Albedo{};
-        Vec4F Factors{}; // Metallnes, Roughness, AO
+        Vec4F Factors{}; // Metallness, Roughness, AO
 
         Int32 AlbedoIndex{};
         Int32 NormalIndex{};

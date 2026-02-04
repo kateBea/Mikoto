@@ -36,13 +36,6 @@ namespace Mikoto {
         ImGui::Separator();
         ImGui::Text( "Skybox");
 
-        if ( m_SkyboxImageID == 0) {
-            ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
-            m_SkyboxImageID = backend->ConstructImGuiTextureID( m_EditorState->TextureHDR_2D );
-        } else {
-            (void)ImGuiUtils::PushImageButton( m_EditorState->TextureHDR_2D->GetHandle(), m_SkyboxImageID, ImVec2{ 500, 250 } );
-        }
-
         float gamma    { m_EditorState->ActiveEditorScene->GetGamma() };
         float exposure { m_EditorState->ActiveEditorScene->GetExposure() };
 

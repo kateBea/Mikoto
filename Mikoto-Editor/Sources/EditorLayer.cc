@@ -123,10 +123,12 @@ namespace Mikoto {
         TextureCubeLoadDescription loadDesc2{};
         loadDesc2.WithType( TextureType::TEXTURE_CUBE )
             .IsHDR( true )
-            .WithBasePath("Resources/HDR/scifi_desert_beach/Scifi Desert Beach/Scifi-Desert-Beach.hdr");
+            .WithBasePath("Resources/HDR/modern_evening_street_4k.hdr");
 
-        m_TextureHDR = AssetsService::Get()->LoadAsset<TextureCube>( loadDesc2 );
+        m_EditorState->TextureHDR = AssetsService::Get()->LoadAsset<TextureCube>( loadDesc2 );
+        m_ActiveScene->SetSkybox( m_EditorState->TextureHDR );
 
+#if false
         TextureCubeLoadDescription loadDesc{};
         loadDesc.WithType( TextureType::TEXTURE_CUBE )
             .WithBasePath("Resources/Cubemaps/Lycksele2")
@@ -158,9 +160,8 @@ namespace Mikoto {
 
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
-        m_EditorState->TextureHDR_2D = RenderService::Get()->GetGpuDevice()->CreateTexture( textureDesc );
-
-        m_ActiveScene->SetSkybox( m_TextureHDR );
+        m_EditorState->TextureHDR = RenderService::Get()->GetGpuDevice()->CreateTexture( textureDesc );
+#endif
     }
 
     auto EditorLayer::SetPresentTarget() -> void {
@@ -285,7 +286,7 @@ namespace Mikoto {
 
         ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( desc ) };
 
-        constexpr UInt32 gridSize{ 100 }; // gridSize * gridSize cubes
+        constexpr UInt32 gridSize{ 10 }; // gridSize * gridSize cubes
         constexpr float spacing{ 4.0f }; // Distance between cubes
 
         Entity *root{ m_ActiveScene->CreateEntity( "InstancingGrid" ) };

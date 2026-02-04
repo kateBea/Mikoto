@@ -14,14 +14,14 @@
 
 #include <array>
 
-#include <Common/String.hh>
+#include <ImGui/IconsMaterialDesign.h>
 
+#include <Common/String.hh>
+#include <ImGui/ImGuiUtility.hh>
 #include <Layers/EditorLayer.hh>
 #include <Panels/LightingPanel.hh>
 
-#include <ImGui/IconsMaterialDesign.h>
-
-#include <ImGui/ImGuiUtility.hh>
+#include <Core/RuntimeConsole.hh>
 
 namespace Mikoto {
 
@@ -63,6 +63,15 @@ namespace Mikoto {
                 if (!textureHandle.IsEmpty()) {
                     ImGuiUtils::InputText(StringUtil::Format( "{}", textureHandle->GetTextureUri() ), true );
                 }
+
+                if (ImGui::BeginDragDropTarget()) {
+                    if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("HDR_LOAD_LIGHT_PANEL") }) {
+                        std::string hdrPath{ *static_cast<std::string*>( payload->Data ) };
+                        RuntimeConsole::Get()->Debug( StringUtil::Format("You dropped texture from HDR_LOAD_LIGHT_PANEL {}", hdrPath ) );
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+
                 break;
             case SceneBackground::CLEAR_COLOR:
 

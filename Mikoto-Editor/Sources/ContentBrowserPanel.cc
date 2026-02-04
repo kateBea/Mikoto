@@ -346,7 +346,9 @@ namespace Mikoto {
                 std::string fileType{};
 
                 // TODO: Figure a better way to preview explorer texture, this right now is costly
-                if (entry.path().string().ends_with( ".png" ) || entry.path().string().ends_with( ".jpg" ) ) {
+                if (entry.path().string().ends_with( ".png" )
+                    || entry.path().string().ends_with( ".jpg" )
+                    || entry.path().string().ends_with( ".hdr" )) {
                     m_Thumbnail = AssetsService::Get()->LoadAsset<Texture>( entry.path() );
                 } else {
                     m_Thumbnail = TextureHandle::CreateEmpty();
@@ -364,14 +366,14 @@ namespace Mikoto {
                 ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0, 0, 0, 0 ) );
                 if (m_Thumbnail.IsEmpty()) {
                     if ( ImGui::ImageButton( entry.path().string().c_str(), icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } ) ) {
-
+                        // empty
                     }
                 } else {
                     static ImTextureID imguiTextID{};
                     imguiTextID = ImGuiService::Get()->GetTextureID( m_Thumbnail );
 
                     if ( ImGui::ImageButton( entry.path().string().c_str(), imguiTextID, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } ) ) {
-
+                        // empty
                     }
 
                     // DRAG SOURCE must be checked after drawing the item
@@ -384,6 +386,24 @@ namespace Mikoto {
                         constexpr float previewDimensions{ 48.0f };
                         ImGui::Image(imguiTextID, ImVec2(previewDimensions, previewDimensions), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
                         ImGuiUtils::CenteredText( fmt::format( "Move Icon" ).c_str(), previewDimensions );
+
+                        ImGui::EndDragDropSource();
+                    }
+
+                    // DRAG for HDR load in Lighting panel
+                    if (ImGui::BeginDragDropSource()) {
+                        static std::string path{};
+
+                        path = entry.path().string();
+
+                        // Send the texture handle
+                        // Reminder: Payload type can be at most 32 characters long
+                        ImGui::SetDragDropPayload("HDR_LOAD_LIGHT_PANEL", std::addressof( path ), sizeof(path));
+
+                        // Preview
+                        constexpr float previewDimensions{ 48.0f };
+                        ImGui::Image(ImGuiService::Get()->GetTextureID( m_Thumbnail ), ImVec2(previewDimensions, previewDimensions), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+                        ImGuiUtils::CenteredText( fmt::format( "Skybox" ).c_str(), previewDimensions );
 
                         ImGui::EndDragDropSource();
                     }

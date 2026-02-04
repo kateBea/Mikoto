@@ -16,6 +16,7 @@
 #define MIKOTO_LIGHTING_PANEL_HH
 
 #include <Panels/Panel.hh>
+#include <Assets/Texture.hh>
 
 namespace Mikoto {
 
@@ -39,6 +40,7 @@ namespace Mikoto {
 
     private:
         EditorState* m_EditorState{};
+        TextureHandle m_LoadedCubeMap{};
     };
 }
 

@@ -29,6 +29,7 @@
 #include <Threading/TaskService.hh>
 
 #include "Audio/AudioService.hh"
+#include "Common/String.hh"
 #include "Filesystem/FileSystem.hh"
 #include "Threading/ThreadUtility.hh"
 
@@ -232,8 +233,9 @@ namespace Mikoto {
     auto AssetsService::LoadCubeMap( const TextureCubeLoadDescription &description ) -> TextureHandle {
         MKT_BEGIN_PROFILER_NAMED();
 
+        const std::string baseAbsolute{ Filesystem::GetGetAbsolutePathString( description.BasePath ) };
         // if it exists
-        if (const auto itFind{ m_Textures.find( description.BasePath.string() ) }; itFind != m_Textures.end() ) {
+        if (const auto itFind{ m_Textures.find( baseAbsolute ) }; itFind != m_Textures.end() ) {
             return itFind->second;
         }
 
@@ -246,7 +248,7 @@ namespace Mikoto {
         if (!textureDesc.IsHdrMap) {
             for (const auto& path : description.FacesRelativePaths ) {
                 PathBuilder pathBuilder{};
-                pathBuilder.WithPath( description.BasePath.string() )
+                pathBuilder.WithPath( baseAbsolute )
                     .WithPath( path.string() );
 
                 if (const File* file{ FileService::Get()->LoadFile( pathBuilder.Build() ) }) {
@@ -255,7 +257,7 @@ namespace Mikoto {
             }
         } else {
             // Just store the path as first element of the vector
-            if (const File* file{ FileService::Get()->LoadFile( description.BasePath.string() ) }) {
+            if (const File* file{ FileService::Get()->LoadFile( baseAbsolute ) }) {
                 textureDesc.WithFacePath( file );
             }
         }
@@ -263,11 +265,11 @@ namespace Mikoto {
         TextureHandle texture{ m_GpuDevice->CreateTexture( textureDesc ) };
         if (!texture.IsEmpty()) {
             auto [it, success]{
-                m_Textures.try_emplace( description.BasePath.string(), texture )
+                m_Textures.try_emplace( baseAbsolute, texture )
             };
 
             if (success) {
-                return m_Textures[description.BasePath.string()];
+                return m_Textures[baseAbsolute];
             }
         }
 

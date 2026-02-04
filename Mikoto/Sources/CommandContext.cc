@@ -132,7 +132,9 @@ namespace Mikoto {
     auto CommandContext::DrawIndexed( const DrawIndexedState &info ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        m_Context->PushConstants(m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands);
+        if (!m_ActivePass->ConstantsShaderResources.IsEmpty()) {
+            m_Context->PushConstants(m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands);
+        }
 
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
 

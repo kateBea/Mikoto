@@ -13,12 +13,13 @@
 // limitations under the License.
 
 #include <Core/Profiler.hh>
+#include <Material/ShaderLibrary.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanGraphicsContext.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>
 #include <Renderer/Vulkan/VulkanTexture.hh>
 
-#include <Material/ShaderLibrary.hh>
+#include "Common/String.hh"
 
 namespace Mikoto {
 
@@ -400,6 +401,24 @@ namespace Mikoto {
 
             it->second.CombinedImageSampler.emplace( std::make_pair( handle.GetRaw(), sampler.GetRaw() ) );
         }
+    }
+
+    auto VulkanGraphicsContext::PushConstants( std::string_view name, const SRGConstants &constants, CommandListHandle cmd ) -> void {
+        const auto it{ m_PassInfo.find( StringUtil::From( name ) ) };
+        if (it == m_PassInfo.end()) {
+            return;
+        }
+
+        PipelineHandle pipeline{ it->second.Pipeline };
+
+        VkShaderStageFlags pcShaderStages{ /*Expose from pipeline*/ };
+        vkCmdPushConstants(
+            cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
+            pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ),
+            pcShaderStages,
+            0,
+            constants.GetSize(),
+            constants.GetData());
     }
 
     auto VulkanGraphicsContext::InsertResourceBarrier( BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd ) -> bool {

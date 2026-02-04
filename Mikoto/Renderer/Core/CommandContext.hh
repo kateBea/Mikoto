@@ -92,6 +92,8 @@ namespace Mikoto {
 
         auto UploadBuffer(std::string_view bufferName, const void* ptrSrc, Size size, Size offset = 0 ) const -> void;
 
+        auto PushContants(const void* ptr, Size size) -> void;
+
         MKT_NODISCARD auto PushTexture(TextureHandle texture ) const -> Int32;
         MKT_NODISCARD auto GetNamedBuffer( std::string_view ) const -> BufferHandle;
 

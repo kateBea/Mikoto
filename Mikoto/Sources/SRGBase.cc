@@ -42,6 +42,16 @@ namespace Mikoto {
         return 4096;
     }
 
+    auto SRGConstants::SetData( const void *ptr, Size size ) -> void {
+        m_Data = ptr;
+        m_SizeBytes = size;
+    }
+
+    auto SRGConstants::Clear() -> void {
+        m_Data = nullptr;
+        m_SizeBytes = 0;
+    }
+
     auto SRGTextures::Bind( TextureHandle texture, SamplerHandle sampler ) -> Int32 {
         if (m_Resources.contains( std::make_pair(texture.GetRaw(), sampler.GetRaw()) )) {
             return INVALID_TEXTURE_INDEX;

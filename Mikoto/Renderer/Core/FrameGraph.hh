@@ -59,6 +59,7 @@ namespace Mikoto {
         std::vector<ResourceNode> Writes{};
 
         SRGPerPass PerPassShaderResources{};
+        SRGConstants ConstantsShaderResources{};
 
         std::function<void( CommandContext &, FrameGraphBlackboard & )> ExecuteCallback{};
 

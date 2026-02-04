@@ -80,6 +80,26 @@ namespace  Mikoto {
         ankerl::unordered_dense::map<std::pair<Texture*, Sampler*>, Size> m_Resources{};
     };
 
+    // Represents block of data that is passes before every draw call
+    class SRGConstants final : public SRGBase {
+    public:
+
+        explicit SRGConstants() : SRGBase{ SRGType::SRG_Constants } {}
+
+        auto SetData(const void* ptr, Size size) -> void;
+
+        auto Clear() -> void;
+
+        MKT_NODISCARD auto GetSize() const -> Size { return m_SizeBytes; }
+        MKT_NODISCARD auto GetData() const -> const void* { return m_Data; }
+        MKT_NODISCARD auto IsEmpty() const -> Size { return m_Data == nullptr && m_SizeBytes == 0; }
+
+    private:
+
+        const void* m_Data{};
+        Size m_SizeBytes{};
+    };
+
     class SRGPerPass : public SRGBase {
     public:
         explicit SRGPerPass() : SRGBase{ SRGType::SRG_PerPass } {}

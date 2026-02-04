@@ -84,6 +84,7 @@ namespace Mikoto {
         // Make visible a buffer as shader resource to a specific pass
         virtual auto PushBuffer(BufferHandle handle, std::string_view passName, UInt32 bindingSlot) -> void = 0;
         virtual auto PushTexture(TextureHandle handle, SamplerHandle sampler, std::string_view passName, UInt32 bindingSlot) -> void = 0;
+        virtual auto PushConstants( std::string_view passName, const SRGConstants& srg_constants, CommandListHandle cmd ) -> void = 0;
 
         MKT_NODISCARD static auto Create(GpuDevice* device) -> Unique<GraphicsContext>;
 

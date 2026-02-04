@@ -132,6 +132,8 @@ namespace Mikoto {
     auto CommandContext::DrawIndexed( const DrawIndexedState &info ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        m_Context->PushConstants(m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands);
+
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
 
         for (auto &[vertexBuffer, binding]: info.VertexBuffers) {
@@ -170,6 +172,10 @@ namespace Mikoto {
                 MKT_CORE_LOGGER_WARN( "PassCommandList::FillBuffer - [{}] size is [{}]. Trying to copy [{}] bytes", bufferName, buffer->GetSizeBytes(), size );
             } else { buffer->CopyFromBlock( ptrSrc, size, offset ); }
         }
+    }
+
+    auto CommandContext::PushContants( const void *ptr, Size size ) -> void {
+        m_ActivePass->ConstantsShaderResources.SetData( ptr, size );
     }
 
     auto CommandContext::PushTexture( TextureHandle texture ) const -> Int32 {

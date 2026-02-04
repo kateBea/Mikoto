@@ -1,21 +1,30 @@
-/**
- * VulkanPipeline.cc
- * Created by kate on 6/2/23.
- * */
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// C++ Standard Library
 #include <fstream>
 #include <array>
 #include <ranges>
 #include <vector>
 
-// Third-Party Libraries
 #include <volk.h>
 
-// Project Headers
 #include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
+
 #include <Logging/Logger.hh>
+
+#include <Library/Utility/Types.hh>
+
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
@@ -143,7 +152,7 @@ namespace Mikoto {
     }
 
     // Helper function to convert Mikoto InputRate -> Vulkan VkVertexInputRate
-    inline VkVertexInputRate ToVulkanInputRate(InputRate rate) {
+    MKT_NODISCARD static auto ToVulkanInputRate(InputRate rate) -> VkVertexInputRate {
         switch (rate) {
             case InputRate::PER_VERTEX:   return VK_VERTEX_INPUT_RATE_VERTEX;
             case InputRate::PER_INSTANCE: return VK_VERTEX_INPUT_RATE_INSTANCE;
@@ -178,6 +187,32 @@ namespace Mikoto {
         }
 
         return shaderStagesInfos;
+    }
+
+    auto VulkanPipeline::Get() const -> VkPipeline {
+        return m_Pipeline;
+    }
+
+    auto VulkanPipeline::GetLayout() const -> VkPipelineLayout {
+        return m_ReflectionData.pipelineLayout;
+    }
+
+    auto VulkanPipeline::GetDescriptorLayoutCount() const -> Size {
+        return m_ReflectionData.setLayouts.size();
+    }
+
+    auto VulkanPipeline::GetDescriptorSetIndices() const -> std::vector<UInt32> {
+        std::vector<UInt32> keys{};
+        keys.reserve(m_ReflectionData.setLayouts.size());
+
+        for ( const auto& key: m_ReflectionData.setLayouts | std::views::keys )
+            keys.push_back(key);
+
+        return keys;
+    }
+
+    auto VulkanPipeline::GetDescriptorSetLayout( UInt32 index ) const -> const VkDescriptorSetLayout& {
+        return m_ReflectionData.setLayouts.at(index);
     }
 
     VulkanGraphicsPipeline::VulkanGraphicsPipeline( const VulkanGraphicsPipelineDescription& info)
@@ -266,33 +301,15 @@ namespace Mikoto {
         switch (type) {
 
             case ObjectType::Vk_PipelineLayout:
-                return Object(m_ReflectionData.pipelineLayout);
+                return Object( m_ReflectionData.pipelineLayout );
 
             case ObjectType::Vk_Pipeline:
-                return Object(m_Pipeline );
+                return Object( m_Pipeline );
 
             default:;
         }
 
         return Object(nullptr);
-    }
-
-    auto VulkanGraphicsPipeline::GetDescriptorSetIndices() const -> std::vector<UInt32> {
-        std::vector<UInt32> keys{};
-        keys.reserve(m_ReflectionData.setLayouts.size());
-
-        for ( const auto& key: m_ReflectionData.setLayouts | std::views::keys )
-            keys.push_back(key);
-
-        return keys;
-    }
-
-    auto VulkanGraphicsPipeline::GetDescriptorLayoutCount() const -> Size {
-        return m_ReflectionData.setLayouts.size();
-    }
-
-    auto VulkanGraphicsPipeline::GetDescriptorSetLayout( UInt32 index ) const -> const VkDescriptorSetLayout& {
-        return m_ReflectionData.setLayouts.at(index);
     }
 
     VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
@@ -390,9 +407,7 @@ namespace Mikoto {
 
     VulkanComputePipeline::VulkanComputePipeline(const ComputePipelineDescription& info)
         : ComputePipeline( info )
-    {
-
-    }
+    {}
 
     auto VulkanComputePipeline::Release() -> void {
         DestroyReflectedPipeline( VK_DEVICE(m_Device), m_ReflectionData );
@@ -401,29 +416,10 @@ namespace Mikoto {
         m_IsAllocated = false;
     }
 
-    auto VulkanComputePipeline::GetDescriptorSetIndices() const -> std::vector<UInt32> {
-        std::vector<UInt32> keys{};
-        keys.reserve(m_ReflectionData.setLayouts.size());
-
-        for ( const auto& setLayout: m_ReflectionData.setLayouts | std::views::keys ) {
-            keys.push_back(setLayout);
-        }
-
-        return keys;
-    }
-
-    auto VulkanComputePipeline::GetDescriptorLayoutCount() const -> Size {
-        return m_ReflectionData.setLayouts.size();
-    }
-
     VulkanComputePipeline::~VulkanComputePipeline() {
         if (m_IsAllocated) {
             Release();
         }
-    }
-
-    auto VulkanComputePipeline::GetDescriptorSetLayout( UInt32 index ) const -> const VkDescriptorSetLayout& {
-        return m_ReflectionData.setLayouts.at( index );
     }
 
     auto VulkanComputePipeline::Initialize() -> void {
@@ -444,8 +440,8 @@ namespace Mikoto {
 
         VkResult res{ ReflectSPIRV( VK_DEVICE(m_Device), shaderBlocks, m_ReflectionData ) };
 
-        if (shaderStageInfos.empty() || m_ReflectionData.pipelineLayout == VK_NULL_HANDLE) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanComputePipeline::Initialize - stage infos is empty or pipeline layout is null handle." );
+        if (shaderStageInfos.empty() || m_ReflectionData.pipelineLayout == VK_NULL_HANDLE || res != VK_SUCCESS) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanComputePipeline::Initialize - Failed to reflect compute pipeline stages." );
         }
 
         // I use front() because compute pipeline only have one stage, the compute shader
@@ -477,4 +473,4 @@ namespace Mikoto {
 
         return Object(nullptr);
     }
-}// namespace Mikoto
+}

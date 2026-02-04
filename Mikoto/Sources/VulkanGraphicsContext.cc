@@ -13,13 +13,13 @@
 // limitations under the License.
 
 #include <Core/Profiler.hh>
+#include <Common/String.hh>
+
 #include <Material/ShaderLibrary.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanGraphicsContext.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>
 #include <Renderer/Vulkan/VulkanTexture.hh>
-
-#include "Common/String.hh"
 
 namespace Mikoto {
 
@@ -214,42 +214,21 @@ namespace Mikoto {
         }
 
         FramePassInfo& passInfo{ it->second };
-        PipelineHandle pipeline{ CreatePipeline( desc ) };
+        passInfo.Pipeline = CreatePipeline( desc );
 
-        if (pipeline->GetPipelineType() == PipelineType::COMPUTE_PIPELINE) {
-            VulkanComputePipeline *vulkanPipeline{ dynamic_cast<VulkanComputePipeline *>( pipeline.GetRaw() ) };
+        VulkanPipeline* vulkanPipeline{ MKT_TO_VK_PIPELINE(passInfo.Pipeline) };
 
-            for (const auto& setIndex: vulkanPipeline->GetDescriptorSetIndices()) {
-                // We only create the descriptor sets for per pass shader resource sets
-                if (setIndex == TEXTURES_DESCRIPTOR_SET_INDEX || setIndex == PER_FRAME_DESCRIPTOR_SET_INDEX) {
-                    continue;
-                }
-
-                const VkDescriptorSetLayout &layout{ vulkanPipeline->GetDescriptorSetLayout( setIndex ) };
-                VkDescriptorSet descriptorSet{ TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( std::addressof( layout ) ) };
-
-                passInfo.DescriptorSets[setIndex] = descriptorSet;
+        for (const auto& setIndex: vulkanPipeline->GetDescriptorSetIndices()) {
+            // We only create the descriptor sets for per pass shader resource sets for now
+            if (setIndex == TEXTURES_DESCRIPTOR_SET_INDEX || setIndex == PER_FRAME_DESCRIPTOR_SET_INDEX) {
+                continue;
             }
+
+            const VkDescriptorSetLayout &layout{ vulkanPipeline->GetDescriptorSetLayout( setIndex ) };
+            VkDescriptorSet descriptorSet{ TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( std::addressof( layout ) ) };
+
+            passInfo.DescriptorSets[setIndex] = descriptorSet;
         }
-
-        if (pipeline->GetPipelineType() == PipelineType::GRAPHICS_PIPELINE) {
-            VulkanGraphicsPipeline *vulkanPipeline{ dynamic_cast<VulkanGraphicsPipeline *>( pipeline.GetRaw() ) };
-
-            for (const auto& setIndex: vulkanPipeline->GetDescriptorSetIndices()) {
-                // We only create the descriptor sets for per pass shader resource sets
-                if (setIndex == TEXTURES_DESCRIPTOR_SET_INDEX || setIndex == PER_FRAME_DESCRIPTOR_SET_INDEX) {
-                    continue;
-                }
-
-                const VkDescriptorSetLayout &layout{ vulkanPipeline->GetDescriptorSetLayout( setIndex ) };
-                VkDescriptorSet descriptorSet{ TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( std::addressof( layout ) ) };
-
-                passInfo.DescriptorSets[setIndex] = descriptorSet;
-            }
-        }
-
-        // The pipeline is later needed to bind resources
-        passInfo.Pipeline = pipeline;
     }
 
     auto VulkanGraphicsContext::UpdatePassDescriptors(  std::string_view passName, SRGPerPass& passData ) -> void {
@@ -607,7 +586,7 @@ namespace Mikoto {
 
     auto VulkanGraphicsContext::CreatePipeline( PipelineDescription& description ) -> PipelineHandle {
         if (m_PipelinesByNames.contains( description.Name )) {
-            MKT_CORE_LOGGER_WARN( "FrameGraph::CreatePipeline - Named pipeline [{}] already exists.", description.Name );
+            MKT_CORE_LOGGER_WARN( "VulkanGraphicsContext::CreatePipeline - Named pipeline [{}] already exists.", description.Name );
             return m_PipelinesByNames[description.Name ];
         }
 

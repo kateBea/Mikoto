@@ -59,6 +59,8 @@ namespace Mikoto {
 
         BufferAllocation m_Allocation{};
         BufferAllocation m_StagingAllocation{};
+
+        bool m_UsesScalarBlockLayout{ false };
     };
 }// namespace Mikoto
 

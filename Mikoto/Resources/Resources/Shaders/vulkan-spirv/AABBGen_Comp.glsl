@@ -1,9 +1,21 @@
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 /**************************************************
     AABB Compute Shader
-
     Stage: Compute
     Version: GLSL 4.5.0
-
     @ref https://github.com/DaveH355/clustered-shading
 **************************************************/
 
@@ -12,9 +24,11 @@
 #include "ShaderBase.glsl"
 #include "ClusteredShading.glsl"
 
+#extension GL_EXT_scalar_block_layout : require
+
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-layout(set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
+layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
     mat4 ViewMatrix;
     mat4 InverseProjection;
 
@@ -28,7 +42,7 @@ layout(set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
     vec4 ShowHeatMap;
 } Camera;
 
-layout(std430, set = PERPASS_SETINDEX, binding = 1) buffer ClusterSSBO {
+layout(std430, scalar,set = PERPASS_SETINDEX, binding = 1) buffer ClusterSSBO {
     Cluster clusters[];
 };
 

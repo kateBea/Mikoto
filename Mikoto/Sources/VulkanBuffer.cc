@@ -49,17 +49,22 @@ namespace Mikoto {
             // We allocate space for a buffer large enough to contain ElementCount objects of ElementSize size (in bytes)
             if (m_ElementSize != 0 && m_ElementCount != 0) {
 
-                if (IsUsage( BufferUsage::SSBO )) {
-                    VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE(m_Device)->GetStorageBufferMinOffsetAlignment() };
-                    m_MinPaddedSize = VulkanHelpers::GetStorageBufferPadding( m_ElementSize, minOffsetAlignment );
+                if (TO_VK_DEVICE( m_Device )->IsScalarBlockLayoutEnabled()) {
+                    // Non padded structs (VK_EXT_scalar_block_layout)
+                    m_SizeBytes = m_ElementCount * m_ElementSize;
+                    m_Allocation.BufferCreateInfo.size = static_cast<UInt32>( m_SizeBytes );
 
-                } else if (IsUsage(BufferUsage::UNIFORM)) {
-                    VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE(m_Device)->GetUniformBufferMinOffsetAlignment() };
-                    m_MinPaddedSize = VulkanHelpers::GetUniformBufferPadding( m_ElementSize, minOffsetAlignment );
+                    m_UsesScalarBlockLayout = true;
+                } else {
+                    if (IsUsage( BufferUsage::SSBO )) {
+                        VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE(m_Device)->GetStorageBufferMinOffsetAlignment() };
+                        m_MinPaddedSize = VulkanHelpers::GetStorageBufferPadding( m_ElementSize, minOffsetAlignment );
+
+                    } else if (IsUsage(BufferUsage::UNIFORM)) {
+                        VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE(m_Device)->GetUniformBufferMinOffsetAlignment() };
+                        m_MinPaddedSize = VulkanHelpers::GetUniformBufferPadding( m_ElementSize, minOffsetAlignment );
+                    }
                 }
-
-                m_SizeBytes = m_ElementCount * m_MinPaddedSize;
-                m_Allocation.BufferCreateInfo.size = static_cast<UInt32>( m_SizeBytes );
             }
 
             InitMainBuffer();
@@ -276,6 +281,14 @@ namespace Mikoto {
     auto VulkanBuffer::CopyFromBlock( const void* ptr, const Size size, const Size offset ) -> void {
         PersistentMap();
 
+        // Vertices and indices are technically copied by these means, usually via a copy command on the GPU
+        if (m_UsesScalarBlockLayout || IsUsage( BufferUsage::STAGING )
+            || IsUsage( BufferUsage::VERTEX ) || IsUsage( BufferUsage::INDEX )) {
+            std::memcpy(static_cast<std::byte*>(m_Allocation.AllocationInfo.pMappedData) + offset, ptr, size);
+            return;
+        }
+
+        // FIXME: If uniform with padded data, handle properly
         if (m_ElementSize != 0 && (m_Usage == BufferUsage::SSBO || m_Usage == BufferUsage::UNIFORM)) {
             // if this buffer is supposed to hold elements we need to handle element padding depending on whether this is uniform or storage
             const Size minJumps{ offset / m_MinPaddedSize };
@@ -286,8 +299,6 @@ namespace Mikoto {
             }
 
             std::memcpy(static_cast<std::byte*>(m_Allocation.AllocationInfo.pMappedData) + newOffset, ptr, size);
-        } else {
-            std::memcpy(static_cast<std::byte*>(m_Allocation.AllocationInfo.pMappedData) + offset, ptr, size);
         }
     }
 

@@ -61,7 +61,7 @@ namespace Mikoto {
             glm::vec4 LightInfo{};
         };
 
-        struct alignas(sizeof(glm::vec4)) Cluster  {
+        struct Cluster  {
             glm::vec4 Center{};
             glm::vec4 ClosestPoint{};
             glm::vec4 DistanceSquared{};

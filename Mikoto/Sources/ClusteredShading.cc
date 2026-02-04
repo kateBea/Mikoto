@@ -62,7 +62,7 @@ namespace Mikoto {
                     MKT_BEGIN_PROFILER_NAMED();
 
                     b.Create<Buffer>( "AABBGenComp_CameraUBO", BufferUsage::UNIFORM, sizeof( CameraUBO ), 1 );
-                    b.Create<Buffer>( "AABBGenComp_Clusters", BufferUsage::SSBO, m_NumClusters * sizeof( Cluster ) );
+                    b.Create<Buffer>( "AABBGenComp_Clusters", BufferUsage::SSBO, sizeof( Cluster ), m_NumClusters );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/AABBGen_Comp.sprv", ShaderStage::COMPUTE );
                     b.Create<Pipeline>( "AABBGenComp_Pipeline", ComputePipelineDescription{} );
@@ -217,7 +217,7 @@ namespace Mikoto {
                     MKT_BEGIN_PROFILER_NAMED();
 
                     b.Create<Buffer>( "LightCullingComp_LightsCullingInfo", BufferUsage::UNIFORM, sizeof( LightCullingUBO ), 1 );
-                    b.Create<Buffer>( "LightCullingComp_LightsBuffer", BufferUsage::SSBO, sizeof( ShaderLightTypeParams ) * m_Lights.size() );
+                    b.Create<Buffer>( "LightCullingComp_LightsBuffer", BufferUsage::SSBO, sizeof( ShaderLightTypeParams ), m_Lights.size() );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/LightCulling_Comp.sprv", ShaderStage::COMPUTE );
                     b.Create<Pipeline>( "LightCullingComp_Pipeline", ComputePipelineDescription{} );

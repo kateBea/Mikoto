@@ -358,6 +358,9 @@ namespace Mikoto {
 
         VkPhysicalDeviceVulkan12Features enabled12Features{ VulkanHelpers::Initializers::PhysicalDeviceVulkan12Features() };
 
+        // Non padded structs (VK_EXT_scalar_block_layout)
+        enabled12Features.scalarBlockLayout = VK_TRUE;
+
         // Enable bind-less
         enabled12Features.descriptorIndexing = VK_TRUE;
         enabled12Features.runtimeDescriptorArray = VK_TRUE;
@@ -368,6 +371,9 @@ namespace Mikoto {
         enabled12Features.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
         enabled12Features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
         enabled12Features.pNext = std::addressof( vulkan13Features );
+
+        // For feature enabled check
+        m_Vulkan12EnabledFeatures = enabled12Features;
 
         VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{ VulkanHelpers::Initializers::PhysicalDeviceFeatures2() };
         physicalDeviceFeatures2.features = deviceFeatures;
@@ -777,6 +783,10 @@ namespace Mikoto {
 
     auto VulkanDevice::GetLogicalDeviceQueues() const -> const QueuesData& {
         return m_Queues;
+    }
+
+    auto VulkanDevice::IsScalarBlockLayoutEnabled() const -> bool {
+        return m_Vulkan12EnabledFeatures.scalarBlockLayout == VK_TRUE;
     }
 
     auto VulkanDevice::AllocateDescriptorSet( const VkDescriptorSetLayout* layout, const void* pNext ) -> VkDescriptorSet {

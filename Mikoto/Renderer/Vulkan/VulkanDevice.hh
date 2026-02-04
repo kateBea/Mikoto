@@ -199,6 +199,8 @@ namespace Mikoto {
         MKT_NODISCARD auto GetLogicalDevice() const -> const VkDevice&;
         MKT_NODISCARD auto GetLogicalDeviceQueues() const -> const QueuesData&;
 
+        MKT_NODISCARD auto IsScalarBlockLayoutEnabled() const -> bool;
+
         MKT_NODISCARD auto AllocateDescriptorSet(const VkDescriptorSetLayout* layout, const void* pNext = nullptr) -> VkDescriptorSet;
         MKT_NODISCARD auto AllocateDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo& layout) -> DescriptorSetLayoutHandle;
 
@@ -299,6 +301,8 @@ namespace Mikoto {
         PhysicalDeviceInfo m_PhysicalDeviceInfo{};
         std::vector<const char*> m_RequestedExtensions{};
         Unique<GpuAllocator> m_GpuAllocator{ nullptr };
+
+        VkPhysicalDeviceVulkan12Features m_Vulkan12EnabledFeatures{};
 
         // [Tracy debug]
         VkCommandPool m_TracyPool{};

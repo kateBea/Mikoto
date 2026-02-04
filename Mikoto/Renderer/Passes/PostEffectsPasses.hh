@@ -50,7 +50,7 @@ namespace Mikoto {
         auto SetupTextForRender( FontHandle font, const Camera* camera, Vec4F position, std::string_view text, double fontSize, Vec4F color, CommandContext& commandList ) -> void;
 
     private:
-        struct alignas( 16 ) TextRenderParams {
+        struct TextRenderParams {
             Mat4F Proj{};
             Mat4F View{};
 
@@ -61,7 +61,7 @@ namespace Mikoto {
             UInt32 TexIndex{};
         };
 
-        struct alignas( 16 ) TextParamsUBO {
+        struct TextParamsUBO {
             Vec4F OutlineColor{ 1.0f, 1.0f, 1.0f, 1.0f };
             float OutlineWidth{ 2.0f };
         };
@@ -71,7 +71,7 @@ namespace Mikoto {
             UInt32 TexIndex{};
         };
 
-        struct alignas( 16 ) InfiniteGridParameters {
+        struct InfiniteGridParameters {
             Mat4F CameraView{};
             Mat4F CameraProj{};
             Vec4F CameraPos{};

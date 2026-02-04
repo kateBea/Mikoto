@@ -74,32 +74,32 @@ namespace Mikoto {
         };
 
     private:
-        struct alignas(16) IrradianceParameters {
+        struct IrradianceParameters {
             float DeltaPhi{};
             float DeltaTheta{};
         };
 
-        struct alignas(16) IrradianceCamInfo {
+        struct IrradianceCamInfo {
             Mat4F MVP{};
         };
 
-        struct alignas(16) PrefilterParameters {
+        struct PrefilterParameters {
             float Roughness{};
             UInt32 NumSamples{};
         };
 
-        struct alignas(16) PrefilterCamInfo {
+        struct PrefilterCamInfo {
             Mat4F MVP{};
         };
 
-        struct alignas(16) SkyboxUBO {
+        struct SkyboxUBO {
             Mat4F View{};
             Mat4F Projection{};
             float Exposure{};
             float Gamma{};
         };
 
-        struct alignas(16) DirectionalShadowMapCameraInfo {
+        struct DirectionalShadowMapCameraInfo {
             Mat4F LightView{};
             Mat4F LightProjection{};
         };

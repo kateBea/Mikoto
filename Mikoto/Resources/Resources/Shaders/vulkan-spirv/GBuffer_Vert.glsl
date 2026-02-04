@@ -1,18 +1,31 @@
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #version 450
+
 #extension GL_EXT_nonuniform_qualifier : require
+#extension GL_EXT_scalar_block_layout : require
 
 #include "ShaderBase.glsl"
 
-// --------------------------------------------------
-// Per-frame uniform
-// --------------------------------------------------
-layout(set = PERPASS_SETINDEX, binding = 0) uniform FrameUBO {
+layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform FrameUBO {
     mat4 View;
     mat4 Projection;
     vec4 CameraPosition;
-} frame;
+} u_CameraInfo;
 
-layout(std430, set = PERPASS_SETINDEX, binding = 1) readonly buffer MeshInfoSSBO {
+layout(std430, scalar, set = PERPASS_SETINDEX, binding = 1) readonly buffer MeshInfoSSBO {
     MeshInfo Meshes[];
 };
 
@@ -41,9 +54,6 @@ layout(location = 11) flat out vec4 out_Factors;
 
 layout(location = 12) out vec3 out_FragmentViewPos;
 
-// --------------------------------------------------
-// Main
-// --------------------------------------------------
 void main() {
     MeshInfo meshInfo = Meshes[gl_InstanceIndex];
 
@@ -52,14 +62,14 @@ void main() {
     // Per-vertex
     out_Color        = a_Color;
     out_TexCoord     = a_TexCoord;
-    out_CameraPos    = frame.CameraPosition.xyz;
+    out_CameraPos    = u_CameraInfo.CameraPosition.xyz;
 
     // Normal transform
     out_VertexNormal  = transpose(inverse(mat3(model))) * a_Normal;
 
     // Fragment position
     out_FragmentWorldPos = vec3(model * vec4(a_Position, 1.0));
-    out_FragmentViewPos = vec3(frame.View * vec4(a_Position, 1.0));
+    out_FragmentViewPos = vec3(u_CameraInfo.View * vec4(a_Position, 1.0));
 
     // Per-instance material values
     out_AlbedoIndex    = meshInfo.AlbedoIndex;
@@ -67,5 +77,5 @@ void main() {
     out_Albedo         = meshInfo.Albedo;
     out_Factors        = meshInfo.Factors;
 
-    gl_Position = frame.Projection * frame.View * model * vec4(a_Position, 1.0);
+    gl_Position = u_CameraInfo.Projection * u_CameraInfo.View * model * vec4(a_Position, 1.0);
 }

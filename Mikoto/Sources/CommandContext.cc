@@ -153,10 +153,12 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         if (BufferHandle bufferHandle{ m_Context->GetBuffer( bufferName ) }; !bufferHandle.IsEmpty()) {
-            for (Size count{}; count < elementCount; ++count) {
-                const auto *src{ static_cast<const std::byte *>( buffer ) };
-                bufferHandle->CopyFromBlock( std::addressof( src[elementSize * count] ), elementSize, count * elementSize );
-            }
+            bufferHandle->CopyFromBlock( buffer, elementCount * elementSize );
+
+            // for (Size count{}; count < elementCount; ++count) {
+            //     const auto *src{ static_cast<const std::byte *>( buffer ) };
+            //     //bufferHandle->CopyFromBlock( std::addressof( src[elementSize * count] ), elementSize, count * elementSize );
+            // }
         }
     }
 

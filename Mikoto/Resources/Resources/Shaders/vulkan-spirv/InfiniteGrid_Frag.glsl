@@ -1,3 +1,17 @@
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #version 450
 
 layout(location = 0) in vec3 in_WordlPos;
@@ -13,36 +27,28 @@ const vec4  gGridColorThin              = vec4(0.5, 0.5, 0.5, 1.0);
 const vec4  gGridColorThick             = vec4(0.3, 0.2, 0.5, 1.0);
 
 
-float log10(float x)
-{
+float log10(float x) {
     float f = log(x) / log(10.0);
     return f;
 }
 
-
-float satf(float x)
-{
+float satf(float x) {
     float f = clamp(x, 0.0, 1.0);
     return f;
 }
 
-
-vec2 satv(vec2 x)
-{
+vec2 satv(vec2 x) {
     vec2 v = clamp(x, vec2(0.0), vec2(1.0));
     return v;
 }
 
 
-float max2(vec2 v)
-{
+float max2(vec2 v) {
     float f = max(v.x, v.y);
     return f;
 }
 
-
-void main()
-{
+void main() {
     vec2 dvx = vec2(dFdx(in_WordlPos.x), dFdy(in_WordlPos.x));
     vec2 dvy = vec2(dFdx(in_WordlPos.z), dFdy(in_WordlPos.z));
 

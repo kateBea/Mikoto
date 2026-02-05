@@ -35,6 +35,8 @@ namespace Mikoto::Math {
 
     MKT_NODISCARD auto Log2(double value) -> double;
 
+    MKT_NODISCARD auto Lerp(float a, float b, float f) -> double;
+
 }
 
 namespace Mikoto::Math::Constants {

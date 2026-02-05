@@ -89,6 +89,9 @@ namespace Mikoto {
         auto SetDebugInfo() -> void;
 
     private:
+        // Optional
+        Size m_ExternalBufferSize{};
+
         bool m_IsImageExternal{ false };
 
         BufferHandle m_StagingBuffer{};

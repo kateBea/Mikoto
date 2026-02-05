@@ -27,6 +27,7 @@
 
 namespace Mikoto {
 
+    static constexpr Int32 INVALID_TEXTURE_INDEX{ -1 };
     static constexpr UInt32 MAX_LIGHTS{ 10000 };
     static constexpr UInt32 MAX_CUBE_MAP_FACES{ 6 };
     static constexpr UInt32 MAX_RENDERABLE_ENTITIES{ 524'288 }; // 2^19
@@ -37,11 +38,15 @@ namespace Mikoto {
         Vec4F Albedo{};
         Vec4F Factors{}; // Metallness, Roughness, AO
 
-        Int32 AlbedoIndex{};
-        Int32 NormalIndex{};
-        Int32 MetallicIndex{};
-        Int32 RoughnessIndex{};
-        Int32 AoIndex{};
+        Vec3F EmissiveFactors{ 1.0f, 1.0f, 1.0f };
+        float EmissiveIntensity{ 1.0 }; // 1.0 default
+
+        Int32 AlbedoIndex{INVALID_TEXTURE_INDEX };
+        Int32 NormalIndex{ INVALID_TEXTURE_INDEX };
+        Int32 MetallicIndex{ INVALID_TEXTURE_INDEX };
+        Int32 RoughnessIndex{ INVALID_TEXTURE_INDEX };
+        Int32 AoIndex{ INVALID_TEXTURE_INDEX };
+        Int32 EmissiveIndex{ INVALID_TEXTURE_INDEX };
     };
 
     struct ShaderCameraParams {
@@ -50,10 +55,9 @@ namespace Mikoto {
         Vec4F CameraPosition{};
     };
 
-    struct alignas(sizeof(Vec4F)) ShaderLightTypeParams {
+    struct ShaderLightTypeParams {
         Vec4F Position{};
         Vec4F Direction{};
-
         Vec3F Diffuse{};
 
         float CutOff{};

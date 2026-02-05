@@ -96,6 +96,8 @@ namespace Mikoto::VulkanHelpers {
     MKT_NODISCARD auto FromVkStage(VkShaderStageFlagBits stage) -> ShaderStage;
     MKT_NODISCARD auto ToVkImageUsage(TextureUsage usage) -> VkImageUsageFlags;
 
+    MKT_NODISCARD auto GetAspectMask(VkFormat format) -> VkImageAspectFlags;
+
     auto ImageUsageFlagsToString(Texture* texture) -> void;
     auto ImageLayoutToString(Texture* texture) -> void;
 

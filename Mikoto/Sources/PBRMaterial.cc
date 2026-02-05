@@ -68,11 +68,15 @@ namespace Mikoto {
         m_AmbientOcclusion = ao;
     }
 
+    auto PBRMaterial::SetEmissiveFactors( const Vec3F &factors ) -> void {
+        m_EmissiveFactors = factors;
+    }
+
     auto PBRMaterial::GetAoFactor() const -> float {
         return m_AmbientOcclusion;
     }
 
-    auto PBRMaterial::SetEmissiveFactor( float emissive ) -> void {
+    auto PBRMaterial::SetEmissiveIntensity( float emissive ) -> void {
         m_Emissive = emissive;
     }
 
@@ -92,7 +96,11 @@ namespace Mikoto {
         return m_ReflectanceFactor;
     }
 
-    auto PBRMaterial::GetEmissiveFactor() const -> float {
+    auto PBRMaterial::GetEmissiveFactors() const -> const Vec3F & {
+        return m_EmissiveFactors;
+    }
+
+    auto PBRMaterial::GetEmissiveIntensity() const -> float {
         return m_Emissive;
     }
 

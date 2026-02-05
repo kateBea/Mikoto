@@ -20,6 +20,7 @@
 #include <Renderer/Vulkan/VulkanGraphicsContext.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>
 #include <Renderer/Vulkan/VulkanTexture.hh>
+#include <Renderer/Vulkan/VulkanHelpers.hh>
 
 namespace Mikoto {
 
@@ -28,35 +29,6 @@ namespace Mikoto {
         VkAccessFlags Access{ VK_FLAGS_NONE };
         VkImageLayout Layout{ VK_IMAGE_LAYOUT_UNDEFINED }; // Buffers ignore this
     };
-
-    MKT_NODISCARD constexpr auto GetAspectMask(VkFormat format) -> VkImageAspectFlags {
-        switch (format) {
-            // Color formats
-            case VK_FORMAT_R8_UNORM:
-            case VK_FORMAT_R8G8B8A8_UNORM:
-            case VK_FORMAT_B8G8R8A8_UNORM:
-            case VK_FORMAT_R16G16B16A16_SFLOAT:
-            case VK_FORMAT_R32G32B32A32_SFLOAT:
-                return VK_IMAGE_ASPECT_COLOR_BIT;
-
-                // Depth-only formats
-            case VK_FORMAT_D16_UNORM:
-            case VK_FORMAT_D32_SFLOAT:
-                return VK_IMAGE_ASPECT_DEPTH_BIT;
-
-                // Depth + Stencil formats
-            case VK_FORMAT_D24_UNORM_S8_UINT:
-            case VK_FORMAT_D32_SFLOAT_S8_UINT:
-                return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-
-                // Stencil-only formats (rare)
-            case VK_FORMAT_S8_UINT:
-                return VK_IMAGE_ASPECT_STENCIL_BIT;
-
-            default:
-                return VK_IMAGE_ASPECT_COLOR_BIT;
-        }
-    }
 
     constexpr auto GetBufferDescriptorType( BufferUsage type ) noexcept -> VkDescriptorType {
         switch (type) {
@@ -380,7 +352,6 @@ namespace Mikoto {
         // If the combined image sampler does not exist
         if (!it->second.CombinedImageSampler.contains( std::make_pair( handle.GetRaw(), sampler.GetRaw() ) )) {
             PushImage( handle, sampler, bindingSlot, it->second.DescriptorSets[PER_PASS_DESCRIPTOR_SET_INDEX] );
-
             it->second.CombinedImageSampler.emplace( std::make_pair( handle.GetRaw(), sampler.GetRaw() ) );
         }
     }
@@ -441,8 +412,25 @@ namespace Mikoto {
             return false;
         }
 
+        // TODO: temporary
+        if (texture->IsTextureType( TextureType::TEXTURE_CUBE ) && newState == FrameResourceState::ShaderRead_GraphicsPipeline) {
+            if (const auto vulkanTexture{ dynamic_cast<VulkanTextureCube*>(texture.GetRaw()) }) {
+                vulkanTexture->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
+            }
+
+            return true;
+        }
+
         auto oldInfo{ GetVulkanState(previousState) };
         auto newInfo{ GetVulkanState(newState) };
+
+        UInt32 layerCount{ 1 };
+        UInt32 levelCount{ 1 };
+
+        if (texture->IsTextureType( TextureType::TEXTURE_CUBE )) {
+            layerCount = 6;
+            levelCount = texture.As<TextureCube>()->GetMipLevels();
+        }
 
         VkImageMemoryBarrier2 barrier{
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -454,11 +442,11 @@ namespace Mikoto {
             .newLayout = newInfo.Layout,
             .image = texture->GetNativeHandle( ObjectType::Vk_Image ),
             .subresourceRange = {
-                .aspectMask = GetAspectMask(VulkanHelpers::ToVkFormat( texture->GetFormat() )),
+                .aspectMask = VulkanHelpers::GetAspectMask(VulkanHelpers::ToVkFormat( texture->GetFormat() )),
                 .baseMipLevel = 0,
-                .levelCount = VK_REMAINING_MIP_LEVELS,
+                .levelCount = levelCount,
                 .baseArrayLayer = 0,
-                .layerCount = VK_REMAINING_ARRAY_LAYERS
+                .layerCount = layerCount,
             }
         };
 

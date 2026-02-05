@@ -438,6 +438,85 @@ namespace Mikoto {
         }
     }
 
+    static auto EditPBRMaterialEmissiveMap( PBRMaterial& material ) -> void {
+        ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
+        ImGui::SameLine();
+        ImGui::TextUnformatted( " Emission" );
+
+        TextureHandle normalMap{ material.GetTextureType( MapType::EMISSIVE_TEXTURE ) };
+        if ( normalMap.IsEmpty() ) {
+            normalMap = AssetsService::Get()->GetDummyTexture();
+        }
+
+        if ( ImGuiUtils::PushImageButton( normalMap->GetHandle(), ImGuiService::Get()->GetTextureID( normalMap ), ImVec2{ 64, 64 } ) ) {
+            UpdateMaterialTexture( material, MapType::EMISSIVE_TEXTURE );
+        }
+
+        // Target from content browser
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+                TextureHandle dstNormalMap{ *static_cast<TextureHandle*>( payload->Data ) };
+                material.SetTextureType( MapType::EMISSIVE_TEXTURE, dstNormalMap );
+
+                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+        if ( material.HasTextureType( MapType::EMISSIVE_TEXTURE ) ) {
+            ImGuiUtils::ToolTip( [&]() -> void {
+                ShowTextureHoverTooltip( normalMap.GetRaw() );
+            },
+                                 ImGui::IsItemHovered() );
+        }
+
+        if ( ImGui::IsItemHovered() ) {
+
+            if ( !material.HasTextureType( MapType::EMISSIVE_TEXTURE ) ) {
+                ImGuiUtils::ToolTip( "Click me to load a texture." );
+            }
+
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        ImGui::SameLine();
+        // Table to control specular component
+        // Table has one row and one colum
+        constexpr auto columnCount{ 1 };
+        constexpr auto columnIndexSpecular{ 0 };
+        constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
+
+        if ( ImGui::BeginTable( "NormalMapEditContentsTable", columnCount, specularTableFlags ) ) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( columnIndexSpecular );
+
+            Vec3F factors{ material.GetEmissiveFactors() };
+            if ( ImGuiUtils::DragFloat3( "Factors", "%.2f", factors, 0.01f, 0.0f, 1.0f ) ) {
+                material.SetEmissiveFactors( factors );
+            }
+
+            float strength{ material.GetEmissiveIntensity() };
+            if ( ImGuiUtils::Slider( "Strength", strength, { 0.0f, 10.0f } ) ) {
+                material.SetEmissiveIntensity( strength );
+            }
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( columnIndexSpecular );
+            ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+
+            if ( ImGui::Button( "Remove Texture" ) ) {
+                material.RemoveTextureType( MapType::NORMAL_TEXTURE );
+            }
+
+            if ( ImGui::IsItemHovered() ) {
+                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
     static auto EditPBRMaterialRoughnessMap( PBRMaterial& material ) -> void {
         ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
         ImGui::SameLine();
@@ -601,6 +680,7 @@ namespace Mikoto {
         DisplayTextureEditTreeNode( "Roughness", *material, EditPBRMaterialRoughnessMap );
         DisplayTextureEditTreeNode( "Ambient Occlusion", *material, EditPBRMaterialAmbientOcclusion );
         DisplayTextureEditTreeNode( "Normal", *material, EditPBRMaterialNormalMap );
+        DisplayTextureEditTreeNode( "Emission", *material, EditPBRMaterialEmissiveMap );
     }
 
     static auto DrawComponentButton( Entity* entity ) -> void {

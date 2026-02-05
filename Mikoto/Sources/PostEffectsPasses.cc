@@ -17,6 +17,9 @@
 #include <Scene/Scene.hh>
 #include <Scene/Component.hh>
 
+#include <Math/Math.hh>
+
+#include <Library/Random/Random.hh>
 #include <Library/String/String.hh>
 
 #include <Renderer/Core/FramePassResource.hh>
@@ -42,6 +45,8 @@ namespace Mikoto {
         m_InfiniteGridParameters.CameraPos = Vec4F{ camera->GetPosition(), 1.0f };
         m_InfiniteGridParameters.CameraView = camera->GetViewMatrix();
         m_InfiniteGridParameters.CameraProj = camera->GetProjection();
+
+        m_SSAOParameters.Projection = camera->GetProjection();
     }
 
     auto PostEffectsPass::RegisterPasses( FrameGraph &graph, GpuDevice* device) -> void {
@@ -164,17 +169,129 @@ namespace Mikoto {
                 } );
     }
 
+    auto PostEffectsPass::SetMeshCulling( MeshCulling &culling ) -> void {
+        m_MeshCullingPass = std::addressof( culling );
+    }
+
     auto PostEffectsPass::RegisterSSAO( FrameGraph& graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        // Generate noise
+        constexpr UInt32 SSAO_NOISE_DIM{ 8 };
+        for (UInt32 i{}; i < SSAO_NOISE_DIM * SSAO_NOISE_DIM; i++) {
+            // rotate around z-axis (in tangent space)
+            m_SSONoise.emplace_back(GetRandomReal( 0.0, 1.0 ) * 2.0f - 1.0f, GetRandomReal( 0.0, 1.0 ) * 2.0f - 1.0f, 0.0f, 0.0f);
+        }
+
+        // Generate samples
+        for (UInt32 i{}; i < m_SSAOParameters.Samples.size(); ++i) {
+            Vec4F sample(GetRandomReal( 0.0, 1.0 ) * 2.0 - 1.0, GetRandomReal( 0.0, 1.0 ) * 2.0 - 1.0, GetRandomReal( 0.0, 1.0 ), 1.0);
+            sample = glm::normalize(sample);
+            sample *= GetRandomReal( 0.0, 1.0 );
+            float scale{ static_cast<float>( i ) / 64.0f };
+
+            // scale samples s.t. they're more aligned to center of kernel
+            scale = Math::Lerp(0.1f, 1.0f, scale * scale);
+            sample *= scale;
+            m_SSAOParameters.Samples[i] = sample;
+        }
+
         graph.RegisterPass(
-                "SSAO",
-                []( FramePassBuilder &b ) {
-                    MKT_BEGIN_PROFILER_NAMED();
-                },
-                []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+               "SSAO",
+               [this, SSAO_NOISE_DIM]( FramePassBuilder &b ) {
+                   MKT_BEGIN_PROFILER_NAMED();
+
+                   b.Create<Buffer>( "SSAO_Parameters", BufferUsage::UNIFORM, sizeof( m_SSAOParameters ), 1 );
+
+                   b.Create<Texture>( "SSAO_ColorTarget", m_Resolution, TextureFormat::R8_UNORM, TextureUsage::COLOR );
+                   b.Create<Texture>( "SSAO_NoiseTexture", SSAO_NOISE_DIM, SSAO_NOISE_DIM,
+                       TextureFormat::RGBA32_FLOAT, m_SSONoise.data(), m_SSONoise.size() * sizeof(Vec4F) );
+
+                   GraphicsPipelineDescription graphicsDesc{
+                       .DepthTest{ false },
+                       .DepthWrite{ false },
+                       .AlphaBlending{ false },
+                       .ColorAttachmentFormats{ TextureFormat::R8_UNORM }
+                   };
+
+                   b.UseShader( "Resources/Shaders/vulkan-spirv/SSAO_Vert.sprv", ShaderStage::VERTEX )
+                       .UseShader( "Resources/Shaders/vulkan-spirv/SSAO_Frag.sprv", ShaderStage::FRAGMENT )
+                       .Create<Pipeline>( "SSAO_Pipeline", graphicsDesc );
+
+                   b.Read( "SSAO_Parameters", FrameResourceState::UniformBuffer );
+                   b.Read( "GBuffer_Position", FrameResourceState::ShaderRead_GraphicsPipeline );
+                   b.Read( "GBuffer_Normal", FrameResourceState::ShaderRead_GraphicsPipeline );
+
+                   b.Read( "SSAO_NoiseTexture", FrameResourceState::ShaderRead_GraphicsPipeline );
+                   b.Use( SRGType::SRG_PerPass, "SSAO_Parameters", 0 );
+               },
+               [this]( CommandContext& ctx, FrameGraphBlackboard & ) -> void {
+                   MKT_BEGIN_PROFILER_NAMED();
+
+                   if (m_Sampler.IsEmpty() || m_SamplerNoise.IsEmpty()) {
+                       m_Sampler = ctx.CreateSampler( SamplerDescription{});
+
+                        m_SamplerNoise = ctx.CreateSampler( SamplerDescription{
+                            .MipLevels{ 0 },
+                            .MinFilter{ SamplerFilter::FILTER_NEAREST },
+                            .MagFilter{ SamplerFilter::FILTER_NEAREST },
+
+                            .WrapU{ SamplerWrapMode::WRAP_REPEAT },
+                            .WrapV{ SamplerWrapMode::WRAP_REPEAT },
+                            .WrapW{ SamplerWrapMode::WRAP_REPEAT },
+                        } );
+                   }
+
+                   ctx.BindPipeline( "SSAO_Pipeline" );
+
+                   ctx.BindImage( "GBuffer_Position", m_Sampler, 1 );
+                   ctx.BindImage( "GBuffer_Normal", m_Sampler, 2 );
+                   ctx.BindImage( "SSAO_NoiseTexture", m_SamplerNoise, 3 );
+
+                   ctx.UploadBuffer( "SSAO_Parameters", m_SSAOParameters );
+
+                   ctx.SetColorRenderTarget( "SSAO_ColorTarget" );
+
+                    ctx.BeginRender();
+
+                   const auto dimensions{ InferDimensions( m_Resolution ) };
+                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+
+                    ctx.Draw( 3 );
+
+                    ctx.EndRender();
+
+               } );
+
+        graph.RegisterPass(
+                "SSAOBlur",
+                [this]( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
+                    b.Create<Texture>( "SSAOBlur_ColorTarget", m_Resolution, TextureFormat::R8_UNORM, TextureUsage::COLOR );
+                    b.Create<Texture>( "SSAOBlur_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
+
+                    GraphicsPipelineDescription graphicsDesc{
+                        .DepthTest{ false },
+                        .DepthWrite{ false },
+                        .AlphaBlending{ false },
+                        .ColorAttachmentFormats{ TextureFormat::R8_UNORM },
+                    };
+
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/SSAOBlur_Vert.sprv", ShaderStage::VERTEX )
+                        .UseShader( "Resources/Shaders/vulkan-spirv/SSAOBlur_Frag.sprv", ShaderStage::FRAGMENT )
+                        .Create<Pipeline>( "SSAOBlur_Pipeline", graphicsDesc );
+
+                    b.Read( "SSAO_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+                },
+                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+
+                    if (m_Sampler.IsEmpty()) {
+                        m_Sampler = ctx.CreateSampler( SamplerDescription{} );
+                   }
                 } );
     }
 

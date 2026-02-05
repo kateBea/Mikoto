@@ -67,7 +67,7 @@ namespace Mikoto {
         auto SetViewport(Int32 x, Int32 y, Int32 width, Int32 height) -> void ;
         auto SetScissor(Int32 x, Int32 y, Int32 width, Int32 height) -> void;
 
-        auto CopyTexture2DToCube(std::string_view texture2DName, std::string_view cubeMapName, Size mipLevel, UInt32 face ) -> void;
+        auto CopyToCube(std::string_view texture2DName, std::string_view cubeMapName, Size mipLevel, UInt32 face ) -> void;
 
         auto BindGlobalTextures() -> void;
 

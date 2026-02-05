@@ -11,3 +11,6 @@ https://polyhaven.com/a/farm_field_puresky
 
 modern_evening_street_4k.hdr
 https://polyhaven.com/a/modern_evening_street
+
+warm_restaurant_night_4k.hdr
+https://polyhaven.com/a/warm_restaurant_night

@@ -123,7 +123,7 @@ namespace Mikoto {
         TextureCubeLoadDescription loadDesc2{};
         loadDesc2.WithType( TextureType::TEXTURE_CUBE )
             .IsHDR( true )
-            .WithBasePath("Resources/HDR/modern_evening_street_4k.hdr");
+            .WithBasePath("Resources/HDR/warm_restaurant_night_4k.hdr");
 
         m_EditorState->TextureHDR = AssetsService::Get()->LoadAsset<TextureCube>( loadDesc2 );
         m_ActiveScene->SetSkybox( m_EditorState->TextureHDR );
@@ -309,6 +309,33 @@ namespace Mikoto {
                                         static_cast<float>( z ) * spacing } );
                 }
             }
+        }
+    }
+
+    auto EditorLayer::DebugDamagedHelmet() -> void {
+        ModelLoadDescription descFirst{
+            .ModelFile{ FileService::Get()->LoadFile( "Resources/Models/9 - Helmet/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf" ) },
+            .WantTextures{ true }
+        };
+
+        ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( descFirst ) };
+
+        // This emitting sounds
+        EntityCreateInfo groundDesc{
+            .Root{ nullptr },
+            .Name{ "Helmet" },
+            .Model{ box }
+        };
+
+        if (Entity *groundEntity{ m_ActiveScene->CreateEntity( groundDesc ) }) {
+        }
+
+        if (Entity *light{ m_ActiveScene->CreateEntity( "Directional Light" ) }) {
+            LightComponent &lightComp{ light->AddComponent<LightComponent>() };
+            lightComp.SetActiveType( LightType::DIRECTIONAL_LIGHT_TYPE );
+
+            auto &direLightInfo{ lightComp.Get<DirectionalLight>() };
+            direLightInfo.SetIntensity( 10.0f );
         }
     }
 
@@ -794,6 +821,7 @@ namespace Mikoto {
         //SimpleScene();
         DebugInstancingTest();
         DebugManyLightsTest();
+        //DebugDamagedHelmet();
     }
 
     auto EditorLayer::PrepareRenderer( double ) -> void {

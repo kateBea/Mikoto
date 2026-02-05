@@ -96,7 +96,7 @@ namespace Mikoto {
         m_Commands->SetScissor( x, y, width, height );
     }
 
-    auto CommandContext::CopyTexture2DToCube( std::string_view texture2DName, std::string_view cubeMapName, Size mipLevel, UInt32 face ) -> void {
+    auto CommandContext::CopyToCube( std::string_view texture2DName, std::string_view cubeMapName, Size mipLevel, UInt32 face ) -> void {
         auto texture2D{ m_Context->GetTexture( texture2DName ).As<Texture2D>() };
         auto textureCube{ m_Context->GetTexture( cubeMapName ).As<TextureCube>() };
 

@@ -229,7 +229,7 @@ namespace Mikoto::VulkanHelpers {
                 return VK_IMAGE_USAGE_SAMPLED_BIT |
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-            case TextureUsage::TEXTURE_USAGE_RENDER_TARGET:
+            case TextureUsage::RENDER_TARGET:
                 return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
                        VK_IMAGE_USAGE_SAMPLED_BIT |
                        VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
@@ -239,6 +239,35 @@ namespace Mikoto::VulkanHelpers {
         }
 
         return VK_IMAGE_USAGE_SAMPLED_BIT;
+    }
+
+    auto GetAspectMask(VkFormat format) -> VkImageAspectFlags {
+        switch (format) {
+            // Color formats
+            case VK_FORMAT_R8_UNORM:
+            case VK_FORMAT_R8G8B8A8_UNORM:
+            case VK_FORMAT_B8G8R8A8_UNORM:
+            case VK_FORMAT_R16G16B16A16_SFLOAT:
+            case VK_FORMAT_R32G32B32A32_SFLOAT:
+                return VK_IMAGE_ASPECT_COLOR_BIT;
+
+                // Depth-only formats
+            case VK_FORMAT_D16_UNORM:
+            case VK_FORMAT_D32_SFLOAT:
+                return VK_IMAGE_ASPECT_DEPTH_BIT;
+
+                // Depth + Stencil formats
+            case VK_FORMAT_D24_UNORM_S8_UINT:
+            case VK_FORMAT_D32_SFLOAT_S8_UINT:
+                return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+
+                // Stencil-only formats (rare)
+            case VK_FORMAT_S8_UINT:
+                return VK_IMAGE_ASPECT_STENCIL_BIT;
+
+            default:
+                return VK_IMAGE_ASPECT_COLOR_BIT;
+        }
     }
 
     auto SetupDeviceQueueCreateInfo( const std::set<UInt32>& uniqueQueueFamilies ) -> std::vector<VkDeviceQueueCreateInfo> {

@@ -113,6 +113,8 @@ namespace Mikoto {
         auto DebugManyLightsTest() -> void;
         auto DebugInstancingTest() -> void;
 
+        auto DebugDamagedHelmet() -> void;
+
     private:
         enum class RenderScreenTarget { WINDOW, PANEL };
 

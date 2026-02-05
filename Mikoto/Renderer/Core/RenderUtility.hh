@@ -96,10 +96,12 @@ namespace Mikoto {
     enum class TextureUsage {
         COLOR,
         DEPTH,
+        STENCIL,
+        DEPTH_STENCIL,
         NORMAL,
         STORAGE,      // compute shader writable
         CUBE,         // for environment maps
-        TEXTURE_USAGE_RENDER_TARGET,// render target attachments
+        RENDER_TARGET,// render target attachments
     };
 
     /**
@@ -200,6 +202,7 @@ namespace Mikoto {
         Int32 ChannelCount{ 4 };
 
         Byte* Data{ nullptr };
+        Size BufferSize{}; // Optional
 
         const File* TextureFile{ nullptr };
 
@@ -219,6 +222,7 @@ namespace Mikoto {
         auto WithFile( const File* file) -> TextureDescription&;
 
         auto WithData( Byte* data ) -> TextureDescription&;
+        auto WithSize( Size size ) -> TextureDescription&;
         auto WithType( TextureType type ) -> TextureDescription&;
         auto WithTextureUsage( TextureUsage usage ) -> TextureDescription&;
 
@@ -309,14 +313,17 @@ namespace Mikoto {
 
         SamplerFilter MinFilter{ SamplerFilter::FILTER_NEAREST };
         SamplerFilter MagFilter{ SamplerFilter::FILTER_NEAREST };
-        SamplerWrapMode WrapS{ SamplerWrapMode::WRAP_REPEAT };
-        SamplerWrapMode WrapT{ SamplerWrapMode::WRAP_REPEAT };
+        SamplerWrapMode WrapU{ SamplerWrapMode::WRAP_CLAMP_TO_EDGE };
+        SamplerWrapMode WrapV{ SamplerWrapMode::WRAP_CLAMP_TO_EDGE };
+        SamplerWrapMode WrapW{ SamplerWrapMode::WRAP_CLAMP_TO_EDGE };
 
         auto WithMipLevels(float mipLevels) -> SamplerDescription&;
         auto WithMinFilter( SamplerFilter filter ) -> SamplerDescription&;
         auto WithMagFilter( SamplerFilter filter ) -> SamplerDescription&;
-        auto WithWrapS( SamplerWrapMode wrap ) -> SamplerDescription&;
-        auto WithWrapT( SamplerWrapMode wrap ) -> SamplerDescription&;
+
+        auto WithWrapU( SamplerWrapMode wrap ) -> SamplerDescription&;
+        auto WithWrapV( SamplerWrapMode wrap ) -> SamplerDescription&;
+        auto WithWrapW( SamplerWrapMode wrap ) -> SamplerDescription&;
     };
 
     /**

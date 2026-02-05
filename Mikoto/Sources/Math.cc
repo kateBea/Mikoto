@@ -25,4 +25,8 @@ namespace Mikoto {
     auto Math::Log2( const double value ) -> double {
         return std::log2( value );
     }
-}
+
+    auto Math::Lerp( float a, float b, float f ) -> double {
+        return a + f * (b - a);
+    }
+}// namespace Mikoto

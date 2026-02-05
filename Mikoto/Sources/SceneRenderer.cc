@@ -155,6 +155,7 @@ namespace Mikoto {
 
         m_IBLPasses.SetMeshCulling( m_MeshCulling );
         m_DebugPasses.SetMeshCulling( m_MeshCulling );
+        m_PostEffectsPasses.SetMeshCulling( m_MeshCulling );
         m_ClusteredShadingPasses.SetMeshCulling( m_MeshCulling );
     }
 

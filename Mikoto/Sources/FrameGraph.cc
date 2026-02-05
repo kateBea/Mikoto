@@ -179,9 +179,24 @@ namespace Mikoto {
         CreateTexture( name, colorDesc );
     }
 
+    auto FramePassBuilder::CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format, void *ptr, Size sizeBytes ) -> void {
+        TextureDescription colorDesc{};
+        colorDesc.WithWidth( width )
+                 .WithHeight( height )
+                 .WithChannelCount( 4 )
+                 .WithData( static_cast<Byte*>(ptr) )
+                 .WithSize( sizeBytes )
+                 .WithType( TextureType::TEXTURE_2D )
+                 .WithTextureUsage( TextureUsage::COLOR )
+                 .WithFormat( format )
+                 .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+
+        CreateTexture( name, colorDesc );
+    }
+
     auto FramePassBuilder::CreateTexture( std::string_view name, UInt32 dimensions, TextureFormat format, UInt32 mipLevels ) -> void {
         TextureCubeCreateDescription depthDesc{};
-        depthDesc.WithUsageType( TextureUsage::TEXTURE_USAGE_RENDER_TARGET )
+        depthDesc.WithUsageType( TextureUsage::RENDER_TARGET )
                  .WithMipLevels( mipLevels )
                  .WithTextureFormat( format )
                  .WithDimensions( dimensions )

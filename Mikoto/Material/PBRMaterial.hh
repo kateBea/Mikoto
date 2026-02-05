@@ -50,14 +50,16 @@ namespace Mikoto {
         auto SetRoughnessFactor( float roughness ) -> void;
         auto SetReflectanceFactor( float reflectance ) -> void;
         auto SetAoFactor( float ao ) -> void;
-        auto SetEmissiveFactor( float emissive ) -> void;
+        auto SetEmissiveFactors( const Vec3F& factors ) -> void;
+        auto SetEmissiveIntensity( float emissive ) -> void;
 
         MKT_NODISCARD auto GetAlpha() const -> float;
         MKT_NODISCARD auto GetMetallicFactor() const -> float;
         MKT_NODISCARD auto GetRoughnessFactor() const -> float;
         MKT_NODISCARD auto GetAoFactor() const -> float;
         MKT_NODISCARD auto GetReflectanceFactor() const -> float;
-        MKT_NODISCARD auto GetEmissiveFactor() const -> float;
+        MKT_NODISCARD auto GetEmissiveFactors() const -> const Vec3F&;
+        MKT_NODISCARD auto GetEmissiveIntensity() const -> float;
 
         ~PBRMaterial() override ;
 
@@ -74,6 +76,7 @@ namespace Mikoto {
         float m_Metallic{ 0.2f };
         float m_Roughness{ 5.4f };
         float m_Emissive{ 0.4f };
+        Vec3F m_EmissiveFactors{ 1.0f, 1.0f, 1.0f };
         float m_AmbientOcclusion{ 0.4f };
         float m_ReflectanceFactor{ 0.4f };
 

@@ -126,12 +126,12 @@ namespace Mikoto {
 
                             ctx.EndRender();
 
-                            ctx.CopyTexture2DToCube( "IrradiancePass_ColorTarget", "IrradiancePass_ColorTargetCUBE", mipLevel, face);
+                            ctx.CopyToCube( "IrradiancePass_ColorTarget", "IrradiancePass_ColorTargetCUBE", mipLevel, face);
                         }
                     }
                 } );
 
-        graph.SetNodeExecutionPolicy( "IrradiancePass", FramePassExecutionPolicy::PER_FRAME );
+        graph.SetNodeExecutionPolicy( "IrradiancePass", FramePassExecutionPolicy::ONCE );
     }
 
     auto IBLPasses::RegisterPrefilter( FrameGraph &graph ) -> void {
@@ -194,14 +194,14 @@ namespace Mikoto {
 
                             ctx.EndRender();
 
-                            ctx.CopyTexture2DToCube( "PrefilterPass_ColorTarget", "PrefilterPass_ColorTargetCUBE", mipLevel, face );
+                            ctx.CopyToCube( "PrefilterPass_ColorTarget", "PrefilterPass_ColorTargetCUBE", mipLevel, face );
                         }
                     }
 
                     ctx.EndPass();
                 } );
 
-        graph.SetNodeExecutionPolicy( "PrefilterPass", FramePassExecutionPolicy::PER_FRAME );
+        graph.SetNodeExecutionPolicy( "PrefilterPass", FramePassExecutionPolicy::ONCE );
     }
 
     auto IBLPasses::RegisterBRDFLut( FrameGraph &graph ) -> void {
@@ -209,7 +209,7 @@ namespace Mikoto {
 
         graph.RegisterPass(
                 "BRDFLut",
-                [this]( FramePassBuilder &b ) {
+                []( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
                     // R16G16 is supported commonly
@@ -547,5 +547,7 @@ namespace Mikoto {
 
                     ctx.EndRender();
                 } );
+
+        //graph.SetNodeExecutionPolicy( "FinalShading", FramePassExecutionPolicy::ONCE );
     }
 } // namespace Mikoto

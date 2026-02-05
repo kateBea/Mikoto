@@ -246,6 +246,11 @@ namespace Mikoto {
         return *this;
     }
 
+    auto TextureDescription::WithSize( Size size ) -> TextureDescription& {
+        this->BufferSize = size;
+        return *this;
+    }
+
     auto TextureDescription::WithType( TextureType type ) -> TextureDescription& {
         Type = type;
         return *this;
@@ -371,13 +376,18 @@ namespace Mikoto {
         return *this;
     }
 
-    auto SamplerDescription::WithWrapS( SamplerWrapMode wrap ) -> SamplerDescription& {
-        WrapS = wrap;
+    auto SamplerDescription::WithWrapU( SamplerWrapMode wrap ) -> SamplerDescription& {
+        WrapU = wrap;
         return *this;
     }
 
-    auto SamplerDescription::WithWrapT( SamplerWrapMode wrap ) -> SamplerDescription& {
-        WrapT = wrap;
+    auto SamplerDescription::WithWrapV( SamplerWrapMode wrap ) -> SamplerDescription& {
+        WrapV = wrap;
+        return *this;
+    }
+
+    auto SamplerDescription::WithWrapW( SamplerWrapMode wrap ) -> SamplerDescription& {
+        WrapW = wrap;
         return *this;
     }
 

@@ -54,7 +54,14 @@ layout(scalar, set = PERPASS_SETINDEX, binding = 1) uniform CameraUBO {
 
     // x = show heat map
     vec4 ShowHeatMap;
-} Camera;
+} u_Camera;
+
+layout(scalar, set = PERPASS_SETINDEX, binding = 5) uniform SkyBoxUBO {
+    mat4 View;
+    mat4 Projection;
+    float Exposure;
+    float Gamma;
+} u_SkyboxParams;
 
 layout(std430, scalar, set = PERPASS_SETINDEX, binding = 2) readonly buffer ClusterSSBO {
     Cluster Clusters[];
@@ -63,6 +70,10 @@ layout(std430, scalar, set = PERPASS_SETINDEX, binding = 2) readonly buffer Clus
 layout(std430, scalar, set = PERPASS_SETINDEX, binding = 3) readonly buffer LightSSBO {
     LightInfo Lights[];
 };
+
+layout (set = PERPASS_SETINDEX, binding = 6) uniform sampler2D u_SamplerBRDFLUT;
+layout (set = PERPASS_SETINDEX, binding = 7) uniform samplerCube u_PrefilteredMap;
+layout (set = PERPASS_SETINDEX, binding = 8) uniform samplerCube u_SamplerIrradiance;
 
 vec3 GetNormalFromMap(sampler2D normalMap) {
     vec3 tangentNormal = texture(normalMap, in_TexCoord).xyz * 2.0 - 1.0;
@@ -80,6 +91,15 @@ vec3 GetNormalFromMap(sampler2D normalMap) {
     return normalize(TBN * tangentNormal);
 }
 
+vec3 PrefilteredReflection(vec3 R, float roughness) {
+    const float MAX_REFLECTION_LOD = 9.0; // todo: param/const
+    float lod = roughness * MAX_REFLECTION_LOD;
+    float lodf = floor(lod);
+    float lodc = ceil(lod);
+    vec3 a = textureLod(u_PrefilteredMap, R, lodf).rgb;
+    vec3 b = textureLod(u_PrefilteredMap, R, lodc).rgb;
+    return mix(a, b, lod - lodf);
+}
 
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
     float a = roughness * roughness;
@@ -94,6 +114,24 @@ float DistributionGGX(vec3 N, vec3 H, float roughness) {
     return nom / denom;
 }
 
+vec3 F_SchlickR(float cosTheta, vec3 F0, float roughness) {
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
+// From http://filmicgames.com/archives/75
+vec3 Uncharted2Tonemap(vec3 x) {
+    float A = 0.15;
+    float B = 0.50;
+    float C = 0.10;
+    float D = 0.20;
+    float E = 0.02;
+    float F = 0.30;
+    return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
+}
+
+vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
 
 float GeometrySchlickGGX(float NdotV, float roughness) {
     float r = ( roughness + 1.0 );
@@ -316,11 +354,11 @@ void main() {
     vec3 Lo = vec3(0.0);
 
     // Locating which cluster this fragment is part of
-    uint zTile = uint((log(abs(in_FragmentViewPos.z) / Camera.Screen.y) * Camera.GridSize.z) / log(Camera.Screen.x / Camera.Screen.y));
-    vec2 tileSize = Camera.Screen.zw / Camera.GridSize.xy;
+    uint zTile = uint((log(abs(in_FragmentViewPos.z) / u_Camera.Screen.y) * u_Camera.GridSize.z) / log(u_Camera.Screen.x / u_Camera.Screen.y));
+    vec2 tileSize = u_Camera.Screen.zw / u_Camera.GridSize.xy;
 
     uvec3 tile = uvec3(gl_FragCoord.xy / tileSize, zTile);
-    uint tileIndex = uint(tile.x + (tile.y * Camera.GridSize.x) + (tile.z * Camera.GridSize.x * Camera.GridSize.y));
+    uint tileIndex = uint(tile.x + (tile.y * u_Camera.GridSize.x) + (tile.z * u_Camera.GridSize.x * u_Camera.GridSize.y));
 
     uint lightCount = Clusters[tileIndex].Count;
 
@@ -343,16 +381,71 @@ void main() {
         }
     }
 
-    vec3 ambient = vec3(0.03) * albedo * ao;
+    vec3 R = reflect(-V, N);
+
+    // LearnOpenGL
+    //============================================
+    // ambient lighting (we now use IBL as the ambient term)
+//    vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+//
+//    vec3 kS = F;
+//    vec3 kD = 1.0 - kS;
+//    kD *= 1.0 - metallic;
+//
+//    vec3 irradiance = texture(u_SamplerIrradiance, N).rgb;
+//    vec3 diffuse      = irradiance * albedo;
+//
+//    // sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to get the IBL specular part.
+//    const float MAX_REFLECTION_LOD = 4.0;
+//    vec3 prefilteredColor = textureLod(u_PrefilteredMap, R,  roughness * MAX_REFLECTION_LOD).rgb;
+//    vec2 brdf  = texture(u_SamplerBRDFLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+//    vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
+//
+//    vec3 ambient = (kD * diffuse + specular) * ao;
+//
+//    vec3 color = ambient + Lo;
+//
+//    // HDR tonemapping
+//    color = color / (color + vec3(1.0));
+//    // gamma correct
+//    color = pow(color, vec3(1.0/2.2));
+
+    // Tone mapping
+    //color = Uncharted2Tonemap(color * u_SkyboxParams.Exposure);
+    //color = color * (1.0f / Uncharted2Tonemap(vec3(11.2f)));
+    // Gamma correction
+    //color = pow(color, vec3(1.0f / u_SkyboxParams.Gamma));
+    //============================================
+
+    vec2 brdf = texture(u_SamplerBRDFLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+    vec3 reflection = PrefilteredReflection(R, roughness).rgb;
+    vec3 irradiance = texture(u_SamplerIrradiance, N).rgb;
+
+    //============================================
+    // Diffuse based on irradiance
+    vec3 diffuse = irradiance * albedo;
+
+    vec3 F = F_SchlickR(max(dot(N, V), 0.0), F0, roughness);
+
+    // Specular reflectance
+    vec3 specular = reflection * (F * brdf.x + brdf.y);
+
+    // Ambient part
+    vec3 kD = 1.0 - F;
+    kD *= 1.0 - metallic;
+    vec3 ambient = (kD * diffuse + specular) * vec3(ao, ao, ao);
+
     vec3 color = ambient + Lo;
 
-    // Tonemap + gamma correction
-    color = color / (color + vec3(1.0));
-    color = pow(color, vec3(1.0 / 2.2));
+    // Tone mapping
+    color = Uncharted2Tonemap(color * u_SkyboxParams.Exposure);
+    color = color * (1.0f / Uncharted2Tonemap(vec3(11.2f)));
+    // Gamma correction
+    color = pow(color, vec3(1.0f / u_SkyboxParams.Gamma));
 
     out_Color = vec4(color , 1.0);
 
-    if (Camera.ShowHeatMap.x == MKT_SHADER_TRUE) {
+    if (u_Camera.ShowHeatMap.x == MKT_SHADER_TRUE) {
         out_Color = mix(vec4(GetHeatMapColor(lightCount), 1.0), out_Color, 0.67f);
     }
 }

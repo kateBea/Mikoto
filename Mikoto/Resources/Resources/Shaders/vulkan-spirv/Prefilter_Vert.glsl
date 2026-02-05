@@ -18,11 +18,15 @@
 
 #include "ShaderBase.glsl"
 
-layout(location = 0) out vec3 v_Direction;
+layout(location = 0) out vec3 o_Pos;
+layout(location = 1) flat out float o_Roughness;
+layout(location = 2) flat out uint o_NumSamples;
 
-layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform SkyBoxUBO {
+layout(scalar, push_constant) uniform SkyBoxUBO {
     mat4 MVP;
-} u_Camera;
+    float Roughness;
+    uint NumSamples;
+} u_Parameters;
 
 // https://learnopengl.com/code_viewer.php?code=advanced/cubemaps_skybox_data
 const vec3 boxPositions[36] = vec3[](
@@ -72,7 +76,10 @@ const vec3 boxPositions[36] = vec3[](
 void main() {
     vec3 pos = vec3(boxPositions[gl_VertexIndex]);
 
-    v_Direction = pos;
+    o_Pos = pos;
 
-    gl_Position = u_Camera.MVP * vec4(pos, 1.0);
+    o_Roughness = u_Parameters.Roughness;
+    o_NumSamples = u_Parameters.NumSamples;
+
+    gl_Position = u_Parameters.MVP * vec4(pos, 1.0);
 }

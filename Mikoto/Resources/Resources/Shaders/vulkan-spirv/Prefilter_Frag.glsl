@@ -21,18 +21,13 @@
 
 #include "ShaderBase.glsl"
 
-layout (set = PERPASS_SETINDEX, binding = 2) uniform samplerCube u_SamplerEnv;
+layout(location = 0) in vec3 v_Pos;
+layout(location = 1) flat in float v_Roughness;
+layout(location = 2) flat in uint v_NumSamples;
 
-layout(scalar, set = PERPASS_SETINDEX, binding = 1) uniform IrradianceParamsUBO {
-    float Roughness;
-    uint NumSamples;
-} u_IrradianceParams;
-
-// In variables
-layout (location = 0) in vec3 v_Pos;
-
-// Out variables
 layout (location = 0) out vec4 o_Color;
+
+layout (set = PERPASS_SETINDEX, binding = 0) uniform samplerCube u_SamplerEnv;
 
 // Based omn http://byteblacksmith.com/improvements-to-the-canonical-one-liner-glsl-rand-for-opengl-es-2-0/
 float Random(vec2 co) {
@@ -93,8 +88,8 @@ vec3 PrefilterEnvMap(vec3 R, float roughness)  {
     float totalWeight = 0.0;
     float envMapDim = float(textureSize(u_SamplerEnv, 0).s);
 
-    for(uint i = 0u; i < u_IrradianceParams.NumSamples; i++) {
-        vec2 Xi = Hammersley2D(i, u_IrradianceParams.NumSamples);
+    for(uint i = 0u; i < v_NumSamples; i++) {
+        vec2 Xi = Hammersley2D(i, v_NumSamples);
         vec3 H = ImportanceSample_GGX(Xi, roughness, N);
         vec3 L = 2.0 * dot(V, H) * H - V;
         float dotNL = clamp(dot(N, L), 0.0, 1.0);
@@ -108,7 +103,7 @@ vec3 PrefilterEnvMap(vec3 R, float roughness)  {
             float pdf = D_GGX(dotNH, roughness) * dotNH / (4.0 * dotVH) + 0.0001;
 
             // Slid angle of current smple
-            float omegaS = 1.0 / (float(u_IrradianceParams.NumSamples) * pdf);
+            float omegaS = 1.0 / (float(v_NumSamples) * pdf);
 
             // Solid angle of 1 pixel across all cube faces
             float omegaP = 4.0 * PI / (6.0 * envMapDim * envMapDim);
@@ -126,5 +121,5 @@ vec3 PrefilterEnvMap(vec3 R, float roughness)  {
 
 void main() {
     vec3 N = normalize(v_Pos);
-    o_Color = vec4(PrefilterEnvMap(N, u_IrradianceParams.Roughness), 1.0);
+    o_Color = vec4(PrefilterEnvMap(N, v_Roughness), 1.0);
 }

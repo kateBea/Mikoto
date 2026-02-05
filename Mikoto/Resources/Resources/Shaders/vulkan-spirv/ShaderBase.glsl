@@ -13,9 +13,13 @@ struct MeshInfo {
     vec4 Albedo;
     vec4 Factors;
 
+    vec3 EmissiveFactors;
+    float EmissiveIntensity;
+
     int AlbedoIndex;
     int NormalIndex;
     int MetallicIndex;
     int RoughnessIndex;
     int AoIndex;
+    int EmissiveIndex;
 };

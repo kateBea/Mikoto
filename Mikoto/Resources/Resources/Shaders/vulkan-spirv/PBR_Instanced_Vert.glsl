@@ -57,6 +57,10 @@ layout(location = 11) flat out vec4 out_Factors;
 
 layout(location = 12) out vec3 out_FragmentViewPos;
 
+layout(location = 13) flat out vec3 out_EmissiveFactors;
+layout(location = 14) flat out float out_EmissionIntensity;
+layout(location = 15) flat out int out_EmissionIndex;
+
 // --------------------------------------------------
 // Main
 // --------------------------------------------------
@@ -85,6 +89,10 @@ void main() {
     out_AoIndex        = meshInfo.AoIndex;
     out_Albedo         = meshInfo.Albedo;
     out_Factors        = meshInfo.Factors;
+
+    out_EmissiveFactors = meshInfo.EmissiveFactors;
+    out_EmissionIntensity = meshInfo.EmissiveIntensity;
+    out_EmissionIndex = meshInfo.EmissiveIndex;
 
     gl_Position = u_CameraParams.Projection * u_CameraParams.View * model * vec4(a_Position, 1.0);
 }

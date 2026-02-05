@@ -38,6 +38,10 @@ layout(location = 11) flat in vec4 in_Factors;
 
 layout(location = 12) in vec3 in_FragmentViewPos;
 
+layout(location = 13) flat in vec3 v_EmissiveFactors;
+layout(location = 14) flat in float v_EmissionIntensity;
+layout(location = 15) flat in int v_EmissionIndex;
+
 layout(location = 0) out vec4 out_Color;
 
 layout(set = TEXTURES_SETINDEX, binding = 0) uniform sampler2D g_BindlessTextures[];
@@ -326,6 +330,23 @@ vec4 DetermineOutFragmentColor(vec3 N, vec3 color, float metallic, float roughne
     return result;
 }
 
+vec3 CalculateEmissive() {
+    vec3 emissive = v_EmissiveFactors;
+
+    vec3 emissiveTex = vec3(1.0);
+
+    if (v_EmissionIndex != INVALID_TEXTURE_INDEX) {
+        emissiveTex = texture(g_BindlessTextures[v_EmissionIndex], in_TexCoord).rgb;
+    } else {
+        emissiveTex = vec3(0.0);
+    }
+
+    emissive *= emissiveTex;
+    emissive *= v_EmissionIntensity;
+
+    return emissive;
+}
+
 void main() {
 
     vec3 albedo     = in_AlbedoIndex != INVALID_TEXTURE_INDEX ?
@@ -443,7 +464,11 @@ void main() {
     // Gamma correction
     color = pow(color, vec3(1.0f / u_SkyboxParams.Gamma));
 
-    out_Color = vec4(color , 1.0);
+    // Emission
+    vec3 emissive = CalculateEmissive();
+    vec3 finalColor = color + emissive;
+
+    out_Color = vec4(finalColor , 1.0);
 
     if (u_Camera.ShowHeatMap.x == MKT_SHADER_TRUE) {
         out_Color = mix(vec4(GetHeatMapColor(lightCount), 1.0), out_Color, 0.67f);

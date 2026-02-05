@@ -43,6 +43,7 @@ namespace Mikoto {
 
         EditorState* m_EditorState{};
 
+        bool m_ShowPassGraph{ false };
         bool m_IsWireframeEnabled{ false };
     };
 }

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <memory>
+
 #include <ImGui/IconsMaterialDesign.h>
 
 #include <ImGui/ImGuiUtility.hh>
@@ -37,9 +39,12 @@ namespace Mikoto {
 
         ImGuiUtils::DrawNode( "Passes", [this] () -> void {
             DrawPassInfo();
+            
+            ImGuiUtils::CheckBox( "Show Graph", m_ShowPassGraph );
 
-            //static bool open{ true };
-            //ShowExampleAppCustomNodeGraph(&open);
+            if (m_ShowPassGraph) {
+                ShowExampleAppCustomNodeGraph( std::addressof( m_ShowPassGraph ) );
+            }
         });
 
         ImGuiUtils::DrawNode( "Renderer", [this] () -> void {

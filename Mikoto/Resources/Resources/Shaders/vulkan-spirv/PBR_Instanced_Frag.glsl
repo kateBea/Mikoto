@@ -96,7 +96,9 @@ vec3 GetNormalFromMap(sampler2D normalMap) {
 }
 
 vec3 PrefilteredReflection(vec3 R, float roughness) {
-    const float MAX_REFLECTION_LOD = 9.0; // todo: param/const
+    // TODO: Make this configurable from CPU
+    const float MAX_REFLECTION_LOD = 9.0;
+
     float lod = roughness * MAX_REFLECTION_LOD;
     float lodf = floor(lod);
     float lodc = ceil(lod);
@@ -131,10 +133,6 @@ vec3 Uncharted2Tonemap(vec3 x) {
     float E = 0.02;
     float F = 0.30;
     return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
-}
-
-vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
-    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
 float GeometrySchlickGGX(float NdotV, float roughness) {
@@ -404,45 +402,10 @@ void main() {
 
     vec3 R = reflect(-V, N);
 
-    // LearnOpenGL
-    //============================================
-    // ambient lighting (we now use IBL as the ambient term)
-//    vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
-//
-//    vec3 kS = F;
-//    vec3 kD = 1.0 - kS;
-//    kD *= 1.0 - metallic;
-//
-//    vec3 irradiance = texture(u_SamplerIrradiance, N).rgb;
-//    vec3 diffuse      = irradiance * albedo;
-//
-//    // sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to get the IBL specular part.
-//    const float MAX_REFLECTION_LOD = 4.0;
-//    vec3 prefilteredColor = textureLod(u_PrefilteredMap, R,  roughness * MAX_REFLECTION_LOD).rgb;
-//    vec2 brdf  = texture(u_SamplerBRDFLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
-//    vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
-//
-//    vec3 ambient = (kD * diffuse + specular) * ao;
-//
-//    vec3 color = ambient + Lo;
-//
-//    // HDR tonemapping
-//    color = color / (color + vec3(1.0));
-//    // gamma correct
-//    color = pow(color, vec3(1.0/2.2));
-
-    // Tone mapping
-    //color = Uncharted2Tonemap(color * u_SkyboxParams.Exposure);
-    //color = color * (1.0f / Uncharted2Tonemap(vec3(11.2f)));
-    // Gamma correction
-    //color = pow(color, vec3(1.0f / u_SkyboxParams.Gamma));
-    //============================================
-
     vec2 brdf = texture(u_SamplerBRDFLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
     vec3 reflection = PrefilteredReflection(R, roughness).rgb;
     vec3 irradiance = texture(u_SamplerIrradiance, N).rgb;
 
-    //============================================
     // Diffuse based on irradiance
     vec3 diffuse = irradiance * albedo;
 
@@ -461,6 +424,7 @@ void main() {
     // Tone mapping
     color = Uncharted2Tonemap(color * u_SkyboxParams.Exposure);
     color = color * (1.0f / Uncharted2Tonemap(vec3(11.2f)));
+
     // Gamma correction
     color = pow(color, vec3(1.0f / u_SkyboxParams.Gamma));
 

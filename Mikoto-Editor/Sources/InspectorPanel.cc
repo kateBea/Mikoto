@@ -491,7 +491,7 @@ namespace Mikoto {
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
             Vec3F factors{ material.GetEmissiveFactors() };
-            if ( ImGuiUtils::DragFloat3( "Factors", "%.2f", factors, 0.01f, 0.0f, 1.0f ) ) {
+            if ( ImGuiUtils::ColorEdit3( "Factors", factors ) ) {
                 material.SetEmissiveFactors( factors );
             }
 

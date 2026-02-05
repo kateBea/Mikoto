@@ -329,16 +329,18 @@ vec4 DetermineOutFragmentColor(vec3 N, vec3 color, float metallic, float roughne
 }
 
 vec3 CalculateEmissive() {
+    // Base emissive factor (user-defined color)
     vec3 emissive = v_EmissiveFactors;
 
+    // Default: no texture means "use emissive color directly"
     vec3 emissiveTex = vec3(1.0);
 
+    // But if a texture is present, multiply it in
     if (v_EmissionIndex != INVALID_TEXTURE_INDEX) {
         emissiveTex = texture(g_BindlessTextures[v_EmissionIndex], in_TexCoord).rgb;
-    } else {
-        emissiveTex = vec3(0.0);
     }
 
+    // Final emissive
     emissive *= emissiveTex;
     emissive *= v_EmissionIntensity;
 

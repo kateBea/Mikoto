@@ -17,7 +17,11 @@
 
 #include <Assets/Texture.hh>
 #include <Library/Utility/Types.hh>
+
+#include <Material/Texture2D.hh>
+#include <Material/TextureCube.hh>
 #include <Material/ShaderModule.hh>
+
 #include <Renderer/Core/Buffer.hh>
 #include <Renderer/Core/RenderUtility.hh>
 
@@ -52,6 +56,7 @@ namespace Mikoto {
         virtual auto FillTexture(Buffer* src, Texture* dest) -> void = 0;
         virtual auto CopyBuffer(Buffer* src, Buffer* dest) -> void = 0;
         virtual auto CopyTexture(Texture* src, Texture* dest) -> void = 0;
+        virtual auto CopyTexture(Texture2D* src, TextureCube* dest, UInt32 mipLevel, UInt32 face) -> void = 0;
 
         // Can be device local data
         virtual auto WriteBuffer(Buffer* target, Byte* data, Size size) -> void = 0;

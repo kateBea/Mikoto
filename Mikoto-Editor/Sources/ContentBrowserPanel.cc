@@ -376,36 +376,41 @@ namespace Mikoto {
                         // empty
                     }
 
-                    // DRAG SOURCE must be checked after drawing the item
-                    if (ImGui::BeginDragDropSource()) {
+                    if (entry.path().string().ends_with( ".png" )
+                    || entry.path().string().ends_with( ".jpg" )) {
+                        // DRAG SOURCE must be checked after drawing the item
+                        if (ImGui::BeginDragDropSource()) {
 
-                        // Send the texture handle
-                        ImGui::SetDragDropPayload("CONTENT_BROWSER_TEXT", std::addressof( m_Thumbnail ), sizeof(TextureHandle));
+                            // Send the texture handle
+                            ImGui::SetDragDropPayload("CONTENT_BROWSER_TEXT", std::addressof( m_Thumbnail ), sizeof(TextureHandle));
 
-                        // Preview
-                        constexpr float previewDimensions{ 48.0f };
-                        ImGui::Image(imguiTextID, ImVec2(previewDimensions, previewDimensions), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
-                        ImGuiUtils::CenteredText( fmt::format( "Move Icon" ).c_str(), previewDimensions );
+                            // Preview
+                            constexpr float previewDimensions{ 48.0f };
+                            ImGui::Image(imguiTextID, ImVec2(previewDimensions, previewDimensions), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+                            ImGuiUtils::CenteredText( fmt::format( "Move Icon" ).c_str(), previewDimensions );
 
-                        ImGui::EndDragDropSource();
+                            ImGui::EndDragDropSource();
+                        }
                     }
 
                     // DRAG for HDR load in Lighting panel
-                    if (ImGui::BeginDragDropSource()) {
-                        static std::string path{};
+                    if (entry.path().string().ends_with( ".hdr" )) {
+                        if (ImGui::BeginDragDropSource()) {
+                            static std::string path{};
 
-                        path = entry.path().string();
+                            path = entry.path().string();
 
-                        // Send the texture handle
-                        // Reminder: Payload type can be at most 32 characters long
-                        ImGui::SetDragDropPayload("HDR_LOAD_LIGHT_PANEL", std::addressof( path ), sizeof(path));
+                            // Send the texture handle
+                            // Reminder: Payload type can be at most 32 characters long
+                            ImGui::SetDragDropPayload("HDR_LOAD_LIGHT_PANEL", std::addressof( path ), sizeof(path));
 
-                        // Preview
-                        constexpr float previewDimensions{ 48.0f };
-                        ImGui::Image(ImGuiService::Get()->GetTextureID( m_Thumbnail ), ImVec2(previewDimensions, previewDimensions), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
-                        ImGuiUtils::CenteredText( fmt::format( "Skybox" ).c_str(), previewDimensions );
+                            // Preview
+                            constexpr float previewDimensions{ 48.0f };
+                            ImGui::Image(ImGuiService::Get()->GetTextureID( m_Thumbnail ), ImVec2(previewDimensions, previewDimensions), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+                            ImGuiUtils::CenteredText( fmt::format( "Skybox" ).c_str(), previewDimensions );
 
-                        ImGui::EndDragDropSource();
+                            ImGui::EndDragDropSource();
+                        }
                     }
                 }
 

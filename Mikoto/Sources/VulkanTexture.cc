@@ -177,6 +177,13 @@ namespace Mikoto {
         return m_CurrentLayout;
     }
 
+    auto VulkanTextureCube::SetDebugName( std::string_view name ) -> void {
+        m_DebugName = name;
+
+        VulkanHelpers::SetObjectDebugName( VK_DEVICE( m_Device ), VK_OBJECT_TYPE_IMAGE, reinterpret_cast<UInt64>( m_ImageAllocation.Image ), m_DebugName.c_str() );
+        VulkanHelpers::SetObjectDebugName( VK_DEVICE( m_Device ), VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<UInt64>( m_ImageView ), m_DebugName.c_str() );
+    }
+
     auto VulkanTextureCube::GetCreateInfo() const -> const VkImageCreateInfo& {
         return m_ImageAllocation.ImageCreateInfo;
     }
@@ -190,6 +197,10 @@ namespace Mikoto {
     }
 
     auto VulkanTextureCube::SubmitLayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd ) -> void {
+        if (newLayout == m_CurrentLayout) {
+            return;
+        }
+
         VkImageMemoryBarrier2 imageBarrier{};
         imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
         imageBarrier.pNext = nullptr;
@@ -404,6 +415,13 @@ namespace Mikoto {
         return m_ImageViewCreateInfo;
     }
 
+    auto VulkanTexture::SetDebugName( std::string_view name ) -> void {
+        m_DebugName = name;
+
+        VulkanHelpers::SetObjectDebugName( VK_DEVICE( m_Device ), VK_OBJECT_TYPE_IMAGE, reinterpret_cast<UInt64>( m_ImageAllocation.Image ), m_DebugName.c_str() );
+        VulkanHelpers::SetObjectDebugName( VK_DEVICE( m_Device ), VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<UInt64>( m_ImageView ), m_DebugName.c_str() );
+    }
+
     auto VulkanTexture::IsSwapChainImage() const -> bool {
         return m_IsImageExternal;
     }
@@ -434,6 +452,10 @@ namespace Mikoto {
     }
 
     auto VulkanTexture::SubmitLayoutTransition( const VkImageLayout newLayout, const VkCommandBuffer cmd ) -> void {
+        if (newLayout == m_CurrentLayout) {
+            return;
+        }
+
         VkImageMemoryBarrier2 imageBarrier{};
         imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
         imageBarrier.pNext = nullptr;

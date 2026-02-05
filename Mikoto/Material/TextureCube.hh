@@ -16,8 +16,10 @@
 #define MIKOTO_TEXTURE_CUBE_MAP_HH
 
 #include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
+
 #include <Assets/Texture.hh>
+
+#include <Library/Utility/Types.hh>
 
 namespace Mikoto {
 

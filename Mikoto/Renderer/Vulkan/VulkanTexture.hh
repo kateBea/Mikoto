@@ -70,6 +70,8 @@ namespace Mikoto {
         MKT_NODISCARD auto GetCreateInfo() const -> const VkImageCreateInfo&;
         MKT_NODISCARD auto GetViewCreateInfo() const -> const VkImageViewCreateInfo&;
 
+        auto SetDebugName(std::string_view name) -> void override;
+
         MKT_NODISCARD auto IsSwapChainImage() const -> bool;
 
         // Assume external synchronization and barrier used
@@ -112,6 +114,8 @@ namespace Mikoto {
         MKT_NODISCARD auto GetCurrentLayout() const -> VkImageLayout;
         MKT_NODISCARD auto GetCreateInfo() const -> const VkImageCreateInfo&;
         MKT_NODISCARD auto GetViewCreateInfo() const -> const VkImageViewCreateInfo&;
+
+        auto SetDebugName(std::string_view name) -> void override;
 
         // Assume external synchronization and barrier used
         auto SetCurrentLayout(VkImageLayout layout ) -> void;

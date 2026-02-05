@@ -32,6 +32,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetLayout() const -> VkPipelineLayout;
 
         MKT_NODISCARD auto GetDescriptorLayoutCount() const -> Size;
+        MKT_NODISCARD auto GetPushConstantRangeShaderFlags() const -> VkShaderStageFlags;
         MKT_NODISCARD auto GetDescriptorSetIndices() const -> std::vector<UInt32>;
         MKT_NODISCARD auto GetDescriptorSetLayout( UInt32 index ) const -> const VkDescriptorSetLayout&;
 

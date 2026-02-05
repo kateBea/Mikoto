@@ -186,19 +186,22 @@ namespace Mikoto {
 
         const auto it{ m_PassInfo.find( std::string{ passName } ) };
         if (it != m_PassInfo.end()) {
-            VkPipelineLayout pipelineLayout{ it->second.Pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ) };
 
-            for (const auto &[setIndex, descriptorSet]: it->second.DescriptorSets) {
-                // Since this is a per pass descriptor set we will only bind the set at PER_PASS_DESCRIPTOR_SET_INDEX
-                if (PER_PASS_DESCRIPTOR_SET_INDEX == setIndex) {
-                    switch (it->second.Pipeline->GetPipelineType()) {
-                        case PipelineType::GRAPHICS_PIPELINE:
-                            vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, setIndex, 1, std::addressof( descriptorSet ), 0, nullptr );
-                            break;
-                        case PipelineType::COMPUTE_PIPELINE:
-                            vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, setIndex, 1, std::addressof( descriptorSet ), 0, nullptr );
-                            break;
-                        default:;
+            if (!it->second.DescriptorSets.empty()) {
+                VkPipelineLayout pipelineLayout{ it->second.Pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ) };
+
+                for (const auto &[setIndex, descriptorSet]: it->second.DescriptorSets) {
+                    // Since this is a per pass descriptor set we will only bind the set at PER_PASS_DESCRIPTOR_SET_INDEX
+                    if (PER_PASS_DESCRIPTOR_SET_INDEX == setIndex) {
+                        switch (it->second.Pipeline->GetPipelineType()) {
+                            case PipelineType::GRAPHICS_PIPELINE:
+                                vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, setIndex, 1, std::addressof( descriptorSet ), 0, nullptr );
+                                break;
+                            case PipelineType::COMPUTE_PIPELINE:
+                                vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, setIndex, 1, std::addressof( descriptorSet ), 0, nullptr );
+                                break;
+                            default:;
+                        }
                     }
                 }
             }
@@ -270,7 +273,7 @@ namespace Mikoto {
         DescriptorWriter writer{};
 
         VkImageLayout layout{ VK_IMAGE_LAYOUT_UNDEFINED };
-        if (textureHandle->GetTextureUsage() == TextureUsage::CUBE) {
+        if (textureHandle->IsTextureType(TextureType::TEXTURE_CUBE)) {
             layout = dynamic_cast<VulkanTextureCube *>( textureHandle.GetRaw() )->GetCurrentLayout();
         } else {
             layout = dynamic_cast<VulkanTexture *>( textureHandle.GetRaw() )->GetCurrentLayout();
@@ -390,7 +393,10 @@ namespace Mikoto {
 
         PipelineHandle pipeline{ it->second.Pipeline };
 
-        VkShaderStageFlags pcShaderStages{ /*Expose from pipeline*/ };
+        VulkanPipeline* vulkanPipeline{ MKT_TO_VK_PIPELINE( pipeline ) };
+
+        VkShaderStageFlags pcShaderStages{ vulkanPipeline->GetPushConstantRangeShaderFlags() };
+
         vkCmdPushConstants(
             cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
             pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ),
@@ -561,7 +567,7 @@ namespace Mikoto {
         TextureHandle texture{ m_Device->CreateTexture( description ) };
 
         if (!texture.IsEmpty()) {
-            texture->SetDebugName( name );
+            texture->SetDebugName( StringUtil::Format( "VulkanTexture2D. Named: '{}'", name ) );
             m_TexturesByNames.emplace( std::string{ name }, texture );
         }
 
@@ -577,7 +583,7 @@ namespace Mikoto {
         TextureHandle texture{ m_Device->CreateTexture( description ) };
 
         if (!texture.IsEmpty()) {
-            texture->SetDebugName( name );
+            texture->SetDebugName( StringUtil::Format( "VulkanTextureCube. Named: '{}'", name ) );
             m_TexturesByNames.emplace( std::string{ name }, texture );
         }
 

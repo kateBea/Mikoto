@@ -75,21 +75,15 @@ namespace Mikoto {
 
     private:
         struct IrradianceParameters {
+            Mat4F MVP{};
             float DeltaPhi{};
             float DeltaTheta{};
         };
 
-        struct IrradianceCamInfo {
-            Mat4F MVP{};
-        };
-
         struct PrefilterParameters {
+            Mat4F MVP{};
             float Roughness{};
             UInt32 NumSamples{};
-        };
-
-        struct PrefilterCamInfo {
-            Mat4F MVP{};
         };
 
         struct SkyboxUBO {
@@ -114,19 +108,18 @@ namespace Mikoto {
         TextureHandle m_CubeMap{};
         bool m_UseSkybox{ false };
 
-        UInt32 m_IrradianceMipLevels{};
+        UInt32 m_IrradianceMipLevels{ 1 };
         UInt32 m_PrefilterMipLevels{};
 
         UInt32 m_IrradianceDimensions{ 64 };
         UInt32 m_PrefilterDimensions{ 512 };
 
         PrefilterParameters m_PrefilterParameters{};
-        PrefilterCamInfo m_PrefilterCameraInfo{};
 
-        IrradianceCamInfo m_IrradianceCameraInfo{};
         IrradianceParameters m_IrradianceParameters{};
 
         SamplerHandle m_CubeMapSampler{};
+        SamplerHandle m_BRDFLutSampler{};
 
         ShaderLightListParams m_LightsInfo{};
         ShaderCameraParams m_FrameUBO{};

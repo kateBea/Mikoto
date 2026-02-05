@@ -25,9 +25,7 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
         m_ActivePass = std::addressof( pass );
 
-        if (m_ActivePass->HasResources()) {
-            m_Context->BindShaderResources( pass.Name, m_Commands );
-        }
+        m_Context->BindShaderResources( pass.Name, m_Commands );
     }
 
     auto CommandContext::EndPass() -> void {
@@ -98,6 +96,13 @@ namespace Mikoto {
         m_Commands->SetScissor( x, y, width, height );
     }
 
+    auto CommandContext::CopyTexture2DToCube( std::string_view texture2DName, std::string_view cubeMapName, Size mipLevel, UInt32 face ) -> void {
+        auto texture2D{ m_Context->GetTexture( texture2DName ).As<Texture2D>() };
+        auto textureCube{ m_Context->GetTexture( cubeMapName ).As<TextureCube>() };
+
+        m_Commands->CopyTexture( texture2D.GetRaw(), textureCube.GetRaw(), mipLevel, face );
+    }
+
     auto CommandContext::BindGlobalTextures() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -126,6 +131,11 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
+
+        if (!m_ActivePass->ConstantsShaderResources.IsEmpty()) {
+            m_Context->PushConstants(m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands);
+        }
+
         m_Commands->Draw( vertexCount, instanceCount, firstVertex, firstInstance );
     }
 
@@ -176,7 +186,7 @@ namespace Mikoto {
         }
     }
 
-    auto CommandContext::PushContants( const void *ptr, Size size ) -> void {
+    auto CommandContext::PushConstants( const void *ptr, Size size ) -> void {
         m_ActivePass->ConstantsShaderResources.SetData( ptr, size );
     }
 
@@ -194,8 +204,14 @@ namespace Mikoto {
 
     auto CommandContext::BindImage( TextureHandle handle, SamplerHandle sampler, UInt32 bindingSlot ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
         m_Context->PushTexture( handle, sampler, m_ActivePass->Name, bindingSlot );
+    }
+
+    auto CommandContext::BindImage( std::string_view name, SamplerHandle sampler, UInt32 bindingSlot ) -> void {
+        TextureHandle texture{ m_Context->GetTexture( name ) };
+        MKT_ASSERT( !texture.IsEmpty(), "Texture cannot be empty" );
+
+        m_Context->PushTexture( texture, sampler, m_ActivePass->Name, bindingSlot );
     }
 
     auto CommandContext::RegisterNamedTexture( std::string_view name, TextureHandle handle ) const -> void {

@@ -31,6 +31,7 @@
 #include "Audio/AudioService.hh"
 #include "Common/String.hh"
 #include "Filesystem/FileSystem.hh"
+#include "Filesystem/FileWatcherService.hh"
 #include "Threading/ThreadUtility.hh"
 
 namespace Mikoto {
@@ -85,7 +86,8 @@ namespace Mikoto {
 
         m_PBRMaterialsPool.Shutdown();
 
-        m_Textures.clear();
+        m_Textures2D.clear();
+        m_TexturesCubes.clear();
         m_Audios.clear();
         m_Fonts.clear();
         m_Models.clear();
@@ -103,7 +105,7 @@ namespace Mikoto {
     }
 
     auto AssetsService::GetDummyTexture() -> TextureHandle {
-        return m_Textures[Filesystem::GetGetAbsolutePathString( s_DummyTexturePath)];
+        return m_Textures2D[Filesystem::GetGetAbsolutePathString( s_DummyTexturePath)];
     }
 
     auto AssetsService::CreateMaterial( const MaterialCreateInfo& ) -> MaterialHandle {
@@ -148,6 +150,15 @@ namespace Mikoto {
                 m_Models.try_emplace( modelFile->GetPath(), model )
             };
 
+            // TODO: Handle when a model gets updated from disk and reload it at engine side
+            FileWatcherService::Get()->Watch(
+                    modelFile->GetPath(),
+                    []( const Path& pathCallable, FileWatchEvent event ) mutable -> void {
+                        if ( event == FileWatchEvent::MODIFIED ) {
+                            MKT_CORE_LOGGER_INFO( "Model file at [{}] has been updated", pathCallable.string() );
+                        }
+                    } );
+
             if ( success ) {
                 return m_Models[modelFile->GetPath()];
             }
@@ -182,7 +193,7 @@ namespace Mikoto {
         }
 
         // if it exists
-        if (const auto itFind{ m_Textures.find( textureFile->GetPath() ) }; itFind != m_Textures.end() ) {
+        if (const auto itFind{ m_Textures2D.find( textureFile->GetPath() ) }; itFind != m_Textures2D.end() ) {
             return itFind->second;
         }
 
@@ -210,11 +221,11 @@ namespace Mikoto {
         TextureHandle texture{ m_GpuDevice->CreateTexture( textureDesc ) };
         if (!texture.IsEmpty()) {
             auto [it, success]{
-                m_Textures.try_emplace( textureFile->GetPath(), texture )
+                m_Textures2D.try_emplace( textureFile->GetPath(), texture )
             };
 
             if (success) {
-                return m_Textures[textureFile->GetPath()];
+                return m_Textures2D[textureFile->GetPath()];
             }
         }
 
@@ -235,7 +246,7 @@ namespace Mikoto {
 
         const std::string baseAbsolute{ Filesystem::GetGetAbsolutePathString( description.BasePath ) };
         // if it exists
-        if (const auto itFind{ m_Textures.find( baseAbsolute ) }; itFind != m_Textures.end() ) {
+        if (const auto itFind{ m_TexturesCubes.find( baseAbsolute ) }; itFind != m_TexturesCubes.end() ) {
             return itFind->second;
         }
 
@@ -265,11 +276,11 @@ namespace Mikoto {
         TextureHandle texture{ m_GpuDevice->CreateTexture( textureDesc ) };
         if (!texture.IsEmpty()) {
             auto [it, success]{
-                m_Textures.try_emplace( baseAbsolute, texture )
+                m_TexturesCubes.try_emplace( baseAbsolute, texture )
             };
 
             if (success) {
-                return m_Textures[baseAbsolute];
+                return m_TexturesCubes[baseAbsolute];
             }
         }
 

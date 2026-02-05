@@ -1048,6 +1048,7 @@ namespace Mikoto {
     }
 
     auto VulkanCmdList::CopyBuffer( Buffer* src, Buffer* dest ) -> void {
+
     }
 
     auto VulkanCmdList::CopyTexture( Texture* srcTexture, Texture* destTexture ) -> void {
@@ -1079,6 +1080,52 @@ namespace Mikoto {
         } else {
             dest->SubmitLayoutTransition( VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, m_CmdBuffer );
         }
+    }
+
+    auto VulkanCmdList::CopyTexture( Texture2D* src, TextureCube* dest, UInt32 mipLevel, UInt32 face ) -> void {
+        const auto vulkanSrc{ dynamic_cast<VulkanTexture*>( src ) };
+        const auto vulkanDest{ dynamic_cast<VulkanTextureCube*>( dest ) };
+
+        auto srcOriginalLayout{ vulkanSrc->GetCurrentLayout() };
+        auto destOriginalLayout{ vulkanDest->GetCurrentLayout() };
+
+        // Transition src to SRC/DST optimal
+        vulkanSrc->SubmitLayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_CmdBuffer );
+        vulkanDest->SubmitLayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_CmdBuffer );
+
+        // Copy
+        VkImageCopy copyRegion{};
+        copyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        copyRegion.srcSubresource.baseArrayLayer = 0;
+        copyRegion.srcSubresource.mipLevel = 0;
+        copyRegion.srcSubresource.layerCount = 1;
+        copyRegion.srcOffset = { 0, 0, 0 };
+
+        copyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        copyRegion.dstSubresource.baseArrayLayer = face;
+        copyRegion.dstSubresource.mipLevel = mipLevel;
+        copyRegion.dstSubresource.layerCount = 1;
+        copyRegion.dstOffset = { 0, 0, 0 };
+
+        float width{  static_cast<float>(vulkanSrc->GetWidth() * std::pow(0.5f, mipLevel)) };
+        float height{  static_cast<float>(vulkanSrc->GetHeight() * std::pow(0.5f, mipLevel)) };
+
+        copyRegion.extent.width = static_cast<UInt32>(width);
+        copyRegion.extent.height = static_cast<UInt32>(height);
+        copyRegion.extent.depth = 1;
+
+        vkCmdCopyImage(
+            m_CmdBuffer,
+            src->GetNativeHandle(ObjectType::Vk_Image),
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            dest->GetNativeHandle(ObjectType::Vk_Image),
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            std::addressof( copyRegion ) );
+
+        // Transition SRC/DST back
+        vulkanSrc->SubmitLayoutTransition( srcOriginalLayout, m_CmdBuffer );
+        vulkanDest->SubmitLayoutTransition( destOriginalLayout, m_CmdBuffer );
     }
 
     auto VulkanCmdList::WriteBuffer( Buffer* target, Byte* data, Size size ) -> void {

@@ -67,6 +67,8 @@ namespace Mikoto {
         auto SetViewport(Int32 x, Int32 y, Int32 width, Int32 height) -> void ;
         auto SetScissor(Int32 x, Int32 y, Int32 width, Int32 height) -> void;
 
+        auto CopyTexture2DToCube(std::string_view texture2DName, std::string_view cubeMapName, Size mipLevel, UInt32 face ) -> void;
+
         auto BindGlobalTextures() -> void;
 
         // Need to bind pipeline before specifying resources
@@ -92,12 +94,13 @@ namespace Mikoto {
 
         auto UploadBuffer(std::string_view bufferName, const void* ptrSrc, Size size, Size offset = 0 ) const -> void;
 
-        auto PushContants(const void* ptr, Size size) -> void;
+        auto PushConstants(const void* ptr, Size size) -> void;
 
         MKT_NODISCARD auto PushTexture(TextureHandle texture ) const -> Int32;
         MKT_NODISCARD auto GetNamedBuffer( std::string_view ) const -> BufferHandle;
 
         auto BindImage(TextureHandle handle, SamplerHandle sampler, UInt32 bindingSlot) -> void;
+        auto BindImage(std::string_view name, SamplerHandle sampler, UInt32 bindingSlot) -> void;
 
         auto RegisterNamedTexture( std::string_view name, TextureHandle handle ) const -> void;
 

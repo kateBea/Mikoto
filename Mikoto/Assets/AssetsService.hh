@@ -90,7 +90,7 @@ namespace Mikoto {
                     return it->second;
             }
             else if constexpr (std::is_same_v<AssetType, Texture>) {
-                if ( const auto it{ m_Textures.find(fullpath) }; it != m_Textures.end())
+                if ( const auto it{ m_Textures2D.find(fullpath) }; it != m_Textures2D.end())
                     return it->second;
             }
             else if constexpr (std::is_same_v<AssetType, Audio>) {
@@ -109,6 +109,7 @@ namespace Mikoto {
             return Ref<AssetType>::CreateEmpty();
         }
 
+        // TODO: finish implementation and test
         template<typename AssetType>
         auto LoadAsset( auto&&... args ) -> Ref<AssetType> {
             if constexpr (std::is_same_v<AssetType, Model>) {
@@ -189,9 +190,11 @@ namespace Mikoto {
 
         ankerl::unordered_dense::map<std::string, MaterialHandle> m_Materials{};
         ankerl::unordered_dense::map<std::string, ModelHandle> m_Models{};
-        ankerl::unordered_dense::map<std::string, TextureHandle> m_Textures{};
         ankerl::unordered_dense::map<std::string, AudioHandle> m_Audios{};
         ankerl::unordered_dense::map<std::string, FontHandle> m_Fonts{};
+
+        ankerl::unordered_dense::map<std::string, TextureHandle> m_Textures2D{};
+        ankerl::unordered_dense::map<std::string, TextureHandle> m_TexturesCubes{};
     };
 }// namespace Mikoto
 

@@ -77,68 +77,61 @@ namespace Mikoto {
         graph.RegisterPass(
                 "IrradiancePass",
 
-                [&]( FramePassBuilder &b) {
+                [&]( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
-                    b.Create<Buffer>( "IrradiancePass_CameraInfo", BufferUsage::UNIFORM, sizeof( IrradianceCamInfo ), 1 );
-                    b.Create<Buffer>( "IrradiancePass_Parameters", BufferUsage::UNIFORM, sizeof( IrradianceParameters ), 1 );
+                    b.Create<TextureCube>( "IrradiancePass_ColorTargetCUBE", m_IrradianceDimensions, TextureFormat::RGBA32_FLOAT, m_IrradianceMipLevels );
+                    b.Create<Texture>( "IrradiancePass_ColorTarget", m_IrradianceDimensions, m_IrradianceDimensions, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
 
-                    // Create target
-                    m_IrradianceMipLevels = 1;
-                    b.Create<TextureCube>( "IrradiancePass_ColorTarget", m_IrradianceDimensions, TextureFormat::RGBA16_FLOAT, m_IrradianceMipLevels );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/Irradiance_Vert.sprv", ShaderStage::VERTEX );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/Irradiance_Frag.sprv", ShaderStage::FRAGMENT );
+                    b.Create<Pipeline>( "IrradiancePass_Pipeline",
+                                        GraphicsPipelineDescription{
+                                                .PrimitiveTopology{ Topology::TRIANGLE_LIST },
+                                                .VertexAttributesSpec{},
+                                                .ColorAttachmentFormats{ TextureFormat::RGBA32_FLOAT } } );
 
-                    // Create pipeline
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/Irradiance_Vert.sprv", ShaderStage::VERTEX )
-                        .UseShader( "Resources/Shaders/vulkan-spirv/Irradiance_Frag.sprv", ShaderStage::FRAGMENT )
-                        .Create<Pipeline>( "IrradiancePass_Pipeline", GraphicsPipelineDescription{
-                            .VertexAttributesSpec{},
-                            .ColorAttachmentFormats{ TextureFormat::RGBA16_FLOAT }
-                        } );
-
-                    b.Write( "IrradiancePass_ColorTarget", FrameResourceState::RenderTarget )
-                        .Write( "IrradiancePass_CameraInfo", FrameResourceState::UniformBuffer)
-                        .Write( "IrradiancePass_Parameters", FrameResourceState::UniformBuffer);
-
-                    b.Use( SRGType::SRG_PerPass, "IrradiancePass_CameraInfo", 0 )
-                        .Use( SRGType::SRG_PerPass, "IrradiancePass_Parameters", 1 );
+                    b.Write( "IrradiancePass_ColorTarget", FrameResourceState::RenderTarget );
+                    b.Write( "IrradiancePass_ColorTargetCUBE", FrameResourceState::TransferDst );
                 },
-
                 [&]( CommandContext &ctx, FrameGraphBlackboard & ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    //TODO: disabled for now
-                    return;
-
-                    // The skybox is bound once
-                    ctx.BindImage( m_CubeMap, m_CubeMapSampler, 2 );
-
-                    m_IrradianceParameters.DeltaTheta = 0.5f * Math::Constants::PI / 64.0;
-                    m_IrradianceParameters.DeltaPhi = 2.0f * Math::Constants::PI / 180.0f;
-
-                    for ( UInt32 face{}; face < MAX_CUBE_MAP_FACES; ++face ) {
-                        ctx.SetViewport( 0, 0, m_IrradianceDimensions, m_IrradianceDimensions );
-                        ctx.SetScissor( 0, 0, m_IrradianceDimensions, m_IrradianceDimensions );
-
-                        ctx.UploadBuffer<IrradianceParameters>( "IrradiancePass_CameraInfo", m_IrradianceParameters );
-
-                        m_IrradianceCameraInfo.MVP = glm::perspective( static_cast<float>( Math::Constants::PI / 2.0 ),
-                                                                       1.0f, 0.1f, 512.0f ) *
-                                                     s_Matrices[face];
-                        ctx.UploadBuffer<IrradianceCamInfo>( "IrradiancePass_CameraInfo", m_IrradianceCameraInfo );
-
-                        ctx.SetColorRenderTarget( "IrradiancePass_ColorTarget" );
-
-                        ctx.BeginRender();
-                        ctx.BindPipeline( "IrradiancePass_Pipeline" );
-
-                        //ctx.Bind(SRGType::SRG_Constants, std::addressof( m_Params ), sizeof( m_Params ) );
-                        //ctx.Draw( 36 ); // Crashes
-                        ctx.EndRender();
+                    if ( m_CubeMapSampler.IsEmpty() ) {
+                        SamplerDescription samplerDescription{ .CubeSampler{ true } };
+                        m_CubeMapSampler = ctx.CreateSampler( samplerDescription );
                     }
 
-                    ctx.EndPass();
+                    ctx.BindImage( m_CubeMap, m_CubeMapSampler, 0 );
+
+                    for ( Size mipLevel{}; mipLevel < m_IrradianceMipLevels; mipLevel++ ) {
+                        for ( UInt32 face{}; face < MAX_CUBE_MAP_FACES; ++face ) {
+                            float viewPortWidth{  static_cast<float>(m_IrradianceDimensions * std::pow(0.5f, mipLevel)) };
+                            float viewPortHeight{  static_cast<float>(m_IrradianceDimensions * std::pow(0.5f, mipLevel)) };
+
+                            ctx.SetViewport( 0, 0, viewPortWidth, viewPortHeight );
+                            ctx.SetScissor( 0, 0, viewPortWidth, viewPortHeight );
+
+                            m_IrradianceParameters.DeltaTheta = 0.5f * Math::Constants::PI / 64.0;
+                            m_IrradianceParameters.DeltaPhi = 2.0f * Math::Constants::PI / 180.0f;
+                            m_IrradianceParameters.MVP = glm::perspective( static_cast<float>( Math::Constants::PI / 2.0 ), 1.0f, 0.1f, 512.0f ) * s_Matrices[face];
+
+                            ctx.SetColorRenderTarget( "IrradiancePass_ColorTarget" );
+
+                            ctx.BeginRender();
+                            ctx.BindPipeline( "IrradiancePass_Pipeline" );
+
+                            ctx.PushConstants( std::addressof( m_IrradianceParameters ), sizeof( m_IrradianceParameters ) );
+
+                            ctx.Draw( 36 );
+
+                            ctx.EndRender();
+
+                            ctx.CopyTexture2DToCube( "IrradiancePass_ColorTarget", "IrradiancePass_ColorTargetCUBE", mipLevel, face);
+                        }
+                    }
                 } );
 
-        graph.SetNodeExecutionPolicy( "IrradiancePass", FramePassExecutionPolicy::ONCE );
+        graph.SetNodeExecutionPolicy( "IrradiancePass", FramePassExecutionPolicy::PER_FRAME );
     }
 
     auto IBLPasses::RegisterPrefilter( FrameGraph &graph ) -> void {
@@ -150,60 +143,65 @@ namespace Mikoto {
                 [&]( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    b.Create<Buffer>( "PrefilterPass_CameraInfo", BufferUsage::UNIFORM, sizeof( PrefilterCamInfo ), 1 );
-                    b.Create<Buffer>( "PrefilterPass_Parameters", BufferUsage::UNIFORM, sizeof( PrefilterParameters ), 1 );
-
                     m_PrefilterMipLevels = static_cast<UInt32>( Math::Floor( Math::Log2( m_PrefilterDimensions ) ) ) + 1;
-                    b.Create<TextureCube>( "Prefilter_ColorTarget", m_PrefilterDimensions, TextureFormat::RGBA32_FLOAT, m_PrefilterMipLevels );
+                    b.Create<TextureCube>( "PrefilterPass_ColorTargetCUBE", m_PrefilterDimensions, TextureFormat::RGBA16_FLOAT, m_PrefilterMipLevels );
+                    b.Create<Texture>( "PrefilterPass_ColorTarget", m_PrefilterDimensions, m_PrefilterDimensions, TextureFormat::RGBA16_FLOAT, TextureUsage::COLOR );
 
-                    // Create pipeline
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Prefilter_Vert.sprv", ShaderStage::VERTEX );
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Prefilter_Frag.sprv", ShaderStage::FRAGMENT );
                     b.Create<Pipeline>( "Prefilter_Pipeline", GraphicsPipelineDescription{
-                        .VertexAttributesSpec{},
-                        .ColorAttachmentFormats{ TextureFormat::RGBA32_FLOAT }
-                    } );
+                                                                      .PrimitiveTopology{ Topology::TRIANGLE_LIST },
+                                                                      .VertexAttributesSpec{},
+                                                                      .ColorAttachmentFormats{ TextureFormat::RGBA16_FLOAT } } );
 
-                    b.Write( "Prefilter_ColorTarget", FrameResourceState::RenderTarget )
-                       .Write( "PrefilterPass_CameraInfo", FrameResourceState::UniformBuffer)
-                       .Write( "PrefilterPass_Parameters", FrameResourceState::UniformBuffer);
-
-                   b.Use( SRGType::SRG_PerPass, "PrefilterPass_CameraInfo", 0 )
-                       .Use( SRGType::SRG_PerPass, "PrefilterPass_Parameters", 1 );
+                    b.Write( "PrefilterPass_ColorTarget", FrameResourceState::RenderTarget );
+                    b.Write( "PrefilterPass_ColorTargetCUBE", FrameResourceState::TransferDst );
                 },
 
                 [&]( CommandContext &ctx, FrameGraphBlackboard & ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    //TODO: disabled for now
-                    return;
+                    if ( m_CubeMapSampler.IsEmpty() ) {
+                        SamplerDescription samplerDescription{ .CubeSampler{ true } };
+                        m_CubeMapSampler = ctx.CreateSampler( samplerDescription );
+                    }
 
-                    // The skybox is bound once
-                    ctx.BindImage( m_CubeMap, m_CubeMapSampler, 2 );
+                    ctx.BindImage( m_CubeMap, m_CubeMapSampler, 0 );
 
-                    for ( UInt32 mip = 0; mip < m_PrefilterMipLevels; ++mip ) {
-                        for ( UInt32 face = 0; face < MAX_CUBE_MAP_FACES; ++face ) {
-                            ctx.SetViewport( 0, 0, m_PrefilterDimensions, m_PrefilterDimensions );
-                            ctx.SetScissor( 0, 0, m_PrefilterDimensions, m_PrefilterDimensions );
+                    // Tweak
+                    m_PrefilterParameters.NumSamples = 32;
 
-                            ctx.BindPipeline( "Prefilter_Pipeline" );
+                    for ( UInt32 mipLevel{}; mipLevel < m_PrefilterMipLevels; ++mipLevel ) {
+                        m_PrefilterParameters.Roughness = static_cast<float>( mipLevel ) / static_cast<float>( m_PrefilterMipLevels - 1 );
 
-                            ctx.SetColorRenderTarget( "Prefilter_ColorTarget" );
+                        for ( UInt32 face{}; face < MAX_CUBE_MAP_FACES; ++face ) {
+                            float viewPortWidth{  static_cast<float>(m_PrefilterDimensions * std::pow(0.5f, mipLevel)) };
+                            float viewPortHeight{   static_cast<float>(m_PrefilterDimensions * std::pow(0.5f, mipLevel)) };
+
+                            ctx.SetViewport( 0, 0, viewPortWidth, viewPortHeight );
+                            ctx.SetScissor( 0, 0, viewPortWidth, viewPortHeight );
+
+                            m_PrefilterParameters.MVP = glm::perspective( static_cast<float>( Math::Constants::PI / 2.0 ), 1.0f, 0.1f, 512.0f ) * s_Matrices[face];
+
+                            ctx.SetColorRenderTarget( "PrefilterPass_ColorTarget" );
 
                             ctx.BeginRender();
+                            ctx.BindPipeline( "Prefilter_Pipeline" );
 
-                            //ctx.Bind(SRGType::SRG_Constants, std::addressof( m_Params ), sizeof( m_Params ) );
+                            ctx.PushConstants( std::addressof( m_PrefilterParameters ), sizeof( m_PrefilterParameters ) );
 
-                            // Draw
+                            ctx.Draw( 36 );
 
                             ctx.EndRender();
+
+                            ctx.CopyTexture2DToCube( "PrefilterPass_ColorTarget", "PrefilterPass_ColorTargetCUBE", mipLevel, face );
                         }
                     }
 
                     ctx.EndPass();
                 } );
 
-        graph.SetNodeExecutionPolicy( "PrefilterPass", FramePassExecutionPolicy::ONCE );
+        graph.SetNodeExecutionPolicy( "PrefilterPass", FramePassExecutionPolicy::PER_FRAME );
     }
 
     auto IBLPasses::RegisterBRDFLut( FrameGraph &graph ) -> void {
@@ -215,7 +213,7 @@ namespace Mikoto {
                     MKT_BEGIN_PROFILER_NAMED();
 
                     // R16G16 is supported commonly
-                    b.Create<Texture>( "BRDFLutPass_ColorTarget", m_Resolution, TextureFormat::RG16_FLOAT, TextureUsage::COLOR );
+                    b.Create<Texture>( "BRDFLutPass_ColorTarget", 512, 512 , TextureFormat::RG16_FLOAT, TextureUsage::COLOR );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/BRDFLut_Vert.sprv", ShaderStage::VERTEX );
                     b.UseShader( "Resources/Shaders/vulkan-spirv/BRDFLut_Frag.sprv", ShaderStage::FRAGMENT );
@@ -232,8 +230,8 @@ namespace Mikoto {
 
                     ctx.BindPipeline( "BRDFLutPass_Pipeline" );
 
-                    ctx.SetViewport( 0, 0, 1920, 1080 );
-                    ctx.SetScissor( 0, 0, 1920, 1080 );
+                    ctx.SetViewport( 0, 0, 512, 512 );
+                    ctx.SetScissor( 0, 0, 512, 512 );
 
                     ctx.SetClearColor( { 0.0f, 0.0f, 0.0f, 1.0f } );
 
@@ -491,8 +489,14 @@ namespace Mikoto {
                         .Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite)
                         .Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
 
+                    b.Read( "PrefilterPass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
+                    b.Read( "IrradiancePass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
+                    b.Read( "BRDFLutPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+
                     b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
                     b.Write( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
+
+                    b.Read( "SkyboxPass_CameraInfo", FrameResourceState::UniformBuffer );
 
                     b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_CameraInfo", 0 )
                         .Use( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 1 )
@@ -500,6 +504,8 @@ namespace Mikoto {
                         .Use( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 3 )
                         .Use( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 4 )
                         .Use( SRGType::SRG_Textures );
+
+                    b.Use( SRGType::SRG_PerPass, "SkyboxPass_CameraInfo", 5 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -521,6 +527,14 @@ namespace Mikoto {
                     PassRenderInfo renderInfo{
                         .ColorLoadOp{ colorTargetLoadOP },
                     };
+
+                    if (m_BRDFLutSampler.IsEmpty()) {
+                        m_BRDFLutSampler = ctx.CreateSampler( SamplerDescription{} );
+                    }
+
+                    ctx.BindImage( "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, 7 );
+                    ctx.BindImage( "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, 8 );
+                    ctx.BindImage( "BRDFLutPass_ColorTarget", m_BRDFLutSampler, 6 );
 
                     ctx.UploadBuffer<ShaderCameraParams>( "FinalCompositionPass_CameraInfo", m_FrameUBO );
 

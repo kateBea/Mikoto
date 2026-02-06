@@ -66,7 +66,7 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::SetSkyBox( TextureHandle cubeMap ) -> void {
-        m_IBLPasses.SetPrecomputedSkybox( cubeMap );
+        m_IBLPasses.SetPrecomputedLDRCubeMap( cubeMap );
     }
 
     auto SceneRenderer::SetClearColor( const Vec4F& color ) -> void {

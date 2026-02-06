@@ -74,7 +74,12 @@ namespace Mikoto {
     }
 
     auto IBLPasses::SetEquirectangularMap( TextureHandle texture2D ) -> void {
+        if (m_Skybox2D == texture2D) {
+            return;
+        }
+
         m_Skybox2D = texture2D;
+        m_RequestUpdateSkybox = true;
     }
 
     auto IBLPasses::SetUsePrecomputedLDRCubeMap( bool value ) -> void {
@@ -84,10 +89,10 @@ namespace Mikoto {
     auto IBLPasses::RegisterIrradiance( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        graph.RegisterPass(
+        graph.RegisterPass<IrradiancePassData>(
                 "IrradiancePass",
 
-                [&]( FramePassBuilder &b ) {
+                [&]( FramePassBuilder &b, IrradiancePassData& p ) {
                     MKT_BEGIN_PROFILER_NAMED();
                     b.Create<TextureCube>( "IrradiancePass_ColorTargetCUBE", m_IrradianceDimensions, TextureFormat::RGBA32_FLOAT, m_IrradianceMipLevels );
                     b.Create<Texture>( "IrradiancePass_ColorTarget", m_IrradianceDimensions, m_IrradianceDimensions, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
@@ -102,16 +107,27 @@ namespace Mikoto {
 
                     b.Write( "IrradiancePass_ColorTarget", FrameResourceState::RenderTarget );
                     b.Write( "IrradiancePass_ColorTargetCUBE", FrameResourceState::TransferDst );
+
+                    b.Write( "SkyboxRender_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
                 },
-                [&]( CommandContext &ctx, FrameGraphBlackboard & ) {
+                [&]( CommandContext &ctx, FrameGraphBlackboard &blackboard ) {
                     MKT_BEGIN_PROFILER_NAMED();
+
+                    auto& irradianceFlags{ blackboard.Get<IrradiancePassData>() };
+                    if (!irradianceFlags.Update) {
+                        return;
+                    }
 
                     if ( m_CubeMapSampler.IsEmpty() ) {
                         SamplerDescription samplerDescription{ .CubeSampler{ true } };
                         m_CubeMapSampler = ctx.CreateSampler( samplerDescription );
                     }
 
-                    ctx.BindImage( m_CubeMap, m_CubeMapSampler, 0 );
+                    if (m_UsePrecomputedLDRCubeMap) {
+                        ctx.BindImage( m_CubeMap, m_CubeMapSampler, 0 );
+                    } else {
+                        ctx.BindImage( "SkyboxRender_ColorTargetCUBE", m_CubeMapSampler, 0 );
+                    }
 
                     for ( Size mipLevel{}; mipLevel < m_IrradianceMipLevels; mipLevel++ ) {
                         for ( UInt32 face{}; face < MAX_CUBE_MAP_FACES; ++face ) {
@@ -139,18 +155,18 @@ namespace Mikoto {
                             ctx.CopyToCube( "IrradiancePass_ColorTarget", "IrradiancePass_ColorTargetCUBE", mipLevel, face);
                         }
                     }
-                } );
 
-        graph.SetNodeExecutionPolicy( "IrradiancePass", FramePassExecutionPolicy::ONCE );
+                    irradianceFlags.Update = false;
+                } );
     }
 
     auto IBLPasses::RegisterPrefilter( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        graph.RegisterPass(
+        graph.RegisterPass<PrefilterPassData>(
                 "PrefilterPass",
 
-                [&]( FramePassBuilder &b ) {
+                [&]( FramePassBuilder &b, PrefilterPassData& ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
                     m_PrefilterMipLevels = static_cast<UInt32>( Math::Floor( Math::Log2( m_PrefilterDimensions ) ) ) + 1;
@@ -166,17 +182,28 @@ namespace Mikoto {
 
                     b.Write( "PrefilterPass_ColorTarget", FrameResourceState::RenderTarget );
                     b.Write( "PrefilterPass_ColorTargetCUBE", FrameResourceState::TransferDst );
+
+                    b.Write( "SkyboxRender_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
                 },
 
-                [&]( CommandContext &ctx, FrameGraphBlackboard & ) {
+                [&]( CommandContext &ctx, FrameGraphBlackboard & blackboard ) {
                     MKT_BEGIN_PROFILER_NAMED();
+
+                    auto& prefilterInfo{ blackboard.Get<PrefilterPassData>() };
+                    if (!prefilterInfo.Update) {
+                        return;
+                    }
 
                     if ( m_CubeMapSampler.IsEmpty() ) {
                         SamplerDescription samplerDescription{ .CubeSampler{ true } };
                         m_CubeMapSampler = ctx.CreateSampler( samplerDescription );
                     }
 
-                    ctx.BindImage( m_CubeMap, m_CubeMapSampler, 0 );
+                    if (m_UsePrecomputedLDRCubeMap) {
+                        ctx.BindImage( m_CubeMap, m_CubeMapSampler, 0 );
+                    } else {
+                        ctx.BindImage( "SkyboxRender_ColorTargetCUBE", m_CubeMapSampler, 0 );
+                    }
 
                     // Tweak
                     m_PrefilterParameters.NumSamples = 32;
@@ -208,10 +235,8 @@ namespace Mikoto {
                         }
                     }
 
-                    ctx.EndPass();
+                    prefilterInfo.Update = false;
                 } );
-
-        graph.SetNodeExecutionPolicy( "PrefilterPass", FramePassExecutionPolicy::ONCE );
     }
 
     auto IBLPasses::RegisterBRDFLut( FrameGraph &graph ) -> void {
@@ -267,8 +292,13 @@ namespace Mikoto {
         m_MeshCullingPass = std::addressof( cullingPass );
     }
 
-    auto IBLPasses::SetPrecomputedSkybox( TextureHandle cubeMap ) -> void {
+    auto IBLPasses::SetPrecomputedLDRCubeMap( TextureHandle cubeMap ) -> void {
+        if (m_CubeMap == cubeMap) {
+            return;
+        }
+
         m_CubeMap = cubeMap;
+        m_RequestUpdateSkybox = true;
     }
 
     auto IBLPasses::SetExposure( float value ) -> void {
@@ -299,8 +329,12 @@ namespace Mikoto {
                     b.Write( "SkyboxRender_ColorTarget", FrameResourceState::RenderTarget );
                     b.Write( "SkyboxRender_ColorTargetCUBE", FrameResourceState::TransferDst );
                 },
-                [&]( CommandContext &ctx, FrameGraphBlackboard & ) {
+                [&]( CommandContext &ctx, FrameGraphBlackboard & blackboard ) {
                     MKT_BEGIN_PROFILER_NAMED();
+
+                    if (!m_RequestUpdateSkybox) {
+                        return;
+                    }
 
                     if (m_Skybox2D.IsEmpty()) {
                         return;
@@ -332,6 +366,15 @@ namespace Mikoto {
                             ctx.CopyToCube( "SkyboxRender_ColorTarget", "SkyboxRender_ColorTargetCUBE", mipLevel, face);
                         }
                     }
+
+                    m_RequestUpdateSkybox = false;
+
+                    // Request update for irradiance and prefilter cubes
+                    auto& irradianceFlags{ blackboard.Get<IrradiancePassData>() };
+                    auto& prefilterInfo{ blackboard.Get<PrefilterPassData>() };
+
+                    irradianceFlags.Update = true;
+                    prefilterInfo.Update = true;
                 } );
     }
 

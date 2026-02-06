@@ -42,7 +42,7 @@ namespace Mikoto {
         auto SetEquirectangularMap(TextureHandle texture2D) -> void;
 
         auto SetUsePrecomputedLDRCubeMap(bool value) -> void;
-        auto SetPrecomputedSkybox( TextureHandle cubeMap ) -> void;
+        auto SetPrecomputedLDRCubeMap( TextureHandle cubeMap ) -> void;
 
         auto SetExposure( float value ) -> void;
         auto SetGamma( float value ) -> void;
@@ -79,10 +79,19 @@ namespace Mikoto {
         };
 
     private:
+
+        struct IrradiancePassData {
+            bool Update{ false };
+        };
+
         struct IrradianceParameters {
             Mat4F MVP{};
             float DeltaPhi{};
             float DeltaTheta{};
+        };
+
+        struct PrefilterPassData {
+            bool Update{ false };
         };
 
         struct PrefilterParameters {
@@ -128,6 +137,7 @@ namespace Mikoto {
         IrradianceParameters m_IrradianceParameters{};
 
         TextureHandle m_Skybox2D{};
+        bool m_RequestUpdateSkybox{ false };
         bool m_UsePrecomputedLDRCubeMap{ false };
         SkyboxRenderParams m_SkyboxRenderParameters{};
 

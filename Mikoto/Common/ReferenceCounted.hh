@@ -168,6 +168,8 @@ namespace Mikoto {
         auto operator->() -> RefCountedType* { return m_Ptr; }
         auto operator->() const -> const RefCountedType* { return m_Ptr; }
 
+        auto operator==(const RefCountedType& other) const -> bool { return m_Ptr == other.m_Ptr; }
+
         operator bool() const {
             return !IsEmpty();
         }

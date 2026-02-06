@@ -100,6 +100,14 @@ namespace Mikoto {
         m_IBLPasses.SetExposure( value );
     }
 
+    auto SceneRenderer::SetUseConvolutedCube( bool enable ) -> void {
+        m_IBLPasses.SetUseConvolutedCube( enable );
+    }
+
+    auto SceneRenderer::IsUsingConvolutedCube() const -> bool {
+        return m_IBLPasses.IsUsingConvolutedCube();
+    }
+
     auto SceneRenderer::SetEquirectangularMap( TextureHandle texture2D ) -> void {
         m_IBLPasses.SetEquirectangularMap( texture2D );
     }

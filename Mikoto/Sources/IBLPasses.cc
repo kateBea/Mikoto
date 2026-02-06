@@ -63,6 +63,14 @@ namespace Mikoto {
         RegisterDebugViewsPass( graph );
     }
 
+    auto IBLPasses::SetUseConvolutedCube( bool enable ) -> void {
+        m_UseConvolutedCubeMap = enable;
+    }
+
+    auto IBLPasses::IsUsingConvolutedCube() const -> bool {
+        return m_UseConvolutedCubeMap;
+    }
+
     auto IBLPasses::SetClearColor( const Vec4F &color ) -> void {
         m_ClearColor = color;
     }
@@ -408,6 +416,7 @@ namespace Mikoto {
                     b.Write( "SkyboxPass_CameraInfo", FrameResourceState::UniformBuffer );
 
                     b.Read( "SkyboxRender_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
+                    b.Read( "IrradiancePass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
 
                     b.Use( SRGType::SRG_PerPass, "SkyboxPass_CameraInfo", 0 );
                 },
@@ -431,10 +440,14 @@ namespace Mikoto {
                     ctx.SetViewport( 0, 0, 1920, 1080 );
                     ctx.SetScissor( 0, 0, 1920, 1080 );
 
-                    if (m_UsePrecomputedLDRCubeMap) {
+                    if (m_UseConvolutedCubeMap) {
+                        ctx.BindImage( "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, 1 );
+                    } else {
+                        if (m_UsePrecomputedLDRCubeMap) {
                         ctx.BindImage( m_CubeMap, m_CubeMapSampler, 1 );
                     } else {
                         ctx.BindImage( "SkyboxRender_ColorTargetCUBE", m_CubeMapSampler, 1 );
+                    }
                     }
 
                     ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );

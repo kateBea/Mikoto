@@ -76,6 +76,10 @@ namespace Mikoto {
             DrawShadowMappingSettings();
         });
 
+        ImGuiUtils::DrawNode( "Image Based Lighting settings", [this] () -> void {
+            DrawIBLSettings();
+        });
+
         ImGui::End();
     }
 
@@ -186,6 +190,15 @@ namespace Mikoto {
 
     auto RendererPanel::DrawSSAOSettings() -> void {
 
+    }
+
+    auto RendererPanel::DrawIBLSettings() -> void {
+        auto usingConvolutedCube{ m_EditorState->EditorSceneRenderer->IsUsingConvolutedCube() };
+        if (ImGuiUtils::CheckBox( "##RendererPanel::DrawIBLSettings::UseConv", usingConvolutedCube )) {
+            m_EditorState->EditorSceneRenderer->SetUseConvolutedCube(usingConvolutedCube);
+        }
+        ImGui::SameLine();
+        ImGui::TextUnformatted( "Use convoluted cube" );
     }
 
     auto RendererPanel::DrawShadowMappingSettings() -> void {

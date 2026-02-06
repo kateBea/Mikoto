@@ -35,6 +35,9 @@ namespace Mikoto {
         auto SetCamera( const Camera *camera ) -> void;
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
+        auto SetUseConvolutedCube(bool enable)-> void;
+        MKT_NODISCARD auto IsUsingConvolutedCube() const -> bool;
+
         auto SetClearColor( const Vec4F& color ) -> void;
 
         auto SetResolution( RenderResolution resolution) -> void;
@@ -140,6 +143,8 @@ namespace Mikoto {
         bool m_RequestUpdateSkybox{ false };
         bool m_UsePrecomputedLDRCubeMap{ false };
         SkyboxRenderParams m_SkyboxRenderParameters{};
+
+        bool m_UseConvolutedCubeMap{ false };
 
         SamplerHandle m_CubeMapSampler{};
         SamplerHandle m_BRDFLutSampler{};

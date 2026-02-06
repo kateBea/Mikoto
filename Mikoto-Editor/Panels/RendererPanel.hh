@@ -51,6 +51,7 @@ namespace Mikoto {
 
         auto DrawSSAOSettings() -> void;
 
+        auto DrawIBLSettings() -> void;
         auto DrawShadowMappingSettings() -> void;
 
     private:
@@ -63,7 +64,7 @@ namespace Mikoto {
 
         bool m_EnableVSync{ false };
 
-        FinalCompositionTarget m_FinalCompositionTarget{ FinalCompositionTarget::COLOR };
+        FinalCompositionTarget m_FinalCompositionTarget{ FinalCompositionTarget::FINAL_IMAGE };
     };
 }
 

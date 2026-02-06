@@ -62,6 +62,9 @@ namespace Mikoto {
         auto SetEnvironmentGamma(float value) -> void;
         auto SetEnvironmentExposure(float value) -> void;
 
+        auto SetEquirectangularMap(TextureHandle texture2D) -> void;
+        auto SetUseSkyboxLDR( bool enable) -> void;
+
         auto SetWireframeEnable(bool enable) -> void;
 
         MKT_NODISCARD auto GetPassList() const -> const PassList&;

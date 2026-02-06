@@ -123,7 +123,7 @@ namespace Mikoto {
         TextureCubeLoadDescription loadDesc2{};
         loadDesc2.WithType( TextureType::TEXTURE_CUBE )
             .IsHDR( true )
-            .WithBasePath("Resources/HDR/warm_restaurant_night_4k.hdr");
+            .WithBasePath("Resources/HDR/boma_4k.hdr");
 
         m_EditorState->TextureHDR = AssetsService::Get()->LoadAsset<TextureCube>( loadDesc2 );
         m_ActiveScene->SetSkybox( m_EditorState->TextureHDR );
@@ -840,5 +840,12 @@ namespace Mikoto {
         // Wireframe
         RendererPanel* settings{ m_PanelRegistry.Get<RendererPanel>() };
         m_SceneRenderer->SetWireframeEnable(settings->IsWireframeEnabled());
+
+        // Skybox Render
+        // TODO: debug
+        TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( Path{ "Resources/HDR/boma_4k.hdr" } ) };
+        m_SceneRenderer->SetEquirectangularMap( texture );
+
+        m_SceneRenderer->SetUseSkyboxLDR( settings->EnableSkyboxLDR() );
     }
 }

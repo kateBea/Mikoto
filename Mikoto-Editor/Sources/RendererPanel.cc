@@ -58,6 +58,10 @@ namespace Mikoto {
         return m_IsWireframeEnabled;
     }
 
+    auto RendererPanel::EnableSkyboxLDR() const -> bool {
+        return m_EnableSkyboxLDR;
+    }
+
     auto RendererPanel::DrawPassInfo() -> void {
         const auto& passList{ m_EditorState->EditorSceneRenderer->GetPassList() };
 
@@ -142,8 +146,12 @@ namespace Mikoto {
     }
 
     auto RendererPanel::DrawRendererConfig() -> void {
-        ImGuiUtils::CheckBox( "##RendererPanel::DrawRendererConfig::Checkbox", m_IsWireframeEnabled );
+        ImGuiUtils::CheckBox( "##RendererPanel::DrawRendererConfig::wireframe", m_IsWireframeEnabled );
         ImGui::SameLine();
         ImGui::TextUnformatted( "Render wireframe" );
+
+        ImGuiUtils::CheckBox( "##RendererPanel::DrawRendererConfig::LDR", m_EnableSkyboxLDR );
+        ImGui::SameLine();
+        ImGui::TextUnformatted( "Use CubeMap LDR" );
     }
 }// namespace Mikoto

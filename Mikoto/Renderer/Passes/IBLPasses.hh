@@ -39,7 +39,11 @@ namespace Mikoto {
 
         auto SetResolution( RenderResolution resolution) -> void;
 
-        auto SetCubeMap( TextureHandle cubeMap ) -> void;
+        auto SetEquirectangularMap(TextureHandle texture2D) -> void;
+
+        auto SetUsePrecomputedLDRCubeMap(bool value) -> void;
+        auto SetPrecomputedSkybox( TextureHandle cubeMap ) -> void;
+
         auto SetExposure( float value ) -> void;
         auto SetGamma( float value ) -> void;
         auto EnableSkybox(bool enable) -> void;
@@ -47,6 +51,7 @@ namespace Mikoto {
         auto SetMeshCulling(MeshCulling& cullingPass) -> void;
 
     private:
+        auto RegisterSkyboxRender( FrameGraph& graph ) -> void;
         auto RegisterIrradiance( FrameGraph& graph ) -> void;
         auto RegisterPrefilter( FrameGraph& graph ) -> void;
         auto RegisterBRDFLut( FrameGraph& graph ) -> void;
@@ -64,9 +69,9 @@ namespace Mikoto {
             // NEGATIVE_X
             glm::rotate(glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f)), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
             // POSITIVE_Y
-            glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
-            // NEGATIVE_Y
             glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            // NEGATIVE_Y
+            glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
             // POSITIVE_Z
             glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
             // NEGATIVE_Z
@@ -91,6 +96,10 @@ namespace Mikoto {
             Mat4F Projection{};
             float Exposure{};
             float Gamma{};
+        };
+
+        struct SkyboxRenderParams {
+            Mat4F MVP{};
         };
 
         struct DirectionalShadowMapCameraInfo {
@@ -118,8 +127,13 @@ namespace Mikoto {
 
         IrradianceParameters m_IrradianceParameters{};
 
+        TextureHandle m_Skybox2D{};
+        bool m_UsePrecomputedLDRCubeMap{ false };
+        SkyboxRenderParams m_SkyboxRenderParameters{};
+
         SamplerHandle m_CubeMapSampler{};
         SamplerHandle m_BRDFLutSampler{};
+        SamplerHandle m_Skybox2DSampler{};
 
         ShaderLightListParams m_LightsInfo{};
         ShaderCameraParams m_FrameUBO{};

@@ -66,7 +66,7 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::SetSkyBox( TextureHandle cubeMap ) -> void {
-        m_IBLPasses.SetCubeMap( cubeMap );
+        m_IBLPasses.SetPrecomputedSkybox( cubeMap );
     }
 
     auto SceneRenderer::SetClearColor( const Vec4F& color ) -> void {
@@ -98,6 +98,14 @@ namespace Mikoto {
 
     auto SceneRenderer::SetEnvironmentExposure( float value ) -> void {
         m_IBLPasses.SetExposure( value );
+    }
+
+    auto SceneRenderer::SetEquirectangularMap( TextureHandle texture2D ) -> void {
+        m_IBLPasses.SetEquirectangularMap( texture2D );
+    }
+
+    auto SceneRenderer::SetUseSkyboxLDR( bool enable ) -> void {
+        m_IBLPasses.SetUsePrecomputedLDRCubeMap( enable );
     }
 
     auto SceneRenderer::SetWireframeEnable( bool enable ) -> void {

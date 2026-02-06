@@ -32,6 +32,8 @@ namespace Mikoto {
 
         MKT_NODISCARD auto IsWireframeEnabled() const -> bool;
 
+        MKT_NODISCARD auto EnableSkyboxLDR() const -> bool;
+
         ~RendererPanel() override = default;
 
     private:
@@ -43,6 +45,7 @@ namespace Mikoto {
 
         EditorState* m_EditorState{};
 
+        bool m_EnableSkyboxLDR{ false };
         bool m_ShowPassGraph{ false };
         bool m_IsWireframeEnabled{ false };
     };

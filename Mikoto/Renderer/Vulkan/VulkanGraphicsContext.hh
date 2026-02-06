@@ -98,6 +98,8 @@ namespace Mikoto {
             // Buffers this pass is using
             ankerl::unordered_dense::set<Buffer*> Buffers{};
             ankerl::unordered_dense::set<std::pair<Texture*, Sampler*>> CombinedImageSampler{};
+
+            ankerl::unordered_dense::map<UInt32, std::pair<Texture*, Sampler*>> CombinedImageSamplerBinding{};
         };
 
 #if defined( MKT_USE_VULKAN_BINDLESS )

@@ -52,6 +52,8 @@ namespace Mikoto {
         RegisterSpotShadowMap( graph );
         RegisterPointShadowMap( graph );
 
+        RegisterSkyboxRender( graph );
+
         RegisterIrradiance( graph );
         RegisterPrefilter( graph );
         RegisterShading( graph );
@@ -69,6 +71,14 @@ namespace Mikoto {
         m_Resolution = resolution;
 
         // Update passes
+    }
+
+    auto IBLPasses::SetEquirectangularMap( TextureHandle texture2D ) -> void {
+        m_Skybox2D = texture2D;
+    }
+
+    auto IBLPasses::SetUsePrecomputedLDRCubeMap( bool value ) -> void {
+        m_UsePrecomputedLDRCubeMap = value;
     }
 
     auto IBLPasses::RegisterIrradiance( FrameGraph &graph ) -> void {
@@ -257,7 +267,7 @@ namespace Mikoto {
         m_MeshCullingPass = std::addressof( cullingPass );
     }
 
-    auto IBLPasses::SetCubeMap( TextureHandle cubeMap ) -> void {
+    auto IBLPasses::SetPrecomputedSkybox( TextureHandle cubeMap ) -> void {
         m_CubeMap = cubeMap;
     }
 
@@ -267,6 +277,62 @@ namespace Mikoto {
 
     auto IBLPasses::SetGamma( float value ) -> void {
         m_SkyboxUBO.Gamma = value;
+    }
+
+    auto IBLPasses::RegisterSkyboxRender( FrameGraph &graph ) -> void {
+        graph.RegisterPass(
+                "SkyboxRender",
+
+                [&]( FramePassBuilder &b ) {
+                    MKT_BEGIN_PROFILER_NAMED();
+                    b.Create<TextureCube>( "SkyboxRender_ColorTargetCUBE", 1024, TextureFormat::RGBA32_FLOAT, 1 );
+                    b.Create<Texture>( "SkyboxRender_ColorTarget", 1024, 1024, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
+
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/SkyboxRender_Vert.sprv", ShaderStage::VERTEX );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/SkyboxRender_Frag.sprv", ShaderStage::FRAGMENT );
+                    b.Create<Pipeline>( "SkyboxRender_Pipeline",
+                                        GraphicsPipelineDescription{
+                                                .PrimitiveTopology{ Topology::TRIANGLE_LIST },
+                                                .VertexAttributesSpec{},
+                                                .ColorAttachmentFormats{ TextureFormat::RGBA32_FLOAT } } );
+
+                    b.Write( "SkyboxRender_ColorTarget", FrameResourceState::RenderTarget );
+                    b.Write( "SkyboxRender_ColorTargetCUBE", FrameResourceState::TransferDst );
+                },
+                [&]( CommandContext &ctx, FrameGraphBlackboard & ) {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                    if (m_Skybox2D.IsEmpty()) {
+                        return;
+                    }
+
+                    if ( m_Skybox2DSampler.IsEmpty() ) {
+                        m_Skybox2DSampler = ctx.CreateSampler( SamplerDescription{ } );
+                    }
+
+                    ctx.BindImage( m_Skybox2D, m_Skybox2DSampler, 0 );
+
+                    for ( Size mipLevel{}; mipLevel < 1; mipLevel++ ) {
+                        for ( UInt32 face{}; face < MAX_CUBE_MAP_FACES; ++face ) {
+                            ctx.SetViewport( 0, 0, 1024, 1024 );
+                            ctx.SetScissor( 0, 0, 1024, 1024 );
+
+                            ctx.SetColorRenderTarget( "SkyboxRender_ColorTarget" );
+
+                            ctx.BeginRender();
+                            ctx.BindPipeline( "SkyboxRender_Pipeline" );
+
+                            m_SkyboxRenderParameters.MVP = glm::perspective( static_cast<float>( Math::Constants::PI / 2.0 ), 1.0f, 0.1f, 512.0f ) * s_Matrices[face];
+                            ctx.PushConstants( std::addressof( m_SkyboxRenderParameters ), sizeof( m_SkyboxRenderParameters ) );
+
+                            ctx.Draw( 36 );
+
+                            ctx.EndRender();
+
+                            ctx.CopyToCube( "SkyboxRender_ColorTarget", "SkyboxRender_ColorTargetCUBE", mipLevel, face);
+                        }
+                    }
+                } );
     }
 
     auto IBLPasses::RegisterSkybox( FrameGraph &graph ) -> void {
@@ -298,6 +364,8 @@ namespace Mikoto {
                     b.Write( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite );
                     b.Write( "SkyboxPass_CameraInfo", FrameResourceState::UniformBuffer );
 
+                    b.Read( "SkyboxRender_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
+
                     b.Use( SRGType::SRG_PerPass, "SkyboxPass_CameraInfo", 0 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
@@ -320,7 +388,11 @@ namespace Mikoto {
                     ctx.SetViewport( 0, 0, 1920, 1080 );
                     ctx.SetScissor( 0, 0, 1920, 1080 );
 
-                    ctx.BindImage( m_CubeMap, m_CubeMapSampler, 1 );
+                    if (m_UsePrecomputedLDRCubeMap) {
+                        ctx.BindImage( m_CubeMap, m_CubeMapSampler, 1 );
+                    } else {
+                        ctx.BindImage( "SkyboxRender_ColorTargetCUBE", m_CubeMapSampler, 1 );
+                    }
 
                     ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
                     ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );

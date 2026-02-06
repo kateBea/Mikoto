@@ -832,7 +832,8 @@ namespace Mikoto::VulkanHelpers::Reflection {
             layoutInfo.bindingCount = static_cast<UInt32>( layoutBindings.size() );
             layoutInfo.pBindings = layoutBindings.data();
 
-            std::vector<VkDescriptorBindingFlags> bindingFlags(layoutBindings.size(), 0);
+            // Either VK_FLAGS_NONE or VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT (to allow descriptors updated after binding)
+            std::vector<VkDescriptorBindingFlags> bindingFlags(layoutBindings.size(), VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT);
 
             VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{};
             flagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;

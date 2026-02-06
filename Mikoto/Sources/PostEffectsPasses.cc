@@ -218,11 +218,13 @@ namespace Mikoto {
                             .UseShader( "Resources/Shaders/vulkan-spirv/SSAO_Frag.sprv", ShaderStage::FRAGMENT )
                             .Create<Pipeline>( "SSAO_Pipeline", graphicsDesc );
 
+                    b.Write( "SSAO_ColorTarget", FrameResourceState::RenderTarget );
+                    b.Write( "SSAO_NoiseTexture", FrameResourceState::ShaderRead_GraphicsPipeline );
+
                     b.Read( "SSAO_Parameters", FrameResourceState::UniformBuffer );
                     b.Read( "GBuffer_Position", FrameResourceState::ShaderRead_GraphicsPipeline );
                     b.Read( "GBuffer_Normal", FrameResourceState::ShaderRead_GraphicsPipeline );
 
-                    b.Read( "SSAO_NoiseTexture", FrameResourceState::ShaderRead_GraphicsPipeline );
                     b.Use( SRGType::SRG_PerPass, "SSAO_Parameters", 0 );
                 },
                 [this]( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
@@ -282,15 +284,34 @@ namespace Mikoto {
                             .UseShader( "Resources/Shaders/vulkan-spirv/SSAOBlur_Frag.sprv", ShaderStage::FRAGMENT )
                             .Create<Pipeline>( "SSAOBlur_Pipeline", graphicsDesc );
 
+                    b.Write( "SSAOBlur_ColorTarget", FrameResourceState::RenderTarget );
+                    b.Write( "SSAOBlur_DepthTarget", FrameResourceState::DepthWrite );
+
                     b.Read( "SSAO_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
                 },
                 [this]( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
 
-
                     if ( m_Sampler.IsEmpty() ) {
                         m_Sampler = ctx.CreateSampler( SamplerDescription{} );
                     }
+
+                    ctx.BindPipeline( "SSAOBlur_Pipeline" );
+
+                    ctx.BindImage( "SSAO_ColorTarget", m_Sampler, 0 );
+
+                    ctx.SetColorRenderTarget( "SSAOBlur_ColorTarget" );
+                    ctx.SetDepthRenderTarget( "SSAOBlur_DepthTarget" );
+
+                    ctx.BeginRender();
+
+                    const auto dimensions{ InferDimensions( m_Resolution ) };
+                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+
+                    ctx.Draw( 3 );
+
+                    ctx.EndRender();
                 } );
     }
 

@@ -35,7 +35,7 @@ namespace Mikoto {
         LoadOp ColorLoadOp{ LoadOp::CLEAR };
         LoadOp DephtLoadOp{ LoadOp::CLEAR };
 
-        Vec4F ClearColor{};
+        Vec4F ClearColor{ 0.0f, 0.0f, 0.0f, 1.0f };
         TextureHandle DepthRenderTarget{};
         std::vector<TextureHandle> ColorRenderTargets{};
 

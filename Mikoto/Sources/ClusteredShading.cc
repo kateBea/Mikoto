@@ -105,26 +105,29 @@ namespace Mikoto {
                     b.Create<Texture>( "GBuffer_Position", m_Resolution, TextureFormat::RGBA16_FLOAT, TextureUsage::COLOR );
                     b.Create<Texture>( "GBuffer_Normal", m_Resolution, TextureFormat::RGBA16_FLOAT, TextureUsage::COLOR );
                     b.Create<Texture>( "GBuffer_Color", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                    b.Create<Texture>( "GBuffer_Depth", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/GBuffer_Vert.sprv", ShaderStage::VERTEX );
                     b.UseShader( "Resources/Shaders/vulkan-spirv/GBuffer_Frag.sprv", ShaderStage::FRAGMENT );
 
                     GraphicsPipelineDescription graphicsDesc{
-                        .DepthTest{ false },
-                        .DepthWrite{ false },
+                        .DepthTest{ true },
+                        .DepthWrite{ true },
                         .AlphaBlending{ false },
                         .PipelineCullMode{ CullMode::NONE },
                         .ColorAttachmentFormats{
                             TextureFormat::RGBA16_FLOAT,
                             TextureFormat::RGBA16_FLOAT,
                             TextureFormat::RGBA8_UNORM
-                        }
+                        },
+                        .DepthAttachmentFormat{ TextureFormat::D32_FLOAT }
                     };
                     b.Create<Pipeline>( "GBuffer_Pipeline", graphicsDesc );
 
                     b.Write( "GBuffer_Position", FrameResourceState::RenderTarget );
                     b.Write( "GBuffer_Normal", FrameResourceState::RenderTarget );
                     b.Write( "GBuffer_Color", FrameResourceState::RenderTarget );
+                    b.Write( "GBuffer_Depth", FrameResourceState::DepthWrite );
 
                     b.Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
                     b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
@@ -141,6 +144,7 @@ namespace Mikoto {
                     ctx.SetColorRenderTarget( "GBuffer_Position" );
                     ctx.SetColorRenderTarget( "GBuffer_Normal" );
                     ctx.SetColorRenderTarget( "GBuffer_Color" );
+                    ctx.SetDepthRenderTarget( "GBuffer_Depth" );
 
                     ctx.BeginRender();
 

@@ -15,6 +15,7 @@
 #include <cmath>
 
 #include <imgui.h>
+#include <ImGuizmo.h>
 
 #include <GraphNodes/GraphEditor.hh>
 

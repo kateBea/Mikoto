@@ -1,24 +1,31 @@
-/**
- * ScenePanel.cc
- * Created by kate on 6/27/23.
- * */
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// C++ Standard Library
 #include <memory>
 
-// Third-Party Libraries
-#include "glm/gtc/type_ptr.hpp"
-#include "imgui.h"
+#include <imgui.h>
+#include <glm/gtc/type_ptr.hpp>
 
 // Important to include after imgui
 #include <ImGuizmo.h>
 #include <ImOGuizmo.hh>
-#include <imgui.h>
 
 // Project Headers
 #include <ImGui/IconsMaterialDesign.h>
 
 #include <Common/Common.hh>
+#include <Math/Math.hh>
 #include <ImGui/ImGuiService.hh>
 #include <ImGui/ImGuiUtility.hh>
 #include <Layers/EditorLayer.hh>
@@ -45,8 +52,9 @@ namespace Mikoto {
 
     auto ScenePanel::CreateImguiTextureID() -> void {
         ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
-
-        if (const ImTextureID id{ backend->ConstructImGuiTextureID( m_EditorState->FinalComposition ) }; id != 0) { m_ColorImageID = id; }
+        if (const ImTextureID id{ backend->ConstructImGuiTextureID( m_EditorState->FinalComposition ) }; id != 0) {
+            m_ColorImageID = id;
+        }
     }
 
     auto ScenePanel::CreateWireframeImguiTextureID() -> void {
@@ -154,7 +162,9 @@ namespace Mikoto {
     auto ScenePanel::SetupManipulation() const -> void {
         Entity *currentSelection{ m_EditorState->SelectedEntity };
         if (currentSelection != nullptr && currentSelection->IsValid()) {
-            if (!currentSelection->GetComponent<TagComponent>().IsActive()) { return; }
+            if (!currentSelection->GetComponent<TagComponent>().IsActive()) {
+                return;
+            }
 
             ImGuizmo::SetOrthographic( m_EditorState->EditorCamera->IsOrthographic() );
             ImGuizmo::SetDrawlist();
@@ -194,18 +204,7 @@ namespace Mikoto {
 
         if (ImGuizmo::IsUsing()) {
             transformComponent.SetTransform( objectTransform );
-
             // Apply the transformation to the children
-            // For now Guizmos only change translation so thats the only thing we handle in the children
-            RelationComponent &relation{ m_EditorState->SelectedEntity->GetComponent<RelationComponent>() };
-            for (auto &childID: relation.GetChildren()) {
-                Entity *child{ m_EditorState->ActiveEditorScene->FindByID( childID ) };
-                if (child) {
-                    // TODO: World transform = ParentWorld * LocalTransform
-                }
-            }
-
-            //propagate changes
         }
     }
 

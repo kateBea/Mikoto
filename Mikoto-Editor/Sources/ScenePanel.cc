@@ -59,9 +59,10 @@ namespace Mikoto {
 
     auto ScenePanel::CreateWireframeImguiTextureID() -> void {
         ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
-        const ImTextureID id{ backend->ConstructImGuiTextureID( m_EditorState->WireframeComposition ) };
+        auto wireframeTexture{ m_EditorState->EditorSceneRenderer->GetTexture( "Wireframe_ColorTarget" ) };
+        const ImTextureID id{ backend->ConstructImGuiTextureID( wireframeTexture ) };
 
-        if ( id != 0) {
+        if ( id != 0 ) {
             m_WireframeImageID = id;
         }
     }
@@ -91,17 +92,20 @@ namespace Mikoto {
         if (IsDisplayTextureValid()) {
             UpdateViewport();
 
-            //DrawSceneToolbar();
-            //ShowUtilitiesOverlay();
-
             SetupManipulation();
             DrawManipulationGuizmos();
             DrawOrientationAxis();
         }
 
         // Try validating the image id again in case the texture was recreated
-        if (!IsDisplayTextureValid()) {
+        // We also get a new ID if the viewport image was update
+        const bool newViewportImage{ ImGuiService::Get()->GetTextureID( m_EditorState->FinalComposition.GetRaw() ) != m_ColorImageID };
+
+        if (!IsDisplayTextureValid() || newViewportImage) {
             CreateImguiTextureID();
+        }
+
+        if (!IsWireframeDisplayTextureValid()) {
             CreateWireframeImguiTextureID();
         }
 
@@ -139,7 +143,11 @@ namespace Mikoto {
     }
 
     auto ScenePanel::IsDisplayTextureValid() const -> bool {
-        return m_ColorImageID != 0 || m_WireframeImageID != 0;
+        return m_ColorImageID != 0;
+    }
+
+    auto ScenePanel::IsWireframeDisplayTextureValid() const -> bool {
+        return m_WireframeImageID != 0;
     }
 
     auto ScenePanel::UpdateViewport() -> void {
@@ -151,7 +159,7 @@ namespace Mikoto {
         }
 
         // No flipping, the final image is already in the correct viewport coordinates
-        // In the case of vulkan this is also taken into account when setting up the vierwport
+        // In the case of vulkan this is also taken into account when setting up the viewport
         if (!m_EditorState->ShowWireframe) {
             ImGui::Image( m_ColorImageID, ImVec2{ dim.x, dim.y } );
         } else {

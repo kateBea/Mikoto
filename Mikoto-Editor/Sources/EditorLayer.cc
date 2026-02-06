@@ -171,7 +171,7 @@ namespace Mikoto {
             if (!m_EditorState->ShowWireframe) {
                 m_EditorState->RenderImage = m_EditorState->FinalComposition;
             } else {
-                m_EditorState->RenderImage = m_EditorState->WireframeComposition;
+                m_EditorState->RenderImage = m_EditorState->EditorSceneRenderer->GetTexture( "Wireframe_ColorTarget" );
             }
         }
 
@@ -839,7 +839,7 @@ namespace Mikoto {
 
         // Wireframe
         RendererPanel* settings{ m_PanelRegistry.Get<RendererPanel>() };
-        m_SceneRenderer->SetWireframeEnable(settings->IsWireframeEnabled());
+        m_SceneRenderer->SetWireframeEnable(m_EditorState->ShowWireframe);
 
         // Skybox Render
         // TODO: debug

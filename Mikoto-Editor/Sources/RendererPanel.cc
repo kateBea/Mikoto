@@ -13,15 +13,17 @@
 // limitations under the License.
 
 #include <memory>
+#include <array>
 
 #include <ImGui/IconsMaterialDesign.h>
 
+#include <GraphNodes/GraphEditor.hh>
 #include <ImGui/ImGuiUtility.hh>
 #include <Panels/RendererPanel.hh>
-#include <GraphNodes/GraphEditor.hh>
 
-#include "Common/String.hh"
-#include "Layers/EditorLayer.hh"
+#include <Common/String.hh>
+#include <Layers/EditorLayer.hh>
+#include <Renderer/Core/RenderService.hh>
 
 namespace Mikoto {
 
@@ -37,10 +39,12 @@ namespace Mikoto {
 
         ImGui::Begin( m_PanelHeaderName.c_str(), &m_PanelIsVisible, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize );
 
+        ImGui::SeparatorText( "FrameGraph Info" );
+
         ImGuiUtils::DrawNode( "Passes", [this] () -> void {
             DrawPassInfo();
-            
-            ImGuiUtils::CheckBox( "Show Graph", m_ShowPassGraph );
+
+            ImGuiUtils::CheckBox( "Show Pass Dependencies", m_ShowPassGraph );
 
             if (m_ShowPassGraph) {
                 ShowExampleAppCustomNodeGraph( std::addressof( m_ShowPassGraph ) );
@@ -51,11 +55,32 @@ namespace Mikoto {
             DrawRendererConfig();
         });
 
+        ImGui::SeparatorText( "Renderer Settings" );
+        ImGuiUtils::DrawNode( "Monitor", [this] () -> void {
+            ImGuiUtils::UnindentScoped und{};
+
+            if (ImGuiUtils::CheckBox( "##RendererPanel::OnUpdate::Vsync", m_EnableVSync )) {
+
+            }
+            ImGui::SameLine();
+            ImGui::TextUnformatted( "Enable vsync" );
+        });
+
+        ImGui::SeparatorText( "Graphics Features" );
+        ImGuiUtils::DrawNode( "Ambient Occlusion (SSAO) Settings", [this] () -> void {
+            DrawSSAOSettings();
+        });
+
+        ImGui::SeparatorText( "Graphics Features" );
+        ImGuiUtils::DrawNode( "Shadow Mapping settings", [this] () -> void {
+            DrawShadowMappingSettings();
+        });
+
         ImGui::End();
     }
 
-    auto RendererPanel::IsWireframeEnabled() const -> bool {
-        return m_IsWireframeEnabled;
+    auto RendererPanel::IsVsyncEnabled() const -> bool {
+        return RenderService::Get()->GetContext()->IsVsyncEnabled();
     }
 
     auto RendererPanel::EnableSkyboxLDR() const -> bool {
@@ -63,6 +88,8 @@ namespace Mikoto {
     }
 
     auto RendererPanel::DrawPassInfo() -> void {
+        ImGuiUtils::UnindentScoped und{};
+
         const auto& passList{ m_EditorState->EditorSceneRenderer->GetPassList() };
 
         ImGui::TextUnformatted( StringUtil::Format( "Pass count: {}", passList.size() ).c_str() );
@@ -146,12 +173,35 @@ namespace Mikoto {
     }
 
     auto RendererPanel::DrawRendererConfig() -> void {
-        ImGuiUtils::CheckBox( "##RendererPanel::DrawRendererConfig::wireframe", m_IsWireframeEnabled );
+        ImGuiUtils::UnindentScoped und{};
+
+        ImGuiUtils::CheckBox( "##RendererPanel::DrawRendererConfig::wireframe", m_EditorState->ShowWireframe );
         ImGui::SameLine();
         ImGui::TextUnformatted( "Render wireframe" );
 
         ImGuiUtils::CheckBox( "##RendererPanel::DrawRendererConfig::LDR", m_EnableSkyboxLDR );
         ImGui::SameLine();
         ImGui::TextUnformatted( "Use CubeMap LDR" );
+    }
+
+    auto RendererPanel::DrawSSAOSettings() -> void {
+
+    }
+
+    auto RendererPanel::DrawShadowMappingSettings() -> void {
+        std::array<std::string, static_cast<Size>(FinalCompositionTarget::ENUM_MAX)> choices{
+            "Color", "Normals", "Position", "Final Image"
+        };
+
+        // These are directly taken from the core passes from the Scene renderer
+        std::array<std::string, static_cast<Size>(FinalCompositionTarget::ENUM_MAX)> images{
+            "GBuffer_Color", "GBuffer_Normal", "GBuffer_Position", "FinalShadingPass_ColorTarget"
+        };
+
+        m_FinalCompositionTarget = ImGuiUtils::Combo( choices, m_FinalCompositionTarget );
+
+        if (m_FinalCompositionTarget != FinalCompositionTarget::ENUM_MAX) {
+            m_EditorState->FinalComposition = m_EditorState->EditorSceneRenderer->GetTexture( images[static_cast<Size>(m_FinalCompositionTarget)] );
+        }
     }
 }// namespace Mikoto

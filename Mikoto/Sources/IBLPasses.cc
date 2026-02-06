@@ -575,6 +575,11 @@ namespace Mikoto {
                     b.Read( "TextRenderPass_TextRenderParams", FrameResourceState::UniformBuffer );
 
                     b.Read( "InfiniteGrid_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+
+                    b.Read( "GBuffer_Position", FrameResourceState::ShaderRead_GraphicsPipeline );
+                    b.Read( "GBuffer_Normal", FrameResourceState::ShaderRead_GraphicsPipeline );
+                    b.Read( "GBuffer_Color", FrameResourceState::ShaderRead_GraphicsPipeline );
+                    b.Read( "Wireframe_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
                 },
                 []( CommandContext &, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();

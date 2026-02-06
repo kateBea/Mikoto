@@ -38,6 +38,16 @@ namespace Mikoto::ImGuiUtils {
         SCALE,
     };
 
+    class UnindentScoped {
+    public:
+        explicit UnindentScoped(UInt32 width = 0)
+            : m_Width{ width } { ImGui::Unindent( m_Width ); }
+
+        ~UnindentScoped() { ImGui::Indent( m_Width ); }
+    private:
+        UInt32 m_Width{};
+    };
+
     class ImGuiScopedStyleVar {
     public:
         template<typename... Args>
@@ -729,10 +739,6 @@ namespace Mikoto::ImGuiUtils {
 
             ImGui::TreePop();
         }
-
-        ImGui::Spacing();
-        ImGui::Separator();
-        ImGui::Spacing();
     }
 
 

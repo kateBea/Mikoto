@@ -89,9 +89,6 @@ namespace Mikoto {
                     b.Write( "Wireframe_ColorTarget", FrameResourceState::RenderTarget );
                     b.Write( "Wireframe_DepthTarget", FrameResourceState::DepthWrite );
 
-                    b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
-                    b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthRead );
-
                     b.Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
                     b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
 
@@ -110,14 +107,10 @@ namespace Mikoto {
                     ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
                     ctx.SetClearColor( { 1.0f, 1.0f, 1.0f, 1.0f } );
-                    ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );
-                    ctx.SetDepthRenderTarget( "FinalShadingPass_DepthTarget" );
+                    ctx.SetColorRenderTarget( "Wireframe_ColorTarget" );
+                    ctx.SetDepthRenderTarget( "Wireframe_DepthTarget" );
 
-                    PassRenderInfo render{
-                        .ColorLoadOp{ LoadOp::CLEAR },
-                        .DephtLoadOp{  LoadOp::LOAD }
-                    };
-                    ctx.BeginRender(render);
+                    ctx.BeginRender();
 
                     ctx.BindPipeline( "Wireframe_Pipeline" );
 

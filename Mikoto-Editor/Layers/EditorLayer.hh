@@ -45,7 +45,6 @@ namespace Mikoto {
 
         // The final composition from the scene renderer
         TextureHandle FinalComposition{};
-        TextureHandle WireframeComposition{};
 
         // Debug
         TextureHandle PreviewMaterial{};

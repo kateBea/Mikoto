@@ -24,13 +24,21 @@ namespace Mikoto {
         EditorState* State{};
     };
 
+    enum class FinalCompositionTarget {
+        COLOR,
+        NORMALS,
+        POSITION,
+        FINAL_IMAGE,
+        ENUM_MAX,
+    };
+
     class RendererPanel final : public Panel {
     public:
         explicit RendererPanel(const RendererPanelCreateInfo& info);
 
         auto OnUpdate(float timeStep) -> void override;
 
-        MKT_NODISCARD auto IsWireframeEnabled() const -> bool;
+        MKT_NODISCARD auto IsVsyncEnabled() const -> bool;
 
         MKT_NODISCARD auto EnableSkyboxLDR() const -> bool;
 
@@ -41,6 +49,10 @@ namespace Mikoto {
         auto DrawPassInfo() -> void;
         auto DrawRendererConfig() -> void;
 
+        auto DrawSSAOSettings() -> void;
+
+        auto DrawShadowMappingSettings() -> void;
+
     private:
 
         EditorState* m_EditorState{};
@@ -48,6 +60,10 @@ namespace Mikoto {
         bool m_EnableSkyboxLDR{ false };
         bool m_ShowPassGraph{ false };
         bool m_IsWireframeEnabled{ false };
+
+        bool m_EnableVSync{ false };
+
+        FinalCompositionTarget m_FinalCompositionTarget{ FinalCompositionTarget::COLOR };
     };
 }
 

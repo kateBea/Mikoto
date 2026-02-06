@@ -58,6 +58,7 @@ namespace Mikoto {
 
         auto ShowUtilitiesOverlay() -> void;
         auto IsDisplayTextureValid() const -> bool;
+        auto IsWireframeDisplayTextureValid() const -> bool;
         auto UpdateViewport() -> void;
         auto SetupManipulation() const -> void;
         auto DrawManipulationGuizmos() -> void;

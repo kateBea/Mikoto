@@ -44,7 +44,12 @@ namespace Mikoto {
     }
 
     auto SceneCamera::UpdateViewMatrix() -> void {
-        m_ViewMatrix = lookAt( m_Position, m_Position + m_ForwardVector, m_CameraUpVector );
+        if (m_LockCameraToTarget ) {
+            // TODO:
+            m_ViewMatrix = lookAt( m_Position, m_Position + m_ForwardVector, m_CameraUpVector );
+        } else {
+            m_ViewMatrix = lookAt( m_Position, m_Position + m_ForwardVector, m_CameraUpVector );
+        }
     }
 
     auto SceneCamera::ProcessMouseInput( const double timeStep ) -> void {
@@ -127,5 +132,17 @@ namespace Mikoto {
     auto SceneCamera::WantRotation( const bool xAxis, const bool yAxis ) -> void {
         m_WantCameraRotationX = xAxis;
         m_WantCameraRotationY = yAxis;
+    }
+
+    auto SceneCamera::SetCameraTarget( const Vec3F &position ) -> void {
+        m_CameraTarget = position;
+    }
+
+    auto SceneCamera::LockCameraToTarget( bool enable ) -> void {
+        m_LockCameraToTarget = enable;
+    }
+
+    auto SceneCamera::SetOrbitDistance( float orbitDistance ) -> void {
+        m_OrbitDistance = orbitDistance;
     }
 }// namespace Mikoto

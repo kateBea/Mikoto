@@ -487,6 +487,9 @@ namespace Mikoto {
             m_EditorCamera->EnableCamera( false );
         }
 
+        // Camera target
+        m_EditorCamera->LockCameraToTarget( configuration.LockCameraToTarget );
+
         m_EditorCamera->UpdateState( timeStep );
     }
 

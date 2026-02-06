@@ -107,6 +107,11 @@ namespace Mikoto {
             ImGui::SameLine();
             ImGuiUtils::HelpMarker( "Lock rotation in the X axis. Cannot look from left to right and viceversa." );
 
+            ImGui::Spacing();
+            ImGuiUtils::CheckBox( "Lock Camera to target", m_Data.LockCameraToTarget );
+            ImGui::SameLine();
+            ImGuiUtils::HelpMarker( "Lock camera to current selected entity" );
+
             // Limit FPS
             ImGui::Spacing();
 

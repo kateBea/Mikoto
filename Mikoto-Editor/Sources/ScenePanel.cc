@@ -182,11 +182,13 @@ namespace Mikoto {
         }
 
         TransformComponent &transformComponent{ currentSelection->GetComponent<TransformComponent>() };
+        Vec3F oldTranslation{ transformComponent.GetTranslation() };
+        Vec3F oldRotation{ transformComponent.GetRotation() };
 
-        const glm::mat4 &cameraView{ m_EditorState->EditorCamera->GetViewMatrix() };
-        const glm::mat4 &cameraProjection{ m_EditorState->EditorCamera->GetProjection() };
+        const Mat4F &cameraView{ m_EditorState->EditorCamera->GetViewMatrix() };
+        const Mat4F &cameraProjection{ m_EditorState->EditorCamera->GetProjection() };
 
-        glm::mat4 objectTransform{ transformComponent.GetTransform() };
+        Mat4F objectTransform{ transformComponent.GetTransform() };
 
         m_GuizmoType = InferManipulationMode( m_EditorState->Manipulation );
 
@@ -204,7 +206,24 @@ namespace Mikoto {
 
         if (ImGuizmo::IsUsing()) {
             transformComponent.SetTransform( objectTransform );
-            // Apply the transformation to the children
+
+            if (transformComponent.GetTranslation() != oldTranslation ) {
+                m_EditorState->ActiveEditorScene->ApplyToChildren(currentSelection,
+                    [newTranslation = transformComponent.GetTranslation(), oldTranslation](Entity* child) -> void {
+                        // Local
+                    auto& childTransform{ child->GetComponent<TransformComponent>() };
+                    childTransform.SetTranslation( childTransform.GetTranslation() + ( newTranslation - oldTranslation ) );
+                });
+            }
+
+            if (transformComponent.GetRotation() != oldRotation ) {
+                m_EditorState->ActiveEditorScene->ApplyToChildren(currentSelection,
+                    [newRotation = transformComponent.GetTranslation(), oldRotation](Entity* child) -> void {
+                        // Local
+                    auto& childTransform{ child->GetComponent<TransformComponent>() };
+                    childTransform.SetRotation( childTransform.GetRotation() + ( newRotation - oldRotation ) );
+                });
+            }
         }
     }
 

@@ -15,6 +15,8 @@
 #include <Library/Utility/Types.hh>
 #include <Renderer/Core/RenderUtility.hh>
 
+#include <Math/Math.hh>
+
 #include "assimp/DefaultLogger.hpp"
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
@@ -134,7 +136,7 @@ namespace Mikoto {
             // Texture coordinates -----
             if (mesh->HasTextureCoords( 0 )) {
                 vertices.emplace_back( mesh->mTextureCoords[0][index].x );
-                vertices.emplace_back( 1 - mesh->mTextureCoords[0][index].y );
+                vertices.emplace_back( Math::Abs( 1 - mesh->mTextureCoords[0][index].y) );
             } else {
                 vertices.emplace_back( 0.0f );
                 vertices.emplace_back( 0.0f );

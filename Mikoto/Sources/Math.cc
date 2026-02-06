@@ -40,8 +40,30 @@ namespace Mikoto {
         return glm::degrees( value );
     }
 
+    auto Math::Abs( double value ) -> double {
+        return glm::abs( value );
+    }
+
     auto Math::Lerp( float a, float b, float f ) -> double {
         return a + f * (b - a);
+    }
+
+    auto Math::Recompose( Mat4F& transform, const Vec3F& translation, const Vec3F& rotation, const Vec3F& scale ) -> void {
+        float matrixTranslation[3]{}, matrixRotation[3]{}, matrixScale[3]{};
+
+        matrixTranslation[0] = translation.x;
+        matrixTranslation[1] = translation.y;
+        matrixTranslation[2] = translation.z;
+
+        matrixRotation[0] = ToDegrees( rotation.x );
+        matrixRotation[1] = ToDegrees( rotation.y );
+        matrixRotation[2] = ToDegrees( rotation.z );
+
+        matrixScale[0] = scale.x;
+        matrixScale[1] = scale.y;
+        matrixScale[2] = scale.z;
+
+        ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, glm::value_ptr( transform ));
     }
 
     auto Math::Decompose( const Mat4F &transform, Vec3F &translation, Vec3F &rotation, Vec3F &scale ) -> void {

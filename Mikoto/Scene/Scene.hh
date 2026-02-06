@@ -26,6 +26,7 @@
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 #include <Scene/Entity.hh>
+#include <Scene/Component.hh>
 
 namespace Mikoto {
 
@@ -73,6 +74,23 @@ namespace Mikoto {
         MKT_NODISCARD auto CreateEntity( Entity* root, std::string_view name ) -> Entity*;
         MKT_NODISCARD auto CreateEntity( const EntityCreateInfo& createInfo = {} ) -> Entity*;
 
+        template<typename EntityFunction>
+        auto ApplyToChildren(Entity* parent, const EntityFunction& callable) -> void {
+            if (!parent) {
+                return;
+            }
+
+            RelationComponent& relation{ parent->GetComponent<RelationComponent>() };
+            for (const auto& childID : relation.GetChildren()) {
+                Entity* child{ FindByID( childID ) };
+
+                if (child) {
+                    callable(child);
+
+                    ApplyToChildren(child, callable);
+                }
+            }
+        }
 
         // Whether to render scene with skybox
         auto SetSceneBackground(SceneBackground background) -> void;

@@ -38,8 +38,12 @@ namespace Mikoto::Math {
     MKT_NODISCARD auto ToRadians(double value) -> double;
     MKT_NODISCARD auto ToDegrees(double value) -> double;
 
+
+    MKT_NODISCARD auto Abs(double value) -> double;
+
     MKT_NODISCARD auto Lerp(float a, float b, float f) -> double;
 
+    auto Recompose( Mat4F& transform, const Vec3F& translation, const Vec3F& rotation, const Vec3F& scale ) -> void;
     auto Decompose( const Mat4F& transform, Vec3F& translation, Vec3F& rotation, Vec3F& scale ) -> void;
 
 }

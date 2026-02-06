@@ -96,12 +96,6 @@ namespace Mikoto {
             return glm::quat( m_Rotation );
         }
 
-        /**
-         * Computes the model matrix for for this component according to the transform vectors
-         * @param position specifies the object translation value
-         * @param size specifies the object scaling value
-         * @param angles specifies Euler angles rotations (each component represents an angle in radians)
-         * */
         auto ComputeTransform( const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3( 0.0f ) ) -> void {
             m_Translation = position;
             m_Rotation = angles;
@@ -117,24 +111,17 @@ namespace Mikoto {
 
         auto SetTranslation( const Vec3F& value ) -> void {
             m_Translation = value;
-
             m_Transform = Math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
         }
 
         auto SetRotation( const Vec3F& value ) -> void {
             m_Rotation = value;
-
             m_Transform = Math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
         }
 
         auto SetRotation( const glm::quat& quaternion ) -> void {
             m_Rotation = glm::eulerAngles( quaternion );
-
             m_Transform = Math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
-
-            // m_Transform = glm::translate(glm::mat4(1.0f), m_Translation)
-            //             * glm::toMat4(quaternion)
-            //             * glm::scale(glm::mat4(1.0f), m_Scale);
         }
 
         auto SetScale( const Vec3F& value ) -> void {

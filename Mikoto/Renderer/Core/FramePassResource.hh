@@ -72,7 +72,9 @@ namespace Mikoto {
     };
 
     struct FramePassResource {
-        ResourceHandle Handle{};
+        ResourceHandle Handle{}; // These should probably not be here because the CommandContext gets the resources from the graphics 
+                                 // context which creates the actual resources on the GPU, the Frame graph simply orchestrates dependencies, 
+                                 // kept for now just to have some meta data on the type of resource.
         FrameResourceType Type{ FrameResourceType::INVALID };
         FrameResourceState CurrentState{ FrameResourceState::Undefined };
 

@@ -1,28 +1,36 @@
-/**
- * VulkanTexture.hh
- * Created by kate on 7/5/2023.
- * */
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_VULKAN_TEXTURE2D_HH
 #define MIKOTO_VULKAN_TEXTURE2D_HH
 
-// C++ Standard Library
 #include <filesystem>
 
-// Third-Party Libraries
-#include <stb_image.h>
 #include <volk.h>
 #include <vk_mem_alloc.h>
 
 // Project Headers
 #include <Common/Common.hh>
+
 #include <Library/IO/File.hh>
 #include <Library/Utility/Types.hh>
+
 #include <Material/Texture2D.hh>
 #include <Material/TextureCube.hh>
-#include <Renderer/Core/Buffer.hh>
 
-#include "VulkanMemoryAllocator.hh"
+#include <Renderer/Core/Buffer.hh>
+#include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
 
 namespace Mikoto {
 
@@ -106,7 +114,6 @@ namespace Mikoto {
         VkImageLayout m_CurrentLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
     };
 
-    // This is either an HDR or a Cubemap with 6 faces, can also be used as render target
     class VulkanTextureCube final : public TextureCube {
     public:
         explicit VulkanTextureCube( const TextureCubeCreateDescription& data );
@@ -120,7 +127,7 @@ namespace Mikoto {
 
         auto SetDebugName(std::string_view name) -> void override;
 
-        // Assume external synchronization and barrier used
+        // FIXME: Assume external synchronization and barrier used
         auto SetCurrentLayout(VkImageLayout layout ) -> void;
 
         auto SubmitLayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd ) -> void;

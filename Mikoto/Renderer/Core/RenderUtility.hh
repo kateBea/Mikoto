@@ -282,7 +282,7 @@ namespace Mikoto {
         ResourceUsageType ResourceUsage{ ResourceUsageType::RESOURCE_USAGE_STATIC };
 
         UInt32 MipLevels{ 1 };
-        UInt32 Dimensions{};
+        UInt32 Dimensions{ 1024 };
         TextureFormat Format{ TextureFormat::RGBA8_UNORM };
         TextureUsage Usage{ TextureUsage::CUBE };
 
@@ -394,7 +394,7 @@ namespace Mikoto {
 
     auto FreeImageData( Byte* data ) -> void;
     MKT_NODISCARD auto LoadImageFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
-    MKT_NODISCARD auto LoadHDRImageFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
+    MKT_NODISCARD auto LoadImageFloatFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
 
     class STBImageHDR final {
     public:
@@ -425,7 +425,7 @@ namespace Mikoto {
 
     class StbImage final {
     public:
-        explicit StbImage( const File* textureFile );
+        explicit StbImage( const File* textureFile, bool isFloat = false );
 
         ~StbImage();
 

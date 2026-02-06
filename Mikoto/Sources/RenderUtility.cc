@@ -37,12 +37,13 @@ namespace Mikoto {
         return data;
     }
 
-    auto LoadHDRImageFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc* {
+    auto LoadImageFloatFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc* {
         stbi_set_flip_vertically_on_load( true );
 
         constexpr int targetChannelCount{ STBI_rgb_alpha };
-        stbi_uc* data{ reinterpret_cast<stbi_uc*>( stbi_loadf(
-                textureFile->GetPathCStr(),
+        stbi_uc* data{ reinterpret_cast<stbi_uc*>( stbi_loadf_from_memory(
+                reinterpret_cast<const stbi_uc*>( textureFile->GetFileBytes() ),
+                textureFile->GetFileContents().size(),
                 std::addressof( outWidth ),
                 std::addressof( outHeight ),
                 std::addressof( outChannels ),
@@ -69,7 +70,7 @@ namespace Mikoto {
     }
 
     STBImageHDR::STBImageHDR( const File* textureFile ) {
-        m_Data = LoadHDRImageFromFile( textureFile, m_Width, m_Height, m_Channels );
+        m_Data = LoadImageFloatFromFile( textureFile, m_Width, m_Height, m_Channels );
     }
 
     STBImageHDR::~STBImageHDR() {
@@ -110,8 +111,12 @@ namespace Mikoto {
         return *this;
     }
 
-    StbImage::StbImage( const File* textureFile ) {
-        m_Data = LoadImageFromFile( textureFile, m_Width, m_Height, m_Channels );
+    StbImage::StbImage( const File* textureFile, bool isFloat ) {
+        if (isFloat) {
+            m_Data = LoadImageFloatFromFile( textureFile, m_Width, m_Height, m_Channels );
+        } else {
+            m_Data = LoadImageFromFile( textureFile, m_Width, m_Height, m_Channels );
+        }
     }
 
     StbImage::~StbImage() {

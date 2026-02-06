@@ -440,7 +440,7 @@ namespace Mikoto {
 
         if ( m_IsHDR ) {
             constexpr bool linearFilter{ true };
-            constexpr Int32 cubeMapResolution{ 1024 };
+            const Int32 cubeMapResolution{ m_Width };
 
             HdriToCubemap<unsigned char> hdriToCube_hdr( m_TextureFaces[0]->GetPathCStr(), cubeMapResolution, linearFilter );
 

@@ -303,7 +303,12 @@ namespace Mikoto {
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    if (!m_UseSkybox || m_CubeMap.IsEmpty()) { return; }
+                    // Since other passes depend on this data we upload it so it is available in the shaders
+                    ctx.UploadBuffer<SkyboxUBO>( "SkyboxPass_CameraInfo", m_SkyboxUBO );
+
+                    if (!m_UseSkybox || m_CubeMap.IsEmpty()) {
+                        return;
+                    }
 
                     if (m_CubeMapSampler.IsEmpty()) {
                         SamplerDescription samplerDescription{ .CubeSampler{ true } };
@@ -316,7 +321,6 @@ namespace Mikoto {
                     ctx.SetScissor( 0, 0, 1920, 1080 );
 
                     ctx.BindImage( m_CubeMap, m_CubeMapSampler, 1 );
-                    ctx.UploadBuffer<SkyboxUBO>( "SkyboxPass_CameraInfo", m_SkyboxUBO );
 
                     ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
                     ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );

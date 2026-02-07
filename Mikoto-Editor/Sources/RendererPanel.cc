@@ -261,13 +261,7 @@ namespace Mikoto {
             }
         };
 
-        TextureHandle textureHandle{};
-
-        if (m_EditorState->EditorSceneRenderer->IsUsingPrecomputedLDRCubeMap()) {
-            textureHandle = m_EditorState->ActiveEditorScene->GetSkybox();
-        } else {
-            textureHandle = m_EditorState->EditorSceneRenderer->GetEquirectangularMap();
-        }
+        TextureHandle textureHandle{ m_EditorState->EditorSceneRenderer->GetEquirectangularMap() };
 
         if ( ImGui::BeginTable( "HDRTextureSelector", 3,
                                 ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInner | ImGuiTableFlags_BordersInnerH |

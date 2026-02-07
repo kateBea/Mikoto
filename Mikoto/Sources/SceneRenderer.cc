@@ -71,10 +71,6 @@ namespace Mikoto {
         m_ClusteredShadingPasses.SetCamera( camera );
     }
 
-    auto SceneRenderer::SetSkyBox( TextureHandle cubeMap ) -> void {
-        m_IBLPasses.SetPrecomputedLDRCubeMap( cubeMap );
-    }
-
     auto SceneRenderer::SetClearColor( const Vec4F& color ) -> void {
         m_IBLPasses.SetClearColor( color );
     }
@@ -109,6 +105,8 @@ namespace Mikoto {
     auto SceneRenderer::UpdateEquirectangularMapAsync( std::string_view path ) -> void {
         TaskService::Get()->Submit( [path = Filesystem::GetGetAbsolutePath(path), this]() -> void {
             m_HDRTexture = AssetsService::Get()->LoadAsset<Texture>( path, true );
+            m_LDRTexture = AssetsService::Get()->LoadAsset<TextureCube>( path );
+
             m_LoadedHDR = true;
         } );
     }
@@ -117,20 +115,16 @@ namespace Mikoto {
         m_IBLPasses.SetUseConvolutedCube( enable );
     }
 
+    auto SceneRenderer::UseLDRCubeMap( bool enable ) -> void {
+        m_IBLPasses.UseLDRCubeMap( enable );
+    }
+
     auto SceneRenderer::IsUsingConvolutedCube() const -> bool {
         return m_IBLPasses.IsUsingConvolutedCube();
     }
 
     auto SceneRenderer::GetEquirectangularMap() -> TextureHandle {
         return m_HDRTexture;
-    }
-
-    auto SceneRenderer::SetEquirectangularMap( TextureHandle texture2D ) -> void {
-        m_IBLPasses.SetEquirectangularMap( texture2D );
-    }
-
-    auto SceneRenderer::SetUseSkyboxLDR( bool enable ) -> void {
-        m_IBLPasses.SetUsePrecomputedLDRCubeMap( enable );
     }
 
     auto SceneRenderer::IsUsingPrecomputedLDRCubeMap() -> bool {
@@ -187,6 +181,11 @@ namespace Mikoto {
         m_FrameGraph->Compile();
     }
 
+    auto SceneRenderer::SetEquirectangularMap() -> void {
+        m_IBLPasses.SetEquirectangularMap( m_HDRTexture );
+        m_IBLPasses.SetLDRCubeMap( m_LDRTexture );
+    }
+
     auto SceneRenderer::OnPreRender() -> void {
         // If SetRenderResolution was called we will need to
         // Reconstruct render target which will require recompiling the frame graph
@@ -201,7 +200,7 @@ namespace Mikoto {
 
         // If we loaded a new equirectangular update it in the passes
         if (m_LoadedHDR) {
-            SetEquirectangularMap( m_HDRTexture );
+            SetEquirectangularMap();
 
             // Clear flag
             m_LoadedHDR = false;

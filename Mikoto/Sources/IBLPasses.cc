@@ -96,11 +96,11 @@ namespace Mikoto {
         m_RequestUpdateSkybox = true;
     }
 
-    auto IBLPasses::SetUsePrecomputedLDRCubeMap( bool value ) -> void {
+    auto IBLPasses::UseLDRCubeMap( bool value ) -> void {
         m_UsePrecomputedLDRCubeMap = value;
     }
 
-    auto IBLPasses::IsUsingPrecomputedLDRCubeMap() -> bool {
+    auto IBLPasses::IsUsingPrecomputedLDRCubeMap() const -> bool {
         return m_UsePrecomputedLDRCubeMap;
     }
 
@@ -136,7 +136,7 @@ namespace Mikoto {
                         return;
                     }
 
-                    if (m_UsePrecomputedLDRCubeMap) {
+                    if (m_UsePrecomputedLDRCubeMap && !m_CubeMap.IsEmpty()) {
                         ctx.BindImage( m_CubeMap, m_CubeMapSampler, 0 );
                     } else {
                         ctx.BindImage( "SkyboxRender_ColorTargetCUBE", m_CubeMapSampler, 0 );
@@ -207,7 +207,7 @@ namespace Mikoto {
                         return;
                     }
 
-                    if (m_UsePrecomputedLDRCubeMap) {
+                    if (m_UsePrecomputedLDRCubeMap && !m_CubeMap.IsEmpty()) {
                         ctx.BindImage( m_CubeMap, m_CubeMapSampler, 0 );
                     } else {
                         ctx.BindImage( "SkyboxRender_ColorTargetCUBE", m_CubeMapSampler, 0 );
@@ -300,7 +300,7 @@ namespace Mikoto {
         m_MeshCullingPass = std::addressof( cullingPass );
     }
 
-    auto IBLPasses::SetPrecomputedLDRCubeMap( TextureHandle cubeMap ) -> void {
+    auto IBLPasses::SetLDRCubeMap( TextureHandle cubeMap ) -> void {
         if (m_CubeMap == cubeMap) {
             return;
         }
@@ -426,7 +426,7 @@ namespace Mikoto {
                     // Since other passes depend on this data we upload it so it is available in the shaders
                     ctx.UploadBuffer<SkyboxUBO>( "SkyboxPass_CameraInfo", m_SkyboxUBO );
 
-                    if (!m_UseSkybox || m_CubeMap.IsEmpty()) {
+                    if (!m_UseSkybox) {
                         return;
                     }
 
@@ -435,14 +435,14 @@ namespace Mikoto {
                     ctx.SetViewport( 0, 0, 1920, 1080 );
                     ctx.SetScissor( 0, 0, 1920, 1080 );
 
-                    if (m_UseConvolutedCubeMap) {
+                    if ( m_UseConvolutedCubeMap ) {
                         ctx.BindImage( "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, 1 );
                     } else {
-                        if (m_UsePrecomputedLDRCubeMap) {
-                        ctx.BindImage( m_CubeMap, m_CubeMapSampler, 1 );
-                    } else {
-                        ctx.BindImage( "SkyboxRender_ColorTargetCUBE", m_CubeMapSampler, 1 );
-                    }
+                        if ( m_UsePrecomputedLDRCubeMap && !m_CubeMap.IsEmpty()) {
+                            ctx.BindImage( m_CubeMap, m_CubeMapSampler, 1 );
+                        } else {
+                            ctx.BindImage( "SkyboxRender_ColorTargetCUBE", m_CubeMapSampler, 1 );
+                        }
                     }
 
                     ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );

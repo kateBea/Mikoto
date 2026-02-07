@@ -42,11 +42,11 @@ namespace Mikoto {
 
         auto SetResolution( RenderResolution resolution) -> void;
 
+        auto SetLDRCubeMap( TextureHandle cubeMap ) -> void;
         auto SetEquirectangularMap(TextureHandle texture2D) -> void;
 
-        auto SetUsePrecomputedLDRCubeMap(bool value) -> void;
-        auto IsUsingPrecomputedLDRCubeMap() -> bool;
-        auto SetPrecomputedLDRCubeMap( TextureHandle cubeMap ) -> void;
+        auto UseLDRCubeMap(bool value) -> void;
+        MKT_NODISCARD auto IsUsingPrecomputedLDRCubeMap() const -> bool;
 
         auto SetExposure( float value ) -> void;
         auto SetGamma( float value ) -> void;

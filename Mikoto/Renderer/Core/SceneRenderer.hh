@@ -58,21 +58,19 @@ namespace Mikoto {
 
         auto SetCamera( SceneCamera* camera ) -> void;
 
-        auto SetSkyBox(TextureHandle cubeMap) -> void;
         auto SetClearColor(const Vec4F& color) -> void;
         auto EnableSkybox(bool enable) -> void;
         auto SetEnvironmentGamma(float value) -> void;
         auto SetEnvironmentExposure(float value) -> void;
 
+        auto IsUsingPrecomputedLDRCubeMap() -> bool;
+
         auto UpdateEquirectangularMapAsync(std::string_view path) -> void;
         auto SetUseConvolutedCube( bool enable )-> void;
+        auto UseLDRCubeMap( bool enable ) -> void;
+
         MKT_NODISCARD auto IsUsingConvolutedCube() const -> bool;
-
         MKT_NODISCARD auto GetEquirectangularMap() -> TextureHandle;
-
-        auto SetEquirectangularMap(TextureHandle texture2D) -> void;
-        auto SetUseSkyboxLDR( bool enable ) -> void;
-        auto IsUsingPrecomputedLDRCubeMap() -> bool;
 
         auto SetEnableSSAO(bool enable) -> void;
 
@@ -97,6 +95,8 @@ namespace Mikoto {
         auto OnPreRender() -> void;
         auto OnPostRender() -> void;
 
+        auto SetEquirectangularMap() -> void;
+
     private:
         // Scene graph
         GpuDevice* m_Device{ nullptr };
@@ -118,7 +118,8 @@ namespace Mikoto {
 
         // Async load HDR
         std::atomic_bool m_LoadedHDR{ false };
-        TextureHandle m_HDRTexture{ };
+        TextureHandle m_HDRTexture{};
+        TextureHandle m_LDRTexture{};
     };
 }// namespace Mikoto
 

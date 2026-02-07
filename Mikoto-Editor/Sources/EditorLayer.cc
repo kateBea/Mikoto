@@ -834,7 +834,6 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         m_SceneRenderer->SetCamera( m_EditorCamera.get() );
-        m_SceneRenderer->SetSkyBox( m_ActiveScene->GetSkybox() );
         m_SceneRenderer->SetEnvironmentGamma( m_ActiveScene->GetGamma() );
         m_SceneRenderer->SetEnvironmentExposure( m_ActiveScene->GetExposure() );
 
@@ -844,6 +843,6 @@ namespace Mikoto {
         RendererPanel* settings{ m_PanelRegistry.Get<RendererPanel>() };
         m_SceneRenderer->SetWireframeEnable(m_EditorState->ShowWireframe);
 
-        m_SceneRenderer->SetUseSkyboxLDR( settings->EnableSkyboxLDR() );
+        m_SceneRenderer->UseLDRCubeMap( settings->EnableSkyboxLDR() );
     }
 }

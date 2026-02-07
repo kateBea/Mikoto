@@ -33,31 +33,59 @@ namespace Mikoto {
         const UInt32 width  = texture ? texture->GetWidth()  : 0;
         const UInt32 height = texture ? texture->GetHeight() : 0;
 
-        constexpr auto fileType = FileType::UNKNOWN_FILE_TYPE;
-
         ImGui::TextUnformatted("Dimensions");
         ImGui::SameLine(90.0f);
-        ImGui::TextUnformatted(fmt::format("{} x {}", width, height).c_str());
+        if (width == 0 || height == 0) {
+            ImGui::TextUnformatted("N / A");
+        } else {
+            ImGui::TextUnformatted(fmt::format("[{}, {}]", width, height).c_str());
+        }
 
         ImGui::TextUnformatted("Type");
         ImGui::SameLine(90.0f);
-        ImGui::TextUnformatted(GetFileExtensionName(fileType).data());
+        if (texture) {
+            if (auto cube{ dynamic_cast<const TextureCube*>(texture)}; cube || texture->IsHDR() ) {
+                ImGui::TextUnformatted("HDR");
+            }
+
+            if (auto flatTexture{ dynamic_cast<const Texture2D*>(texture)} ) {
+                ImGui::TextUnformatted("Texture_2D");
+            }
+        } else {
+            ImGui::TextUnformatted("N / A");
+        }
 
         ImGui::TextUnformatted("File Size");
         ImGui::SameLine(90.0f);
-        ImGui::TextUnformatted(fmt::format("{} MB", Math::Round(2.33, 2)).c_str());
+        if (texture) {
+            ImGui::TextUnformatted(fmt::format("{} MB", Math::Round( static_cast<double>( texture->GetSizeBytes() ) / 1000'000.0, 2)).c_str());
+        } else {
+            ImGui::TextUnformatted("N / A");
+        }
 
         ImGui::TextUnformatted("Format");
         ImGui::SameLine(90.0f);
-        ImGui::TextUnformatted(fmt::format("Unknown").c_str());
+        if (texture) {
+            ImGui::TextUnformatted(GetTextureFormatString(texture->GetFormat()).data());
+        } else {
+            ImGui::TextUnformatted("N / A");
+        }
 
         ImGui::TextUnformatted("DebugName");
         ImGui::SameLine(90.0f);
-        ImGui::TextUnformatted(fmt::format("Unknown").c_str());
+        if (texture) {
+            ImGui::TextUnformatted(fmt::format("Unknown").c_str());
+        } else {
+            ImGui::TextUnformatted("N / A");
+        }
 
         ImGui::TextUnformatted("Channels");
         ImGui::SameLine(90.0f);
-        ImGui::TextUnformatted(fmt::format("Unknown").c_str());
+        if (texture) {
+            ImGui::TextUnformatted(GetChanelString(texture->GetChannels()).data());
+        } else {
+            ImGui::TextUnformatted("N / A");
+        }
     }
 
     RendererPanel::RendererPanel( const RendererPanelCreateInfo &info )
@@ -263,13 +291,11 @@ namespace Mikoto {
 
         TextureHandle textureHandle{ m_EditorState->EditorSceneRenderer->GetEquirectangularMap() };
 
-        if ( ImGui::BeginTable( "HDRTextureSelector", 3,
+        if ( ImGui::BeginTable( "HDRTextureSelector", 2,
                                 ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInner | ImGuiTableFlags_BordersInnerH |
-                                        ImGuiTableFlags_SizingStretchProp |
-                                        ImGuiTableFlags_NoHostExtendX ) ) {
-            ImGui::TableSetupColumn( "Thumbnail", ImGuiTableColumnFlags_WidthFixed, 70.0f );
-            ImGui::TableSetupColumn( "Info", ImGuiTableColumnFlags_None);
-            ImGui::TableSetupColumn( "Actions", ImGuiTableColumnFlags_None);
+                                        ImGuiTableFlags_SizingStretchSame ) ) {
+            ImGui::TableSetupColumn( "Thumbnail", ImGuiTableColumnFlags_None, 70.0f );
+            ImGui::TableSetupColumn( "Info", ImGuiTableColumnFlags_None, 200.0f);
 
             ImGui::TableHeadersRow();
 
@@ -300,14 +326,6 @@ namespace Mikoto {
 
             ImGui::TableSetColumnIndex( 1 );
             ShowTextureDetails( textureHandle.GetRaw() );
-
-            ImGui::TableSetColumnIndex( 2 );
-
-            // Example actions for future:
-            // if (!textureHandle.IsEmpty() && ImGui::Button("Clear"))
-            //     textureHandle = TextureHandle{};
-
-            ImGuiUtils::ButtonTextIcon( StringUtil::Format( "{} Clear", ICON_MD_CLEAR_ALL ).c_str() );
 
             ImGui::EndTable();
         }

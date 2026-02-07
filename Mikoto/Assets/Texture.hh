@@ -122,6 +122,10 @@ namespace Mikoto {
             return !m_Sampler.IsEmpty();
         }
 
+        MKT_NODISCARD auto IsHDR() const -> bool { return m_IsHDR; }
+
+        MKT_NODISCARD auto GetSizeBytes() const -> Size { return m_SizeBytes; }
+
         /**
          * @brief Sets the sampler for the texture.
          *
@@ -199,6 +203,10 @@ namespace Mikoto {
         Int32 m_Width{};
         Int32 m_Height{};
         Int32 m_Channels{};
+
+        bool m_IsHDR{ false };
+
+        Size m_SizeBytes{};
 
         SamplerHandle m_Sampler{};
 

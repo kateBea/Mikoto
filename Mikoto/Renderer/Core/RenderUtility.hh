@@ -201,6 +201,8 @@ namespace Mikoto {
         Int32 Height{};
         Int32 ChannelCount{ 4 };
 
+        bool IsHDR{ false };
+
         Byte* Data{ nullptr };
         Size BufferSize{}; // Optional
 
@@ -213,6 +215,7 @@ namespace Mikoto {
         TextureFormat Format{ TextureFormat::RGBA8_SNORM };
         ResourceUsageType UsageType{ ResourceUsageType::RESOURCE_USAGE_STATIC };
 
+        auto IsHDRMap( bool value ) -> TextureDescription&;
         auto WithWidth( Int32 width ) -> TextureDescription&;
         auto WithHeight( Int32 height ) -> TextureDescription&;
         auto WithChannelCount( Int32 channels ) -> TextureDescription&;
@@ -386,6 +389,9 @@ namespace Mikoto {
         QHD_1440P,
         UHD_3120P,
     };
+
+    MKT_NODISCARD auto GetChanelString( UInt32 channelCount ) -> std::string_view;
+    MKT_NODISCARD auto GetTextureFormatString( TextureFormat format ) -> std::string_view;
 
     MKT_NODISCARD auto InferAPI( std::string_view apiName ) -> GraphicsAPI;
 

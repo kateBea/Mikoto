@@ -248,7 +248,7 @@ namespace Mikoto {
         constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_FramePadding |
                                                     ImGuiTreeNodeFlags_SpanFullWidth };
 
-        for ( auto& entry: std::filesystem::directory_iterator( m_CurrentDirectory ) ) {
+        for ( auto& entry: std::filesystem::directory_iterator( m_AssetsRootDirectory ) ) {
             if ( entry.is_directory() ) {
                 if ( ImGui::TreeNodeEx( entry.path().string().c_str(), treeNodeFlags, "%s", fmt::format( "{} {}", ICON_MD_FOLDER, entry.path().stem().string() ).c_str() ) ) {
 

@@ -178,6 +178,85 @@ namespace Mikoto {
         this->FontSize = pixelSize;
         return *this;
     }
+
+    auto GetChanelString( UInt32 channelCount ) -> std::string_view {
+        switch (channelCount) {
+            case 1: return "Format_R";
+            case 2: return "Format_RG";
+            case 3: return "Format_RGB";
+            case 4: return "Format_RGB_Aplha";
+        }
+
+        return "N / A";
+    }
+
+    auto GetTextureFormatString( TextureFormat format ) -> std::string_view {
+        switch ( format ) {
+            case TextureFormat::INVALID:
+                return "INVALID";
+            case TextureFormat::R8_UNORM:
+                return "R8_UNORM";
+            case TextureFormat::RG8_UNORM:
+                return "RG8_UNORM";
+            case TextureFormat::RGB8_UNORM:
+                return "RGB8_UNORM";
+            case TextureFormat::RGBA8_UNORM:
+                return "RGBA8_UNORM";
+
+            case TextureFormat::R8_SNORM:
+                return "R8_SNORM";
+            case TextureFormat::RG8_SNORM:
+                return "RG8_SNORM";
+            case TextureFormat::RGB8_SNORM:
+                return "RGB8_SNORM";
+            case TextureFormat::RGBA8_SNORM:
+                return "RGBA8_SNORM";
+
+            case TextureFormat::R16_UNORM:
+                return "R16_UNORM";
+            case TextureFormat::RG16_UNORM:
+                return "RG16_UNORM";
+            case TextureFormat::RGB16_UNORM:
+                return "RGB16_UNORM";
+            case TextureFormat::RGBA16_UNORM:
+                return "RGBA16_UNORM";
+
+            case TextureFormat::R16_FLOAT:
+                return "R16_FLOAT";
+            case TextureFormat::RG16_FLOAT:
+                return "RG16_FLOAT";
+            case TextureFormat::RGB16_FLOAT:
+                return "RGB16_FLOAT";
+            case TextureFormat::RGBA16_FLOAT:
+                return "RGBA16_FLOAT";
+
+            case TextureFormat::R32_FLOAT:
+                return "R32_FLOAT";
+            case TextureFormat::RG32_FLOAT:
+                return "RG32_FLOAT";
+            case TextureFormat::RGB32_FLOAT:
+                return "RGB32_FLOAT";
+            case TextureFormat::RGBA32_FLOAT:
+                return "RGBA32_FLOAT";
+
+            case TextureFormat::SRGB8:
+                return "SRGB8";
+            case TextureFormat::SRGB8_ALPHA8:
+                return "SRGB8_ALPHA8";
+
+            case TextureFormat::D16_UNORM:
+                return "D16_UNORM";
+            case TextureFormat::D24_UNORM_S8_UINT:
+                return "D24_UNORM_S8_UINT";
+            case TextureFormat::D32_FLOAT:
+                return "D32_FLOAT";
+            case TextureFormat::D32_FLOAT_S8_UINT:
+                return "D32_FLOAT_S8_UINT";
+        }
+
+        return "UNKNOWN_FORMAT";
+    }
+
     auto InferElementCount( const BufferDataType dataType, const Size blockSize ) -> Size {
         switch (dataType) {
             case BufferDataType::BUFFER_DATA_UINT32:
@@ -230,6 +309,11 @@ namespace Mikoto {
 
     auto BufferDescription::WithResourceUsageType( ResourceUsageType type ) -> BufferDescription& {
         UsageType = type;
+        return *this;
+    }
+
+    auto TextureDescription::IsHDRMap( bool value ) -> TextureDescription& {
+        IsHDR = value;
         return *this;
     }
 

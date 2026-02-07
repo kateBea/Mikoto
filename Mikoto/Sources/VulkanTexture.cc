@@ -104,6 +104,8 @@ namespace Mikoto {
 
         m_ExternalBufferSize = data.BufferSize;
 
+        m_IsHDR = data.IsHDR;
+
         if ( data.TextureFile ) {
             m_DebugName = fmt::format( "Mikoto Texture. Id: {}, Loaded from {}", GetHandle(), data.TextureFile->GetPathCStr() );
         } else {
@@ -167,6 +169,8 @@ namespace Mikoto {
         m_Height = data.Dimensions;
 
         m_TextureUsage = data.Usage;
+
+        m_IsHDR = data.IsHdrMap;
 
         if (!data.Faces.empty() && data.Faces[0]) {
             SetTextureUri( data.Faces[0]->GetPathCStr() );
@@ -418,6 +422,8 @@ namespace Mikoto {
         if ( const VkResult result{ allocator->AllocateImage( m_ImageAllocation ) }; result != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanTextureCube::CreateImageResource - Failed to allocate Vulkan cube image!" );
         }
+
+        m_SizeBytes = m_ImageSize;
 
         // Prepare for view creation
         m_ImageViewCreateInfo = VulkanHelpers::Initializers::ImageViewCreateInfo();
@@ -733,6 +739,8 @@ namespace Mikoto {
             if ( const VkResult result{ allocator->AllocateImage( m_ImageAllocation ) }; result != VK_SUCCESS ) {
                 MKT_THROW_RUNTIME_ERROR( "VulkanTexture::Initialize - Failed to allocate Vulkan image!" );
             }
+
+            m_SizeBytes = m_ImageSize;
 
             // This could be a texture that we want to fill from
             // an image loaded from disc or a texture we will write to as a color image

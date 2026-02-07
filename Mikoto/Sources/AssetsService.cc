@@ -212,6 +212,8 @@ namespace Mikoto {
             .WithData( image.GetData() )
             .WithFile( textureFile )
 
+            .IsHDRMap( description.IsHDR )
+
             .WithMapType( description.Map )
 
             .WithType( description.Type )

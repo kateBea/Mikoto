@@ -29,6 +29,37 @@
 
 namespace Mikoto {
 
+    static auto ShowTextureDetails( const Texture* texture ) -> void {
+        const UInt32 width  = texture ? texture->GetWidth()  : 0;
+        const UInt32 height = texture ? texture->GetHeight() : 0;
+
+        constexpr auto fileType = FileType::UNKNOWN_FILE_TYPE;
+
+        ImGui::TextUnformatted("Dimensions");
+        ImGui::SameLine(90.0f);
+        ImGui::TextUnformatted(fmt::format("{} x {}", width, height).c_str());
+
+        ImGui::TextUnformatted("Type");
+        ImGui::SameLine(90.0f);
+        ImGui::TextUnformatted(GetFileExtensionName(fileType).data());
+
+        ImGui::TextUnformatted("File Size");
+        ImGui::SameLine(90.0f);
+        ImGui::TextUnformatted(fmt::format("{} MB", Math::Round(2.33, 2)).c_str());
+
+        ImGui::TextUnformatted("Format");
+        ImGui::SameLine(90.0f);
+        ImGui::TextUnformatted(fmt::format("Unknown").c_str());
+
+        ImGui::TextUnformatted("DebugName");
+        ImGui::SameLine(90.0f);
+        ImGui::TextUnformatted(fmt::format("Unknown").c_str());
+
+        ImGui::TextUnformatted("Channels");
+        ImGui::SameLine(90.0f);
+        ImGui::TextUnformatted(fmt::format("Unknown").c_str());
+    }
+
     RendererPanel::RendererPanel( const RendererPanelCreateInfo &info )
         : Panel{ "Renderer" }, m_EditorState{ info.State } {
         m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_POWER_SETTINGS_NEW, m_PanelName );
@@ -191,10 +222,13 @@ namespace Mikoto {
     }
 
     auto RendererPanel::DrawSSAOSettings() -> void {
+        ImGuiUtils::UnindentScoped und{};
+
         // Enable toggle
         if (ImGuiUtils::CheckBox( "##RendererPanel::DrawSSAOSettings::EnableSSAO", m_EnableSSAO )) {
             m_EditorState->EditorSceneRenderer->SetEnableSSAO(m_EnableSSAO);
         }
+        ImGui::SameLine();
         ImGui::TextUnformatted( "Enable SSAO" );
 
         ImGui::Spacing();
@@ -214,21 +248,88 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( "Use convoluted cube" );
 
-        TextureHandle textureHandle{ m_EditorState->ActiveEditorScene->GetSkybox() };
+        auto hdrDropTarget{
+            [this]() -> void {
+                if (ImGui::BeginDragDropTarget()) {
+                    if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("HDR_LOAD_LIGHT_PANEL") }) {
+                        std::string hdrPath{ *static_cast<std::string*>( payload->Data ) };
+                        m_EditorState->EditorSceneRenderer->UpdateEquirectangularMapAsync(hdrPath);
+                        RuntimeConsole::Get()->Debug( StringUtil::Format("You dropped texture from HDR_LOAD_LIGHT_PANEL {}", hdrPath ) );
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+            }
+        };
+
+        TextureHandle textureHandle{};
+
+        if (m_EditorState->EditorSceneRenderer->IsUsingPrecomputedLDRCubeMap()) {
+            textureHandle = m_EditorState->ActiveEditorScene->GetSkybox();
+        } else {
+            textureHandle = m_EditorState->EditorSceneRenderer->GetEquirectangularMap();
+        }
+
+        if ( ImGui::BeginTable( "HDRTextureSelector", 3,
+                                ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInner | ImGuiTableFlags_BordersInnerH |
+                                        ImGuiTableFlags_SizingStretchProp |
+                                        ImGuiTableFlags_NoHostExtendX ) ) {
+            ImGui::TableSetupColumn( "Thumbnail", ImGuiTableColumnFlags_WidthFixed, 70.0f );
+            ImGui::TableSetupColumn( "Info", ImGuiTableColumnFlags_None);
+            ImGui::TableSetupColumn( "Actions", ImGuiTableColumnFlags_None);
+
+            ImGui::TableHeadersRow();
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+
+            TextureHandle displayedHandle{ textureHandle };
+            if ( displayedHandle.IsEmpty() ) {
+                displayedHandle = AssetsService::Get()->GetDummyTexture();
+            }
+
+            if ( ImGuiUtils::PushImageButton(
+                         displayedHandle->GetHandle(),
+                         ImGuiService::Get()->GetTextureID( displayedHandle ),
+                         ImVec2{ 64, 64 } ) ) {
+                // Clicked thumbnail
+            }
+
+            // Tooltip
+            ImGuiUtils::ToolTip( [&]() {
+                ImGui::TextUnformatted( "Click to load texture" );
+                if ( !textureHandle.IsEmpty() )
+                    ImGui::TextUnformatted( textureHandle->GetTextureUri().c_str() );
+            },
+                                 ImGui::IsItemHovered() );
+
+            hdrDropTarget();
+
+            ImGui::TableSetColumnIndex( 1 );
+            ShowTextureDetails( textureHandle.GetRaw() );
+
+            ImGui::TableSetColumnIndex( 2 );
+
+            // Example actions for future:
+            // if (!textureHandle.IsEmpty() && ImGui::Button("Clear"))
+            //     textureHandle = TextureHandle{};
+
+            ImGuiUtils::ButtonTextIcon( StringUtil::Format( "{} Clear", ICON_MD_CLEAR_ALL ).c_str() );
+
+            ImGui::EndTable();
+        }
+
         if (!textureHandle.IsEmpty()) {
             ImGuiUtils::InputText(StringUtil::Format( "{}", textureHandle->GetTextureUri() ), true );
         } else {
             ImGuiUtils::InputText(StringUtil::Format( "Drag EquirectangularMap here" ), true );
         }
 
-        if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("HDR_LOAD_LIGHT_PANEL") }) {
-                std::string hdrPath{ *static_cast<std::string*>( payload->Data ) };
-                m_EditorState->EditorSceneRenderer->UpdateEquirectangularMapAsync(hdrPath);
-                RuntimeConsole::Get()->Debug( StringUtil::Format("You dropped texture from HDR_LOAD_LIGHT_PANEL {}", hdrPath ) );
-            }
-            ImGui::EndDragDropTarget();
-        }
+        ImGui::Spacing();
+        ImGui::Spacing();
+
+        hdrDropTarget();
+
+        ImGui::Spacing();
 
         float gamma    { m_EditorState->ActiveEditorScene->GetGamma() };
         float exposure { m_EditorState->ActiveEditorScene->GetExposure() };
@@ -254,4 +355,4 @@ namespace Mikoto {
             m_EditorState->FinalComposition = m_EditorState->EditorSceneRenderer->GetTexture( images[static_cast<Size>(m_FinalCompositionTarget)] );
         }
     }
-}// namespace Mikoto
+}

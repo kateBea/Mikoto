@@ -37,8 +37,14 @@ namespace Mikoto {
         m_Scene = scene;
     }
 
-    auto IBLPasses::RegisterPasses( FrameGraph &graph ) -> void {
+    auto IBLPasses::RegisterPasses( FrameGraph &graph, GpuDevice* device ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
+        // Prepare external resources
+        if ( m_CubeMapSampler.IsEmpty() ) {
+            SamplerDescription samplerDescription{ .CubeSampler{ true } };
+            m_CubeMapSampler = device->CreateSampler( samplerDescription );
+        }
 
         RegisterSkybox( graph );
         RegisterBRDFLut( graph );
@@ -94,6 +100,10 @@ namespace Mikoto {
         m_UsePrecomputedLDRCubeMap = value;
     }
 
+    auto IBLPasses::IsUsingPrecomputedLDRCubeMap() -> bool {
+        return m_UsePrecomputedLDRCubeMap;
+    }
+
     auto IBLPasses::RegisterIrradiance( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -124,11 +134,6 @@ namespace Mikoto {
                     auto& irradianceFlags{ blackboard.Get<IrradiancePassData>() };
                     if (!irradianceFlags.Update) {
                         return;
-                    }
-
-                    if ( m_CubeMapSampler.IsEmpty() ) {
-                        SamplerDescription samplerDescription{ .CubeSampler{ true } };
-                        m_CubeMapSampler = ctx.CreateSampler( samplerDescription );
                     }
 
                     if (m_UsePrecomputedLDRCubeMap) {
@@ -200,11 +205,6 @@ namespace Mikoto {
                     auto& prefilterInfo{ blackboard.Get<PrefilterPassData>() };
                     if (!prefilterInfo.Update) {
                         return;
-                    }
-
-                    if ( m_CubeMapSampler.IsEmpty() ) {
-                        SamplerDescription samplerDescription{ .CubeSampler{ true } };
-                        m_CubeMapSampler = ctx.CreateSampler( samplerDescription );
                     }
 
                     if (m_UsePrecomputedLDRCubeMap) {
@@ -428,11 +428,6 @@ namespace Mikoto {
 
                     if (!m_UseSkybox || m_CubeMap.IsEmpty()) {
                         return;
-                    }
-
-                    if (m_CubeMapSampler.IsEmpty()) {
-                        SamplerDescription samplerDescription{ .CubeSampler{ true } };
-                        m_CubeMapSampler = ctx.CreateSampler( samplerDescription );
                     }
 
                     ctx.BindPipeline( "SkyboxPass_Pipeline" );

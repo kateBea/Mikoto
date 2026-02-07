@@ -68,8 +68,11 @@ namespace Mikoto {
         auto SetUseConvolutedCube( bool enable )-> void;
         MKT_NODISCARD auto IsUsingConvolutedCube() const -> bool;
 
+        MKT_NODISCARD auto GetEquirectangularMap() -> TextureHandle;
+
         auto SetEquirectangularMap(TextureHandle texture2D) -> void;
-        auto SetUseSkyboxLDR( bool enable) -> void;
+        auto SetUseSkyboxLDR( bool enable ) -> void;
+        auto IsUsingPrecomputedLDRCubeMap() -> bool;
 
         auto SetEnableSSAO(bool enable) -> void;
 

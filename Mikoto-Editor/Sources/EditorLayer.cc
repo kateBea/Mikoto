@@ -129,8 +129,7 @@ namespace Mikoto {
         m_ActiveScene->SetSkybox( m_EditorState->TextureHDR );
 
         // Have an equirectangular mapp redy for tests
-        TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( Path{ "Resources/HDR/boma_4k.hdr" }, true ) };
-        m_SceneRenderer->SetEquirectangularMap( texture );
+        //m_SceneRenderer->UpdateEquirectangularMapAsync( "Resources/HDR/boma_4k.hdr" );
 
 #if false
         TextureCubeLoadDescription loadDesc{};

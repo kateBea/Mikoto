@@ -33,7 +33,7 @@ namespace Mikoto {
 
         auto SetScene( Scene* scene) -> void;
         auto SetCamera( const Camera *camera ) -> void;
-        auto RegisterPasses( FrameGraph& graph ) -> void;
+        auto RegisterPasses( FrameGraph& graph, GpuDevice* device ) -> void;
 
         auto SetUseConvolutedCube(bool enable)-> void;
         MKT_NODISCARD auto IsUsingConvolutedCube() const -> bool;
@@ -45,6 +45,7 @@ namespace Mikoto {
         auto SetEquirectangularMap(TextureHandle texture2D) -> void;
 
         auto SetUsePrecomputedLDRCubeMap(bool value) -> void;
+        auto IsUsingPrecomputedLDRCubeMap() -> bool;
         auto SetPrecomputedLDRCubeMap( TextureHandle cubeMap ) -> void;
 
         auto SetExposure( float value ) -> void;

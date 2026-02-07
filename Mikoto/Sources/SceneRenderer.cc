@@ -121,12 +121,20 @@ namespace Mikoto {
         return m_IBLPasses.IsUsingConvolutedCube();
     }
 
+    auto SceneRenderer::GetEquirectangularMap() -> TextureHandle {
+        return m_HDRTexture;
+    }
+
     auto SceneRenderer::SetEquirectangularMap( TextureHandle texture2D ) -> void {
         m_IBLPasses.SetEquirectangularMap( texture2D );
     }
 
     auto SceneRenderer::SetUseSkyboxLDR( bool enable ) -> void {
         m_IBLPasses.SetUsePrecomputedLDRCubeMap( enable );
+    }
+
+    auto SceneRenderer::IsUsingPrecomputedLDRCubeMap() -> bool {
+        return m_IBLPasses.IsUsingPrecomputedLDRCubeMap();
     }
 
     auto SceneRenderer::SetEnableSSAO( bool enable ) -> void {
@@ -173,7 +181,7 @@ namespace Mikoto {
         m_MeshCulling.RegisterPasses( *m_FrameGraph );
         m_DebugPasses.RegisterPasses( *m_FrameGraph );
         m_ClusteredShadingPasses.RegisterPasses( *m_FrameGraph );
-        m_IBLPasses.RegisterPasses( *m_FrameGraph );
+        m_IBLPasses.RegisterPasses( *m_FrameGraph, m_Device );
         m_PostEffectsPasses.RegisterPasses( *m_FrameGraph, m_Device );
 
         m_FrameGraph->Compile();

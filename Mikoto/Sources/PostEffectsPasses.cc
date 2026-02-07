@@ -82,7 +82,7 @@ namespace Mikoto {
                 []( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    b.Create<Buffer>( "TextRenderPass_TextRenderParams", BufferUsage::SSBO, sizeof(TextRenderParams) * MAX_STRING )
+                    b.Create<Buffer>( "TextRenderPass_TextRenderParams", BufferUsage::SSBO, sizeof(TextRenderParams), MAX_STRING )
                         .Create<Buffer>( "TextRenderPass_FontParams", BufferUsage::UNIFORM, sizeof(TextParamsUBO), 1 );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Text_Vert.sprv", ShaderStage::VERTEX );
@@ -106,9 +106,9 @@ namespace Mikoto {
                     graphicsDesc.PrimitiveTopology = Topology::TRIANGLE_LIST;
                     b.Create<Pipeline>( "TextRenderPass_Pipeline", graphicsDesc );
 
-                    b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthRead )
-                        .Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget )
-                        .Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
+                    b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite )
+                    .Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget )
+                    .Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
 
                     b.Write( "TextRenderPass_FontParams", FrameResourceState::UniformBuffer );
                     b.Write( "TextRenderPass_TextRenderParams", FrameResourceState::UniformBuffer );

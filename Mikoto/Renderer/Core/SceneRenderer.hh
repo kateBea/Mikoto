@@ -16,6 +16,8 @@
 #ifndef MIKOTO_SCENE_RENDERER_HH
 #define MIKOTO_SCENE_RENDERER_HH
 
+#include <atomic>
+
 #include <Common/Common.hh>
 #include <Renderer/Core/GpuDevice.hh>
 #include <Library/Data/Registry.hh>
@@ -62,6 +64,7 @@ namespace Mikoto {
         auto SetEnvironmentGamma(float value) -> void;
         auto SetEnvironmentExposure(float value) -> void;
 
+        auto UpdateEquirectangularMapAsync(std::string_view path) -> void;
         auto SetUseConvolutedCube( bool enable )-> void;
         MKT_NODISCARD auto IsUsingConvolutedCube() const -> bool;
 
@@ -109,6 +112,10 @@ namespace Mikoto {
         PostEffectsPass m_PostEffectsPasses{ m_RenderResolution };
         DebugPasses m_DebugPasses{ m_RenderResolution };
         ClusteredShading m_ClusteredShadingPasses{ m_RenderResolution };
+
+        // Async load HDR
+        std::atomic_bool m_LoadedHDR{ false };
+        TextureHandle m_HDRTexture{ };
     };
 }// namespace Mikoto
 

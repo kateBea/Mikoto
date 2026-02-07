@@ -128,6 +128,10 @@ namespace Mikoto {
         m_EditorState->TextureHDR = AssetsService::Get()->LoadAsset<TextureCube>( loadDesc2 );
         m_ActiveScene->SetSkybox( m_EditorState->TextureHDR );
 
+        // Have an equirectangular mapp redy for tests
+        TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( Path{ "Resources/HDR/boma_4k.hdr" } ) };
+        m_SceneRenderer->SetEquirectangularMap( texture );
+
 #if false
         TextureCubeLoadDescription loadDesc{};
         loadDesc.WithType( TextureType::TEXTURE_CUBE )
@@ -840,11 +844,6 @@ namespace Mikoto {
         // Wireframe
         RendererPanel* settings{ m_PanelRegistry.Get<RendererPanel>() };
         m_SceneRenderer->SetWireframeEnable(m_EditorState->ShowWireframe);
-
-        // Skybox Render
-        // TODO: debug
-        TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( Path{ "Resources/HDR/boma_4k.hdr" } ) };
-        m_SceneRenderer->SetEquirectangularMap( texture );
 
         m_SceneRenderer->SetUseSkyboxLDR( settings->EnableSkyboxLDR() );
     }

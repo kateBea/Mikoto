@@ -15,6 +15,8 @@
 #include <memory>
 #include <array>
 
+#include <Core/RuntimeConsole.hh>
+
 #include <ImGui/IconsMaterialDesign.h>
 
 #include <GraphNodes/GraphEditor.hh>
@@ -203,12 +205,37 @@ namespace Mikoto {
     }
 
     auto RendererPanel::DrawIBLSettings() -> void {
+        ImGuiUtils::UnindentScoped und{};
+
         auto usingConvolutedCube{ m_EditorState->EditorSceneRenderer->IsUsingConvolutedCube() };
         if (ImGuiUtils::CheckBox( "##RendererPanel::DrawIBLSettings::UseConv", usingConvolutedCube )) {
             m_EditorState->EditorSceneRenderer->SetUseConvolutedCube(usingConvolutedCube);
         }
         ImGui::SameLine();
         ImGui::TextUnformatted( "Use convoluted cube" );
+
+        TextureHandle textureHandle{ m_EditorState->ActiveEditorScene->GetSkybox() };
+        if (!textureHandle.IsEmpty()) {
+            ImGuiUtils::InputText(StringUtil::Format( "{}", textureHandle->GetTextureUri() ), true );
+        } else {
+            ImGuiUtils::InputText(StringUtil::Format( "Drag EquirectangularMap here" ), true );
+        }
+
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("HDR_LOAD_LIGHT_PANEL") }) {
+                std::string hdrPath{ *static_cast<std::string*>( payload->Data ) };
+                m_EditorState->EditorSceneRenderer->UpdateEquirectangularMapAsync(hdrPath);
+                RuntimeConsole::Get()->Debug( StringUtil::Format("You dropped texture from HDR_LOAD_LIGHT_PANEL {}", hdrPath ) );
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+        float gamma    { m_EditorState->ActiveEditorScene->GetGamma() };
+        float exposure { m_EditorState->ActiveEditorScene->GetExposure() };
+
+        if (ImGuiUtils::Slider( "Gamma", gamma, { 0.0f, 10.0f } ) ) { m_EditorState->ActiveEditorScene->SetGamma( gamma ); }
+        if (ImGuiUtils::Slider( "Exposure", exposure, { 0.0f, 10.0f } ) ) { m_EditorState->ActiveEditorScene->SetExposure( exposure ); }
+
     }
 
     auto RendererPanel::DrawShadowMappingSettings() -> void {

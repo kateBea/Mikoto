@@ -15,6 +15,12 @@
 #include <ranges>
 
 #include <Core/Profiler.hh>
+
+#include <Filesystem/FileSystem.hh>
+#include <Threading/TaskService.hh>
+
+#include <Assets/AssetsService.hh>
+
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Core/RenderService.hh>
@@ -100,6 +106,13 @@ namespace Mikoto {
         m_IBLPasses.SetExposure( value );
     }
 
+    auto SceneRenderer::UpdateEquirectangularMapAsync( std::string_view path ) -> void {
+        TaskService::Get()->Submit( [path = Filesystem::GetGetAbsolutePath(path), this]() -> void {
+            m_HDRTexture = AssetsService::Get()->LoadAsset<Texture>( path );
+            m_LoadedHDR = true;
+        } );
+    }
+
     auto SceneRenderer::SetUseConvolutedCube( bool enable ) -> void {
         m_IBLPasses.SetUseConvolutedCube( enable );
     }
@@ -177,6 +190,14 @@ namespace Mikoto {
         m_DebugPasses.SetMeshCulling( m_MeshCulling );
         m_PostEffectsPasses.SetMeshCulling( m_MeshCulling );
         m_ClusteredShadingPasses.SetMeshCulling( m_MeshCulling );
+
+        // If we loaded a new equirectangular update it in the passes
+        if (m_LoadedHDR) {
+            SetEquirectangularMap( m_HDRTexture );
+
+            // Clear flag
+            m_LoadedHDR = false;
+        }
     }
 
     auto SceneRenderer::OnPostRender() -> void {

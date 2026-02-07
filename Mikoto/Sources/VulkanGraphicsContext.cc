@@ -141,8 +141,16 @@ namespace Mikoto {
     }
 
     auto VulkanGraphicsContext::Shutdown() -> void {
+        m_PassInfo.clear();
+        m_TexturesByNames.clear();
+        m_BuffersByNames.clear();
+        m_PipelinesByNames.clear();
+        m_SamplersByNames.clear();
+        m_Samplers.clear();
+
         m_LayoutTextures.Reset();
         vkDestroyPipelineLayout( VK_DEVICE(m_Device), m_TexturesPipelineLayout, nullptr );
+        vkDestroyPipelineLayout( VK_DEVICE(m_Device), m_TexturesPipelineLayoutPushConstants, nullptr );
     }
 
     auto VulkanGraphicsContext::BeginFrame() -> void {
@@ -163,6 +171,10 @@ namespace Mikoto {
                 VkPipelineLayout pipelineLayout{ it->second.Pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ) };
 
                 for (const auto &[setIndex, descriptorSet]: it->second.DescriptorSets) {
+                    if (descriptorSet == VK_NULL_HANDLE) {
+                        continue;
+                    }
+
                     // Since this is a per pass descriptor set we will only bind the set at PER_PASS_DESCRIPTOR_SET_INDEX
                     if (PER_PASS_DESCRIPTOR_SET_INDEX == setIndex) {
                         switch (it->second.Pipeline->GetPipelineType()) {
@@ -202,7 +214,9 @@ namespace Mikoto {
             const VkDescriptorSetLayout &layout{ vulkanPipeline->GetDescriptorSetLayout( setIndex ) };
             VkDescriptorSet descriptorSet{ TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( std::addressof( layout ) ) };
 
-            passInfo.DescriptorSets[setIndex] = descriptorSet;
+            if ( descriptorSet != VK_NULL_HANDLE ) {
+                passInfo.DescriptorSets[setIndex] = descriptorSet;
+            }
         }
     }
 
@@ -229,12 +243,22 @@ namespace Mikoto {
     }
 
     auto VulkanGraphicsContext::PushBuffer( BufferHandle handle, UInt32 groupBinding, VkDescriptorSet set ) -> void {
+        if (set == VK_NULL_HANDLE) {
+            MKT_CORE_LOGGER_WARN( "VulkanGraphicsContext::PushBuffer - Null descriptor set. Buffer [{}]. Slot [0]", handle->GetDebugName(), groupBinding );
+            return;
+        }
+
         DescriptorWriter writer{};
         writer.WriteBuffer( groupBinding, handle->GetNativeHandle( ObjectType::Vk_Buffer ), handle->GetSizeBytes(), 0, GetBufferDescriptorType( handle->GetUsage() ) );
         writer.UpdateSet( VK_DEVICE( m_Device ), set );
     }
 
     auto VulkanGraphicsContext::PushImage( TextureHandle textureHandle, SamplerHandle samplerHandle, UInt32 groupBinding, VkDescriptorSet set ) -> void {
+
+        if (set == VK_NULL_HANDLE) {
+            MKT_CORE_LOGGER_WARN( "VulkanGraphicsContext::PushImage - Null descriptor set. Image [{}]. Slot [0]", textureHandle->GetDebugName(), groupBinding );
+            return;
+        }
 
         VkSampler sampler{ VK_NULL_HANDLE };
 
@@ -256,10 +280,15 @@ namespace Mikoto {
     }
 
     auto VulkanGraphicsContext::CreateBindlessTexturesSet() -> void {
+        // TODO: Review below, could not figure out yet a way to use push constants with GBuffer which used push constants AND bindless textures array
+        // NOTES: https://docs.vulkan.org/spec/latest/chapters/descriptorsets.html#descriptorsets-compatibility
+        // https://www.reddit.com/r/vulkan/comments/1l53wth/does_vkcmdbinddescriptorsets_invalidate_sets_with/
+
+        // There was an Issue with the GBuffer pass which used a push constant but this pipeline layout declares none
         const UInt32 maxBindlessTextures{ SRGTextures::GetMaxTextureCount() };
 
         VkDescriptorSetLayoutBinding binding{};
-        binding.binding = 0;
+        binding.binding = TEXTURES_DESCRIPTOR_SET_INDEX;
         binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         binding.descriptorCount = maxBindlessTextures;
         binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -295,7 +324,6 @@ namespace Mikoto {
         VkDescriptorSetLayout layoutTextures{ m_LayoutTextures->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ) };
         m_BindlessTexturesSet = TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( std::addressof( layoutTextures ), std::addressof( variableCountInfo ) );
 
-        // We create the pipeline layout for this descriptor set
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .setLayoutCount = 1,
@@ -310,13 +338,45 @@ namespace Mikoto {
             nullptr,
             std::addressof( m_TexturesPipelineLayout )
         );
+
+        // For Passes that use push constants
+        UInt32 size{ 128 }; // Minimum required for Vulkan
+        VkPushConstantRange psRange{
+            .stageFlags = VK_SHADER_STAGE_ALL,
+            .offset     = 0,
+            .size       = size
+        };
+
+        std::array pushConstants{ psRange };
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfoWithPs{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .setLayoutCount = 1,
+            .pSetLayouts = std::addressof( layoutTextures ),
+            .pushConstantRangeCount = static_cast<UInt32>( pushConstants.size() ),
+            .pPushConstantRanges = pushConstants.data()
+        };
+
+        vkCreatePipelineLayout(
+            VK_DEVICE( m_Device ),
+            &pipelineLayoutInfoWithPs,
+            nullptr,
+            std::addressof( m_TexturesPipelineLayoutPushConstants )
+        );
     }
 
-    auto VulkanGraphicsContext::BindGlobalTextures(CommandListHandle cmdList) -> void {
+    auto VulkanGraphicsContext::BindGlobalTextures(std::string_view passName, CommandListHandle cmdList) -> void {
+        const auto it{ m_PassInfo.find( std::string{ passName } ) };
+        MKT_ASSERT( it != m_PassInfo.end(), "Attempting to bind textures for pass that does not exist" );
+
+        VulkanPipeline* vulkanPipeline{ MKT_TO_VK_PIPELINE( it->second.Pipeline ) };
+
+        VkPipelineLayout layout{ vulkanPipeline->HasPushConstants() ? m_TexturesPipelineLayoutPushConstants : m_TexturesPipelineLayout };
+
         vkCmdBindDescriptorSets(
             cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
             VK_PIPELINE_BIND_POINT_GRAPHICS,
-            m_TexturesPipelineLayout,
+            layout,
             TEXTURES_DESCRIPTOR_SET_INDEX,
             1,
             &m_BindlessTexturesSet,

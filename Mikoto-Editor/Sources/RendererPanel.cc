@@ -189,7 +189,17 @@ namespace Mikoto {
     }
 
     auto RendererPanel::DrawSSAOSettings() -> void {
+        // Enable toggle
+        if (ImGuiUtils::CheckBox( "##RendererPanel::DrawSSAOSettings::EnableSSAO", m_EnableSSAO )) {
+            m_EditorState->EditorSceneRenderer->SetEnableSSAO(m_EnableSSAO);
+        }
+        ImGui::TextUnformatted( "Enable SSAO" );
 
+        ImGui::Spacing();
+
+        ImGuiUtils::Slider( "Radius", m_SSAORadius, { 0.05f, 5.0f } );
+        ImGuiUtils::Slider( "Bias", m_SSAOBias, { 0.0f,  0.1f } );
+        ImGuiUtils::Slider( "Power", m_SSAOStrength, { 0.1f,  3.0f } );
     }
 
     auto RendererPanel::DrawIBLSettings() -> void {

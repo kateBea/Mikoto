@@ -116,6 +116,10 @@ namespace Mikoto {
         m_IBLPasses.SetUsePrecomputedLDRCubeMap( enable );
     }
 
+    auto SceneRenderer::SetEnableSSAO( bool enable ) -> void {
+
+    }
+
     auto SceneRenderer::SetWireframeEnable( bool enable ) -> void {
         m_DebugPasses.SetWireframeEnable(enable);
     }

@@ -233,13 +233,15 @@ namespace Mikoto {
                 CommandContext commandContext{ m_GraphicsContex, cmd };
                 commandContext.BeginPass(node);
 
-                // Make sure the resources this pass consumes are in proper state
-                InsertResourceBarriers(node, cmd);
-
-                // Bindless textures bound once and active for the entire recording of the command buffer
+                // Bindless textures bound once and active
+                // for the entire recording of the command buffer
                 if (UsesTextureList( node.Name )) {
                     commandContext.BindGlobalTextures();
                 }
+                m_GraphicsContex->BindShaderResources( node.Name, cmd );
+
+                // Make sure the resources this pass consumes are in proper state
+                InsertResourceBarriers(node, cmd);
 
                 node.ExecuteCallback( commandContext, m_GraphBlackboard );
 
@@ -355,6 +357,7 @@ namespace Mikoto {
     }
 
     auto FrameGraph::SortPassExecution() -> void {
+        // TODO: check also that every resource has t least one writer
         ankerl::unordered_dense::map<std::string, std::string> resourceWriters;
 
         for (auto &[passName, node]: m_Passes) {

@@ -64,6 +64,14 @@ namespace Mikoto {
 
         bool m_EnableVSync{ false };
 
+        // SSAO
+        bool m_EnableSSAO{ true };
+        UInt32 m_SSAODimensions{ 8 }; // m_SSAODimensions * m_SSAODimensions
+        float m_KernelSize{ 0.5f };
+        float m_SSAORadius{ 0.5f };
+        float m_SSAOBias{ 0.5f };
+        float m_SSAOStrength{ 1.5f };
+
         FinalCompositionTarget m_FinalCompositionTarget{ FinalCompositionTarget::FINAL_IMAGE };
     };
 }

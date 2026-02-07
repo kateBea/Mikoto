@@ -78,7 +78,7 @@ namespace Mikoto {
         virtual auto BindShaderResources(std::string_view passName, CommandListHandle cmdList  ) -> void = 0;
 
         // Managing global sampler 2D images
-        virtual auto BindGlobalTextures(CommandListHandle cmdList) -> void = 0;
+        virtual auto BindGlobalTextures(std::string_view passName, CommandListHandle cmdList) -> void = 0;
         virtual auto PushGlobalTexture( TextureHandle texture ) -> Int32 = 0;
 
         // Make visible a buffer as shader resource to a specific pass

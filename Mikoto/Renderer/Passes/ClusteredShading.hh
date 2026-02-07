@@ -72,8 +72,13 @@ namespace Mikoto {
             UInt32 LightIndices[MAX_LIGHT_CLUSTERS];
         };
 
-        struct alignas(16) LightCullingUBO {
+        struct LightCullingUBO {
             UInt32 LightCount{};
+        };
+
+        struct GBufferConstants {
+            float NearPlane{};
+            float FarPlane{};
         };
 
     private:
@@ -88,6 +93,9 @@ namespace Mikoto {
 
         CameraUBO m_CameraUBO{};
         LightCullingUBO m_LightCullingUBO{};
+
+        // GBuffer
+        GBufferConstants m_GBufferParams{};
 
         RenderResolution m_Resolution{ RenderResolution::FHD_1080 };
 

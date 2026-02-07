@@ -24,8 +24,6 @@ namespace Mikoto {
     auto CommandContext::BeginPass( FramePassNode& pass ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
         m_ActivePass = std::addressof( pass );
-
-        m_Context->BindShaderResources( pass.Name, m_Commands );
     }
 
     auto CommandContext::EndPass() -> void {
@@ -107,7 +105,7 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
-        m_Context->BindGlobalTextures( m_Commands );
+        m_Context->BindGlobalTextures( m_ActivePass->Name, m_Commands );
     }
 
     auto CommandContext::BindPipeline( std::string_view pipelineName ) -> void {

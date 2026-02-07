@@ -15,29 +15,31 @@
 #version 450
 
 #extension GL_EXT_nonuniform_qualifier : require
+#extension GL_EXT_scalar_block_layout : require
 
 #include "ShaderBase.glsl"
 #include "ClusteredShading.glsl"
 
 #define INVALID_TEXTURE_INDEX -1
 
-// --------------------------------------------------
-// Interpolated input (with flat for instance data)
-// --------------------------------------------------
-layout(location = 0) in vec3 in_FragmentWorldPos;
-layout(location = 1) in vec3 in_Normals;
-layout(location = 2) in vec2 in_TexCoord;
-layout(location = 3) in vec3 in_VertexColor;
-layout(location = 4) in vec3 in_CameraPos;
+layout(location = 1) in vec3 in_FragmentWorldPos;
+layout(location = 2) in vec3 in_Normals;
+layout(location = 3) in vec2 in_TexCoord;
+layout(location = 4) in vec3 in_Color;
 
 layout(location = 5) flat in int in_AlbedoIndex;
 layout(location = 6) flat in int in_NormalIndex;
-layout(location = 10) flat in vec4 in_Albedo;
-layout(location = 11) flat in vec4 in_Factors;
+layout(location = 7) flat in vec4 in_Albedo;
+layout(location = 8) flat in vec4 in_Factors;
 
-layout(location = 12) in vec3 in_FragmentViewPos;
+layout(location = 9) in vec3 in_FragmentViewPos;
 
 layout(set = TEXTURES_SETINDEX, binding = 0) uniform sampler2D g_BindlessTextures[];
+
+layout(scalar, set = PERPASS_SETINDEX, binding = 2) uniform GBufferCamUBO {
+    float NearPlane;
+    float FarPlane;
+} u_Parameters;
 
 layout(location = 0) out vec4 out_Position;
 layout(location = 1) out vec4 out_Normal;
@@ -59,6 +61,13 @@ vec3 GetNormalFromMap(sampler2D normalMap) {
     return normalize(TBN * tangentNormal);
 }
 
+float LinearDepth(float depth) {
+    float z = depth * 2.0f - 1.0f;
+
+    return (2.0f * u_Parameters.NearPlane * u_Parameters.FarPlane) /
+        (u_Parameters.FarPlane + u_Parameters.NearPlane - z * (u_Parameters.FarPlane - u_Parameters.NearPlane));
+}
+
 void main() {
 
     vec3 albedo     = in_AlbedoIndex != INVALID_TEXTURE_INDEX ?
@@ -66,10 +75,10 @@ void main() {
     in_Albedo.xyz;
 
     vec3 N = in_NormalIndex != INVALID_TEXTURE_INDEX ?
-    GetNormalFromMap(g_BindlessTextures[in_NormalIndex]) :
-    normalize(in_Normals);
+        GetNormalFromMap(g_BindlessTextures[in_NormalIndex]) :
+        normalize(in_Normals);
 
-    out_Position = vec4(in_FragmentWorldPos , 1.0);
-    out_Normal = vec4(N , 1.0);
+    out_Position = vec4(in_FragmentViewPos, LinearDepth(gl_FragCoord.z));
+    out_Normal = vec4(normalize(N) * 0.5 + 0.5, 1.0);
     out_Color = vec4(albedo , 1.0);
 }

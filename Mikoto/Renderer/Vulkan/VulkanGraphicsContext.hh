@@ -57,7 +57,7 @@ namespace Mikoto {
         auto BindShaderResources( std::string_view passName, CommandListHandle cmdList ) -> void override;
 
         auto PushGlobalTexture( TextureHandle texture ) -> Int32  override;
-        auto BindGlobalTextures(CommandListHandle cmdList) -> void override;
+        auto BindGlobalTextures(std::string_view passName, CommandListHandle cmdList) -> void override;
 
         auto PushBuffer(BufferHandle handle, std::string_view passName, UInt32 bindingSlot) -> void  override;
         auto PushTexture(TextureHandle handle, SamplerHandle sampler, std::string_view passName, UInt32 bindingSlot) -> void  override;
@@ -106,6 +106,7 @@ namespace Mikoto {
         DescriptorSetLayoutHandle m_LayoutTextures{};
         VkDescriptorSet m_BindlessTexturesSet{};
         VkPipelineLayout m_TexturesPipelineLayout{};
+        VkPipelineLayout m_TexturesPipelineLayoutPushConstants{};
         bool m_UpdateTextureDescriptor{ false };
 #endif
     private:

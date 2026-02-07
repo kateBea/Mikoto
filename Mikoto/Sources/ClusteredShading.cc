@@ -36,6 +36,9 @@ namespace Mikoto {
     auto ClusteredShading::SetCamera( const Camera *camera ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        m_GBufferParams.FarPlane = camera->GetFarPlane();
+        m_GBufferParams.NearPlane = camera->GetNearPlane();
+
         m_Camera = camera;
     }
 
@@ -102,9 +105,12 @@ namespace Mikoto {
                 "GBuffer",
                 [this]( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
-                    b.Create<Texture>( "GBuffer_Position", m_Resolution, TextureFormat::RGBA16_FLOAT, TextureUsage::COLOR );
-                    b.Create<Texture>( "GBuffer_Normal", m_Resolution, TextureFormat::RGBA16_FLOAT, TextureUsage::COLOR );
+                    b.Create<Texture>( "GBuffer_Position", m_Resolution, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
+                    b.Create<Texture>( "GBuffer_Normal", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
                     b.Create<Texture>( "GBuffer_Color", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                    b.Create<Texture>( "GBuffer_Depth", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
+
+                    b.Create<Buffer>( "GBuffer_Params", BufferUsage::UNIFORM, sizeof( m_GBufferParams ), 1 );
                     b.Create<Texture>( "GBuffer_Depth", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/GBuffer_Vert.sprv", ShaderStage::VERTEX );
@@ -116,8 +122,8 @@ namespace Mikoto {
                         .AlphaBlending{ false },
                         .PipelineCullMode{ CullMode::NONE },
                         .ColorAttachmentFormats{
-                            TextureFormat::RGBA16_FLOAT,
-                            TextureFormat::RGBA16_FLOAT,
+                            TextureFormat::RGBA32_FLOAT,
+                            TextureFormat::RGBA8_UNORM,
                             TextureFormat::RGBA8_UNORM
                         },
                         .DepthAttachmentFormat{ TextureFormat::D32_FLOAT }
@@ -129,17 +135,18 @@ namespace Mikoto {
                     b.Write( "GBuffer_Color", FrameResourceState::RenderTarget );
                     b.Write( "GBuffer_Depth", FrameResourceState::DepthWrite );
 
+                    b.Write( "GBuffer_Params", FrameResourceState::UniformBuffer );
+
                     b.Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
                     b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
 
                     b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_CameraInfo", 0 );
                     b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 1 );
+                    b.Use( SRGType::SRG_PerPass, "GBuffer_Params", 2 );
                     b.Use( SRGType::SRG_Textures );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
-
-                    ctx.BindPipeline( "GBuffer_Pipeline" );
 
                     ctx.SetColorRenderTarget( "GBuffer_Position" );
                     ctx.SetColorRenderTarget( "GBuffer_Normal" );
@@ -150,6 +157,10 @@ namespace Mikoto {
 
                     ctx.SetViewport( 0, 0, 1920, 1080 );
                     ctx.SetScissor( 0, 0, 1920, 1080 );
+
+                    ctx.BindPipeline( "GBuffer_Pipeline" );
+
+                    ctx.UploadBuffer( "GBuffer_Params", m_GBufferParams );
 
                     m_MeshCullingPass->DrawInstances( ctx );
 

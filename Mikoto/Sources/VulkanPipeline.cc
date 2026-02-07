@@ -197,6 +197,10 @@ namespace Mikoto {
         return m_ReflectionData.pipelineLayout;
     }
 
+    auto VulkanPipeline::HasPushConstants() const -> bool {
+        return !m_ReflectionData.pushConstantRanges.empty();
+    }
+
     auto VulkanPipeline::GetDescriptorLayoutCount() const -> Size {
         return m_ReflectionData.setLayouts.size();
     }

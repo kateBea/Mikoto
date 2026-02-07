@@ -905,12 +905,20 @@ namespace Mikoto::VulkanHelpers::Reflection {
             setLayouts[setIndex] = layout;
         }
 
-        VkPipelineLayoutCreateInfo plInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
+        // Add a Layout with no descriptors, not needed because we should not bind an empty Set
+        // for (Size setIndex{}; setIndex < setLayouts.size(); setIndex++) {
+        //     if (out.setLayouts[setIndex] == VK_NULL_HANDLE) {
+        //         out.setLayouts[setIndex] = setLayouts[setIndex];
+        //     }
+        // }
+
+        // Prepare list of sets for the pipeline layout
         for (const auto &[layoutIndex, setLayout]: out.setLayouts) {
             setLayouts[layoutIndex] = setLayout;
         }
 
+        VkPipelineLayoutCreateInfo plInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
         plInfo.setLayoutCount = static_cast<UInt32>(setLayouts.size());
         plInfo.pSetLayouts = setLayouts.data();
 

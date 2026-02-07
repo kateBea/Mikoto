@@ -167,18 +167,19 @@ namespace Mikoto {
         return ModelHandle::CreateEmpty();
     }
 
-    auto AssetsService::LoadTexture( const Path& uri ) -> TextureHandle {
+    auto AssetsService::LoadTexture( const Path& uri, bool isHDR ) -> TextureHandle {
         MKT_BEGIN_PROFILER_NAMED();
 
         const std::string uriString{ uri.string() };
-        return LoadTexture( std::string_view{ uriString } );
+        return LoadTexture( std::string_view{ uriString }, isHDR );
     }
 
-    auto AssetsService::LoadTexture( std::string_view uri ) -> TextureHandle {
+    auto AssetsService::LoadTexture( std::string_view uri, bool isHDR ) -> TextureHandle {
         MKT_BEGIN_PROFILER_NAMED();
 
         TextureLoadDescription loadDesc{};
         loadDesc.WithFile( FileService::Get()->LoadFile( uri ) )
+                .IsHDRMap( isHDR )
                 .WithType( TextureType::TEXTURE_2D );
 
         return LoadTexture( loadDesc );
@@ -197,7 +198,7 @@ namespace Mikoto {
             return itFind->second;
         }
 
-        const StbImage image{ textureFile };
+        const StbImage image{ textureFile, description.IsHDR };
 
         if ( !image.IsValid() ) {
             return TextureHandle::CreateEmpty();

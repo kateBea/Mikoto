@@ -1,6 +1,16 @@
+//    Copyright 2026 ケイト
 //
-// Created by zanet on 4/12/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #if !defined(STB_IMAGE_IMPLEMENTATION)
 #define STB_IMAGE_IMPLEMENTATION
@@ -111,12 +121,14 @@ namespace Mikoto {
         return *this;
     }
 
-    StbImage::StbImage( const File* textureFile, bool isFloat ) {
-        if (isFloat) {
-            m_Data = LoadImageFloatFromFile( textureFile, m_Width, m_Height, m_Channels );
-        } else {
-            m_Data = LoadImageFromFile( textureFile, m_Width, m_Height, m_Channels );
-        }
+    StbImage::StbImage( const File* textureFile, bool isHDR ) {
+        // FIXME: it looks buggy when transformed into a cubeMap
+        // if (isHDR) {
+        //     m_Data = LoadImageFloatFromFile( textureFile, m_Width, m_Height, m_Channels );
+        // } else {
+        //     m_Data = LoadImageFromFile( textureFile, m_Width, m_Height, m_Channels );
+        // }
+        m_Data = LoadImageFromFile( textureFile, m_Width, m_Height, m_Channels );
     }
 
     StbImage::~StbImage() {
@@ -273,6 +285,11 @@ namespace Mikoto {
 
     auto TextureDescription::WithResourceType( ResourceUsageType type ) -> TextureDescription& {
         UsageType = type;
+        return *this;
+    }
+
+    auto TextureLoadDescription::IsHDRMap( bool value ) -> TextureLoadDescription& {
+        IsHDR = value;
         return *this;
     }
 

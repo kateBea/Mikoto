@@ -108,7 +108,7 @@ namespace Mikoto {
 
     auto SceneRenderer::UpdateEquirectangularMapAsync( std::string_view path ) -> void {
         TaskService::Get()->Submit( [path = Filesystem::GetGetAbsolutePath(path), this]() -> void {
-            m_HDRTexture = AssetsService::Get()->LoadAsset<Texture>( path );
+            m_HDRTexture = AssetsService::Get()->LoadAsset<Texture>( path, true );
             m_LoadedHDR = true;
         } );
     }

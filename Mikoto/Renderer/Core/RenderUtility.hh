@@ -239,11 +239,12 @@ namespace Mikoto {
     * for setting its properties.
     */
     struct TextureLoadDescription {
+        bool IsHDR{ false };
         const File* TextureFile{};
         MapType Map{ MapType::UNDEFINED_TEXTURE };
         TextureType Type{ TextureType::TEXTURE_UNKNOWN };
 
-
+        auto IsHDRMap( bool value ) -> TextureLoadDescription&;
         auto WithMapType( MapType type ) -> TextureLoadDescription&;
         auto WithFile( const File* file ) -> TextureLoadDescription&;
         auto WithType( TextureType type ) -> TextureLoadDescription&;
@@ -425,7 +426,7 @@ namespace Mikoto {
 
     class StbImage final {
     public:
-        explicit StbImage( const File* textureFile, bool isFloat = false );
+        explicit StbImage( const File* textureFile, bool isHDR = false );
 
         ~StbImage();
 

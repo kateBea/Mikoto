@@ -256,7 +256,7 @@ namespace Mikoto {
         }
 
         static float lineWidth{ 1.0f };
-        if (ImGuiUtils::Slider( "Wireframe width", lineWidth, { 0.0f, 5.0f } ) ) {
+        if (ImGuiUtils::Slider( "Wireframe width", lineWidth, { 0.0f, 30.0f } ) ) {
             m_EditorState->EditorSceneRenderer->SetWireframeLineLineWidth( lineWidth );
         }
     }

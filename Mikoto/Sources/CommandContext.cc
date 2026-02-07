@@ -125,6 +125,10 @@ namespace Mikoto {
         m_RenderInfo.ClearColor = color;
     }
 
+    auto CommandContext::SetPolygonLineWidth( float value ) -> void {
+        m_Commands->SetPolygonLineWidth( value );
+    }
+
     auto CommandContext::Draw( UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 

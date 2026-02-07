@@ -52,6 +52,8 @@ namespace Mikoto {
         auto CopyTexture(Texture* src, Texture* dest) -> void override;
         auto CopyTexture(Texture2D* src, TextureCube* dest, UInt32 mipLevel, UInt32 face) -> void override;
 
+        auto SetPolygonLineWidth(float value) -> void override;
+
         auto WriteBuffer(Buffer* target, Byte* data, Size size) -> void override;
         auto WriteTexture(Texture* target, Byte* data, Size size) -> void override;
 

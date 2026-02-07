@@ -58,6 +58,8 @@ namespace Mikoto {
         virtual auto CopyTexture(Texture* src, Texture* dest) -> void = 0;
         virtual auto CopyTexture(Texture2D* src, TextureCube* dest, UInt32 mipLevel, UInt32 face) -> void = 0;
 
+        virtual auto SetPolygonLineWidth(float value) -> void = 0;
+
         // Can be device local data
         virtual auto WriteBuffer(Buffer* target, Byte* data, Size size) -> void = 0;
         virtual auto WriteTexture(Texture* target, Byte* data, Size size) -> void = 0;

@@ -69,6 +69,8 @@ namespace Mikoto {
  */
 namespace Mikoto::VulkanHelpers {
 
+    static inline constexpr float STANDARD_POLYGON_LINE_WIDTH{ 1.0f };
+
     // We take a set because for instance graphics queue and present queue could be the same, if u try to create two queues of same index program will crash
     MKT_NODISCARD auto SetupDeviceQueueCreateInfo(const std::set<UInt32>& uniqueQueueFamilies) -> std::vector<VkDeviceQueueCreateInfo>;
 

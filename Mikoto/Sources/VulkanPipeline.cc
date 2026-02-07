@@ -286,7 +286,7 @@ namespace Mikoto {
 
         if (m_Wireframe) {
             m_PipelineConfig.RasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
-            //m_DynamicStates.emplace_back( VK_DYNAMIC_STATE_LINE_WIDTH );
+            m_DynamicStates.emplace_back( VK_DYNAMIC_STATE_LINE_WIDTH );
         }
 
         // VK_DYNAMIC_STATE_VERTEX_INPUT_EXT can reduce the amount of pipelines the application needs to create

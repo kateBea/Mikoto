@@ -128,6 +128,8 @@ namespace Mikoto {
 
                     ctx.BindPipeline( "Wireframe_Pipeline" );
 
+                    ctx.SetPolygonLineWidth( m_WireframeLineWidth );
+
                     m_Culling->DrawInstances( ctx );
 
                     ctx.EndRender();

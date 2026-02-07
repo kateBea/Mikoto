@@ -29,7 +29,7 @@
 #include <Renderer/Vulkan/VulkanTexture.hh>
 #include <tracy/TracyVulkan.hpp>
 
-#include "Core/SystemStats.hh"
+#include <Library/Math/Math.hh>
 
 namespace Mikoto {
 
@@ -343,6 +343,7 @@ namespace Mikoto {
         // Requested device features
         VkPhysicalDeviceFeatures deviceFeatures{};
         deviceFeatures.samplerAnisotropy = VK_TRUE;
+        deviceFeatures.wideLines = VK_TRUE; // for wireframe
 
         // required for wireframe mode
         deviceFeatures.fillModeNonSolid = VK_TRUE;
@@ -1126,6 +1127,27 @@ namespace Mikoto {
         // Transition SRC/DST back
         vulkanSrc->SubmitLayoutTransition( srcOriginalLayout, m_CmdBuffer );
         vulkanDest->SubmitLayoutTransition( destOriginalLayout, m_CmdBuffer );
+    }
+
+    auto VulkanCmdList::SetPolygonLineWidth( float value ) -> void {
+        // Check
+        const auto& physicalProperties{ TO_VK_DEVICE( m_Device )->GetPhysicalDeviceProperties() };
+        const auto& deviceFeatures{ TO_VK_DEVICE( m_Device )->GetPhysicalDeviceFeatures() };
+
+        float minLineWidth{ physicalProperties.limits.lineWidthRange[0] };
+        float maxLineWidth{ physicalProperties.limits.lineWidthRange[1] };
+
+        if (!Math::IsBetween(value, minLineWidth, maxLineWidth)) {
+            MKT_CORE_LOGGER_ERROR( "Trying to use polygon line width '{}' out of device limits [{}, {}]", value, minLineWidth, maxLineWidth );
+            value = VulkanHelpers::STANDARD_POLYGON_LINE_WIDTH;
+        }
+
+        if (!deviceFeatures.wideLines) {
+            MKT_CORE_LOGGER_WARN( "Wide lines not supported by the device" );
+            value = VulkanHelpers::STANDARD_POLYGON_LINE_WIDTH;
+        }
+
+        vkCmdSetLineWidth(m_CmdBuffer, value);
     }
 
     auto VulkanCmdList::WriteBuffer( Buffer* target, Byte* data, Size size ) -> void {

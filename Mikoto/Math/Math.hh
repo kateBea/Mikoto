@@ -38,13 +38,23 @@ namespace Mikoto::Math {
     MKT_NODISCARD auto ToRadians(double value) -> double;
     MKT_NODISCARD auto ToDegrees(double value) -> double;
 
-
     MKT_NODISCARD auto Abs(double value) -> double;
 
     MKT_NODISCARD auto Lerp(float a, float b, float f) -> double;
 
     auto Recompose( Mat4F& transform, const Vec3F& translation, const Vec3F& rotation, const Vec3F& scale ) -> void;
     auto Decompose( const Mat4F& transform, Vec3F& translation, Vec3F& rotation, Vec3F& scale ) -> void;
+
+    // Reenable when other math file gets deleted
+    // template<typename T>
+    // MKT_NODISCARD auto IsBetween( const T& value, const T& lowerBound, const T& upperBound ) -> bool {
+    //     return value >= lowerBound && value <= upperBound;
+    // }
+    //
+    // template<typename T>
+    // MKT_NODISCARD auto Clamp( const T& value, const T& min, const T& max ) -> T {
+    //     return std::max( min, std::min( value, max ) );
+    // }
 
 }
 

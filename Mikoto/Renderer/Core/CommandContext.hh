@@ -76,6 +76,8 @@ namespace Mikoto {
 
         auto SetClearColor(const Vec4F& color) -> void;
 
+        auto SetPolygonLineWidth(float value) -> void;
+
         auto DrawIndexed(const DrawIndexedState& info) -> void;
         auto Draw(UInt32 vertexCount, UInt32 instanceCount = 1, UInt32 firstVertex = 0, UInt32 firstInstance = 0 ) -> void;
         auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void;

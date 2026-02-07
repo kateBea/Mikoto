@@ -139,6 +139,18 @@ namespace Mikoto {
         m_DebugPasses.SetWireframeEnable(enable);
     }
 
+    auto SceneRenderer::SetWireframeLineLineWidth( float value ) -> void {
+        m_DebugPasses.SetWireframeLineLineWidth( value );
+    }
+
+    auto SceneRenderer::SetWireframeLineColor( const Vec4F &color ) -> void {
+        m_DebugPasses.SetWireframeLineColor( color );
+    }
+
+    auto SceneRenderer::SetWireframeClearColor( const Vec4F &color ) -> void {
+        m_DebugPasses.SetWireframeLineLineClearColor( color );
+    }
+
     auto SceneRenderer::GetPassList() const -> const PassList & {
         return m_FrameGraph->GetPassList();
     }

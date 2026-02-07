@@ -14,9 +14,15 @@
 
 #version 450
 
+#extension GL_EXT_scalar_block_layout : require
+
 layout (location = 0) out vec4 o_Color;
+
+layout(scalar, push_constant) uniform WireframeParams {
+    vec4 LineColor;
+} u_Parameters;
 
 void main() {
 
-    o_Color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    o_Color = vec4(u_Parameters.LineColor);
 }

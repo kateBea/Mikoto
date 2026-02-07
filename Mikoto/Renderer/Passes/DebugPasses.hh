@@ -32,6 +32,10 @@ namespace Mikoto {
 
         auto RegisterPasses(FrameGraph& graph) -> void;
 
+        auto SetWireframeLineLineWidth(float value) -> void;
+        auto SetWireframeLineColor(const Vec4F& color) -> void;
+        auto SetWireframeLineLineClearColor(const Vec4F& color) -> void;
+
         auto SetClearColor( const Vec4F& vec ) -> void;
         auto SetLinesColor( const Vec4F& color ) -> void;
         auto ShowColorImage( bool value ) -> void;
@@ -47,6 +51,11 @@ namespace Mikoto {
         auto RegisterInfiniteGrid( FrameGraph& graph ) -> void;
         auto RegisterHelloCube( FrameGraph& graph ) -> void;
         auto RegisterHelloTexture( FrameGraph& graph ) -> void;
+
+    private:
+        struct WireframeParams {
+            Vec4F WireframeLineColor{ 0.0f, 0.0f, 0.0f, 1.0f };
+        };
     private:
 
         // Texture to be displayed in the Texture debug pass
@@ -58,6 +67,10 @@ namespace Mikoto {
 
         MeshCulling* m_Culling{};
 
+        // Wireframe
+        WireframeParams m_WireframeParams{};
+        Vec4F m_WireframeClearColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+        float m_WireframeLineWidth{ 1.0f };
         bool m_RunWireframe{ false };
 
         bool m_ShowColorImageWireframe{ false };

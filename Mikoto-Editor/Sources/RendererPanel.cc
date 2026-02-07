@@ -244,9 +244,21 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( "Render wireframe" );
 
-        ImGuiUtils::CheckBox( "##RendererPanel::DrawRendererConfig::LDR", m_EnableSkyboxLDR );
-        ImGui::SameLine();
-        ImGui::TextUnformatted( "Use CubeMap LDR" );
+        constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
+        static Vec4F clearColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+        if ( ImGui::ColorEdit3( "Wireframe Clear color", glm::value_ptr( clearColor ), colorEditFlags ) ) {
+            m_EditorState->EditorSceneRenderer->SetWireframeClearColor( clearColor );
+        }
+
+        static Vec4F lineColor{ 0.0f, 0.0f, 0.0f, 1.0f };
+        if ( ImGui::ColorEdit3( "Wireframe color", glm::value_ptr( lineColor ), colorEditFlags ) ) {
+            m_EditorState->EditorSceneRenderer->SetWireframeLineColor( lineColor );
+        }
+
+        static float lineWidth{ 1.0f };
+        if (ImGuiUtils::Slider( "Wireframe width", lineWidth, { 0.0f, 5.0f } ) ) {
+            m_EditorState->EditorSceneRenderer->SetWireframeLineLineWidth( lineWidth );
+        }
     }
 
     auto RendererPanel::DrawSSAOSettings() -> void {
@@ -275,6 +287,10 @@ namespace Mikoto {
         }
         ImGui::SameLine();
         ImGui::TextUnformatted( "Use convoluted cube" );
+
+        ImGuiUtils::CheckBox( "##RendererPanel::DrawRendererConfig::LDR", m_EnableSkyboxLDR );
+        ImGui::SameLine();
+        ImGui::TextUnformatted( "Use CubeMap LDR" );
 
         auto hdrDropTarget{
             [this]() -> void {

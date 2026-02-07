@@ -59,6 +59,8 @@ namespace Mikoto {
         auto SetCamera( SceneCamera* camera ) -> void;
 
         auto SetClearColor(const Vec4F& color) -> void;
+
+        // IBL
         auto EnableSkybox(bool enable) -> void;
         auto SetEnvironmentGamma(float value) -> void;
         auto SetEnvironmentExposure(float value) -> void;
@@ -72,12 +74,18 @@ namespace Mikoto {
         MKT_NODISCARD auto IsUsingConvolutedCube() const -> bool;
         MKT_NODISCARD auto GetEquirectangularMap() -> TextureHandle;
 
+        // SSAO
         auto SetEnableSSAO(bool enable) -> void;
 
+        // Wireframe
         auto SetWireframeEnable(bool enable) -> void;
+        auto SetWireframeLineLineWidth(float value) -> void;
+        auto SetWireframeLineColor(const Vec4F& color) -> void;
+        auto SetWireframeClearColor(const Vec4F& color) -> void;
 
         MKT_NODISCARD auto GetPassList() const -> const PassList&;
 
+        // Resolution
         auto SetRenderResolution( RenderResolution resolution ) -> void;
         MKT_NODISCARD auto GetRenderResolution() const -> RenderResolution;
         MKT_NODISCARD auto IsRenderResolution(RenderResolution resolution) const -> bool;

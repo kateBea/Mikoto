@@ -59,6 +59,18 @@ namespace Mikoto {
         RegisterWireFrame( graph );
     }
 
+    auto DebugPasses::SetWireframeLineLineWidth( float value ) -> void {
+        m_WireframeLineWidth = value;
+    }
+
+    auto DebugPasses::SetWireframeLineColor( const Vec4F &color ) -> void {
+        m_WireframeParams.WireframeLineColor = color;
+    }
+
+    auto DebugPasses::SetWireframeLineLineClearColor( const Vec4F &color ) -> void {
+        m_WireframeClearColor = color;
+    }
+
     auto DebugPasses::RegisterObjectOutline( FrameGraph &graph ) -> void {
 
     }
@@ -106,9 +118,11 @@ namespace Mikoto {
                     ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
                     ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
-                    ctx.SetClearColor( { 1.0f, 1.0f, 1.0f, 1.0f } );
+                    ctx.SetClearColor( m_WireframeClearColor );
                     ctx.SetColorRenderTarget( "Wireframe_ColorTarget" );
                     ctx.SetDepthRenderTarget( "Wireframe_DepthTarget" );
+
+                    ctx.PushConstants( std::addressof( m_WireframeParams ), sizeof( m_WireframeParams ) );
 
                     ctx.BeginRender();
 

@@ -301,15 +301,18 @@ namespace Mikoto {
         };
 
         for ( UInt32 x{}; x < gridSize; ++x ) {
-            for ( UInt32 z{}; z < gridSize; ++z ) {
+            for ( UInt32 y{}; y < gridSize; ++y ) {
+                for ( UInt32 z{}; z < gridSize; ++z ) {
 
-                info.Name = fmt::format( "Cube_{}_{}", x, z );
+                    info.Name = fmt::format( "Cube_{}_{}_{}", x, y, z );
 
-                if ( Entity * e{ m_ActiveScene->CreateEntity( info ) } ) {
-                    auto &t = e->GetComponent<TransformComponent>();
-                    t.SetTranslation( { static_cast<float>( x ) * spacing,
-                                        0.0f,
-                                        static_cast<float>( z ) * spacing } );
+                    if ( Entity * e{ m_ActiveScene->CreateEntity( info ) } ) {
+                        auto &t{ e->GetComponent<TransformComponent>() };
+                        t.SetTranslation(
+                                { static_cast<float>( x ) * spacing,
+                                  static_cast<float>( y ) * spacing,
+                                  static_cast<float>( z ) * spacing } );
+                    }
                 }
             }
         }

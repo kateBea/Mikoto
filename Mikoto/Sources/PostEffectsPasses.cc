@@ -82,7 +82,7 @@ namespace Mikoto {
                 []( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    b.Create<Buffer>( "TextRenderPass_TextRenderParams", BufferUsage::SSBO, sizeof(TextRenderParams), MAX_STRING )
+                    b.Create<Buffer>( "TextRenderPass_TextRenderParams", BufferUsage::SSBO, sizeof(TextRenderParams), MAX_GLYPHS )
                         .Create<Buffer>( "TextRenderPass_FontParams", BufferUsage::UNIFORM, sizeof(TextParamsUBO), 1 );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Text_Vert.sprv", ShaderStage::VERTEX );
@@ -434,7 +434,7 @@ namespace Mikoto {
         for ( const auto& character : text ) {
             if ( IsLineFeed(character) ) {
                 xPos = position.x;
-                yPos -= lineHeight;
+                yPos += lineHeight;
                 continue;
             }
 
@@ -467,7 +467,9 @@ namespace Mikoto {
                         fontParams.Proj = camera->GetProjection();
                         fontParams.View = camera->GetViewMatrix();
                     } else {
-                        fontParams.Proj = glm::ortho(0.0f, 1920.0f,1080.0f, 0.0f,-1.0f, 1.0f);
+                        const auto dimension{ InferDimensions( m_Resolution ) };
+
+                        fontParams.Proj = glm::ortho(0.0f, dimension.first,dimension.second, 0.0f,-1.0f, 1.0f);
                         fontParams.View = glm::mat4{ 1.0f };
                     }
 

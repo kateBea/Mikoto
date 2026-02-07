@@ -86,7 +86,7 @@ namespace Mikoto {
             std::array<Vec4F, SSAO_KERNEL_SIZE> Samples{};
         };
 
-        static constexpr UInt32 MAX_STRING{ 8096 * 10 };
+        static constexpr UInt32 MAX_GLYPHS{ 1024 * 1024 };
 
         std::vector<TextRenderParams> m_TextRenderParams{};
 

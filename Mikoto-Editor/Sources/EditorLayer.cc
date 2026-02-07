@@ -34,6 +34,7 @@
 #include <Renderer/Core/DebugRenderer.hh>
 #include <Renderer/Core/RenderService.hh>
 
+#include <Application/EditorApp.hh>
 #include <Application/EditorUtility.hh>
 
 namespace Mikoto {
@@ -280,6 +281,42 @@ namespace Mikoto {
         }
     }
 
+    auto EditorLayer::DebugCubesProperties() -> void {
+        ModelHandle sphere{ AssetsService::Get()->LoadAsset<Model>( EditorApp::GetPrefabUri( PrefabModels::SPHERE ) ) };
+
+        Entity *root{ m_ActiveScene->CreateEntity( "InstancingGridSpheres" ) };
+
+        EntityCreateInfo info{
+            .Root{ root },
+            .Model{ sphere }
+        };
+
+        constexpr UInt32 gridSize{ 5 };// gridSize * gridSize spheres
+        constexpr float spacing{ 30.0f };// Distance between spheres
+
+        for (UInt32 x{}; x < gridSize; ++x) {
+            for ( UInt32 y{}; y < gridSize; ++y ) {
+
+                info.Name = fmt::format( "Sphere_{}_{}", x, y );
+
+                if ( Entity * e{ m_ActiveScene->CreateEntity( info ) } ) {
+                    auto &t{ e->GetComponent<TransformComponent>() };
+                    t.SetTranslation(
+                            { static_cast<float>( x ) * spacing,
+                              static_cast<float>( y ) * spacing, 0.0f } );
+                    auto& pbr{ e->GetComponent<MaterialComponent>() };
+
+                    PBRMaterial *pbrMat{ pbr.GetMaterial().Dynamic<PBRMaterial>() };
+                    if (pbrMat) {
+                        pbrMat->SetMetallicFactor( static_cast<float>( x ) / static_cast<float>( gridSize - 1 ) );
+                        pbrMat->SetRoughnessFactor( static_cast<float>( y ) / static_cast<float>( gridSize - 1 ) );
+                    }
+                }
+                
+            }
+        }
+    }
+        
     auto EditorLayer::DebugInstancingTest() -> void {
         ModelLoadDescription desc{
             .ModelFile{ FileService::Get()->LoadFile(
@@ -289,10 +326,10 @@ namespace Mikoto {
 
         ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( desc ) };
 
-        constexpr UInt32 gridSize{ 10 }; // gridSize * gridSize cubes
-        constexpr float spacing{ 4.0f }; // Distance between cubes
+        constexpr UInt32 gridSize{ 3 }; // gridSize * gridSize cubes
+        constexpr float spacing{ 7.0f }; // Distance between cubes
 
-        Entity *root{ m_ActiveScene->CreateEntity( "InstancingGrid" ) };
+        Entity *root{ m_ActiveScene->CreateEntity( "InstancingGridBoxes" ) };
 
         EntityCreateInfo info{
             .Root{ root },
@@ -828,9 +865,11 @@ namespace Mikoto {
         m_ActiveScene = SceneManager::Get()->CreateScene( name );
 
         //SimpleScene();
-        DebugInstancingTest();
-        DebugManyLightsTest();
+        //DebugInstancingTest();
+        //DebugManyLightsTest();
         //DebugDamagedHelmet();
+
+        DebugCubesProperties();
     }
 
     auto EditorLayer::PrepareRenderer( double ) -> void {

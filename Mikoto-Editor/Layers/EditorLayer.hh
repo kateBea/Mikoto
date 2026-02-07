@@ -111,6 +111,7 @@ namespace Mikoto {
         auto SimpleScene() -> void;
         auto DebugManyLightsTest() -> void;
         auto DebugInstancingTest() -> void;
+        auto DebugCubesProperties() -> void;
 
         auto DebugDamagedHelmet() -> void;
 

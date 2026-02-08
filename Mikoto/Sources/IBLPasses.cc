@@ -112,6 +112,7 @@ namespace Mikoto {
 
                 [&]( FramePassBuilder &b, IrradiancePassData& p ) {
                     MKT_BEGIN_PROFILER_NAMED();
+
                     b.Create<TextureCube>( "IrradiancePass_ColorTargetCUBE", m_IrradianceDimensions, TextureFormat::RGBA32_FLOAT, m_IrradianceMipLevels );
                     b.Create<Texture>( "IrradiancePass_ColorTarget", m_IrradianceDimensions, m_IrradianceDimensions, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
 

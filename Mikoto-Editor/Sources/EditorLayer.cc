@@ -522,6 +522,11 @@ namespace Mikoto {
         // Camera target
         m_EditorCamera->LockCameraToTarget( configuration.LockCameraToTarget );
 
+        if (configuration.LockCameraToTarget && m_EditorState->SelectedEntity) {
+            auto& transformComp{ m_EditorState->SelectedEntity->GetComponent<TransformComponent>() };
+            m_EditorCamera->SetCameraTarget( transformComp.GetTranslation() );
+        }
+
         m_EditorCamera->UpdateState( timeStep );
     }
 

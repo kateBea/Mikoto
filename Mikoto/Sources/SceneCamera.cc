@@ -34,8 +34,6 @@ namespace Mikoto {
         m_ForwardVector = glm::vec3{ -0.457344413f, -0.443095952f, -0.771039605f };
         m_TargetForwardVector = m_ForwardVector;
 
-        m_CameraUpVector = Math::UNIT_VECTOR_Y;
-
         UpdateViewMatrix();
     }
 
@@ -47,8 +45,6 @@ namespace Mikoto {
 
     auto SceneCamera::UpdateViewMatrix() -> void {
         if (m_LockCameraToTarget ) {
-            // TODO:
-            m_ViewMatrix = lookAt( m_Position, m_Position + m_ForwardVector, m_CameraUpVector );
         } else {
             m_ViewMatrix = lookAt( m_Position, m_Position + m_ForwardVector, m_CameraUpVector );
         }
@@ -154,4 +150,4 @@ namespace Mikoto {
     auto SceneCamera::SetOrbitDistance( float orbitDistance ) -> void {
         m_OrbitDistance = orbitDistance;
     }
-}// namespace Mikoto
+}

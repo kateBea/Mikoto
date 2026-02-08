@@ -122,7 +122,7 @@ namespace Mikoto {
         // [Vectors]
         glm::vec3 m_Position{ -15.0f, 5.0f, 30.0f };
         glm::vec3 m_RightVector{ 1.0f, 0.0f, 0.0f };
-        glm::vec3 m_CameraUpVector{ 0.0f, 1.0f, 0.0f };
+        glm::vec3 m_CameraUpVector{ Math::UNIT_VECTOR_Y };
         glm::vec3 m_ForwardVector{ 15.0f, -5.0f, -30.0f };
 
         // [Rotations]

@@ -37,7 +37,7 @@ namespace Mikoto {
         bool WantYAxisRotation{ true };
 
         // Selected entity
-        bool LockCameraToTarget{ true };
+        bool LockCameraToTarget{ false };
 
         // Infinite grid
         float GridSize{};

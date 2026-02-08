@@ -47,6 +47,8 @@ namespace Mikoto {
         m_InfiniteGridParameters.CameraProj = camera->GetProjection();
 
         m_SSAOParameters.Projection = camera->GetProjection();
+
+        m_Camera = camera;
     }
 
     auto PostEffectsPass::RegisterPasses( FrameGraph &graph, GpuDevice* device) -> void {
@@ -411,7 +413,7 @@ namespace Mikoto {
             const glm::vec4& position{ transform.GetTranslation(), 1.0f };
             const Camera* textCamera{ textComponent.GetCamera() };
 
-            SetupTextForRender(textComponent.GetFontHandle(), textCamera, position, textComponent.GetContents(), textSize, color, commandList );
+            SetupTextForRender(textComponent.GetFontHandle(), textCamera, position, transform.GetTransform(), textComponent.GetContents(), textSize, color, commandList );
         }
 
         commandList.UploadBuffer( "TextRenderPass_TextRenderParams", m_TextRenderParams.data(), m_TextRenderParams.size() * sizeof( TextRenderParams ) );
@@ -422,7 +424,7 @@ namespace Mikoto {
         context.UploadBuffer( "TextRenderPass_FontParams", std::addressof( m_TextRenderUBO ), sizeof( m_TextRenderUBO ) );
     }
 
-    auto PostEffectsPass::SetupTextForRender( FontHandle font, const Camera *camera, Vec4F position, std::string_view text, double fontSize, Vec4F color, CommandContext &commandList ) -> void {
+    auto PostEffectsPass::SetupTextForRender( FontHandle font, const Camera *camera, Vec4F position, const Mat4F& transform, std::string_view text, double fontSize, Vec4F color, CommandContext &commandList ) -> void {
         using namespace StringUtils;
 
         double xPos{ position.x };
@@ -456,6 +458,7 @@ namespace Mikoto {
                     double t1{ glyph.m_AtlasBounds.y / atlas->GetHeight() };
 
                     TextRenderParams fontParams{
+                        .Model{ transform },
                         .Position{ x0, y0 + std::round( ( font->GetMaxHeight() * scale ) ) - ( glyph.m_Height * scale ), position.z, position.w },
                         .Size{ glyph.m_Width * scale, glyph.m_Height * scale, 0.0f, 0.0f },
                         .Color{ color },
@@ -471,6 +474,10 @@ namespace Mikoto {
 
                         fontParams.Proj = glm::ortho(0.0f, dimension.first,dimension.second, 0.0f,-1.0f, 1.0f);
                         fontParams.View = glm::mat4{ 1.0f };
+
+                        // DEBUG: Use global camera
+                        fontParams.Proj = m_Camera->GetProjection();
+                        fontParams.View = m_Camera->GetViewMatrix();
                     }
 
                     m_TextRenderParams.emplace_back( fontParams );

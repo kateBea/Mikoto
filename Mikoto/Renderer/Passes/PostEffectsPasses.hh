@@ -49,12 +49,13 @@ namespace Mikoto {
         auto TraverseTextList( CommandContext& commandList ) -> void;
 
         auto SetupRenderParams( CommandContext& context ) -> void;
-        auto SetupTextForRender( FontHandle font, const Camera* camera, Vec4F position, std::string_view text, double fontSize, Vec4F color, CommandContext& commandList ) -> void;
+        auto SetupTextForRender( FontHandle font, const Camera* camera, Vec4F position, const Mat4F& transform, std::string_view text, double fontSize, Vec4F color, CommandContext& commandList ) -> void;
 
     private:
         struct TextRenderParams {
             Mat4F Proj{};
             Mat4F View{};
+            Mat4F Model{};
 
             Vec4F Position{};
             Vec4F Size{};
@@ -107,6 +108,7 @@ namespace Mikoto {
         BufferHandle m_TextIndexBuffer{};
 
         const Scene* m_Scene{};
+        const Camera* m_Camera{};
         TextParamsUBO m_TextRenderUBO{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
 

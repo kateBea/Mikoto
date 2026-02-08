@@ -21,6 +21,7 @@
 struct FontRenderParams {
     mat4 Projection;
     mat4 View;
+    mat4 Model;
 
     vec4 Position;
     vec4 Size;
@@ -48,15 +49,15 @@ layout(location = 2) out vec4 out_Color;
 layout(location = 3) out vec4 out_OutlineColor;
 
 void main() {
-    FontRenderParams params = params[gl_InstanceIndex];
+    FontRenderParams u_Parameters = params[gl_InstanceIndex];
 
-    out_TexCoord = params.TextureCoords[a_TexCoordIndex];
-    out_TexIndex = float(params.TextureIndex);
-    out_Color = params.Color;
+    out_TexCoord = u_Parameters.TextureCoords[a_TexCoordIndex];
+    out_TexIndex = float(u_Parameters.TextureIndex);
+    out_Color = u_Parameters.Color;
 
     out_OutlineColor = u_TextEffectsParams.OutlineColor;
 
-    vec3 pos = a_Position * params.Size.xyz + params.Position.xyz;
+    vec3 pos = a_Position * u_Parameters.Size.xyz + u_Parameters.Position.xyz;
 
-    gl_Position = params.Projection * params.View * vec4(pos, 1.0);
+    gl_Position = u_Parameters.Projection * u_Parameters.View * u_Parameters.Model * vec4(pos, 1.0);
 }

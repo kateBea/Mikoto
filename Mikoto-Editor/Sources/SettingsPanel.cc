@@ -68,12 +68,12 @@ namespace Mikoto {
 
         if ( sceneCamera.GetProjectionType() == ProjectionType::PERSPECTIVE ) {
             ImGui::Spacing();
-            ImGuiUtils::Slider( "##SettingsPanel::OnUpdate::CameraSpeed", m_Data.EditorCameraMovementSpeed, { 2, 100 } );
+            ImGuiUtils::Slider( "##SettingsPanel::OnUpdate::CameraSpeed", m_Data.EditorCameraMovementSpeed, { 2, 1000 } );
             ImGui::SameLine();
             ImGuiUtils::HelpMarker( "Adjust camera movement speed" );
 
             ImGui::Spacing();
-            ImGuiUtils::Slider( "##SettingsPanel::OnUpdate::RotationSpeed", m_Data.EditorCameraRotationSpeed, { 3, 200 } );
+            ImGuiUtils::Slider( "##SettingsPanel::OnUpdate::RotationSpeed", m_Data.EditorCameraRotationSpeed, { 3, 500 } );
             ImGui::SameLine();
             ImGuiUtils::HelpMarker( "Adjust camera rotation speed." );
 

@@ -46,11 +46,6 @@ namespace Mikoto {
         // The final composition from the scene renderer
         TextureHandle FinalComposition{};
 
-        // Debug
-        TextureHandle PreviewMaterial{};
-
-        TextureHandle TextureHDR{};
-
         // Pass name and output value
         ankerl::unordered_dense::map<std::string, TextureHandle> PassesCompositions{};
 

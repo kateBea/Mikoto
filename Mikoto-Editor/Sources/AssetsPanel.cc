@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <fmt/format.h>
+#include <Common/Common.hh>
 
 #include <Panels/AssetsPanel.hh>
 
@@ -22,29 +22,6 @@
 #include <ImGui/IconsMaterialDesign.h>
 
 namespace Mikoto {
-
-    auto AssetsPanel::CreateImguiTextureID() -> void {
-        ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
-
-        if ( const ImTextureID id{ backend->ConstructImGuiTextureID( m_EditorState->PreviewMaterial ) }; id != 0 ) {
-            m_DisplayTargetImGuiID = id;
-        }
-    }
-
-    auto AssetsPanel::IsDisplayTextureValid() const -> bool {
-        return m_DisplayTargetImGuiID != 0;
-    }
-
-    auto AssetsPanel::UpdateViewport() -> void {
-        const ImVec2 dim{ ImGui::GetContentRegionAvail() };
-
-        if ( m_ViewportWidth != dim.x || m_ViewportHeight != dim.y ) {
-            m_ViewportWidth = dim.x;
-            m_ViewportHeight = dim.y;
-        }
-
-        ImGui::Image( m_DisplayTargetImGuiID, ImVec2{ dim.x, dim.y }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
-    }
 
     AssetsPanel::AssetsPanel( const AssetsPanelDescription &description )
         : Panel{ "Assets" }, m_EditorState{ description.State }
@@ -57,8 +34,6 @@ namespace Mikoto {
         const std::string icon { ImGuiUtils::GetStringFromUnicode( 61875 ) };
 
         m_PanelHeaderName = ImGuiUtils::MakePanelName( fmt::format("{}", icon), m_PanelName );
-
-        CreateImguiTextureID();
     }
 
     auto AssetsPanel::OnUpdate( float ) -> void {
@@ -72,17 +47,9 @@ namespace Mikoto {
             m_PanelIsFocused = ImGui::IsWindowFocused();
             m_PanelIsHovered = ImGui::IsWindowHovered();
 
-            if (IsDisplayTextureValid()) {
-                UpdateViewport();
-            }
-
-            if ( !IsDisplayTextureValid() ) {
-                CreateImguiTextureID();
-            }
-
             ImGui::End();
 
             ImGui::PopStyleVar();
         }
     }
-}// namespace Mikoto
+}

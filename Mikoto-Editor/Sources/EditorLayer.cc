@@ -121,17 +121,6 @@ namespace Mikoto {
     auto EditorLayer::LoadResources() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        TextureCubeLoadDescription loadDesc2{};
-        loadDesc2.WithType( TextureType::TEXTURE_CUBE )
-            .IsHDR( true )
-            .WithBasePath("Resources/HDR/boma_4k.hdr");
-
-        m_EditorState->TextureHDR = AssetsService::Get()->LoadAsset<TextureCube>( loadDesc2 );
-        m_ActiveScene->SetSkybox( m_EditorState->TextureHDR );
-
-        // Have an equirectangular mapp redy for tests
-        //m_SceneRenderer->UpdateEquirectangularMapAsync( "Resources/HDR/boma_4k.hdr" );
-
 #if false
         TextureCubeLoadDescription loadDesc{};
         loadDesc.WithType( TextureType::TEXTURE_CUBE )

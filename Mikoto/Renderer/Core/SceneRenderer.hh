@@ -63,6 +63,7 @@ namespace Mikoto {
         // IBL
         auto EnableSkybox(bool enable) -> void;
         auto SetEnvironmentGamma(float value) -> void;
+        auto SetMaxReflectionLOD( float value ) -> void;
         auto SetEnvironmentExposure(float value) -> void;
 
         auto IsUsingPrecomputedLDRCubeMap() -> bool;

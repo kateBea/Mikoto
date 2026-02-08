@@ -294,6 +294,13 @@ namespace Mikoto {
 
     auto IBLPasses::EnableSkybox( bool enable ) -> void {
         m_UseSkybox = enable;
+
+        // Update for shader contents
+        m_IBLParameters.IsSkyboxActive = enable ? MKT_SHADER_TRUE : MKT_SHADER_FALSE;
+    }
+
+    auto IBLPasses::SetMaxReflectionLOD( float value ) -> void {
+        m_IBLParameters.MaxReflectionLOD = value;
     }
 
     auto IBLPasses::SetMeshCulling( MeshCulling& cullingPass ) -> void {
@@ -310,11 +317,11 @@ namespace Mikoto {
     }
 
     auto IBLPasses::SetExposure( float value ) -> void {
-        m_SkyboxUBO.Exposure = value;
+        m_IBLParameters.Exposure = value;
     }
 
     auto IBLPasses::SetGamma( float value ) -> void {
-        m_SkyboxUBO.Gamma = value;
+        m_IBLParameters.Gamma = value;
     }
 
     auto IBLPasses::RegisterSkyboxRender( FrameGraph &graph ) -> void {
@@ -397,7 +404,7 @@ namespace Mikoto {
                     b.Create<Texture>( "FinalShadingPass_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
                     b.Create<Texture>( "FinalShadingPass_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
-                    b.Create<Buffer>( "SkyboxPass_CameraInfo", BufferUsage::UNIFORM, sizeof( SkyboxUBO ), 1 );
+                    b.Create<Buffer>( "IBL_Parameters", BufferUsage::UNIFORM, sizeof( IBLParameters ), 1 );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Skybox_Vert.sprv", ShaderStage::VERTEX );
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Skybox_Frag.sprv", ShaderStage::FRAGMENT );
@@ -413,18 +420,18 @@ namespace Mikoto {
 
                     b.Write( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
                     b.Write( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite );
-                    b.Write( "SkyboxPass_CameraInfo", FrameResourceState::UniformBuffer );
+                    b.Write( "IBL_Parameters", FrameResourceState::UniformBuffer );
 
                     b.Read( "SkyboxRender_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
                     b.Read( "IrradiancePass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
 
-                    b.Use( SRGType::SRG_PerPass, "SkyboxPass_CameraInfo", 0 );
+                    b.Use( SRGType::SRG_PerPass, "IBL_Parameters", 0 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
 
                     // Since other passes depend on this data we upload it so it is available in the shaders
-                    ctx.UploadBuffer<SkyboxUBO>( "SkyboxPass_CameraInfo", m_SkyboxUBO );
+                    ctx.UploadBuffer<IBLParameters>( "IBL_Parameters", m_IBLParameters );
 
                     if (!m_UseSkybox) {
                         return;
@@ -445,6 +452,9 @@ namespace Mikoto {
                         }
                     }
 
+                    // Update contents
+                    ctx.UploadBuffer<IBLParameters>( "IBL_Parameters", m_IBLParameters );
+
                     ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
                     ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );
                     ctx.SetDepthRenderTarget( "FinalShadingPass_DepthTarget" );
@@ -462,8 +472,8 @@ namespace Mikoto {
         m_FrameUBO.Projection = camera->GetProjection();
         m_FrameUBO.CameraPosition = Vec4F{ camera->GetPosition(), 1.0f };
 
-        m_SkyboxUBO.View = m_FrameUBO.View;
-        m_SkyboxUBO.Projection = m_FrameUBO.Projection;
+        m_IBLParameters.View = m_FrameUBO.View;
+        m_IBLParameters.Projection = m_FrameUBO.Projection;
     }
 
     auto IBLPasses::RegisterDirShadowMap( FrameGraph &graph ) -> void {
@@ -628,7 +638,7 @@ namespace Mikoto {
                     b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
                     b.Write( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
 
-                    b.Read( "SkyboxPass_CameraInfo", FrameResourceState::UniformBuffer );
+                    b.Read( "IBL_Parameters", FrameResourceState::UniformBuffer );
 
                     b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_CameraInfo", 0 )
                         .Use( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 1 )
@@ -637,7 +647,7 @@ namespace Mikoto {
                         .Use( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 4 )
                         .Use( SRGType::SRG_Textures );
 
-                    b.Use( SRGType::SRG_PerPass, "SkyboxPass_CameraInfo", 5 );
+                    b.Use( SRGType::SRG_PerPass, "IBL_Parameters", 5 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();

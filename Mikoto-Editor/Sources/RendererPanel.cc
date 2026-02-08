@@ -346,6 +346,8 @@ namespace Mikoto {
             ImGui::EndTable();
         }
 
+        ImGui::Spacing();
+
         if (!textureHandle.IsEmpty()) {
             ImGuiUtils::InputText(StringUtil::Format( "{}", textureHandle->GetTextureUri() ), true );
         } else {
@@ -353,6 +355,16 @@ namespace Mikoto {
         }
 
         ImGui::Spacing();
+
+        static  std::array<std::string, 2> backgroundTypes{
+            "Skybox", "Clear color"
+        };
+
+        const SceneBackground current{ m_EditorState->ActiveEditorScene->GetSceneBackground() };
+        const SceneBackground selection{ ImGuiUtils::Combo( backgroundTypes, current ) };
+
+        m_EditorState->ActiveEditorScene->SetSceneBackground( selection );
+
         ImGui::Spacing();
 
         hdrDropTarget();
@@ -364,6 +376,20 @@ namespace Mikoto {
 
         if (ImGuiUtils::Slider( "Gamma", gamma, { 0.0f, 10.0f } ) ) { m_EditorState->ActiveEditorScene->SetGamma( gamma ); }
         if (ImGuiUtils::Slider( "Exposure", exposure, { 0.0f, 10.0f } ) ) { m_EditorState->ActiveEditorScene->SetExposure( exposure ); }
+
+        constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
+
+        ImGui::Spacing();
+
+        static Vec4F clearColor{ 0.1f, 0.2f, 0.3f, 1.0f };
+        if ( ImGui::ColorEdit3( "Clear", glm::value_ptr( clearColor ), colorEditFlags ) ) {
+            m_EditorState->EditorSceneRenderer->SetClearColor( clearColor );
+        }
+
+        static float lineWidth{ 9.0f };
+        if (ImGuiUtils::Slider( "Max ReflectionLOD", lineWidth, { 0.0f, 30.0f } ) ) {
+            m_EditorState->EditorSceneRenderer->SetMaxReflectionLOD( lineWidth );
+        }
 
     }
 

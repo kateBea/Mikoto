@@ -19,6 +19,7 @@
 
 #include "ShaderBase.glsl"
 #include "ClusteredShading.glsl"
+#include "IBL_Helpers.glsl"
 
 #define INVALID_TEXTURE_INDEX -1
 
@@ -65,7 +66,10 @@ layout(scalar, set = PERPASS_SETINDEX, binding = 5) uniform SkyBoxUBO {
     mat4 Projection;
     float Exposure;
     float Gamma;
-} u_SkyboxParams;
+    float MaxReflectionLOD;
+
+    int IsSkyboxActive;
+} u_IBLParams;
 
 layout(std430, scalar, set = PERPASS_SETINDEX, binding = 2) readonly buffer ClusterSSBO {
     Cluster Clusters[];
@@ -96,10 +100,7 @@ vec3 GetNormalFromMap(sampler2D normalMap) {
 }
 
 vec3 PrefilteredReflection(vec3 R, float roughness) {
-    // TODO: Make this configurable from CPU
-    const float MAX_REFLECTION_LOD = 9.0;
-
-    float lod = roughness * MAX_REFLECTION_LOD;
+    float lod = roughness * u_IBLParams.MaxReflectionLOD;
     float lodf = floor(lod);
     float lodc = ceil(lod);
     vec3 a = textureLod(u_PrefilteredMap, R, lodf).rgb;
@@ -122,17 +123,6 @@ float DistributionGGX(vec3 N, vec3 H, float roughness) {
 
 vec3 F_SchlickR(float cosTheta, vec3 F0, float roughness) {
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
-}
-
-// From http://filmicgames.com/archives/75
-vec3 Uncharted2Tonemap(vec3 x) {
-    float A = 0.15;
-    float B = 0.50;
-    float C = 0.10;
-    float D = 0.20;
-    float E = 0.02;
-    float F = 0.30;
-    return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
 }
 
 float GeometrySchlickGGX(float NdotV, float roughness) {
@@ -403,18 +393,25 @@ void main() {
     }
 
     vec3 R = reflect(-V, N);
-
     vec2 brdf = texture(u_SamplerBRDFLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
-    vec3 reflection = PrefilteredReflection(R, roughness).rgb;
-    vec3 irradiance = texture(u_SamplerIrradiance, N).rgb;
 
-    // Diffuse based on irradiance
-    vec3 diffuse = irradiance * albedo;
+    vec3 diffuse = vec3(0.0);
+    vec3 specular = vec3(0.0);
+    vec3 reflection = vec3(0.0);
+    vec3 irradiance = vec3(0.0);
 
     vec3 F = F_SchlickR(max(dot(N, V), 0.0), F0, roughness);
 
+    if (u_IBLParams.IsSkyboxActive == MKT_SHADER_TRUE) {
+        reflection = PrefilteredReflection(R, roughness).rgb;
+        irradiance = texture(u_SamplerIrradiance, N).rgb;
+    }
+
+    // Diffuse based on irradiance
+    diffuse = irradiance * albedo;
+
     // Specular reflectance
-    vec3 specular = reflection * (F * brdf.x + brdf.y);
+    specular = reflection * (F * brdf.x + brdf.y);
 
     // Ambient part
     vec3 kD = 1.0 - F;
@@ -424,11 +421,11 @@ void main() {
     vec3 color = ambient + Lo;
 
     // Tone mapping
-    color = Uncharted2Tonemap(color * u_SkyboxParams.Exposure);
+    color = Uncharted2Tonemap(color * u_IBLParams.Exposure);
     color = color * (1.0f / Uncharted2Tonemap(vec3(11.2f)));
 
     // Gamma correction
-    color = pow(color, vec3(1.0f / u_SkyboxParams.Gamma));
+    color = pow(color, vec3(1.0f / u_IBLParams.Gamma));
 
     // Emission
     vec3 emissive = CalculateEmissive();

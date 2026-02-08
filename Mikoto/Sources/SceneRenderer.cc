@@ -98,6 +98,10 @@ namespace Mikoto {
         m_IBLPasses.SetGamma( value );
     }
 
+    auto SceneRenderer::SetMaxReflectionLOD( float value ) -> void {
+        m_IBLPasses.SetMaxReflectionLOD( value );
+    }
+
     auto SceneRenderer::SetEnvironmentExposure( float value ) -> void {
         m_IBLPasses.SetExposure( value );
     }

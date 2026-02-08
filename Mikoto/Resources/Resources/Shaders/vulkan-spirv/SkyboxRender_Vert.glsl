@@ -20,7 +20,7 @@
 
 layout(location = 0) out vec3 o_Pos;
 
-layout(scalar, push_constant) uniform SkyBoxUBO {
+layout(scalar, push_constant) uniform SkyboxRenderConstants {
     mat4 MVP;
 } u_Parameters;
 

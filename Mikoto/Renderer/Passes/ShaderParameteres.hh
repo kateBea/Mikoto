@@ -25,6 +25,9 @@
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 
+#define MKT_SHADER_TRUE 1
+#define MKT_SHADER_FALSE 0
+
 namespace Mikoto {
 
     static constexpr Int32 INVALID_TEXTURE_INDEX{ -1 };

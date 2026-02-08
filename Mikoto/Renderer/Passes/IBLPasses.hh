@@ -31,26 +31,28 @@ namespace Mikoto {
     public:
         explicit IBLPasses( RenderResolution resolution);
 
-        auto SetScene( Scene* scene) -> void;
-        auto SetCamera( const Camera *camera ) -> void;
+        auto SetClearColor( const Vec4F& color ) -> void;
+        auto SetResolution( RenderResolution resolution) -> void;
         auto RegisterPasses( FrameGraph& graph, GpuDevice* device ) -> void;
 
+        auto SetScene( Scene* scene) -> void;
+        auto SetCamera( const Camera *camera ) -> void;
+
+        // HDR
         auto SetUseConvolutedCube(bool enable)-> void;
         MKT_NODISCARD auto IsUsingConvolutedCube() const -> bool;
-
-        auto SetClearColor( const Vec4F& color ) -> void;
-
-        auto SetResolution( RenderResolution resolution) -> void;
-
-        auto SetLDRCubeMap( TextureHandle cubeMap ) -> void;
         auto SetEquirectangularMap(TextureHandle texture2D) -> void;
 
+        // LDR
         auto UseLDRCubeMap(bool value) -> void;
+        auto SetLDRCubeMap( TextureHandle cubeMap ) -> void;
         MKT_NODISCARD auto IsUsingPrecomputedLDRCubeMap() const -> bool;
 
+        // IBL
         auto SetExposure( float value ) -> void;
         auto SetGamma( float value ) -> void;
         auto EnableSkybox(bool enable) -> void;
+        auto SetMaxReflectionLOD( float value ) -> void;
 
         auto SetMeshCulling(MeshCulling& cullingPass) -> void;
 
@@ -104,11 +106,14 @@ namespace Mikoto {
             UInt32 NumSamples{};
         };
 
-        struct SkyboxUBO {
+        struct IBLParameters {
             Mat4F View{};
             Mat4F Projection{};
             float Exposure{};
             float Gamma{};
+
+            float MaxReflectionLOD{ 9.0 };
+            Int32 IsSkyboxActive{ MKT_SHADER_FALSE };
         };
 
         struct SkyboxRenderParams {
@@ -126,7 +131,7 @@ namespace Mikoto {
 
     private:
         // Skybox
-        SkyboxUBO m_SkyboxUBO{};
+        IBLParameters m_IBLParameters{};
         TextureHandle m_CubeMap{};
         bool m_UseSkybox{ false };
 

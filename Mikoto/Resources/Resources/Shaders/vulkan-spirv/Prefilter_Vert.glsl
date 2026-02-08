@@ -22,7 +22,7 @@ layout(location = 0) out vec3 o_Pos;
 layout(location = 1) flat out float o_Roughness;
 layout(location = 2) flat out uint o_NumSamples;
 
-layout(scalar, push_constant) uniform SkyBoxUBO {
+layout(scalar, push_constant) uniform PrefilterConstants {
     mat4 MVP;
     float Roughness;
     uint NumSamples;

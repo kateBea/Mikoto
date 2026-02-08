@@ -506,7 +506,7 @@ namespace Mikoto {
             ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
-                material.RemoveTextureType( MapType::NORMAL_TEXTURE );
+                material.RemoveTextureType( MapType::EMISSIVE_TEXTURE );
             }
 
             if ( ImGui::IsItemHovered() ) {
@@ -1611,10 +1611,16 @@ namespace Mikoto {
 
         ImGuiUtils::HelpMarker( "Text inner spacing.", "(?)", true );
 
-        std::string content{ textComponent.GetContents() };
+        // Slider float letter spacing
+        bool isWorldText{ textComponent.IsWorldText() };
+        ImGui::Spacing();
+        if ( ImGuiUtils::CheckBox( "Is World Text", isWorldText) ) {
+            textComponent.SetIsWorldText( isWorldText );
+        }
 
         ImGui::Spacing();
-        // Max scaling between 1 and 3
+
+        std::string content{ textComponent.GetContents() };
         if ( ImGuiUtils::TextArea( content ) ) {
             textComponent.SetContents( content );
         }

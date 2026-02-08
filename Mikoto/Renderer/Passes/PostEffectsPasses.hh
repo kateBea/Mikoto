@@ -23,6 +23,7 @@
 
 #include <Scene/Scene.hh>
 #include <Scene/Camera.hh>
+#include <Scene/Component.hh>
 #include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Passes/MeshCulling.hh>
@@ -46,10 +47,10 @@ namespace Mikoto {
         auto RegisterBloom( FrameGraph& graph ) -> void;
         auto RegisterInfiniteGrid( FrameGraph& graph ) -> void;
 
-        auto TraverseTextList( CommandContext& commandList ) -> void;
+        auto TraverseTextList( CommandContext& ctx ) -> void;
 
         auto SetupRenderParams( CommandContext& context ) -> void;
-        auto SetupTextForRender( FontHandle font, const Camera* camera, Vec4F position, const Mat4F& transform, std::string_view text, double fontSize, Vec4F color, CommandContext& commandList ) -> void;
+        auto SetupTextForRender( CommandContext& context, const TransformComponent& transformComponent, const TextComponent& textComponent) -> void;
 
     private:
         struct TextRenderParams {

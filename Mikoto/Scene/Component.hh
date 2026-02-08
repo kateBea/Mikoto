@@ -529,6 +529,9 @@ namespace Mikoto {
             }
         }
 
+        auto SetIsWorldText(bool value) -> void { m_IsWorldText = value; }
+
+        MKT_NODISCARD auto IsWorldText() const ->bool { return m_IsWorldText; }
         MKT_NODISCARD auto GetCamera() const -> const Camera* { return m_Camera; }
 
         MKT_NODISCARD auto GetFont() const -> const Font* { return m_Font.GetRaw(); }
@@ -571,6 +574,8 @@ namespace Mikoto {
 
         FontHandle m_Font{};
         const Camera* m_Camera{ nullptr };
+
+        bool m_IsWorldText{ false };
     };
 
     class ScriptComponent {

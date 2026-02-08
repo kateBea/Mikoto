@@ -392,15 +392,14 @@ namespace Mikoto {
                 } );
     }
 
-    auto PostEffectsPass::TraverseTextList( CommandContext &commandList ) -> void {
+    auto PostEffectsPass::TraverseTextList( CommandContext &ctx ) -> void {
         // Clear text data as we refill it every frame
         m_TextRenderParams.clear();
 
         auto& registry{ m_Scene->GetRegistry() };
-        auto renderables{ registry.view<TagComponent, TransformComponent, TextComponent>() };
+        auto renderables{ registry.view<TransformComponent, TextComponent>() };
 
         for (auto& entity : renderables) {
-            auto& tag{ registry.get<TagComponent>( entity ) };
             auto& transform{ registry.get<TransformComponent>( entity ) };
             auto& textComponent{ registry.get<TextComponent>( entity ) };
 
@@ -408,15 +407,10 @@ namespace Mikoto {
                 continue;
             }
 
-            const float textSize{ textComponent.GetSize() };
-            const glm::vec4& color{ textComponent.GetColor() };
-            const glm::vec4& position{ transform.GetTranslation(), 1.0f };
-            const Camera* textCamera{ textComponent.GetCamera() };
-
-            SetupTextForRender(textComponent.GetFontHandle(), textCamera, position, transform.GetTransform(), textComponent.GetContents(), textSize, color, commandList );
+            SetupTextForRender( ctx, transform, textComponent );
         }
 
-        commandList.UploadBuffer( "TextRenderPass_TextRenderParams", m_TextRenderParams.data(), m_TextRenderParams.size() * sizeof( TextRenderParams ) );
+        ctx.UploadBuffer( "TextRenderPass_TextRenderParams", m_TextRenderParams.data(), m_TextRenderParams.size() * sizeof( TextRenderParams ) );
     }
 
     auto PostEffectsPass::SetupRenderParams( CommandContext &context ) -> void {
@@ -424,8 +418,15 @@ namespace Mikoto {
         context.UploadBuffer( "TextRenderPass_FontParams", std::addressof( m_TextRenderUBO ), sizeof( m_TextRenderUBO ) );
     }
 
-    auto PostEffectsPass::SetupTextForRender( FontHandle font, const Camera *camera, Vec4F position, const Mat4F& transform, std::string_view text, double fontSize, Vec4F color, CommandContext &commandList ) -> void {
+    auto PostEffectsPass::SetupTextForRender( CommandContext& context, const TransformComponent& transformComponent, const TextComponent& textComponent) -> void {
         using namespace StringUtils;
+
+        FontHandle font{ textComponent.GetFontHandle() };
+
+        const float fontSize{ textComponent.GetSize() };
+        const glm::vec4& color{ textComponent.GetColor() };
+        const Camera* camera{ textComponent.GetCamera() };
+        const glm::vec4& position{ transformComponent.GetTranslation(), 1.0f };
 
         double xPos{ position.x };
         double yPos{ position.y };
@@ -433,7 +434,7 @@ namespace Mikoto {
 
         double lineHeight{ font->GetMaxHeight() * scale };
 
-        for ( const auto& character : text ) {
+        for ( const auto& character : textComponent.GetContents() ) {
             if ( IsLineFeed(character) ) {
                 xPos = position.x;
                 yPos += lineHeight;
@@ -458,27 +459,33 @@ namespace Mikoto {
                     double t1{ glyph.m_AtlasBounds.y / atlas->GetHeight() };
 
                     TextRenderParams fontParams{
-                        .Model{ transform },
+                        .Model{ textComponent.IsWorldText() ? transformComponent.GetTransform() : Mat4F{ 1.0f } },
                         .Position{ x0, y0 + std::round( ( font->GetMaxHeight() * scale ) ) - ( glyph.m_Height * scale ), position.z, position.w },
                         .Size{ glyph.m_Width * scale, glyph.m_Height * scale, 0.0f, 0.0f },
                         .Color{ color },
                         .TexCoords{ { s0, t0 }, { s1, t0 }, { s1, t1 }, { s0, t1 } },
-                        .TexIndex{ static_cast<UInt32>( commandList.PushTexture( atlas ) ) }
+                        .TexIndex{ static_cast<UInt32>( context.PushTexture( atlas ) ) }
                     };
 
-                    if (camera != nullptr) {
-                        fontParams.Proj = camera->GetProjection();
-                        fontParams.View = camera->GetViewMatrix();
+                    Mat4F view{};
+                    Mat4F projection{};
+
+                    if (!textComponent.IsWorldText()) {
+                        if (camera) {
+                            view = camera->GetProjection();
+                            projection = camera->GetViewMatrix();
+                        } else {
+                            const auto dimension{ InferDimensions( m_Resolution ) };
+                            projection = glm::ortho(0.0f, dimension.first,dimension.second, 0.0f,-1.0f, 1.0f);
+                            view = glm::mat4{ 1.0f };
+                        }
                     } else {
-                        const auto dimension{ InferDimensions( m_Resolution ) };
-
-                        fontParams.Proj = glm::ortho(0.0f, dimension.first,dimension.second, 0.0f,-1.0f, 1.0f);
-                        fontParams.View = glm::mat4{ 1.0f };
-
-                        // DEBUG: Use global camera
-                        fontParams.Proj = m_Camera->GetProjection();
-                        fontParams.View = m_Camera->GetViewMatrix();
+                        view = m_Camera->GetProjection();
+                        projection = m_Camera->GetViewMatrix();
                     }
+
+                    fontParams.Proj = view;
+                    fontParams.View = projection;
 
                     m_TextRenderParams.emplace_back( fontParams );
                 }

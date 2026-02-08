@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include <memory>
+#include <algorithm>
+#include <ranges>
 
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
@@ -49,6 +51,37 @@ namespace Mikoto {
         if (ImGui::SmallButton( "Click here" )) {
             io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
         }
+    }
+
+    auto EditorState::IsEntityAnySelected() const -> bool {
+        return SelectedEntity != nullptr || !SelectedEntities.empty();
+    }
+    auto EditorState::IsEntitySelected( Entity *entity ) const -> bool {
+        return SelectedEntity != entity || SelectedEntities.contains( entity );
+    }
+
+    auto EditorState::GetSelectedEntity() const -> Entity * {
+        return SelectedEntity;
+    }
+
+    auto EditorState::GetSelectedEntities() const -> const ankerl::unordered_dense::set<Entity*> & {
+        return SelectedEntities;
+    }
+
+    auto EditorState::RegisterSelection( Entity *entity ) -> void {
+        SelectedEntity = entity;
+    }
+
+    auto EditorState::RegisterSelections( const std::vector<Entity *> &list ) -> void {
+        std::ranges::for_each(list, [&](Entity *entity) { SelectedEntities.emplace(entity); });
+    }
+
+    auto EditorState::RemoveSelection() -> void {
+        SelectedEntity = nullptr;
+    }
+
+    auto EditorState::RemoveSelections( const std::vector<Entity *> &list ) -> void {
+        std::ranges::for_each(list, [&](Entity *entity) { SelectedEntities.erase(entity); });
     }
 
     EditorLayer::EditorLayer( Window* window)

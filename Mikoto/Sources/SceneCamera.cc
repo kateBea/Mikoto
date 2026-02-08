@@ -34,6 +34,8 @@ namespace Mikoto {
         m_ForwardVector = glm::vec3{ -0.457344413f, -0.443095952f, -0.771039605f };
         m_TargetForwardVector = m_ForwardVector;
 
+        m_CameraUpVector = Math::UNIT_VECTOR_Y;
+
         UpdateViewMatrix();
     }
 
@@ -53,21 +55,28 @@ namespace Mikoto {
     }
 
     auto SceneCamera::ProcessMouseInput( const double timeStep ) -> void {
-        m_CameraUpVector = Math::UNIT_VECTOR_Y;
+        const glm::vec2 mousePos{ m_TargetWindow->GetMouseX(), m_TargetWindow->GetMouseY() };
+        const glm::vec2 delta{ (mousePos - m_LastMousePosition) * m_RotationFactor };
 
+        // Still update the last camera pos,
+        // this avoids camera jumping
+        m_LastMousePosition = mousePos;
 
-        const glm::vec2 mouseCurrentPosition{ m_TargetWindow->GetMouseX(), m_TargetWindow->GetMouseY() };
-        const glm::vec2 delta{ ( mouseCurrentPosition - m_LastMousePosition ) * m_RotationFactor };
+        if (delta == glm::vec2{0.0f}) return;
 
-        m_LastMousePosition = mouseCurrentPosition;
+        m_Pitch = (m_WantCameraRotationX ? delta.y : 0.0f) * m_RotationSpeed * static_cast<float>( timeStep );
+        m_Yaw   = (m_WantCameraRotationY ? delta.x : 0.0f) * m_RotationSpeed * static_cast<float>( timeStep );
 
-        if ( delta.x != 0.0f || delta.y != 0.0f ) {
-            m_Pitch = ( m_WantCameraRotationX ? delta.y : 0.0f ) * m_RotationSpeed * static_cast<float>( timeStep );
-            m_Yaw = ( m_WantCameraRotationY ? delta.x : 0.0f ) * m_RotationSpeed * static_cast<float>( timeStep );
+        const glm::quat pitchQ{ glm::angleAxis(-m_Pitch, m_RightVector) };
+        const glm::quat yawQ{ glm::angleAxis(-m_Yaw,   Math::UNIT_VECTOR_Y) };
 
-            const glm::quat rotation{ glm::normalize( glm::cross( glm::angleAxis( -m_Pitch, m_RightVector ), glm::angleAxis( -m_Yaw, Math::UNIT_VECTOR_Y ) ) ) };
-            m_TargetForwardVector = glm::rotate( rotation, m_TargetForwardVector );
-        }
+        // Combine pitch and yaw into a single rotation quaternion.
+        // Quaternion multiplication composes rotations in a stable way and avoids gimbal lock.
+        // Order matters as quaternion product is non-commutative.
+        const glm::quat rotation{ yawQ * pitchQ };
+
+        // Rotate the camera's forward direction using the combined quaternion.
+        m_TargetForwardVector = glm::normalize(glm::rotate(rotation, m_TargetForwardVector));
     }
 
     auto SceneCamera::ProcessKeyboardInput( const double timeStep ) -> void {

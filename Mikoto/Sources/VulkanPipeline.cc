@@ -231,6 +231,9 @@ namespace Mikoto {
         m_Wireframe = info.Desc.Wireframe;
         m_VertexAttributesSpec = info.Desc.VertexAttributesSpec;
 
+        m_Multisampling = info.Desc.Multisampling;
+        m_EnableSampleRateShading = info.Desc.EnableSampleRateShading;
+
         // Depth Render target format
         m_DepthAttachmentFormat = VulkanHelpers::ToVkFormat( info.Desc.DepthAttachmentFormat );
 
@@ -275,6 +278,10 @@ namespace Mikoto {
         m_PipelineConfig.ColorBlendInfo.blendConstants[3] = 0.0f;
 
         m_PipelineConfig.InputAssemblyInfo.topology = InferVulkanTopology(m_Topology);
+
+        // Multisampling config
+        m_PipelineConfig.MultisampleInfo.sampleShadingEnable = m_EnableSampleRateShading ? VK_TRUE : VK_FALSE;
+        m_PipelineConfig.MultisampleInfo.rasterizationSamples = VulkanHelpers::ToVkRasterSamples( m_Multisampling );
 
         m_PipelineConfig.DepthStencilInfo.depthWriteEnable = m_DepthWrite ? VK_TRUE : VK_FALSE;
         m_PipelineConfig.DepthStencilInfo.depthTestEnable = m_DepthTest ? VK_TRUE : VK_FALSE;

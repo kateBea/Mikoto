@@ -344,6 +344,7 @@ namespace Mikoto {
         VkPhysicalDeviceFeatures deviceFeatures{};
         deviceFeatures.samplerAnisotropy = VK_TRUE;
         deviceFeatures.wideLines = VK_TRUE; // for wireframe
+        deviceFeatures.sampleRateShading = VK_TRUE; // sample rate shading
 
         // required for wireframe mode
         deviceFeatures.fillModeNonSolid = VK_TRUE;

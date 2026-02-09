@@ -172,6 +172,14 @@ namespace Mikoto {
         UNDEFINED,
     };
 
+    enum class Multisampling {
+        MSAA_X1 = 1,
+        MSAA_X2 = 2,
+        MSAA_X4 = 4,
+        MSAA_X8 = 8,
+        MSAA_X16 = 16
+    };
+
     template<typename T>
     MKT_NODISCARD auto InferSize( const Size elemCount ) -> Size {
         return sizeof( T ) * elemCount;
@@ -205,6 +213,8 @@ namespace Mikoto {
 
         Byte* Data{ nullptr };
         Size BufferSize{}; // Optional
+
+        Multisampling MSAA{ Multisampling::MSAA_X1 };
 
         const File* TextureFile{ nullptr };
 
@@ -289,6 +299,8 @@ namespace Mikoto {
         UInt32 Dimensions{ 1024 };
         TextureFormat Format{ TextureFormat::RGBA8_UNORM };
         TextureUsage Usage{ TextureUsage::CUBE };
+
+        Multisampling MSAA{ Multisampling::MSAA_X1 };
 
         bool IsHdrMap{ false };
 

@@ -1,12 +1,20 @@
-/**
- * VulkanHelpers.hh
- * Created by kate on 8/5/2023.
- * */
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_VULKAN_UTILS_HH
 #define MIKOTO_VULKAN_UTILS_HH
 
-// C++ Standard Library
 #include <set>
 #include <vector>
 #include <memory>
@@ -16,16 +24,18 @@
 #include <span>
 #include <map>
 
-// Third-Party Libraries
 #include <volk.h>
 #include <vk_mem_alloc.h>
 #include <fmt/format.h>
 
-// Project Headers
-#include <Renderer/Core/RenderUtility.hh>
-#include <Assets/Texture.hh>
 #include <Common/Common.hh>
 #include <Core/Exception.hh>
+
+#include <Assets/Texture.hh>
+
+#include <Renderer/Core/Pipeline.hh>
+#include <Renderer/Core/RenderUtility.hh>
+
 #include <Library/Utility/Types.hh>
 
 // Vulkan version
@@ -64,9 +74,6 @@ namespace Mikoto {
 
 }
 
-/**
- * Helper utility functions
- */
 namespace Mikoto::VulkanHelpers {
 
     static inline constexpr float STANDARD_POLYGON_LINE_WIDTH{ 1.0f };
@@ -97,6 +104,8 @@ namespace Mikoto::VulkanHelpers {
     MKT_NODISCARD auto ToVkStage(ShaderStage stage) -> VkShaderStageFlagBits;
     MKT_NODISCARD auto FromVkStage(VkShaderStageFlagBits stage) -> ShaderStage;
     MKT_NODISCARD auto ToVkImageUsage(TextureUsage usage) -> VkImageUsageFlags;
+
+    MKT_NODISCARD auto ToVkRasterSamples(Multisampling samples) -> VkSampleCountFlagBits;
 
     MKT_NODISCARD auto GetAspectMask(VkFormat format) -> VkImageAspectFlags;
 

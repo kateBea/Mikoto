@@ -606,6 +606,22 @@ namespace Mikoto {
         Path m_FilePath{};
         ScriptHandle m_Script{};
     };
-}// namespace Mikoto
+
+    class AnimationComponent {
+    public:
+        explicit AnimationComponent() = default;
+
+        AnimationComponent( const AnimationComponent& other ) = default;
+        AnimationComponent( AnimationComponent&& other ) = default;
+
+        auto operator=( const AnimationComponent& other ) -> AnimationComponent& = default;
+        auto operator=( AnimationComponent&& other ) -> AnimationComponent& = default;
+
+        ~AnimationComponent() = default;
+
+    private:
+        std::vector<UInt64> m_AnimationIDs{};
+    };
+}
 
 #endif// MIKOTO_COMPONENT_HH

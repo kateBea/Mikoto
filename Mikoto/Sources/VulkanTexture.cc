@@ -104,6 +104,8 @@ namespace Mikoto {
 
         m_ExternalBufferSize = data.BufferSize;
 
+        m_Multisampling = data.MSAA;
+
         m_IsHDR = data.IsHDR;
 
         if ( data.TextureFile ) {
@@ -167,6 +169,8 @@ namespace Mikoto {
 
         m_Width = data.Dimensions;
         m_Height = data.Dimensions;
+
+        m_Multisampling = data.MSAA;
 
         m_TextureUsage = data.Usage;
 
@@ -409,7 +413,7 @@ namespace Mikoto {
 
         m_ImageAllocation.ImageCreateInfo.mipLevels = m_MipLevels;
         m_ImageAllocation.ImageCreateInfo.arrayLayers = 6;// Cube
-        m_ImageAllocation.ImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        m_ImageAllocation.ImageCreateInfo.samples = VulkanHelpers::ToVkRasterSamples( m_Multisampling );
         m_ImageAllocation.ImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
         m_ImageAllocation.ImageCreateInfo.initialLayout = m_CurrentLayout;
 
@@ -726,7 +730,7 @@ namespace Mikoto {
 
             m_ImageAllocation.ImageCreateInfo.mipLevels = 1;
             m_ImageAllocation.ImageCreateInfo.arrayLayers = 1;
-            m_ImageAllocation.ImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+            m_ImageAllocation.ImageCreateInfo.samples = VulkanHelpers::ToVkRasterSamples( m_Multisampling );;
             m_ImageAllocation.ImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
             m_ImageAllocation.ImageCreateInfo.initialLayout = m_CurrentLayout;
 

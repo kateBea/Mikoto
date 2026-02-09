@@ -132,7 +132,10 @@ namespace Mikoto {
         bool AlphaBlending{ true };
         bool Wireframe{ false };
         float WireframeLineWidth{ 1.0f };
+        bool EnableSampleRateShading{ false };
 
+
+        Multisampling Multisampling{ Multisampling::MSAA_X1 };
         CullMode PipelineCullMode{ CullMode::NONE };
         PolygonMode PipelinePolygonMode{ PolygonMode::FILL };
         Topology PrimitiveTopology{ Topology::TRIANGLE_LIST };
@@ -292,7 +295,10 @@ namespace Mikoto {
         bool m_Wireframe{ false };
         float m_WireframeLineWidth{ 1.0f };
 
+        bool m_EnableSampleRateShading{ false };
+
         CullMode m_CullMode{ CullMode::NONE };
+        Multisampling m_Multisampling{ Multisampling::MSAA_X1 };
 
         Topology m_Topology{ Topology::TRIANGLE_LIST };
         DepthCompareOp m_DepthCompareOp{ DepthCompareOp::ALWAYS };

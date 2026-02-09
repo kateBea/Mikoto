@@ -1,22 +1,27 @@
-/**
- * VulkanHelpers.hh
- * Created by kate on 8/5/2023.
- * */
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef VULKAN_HELPERS_CC_INCLUDED
 #define VULKAN_HELPERS_CC_INCLUDED
 
-// C++ Standard Library
 #include <set>
 #include <stdexcept>
 
-// Third-Party Libraries
 #include <spirv_reflect.h>
 
 #include "vk_mem_alloc.h"
 #include "volk.h"
-
-// Project Headers
 
 #include <Renderer/Vulkan/VulkanDevice.hh>
 
@@ -239,6 +244,17 @@ namespace Mikoto::VulkanHelpers {
         }
 
         return VK_IMAGE_USAGE_SAMPLED_BIT;
+    }
+
+    auto ToVkRasterSamples( Multisampling samples ) -> VkSampleCountFlagBits {
+        switch ( samples ) {
+            case Multisampling::MSAA_X1:  return VK_SAMPLE_COUNT_1_BIT;
+            case Multisampling::MSAA_X2:  return VK_SAMPLE_COUNT_2_BIT;
+            case Multisampling::MSAA_X4:  return VK_SAMPLE_COUNT_4_BIT;
+            case Multisampling::MSAA_X8:  return VK_SAMPLE_COUNT_8_BIT;
+            case Multisampling::MSAA_X16: return VK_SAMPLE_COUNT_16_BIT;
+            default:                      return VK_SAMPLE_COUNT_1_BIT;
+        }
     }
 
     auto GetAspectMask(VkFormat format) -> VkImageAspectFlags {

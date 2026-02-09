@@ -200,6 +200,8 @@ namespace Mikoto {
         TextureFormat m_Format{ TextureFormat::INVALID };
         TextureUsage m_TextureUsage{ TextureUsage::NORMAL };
 
+        Multisampling m_Multisampling{ Multisampling::MSAA_X1 };
+
         Int32 m_Width{};
         Int32 m_Height{};
         Int32 m_Channels{};

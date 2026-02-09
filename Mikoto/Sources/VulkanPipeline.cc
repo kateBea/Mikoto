@@ -112,7 +112,10 @@ namespace Mikoto {
         return configInfo;
     }
 
-    static auto GetDefaultAttributeDescriptions( std::vector<AttributesSpec>& attributeSpec ) -> std::vector<VkVertexInputAttributeDescription> {
+    static auto GetDefaultAttributeDescriptions( std::vector<AttributesSpec>& attributeSpec, VulkanHelpers::Reflection::ReflectedData& reflection ) -> std::vector<VkVertexInputAttributeDescription> {
+        // TODO: Use reflection to limit the amount of bindings to be declared
+        // We are getting validations errors because we are declaring in pVertexInputState
+        // more binding than what Wireframe vertex shader consumes
         Size attributeCount{ };
         for (Size attributeBinding{}; attributeBinding < attributeSpec.size(); ++attributeBinding ) {
             attributeCount += attributeSpec[attributeBinding].DefaultVertexLayout.GetCount();
@@ -161,8 +164,9 @@ namespace Mikoto {
     }
 
     static auto GetDefaultBindingDescriptions(std::vector<AttributesSpec>& attributeSpec ) -> std::vector<VkVertexInputBindingDescription> {
-        // All of our per-vertex data is packed together in one array, so we're only going to have one binding.
-        // See: https://vulkan-tutorial.com/Vertex_buffers/Vertex_input_description
+        // Specify vertex buffers to be bound, we are generally using 1 now, but for instancing you may need more than one binding, see docs for more
+        // Example BindVertexBuffer(vertexBuffer, binding = 0)
+        //         BindVertexBuffer(vertexBuffer, binding = 1), etc
 
         auto bindingDescriptions{ std::vector<VkVertexInputBindingDescription>(attributeSpec.size()) };
 
@@ -368,11 +372,15 @@ namespace Mikoto {
 
         // Binding descriptions (define data layout)
         // Attribute layout is what we specify because we are the ones that know how is buffer data laid out in CPU side
-        const auto& attributeDesc{ GetDefaultAttributeDescriptions( m_VertexAttributesSpec ) };
+        auto bindingDescriptions{ GetDefaultBindingDescriptions( m_VertexAttributesSpec ) };
+        auto attributeDesc{ GetDefaultAttributeDescriptions( m_VertexAttributesSpec, m_ReflectionData ) };
+
+        // First we check non consumed attributes and remove them
+
+
         vertexInputInfo.vertexAttributeDescriptionCount = static_cast<UInt32>( attributeDesc.size() );
         vertexInputInfo.pVertexAttributeDescriptions = attributeDesc.data();
 
-        const auto& bindingDescriptions{ GetDefaultBindingDescriptions( m_VertexAttributesSpec ) };
         vertexInputInfo.vertexBindingDescriptionCount = static_cast<UInt32>( bindingDescriptions.size() );
         vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
 

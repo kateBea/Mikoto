@@ -39,12 +39,13 @@ namespace Mikoto {
         auto AddEntityWithModel(Entity* root = nullptr) -> void;
         auto AddEntityWithModel(std::string_view uri, Entity* root = nullptr) -> void;
 
-        auto BlankSpacePopupMenu() -> void;
-        auto DrawModelLoadMenuItem() -> void;
         auto DrawNodeTree( UInt64 entity ) -> void;
-        auto DrawTextMenuItems(Entity* entity = nullptr) const;
+
+        auto BlankSpacePopupMenu() -> void;
         auto OnEntityRightClickMenu( Entity* entity ) -> void;
+        auto DrawTextMenuItems(Entity* entity = nullptr) -> void;
         auto DrawPrefabMenuItems( Entity* root = nullptr ) -> void;
+        auto DrawModelLoadMenuItem( Entity* root = nullptr ) -> void;
         auto DrawLightMenuItems( Entity* root = nullptr ) const -> void;
 
     private:

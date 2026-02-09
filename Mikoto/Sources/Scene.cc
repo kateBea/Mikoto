@@ -416,6 +416,10 @@ namespace Mikoto {
     }
 
     auto Scene::DestroyEntitySingle( UInt64 entityID ) -> bool {
+        if (!m_Entities.contains( entityID )) {
+            return false;
+        }
+
         RelationComponent& relationComponent{ m_Entities[entityID]->GetComponent<RelationComponent>() };
 
         for (const auto& childID : relationComponent.GetChildren()) {

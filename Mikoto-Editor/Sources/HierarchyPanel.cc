@@ -144,6 +144,7 @@ namespace Mikoto {
 
         auto& entityList{ m_EditorState->ActiveEditorScene->GetEntities() };
 
+        // FIXME: segfault if we insert new entity as child for this one
         for ( auto& [entityID, entity]: entityList ) {
             const RelationComponent& relation{ entity->GetComponent<RelationComponent>() };
 
@@ -154,7 +155,7 @@ namespace Mikoto {
         }
 
         if ( ImGui::IsMouseDown( ImGuiMouseButton_Left ) && ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered() ) {
-            m_EditorState->SelectedEntity = nullptr;
+            m_EditorState->RemoveSingleSelection();
         }
 
         BlankSpacePopupMenu();
@@ -287,6 +288,8 @@ namespace Mikoto {
 
             if ( ImGui::MenuItem( "Remove object" ) ) {
                 m_EditorState->ActiveEditorScene->RemoveEntity( entity->GetComponent<TagComponent>().GetGUID() );
+                m_EditorState->RemoveSingleSelection();
+
                 RuntimeConsole::Get()->Debug( fmt::format( "Removing entity: {}", entity->GetComponent<TagComponent>().GetTag() ) );
             }
 
@@ -302,20 +305,23 @@ namespace Mikoto {
             }
 
             DrawPrefabMenuItems( entity );
+            DrawModelLoadMenuItem( entity );
+            DrawLightMenuItems( entity );
+            DrawTextMenuItems( entity );
 
             ImGui::EndPopup();
         }
     }
 
-    auto HierarchyPanel::DrawModelLoadMenuItem() -> void {
+    auto HierarchyPanel::DrawModelLoadMenuItem( Entity* root ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         if ( ImGui::MenuItem( "Load model" ) ) {
-            AddEntityWithModel();
+            AddEntityWithModel( root );
         }
     }
 
-    auto HierarchyPanel::DrawTextMenuItems( Entity* root ) const {
+    auto HierarchyPanel::DrawTextMenuItems( Entity* root ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         ImGui::Spacing();
@@ -332,8 +338,6 @@ namespace Mikoto {
 
             TextComponent& textComponent{ result->AddComponent<TextComponent>() };
 
-            // TODO: Load font logic
-
             textComponent.SetContents( "Text" );
             textComponent.SetSize( TextComponent::GetMinLetterSize() );
             textComponent.SetSpacing( TextComponent::GetMinLetterSpacing() );
@@ -341,7 +345,7 @@ namespace Mikoto {
     }
 
     auto HierarchyPanel::AddEntityWithModel( const std::string_view uri, Entity* root ) -> void {
-        static bool loading{ false };
+        static std::atomic_bool loading{ false };
 
         if ( !loading ) {
             loading = true;
@@ -361,7 +365,6 @@ namespace Mikoto {
                     .Model = model,
                 };
 
-                // Void cast to avoid warning
                 m_EditorState->ActiveEditorScene->QueueCreateEntity( entityCreateInfo );
 
                 loading = false;

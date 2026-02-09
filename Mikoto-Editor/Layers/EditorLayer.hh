@@ -66,7 +66,7 @@ namespace Mikoto {
         auto RegisterSelection(Entity* entity) -> void;
         auto RegisterSelections(const std::vector<Entity*>& list) -> void;
 
-        auto RemoveSelection() -> void;
+        auto RemoveSingleSelection() -> void;
         auto RemoveSelections(const std::vector<Entity *> &list) -> void;
     };
 

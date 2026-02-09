@@ -76,7 +76,7 @@ namespace Mikoto {
         std::ranges::for_each(list, [&](Entity *entity) { SelectedEntities.emplace(entity); });
     }
 
-    auto EditorState::RemoveSelection() -> void {
+    auto EditorState::RemoveSingleSelection() -> void {
         SelectedEntity = nullptr;
     }
 

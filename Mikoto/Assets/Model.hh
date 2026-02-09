@@ -23,6 +23,15 @@
 
 namespace Mikoto {
 
+    enum class VertexAttribute {
+        POSITIONS,
+        NORMALS,
+        TANGENTS,
+        BITANGENTS,
+        TEXT_COORDS,
+        COLORS,
+    };
+
     /**
     * @struct ModelLoadDescription
     * @brief Contains parameters for loading a 3D model.
@@ -33,6 +42,15 @@ namespace Mikoto {
     struct ModelLoadDescription {
         const File* ModelFile{};
         bool WantTextures{ true };
+
+        // Specifies the order we want attributes in
+        // Default is order specified by DEFAULT_VERTEX_BUFFER_LAYOUT in Pipeline.hh file
+        std::vector<VertexAttribute> Attributes{
+            VertexAttribute::POSITIONS,
+            VertexAttribute::NORMALS,
+            VertexAttribute::COLORS,
+            VertexAttribute::TEXT_COORDS,
+        };
 
         /**
         * @brief Sets the path of the model.

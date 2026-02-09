@@ -52,8 +52,6 @@ namespace Mikoto {
                     //     allocator->UnmapBuffer( inFlightBuffer );
                     // }
 
-                    // TODO: Review. They are created mapped.
-
                     allocator->FreeBuffer( inFlightBuffer );
                 }
             }
@@ -225,6 +223,62 @@ namespace Mikoto {
         }
     }
 
+    auto VulkanBuffer::SetupUniformBuffer(const BufferDescription& createInfo) -> void {
+        m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+        // When description has specified size and element count we need to apply alignment if needed for this GPU buffer
+        // We allocate space for a buffer large enough to contain ElementCount objects of ElementSize size (in bytes)
+        if (createInfo.ElementSize != 0 && createInfo.ElementCount != 0) {
+            m_ElementSize = createInfo.ElementSize;
+            m_ElementCount = createInfo.ElementCount;
+        }
+
+        if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) || IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STREAM)) {
+            const UInt32 framesInFlight{ MKT_VK_CTX(RenderService::Get()->GetContext())->GetMaxFramesInFlight() };
+            for (UInt32 count{}; count < framesInFlight; ++count) { m_InFlightBuffers.emplace_back(m_Allocation); }
+        }
+
+    }
+
+    auto VulkanBuffer::SetupStorageBuffer(const BufferDescription& createInfo) -> void {
+        m_Allocation.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+        m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+        m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+        // When description has specified size and element count we need to apply alignment if needed for this GPU buffer
+        // We allocate space for a buffer large enough to contain ElementCount objects of ElementSize size (in bytes)
+        if (createInfo.ElementSize != 0 && createInfo.ElementCount != 0) {
+            m_ElementSize = createInfo.ElementSize;
+            m_ElementCount = createInfo.ElementCount;
+        }
+
+        if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) || IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STREAM)) {
+            const UInt32 framesInFlight{ MKT_VK_CTX(RenderService::Get()->GetContext())->GetMaxFramesInFlight() };
+            for (UInt32 count{}; count < framesInFlight; ++count) { m_InFlightBuffers.emplace_back(m_Allocation); }
+        }
+    }
+
+    auto VulkanBuffer::SetupStagingBuffer(const BufferDescription&) -> void {
+        m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    }
+
+    auto VulkanBuffer::SetupVertexBuffer(const BufferDescription&) -> void {
+        m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+        // Because vertices are not often modified/write from CPU
+        m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+        m_Allocation.AllocationCreateInfo.priority = 1.0f;
+    }
+
+    auto VulkanBuffer::SetupIndexBuffer(const BufferDescription&) -> void {
+        m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+        // Because indices are not often modified/write from CPU
+        m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+        m_Allocation.AllocationCreateInfo.priority = 1.0f;
+    }
+
     VulkanBuffer::~VulkanBuffer() {
         if (m_IsAllocated) {
             Release();
@@ -235,77 +289,34 @@ namespace Mikoto {
         : Buffer{ createInfo.Data, createInfo.SizeBytes, createInfo.Usage, createInfo.UsageType, createInfo.Type } {
         m_Allocation.BufferCreateInfo = VulkanHelpers::Initializers::BufferCreateInfo();
 
-        // Data must be alive until initialization
+        // Data must be alive until call to Initialize()
         if ( createInfo.Data ) {
             m_Data = new Byte[m_SizeBytes];
             std::memcpy( m_Data, createInfo.Data, m_SizeBytes );
         }
 
-        // Let a VMA library select the optimal memory type unless specified
         m_Allocation.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+        m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+            VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
         m_Allocation.BufferCreateInfo.size = static_cast<UInt32>( m_SizeBytes );
 
-        // For buffers, we copy CPU data and later use to transfer its data to other CPU buffer/image
-        if ( m_Usage == BufferUsage::STAGING ) {
-            m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-            m_Allocation.AllocationCreateInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
-                | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-        }
-
-        // Uniform buffers for shaders
-        if ( m_Usage == BufferUsage::UNIFORM ) {
-            m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-            m_Allocation.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-
-            // When description has specified size and element count we need to apply alignment if needed for this GPU buffer
-            // We allocate space for a buffer large enough to contain ElementCount objects of ElementSize size (in bytes)
-            if (createInfo.ElementSize != 0 && createInfo.ElementCount != 0) {
-                m_ElementSize = createInfo.ElementSize;
-                m_ElementCount = createInfo.ElementCount;
-            }
-            // Fill VMA specific structs
-            // Let the VMA library know that this data should be on CPU RAM
-            m_Allocation.AllocationCreateInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-            if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) || IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STREAM)) {
-                const UInt32 framesInFlight{ MKT_VK_CTX(RenderService::Get()->GetContext())->GetMaxFramesInFlight() };
-                for (UInt32 count{}; count < framesInFlight; ++count) { m_InFlightBuffers.emplace_back(m_Allocation); }
-            }
-        }
-
-        // Storage buffers
-        if ( m_Usage == BufferUsage::SSBO ) {
-            m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-            m_Allocation.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-
-            // When description has specified size and element count we need to apply alignment if needed for this GPU buffer
-            // We allocate space for a buffer large enough to contain ElementCount objects of ElementSize size (in bytes)
-            if (createInfo.ElementSize != 0 && createInfo.ElementCount != 0) {
-                m_ElementSize = createInfo.ElementSize;
-                m_ElementCount = createInfo.ElementCount;
-            }
-
-            // Fill VMA specific structs
-            // Let the VMA library know that this data should be on CPU RAM
-            m_Allocation.AllocationCreateInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-            if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) || IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STREAM)) {
-                const UInt32 framesInFlight{ MKT_VK_CTX(RenderService::Get()->GetContext())->GetMaxFramesInFlight() };
-                for (UInt32 count{}; count < framesInFlight; ++count) { m_InFlightBuffers.emplace_back(m_Allocation); }
-            }
-        }
-
-        // Vertex buffers
-        if ( m_Usage == BufferUsage::VERTEX ) {
-            m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-            m_Allocation.AllocationCreateInfo.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
-        }
-
-        // Index buffers
-        if ( m_Usage == BufferUsage::INDEX ) {
-            m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-            m_Allocation.AllocationCreateInfo.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+        switch (m_Usage) {
+            case BufferUsage::VERTEX:
+                SetupVertexBuffer( createInfo );
+                break;
+            case BufferUsage::INDEX:
+                SetupIndexBuffer( createInfo );
+                break;
+            case BufferUsage::STAGING:
+                SetupStagingBuffer(createInfo);
+                break;
+            case BufferUsage::UNIFORM:
+                SetupUniformBuffer(createInfo);
+                break;
+            case BufferUsage::SSBO:
+                SetupStorageBuffer(createInfo);
+                break;
         }
     }
 

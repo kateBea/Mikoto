@@ -56,6 +56,12 @@ namespace Mikoto {
         auto InitMainBuffers() -> void;
         auto InitStaging() -> void;
 
+        auto SetupUniformBuffer(const BufferDescription& createInfo) -> void;
+        auto SetupStorageBuffer(const BufferDescription& createInfo) -> void;
+        auto SetupStagingBuffer(const BufferDescription& createInfo) -> void;
+        auto SetupVertexBuffer(const BufferDescription& createInfo) -> void;
+        auto SetupIndexBuffer(const BufferDescription& createInfo) -> void;
+
     private:
         // When creating uniforms we need specify a minimum size for GPU memory alignment
         // S o basically store the size of the element individually and the count, this information is to be used later in the initialization

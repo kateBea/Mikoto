@@ -1408,5 +1408,4 @@ namespace Mikoto {
 
         m_IsAllocated = false;
     }
-
-}// namespace Mikoto
+}

@@ -36,7 +36,7 @@ namespace Mikoto {
         : m_Scene{ spec.TargetScene }, m_Gravity{ spec.Gravity } {}
 
     auto PhysicsWorld::Init() -> void {
-        MKT_CORE_LOGGER_INFO( "Initializing PhysicsBase..." );
+        MKT_CORE_LOGGER_INFO( "Initializing PhysicsWorld..." );
 
         // We need a temp allocator for temporary allocations during the physics update. We're
         // pre-allocating 10 MB to avoid having to do allocations during the physics update.
@@ -112,7 +112,7 @@ namespace Mikoto {
 
         // The Log comes after so we know the service was
         // initialized before attempting to shut it down
-        MKT_CORE_LOGGER_INFO( "Shutting down PhysicsBase..." );
+        MKT_CORE_LOGGER_INFO( "Shutting down PhysicsWorld..." );
 
         for ( auto &val: m_Bodies | std::views::values ) {
             m_SimulationInfo.BodyInterface->RemoveBody(val->GetID());

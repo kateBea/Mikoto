@@ -90,6 +90,15 @@ namespace Mikoto {
     auto EditorLayer::OnCreate() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        // Test backend frames in flight
+        BufferDescription stagingDesc{};
+        stagingDesc.WithData( nullptr )
+                .WithUsage( BufferUsage::UNIFORM )
+                .WithSizeBytes( MKT_MEGABYTES( 1 ) )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
+
+        BufferHandle handle{ RenderService::Get()->GetGpuDevice()->CreateBuffer( stagingDesc ) };
+
         m_EditorState = CreateScope<EditorState>();
 
         SetupRenderer();

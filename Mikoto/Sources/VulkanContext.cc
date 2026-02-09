@@ -386,8 +386,8 @@ namespace Mikoto {
     }
 
     auto VulkanContext::CreateSynchronizationPrimitives() -> void {
-
         m_MaxFramesInFlight = 3;
+
         m_FrameSyncPrimitives.resize( m_MaxFramesInFlight );
 
         for (auto& [ImageAvailableSemaphore, RenderFinishedSemaphore, RenderFence] : m_FrameSyncPrimitives) {

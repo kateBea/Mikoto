@@ -91,7 +91,7 @@ namespace Mikoto {
     private:
         // Information I store for each pass
         struct FramePassInfo {
-            // Set index -> Descriptor Set handle
+            // Set index -> Descriptor Set handle. Allocate as many as max frames in flight
             ankerl::unordered_dense::map<UInt32, VkDescriptorSet> DescriptorSets{};
             PipelineHandle Pipeline{};
 
@@ -101,6 +101,9 @@ namespace Mikoto {
 
             ankerl::unordered_dense::map<UInt32, std::pair<Texture*, Sampler*>> CombinedImageSamplerBinding{};
         };
+
+        UInt32 m_CurrentFrameIndex{};
+        UInt32 m_MaxFramesInFlight{};
 
 #if defined( MKT_USE_VULKAN_BINDLESS )
         DescriptorSetLayoutHandle m_LayoutTextures{};

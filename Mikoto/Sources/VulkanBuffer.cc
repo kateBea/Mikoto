@@ -13,11 +13,16 @@
 // limitations under the License.
 
 #include <cstddef>
+#include <memory>
 
 #include <Library/Math/Math.hh>
+
+#include <Renderer/Core/RenderService.hh>
+
 #include <Renderer/Vulkan/VulkanBuffer.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
+#include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
 
 namespace Mikoto {
@@ -38,6 +43,18 @@ namespace Mikoto {
         if (IsUsage( BufferUsage::VERTEX ) || IsUsage(BufferUsage::INDEX)) {
             allocator->UnmapBuffer( m_StagingAllocation );
             allocator->FreeBuffer( m_StagingAllocation );
+        }
+
+        if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) || IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STREAM )) {
+            for (auto& inFlightBuffer : m_InFlightBuffers) {
+                if (allocator->IsValidAllocation(inFlightBuffer)) {
+                    if (inFlightBuffer.AllocationInfo.pMappedData) {
+                        allocator->UnmapBuffer( inFlightBuffer );
+                    }
+
+                    allocator->FreeBuffer( inFlightBuffer );
+                }
+            }
         }
 
         if (m_Data) {
@@ -74,12 +91,12 @@ namespace Mikoto {
                 }
             }
 
-            InitMainBuffer();
+            InitMainBuffers();
             UploadHostData();
         }
 
         if (IsUsage( BufferUsage::VERTEX ) || IsUsage(BufferUsage::INDEX)) {
-            InitMainBuffer();
+            InitMainBuffers();
             InitStaging();
 
             UploadHostDataToStaging();
@@ -173,11 +190,22 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanBuffer::InitMainBuffer() -> void {
+    auto VulkanBuffer::InitMainBuffers() -> void {
         auto* allocator{ MKT_VMA_ALLOC_PTR(m_Device) };
         if ( const VkResult result{ allocator->AllocateBuffer( m_Allocation ) }; result != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("VulkanBuffer::InitBuffer - Failed to allocate Vulkan buffer!");
         }
+
+        if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) || IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STREAM)) {
+            if (IsUsage(BufferUsage::UNIFORM) || IsUsage(BufferUsage::SSBO)) {
+                for (auto& inFlightBuffer : m_InFlightBuffers) {
+                    if ( const VkResult result{ allocator->AllocateBuffer( inFlightBuffer ) }; result != VK_SUCCESS) {
+                        MKT_THROW_RUNTIME_ERROR("VulkanBuffer::InitMainBuffers - Failed to allocate inFlightBuffer Vulkan buffer!");
+                    }
+                }
+            }
+        }
+
     }
 
     auto VulkanBuffer::InitStaging() -> void {
@@ -237,6 +265,11 @@ namespace Mikoto {
             // Fill VMA specific structs
             // Let the VMA library know that this data should be on CPU RAM
             m_Allocation.AllocationCreateInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+            if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) || IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STREAM)) {
+                const UInt32 framesInFlight{ MKT_VK_CTX(RenderService::Get()->GetContext())->GetMaxFramesInFlight() };
+                for (UInt32 count{}; count < framesInFlight; ++count) { m_InFlightBuffers.emplace_back(m_Allocation); }
+            }
         }
 
         // Storage buffers
@@ -254,6 +287,11 @@ namespace Mikoto {
             // Fill VMA specific structs
             // Let the VMA library know that this data should be on CPU RAM
             m_Allocation.AllocationCreateInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+            if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) || IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STREAM)) {
+                const UInt32 framesInFlight{ MKT_VK_CTX(RenderService::Get()->GetContext())->GetMaxFramesInFlight() };
+                for (UInt32 count{}; count < framesInFlight; ++count) { m_InFlightBuffers.emplace_back(m_Allocation); }
+            }
         }
 
         // Vertex buffers

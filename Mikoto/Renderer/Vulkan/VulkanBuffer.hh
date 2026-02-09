@@ -15,7 +15,7 @@
 #ifndef MIKOTO_VULKAN_BUFFER_HH
 #define MIKOTO_VULKAN_BUFFER_HH
 
-#include <memory>
+#include <vector>
 
 #include <volk.h>
 #include <vk_mem_alloc.h>
@@ -53,7 +53,7 @@ namespace Mikoto {
         auto UploadHostData() -> void;
         auto UploadHostDataToStaging() -> void;
 
-        auto InitMainBuffer() -> void;
+        auto InitMainBuffers() -> void;
         auto InitStaging() -> void;
 
     private:
@@ -65,6 +65,14 @@ namespace Mikoto {
 
         BufferAllocation m_Allocation{};
         BufferAllocation m_StagingAllocation{};
+
+        // If this buffer is declared as dynamic or stream.
+        // That way we can update one buffer on the CPU while the GPU reads from another one.
+        // This ensures we don't run into any read/write hazards where the CPU starts updating
+        // values while the GPU is still reading them.
+        // This usually applies to SSBOs and Uniforms, stagings on the other hand are just intermediary buffers we copy to from
+        // the CPU and move the contents to another GPU local buffer or an image
+        std::vector<BufferAllocation> m_InFlightBuffers{};
 
         bool m_UsesScalarBlockLayout{ false };
     };

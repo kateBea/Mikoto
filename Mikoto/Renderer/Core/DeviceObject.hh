@@ -126,6 +126,10 @@ namespace Mikoto {
             return m_UsageType;
         }
 
+        MKT_NODISCARD auto IsResourceUsage(ResourceUsageType usageType) const -> bool {
+            return m_UsageType == usageType;
+        }
+
         /**
          * @brief Retrieves the native handle of the device object.
          *

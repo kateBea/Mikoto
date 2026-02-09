@@ -16,6 +16,10 @@
 #include <Common/String.hh>
 
 #include <Material/ShaderLibrary.hh>
+
+#include <Renderer/Core/RenderService.hh>
+
+#include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanGraphicsContext.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>
@@ -138,6 +142,8 @@ namespace Mikoto {
 
     auto VulkanGraphicsContext::Init() -> void {
         CreateBindlessTexturesSet();
+
+        m_MaxFramesInFlight = MKT_VK_CTX( RenderService::Get()->GetContext() )->GetMaxFramesInFlight();
     }
 
     auto VulkanGraphicsContext::Shutdown() -> void {
@@ -154,6 +160,7 @@ namespace Mikoto {
     }
 
     auto VulkanGraphicsContext::BeginFrame() -> void {
+        m_MaxFramesInFlight = MKT_VK_CTX( RenderService::Get()->GetContext() )->GetCurrentFrameIndex();
     }
 
     auto VulkanGraphicsContext::EndFrame() -> void {

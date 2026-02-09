@@ -62,6 +62,8 @@ namespace Mikoto {
 
         auto Present() -> void override;
 
+        MKT_NODISCARD auto GetMaxFramesInFlight() const -> UInt32 { return m_MaxFramesInFlight; }
+
         MKT_NODISCARD auto GetCurrentImageIndex() const -> UInt32 { return m_CurrentImageIndex; }
         MKT_NODISCARD auto GetCurrentFrameIndex() const -> UInt32 { return m_CurrentFrameIndex; }
 
@@ -123,6 +125,8 @@ namespace Mikoto {
             .InstanceExtensions{ VK_EXT_DEBUG_UTILS_EXTENSION_NAME }
         };
     };
+
+#define MKT_VK_CTX(RENDER_CONTEXT_PTR) dynamic_cast<VulkanContext*>(RENDER_CONTEXT_PTR)
 }
 
 #endif // MIKOTO_VULKAN_CONTEXT_HH

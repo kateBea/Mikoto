@@ -114,6 +114,10 @@ namespace Mikoto {
         MapBuffer( allocation, false );
     }
 
+    auto VulkanMemoryAllocator::IsValidAllocation( BufferAllocation& allocation ) const -> bool {
+        return allocation.Buffer != VK_NULL_HANDLE; // TODO: better vaidation
+    }
+
     auto VulkanMemoryAllocator::GetMemoryUsage() const -> Size {
         vmaCalculateStatistics( m_Allocator, std::addressof( m_Stats ) );
         return m_Stats.total.statistics.allocationBytes;

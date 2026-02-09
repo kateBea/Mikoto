@@ -193,6 +193,7 @@ namespace Mikoto {
         m_ClusteredShadingPasses.RegisterPasses( *m_FrameGraph );
         m_IBLPasses.RegisterPasses( *m_FrameGraph, m_Device );
         m_PostEffectsPasses.RegisterPasses( *m_FrameGraph, m_Device );
+        m_MaterialDebug.RegisterPasses( *m_FrameGraph );
 
         m_FrameGraph->Compile();
     }

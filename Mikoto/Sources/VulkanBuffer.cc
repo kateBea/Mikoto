@@ -48,9 +48,9 @@ namespace Mikoto {
         if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) || IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STREAM )) {
             for (auto& inFlightBuffer : m_InFlightBuffers) {
                 if (allocator->IsValidAllocation(inFlightBuffer)) {
-                    if (inFlightBuffer.AllocationInfo.pMappedData) {
-                        allocator->UnmapBuffer( inFlightBuffer );
-                    }
+                    // if (inFlightBuffer.AllocationInfo.pMappedData) {
+                    //     allocator->UnmapBuffer( inFlightBuffer );
+                    // }
 
                     allocator->FreeBuffer( inFlightBuffer );
                 }

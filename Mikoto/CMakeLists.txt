@@ -39,6 +39,22 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 include(FetchContent)
 
 # ======================================
+# Ozz
+# ======================================
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+
+set(ozz_build_tools ON CACHE BOOL "" FORCE)
+set(ozz_build_gltf  ON CACHE BOOL "" FORCE)
+
+set(ozz_build_fbx ON CACHE BOOL "" FORCE)
+set(ozz_build_samples OFF CACHE BOOL "" FORCE)
+set(ozz_build_howtos OFF CACHE BOOL "" FORCE)
+set(ozz_build_tests OFF CACHE BOOL "" FORCE)
+set(ozz_build_data OFF CACHE BOOL "" FORCE)
+set(ozz_build_simd_ref OFF CACHE BOOL "" FORCE)
+set(ozz_build_msvc_rt_dll OFF CACHE BOOL "" FORCE)
+
+# ======================================
 # Taskflow
 # ======================================
 set(TF_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
@@ -394,6 +410,15 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(tracy)
 
+# Ozz
+FetchContent_Declare(
+        ozz-animation
+        GIT_REPOSITORY https://github.com/guillaumeblanc/ozz-animation.git
+        GIT_TAG master
+)
+
+FetchContent_MakeAvailable(ozz-animation)
+
 #Filewatch
 # Using https://github.com/ThomasMonkman/filewatch/tree/feature/fix-filesystem (currently working branch)
 # It is single header
@@ -545,14 +570,16 @@ set(LIBRARIES
         sol2::sol2
         Tracy::TracyClient
         OpenCL::OpenCL
+        ozz_animation
+        ozz_animation_offline
 )
 
 # ======================================
 # Debug print Cmake variables
 # ======================================
 #get_cmake_property(_variableNames VARIABLES)
-#    foreach(_variableName ${_variableNames})
-#        message(STATUS "${_variableName}=${${_variableName}}")
+#foreach(_variableName ${_variableNames})
+#    message(STATUS "${_variableName}=${${_variableName}}")
 #endforeach()
 
 add_library(${PROJECT_NAME} STATIC ${ALL_SOURCES})
@@ -627,6 +654,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${OpenCL-SDK_SOURCE_DIR}/lib/include
         ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-Headers
         ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-CLHPP/include
+        ${ozz_SOURCE_DIR}/include
 )
 
 # ======================================

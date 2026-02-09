@@ -52,6 +52,8 @@ namespace Mikoto {
                     //     allocator->UnmapBuffer( inFlightBuffer );
                     // }
 
+                    // TODO: Review. They are created mapped.
+
                     allocator->FreeBuffer( inFlightBuffer );
                 }
             }

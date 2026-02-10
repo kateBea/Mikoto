@@ -1239,10 +1239,11 @@ namespace Mikoto {
 
                 TaskService::Get()->Submit( [rootEntity = std::addressof(entity), scene ]() -> void {
                     const std::initializer_list<std::pair<std::string, std::string>> filters{
-                        { "Model files", "obj,gltf,fbx" },
+                        { "Model files", "obj,gltf,fbx,glb" },
                         { "OBJ files", "obj" },
                         { "glTF files", "gltf" },
-                        { "FBX files", "fbx" }
+                        { "FBX files", "fbx" },
+                        { "GLB files", "glb" },
                     };
 
                     Path targetModelPath{ FileService::Get()->OpenDialog( filters ).string() };

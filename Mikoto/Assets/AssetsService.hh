@@ -160,6 +160,7 @@ namespace Mikoto {
 
         auto LoadTexture( const Path& uri, bool isHDR = false ) -> TextureHandle;
         auto LoadTexture( std::string_view uri, bool isHDR = false  ) -> TextureHandle;
+        auto LoadTexture( const TextureDescription& description ) -> TextureHandle;
         auto LoadTexture( const TextureLoadDescription& description) -> TextureHandle;
 
         auto LoadCubeMap( const Path& uri ) -> TextureHandle;

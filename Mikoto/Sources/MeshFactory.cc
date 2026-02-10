@@ -1,16 +1,30 @@
+//    Copyright 2026 ケイト
 //
-// Created by zanet on 3/28/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <array>
 #include <memory>
 #include <vector>
+#include <cstdlib>
+
+#include <Common/String.hh>
 
 #include <Renderer/Core/Pipeline.hh>
 #include <Renderer/Core/RenderService.hh>
+
+#include <Assets/Model.hh>
 #include <Assets/AssetsService.hh>
 #include <Assets/MeshFactory.hh>
-#include <Assets/Model.hh>
 #include <Filesystem/FileService.hh>
 #include <Library/Utility/Types.hh>
 #include <Renderer/Core/RenderUtility.hh>
@@ -21,11 +35,17 @@
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
 
+#include <Assets/GltfImporter.hh>
+#include <Assets/MainImporter.hh>
+#include <Assets/MeshOptimizer.hh>
+
 namespace Mikoto {
 
     class CustomLogStream final : public Assimp::LogStream {
     public:
-        auto write( const char *message ) -> void override { MKT_CORE_LOGGER_DEBUG( "[Assimp] {}", message ); }
+        auto write( const char *message ) -> void override {
+            MKT_CORE_LOGGER_TRACE( "[Assimp] {}", message );
+        }
     };
 
     struct MeshNodeCreateInfo {
@@ -90,9 +110,9 @@ namespace Mikoto {
         // special case for vulkan
         const bool invertY{ RenderService::Get()->IsGraphicsActive( GraphicsAPI::VULKAN_API ) };
 
-        // The way we construct the vertex buffer data is not guaranteed to follow
-        // the buffer layout, which is default for Models. Which means if the mesh
-        // has no normal or texture coordinates, we have to insert default initialized
+        // The way the mesh is described is not guaranteed to follow the default
+        // buffer layout, which is default for Models. Which means if the mesh
+        // has no normals or texture coordinates, we have to insert default initialized
         // data to follow the default layout. We also have to introduce default
         // values for the color attribute
 
@@ -104,8 +124,6 @@ namespace Mikoto {
         vertices.reserve( ( defaultBufferLayout.GetStride() / sizeof( float ) ) * mesh->mNumVertices );
 
         for (UInt64 index{}; index < mesh->mNumVertices; index++) {
-            // This must follow the order of the default buffer layout
-
             // Vertices -----
             vertices.emplace_back( mesh->mVertices[index].x );
             vertices.emplace_back( mesh->mVertices[index].y );
@@ -133,7 +151,7 @@ namespace Mikoto {
                 vertices.emplace_back( 0.0f );
             }
 
-            // Texture coordinates -----
+            // UV0 -----
             if (mesh->HasTextureCoords( 0 )) {
                 vertices.emplace_back( mesh->mTextureCoords[0][index].x );
                 vertices.emplace_back( Math::Abs( 1 - mesh->mTextureCoords[0][index].y) );
@@ -142,8 +160,26 @@ namespace Mikoto {
                 vertices.emplace_back( 0.0f );
             }
 
-            // Tangents and Bi tangents
-            if (mesh->HasTangentsAndBitangents()) {}
+            // UV1 -----
+            if (mesh->HasTextureCoords( 1 )) {
+                vertices.emplace_back( mesh->mTextureCoords[1][index].x );
+                vertices.emplace_back( mesh->mTextureCoords[1][index].y );
+            } else {
+                vertices.emplace_back( 0.0f );
+                vertices.emplace_back( 0.0f );
+            }
+
+            // Joints (Animation Bone IDs)
+            vertices.emplace_back( 0.0f );
+            vertices.emplace_back( 0.0f );
+            vertices.emplace_back( 0.0f );
+            vertices.emplace_back( 0.0f );
+
+            // Weights
+            vertices.emplace_back( 0.0f );
+            vertices.emplace_back( 0.0f );
+            vertices.emplace_back( 0.0f );
+            vertices.emplace_back( 0.0f );
         }
 
         return vertices;
@@ -155,7 +191,9 @@ namespace Mikoto {
         for (UInt64 i{}; i < mesh->mNumFaces; i++) {
             const auto face{ mesh->mFaces[i] };
 
-            for (UInt64 index{}; index < face.mNumIndices; index++) { indices.emplace_back( face.mIndices[index] ); }
+            for (UInt64 index{}; index < face.mNumIndices; index++) {
+                indices.emplace_back( face.mIndices[index] );
+            }
         }
 
         return indices;
@@ -168,31 +206,78 @@ namespace Mikoto {
             aiString assimpTexturePath{};
 
             if (material->GetTexture( type, index, std::addressof( assimpTexturePath ) ) == AI_SUCCESS) {
-                // Assumes the textures are in the same directory as the model files
-                Path path{ PathBuilder()
-                           .WithPath( modelRootPath )
-                           .WithPath( assimpTexturePath.C_Str() )
-                           .Build() };
 
-                TextureLoadDescription loadInfo{};
-                loadInfo.WithFile( FileService::Get()->LoadFile( path ) )
-                        .WithType( InferMikotoTextureType( type ) )
-                        .WithMapType( InferMapType( type ) );
+                if (!StringUtil::Contains(assimpTexturePath.C_Str(), "*")) {
+                    // Assumes the textures are in the same directory as the model files
+                    Path path{ PathBuilder()
+                               .WithPath( modelRootPath )
+                               .WithPath( assimpTexturePath.C_Str() )
+                               .Build() };
 
-                try {
-                    texture = AssetsService::Get()->LoadAsset<Texture>( loadInfo );
-                } catch (std::exception &e) {
-                    MKT_CORE_LOGGER_ERROR( "LoadTexture - Failed to load texture. Reason: {}", e.what() );
+                    TextureLoadDescription loadInfo{};
+                    loadInfo.WithFile( FileService::Get()->LoadFile( path ) )
+                            .WithType( InferMikotoTextureType( type ) )
+                            .WithMapType( InferMapType( type ) );
+
+                    try {
+                        texture = AssetsService::Get()->LoadAsset<Texture>( loadInfo );
+                    } catch (std::exception &e) {
+                        MKT_CORE_LOGGER_ERROR( "LoadTexture - Failed to load texture. Reason: {}", e.what() );
+                    }
+                } else {
+                    try {
+                        Int32 embeddedIndex{ std::atoi( assimpTexturePath.C_Str() + 1 ) };
+                        const aiTexture *tex{ scene->mTextures[embeddedIndex] };
+
+                        Path path{ PathBuilder()
+                                           .WithPath( modelRootPath )
+                                           .WithPath( assimpTexturePath.C_Str() )
+                                           .Build() };
+
+                        TextureDescription loadInfo{};
+
+                        //If mHeight value is zero, pcData points to an
+                        //compressed texture in any format (e.g. JPEG). (see texture.h in Assimp)
+                        if ( tex->mHeight == 0 ) {
+                            const StbImage image{ reinterpret_cast<Byte *>( tex->pcData ), tex->mWidth };
+
+                            loadInfo.WithWidth( image.GetWidth() )
+                                    .WithHeight( image.GetHeight() )
+                                    .WithChannelCount( image.GetChannels() )
+                                    .WithData( image.GetData() )
+
+                                    .WithName( path.string() )
+                                    .WithType( InferMikotoTextureType( type ) )
+                                    .WithMapType( InferMapType( type ) )
+                                    .WithType( TextureType::TEXTURE_2D )
+                                    .WithFormat( TextureFormat::RGBA8_UNORM )
+                                    .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+
+                            // Because StbImage is RAII and will free its data when exiting this scope we create the texture here
+                            texture = AssetsService::Get()->LoadAsset<Texture>( loadInfo );
+                        } else {
+                            // TODO: untested
+                            loadInfo.WithWidth( tex->mWidth )
+                                    .WithHeight( tex->mHeight )
+                                    .WithChannelCount( 4 )// Assimp always provides the texture with 4 channels
+                                    .WithData( reinterpret_cast<unsigned char *>( tex->pcData ) )
+
+                                .WithName( path.string() )
+                                    .WithType( InferMikotoTextureType( type ) )
+                                    .WithMapType( InferMapType( type ) )
+                                    .WithType( TextureType::TEXTURE_2D )
+                                    .WithFormat( TextureFormat::RGBA8_UNORM )
+                                    .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+
+                            texture = AssetsService::Get()->LoadAsset<Texture>( loadInfo );
+                        }
+
+                    } catch ( std::exception &e ) {
+                        MKT_CORE_LOGGER_ERROR( "LoadTexture - Failed to load embedded texture. Reason: {}", e.what() );
+                    }
                 }
             }
 
-            // Temporary. See if it is an embedded texture
-            // This one will probably be loaded in the device directly and not cached in the assets service??
-            auto [embeddedTexturePtr, embeddedTextureIndex]{
-                scene->GetEmbeddedTextureAndIndex( assimpTexturePath.C_Str() )
-            };
-
-            if (embeddedTextureIndex != -1) { MKT_CORE_LOGGER_WARN( "Model::LoadTextures - Texture is embedded! Index is {}", embeddedTextureIndex ); }
         }
 
         return texture;
@@ -206,7 +291,9 @@ namespace Mikoto {
             for (const aiTextureType &type: ASSIMP_TEXTURE_TYPES) {
                 TextureHandle handle{ LoadTexture( modelRootPath, material, type, scene ) };
 
-                if (!handle.IsEmpty()) { textures.emplace_back( handle ); }
+                if (!handle.IsEmpty()) {
+                    textures.emplace_back( handle );
+                }
             }
         }
 
@@ -219,23 +306,6 @@ namespace Mikoto {
         aiString name{};
         if(mat->Get(AI_MATKEY_NAME, name) == AI_SUCCESS) {
             properties.Name = name.C_Str();
-        }
-
-        aiColor3D diffuse{};
-        if(mat->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse) == AI_SUCCESS) {
-            properties.DiffuseColor = Vec3F{ diffuse.r, diffuse.g, diffuse.b };
-        }
-
-        float value{};
-
-        if(mat->Get(AI_MATKEY_METALLIC_FACTOR, value) == AI_SUCCESS) {
-            properties.Metallic = value;
-        }
-        if(mat->Get(AI_MATKEY_ROUGHNESS_FACTOR, value) == AI_SUCCESS) {
-            properties.Roughness = value;
-        }
-        if(mat->Get(AI_MATKEY_SHININESS, value) == AI_SUCCESS) {
-            properties.Shininess = value;
         }
 
         return properties;
@@ -321,7 +391,9 @@ namespace Mikoto {
             if (auto nodes{ LoadNodes( device, rootPath.string(), scene->mRootNode, scene, loadInfo ) }; !nodes.empty()) {
                 result = new Model( fileName, absolutePath );
 
-                for (MeshNode &node: nodes) { result->AddMeshNode( node.GetMeshIndex(), std::move( node ) ); }
+                for (MeshNode &node: nodes) {
+                    result->PushMeshNode( node.GetMeshIndex(), std::move( node ) );
+                }
             }
         }
 
@@ -391,6 +463,8 @@ namespace Mikoto {
         if (m_WantCustomLog) {
             SetupCustomAssimpLogger();
         }
+
+        MeshOptimizer::OptimizerTestRun();
 
         m_IsInitialized = true;
     }

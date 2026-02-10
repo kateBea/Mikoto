@@ -205,6 +205,8 @@ namespace Mikoto {
     };
 
     struct TextureDescription {
+        std::string Name{};
+
         Int32 Width{};
         Int32 Height{};
         Int32 ChannelCount{ 4 };
@@ -227,6 +229,7 @@ namespace Mikoto {
 
         auto IsHDRMap( bool value ) -> TextureDescription&;
         auto WithWidth( Int32 width ) -> TextureDescription&;
+        auto WithName( std::string_view name ) -> TextureDescription&;
         auto WithHeight( Int32 height ) -> TextureDescription&;
         auto WithChannelCount( Int32 channels ) -> TextureDescription&;
 
@@ -413,6 +416,7 @@ namespace Mikoto {
 
     auto FreeImageData( Byte* data ) -> void;
     MKT_NODISCARD auto LoadImageFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
+    MKT_NODISCARD auto LoadImageFromMemory( const Byte* buffer, Size sizeBytes, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
     MKT_NODISCARD auto LoadImageFloatFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
 
     class STBImageHDR final {
@@ -445,6 +449,8 @@ namespace Mikoto {
     class StbImage final {
     public:
         explicit StbImage( const File* textureFile, bool isHDR = false );
+
+        explicit StbImage( const Byte* data, Size sizeBytes );
 
         ~StbImage();
 

@@ -73,12 +73,16 @@ namespace Mikoto {
             : Pipeline{ PipelineType::COMPUTE_PIPELINE, { desc.Stage } } {}
     };
 
-    // Note: for now this will always be the same layout as the Models, see Model.hh
     static inline const BufferLayout DEFAULT_VERTEX_BUFFER_LAYOUT{
         { ShaderDataType::FLOAT3_TYPE, "a_Position" },
         { ShaderDataType::FLOAT3_TYPE, "a_Normal" },
         { ShaderDataType::FLOAT3_TYPE, "a_Color" },
-        { ShaderDataType::FLOAT2_TYPE, "a_TextureCoordinates" }
+
+        { ShaderDataType::FLOAT2_TYPE, "a_UV0" },
+        { ShaderDataType::FLOAT2_TYPE, "a_UV1" },
+
+        { ShaderDataType::FLOAT4_TYPE, "a_Joint" },
+        { ShaderDataType::FLOAT4_TYPE, "a_Weight" },
     };
 
     enum class InputRate { PER_VERTEX, PER_INSTANCE };

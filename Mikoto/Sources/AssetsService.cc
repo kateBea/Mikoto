@@ -185,6 +185,23 @@ namespace Mikoto {
         return LoadTexture( loadDesc );
     }
 
+    auto AssetsService::LoadTexture( const TextureDescription& description ) -> TextureHandle {
+        std::string path{ description.TextureFile ? description.TextureFile->GetPath() : description.Name };
+
+        TextureHandle texture{ m_GpuDevice->CreateTexture( description ) };
+        if (!texture.IsEmpty()) {
+            auto [it, success]{
+                m_Textures2D.try_emplace( path, texture )
+            };
+
+            if (success) {
+                return m_Textures2D[path];
+            }
+        }
+
+        return TextureHandle::CreateEmpty();
+    }
+
     auto AssetsService::LoadTexture( const TextureLoadDescription& description) -> TextureHandle {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -221,18 +238,7 @@ namespace Mikoto {
 
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
-        TextureHandle texture{ m_GpuDevice->CreateTexture( textureDesc ) };
-        if (!texture.IsEmpty()) {
-            auto [it, success]{
-                m_Textures2D.try_emplace( textureFile->GetPath(), texture )
-            };
-
-            if (success) {
-                return m_Textures2D[textureFile->GetPath()];
-            }
-        }
-
-        return TextureHandle::CreateEmpty();
+        return LoadTexture( textureDesc );
     }
 
     auto AssetsService::LoadCubeMap( const Path &uri ) -> TextureHandle {

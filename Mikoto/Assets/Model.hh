@@ -1,22 +1,28 @@
-/**
- * Model.hh
- * Created by kate on 6/29/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_MODEL_HH
 #define MIKOTO_MODEL_HH
 
-// C++ Standard Library
 #include <cstdint>
 #include <filesystem>
 #include <string>
 #include <string_view>
 #include <vector>
 
-// Third Party Libraries
 #include <ankerl/unordered_dense.h>
 
-// Project Libraries
 #include <Common/Common.hh>
 #include <Material/Texture2D.hh>
 #include <Renderer/Core/Buffer.hh>
@@ -31,17 +37,12 @@ namespace Mikoto {
         UV0,
         UV1,
         COLORS,
+        JOINTS,
+        WEIGHTS,
 
         CUSTOM,
     };
 
-    /**
-    * @struct ModelLoadDescription
-    * @brief Contains parameters for loading a 3D model.
-    *
-    * The `ModelLoadInfo` structure specifies the path of the model to be loaded
-    * and whether textures should be included in the loading process.
-    */
     struct ModelLoadDescription {
         const File* ModelFile{};
         bool WantTextures{ true };
@@ -54,81 +55,87 @@ namespace Mikoto {
             VertexAttribute::COLORS,
             VertexAttribute::UV0,
             VertexAttribute::UV1,
-            VertexAttribute::TANGENTS,
-            VertexAttribute::BITANGENTS,
 
-            VertexAttribute::CUSTOM, // Bone IDs
-            VertexAttribute::CUSTOM, // Weight IDs
+            VertexAttribute::JOINTS, // Bone IDs
+            VertexAttribute::WEIGHTS, // Weight IDs
         };
 
-        /**
-        * @brief Sets the path of the model.
-        * @param file The absolute or relative path to the model file.
-        * @return Reference to the modified ModelLoadInfo.
-        */
-        auto WithFilePath( const File* file ) -> ModelLoadDescription&;
-
-        /**
-        * @brief Specifies whether to load textures for the model.
-        * @param value True to load textures, false otherwise.
-        * @return Reference to the modified ModelLoadInfo.
-        */
         auto LoadTextures( bool value ) -> ModelLoadDescription&;
+        auto WithFilePath( const File* file ) -> ModelLoadDescription&;
     };
 
     struct MaterialProperties {
-        std::string Name{};
-        Vec3F DiffuseColor{0.f, 0.f, 0.f};
-        float Metallic{0.f};
-        float Roughness{0.f};
-        float Shininess{0.f};
+        std::string Name;
+
+        enum class Workflow {
+            MetallicRoughness,
+            SpecularGlossiness,
+            Unlit
+        };
+
+        Workflow Workflow{ Workflow::MetallicRoughness };
+
+        // Base color/Albedo
+        Vec4F BaseColorFactor{1.f, 1.f, 1.f, 1.f};
+        std::string BaseColorTexture{};
+
+        // Metallic-Roughness workflow
+        float MetallicFactor{ 1.f };
+        float RoughnessFactor{ 1.f };
+        std::string MetallicRoughnessTexture{};
+
+        // Specular-Glossiness workflow (FBX/OBJ/glTF extension)
+        Vec3F DiffuseFactor{1.f, 1.f, 1.f};
+        std::string DiffuseTexture{};
+        Vec3F SpecularFactor{1.f, 1.f, 1.f};
+
+        std::string SpecularGlossinessTexture{};
+        float GlossinessFactor{ 1.f };
+
+        // Normal mapping
+        std::string NormalTexture{};
+        float NormalScale{ 1.f };
+
+        // Occlusion
+        std::string OcclusionTexture{};
+        float OcclusionStrength{ 1.f };
+
+        // Emissive
+        Vec3F EmissiveFactor{0.f, 0.f, 0.f};
+        float EmissiveStrength{ 1.f };
+        std::string EmissiveTexture{};
+
+        // Alpha
+        enum class AlphaMode { Opaque, Mask, Blend };
+        AlphaMode alphaMode{ AlphaMode::Opaque };
+        float AlphaCutoff{ 0.5f };
+
+        // UV sets
+        Int32 BaseColorTexCoord{};
+        Int32 MetallicRoughnessTexCoord{};
+        Int32 NormalTexCoord{};
+        Int32 OcclusionTexCoord{};
+        Int32 EmissiveTexCoord{};
     };
 
-    /**
-     * @class MeshNode
-     * @brief Represents a single mesh node within a 3D model.
-     *
-     * The `MeshNode` class stores vertex and index buffer references, along with associated textures.
-     */
     class MeshNode final {
     public:
-        /**
-         * @brief Constructs a MeshNode with the given parameters.
-         * @param index Index of the mesh within the model.
-         * @param vertices Handle to the vertex buffer.
-         * @param indices Handle to the index buffer.
-         * @param textures Vector of texture Handles associated with the mesh.
-         */
-        explicit MeshNode( Size index, BufferHandle vertices, BufferHandle indices, std::vector<TextureHandle>&& textures, std::string_view name, MaterialProperties&& properties );
+        explicit MeshNode( Size index,
+            BufferHandle vertices,
+            BufferHandle indices,
+            std::vector<TextureHandle>&& textures,
+            std::string_view name, MaterialProperties&&
+            properties );
 
-        MeshNode(MeshNode&& other) noexcept;
-
-        /**
-         * @brief Retrieves the vertex buffer of the mesh.
-         * @return A pointer to the vertex buffer.
-         */
-        MKT_NODISCARD auto GetVertexBuffer() -> BufferHandle { return  m_Vertices; }
-
-        /**
-         * @brief Retrieves the index buffer of the mesh.
-         * @return A pointer to the index buffer.
-         */
-        MKT_NODISCARD auto GetIndexBuffer() -> BufferHandle { return m_Indices; }
+        MeshNode(MeshNode&& other) noexcept = default;
 
         MKT_NODISCARD auto GetName() -> const std::string& { return m_Name; }
 
-        MKT_NODISCARD auto GetProperties() const -> const MaterialProperties& { return m_Properties; }
-
-        /**
-         * @brief Retrieves the index of the mesh into its corresponding model.
-         * @return The mesh index for this mesh.
-         */
         MKT_NODISCARD auto GetMeshIndex() const -> Size { return m_MeshIndex; }
+        MKT_NODISCARD auto GetVertexBuffer() -> BufferHandle { return  m_Vertices; }
+        MKT_NODISCARD auto GetIndexBuffer() -> BufferHandle { return m_Indices; }
 
-        /**
-         * @brief Retrieves the textures associated with the mesh.
-         * @return A constant reference to the vector of textures.
-         */
+        MKT_NODISCARD auto GetProperties() const -> const MaterialProperties& { return m_Properties; }
         MKT_NODISCARD auto GetTextures() const -> const std::vector<TextureHandle>& { return m_OriginalTextures; }
 
         DISABLE_COPY_FOR( MeshNode );
@@ -209,7 +216,7 @@ namespace Mikoto {
         * This function inserts a new mesh node into the `m_Meshes` collection at the given index.
         */
         template<typename... Args>
-        auto AddMeshNode(UInt32 index, Args&&... args) -> void {
+        auto PushMeshNode(UInt32 index, Args&&... args) -> void {
             m_Meshes.emplace(index, std::forward<Args>(args)...);
         }
 
@@ -246,6 +253,6 @@ namespace Mikoto {
 
     using ModelHandle = Ref<Model>;
 
-}// namespace Mikoto
+}
 
 #endif// MIKOTO_MODEL_HH

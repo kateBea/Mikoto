@@ -382,10 +382,11 @@ namespace Mikoto {
 
             TaskService::Get()->Submit( [this, rootEntity = root]() -> void {
                 const std::initializer_list<std::pair<std::string, std::string>> filters{
-                    { "Model files", "obj,gltf,fbx" },
+                    { "Model files", "obj,gltf,fbx,glb" },
                     { "OBJ files", "obj" },
                     { "glTF files", "gltf" },
-                    { "FBX files", "fbx" }
+                    { "FBX files", "fbx" },
+                    { "GLB files", "glb" },
                 };
 
                 const std::string path{ FileService::Get()->OpenDialog( filters ).string() };

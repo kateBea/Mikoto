@@ -42,12 +42,21 @@ namespace Mikoto {
 
         m_Meshes.resize( MAX_RENDERABLE_ENTITIES );
 
+        m_MeshInfo.resize( MAX_RENDERABLE_ENTITIES );
+        m_Materials.resize( MAX_RENDERABLE_ENTITIES );
+
         graph.RegisterPass(
                 "MeshCulling",
                 []( FramePassBuilder &b ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
+                    b.Create<Buffer>( "MeshCulling_MeshShaderData", BufferUsage::SSBO, sizeof( MeshParameters ), MAX_RENDERABLE_ENTITIES );
+                    b.Create<Buffer>( "MeshCulling_MaterialShaderData", BufferUsage::SSBO, sizeof( MaterialParameters ), MAX_RENDERABLE_ENTITIES );
+
                     b.Create<Buffer>( "FinalCompositionPass_MeshInfo", BufferUsage::SSBO, sizeof( ShaderMaterialParams ), MAX_RENDERABLE_ENTITIES );
                     b.Write( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
+
+                    b.Write( "MeshCulling_MeshShaderData", FrameResourceState::UnorderedAccess );
+                    b.Write( "MeshCulling_MaterialShaderData", FrameResourceState::UnorderedAccess );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();

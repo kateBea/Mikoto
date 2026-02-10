@@ -47,6 +47,26 @@ namespace Mikoto {
         return data;
     }
 
+    auto LoadImageFromMemory( const Byte* buffer, Size sizeBytes, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc* {
+        stbi_set_flip_vertically_on_load( true );
+
+        constexpr int targetChannelCount{ STBI_rgb_alpha };
+        stbi_uc* data{ stbi_load_from_memory(
+                reinterpret_cast<const stbi_uc*>( buffer ),
+                sizeBytes,
+                std::addressof( outWidth ),
+                std::addressof( outHeight ),
+                std::addressof( outChannels ),
+                targetChannelCount ) };
+
+        if ( !data ) {
+            MKT_THROW_RUNTIME_ERROR( "LoadImageFromFile - Failed to load texture memory" );
+        }
+
+        outChannels = 4;
+        return data;
+    }
+
     auto LoadImageFloatFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc* {
         stbi_set_flip_vertically_on_load( true );
 
@@ -129,6 +149,10 @@ namespace Mikoto {
         //     m_Data = LoadImageFromFile( textureFile, m_Width, m_Height, m_Channels );
         // }
         m_Data = LoadImageFromFile( textureFile, m_Width, m_Height, m_Channels );
+    }
+
+    StbImage::StbImage( const Byte* data, Size sizeBytes) {
+        m_Data = LoadImageFromMemory( data, sizeBytes, m_Width, m_Height, m_Channels );
     }
 
     StbImage::~StbImage() {
@@ -319,6 +343,11 @@ namespace Mikoto {
 
     auto TextureDescription::WithWidth( Int32 width ) -> TextureDescription& {
         Width = width;
+        return *this;
+    }
+
+    auto TextureDescription::WithName( std::string_view name ) -> TextureDescription& {
+        Name = name;
         return *this;
     }
 

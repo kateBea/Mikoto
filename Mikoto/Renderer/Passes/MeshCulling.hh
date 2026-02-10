@@ -69,6 +69,10 @@ namespace Mikoto {
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
 
         std::vector<ShaderMaterialParams> m_Meshes{};
+
+        std::vector<MeshParameters> m_MeshInfo{};
+        std::vector<MaterialParameters> m_Materials{};
+
         ankerl::unordered_dense::map<MeshNode*, MeshInstanceInfo> m_MeshDrawState{};
     };
 

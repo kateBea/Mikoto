@@ -53,9 +53,11 @@ namespace Mikoto {
         Int32 EmissiveIndex{ INVALID_TEXTURE_INDEX };
     };
 
-    struct MaterialParameters {
-        Mat4F Transform;
+    struct MeshParameters {
+        Mat4F Transform{};
+    };
 
+    struct MaterialParameters {
         // --- Base Color ---
         Vec4F BaseColorFactor{ 1, 1, 1, 1 };
         Int32 AlbedoIndex{ INVALID_TEXTURE_INDEX };

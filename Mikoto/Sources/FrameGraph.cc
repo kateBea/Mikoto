@@ -184,6 +184,27 @@ namespace Mikoto {
         CreateTexture( name, colorDesc );
     }
 
+    auto FramePassBuilder::CreateTexture( std::string_view name, RenderResolution resolution, TextureFormat format, Multisampling msaa, TextureUsage usage ) -> void {
+        auto scale{ InferDimensions( resolution ) };
+        CreateTexture( name, scale.first, scale.second, format, msaa, usage );
+    }
+
+    auto FramePassBuilder::CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format, Multisampling msaa, TextureUsage usage ) -> void {
+        TextureDescription colorDesc{};
+        colorDesc.WithWidth( width )
+                 .WithHeight( height )
+                 .WithChannelCount( 4 )
+                 .WithData( nullptr )
+                 .WithType( TextureType::TEXTURE_2D )
+                 .WithTextureUsage( usage )
+                 .WithFormat( format )
+                 .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+
+        colorDesc.MSAA = msaa;
+
+        CreateTexture( name, colorDesc );
+    }
+
     auto FramePassBuilder::CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format, void *ptr, Size sizeBytes ) -> void {
         TextureDescription colorDesc{};
         colorDesc.WithWidth( width )

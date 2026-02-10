@@ -131,6 +131,8 @@ namespace Mikoto {
         auto CreateTexture( std::string_view name, TextureDescription description ) -> void;
         auto CreateTexture( std::string_view name, RenderResolution resolution, TextureFormat format, TextureUsage usage ) -> void;
         auto CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format, TextureUsage usage ) -> void;
+        auto CreateTexture( std::string_view name, RenderResolution resolution, TextureFormat format, Multisampling msaa, TextureUsage usage ) -> void;
+        auto CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format, Multisampling msaa, TextureUsage usage ) -> void;
         auto CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format, void* ptr, Size sizeBytes) -> void;
 
         // For cubes

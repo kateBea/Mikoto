@@ -402,9 +402,6 @@ namespace Mikoto {
                 [this]( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    b.Create<Texture>( "FinalShadingPass_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                    b.Create<Texture>( "FinalShadingPass_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
-
                     b.Create<Buffer>( "IBL_Parameters", BufferUsage::UNIFORM, sizeof( IBLParameters ), 1 );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Skybox_Vert.sprv", ShaderStage::VERTEX );
@@ -610,15 +607,20 @@ namespace Mikoto {
 
         graph.RegisterPass(
                 "FinalShading",
-                []( FramePassBuilder &b ) -> void {
+                [this]( FramePassBuilder &b ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
+
+                    b.Create<Texture>( "FinalShadingPass_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, Multisampling::MSAA_X1, TextureUsage::COLOR );
+                    b.Create<Texture>( "FinalShadingPass_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, Multisampling::MSAA_X1, TextureUsage::DEPTH );
 
                     b.Create<Buffer>( "FinalCompositionPass_CameraInfo", BufferUsage::UNIFORM, sizeof( ShaderCameraParams ), 1 );
 
                     GraphicsPipelineDescription graphicsDesc{
+
                         .DepthTest{ true },
                         .DepthWrite{ true },
                         .AlphaBlending{ true },
+                        .Multisampling{ Multisampling::MSAA_X1 },
                         .PipelineCullMode{ CullMode::NONE },
                     };
 
@@ -690,7 +692,5 @@ namespace Mikoto {
 
                     ctx.EndRender();
                 } );
-
-        //graph.SetNodeExecutionPolicy( "FinalShading", FramePassExecutionPolicy::ONCE );
     }
-} // namespace Mikoto
+}

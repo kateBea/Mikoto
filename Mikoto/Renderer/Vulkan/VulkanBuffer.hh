@@ -77,6 +77,7 @@ namespace Mikoto {
         BufferAllocation m_Allocation{};
         BufferAllocation m_StagingAllocation{};
 
+        // TODO: Alternative to below is have one large buffer for dynamic or stream type buffers (basically a single buffer large enough for all frame in flights and offset it)
         // If this buffer is declared as dynamic or stream.
         // That way we can update one buffer on the CPU while the GPU reads from another one.
         // This ensures we don't run into any read/write hazards where the CPU starts updating

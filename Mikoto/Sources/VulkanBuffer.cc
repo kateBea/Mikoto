@@ -209,7 +209,6 @@ namespace Mikoto {
         if (m_Data) {
             CopyToDevice( m_Data, m_SizeBytes );
 
-            // Free retained data after upload
             delete[] m_Data;
             m_Data = nullptr;
         }
@@ -354,16 +353,12 @@ namespace Mikoto {
     auto VulkanBuffer::CopyToHost( void* ptr, const Size size ) -> void {
         // Do a check that this is CPU visible memory
 
-        PersistentMap();
-
         const Size copySize{ Math::Min(size, m_Allocation.AllocationInfo.size) };
         std::memcpy( ptr, m_Allocation.AllocationInfo.pMappedData, copySize );
     }
 
     auto VulkanBuffer::CopyToDevice( const void* ptr, const Size size ) -> void {
         // Do a check that this is CPU visible memory
-
-        PersistentMap();
 
         if (IsUsage(BufferUsage::STAGING)) {
             std::memcpy( m_Allocation.AllocationInfo.pMappedData, ptr, size );
@@ -386,8 +381,6 @@ namespace Mikoto {
 
             return;
         }
-
-        PersistentMap();
 
         // Vertices and indices are not often copied by these means, usually via a copy command on the GPU
         // We check for scalar block because that way we can directly copy the contents without account for any padding
@@ -442,4 +435,4 @@ namespace Mikoto {
 
         return m_Allocation.Buffer;
     }
-}// namespace Mikoto
+}

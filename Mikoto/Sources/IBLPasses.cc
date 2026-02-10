@@ -616,10 +616,10 @@ namespace Mikoto {
                     b.Create<Buffer>( "FinalCompositionPass_CameraInfo", BufferUsage::UNIFORM, sizeof( ShaderCameraParams ), 1 );
 
                     GraphicsPipelineDescription graphicsDesc{
-
                         .DepthTest{ true },
                         .DepthWrite{ true },
                         .AlphaBlending{ true },
+                        .EnableSampleRateShading{ true },
                         .Multisampling{ Multisampling::MSAA_X1 },
                         .PipelineCullMode{ CullMode::NONE },
                     };

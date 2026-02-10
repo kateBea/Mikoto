@@ -34,17 +34,7 @@
 namespace Mikoto {
 
     // Device extensions standard
-    static constexpr std::array DEVICE_EXTENSIONS{
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-
-        // Passing your vertex data just like in OpenGL, using the same state (as the pipeline setup)
-        // and Shaders as in OpenGL, your scene will likely not display as you’d expect.
-        // The viewport’s origin in OpenGL is in the lower left of the screen, with Y pointing up.
-        // In Vulkan the origin is in the top left of the screen, with Y pointing downwards.
-        // Starting from Vulkan 1.1 though, this feature is part of core Vulkan, so checking for it is not really needed.
-        // See: https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport/
-        VK_KHR_MAINTENANCE1_EXTENSION_NAME,
-    };
+    static constexpr std::array DEVICE_EXTENSIONS{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
     struct PhysicalDeviceRequiredFeatures {
         // Support for Anisotropic filtering
@@ -1188,6 +1178,8 @@ namespace Mikoto {
 
     auto VulkanCmdList::SetViewport( Int32 x, Int32 y, Int32 width, Int32 height ) -> void {
         VkViewport viewport{};
+
+        // Mikoto defaults to Vulkan 1.3 where this feature is core
 
         viewport.x = x;
         viewport.y = height;

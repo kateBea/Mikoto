@@ -345,7 +345,7 @@ namespace Mikoto {
         m_LayoutTextures = TO_VK_DEVICE( m_Device )->AllocateDescriptorSetLayout(  layoutInfo );
         m_LayoutTextures->SetDebugName( "DescriptorSetLayout for VulkanGraphicsContext bindless textures" );
 
-        std::array<UInt32, 1> variableCount{ maxBindlessTextures };
+        std::array variableCount{ maxBindlessTextures };
         VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO };
         variableCountInfo.descriptorSetCount = static_cast<UInt32>( variableCount.size() );
         variableCountInfo.pDescriptorCounts = variableCount.data();
@@ -511,15 +511,6 @@ namespace Mikoto {
     auto VulkanGraphicsContext::InsertResourceBarrier( TextureHandle texture, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd ) -> bool {
         if (previousState == newState) {
             return false;
-        }
-
-        // TODO: temporary
-        if (texture->IsTextureType( TextureType::TEXTURE_CUBE ) && newState == FrameResourceState::ShaderRead_GraphicsPipeline) {
-            if (const auto vulkanTexture{ dynamic_cast<VulkanTextureCube*>(texture.GetRaw()) }) {
-                vulkanTexture->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
-            }
-
-            return true;
         }
 
         auto oldInfo{ GetVulkanState(previousState) };

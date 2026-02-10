@@ -144,6 +144,10 @@ namespace Mikoto {
     auto CommandContext::DrawIndexed( const DrawIndexedState &info ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        if (info.InstancesCount == 0) {
+            return;
+        }
+
         if (!m_ActivePass->ConstantsShaderResources.IsEmpty()) {
             m_Context->PushConstants(m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands);
         }

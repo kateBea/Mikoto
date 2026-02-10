@@ -215,14 +215,37 @@ namespace Mikoto {
         DisplayGflwRequiredInstanceExtensions();
 #endif
 
+        // This is for dbug purposes
+        // 1. Enable GPU-assisted validation
+        VkValidationFeatureEnableEXT enabledFeatures[] = {
+            VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+            VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+            VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
+        };
+
         // Setup debug messenger utility for instance errors
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{ VulkanHelpers::Initializers::DebugUtilsMessengerCreateInfoEXT() };
         if ( m_VulkanData.EnableValidationLayers ) {
             SetupDebugMessengerCreateInfo( debugCreateInfo );
         }
 
+        VkValidationFeaturesEXT validationFeatures{
+            .sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
+            .pNext = nullptr, //std::addressof( debugCreateInfo ),
+            .enabledValidationFeatureCount = static_cast<uint32_t>(std::size(enabledFeatures)),
+            .pEnabledValidationFeatures = enabledFeatures,
+            .disabledValidationFeatureCount = 0,
+            .pDisabledValidationFeatures = nullptr
+        };
+
+        // When core validations are passed check GPU assisted ones, cannot enable both, GPU assisted validations are very slow
         VkInstanceCreateInfo createInfo{ VulkanHelpers::Initializers::InstanceCreateInfo() };
-        createInfo.pNext = std::addressof( debugCreateInfo );
+        // Core validations
+        //createInfo.pNext = std::addressof( debugCreateInfo );
+
+        // GPU assisted validations
+        createInfo.pNext = std::addressof( validationFeatures );
+
         createInfo.pApplicationInfo = std::addressof( appInfo );
 
         createInfo.enabledLayerCount = static_cast<UInt32>( m_VulkanData.ValidationLayers.size() );

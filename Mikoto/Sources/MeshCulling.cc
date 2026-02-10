@@ -78,6 +78,10 @@ namespace Mikoto {
 
         for ( auto &instanceInfo: m_MeshDrawState | std::views::values ) {
             DrawIndexedState &drawState{ instanceInfo.InstanceDrawState };
+            if (drawState.InstancesCount == 0) {
+                continue;
+            }
+
             context.DrawIndexed( drawState );
         }
     }

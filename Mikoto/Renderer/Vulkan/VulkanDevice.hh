@@ -131,12 +131,20 @@ namespace Mikoto {
     class VulkanDeletionQueue final {
     public:
 
+        explicit VulkanDeletionQueue(GpuDevice* device);
+
         auto Flush() -> void;
-        auto Push(std::function<void()>&& callback ) -> void;
+        auto Push(std::function<void(GpuDevice*)>&& callback ) -> void;
+
+        auto Shutdown() -> void;
 
     private:
+        GpuDevice* m_Device{};
+
         std::mutex m_PushMutex{};
-        std::deque<std::function<void()>> m_Callbacks{};
+
+        // Frame index -> Deletion tasks
+        ankerl::unordered_dense::map<UInt32, std::deque<std::function<void(GpuDevice*)>>> m_Callbacks{};
     };
 
     class VulkanDevice final : public GpuDevice {
@@ -182,7 +190,7 @@ namespace Mikoto {
 
         auto SetCurrentFrameIndex(UInt32 frameIndex) -> void;
 
-        auto SubmitDeletion(std::function<void()>&& callback) -> void;
+        auto SubmitDeletion(std::function<void(GpuDevice*)>&& callback) -> void;
 
         auto FlushImmediateCommands() -> void;
 
@@ -276,7 +284,7 @@ namespace Mikoto {
 
         DescriptorAllocator m_DescriptorAllocator{};
 
-        VulkanDeletionQueue m_DeletionQueue{};
+        Unique<VulkanDeletionQueue> m_DeletionQueue{};
 
         // [Command list management]
         QueuesData m_Queues{};

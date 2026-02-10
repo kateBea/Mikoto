@@ -379,6 +379,9 @@ namespace Mikoto {
         SetDebugInfo();
 
         m_IsAllocated = true;
+
+        // We no longer need it
+        m_StagingBuffer.Reset();
     }
 
     auto VulkanTextureCube::Release() -> void {
@@ -498,8 +501,7 @@ namespace Mikoto {
         BufferDescription stagingDesc{};
         stagingDesc.WithData( nullptr )
                 .WithUsage( BufferUsage::STAGING )
-                .WithSizeBytes( m_ImageSize )
-                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
+                .WithSizeBytes( m_ImageSize );
 
         m_StagingBuffer = m_Device->CreateBuffer( stagingDesc );
 
@@ -507,7 +509,7 @@ namespace Mikoto {
         for ( StbImage& image: images ) {
             const Size offset{ layerIndex * layerSize };
 
-            m_StagingBuffer->CopyFromBlock( image.GetData(), layerSize, offset );
+            m_StagingBuffer->CopyToDevice( image.GetData(), layerSize, offset );
             layerIndex++;
         }
     }
@@ -754,12 +756,11 @@ namespace Mikoto {
                 BufferDescription stagingDesc{};
                 stagingDesc.WithData( nullptr )
                         .WithUsage( BufferUsage::STAGING )
-                        .WithSizeBytes( m_ExternalBufferSize == 0 ? m_ImageSize : m_ExternalBufferSize )
-                        .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STREAM );
+                        .WithSizeBytes( m_ExternalBufferSize == 0 ? m_ImageSize : m_ExternalBufferSize );
 
                 m_StagingBuffer = m_Device->CreateBuffer( stagingDesc );
 
-                m_StagingBuffer->CopyFromBlock( m_Data, m_ExternalBufferSize == 0 ? m_ImageSize : m_ExternalBufferSize );
+                m_StagingBuffer->CopyToDevice( m_Data, m_ExternalBufferSize == 0 ? m_ImageSize : m_ExternalBufferSize );
 
                 //Specify optional type operation so we return for instance
                 //a command list to be submitted in transfer queue
@@ -802,6 +803,9 @@ namespace Mikoto {
         SetDebugInfo();
 
         m_IsAllocated = true;
+
+        // We no longer need it
+        m_StagingBuffer.Reset();
     }
 
     VulkanSwapChain::VulkanSwapChain( const VulkanSwapChainCreateInfo& createInfo )

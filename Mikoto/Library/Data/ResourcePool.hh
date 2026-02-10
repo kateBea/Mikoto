@@ -206,8 +206,13 @@ namespace Mikoto {
         * @param index The index of the resource to be released.
         */
         auto ReleaseResource( const Handle index ) -> void {
+            const auto it{ m_Resources.find(index) };
 
-            if ( const auto it{ m_Resources.find(index) }; it != m_Resources.end() ) {
+            if (it->second.IsEmpty()) {
+                return;
+            }
+
+            if ( it != m_Resources.end() ) {
                 it->second = ResourceHandle::CreateEmpty();
                 m_FreeHandles.emplace_back(index);
             }
@@ -298,6 +303,18 @@ namespace Mikoto {
             m_Resources[index]->SetHandle( index );
 
             return m_Resources[index];
+        }
+
+        auto RunGarbageCollection() -> void {
+            for (const auto& resource : m_Resources | std::views::values ) {
+                if (resource.IsEmpty()) {
+                    continue;
+                }
+
+                if (resource->GetRefCount() == 1) {
+                    ReleaseResource( resource->GetHandle() );
+                }
+            }
         }
 
         /**

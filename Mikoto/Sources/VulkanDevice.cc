@@ -182,15 +182,34 @@ namespace Mikoto {
         return extensionsSupported && deviceSupportsRequiredQueues && deviceHasSwapchainSupport && supportRequiredPhysicalFeatures;
     }
 
-    auto VulkanDeletionQueue::Flush() -> void {
-        for (const auto& callback : m_Callbacks) {
-            callback();
-        }
+    VulkanDeletionQueue::VulkanDeletionQueue( GpuDevice* device ) {
+        m_Device = TO_VK_DEVICE( device );
     }
 
-    auto VulkanDeletionQueue::Push( std::function<void()>&& callback ) -> void {
+    auto VulkanDeletionQueue::Flush() -> void {
+        const UInt32 currentFrame{ MKT_VK_CTX(RenderService::Get()->GetContext())->GetCurrentFrameIndex() };
+        for (const auto& callback : m_Callbacks[currentFrame] ) {
+            callback( m_Device );
+        }
+
+        m_Callbacks[currentFrame].clear();
+    }
+
+    auto VulkanDeletionQueue::Push( std::function<void(GpuDevice*)>&& callback ) -> void {
         std::lock_guard lock{ m_PushMutex };
-        m_Callbacks.emplace_back( std::move( callback ) );
+
+        const UInt32 currentFrame{ MKT_VK_CTX(RenderService::Get()->GetContext())->GetCurrentFrameIndex() };
+        m_Callbacks[currentFrame].emplace_back( std::move( callback ) );
+    }
+
+    auto VulkanDeletionQueue::Shutdown() -> void {
+        for (auto& callbackQueue : m_Callbacks | std::ranges::views::values ) {
+            for (const auto& callback : callbackQueue ) {
+                callback( m_Device );
+            }
+
+            callbackQueue.clear();
+        }
     }
 
     VulkanDevice::VulkanDevice( const GpuDeviceCreateInfo& createInfo )
@@ -238,6 +257,8 @@ namespace Mikoto {
         InitTracyContext();
 
         CreateDummyResources();
+
+        m_DeletionQueue = CreateScope<VulkanDeletionQueue>( this );
 
         m_IsInitialized = true;
     }
@@ -458,6 +479,9 @@ namespace Mikoto {
 
         m_DescriptorAllocator.Shutdown();
 
+        m_DeletionQueue->Shutdown();
+        m_DeletionQueue = nullptr;
+
         if ( m_GpuAllocator ) {
             m_GpuAllocator->Shutdown();
             m_GpuAllocator = nullptr;
@@ -522,10 +546,12 @@ namespace Mikoto {
 
         m_SubmittedGraphicsCommandLists[m_CurrentFrameIndex].clear();
 
+        m_DeletionQueue->Flush();
+
     }
 
-    auto VulkanDevice::SubmitDeletion( std::function<void()> &&callback ) -> void {
-        m_DeletionQueue.Push( std::move(callback) );
+    auto VulkanDevice::SubmitDeletion( std::function<void(GpuDevice*)> &&callback ) -> void {
+        m_DeletionQueue->Push( std::move(callback) );
     }
 
     auto VulkanDevice::FlushImmediateCommands() -> void {
@@ -856,8 +882,7 @@ namespace Mikoto {
 
         // Check reference counting and delete those
         // that are being held by the pool exclusively
-
-        m_DeletionQueue.Flush();
+        m_Buffers.RunGarbageCollection();
     }
 
     auto VulkanDevice::FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void {

@@ -28,34 +28,34 @@
 namespace Mikoto {
 
     auto VulkanBuffer::Release() -> void {
-        if ( !m_IsAllocated ) {
+        if (!m_IsAllocated) {
             return;
         }
 
-        PersistentUnmap();
+        TO_VK_DEVICE( m_Device )->SubmitDeletion( [allocation = m_Allocation, inFlightAllocations = m_InFlightBuffers, staging = m_StagingAllocation]( GpuDevice* device ) mutable -> void {
+            auto* allocator{ MKT_VMA_ALLOC_PTR(device) };
 
-        auto* allocator{ MKT_VMA_ALLOC_PTR(m_Device) };
-        allocator->FreeBuffer( m_Allocation );
+            if ( allocation.Buffer != VK_NULL_HANDLE ) {
+                if (!(allocation.AllocationCreateInfo.flags & VMA_ALLOCATION_CREATE_MAPPED_BIT)) {
+                    allocator->UnmapBuffer( allocation );
+                }
 
-        m_Allocation.Buffer = VK_NULL_HANDLE;
-        m_Allocation.Allocation = nullptr;
+                allocator->FreeBuffer( allocation );
+            }
 
-        if (IsUsage( BufferUsage::VERTEX ) || IsUsage(BufferUsage::INDEX)) {
-            allocator->UnmapBuffer( m_StagingAllocation );
-            allocator->FreeBuffer( m_StagingAllocation );
-        }
+            if ( staging.Buffer != VK_NULL_HANDLE ) {
+                if (!(staging.AllocationCreateInfo.flags & VMA_ALLOCATION_CREATE_MAPPED_BIT)) {
+                    allocator->UnmapBuffer( staging );
+                }
+                allocator->FreeBuffer( staging );
+            }
 
-        if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) || IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STREAM )) {
-            for (auto& inFlightBuffer : m_InFlightBuffers) {
-                if (allocator->IsValidAllocation(inFlightBuffer)) {
-                    // if (inFlightBuffer.AllocationInfo.pMappedData) {
-                    //     allocator->UnmapBuffer( inFlightBuffer );
-                    // }
-
+            for ( auto& inFlightBuffer: inFlightAllocations ) {
+                if ( inFlightBuffer.Buffer != VK_NULL_HANDLE ) {
                     allocator->FreeBuffer( inFlightBuffer );
                 }
             }
-        }
+        } );
 
         if (m_Data) {
             delete[] m_Data;
@@ -66,35 +66,28 @@ namespace Mikoto {
     }
 
     auto VulkanBuffer::Initialize() -> void {
-        if (IsUsage( BufferUsage::SSBO ) ||
-            IsUsage(BufferUsage::UNIFORM) ||
-            IsUsage(BufferUsage::STAGING)) {
-            // When description has specified size and element count we need to apply alignment if needed for this GPU buffer
-            // We allocate space for a buffer large enough to contain ElementCount objects of ElementSize size (in bytes)
-            if (m_ElementSize != 0 && m_ElementCount != 0) {
-
-                if (TO_VK_DEVICE( m_Device )->IsScalarBlockLayoutEnabled()) {
-                    // Non padded structs (VK_EXT_scalar_block_layout)
-                    m_SizeBytes = m_ElementCount * m_ElementSize;
-                    m_Allocation.BufferCreateInfo.size = static_cast<UInt32>( m_SizeBytes );
-
-                    m_UsesScalarBlockLayout = true;
-                } else {
-                    if (IsUsage( BufferUsage::SSBO )) {
-                        VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE(m_Device)->GetStorageBufferMinOffsetAlignment() };
-                        m_MinPaddedSize = VulkanHelpers::GetStorageBufferPadding( m_ElementSize, minOffsetAlignment );
-
-                    } else if (IsUsage(BufferUsage::UNIFORM)) {
-                        VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE(m_Device)->GetUniformBufferMinOffsetAlignment() };
-                        m_MinPaddedSize = VulkanHelpers::GetUniformBufferPadding( m_ElementSize, minOffsetAlignment );
-                    }
-                }
-            }
-
+        if (IsUsage(BufferUsage::STAGING)) {
             InitMainBuffers();
             UploadHostData();
+
+            m_IsAllocated = true;
+            return;
         }
 
+        if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) || IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STREAM )) {
+            InitializeInFlightBuffers();
+        }
+
+        if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STATIC ) ) {
+            InitializeAttributesBuffers();
+        }
+
+        //SetDebugInfo();
+
+        m_IsAllocated = true;
+    }
+
+    auto VulkanBuffer::InitializeAttributesBuffers() -> void {
         if (IsUsage( BufferUsage::VERTEX ) || IsUsage(BufferUsage::INDEX)) {
             InitMainBuffers();
             InitStaging();
@@ -152,13 +145,59 @@ namespace Mikoto {
             cmd->End();
             m_Device->SubmitCommands( cmd );
         }
+    }
 
-        SetDebugInfo();
+    auto VulkanBuffer::InitializeInFlightBuffers() -> void {
+        // Here we initialize the buffer assuming we will update it frequently per frame
+        if (IsUsage( BufferUsage::VERTEX ) || IsUsage(BufferUsage::INDEX) || IsUsage(BufferUsage::STAGING)) {
+            return;
+        }
 
-        m_IsAllocated = true;
+        // When description has specified size and element count we need to apply alignment if needed for this GPU buffer
+        // We allocate space for a buffer large enough to contain ElementCount objects of ElementSize size (in bytes)
+        if (m_ElementSize != 0 && m_ElementCount != 0) {
+
+            if (TO_VK_DEVICE( m_Device )->IsScalarBlockLayoutEnabled()) {
+                // Non padded structs (VK_EXT_scalar_block_layout)
+                m_SizeBytes = m_ElementCount * m_ElementSize;
+                m_UsesScalarBlockLayout = true;
+            } else {
+                if (IsUsage( BufferUsage::SSBO )) {
+                    VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE(m_Device)->GetStorageBufferMinOffsetAlignment() };
+                    m_MinPaddedSize = VulkanHelpers::GetStorageBufferPadding( m_ElementSize, minOffsetAlignment );
+
+                } else if (IsUsage(BufferUsage::UNIFORM)) {
+                    VkDeviceSize minOffsetAlignment{ TO_VK_DEVICE(m_Device)->GetUniformBufferMinOffsetAlignment() };
+                    m_MinPaddedSize = VulkanHelpers::GetUniformBufferPadding( m_ElementSize, minOffsetAlignment );
+                }
+            }
+
+            auto allocator{ MKT_VMA_ALLOC_PTR(m_Device) };
+
+            for (auto& inFlightBuffer : m_InFlightBuffers) {
+                inFlightBuffer.BufferCreateInfo.size = static_cast<UInt32>( m_SizeBytes );
+
+                if ( const VkResult result{ allocator->AllocateBuffer( inFlightBuffer ) }; result != VK_SUCCESS) {
+                    MKT_THROW_RUNTIME_ERROR("VulkanBuffer::InitializeInFlightBuffers - Failed to allocate inFlightBuffer Vulkan buffer!");
+                }
+            }
+        }
     }
 
     auto VulkanBuffer::SetDebugInfo() -> void {
+        if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) || IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STREAM )) {
+            UInt32 index{};
+            for (const auto& inFlightBuffer : m_InFlightBuffers) {
+                if (m_DebugName == GetDefaultDebugName()) {
+                    m_DebugName = fmt::format( "MikotoBuffer {}, Pool ID: {}", reinterpret_cast<UInt64>( m_Allocation.Buffer ), GetHandle() );
+                    const auto inFlightNane { fmt::format( "MikotoBufferInFlight [{}]. Index: {}", reinterpret_cast<UInt64>( inFlightBuffer.Buffer ), index++ ) };
+                    VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ),VK_OBJECT_TYPE_BUFFER, reinterpret_cast<UInt64>( inFlightBuffer.Buffer ),inFlightNane.c_str() );
+                }
+            }
+
+            return;
+        }
+
         if (m_DebugName == GetDefaultDebugName()) {
             m_DebugName = fmt::format( "MikotoBuffer {}, Pool ID: {}", reinterpret_cast<UInt64>( m_Allocation.Buffer ), GetHandle() );
         }
@@ -168,7 +207,7 @@ namespace Mikoto {
 
     auto VulkanBuffer::UploadHostData() -> void {
         if (m_Data) {
-            CopyFromBlock( m_Data, m_SizeBytes );
+            CopyToDevice( m_Data, m_SizeBytes );
 
             // Free retained data after upload
             delete[] m_Data;
@@ -195,17 +234,6 @@ namespace Mikoto {
         if ( const VkResult result{ allocator->AllocateBuffer( m_Allocation ) }; result != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("VulkanBuffer::InitBuffer - Failed to allocate Vulkan buffer!");
         }
-
-        if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) || IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STREAM)) {
-            if (IsUsage(BufferUsage::UNIFORM) || IsUsage(BufferUsage::SSBO)) {
-                for (auto& inFlightBuffer : m_InFlightBuffers) {
-                    if ( const VkResult result{ allocator->AllocateBuffer( inFlightBuffer ) }; result != VK_SUCCESS) {
-                        MKT_THROW_RUNTIME_ERROR("VulkanBuffer::InitMainBuffers - Failed to allocate inFlightBuffer Vulkan buffer!");
-                    }
-                }
-            }
-        }
-
     }
 
     auto VulkanBuffer::InitStaging() -> void {
@@ -237,7 +265,6 @@ namespace Mikoto {
             const UInt32 framesInFlight{ MKT_VK_CTX(RenderService::Get()->GetContext())->GetMaxFramesInFlight() };
             for (UInt32 count{}; count < framesInFlight; ++count) { m_InFlightBuffers.emplace_back(m_Allocation); }
         }
-
     }
 
     auto VulkanBuffer::SetupStorageBuffer(const BufferDescription& createInfo) -> void {
@@ -260,6 +287,10 @@ namespace Mikoto {
     }
 
     auto VulkanBuffer::SetupStagingBuffer(const BufferDescription&) -> void {
+        m_Allocation.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+        m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+            VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
         m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     }
 
@@ -299,7 +330,7 @@ namespace Mikoto {
         m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
             VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-        m_Allocation.BufferCreateInfo.size = static_cast<UInt32>( m_SizeBytes );
+        m_Allocation.BufferCreateInfo.size = static_cast<VkDeviceSize>( m_SizeBytes );
 
         switch (m_Usage) {
             case BufferUsage::VERTEX:
@@ -320,43 +351,49 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanBuffer::CopyToBlock( void* ptr, const Size size ) -> void {
-        // Do a check that this is CPU visible memory
-
-        const Size copyAmount{ Math::Min(size, m_Allocation.AllocationInfo.size) };
-
-        PersistentMap();
-        std::memcpy( ptr, m_Allocation.AllocationInfo.pMappedData, copyAmount );
-    }
-
-    auto VulkanBuffer::CopyFromBlock( const void* ptr, const Size size ) -> void {
+    auto VulkanBuffer::CopyToHost( void* ptr, const Size size ) -> void {
         // Do a check that this is CPU visible memory
 
         PersistentMap();
-        std::memcpy( m_Allocation.AllocationInfo.pMappedData, ptr, size );
+
+        const Size copySize{ Math::Min(size, m_Allocation.AllocationInfo.size) };
+        std::memcpy( ptr, m_Allocation.AllocationInfo.pMappedData, copySize );
     }
 
-    auto VulkanBuffer::CopyFromBlock( const void* ptr, const Size size, const Size offset ) -> void {
+    auto VulkanBuffer::CopyToDevice( const void* ptr, const Size size ) -> void {
+        // Do a check that this is CPU visible memory
+
         PersistentMap();
 
-        // Vertices and indices are technically copied by these means, usually via a copy command on the GPU
-        if (m_UsesScalarBlockLayout || IsUsage( BufferUsage::STAGING )
-            || IsUsage( BufferUsage::VERTEX ) || IsUsage( BufferUsage::INDEX )) {
-            std::memcpy(static_cast<std::byte*>(m_Allocation.AllocationInfo.pMappedData) + offset, ptr, size);
+        if (IsUsage(BufferUsage::STAGING)) {
+            std::memcpy( m_Allocation.AllocationInfo.pMappedData, ptr, size );
+        } else if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) || IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STREAM)) {
+            const UInt32 currentFrame{ MKT_VK_CTX(RenderService::Get()->GetContext())->GetCurrentFrameIndex() };
+            std::memcpy( m_InFlightBuffers[currentFrame].AllocationInfo.pMappedData, ptr, size );
+        } else {
+            std::memcpy( m_Allocation.AllocationInfo.pMappedData, ptr, size );
+        }
+    }
+
+    auto VulkanBuffer::CopyToDevice( const void* ptr, const Size size, const Size offset ) -> void {
+        if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) || IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STREAM)) {
+            if (m_UsesScalarBlockLayout) {
+                const UInt32 currentFrame{ MKT_VK_CTX(RenderService::Get()->GetContext())->GetCurrentFrameIndex() };
+                std::memcpy(static_cast<std::byte*>(m_InFlightBuffers[currentFrame].AllocationInfo.pMappedData) + offset, ptr, size);
+            } else {
+                MKT_ASSERT( false, "Unhandled copy case" );
+            }
+
             return;
         }
 
-        // FIXME: If uniform with padded data, handle properly
-        if (m_ElementSize != 0 && (m_Usage == BufferUsage::SSBO || m_Usage == BufferUsage::UNIFORM)) {
-            // if this buffer is supposed to hold elements we need to handle element padding depending on whether this is uniform or storage
-            const Size minJumps{ offset / m_MinPaddedSize };
-            Size newOffset{ (minJumps + 1 ) * m_MinPaddedSize };
+        PersistentMap();
 
-            if (offset == 0) {
-                newOffset = 0;
-            }
-
-            std::memcpy(static_cast<std::byte*>(m_Allocation.AllocationInfo.pMappedData) + newOffset, ptr, size);
+        // Vertices and indices are not often copied by these means, usually via a copy command on the GPU
+        // We check for scalar block because that way we can directly copy the contents without account for any padding
+        if (m_UsesScalarBlockLayout || IsUsage( BufferUsage::STAGING )
+            || IsUsage( BufferUsage::VERTEX ) || IsUsage( BufferUsage::INDEX )) {
+            std::memcpy(static_cast<std::byte*>(m_Allocation.AllocationInfo.pMappedData) + offset, ptr, size);
         }
     }
 
@@ -376,24 +413,33 @@ namespace Mikoto {
     }
 
     auto VulkanBuffer::PersistentMap() -> void {
-        // If it is not null then it has been mapped
-        if (m_Allocation.AllocationInfo.pMappedData != nullptr) {
+        if (m_Allocation.Buffer == VK_NULL_HANDLE || m_Allocation.AllocationInfo.pMappedData != nullptr) {
             return;
         }
 
-        const auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( m_Device )->GetAllocator()) };
+        auto allocator{ MKT_VMA_ALLOC_PTR( m_Device ) };
         allocator->MapBuffer( m_Allocation );
     }
 
     auto VulkanBuffer::PersistentUnmap() -> void {
-        // If it is not null, then we have something to unmap
-        if (m_Allocation.AllocationInfo.pMappedData != nullptr) {
+        if (m_Allocation.Buffer == VK_NULL_HANDLE || m_Allocation.AllocationInfo.pMappedData != nullptr) {
             return;
         }
 
-        const auto* allocator{ dynamic_cast<VulkanMemoryAllocator*>(TO_VK_DEVICE( m_Device )->GetAllocator()) };
+        auto allocator{ MKT_VMA_ALLOC_PTR( m_Device ) };
         allocator->UnmapBuffer(  m_Allocation );
 
         m_Allocation.AllocationInfo.pMappedData = nullptr;
     }
-}
+
+    auto VulkanBuffer::GetBufferFrameIndex(UInt32 index) -> VkBuffer {
+        const UInt32 framesInFlight{ MKT_VK_CTX(RenderService::Get()->GetContext())->GetMaxFramesInFlight() };
+
+        MKT_ASSERT( index < framesInFlight, "Index out of bounds" );
+        if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) || IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STREAM)) {
+            return m_InFlightBuffers[index].Buffer;
+        }
+
+        return m_Allocation.Buffer;
+    }
+}// namespace Mikoto

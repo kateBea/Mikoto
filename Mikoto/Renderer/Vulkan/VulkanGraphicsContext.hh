@@ -77,8 +77,8 @@ namespace Mikoto {
         auto CreatePassDescriptors(std::string_view passName, PipelineDescription& desc) -> void;
         auto CreatePipeline( PipelineDescription& description ) -> PipelineHandle;
 
-        auto PushBuffer( BufferHandle handle, UInt32 groupBinding, VkDescriptorSet set) -> void;
-        auto PushImage( TextureHandle textureHandle, SamplerHandle samplerHandle, UInt32 groupBinding, VkDescriptorSet set) -> void;
+        auto PushBuffer( BufferHandle handle, UInt32 groupBinding, const std::vector<VkDescriptorSet>& sets) -> void;
+        auto PushImage( TextureHandle textureHandle, SamplerHandle samplerHandle, UInt32 groupBinding, const std::vector<VkDescriptorSet>& sets) -> void;
 
         auto CreateBindlessTexturesSet() -> void;
         auto UpdateBindlessTexturesSet(Texture* texture, Sampler* sampler, Size setIndex ) const -> void;
@@ -92,7 +92,7 @@ namespace Mikoto {
         // Information I store for each pass
         struct FramePassInfo {
             // Set index -> Descriptor Set handle. Allocate as many as max frames in flight
-            ankerl::unordered_dense::map<UInt32, VkDescriptorSet> DescriptorSets{};
+            ankerl::unordered_dense::map<UInt32, std::vector<VkDescriptorSet>> DescriptorSets{};
             PipelineHandle Pipeline{};
 
             // Buffers this pass is using

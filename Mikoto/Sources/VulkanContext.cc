@@ -293,8 +293,7 @@ namespace Mikoto {
         vkWaitForFences( VK_DEVICE(m_Device.get()), 1, std::addressof( inFlightFrameFence ), VK_TRUE, ( std::numeric_limits<UInt64>::max )() );
         vkResetFences( VK_DEVICE(m_Device.get()), 1, std::addressof( inFlightFrameFence ) );
 
-        m_Device->RunGarbageCollection();
-        TO_VK_DEVICE( m_Device.get() ) ->SetCurrentFrameIndex( m_CurrentFrameIndex );
+        TO_VK_DEVICE( m_Device.get() )->SetCurrentFrameIndex( m_CurrentFrameIndex );
 
         const VkSemaphore& imageAvailableSemaphore{ m_FrameSyncPrimitives[m_CurrentFrameIndex].ImageAvailableSemaphore };
         const VkResult ret{ m_Swapchain->GetNextRenderableImageIndex(m_CurrentImageIndex, imageAvailableSemaphore ) };
@@ -363,6 +362,9 @@ namespace Mikoto {
         const auto device{ TO_VK_DEVICE( RenderService::Get()->GetGpuDevice() ) };
 
         device->FlushPendingCommands( m_FrameSyncPrimitives[m_CurrentFrameIndex] );
+
+        // Register objects with ref count == 1 for future deletion
+        m_Device->RunGarbageCollection();
     }
 
     auto VulkanContext::InitVolk() -> void {

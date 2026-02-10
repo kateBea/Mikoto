@@ -177,7 +177,7 @@ namespace Mikoto {
         graph.RegisterPass(
                 "SimpleCompute",
                 []( FramePassBuilder &b ) {
-                    b.Create<Buffer>( "SimpleCompute_Results", BufferUsage::SSBO, 30 * sizeof( float ) );
+                    b.Create<Buffer>( "SimpleCompute_Results", BufferUsage::SSBO, sizeof( float ), 30 );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/BasicCompute_Comp.sprv", ShaderStage::COMPUTE );
                     b.Create<Pipeline>( "SimpleCompute_Pipeline", ComputePipelineDescription{} );
@@ -218,7 +218,7 @@ namespace Mikoto {
         graph.RegisterPass<HelloTextureData>(
                 "HelloTexture",
                 [this]( FramePassBuilder &b, HelloTextureData& ) -> void {
-                    b.Create<Buffer>( "HelloTexture_TexturesBuffer", BufferUsage::UNIFORM, sizeof( HelloTextureData ) );
+                    b.Create<Buffer>( "HelloTexture_TexturesBuffer", BufferUsage::UNIFORM, sizeof( HelloTextureData ), 1 );
                     b.Create<Texture>( "HelloTexture_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
                     b.Create<Texture>( "HelloTexture_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 

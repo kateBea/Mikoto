@@ -30,12 +30,14 @@ namespace Mikoto {
     public:
         explicit VulkanBuffer( const BufferDescription& createInfo );
 
-        auto CopyToBlock( void* ptr, Size size ) -> void override;
-        auto CopyFromBlock(const void* ptr, Size size) -> void override;
-        auto CopyFromBlock( const void* ptr, Size size, Size offset ) -> void override;
+        auto CopyToHost( void* ptr, Size size ) -> void override;
+        auto CopyToDevice(const void* ptr, Size size) -> void override;
+        auto CopyToDevice( const void* ptr, Size size, Size offset ) -> void override;
 
         auto PersistentMap() -> void;
         auto PersistentUnmap() -> void;
+
+        MKT_NODISCARD auto GetBufferFrameIndex(UInt32 index) -> VkBuffer;
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
@@ -48,6 +50,9 @@ namespace Mikoto {
     private:
         auto Release() -> void override;
         auto Initialize() -> void override;
+
+        auto InitializeAttributesBuffers() -> void;
+        auto InitializeInFlightBuffers() -> void;
 
         auto SetDebugInfo() -> void;
         auto UploadHostData() -> void;
@@ -82,6 +87,8 @@ namespace Mikoto {
 
         bool m_UsesScalarBlockLayout{ false };
     };
-}// namespace Mikoto
+
+#define MKT_VK_BUFFER(BUFFER_HANDLE) dynamic_cast<VulkanBuffer*>(BUFFER_HANDLE.GetRaw())
+}
 
 #endif // MIKOTO_VULKAN_BUFFER_HH

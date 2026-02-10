@@ -28,8 +28,11 @@ namespace Mikoto {
         NORMALS,
         TANGENTS,
         BITANGENTS,
-        TEXT_COORDS,
+        UV0,
+        UV1,
         COLORS,
+
+        CUSTOM,
     };
 
     /**
@@ -49,7 +52,13 @@ namespace Mikoto {
             VertexAttribute::POSITIONS,
             VertexAttribute::NORMALS,
             VertexAttribute::COLORS,
-            VertexAttribute::TEXT_COORDS,
+            VertexAttribute::UV0,
+            VertexAttribute::UV1,
+            VertexAttribute::TANGENTS,
+            VertexAttribute::BITANGENTS,
+
+            VertexAttribute::CUSTOM, // Bone IDs
+            VertexAttribute::CUSTOM, // Weight IDs
         };
 
         /**

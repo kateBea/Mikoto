@@ -62,7 +62,6 @@ namespace Mikoto {
         // [Input assembly]
         configInfo.InputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         configInfo.InputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        //configInfo.InputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;// Every three vertices are group together into a separate triangle
         configInfo.InputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
 
         // [Viewport and Scissor]
@@ -112,32 +111,26 @@ namespace Mikoto {
         return configInfo;
     }
 
-    static auto GetDefaultAttributeDescriptions( std::vector<AttributesSpec>& attributeSpec, VulkanHelpers::Reflection::ReflectedData& reflection ) -> std::vector<VkVertexInputAttributeDescription> {
-        // TODO: Use reflection to limit the amount of bindings to be declared
-        // We are getting validations errors because we are declaring in pVertexInputState
-        // more binding than what Wireframe vertex shader consumes
-        Size attributeCount{ };
-        for (Size attributeBinding{}; attributeBinding < attributeSpec.size(); ++attributeBinding ) {
-            attributeCount += attributeSpec[attributeBinding].DefaultVertexLayout.GetCount();
-        }
-
+    static auto GetDefaultAttributeDescriptions(
+        const std::vector<AttributesSpec>& attributeSpec,
+        const VulkanHelpers::Reflection::ReflectedData& reflection ) ->
+        std::vector<VkVertexInputAttributeDescription>
+    {
+        // Input attribute count is determined by the reflection metadata
+        // as we want to avoid declaring more input attributes than what the shader consumes
+        Size attributeCount{ reflection.vertexAttributes.size() };
         std::vector attributeDescriptions( attributeCount, VkVertexInputAttributeDescription{} );
 
         /**
          * The binding parameter tells Vulkan from which binding the per-vertex (if do per vertex and not instanced) data comes.
          * The location parameter references the location directive of the input in the vertex shader.
-         * The input in the vertex shader with location 0 is the position, which has two 32-bit float
-         * components. The format parameter describes the type of data for the attribute
-         *
          * See: https://vulkan-tutorial.com/Vertex_buffers/Vertex_input_description
          * */
 
-        // The index refers to how the vertex attributes are laid out according to s_DefaultBufferLayout
-        // so index 0 -> s_DefaultBufferLayout first attribute,
-        // index 1 -> s_DefaultBufferLayout second attribute, and so on
+        // For each binding we declare the binding's input attributes
         Size attributeIndex{};
         for (Size attributeBinding{}; attributeBinding < attributeSpec.size(); ++attributeBinding ) {
-            for ( Size currentBufferLayoutCount{}; currentBufferLayoutCount < attributeSpec[attributeBinding].DefaultVertexLayout.GetCount(); ++currentBufferLayoutCount ) {
+            for ( Size currentBufferLayoutCount{}; currentBufferLayoutCount < attributeCount && currentBufferLayoutCount < attributeSpec[attributeBinding].DefaultVertexLayout.GetCount(); ++currentBufferLayoutCount ) {
                 const BufferLayout& layout{ attributeSpec[attributeBinding].DefaultVertexLayout };
 
                 attributeDescriptions[attributeIndex] = {};
@@ -163,7 +156,7 @@ namespace Mikoto {
         }
     }
 
-    static auto GetDefaultBindingDescriptions(std::vector<AttributesSpec>& attributeSpec ) -> std::vector<VkVertexInputBindingDescription> {
+    static auto GetDefaultBindingDescriptions(const std::vector<AttributesSpec>& attributeSpec ) -> std::vector<VkVertexInputBindingDescription> {
         // Specify vertex buffers to be bound, we are generally using 1 now, but for instancing you may need more than one binding, see docs for more
         // Example BindVertexBuffer(vertexBuffer, binding = 0)
         //         BindVertexBuffer(vertexBuffer, binding = 1), etc

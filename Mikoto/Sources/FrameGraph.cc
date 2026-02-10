@@ -116,6 +116,11 @@ namespace Mikoto {
     }
 
     auto FramePassBuilder::CreateBuffer( std::string_view name, BufferDescription description ) -> void {
+        // SSBOs and Uniforms are often updated better to mark them as such
+        if (description.Usage == BufferUsage::SSBO || description.Usage == BufferUsage::UNIFORM) {
+            description.UsageType = ResourceUsageType::RESOURCE_USAGE_DYNAMIC;
+        }
+
         m_Creates[std::string{ name }].Type = FrameResourceType::BUFFER;
         m_Creates[std::string{ name }].Description = description;
     }

@@ -28,6 +28,17 @@ namespace Mikoto {
 
     };
 
+    enum class PBR_WorkflowType : Int32 {
+        METALLIC_ROUGHNESS = 0,
+        SPECULAR_GLOSSINESS = 1,
+    };
+
+    enum class PBR_AlphaMode : Int32 {
+        ALPHA_OPAQUE = 0,
+        ALPHA_MASK = 1,
+        ALPHA_BLEND = 2,
+    };
+
     class PBRMaterial final : public Material {
     public:
 

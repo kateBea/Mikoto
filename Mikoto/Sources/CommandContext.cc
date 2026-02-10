@@ -169,7 +169,7 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         if (BufferHandle bufferHandle{ m_Context->GetBuffer( bufferName ) }; !bufferHandle.IsEmpty()) {
-            bufferHandle->CopyFromBlock( buffer, elementCount * elementSize );
+            bufferHandle->CopyToDevice( buffer, elementCount * elementSize );
 
             // for (Size count{}; count < elementCount; ++count) {
             //     const auto *src{ static_cast<const std::byte *>( buffer ) };
@@ -184,7 +184,7 @@ namespace Mikoto {
         if (BufferHandle buffer{ m_Context->GetBuffer( bufferName ) }; !buffer.IsEmpty()) {
             if (size > buffer->GetSizeBytes()) {
                 MKT_CORE_LOGGER_WARN( "PassCommandList::FillBuffer - [{}] size is [{}]. Trying to copy [{}] bytes", bufferName, buffer->GetSizeBytes(), size );
-            } else { buffer->CopyFromBlock( ptrSrc, size, offset ); }
+            } else { buffer->CopyToDevice( ptrSrc, size, offset ); }
         }
     }
 

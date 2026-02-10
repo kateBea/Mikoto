@@ -480,6 +480,8 @@ namespace Mikoto {
 
     class CameraComponent {
     public:
+        enum class Background { CLEAR_COLOR, SKYBOX };
+
         explicit CameraComponent() = default;
 
         CameraComponent( CameraComponent&& other ) noexcept = default;
@@ -491,6 +493,15 @@ namespace Mikoto {
         MKT_NODISCARD auto GetCamera() const -> const SceneCamera& { return *m_Camera; }
         MKT_NODISCARD auto IsAspectRatioFixed() const -> bool { return m_FixedAspectRatio; }
 
+        auto SetBackGround(Background bg) -> void { m_Background = bg; }
+        MKT_NODISCARD auto GetBackGround() const -> Background { return m_Background; }
+
+        auto SetGamma( float gamma ) -> void { m_Gamma = gamma; }
+        auto SetExposure( float exposure ) -> void { m_Exposure = exposure; }
+
+        MKT_NODISCARD auto GetGamma() const -> float { return m_Gamma; }
+        MKT_NODISCARD auto GetExposure() const -> float { return m_Exposure; }
+
         auto SetFixedAspectRatio(const bool value) -> void { m_FixedAspectRatio = value; }
 
         ~CameraComponent() = default;
@@ -500,6 +511,11 @@ namespace Mikoto {
 
     private:
         Unique<SceneCamera> m_Camera{};
+
+        Background m_Background{ Background::CLEAR_COLOR };
+
+        float m_Gamma{ 1.0f };
+        float m_Exposure{ 3.0f };
 
         bool m_MainCam{ true };
         bool m_FixedAspectRatio{ false };

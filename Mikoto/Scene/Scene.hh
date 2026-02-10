@@ -114,6 +114,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetGamma() const -> float;
         MKT_NODISCARD auto GetExposure() const -> float;
 
+        // To remove, deprecated
         auto SetGamma( float gamma ) -> void;
         auto SetExposure( float exposure ) -> void;
 

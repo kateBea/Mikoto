@@ -303,7 +303,7 @@ namespace Mikoto {
         }
     }
 
-    auto EditorLayer::DebugCubesProperties() -> void {
+    auto EditorLayer::DebugSpheresProperties() -> void {
         ModelHandle sphere{ AssetsService::Get()->LoadAsset<Model>( EditorApp::GetPrefabUri( PrefabModels::SPHERE ) ) };
 
         Entity *root{ m_ActiveScene->CreateEntity( "InstancingGridSpheres" ) };
@@ -892,11 +892,11 @@ namespace Mikoto {
         m_ActiveScene = SceneManager::Get()->CreateScene( name );
 
         //SimpleScene();
-        DebugInstancingTest();
-        DebugManyLightsTest();
+        //DebugInstancingTest();
+        //DebugManyLightsTest();
         //DebugDamagedHelmet();
 
-        //DebugCubesProperties();
+        DebugSpheresProperties();
     }
 
     auto EditorLayer::PrepareRenderer( double ) -> void {

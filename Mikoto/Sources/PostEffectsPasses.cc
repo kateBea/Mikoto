@@ -340,8 +340,6 @@ namespace Mikoto {
                 [this]( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    b.Create<Buffer>( "InfiniteGrid_CameraInfo", BufferUsage::UNIFORM, sizeof( InfiniteGridParameters ), 1 );
-
                     b.Create<Texture>( "InfiniteGrid_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/InfiniteGrid_Vert.sprv", ShaderStage::VERTEX );
@@ -355,14 +353,13 @@ namespace Mikoto {
                         .VertexAttributesSpec{} } );
 
                     b.Write( "InfiniteGrid_ColorTarget", FrameResourceState::RenderTarget );
-                    b.Write( "InfiniteGrid_CameraInfo", FrameResourceState::UniformBuffer );
 
                     b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
                     b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthRead );
 
-                    b.Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UnorderedAccess );
+                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UnorderedAccess );
 
-                    b.Use( SRGType::SRG_PerPass, "InfiniteGrid_CameraInfo", 0 );
+                    b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -381,8 +378,6 @@ namespace Mikoto {
                         .DephtLoadOp{ LoadOp::CLEAR },
                     };
                     ctx.BeginRender( renderInfo );
-
-                    ctx.UploadBuffer<InfiniteGridParameters>( "InfiniteGrid_CameraInfo", m_InfiniteGridParameters );
 
                     ctx.BindPipeline( "InfiniteGrid_Pipeline" );
 

@@ -18,11 +18,14 @@
 
 #include "ShaderBase.glsl"
 
-layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform SceneMatrices {
-    mat4 View;
-    mat4 Proj;
-    vec4 CameraPos;
-} u_CameraInfo;
+layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
+    mat4 Projection;
+    mat4 ViewMatrix;
+    mat4 InverseProjection;
+    vec4 ViewPosition;
+    vec2 Planes;
+    vec2 ScreenDimensions;
+} u_Camera;
 
 layout(location = 0) out vec3 outWorldPos;
 layout(location = 1) out vec3 outCameraWorldPos;
@@ -44,13 +47,13 @@ void main() {
 
     vec3 worldPos = vec3(positions[index] * gridSize);
 
-    worldPos.x += u_CameraInfo.CameraPos.x;
-    worldPos.z += u_CameraInfo.CameraPos.z;
+    worldPos.x += u_Camera.ViewPosition.x;
+    worldPos.z += u_Camera.ViewPosition.z;
 
     vec4 vPos4 = vec4(worldPos, 1.0);
 
-    gl_Position = u_CameraInfo.Proj * u_CameraInfo.View * vPos4;
+    gl_Position = u_Camera.Projection * u_Camera.ViewMatrix * vPos4;
 
     outWorldPos = worldPos;
-    outCameraWorldPos = u_CameraInfo.CameraPos.xyz;
+    outCameraWorldPos = u_Camera.ViewPosition.xyz;
 }

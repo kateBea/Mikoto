@@ -585,7 +585,6 @@ namespace Mikoto {
                     b.Read( "DirectionalShadowMapPass_DepthTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
                     b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
                     b.Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
-                    b.Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
 
                     b.Read( "TextRenderPass_FontParams", FrameResourceState::UniformBuffer );
                     b.Read( "TextRenderPass_TextRenderParams", FrameResourceState::UniformBuffer );
@@ -628,11 +627,12 @@ namespace Mikoto {
                         .UseShader( "Resources/Shaders/vulkan-spirv/PBR_Instanced_Frag.sprv", ShaderStage::FRAGMENT )
                         .Create<Pipeline>( "FinalCompositionPass_Pipeline", graphicsDesc );
 
-                    b.Read( "AABBGenComp_CameraUBO", FrameResourceState::UnorderedAccess )
+                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UnorderedAccess )
                         .Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess )
                         .Read( "LightCullingComp_LightsBuffer", FrameResourceState::UnorderedAccess )
                         .Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite)
-                        .Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
+                        .Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget )
+                        .Read( "ClusteredShading_Parameters", FrameResourceState::UniformBuffer );
 
                     b.Read( "PrefilterPass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
                     b.Read( "IrradiancePass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
@@ -643,11 +643,12 @@ namespace Mikoto {
 
                     b.Read( "IBL_Parameters", FrameResourceState::UniformBuffer );
 
-                    b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_CameraInfo", 0 )
-                        .Use( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 1 )
-                        .Use( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 2 )
-                        .Use( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 3 )
-                        .Use( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 4 )
+                    b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 )
+                        .Use( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 1 )
+                        .Use( SRGType::SRG_PerPass, "ClusteredShading_Parameters", 2 )
+                        .Use( SRGType::SRG_PerPass, "IBL_Parameters", 3 )
+                        .Use( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 4 )
+                        .Use( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 5 )
                         .Use( SRGType::SRG_Textures );
 
                     b.Use( SRGType::SRG_PerPass, "IBL_Parameters", 5 );
@@ -680,8 +681,6 @@ namespace Mikoto {
                     ctx.BindImage( "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, 7 );
                     ctx.BindImage( "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, 8 );
                     ctx.BindImage( "BRDFLutPass_ColorTarget", m_BRDFLutSampler, 6 );
-
-                    ctx.UploadBuffer<ShaderCameraParams>( "FinalCompositionPass_CameraInfo", m_FrameUBO );
 
                     ctx.BeginRender( renderInfo );
 

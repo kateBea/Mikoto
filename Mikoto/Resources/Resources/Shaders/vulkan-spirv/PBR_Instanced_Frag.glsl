@@ -47,21 +47,22 @@ layout(location = 0) out vec4 out_Color;
 
 layout(set = TEXTURES_SETINDEX, binding = 0) uniform sampler2D g_BindlessTextures[];
 
-layout(scalar, set = PERPASS_SETINDEX, binding = 1) uniform CameraUBO {
+layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
+    mat4 Projection;
     mat4 ViewMatrix;
     mat4 InverseProjection;
-
-    vec4 GridSize;
     vec4 ViewPosition;
-
-    // xy = Planes, zw = ScreenDimensions
-    vec4 Screen;
-
-    // x = show heat map
-    vec4 ShowHeatMap;
+    vec2 Planes;
+    vec2 ScreenDimensions;
 } u_Camera;
 
-layout(scalar, set = PERPASS_SETINDEX, binding = 5) uniform SkyBoxUBO {
+layout(scalar, set = PERPASS_SETINDEX, binding = 2) uniform ClusteredShadingParams {
+    vec4 GridSize;
+    uint ShowHeatMap;
+    uint ActiveLightCount;
+} u_ClusterShadingParameters;
+
+layout(scalar, set = PERPASS_SETINDEX, binding = 3) uniform SkyBoxUBO {
     mat4 View;
     mat4 Projection;
     float Exposure;
@@ -71,11 +72,11 @@ layout(scalar, set = PERPASS_SETINDEX, binding = 5) uniform SkyBoxUBO {
     int IsSkyboxActive;
 } u_IBLParams;
 
-layout(std430, scalar, set = PERPASS_SETINDEX, binding = 2) readonly buffer ClusterSSBO {
+layout(std430, scalar, set = PERPASS_SETINDEX, binding = 4) readonly buffer ClusterSSBO {
     Cluster Clusters[];
 };
 
-layout(std430, scalar, set = PERPASS_SETINDEX, binding = 3) readonly buffer LightSSBO {
+layout(std430, scalar, set = PERPASS_SETINDEX, binding = 5) readonly buffer LightSSBO {
     LightInfo Lights[];
 };
 
@@ -365,11 +366,11 @@ void main() {
     vec3 Lo = vec3(0.0);
 
     // Locating which cluster this fragment is part of
-    uint zTile = uint((log(abs(in_FragmentViewPos.z) / u_Camera.Screen.y) * u_Camera.GridSize.z) / log(u_Camera.Screen.x / u_Camera.Screen.y));
-    vec2 tileSize = u_Camera.Screen.zw / u_Camera.GridSize.xy;
+    uint zTile = uint((log(abs(in_FragmentViewPos.z) / u_Camera.Planes.y) * u_ClusterShadingParameters.GridSize.z) / log(u_Camera.Planes.x / u_Camera.Planes.y));
+    vec2 tileSize = u_Camera.ScreenDimensions / u_ClusterShadingParameters.GridSize.xy;
 
     uvec3 tile = uvec3(gl_FragCoord.xy / tileSize, zTile);
-    uint tileIndex = uint(tile.x + (tile.y * u_Camera.GridSize.x) + (tile.z * u_Camera.GridSize.x * u_Camera.GridSize.y));
+    uint tileIndex = uint(tile.x + (tile.y * u_ClusterShadingParameters.GridSize.x) + (tile.z * u_ClusterShadingParameters.GridSize.x * u_ClusterShadingParameters.GridSize.y));
 
     uint lightCount = Clusters[tileIndex].Count;
 
@@ -433,7 +434,7 @@ void main() {
 
     out_Color = vec4(finalColor , 1.0);
 
-    if (u_Camera.ShowHeatMap.x == MKT_SHADER_TRUE) {
+    if (u_ClusterShadingParameters.ShowHeatMap == MKT_SHADER_TRUE) {
         out_Color = mix(vec4(GetHeatMapColor(lightCount), 1.0), out_Color, 0.67f);
     }
 }

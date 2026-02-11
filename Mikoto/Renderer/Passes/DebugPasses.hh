@@ -43,9 +43,7 @@ namespace Mikoto {
         auto SetWireframeEnable( bool enable ) -> void;
 
     private:
-        auto RegisterObjectOutline( FrameGraph& graph ) -> void;
         auto RegisterWireFrame( FrameGraph& graph ) -> void;
-        auto RegisterMaterialPreview( FrameGraph& graph ) -> void;
         auto RegisterHelloTriangle( FrameGraph& graph ) -> void;
         auto RegisterSimpleCompute( FrameGraph& graph ) -> void;
         auto RegisterInfiniteGrid( FrameGraph& graph ) -> void;

@@ -52,6 +52,7 @@ namespace Mikoto {
     auto SceneRenderer::Render( Scene* scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        m_CameraPass.SetScene( scene );
         m_MeshCulling.SetScene( scene );
         m_IBLPasses.SetScene( scene );
         m_DebugPasses.SetScene( scene );
@@ -66,9 +67,12 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::SetCamera( SceneCamera *camera ) -> void {
+        m_CameraPass.SetCamera( camera );
+
         m_IBLPasses.SetCamera( camera );
         m_PostEffectsPasses.SetCamera( camera );
-        m_ClusteredShadingPasses.SetCamera( camera );
+
+        m_ClusteredShadingPasses.SetCameraPass( m_CameraPass );
     }
 
     auto SceneRenderer::SetClearColor( const Vec4F& color ) -> void {
@@ -188,6 +192,7 @@ namespace Mikoto {
 
         m_FrameGraph = FrameGraph::Create( m_GraphicsContext.get(), m_Device );
 
+        m_CameraPass.RegisterPasses( *m_FrameGraph );
         m_MeshCulling.RegisterPasses( *m_FrameGraph );
         m_DebugPasses.RegisterPasses( *m_FrameGraph );
         m_ClusteredShadingPasses.RegisterPasses( *m_FrameGraph );
@@ -199,6 +204,7 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::SetEquirectangularMap() -> void {
+        m_CameraPass.SetEquirectangularMap( m_HDRTexture );
         m_IBLPasses.SetEquirectangularMap( m_HDRTexture );
         m_IBLPasses.SetLDRCubeMap( m_LDRTexture );
     }

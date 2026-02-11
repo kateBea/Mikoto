@@ -16,6 +16,7 @@
 #define MIKOTO_VULKAN_GRAPHIC_CONTEXT_HH
 
 #include <utility>
+#include <map>
 
 #include <volk.h>
 #include <ankerl/unordered_dense.h>
@@ -100,7 +101,9 @@ namespace Mikoto {
             ankerl::unordered_dense::set<Buffer*> Buffers{};
             ankerl::unordered_dense::set<std::pair<Texture*, Sampler*>> CombinedImageSampler{};
 
-            ankerl::unordered_dense::map<UInt32, Buffer*> BuffersBindings{};
+            // TODO: find better approach
+            // It is ordered by set index because of dynamic offsets requirements, see bind descriptor
+            std::map<UInt32, Buffer*> BuffersBindings{};
             ankerl::unordered_dense::map<UInt32, std::pair<Texture*, Sampler*>> CombinedImageSamplerBinding{};
         };
 

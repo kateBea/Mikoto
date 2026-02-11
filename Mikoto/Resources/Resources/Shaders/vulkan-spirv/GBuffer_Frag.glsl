@@ -36,10 +36,14 @@ layout(location = 9) in vec3 in_FragmentViewPos;
 
 layout(set = TEXTURES_SETINDEX, binding = 0) uniform sampler2D g_BindlessTextures[];
 
-layout(scalar, set = PERPASS_SETINDEX, binding = 2) uniform GBufferCamUBO {
-    float NearPlane;
-    float FarPlane;
-} u_Parameters;
+layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
+    mat4 Projection;
+    mat4 ViewMatrix;
+    mat4 InverseProjection;
+    vec4 ViewPosition;
+    vec2 Planes;
+    vec2 ScreenDimensions;
+} u_Camera;
 
 layout(location = 0) out vec4 out_Position;
 layout(location = 1) out vec4 out_Normal;
@@ -64,8 +68,8 @@ vec3 GetNormalFromMap(sampler2D normalMap) {
 float LinearDepth(float depth) {
     float z = depth * 2.0f - 1.0f;
 
-    return (2.0f * u_Parameters.NearPlane * u_Parameters.FarPlane) /
-        (u_Parameters.FarPlane + u_Parameters.NearPlane - z * (u_Parameters.FarPlane - u_Parameters.NearPlane));
+    return (2.0f * u_Camera.Planes.x * u_Camera.Planes.y) /
+        (u_Camera.Planes.y + u_Camera.Planes.x - z * (u_Camera.Planes.y - u_Camera.Planes.x));
 }
 
 void main() {

@@ -22,6 +22,7 @@
 #include <Renderer/Core/RenderUtility.hh>
 #include <Renderer/Passes/MeshCulling.hh>
 #include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Passes/CameraPass.hh>
 #include <Renderer/Passes/ShaderParameteres.hh>
 
 namespace Mikoto {
@@ -31,7 +32,7 @@ namespace Mikoto {
         explicit ClusteredShading(RenderResolution resolution);
 
         auto SetScene(Scene* scene) -> void;
-        auto SetCamera(const Camera *camera) -> void;
+        auto SetCameraPass(CameraPass& camPass) -> void;
         auto RegisterPasses(FrameGraph &graph) -> void;
 
         auto SetMeshCulling(MeshCulling& cullingPass) -> void;
@@ -41,24 +42,16 @@ namespace Mikoto {
         auto BuildGBuffer( FrameGraph& graph ) -> void;
         auto BuildDepthPrepass( FrameGraph& graph ) -> void;
         auto BuildLightCulling( FrameGraph& graph ) -> void;
-        auto BuildCameraInfo( FrameGraph& graph ) -> void;
 
         auto SetupLightList(CommandContext& ctx) -> void;
 
     private:
         constexpr static UInt32 MAX_LIGHT_CLUSTERS{ 256 };
-        struct CameraUBO {
-            glm::mat4 ViewMatrix{};
-            glm::mat4 InverseProjection{};
 
-            glm::vec4 GridSize{};
-            glm::vec4 ViewPosition{};
-
-            // xy = Planes, zw = ScreenDimensions
-            glm::vec4 Screen{};
-
-            // x = show heat map
-            glm::vec4 LightInfo{};
+        struct ClusteredShadingParams {
+            Vec4F GridSize{};
+            UInt32 ShowHeatMap{};
+            UInt32 ActiveLightCount{};
         };
 
         struct Cluster  {
@@ -72,15 +65,6 @@ namespace Mikoto {
             UInt32 LightIndices[MAX_LIGHT_CLUSTERS];
         };
 
-        struct LightCullingUBO {
-            UInt32 LightCount{};
-        };
-
-        struct GBufferConstants {
-            float NearPlane{};
-            float FarPlane{};
-        };
-
     private:
         Scene* m_Scene{};
         const Camera* m_Camera{};
@@ -91,11 +75,8 @@ namespace Mikoto {
         UInt32 m_NumClusters{ m_GridSizeX * m_GridSizeY * m_GridSizeZ };
         UInt32 m_LocalSize{ 128 }; // for light culling
 
-        CameraUBO m_CameraUBO{};
-        LightCullingUBO m_LightCullingUBO{};
-
-        // GBuffer
-        GBufferConstants m_GBufferParams{};
+        CameraPass* m_CameraPass{ nullptr };
+        ClusteredShadingParams m_ClusterShadingParams{};
 
         RenderResolution m_Resolution{ RenderResolution::FHD_1080 };
 

@@ -71,10 +71,6 @@ namespace Mikoto {
         m_WireframeClearColor = color;
     }
 
-    auto DebugPasses::RegisterObjectOutline( FrameGraph &graph ) -> void {
-
-    }
-
     auto DebugPasses::RegisterWireFrame( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -101,10 +97,10 @@ namespace Mikoto {
                     b.Write( "Wireframe_ColorTarget", FrameResourceState::RenderTarget );
                     b.Write( "Wireframe_DepthTarget", FrameResourceState::DepthWrite );
 
-                    b.Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
+                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
                     b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
 
-                    b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_CameraInfo", 0 );
+                    b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
                     b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 1 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
@@ -134,10 +130,6 @@ namespace Mikoto {
 
                     ctx.EndRender();
                 } );
-    }
-
-    auto DebugPasses::RegisterMaterialPreview( FrameGraph &graph ) -> void {
-
     }
 
     auto DebugPasses::RegisterHelloTriangle( FrameGraph &graph ) -> void {

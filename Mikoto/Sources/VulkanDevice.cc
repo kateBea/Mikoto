@@ -177,6 +177,9 @@ namespace Mikoto {
     }
 
     auto VulkanDeletionQueue::Flush() -> void {
+        // TODO: Disabled for now, needs redesign
+        return;
+
         const UInt32 currentFrame{ MKT_VK_CTX(RenderService::Get()->GetContext())->GetCurrentFrameIndex() };
         for (const auto& callback : m_Callbacks[currentFrame] ) {
             callback( m_Device );
@@ -193,6 +196,7 @@ namespace Mikoto {
     }
 
     auto VulkanDeletionQueue::Shutdown() -> void {
+        // Run pending cleanup
         for (auto& callbackQueue : m_Callbacks | std::ranges::views::values ) {
             for (const auto& callback : callbackQueue ) {
                 callback( m_Device );

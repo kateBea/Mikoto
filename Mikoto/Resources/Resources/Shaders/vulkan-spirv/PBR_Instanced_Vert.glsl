@@ -19,13 +19,16 @@
 
 #include "ShaderBase.glsl"
 
-layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform FrameUBO {
-    mat4 View;
+layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
     mat4 Projection;
-    vec4 CameraPosition;
+    mat4 ViewMatrix;
+    mat4 InverseProjection;
+    vec4 ViewPosition;
+    vec2 Planes;
+    vec2 ScreenDimensions;
 } u_CameraParams;
 
-layout(std430, scalar, set = PERPASS_SETINDEX, binding = 4) readonly buffer MeshInfoSSBO {
+layout(std430, scalar, set = PERPASS_SETINDEX, binding = 1) readonly buffer MeshInfoSSBO {
     MeshInfo Meshes[];
 };
 
@@ -72,14 +75,14 @@ void main() {
     // Per-vertex
     out_Color        = a_Color;
     out_TexCoord     = a_TexCoord;
-    out_CameraPos    = u_CameraParams.CameraPosition.xyz;
+    out_CameraPos    = u_CameraParams.ViewPosition.xyz;
 
     // Normal transform
     out_VertexNormal  = transpose(inverse(mat3(model))) * a_Normal;
 
     // Fragment position
     out_FragmentWorldPos = vec3(model * vec4(a_Position, 1.0));
-    out_FragmentViewPos = vec3(u_CameraParams.View * vec4(a_Position, 1.0));
+    out_FragmentViewPos = vec3(u_CameraParams.ViewMatrix * vec4(a_Position, 1.0));
 
     // Per-instance material values
     out_AlbedoIndex    = meshInfo.AlbedoIndex;
@@ -94,5 +97,5 @@ void main() {
     out_EmissionIntensity = meshInfo.EmissiveIntensity;
     out_EmissionIndex = meshInfo.EmissiveIndex;
 
-    gl_Position = u_CameraParams.Projection * u_CameraParams.View * model * vec4(a_Position, 1.0);
+    gl_Position = u_CameraParams.Projection * u_CameraParams.ViewMatrix * model * vec4(a_Position, 1.0);
 }

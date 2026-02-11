@@ -19,10 +19,13 @@
 
 #include "ShaderBase.glsl"
 
-layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform FrameUBO {
-    mat4 View;
+layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
     mat4 Projection;
-    vec4 CameraPosition;
+    mat4 ViewMatrix;
+    mat4 InverseProjection;
+    vec4 ViewPosition;
+    vec2 Planes;
+    vec2 ScreenDimensions;
 } u_Camera;
 
 layout(std430, scalar, set = PERPASS_SETINDEX, binding = 1) readonly buffer MeshInfoSSBO {
@@ -34,5 +37,5 @@ layout(location = 0) in vec3 a_Position;
 void main() {
     MeshInfo meshInfo = Meshes[gl_InstanceIndex];
     mat4 model = mat4(meshInfo.Transform);
-    gl_Position = u_Camera.Projection * u_Camera.View * model * vec4(a_Position, 1.0);
+    gl_Position = u_Camera.Projection * u_Camera.ViewMatrix * model * vec4(a_Position, 1.0);
 }

@@ -19,11 +19,14 @@
 
 #include "ShaderBase.glsl"
 
-layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform FrameUBO {
-    mat4 View;
+layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
     mat4 Projection;
-    vec4 CameraPosition;
-} u_CameraInfo;
+    mat4 ViewMatrix;
+    mat4 InverseProjection;
+    vec4 ViewPosition;
+    vec2 Planes;
+    vec2 ScreenDimensions;
+} u_Camera;
 
 layout(std430, scalar, set = PERPASS_SETINDEX, binding = 1) readonly buffer MeshInfoSSBO {
     MeshInfo Meshes[];
@@ -57,10 +60,10 @@ void main() {
 
     // Fragment position
     out_FragmentWorldPos = vec3(model * vec4(a_Position, 1.0));
-    out_FragmentViewPos = vec3(u_CameraInfo.View * meshInfo.Transform * vec4(a_Position, 1.0f));
+    out_FragmentViewPos = vec3(u_Camera.ViewMatrix * meshInfo.Transform * vec4(a_Position, 1.0f));
 
     // Normal transform
-    mat3 normalMatrix = transpose(inverse(mat3(u_CameraInfo.View * meshInfo.Transform)));
+    mat3 normalMatrix = transpose(inverse(mat3(u_Camera.ViewMatrix * meshInfo.Transform)));
     out_VertexNormal  = normalMatrix * a_Normal;
 
     // Per-instance material values
@@ -69,5 +72,5 @@ void main() {
     out_Albedo         = meshInfo.Albedo;
     out_Factors        = meshInfo.Factors;
 
-    gl_Position = u_CameraInfo.Projection * u_CameraInfo.View * model * vec4(a_Position, 1.0);
+    gl_Position = u_Camera.Projection * u_Camera.ViewMatrix * model * vec4(a_Position, 1.0);
 }

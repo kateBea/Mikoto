@@ -29,18 +29,13 @@
 layout(local_size_x = LOCAL_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
+    mat4 Projection;
     mat4 ViewMatrix;
     mat4 InverseProjection;
-
-    vec4 GridSize;
     vec4 ViewPosition;
-
-    // xy = Planes, zw = ScreenDimensions
-    vec4 Screen;
-
-    // x = show heat map
-    vec4 ShowHeatMap;
-} Camera;
+    vec2 Planes;
+    vec2 ScreenDimensions;
+} u_Camera;
 
 layout(std430, scalar, set = PERPASS_SETINDEX, binding = 1) buffer ClusterSSBO  {
     Cluster Clusters[];
@@ -50,9 +45,11 @@ layout(std430, scalar, set = PERPASS_SETINDEX, binding = 2) buffer LightSSBO {
     LightInfo Lights[];
 };
 
-layout(scalar, set = PERPASS_SETINDEX, binding = 3) uniform LightCullingUBO {
+layout(scalar, set = PERPASS_SETINDEX, binding = 3) uniform ClusteredShadingParams {
+    vec4 GridSize;
+    uint ShowHeatMap;
     uint ActiveLightCount;
-} u_CullingParams;
+} u_Parameters;
 
 
 bool SphereAABBIntersection(vec3 center, float radius, vec3 aabbMin, vec3 aabbMax)  {
@@ -67,7 +64,7 @@ bool SphereAABBIntersection(vec3 center, float radius, vec3 aabbMin, vec3 aabbMa
 
 // this just unpacks data for sphereAABBIntersection
 bool TestSphereAABBPointLight(uint i, Cluster cluster)  {
-    vec3 center = (Camera.ViewMatrix * vec4(Lights[i].Position.xyz, 1.0)).xyz;
+    vec3 center = (u_Camera.ViewMatrix * vec4(Lights[i].Position.xyz, 1.0)).xyz;
     float radius = GetPointLightRadius(Lights[i].Intensity);
 
     vec3 aabbMin = cluster.MinPoint.xyz;
@@ -88,7 +85,7 @@ void main() {
     // otherwise it would accumulate.
     cluster.Count = 0;
 
-    uint lightCount = uint(u_CullingParams.ActiveLightCount);
+    uint lightCount = uint(u_Parameters.ActiveLightCount);
     // I go up until lightCount because I want to find amongts all
     // lights in the scene which ones affect this cluster
     for (uint i = 0; i < lightCount; ++i)

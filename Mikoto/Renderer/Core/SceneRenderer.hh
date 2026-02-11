@@ -36,6 +36,7 @@
 #include "Renderer/Passes/PostEffectsPasses.hh"
 #include <Renderer/Passes/MeshCulling.hh>
 #include <Renderer/Passes/MaterialDebug.hh>
+#include <Renderer/Passes/CameraPass.hh>
 
 namespace Mikoto {
 
@@ -126,6 +127,7 @@ namespace Mikoto {
         DebugPasses m_DebugPasses{ m_RenderResolution };
         ClusteredShading m_ClusteredShadingPasses{ m_RenderResolution };
         MaterialDebug m_MaterialDebug{ m_RenderResolution };
+        CameraPass m_CameraPass{ m_RenderResolution };
 
         // Async load HDR
         std::atomic_bool m_LoadedHDR{ false };

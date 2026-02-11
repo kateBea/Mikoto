@@ -282,7 +282,7 @@ namespace Mikoto {
     auto EditorLayer::DebugManyLightsTest() -> void {
         // This is just to test clustered forward shading
         // We generate an empty object and 'lightCount' lights in random positions attached to it
-        constexpr UInt32 lightCount{ 18 };
+        constexpr UInt32 lightCount{ 1500 };
         Entity* lightCluster{ m_ActiveScene->CreateEntity( "LightCluster" ) };
         for (UInt32 count{}; count < lightCount; count++) {
             if (Entity *clusteredLight{ m_ActiveScene->CreateEntity( lightCluster, fmt::format( "Light {}", count ) ) }) {
@@ -295,7 +295,7 @@ namespace Mikoto {
                 pointLightData.SetColor( GetRandomizedVec3F(0.0f, 1.0f ) );
 
                 TransformComponent &transformComponent{ clusteredLight->GetComponent<TransformComponent>() };
-                transformComponent.SetTranslation( { GetRandomReal(-66.0f, 125.0f), 2.0f, GetRandomReal(-100.0f, 100.0f) } );
+                transformComponent.SetTranslation( { GetRandomReal(-500.0f, 500.0f), 2.0f, GetRandomReal(-500.0f, 500.0f) } );
 
                 // Test heatmaps, by accumulating many lights into small area
                 // transformComponent.SetTranslation( { GetRandomReal(0, 10.0f), 2.0f, GetRandomReal(0, 15) } );
@@ -891,8 +891,8 @@ namespace Mikoto {
 
         m_ActiveScene = SceneManager::Get()->CreateScene( name );
 
-        //SimpleScene();
-        DebugInstancingTest();
+        SimpleScene();
+        //DebugInstancingTest();
         DebugManyLightsTest();
         //DebugDamagedHelmet();
 

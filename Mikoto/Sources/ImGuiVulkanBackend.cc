@@ -497,11 +497,13 @@ namespace Mikoto {
     auto ImGuiVulkanBackend::RecordCommands( CommandListHandle cmdList ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        VulkanTexture* finalImage{ dynamic_cast<VulkanTexture *>(m_ColorImage.GetRaw()) };
+        finalImage->SubmitLayoutTransition( VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
+
         if (m_UseDynamicRendering) {
             RecordDynamicRenderCommands( cmdList );
         } else {
             RecordRenderPassCommands( cmdList );
         }
     }
-
-}// namespace Mikoto
+}

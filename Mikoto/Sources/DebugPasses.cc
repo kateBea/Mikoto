@@ -27,7 +27,7 @@ namespace Mikoto {
     {
 
     }
-    
+
     auto DebugPasses::SetClearColor( const Vec4F &vec ) -> void {
         m_ClearColor = vec;
     }
@@ -161,11 +161,19 @@ namespace Mikoto {
     }
 
     auto DebugPasses::RegisterSimpleCompute( FrameGraph &graph ) -> void {
+        struct SimpleCompute {
+            // Prime numbers up until this value
+            UInt32 LimitNumbers{ 30 };
 
-        graph.RegisterPass(
+            // matches shader's local_size_x
+            UInt32 LocalSize{ 64 };
+            UInt32 GroupCount{ ( LimitNumbers + LocalSize - 1 ) / LocalSize };
+        };
+
+        graph.RegisterPass<SimpleCompute>(
                 "SimpleCompute",
-                []( FramePassBuilder &b ) {
-                    b.Create<Buffer>( "SimpleCompute_Results", BufferUsage::SHADER_STORAGE, sizeof( float ), 30 );
+                []( FramePassBuilder &b, SimpleCompute& data ) {
+                    b.Create<Buffer>( "SimpleCompute_Results", BufferUsage::SHADER_STORAGE, sizeof( UInt32 ), data.LocalSize );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/BasicCompute_Comp.sprv", ShaderStage::COMPUTE );
                     b.Create<Pipeline>( "SimpleCompute_Pipeline", ComputePipelineDescription{} );
@@ -174,17 +182,11 @@ namespace Mikoto {
 
                     b.Use( SRGType::SRG_PerPass, "SimpleCompute_Results", 0 );
                 },
-                []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                []( CommandContext &ctx, FrameGraphBlackboard& blackboard ) -> void {
+                    auto& data{ blackboard.Get<SimpleCompute>() };
                     ctx.BindPipeline( "SimpleCompute_Pipeline" );
 
-                    // Prime numbers up until this value
-                    constexpr UInt32 limitNumbers{ 30 };
-
-                    // matches shader's local_size_x
-                    constexpr UInt32 localSize{ 64 };
-                    constexpr UInt32 groupCount{ ( limitNumbers + localSize - 1 ) / localSize };
-
-                    ctx.Dispatch( groupCount, 1, 1 );
+                    ctx.Dispatch( data.GroupCount, 1, 1 );
                 } );
 
     }

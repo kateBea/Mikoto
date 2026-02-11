@@ -300,7 +300,7 @@ namespace Mikoto {
 
                     ctx.BindPipeline( "SSAOBlur_Pipeline" );
 
-                    //ctx.BindImage( "SSAO_ColorTarget", m_Sampler, 0 );
+                    ctx.BindImage( "SSAO_ColorTarget", m_Sampler, 0 );
 
                     ctx.SetColorRenderTarget( "SSAOBlur_ColorTarget" );
                     ctx.SetDepthRenderTarget( "SSAOBlur_DepthTarget" );

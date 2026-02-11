@@ -314,8 +314,14 @@ namespace Mikoto {
                 // But the passes should either ask this explicitly in the Write method from the builder where
                 // they would specify the state they leave the resource as
                 if (it->second.IsResource( FrameResourceType::TEXTURE )) {
-                    // FIXME: Cast does not work if TextureCube and not just Texture
-                    if (m_GraphicsContex->InsertResourceBarrier( it->second.Handle.As<Texture>(),
+                    TextureHandle textureHandle{ it->second.Handle.As<Texture>() };
+
+                    // if its cube
+                    if (textureHandle.IsEmpty()) {
+                        textureHandle = it->second.Handle.As<TextureCube>();
+                    }
+
+                    if (m_GraphicsContex->InsertResourceBarrier( textureHandle,
                         it->second.CurrentState, resourceNode.OutState, cmd )) {
                         it->second.CurrentState = resourceNode.OutState;
                     }

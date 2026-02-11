@@ -532,6 +532,7 @@ namespace Mikoto {
         // queue family index that was used to create the command pool that commandBuffer was allocated from, then its dstAccessMask member must only contain access
         // flags that are supported by one or more of the pipeline stages in dstStageMask, as specified in the table of supported access types
         // (https://vulkan.lunarg.com/doc/view/1.4.328.1/windows/antora/spec/latest/chapters/synchronization.html#VUID-vkCmdPipelineBarrier-pBufferMemoryBarriers-02818)
+
         auto oldInfo{ GetVulkanState(previousState) };
         auto newInfo{ GetVulkanState(newState) };
 

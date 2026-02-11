@@ -12,11 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#if !defined(STB_IMAGE_IMPLEMENTATION)
-#define STB_IMAGE_IMPLEMENTATION
+// Implementation provided by tinygltf
 #include <stb_image.h>
-#undef STB_IMAGE_IMPLEMENTATION
-#endif
 
 #include <Assets/Texture.hh>
 #include <Common/Common.hh>

@@ -411,6 +411,8 @@ namespace Mikoto {
     }
 
     auto MeshFactory::ImportModel( const ModelLoadDescription &loadInfo ) -> ModelHandle {
+        auto test{ m_GLTFImporter->Import( loadInfo ) };
+
         Model *result{ nullptr };
 
         if (loadInfo.ModelFile == nullptr) {
@@ -453,6 +455,8 @@ namespace Mikoto {
     }
 
     auto MeshFactory::Init() -> void {
+        m_GLTFImporter = CreateScope<GLTFImporter>( m_Device );
+
         // Allocate importers
         for (const auto &importerInfo: m_Importers) {
             importerInfo->CustomFileHandlingImpl = nullptr;
@@ -472,6 +476,8 @@ namespace Mikoto {
     auto MeshFactory::Shutdown() -> void {
 
         if (!m_IsInitialized) { return; }
+
+        m_GLTFImporter = nullptr;
 
         MKT_CORE_LOGGER_INFO( "Shutting down AssetsService..." );
 

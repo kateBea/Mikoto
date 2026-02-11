@@ -3,16 +3,13 @@
  * Created by kate on 7/5/2023.
  * */
 
-// C++ Standard Library
 #include <filesystem>
 #include <memory>
 #include <stdexcept>
 
-// Third-Party Libraries
-#include <backends/imgui_impl_vulkan.h>
-#include <stb_image.h>
 #include <volk.h>
-// Project Headers
+#include <backends/imgui_impl_vulkan.h>
+
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 #include <Renderer/Core/HdriToCubemap.hh>

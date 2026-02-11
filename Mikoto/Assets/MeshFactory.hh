@@ -113,8 +113,8 @@ namespace Mikoto {
         Logging m_AssimpLogger{};
         std::vector<Unique<ImporterInfo>> m_Importers{};
 
-        std::vector<Unique<ModelImporter>> m_MainImporters{};
-        std::vector<Unique<ModelImporter>> m_GLTFImporters{};
+        Unique<ModelImporter> m_MainImporter{};
+        Unique<ModelImporter> m_GLTFImporter{};
     };
 
 }

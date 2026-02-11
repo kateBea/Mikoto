@@ -15,12 +15,35 @@
 #ifndef MIKOTO_GLTF_IMPORTER_HH
 #define MIKOTO_GLTF_IMPORTER_HH
 
+#include <string>
+
+#include <Common/Common.hh>
+#include <Library/Utility/Types.hh>
+
+#include <Assets/Model.hh>
+#include <Assets/Importer.hh>
+#include <Renderer/Core/GpuDevice.hh>
+
+#include <tiny_gltf.h>
+
 namespace Mikoto {
 
-    class GLTFImporter {
+    class GLTFImporter final : public ModelImporter {
+    public:
+        explicit GLTFImporter(GpuDevice* device);
 
+        MKT_NODISCARD auto Import(const ModelLoadDescription& description) -> Model * override;
+
+    private:
+        struct LoaderData {
+            tinygltf::TinyGLTF Loader{};
+            std::string Err{};
+            std::string Warn{};
+        };
+
+    private:
+        std::vector<LoaderData> m_Loaders{};
     };
-
 }
 
 #endif // MIKOTO_GLTF_IMPORTER_HH

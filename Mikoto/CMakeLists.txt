@@ -41,13 +41,24 @@ include(FetchContent)
 # ======================================
 # MeshOptimizer
 # ======================================
-# Disable features we don't want
 set(MESHOPT_BUILD_DEMO OFF CACHE BOOL "" FORCE)
 set(MESHOPT_BUILD_GLTFPACK OFF CACHE BOOL "" FORCE)
 set(MESHOPT_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(MESHOPT_STABLE_EXPORTS OFF CACHE BOOL "" FORCE)
 set(MESHOPT_WERROR OFF CACHE BOOL "" FORCE)
 set(MESHOPT_INSTALL OFF CACHE BOOL "" FORCE)
+
+# ======================================
+# tinigltf
+# ======================================
+set(TINYGLTF_BUILD_LOADER_EXAMPLE        OFF  CACHE BOOL "" FORCE)
+set(TINYGLTF_BUILD_GL_EXAMPLES           OFF CACHE BOOL "" FORCE)
+set(TINYGLTF_BUILD_VALIDATOR_EXAMPLE     OFF CACHE BOOL "" FORCE)
+set(TINYGLTF_BUILD_BUILDER_EXAMPLE       OFF CACHE BOOL "" FORCE)
+set(TINYGLTF_BUILD_TESTS                 OFF CACHE BOOL "" FORCE)
+set(TINYGLTF_HEADER_ONLY                 OFF CACHE BOOL "" FORCE)
+set(TINYGLTF_INSTALL                     OFF  CACHE BOOL "" FORCE)
+set(TINYGLTF_INSTALL_VENDOR              OFF  CACHE BOOL "" FORCE)
 
 # ======================================
 # Ozz
@@ -464,6 +475,17 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(meshoptimizer)
 
+# -------------------------------------------------------
+# TinyGLTF
+# -------------------------------------------------------
+FetchContent_Declare(
+        tinygltf
+        GIT_REPOSITORY https://github.com/syoyo/tinygltf.git
+        GIT_TAG        v2.9.7
+)
+
+FetchContent_MakeAvailable(tinygltf)
+
 # ======================================
 # Project sources
 # ======================================
@@ -535,6 +557,7 @@ set(LIBRARIES
         ozz_animation
         ozz_animation_offline
         meshoptimizer
+        tinygltf
 )
 
 # ======================================
@@ -619,6 +642,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-CLHPP/include
         ${ozz_SOURCE_DIR}/include
         ${meshoptimizer_SOURCE_DIR}/src
+        ${tinygltf_SOURCE_DIR}
 )
 
 # ======================================

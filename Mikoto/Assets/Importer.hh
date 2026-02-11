@@ -63,7 +63,7 @@ namespace Mikoto {
         explicit ModelImporter(GpuDevice* device)
             : m_Device{ device } {}
 
-        MKT_NODISCARD virtual auto Import() -> Model* = 0;
+        MKT_NODISCARD virtual auto Import(const ModelLoadDescription& description) -> Model* = 0;
 
         virtual ~ModelImporter() = default;
     private:

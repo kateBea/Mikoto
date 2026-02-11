@@ -177,7 +177,7 @@ namespace Mikoto {
         graph.RegisterPass(
                 "SimpleCompute",
                 []( FramePassBuilder &b ) {
-                    b.Create<Buffer>( "SimpleCompute_Results", BufferUsage::SSBO, sizeof( float ), 30 );
+                    b.Create<Buffer>( "SimpleCompute_Results", BufferUsage::SHADER_STORAGE, sizeof( float ), 30 );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/BasicCompute_Comp.sprv", ShaderStage::COMPUTE );
                     b.Create<Pipeline>( "SimpleCompute_Pipeline", ComputePipelineDescription{} );

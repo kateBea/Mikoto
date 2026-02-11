@@ -102,8 +102,6 @@ namespace Mikoto {
 
         bool m_IsImageExternal{ false };
 
-        BufferHandle m_StagingBuffer{};
-
         VkDeviceSize m_ImageSize{ 0 };
 
         ImageAllocation m_ImageAllocation{};
@@ -144,8 +142,6 @@ namespace Mikoto {
         auto SetDebugInfo() -> void;
 
     private:
-        BufferHandle m_StagingBuffer{};
-
         VkDeviceSize m_ImageSize{ 0 };
 
         ImageAllocation m_ImageAllocation{};

@@ -49,10 +49,10 @@ namespace Mikoto {
                 "MeshCulling",
                 []( FramePassBuilder &b ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
-                    b.Create<Buffer>( "MeshCulling_MeshShaderData", BufferUsage::SSBO, sizeof( MeshParameters ), MAX_RENDERABLE_ENTITIES );
-                    b.Create<Buffer>( "MeshCulling_MaterialShaderData", BufferUsage::SSBO, sizeof( MaterialParameters ), MAX_RENDERABLE_ENTITIES );
+                    b.Create<Buffer>( "MeshCulling_MeshShaderData", BufferUsage::SHADER_STORAGE, sizeof( MeshParameters ), MAX_RENDERABLE_ENTITIES );
+                    b.Create<Buffer>( "MeshCulling_MaterialShaderData", BufferUsage::SHADER_STORAGE, sizeof( MaterialParameters ), MAX_RENDERABLE_ENTITIES );
 
-                    b.Create<Buffer>( "FinalCompositionPass_MeshInfo", BufferUsage::SSBO, sizeof( ShaderMaterialParams ), MAX_RENDERABLE_ENTITIES );
+                    b.Create<Buffer>( "FinalCompositionPass_MeshInfo", BufferUsage::SHADER_STORAGE, sizeof( ShaderMaterialParams ), MAX_RENDERABLE_ENTITIES );
                     b.Write( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
 
                     b.Write( "MeshCulling_MeshShaderData", FrameResourceState::UnorderedAccess );

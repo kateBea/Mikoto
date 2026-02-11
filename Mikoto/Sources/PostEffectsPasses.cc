@@ -84,7 +84,7 @@ namespace Mikoto {
                 []( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    b.Create<Buffer>( "TextRenderPass_TextRenderParams", BufferUsage::SSBO, sizeof(TextRenderParams), MAX_GLYPHS )
+                    b.Create<Buffer>( "TextRenderPass_TextRenderParams", BufferUsage::SHADER_STORAGE, sizeof(TextRenderParams), MAX_GLYPHS )
                         .Create<Buffer>( "TextRenderPass_FontParams", BufferUsage::UNIFORM, sizeof(TextParamsUBO), 1 );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Text_Vert.sprv", ShaderStage::VERTEX );

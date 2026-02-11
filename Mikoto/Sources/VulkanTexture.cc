@@ -368,20 +368,11 @@ namespace Mikoto {
         if (IsTextureUsage( TextureUsage::CUBE )) {
             LoadCubeFaces();
             CreateImageResource();
-
-            CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE, true ) };
-            cmd->Begin();
-            cmd->FillTexture( m_StagingBuffer.GetRaw(), this );
-            cmd->End();
-            m_Device->SubmitCommands( cmd );
         }
 
         SetDebugInfo();
 
         m_IsAllocated = true;
-
-        // We no longer need it
-        m_StagingBuffer.Reset();
     }
 
     auto VulkanTextureCube::Release() -> void {
@@ -497,21 +488,23 @@ namespace Mikoto {
         // This is just the size of each layer.
         const VkDeviceSize layerSize{ m_ImageSize / 6 };
 
-        // Allocate staging buffer to copy over the texture data
-        BufferDescription stagingDesc{};
-        stagingDesc.WithData( nullptr )
-                .WithUsage( BufferUsage::STAGING )
-                .WithSizeBytes( m_ImageSize );
-
-        m_StagingBuffer = m_Device->CreateBuffer( stagingDesc );
+        BufferHandle staging{ TO_VK_DEVICE( m_Device )->CreateStaging( nullptr, m_ImageSize ) };
 
         Size layerIndex{};
         for ( StbImage& image: images ) {
             const Size offset{ layerIndex * layerSize };
 
-            m_StagingBuffer->CopyToDevice( image.GetData(), layerSize, offset );
+            staging->CopyToDevice( image.GetData(), layerSize, offset );
             layerIndex++;
         }
+
+        CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE, true ) };
+        cmd->Begin();
+
+        cmd->FillTexture( staging.GetRaw(), this );
+
+        cmd->End();
+        m_Device->SubmitCommands( cmd );
     }
 
     auto VulkanTextureCube::SetDebugInfo() -> void {
@@ -752,22 +745,10 @@ namespace Mikoto {
             // an image loaded from disc or a texture we will write to as a color image
             // for the later we do not want to copy anything to it
             if ( m_Data ) {
-                // Allocate staging buffer to copy over the texture data
-                BufferDescription stagingDesc{};
-                stagingDesc.WithData( nullptr )
-                        .WithUsage( BufferUsage::STAGING )
-                        .WithSizeBytes( m_ExternalBufferSize == 0 ? m_ImageSize : m_ExternalBufferSize );
-
-                m_StagingBuffer = m_Device->CreateBuffer( stagingDesc );
-
-                m_StagingBuffer->CopyToDevice( m_Data, m_ExternalBufferSize == 0 ? m_ImageSize : m_ExternalBufferSize );
-
-                //Specify optional type operation so we return for instance
-                //a command list to be submitted in transfer queue
                 CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE, true ) };
                 cmd->Begin();
 
-                cmd->FillTexture( m_StagingBuffer.GetRaw(), this );
+                cmd->FillTexture( m_Data, m_ExternalBufferSize == 0 ? m_ImageSize : m_ExternalBufferSize, this );
 
                 cmd->End();
                 m_Device->SubmitCommands( cmd );
@@ -803,9 +784,6 @@ namespace Mikoto {
         SetDebugInfo();
 
         m_IsAllocated = true;
-
-        // We no longer need it
-        m_StagingBuffer.Reset();
     }
 
     VulkanSwapChain::VulkanSwapChain( const VulkanSwapChainCreateInfo& createInfo )

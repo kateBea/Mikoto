@@ -54,7 +54,11 @@ namespace Mikoto {
         virtual auto EndRender(RenderInfo& info) -> void = 0;
 
         virtual auto FillTexture(Buffer* src, Texture* dest) -> void = 0;
+        virtual auto FillTexture(const void* src, Size size, Texture* dest) -> void = 0;
+
         virtual auto CopyBuffer(Buffer* src, Buffer* dest) -> void = 0;
+        virtual auto CopyBuffer(const void* src, Size size, Buffer* dest) -> void = 0;
+
         virtual auto CopyTexture(Texture* src, Texture* dest) -> void = 0;
         virtual auto CopyTexture(Texture2D* src, TextureCube* dest, UInt32 mipLevel, UInt32 face) -> void = 0;
 

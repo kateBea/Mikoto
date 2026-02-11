@@ -48,7 +48,11 @@ namespace Mikoto {
         auto EndRender(RenderInfo& info) -> void override;
 
         auto FillTexture(Buffer* src, Texture* dest) -> void override;
+        auto FillTexture(const void* src, Size size, Texture* dest) -> void override;
+
         auto CopyBuffer(Buffer* src, Buffer* dest) -> void override;
+        auto CopyBuffer(const void* src, Size size, Buffer* dest) -> void override;
+
         auto CopyTexture(Texture* src, Texture* dest) -> void override;
         auto CopyTexture(Texture2D* src, TextureCube* dest, UInt32 mipLevel, UInt32 face) -> void override;
 
@@ -182,6 +186,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetDummySampler() const -> SamplerHandle override;
 
         // Vulkan specifics ================================================
+        MKT_NODISCARD auto CreateStaging( const void* src, Size size ) -> BufferHandle;
 
         auto WaitIdle() const -> void;
         auto WaitQueuesIdle() const -> void;
@@ -271,6 +276,7 @@ namespace Mikoto {
 
         // [Pool Mutexes]
         std::mutex m_BufferPoolMutex{};
+        std::mutex m_StagingBufferPoolMutex{};
         std::mutex m_TexturePoolMutex{};
         std::mutex m_TextureCubePoolMutex{};
         std::mutex m_CommandPoolMutex{};

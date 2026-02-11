@@ -111,7 +111,7 @@ namespace Mikoto {
 
         // Test code
         std::array<const char*, 2> paths{ "", ""};
-        TestCode(paths.size(), paths.data());
+        //TestCode(paths.size(), paths.data());
 
         m_IsInitialized = true;
     }

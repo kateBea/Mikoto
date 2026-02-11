@@ -601,6 +601,20 @@ namespace Mikoto {
         return m_sampler;
     }
 
+    auto VulkanDevice::CreateStaging( const void* src, Size size ) -> BufferHandle {
+        std::lock_guard lock{ m_StagingBufferPoolMutex };
+
+        BufferHandle buffer{ m_Buffers.Allocate( src, size ) };
+        if ( buffer.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateStaging - Failed to allocate buffer resource." );
+            return BufferHandle::CreateEmpty();
+        }
+
+        buffer->Initialize( this );
+
+        return buffer;
+    }
+
     auto VulkanDevice::GetDummyDescriptorLayout() -> DescriptorSetLayoutHandle {
         return m_EmptyDescriptorSetLayout;
     }
@@ -1064,8 +1078,61 @@ namespace Mikoto {
         vkDest->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_CmdBuffer );
     }
 
-    auto VulkanCmdList::CopyBuffer( Buffer* src, Buffer* dest ) -> void {
+    auto VulkanCmdList::FillTexture( const void* src, Size size, Texture* dest ) -> void {
+        BufferHandle staging{ TO_VK_DEVICE( m_Device )->CreateStaging( src, size ) };
+        this->FillTexture( staging.GetRaw(), dest );
+    }
 
+    auto VulkanCmdList::CopyBuffer( Buffer* src, Buffer* dest ) -> void {
+        VkBufferCopy copy{
+            .srcOffset{ 0 },
+            .dstOffset{ 0 },
+            .size{ src->GetSizeBytes() },
+        };
+
+        vkCmdCopyBuffer(
+            m_CmdBuffer,
+            src->GetNativeHandle(ObjectType::Vk_Buffer),
+            dest->GetNativeHandle(ObjectType::Vk_Buffer),
+            1,
+            std::addressof(copy));
+
+        VkAccessFlags accessFlags{ VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT };
+
+        // It is either vertex or index
+        if (src->IsUsage(BufferUsage::INDEX)) {
+            accessFlags = VK_ACCESS_INDEX_READ_BIT;
+        }
+
+        // VK_QUEUE_FAMILY_IGNORED Because queue family indices are
+        // unified see https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples
+        // Otherwise we would need to specify the indices explicitly
+
+        const VkBufferMemoryBarrier barrier{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+            .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+            .dstAccessMask = accessFlags,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .buffer = dest->GetNativeHandle(ObjectType::Vk_Buffer),
+            .offset = 0,
+            .size = src->GetSizeBytes()
+        };
+
+        vkCmdPipelineBarrier(
+            m_CmdBuffer,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+            VK_FLAGS_NONE,
+            0, nullptr,
+            1, &barrier,
+            0, nullptr
+        );
+    }
+
+    auto VulkanCmdList::CopyBuffer( const void* src, Size size, Buffer* dest ) -> void {
+        BufferHandle staging{ TO_VK_DEVICE( m_Device )->CreateStaging( src, size ) };
+        this->CopyBuffer( staging.GetRaw(), dest );
     }
 
     auto VulkanCmdList::CopyTexture( Texture* srcTexture, Texture* destTexture ) -> void {

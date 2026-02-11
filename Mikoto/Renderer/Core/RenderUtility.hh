@@ -41,9 +41,9 @@ namespace Mikoto {
     enum class BufferUsage {
         VERTEX,
         INDEX,
-        STAGING,
         UNIFORM,
-        SSBO,
+        SHADER_STORAGE,
+        UNDEFINED,
     };
 
     enum class SamplerFilter {
@@ -152,11 +152,8 @@ namespace Mikoto {
         // Resource never changes after creation
         RESOURCE_USAGE_STATIC,
 
-        // Resource can be updated sometimes
+        // Resource can be updated while GPU is reading from it
         RESOURCE_USAGE_DYNAMIC,
-
-        // Resource can update often
-        RESOURCE_USAGE_STREAM,
     };
 
     enum class BufferDataType {

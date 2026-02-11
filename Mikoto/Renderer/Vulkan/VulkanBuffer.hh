@@ -29,6 +29,7 @@ namespace Mikoto {
     class VulkanBuffer final : public Buffer {
     public:
         explicit VulkanBuffer( const BufferDescription& createInfo );
+        explicit VulkanBuffer( const void* src, Size size );
 
         auto CopyToHost( void* ptr, Size size ) -> void override;
         auto CopyToDevice(const void* ptr, Size size) -> void override;
@@ -37,8 +38,7 @@ namespace Mikoto {
         auto PersistentMap() -> void;
         auto PersistentUnmap() -> void;
 
-        MKT_NODISCARD auto GetBufferFrameIndex(UInt32 index) -> VkBuffer;
-
+        MKT_NODISCARD auto GetAlignedSize() const -> UInt32;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
 
@@ -52,18 +52,13 @@ namespace Mikoto {
         auto Initialize() -> void override;
 
         auto InitializeAttributesBuffers() -> void;
-        auto InitializeInFlightBuffers() -> void;
 
         auto SetDebugInfo() -> void;
-        auto UploadHostData() -> void;
-        auto UploadHostDataToStaging() -> void;
 
-        auto InitMainBuffers() -> void;
-        auto InitStaging() -> void;
+        auto ComputeAllocationSize() -> void;
 
         auto SetupUniformBuffer(const BufferDescription& createInfo) -> void;
         auto SetupStorageBuffer(const BufferDescription& createInfo) -> void;
-        auto SetupStagingBuffer(const BufferDescription& createInfo) -> void;
         auto SetupVertexBuffer(const BufferDescription& createInfo) -> void;
         auto SetupIndexBuffer(const BufferDescription& createInfo) -> void;
 
@@ -72,19 +67,12 @@ namespace Mikoto {
         // S o basically store the size of the element individually and the count, this information is to be used later in the initialization
         Size m_ElementSize{};
         Size m_ElementCount{};
-        Size m_MinPaddedSize{};
+
+        // If the buffer is dynamic this value contains
+        // the size of each frame in flight slice
+        Size m_AlignedSizeBytes{};
 
         BufferAllocation m_Allocation{};
-        BufferAllocation m_StagingAllocation{};
-
-        // TODO: Alternative to below is have one large buffer for dynamic or stream type buffers (basically a single buffer large enough for all frame in flights and offset it)
-        // If this buffer is declared as dynamic or stream.
-        // That way we can update one buffer on the CPU while the GPU reads from another one.
-        // This ensures we don't run into any read/write hazards where the CPU starts updating
-        // values while the GPU is still reading them.
-        // This usually applies to SSBOs and Uniforms, stagings on the other hand are just intermediary buffers we copy to from
-        // the CPU and move the contents to another GPU local buffer or an image
-        std::vector<BufferAllocation> m_InFlightBuffers{};
 
         bool m_UsesScalarBlockLayout{ false };
     };

@@ -12,32 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <memory>
-#include <algorithm>
-#include <ranges>
-
 #include <imgui.h>
-#include <glm/gtc/type_ptr.hpp>
-
-#include <Core/Core.hh>
-
-#include <Panels/Panels.hh>
-
-#include <Scene/Component.hh>
-#include <Scene/SceneManager.hh>
-
-#include <ImGui/ImGuiService.hh>
-#include <ImGui/ImGuiUtility.hh>
-
-#include <Layers/EditorLayer.hh>
-
-#include <Physics/PhysicService.hh>
-
-#include <Renderer/Core/DebugRenderer.hh>
-#include <Renderer/Core/RenderService.hh>
 
 #include <Application/EditorApp.hh>
 #include <Application/EditorUtility.hh>
+#include <Core/Core.hh>
+#include <ImGui/ImGuiService.hh>
+#include <ImGui/ImGuiUtility.hh>
+#include <Layers/EditorLayer.hh>
+#include <Panels/Panels.hh>
+#include <Physics/PhysicService.hh>
+#include <Renderer/Core/DebugRenderer.hh>
+#include <Renderer/Core/RenderService.hh>
+#include <Scene/Component.hh>
+#include <Scene/SceneManager.hh>
+#include <algorithm>
+#include <glm/gtc/type_ptr.hpp>
+#include <memory>
+#include <ranges>
+
+#include "Common/String.hh"
 
 namespace Mikoto {
 
@@ -871,6 +865,12 @@ namespace Mikoto {
 
                 ImGui::EndMenu();
             }
+
+#if !defined(NDEBUG)
+            ImGui::TextUnformatted( StringUtil::Format(" | Build type [DEBUG]. Framerate: {:.1f}", ImGui::GetIO().Framerate ).c_str() );
+#elif
+            ImGui::TextUnformatted( StringUtil::Format(" | Build type [RELEASE]. Framerate: {:.1f}", ImGui::GetIO().Framerate ).c_str() );
+#endif
 
             ImGui::EndMenuBar();
             ImGui::PopStyleVar();

@@ -18,6 +18,8 @@
 
 #extension GL_EXT_scalar_block_layout : require
 
+#extension GL_EXT_debug_printf : enable
+
 const int SSAO_KERNEL_SIZE = 64;
 const float SSAO_RADIUS = 0.5;
 
@@ -72,5 +74,7 @@ void main() {
 
     occlusion = 1.0 - (occlusion / float(SSAO_KERNEL_SIZE));
     o_Color = occlusion;
+
+    //debugPrintfEXT("Float %.2f\n", o_Color);
 }
 

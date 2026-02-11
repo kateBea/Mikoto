@@ -220,6 +220,7 @@ namespace Mikoto {
         VkValidationFeatureEnableEXT enabledFeatures[] = {
             VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
             VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+            VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
             VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
             VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
         };
@@ -242,10 +243,10 @@ namespace Mikoto {
         // When core validations are passed check GPU assisted ones, cannot enable both, GPU assisted validations are very slow
         VkInstanceCreateInfo createInfo{ VulkanHelpers::Initializers::InstanceCreateInfo() };
         // Core validations
-        createInfo.pNext = std::addressof( debugCreateInfo );
+        //createInfo.pNext = std::addressof( debugCreateInfo );
 
         // GPU assisted validations
-        //createInfo.pNext = std::addressof( validationFeatures );
+        createInfo.pNext = std::addressof( validationFeatures );
 
         createInfo.pApplicationInfo = std::addressof( appInfo );
 

@@ -56,6 +56,12 @@ namespace Mikoto {
         if ( resCreateAlloc != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "Failed to create VMA Allocator!" );
         }
+
+        // Note for public API:
+        // By default, all calls to functions that take VmaAllocator as first parameter are safe to call
+        // from multiple threads simultaneously because they are synchronized internally when needed.
+        // This includes allocation and deallocation from default memory pool, as well as custom VmaPool.
+        // https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/general_considerations.html
     }
 
     auto VulkanMemoryAllocator::Shutdown() -> void {

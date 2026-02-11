@@ -868,8 +868,8 @@ namespace Mikoto {
 
 #if !defined(NDEBUG)
             ImGui::TextUnformatted( StringUtil::Format(" | Build type [DEBUG]. Framerate: {:.1f}", ImGui::GetIO().Framerate ).c_str() );
-#elif
-            ImGui::TextUnformatted( StringUtil::Format(" | Build type [RELEASE]. Framerate: {:.1f}", ImGui::GetIO().Framerate ).c_str() );
+#else
+            ImGui::TextUnformatted( StringUtil::Format( " | Build type [RELEASE]. Framerate: {:.1f}", ImGui::GetIO().Framerate ).c_str() );
 #endif
 
             ImGui::EndMenuBar();

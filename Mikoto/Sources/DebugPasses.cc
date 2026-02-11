@@ -27,11 +27,7 @@ namespace Mikoto {
     {
 
     }
-
-    auto DebugPasses::SetScene( const Scene *scene ) -> void {
-        m_Scene = scene;
-    }
-
+    
     auto DebugPasses::SetClearColor( const Vec4F &vec ) -> void {
         m_ClearColor = vec;
     }

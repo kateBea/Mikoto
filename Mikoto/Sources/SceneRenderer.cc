@@ -55,7 +55,6 @@ namespace Mikoto {
         m_CameraPass.SetScene( scene );
         m_MeshCulling.SetScene( scene );
         m_IBLPasses.SetScene( scene );
-        m_DebugPasses.SetScene( scene );
         m_PostEffectsPasses.SetScene( scene );
         m_ClusteredShadingPasses.SetScene( scene );
 

@@ -63,8 +63,6 @@ layout(scalar, set = PERPASS_SETINDEX, binding = 2) uniform ClusteredShadingPara
 } u_ClusterShadingParameters;
 
 layout(scalar, set = PERPASS_SETINDEX, binding = 3) uniform SkyBoxUBO {
-    mat4 View;
-    mat4 Projection;
     float Exposure;
     float Gamma;
     float MaxReflectionLOD;

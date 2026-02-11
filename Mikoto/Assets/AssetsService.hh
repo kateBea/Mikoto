@@ -17,6 +17,8 @@
 
 #include <vector>
 #include <future>
+#include <atomic>
+#include <mutex>
 #include <ankerl/unordered_dense.h>
 
 #include <Assets/Font.hh>
@@ -93,6 +95,10 @@ namespace Mikoto {
                 if ( const auto it{ m_Textures2D.find(fullpath) }; it != m_Textures2D.end())
                     return it->second;
             }
+            else if constexpr (std::is_same_v<AssetType, TextureCube>) {
+                if ( const auto it{ m_Textures2D.find(fullpath) }; it != m_TexturesCubes.end())
+                    return it->second;
+            }
             else if constexpr (std::is_same_v<AssetType, Audio>) {
                 if ( const auto it{ m_Audios.find(fullpath) }; it != m_Audios.end())
                     return it->second;
@@ -109,7 +115,6 @@ namespace Mikoto {
             return Ref<AssetType>::CreateEmpty();
         }
 
-        // TODO: finish implementation and test
         template<typename AssetType>
         auto LoadAsset( auto&&... args ) -> Ref<AssetType> {
             if constexpr (std::is_same_v<AssetType, Model>) {
@@ -134,9 +139,8 @@ namespace Mikoto {
             return Ref<AssetType>::CreateEmpty();
         }
 
-        // TODO: finish implementation and test
         template<typename AssetType>
-        auto LoadAssetAsync( auto&&... args ) -> std::future<Ref<AssetType>> {
+        auto LoadAssetAsync( auto&&... args ) -> void {
             auto tuple{ std::make_tuple(std::forward<decltype(args)>(args)...) };
 
             TaskService::Get()->Submit([this, argsTuple = std::move(tuple)]() mutable -> void {
@@ -144,8 +148,6 @@ namespace Mikoto {
                     LoadAsset<AssetType>(std::forward<Args>(unpackedArgs)...);
                 }, std::move(argsTuple));
             });
-
-            return {};
         }
 
         MKT_NODISCARD auto GetDummyTexture() -> TextureHandle;
@@ -188,6 +190,9 @@ namespace Mikoto {
         AudioDevice* m_AudioDevice{ nullptr };
 
         ResourcePoolTyped<PBRMaterial> m_PBRMaterialsPool{};
+
+        std::mutex m_Texture2DPoolMutex{};
+        std::mutex m_TextureCubePoolMutex{};
 
         ankerl::unordered_dense::map<std::string, MaterialHandle> m_Materials{};
         ankerl::unordered_dense::map<std::string, ModelHandle> m_Models{};

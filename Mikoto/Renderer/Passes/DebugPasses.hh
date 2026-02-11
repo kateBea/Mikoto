@@ -28,8 +28,6 @@ namespace Mikoto {
     public:
         explicit DebugPasses( RenderResolution resolution);
 
-        auto SetScene( const Scene* scene) -> void;
-
         auto RegisterPasses(FrameGraph& graph) -> void;
 
         auto SetWireframeLineLineWidth(float value) -> void;
@@ -59,7 +57,6 @@ namespace Mikoto {
         // Texture to be displayed in the Texture debug pass
         TextureHandle m_TextureHandle{};
 
-        const Scene* m_Scene{};
         Vec4F m_ClearColor{ 1.0f, 1.0f, 1.0f, 1.0f };
         Vec4F m_LinesColor{ 1.0f, 1.0f, 1.0f, 1.0f };
 

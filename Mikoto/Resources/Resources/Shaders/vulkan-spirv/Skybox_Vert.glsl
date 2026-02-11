@@ -23,8 +23,6 @@ layout(location = 1) flat out float v_Exposure;
 layout(location = 2) flat out float v_Gamma;
 
 layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform SkyBoxUBO {
-    mat4 View;
-    mat4 Projection;
     float Exposure;
     float Gamma;
 
@@ -32,6 +30,15 @@ layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform SkyBoxUBO {
 
     int IsSkyboxActive;
 } u_IBLParams;
+
+layout(scalar, set = PERPASS_SETINDEX, binding = 1) uniform CameraUBO {
+    mat4 Projection;
+    mat4 ViewMatrix;
+    mat4 InverseProjection;
+    vec4 ViewPosition;
+    vec2 Planes;
+    vec2 ScreenDimensions;
+} u_Camera;
 
 // https://learnopengl.com/code_viewer.php?code=advanced/cubemaps_skybox_data
 const vec3 boxPositions[36] = vec3[](
@@ -85,14 +92,14 @@ void main() {
     vec3 pos = vec3(boxPositions[gl_VertexIndex]);
 
     // Remove translation from view matrix
-    mat4 view = mat4(mat3(u_IBLParams.View));
+    mat4 view = mat4(mat3(u_Camera.ViewMatrix));
 
     // Vulkan cubemap convention fix
     v_Direction = pos;
     v_Direction.xy *= -1;
 
     // Force skybox to far plane
-    vec4 clip = u_IBLParams.Projection * view * vec4(pos, 1.0);
+    vec4 clip = u_Camera.Projection * view * vec4(pos, 1.0);
 
     gl_Position = clip;
     //gl_Position = clip.xyww;

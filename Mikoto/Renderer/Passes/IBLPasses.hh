@@ -107,8 +107,6 @@ namespace Mikoto {
         };
 
         struct IBLParameters {
-            Mat4F View{};
-            Mat4F Projection{};
             float Exposure{};
             float Gamma{};
 

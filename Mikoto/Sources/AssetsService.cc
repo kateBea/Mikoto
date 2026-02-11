@@ -190,6 +190,7 @@ namespace Mikoto {
 
         TextureHandle texture{ m_GpuDevice->CreateTexture( description ) };
         if (!texture.IsEmpty()) {
+            std::lock_guard lock{ m_Texture2DPoolMutex };
             auto [it, success]{
                 m_Textures2D.try_emplace( path, texture )
             };
@@ -284,6 +285,7 @@ namespace Mikoto {
 
         TextureHandle texture{ m_GpuDevice->CreateTexture( textureDesc ) };
         if (!texture.IsEmpty()) {
+            std::lock_guard lock{ m_Texture2DPoolMutex };
             auto [it, success]{
                 m_TexturesCubes.try_emplace( baseAbsolute, texture )
             };

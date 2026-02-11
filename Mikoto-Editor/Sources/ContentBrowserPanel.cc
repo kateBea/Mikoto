@@ -359,7 +359,20 @@ namespace Mikoto {
                 if (entry.path().string().ends_with( ".png" )
                     || entry.path().string().ends_with( ".jpg" )
                     || entry.path().string().ends_with( ".hdr" )) {
-                    m_Thumbnail = AssetsService::Get()->LoadAsset<Texture>( entry.path() );
+
+
+                    m_Thumbnail = AssetsService::Get()->GetAssetByUri<Texture>( entry.path().string() );
+
+                    if (m_Thumbnail.IsEmpty()) {
+                        // Request upload. Avoid request multiple times
+                        if (!m_ThumbnailsUploadCache.contains( entry.path().string() )) {
+                            AssetsService::Get()->LoadAssetAsync<Texture>( entry.path() );
+                            m_ThumbnailsUploadCache.insert( entry.path().string() );
+                        }
+
+                        m_Thumbnail = m_Textures[TextureIconType::ICON_FILE];
+                    }
+
                 } else {
                     m_Thumbnail = TextureHandle::CreateEmpty();
                 }

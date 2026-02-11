@@ -399,7 +399,7 @@ namespace Mikoto {
 
         graph.RegisterPass(
                 "Skybox",
-                [this]( FramePassBuilder &b ) {
+                []( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
                     b.Create<Buffer>( "IBL_Parameters", BufferUsage::UNIFORM, sizeof( IBLParameters ), 1 );
@@ -423,7 +423,10 @@ namespace Mikoto {
                     b.Read( "SkyboxRender_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
                     b.Read( "IrradiancePass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
 
+                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
+
                     b.Use( SRGType::SRG_PerPass, "IBL_Parameters", 0 );
+                    b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 1 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -440,18 +443,20 @@ namespace Mikoto {
                     ctx.SetViewport( 0, 0, 1920, 1080 );
                     ctx.SetScissor( 0, 0, 1920, 1080 );
 
+                    const UInt32 bindSlot{ 2 };
+
                     if ( m_UseConvolutedCubeMap ) {
-                        ctx.BindImage( "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, 1 );
+                        ctx.BindImage( "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, bindSlot );
                     } else {
                         if ( m_UsePrecomputedLDRCubeMap && !m_CubeMap.IsEmpty()) {
-                            ctx.BindImage( m_CubeMap, m_CubeMapSampler, 1 );
+                            ctx.BindImage( m_CubeMap, m_CubeMapSampler, bindSlot );
                         } else {
-                            ctx.BindImage( "SkyboxRender_ColorTargetCUBE", m_CubeMapSampler, 1 );
+                            ctx.BindImage( "SkyboxRender_ColorTargetCUBE", m_CubeMapSampler, bindSlot );
                         }
                     }
 
                     // Update contents
-                    ctx.UploadBuffer<IBLParameters>( "IBL_Parameters", m_IBLParameters );
+                    ctx.UploadBuffer( "IBL_Parameters", m_IBLParameters );
 
                     ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
                     ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );
@@ -469,9 +474,6 @@ namespace Mikoto {
         m_FrameUBO.View = camera->GetViewMatrix();
         m_FrameUBO.Projection = camera->GetProjection();
         m_FrameUBO.CameraPosition = Vec4F{ camera->GetPosition(), 1.0f };
-
-        m_IBLParameters.View = m_FrameUBO.View;
-        m_IBLParameters.Projection = m_FrameUBO.Projection;
     }
 
     auto IBLPasses::RegisterDirShadowMap( FrameGraph &graph ) -> void {
@@ -650,8 +652,6 @@ namespace Mikoto {
                         .Use( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 4 )
                         .Use( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 5 )
                         .Use( SRGType::SRG_Textures );
-
-                    b.Use( SRGType::SRG_PerPass, "IBL_Parameters", 5 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();

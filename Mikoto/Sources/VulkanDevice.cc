@@ -492,9 +492,10 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreateTexture( const TextureCubeCreateDescription &description ) -> TextureHandle {
-        std::lock_guard lock{ m_TextureCubePoolMutex };
-
+        m_TextureCubePoolMutex.lock();
         TextureHandle texture{ m_TexturesCube.Allocate( description ) };
+        m_TextureCubePoolMutex.unlock();
+
         if ( texture.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateTextureCube - Failed to allocate texture cube resource." );
             return TextureHandle::CreateEmpty();
@@ -574,7 +575,10 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreateTexture( const TextureDescription& description ) -> TextureHandle {
+        m_TexturePoolMutex.lock();
         TextureHandle texture{ m_Textures.Allocate( description ) };
+        m_TexturePoolMutex.unlock();
+
         if ( texture.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateTexture - Failed to allocate texture resource." );
             return TextureHandle::CreateEmpty();
@@ -606,9 +610,10 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreateStaging( const void* src, Size size ) -> BufferHandle {
-        std::lock_guard lock{ m_StagingBufferPoolMutex };
-
+        m_StagingBufferPoolMutex.lock();
         BufferHandle buffer{ m_Buffers.Allocate( src, size ) };
+        m_StagingBufferPoolMutex.unlock();
+
         if ( buffer.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateStaging - Failed to allocate buffer resource." );
             return BufferHandle::CreateEmpty();

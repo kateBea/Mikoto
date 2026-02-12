@@ -134,8 +134,6 @@ namespace Mikoto {
 
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
 
-        m_Context->PushConstants(m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands);
-
         m_Commands->Draw( vertexCount, instanceCount, firstVertex, firstInstance );
     }
 
@@ -145,8 +143,6 @@ namespace Mikoto {
         if (info.InstancesCount == 0) {
             return;
         }
-
-        m_Context->PushConstants(m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands);
 
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
 
@@ -190,6 +186,7 @@ namespace Mikoto {
 
     auto CommandContext::PushConstants( const void *ptr, Size size ) -> void {
         m_ActivePass->ConstantsShaderResources.SetData( ptr, size );
+        m_Context->PushConstants(m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands);
     }
 
     auto CommandContext::PushTexture( TextureHandle texture ) const -> Int32 {

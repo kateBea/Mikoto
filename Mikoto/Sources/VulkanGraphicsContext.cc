@@ -398,14 +398,6 @@ namespace Mikoto {
             nullptr,
             std::addressof( m_TexturesPipelineLayout )
         );
-
-        VkPipelineLayoutCreateInfo pipelineLayoutInfoWithPs{
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount = 1,
-            .pSetLayouts = std::addressof( layoutTextures ),
-            .pushConstantRangeCount = static_cast<UInt32>( pushConstants.size() ),
-            .pPushConstantRanges = pushConstants.data()
-        };
     }
 
     auto VulkanGraphicsContext::BindGlobalTextures(std::string_view passName, CommandListHandle cmdList) -> void {
@@ -482,6 +474,8 @@ namespace Mikoto {
         if (it == m_PassInfo.end()) {
             return;
         }
+
+        return;
 
         PipelineHandle pipeline{ it->second.Pipeline };
 

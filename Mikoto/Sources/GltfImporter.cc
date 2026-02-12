@@ -12,20 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <fstream>
 #include <algorithm>
 #include <ranges>
-#include <iostream>
-#include <mutex>
 
 #include <tiny_gltf.h>
+
+#include <Logging/Logger.hh>
 
 #include <Assets/GltfImporter.hh>
 #include <Threading/ThreadUtility.hh>
 
 namespace Mikoto {
-
-    static std::mutex mutex;
 
     GLTFImporter::GLTFImporter( GpuDevice *device )
     : ModelImporter{ device } {
@@ -65,19 +62,20 @@ namespace Mikoto {
     auto GLTFImporter::Import( LoaderData& loaderData, const ModelLoadDescription &description ) -> ModelData * {
         tinygltf::Model model{};
 
-        bool res = loaderData.Loader.LoadASCIIFromFile(&model, &loaderData.Err, &loaderData.Warn, description.ModelFile->GetPath());
+        bool res{ loaderData.Loader.LoadASCIIFromFile(&model, &loaderData.Err, &loaderData.Warn, description.ModelFile->GetPath()) };
         if (!loaderData.Warn.empty()) {
-            std::cout << "WARN: " << loaderData.Warn << std::endl;
+            MKT_CORE_LOGGER_WARN( "GLTF Loader WARN: {}", loaderData.Warn );
         }
 
         if (!loaderData.Err.empty()) {
-            std::cout << "ERR: " << loaderData.Err << std::endl;
+            MKT_CORE_LOGGER_ERROR( "GLTF Loader ERROR: {}", loaderData.Err );
         }
 
-        if (!res)
-            std::cout << "Failed to load glTF: " << description.ModelFile->GetPath() << std::endl;
-        else
-            std::cout << "Loaded glTF: " << description.ModelFile->GetPath() << std::endl;
+        if (!res) {
+            MKT_CORE_LOGGER_ERROR( "Failed to load glTF: {}", description.ModelFile->GetPath() );
+        } else {
+            MKT_CORE_LOGGER_DEBUG( "Loaded glTF: {}", description.ModelFile->GetPath() );
+        }
 
         return nullptr;
     }

@@ -8,6 +8,8 @@
 
 #define PI 3.1415926535897932384626433832795
 
+#define INVALID_TEXTURE_INDEX -1
+
 struct MeshInfo {
     mat4 Transform;
 

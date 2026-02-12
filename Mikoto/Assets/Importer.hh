@@ -79,7 +79,7 @@ namespace Mikoto {
         std::vector<VertexData> Vertices{};
         std::vector<UInt32> Indices{};
 
-        MaterialProperties NodeMaterial{};
+        Int32 MaterialIndex{ -1 };
     };
 
     struct ModelData {
@@ -87,6 +87,10 @@ namespace Mikoto {
 
         std::vector<MeshNodeData> MeshNodes{};
         std::vector<SkinnedAnimation> Animations{};
+        std::vector<MaterialProperties> Materials{};
+
+        // Texture URI the same way is stored in the materials
+        std::unordered_map<std::string, TextureHandle> Textures{};
     };
 
     struct ModelImporter {
@@ -97,6 +101,7 @@ namespace Mikoto {
         MKT_NODISCARD virtual auto Import(const ModelLoadDescription& description) -> ModelData* = 0;
 
         virtual ~ModelImporter() = default;
+
     private:
         GpuDevice* m_Device{ nullptr };
     };

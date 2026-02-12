@@ -94,6 +94,8 @@ namespace Mikoto {
             // TODO: find better approach
             // It is ordered by set index because of dynamic offsets order requirements, see bind descriptor
             std::map<UInt32, Buffer*> BuffersBindings{};
+            std::vector<UInt32> DynamicOffsets{};
+
             ankerl::unordered_dense::map<UInt32, std::pair<Texture*, Sampler*>> CombinedImageSamplerBinding{};
         };
 

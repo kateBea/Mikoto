@@ -50,7 +50,7 @@ namespace Mikoto {
 
         RegisterTextRender( graph, device );
         RegisterInfiniteGrid( graph );
-        RegisterSSAO( graph );
+        //RegisterSSAO( graph );
         RegisterBloom( graph );
     }
 

@@ -256,7 +256,6 @@ namespace Mikoto {
                             // Because StbImage is RAII and will free its data when exiting this scope we create the texture here
                             texture = AssetsService::Get()->LoadAsset<Texture>( loadInfo );
                         } else {
-                            // TODO: untested
                             loadInfo.WithWidth( tex->mWidth )
                                     .WithHeight( tex->mHeight )
                                     .WithChannelCount( 4 )// Assimp always provides the texture with 4 channels
@@ -286,7 +285,7 @@ namespace Mikoto {
     static auto LoadTextures( const std::string &modelRootPath, const aiMesh *mesh, const aiScene *scene ) -> std::vector<TextureHandle> {
         std::vector<TextureHandle> textures{};
 
-        if (mesh->mMaterialIndex > 0) {
+        if ( static_cast<Int32>( mesh->mMaterialIndex ) > -1) {
             const aiMaterial *material{ scene->mMaterials[mesh->mMaterialIndex] };
             for (const aiTextureType &type: ASSIMP_TEXTURE_TYPES) {
                 TextureHandle handle{ LoadTexture( modelRootPath, material, type, scene ) };
@@ -300,7 +299,7 @@ namespace Mikoto {
         return textures;
     }
 
-    auto LoadMaterial(aiMaterial const* mat) -> MaterialProperties {
+    static auto LoadMaterial(aiMaterial const* mat) -> MaterialProperties {
         MaterialProperties properties{};
 
         aiString name{};
@@ -411,7 +410,8 @@ namespace Mikoto {
     }
 
     auto MeshFactory::ImportModel( const ModelLoadDescription &loadInfo ) -> ModelHandle {
-        auto test{ m_GLTFImporter->Import( loadInfo ) };
+        auto testGLTF{ m_GLTFImporter->Import( loadInfo ) };
+        auto testAssimp{ m_MainImporter->Import( loadInfo ) };
 
         Model *result{ nullptr };
 
@@ -456,6 +456,7 @@ namespace Mikoto {
 
     auto MeshFactory::Init() -> void {
         m_GLTFImporter = CreateScope<GLTFImporter>( m_Device );
+        m_MainImporter = CreateScope<MainImporter>( m_Device );
 
         // Allocate importers
         for (const auto &importerInfo: m_Importers) {
@@ -478,6 +479,7 @@ namespace Mikoto {
         if (!m_IsInitialized) { return; }
 
         m_GLTFImporter = nullptr;
+        m_MainImporter = nullptr;
 
         MKT_CORE_LOGGER_INFO( "Shutting down AssetsService..." );
 

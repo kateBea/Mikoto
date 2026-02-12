@@ -25,6 +25,7 @@
 
 #include <Common/Common.hh>
 #include <Material/Texture2D.hh>
+#include <Material/PBRMaterial.hh>
 #include <Renderer/Core/Buffer.hh>
 
 namespace Mikoto {
@@ -62,60 +63,6 @@ namespace Mikoto {
 
         auto LoadTextures( bool value ) -> ModelLoadDescription&;
         auto WithFilePath( const File* file ) -> ModelLoadDescription&;
-    };
-
-    struct MaterialProperties {
-        std::string Name;
-
-        enum class Workflow {
-            MetallicRoughness,
-            SpecularGlossiness,
-            Unlit
-        };
-
-        Workflow Workflow{ Workflow::MetallicRoughness };
-
-        // Base color/Albedo
-        Vec4F BaseColorFactor{1.f, 1.f, 1.f, 1.f};
-        std::string BaseColorTexture{};
-
-        // Metallic-Roughness workflow
-        float MetallicFactor{ 1.f };
-        float RoughnessFactor{ 1.f };
-        std::string MetallicRoughnessTexture{};
-
-        // Specular-Glossiness workflow (FBX/OBJ/glTF extension)
-        Vec3F DiffuseFactor{1.f, 1.f, 1.f};
-        std::string DiffuseTexture{};
-        Vec3F SpecularFactor{1.f, 1.f, 1.f};
-
-        std::string SpecularGlossinessTexture{};
-        float GlossinessFactor{ 1.f };
-
-        // Normal mapping
-        std::string NormalTexture{};
-        float NormalScale{ 1.f };
-
-        // Occlusion
-        std::string OcclusionTexture{};
-        float OcclusionStrength{ 1.f };
-
-        // Emissive
-        Vec3F EmissiveFactor{0.f, 0.f, 0.f};
-        float EmissiveStrength{ 1.f };
-        std::string EmissiveTexture{};
-
-        // Alpha
-        enum class AlphaMode { Opaque, Mask, Blend };
-        AlphaMode alphaMode{ AlphaMode::Opaque };
-        float AlphaCutoff{ 0.5f };
-
-        // UV sets
-        Int32 BaseColorTexCoord{};
-        Int32 MetallicRoughnessTexCoord{};
-        Int32 NormalTexCoord{};
-        Int32 OcclusionTexCoord{};
-        Int32 EmissiveTexCoord{};
     };
 
     class MeshNode final {

@@ -152,7 +152,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetDummyTexture() -> TextureHandle;
 
-        MKT_NODISCARD auto CreateMaterial( const MaterialCreateInfo& spec = {} ) -> MaterialHandle;
+        MKT_NODISCARD auto CreateMaterial( const MaterialProperties& spec = {} ) -> MaterialHandle;
 
         ~AssetsService() override = default;
 

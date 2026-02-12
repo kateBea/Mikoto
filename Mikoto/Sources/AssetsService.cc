@@ -108,8 +108,8 @@ namespace Mikoto {
         return m_Textures2D[Filesystem::GetGetAbsolutePathString( s_DummyTexturePath)];
     }
 
-    auto AssetsService::CreateMaterial( const MaterialCreateInfo& ) -> MaterialHandle {
-        MaterialHandle material{ m_PBRMaterialsPool.Allocate() };
+    auto AssetsService::CreateMaterial( const MaterialProperties& props ) -> MaterialHandle {
+        MaterialHandle material{ m_PBRMaterialsPool.Allocate( props ) };
         if ( material.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "AssetsService::CreateMaterial - Failed to create material" );
         }
@@ -235,7 +235,7 @@ namespace Mikoto {
             .WithMapType( description.Map )
 
             .WithType( description.Type )
-            .WithFormat( TextureFormat::SRGB8_ALPHA8 )
+            .WithFormat( TextureFormat::RGBA8_UNORM )
 
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 

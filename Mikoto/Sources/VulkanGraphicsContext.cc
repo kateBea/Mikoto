@@ -193,22 +193,24 @@ namespace Mikoto {
                     }
 
                     if (PER_PASS_DESCRIPTOR_SET_INDEX == setIndex) {
-                        std::vector<UInt32> dynamicOffsets{};
-                        for ( const auto& bufferBinding: it->second.BuffersBindings ) {
-                            if ( bufferBinding.second->IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) ) {
-                                UInt32 dynamicOffset{ m_CurrentFrameIndex * dynamic_cast<VulkanBuffer*>( bufferBinding.second )->GetAlignedSize() };
-                                dynamicOffsets.push_back( dynamicOffset );
+                        if (it->second.DynamicOffsets.size() != it->second.BuffersBindings.size()) {
+                            it->second.DynamicOffsets.clear();
+                            for ( const auto &val: it->second.BuffersBindings | std::views::values ) {
+                                if ( val->IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) ) {
+                                    UInt32 dynamicOffset{ m_CurrentFrameIndex * dynamic_cast<VulkanBuffer*>( val )->GetAlignedSize() };
+                                    it->second.DynamicOffsets.push_back( dynamicOffset );
+                                }
                             }
                         }
 
                         switch (it->second.Pipeline->GetPipelineType()) {
                             case PipelineType::GRAPHICS_PIPELINE:
                                 vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, setIndex, 1,
-                                    std::addressof( descriptorSet ), static_cast<UInt32>(dynamicOffsets.size()), dynamicOffsets.data() );
+                                    std::addressof( descriptorSet ), static_cast<UInt32>(it->second.DynamicOffsets.size()), it->second.DynamicOffsets.data() );
                                 break;
                             case PipelineType::COMPUTE_PIPELINE:
                                 vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, setIndex, 1,
-                                    std::addressof( descriptorSet ), static_cast<UInt32>(dynamicOffsets.size()), dynamicOffsets.data() );
+                                    std::addressof( descriptorSet ), static_cast<UInt32>(it->second.DynamicOffsets.size()), it->second.DynamicOffsets.data() );
                                 break;
                             default:;
                         }
@@ -430,16 +432,15 @@ namespace Mikoto {
         if (!it->second.Buffers.contains( handle.GetRaw() )) {
 
             PushBuffer( handle, bindingSlot, it->second.DescriptorSets[setIndex] );
+
             it->second.Buffers.emplace( handle.GetRaw() );
+            it->second.BuffersBindings[bindingSlot] = handle.GetRaw();
         } else {
             // Update the binding if it is a new buffer
             if (it->second.BuffersBindings[bindingSlot] != handle.GetRaw()) {
                 PushBuffer( handle, bindingSlot, it->second.DescriptorSets[setIndex] );
+                it->second.BuffersBindings[bindingSlot] = handle.GetRaw();
             }
-        }
-
-        if (!handle.IsEmpty()) {
-            it->second.BuffersBindings[bindingSlot] = handle.GetRaw();
         }
     }
 
@@ -456,16 +457,14 @@ namespace Mikoto {
         if (itCombinedImageSampler == it->second.CombinedImageSampler.end()) {
             PushImage( handle, sampler, bindingSlot, it->second.DescriptorSets[STATIC_DESCRIPTOR_SET_INDEX] );
             it->second.CombinedImageSampler.emplace( std::make_pair( handle.GetRaw(), sampler.GetRaw() ) );
+
+            it->second.CombinedImageSamplerBinding[bindingSlot] = std::make_pair( handle.GetRaw(), sampler.GetRaw() );
         } else {
             // Update if there is a different pair of image and sampler
             if (it->second.CombinedImageSamplerBinding[bindingSlot] != std::make_pair( handle.GetRaw(), sampler.GetRaw() )) {
                 PushImage( handle, sampler, bindingSlot, it->second.DescriptorSets[STATIC_DESCRIPTOR_SET_INDEX] );
+                it->second.CombinedImageSamplerBinding[bindingSlot] = std::make_pair( handle.GetRaw(), sampler.GetRaw() );
             }
-        }
-
-        if (!handle.IsEmpty() && !sampler.IsEmpty()) {
-            // We only want to update this slot when there is new contents
-            it->second.CombinedImageSamplerBinding[bindingSlot] = std::make_pair( handle.GetRaw(), sampler.GetRaw() );
         }
     }
 
@@ -768,5 +767,4 @@ namespace Mikoto {
     auto VulkanGraphicsContext::UpdateResourceBindings( std::string_view passName, SRGPerPass& passData ) -> void {
         UpdatePassDescriptors( passName, passData );
     }
-
-}// namespace Mikoto
+ }

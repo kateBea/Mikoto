@@ -24,25 +24,70 @@
 
 namespace Mikoto {
 
-    struct MaterialCreateInfo {
-
+    enum class PBR_Workflow {
+        MetallicRoughness,
+        SpecularGlossiness,
+        Unlit
     };
 
-    enum class PBR_WorkflowType : Int32 {
-        METALLIC_ROUGHNESS = 0,
-        SPECULAR_GLOSSINESS = 1,
+    enum class PBR_AlphaMode {
+        Opaque,
+        Mask,
+        Blend
     };
 
-    enum class PBR_AlphaMode : Int32 {
-        ALPHA_OPAQUE = 0,
-        ALPHA_MASK = 1,
-        ALPHA_BLEND = 2,
+    struct MaterialProperties {
+        std::string Name;
+
+        PBR_Workflow Workflow{ PBR_Workflow::MetallicRoughness };
+
+        // Base color/Albedo
+        Vec4F BaseColorFactor{1.f, 1.f, 1.f, 1.f};
+        std::string BaseColorTexture{};
+
+        // Metallic-Roughness workflow
+        float MetallicFactor{ 1.f };
+        float RoughnessFactor{ 1.f };
+        std::string MetallicRoughnessTexture{};
+
+        // Specular-Glossiness workflow (FBX/OBJ/glTF extension)
+        Vec3F DiffuseFactor{1.f, 1.f, 1.f};
+        std::string DiffuseTexture{};
+        Vec3F SpecularFactor{1.f, 1.f, 1.f};
+
+        std::string SpecularGlossinessTexture{};
+        float GlossinessFactor{ 1.f };
+
+        // Normal mapping
+        std::string NormalTexture{};
+        float NormalScale{ 1.f };
+
+        // Occlusion
+        std::string OcclusionTexture{};
+        float OcclusionStrength{ 1.f };
+
+        // Emissive
+        Vec3F EmissiveFactor{0.f, 0.f, 0.f};
+        float EmissiveStrength{ 1.f };
+        std::string EmissiveTexture{};
+
+        // Alpha
+        PBR_AlphaMode alphaMode{ PBR_AlphaMode::Opaque };
+        float AlphaCutoff{ 0.5f };
+
+        // UV sets
+        Int32 BaseColorTexCoord{};
+        Int32 MetallicRoughnessTexCoord{};
+        Int32 NormalTexCoord{};
+        Int32 OcclusionTexCoord{};
+        Int32 EmissiveTexCoord{};
     };
 
     class PBRMaterial final : public Material {
     public:
 
         explicit PBRMaterial( std::string_view name = "PBR" );
+        explicit PBRMaterial( const MaterialProperties& props );
 
         auto RemoveTextureType( MapType type ) -> void;
         auto SetTextureType( MapType type, const TextureHandle &texture ) -> void;

@@ -138,19 +138,8 @@ namespace Mikoto::VulkanHelpers {
     } while ( 0 )
 }
 
-/**
- * Features:
- *  - Reflects multiple shader stages (vertex, fragment, compute, etc.).
- *  - Merges descriptor bindings and push constants across stages.
- *  - Builds VkDescriptorSetLayout + VkPipelineLayout.
- *  - Reflects vertex input attributes for vertex shaders.
- *  - Returns mapping of (set,binding) -> descriptor info for resource binding.
- */
 namespace Mikoto::VulkanHelpers::Reflection {
 
-    /**
-     * Simple struct describing a descriptor binding reflection result.
-     */
     struct ReflectedBindingInfo {
         std::string name{};
         UInt32 set{};
@@ -161,9 +150,6 @@ namespace Mikoto::VulkanHelpers::Reflection {
         bool IsBindless{ false };
     };
 
-    /**
-     * Reflected pipeline data container.
-     */
     struct ReflectedData {
         // Set index -> layout
         ankerl::unordered_dense::map<UInt32, VkDescriptorSetLayout> setLayouts{};
@@ -198,15 +184,8 @@ namespace Mikoto::VulkanHelpers::Reflection {
 
 }
 
-/**
-* Initializers for vulkan structures.
-*/
 namespace Mikoto::VulkanHelpers::Initializers {
-    /**
-     *
-     * @param aspectMask
-     * @return
-     * */
+
     MKT_NODISCARD inline auto ImageSubresourceRange(VkImageAspectFlags aspectMask) -> VkImageSubresourceRange {
         VkImageSubresourceRange subImage {};
         subImage.aspectMask = aspectMask;

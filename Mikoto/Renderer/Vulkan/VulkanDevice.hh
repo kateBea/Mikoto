@@ -92,13 +92,17 @@ namespace Mikoto {
     };
 
     // Command pool and Command buffers from the same command pool can only be used by a single thread
+    // Write operations from this object should be accessed by executed one thread at a time
     class VulkanCommandPool final : public DeviceObject {
     public:
         explicit VulkanCommandPool(QueueType queue, Size initialCmdListCount = 10);
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
 
+        MKT_NODISCARD auto IsFree() const -> bool { return m_InUse; }
+
         auto AllocateCmdList(bool immediate) -> CommandListHandle;
+        auto SubmitCommandList() -> void;
 
         auto RunGarbageCollection() -> void;
 
@@ -128,6 +132,8 @@ namespace Mikoto {
 
         VkCommandPool m_Pool{ VK_NULL_HANDLE };
         ResourcePoolTyped<VulkanCmdList> m_CmdLists{};
+
+        std::atomic_bool m_InUse{ false };
     };
 
     using VulkanCommandPoolHandle = Ref<VulkanCommandPool>;
@@ -149,6 +155,65 @@ namespace Mikoto {
 
         // Frame index -> Deletion tasks
         ankerl::unordered_dense::map<UInt32, std::deque<std::function<void(GpuDevice*)>>> m_Callbacks{};
+    };
+
+    // ----------------------------------------------------------------------------
+    // VulkanQueue. (TODO(kaTe): To implement still)
+    // ----------------------------------------------------------------------------
+    // Abstraction over a VkQueue that enables safe multithreaded command buffer
+    // recording.
+    //
+    // Design goals:
+    //  - Allow multiple threads to record command buffers in parallel.
+    //  - Guarantee that no VkCommandPool is used concurrently by multiple threads.
+    //  - Centralize submission orchestration as it is not a thread safe operation.
+    //  - Block threads when no command pool is available.
+    //
+    // Overview:
+    //
+    //  Each VulkanQueue owns a set of VulkanCommandPools. A command pool is
+    //  exclusively acquired by one thread at a time for recording. When a thread
+    //  requests a command list via AllocateCommandList(), the queue:
+    //
+    //      1. Acquires a free command pool (blocking if none are available).
+    //      2. Allocates a command buffer from that pool.
+    //      3. Marks the pool as "in use" for that thread.
+    //
+    //  The CommandListHandle is aware of its originating pool. When all the command
+    //  lists are submitted through SubmitCommandList(), it is added to the queue’s
+    //  pending submission list and the its pool is marked as available (not "in use").
+    //
+    //  Flush() requests the submission thread to submit all pending command buffers
+    //  to the underlying VkQueue. After GPU execution completes (via fence or
+    //  frame-based synchronization), the associated command pools are reset and
+    //  returned to the available pool set.
+    //
+    //  Important invariants:
+    //      - A VkCommandPool is never accessed by multiple threads concurrently.
+    //      - A pool is not reset until the GPU has finished executing all command
+    //        buffers allocated from it.
+    //      - Submission ordering is controlled centrally by VulkanQueue.
+    //
+    // ----------------------------------------------------------------------------
+    class VulkanQueue final {
+    public:
+        explicit VulkanQueue(VulkanDevice* device, QueueType type);
+
+        // Tells the background thread to submit the pending command buffers to the gpu queue
+        auto Flush() -> void;
+
+        auto AllocateCommandList() -> CommandListHandle;
+        auto SubmitCommandList(CommandListHandle cmd) -> void;
+    private:
+        VulkanDevice* m_Device{};
+
+        VkQueue m_SubmissionQueue{};
+        QueueType m_QueueType{ QueueType::GRAPHICS_QUEUE };
+
+        // List of commands that have not been submitted yet
+        std::vector<CommandListHandle> m_PendingCommandList{};
+
+        ResourcePoolTyped<VulkanCommandPool> m_CmdPools{};
     };
 
     class VulkanDevice final : public GpuDevice {
@@ -193,11 +258,11 @@ namespace Mikoto {
 
         auto GetTracyContext() -> TracyVkCtx&;
 
+        auto FlushImmediateCommands() -> void;
         auto SetCurrentFrameIndex(UInt32 frameIndex) -> void;
+        auto FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void;
 
         auto SubmitDeletion(std::function<void(GpuDevice*)>&& callback) -> void;
-
-        auto FlushImmediateCommands() -> void;
 
         MKT_NODISCARD auto GetDummyDescriptorLayout() -> DescriptorSetLayoutHandle;
 
@@ -219,8 +284,6 @@ namespace Mikoto {
 
         MKT_NODISCARD auto AllocateDescriptorSet(const VkDescriptorSetLayout* layout, const void* pNext = nullptr) -> VkDescriptorSet;
         MKT_NODISCARD auto AllocateDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo& layout) -> DescriptorSetLayoutHandle;
-
-        auto FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void;
 
         auto CreateSwapChain( const VulkanSwapChainCreateInfo& createInfo ) -> SwapChainHandle;
         auto CreateSwapChainTextures( const VkImageViewCreateInfo& createInfo, VkExtent2D extent ) -> TextureHandle;

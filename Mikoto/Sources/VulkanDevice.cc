@@ -206,6 +206,24 @@ namespace Mikoto {
         }
     }
 
+    VulkanQueue::VulkanQueue( VulkanDevice* device, QueueType type )
+        : m_Device{ device }, m_QueueType{ type }
+    {}
+
+    auto VulkanQueue::Flush() -> void {
+        // Wake submission thread
+        // You could use std::vector::swap to move pending command lists to
+        // another vector so you do not block threads that are submitting commands
+    }
+
+    auto VulkanQueue::AllocateCommandList() -> CommandListHandle {
+        return CommandListHandle::CreateEmpty();
+    }
+
+    auto VulkanQueue::SubmitCommandList( CommandListHandle cmd ) -> void {
+
+    }
+
     VulkanDevice::VulkanDevice( const GpuDeviceCreateInfo& createInfo )
         : GpuDevice{ createInfo.Api },
           // For now, we use all these. The idea is to enable extensions based on user request
@@ -1438,6 +1456,10 @@ namespace Mikoto {
         handle->Initialize( m_Device );
 
         return handle;
+    }
+
+    auto VulkanCommandPool::SubmitCommandList() -> void {
+        // if we have submitted all command lists we can mark thius pool as free
     }
 
     auto VulkanCommandPool::Clear() -> void {

@@ -331,8 +331,8 @@ namespace Mikoto {
 
                 [&]( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
-                    b.Create<TextureCube>( "SkyboxRender_ColorTargetCUBE", 1024, TextureFormat::RGBA32_FLOAT, 1 );
-                    b.Create<Texture>( "SkyboxRender_ColorTarget", 1024, 1024, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
+                    b.Create<TextureCube>( "SkyboxRender_ColorTargetCUBE", 2540, TextureFormat::RGBA32_FLOAT, 1 );
+                    b.Create<Texture>( "SkyboxRender_ColorTarget", 2540, 2540, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/SkyboxRender_Vert.sprv", ShaderStage::VERTEX );
                     b.UseShader( "Resources/Shaders/vulkan-spirv/SkyboxRender_Frag.sprv", ShaderStage::FRAGMENT );
@@ -364,8 +364,8 @@ namespace Mikoto {
 
                     for ( Size mipLevel{}; mipLevel < 1; mipLevel++ ) {
                         for ( UInt32 face{}; face < MAX_CUBE_MAP_FACES; ++face ) {
-                            ctx.SetViewport( 0, 0, 1024, 1024 );
-                            ctx.SetScissor( 0, 0, 1024, 1024 );
+                            ctx.SetViewport( 0, 0, 2540, 2540 );
+                            ctx.SetScissor( 0, 0, 2540, 2540 );
 
                             ctx.SetColorRenderTarget( "SkyboxRender_ColorTarget" );
 

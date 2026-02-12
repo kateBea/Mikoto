@@ -118,6 +118,8 @@ namespace Mikoto {
         FramePassNode* m_ActivePass{ nullptr };
 
         RenderInfo m_RenderInfo{};
+
+        bool m_HasSetConstantData{ false };
     };
 }
 

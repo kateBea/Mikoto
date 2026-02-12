@@ -475,8 +475,6 @@ namespace Mikoto {
             return;
         }
 
-        return;
-
         PipelineHandle pipeline{ it->second.Pipeline };
 
         // Push constants are declared as globals visible across all stages

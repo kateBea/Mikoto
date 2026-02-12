@@ -18,11 +18,9 @@
 #include <string>
 #include <vector>
 
-#include <Library/Utility/Types.hh>
-
+#include <Animation/SkinnedAnimation.hh>
 #include <Assets/Model.hh>
-#include <Animation/SkeletalAnimation.hh>
-
+#include <Library/Utility/Types.hh>
 #include <Renderer/Core/GpuDevice.hh>
 
 namespace Mikoto {
@@ -88,7 +86,7 @@ namespace Mikoto {
         std::string Name{};
 
         std::vector<MeshNodeData> MeshNodes{};
-        std::vector<SkeletalAnimation> Animations{};
+        std::vector<SkinnedAnimation> Animations{};
     };
 
     struct ModelImporter {
@@ -96,7 +94,7 @@ namespace Mikoto {
         explicit ModelImporter(GpuDevice* device)
             : m_Device{ device } {}
 
-        MKT_NODISCARD virtual auto Import(const ModelLoadDescription& description) -> Model* = 0;
+        MKT_NODISCARD virtual auto Import(const ModelLoadDescription& description) -> ModelData* = 0;
 
         virtual ~ModelImporter() = default;
     private:

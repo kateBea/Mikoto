@@ -13,12 +13,15 @@
 // limitations under the License.
 
 #include <fstream>
+#include <algorithm>
+#include <ranges>
 #include <iostream>
 #include <mutex>
 
-#include <Assets/GltfImporter.hh>
-
 #include <tiny_gltf.h>
+
+#include <Assets/GltfImporter.hh>
+#include <Threading/ThreadUtility.hh>
 
 namespace Mikoto {
 
@@ -26,13 +29,40 @@ namespace Mikoto {
 
     GLTFImporter::GLTFImporter( GpuDevice *device )
     : ModelImporter{ device } {
-        m_Loaders.resize( 10 );
+        for (Int32 count{}; count < ThreadUtils::InferConcurrentThreads(); ++count) {
+            m_Importers.emplace_back( CreateScope<LoaderData>( count ));
+        }
     }
-    auto GLTFImporter::Import( const ModelLoadDescription &description ) -> Model * {
-        std::lock_guard lock{ mutex };
+    auto GLTFImporter::Import( const ModelLoadDescription &description ) -> ModelData * {
+        ModelData* result{ nullptr };
 
-        // Acquire free loader and use it, right now there is only one
-        auto& loaderData{ m_Loaders.front() };
+        auto iter{ m_Importers.end() };
+        do {
+            iter = TryAcquireImporter();
+
+            // TODO: some control to avoid this thread to be waiting here forever to acquire and importer
+        } while (iter == m_Importers.end());
+
+        MKT_CORE_LOGGER_DEBUG( "Using GLTF importer {}", (*iter)->Index );
+
+        result = Import( *(*iter), description );
+        (*iter)->IsFree.store( true, std::memory_order_release );
+
+        return result;
+    }
+
+    auto GLTFImporter::TryAcquireImporter() -> std::vector<Unique<LoaderData>>::iterator {
+        return std::ranges::find_if( m_Importers, []( const auto &importer ) -> bool {
+            bool expected{ true };
+            if ( importer->IsFree.compare_exchange_strong( expected, false, std::memory_order_acquire ) ) {
+                return true;
+            }
+
+            return false;
+        } );
+    }
+
+    auto GLTFImporter::Import( LoaderData& loaderData, const ModelLoadDescription &description ) -> ModelData * {
         tinygltf::Model model{};
 
         bool res = loaderData.Loader.LoadASCIIFromFile(&model, &loaderData.Err, &loaderData.Warn, description.ModelFile->GetPath());
@@ -52,4 +82,4 @@ namespace Mikoto {
         return nullptr;
     }
 
-}// namespace Mikoto
+}

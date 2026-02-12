@@ -17,11 +17,10 @@
 
 #include <ankerl/unordered_dense.h>
 
+#include <Animation/SkinnedAnimation.hh>
 #include <Common/Common.hh>
-#include <Common/Subsystem.hh>
 #include <Common/Singleton.hh>
-
-#include <Animation/SkeletalAnimation.hh>
+#include <Common/Subsystem.hh>
 
 namespace Mikoto {
 
@@ -41,7 +40,7 @@ namespace Mikoto {
         MKT_NODISCARD auto RegisterAnimation( /*TODO: params*/ ) -> UInt64;
 
     private:
-        ankerl::unordered_dense::map<UInt64, SkeletalAnimation> m_Animations{};
+        ankerl::unordered_dense::map<UInt64, SkinnedAnimation> m_Animations{};
     };
 
 }

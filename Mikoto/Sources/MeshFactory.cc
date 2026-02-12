@@ -154,7 +154,7 @@ namespace Mikoto {
             // UV0 -----
             if (mesh->HasTextureCoords( 0 )) {
                 vertices.emplace_back( mesh->mTextureCoords[0][index].x );
-                vertices.emplace_back( Math::Abs( 1 - mesh->mTextureCoords[0][index].y) );
+                vertices.emplace_back( (float)Math::Abs( 1 - mesh->mTextureCoords[0][index].y) );
             } else {
                 vertices.emplace_back( 0.0f );
                 vertices.emplace_back( 0.0f );

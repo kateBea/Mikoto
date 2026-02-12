@@ -16,7 +16,7 @@
 #define MIKOTO_ANIMATION_HH
 
 namespace  Mikoto {
-    class SkeletalAnimation {
+    class SkinnedAnimation {
     };
 }
 

@@ -16,6 +16,7 @@
 #define MIKOTO_GLTF_IMPORTER_HH
 
 #include <string>
+#include <atomic>
 
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
@@ -32,17 +33,28 @@ namespace Mikoto {
     public:
         explicit GLTFImporter(GpuDevice* device);
 
-        MKT_NODISCARD auto Import(const ModelLoadDescription& description) -> Model * override;
+        MKT_NODISCARD auto Import(const ModelLoadDescription& description) -> ModelData* override;
 
     private:
         struct LoaderData {
+            Int32 Index{ -1 };
+
             tinygltf::TinyGLTF Loader{};
             std::string Err{};
             std::string Warn{};
+
+            std::atomic_bool IsFree{ true };
         };
 
     private:
-        std::vector<LoaderData> m_Loaders{};
+
+        MKT_NODISCARD auto TryAcquireImporter() -> std::vector<Unique<LoaderData>>::iterator;
+        MKT_NODISCARD auto Import(LoaderData& loaderData,const ModelLoadDescription& description) -> ModelData*;
+
+    private:
+        UInt32 m_MaxConcurrentImporters{};
+
+        std::vector<Unique<LoaderData>> m_Importers{};
     };
 }
 

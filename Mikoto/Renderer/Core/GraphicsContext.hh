@@ -94,14 +94,7 @@ namespace Mikoto {
         // virtual auto PushImage(TextureHandle texture) -> Int32 = 0;
 
     protected:
-        explicit GraphicsContext(GpuDevice* device)
-            : m_Device{ device } {}
-
-    protected:
-        GpuDevice* m_Device{ nullptr };
-
-        // Global list of sampled textures
-        SRGTextures m_SrgTextures{};
+        explicit GraphicsContext() = default;
     };
 }
 

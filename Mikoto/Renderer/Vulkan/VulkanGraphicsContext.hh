@@ -26,6 +26,8 @@
 #include <Renderer/Core/Buffer.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/GraphicsContext.hh>
+
+#include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanDescriptorManager.hh>
 
 namespace Mikoto {
@@ -67,10 +69,6 @@ namespace Mikoto {
         auto InsertResourceBarrier(BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool  override;
         auto InsertResourceBarrier(TextureHandle texture, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool  override;
 
-        // auto BindShaderResources(FramePassNode* pass, CommandListHandle cmdList ) -> void override;
-        // auto CommitShaderResources(FramePassNode* pass ) -> void override;
-        // auto CreatePipelineResources(FramePassNode* pass, PipelineHandle pipeline) -> void override;
-
         ~VulkanGraphicsContext() override = default;
 
     private:
@@ -96,10 +94,13 @@ namespace Mikoto {
             ankerl::unordered_dense::set<std::pair<Texture*, Sampler*>> CombinedImageSampler{};
 
             // TODO: find better approach
-            // It is ordered by set index because of dynamic offsets requirements, see bind descriptor
+            // It is ordered by set index because of dynamic offsets order requirements, see bind descriptor
             std::map<UInt32, Buffer*> BuffersBindings{};
             ankerl::unordered_dense::map<UInt32, std::pair<Texture*, Sampler*>> CombinedImageSamplerBinding{};
         };
+
+    private:
+        VulkanDevice* m_Device{ nullptr };
 
         UInt32 m_CurrentFrameIndex{};
         UInt32 m_MaxFramesInFlight{};
@@ -107,9 +108,9 @@ namespace Mikoto {
 #if defined( MKT_USE_VULKAN_BINDLESS )
         DescriptorSetLayoutHandle m_LayoutTextures{};
         VkDescriptorSet m_BindlessTexturesSet{};
+
         VkPipelineLayout m_TexturesPipelineLayout{};
         VkPipelineLayout m_TexturesPipelineLayoutPushConstants{};
-        bool m_UpdateTextureDescriptor{ false };
 #endif
     private:
         ankerl::unordered_dense::map<std::string, FramePassInfo> m_PassInfo{};
@@ -121,6 +122,9 @@ namespace Mikoto {
         ankerl::unordered_dense::map<std::string, SamplerHandle> m_SamplersByNames{};
 
         std::vector<SamplerHandle> m_Samplers{};
+
+        // Global list of sampled textures
+        SRGTextures m_SrgTextures{};
     };
 }// namespace Mikoto
 

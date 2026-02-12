@@ -149,7 +149,7 @@ namespace Mikoto {
 }
 
     VulkanGraphicsContext::VulkanGraphicsContext( GpuDevice *device )
-        : GraphicsContext{ device } {}
+        : GraphicsContext{}, m_Device{ TO_VK_DEVICE( device ) } {}
 
     auto VulkanGraphicsContext::Init() -> void {
         CreateBindlessTexturesSet();

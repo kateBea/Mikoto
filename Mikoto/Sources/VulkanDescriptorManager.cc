@@ -223,7 +223,7 @@ namespace Mikoto {
         m_ReadyPools.push_back(poolToUse);
         m_AllocatedSets.emplace_back(std::make_pair( descriptorSet, poolToUse ));
 
-        MKT_CORE_LOGGER_DEBUG( "VulkanDescriptorAllocator::Allocate - Success. Current Descriptor set allocation count: {}", m_AllocatedSets.size() );
+        //MKT_CORE_LOGGER_DEBUG( "VulkanDescriptorAllocator::Allocate - Success. Current Descriptor set allocation count: {}", m_AllocatedSets.size() );
         return std::addressof( m_AllocatedSets.back().first );
     }
 

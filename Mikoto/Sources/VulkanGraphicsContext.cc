@@ -166,7 +166,7 @@ namespace Mikoto {
         m_Samplers.clear();
 
         m_LayoutTextures.Reset();
-        vkDestroyPipelineLayout( VK_DEVICE(m_Device), m_TexturesPipelineLayout, nullptr );
+        vkDestroyPipelineLayout( m_Device->GetLogicalDevice(), m_TexturesPipelineLayout, nullptr );
     }
 
     auto VulkanGraphicsContext::BeginFrame() -> void {
@@ -252,7 +252,7 @@ namespace Mikoto {
             }
 
             const VkDescriptorSetLayout &layout{ vulkanPipeline->GetDescriptorSetLayout( setIndex ) };
-            VkDescriptorSet descriptorSet{ TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( std::addressof( layout ) ) };
+            VkDescriptorSet descriptorSet{ m_Device->AllocateDescriptorSet( std::addressof( layout ) ) };
 
             if ( descriptorSet != VK_NULL_HANDLE ) {
                 passInfo.DescriptorSets[setIndex] = descriptorSet;
@@ -297,7 +297,7 @@ namespace Mikoto {
 
         writer.WriteBuffer( groupBinding, handle->GetNativeHandle(ObjectType::Vk_Buffer),
             range, 0, GetBufferDescriptorType( handle->GetUsage(), handle->GetResourceUsage() ) )
-        .UpdateSet( VK_DEVICE( m_Device ), sets );
+                .UpdateSet( m_Device->GetLogicalDevice(), sets );
     }
 
     auto VulkanGraphicsContext::PushImage( TextureHandle textureHandle, SamplerHandle samplerHandle, UInt32 groupBinding, VkDescriptorSet& sets ) -> void {
@@ -322,7 +322,7 @@ namespace Mikoto {
         }
         writer.WriteImage( groupBinding, textureHandle->GetNativeHandle( ObjectType::Vk_ImageView ), sampler, layout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER );
 
-        writer.UpdateSet( VK_DEVICE( m_Device ), sets );
+        writer.UpdateSet( m_Device->GetLogicalDevice(), sets );
     }
 
     auto VulkanGraphicsContext::CreateBindlessTexturesSet() -> void {
@@ -359,7 +359,7 @@ namespace Mikoto {
             .pBindings = &binding
         };
 
-        m_LayoutTextures = TO_VK_DEVICE( m_Device )->AllocateDescriptorSetLayout(  layoutInfo );
+        m_LayoutTextures = m_Device->AllocateDescriptorSetLayout(  layoutInfo );
         m_LayoutTextures->SetDebugName( "DescriptorSetLayout for VulkanGraphicsContext bindless textures" );
 
         std::array variableCount{ maxBindlessTextures };
@@ -368,7 +368,7 @@ namespace Mikoto {
         variableCountInfo.pDescriptorCounts = variableCount.data();
 
         VkDescriptorSetLayout layoutTextures{ m_LayoutTextures->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ) };
-        m_BindlessTexturesSet = TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( std::addressof( layoutTextures ), std::addressof( variableCountInfo ) );
+        m_BindlessTexturesSet = m_Device->AllocateDescriptorSet( std::addressof( layoutTextures ), std::addressof( variableCountInfo ) );
 
         // For Passes that use push constants
         // This PS is declared the same way as in the pipeline reflection
@@ -393,8 +393,8 @@ namespace Mikoto {
         };
 
         vkCreatePipelineLayout(
-            VK_DEVICE( m_Device ),
-            &pipelineLayoutInfo,
+            m_Device->GetLogicalDevice(),
+            std::addressof( pipelineLayoutInfo ),
             nullptr,
             std::addressof( m_TexturesPipelineLayout )
         );
@@ -591,7 +591,7 @@ namespace Mikoto {
 
         DescriptorWriter writer{};
         writer.WriteImage( 0, vkImageView, vkSampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, setIndex )
-            .UpdateSet( VK_DEVICE( m_Device ), m_BindlessTexturesSet );
+            .UpdateSet( m_Device->GetLogicalDevice(), m_BindlessTexturesSet );
     }
 
     auto VulkanGraphicsContext::PushGlobalTexture( TextureHandle texture ) -> Int32 {

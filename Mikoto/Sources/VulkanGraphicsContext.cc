@@ -376,11 +376,10 @@ namespace Mikoto {
         // descriptor set ot get unbound if we bind a non-compatible set after it,
         // We declare by default in the pipeline layouts here and in the reflected pipeline
         // the global push_constants even if they are later not used by the pass
-        const UInt32 size{ 128 }; // Minimum required for Vulkan
         VkPushConstantRange psRange{
             .stageFlags = VK_SHADER_STAGE_ALL,
             .offset     = 0,
-            .size       = size
+            .size       = MINIMUM_REQUIRED_PUSH_CONSTANTS_SIZE
         };
 
         std::array pushConstants{ psRange };

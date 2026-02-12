@@ -507,7 +507,7 @@ namespace Mikoto {
             .dstAccessMask = newInfo.Access,
             .buffer = buffer->GetNativeHandle( ObjectType::Vk_Buffer ),
             .offset = 0,
-            .size = VK_WHOLE_SIZE
+            .size = VK_WHOLE_SIZE // for dynamic buffers maybe its better to protect the current frame region?
         };
 
         VkDependencyInfo depInfo{
@@ -522,62 +522,13 @@ namespace Mikoto {
     }
 
     auto VulkanGraphicsContext::InsertResourceBarrier( TextureHandle texture, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd ) -> bool {
-        if (previousState == newState) {
-            return false;
+        const auto newInfo{ GetVulkanState(newState) };
+
+        if (auto ptrCube{ dynamic_cast<VulkanTextureCube*>(texture.GetRaw()) }) {
+            ptrCube->SubmitLayoutTransition( newInfo.Layout, cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
+        } else if (auto ptr2D{ dynamic_cast<VulkanTexture*>(texture.GetRaw()) }) {
+            ptr2D->SubmitLayoutTransition( newInfo.Layout, cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
         }
-
-        // TODO: Review
-        //  vkCmdPipelineBarrier(): pBufferMemoryBarriers[0].dstAccessMask (VK_ACCESS_HOST_READ_BIT) is not supported by stage mask (VK_PIPELINE_STAGE_ALL_COMMANDS_BIT).
-        // The Vulkan spec states: For any element of pBufferMemoryBarriers, if its srcQueueFamilyIndex and dstQueueFamilyIndex members are equal, or if its dstQueueFamilyIndex is the
-        // queue family index that was used to create the command pool that commandBuffer was allocated from, then its dstAccessMask member must only contain access
-        // flags that are supported by one or more of the pipeline stages in dstStageMask, as specified in the table of supported access types
-        // (https://vulkan.lunarg.com/doc/view/1.4.328.1/windows/antora/spec/latest/chapters/synchronization.html#VUID-vkCmdPipelineBarrier-pBufferMemoryBarriers-02818)
-
-        auto oldInfo{ GetVulkanState(previousState) };
-        auto newInfo{ GetVulkanState(newState) };
-
-        UInt32 layerCount{ 1 };
-        UInt32 levelCount{ 1 };
-
-        if (texture->IsTextureType( TextureType::TEXTURE_CUBE )) {
-            layerCount = 6;
-            levelCount = texture.As<TextureCube>()->GetMipLevels();
-        }
-
-        VkImageMemoryBarrier2 barrier{
-            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-            .srcStageMask = oldInfo.Stages,
-            .srcAccessMask = oldInfo.Access,
-            .dstStageMask = newInfo.Stages,
-            .dstAccessMask = newInfo.Access,
-            .oldLayout = oldInfo.Layout,
-            .newLayout = newInfo.Layout,
-            .image = texture->GetNativeHandle( ObjectType::Vk_Image ),
-            .subresourceRange = {
-                .aspectMask = VulkanHelpers::GetAspectMask(VulkanHelpers::ToVkFormat( texture->GetFormat() )),
-                .baseMipLevel = 0,
-                .levelCount = levelCount,
-                .baseArrayLayer = 0,
-                .layerCount = layerCount,
-            }
-        };
-
-        // TODO: update layout of underlying VulkanTexture
-        if (const auto vulkanTexture{ dynamic_cast<VulkanTexture*>(texture.GetRaw()) }) {
-            vulkanTexture->SetCurrentLayout(newInfo.Layout);
-        }
-
-        if (const auto vulkanTexture{ dynamic_cast<VulkanTextureCube*>(texture.GetRaw()) }) {
-            vulkanTexture->SetCurrentLayout(newInfo.Layout);
-        }
-
-        VkDependencyInfo depInfo{
-            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            .imageMemoryBarrierCount = 1,
-            .pImageMemoryBarriers = std::addressof( barrier )
-        };
-
-        vkCmdPipelineBarrier2(cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ), std::addressof( depInfo ) );
 
         return true;
     }

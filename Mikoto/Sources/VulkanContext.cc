@@ -84,18 +84,23 @@ namespace Mikoto {
             ( void )messageType;
             ( void )pUserData;
 
-                    switch (messageSeverity) {
-                        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-                            MKT_CORE_LOGGER_ERROR( "Validation Error: {}", pCallbackData->pMessage );
-                            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-                                MKT_CORE_LOGGER_WARN( "Validation Warn: {}", pCallbackData->pMessage );
-                        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-                            MKT_CORE_LOGGER_INFO( "Validation Info: {}", pCallbackData->pMessage );
-                        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-                            MKT_CORE_LOGGER_DEBUG( "Validation Debug: {}", pCallbackData->pMessage );
-                        default:
-                            MKT_CORE_LOGGER_ERROR( "Validation Unhandled Severity: {}", pCallbackData->pMessage );
-                    }
+            switch ( messageSeverity ) {
+                case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+                    MKT_CORE_LOGGER_ERROR( "Validation Error: {}", pCallbackData->pMessage );
+                    break;
+                case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+                    MKT_CORE_LOGGER_WARN( "Validation Warn: {}", pCallbackData->pMessage );
+                    break;
+                case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+                    MKT_CORE_LOGGER_INFO( "Validation Info: {}", pCallbackData->pMessage );
+                    break;
+                case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+                    MKT_CORE_LOGGER_DEBUG( "Validation Debug: {}", pCallbackData->pMessage );
+                    break;
+                default:
+                    MKT_CORE_LOGGER_ERROR( "Validation Unhandled Severity: {}", pCallbackData->pMessage );
+                    break;
+            }
             return VK_FALSE;
         };
     }

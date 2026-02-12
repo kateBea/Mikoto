@@ -84,5 +84,13 @@ void main() {
 
     out_Position = vec4(in_FragmentViewPos, LinearDepth(gl_FragCoord.z));
     out_Normal = vec4(normalize(N) * 0.5 + 0.5, 1.0);
-    out_Color = vec4(albedo , 1.0);
+
+    vec4 color = vec4(1.0f);
+    if (in_AlbedoIndex != INVALID_TEXTURE_INDEX) {
+        color = texture(g_BindlessTextures[in_AlbedoIndex], in_TexCoord) * vec4(in_Color , 1.0);
+    } else {
+        color = color * vec4(in_Color , 1.0);
+    }
+
+    out_Color = color;
 }

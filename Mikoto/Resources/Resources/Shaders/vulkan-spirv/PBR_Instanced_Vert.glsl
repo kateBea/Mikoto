@@ -63,6 +63,7 @@ layout(location = 12) out vec3 out_FragmentViewPos;
 layout(location = 13) flat out vec3 out_EmissiveFactors;
 layout(location = 14) flat out float out_EmissionIntensity;
 layout(location = 15) flat out int out_EmissionIndex;
+layout(location = 16) flat out float o_Alpha;
 
 // --------------------------------------------------
 // Main
@@ -92,6 +93,7 @@ void main() {
     out_AoIndex        = meshInfo.AoIndex;
     out_Albedo         = meshInfo.Albedo;
     out_Factors        = meshInfo.Factors;
+    o_Alpha            = meshInfo.Alpha;
 
     out_EmissiveFactors = meshInfo.EmissiveFactors;
     out_EmissionIntensity = meshInfo.EmissiveIntensity;

@@ -45,6 +45,8 @@ namespace Mikoto {
         Vec3F EmissiveFactors{ 1.0f, 1.0f, 1.0f };
         float EmissiveIntensity{ 1.0 }; // 1.0 default
 
+        float Alpha{ 1.0 };
+
         Int32 AlbedoIndex{INVALID_TEXTURE_INDEX };
         Int32 NormalIndex{ INVALID_TEXTURE_INDEX };
         Int32 MetallicIndex{ INVALID_TEXTURE_INDEX };

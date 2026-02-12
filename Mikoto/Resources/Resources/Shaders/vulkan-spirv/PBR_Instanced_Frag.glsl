@@ -42,6 +42,7 @@ layout(location = 12) in vec3 in_FragmentViewPos;
 layout(location = 13) flat in vec3 v_EmissiveFactors;
 layout(location = 14) flat in float v_EmissionIntensity;
 layout(location = 15) flat in int v_EmissionIndex;
+layout(location = 16) flat in float v_Alpha;
 
 layout(location = 0) out vec4 out_Color;
 
@@ -338,9 +339,9 @@ vec3 CalculateEmissive() {
 
 void main() {
 
-    vec3 albedo     = in_AlbedoIndex != INVALID_TEXTURE_INDEX ?
-        pow(texture(g_BindlessTextures[in_AlbedoIndex], in_TexCoord).rgb, vec3(2.2)) :
-        in_Albedo.xyz;
+    vec4 albedo     = in_AlbedoIndex != INVALID_TEXTURE_INDEX ?
+        pow(texture(g_BindlessTextures[in_AlbedoIndex], in_TexCoord), vec4(2.2)) :
+        in_Albedo;
 
     float metallic  = in_MetallicIndex != INVALID_TEXTURE_INDEX ?
         texture(g_BindlessTextures[in_MetallicIndex], in_TexCoord).r :
@@ -359,7 +360,7 @@ void main() {
         normalize(in_Normals);
 
     vec3 V = normalize(in_CameraPos - in_FragmentWorldPos);
-    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+    vec3 F0 = mix(vec3(0.04), albedo.xyz, metallic);
 
     vec3 Lo = vec3(0.0);
 
@@ -378,13 +379,13 @@ void main() {
 
         switch (light.ActiveLightType) {
             case LIGHT_TYPE_POINT:
-                Lo += ComputePointLightContribution(N, V, F0, roughness, metallic, albedo, light);
+                Lo += ComputePointLightContribution(N, V, F0, roughness, metallic, albedo.xyz, light);
                 break;
             case LIGHT_TYPE_SPOT:
-                Lo += ComputeSpotLightContribution(N, V, F0, roughness, metallic, albedo, light);
+                Lo += ComputeSpotLightContribution(N, V, F0, roughness, metallic, albedo.xyz, light);
                 break;
             case LIGHT_TYPE_DIRECTIONAL:
-                Lo += ComputeDirectionalLightContribution(N, V, F0, roughness, metallic, albedo, light);
+                Lo += ComputeDirectionalLightContribution(N, V, F0, roughness, metallic, albedo.xyz, light);
                 break;
             default:
                 break;
@@ -407,7 +408,7 @@ void main() {
     }
 
     // Diffuse based on irradiance
-    diffuse = irradiance * albedo;
+    diffuse = irradiance * albedo.xyz;
 
     // Specular reflectance
     specular = reflection * (F * brdf.x + brdf.y);
@@ -430,7 +431,13 @@ void main() {
     vec3 emissive = CalculateEmissive();
     vec3 finalColor = color + emissive;
 
-    out_Color = vec4(finalColor , 1.0);
+    // Alpha
+    float alpha = v_Alpha * albedo.a;
+    if (in_AlbedoIndex == INVALID_TEXTURE_INDEX) {
+        alpha = v_Alpha;
+    }
+
+    out_Color = vec4(finalColor , alpha);
 
     if (u_ClusterShadingParameters.ShowHeatMap == MKT_SHADER_TRUE) {
         out_Color = mix(vec4(GetHeatMapColor(lightCount), 1.0), out_Color, 0.67f);

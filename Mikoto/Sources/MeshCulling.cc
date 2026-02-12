@@ -153,6 +153,8 @@ namespace Mikoto {
                 ubo.EmissiveFactors = pbrMat->GetEmissiveFactors();
                 ubo.EmissiveIntensity = pbrMat->GetEmissiveIntensity();
 
+                ubo.Alpha = pbrMat->GetAlpha();
+
                 ubo.AlbedoIndex = context.PushTexture( pbrMat->GetTextureType( MapType::ALBEDO_TEXTURE ) );
                 ubo.NormalIndex = context.PushTexture( pbrMat->GetTextureType( MapType::NORMAL_TEXTURE ) );
                 ubo.MetallicIndex = context.PushTexture( pbrMat->GetTextureType( MapType::METALLIC_TEXTURE ) );

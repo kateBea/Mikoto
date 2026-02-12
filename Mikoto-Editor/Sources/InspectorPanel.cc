@@ -274,6 +274,12 @@ namespace Mikoto {
             if ( ImGuiUtils::Slider( "Mix", mixing, { 0.0f, 1.0f } ) ) {
             }
 
+            // Merge color with objects base color
+            float opacity{ material.GetAlpha() };
+            if ( ImGuiUtils::Slider( "Opacity", opacity, { 0.0f, 1.0f } ) ) {
+                material.SetAlpha( opacity );
+            }
+
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndex );
 

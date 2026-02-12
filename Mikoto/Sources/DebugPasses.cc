@@ -84,7 +84,7 @@ namespace Mikoto {
                     GraphicsPipelineDescription graphicsDesc{};
                     graphicsDesc.DepthTest = true;
                     graphicsDesc.DepthWrite = true;
-                    graphicsDesc.AlphaBlending = true;
+                    graphicsDesc.AlphaBlending = false;
                     graphicsDesc.Wireframe = true;
                     graphicsDesc.PipelinePolygonMode = PolygonMode::LINES;
                     graphicsDesc.PipelineCullMode = CullMode::NONE;

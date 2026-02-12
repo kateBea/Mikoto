@@ -49,9 +49,7 @@ namespace Mikoto {
 
         auto CreateTexture(std::string_view name, const TextureDescription &description) -> TextureHandle override;
         auto CreateTexture(std::string_view name, const TextureCubeCreateDescription& description) -> TextureHandle override;
-
         auto CreateBuffer(std::string_view name, BufferDescription description) -> BufferHandle override;
-
         auto CreateSampler( SamplerDescription& description ) -> SamplerHandle  override;
         auto CreateSampler( std::string_view name, const SamplerDescription& description ) -> void override;
 
@@ -110,7 +108,6 @@ namespace Mikoto {
         VkDescriptorSet m_BindlessTexturesSet{};
 
         VkPipelineLayout m_TexturesPipelineLayout{};
-        VkPipelineLayout m_TexturesPipelineLayoutPushConstants{};
 #endif
     private:
         ankerl::unordered_dense::map<std::string, FramePassInfo> m_PassInfo{};

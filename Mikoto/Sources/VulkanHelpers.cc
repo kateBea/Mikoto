@@ -679,6 +679,10 @@ namespace Mikoto::VulkanHelpers::Reflection {
 
     static auto MergePushConstantRange( std::vector<VkPushConstantRange>& dst, const UInt32 targetOffset, const UInt32 targetSize, const VkShaderStageFlags flags ) -> void {
         for ( auto& range: dst ) {
+            range.stageFlags = VK_SHADER_STAGE_ALL;
+            range.offset = 0;
+            range.size = 128;
+
             if ( range.offset == targetOffset && range.size == targetSize ) {
                 range.stageFlags |= flags;
                 return;
@@ -751,6 +755,21 @@ namespace Mikoto::VulkanHelpers::Reflection {
 
     // Helper: collect push constants from a single SPIR-V module
     static void ProcessPushConstants(SpvReflectShaderModule& mod, VkShaderStageFlagBits stage, std::vector<VkPushConstantRange>& pushConstants) {
+
+        // Follow same structure as graphics context, global set of constants passed per draw
+        const UInt32 size{ 128 }; // Minimum required for Vulkan
+        VkPushConstantRange psRange{
+            .stageFlags = VK_SHADER_STAGE_ALL,
+            .offset     = 0,
+            .size       = size
+        };
+
+        // Push constants are globals and declared once for a single pipeline
+        if (pushConstants.empty()) {
+            pushConstants.emplace_back( psRange );
+        }
+
+#if false
         UInt32 pcCount{};
         spvReflectEnumeratePushConstantBlocks(&mod, &pcCount, nullptr);
 
@@ -760,6 +779,8 @@ namespace Mikoto::VulkanHelpers::Reflection {
         for (auto* pc: pcs) {
             MergePushConstantRange(pushConstants, pc->offset, pc->size, stage);
         }
+#endif
+
     }
 
     static auto InferSizeInBytesSpirVAttribute( SpvReflectFormat format ) -> Size {

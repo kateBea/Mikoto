@@ -167,7 +167,6 @@ namespace Mikoto {
 
         m_LayoutTextures.Reset();
         vkDestroyPipelineLayout( VK_DEVICE(m_Device), m_TexturesPipelineLayout, nullptr );
-        vkDestroyPipelineLayout( VK_DEVICE(m_Device), m_TexturesPipelineLayoutPushConstants, nullptr );
     }
 
     auto VulkanGraphicsContext::BeginFrame() -> void {
@@ -371,23 +370,13 @@ namespace Mikoto {
         VkDescriptorSetLayout layoutTextures{ m_LayoutTextures->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ) };
         m_BindlessTexturesSet = TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( std::addressof( layoutTextures ), std::addressof( variableCountInfo ) );
 
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo{
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount = 1,
-            .pSetLayouts = std::addressof( layoutTextures ),
-            .pushConstantRangeCount = 0,
-            .pPushConstantRanges = nullptr
-        };
-
-        vkCreatePipelineLayout(
-            VK_DEVICE( m_Device ),
-            &pipelineLayoutInfo,
-            nullptr,
-            std::addressof( m_TexturesPipelineLayout )
-        );
-
         // For Passes that use push constants
-        UInt32 size{ 128 }; // Minimum required for Vulkan
+        // This PS is declared the same way as in the pipeline reflection
+        // This allows for descriptor sets compatibility as otherwise it would lead to this
+        // descriptor set ot get unbound if we bind a non-compatible set after it,
+        // We declare by default in the pipeline layouts here and in the reflected pipeline
+        // the global push_constants even if they are later not used by the pass
+        const UInt32 size{ 128 }; // Minimum required for Vulkan
         VkPushConstantRange psRange{
             .stageFlags = VK_SHADER_STAGE_ALL,
             .offset     = 0,
@@ -396,7 +385,7 @@ namespace Mikoto {
 
         std::array pushConstants{ psRange };
 
-        VkPipelineLayoutCreateInfo pipelineLayoutInfoWithPs{
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .setLayoutCount = 1,
             .pSetLayouts = std::addressof( layoutTextures ),
@@ -406,10 +395,18 @@ namespace Mikoto {
 
         vkCreatePipelineLayout(
             VK_DEVICE( m_Device ),
-            &pipelineLayoutInfoWithPs,
+            &pipelineLayoutInfo,
             nullptr,
-            std::addressof( m_TexturesPipelineLayoutPushConstants )
+            std::addressof( m_TexturesPipelineLayout )
         );
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfoWithPs{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .setLayoutCount = 1,
+            .pSetLayouts = std::addressof( layoutTextures ),
+            .pushConstantRangeCount = static_cast<UInt32>( pushConstants.size() ),
+            .pPushConstantRanges = pushConstants.data()
+        };
     }
 
     auto VulkanGraphicsContext::BindGlobalTextures(std::string_view passName, CommandListHandle cmdList) -> void {

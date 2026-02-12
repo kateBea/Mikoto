@@ -84,7 +84,7 @@ namespace Mikoto {
                     GraphicsPipelineDescription graphicsDesc{};
                     graphicsDesc.DepthTest = true;
                     graphicsDesc.DepthWrite = true;
-                    graphicsDesc.AlphaBlending = false;
+                    graphicsDesc.AlphaBlending = true;
                     graphicsDesc.Wireframe = true;
                     graphicsDesc.PipelinePolygonMode = PolygonMode::LINES;
                     graphicsDesc.PipelineCullMode = CullMode::NONE;
@@ -208,7 +208,6 @@ namespace Mikoto {
         graph.RegisterPass<HelloTextureData>(
                 "HelloTexture",
                 [this]( FramePassBuilder &b, HelloTextureData& ) -> void {
-                    b.Create<Buffer>( "HelloTexture_TexturesBuffer", BufferUsage::UNIFORM, sizeof( HelloTextureData ), 1 );
                     b.Create<Texture>( "HelloTexture_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
                     b.Create<Texture>( "HelloTexture_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
@@ -222,8 +221,6 @@ namespace Mikoto {
                     b.Write( "HelloTexture_ColorTarget", FrameResourceState::RenderTarget );
                     b.Write( "HelloTexture_DepthTarget", FrameResourceState::DepthWrite );
 
-                    b.Write( "HelloTexture_TexturesBuffer", FrameResourceState::UniformBuffer );
-                    b.Use( SRGType::SRG_PerPass, "HelloTexture_TexturesBuffer", 0 );
                     b.Use( SRGType::SRG_Textures );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard) -> void {
@@ -232,7 +229,7 @@ namespace Mikoto {
                     auto& data{ blackboard.Get<HelloTextureData>() };
                     data.TextureIndex = ctx.PushTexture( m_TextureHandle );
 
-                    ctx.UploadBuffer<HelloTextureData>( "HelloTexture_TexturesBuffer", std::addressof( data ) );
+                    ctx.PushConstants( std::addressof( data ), sizeof( data ) );
 
                     ctx.BindPipeline( "HelloTexture_Pipeline" );
 

@@ -21,7 +21,7 @@
 
 layout(set = TEXTURES_SETINDEX, binding = 0) uniform sampler2D g_BindlessTextures[];
 
-layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform HelloTextureUniformBuffer {
+layout(scalar, push_constant) uniform HelloTextureUniformBuffer {
     int TextureIndex;
 } u_MetaData;
 

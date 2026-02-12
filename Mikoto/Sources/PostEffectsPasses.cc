@@ -13,29 +13,23 @@
 // limitations under the License.
 
 #include <Core/Profiler.hh>
-
-#include <Scene/Scene.hh>
-#include <Scene/Component.hh>
-
-#include <Math/Math.hh>
-
 #include <Library/Random/Random.hh>
 #include <Library/String/String.hh>
-
-#include <Renderer/Core/FramePassResource.hh>
+#include <Math/Math.hh>
 #include <Renderer/Core/CommandContext.hh>
-#include <Renderer/Passes/ShaderParameteres.hh>
+#include <Renderer/Core/FramePassResource.hh>
 #include <Renderer/Passes/PostEffectsPasses.hh>
+#include <Renderer/Passes/ShaderParameteres.hh>
+#include <Scene/Component.hh>
+#include <Scene/Scene.hh>
 
 namespace Mikoto {
 
     PostEffectsPass::PostEffectsPass( RenderResolution resolution )
-        : m_Resolution{ resolution }
-    {
-
+        : m_Resolution{ resolution } {
     }
 
-    auto PostEffectsPass::SetScene( const Scene *scene ) -> void {
+    auto PostEffectsPass::SetScene( const Scene* scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         m_Scene = scene;
@@ -51,7 +45,7 @@ namespace Mikoto {
         m_Camera = camera;
     }
 
-    auto PostEffectsPass::RegisterPasses( FrameGraph &graph, GpuDevice* device) -> void {
+    auto PostEffectsPass::RegisterPasses( FrameGraph& graph, GpuDevice* device ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         RegisterTextRender( graph, device );
@@ -60,7 +54,7 @@ namespace Mikoto {
         RegisterBloom( graph );
     }
 
-    auto PostEffectsPass::RegisterTextRender( FrameGraph &graph, GpuDevice* device) -> void {
+    auto PostEffectsPass::RegisterTextRender( FrameGraph& graph, GpuDevice* device ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         // Vertex buffer and index buffer for the quads
@@ -79,13 +73,15 @@ namespace Mikoto {
                 .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
         m_TextIndexBuffer = device->CreateBuffer( indexDesc );
 
+        m_TextRenderParams.resize( MAX_GLYPHS );
+
         graph.RegisterPass(
                 "3DTextRenderingPass",
-                []( FramePassBuilder &b ) {
+                []( FramePassBuilder& b ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    b.Create<Buffer>( "TextRenderPass_TextRenderParams", BufferUsage::SHADER_STORAGE, sizeof(TextRenderParams), MAX_GLYPHS )
-                        .Create<Buffer>( "TextRenderPass_FontParams", BufferUsage::UNIFORM, sizeof(TextParamsUBO), 1 );
+                    b.Create<Buffer>( "TextRenderPass_TextRenderParams", BufferUsage::SHADER_STORAGE, sizeof( TextRenderParams ), MAX_GLYPHS )
+                            .Create<Buffer>( "TextRenderPass_FontParams", BufferUsage::UNIFORM, sizeof( TextParamsUBO ), 1 );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Text_Vert.sprv", ShaderStage::VERTEX );
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Text_Frag.sprv", ShaderStage::FRAGMENT );
@@ -102,24 +98,23 @@ namespace Mikoto {
                         { ShaderDataType::UINT_TYPE, "a_TexCoordIndex" },
                     };
                     graphicsDesc.VertexAttributesSpec = { AttributesSpec{
-                        .DefaultVertexLayout{ layout },
-                        .InputRateSpec{ .BindingIndex = { 0 }, .AttributeRate{ InputRate::PER_VERTEX } }
-                    } };
+                            .DefaultVertexLayout{ layout },
+                            .InputRateSpec{ .BindingIndex = { 0 }, .AttributeRate{ InputRate::PER_VERTEX } } } };
                     graphicsDesc.PrimitiveTopology = Topology::TRIANGLE_LIST;
                     b.Create<Pipeline>( "TextRenderPass_Pipeline", graphicsDesc );
 
                     b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite )
-                    .Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget )
-                    .Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
+                            .Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget )
+                            .Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
 
                     b.Write( "TextRenderPass_FontParams", FrameResourceState::UniformBuffer );
                     b.Write( "TextRenderPass_TextRenderParams", FrameResourceState::UniformBuffer );
 
                     b.Use( SRGType::SRG_PerPass, "TextRenderPass_FontParams", 0 );
                     b.Use( SRGType::SRG_PerPass, "TextRenderPass_TextRenderParams", 1 );
-                    b.Use( SRGType::SRG_Textures);
+                    b.Use( SRGType::SRG_Textures );
                 },
-                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                [this]( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
 
                     MKT_ASSERT( m_Scene != nullptr, "Scene cannot be NULL" );
@@ -149,7 +144,7 @@ namespace Mikoto {
                     drawIndexedState.VertexBuffers.emplace_back( m_TextVertexBuffer, 0 );
 
                     drawIndexedState.IndicesCount = m_TextIndexBuffer->GetCount();
-                    drawIndexedState.InstancesCount = m_TextRenderParams.size();
+                    drawIndexedState.InstancesCount = m_GlyphCount;
 
                     ctx.DrawIndexed( drawIndexedState );
 
@@ -162,16 +157,15 @@ namespace Mikoto {
 
         graph.RegisterPass(
                 "ObjectOutline",
-                []( FramePassBuilder &b ) {
+                []( FramePassBuilder& b ) {
                     MKT_BEGIN_PROFILER_NAMED();
                 },
-                []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                []( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
-
                 } );
     }
 
-    auto PostEffectsPass::SetMeshCulling( MeshCulling &culling ) -> void {
+    auto PostEffectsPass::SetMeshCulling( MeshCulling& culling ) -> void {
         m_MeshCullingPass = std::addressof( culling );
     }
 
@@ -322,22 +316,21 @@ namespace Mikoto {
 
         graph.RegisterPass(
                 "Bloom",
-                []( FramePassBuilder &b ) {
+                []( FramePassBuilder& b ) {
                     MKT_BEGIN_PROFILER_NAMED();
                 },
-                []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                []( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
-
                 } );
     }
 
-    auto PostEffectsPass::RegisterInfiniteGrid( FrameGraph& graph) -> void {
+    auto PostEffectsPass::RegisterInfiniteGrid( FrameGraph& graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
 
         graph.RegisterPass(
                 "InfiniteGrid",
-                [this]( FramePassBuilder &b ) {
+                [this]( FramePassBuilder& b ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
                     b.Create<Texture>( "InfiniteGrid_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
@@ -346,11 +339,11 @@ namespace Mikoto {
                     b.UseShader( "Resources/Shaders/vulkan-spirv/InfiniteGrid_Frag.sprv", ShaderStage::FRAGMENT );
 
                     b.Create<Pipeline>( "InfiniteGrid_Pipeline", GraphicsPipelineDescription{
-                        .DepthTest{ true },
-                        .DepthWrite{ false },
-                        .PipelinePolygonMode{ PolygonMode::LINES },
-                        .PrimitiveTopology{ Topology::TRIANGLE_LIST },
-                        .VertexAttributesSpec{} } );
+                                                                         .DepthTest{ true },
+                                                                         .DepthWrite{ false },
+                                                                         .PipelinePolygonMode{ PolygonMode::LINES },
+                                                                         .PrimitiveTopology{ Topology::TRIANGLE_LIST },
+                                                                         .VertexAttributesSpec{} } );
 
                     b.Write( "InfiniteGrid_ColorTarget", FrameResourceState::RenderTarget );
 
@@ -361,7 +354,7 @@ namespace Mikoto {
 
                     b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
                 },
-                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                [this]( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
 
                     const auto dimensions{ InferDimensions( m_Resolution ) };
@@ -387,33 +380,33 @@ namespace Mikoto {
                 } );
     }
 
-    auto PostEffectsPass::TraverseTextList( CommandContext &ctx ) -> void {
-        // Clear text data as we refill it every frame
-        m_TextRenderParams.clear();
-
+    auto PostEffectsPass::TraverseTextList( CommandContext& ctx ) -> void {
         auto& registry{ m_Scene->GetRegistry() };
         auto renderables{ registry.view<TransformComponent, TextComponent>() };
 
-        for (auto& entity : renderables) {
+        // Prepare for glyp count, we can use this to
+        // determine how many instances to draw
+        m_GlyphCount = 0;
+        for ( auto& entity: renderables ) {
             auto& transform{ registry.get<TransformComponent>( entity ) };
             auto& textComponent{ registry.get<TextComponent>( entity ) };
 
-            if (!textComponent.HasFont()) {
+            if ( !textComponent.HasFont() ) {
                 continue;
             }
 
             SetupTextForRender( ctx, transform, textComponent );
         }
 
-        ctx.UploadBuffer( "TextRenderPass_TextRenderParams", m_TextRenderParams.data(), m_TextRenderParams.size() * sizeof( TextRenderParams ) );
+        ctx.UploadBuffer( "TextRenderPass_TextRenderParams", m_TextRenderParams.data(), m_GlyphCount * sizeof( TextRenderParams ) );
     }
 
-    auto PostEffectsPass::SetupRenderParams( CommandContext &context ) -> void {
+    auto PostEffectsPass::SetupRenderParams( CommandContext& context ) -> void {
         m_TextRenderUBO.OutlineWidth = 0.0f;
         context.UploadBuffer( "TextRenderPass_FontParams", std::addressof( m_TextRenderUBO ), sizeof( m_TextRenderUBO ) );
     }
 
-    auto PostEffectsPass::SetupTextForRender( CommandContext& context, const TransformComponent& transformComponent, const TextComponent& textComponent) -> void {
+    auto PostEffectsPass::SetupTextForRender( CommandContext& context, const TransformComponent& transformComponent, const TextComponent& textComponent ) -> void {
         using namespace StringUtils;
 
         FontHandle font{ textComponent.GetFontHandle() };
@@ -429,8 +422,8 @@ namespace Mikoto {
 
         double lineHeight{ font->GetMaxHeight() * scale };
 
-        for ( const auto& character : textComponent.GetContents() ) {
-            if ( IsLineFeed(character) ) {
+        for ( const auto& character: textComponent.GetContents() ) {
+            if ( IsLineFeed( character ) ) {
                 xPos = position.x;
                 yPos += lineHeight;
                 continue;
@@ -438,10 +431,10 @@ namespace Mikoto {
 
             double advance{ 0 };
 
-            if ( font->HasGlyph(character)) {
+            if ( font->HasGlyph( character ) ) {
                 const FontGlyph& glyph{ font->GetGlyph( static_cast<UInt32>( character ) ) };
 
-                if (!IsSpace(character)) {
+                if ( !IsSpace( character ) ) {
                     // Quad Coordinates
                     double x0{ xPos + glyph.m_PlaneBounds.x * fontSize };
                     double y0{ yPos - glyph.m_PlaneBounds.y * fontSize };
@@ -465,13 +458,13 @@ namespace Mikoto {
                     Mat4F view{};
                     Mat4F projection{};
 
-                    if (!textComponent.IsWorldText()) {
-                        if (camera) {
+                    if ( !textComponent.IsWorldText() ) {
+                        if ( camera ) {
                             view = camera->GetProjection();
                             projection = camera->GetViewMatrix();
                         } else {
                             const auto dimension{ InferDimensions( m_Resolution ) };
-                            projection = glm::ortho(0.0f, dimension.first,dimension.second, 0.0f,-1.0f, 1.0f);
+                            projection = glm::ortho( 0.0f, dimension.first, dimension.second, 0.0f, -1.0f, 1.0f );
                             view = glm::mat4{ 1.0f };
                         }
                     } else {
@@ -482,7 +475,7 @@ namespace Mikoto {
                     fontParams.Proj = view;
                     fontParams.View = projection;
 
-                    m_TextRenderParams.emplace_back( fontParams );
+                    m_TextRenderParams[m_GlyphCount++] = fontParams;
                 }
 
                 advance = glyph.m_AdvanceX * fontSize;
@@ -496,4 +489,4 @@ namespace Mikoto {
             xPos += advance;
         }
     }
-}
+}// namespace Mikoto

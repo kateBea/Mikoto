@@ -90,6 +90,7 @@ namespace Mikoto {
 
         static constexpr UInt32 MAX_GLYPHS{ 1024 * 1024 };
 
+        Size m_GlyphCount{};
         std::vector<TextRenderParams> m_TextRenderParams{};
 
         std::array<FontVertex, 4> VERTICES{

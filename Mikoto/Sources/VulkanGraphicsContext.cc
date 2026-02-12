@@ -715,6 +715,10 @@ namespace Mikoto {
         }
     }
 
+    auto VulkanGraphicsContext::CopyToDevice( const void *ptr, Size size, BufferHandle dst, CommandListHandle cmd ) -> void {
+
+    }
+
     auto VulkanGraphicsContext::UpdateResourceBindings( std::string_view passName, SRGPerPass& passData ) -> void {
         UpdatePassDescriptors( passName, passData );
     }

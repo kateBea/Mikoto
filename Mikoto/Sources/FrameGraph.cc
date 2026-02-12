@@ -71,6 +71,32 @@ namespace Mikoto {
         return !this->PerPassShaderResources.IsEmpty();
     }
 
+    auto BufferBuilder::ForElement( Size size, Size count ) -> BufferBuilder & {
+        this->ElementSize = size;
+        this->ElementCount = count;
+        return *this;
+    }
+
+    auto BufferBuilder::WithSizeBytes( Size size ) -> BufferBuilder & {
+        this->SizeBytes = size;
+        return *this;
+    }
+
+    auto BufferBuilder::WithUsage( BufferUsage usage ) -> BufferBuilder & {
+        this->Usage = usage;
+        return *this;
+    }
+
+    auto BufferBuilder::IsDynamic( bool value ) -> BufferBuilder & {
+        this->UsageType = value ? ResourceUsageType::RESOURCE_USAGE_DYNAMIC
+            : ResourceUsageType::RESOURCE_USAGE_STATIC;
+        return *this;
+    }
+
+    auto BufferBuilder::Build( std::string_view name ) -> void {
+        this->Name = name;
+    }
+
     FramePassBuilder::FramePassBuilder( FramePassNode &node )
         : m_Node{ std::addressof( node ) } {}
 
@@ -82,6 +108,18 @@ namespace Mikoto {
     auto FramePassBuilder::Read( std::string_view name, FrameResourceState state ) -> FramePassBuilder& {
         m_Node->Reads.emplace_back( StringUtil::From( name ), state );
         return *this;
+    }
+
+    auto FramePassBuilder::CreateBuffer( const BufferBuilder &description ) -> void {
+        MKT_ASSERT( description.IsBuilt, "Forgot to call build" );
+
+        BufferDescription desc{};
+        desc.WithUsage( description.Usage )
+            .WithSizeBytes( description.SizeBytes )
+            .ForElement( description.ElementSize, description.ElementCount )
+            .WithResourceUsageType( description.UsageType );
+
+        CreateBuffer( description.Name, desc );
     }
 
     auto FramePassBuilder::UseShader( std::string_view path, ShaderStage stage ) -> FramePassBuilder& {

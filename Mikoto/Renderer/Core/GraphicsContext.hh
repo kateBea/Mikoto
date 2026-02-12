@@ -70,6 +70,8 @@ namespace Mikoto {
 
         virtual auto CreateBuffer(std::string_view name, BufferDescription description) -> BufferHandle = 0;
 
+        virtual auto CopyToDevice(const void* ptr, Size size, BufferHandle dst, CommandListHandle cmd) -> void = 0;
+
         virtual auto CreateSampler( SamplerDescription& description ) -> SamplerHandle = 0;
         virtual auto CreateSampler( std::string_view name, const SamplerDescription& description ) -> void = 0;
 

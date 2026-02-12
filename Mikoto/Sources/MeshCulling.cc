@@ -49,14 +49,28 @@ namespace Mikoto {
                 "MeshCulling",
                 []( FramePassBuilder &b ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
-                    b.Create<Buffer>( "MeshCulling_MeshShaderData", BufferUsage::SHADER_STORAGE, sizeof( MeshParameters ), MAX_RENDERABLE_ENTITIES );
-                    b.Create<Buffer>( "MeshCulling_MaterialShaderData", BufferUsage::SHADER_STORAGE, sizeof( MaterialParameters ), MAX_RENDERABLE_ENTITIES );
+                    auto meshInfoBuilder{ BufferBuilder{} };
+                    meshInfoBuilder
+                        .ForElement( sizeof( MeshParameters ), MAX_RENDERABLE_ENTITIES )
+                        .WithUsage( BufferUsage::SHADER_STORAGE )
+                        .IsDynamic( false )
+                        .Build( "MeshCulling_MeshInfo" );
+
+                    auto materialsInfoBuilder{ BufferBuilder{} };
+                    materialsInfoBuilder
+                        .ForElement( sizeof( MaterialParameters ), MAX_RENDERABLE_ENTITIES )
+                        .WithUsage( BufferUsage::SHADER_STORAGE )
+                        .IsDynamic( false )
+                        .Build( "MeshCulling_MaterialInfo" );
+
+                    //b.CreateBuffer( meshInfoBuilder );
+                    //b.CreateBuffer( materialsInfoBuilder );
 
                     b.Create<Buffer>( "FinalCompositionPass_MeshInfo", BufferUsage::SHADER_STORAGE, sizeof( ShaderMaterialParams ), MAX_RENDERABLE_ENTITIES );
                     b.Write( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
 
-                    b.Write( "MeshCulling_MeshShaderData", FrameResourceState::UnorderedAccess );
-                    b.Write( "MeshCulling_MaterialShaderData", FrameResourceState::UnorderedAccess );
+                    //b.Write( "MeshCulling_MeshInfo", FrameResourceState::UnorderedAccess );
+                    //b.Write( "MeshCulling_MaterialInfo", FrameResourceState::UnorderedAccess );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();

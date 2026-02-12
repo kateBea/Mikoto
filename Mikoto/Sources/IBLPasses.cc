@@ -64,6 +64,8 @@ namespace Mikoto {
         RegisterPrefilter( graph );
         RegisterShading( graph );
 
+        //RegisterMetalRoughnessPBR( graph );
+
         // This pass will force transitions into
         // states we can display in the editor
         RegisterDebugViewsPass( graph );
@@ -269,13 +271,17 @@ namespace Mikoto {
 
                     b.Write( "BRDFLutPass_ColorTarget", FrameResourceState::RenderTarget );
                 },
-                []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
 
                     ctx.BindPipeline( "BRDFLutPass_Pipeline" );
 
                     ctx.SetViewport( 0, 0, 512, 512 );
                     ctx.SetScissor( 0, 0, 512, 512 );
+
+                    if (m_BRDFLutSampler.IsEmpty()) {
+                        m_BRDFLutSampler = ctx.CreateSampler( SamplerDescription{} );
+                    }
 
                     ctx.SetClearColor( { 0.0f, 0.0f, 0.0f, 1.0f } );
 
@@ -622,7 +628,7 @@ namespace Mikoto {
                         .AlphaBlending{ true },
                         .EnableSampleRateShading{ true },
                         .Multisampling{ Multisampling::MSAA_X1 },
-                        .PipelineCullMode{ CullMode::NONE },
+                        .PipelineCullMode{ CullMode::CULL_BACK },
                     };
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/PBR_Instanced_Vert.sprv", ShaderStage::VERTEX )
@@ -660,7 +666,6 @@ namespace Mikoto {
 
                     ctx.BindPipeline( "FinalCompositionPass_Pipeline" );
 
-                    ctx.SetClearColor( { 0.5f, 0.2f, 0.3f, 1.0f } );
                     ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );
                     ctx.SetDepthRenderTarget( "FinalShadingPass_DepthTarget" );
 
@@ -674,10 +679,6 @@ namespace Mikoto {
                         .ColorLoadOp{ colorTargetLoadOP },
                     };
 
-                    if (m_BRDFLutSampler.IsEmpty()) {
-                        m_BRDFLutSampler = ctx.CreateSampler( SamplerDescription{} );
-                    }
-
                     ctx.BindImage( "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, 7 );
                     ctx.BindImage( "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, 8 );
                     ctx.BindImage( "BRDFLutPass_ColorTarget", m_BRDFLutSampler, 6 );
@@ -686,6 +687,83 @@ namespace Mikoto {
 
                     ctx.SetViewport( 0, 0, 1920, 1080 );
                     ctx.SetScissor( 0, 0, 1920, 1080 );
+
+                    m_MeshCullingPass->DrawInstances( ctx );
+
+                    ctx.EndRender();
+                } );
+    }
+
+    auto IBLPasses::RegisterMetalRoughnessPBR( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass(
+                "MetalRoughnessPBR",
+                [this]( FramePassBuilder &b ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                    b.Create<Texture>( "MetalRoughnessPBR_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, Multisampling::MSAA_X1, TextureUsage::COLOR );
+                    b.Create<Texture>( "MetalRoughnessPBR_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, Multisampling::MSAA_X1, TextureUsage::DEPTH );
+
+                    GraphicsPipelineDescription graphicsDesc{
+                        .DepthTest{ true },
+                        .DepthWrite{ true },
+                        .AlphaBlending{ true },
+                        .EnableSampleRateShading{ true },
+                        .Multisampling{ Multisampling::MSAA_X1 },
+                        .PipelineCullMode{ CullMode::CULL_BACK },
+                    };
+
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/MetalRoughnessPBR_Vert.sprv", ShaderStage::VERTEX )
+                        .UseShader( "Resources/Shaders/vulkan-spirv/MetalRoughnessPBR_Frag.sprv", ShaderStage::FRAGMENT )
+                        .Create<Pipeline>( "MetalRoughnessPBR_Pipeline", graphicsDesc );
+
+                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UnorderedAccess )
+                        .Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess )
+                        .Read( "LightCullingComp_LightsBuffer", FrameResourceState::UnorderedAccess )
+                        .Read( "MetalRoughnessPBR_ColorTarget", FrameResourceState::RenderTarget)
+                        .Read( "MetalRoughnessPBR_DepthTarget", FrameResourceState::RenderTarget )
+                        .Read( "ClusteredShading_Parameters", FrameResourceState::UniformBuffer );
+
+                    b.Read( "PrefilterPass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
+                    b.Read( "IrradiancePass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
+                    b.Read( "BRDFLutPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+
+                    b.Read( "MeshCulling_MeshInfo", FrameResourceState::UnorderedAccess );
+                    b.Read( "MeshCulling_MaterialInfo", FrameResourceState::UniformBuffer );
+
+                    b.Read( "IBL_Parameters", FrameResourceState::UniformBuffer );
+                },
+                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                    MKT_ASSERT( m_MeshCullingPass, "Mesh culling must be valid" );
+
+                    ctx.BindPipeline( "MetalRoughnessPBR" );
+
+                    ctx.SetColorRenderTarget( "MetalRoughnessPBR_ColorTarget" );
+                    ctx.SetDepthRenderTarget( "MetalRoughnessPBR_DepthTarget" );
+
+                    LoadOp colorTargetLoadOP{ LoadOp::LOAD };
+                    if (!m_UseSkybox) {
+                        colorTargetLoadOP = LoadOp::CLEAR;
+                        ctx.SetClearColor( m_ClearColor );
+                    }
+
+                    PassRenderInfo renderInfo{
+                        .ColorLoadOp{ colorTargetLoadOP },
+                    };
+
+                    ctx.BindImage( "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, 7 );
+                    ctx.BindImage( "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, 8 );
+                    ctx.BindImage( "BRDFLutPass_ColorTarget", m_BRDFLutSampler, 6 );
+
+                    ctx.BeginRender( renderInfo );
+
+                    const auto dimension{ InferDimensions( m_Resolution ) };
+
+                    ctx.SetViewport( 0, 0, dimension.first, dimension.second );
+                    ctx.SetScissor( 0, 0, dimension.first, dimension.second );
 
                     m_MeshCullingPass->DrawInstances( ctx );
 

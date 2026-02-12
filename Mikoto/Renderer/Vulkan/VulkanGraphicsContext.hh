@@ -53,6 +53,8 @@ namespace Mikoto {
         auto CreateSampler( SamplerDescription& description ) -> SamplerHandle  override;
         auto CreateSampler( std::string_view name, const SamplerDescription& description ) -> void override;
 
+        auto CopyToDevice(const void* ptr, Size size, BufferHandle dst,  CommandListHandle cmd) -> void override;
+
         auto UpdateResourceBindings( std::string_view passName, SRGPerPass& passData ) -> void override;
         auto PrepareResourceBindings( std::string_view passName, PipelineDescription& desc ) -> void override;
         auto BindShaderResources( std::string_view passName, CommandListHandle cmdList ) -> void override;
@@ -124,6 +126,10 @@ namespace Mikoto {
 
         // Global list of sampled textures
         SRGTextures m_SrgTextures{};
+
+        // Cached dynamic buffers. These will be staging buffers that we copy data to and upload to GPU
+        // Staging -> Actual Device only GPU
+        ankerl::unordered_dense::map<Buffer*, Buffer*> m_DeviceLocalBuffers{};
     };
 }// namespace Mikoto
 

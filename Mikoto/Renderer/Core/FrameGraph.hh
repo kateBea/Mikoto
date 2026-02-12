@@ -83,6 +83,29 @@ namespace Mikoto {
 
     };
 
+    struct BufferBuilder {
+        std::string Name{};
+        Size SizeBytes{};
+
+        Size ElementCount{};
+        Size ElementSize{};
+
+        BufferUsage Usage{ BufferUsage::VERTEX };
+        ResourceUsageType UsageType{ ResourceUsageType::RESOURCE_USAGE_STATIC };
+
+        auto ForElement( Size size, Size count ) -> BufferBuilder&;
+        auto WithSizeBytes( Size size ) -> BufferBuilder&;
+        auto WithUsage( BufferUsage usage ) -> BufferBuilder&;
+        auto IsDynamic( bool value ) -> BufferBuilder&;
+
+        auto Build( std::string_view name ) -> void;
+
+    private:
+        friend class FramePassBuilder;
+        bool IsBuilt{ false };
+
+    };
+
     class FramePassBuilder final {
     public:
         explicit FramePassBuilder( FramePassNode &node );
@@ -108,6 +131,8 @@ namespace Mikoto {
 
             return *this;
         }
+
+        auto CreateBuffer( const BufferBuilder& description ) -> void;
 
         // Resources to be used in the shader can be specified at creation or later in
         // the execute callback via calling the corresponding bind methods

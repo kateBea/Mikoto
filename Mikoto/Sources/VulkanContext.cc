@@ -221,8 +221,28 @@ namespace Mikoto {
             SetupDebugMessengerCreateInfo( debugCreateInfo );
         }
 
+        // This is for dbug purposes
+        // 1. Enable GPU-assisted validation
+        VkValidationFeatureEnableEXT enabledFeatures[] = {
+            VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+            VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+            VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
+            VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
+            VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
+        };
+
+        VkValidationFeaturesEXT validationFeatures{
+            .sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
+            .pNext = nullptr, //std::addressof( debugCreateInfo ),
+            .enabledValidationFeatureCount = static_cast<uint32_t>(std::size(enabledFeatures)),
+            .pEnabledValidationFeatures = enabledFeatures,
+            .disabledValidationFeatureCount = 0,
+            .pDisabledValidationFeatures = nullptr
+        };
+
         VkInstanceCreateInfo createInfo{ VulkanHelpers::Initializers::InstanceCreateInfo() };
         createInfo.pNext = std::addressof( debugCreateInfo );
+        //createInfo.pNext = std::addressof( validationFeatures );
         createInfo.pApplicationInfo = std::addressof( appInfo );
 
         createInfo.enabledLayerCount = static_cast<UInt32>( m_VulkanData.ValidationLayers.size() );

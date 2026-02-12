@@ -132,12 +132,25 @@ namespace Mikoto {
     auto EditorLayer::SetupPresentTarget( Event &event ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        // To store panels visibility state to restore later, when switching back to panel rendering
+        static std::unordered_map<Panel*, bool> panelsVisibilityState{};
+
         if (const auto *keyPressed{ dynamic_cast<KeyPressedEvent *>( std::addressof( event ) ) }) {
             if (keyPressed->GetKeyCode() == Key_F11) {
                 if (m_RenderScreenTarget == RenderScreenTarget::PANEL) {
                     m_RenderScreenTarget = RenderScreenTarget::WINDOW;
+
+                    // Save panel visibility state before hiding them
+                    for ( const auto &panel: m_PanelRegistry | std::ranges::views::values ) {
+                        panelsVisibilityState[panel.get()] = panel->IsVisible();
+                    }
                 } else {
                     m_RenderScreenTarget = RenderScreenTarget::PANEL;
+
+                    // Restore panel visibility state
+                    for ( const auto &panel: m_PanelRegistry | std::ranges::views::values ) {
+                        panel->SetVisible( panelsVisibilityState[panel.get()] );
+                    }
                 }
 
                 event.SetHandled( true );

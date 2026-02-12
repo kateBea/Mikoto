@@ -21,6 +21,8 @@
 #include <Library/Utility/Types.hh>
 
 #include <Assets/Model.hh>
+#include <Animation/SkeletalAnimation.hh>
+
 #include <Renderer/Core/GpuDevice.hh>
 
 namespace Mikoto {
@@ -86,6 +88,7 @@ namespace Mikoto {
         std::string Name{};
 
         std::vector<MeshNodeData> MeshNodes{};
+        std::vector<SkeletalAnimation> Animations{};
     };
 
     struct ModelImporter {

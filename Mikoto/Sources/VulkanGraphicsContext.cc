@@ -477,25 +477,27 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanGraphicsContext::PushConstants( std::string_view name, const SRGConstants &constants, CommandListHandle cmd ) -> void {
-        const auto it{ m_PassInfo.find( StringUtil::From( name ) ) };
+    auto VulkanGraphicsContext::PushConstants( std::string_view passName, const SRGConstants &constants, CommandListHandle cmd ) -> void {
+        const auto it{ m_PassInfo.find( StringUtil::From( passName ) ) };
         if (it == m_PassInfo.end()) {
             return;
         }
 
         PipelineHandle pipeline{ it->second.Pipeline };
 
-        VulkanPipeline* vulkanPipeline{ MKT_TO_VK_PIPELINE( pipeline ) };
+        // Push constants are declared as globals visible across all stages
+        VkShaderStageFlags pcShaderStages{ VK_SHADER_STAGE_ALL };
 
-        VkShaderStageFlags pcShaderStages{ vulkanPipeline->GetPushConstantRangeShaderFlags() };
+        std::array<Byte, MINIMUM_REQUIRED_PUSH_CONSTANTS_SIZE> byteCode{};
+        std::memcpy( byteCode.data(), constants.GetData(), constants.GetSize() );
 
         vkCmdPushConstants(
             cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
             pipeline->GetNativeHandle( ObjectType::Vk_PipelineLayout ),
             pcShaderStages,
             0,
-            constants.GetSize(),
-            constants.GetData());
+            static_cast<UInt32>(byteCode.size()),
+            byteCode.data());
     }
 
     auto VulkanGraphicsContext::InsertResourceBarrier( BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd ) -> bool {

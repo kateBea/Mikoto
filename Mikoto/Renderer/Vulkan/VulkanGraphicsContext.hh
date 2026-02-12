@@ -62,7 +62,7 @@ namespace Mikoto {
 
         auto PushBuffer(BufferHandle handle, std::string_view passName, UInt32 bindingSlot) -> void  override;
         auto PushTexture(TextureHandle handle, SamplerHandle sampler, std::string_view passName, UInt32 bindingSlot) -> void  override;
-        auto PushConstants( std::string_view name, const SRGConstants& constants, CommandListHandle cmd ) -> void override;
+        auto PushConstants( std::string_view passName, const SRGConstants& constants, CommandListHandle cmd ) -> void override;
 
         auto InsertResourceBarrier(BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool  override;
         auto InsertResourceBarrier(TextureHandle texture, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool  override;

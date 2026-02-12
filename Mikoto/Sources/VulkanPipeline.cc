@@ -202,10 +202,6 @@ namespace Mikoto {
         return m_ReflectionData.setLayouts.size();
     }
 
-    auto VulkanPipeline::GetPushConstantRangeShaderFlags() const -> VkShaderStageFlags {
-        return m_ReflectionData.pushConstantRanges.empty() ? VK_FLAGS_NONE : m_ReflectionData.pushConstantRanges.front().stageFlags;
-    }
-
     auto VulkanPipeline::GetDescriptorSetIndices() const -> std::vector<UInt32> {
         std::vector<UInt32> keys{};
         keys.reserve(m_ReflectionData.setLayouts.size());

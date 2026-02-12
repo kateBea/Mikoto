@@ -134,6 +134,8 @@ namespace Mikoto {
 
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
 
+        // Constants are static data at command level that we only need to pass once, only updated if 
+        // the block is update from CPU side (i.e previous call to PushConstants(...)
         if (!m_HasSetConstantData) {
             m_Context->PushConstants( m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands );
 

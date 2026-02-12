@@ -413,14 +413,10 @@ namespace Mikoto {
         const auto it{ m_PassInfo.find( std::string{ passName } ) };
         MKT_ASSERT( it != m_PassInfo.end(), "Attempting to bind textures for pass that does not exist" );
 
-        VulkanPipeline* vulkanPipeline{ MKT_TO_VK_PIPELINE( it->second.Pipeline ) };
-
-        VkPipelineLayout layout{ m_TexturesPipelineLayout };
-
         vkCmdBindDescriptorSets(
             cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
             VK_PIPELINE_BIND_POINT_GRAPHICS,
-            layout,
+            m_TexturesPipelineLayout,
             TEXTURES_DESCRIPTOR_SET_INDEX,
             1,
             &m_BindlessTexturesSet,

@@ -415,7 +415,7 @@ namespace Mikoto {
 
         VulkanPipeline* vulkanPipeline{ MKT_TO_VK_PIPELINE( it->second.Pipeline ) };
 
-        VkPipelineLayout layout{ vulkanPipeline->HasPushConstants() ? m_TexturesPipelineLayoutPushConstants : m_TexturesPipelineLayout };
+        VkPipelineLayout layout{ m_TexturesPipelineLayout };
 
         vkCmdBindDescriptorSets(
             cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ),

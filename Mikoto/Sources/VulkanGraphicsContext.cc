@@ -193,16 +193,15 @@ namespace Mikoto {
                         continue;
                     }
 
-                    std::vector<UInt32> dynamicOffsets{};
-                    for (const auto &bufferBinding: it->second.BuffersBindings) {
-                        if (bufferBinding.second->IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )) {
-                            UInt32 dynamicOffset{ m_CurrentFrameIndex * dynamic_cast<VulkanBuffer*>( bufferBinding.second )->GetAlignedSize() };
-                            dynamicOffsets.push_back( dynamicOffset );
-                        }
-                    }
-
-                    // Since this is a per pass descriptor set we will only bind the set at PER_PASS_DESCRIPTOR_SET_INDEX
                     if (PER_PASS_DESCRIPTOR_SET_INDEX == setIndex) {
+                        std::vector<UInt32> dynamicOffsets{};
+                        for ( const auto& bufferBinding: it->second.BuffersBindings ) {
+                            if ( bufferBinding.second->IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) ) {
+                                UInt32 dynamicOffset{ m_CurrentFrameIndex * dynamic_cast<VulkanBuffer*>( bufferBinding.second )->GetAlignedSize() };
+                                dynamicOffsets.push_back( dynamicOffset );
+                            }
+                        }
+
                         switch (it->second.Pipeline->GetPipelineType()) {
                             case PipelineType::GRAPHICS_PIPELINE:
                                 vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, setIndex, 1,
@@ -211,6 +210,20 @@ namespace Mikoto {
                             case PipelineType::COMPUTE_PIPELINE:
                                 vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, setIndex, 1,
                                     std::addressof( descriptorSet ), static_cast<UInt32>(dynamicOffsets.size()), dynamicOffsets.data() );
+                                break;
+                            default:;
+                        }
+                    }
+
+                    if (STATIC_DESCRIPTOR_SET_INDEX == setIndex) {
+                        switch ( it->second.Pipeline->GetPipelineType() ) {
+                            case PipelineType::GRAPHICS_PIPELINE:
+                                vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, setIndex, 1,
+                                                         std::addressof( descriptorSet ), 0, nullptr );
+                                break;
+                            case PipelineType::COMPUTE_PIPELINE:
+                                vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, setIndex, 1,
+                                                         std::addressof( descriptorSet ), 0, nullptr );
                                 break;
                             default:;
                         }
@@ -234,19 +247,16 @@ namespace Mikoto {
         VulkanPipeline* vulkanPipeline{ MKT_TO_VK_PIPELINE(passInfo.Pipeline) };
 
         for (const auto& setIndex: vulkanPipeline->GetDescriptorSetIndices()) {
-            // We only create the descriptor sets for per pass shader resource sets for now
+            // These sets are managed separately, they are global and do not belong to the passes
             if (setIndex == TEXTURES_DESCRIPTOR_SET_INDEX || setIndex == PER_FRAME_DESCRIPTOR_SET_INDEX) {
                 continue;
             }
 
             const VkDescriptorSetLayout &layout{ vulkanPipeline->GetDescriptorSetLayout( setIndex ) };
-            for (Size count{}; count < m_MaxFramesInFlight; ++count) {
-                VkDescriptorSet descriptorSet{ TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( std::addressof( layout ) ) };
+            VkDescriptorSet descriptorSet{ TO_VK_DEVICE( m_Device )->AllocateDescriptorSet( std::addressof( layout ) ) };
 
-                // One descriptor set per frame in flight
-                if ( descriptorSet != VK_NULL_HANDLE ) {
-                    passInfo.DescriptorSets[setIndex] = descriptorSet;
-                }
+            if ( descriptorSet != VK_NULL_HANDLE ) {
+                passInfo.DescriptorSets[setIndex] = descriptorSet;
             }
         }
     }
@@ -431,13 +441,16 @@ namespace Mikoto {
         }
 
         // If the combined buffer does not exist
+        auto setIndex{ handle->IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) ? 
+            PER_PASS_DESCRIPTOR_SET_INDEX : STATIC_DESCRIPTOR_SET_INDEX };
         if (!it->second.Buffers.contains( handle.GetRaw() )) {
-            PushBuffer( handle, bindingSlot, it->second.DescriptorSets[PER_PASS_DESCRIPTOR_SET_INDEX] );
+
+            PushBuffer( handle, bindingSlot, it->second.DescriptorSets[setIndex] );
             it->second.Buffers.emplace( handle.GetRaw() );
         } else {
             // Update the binding if it is a new buffer
             if (it->second.BuffersBindings[bindingSlot] != handle.GetRaw()) {
-                PushBuffer( handle, bindingSlot, it->second.DescriptorSets[PER_PASS_DESCRIPTOR_SET_INDEX] );
+                PushBuffer( handle, bindingSlot, it->second.DescriptorSets[setIndex] );
             }
         }
 
@@ -454,13 +467,15 @@ namespace Mikoto {
 
         // If the combined image sampler does not exist
         const auto itCombinedImageSampler{ it->second.CombinedImageSampler.find( std::make_pair( handle.GetRaw(), sampler.GetRaw() ) ) };
+
+        // Individual textures go to the static resources set
         if (itCombinedImageSampler == it->second.CombinedImageSampler.end()) {
-            PushImage( handle, sampler, bindingSlot, it->second.DescriptorSets[PER_PASS_DESCRIPTOR_SET_INDEX] );
+            PushImage( handle, sampler, bindingSlot, it->second.DescriptorSets[STATIC_DESCRIPTOR_SET_INDEX] );
             it->second.CombinedImageSampler.emplace( std::make_pair( handle.GetRaw(), sampler.GetRaw() ) );
         } else {
             // Update if there is a different pair of image and sampler
             if (it->second.CombinedImageSamplerBinding[bindingSlot] != std::make_pair( handle.GetRaw(), sampler.GetRaw() )) {
-                PushImage( handle, sampler, bindingSlot, it->second.DescriptorSets[PER_PASS_DESCRIPTOR_SET_INDEX] );
+                PushImage( handle, sampler, bindingSlot, it->second.DescriptorSets[STATIC_DESCRIPTOR_SET_INDEX] );
             }
         }
 

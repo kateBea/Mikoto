@@ -854,8 +854,14 @@ namespace Mikoto::VulkanHelpers::Reflection {
             layoutInfo.bindingCount = static_cast<UInt32>( layoutBindings.size() );
             layoutInfo.pBindings = layoutBindings.data();
 
-            // Either VK_FLAGS_NONE or VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT (to allow descriptors updated after binding)
+            // Right now we have set 2 for dynamic buffers exclusively for dynamic offsets in descriptor sets which require not to have update after bind flags
+            // Set 3 is used for rest of resources that do not change that often and can benefit from update after bind
             std::vector<VkDescriptorBindingFlags> bindingFlags(layoutBindings.size(), VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT);
+            if (setIndex == PER_PASS_DESCRIPTOR_SET_INDEX) {
+                for (auto& flag : bindingFlags) {
+                    flag = VK_FLAGS_NONE;
+                }
+            }
 
             VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{};
             flagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;

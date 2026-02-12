@@ -243,10 +243,10 @@ namespace Mikoto {
         // When core validations are passed check GPU assisted ones, cannot enable both, GPU assisted validations are very slow
         VkInstanceCreateInfo createInfo{ VulkanHelpers::Initializers::InstanceCreateInfo() };
         // Core validations
-        //createInfo.pNext = std::addressof( debugCreateInfo );
+        createInfo.pNext = std::addressof( debugCreateInfo );
 
         // GPU assisted validations
-        createInfo.pNext = std::addressof( validationFeatures );
+        //createInfo.pNext = std::addressof( validationFeatures );
 
         createInfo.pApplicationInfo = std::addressof( appInfo );
 

@@ -16,7 +16,7 @@
 
 #include "ShaderBase.glsl"
 
-layout (set = PERPASS_SETINDEX, binding = 0) uniform sampler2D u_samplerSSAO;
+layout (set = STATIC_SETINDEX, binding = 0) uniform sampler2D u_samplerSSAO;
 
 layout (location = 0) in vec2 v_UV;
 

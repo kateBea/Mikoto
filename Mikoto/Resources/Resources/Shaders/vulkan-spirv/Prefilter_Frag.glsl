@@ -27,7 +27,7 @@ layout(location = 2) flat in uint v_NumSamples;
 
 layout (location = 0) out vec4 o_Color;
 
-layout (set = PERPASS_SETINDEX, binding = 0) uniform samplerCube u_SamplerEnv;
+layout (set = STATIC_SETINDEX, binding = 0) uniform samplerCube u_SamplerEnv;
 
 // Based omn http://byteblacksmith.com/improvements-to-the-canonical-one-liner-glsl-rand-for-opengl-es-2-0/
 float Random(vec2 co) {

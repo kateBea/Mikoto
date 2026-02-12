@@ -15,6 +15,9 @@
 #ifndef MIKOTO_IMPORTER_HH
 #define MIKOTO_IMPORTER_HH
 
+#include <string>
+#include <vector>
+
 #include <Library/Utility/Types.hh>
 
 #include <Assets/Model.hh>
@@ -56,6 +59,33 @@ namespace Mikoto {
          * @return Reference to the modified MeshFactoryCreateInfo.
          */
         auto WithCustomLoader(bool enable) -> MeshFactoryCreateInfo&;
+    };
+
+    struct VertexData {
+        Vec3F Position{};
+        Vec3F Normals{};
+        Vec3F Colors{};
+
+        Vec2F UV_0{};
+        Vec2F UV_1{};
+
+        Vec4F Joints{};
+        Vec4F Weights{};
+    };
+
+    struct MeshNodeData {
+        std::string Name{};
+
+        std::vector<VertexData> Vertices{};
+        std::vector<UInt32> Indices{};
+
+        MaterialProperties NodeMaterial{};
+    };
+
+    struct ModelData {
+        std::string Name{};
+
+        std::vector<MeshNodeData> MeshNodes{};
     };
 
     struct ModelImporter {

@@ -20,7 +20,7 @@ layout(location = 0) in vec3 v_Pos;
 
 layout (location = 0) out vec4 o_Color;
 
-layout (set = PERPASS_SETINDEX, binding = 0) uniform sampler2D u_EquirectangularMap;
+layout (set = STATIC_SETINDEX, binding = 0) uniform sampler2D u_EquirectangularMap;
 
 const vec2 invAtan = vec2(0.1591, 0.3183);
 

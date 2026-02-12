@@ -78,9 +78,9 @@ layout(std430, scalar, set = PERPASS_SETINDEX, binding = 5) readonly buffer Ligh
     LightInfo Lights[];
 };
 
-layout (set = PERPASS_SETINDEX, binding = 6) uniform sampler2D u_SamplerBRDFLUT;
-layout (set = PERPASS_SETINDEX, binding = 7) uniform samplerCube u_PrefilteredMap;
-layout (set = PERPASS_SETINDEX, binding = 8) uniform samplerCube u_SamplerIrradiance;
+layout (set = STATIC_SETINDEX, binding = 6) uniform sampler2D u_SamplerBRDFLUT;
+layout (set = STATIC_SETINDEX, binding = 7) uniform samplerCube u_PrefilteredMap;
+layout (set = STATIC_SETINDEX, binding = 8) uniform samplerCube u_SamplerIrradiance;
 
 vec3 GetNormalFromMap(sampler2D normalMap) {
     vec3 tangentNormal = texture(normalMap, in_TexCoord).xyz * 2.0 - 1.0;

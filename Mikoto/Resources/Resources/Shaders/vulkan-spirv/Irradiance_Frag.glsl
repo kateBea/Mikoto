@@ -27,7 +27,7 @@ layout(location = 2) in float v_DeltaTheta;
 
 layout (location = 0) out vec4 o_Color;
 
-layout (set = PERPASS_SETINDEX, binding = 0) uniform samplerCube u_SamplerEnv;
+layout (set = STATIC_SETINDEX, binding = 0) uniform samplerCube u_SamplerEnv;
 
 void main() {
     vec3 N = normalize(v_Pos);

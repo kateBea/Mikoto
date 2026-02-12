@@ -28,9 +28,9 @@ layout (scalar, set = PERPASS_SETINDEX, binding = 0) uniform UBO {
     vec4 Samples[SSAO_KERNEL_SIZE];
 } u_Parameters;
 
-layout (set = PERPASS_SETINDEX, binding = 1) uniform sampler2D u_samplerPosition;
-layout (set = PERPASS_SETINDEX, binding = 2) uniform sampler2D u_samplerNormal;
-layout (set = PERPASS_SETINDEX, binding = 3) uniform sampler2D u_SsaoNoise;
+layout (set = STATIC_SETINDEX, binding = 1) uniform sampler2D u_samplerPosition;
+layout (set = STATIC_SETINDEX, binding = 2) uniform sampler2D u_samplerNormal;
+layout (set = STATIC_SETINDEX, binding = 3) uniform sampler2D u_SsaoNoise;
 
 layout (location = 0) in vec2 v_UV;
 layout (location = 0) out float o_Color;

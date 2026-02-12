@@ -85,12 +85,6 @@ namespace Mikoto {
         auto UpdateBindlessTexturesSet(Texture* texture, Sampler* sampler, Size setIndex ) const -> void;
 
     private:
-        static constexpr UInt32 TEXTURES_DESCRIPTOR_SET_INDEX{ 0 };
-        static constexpr UInt32 PER_FRAME_DESCRIPTOR_SET_INDEX{ 1 };
-        static constexpr UInt32 PER_PASS_DESCRIPTOR_SET_INDEX{ 2 };
-        static constexpr UInt32 PER_DYNAMIC_DESCRIPTOR_SET_INDEX{ 3 };
-
-    private:
         // Information I store for each pass
         struct FramePassInfo {
             // Set index -> Descriptor Set handle. Allocate as many as max frames in flight

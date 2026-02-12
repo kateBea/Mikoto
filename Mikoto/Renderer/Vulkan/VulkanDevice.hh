@@ -199,6 +199,9 @@ namespace Mikoto {
     public:
         explicit VulkanQueue(VulkanDevice* device, QueueType type);
 
+        auto Init() -> void;
+        auto Shutdown() -> void;
+
         // Tells the background thread to submit the pending command buffers to the gpu queue
         auto Flush() -> void;
 

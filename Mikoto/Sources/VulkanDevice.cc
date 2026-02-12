@@ -210,6 +210,14 @@ namespace Mikoto {
         : m_Device{ device }, m_QueueType{ type }
     {}
 
+    auto VulkanQueue::Init() -> void {
+
+    }
+
+    auto VulkanQueue::Shutdown() -> void {
+
+    }
+
     auto VulkanQueue::Flush() -> void {
         // Wake submission thread
         // You could use std::vector::swap to move pending command lists to

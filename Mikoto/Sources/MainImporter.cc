@@ -299,6 +299,29 @@ namespace Mikoto {
         LoadTextures( rootPath, mesh, scene, material );
     }
 
+    static auto LoadNodeHierarchy( const aiNode *node, std::vector<MeshNodeData>& meshNodes ) -> void {
+        for (UInt64 i{}; i < node->mNumMeshes; ++i) {
+            // We will fill the mesh data later, for now we just want to create the hierarchy of nodes
+            meshNodes.emplace_back();
+        }
+        // Recurse children
+        for (UInt64 i{}; i < node->mNumChildren; ++i) {
+            LoadNodeHierarchy( node->mChildren[i], meshNodes );
+        }
+    }
+
+    static auto LoadNodeHierarchy( NodeHierarchy& dest, const aiNode *src ) -> void {
+        dest.Name = src->mName.data;
+        dest.Transformation = Mat4F{}; //TODO: convert from assimpt mat4 src->mTransformation;
+        dest.ChildrenCount = src->mNumChildren;
+
+        for ( UInt32 i{}; i < src->mNumChildren; i++ ) {
+            NodeHierarchy newData{};
+            LoadNodeHierarchy( newData, src->mChildren[i] );
+            dest.Children.push_back( newData );
+        }
+    }
+
     static auto LoadNodes( const std::string &rootPath,
         const aiNode *node, const aiScene *scene,
         const ModelLoadDescription &loadInfo,
@@ -380,6 +403,14 @@ namespace Mikoto {
         if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || scene->mRootNode == nullptr) {
             MKT_CORE_LOGGER_ERROR( "MainImporter::Import - Model load failed. Assimp error: '{}'", loaderData.MeshImporter.GetErrorString() );
         } else {
+            for (UInt32 animationCount{}; animationCount < scene->mNumAnimations; ++animationCount) {
+                auto animation{ scene->mAnimations[0] };
+
+                NodeHierarchy hierarchy{};
+                LoadNodeHierarchy( hierarchy, scene->mRootNode );
+                modelData.Animations.emplace_back( std::move( hierarchy ), animation->mDuration, animation->mTicksPerSecond );
+            }
+
             modelData.Name = scene->mName.C_Str();
             LoadNodes( Filesystem::StripFileName( file->GetPath() ), scene->mRootNode, scene, description, modelData );
         }

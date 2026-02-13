@@ -15,8 +15,34 @@
 #ifndef MIKOTO_ANIMATION_HH
 #define MIKOTO_ANIMATION_HH
 
+#include <vector>
+
+#include <Animation/Bone.hh>
+#include <Library/Utility/Types.hh>
+
 namespace  Mikoto {
+    struct NodeHierarchy {
+        std::string Name{};
+
+        Mat4F Transformation{};
+
+    
+        UInt32 ChildrenCount{};
+        std::vector<NodeHierarchy> Children{};
+    };
+
     class SkinnedAnimation {
+    public:
+        explicit SkinnedAnimation( NodeHierarchy&& hierarchy, float duration, UInt32 ticksPerSecond );
+
+
+    private:
+
+        float m_Duration{};// Duration of the animation in ticks
+        UInt32 m_TicksPerSecond{};
+        NodeHierarchy m_RootNode{};
+
+        std::vector<Bone> m_Bones{};
     };
 }
 

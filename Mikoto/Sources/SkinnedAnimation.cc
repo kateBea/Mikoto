@@ -15,5 +15,7 @@
 #include <Animation/SkinnedAnimation.hh>
 
 namespace Mikoto {
-
+    SkinnedAnimation::SkinnedAnimation( NodeHierarchy&& hierarchy, float duration, UInt32 ticksPerSecond )
+        : m_Duration{ duration }, m_TicksPerSecond{ ticksPerSecond }, m_RootNode{ std::move( hierarchy ) } {
+    }
 }

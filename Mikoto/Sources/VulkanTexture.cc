@@ -219,10 +219,6 @@ namespace Mikoto {
         return m_ImageViewCreateInfo;
     }
 
-    auto VulkanTextureCube::SetCurrentLayout( VkImageLayout layout ) -> void {
-        m_CurrentLayout = layout;
-    }
-
     auto VulkanTextureCube::SubmitLayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd ) -> void {
         if (m_CurrentLayout == newLayout) {
             return;
@@ -413,6 +409,10 @@ namespace Mikoto {
         m_ImageAllocation.ImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         m_ImageAllocation.ImageCreateInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
+        m_ImageAllocation.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+        m_ImageAllocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+        m_ImageAllocation.AllocationCreateInfo.priority = 1.0f;
+
         auto* allocator{ MKT_VMA_ALLOC_PTR(m_Device) };
         if ( const VkResult result{ allocator->AllocateImage( m_ImageAllocation ) }; result != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanTextureCube::CreateImageResource - Failed to allocate Vulkan cube image!" );
@@ -546,10 +546,6 @@ namespace Mikoto {
 
     auto VulkanTexture::IsSwapChainImage() const -> bool {
         return m_IsImageExternal;
-    }
-
-    auto VulkanTexture::SetCurrentLayout( VkImageLayout layout ) -> void {
-        m_CurrentLayout = layout;
     }
 
     auto VulkanTexture::GetNativeHandle( ObjectType type ) -> Object {
@@ -730,6 +726,10 @@ namespace Mikoto {
             // the one that supports transfer operations, often graphics one suffices.
             m_ImageAllocation.ImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             m_ImageAllocation.ImageCreateInfo.flags = 0;
+
+            m_ImageAllocation.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+            m_ImageAllocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+            m_ImageAllocation.AllocationCreateInfo.priority = 1.0f;
 
             auto* allocator{ MKT_VMA_ALLOC_PTR(m_Device) };
             if ( const VkResult result{ allocator->AllocateImage( m_ImageAllocation ) }; result != VK_SUCCESS ) {

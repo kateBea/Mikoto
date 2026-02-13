@@ -371,18 +371,15 @@ namespace Mikoto {
     }
 
     auto FrameGraph::InsertBarrier( FramePassResource& resource, FrameResourceState newState, CommandListHandle cmd ) -> void {
-        bool success{ false };
         if (resource.IsResource( FrameResourceType::BUFFER )) {
-            success = m_GraphicsContex->InsertResourceBarrier( resource.Handle.As<Buffer>(), resource.CurrentState, newState, cmd );
+            m_GraphicsContex->InsertResourceBarrier( resource.Handle.As<Buffer>(), resource.CurrentState, newState, cmd );
         }
 
         if (resource.IsResource( FrameResourceType::TEXTURE )) {
-            success = m_GraphicsContex->InsertResourceBarrier( resource.Handle.As<Texture>(), resource.CurrentState, newState, cmd );
+            m_GraphicsContex->InsertResourceBarrier( resource.Handle.As<Texture>(), resource.CurrentState, newState, cmd );
         }
 
-        if (success) {
-            resource.CurrentState = newState;
-        }
+        resource.CurrentState = newState;
     }
 
     auto FrameGraph::InsertResourceBarriers( FramePassNode& node, CommandListHandle cmd ) -> void {

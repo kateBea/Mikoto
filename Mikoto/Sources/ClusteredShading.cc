@@ -43,9 +43,10 @@ namespace Mikoto {
         m_Lights.resize( MAX_LIGHTS );
 
         BuildAABB( graph );
+        BuildLightCulling( graph );
+
         BuildGBuffer( graph );
         BuildDepthPrepass( graph );
-        BuildLightCulling( graph );
     }
 
     auto ClusteredShading::SetMeshCulling( MeshCulling &cullingPass ) -> void {
@@ -176,8 +177,10 @@ namespace Mikoto {
 
                     ctx.BeginRender();
 
-                    ctx.SetViewport( 0, 0, 1920, 1080 );
-                    ctx.SetScissor( 0, 0, 1920, 1080 );
+                    const auto dimensions{ InferDimensions( m_Resolution ) };
+
+                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
                     ctx.BindPipeline( "GBuffer_Pipeline" );
 

@@ -128,7 +128,6 @@ namespace Mikoto {
         // Update animations
     }
 
-    auto AnimationSystem::RegisterAnimation() -> UInt64 {
-        return 0;
+    auto AnimationSystem::RegisterAnimation(SkinnedAnimation& animation) -> void {
     }
 }

@@ -36,4 +36,12 @@ namespace Mikoto {
     MeshNode::MeshNode( UInt32 index, BufferHandle vertices, BufferHandle indices, std::string_view name, MaterialProperties&& properties )
         : m_MeshIndex{ index }, m_Name{ name }, m_Vertices{ vertices }, m_Indices{ indices }, m_Properties{ std::move(properties) }
     {}
+
+    auto Model::IsSkinned() const -> bool {
+        return !m_Animations.empty();
+    }
+
+    auto Model::SetAnimations( std::vector<SkinnedAnimation>&& animations ) -> void {
+        m_Animations = std::move( animations );
+    }
 }

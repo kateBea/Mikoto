@@ -56,7 +56,10 @@ namespace Mikoto {
         }
     }
 
-    auto AnimationSystem::RegisterAnimation(SkinnedAnimation& animation) -> void {
-        m_Animators.emplace_back( animation );
+    auto AnimationSystem::RegisterAnimation(SkinnedAnimation& animation) -> UInt64 {
+        UInt64 animatorID{ m_Animators.size() };
+        m_Animators.emplace(animatorID, animation );
+
+        return animatorID;
     }
 }

@@ -1104,6 +1104,14 @@ namespace Mikoto {
         }
     }
 
+    static auto SetupAnimatorComponentTab( Entity& entity ) -> void {
+        AnimatorComponent& animatorComponent{ entity.GetComponent<AnimatorComponent>() };
+    }
+
+    static auto SetupSkinMeshComponentTab( Entity& entity ) -> void {
+        SkinnedMeshRenderer& skinnedMeshRendererComp{ entity.GetComponent<SkinnedMeshRenderer>() };
+    }
+
 
     static auto SetupMaterialComponentTab( Entity& entity ) -> void {
         // ImGui by default will indent because the items in this function because this method is run inside the DrawComponent function,
@@ -2003,6 +2011,9 @@ namespace Mikoto {
         DrawComponent<TextComponent>( fmt::format( "{} Text", ICON_MD_MESSAGE ), *entity, SetupTextComponentTab );
         DrawComponent<CameraComponent>( fmt::format( "{} Camera", ICON_MD_CAMERA_ALT ), *entity, SetupCameraComponentTab );
         DrawComponent<ScriptComponent>( fmt::format( "{} Script", ICON_MD_CODE ), *entity, SetupScriptingComponentTab );
+
+        DrawComponent<AnimatorComponent>( fmt::format( "{} Animator", ICON_MD_ANIMATION ), *entity, SetupAnimatorComponentTab );
+        DrawComponent<SkinnedMeshRenderer>( fmt::format( "{} SkinRenderer", ICON_MD_COOKIE ), *entity, SetupSkinMeshComponentTab );
     }
 
     auto InspectorPanel::OnUpdate( float ) -> void {

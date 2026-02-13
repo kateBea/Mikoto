@@ -41,10 +41,10 @@ namespace Mikoto {
         auto Shutdown() -> void override;
         auto Update(float dt) -> void override;
 
-        auto RegisterAnimation( SkinnedAnimation& animation ) -> void;
+        auto RegisterAnimation( SkinnedAnimation& animation ) -> UInt64;
 
     private:
-        std::vector<Animator> m_Animators{};
+        ankerl::unordered_dense::map<UInt64, Animator> m_Animators{};
     };
 
 }

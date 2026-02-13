@@ -623,20 +623,36 @@ namespace Mikoto {
         ScriptHandle m_Script{};
     };
 
-    class AnimationComponent {
+    class AnimatorComponent {
     public:
-        explicit AnimationComponent() = default;
+        explicit AnimatorComponent() = default;
 
-        AnimationComponent( const AnimationComponent& other ) = default;
-        AnimationComponent( AnimationComponent&& other ) = default;
+        AnimatorComponent( const AnimatorComponent& other ) = default;
+        AnimatorComponent( AnimatorComponent&& other ) = default;
 
-        auto operator=( const AnimationComponent& other ) -> AnimationComponent& = default;
-        auto operator=( AnimationComponent&& other ) -> AnimationComponent& = default;
+        auto operator=( const AnimatorComponent& other ) -> AnimatorComponent& = default;
+        auto operator=( AnimatorComponent&& other ) -> AnimatorComponent& = default;
 
-        ~AnimationComponent() = default;
+        ~AnimatorComponent() = default;
 
     private:
-        std::vector<UInt64> m_AnimationIDs{};
+        UInt64 m_AnimatorID{};
+    };
+
+    class SkinnedMeshRenderer {
+    public:
+        explicit SkinnedMeshRenderer() = default;
+
+        SkinnedMeshRenderer( const SkinnedMeshRenderer& other ) = default;
+        SkinnedMeshRenderer( SkinnedMeshRenderer&& other ) = default;
+
+        auto operator=( const SkinnedMeshRenderer& other ) -> SkinnedMeshRenderer& = default;
+        auto operator=( SkinnedMeshRenderer&& other ) -> SkinnedMeshRenderer& = default;
+
+        ~SkinnedMeshRenderer() = default;
+
+    private:
+        UInt64 m_AnimatorID{};
     };
 }
 

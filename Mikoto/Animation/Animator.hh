@@ -26,6 +26,8 @@ namespace Mikoto {
 
         auto UpdateAnimation( float deltaTime ) -> void;
 
+        auto PushAnimation( SkinnedAnimation& animation ) -> void;
+
         auto GetFinalBoneMatrices() -> auto& { return m_FinalBoneMatrices; }
 
     private:
@@ -35,6 +37,8 @@ namespace Mikoto {
         SkinnedAnimation* m_Animation{};
         UInt64 m_AnimationID{};
         float m_CurrentTime{};
+
+        std::vector<SkinnedAnimation*> m_Animations{};
 
         std::vector<Mat4F> m_FinalBoneMatrices{};
     };

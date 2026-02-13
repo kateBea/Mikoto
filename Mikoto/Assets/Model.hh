@@ -15,18 +15,19 @@
 #ifndef MIKOTO_MODEL_HH
 #define MIKOTO_MODEL_HH
 
+#include <ankerl/unordered_dense.h>
+
+#include <Common/Common.hh>
+#include <Material/PBRMaterial.hh>
+#include <Material/Texture2D.hh>
+#include <Renderer/Core/Buffer.hh>
 #include <cstdint>
 #include <filesystem>
 #include <string>
 #include <string_view>
 #include <vector>
 
-#include <ankerl/unordered_dense.h>
-
-#include <Common/Common.hh>
-#include <Material/Texture2D.hh>
-#include <Material/PBRMaterial.hh>
-#include <Renderer/Core/Buffer.hh>
+#include "Animation/SkinnedAnimation.hh"
 
 namespace Mikoto {
 
@@ -149,6 +150,8 @@ namespace Mikoto {
          */
         MKT_NODISCARD auto GetIndexCount() const -> UInt64 { return m_TotalIndices; }
 
+        MKT_NODISCARD auto IsSkinned() const -> bool;
+
         /**
         * @brief Adds a new mesh node to the collection.
         * @tparam Args Variadic template parameters for forwarding constructor arguments.
@@ -161,6 +164,8 @@ namespace Mikoto {
         auto PushMeshNode(UInt32 index, Args&&... args) -> void {
             m_Meshes.emplace(index, std::forward<Args>(args)...);
         }
+
+        auto SetAnimations(std::vector<SkinnedAnimation>&& animations ) -> void;
 
     ~Model() override = default;
 
@@ -188,6 +193,8 @@ namespace Mikoto {
 
         // ( Mesh index, mesh node )
         ankerl::unordered_dense::map<UInt32, MeshNode> m_Meshes{};
+
+        std::vector<SkinnedAnimation> m_Animations{};
 
         UInt64 m_TotalVertices{};
         UInt64 m_TotalIndices{};

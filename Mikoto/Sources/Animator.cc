@@ -29,7 +29,11 @@ namespace Mikoto {
         }
 	}
 
-	auto Animator::CalculateBoneTransform(const NodeHierarchy* node, Mat4F parentTransform) -> void {
+    auto Animator::PushAnimation( SkinnedAnimation& animation ) -> void {
+        m_Animations.emplace_back( std::addressof( animation ) );
+    }
+
+    auto Animator::CalculateBoneTransform(const NodeHierarchy* node, Mat4F parentTransform) -> void {
         std::string nodeName{ node->Name };
         glm::mat4 nodeTransform{ node->Transformation };
 

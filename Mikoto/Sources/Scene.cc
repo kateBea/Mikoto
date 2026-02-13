@@ -258,12 +258,18 @@ namespace Mikoto {
             // in root model is not empty, we create the children for this entity each children well hold a mesh
             if ( !createInfo.Model.IsEmpty() ) {
                 if ( createInfo.Model->GetMeshNodeCount() > 1 ) {
+                    result->AddComponent<AnimatorComponent>();
 
                     for ( Size index{}; index < createInfo.Model->GetMeshNodeCount(); index++ ) {
                         AddSingleEntityWithRoot( result, createInfo.Model, index );
                     }
 
                 } else {
+                    if (createInfo.Model->IsSkinned()) {
+                        result->AddComponent<AnimatorComponent>();
+                        result->AddComponent<SkinnedMeshRenderer>();
+                    }
+
                     SetupMeshComponent( result, createInfo.Model, 0 );
                 }
             }
@@ -475,6 +481,10 @@ namespace Mikoto {
         };
 
         if ( Entity* child{ CreateEntity( entityCreateInfo ) } ) {
+            if (!model.IsEmpty()) {
+                child->AddComponent<SkinnedMeshRenderer>();
+            }
+
             SetupMeshComponent(child, model, index);
         }
     }

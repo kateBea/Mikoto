@@ -14,8 +14,8 @@
 
 #version 450
 
-#extension GL_EXT_scalar_block_layout : require
 #extension GL_EXT_nonuniform_qualifier : require
+#extension GL_EXT_scalar_block_layout : require
 
 #include "ShaderBase.glsl"
 
@@ -36,7 +36,6 @@ layout(location = 0) in vec3 a_Position;
 
 void main() {
     MeshInfo meshInfo = Meshes[gl_InstanceIndex];
-
     mat4 model = mat4(meshInfo.Transform);
-    gl_Position = u_Camera.Projection * u_Camera.Projection * model * vec4(a_Position, 1.0);
+    gl_Position = u_Camera.Projection * u_Camera.ViewMatrix * model * vec4(a_Position, 1.0);
 }

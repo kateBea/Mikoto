@@ -70,7 +70,8 @@ namespace Mikoto {
 
         std::vector<ShaderMaterialParams> m_Meshes{};
 
-        std::vector<MeshParameters> m_MeshInfo{};
+        // TODO: change ShaderMaterialParams to mesh info struct
+        std::vector<ShaderMaterialParams> m_MeshInfo{};
         std::vector<MaterialParameters> m_Materials{};
 
         ankerl::unordered_dense::map<MeshNode*, MeshInstanceInfo> m_MeshDrawState{};

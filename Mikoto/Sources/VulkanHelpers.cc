@@ -708,6 +708,15 @@ namespace Mikoto::VulkanHelpers::Reflection {
                     bindingInfo.binding = reflectedBinding->binding;
                     bindingInfo.descriptorType = ToVkDescriptorType(reflectedBinding->descriptor_type);
 
+                    // because STATIC_DESCRIPTOR_SET_INDEX uses non-dynamic buffers, PER_PASS_DESCRIPTOR_SET_INDEX is reserved for dynamic buffers
+                    if (setIndex == STATIC_DESCRIPTOR_SET_INDEX && reflectedBinding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+                        bindingInfo.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                    }
+
+                    if (setIndex == STATIC_DESCRIPTOR_SET_INDEX && reflectedBinding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER) {
+                        bindingInfo.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                    }
+
                     constexpr std::string_view bindlessPrefix{ "Bindless" };
 
                     std::string_view bindingName{ reflectedBinding->name };

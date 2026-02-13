@@ -95,6 +95,7 @@ namespace Mikoto {
 
     auto BufferBuilder::Build( std::string_view name ) -> void {
         this->Name = name;
+        this->IsBuilt = true;
     }
 
     FramePassBuilder::FramePassBuilder( FramePassNode &node )
@@ -119,7 +120,8 @@ namespace Mikoto {
             .ForElement( description.ElementSize, description.ElementCount )
             .WithResourceUsageType( description.UsageType );
 
-        CreateBuffer( description.Name, desc );
+        m_Creates[std::string{ description.Name }].Type = FrameResourceType::BUFFER;
+        m_Creates[std::string{ description.Name }].Description = desc;
     }
 
     auto FramePassBuilder::UseShader( std::string_view path, ShaderStage stage ) -> FramePassBuilder& {

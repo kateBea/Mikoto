@@ -129,7 +129,7 @@ namespace Mikoto {
 
         // Cached dynamic buffers. These will be staging buffers that we copy data to and upload to GPU
         // Staging -> Actual Device only GPU
-        ankerl::unordered_dense::map<Buffer*, Buffer*> m_DeviceLocalBuffers{};
+        ankerl::unordered_dense::map<Buffer*, BufferHandle> m_DeviceLocalBuffers{};
     };
 }// namespace Mikoto
 

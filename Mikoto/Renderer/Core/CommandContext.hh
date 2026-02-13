@@ -97,7 +97,7 @@ namespace Mikoto {
         auto UploadBuffer(std::string_view bufferName, const void* ptrSrc, Size size, Size offset = 0 ) const -> void;
 
         template<typename Container>
-       auto UploadData(std::string_view bufferName, const Container& data, Size elementCount ) const -> void {
+       auto UploadData(std::string_view bufferName, const Container& data, Size elementCount ) -> void {
             UploadContainer( bufferName, data.data(), elementCount * sizeof(Container::value_type) );
         }
 

@@ -18,6 +18,7 @@
 #extension GL_EXT_scalar_block_layout : require
 
 #include "ShaderBase.glsl"
+#include "Material_Helpers.glsl"
 
 layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
     mat4 Projection;

@@ -44,6 +44,7 @@
 #define MKT_ASSERT( __EXPR, __MESSAGE )                                \
     do {                                                               \
         if ( !( __EXPR ) ) {                                           \
+            cpptrace::generate_trace().print();                        \
             MKT_COLOR_PRINT_FORMATTED( MKT_FMT_COLOR_RED,              \
                                        "MESSAGE: {}\n"                 \
                                        "FUNCTION: {}\n"                \

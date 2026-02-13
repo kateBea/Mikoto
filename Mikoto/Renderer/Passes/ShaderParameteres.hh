@@ -33,8 +33,8 @@ namespace Mikoto {
     static constexpr Int32 INVALID_TEXTURE_INDEX{ -1 };
     static constexpr UInt32 MAX_LIGHTS{ 10000 };
     static constexpr UInt32 MAX_CUBE_MAP_FACES{ 6 };
-    static constexpr UInt32 MAX_RENDERABLE_ENTITIES{ 524'288 }; // 2^19
-    static constexpr UInt32 MAX_NUM_JOINTS{ 128 }; // 2^19
+    static constexpr UInt32 MAX_RENDERABLE_ENTITIES{ 100'000 };
+    static constexpr UInt32 MAX_NUM_JOINTS{ 128 };
 
     // Deprecated
     struct ShaderMaterialParams {
@@ -58,9 +58,8 @@ namespace Mikoto {
 
     struct MeshParameters {
         Mat4F Transform{};
-        Mat4F JointMatrix[MAX_NUM_JOINTS]{};
-
-        UInt32 JointCount{};
+        //Mat4F JointMatrix[MAX_NUM_JOINTS]{};
+        //UInt32 JointCount{};
     };
 
     struct MaterialParameters {

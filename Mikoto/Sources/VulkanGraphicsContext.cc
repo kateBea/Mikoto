@@ -716,7 +716,12 @@ namespace Mikoto {
     }
 
     auto VulkanGraphicsContext::CopyToDevice( const void *ptr, Size size, BufferHandle dst, CommandListHandle cmd ) -> void {
+        if (m_DeviceLocalBuffers[dst.GetRaw()].IsEmpty()) {
+            m_DeviceLocalBuffers[dst.GetRaw()] = m_Device->CreateStaging( nullptr, dst->GetSizeBytes() );
+        }
 
+        m_DeviceLocalBuffers[dst.GetRaw()]->CopyToDevice( ptr, size );
+        cmd->CopyBuffer( m_DeviceLocalBuffers[dst.GetRaw()].GetRaw(), dst.GetRaw() );
     }
 
     auto VulkanGraphicsContext::UpdateResourceBindings( std::string_view passName, SRGPerPass& passData ) -> void {

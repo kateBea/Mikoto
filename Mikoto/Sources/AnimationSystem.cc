@@ -51,7 +51,7 @@ namespace Mikoto {
     }
 
     auto AnimationSystem::Update( float dt ) -> void {
-        for ( auto& animator : m_Animators ) {
+        for ( auto& animator : m_Animators | std::ranges::views::values ) {
             animator.UpdateAnimation( dt );
         }
     }

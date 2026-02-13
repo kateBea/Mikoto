@@ -118,6 +118,7 @@ namespace Mikoto {
             Size drawCount{};
             for (const auto &[entityID, meshInstanceInfo]: instanceInfo.InstanceInfos) {
                 if (instanceInfo.IsActive( entityID )) {
+                    //m_MeshInfo[meshIndex] = meshInstanceInfo;
                     m_Meshes[meshIndex++] = meshInstanceInfo;
                     ++drawCount;
                 }
@@ -132,6 +133,8 @@ namespace Mikoto {
 
         MKT_ASSERT( activeMeshCount <= MAX_RENDERABLE_ENTITIES, "Exceeded limit of renderable entities" );
         context.UploadBufferData( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMaterialParams ), activeMeshCount );
+
+        //context.UploadData( "MeshCulling_MeshInfo", m_MeshInfo, activeMeshCount );
     }
 
     auto MeshCulling::SetupInstanceData( CommandContext &context ) -> void {

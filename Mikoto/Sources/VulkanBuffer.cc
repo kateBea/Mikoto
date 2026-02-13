@@ -102,6 +102,17 @@ namespace Mikoto {
     }
 
     auto VulkanBuffer::ComputeAllocationSize() -> void {
+        // Size of ONE dynamic slice (aligned)
+        if (m_ElementSize != 0 && m_ElementCount != 0) {
+            if (TO_VK_DEVICE( m_Device )->IsScalarBlockLayoutEnabled()) {
+                // Non padded structs (VK_EXT_scalar_block_layout)
+                m_SizeBytes = m_ElementCount * m_ElementSize;
+                m_UsesScalarBlockLayout = true;
+            } else {
+                MKT_ASSERT( false, "Mikoto does not support yet arbitrary padding for GPU buffers" );
+            }
+        }
+
         if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )) {
             auto& physicalProperties{ TO_VK_DEVICE( m_Device )->GetPhysicalDeviceProperties() };
 
@@ -117,17 +128,6 @@ namespace Mikoto {
             const auto AlignUp = [](UInt64 value, UInt64 alignment) {
                 return (value + alignment - 1) & ~(alignment - 1);
             };
-
-            // Size of ONE dynamic slice (aligned)
-            if (m_ElementSize != 0 && m_ElementCount != 0) {
-                if (TO_VK_DEVICE( m_Device )->IsScalarBlockLayoutEnabled()) {
-                    // Non padded structs (VK_EXT_scalar_block_layout)
-                    m_SizeBytes = m_ElementCount * m_ElementSize;
-                    m_UsesScalarBlockLayout = true;
-                } else {
-                    MKT_ASSERT( false, "Mikoto does not support yet arbitrary padding for GPU buffers" );
-                }
-            }
 
             m_AlignedSizeBytes = AlignUp(m_SizeBytes, alignment);
 

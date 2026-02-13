@@ -24,5 +24,5 @@ layout(scalar, push_constant) uniform WireframeParams {
 
 void main() {
 
-    o_Color = vec4(u_Parameters.LineColor);
+    o_Color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
 }

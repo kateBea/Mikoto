@@ -67,12 +67,10 @@ namespace Mikoto {
 
     class MeshNode final {
     public:
-        explicit MeshNode( Size index,
+        explicit MeshNode( UInt32 index,
             BufferHandle vertices,
-            BufferHandle indices,
-            std::vector<TextureHandle>&& textures,
-            std::string_view name, MaterialProperties&&
-            properties );
+            BufferHandle indices, std::string_view name,
+            MaterialProperties&& properties );
 
         MeshNode(MeshNode&& other) noexcept = default;
 
@@ -83,7 +81,6 @@ namespace Mikoto {
         MKT_NODISCARD auto GetIndexBuffer() -> BufferHandle { return m_Indices; }
 
         MKT_NODISCARD auto GetProperties() const -> const MaterialProperties& { return m_Properties; }
-        MKT_NODISCARD auto GetTextures() const -> const std::vector<TextureHandle>& { return m_OriginalTextures; }
 
         DISABLE_COPY_FOR( MeshNode );
 
@@ -96,8 +93,6 @@ namespace Mikoto {
         BufferHandle m_Indices{};
 
         MaterialProperties m_Properties{};
-
-        std::vector<TextureHandle> m_OriginalTextures{};
     };
 
     /**

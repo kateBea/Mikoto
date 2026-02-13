@@ -1,8 +1,21 @@
+//    Copyright 2025 ケイト
 //
-// Created by zanet on 3/29/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include <ranges>
 
 #include <Material/PBRMaterial.hh>
+#include <Material/Texture2D.hh>
 #include <Library/Math/Math.hh>
 
 namespace Mikoto {
@@ -13,7 +26,15 @@ namespace Mikoto {
     }
 
     PBRMaterial::PBRMaterial( const MaterialProperties &props ) {
+        for (const auto& texture : props.TexturesByUri | std::ranges::views::values ) {
+            SetTextureType( texture.As<Texture2D>()->GetMapType(), texture );
+        }
 
+        m_AmbientOcclusion = props.OcclusionStrength;
+        m_Roughness = props.RoughnessFactor;
+        m_Metallic = props.MetallicFactor;
+        m_Emissive = props.EmissiveStrength;
+        m_EmissiveFactors = props.EmissiveFactor;
     }
 
     auto PBRMaterial::RemoveTextureType( MapType type ) -> void {

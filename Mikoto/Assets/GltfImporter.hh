@@ -33,7 +33,7 @@ namespace Mikoto {
     public:
         explicit GLTFImporter(GpuDevice* device);
 
-        MKT_NODISCARD auto Import(const ModelLoadDescription& description) -> ModelData* override;
+        auto Import(const ModelLoadDescription& description, ModelData& out) -> void override;
 
     private:
         struct LoaderData {
@@ -54,7 +54,7 @@ namespace Mikoto {
         auto LoadTextures(tinygltf::Model& model, ModelData& modelData) -> void;
 
         MKT_NODISCARD auto TryAcquireImporter() -> std::vector<Unique<LoaderData>>::iterator;
-        MKT_NODISCARD auto Import(LoaderData& loaderData,const ModelLoadDescription& description) -> ModelData*;
+        auto Import(LoaderData& loaderData,const ModelLoadDescription& description, ModelData& out) -> void;
 
     private:
         UInt32 m_MaxConcurrentImporters{};

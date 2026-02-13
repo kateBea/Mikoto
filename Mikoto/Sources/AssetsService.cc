@@ -46,8 +46,6 @@ namespace Mikoto {
 
         // Model importer library
         MeshFactoryCreateInfo meshFactoryCreateInfo{
-            .ImportersCount{ ThreadUtils::InferConcurrentThreads() },
-            .UseCustomLogger{ true },
             .Device{ m_GpuDevice },
         };
 

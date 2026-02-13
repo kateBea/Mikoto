@@ -25,42 +25,6 @@
 
 namespace Mikoto {
 
-    /**
-    * @struct MeshFactoryCreateInfo
-    * @brief Configuration structure for initializing a MeshFactory instance.
-    *
-    * The `MeshFactoryCreateInfo` structure holds configuration parameters required for setting up a `MeshFactory`,
-    * including the number of importers to be allocated for processing mesh data and optional custom configurations.
-    */
-    struct MeshFactoryCreateInfo {
-        UInt32 ImportersCount{};
-        bool UseCustomLogger{ false };
-        bool UseCustomLoader{ false };
-
-        GpuDevice* Device{ nullptr };
-
-        /**
-         * @brief Sets the number of importers for the factory.
-         * @param count Number of importers.
-         * @return Reference to the modified MeshFactoryCreateInfo.
-         */
-        auto WithImportersCount(Size count) -> MeshFactoryCreateInfo&;
-
-        /**
-         * @brief Enables or disables custom logging for Assimp.
-         * @param enable True to enable custom logging, false to disable.
-         * @return Reference to the modified MeshFactoryCreateInfo.
-         */
-        auto WithCustomLogger(bool enable) -> MeshFactoryCreateInfo&;
-
-        /**
-         * @brief Enables or disables a custom loader for Assimp.
-         * @param enable True to enable a custom loader, false to disable.
-         * @return Reference to the modified MeshFactoryCreateInfo.
-         */
-        auto WithCustomLoader(bool enable) -> MeshFactoryCreateInfo&;
-    };
-
     struct VertexData {
         Vec3F Position{};
         Vec3F Normals{};
@@ -93,16 +57,16 @@ namespace Mikoto {
         std::unordered_map<std::string, TextureHandle> Textures{};
     };
 
-    struct ModelImporter {
+    class ModelImporter {
     public:
         explicit ModelImporter(GpuDevice* device)
             : m_Device{ device } {}
 
-        MKT_NODISCARD virtual auto Import(const ModelLoadDescription& description) -> ModelData* = 0;
+        virtual auto Import(const ModelLoadDescription& description, ModelData& out) -> void = 0;
 
         virtual ~ModelImporter() = default;
 
-    private:
+    protected:
         GpuDevice* m_Device{ nullptr };
     };
 

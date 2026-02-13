@@ -177,6 +177,7 @@ namespace Mikoto {
         auto SetTextureName( const std::string_view name ) -> void {
             m_TextureName = name;
         }
+
     protected:
         /**
          * @brief Protected constructor for the Texture class.

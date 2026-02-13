@@ -36,9 +36,16 @@ namespace Mikoto {
             reg.emplace<MaterialComponent>( e );
         }
 
-        // Construct default material
+        auto& meshComponent{ reg.get<MeshComponent>( e ) };
+        auto meshNode{ meshComponent.GetMesh() };
+
         auto& material{ reg.get<MaterialComponent>( e ) };
-        material.SetMaterial( AssetsService::Get()->CreateMaterial() );
+
+        if (meshNode) {
+            material.SetMaterial( AssetsService::Get()->CreateMaterial( meshNode->GetProperties() ) );
+        } else {
+            material.SetMaterial( AssetsService::Get()->CreateMaterial() );
+        }
     }
     
     Scene::Scene( const std::string_view name )
@@ -131,21 +138,9 @@ namespace Mikoto {
         entity->AddComponent<MeshComponent>( model, index );
 
         MeshNode& meshNode{ model->GetMeshNode( index ) };
-        auto& textures{ meshNode.GetTextures() };
 
-        for (TextureHandle texture : textures) {
-            if (!entity->HasComponent<MaterialComponent>()) {
-                entity->AddComponent<MaterialComponent>( AssetsService::Get()->CreateMaterial() );
-            }
-
-            MaterialComponent& material{ entity->GetComponent<MaterialComponent>() };
-            PBRMaterial* defaultMaterial{ dynamic_cast<PBRMaterial *>(material.GetMaterial().GetRaw()) };
-
-            if (Texture2D* map{ dynamic_cast<Texture2D *>(texture.GetRaw()) } ) {
-                if (!map->IsMapType(MapType::UNDEFINED_TEXTURE)) {
-                    defaultMaterial->SetTextureType( map->GetMapType(), texture );
-                }
-            }
+        if (!entity->HasComponent<MaterialComponent>()) {
+            entity->AddComponent<MaterialComponent>( AssetsService::Get()->CreateMaterial( meshNode.GetProperties() ) );
         }
     }
 

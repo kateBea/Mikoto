@@ -37,7 +37,9 @@ namespace Mikoto {
     };
 
     struct MaterialProperties {
-        std::string Name;
+        std::string Name{};
+
+        Int32 Index{ -1 };
 
         PBR_Workflow Workflow{ PBR_Workflow::MetallicRoughness };
 
@@ -81,6 +83,8 @@ namespace Mikoto {
         Int32 NormalTexCoord{};
         Int32 OcclusionTexCoord{};
         Int32 EmissiveTexCoord{};
+
+        ankerl::unordered_dense::map<std::string, TextureHandle> TexturesByUri{};
     };
 
     class PBRMaterial final : public Material {

@@ -18,6 +18,13 @@
 
 namespace Mikoto {
 
+    auto Filesystem::StripFileName( std::string_view path ) -> std::string {
+        Path rootPath{ path };
+        rootPath.remove_filename();
+
+        return rootPath.string();
+    }
+
     auto Filesystem::GetGetAbsolutePath( std::string_view path ) -> Path {
         Path absolutePath{ std::filesystem::absolute( path ) };
 

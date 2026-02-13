@@ -35,6 +35,8 @@ namespace Mikoto::Filesystem {
     // Process current working directory
     MKT_NODISCARD auto GetProcessPath() -> Path;
 
+    MKT_NODISCARD auto StripFileName(std::string_view path) -> std::string;
+
     MKT_NODISCARD auto GetGetAbsolutePath(std::string_view path) -> Path;
     MKT_NODISCARD auto GetGetAbsolutePath(const Path& path) -> Path;
     MKT_NODISCARD auto GetGetAbsolutePathString(std::string_view path) -> std::string;

@@ -836,7 +836,7 @@ namespace Mikoto {
         ImGui::Spacing();
         ImGui::Spacing();
 
-        for ( auto& texture: meshTarget.GetTextures() ) {
+        for ( auto& texture: meshTarget.GetProperties().TexturesByUri | std::ranges::views::values ) {
             DisplayMapInformation( texture, texture->GetDebugName() );
         }
     }

@@ -158,9 +158,7 @@ namespace Mikoto {
         }
     }
 
-    auto GLTFImporter::Import( const ModelLoadDescription& description ) -> ModelData* {
-        ModelData* result{ nullptr };
-
+    auto GLTFImporter::Import( const ModelLoadDescription& description, ModelData& out ) -> void {
         auto iter{ m_Importers.end() };
         do {
             iter = TryAcquireImporter();
@@ -168,10 +166,8 @@ namespace Mikoto {
 
         MKT_CORE_LOGGER_DEBUG( "Using GLTF importer {}", ( *iter )->Index );
 
-        result = Import( *( *iter ), description );
+        Import( *( *iter ), description, out );
         ( *iter )->IsFree.store( true, std::memory_order_release );
-
-        return result;
     }
 
     auto GLTFImporter::LoadPrimitives( tinygltf::Model& model, ModelData& modelData ) -> void {
@@ -371,11 +367,9 @@ namespace Mikoto {
         } );
     }
 
-    auto GLTFImporter::Import( LoaderData& loaderData, const ModelLoadDescription& description ) -> ModelData* {
-        tinygltf::Model model{};
 
-        // For debug for now
-        ModelData* result{ new ModelData() };
+    auto GLTFImporter::Import( LoaderData& loaderData, const ModelLoadDescription& description, ModelData& out ) -> void {
+        tinygltf::Model model{};
 
         bool res{ loaderData.Loader.LoadASCIIFromFile( &model, &loaderData.Err, &loaderData.Warn, description.ModelFile->GetPath() ) };
         if ( !loaderData.Warn.empty() ) {
@@ -391,14 +385,9 @@ namespace Mikoto {
         } else {
             MKT_CORE_LOGGER_DEBUG( "Loaded glTF: {}", description.ModelFile->GetPath() );
 
-            LoadMaterials( model, *result );
-            LoadPrimitives( model, *result );
-            LoadAnimations( model, *result );
+            LoadMaterials( model, out );
+            LoadPrimitives( model, out );
+            LoadAnimations( model, out );
         }
-
-        delete result;
-        result = nullptr;
-
-        return result;
     }
 }

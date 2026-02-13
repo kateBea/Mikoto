@@ -31,15 +31,13 @@
 #include <Assets/Importer.hh>
 #include <Renderer/Core/GpuDevice.hh>
 
-
 namespace Mikoto {
 
-    // Uses Assimp
     class MainImporter final : public ModelImporter {
     public:
         explicit MainImporter(GpuDevice* device);
 
-        MKT_NODISCARD auto Import( const ModelLoadDescription &description ) -> ModelData* override;
+        auto Import( const ModelLoadDescription &description, ModelData& out) -> void override;
 
     private:
         struct ImporterInfo {
@@ -59,9 +57,10 @@ namespace Mikoto {
 
     private:
         MKT_NODISCARD auto TryAcquireImporter() -> std::vector<Unique<ImporterInfo>>::iterator;
-        MKT_NODISCARD auto Import(ImporterInfo& loaderData,const ModelLoadDescription& description) -> ModelData*;
+        auto Import(ImporterInfo& loaderData,const ModelLoadDescription& description, ModelData& modelData) -> void;
 
     private:
+        Unique<Assimp::LogStream> m_LogImpl{};
         std::vector<Unique<ImporterInfo>> m_Importers{};
     };
 }

@@ -42,8 +42,8 @@ namespace Mikoto {
 
         m_Meshes.resize( MAX_RENDERABLE_ENTITIES );
 
-        m_MeshInfo.resize( MAX_RENDERABLE_ENTITIES );
-        m_Materials.resize( MAX_RENDERABLE_ENTITIES );
+        //m_MeshInfo.resize( MAX_RENDERABLE_ENTITIES );
+        //m_Materials.resize( MAX_RENDERABLE_ENTITIES );
 
         graph.RegisterPass(
                 "MeshCulling",

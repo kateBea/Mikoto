@@ -687,8 +687,10 @@ namespace Mikoto {
 
                     ctx.BeginRender( renderInfo );
 
-                    ctx.SetViewport( 0, 0, 1920, 1080 );
-                    ctx.SetScissor( 0, 0, 1920, 1080 );
+                    const auto dimensions{ InferDimensions( m_Resolution ) };
+
+                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
                     m_MeshCullingPass->DrawInstances( ctx );
 

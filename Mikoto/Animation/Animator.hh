@@ -22,10 +22,21 @@
 namespace Mikoto {
     class Animator {
     public:
+        explicit Animator( SkinnedAnimation& animator );
+
+        auto UpdateAnimation( float deltaTime ) -> void;
+
+        auto GetFinalBoneMatrices() -> auto& { return m_FinalBoneMatrices; }
 
     private:
-        SkinnedAnimation* m_Animator{};
+        auto CalculateBoneTransform( const NodeHierarchy* node, Mat4F parentTransform ) -> void;
+
+    private:
+        SkinnedAnimation* m_Animation{};
         UInt64 m_AnimationID{};
+        float m_CurrentTime{};
+
+        std::vector<Mat4F> m_FinalBoneMatrices{};
     };
 }
 

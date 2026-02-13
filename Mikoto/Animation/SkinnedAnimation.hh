@@ -17,6 +17,10 @@
 
 #include <vector>
 
+#include <ankerl/unordered_dense.h>
+
+#include <Common/Common.hh>
+
 #include <Animation/Bone.hh>
 #include <Library/Utility/Types.hh>
 
@@ -31,10 +35,25 @@ namespace  Mikoto {
         std::vector<NodeHierarchy> Children{};
     };
 
+    struct BoneInfo {
+        /*id is index in finalBoneMatrices*/
+        Int32 ID{};
+
+        /*offset matrix transforms vertex from model space to bone space*/
+        Mat4F Offset{};
+    };
+
     class SkinnedAnimation {
     public:
         explicit SkinnedAnimation( NodeHierarchy&& hierarchy, float duration, UInt32 ticksPerSecond );
 
+        MKT_NODISCARD auto FindBone( std::string_view name ) -> Bone*;
+
+        auto GetDuration() -> float;
+        auto GetTicksPerSecond() -> float;
+        auto GetRootNode() -> NodeHierarchy&;
+
+        auto GetBoneIDMap() -> auto& { return m_BoneInfoMap; } 
 
     private:
 
@@ -43,6 +62,8 @@ namespace  Mikoto {
         NodeHierarchy m_RootNode{};
 
         std::vector<Bone> m_Bones{};
+
+        ankerl::unordered_dense::map<std::string, BoneInfo> m_BoneInfoMap{};
     };
 }
 

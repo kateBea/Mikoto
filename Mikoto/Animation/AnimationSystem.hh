@@ -15,6 +15,8 @@
 #ifndef MIKOTO_ANIMATION_SYSTEM_HH
 #define MIKOTO_ANIMATION_SYSTEM_HH
 
+#include <vector>
+
 #include <ankerl/unordered_dense.h>
 
 #include <Common/Common.hh>
@@ -42,7 +44,7 @@ namespace Mikoto {
         auto RegisterAnimation( SkinnedAnimation& animation ) -> void;
 
     private:
-        ankerl::unordered_dense::map<UInt64, Animator> m_Animators{};
+        std::vector<Animator> m_Animators{};
     };
 
 }

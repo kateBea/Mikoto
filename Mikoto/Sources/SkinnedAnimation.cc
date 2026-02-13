@@ -18,4 +18,20 @@ namespace Mikoto {
     SkinnedAnimation::SkinnedAnimation( NodeHierarchy&& hierarchy, float duration, UInt32 ticksPerSecond )
         : m_Duration{ duration }, m_TicksPerSecond{ ticksPerSecond }, m_RootNode{ std::move( hierarchy ) } {
     }
+
+    auto SkinnedAnimation::FindBone( std::string_view name ) -> Bone* {
+        return nullptr; // TODO
+    }
+
+    auto SkinnedAnimation::GetDuration() -> float {
+        return m_Duration;
+    }
+
+    auto SkinnedAnimation::GetTicksPerSecond() -> float {
+        return m_TicksPerSecond;
+    }
+
+    auto SkinnedAnimation::GetRootNode() -> NodeHierarchy& {
+        return m_RootNode;
+    }
 }

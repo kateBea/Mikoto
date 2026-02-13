@@ -320,6 +320,11 @@ namespace Mikoto {
         return Object(nullptr);
     }
 
+    auto VulkanGraphicsPipeline::SetDebugName( std::string_view name ) -> void {
+        m_DebugName = name;
+        VulkanHelpers::SetObjectDebugName( VK_DEVICE( m_Device ), VK_OBJECT_TYPE_PIPELINE, reinterpret_cast<UInt64>( m_Pipeline ), m_DebugName.c_str() );
+    }
+
     VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
         if (m_IsAllocated) {
             Release();
@@ -470,6 +475,11 @@ namespace Mikoto {
         VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ),VK_OBJECT_TYPE_PIPELINE, reinterpret_cast<UInt64>( m_Pipeline ),m_DebugName.c_str() );
 
         m_IsAllocated = true;
+    }
+
+    auto VulkanComputePipeline::SetDebugName( std::string_view name ) -> void {
+        m_DebugName = name;
+        VulkanHelpers::SetObjectDebugName( VK_DEVICE( m_Device ), VK_OBJECT_TYPE_PIPELINE, reinterpret_cast<UInt64>( m_Pipeline ), m_DebugName.c_str() );
     }
 
     auto VulkanComputePipeline::GetNativeHandle( ObjectType type ) -> Object {

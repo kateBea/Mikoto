@@ -74,6 +74,8 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
 
+        auto SetDebugName(std::string_view name) -> void override;
+
         ~VulkanGraphicsPipeline() override;
 
     public:
@@ -98,6 +100,8 @@ namespace Mikoto {
         explicit VulkanComputePipeline( const ComputePipelineDescription& info );
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
+
+        auto SetDebugName(std::string_view name) -> void override;
 
         ~VulkanComputePipeline() override;
 

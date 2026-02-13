@@ -279,13 +279,11 @@ namespace Mikoto {
         }
     }
 
-    static auto LoadMaterial(aiMaterial const* mat, MaterialProperties& properties) -> MaterialProperties {
+    static auto LoadMaterial(aiMaterial const* mat, MaterialProperties& properties) -> void {
         aiString name{};
         if(mat->Get(AI_MATKEY_NAME, name) == AI_SUCCESS) {
             properties.Name = name.C_Str();
         }
-
-        return properties;
     }
 
     static auto ConstructMeshNode( const std::string &rootPath, const aiMesh *mesh, const aiScene *scene, MeshNodeData& meshNodeData, MaterialProperties& material ) -> void {

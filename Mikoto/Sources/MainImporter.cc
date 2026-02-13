@@ -314,10 +314,7 @@ namespace Mikoto {
         LoadVertices( mesh, meshNodeData );
         LoadIndices( mesh, meshNodeData );
 
-        if (mesh->mMaterialIndex > -1) {
-            LoadMaterial( scene->mMaterials[mesh->mMaterialIndex], material );
-        }
-
+        LoadMaterial( scene->mMaterials[mesh->mMaterialIndex], material );
         LoadTextures( rootPath, mesh, scene, material );
     }
 
@@ -355,7 +352,7 @@ namespace Mikoto {
             auto& material{ modelData.Materials.emplace_back() };
 
             // Compute material index (since we inserted back, size increased by one last element is size() - 1)
-            Int32 index{ (Int32)modelData.Materials.size() - 1 };
+            UInt32 index{ ( UInt32 )modelData.Materials.size() - 1 };
 
             newMesh.MaterialIndex = index;
             ConstructMeshNode( rootPath, scene->mMeshes[node->mMeshes[i]], scene, newMesh, material );

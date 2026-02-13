@@ -118,12 +118,8 @@ namespace Mikoto {
             BufferHandle indexBuffer{ m_Device->CreateBuffer( indexDesc ) };
 
             // If it does not have any material construct one by default
-            MaterialProperties material{};
-            if (meshNode.MaterialIndex > -1) {
-                material = data.Materials[meshNode.MaterialIndex];
-            }
-            MeshNode node{ meshIndex,vertexBuffer, indexBuffer,
-                meshNode.Name, std::move( material) };
+            MaterialProperties material{ data.Materials[meshNode.MaterialIndex]  };
+            MeshNode node{ meshIndex,vertexBuffer, indexBuffer, meshNode.Name, std::move( material) };
 
             result->PushMeshNode( meshIndex,std::move( node) );
 

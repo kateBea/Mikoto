@@ -43,7 +43,8 @@ namespace Mikoto {
         std::vector<VertexData> Vertices{};
         std::vector<UInt32> Indices{};
 
-        Int32 MaterialIndex{ -1 };
+        // Unsigned because it needs at least one material
+        UInt32 MaterialIndex{};
     };
 
     struct ModelData {

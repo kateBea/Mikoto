@@ -49,7 +49,7 @@ namespace Mikoto {
     private:
 
         auto LoadPrimitives(tinygltf::Model& model, ModelData& modelData) -> void;
-        auto LoadMaterials(tinygltf::Model& model, ModelData& modelData) -> void;
+        auto LoadMaterials(tinygltf::Model& model, ModelData& modelData, const std::string& rootPath) -> void;
         auto LoadAnimations(tinygltf::Model& model, ModelData& modelData) -> void;
         auto LoadTextures(tinygltf::Model& model, ModelData& modelData) -> void;
 

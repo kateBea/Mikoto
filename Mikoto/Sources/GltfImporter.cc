@@ -12,15 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <ranges>
 #include <algorithm>
+#include <ranges>
 
 #include <tiny_gltf.h>
 
-#include <Logging/Logger.hh>
 #include <Assets/GltfImporter.hh>
+#include <Filesystem/FileService.hh>
+#include <Filesystem/FileSystem.hh>
+#include <Logging/Logger.hh>
 #include <Material/PBRMaterial.hh>
 #include <Threading/ThreadUtility.hh>
+
+#include <Assets/AssetsService.hh>
 
 namespace Mikoto {
 
@@ -274,8 +278,12 @@ namespace Mikoto {
         }
     }
 
-    auto GLTFImporter::LoadMaterials( tinygltf::Model& model, ModelData& modelData ) -> void {
+    auto GLTFImporter::LoadMaterials( tinygltf::Model& model, ModelData& modelData, const std::string& rootPath ) -> void {
         modelData.Materials.reserve( model.materials.size() );
+
+        TextureLoadDescription loadInfo{};
+        loadInfo.WithType( TextureType::TEXTURE_2D )
+                .WithMapType( MapType::ALBEDO_TEXTURE );
 
         for ( const auto& mat: model.materials ) {
             MaterialProperties props{};
@@ -297,6 +305,17 @@ namespace Mikoto {
                 const auto& tex = model.textures[pbr.baseColorTexture.index];
                 props.BaseColorTexture = model.images[tex.source].uri;
                 props.BaseColorTexCoord = pbr.baseColorTexture.texCoord;
+
+                loadInfo.WithMapType( MapType::ALBEDO_TEXTURE );
+                loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
+                           .WithPath( rootPath )
+                           .WithPath( model.images[tex.source].uri )
+                           .Build() } ) );
+
+                TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
+                if (!texture.IsEmpty()) {
+                    props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
+                }
             }
 
             if ( pbr.metallicRoughnessTexture.index >= 0 ) {
@@ -304,6 +323,17 @@ namespace Mikoto {
                 props.MetallicRoughnessTexture = model.images[tex.source].uri;
                 props.MetallicRoughnessTexCoord =
                         pbr.metallicRoughnessTexture.texCoord;
+
+                loadInfo.WithMapType( MapType::METALLIC_ROUGHNESS_TEXTURE );
+                loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
+                           .WithPath( rootPath )
+                           .WithPath( model.images[tex.source].uri )
+                           .Build() } ) );
+
+                TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
+                if (!texture.IsEmpty()) {
+                    props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
+                }
             }
 
             // Normal
@@ -313,6 +343,17 @@ namespace Mikoto {
                 props.NormalTexCoord = mat.normalTexture.texCoord;
                 props.NormalScale =
                         static_cast<float>( mat.normalTexture.scale );
+
+                loadInfo.WithMapType( MapType::NORMAL_TEXTURE );
+                loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
+                           .WithPath( rootPath )
+                           .WithPath( model.images[tex.source].uri )
+                           .Build() } ) );
+
+                TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
+                if (!texture.IsEmpty()) {
+                    props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
+                }
             }
 
             // Occlusion
@@ -322,6 +363,17 @@ namespace Mikoto {
                 props.OcclusionTexCoord = mat.occlusionTexture.texCoord;
                 props.OcclusionStrength =
                         static_cast<float>( mat.occlusionTexture.strength );
+
+                loadInfo.WithMapType( MapType::AMBIENT_OCCLUSION_TEXTURE );
+                loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
+                           .WithPath( rootPath )
+                           .WithPath( model.images[tex.source].uri )
+                           .Build() } ) );
+
+                TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
+                if (!texture.IsEmpty()) {
+                    props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
+                }
             }
 
             // Emissive
@@ -329,6 +381,17 @@ namespace Mikoto {
                 const auto& tex = model.textures[mat.emissiveTexture.index];
                 props.EmissiveTexture = model.images[tex.source].uri;
                 props.EmissiveTexCoord = mat.emissiveTexture.texCoord;
+
+                loadInfo.WithMapType( MapType::EMISSIVE_TEXTURE );
+                loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
+                           .WithPath( rootPath )
+                           .WithPath( model.images[tex.source].uri )
+                           .Build() } ) );
+
+                TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
+                if (!texture.IsEmpty()) {
+                    props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
+                }
             }
 
             props.EmissiveFactor = {
@@ -385,9 +448,13 @@ namespace Mikoto {
         } else {
             MKT_CORE_LOGGER_DEBUG( "Loaded glTF: {}", description.ModelFile->GetPath() );
 
-            LoadMaterials( model, out );
+            // Load textures
+            const std::string root{ Filesystem::StripFileName( description.ModelFile->GetPath() ) };
+
+            LoadMaterials( model, out, root );
             LoadPrimitives( model, out );
             LoadAnimations( model, out );
+
         }
     }
 }

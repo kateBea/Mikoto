@@ -209,8 +209,10 @@ namespace Mikoto {
         for ( auto &[meshNode, meshDrawState]: m_DrawIndexedState ) {
             meshDrawState.InstancesCount = m_MeshDrawInstanceCount[meshNode];
 
-            for ( const auto &instance: m_InstanceInfos[meshNode] ) {
+            for (Size index{}; index < meshDrawState.InstancesCount; ++index) {
+                auto& instance{ m_InstanceInfos[meshNode][index] };
                 auto& info{ m_MeshInfo[meshIndex] };
+
                 info.Transform = instance.Transform;
                 info.MaterialIndex = meshIndex;
 

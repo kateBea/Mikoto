@@ -22,6 +22,7 @@
 
 #include <Common/Common.hh>
 #include <Renderer/Core/Pipeline.hh>
+#include <Renderer/Vulkan/Reflection.hh>
 
 namespace Mikoto {
 

@@ -30,6 +30,7 @@
 #include <Renderer/Vulkan/VulkanHelpers.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>
 #include <Renderer/Vulkan/VulkanShader.hh>
+#include <Renderer/Vulkan/Reflection.hh>
 
 namespace Mikoto {
 

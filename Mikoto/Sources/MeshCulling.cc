@@ -40,37 +40,12 @@ namespace Mikoto {
     auto MeshCulling::RegisterMeshCullingPass(FrameGraph &graph) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        m_Meshes.resize( MAX_RENDERABLE_ENTITIES );
-
-        //m_MeshInfo.resize( MAX_RENDERABLE_ENTITIES );
-        //m_Materials.resize( MAX_RENDERABLE_ENTITIES );
-
         graph.RegisterPass(
                 "MeshCulling",
                 []( FramePassBuilder &b ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
-                    auto meshInfoBuilder{ BufferBuilder{} };
-                    meshInfoBuilder
-                        .ForElement( sizeof( MeshParameters ), MAX_RENDERABLE_ENTITIES )
-                        .WithUsage( BufferUsage::SHADER_STORAGE )
-                        .IsDynamic( false )
-                        .Build( "MeshCulling_MeshInfo" );
-
-                    auto materialsInfoBuilder{ BufferBuilder{} };
-                    materialsInfoBuilder
-                        .ForElement( sizeof( MaterialParameters ), MAX_RENDERABLE_ENTITIES )
-                        .WithUsage( BufferUsage::SHADER_STORAGE )
-                        .IsDynamic( false )
-                        .Build( "MeshCulling_MaterialInfo" );
-
-                    //b.CreateBuffer( meshInfoBuilder );
-                    //b.CreateBuffer( materialsInfoBuilder );
-
                     b.Create<Buffer>( "FinalCompositionPass_MeshInfo", BufferUsage::SHADER_STORAGE, sizeof( ShaderMaterialParams ), MAX_RENDERABLE_ENTITIES );
                     b.Write( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
-
-                    //b.Write( "MeshCulling_MeshInfo", FrameResourceState::UnorderedAccess );
-                    //b.Write( "MeshCulling_MaterialInfo", FrameResourceState::UnorderedAccess );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -115,30 +90,34 @@ namespace Mikoto {
                 drawState.VertexBuffers.emplace_back( meshNode->GetVertexBuffer(), 0 );
             }
 
-            Size drawCount{};
+            Size instanceCount{};
             for (const auto &[entityID, meshInstanceInfo]: instanceInfo.InstanceInfos) {
                 if (instanceInfo.IsActive( entityID )) {
-                    //m_MeshInfo[meshIndex] = meshInstanceInfo;
-                    m_Meshes[meshIndex++] = meshInstanceInfo;
-                    ++drawCount;
+                    // We have already allocated enough space to hold this many active entities
+                    m_Meshes[meshIndex] = meshInstanceInfo;
+
+                    ++meshIndex;
+                    ++instanceCount;
                 }
             }
 
             drawState.IndicesCount = meshNode->GetIndexBuffer()->GetCount();
             drawState.FirstInstance = activeMeshCount;
-            drawState.InstancesCount = drawCount;
+            drawState.InstancesCount = instanceCount;
 
-            activeMeshCount += drawCount;
+            activeMeshCount += instanceCount;
         }
 
         MKT_ASSERT( activeMeshCount <= MAX_RENDERABLE_ENTITIES, "Exceeded limit of renderable entities" );
-        context.UploadBufferData( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMaterialParams ), activeMeshCount );
 
-        //context.UploadData( "MeshCulling_MeshInfo", m_MeshInfo, activeMeshCount );
+        context.UploadBufferData( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMaterialParams ), activeMeshCount );
     }
 
     auto MeshCulling::SetupInstanceData( CommandContext &context ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
+        // Potential count
+        Size count{};
 
         auto &registry{ m_Scene->GetRegistry() };
         auto renderables{ registry.view<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
@@ -178,7 +157,15 @@ namespace Mikoto {
                 ubo.RoughnessIndex = context.PushTexture( pbrMat->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
                 ubo.AoIndex = context.PushTexture( pbrMat->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
                 ubo.EmissiveIndex = context.PushTexture( pbrMat->GetTextureType( MapType::EMISSIVE_TEXTURE ) );
+
+                if (tag.IsActive()) {
+                    ++count;
+                }
             }
+        }
+
+        if (m_Meshes.size() < count) {
+            m_Meshes.resize( count );
         }
     }
 }

@@ -109,6 +109,9 @@ namespace Mikoto {
                 "MeshCulling",
                 []( FramePassBuilder &b ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
+                    // Buffer not used
+                    b.Create<Buffer>( "MeshCulling_MeshCullingNode", BufferUsage::SHADER_STORAGE, sizeof( UInt32 ), 30 );
+
                     // To force this pass to go before ScatteredWritesMeshPass
                     b.Write( "MeshCulling_MeshCullingNode", FrameResourceState::UnorderedAccess );
                 },

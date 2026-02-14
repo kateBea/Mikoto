@@ -351,10 +351,6 @@ namespace Mikoto {
             loading = true;
             TaskService::Get()->Submit( [this, root, path = std::string{ uri }]() -> void {
 
-                if (path.empty()) {
-                    return;
-                }
-
                 ModelLoadDescription description{
                     .ModelFile{ FileService::Get()->LoadFile( path ) },
                     .WantTextures{ true }
@@ -394,7 +390,9 @@ namespace Mikoto {
                 };
 
                 const std::string path{ FileService::Get()->OpenDialog( filters ).string() };
-                AddEntityWithModel(path, rootEntity);
+                if (!path.empty()) {
+                    AddEntityWithModel(path, rootEntity);
+                }
 
                 loading = false;
             });

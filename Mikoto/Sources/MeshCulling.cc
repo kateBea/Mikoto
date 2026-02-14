@@ -98,7 +98,7 @@ namespace Mikoto {
                     ctx.UploadBufferData( "ScatteredWrites_MeshData", m_MeshInfo.data(), sizeof( MeshParameters ), m_ObjectUpdateCount );
                     ctx.UploadBufferData( "ScatteredWrites_MeshDataIndices", m_MeshInfoIndices.data(), sizeof( UInt32 ), m_ObjectUpdateCount );
 
-                    ctx.Dispatch( (m_ObjectUpdateCount + 64 - 1) / 64, 1, 1 );
+                    ctx.Dispatch( dispatchCount / 64, 1, 1 );
                 } );
     }
 

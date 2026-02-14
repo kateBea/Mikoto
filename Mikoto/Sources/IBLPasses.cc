@@ -569,7 +569,7 @@ namespace Mikoto {
                     MKT_BEGIN_PROFILER_NAMED();
                 } );
     }
-    
+
     auto IBLPasses::RegisterDebugViewsPass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -621,8 +621,8 @@ namespace Mikoto {
                         .UseShader( "Resources/Shaders/vulkan-spirv/PBR_Instanced_Frag.sprv", ShaderStage::FRAGMENT )
                         .Create<Pipeline>( "FinalCompositionPass_Pipeline", graphicsDesc );
 
-                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UnorderedAccess )
-                        .Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess )
+                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer )
+                        .Read( "FinalBuffer_ObjectInfo", FrameResourceState::ShaderRead_GraphicsPipeline )
                         .Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess )
                         .Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite)
                         .Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget )

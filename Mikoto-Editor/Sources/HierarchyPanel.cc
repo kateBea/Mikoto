@@ -351,6 +351,10 @@ namespace Mikoto {
             loading = true;
             TaskService::Get()->Submit( [this, root, path = std::string{ uri }]() -> void {
 
+                if (path.empty()) {
+                    return;
+                }
+
                 ModelLoadDescription description{
                     .ModelFile{ FileService::Get()->LoadFile( path ) },
                     .WantTextures{ true }

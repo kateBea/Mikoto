@@ -14,18 +14,16 @@
 
 #ifndef MIKOTO_GRAPH_EDITOR_HH
 #define MIKOTO_GRAPH_EDITOR_HH
-
-#include <vector>
 #include <string>
 #include <string_view>
+#include <vector>
 
+#include <imgui_node_editor.h>
 #include <ankerl/unordered_dense.h>
 
 #include <Common/Common.hh>
 
 namespace Mikoto {
-
-    auto ShowExampleAppCustomNodeGraph( bool* opened ) -> void;
 
     struct GraphNode {
         std::string Key{};        
@@ -55,6 +53,9 @@ namespace Mikoto {
 
     private:
         std::string m_Name{};
+
+        ax::NodeEditor::Config m_Config{};
+        ax::NodeEditor::EditorContext* m_Context{};
     };
 }
 

@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\blueprints-example\blueprints-example.cpp" />
+    <ClCompile Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\blueprints-example\utilities\builders.cpp">
+      <Filter>utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\blueprints-example\utilities\drawing.cpp">
+      <Filter>utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\blueprints-example\utilities\widgets.cpp">
+      <Filter>utilities</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\blueprints-example\utilities\builders.h">
+      <Filter>utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\blueprints-example\utilities\drawing.h">
+      <Filter>utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\blueprints-example\utilities\widgets.h">
+      <Filter>utilities</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\blueprints-example\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\blueprints-example\data\BlueprintBackground.png">
+      <Filter>data</Filter>
+    </Image>
+    <Image Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\blueprints-example\data\ic_restore_white_24dp.png">
+      <Filter>data</Filter>
+    </Image>
+    <Image Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\blueprints-example\data\ic_save_white_24dp.png">
+      <Filter>data</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\data\Cuprum-Bold.ttf">
+      <Filter>data</Filter>
+    </None>
+    <None Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\data\Cuprum-OFL.txt">
+      <Filter>data</Filter>
+    </None>
+    <None Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\data\Oswald-OFL.txt">
+      <Filter>data</Filter>
+    </None>
+    <None Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\data\Oswald-Regular.ttf">
+      <Filter>data</Filter>
+    </None>
+    <None Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\data\Play-OFL.txt">
+      <Filter>data</Filter>
+    </None>
+    <None Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\data\Play-Regular.ttf">
+      <Filter>data</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\blueprints-example\Resource.rc">
+      <Filter>resources</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="data">
+      <UniqueIdentifier>{86FA532B-6DDF-30C4-9C33-E19D1CF9503B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="resources">
+      <UniqueIdentifier>{FC7BEC97-195E-3AF6-83F4-668487B9886A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utilities">
+      <UniqueIdentifier>{DC84049B-9C68-3EB4-983E-52E48D2266E3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

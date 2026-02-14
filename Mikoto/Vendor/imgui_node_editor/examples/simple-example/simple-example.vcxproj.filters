@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\simple-example\simple-example.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\simple-example\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\data\Cuprum-Bold.ttf">
+      <Filter>data</Filter>
+    </None>
+    <None Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\data\Cuprum-OFL.txt">
+      <Filter>data</Filter>
+    </None>
+    <None Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\data\Oswald-OFL.txt">
+      <Filter>data</Filter>
+    </None>
+    <None Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\data\Oswald-Regular.ttf">
+      <Filter>data</Filter>
+    </None>
+    <None Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\data\Play-OFL.txt">
+      <Filter>data</Filter>
+    </None>
+    <None Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\data\Play-Regular.ttf">
+      <Filter>data</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\simple-example\Resource.rc">
+      <Filter>resources</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="data">
+      <UniqueIdentifier>{86FA532B-6DDF-30C4-9C33-E19D1CF9503B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="resources">
+      <UniqueIdentifier>{FC7BEC97-195E-3AF6-83F4-668487B9886A}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

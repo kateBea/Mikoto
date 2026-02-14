@@ -453,6 +453,14 @@ set(FILEWATCH_INCLUDE_DIR "${FILEWATCH_ROOT}")
 set(IMOGUIZMO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/ImOGuizmo")
 set(IMOGUIZMO_INCLUDE_DIR "${IMOGUIZMO_ROOT}")
 
+# ImOGuizmo
+# https://github.com/thedmd/imgui-node-editor.git
+# Slightly modified, in Mikoto we use imgui 1.90+ which has removed some functions this library relied on
+# I modified the library and added some of the missing functions. The verison used for this change was the one from master branch
+# as of commit https://github.com/thedmd/imgui-node-editor/commit/e78e447900909a051817a760efe13fe83e6e1afc
+set(IMGUI_NO_EDITOR_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/imgui_node_editor")
+set(IMGUI_NO_EDITOR_INCLUDE_DIR "${IMGUI_NO_EDITOR_ROOT}")
+
 # -------------------------------------------------------
 # OpenCL-SDK
 # -------------------------------------------------------
@@ -513,6 +521,13 @@ set(IMGUIZMO_SOURCES
         ${imguizmo_SOURCE_DIR}/ImSequencer.cpp
 )
 
+set(IMGUI_NODES_SOURCES
+        ${IMGUI_NO_EDITOR_ROOT}/imgui_node_editor.cpp
+        ${IMGUI_NO_EDITOR_ROOT}/imgui_node_editor_api.cpp
+        ${IMGUI_NO_EDITOR_ROOT}/crude_json.cpp
+        ${IMGUI_NO_EDITOR_ROOT}/imgui_canvas.cpp
+)
+
 # SpirV-Reflect sources
 set(SPIRV_REFLECT_SOURCES
         ${spirv_reflect_SOURCE_DIR}/spirv_reflect.c
@@ -530,6 +545,7 @@ set(ALL_SOURCES
         ${IMGUIZMO_SOURCES}
         ${SPIRV_REFLECT_SOURCES}
         ${MINIAUDIO_SOURCES}
+        ${IMGUI_NODES_SOURCES}
 )
 
 # ======================================
@@ -563,10 +579,10 @@ set(LIBRARIES
 # ======================================
 # Debug print Cmake variables
 # ======================================
-#get_cmake_property(_variableNames VARIABLES)
-#foreach(_variableName ${_variableNames})
-#    message(STATUS "${_variableName}=${${_variableName}}")
-#endforeach()
+get_cmake_property(_variableNames VARIABLES)
+foreach(_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()
 
 add_library(${PROJECT_NAME} STATIC ${ALL_SOURCES})
 
@@ -643,6 +659,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${ozz_SOURCE_DIR}/include
         ${meshoptimizer_SOURCE_DIR}/src
         ${tinygltf_SOURCE_DIR}
+        ${IMGUI_NO_EDITOR_INCLUDE_DIR}
 )
 
 # ======================================

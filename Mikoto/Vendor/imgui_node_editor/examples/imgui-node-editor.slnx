@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Solution>
+	<Configurations>
+		<BuildType Name="Debug"/>
+		<BuildType Name="Release"/>
+		<BuildType Name="MinSizeRel"/>
+		<BuildType Name="RelWithDebInfo"/>
+		<Platform Name="x64"/>
+	</Configurations>
+	<Project Path="canvas-example/imgui_node_editor.vcxproj" Id="0e15a1a8-31da-3e8b-8d6e-705e038593b8">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="external/imgui/imgui.vcxproj"/>
+	</Project>
+	<Folder Name="/CMakePredefinedTargets/">
+		<Project Path="ALL_BUILD.vcxproj" Id="da6dba30-f0c9-3611-8d84-0979f1b35bf1" DefaultStartup="true">
+			<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+			<BuildDependency Project="application/application.vcxproj"/>
+			<BuildDependency Project="basic-interaction-example/basic-interaction-example.vcxproj"/>
+			<BuildDependency Project="blueprints-example/blueprints-example.vcxproj"/>
+			<BuildDependency Project="canvas-example/canvas-example.vcxproj"/>
+			<BuildDependency Project="application/dxerr.vcxproj"/>
+			<BuildDependency Project="external/imgui/imgui.vcxproj"/>
+			<BuildDependency Project="canvas-example/imgui_node_editor.vcxproj"/>
+			<BuildDependency Project="simple-example/simple-example.vcxproj"/>
+			<BuildDependency Project="widgets-example/widgets-example.vcxproj"/>
+			<Build Solution="Debug|*" Project="false"/>
+			<Build Solution="Release|*" Project="false"/>
+			<Build Solution="MinSizeRel|*" Project="false"/>
+			<Build Solution="RelWithDebInfo|*" Project="false"/>
+		</Project>
+		<Project Path="ZERO_CHECK.vcxproj" Id="fc867e20-61cc-3b4e-ac38-f31b18703683"/>
+	</Folder>
+	<Folder Name="/examples/">
+		<Project Path="application/application.vcxproj" Id="048de129-003c-3a57-b925-0dac5ac4810e">
+			<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+			<BuildDependency Project="application/dxerr.vcxproj"/>
+			<BuildDependency Project="external/imgui/imgui.vcxproj"/>
+		</Project>
+		<Project Path="basic-interaction-example/basic-interaction-example.vcxproj" Id="5b0e14c2-da79-39c8-aa43-ba0b055de99c">
+			<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+			<BuildDependency Project="application/application.vcxproj"/>
+			<BuildDependency Project="application/dxerr.vcxproj"/>
+			<BuildDependency Project="external/imgui/imgui.vcxproj"/>
+			<BuildDependency Project="canvas-example/imgui_node_editor.vcxproj"/>
+		</Project>
+		<Project Path="blueprints-example/blueprints-example.vcxproj" Id="529bf43d-7eb1-3131-9ac9-430699408445">
+			<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+			<BuildDependency Project="application/application.vcxproj"/>
+			<BuildDependency Project="application/dxerr.vcxproj"/>
+			<BuildDependency Project="external/imgui/imgui.vcxproj"/>
+			<BuildDependency Project="canvas-example/imgui_node_editor.vcxproj"/>
+		</Project>
+		<Project Path="canvas-example/canvas-example.vcxproj" Id="db7433fa-0d7c-3de4-9b52-6db93aa77758">
+			<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+			<BuildDependency Project="application/application.vcxproj"/>
+			<BuildDependency Project="application/dxerr.vcxproj"/>
+			<BuildDependency Project="external/imgui/imgui.vcxproj"/>
+			<BuildDependency Project="canvas-example/imgui_node_editor.vcxproj"/>
+		</Project>
+		<Project Path="simple-example/simple-example.vcxproj" Id="90312d20-dc59-3f61-b7ac-31e11c8e68e8">
+			<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+			<BuildDependency Project="application/application.vcxproj"/>
+			<BuildDependency Project="application/dxerr.vcxproj"/>
+			<BuildDependency Project="external/imgui/imgui.vcxproj"/>
+			<BuildDependency Project="canvas-example/imgui_node_editor.vcxproj"/>
+		</Project>
+		<Project Path="widgets-example/widgets-example.vcxproj" Id="ef137654-f257-3df6-91a6-53e1d35158f8">
+			<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+			<BuildDependency Project="application/application.vcxproj"/>
+			<BuildDependency Project="application/dxerr.vcxproj"/>
+			<BuildDependency Project="external/imgui/imgui.vcxproj"/>
+			<BuildDependency Project="canvas-example/imgui_node_editor.vcxproj"/>
+		</Project>
+	</Folder>
+	<Folder Name="/external/">
+		<Project Path="application/dxerr.vcxproj" Id="8e4748cb-ad03-3e5c-9b2a-b0f11c5a7f63">
+			<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		</Project>
+		<Project Path="external/imgui/imgui.vcxproj" Id="8b42f2b6-23af-3048-a528-362d6dd9d568">
+			<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		</Project>
+	</Folder>
+</Solution>

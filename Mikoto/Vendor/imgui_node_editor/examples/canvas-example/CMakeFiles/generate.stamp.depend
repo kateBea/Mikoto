@@ -1,0 +1,8 @@
+# CMake generation dependency list for this directory.
+C:/Program Files/CMake/share/cmake-4.2/Modules/FindPackageHandleStandardArgs.cmake
+C:/Program Files/CMake/share/cmake-4.2/Modules/FindPackageMessage.cmake
+C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/Application/Support/Resource.rc.in
+C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/CMakeFiles/cmake.verify_globs
+C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/canvas-example/CMakeLists.txt
+C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/misc/cmake-modules/Findimgui.cmake
+C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/misc/cmake-modules/Findimgui_node_editor.cmake

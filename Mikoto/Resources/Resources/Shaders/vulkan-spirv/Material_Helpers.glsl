@@ -22,23 +22,8 @@ struct MaterialParameters {
 
 struct MeshParameters {
     mat4 Transform;
-
-    // TODO: remove these just for testing
-    vec4 Albedo;
-    vec4 Factors;
-
-    vec3 EmissiveFactors;
-    float EmissiveIntensity;
-
-    float Alpha;
-
-    int AlbedoIndex;
-    int NormalIndex;
-    int MetallicIndex;
-    int RoughnessIndex;
-    int AoIndex;
-    int EmissiveIndex;
-
+    uint MeshIndex;
+    uint MaterialIndex;
     //mat4 JointMatrix[MAX_NUM_JOINTS];
 
     //uint JointCount;

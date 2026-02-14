@@ -89,13 +89,11 @@ namespace Mikoto {
         m_PanelIsFocused = ImGui::IsWindowFocused();
         m_PanelIsHovered = ImGui::IsWindowHovered();
 
-        if (IsDisplayTextureValid()) {
-            UpdateViewport();
+        UpdateViewport();
 
-            SetupManipulation();
-            DrawManipulationGuizmos();
-            DrawOrientationAxis();
-        }
+        SetupManipulation();
+        DrawManipulationGuizmos();
+        DrawOrientationAxis();
 
         // Try validating the image id again in case the texture was recreated
         // We also get a new ID if the viewport image was update
@@ -160,9 +158,11 @@ namespace Mikoto {
 
         // No flipping, the final image is already in the correct viewport coordinates
         // In the case of vulkan this is also taken into account when setting up the viewport
-        if (!m_EditorState->ShowWireframe) {
+        if (IsDisplayTextureValid() && !m_EditorState->ShowWireframe) {
             ImGui::Image( m_ColorImageID, ImVec2{ dim.x, dim.y } );
-        } else {
+        }
+
+        if (IsWireframeDisplayTextureValid() && m_EditorState->ShowWireframe) {
             ImGui::Image( m_WireframeImageID, ImVec2{ dim.x, dim.y } );
         }
     }

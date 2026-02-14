@@ -35,6 +35,66 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         RegisterMeshCullingPass( graph );
+        RegisterScatteredWrites( graph );
+    }
+
+    auto MeshCulling::RegisterScatteredWrites( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        m_MeshInfo.resize( MAX_RENDERABLE_ENTITIES );
+        m_MeshInfoIndices.resize( MAX_RENDERABLE_ENTITIES );
+
+        struct ScatterPushConstant {
+            UInt32 UpdateCount{};
+        };
+
+        graph.RegisterPass(
+                "ScatteredWritesMeshPass",
+                []( FramePassBuilder &b) {
+                    b.Create<Buffer>( "ScatteredWrites_MeshData", BufferUsage::SHADER_STORAGE, sizeof( MeshParameters ), MAX_RENDERABLE_ENTITIES );
+                    b.Create<Buffer>( "ScatteredWrites_MeshDataIndices", BufferUsage::SHADER_STORAGE, sizeof( UInt32 ), MAX_RENDERABLE_ENTITIES );
+
+                    auto finalBuffer{ BufferBuilder{} };
+                    finalBuffer.WithUsage( BufferUsage::SHADER_STORAGE )
+                        .ForElement( sizeof(MeshParameters), MAX_RENDERABLE_ENTITIES )
+                        .IsDynamic( false )
+                        .Build( "FinalBuffer_ObjectInfo" );
+
+                    b.CreateBuffer( finalBuffer );
+
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/ScatteredWritesMesh_Comp.sprv", ShaderStage::COMPUTE );
+                    b.Create<Pipeline>( "ScatteredWritesMeshPass_Pipeline", ComputePipelineDescription{} );
+
+                    b.Write( "ScatteredWrites_MeshData", FrameResourceState::UnorderedAccess );
+                    b.Write( "ScatteredWrites_MeshDataIndices", FrameResourceState::UnorderedAccess );
+                    b.Write( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
+
+                    // This pass goes after mesh culling
+                    b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
+
+                    b.Use( SRGType::SRG_PerPass, "FinalBuffer_ObjectInfo", 0 );
+                    b.Use( SRGType::SRG_PerPass, "ScatteredWrites_MeshData", 1 );
+                    b.Use( SRGType::SRG_PerPass, "ScatteredWrites_MeshDataIndices", 2 );
+                },
+                [this]( CommandContext &ctx, FrameGraphBlackboard& ) -> void {
+                    // Need at least m_ObjectUpdateCount threads.
+                    // But dispatch works in groups, not individual threads.
+                    Size dispatchCount{ (m_ObjectUpdateCount + 64 - 1) };
+                    if (dispatchCount == 0) {
+                        return;
+                    }
+
+                    ScatterPushConstant pushConstants{};
+                    pushConstants.UpdateCount = m_ObjectUpdateCount;
+
+                    ctx.BindPipeline( "ScatteredWritesMeshPass_Pipeline" );
+
+                    ctx.PushConstants( std::addressof( pushConstants ), sizeof( ScatterPushConstant ) );
+                    ctx.UploadBufferData( "ScatteredWrites_MeshData", m_MeshInfo.data(), sizeof( MeshParameters ), m_ObjectUpdateCount );
+                    ctx.UploadBufferData( "ScatteredWrites_MeshDataIndices", m_MeshInfoIndices.data(), sizeof( UInt32 ), m_ObjectUpdateCount );
+
+                    ctx.Dispatch( (m_ObjectUpdateCount + 64 - 1) / 64, 1, 1 );
+                } );
     }
 
     auto MeshCulling::RegisterMeshCullingPass(FrameGraph &graph) -> void {
@@ -95,6 +155,13 @@ namespace Mikoto {
                 if (instanceInfo.IsActive( entityID )) {
                     // We have already allocated enough space to hold this many active entities
                     m_Meshes[meshIndex] = meshInstanceInfo;
+                    m_MeshInfo[meshIndex] = MeshParameters{
+                        .Transform{ meshInstanceInfo.Transform },
+                        .MeshIndex{ static_cast<UInt32>(meshIndex) },
+                        .MaterialIndex{ static_cast<UInt32>(meshIndex) }
+                    };
+
+                    m_MeshInfoIndices[meshIndex] = meshIndex;
 
                     ++meshIndex;
                     ++instanceCount;
@@ -109,6 +176,8 @@ namespace Mikoto {
         }
 
         MKT_ASSERT( activeMeshCount <= MAX_RENDERABLE_ENTITIES, "Exceeded limit of renderable entities" );
+
+        m_ObjectUpdateCount = activeMeshCount;
 
         context.UploadBufferData( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMaterialParams ), activeMeshCount );
     }
@@ -168,4 +237,4 @@ namespace Mikoto {
             m_Meshes.resize( count );
         }
     }
-}
+}// namespace Mikoto

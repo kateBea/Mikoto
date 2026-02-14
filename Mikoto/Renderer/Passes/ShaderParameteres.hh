@@ -58,6 +58,8 @@ namespace Mikoto {
 
     struct MeshParameters {
         Mat4F Transform{};
+        UInt32  MeshIndex{};
+        UInt32  MaterialIndex{};
         //Mat4F JointMatrix[MAX_NUM_JOINTS]{};
         //UInt32 JointCount{};
     };

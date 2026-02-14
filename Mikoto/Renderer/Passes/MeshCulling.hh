@@ -62,6 +62,7 @@ namespace Mikoto {
         auto UploadInstanceData( CommandContext& context ) -> void;
         auto SetupInstanceData( CommandContext& context ) -> void;
 
+        auto RegisterScatteredWrites(FrameGraph &graph) -> void;
         auto RegisterMeshCullingPass(FrameGraph &graph) -> void;
 
     private:
@@ -70,8 +71,11 @@ namespace Mikoto {
 
         std::vector<ShaderMaterialParams> m_Meshes{};
 
-        // TODO: change ShaderMaterialParams to mesh info struct
-        std::vector<ShaderMaterialParams> m_MeshInfo{};
+        Size m_ObjectUpdateCount{};
+
+        std::vector<UInt32> m_MeshInfoIndices{};
+        std::vector<MeshParameters> m_MeshInfo{};
+
         std::vector<MaterialParameters> m_Materials{};
 
         ankerl::unordered_dense::map<MeshNode*, MeshInstanceInfo> m_MeshDrawState{};

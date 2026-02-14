@@ -48,6 +48,8 @@ namespace Mikoto {
         auto RegisterHelloCube( FrameGraph& graph ) -> void;
         auto RegisterHelloTexture( FrameGraph& graph ) -> void;
 
+        auto RegisterDebugViewsPass( FrameGraph& graph ) -> void;
+
     private:
         struct WireframeParams {
             Vec4F WireframeLineColor{ 0.0f, 0.0f, 0.0f, 1.0f };

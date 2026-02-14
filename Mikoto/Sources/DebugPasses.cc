@@ -53,6 +53,8 @@ namespace Mikoto {
         RegisterSimpleCompute( graph );
         RegisterHelloTriangle( graph );
         RegisterWireFrame( graph );
+
+        RegisterDebugViewsPass( graph );
     }
 
     auto DebugPasses::SetWireframeLineLineWidth( float value ) -> void {
@@ -94,10 +96,10 @@ namespace Mikoto {
                     b.Write( "Wireframe_DepthTarget", FrameResourceState::DepthWrite );
 
                     b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-                    b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
+                    b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
 
                     b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
-                    b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 1 );
+                    b.Use( SRGType::SRG_PerPass, "FinalBuffer_ObjectInfo", 1 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -244,6 +246,18 @@ namespace Mikoto {
                     ctx.Draw( 4, 1, 0, 0 );
 
                     ctx.EndRender();
+                } );
+    }
+
+    auto DebugPasses::RegisterDebugViewsPass( FrameGraph &graph ) -> void {
+        graph.RegisterPass(
+                "DebugViewsForDebugPasses",
+                []( FramePassBuilder &b ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+                    b.Read( "Wireframe_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+                },
+                []( CommandContext &, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
                 } );
     }
 }

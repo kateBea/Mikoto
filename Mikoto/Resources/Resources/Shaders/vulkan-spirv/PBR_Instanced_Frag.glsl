@@ -341,24 +341,27 @@ void main() {
     uvec3 tile = uvec3(gl_FragCoord.xy / tileSize, zTile);
     uint tileIndex = uint(tile.x + (tile.y * u_Constants.GridSize.x) + (tile.z * u_Constants.GridSize.x * u_Constants.GridSize.y));
 
-    uint lightCount = Clusters[tileIndex].Count;
+    // TODO: Review, should tile index be out of bounds
+    if (tileIndex < Clusters.length()) {
+        uint lightCount = Clusters[tileIndex].Count;
 
-    for(int i = 0; i < lightCount; ++i)  {
-        uint lightIndex = Clusters[tileIndex].LightIndices[i];
-        LightInfo light = Lights[lightIndex];
+        for(int i = 0; i < lightCount; ++i)  {
+            uint lightIndex = Clusters[tileIndex].LightIndices[i];
+            LightInfo light = Lights[lightIndex];
 
-        switch (light.ActiveLightType) {
-            case LIGHT_TYPE_POINT:
-                Lo += ComputePointLightContribution(N, V, F0, roughness, metallic, albedo.xyz, light);
-                break;
-            case LIGHT_TYPE_SPOT:
-                Lo += ComputeSpotLightContribution(N, V, F0, roughness, metallic, albedo.xyz, light);
-                break;
-            case LIGHT_TYPE_DIRECTIONAL:
-                Lo += ComputeDirectionalLightContribution(N, V, F0, roughness, metallic, albedo.xyz, light);
-                break;
-            default:
-                break;
+            switch (light.ActiveLightType) {
+                case LIGHT_TYPE_POINT:
+                    Lo += ComputePointLightContribution(N, V, F0, roughness, metallic, albedo.xyz, light);
+                    break;
+                case LIGHT_TYPE_SPOT:
+                    Lo += ComputeSpotLightContribution(N, V, F0, roughness, metallic, albedo.xyz, light);
+                    break;
+                case LIGHT_TYPE_DIRECTIONAL:
+                    Lo += ComputeDirectionalLightContribution(N, V, F0, roughness, metallic, albedo.xyz, light);
+                    break;
+                default:
+                    break;
+            }
         }
     }
 

@@ -630,7 +630,7 @@ namespace Mikoto {
                         .AlphaBlending{ true },
                         .EnableSampleRateShading{ true },
                         .Multisampling{ Multisampling::MSAA_X1 },
-                        .PipelineCullMode{ CullMode::CULL_BACK },
+                        .PipelineCullMode{ CullMode::NONE }, // We probably need to organize models by material some models like the just_a_girl require cull_back to be properly visulized
                     };
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/PBR_Instanced_Vert.sprv", ShaderStage::VERTEX )

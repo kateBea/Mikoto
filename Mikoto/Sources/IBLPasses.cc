@@ -46,22 +46,24 @@ namespace Mikoto {
             m_CubeMapSampler = device->CreateSampler( samplerDescription );
         }
 
-        RegisterSkybox( graph );
-        RegisterBRDFLut( graph );
-
         // These would ideally render and update the shadow maps
         // for dynamic shadow casters in a shadow texture atlas
         // TODO: investigate. Start by first integrating shadows for one dir light and proceed with atlas integration
         //https://www.adriancourreges.com/blog/2016/09/09/doom-2016-graphics-study/
 
+        // Shadowmapping
         RegisterDirShadowMap( graph );
         RegisterSpotShadowMap( graph );
         RegisterPointShadowMap( graph );
 
-        RegisterSkyboxRender( graph );
+        // IBL
+        RegisterSkybox( graph );
+        RegisterBRDFLut( graph );
 
+        RegisterSkyboxRender( graph );
         RegisterIrradiance( graph );
         RegisterPrefilter( graph );
+
         RegisterShading( graph );
 
         //RegisterMetalRoughnessPBR( graph );
@@ -283,8 +285,6 @@ namespace Mikoto {
                         m_BRDFLutSampler = ctx.CreateSampler( SamplerDescription{} );
                     }
 
-                    ctx.SetClearColor( { 0.0f, 0.0f, 0.0f, 1.0f } );
-
                     ctx.SetColorRenderTarget( "BRDFLutPass_ColorTarget" );
 
                     ctx.BeginRender();
@@ -405,10 +405,8 @@ namespace Mikoto {
 
         graph.RegisterPass(
                 "Skybox",
-                []( FramePassBuilder &b ) {
+                [this]( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
-
-                    b.Create<Buffer>( "IBL_Parameters", BufferUsage::UNIFORM, sizeof( IBLParameters ), 1 );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Skybox_Vert.sprv", ShaderStage::VERTEX );
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Skybox_Frag.sprv", ShaderStage::FRAGMENT );
@@ -424,32 +422,26 @@ namespace Mikoto {
 
                     b.Write( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
                     b.Write( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite );
-                    b.Write( "IBL_Parameters", FrameResourceState::UniformBuffer );
 
                     b.Read( "SkyboxRender_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
                     b.Read( "IrradiancePass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
 
                     b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
 
-                    b.Use( SRGType::SRG_PerPass, "IBL_Parameters", 0 );
-                    b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 1 );
+                    b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
-
-                    // Since other passes depend on this data we upload it so it is available in the shaders
-                    ctx.UploadBuffer<IBLParameters>( "IBL_Parameters", m_IBLParameters );
 
                     if (!m_UseSkybox) {
                         return;
                     }
 
-                    ctx.BindPipeline( "SkyboxPass_Pipeline" );
+                    const auto dimensions{ InferDimensions( m_Resolution ) };
+                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
-                    ctx.SetViewport( 0, 0, 1920, 1080 );
-                    ctx.SetScissor( 0, 0, 1920, 1080 );
-
-                    const UInt32 bindSlot{ 2 };
+                    constexpr UInt32 bindSlot{ 1 };
 
                     if ( m_UseConvolutedCubeMap ) {
                         ctx.BindImage( "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, bindSlot );
@@ -461,8 +453,7 @@ namespace Mikoto {
                         }
                     }
 
-                    // Update contents
-                    ctx.UploadBuffer( "IBL_Parameters", m_IBLParameters );
+                    ctx.PushConstants( std::addressof( m_IBLParameters ), sizeof( m_IBLParameters ) );
 
                     ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
                     ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );
@@ -470,6 +461,7 @@ namespace Mikoto {
 
                     ctx.BeginRender();
 
+                    ctx.BindPipeline( "SkyboxPass_Pipeline" );
                     ctx.Draw( 36 );
 
                     ctx.EndRender();
@@ -477,9 +469,7 @@ namespace Mikoto {
     }
 
     auto IBLPasses::SetCamera( const Camera *camera ) -> void {
-        m_FrameUBO.View = camera->GetViewMatrix();
-        m_FrameUBO.Projection = camera->GetProjection();
-        m_FrameUBO.CameraPosition = Vec4F{ camera->GetPosition(), 1.0f };
+
     }
 
     auto IBLPasses::RegisterDirShadowMap( FrameGraph &graph ) -> void {
@@ -493,7 +483,7 @@ namespace Mikoto {
                     b.Create<Texture>( "DirectionalShadowMapPass_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
                     b.Create<Texture>( "DirectionalShadowMapPass_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
 
-                    b.Create<Buffer>( "DirectionalShadowMapPass_CameraInfo", BufferUsage::UNIFORM, sizeof( DirectionalShadowMapCameraInfo ), 1 );
+                    b.Create<Buffer>( "DirectionalShadowMapPass_CameraInfo", BufferUsage::UNIFORM, sizeof( LightCameraInfo ), 1 );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/DirectionalShadowMap_Frag.sprv", ShaderStage::FRAGMENT );
                     b.UseShader( "Resources/Shaders/vulkan-spirv/DirectionalShadowMap_Vert.sprv", ShaderStage::VERTEX );
@@ -508,8 +498,7 @@ namespace Mikoto {
                     b.Write( "DirectionalShadowMapPass_ColorTarget", FrameResourceState::RenderTarget );
                     b.Write( "DirectionalShadowMapPass_DepthTarget", FrameResourceState::DepthWrite );
 
-                    b.Use( SRGType::SRG_PerPass, "DirectionalShadowMapPass_CameraInfo", 0 );
-                    b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 1 );
+                    b.Use( SRGType::SRG_PerPass, "FinalBuffer_ObjectInfo", 0 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -544,9 +533,10 @@ namespace Mikoto {
                             m_DirectionalShadowMapCameraInfo.LightView = glm::lookAt(transform.GetTranslation(), glm::vec3(0.0f), glm::vec3(0, 1, 0));
                             m_DirectionalShadowMapCameraInfo.LightProjection = glm::perspective(glm::radians(degreesFOV), 1.0f, zNear, zFar);
 
-                            ctx.UploadBuffer<DirectionalShadowMapCameraInfo>( "DirectionalShadowMapPass_CameraInfo", m_DirectionalShadowMapCameraInfo );
+                            ctx.PushConstants( std::addressof( m_DirectionalShadowMapCameraInfo ), sizeof(m_DirectionalShadowMapCameraInfo ) );
 
                             m_MeshCullingPass->DrawInstances( ctx );
+                            break;
                         }
                     }
 
@@ -579,27 +569,21 @@ namespace Mikoto {
                     MKT_BEGIN_PROFILER_NAMED();
                 } );
     }
-
+    
     auto IBLPasses::RegisterDebugViewsPass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
-        // This has to be the very last pass
 
         graph.RegisterPass(
                 "DebugViewsPass",
                 []( FramePassBuilder &b ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
+
+                    // To have this pas transition the final convert the final image into a layout imgui likes
+                    b.Read( "FinalShading_Params", FrameResourceState::ShaderRead_GraphicsPipeline );
+                    b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+
                     b.Read( "HelloTriangle_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
                     b.Read( "HelloTexture_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
-                    b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
-                    b.Read( "DirectionalShadowMapPass_DepthTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
-                    b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
-                    b.Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
-
-                    b.Read( "TextRenderPass_FontParams", FrameResourceState::UniformBuffer );
-                    b.Read( "TextRenderPass_TextRenderParams", FrameResourceState::UniformBuffer );
-
-                    b.Read( "InfiniteGrid_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
 
                     b.Read( "GBuffer_Position", FrameResourceState::ShaderRead_GraphicsPipeline );
                     b.Read( "GBuffer_Normal", FrameResourceState::ShaderRead_GraphicsPipeline );
@@ -613,15 +597,16 @@ namespace Mikoto {
     auto IBLPasses::RegisterShading( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        graph.RegisterPass(
+        graph.RegisterPass<EnvironmentConstants>(
                 "FinalShading",
-                [this]( FramePassBuilder &b ) -> void {
+                [this]( FramePassBuilder &b, EnvironmentConstants& ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
+
+                    // To create edge
+                    b.Create<Buffer>( "FinalShading_Params", BufferUsage::UNIFORM, sizeof( LightCameraInfo ), 1 );
 
                     b.Create<Texture>( "FinalShadingPass_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, Multisampling::MSAA_X1, TextureUsage::COLOR );
                     b.Create<Texture>( "FinalShadingPass_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, Multisampling::MSAA_X1, TextureUsage::DEPTH );
-
-                    b.Create<Buffer>( "FinalCompositionPass_CameraInfo", BufferUsage::UNIFORM, sizeof( ShaderCameraParams ), 1 );
 
                     GraphicsPipelineDescription graphicsDesc{
                         .DepthTest{ true },
@@ -637,30 +622,27 @@ namespace Mikoto {
                         .Create<Pipeline>( "FinalCompositionPass_Pipeline", graphicsDesc );
 
                     b.Read( "CameraInfoPass_CameraData", FrameResourceState::UnorderedAccess )
+                        .Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess )
                         .Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess )
-                        .Read( "LightCullingComp_LightsBuffer", FrameResourceState::UnorderedAccess )
                         .Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite)
                         .Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget )
-                        .Read( "ClusteredShading_Parameters", FrameResourceState::UniformBuffer );
+                        .Read( "LightCullingComp_LightsBuffer", FrameResourceState::UniformBuffer );
 
                     b.Read( "PrefilterPass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
                     b.Read( "IrradiancePass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
                     b.Read( "BRDFLutPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
 
                     b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
-                    b.Write( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
 
-                    b.Read( "IBL_Parameters", FrameResourceState::UniformBuffer );
+                    b.Write( "FinalShading_Params", FrameResourceState::UniformBuffer );
 
                     b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 )
-                        .Use( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 1 )
-                        .Use( SRGType::SRG_PerPass, "ClusteredShading_Parameters", 2 )
-                        .Use( SRGType::SRG_PerPass, "IBL_Parameters", 3 )
-                        .Use( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 4 )
-                        .Use( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 5 )
+                        .Use( SRGType::SRG_PerPass, "FinalBuffer_ObjectInfo", 1 )
+                        .Use( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 2 )
+                        .Use( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 3 )
                         .Use( SRGType::SRG_Textures );
                 },
-                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
 
                     MKT_ASSERT( m_MeshCullingPass, "Mesh culling must be valid" );
@@ -680,11 +662,19 @@ namespace Mikoto {
                         .ColorLoadOp{ colorTargetLoadOP },
                     };
 
-                    ctx.BindImage( "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, 7 );
-                    ctx.BindImage( "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, 8 );
-                    ctx.BindImage( "BRDFLutPass_ColorTarget", m_BRDFLutSampler, 6 );
+                    ctx.BindImage( "BRDFLutPass_ColorTarget", m_BRDFLutSampler, 4 );
+                    ctx.BindImage( "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, 5 );
+                    ctx.BindImage( "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, 6 );
 
                     ctx.BeginRender( renderInfo );
+
+                    auto& data{ blackboard.Get<EnvironmentConstants>() };
+                    data.MaxReflectionLOD = m_IBLParameters.MaxReflectionLOD;
+                    data.Exposure = m_IBLParameters.Exposure;
+                    data.Gamma = m_IBLParameters.Gamma;
+                    data.IsSkyboxActive = m_IBLParameters.IsSkyboxActive;
+
+                    ctx.PushConstants( std::addressof( data ), sizeof( data ) );
 
                     const auto dimensions{ InferDimensions( m_Resolution ) };
 
@@ -734,8 +724,6 @@ namespace Mikoto {
 
                     b.Read( "MeshCulling_MeshInfo", FrameResourceState::UnorderedAccess );
                     b.Read( "MeshCulling_MaterialInfo", FrameResourceState::UniformBuffer );
-
-                    b.Read( "IBL_Parameters", FrameResourceState::UniformBuffer );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();

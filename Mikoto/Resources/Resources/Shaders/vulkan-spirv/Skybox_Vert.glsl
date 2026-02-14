@@ -22,7 +22,7 @@ layout(location = 0) out vec3 v_Direction;
 layout(location = 1) flat out float v_Exposure;
 layout(location = 2) flat out float v_Gamma;
 
-layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform SkyBoxUBO {
+layout(scalar, push_constant) uniform SkyBoxParameters {
     float Exposure;
     float Gamma;
 
@@ -31,7 +31,7 @@ layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform SkyBoxUBO {
     int IsSkyboxActive;
 } u_IBLParams;
 
-layout(scalar, set = PERPASS_SETINDEX, binding = 1) uniform CameraUBO {
+layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
     mat4 Projection;
     mat4 ViewMatrix;
     mat4 InverseProjection;

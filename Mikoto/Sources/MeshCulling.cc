@@ -35,7 +35,6 @@ namespace Mikoto {
     auto MeshCulling::RegisterPasses( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        m_Meshes.resize( MAX_RENDERABLE_ENTITIES );
         m_MeshInfo.resize( MAX_RENDERABLE_ENTITIES );
         m_MeshInfoIndices.resize( MAX_RENDERABLE_ENTITIES );
 
@@ -74,7 +73,7 @@ namespace Mikoto {
                     b.Write( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
 
                     // This pass goes after mesh culling
-                    b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
+                    b.Read( "MeshCulling_MeshCullingNode", FrameResourceState::UnorderedAccess );
 
                     b.Use( SRGType::SRG_PerPass, "FinalBuffer_ObjectInfo", 0 );
                     b.Use( SRGType::SRG_PerPass, "ScatteredWrites_MeshData", 1 );
@@ -110,8 +109,8 @@ namespace Mikoto {
                 "MeshCulling",
                 []( FramePassBuilder &b ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
-                    b.Create<Buffer>( "FinalCompositionPass_MeshInfo", BufferUsage::SHADER_STORAGE, sizeof( ShaderMaterialParams ), MAX_RENDERABLE_ENTITIES );
-                    b.Write( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
+                    // To force this pass to go before ScatteredWritesMeshPass
+                    b.Write( "MeshCulling_MeshCullingNode", FrameResourceState::UnorderedAccess );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -208,12 +207,25 @@ namespace Mikoto {
             meshDrawState.InstancesCount = m_MeshDrawInstanceCount[meshNode];
 
             for ( const auto &instance: m_InstanceInfos[meshNode] ) {
-                m_Meshes[meshIndex] = instance;
-                m_MeshInfo[meshIndex] = MeshParameters{
-                    .Transform{ instance.Transform },
-                    .MeshIndex{ static_cast<UInt32>( meshIndex ) },
-                    .MaterialIndex{ static_cast<UInt32>( meshIndex ) }
-                };
+                auto& info{ m_MeshInfo[meshIndex] };
+                info.Transform = instance.Transform;
+                info.MaterialIndex = meshIndex;
+
+                info.Albedo = instance.Albedo;
+                info.AlbedoIndex = instance.AlbedoIndex;
+
+                info.AlphaCutoff = instance.Alpha;
+                info.MetallicFactor = instance.Factors.x;
+                info.RoughnessFactor = instance.Factors.y;
+                info.OcclusionStrength = instance.Factors.z;
+                info.EmissiveFactors = instance.EmissiveFactors;
+                info.EmissiveIntensity = instance.EmissiveIntensity;
+
+                info.NormalIndex = instance.NormalIndex;
+                info.MetallicIndex = instance.MetallicIndex;
+                info.RoughnessIndex = instance.RoughnessIndex;
+                info.AoIndex = instance.AoIndex;
+                info.EmissiveIndex = instance.EmissiveIndex;
 
                 m_MeshInfoIndices[meshIndex] = meshIndex;
 
@@ -228,7 +240,5 @@ namespace Mikoto {
         MKT_ASSERT( activeMeshCount <= MAX_RENDERABLE_ENTITIES, "Exceeded limit of renderable entities" );
 
         m_ObjectUpdateCount = activeMeshCount;
-
-        context.UploadBufferData( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMaterialParams ), activeMeshCount );
     }
 }

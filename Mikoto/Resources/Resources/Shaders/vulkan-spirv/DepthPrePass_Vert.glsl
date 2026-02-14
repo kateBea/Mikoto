@@ -18,6 +18,7 @@
 #extension GL_EXT_scalar_block_layout : require
 
 #include "ShaderBase.glsl"
+#include "Material_Helpers.glsl"
 
 layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
     mat4 Projection;
@@ -28,14 +29,14 @@ layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
     vec2 ScreenDimensions;
 } u_Camera;
 
-layout(std430, scalar, set = PERPASS_SETINDEX, binding = 1) readonly buffer MeshInfoSSBO {
-    MeshInfo Meshes[];
+layout(std430, scalar, set = STATIC_SETINDEX, binding = 1) readonly buffer MeshParametersBuffer {
+    MeshParameters Meshes[];
 };
 
 layout(location = 0) in vec3 a_Position;
 
 void main() {
-    MeshInfo meshInfo = Meshes[gl_InstanceIndex];
+    MeshParameters meshInfo = Meshes[gl_InstanceIndex];
     mat4 model = mat4(meshInfo.Transform);
     gl_Position = u_Camera.Projection * u_Camera.ViewMatrix * model * vec4(a_Position, 1.0);
 }

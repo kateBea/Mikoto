@@ -31,8 +31,7 @@ layout (location = 2) in float v_Gamma;
 
 layout (location = 0) out vec4 o_Color;
 
-layout (set = STATIC_SETINDEX, binding = 2) uniform samplerCube u_Skybox;
-
+layout (set = STATIC_SETINDEX, binding = 1) uniform samplerCube u_Skybox;
 
 void main() {
     vec3 color = texture(u_Skybox, v_Direction).rgb;

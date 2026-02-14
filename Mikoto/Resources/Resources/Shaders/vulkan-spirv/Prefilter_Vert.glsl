@@ -19,8 +19,6 @@
 #include "ShaderBase.glsl"
 
 layout(location = 0) out vec3 o_Pos;
-layout(location = 1) flat out float o_Roughness;
-layout(location = 2) flat out uint o_NumSamples;
 
 layout(scalar, push_constant) uniform PrefilterConstants {
     mat4 MVP;
@@ -77,9 +75,6 @@ void main() {
     vec3 pos = vec3(boxPositions[gl_VertexIndex]);
 
     o_Pos = pos;
-
-    o_Roughness = u_Parameters.Roughness;
-    o_NumSamples = u_Parameters.NumSamples;
 
     gl_Position = u_Parameters.MVP * vec4(pos, 1.0);
 }

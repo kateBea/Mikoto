@@ -35,7 +35,7 @@ namespace Mikoto {
         auto SetResolution( RenderResolution resolution) -> void;
         auto RegisterPasses( FrameGraph& graph, GpuDevice* device ) -> void;
 
-        auto SetScene( Scene* scene) -> void;
+        auto SetScene( Scene* scene ) -> void;
         auto SetCamera( const Camera *camera ) -> void;
 
         // HDR
@@ -119,12 +119,10 @@ namespace Mikoto {
             Mat4F MVP{};
         };
 
-        struct DirectionalShadowMapCameraInfo {
+        struct LightCameraInfo {
             Mat4F LightView{};
             Mat4F LightProjection{};
         };
-
-    private:
 
         static constexpr UInt32 MAX_MIP_LEVELS{ 7 };
 
@@ -156,9 +154,8 @@ namespace Mikoto {
         SamplerHandle m_Skybox2DSampler{};
 
         ShaderLightListParams m_LightsInfo{};
-        ShaderCameraParams m_FrameUBO{};
 
-        DirectionalShadowMapCameraInfo m_DirectionalShadowMapCameraInfo{};
+        LightCameraInfo m_DirectionalShadowMapCameraInfo{};
 
         Scene* m_Scene{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };

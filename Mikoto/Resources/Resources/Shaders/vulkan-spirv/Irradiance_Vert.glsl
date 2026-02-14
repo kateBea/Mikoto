@@ -40,8 +40,6 @@ layout(scalar, push_constant) uniform IrradianceCamUBO {
 } u_Parameters;
 
 layout(location = 0) out vec3 o_Pos;
-layout(location = 1) out float o_DeltaPhi;
-layout(location = 2) out float o_DeltaTheta;
 
 // https://learnopengl.com/code_viewer.php?code=advanced/cubemaps_skybox_data
 const vec3 boxPositions[36] = vec3[](
@@ -92,9 +90,6 @@ void main() {
     vec3 pos = vec3(boxPositions[gl_VertexIndex]);
 
     o_Pos = pos;
-
-    o_DeltaPhi = u_Parameters.DeltaPhi;
-    o_DeltaTheta = u_Parameters.DeltaTheta;
 
     gl_Position = u_Parameters.MVP * vec4(pos, 1.0);
 }

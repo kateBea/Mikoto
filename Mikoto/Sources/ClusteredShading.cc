@@ -45,8 +45,8 @@ namespace Mikoto {
         BuildAABB( graph );
         BuildLightCulling( graph );
 
-        //BuildGBuffer( graph );
-        //BuildDepthPrepass( graph );
+        BuildGBuffer( graph );
+        BuildDepthPrepass( graph );
     }
 
     auto ClusteredShading::SetMeshCulling( MeshCulling &cullingPass ) -> void {
@@ -77,9 +77,12 @@ namespace Mikoto {
                     b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
                     b.Use( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
                 },
-                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
                     ctx.BindPipeline( "AABBGenComp_Pipeline" );
+
+                    auto& data{ blackboard.Get<EnvironmentConstants>() };
+                    data.GridSize = glm::vec4{ m_GridSizeX, m_GridSizeY, m_GridSizeZ, 0.0f };
 
                     m_ClusterShadingParams.GridSize = glm::vec4{ m_GridSizeX, m_GridSizeY, m_GridSizeZ, 0.0f };
                     m_ClusterShadingParams.ShowHeatMap = MKT_SHADER_FALSE;
@@ -167,10 +170,10 @@ namespace Mikoto {
                     b.Write( "GBuffer_Params", FrameResourceState::UniformBuffer );
 
                     b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-                    b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
+                    b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
 
                     b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
-                    b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 1 );
+                    b.Use( SRGType::SRG_PerPass, "FinalBuffer_ObjectInfo", 1 );
                     b.Use( SRGType::SRG_Textures );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
@@ -193,7 +196,6 @@ namespace Mikoto {
                     m_MeshCullingPass->DrawInstances( ctx );
 
                     ctx.EndRender();
-
                 } );
     }
 
@@ -224,10 +226,10 @@ namespace Mikoto {
                     b.Write( "DepthPrePass_Depth", FrameResourceState::DepthWrite );
 
                     b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-                    b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
+                    b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
 
                     b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
-                    b.Use( SRGType::SRG_PerPass, "FinalCompositionPass_MeshInfo", 1 );
+                    b.Use( SRGType::SRG_PerPass, "FinalBuffer_ObjectInfo", 1 );
                 },
 
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {

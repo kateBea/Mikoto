@@ -21,9 +21,13 @@
 
 #include "ShaderBase.glsl"
 
+layout(scalar, push_constant) uniform PrefilterConstants {
+    mat4 MVP;
+    float Roughness;
+    uint NumSamples;
+} u_Parameters;
+
 layout(location = 0) in vec3 v_Pos;
-layout(location = 1) flat in float v_Roughness;
-layout(location = 2) flat in uint v_NumSamples;
 
 layout (location = 0) out vec4 o_Color;
 
@@ -82,14 +86,17 @@ float D_GGX(float dotNH, float roughness) {
 }
 
 vec3 PrefilterEnvMap(vec3 R, float roughness)  {
+    uint NumSamples = u_Parameters.NumSamples;
+    float Roughness = u_Parameters.Roughness;
+
     vec3 N = R;
     vec3 V = R;
     vec3 color = vec3(0.0);
     float totalWeight = 0.0;
     float envMapDim = float(textureSize(u_SamplerEnv, 0).s);
 
-    for(uint i = 0u; i < v_NumSamples; i++) {
-        vec2 Xi = Hammersley2D(i, v_NumSamples);
+    for(uint i = 0u; i < NumSamples; i++) {
+        vec2 Xi = Hammersley2D(i, NumSamples);
         vec3 H = ImportanceSample_GGX(Xi, roughness, N);
         vec3 L = 2.0 * dot(V, H) * H - V;
         float dotNL = clamp(dot(N, L), 0.0, 1.0);
@@ -103,7 +110,7 @@ vec3 PrefilterEnvMap(vec3 R, float roughness)  {
             float pdf = D_GGX(dotNH, roughness) * dotNH / (4.0 * dotVH) + 0.0001;
 
             // Slid angle of current smple
-            float omegaS = 1.0 / (float(v_NumSamples) * pdf);
+            float omegaS = 1.0 / (float(NumSamples) * pdf);
 
             // Solid angle of 1 pixel across all cube faces
             float omegaP = 4.0 * PI / (6.0 * envMapDim * envMapDim);
@@ -121,5 +128,5 @@ vec3 PrefilterEnvMap(vec3 R, float roughness)  {
 
 void main() {
     vec3 N = normalize(v_Pos);
-    o_Color = vec4(PrefilterEnvMap(N, v_Roughness), 1.0);
+    o_Color = vec4(PrefilterEnvMap(N, u_Parameters.Roughness), 1.0);
 }

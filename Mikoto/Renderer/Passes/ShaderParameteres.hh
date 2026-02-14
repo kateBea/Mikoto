@@ -58,10 +58,24 @@ namespace Mikoto {
 
     struct MeshParameters {
         Mat4F Transform{};
-        UInt32  MeshIndex{};
-        UInt32  MaterialIndex{};
-        //Mat4F JointMatrix[MAX_NUM_JOINTS]{};
-        //UInt32 JointCount{};
+        UInt32 MaterialIndex{};
+
+        Vec4F Albedo{};
+        Int32 AlbedoIndex{INVALID_TEXTURE_INDEX };
+
+        float AlphaCutoff{ 0.5f };
+        float MetallicFactor{ 1.0f };
+        float RoughnessFactor{ 1.0f };
+        float OcclusionStrength{ 1.0f };
+
+        Vec3F EmissiveFactors{ 1.0f, 1.0f, 1.0f };
+        float EmissiveIntensity{ 1.0 };
+
+        Int32 NormalIndex{ INVALID_TEXTURE_INDEX };
+        Int32 MetallicIndex{ INVALID_TEXTURE_INDEX };
+        Int32 RoughnessIndex{ INVALID_TEXTURE_INDEX };
+        Int32 AoIndex{ INVALID_TEXTURE_INDEX };
+        Int32 EmissiveIndex{ INVALID_TEXTURE_INDEX };
     };
 
     struct MaterialParameters {
@@ -100,10 +114,13 @@ namespace Mikoto {
         Int32 Workflow{ 0 };// 0 = Metallic-Roughness, 1 = Specular-Glossiness
     };
 
-    struct ShaderCameraParams {
-        Mat4F View{};
-        Mat4F Projection{};
-        Vec4F CameraPosition{};
+    struct EnvironmentConstants {
+        Vec4F GridSize{};
+        float Exposure{};
+        float Gamma{};
+        float MaxReflectionLOD{};
+
+        Int32 IsSkyboxActive{};
     };
 
     struct ShaderLightTypeParams {

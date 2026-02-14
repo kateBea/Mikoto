@@ -18,6 +18,7 @@
 #extension GL_EXT_scalar_block_layout : require
 
 #include "ShaderBase.glsl"
+#include "Material_Helpers.glsl"
 
 layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
     mat4 Projection;
@@ -28,8 +29,8 @@ layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
     vec2 ScreenDimensions;
 } u_Camera;
 
-layout(std430, scalar, set = PERPASS_SETINDEX, binding = 1) readonly buffer MeshInfoSSBO {
-    MeshInfo Meshes[];
+layout(std430, scalar, set = STATIC_SETINDEX, binding = 1) readonly buffer MeshParametersBuffer {
+    MeshParameters Meshes[];
 };
 
 layout(location = 0) in vec3 a_Position;
@@ -37,6 +38,7 @@ layout(location = 1) in vec3 a_Normal;
 layout(location = 2) in vec3 a_Color;
 layout(location = 3) in vec2 a_TexCoord;
 
+layout(location = 0) out vec3 out_FragmentViewPos;
 layout(location = 1) out vec3 out_FragmentWorldPos;
 layout(location = 2) out vec3 out_VertexNormal;
 layout(location = 3) out vec2 out_TexCoord;
@@ -45,12 +47,9 @@ layout(location = 4) out vec3 out_Color;
 layout(location = 5) flat out int out_AlbedoIndex;
 layout(location = 6) flat out int out_NormalIndex;
 layout(location = 7) flat out vec4 out_Albedo;
-layout(location = 8) flat out vec4 out_Factors;
-
-layout(location = 9) out vec3 out_FragmentViewPos;
 
 void main() {
-    MeshInfo meshInfo = Meshes[gl_InstanceIndex];
+    MeshParameters meshInfo = Meshes[gl_InstanceIndex];
 
     mat4 model = mat4(meshInfo.Transform);
 
@@ -70,7 +69,6 @@ void main() {
     out_AlbedoIndex    = meshInfo.AlbedoIndex;
     out_NormalIndex    = meshInfo.NormalIndex;
     out_Albedo         = meshInfo.Albedo;
-    out_Factors        = meshInfo.Factors;
 
     gl_Position = u_Camera.Projection * u_Camera.ViewMatrix * model * vec4(a_Position, 1.0);
 }

@@ -22,9 +22,22 @@ struct MaterialParameters {
 
 struct MeshParameters {
     mat4 Transform;
-    uint MeshIndex;
     uint MaterialIndex;
-    //mat4 JointMatrix[MAX_NUM_JOINTS];
 
-    //uint JointCount;
+    vec4 Albedo;
+    int AlbedoIndex;
+
+    float AlphaCutoff;
+    float MetallicFactor;
+    float RoughnessFactor;
+    float OcclusionStrength;
+
+    vec3 EmissiveFactors;
+    float EmissiveIntensity;
+
+    int NormalIndex;
+    int MetallicIndex;
+    int RoughnessIndex;
+    int AoIndex;
+    int EmissiveIndex;
 };

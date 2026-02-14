@@ -522,12 +522,18 @@ namespace Mikoto {
     }
 
     auto VulkanGraphicsContext::InsertResourceBarrier( TextureHandle texture, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd ) -> bool {
+        if (previousState == newState) {
+            return false;
+        }
+
         const auto newInfo{ GetVulkanState(newState) };
 
-        if (auto ptrCube{ dynamic_cast<VulkanTextureCube*>(texture.GetRaw()) }) {
-            ptrCube->SubmitLayoutTransition( newInfo.Layout, cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
-        } else if (auto ptr2D{ dynamic_cast<VulkanTexture*>(texture.GetRaw()) }) {
-            ptr2D->SubmitLayoutTransition( newInfo.Layout, cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
+        if (texture->IsTextureType( TextureType::TEXTURE_2D )) {
+            dynamic_cast<VulkanTexture*>(texture.GetRaw())->SubmitLayoutTransition( newInfo.Layout, cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
+        }
+
+        if (texture->IsTextureType( TextureType::TEXTURE_CUBE )) {
+            dynamic_cast<VulkanTextureCube*>(texture.GetRaw())->SubmitLayoutTransition( newInfo.Layout, cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
         }
 
         return true;

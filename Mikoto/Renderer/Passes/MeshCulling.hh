@@ -44,8 +44,6 @@ namespace Mikoto {
         Scene* m_Scene{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
 
-        std::vector<ShaderMaterialParams> m_Meshes{};
-
         Size m_ObjectUpdateCount{};
 
         std::vector<UInt32> m_MeshInfoIndices{};

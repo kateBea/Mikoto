@@ -18,10 +18,11 @@
 #extension GL_EXT_scalar_block_layout : require
 
 #include "ShaderBase.glsl"
-#include "ClusteredShading.glsl"
+#include "Material_Helpers.glsl"
 
 #define INVALID_TEXTURE_INDEX -1
 
+layout(location = 0) in vec3 in_FragmentViewPos;
 layout(location = 1) in vec3 in_FragmentWorldPos;
 layout(location = 2) in vec3 in_Normals;
 layout(location = 3) in vec2 in_TexCoord;
@@ -30,9 +31,6 @@ layout(location = 4) in vec3 in_Color;
 layout(location = 5) flat in int in_AlbedoIndex;
 layout(location = 6) flat in int in_NormalIndex;
 layout(location = 7) flat in vec4 in_Albedo;
-layout(location = 8) flat in vec4 in_Factors;
-
-layout(location = 9) in vec3 in_FragmentViewPos;
 
 layout(set = TEXTURES_SETINDEX, binding = 0) uniform sampler2D g_BindlessTextures[];
 

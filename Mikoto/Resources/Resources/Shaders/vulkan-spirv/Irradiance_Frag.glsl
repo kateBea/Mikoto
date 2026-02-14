@@ -21,9 +21,13 @@
 
 #include "ShaderBase.glsl"
 
+layout(scalar, push_constant) uniform IrradianceCamUBO {
+    mat4 MVP;
+    float DeltaPhi;
+    float DeltaTheta;
+} u_Parameters;
+
 layout(location = 0) in vec3 v_Pos;
-layout(location = 1) in float v_DeltaPhi;
-layout(location = 2) in float v_DeltaTheta;
 
 layout (location = 0) out vec4 o_Color;
 
@@ -41,8 +45,8 @@ void main() {
     vec3 color = vec3(0.0);
     uint sampleCount = 0u;
 
-    for (float phi = 0.0; phi < TWO_PI; phi += v_DeltaPhi) {
-        for (float theta = 0.0; theta < HALF_PI; theta += v_DeltaTheta) {
+    for (float phi = 0.0; phi < TWO_PI; phi += u_Parameters.DeltaPhi) {
+        for (float theta = 0.0; theta < HALF_PI; theta += u_Parameters.DeltaTheta) {
             vec3 tempVec = cos(phi) * right + sin(phi) * up;
             vec3 sampleVector = cos(theta) * N + sin(theta) * tempVec;
             color += texture(u_SamplerEnv, sampleVector).rgb * cos(theta) * sin(theta);

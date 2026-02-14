@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <cmath>
+#include <string_view>
 
 #include <imgui.h>
 #include <ImGuizmo.h>
@@ -20,6 +21,39 @@
 #include <GraphNodes/GraphEditor.hh>
 
 namespace Mikoto {
+
+    // Dummy
+    struct Node {
+        int ID;
+        char Name[32];
+        ImVec2 Pos, Size;
+        float Value;
+        ImVec4 Color;
+        int InputsCount, OutputsCount;
+
+        Node( int id, const char* name, const ImVec2& pos, float value, const ImVec4& color, int inputs_count, int outputs_count ) {
+            ID = id;
+            strcpy( Name, name );
+            Pos = pos;
+            Value = value;
+            Color = color;
+            InputsCount = inputs_count;
+            OutputsCount = outputs_count;
+        }
+
+        ImVec2 GetInputSlotPos( int slot_no ) const { return ImVec2( Pos.x, Pos.y + Size.y * ( ( float )slot_no + 1 ) / ( ( float )InputsCount + 1 ) ); }
+        ImVec2 GetOutputSlotPos( int slot_no ) const { return ImVec2( Pos.x + Size.x, Pos.y + Size.y * ( ( float )slot_no + 1 ) / ( ( float )OutputsCount + 1 ) ); }
+    };
+    struct NodeLink {
+        int InputIdx, InputSlot, OutputIdx, OutputSlot;
+
+        NodeLink( int input_idx, int input_slot, int output_idx, int output_slot ) {
+            InputIdx = input_idx;
+            InputSlot = input_slot;
+            OutputIdx = output_idx;
+            OutputSlot = output_slot;
+        }
+    };
 
     // NB: You can use math functions/operators on ImVec2 if you #define IMGUI_DEFINE_MATH_OPERATORS and #include "imgui_internal.h"
     // Here we only declare simple +/- operators so others don't leak into the demo code.
@@ -35,39 +69,6 @@ namespace Mikoto {
             return;
         }
 
-        // Dummy
-        struct Node {
-            int ID;
-            char Name[32];
-            ImVec2 Pos, Size;
-            float Value;
-            ImVec4 Color;
-            int InputsCount, OutputsCount;
-
-            Node( int id, const char* name, const ImVec2& pos, float value, const ImVec4& color, int inputs_count, int outputs_count ) {
-                ID = id;
-                strcpy( Name, name );
-                Pos = pos;
-                Value = value;
-                Color = color;
-                InputsCount = inputs_count;
-                OutputsCount = outputs_count;
-            }
-
-            ImVec2 GetInputSlotPos( int slot_no ) const { return ImVec2( Pos.x, Pos.y + Size.y * ( ( float )slot_no + 1 ) / ( ( float )InputsCount + 1 ) ); }
-            ImVec2 GetOutputSlotPos( int slot_no ) const { return ImVec2( Pos.x + Size.x, Pos.y + Size.y * ( ( float )slot_no + 1 ) / ( ( float )OutputsCount + 1 ) ); }
-        };
-        struct NodeLink {
-            int InputIdx, InputSlot, OutputIdx, OutputSlot;
-
-            NodeLink( int input_idx, int input_slot, int output_idx, int output_slot ) {
-                InputIdx = input_idx;
-                InputSlot = input_slot;
-                OutputIdx = output_idx;
-                OutputSlot = output_slot;
-            }
-        };
-
         // State
         static ImVector<Node> nodes;
         static ImVector<NodeLink> links;
@@ -82,6 +83,7 @@ namespace Mikoto {
             nodes.push_back( Node( 0, "MainTex", ImVec2( 40, 50 ), 0.5f, ImColor( 255, 100, 100 ), 1, 1 ) );
             nodes.push_back( Node( 1, "BumpMap", ImVec2( 40, 150 ), 0.42f, ImColor( 200, 100, 200 ), 1, 1 ) );
             nodes.push_back( Node( 2, "Combine", ImVec2( 270, 80 ), 1.0f, ImColor( 0, 200, 100 ), 2, 2 ) );
+
             links.push_back( NodeLink( 0, 0, 2, 0 ) );
             links.push_back( NodeLink( 1, 0, 2, 1 ) );
             inited = true;
@@ -244,7 +246,18 @@ namespace Mikoto {
         ImGui::End();
     }
 
-    auto GraphEditor::Render() -> void {
+     GraphEditor::GraphEditor( std::string_view name )
+        : m_Name{ name } {}
+
+    auto GraphEditor::Build( const GraphEditorBuilder& builder ) -> void {
 
     }
-}// namespace Mikoto
+
+    auto GraphEditor::Render() -> void {
+        ShowExampleAppCustomNodeGraph( nullptr );
+    }
+
+    auto GraphEditor::GetName() const -> const std::string& {
+        return m_Name;
+    }
+}

@@ -16,6 +16,7 @@
 #define MIKOTO_RENDERER_PANEL_HH
 
 #include <Panels/Panel.hh>
+#include <GraphNodes/GraphEditor.hh>
 
 namespace Mikoto {
     struct EditorState;
@@ -73,6 +74,8 @@ namespace Mikoto {
         float m_SSAOStrength{ 1.5f };
 
         FinalCompositionTarget m_FinalCompositionTarget{ FinalCompositionTarget::FINAL_IMAGE };
+
+        GraphEditor m_GraphEditor{ "Pass Graph" };
     };
 }
 

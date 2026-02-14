@@ -90,6 +90,17 @@ namespace Mikoto {
     RendererPanel::RendererPanel( const RendererPanelCreateInfo &info )
         : Panel{ "Renderer" }, m_EditorState{ info.State } {
         m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_POWER_SETTINGS_NEW, m_PanelName );
+
+
+        // Construct the node graph for pass dependencies
+        GraphEditorBuilder builder{};
+        
+        auto& passNodes{ m_EditorState->EditorSceneRenderer->GetPassList() }; 
+
+        for ( const auto& [passName, pass]: passNodes ) {
+        }
+
+        m_GraphEditor.Build( builder );
     }
 
     auto RendererPanel::OnUpdate( float timeStep ) -> void {
@@ -107,7 +118,7 @@ namespace Mikoto {
             ImGuiUtils::CheckBox( "Show Pass Dependencies", m_ShowPassGraph );
 
             if (m_ShowPassGraph) {
-                ShowExampleAppCustomNodeGraph( std::addressof( m_ShowPassGraph ) );
+                m_GraphEditor.Render();
             }
         });
 

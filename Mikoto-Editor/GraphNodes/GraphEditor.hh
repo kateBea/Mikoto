@@ -15,19 +15,47 @@
 #ifndef MIKOTO_GRAPH_EDITOR_HH
 #define MIKOTO_GRAPH_EDITOR_HH
 
+#include <vector>
+#include <string>
+#include <string_view>
+
+#include <ankerl/unordered_dense.h>
+
+#include <Common/Common.hh>
+
 namespace Mikoto {
 
     auto ShowExampleAppCustomNodeGraph( bool* opened ) -> void;
 
-    class GraphEditor {
+    struct GraphNode {
+        std::string Key{};        
+        std::string DisplayName{};
+
+        std::vector<std::string> Inputs{}; 
+        std::vector<std::string> Outputs{};
+    };
+
+    class GraphEditorBuilder {
     public:
 
-        auto Render() -> void;
 
     private:
 
     };
 
+    class GraphEditor {
+    public:
+        explicit GraphEditor( std::string_view name );
+
+        auto Render() -> void;
+
+        auto Build( const GraphEditorBuilder& builder ) -> void;
+
+        MKT_NODISCARD auto GetName() const -> const std::string&;
+
+    private:
+        std::string m_Name{};
+    };
 }
 
 #endif// MIKOTO_GRAPH_EDITOR_HH

@@ -20,6 +20,63 @@
 
 namespace Mikoto {
 
+    auto Time::GetUnitString() const -> std::string_view {
+        return GetUnitString( this->Unit );
+    }
+
+    auto Time::Convert( TimeUnit unit ) const -> double {
+        if (unit == Unit) {
+            return Value;
+        }
+
+        return Convert(this->Unit, unit, Value);
+    }
+
+    auto Time::GetUnitString( TimeUnit unit ) -> std::string_view {
+        switch (unit) {
+            case TimeUnit::SECONDS: return "s";
+            case TimeUnit::MILLISECONDS: return "ms";
+            case TimeUnit::MICROSECONDS: return "us";
+            case TimeUnit::NANOSECONDS: return "ns";
+        }
+
+        return "Unknown";
+    }
+
+    auto Time::Convert( TimeUnit src, TimeUnit dst, double value ) -> double {
+        // Convert source -> seconds
+        double seconds{};
+
+        switch ( src ) {
+            case TimeUnit::SECONDS:
+                seconds = value;
+                break;
+            case TimeUnit::MILLISECONDS:
+                seconds = value / 1'000.0;
+                break;
+            case TimeUnit::MICROSECONDS:
+                seconds = value / 1'000'000.0;
+                break;
+            case TimeUnit::NANOSECONDS:
+                seconds = value / 1'000'000'000.0;
+                break;
+        }
+
+        // Convert seconds -> destination
+        switch ( dst ) {
+            case TimeUnit::SECONDS:
+                return seconds;
+            case TimeUnit::MILLISECONDS:
+                return seconds * 1'000.0;
+            case TimeUnit::MICROSECONDS:
+                return seconds * 1'000'000.0;
+            case TimeUnit::NANOSECONDS:
+                return seconds * 1'000'000'000.0;
+        }
+
+        return seconds; // fallback
+    }
+
     auto TimeServiceCreateInfo::WithDefaultUnit( const TimeUnit unit ) -> TimeServiceCreateInfo & {
         this->DefaultUnit = unit;
 

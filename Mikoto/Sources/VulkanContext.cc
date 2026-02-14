@@ -22,6 +22,7 @@
 // Project Headers
 #include <Common/Common.hh>
 #include <Core/Profiler.hh>
+#include <Core/Timer.hh>
 #include <Library/String/String.hh>
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>

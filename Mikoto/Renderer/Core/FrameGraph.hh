@@ -15,22 +15,21 @@
 #ifndef MIKOTO_FRAME_GRAPH_HH
 #define MIKOTO_FRAME_GRAPH_HH
 
+#include <ankerl/unordered_dense.h>
+
+#include <Assets//Texture.hh>
+#include <Assets/AssetsService.hh>
+#include <Material/TextureCube.hh>
+#include <Renderer/Core/FrameGraphBlackboard.hh>
+#include <Renderer/Core/FramePassResource.hh>
+#include <Renderer/Core/Pipeline.hh>
+#include <Renderer/Core/RenderUtility.hh>
+#include <Renderer/Core/SRGBase.hh>
 #include <string>
 #include <variant>
 #include <vector>
 
-#include <ankerl/unordered_dense.h>
-
-#include <Assets//Texture.hh>
-
-#include <Renderer/Core/Pipeline.hh>
-#include <Renderer/Core/FrameGraphBlackboard.hh>
-#include <Renderer/Core/FramePassResource.hh>
-#include <Renderer/Core/RenderUtility.hh>
-#include <Renderer/Core/SRGBase.hh>
-
-#include <Assets/AssetsService.hh>
-#include <Material/TextureCube.hh>
+#include "Core/TimeService.hh"
 
 namespace Mikoto {
     class CommandContext;
@@ -54,6 +53,9 @@ namespace Mikoto {
 
     struct FramePassNode {
         std::string Name{};
+
+        // [DEBUG]
+        Time LastExecutionTime{}; // In seconds
 
         std::vector<ResourceNode> Reads{};
         std::vector<ResourceNode> Writes{};
@@ -255,6 +257,11 @@ namespace Mikoto {
 
         // Compile flag
         bool m_Compiled{ false };
+
+        // To control pass execution time
+        // In milliseconds
+        double m_ElapsedTime{ 0.0 };
+        double m_ElapsedTimeUpdatedInterval{ 500 };
     };
 }
 

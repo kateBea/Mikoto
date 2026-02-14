@@ -24,6 +24,7 @@
 #include <Renderer/Core/RenderUtility.hh>
 
 #include "Core/Profiler.hh"
+#include "Core/Timer.hh"
 
 namespace Mikoto {
 
@@ -309,7 +310,16 @@ namespace Mikoto {
                 // Make sure the resources this pass consumes are in proper state
                 InsertResourceBarriers(node, cmd);
 
+                Timer passTimer{ false };
+                passTimer.Restart();
                 node.ExecuteCallback( commandContext, m_GraphBlackboard );
+
+                double currentTime{ TimeService::Get()->GetTime( TimeUnit::MILLISECONDS ) };
+
+                if ( currentTime - m_ElapsedTime > m_ElapsedTimeUpdatedInterval) {
+                    node.LastExecutionTime.Value = passTimer.GetCurrentProgress();
+                    m_ElapsedTime = currentTime;
+                }
 
                 commandContext.EndPass();
 

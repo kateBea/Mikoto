@@ -36,9 +36,23 @@ namespace Mikoto {
         NANOSECONDS,
     };
 
+    // Represents a time
+    // in the specified units
+    struct Time {
+        double Value{};
+        TimeUnit Unit{ TimeUnit::SECONDS };
+
+        MKT_NODISCARD auto GetUnitString() const -> std::string_view;
+        MKT_NODISCARD auto Convert( TimeUnit unit = TimeUnit::SECONDS) const -> double;
+
+        MKT_NODISCARD static auto GetUnitString(TimeUnit unit) -> std::string_view;
+
+    private:
+        MKT_NODISCARD static auto Convert( TimeUnit src, TimeUnit dst, double value ) -> double;
+    };
+
     struct TimeServiceCreateInfo {
         TimeUnit DefaultUnit{ TimeUnit::SECONDS };
-
         auto WithDefaultUnit(TimeUnit unit) -> TimeServiceCreateInfo&;
     };
 

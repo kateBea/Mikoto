@@ -45,8 +45,8 @@ namespace Mikoto {
         BuildAABB( graph );
         BuildLightCulling( graph );
 
-        BuildGBuffer( graph );
-        BuildDepthPrepass( graph );
+        //BuildGBuffer( graph );
+        //BuildDepthPrepass( graph );
     }
 
     auto ClusteredShading::SetMeshCulling( MeshCulling &cullingPass ) -> void {
@@ -59,20 +59,23 @@ namespace Mikoto {
                 [this]( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    b.Create<Buffer>( "ClusteredShading_Parameters", BufferUsage::UNIFORM, sizeof( ClusteredShadingParams ), 1 );
-                    b.Create<Buffer>( "AABBGenComp_Clusters", BufferUsage::SHADER_STORAGE, sizeof( Cluster ), m_NumClusters );
+                    auto aabbClusters{ BufferBuilder{} };
+                    aabbClusters.WithUsage( BufferUsage::SHADER_STORAGE )
+                        .ForElement( sizeof( Cluster ), m_NumClusters )
+                        .IsDynamic( false )
+                        .Build( "AABBGenComp_Clusters" );
+
+                    b.CreateBuffer( aabbClusters );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/AABBGen_Comp.sprv", ShaderStage::COMPUTE );
                     b.Create<Pipeline>( "AABBGenComp_Pipeline", ComputePipelineDescription{} );
 
                     b.Write( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess );
-                    b.Write( "ClusteredShading_Parameters", FrameResourceState::UniformBuffer );
 
                     b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
 
                     b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
                     b.Use( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
-                    b.Use( SRGType::SRG_PerPass, "ClusteredShading_Parameters", 2 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -81,7 +84,7 @@ namespace Mikoto {
                     m_ClusterShadingParams.GridSize = glm::vec4{ m_GridSizeX, m_GridSizeY, m_GridSizeZ, 0.0f };
                     m_ClusterShadingParams.ShowHeatMap = MKT_SHADER_FALSE;
 
-                    ctx.UploadBuffer( "ClusteredShading_Parameters", m_ClusterShadingParams );
+                    ctx.PushConstants( std::addressof( m_ClusterShadingParams ), sizeof(m_ClusterShadingParams) );
                     ctx.Dispatch( m_GridSizeX, m_GridSizeY, m_GridSizeZ );
                 } );
     }
@@ -99,14 +102,12 @@ namespace Mikoto {
 
                     b.Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess );
                     b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-                    b.Read( "ClusteredShading_Parameters", FrameResourceState::UniformBuffer );
 
                     b.Write( "LightCullingComp_LightsBuffer", FrameResourceState::UnorderedAccess );
 
                     b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
                     b.Use( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
                     b.Use( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 2 );
-                    b.Use( SRGType::SRG_PerPass, "ClusteredShading_Parameters", 3 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -115,6 +116,7 @@ namespace Mikoto {
 
                     SetupLightList( ctx );
 
+                    ctx.PushConstants( std::addressof( m_ClusterShadingParams ), sizeof(m_ClusterShadingParams) );
                     const auto numWorkGroupsX{ ( m_NumClusters + m_LocalSize - 1 ) / m_LocalSize };
 
                     ctx.Dispatch( numWorkGroupsX, 1, 1 );
@@ -322,7 +324,6 @@ namespace Mikoto {
 
         m_ClusterShadingParams.ActiveLightCount = lightsCount;
 
-        ctx.UploadBuffer( "ClusteredShading_Parameters", m_ClusterShadingParams );
         ctx.UploadBuffer( "LightCullingComp_LightsBuffer", m_Lights.data(), lightsCount * sizeof( ShaderLightTypeParams ) );
     }
 }

@@ -27,39 +27,14 @@
 
 namespace Mikoto {
 
-    struct MeshInstanceInfo {
-        DrawIndexedState InstanceDrawState{};
-        ankerl::unordered_dense::map<UInt64, bool> ActiveEntities{};
-        ankerl::unordered_dense::map<UInt64, ShaderMaterialParams> InstanceInfos{};
-
-        MKT_NODISCARD auto IsActive( UInt64 entityID ) const -> bool {
-            bool result{ false };
-            const auto it{ ActiveEntities.find( entityID ) };
-
-            if ( it != ActiveEntities.end() ) {
-                result = it->second;
-            }
-
-            return result;
-        }
-
-        auto Disable(UInt64 entityID )-> void {
-            const auto it{ ActiveEntities.find( entityID ) };
-
-            if ( it != ActiveEntities.end() ) {
-                it->second = false;
-            }
-        }
-    };
-
     class MeshCulling final {
     public:
         auto SetScene( Scene* scene) -> void;
         auto RegisterPasses( FrameGraph& graph ) -> void;
+
         auto DrawInstances( CommandContext& context ) -> void;
 
     private:
-        auto UploadInstanceData( CommandContext& context ) -> void;
         auto SetupInstanceData( CommandContext& context ) -> void;
 
         auto RegisterScatteredWrites(FrameGraph &graph) -> void;
@@ -78,7 +53,9 @@ namespace Mikoto {
 
         std::vector<MaterialParameters> m_Materials{};
 
-        ankerl::unordered_dense::map<MeshNode*, MeshInstanceInfo> m_MeshDrawState{};
+        ankerl::unordered_dense::map<MeshNode*, Size> m_MeshDrawInstanceCount{};
+        ankerl::unordered_dense::map<MeshNode*, DrawIndexedState> m_DrawIndexedState{};
+        ankerl::unordered_dense::map<MeshNode*, std::vector<ShaderMaterialParams>> m_InstanceInfos{};
     };
 
 }

@@ -37,11 +37,11 @@ layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
     vec2 ScreenDimensions;
 } u_Camera;
 
-layout(std430, scalar,set = PERPASS_SETINDEX, binding = 1) buffer ClusterSSBO {
+layout(std430, scalar,set = STATIC_SETINDEX, binding = 1) buffer ClusterSSBO {
     Cluster clusters[];
 };
 
-layout(scalar, set = PERPASS_SETINDEX, binding = 2) uniform ClusteredShadingParams {
+layout(scalar, push_constant) uniform ClusteredShadingParams {
     vec4 GridSize;
     uint ShowHeatMap;
     uint ActiveLightCount;

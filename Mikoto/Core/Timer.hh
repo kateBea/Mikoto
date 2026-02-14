@@ -11,12 +11,14 @@
 
 // Project Headers
 #include <Common/Common.hh>
+#include <Common/String.hh>
 #include <Core/TimeService.hh>
 
 namespace Mikoto {
     class Timer final {
     public:
-        explicit Timer(std::string_view startMessage);
+        explicit Timer(bool printOnExit);
+        Timer(std::string_view scopeName, std::string_view startMessage, bool showStartMessage = false);
 
         MKT_NODISCARD auto GetCurrentProgress(TimeUnit defaultUnit = TimeUnit::SECONDS) const -> double;
         auto Restart() -> void;
@@ -33,13 +35,19 @@ namespace Mikoto {
         using TimePoint = std::chrono::time_point<Clock>;
 
         TimePoint m_TimeSinceStart{};
+
+        std::string m_ScopeName{};
+
+        bool m_PrintOnExit{ true };
     };
 }
 
 #if !defined(NDEBUG)
-    #define MKT_PROFILE_SCOPE()  Timer _Timer{ StringUtils::Concat(__PRETTY_FUNCTION__, ": Start profiling ..." ) }
+    #define MKT_PROFILE_SCOPE()  Timer _Timer{ __PRETTY_FUNCTION__, StringUtil::Format("[START] Profiling: {}", __PRETTY_FUNCTION__ ) }
+    #define MKT_PROFILE_SCOPE_MARKED(MARK)  Timer _Timer{ MARK, StringUtil::Format("[START] Profiling: {}. Mark {}", __PRETTY_FUNCTION__, MARK ) }
 #else
     #define MKT_PROFILE_SCOPE()
+    #define MKT_PROFILE_SCOPE_MARKED()
 #endif
 
 

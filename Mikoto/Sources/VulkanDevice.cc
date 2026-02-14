@@ -631,6 +631,7 @@ namespace Mikoto {
     auto VulkanDevice::GetMemoryAvailable() const -> Size {
         return m_GpuAllocator->GetMemoryAvailable();
     }
+
     auto VulkanDevice::GetDummySampler() const -> SamplerHandle {
         return m_sampler;
     }

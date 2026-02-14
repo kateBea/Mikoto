@@ -27,10 +27,16 @@ namespace Mikoto {
         return "s";
     }
 
-    Timer::Timer(const std::string_view startMessage)
-        :   m_TimeSinceStart{ Clock::now() }
+    Timer::Timer(bool printOnExit)
+        : m_PrintOnExit{ printOnExit }
+    {}
+
+    Timer::Timer(std::string_view scopeName, std::string_view startMessage, bool showStartMessage)
+        :   m_TimeSinceStart{ Clock::now() }, m_ScopeName{ scopeName }
     {
-        MKT_CORE_LOGGER_DEBUG("{}", startMessage);
+        if (showStartMessage) {
+            MKT_CORE_LOGGER_DEBUG("{}", startMessage);
+        }
     }
 
     auto Timer::GetCurrentProgress( const TimeUnit defaultUnit ) const -> double {
@@ -49,8 +55,9 @@ namespace Mikoto {
     }
 
     Timer::~Timer() {
-        const auto units{ TimeUnit::SECONDS };
-        MKT_CORE_LOGGER_DEBUG("{} End Timer. Elapsed {} {}",
-            __PRETTY_FUNCTION__, GetCurrentProgress(units), GetUnitStr(units));
+        if (m_PrintOnExit) {
+            const auto units{ TimeUnit::SECONDS };
+            MKT_CORE_LOGGER_DEBUG("[END] Profiling Scope {}. Elapsed {:.10f} {}", m_ScopeName, GetCurrentProgress(units), GetUnitStr(units));
+        }
     }
 }

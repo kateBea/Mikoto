@@ -12,20 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <memory>
-#include <array>
-
-#include <Core/RuntimeConsole.hh>
-
 #include <ImGui/IconsMaterialDesign.h>
 
+#include <Common/String.hh>
+#include <Core/RuntimeConsole.hh>
 #include <GraphNodes/GraphEditor.hh>
 #include <ImGui/ImGuiUtility.hh>
-#include <Panels/RendererPanel.hh>
-
-#include <Common/String.hh>
 #include <Layers/EditorLayer.hh>
+#include <Panels/RendererPanel.hh>
 #include <Renderer/Core/RenderService.hh>
+#include <array>
+#include <memory>
+
+#include "Core/TimeService.hh"
 
 namespace Mikoto {
 
@@ -160,17 +159,25 @@ namespace Mikoto {
         ImGui::TextUnformatted( StringUtil::Format( "Pass count: {}", passList.size() ).c_str() );
         ImGui::Spacing();
 
-        constexpr  UInt32 columnCount{ 6 };
-        if ( ImGui::BeginTable( "RendererPanel_PassTable", columnCount,
+        // Select execution display units
+        static std::array<std::string, 4> units{
+            "Seconds", "Milliseconds", "Microseconds", "Nanoseconds"
+        };
+
+        static TimeUnit currentUnit{ TimeUnit::MICROSECONDS };
+        currentUnit = ImGuiUtils::Combo( units, currentUnit );
+
+        static std::vector<std::string> columns{ "Name", "Reads", "Writes", "Policy", "Status", "Executed", "_Elapsed"  };
+        const UInt32 elapsedTimeIndex{ static_cast<UInt32>( columns.size() - 1 ) };
+
+        columns[elapsedTimeIndex] = StringUtil::Format( "Elapsed ({})", Time::GetUnitString(currentUnit) );
+
+        if ( ImGui::BeginTable( "RendererPanel_PassTable", columns.size(),
                                 ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders |
                                         ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable |
-                                        ImGuiTableFlags_Hideable | ImGuiTableFlags_SizingStretchProp ) ) {
-            ImGui::TableSetupColumn( "Name" );
-            ImGui::TableSetupColumn( "Reads" );
-            ImGui::TableSetupColumn( "Writes" );
-            ImGui::TableSetupColumn( "Policy" );
-            ImGui::TableSetupColumn( "Status" );
-            ImGui::TableSetupColumn( "Executed" );
+                                        ImGuiTableFlags_Hideable ) ) {
+
+            std::ranges::for_each( columns, []( const auto& name ) -> void { ImGui::TableSetupColumn( name.c_str(), ImGuiTableColumnFlags_WidthStretch, 1.0f ); } );
             ImGui::TableHeadersRow();
 
             for ( const auto& pass: passList | std::views::values ) {
@@ -231,6 +238,10 @@ namespace Mikoto {
                     ImGui::TextColored( ImVec4( 0.4f, 0.8f, 1.0f, 1.0f ), "Yes" );
                 else
                     ImGui::TextDisabled( "No" );
+
+                // Column 5 – Execution State
+                ImGui::TableSetColumnIndex( 6 );
+                ImGui::TextColored( ImVec4( 0.4f, 0.8f, 1.0f, 1.0f ), "%s", StringUtil::Format( "{:.1f}", pass.LastExecutionTime.Convert( currentUnit ) ).c_str() );
             }
 
             ImGui::EndTable();

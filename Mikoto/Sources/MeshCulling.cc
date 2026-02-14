@@ -15,6 +15,7 @@
 #include <Math/Math.hh>
 
 #include <Core/Profiler.hh>
+#include <Core/Timer.hh>
 
 #include <Scene/Scene.hh>
 #include <Scene/Component.hh>
@@ -34,15 +35,16 @@ namespace Mikoto {
     auto MeshCulling::RegisterPasses( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        m_Meshes.resize( MAX_RENDERABLE_ENTITIES );
+        m_MeshInfo.resize( MAX_RENDERABLE_ENTITIES );
+        m_MeshInfoIndices.resize( MAX_RENDERABLE_ENTITIES );
+
         RegisterMeshCullingPass( graph );
         RegisterScatteredWrites( graph );
     }
 
     auto MeshCulling::RegisterScatteredWrites( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
-        m_MeshInfo.resize( MAX_RENDERABLE_ENTITIES );
-        m_MeshInfoIndices.resize( MAX_RENDERABLE_ENTITIES );
 
         struct ScatterPushConstant {
             UInt32 UpdateCount{};
@@ -51,6 +53,8 @@ namespace Mikoto {
         graph.RegisterPass(
                 "ScatteredWritesMeshPass",
                 []( FramePassBuilder &b) {
+                    MKT_BEGIN_PROFILER_NAMED();
+
                     b.Create<Buffer>( "ScatteredWrites_MeshData", BufferUsage::SHADER_STORAGE, sizeof( MeshParameters ), MAX_RENDERABLE_ENTITIES );
                     b.Create<Buffer>( "ScatteredWrites_MeshDataIndices", BufferUsage::SHADER_STORAGE, sizeof( UInt32 ), MAX_RENDERABLE_ENTITIES );
 
@@ -77,6 +81,8 @@ namespace Mikoto {
                     b.Use( SRGType::SRG_PerPass, "ScatteredWrites_MeshDataIndices", 2 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard& ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+
                     // Need at least m_ObjectUpdateCount threads.
                     // But dispatch works in groups, not individual threads.
                     Size dispatchCount{ (m_ObjectUpdateCount + 64 - 1) };
@@ -109,105 +115,57 @@ namespace Mikoto {
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
-
-                    // We begin the pass by assuming all meshes are not visible and update accordingly
-                    for ( auto &instanceInfo: m_MeshDrawState | std::views::values ) {
-                        for ( const auto &entityID: instanceInfo.InstanceInfos | std::views::keys ) {
-                            instanceInfo.Disable( entityID );
-                        }
-                    }
-
                     SetupInstanceData( ctx );
-                    UploadInstanceData( ctx );
                 } );
     }
 
     auto MeshCulling::DrawInstances( CommandContext &context ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        for ( auto &instanceInfo: m_MeshDrawState | std::views::values ) {
-            DrawIndexedState &drawState{ instanceInfo.InstanceDrawState };
-            if (drawState.InstancesCount == 0) {
+        for ( auto &instanceInfo: m_DrawIndexedState | std::views::values ) {
+            if (instanceInfo.InstancesCount == 0) {
                 continue;
             }
 
-            context.DrawIndexed( drawState );
+            context.DrawIndexed( instanceInfo );
         }
-    }
-
-    auto MeshCulling::UploadInstanceData( CommandContext &context ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        Size meshIndex{};
-        Size activeMeshCount{};
-
-        for (auto &[meshNode, instanceInfo]: m_MeshDrawState) {
-            DrawIndexedState &drawState{ instanceInfo.InstanceDrawState };
-
-            drawState.IndexBuffer = meshNode->GetIndexBuffer();
-
-            if (drawState.VertexBuffers.empty()) {
-                drawState.VertexBuffers.emplace_back( meshNode->GetVertexBuffer(), 0 );
-            }
-
-            Size instanceCount{};
-            for (const auto &[entityID, meshInstanceInfo]: instanceInfo.InstanceInfos) {
-                if (instanceInfo.IsActive( entityID )) {
-                    // We have already allocated enough space to hold this many active entities
-                    m_Meshes[meshIndex] = meshInstanceInfo;
-                    m_MeshInfo[meshIndex] = MeshParameters{
-                        .Transform{ meshInstanceInfo.Transform },
-                        .MeshIndex{ static_cast<UInt32>(meshIndex) },
-                        .MaterialIndex{ static_cast<UInt32>(meshIndex) }
-                    };
-
-                    m_MeshInfoIndices[meshIndex] = meshIndex;
-
-                    ++meshIndex;
-                    ++instanceCount;
-                }
-            }
-
-            drawState.IndicesCount = meshNode->GetIndexBuffer()->GetCount();
-            drawState.FirstInstance = activeMeshCount;
-            drawState.InstancesCount = instanceCount;
-
-            activeMeshCount += instanceCount;
-        }
-
-        MKT_ASSERT( activeMeshCount <= MAX_RENDERABLE_ENTITIES, "Exceeded limit of renderable entities" );
-
-        m_ObjectUpdateCount = activeMeshCount;
-
-        context.UploadBufferData( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMaterialParams ), activeMeshCount );
     }
 
     auto MeshCulling::SetupInstanceData( CommandContext &context ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        // Potential count
-        Size count{};
+        // Prepare for draw
+        for ( auto &[meshNode, meshNodeCount]: m_MeshDrawInstanceCount ) {
+            // assume no instances and populate accordingly later
+            meshNodeCount = 0;
 
+            if ( m_InstanceInfos[meshNode].empty() ) {
+                constexpr UInt32 mindObjectInfo{ 5 };
+                m_InstanceInfos[meshNode].resize( mindObjectInfo );
+            }
+        }
+
+        // Collect object info
         auto &registry{ m_Scene->GetRegistry() };
-        auto renderables{ registry.view<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
+        auto renderables{ registry.group<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
 
-        for (auto &entity: renderables) {
-            auto &tag{ registry.get<TagComponent>( entity ) };
-            auto &transform{ registry.get<TransformComponent>( entity ) };
-            auto &meshComponent{ registry.get<MeshComponent>( entity ) };
-            auto &materialComp{ registry.get<MaterialComponent>( entity ) };
+        for ( auto [entity, tag, transform, materialComp, meshComponent]: renderables.each() ) {
+            if ( !tag.IsActive() ) {
+                continue;
+            }
 
-            if (meshComponent.HasMesh() && materialComp.HasMaterial()) {
+            if ( meshComponent.HasMesh() && materialComp.HasMaterial() ) {
                 MeshNode *meshNode{ meshComponent.GetMesh() };
                 PBRMaterial *pbrMat{ materialComp.GetMaterial().Dynamic<PBRMaterial>() };
 
-                auto &[DrawIndexedState, ActiveEntities, Instances]{
-                    m_MeshDrawState[meshNode]
-                };
+                // Resize if we need more space for more objects of this meshNode
+                Size &instanceCount{ m_MeshDrawInstanceCount[meshNode] };
+                if ( m_InstanceInfos[meshNode].size() <= instanceCount ) {
+                    m_InstanceInfos[meshNode].emplace_back();
+                }
 
-                ActiveEntities[tag.GetGUID()] = tag.IsActive();
-
-                ShaderMaterialParams &ubo{ Instances[tag.GetGUID()] };
+                ShaderMaterialParams &ubo{ m_InstanceInfos[meshNode][instanceCount] };
+                DrawIndexedState &drawState{ m_DrawIndexedState[meshNode] };
 
                 ubo.Transform = transform.GetTransform();
                 ubo.Albedo = pbrMat->GetColor();
@@ -227,14 +185,48 @@ namespace Mikoto {
                 ubo.AoIndex = context.PushTexture( pbrMat->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
                 ubo.EmissiveIndex = context.PushTexture( pbrMat->GetTextureType( MapType::EMISSIVE_TEXTURE ) );
 
-                if (tag.IsActive()) {
-                    ++count;
+                // Set buffers
+                drawState.IndexBuffer = meshNode->GetIndexBuffer();
+                drawState.IndicesCount = meshNode->GetIndexBuffer()->GetCount();
+
+                if ( drawState.VertexBuffers.empty() ) {
+                    drawState.VertexBuffers.emplace_back( meshNode->GetVertexBuffer(), 0 );
                 }
+
+                instanceCount += 1;
             }
         }
 
-        if (m_Meshes.size() < count) {
-            m_Meshes.resize( count );
+        // Prepare render data
+        Size meshIndex{};
+        Size activeMeshCount{};
+
+        // Flatten data
+        for ( auto &[meshNode, meshDrawState]: m_DrawIndexedState ) {
+            meshDrawState.InstancesCount = m_MeshDrawInstanceCount[meshNode];
+
+            for ( const auto &instance: m_InstanceInfos[meshNode] ) {
+                m_Meshes[meshIndex] = instance;
+                m_MeshInfo[meshIndex] = MeshParameters{
+                    .Transform{ instance.Transform },
+                    .MeshIndex{ static_cast<UInt32>( meshIndex ) },
+                    .MaterialIndex{ static_cast<UInt32>( meshIndex ) }
+                };
+
+                m_MeshInfoIndices[meshIndex] = meshIndex;
+
+                ++meshIndex;
+            }
+
+            meshDrawState.FirstInstance = activeMeshCount;
+
+            activeMeshCount += meshIndex;
         }
+
+        MKT_ASSERT( activeMeshCount <= MAX_RENDERABLE_ENTITIES, "Exceeded limit of renderable entities" );
+
+        m_ObjectUpdateCount = activeMeshCount;
+
+        context.UploadBufferData( "FinalCompositionPass_MeshInfo", m_Meshes.data(), sizeof( ShaderMaterialParams ), activeMeshCount );
     }
-}// namespace Mikoto
+}

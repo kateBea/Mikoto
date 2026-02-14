@@ -237,7 +237,7 @@ namespace Mikoto {
 
             meshDrawState.FirstInstance = activeMeshCount;
 
-            activeMeshCount += meshIndex;
+            activeMeshCount += meshDrawState.InstancesCount;
         }
 
         MKT_ASSERT( activeMeshCount <= MAX_RENDERABLE_ENTITIES, "Exceeded limit of renderable entities" );

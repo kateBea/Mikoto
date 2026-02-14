@@ -317,7 +317,7 @@ namespace Mikoto {
                 double currentTime{ TimeService::Get()->GetTime( TimeUnit::MILLISECONDS ) };
 
                 if ( currentTime - m_ElapsedTime > m_ElapsedTimeUpdatedInterval) {
-                    node.LastExecutionTime.Value = passTimer.GetCurrentProgress();
+                    node.LastExecutionTime.Value = passTimer.GetCurrentProgress(node.LastExecutionTime.Unit);
                     m_ElapsedTime = currentTime;
                 }
 

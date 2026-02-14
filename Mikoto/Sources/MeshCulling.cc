@@ -145,8 +145,10 @@ namespace Mikoto {
             }
         }
 
-        // Collect object info
         auto &registry{ m_Scene->GetRegistry() };
+
+        // already created owned group using one of the same components.
+        // Cannot create another group that owns the same components
         auto renderables{ registry.group<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
 
         for ( auto [entity, tag, transform, materialComp, meshComponent]: renderables.each() ) {

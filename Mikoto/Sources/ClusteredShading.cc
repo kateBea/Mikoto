@@ -116,6 +116,10 @@ namespace Mikoto {
 
                     SetupLightList( ctx );
 
+                    if (m_ClusterShadingParams.ActiveLightCount == 0) {
+                        return;
+                    }
+
                     ctx.PushConstants( std::addressof( m_ClusterShadingParams ), sizeof(m_ClusterShadingParams) );
                     const auto numWorkGroupsX{ ( m_NumClusters + m_LocalSize - 1 ) / m_LocalSize };
 

@@ -171,7 +171,7 @@ namespace filewatch {
               return StringType{ buf };
           }
 
-          static StringType get( std::wstring buf ) {
+          static StringType get( const std::wstring& buf ) {
               return StringType{ std::filesystem::path{ buf }.string() };
           }
       };
@@ -184,19 +184,19 @@ namespace filewatch {
               return { buf };
           }
 
-          static std::filesystem::path get( std::wstring buf ) {
-              return std::filesystem::path{ buf };
+          static std::filesystem::path get( const std::wstring& buf ) {
+              return { buf };
           }
       };
 #else
       template<>
       struct absolute_path_of_helper<std::filesystem::path> {
           static std::filesystem::path get( std::string_view buf ) {
-              return std::filesystem::u8path( buf );
+              return { buf };
           }
 
-          static std::filesystem::path get( std::wstring buf ) {
-              return std::filesystem::u8path( buf );
+          static std::filesystem::path get( const std::wstring& buf ) {
+              return { buf };
           }
       };
 #endif

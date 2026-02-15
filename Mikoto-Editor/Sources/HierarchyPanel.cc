@@ -342,9 +342,27 @@ namespace Mikoto {
             textComponent.SetSize( TextComponent::GetMinLetterSize() );
             textComponent.SetSpacing( TextComponent::GetMinLetterSpacing() );
         }
+
+        if ( ImGui::MenuItem( "Text 3D" ) ) {
+            const EntityCreateInfo entityCreateInfo{
+                .Root{ root },
+                .Name{ "Text" },
+            };
+
+            Entity* result{ m_EditorState->ActiveEditorScene->CreateEntity( entityCreateInfo ) };
+            RuntimeConsole::Get()->Debug( fmt::format( "Added entity: {}. Id => {}", result->GetComponent<TagComponent>().GetTag(), StringUtils::ToHex( result->GetComponent<TagComponent>().GetGUID() ) ) );
+
+            TextComponent& textComponent{ result->AddComponent<TextComponent>() };
+
+            textComponent.SetContents( "Example" );
+            textComponent.SetIsWorldText( true ); 
+            textComponent.SetSize( TextComponent::GetMinLetterSize() );
+            textComponent.SetSpacing( TextComponent::GetMinLetterSpacing() );
+        }
     }
 
     auto HierarchyPanel::AddEntityWithModel( const std::string_view uri, Entity* root ) -> void {
+        // See comment in AddEntityWithModel( Entity* root )
         static std::atomic_bool loading{ false };
 
         if ( !loading ) {
@@ -375,6 +393,8 @@ namespace Mikoto {
     auto HierarchyPanel::AddEntityWithModel( Entity* root ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        // TODO: Use the asset service to load asynchronously and the asset cache to avoid loading the same model multiple times
+        // and be notified when the model is loaded to create the entity with it, instead of blocking the main thread
         static std::atomic_bool loading{ false };
 
         if ( !loading ) {

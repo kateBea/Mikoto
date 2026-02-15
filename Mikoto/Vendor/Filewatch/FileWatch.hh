@@ -172,7 +172,7 @@ namespace filewatch {
           }
 
           static StringType get( std::wstring buf ) {
-              return StringType{ std::filesystem::path{ buf }.generic_string() };
+              return StringType{ std::filesystem::path{ buf }.string() };
           }
       };
 

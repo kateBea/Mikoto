@@ -410,9 +410,7 @@ namespace Mikoto {
     auto MainImporter::Import( ImporterInfo &loaderData, const ModelLoadDescription &description, ModelData& modelData ) -> void {
         // See more postprocessing options: https://assimp.sourceforge.net/lib_html/postprocess_8h.html
         constexpr auto importerFlags{ static_cast<aiPostProcessSteps>( aiProcess_Triangulate |
-                                                                       aiProcess_FlipUVs |
-                                                                       aiProcess_GenSmoothNormals |
-                                                                       aiProcess_JoinIdenticalVertices ) };
+                                                                       aiProcess_GenSmoothNormals ) };
         const File *file{ description.ModelFile };
         const std::string absolutePath{ file->GetPath() };
         const std::string fileName{ Path{ absolutePath }.stem().string() };

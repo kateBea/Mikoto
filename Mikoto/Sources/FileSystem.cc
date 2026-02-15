@@ -19,6 +19,7 @@
 #include <Filesystem/FileSystem.hh>
 
 #if defined( MIKOTO_PLATFORM_WINDOWS )
+#include <windows.h>
 #include <shlobj.h>
 #endif
 

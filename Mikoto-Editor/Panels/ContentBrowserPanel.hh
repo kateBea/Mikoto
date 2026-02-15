@@ -52,7 +52,7 @@ namespace Mikoto {
 
         auto LoadIcons() -> void;
         auto DrawHeader() -> void;
-        auto DrawSideView() const -> void;
+        auto DrawSideView( const Path& root ) -> void;
         auto DrawMainBody() -> void;
 
         auto OnRightClick() const -> void;

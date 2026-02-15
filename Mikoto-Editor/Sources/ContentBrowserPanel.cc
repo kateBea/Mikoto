@@ -255,20 +255,26 @@ namespace Mikoto {
         ImGui::PopStyleVar();// Rounded Buttons
     }
 
-    auto ContentBrowserPanel::DrawSideView() const -> void {
+    auto ContentBrowserPanel::DrawSideView(const Path& root) -> void {
         constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_FramePadding |
                                                     ImGuiTreeNodeFlags_SpanFullWidth };
 
         for ( auto& entry: std::filesystem::directory_iterator( m_AssetsRootDirectory ) ) {
             if ( entry.is_directory() ) {
                 if ( ImGui::TreeNodeEx( entry.path().string().c_str(), treeNodeFlags, "%s", fmt::format( "{} {}", ICON_MD_FOLDER, entry.path().stem().string() ).c_str() ) ) {
+                    
+                    // We want this to apply before it is expanded, so we can avoid the problem of the tree node being hovered when it is expanded
+                    if ( ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) ) {
+                        m_CurrentDirectory = entry.path();
+                    }
+                    
+                    ImGuiUtils::SetCursorHandOnLastItemHovered();
 
+                    DrawSideView( entry );
                     ImGui::TreePop();
                 }
 
-                if ( ImGui::IsItemHovered() ) {
-                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-                }
+                ImGuiUtils::SetCursorHandOnLastItemHovered();
             }
         }
     }
@@ -303,12 +309,26 @@ namespace Mikoto {
         const ImVec2 availableRegion{ ImGui::GetContentRegionAvail() };
 
         if ( ImGui::BeginTable( "ContentBrowserMainViewTable", 2, tableFlags, availableRegion ) ) {
-            ImGui::TableNextRow();
             ImGui::TableNextColumn();
-            DrawSideView();
+
+            ImGui::BeginChild( "##SideViewChild",
+                               ImVec2{ 0, 0 },
+                               ImGuiChildFlags_Borders );
+
+            DrawSideView( m_AssetsRootDirectory );
+
+            ImGui::EndChild();
+
 
             ImGui::TableNextColumn();
+
+            ImGui::BeginChild( "##MainViewChild",
+                               ImVec2{ 0, 0 },
+                               ImGuiChildFlags_Borders );
+
             DrawMainBody();
+
+            ImGui::EndChild();
 
             ImGui::EndTable();
         }

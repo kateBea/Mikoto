@@ -31,6 +31,7 @@
 
 #include <Library/Utility/Types.hh>
 #include <Renderer/Core/RenderUtility.hh>
+#include <Renderer/Core/RenderService.hh>
 
 #include <Logging/Logger.hh>
 #include <Material/PBRMaterial.hh>
@@ -168,12 +169,12 @@ namespace Mikoto {
 
             if (mesh->HasTextureCoords( 0 )) {
                 vertex.UV_0.x = mesh->mTextureCoords[0][index].x;
-                vertex.UV_0.y = (float)Math::Abs( 1 - mesh->mTextureCoords[0][index].y);
+                vertex.UV_0.y = mesh->mTextureCoords[0][index].y;
             }
 
             if (mesh->HasTextureCoords( 1 )) {
                 vertex.UV_1.x = mesh->mTextureCoords[1][index].x;
-                vertex.UV_1.y = (float)Math::Abs( 1 - mesh->mTextureCoords[1][index].y);
+                vertex.UV_1.y =  mesh->mTextureCoords[1][index].y;
             }
 
 
@@ -408,9 +409,13 @@ namespace Mikoto {
     }
 
     auto MainImporter::Import( ImporterInfo &loaderData, const ModelLoadDescription &description, ModelData& modelData ) -> void {
-        // See more postprocessing options: https://assimp.sourceforge.net/lib_html/postprocess_8h.html
-        constexpr auto importerFlags{ static_cast<aiPostProcessSteps>( aiProcess_Triangulate |
-                                                                       aiProcess_GenSmoothNormals ) };
+        // UVs appear messed UP for vulkan if we specify aiProcess_FlipUVs flag
+        auto importerFlags{ static_cast<aiPostProcessSteps>( aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_JoinIdenticalVertices ) };
+
+        if (description.TargetAPI != GraphicsAPI::VULKAN_API ) {
+            importerFlags = static_cast<aiPostProcessSteps>( aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices );
+        }
+
         const File *file{ description.ModelFile };
         const std::string absolutePath{ file->GetPath() };
         const std::string fileName{ Path{ absolutePath }.stem().string() };

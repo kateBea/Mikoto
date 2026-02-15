@@ -49,6 +49,8 @@ namespace Mikoto {
         const File* ModelFile{};
         bool WantTextures{ true };
 
+        GraphicsAPI TargetAPI{ GraphicsAPI::UNKNOWN };
+
         // Specifies the order we want attributes in
         // Default is order specified by DEFAULT_VERTEX_BUFFER_LAYOUT in Pipeline.hh file
         std::vector<VertexAttribute> Attributes{

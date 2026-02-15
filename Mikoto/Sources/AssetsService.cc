@@ -141,7 +141,10 @@ namespace Mikoto {
 
         ModelHandle model{ MeshFactory::Get()->ImportModel( ModelLoadDescription{
                 .ModelFile{ modelFile },
-                .WantTextures{ description.WantTextures } } ) };
+                .WantTextures{ description.WantTextures },
+                .TargetAPI{ m_GpuDevice->GetApi() },
+
+        } ) };
 
         if ( !model.IsEmpty() ) {
             auto [it, success]{

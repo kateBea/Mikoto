@@ -47,6 +47,17 @@ namespace Mikoto {
         std::string Name{};
         ModelHandle Model{};
 
+        // Light config
+        bool IsLight{ false };
+        LightType LightType{ LightType::DIRECTIONAL_LIGHT_TYPE };
+
+        // Text config
+        bool IsText{ false };
+        bool IsWorldText{ false };
+        float TextSize{ 12.0f };
+        float TextSpacing{ 1.0f };
+        std::string InitialContents{};
+
         auto WithName( std::string_view name ) -> EntityCreateInfo&;
         auto WithRoot( Entity* root ) -> EntityCreateInfo&;
         auto WithModelMesh( ModelHandle modelMesh ) -> EntityCreateInfo&;

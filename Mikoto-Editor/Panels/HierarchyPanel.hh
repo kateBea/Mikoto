@@ -50,6 +50,9 @@ namespace Mikoto {
 
     private:
         EditorState* m_EditorState{};
+
+        bool m_IsEntityCreateQueued{};
+        EntityCreateInfo m_EntityCreateInfo{};
     };
 }
 

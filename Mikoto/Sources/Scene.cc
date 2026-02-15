@@ -247,6 +247,18 @@ namespace Mikoto {
         if ( success ) {
             result = it->second.get();
 
+            if ( createInfo.IsLight ) {
+                result->AddComponent<LightComponent>( createInfo.LightType );
+            }
+
+            if ( createInfo.IsText ) {
+                result->AddComponent<TextComponent>( 
+                    createInfo.InitialContents, 
+                    createInfo.TextSize, 
+                    createInfo.TextSpacing, 
+                    createInfo.IsWorldText);
+            }
+
             // if root is not empty this entity must be registered as child of root entity
             if ( createInfo.Root != nullptr ) {
                 Entity* parent{ createInfo.Root };

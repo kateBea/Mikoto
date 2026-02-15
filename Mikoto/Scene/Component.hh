@@ -270,7 +270,8 @@ namespace Mikoto {
 
     class LightComponent {
     public:
-        explicit LightComponent() = default;
+        explicit LightComponent( LightType type = LightType::POINT_LIGHT_TYPE )
+            : m_Type{ type } {}
 
         LightComponent( const LightComponent& other ) = default;
         LightComponent( LightComponent&& other ) = default;
@@ -524,6 +525,9 @@ namespace Mikoto {
     class TextComponent {
     public:
         explicit TextComponent() = default;
+
+        TextComponent( std::string_view textContent, float size, float spacing, bool isWorld )
+            : m_TextContent{ textContent }, m_Size{ size }, m_Spacing{ spacing }, m_IsWorldText{ isWorld } {}
 
         TextComponent( const TextComponent& other ) = default;
         TextComponent( TextComponent&& other ) = default;

@@ -19,6 +19,7 @@
 #include <ImGui/IconsMaterialDesign.h>
 
 #include <Common/Common.hh>
+#include <Common/String.hh>
 #include <Core/Profiler.hh>
 #include <Application/EditorApp.hh>
 #include <Application/EditorUtility.hh>
@@ -69,58 +70,36 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         EntityCreateInfo entityCreateInfo{
-            .Root{ root }
+            .Root{ root },
+            .IsLight{ true }
         };
 
         ImGui::Spacing();
         ImGui::Separator();
 
-        Entity* newEntity{ nullptr };
-
         if ( ImGui::MenuItem( "Sky Light" ) ) {
             entityCreateInfo.Name = "Sky Light";
-            newEntity = m_EditorState->ActiveEditorScene->CreateEntity( entityCreateInfo );
-
-            if ( newEntity != nullptr ) {
-                LightComponent& lightComponent{ newEntity->AddComponent<LightComponent>() };
-                lightComponent.SetActiveType( LightType::DIRECTIONAL_LIGHT_TYPE );
-            }
+            entityCreateInfo.LightType = LightType::DIRECTIONAL_LIGHT_TYPE;
         }
 
         if ( ImGui::MenuItem( "Directional light" ) ) {
             entityCreateInfo.Name = "Directional light";
-            newEntity = m_EditorState->ActiveEditorScene->CreateEntity( entityCreateInfo );
-
-            if ( newEntity != nullptr ) {
-                LightComponent& lightComponent{ newEntity->AddComponent<LightComponent>() };
-                lightComponent.SetActiveType( LightType::DIRECTIONAL_LIGHT_TYPE );
-            }
+            entityCreateInfo.LightType = LightType::DIRECTIONAL_LIGHT_TYPE;
         }
 
         if ( ImGui::MenuItem( "Point light" ) ) {
             entityCreateInfo.Name = "Point light";
-            newEntity = m_EditorState->ActiveEditorScene->CreateEntity( entityCreateInfo );
-
-            if ( newEntity != nullptr ) {
-                LightComponent& lightComponent{ newEntity->AddComponent<LightComponent>() };
-                lightComponent.SetActiveType( LightType::POINT_LIGHT_TYPE );
-            }
+            entityCreateInfo.LightType = LightType::POINT_LIGHT_TYPE;
         }
 
         if ( ImGui::MenuItem( "Spot light" ) ) {
             entityCreateInfo.Name = "Spot light";
-            newEntity = m_EditorState->ActiveEditorScene->CreateEntity( entityCreateInfo );
-
-            if ( newEntity != nullptr ) {
-                LightComponent& lightComponent{ newEntity->AddComponent<LightComponent>() };
-                lightComponent.SetActiveType( LightType::SPOT_LIGHT_TYPE );
-            }
+            entityCreateInfo.LightType = LightType::SPOT_LIGHT_TYPE;
         }
 
-        if ( newEntity != nullptr ) {
-            MKT_CORE_LOGGER_INFO( "Created new entity: {}", newEntity->GetComponent<TagComponent>().GetTag() );
-            RuntimeConsole::Get()->Debug( fmt::format( "Added entity: {}. Id => {}", newEntity->GetComponent<TagComponent>().GetTag(),
-                                                       StringUtils::ToHex( newEntity->GetComponent<TagComponent>().GetGUID() ) ) );
+        if ( !entityCreateInfo.Name.empty() ) {
+            m_EditorState->ActiveEditorScene->QueueCreateEntity( entityCreateInfo );
+            RuntimeConsole::Get()->Debug( StringUtil::Format( "Queued create light: {}", entityCreateInfo.Name ) );
         }
     }
 
@@ -197,7 +176,8 @@ namespace Mikoto {
         // U+F1B3  ->  61875
         const std::string icon { ImGuiUtils::GetStringFromUnicode( 63185 ) };
 
-        const bool expanded{ ImGui::TreeNodeEx( reinterpret_cast<void*>( entityTag.GetGUID() ), flags, "%s", fmt::format( " {} {}",  icon.data(), entityTag.GetTag() ).c_str() ) };
+        const bool expanded{ ImGui::TreeNodeEx( reinterpret_cast<void*>( entityTag.GetGUID() ), 
+            flags, "%s", fmt::format( " {} {}",  icon.data(), entityTag.GetTag() ).c_str() ) };
 
         if ( ImGui::IsItemClicked( ImGuiMouseButton_Left ) ) {
             m_EditorState->SelectedEntity = entity;
@@ -299,9 +279,8 @@ namespace Mikoto {
                     .Name{ "Empty object" },
                 };
 
-                Entity* result{ m_EditorState->ActiveEditorScene->CreateEntity( createInfo ) };
-
-                RuntimeConsole::Get()->Debug( fmt::format( "Added entity: {}. Id => {}", result->GetComponent<TagComponent>().GetTag(), StringUtils::ToHex( result->GetComponent<TagComponent>().GetGUID() ) ) );
+                m_EditorState->ActiveEditorScene->QueueCreateEntity( createInfo );
+                RuntimeConsole::Get()->Debug( StringUtil::Format( "Queued create Empty object" ) );
             }
 
             DrawPrefabMenuItems( entity );
@@ -331,33 +310,30 @@ namespace Mikoto {
             const EntityCreateInfo entityCreateInfo{
                 .Root{ root },
                 .Name{ "Text" },
+                .IsText{ true },
+                .IsWorldText{ false },
+                .TextSize{ TextComponent::GetMinLetterSize() },
+                .TextSpacing{ TextComponent::GetMinLetterSpacing() },
+                .InitialContents{ "Text" },
             };
 
-            Entity* result{ m_EditorState->ActiveEditorScene->CreateEntity( entityCreateInfo ) };
-            RuntimeConsole::Get()->Debug( fmt::format( "Added entity: {}. Id => {}", result->GetComponent<TagComponent>().GetTag(), StringUtils::ToHex( result->GetComponent<TagComponent>().GetGUID() ) ) );
-
-            TextComponent& textComponent{ result->AddComponent<TextComponent>() };
-
-            textComponent.SetContents( "Text" );
-            textComponent.SetSize( TextComponent::GetMinLetterSize() );
-            textComponent.SetSpacing( TextComponent::GetMinLetterSpacing() );
+            m_EditorState->ActiveEditorScene->QueueCreateEntity( entityCreateInfo );
+            RuntimeConsole::Get()->Debug( StringUtil::Format( "Queued create entity {}", entityCreateInfo.Name ) );
         }
 
         if ( ImGui::MenuItem( "Text 3D" ) ) {
             const EntityCreateInfo entityCreateInfo{
                 .Root{ root },
                 .Name{ "Text" },
+                .IsText{ true },
+                .IsWorldText{ true },
+                .TextSize{ TextComponent::GetMinLetterSize() },
+                .TextSpacing{ TextComponent::GetMinLetterSpacing() },
+                .InitialContents{ "Text" },
             };
 
-            Entity* result{ m_EditorState->ActiveEditorScene->CreateEntity( entityCreateInfo ) };
-            RuntimeConsole::Get()->Debug( fmt::format( "Added entity: {}. Id => {}", result->GetComponent<TagComponent>().GetTag(), StringUtils::ToHex( result->GetComponent<TagComponent>().GetGUID() ) ) );
-
-            TextComponent& textComponent{ result->AddComponent<TextComponent>() };
-
-            textComponent.SetContents( "Example" );
-            textComponent.SetIsWorldText( true ); 
-            textComponent.SetSize( TextComponent::GetMinLetterSize() );
-            textComponent.SetSpacing( TextComponent::GetMinLetterSpacing() );
+            m_EditorState->ActiveEditorScene->QueueCreateEntity( entityCreateInfo );
+            RuntimeConsole::Get()->Debug( StringUtil::Format( "Queued create entity {}", entityCreateInfo.Name ) );
         }
     }
 
@@ -434,9 +410,8 @@ namespace Mikoto {
         if ( ImGui::BeginPopupContextWindow( "##HierarchyPanel::BlankSpacePopupMenu:HierarchyMenuOptions", popupWindowFlags ) ) {
 
             if ( ImGui::MenuItem( "Empty Object" ) ) {
-                Entity* result{ m_EditorState->ActiveEditorScene->CreateEntity( "Empty Object" ) };
-                TagComponent& tagComponent{ result->GetComponent<TagComponent>() };
-                RuntimeConsole::Get()->Debug( fmt::format( "New entity added {}. Id => {}", tagComponent.GetTag(), StringUtils::ToHex( tagComponent.GetGUID() ) ) );
+                m_EditorState->ActiveEditorScene->QueueCreateEntity( "Empty Object" );
+                RuntimeConsole::Get()->Debug( fmt::format( "New entity queued {}", "Empty Object" ) );
             }
 
             // We do not have the cursor on top of any entity

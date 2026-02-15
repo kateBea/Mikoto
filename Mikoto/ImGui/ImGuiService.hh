@@ -93,6 +93,9 @@ namespace Mikoto {
         auto EndFrame() const -> void;
         auto PrepareFrame() const -> void;
 
+        auto SetThemeDarkModeDefault() -> void;
+        auto SetThemeDarkModeAlt() -> void;
+
         MKT_NODISCARD auto GetFinalComposition() const -> TextureHandle;
 
         auto SetImGuiBackGroundClearColor(const Vec4F& color) -> void;

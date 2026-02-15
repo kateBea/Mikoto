@@ -293,6 +293,17 @@ namespace Mikoto {
             rigidBodyComponent.SetBodyID( it->first );
         }
     }
+    
+    auto PhysicsWorld::GetGravityBody() const -> GravityBody {
+        return m_GravityBody;
+    }
+
+    auto PhysicsWorld::SetGravityBody( GravityBody body ) -> void {
+        m_GravityBody = body;
+        m_Gravity = GetGravityFor( body );
+
+        m_SimulationInfo.PhysicsSystem.SetGravity( JPH::Vec3( m_Gravity.x, m_Gravity.y, m_Gravity.z ) );
+    }
 
     auto PhysicsWorld::GetGravityFor( const GravityBody body) -> Vec3F {
         // https://en.wikipedia.org/wiki/List_of_gravitationally_rounded_objects_of_the_Solar_System

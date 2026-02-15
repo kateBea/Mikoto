@@ -12,11 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
 #include <filesystem>
 
+#include <Core/Platform.hh>
 #include <Filesystem/FileSystem.hh>
 
+#if defined( MIKOTO_PLATFORM_WINDOWS )
+#include <shlobj.h>
+#endif
+
 namespace Mikoto {
+
+#if defined( MIKOTO_PLATFORM_WINDOWS )
+    auto OpenAndSelectFile( const std::wstring &filePath ) -> void {
+        PIDLIST_ABSOLUTE pidl{ ILCreateFromPathW( filePath.c_str() ) };
+        if ( pidl ) {
+            SHOpenFolderAndSelectItems( pidl, 0, nullptr, 0 );
+            ILFree( pidl );
+        }
+    }
+#endif
 
     auto Filesystem::StripFileName( std::string_view path ) -> std::string {
         Path rootPath{ path };
@@ -42,5 +58,16 @@ namespace Mikoto {
 
     auto Filesystem::GetGetAbsolutePathString( const Path &path ) -> std::string {
         return GetGetAbsolutePath(path).string();
+    }
+
+    auto Filesystem::OpenInExplorer( const Path &path ) -> void {
+#if defined( MIKOTO_PLATFORM_WINDOWS )
+        if ( std::filesystem::is_regular_file( path ) ) {
+            OpenAndSelectFile(path.wstring());
+        } else {
+            std::wstring widePath{ path.wstring() };
+            ShellExecuteW( nullptr, L"open", widePath.c_str(), nullptr, nullptr, SW_SHOWDEFAULT );
+        }
+#endif
     }
 }

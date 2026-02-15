@@ -74,6 +74,8 @@ namespace Mikoto {
         MKT_NODISCARD auto CreateEntity( Entity* root, std::string_view name ) -> Entity*;
         MKT_NODISCARD auto CreateEntity( const EntityCreateInfo& createInfo = {} ) -> Entity*;
 
+        MKT_NODISCARD auto GetPhysicsWorld() -> PhysicsWorld*;
+
         template<typename EntityFunction>
         auto ApplyToChildren(Entity* parent, const EntityFunction& callable) -> void {
             if (!parent) {

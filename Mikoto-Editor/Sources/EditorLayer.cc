@@ -760,23 +760,6 @@ namespace Mikoto {
                 ImGui::EndMenu();
             }
 
-            ImGuiUtils::HelpMarker(
-                    "When docking is enabled, you can ALWAYS dock MOST window into another! Try it now!"
-                    "\n"
-                    "- Drag from window title bar or their tab to dock/undock."
-                    "\n"
-                    "- Drag from window menu button (upper-left button) to undock an entire node (all windows)."
-                    "\n"
-                    "- Hold SHIFT to disable docking (if io.ConfigDockingWithShift == false, default)"
-                    "\n"
-                    "- Hold SHIFT to enable docking (if io.ConfigDockingWithShift == true)"
-                    "\n"
-                    "This demo app has nothing to do with enabling docking!"
-                    "\n\n"
-                    "This demo app only demonstrate the use of ImGui::DockSpace() which allows you to manually create a docking node _within_ another window."
-                    "\n\n"
-                    "Read comments in ShowExampleAppDockSpace() for more details." );
-
             if (ImGui::BeginMenu( "Window" )) {
                 if (ImGui::BeginMenu( "Panels" )) {
 
@@ -796,11 +779,11 @@ namespace Mikoto {
                     if (ImGui::MenuItem( "Classic" )) { ImGui::StyleColorsClassic(); }
                     if (ImGui::MenuItem( "Dark Default" )) {
                         ImGui::StyleColorsDark();
-                        ImGuiUtils::ThemeDarkModeDefault();
+                        ImGuiService::Get()->SetThemeDarkModeDefault();
                     }
                     if (ImGui::MenuItem( "Dark Alternative" )) {
                         ImGui::StyleColorsDark();
-                        ImGuiUtils::ThemeDarkModeAlt();
+                        ImGuiService::Get()->SetThemeDarkModeAlt();
                     }
                     if (ImGui::MenuItem( "Focused" )) { ImGui::StyleColorsDark(); }
                     if (ImGui::MenuItem( "Blindness" )) { ImGui::StyleColorsLight(); }
@@ -810,21 +793,6 @@ namespace Mikoto {
 
                 ImGui::EndMenu();
             }
-
-            ImGuiUtils::HelpMarker( "This menu helps to change window stuff like the theme" );
-
-            if (ImGui::BeginMenu( "Rendering" )) {
-                // Disabling fullscreen would allow the window to be moved to the front of other windows,
-                // which we can't undo at the moment without finer window depth/z control.
-
-                SetRendererResolution();
-
-                if (ImGui::MenuItem( "Enable SSAO", nullptr )) {}
-
-                ImGui::EndMenu();
-            }
-
-            ImGuiUtils::HelpMarker( "Configuration about the main scene rendering." );
 
             if (ImGui::BeginMenu( "Language" )) {
                 static constexpr std::array languages{
@@ -848,6 +816,17 @@ namespace Mikoto {
 
                     ImGui::EndMenu();
                 }
+
+                ImGui::EndMenu();
+            }
+
+            if ( ImGui::BeginMenu( "Tools" ) ) {
+                // Disabling fullscreen would allow the window to be moved to the front of other windows,
+                // which we can't undo at the moment without finer window depth/z control.
+
+                SetRendererResolution();
+
+                if ( ImGui::MenuItem( "Enable SSAO", nullptr ) ) {}
 
                 ImGui::EndMenu();
             }

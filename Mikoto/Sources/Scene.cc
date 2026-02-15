@@ -282,6 +282,10 @@ namespace Mikoto {
         return CreateEntitySingle( createInfo );
     }
 
+    auto Scene::GetPhysicsWorld() -> PhysicsWorld* {
+        return m_PhysicsWorld;
+    }
+
     auto Scene::SetSceneBackground( SceneBackground background ) -> void {
         m_Background = background;
     }

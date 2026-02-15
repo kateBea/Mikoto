@@ -31,6 +31,8 @@
 #include <ImGui/IconsFontAwesome5.h>
 #include <ImGui/IconsMaterialDesign.h>
 
+#include <Filesystem/FileSystem.hh>
+
 namespace Mikoto {
 
     ContentBrowserPanel::ContentBrowserPanel( const ContentBrowserPanelDescription& desc )
@@ -100,14 +102,6 @@ namespace Mikoto {
             ImGui::SameLine();
             ImGui::Text( "Browser thumbnail size" );
             ImGuiUtils::Slider( "##HeaderSettingsPopupThumbnailSize", m_ThumbnailSize, { 90.0f, 256.0f } );
-
-            ImGui::Spacing();
-            ImGui::Separator();
-
-            // Show folders only in the side tree?
-            ImGuiUtils::CheckBox( "##ShowDirectoriesOnly", m_ShowFoldersOnlyInDirectoryTree );
-            ImGui::SameLine();
-            ImGui::Text( "Show directories only in side view" );
 
             ImGui::Spacing();
             ImGui::Separator();
@@ -200,22 +194,29 @@ namespace Mikoto {
         ImGui::SameLine();
 
         // Home directory
-        {
-            if ( ImGui::Button( fmt::format( "{}", ICON_MD_HOME ).c_str() ) ) {
-                m_CurrentDirectory = m_ProjectRoot;
-                m_ForwardDirectory = Path{};
+        if ( ImGui::Button( fmt::format( "{}", ICON_MD_HOME ).c_str() ) ) {
+            m_CurrentDirectory = m_ProjectRoot;
+            m_ForwardDirectory = Path{};
 
-                m_DirectoryStack = {};
-                m_DirectoryStack.push_front( m_ProjectRoot );
-            }
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-            }
+            m_DirectoryStack = {};
+            m_DirectoryStack.push_front( m_ProjectRoot );
+        }
+        if ( ImGui::IsItemHovered() ) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
         }
 
         ImGui::SameLine();
 
-        ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_FOLDER ).c_str() );
+        // Folder icon (current directory)
+        if ( ImGui::Button( fmt::format( "{}", ICON_MD_FOLDER ).c_str() ) ) {
+            Filesystem::OpenInExplorer( m_CurrentDirectory );
+        }
+
+        ImGuiUtils::SetCursorHandOnLastItemHovered();
+
+        ImGuiUtils::ToolTip( []() -> void {
+            ImGui::TextUnformatted( "Open in explorer" );
+        }, ImGui::IsItemHovered() );
 
         ImGui::PushStyleVar( ImGuiStyleVar_FrameBorderSize, 0.0f );
         ImGui::PushStyleColor( ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f } );
@@ -453,6 +454,10 @@ namespace Mikoto {
                     }
                 }
 
+                if ( ImGui::IsItemHovered() && ImGui::IsMouseClicked( ImGuiMouseButton_Left ) ) {
+                    m_SelectedItem = entry;
+                }
+
                 // File name
                 ImGui::PopStyleColor();
                 ImGuiUtils::CenteredText( fmt::format( "{}", entry.path().stem().string() ).c_str(), m_ThumbnailSize );
@@ -476,7 +481,12 @@ namespace Mikoto {
         ImGuiUtils::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 8.0f, 8.0f } };
         ImGuiUtils::ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f } };
 
-        if ( ImGui::BeginPopupContextWindow( "ContentBrowserPopup" ) ) {
+        constexpr ImGuiPopupFlags popupWindowFlags{
+            ImGuiPopupFlags_NoOpenOverItems |
+            ImGuiPopupFlags_MouseButtonRight
+        };
+
+        if ( ImGui::BeginPopupContextWindow( "##ContentBrowserPanel::ContentBrowserPopup", popupWindowFlags ) ) {
 
             ImGui::Spacing();
             if ( ImGui::MenuItem( fmt::format( "{} Cut", ICON_MD_CONTENT_CUT ).c_str(), "Ctrl + X" ) ) {}

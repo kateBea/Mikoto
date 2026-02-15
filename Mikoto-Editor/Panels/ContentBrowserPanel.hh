@@ -84,6 +84,9 @@ namespace Mikoto {
         // drop needs this to persis
         TextureHandle m_Thumbnail{};
 
+        Path m_SelectedItem{};
+        std::vector<Path> m_SelectedItems{};
+
         ankerl::unordered_dense::set<std::string> m_ThumbnailsUploadCache{};
         ankerl::unordered_dense::map<TextureIconType, TextureHandle> m_Textures{};
         ankerl::unordered_dense::map<TextureIconType, ImTextureID> m_ImGuiTextureHandles{};

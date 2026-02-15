@@ -28,6 +28,8 @@ namespace Mikoto::Filesystem {
         CHARACTER_FILE,
     };
 
+    auto OpenInExplorer( const Path& path ) -> void;
+
     MKT_NODISCARD auto IsRegularFile(const Path& path) -> bool;
     MKT_NODISCARD auto IsDirectory(const Path& path) -> bool;
     MKT_NODISCARD auto IsPathType(const Path& path, PathType) -> bool;

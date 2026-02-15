@@ -375,7 +375,7 @@ namespace Mikoto {
     auto HierarchyPanel::AddEntityWithModel( Entity* root ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        static bool loading{ false };
+        static std::atomic_bool loading{ false };
 
         if ( !loading ) {
             loading = true;

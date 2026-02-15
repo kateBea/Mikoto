@@ -15,22 +15,21 @@
 #ifndef MIKOTO_FRAME_GRAPH_HH
 #define MIKOTO_FRAME_GRAPH_HH
 
+#include <ankerl/unordered_dense.h>
+
+#include <Assets//Texture.hh>
+#include <Assets/AssetsService.hh>
+#include <Material/TextureCube.hh>
+#include <Renderer/Core/FrameGraphBlackboard.hh>
+#include <Renderer/Core/FramePassResource.hh>
+#include <Renderer/Core/Pipeline.hh>
+#include <Renderer/Core/RenderUtility.hh>
+#include <Renderer/Core/SRGBase.hh>
 #include <string>
 #include <variant>
 #include <vector>
 
-#include <ankerl/unordered_dense.h>
-
-#include <Assets//Texture.hh>
-
-#include <Renderer/Core/Pipeline.hh>
-#include <Renderer/Core/FrameGraphBlackboard.hh>
-#include <Renderer/Core/FramePassResource.hh>
-#include <Renderer/Core/RenderUtility.hh>
-#include <Renderer/Core/SRGBase.hh>
-
-#include <Assets/AssetsService.hh>
-#include <Material/TextureCube.hh>
+#include "Core/TimeService.hh"
 
 namespace Mikoto {
     class CommandContext;
@@ -52,13 +51,24 @@ namespace Mikoto {
         ONCE
     };
 
+    enum class FramePassNodeType {
+        GRAPHICS,
+        COMPUTE,
+        TRANSFER,
+        GENERIC, // For passes that not really need any kind of GPU work
+    };
+
     struct FramePassNode {
         std::string Name{};
+
+        // [DEBUG]
+        Time LastExecutionTime{};
 
         std::vector<ResourceNode> Reads{};
         std::vector<ResourceNode> Writes{};
 
         SRGPerPass PerPassShaderResources{};
+        SRGConstants ConstantsShaderResources{};
 
         std::function<void( CommandContext &, FrameGraphBlackboard & )> ExecuteCallback{};
 
@@ -76,6 +86,31 @@ namespace Mikoto {
         MKT_NODISCARD auto IsExecutionPolicy(FramePassExecutionPolicy status) const -> bool;
 
         MKT_NODISCARD auto ShouldRun() const -> bool;
+
+        MKT_NODISCARD auto HasResources() const -> bool;
+    };
+
+    struct BufferBuilder {
+        std::string Name{};
+        Size SizeBytes{};
+
+        Size ElementCount{};
+        Size ElementSize{};
+
+        BufferUsage Usage{ BufferUsage::VERTEX };
+        ResourceUsageType UsageType{ ResourceUsageType::RESOURCE_USAGE_STATIC };
+
+        auto ForElement( Size size, Size count ) -> BufferBuilder&;
+        auto WithSizeBytes( Size size ) -> BufferBuilder&;
+        auto WithUsage( BufferUsage usage ) -> BufferBuilder&;
+        auto IsDynamic( bool value ) -> BufferBuilder&;
+
+        auto Build( std::string_view name ) -> void;
+
+    private:
+        friend class FramePassBuilder;
+        bool IsBuilt{ false };
+
     };
 
     class FramePassBuilder final {
@@ -85,8 +120,10 @@ namespace Mikoto {
         auto Use( SRGType type ) -> FramePassBuilder&;
         auto Use( SRGType type, std::string_view name, UInt32 bindSlot ) -> FramePassBuilder&;
 
-        auto Write( std::string_view name, FrameResourceState outState = FrameResourceState::ShaderResource_Read ) -> FramePassBuilder&;
-        auto Read( std::string_view name, FrameResourceState outState = FrameResourceState::ShaderResource_Read ) -> FramePassBuilder&;
+        // state indicates the state the resource needs to be in for this pass, this may imply setting
+        // a barrier for transition on the resource before the pass starts (only if needed)
+        auto Write( std::string_view name, FrameResourceState state) -> FramePassBuilder&;
+        auto Read( std::string_view name, FrameResourceState state) -> FramePassBuilder&;
 
         template<typename ResourceType, typename... Args>
         auto Create( Args &&... args ) -> FramePassBuilder& {
@@ -103,6 +140,8 @@ namespace Mikoto {
 
             return *this;
         }
+
+        auto CreateBuffer( const BufferBuilder& description ) -> void;
 
         // Resources to be used in the shader can be specified at creation or later in
         // the execute callback via calling the corresponding bind methods
@@ -126,6 +165,9 @@ namespace Mikoto {
         auto CreateTexture( std::string_view name, TextureDescription description ) -> void;
         auto CreateTexture( std::string_view name, RenderResolution resolution, TextureFormat format, TextureUsage usage ) -> void;
         auto CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format, TextureUsage usage ) -> void;
+        auto CreateTexture( std::string_view name, RenderResolution resolution, TextureFormat format, Multisampling msaa, TextureUsage usage ) -> void;
+        auto CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format, Multisampling msaa, TextureUsage usage ) -> void;
+        auto CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format, void* ptr, Size sizeBytes) -> void;
 
         // For cubes
         auto CreateTexture( std::string_view name, TextureCubeCreateDescription description ) -> void;
@@ -136,6 +178,7 @@ namespace Mikoto {
 
         FramePassNode *m_Node{};
 
+        bool m_HasActivePipeline{ false };
         PipelineDescription m_PipelineDescription{};
 
         ankerl::unordered_dense::map<std::string, FramePassResourceDescription> m_Creates{};
@@ -143,12 +186,14 @@ namespace Mikoto {
         bool m_UsesTextures{ false };
     };
 
+    using PassList = ankerl::unordered_dense::map<std::string, FramePassNode>;
+
     class FrameGraph final {
     public:
         explicit FrameGraph( GraphicsContext *context, GpuDevice *device );
 
         template<typename PassData, typename SetupFn, typename ExecuteFn>
-        auto RegisterPass( const std::string_view name, SetupFn &&setup, ExecuteFn &&execute ) -> void {
+        auto RegisterPass( const std::string_view name, SetupFn &&setup, ExecuteFn &&execute, FramePassNodeType nodeType = FramePassNodeType::GENERIC ) -> void {
             FramePassNode &node{ CreatePassNode( name ) };
 
             PassData &data{ m_GraphBlackboard.Add<PassData>() };
@@ -161,7 +206,7 @@ namespace Mikoto {
         }
 
         template<typename SetupFn, typename ExecuteFn>
-        auto RegisterPass( const std::string_view name, SetupFn &&setup, ExecuteFn &&execute ) -> void {
+        auto RegisterPass( const std::string_view name, SetupFn &&setup, ExecuteFn &&execute, FramePassNodeType nodeType = FramePassNodeType::GENERIC ) -> void {
             FramePassNode &node{ CreatePassNode( name ) };
 
             FramePassBuilder builder{ node };
@@ -178,6 +223,8 @@ namespace Mikoto {
 
         MKT_NODISCARD auto IsCompiled() const -> bool;
 
+        MKT_NODISCARD auto GetPassList() const -> const PassList&;
+
         MKT_NODISCARD auto GetTexture( std::string_view name ) const -> TextureHandle;
         MKT_NODISCARD auto GetBuffer( std::string_view name ) const -> BufferHandle;
 
@@ -185,6 +232,7 @@ namespace Mikoto {
 
     private:
         auto TransitionWrites(FramePassNode& node, CommandListHandle cmd) -> void;
+        auto InsertBarrier(FramePassResource& resource, FrameResourceState newState, CommandListHandle cmd) -> void;
         auto InsertResourceBarriers(FramePassNode& node, CommandListHandle cmd) -> void;
 
         MKT_NODISCARD auto UsesTextureList( std::string_view nodeName ) const -> bool;
@@ -206,7 +254,7 @@ namespace Mikoto {
         FrameGraphBlackboard m_GraphBlackboard{};
 
         // List of registered nodes
-        ankerl::unordered_dense::map<std::string, FramePassNode> m_Passes{};
+        PassList m_Passes{};
 
         // Passes that use global array of textures
         ankerl::unordered_dense::set<std::string> m_TexturePasses{};
@@ -216,6 +264,11 @@ namespace Mikoto {
 
         // Compile flag
         bool m_Compiled{ false };
+
+        // To control pass execution time
+        // In milliseconds
+        double m_ElapsedTime{ 0.0 };
+        double m_ElapsedTimeUpdatedInterval{ 500 };
     };
 }
 

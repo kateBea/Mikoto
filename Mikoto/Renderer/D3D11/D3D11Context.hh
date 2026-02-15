@@ -42,12 +42,16 @@ namespace Mikoto {
         auto SubmitFrame() -> void override;
         auto PrepareFrame() -> void override;
 
+        auto Update() -> void override;
+
         auto Present() -> void override;
 
         auto SetPresentTarget( TextureHandle texture ) -> void override;
 
         auto EnableVSync() -> void override;
         auto DisableVSync() -> void override;
+
+        MKT_NODISCARD auto IsVsyncEnabled() const -> bool override;
 
         ~D3D11Context() override = default;
 

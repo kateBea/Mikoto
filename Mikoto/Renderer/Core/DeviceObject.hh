@@ -2,8 +2,8 @@
 // Created by zanet on 3/21/2025.
 //
 
-#ifndef IDEVICEOBJECT_HH
-#define IDEVICEOBJECT_HH
+#ifndef MIKOTO_DEVICE_OBJECT_HH
+#define MIKOTO_DEVICE_OBJECT_HH
 
 #include <Library/Data/ResourcePool.hh>
 #include <Renderer/Core/RenderUtility.hh>
@@ -54,8 +54,6 @@ namespace Mikoto {
         // D3D11
         D3D11_Device,
     };
-
-
 
     /**
      * @class DeviceObject
@@ -128,13 +126,16 @@ namespace Mikoto {
             return m_UsageType;
         }
 
+        MKT_NODISCARD auto IsResourceUsage(ResourceUsageType usageType) const -> bool {
+            return m_UsageType == usageType;
+        }
+
         /**
          * @brief Retrieves the native handle of the device object.
          *
          * This method should be overridden by derived classes to return the appropriate
          * native handle (e.g., Vulkan handle) for the specific object type.
          *
-         * @param type The type of native object handle to retrieve.
          * @returns The native handle wrapped in an Object structure.
          */
         MKT_NODISCARD virtual auto GetNativeHandle( ObjectType ) -> Object { return Object(nullptr); }
@@ -178,4 +179,4 @@ namespace Mikoto {
     };
 }
 
-#endif//IDEVICEOBJECT_HH
+#endif// MIKOTO_DEVICE_OBJECT_HH

@@ -1,11 +1,26 @@
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 /**************************************************
     Light Culling Compute Shader
-
     Stage: Compute
     Version: GLSL 4.5.0
 **************************************************/
 
 #version 450
+
+#extension GL_EXT_scalar_block_layout : require
 
 #include "ShaderBase.glsl"
 #include "ClusteredShading.glsl"
@@ -13,31 +28,28 @@
 #define LOCAL_SIZE 128
 layout(local_size_x = LOCAL_SIZE, local_size_y = 1, local_size_z = 1) in;
 
-layout(set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
+layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
+    mat4 Projection;
     mat4 ViewMatrix;
     mat4 InverseProjection;
-
-    vec4 GridSize;
     vec4 ViewPosition;
+    vec2 Planes;
+    vec2 ScreenDimensions;
+} u_Camera;
 
-    // xy = Planes, zw = ScreenDimensions
-    vec4 Screen;
-
-    // x = show heat map
-    vec4 ShowHeatMap;
-} Camera;
-
-layout(std430, set = PERPASS_SETINDEX, binding = 1) buffer ClusterSSBO  {
+layout(std430, scalar, set = STATIC_SETINDEX, binding = 1) buffer ClusterSSBO  {
     Cluster Clusters[];
 };
 
-layout(std430, set = PERPASS_SETINDEX, binding = 2) buffer LightSSBO {
+layout(std430, scalar, set = PERPASS_SETINDEX, binding = 2) buffer LightSSBO {
     LightInfo Lights[];
 };
 
-layout(set = PERPASS_SETINDEX, binding = 3) uniform LightCullingUBO {
+layout(scalar, push_constant) uniform ClusteredShadingParams {
+    vec4 GridSize;
+    uint ShowHeatMap;
     uint ActiveLightCount;
-} Culling;
+} u_Parameters;
 
 
 bool SphereAABBIntersection(vec3 center, float radius, vec3 aabbMin, vec3 aabbMax)  {
@@ -52,7 +64,7 @@ bool SphereAABBIntersection(vec3 center, float radius, vec3 aabbMin, vec3 aabbMa
 
 // this just unpacks data for sphereAABBIntersection
 bool TestSphereAABBPointLight(uint i, Cluster cluster)  {
-    vec3 center = (Camera.ViewMatrix * vec4(Lights[i].Position.xyz, 1.0)).xyz;
+    vec3 center = (u_Camera.ViewMatrix * vec4(Lights[i].Position.xyz, 1.0)).xyz;
     float radius = GetPointLightRadius(Lights[i].Intensity);
 
     vec3 aabbMin = cluster.MinPoint.xyz;
@@ -73,7 +85,7 @@ void main() {
     // otherwise it would accumulate.
     cluster.Count = 0;
 
-    uint lightCount = uint(Culling.ActiveLightCount);
+    uint lightCount = uint(u_Parameters.ActiveLightCount);
     // I go up until lightCount because I want to find amongts all
     // lights in the scene which ones affect this cluster
     for (uint i = 0; i < lightCount; ++i)

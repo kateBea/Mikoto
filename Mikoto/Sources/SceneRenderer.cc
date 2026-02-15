@@ -14,13 +14,21 @@
 
 #include <ranges>
 
+#include <Core/Timer.hh>
 #include <Core/Profiler.hh>
+
+#include <Filesystem/FileSystem.hh>
+#include <Threading/TaskService.hh>
+
+#include <Assets/AssetsService.hh>
+
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Core/RenderService.hh>
 #include <Renderer/Core/SceneRenderer.hh>
 #include <Renderer/Passes/DebugPasses.hh>
 #include <Renderer/Passes/IBLPasses.hh>
+#include <Renderer/Passes/MeshCulling.hh>
 #include <Renderer/Passes/PostEffectsPasses.hh>
 #include <Renderer/Passes/ClusteredShading.hh>
 
@@ -45,8 +53,9 @@ namespace Mikoto {
     auto SceneRenderer::Render( Scene* scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        m_CameraPass.SetScene( scene );
+        m_MeshCulling.SetScene( scene );
         m_IBLPasses.SetScene( scene );
-        m_DebugPasses.SetScene( scene );
         m_PostEffectsPasses.SetScene( scene );
         m_ClusteredShadingPasses.SetScene( scene );
 
@@ -58,12 +67,12 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::SetCamera( SceneCamera *camera ) -> void {
-        m_IBLPasses.SetCamera( camera );
-        m_ClusteredShadingPasses.SetCamera( camera );
-    }
+        m_CameraPass.SetCamera( camera );
 
-    auto SceneRenderer::SetSkyBox( TextureHandle cubeMap ) -> void {
-        m_IBLPasses.SetCubeMap( cubeMap );
+        m_IBLPasses.SetCamera( camera );
+        m_PostEffectsPasses.SetCamera( camera );
+
+        m_ClusteredShadingPasses.SetCameraPass( m_CameraPass );
     }
 
     auto SceneRenderer::SetClearColor( const Vec4F& color ) -> void {
@@ -93,8 +102,65 @@ namespace Mikoto {
         m_IBLPasses.SetGamma( value );
     }
 
+    auto SceneRenderer::SetMaxReflectionLOD( float value ) -> void {
+        m_IBLPasses.SetMaxReflectionLOD( value );
+    }
+
     auto SceneRenderer::SetEnvironmentExposure( float value ) -> void {
         m_IBLPasses.SetExposure( value );
+    }
+
+    auto SceneRenderer::UpdateEquirectangularMapAsync( std::string_view path ) -> void {
+        TaskService::Get()->Submit( [path = Filesystem::GetGetAbsolutePath(path), this]() -> void {
+            m_HDRTexture = AssetsService::Get()->LoadAsset<Texture>( path, true );
+            m_LDRTexture = AssetsService::Get()->LoadAsset<TextureCube>( path );
+
+            m_LoadedHDR = true;
+        } );
+    }
+
+    auto SceneRenderer::SetUseConvolutedCube( bool enable ) -> void {
+        m_IBLPasses.SetUseConvolutedCube( enable );
+    }
+
+    auto SceneRenderer::UseLDRCubeMap( bool enable ) -> void {
+        m_IBLPasses.UseLDRCubeMap( enable );
+    }
+
+    auto SceneRenderer::IsUsingConvolutedCube() const -> bool {
+        return m_IBLPasses.IsUsingConvolutedCube();
+    }
+
+    auto SceneRenderer::GetEquirectangularMap() -> TextureHandle {
+        return m_HDRTexture;
+    }
+
+    auto SceneRenderer::IsUsingPrecomputedLDRCubeMap() -> bool {
+        return m_IBLPasses.IsUsingPrecomputedLDRCubeMap();
+    }
+
+    auto SceneRenderer::SetEnableSSAO( bool enable ) -> void {
+
+    }
+
+    auto SceneRenderer::SetWireframeEnable( bool enable ) -> void {
+        m_DebugPasses.SetWireframeEnable(enable);
+    }
+
+    auto SceneRenderer::SetWireframeLineLineWidth( float value ) -> void {
+        m_DebugPasses.SetWireframeLineLineWidth( value );
+    }
+
+    auto SceneRenderer::SetWireframeLineColor( const Vec4F &color ) -> void {
+        m_DebugPasses.SetWireframeLineColor( color );
+    }
+
+    auto SceneRenderer::SetWireframeClearColor( const Vec4F &color ) -> void {
+        m_DebugPasses.SetWireframeLineLineClearColor( color );
+    }
+
+    auto SceneRenderer::GetPassList() const -> const PassList & {
+        return m_FrameGraph->GetPassList();
     }
 
     auto SceneRenderer::GetTexture( std::string_view name ) const -> TextureHandle {
@@ -127,11 +193,22 @@ namespace Mikoto {
         m_FrameGraph = FrameGraph::Create( m_GraphicsContext.get(), m_Device );
 
         m_DebugPasses.RegisterPasses( *m_FrameGraph );
+        m_MeshCulling.RegisterPasses( *m_FrameGraph );
+        m_CameraPass.RegisterPasses( *m_FrameGraph );
+        m_MaterialDebug.RegisterPasses( *m_FrameGraph );
+
         m_ClusteredShadingPasses.RegisterPasses( *m_FrameGraph );
-        m_IBLPasses.RegisterPasses( *m_FrameGraph );
+
+        m_IBLPasses.RegisterPasses( *m_FrameGraph, m_Device );
         m_PostEffectsPasses.RegisterPasses( *m_FrameGraph, m_Device );
 
         m_FrameGraph->Compile();
+    }
+
+    auto SceneRenderer::SetEquirectangularMap() -> void {
+        m_CameraPass.SetEquirectangularMap( m_HDRTexture );
+        m_IBLPasses.SetEquirectangularMap( m_HDRTexture );
+        m_IBLPasses.SetLDRCubeMap( m_LDRTexture );
     }
 
     auto SceneRenderer::OnPreRender() -> void {
@@ -139,6 +216,19 @@ namespace Mikoto {
         // Reconstruct render target which will require recompiling the frame graph
         if (m_WantResize) {
 
+        }
+
+        m_IBLPasses.SetMeshCulling( m_MeshCulling );
+        m_DebugPasses.SetMeshCulling( m_MeshCulling );
+        m_PostEffectsPasses.SetMeshCulling( m_MeshCulling );
+        m_ClusteredShadingPasses.SetMeshCulling( m_MeshCulling );
+
+        // If we loaded a new equirectangular update it in the passes
+        if (m_LoadedHDR) {
+            SetEquirectangularMap();
+
+            // Clear flag
+            m_LoadedHDR = false;
         }
     }
 

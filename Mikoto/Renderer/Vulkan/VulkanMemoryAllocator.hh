@@ -59,6 +59,8 @@ namespace Mikoto {
         auto MapBuffer( BufferAllocation& allocation ) const -> void;
         auto UnmapBuffer( BufferAllocation& allocation ) const -> void;
 
+        MKT_NODISCARD auto IsValidAllocation(BufferAllocation& allocation) const -> bool;
+
         // These are slow use for debug only
         MKT_NODISCARD auto GetMemoryUsage() const -> Size override;
         MKT_NODISCARD auto GetMemoryTotal() const -> Size override;

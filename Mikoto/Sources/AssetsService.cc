@@ -29,7 +29,9 @@
 #include <Threading/TaskService.hh>
 
 #include "Audio/AudioService.hh"
+#include "Common/String.hh"
 #include "Filesystem/FileSystem.hh"
+#include "Filesystem/FileWatcherService.hh"
 #include "Threading/ThreadUtility.hh"
 
 namespace Mikoto {
@@ -44,8 +46,6 @@ namespace Mikoto {
 
         // Model importer library
         MeshFactoryCreateInfo meshFactoryCreateInfo{
-            .ImportersCount{ ThreadUtils::InferConcurrentThreads() },
-            .UseCustomLogger{ true },
             .Device{ m_GpuDevice },
         };
 
@@ -84,7 +84,8 @@ namespace Mikoto {
 
         m_PBRMaterialsPool.Shutdown();
 
-        m_Textures.clear();
+        m_Textures2D.clear();
+        m_TexturesCubes.clear();
         m_Audios.clear();
         m_Fonts.clear();
         m_Models.clear();
@@ -102,11 +103,11 @@ namespace Mikoto {
     }
 
     auto AssetsService::GetDummyTexture() -> TextureHandle {
-        return m_Textures[Filesystem::GetGetAbsolutePathString( s_DummyTexturePath)];
+        return m_Textures2D[Filesystem::GetGetAbsolutePathString( s_DummyTexturePath)];
     }
 
-    auto AssetsService::CreateMaterial( const MaterialCreateInfo& ) -> MaterialHandle {
-        MaterialHandle material{ m_PBRMaterialsPool.Allocate() };
+    auto AssetsService::CreateMaterial( const MaterialProperties& props ) -> MaterialHandle {
+        MaterialHandle material{ m_PBRMaterialsPool.Allocate( props ) };
         if ( material.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "AssetsService::CreateMaterial - Failed to create material" );
         }
@@ -147,6 +148,15 @@ namespace Mikoto {
                 m_Models.try_emplace( modelFile->GetPath(), model )
             };
 
+            // TODO: Handle when a model gets updated from disk and reload it at engine side
+            FileWatcherService::Get()->Watch(
+                    modelFile->GetPath(),
+                    []( const Path& pathCallable, FileWatchEvent event ) mutable -> void {
+                        if ( event == FileWatchEvent::MODIFIED ) {
+                            MKT_CORE_LOGGER_INFO( "Model file at [{}] has been updated", pathCallable.string() );
+                        }
+                    } );
+
             if ( success ) {
                 return m_Models[modelFile->GetPath()];
             }
@@ -155,21 +165,40 @@ namespace Mikoto {
         return ModelHandle::CreateEmpty();
     }
 
-    auto AssetsService::LoadTexture( const Path& uri ) -> TextureHandle {
+    auto AssetsService::LoadTexture( const Path& uri, bool isHDR ) -> TextureHandle {
         MKT_BEGIN_PROFILER_NAMED();
 
         const std::string uriString{ uri.string() };
-        return LoadTexture( std::string_view{ uriString } );
+        return LoadTexture( std::string_view{ uriString }, isHDR );
     }
 
-    auto AssetsService::LoadTexture( std::string_view uri ) -> TextureHandle {
+    auto AssetsService::LoadTexture( std::string_view uri, bool isHDR ) -> TextureHandle {
         MKT_BEGIN_PROFILER_NAMED();
 
         TextureLoadDescription loadDesc{};
         loadDesc.WithFile( FileService::Get()->LoadFile( uri ) )
+                .IsHDRMap( isHDR )
                 .WithType( TextureType::TEXTURE_2D );
 
         return LoadTexture( loadDesc );
+    }
+
+    auto AssetsService::LoadTexture( const TextureDescription& description ) -> TextureHandle {
+        std::string path{ description.TextureFile ? description.TextureFile->GetPath() : description.Name };
+
+        TextureHandle texture{ m_GpuDevice->CreateTexture( description ) };
+        if (!texture.IsEmpty()) {
+            std::lock_guard lock{ m_Texture2DPoolMutex };
+            auto [it, success]{
+                m_Textures2D.try_emplace( path, texture )
+            };
+
+            if (success) {
+                return m_Textures2D[path];
+            }
+        }
+
+        return TextureHandle::CreateEmpty();
     }
 
     auto AssetsService::LoadTexture( const TextureLoadDescription& description) -> TextureHandle {
@@ -181,11 +210,11 @@ namespace Mikoto {
         }
 
         // if it exists
-        if (const auto itFind{ m_Textures.find( textureFile->GetPath() ) }; itFind != m_Textures.end() ) {
+        if (const auto itFind{ m_Textures2D.find( textureFile->GetPath() ) }; itFind != m_Textures2D.end() ) {
             return itFind->second;
         }
 
-        const StbImage image{ textureFile };
+        const StbImage image{ textureFile, description.IsHDR };
 
         if ( !image.IsValid() ) {
             return TextureHandle::CreateEmpty();
@@ -199,25 +228,16 @@ namespace Mikoto {
             .WithData( image.GetData() )
             .WithFile( textureFile )
 
+            .IsHDRMap( description.IsHDR )
+
             .WithMapType( description.Map )
 
             .WithType( description.Type )
-            .WithFormat( TextureFormat::SRGB8_ALPHA8 )
+            .WithFormat( TextureFormat::RGBA8_UNORM )
 
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
-        TextureHandle texture{ m_GpuDevice->CreateTexture( textureDesc ) };
-        if (!texture.IsEmpty()) {
-            auto [it, success]{
-                m_Textures.try_emplace( textureFile->GetPath(), texture )
-            };
-
-            if (success) {
-                return m_Textures[textureFile->GetPath()];
-            }
-        }
-
-        return TextureHandle::CreateEmpty();
+        return LoadTexture( textureDesc );
     }
 
     auto AssetsService::LoadCubeMap( const Path &uri ) -> TextureHandle {
@@ -232,8 +252,9 @@ namespace Mikoto {
     auto AssetsService::LoadCubeMap( const TextureCubeLoadDescription &description ) -> TextureHandle {
         MKT_BEGIN_PROFILER_NAMED();
 
+        const std::string baseAbsolute{ Filesystem::GetGetAbsolutePathString( description.BasePath ) };
         // if it exists
-        if (const auto itFind{ m_Textures.find( description.BasePath.string() ) }; itFind != m_Textures.end() ) {
+        if (const auto itFind{ m_TexturesCubes.find( baseAbsolute ) }; itFind != m_TexturesCubes.end() ) {
             return itFind->second;
         }
 
@@ -246,7 +267,7 @@ namespace Mikoto {
         if (!textureDesc.IsHdrMap) {
             for (const auto& path : description.FacesRelativePaths ) {
                 PathBuilder pathBuilder{};
-                pathBuilder.WithPath( description.BasePath.string() )
+                pathBuilder.WithPath( baseAbsolute )
                     .WithPath( path.string() );
 
                 if (const File* file{ FileService::Get()->LoadFile( pathBuilder.Build() ) }) {
@@ -255,19 +276,20 @@ namespace Mikoto {
             }
         } else {
             // Just store the path as first element of the vector
-            if (const File* file{ FileService::Get()->LoadFile( description.BasePath.string() ) }) {
+            if (const File* file{ FileService::Get()->LoadFile( baseAbsolute ) }) {
                 textureDesc.WithFacePath( file );
             }
         }
 
         TextureHandle texture{ m_GpuDevice->CreateTexture( textureDesc ) };
         if (!texture.IsEmpty()) {
+            std::lock_guard lock{ m_Texture2DPoolMutex };
             auto [it, success]{
-                m_Textures.try_emplace( description.BasePath.string(), texture )
+                m_TexturesCubes.try_emplace( baseAbsolute, texture )
             };
 
             if (success) {
-                return m_Textures[description.BasePath.string()];
+                return m_TexturesCubes[baseAbsolute];
             }
         }
 

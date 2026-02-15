@@ -1,360 +1,435 @@
-// //
-// // Created by kate on 10/13/23.
-// //
-//
-// #include "Panels/RendererPanel.hh"
-//
-// #include <Core/System/AssetsSystem.hh>
-// #include <Core/System/GUISystem.hh>
-// #include <GUI/ImGuiUtils.hh>
-// #include <Renderer/Vulkan/VulkanContext.hh>
-// #include <Renderer/Vulkan/VulkanDeletionQueue.hh>
-// #include <Renderer/Vulkan/VulkanRenderer.hh>
-// #include <Renderer/Vulkan/VulkanTexture2D.hh>
-//
-// #include "GUI/Icons/IconsMaterialDesign.h"
-// #include "imgui.h"
-//
-// namespace Mikoto {
-//     struct RenderPanelViewport_VkImplCreateInfo {
-//         RenderViewportCreateInfo ViewportCreateInfo{};
-//     };
-//
-//     class RenderPanelViewport_VkImpl final : public RenderViewport {
-//     public:
-//         explicit RenderPanelViewport_VkImpl( const RenderPanelViewport_VkImplCreateInfo& createInfo )
-//             : RenderViewport{ createInfo.ViewportCreateInfo } {}
-//
-//         auto Init() -> void override {
-//
-//             // Create a Sampler for the texture we will display in the viewport
-//             VkSamplerCreateInfo colorSamplerCreateInfo{ GetDefaultSamplerCreateInfo() };
-//
-//             if ( vkCreateSampler( VulkanContext::Get().GetDevice().GetLogicalDevice(), &colorSamplerCreateInfo, nullptr, &m_ColorAttachmentSampler ) != VK_SUCCESS ) {
-//                 MKT_THROW_RUNTIME_ERROR( "RenderPanelViewport_VkImpl:Init - Failed to create color Vulkan sampler!" );
-//             }
-//
-//             VulkanDeletionQueue::Push( [colorSampler = m_ColorAttachmentSampler]() -> void {
-//                 vkDestroySampler( VulkanContext::Get().GetDevice().GetLogicalDevice(), colorSampler, nullptr );
-//             } );
-//
-//             // Create the Descriptor set for the texture displayed in the ImGuiWindow scene
-//
-//             VulkanRenderer* vulkanSceneRenderer{ dynamic_cast<VulkanRenderer*>( m_Renderer ) };
-//
-//             m_ColorAttachmentDescriptorSet =
-//                     ImGui_ImplVulkan_AddTexture( m_ColorAttachmentSampler, vulkanSceneRenderer->GetFinalImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
-//
-//             GUISystem& guiSystem{ ServiceInitializer::GetSystem<GUISystem>() };
-//
-//             guiSystem.AddShutdownCallback( [colorDs = m_ColorAttachmentDescriptorSet]() -> void {
-//                 ImGui_ImplVulkan_RemoveTexture( colorDs );
-//             } );
-//
-//             vulkanSceneRenderer->RegisterResizeCallbacks( [&]() -> void {
-//                 VulkanRenderer* renderer{ dynamic_cast<VulkanRenderer*>( m_Renderer ) };
-//                 const VulkanImage& image{ renderer->GetFinalImage() };
-//
-//                 VulkanDevice& device{ VulkanContext::Get().GetDevice() };
-//                 device.WaitIdle();
-//
-//                 m_ColorAttachmentDescriptorSet =
-//                         ImGui_ImplVulkan_AddTexture( m_ColorAttachmentSampler, image.GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
-//
-//                 guiSystem.AddShutdownCallback( [colorDs = m_ColorAttachmentDescriptorSet]() -> void {
-//                     ImGui_ImplVulkan_RemoveTexture( colorDs );
-//                 } );
-//             } );
-//         }
-//
-//         auto ShowPasses( ImGuiTreeNodeFlags treeNodeFlags ) -> void {
-//
-//             if ( ImGui::TreeNodeEx( reinterpret_cast<const void*>( "RenderPanelViewport_VkImpl::ShowPasses" ), treeNodeFlags, "%s", "Passes" ) ) {
-//
-//                 // Handle type of projection
-//                 ImGui::Spacing();
-//                 if ( ImGui::BeginCombo( "##RenderPanelViewport_VkImpl::ShowPassesCombo", s_ImageCompositions[m_CurrentPassSelectionIndex] ) ) {
-//
-//                     for ( Size_T index{}; index < s_ImageCompositions.size(); ++index ) {
-//                         const std::string composition{ s_ImageCompositions[index] };
-//
-//                         const bool isSelected{ StringUtils::Equal( composition, s_ImageCompositions[m_CurrentPassSelectionIndex] ) };
-//
-//                         if ( ImGui::Selectable( fmt::format( " {}", composition ).c_str(), isSelected ) ) {
-//                             m_CurrentPassSelectionIndex = index;
-//                         }
-//
-//                         if ( ImGui::IsItemHovered() ) {
-//                             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-//                         }
-//
-//                         if ( isSelected ) {
-//                             ImGui::SetItemDefaultFocus();
-//                         }
-//                     }
-//
-//                     ImGui::EndCombo();
-//                 }
-//
-//                 if ( ImGui::IsItemHovered() ) {
-//                     ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-//                 }
-//
-//                 const ImVec2 viewPortDimensions{ ImGui::GetContentRegionAvail() };
-//
-//                 // If the window size has changed, we need to resize the scene viewport
-//                 if ( m_ViewPortWidth != viewPortDimensions.x || m_ViewPortHeight != viewPortDimensions.y ) {
-//                     m_ViewPortWidth = viewPortDimensions.x;
-//                     m_ViewPortHeight = viewPortDimensions.y;
-//                 }
-//
-//                 // Index 0 is the final output
-//                 if ( m_CurrentPassSelectionIndex == 0 ) {
-//                     ImGui::Spacing();
-//
-//
-//                     // Reduce the output image to not take the whole window
-//                     m_ViewPortHeight *= 0.8f;
-//                     m_ViewPortWidth *= 0.8f;
-//
-//                     ImGuiUtils::ImGuiScopedStyleVar frameBorderSize{ ImGuiStyleVar_FrameBorderSize, 3.5f };
-//                     ImGui::Image( reinterpret_cast<ImTextureID>( m_ColorAttachmentDescriptorSet ),
-//                                   ImVec2{ m_ViewPortWidth, m_ViewPortHeight }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
-//                 }
-//
-//                 ImGui::TreePop();
-//             }
-//         }
-//
-//         auto ShowRenderModes( ImGuiTreeNodeFlags treeNodeFlags ) -> void {
-//             if ( ImGui::TreeNodeEx( reinterpret_cast<const void*>( "RenderPanelViewport_VkImpl::ShowRenderModes" ), treeNodeFlags, "%s", "Render Mode" ) ) {
-//
-//                 // Handle type of projection
-//                 ImGui::Spacing();
-//                 if ( ImGui::BeginCombo( "##RenderPanelViewport_VkImpl::ShowRenderModes", s_RenderModes[m_CurrentRenderModeSelectionIndex].c_str() ) ) {
-//
-//                     for ( const auto& [renderMode, name]: s_RenderModes ) {
-//                         const bool isSelected{ m_CurrentRenderModeSelectionIndex == renderMode };
-//
-//                         if ( ImGui::Selectable( fmt::format( " {}", name ).c_str(), isSelected ) ) {
-//                             m_CurrentRenderModeSelectionIndex = renderMode;
-//                             m_Renderer->SetRenderMode( m_CurrentRenderModeSelectionIndex );
-//                         }
-//
-//                         if ( ImGui::IsItemHovered() ) {
-//                             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-//                         }
-//
-//                         if ( isSelected ) {
-//                             ImGui::SetItemDefaultFocus();
-//                         }
-//                     }
-//
-//                     ImGui::EndCombo();
-//                 }
-//
-//                 if ( ImGui::IsItemHovered() ) {
-//                     ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-//                 }
-//
-//
-//                 ImGui::TreePop();
-//             }
-//         }
-//
-//         auto ShowFontAtlas(ImGuiTreeNodeFlags treeNodeFlags ) -> void {
-//
-//             if ( ImGui::TreeNodeEx( reinterpret_cast<const void*>( "RenderPanelViewport_VkImpl::ShowFontAtlas" ), treeNodeFlags, "%s", "Font Atlas" ) ) {
-//
-//                 AssetsSystem& assetsSystem{ ServiceInitializer::GetSystem<AssetsSystem>() };
-//
-//                 const auto& fonts{ assetsSystem.GetFonts() };
-//                 for ( const auto& font: fonts | std::views::values ) {
-//                     const FontAtlas* atlas{ font->GetAtlas() };
-//
-//                     if ( atlas != nullptr ) {
-//                         const auto atlasTexture{ atlas->GetAtlasTexture() };
-//
-//                         ImGui::Spacing();
-//                         ImGui::Text( fmt::format( "Font: {}", font->GetName() ).c_str() );
-//
-//                         auto dset{ GetAtlasDescriptorSet( atlasTexture->GetID().Get() ) };
-//                         if (dset == VK_NULL_HANDLE) {
-//                             dset = CreateAtlasDescriptorSet(atlasTexture);
-//                         }
-//
-//                         ImGui::Spacing();
-//                         ImGui::Image( reinterpret_cast<ImTextureID>( dset ), ImVec2{ 256, 256 }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
-//                     }
-//                 }
-//                 ImGui::TreePop();
-//             }
-//         }
-//
-//         auto OnUpdate() -> void override {
-//             if ( m_Renderer->HasUpdatedResolution() ) {
-//                 VulkanRenderer* vulkanSceneRenderer{ dynamic_cast<VulkanRenderer*>( m_Renderer ) };
-//
-//                 vulkanSceneRenderer->RegisterResizeCallbacks( [&]() -> void {
-//                     GUISystem& guiSystem{ ServiceInitializer::GetSystem<GUISystem>() };
-//                     VulkanRenderer* renderer{ dynamic_cast<VulkanRenderer*>( m_Renderer ) };
-//                     const VulkanImage& image{ renderer->GetFinalImage() };
-//
-//                     VulkanDevice& device{ VulkanContext::Get().GetDevice() };
-//                     device.WaitIdle();
-//
-//                     m_ColorAttachmentDescriptorSet =
-//                             ImGui_ImplVulkan_AddTexture( m_ColorAttachmentSampler, image.GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
-//
-//                     guiSystem.AddShutdownCallback( [colorDs = m_ColorAttachmentDescriptorSet]() -> void {
-//                         ImGui_ImplVulkan_RemoveTexture( colorDs );
-//                     } );
-//                 } );
-//
-//                 return;
-//             }
-//
-//             constexpr ImGuiTreeNodeFlags styleFlags{ ImGuiTreeNodeFlags_DefaultOpen |
-//                                                      ImGuiTreeNodeFlags_AllowItemOverlap |
-//                                                      ImGuiTreeNodeFlags_Framed |
-//                                                      ImGuiTreeNodeFlags_SpanAvailWidth |
-//                                                      ImGuiTreeNodeFlags_FramePadding };
-//
-//             ImGui::Spacing();
-//             if ( ImGui::TreeNodeEx( reinterpret_cast<const void*>( "RenderPanelViewport_VkImpl::OnUpdate" ), styleFlags, "%s", "Scene" ) ) {
-//
-//                 ImGui::Spacing();
-//                 ImGui::Text( fmt::format( "Scene: {}", m_TargetScene->GetName() ).c_str() );
-//
-//                 ImGui::Spacing();
-//                 ShowPasses( styleFlags );
-//
-//                 ImGui::TreePop();
-//             }
-//
-//             ImGui::Spacing();
-//             ShowFontAtlas( styleFlags );
-//
-//
-//             ShowRenderModes( styleFlags );
-//         }
-//
-//     private:
-//         static auto GetDefaultSamplerCreateInfo() -> VkSamplerCreateInfo {
-//             VkSamplerCreateInfo samplerCreateInfo{ VulkanHelpers::Initializers::SamplerCreateInfo() };
-//
-//             samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
-//             samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
-//             samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-//
-//             samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-//             samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-//             samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-//
-//             samplerCreateInfo.maxAnisotropy = 1.0f;
-//             samplerCreateInfo.mipLodBias = 0.0f;
-//             samplerCreateInfo.minLod = 0.0f;
-//             samplerCreateInfo.maxLod = 1.0f;
-//             samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
-//
-//             return samplerCreateInfo;
-//         }
-//
-//         MKT_NODISCARD auto GetAtlasDescriptorSet( Size_T index ) -> VkDescriptorSet {
-//             if ( const auto it{ m_AtlasDescriptorSets.find( index ) }; it != m_AtlasDescriptorSets.end() ) {
-//                 return it->second;
-//             }
-//
-//             return VK_NULL_HANDLE;
-//         }
-//
-//         MKT_NODISCARD auto CreateAtlasDescriptorSet( Texture2D* texture ) -> VkDescriptorSet {
-//             VkDescriptorSet result{};
-//
-//             const VulkanTexture* texture2D{ dynamic_cast<VulkanTexture*>( texture ) };
-//
-//             if ( const auto it{ m_AtlasDescriptorSets.find( texture->GetID().Get() ) }; it == m_AtlasDescriptorSets.end() ) {
-//                 result = ImGui_ImplVulkan_AddTexture( texture2D->GetSampler(), texture2D->GetImage().GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
-//                 m_AtlasDescriptorSets.emplace( texture->GetID().Get(), result );
-//             }
-//
-//             GUISystem& guiSystem{ ServiceInitializer::GetSystem<GUISystem>() };
-//
-//             guiSystem.AddShutdownCallback( [colorDs = result]() -> void {
-//                     ImGui_ImplVulkan_RemoveTexture( colorDs );
-//                 } );
-//
-//             return result;
-//         }
-//     private:
-//         static constexpr std::array s_ImageCompositions{
-//             "Final output", "Color pass", "Shadow pass", "Depth pass"
-//         };
-//
-//         static inline std::unordered_map<Size_T, std::string> s_RenderModes{
-//             { DISPLAY_NORMAL, "Normals" },
-//             { DISPLAY_COLOR, "Color" },
-//             { DISPLAY_AO, "Ambient Occlusion" },
-//             { DISPLAY_ROUGH, "Roughness" },
-//             { DISPLAY_METAL, "Metalness" },
-//         };
-//
-//         Size_T m_CurrentPassSelectionIndex{ 0 };
-//         Size_T m_CurrentRenderModeSelectionIndex{ DISPLAY_COLOR };
-//
-//         VkSampler m_ColorAttachmentSampler{};
-//
-//         VkDescriptorSet m_ColorAttachmentDescriptorSet{};
-//
-//         std::unordered_map<UInt64_T, VkDescriptorSet> m_AtlasDescriptorSets{};
-//     };
-//
-//     static constexpr auto GetRendererPanel() -> std::string_view {
-//         return "Renderer";
-//     }
-//
-//     RendererPanel::RendererPanel( const RendererPanelCreateInfo& createInfo )
-//         : Panel{ StringUtils::MakePanelName( ICON_MD_SETTINGS_DISPLAY, GetRendererPanel() ) },
-//           m_TargetScene{ createInfo.TargetScene } {
-//
-//         // Initialize implementation
-//         RenderPanelViewport_VkImplCreateInfo sceneApiCreateInfo{
-//             .ViewportCreateInfo{
-//                     .ViewportWidth{ createInfo.Width },
-//                     .ViewportHeight{ createInfo.Height },
-//                     .TargetScene{ createInfo.TargetScene },
-//                     .Renderer{ createInfo.Renderer },
-//                     .MainCamera{ createInfo.EditorMainCamera },
-//             },
-//         };
-//
-//         // Set scene panel implementation
-//         m_Implementation = CreateScope<RenderPanelViewport_VkImpl>( sceneApiCreateInfo );
-//
-//         if ( m_Implementation != nullptr ) {
-//             m_Implementation->Init();
-//         } else {
-//             MKT_APP_LOGGER_ERROR( "ScenePanel::ScenePanel - Failed to create Scene Panel ImGui implementation." );
-//         }
-//     }
-//
-//     auto RendererPanel::OnUpdate( float timeStep ) -> void {
-//         if ( m_PanelIsVisible ) {
-//             static constexpr ImGuiWindowFlags windowFlags{
-//                 ImGuiWindowFlags_NoScrollWithMouse |
-//                 ImGuiWindowFlags_NoCollapse
-//             };
-//
-//             ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), windowFlags );
-//
-//             m_Implementation->OnUpdate();
-//
-//             ImGui::End();
-//         }
-//     }
-//
-//     RendererPanel::~RendererPanel() {
-//         m_Implementation = nullptr;
-//         m_TargetScene = nullptr;
-//     }
-// }// namespace Mikoto
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include <ImGui/IconsMaterialDesign.h>
+
+#include <Common/String.hh>
+#include <Core/RuntimeConsole.hh>
+#include <GraphNodes/GraphEditor.hh>
+#include <ImGui/ImGuiUtility.hh>
+#include <Layers/EditorLayer.hh>
+#include <Panels/RendererPanel.hh>
+#include <Renderer/Core/RenderService.hh>
+#include <array>
+#include <memory>
+
+#include "Core/TimeService.hh"
+
+namespace Mikoto {
+
+    static auto ShowTextureDetails( const Texture* texture ) -> void {
+        const UInt32 width  = texture ? texture->GetWidth()  : 0;
+        const UInt32 height = texture ? texture->GetHeight() : 0;
+
+        ImGui::TextUnformatted("Dimensions");
+        ImGui::SameLine(90.0f);
+        if (width == 0 || height == 0) {
+            ImGui::TextUnformatted("N / A");
+        } else {
+            ImGui::TextUnformatted(fmt::format("[{}, {}]", width, height).c_str());
+        }
+
+        ImGui::TextUnformatted("Type");
+        ImGui::SameLine(90.0f);
+        if (texture) {
+            if (auto cube{ dynamic_cast<const TextureCube*>(texture)}; cube || texture->IsHDR() ) {
+                ImGui::TextUnformatted("HDR");
+            }
+
+            if (auto flatTexture{ dynamic_cast<const Texture2D*>(texture)} ) {
+                ImGui::TextUnformatted("Texture_2D");
+            }
+        } else {
+            ImGui::TextUnformatted("N / A");
+        }
+
+        ImGui::TextUnformatted("File Size");
+        ImGui::SameLine(90.0f);
+        if (texture) {
+            ImGui::TextUnformatted(fmt::format("{} MB", Math::Round( static_cast<double>( texture->GetSizeBytes() ) / 1000'000.0, 2)).c_str());
+        } else {
+            ImGui::TextUnformatted("N / A");
+        }
+
+        ImGui::TextUnformatted("Format");
+        ImGui::SameLine(90.0f);
+        if (texture) {
+            ImGui::TextUnformatted(GetTextureFormatString(texture->GetFormat()).data());
+        } else {
+            ImGui::TextUnformatted("N / A");
+        }
+
+        ImGui::TextUnformatted("DebugName");
+        ImGui::SameLine(90.0f);
+        if (texture) {
+            ImGui::TextUnformatted(fmt::format("Unknown").c_str());
+        } else {
+            ImGui::TextUnformatted("N / A");
+        }
+
+        ImGui::TextUnformatted("Channels");
+        ImGui::SameLine(90.0f);
+        if (texture) {
+            ImGui::TextUnformatted(GetChanelString(texture->GetChannels()).data());
+        } else {
+            ImGui::TextUnformatted("N / A");
+        }
+    }
+
+    RendererPanel::RendererPanel( const RendererPanelCreateInfo &info )
+        : Panel{ "Renderer" }, m_EditorState{ info.State } {
+        m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_POWER_SETTINGS_NEW, m_PanelName );
+
+
+        // Construct the node graph for pass dependencies
+        GraphEditorBuilder builder{};
+        
+        auto& passNodes{ m_EditorState->EditorSceneRenderer->GetPassList() }; 
+
+        for ( const auto& [passName, pass]: passNodes ) {
+            builder.PushNode( passName );
+        }
+
+        m_GraphEditor.Build( builder );
+    }
+
+    auto RendererPanel::OnUpdate( float timeStep ) -> void {
+        if (!m_PanelIsVisible) {
+            return;
+        }
+
+        ImGui::Begin( m_PanelHeaderName.c_str(), &m_PanelIsVisible, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize );
+
+        ImGui::SeparatorText( "FrameGraph Info" );
+
+        ImGuiUtils::DrawNode( "Passes", [this] () -> void {
+            ImGuiUtils::UnindentScoped und{};
+            ImGuiUtils::CheckBox( "Show Pass Dependencies", m_ShowPassGraph );
+
+            DrawPassInfo();
+
+
+            if (m_ShowPassGraph) {
+                m_GraphEditor.Render();
+            }
+        });
+
+        ImGuiUtils::DrawNode( "Renderer", [this] () -> void {
+            DrawRendererConfig();
+        });
+
+        ImGui::SeparatorText( "Renderer Settings" );
+        ImGuiUtils::DrawNode( "Monitor", [this] () -> void {
+            ImGuiUtils::UnindentScoped und{};
+
+            if (ImGuiUtils::CheckBox( "##RendererPanel::OnUpdate::Vsync", m_EnableVSync )) {
+
+            }
+            ImGui::SameLine();
+            ImGui::TextUnformatted( "Enable vsync" );
+        });
+
+        ImGui::SeparatorText( "Graphics Features" );
+        ImGuiUtils::DrawNode( "Ambient Occlusion (SSAO) Settings", [this] () -> void {
+            DrawSSAOSettings();
+        });
+
+        ImGui::SeparatorText( "Graphics Features" );
+        ImGuiUtils::DrawNode( "Shadow Mapping settings", [this] () -> void {
+            DrawShadowMappingSettings();
+        });
+
+        ImGuiUtils::DrawNode( "Image Based Lighting settings", [this] () -> void {
+            DrawIBLSettings();
+        });
+
+        ImGui::End();
+    }
+
+    auto RendererPanel::IsVsyncEnabled() const -> bool {
+        return RenderService::Get()->GetContext()->IsVsyncEnabled();
+    }
+
+    auto RendererPanel::EnableSkyboxLDR() const -> bool {
+        return m_EnableSkyboxLDR;
+    }
+
+    auto RendererPanel::DrawPassInfo() -> void {
+        const auto& passList{ m_EditorState->EditorSceneRenderer->GetPassList() };
+
+        ImGui::TextUnformatted( StringUtil::Format( "Pass count: {}", passList.size() ).c_str() );
+        ImGui::Spacing();
+
+        // Select execution display units
+        static std::array<std::string, 4> units{
+            "Seconds", "Milliseconds", "Microseconds", "Nanoseconds"
+        };
+
+        static TimeUnit currentUnit{ TimeUnit::MICROSECONDS };
+        currentUnit = ImGuiUtils::Combo( units, currentUnit );
+
+        static std::vector<std::string> columns{ "Name", "Reads", "Writes", "Policy", "Status", "Executed", "_Elapsed"  };
+        const UInt32 elapsedTimeIndex{ static_cast<UInt32>( columns.size() - 1 ) };
+
+        columns[elapsedTimeIndex] = StringUtil::Format( "Elapsed ({})", Time::GetUnitString(currentUnit) );
+
+        if ( ImGui::BeginTable( "RendererPanel_PassTable", columns.size(),
+                                ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders |
+                                        ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable |
+                                        ImGuiTableFlags_Hideable ) ) {
+
+            std::ranges::for_each( columns, []( const auto& name ) -> void { ImGui::TableSetupColumn( name.c_str(), ImGuiTableColumnFlags_WidthStretch, 1.0f ); } );
+            ImGui::TableHeadersRow();
+
+            for ( const auto& pass: passList | std::views::values ) {
+                ImGui::TableNextRow();
+
+                // Column 0 – Pass Name
+                ImGui::TableSetColumnIndex( 0 );
+                ImGui::TextUnformatted( pass.Name.c_str() );
+
+                // Column 1 – Reads
+                ImGui::TableSetColumnIndex( 1 );
+                if ( pass.Reads.empty() ) {
+                    ImGui::TextDisabled( "None" );
+                } else {
+                    for ( const auto& r: pass.Reads ) {
+                        ImGui::BulletText( "%s", r.Name.c_str() );
+                    }
+                }
+
+                // Column 2 – Writes
+                ImGui::TableSetColumnIndex( 2 );
+                if ( pass.Writes.empty() ) {
+                    ImGui::TextDisabled( "None" );
+                } else {
+                    for ( const auto& w: pass.Writes ) {
+                        ImGui::BulletText( "%s", w.Name.c_str() );
+                    }
+                }
+
+                // Column 3 – Execution Policy
+                ImGui::TableSetColumnIndex( 3 );
+                switch ( pass.ExecutionPolicy ) {
+                    case FramePassExecutionPolicy::PER_FRAME:
+                        ImGui::TextUnformatted( "Per Frame" );
+                        break;
+                    case FramePassExecutionPolicy::ONCE:
+                        ImGui::TextUnformatted( "Once" );
+                        break;
+                    case FramePassExecutionPolicy::ON_CHANGE:
+                        ImGui::TextUnformatted( "On change" );
+                        break;
+                }
+
+                // Column 4 – Status
+                ImGui::TableSetColumnIndex( 4 );
+                switch ( pass.Status ) {
+                    case FramePassNodeStatus::ACTIVE:
+                        ImGui::TextColored( ImVec4( 0.3f, 1.0f, 0.3f, 1.0f ), "Active" );
+                        break;
+                    case FramePassNodeStatus::SLEEPING:
+                        ImGui::TextColored( ImVec4( 1.0f, 0.25f, 0.25f, 1.0f ), "Sleeping" );
+                        break;
+                }
+
+                // Column 5 – Execution State
+                ImGui::TableSetColumnIndex( 5 );
+                if ( pass.HasExecuted )
+                    ImGui::TextColored( ImVec4( 0.4f, 0.8f, 1.0f, 1.0f ), "Yes" );
+                else
+                    ImGui::TextDisabled( "No" );
+
+                // Column 5 – Execution State
+                ImGui::TableSetColumnIndex( 6 );
+                ImGui::TextColored( ImVec4( 0.4f, 0.8f, 1.0f, 1.0f ), "%s", StringUtil::Format( "{:.1f}", pass.LastExecutionTime.Convert( currentUnit ) ).c_str() );
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
+    auto RendererPanel::DrawRendererConfig() -> void {
+        ImGuiUtils::UnindentScoped und{};
+
+        ImGuiUtils::CheckBox( "##RendererPanel::DrawRendererConfig::wireframe", m_EditorState->ShowWireframe );
+        ImGui::SameLine();
+        ImGui::TextUnformatted( "Render wireframe" );
+
+        constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
+        static Vec4F clearColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+        if ( ImGui::ColorEdit3( "Wireframe Clear color", glm::value_ptr( clearColor ), colorEditFlags ) ) {
+            m_EditorState->EditorSceneRenderer->SetWireframeClearColor( clearColor );
+        }
+
+        static Vec4F lineColor{ 0.0f, 0.0f, 0.0f, 1.0f };
+        if ( ImGui::ColorEdit3( "Wireframe color", glm::value_ptr( lineColor ), colorEditFlags ) ) {
+            m_EditorState->EditorSceneRenderer->SetWireframeLineColor( lineColor );
+        }
+
+        static float lineWidth{ 1.0f };
+        if (ImGuiUtils::Slider( "Wireframe width", lineWidth, { 0.0f, 30.0f } ) ) {
+            m_EditorState->EditorSceneRenderer->SetWireframeLineLineWidth( lineWidth );
+        }
+    }
+
+    auto RendererPanel::DrawSSAOSettings() -> void {
+        ImGuiUtils::UnindentScoped und{};
+
+        // Enable toggle
+        if (ImGuiUtils::CheckBox( "##RendererPanel::DrawSSAOSettings::EnableSSAO", m_EnableSSAO )) {
+            m_EditorState->EditorSceneRenderer->SetEnableSSAO(m_EnableSSAO);
+        }
+        ImGui::SameLine();
+        ImGui::TextUnformatted( "Enable SSAO" );
+
+        ImGui::Spacing();
+
+        ImGuiUtils::Slider( "Radius", m_SSAORadius, { 0.05f, 5.0f } );
+        ImGuiUtils::Slider( "Bias", m_SSAOBias, { 0.0f,  0.1f } );
+        ImGuiUtils::Slider( "Power", m_SSAOStrength, { 0.1f,  3.0f } );
+    }
+
+    auto RendererPanel::DrawIBLSettings() -> void {
+        ImGuiUtils::UnindentScoped und{};
+
+        auto usingConvolutedCube{ m_EditorState->EditorSceneRenderer->IsUsingConvolutedCube() };
+        if (ImGuiUtils::CheckBox( "##RendererPanel::DrawIBLSettings::UseConv", usingConvolutedCube )) {
+            m_EditorState->EditorSceneRenderer->SetUseConvolutedCube(usingConvolutedCube);
+        }
+        ImGui::SameLine();
+        ImGui::TextUnformatted( "Use convoluted cube" );
+
+        ImGuiUtils::CheckBox( "##RendererPanel::DrawRendererConfig::LDR", m_EnableSkyboxLDR );
+        ImGui::SameLine();
+        ImGui::TextUnformatted( "Use CubeMap LDR" );
+
+        auto hdrDropTarget{
+            [this]() -> void {
+                if (ImGui::BeginDragDropTarget()) {
+                    if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("HDR_LOAD_LIGHT_PANEL") }) {
+                        std::string hdrPath{ *static_cast<std::string*>( payload->Data ) };
+                        m_EditorState->EditorSceneRenderer->UpdateEquirectangularMapAsync(hdrPath);
+                        RuntimeConsole::Get()->Debug( StringUtil::Format("You dropped texture from HDR_LOAD_LIGHT_PANEL {}", hdrPath ) );
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+            }
+        };
+
+        TextureHandle textureHandle{ m_EditorState->EditorSceneRenderer->GetEquirectangularMap() };
+
+        if ( ImGui::BeginTable( "HDRTextureSelector", 2,
+                                ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInner | ImGuiTableFlags_BordersInnerH |
+                                        ImGuiTableFlags_SizingStretchSame ) ) {
+            ImGui::TableSetupColumn( "Thumbnail", ImGuiTableColumnFlags_None, 70.0f );
+            ImGui::TableSetupColumn( "Info", ImGuiTableColumnFlags_None, 200.0f);
+
+            ImGui::TableHeadersRow();
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+
+            TextureHandle displayedHandle{ textureHandle };
+            if ( displayedHandle.IsEmpty() ) {
+                displayedHandle = AssetsService::Get()->GetDummyTexture();
+            }
+
+            if ( ImGuiUtils::PushImageButton(
+                         displayedHandle->GetHandle(),
+                         ImGuiService::Get()->GetTextureID( displayedHandle ),
+                         ImVec2{ 64, 64 } ) ) {
+                // Clicked thumbnail
+            }
+
+            // Tooltip
+            ImGuiUtils::ToolTip( [&]() {
+                ImGui::TextUnformatted( "Click to load texture" );
+                if ( !textureHandle.IsEmpty() )
+                    ImGui::TextUnformatted( textureHandle->GetTextureUri().c_str() );
+            },
+                                 ImGui::IsItemHovered() );
+
+            hdrDropTarget();
+
+            ImGui::TableSetColumnIndex( 1 );
+            ShowTextureDetails( textureHandle.GetRaw() );
+
+            ImGui::EndTable();
+        }
+
+        ImGui::Spacing();
+
+        if (!textureHandle.IsEmpty()) {
+            ImGuiUtils::InputText(StringUtil::Format( "{}", textureHandle->GetTextureUri() ), true );
+        } else {
+            ImGuiUtils::InputText(StringUtil::Format( "Drag EquirectangularMap here" ), true );
+        }
+
+        ImGui::Spacing();
+
+        static  std::array<std::string, 2> backgroundTypes{
+            "Skybox", "Clear color"
+        };
+
+        const SceneBackground current{ m_EditorState->ActiveEditorScene->GetSceneBackground() };
+        const SceneBackground selection{ ImGuiUtils::Combo( backgroundTypes, current ) };
+
+        m_EditorState->ActiveEditorScene->SetSceneBackground( selection );
+
+        ImGui::Spacing();
+
+        hdrDropTarget();
+
+        ImGui::Spacing();
+
+        float gamma    { m_EditorState->ActiveEditorScene->GetGamma() };
+        float exposure { m_EditorState->ActiveEditorScene->GetExposure() };
+
+        if (ImGuiUtils::Slider( "Gamma", gamma, { 0.0f, 10.0f } ) ) { m_EditorState->ActiveEditorScene->SetGamma( gamma ); }
+        if (ImGuiUtils::Slider( "Exposure", exposure, { 0.0f, 10.0f } ) ) { m_EditorState->ActiveEditorScene->SetExposure( exposure ); }
+
+        constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
+
+        ImGui::Spacing();
+
+        static Vec4F clearColor{ 0.1f, 0.2f, 0.3f, 1.0f };
+        if ( ImGui::ColorEdit3( "Clear", glm::value_ptr( clearColor ), colorEditFlags ) ) {
+            m_EditorState->EditorSceneRenderer->SetClearColor( clearColor );
+        }
+
+        static float lineWidth{ 9.0f };
+        if (ImGuiUtils::Slider( "Max ReflectionLOD", lineWidth, { 0.0f, 30.0f } ) ) {
+            m_EditorState->EditorSceneRenderer->SetMaxReflectionLOD( lineWidth );
+        }
+
+    }
+
+    auto RendererPanel::DrawShadowMappingSettings() -> void {
+        std::array<std::string, static_cast<Size>(FinalCompositionTarget::ENUM_MAX)> choices{
+            "Color", "Normals", "Position", "Final Image"
+        };
+
+        // These are directly taken from the core passes from the Scene renderer
+        std::array<std::string, static_cast<Size>(FinalCompositionTarget::ENUM_MAX)> images{
+            "GBuffer_Color", "GBuffer_Normal", "GBuffer_Position", "FinalShadingPass_ColorTarget"
+        };
+
+        m_FinalCompositionTarget = ImGuiUtils::Combo( choices, m_FinalCompositionTarget );
+
+        if (m_FinalCompositionTarget != FinalCompositionTarget::ENUM_MAX) {
+            m_EditorState->FinalComposition = m_EditorState->EditorSceneRenderer->GetTexture( images[static_cast<Size>(m_FinalCompositionTarget)] );
+        }
+    }
+}

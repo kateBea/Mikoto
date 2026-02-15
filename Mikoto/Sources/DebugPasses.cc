@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Scene/Scene.hh>
-#include <Scene/Component.hh>
-
+#include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Core/FramePassResource.hh>
 #include <Renderer/Passes/DebugPasses.hh>
-#include <Renderer/Core/CommandContext.hh>
+#include <Scene/Component.hh>
+#include <Scene/Scene.hh>
+
+#include "Core/Profiler.hh"
 
 namespace Mikoto {
 
@@ -25,10 +26,6 @@ namespace Mikoto {
         : m_Resolution{ resolution }
     {
 
-    }
-
-    auto DebugPasses::SetScene( const Scene *scene ) -> void {
-        m_Scene = scene;
     }
 
     auto DebugPasses::SetClearColor( const Vec4F &vec ) -> void {
@@ -43,23 +40,94 @@ namespace Mikoto {
         m_ShowColorImageWireframe = value;
     }
 
+    auto DebugPasses::SetMeshCulling( MeshCulling &culling ) -> void {
+        m_Culling = std::addressof( culling );
+    }
+
+    auto DebugPasses::SetWireframeEnable( bool enable ) -> void {
+        m_RunWireframe = enable;
+    }
+
     auto DebugPasses::RegisterPasses( FrameGraph &graph ) -> void {
         RegisterHelloTexture( graph );
         RegisterSimpleCompute( graph );
         RegisterHelloTriangle( graph );
         RegisterWireFrame( graph );
+
+        RegisterDebugViewsPass( graph );
     }
 
-    auto DebugPasses::RegisterObjectOutline( FrameGraph &graph ) -> void {
+    auto DebugPasses::SetWireframeLineLineWidth( float value ) -> void {
+        m_WireframeLineWidth = value;
+    }
 
+    auto DebugPasses::SetWireframeLineColor( const Vec4F &color ) -> void {
+        m_WireframeParams.WireframeLineColor = color;
+    }
+
+    auto DebugPasses::SetWireframeLineLineClearColor( const Vec4F &color ) -> void {
+        m_WireframeClearColor = color;
     }
 
     auto DebugPasses::RegisterWireFrame( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
 
-    }
+        graph.RegisterPass(
+                "Wireframe",
+                [this]( FramePassBuilder &b ) {
+                    MKT_BEGIN_PROFILER_NAMED();
 
-    auto DebugPasses::RegisterMaterialPreview( FrameGraph &graph ) -> void {
+                    b.Create<Texture>( "Wireframe_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                    b.Create<Texture>( "Wireframe_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/Wireframe_Vert.sprv", ShaderStage::VERTEX );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/Wireframe_Frag.sprv", ShaderStage::FRAGMENT );
+
+                    GraphicsPipelineDescription graphicsDesc{};
+                    graphicsDesc.DepthTest = true;
+                    graphicsDesc.DepthWrite = true;
+                    graphicsDesc.AlphaBlending = true;
+                    graphicsDesc.Wireframe = true;
+                    graphicsDesc.PipelinePolygonMode = PolygonMode::LINES;
+                    graphicsDesc.PipelineCullMode = CullMode::NONE;
+                    b.Create<Pipeline>( "Wireframe_Pipeline", graphicsDesc );
+
+                    b.Write( "Wireframe_ColorTarget", FrameResourceState::RenderTarget );
+                    b.Write( "Wireframe_DepthTarget", FrameResourceState::DepthWrite );
+
+                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
+                    b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
+
+                    b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
+                    b.Use( SRGType::SRG_PerPass, "FinalBuffer_ObjectInfo", 1 );
+                },
+                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+                    if ( !m_RunWireframe ) {
+                        return;
+                    }
+
+                    const auto dimensions{ InferDimensions( m_Resolution ) };
+
+                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+
+                    ctx.SetClearColor( m_WireframeClearColor );
+                    ctx.SetColorRenderTarget( "Wireframe_ColorTarget" );
+                    ctx.SetDepthRenderTarget( "Wireframe_DepthTarget" );
+
+                    ctx.PushConstants( std::addressof( m_WireframeParams ), sizeof( m_WireframeParams ) );
+
+                    ctx.BeginRender();
+
+                    ctx.BindPipeline( "Wireframe_Pipeline" );
+
+                    ctx.SetPolygonLineWidth( m_WireframeLineWidth );
+
+                    m_Culling->DrawInstances( ctx );
+
+                    ctx.EndRender();
+                } );
     }
 
     auto DebugPasses::RegisterHelloTriangle( FrameGraph &graph ) -> void {
@@ -74,8 +142,8 @@ namespace Mikoto {
 
                     b.Create<Pipeline>( "HelloTriangle_Pipeline", GraphicsPipelineDescription{ .VertexAttributesSpec{} } );
 
-                    b.Write( "HelloTriangle_ColorTarget", FrameResourceState::ShaderResource_Read );
-                    b.Write( "HelloTriangle_DepthTarget", FrameResourceState::ShaderResource_Read );
+                    b.Write( "HelloTriangle_ColorTarget", FrameResourceState::RenderTarget );
+                    b.Write( "HelloTriangle_DepthTarget", FrameResourceState::DepthWrite );
                 },
                 []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     ctx.BindPipeline( "HelloTriangle_Pipeline" );
@@ -95,30 +163,32 @@ namespace Mikoto {
     }
 
     auto DebugPasses::RegisterSimpleCompute( FrameGraph &graph ) -> void {
+        struct SimpleCompute {
+            // Prime numbers up until this value
+            UInt32 LimitNumbers{ 30 };
 
-        graph.RegisterPass(
+            // matches shader's local_size_x
+            UInt32 LocalSize{ 64 };
+            UInt32 GroupCount{ ( LimitNumbers + LocalSize - 1 ) / LocalSize };
+        };
+
+        graph.RegisterPass<SimpleCompute>(
                 "SimpleCompute",
-                []( FramePassBuilder &b ) {
-                    b.Create<Buffer>( "SimpleCompute_Results", BufferUsage::SSBO, 30 * sizeof( float ) );
+                []( FramePassBuilder &b, SimpleCompute& data ) {
+                    b.Create<Buffer>( "SimpleCompute_Results", BufferUsage::SHADER_STORAGE, sizeof( UInt32 ), data.LocalSize );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/BasicCompute_Comp.sprv", ShaderStage::COMPUTE );
                     b.Create<Pipeline>( "SimpleCompute_Pipeline", ComputePipelineDescription{} );
 
-                    b.Write( "SimpleCompute_Results", FrameResourceState::Transfer_Src );
+                    b.Write( "SimpleCompute_Results", FrameResourceState::UnorderedAccess );
 
                     b.Use( SRGType::SRG_PerPass, "SimpleCompute_Results", 0 );
                 },
-                []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                []( CommandContext &ctx, FrameGraphBlackboard& blackboard ) -> void {
+                    auto& data{ blackboard.Get<SimpleCompute>() };
                     ctx.BindPipeline( "SimpleCompute_Pipeline" );
 
-                    // Prime numbers up until this value
-                    constexpr UInt32 limitNumbers{ 30 };
-
-                    // matches shader's local_size_x
-                    constexpr UInt32 localSize{ 64 };
-                    constexpr UInt32 groupCount{ ( limitNumbers + localSize - 1 ) / localSize };
-
-                    ctx.Dispatch( groupCount, 1, 1 );
+                    ctx.Dispatch( data.GroupCount, 1, 1 );
                 } );
 
     }
@@ -140,7 +210,6 @@ namespace Mikoto {
         graph.RegisterPass<HelloTextureData>(
                 "HelloTexture",
                 [this]( FramePassBuilder &b, HelloTextureData& ) -> void {
-                    b.Create<Buffer>( "HelloTexture_TexturesBuffer", BufferUsage::UNIFORM, sizeof( HelloTextureData ) );
                     b.Create<Texture>( "HelloTexture_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
                     b.Create<Texture>( "HelloTexture_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
@@ -151,11 +220,9 @@ namespace Mikoto {
                                             .PrimitiveTopology{ Topology::TRIANGLE_STRIP },
                                             .VertexAttributesSpec{},} );
 
-                    b.Write( "HelloTexture_ColorTarget", FrameResourceState::ShaderResource_Read );
-                    b.Write( "HelloTexture_DepthTarget", FrameResourceState::ShaderResource_Read );
+                    b.Write( "HelloTexture_ColorTarget", FrameResourceState::RenderTarget );
+                    b.Write( "HelloTexture_DepthTarget", FrameResourceState::DepthWrite );
 
-                    b.Write( "HelloTexture_TexturesBuffer", FrameResourceState::ShaderResource_Read );
-                    b.Use( SRGType::SRG_PerPass, "HelloTexture_TexturesBuffer", 0 );
                     b.Use( SRGType::SRG_Textures );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard) -> void {
@@ -164,7 +231,7 @@ namespace Mikoto {
                     auto& data{ blackboard.Get<HelloTextureData>() };
                     data.TextureIndex = ctx.PushTexture( m_TextureHandle );
 
-                    ctx.UploadBuffer<HelloTextureData>( "HelloTexture_TexturesBuffer", std::addressof( data ) );
+                    ctx.PushConstants( std::addressof( data ), sizeof( data ) );
 
                     ctx.BindPipeline( "HelloTexture_Pipeline" );
 
@@ -179,6 +246,18 @@ namespace Mikoto {
                     ctx.Draw( 4, 1, 0, 0 );
 
                     ctx.EndRender();
+                } );
+    }
+
+    auto DebugPasses::RegisterDebugViewsPass( FrameGraph &graph ) -> void {
+        graph.RegisterPass(
+                "DebugViewsForDebugPasses",
+                []( FramePassBuilder &b ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+                    b.Read( "Wireframe_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+                },
+                []( CommandContext &, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
                 } );
     }
 }

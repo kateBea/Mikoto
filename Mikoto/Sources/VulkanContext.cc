@@ -22,6 +22,7 @@
 // Project Headers
 #include <Common/Common.hh>
 #include <Core/Profiler.hh>
+#include <Core/Timer.hh>
 #include <Library/String/String.hh>
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
@@ -84,18 +85,23 @@ namespace Mikoto {
             ( void )messageType;
             ( void )pUserData;
 
-                    switch (messageSeverity) {
-                        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-                            MKT_CORE_LOGGER_ERROR( "Validation Error: {}", pCallbackData->pMessage );
-                            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-                                MKT_CORE_LOGGER_WARN( "Validation Warn: {}", pCallbackData->pMessage );
-                        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-                            MKT_CORE_LOGGER_INFO( "Validation Info: {}", pCallbackData->pMessage );
-                        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-                            MKT_CORE_LOGGER_DEBUG( "Validation Debug: {}", pCallbackData->pMessage );
-                        default:
-                            MKT_CORE_LOGGER_ERROR( "Validation Unhandled Severity: {}", pCallbackData->pMessage );
-                    }
+            switch ( messageSeverity ) {
+                case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+                    MKT_CORE_LOGGER_ERROR( "Validation Error: {}", pCallbackData->pMessage );
+                    break;
+                case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+                    MKT_CORE_LOGGER_WARN( "Validation Warn: {}", pCallbackData->pMessage );
+                    break;
+                case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+                    MKT_CORE_LOGGER_INFO( "Validation Info: {}", pCallbackData->pMessage );
+                    break;
+                case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+                    MKT_CORE_LOGGER_DEBUG( "Validation Debug: {}", pCallbackData->pMessage );
+                    break;
+                default:
+                    MKT_CORE_LOGGER_ERROR( "Validation Unhandled Severity: {}", pCallbackData->pMessage );
+                    break;
+            }
             return VK_FALSE;
         };
     }
@@ -215,14 +221,39 @@ namespace Mikoto {
         DisplayGflwRequiredInstanceExtensions();
 #endif
 
+        // This is for dbug purposes
+        // 1. Enable GPU-assisted validation
+        VkValidationFeatureEnableEXT enabledFeatures[] = {
+            VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+            VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+            VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
+            VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
+            VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
+        };
+
         // Setup debug messenger utility for instance errors
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{ VulkanHelpers::Initializers::DebugUtilsMessengerCreateInfoEXT() };
         if ( m_VulkanData.EnableValidationLayers ) {
             SetupDebugMessengerCreateInfo( debugCreateInfo );
         }
 
+        VkValidationFeaturesEXT validationFeatures{
+            .sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
+            .pNext = nullptr, //std::addressof( debugCreateInfo ),
+            .enabledValidationFeatureCount = static_cast<uint32_t>(std::size(enabledFeatures)),
+            .pEnabledValidationFeatures = enabledFeatures,
+            .disabledValidationFeatureCount = 0,
+            .pDisabledValidationFeatures = nullptr
+        };
+
+        // When core validations are passed check GPU assisted ones, cannot enable both, GPU assisted validations are very slow
         VkInstanceCreateInfo createInfo{ VulkanHelpers::Initializers::InstanceCreateInfo() };
+        // Core validations
         createInfo.pNext = std::addressof( debugCreateInfo );
+
+        // GPU assisted validations
+        //createInfo.pNext = std::addressof( validationFeatures );
+
         createInfo.pApplicationInfo = std::addressof( appInfo );
 
         createInfo.enabledLayerCount = static_cast<UInt32>( m_VulkanData.ValidationLayers.size() );
@@ -293,8 +324,7 @@ namespace Mikoto {
         vkWaitForFences( VK_DEVICE(m_Device.get()), 1, std::addressof( inFlightFrameFence ), VK_TRUE, ( std::numeric_limits<UInt64>::max )() );
         vkResetFences( VK_DEVICE(m_Device.get()), 1, std::addressof( inFlightFrameFence ) );
 
-        m_Device->RunGarbageCollection();
-        TO_VK_DEVICE( m_Device.get() ) ->SetCurrentFrameIndex( m_CurrentFrameIndex );
+        TO_VK_DEVICE( m_Device.get() )->SetCurrentFrameIndex( m_CurrentFrameIndex );
 
         const VkSemaphore& imageAvailableSemaphore{ m_FrameSyncPrimitives[m_CurrentFrameIndex].ImageAvailableSemaphore };
         const VkResult ret{ m_Swapchain->GetNextRenderableImageIndex(m_CurrentImageIndex, imageAvailableSemaphore ) };
@@ -306,6 +336,22 @@ namespace Mikoto {
         if (ret != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("VulkanContext::PrepareFrame - Failed to acquire swap chain image!");
         }
+    }
+
+    auto VulkanContext::Update() -> void {
+        TO_VK_DEVICE( m_Device.get() )->FlushImmediateCommands();
+    }
+
+    auto VulkanContext::EnableVSync() -> void {
+        // TODO: Request swap chain recreation with FIFO present mode
+    }
+
+    auto VulkanContext::DisableVSync() -> void {
+        // TODO: Request swap chain recreation with available non FIFO present mode
+    }
+
+    auto VulkanContext::IsVsyncEnabled() const -> bool {
+        return m_Swapchain->IsVsyncEnabled();
     }
 
     auto VulkanContext::Present() -> void {
@@ -347,6 +393,9 @@ namespace Mikoto {
         const auto device{ TO_VK_DEVICE( RenderService::Get()->GetGpuDevice() ) };
 
         device->FlushPendingCommands( m_FrameSyncPrimitives[m_CurrentFrameIndex] );
+
+        // Register objects with ref count == 1 for future deletion
+        m_Device->RunGarbageCollection();
     }
 
     auto VulkanContext::InitVolk() -> void {
@@ -370,8 +419,8 @@ namespace Mikoto {
     }
 
     auto VulkanContext::CreateSynchronizationPrimitives() -> void {
-
         m_MaxFramesInFlight = 3;
+
         m_FrameSyncPrimitives.resize( m_MaxFramesInFlight );
 
         for (auto& [ImageAvailableSemaphore, RenderFinishedSemaphore, RenderFence] : m_FrameSyncPrimitives) {

@@ -1,12 +1,20 @@
-/**
- * VulkanHelpers.hh
- * Created by kate on 8/5/2023.
- * */
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_VULKAN_UTILS_HH
 #define MIKOTO_VULKAN_UTILS_HH
 
-// C++ Standard Library
 #include <set>
 #include <vector>
 #include <memory>
@@ -16,16 +24,18 @@
 #include <span>
 #include <map>
 
-// Third-Party Libraries
 #include <volk.h>
 #include <vk_mem_alloc.h>
 #include <fmt/format.h>
 
-// Project Headers
-#include <Renderer/Core/RenderUtility.hh>
-#include <Assets/Texture.hh>
 #include <Common/Common.hh>
 #include <Core/Exception.hh>
+
+#include <Assets/Texture.hh>
+
+#include <Renderer/Core/Pipeline.hh>
+#include <Renderer/Core/RenderUtility.hh>
+
 #include <Library/Utility/Types.hh>
 
 // Vulkan version
@@ -62,12 +72,17 @@ namespace Mikoto {
         std::vector<VkPresentModeKHR> PresentModes{};
     };
 
+    static constexpr UInt32 TEXTURES_DESCRIPTOR_SET_INDEX{ 0 };
+    static constexpr UInt32 PER_FRAME_DESCRIPTOR_SET_INDEX{ 1 };
+    static constexpr UInt32 PER_PASS_DESCRIPTOR_SET_INDEX{ 2 };
+    static constexpr UInt32 STATIC_DESCRIPTOR_SET_INDEX{ 3 };
+    static constexpr UInt32 MINIMUM_REQUIRED_PUSH_CONSTANTS_SIZE{ 128 };
+
 }
 
-/**
- * Helper utility functions
- */
 namespace Mikoto::VulkanHelpers {
+
+    static inline constexpr float STANDARD_POLYGON_LINE_WIDTH{ 1.0f };
 
     // We take a set because for instance graphics queue and present queue could be the same, if u try to create two queues of same index program will crash
     MKT_NODISCARD auto SetupDeviceQueueCreateInfo(const std::set<UInt32>& uniqueQueueFamilies) -> std::vector<VkDeviceQueueCreateInfo>;
@@ -96,6 +111,10 @@ namespace Mikoto::VulkanHelpers {
     MKT_NODISCARD auto FromVkStage(VkShaderStageFlagBits stage) -> ShaderStage;
     MKT_NODISCARD auto ToVkImageUsage(TextureUsage usage) -> VkImageUsageFlags;
 
+    MKT_NODISCARD auto ToVkRasterSamples(Multisampling samples) -> VkSampleCountFlagBits;
+
+    MKT_NODISCARD auto GetAspectMask(VkFormat format) -> VkImageAspectFlags;
+
     auto ImageUsageFlagsToString(Texture* texture) -> void;
     auto ImageLayoutToString(Texture* texture) -> void;
 
@@ -120,19 +139,8 @@ namespace Mikoto::VulkanHelpers {
     } while ( 0 )
 }
 
-/**
- * Features:
- *  - Reflects multiple shader stages (vertex, fragment, compute, etc.).
- *  - Merges descriptor bindings and push constants across stages.
- *  - Builds VkDescriptorSetLayout + VkPipelineLayout.
- *  - Reflects vertex input attributes for vertex shaders.
- *  - Returns mapping of (set,binding) -> descriptor info for resource binding.
- */
 namespace Mikoto::VulkanHelpers::Reflection {
 
-    /**
-     * Simple struct describing a descriptor binding reflection result.
-     */
     struct ReflectedBindingInfo {
         std::string name{};
         UInt32 set{};
@@ -143,9 +151,6 @@ namespace Mikoto::VulkanHelpers::Reflection {
         bool IsBindless{ false };
     };
 
-    /**
-     * Reflected pipeline data container.
-     */
     struct ReflectedData {
         // Set index -> layout
         ankerl::unordered_dense::map<UInt32, VkDescriptorSetLayout> setLayouts{};
@@ -180,15 +185,8 @@ namespace Mikoto::VulkanHelpers::Reflection {
 
 }
 
-/**
-* Initializers for vulkan structures.
-*/
 namespace Mikoto::VulkanHelpers::Initializers {
-    /**
-     *
-     * @param aspectMask
-     * @return
-     * */
+
     MKT_NODISCARD inline auto ImageSubresourceRange(VkImageAspectFlags aspectMask) -> VkImageSubresourceRange {
         VkImageSubresourceRange subImage {};
         subImage.aspectMask = aspectMask;

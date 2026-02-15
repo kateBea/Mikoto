@@ -27,11 +27,11 @@
 
 #include <Common/Common.hh>
 #include <Common/Subsystem.hh>
+#include <Common/Singleton.hh>
 
 #include <Library/Random/Random.hh>
 #include <Library/Utility/Types.hh>
 
-#include <Common/Singleton.hh>
 
 namespace Mikoto {
 

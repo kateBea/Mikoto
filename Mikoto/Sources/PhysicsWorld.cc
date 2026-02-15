@@ -36,7 +36,7 @@ namespace Mikoto {
         : m_Scene{ spec.TargetScene }, m_Gravity{ spec.Gravity } {}
 
     auto PhysicsWorld::Init() -> void {
-        MKT_CORE_LOGGER_INFO( "Initializing PhysicsBase..." );
+        MKT_CORE_LOGGER_INFO( "Initializing PhysicsWorld..." );
 
         // We need a temp allocator for temporary allocations during the physics update. We're
         // pre-allocating 10 MB to avoid having to do allocations during the physics update.
@@ -112,7 +112,7 @@ namespace Mikoto {
 
         // The Log comes after so we know the service was
         // initialized before attempting to shut it down
-        MKT_CORE_LOGGER_INFO( "Shutting down PhysicsBase..." );
+        MKT_CORE_LOGGER_INFO( "Shutting down PhysicsWorld..." );
 
         for ( auto &val: m_Bodies | std::views::values ) {
             m_SimulationInfo.BodyInterface->RemoveBody(val->GetID());
@@ -292,6 +292,17 @@ namespace Mikoto {
         if ( success ) {
             rigidBodyComponent.SetBodyID( it->first );
         }
+    }
+    
+    auto PhysicsWorld::GetGravityBody() const -> GravityBody {
+        return m_GravityBody;
+    }
+
+    auto PhysicsWorld::SetGravityBody( GravityBody body ) -> void {
+        m_GravityBody = body;
+        m_Gravity = GetGravityFor( body );
+
+        m_SimulationInfo.PhysicsSystem.SetGravity( JPH::Vec3( m_Gravity.x, m_Gravity.y, m_Gravity.z ) );
     }
 
     auto PhysicsWorld::GetGravityFor( const GravityBody body) -> Vec3F {

@@ -36,21 +36,15 @@ namespace Mikoto {
 
     struct EditorState {
         Entity* SelectedEntity{};
+        ankerl::unordered_dense::set<Entity*> SelectedEntities{};
 
         // Used when scene is not simulating
-        SceneCamera* EditorCamera{};
-
-        // Scene currently active
         Scene* ActiveEditorScene{};
+        SceneCamera* EditorCamera{};
+        SceneRenderer* EditorSceneRenderer{};
 
         // The final composition from the scene renderer
         TextureHandle FinalComposition{};
-        TextureHandle WireframeComposition{};
-
-        // Debug
-        TextureHandle PreviewMaterial{};
-
-        TextureHandle TextureHDR_2D{};
 
         // Pass name and output value
         ankerl::unordered_dense::map<std::string, TextureHandle> PassesCompositions{};
@@ -58,13 +52,22 @@ namespace Mikoto {
         // Editor specifies which texture gets rendered on the window
         TextureHandle RenderImage{};
 
-        SceneRenderer* EditorSceneRenderer{};
-
         ImGuiUtils::GuizmoManipulationMode Manipulation{ ImGuiUtils::GuizmoManipulationMode::TRANSLATION };
 
         bool ApplicationCloseFlag{ true };
         bool ShowHeatMap{ false };
         bool ShowWireframe{ false };
+
+        MKT_NODISCARD auto IsEntityAnySelected() const -> bool;
+        MKT_NODISCARD auto IsEntitySelected(Entity* entity) const -> bool;
+        MKT_NODISCARD auto GetSelectedEntity() const -> Entity*;
+        MKT_NODISCARD auto GetSelectedEntities() const -> const ankerl::unordered_dense::set<Entity*>&;
+
+        auto RegisterSelection(Entity* entity) -> void;
+        auto RegisterSelections(const std::vector<Entity*>& list) -> void;
+
+        auto RemoveSingleSelection() -> void;
+        auto RemoveSelections(const std::vector<Entity *> &list) -> void;
     };
 
     class EditorLayer final : public ILayer {
@@ -107,6 +110,15 @@ namespace Mikoto {
 
         auto LoadResources() -> void;
 
+        auto SetPresentTarget() -> void;
+
+        auto SimpleScene() -> void;
+        auto DebugManyLightsTest() -> void;
+        auto DebugInstancingTest() -> void;
+        auto DebugSpheresProperties() -> void;
+
+        auto DebugDamagedHelmet() -> void;
+
     private:
         enum class RenderScreenTarget { WINDOW, PANEL };
 
@@ -122,7 +134,6 @@ namespace Mikoto {
         Unique<SceneRenderer> m_SceneRenderer{};
 
         TextureHandle m_TextureCubeMap{};
-        TextureHandle m_TextureHDR{};
 
         Unique<SceneCamera> m_EditorCamera{};
 

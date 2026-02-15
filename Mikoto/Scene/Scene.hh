@@ -1,38 +1,45 @@
-/**
- * Scene.hh
- * Created by kate on 6/24/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_SCENE_HH
 #define MIKOTO_SCENE_HH
 
-// C++ Standard Library
 #include <mutex>
 #include <memory>
 #include <string_view>
 
-// Third-Party Libraries
 #include <entt/entt.hpp>
 #include <ankerl/unordered_dense.h>
 
-// Project Headers
 #include <Assets/Model.hh>
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 #include <Scene/Entity.hh>
+#include <Scene/Component.hh>
 
 namespace Mikoto {
 
     class PhysicsWorld;
 
-    /**
-     * @brief Enum representing the current state of the scene renderer.
-     *
-     * This enum is used to track whether the renderer is idle or actively simulating the scene.
-     */
     enum class SceneState {
         IDLE,
         SIMULATING
+    };
+
+    enum class SceneBackground {
+        SKYBOX,
+        CLEAR_COLOR,
     };
 
     struct EntityCreateInfo {
@@ -49,16 +56,10 @@ namespace Mikoto {
     public:
         explicit Scene( std::string_view name = "New Scene" );
 
-        /**
-         * @brief Sets the state of the scene renderer.
-         * This function changes the state of the renderer, such as transitioning from idle to simulating.
-         * @param state The new state to set for the renderer.
-         */
         auto SetState( SceneState state ) -> void;
 
         auto Update( float timeStep ) -> void;
 
-        // Remove recursively check if its child of any entity
         auto RemoveEntity( UInt64 uniqueID ) -> void;
 
         auto SetName( std::string_view name ) -> void;
@@ -73,10 +74,30 @@ namespace Mikoto {
         MKT_NODISCARD auto CreateEntity( Entity* root, std::string_view name ) -> Entity*;
         MKT_NODISCARD auto CreateEntity( const EntityCreateInfo& createInfo = {} ) -> Entity*;
 
+        MKT_NODISCARD auto GetPhysicsWorld() -> PhysicsWorld*;
+
+        template<typename EntityFunction>
+        auto ApplyToChildren(Entity* parent, const EntityFunction& callable) -> void {
+            if (!parent) {
+                return;
+            }
+
+            RelationComponent& relation{ parent->GetComponent<RelationComponent>() };
+            for (const auto& childID : relation.GetChildren()) {
+                Entity* child{ FindByID( childID ) };
+
+                if (child) {
+                    callable(child);
+
+                    ApplyToChildren(child, callable);
+                }
+            }
+        }
 
         // Whether to render scene with skybox
-        auto EnableSkybox( bool useSkybox ) -> void;
-        MKT_NODISCARD auto IsSkyboxEnabled() const -> bool;
+        auto SetSceneBackground(SceneBackground background) -> void;
+        MKT_NODISCARD auto GetSceneBackground() const -> SceneBackground;
+        MKT_NODISCARD auto IsSceneBackground(SceneBackground background) const -> bool;
 
         auto SetSkybox( TextureHandle cubeMap ) -> void;
         MKT_NODISCARD auto GetSkybox( ) -> TextureHandle;
@@ -95,6 +116,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetGamma() const -> float;
         MKT_NODISCARD auto GetExposure() const -> float;
 
+        // To remove, deprecated
         auto SetGamma( float gamma ) -> void;
         auto SetExposure( float exposure ) -> void;
 
@@ -165,8 +187,10 @@ namespace Mikoto {
         UInt32 m_TotalLightCount{ 0 };
         UInt32 m_ActiveLightCount{ 0 };
 
-        bool m_UseSkybox{ true };
         TextureHandle m_Skybox{ nullptr };
+        Vec4F m_ClearColor{ 0.3f, 0.2f, 0.6f, 1.0f };
+
+        SceneBackground m_Background{ SceneBackground::CLEAR_COLOR };
 
         float m_Gamma{ 2.20f };
         float m_Exposure{ 1.0f };

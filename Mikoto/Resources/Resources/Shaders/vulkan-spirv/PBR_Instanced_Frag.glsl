@@ -1,64 +1,85 @@
-/**************************************************
-    Shader for the PBR material. Using vec4s
-    and mat4s for now for simplicity with uniform
-    buffers aligment.
-
-    Stage: Fragment
-    Version: GLSL 4.5.0
-**************************************************/
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #version 450
+
 #extension GL_EXT_nonuniform_qualifier : require
+#extension GL_EXT_scalar_block_layout : require
 
 #include "ShaderBase.glsl"
 #include "ClusteredShading.glsl"
+#include "IBL_Helpers.glsl"
+#include "Material_Helpers.glsl"
 
 #define INVALID_TEXTURE_INDEX -1
 
-// --------------------------------------------------
-// Interpolated input (with flat for instance data)
-// --------------------------------------------------
-layout(location = 0) in vec3 in_FragmentWorldPos;
-layout(location = 1) in vec3 in_Normals;
-layout(location = 2) in vec2 in_TexCoord;
-layout(location = 3) in vec3 in_VertexColor;
-layout(location = 4) in vec3 in_CameraPos;
-
-layout(location = 5) flat in int in_AlbedoIndex;
-layout(location = 6) flat in int in_NormalIndex;
-layout(location = 7) flat in int in_MetallicIndex;
-layout(location = 8) flat in int in_RoughnessIndex;
-layout(location = 9) flat in int in_AoIndex;
-layout(location = 10) flat in vec4 in_Albedo;
-layout(location = 11) flat in vec4 in_Factors;
-
-layout(location = 12) in vec3 in_FragmentViewPos;
-
 layout(location = 0) out vec4 out_Color;
+
+layout(location = 0) in vec3 in_FragmentViewPos;
+layout(location = 1) in vec3 in_FragmentWorldPos;
+layout(location = 2) in vec3 in_Normals;
+layout(location = 3) in vec2 in_TexCoord;
+layout(location = 4) in vec3 in_VertexColor;
+
+layout(location = 5) flat in int v_AlbedoIndex;
+layout(location = 6) flat in int v_NormalIndex;
+layout(location = 7) flat in int v_MetallicIndex;
+layout(location = 8) flat in int v_RoughnessIndex;
+layout(location = 9) flat in int v_AoIndex;
+layout(location = 10) flat in vec4 v_Albedo;
+
+layout(location = 11) flat in float v_MetallicFactor;
+layout(location = 12) flat in float v_RoughnessFactor;
+layout(location = 13) flat in float v_OcclusionStrength;
+
+layout(location = 14) flat in vec3 v_EmissiveFactors;
+layout(location = 15) flat in float v_EmissionIntensity;
+layout(location = 16) flat in int v_EmissionIndex;
+layout(location = 17) flat in float v_Alpha;
 
 layout(set = TEXTURES_SETINDEX, binding = 0) uniform sampler2D g_BindlessTextures[];
 
-layout(set = PERPASS_SETINDEX, binding = 1) uniform CameraUBO {
-    mat4 ViewMatrix;
-    mat4 InverseProjection;
-
-    vec4 GridSize;
-    vec4 ViewPosition;
-
-    // xy = Planes, zw = ScreenDimensions
-    vec4 Screen;
-
-    // x = show heat map
-    vec4 ShowHeatMap;
-} Camera;
-
-layout(std430, set = PERPASS_SETINDEX, binding = 2) readonly buffer ClusterSSBO {
+layout(std430, scalar, set = STATIC_SETINDEX, binding = 2) readonly buffer ClusterSSBO {
     Cluster Clusters[];
 };
 
-layout(std430, set = PERPASS_SETINDEX, binding = 3) readonly buffer LightSSBO {
+layout(std430, scalar, set = PERPASS_SETINDEX, binding = 3) readonly buffer LightSSBO {
     LightInfo Lights[];
 };
+
+layout (set = STATIC_SETINDEX, binding = 4) uniform sampler2D u_SamplerBRDFLUT;
+layout (set = STATIC_SETINDEX, binding = 5) uniform samplerCube u_PrefilteredMap;
+layout (set = STATIC_SETINDEX, binding = 6) uniform samplerCube u_SamplerIrradiance;
+
+layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
+    mat4 Projection;
+    mat4 ViewMatrix;
+    mat4 InverseProjection;
+    vec4 ViewPosition;
+    vec2 Planes;
+    vec2 ScreenDimensions;
+} u_Camera;
+
+layout(scalar, push_constant) uniform EnvironmentConstants {
+    vec4 GridSize;
+    float Exposure;
+    float Gamma;
+    float MaxReflectionLOD;
+
+    int IsSkyboxActive;
+
+} u_Constants;
 
 vec3 GetNormalFromMap(sampler2D normalMap) {
     vec3 tangentNormal = texture(normalMap, in_TexCoord).xyz * 2.0 - 1.0;
@@ -76,6 +97,14 @@ vec3 GetNormalFromMap(sampler2D normalMap) {
     return normalize(TBN * tangentNormal);
 }
 
+vec3 PrefilteredReflection(vec3 R, float roughness) {
+    float lod = roughness * u_Constants.MaxReflectionLOD;
+    float lodf = floor(lod);
+    float lodc = ceil(lod);
+    vec3 a = textureLod(u_PrefilteredMap, R, lodf).rgb;
+    vec3 b = textureLod(u_PrefilteredMap, R, lodc).rgb;
+    return mix(a, b, lod - lodf);
+}
 
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
     float a = roughness * roughness;
@@ -90,6 +119,9 @@ float DistributionGGX(vec3 N, vec3 H, float roughness) {
     return nom / denom;
 }
 
+vec3 F_SchlickR(float cosTheta, vec3 F0, float roughness) {
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
+}
 
 float GeometrySchlickGGX(float NdotV, float roughness) {
     float r = ( roughness + 1.0 );
@@ -173,7 +205,7 @@ vec3 ComputeSpotLightContribution(vec3 N, vec3 V, vec3 F0, float roughness, floa
     float distance = length(lightInfo.Position.xyz - in_FragmentWorldPos);
     float attenuation = ComputeAttenuation(distance, lightInfo.Radius);
     // This vec 3 should be the light color, we assume it is full white for now
-    vec3 radiance = lightInfo.Diffuse.xyz * attenuation;
+    vec3 radiance = lightInfo.Diffuse.xyz * attenuation * lightInfo.Intensity;
 
     // Spotlight intensity based on angle
     float theta = dot(L, normalize(-vec3(lightInfo.Direction.xyz)));
@@ -222,7 +254,7 @@ vec3 ComputeDirectionalLightContribution(vec3 N, vec3 V, vec3 F0, float roughnes
     vec3 H = normalize( V + L );
 
     // This vec 3 should be the light color, we assume it is full white for now
-    vec3 radiance = lightInfo.Diffuse.xyz;
+    vec3 radiance = lightInfo.Diffuse.xyz * lightInfo.Intensity;
 
     // Cook-Torrance BRDF
     float NDF = DistributionGGX( N, H, roughness );
@@ -256,99 +288,127 @@ vec3 ComputeDirectionalLightContribution(vec3 N, vec3 V, vec3 F0, float roughnes
     return Lo;
 }
 
-vec4 DetermineOutFragmentColor(vec3 N, vec3 color, float metallic, float roughness, float ao, int displayMode) {
-    vec4 result = vec4(0.0);
+vec3 CalculateEmissive() {
+    // Base emissive factor (user-defined color)
+    vec3 emissive = v_EmissiveFactors;
 
-    switch (displayMode) {
-        case DISPLAY_COLOR:
-        result = vec4(color , 1.0);
-        break;
+    // Default: no texture means "use emissive color directly"
+    vec3 emissiveTex = vec3(1.0);
 
-        case DISPLAY_NORMAL:
-        result = vec4(N , 1.0);
-        break;
-
-        case DISPLAY_METAL:
-        result = vec4(metallic, metallic, metallic , 1.0);
-        break;
-
-        case DISPLAY_AO:
-        result = vec4(ao, ao, ao , 1.0);
-        break;
-
-        case DISPLAY_ROUGH:
-        result = vec4(roughness, roughness, roughness , 1.0);
-        break;
+    // But if a texture is present, multiply it in
+    if (v_EmissionIndex != INVALID_TEXTURE_INDEX) {
+        emissiveTex = texture(g_BindlessTextures[v_EmissionIndex], in_TexCoord).rgb;
     }
 
-    return result;
+    // Final emissive
+    emissive *= emissiveTex;
+    emissive *= v_EmissionIntensity;
+
+    return emissive;
 }
 
 void main() {
 
-    vec3 albedo     = in_AlbedoIndex != INVALID_TEXTURE_INDEX ?
-        pow(texture(g_BindlessTextures[in_AlbedoIndex], in_TexCoord).rgb, vec3(2.2)) :
-        in_Albedo.xyz;
+    vec4 albedo     = v_AlbedoIndex != INVALID_TEXTURE_INDEX ?
+        pow(texture(g_BindlessTextures[v_AlbedoIndex], in_TexCoord), vec4(2.2)) :
+        v_Albedo;
 
-    float metallic  = in_MetallicIndex != INVALID_TEXTURE_INDEX ?
-        texture(g_BindlessTextures[in_MetallicIndex], in_TexCoord).r :
-        in_Factors.x;
+    float metallic  = v_MetallicIndex != INVALID_TEXTURE_INDEX ?
+        texture(g_BindlessTextures[v_MetallicIndex], in_TexCoord).r :
+        v_MetallicFactor;
 
-    float roughness = in_RoughnessIndex != INVALID_TEXTURE_INDEX ?
-        texture(g_BindlessTextures[in_RoughnessIndex], in_TexCoord).r :
-        in_Factors.y;
+    float roughness = v_RoughnessIndex != INVALID_TEXTURE_INDEX ?
+        texture(g_BindlessTextures[v_RoughnessIndex], in_TexCoord).r :
+        v_RoughnessFactor;
 
-    float ao        = in_AoIndex != INVALID_TEXTURE_INDEX ?
-        texture(g_BindlessTextures[in_AoIndex], in_TexCoord).r :
-        in_Factors.z;
+    float ao        = v_AoIndex != INVALID_TEXTURE_INDEX ?
+        texture(g_BindlessTextures[v_AoIndex], in_TexCoord).r :
+        v_OcclusionStrength;
 
-    vec3 N = in_NormalIndex != INVALID_TEXTURE_INDEX ?
-        GetNormalFromMap(g_BindlessTextures[in_NormalIndex]) :
+    vec3 N = v_NormalIndex != INVALID_TEXTURE_INDEX ?
+        GetNormalFromMap(g_BindlessTextures[v_NormalIndex]) :
         normalize(in_Normals);
 
-    vec3 V = normalize(in_CameraPos - in_FragmentWorldPos);
-    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+    vec3 V = normalize(u_Camera.ViewPosition.xyz - in_FragmentWorldPos);
+    vec3 F0 = mix(vec3(0.04), albedo.xyz, metallic);
 
     vec3 Lo = vec3(0.0);
 
     // Locating which cluster this fragment is part of
-    uint zTile = uint((log(abs(in_FragmentViewPos.z) / Camera.Screen.y) * Camera.GridSize.z) / log(Camera.Screen.x / Camera.Screen.y));
-    vec2 tileSize = Camera.Screen.zw / Camera.GridSize.xy;
+    uint zTile = uint((log(abs(in_FragmentViewPos.z) / u_Camera.Planes.y) * u_Constants.GridSize.z) / log(u_Camera.Planes.x / u_Camera.Planes.y));
+    vec2 tileSize = u_Camera.ScreenDimensions / u_Constants.GridSize.xy;
 
     uvec3 tile = uvec3(gl_FragCoord.xy / tileSize, zTile);
-    uint tileIndex = uint(tile.x + (tile.y * Camera.GridSize.x) + (tile.z * Camera.GridSize.x * Camera.GridSize.y));
+    uint tileIndex = uint(tile.x + (tile.y * u_Constants.GridSize.x) + (tile.z * u_Constants.GridSize.x * u_Constants.GridSize.y));
 
-    uint lightCount = Clusters[tileIndex].Count;
+    // TODO: Review, should tile index be out of bounds
+    if (tileIndex < Clusters.length()) {
+        uint lightCount = Clusters[tileIndex].Count;
 
-    for(int i = 0; i < lightCount; ++i)  {
-        uint lightIndex = Clusters[tileIndex].LightIndices[i];
-        LightInfo light = Lights[lightIndex];
+        for(int i = 0; i < lightCount; ++i)  {
+            uint lightIndex = Clusters[tileIndex].LightIndices[i];
+            LightInfo light = Lights[lightIndex];
 
-        switch (light.ActiveLightType) {
-            case LIGHT_TYPE_POINT:
-                Lo += ComputePointLightContribution(N, V, F0, roughness, metallic, albedo, light);
-                break;
-            case LIGHT_TYPE_SPOT:
-                Lo += ComputeSpotLightContribution(N, V, F0, roughness, metallic, albedo, light);
-                break;
-            case LIGHT_TYPE_DIRECTIONAL:
-                Lo += ComputeDirectionalLightContribution(N, V, F0, roughness, metallic, albedo, light);
-                break;
-            default:
-                break;
+            switch (light.ActiveLightType) {
+                case LIGHT_TYPE_POINT:
+                    Lo += ComputePointLightContribution(N, V, F0, roughness, metallic, albedo.xyz, light);
+                    break;
+                case LIGHT_TYPE_SPOT:
+                    Lo += ComputeSpotLightContribution(N, V, F0, roughness, metallic, albedo.xyz, light);
+                    break;
+                case LIGHT_TYPE_DIRECTIONAL:
+                    Lo += ComputeDirectionalLightContribution(N, V, F0, roughness, metallic, albedo.xyz, light);
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
-    vec3 ambient = vec3(0.03) * albedo * ao;
+    vec3 R = reflect(-V, N);
+    vec2 brdf = texture(u_SamplerBRDFLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+
+    vec3 diffuse = vec3(0.0);
+    vec3 specular = vec3(0.0);
+    vec3 reflection = vec3(0.0);
+    vec3 irradiance = vec3(0.0);
+
+    vec3 F = F_SchlickR(max(dot(N, V), 0.0), F0, roughness);
+
+    if (u_Constants.IsSkyboxActive == MKT_SHADER_TRUE) {
+        reflection = PrefilteredReflection(R, roughness).rgb;
+        irradiance = texture(u_SamplerIrradiance, N).rgb;
+    }
+
+    // Diffuse based on irradiance
+    diffuse = irradiance * albedo.xyz;
+
+    // Specular reflectance
+    specular = reflection * (F * brdf.x + brdf.y);
+
+    // Ambient part
+    vec3 kD = 1.0 - F;
+    kD *= 1.0 - metallic;
+    vec3 ambient = (kD * diffuse + specular) * vec3(ao, ao, ao);
+
     vec3 color = ambient + Lo;
 
-    // Tonemap + gamma correction
-    color = color / (color + vec3(1.0));
-    color = pow(color, vec3(1.0 / 2.2));
+    // Tone mapping
+    color = Uncharted2Tonemap(color * u_Constants.Exposure);
+    color = color * (1.0f / Uncharted2Tonemap(vec3(11.2f)));
 
-    out_Color = vec4(color , 1.0);
+    // Gamma correction
+    color = pow(color, vec3(1.0f / u_Constants.Gamma));
 
-    if (Camera.ShowHeatMap.x == MKT_SHADER_TRUE) {
-        out_Color = mix(vec4(GetHeatMapColor(lightCount), 1.0), out_Color, 0.67f);
+    // Emission
+    vec3 emissive = CalculateEmissive();
+    vec3 finalColor = color + emissive;
+
+    // Alpha
+    float alpha = v_Alpha * albedo.a;
+    if (v_AlbedoIndex == INVALID_TEXTURE_INDEX) {
+        alpha = v_Alpha;
     }
+
+    out_Color = vec4(finalColor , alpha);
 }

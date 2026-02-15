@@ -70,6 +70,8 @@ namespace Mikoto {
 
         virtual auto CreateBuffer(std::string_view name, BufferDescription description) -> BufferHandle = 0;
 
+        virtual auto CopyToDevice(const void* ptr, Size size, BufferHandle dst, CommandListHandle cmd) -> void = 0;
+
         virtual auto CreateSampler( SamplerDescription& description ) -> SamplerHandle = 0;
         virtual auto CreateSampler( std::string_view name, const SamplerDescription& description ) -> void = 0;
 
@@ -78,12 +80,13 @@ namespace Mikoto {
         virtual auto BindShaderResources(std::string_view passName, CommandListHandle cmdList  ) -> void = 0;
 
         // Managing global sampler 2D images
-        virtual auto BindGlobalTextures(CommandListHandle cmdList) -> void = 0;
+        virtual auto BindGlobalTextures(std::string_view passName, CommandListHandle cmdList) -> void = 0;
         virtual auto PushGlobalTexture( TextureHandle texture ) -> Int32 = 0;
 
         // Make visible a buffer as shader resource to a specific pass
         virtual auto PushBuffer(BufferHandle handle, std::string_view passName, UInt32 bindingSlot) -> void = 0;
         virtual auto PushTexture(TextureHandle handle, SamplerHandle sampler, std::string_view passName, UInt32 bindingSlot) -> void = 0;
+        virtual auto PushConstants( std::string_view passName, const SRGConstants& srg_constants, CommandListHandle cmd ) -> void = 0;
 
         MKT_NODISCARD static auto Create(GpuDevice* device) -> Unique<GraphicsContext>;
 
@@ -93,14 +96,7 @@ namespace Mikoto {
         // virtual auto PushImage(TextureHandle texture) -> Int32 = 0;
 
     protected:
-        explicit GraphicsContext(GpuDevice* device)
-            : m_Device{ device } {}
-
-    protected:
-        GpuDevice* m_Device{ nullptr };
-
-        // Global list of sampled textures
-        SRGTextures m_SrgTextures{};
+        explicit GraphicsContext() = default;
     };
 }
 

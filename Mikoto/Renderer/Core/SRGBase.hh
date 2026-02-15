@@ -1,10 +1,19 @@
+//    Copyright 2025 ケイト
 //
-// Created by zanet on 12/23/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef MIKOTO_SHADERRESOURCEGROUP_HH
-#define MIKOTO_SHADERRESOURCEGROUP_HH
-
+#ifndef MIKOTO_SHADER_RESOURCE_GROUP_HH
+#define MIKOTO_SHADER_RESOURCE_GROUP_HH
 
 #include <string_view>
 #include <vector>
@@ -17,9 +26,10 @@
 namespace  Mikoto {
 
     enum class SRGType {
-        SRG_Textures,
-        SRG_PerFrame,
-        SRG_PerPass
+        SRG_Textures, // Global list of textures visible to all passes
+        SRG_PerFrame, // Block of data that can be shared between passes
+        SRG_PerPass, // Block of data unique to a pass
+        SRG_Constants, // Small data that can be sent per draw call
     };
 
     // return true if lhs == rhs
@@ -70,6 +80,26 @@ namespace  Mikoto {
         ankerl::unordered_dense::map<std::pair<Texture*, Sampler*>, Size> m_Resources{};
     };
 
+    // Represents block of data that is passes before every draw call
+    class SRGConstants final : public SRGBase {
+    public:
+
+        explicit SRGConstants() : SRGBase{ SRGType::SRG_Constants } {}
+
+        auto SetData(const void* ptr, Size size) -> void;
+
+        auto Clear() -> void;
+
+        MKT_NODISCARD auto GetSize() const -> Size { return m_SizeBytes; }
+        MKT_NODISCARD auto GetData() const -> const void* { return m_Data; }
+        MKT_NODISCARD auto IsEmpty() const -> Size { return m_Data == nullptr && m_SizeBytes == 0; }
+
+    private:
+
+        const void* m_Data{};
+        Size m_SizeBytes{};
+    };
+
     class SRGPerPass : public SRGBase {
     public:
         explicit SRGPerPass() : SRGBase{ SRGType::SRG_PerPass } {}
@@ -82,6 +112,8 @@ namespace  Mikoto {
 
         auto cbegin() const -> decltype(auto) { return m_Resources.cbegin(); }
         auto cend() const -> decltype(auto) { return m_Resources.cend(); }
+
+        MKT_NODISCARD auto IsEmpty() const -> bool { return m_Resources.empty(); }
 
     private:
         struct Entry {
@@ -104,5 +136,4 @@ namespace  Mikoto {
     };
 }
 
-
-#endif //MIKOTO_SHADERRESOURCEGROUP_HH
+#endif // MIKOTO_SHADER_RESOURCE_GROUP_HH

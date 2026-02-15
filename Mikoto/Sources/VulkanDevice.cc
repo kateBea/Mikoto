@@ -29,22 +29,12 @@
 #include <Renderer/Vulkan/VulkanTexture.hh>
 #include <tracy/TracyVulkan.hpp>
 
-#include "Core/SystemStats.hh"
+#include <Library/Math/Math.hh>
 
 namespace Mikoto {
 
     // Device extensions standard
-    static constexpr std::array DEVICE_EXTENSIONS{
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-
-        // Passing your vertex data just like in OpenGL, using the same state (as the pipeline setup)
-        // and Shaders as in OpenGL, your scene will likely not display as you’d expect.
-        // The viewport’s origin in OpenGL is in the lower left of the screen, with Y pointing up.
-        // In Vulkan the origin is in the top left of the screen, with Y pointing downwards.
-        // Starting from Vulkan 1.1 though, this feature is part of core Vulkan, so checking for it is not really needed.
-        // See: https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport/
-        VK_KHR_MAINTENANCE1_EXTENSION_NAME,
-    };
+    static constexpr std::array DEVICE_EXTENSIONS{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
     struct PhysicalDeviceRequiredFeatures {
         // Support for Anisotropic filtering
@@ -182,15 +172,64 @@ namespace Mikoto {
         return extensionsSupported && deviceSupportsRequiredQueues && deviceHasSwapchainSupport && supportRequiredPhysicalFeatures;
     }
 
+    VulkanDeletionQueue::VulkanDeletionQueue( GpuDevice* device ) {
+        m_Device = TO_VK_DEVICE( device );
+    }
+
     auto VulkanDeletionQueue::Flush() -> void {
-        for (const auto& callback : m_Callbacks) {
-            callback();
+        // TODO: Disabled for now, needs redesign
+        return;
+
+        const UInt32 currentFrame{ MKT_VK_CTX(RenderService::Get()->GetContext())->GetCurrentFrameIndex() };
+        for (const auto& callback : m_Callbacks[currentFrame] ) {
+            callback( m_Device );
+        }
+
+        m_Callbacks[currentFrame].clear();
+    }
+
+    auto VulkanDeletionQueue::Push( std::function<void(GpuDevice*)>&& callback ) -> void {
+        std::lock_guard lock{ m_PushMutex };
+
+        const UInt32 currentFrame{ MKT_VK_CTX(RenderService::Get()->GetContext())->GetCurrentFrameIndex() };
+        m_Callbacks[currentFrame].emplace_back( std::move( callback ) );
+    }
+
+    auto VulkanDeletionQueue::Shutdown() -> void {
+        // Run pending cleanup
+        for (auto& callbackQueue : m_Callbacks | std::ranges::views::values ) {
+            for (const auto& callback : callbackQueue ) {
+                callback( m_Device );
+            }
+
+            callbackQueue.clear();
         }
     }
 
-    auto VulkanDeletionQueue::Push( std::function<void()>&& callback ) -> void {
-        std::lock_guard lock{ m_PushMutex };
-        m_Callbacks.emplace_back( std::move( callback ) );
+    VulkanQueue::VulkanQueue( VulkanDevice* device, QueueType type )
+        : m_Device{ device }, m_QueueType{ type }
+    {}
+
+    auto VulkanQueue::Init() -> void {
+
+    }
+
+    auto VulkanQueue::Shutdown() -> void {
+
+    }
+
+    auto VulkanQueue::Flush() -> void {
+        // Wake submission thread
+        // You could use std::vector::swap to move pending command lists to
+        // another vector so you do not block threads that are submitting commands
+    }
+
+    auto VulkanQueue::AllocateCommandList() -> CommandListHandle {
+        return CommandListHandle::CreateEmpty();
+    }
+
+    auto VulkanQueue::SubmitCommandList( CommandListHandle cmd ) -> void {
+
     }
 
     VulkanDevice::VulkanDevice( const GpuDeviceCreateInfo& createInfo )
@@ -226,7 +265,6 @@ namespace Mikoto {
         m_Samplers.Init( 10 );
         m_DescriptorSetLayouts.Init( 10 );
 
-        // Init Pools
         m_MainTimeSubmitPool = m_CmdPools.Allocate( QueueType::GRAPHICS_QUEUE, 100 );
         m_MainTimeSubmitPool->Initialize( this );
 
@@ -238,6 +276,8 @@ namespace Mikoto {
         InitTracyContext();
 
         CreateDummyResources();
+
+        m_DeletionQueue = CreateScope<VulkanDeletionQueue>( this );
 
         m_IsInitialized = true;
     }
@@ -343,6 +383,8 @@ namespace Mikoto {
         // Requested device features
         VkPhysicalDeviceFeatures deviceFeatures{};
         deviceFeatures.samplerAnisotropy = VK_TRUE;
+        deviceFeatures.wideLines = VK_TRUE; // for wireframe
+        deviceFeatures.sampleRateShading = VK_TRUE; // sample rate shading
 
         // required for wireframe mode
         deviceFeatures.fillModeNonSolid = VK_TRUE;
@@ -358,6 +400,9 @@ namespace Mikoto {
 
         VkPhysicalDeviceVulkan12Features enabled12Features{ VulkanHelpers::Initializers::PhysicalDeviceVulkan12Features() };
 
+        // Non padded structs (VK_EXT_scalar_block_layout)
+        enabled12Features.scalarBlockLayout = VK_TRUE;
+
         // Enable bind-less
         enabled12Features.descriptorIndexing = VK_TRUE;
         enabled12Features.runtimeDescriptorArray = VK_TRUE;
@@ -368,6 +413,9 @@ namespace Mikoto {
         enabled12Features.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
         enabled12Features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
         enabled12Features.pNext = std::addressof( vulkan13Features );
+
+        // For feature enabled check
+        m_Vulkan12EnabledFeatures = enabled12Features;
 
         VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{ VulkanHelpers::Initializers::PhysicalDeviceFeatures2() };
         physicalDeviceFeatures2.features = deviceFeatures;
@@ -450,6 +498,9 @@ namespace Mikoto {
 
         m_DescriptorAllocator.Shutdown();
 
+        m_DeletionQueue->Shutdown();
+        m_DeletionQueue = nullptr;
+
         if ( m_GpuAllocator ) {
             m_GpuAllocator->Shutdown();
             m_GpuAllocator = nullptr;
@@ -466,9 +517,10 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::CreateTexture( const TextureCubeCreateDescription &description ) -> TextureHandle {
-        std::lock_guard lock{ m_TextureCubePoolMutex };
-
+        m_TextureCubePoolMutex.lock();
         TextureHandle texture{ m_TexturesCube.Allocate( description ) };
+        m_TextureCubePoolMutex.unlock();
+
         if ( texture.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateTextureCube - Failed to allocate texture cube resource." );
             return TextureHandle::CreateEmpty();
@@ -514,14 +566,44 @@ namespace Mikoto {
 
         m_SubmittedGraphicsCommandLists[m_CurrentFrameIndex].clear();
 
+        m_DeletionQueue->Flush();
+
     }
 
-    auto VulkanDevice::SubmitDeletion( std::function<void()> &&callback ) -> void {
-        m_DeletionQueue.Push( std::move(callback) );
+    auto VulkanDevice::SubmitDeletion( std::function<void(GpuDevice*)> &&callback ) -> void {
+        m_DeletionQueue->Push( std::move(callback) );
+    }
+
+    auto VulkanDevice::FlushImmediateCommands() -> void {
+        std::vector<VkCommandBufferSubmitInfo> cmds{};
+        for (const auto& cmd : m_ImmediateSubmitCmds) {
+            VkCommandBufferSubmitInfo cmdInfo{
+                .sType{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO },
+                .commandBuffer{ cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) },
+                .deviceMask{ 0 }
+            };
+
+            cmds.emplace_back( cmdInfo );
+        }
+
+        VkSubmitInfo2 submitInfo{
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+            .pNext = nullptr,
+            .flags = 0,
+            .commandBufferInfoCount = static_cast<UInt32>( cmds.size() ),
+            .pCommandBufferInfos = cmds.data(),
+        };
+
+        MKT_VK_CHECK( vkQueueSubmit2( m_Queues.Graphics->Queue, 1, &submitInfo, VK_NULL_HANDLE ) );
+
+        m_ImmediateSubmitCmds.clear();
     }
 
     auto VulkanDevice::CreateTexture( const TextureDescription& description ) -> TextureHandle {
+        m_TexturePoolMutex.lock();
         TextureHandle texture{ m_Textures.Allocate( description ) };
+        m_TexturePoolMutex.unlock();
+
         if ( texture.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateTexture - Failed to allocate texture resource." );
             return TextureHandle::CreateEmpty();
@@ -548,8 +630,24 @@ namespace Mikoto {
     auto VulkanDevice::GetMemoryAvailable() const -> Size {
         return m_GpuAllocator->GetMemoryAvailable();
     }
+
     auto VulkanDevice::GetDummySampler() const -> SamplerHandle {
         return m_sampler;
+    }
+
+    auto VulkanDevice::CreateStaging( const void* src, Size size ) -> BufferHandle {
+        m_StagingBufferPoolMutex.lock();
+        BufferHandle buffer{ m_Buffers.Allocate( src, size ) };
+        m_StagingBufferPoolMutex.unlock();
+
+        if ( buffer.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "VulkanDevice::CreateStaging - Failed to allocate buffer resource." );
+            return BufferHandle::CreateEmpty();
+        }
+
+        buffer->Initialize( this );
+
+        return buffer;
     }
 
     auto VulkanDevice::GetDummyDescriptorLayout() -> DescriptorSetLayoutHandle {
@@ -754,6 +852,10 @@ namespace Mikoto {
         return m_Queues;
     }
 
+    auto VulkanDevice::IsScalarBlockLayoutEnabled() const -> bool {
+        return m_Vulkan12EnabledFeatures.scalarBlockLayout == VK_TRUE;
+    }
+
     auto VulkanDevice::AllocateDescriptorSet( const VkDescriptorSetLayout* layout, const void* pNext ) -> VkDescriptorSet {
         VkDescriptorSet result{ *m_DescriptorAllocator.Allocate( layout, pNext ) };
         if ( result != VK_NULL_HANDLE ) {
@@ -782,22 +884,7 @@ namespace Mikoto {
 
         if (cmd->IsImmediate()) {
             std::lock_guard lock{ m_OneTimeSubmitMutex };
-
-            VkCommandBufferSubmitInfo cmdInfo{
-                .sType{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO },
-                .commandBuffer{ cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) },
-                .deviceMask{ 0 }
-            };
-
-            VkSubmitInfo2 submitInfo{
-                .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-                .pNext = nullptr,
-                .flags = 0,
-                .commandBufferInfoCount = 1,
-                .pCommandBufferInfos = std::addressof( cmdInfo ),
-            };
-
-            MKT_VK_CHECK( vkQueueSubmit2( m_Queues.Graphics->Queue, 1, &submitInfo, VK_NULL_HANDLE ) );
+            m_ImmediateSubmitCmds.push_back( cmd );
         } else {
             std::lock_guard lock{ m_CommandSubmitMutex };
             m_PendingGraphicsCommandLists[m_CurrentFrameIndex].emplace_back( cmd );
@@ -834,8 +921,7 @@ namespace Mikoto {
 
         // Check reference counting and delete those
         // that are being held by the pool exclusively
-
-        m_DeletionQueue.Flush();
+        m_Buffers.RunGarbageCollection();
     }
 
     auto VulkanDevice::FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void {
@@ -1027,7 +1113,61 @@ namespace Mikoto {
         vkDest->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_CmdBuffer );
     }
 
+    auto VulkanCmdList::FillTexture( const void* src, Size size, Texture* dest ) -> void {
+        BufferHandle staging{ TO_VK_DEVICE( m_Device )->CreateStaging( src, size ) };
+        this->FillTexture( staging.GetRaw(), dest );
+    }
+
     auto VulkanCmdList::CopyBuffer( Buffer* src, Buffer* dest ) -> void {
+        VkBufferCopy copy{
+            .srcOffset{ 0 },
+            .dstOffset{ 0 },
+            .size{ src->GetSizeBytes() },
+        };
+
+        vkCmdCopyBuffer(
+            m_CmdBuffer,
+            src->GetNativeHandle(ObjectType::Vk_Buffer),
+            dest->GetNativeHandle(ObjectType::Vk_Buffer),
+            1,
+            std::addressof(copy));
+
+        VkAccessFlags accessFlags{ VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT };
+
+        // It is either vertex or index
+        if (src->IsUsage(BufferUsage::INDEX)) {
+            accessFlags = VK_ACCESS_INDEX_READ_BIT;
+        }
+
+        // VK_QUEUE_FAMILY_IGNORED Because queue family indices are
+        // unified see https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples
+        // Otherwise we would need to specify the indices explicitly
+
+        const VkBufferMemoryBarrier barrier{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+            .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+            .dstAccessMask = accessFlags,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .buffer = dest->GetNativeHandle(ObjectType::Vk_Buffer),
+            .offset = 0,
+            .size = src->GetSizeBytes()
+        };
+
+        vkCmdPipelineBarrier(
+            m_CmdBuffer,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+            VK_FLAGS_NONE,
+            0, nullptr,
+            1, &barrier,
+            0, nullptr
+        );
+    }
+
+    auto VulkanCmdList::CopyBuffer( const void* src, Size size, Buffer* dest ) -> void {
+        BufferHandle staging{ TO_VK_DEVICE( m_Device )->CreateStaging( src, size ) };
+        this->CopyBuffer( staging.GetRaw(), dest );
     }
 
     auto VulkanCmdList::CopyTexture( Texture* srcTexture, Texture* destTexture ) -> void {
@@ -1061,6 +1201,73 @@ namespace Mikoto {
         }
     }
 
+    auto VulkanCmdList::CopyTexture( Texture2D* src, TextureCube* dest, UInt32 mipLevel, UInt32 face ) -> void {
+        const auto vulkanSrc{ dynamic_cast<VulkanTexture*>( src ) };
+        const auto vulkanDest{ dynamic_cast<VulkanTextureCube*>( dest ) };
+
+        auto srcOriginalLayout{ vulkanSrc->GetCurrentLayout() };
+        auto destOriginalLayout{ vulkanDest->GetCurrentLayout() };
+
+        // Transition src to SRC/DST optimal
+        vulkanSrc->SubmitLayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_CmdBuffer );
+        vulkanDest->SubmitLayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_CmdBuffer );
+
+        // Copy
+        VkImageCopy copyRegion{};
+        copyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        copyRegion.srcSubresource.baseArrayLayer = 0;
+        copyRegion.srcSubresource.mipLevel = 0;
+        copyRegion.srcSubresource.layerCount = 1;
+        copyRegion.srcOffset = { 0, 0, 0 };
+
+        copyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        copyRegion.dstSubresource.baseArrayLayer = face;
+        copyRegion.dstSubresource.mipLevel = mipLevel;
+        copyRegion.dstSubresource.layerCount = 1;
+        copyRegion.dstOffset = { 0, 0, 0 };
+
+        float width{  static_cast<float>(vulkanSrc->GetWidth() * std::pow(0.5f, mipLevel)) };
+        float height{  static_cast<float>(vulkanSrc->GetHeight() * std::pow(0.5f, mipLevel)) };
+
+        copyRegion.extent.width = static_cast<UInt32>(width);
+        copyRegion.extent.height = static_cast<UInt32>(height);
+        copyRegion.extent.depth = 1;
+
+        vkCmdCopyImage(
+            m_CmdBuffer,
+            src->GetNativeHandle(ObjectType::Vk_Image),
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            dest->GetNativeHandle(ObjectType::Vk_Image),
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            std::addressof( copyRegion ) );
+
+        // Transition SRC/DST back
+        vulkanSrc->SubmitLayoutTransition( srcOriginalLayout, m_CmdBuffer );
+        vulkanDest->SubmitLayoutTransition( destOriginalLayout, m_CmdBuffer );
+    }
+
+    auto VulkanCmdList::SetPolygonLineWidth( float value ) -> void {
+        // Check
+        const auto& physicalProperties{ TO_VK_DEVICE( m_Device )->GetPhysicalDeviceProperties() };
+        const auto& deviceFeatures{ TO_VK_DEVICE( m_Device )->GetPhysicalDeviceFeatures() };
+
+        float minLineWidth{ physicalProperties.limits.lineWidthRange[0] };
+        float maxLineWidth{ physicalProperties.limits.lineWidthRange[1] };
+
+        if (!Math::IsBetween(value, minLineWidth, maxLineWidth)) {
+            MKT_CORE_LOGGER_ERROR( "Trying to use polygon line width '{}' out of device limits [{}, {}]", value, minLineWidth, maxLineWidth );
+            value = VulkanHelpers::STANDARD_POLYGON_LINE_WIDTH;
+        }
+
+        if (!deviceFeatures.wideLines) {
+            MKT_CORE_LOGGER_WARN( "Wide lines not supported by the device" );
+            value = VulkanHelpers::STANDARD_POLYGON_LINE_WIDTH;
+        }
+
+        vkCmdSetLineWidth(m_CmdBuffer, value);
+    }
+
     auto VulkanCmdList::WriteBuffer( Buffer* target, Byte* data, Size size ) -> void {
         // Can be device local data
         // Here I can encapsulate all the logic about creating staging buffers etc.
@@ -1073,6 +1280,8 @@ namespace Mikoto {
 
     auto VulkanCmdList::SetViewport( Int32 x, Int32 y, Int32 width, Int32 height ) -> void {
         VkViewport viewport{};
+
+        // Mikoto defaults to Vulkan 1.3 where this feature is core
 
         viewport.x = x;
         viewport.y = height;
@@ -1257,6 +1466,10 @@ namespace Mikoto {
         return handle;
     }
 
+    auto VulkanCommandPool::SubmitCommandList() -> void {
+        // if we have submitted all command lists we can mark thius pool as free
+    }
+
     auto VulkanCommandPool::Clear() -> void {
         m_CmdLists.Clear();
     }
@@ -1318,5 +1531,4 @@ namespace Mikoto {
 
         m_IsAllocated = false;
     }
-
-}// namespace Mikoto
+}

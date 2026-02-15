@@ -33,10 +33,8 @@ namespace Mikoto {
         m_Scene = scene;
     }
 
-    auto ClusteredShading::SetCamera( const Camera *camera ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        m_Camera = camera;
+    auto ClusteredShading::SetCameraPass( CameraPass &camPass ) -> void {
+        m_CameraPass = std::addressof( camPass );
     }
 
     auto ClusteredShading::RegisterPasses( FrameGraph &graph ) -> void {
@@ -46,6 +44,13 @@ namespace Mikoto {
 
         BuildAABB( graph );
         BuildLightCulling( graph );
+
+        BuildGBuffer( graph );
+        BuildDepthPrepass( graph );
+    }
+
+    auto ClusteredShading::SetMeshCulling( MeshCulling &cullingPass ) -> void {
+        m_MeshCullingPass = std::addressof( cullingPass );
     }
 
     auto ClusteredShading::BuildAABB( FrameGraph &graph ) -> void {
@@ -54,36 +59,35 @@ namespace Mikoto {
                 [this]( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    b.Create<Buffer>( "AABBGenComp_CameraUBO", BufferUsage::UNIFORM, sizeof( CameraUBO ), 1 );
-                    b.Create<Buffer>( "AABBGenComp_Clusters", BufferUsage::SSBO, m_NumClusters * sizeof( Cluster ) );
+                    auto aabbClusters{ BufferBuilder{} };
+                    aabbClusters.WithUsage( BufferUsage::SHADER_STORAGE )
+                        .ForElement( sizeof( Cluster ), m_NumClusters )
+                        .IsDynamic( false )
+                        .Build( "AABBGenComp_Clusters" );
+
+                    b.CreateBuffer( aabbClusters );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/AABBGen_Comp.sprv", ShaderStage::COMPUTE );
                     b.Create<Pipeline>( "AABBGenComp_Pipeline", ComputePipelineDescription{} );
 
-                    b.Write( "AABBGenComp_Clusters", FrameResourceState::ShaderResource_Read );
-                    b.Write( "AABBGenComp_CameraUBO", FrameResourceState::ShaderResource_Read );
+                    b.Write( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess );
 
-                    b.Use( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 0 );
+                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
+
+                    b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
                     b.Use( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
                 },
-                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
                     ctx.BindPipeline( "AABBGenComp_Pipeline" );
 
-                    const auto dimensions{ InferDimensions( m_Resolution ) };
+                    auto& data{ blackboard.Get<EnvironmentConstants>() };
+                    data.GridSize = glm::vec4{ m_GridSizeX, m_GridSizeY, m_GridSizeZ, 0.0f };
 
-                    m_CameraUBO = {
-                        .ViewMatrix{ m_Camera->GetViewMatrix() },
-                        .InverseProjection{ glm::inverse( m_Camera->GetProjection() ) },
+                    m_ClusterShadingParams.GridSize = glm::vec4{ m_GridSizeX, m_GridSizeY, m_GridSizeZ, 0.0f };
+                    m_ClusterShadingParams.ShowHeatMap = MKT_SHADER_FALSE;
 
-                        .GridSize{ glm::vec4{ m_GridSizeX, m_GridSizeY, m_GridSizeZ, 0.0f } },
-                        .ViewPosition{ glm::vec4{ m_Camera->GetPosition(), 0.0f } },
-
-                        .Screen{ m_Camera->GetNearPlane(), m_Camera->GetFarPlane(), dimensions.first, dimensions.second },
-                        .LightInfo{ m_CameraUBO.LightInfo.x }
-                    };
-
-                    ctx.UploadBuffer<CameraUBO>( "AABBGenComp_CameraUBO", m_CameraUBO );
+                    ctx.PushConstants( std::addressof( m_ClusterShadingParams ), sizeof(m_ClusterShadingParams) );
                     ctx.Dispatch( m_GridSizeX, m_GridSizeY, m_GridSizeZ );
                 } );
     }
@@ -94,22 +98,19 @@ namespace Mikoto {
                 [this]( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    b.Create<Buffer>( "LightCullingComp_LightsCullingInfo", BufferUsage::UNIFORM, sizeof( LightCullingUBO ), 1 );
-                    b.Create<Buffer>( "LightCullingComp_LightsBuffer", BufferUsage::SSBO, sizeof( ShaderLightTypeParams ) * m_Lights.size() );
+                    b.Create<Buffer>( "LightCullingComp_LightsBuffer", BufferUsage::SHADER_STORAGE, sizeof( ShaderLightTypeParams ), m_Lights.size() );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/LightCulling_Comp.sprv", ShaderStage::COMPUTE );
                     b.Create<Pipeline>( "LightCullingComp_Pipeline", ComputePipelineDescription{} );
 
-                    b.Read( "AABBGenComp_CameraUBO", FrameResourceState::ShaderResource_Read );
-                    b.Read( "AABBGenComp_Clusters", FrameResourceState::ShaderResource_Read );
+                    b.Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess );
+                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
 
-                    b.Write( "LightCullingComp_LightsBuffer", FrameResourceState::ShaderResource_Read );
-                    b.Write( "LightCullingComp_LightsCullingInfo", FrameResourceState::ShaderResource_Read );
+                    b.Write( "LightCullingComp_LightsBuffer", FrameResourceState::UnorderedAccess );
 
-                    b.Use( SRGType::SRG_PerPass, "AABBGenComp_CameraUBO", 0 );
+                    b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
                     b.Use( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
                     b.Use( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 2 );
-                    b.Use( SRGType::SRG_PerPass, "LightCullingComp_LightsCullingInfo", 3 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -118,9 +119,139 @@ namespace Mikoto {
 
                     SetupLightList( ctx );
 
+                    if (m_ClusterShadingParams.ActiveLightCount == 0) {
+                        return;
+                    }
+
+                    ctx.PushConstants( std::addressof( m_ClusterShadingParams ), sizeof(m_ClusterShadingParams) );
                     const auto numWorkGroupsX{ ( m_NumClusters + m_LocalSize - 1 ) / m_LocalSize };
 
                     ctx.Dispatch( numWorkGroupsX, 1, 1 );
+                } );
+    }
+
+
+    auto ClusteredShading::BuildGBuffer( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass(
+                "GBuffer",
+                [this]( FramePassBuilder &b ) {
+                    MKT_BEGIN_PROFILER_NAMED();
+                    b.Create<Texture>( "GBuffer_Position", m_Resolution, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
+                    b.Create<Texture>( "GBuffer_Normal", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                    b.Create<Texture>( "GBuffer_Color", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                    b.Create<Texture>( "GBuffer_Depth", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
+
+                    b.Create<Texture>( "GBuffer_Depth", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
+
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/GBuffer_Vert.sprv", ShaderStage::VERTEX );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/GBuffer_Frag.sprv", ShaderStage::FRAGMENT );
+
+                    GraphicsPipelineDescription graphicsDesc{
+                        .DepthTest{ true },
+                        .DepthWrite{ true },
+                        .AlphaBlending{ false },
+                        .PipelineCullMode{ CullMode::NONE },
+                        .ColorAttachmentFormats{
+                            TextureFormat::RGBA32_FLOAT,
+                            TextureFormat::RGBA8_UNORM,
+                            TextureFormat::RGBA8_UNORM
+                        },
+                        .DepthAttachmentFormat{ TextureFormat::D32_FLOAT }
+                    };
+                    b.Create<Pipeline>( "GBuffer_Pipeline", graphicsDesc );
+
+                    b.Write( "GBuffer_Position", FrameResourceState::RenderTarget );
+                    b.Write( "GBuffer_Normal", FrameResourceState::RenderTarget );
+                    b.Write( "GBuffer_Color", FrameResourceState::RenderTarget );
+                    b.Write( "GBuffer_Depth", FrameResourceState::DepthWrite );
+
+                    b.Write( "GBuffer_Params", FrameResourceState::UniformBuffer );
+
+                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
+                    b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
+
+                    b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
+                    b.Use( SRGType::SRG_PerPass, "FinalBuffer_ObjectInfo", 1 );
+                    b.Use( SRGType::SRG_Textures );
+                },
+                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                    ctx.SetColorRenderTarget( "GBuffer_Position" );
+                    ctx.SetColorRenderTarget( "GBuffer_Normal" );
+                    ctx.SetColorRenderTarget( "GBuffer_Color" );
+                    ctx.SetDepthRenderTarget( "GBuffer_Depth" );
+
+                    ctx.BeginRender();
+
+                    const auto dimensions{ InferDimensions( m_Resolution ) };
+
+                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+
+                    ctx.BindPipeline( "GBuffer_Pipeline" );
+
+                    m_MeshCullingPass->DrawInstances( ctx );
+
+                    ctx.EndRender();
+                } );
+    }
+
+    auto ClusteredShading::BuildDepthPrepass( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass(
+                "DepthPrePass",
+                [this]( FramePassBuilder &b ) {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                    b.Create<Texture>("DepthPrePass_Color", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                    b.Create<Texture>("DepthPrePass_Depth", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
+
+                    b.UseShader("Resources/Shaders/vulkan-spirv/DepthPrePass_Vert.sprv", ShaderStage::VERTEX );
+                    b.UseShader("Resources/Shaders/vulkan-spirv/DepthPrePass_Frag.sprv", ShaderStage::FRAGMENT );
+
+                    GraphicsPipelineDescription graphicsDesc{
+                        .DepthTest{ true },
+                        .DepthWrite{ true },
+                        .AlphaBlending{ false },
+                        .PipelineCullMode{ CullMode::NONE },
+                    };
+
+                    b.Create<Pipeline>( "DepthPrePass_Pipeline", graphicsDesc );
+
+                    b.Write( "DepthPrePass_Color", FrameResourceState::RenderTarget );
+                    b.Write( "DepthPrePass_Depth", FrameResourceState::DepthWrite );
+
+                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
+                    b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
+
+                    b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
+                    b.Use( SRGType::SRG_PerPass, "FinalBuffer_ObjectInfo", 1 );
+                },
+
+                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                    ctx.BindPipeline( "DepthPrePass_Pipeline" );
+
+                    ctx.SetColorRenderTarget( "DepthPrePass_Color" );
+                    ctx.SetDepthRenderTarget( "DepthPrePass_Depth" );
+
+                    ctx.SetClearColor( { 0.0f, 0.0f, 0.0f, 1.0f } );
+
+                    ctx.BeginRender();
+
+                    const auto dimensions{ InferDimensions( m_Resolution ) };
+
+                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+
+                    m_MeshCullingPass->DrawInstances( ctx );
+
+                    ctx.EndRender();
                 } );
     }
 
@@ -184,6 +315,7 @@ namespace Mikoto {
                 case LightType::DIRECTIONAL_LIGHT_TYPE: {
                     auto &dir{ lightComp.Get<DirectionalLight>() };
 
+                    uboLight.Intensity = dir.GetIntensity();
                     uboLight.Direction = Vec4F( dir.GetDirection(), 0.0f );
                     uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
                     uboLight.Diffuse = Vec4F( dir.GetColor() * dir.GetIntensity(), 1.0f );
@@ -196,10 +328,8 @@ namespace Mikoto {
             ++lightsCount;
         }
 
-        m_LightCullingUBO.LightCount = lightsCount;
+        m_ClusterShadingParams.ActiveLightCount = lightsCount;
 
-        // Just copy the amount of active lights we visited
         ctx.UploadBuffer( "LightCullingComp_LightsBuffer", m_Lights.data(), lightsCount * sizeof( ShaderLightTypeParams ) );
-        ctx.UploadBuffer( "LightCullingComp_LightsCullingInfo", std::addressof( m_LightCullingUBO ), sizeof( LightCullingUBO ) );
     }
 }

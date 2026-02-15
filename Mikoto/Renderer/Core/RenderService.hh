@@ -43,6 +43,8 @@ namespace Mikoto {
         virtual auto SubmitFrame() -> void = 0;
         virtual auto PrepareFrame() -> void = 0;
 
+        virtual auto Update() -> void = 0;
+
         virtual auto Present() -> void = 0;
 
         virtual auto SetPresentTarget(TextureHandle texture) -> void = 0;
@@ -53,6 +55,8 @@ namespace Mikoto {
 
         virtual auto EnableVSync() -> void = 0;
         virtual auto DisableVSync() -> void = 0;
+
+        MKT_NODISCARD virtual auto IsVsyncEnabled() const -> bool = 0;
 
         static auto Create(const RenderContextCreateInfo& config) -> Unique<RenderContext>;
 

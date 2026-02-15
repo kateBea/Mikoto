@@ -66,6 +66,10 @@ namespace Mikoto {
 
     }
 
+    auto D3D11Context::Update() -> void {
+
+    }
+
     auto D3D11Context::Present() -> void {
 
     }
@@ -80,6 +84,10 @@ namespace Mikoto {
 
     auto D3D11Context::DisableVSync() -> void {
 
+    }
+
+    auto D3D11Context::IsVsyncEnabled() const -> bool {
+        return false;
     }
 
     auto D3D11Context::CreateSwapChain() -> bool {

@@ -16,15 +16,16 @@
 #define MIKOTO_TEXTURE_CUBE_MAP_HH
 
 #include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
+
 #include <Assets/Texture.hh>
+
+#include <Library/Utility/Types.hh>
 
 namespace Mikoto {
 
     class TextureCube : public Texture {
     public:
 
-        MKT_NODISCARD auto IsHDR() const -> bool { return m_IsHDR; }
         MKT_NODISCARD auto GetMipLevels() const -> UInt32 { return m_MipLevels; }
 
         ~TextureCube() override = default;
@@ -38,7 +39,6 @@ namespace Mikoto {
         {}
 
         UInt32 m_MipLevels{ 1 };
-        bool m_IsHDR{ false };
     };
 }// namespace Mikoto
 

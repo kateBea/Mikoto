@@ -1,23 +1,28 @@
-/**
- * HierarchyPanel.cc
- * Created by kate on 6/25/23.
- * */
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// C++ Standard Library
 #include <memory>
 
-// Third-Party Libraries
 #include <imgui.h>
-
-// Project Headers
 
 #include <ImGui/IconsMaterialDesign.h>
 
+#include <Common/Common.hh>
+#include <Core/Profiler.hh>
 #include <Application/EditorApp.hh>
 #include <Application/EditorUtility.hh>
 #include <Assets/AssetsService.hh>
-#include <Common/Common.hh>
-#include <Core/Profiler.hh>
 #include <Core/RuntimeConsole.hh>
 #include <ImGui/ImGuiUtility.hh>
 #include <Layers/EditorLayer.hh>
@@ -139,6 +144,7 @@ namespace Mikoto {
 
         auto& entityList{ m_EditorState->ActiveEditorScene->GetEntities() };
 
+        // FIXME: segfault if we insert new entity as child for this one
         for ( auto& [entityID, entity]: entityList ) {
             const RelationComponent& relation{ entity->GetComponent<RelationComponent>() };
 
@@ -149,7 +155,7 @@ namespace Mikoto {
         }
 
         if ( ImGui::IsMouseDown( ImGuiMouseButton_Left ) && ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered() ) {
-            m_EditorState->SelectedEntity = nullptr;
+            m_EditorState->RemoveSingleSelection();
         }
 
         BlankSpacePopupMenu();
@@ -282,6 +288,8 @@ namespace Mikoto {
 
             if ( ImGui::MenuItem( "Remove object" ) ) {
                 m_EditorState->ActiveEditorScene->RemoveEntity( entity->GetComponent<TagComponent>().GetGUID() );
+                m_EditorState->RemoveSingleSelection();
+
                 RuntimeConsole::Get()->Debug( fmt::format( "Removing entity: {}", entity->GetComponent<TagComponent>().GetTag() ) );
             }
 
@@ -297,20 +305,23 @@ namespace Mikoto {
             }
 
             DrawPrefabMenuItems( entity );
+            DrawModelLoadMenuItem( entity );
+            DrawLightMenuItems( entity );
+            DrawTextMenuItems( entity );
 
             ImGui::EndPopup();
         }
     }
 
-    auto HierarchyPanel::DrawModelLoadMenuItem() -> void {
+    auto HierarchyPanel::DrawModelLoadMenuItem( Entity* root ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         if ( ImGui::MenuItem( "Load model" ) ) {
-            AddEntityWithModel();
+            AddEntityWithModel( root );
         }
     }
 
-    auto HierarchyPanel::DrawTextMenuItems( Entity* root ) const {
+    auto HierarchyPanel::DrawTextMenuItems( Entity* root ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         ImGui::Spacing();
@@ -327,8 +338,6 @@ namespace Mikoto {
 
             TextComponent& textComponent{ result->AddComponent<TextComponent>() };
 
-            // TODO: Load font logic
-
             textComponent.SetContents( "Text" );
             textComponent.SetSize( TextComponent::GetMinLetterSize() );
             textComponent.SetSpacing( TextComponent::GetMinLetterSpacing() );
@@ -336,7 +345,7 @@ namespace Mikoto {
     }
 
     auto HierarchyPanel::AddEntityWithModel( const std::string_view uri, Entity* root ) -> void {
-        static bool loading{ false };
+        static std::atomic_bool loading{ false };
 
         if ( !loading ) {
             loading = true;
@@ -356,7 +365,6 @@ namespace Mikoto {
                     .Model = model,
                 };
 
-                // Void cast to avoid warning
                 m_EditorState->ActiveEditorScene->QueueCreateEntity( entityCreateInfo );
 
                 loading = false;
@@ -367,21 +375,24 @@ namespace Mikoto {
     auto HierarchyPanel::AddEntityWithModel( Entity* root ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        static bool loading{ false };
+        static std::atomic_bool loading{ false };
 
         if ( !loading ) {
             loading = true;
 
             TaskService::Get()->Submit( [this, rootEntity = root]() -> void {
                 const std::initializer_list<std::pair<std::string, std::string>> filters{
-                    { "Model files", "obj,gltf,fbx" },
+                    { "Model files", "obj,gltf,fbx,glb" },
                     { "OBJ files", "obj" },
                     { "glTF files", "gltf" },
-                    { "FBX files", "fbx" }
+                    { "FBX files", "fbx" },
+                    { "GLB files", "glb" },
                 };
 
                 const std::string path{ FileService::Get()->OpenDialog( filters ).string() };
-                AddEntityWithModel(path, rootEntity);
+                if (!path.empty()) {
+                    AddEntityWithModel(path, rootEntity);
+                }
 
                 loading = false;
             });

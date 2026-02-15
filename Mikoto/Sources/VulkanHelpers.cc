@@ -1,22 +1,27 @@
-/**
- * VulkanHelpers.hh
- * Created by kate on 8/5/2023.
- * */
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef VULKAN_HELPERS_CC_INCLUDED
 #define VULKAN_HELPERS_CC_INCLUDED
 
-// C++ Standard Library
 #include <set>
 #include <stdexcept>
 
-// Third-Party Libraries
 #include <spirv_reflect.h>
 
 #include "vk_mem_alloc.h"
 #include "volk.h"
-
-// Project Headers
 
 #include <Renderer/Vulkan/VulkanDevice.hh>
 
@@ -229,7 +234,7 @@ namespace Mikoto::VulkanHelpers {
                 return VK_IMAGE_USAGE_SAMPLED_BIT |
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-            case TextureUsage::TEXTURE_USAGE_RENDER_TARGET:
+            case TextureUsage::RENDER_TARGET:
                 return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
                        VK_IMAGE_USAGE_SAMPLED_BIT |
                        VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
@@ -239,6 +244,46 @@ namespace Mikoto::VulkanHelpers {
         }
 
         return VK_IMAGE_USAGE_SAMPLED_BIT;
+    }
+
+    auto ToVkRasterSamples( Multisampling samples ) -> VkSampleCountFlagBits {
+        switch ( samples ) {
+            case Multisampling::MSAA_X1:  return VK_SAMPLE_COUNT_1_BIT;
+            case Multisampling::MSAA_X2:  return VK_SAMPLE_COUNT_2_BIT;
+            case Multisampling::MSAA_X4:  return VK_SAMPLE_COUNT_4_BIT;
+            case Multisampling::MSAA_X8:  return VK_SAMPLE_COUNT_8_BIT;
+            case Multisampling::MSAA_X16: return VK_SAMPLE_COUNT_16_BIT;
+            default:                      return VK_SAMPLE_COUNT_1_BIT;
+        }
+    }
+
+    auto GetAspectMask(VkFormat format) -> VkImageAspectFlags {
+        switch (format) {
+            // Color formats
+            case VK_FORMAT_R8_UNORM:
+            case VK_FORMAT_R8G8B8A8_UNORM:
+            case VK_FORMAT_B8G8R8A8_UNORM:
+            case VK_FORMAT_R16G16B16A16_SFLOAT:
+            case VK_FORMAT_R32G32B32A32_SFLOAT:
+                return VK_IMAGE_ASPECT_COLOR_BIT;
+
+                // Depth-only formats
+            case VK_FORMAT_D16_UNORM:
+            case VK_FORMAT_D32_SFLOAT:
+                return VK_IMAGE_ASPECT_DEPTH_BIT;
+
+                // Depth + Stencil formats
+            case VK_FORMAT_D24_UNORM_S8_UINT:
+            case VK_FORMAT_D32_SFLOAT_S8_UINT:
+                return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+
+                // Stencil-only formats (rare)
+            case VK_FORMAT_S8_UINT:
+                return VK_IMAGE_ASPECT_STENCIL_BIT;
+
+            default:
+                return VK_IMAGE_ASPECT_COLOR_BIT;
+        }
     }
 
     auto SetupDeviceQueueCreateInfo( const std::set<UInt32>& uniqueQueueFamilies ) -> std::vector<VkDeviceQueueCreateInfo> {
@@ -611,12 +656,18 @@ namespace Mikoto::VulkanHelpers::Reflection {
                 return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
             case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
                 return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
+
             case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-                return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+                return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+
             case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-                return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+                return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+
             case SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
                 return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+
     #if defined( VK_KHR_acceleration_structure )
             case SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
                 return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
@@ -624,17 +675,6 @@ namespace Mikoto::VulkanHelpers::Reflection {
             default:
                 return VK_DESCRIPTOR_TYPE_MAX_ENUM;
         }
-    }
-
-    static auto MergePushConstantRange( std::vector<VkPushConstantRange>& dst, const UInt32 targetOffset, const UInt32 targetSize, const VkShaderStageFlags flags ) -> void {
-        for ( auto& range: dst ) {
-            if ( range.offset == targetOffset && range.size == targetSize ) {
-                range.stageFlags |= flags;
-                return;
-            }
-        }
-
-        dst.push_back( VkPushConstantRange{ flags, targetOffset, targetSize } );
     }
 
     MKT_NODISCARD static auto IsBindlessEnabled() -> bool {
@@ -668,6 +708,15 @@ namespace Mikoto::VulkanHelpers::Reflection {
                     bindingInfo.binding = reflectedBinding->binding;
                     bindingInfo.descriptorType = ToVkDescriptorType(reflectedBinding->descriptor_type);
 
+                    // because STATIC_DESCRIPTOR_SET_INDEX uses non-dynamic buffers, PER_PASS_DESCRIPTOR_SET_INDEX is reserved for dynamic buffers
+                    if (setIndex == STATIC_DESCRIPTOR_SET_INDEX && reflectedBinding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+                        bindingInfo.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                    }
+
+                    if (setIndex == STATIC_DESCRIPTOR_SET_INDEX && reflectedBinding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER) {
+                        bindingInfo.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                    }
+
                     constexpr std::string_view bindlessPrefix{ "Bindless" };
 
                     std::string_view bindingName{ reflectedBinding->name };
@@ -700,14 +749,17 @@ namespace Mikoto::VulkanHelpers::Reflection {
 
     // Helper: collect push constants from a single SPIR-V module
     static void ProcessPushConstants(SpvReflectShaderModule& mod, VkShaderStageFlagBits stage, std::vector<VkPushConstantRange>& pushConstants) {
-        UInt32 pcCount{};
-        spvReflectEnumeratePushConstantBlocks(&mod, &pcCount, nullptr);
 
-        std::vector<SpvReflectBlockVariable*> pcs(pcCount);
-        spvReflectEnumeratePushConstantBlocks(&mod, &pcCount, pcs.data());
+        // Follow same structure as graphics context, global set of constants passed per draw
+        VkPushConstantRange psRange{
+            .stageFlags = VK_SHADER_STAGE_ALL,
+            .offset     = 0,
+            .size       = MINIMUM_REQUIRED_PUSH_CONSTANTS_SIZE
+        };
 
-        for (auto* pc: pcs) {
-            MergePushConstantRange(pushConstants, pc->offset, pc->size, stage);
+        // Push constants are globals and declared once for a single pipeline
+        if (pushConstants.empty()) {
+            pushConstants.emplace_back( psRange );
         }
     }
 
@@ -803,7 +855,14 @@ namespace Mikoto::VulkanHelpers::Reflection {
             layoutInfo.bindingCount = static_cast<UInt32>( layoutBindings.size() );
             layoutInfo.pBindings = layoutBindings.data();
 
-            std::vector<VkDescriptorBindingFlags> bindingFlags(layoutBindings.size(), 0);
+            // Right now we have set 2 for dynamic buffers exclusively for dynamic offsets in descriptor sets which require not to have update after bind flags
+            // Set 3 is used for rest of resources that do not change that often and can benefit from update after bind
+            std::vector<VkDescriptorBindingFlags> bindingFlags(layoutBindings.size(), VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT);
+            if (setIndex == PER_PASS_DESCRIPTOR_SET_INDEX) {
+                for (auto& flag : bindingFlags) {
+                    flag = VK_FLAGS_NONE;
+                }
+            }
 
             VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{};
             flagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
@@ -875,12 +934,20 @@ namespace Mikoto::VulkanHelpers::Reflection {
             setLayouts[setIndex] = layout;
         }
 
-        VkPipelineLayoutCreateInfo plInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
+        // Add a Layout with no descriptors, not needed because we should not bind an empty Set
+        // for (Size setIndex{}; setIndex < setLayouts.size(); setIndex++) {
+        //     if (out.setLayouts[setIndex] == VK_NULL_HANDLE) {
+        //         out.setLayouts[setIndex] = setLayouts[setIndex];
+        //     }
+        // }
+
+        // Prepare list of sets for the pipeline layout
         for (const auto &[layoutIndex, setLayout]: out.setLayouts) {
             setLayouts[layoutIndex] = setLayout;
         }
 
+        VkPipelineLayoutCreateInfo plInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
         plInfo.setLayoutCount = static_cast<UInt32>(setLayouts.size());
         plInfo.pSetLayouts = setLayouts.data();
 

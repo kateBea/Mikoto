@@ -16,6 +16,8 @@
 #ifndef MIKOTO_SCENE_RENDERER_HH
 #define MIKOTO_SCENE_RENDERER_HH
 
+#include <atomic>
+
 #include <Common/Common.hh>
 #include <Renderer/Core/GpuDevice.hh>
 #include <Library/Data/Registry.hh>
@@ -32,6 +34,9 @@
 #include "Renderer/Passes/DebugPasses.hh"
 #include "Renderer/Passes/IBLPasses.hh"
 #include "Renderer/Passes/PostEffectsPasses.hh"
+#include <Renderer/Passes/MeshCulling.hh>
+#include <Renderer/Passes/MaterialDebug.hh>
+#include <Renderer/Passes/CameraPass.hh>
 
 namespace Mikoto {
 
@@ -55,12 +60,35 @@ namespace Mikoto {
 
         auto SetCamera( SceneCamera* camera ) -> void;
 
-        auto SetSkyBox(TextureHandle cubeMap) -> void;
         auto SetClearColor(const Vec4F& color) -> void;
+
+        // IBL
         auto EnableSkybox(bool enable) -> void;
         auto SetEnvironmentGamma(float value) -> void;
+        auto SetMaxReflectionLOD( float value ) -> void;
         auto SetEnvironmentExposure(float value) -> void;
 
+        auto IsUsingPrecomputedLDRCubeMap() -> bool;
+
+        auto UpdateEquirectangularMapAsync(std::string_view path) -> void;
+        auto SetUseConvolutedCube( bool enable )-> void;
+        auto UseLDRCubeMap( bool enable ) -> void;
+
+        MKT_NODISCARD auto IsUsingConvolutedCube() const -> bool;
+        MKT_NODISCARD auto GetEquirectangularMap() -> TextureHandle;
+
+        // SSAO
+        auto SetEnableSSAO(bool enable) -> void;
+
+        // Wireframe
+        auto SetWireframeEnable(bool enable) -> void;
+        auto SetWireframeLineLineWidth(float value) -> void;
+        auto SetWireframeLineColor(const Vec4F& color) -> void;
+        auto SetWireframeClearColor(const Vec4F& color) -> void;
+
+        MKT_NODISCARD auto GetPassList() const -> const PassList&;
+
+        // Resolution
         auto SetRenderResolution( RenderResolution resolution ) -> void;
         MKT_NODISCARD auto GetRenderResolution() const -> RenderResolution;
         MKT_NODISCARD auto IsRenderResolution(RenderResolution resolution) const -> bool;
@@ -78,6 +106,8 @@ namespace Mikoto {
         auto OnPreRender() -> void;
         auto OnPostRender() -> void;
 
+        auto SetEquirectangularMap() -> void;
+
     private:
         // Scene graph
         GpuDevice* m_Device{ nullptr };
@@ -91,10 +121,18 @@ namespace Mikoto {
         std::pair<float, float> m_RenderTargetDimensions{ InferDimensions( m_RenderResolution ) };
 
         // Passes
+        MeshCulling m_MeshCulling{};
         IBLPasses m_IBLPasses{ m_RenderResolution };
         PostEffectsPass m_PostEffectsPasses{ m_RenderResolution };
         DebugPasses m_DebugPasses{ m_RenderResolution };
         ClusteredShading m_ClusteredShadingPasses{ m_RenderResolution };
+        MaterialDebug m_MaterialDebug{ m_RenderResolution };
+        CameraPass m_CameraPass{ m_RenderResolution };
+
+        // Async load HDR
+        std::atomic_bool m_LoadedHDR{ false };
+        TextureHandle m_HDRTexture{};
+        TextureHandle m_LDRTexture{};
     };
 }// namespace Mikoto
 

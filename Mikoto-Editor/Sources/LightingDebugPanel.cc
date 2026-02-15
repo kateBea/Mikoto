@@ -125,27 +125,7 @@ namespace Mikoto {
         ImGui::Separator();
         ImGui::Text( "Scene Name: %s", m_EditorState->ActiveEditorScene->GetName().c_str());
 
-        ImGui::Spacing();
-        ImGui::Separator();
-        ImGui::Text( "Total lights: %d", m_EditorState->ActiveEditorScene->GetLightCount() );
-
-        ImGui::Spacing();
-        ImGui::Separator();
-        ImGui::Text( "Total active lights: %d", m_EditorState->ActiveEditorScene->GetActiveLightCount() );
-
         DisplaySelectedLightProperties();
-
-        BufferHandle storage{  m_EditorState->EditorSceneRenderer->GetBuffer( "SimpleCompute_Results" ) };
-
-        // Example buffer display
-        static std::vector<UInt32> data(40);
-        storage->CopyToBlock( data.data(), data.size() * sizeof( UInt32 ) );
-        const void* bufferMemory{ data.data() };
-        const Size bufferSize{ data.size() * sizeof( UInt32 ) };
-        const std::uintptr_t baseAddress{ reinterpret_cast<const std::uintptr_t>( data.data() ) };
-
-        ImGui::SeparatorText( "Buffer Memory" );
-        ImGuiUtils::DrawMemoryVisualizer(bufferMemory, bufferSize, baseAddress, 1);
 
         ImGui::End();
     }
@@ -173,11 +153,6 @@ namespace Mikoto {
                 DrawSpotLightInfo( lightComp.Get<SpotLight>() );
                 break;
         }
-
-        // Lighting passes
-
-
-        // Display list of buffers involved and make it to display info about selected buffer
 
     }
 }

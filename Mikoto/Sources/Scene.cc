@@ -1,19 +1,25 @@
-/**
- * Scene.cc
- * Created by kate on 6/24/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// C++ Standard Library
 #include <algorithm>
 #include <memory>
 #include <optional>
 #include <string_view>
 #include <utility>
 
-// Third-Party Libraries
 #include <entt/entt.hpp>
 
-// Project Headers
 #include <Core/Profiler.hh>
 #include <Library/Random/Random.hh>
 #include <Physics/PhysicService.hh>
@@ -30,9 +36,16 @@ namespace Mikoto {
             reg.emplace<MaterialComponent>( e );
         }
 
-        // Construct default material
+        auto& meshComponent{ reg.get<MeshComponent>( e ) };
+        auto meshNode{ meshComponent.GetMesh() };
+
         auto& material{ reg.get<MaterialComponent>( e ) };
-        material.SetMaterial( AssetsService::Get()->CreateMaterial() );
+
+        if (meshNode) {
+            material.SetMaterial( AssetsService::Get()->CreateMaterial( meshNode->GetProperties() ) );
+        } else {
+            material.SetMaterial( AssetsService::Get()->CreateMaterial() );
+        }
     }
     
     Scene::Scene( const std::string_view name )
@@ -79,7 +92,6 @@ namespace Mikoto {
             ScriptHandle handle{ script.GetHandle() };
 
             if (!handle.IsEmpty()) {
-                // Should be false here. But will remain tru for testing purposes
                 handle->SetEnable( true );
             }
         }
@@ -126,21 +138,9 @@ namespace Mikoto {
         entity->AddComponent<MeshComponent>( model, index );
 
         MeshNode& meshNode{ model->GetMeshNode( index ) };
-        auto& textures{ meshNode.GetTextures() };
 
-        for (TextureHandle texture : textures) {
-            if (!entity->HasComponent<MaterialComponent>()) {
-                entity->AddComponent<MaterialComponent>( AssetsService::Get()->CreateMaterial() );
-            }
-
-            MaterialComponent& material{ entity->GetComponent<MaterialComponent>() };
-            PBRMaterial* defaultMaterial{ dynamic_cast<PBRMaterial *>(material.GetMaterial().GetRaw()) };
-
-            if (Texture2D* map{ dynamic_cast<Texture2D *>(texture.GetRaw()) } ) {
-                if (!map->IsMapType(MapType::UNDEFINED_TEXTURE)) {
-                    defaultMaterial->SetTextureType( map->GetMapType(), texture );
-                }
-            }
+        if (!entity->HasComponent<MaterialComponent>()) {
+            entity->AddComponent<MaterialComponent>( AssetsService::Get()->CreateMaterial( meshNode.GetProperties() ) );
         }
     }
 
@@ -170,7 +170,9 @@ namespace Mikoto {
                 break;
         }
 
+#if !defined(NDEBUG)
         ComputeStats();
+#endif
     }
 
     auto Scene::SetName( const std::string_view name ) -> void {
@@ -256,12 +258,18 @@ namespace Mikoto {
             // in root model is not empty, we create the children for this entity each children well hold a mesh
             if ( !createInfo.Model.IsEmpty() ) {
                 if ( createInfo.Model->GetMeshNodeCount() > 1 ) {
+                    result->AddComponent<AnimatorComponent>();
 
                     for ( Size index{}; index < createInfo.Model->GetMeshNodeCount(); index++ ) {
                         AddSingleEntityWithRoot( result, createInfo.Model, index );
                     }
 
                 } else {
+                    if (createInfo.Model->IsSkinned()) {
+                        result->AddComponent<AnimatorComponent>();
+                        result->AddComponent<SkinnedMeshRenderer>();
+                    }
+
                     SetupMeshComponent( result, createInfo.Model, 0 );
                 }
             }
@@ -274,12 +282,20 @@ namespace Mikoto {
         return CreateEntitySingle( createInfo );
     }
 
-    auto Scene::EnableSkybox( bool useSkybox ) -> void {
-        m_UseSkybox = useSkybox;
+    auto Scene::GetPhysicsWorld() -> PhysicsWorld* {
+        return m_PhysicsWorld;
     }
 
-    auto Scene::IsSkyboxEnabled() const -> bool {
-        return m_UseSkybox;
+    auto Scene::SetSceneBackground( SceneBackground background ) -> void {
+        m_Background = background;
+    }
+
+    auto Scene::GetSceneBackground() const -> SceneBackground {
+        return m_Background;
+    }
+
+    auto Scene::IsSceneBackground(SceneBackground background) const -> bool {
+        return m_Background == background;
     }
 
     auto Scene::SetSkybox( TextureHandle cubeMap ) -> void {
@@ -405,6 +421,10 @@ namespace Mikoto {
     }
 
     auto Scene::DestroyEntitySingle( UInt64 entityID ) -> bool {
+        if (!m_Entities.contains( entityID )) {
+            return false;
+        }
+
         RelationComponent& relationComponent{ m_Entities[entityID]->GetComponent<RelationComponent>() };
 
         for (const auto& childID : relationComponent.GetChildren()) {
@@ -465,6 +485,10 @@ namespace Mikoto {
         };
 
         if ( Entity* child{ CreateEntity( entityCreateInfo ) } ) {
+            if (!model.IsEmpty()) {
+                child->AddComponent<SkinnedMeshRenderer>();
+            }
+
             SetupMeshComponent(child, model, index);
         }
     }

@@ -1,23 +1,30 @@
-/**
- * Component.hh
- * Created by kate on 6/24/23.
- * */
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_COMPONENT_HH
 #define MIKOTO_COMPONENT_HH
 
-// C++ Standard Library
 #include <functional>
 #include <optional>
 #include <string>
 #include <utility>
 
-// Third-Party Libraries
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-// Project Headers
+#include <Math/Math.hh>
 #include <Assets/AssetsService.hh>
 #include <Assets/AudioClip.hh>
 #include <Assets/Font.hh>
@@ -89,12 +96,6 @@ namespace Mikoto {
             return glm::quat( m_Rotation );
         }
 
-        /**
-         * Computes the model matrix for for this component according to the transform vectors
-         * @param position specifies the object translation value
-         * @param size specifies the object scaling value
-         * @param angles specifies Euler angles rotations (each component represents an angle in radians)
-         * */
         auto ComputeTransform( const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3( 0.0f ) ) -> void {
             m_Translation = position;
             m_Rotation = angles;
@@ -105,40 +106,22 @@ namespace Mikoto {
 
         auto SetTransform( const glm::mat4& transform ) -> void {
             m_Transform = transform;
-
-            Vec3F translate{};
-            Vec3F rotate{};
-            Vec3F scale{};
-
-            const bool success{ Math::DecomposeTransform( m_Transform, translate, rotate, scale ) };
-
-            if ( success ) {
-                m_Scale = scale;
-                m_Translation = translate;
-                m_Rotation = rotate;
-            }
+            Math::Decompose( m_Transform, m_Translation, m_Rotation, m_Scale );
         }
 
         auto SetTranslation( const Vec3F& value ) -> void {
             m_Translation = value;
-
             m_Transform = Math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
         }
 
         auto SetRotation( const Vec3F& value ) -> void {
             m_Rotation = value;
-
             m_Transform = Math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
         }
 
         auto SetRotation( const glm::quat& quaternion ) -> void {
             m_Rotation = glm::eulerAngles( quaternion );
-
             m_Transform = Math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
-
-            // m_Transform = glm::translate(glm::mat4(1.0f), m_Translation)
-            //             * glm::toMat4(quaternion)
-            //             * glm::scale(glm::mat4(1.0f), m_Scale);
         }
 
         auto SetScale( const Vec3F& value ) -> void {
@@ -497,6 +480,8 @@ namespace Mikoto {
 
     class CameraComponent {
     public:
+        enum class Background { CLEAR_COLOR, SKYBOX };
+
         explicit CameraComponent() = default;
 
         CameraComponent( CameraComponent&& other ) noexcept = default;
@@ -508,6 +493,15 @@ namespace Mikoto {
         MKT_NODISCARD auto GetCamera() const -> const SceneCamera& { return *m_Camera; }
         MKT_NODISCARD auto IsAspectRatioFixed() const -> bool { return m_FixedAspectRatio; }
 
+        auto SetBackGround(Background bg) -> void { m_Background = bg; }
+        MKT_NODISCARD auto GetBackGround() const -> Background { return m_Background; }
+
+        auto SetGamma( float gamma ) -> void { m_Gamma = gamma; }
+        auto SetExposure( float exposure ) -> void { m_Exposure = exposure; }
+
+        MKT_NODISCARD auto GetGamma() const -> float { return m_Gamma; }
+        MKT_NODISCARD auto GetExposure() const -> float { return m_Exposure; }
+
         auto SetFixedAspectRatio(const bool value) -> void { m_FixedAspectRatio = value; }
 
         ~CameraComponent() = default;
@@ -517,6 +511,11 @@ namespace Mikoto {
 
     private:
         Unique<SceneCamera> m_Camera{};
+
+        Background m_Background{ Background::CLEAR_COLOR };
+
+        float m_Gamma{ 1.0f };
+        float m_Exposure{ 3.0f };
 
         bool m_MainCam{ true };
         bool m_FixedAspectRatio{ false };
@@ -546,6 +545,9 @@ namespace Mikoto {
             }
         }
 
+        auto SetIsWorldText(bool value) -> void { m_IsWorldText = value; }
+
+        MKT_NODISCARD auto IsWorldText() const ->bool { return m_IsWorldText; }
         MKT_NODISCARD auto GetCamera() const -> const Camera* { return m_Camera; }
 
         MKT_NODISCARD auto GetFont() const -> const Font* { return m_Font.GetRaw(); }
@@ -588,6 +590,8 @@ namespace Mikoto {
 
         FontHandle m_Font{};
         const Camera* m_Camera{ nullptr };
+
+        bool m_IsWorldText{ false };
     };
 
     class ScriptComponent {
@@ -618,6 +622,38 @@ namespace Mikoto {
         Path m_FilePath{};
         ScriptHandle m_Script{};
     };
-}// namespace Mikoto
+
+    class AnimatorComponent {
+    public:
+        explicit AnimatorComponent() = default;
+
+        AnimatorComponent( const AnimatorComponent& other ) = default;
+        AnimatorComponent( AnimatorComponent&& other ) = default;
+
+        auto operator=( const AnimatorComponent& other ) -> AnimatorComponent& = default;
+        auto operator=( AnimatorComponent&& other ) -> AnimatorComponent& = default;
+
+        ~AnimatorComponent() = default;
+
+    private:
+        UInt64 m_AnimatorID{};
+    };
+
+    class SkinnedMeshRenderer {
+    public:
+        explicit SkinnedMeshRenderer() = default;
+
+        SkinnedMeshRenderer( const SkinnedMeshRenderer& other ) = default;
+        SkinnedMeshRenderer( SkinnedMeshRenderer&& other ) = default;
+
+        auto operator=( const SkinnedMeshRenderer& other ) -> SkinnedMeshRenderer& = default;
+        auto operator=( SkinnedMeshRenderer&& other ) -> SkinnedMeshRenderer& = default;
+
+        ~SkinnedMeshRenderer() = default;
+
+    private:
+        UInt64 m_AnimatorID{};
+    };
+}
 
 #endif// MIKOTO_COMPONENT_HH

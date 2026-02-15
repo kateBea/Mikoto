@@ -1,0 +1,938 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{90312D20-DC59-3F61-B7AC-31E11C8E68E8}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <Platform>x64</Platform>
+    <ProjectName>simple-example</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\bin\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">simple-example.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">simple-example_d</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateManifest>
+    <LocalDebuggerWorkingDirectory Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin</LocalDebuggerWorkingDirectory>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\bin\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">simple-example.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">simple-example</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
+    <LocalDebuggerWorkingDirectory Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin</LocalDebuggerWorkingDirectory>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\bin\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">simple-example.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">simple-example_r</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">true</GenerateManifest>
+    <LocalDebuggerWorkingDirectory Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin</LocalDebuggerWorkingDirectory>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\bin\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">simple-example.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">simple-example</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</GenerateManifest>
+    <LocalDebuggerWorkingDirectory Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\external\imgui;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\application\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp14</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;IMGUI_DISABLE_OBSOLETE_FUNCTIONS;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;IMGUI_DISABLE_OBSOLETE_FUNCTIONS;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\external\imgui;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\application\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\external\imgui;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\application\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PreBuildEvent>
+      <Message>													</Message>
+      <Command>setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Cuprum-Bold.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Cuprum-Bold.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Cuprum-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Cuprum-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Oswald-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Oswald-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Oswald-Regular.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Oswald-Regular.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Play-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Play-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Play-Regular.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Play-Regular.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/simple-example/Resource.rc C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../Resource.rc
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Cuprum-Bold.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Cuprum-Bold.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Cuprum-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Cuprum-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Oswald-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Oswald-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Oswald-Regular.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Oswald-Regular.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Play-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Play-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Play-Regular.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Play-Regular.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PreBuildEvent>
+    <Link>
+      <AdditionalDependencies>..\external\imgui\Debug\imgui.lib;..\canvas-example\Debug\imgui_node_editor.lib;..\application\Debug\application.lib;..\external\imgui\Debug\imgui.lib;d3d11.lib;d3dcompiler.lib;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\external\DXSDK\lib\x64\d3dx11d.lib;..\application\Debug\dxerr.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/simple-example/Debug/simple-example_d.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/simple-example_d.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\external\imgui;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\application\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp14</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;IMGUI_DISABLE_OBSOLETE_FUNCTIONS;CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;IMGUI_DISABLE_OBSOLETE_FUNCTIONS;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\external\imgui;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\application\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\external\imgui;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\application\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PreBuildEvent>
+      <Message>													</Message>
+      <Command>setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Cuprum-Bold.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Cuprum-Bold.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Cuprum-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Cuprum-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Oswald-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Oswald-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Oswald-Regular.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Oswald-Regular.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Play-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Play-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Play-Regular.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Play-Regular.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/simple-example/Resource.rc C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../Resource.rc
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Cuprum-Bold.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Cuprum-Bold.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Cuprum-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Cuprum-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Oswald-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Oswald-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Oswald-Regular.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Oswald-Regular.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Play-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Play-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Play-Regular.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Play-Regular.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PreBuildEvent>
+    <Link>
+      <AdditionalDependencies>..\external\imgui\Release\imgui.lib;..\canvas-example\Release\imgui_node_editor.lib;..\application\Release\application.lib;..\external\imgui\Release\imgui.lib;d3d11.lib;d3dcompiler.lib;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\external\DXSDK\lib\x64\d3dx11.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/simple-example/Release/simple-example.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/simple-example.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\external\imgui;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\application\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp14</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;IMGUI_DISABLE_OBSOLETE_FUNCTIONS;CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;IMGUI_DISABLE_OBSOLETE_FUNCTIONS;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\external\imgui;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\application\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\external\imgui;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\application\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PreBuildEvent>
+      <Message>													</Message>
+      <Command>setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Cuprum-Bold.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Cuprum-Bold.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Cuprum-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Cuprum-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Oswald-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Oswald-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Oswald-Regular.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Oswald-Regular.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Play-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Play-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Play-Regular.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Play-Regular.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/simple-example/Resource.rc C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../Resource.rc
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Cuprum-Bold.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Cuprum-Bold.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Cuprum-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Cuprum-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Oswald-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Oswald-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Oswald-Regular.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Oswald-Regular.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Play-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Play-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Play-Regular.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Play-Regular.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PreBuildEvent>
+    <Link>
+      <AdditionalDependencies>..\external\imgui\MinSizeRel\imgui.lib;..\canvas-example\MinSizeRel\imgui_node_editor.lib;..\application\MinSizeRel\application.lib;..\external\imgui\MinSizeRel\imgui.lib;d3d11.lib;d3dcompiler.lib;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\external\DXSDK\lib\x64\d3dx11.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/simple-example/MinSizeRel/simple-example_r.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/simple-example_r.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\external\imgui;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\application\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp14</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;IMGUI_DISABLE_OBSOLETE_FUNCTIONS;CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;IMGUI_DISABLE_OBSOLETE_FUNCTIONS;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\external\imgui;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\application\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\external\imgui;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\application\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PreBuildEvent>
+      <Message>													</Message>
+      <Command>setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Cuprum-Bold.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Cuprum-Bold.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Cuprum-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Cuprum-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Oswald-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Oswald-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Oswald-Regular.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Oswald-Regular.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Play-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Play-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Play-Regular.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/Play-Regular.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/simple-example/Resource.rc C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../Resource.rc
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Cuprum-Bold.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Cuprum-Bold.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Cuprum-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Cuprum-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Oswald-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Oswald-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Oswald-Regular.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Oswald-Regular.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Play-OFL.txt C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Play-OFL.txt
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_if_different C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/data/Play-Regular.ttf C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/data/../../data/Play-Regular.ttf
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PreBuildEvent>
+    <Link>
+      <AdditionalDependencies>..\external\imgui\RelWithDebInfo\imgui.lib;..\canvas-example\RelWithDebInfo\imgui_node_editor.lib;..\application\RelWithDebInfo\application.lib;..\external\imgui\RelWithDebInfo\imgui.lib;d3d11.lib;d3dcompiler.lib;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\external\DXSDK\lib\x64\d3dx11.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/simple-example/RelWithDebInfo/simple-example.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/bin/simple-example.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\simple-example\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/simple-example/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples -BC:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples --check-stamp-file C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/simple-example/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\Application\Support\Resource.rc.in;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\CMakeFiles\cmake.verify_globs;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\misc\cmake-modules\Findimgui.cmake;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\misc\cmake-modules\Findimgui_node_editor.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\simple-example\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/simple-example/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples -BC:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples --check-stamp-file C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/simple-example/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\Application\Support\Resource.rc.in;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\CMakeFiles\cmake.verify_globs;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\misc\cmake-modules\Findimgui.cmake;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\misc\cmake-modules\Findimgui_node_editor.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\simple-example\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/simple-example/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples -BC:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples --check-stamp-file C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/simple-example/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\Application\Support\Resource.rc.in;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\CMakeFiles\cmake.verify_globs;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\misc\cmake-modules\Findimgui.cmake;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\misc\cmake-modules\Findimgui_node_editor.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\simple-example\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/simple-example/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples -BC:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples --check-stamp-file C:/Users/zanet/Desktop/mikoto/Mikoto/cmake-build-debug-visual-studio/_deps/imgui-node-editor-src/examples/simple-example/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\Application\Support\Resource.rc.in;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\CMakeFiles\cmake.verify_globs;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\misc\cmake-modules\Findimgui.cmake;C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\misc\cmake-modules\Findimgui_node_editor.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\simple-example\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\simple-example\simple-example.cpp" />
+    <ResourceCompile Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\simple-example\Resource.rc" />
+    <None Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\data\Cuprum-Bold.ttf">
+    </None>
+    <None Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\data\Cuprum-OFL.txt">
+    </None>
+    <None Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\data\Oswald-OFL.txt">
+    </None>
+    <None Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\data\Oswald-Regular.ttf">
+    </None>
+    <None Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\data\Play-OFL.txt">
+    </None>
+    <None Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\data\Play-Regular.ttf">
+    </None>
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\ZERO_CHECK.vcxproj">
+      <Project>{FC867E20-61CC-3B4E-AC38-F31B18703683}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\application\application.vcxproj">
+      <Project>{048DE129-003C-3A57-B925-0DAC5AC4810E}</Project>
+      <Name>application</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\application\dxerr.vcxproj">
+      <Project>{8E4748CB-AD03-3E5C-9B2A-B0F11C5A7F63}</Project>
+      <Name>dxerr</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\external\imgui\imgui.vcxproj">
+      <Project>{8B42F2B6-23AF-3048-A528-362D6DD9D568}</Project>
+      <Name>imgui</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\Users\zanet\Desktop\mikoto\Mikoto\cmake-build-debug-visual-studio\_deps\imgui-node-editor-src\examples\canvas-example\imgui_node_editor.vcxproj">
+      <Project>{0E15A1A8-31DA-3E8B-8D6E-705E038593B8}</Project>
+      <Name>imgui_node_editor</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

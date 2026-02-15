@@ -226,6 +226,9 @@ namespace Mikoto {
         auto OnRigidBodyRemoved( RigidBodyComponent& rigidBody ) -> void;
         auto OnRigidBodyAdded( TransformComponent& transformComponent, RigidBodyComponent& rigidBodyComponent ) -> void;
 
+        auto SetGravityBody( GravityBody body) -> void;
+        MKT_NODISCARD auto GetGravityBody() const -> GravityBody;
+
         MKT_NODISCARD static auto GetGravityFor(GravityBody body) -> Vec3F;
         MKT_NODISCARD static auto Create( const PhysicsWorldCreateInfo& spec ) -> Unique<PhysicsWorld>;
 
@@ -277,10 +280,13 @@ namespace Mikoto {
         MKT_NODISCARD static auto ToQuat( const glm::quat &q ) -> JPH::Quat;
 
     private:
-        SimulationInfo m_SimulationInfo{};
 
         Scene* m_Scene{ nullptr };
+
+        GravityBody m_GravityBody{ GravityBody::EARTH };
         Vec3F m_Gravity{ GetGravityFor( GravityBody::EARTH ) };
+
+        SimulationInfo m_SimulationInfo{};
 
         std::atomic_uint64_t m_BodyIdCounter{ 0 };
         ankerl::unordered_dense::map<UInt64, JPH::Body*> m_Bodies{};

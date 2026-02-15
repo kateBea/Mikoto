@@ -93,6 +93,9 @@ namespace Mikoto {
         auto EndFrame() const -> void;
         auto PrepareFrame() const -> void;
 
+        auto SetThemeDarkModeDefault() -> void;
+        auto SetThemeDarkModeAlt() -> void;
+
         MKT_NODISCARD auto GetFinalComposition() const -> TextureHandle;
 
         auto SetImGuiBackGroundClearColor(const Vec4F& color) -> void;
@@ -112,7 +115,7 @@ namespace Mikoto {
         auto AddIconFont(float fontSize, const std::string &path, const std::array<ImWchar, 3> &iconRanges) -> void;
 
     private:
-        static constexpr float FONT_BASE_SIZE{ 16.0f };
+        static constexpr float FONT_BASE_SIZE{ 17.0f };
 
     private:
         GpuDevice* m_Device{ nullptr };

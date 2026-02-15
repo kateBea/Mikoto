@@ -19,7 +19,9 @@
 #include <Panels/StatsPanel.hh>
 #include <Panels/AssetsPanel.hh>
 #include <Panels/ConsolePanel.hh>
+#include <Panels/RendererPanel.hh>
 #include <Panels/SettingsPanel.hh>
+#include <Panels/LightingPanel.hh>
 #include <Panels/HierarchyPanel.hh>
 #include <Panels/InspectorPanel.hh>
 #include <Panels/GamePreviewPanel.hh>

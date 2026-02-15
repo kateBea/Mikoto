@@ -159,6 +159,10 @@ namespace Mikoto::StringUtil {
     MKT_NODISCARD inline auto From( const std::string_view fmt) -> std::string {
         return std::string{ fmt.data() };
     }
+
+    MKT_NODISCARD inline auto Contains( std::string_view str, std::string_view lookUpString) -> bool {
+        return str.find(lookUpString) != std::string_view::npos;
+    }
 }
 
 

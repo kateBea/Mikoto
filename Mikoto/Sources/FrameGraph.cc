@@ -24,6 +24,7 @@
 #include <Renderer/Core/RenderUtility.hh>
 
 #include "Core/Profiler.hh"
+#include "Core/Timer.hh"
 
 namespace Mikoto {
 
@@ -67,17 +68,61 @@ namespace Mikoto {
         return false;
     }
 
-    FramePassBuilder::FramePassBuilder( FramePassNode &node )
-        : m_Node{ std::addressof( node ) } {}
+    auto FramePassNode::HasResources() const -> bool {
+        return !this->PerPassShaderResources.IsEmpty();
+    }
 
-    auto FramePassBuilder::Write( std::string_view name, FrameResourceState outState ) -> FramePassBuilder& {
-        m_Node->Writes.emplace_back( StringUtil::From( name ), outState );
+    auto BufferBuilder::ForElement( Size size, Size count ) -> BufferBuilder & {
+        this->ElementSize = size;
+        this->ElementCount = count;
         return *this;
     }
 
-    auto FramePassBuilder::Read( std::string_view name, FrameResourceState outState ) -> FramePassBuilder& {
-        m_Node->Reads.emplace_back( StringUtil::From( name ), outState );
+    auto BufferBuilder::WithSizeBytes( Size size ) -> BufferBuilder & {
+        this->SizeBytes = size;
         return *this;
+    }
+
+    auto BufferBuilder::WithUsage( BufferUsage usage ) -> BufferBuilder & {
+        this->Usage = usage;
+        return *this;
+    }
+
+    auto BufferBuilder::IsDynamic( bool value ) -> BufferBuilder & {
+        this->UsageType = value ? ResourceUsageType::RESOURCE_USAGE_DYNAMIC
+            : ResourceUsageType::RESOURCE_USAGE_STATIC;
+        return *this;
+    }
+
+    auto BufferBuilder::Build( std::string_view name ) -> void {
+        this->Name = name;
+        this->IsBuilt = true;
+    }
+
+    FramePassBuilder::FramePassBuilder( FramePassNode &node )
+        : m_Node{ std::addressof( node ) } {}
+
+    auto FramePassBuilder::Write( std::string_view name, FrameResourceState state ) -> FramePassBuilder& {
+        m_Node->Writes.emplace_back( StringUtil::From( name ), state );
+        return *this;
+    }
+
+    auto FramePassBuilder::Read( std::string_view name, FrameResourceState state ) -> FramePassBuilder& {
+        m_Node->Reads.emplace_back( StringUtil::From( name ), state );
+        return *this;
+    }
+
+    auto FramePassBuilder::CreateBuffer( const BufferBuilder &description ) -> void {
+        MKT_ASSERT( description.IsBuilt, "Forgot to call build" );
+
+        BufferDescription desc{};
+        desc.WithUsage( description.Usage )
+            .WithSizeBytes( description.SizeBytes )
+            .ForElement( description.ElementSize, description.ElementCount )
+            .WithResourceUsageType( description.UsageType );
+
+        m_Creates[std::string{ description.Name }].Type = FrameResourceType::BUFFER;
+        m_Creates[std::string{ description.Name }].Description = desc;
     }
 
     auto FramePassBuilder::UseShader( std::string_view path, ShaderStage stage ) -> FramePassBuilder& {
@@ -112,6 +157,11 @@ namespace Mikoto {
     }
 
     auto FramePassBuilder::CreateBuffer( std::string_view name, BufferDescription description ) -> void {
+        // SSBOs and Uniforms are often updated better to mark them as such
+        if (description.Usage == BufferUsage::SHADER_STORAGE || description.Usage == BufferUsage::UNIFORM) {
+            description.UsageType = ResourceUsageType::RESOURCE_USAGE_DYNAMIC;
+        }
+
         m_Creates[std::string{ name }].Type = FrameResourceType::BUFFER;
         m_Creates[std::string{ name }].Description = description;
     }
@@ -140,11 +190,15 @@ namespace Mikoto {
     auto FramePassBuilder::CreatePipeline( std::string_view name, const GraphicsPipelineDescription &description ) -> void {
         m_PipelineDescription.Name = name;
         m_PipelineDescription.Description = description;
+
+        m_HasActivePipeline = true;
     }
 
     auto FramePassBuilder::CreatePipeline( std::string_view name, const ComputePipelineDescription &description ) -> void {
         m_PipelineDescription.Name = name;
         m_PipelineDescription.Description = description;
+
+        m_HasActivePipeline = true;
     }
 
     auto FramePassBuilder::CreateTexture( std::string_view name, TextureCubeCreateDescription description ) -> void {
@@ -171,9 +225,45 @@ namespace Mikoto {
         CreateTexture( name, colorDesc );
     }
 
+    auto FramePassBuilder::CreateTexture( std::string_view name, RenderResolution resolution, TextureFormat format, Multisampling msaa, TextureUsage usage ) -> void {
+        auto scale{ InferDimensions( resolution ) };
+        CreateTexture( name, scale.first, scale.second, format, msaa, usage );
+    }
+
+    auto FramePassBuilder::CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format, Multisampling msaa, TextureUsage usage ) -> void {
+        TextureDescription colorDesc{};
+        colorDesc.WithWidth( width )
+                 .WithHeight( height )
+                 .WithChannelCount( 4 )
+                 .WithData( nullptr )
+                 .WithType( TextureType::TEXTURE_2D )
+                 .WithTextureUsage( usage )
+                 .WithFormat( format )
+                 .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+
+        colorDesc.MSAA = msaa;
+
+        CreateTexture( name, colorDesc );
+    }
+
+    auto FramePassBuilder::CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format, void *ptr, Size sizeBytes ) -> void {
+        TextureDescription colorDesc{};
+        colorDesc.WithWidth( width )
+                 .WithHeight( height )
+                 .WithChannelCount( 4 )
+                 .WithData( static_cast<Byte*>(ptr) )
+                 .WithSize( sizeBytes )
+                 .WithType( TextureType::TEXTURE_2D )
+                 .WithTextureUsage( TextureUsage::COLOR )
+                 .WithFormat( format )
+                 .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+
+        CreateTexture( name, colorDesc );
+    }
+
     auto FramePassBuilder::CreateTexture( std::string_view name, UInt32 dimensions, TextureFormat format, UInt32 mipLevels ) -> void {
         TextureCubeCreateDescription depthDesc{};
-        depthDesc.WithUsageType( TextureUsage::TEXTURE_USAGE_RENDER_TARGET )
+        depthDesc.WithUsageType( TextureUsage::RENDER_TARGET )
                  .WithMipLevels( mipLevels )
                  .WithTextureFormat( format )
                  .WithDimensions( dimensions )
@@ -210,19 +300,29 @@ namespace Mikoto {
                 CommandContext commandContext{ m_GraphicsContex, cmd };
                 commandContext.BeginPass(node);
 
-                // Make sure the resources this pass consumes are in proper state
-                InsertResourceBarriers(node, cmd);
-
-                // Bindless textures bound once and active for the entire recording of the command buffer
+                // Bindless textures bound once and active
+                // for the entire recording of the command buffer
                 if (UsesTextureList( node.Name )) {
                     commandContext.BindGlobalTextures();
                 }
+                m_GraphicsContex->BindShaderResources( node.Name, cmd );
 
+                // Make sure the resources this pass consumes are in proper state
+                InsertResourceBarriers(node, cmd);
+
+                Timer passTimer{ false };
+                passTimer.Restart();
                 node.ExecuteCallback( commandContext, m_GraphBlackboard );
 
-                commandContext.EndPass();
+                double currentTime{ TimeService::Get()->GetTime( TimeUnit::MILLISECONDS ) };
 
-                TransitionWrites(node, cmd);
+                if ( currentTime - m_ElapsedTime > m_ElapsedTimeUpdatedInterval || node.IsExecutionPolicy( FramePassExecutionPolicy::ON_CHANGE)
+                    || node.IsExecutionPolicy( FramePassExecutionPolicy::ONCE)) {
+                    node.LastExecutionTime.Value = passTimer.GetCurrentProgress(node.LastExecutionTime.Unit);
+                    m_ElapsedTime = currentTime;
+                }
+
+                commandContext.EndPass();
 
                 cmd->End();
                 m_Device->SubmitCommands( cmd );
@@ -239,6 +339,10 @@ namespace Mikoto {
 
     auto FrameGraph::IsCompiled() const -> bool {
         return m_Compiled;
+    }
+
+    auto FrameGraph::GetPassList() const -> const PassList& {
+        return m_Passes;
     }
 
     auto FrameGraph::GetTexture( std::string_view name ) const -> TextureHandle {
@@ -261,8 +365,14 @@ namespace Mikoto {
                 // But the passes should either ask this explicitly in the Write method from the builder where
                 // they would specify the state they leave the resource as
                 if (it->second.IsResource( FrameResourceType::TEXTURE )) {
-                    // FIXME: Cast does not work if TextureCube and not just Texture
-                    if (m_GraphicsContex->InsertResourceBarrier( it->second.Handle.As<Texture>(),
+                    TextureHandle textureHandle{ it->second.Handle.As<Texture>() };
+
+                    // if its cube
+                    if (textureHandle.IsEmpty()) {
+                        textureHandle = it->second.Handle.As<TextureCube>();
+                    }
+
+                    if (m_GraphicsContex->InsertResourceBarrier( textureHandle,
                         it->second.CurrentState, resourceNode.OutState, cmd )) {
                         it->second.CurrentState = resourceNode.OutState;
                     }
@@ -271,23 +381,30 @@ namespace Mikoto {
         }
     }
 
+    auto FrameGraph::InsertBarrier( FramePassResource& resource, FrameResourceState newState, CommandListHandle cmd ) -> void {
+        if (resource.IsResource( FrameResourceType::BUFFER )) {
+            m_GraphicsContex->InsertResourceBarrier( resource.Handle.As<Buffer>(), resource.CurrentState, newState, cmd );
+        }
+
+        if (resource.IsResource( FrameResourceType::TEXTURE )) {
+            m_GraphicsContex->InsertResourceBarrier( resource.Handle.As<Texture>(), resource.CurrentState, newState, cmd );
+        }
+
+        resource.CurrentState = newState;
+    }
+
     auto FrameGraph::InsertResourceBarriers( FramePassNode& node, CommandListHandle cmd ) -> void {
         for (const auto &resourceNode : node.Reads) {
             const auto it{ m_ResourcesByNames.find( resourceNode.Name ) };
             if (it != m_ResourcesByNames.end()) {
+                InsertBarrier( it->second, resourceNode.OutState, cmd );
+            }
+        }
 
-                bool success{ false };
-                if (it->second.IsResource( FrameResourceType::BUFFER )) {
-                    success = m_GraphicsContex->InsertResourceBarrier( it->second.Handle.As<Buffer>(), it->second.CurrentState, resourceNode.OutState, cmd );
-                }
-
-                if (it->second.IsResource( FrameResourceType::TEXTURE )) {
-                   success = m_GraphicsContex->InsertResourceBarrier( it->second.Handle.As<Texture>(), it->second.CurrentState, resourceNode.OutState, cmd );
-                }
-
-                if (success) {
-                    it->second.CurrentState = resourceNode.OutState;
-                }
+        for (const auto &resourceNode : node.Writes) {
+            const auto it{ m_ResourcesByNames.find( resourceNode.Name ) };
+            if (it != m_ResourcesByNames.end()) {
+                InsertBarrier( it->second, resourceNode.OutState, cmd );
             }
         }
     }
@@ -314,10 +431,13 @@ namespace Mikoto {
             m_TexturePasses.emplace( builder.GetPass()->Name );
         }
 
-        m_GraphicsContex->PrepareResourceBindings(builder.GetPass()->Name, builder.m_PipelineDescription);
+        if (builder.m_HasActivePipeline) {
+            m_GraphicsContex->PrepareResourceBindings(builder.GetPass()->Name, builder.m_PipelineDescription);
+        }
     }
 
     auto FrameGraph::SortPassExecution() -> void {
+        // TODO: check also that every resource has t least one writer
         ankerl::unordered_dense::map<std::string, std::string> resourceWriters;
 
         for (auto &[passName, node]: m_Passes) {

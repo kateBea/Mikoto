@@ -1,23 +1,34 @@
-/**
- * ImGuiUtility.hh
- * Created by kate on 9/17/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_IMGUI_UTILS_HH
 #define MIKOTO_IMGUI_UTILS_HH
 
 #include <any>
-// C++ Standard Library
+#include <span>
+
 #include <imgui.h>
 #include <imgui_internal.h>
-#include <volk.h>
-
-#include <Common/Common.hh>
-#include <Library/String/String.hh>
-#include <Library/Utility/Types.hh>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "IconsMaterialDesign.h"
+#include <Common/Common.hh>
+
+#include <Library/String/String.hh>
+#include <Library/Utility/Types.hh>
+
+#include <Logging/Assert.hh>
+#include <ImGui/IconsMaterialDesign.h>
 
 namespace Mikoto::ImGuiUtils {
 
@@ -25,6 +36,16 @@ namespace Mikoto::ImGuiUtils {
         TRANSLATION,
         ROTATION,
         SCALE,
+    };
+
+    class UnindentScoped {
+    public:
+        explicit UnindentScoped(UInt32 width = 0)
+            : m_Width{ width } { ImGui::Unindent( m_Width ); }
+
+        ~UnindentScoped() { ImGui::Indent( m_Width ); }
+    private:
+        UInt32 m_Width{};
     };
 
     class ImGuiScopedStyleVar {
@@ -61,115 +82,10 @@ namespace Mikoto::ImGuiUtils {
         Int8 m_Index{};
     };
 
-    MKT_NODISCARD inline auto PushImageButton( UInt64 textureId, ImTextureID textureHandle, const ImVec2 size ) -> bool { return ImGui::ImageButton( StringUtils::ToString( textureId ).c_str(), textureHandle, size, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } ); }
-
-    inline auto ThemeDarkModeAlt() -> void {
-        // Setup Dear ImGui style
-        ImGuiStyle &style = ImGui::GetStyle();
-
-        style.Colors[ImGuiCol_WindowBg] = ImVec4{ 0.1f, 0.105f, 0.11f, 1.0f };
-
-        // Headers
-        style.Colors[ImGuiCol_Header] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
-        style.Colors[ImGuiCol_HeaderHovered] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
-        style.Colors[ImGuiCol_HeaderActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
-
-        // Buttons
-        style.Colors[ImGuiCol_Button] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
-        style.Colors[ImGuiCol_ButtonHovered] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
-        style.Colors[ImGuiCol_ButtonActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
-
-        // Frame BG
-        style.Colors[ImGuiCol_FrameBg] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
-        style.Colors[ImGuiCol_FrameBgHovered] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
-        style.Colors[ImGuiCol_FrameBgActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
-
-        // Tabs
-        style.Colors[ImGuiCol_Tab] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
-        style.Colors[ImGuiCol_TabHovered] = ImVec4{ 0.38f, 0.3805f, 0.381f, 1.0f };
-        style.Colors[ImGuiCol_TabActive] = ImVec4{ 0.28f, 0.2805f, 0.281f, 1.0f };
-        style.Colors[ImGuiCol_TabUnfocused] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
-        style.Colors[ImGuiCol_TabUnfocusedActive] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
-
-        // Title
-        style.Colors[ImGuiCol_TitleBg] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
-        style.Colors[ImGuiCol_TitleBgActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
-        style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
-
-        // borders
-        style.WindowBorderSize = 0.0f;
-        style.FrameBorderSize = 0.0f;
-        style.PopupBorderSize = 0.0f;
-
-        // Rounding values
-        style.FrameRounding = .5f;
-        style.GrabRounding = .5f;
-        style.ChildRounding = .5f;
-        style.WindowRounding = .5f;
-        style.PopupRounding = .5f;
-        style.ScrollbarRounding = .5f;
-        style.TabRounding = .5f;
+    MKT_NODISCARD inline auto PushImageButton( UInt64 textureId, ImTextureID textureHandle, const ImVec2 size ) -> bool { 
+        return ImGui::ImageButton( StringUtils::ToString( textureId ).c_str(), textureHandle, size, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } ); 
     }
 
-    inline auto ThemeDarkModeDefault() -> void {
-        // Setup Dear ImGui style
-        ImGuiStyle &style = ImGui::GetStyle();
-
-        style.Colors[ImGuiCol_TitleBg] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
-        style.Colors[ImGuiCol_TitleBgActive] = ImVec4( 0.2f, 0.2f, 0.2f, 1.0f );
-        style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4( 0.4f, 0.4f, 0.4f, 1.0f );
-
-        style.Colors[ImGuiCol_ResizeGrip] = ImVec4( 0.01f, 0.01f, 0.01f, 0.6f );
-        style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4( 0.01f, 0.01f, 0.01f, 0.5f );
-        style.Colors[ImGuiCol_ResizeGripActive] = ImVec4( 0.01f, 0.01f, 0.01f, 0.5f );
-
-        style.Colors[ImGuiCol_Tab] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
-
-        style.Colors[ImGuiCol_Button] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
-        style.Colors[ImGuiCol_ButtonHovered] = ImVec4( 0.26f, 0.26f, 0.26f, 1.0f );
-        style.Colors[ImGuiCol_ButtonActive] = ImVec4( 0.4f, 0.4f, 0.4f, 1.0f );
-
-        style.Colors[ImGuiCol_TabHovered] = ImVec4( 0.26f, 0.26f, 0.26f, 1.0f );
-        style.Colors[ImGuiCol_TabActive] = ImVec4( 0.4f, 0.4f, 0.4f, 1.0f );
-        style.Colors[ImGuiCol_TabUnfocused] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
-        style.Colors[ImGuiCol_TabUnfocusedActive] = ImVec4( 0.20f, 0.20f, 0.20f, 1.0f );
-
-        style.Colors[ImGuiCol_Header] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
-        style.Colors[ImGuiCol_HeaderHovered] = ImVec4( 0.26f, 0.26f, 0.26f, 1.0f );
-        style.Colors[ImGuiCol_HeaderActive] = ImVec4( 0.4f, 0.4f, 0.4f, 1.0f );
-
-        style.Colors[ImGuiCol_MenuBarBg] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
-
-        style.Colors[ImGuiCol_FrameBg] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
-        style.Colors[ImGuiCol_FrameBgHovered] = ImVec4( 0.2f, 0.2f, 0.2f, 1.0f );
-        style.Colors[ImGuiCol_FrameBgActive] = ImVec4( 0.3f, 0.3f, 0.3f, 1.0f );
-
-        style.Colors[ImGuiCol_Border] = ImVec4( 0.01f, 0.01f, 0.01f, 0.3f );
-        style.Colors[ImGuiCol_BorderShadow] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
-
-        style.Colors[ImGuiCol_SliderGrab] = ImVec4( 0.10f, 0.10f, 0.10f, 1.0f );
-        style.Colors[ImGuiCol_SliderGrabActive] = ImVec4( 0.1f, 0.1f, 0.1f, 1.0f );
-        style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
-
-        style.Colors[ImGuiCol_WindowBg] = ImVec4( 0.124f, 0.124f, 0.124f, 1.0f );
-        style.Colors[ImGuiCol_ChildBg] = ImVec4( 0.184f, 0.184f, 0.184f, 0.00f );
-        style.Colors[ImGuiCol_CheckMark] = ImVec4( 1.00f, 1.00f, 1.00f, 1.00f );
-
-
-        // borders
-        style.WindowBorderSize = 0.0f;
-        style.FrameBorderSize = 0.0f;
-        style.PopupBorderSize = 0.0f;
-
-        // Rounding values
-        style.FrameRounding = .5f;
-        style.GrabRounding = .5f;
-        style.ChildRounding = .5f;
-        style.WindowRounding = .5f;
-        style.PopupRounding = .5f;
-        style.ScrollbarRounding = .5f;
-        style.TabRounding = .5f;
-    }
 
     MKT_NODISCARD inline auto ComputeWidth() -> float {
         const ImGuiContext &globalContext{ *GImGui };
@@ -682,6 +598,12 @@ namespace Mikoto::ImGuiUtils {
         }
     }
 
+    inline auto SetCursorHandOnLastItemHovered() -> void {
+        if (ImGui::IsItemHovered()) { 
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); 
+        }
+    }
+
 
     /**
      * Utility function to make panel names for ImGui windows.
@@ -690,6 +612,90 @@ namespace Mikoto::ImGuiUtils {
      * @returns The panel's name including the icon.
      * */
     MKT_NODISCARD inline auto MakePanelName( std::string_view panelIcon, std::string_view panelName ) -> std::string { return fmt::format( "{} {}", panelIcon, panelName ); }
-}// namespace Mikoto::ImGuiUtils
+
+    template<typename UIFunction, typename... Args>
+    auto DrawNode( const std::string_view label, const UIFunction& uiFunc, Args&&... args ) -> void {
+        static constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
+                                                           ImGuiTreeNodeFlags_Framed |
+                                                           ImGuiTreeNodeFlags_SpanAvailWidth |
+                                                           ImGuiTreeNodeFlags_FramePadding };
+
+        ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2{ 4.0f, 4.0f } );
+
+        const std::string panelName{ fmt::format( "{}{}", __PRETTY_FUNCTION__, label ) };
+        const bool componentNodeOpen{
+            ImGui::TreeNodeEx( reinterpret_cast<const void*>( label.data() ), treeNodeFlags, "%s", label.data() )
+        };
+
+        // Node frame is hovered
+        if ( ImGui::IsItemHovered() ) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        ImGui::PopStyleVar();
+
+        if ( componentNodeOpen ) {
+
+            uiFunc( std::forward<Args>( args )... );
+
+            ImGui::TreePop();
+        }
+    }
+
+
+    template<typename EnumType>
+    MKT_NODISCARD auto Combo(std::span<std::string> choices, EnumType currentSelection) -> EnumType {
+        MKT_ASSERT( static_cast<UInt32>( currentSelection ) < choices.size(), "Enum value must be lower than choices size" );
+
+        EnumType result{ currentSelection };
+
+        const std::string &currentChoiceStr{ choices[static_cast<UInt32>( currentSelection )] };
+        const std::string labelName{ fmt::format( "##{}{}", __PRETTY_FUNCTION__, currentChoiceStr ) };
+
+        if ( ImGui::BeginCombo( labelName.data(), currentChoiceStr.c_str() ) ) {
+            UInt32 selectionIndex{};
+
+            for ( const std::string &selectionStr: choices ) {
+                const bool isSelected{ selectionStr == choices[static_cast<UInt32>( currentSelection )] };
+
+                if ( ImGui::Selectable( fmt::format( " {}", selectionStr ).c_str(), isSelected ) ) {
+                    result = static_cast<EnumType>( selectionIndex );
+                }
+
+                if ( ImGui::IsItemHovered() ) {
+                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+                }
+
+                if ( isSelected ) {
+                    ImGui::SetItemDefaultFocus();
+                }
+
+                ++selectionIndex;
+            }
+
+            ImGui::EndCombo();
+        }
+
+        if ( ImGui::IsItemHovered() ) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        return result;
+    }
+
+    inline auto InputText(std::string_view viewData, bool readOnly = false) -> bool {
+        ImGuiTextFlags flags{ ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll };
+
+        if (readOnly) {
+            flags |= ImGuiInputTextFlags_ReadOnly;
+        }
+
+        constexpr UInt32 MAX_LENGTH{ 1024 };
+        std::array<char, MAX_LENGTH> name{};
+        std::ranges::copy( viewData, name.data() );
+
+        return ImGui::InputText( "##DrawNameTextInputTag", name.data(), name.max_size(), flags );
+    }
+}
 
 #endif// MIKOTO_IMGUI_UTILS_HH

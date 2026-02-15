@@ -72,6 +72,7 @@ namespace Mikoto {
     auto RenderService::Update(float) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        m_Context->Update();
     }
 
     auto RenderService::PrepareFrame() const -> void {

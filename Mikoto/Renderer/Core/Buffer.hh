@@ -1,9 +1,19 @@
+//    Copyright 2026 ケイト
 //
-// Created by zanet on 3/27/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef BUFFER_HH
-#define BUFFER_HH
+#ifndef MIKOTO_BUFFER_HH
+#define MIKOTO_BUFFER_HH
 
 #include <vector>
 #include <initializer_list>
@@ -15,13 +25,13 @@
 
 namespace Mikoto {
 
-    /**
-     * Represents a data type within a vertex buffer
-     * */
     class BufferElement {
     public:
         BufferElement(ShaderDataType type, std::string_view name, bool normalized = false)
             :   m_Name{ name }, m_Type{ type }, m_Size{GetSizeFromShaderType(type) }, m_Offset{ 0 }, m_Normalized{ normalized } {}
+
+        BufferElement(ShaderDataType type, UInt32 size, std::string_view name, bool normalized = false)
+            :   m_Name{ name }, m_Type{ type }, m_Size{ size }, m_Offset{ 0 }, m_Normalized{ normalized } {}
 
         MKT_NODISCARD auto GetAttributeCount() const -> UInt32 { return GetComponentCount(m_Type); }
         MKT_NODISCARD auto GetAttributeSize() const -> UInt32 { return m_Size; }
@@ -53,10 +63,6 @@ namespace Mikoto {
         UInt32        m_Offset{};
         bool            m_Normalized;
 
-        /**
-         * Returns the size of the shader data type
-         * @returns the size in bytes of the data type
-         * */
         static constexpr auto GetSizeFromShaderType(ShaderDataType type) -> UInt32 {
             switch (type) {
                 case ShaderDataType::FLOAT_TYPE:    return s_DefaultShaderFloatSize;
@@ -82,10 +88,6 @@ namespace Mikoto {
             return 0;
         }
 
-        /**
-         * Returns the number of components of the given type
-         * @returns Count of elements of the data type
-         * */
         static constexpr auto GetComponentCount(ShaderDataType type) -> UInt32 {
             switch(type) {
                 case ShaderDataType::FLOAT_TYPE:    return 1;
@@ -207,11 +209,11 @@ namespace Mikoto {
         MKT_NODISCARD auto IsUsage(BufferUsage usage) const -> bool { return m_Usage == usage; }
 
         // Copy to a CPU block of memory
-        virtual auto CopyToBlock( void* ptr, Size size ) -> void = 0;
+        virtual auto CopyToHost( void* ptr, Size size ) -> void = 0;
 
         // Copy from CPU to GPU ( this buffer must be writable from CPU )
-        virtual auto CopyFromBlock(const void* ptr, Size size) -> void = 0;
-        virtual auto CopyFromBlock(const void* ptr, Size size, Size offset) -> void = 0;
+        virtual auto CopyToDevice(const void* ptr, Size size) -> void = 0;
+        virtual auto CopyToDevice(const void* ptr, Size size, Size offset) -> void = 0;
 
         MKT_NODISCARD auto GetCount() const -> Size {
             return InferElementCount(m_DataType, m_SizeBytes);
@@ -240,5 +242,5 @@ namespace Mikoto {
     };
 
     using BufferHandle = Ref<Buffer>;
-}// namespace Mikoto
-#endif//BUFFER_HH
+}
+#endif // MIKOTO_BUFFER_HH

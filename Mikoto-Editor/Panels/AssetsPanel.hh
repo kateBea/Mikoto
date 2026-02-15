@@ -15,9 +15,6 @@
 #ifndef MIKOTO_ASSETS_MANAGER_PANEL_HH
 #define MIKOTO_ASSETS_MANAGER_PANEL_HH
 
-#include <imgui.h>
-
-#include <Common/Common.hh>
 #include <Panels/Panel.hh>
 
 namespace Mikoto {
@@ -27,10 +24,6 @@ namespace Mikoto {
         EditorState* State{};
     };
 
-    /**
-     * @class AssetsPanel
-     * @brief A panel for managing assets currently in use by the editor.
-     */
     class AssetsPanel final : public Panel {
     public:
         explicit AssetsPanel( const AssetsPanelDescription& description );
@@ -38,17 +31,7 @@ namespace Mikoto {
         auto OnUpdate( float timeStep ) -> void override;
 
     private:
-        auto UpdateViewport() -> void;
-        auto CreateImguiTextureID() -> void;
-
-        MKT_NODISCARD auto IsDisplayTextureValid() const -> bool;
-
-    private:
-        float m_ViewportWidth{};
-        float m_ViewportHeight{};
-
         EditorState* m_EditorState{};
-        ImTextureID m_DisplayTargetImGuiID{};
     };
 }
 

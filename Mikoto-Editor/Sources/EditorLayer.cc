@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,29 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <memory>
-
 #include <imgui.h>
-#include <glm/gtc/type_ptr.hpp>
 
+#include <Application/EditorApp.hh>
+#include <Application/EditorUtility.hh>
 #include <Core/Core.hh>
-
-#include <Panels/Panels.hh>
-
-#include <Scene/Component.hh>
-#include <Scene/SceneManager.hh>
-
 #include <ImGui/ImGuiService.hh>
 #include <ImGui/ImGuiUtility.hh>
-
 #include <Layers/EditorLayer.hh>
-
+#include <Panels/Panels.hh>
 #include <Physics/PhysicService.hh>
-
 #include <Renderer/Core/DebugRenderer.hh>
 #include <Renderer/Core/RenderService.hh>
+#include <Scene/Component.hh>
+#include <Scene/SceneManager.hh>
+#include <algorithm>
+#include <glm/gtc/type_ptr.hpp>
+#include <memory>
+#include <ranges>
 
-#include <Application/EditorUtility.hh>
+#include "Common/String.hh"
 
 namespace Mikoto {
 
@@ -48,6 +45,37 @@ namespace Mikoto {
         if (ImGui::SmallButton( "Click here" )) {
             io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
         }
+    }
+
+    auto EditorState::IsEntityAnySelected() const -> bool {
+        return SelectedEntity != nullptr || !SelectedEntities.empty();
+    }
+    auto EditorState::IsEntitySelected( Entity *entity ) const -> bool {
+        return SelectedEntity != entity || SelectedEntities.contains( entity );
+    }
+
+    auto EditorState::GetSelectedEntity() const -> Entity * {
+        return SelectedEntity;
+    }
+
+    auto EditorState::GetSelectedEntities() const -> const ankerl::unordered_dense::set<Entity*> & {
+        return SelectedEntities;
+    }
+
+    auto EditorState::RegisterSelection( Entity *entity ) -> void {
+        SelectedEntity = entity;
+    }
+
+    auto EditorState::RegisterSelections( const std::vector<Entity *> &list ) -> void {
+        std::ranges::for_each(list, [&](Entity *entity) { SelectedEntities.emplace(entity); });
+    }
+
+    auto EditorState::RemoveSingleSelection() -> void {
+        SelectedEntity = nullptr;
+    }
+
+    auto EditorState::RemoveSelections( const std::vector<Entity *> &list ) -> void {
+        std::ranges::for_each(list, [&](Entity *entity) { SelectedEntities.erase(entity); });
     }
 
     EditorLayer::EditorLayer( Window* window)
@@ -72,6 +100,9 @@ namespace Mikoto {
         m_EditorState->PassesCompositions.try_emplace( "Texture2D", m_SceneRenderer->GetTexture( "HelloTexture_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "BRDF LUT", m_SceneRenderer->GetTexture( "BRDFLutPass_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "Skybox", m_SceneRenderer->GetTexture( "FinalShadingPass_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "DirectionalShadowMapDepth", m_SceneRenderer->GetTexture( "DirectionalShadowMapPass_DepthTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "InfiniteGrid", m_SceneRenderer->GetTexture( "InfiniteGrid_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "DepthPrePass", m_SceneRenderer->GetTexture( "DepthPrePass_Depth" ) );
     }
 
     auto EditorLayer::SetupRenderer() -> void {
@@ -101,12 +132,25 @@ namespace Mikoto {
     auto EditorLayer::SetupPresentTarget( Event &event ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        // To store panels visibility state to restore later, when switching back to panel rendering
+        static std::unordered_map<Panel*, bool> panelsVisibilityState{};
+
         if (const auto *keyPressed{ dynamic_cast<KeyPressedEvent *>( std::addressof( event ) ) }) {
             if (keyPressed->GetKeyCode() == Key_F11) {
                 if (m_RenderScreenTarget == RenderScreenTarget::PANEL) {
                     m_RenderScreenTarget = RenderScreenTarget::WINDOW;
+
+                    // Save panel visibility state before hiding them
+                    for ( const auto &panel: m_PanelRegistry | std::ranges::views::values ) {
+                        panelsVisibilityState[panel.get()] = panel->IsVisible();
+                    }
                 } else {
                     m_RenderScreenTarget = RenderScreenTarget::PANEL;
+
+                    // Restore panel visibility state
+                    for ( const auto &panel: m_PanelRegistry | std::ranges::views::values ) {
+                        panel->SetVisible( panelsVisibilityState[panel.get()] );
+                    }
                 }
 
                 event.SetHandled( true );
@@ -117,13 +161,7 @@ namespace Mikoto {
     auto EditorLayer::LoadResources() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        TextureCubeLoadDescription loadDesc2{};
-        loadDesc2.WithType( TextureType::TEXTURE_CUBE )
-            .IsHDR( true )
-            .WithBasePath("Resources/HDR/scifi_desert_beach/Scifi Desert Beach/Scifi-Desert-Beach.hdr");
-
-        m_TextureHDR = AssetsService::Get()->LoadAsset<TextureCube>( loadDesc2 );
-
+#if false
         TextureCubeLoadDescription loadDesc{};
         loadDesc.WithType( TextureType::TEXTURE_CUBE )
             .WithBasePath("Resources/Cubemaps/Lycksele2")
@@ -155,9 +193,222 @@ namespace Mikoto {
 
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
-        m_EditorState->TextureHDR_2D = RenderService::Get()->GetGpuDevice()->CreateTexture( textureDesc );
+        m_EditorState->TextureHDR = RenderService::Get()->GetGpuDevice()->CreateTexture( textureDesc );
+#endif
+    }
 
-        m_ActiveScene->SetSkybox( m_TextureHDR );
+    auto EditorLayer::SetPresentTarget() -> void {
+        if (m_RenderScreenTarget == RenderScreenTarget::PANEL) {
+            m_EditorState->RenderImage = ImGuiService::Get()->GetFinalComposition();
+        } else {
+            if (!m_EditorState->ShowWireframe) {
+                m_EditorState->RenderImage = m_EditorState->FinalComposition;
+            } else {
+                m_EditorState->RenderImage = m_EditorState->EditorSceneRenderer->GetTexture( "Wireframe_ColorTarget" );
+            }
+        }
+
+        RenderService::Get()->SetPresentTarget( m_EditorState->RenderImage );
+    }
+
+    auto EditorLayer::SimpleScene() -> void {
+        ModelLoadDescription descFirst{
+            .ModelFile{ FileService::Get()->LoadFile( "./Resources/Models/1 - Box texture/BoxTexture.obj" ) },
+            .WantTextures{ true }
+        };
+
+        ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( descFirst ) };
+
+        // This emitting sounds
+        EntityCreateInfo groundDesc{
+            .Root{ nullptr },
+            .Name{ "Ground" },
+            .Model{ box }
+        };
+
+        if (Entity *groundEntity{ m_ActiveScene->CreateEntity( groundDesc ) }) {
+            TransformComponent &transformComponent{ groundEntity->GetComponent<TransformComponent>() };
+            transformComponent.SetScale( { 100.0f, 0.5f, 100.00f } );
+            transformComponent.SetTranslation( { 0.0f, 0.0f, 0.0f } );
+
+            RigidBodyComponent &rigidBody{ groundEntity->AddComponent<RigidBodyComponent>() };
+            rigidBody.SetBodyType( RigidBodyComponent::BodyType::STATIC );
+
+            FontHandle font{ AssetsService::Get()->LoadAsset<Font>( Path{ "Resources/Fonts/Google_Sans_Code/GoogleSansCode-Italic-VariableFont_wght.ttf" } ) };
+
+            TextComponent &text{ groundEntity->AddComponent<TextComponent>() };
+            text.SetFont( font );
+        }
+
+        // First box
+        EntityCreateInfo boxDesc{
+            .Root{ nullptr },
+            .Name{ "FirstBox" },
+            .Model{ box }
+        };
+
+        if (Entity *boxEntity{ m_ActiveScene->CreateEntity( boxDesc ) }) {
+            boxEntity->AddComponent<ScriptComponent>( "Resources/Script-Examples/Player1.lua" );
+            TransformComponent &transformComponent{ boxEntity->GetComponent<TransformComponent>() };
+            transformComponent.SetTranslation( { 0.0f, 10.0f, 0.0f } );
+
+            RigidBodyComponent &rigidBody{ boxEntity->AddComponent<RigidBodyComponent>() };
+            rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
+        }
+
+        // Second box
+        EntityCreateInfo box2Desc{
+            .Root{ nullptr },
+            .Name{ "SecondBox" },
+            .Model{ box }
+        };
+
+        if (Entity *box2Entity{ m_ActiveScene->CreateEntity( box2Desc ) }) {
+            box2Entity->AddComponent<ScriptComponent>( "Resources/Script-Examples/Player2.lua" );
+            TransformComponent &transformComponent{ box2Entity->GetComponent<TransformComponent>() };
+            transformComponent.SetTranslation( { 1.0f, 30.0f, 0.0f } );
+
+            RigidBodyComponent &rigidBody{ box2Entity->AddComponent<RigidBodyComponent>() };
+            rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
+        }
+
+        Entity *light{ m_ActiveScene->CreateEntity( "Light" ) };
+        if (light) {
+            LightComponent &lightComp{ light->AddComponent<LightComponent>() };
+            lightComp.SetActiveType( LightType::POINT_LIGHT_TYPE );
+
+            auto &pointLightData{ lightComp.Get<PointLight>() };
+            pointLightData.SetIntensity( 112.81f );
+            pointLightData.SetRadius( 30.44f );
+
+            TransformComponent &transformComponent{ light->GetComponent<TransformComponent>() };
+            transformComponent.SetTranslation( { 0.0f, 4.0f, 0.0f } );
+        }
+    }
+
+    auto EditorLayer::DebugManyLightsTest() -> void {
+        // This is just to test clustered forward shading
+        // We generate an empty object and 'lightCount' lights in random positions attached to it
+        constexpr UInt32 lightCount{ 12 };
+        Entity* lightCluster{ m_ActiveScene->CreateEntity( "LightCluster" ) };
+        for (UInt32 count{}; count < lightCount; count++) {
+            if (Entity *clusteredLight{ m_ActiveScene->CreateEntity( lightCluster, fmt::format( "Light {}", count ) ) }) {
+                LightComponent &lightComp{ clusteredLight->AddComponent<LightComponent>() };
+                lightComp.SetActiveType( LightType::POINT_LIGHT_TYPE );
+
+                auto &pointLightData{ lightComp.Get<PointLight>() };
+                pointLightData.SetIntensity( 50.0f );
+                pointLightData.SetRadius( 15.0f );
+                pointLightData.SetColor( GetRandomizedVec3F(0.0f, 1.0f ) );
+
+                TransformComponent &transformComponent{ clusteredLight->GetComponent<TransformComponent>() };
+                transformComponent.SetTranslation( { GetRandomReal(-500.0f, 500.0f), 2.0f, GetRandomReal(-500.0f, 500.0f) } );
+
+                // Test heatmaps, by accumulating many lights into small area
+                // transformComponent.SetTranslation( { GetRandomReal(0, 10.0f), 2.0f, GetRandomReal(0, 15) } );
+            }
+        }
+    }
+
+    auto EditorLayer::DebugSpheresProperties() -> void {
+        ModelHandle sphere{ AssetsService::Get()->LoadAsset<Model>( EditorApp::GetPrefabUri( PrefabModels::SPHERE ) ) };
+
+        Entity *root{ m_ActiveScene->CreateEntity( "InstancingGridSpheres" ) };
+
+        EntityCreateInfo info{
+            .Root{ root },
+            .Model{ sphere }
+        };
+
+        constexpr UInt32 gridSize{ 5 };// gridSize * gridSize spheres
+        constexpr float spacing{ 30.0f };// Distance between spheres
+
+        for (UInt32 x{}; x < gridSize; ++x) {
+            for ( UInt32 y{}; y < gridSize; ++y ) {
+
+                info.Name = fmt::format( "Sphere_{}_{}", x, y );
+
+                if ( Entity * e{ m_ActiveScene->CreateEntity( info ) } ) {
+                    auto &t{ e->GetComponent<TransformComponent>() };
+                    t.SetTranslation(
+                            { static_cast<float>( x ) * spacing,
+                              static_cast<float>( y ) * spacing, 0.0f } );
+                    auto& pbr{ e->GetComponent<MaterialComponent>() };
+
+                    PBRMaterial *pbrMat{ pbr.GetMaterial().Dynamic<PBRMaterial>() };
+                    if (pbrMat) {
+                        pbrMat->SetMetallicFactor( static_cast<float>( x ) / static_cast<float>( gridSize - 1 ) );
+                        pbrMat->SetRoughnessFactor( static_cast<float>( y ) / static_cast<float>( gridSize - 1 ) );
+                    }
+                }
+                
+            }
+        }
+    }
+        
+    auto EditorLayer::DebugInstancingTest() -> void {
+        ModelLoadDescription desc{
+            .ModelFile{ FileService::Get()->LoadFile(
+                    "./Resources/Models/1 - Box texture/BoxTexture.obj" ) },
+            .WantTextures{ true }
+        };
+
+        ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( desc ) };
+
+        constexpr UInt32 gridSize{ 5 }; // gridSize * gridSize cubes
+        constexpr float spacing{ 7.0f }; // Distance between cubes
+
+        Entity *root{ m_ActiveScene->CreateEntity( "InstancingGridBoxes" ) };
+
+        EntityCreateInfo info{
+            .Root{ root },
+            .Name{ "" },
+            .Model{ box }
+        };
+
+        for ( UInt32 x{}; x < gridSize; ++x ) {
+            for ( UInt32 y{}; y < gridSize; ++y ) {
+                for ( UInt32 z{}; z < gridSize; ++z ) {
+
+                    info.Name = fmt::format( "Cube_{}_{}_{}", x, y, z );
+
+                    if ( Entity * e{ m_ActiveScene->CreateEntity( info ) } ) {
+                        auto &t{ e->GetComponent<TransformComponent>() };
+                        t.SetTranslation(
+                                { static_cast<float>( x ) * spacing,
+                                  static_cast<float>( y ) * spacing,
+                                  static_cast<float>( z ) * spacing } );
+                    }
+                }
+            }
+        }
+    }
+
+    auto EditorLayer::DebugDamagedHelmet() -> void {
+        ModelLoadDescription descFirst{
+            .ModelFile{ FileService::Get()->LoadFile( "Resources/Models/9 - Helmet/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf" ) },
+            .WantTextures{ true }
+        };
+
+        ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( descFirst ) };
+
+        // This emitting sounds
+        EntityCreateInfo groundDesc{
+            .Root{ nullptr },
+            .Name{ "Helmet" },
+            .Model{ box }
+        };
+
+        if (Entity *groundEntity{ m_ActiveScene->CreateEntity( groundDesc ) }) {
+        }
+
+        if (Entity *light{ m_ActiveScene->CreateEntity( "Directional Light" ) }) {
+            LightComponent &lightComp{ light->AddComponent<LightComponent>() };
+            lightComp.SetActiveType( LightType::DIRECTIONAL_LIGHT_TYPE );
+
+            auto &direLightInfo{ lightComp.Get<DirectionalLight>() };
+            direLightInfo.SetIntensity( 10.0f );
+        }
     }
 
     auto EditorLayer::OnDestroy() -> void {
@@ -178,12 +429,12 @@ namespace Mikoto {
     auto EditorLayer::OnUpdate( float timeStep ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        m_ActiveScene->SetState( SceneState::IDLE );
-
         PrepareCamera( timeStep );
         PrepareRenderer( timeStep );
 
+        m_ActiveScene->SetState( SceneState::IDLE );
         m_ActiveScene->Update( timeStep );
+
         m_SceneRenderer->Render( m_ActiveScene );
 
         UpdateDockSpace();
@@ -192,17 +443,7 @@ namespace Mikoto {
         // so they can become part of it
         UpdatePanels( timeStep );
 
-        if (m_RenderScreenTarget == RenderScreenTarget::PANEL) {
-            m_EditorState->RenderImage = ImGuiService::Get()->GetFinalComposition();
-        } else {
-            if (!m_EditorState->ShowWireframe) {
-                m_EditorState->RenderImage = m_EditorState->FinalComposition;
-            } else {
-                m_EditorState->RenderImage = m_EditorState->WireframeComposition;
-            }
-        }
-
-        RenderService::Get()->SetPresentTarget( m_EditorState->RenderImage );
+        SetPresentTarget();
     }
 
     auto EditorLayer::OnEvent( Event &event ) -> void {
@@ -318,6 +559,14 @@ namespace Mikoto {
             m_EditorCamera->EnableCamera( false );
         }
 
+        // Camera target
+        m_EditorCamera->LockCameraToTarget( configuration.LockCameraToTarget );
+
+        if (configuration.LockCameraToTarget && m_EditorState->SelectedEntity) {
+            auto& transformComp{ m_EditorState->SelectedEntity->GetComponent<TransformComponent>() };
+            m_EditorCamera->SetCameraTarget( transformComp.GetTranslation() );
+        }
+
         m_EditorCamera->UpdateState( timeStep );
     }
 
@@ -375,6 +624,14 @@ namespace Mikoto {
         ScenePropertiesPanelCreateInfo scenePropertiesPanel{};
         scenePropertiesPanel.State = m_EditorState.get();
         m_PanelRegistry.Register<ScenePropertiesPanel>( scenePropertiesPanel );
+
+        RendererPanelCreateInfo rendererPanelCreateInfo{};
+        rendererPanelCreateInfo.State = m_EditorState.get();
+        m_PanelRegistry.Register<RendererPanel>( rendererPanelCreateInfo );
+
+        LightingPanelCreateInfo lightingPanelCreateInfo{};
+        lightingPanelCreateInfo.State = m_EditorState.get();
+        m_PanelRegistry.Register<LightingPanel>( lightingPanelCreateInfo );
     }
 
     auto EditorLayer::CreateCameras() -> void {
@@ -503,23 +760,6 @@ namespace Mikoto {
                 ImGui::EndMenu();
             }
 
-            ImGuiUtils::HelpMarker(
-                    "When docking is enabled, you can ALWAYS dock MOST window into another! Try it now!"
-                    "\n"
-                    "- Drag from window title bar or their tab to dock/undock."
-                    "\n"
-                    "- Drag from window menu button (upper-left button) to undock an entire node (all windows)."
-                    "\n"
-                    "- Hold SHIFT to disable docking (if io.ConfigDockingWithShift == false, default)"
-                    "\n"
-                    "- Hold SHIFT to enable docking (if io.ConfigDockingWithShift == true)"
-                    "\n"
-                    "This demo app has nothing to do with enabling docking!"
-                    "\n\n"
-                    "This demo app only demonstrate the use of ImGui::DockSpace() which allows you to manually create a docking node _within_ another window."
-                    "\n\n"
-                    "Read comments in ShowExampleAppDockSpace() for more details." );
-
             if (ImGui::BeginMenu( "Window" )) {
                 if (ImGui::BeginMenu( "Panels" )) {
 
@@ -539,11 +779,11 @@ namespace Mikoto {
                     if (ImGui::MenuItem( "Classic" )) { ImGui::StyleColorsClassic(); }
                     if (ImGui::MenuItem( "Dark Default" )) {
                         ImGui::StyleColorsDark();
-                        ImGuiUtils::ThemeDarkModeDefault();
+                        ImGuiService::Get()->SetThemeDarkModeDefault();
                     }
                     if (ImGui::MenuItem( "Dark Alternative" )) {
                         ImGui::StyleColorsDark();
-                        ImGuiUtils::ThemeDarkModeAlt();
+                        ImGuiService::Get()->SetThemeDarkModeAlt();
                     }
                     if (ImGui::MenuItem( "Focused" )) { ImGui::StyleColorsDark(); }
                     if (ImGui::MenuItem( "Blindness" )) { ImGui::StyleColorsLight(); }
@@ -553,21 +793,6 @@ namespace Mikoto {
 
                 ImGui::EndMenu();
             }
-
-            ImGuiUtils::HelpMarker( "This menu helps to change window stuff like the theme" );
-
-            if (ImGui::BeginMenu( "Rendering" )) {
-                // Disabling fullscreen would allow the window to be moved to the front of other windows,
-                // which we can't undo at the moment without finer window depth/z control.
-
-                SetRendererResolution();
-
-                if (ImGui::MenuItem( "Enable SSAO", nullptr )) {}
-
-                ImGui::EndMenu();
-            }
-
-            ImGuiUtils::HelpMarker( "Configuration about the main scene rendering." );
 
             if (ImGui::BeginMenu( "Language" )) {
                 static constexpr std::array languages{
@@ -591,6 +816,17 @@ namespace Mikoto {
 
                     ImGui::EndMenu();
                 }
+
+                ImGui::EndMenu();
+            }
+
+            if ( ImGui::BeginMenu( "Tools" ) ) {
+                // Disabling fullscreen would allow the window to be moved to the front of other windows,
+                // which we can't undo at the moment without finer window depth/z control.
+
+                SetRendererResolution();
+
+                if ( ImGui::MenuItem( "Enable SSAO", nullptr ) ) {}
 
                 ImGui::EndMenu();
             }
@@ -622,6 +858,12 @@ namespace Mikoto {
                 ImGui::EndMenu();
             }
 
+#if !defined(NDEBUG)
+            ImGui::TextUnformatted( StringUtil::Format(" | Build type [DEBUG]. Framerate: {:.1f}", ImGui::GetIO().Framerate ).c_str() );
+#else
+            ImGui::TextUnformatted( StringUtil::Format( " | Build type [RELEASE]. Framerate: {:.1f}", ImGui::GetIO().Framerate ).c_str() );
+#endif
+
             ImGui::EndMenuBar();
             ImGui::PopStyleVar();
         }
@@ -641,116 +883,27 @@ namespace Mikoto {
 
         m_ActiveScene = SceneManager::Get()->CreateScene( name );
 
-        ModelLoadDescription descFirst{
-            .ModelFile{ FileService::Get()->LoadFile( "./Resources/Models/1 - Box texture/BoxTexture.obj" ) },
-            .WantTextures{ true }
-        };
+        //SimpleScene();
+        //DebugInstancingTest();
+        //DebugManyLightsTest();
+        //DebugDamagedHelmet();
 
-        ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( descFirst ) };
-
-        // This emitting sounds
-        EntityCreateInfo groundDesc{
-            .Root{ nullptr },
-            .Name{ "Ground" },
-            .Model{ box }
-        };
-
-        if (Entity *groundEntity{ m_ActiveScene->CreateEntity( groundDesc ) }) {
-            TransformComponent &transformComponent{ groundEntity->GetComponent<TransformComponent>() };
-            transformComponent.SetScale( { 100.0f, 0.5f, 100.00f } );
-            transformComponent.SetTranslation( { 0.0f, 0.0f, 0.0f } );
-
-            RigidBodyComponent &rigidBody{ groundEntity->AddComponent<RigidBodyComponent>() };
-            rigidBody.SetBodyType( RigidBodyComponent::BodyType::STATIC );
-
-            FontHandle font{ AssetsService::Get()->LoadAsset<Font>( Path{ "Resources/Fonts/Google_Sans_Code/GoogleSansCode-Italic-VariableFont_wght.ttf" } ) };
-
-            TextComponent &text{ groundEntity->AddComponent<TextComponent>() };
-            text.SetFont( font );
-        }
-
-        // First box
-        EntityCreateInfo boxDesc{
-            .Root{ nullptr },
-            .Name{ "FirstBox" },
-            .Model{ box }
-        };
-
-        if (Entity *boxEntity{ m_ActiveScene->CreateEntity( boxDesc ) }) {
-            boxEntity->AddComponent<ScriptComponent>( "Resources/Script-Examples/Player1.lua" );
-            TransformComponent &transformComponent{ boxEntity->GetComponent<TransformComponent>() };
-            transformComponent.SetTranslation( { 0.0f, 10.0f, 0.0f } );
-
-            RigidBodyComponent &rigidBody{ boxEntity->AddComponent<RigidBodyComponent>() };
-            rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
-        }
-
-        // Second box
-        EntityCreateInfo box2Desc{
-            .Root{ nullptr },
-            .Name{ "SecondBox" },
-            .Model{ box }
-        };
-
-        if (Entity *box2Entity{ m_ActiveScene->CreateEntity( box2Desc ) }) {
-            box2Entity->AddComponent<ScriptComponent>( "Resources/Script-Examples/Player2.lua" );
-            TransformComponent &transformComponent{ box2Entity->GetComponent<TransformComponent>() };
-            transformComponent.SetTranslation( { 1.0f, 30.0f, 0.0f } );
-
-            RigidBodyComponent &rigidBody{ box2Entity->AddComponent<RigidBodyComponent>() };
-            rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
-        }
-
-        Entity *light{ m_ActiveScene->CreateEntity( "Light" ) };
-        if (light) {
-            LightComponent &lightComp{ light->AddComponent<LightComponent>() };
-            lightComp.SetActiveType( LightType::POINT_LIGHT_TYPE );
-
-            auto &pointLightData{ lightComp.Get<PointLight>() };
-            pointLightData.SetIntensity( 112.81f );
-            pointLightData.SetRadius( 30.44f );
-
-            TransformComponent &transformComponent{ light->GetComponent<TransformComponent>() };
-            transformComponent.SetTranslation( { 0.0f, 4.0f, 0.0f } );
-        }
-
-        // This is just to test clustered forward shading
-        // We generate an empty object and 'lightCount' lights in random positions attached to it
-        constexpr UInt32 lightCount{ 18 };
-        Entity* lightCluster{ m_ActiveScene->CreateEntity( "LightCluster" ) };
-        for (UInt32 count{}; count < lightCount; count++) {
-            if (Entity *clusteredLight{ m_ActiveScene->CreateEntity( lightCluster, fmt::format( "Light {}", count ) ) }) {
-                LightComponent &lightComp{ clusteredLight->AddComponent<LightComponent>() };
-                lightComp.SetActiveType( LightType::POINT_LIGHT_TYPE );
-
-                auto &pointLightData{ lightComp.Get<PointLight>() };
-                pointLightData.SetIntensity( 50.0f );
-                pointLightData.SetRadius( 15.0f );
-                pointLightData.SetColor( GetRandomizedVec3F(0.0f, 1.0f ) );
-
-                TransformComponent &transformComponent{ clusteredLight->GetComponent<TransformComponent>() };
-                transformComponent.SetTranslation( { GetRandomReal(-66.0f, 125.0f), 2.0f, GetRandomReal(-100.0f, 100.0f) } );
-
-                // Test heatmaps, by accumulating many lights into small area
-                // transformComponent.SetTranslation( { GetRandomReal(0, 10.0f), 2.0f, GetRandomReal(0, 15) } );
-            }
-        }
+        DebugSpheresProperties();
     }
 
     auto EditorLayer::PrepareRenderer( double ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        const SettingsPanel &settingsPanel{ *m_PanelRegistry.Get<SettingsPanel>() };
-
-        const auto& settings{ settingsPanel.GetData() };
-
         m_SceneRenderer->SetCamera( m_EditorCamera.get() );
-        m_SceneRenderer->SetSkyBox( m_ActiveScene->GetSkybox() );
-        m_SceneRenderer->EnableSkybox( m_ActiveScene->IsSkyboxEnabled() );
-
-        m_SceneRenderer->SetClearColor( settings.ClearColor );
-
         m_SceneRenderer->SetEnvironmentGamma( m_ActiveScene->GetGamma() );
         m_SceneRenderer->SetEnvironmentExposure( m_ActiveScene->GetExposure() );
+
+        m_SceneRenderer->EnableSkybox( m_ActiveScene->IsSceneBackground(SceneBackground::SKYBOX) );
+
+        // Wireframe
+        RendererPanel* settings{ m_PanelRegistry.Get<RendererPanel>() };
+        m_SceneRenderer->SetWireframeEnable(m_EditorState->ShowWireframe);
+
+        m_SceneRenderer->UseLDRCubeMap( settings->EnableSkyboxLDR() );
     }
-} // namespace Mikoto
+}

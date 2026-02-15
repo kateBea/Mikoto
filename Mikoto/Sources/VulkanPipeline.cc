@@ -1,26 +1,36 @@
-/**
- * VulkanPipeline.cc
- * Created by kate on 6/2/23.
- * */
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// C++ Standard Library
 #include <fstream>
 #include <array>
 #include <ranges>
 #include <vector>
 
-// Third-Party Libraries
 #include <volk.h>
 
-// Project Headers
 #include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
+
 #include <Logging/Logger.hh>
+
+#include <Library/Utility/Types.hh>
+
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>
 #include <Renderer/Vulkan/VulkanShader.hh>
+#include <Renderer/Vulkan/Reflection.hh>
 
 namespace Mikoto {
 
@@ -53,7 +63,6 @@ namespace Mikoto {
         // [Input assembly]
         configInfo.InputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         configInfo.InputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        //configInfo.InputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;// Every three vertices are group together into a separate triangle
         configInfo.InputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
 
         // [Viewport and Scissor]
@@ -103,29 +112,26 @@ namespace Mikoto {
         return configInfo;
     }
 
-    static auto GetDefaultAttributeDescriptions( std::vector<AttributesSpec>& attributeSpec ) -> std::vector<VkVertexInputAttributeDescription> {
-        Size attributeCount{ };
-        for (Size attributeBinding{}; attributeBinding < attributeSpec.size(); ++attributeBinding ) {
-            attributeCount += attributeSpec[attributeBinding].DefaultVertexLayout.GetCount();
-        }
-
+    static auto GetDefaultAttributeDescriptions(
+        const std::vector<AttributesSpec>& attributeSpec,
+        const VulkanHelpers::Reflection::ReflectedData& reflection ) ->
+        std::vector<VkVertexInputAttributeDescription>
+    {
+        // Input attribute count is determined by the reflection metadata
+        // as we want to avoid declaring more input attributes than what the shader consumes
+        Size attributeCount{ reflection.vertexAttributes.size() };
         std::vector attributeDescriptions( attributeCount, VkVertexInputAttributeDescription{} );
 
         /**
          * The binding parameter tells Vulkan from which binding the per-vertex (if do per vertex and not instanced) data comes.
          * The location parameter references the location directive of the input in the vertex shader.
-         * The input in the vertex shader with location 0 is the position, which has two 32-bit float
-         * components. The format parameter describes the type of data for the attribute
-         *
          * See: https://vulkan-tutorial.com/Vertex_buffers/Vertex_input_description
          * */
 
-        // The index refers to how the vertex attributes are laid out according to s_DefaultBufferLayout
-        // so index 0 -> s_DefaultBufferLayout first attribute,
-        // index 1 -> s_DefaultBufferLayout second attribute, and so on
+        // For each binding we declare the binding's input attributes
         Size attributeIndex{};
         for (Size attributeBinding{}; attributeBinding < attributeSpec.size(); ++attributeBinding ) {
-            for ( Size currentBufferLayoutCount{}; currentBufferLayoutCount < attributeSpec[attributeBinding].DefaultVertexLayout.GetCount(); ++currentBufferLayoutCount ) {
+            for ( Size currentBufferLayoutCount{}; currentBufferLayoutCount < attributeCount && currentBufferLayoutCount < attributeSpec[attributeBinding].DefaultVertexLayout.GetCount(); ++currentBufferLayoutCount ) {
                 const BufferLayout& layout{ attributeSpec[attributeBinding].DefaultVertexLayout };
 
                 attributeDescriptions[attributeIndex] = {};
@@ -143,7 +149,7 @@ namespace Mikoto {
     }
 
     // Helper function to convert Mikoto InputRate -> Vulkan VkVertexInputRate
-    inline VkVertexInputRate ToVulkanInputRate(InputRate rate) {
+    MKT_NODISCARD static auto ToVulkanInputRate(InputRate rate) -> VkVertexInputRate {
         switch (rate) {
             case InputRate::PER_VERTEX:   return VK_VERTEX_INPUT_RATE_VERTEX;
             case InputRate::PER_INSTANCE: return VK_VERTEX_INPUT_RATE_INSTANCE;
@@ -151,9 +157,10 @@ namespace Mikoto {
         }
     }
 
-    static auto GetDefaultBindingDescriptions(std::vector<AttributesSpec>& attributeSpec ) -> std::vector<VkVertexInputBindingDescription> {
-        // All of our per-vertex data is packed together in one array, so we're only going to have one binding.
-        // See: https://vulkan-tutorial.com/Vertex_buffers/Vertex_input_description
+    static auto GetDefaultBindingDescriptions(const std::vector<AttributesSpec>& attributeSpec ) -> std::vector<VkVertexInputBindingDescription> {
+        // Specify vertex buffers to be bound, we are generally using 1 now, but for instancing you may need more than one binding, see docs for more
+        // Example BindVertexBuffer(vertexBuffer, binding = 0)
+        //         BindVertexBuffer(vertexBuffer, binding = 1), etc
 
         auto bindingDescriptions{ std::vector<VkVertexInputBindingDescription>(attributeSpec.size()) };
 
@@ -180,6 +187,36 @@ namespace Mikoto {
         return shaderStagesInfos;
     }
 
+    auto VulkanPipeline::Get() const -> VkPipeline {
+        return m_Pipeline;
+    }
+
+    auto VulkanPipeline::GetLayout() const -> VkPipelineLayout {
+        return m_ReflectionData.pipelineLayout;
+    }
+
+    auto VulkanPipeline::HasPushConstants() const -> bool {
+        return !m_ReflectionData.pushConstantRanges.empty();
+    }
+
+    auto VulkanPipeline::GetDescriptorLayoutCount() const -> Size {
+        return m_ReflectionData.setLayouts.size();
+    }
+
+    auto VulkanPipeline::GetDescriptorSetIndices() const -> std::vector<UInt32> {
+        std::vector<UInt32> keys{};
+        keys.reserve(m_ReflectionData.setLayouts.size());
+
+        for ( const auto& key: m_ReflectionData.setLayouts | std::views::keys )
+            keys.push_back(key);
+
+        return keys;
+    }
+
+    auto VulkanPipeline::GetDescriptorSetLayout( UInt32 index ) const -> const VkDescriptorSetLayout& {
+        return m_ReflectionData.setLayouts.at(index);
+    }
+
     VulkanGraphicsPipeline::VulkanGraphicsPipeline( const VulkanGraphicsPipelineDescription& info)
         : GraphicsPipeline{ info.Desc.ShaderStages } {
 
@@ -187,6 +224,9 @@ namespace Mikoto {
         m_CullMode = info.Desc.PipelineCullMode;
         m_Wireframe = info.Desc.Wireframe;
         m_VertexAttributesSpec = info.Desc.VertexAttributesSpec;
+
+        m_Multisampling = info.Desc.Multisampling;
+        m_EnableSampleRateShading = info.Desc.EnableSampleRateShading;
 
         // Depth Render target format
         m_DepthAttachmentFormat = VulkanHelpers::ToVkFormat( info.Desc.DepthAttachmentFormat );
@@ -233,6 +273,10 @@ namespace Mikoto {
 
         m_PipelineConfig.InputAssemblyInfo.topology = InferVulkanTopology(m_Topology);
 
+        // Multisampling config
+        m_PipelineConfig.MultisampleInfo.sampleShadingEnable = m_EnableSampleRateShading ? VK_TRUE : VK_FALSE;
+        m_PipelineConfig.MultisampleInfo.rasterizationSamples = VulkanHelpers::ToVkRasterSamples( m_Multisampling );
+
         m_PipelineConfig.DepthStencilInfo.depthWriteEnable = m_DepthWrite ? VK_TRUE : VK_FALSE;
         m_PipelineConfig.DepthStencilInfo.depthTestEnable = m_DepthTest ? VK_TRUE : VK_FALSE;
 
@@ -243,7 +287,7 @@ namespace Mikoto {
 
         if (m_Wireframe) {
             m_PipelineConfig.RasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
-            //m_DynamicStates.emplace_back( VK_DYNAMIC_STATE_LINE_WIDTH );
+            m_DynamicStates.emplace_back( VK_DYNAMIC_STATE_LINE_WIDTH );
         }
 
         // VK_DYNAMIC_STATE_VERTEX_INPUT_EXT can reduce the amount of pipelines the application needs to create
@@ -266,10 +310,10 @@ namespace Mikoto {
         switch (type) {
 
             case ObjectType::Vk_PipelineLayout:
-                return Object(m_ReflectionData.pipelineLayout);
+                return Object( m_ReflectionData.pipelineLayout );
 
             case ObjectType::Vk_Pipeline:
-                return Object(m_Pipeline );
+                return Object( m_Pipeline );
 
             default:;
         }
@@ -277,22 +321,9 @@ namespace Mikoto {
         return Object(nullptr);
     }
 
-    auto VulkanGraphicsPipeline::GetDescriptorSetIndices() const -> std::vector<UInt32> {
-        std::vector<UInt32> keys{};
-        keys.reserve(m_ReflectionData.setLayouts.size());
-
-        for ( const auto& key: m_ReflectionData.setLayouts | std::views::keys )
-            keys.push_back(key);
-
-        return keys;
-    }
-
-    auto VulkanGraphicsPipeline::GetDescriptorLayoutCount() const -> Size {
-        return m_ReflectionData.setLayouts.size();
-    }
-
-    auto VulkanGraphicsPipeline::GetDescriptorSetLayout( UInt32 index ) const -> const VkDescriptorSetLayout& {
-        return m_ReflectionData.setLayouts.at(index);
+    auto VulkanGraphicsPipeline::SetDebugName( std::string_view name ) -> void {
+        m_DebugName = name;
+        VulkanHelpers::SetObjectDebugName( VK_DEVICE( m_Device ), VK_OBJECT_TYPE_PIPELINE, reinterpret_cast<UInt64>( m_Pipeline ), m_DebugName.c_str() );
     }
 
     VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
@@ -336,11 +367,15 @@ namespace Mikoto {
 
         // Binding descriptions (define data layout)
         // Attribute layout is what we specify because we are the ones that know how is buffer data laid out in CPU side
-        const auto& attributeDesc{ GetDefaultAttributeDescriptions( m_VertexAttributesSpec ) };
+        auto bindingDescriptions{ GetDefaultBindingDescriptions( m_VertexAttributesSpec ) };
+        auto attributeDesc{ GetDefaultAttributeDescriptions( m_VertexAttributesSpec, m_ReflectionData ) };
+
+        // First we check non consumed attributes and remove them
+
+
         vertexInputInfo.vertexAttributeDescriptionCount = static_cast<UInt32>( attributeDesc.size() );
         vertexInputInfo.pVertexAttributeDescriptions = attributeDesc.data();
 
-        const auto& bindingDescriptions{ GetDefaultBindingDescriptions( m_VertexAttributesSpec ) };
         vertexInputInfo.vertexBindingDescriptionCount = static_cast<UInt32>( bindingDescriptions.size() );
         vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
 
@@ -390,9 +425,7 @@ namespace Mikoto {
 
     VulkanComputePipeline::VulkanComputePipeline(const ComputePipelineDescription& info)
         : ComputePipeline( info )
-    {
-
-    }
+    {}
 
     auto VulkanComputePipeline::Release() -> void {
         DestroyReflectedPipeline( VK_DEVICE(m_Device), m_ReflectionData );
@@ -401,29 +434,10 @@ namespace Mikoto {
         m_IsAllocated = false;
     }
 
-    auto VulkanComputePipeline::GetDescriptorSetIndices() const -> std::vector<UInt32> {
-        std::vector<UInt32> keys{};
-        keys.reserve(m_ReflectionData.setLayouts.size());
-
-        for ( const auto& setLayout: m_ReflectionData.setLayouts | std::views::keys ) {
-            keys.push_back(setLayout);
-        }
-
-        return keys;
-    }
-
-    auto VulkanComputePipeline::GetDescriptorLayoutCount() const -> Size {
-        return m_ReflectionData.setLayouts.size();
-    }
-
     VulkanComputePipeline::~VulkanComputePipeline() {
         if (m_IsAllocated) {
             Release();
         }
-    }
-
-    auto VulkanComputePipeline::GetDescriptorSetLayout( UInt32 index ) const -> const VkDescriptorSetLayout& {
-        return m_ReflectionData.setLayouts.at( index );
     }
 
     auto VulkanComputePipeline::Initialize() -> void {
@@ -444,8 +458,8 @@ namespace Mikoto {
 
         VkResult res{ ReflectSPIRV( VK_DEVICE(m_Device), shaderBlocks, m_ReflectionData ) };
 
-        if (shaderStageInfos.empty() || m_ReflectionData.pipelineLayout == VK_NULL_HANDLE) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanComputePipeline::Initialize - stage infos is empty or pipeline layout is null handle." );
+        if (shaderStageInfos.empty() || m_ReflectionData.pipelineLayout == VK_NULL_HANDLE || res != VK_SUCCESS) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanComputePipeline::Initialize - Failed to reflect compute pipeline stages." );
         }
 
         // I use front() because compute pipeline only have one stage, the compute shader
@@ -464,6 +478,11 @@ namespace Mikoto {
         m_IsAllocated = true;
     }
 
+    auto VulkanComputePipeline::SetDebugName( std::string_view name ) -> void {
+        m_DebugName = name;
+        VulkanHelpers::SetObjectDebugName( VK_DEVICE( m_Device ), VK_OBJECT_TYPE_PIPELINE, reinterpret_cast<UInt64>( m_Pipeline ), m_DebugName.c_str() );
+    }
+
     auto VulkanComputePipeline::GetNativeHandle( ObjectType type ) -> Object {
         switch (type) {
             case ObjectType::Vk_PipelineLayout:
@@ -477,4 +496,4 @@ namespace Mikoto {
 
         return Object(nullptr);
     }
-}// namespace Mikoto
+}

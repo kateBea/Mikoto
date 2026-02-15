@@ -18,6 +18,7 @@ namespace Mikoto {
         NORMAL_TEXTURE,
         METALLIC_TEXTURE,
         ROUGHNESS_TEXTURE,
+        METALLIC_ROUGHNESS_TEXTURE,
         AMBIENT_OCCLUSION_TEXTURE,
         EMISSIVE_TEXTURE,
         UNDEFINED_TEXTURE,
@@ -41,9 +42,9 @@ namespace Mikoto {
     enum class BufferUsage {
         VERTEX,
         INDEX,
-        STAGING,
         UNIFORM,
-        SSBO,
+        SHADER_STORAGE,
+        UNDEFINED,
     };
 
     enum class SamplerFilter {
@@ -96,10 +97,12 @@ namespace Mikoto {
     enum class TextureUsage {
         COLOR,
         DEPTH,
+        STENCIL,
+        DEPTH_STENCIL,
         NORMAL,
         STORAGE,      // compute shader writable
         CUBE,         // for environment maps
-        TEXTURE_USAGE_RENDER_TARGET,// render target attachments
+        RENDER_TARGET,// render target attachments
     };
 
     /**
@@ -150,11 +153,8 @@ namespace Mikoto {
         // Resource never changes after creation
         RESOURCE_USAGE_STATIC,
 
-        // Resource can be updated sometimes
+        // Resource can be updated while GPU is reading from it
         RESOURCE_USAGE_DYNAMIC,
-
-        // Resource can update often
-        RESOURCE_USAGE_STREAM,
     };
 
     enum class BufferDataType {
@@ -168,6 +168,14 @@ namespace Mikoto {
         CLEAR,
         LOAD,
         UNDEFINED,
+    };
+
+    enum class Multisampling {
+        MSAA_X1 = 1,
+        MSAA_X2 = 2,
+        MSAA_X4 = 4,
+        MSAA_X8 = 8,
+        MSAA_X16 = 16
     };
 
     template<typename T>
@@ -195,11 +203,18 @@ namespace Mikoto {
     };
 
     struct TextureDescription {
+        std::string Name{};
+
         Int32 Width{};
         Int32 Height{};
         Int32 ChannelCount{ 4 };
 
+        bool IsHDR{ false };
+
         Byte* Data{ nullptr };
+        Size BufferSize{}; // Optional
+
+        Multisampling MSAA{ Multisampling::MSAA_X1 };
 
         const File* TextureFile{ nullptr };
 
@@ -210,7 +225,9 @@ namespace Mikoto {
         TextureFormat Format{ TextureFormat::RGBA8_SNORM };
         ResourceUsageType UsageType{ ResourceUsageType::RESOURCE_USAGE_STATIC };
 
+        auto IsHDRMap( bool value ) -> TextureDescription&;
         auto WithWidth( Int32 width ) -> TextureDescription&;
+        auto WithName( std::string_view name ) -> TextureDescription&;
         auto WithHeight( Int32 height ) -> TextureDescription&;
         auto WithChannelCount( Int32 channels ) -> TextureDescription&;
 
@@ -219,6 +236,7 @@ namespace Mikoto {
         auto WithFile( const File* file) -> TextureDescription&;
 
         auto WithData( Byte* data ) -> TextureDescription&;
+        auto WithSize( Size size ) -> TextureDescription&;
         auto WithType( TextureType type ) -> TextureDescription&;
         auto WithTextureUsage( TextureUsage usage ) -> TextureDescription&;
 
@@ -235,11 +253,12 @@ namespace Mikoto {
     * for setting its properties.
     */
     struct TextureLoadDescription {
+        bool IsHDR{ false };
         const File* TextureFile{};
         MapType Map{ MapType::UNDEFINED_TEXTURE };
         TextureType Type{ TextureType::TEXTURE_UNKNOWN };
 
-
+        auto IsHDRMap( bool value ) -> TextureLoadDescription&;
         auto WithMapType( MapType type ) -> TextureLoadDescription&;
         auto WithFile( const File* file ) -> TextureLoadDescription&;
         auto WithType( TextureType type ) -> TextureLoadDescription&;
@@ -278,9 +297,11 @@ namespace Mikoto {
         ResourceUsageType ResourceUsage{ ResourceUsageType::RESOURCE_USAGE_STATIC };
 
         UInt32 MipLevels{ 1 };
-        UInt32 Dimensions{};
+        UInt32 Dimensions{ 1024 };
         TextureFormat Format{ TextureFormat::RGBA8_UNORM };
         TextureUsage Usage{ TextureUsage::CUBE };
+
+        Multisampling MSAA{ Multisampling::MSAA_X1 };
 
         bool IsHdrMap{ false };
 
@@ -309,14 +330,17 @@ namespace Mikoto {
 
         SamplerFilter MinFilter{ SamplerFilter::FILTER_NEAREST };
         SamplerFilter MagFilter{ SamplerFilter::FILTER_NEAREST };
-        SamplerWrapMode WrapS{ SamplerWrapMode::WRAP_REPEAT };
-        SamplerWrapMode WrapT{ SamplerWrapMode::WRAP_REPEAT };
+        SamplerWrapMode WrapU{ SamplerWrapMode::WRAP_CLAMP_TO_EDGE };
+        SamplerWrapMode WrapV{ SamplerWrapMode::WRAP_CLAMP_TO_EDGE };
+        SamplerWrapMode WrapW{ SamplerWrapMode::WRAP_CLAMP_TO_EDGE };
 
         auto WithMipLevels(float mipLevels) -> SamplerDescription&;
         auto WithMinFilter( SamplerFilter filter ) -> SamplerDescription&;
         auto WithMagFilter( SamplerFilter filter ) -> SamplerDescription&;
-        auto WithWrapS( SamplerWrapMode wrap ) -> SamplerDescription&;
-        auto WithWrapT( SamplerWrapMode wrap ) -> SamplerDescription&;
+
+        auto WithWrapU( SamplerWrapMode wrap ) -> SamplerDescription&;
+        auto WithWrapV( SamplerWrapMode wrap ) -> SamplerDescription&;
+        auto WithWrapW( SamplerWrapMode wrap ) -> SamplerDescription&;
     };
 
     /**
@@ -379,6 +403,9 @@ namespace Mikoto {
         UHD_3120P,
     };
 
+    MKT_NODISCARD auto GetChanelString( UInt32 channelCount ) -> std::string_view;
+    MKT_NODISCARD auto GetTextureFormatString( TextureFormat format ) -> std::string_view;
+
     MKT_NODISCARD auto InferAPI( std::string_view apiName ) -> GraphicsAPI;
 
     MKT_NODISCARD auto InferElementCount(BufferDataType dataType, Size blockSize) -> Size;
@@ -387,7 +414,8 @@ namespace Mikoto {
 
     auto FreeImageData( Byte* data ) -> void;
     MKT_NODISCARD auto LoadImageFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
-    MKT_NODISCARD auto LoadHDRImageFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
+    MKT_NODISCARD auto LoadImageFromMemory( const Byte* buffer, Size sizeBytes, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
+    MKT_NODISCARD auto LoadImageFloatFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
 
     class STBImageHDR final {
     public:
@@ -418,7 +446,9 @@ namespace Mikoto {
 
     class StbImage final {
     public:
-        explicit StbImage( const File* textureFile );
+        explicit StbImage( const File* textureFile, bool isHDR = false );
+
+        explicit StbImage( const Byte* data, Size sizeBytes );
 
         ~StbImage();
 

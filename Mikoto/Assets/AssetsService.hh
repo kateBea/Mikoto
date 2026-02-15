@@ -17,6 +17,8 @@
 
 #include <vector>
 #include <future>
+#include <atomic>
+#include <mutex>
 #include <ankerl/unordered_dense.h>
 
 #include <Assets/Font.hh>
@@ -90,7 +92,11 @@ namespace Mikoto {
                     return it->second;
             }
             else if constexpr (std::is_same_v<AssetType, Texture>) {
-                if ( const auto it{ m_Textures.find(fullpath) }; it != m_Textures.end())
+                if ( const auto it{ m_Textures2D.find(fullpath) }; it != m_Textures2D.end())
+                    return it->second;
+            }
+            else if constexpr (std::is_same_v<AssetType, TextureCube>) {
+                if ( const auto it{ m_Textures2D.find(fullpath) }; it != m_TexturesCubes.end())
                     return it->second;
             }
             else if constexpr (std::is_same_v<AssetType, Audio>) {
@@ -133,9 +139,8 @@ namespace Mikoto {
             return Ref<AssetType>::CreateEmpty();
         }
 
-        // TODO: finish implementation and test
         template<typename AssetType>
-        auto LoadAssetAsync( auto&&... args ) -> std::future<Ref<AssetType>> {
+        auto LoadAssetAsync( auto&&... args ) -> void {
             auto tuple{ std::make_tuple(std::forward<decltype(args)>(args)...) };
 
             TaskService::Get()->Submit([this, argsTuple = std::move(tuple)]() mutable -> void {
@@ -143,13 +148,11 @@ namespace Mikoto {
                     LoadAsset<AssetType>(std::forward<Args>(unpackedArgs)...);
                 }, std::move(argsTuple));
             });
-
-            return {};
         }
 
         MKT_NODISCARD auto GetDummyTexture() -> TextureHandle;
 
-        MKT_NODISCARD auto CreateMaterial( const MaterialCreateInfo& spec = {} ) -> MaterialHandle;
+        MKT_NODISCARD auto CreateMaterial( const MaterialProperties& spec = {} ) -> MaterialHandle;
 
         ~AssetsService() override = default;
 
@@ -157,8 +160,9 @@ namespace Mikoto {
         auto LoadModel( std::string_view uri ) -> ModelHandle;
         auto LoadModel( const ModelLoadDescription& description) -> ModelHandle;
 
-        auto LoadTexture( const Path& uri ) -> TextureHandle;
-        auto LoadTexture( std::string_view uri ) -> TextureHandle;
+        auto LoadTexture( const Path& uri, bool isHDR = false ) -> TextureHandle;
+        auto LoadTexture( std::string_view uri, bool isHDR = false  ) -> TextureHandle;
+        auto LoadTexture( const TextureDescription& description ) -> TextureHandle;
         auto LoadTexture( const TextureLoadDescription& description) -> TextureHandle;
 
         auto LoadCubeMap( const Path& uri ) -> TextureHandle;
@@ -187,11 +191,16 @@ namespace Mikoto {
 
         ResourcePoolTyped<PBRMaterial> m_PBRMaterialsPool{};
 
+        std::mutex m_Texture2DPoolMutex{};
+        std::mutex m_TextureCubePoolMutex{};
+
         ankerl::unordered_dense::map<std::string, MaterialHandle> m_Materials{};
         ankerl::unordered_dense::map<std::string, ModelHandle> m_Models{};
-        ankerl::unordered_dense::map<std::string, TextureHandle> m_Textures{};
         ankerl::unordered_dense::map<std::string, AudioHandle> m_Audios{};
         ankerl::unordered_dense::map<std::string, FontHandle> m_Fonts{};
+
+        ankerl::unordered_dense::map<std::string, TextureHandle> m_Textures2D{};
+        ankerl::unordered_dense::map<std::string, TextureHandle> m_TexturesCubes{};
     };
 }// namespace Mikoto
 

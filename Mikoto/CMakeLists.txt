@@ -39,6 +39,44 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 include(FetchContent)
 
 # ======================================
+# MeshOptimizer
+# ======================================
+set(MESHOPT_BUILD_DEMO OFF CACHE BOOL "" FORCE)
+set(MESHOPT_BUILD_GLTFPACK OFF CACHE BOOL "" FORCE)
+set(MESHOPT_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(MESHOPT_STABLE_EXPORTS OFF CACHE BOOL "" FORCE)
+set(MESHOPT_WERROR OFF CACHE BOOL "" FORCE)
+set(MESHOPT_INSTALL OFF CACHE BOOL "" FORCE)
+
+# ======================================
+# tinigltf
+# ======================================
+set(TINYGLTF_BUILD_LOADER_EXAMPLE        OFF  CACHE BOOL "" FORCE)
+set(TINYGLTF_BUILD_GL_EXAMPLES           OFF CACHE BOOL "" FORCE)
+set(TINYGLTF_BUILD_VALIDATOR_EXAMPLE     OFF CACHE BOOL "" FORCE)
+set(TINYGLTF_BUILD_BUILDER_EXAMPLE       OFF CACHE BOOL "" FORCE)
+set(TINYGLTF_BUILD_TESTS                 OFF CACHE BOOL "" FORCE)
+set(TINYGLTF_HEADER_ONLY                 OFF CACHE BOOL "" FORCE)
+set(TINYGLTF_INSTALL                     OFF  CACHE BOOL "" FORCE)
+set(TINYGLTF_INSTALL_VENDOR              OFF  CACHE BOOL "" FORCE)
+
+# ======================================
+# Ozz
+# ======================================
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+
+set(ozz_build_tools ON CACHE BOOL "" FORCE)
+set(ozz_build_gltf  ON CACHE BOOL "" FORCE)
+
+set(ozz_build_fbx ON CACHE BOOL "" FORCE)
+set(ozz_build_samples OFF CACHE BOOL "" FORCE)
+set(ozz_build_howtos OFF CACHE BOOL "" FORCE)
+set(ozz_build_tests OFF CACHE BOOL "" FORCE)
+set(ozz_build_data OFF CACHE BOOL "" FORCE)
+set(ozz_build_simd_ref OFF CACHE BOOL "" FORCE)
+set(ozz_build_msvc_rt_dll OFF CACHE BOOL "" FORCE)
+
+# ======================================
 # Taskflow
 # ======================================
 set(TF_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
@@ -394,11 +432,34 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(tracy)
 
+# Ozz
+FetchContent_Declare(
+        ozz-animation
+        GIT_REPOSITORY https://github.com/guillaumeblanc/ozz-animation.git
+        GIT_TAG master
+)
+
+FetchContent_MakeAvailable(ozz-animation)
+
 #Filewatch
 # Using https://github.com/ThomasMonkman/filewatch/tree/feature/fix-filesystem (currently working branch)
 # It is single header
 set(FILEWATCH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Filewatch")
 set(FILEWATCH_INCLUDE_DIR "${FILEWATCH_ROOT}")
+
+# ImOGuizmo
+# Using https://github.com/fknfilewalker/imoguizmo.git
+# It is single header
+set(IMOGUIZMO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/ImOGuizmo")
+set(IMOGUIZMO_INCLUDE_DIR "${IMOGUIZMO_ROOT}")
+
+# ImOGuizmo
+# https://github.com/thedmd/imgui-node-editor.git
+# Slightly modified, in Mikoto we use imgui 1.90+ which has removed some functions this library relied on
+# I modified the library and added some of the missing functions. The verison used for this change was the one from master branch
+# as of commit https://github.com/thedmd/imgui-node-editor/commit/e78e447900909a051817a760efe13fe83e6e1afc
+set(IMGUI_NO_EDITOR_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/imgui_node_editor")
+set(IMGUI_NO_EDITOR_INCLUDE_DIR "${IMGUI_NO_EDITOR_ROOT}")
 
 # -------------------------------------------------------
 # OpenCL-SDK
@@ -411,65 +472,27 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(OpenCL-SDK)
 
-# harfbuzz (not needed if you don't do complex text layout)
-#FetchContent_Declare(
-#        harfbuzz
-#        GIT_REPOSITORY https://github.com/harfbuzz/harfbuzz.git
-#        GIT_TAG main
-#)
-#FetchContent_MakeAvailable(harfbuzz)
+# -------------------------------------------------------
+# MeshOptimizer
+# -------------------------------------------------------
+FetchContent_Declare(
+        meshoptimizer
+        GIT_REPOSITORY https://github.com/zeux/meshoptimizer.git
+        GIT_TAG        v1.0
+)
 
-# On linux OpenSSL can be fetched and build with Mikoto
-# for HTTPS support
-if (UNIX AND NOT OpenSSL_FOUND)
-    FetchContent_Declare(
-            openssl
-            URL https://www.openssl.org/source/openssl-3.6.0.tar.gz
-    )
+FetchContent_MakeAvailable(meshoptimizer)
 
-    FetchContent_MakeAvailable(openssl)
+# -------------------------------------------------------
+# TinyGLTF
+# -------------------------------------------------------
+FetchContent_Declare(
+        tinygltf
+        GIT_REPOSITORY https://github.com/syoyo/tinygltf.git
+        GIT_TAG        v2.9.7
+)
 
-    # ================
-    set(OPENSSL_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/openssl-src)
-    set(OPENSSL_INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/openssl)
-    set(OPENSSL_INCLUDE_DIR ${OPENSSL_INSTALL_DIR}/include)
-    set(OPENSSL_CONFIGURE_COMMAND ${OPENSSL_SOURCE_DIR}/config)
-    ExternalProject_Add(
-            OpenSSL
-            SOURCE_DIR ${OPENSSL_SOURCE_DIR}
-            GIT_REPOSITORY https://github.com/openssl/openssl.git
-            GIT_TAG OpenSSL_1_1_1n
-            CONFIGURE_COMMAND ${OPENSSL_SOURCE_DIR}/config --prefix=${OPENSSL_INSTALL_DIR} --openssldir=${OPENSSL_INSTALL_DIR}
-            BUILD_COMMAND make
-            INSTALL_COMMAND make install
-            BUILD_BYPRODUCTS
-            ${OPENSSL_INSTALL_DIR}/lib/libssl.a
-            ${OPENSSL_INSTALL_DIR}/lib/libcrypto.a
-            UPDATE_COMMAND ""               # <— prevent automatic updates/rebuilds every time
-            BUILD_ALWAYS 0                  # <— do not always rebuild
-    )
-
-
-    # We cannot use find_library because ExternalProject_Add() is performed at build time.
-    # And to please the property INTERFACE_INCLUDE_DIRECTORIES,
-    # we make the include directory in advance.
-    file(MAKE_DIRECTORY ${OPENSSL_INCLUDE_DIR})
-
-    # Make sure the directories exist
-    file(MAKE_DIRECTORY ${OPENSSL_INCLUDE_DIR})
-
-    add_library(OpenSSL::SSL STATIC IMPORTED GLOBAL)
-    set_property(TARGET OpenSSL::SSL PROPERTY IMPORTED_LOCATION
-            ${OPENSSL_INSTALL_DIR}/lib/libssl.a)
-    set_property(TARGET OpenSSL::SSL PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_INCLUDE_DIR})
-    add_dependencies(OpenSSL::SSL OpenSSL)
-
-    add_library(OpenSSL::Crypto STATIC IMPORTED GLOBAL)
-    set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION
-            ${OPENSSL_INSTALL_DIR}/lib/libcrypto.a)
-    set_property(TARGET OpenSSL::Crypto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_INCLUDE_DIR})
-    add_dependencies(OpenSSL::Crypto OpenSSL)
-endif ()
+FetchContent_MakeAvailable(tinygltf)
 
 # ======================================
 # Project sources
@@ -498,6 +521,13 @@ set(IMGUIZMO_SOURCES
         ${imguizmo_SOURCE_DIR}/ImSequencer.cpp
 )
 
+set(IMGUI_NODES_SOURCES
+        ${IMGUI_NO_EDITOR_ROOT}/imgui_node_editor.cpp
+        ${IMGUI_NO_EDITOR_ROOT}/imgui_node_editor_api.cpp
+        ${IMGUI_NO_EDITOR_ROOT}/crude_json.cpp
+        ${IMGUI_NO_EDITOR_ROOT}/imgui_canvas.cpp
+)
+
 # SpirV-Reflect sources
 set(SPIRV_REFLECT_SOURCES
         ${spirv_reflect_SOURCE_DIR}/spirv_reflect.c
@@ -515,6 +545,7 @@ set(ALL_SOURCES
         ${IMGUIZMO_SOURCES}
         ${SPIRV_REFLECT_SOURCES}
         ${MINIAUDIO_SOURCES}
+        ${IMGUI_NODES_SOURCES}
 )
 
 # ======================================
@@ -539,30 +570,29 @@ set(LIBRARIES
         sol2::sol2
         Tracy::TracyClient
         OpenCL::OpenCL
+        ozz_animation
+        ozz_animation_offline
+        meshoptimizer
+        tinygltf
 )
 
 # ======================================
 # Debug print Cmake variables
 # ======================================
-#get_cmake_property(_variableNames VARIABLES)
-#    foreach(_variableName ${_variableNames})
-#        message(STATUS "${_variableName}=${${_variableName}}")
-#endforeach()
+get_cmake_property(_variableNames VARIABLES)
+foreach(_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()
 
-# ======================================
-# Create Mikoto library
-# ======================================
 add_library(${PROJECT_NAME} STATIC ${ALL_SOURCES})
 
-# ======================================
-# Link kibraries
-# ======================================
-
+# Lua needs to be installed on Linux
 if(UNIX)
     find_package(Lua REQUIRED)
     list(APPEND LIBRARIES pthread OpenSSL::SSL OpenSSL::Crypto)
 endif()
 
+# For MSVC we find lua from Mikoto/Vendors folder
 if (MSVC OR WIN32)
     set(LUA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Lua/lua-5.4.2_Win64_vc17_lib")
 
@@ -571,14 +601,14 @@ if (MSVC OR WIN32)
 
     set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
 
+    message(STATUS "Linking against Lua library: ${LUA_LIBRARIES}")
+    message(STATUS "Include against Lua library: ${LUA_INCLUDE_DIR}")
+
     target_compile_options(Jolt PRIVATE
             /wd4865
             /WX-
             /Zc:enumTypes-
     )
-
-    message(STATUS "Linking against Lua library: ${LUA_LIBRARIES}")
-    message(STATUS "Include against Lua library: ${LUA_INCLUDE_DIR}")
 endif()
 
 # Windowing system
@@ -622,9 +652,14 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${tracy_SOURCE_DIR}/asio/include
         ${LUA_INCLUDE_DIR}
         ${FILEWATCH_INCLUDE_DIR}
+        ${IMOGUIZMO_INCLUDE_DIR}
         ${OpenCL-SDK_SOURCE_DIR}/lib/include
         ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-Headers
         ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-CLHPP/include
+        ${ozz_SOURCE_DIR}/include
+        ${meshoptimizer_SOURCE_DIR}/src
+        ${tinygltf_SOURCE_DIR}
+        ${IMGUI_NO_EDITOR_INCLUDE_DIR}
 )
 
 # ======================================
@@ -666,6 +701,7 @@ if(MIKOTO_USE_WIN32_WINDOW)
 endif()
 
 if (MIKOTO_ALLOW_SSL)
+    message("Using OpenSSL for HTTPS support")
     target_compile_definitions(${PROJECT_NAME} PUBLIC MIKOTO_OPENSSL_AVAILABLE)
 endif()
 
@@ -683,10 +719,10 @@ add_custom_command(
         OUTPUT ${RESOURCES_DST}
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${RESOURCES_SRC} ${RESOURCES_DST}
         COMMAND chmod +x ${INSTALL_SCRIPT}
-        COMMENT "Copying all resources and making installs.sh executable"
+        COMMENT "Copying all resources to build directory"
 )
 
-# Create a target that depends on the copied files
+# For installing dependencies on Linux
 if(UNIX)
     add_custom_target(InstallDependencies
             DEPENDS ${RESOURCES_DST}

@@ -87,6 +87,9 @@ namespace Mikoto {
 
         auto WantRotation( bool xAxis, bool yAxis ) -> void;
 
+        auto SetCameraTarget(const Vec3F& position) -> void;
+        auto LockCameraToTarget(bool enable) -> void;
+        auto SetOrbitDistance(float orbitDistance = 10.0f) -> void;
 
         /**
          * @brief Sets the far clipping plane distance of the camera.
@@ -141,6 +144,10 @@ namespace Mikoto {
         float m_RotationFactor{ 0.03f };
 
         bool m_AllowCameraMovementAndRotation{ false };
+
+        Vec3F m_CameraTarget{ 0.0f, 0.0f, 0.0f };
+        float m_OrbitDistance{ 10.f };
+        bool m_LockCameraToTarget{ false };
     };
 }// namespace Mikoto
 

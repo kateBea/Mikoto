@@ -1,6 +1,16 @@
+//    Copyright 2026 ケイト
 //
-// Created by kate on 10/8/23.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <filesystem>
 #include <utility>
@@ -20,6 +30,8 @@
 #include <Panels/ContentBrowserPanel.hh>
 #include <ImGui/IconsFontAwesome5.h>
 #include <ImGui/IconsMaterialDesign.h>
+
+#include <Filesystem/FileSystem.hh>
 
 namespace Mikoto {
 
@@ -90,14 +102,6 @@ namespace Mikoto {
             ImGui::SameLine();
             ImGui::Text( "Browser thumbnail size" );
             ImGuiUtils::Slider( "##HeaderSettingsPopupThumbnailSize", m_ThumbnailSize, { 90.0f, 256.0f } );
-
-            ImGui::Spacing();
-            ImGui::Separator();
-
-            // Show folders only in the side tree?
-            ImGuiUtils::CheckBox( "##ShowDirectoriesOnly", m_ShowFoldersOnlyInDirectoryTree );
-            ImGui::SameLine();
-            ImGui::Text( "Show directories only in side view" );
 
             ImGui::Spacing();
             ImGui::Separator();
@@ -190,22 +194,29 @@ namespace Mikoto {
         ImGui::SameLine();
 
         // Home directory
-        {
-            if ( ImGui::Button( fmt::format( "{}", ICON_MD_HOME ).c_str() ) ) {
-                m_CurrentDirectory = m_ProjectRoot;
-                m_ForwardDirectory = Path{};
+        if ( ImGui::Button( fmt::format( "{}", ICON_MD_HOME ).c_str() ) ) {
+            m_CurrentDirectory = m_ProjectRoot;
+            m_ForwardDirectory = Path{};
 
-                m_DirectoryStack = {};
-                m_DirectoryStack.push_front( m_ProjectRoot );
-            }
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-            }
+            m_DirectoryStack = {};
+            m_DirectoryStack.push_front( m_ProjectRoot );
+        }
+        if ( ImGui::IsItemHovered() ) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
         }
 
         ImGui::SameLine();
 
-        ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_FOLDER ).c_str() );
+        // Folder icon (current directory)
+        if ( ImGui::Button( fmt::format( "{}", ICON_MD_FOLDER ).c_str() ) ) {
+            Filesystem::OpenInExplorer( m_CurrentDirectory );
+        }
+
+        ImGuiUtils::SetCursorHandOnLastItemHovered();
+
+        ImGuiUtils::ToolTip( []() -> void {
+            ImGui::TextUnformatted( "Open in explorer" );
+        }, ImGui::IsItemHovered() );
 
         ImGui::PushStyleVar( ImGuiStyleVar_FrameBorderSize, 0.0f );
         ImGui::PushStyleColor( ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f } );
@@ -244,20 +255,31 @@ namespace Mikoto {
         ImGui::PopStyleVar();// Rounded Buttons
     }
 
-    auto ContentBrowserPanel::DrawSideView() const -> void {
+    auto ContentBrowserPanel::DrawSideView(const Path& root) -> void {
         constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_FramePadding |
-                                                    ImGuiTreeNodeFlags_SpanFullWidth };
+                                                     ImGuiTreeNodeFlags_SpanFullWidth |
+                                                    ImGuiTreeNodeFlags_OpenOnArrow };
 
-        for ( auto& entry: std::filesystem::directory_iterator( m_CurrentDirectory ) ) {
+        for ( auto& entry: std::filesystem::directory_iterator( m_AssetsRootDirectory ) ) {
             if ( entry.is_directory() ) {
-                if ( ImGui::TreeNodeEx( entry.path().string().c_str(), treeNodeFlags, "%s", fmt::format( "{} {}", ICON_MD_FOLDER, entry.path().stem().string() ).c_str() ) ) {
+                bool isOpen{ ImGui::TreeNodeEx( entry.path().string().c_str(), treeNodeFlags, "%s", 
+                    fmt::format( "{} {}", ICON_MD_FOLDER, entry.path().stem().string() ).c_str() ) };
+
+                ImGuiUtils::SetCursorHandOnLastItemHovered();
+
+                if ( ImGui::IsItemClicked( ImGuiMouseButton_Left ) &&
+                     !ImGui::IsItemToggledOpen() ) {
+                    m_CurrentDirectory = entry.path();
+                }
+
+                if ( isOpen ) {
+                    
+                    DrawSideView( entry );
 
                     ImGui::TreePop();
                 }
 
-                if ( ImGui::IsItemHovered() ) {
-                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-                }
+                ImGuiUtils::SetCursorHandOnLastItemHovered();
             }
         }
     }
@@ -292,12 +314,26 @@ namespace Mikoto {
         const ImVec2 availableRegion{ ImGui::GetContentRegionAvail() };
 
         if ( ImGui::BeginTable( "ContentBrowserMainViewTable", 2, tableFlags, availableRegion ) ) {
-            ImGui::TableNextRow();
             ImGui::TableNextColumn();
-            DrawSideView();
+
+            ImGui::BeginChild( "##SideViewChild",
+                               ImVec2{ 0, 0 },
+                               ImGuiChildFlags_Borders );
+
+            DrawSideView( m_AssetsRootDirectory );
+
+            ImGui::EndChild();
+
 
             ImGui::TableNextColumn();
+
+            ImGui::BeginChild( "##MainViewChild",
+                               ImVec2{ 0, 0 },
+                               ImGuiChildFlags_Borders );
+
             DrawMainBody();
+
+            ImGui::EndChild();
 
             ImGui::EndTable();
         }
@@ -346,8 +382,23 @@ namespace Mikoto {
                 std::string fileType{};
 
                 // TODO: Figure a better way to preview explorer texture, this right now is costly
-                if (entry.path().string().ends_with( ".png" ) || entry.path().string().ends_with( ".jpg" ) ) {
-                    m_Thumbnail = AssetsService::Get()->LoadAsset<Texture>( entry.path() );
+                if (entry.path().string().ends_with( ".png" )
+                    || entry.path().string().ends_with( ".jpg" )
+                    || entry.path().string().ends_with( ".hdr" )) {
+
+
+                    m_Thumbnail = AssetsService::Get()->GetAssetByUri<Texture>( entry.path().string() );
+
+                    if (m_Thumbnail.IsEmpty()) {
+                        // Request upload. Avoid request multiple times
+                        if (!m_ThumbnailsUploadCache.contains( entry.path().string() )) {
+                            AssetsService::Get()->LoadAssetAsync<Texture>( entry.path() );
+                            m_ThumbnailsUploadCache.insert( entry.path().string() );
+                        }
+
+                        m_Thumbnail = m_Textures[TextureIconType::ICON_FILE];
+                    }
+
                 } else {
                     m_Thumbnail = TextureHandle::CreateEmpty();
                 }
@@ -364,28 +415,51 @@ namespace Mikoto {
                 ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0, 0, 0, 0 ) );
                 if (m_Thumbnail.IsEmpty()) {
                     if ( ImGui::ImageButton( entry.path().string().c_str(), icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } ) ) {
-
+                        // empty
                     }
                 } else {
                     static ImTextureID imguiTextID{};
                     imguiTextID = ImGuiService::Get()->GetTextureID( m_Thumbnail );
 
                     if ( ImGui::ImageButton( entry.path().string().c_str(), imguiTextID, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } ) ) {
-
+                        // empty
                     }
 
-                    // DRAG SOURCE must be checked after drawing the item
-                    if (ImGui::BeginDragDropSource()) {
+                    if (entry.path().string().ends_with( ".png" )
+                    || entry.path().string().ends_with( ".jpg" )) {
+                        // DRAG SOURCE must be checked after drawing the item
+                        if (ImGui::BeginDragDropSource()) {
 
-                        // Send the texture handle
-                        ImGui::SetDragDropPayload("CONTENT_BROWSER_TEXT", std::addressof( m_Thumbnail ), sizeof(TextureHandle));
+                            // Send the texture handle
+                            ImGui::SetDragDropPayload("CONTENT_BROWSER_TEXT", std::addressof( m_Thumbnail ), sizeof(TextureHandle));
 
-                        // Preview
-                        constexpr float previewDimensions{ 48.0f };
-                        ImGui::Image(imguiTextID, ImVec2(previewDimensions, previewDimensions), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
-                        ImGuiUtils::CenteredText( fmt::format( "Move Icon" ).c_str(), previewDimensions );
+                            // Preview
+                            constexpr float previewDimensions{ 48.0f };
+                            ImGui::Image(imguiTextID, ImVec2(previewDimensions, previewDimensions), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+                            ImGuiUtils::CenteredText( fmt::format( "Move Icon" ).c_str(), previewDimensions );
 
-                        ImGui::EndDragDropSource();
+                            ImGui::EndDragDropSource();
+                        }
+                    }
+
+                    // DRAG for HDR load in Lighting panel
+                    if (entry.path().string().ends_with( ".hdr" )) {
+                        if (ImGui::BeginDragDropSource()) {
+                            static std::string path{};
+
+                            path = entry.path().string();
+
+                            // Send the texture handle
+                            // Reminder: Payload type can be at most 32 characters long
+                            ImGui::SetDragDropPayload("HDR_LOAD_LIGHT_PANEL", std::addressof( path ), sizeof(path));
+
+                            // Preview
+                            constexpr float previewDimensions{ 48.0f };
+                            ImGui::Image(ImGuiService::Get()->GetTextureID( m_Thumbnail ), ImVec2(previewDimensions, previewDimensions), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+                            ImGuiUtils::CenteredText( fmt::format( "Skybox" ).c_str(), previewDimensions );
+
+                            ImGui::EndDragDropSource();
+                        }
                     }
                 }
 
@@ -403,6 +477,10 @@ namespace Mikoto {
 
                         m_DirectoryStack.emplace_back( entry.path() );
                     }
+                }
+
+                if ( ImGui::IsItemHovered() && ImGui::IsMouseClicked( ImGuiMouseButton_Left ) ) {
+                    m_SelectedItem = entry;
                 }
 
                 // File name
@@ -428,7 +506,12 @@ namespace Mikoto {
         ImGuiUtils::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 8.0f, 8.0f } };
         ImGuiUtils::ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f } };
 
-        if ( ImGui::BeginPopupContextWindow( "ContentBrowserPopup" ) ) {
+        constexpr ImGuiPopupFlags popupWindowFlags{
+            ImGuiPopupFlags_NoOpenOverItems |
+            ImGuiPopupFlags_MouseButtonRight
+        };
+
+        if ( ImGui::BeginPopupContextWindow( "##ContentBrowserPanel::ContentBrowserPopup", popupWindowFlags ) ) {
 
             ImGui::Spacing();
             if ( ImGui::MenuItem( fmt::format( "{} Cut", ICON_MD_CONTENT_CUT ).c_str(), "Ctrl + X" ) ) {}

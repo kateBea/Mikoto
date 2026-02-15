@@ -82,5 +82,5 @@ namespace Mikoto {
         bool m_IsInitialized{ false };
     };
 
-}// namespace Mikoto
-#endif//SERVICE_HH
+}
+#endif // MIKOTO_SERVICE_HH

@@ -17,7 +17,11 @@
 
 #include <Assets/Texture.hh>
 #include <Library/Utility/Types.hh>
+
+#include <Material/Texture2D.hh>
+#include <Material/TextureCube.hh>
 #include <Material/ShaderModule.hh>
+
 #include <Renderer/Core/Buffer.hh>
 #include <Renderer/Core/RenderUtility.hh>
 
@@ -31,7 +35,7 @@ namespace Mikoto {
         LoadOp ColorLoadOp{ LoadOp::CLEAR };
         LoadOp DephtLoadOp{ LoadOp::CLEAR };
 
-        Vec4F ClearColor{};
+        Vec4F ClearColor{ 0.0f, 0.0f, 0.0f, 1.0f };
         TextureHandle DepthRenderTarget{};
         std::vector<TextureHandle> ColorRenderTargets{};
 
@@ -50,8 +54,15 @@ namespace Mikoto {
         virtual auto EndRender(RenderInfo& info) -> void = 0;
 
         virtual auto FillTexture(Buffer* src, Texture* dest) -> void = 0;
+        virtual auto FillTexture(const void* src, Size size, Texture* dest) -> void = 0;
+
         virtual auto CopyBuffer(Buffer* src, Buffer* dest) -> void = 0;
+        virtual auto CopyBuffer(const void* src, Size size, Buffer* dest) -> void = 0;
+
         virtual auto CopyTexture(Texture* src, Texture* dest) -> void = 0;
+        virtual auto CopyTexture(Texture2D* src, TextureCube* dest, UInt32 mipLevel, UInt32 face) -> void = 0;
+
+        virtual auto SetPolygonLineWidth(float value) -> void = 0;
 
         // Can be device local data
         virtual auto WriteBuffer(Buffer* target, Byte* data, Size size) -> void = 0;

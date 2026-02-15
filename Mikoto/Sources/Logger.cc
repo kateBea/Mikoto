@@ -98,7 +98,11 @@ namespace Mikoto {
         // Auto flush when "debug" or higher level message is logged on all loggers.
         // Check the FAQ for more about this matter.
         // https://github.com/gabime/spdlog/wiki/0.-FAQ
-        spdlog::flush_on( spdlog::level::debug );
+
+        // These may be slow, make configurable externally
+        m_StdOut->flush_on(spdlog::level::trace);
+        m_StdErr->flush_on(spdlog::level::trace);
+        m_File->flush_on(spdlog::level::trace);
     }
 
     auto Logger::GetStdOutLog() -> const Shared<spdlog::logger>& {

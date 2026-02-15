@@ -1,23 +1,31 @@
-/**
- * ScenePanel.cc
- * Created by kate on 6/27/23.
- * */
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// C++ Standard Library
 #include <memory>
 
-// Third-Party Libraries
-#include "glm/gtc/type_ptr.hpp"
-#include "imgui.h"
+#include <imgui.h>
+#include <glm/gtc/type_ptr.hpp>
 
 // Important to include after imgui
 #include <ImGuizmo.h>
-#include <imgui.h>
+#include <ImOGuizmo.hh>
 
 // Project Headers
 #include <ImGui/IconsMaterialDesign.h>
 
 #include <Common/Common.hh>
+#include <Math/Math.hh>
 #include <ImGui/ImGuiService.hh>
 #include <ImGui/ImGuiUtility.hh>
 #include <Layers/EditorLayer.hh>
@@ -44,15 +52,17 @@ namespace Mikoto {
 
     auto ScenePanel::CreateImguiTextureID() -> void {
         ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
-
-        if (const ImTextureID id{ backend->ConstructImGuiTextureID( m_EditorState->FinalComposition ) }; id != 0) { m_ColorImageID = id; }
+        if (const ImTextureID id{ backend->ConstructImGuiTextureID( m_EditorState->FinalComposition ) }; id != 0) {
+            m_ColorImageID = id;
+        }
     }
 
     auto ScenePanel::CreateWireframeImguiTextureID() -> void {
         ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
-        const ImTextureID id{ backend->ConstructImGuiTextureID( m_EditorState->WireframeComposition ) };
+        auto wireframeTexture{ m_EditorState->EditorSceneRenderer->GetTexture( "Wireframe_ColorTarget" ) };
+        const ImTextureID id{ backend->ConstructImGuiTextureID( wireframeTexture ) };
 
-        if ( id != 0) {
+        if ( id != 0 ) {
             m_WireframeImageID = id;
         }
     }
@@ -62,71 +72,6 @@ namespace Mikoto {
         m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_IMAGE, m_PanelName );
 
         CreateImguiTextureID();
-    }
-
-    auto ScenePanel::ShowStatsOverlay(float timeStep) -> void {
-        if (!m_PanelIsFocused) {
-            return;
-        }
-
-        static int location{ -1 };
-        ImGuiIO &io = ImGui::GetIO();
-        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-        if (location >= 0) {
-            const float PAD = 10.0f;
-            const ImGuiViewport *viewport = ImGui::GetMainViewport();
-            ImVec2 work_pos = viewport->WorkPos;// Use work area to avoid menu-bar/task-bar, if any!
-            ImVec2 work_size = viewport->WorkSize;
-            ImVec2 window_pos, window_pos_pivot;
-            window_pos.x = ( location & 1 ) ? ( work_pos.x + work_size.x - PAD ) : ( work_pos.x + PAD );
-            window_pos.y = ( location & 2 ) ? ( work_pos.y + work_size.y - PAD ) : ( work_pos.y + PAD );
-            window_pos_pivot.x = ( location & 1 ) ? 1.0f : 0.0f;
-            window_pos_pivot.y = ( location & 2 ) ? 1.0f : 0.0f;
-            ImGui::SetNextWindowPos( window_pos, ImGuiCond_Always, window_pos_pivot );
-            ImGui::SetNextWindowViewport( viewport->ID );
-            window_flags |= ImGuiWindowFlags_NoMove;
-        } else if (location == -2) {
-            // Center window
-            ImGui::SetNextWindowPos( ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
-            window_flags |= ImGuiWindowFlags_NoMove;
-        }
-        ImGui::SetNextWindowBgAlpha( 0.6f );// Transparent background
-        if (ImGui::Begin( "Performance Overlay", nullptr, window_flags )) {
-            ImGui::Separator();
-            if (ImGui::IsMousePosValid()) {
-                ImGui::Text( "Mouse Position: (%.1f,%.1f)", io.MousePos.x, io.MousePos.y );
-            }
-            else {
-                ImGui::Text( "Mouse Position: <invalid>" );
-            }
-
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Text( "FPS: %.1f", 1.0f / timeStep );
-
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Text( "TimeStep: %.1f ms", timeStep * 1000.0f);
-
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Text( "Total lights: %d", m_EditorState->ActiveEditorScene->GetLightCount());
-
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Text( "Total active lights: %d", m_EditorState->ActiveEditorScene->GetActiveLightCount());
-
-            if (ImGui::BeginPopupContextWindow()) {
-                if (ImGui::MenuItem( "Custom", nullptr, location == -1 )) location = -1;
-                if (ImGui::MenuItem( "Center", nullptr, location == -2 )) location = -2;
-                if (ImGui::MenuItem( "Top-left", nullptr, location == 0 )) location = 0;
-                if (ImGui::MenuItem( "Top-right", nullptr, location == 1 )) location = 1;
-                if (ImGui::MenuItem( "Bottom-left", nullptr, location == 2 )) location = 2;
-                if (ImGui::MenuItem( "Bottom-right", nullptr, location == 3 )) location = 3;
-                ImGui::EndPopup();
-            }
-        }
-        ImGui::End();
     }
 
     auto ScenePanel::OnUpdate( float ts ) -> void {
@@ -144,33 +89,63 @@ namespace Mikoto {
         m_PanelIsFocused = ImGui::IsWindowFocused();
         m_PanelIsHovered = ImGui::IsWindowHovered();
 
-        if (IsDisplayTextureValid()) {
-            UpdateViewport();
+        UpdateViewport();
 
-            //DrawSceneToolbar();
-            //ShowStatsOverlay(ts);
-
-            SetupManipulation();
-            DrawManipulationGuizmos();
-        }
+        SetupManipulation();
+        DrawManipulationGuizmos();
+        DrawOrientationAxis();
 
         // Try validating the image id again in case the texture was recreated
-        if (!IsDisplayTextureValid()) {
+        // We also get a new ID if the viewport image was update
+        const bool newViewportImage{ ImGuiService::Get()->GetTextureID( m_EditorState->FinalComposition.GetRaw() ) != m_ColorImageID };
+
+        if (!IsDisplayTextureValid() || newViewportImage) {
             CreateImguiTextureID();
+        }
+
+        if (!IsWireframeDisplayTextureValid()) {
             CreateWireframeImguiTextureID();
         }
 
         ImGui::End();
     }
 
-    auto ScenePanel::SetManipulation( GuizmoType mode ) -> void { m_GuizmoType = mode; }
+    auto ScenePanel::SetManipulation( GuizmoType mode ) -> void {
+        m_GuizmoType = mode;
+    }
 
-    auto ScenePanel::GetWidth() const -> float { return m_ViewPortWidth; }
+    auto ScenePanel::GetWidth() const -> float {
+        return m_ViewPortWidth;
+    }
 
-    auto ScenePanel::GetHeight() const -> float { return m_ViewPortHeight; }
+    auto ScenePanel::GetHeight() const -> float {
+        return m_ViewPortHeight;
+    }
+
+    auto ScenePanel::DrawOrientationAxis() -> void {
+        ImVec2 winPos{ ImGui::GetWindowPos() };
+
+        const float widgetSize{ 100.0f };
+        const float gizmoX{ winPos.x };
+        const float gizmoY{ winPos.y + m_ViewPortHeight - widgetSize };
+
+        ImOGuizmo::SetRect(gizmoX, gizmoY, widgetSize);
+
+        glm::mat4 view{ m_EditorState->EditorCamera->GetViewMatrix() };
+        glm::mat4 proj{ glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 1000.0f) };
+
+        ImOGuizmo::DrawGizmo(glm::value_ptr(view), glm::value_ptr(proj));
+    }
+
+    auto ScenePanel::ShowUtilitiesOverlay() -> void {
+    }
 
     auto ScenePanel::IsDisplayTextureValid() const -> bool {
-        return m_ColorImageID != 0 || m_WireframeImageID != 0;
+        return m_ColorImageID != 0;
+    }
+
+    auto ScenePanel::IsWireframeDisplayTextureValid() const -> bool {
+        return m_WireframeImageID != 0;
     }
 
     auto ScenePanel::UpdateViewport() -> void {
@@ -182,10 +157,12 @@ namespace Mikoto {
         }
 
         // No flipping, the final image is already in the correct viewport coordinates
-        // In the case of vulkan this is also taken into account when setting up the vierwport
-        if (!m_EditorState->ShowWireframe) {
+        // In the case of vulkan this is also taken into account when setting up the viewport
+        if (IsDisplayTextureValid() && !m_EditorState->ShowWireframe) {
             ImGui::Image( m_ColorImageID, ImVec2{ dim.x, dim.y } );
-        } else {
+        }
+
+        if (IsWireframeDisplayTextureValid() && m_EditorState->ShowWireframe) {
             ImGui::Image( m_WireframeImageID, ImVec2{ dim.x, dim.y } );
         }
     }
@@ -193,7 +170,9 @@ namespace Mikoto {
     auto ScenePanel::SetupManipulation() const -> void {
         Entity *currentSelection{ m_EditorState->SelectedEntity };
         if (currentSelection != nullptr && currentSelection->IsValid()) {
-            if (!currentSelection->GetComponent<TagComponent>().IsActive()) { return; }
+            if (!currentSelection->GetComponent<TagComponent>().IsActive()) {
+                return;
+            }
 
             ImGuizmo::SetOrthographic( m_EditorState->EditorCamera->IsOrthographic() );
             ImGuizmo::SetDrawlist();
@@ -211,11 +190,13 @@ namespace Mikoto {
         }
 
         TransformComponent &transformComponent{ currentSelection->GetComponent<TransformComponent>() };
+        Vec3F oldTranslation{ transformComponent.GetTranslation() };
+        Vec3F oldRotation{ transformComponent.GetRotation() };
 
-        const glm::mat4 &cameraView{ m_EditorState->EditorCamera->GetViewMatrix() };
-        const glm::mat4 &cameraProjection{ m_EditorState->EditorCamera->GetProjection() };
+        const Mat4F &cameraView{ m_EditorState->EditorCamera->GetViewMatrix() };
+        const Mat4F &cameraProjection{ m_EditorState->EditorCamera->GetProjection() };
 
-        glm::mat4 objectTransform{ transformComponent.GetTransform() };
+        Mat4F objectTransform{ transformComponent.GetTransform() };
 
         m_GuizmoType = InferManipulationMode( m_EditorState->Manipulation );
 
@@ -234,17 +215,23 @@ namespace Mikoto {
         if (ImGuizmo::IsUsing()) {
             transformComponent.SetTransform( objectTransform );
 
-            // Apply the transformation to the children
-            // For now Guizmos only change translation so thats the only thing we handle in the children
-            RelationComponent &relation{ m_EditorState->SelectedEntity->GetComponent<RelationComponent>() };
-            for (auto &childID: relation.GetChildren()) {
-                Entity *child{ m_EditorState->ActiveEditorScene->FindByID( childID ) };
-                if (child) {
-                    // TODO: World transform = ParentWorld * LocalTransform
-                }
+            if (transformComponent.GetTranslation() != oldTranslation ) {
+                m_EditorState->ActiveEditorScene->ApplyToChildren(currentSelection,
+                    [newTranslation = transformComponent.GetTranslation(), oldTranslation](Entity* child) -> void {
+                        // Local
+                    auto& childTransform{ child->GetComponent<TransformComponent>() };
+                    childTransform.SetTranslation( childTransform.GetTranslation() + ( newTranslation - oldTranslation ) );
+                });
             }
 
-            //propagate changes
+            if (transformComponent.GetRotation() != oldRotation ) {
+                m_EditorState->ActiveEditorScene->ApplyToChildren(currentSelection,
+                    [newRotation = transformComponent.GetTranslation(), oldRotation](Entity* child) -> void {
+                        // Local
+                    auto& childTransform{ child->GetComponent<TransformComponent>() };
+                    childTransform.SetRotation( childTransform.GetRotation() + ( newRotation - oldRotation ) );
+                });
+            }
         }
     }
 

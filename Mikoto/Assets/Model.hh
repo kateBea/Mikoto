@@ -1,108 +1,87 @@
-/**
- * Model.hh
- * Created by kate on 6/29/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_MODEL_HH
 #define MIKOTO_MODEL_HH
 
-// C++ Standard Library
+#include <ankerl/unordered_dense.h>
+
+#include <Common/Common.hh>
+#include <Material/PBRMaterial.hh>
+#include <Material/Texture2D.hh>
+#include <Renderer/Core/Buffer.hh>
 #include <cstdint>
 #include <filesystem>
 #include <string>
 #include <string_view>
 #include <vector>
 
-// Third Party Libraries
-#include <ankerl/unordered_dense.h>
-
-// Project Libraries
-#include <Common/Common.hh>
-#include <Material/Texture2D.hh>
-#include <Renderer/Core/Buffer.hh>
+#include "Animation/SkinnedAnimation.hh"
 
 namespace Mikoto {
 
-    /**
-    * @struct ModelLoadDescription
-    * @brief Contains parameters for loading a 3D model.
-    *
-    * The `ModelLoadInfo` structure specifies the path of the model to be loaded
-    * and whether textures should be included in the loading process.
-    */
+    enum class VertexAttribute {
+        POSITIONS,
+        NORMALS,
+        TANGENTS,
+        BITANGENTS,
+        UV0,
+        UV1,
+        COLORS,
+        JOINTS,
+        WEIGHTS,
+
+        CUSTOM,
+    };
+
     struct ModelLoadDescription {
         const File* ModelFile{};
         bool WantTextures{ true };
 
-        /**
-        * @brief Sets the path of the model.
-        * @param file The absolute or relative path to the model file.
-        * @return Reference to the modified ModelLoadInfo.
-        */
-        auto WithFilePath( const File* file ) -> ModelLoadDescription&;
+        // Specifies the order we want attributes in
+        // Default is order specified by DEFAULT_VERTEX_BUFFER_LAYOUT in Pipeline.hh file
+        std::vector<VertexAttribute> Attributes{
+            VertexAttribute::POSITIONS,
+            VertexAttribute::NORMALS,
+            VertexAttribute::COLORS,
+            VertexAttribute::UV0,
+            VertexAttribute::UV1,
 
-        /**
-        * @brief Specifies whether to load textures for the model.
-        * @param value True to load textures, false otherwise.
-        * @return Reference to the modified ModelLoadInfo.
-        */
+            VertexAttribute::JOINTS, // Bone IDs
+            VertexAttribute::WEIGHTS, // Weight IDs
+        };
+
         auto LoadTextures( bool value ) -> ModelLoadDescription&;
+        auto WithFilePath( const File* file ) -> ModelLoadDescription&;
     };
 
-    struct MaterialProperties {
-        std::string Name{};
-        Vec3F DiffuseColor{0.f, 0.f, 0.f};
-        float Metallic{0.f};
-        float Roughness{0.f};
-        float Shininess{0.f};
-    };
-
-    /**
-     * @class MeshNode
-     * @brief Represents a single mesh node within a 3D model.
-     *
-     * The `MeshNode` class stores vertex and index buffer references, along with associated textures.
-     */
     class MeshNode final {
     public:
-        /**
-         * @brief Constructs a MeshNode with the given parameters.
-         * @param index Index of the mesh within the model.
-         * @param vertices Handle to the vertex buffer.
-         * @param indices Handle to the index buffer.
-         * @param textures Vector of texture Handles associated with the mesh.
-         */
-        explicit MeshNode( Size index, BufferHandle vertices, BufferHandle indices, std::vector<TextureHandle>&& textures, std::string_view name, MaterialProperties&& properties );
+        explicit MeshNode( UInt32 index,
+            BufferHandle vertices,
+            BufferHandle indices, std::string_view name,
+            MaterialProperties&& properties );
 
-        MeshNode(MeshNode&& other) noexcept;
-
-        /**
-         * @brief Retrieves the vertex buffer of the mesh.
-         * @return A pointer to the vertex buffer.
-         */
-        MKT_NODISCARD auto GetVertexBuffer() -> BufferHandle { return  m_Vertices; }
-
-        /**
-         * @brief Retrieves the index buffer of the mesh.
-         * @return A pointer to the index buffer.
-         */
-        MKT_NODISCARD auto GetIndexBuffer() -> BufferHandle { return m_Indices; }
+        MeshNode(MeshNode&& other) noexcept = default;
 
         MKT_NODISCARD auto GetName() -> const std::string& { return m_Name; }
 
-        MKT_NODISCARD auto GetProperties() const -> const MaterialProperties& { return m_Properties; }
-
-        /**
-         * @brief Retrieves the index of the mesh into its corresponding model.
-         * @return The mesh index for this mesh.
-         */
         MKT_NODISCARD auto GetMeshIndex() const -> Size { return m_MeshIndex; }
+        MKT_NODISCARD auto GetVertexBuffer() -> BufferHandle { return  m_Vertices; }
+        MKT_NODISCARD auto GetIndexBuffer() -> BufferHandle { return m_Indices; }
 
-        /**
-         * @brief Retrieves the textures associated with the mesh.
-         * @return A constant reference to the vector of textures.
-         */
-        MKT_NODISCARD auto GetTextures() const -> const std::vector<TextureHandle>& { return m_OriginalTextures; }
+        MKT_NODISCARD auto GetProperties() const -> const MaterialProperties& { return m_Properties; }
 
         DISABLE_COPY_FOR( MeshNode );
 
@@ -115,8 +94,6 @@ namespace Mikoto {
         BufferHandle m_Indices{};
 
         MaterialProperties m_Properties{};
-
-        std::vector<TextureHandle> m_OriginalTextures{};
     };
 
     /**
@@ -173,6 +150,8 @@ namespace Mikoto {
          */
         MKT_NODISCARD auto GetIndexCount() const -> UInt64 { return m_TotalIndices; }
 
+        MKT_NODISCARD auto IsSkinned() const -> bool;
+
         /**
         * @brief Adds a new mesh node to the collection.
         * @tparam Args Variadic template parameters for forwarding constructor arguments.
@@ -182,9 +161,11 @@ namespace Mikoto {
         * This function inserts a new mesh node into the `m_Meshes` collection at the given index.
         */
         template<typename... Args>
-        auto AddMeshNode(UInt32 index, Args&&... args) -> void {
+        auto PushMeshNode(UInt32 index, Args&&... args) -> void {
             m_Meshes.emplace(index, std::forward<Args>(args)...);
         }
+
+        auto SetAnimations(std::vector<SkinnedAnimation>&& animations ) -> void;
 
     ~Model() override = default;
 
@@ -213,12 +194,14 @@ namespace Mikoto {
         // ( Mesh index, mesh node )
         ankerl::unordered_dense::map<UInt32, MeshNode> m_Meshes{};
 
+        std::vector<SkinnedAnimation> m_Animations{};
+
         UInt64 m_TotalVertices{};
         UInt64 m_TotalIndices{};
     };
 
     using ModelHandle = Ref<Model>;
 
-}// namespace Mikoto
+}
 
 #endif// MIKOTO_MODEL_HH

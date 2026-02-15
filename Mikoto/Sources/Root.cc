@@ -33,6 +33,7 @@
 #include <Threading/TaskService.hh>
 #include <Threading/ThreadUtility.hh>
 
+#include <Animation/AnimationSystem.hh>
 #include "Core/SystemStats.hh"
 #include "Filesystem/FileWatcherService.hh"
 #include "Platform/WindowsService.hh"
@@ -80,6 +81,7 @@ namespace Mikoto {
             PushSubsystem<PhysicService>( PhysicServiceCreateInfo{} );
             PushSubsystem<NetworkService>( NetworkServiceCreateInfo{} );
             PushSubsystem<ScriptingService>( ScriptingServiceDescription{} );
+            PushSubsystem<AnimationSystem>( AnimationSystemCreateInfo{} );
 
             PushSubsystem<TaskService>( TaskServiceCreateInfo{ .WorkerThreadCount{ ThreadUtils::InferConcurrentThreads() } } );
         }
@@ -112,6 +114,7 @@ namespace Mikoto {
         SHUTDOWN_SUBSYSTEM(ScriptingService);
         SHUTDOWN_SUBSYSTEM(TaskService);
 
+        SHUTDOWN_SUBSYSTEM(AnimationSystem);
         SHUTDOWN_SERVICE(SceneManager);
         SHUTDOWN_SERVICE(AssetsService);
 

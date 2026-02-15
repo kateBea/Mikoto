@@ -1,22 +1,37 @@
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Credits: https://github.com/SaschaWillems/Vulkan/tree/master/examples
 
 #version 450
+
 #extension GL_EXT_nonuniform_qualifier : require
+#extension GL_EXT_scalar_block_layout : require
 
 #include "ShaderBase.glsl"
 
-layout (set = PERPASS_SETINDEX, binding = 2) uniform samplerCube u_SamplerEnv;
-
-layout(set = PERPASS_SETINDEX, binding = 1) uniform IrradianceParamsUBO {
+layout(scalar, push_constant) uniform PrefilterConstants {
+    mat4 MVP;
     float Roughness;
     uint NumSamples;
-} u_Constants;
+} u_Parameters;
 
-// In variables
-layout (location = 0) in vec3 v_Pos;
+layout(location = 0) in vec3 v_Pos;
 
-// Out variables
 layout (location = 0) out vec4 o_Color;
+
+layout (set = STATIC_SETINDEX, binding = 0) uniform samplerCube u_SamplerEnv;
 
 // Based omn http://byteblacksmith.com/improvements-to-the-canonical-one-liner-glsl-rand-for-opengl-es-2-0/
 float Random(vec2 co) {
@@ -71,14 +86,17 @@ float D_GGX(float dotNH, float roughness) {
 }
 
 vec3 PrefilterEnvMap(vec3 R, float roughness)  {
+    uint NumSamples = u_Parameters.NumSamples;
+    float Roughness = u_Parameters.Roughness;
+
     vec3 N = R;
     vec3 V = R;
     vec3 color = vec3(0.0);
     float totalWeight = 0.0;
     float envMapDim = float(textureSize(u_SamplerEnv, 0).s);
 
-    for(uint i = 0u; i < u_Constants.NumSamples; i++) {
-        vec2 Xi = Hammersley2D(i, u_Constants.NumSamples);
+    for(uint i = 0u; i < NumSamples; i++) {
+        vec2 Xi = Hammersley2D(i, NumSamples);
         vec3 H = ImportanceSample_GGX(Xi, roughness, N);
         vec3 L = 2.0 * dot(V, H) * H - V;
         float dotNL = clamp(dot(N, L), 0.0, 1.0);
@@ -92,7 +110,7 @@ vec3 PrefilterEnvMap(vec3 R, float roughness)  {
             float pdf = D_GGX(dotNH, roughness) * dotNH / (4.0 * dotVH) + 0.0001;
 
             // Slid angle of current smple
-            float omegaS = 1.0 / (float(u_Constants.NumSamples) * pdf);
+            float omegaS = 1.0 / (float(NumSamples) * pdf);
 
             // Solid angle of 1 pixel across all cube faces
             float omegaP = 4.0 * PI / (6.0 * envMapDim * envMapDim);
@@ -110,5 +128,5 @@ vec3 PrefilterEnvMap(vec3 R, float roughness)  {
 
 void main() {
     vec3 N = normalize(v_Pos);
-    o_Color = vec4(PrefilterEnvMap(N, u_Constants.Roughness), 1.0);
+    o_Color = vec4(PrefilterEnvMap(N, u_Parameters.Roughness), 1.0);
 }

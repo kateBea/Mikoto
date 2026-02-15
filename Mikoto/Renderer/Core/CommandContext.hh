@@ -67,12 +67,16 @@ namespace Mikoto {
         auto SetViewport(Int32 x, Int32 y, Int32 width, Int32 height) -> void ;
         auto SetScissor(Int32 x, Int32 y, Int32 width, Int32 height) -> void;
 
+        auto CopyToCube(std::string_view texture2DName, std::string_view cubeMapName, Size mipLevel, UInt32 face ) -> void;
+
         auto BindGlobalTextures() -> void;
 
         // Need to bind pipeline before specifying resources
         auto BindPipeline(std::string_view pipelineName ) -> void;
 
         auto SetClearColor(const Vec4F& color) -> void;
+
+        auto SetPolygonLineWidth(float value) -> void;
 
         auto DrawIndexed(const DrawIndexedState& info) -> void;
         auto Draw(UInt32 vertexCount, UInt32 instanceCount = 1, UInt32 firstVertex = 0, UInt32 firstInstance = 0 ) -> void;
@@ -92,14 +96,25 @@ namespace Mikoto {
 
         auto UploadBuffer(std::string_view bufferName, const void* ptrSrc, Size size, Size offset = 0 ) const -> void;
 
+        template<typename Container>
+       auto UploadData(std::string_view bufferName, const Container& data, Size elementCount ) -> void {
+            UploadContainer( bufferName, data.data(), elementCount * sizeof(Container::value_type) );
+        }
+
+        auto PushConstants(const void* ptr, Size size) -> void;
+
         MKT_NODISCARD auto PushTexture(TextureHandle texture ) const -> Int32;
         MKT_NODISCARD auto GetNamedBuffer( std::string_view ) const -> BufferHandle;
 
         auto BindImage(TextureHandle handle, SamplerHandle sampler, UInt32 bindingSlot) -> void;
+        auto BindImage(std::string_view name, SamplerHandle sampler, UInt32 bindingSlot) -> void;
 
         auto RegisterNamedTexture( std::string_view name, TextureHandle handle ) const -> void;
 
         auto CreateSampler( SamplerDescription samplerDescription ) -> SamplerHandle;
+
+    private:
+        auto UploadContainer( std::string_view dstBuffer, const void* ptrSrc, Size size) -> void;
 
     private:
 
@@ -111,6 +126,8 @@ namespace Mikoto {
         FramePassNode* m_ActivePass{ nullptr };
 
         RenderInfo m_RenderInfo{};
+
+        bool m_HasSetConstantData{ false };
     };
 }
 

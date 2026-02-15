@@ -73,12 +73,16 @@ namespace Mikoto {
             : Pipeline{ PipelineType::COMPUTE_PIPELINE, { desc.Stage } } {}
     };
 
-    // Note: for now this will always be the same layout as the Models, see Model.hh
     static inline const BufferLayout DEFAULT_VERTEX_BUFFER_LAYOUT{
         { ShaderDataType::FLOAT3_TYPE, "a_Position" },
         { ShaderDataType::FLOAT3_TYPE, "a_Normal" },
         { ShaderDataType::FLOAT3_TYPE, "a_Color" },
-        { ShaderDataType::FLOAT2_TYPE, "a_TextureCoordinates" }
+
+        { ShaderDataType::FLOAT2_TYPE, "a_UV0" },
+        { ShaderDataType::FLOAT2_TYPE, "a_UV1" },
+
+        { ShaderDataType::FLOAT4_TYPE, "a_Joint" },
+        { ShaderDataType::FLOAT4_TYPE, "a_Weight" },
     };
 
     enum class InputRate { PER_VERTEX, PER_INSTANCE };
@@ -132,9 +136,12 @@ namespace Mikoto {
         bool AlphaBlending{ true };
         bool Wireframe{ false };
         float WireframeLineWidth{ 1.0f };
+        bool EnableSampleRateShading{ false };
 
+
+        Multisampling Multisampling{ Multisampling::MSAA_X1 };
         CullMode PipelineCullMode{ CullMode::NONE };
-        PolygonMode PipelinePolygonMode{ PolygonMode::LINES };
+        PolygonMode PipelinePolygonMode{ PolygonMode::FILL };
         Topology PrimitiveTopology{ Topology::TRIANGLE_LIST };
         DepthCompareOp DepthCompareOperation{ DepthCompareOp::GREATER_OR_EQUAL };
 
@@ -292,7 +299,10 @@ namespace Mikoto {
         bool m_Wireframe{ false };
         float m_WireframeLineWidth{ 1.0f };
 
+        bool m_EnableSampleRateShading{ false };
+
         CullMode m_CullMode{ CullMode::NONE };
+        Multisampling m_Multisampling{ Multisampling::MSAA_X1 };
 
         Topology m_Topology{ Topology::TRIANGLE_LIST };
         DepthCompareOp m_DepthCompareOp{ DepthCompareOp::ALWAYS };

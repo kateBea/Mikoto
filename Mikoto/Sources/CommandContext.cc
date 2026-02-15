@@ -24,8 +24,6 @@ namespace Mikoto {
     auto CommandContext::BeginPass( FramePassNode& pass ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
         m_ActivePass = std::addressof( pass );
-
-        m_Context->BindShaderResources( pass.Name, m_Commands );
     }
 
     auto CommandContext::EndPass() -> void {
@@ -46,8 +44,9 @@ namespace Mikoto {
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
 
         // There must be at least one valid color target
-        MKT_ASSERT( !m_RenderInfo.ColorRenderTargets.empty() && !m_RenderInfo.ColorRenderTargets.front().IsEmpty(),
-            "No valid color target" );
+        MKT_ASSERT( !m_RenderInfo.ColorRenderTargets.empty() && !m_RenderInfo.ColorRenderTargets.front().IsEmpty() ||
+                !m_RenderInfo.DepthRenderTarget.IsEmpty(),
+            "No valid color or depth target" );
 
         m_RenderInfo.ColorLoadOp = renderInfo.ColorLoadOp;
         m_RenderInfo.DephtLoadOp = renderInfo.DephtLoadOp;
@@ -95,11 +94,18 @@ namespace Mikoto {
         m_Commands->SetScissor( x, y, width, height );
     }
 
+    auto CommandContext::CopyToCube( std::string_view texture2DName, std::string_view cubeMapName, Size mipLevel, UInt32 face ) -> void {
+        auto texture2D{ m_Context->GetTexture( texture2DName ).As<Texture2D>() };
+        auto textureCube{ m_Context->GetTexture( cubeMapName ).As<TextureCube>() };
+
+        m_Commands->CopyTexture( texture2D.GetRaw(), textureCube.GetRaw(), mipLevel, face );
+    }
+
     auto CommandContext::BindGlobalTextures() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
-        m_Context->BindGlobalTextures( m_Commands );
+        m_Context->BindGlobalTextures( m_ActivePass->Name, m_Commands );
     }
 
     auto CommandContext::BindPipeline( std::string_view pipelineName ) -> void {
@@ -119,15 +125,38 @@ namespace Mikoto {
         m_RenderInfo.ClearColor = color;
     }
 
+    auto CommandContext::SetPolygonLineWidth( float value ) -> void {
+        m_Commands->SetPolygonLineWidth( value );
+    }
+
     auto CommandContext::Draw( UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
+
+        // Constants are static data at command level that we only need to pass once, only updated if 
+        // the block is update from CPU side (i.e previous call to PushConstants(...)
+        if (!m_HasSetConstantData) {
+            m_Context->PushConstants( m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands );
+
+            m_HasSetConstantData = true;
+        }
+
         m_Commands->Draw( vertexCount, instanceCount, firstVertex, firstInstance );
     }
 
     auto CommandContext::DrawIndexed( const DrawIndexedState &info ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
+        if (info.InstancesCount == 0) {
+            return;
+        }
+
+        if ( !m_HasSetConstantData ) {
+            m_Context->PushConstants( m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands );
+
+            m_HasSetConstantData = true;
+        }
 
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
 
@@ -142,6 +171,12 @@ namespace Mikoto {
     auto CommandContext::Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        if ( !m_HasSetConstantData ) {
+            m_Context->PushConstants( m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands );
+
+            m_HasSetConstantData = true;
+        }
+
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
         m_Commands->Dispatch( invX, invY, invZ );
     }
@@ -150,10 +185,12 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         if (BufferHandle bufferHandle{ m_Context->GetBuffer( bufferName ) }; !bufferHandle.IsEmpty()) {
-            for (Size count{}; count < elementCount; ++count) {
-                const auto *src{ static_cast<const std::byte *>( buffer ) };
-                bufferHandle->CopyFromBlock( std::addressof( src[elementSize * count] ), elementSize, count * elementSize );
-            }
+            bufferHandle->CopyToDevice( buffer, elementCount * elementSize );
+
+            // for (Size count{}; count < elementCount; ++count) {
+            //     const auto *src{ static_cast<const std::byte *>( buffer ) };
+            //     //bufferHandle->CopyFromBlock( std::addressof( src[elementSize * count] ), elementSize, count * elementSize );
+            // }
         }
     }
 
@@ -163,8 +200,15 @@ namespace Mikoto {
         if (BufferHandle buffer{ m_Context->GetBuffer( bufferName ) }; !buffer.IsEmpty()) {
             if (size > buffer->GetSizeBytes()) {
                 MKT_CORE_LOGGER_WARN( "PassCommandList::FillBuffer - [{}] size is [{}]. Trying to copy [{}] bytes", bufferName, buffer->GetSizeBytes(), size );
-            } else { buffer->CopyFromBlock( ptrSrc, size, offset ); }
+            } else { buffer->CopyToDevice( ptrSrc, size, offset ); }
         }
+    }
+
+    auto CommandContext::PushConstants( const void *ptr, Size size ) -> void {
+        m_ActivePass->ConstantsShaderResources.SetData( ptr, size );
+
+        // To update constants once in the next call to draw or dispatch
+        m_HasSetConstantData = false;
     }
 
     auto CommandContext::PushTexture( TextureHandle texture ) const -> Int32 {
@@ -181,8 +225,14 @@ namespace Mikoto {
 
     auto CommandContext::BindImage( TextureHandle handle, SamplerHandle sampler, UInt32 bindingSlot ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
         m_Context->PushTexture( handle, sampler, m_ActivePass->Name, bindingSlot );
+    }
+
+    auto CommandContext::BindImage( std::string_view name, SamplerHandle sampler, UInt32 bindingSlot ) -> void {
+        TextureHandle texture{ m_Context->GetTexture( name ) };
+        MKT_ASSERT( !texture.IsEmpty(), "Texture cannot be empty" );
+
+        m_Context->PushTexture( texture, sampler, m_ActivePass->Name, bindingSlot );
     }
 
     auto CommandContext::RegisterNamedTexture( std::string_view name, TextureHandle handle ) const -> void {
@@ -195,5 +245,10 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         return m_Context->CreateSampler( samplerDescription );
+    }
+
+    auto CommandContext::UploadContainer( std::string_view dstBuffer, const void *ptrSrc, Size size ) -> void {
+        BufferHandle buffer{ m_Context->GetBuffer( dstBuffer ) };
+        m_Context->CopyToDevice( ptrSrc, size, buffer, m_Commands );
     }
 }

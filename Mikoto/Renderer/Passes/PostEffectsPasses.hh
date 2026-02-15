@@ -22,8 +22,11 @@
 #include <Library/Utility/Types.hh>
 
 #include <Scene/Scene.hh>
+#include <Scene/Camera.hh>
+#include <Scene/Component.hh>
 #include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Passes/MeshCulling.hh>
 #include <Renderer/Core/CommandContext.hh>
 
 namespace Mikoto {
@@ -33,20 +36,30 @@ namespace Mikoto {
         explicit PostEffectsPass( RenderResolution resolution);
 
         auto SetScene(const Scene* scene) -> void;
+        auto SetCamera(const Camera* camera) -> void;
+        auto SetMeshCulling( MeshCulling &culling ) -> void;
         auto RegisterPasses(FrameGraph& graph, GpuDevice* device) -> void;
 
     private:
         auto RegisterTextRender( FrameGraph& graph, GpuDevice* device) -> void;
+        auto RegisterTextRenderScatterWrites( FrameGraph& graph) -> void;
+        auto RegisterObjectOutline( FrameGraph& graph, GpuDevice* device) -> void;
+        auto RegisterSSAO( FrameGraph& graph ) -> void;
+        auto RegisterBloom( FrameGraph& graph ) -> void;
+        auto RegisterInfiniteGrid( FrameGraph& graph ) -> void;
 
-        auto TraverseTextList( CommandContext& commandList ) -> void;
+        auto TraverseTextList( CommandContext& ctx ) -> void;
 
-        auto SetupRenderParams( CommandContext& context ) -> void;
-        auto SetupTextForRender( FontHandle font, const Camera* camera, Vec4F position, std::string_view text, double fontSize, Vec4F color, CommandContext& commandList ) -> void;
+        auto SetupTextForRender( CommandContext& context, const TransformComponent& transformComponent, const TextComponent& textComponent) -> void;
 
     private:
-        struct alignas( 16 ) TextRenderParams {
+        struct TextRenderParams {
             Mat4F Proj{};
             Mat4F View{};
+            Mat4F Model{};
+
+            Vec4F OutlineColor{};
+            float OutlineWidth{};
 
             Vec4F Position{};
             Vec4F Size{};
@@ -55,19 +68,25 @@ namespace Mikoto {
             UInt32 TexIndex{};
         };
 
-        struct alignas( 16 ) TextParamsUBO {
-            Vec4F OutlineColor{ 1.0f, 1.0f, 1.0f, 1.0f };
-            float OutlineWidth{ 2.0f };
-        };
-
         struct FontVertex {
             glm::vec3 Pos{};
             UInt32 TexIndex{};
         };
 
-        static constexpr UInt32 MAX_STRING{ 8096 * 10 };
+        struct InfiniteGridParameters {
+            Mat4F CameraView{};
+            Mat4F CameraProj{};
+            Vec4F CameraPos{};
+        };
 
-        std::vector<TextRenderParams> m_TextRenderParams{};
+        static constexpr UInt32 SSAO_KERNEL_SIZE{ 64 };
+
+        struct SSAOParameters {
+            Mat4F Projection{};
+            std::array<Vec4F, SSAO_KERNEL_SIZE> Samples{};
+        };
+
+        static constexpr UInt32 MAX_GLYPHS{ 1024 * 1024 };
 
         std::array<FontVertex, 4> VERTICES{
             FontVertex{ { 0.0f, 0.0f, 0.0f }, 0 },
@@ -86,10 +105,25 @@ namespace Mikoto {
         BufferHandle m_TextIndexBuffer{};
 
         const Scene* m_Scene{};
-        TextParamsUBO m_TextRenderUBO{};
+        const Camera* m_Camera{};
+
+        Size m_GlyphCount{};
+        std::vector<UInt32> m_TextInfoIndices{};
+        std::vector<TextRenderParams> m_TextInfo{};
+
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
 
         RenderResolution m_Resolution{ RenderResolution::FHD_1080 };
+
+        UInt32 m_SSOKernelSize{ 64 };
+        std::vector<Vec4F> m_SSONoise{};
+        SSAOParameters m_SSAOParameters{};
+        SamplerHandle m_Sampler{};
+        SamplerHandle m_SamplerNoise{};
+
+        MeshCulling* m_MeshCullingPass{};
+
+        InfiniteGridParameters m_InfiniteGridParameters{};
     };
 
 }// namespace Mikoto

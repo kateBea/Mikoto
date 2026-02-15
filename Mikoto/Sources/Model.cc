@@ -1,27 +1,23 @@
-/**
- * Model.cc
- * Created by kate on 6/29/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// C++ Standard Library
 #include <filesystem>
-#include <stdexcept>
-#include <string>
 #include <vector>
 
-// Third Party Libraries
-#include <assimp/postprocess.h>
-#include <assimp/scene.h>
-
-#include <assimp/Importer.hpp>
-
-// Project Headers
 #include <Assets/Model.hh>
-#include <Common/Common.hh>
 #include <Library/String/String.hh>
 #include <Library/Utility/Types.hh>
-
-#include <Assets/MeshFactory.hh>
 
 namespace Mikoto {
 
@@ -37,19 +33,15 @@ namespace Mikoto {
         return *this;
     }
 
-    MeshNode::MeshNode( Size index, BufferHandle vertices, BufferHandle indices, std::vector<TextureHandle>&& textures, std::string_view name, MaterialProperties&& properties )
-        : m_MeshIndex{ index }, m_Name{ name }, m_Vertices{ vertices }, m_Indices{ indices }, m_OriginalTextures{ std::move( textures ) }, m_Properties{ std::move(properties) }
+    MeshNode::MeshNode( UInt32 index, BufferHandle vertices, BufferHandle indices, std::string_view name, MaterialProperties&& properties )
+        : m_MeshIndex{ index }, m_Name{ name }, m_Vertices{ vertices }, m_Indices{ indices }, m_Properties{ std::move(properties) }
     {}
 
-    MeshNode::MeshNode( MeshNode &&other ) noexcept {
-        if (std::addressof( other ) == this) {
-            return;
-        }
-
-        m_Name = std::move( other.m_Name );
-        m_Indices = other.m_Indices;
-        m_Vertices = other.m_Vertices;
-        m_MeshIndex = other.m_MeshIndex;
-        m_OriginalTextures = std::move( other.m_OriginalTextures );
+    auto Model::IsSkinned() const -> bool {
+        return !m_Animations.empty();
     }
-}// namespace Mikoto
+
+    auto Model::SetAnimations( std::vector<SkinnedAnimation>&& animations ) -> void {
+        m_Animations = std::move( animations );
+    }
+}

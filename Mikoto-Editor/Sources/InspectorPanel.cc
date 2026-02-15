@@ -274,6 +274,12 @@ namespace Mikoto {
             if ( ImGuiUtils::Slider( "Mix", mixing, { 0.0f, 1.0f } ) ) {
             }
 
+            // Merge color with objects base color
+            float opacity{ material.GetAlpha() };
+            if ( ImGuiUtils::Slider( "Opacity", opacity, { 0.0f, 1.0f } ) ) {
+                material.SetAlpha( opacity );
+            }
+
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndex );
 
@@ -428,6 +434,85 @@ namespace Mikoto {
 
             if ( ImGui::Button( "Remove Texture" ) ) {
                 material.RemoveTextureType( MapType::NORMAL_TEXTURE );
+            }
+
+            if ( ImGui::IsItemHovered() ) {
+                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
+    static auto EditPBRMaterialEmissiveMap( PBRMaterial& material ) -> void {
+        ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
+        ImGui::SameLine();
+        ImGui::TextUnformatted( " Emission" );
+
+        TextureHandle normalMap{ material.GetTextureType( MapType::EMISSIVE_TEXTURE ) };
+        if ( normalMap.IsEmpty() ) {
+            normalMap = AssetsService::Get()->GetDummyTexture();
+        }
+
+        if ( ImGuiUtils::PushImageButton( normalMap->GetHandle(), ImGuiService::Get()->GetTextureID( normalMap ), ImVec2{ 64, 64 } ) ) {
+            UpdateMaterialTexture( material, MapType::EMISSIVE_TEXTURE );
+        }
+
+        // Target from content browser
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+                TextureHandle dstNormalMap{ *static_cast<TextureHandle*>( payload->Data ) };
+                material.SetTextureType( MapType::EMISSIVE_TEXTURE, dstNormalMap );
+
+                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+        if ( material.HasTextureType( MapType::EMISSIVE_TEXTURE ) ) {
+            ImGuiUtils::ToolTip( [&]() -> void {
+                ShowTextureHoverTooltip( normalMap.GetRaw() );
+            },
+                                 ImGui::IsItemHovered() );
+        }
+
+        if ( ImGui::IsItemHovered() ) {
+
+            if ( !material.HasTextureType( MapType::EMISSIVE_TEXTURE ) ) {
+                ImGuiUtils::ToolTip( "Click me to load a texture." );
+            }
+
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        ImGui::SameLine();
+        // Table to control specular component
+        // Table has one row and one colum
+        constexpr auto columnCount{ 1 };
+        constexpr auto columnIndexSpecular{ 0 };
+        constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
+
+        if ( ImGui::BeginTable( "NormalMapEditContentsTable", columnCount, specularTableFlags ) ) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( columnIndexSpecular );
+
+            Vec3F factors{ material.GetEmissiveFactors() };
+            if ( ImGuiUtils::ColorEdit3( "Factors", factors ) ) {
+                material.SetEmissiveFactors( factors );
+            }
+
+            float strength{ material.GetEmissiveIntensity() };
+            if ( ImGuiUtils::Slider( "Strength", strength, { 0.0f, 10.0f } ) ) {
+                material.SetEmissiveIntensity( strength );
+            }
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( columnIndexSpecular );
+            ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+
+            if ( ImGui::Button( "Remove Texture" ) ) {
+                material.RemoveTextureType( MapType::EMISSIVE_TEXTURE );
             }
 
             if ( ImGui::IsItemHovered() ) {
@@ -601,6 +686,7 @@ namespace Mikoto {
         DisplayTextureEditTreeNode( "Roughness", *material, EditPBRMaterialRoughnessMap );
         DisplayTextureEditTreeNode( "Ambient Occlusion", *material, EditPBRMaterialAmbientOcclusion );
         DisplayTextureEditTreeNode( "Normal", *material, EditPBRMaterialNormalMap );
+        DisplayTextureEditTreeNode( "Emission", *material, EditPBRMaterialEmissiveMap );
     }
 
     static auto DrawComponentButton( Entity* entity ) -> void {
@@ -669,6 +755,16 @@ namespace Mikoto {
                 textComponent.SetContents( "Example" );
                 textComponent.SetSpacing( 1 );
 
+                ImGui::CloseCurrentPopup();
+            }
+
+            if ( ImGui::MenuItem( "Skinned Mesh Renderer", menuItemShortcut, menuItemSelected, !IsPresent<SkinnedMeshRenderer>( entity ) ) ) {
+                entity->AddComponent<SkinnedMeshRenderer>();
+                ImGui::CloseCurrentPopup();
+            }
+
+            if ( ImGui::MenuItem( "Animator", menuItemShortcut, menuItemSelected, !IsPresent<AnimatorComponent>( entity ) ) ) {
+                entity->AddComponent<AnimatorComponent>();
                 ImGui::CloseCurrentPopup();
             }
 
@@ -750,7 +846,7 @@ namespace Mikoto {
         ImGui::Spacing();
         ImGui::Spacing();
 
-        for ( auto& texture: meshTarget.GetTextures() ) {
+        for ( auto& texture: meshTarget.GetProperties().TexturesByUri | std::ranges::views::values ) {
             DisplayMapInformation( texture, texture->GetDebugName() );
         }
     }
@@ -874,6 +970,10 @@ namespace Mikoto {
     static auto SetupTransformComponentTab( Entity& entity, Scene* scene ) -> void {
         TransformComponent& transformComponent{ entity.GetComponent<TransformComponent>() };
 
+        glm::vec3 oldTranslation{ transformComponent.GetTranslation() };
+        glm::vec3 oldRotation{ transformComponent.GetRotation() };
+        glm::vec3 oldScale{ transformComponent.GetScale() };
+
         glm::vec3 newTranslation{ transformComponent.GetTranslation() };
         glm::vec3 newRotation{ transformComponent.GetRotation() };
         glm::vec3 newScale{ transformComponent.GetScale() };
@@ -896,11 +996,30 @@ namespace Mikoto {
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
         }
 
-        transformComponent.SetTranslation( newTranslation );
-        transformComponent.SetRotation( newRotation );
-        transformComponent.SetScale( newScale );
+        if (newTranslation != oldTranslation ) {
+            transformComponent.SetTranslation( newTranslation );
 
-        // TODO: Recursively apply transformations to children entities
+            scene->ApplyToChildren(std::addressof( entity ),
+                [newTranslation, oldTranslation](Entity* child) -> void {
+                    // Local
+                auto& childTransform{ child->GetComponent<TransformComponent>() };
+                childTransform.SetTranslation( childTransform.GetTranslation() + ( newTranslation - oldTranslation ) );
+            });
+        }
+
+        if (newRotation != oldRotation ) {
+            transformComponent.SetRotation( newRotation );
+            scene->ApplyToChildren(std::addressof( entity ),
+                [newRotation, oldRotation](Entity* child) -> void {
+                    // Local
+                auto& childTransform{ child->GetComponent<TransformComponent>() };
+                childTransform.SetRotation( childTransform.GetRotation() + ( newRotation - oldRotation ) );
+            });
+        }
+
+        if (newScale != oldScale ) {
+            transformComponent.SetScale( newScale );
+        }
     }
 
     static auto SetupScriptingComponentTab( Entity& entity ) -> void {
@@ -993,6 +1112,14 @@ namespace Mikoto {
                         StringUtils::Concat( "/", " code ", file->GetPath() ) );
             }
         }
+    }
+
+    static auto SetupAnimatorComponentTab( Entity& entity ) -> void {
+        AnimatorComponent& animatorComponent{ entity.GetComponent<AnimatorComponent>() };
+    }
+
+    static auto SetupSkinMeshComponentTab( Entity& entity ) -> void {
+        SkinnedMeshRenderer& skinnedMeshRendererComp{ entity.GetComponent<SkinnedMeshRenderer>() };
     }
 
 
@@ -1136,10 +1263,11 @@ namespace Mikoto {
 
                 TaskService::Get()->Submit( [rootEntity = std::addressof(entity), scene ]() -> void {
                     const std::initializer_list<std::pair<std::string, std::string>> filters{
-                        { "Model files", "obj,gltf,fbx" },
+                        { "Model files", "obj,gltf,fbx,glb" },
                         { "OBJ files", "obj" },
                         { "glTF files", "gltf" },
-                        { "FBX files", "fbx" }
+                        { "FBX files", "fbx" },
+                        { "GLB files", "glb" },
                     };
 
                     Path targetModelPath{ FileService::Get()->OpenDialog( filters ).string() };
@@ -1182,6 +1310,17 @@ namespace Mikoto {
         if ( ImGui::BeginTable( "DirectionalLightEditTable", 2, tableFlags ) ) {
 
             auto& direLightData{ lightComponent.Get<DirectionalLight>() };
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+            ImGui::TextUnformatted( "Intensity" );
+
+            ImGui::TableSetColumnIndex( 1 );
+            float intensity{ direLightData.GetIntensity() };
+            if ( ImGuiUtils::Slider( "##Intensity", intensity, { 1.0f, 10.0f } ) ) {
+                direLightData.SetIntensity( intensity );
+            }
 
             ImGui::Spacing();
             ImGui::TableNextRow();
@@ -1497,10 +1636,16 @@ namespace Mikoto {
 
         ImGuiUtils::HelpMarker( "Text inner spacing.", "(?)", true );
 
-        std::string content{ textComponent.GetContents() };
+        // Slider float letter spacing
+        bool isWorldText{ textComponent.IsWorldText() };
+        ImGui::Spacing();
+        if ( ImGuiUtils::CheckBox( "Is World Text", isWorldText) ) {
+            textComponent.SetIsWorldText( isWorldText );
+        }
 
         ImGui::Spacing();
-        // Max scaling between 1 and 3
+
+        std::string content{ textComponent.GetContents() };
         if ( ImGuiUtils::TextArea( content ) ) {
             textComponent.SetContents( content );
         }
@@ -1876,6 +2021,9 @@ namespace Mikoto {
         DrawComponent<TextComponent>( fmt::format( "{} Text", ICON_MD_MESSAGE ), *entity, SetupTextComponentTab );
         DrawComponent<CameraComponent>( fmt::format( "{} Camera", ICON_MD_CAMERA_ALT ), *entity, SetupCameraComponentTab );
         DrawComponent<ScriptComponent>( fmt::format( "{} Script", ICON_MD_CODE ), *entity, SetupScriptingComponentTab );
+
+        DrawComponent<AnimatorComponent>( fmt::format( "{} Animator", ICON_MD_ANIMATION ), *entity, SetupAnimatorComponentTab );
+        DrawComponent<SkinnedMeshRenderer>( fmt::format( "{} SkinRenderer", ICON_MD_COOKIE ), *entity, SetupSkinMeshComponentTab );
     }
 
     auto InspectorPanel::OnUpdate( float ) -> void {

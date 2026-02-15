@@ -122,6 +122,10 @@ namespace Mikoto {
             return !m_Sampler.IsEmpty();
         }
 
+        MKT_NODISCARD auto IsHDR() const -> bool { return m_IsHDR; }
+
+        MKT_NODISCARD auto GetSizeBytes() const -> Size { return m_SizeBytes; }
+
         /**
          * @brief Sets the sampler for the texture.
          *
@@ -173,6 +177,7 @@ namespace Mikoto {
         auto SetTextureName( const std::string_view name ) -> void {
             m_TextureName = name;
         }
+
     protected:
         /**
          * @brief Protected constructor for the Texture class.
@@ -196,9 +201,15 @@ namespace Mikoto {
         TextureFormat m_Format{ TextureFormat::INVALID };
         TextureUsage m_TextureUsage{ TextureUsage::NORMAL };
 
+        Multisampling m_Multisampling{ Multisampling::MSAA_X1 };
+
         Int32 m_Width{};
         Int32 m_Height{};
         Int32 m_Channels{};
+
+        bool m_IsHDR{ false };
+
+        Size m_SizeBytes{};
 
         SamplerHandle m_Sampler{};
 

@@ -17,6 +17,8 @@ cmake_policy(SET CMP0069 NEW)
 cmake_policy(SET CMP0135 NEW)
 cmake_policy(SET CMP0077 NEW)
 
+project(Mikoto VERSION 1.0 )
+
 # ======================================
 # Mikoto Options
 # ======================================

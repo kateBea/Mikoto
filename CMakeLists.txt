@@ -1,9 +1,6 @@
 ﻿cmake_minimum_required(VERSION 3.22)
 
-project(Mikoto
-        VERSION 1.0
-        LANGUAGES CXX
-)
+project(MikotoRoot VERSION 1.0)
 
 option(MIKOTO_BUILD_TESTS "Build Mikoto unit tests" ON)
 
@@ -23,7 +20,9 @@ if(MSVC)
 
     # Compile multithreaded
     add_compile_options(/MP)
-
+    set(CMAKE_MSVC_RUNTIME_LIBRARY
+            "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+            CACHE STRING "" FORCE)
 elseif(LINUX)
     message("Target platform Linux")
 

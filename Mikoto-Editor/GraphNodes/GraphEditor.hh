@@ -22,25 +22,32 @@
 #include <ankerl/unordered_dense.h>
 
 #include <Common/Common.hh>
+#include <Library/Utility/Types.hh>
 
 namespace Mikoto {
 
     struct GraphNode {
-        std::string Key{};        
+        Int32 ID{};
+        std::string Key{};
         std::string DisplayName{};
 
-        std::vector<std::string> Inputs{}; 
+        std::vector<std::string> Inputs{};
         std::vector<std::string> Outputs{};
     };
 
     class GraphEditorBuilder {
     public:
 
+        auto PushNode( std::string_view node ) -> void;
 
     private:
+        friend class GraphEditor;
 
+    private:
+        ankerl::unordered_dense::map<std::string, GraphNode> m_Nodes{};
     };
 
+    // TODO: investigate how we can properly use multiple
     class GraphEditor {
     public:
         explicit GraphEditor( std::string_view name );
@@ -52,10 +59,16 @@ namespace Mikoto {
         MKT_NODISCARD auto GetName() const -> const std::string&;
 
     private:
+        static auto RenderNode( const GraphNode& node ) -> void;
+
+    private:
         std::string m_Name{};
+        std::string m_ConfigLayoutFile{};
 
         ax::NodeEditor::Config m_Config{};
         ax::NodeEditor::EditorContext* m_Context{};
+
+        ankerl::unordered_dense::map<std::string, GraphNode> m_Nodes{};
     };
 }
 

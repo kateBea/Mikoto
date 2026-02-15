@@ -98,6 +98,7 @@ namespace Mikoto {
         auto& passNodes{ m_EditorState->EditorSceneRenderer->GetPassList() }; 
 
         for ( const auto& [passName, pass]: passNodes ) {
+            builder.PushNode( passName );
         }
 
         m_GraphEditor.Build( builder );

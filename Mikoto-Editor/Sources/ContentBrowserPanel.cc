@@ -257,20 +257,25 @@ namespace Mikoto {
 
     auto ContentBrowserPanel::DrawSideView(const Path& root) -> void {
         constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_FramePadding |
-                                                    ImGuiTreeNodeFlags_SpanFullWidth };
+                                                     ImGuiTreeNodeFlags_SpanFullWidth |
+                                                    ImGuiTreeNodeFlags_OpenOnArrow };
 
         for ( auto& entry: std::filesystem::directory_iterator( m_AssetsRootDirectory ) ) {
             if ( entry.is_directory() ) {
-                if ( ImGui::TreeNodeEx( entry.path().string().c_str(), treeNodeFlags, "%s", fmt::format( "{} {}", ICON_MD_FOLDER, entry.path().stem().string() ).c_str() ) ) {
-                    
-                    // We want this to apply before it is expanded, so we can avoid the problem of the tree node being hovered when it is expanded
-                    if ( ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) ) {
-                        m_CurrentDirectory = entry.path();
-                    }
-                    
-                    ImGuiUtils::SetCursorHandOnLastItemHovered();
+                bool isOpen{ ImGui::TreeNodeEx( entry.path().string().c_str(), treeNodeFlags, "%s", 
+                    fmt::format( "{} {}", ICON_MD_FOLDER, entry.path().stem().string() ).c_str() ) };
 
+                ImGuiUtils::SetCursorHandOnLastItemHovered();
+
+                if ( ImGui::IsItemClicked( ImGuiMouseButton_Left ) &&
+                     !ImGui::IsItemToggledOpen() ) {
+                    m_CurrentDirectory = entry.path();
+                }
+
+                if ( isOpen ) {
+                    
                     DrawSideView( entry );
+
                     ImGui::TreePop();
                 }
 

@@ -115,7 +115,6 @@ namespace Mikoto {
 
         ImGuiUtils::DrawNode( "Passes", [this] () -> void {
             ImGuiUtils::UnindentScoped und{};
-
             ImGuiUtils::CheckBox( "Show Pass Dependencies", m_ShowPassGraph );
 
             DrawPassInfo();
@@ -167,8 +166,6 @@ namespace Mikoto {
     }
 
     auto RendererPanel::DrawPassInfo() -> void {
-        ImGuiUtils::UnindentScoped und{};
-
         const auto& passList{ m_EditorState->EditorSceneRenderer->GetPassList() };
 
         ImGui::TextUnformatted( StringUtil::Format( "Pass count: {}", passList.size() ).c_str() );

@@ -427,7 +427,7 @@ namespace Mikoto {
 
                 NodeHierarchy hierarchy{};
                 LoadNodeHierarchy( hierarchy, scene->mRootNode );
-                modelData.Animations.emplace_back( std::move( hierarchy ), animation->mDuration, animation->mTicksPerSecond );
+                modelData.Animations.emplace_back( std::move( hierarchy ), static_cast<float>( animation->mDuration ), static_cast<UInt32>( animation->mTicksPerSecond ) );
             }
 
             modelData.Name = scene->mName.C_Str();

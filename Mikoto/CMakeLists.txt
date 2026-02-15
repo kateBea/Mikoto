@@ -26,6 +26,7 @@ option(MIKOTO_USE_XCB_WINDOW "Use XCB for Linux windowing" OFF)
 option(MIKOTO_USE_WIN32_WINDOW "Use Win32 for Windows windowing" OFF)
 option(MIKOTO_ENABLE_TRACY_PROFILING "Enable tracy profiling" OFF)
 
+# TODO: split cmake setup into individual libraries each with their Cmake
 # ======================================
 # Mikoto MSVC configurations
 # ======================================

@@ -1,11 +1,11 @@
 ﻿cmake_minimum_required(VERSION 3.22)
 
-option(MIKOTO_BUILD_TESTS "Build Mikoto unit tests" ON)
-
 project(Mikoto
         VERSION 1.0
         LANGUAGES CXX
 )
+
+option(MIKOTO_BUILD_TESTS "Build Mikoto unit tests" ON)
 
 # ===========================
 # C++ language requirements
@@ -20,12 +20,6 @@ set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 # ===========================
 if(MSVC)
     message("Target platform Windows")
-
-    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-    else()
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
-    endif()
 
     # Compile multithreaded
     add_compile_options(/MP)

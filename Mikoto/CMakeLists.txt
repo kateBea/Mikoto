@@ -17,14 +17,19 @@ cmake_policy(SET CMP0069 NEW)
 cmake_policy(SET CMP0135 NEW)
 cmake_policy(SET CMP0077 NEW)
 
-project(Mikoto)
-
 # ======================================
 # Mikoto Options
 # ======================================
 option(MIKOTO_USE_XCB_WINDOW "Use XCB for Linux windowing" OFF)
 option(MIKOTO_USE_WIN32_WINDOW "Use Win32 for Windows windowing" OFF)
 option(MIKOTO_ENABLE_TRACY_PROFILING "Enable tracy profiling" OFF)
+
+# ======================================
+# Mikoto MSVC configurations
+# ======================================
+if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "" FORCE)
+endif()
 
 # ======================================
 # Language requirements

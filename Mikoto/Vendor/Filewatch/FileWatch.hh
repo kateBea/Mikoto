@@ -165,7 +165,45 @@ namespace filewatch {
             return path == "." || path == "..";
       }
 
-	/**
+      template<typename StringType>
+      struct absolute_path_of_helper {
+          static StringType get( std::string_view buf ) {
+              return StringType{ buf };
+          }
+
+          static StringType get( std::wstring buf ) {
+              return StringType{ std::filesystem::path{ buf }.generic_string() };
+          }
+      };
+
+#ifdef __cpp_lib_filesystem
+#if __cplusplus >= 202002L
+      template<>
+      struct absolute_path_of_helper<std::filesystem::path> {
+          static std::filesystem::path get( std::string_view buf ) {
+              return { buf };
+          }
+
+          static std::filesystem::path get( std::wstring buf ) {
+              return std::filesystem::path{ buf };
+          }
+      };
+#else
+      template<>
+      struct absolute_path_of_helper<std::filesystem::path> {
+          static std::filesystem::path get( std::string_view buf ) {
+              return std::filesystem::u8path( buf );
+          }
+
+          static std::filesystem::path get( std::wstring buf ) {
+              return std::filesystem::u8path( buf );
+          }
+      };
+#endif
+#endif
+
+
+      /**
 	* \class FileWatch
 	*
 	* \brief Watches a folder or file, and will notify of changes via function callback.
@@ -663,22 +701,6 @@ namespace filewatch {
 		}
 #endif // __unix__
 
-            template<typename StringType>
-            struct absolute_path_of_helper {
-                  static StringType get(const char* buf) {
-                        return StringType{buf};
-                  }
-            };
-
-#ifdef __cpp_lib_filesystem
-            template<>
-            struct absolute_path_of_helper<std::filesystem::path> {
-                  static std::filesystem::path get(const char* buf) {
-                        return std::filesystem::u8path(buf);
-                  }
-            };
-#endif
-
 #if FILEWATCH_PLATFORM_MAC
             static StringType absolute_path_of(const StringType& path) {
                   char buf[PATH_MAX];
@@ -738,9 +760,9 @@ namespace filewatch {
                         size_t needed = std::mbsrtowcs(nullptr, &str, 0, &state) + 1;
                         std::wstring s(needed, L'\0');
                         std::mbsrtowcs(&s[0], &str, s.size(), &state);
-                        return StringType {s};
+                        return absolute_path_of_helper<StringType>::get( s );
                   }
-                  return StringType {buf};
+                  return absolute_path_of_helper<StringType>::get( buf );;
             }
 #elif _WIN32
             static StringType absolute_path_of(const StringType& path) {

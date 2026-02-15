@@ -17,25 +17,9 @@
 #extension GL_EXT_scalar_block_layout : require
 
 #include "ShaderBase.glsl"
+#include "text_render/TextMaterial.glsl"
 
-struct FontRenderParams {
-    mat4 Projection;
-    mat4 View;
-    mat4 Model;
-
-    vec4 Position;
-    vec4 Size;
-    vec4 Color;
-    vec2 TextureCoords[4];
-    uint TextureIndex;
-};
-
-layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform UniformBufferObject {
-    vec4 OutlineColor;
-    float OutlineWidth;
-} u_TextEffectsParams;
-
-layout(std430, scalar, set = PERPASS_SETINDEX, binding = 1) readonly buffer FontRenderParamsBuffer {
+layout(std430, scalar, set = STATIC_SETINDEX, binding = 0) readonly buffer FontRenderParamsBuffer {
     FontRenderParams params[];
 };
 
@@ -46,16 +30,12 @@ layout(location = 0) out vec2 out_TexCoord;
 layout(location = 1) out float out_TexIndex;
 layout(location = 2) out vec4 out_Color;
 
-layout(location = 3) out vec4 out_OutlineColor;
-
 void main() {
     FontRenderParams u_Parameters = params[gl_InstanceIndex];
 
     out_TexCoord = u_Parameters.TextureCoords[a_TexCoordIndex];
     out_TexIndex = float(u_Parameters.TextureIndex);
     out_Color = u_Parameters.Color;
-
-    out_OutlineColor = u_TextEffectsParams.OutlineColor;
 
     vec3 pos = a_Position * u_Parameters.Size.xyz + u_Parameters.Position.xyz;
 

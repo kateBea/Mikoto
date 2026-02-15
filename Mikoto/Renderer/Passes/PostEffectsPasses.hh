@@ -42,6 +42,7 @@ namespace Mikoto {
 
     private:
         auto RegisterTextRender( FrameGraph& graph, GpuDevice* device) -> void;
+        auto RegisterTextRenderScatterWrites( FrameGraph& graph) -> void;
         auto RegisterObjectOutline( FrameGraph& graph, GpuDevice* device) -> void;
         auto RegisterSSAO( FrameGraph& graph ) -> void;
         auto RegisterBloom( FrameGraph& graph ) -> void;
@@ -49,7 +50,6 @@ namespace Mikoto {
 
         auto TraverseTextList( CommandContext& ctx ) -> void;
 
-        auto SetupRenderParams( CommandContext& context ) -> void;
         auto SetupTextForRender( CommandContext& context, const TransformComponent& transformComponent, const TextComponent& textComponent) -> void;
 
     private:
@@ -58,16 +58,14 @@ namespace Mikoto {
             Mat4F View{};
             Mat4F Model{};
 
+            Vec4F OutlineColor{};
+            float OutlineWidth{};
+
             Vec4F Position{};
             Vec4F Size{};
             Vec4F Color{};
             Vec2F TexCoords[4]{};
             UInt32 TexIndex{};
-        };
-
-        struct TextParamsUBO {
-            Vec4F OutlineColor{ 1.0f, 1.0f, 1.0f, 1.0f };
-            float OutlineWidth{ 2.0f };
         };
 
         struct FontVertex {
@@ -90,9 +88,6 @@ namespace Mikoto {
 
         static constexpr UInt32 MAX_GLYPHS{ 1024 * 1024 };
 
-        Size m_GlyphCount{};
-        std::vector<TextRenderParams> m_TextRenderParams{};
-
         std::array<FontVertex, 4> VERTICES{
             FontVertex{ { 0.0f, 0.0f, 0.0f }, 0 },
             FontVertex{ { 1.0f, 0.0f, 0.0f }, 1 },
@@ -111,7 +106,11 @@ namespace Mikoto {
 
         const Scene* m_Scene{};
         const Camera* m_Camera{};
-        TextParamsUBO m_TextRenderUBO{};
+
+        Size m_GlyphCount{};
+        std::vector<UInt32> m_TextInfoIndices{};
+        std::vector<TextRenderParams> m_TextInfo{};
+
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
 
         RenderResolution m_Resolution{ RenderResolution::FHD_1080 };

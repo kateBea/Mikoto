@@ -49,9 +49,14 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         RegisterTextRender( graph, device );
+        RegisterTextRenderScatterWrites( graph );
         RegisterInfiniteGrid( graph );
         //RegisterSSAO( graph );
         RegisterBloom( graph );
+    }
+
+    auto PostEffectsPass::SetMeshCulling( MeshCulling& culling ) -> void {
+        m_MeshCullingPass = std::addressof( culling );
     }
 
     auto PostEffectsPass::RegisterTextRender( FrameGraph& graph, GpuDevice* device ) -> void {
@@ -73,15 +78,10 @@ namespace Mikoto {
                 .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
         m_TextIndexBuffer = device->CreateBuffer( indexDesc );
 
-        m_TextRenderParams.resize( MAX_GLYPHS );
-
         graph.RegisterPass(
                 "3DTextRenderingPass",
                 []( FramePassBuilder& b ) {
                     MKT_BEGIN_PROFILER_NAMED();
-
-                    b.Create<Buffer>( "TextRenderPass_TextRenderParams", BufferUsage::SHADER_STORAGE, sizeof( TextRenderParams ), MAX_GLYPHS )
-                            .Create<Buffer>( "TextRenderPass_FontParams", BufferUsage::UNIFORM, sizeof( TextParamsUBO ), 1 );
 
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Text_Vert.sprv", ShaderStage::VERTEX );
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Text_Frag.sprv", ShaderStage::FRAGMENT );
@@ -103,19 +103,25 @@ namespace Mikoto {
                     graphicsDesc.PrimitiveTopology = Topology::TRIANGLE_LIST;
                     b.Create<Pipeline>( "TextRenderPass_Pipeline", graphicsDesc );
 
-                    b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite )
-                            .Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget )
-                            .Read( "FinalCompositionPass_CameraInfo", FrameResourceState::UniformBuffer );
+                    b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite );
+                    b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
 
-                    b.Write( "TextRenderPass_FontParams", FrameResourceState::UniformBuffer );
-                    b.Write( "TextRenderPass_TextRenderParams", FrameResourceState::UniformBuffer );
+                    // Force it go after the final composition
+                    b.Read( "FinalShading_Params", FrameResourceState::UniformBuffer );
 
-                    b.Use( SRGType::SRG_PerPass, "TextRenderPass_FontParams", 0 );
-                    b.Use( SRGType::SRG_PerPass, "TextRenderPass_TextRenderParams", 1 );
+                    b.Write( "3DRenderTRextEdge", FrameResourceState::UniformBuffer );
+
+                    b.Read( "ScatteredWrites_FinalTextInfo", FrameResourceState::UniformBuffer );
+
+                    b.Use( SRGType::SRG_PerPass, "ScatteredWrites_FinalTextInfo", 0 );
                     b.Use( SRGType::SRG_Textures );
                 },
                 [this]( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
+
+                    if (m_GlyphCount == 0) {
+                        return;
+                    }
 
                     MKT_ASSERT( m_Scene != nullptr, "Scene cannot be NULL" );
 
@@ -135,9 +141,6 @@ namespace Mikoto {
                     ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
                     ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
-                    TraverseTextList( ctx );
-                    SetupRenderParams( ctx );
-
                     DrawIndexedState drawIndexedState{};
 
                     drawIndexedState.IndexBuffer = m_TextIndexBuffer;
@@ -152,6 +155,68 @@ namespace Mikoto {
                 } );
     }
 
+    auto PostEffectsPass::RegisterTextRenderScatterWrites( FrameGraph& graph) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        struct ScatterWriteTextPushConstant {
+            UInt32 UpdateCount{};
+        };
+
+        m_TextInfo.resize( MAX_GLYPHS );
+        m_TextInfoIndices.resize( MAX_GLYPHS );
+
+        graph.RegisterPass(
+                "ScatteredWritesTextPass",
+                []( FramePassBuilder &b) {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                    b.Create<Buffer>( "ScatteredWrites_TextData", BufferUsage::SHADER_STORAGE, sizeof( TextRenderParams ), MAX_GLYPHS );
+                    b.Create<Buffer>( "ScatteredWrites_TextDataIndices", BufferUsage::SHADER_STORAGE, sizeof( UInt32 ), MAX_GLYPHS );
+
+                    auto finalBuffer{ BufferBuilder{} };
+                    finalBuffer.WithUsage( BufferUsage::SHADER_STORAGE )
+                        .ForElement( sizeof(TextRenderParams), MAX_GLYPHS )
+                        .IsDynamic( false )
+                        .Build( "ScatteredWrites_FinalTextInfo" );
+
+                    b.CreateBuffer( finalBuffer );
+
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/ScatteredWritesText_Comp.sprv", ShaderStage::COMPUTE );
+                    b.Create<Pipeline>( "ScatteredWritesTextPass_Pipeline", ComputePipelineDescription{} );
+
+                    b.Write( "ScatteredWrites_TextData", FrameResourceState::UnorderedAccess );
+                    b.Write( "ScatteredWrites_TextDataIndices", FrameResourceState::UnorderedAccess );
+                    b.Write( "ScatteredWrites_FinalTextInfo", FrameResourceState::UnorderedAccess );
+
+                    b.Use( SRGType::SRG_PerPass, "ScatteredWrites_FinalTextInfo", 0 );
+                    b.Use( SRGType::SRG_PerPass, "ScatteredWrites_TextData", 1 );
+                    b.Use( SRGType::SRG_PerPass, "ScatteredWrites_TextDataIndices", 2 );
+                },
+                [this]( CommandContext &ctx, FrameGraphBlackboard& ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                    TraverseTextList( ctx );
+
+                    // Need at least m_ObjectUpdateCount threads.
+                    // But dispatch works in groups, not individual threads.
+                    Size dispatchCount{ (m_GlyphCount + 64 - 1) };
+                    if (dispatchCount == 0) {
+                        return;
+                    }
+
+                    ScatterWriteTextPushConstant pushConstants{};
+                    pushConstants.UpdateCount = m_GlyphCount;
+
+                    ctx.BindPipeline( "ScatteredWritesTextPass_Pipeline" );
+
+                    ctx.PushConstants( std::addressof( pushConstants ), sizeof( ScatterWriteTextPushConstant ) );
+                    ctx.UploadBufferData( "ScatteredWrites_TextData", m_TextInfo.data(), sizeof( MeshParameters ), m_GlyphCount );
+                    ctx.UploadBufferData( "ScatteredWrites_TextDataIndices", m_TextInfoIndices.data(), sizeof( UInt32 ), m_GlyphCount );
+
+                    ctx.Dispatch( dispatchCount / 64, 1, 1 );
+                } );
+    }
+
     auto PostEffectsPass::RegisterObjectOutline( FrameGraph& graph, GpuDevice* device ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -163,10 +228,6 @@ namespace Mikoto {
                 []( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
                 } );
-    }
-
-    auto PostEffectsPass::SetMeshCulling( MeshCulling& culling ) -> void {
-        m_MeshCullingPass = std::addressof( culling );
     }
 
     auto PostEffectsPass::RegisterSSAO( FrameGraph& graph ) -> void {
@@ -327,7 +388,6 @@ namespace Mikoto {
     auto PostEffectsPass::RegisterInfiniteGrid( FrameGraph& graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-
         graph.RegisterPass(
                 "InfiniteGrid",
                 [this]( FramePassBuilder& b ) {
@@ -397,13 +457,6 @@ namespace Mikoto {
 
             SetupTextForRender( ctx, transform, textComponent );
         }
-
-        ctx.UploadBuffer( "TextRenderPass_TextRenderParams", m_TextRenderParams.data(), m_GlyphCount * sizeof( TextRenderParams ) );
-    }
-
-    auto PostEffectsPass::SetupRenderParams( CommandContext& context ) -> void {
-        m_TextRenderUBO.OutlineWidth = 0.0f;
-        context.UploadBuffer( "TextRenderPass_FontParams", std::addressof( m_TextRenderUBO ), sizeof( m_TextRenderUBO ) );
     }
 
     auto PostEffectsPass::SetupTextForRender( CommandContext& context, const TransformComponent& transformComponent, const TextComponent& textComponent ) -> void {
@@ -475,7 +528,8 @@ namespace Mikoto {
                     fontParams.Proj = view;
                     fontParams.View = projection;
 
-                    m_TextRenderParams[m_GlyphCount++] = fontParams;
+                    m_TextInfoIndices[m_GlyphCount] = m_GlyphCount;
+                    m_TextInfo[m_GlyphCount++] = fontParams;
                 }
 
                 advance = glyph.m_AdvanceX * fontSize;
@@ -489,4 +543,4 @@ namespace Mikoto {
             xPos += advance;
         }
     }
-}// namespace Mikoto
+}

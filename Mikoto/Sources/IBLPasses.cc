@@ -573,10 +573,15 @@ namespace Mikoto {
     auto IBLPasses::RegisterDebugViewsPass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        // TODO: Find a way to force thuis pass to go at the veryy end to
+        // transition resources in the way it suits the editor
         graph.RegisterPass(
                 "DebugViewsPass",
                 []( FramePassBuilder &b ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
+
+                    // Force it go after the final composition
+                    b.Read( "3DRenderTRextEdge", FrameResourceState::UniformBuffer );
 
                     // To have this pas transition the final convert the final image into a layout imgui likes
                     b.Read( "FinalShading_Params", FrameResourceState::ShaderRead_GraphicsPipeline );

@@ -618,7 +618,7 @@ namespace Mikoto {
                         .DepthWrite{ true },
                         .AlphaBlending{ true },
                         .EnableSampleRateShading{ true },
-                        .Multisampling{ Multisampling::MSAA_X1 },
+                        .MSAA{ Multisampling::MSAA_X1 },
                         .PipelineCullMode{ CullMode::NONE }, // We probably need to organize models by material some models like the just_a_girl require cull_back to be properly visulized
                     };
 
@@ -708,7 +708,7 @@ namespace Mikoto {
                         .DepthWrite{ true },
                         .AlphaBlending{ true },
                         .EnableSampleRateShading{ true },
-                        .Multisampling{ Multisampling::MSAA_X1 },
+                        .MSAA{ Multisampling::MSAA_X1 },
                         .PipelineCullMode{ CullMode::CULL_BACK },
                     };
 

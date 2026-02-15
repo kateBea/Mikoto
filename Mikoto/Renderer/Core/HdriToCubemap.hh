@@ -27,8 +27,6 @@
 #include <vector>
 #include <numbers>
 
-//#define USE_OPENCL
-
 template <typename T>
 class HdriToCubemap
 {
@@ -184,7 +182,7 @@ void HdriToCubemap<T>::calculateCubemap()
                 }
                 else // perform bilinear interpolation
                 {
-                    float intCol, intRow;
+                    double intCol, intRow;
                     float factorCol = modf(colHdri- 0.5f, &intCol);        // factor gives the contribution of the next column, while the contribution of intCol is 1 - factor
                     float factorRow = modf(rowHdri - 0.5f, &intRow);
 

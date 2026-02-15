@@ -34,9 +34,9 @@ elseif(LINUX)
     message("Target platform Linux")
 
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        add_compile_options(-g3 -D_GLIBCXX_DEBUG -Wall -Wextra -Wpedantic)
+        add_compile_options(-g3 -D_GLIBCXX_DEBUG -Wall)
     else()
-        add_compile_options(-O3 -Wall -Wextra -Wpedantic)
+        add_compile_options(-O3 -Wall)
     endif()
 endif()
 

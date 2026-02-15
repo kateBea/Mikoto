@@ -257,7 +257,7 @@ namespace Mikoto {
         // see imgui_draw_.cpp ImFont* ImFontAtlas::AddFont(const ImFontConfig* font_cfg_in)
         // Also first font cannot have MergeMode == true
         if (m_ImGuiFonts.empty() || result && (config == nullptr || !config->MergeMode)) {
-            m_ImGuiFonts.try_emplace( path, static_cast<Int8>( m_ImGuiFonts.size() ) );
+            m_ImGuiFonts.try_emplace( Filesystem::GetGetAbsolutePathString( Path{ path } ), static_cast<Int8>( m_ImGuiFonts.size() ) );
         }
     }
 
@@ -299,18 +299,21 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         auto it{ m_ImGuiFonts.find( std::string( str ) ) };
+        const File* fontFile{ FileService::Get()->LoadFile( Path{ str } ) };
+
         if ( it == m_ImGuiFonts.end() ) {
-            const File* fontFile{ FileService::Get()->LoadFile( Path{ str } ) };
 
             if (fontFile == nullptr) {
                 MKT_CORE_LOGGER_WARN( "ImGuiService::PushFont - Failed to load font at {}", str );
                 return ImGuiUtils::ImGuiScopedTextFont( ImGuiUtils::ImGuiScopedTextFont::Invalid );
             }
 
-            AddFont( FONT_BASE_SIZE, fontFile->GetPath().c_str() );
+            AddFont( FONT_BASE_SIZE, fontFile->GetPath() );
         }
 
-        return ImGuiUtils::ImGuiScopedTextFont{ m_ImGuiFonts.at( std::string( str ) ) };
+        MKT_ASSERT( fontFile, "Font File does not exist" );
+
+        return ImGuiUtils::ImGuiScopedTextFont{ m_ImGuiFonts.at( fontFile->GetPath() ) };
     }
 
 

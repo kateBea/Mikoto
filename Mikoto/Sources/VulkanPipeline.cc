@@ -225,7 +225,7 @@ namespace Mikoto {
         m_Wireframe = info.Desc.Wireframe;
         m_VertexAttributesSpec = info.Desc.VertexAttributesSpec;
 
-        m_Multisampling = info.Desc.Multisampling;
+        m_Multisampling = info.Desc.MSAA;
         m_EnableSampleRateShading = info.Desc.EnableSampleRateShading;
 
         // Depth Render target format

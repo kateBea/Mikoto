@@ -883,12 +883,12 @@ namespace Mikoto {
 
         m_ActiveScene = SceneManager::Get()->CreateScene( name );
 
-        //SimpleScene();
+        SimpleScene();
         //DebugInstancingTest();
-        //DebugManyLightsTest();
+        DebugManyLightsTest();
         //DebugDamagedHelmet();
 
-        DebugSpheresProperties();
+        //DebugSpheresProperties();
     }
 
     auto EditorLayer::PrepareRenderer( double ) -> void {

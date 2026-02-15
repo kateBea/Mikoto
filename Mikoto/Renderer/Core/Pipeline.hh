@@ -139,7 +139,7 @@ namespace Mikoto {
         bool EnableSampleRateShading{ false };
 
 
-        Multisampling Multisampling{ Multisampling::MSAA_X1 };
+        Multisampling MSAA{ Multisampling::MSAA_X1 };
         CullMode PipelineCullMode{ CullMode::NONE };
         PolygonMode PipelinePolygonMode{ PolygonMode::FILL };
         Topology PrimitiveTopology{ Topology::TRIANGLE_LIST };

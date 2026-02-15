@@ -114,9 +114,12 @@ namespace Mikoto {
         ImGui::SeparatorText( "FrameGraph Info" );
 
         ImGuiUtils::DrawNode( "Passes", [this] () -> void {
-            DrawPassInfo();
+            ImGuiUtils::UnindentScoped und{};
 
             ImGuiUtils::CheckBox( "Show Pass Dependencies", m_ShowPassGraph );
+
+            DrawPassInfo();
+
 
             if (m_ShowPassGraph) {
                 m_GraphEditor.Render();

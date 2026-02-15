@@ -41,6 +41,10 @@ namespace Mikoto {
             DrawBackgroundSettings();
         });
 
+        ImGuiUtils::DrawNode( "Shadows", [this]() -> void {
+            
+        } );
+
         ImGui::End();
     }
 

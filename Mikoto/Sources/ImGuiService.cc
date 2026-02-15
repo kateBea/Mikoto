@@ -218,7 +218,7 @@ namespace Mikoto {
         const std::string path{ PathBuilder()
                 .WithPath( m_ImGuiFilesRootDir )
                 .WithPath( "JetBrainsMono/fonts/ttf/" )
-                .WithPath( "JetBrainsMonoNL-Thin.ttf" )
+                .WithPath( "JetBrainsMono-Medium.ttf" )
                 .Build().string() };
 
         // Add the main font

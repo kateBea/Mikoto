@@ -758,6 +758,16 @@ namespace Mikoto {
                 ImGui::CloseCurrentPopup();
             }
 
+            if ( ImGui::MenuItem( "Skinned Mesh Renderer", menuItemShortcut, menuItemSelected, !IsPresent<SkinnedMeshRenderer>( entity ) ) ) {
+                entity->AddComponent<SkinnedMeshRenderer>();
+                ImGui::CloseCurrentPopup();
+            }
+
+            if ( ImGui::MenuItem( "Animator", menuItemShortcut, menuItemSelected, !IsPresent<AnimatorComponent>( entity ) ) ) {
+                entity->AddComponent<AnimatorComponent>();
+                ImGui::CloseCurrentPopup();
+            }
+
             ImGui::EndPopup();
         }
 

@@ -210,7 +210,7 @@ namespace Mikoto {
                     ctx.BindPipeline( "ScatteredWritesTextPass_Pipeline" );
 
                     ctx.PushConstants( std::addressof( pushConstants ), sizeof( ScatterWriteTextPushConstant ) );
-                    ctx.UploadBufferData( "ScatteredWrites_TextData", m_TextInfo.data(), sizeof( MeshParameters ), m_GlyphCount );
+                    ctx.UploadBufferData( "ScatteredWrites_TextData", m_TextInfo.data(), sizeof( TextRenderParams ), m_GlyphCount );
                     ctx.UploadBufferData( "ScatteredWrites_TextDataIndices", m_TextInfoIndices.data(), sizeof( UInt32 ), m_GlyphCount );
 
                     ctx.Dispatch( dispatchCount / 64, 1, 1 );

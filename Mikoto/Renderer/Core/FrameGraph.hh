@@ -51,11 +51,18 @@ namespace Mikoto {
         ONCE
     };
 
+    enum class FramePassNodeType {
+        GRAPHICS,
+        COMPUTE,
+        TRANSFER,
+        GENERIC, // For passes that not really need any kind of GPU work
+    };
+
     struct FramePassNode {
         std::string Name{};
 
         // [DEBUG]
-        Time LastExecutionTime{}; // In seconds
+        Time LastExecutionTime{};
 
         std::vector<ResourceNode> Reads{};
         std::vector<ResourceNode> Writes{};
@@ -81,8 +88,6 @@ namespace Mikoto {
         MKT_NODISCARD auto ShouldRun() const -> bool;
 
         MKT_NODISCARD auto HasResources() const -> bool;
-
-
     };
 
     struct BufferBuilder {
@@ -186,7 +191,7 @@ namespace Mikoto {
         explicit FrameGraph( GraphicsContext *context, GpuDevice *device );
 
         template<typename PassData, typename SetupFn, typename ExecuteFn>
-        auto RegisterPass( const std::string_view name, SetupFn &&setup, ExecuteFn &&execute ) -> void {
+        auto RegisterPass( const std::string_view name, SetupFn &&setup, ExecuteFn &&execute, FramePassNodeType nodeType = FramePassNodeType::GENERIC ) -> void {
             FramePassNode &node{ CreatePassNode( name ) };
 
             PassData &data{ m_GraphBlackboard.Add<PassData>() };
@@ -199,7 +204,7 @@ namespace Mikoto {
         }
 
         template<typename SetupFn, typename ExecuteFn>
-        auto RegisterPass( const std::string_view name, SetupFn &&setup, ExecuteFn &&execute ) -> void {
+        auto RegisterPass( const std::string_view name, SetupFn &&setup, ExecuteFn &&execute, FramePassNodeType nodeType = FramePassNodeType::GENERIC ) -> void {
             FramePassNode &node{ CreatePassNode( name ) };
 
             FramePassBuilder builder{ node };

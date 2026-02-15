@@ -265,7 +265,6 @@ namespace Mikoto {
         m_Samplers.Init( 10 );
         m_DescriptorSetLayouts.Init( 10 );
 
-        // Init Pools
         m_MainTimeSubmitPool = m_CmdPools.Allocate( QueueType::GRAPHICS_QUEUE, 100 );
         m_MainTimeSubmitPool->Initialize( this );
 

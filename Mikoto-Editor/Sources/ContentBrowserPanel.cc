@@ -261,7 +261,7 @@ namespace Mikoto {
                                                     ImGuiTreeNodeFlags_OpenOnArrow };
 
         for ( auto& entry: std::filesystem::directory_iterator( m_AssetsRootDirectory ) ) {
-            if ( entry.is_directory() ) {
+            if ( entry.is_directory() && entry != root) {
                 bool isOpen{ ImGui::TreeNodeEx( entry.path().string().c_str(), treeNodeFlags, "%s", 
                     fmt::format( "{} {}", ICON_MD_FOLDER, entry.path().stem().string() ).c_str() ) };
 

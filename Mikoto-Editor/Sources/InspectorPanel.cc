@@ -1125,6 +1125,7 @@ namespace Mikoto {
             // Show list of animations
         }
 
+        ImGuiUtils::UnindentScoped und{};
         ImGuiUtils::DrawNode( "Animation List", [animator]() -> void {
             ImGuiUtils::UnindentScoped und{};
 
@@ -1172,28 +1173,29 @@ namespace Mikoto {
     }
 
     static auto SetupPhysicsComponentTab( Entity& entity ) -> void {
-        if (!entity.HasComponent<RigidBodyComponent>())
+        if (!entity.HasComponent<RigidBodyComponent>()) {
             return;
+        }
 
-        auto& rb = entity.GetComponent<RigidBodyComponent>();
+        auto& rb{ entity.GetComponent<RigidBodyComponent>() };
 
         if (ImGui::CollapsingHeader("Rigid Body", ImGuiTreeNodeFlags_DefaultOpen)) {
 
             // --- Body Type ---
             {
-                const char* bodyTypes[] = { "Static", "Kinematic", "Dynamic" };
-                int currentType = static_cast<int>(rb.GetBodyType());
+                std::array bodyTypes{ "Static", "Kinematic", "Dynamic" };
+                Int32 currentType{ static_cast<int>( rb.GetBodyType() ) };
 
                 ImGui::Text("Body Type");
                 ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
-                if (ImGui::Combo("##BodyType", &currentType, bodyTypes, IM_ARRAYSIZE(bodyTypes))) {
+                if ( ImGui::Combo( "##BodyType", &currentType, bodyTypes.data(), bodyTypes.size()) ) {
                     rb.SetBodyType(static_cast<RigidBodyComponent::BodyType>(currentType));
                 }
             }
 
             // --- Use Gravity ---
             {
-                bool useGravity = rb.UseGravity();
+                bool useGravity{ rb.UseGravity() };
                 if (ImGui::Checkbox("Use Gravity", &useGravity)) {
                     rb.SetUseGravity(useGravity);
                 }
@@ -1201,7 +1203,7 @@ namespace Mikoto {
 
             // --- Mass ---
             {
-                float mass = rb.GetMass();
+                float mass{ rb.GetMass() };
                 ImGui::Text("Mass");
                 ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
                 if (ImGui::DragFloat("##Mass", &mass, 0.1f, 0.0f, 1000.0f, "%.2f")) {
@@ -1211,7 +1213,7 @@ namespace Mikoto {
 
             // --- Friction ---
             {
-                float friction = rb.GetFriction();
+                float friction{ rb.GetFriction() };
                 ImGui::Text("Friction");
                 ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
                 if (ImGui::SliderFloat("##Friction", &friction, 0.0f, 1.0f, "%.2f")) {

@@ -40,10 +40,10 @@ namespace Mikoto {
         float TimeStamp{};
     };
 
-    class Bone final {
+    class Joint final {
     public:
         /*reads keyframes from aiNodeAnim*/
-        Bone( const std::string& name, Int32 ID, const aiNodeAnim* channel );
+        Joint( const std::string& name, Int32 ID, const aiNodeAnim* channel );
 
         /*interpolates  b/w positions,rotations & scaling keys based on the curren time of
         the animation and prepares the local transformation matrix by combining all keys
@@ -51,13 +51,13 @@ namespace Mikoto {
         auto Update( float animationTime ) -> void;
 
         /* Gets the current index on mKeyPositions to interpolate to based on the current animation time*/
-        auto GetPositionIndex( float animationTime ) -> Int32;
+        auto GetPositionIndex( float animationTime ) const -> Int32;
 
         /* Gets the current index on mKeyRotations to interpolate to based on the current animation time*/
-        auto GetRotationIndex( float animationTime ) -> Int32;
+        auto GetRotationIndex( float animationTime ) const -> Int32;
 
         /* Gets the current index on mKeyScalings to interpolate to based on the current animation time */
-        auto GetScaleIndex( float animationTime ) -> Int32;
+        auto GetScaleIndex( float animationTime ) const -> Int32;
 
         auto GetLocalTransform() const -> const auto& { return m_LocalTransform; }
         auto GetBoneName() const -> auto& { return m_Name; }

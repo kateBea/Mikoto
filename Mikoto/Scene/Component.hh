@@ -259,6 +259,21 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Model->GetName(); }
 
+        // Skinning
+        auto IsSkinned() const -> bool {
+            return m_IsSkinned;
+        }
+
+        auto SetSkinned(bool value) -> void {
+            m_IsSkinned = value;
+        }
+
+        auto SetAnimator(UInt64 id) -> void {
+            m_AnimatorID = id;
+        }
+
+        MKT_NODISCARD auto HasAnimations() const -> bool { return m_Model->HasAnimations(); }
+
     private:
         Int32 m_MeshIndex{ -1 };
 
@@ -266,6 +281,18 @@ namespace Mikoto {
 
         Path m_Path{};
         std::string m_Name{};
+
+        // Parent joint
+        UInt32 m_ParentJoin{};
+
+        // Animator Controlling this mesh
+        // We need to make sure the passed animation
+        // uses an skeleton that is compatible with the bone IDs of this mesh
+        UInt64 m_AnimatorID{};
+        bool m_IsSkinned{ false };
+
+        // List of joints that influence this mesh
+        // Are stored in the vertex buffer, it is the Joint vertex attribute
     };
 
     class LightComponent {
@@ -629,7 +656,8 @@ namespace Mikoto {
 
     class AnimatorComponent {
     public:
-        explicit AnimatorComponent() = default;
+        explicit AnimatorComponent( UInt64 ID = 0)
+            : m_AnimatorID{ ID } {}
 
         AnimatorComponent( const AnimatorComponent& other ) = default;
         AnimatorComponent( AnimatorComponent&& other ) = default;
@@ -638,6 +666,9 @@ namespace Mikoto {
         auto operator=( AnimatorComponent&& other ) -> AnimatorComponent& = default;
 
         ~AnimatorComponent() = default;
+
+        auto SetAnimatorID( UInt64 ID) -> void { m_AnimatorID = ID; }
+        MKT_NODISCARD auto GetAnimatorID() const -> UInt64 { return m_AnimatorID; }
 
     private:
         UInt64 m_AnimatorID{};

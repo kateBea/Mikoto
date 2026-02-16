@@ -79,22 +79,22 @@ namespace Mikoto {
 
         if ( ImGui::MenuItem( "Sky Light" ) ) {
             entityCreateInfo.Name = "Sky Light";
-            entityCreateInfo.LightType = LightType::DIRECTIONAL_LIGHT_TYPE;
+            entityCreateInfo.TypeLight = LightType::DIRECTIONAL_LIGHT_TYPE;
         }
 
         if ( ImGui::MenuItem( "Directional light" ) ) {
             entityCreateInfo.Name = "Directional light";
-            entityCreateInfo.LightType = LightType::DIRECTIONAL_LIGHT_TYPE;
+            entityCreateInfo.TypeLight = LightType::DIRECTIONAL_LIGHT_TYPE;
         }
 
         if ( ImGui::MenuItem( "Point light" ) ) {
             entityCreateInfo.Name = "Point light";
-            entityCreateInfo.LightType = LightType::POINT_LIGHT_TYPE;
+            entityCreateInfo.TypeLight = LightType::POINT_LIGHT_TYPE;
         }
 
         if ( ImGui::MenuItem( "Spot light" ) ) {
             entityCreateInfo.Name = "Spot light";
-            entityCreateInfo.LightType = LightType::SPOT_LIGHT_TYPE;
+            entityCreateInfo.TypeLight = LightType::SPOT_LIGHT_TYPE;
         }
 
         if ( !entityCreateInfo.Name.empty() ) {

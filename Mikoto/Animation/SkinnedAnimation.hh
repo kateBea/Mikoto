@@ -15,25 +15,19 @@
 #ifndef MIKOTO_ANIMATION_HH
 #define MIKOTO_ANIMATION_HH
 
-#include <vector>
-
 #include <ankerl/unordered_dense.h>
 
 #include <Common/Common.hh>
-
-#include <Animation/Bone.hh>
 #include <Library/Utility/Types.hh>
 
+#include <Animation/Joint.hh>
+#include <Animation/Skeleton.hh>
+
 namespace  Mikoto {
-    struct NodeHierarchy {
-        std::string Name{};
 
-        Mat4F Transformation{};
-
-    
-        UInt32 ChildrenCount{};
-        std::vector<NodeHierarchy> Children{};
-    };
+    // These 2 are vec4 because they need to match the bone influence
+    // which is maximum bones influence a vertex ( from what we support now )
+    inline constexpr UInt32 MAX_BONE_INFLUENCE{ 4 };
 
     struct BoneInfo {
         /*id is index in finalBoneMatrices*/
@@ -45,27 +39,34 @@ namespace  Mikoto {
 
     class SkinnedAnimation {
     public:
-        explicit SkinnedAnimation( NodeHierarchy&& hierarchy, float duration, UInt32 ticksPerSecond );
+        using BoneInfoMap = ankerl::unordered_dense::map<std::string, BoneInfo>;
+        explicit SkinnedAnimation( std::string_view name, float duration, UInt32 ticksPerSecond, Skeleton&& skeleton );
 
-        MKT_NODISCARD auto FindBone( std::string_view name ) -> Bone*;
+        MKT_NODISCARD auto FindBone( std::string_view name ) -> Joint*;
 
         auto GetDuration() -> float;
         auto GetTicksPerSecond() -> float;
-        auto GetRootNode() -> NodeHierarchy&;
+        auto GetSkeleton() -> Skeleton&;
 
-        auto GetBoneIDMap() -> auto& { return m_BoneInfoMap; } 
+        auto GetName() const -> const std::string&;
+
+        auto GetBoneCount() -> UInt32;
+
+        auto SetBoneMapInfo(BoneInfoMap&& info) -> void;
+
+        auto GetBoneMap() const -> const BoneInfoMap&;
 
     private:
 
-        float m_Duration{};// Duration of the animation in ticks
+        // Duration of the animation in ticks
+        float m_Duration{};
         UInt32 m_TicksPerSecond{};
-        NodeHierarchy m_RootNode{};
 
-        std::vector<Bone> m_Bones{};
+        Skeleton m_Skeleton{};
+        BoneInfoMap m_BoneInfoMap{};
 
-        ankerl::unordered_dense::map<std::string, BoneInfo> m_BoneInfoMap{};
+        std::string m_Name{};
     };
 }
-
 
 #endif//MIKOTO_ANIMATION_HH

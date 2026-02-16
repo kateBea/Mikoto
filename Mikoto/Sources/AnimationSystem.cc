@@ -48,6 +48,8 @@ namespace Mikoto {
         }
 
         MKT_CORE_LOGGER_INFO( "Shutting down AnimationSystem..." );
+
+        m_Animators.clear();
     }
 
     auto AnimationSystem::Update( float dt ) -> void {
@@ -56,10 +58,19 @@ namespace Mikoto {
         }
     }
 
-    auto AnimationSystem::RegisterAnimation(SkinnedAnimation& animation) -> UInt64 {
-        UInt64 animatorID{ m_Animators.size() };
-        m_Animators.emplace(animatorID, animation );
+    auto AnimationSystem::RegisterAnimation( ModelHandle handle ) -> UInt64 {
+        UInt64 animatorID{ m_Animators.size() + 1 };
+        m_Animators.emplace( animatorID, handle );
 
         return animatorID;
     }
-}
+
+    auto AnimationSystem::GetAnimator( UInt64 id ) -> Animator * {
+        const auto it{ m_Animators.find( id ) };
+        if ( it != m_Animators.end() ) {
+            return std::addressof( it->second );
+        }
+
+        return nullptr;
+    }
+}// namespace Mikoto

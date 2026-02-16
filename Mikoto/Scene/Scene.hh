@@ -49,7 +49,7 @@ namespace Mikoto {
 
         // Light config
         bool IsLight{ false };
-        LightType LightType{ LightType::DIRECTIONAL_LIGHT_TYPE };
+        LightType TypeLight{ LightType::DIRECTIONAL_LIGHT_TYPE };
 
         // Text config
         bool IsText{ false };
@@ -71,9 +71,9 @@ namespace Mikoto {
 
         auto Update( float timeStep ) -> void;
 
-        auto RemoveEntity( UInt64 uniqueID ) -> void;
-
         auto SetName( std::string_view name ) -> void;
+
+        auto RemoveEntity( UInt64 uniqueID ) -> void;
 
         MKT_NODISCARD auto FindByID( UInt64 uniqueID ) -> Entity*;
         MKT_NODISCARD auto FindFirstByName( std::string_view name ) -> Entity*;
@@ -88,28 +88,12 @@ namespace Mikoto {
         MKT_NODISCARD auto GetPhysicsWorld() -> PhysicsWorld*;
 
         template<typename EntityFunction>
-        auto ApplyToChildren(Entity* parent, const EntityFunction& callable) -> void {
-            if (!parent) {
-                return;
-            }
+        auto ApplyToChildren(Entity* parent, const EntityFunction& callable) -> void;
 
-            RelationComponent& relation{ parent->GetComponent<RelationComponent>() };
-            for (const auto& childID : relation.GetChildren()) {
-                Entity* child{ FindByID( childID ) };
-
-                if (child) {
-                    callable(child);
-
-                    ApplyToChildren(child, callable);
-                }
-            }
-        }
-
-        // Whether to render scene with skybox
+        // [Deprecated] These will be moved to a camera component
         auto SetSceneBackground(SceneBackground background) -> void;
         MKT_NODISCARD auto GetSceneBackground() const -> SceneBackground;
         MKT_NODISCARD auto IsSceneBackground(SceneBackground background) const -> bool;
-
         auto SetSkybox( TextureHandle cubeMap ) -> void;
         MKT_NODISCARD auto GetSkybox( ) -> TextureHandle;
 
@@ -207,6 +191,8 @@ namespace Mikoto {
         float m_Exposure{ 1.0f };
 
     };
-}// namespace Mikoto
+}
 
-#endif// MIKOTO_SCENE_HH
+#include <Scene/Scene.inl>
+
+#endif

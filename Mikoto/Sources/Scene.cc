@@ -26,6 +26,7 @@
 #include <Renderer/Core/RenderService.hh>
 #include <Scene/Component.hh>
 #include <Scene/Scene.hh>
+#include <Animation/AnimationSystem.hh>
 
 #include "Scripting/ScriptingService.hh"
 
@@ -47,11 +48,21 @@ namespace Mikoto {
             material.SetMaterial( AssetsService::Get()->CreateMaterial() );
         }
     }
+
+    static auto OnSkinnedMeshRendererAdded( entt::registry& reg, entt::entity e ) -> void {
+
+    }
+
+    static auto OnAnimatorAdded( entt::registry& reg, entt::entity e ) -> void {
+        auto& animator{ reg.get<AnimatorComponent>( e ) };
+    }
     
     Scene::Scene( const std::string_view name )
         : m_Name{ name } {
 
         m_Registry.on_construct<MeshComponent>().connect<&OnMeshRendererAdded>();
+        m_Registry.on_construct<SkinnedMeshRenderer>().connect<&OnSkinnedMeshRendererAdded>();
+        m_Registry.on_construct<AnimatorComponent>().connect<&OnAnimatorAdded>();
 
         m_Registry.on_construct<ScriptComponent>().connect<&Scene::OnScriptAdded>(this);
 
@@ -248,7 +259,7 @@ namespace Mikoto {
             result = it->second.get();
 
             if ( createInfo.IsLight ) {
-                result->AddComponent<LightComponent>( createInfo.LightType );
+                result->AddComponent<LightComponent>( createInfo.TypeLight );
             }
 
             if ( createInfo.IsText ) {
@@ -269,8 +280,12 @@ namespace Mikoto {
 
             // in root model is not empty, we create the children for this entity each children well hold a mesh
             if ( !createInfo.Model.IsEmpty() ) {
+                UInt64 animatorID{ AnimationSystem::Get()->RegisterAnimation( createInfo.Model ) };
+
                 if ( createInfo.Model->GetMeshNodeCount() > 1 ) {
-                    result->AddComponent<AnimatorComponent>();
+                    if (createInfo.Model->IsSkinned()) {
+                        result->AddComponent<AnimatorComponent>( animatorID );
+                    }
 
                     for ( Size index{}; index < createInfo.Model->GetMeshNodeCount(); index++ ) {
                         AddSingleEntityWithRoot( result, createInfo.Model, index );
@@ -278,7 +293,7 @@ namespace Mikoto {
 
                 } else {
                     if (createInfo.Model->IsSkinned()) {
-                        result->AddComponent<AnimatorComponent>();
+                        result->AddComponent<AnimatorComponent>( animatorID );
                         result->AddComponent<SkinnedMeshRenderer>();
                     }
 
@@ -497,7 +512,7 @@ namespace Mikoto {
         };
 
         if ( Entity* child{ CreateEntity( entityCreateInfo ) } ) {
-            if (!model.IsEmpty()) {
+            if (!model.IsEmpty() && model->IsSkinned()) {
                 child->AddComponent<SkinnedMeshRenderer>();
             }
 

@@ -17,27 +17,41 @@
 #include <Animation/Animator.hh>
 
 namespace Mikoto {
-    Animator::Animator( SkinnedAnimation& animator )
-        : m_Animation{ std::addressof( animator ) }, m_CurrentTime{ 0.0f }, m_FinalBoneMatrices( 100, glm::mat4( 1.0f ) ) {
-    }
 
-	auto Animator::UpdateAnimation( float deltaTime ) -> void {
-        if ( m_Animation ) {
-            m_CurrentTime += m_Animation->GetTicksPerSecond() * deltaTime;
-            m_CurrentTime = fmod( m_CurrentTime, m_Animation->GetDuration() );
-            CalculateBoneTransform( &m_Animation->GetRootNode(), glm::mat4( 1.0f ) );
+    Animator::Animator( ModelHandle handle )
+        : m_CurrentTime{ 0.0f }, m_Model{ handle }, m_FinalBoneMatrices( 100, glm::mat4( 1.0f ) )
+    {}
+
+    auto Animator::UpdateAnimation( float deltaTime ) -> void {
+        if ( m_CurrentAnimation ) {
+            m_CurrentTime += m_CurrentAnimation->GetTicksPerSecond() * deltaTime;
+            m_CurrentTime = fmod( m_CurrentTime, m_CurrentAnimation->GetDuration() );
+            CalculateBoneTransform( &m_CurrentAnimation->GetSkeleton().GetHierarchy(), glm::mat4( 1.0f ) );
         }
 	}
 
-    auto Animator::PushAnimation( SkinnedAnimation& animation ) -> void {
-        m_Animations.emplace_back( std::addressof( animation ) );
+    auto Animator::SetCurrentAnimation( std::string_view name ) -> void {
+        m_CurrentAnimationName = name;
+
+        auto result{ m_Model->FindAnimation( name ) };
+
+        if (!result) {
+            const std::string resultMessage{ m_CurrentAnimation ? m_CurrentAnimation->GetName() : "NULL" };
+            MKT_CORE_LOGGER_ERROR( "Animation does not exist {}. Current animation is {}", name, resultMessage );
+        } else {
+            m_CurrentAnimation = result;
+        }
+    }
+
+    auto Animator::GetCurrentAnimation() const -> const SkinnedAnimation* {
+        return m_CurrentAnimation;
     }
 
     auto Animator::CalculateBoneTransform(const NodeHierarchy* node, Mat4F parentTransform) -> void {
         std::string nodeName{ node->Name };
         glm::mat4 nodeTransform{ node->Transformation };
 
-        Bone* Bone{ m_Animation->FindBone( nodeName ) };
+        Joint* Bone{ m_CurrentAnimation->FindBone( nodeName ) };
 
         if ( Bone ) {
             Bone->Update( m_CurrentTime );
@@ -46,15 +60,15 @@ namespace Mikoto {
 
         glm::mat4 globalTransformation{ parentTransform * nodeTransform };
 
-        auto boneInfoMap{ m_Animation->GetBoneIDMap() };
+        const auto& boneInfoMap{ m_CurrentAnimation->GetBoneMap() };
         if ( boneInfoMap.find( nodeName ) != boneInfoMap.end() ) {
-            Int32 index{ boneInfoMap[nodeName].ID };
+            Int32 index{ boneInfoMap.at(nodeName).ID };
 
-            glm::mat4 offset{ boneInfoMap[nodeName].Offset };
+            glm::mat4 offset{ boneInfoMap.at(nodeName).Offset };
             m_FinalBoneMatrices[index] = globalTransformation * offset;
         }
 
-        for ( Int32 i{}; i < node->ChildrenCount; i++ ) {
+        for ( UInt32 i{}; i < node->ChildrenCount; i++ ) {
             CalculateBoneTransform( &node->Children[i], globalTransformation );
         }
 	}

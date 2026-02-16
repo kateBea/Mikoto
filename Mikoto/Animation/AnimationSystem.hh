@@ -23,6 +23,7 @@
 #include <Common/Singleton.hh>
 #include <Common/Subsystem.hh>
 
+#include <Assets/Model.hh>
 #include <Animation/Animator.hh>
 #include <Animation/SkinnedAnimation.hh>
 
@@ -41,9 +42,15 @@ namespace Mikoto {
         auto Shutdown() -> void override;
         auto Update(float dt) -> void override;
 
-        auto RegisterAnimation( SkinnedAnimation& animation ) -> UInt64;
+        // Valid IDs start from 1
+        auto RegisterAnimation( ModelHandle handle ) -> UInt64;
+
+        MKT_NODISCARD auto GetAnimator( UInt64 id ) -> Animator*;
 
     private:
+        // Not sure if animators should be wrapped into pointers
+        // In case we add more animator while reading from this map
+        // Reallocations invalidate all references
         ankerl::unordered_dense::map<UInt64, Animator> m_Animators{};
     };
 

@@ -12,8 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <utility>
 #include <filesystem>
-#include <vector>
+
+#include <Common/String.hh>
 
 #include <Assets/Model.hh>
 #include <Library/String/String.hh>
@@ -41,7 +43,29 @@ namespace Mikoto {
         return !m_Animations.empty();
     }
 
-    auto Model::SetAnimations( std::vector<SkinnedAnimation>&& animations ) -> void {
+    auto Model::HasAnimations() const -> bool {
+        return !m_Animations.empty();
+    }
+
+    auto Model::FindAnimation( std::string_view name ) -> SkinnedAnimation * {
+        return const_cast<SkinnedAnimation*>( std::as_const(*this).FindAnimation(name) );
+    }
+
+    auto Model::FindAnimation( std::string_view name ) const -> const SkinnedAnimation * {
+        const auto it{ m_Animations.find( StringUtil::From( name ) ) };
+
+        if (it != m_Animations.end()) {
+            return std::addressof( it->second );
+        }
+
+        return nullptr;
+    }
+
+    auto Model::GetAnimations() const -> const ankerl::unordered_dense::map<std::string, SkinnedAnimation> & {
+        return m_Animations;
+    }
+
+    auto Model::SetAnimations( ankerl::unordered_dense::map<std::string, SkinnedAnimation>&& animations ) -> void {
         m_Animations = std::move( animations );
     }
 }

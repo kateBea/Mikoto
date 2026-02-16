@@ -153,6 +153,10 @@ namespace Mikoto {
         MKT_NODISCARD auto GetIndexCount() const -> UInt64 { return m_TotalIndices; }
 
         MKT_NODISCARD auto IsSkinned() const -> bool;
+        MKT_NODISCARD auto HasAnimations() const -> bool;
+
+        MKT_NODISCARD auto FindAnimation( std::string_view name ) -> SkinnedAnimation*;
+        MKT_NODISCARD auto FindAnimation( std::string_view name ) const -> const SkinnedAnimation*;
 
         /**
         * @brief Adds a new mesh node to the collection.
@@ -167,7 +171,9 @@ namespace Mikoto {
             m_Meshes.emplace(index, std::forward<Args>(args)...);
         }
 
-        auto SetAnimations(std::vector<SkinnedAnimation>&& animations ) -> void;
+        MKT_NODISCARD auto GetAnimations() const -> const ankerl::unordered_dense::map<std::string, SkinnedAnimation>&;
+
+        auto SetAnimations(ankerl::unordered_dense::map<std::string, SkinnedAnimation>&& animations ) -> void;
 
     ~Model() override = default;
 
@@ -196,7 +202,7 @@ namespace Mikoto {
         // ( Mesh index, mesh node )
         ankerl::unordered_dense::map<UInt32, MeshNode> m_Meshes{};
 
-        std::vector<SkinnedAnimation> m_Animations{};
+        ankerl::unordered_dense::map<std::string, SkinnedAnimation> m_Animations{};
 
         UInt64 m_TotalVertices{};
         UInt64 m_TotalIndices{};

@@ -33,7 +33,9 @@ namespace Mikoto {
         Vec2F UV_0{};
         Vec2F UV_1{};
 
-        Vec4F Joints{};
+        // These 2 are vec4 because they need to match the bone influence
+        // which is maximum bones influence a vertex ( from what we support now )
+        Vec4F Joints{ -1.0f, -1.0f, -1.0f, -1.0f };
         Vec4F Weights{};
     };
 
@@ -51,8 +53,9 @@ namespace Mikoto {
         std::string Name{};
 
         std::vector<MeshNodeData> MeshNodes{};
-        std::vector<SkinnedAnimation> Animations{};
         std::vector<MaterialProperties> Materials{};
+
+        ankerl::unordered_dense::map<std::string, SkinnedAnimation> Animations{};
 
         // Texture URI the same way is stored in the materials
         std::unordered_map<std::string, TextureHandle> Textures{};

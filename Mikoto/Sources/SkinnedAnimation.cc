@@ -15,11 +15,10 @@
 #include <Animation/SkinnedAnimation.hh>
 
 namespace Mikoto {
-    SkinnedAnimation::SkinnedAnimation( NodeHierarchy&& hierarchy, float duration, UInt32 ticksPerSecond )
-        : m_Duration{ duration }, m_TicksPerSecond{ ticksPerSecond }, m_RootNode{ std::move( hierarchy ) } {
-    }
+    SkinnedAnimation::SkinnedAnimation( std::string_view name, float duration, UInt32 ticksPerSecond, Skeleton&& skeleton )
+        : m_Duration{ duration }, m_TicksPerSecond{ ticksPerSecond }, m_Skeleton { std::move(skeleton) }, m_Name{ name } {}
 
-    auto SkinnedAnimation::FindBone( std::string_view name ) -> Bone* {
+    auto SkinnedAnimation::FindBone( std::string_view name ) -> Joint* {
         return nullptr; // TODO
     }
 
@@ -31,7 +30,23 @@ namespace Mikoto {
         return m_TicksPerSecond;
     }
 
-    auto SkinnedAnimation::GetRootNode() -> NodeHierarchy& {
-        return m_RootNode;
+    auto SkinnedAnimation::GetSkeleton() -> Skeleton& {
+        return m_Skeleton;
+    }
+
+    auto SkinnedAnimation::GetName() const -> const std::string& {
+        return m_Name;
+    }
+
+    auto SkinnedAnimation::GetBoneCount() -> UInt32 {
+        return m_Skeleton.GetBoneCount();
+    }
+
+    auto SkinnedAnimation::SetBoneMapInfo( BoneInfoMap&& info ) -> void {
+        m_BoneInfoMap = std::move(info);
+    }
+
+    auto SkinnedAnimation::GetBoneMap() const -> const BoneInfoMap& {
+        return m_BoneInfoMap;
     }
 }

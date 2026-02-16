@@ -147,6 +147,50 @@ namespace Mikoto {
         }
     }
 
+    static auto LoadBoneWeights( const aiMesh *mesh, MeshNodeData &meshNodeData, SkinnedAnimation &animation ) -> void {
+        SkinnedAnimation::BoneInfoMap boneInfoMap{};
+        Int32 boneCount{ static_cast<Int32>( boneInfoMap.size() ) };
+
+        for ( Int32 boneIndex{}; boneIndex < mesh->mNumBones; ++boneIndex ) {
+            Int32 boneID{ -1 };
+            std::string boneName{ mesh->mBones[boneIndex]->mName.C_Str() };
+            const auto it{ boneInfoMap.find( boneName ) };
+
+            if ( it == boneInfoMap.end() ) {
+                boneInfoMap[boneName] = BoneInfo{
+                    .ID{ boneCount },
+                    .Offset{ ToMat4F( mesh->mBones[boneIndex]->mOffsetMatrix ) }
+                };
+
+                boneID = boneCount;
+                boneCount++;
+            } else {
+                boneID = it->second.ID;
+            }
+
+            MKT_ASSERT( boneID != -1, "Invalid Bone ID" );
+
+            aiVertexWeight *weights{ mesh->mBones[boneIndex]->mWeights };
+            const UInt32 numWeights{ static_cast<UInt32>( mesh->mBones[boneIndex]->mNumWeights ) };
+
+            for ( UInt32 weightIndex{}; weightIndex < numWeights; ++weightIndex ) {
+                UInt32 vertexId{ static_cast<UInt32>( weights[weightIndex].mVertexId ) };
+                float weight{ weights[weightIndex].mWeight };
+
+                MKT_ASSERT( vertexId <= meshNodeData.Vertices.size(), "vertexID out of bounds for vertices count" );
+
+                for ( UInt32 i{}; i < MAX_BONE_INFLUENCE; ++i ) {
+                    if ( meshNodeData.Vertices[i].Joints[i] < 0 ) {
+                        meshNodeData.Vertices[i].Weights[i] = weight;
+                        meshNodeData.Vertices[i].Joints[i] = boneID;
+                    }
+                }
+            }
+        }
+
+        animation.SetBoneMapInfo( std::move( boneInfoMap ) );
+    }
+
     static auto LoadVertices( const aiMesh *mesh, MeshNodeData& meshNodeData ) -> void {
         for (UInt64 index{}; index < mesh->mNumVertices; index++) {
             auto& vertex{ meshNodeData.Vertices.emplace_back() };
@@ -357,6 +401,11 @@ namespace Mikoto {
 
             newMesh.MaterialIndex = index;
             ConstructMeshNode( rootPath, scene->mMeshes[node->mMeshes[i]], scene, newMesh, material );
+
+            // For a given mesh we load its information from all available animations
+            for (auto& animation : modelData.Animations | std::ranges::views::values ) {
+                LoadBoneWeights(scene->mMeshes[node->mMeshes[i]], newMesh, animation);
+            }
         }
 
         // Recurse children
@@ -430,7 +479,11 @@ namespace Mikoto {
 
                 NodeHierarchy hierarchy{};
                 LoadNodeHierarchy( hierarchy, scene->mRootNode );
-                modelData.Animations.emplace_back( std::move( hierarchy ), static_cast<float>( animation->mDuration ), static_cast<UInt32>( animation->mTicksPerSecond ) );
+
+                Skeleton skeleton{ std::move( hierarchy ) };
+                modelData.Animations.try_emplace( std::string{ animation->mName.C_Str() },
+                    std::string_view{  animation->mName.C_Str() }, static_cast<float>( animation->mDuration ),
+                    static_cast<UInt32>( animation->mTicksPerSecond ), std::move( skeleton ) );
             }
 
             modelData.Name = scene->mName.C_Str();

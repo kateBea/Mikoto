@@ -17,28 +17,34 @@
 
 #include <Library/Utility/Types.hh>
 
+#include <Assets/Model.hh>
 #include <Animation/SkinnedAnimation.hh>
 
 namespace Mikoto {
     class Animator {
     public:
-        explicit Animator( SkinnedAnimation& animator );
+        explicit Animator( ModelHandle handle );
 
         auto UpdateAnimation( float deltaTime ) -> void;
 
-        auto PushAnimation( SkinnedAnimation& animation ) -> void;
+        auto SetCurrentAnimation( std::string_view name ) -> void;
+        MKT_NODISCARD auto GetCurrentAnimation() const -> const SkinnedAnimation*;
 
         auto GetFinalBoneMatrices() -> auto& { return m_FinalBoneMatrices; }
+
+        auto GetAnimationList() const -> const auto& { return m_Model->GetAnimations(); }
 
     private:
         auto CalculateBoneTransform( const NodeHierarchy* node, Mat4F parentTransform ) -> void;
 
     private:
-        SkinnedAnimation* m_Animation{};
         UInt64 m_AnimationID{};
         float m_CurrentTime{};
 
-        std::vector<SkinnedAnimation*> m_Animations{};
+        ModelHandle m_Model{};
+
+        std::string m_CurrentAnimationName{};
+        SkinnedAnimation* m_CurrentAnimation{};
 
         std::vector<Mat4F> m_FinalBoneMatrices{};
     };

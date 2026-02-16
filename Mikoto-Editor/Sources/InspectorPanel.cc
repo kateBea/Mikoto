@@ -33,6 +33,9 @@
 #include <Scene/Component.hh>
 #include <Scene/Entity.hh>
 
+#include <Animation/Animator.hh>
+#include <Animation/AnimationSystem.hh>
+
 #include "Scripting/ScriptingService.hh"
 
 namespace Mikoto {
@@ -1116,6 +1119,29 @@ namespace Mikoto {
 
     static auto SetupAnimatorComponentTab( Entity& entity ) -> void {
         AnimatorComponent& animatorComponent{ entity.GetComponent<AnimatorComponent>() };
+
+        Animator* animator{ AnimationSystem::Get()->GetAnimator( animatorComponent.GetAnimatorID() ) };
+        if ( animator ) {
+            // Show list of animations
+        }
+
+        ImGuiUtils::DrawNode( "Animation List", [animator]() -> void {
+            if ( animator ) {
+                const auto& animationList{ animator->GetAnimationList() };
+
+                for ( const auto& [animationName, animation]: animationList ) {
+                    bool isSelected{ false };
+                    auto currentAnimation{ animator->GetCurrentAnimation() };
+                    if ( currentAnimation ) {
+                        bool isSelected{ animationName == currentAnimation->GetName() };
+                    }
+
+                    if ( ImGui::Selectable( animationName.c_str(), isSelected ) ) {
+                        //animator->Play( animationName );
+                    }
+                }
+            }
+        } );
     }
 
     static auto SetupSkinMeshComponentTab( Entity& entity ) -> void {

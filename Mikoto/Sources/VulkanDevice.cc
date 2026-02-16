@@ -556,9 +556,9 @@ namespace Mikoto {
     auto VulkanDevice::SetCurrentFrameIndex( const UInt32 frameIndex ) -> void {
         m_CurrentFrameIndex = frameIndex;
 
-        for (auto& cmdList : m_SubmittedGraphicsCommandLists[m_CurrentFrameIndex]) {
+        /*for (auto& cmdList : m_SubmittedGraphicsCommandLists[m_CurrentFrameIndex]) {
             vkResetCommandBuffer(cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ), 0);
-        }
+        }*/
 
         std::ranges::move(
             m_SubmittedGraphicsCommandLists[m_CurrentFrameIndex],

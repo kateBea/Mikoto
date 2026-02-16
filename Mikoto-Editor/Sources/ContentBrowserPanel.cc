@@ -585,30 +585,30 @@ namespace Mikoto {
                 }
                 ImGuiUtils::SetCursorHandOnLastItemHovered();
 
-                if (!m_SelectedItem.empty()) {
-                    ImGui::Spacing();
-                    ImGui::Separator();
-                    ImGui::Spacing();
-                    if ( ImGui::MenuItem( fmt::format( "{} Open in explorer", ICON_MD_FOLDER ).c_str() ) ) {
-                        Filesystem::OpenInExplorer( m_SelectedItem );
-                    }
-                    ImGuiUtils::SetCursorHandOnLastItemHovered();
-
-                    ImGui::Spacing();
-                    if ( ImGui::MenuItem( "Remove" ) ) {
-                        std::filesystem::remove( m_SelectedItem );
-                        m_SelectedItem = "";
-                    }
-                    ImGuiUtils::SetCursorHandOnLastItemHovered();
-
-                    ImGui::Spacing();
-                    if ( ImGui::MenuItem( "Edit file (Visual Studio Code)" ) ) {
-                        RuntimeConsole::Get()->ExecuteCommand(StringUtil::Format( "/code {}", m_SelectedItem.string() ) );
-                    }
-                    ImGuiUtils::SetCursorHandOnLastItemHovered();
-                }
-
                 ImGui::EndMenu();
+            }
+
+            if ( !m_SelectedItem.empty() ) {
+                ImGui::Spacing();
+                ImGui::Separator();
+                ImGui::Spacing();
+                if ( ImGui::MenuItem( fmt::format( "{} Open in explorer", ICON_MD_FOLDER ).c_str() ) ) {
+                    Filesystem::OpenInExplorer( m_SelectedItem );
+                }
+                ImGuiUtils::SetCursorHandOnLastItemHovered();
+
+                ImGui::Spacing();
+                if ( ImGui::MenuItem( "Remove" ) ) {
+                    std::filesystem::remove( m_SelectedItem );
+                    m_SelectedItem = "";
+                }
+                ImGuiUtils::SetCursorHandOnLastItemHovered();
+
+                ImGui::Spacing();
+                if ( ImGui::MenuItem( "Edit file (Visual Studio Code)" ) ) {
+                    RuntimeConsole::Get()->ExecuteCommand( StringUtil::Format( "/code {}", m_SelectedItem.string() ) );
+                }
+                ImGuiUtils::SetCursorHandOnLastItemHovered();
             }
 
             ImGui::Spacing();

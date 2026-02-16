@@ -1126,19 +1126,27 @@ namespace Mikoto {
         }
 
         ImGuiUtils::DrawNode( "Animation List", [animator]() -> void {
+            ImGuiUtils::UnindentScoped und{};
+
             if ( animator ) {
-                const auto& animationList{ animator->GetAnimationList() };
+                constexpr UInt32 maxAnimationDisplay{ 10 };
+                std::array<std::string, maxAnimationDisplay> animationNames{};
 
-                for ( const auto& [animationName, animation]: animationList ) {
-                    bool isSelected{ false };
-                    auto currentAnimation{ animator->GetCurrentAnimation() };
-                    if ( currentAnimation ) {
-                        bool isSelected{ animationName == currentAnimation->GetName() };
-                    }
+                UInt32 index{ 0 };
+                for ( const auto& animationName: animator->GetAnimationList() | std::ranges::views::keys ) {
+                    animationNames[index++] = animationName;
+                }
 
-                    if ( ImGui::Selectable( animationName.c_str(), isSelected ) ) {
-                        //animator->Play( animationName );
-                    }
+                std::string animationName{};
+
+                auto currentAnimation{ animator->GetCurrentAnimation() };
+                if (currentAnimation) {
+                    animationName = currentAnimation->GetName();
+                }
+
+                auto selectionIndex{ ImGuiUtils::Combo( animationNames.data(), animator->GetAnimationList().size(), animationName ) };
+                if (selectionIndex != -1) {
+                    animator->SetCurrentAnimation( animationNames[selectionIndex] );
                 }
             }
         } );

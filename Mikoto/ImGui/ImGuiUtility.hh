@@ -683,6 +683,42 @@ namespace Mikoto::ImGuiUtils {
         return result;
     }
 
+    // Returns -1 if nothing was selected
+    MKT_NODISCARD inline auto Combo(std::string* choices, Size count, const std::string& currentSelection) -> Int32 {
+        Int32 selectionIndex{ -1 };
+
+        const std::string labelName{ fmt::format( "##{}{}", __PRETTY_FUNCTION__, currentSelection ) };
+
+        if ( ImGui::BeginCombo( labelName.data(), currentSelection.c_str() ) ) {
+            for ( Size index{}; index < count; ++index ) {
+                const std::string &selectionStr { choices[index] };
+                const bool isSelected{ selectionStr == currentSelection };
+
+                if ( ImGui::Selectable( fmt::format( " {}", selectionStr ).c_str(), isSelected ) ) {
+                    selectionIndex = static_cast<Int32>( index );
+                }
+
+                if ( ImGui::IsItemHovered() ) {
+                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+                }
+
+                if ( isSelected ) {
+                    ImGui::SetItemDefaultFocus();
+                }
+
+                ++selectionIndex;
+            }
+
+            ImGui::EndCombo();
+        }
+
+        if ( ImGui::IsItemHovered() ) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        return selectionIndex;
+    }
+
     inline auto InputText(std::string_view viewData, bool readOnly = false) -> bool {
         ImGuiTextFlags flags{ ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll };
 

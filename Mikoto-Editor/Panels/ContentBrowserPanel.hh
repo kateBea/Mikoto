@@ -55,7 +55,7 @@ namespace Mikoto {
         auto DrawSideView( const Path& root ) -> void;
         auto DrawMainBody() -> void;
 
-        auto OnRightClick() const -> void;
+        auto OnRightClickBlackSpace() -> void;
 
         auto DrawCurrentDirItems() -> void;
         auto DrawProjectDirTree(const Path& root ) const -> void;

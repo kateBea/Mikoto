@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <filesystem>
+#include <atomic>
 #include <utility>
 
 #include <fmt/format.h>
@@ -20,6 +21,8 @@
 #include <imgui_impl_vulkan.h>
 #include <imgui_internal.h>
 
+#include <Common/String.hh>
+#include <Core/RuntimeConsole.hh>
 #include <Assets/AssetsService.hh>
 #include <Core/Profiler.hh>
 #include <Filesystem/FileService.hh>
@@ -282,6 +285,7 @@ namespace Mikoto {
                 ImGuiUtils::SetCursorHandOnLastItemHovered();
             }
         }
+
     }
 
     auto ContentBrowserPanel::DrawMainBody() -> void {
@@ -301,10 +305,7 @@ namespace Mikoto {
 
         ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), windowFlags );
 
-        OnRightClick();
-
         DrawHeader();
-
 
         ImGui::Spacing();
         ImGui::Spacing();
@@ -333,10 +334,13 @@ namespace Mikoto {
 
             DrawMainBody();
 
+            OnRightClickBlackSpace();
+
             ImGui::EndChild();
 
             ImGui::EndTable();
         }
+
 
         ImGui::End();
     }
@@ -412,16 +416,18 @@ namespace Mikoto {
                     fileType = "File";
                 }
 
+                const auto pannelsBgColor{ ImGui::GetStyleColorVec4( ImGuiCol_WindowBg ) };
+                const auto buttonColor{ m_SelectedItem == entry ? ImGui::GetStyleColorVec4( ImGuiCol_ButtonActive ) : ImVec4( 0, 0, 0, 0 ) };
+
                 ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0, 0, 0, 0 ) );
                 if (m_Thumbnail.IsEmpty()) {
-                    if ( ImGui::ImageButton( entry.path().string().c_str(), icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } ) ) {
+                    if ( ImGui::ImageButton( entry.path().string().c_str(), icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 }, buttonColor ) ) {
                         // empty
                     }
                 } else {
                     static ImTextureID imguiTextID{};
                     imguiTextID = ImGuiService::Get()->GetTextureID( m_Thumbnail );
-
-                    if ( ImGui::ImageButton( entry.path().string().c_str(), imguiTextID, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } ) ) {
+                    if ( ImGui::ImageButton( entry.path().string().c_str(), imguiTextID, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 }, buttonColor ) ) {
                         // empty
                     }
 
@@ -458,6 +464,10 @@ namespace Mikoto {
                             ImGui::Image(ImGuiService::Get()->GetTextureID( m_Thumbnail ), ImVec2(previewDimensions, previewDimensions), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
                             ImGuiUtils::CenteredText( fmt::format( "Skybox" ).c_str(), previewDimensions );
 
+                            if ( !ImGui::IsItemClicked() ) {
+                                m_SelectedItem = "";
+                            }
+
                             ImGui::EndDragDropSource();
                         }
                     }
@@ -479,7 +489,7 @@ namespace Mikoto {
                     }
                 }
 
-                if ( ImGui::IsItemHovered() && ImGui::IsMouseClicked( ImGuiMouseButton_Left ) ) {
+                if ( ImGui::IsItemHovered() && ( ImGui::IsMouseClicked( ImGuiMouseButton_Left ) || ImGui::IsMouseClicked( ImGuiMouseButton_Right ) ) ) {
                     m_SelectedItem = entry;
                 }
 
@@ -501,7 +511,7 @@ namespace Mikoto {
         m_CurrentDirectory = directoryToOpen;
     }
 
-    auto ContentBrowserPanel::OnRightClick() const -> void {
+    auto ContentBrowserPanel::OnRightClickBlackSpace() -> void {
         ImGuiUtils::ImGuiScopedStyleVar popupBorder{ ImGuiStyleVar_PopupBorderSize, 1.0f };
         ImGuiUtils::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 8.0f, 8.0f } };
         ImGuiUtils::ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f } };
@@ -511,7 +521,8 @@ namespace Mikoto {
             ImGuiPopupFlags_MouseButtonRight
         };
 
-        if ( ImGui::BeginPopupContextWindow( "##ContentBrowserPanel::ContentBrowserPopup", popupWindowFlags ) ) {
+        ImGui::OpenPopupOnItemClick( "ContentBrowserPanel::ExploreRC", ImGuiPopupFlags_MouseButtonRight );
+        if ( ImGui::BeginPopupContextWindow( "ContentBrowserPanel::ExploreRC", popupWindowFlags ) ) {
 
             ImGui::Spacing();
             if ( ImGui::MenuItem( fmt::format( "{} Cut", ICON_MD_CONTENT_CUT ).c_str(), "Ctrl + X" ) ) {}
@@ -561,8 +572,41 @@ namespace Mikoto {
                 if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
 
                 ImGui::Spacing();
-                if ( ImGui::MenuItem( "Regular file" ) ) {}
-                if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
+                if ( ImGui::MenuItem( "Text file" ) ) {
+                    static std::atomic_int counter{ 0 };
+                    // Temporary. Use file service to create the new file
+                    if (counter == 0) {
+                        std::ofstream file{ "Text.txt" };
+                    } else {
+                        std::ofstream file{ StringUtil::Format( "Text ({}).txt", counter.load() ) };
+                    }
+
+                    ++counter;
+                }
+                ImGuiUtils::SetCursorHandOnLastItemHovered();
+
+                if (!m_SelectedItem.empty()) {
+                    ImGui::Spacing();
+                    ImGui::Separator();
+                    ImGui::Spacing();
+                    if ( ImGui::MenuItem( fmt::format( "{} Open in explorer", ICON_MD_FOLDER ).c_str() ) ) {
+                        Filesystem::OpenInExplorer( m_SelectedItem );
+                    }
+                    ImGuiUtils::SetCursorHandOnLastItemHovered();
+
+                    ImGui::Spacing();
+                    if ( ImGui::MenuItem( "Remove" ) ) {
+                        std::filesystem::remove( m_SelectedItem );
+                        m_SelectedItem = "";
+                    }
+                    ImGuiUtils::SetCursorHandOnLastItemHovered();
+
+                    ImGui::Spacing();
+                    if ( ImGui::MenuItem( "Edit file (Visual Studio Code)" ) ) {
+                        RuntimeConsole::Get()->ExecuteCommand(StringUtil::Format( "/code {}", m_SelectedItem.string() ) );
+                    }
+                    ImGuiUtils::SetCursorHandOnLastItemHovered();
+                }
 
                 ImGui::EndMenu();
             }

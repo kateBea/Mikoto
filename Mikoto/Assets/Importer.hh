@@ -56,7 +56,7 @@ namespace Mikoto {
         std::vector<MaterialProperties> Materials{};
 
         // For now we assume the
-        Skeleton Skeleton{};
+        Skeleton SceneSkeleton{};
 
         ankerl::unordered_dense::map<std::string, SkinnedAnimation> Animations{};
 

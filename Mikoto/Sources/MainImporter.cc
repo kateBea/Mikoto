@@ -222,7 +222,7 @@ namespace Mikoto {
     }
 
     static auto ReadJointAnimationProperties( const aiAnimation *animation, ModelData& modelData ) -> void {
-        Skeleton& skeleton{ modelData.Skeleton };
+        Skeleton& skeleton{ modelData.SceneSkeleton };
         const UInt32 size{ ( animation->mNumChannels ) };
 
         for ( UInt32 i{}; i < size; i++ ) {
@@ -421,7 +421,7 @@ namespace Mikoto {
     static auto LoadMeshWeights(const aiNode *node, const aiScene *scene, ModelData& modelData) -> void {
         for (UInt64 i{}; i < node->mNumMeshes; ++i) {
             if (scene->mMeshes[node->mMeshes[i]]->HasBones()) {
-                LoadBoneWeights(scene->mMeshes[node->mMeshes[i]], modelData.MeshNodes[i], modelData.Skeleton);
+                LoadBoneWeights(scene->mMeshes[node->mMeshes[i]], modelData.MeshNodes[i], modelData.SceneSkeleton);
             }
         }
     }
@@ -432,7 +432,7 @@ namespace Mikoto {
         ModelData& modelData ) -> void
     {
         for (UInt64 i{}; i < node->mNumMeshes; ++i) {
-            auto newMesh{ modelData.MeshNodes[i] };
+            auto& newMesh{ modelData.MeshNodes.emplace_back() };
             auto& material{ modelData.Materials.emplace_back() };
 
             // Compute material index (since we inserted back, size increased by one last element is size() - 1)
@@ -442,7 +442,7 @@ namespace Mikoto {
             ConstructMeshNode( rootPath, scene->mMeshes[node->mMeshes[i]], scene, newMesh, material );
 
             if (scene->mMeshes[node->mMeshes[i]]->HasBones()) {
-                LoadBoneWeights(scene->mMeshes[node->mMeshes[i]], newMesh, modelData.Skeleton);
+                LoadBoneWeights(scene->mMeshes[node->mMeshes[i]], newMesh, modelData.SceneSkeleton);
             }
         }
 
@@ -603,14 +603,13 @@ namespace Mikoto {
 
         modelData.Name = scene->mName.C_Str();
 
-        modelData.MeshNodes.resize( scene->mNumMeshes );
         LoadModelMeshes( Filesystem::StripFileName( file->GetPath() ), scene->mRootNode, scene, description, modelData );
 
         LoadMeshWeights(scene->mRootNode, scene, modelData);
 
         // It requires all node to exists
         // as it does not add them
-        LoadParentRelativeData(scene->mRootNode, modelData.Skeleton);
+        LoadParentRelativeData(scene->mRootNode, modelData.SceneSkeleton);
 
         LoadModelAnimations(scene, modelData);
 
@@ -621,7 +620,7 @@ namespace Mikoto {
                 "Printing skeleton hierarchy\n"
             );
 
-            PrintSkeletonTree( modelData.Skeleton );
+            PrintSkeletonTree( modelData.SceneSkeleton );
         }
 #endif
     }

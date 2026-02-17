@@ -631,7 +631,8 @@ namespace Mikoto {
                         .Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess )
                         .Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite)
                         .Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget )
-                        .Read( "LightCullingComp_LightsBuffer", FrameResourceState::UniformBuffer );
+                        .Read( "LightCullingComp_LightsBuffer", FrameResourceState::UniformBuffer )
+                        .Read( "ScatteredWrites_MeshSkinnedMatrices", FrameResourceState::UnorderedAccess );
 
                     b.Read( "PrefilterPass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
                     b.Read( "IrradiancePass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
@@ -645,6 +646,7 @@ namespace Mikoto {
                         .Use( SRGType::SRG_PerPass, "FinalBuffer_ObjectInfo", 1 )
                         .Use( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 2 )
                         .Use( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 3 )
+                        .Use( SRGType::SRG_PerPass, "ScatteredWrites_MeshSkinnedMatrices", 7 )
                         .Use( SRGType::SRG_Textures );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard ) -> void {

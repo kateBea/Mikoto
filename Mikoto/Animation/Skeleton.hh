@@ -15,15 +15,30 @@
 #ifndef MIKOTO_SKELETON_HH
 #define MIKOTO_SKELETON_HH
 
+#include <string_view>
+
+#include <ankerl/unordered_dense.h>
+
+#include <Common/Common.hh>
 #include <Animation/Joint.hh>
 
 namespace Mikoto {
+
+    struct BoneInfo {
+        /*id is index in finalBoneMatrices*/
+        Int32 ID{};
+
+        /*offset matrix transforms vertex from model space to bone space*/
+        Mat4F Offset{};
+    };
+
+    using BoneMap = ankerl::unordered_dense::map<std::string, Joint>;
+    using BoneInfoMap = ankerl::unordered_dense::map<std::string, BoneInfo>;
 
     struct NodeHierarchy {
         std::string Name{};
 
         Mat4F Transformation{};
-
 
         UInt32 ChildrenCount{};
         std::vector<NodeHierarchy> Children{};
@@ -37,12 +52,25 @@ namespace Mikoto {
         auto GetHierarchy() -> NodeHierarchy&;
         auto SetHierarchy(NodeHierarchy&& hierarchy) -> void;
 
-        auto GetBoneCount() -> UInt32;
+        auto SetBoneMapInfo(BoneInfoMap&& info) -> void;
+        auto GetBoneInfoMap() const -> const BoneInfoMap&;
+        auto GetBoneInfoMap() -> BoneInfoMap&;
+
+        auto GetBoneMap() -> BoneMap&;
+        auto GetBoneMap() const -> const BoneMap&;
+
+        MKT_NODISCARD auto FindBone( std::string_view name ) -> Joint*;
+
+        auto GetBoneCount() const -> UInt32;
+
+        auto SetBoneMap(BoneMap&& boneMap ) -> void;
 
     private:
+        BoneMap m_Joints{};
+        BoneInfoMap m_BoneInfoMap{};
+
         NodeHierarchy m_Hierarchy{};
-        std::vector<Joint> m_Joints{};
     };
-}
+}// namespace Mikoto
 
 #endif // MIKOTO_SKELETON_HH

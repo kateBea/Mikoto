@@ -28,42 +28,36 @@ namespace  Mikoto {
     // These 2 are vec4 because they need to match the bone influence
     // which is maximum bones influence a vertex ( from what we support now )
     inline constexpr UInt32 MAX_BONE_INFLUENCE{ 4 };
-
-    struct BoneInfo {
-        /*id is index in finalBoneMatrices*/
-        Int32 ID{};
-
-        /*offset matrix transforms vertex from model space to bone space*/
-        Mat4F Offset{};
-    };
+    inline constexpr UInt32 MAX_BONES_PER_MESH{ 100 };
+    inline constexpr UInt32 MAX_SKINNED_MESHES{ 1000 };
 
     class SkinnedAnimation {
     public:
-        using BoneInfoMap = ankerl::unordered_dense::map<std::string, BoneInfo>;
         explicit SkinnedAnimation( std::string_view name, float duration, UInt32 ticksPerSecond, Skeleton&& skeleton );
 
         MKT_NODISCARD auto FindBone( std::string_view name ) -> Joint*;
 
         auto GetDuration() -> float;
         auto GetTicksPerSecond() -> float;
+
         auto GetSkeleton() -> Skeleton&;
+        auto GetSkeleton() const -> const Skeleton&;
 
         auto GetName() const -> const std::string&;
 
         auto GetBoneCount() -> UInt32;
 
         auto SetBoneMapInfo(BoneInfoMap&& info) -> void;
+        auto GetBoneInfoMap() const -> const BoneInfoMap&;
+        auto GetBoneInfoMap() -> BoneInfoMap&;
 
-        auto GetBoneMap() const -> const BoneInfoMap&;
+        auto SetBoneMap( BoneMap&& move ) -> void;
 
     private:
 
         // Duration of the animation in ticks
         float m_Duration{};
         UInt32 m_TicksPerSecond{};
-
-        Skeleton m_Skeleton{};
-        BoneInfoMap m_BoneInfoMap{};
 
         std::string m_Name{};
     };

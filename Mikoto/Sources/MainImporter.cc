@@ -148,8 +148,10 @@ namespace Mikoto {
     }
 
     static auto LoadBoneWeights( const aiMesh *mesh, MeshNodeData &meshNodeData, SkinnedAnimation &animation ) -> void {
-        SkinnedAnimation::BoneInfoMap boneInfoMap{};
+        BoneInfoMap& boneInfoMap{ animation.GetBoneInfoMap() };
         Int32 boneCount{ static_cast<Int32>( boneInfoMap.size() ) };
+
+        MKT_COLOR_PRINT_FORMATTED( MKT_FMT_COLOR_AQUA, "Mesh {} has [{}] bones\n", mesh->mName.C_Str(), mesh->mNumBones );
 
         for ( Int32 boneIndex{}; boneIndex < mesh->mNumBones; ++boneIndex ) {
             Int32 boneID{ -1 };
@@ -158,7 +160,7 @@ namespace Mikoto {
 
             if ( it == boneInfoMap.end() ) {
                 boneInfoMap[boneName] = BoneInfo{
-                    .ID{ boneCount },
+                    .ID{ boneIndex },
                     .Offset{ ToMat4F( mesh->mBones[boneIndex]->mOffsetMatrix ) }
                 };
 
@@ -174,26 +176,52 @@ namespace Mikoto {
             const UInt32 numWeights{ static_cast<UInt32>( mesh->mBones[boneIndex]->mNumWeights ) };
 
             for ( UInt32 weightIndex{}; weightIndex < numWeights; ++weightIndex ) {
-                UInt32 vertexId{ static_cast<UInt32>( weights[weightIndex].mVertexId ) };
                 float weight{ weights[weightIndex].mWeight };
+                UInt32 vertexId{ static_cast<UInt32>( weights[weightIndex].mVertexId ) };
 
-                MKT_ASSERT( vertexId <= meshNodeData.Vertices.size(), "vertexID out of bounds for vertices count" );
+                MKT_ASSERT( vertexId < meshNodeData.Vertices.size(), "vertexID out of bounds for vertices count" );
 
-                for ( UInt32 i{}; i < MAX_BONE_INFLUENCE; ++i ) {
-                    if ( meshNodeData.Vertices[i].Joints[i] < 0 ) {
-                        meshNodeData.Vertices[i].Weights[i] = weight;
-                        meshNodeData.Vertices[i].Joints[i] = boneID;
+                VertexData &vertex{ meshNodeData.Vertices[vertexId] };
+
+                for ( Size i{}; i < MAX_BONE_INFLUENCE; ++i ) {
+                    if ( vertex.Joints[i] < 0 ) {
+                        vertex.Joints[i] = boneID;
+                        vertex.Weights[i] = weight;
                     }
                 }
             }
         }
+    }
 
-        animation.SetBoneMapInfo( std::move( boneInfoMap ) );
+    static auto ReadMissingBones( const aiAnimation *animation, SkinnedAnimation& skeletalAnim ) -> void {
+        UInt32 size{ ( UInt32 )animation->mNumChannels };
+
+        BoneMap boneMap{};
+        BoneInfoMap& boneInfoMap{ skeletalAnim.GetBoneInfoMap() };
+
+        Int32 boneCount{ (Int32)boneInfoMap.size() };
+
+        //reading channels(bones engaged in an animation and their keyframes)
+        for ( UInt32 i{}; i < size; i++ ) {
+            auto channel{ animation->mChannels[i] };
+            std::string boneName = channel->mNodeName.data;
+
+            if ( boneInfoMap.find( boneName ) == boneInfoMap.end() ) {
+                boneInfoMap[boneName].ID = boneCount;
+                boneCount++;
+            }
+            boneMap.try_emplace( boneName, Joint( channel->mNodeName.data,
+                                     boneInfoMap[channel->mNodeName.data].ID, channel ));
+        }
+
+        skeletalAnim.SetBoneMap( std::move(boneMap) );
     }
 
     static auto LoadVertices( const aiMesh *mesh, MeshNodeData& meshNodeData ) -> void {
+        meshNodeData.Vertices.resize( mesh->mNumVertices );
+
         for (UInt64 index{}; index < mesh->mNumVertices; index++) {
-            auto& vertex{ meshNodeData.Vertices.emplace_back() };
+            auto& vertex{ meshNodeData.Vertices[index] };
 
             vertex.Position.x = mesh->mVertices[index].x;
             vertex.Position.y = mesh->mVertices[index].y;
@@ -220,13 +248,6 @@ namespace Mikoto {
                 vertex.UV_1.x = mesh->mTextureCoords[1][index].x;
                 vertex.UV_1.y =  mesh->mTextureCoords[1][index].y;
             }
-
-
-            // Joints (Animation Bone IDs)
-            // TODO
-
-            // Weights
-            // TODO
         }
     }
 
@@ -363,26 +384,15 @@ namespace Mikoto {
         LoadTextures( rootPath, mesh, scene, material );
     }
 
-    static auto LoadNodeHierarchy( const aiNode *node, std::vector<MeshNodeData>& meshNodes ) -> void {
-        for (UInt64 i{}; i < node->mNumMeshes; ++i) {
-            // We will fill the mesh data later, for now we just want to create the hierarchy of nodes
-            meshNodes.emplace_back();
-        }
-        // Recurse children
-        for (UInt64 i{}; i < node->mNumChildren; ++i) {
-            LoadNodeHierarchy( node->mChildren[i], meshNodes );
-        }
-    }
-
-    static auto LoadNodeHierarchy( NodeHierarchy& dest, const aiNode *src ) -> void {
-        dest.Name = src->mName.data;
-        dest.Transformation = ToMat4F( src->mTransformation );
-        dest.ChildrenCount = src->mNumChildren;
+    static auto LoadNodeHierarchy( NodeHierarchy& rootNode, const aiNode *src ) -> void {
+        rootNode.Name = src->mName.data;
+        rootNode.Transformation = ToMat4F( src->mTransformation );
+        rootNode.ChildrenCount = src->mNumChildren;
 
         for ( UInt32 i{}; i < src->mNumChildren; i++ ) {
-            NodeHierarchy newData{};
-            LoadNodeHierarchy( newData, src->mChildren[i] );
-            dest.Children.push_back( newData );
+            NodeHierarchy childNode{};
+            LoadNodeHierarchy( childNode, src->mChildren[i] );
+            rootNode.Children.push_back( childNode );
         }
     }
 
@@ -475,19 +485,46 @@ namespace Mikoto {
             MKT_CORE_LOGGER_ERROR( "MainImporter::Import - Model load failed. Assimp error: '{}'", loaderData.MeshImporter.GetErrorString() );
         } else {
             for (UInt32 animationCount{}; animationCount < scene->mNumAnimations; ++animationCount) {
-                auto animation{ scene->mAnimations[0] };
+                auto animation{ scene->mAnimations[animationCount] };
 
                 NodeHierarchy hierarchy{};
                 LoadNodeHierarchy( hierarchy, scene->mRootNode );
 
                 Skeleton skeleton{ std::move( hierarchy ) };
-                modelData.Animations.try_emplace( std::string{ animation->mName.C_Str() },
-                    std::string_view{  animation->mName.C_Str() }, static_cast<float>( animation->mDuration ),
-                    static_cast<UInt32>( animation->mTicksPerSecond ), std::move( skeleton ) );
+                const auto [it, success]{
+                    modelData.Animations.try_emplace( std::string{ animation->mName.C_Str() },
+                                                      std::string_view{ animation->mName.C_Str() }, static_cast<float>( animation->mDuration ),
+                                                      static_cast<UInt32>( animation->mTicksPerSecond ), std::move( skeleton ) )
+                };
             }
 
             modelData.Name = scene->mName.C_Str();
             LoadNodes( Filesystem::StripFileName( file->GetPath() ), scene->mRootNode, scene, description, modelData );
+
+            // Read last animation info
+            for (UInt32 animationCount{}; animationCount < scene->mNumAnimations; ++animationCount) {
+                auto animation{ scene->mAnimations[animationCount] };
+
+                const std::string animationName { animation->mName.C_Str() };
+
+                const auto it{ modelData.Animations.find( animationName ) };
+                MKT_ASSERT( it != modelData.Animations.end(), "Animation does not exist" );
+
+                ReadMissingBones( animation, it->second );
+            }
+
+#if !defined(NDEBUG)
+            if (!modelData.Animations.empty()) {
+                MKT_COLOR_PRINT_FORMATTED( MKT_FMT_COLOR_BLUE_VIOLET, "Printing all animations\n" );
+                for (const auto& animation : modelData.Animations | std::ranges::views::values) {
+                    MKT_COLOR_PRINT_FORMATTED( MKT_FMT_COLOR_BLUE_VIOLET, "Bones for animation [{}]\n", animation.GetName() );
+
+                    for (const auto& bone : animation.GetSkeleton().GetBoneMap() | std::ranges::views::values) {
+                        MKT_COLOR_PRINT_FORMATTED( MKT_FMT_COLOR_CYAN, "\tBone [{}] with ID [{}]\n", bone.GetBoneName(), bone.GetBoneID() );
+                    }
+                }
+            }
+#endif
         }
     }
 }

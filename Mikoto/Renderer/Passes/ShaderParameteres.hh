@@ -43,6 +43,9 @@ namespace Mikoto {
         Vec4F Albedo{};
         Vec4F Factors{}; // Metallness, Roughness, AO
 
+        Int32 BonesID{ -1 }; // If it has bones its != -1
+        UInt64 AnimatorID{}; // If it has bones its != -1
+
         Vec3F EmissiveFactors{ 1.0f, 1.0f, 1.0f };
         float EmissiveIntensity{ 1.0 }; // 1.0 default
 
@@ -59,6 +62,7 @@ namespace Mikoto {
     struct MeshParameters {
         Mat4F Transform{};
         UInt32 MaterialIndex{};
+        Int32 BonesID{ -1 }; // If it has bones its != -1
 
         Vec4F Albedo{};
         Int32 AlbedoIndex{INVALID_TEXTURE_INDEX };

@@ -20,6 +20,9 @@
 #include "ShaderBase.glsl"
 #include "Material_Helpers.glsl"
 
+const int MAX_BONES = 100;
+const int MAX_BONE_INFLUENCE = 4;
+
 layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
     mat4 Projection;
     mat4 ViewMatrix;
@@ -28,6 +31,10 @@ layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
     vec2 Planes;
     vec2 ScreenDimensions;
 } u_CameraParams;
+
+layout(std430, scalar, set = PERPASS_SETINDEX, binding = 7) readonly buffer MeshSkinnedBones {
+    mat4 meshBoneMatrices[];
+};
 
 layout(std430, scalar, set = STATIC_SETINDEX, binding = 1) readonly buffer MeshParametersBuffer {
     MeshParameters Meshes[];
@@ -39,7 +46,11 @@ layout(std430, scalar, set = STATIC_SETINDEX, binding = 1) readonly buffer MeshP
 layout(location = 0) in vec3 a_Position;
 layout(location = 1) in vec3 a_Normal;
 layout(location = 2) in vec3 a_Color;
-layout(location = 3) in vec2 a_TexCoord;
+layout(location = 3) in vec2 a_TexCoord0;
+layout(location = 4) in vec2 a_TexCoord1;
+
+layout(location = 5) in vec4 a_Joint;
+layout(location = 6) in vec4 a_Weight;
 
 // --------------------------------------------------
 // Outputs to fragment shader
@@ -66,15 +77,41 @@ layout(location = 15) flat out float o_EmissionIntensity;
 layout(location = 16) flat out int o_EmissionIndex;
 layout(location = 17) flat out float o_Alpha;
 
+layout(location = 18) out vec2 o_TexCoord1;
+
 
 void main() {
     MeshParameters meshInfo = Meshes[gl_InstanceIndex];
+
+    vec4 totalPosition = vec4(0.0);
+
+    if (meshInfo.BonesID != -1) {
+        for (int i = 0; i < MAX_BONE_INFLUENCE; ++i) {
+            int jointIndex = int(a_Joint[i]);
+
+            if (jointIndex < 0)
+                continue;
+
+            if (jointIndex >= MAX_BONES) {
+                totalPosition = vec4(a_Position,1.0f);
+                break;
+            }
+
+            vec4 localPosition = meshBoneMatrices[meshInfo.BonesID][jointIndex] * inverse() * vec4(a_Position, 1.0);
+
+            totalPosition += localPosition * a_Weight[i];
+        }
+    }
+    else {
+        totalPosition = vec4(a_Position, 1.0);
+    }
 
     mat4 model = mat4(meshInfo.Transform);
 
     // Per-vertex
     out_Color        = a_Color;
-    out_TexCoord     = a_TexCoord;
+    out_TexCoord     = a_TexCoord0;
+    o_TexCoord1 = a_TexCoord1;
 
     // Normal transform
     out_VertexNormal  = transpose(inverse(mat3(model))) * a_Normal;
@@ -100,5 +137,5 @@ void main() {
     o_EmissionIntensity = meshInfo.EmissiveIntensity;
     o_EmissionIndex = meshInfo.EmissiveIndex;
 
-    gl_Position = u_CameraParams.Projection * u_CameraParams.ViewMatrix * model * vec4(a_Position, 1.0);
+    gl_Position = u_CameraParams.Projection * u_CameraParams.ViewMatrix * model * totalPosition;
 }

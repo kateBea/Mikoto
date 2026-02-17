@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <utility>
+
 #include <Animation/SkinnedAnimation.hh>
 
 namespace Mikoto {
@@ -19,7 +21,7 @@ namespace Mikoto {
         : m_Duration{ duration }, m_TicksPerSecond{ ticksPerSecond }, m_Skeleton { std::move(skeleton) }, m_Name{ name } {}
 
     auto SkinnedAnimation::FindBone( std::string_view name ) -> Joint* {
-        return nullptr; // TODO
+        return m_Skeleton.FindBone( name );
     }
 
     auto SkinnedAnimation::GetDuration() -> float {
@@ -34,6 +36,10 @@ namespace Mikoto {
         return m_Skeleton;
     }
 
+    auto SkinnedAnimation::GetSkeleton() const -> const Skeleton& {
+        return m_Skeleton;
+    }
+
     auto SkinnedAnimation::GetName() const -> const std::string& {
         return m_Name;
     }
@@ -43,10 +49,18 @@ namespace Mikoto {
     }
 
     auto SkinnedAnimation::SetBoneMapInfo( BoneInfoMap&& info ) -> void {
-        m_BoneInfoMap = std::move(info);
+        m_Skeleton.SetBoneMapInfo( std::move( info ) );
     }
 
-    auto SkinnedAnimation::GetBoneMap() const -> const BoneInfoMap& {
-        return m_BoneInfoMap;
+    auto SkinnedAnimation::GetBoneInfoMap() const -> const BoneInfoMap& {
+        return m_Skeleton.GetBoneInfoMap();
     }
-}
+
+    auto SkinnedAnimation::GetBoneInfoMap() -> BoneInfoMap& {
+        return m_Skeleton.GetBoneInfoMap();
+    }
+
+    auto SkinnedAnimation::SetBoneMap( BoneMap&& move ) -> void{
+        m_Skeleton.SetBoneMap(std::move(move));
+    }
+}// namespace Mikoto

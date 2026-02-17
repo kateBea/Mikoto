@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Math/Math.hh>
-
 #include <Core/Profiler.hh>
 #include <Core/Timer.hh>
-
-#include <Scene/Scene.hh>
-#include <Scene/Component.hh>
-
-#include <Renderer/Passes/MeshCulling.hh>
+#include <Math/Math.hh>
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Core/FramePassResource.hh>
+#include <Renderer/Passes/MeshCulling.hh>
+#include <Scene/Component.hh>
+#include <Scene/Scene.hh>
+
+#include "Animation/AnimationSystem.hh"
+#include "Animation/Animator.hh"
 
 namespace Mikoto {
 
@@ -35,6 +35,7 @@ namespace Mikoto {
     auto MeshCulling::RegisterPasses( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        m_SkinnedMeshes.resize( MAX_SKINNED_MESHES );
         m_MeshInfo.resize( MAX_RENDERABLE_ENTITIES );
         m_MeshInfoIndices.resize( MAX_RENDERABLE_ENTITIES );
 
@@ -54,6 +55,7 @@ namespace Mikoto {
                 []( FramePassBuilder &b) {
                     MKT_BEGIN_PROFILER_NAMED();
 
+                    b.Create<Buffer>( "ScatteredWrites_MeshSkinnedMatrices", BufferUsage::SHADER_STORAGE, sizeof(decltype(m_SkinnedMeshes)::value_type), MAX_SKINNED_MESHES );
                     b.Create<Buffer>( "ScatteredWrites_MeshData", BufferUsage::SHADER_STORAGE, sizeof( MeshParameters ), MAX_RENDERABLE_ENTITIES );
                     b.Create<Buffer>( "ScatteredWrites_MeshDataIndices", BufferUsage::SHADER_STORAGE, sizeof( UInt32 ), MAX_RENDERABLE_ENTITIES );
 
@@ -71,6 +73,7 @@ namespace Mikoto {
                     b.Write( "ScatteredWrites_MeshData", FrameResourceState::UnorderedAccess );
                     b.Write( "ScatteredWrites_MeshDataIndices", FrameResourceState::UnorderedAccess );
                     b.Write( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
+                    b.Write( "ScatteredWrites_MeshSkinnedMatrices", FrameResourceState::UnorderedAccess );
 
                     // This pass goes after mesh culling
                     b.Read( "MeshCulling_MeshCullingNode", FrameResourceState::UnorderedAccess );
@@ -132,7 +135,6 @@ namespace Mikoto {
 
     auto MeshCulling::SetupInstanceData( CommandContext &context ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
         // Prepare for draw
         for ( auto &[meshNode, meshNodeCount]: m_MeshDrawInstanceCount ) {
             // assume no instances and populate accordingly later
@@ -148,7 +150,7 @@ namespace Mikoto {
 
         // already created owned group using one of the same components.
         // Cannot create another group that owns the same components
-        auto renderables{ registry.group<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
+        auto renderables{ registry.view<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
 
         for ( auto [entity, tag, transform, materialComp, meshComponent]: renderables.each() ) {
             if ( !tag.IsActive() ) {
@@ -173,6 +175,14 @@ namespace Mikoto {
                 ubo.Factors.x = pbrMat->GetMetallicFactor();
                 ubo.Factors.y = pbrMat->GetRoughnessFactor();
                 ubo.Factors.z = pbrMat->GetAoFactor();
+
+                if (meshComponent.IsSkinned()) {
+
+                    if (registry.any_of<SkinnedMeshRenderer>( entity )) {
+                        auto& sm{ registry.get<SkinnedMeshRenderer>( entity ) };
+                        ubo.AnimatorID = sm.GetAnimatorID();
+                    }
+                }
 
                 ubo.EmissiveFactors = pbrMat->GetEmissiveFactors();
                 ubo.EmissiveIntensity = pbrMat->GetEmissiveIntensity();
@@ -203,6 +213,7 @@ namespace Mikoto {
         Size activeMeshCount{};
 
         // Flatten data
+        UInt32 bonesIndex{};
         for ( auto &[meshNode, meshDrawState]: m_DrawIndexedState ) {
             meshDrawState.InstancesCount = m_MeshDrawInstanceCount[meshNode];
 
@@ -229,6 +240,24 @@ namespace Mikoto {
                 info.AoIndex = instance.AoIndex;
                 info.EmissiveIndex = instance.EmissiveIndex;
 
+                // Copy matrices if skinned
+                if (instance.AnimatorID != 0) {
+                    info.BonesID = bonesIndex;
+
+                    auto& matrices{ m_SkinnedMeshes[info.BonesID] };
+                    Animator* animator{ AnimationSystem::Get()->GetAnimator( instance.AnimatorID ) };
+                    MKT_ASSERT( animator != nullptr, "Skinned mesh animator is null" );
+
+                    auto& joinMatrices{ animator->GetFinalBoneMatrices() };
+
+                    MKT_ASSERT( joinMatrices.size() == matrices.size() && joinMatrices.size() == MAX_BONES_PER_MESH, "Matrices must be same sized" );
+                    for (Size matrixIndex{}; matrixIndex < matrices.size(); ++matrixIndex) {
+                        matrices[matrixIndex] = joinMatrices[matrixIndex];
+                    }
+
+                    ++bonesIndex;
+                }
+
                 m_MeshInfoIndices[meshIndex] = meshIndex;
 
                 ++meshIndex;
@@ -237,6 +266,10 @@ namespace Mikoto {
             meshDrawState.FirstInstance = activeMeshCount;
 
             activeMeshCount += meshDrawState.InstancesCount;
+        }
+
+        if (bonesIndex != 0) {
+            context.UploadBufferData( "ScatteredWrites_MeshSkinnedMatrices", m_SkinnedMeshes.data(), sizeof( decltype(m_SkinnedMeshes)::value_type ), bonesIndex );
         }
 
         MKT_ASSERT( activeMeshCount <= MAX_RENDERABLE_ENTITIES, "Exceeded limit of renderable entities" );

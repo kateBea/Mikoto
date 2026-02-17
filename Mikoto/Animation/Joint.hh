@@ -42,6 +42,7 @@ namespace Mikoto {
 
     class Joint final {
     public:
+
         /*reads keyframes from aiNodeAnim*/
         Joint( const std::string& name, Int32 ID, const aiNodeAnim* channel );
 

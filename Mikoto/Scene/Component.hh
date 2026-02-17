@@ -261,11 +261,7 @@ namespace Mikoto {
 
         // Skinning
         auto IsSkinned() const -> bool {
-            return m_IsSkinned;
-        }
-
-        auto SetSkinned(bool value) -> void {
-            m_IsSkinned = value;
+            return m_Model->IsSkinned();
         }
 
         auto SetAnimator(UInt64 id) -> void {
@@ -676,7 +672,8 @@ namespace Mikoto {
 
     class SkinnedMeshRenderer {
     public:
-        explicit SkinnedMeshRenderer() = default;
+        explicit SkinnedMeshRenderer( UInt64 ID = 0)
+            : m_AnimatorID{ ID } {}
 
         SkinnedMeshRenderer( const SkinnedMeshRenderer& other ) = default;
         SkinnedMeshRenderer( SkinnedMeshRenderer&& other ) = default;
@@ -685,6 +682,8 @@ namespace Mikoto {
         auto operator=( SkinnedMeshRenderer&& other ) -> SkinnedMeshRenderer& = default;
 
         ~SkinnedMeshRenderer() = default;
+
+        MKT_NODISCARD auto GetAnimatorID() const -> UInt64 { return m_AnimatorID; }
 
     private:
         UInt64 m_AnimatorID{};

@@ -65,6 +65,10 @@ namespace Mikoto {
         return m_Animations;
     }
 
+    auto Model::GetAnimations() -> ankerl::unordered_dense::map<std::string, SkinnedAnimation>& {
+        return m_Animations;
+    }
+
     auto Model::SetAnimations( ankerl::unordered_dense::map<std::string, SkinnedAnimation>&& animations ) -> void {
         m_Animations = std::move( animations );
     }

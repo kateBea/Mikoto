@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include <utility>
+#include <memory>
 
+#include <Common/String.hh>
 #include <Animation/Skeleton.hh>
 
 namespace Mikoto {
@@ -30,7 +32,41 @@ namespace Mikoto {
         m_Hierarchy = std::move( hierarchy );
     }
 
-    auto Skeleton::GetBoneCount() -> UInt32 {
+    auto Skeleton::SetBoneMapInfo( BoneInfoMap &&info ) -> void {
+        m_BoneInfoMap = std::move(info);
+    }
+
+    auto Skeleton::GetBoneInfoMap() const -> const BoneInfoMap & {
+        return m_BoneInfoMap;
+    }
+
+    auto Skeleton::GetBoneInfoMap() -> BoneInfoMap & {
+        return m_BoneInfoMap;
+    }
+
+    auto Skeleton::GetBoneCount() const -> UInt32 {
         return m_Joints.size();
     }
-}// namespace Mikoto
+
+    auto Skeleton::SetBoneMap( BoneMap &&boneMap ) -> void {
+        m_Joints = std::move( boneMap );
+    }
+
+    auto Skeleton::GetBoneMap() -> BoneMap & {
+        return m_Joints;
+    }
+
+    auto Skeleton::GetBoneMap() const -> const BoneMap & {
+        return m_Joints;
+    }
+
+    auto Skeleton::FindBone( std::string_view name ) -> Joint* {
+        const std::string str{ StringUtil::From( name ) };
+        const auto iter{ m_Joints.find( str ) };
+        if ( iter != m_Joints.end() ) {
+            return std::addressof( iter->second );
+        }
+
+        return nullptr;
+    }
+}

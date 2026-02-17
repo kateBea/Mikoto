@@ -280,21 +280,23 @@ namespace Mikoto {
 
             // in root model is not empty, we create the children for this entity each children well hold a mesh
             if ( !createInfo.Model.IsEmpty() ) {
-                UInt64 animatorID{ AnimationSystem::Get()->RegisterAnimation( createInfo.Model ) };
-
                 if ( createInfo.Model->GetMeshNodeCount() > 1 ) {
+                    UInt64 animatorID{};
+
                     if (createInfo.Model->IsSkinned()) {
+                        animatorID = AnimationSystem::Get()->RegisterAnimation( createInfo.Model );
                         result->AddComponent<AnimatorComponent>( animatorID );
                     }
 
                     for ( Size index{}; index < createInfo.Model->GetMeshNodeCount(); index++ ) {
-                        AddSingleEntityWithRoot( result, createInfo.Model, index );
+                        AddSingleEntityWithRoot( result, createInfo.Model, index, animatorID );
                     }
 
                 } else {
                     if (createInfo.Model->IsSkinned()) {
+                        UInt64 animatorID{ AnimationSystem::Get()->RegisterAnimation( createInfo.Model ) };
                         result->AddComponent<AnimatorComponent>( animatorID );
-                        result->AddComponent<SkinnedMeshRenderer>();
+                        result->AddComponent<SkinnedMeshRenderer>( animatorID );
                     }
 
                     SetupMeshComponent( result, createInfo.Model, 0 );
@@ -500,7 +502,7 @@ namespace Mikoto {
         }
     }
 
-    auto Scene::AddSingleEntityWithRoot( Entity* root, ModelHandle model, Int32 index ) -> void {
+    auto Scene::AddSingleEntityWithRoot( Entity* root, ModelHandle model, Int32 index, UInt64 animatorID ) -> void {
         std::string name{ model->GetMeshNode( index ).GetName() };
         if ( name.empty() ) {
             name = fmt::format( "{} ({})", model->GetName(), index );
@@ -513,7 +515,7 @@ namespace Mikoto {
 
         if ( Entity* child{ CreateEntity( entityCreateInfo ) } ) {
             if (!model.IsEmpty() && model->IsSkinned()) {
-                child->AddComponent<SkinnedMeshRenderer>();
+                child->AddComponent<SkinnedMeshRenderer>( animatorID );
             }
 
             SetupMeshComponent(child, model, index);

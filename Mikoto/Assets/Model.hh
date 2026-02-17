@@ -98,59 +98,18 @@ namespace Mikoto {
         MaterialProperties m_Properties{};
     };
 
-    /**
-    * @class Model
-    * @brief Represents a 3D model composed of multiple mesh nodes.
-    *
-    * The `Model` class encapsulates a 3D object, including its mesh data,
-    * directory path, name, and vertex/index counts.
-    * It provides access to mesh data and metadata about the model.
-    */
+    using AnimationMap = ankerl::unordered_dense::map<std::string, SkinnedAnimation>;
+
     class Model final : public ReferenceCounted {
     public:
-        /**
-        * @brief Retrieves the meshes of the model.
-        * @return The count of mesh nodes.
-        */
         MKT_NODISCARD auto GetMeshNodeCount() const -> Size { return m_Meshes.size(); }
 
-        /**
-        * @brief Retrieves the mesh of the model by index.
-        * @return A reference to a mesh.
-        * @throws
-        */
         MKT_NODISCARD auto GetMeshNode(const Size index) -> MeshNode& { return m_Meshes.at(index); }
 
-        /**
-        * @brief Retrieves the mesh of the model by index.
-        * @return A constant reference to a mesh.
-        * @throws
-        */
         MKT_NODISCARD auto GetMeshNode(const Size index) const -> const MeshNode& { return m_Meshes.at(index); }
 
-        /**
-        * @brief Gets the absolute directory path where the model is stored.
-        * @return A constant reference to the model's directory path.
-        */
-        MKT_NODISCARD auto GetDirectory() const -> const Path& { return m_ModelAbsolutePath; }
-
-        /**
-        * @brief Retrieves the name of the model.
-        * @return A constant reference to the model's name.
-        */
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_ModelName; }
-
-        /**
-        * @brief Gets the total number of vertices in the model.
-        * @return The vertex count.
-        */
-        MKT_NODISCARD auto GetVertexCount() const -> UInt64 { return m_TotalVertices; }
-
-        /**
-         * @brief Gets the total number of indices in the model.
-         * @return The index count.
-         */
-        MKT_NODISCARD auto GetIndexCount() const -> UInt64 { return m_TotalIndices; }
+        MKT_NODISCARD auto GetDirectory() const -> const Path& { return m_ModelAbsolutePath; }
 
         MKT_NODISCARD auto IsSkinned() const -> bool;
         MKT_NODISCARD auto HasAnimations() const -> bool;
@@ -158,40 +117,27 @@ namespace Mikoto {
         MKT_NODISCARD auto FindAnimation( std::string_view name ) -> SkinnedAnimation*;
         MKT_NODISCARD auto FindAnimation( std::string_view name ) const -> const SkinnedAnimation*;
 
-        /**
-        * @brief Adds a new mesh node to the collection.
-        * @tparam Args Variadic template parameters for forwarding constructor arguments.
-        * @param index The index at which to insert the mesh node.
-        * @param args Arguments to be forwarded to the mesh node constructor.
-        *
-        * This function inserts a new mesh node into the `m_Meshes` collection at the given index.
-        */
+        MKT_NODISCARD auto GetAnimations() -> AnimationMap&;
+        MKT_NODISCARD auto GetAnimations() const -> const AnimationMap&;
+
         template<typename... Args>
         auto PushMeshNode(UInt32 index, Args&&... args) -> void {
             m_Meshes.emplace(index, std::forward<Args>(args)...);
         }
 
-        MKT_NODISCARD auto GetAnimations() const -> const ankerl::unordered_dense::map<std::string, SkinnedAnimation>&;
+        auto SetAnimations(AnimationMap&& animations ) -> void;
 
-        auto SetAnimations(ankerl::unordered_dense::map<std::string, SkinnedAnimation>&& animations ) -> void;
-
-    ~Model() override = default;
+        ~Model() override = default;
 
     private:
         DISABLE_COPY_AND_MOVE_FOR( Model );
 
-        /**
-         * @brief Constructs a Model with the provided parameters.
-         * @param modelName Name of the model.
-         * @param modelPath Absolute path to the model file.
-         */
         explicit Model( std::string modelName, Path modelPath)
             : m_ModelName{ std::move( modelName ) },
               m_ModelAbsolutePath{ std::move( modelPath ) }
         {}
 
     private:
-
         // Only the factory can construct models
         friend class MeshFactory;
 
@@ -202,10 +148,8 @@ namespace Mikoto {
         // ( Mesh index, mesh node )
         ankerl::unordered_dense::map<UInt32, MeshNode> m_Meshes{};
 
-        ankerl::unordered_dense::map<std::string, SkinnedAnimation> m_Animations{};
-
-        UInt64 m_TotalVertices{};
-        UInt64 m_TotalIndices{};
+        Skeleton m_Skeleton{};
+        AnimationMap m_Animations{};
     };
 
     using ModelHandle = Ref<Model>;

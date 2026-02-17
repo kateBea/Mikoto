@@ -24,6 +24,8 @@ struct MeshParameters {
     mat4 Transform;
     uint MaterialIndex;
 
+    int BonesID;
+
     vec4 Albedo;
     int AlbedoIndex;
 

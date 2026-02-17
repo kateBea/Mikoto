@@ -156,7 +156,7 @@ namespace Mikoto {
         auto CreateEntityDefault(const EntityCreateInfo& info ) -> Entity*;
 
     private:
-        auto AddSingleEntityWithRoot(Entity * root, ModelHandle model, Int32 index ) -> void;
+        auto AddSingleEntityWithRoot(Entity * root, ModelHandle model, Int32 index, UInt64 animatorID = 0 ) -> void;
 
         auto WorkerDestroyEntity(UInt64 entityID) -> void;
         auto WorkerCreateEntity(const EntityCreateInfo& info) -> void;

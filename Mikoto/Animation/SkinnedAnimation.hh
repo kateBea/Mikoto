@@ -20,7 +20,6 @@
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 
-#include <Animation/Joint.hh>
 #include <Animation/Skeleton.hh>
 
 namespace  Mikoto {
@@ -33,28 +32,14 @@ namespace  Mikoto {
 
     class SkinnedAnimation {
     public:
-        explicit SkinnedAnimation( std::string_view name, float duration, UInt32 ticksPerSecond, Skeleton&& skeleton );
+        explicit SkinnedAnimation( std::string_view name, float duration, UInt32 ticksPerSecond );
 
-        MKT_NODISCARD auto FindBone( std::string_view name ) -> Joint*;
+        auto GetDuration() const -> float;
+        auto GetTicksPerSecond() const -> float;
 
-        auto GetDuration() -> float;
-        auto GetTicksPerSecond() -> float;
-
-        auto GetSkeleton() -> Skeleton&;
-        auto GetSkeleton() const -> const Skeleton&;
-
-        auto GetName() const -> const std::string&;
-
-        auto GetBoneCount() -> UInt32;
-
-        auto SetBoneMapInfo(BoneInfoMap&& info) -> void;
-        auto GetBoneInfoMap() const -> const BoneInfoMap&;
-        auto GetBoneInfoMap() -> BoneInfoMap&;
-
-        auto SetBoneMap( BoneMap&& move ) -> void;
+        MKT_NODISCARD auto GetName() const -> const std::string&;
 
     private:
-
         // Duration of the animation in ticks
         float m_Duration{};
         UInt32 m_TicksPerSecond{};

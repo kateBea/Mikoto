@@ -25,6 +25,7 @@
 
 namespace Mikoto {
 
+    inline constexpr Int32 INVALID_JOINT_ID{ -1 };
     struct KeyPosition {
         Vec3F Position{};
         float TimeStamp{};
@@ -40,11 +41,15 @@ namespace Mikoto {
         float TimeStamp{};
     };
 
+    struct AnimationeProperties {
+        std::vector<KeyPosition> Positions{};
+        std::vector<KeyRotation> Rotations{};
+        std::vector<KeyScale> Scales{};
+    };
+
     class Joint final {
     public:
-
-        /*reads keyframes from aiNodeAnim*/
-        Joint( const std::string& name, Int32 ID, const aiNodeAnim* channel );
+        Joint( const std::string& name, Int32 ID, Mat4F ModelToBoneTransform );
 
         /*interpolates  b/w positions,rotations & scaling keys based on the curren time of
         the animation and prepares the local transformation matrix by combining all keys
@@ -60,9 +65,17 @@ namespace Mikoto {
         /* Gets the current index on mKeyScalings to interpolate to based on the current animation time */
         auto GetScaleIndex( float animationTime ) const -> Int32;
 
-        auto GetLocalTransform() const -> const auto& { return m_LocalTransform; }
-        auto GetBoneName() const -> auto& { return m_Name; }
-        auto GetBoneID() const -> Int32 { return m_ID; }
+        auto SetParentID( Int32 ID) -> void;
+        auto SetParentRelativeTransform( const Mat4F& mat) -> void;
+
+        auto GetID() const -> Int32;
+        auto GetParentID() const -> Int32;
+        auto GetBoneName() const -> const std::string&;
+        auto GetLocalTransform() const -> const Mat4F&;
+        auto GetModelToBoneTransform() const -> const Mat4F&;
+        auto GetParentRelativeTransform() const -> const Mat4F&;
+
+        auto SetAnimationProperties(AnimationeProperties&& properties ) -> void;
 
     private:
         /* Gets normalized value for Lerp & Slerp*/
@@ -78,19 +91,18 @@ namespace Mikoto {
         auto InterpolateScaling( float animationTime ) -> Mat4F;
 
     private:
+        Int32 m_ID{ INVALID_JOINT_ID };
+        Int32 m_ParentID{ INVALID_JOINT_ID };
+        std::string m_Name{};
+
+        Mat4F m_LocalTransform{};
+        Mat4F m_ModelToBoneTransform{};
+        Mat4F m_ParentRelativeTransform{};
+
         std::vector<KeyPosition> m_Positions{};
         std::vector<KeyRotation> m_Rotations{};
         std::vector<KeyScale> m_Scales{};
-
-        Int32 m_NumPositions{};
-        Int32 m_NumRotations{};
-        Int32 m_NumScalings{};
-
-        Mat4F m_LocalTransform{};
-        std::string m_Name{};
-        Int32 m_ID{};
     };
-}// namespace Mikoto
-
+}
 
 #endif//MIKOTO_BONE_HH

@@ -24,53 +24,29 @@
 
 namespace Mikoto {
 
-    struct BoneInfo {
-        /*id is index in finalBoneMatrices*/
-        Int32 ID{};
-
-        /*offset matrix transforms vertex from model space to bone space*/
-        Mat4F Offset{};
-    };
-
-    using BoneMap = ankerl::unordered_dense::map<std::string, Joint>;
-    using BoneInfoMap = ankerl::unordered_dense::map<std::string, BoneInfo>;
-
-    struct NodeHierarchy {
-        std::string Name{};
-
-        Mat4F Transformation{};
-
-        UInt32 ChildrenCount{};
-        std::vector<NodeHierarchy> Children{};
-    };
-
+    using JointsMap = ankerl::unordered_dense::map<std::string, Joint>;
+    using JointsMapID = ankerl::unordered_dense::map<UInt32, std::string>;
     class Skeleton {
     public:
+        explicit Skeleton() = default;
 
-        explicit Skeleton( NodeHierarchy&& hierarchy = {} );
+        auto RegisterJoint( const std::string& name, Int32 ID, Mat4F ModelToBoneTransform ) -> void;
 
-        auto GetHierarchy() -> NodeHierarchy&;
-        auto SetHierarchy(NodeHierarchy&& hierarchy) -> void;
+        auto GetBoneMap() -> JointsMap&;
+        MKT_NODISCARD auto GetBoneMap() const -> const JointsMap&;
 
-        auto SetBoneMapInfo(BoneInfoMap&& info) -> void;
-        auto GetBoneInfoMap() const -> const BoneInfoMap&;
-        auto GetBoneInfoMap() -> BoneInfoMap&;
-
-        auto GetBoneMap() -> BoneMap&;
-        auto GetBoneMap() const -> const BoneMap&;
-
-        MKT_NODISCARD auto FindBone( std::string_view name ) -> Joint*;
+        MKT_NODISCARD auto HasJoint( std::string_view name ) const -> bool;
+        MKT_NODISCARD auto FindJoint( std::string_view name ) -> Joint*;
+        MKT_NODISCARD auto FindJointByID( UInt32 ID ) -> Joint*;
 
         auto GetBoneCount() const -> UInt32;
 
-        auto SetBoneMap(BoneMap&& boneMap ) -> void;
+        auto SetBoneMap(JointsMap&& boneMap ) -> void;
 
     private:
-        BoneMap m_Joints{};
-        BoneInfoMap m_BoneInfoMap{};
-
-        NodeHierarchy m_Hierarchy{};
+        JointsMap m_Joints{};
+        JointsMapID m_JointsByID{};
     };
-}// namespace Mikoto
+}
 
 #endif // MIKOTO_SKELETON_HH

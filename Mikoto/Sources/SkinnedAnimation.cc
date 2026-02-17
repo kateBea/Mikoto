@@ -12,55 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <utility>
-
 #include <Animation/SkinnedAnimation.hh>
 
 namespace Mikoto {
-    SkinnedAnimation::SkinnedAnimation( std::string_view name, float duration, UInt32 ticksPerSecond, Skeleton&& skeleton )
-        : m_Duration{ duration }, m_TicksPerSecond{ ticksPerSecond }, m_Skeleton { std::move(skeleton) }, m_Name{ name } {}
+    SkinnedAnimation::SkinnedAnimation( std::string_view name, float duration, UInt32 ticksPerSecond)
+        : m_Duration{ duration }, m_TicksPerSecond{ ticksPerSecond }, m_Name{ name } {}
 
-    auto SkinnedAnimation::FindBone( std::string_view name ) -> Joint* {
-        return m_Skeleton.FindBone( name );
-    }
-
-    auto SkinnedAnimation::GetDuration() -> float {
+    auto SkinnedAnimation::GetDuration() const -> float {
         return m_Duration;
     }
 
-    auto SkinnedAnimation::GetTicksPerSecond() -> float {
+    auto SkinnedAnimation::GetTicksPerSecond() const -> float {
         return m_TicksPerSecond;
-    }
-
-    auto SkinnedAnimation::GetSkeleton() -> Skeleton& {
-        return m_Skeleton;
-    }
-
-    auto SkinnedAnimation::GetSkeleton() const -> const Skeleton& {
-        return m_Skeleton;
     }
 
     auto SkinnedAnimation::GetName() const -> const std::string& {
         return m_Name;
     }
-
-    auto SkinnedAnimation::GetBoneCount() -> UInt32 {
-        return m_Skeleton.GetBoneCount();
-    }
-
-    auto SkinnedAnimation::SetBoneMapInfo( BoneInfoMap&& info ) -> void {
-        m_Skeleton.SetBoneMapInfo( std::move( info ) );
-    }
-
-    auto SkinnedAnimation::GetBoneInfoMap() const -> const BoneInfoMap& {
-        return m_Skeleton.GetBoneInfoMap();
-    }
-
-    auto SkinnedAnimation::GetBoneInfoMap() -> BoneInfoMap& {
-        return m_Skeleton.GetBoneInfoMap();
-    }
-
-    auto SkinnedAnimation::SetBoneMap( BoneMap&& move ) -> void{
-        m_Skeleton.SetBoneMap(std::move(move));
-    }
-}// namespace Mikoto
+}

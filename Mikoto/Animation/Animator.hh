@@ -35,9 +35,6 @@ namespace Mikoto {
         auto GetAnimationList() const -> const auto& { return m_Model->GetAnimations(); }
 
     private:
-        auto CalculateBoneTransform( const NodeHierarchy* node, Mat4F parentTransform ) -> void;
-
-    private:
         UInt64 m_AnimationID{};
         float m_CurrentTime{};
 

@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cctype>
 #include <format>
+#include <cstdio>
 #include <functional>
 #include <iterator>
 #include <string>
@@ -179,6 +180,12 @@
 
 #define MKT_COLOR_STYLE_PRINT_FORMATTED( COLOR, STYLE, ... ) \
     fmt::print( fmt::fg( COLOR ) | STYLE, __VA_ARGS__ )
+
+#define MKT_COLOR_PRINT_FORMATTED_FLUSH( COLOR, ... ) \
+fmt::print( fmt::fg( COLOR ), __VA_ARGS__ ); std::fflush(nullptr)
+
+#define MKT_COLOR_STYLE_PRINT_FORMATTED_FLUSH( COLOR, STYLE, ... ) \
+fmt::print( fmt::fg( COLOR ) | STYLE, __VA_ARGS__ ); std::fflush(nullptr)
 
 
 namespace Mikoto::StringUtils {

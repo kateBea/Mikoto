@@ -20,47 +20,32 @@
 
 namespace Mikoto {
 
-    Skeleton::Skeleton( NodeHierarchy &&hierarchy )
-        : m_Hierarchy{ std::move( hierarchy ) }
-    {}
-
-    auto Skeleton::GetHierarchy() -> NodeHierarchy & {
-        return m_Hierarchy;
-    }
-
-    auto Skeleton::SetHierarchy( NodeHierarchy &&hierarchy ) -> void {
-        m_Hierarchy = std::move( hierarchy );
-    }
-
-    auto Skeleton::SetBoneMapInfo( BoneInfoMap &&info ) -> void {
-        m_BoneInfoMap = std::move(info);
-    }
-
-    auto Skeleton::GetBoneInfoMap() const -> const BoneInfoMap & {
-        return m_BoneInfoMap;
-    }
-
-    auto Skeleton::GetBoneInfoMap() -> BoneInfoMap & {
-        return m_BoneInfoMap;
+    auto Skeleton::RegisterJoint( const std::string &name, Int32 ID, Mat4F ModelToBoneTransform ) -> void {
+        m_Joints.try_emplace( name, name, ID, std::move( ModelToBoneTransform ) );
+        m_JointsByID.try_emplace( ID, name );
     }
 
     auto Skeleton::GetBoneCount() const -> UInt32 {
         return m_Joints.size();
     }
 
-    auto Skeleton::SetBoneMap( BoneMap &&boneMap ) -> void {
+    auto Skeleton::SetBoneMap( JointsMap &&boneMap ) -> void {
         m_Joints = std::move( boneMap );
     }
 
-    auto Skeleton::GetBoneMap() -> BoneMap & {
+    auto Skeleton::GetBoneMap() -> JointsMap & {
         return m_Joints;
     }
 
-    auto Skeleton::GetBoneMap() const -> const BoneMap & {
+    auto Skeleton::GetBoneMap() const -> const JointsMap & {
         return m_Joints;
     }
 
-    auto Skeleton::FindBone( std::string_view name ) -> Joint* {
+    auto Skeleton::HasJoint( std::string_view name ) const -> bool {
+        return m_Joints.contains( StringUtil::From( name ) );
+    }
+
+    auto Skeleton::FindJoint( std::string_view name ) -> Joint* {
         const std::string str{ StringUtil::From( name ) };
         const auto iter{ m_Joints.find( str ) };
         if ( iter != m_Joints.end() ) {
@@ -69,4 +54,14 @@ namespace Mikoto {
 
         return nullptr;
     }
-}
+
+    auto Skeleton::FindJointByID( UInt32 ID ) -> Joint * {
+        const auto iter{ m_JointsByID.find( ID ) };
+        if ( iter != m_JointsByID.end() ) {
+            return std::addressof( m_Joints.at( iter->second ) );
+        }
+
+        return nullptr;
+    }
+
+}// namespace Mikoto

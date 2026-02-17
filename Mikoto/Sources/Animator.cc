@@ -26,7 +26,7 @@ namespace Mikoto {
         if ( m_CurrentAnimation ) {
             m_CurrentTime += m_CurrentAnimation->GetTicksPerSecond() * deltaTime;
             m_CurrentTime = fmod( m_CurrentTime, m_CurrentAnimation->GetDuration() );
-            CalculateBoneTransform( &m_CurrentAnimation->GetSkeleton().GetHierarchy(), glm::mat4( 1.0f ) );
+            //CalculateBoneTransform( &m_CurrentAnimation->GetSkeleton().GetHierarchy(), glm::mat4( 1.0f ) );
         }
 
         // DEBUG if it has any set to first one
@@ -54,30 +54,4 @@ namespace Mikoto {
     auto Animator::GetCurrentAnimation() const -> const SkinnedAnimation* {
         return m_CurrentAnimation;
     }
-
-    auto Animator::CalculateBoneTransform(const NodeHierarchy* node, Mat4F parentTransform) -> void {
-        std::string nodeName{ node->Name };
-        glm::mat4 nodeTransform{ node->Transformation };
-
-        Joint* Bone{ m_CurrentAnimation->FindBone( nodeName ) };
-
-        if ( Bone ) {
-            Bone->Update( m_CurrentTime );
-            nodeTransform = Bone->GetLocalTransform();
-        }
-
-        glm::mat4 globalTransformation{ parentTransform * nodeTransform };
-
-        const auto& boneInfoMap{ m_CurrentAnimation->GetBoneInfoMap() };
-        if ( boneInfoMap.find( nodeName ) != boneInfoMap.end() ) {
-            Int32 index{ boneInfoMap.at(nodeName).ID };
-
-            glm::mat4 offset{ boneInfoMap.at(nodeName).Offset };
-            m_FinalBoneMatrices[index] = globalTransformation * offset;
-        }
-
-        for ( UInt32 i{}; i < node->ChildrenCount; i++ ) {
-            CalculateBoneTransform( &node->Children[i], globalTransformation );
-        }
-	}
 }

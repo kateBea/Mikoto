@@ -59,6 +59,7 @@ namespace Mikoto {
         UInt32 meshIndex{ 0 };
         for (const auto& meshNode : data.MeshNodes) {
 
+            // Change this to be a raw stream of bytes so im not forced to attributes being floats only
             std::vector<float> vertices{};
             std::vector<UInt32> indices{ std::move( meshNode.Indices ) };
 

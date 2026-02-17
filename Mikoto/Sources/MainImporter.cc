@@ -147,45 +147,73 @@ namespace Mikoto {
         }
     }
 
-    static auto LoadBoneWeights( const aiMesh *mesh, MeshNodeData &meshNodeData, SkinnedAnimation &animation ) -> void {
-        BoneInfoMap& boneInfoMap{ animation.GetBoneInfoMap() };
-        Int32 boneCount{ static_cast<Int32>( boneInfoMap.size() ) };
+    static auto LoadBoneProperties( const aiNodeAnim *channel ) -> AnimationeProperties {
+        AnimationeProperties result{};
+
+        for ( Int32 positionIndex{}; positionIndex < channel->mNumPositionKeys; ++positionIndex ) {
+            aiVector3D aiPosition{ channel->mPositionKeys[positionIndex].mValue };
+            double timeStamp{ channel->mPositionKeys[positionIndex].mTime };
+            KeyPosition data{
+                .Position{ aiPosition.x, aiPosition.y, aiPosition.z },
+                .TimeStamp{ static_cast<float>( timeStamp ) }
+            };
+            result.Positions.push_back( data );
+        }
+
+        for ( Int32 rotationIndex = 0; rotationIndex < channel->mNumRotationKeys; ++rotationIndex ) {
+            aiQuaternion aiOrientation{ channel->mRotationKeys[rotationIndex].mValue };
+            double timeStamp{ channel->mRotationKeys[rotationIndex].mTime };
+            KeyRotation data{
+                .Orientation{ glm::quat( aiOrientation.w, aiOrientation.x, aiOrientation.y, aiOrientation.z ) },
+                .TimeStamp{ static_cast<float>( timeStamp ) }
+            };
+            result.Rotations.push_back( data );
+        }
+
+        for ( Int32 keyIndex{}; keyIndex < channel->mNumScalingKeys; ++keyIndex ) {
+            aiVector3D scale{ channel->mScalingKeys[keyIndex].mValue };
+            double timeStamp{ channel->mScalingKeys[keyIndex].mTime };
+            KeyScale data{
+                .Scale{ scale.x, scale.y, scale.z },
+                .TimeStamp{ static_cast<float>( timeStamp ) }
+            };
+            result.Scales.push_back( data );
+        }
+
+        return result;
+    }
+
+    static auto LoadBoneWeights( const aiMesh *mesh, MeshNodeData &meshNodeData, Skeleton& skeleton ) -> void {
+        // We load all bones and weights from this mesh once
+        Int32 boneCount{ static_cast<Int32>( skeleton.GetBoneCount() ) };
 
         MKT_COLOR_PRINT_FORMATTED( MKT_FMT_COLOR_AQUA, "Mesh {} has [{}] bones\n", mesh->mName.C_Str(), mesh->mNumBones );
 
         for ( Int32 boneIndex{}; boneIndex < mesh->mNumBones; ++boneIndex ) {
-            Int32 boneID{ -1 };
             std::string boneName{ mesh->mBones[boneIndex]->mName.C_Str() };
-            const auto it{ boneInfoMap.find( boneName ) };
 
-            if ( it == boneInfoMap.end() ) {
-                boneInfoMap[boneName] = BoneInfo{
-                    .ID{ boneIndex },
-                    .Offset{ ToMat4F( mesh->mBones[boneIndex]->mOffsetMatrix ) }
-                };
-
-                boneID = boneCount;
+            if ( !skeleton.HasJoint( boneName ) ) {
+                skeleton.RegisterJoint( boneName, boneCount, ToMat4F( mesh->mBones[boneIndex]->mOffsetMatrix ) );
                 boneCount++;
-            } else {
-                boneID = it->second.ID;
             }
 
-            MKT_ASSERT( boneID != -1, "Invalid Bone ID" );
+            Joint* joint{ skeleton.FindJoint( boneName ) };
 
             aiVertexWeight *weights{ mesh->mBones[boneIndex]->mWeights };
-            const UInt32 numWeights{ static_cast<UInt32>( mesh->mBones[boneIndex]->mNumWeights ) };
+            UInt32 numWeights{ mesh->mBones[boneIndex]->mNumWeights };
 
             for ( UInt32 weightIndex{}; weightIndex < numWeights; ++weightIndex ) {
                 float weight{ weights[weightIndex].mWeight };
-                UInt32 vertexId{ static_cast<UInt32>( weights[weightIndex].mVertexId ) };
+                UInt32 vertexId{ weights[weightIndex].mVertexId };
 
                 MKT_ASSERT( vertexId < meshNodeData.Vertices.size(), "vertexID out of bounds for vertices count" );
 
                 VertexData &vertex{ meshNodeData.Vertices[vertexId] };
 
+                // We allow only 4 bones to affect a vertex at max
                 for ( Size i{}; i < MAX_BONE_INFLUENCE; ++i ) {
                     if ( vertex.Joints[i] < 0 ) {
-                        vertex.Joints[i] = boneID;
+                        vertex.Joints[i] = joint->GetID();
                         vertex.Weights[i] = weight;
                     }
                 }
@@ -193,28 +221,19 @@ namespace Mikoto {
         }
     }
 
-    static auto ReadMissingBones( const aiAnimation *animation, SkinnedAnimation& skeletalAnim ) -> void {
-        UInt32 size{ ( UInt32 )animation->mNumChannels };
+    static auto ReadJointAnimationProperties( const aiAnimation *animation, ModelData& modelData ) -> void {
+        Skeleton& skeleton{ modelData.Skeleton };
+        const UInt32 size{ ( animation->mNumChannels ) };
 
-        BoneMap boneMap{};
-        BoneInfoMap& boneInfoMap{ skeletalAnim.GetBoneInfoMap() };
-
-        Int32 boneCount{ (Int32)boneInfoMap.size() };
-
-        //reading channels(bones engaged in an animation and their keyframes)
         for ( UInt32 i{}; i < size; i++ ) {
-            auto channel{ animation->mChannels[i] };
-            std::string boneName = channel->mNodeName.data;
+            aiNodeAnim* channel{ animation->mChannels[i] };
+            std::string jointName{ channel->mNodeName.data };
 
-            if ( boneInfoMap.find( boneName ) == boneInfoMap.end() ) {
-                boneInfoMap[boneName].ID = boneCount;
-                boneCount++;
+            Joint* joint{ skeleton.FindJoint( jointName ) };
+            if (joint) {
+                joint->SetAnimationProperties( LoadBoneProperties(channel) );
             }
-            boneMap.try_emplace( boneName, Joint( channel->mNodeName.data,
-                                     boneInfoMap[channel->mNodeName.data].ID, channel ));
         }
-
-        skeletalAnim.SetBoneMap( std::move(boneMap) );
     }
 
     static auto LoadVertices( const aiMesh *mesh, MeshNodeData& meshNodeData ) -> void {
@@ -384,43 +403,69 @@ namespace Mikoto {
         LoadTextures( rootPath, mesh, scene, material );
     }
 
-    static auto LoadNodeHierarchy( NodeHierarchy& rootNode, const aiNode *src ) -> void {
-        rootNode.Name = src->mName.data;
-        rootNode.Transformation = ToMat4F( src->mTransformation );
-        rootNode.ChildrenCount = src->mNumChildren;
+    static auto LoadParentRelativeData( const aiNode *src, Skeleton& skeleton ) -> void {
+        Joint* parentJoint{ skeleton.FindJoint( src->mName.data ) };
+        if (parentJoint) {
+            parentJoint->SetParentRelativeTransform( ToMat4F( src->mTransformation ) );
+        }
 
         for ( UInt32 i{}; i < src->mNumChildren; i++ ) {
-            NodeHierarchy childNode{};
-            LoadNodeHierarchy( childNode, src->mChildren[i] );
-            rootNode.Children.push_back( childNode );
+            if ( Joint * childJoint{ skeleton.FindJoint( src->mChildren[i]->mName.data ) }; parentJoint && childJoint) {
+                childJoint->SetParentID( parentJoint->GetID() );
+            }
+
+            LoadParentRelativeData( src->mChildren[i], skeleton );
         }
     }
 
-    static auto LoadNodes( const std::string &rootPath,
+    static auto LoadMeshWeights(const aiNode *node, const aiScene *scene, ModelData& modelData) -> void {
+        for (UInt64 i{}; i < node->mNumMeshes; ++i) {
+            if (scene->mMeshes[node->mMeshes[i]]->HasBones()) {
+                LoadBoneWeights(scene->mMeshes[node->mMeshes[i]], modelData.MeshNodes[i], modelData.Skeleton);
+            }
+        }
+    }
+
+    static auto LoadModelMeshes( const std::string &rootPath,
         const aiNode *node, const aiScene *scene,
         const ModelLoadDescription &loadInfo,
         ModelData& modelData ) -> void
     {
-
         for (UInt64 i{}; i < node->mNumMeshes; ++i) {
-            auto& newMesh{ modelData.MeshNodes.emplace_back() };
+            auto newMesh{ modelData.MeshNodes[i] };
             auto& material{ modelData.Materials.emplace_back() };
 
             // Compute material index (since we inserted back, size increased by one last element is size() - 1)
-            UInt32 index{ ( UInt32 )modelData.Materials.size() - 1 };
+            const UInt32 index{ static_cast<UInt32>( modelData.Materials.size() ) - 1 };
 
             newMesh.MaterialIndex = index;
             ConstructMeshNode( rootPath, scene->mMeshes[node->mMeshes[i]], scene, newMesh, material );
 
-            // For a given mesh we load its information from all available animations
-            for (auto& animation : modelData.Animations | std::ranges::views::values ) {
-                LoadBoneWeights(scene->mMeshes[node->mMeshes[i]], newMesh, animation);
+            if (scene->mMeshes[node->mMeshes[i]]->HasBones()) {
+                LoadBoneWeights(scene->mMeshes[node->mMeshes[i]], newMesh, modelData.Skeleton);
             }
         }
 
         // Recurse children
         for (UInt64 i{}; i < node->mNumChildren; ++i) {
-            LoadNodes( rootPath, node->mChildren[i], scene, loadInfo, modelData );
+            LoadModelMeshes( rootPath, node->mChildren[i], scene, loadInfo, modelData );
+        }
+    }
+
+    static auto LoadModelAnimations( const aiScene *scene, ModelData& modelData ) -> void {
+        for ( UInt32 animationCount{}; animationCount < scene->mNumAnimations; ++animationCount ) {
+            auto animation{ scene->mAnimations[animationCount] };
+
+            const auto [it, success]{
+                modelData.Animations.try_emplace(
+                    std::string{ animation->mName.C_Str() },
+
+                    animation->mName.C_Str(),
+                    static_cast<float>( animation->mDuration ),
+                    static_cast<UInt32>( animation->mTicksPerSecond))
+            };
+
+            ReadJointAnimationProperties( animation, modelData );
         }
     }
 
@@ -450,7 +495,7 @@ namespace Mikoto {
             iter = TryAcquireImporter();
         } while ( iter == m_Importers.end() );
 
-        MKT_CORE_LOGGER_DEBUG( "Using GLTF importer {}", ( *iter )->Index );
+        MKT_CORE_LOGGER_DEBUG( "Using Assimp importer at index: {}", ( *iter )->Index );
 
         Import( *( *iter ), description, out );
         ( *iter )->IsFree.store( true, std::memory_order_release );
@@ -465,6 +510,75 @@ namespace Mikoto {
 
             return false;
         } );
+    }
+
+
+    auto PrintSkeletonTree( const Skeleton &skeleton ) -> void {
+        using ID = UInt32;
+
+        const auto &boneMap{ skeleton.GetBoneMap() };
+
+        // Build parent -> children adjacency
+        std::unordered_map<ID, std::vector<const Joint *>> children{};
+        std::vector<const Joint *> roots{};
+
+        for ( const auto &[name, joint]: boneMap ) {
+            const Int32 parentID{ joint.GetParentID() };
+
+            if ( parentID == INVALID_JOINT_ID ) {
+                roots.push_back( std::addressof( joint ) );
+            } else {
+                children[static_cast<ID>( parentID )].push_back( std::addressof( joint ) );
+            }
+        }
+
+        fmt::print( "\n=== Skeleton Hierarchy ===\n" );
+
+        constexpr std::string_view BRANCH{ "\u251C\u2500\u2500 " };
+        constexpr std::string_view LAST   { "\u2514\u2500\u2500 " };
+        constexpr std::string_view PIPE   { "\u2502   " };
+        constexpr std::string_view SPACE   { "    " };
+
+        auto printNode =
+                [&]( const Joint *joint,
+                     const std::string &prefix,
+                     bool isLast,
+                     auto &&self ) -> void {
+            const std::string_view connector{ isLast ? LAST : BRANCH };
+
+            MKT_COLOR_PRINT_FORMATTED_FLUSH( MKT_FMT_COLOR_ORANGE_RED, "{}{}{} ({})\n",
+                                             prefix,
+                                             connector,
+                                             joint->GetBoneName(),
+                                             joint->GetID() );
+
+            const auto childIter{ children.find( joint->GetID() ) };
+            if ( childIter == children.end() ) {
+                return;
+            }
+
+            const auto &childList{ childIter->second };
+
+            for ( Size i{}; i < childList.size(); ++i ) {
+                const bool lastChild{ i == childList.size() - 1 };
+
+                self(
+                        childList[i],
+                        prefix + StringUtil::From( isLast ? SPACE : PIPE ),
+                        lastChild,
+                        self );
+            }
+        };
+
+        for ( Size i{}; i < roots.size(); ++i ) {
+            const bool lastRoot{ i == roots.size() - 1 };
+            printNode( roots[i], "", lastRoot, printNode );
+        }
+
+        MKT_COLOR_PRINT_FORMATTED_FLUSH(
+                MKT_FMT_COLOR_BLUE_VIOLET,
+                "=== End Skeleton ===\n\n"
+            );
     }
 
     auto MainImporter::Import( ImporterInfo &loaderData, const ModelLoadDescription &description, ModelData& modelData ) -> void {
@@ -483,48 +597,32 @@ namespace Mikoto {
 
         if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || scene->mRootNode == nullptr) {
             MKT_CORE_LOGGER_ERROR( "MainImporter::Import - Model load failed. Assimp error: '{}'", loaderData.MeshImporter.GetErrorString() );
-        } else {
-            for (UInt32 animationCount{}; animationCount < scene->mNumAnimations; ++animationCount) {
-                auto animation{ scene->mAnimations[animationCount] };
 
-                NodeHierarchy hierarchy{};
-                LoadNodeHierarchy( hierarchy, scene->mRootNode );
-
-                Skeleton skeleton{ std::move( hierarchy ) };
-                const auto [it, success]{
-                    modelData.Animations.try_emplace( std::string{ animation->mName.C_Str() },
-                                                      std::string_view{ animation->mName.C_Str() }, static_cast<float>( animation->mDuration ),
-                                                      static_cast<UInt32>( animation->mTicksPerSecond ), std::move( skeleton ) )
-                };
-            }
-
-            modelData.Name = scene->mName.C_Str();
-            LoadNodes( Filesystem::StripFileName( file->GetPath() ), scene->mRootNode, scene, description, modelData );
-
-            // Read last animation info
-            for (UInt32 animationCount{}; animationCount < scene->mNumAnimations; ++animationCount) {
-                auto animation{ scene->mAnimations[animationCount] };
-
-                const std::string animationName { animation->mName.C_Str() };
-
-                const auto it{ modelData.Animations.find( animationName ) };
-                MKT_ASSERT( it != modelData.Animations.end(), "Animation does not exist" );
-
-                ReadMissingBones( animation, it->second );
-            }
-
-#if !defined(NDEBUG)
-            if (!modelData.Animations.empty()) {
-                MKT_COLOR_PRINT_FORMATTED( MKT_FMT_COLOR_BLUE_VIOLET, "Printing all animations\n" );
-                for (const auto& animation : modelData.Animations | std::ranges::views::values) {
-                    MKT_COLOR_PRINT_FORMATTED( MKT_FMT_COLOR_BLUE_VIOLET, "Bones for animation [{}]\n", animation.GetName() );
-
-                    for (const auto& bone : animation.GetSkeleton().GetBoneMap() | std::ranges::views::values) {
-                        MKT_COLOR_PRINT_FORMATTED( MKT_FMT_COLOR_CYAN, "\tBone [{}] with ID [{}]\n", bone.GetBoneName(), bone.GetBoneID() );
-                    }
-                }
-            }
-#endif
+            return;
         }
+
+        modelData.Name = scene->mName.C_Str();
+
+        modelData.MeshNodes.resize( scene->mNumMeshes );
+        LoadModelMeshes( Filesystem::StripFileName( file->GetPath() ), scene->mRootNode, scene, description, modelData );
+
+        LoadMeshWeights(scene->mRootNode, scene, modelData);
+
+        // It requires all node to exists
+        // as it does not add them
+        LoadParentRelativeData(scene->mRootNode, modelData.Skeleton);
+
+        LoadModelAnimations(scene, modelData);
+
+#if !defined( NDEBUG )
+        if ( !modelData.Animations.empty() ) {
+            MKT_COLOR_PRINT_FORMATTED_FLUSH(
+                MKT_FMT_COLOR_BLUE_VIOLET,
+                "Printing skeleton hierarchy\n"
+            );
+
+            PrintSkeletonTree( modelData.Skeleton );
+        }
+#endif
     }
 }

@@ -17,43 +17,13 @@
 
 namespace Mikoto {
 
-    Joint::Joint( const std::string &name, Int32 ID, const aiNodeAnim *channel )
-        : m_LocalTransform{ 1.0f },
+    Joint::Joint( const std::string& name, Int32 ID, Mat4F ModelToBoneTransform )
+        : m_ID{ ID },
           m_Name{ name },
-          m_ID{ ID } {
-        m_NumPositions = channel->mNumPositionKeys;
-
-        for ( Int32 positionIndex{}; positionIndex < m_NumPositions; ++positionIndex ) {
-            aiVector3D aiPosition{ channel->mPositionKeys[positionIndex].mValue };
-            double timeStamp{ channel->mPositionKeys[positionIndex].mTime };
-            KeyPosition data{
-                .Position{ aiPosition.x, aiPosition.y, aiPosition.z },
-                .TimeStamp{ static_cast<float>( timeStamp ) }
-            };
-            m_Positions.push_back( data );
-        }
-
-        m_NumRotations = channel->mNumRotationKeys;
-        for ( Int32 rotationIndex = 0; rotationIndex < m_NumRotations; ++rotationIndex ) {
-            aiQuaternion aiOrientation{ channel->mRotationKeys[rotationIndex].mValue };
-            double timeStamp{ channel->mRotationKeys[rotationIndex].mTime };
-            KeyRotation data{
-                .Orientation{ glm::quat( aiOrientation.w, aiOrientation.x, aiOrientation.y, aiOrientation.z ) },
-                .TimeStamp{ static_cast<float>( timeStamp ) }
-            };
-            m_Rotations.push_back( data );
-        }
-
-        m_NumScalings = channel->mNumScalingKeys;
-        for ( Int32 keyIndex{}; keyIndex < m_NumScalings; ++keyIndex ) {
-            aiVector3D scale{ channel->mScalingKeys[keyIndex].mValue };
-            double timeStamp{ channel->mScalingKeys[keyIndex].mTime };
-            KeyScale data{
-                .Scale{ scale.x, scale.y, scale.z },
-                .TimeStamp{ static_cast<float>( timeStamp ) }
-            };
-            m_Scales.push_back( data );
-        }
+          m_LocalTransform{ 1.0f },
+            m_ModelToBoneTransform{ ModelToBoneTransform }
+    {
+        MKT_ASSERT( m_ID != INVALID_JOINT_ID, "No valid ID found" );
     }
 
     auto Joint::Update( float animationTime ) -> void {
@@ -65,7 +35,7 @@ namespace Mikoto {
     }
 
     auto Joint::GetPositionIndex( float animationTime ) const -> Int32 {
-        for ( Int32 index{}; index < m_NumPositions - 1; ++index ) {
+        for ( Int32 index{}; index < m_Positions.size() - 1; ++index ) {
             if ( animationTime < m_Positions[index + 1].TimeStamp ) {
                 return index;
             }
@@ -75,7 +45,7 @@ namespace Mikoto {
     }
 
     auto Joint::GetRotationIndex( float animationTime ) const -> Int32 {
-        for ( Int32 index{}; index < m_NumRotations - 1; ++index ) {
+        for ( Int32 index{}; index < m_Rotations.size() - 1; ++index ) {
             if ( animationTime < m_Rotations[index + 1].TimeStamp ) {
                 return index;
             }
@@ -85,13 +55,51 @@ namespace Mikoto {
     }
 
     auto Joint::GetScaleIndex( float animationTime ) const -> Int32 {
-        for ( Int32 index{}; index < m_NumScalings - 1; ++index ) {
+        for ( Int32 index{}; index < m_Scales.size() - 1; ++index ) {
             if ( animationTime < m_Scales[index + 1].TimeStamp ) {
                 return index;
             }
         }
 
         MKT_ASSERT( false, "No valid scale index" );
+    }
+
+    auto Joint::SetParentID( Int32 ID ) -> void {
+        m_ParentID = ID;
+    }
+
+    auto Joint::SetParentRelativeTransform( const Mat4F &mat ) -> void {
+        m_ParentRelativeTransform = mat;
+    }
+
+    auto Joint::GetID() const -> Int32 {
+        return m_ID;
+    }
+
+    auto Joint::GetParentID() const -> Int32 {
+        return m_ParentID;
+    }
+
+    auto Joint::GetBoneName() const -> const std::string & {
+        return m_Name;
+    }
+
+    auto Joint::GetLocalTransform() const -> const Mat4F & {
+        return m_LocalTransform;
+    }
+
+    auto Joint::GetModelToBoneTransform() const -> const Mat4F & {
+        return m_ModelToBoneTransform;
+    }
+
+    auto Joint::GetParentRelativeTransform() const -> const Mat4F & {
+        return m_ParentRelativeTransform;
+    }
+
+    auto Joint::SetAnimationProperties( AnimationeProperties&& properties ) -> void {
+        m_Positions = std::move( properties.Positions );
+        m_Rotations = std::move( properties.Rotations );
+        m_Scales = std::move( properties.Scales );
     }
 
     auto Joint::GetScaleFactor( float lastTimeStamp, float nextTimeStamp, float animationTime ) -> float {
@@ -105,7 +113,7 @@ namespace Mikoto {
     }
 
     auto Joint::InterpolatePosition( float animationTime ) -> Mat4F {
-        if ( m_NumPositions == 1 ) {
+        if ( m_Positions.size() == 1 ) {
             return glm::translate( glm::mat4( 1.0f ), m_Positions[0].Position );
         }
 
@@ -118,7 +126,7 @@ namespace Mikoto {
     }
 
     auto Joint::InterpolateRotation( float animationTime ) -> Mat4F {
-        if ( m_NumRotations == 1 ) {
+        if ( m_Rotations.size() == 1 ) {
             auto rotation = glm::normalize( m_Rotations[0].Orientation );
             return glm::toMat4( rotation );
         }
@@ -133,7 +141,7 @@ namespace Mikoto {
     }
 
     auto Joint::InterpolateScaling( float animationTime ) -> Mat4F {
-        if ( m_NumScalings == 1 )
+        if ( m_Scales.size() == 1 )
             return glm::scale( glm::mat4( 1.0f ), m_Scales[0].Scale );
 
         const Int32 p0Index{ GetScaleIndex( animationTime ) };

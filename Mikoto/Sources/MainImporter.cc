@@ -581,6 +581,50 @@ namespace Mikoto {
             );
     }
 
+    static auto BuildNodeList( const aiNode *node, std::vector<const aiNode *> &nodes ) -> void {
+        nodes.push_back( node );
+
+        for ( UInt32 i{}; i < node->mNumChildren; ++i ) {
+            BuildNodeList( node->mChildren[i], nodes );
+        }
+    }
+
+    static auto PrepareJointHierarchy(const aiScene* scene, ModelData& modelData) -> void {
+        std::vector<const aiNode *> flatNodes{};
+        BuildNodeList( scene->mRootNode, flatNodes );
+
+        ankerl::unordered_dense::map<std::string, Int32> nodeNameToId{};
+        for ( Int32 i{}; i < flatNodes.size(); ++i ) {
+            nodeNameToId[flatNodes[i]->mName.C_Str()] = i;
+        }
+
+        Skeleton &skeleton{ modelData.SceneSkeleton };
+        for ( UInt32 meshIndex{}; meshIndex < scene->mNumMeshes; ++meshIndex ) {
+            const aiMesh *mesh{ scene->mMeshes[meshIndex] };
+
+            if ( !mesh->HasBones() )
+                continue;
+
+            for ( unsigned boneIndex{}; boneIndex < mesh->mNumBones; ++boneIndex ) {
+                const aiBone *bone{ mesh->mBones[boneIndex] };
+                std::string boneName{ bone->mName.C_Str() };
+
+                auto it{ nodeNameToId.find( boneName ) };
+                if ( it == nodeNameToId.end() )
+                    continue;
+
+                Int32 nodeId{ it->second };
+
+                if ( !skeleton.HasJoint( boneName ) ) {
+                    skeleton.RegisterJoint(
+                            boneName,
+                            nodeId,
+                            ToMat4F( bone->mOffsetMatrix ) );
+                }
+            }
+        }
+    }
+
     auto MainImporter::Import( ImporterInfo &loaderData, const ModelLoadDescription &description, ModelData& modelData ) -> void {
         // UVs appear messed UP for vulkan if we specify aiProcess_FlipUVs flag
         auto importerFlags{ static_cast<aiPostProcessSteps>( aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_JoinIdenticalVertices ) };
@@ -603,9 +647,9 @@ namespace Mikoto {
 
         modelData.Name = scene->mName.C_Str();
 
-        LoadModelMeshes( Filesystem::StripFileName( file->GetPath() ), scene->mRootNode, scene, description, modelData );
+        PrepareJointHierarchy( scene, modelData );
 
-        LoadMeshWeights(scene->mRootNode, scene, modelData);
+        LoadModelMeshes( Filesystem::StripFileName( file->GetPath() ), scene->mRootNode, scene, description, modelData );
 
         // It requires all node to exists
         // as it does not add them

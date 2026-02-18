@@ -24,6 +24,12 @@
 
 namespace Mikoto {
 
+    // These 2 are vec4 because they need to match the bone influence
+    // which is maximum bones influence a vertex ( from what we support now )
+    inline constexpr UInt32 MAX_BONE_INFLUENCE{ 4 };
+    inline constexpr UInt32 MAX_BONES_PER_MESH{ 100 };
+    inline constexpr UInt32 MAX_SKINNED_MESHES{ 1000 };
+
     using JointsMap = ankerl::unordered_dense::map<std::string, Joint>;
     using JointsMapID = ankerl::unordered_dense::map<UInt32, std::string>;
 

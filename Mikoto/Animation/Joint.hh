@@ -72,7 +72,10 @@ namespace Mikoto {
         auto GetScaleIndex( float animationTime ) const -> Int32;
 
         auto SetParentID( Int32 ID) -> void;
-        auto SetParentRelativeTransform( const Mat4F& mat) -> void;
+        auto SetParentRelativeTransform( const Mat4F& mat ) -> void;
+        auto SetParentRelativeTransform() const -> const Mat4F&;
+
+        auto SetAnimationProperties(AnimationeProperties&& properties ) -> void;
 
         auto DebugPrintBoneContribution() const -> void;
         auto SetVertexWeights( std::string_view meshName, UInt64 vertex, float weight ) -> void;
@@ -82,9 +85,6 @@ namespace Mikoto {
         auto GetBoneName() const -> const std::string&;
         auto GetLocalTransform() const -> const Mat4F&;
         auto GetModelToBoneTransform() const -> const Mat4F&;
-        auto GetParentRelativeTransform() const -> const Mat4F&;
-
-        auto SetAnimationProperties(AnimationeProperties&& properties ) -> void;
 
     private:
         /* Gets normalized value for Lerp & Slerp*/

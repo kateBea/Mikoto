@@ -32,6 +32,10 @@
 
 namespace Mikoto {
 
+    // TODO:
+    // Descriptor indexing
+    // Remove render passes, Mikoto defaults to Vulkan 1.3 where dynamic rendering is baseline
+
     class VulkanGraphicsContext final : public GraphicsContext {
     public:
         explicit  VulkanGraphicsContext(GpuDevice* device);

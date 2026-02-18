@@ -220,7 +220,8 @@ namespace Mikoto {
                 // We might later want to pick the highest contributions
                 for ( Size i{}; i < MAX_BONE_INFLUENCE; ++i ) {
                     if ( vertex.Weights[i] == 0 ) {
-                        vertex.Joints[i] = joint->GetID();
+                        vertex.Joints[i] = joint->GetID(); // TODO: this ID will be used as index to index the final matrices 
+                        // array right now join ID does not account for that
                         vertex.Weights[i] = weight;
                         break;
                     }
@@ -411,7 +412,7 @@ namespace Mikoto {
         LoadTextures( rootPath, mesh, scene, material );
     }
 
-    static auto LoadParentRelativeData( const aiNode *src, Skeleton& skeleton ) -> void {
+    static auto LoadHierarchyTransformation( const aiNode *src, Skeleton &skeleton) -> void {
         Joint* parentJoint{ skeleton.FindJoint( src->mName.data ) };
         if (parentJoint) {
             parentJoint->SetParentRelativeTransform( ToMat4F( src->mTransformation ) );
@@ -422,7 +423,7 @@ namespace Mikoto {
                 childJoint->SetParentID( parentJoint->GetID() );
             }
 
-            LoadParentRelativeData( src->mChildren[i], skeleton );
+            LoadHierarchyTransformation( src->mChildren[i], skeleton );
         }
     }
 
@@ -663,7 +664,7 @@ namespace Mikoto {
 
         // It requires all node to exists
         // as it does not add them
-        LoadParentRelativeData(scene->mRootNode, modelData.SceneSkeleton);
+        LoadHierarchyTransformation( scene->mRootNode, modelData.SceneSkeleton );
 
         LoadModelAnimations(scene, modelData);
 

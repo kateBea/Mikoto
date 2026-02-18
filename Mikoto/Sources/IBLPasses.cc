@@ -607,9 +607,6 @@ namespace Mikoto {
                 [this]( FramePassBuilder &b, EnvironmentConstants& ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    // To create edge
-                    b.Create<Buffer>( "FinalShading_Params", BufferUsage::UNIFORM, sizeof( LightCameraInfo ), 1 );
-
                     b.Create<Texture>( "FinalShadingPass_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, Multisampling::MSAA_X1, TextureUsage::COLOR );
                     b.Create<Texture>( "FinalShadingPass_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, Multisampling::MSAA_X1, TextureUsage::DEPTH );
 
@@ -640,6 +637,7 @@ namespace Mikoto {
 
                     b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
 
+                    // Create dependency between this pass and debug view pass
                     b.Write( "FinalShading_Params", FrameResourceState::UniformBuffer );
 
                     b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 )

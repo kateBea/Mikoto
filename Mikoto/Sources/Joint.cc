@@ -73,8 +73,16 @@ namespace Mikoto {
         m_ParentID = ID;
     }
 
-    auto Joint::SetParentRelativeTransform( const Mat4F &mat ) -> void {
+    auto Joint::SetParentRelativeTransform( const Mat4F& mat ) -> void {
         m_ParentRelativeTransform = mat;
+    }
+
+    auto Joint::SetParentRelativeTransform() const -> const Mat4F& {
+        return m_ParentRelativeTransform;
+    }
+
+    auto Joint::GetModelToBoneTransform() const -> const Mat4F& {
+        return m_ModelToBoneTransform;
     }
 
     auto Joint::GetID() const -> Int32 {
@@ -91,14 +99,6 @@ namespace Mikoto {
 
     auto Joint::GetLocalTransform() const -> const Mat4F & {
         return m_LocalTransform;
-    }
-
-    auto Joint::GetModelToBoneTransform() const -> const Mat4F & {
-        return m_ModelToBoneTransform;
-    }
-
-    auto Joint::GetParentRelativeTransform() const -> const Mat4F & {
-        return m_ParentRelativeTransform;
     }
 
     auto Joint::SetAnimationProperties( AnimationeProperties&& properties ) -> void {

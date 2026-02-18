@@ -14,6 +14,7 @@
 
 #include <utility>
 #include <memory>
+#include <ranges>
 
 #include <Common/String.hh>
 #include <Animation/Skeleton.hh>
@@ -64,4 +65,31 @@ namespace Mikoto {
         return nullptr;
     }
 
-}// namespace Mikoto
+    auto Skeleton::begin() -> JointsMapIterator {
+        return m_Joints.begin();
+    }
+
+    auto Skeleton::end() -> JointsMapIterator {
+        return m_Joints.end();
+    }
+
+    auto Skeleton::cbegin() const -> JointsMapConstIterator {
+        return m_Joints.cbegin();
+    }
+
+    auto Skeleton::cend() const -> JointsMapConstIterator {
+        return m_Joints.cend();
+    }
+
+    auto Skeleton::DebugPrintBoneContribution() const -> void {
+        for (const auto& joint : m_Joints | std::ranges::views::values) {
+            joint.DebugPrintBoneContribution();
+        }
+    }
+
+    auto Skeleton::SetVertexWeights( std::string_view meshName, std::string_view boneName, UInt64 vertex, float weight ) -> void {
+        if (auto joint{ FindJoint( boneName ) }) {
+            joint->SetVertexWeights( meshName, vertex, weight );
+        }
+    }
+}

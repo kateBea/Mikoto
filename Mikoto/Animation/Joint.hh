@@ -17,15 +17,21 @@
 
 #include <vector>
 #include <string>
+#include <utility>
 #include <list>
 
-#include <assimp/scene.h>
+#include <ankerl/unordered_dense.h>
 
 #include <Library/Utility/Types.hh>
 
 namespace Mikoto {
 
+    // Maps vertex and the weight contribution of the joint to that vertex
+    using JointVertexMap = 
+        ankerl::unordered_dense::map<std::string, ankerl::unordered_dense::map<UInt64, float>>;
+
     inline constexpr Int32 INVALID_JOINT_ID{ -1 };
+
     struct KeyPosition {
         Vec3F Position{};
         float TimeStamp{};
@@ -68,6 +74,9 @@ namespace Mikoto {
         auto SetParentID( Int32 ID) -> void;
         auto SetParentRelativeTransform( const Mat4F& mat) -> void;
 
+        auto DebugPrintBoneContribution() const -> void;
+        auto SetVertexWeights( std::string_view meshName, UInt64 vertex, float weight ) -> void;
+
         auto GetID() const -> Int32;
         auto GetParentID() const -> Int32;
         auto GetBoneName() const -> const std::string&;
@@ -102,6 +111,8 @@ namespace Mikoto {
         std::vector<KeyPosition> m_Positions{};
         std::vector<KeyRotation> m_Rotations{};
         std::vector<KeyScale> m_Scales{};
+
+        JointVertexMap m_VertexWeights{};
     };
 }
 

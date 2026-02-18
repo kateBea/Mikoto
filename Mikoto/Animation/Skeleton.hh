@@ -26,6 +26,10 @@ namespace Mikoto {
 
     using JointsMap = ankerl::unordered_dense::map<std::string, Joint>;
     using JointsMapID = ankerl::unordered_dense::map<UInt32, std::string>;
+
+    using JointsMapIterator = ankerl::unordered_dense::map<std::string, Joint>::iterator;
+    using JointsMapConstIterator = ankerl::unordered_dense::map<std::string, Joint>::const_iterator;
+
     class Skeleton {
     public:
         explicit Skeleton() = default;
@@ -38,6 +42,15 @@ namespace Mikoto {
         MKT_NODISCARD auto HasJoint( std::string_view name ) const -> bool;
         MKT_NODISCARD auto FindJoint( std::string_view name ) -> Joint*;
         MKT_NODISCARD auto FindJointByID( UInt32 ID ) -> Joint*;
+
+        MKT_NODISCARD auto begin() -> JointsMapIterator;
+        MKT_NODISCARD auto end() -> JointsMapIterator;
+
+        MKT_NODISCARD auto cbegin() const -> JointsMapConstIterator;
+        MKT_NODISCARD auto cend() const -> JointsMapConstIterator;
+
+        auto DebugPrintBoneContribution() const -> void;
+        auto SetVertexWeights( std::string_view meshName, std::string_view boneName, UInt64 vertex, float weight ) -> void;
 
         auto GetBoneCount() const -> UInt32;
 

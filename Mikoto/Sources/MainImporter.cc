@@ -160,7 +160,7 @@ namespace Mikoto {
             result.Positions.push_back( data );
         }
 
-        for ( Int32 rotationIndex = 0; rotationIndex < channel->mNumRotationKeys; ++rotationIndex ) {
+        for ( Int32 rotationIndex{}; rotationIndex < channel->mNumRotationKeys; ++rotationIndex ) {
             aiQuaternion aiOrientation{ channel->mRotationKeys[rotationIndex].mValue };
             double timeStamp{ channel->mRotationKeys[rotationIndex].mTime };
             KeyRotation data{
@@ -193,8 +193,8 @@ namespace Mikoto {
             std::string boneName{ mesh->mBones[boneIndex]->mName.C_Str() };
 
             if ( !skeleton.HasJoint( boneName ) ) {
-                skeleton.RegisterJoint( boneName, boneCount, ToMat4F( mesh->mBones[boneIndex]->mOffsetMatrix ) );
-                boneCount++;
+                // This should not happen because we first load the skeleton and then we load the meshes
+                MKT_ASSERT( false, "Bone {} not found in skeleton", boneName );
             }
 
             Joint* joint{ skeleton.FindJoint( boneName ) };
@@ -206,15 +206,19 @@ namespace Mikoto {
                 float weight{ weights[weightIndex].mWeight };
                 UInt32 vertexId{ weights[weightIndex].mVertexId };
 
+                skeleton.SetVertexWeights( mesh->mName.C_Str(), boneName, vertexId, weight );
+
                 MKT_ASSERT( vertexId < meshNodeData.Vertices.size(), "vertexID out of bounds for vertices count" );
 
                 VertexData &vertex{ meshNodeData.Vertices[vertexId] };
 
                 // We allow only 4 bones to affect a vertex at max
+                // We set the first 4 bones that have influence on the vertex
                 for ( Size i{}; i < MAX_BONE_INFLUENCE; ++i ) {
                     if ( vertex.Joints[i] < 0 ) {
                         vertex.Joints[i] = joint->GetID();
                         vertex.Weights[i] = weight;
+                        break;
                     }
                 }
             }
@@ -435,14 +439,16 @@ namespace Mikoto {
             auto& newMesh{ modelData.MeshNodes.emplace_back() };
             auto& material{ modelData.Materials.emplace_back() };
 
+            const aiMesh *meshNode{ scene->mMeshes[node->mMeshes[i]] };
+
             // Compute material index (since we inserted back, size increased by one last element is size() - 1)
             const UInt32 index{ static_cast<UInt32>( modelData.Materials.size() ) - 1 };
 
             newMesh.MaterialIndex = index;
-            ConstructMeshNode( rootPath, scene->mMeshes[node->mMeshes[i]], scene, newMesh, material );
+            ConstructMeshNode( rootPath, meshNode, scene, newMesh, material );
 
-            if (scene->mMeshes[node->mMeshes[i]]->HasBones()) {
-                LoadBoneWeights(scene->mMeshes[node->mMeshes[i]], newMesh, modelData.SceneSkeleton);
+            if ( meshNode->HasBones() ) {
+                LoadBoneWeights( meshNode, newMesh, modelData.SceneSkeleton );
             }
         }
 
@@ -590,14 +596,17 @@ namespace Mikoto {
     }
 
     static auto PrepareJointHierarchy(const aiScene* scene, ModelData& modelData) -> void {
+        // Flatten hierarchy to build node name -> id map
         std::vector<const aiNode *> flatNodes{};
         BuildNodeList( scene->mRootNode, flatNodes );
 
+        // Build node name -> id map
         ankerl::unordered_dense::map<std::string, Int32> nodeNameToId{};
         for ( Int32 i{}; i < flatNodes.size(); ++i ) {
             nodeNameToId[flatNodes[i]->mName.C_Str()] = i;
         }
 
+        // Register joints from meshes
         Skeleton &skeleton{ modelData.SceneSkeleton };
         for ( UInt32 meshIndex{}; meshIndex < scene->mNumMeshes; ++meshIndex ) {
             const aiMesh *mesh{ scene->mMeshes[meshIndex] };
@@ -616,10 +625,7 @@ namespace Mikoto {
                 Int32 nodeId{ it->second };
 
                 if ( !skeleton.HasJoint( boneName ) ) {
-                    skeleton.RegisterJoint(
-                            boneName,
-                            nodeId,
-                            ToMat4F( bone->mOffsetMatrix ) );
+                    skeleton.RegisterJoint(boneName, nodeId, ToMat4F( bone->mOffsetMatrix ) );
                 }
             }
         }
@@ -658,6 +664,8 @@ namespace Mikoto {
         LoadModelAnimations(scene, modelData);
 
 #if !defined( NDEBUG )
+        modelData.SceneSkeleton.DebugPrintBoneContribution();
+
         if ( !modelData.Animations.empty() ) {
             MKT_COLOR_PRINT_FORMATTED_FLUSH(
                 MKT_FMT_COLOR_BLUE_VIOLET,

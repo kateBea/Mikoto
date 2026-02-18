@@ -138,7 +138,7 @@ namespace Mikoto {
         return scaleFactor;
     }
 
-    auto Joint::InterpolatePosition( float animationTime ) -> Mat4F {
+    auto Joint::InterpolatePosition( float animationTime ) const -> Mat4F {
         if ( m_Positions.size() == 1 ) {
             return glm::translate( glm::mat4( 1.0f ), m_Positions[0].Position );
         }

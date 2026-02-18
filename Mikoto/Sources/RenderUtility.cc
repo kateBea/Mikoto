@@ -138,13 +138,7 @@ namespace Mikoto {
         return *this;
     }
 
-    StbImage::StbImage( const File* textureFile, bool isHDR ) {
-        // FIXME: it looks buggy when transformed into a cubeMap
-        // if (isHDR) {
-        //     m_Data = LoadImageFloatFromFile( textureFile, m_Width, m_Height, m_Channels );
-        // } else {
-        //     m_Data = LoadImageFromFile( textureFile, m_Width, m_Height, m_Channels );
-        // }
+    StbImage::StbImage( const File* textureFile ) {
         m_Data = LoadImageFromFile( textureFile, m_Width, m_Height, m_Channels );
     }
 

@@ -192,6 +192,7 @@ namespace Mikoto {
         TextureHandle texture{ m_GpuDevice->CreateTexture( description ) };
         if (!texture.IsEmpty()) {
             std::lock_guard lock{ m_Texture2DPoolMutex };
+
             auto [it, success]{
                 m_Textures2D.try_emplace( path, texture )
             };
@@ -217,7 +218,7 @@ namespace Mikoto {
             return itFind->second;
         }
 
-        const StbImage image{ textureFile, description.IsHDR };
+        const StbImage image{ textureFile };
 
         if ( !image.IsValid() ) {
             return TextureHandle::CreateEmpty();
@@ -256,7 +257,6 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         const std::string baseAbsolute{ Filesystem::GetGetAbsolutePathString( description.BasePath ) };
-        // if it exists
         if (const auto itFind{ m_TexturesCubes.find( baseAbsolute ) }; itFind != m_TexturesCubes.end() ) {
             return itFind->second;
         }
@@ -266,7 +266,6 @@ namespace Mikoto {
             .IsHDR( description.IsHdrMap )
             .WithResourceUsage( description.ResourceUsage );
 
-        // Assume CubeMap faces if it's not HDR
         if (!textureDesc.IsHdrMap) {
             for (const auto& path : description.FacesRelativePaths ) {
                 PathBuilder pathBuilder{};
@@ -278,7 +277,7 @@ namespace Mikoto {
                 }
             }
         } else {
-            // Just store the path as first element of the vector
+            // TODO: Review. Can you store cubemaps directly in a file and load them at runtime?
             if (const File* file{ FileService::Get()->LoadFile( baseAbsolute ) }) {
                 textureDesc.WithFacePath( file );
             }
@@ -287,6 +286,7 @@ namespace Mikoto {
         TextureHandle texture{ m_GpuDevice->CreateTexture( textureDesc ) };
         if (!texture.IsEmpty()) {
             std::lock_guard lock{ m_Texture2DPoolMutex };
+
             auto [it, success]{
                 m_TexturesCubes.try_emplace( baseAbsolute, texture )
             };

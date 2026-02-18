@@ -197,10 +197,8 @@ namespace Mikoto {
         for ( Int32 boneIndex{}; boneIndex < mesh->mNumBones; ++boneIndex ) {
             std::string boneName{ mesh->mBones[boneIndex]->mName.C_Str() };
 
-            if ( !skeleton.HasJoint( boneName ) ) {
-                // This should not happen because we first load the skeleton and then we load the meshes
-                MKT_ASSERT( false, "Bone {} not found in skeleton", boneName );
-            }
+            // This should not happen because we first load the skeleton and then we load the meshes
+            MKT_ASSERT( skeleton.HasJoint( boneName ), StringUtil::Format( "Bone {} not found in skeleton", boneName ) );
 
             Joint* joint{ skeleton.FindJoint( boneName ) };
 

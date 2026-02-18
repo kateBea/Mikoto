@@ -303,6 +303,7 @@ namespace Mikoto {
 
         Multisampling MSAA{ Multisampling::MSAA_X1 };
 
+        // Deprecated flag, used when cube map is split in 6 faces
         bool IsHdrMap{ false };
 
         auto IsHDR( bool value ) -> TextureCubeCreateDescription&;
@@ -446,7 +447,7 @@ namespace Mikoto {
 
     class StbImage final {
     public:
-        explicit StbImage( const File* textureFile, bool isHDR = false );
+        explicit StbImage( const File* textureFile );
 
         explicit StbImage( const Byte* data, Size sizeBytes );
 

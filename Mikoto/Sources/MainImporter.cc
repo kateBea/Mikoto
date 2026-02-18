@@ -48,8 +48,12 @@ namespace Mikoto {
     };
 
     static auto ToMat4F( const aiMatrix4x4 &from ) -> Mat4F {
+        // GLM is column major, Assimp is row major
+        
         Mat4F to{};
-        //the a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
+        // The a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
+        // We are basically doing a traspose oporation
+
         to[0][0] = from.a1;
         to[1][0] = from.a2;
         to[2][0] = from.a3;
@@ -66,6 +70,7 @@ namespace Mikoto {
         to[1][3] = from.d2;
         to[2][3] = from.d3;
         to[3][3] = from.d4;
+
         return to;
     }
 

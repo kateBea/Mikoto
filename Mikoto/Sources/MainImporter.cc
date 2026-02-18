@@ -216,7 +216,7 @@ namespace Mikoto {
                 // We set the first 4 bones that have influence on the vertex
                 // We might later want to pick the highest contributions
                 for ( Size i{}; i < MAX_BONE_INFLUENCE; ++i ) {
-                    if ( vertex.Joints[i] < 0 ) {
+                    if ( vertex.Weights[i] == 0 ) {
                         vertex.Joints[i] = joint->GetID();
                         vertex.Weights[i] = weight;
                         break;

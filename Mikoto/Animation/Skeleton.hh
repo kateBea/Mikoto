@@ -52,6 +52,9 @@ namespace Mikoto {
         MKT_NODISCARD auto begin() -> JointsMapIterator;
         MKT_NODISCARD auto end() -> JointsMapIterator;
 
+        MKT_NODISCARD auto begin() const -> JointsMapConstIterator;
+        MKT_NODISCARD auto end() const -> JointsMapConstIterator;
+
         MKT_NODISCARD auto cbegin() const -> JointsMapConstIterator;
         MKT_NODISCARD auto cend() const -> JointsMapConstIterator;
 

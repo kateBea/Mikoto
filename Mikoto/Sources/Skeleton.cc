@@ -73,6 +73,14 @@ namespace Mikoto {
         return m_Joints.end();
     }
 
+    auto Skeleton::begin() const -> JointsMapConstIterator {
+        return m_Joints.begin();
+    }
+
+    auto Skeleton::end() const -> JointsMapConstIterator {
+        return m_Joints.end();
+    }
+
     auto Skeleton::cbegin() const -> JointsMapConstIterator {
         return m_Joints.cbegin();
     }

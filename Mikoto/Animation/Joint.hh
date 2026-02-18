@@ -104,7 +104,7 @@ namespace Mikoto {
         Int32 m_ParentID{ INVALID_JOINT_ID };
         std::string m_Name{};
 
-        Mat4F m_LocalTransform{};
+        Mat4F m_LocalTransform{}; // Will be moved to the animator and we will have one per joint because this changes every frame depending on the animation being played on a specific mesh
         Mat4F m_ModelToBoneTransform{};
         Mat4F m_ParentRelativeTransform{};
 

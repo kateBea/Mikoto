@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <memory>
+#include <ranges>
 
 #include <Animation/Animator.hh>
 
@@ -35,6 +36,16 @@ namespace Mikoto {
                 m_CurrentAnimation = std::addressof( animation.second );
                 break;
             }
+        }
+
+        // Copy contents
+        const Skeleton& skeleton{ m_Model->GetSkeleton() };
+        Size index{ };
+        for ( const auto& joint: skeleton | std::ranges::views::values ) {
+            // Need to properly handle this right now joint IDs can be bigger than this array
+            // You need to come up with a way to hash the IDs to this matrix and make sure
+            // it is the same value stored in JointID attribute of the vertex buffer of the meshes
+            //m_FinalBoneMatrices[index++];
         }
 	}
 

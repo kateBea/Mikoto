@@ -114,6 +114,8 @@ namespace Mikoto {
         MKT_NODISCARD auto IsSkinned() const -> bool;
         MKT_NODISCARD auto HasAnimations() const -> bool;
 
+        MKT_NODISCARD auto GetSkeleton() const -> const Skeleton&;
+
         MKT_NODISCARD auto FindAnimation( std::string_view name ) -> SkinnedAnimation*;
         MKT_NODISCARD auto FindAnimation( std::string_view name ) const -> const SkinnedAnimation*;
 

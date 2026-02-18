@@ -47,6 +47,10 @@ namespace Mikoto {
         return !m_Animations.empty();
     }
 
+    auto Model::GetSkeleton() const -> const Skeleton& {
+        return m_Skeleton;
+    }
+
     auto Model::FindAnimation( std::string_view name ) -> SkinnedAnimation * {
         return const_cast<SkinnedAnimation*>( std::as_const(*this).FindAnimation(name) );
     }

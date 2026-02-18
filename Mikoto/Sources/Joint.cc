@@ -145,15 +145,14 @@ namespace Mikoto {
 
         const Int32 p0Index{ GetPositionIndex( animationTime ) };
         const Int32 p1Index{ p0Index + 1 };
-        const float scaleFactor{ GetScaleFactor( m_Positions[p0Index].TimeStamp,
-                                            m_Positions[p1Index].TimeStamp, animationTime ) };
+        const float scaleFactor{ GetScaleFactor( m_Positions[p0Index].TimeStamp, m_Positions[p1Index].TimeStamp, animationTime ) };
         const Vec3F finalPosition{ glm::mix( m_Positions[p0Index].Position, m_Positions[p1Index].Position, scaleFactor ) };
         return glm::translate( glm::mat4( 1.0f ), finalPosition );
     }
 
     auto Joint::InterpolateRotation( float animationTime ) -> Mat4F {
         if ( m_Rotations.size() == 1 ) {
-            auto rotation = glm::normalize( m_Rotations[0].Orientation );
+            Quat rotation{ glm::normalize( m_Rotations[0].Orientation ) };
             return glm::toMat4( rotation );
         }
 
@@ -167,8 +166,9 @@ namespace Mikoto {
     }
 
     auto Joint::InterpolateScaling( float animationTime ) -> Mat4F {
-        if ( m_Scales.size() == 1 )
+        if (m_Scales.size() == 1) {
             return glm::scale( glm::mat4( 1.0f ), m_Scales[0].Scale );
+        }
 
         const Int32 p0Index{ GetScaleIndex( animationTime ) };
         const Int32 p1Index{ p0Index + 1 };

@@ -15,12 +15,15 @@
 #ifndef MIKOTO_ANIMATOR_H
 #define MIKOTO_ANIMATOR_H
 
+#include <ankerl/unordered_dense.h>
+
 #include <Library/Utility/Types.hh>
 
 #include <Assets/Model.hh>
 #include <Animation/SkinnedAnimation.hh>
 
 namespace Mikoto {
+
     class Animator {
     public:
         explicit Animator( ModelHandle handle );
@@ -30,9 +33,13 @@ namespace Mikoto {
         auto SetCurrentAnimation( std::string_view name ) -> void;
         MKT_NODISCARD auto GetCurrentAnimation() const -> const SkinnedAnimation*;
 
-        auto GetFinalBoneMatrices() -> auto& { return m_FinalBoneMatrices; }
-
+        auto GetFinalBoneMatrices() -> auto& { return m_FinalMatrices; }
         auto GetAnimationList() const -> const auto& { return m_Model->GetAnimations(); }
+
+    private:
+
+        auto UpdateLocalTransform( const Joint& joint, float animationTime, Mat4F& localTransform ) -> void;
+        auto CalculateTransform( const Node& node, glm::mat4 parentTransform, float animationTime, const Skeleton& skeleton ) -> void;
 
     private:
         UInt64 m_AnimationID{};
@@ -43,7 +50,9 @@ namespace Mikoto {
         std::string m_CurrentAnimationName{};
         SkinnedAnimation* m_CurrentAnimation{};
 
-        std::vector<Mat4F> m_FinalBoneMatrices{};
+        std::vector<Mat4F> m_LocalTransform{};
+        std::vector<Mat4F> m_GlobalTransform{};
+        std::vector<Mat4F> m_FinalMatrices{};
     };
 }
 

@@ -14,20 +14,32 @@
 
 #include <memory>
 #include <ranges>
+#include <cmath>
 
+#include <Common/String.hh>
+
+#include <Logging/Assert.hh>
 #include <Animation/Animator.hh>
 
 namespace Mikoto {
 
     Animator::Animator( ModelHandle handle )
-        : m_CurrentTime{ 0.0f }, m_Model{ handle }, m_FinalBoneMatrices( MAX_BONES_PER_MESH, glm::mat4( 1.0f ) )
-    {}
+        : m_CurrentTime{ 0.0f }, m_Model{ handle }
+    {
+        MKT_ASSERT( !handle.IsEmpty(), "Invalid model handle for animator" );
+
+        m_LocalTransform.resize( MAX_BONES_PER_MESH, Mat4F( 1.0f ) );
+        m_GlobalTransform.resize( MAX_BONES_PER_MESH );
+        m_FinalMatrices.resize( MAX_BONES_PER_MESH );
+    }
 
     auto Animator::UpdateAnimation( float deltaTime ) -> void {
         if ( m_CurrentAnimation ) {
             m_CurrentTime += m_CurrentAnimation->GetTicksPerSecond() * deltaTime;
-            m_CurrentTime = fmod( m_CurrentTime, m_CurrentAnimation->GetDuration() );
-            //CalculateBoneTransform( &m_CurrentAnimation->GetSkeleton().GetHierarchy(), glm::mat4( 1.0f ) );
+            m_CurrentTime = std::fmod( m_CurrentTime, m_CurrentAnimation->GetDuration() ); // std::fmod is used to loop the animation
+
+            const Skeleton& skeleton{ m_Model->GetSkeleton() };
+            CalculateTransform( skeleton.GetHierarchy(), Mat4F{ 1.0f }, m_CurrentTime, skeleton );
         }
 
         // DEBUG if it has any set to first one
@@ -37,17 +49,38 @@ namespace Mikoto {
                 break;
             }
         }
-
-        // Copy contents
-        const Skeleton& skeleton{ m_Model->GetSkeleton() };
-        Size index{ };
-        for ( const auto& joint: skeleton | std::ranges::views::values ) {
-            // Need to properly handle this right now joint IDs can be bigger than this array
-            // You need to come up with a way to hash the IDs to this matrix and make sure
-            // it is the same value stored in JointID attribute of the vertex buffer of the meshes
-            //m_FinalBoneMatrices[index++];
-        }
 	}
+
+    auto Animator::CalculateTransform( const Node& node, glm::mat4 parentTransform, float animationTime, const Skeleton& skeleton ) -> void {
+        Mat4F localTransform{ node.Transformation };
+
+        if ( const Joint* joint{ skeleton.FindJoint( node.Name ) } ) {
+            UpdateLocalTransform(*joint, animationTime, localTransform );
+            const Mat4F globalTransform{ parentTransform * localTransform };
+
+            m_FinalMatrices[joint->GetID()] = globalTransform * joint->GetModelToBoneTransform();
+
+            for ( const auto& child: node.Children ) {
+                CalculateTransform( child, globalTransform, animationTime, skeleton );
+            }
+
+            return;
+        }
+
+        const Mat4F globalTransform{ parentTransform * localTransform };
+
+        for ( const auto& child: node.Children ) {
+            CalculateTransform( child, globalTransform, animationTime, skeleton );
+        }
+    }
+
+    auto Animator::UpdateLocalTransform( const Joint& joint, float animationTime, Mat4F& localTransform ) -> void {
+        const Mat4F translation{ joint.InterpolatePosition( animationTime ) };
+        const Mat4F rotation{ joint.InterpolateRotation( animationTime ) };
+        const Mat4F scale{ joint.InterpolateScaling( animationTime ) };
+
+        localTransform = translation * rotation * scale;
+    }
 
     auto Animator::SetCurrentAnimation( std::string_view name ) -> void {
         m_CurrentAnimationName = name;

@@ -241,7 +241,7 @@ namespace Mikoto {
                 info.EmissiveIndex = instance.EmissiveIndex;
 
                 // Copy matrices if skinned
-#if false       // Disabled for now
+#if true       // Disabled for now
                 if (instance.AnimatorID != 0) {
                     info.BonesID = bonesIndex;
 

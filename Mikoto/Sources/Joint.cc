@@ -25,18 +25,9 @@ namespace Mikoto {
     Joint::Joint( const std::string& name, Int32 ID, Mat4F ModelToBoneTransform )
         : m_ID{ ID },
           m_Name{ name },
-          m_LocalTransform{ 1.0f },
-            m_ModelToBoneTransform{ ModelToBoneTransform }
+          m_ModelToBoneTransform{ ModelToBoneTransform }
     {
         MKT_ASSERT( m_ID != INVALID_JOINT_ID, "No valid ID found" );
-    }
-
-    auto Joint::Update( float animationTime ) -> void {
-        const Mat4F translation{ InterpolatePosition(animationTime) };
-        const Mat4F rotation{ InterpolateRotation(animationTime) };
-        const Mat4F scale{ InterpolateScaling(animationTime) };
-
-        m_LocalTransform = translation * rotation * scale;
     }
 
     auto Joint::GetPositionIndex( float animationTime ) const -> Int32 {
@@ -77,7 +68,7 @@ namespace Mikoto {
         m_ParentRelativeTransform = mat;
     }
 
-    auto Joint::SetParentRelativeTransform() const -> const Mat4F& {
+    auto Joint::GetParentRelativeTransform() const -> const Mat4F& {
         return m_ParentRelativeTransform;
     }
 
@@ -95,10 +86,6 @@ namespace Mikoto {
 
     auto Joint::GetBoneName() const -> const std::string & {
         return m_Name;
-    }
-
-    auto Joint::GetLocalTransform() const -> const Mat4F & {
-        return m_LocalTransform;
     }
 
     auto Joint::SetAnimationProperties( AnimationeProperties&& properties ) -> void {
@@ -128,7 +115,7 @@ namespace Mikoto {
         m_VertexWeights[StringUtil::From( meshName )][vertex] = weight;
     }
 
-    auto Joint::GetScaleFactor( float lastTimeStamp, float nextTimeStamp, float animationTime ) -> float {
+    auto Joint::GetScaleFactor( float lastTimeStamp, float nextTimeStamp, float animationTime ) const -> float {
         float scaleFactor{ 0.0f };
         const float midWayLength{ animationTime - lastTimeStamp };
         const float framesDiff{ nextTimeStamp - lastTimeStamp };
@@ -139,6 +126,10 @@ namespace Mikoto {
     }
 
     auto Joint::InterpolatePosition( float animationTime ) const -> Mat4F {
+        if (m_Positions.empty()) {
+            return Mat4F{ 1.0f };
+        }
+
         if ( m_Positions.size() == 1 ) {
             return glm::translate( glm::mat4( 1.0f ), m_Positions[0].Position );
         }
@@ -150,7 +141,11 @@ namespace Mikoto {
         return glm::translate( glm::mat4( 1.0f ), finalPosition );
     }
 
-    auto Joint::InterpolateRotation( float animationTime ) -> Mat4F {
+    auto Joint::InterpolateRotation( float animationTime ) const -> Mat4F {
+        if ( m_Rotations.empty() ) {
+            return Mat4F{ 1.0f };
+        }
+
         if ( m_Rotations.size() == 1 ) {
             Quat rotation{ glm::normalize( m_Rotations[0].Orientation ) };
             return glm::toMat4( rotation );
@@ -165,7 +160,11 @@ namespace Mikoto {
         return glm::toMat4( finalRotation );
     }
 
-    auto Joint::InterpolateScaling( float animationTime ) -> Mat4F {
+    auto Joint::InterpolateScaling( float animationTime ) const -> Mat4F {
+        if ( m_Scales.empty() ) {
+            return Mat4F{ 1.0f };
+        }
+
         if (m_Scales.size() == 1) {
             return glm::scale( glm::mat4( 1.0f ), m_Scales[0].Scale );
         }

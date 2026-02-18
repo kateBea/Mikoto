@@ -523,7 +523,6 @@ namespace Mikoto {
         } );
     }
 
-
     auto PrintSkeletonTree( const Skeleton &skeleton ) -> void {
         using ID = UInt32;
 
@@ -592,48 +591,49 @@ namespace Mikoto {
             );
     }
 
-    static auto BuildNodeList( const aiNode *node, std::vector<const aiNode *> &nodes ) -> void {
-        nodes.push_back( node );
+    static auto BuildHierarhy( const aiNode *rootNode, Node &hierarchyRoot, Skeleton& skeleton ) -> void {
+        hierarchyRoot.Name = rootNode->mName.data;
+        hierarchyRoot.Transformation = ToMat4F( rootNode->mTransformation );
 
-        for ( UInt32 i{}; i < node->mNumChildren; ++i ) {
-            BuildNodeList( node->mChildren[i], nodes );
+        Joint *joint{ skeleton.FindJoint( hierarchyRoot.Name ) };
+        if (joint) {
+            hierarchyRoot.JointID = joint->GetID();
+        }
+
+        for ( UInt32 i{}; i < rootNode->mNumChildren; ++i ) {
+            Node childNode{};
+            BuildHierarhy( rootNode->mChildren[i], childNode, skeleton );
+
+            hierarchyRoot.Children.emplace_back( childNode );
         }
     }
 
     static auto PrepareJointHierarchy(const aiScene* scene, ModelData& modelData) -> void {
-        // Flatten hierarchy to build node name -> id map
-        std::vector<const aiNode *> flatNodes{};
-        BuildNodeList( scene->mRootNode, flatNodes );
-
-        // Build node name -> id map
-        ankerl::unordered_dense::map<std::string, Int32> nodeNameToId{};
-        for ( Int32 i{}; i < flatNodes.size(); ++i ) {
-            nodeNameToId[flatNodes[i]->mName.C_Str()] = i;
-        }
-
-        // Register joints from meshes
+        // The ID will be the bone count value this is important as when we upload the data loater
+        // in the shaders bone with ID = 0 goes to FinalMatrices[0]
+        Int32 boneID{ 0 };
         Skeleton &skeleton{ modelData.SceneSkeleton };
         for ( UInt32 meshIndex{}; meshIndex < scene->mNumMeshes; ++meshIndex ) {
             const aiMesh *mesh{ scene->mMeshes[meshIndex] };
 
-            if ( !mesh->HasBones() )
+            if (!mesh->HasBones()) {
                 continue;
+            }
 
-            for ( unsigned boneIndex{}; boneIndex < mesh->mNumBones; ++boneIndex ) {
+            for ( Int32 boneIndex{}; boneIndex < mesh->mNumBones; ++boneIndex ) {
                 const aiBone *bone{ mesh->mBones[boneIndex] };
                 std::string boneName{ bone->mName.C_Str() };
 
-                auto it{ nodeNameToId.find( boneName ) };
-                if ( it == nodeNameToId.end() )
-                    continue;
-
-                Int32 nodeId{ it->second };
-
                 if ( !skeleton.HasJoint( boneName ) ) {
-                    skeleton.RegisterJoint(boneName, nodeId, ToMat4F( bone->mOffsetMatrix ) );
+                    skeleton.RegisterJoint( boneName, boneID++, ToMat4F( bone->mOffsetMatrix ) );
                 }
             }
         }
+
+        Node hierarchy{};
+        BuildHierarhy( scene->mRootNode, hierarchy, skeleton );
+
+        skeleton.SetHierarchy( std::move( hierarchy ) );
     }
 
     auto MainImporter::Import( ImporterInfo &loaderData, const ModelLoadDescription &description, ModelData& modelData ) -> void {

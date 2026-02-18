@@ -56,7 +56,34 @@ namespace Mikoto {
         return nullptr;
     }
 
+    auto Skeleton::FindJoint( std::string_view name ) const -> const Joint* {
+        const std::string str{ StringUtil::From( name ) };
+        const auto iter{ m_Joints.find( str ) };
+        if ( iter != m_Joints.end() ) {
+            return std::addressof( iter->second );
+        }
+
+        return nullptr;
+    }
+
+    auto Skeleton::SetHierarchy( Node&& rootNode ) -> void {
+        m_RootNode = std::move( rootNode );
+    }
+
+    auto Skeleton::GetHierarchy() const -> const Node& {
+        return m_RootNode;
+    }
+
     auto Skeleton::FindJointByID( UInt32 ID ) -> Joint * {
+        const auto iter{ m_JointsByID.find( ID ) };
+        if ( iter != m_JointsByID.end() ) {
+            return std::addressof( m_Joints.at( iter->second ) );
+        }
+
+        return nullptr;
+    }
+
+    auto Skeleton::FindJointByID( UInt32 ID ) const -> const Joint * {
         const auto iter{ m_JointsByID.find( ID ) };
         if ( iter != m_JointsByID.end() ) {
             return std::addressof( m_Joints.at( iter->second ) );

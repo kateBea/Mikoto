@@ -52,7 +52,7 @@ namespace Mikoto {
     }
 
     auto MeshFactory::ConstructModel( ModelData &data, const ModelLoadDescription &loadInfo  ) -> Model * {
-        Model* result{ new Model(data.Name, loadInfo.ModelFile->GetPath()) };
+        Model *result{ new Model( data.Name, loadInfo.ModelFile->GetPath(), std::move( data.SceneSkeleton ) ) };
 
         result->SetAnimations( std::move(data.Animations) );
 
@@ -61,7 +61,7 @@ namespace Mikoto {
 
             // Change this to be a raw stream of bytes so im not forced to attributes being floats only
             std::vector<float> vertices{};
-            std::vector<UInt32> indices{ std::move( meshNode.Indices ) };
+            std::vector<UInt32> indices{ meshNode.Indices };
 
             vertices.reserve( DEFAULT_VERTEX_BUFFER_LAYOUT.GetStride() / sizeof( float ) * meshNode.Vertices.size() );
 

@@ -15,6 +15,8 @@
 #ifndef MIKOTO_SKELETON_HH
 #define MIKOTO_SKELETON_HH
 
+#include <string>
+#include <vector>
 #include <string_view>
 
 #include <ankerl/unordered_dense.h>
@@ -23,6 +25,17 @@
 #include <Animation/Joint.hh>
 
 namespace Mikoto {
+
+    // Represents the hierarchy of a scene
+    struct Node {
+        Int32 JointID{ -1 };
+        std::string Name{};
+
+        // Transform relative to parent node
+        Mat4F Transformation{};
+
+        std::vector<Node> Children{};
+    };
 
     // These 2 are vec4 because they need to match the bone influence
     // which is maximum bones influence a vertex ( from what we support now )
@@ -47,7 +60,12 @@ namespace Mikoto {
 
         MKT_NODISCARD auto HasJoint( std::string_view name ) const -> bool;
         MKT_NODISCARD auto FindJoint( std::string_view name ) -> Joint*;
+        MKT_NODISCARD auto FindJoint( std::string_view name ) const -> const Joint*;
         MKT_NODISCARD auto FindJointByID( UInt32 ID ) -> Joint*;
+        MKT_NODISCARD auto FindJointByID( UInt32 ID ) const -> const Joint*;
+
+        auto SetHierarchy( Node&& rootNode) -> void;
+        MKT_NODISCARD auto GetHierarchy() const -> const Node&;
 
         MKT_NODISCARD auto begin() -> JointsMapIterator;
         MKT_NODISCARD auto end() -> JointsMapIterator;
@@ -66,6 +84,8 @@ namespace Mikoto {
         auto SetBoneMap(JointsMap&& boneMap ) -> void;
 
     private:
+        Node m_RootNode{};
+
         JointsMap m_Joints{};
         JointsMapID m_JointsByID{};
     };

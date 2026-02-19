@@ -266,7 +266,7 @@ namespace Mikoto {
             activeMeshCount += meshDrawState.InstancesCount;
         }
 
-        context.UploadBufferData( "ScatteredWrites_MeshSkinnedMatrices", m_SkinnedMeshes.data(), sizeof( decltype( m_SkinnedMeshes )::value_type ), m_SkinnedMeshes.size() );
+        //context.UploadBufferData( "ScatteredWrites_MeshSkinnedMatrices", m_SkinnedMeshes.data(), sizeof( decltype( m_SkinnedMeshes )::value_type ), m_SkinnedMeshes.size() );
 
         MKT_ASSERT( activeMeshCount <= MAX_RENDERABLE_ENTITIES, "Exceeded limit of renderable entities" );
 

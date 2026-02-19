@@ -58,13 +58,6 @@ namespace Mikoto {
         WRAP_CLAMP_TO_BORDER,
     };
 
-    enum class Blending {
-        MODE_OPAQUE,    // Fully opaque (no transparency)
-        MODE_MASKED,    // Cutout transparency (alpha test)
-        MODE_ADDITIVE,  // Additive blending (glowing effects)
-        MODE_MULTIPLY,  // Multiplicative blending (darkening effects)
-    };
-
     /**
      * @enum ShaderStage
      * @brief Enum representing the different stages of the shader pipeline.

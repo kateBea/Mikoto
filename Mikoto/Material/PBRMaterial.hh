@@ -39,106 +39,138 @@ namespace Mikoto {
     struct MaterialProperties {
         std::string Name{};
 
-        Int32 Index{ -1 };
-
+        PBR_AlphaMode AlphaMask{ PBR_AlphaMode::Opaque };
         PBR_Workflow Workflow{ PBR_Workflow::MetallicRoughness };
 
         // Base color/Albedo
-        Vec4F BaseColorFactor{1.f, 1.f, 1.f, 1.f};
-        std::string BaseColorTexture{};
+        Vec4F BaseColorFactor{ 1.f, 1.f, 1.f, 1.f };
+        Vec4F DiffuseFactor{ 1.f, 1.f, 1.f, 1.f };
+        Vec4F SpecularFactor{ 1.f, 1.f, 1.f, 1.f };
+        Vec3F EmissiveFactor{ 0.f, 0.f, 0.f };
 
-        // Metallic-Roughness workflow
         float MetallicFactor{ 1.f };
         float RoughnessFactor{ 1.f };
-        std::string MetallicRoughnessTexture{};
-
-        // Specular-Glossiness workflow (FBX/OBJ/glTF extension)
-        Vec3F DiffuseFactor{1.f, 1.f, 1.f};
-        std::string DiffuseTexture{};
-        Vec3F SpecularFactor{1.f, 1.f, 1.f};
-
-        std::string SpecularGlossinessTexture{};
         float GlossinessFactor{ 1.f };
-
-        // Normal mapping
-        std::string NormalTexture{};
         float NormalScale{ 1.f };
-
-        // Occlusion
-        std::string OcclusionTexture{};
         float OcclusionStrength{ 1.f };
-
-        // Emissive
-        Vec3F EmissiveFactor{0.f, 0.f, 0.f};
         float EmissiveStrength{ 1.f };
-        std::string EmissiveTexture{};
+        float AlphaMaskCutoff{ 1.0f };
 
-        // Alpha
-        PBR_AlphaMode alphaMode{ PBR_AlphaMode::Opaque };
-        float AlphaCutoff{ 0.5f };
-
-        // UV sets
-        Int32 BaseColorTexCoord{};
-        Int32 MetallicRoughnessTexCoord{};
-        Int32 NormalTexCoord{};
-        Int32 OcclusionTexCoord{};
-        Int32 EmissiveTexCoord{};
+        // Texture UV sets (Maps can either use UV0 or UV1)
+        // UV0 assumed by default unless otherwise specified
+        Int32 BaseColorTextureSet{};
+        Int32 PhysicalDescriptorTextureSet{};
+        Int32 NormalTextureSet{};
+        Int32 OcclusionTextureSet{};
+        Int32 EmissiveTextureSet{};
 
         ankerl::unordered_dense::map<std::string, TextureHandle> TexturesByUri{};
     };
 
     class PBRMaterial final : public Material {
     public:
-
         explicit PBRMaterial( std::string_view name = "PBR" );
         explicit PBRMaterial( const MaterialProperties& props );
 
-        auto RemoveTextureType( MapType type ) -> void;
-        auto SetTextureType( MapType type, const TextureHandle &texture ) -> void;
+        auto RemoveTexture( MapType type ) -> void;
+        auto SetTexture( MapType type, const TextureHandle& texture ) -> void;
 
         MKT_NODISCARD auto IsOpaque() const -> bool;
         MKT_NODISCARD auto IsTransparent() const -> bool;
 
-        MKT_NODISCARD auto HasTextureType( MapType type ) const -> bool;
-        MKT_NODISCARD auto GetTextureType( MapType type ) const -> TextureHandle;
+        // ===============================
+        // Scalar & Factor Setters
+        // ===============================
+        auto SetAlphaMask( PBR_AlphaMode mode ) -> void;
+        auto SetWorkflow( PBR_Workflow mode ) -> void;
 
-        auto SetBlendMode( Blending alphaMode ) -> void;
-        auto SetSamplingMode( SamplerFilter filtering ) -> void;
+        auto SetBaseColorFactor( const Vec4F& value ) -> void;
+        auto SetDiffuseFactor( const Vec4F& value ) -> void;
+        auto SetSpecularFactor( const Vec4F& value ) -> void;
+        auto SetEmissiveFactor( const Vec3F& value ) -> void;
 
-        auto SetAlpha( float alpha ) -> void;
-        auto SetMetallicFactor( float metallic ) -> void;
-        auto SetRoughnessFactor( float roughness ) -> void;
-        auto SetReflectanceFactor( float reflectance ) -> void;
-        auto SetAoFactor( float ao ) -> void;
-        auto SetEmissiveFactors( const Vec3F& factors ) -> void;
-        auto SetEmissiveIntensity( float emissive ) -> void;
+        auto SetAoFactor( float v ) -> void;
+        auto SetMetallicFactor( float v ) -> void;
+        auto SetRoughnessFactor( float v ) -> void;
+        auto SetGlossinessFactor( float v ) -> void;
+        auto SetNormalScale( float v ) -> void;
+        auto SetOcclusionStrength( float v ) -> void;
+        auto SetEmissiveStrength( float v ) -> void;
+        auto SetAlphaMaskCutoff( float v ) -> void;
 
-        MKT_NODISCARD auto GetAlpha() const -> float;
+        // ===============================
+        // UV Set Setters
+        // ===============================
+        auto SetBaseColorTextureSet( Int32 set ) -> void;
+        auto SetPhysicalDescriptorTextureSet( Int32 set ) -> void;
+        auto SetNormalTextureSet( Int32 set ) -> void;
+        auto SetOcclusionTextureSet( Int32 set ) -> void;
+        auto SetEmissiveTextureSet( Int32 set ) -> void;
+
+        // ===============================
+        // Scalar & Factor Getters
+        // ===============================
+        MKT_NODISCARD auto GetAlphaMask() const -> PBR_AlphaMode;
+        MKT_NODISCARD auto GetWorkflow() const -> PBR_Workflow;
+
+        MKT_NODISCARD auto GetBaseColorFactor() const -> const Vec4F&;
+        MKT_NODISCARD auto GetDiffuseFactor() const -> const Vec4F&;
+        MKT_NODISCARD auto GetSpecularFactor() const -> const Vec4F&;
+        MKT_NODISCARD auto GetEmissiveFactor() const -> const Vec3F&;
+
+        MKT_NODISCARD auto GetAoFactor() const -> float;
         MKT_NODISCARD auto GetMetallicFactor() const -> float;
         MKT_NODISCARD auto GetRoughnessFactor() const -> float;
-        MKT_NODISCARD auto GetAoFactor() const -> float;
-        MKT_NODISCARD auto GetReflectanceFactor() const -> float;
-        MKT_NODISCARD auto GetEmissiveFactors() const -> const Vec3F&; // Basically the color of light emitted
-        MKT_NODISCARD auto GetEmissiveIntensity() const -> float;
+        MKT_NODISCARD auto GetGlossinessFactor() const -> float;
+        MKT_NODISCARD auto GetNormalScale() const -> float;
+        MKT_NODISCARD auto GetOcclusionStrength() const -> float;
+        MKT_NODISCARD auto GetEmissiveStrength() const -> float;
+        MKT_NODISCARD auto GetAlphaMaskCutoff() const -> float;
 
-        ~PBRMaterial() override ;
+        // ===============================
+        // UV Set Getters
+        // ===============================
+        MKT_NODISCARD auto GetBaseColorTextureSet() const -> Int32;
+        MKT_NODISCARD auto GetPhysicalDescriptorTextureSet() const -> Int32;
+        MKT_NODISCARD auto GetNormalTextureSet() const -> Int32;
+        MKT_NODISCARD auto GetOcclusionTextureSet() const -> Int32;
+        MKT_NODISCARD auto GetEmissiveTextureSet() const -> Int32;
+
+        MKT_NODISCARD auto HasTexture( MapType type ) const -> bool;
+        MKT_NODISCARD auto GetTexture( MapType type ) const -> TextureHandle;
+
+        ~PBRMaterial() override;
 
     private:
-
         auto Release() -> void override;
         auto Initialize() -> void override;
 
     private:
-        Blending m_BlendMode{ Blending::MODE_OPAQUE };
-        SamplerFilter m_Filtering{ SamplerFilter::FILTER_NEAREST };
+        PBR_AlphaMode m_AlphaMask{ PBR_AlphaMode::Opaque };
+        PBR_Workflow m_Workflow{ PBR_Workflow::MetallicRoughness };
 
-        float m_Alpha{ 1.0f };
-        float m_Metallic{ 0.2f };
-        float m_Roughness{ 5.4f };
-        float m_Emissive{ 0.0f }; // Objects do not emit light by default
-        Vec3F m_EmissiveFactors{ 0.0f, 0.0f, 0.0f }; // Emissive color
-        float m_AmbientOcclusion{ 0.4f };
-        float m_ReflectanceFactor{ 0.4f };
+        // Base color/Albedo
+        Vec4F m_BaseColorFactor{ 1.f, 1.f, 1.f, 1.f };
+        Vec4F m_DiffuseFactor{ 1.f, 1.f, 1.f, 1.f };
+        Vec4F m_SpecularFactor{ 1.f, 1.f, 1.f, 1.f };
+        Vec3F m_EmissiveFactor{ 0.f, 0.f, 0.f };
+
+        // Scalars
+        float m_AoFactor{ 1.f };
+        float m_MetallicFactor{ 1.f };
+        float m_RoughnessFactor{ 1.f };
+        float m_GlossinessFactor{ 1.f };
+        float m_NormalScale{ 1.f };
+        float m_OcclusionStrength{ 1.f };
+        float m_EmissiveStrength{ 1.f };
+        float m_AlphaMaskCutoff{ 1.0f };
+
+        // UV sets
+        Int32 m_BaseColorTextureSet{};
+        Int32 m_PhysicalDescriptorTextureSet{};
+        Int32 m_NormalTextureSet{};
+        Int32 m_OcclusionTextureSet{};
+        Int32 m_EmissiveTextureSet{};
 
         // Note: Materials reference both textures and samplers.
         // Textures provide the image data, while samplers define how that data is read
@@ -148,7 +180,6 @@ namespace Mikoto {
         ankerl::unordered_dense::map<MapType, TextureHandle> m_Textures{};
         ankerl::unordered_dense::map<MapType, SamplerHandle> m_Samplers{};
     };
-}// namespace Mikoto
-
+}
 
 #endif//MIKOTO_PHYSICALLY_BASED_MATERIAL_HH

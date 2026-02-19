@@ -118,6 +118,32 @@ namespace Mikoto {
         Int32 Workflow{ 0 };// 0 = Metallic-Roughness, 1 = Specular-Glossiness
     };
 
+    // TODO: cleanup
+    struct ShaderMaterial {
+        Vec4F baseColorFactor;
+        Vec4F emissiveFactor;
+        Vec4F diffuseFactor;
+        Vec4F specularFactor;
+        float workflow;
+        int baseColorTextureSet;
+        int physicalDescriptorTextureSet;
+        int normalTextureSet;
+        int occlusionTextureSet;
+        int emissiveTextureSet;
+        float metallicFactor;
+        float roughnessFactor;
+        float alphaMask;
+        float alphaMaskCutoff;
+        float emissiveStrength;
+
+        // Texture indices
+        int NormalIndex;
+        int MetallicIndex;
+        int RoughnessIndex;
+        int AoIndex;
+        int EmissiveIndex;
+    };
+
     struct EnvironmentConstants {
         Vec4F GridSize{};
         float Exposure{};

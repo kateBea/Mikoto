@@ -184,17 +184,17 @@ namespace Mikoto {
                     }
                 }
 
-                ubo.EmissiveFactors = pbrMat->GetEmissiveFactors();
-                ubo.EmissiveIntensity = pbrMat->GetEmissiveIntensity();
+                ubo.EmissiveFactors = pbrMat->GetEmissiveFactor();
+                ubo.EmissiveIntensity = pbrMat->GetEmissiveStrength();
 
-                ubo.Alpha = pbrMat->GetAlpha();
+                ubo.Alpha = pbrMat->GetAlphaMaskCutoff();
 
-                ubo.AlbedoIndex = context.PushTexture( pbrMat->GetTextureType( MapType::ALBEDO_TEXTURE ) );
-                ubo.NormalIndex = context.PushTexture( pbrMat->GetTextureType( MapType::NORMAL_TEXTURE ) );
-                ubo.MetallicIndex = context.PushTexture( pbrMat->GetTextureType( MapType::METALLIC_TEXTURE ) );
-                ubo.RoughnessIndex = context.PushTexture( pbrMat->GetTextureType( MapType::ROUGHNESS_TEXTURE ) );
-                ubo.AoIndex = context.PushTexture( pbrMat->GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
-                ubo.EmissiveIndex = context.PushTexture( pbrMat->GetTextureType( MapType::EMISSIVE_TEXTURE ) );
+                ubo.AlbedoIndex = context.PushTexture( pbrMat->GetTexture( MapType::ALBEDO_TEXTURE ) );
+                ubo.NormalIndex = context.PushTexture( pbrMat->GetTexture( MapType::NORMAL_TEXTURE ) );
+                ubo.MetallicIndex = context.PushTexture( pbrMat->GetTexture( MapType::METALLIC_TEXTURE ) );
+                ubo.RoughnessIndex = context.PushTexture( pbrMat->GetTexture( MapType::ROUGHNESS_TEXTURE ) );
+                ubo.AoIndex = context.PushTexture( pbrMat->GetTexture( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
+                ubo.EmissiveIndex = context.PushTexture( pbrMat->GetTexture( MapType::EMISSIVE_TEXTURE ) );
 
                 // Set buffers
                 drawState.IndexBuffer = meshNode->GetIndexBuffer();

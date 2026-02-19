@@ -12,33 +12,44 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <array>
-#include <memory>
-#include <vector>
-#include <cstdlib>
-
-#include <assimp/scene.h>
-#include <assimp/DefaultLogger.hpp>
 #include <assimp/postprocess.h>
+#include <assimp/scene.h>
 
-#include <Common/String.hh>
-
-#include <Math/Math.hh>
-#include <Assets/Model.hh>
 #include <Assets/AssetsService.hh>
-#include <Filesystem/FileSystem.hh>
+#include <Assets/MainImporter.hh>
+#include <Assets/Model.hh>
+#include <Common/String.hh>
 #include <Filesystem/FileService.hh>
-
+#include <Filesystem/FileSystem.hh>
 #include <Library/Utility/Types.hh>
-#include <Renderer/Core/RenderUtility.hh>
-#include <Renderer/Core/RenderService.hh>
-
 #include <Logging/Logger.hh>
 #include <Material/PBRMaterial.hh>
+#include <Math/Math.hh>
+#include <Renderer/Core/RenderService.hh>
+#include <Renderer/Core/RenderUtility.hh>
 #include <Threading/ThreadUtility.hh>
-#include <Assets/MainImporter.hh>
+#include <array>
+#include <assimp/DefaultLogger.hpp>
+#include <cstdlib>
+#include <memory>
+#include <vector>
+
+#include "Renderer/Passes/ShaderParameteres.hh"
+#include "assimp/GltfMaterial.h"
 
 namespace Mikoto {
+
+#define MKT_ASSIMP_LOAD_UV_SET( PROPERTIES_FIELD, MATERIAL_PTR, TEXTURE_TYPE )                         \
+    do {                                                                                              \
+        aiString __tmpPath{};                                                                         \
+        if ( ( MATERIAL_PTR )->GetTextureCount( TEXTURE_TYPE ) > 0 ) {                                \
+            if ( ( MATERIAL_PTR )->GetTexture( TEXTURE_TYPE, 0, &__tmpPath ) == AI_SUCCESS ) {        \
+                ( PROPERTIES_FIELD ) = 0;                                                             \
+            } else if ( ( MATERIAL_PTR )->GetTexture( TEXTURE_TYPE, 1, &__tmpPath ) == AI_SUCCESS ) { \
+                ( PROPERTIES_FIELD ) = 1;                                                             \
+            }                                                                                         \
+        }                                                                                             \
+    } while ( 0 )
 
     class CustomLogStream final : public Assimp::LogStream {
     public:
@@ -46,6 +57,18 @@ namespace Mikoto {
             MKT_CORE_LOGGER_TRACE( "[Assimp] {}", message );
         }
     };
+
+    MKT_NODISCARD static auto ParseAlphaMode(std::string_view mode) -> PBR_AlphaMode {
+        if (mode == "MASK" || mode == "Mask" || mode == "mask") {
+            return PBR_AlphaMode::Mask;
+        }
+
+        if (mode == "BLEND" || mode == "Blend" || mode == "blend") {
+            return PBR_AlphaMode::Blend;
+        }
+
+        return PBR_AlphaMode::Opaque;
+    }
 
     static auto ToMat4F( const aiMatrix4x4 &from ) -> Mat4F {
         // GLM is column major, Assimp is row major
@@ -395,11 +418,131 @@ namespace Mikoto {
         }
     }
 
-    static auto LoadMaterial(aiMaterial const* mat, MaterialProperties& properties) -> void {
+    static auto LoadMaterial( aiMaterial const *material, MaterialProperties &properties ) -> void {
         aiString name{};
-        if(mat->Get(AI_MATKEY_NAME, name) == AI_SUCCESS) {
+        if ( material->Get( AI_MATKEY_NAME, name ) == AI_SUCCESS ) {
             properties.Name = name.C_Str();
         }
+
+        aiColor4D baseColor{};
+        if ( material->Get( AI_MATKEY_BASE_COLOR, baseColor ) == AI_SUCCESS ) {
+            properties.BaseColorFactor = Vec4F( baseColor.r, baseColor.g, baseColor.b, baseColor.a );
+        }
+
+        material->Get( AI_MATKEY_METALLIC_FACTOR, properties.MetallicFactor );
+        material->Get( AI_MATKEY_ROUGHNESS_FACTOR, properties.RoughnessFactor );
+
+        aiColor3D emissive{};
+        if ( material->Get( AI_MATKEY_COLOR_EMISSIVE, emissive ) == AI_SUCCESS ) {
+            properties.EmissiveFactor = Vec4F( emissive.r, emissive.g, emissive.b, 1.0f );
+        }
+
+        material->Get( AI_MATKEY_EMISSIVE_INTENSITY, properties.EmissiveStrength );
+
+        aiString alphaMode{};
+        if ( material->Get( AI_MATKEY_GLTF_ALPHAMODE, alphaMode ) == AI_SUCCESS ) {
+            properties.AlphaMask = ParseAlphaMode(alphaMode.C_Str());
+        }
+
+        material->Get( AI_MATKEY_GLTF_ALPHACUTOFF, properties.AlphaMaskCutoff );
+
+        // Just load the texture set these textures are using, actual texture load logic is separated
+        MKT_ASSIMP_LOAD_UV_SET(properties.BaseColorTextureSet, material, aiTextureType_BASE_COLOR);
+        MKT_ASSIMP_LOAD_UV_SET(properties.PhysicalDescriptorTextureSet, material, aiTextureType_METALNESS);
+        MKT_ASSIMP_LOAD_UV_SET(properties.NormalTextureSet, material, aiTextureType_NORMALS);
+        MKT_ASSIMP_LOAD_UV_SET(properties.OcclusionTextureSet, material, aiTextureType_LIGHTMAP);
+
+        float glossiness{ 0.0f };
+        if ( material->Get( AI_MATKEY_GLOSSINESS_FACTOR, glossiness ) == AI_SUCCESS ) {
+            properties.GlossinessFactor = glossiness;
+        }
+
+#if !defined( NDEBUG )
+
+        MKT_COLOR_STYLE_PRINT_FORMATTED_FLUSH(
+                MKT_FMT_COLOR_CYAN, MKT_FMT_STYLE_BOLD,
+                "\n========= MATERIAL DEBUG =========\n" );
+
+        MKT_COLOR_PRINT_FORMATTED_FLUSH(
+                MKT_FMT_COLOR_LIGHT_SKY_BLUE,
+                "Name: {}\n",
+                material->GetName().C_Str() );
+
+        MKT_COLOR_PRINT_FORMATTED_FLUSH(
+                MKT_FMT_COLOR_LIGHT_SKY_BLUE,
+                "Property Count: {}\n",
+                material->mNumProperties );
+
+        for ( UInt32 i{ 0 }; i < material->mNumProperties; ++i ) {
+            aiMaterialProperty *prop{ material->mProperties[i] };
+
+            MKT_COLOR_PRINT_FORMATTED_FLUSH(
+                    MKT_FMT_COLOR_DARK_GRAY,
+                    "-----------------------------------\n" );
+
+            MKT_COLOR_STYLE_PRINT_FORMATTED_FLUSH(
+                    MKT_FMT_COLOR_YELLOW, MKT_FMT_STYLE_BOLD,
+                    "Key: {}\n",
+                    prop->mKey.C_Str() );
+
+            MKT_COLOR_PRINT_FORMATTED_FLUSH(
+                    MKT_FMT_COLOR_WHITE,
+                    "Semantic: {}\nIndex: {}\nDataLength: {}\nType: {}\n",
+                    prop->mSemantic,
+                    prop->mIndex,
+                    prop->mDataLength,
+                    static_cast<Int32>(prop->mType) );
+
+            if ( prop->mType == aiPTI_Float && prop->mDataLength >= sizeof( float ) ) {
+                Int32 count{ static_cast<Int32>( prop->mDataLength / sizeof( float ) ) };
+                float *data{ reinterpret_cast<float *>( prop->mData ) };
+
+                std::string out{};
+                out.reserve( 128 );
+
+                for ( Int32 j{ 0 }; j < count; ++j ) {
+                    out += std::format( "{} ", data[j] );
+                }
+
+                MKT_COLOR_PRINT_FORMATTED_FLUSH(
+                        MKT_FMT_COLOR_GREEN_YELLOW,
+                        "Float values: {}\n",
+                        out );
+            }
+
+            if ( prop->mType == aiPTI_Integer && prop->mDataLength >= sizeof( Int32 ) ) {
+                Int32 count{ static_cast<Int32>( prop->mDataLength / sizeof( Int32 ) ) };
+                Int32 *data{ reinterpret_cast<Int32 *>( prop->mData ) };
+
+                std::string out{};
+                out.reserve( 128 );
+
+                for ( Int32 j{ 0 }; j < count; ++j ) {
+                    out += std::format( "{} ", data[j] );
+                }
+
+                MKT_COLOR_PRINT_FORMATTED_FLUSH(
+                        MKT_FMT_COLOR_LIGHT_GREEN,
+                        "Int values: {}\n",
+                        out );
+            }
+
+            if ( prop->mType == aiPTI_String ) {
+                aiString str{};
+                if ( material->Get( prop->mKey.C_Str(), prop->mSemantic, prop->mIndex, str ) == AI_SUCCESS ) {
+                    MKT_COLOR_PRINT_FORMATTED_FLUSH(
+                            MKT_FMT_COLOR_CORNFLOWER_BLUE,
+                            "String: {}\n",
+                            str.C_Str() );
+                }
+            }
+        }
+
+        MKT_COLOR_STYLE_PRINT_FORMATTED_FLUSH(
+                MKT_FMT_COLOR_CYAN, MKT_FMT_STYLE_BOLD,
+                "===================================\n" );
+
+#endif
     }
 
     static auto ConstructMeshNode( const std::string &rootPath, const aiMesh *mesh, const aiScene *scene, MeshNodeData& meshNodeData, MaterialProperties& material ) -> void {
@@ -591,7 +734,7 @@ namespace Mikoto {
             );
     }
 
-    static auto BuildHierarhy( const aiNode *rootNode, Node &hierarchyRoot, Skeleton& skeleton ) -> void {
+    static auto BuildHierarchy( const aiNode *rootNode, Node &hierarchyRoot, Skeleton& skeleton ) -> void {
         hierarchyRoot.Name = rootNode->mName.data;
         hierarchyRoot.Transformation = ToMat4F( rootNode->mTransformation );
 
@@ -602,7 +745,7 @@ namespace Mikoto {
 
         for ( UInt32 i{}; i < rootNode->mNumChildren; ++i ) {
             Node childNode{};
-            BuildHierarhy( rootNode->mChildren[i], childNode, skeleton );
+            BuildHierarchy( rootNode->mChildren[i], childNode, skeleton );
 
             hierarchyRoot.Children.emplace_back( childNode );
         }
@@ -631,7 +774,7 @@ namespace Mikoto {
         }
 
         Node hierarchy{};
-        BuildHierarhy( scene->mRootNode, hierarchy, skeleton );
+        BuildHierarchy( scene->mRootNode, hierarchy, skeleton );
 
         skeleton.SetHierarchy( std::move( hierarchy ) );
     }

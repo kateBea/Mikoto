@@ -55,6 +55,10 @@ namespace Mikoto {
         ankerl::unordered_dense::map<MeshNode*, Size> m_MeshDrawInstanceCount{};
         ankerl::unordered_dense::map<MeshNode*, DrawIndexedState> m_DrawIndexedState{};
         ankerl::unordered_dense::map<MeshNode*, std::vector<ShaderMaterialParams>> m_InstanceInfos{};
+
+        // Refactor material upload
+        std::vector<ShaderMaterial> m_ShaderMaterialList{};
+        ankerl::unordered_dense::map<UInt32, ShaderMaterial> m_ShaderMaterialPerDrawObject{};
     };
 
 }

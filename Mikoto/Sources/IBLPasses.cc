@@ -695,6 +695,9 @@ namespace Mikoto {
     auto IBLPasses::RegisterMetalRoughnessPBR( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        // Resources:
+        // https://github.khronos.org/Vulkan-Site/tutorial/latest/Building_a_Simple_Engine/Lighting_Materials/04_lighting_implementation.html
+
         graph.RegisterPass(
                 "MetalRoughnessPBR",
                 [this]( FramePassBuilder &b ) -> void {

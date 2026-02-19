@@ -172,7 +172,7 @@ namespace Mikoto {
 
                 TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( path ) };
                 if ( !texture.IsEmpty() ) {
-                    standardMat.SetTextureType( mapType, texture );
+                    standardMat.SetTexture( mapType, texture );
                 }
 
                 loading = false;
@@ -211,7 +211,7 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( " Albedo" );
 
-        TextureHandle diffuseMap{ material.GetTextureType( MapType::ALBEDO_TEXTURE ) };
+        TextureHandle diffuseMap{ material.GetTexture( MapType::ALBEDO_TEXTURE ) };
         if ( diffuseMap.IsEmpty() ) {
             diffuseMap = AssetsService::Get()->GetDummyTexture();
         }
@@ -224,23 +224,23 @@ namespace Mikoto {
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
                 TextureHandle dstAlbedoMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTextureType( MapType::ALBEDO_TEXTURE, dstAlbedoMap );
+                material.SetTexture( MapType::ALBEDO_TEXTURE, dstAlbedoMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
             ImGui::EndDragDropTarget();
         }
 
-        if ( material.HasTextureType( MapType::ALBEDO_TEXTURE ) ) {
+        if ( material.HasTexture( MapType::ALBEDO_TEXTURE ) ) {
             ImGuiUtils::ToolTip( [&]() -> void {
-                ShowTextureHoverTooltip( material.GetTextureType( MapType::ALBEDO_TEXTURE ).GetRaw() );
+                ShowTextureHoverTooltip( material.GetTexture( MapType::ALBEDO_TEXTURE ).GetRaw() );
             },
                                  ImGui::IsItemHovered() );
         }
 
         if ( ImGui::IsItemHovered() ) {
 
-            if ( !material.HasTextureType( MapType::ALBEDO_TEXTURE ) ) {
+            if ( !material.HasTexture( MapType::ALBEDO_TEXTURE ) ) {
                 ImGuiUtils::ToolTip( "Click me to load a texture." );
             }
 
@@ -278,9 +278,9 @@ namespace Mikoto {
             }
 
             // Merge color with objects base color
-            float opacity{ material.GetAlpha() };
+            float opacity{ material.GetAlphaMaskCutoff() };
             if ( ImGuiUtils::Slider( "Opacity", opacity, { 0.0f, 1.0f } ) ) {
-                material.SetAlpha( opacity );
+                material.SetAlphaMaskCutoff( opacity );
             }
 
             ImGui::TableNextRow();
@@ -290,7 +290,7 @@ namespace Mikoto {
             ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
-                material.RemoveTextureType( MapType::ALBEDO_TEXTURE );
+                material.RemoveTexture( MapType::ALBEDO_TEXTURE );
             }
 
             ImGui::EndTable();
@@ -302,7 +302,7 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( " Metallic" );
 
-        TextureHandle metallicMap{ material.GetTextureType( MapType::METALLIC_TEXTURE ) };
+        TextureHandle metallicMap{ material.GetTexture( MapType::METALLIC_TEXTURE ) };
         if ( metallicMap.IsEmpty() ) {
             metallicMap = AssetsService::Get()->GetDummyTexture();
         }
@@ -315,14 +315,14 @@ namespace Mikoto {
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
                 TextureHandle dstMetallicMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTextureType( MapType::METALLIC_TEXTURE, dstMetallicMap );
+                material.SetTexture( MapType::METALLIC_TEXTURE, dstMetallicMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
             ImGui::EndDragDropTarget();
         }
 
-        if ( material.HasTextureType( MapType::METALLIC_TEXTURE ) ) {
+        if ( material.HasTexture( MapType::METALLIC_TEXTURE ) ) {
             ImGuiUtils::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( metallicMap.GetRaw() );
             },
@@ -331,7 +331,7 @@ namespace Mikoto {
 
         if ( ImGui::IsItemHovered() ) {
 
-            if ( !material.HasTextureType( MapType::METALLIC_TEXTURE ) ) {
+            if ( !material.HasTexture( MapType::METALLIC_TEXTURE ) ) {
                 ImGuiUtils::ToolTip( "Click me to load a texture." );
             }
 
@@ -362,7 +362,7 @@ namespace Mikoto {
             ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
-                material.RemoveTextureType( MapType::METALLIC_TEXTURE );
+                material.RemoveTexture( MapType::METALLIC_TEXTURE );
             }
 
             if ( ImGui::IsItemHovered() ) {
@@ -378,7 +378,7 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( " Normal" );
 
-        TextureHandle normalMap{ material.GetTextureType( MapType::NORMAL_TEXTURE ) };
+        TextureHandle normalMap{ material.GetTexture( MapType::NORMAL_TEXTURE ) };
         if ( normalMap.IsEmpty() ) {
             normalMap = AssetsService::Get()->GetDummyTexture();
         }
@@ -391,14 +391,14 @@ namespace Mikoto {
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
                 TextureHandle dstNormalMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTextureType( MapType::NORMAL_TEXTURE, dstNormalMap );
+                material.SetTexture( MapType::NORMAL_TEXTURE, dstNormalMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
             ImGui::EndDragDropTarget();
         }
 
-        if ( material.HasTextureType( MapType::NORMAL_TEXTURE ) ) {
+        if ( material.HasTexture( MapType::NORMAL_TEXTURE ) ) {
             ImGuiUtils::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( normalMap.GetRaw() );
             },
@@ -407,7 +407,7 @@ namespace Mikoto {
 
         if ( ImGui::IsItemHovered() ) {
 
-            if ( !material.HasTextureType( MapType::NORMAL_TEXTURE ) ) {
+            if ( !material.HasTexture( MapType::NORMAL_TEXTURE ) ) {
                 ImGuiUtils::ToolTip( "Click me to load a texture." );
             }
 
@@ -436,7 +436,7 @@ namespace Mikoto {
             ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
-                material.RemoveTextureType( MapType::NORMAL_TEXTURE );
+                material.RemoveTexture( MapType::NORMAL_TEXTURE );
             }
 
             if ( ImGui::IsItemHovered() ) {
@@ -452,7 +452,7 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( " Emission" );
 
-        TextureHandle normalMap{ material.GetTextureType( MapType::EMISSIVE_TEXTURE ) };
+        TextureHandle normalMap{ material.GetTexture( MapType::EMISSIVE_TEXTURE ) };
         if ( normalMap.IsEmpty() ) {
             normalMap = AssetsService::Get()->GetDummyTexture();
         }
@@ -465,14 +465,14 @@ namespace Mikoto {
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
                 TextureHandle dstNormalMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTextureType( MapType::EMISSIVE_TEXTURE, dstNormalMap );
+                material.SetTexture( MapType::EMISSIVE_TEXTURE, dstNormalMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
             ImGui::EndDragDropTarget();
         }
 
-        if ( material.HasTextureType( MapType::EMISSIVE_TEXTURE ) ) {
+        if ( material.HasTexture( MapType::EMISSIVE_TEXTURE ) ) {
             ImGuiUtils::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( normalMap.GetRaw() );
             },
@@ -481,7 +481,7 @@ namespace Mikoto {
 
         if ( ImGui::IsItemHovered() ) {
 
-            if ( !material.HasTextureType( MapType::EMISSIVE_TEXTURE ) ) {
+            if ( !material.HasTexture( MapType::EMISSIVE_TEXTURE ) ) {
                 ImGuiUtils::ToolTip( "Click me to load a texture." );
             }
 
@@ -499,14 +499,14 @@ namespace Mikoto {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
-            Vec3F factors{ material.GetEmissiveFactors() };
+            Vec3F factors{ material.GetEmissiveFactor() };
             if ( ImGuiUtils::ColorEdit3( "Factors", factors ) ) {
-                material.SetEmissiveFactors( factors );
+                material.SetEmissiveFactor( factors );
             }
 
-            float strength{ material.GetEmissiveIntensity() };
+            float strength{ material.GetEmissiveStrength() };
             if ( ImGuiUtils::Slider( "Strength", strength, { 0.0f, 10.0f } ) ) {
-                material.SetEmissiveIntensity( strength );
+                material.SetEmissiveStrength( strength );
             }
 
             ImGui::TableNextRow();
@@ -515,7 +515,7 @@ namespace Mikoto {
             ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
-                material.RemoveTextureType( MapType::EMISSIVE_TEXTURE );
+                material.RemoveTexture( MapType::EMISSIVE_TEXTURE );
             }
 
             if ( ImGui::IsItemHovered() ) {
@@ -531,7 +531,7 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( " Roughness" );
 
-        TextureHandle roughnessMap{ material.GetTextureType( MapType::ROUGHNESS_TEXTURE ) };
+        TextureHandle roughnessMap{ material.GetTexture( MapType::ROUGHNESS_TEXTURE ) };
         if ( roughnessMap.IsEmpty() ) {
             roughnessMap = AssetsService::Get()->GetDummyTexture();
         }
@@ -544,14 +544,14 @@ namespace Mikoto {
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
                 TextureHandle dstRoughnessMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTextureType( MapType::ROUGHNESS_TEXTURE, dstRoughnessMap );
+                material.SetTexture( MapType::ROUGHNESS_TEXTURE, dstRoughnessMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
             ImGui::EndDragDropTarget();
         }
 
-        if ( material.HasTextureType( MapType::ROUGHNESS_TEXTURE ) ) {
+        if ( material.HasTexture( MapType::ROUGHNESS_TEXTURE ) ) {
             ImGuiUtils::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( roughnessMap.GetRaw() );
             },
@@ -560,7 +560,7 @@ namespace Mikoto {
 
         if ( ImGui::IsItemHovered() ) {
 
-            if ( !material.HasTextureType( MapType::ROUGHNESS_TEXTURE ) ) {
+            if ( !material.HasTexture( MapType::ROUGHNESS_TEXTURE ) ) {
                 ImGuiUtils::ToolTip( "Click me to load a texture." );
             }
 
@@ -591,7 +591,7 @@ namespace Mikoto {
             ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
-                material.RemoveTextureType( MapType::ROUGHNESS_TEXTURE );
+                material.RemoveTexture( MapType::ROUGHNESS_TEXTURE );
             }
 
             if ( ImGui::IsItemHovered() ) {
@@ -607,7 +607,7 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( " Ambient Occlusion" );
 
-        TextureHandle aoMap{ material.GetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) };
+        TextureHandle aoMap{ material.GetTexture( MapType::AMBIENT_OCCLUSION_TEXTURE ) };
         if ( aoMap.IsEmpty() ) {
             aoMap = AssetsService::Get()->GetDummyTexture();
         }
@@ -620,7 +620,7 @@ namespace Mikoto {
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
                 TextureHandle dstAoMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE, dstAoMap );
+                material.SetTexture( MapType::AMBIENT_OCCLUSION_TEXTURE, dstAoMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
@@ -628,7 +628,7 @@ namespace Mikoto {
             ImGui::EndDragDropTarget();
         }
 
-        if ( material.HasTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) ) {
+        if ( material.HasTexture( MapType::AMBIENT_OCCLUSION_TEXTURE ) ) {
             ImGuiUtils::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( aoMap.GetRaw() );
             },
@@ -637,7 +637,7 @@ namespace Mikoto {
 
         if ( ImGui::IsItemHovered() ) {
 
-            if ( !material.HasTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE ) ) {
+            if ( !material.HasTexture( MapType::AMBIENT_OCCLUSION_TEXTURE ) ) {
                 ImGuiUtils::ToolTip( "Click me to load a texture." );
             }
 
@@ -668,7 +668,7 @@ namespace Mikoto {
             ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
-                material.RemoveTextureType( MapType::AMBIENT_OCCLUSION_TEXTURE );
+                material.RemoveTexture( MapType::AMBIENT_OCCLUSION_TEXTURE );
             }
 
             if ( ImGui::IsItemHovered() ) {

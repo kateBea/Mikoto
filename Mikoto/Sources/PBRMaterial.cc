@@ -14,35 +14,206 @@
 
 #include <ranges>
 
+#include <Library/Math/Math.hh>
 #include <Material/PBRMaterial.hh>
 #include <Material/Texture2D.hh>
-#include <Library/Math/Math.hh>
 
 namespace Mikoto {
 
-    PBRMaterial::PBRMaterial( std::string_view name )
+    PBRMaterial::PBRMaterial( const std::string_view name )
         : Material{ name } {
         Initialize();
     }
 
-    PBRMaterial::PBRMaterial( const MaterialProperties &props ) {
-        for (const auto& texture : props.TexturesByUri | std::ranges::views::values ) {
-            SetTextureType( texture.As<Texture2D>()->GetMapType(), texture );
+    PBRMaterial::PBRMaterial( const MaterialProperties& props ) {
+        m_AlphaMask = props.AlphaMask;
+        m_Workflow = props.Workflow;
+
+        m_BaseColorFactor = props.BaseColorFactor;
+        m_DiffuseFactor = props.DiffuseFactor;
+        m_SpecularFactor = props.SpecularFactor;
+        m_EmissiveFactor = props.EmissiveFactor;
+
+        m_MetallicFactor = props.MetallicFactor;
+        m_RoughnessFactor = props.RoughnessFactor;
+        m_GlossinessFactor = props.GlossinessFactor;
+        m_NormalScale = props.NormalScale;
+        m_OcclusionStrength = props.OcclusionStrength;
+        m_EmissiveStrength = props.EmissiveStrength;
+        m_AlphaMaskCutoff = props.AlphaMaskCutoff;
+
+        m_BaseColorTextureSet = props.BaseColorTextureSet;
+        m_PhysicalDescriptorTextureSet = props.PhysicalDescriptorTextureSet;
+        m_NormalTextureSet = props.NormalTextureSet;
+        m_OcclusionTextureSet = props.OcclusionTextureSet;
+        m_EmissiveTextureSet = props.EmissiveTextureSet;
+
+        for ( const auto& texture: props.TexturesByUri | std::ranges::views::values ) {
+            SetTexture( texture.As<Texture2D>()->GetMapType(), texture );
         }
 
-        m_AmbientOcclusion = props.OcclusionStrength;
-        m_Roughness = props.RoughnessFactor;
-        m_Metallic = props.MetallicFactor;
-        m_Emissive = props.EmissiveStrength;
-        m_EmissiveFactors = props.EmissiveFactor;
+        Initialize();
     }
 
-    auto PBRMaterial::RemoveTextureType( MapType type ) -> void {
+    auto PBRMaterial::RemoveTexture( MapType type ) -> void {
         m_Textures.erase( type );
     }
 
-    auto PBRMaterial::SetTextureType( const MapType type, const TextureHandle& texture ) -> void {
-        m_Textures[ type ] = texture;
+    auto PBRMaterial::GetAlphaMask() const -> PBR_AlphaMode {
+        return m_AlphaMask;
+    }
+
+    auto PBRMaterial::SetAlphaMask( PBR_AlphaMode mode ) -> void {
+        m_AlphaMask = mode;
+    }
+
+    auto PBRMaterial::GetWorkflow() const -> PBR_Workflow {
+        return m_Workflow;
+    }
+
+    auto PBRMaterial::SetWorkflow( PBR_Workflow mode ) -> void {
+        m_Workflow = mode;
+    }
+
+    auto PBRMaterial::GetBaseColorFactor() const -> const Vec4F& {
+        return m_BaseColorFactor;
+    }
+
+    auto PBRMaterial::SetBaseColorFactor( const Vec4F& value ) -> void {
+        m_BaseColorFactor = value;
+    }
+
+    auto PBRMaterial::GetDiffuseFactor() const -> const Vec4F& {
+        return m_DiffuseFactor;
+    }
+
+    auto PBRMaterial::SetDiffuseFactor( const Vec4F& value ) -> void {
+        m_DiffuseFactor = value;
+    }
+
+    auto PBRMaterial::GetSpecularFactor() const -> const Vec4F& {
+        return m_SpecularFactor;
+    }
+
+    auto PBRMaterial::SetSpecularFactor( const Vec4F& value ) -> void {
+        m_SpecularFactor = value;
+    }
+
+    auto PBRMaterial::GetEmissiveFactor() const -> const Vec3F& {
+        return m_EmissiveFactor;
+    }
+
+    auto PBRMaterial::GetAoFactor() const -> float {
+        return m_AoFactor;
+    }
+
+    auto PBRMaterial::SetEmissiveFactor( const Vec3F& value ) -> void {
+        m_EmissiveFactor = value;
+    }
+
+    auto PBRMaterial::SetAoFactor( float v ) -> void {
+        m_AoFactor = v;
+    }
+
+    auto PBRMaterial::GetMetallicFactor() const -> float {
+        return m_MetallicFactor;
+    }
+
+    auto PBRMaterial::SetMetallicFactor( float v ) -> void {
+        m_MetallicFactor = v;
+    }
+
+    auto PBRMaterial::GetRoughnessFactor() const -> float {
+        return m_RoughnessFactor;
+    }
+
+    auto PBRMaterial::SetRoughnessFactor( float v ) -> void {
+        m_RoughnessFactor = v;
+    }
+
+    auto PBRMaterial::GetGlossinessFactor() const -> float {
+        return m_GlossinessFactor;
+    }
+
+    auto PBRMaterial::SetGlossinessFactor( float v ) -> void {
+        m_GlossinessFactor = v;
+    }
+
+    auto PBRMaterial::GetNormalScale() const -> float {
+        return m_NormalScale;
+    }
+
+    auto PBRMaterial::SetNormalScale( float v ) -> void {
+        m_NormalScale = v;
+    }
+
+    auto PBRMaterial::GetOcclusionStrength() const -> float {
+        return m_OcclusionStrength;
+    }
+
+    auto PBRMaterial::SetOcclusionStrength( float v ) -> void {
+        m_OcclusionStrength = v;
+    }
+
+    auto PBRMaterial::GetEmissiveStrength() const -> float {
+        return m_EmissiveStrength;
+    }
+
+    auto PBRMaterial::SetEmissiveStrength( float v ) -> void {
+        m_EmissiveStrength = v;
+    }
+
+    auto PBRMaterial::GetAlphaMaskCutoff() const -> float {
+        return m_AlphaMaskCutoff;
+    }
+
+    auto PBRMaterial::SetAlphaMaskCutoff( float v ) -> void {
+        m_AlphaMaskCutoff = v;
+    }
+
+    auto PBRMaterial::GetBaseColorTextureSet() const -> Int32 {
+        return m_BaseColorTextureSet;
+    }
+
+    auto PBRMaterial::SetBaseColorTextureSet( Int32 set ) -> void {
+        m_BaseColorTextureSet = set;
+    }
+
+    auto PBRMaterial::GetPhysicalDescriptorTextureSet() const -> Int32 {
+        return m_PhysicalDescriptorTextureSet;
+    }
+
+    auto PBRMaterial::SetPhysicalDescriptorTextureSet( Int32 set ) -> void {
+        m_PhysicalDescriptorTextureSet = set;
+    }
+
+    auto PBRMaterial::GetNormalTextureSet() const -> Int32 {
+        return m_NormalTextureSet;
+    }
+
+    auto PBRMaterial::SetNormalTextureSet( Int32 set ) -> void {
+        m_NormalTextureSet = set;
+    }
+
+    auto PBRMaterial::GetOcclusionTextureSet() const -> Int32 {
+        return m_OcclusionTextureSet;
+    }
+
+    auto PBRMaterial::SetOcclusionTextureSet( Int32 set ) -> void {
+        m_OcclusionTextureSet = set;
+    }
+
+    auto PBRMaterial::GetEmissiveTextureSet() const -> Int32 {
+        return m_EmissiveTextureSet;
+    }
+
+    auto PBRMaterial::SetEmissiveTextureSet( Int32 set ) -> void {
+        m_EmissiveTextureSet = set;
+    }
+
+
+    auto PBRMaterial::SetTexture( const MapType type, const TextureHandle& texture ) -> void {
+        m_Textures[type] = texture;
     }
 
     auto PBRMaterial::IsOpaque() const -> bool {
@@ -50,14 +221,14 @@ namespace Mikoto {
     }
 
     auto PBRMaterial::IsTransparent() const -> bool {
-        return m_Alpha != 1.0f;
+        return m_AlphaMaskCutoff != 1.0f;
     }
 
-    auto PBRMaterial::HasTextureType( MapType type ) const -> bool {
+    auto PBRMaterial::HasTexture( MapType type ) const -> bool {
         return m_Textures.contains( type );
     }
 
-    auto PBRMaterial::GetTextureType( const MapType type ) const -> TextureHandle {
+    auto PBRMaterial::GetTexture( const MapType type ) const -> TextureHandle {
         if ( const auto it{ m_Textures.find( type ) }; it != m_Textures.end() ) {
             return it->second;
         }
@@ -65,72 +236,8 @@ namespace Mikoto {
         return TextureHandle::CreateEmpty();
     }
 
-    auto PBRMaterial::SetBlendMode( Blending alphaMode ) -> void {
-        m_BlendMode = alphaMode;
-    }
-
-    auto PBRMaterial::SetSamplingMode( SamplerFilter filtering ) -> void {
-        m_Filtering = filtering;
-    }
-
-    auto PBRMaterial::SetAlpha( float alpha ) -> void {
-        m_Alpha = Math::Clamp( alpha, 0.0f, 1.0f );
-    }
-
-    auto PBRMaterial::SetMetallicFactor( float metallic ) -> void {
-        m_Metallic = metallic;
-    }
-
-    auto PBRMaterial::SetRoughnessFactor( float roughness ) -> void {
-        m_Roughness = roughness;
-    }
-
-    auto PBRMaterial::SetReflectanceFactor( float reflectance ) -> void {
-        m_ReflectanceFactor = reflectance;
-    }
-
-    auto PBRMaterial::SetAoFactor( float ao ) -> void {
-        m_AmbientOcclusion = ao;
-    }
-
-    auto PBRMaterial::SetEmissiveFactors( const Vec3F &factors ) -> void {
-        m_EmissiveFactors = factors;
-    }
-
-    auto PBRMaterial::GetAoFactor() const -> float {
-        return m_AmbientOcclusion;
-    }
-
-    auto PBRMaterial::SetEmissiveIntensity( float emissive ) -> void {
-        m_Emissive = emissive;
-    }
-
-    auto PBRMaterial::GetAlpha() const -> float {
-        return m_Alpha;
-    }
-
-    auto PBRMaterial::GetMetallicFactor() const -> float {
-        return m_Metallic;
-    }
-
-    auto PBRMaterial::GetRoughnessFactor() const -> float {
-        return m_Roughness;
-    }
-
-    auto PBRMaterial::GetReflectanceFactor() const -> float {
-        return m_ReflectanceFactor;
-    }
-
-    auto PBRMaterial::GetEmissiveFactors() const -> const Vec3F & {
-        return m_EmissiveFactors;
-    }
-
-    auto PBRMaterial::GetEmissiveIntensity() const -> float {
-        return m_Emissive;
-    }
-
     PBRMaterial::~PBRMaterial() {
-        if (m_IsAllocated) {
+        if ( m_IsAllocated ) {
             Release();
         }
     }
@@ -142,4 +249,4 @@ namespace Mikoto {
     auto PBRMaterial::Initialize() -> void {
         m_IsAllocated = true;
     }
-}// namespace Mikoto
+}

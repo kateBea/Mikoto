@@ -303,8 +303,7 @@ namespace Mikoto {
 
             if ( pbr.baseColorTexture.index >= 0 ) {
                 const auto& tex = model.textures[pbr.baseColorTexture.index];
-                props.BaseColorTexture = model.images[tex.source].uri;
-                props.BaseColorTexCoord = pbr.baseColorTexture.texCoord;
+                props.BaseColorTextureSet = pbr.baseColorTexture.texCoord;
 
                 loadInfo.WithMapType( MapType::ALBEDO_TEXTURE );
                 loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
@@ -320,8 +319,7 @@ namespace Mikoto {
 
             if ( pbr.metallicRoughnessTexture.index >= 0 ) {
                 const auto& tex = model.textures[pbr.metallicRoughnessTexture.index];
-                props.MetallicRoughnessTexture = model.images[tex.source].uri;
-                props.MetallicRoughnessTexCoord =
+                props.BaseColorTextureSet =
                         pbr.metallicRoughnessTexture.texCoord;
 
                 loadInfo.WithMapType( MapType::METALLIC_ROUGHNESS_TEXTURE );
@@ -339,8 +337,7 @@ namespace Mikoto {
             // Normal
             if ( mat.normalTexture.index >= 0 ) {
                 const auto& tex = model.textures[mat.normalTexture.index];
-                props.NormalTexture = model.images[tex.source].uri;
-                props.NormalTexCoord = mat.normalTexture.texCoord;
+                props.NormalTextureSet = mat.normalTexture.texCoord;
                 props.NormalScale =
                         static_cast<float>( mat.normalTexture.scale );
 
@@ -359,8 +356,7 @@ namespace Mikoto {
             // Occlusion
             if ( mat.occlusionTexture.index >= 0 ) {
                 const auto& tex = model.textures[mat.occlusionTexture.index];
-                props.OcclusionTexture = model.images[tex.source].uri;
-                props.OcclusionTexCoord = mat.occlusionTexture.texCoord;
+                props.OcclusionStrength = mat.occlusionTexture.texCoord;
                 props.OcclusionStrength =
                         static_cast<float>( mat.occlusionTexture.strength );
 
@@ -379,8 +375,7 @@ namespace Mikoto {
             // Emissive
             if ( mat.emissiveTexture.index >= 0 ) {
                 const auto& tex = model.textures[mat.emissiveTexture.index];
-                props.EmissiveTexture = model.images[tex.source].uri;
-                props.EmissiveTexCoord = mat.emissiveTexture.texCoord;
+                props.EmissiveTextureSet = mat.emissiveTexture.texCoord;
 
                 loadInfo.WithMapType( MapType::EMISSIVE_TEXTURE );
                 loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
@@ -402,11 +397,11 @@ namespace Mikoto {
 
             // Alpha
             if ( mat.alphaMode == "BLEND" )
-                props.alphaMode = PBR_AlphaMode::Blend;
+                props.AlphaMask = PBR_AlphaMode::Blend;
             else if ( mat.alphaMode == "MASK" )
-                props.alphaMode = PBR_AlphaMode::Mask;
+                props.AlphaMask = PBR_AlphaMode::Mask;
 
-            props.AlphaCutoff = static_cast<float>( mat.alphaCutoff );
+            props.AlphaMaskCutoff = static_cast<float>( mat.alphaCutoff );
 
             modelData.Materials.push_back( std::move( props ) );
         }

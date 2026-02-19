@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// TODO: transition to Slang
+
 #version 450
 
 #extension GL_EXT_nonuniform_qualifier : require

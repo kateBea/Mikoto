@@ -212,8 +212,6 @@ namespace Mikoto {
         Size meshIndex{};
         Size activeMeshCount{};
 
-        // Flatten data
-        UInt32 bonesIndex{};
         for ( auto &[meshNode, meshDrawState]: m_DrawIndexedState ) {
             meshDrawState.InstancesCount = m_MeshDrawInstanceCount[meshNode];
 
@@ -240,10 +238,10 @@ namespace Mikoto {
                 info.AoIndex = instance.AoIndex;
                 info.EmissiveIndex = instance.EmissiveIndex;
 
-                // Copy matrices if skinned
+               // Copy matrices if skinned
 #if true       // Disabled for now
                 if (instance.AnimatorID != 0) {
-                    info.BonesID = bonesIndex;
+                    info.BonesID = instance.AnimatorID - 1;// AnimatorID starts from 1, so we need to subtract 1 to use as index multiple meshes can share the same animator, so we can use AnimatorID as index for skinned meshes matrices
 
                     auto& matrices{ m_SkinnedMeshes[info.BonesID] };
                     Animator* animator{ AnimationSystem::Get()->GetAnimator( instance.AnimatorID ) };
@@ -255,8 +253,6 @@ namespace Mikoto {
                     for (Size matrixIndex{}; matrixIndex < matrices.size(); ++matrixIndex) {
                         matrices[matrixIndex] = joinMatrices[matrixIndex];
                     }
-
-                    ++bonesIndex;
                 }
 #endif
 
@@ -270,9 +266,7 @@ namespace Mikoto {
             activeMeshCount += meshDrawState.InstancesCount;
         }
 
-        if (bonesIndex != 0) {
-            context.UploadBufferData( "ScatteredWrites_MeshSkinnedMatrices", m_SkinnedMeshes.data(), sizeof( decltype(m_SkinnedMeshes)::value_type ), bonesIndex );
-        }
+        context.UploadBufferData( "ScatteredWrites_MeshSkinnedMatrices", m_SkinnedMeshes.data(), sizeof( decltype( m_SkinnedMeshes )::value_type ), m_SkinnedMeshes.size() );
 
         MKT_ASSERT( activeMeshCount <= MAX_RENDERABLE_ENTITIES, "Exceeded limit of renderable entities" );
 

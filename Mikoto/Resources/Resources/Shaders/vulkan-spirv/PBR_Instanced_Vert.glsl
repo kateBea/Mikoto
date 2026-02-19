@@ -83,59 +83,80 @@ layout(location = 18) out vec2 o_TexCoord1;
 void main() {
     MeshParameters meshInfo = Meshes[gl_InstanceIndex];
 
-    vec4 totalPosition = vec4(0.0);
+    mat4 model = mat4(meshInfo.Transform);
 
-    if (meshInfo.BonesID != -1) {
+    // --------------------------------------------------
+    // 1. Skin the vertex position
+    // --------------------------------------------------
+    vec4 totalPosition = vec4(0.0);
+    vec3 skinnedNormal = vec3(0.0);
+
+    bool skinned = (meshInfo.BonesID != -1);
+
+    if (skinned) {
         for (int i = 0; i < MAX_BONE_INFLUENCE; ++i) {
             int jointIndex = int(a_Joint[i]);
+            float w = a_Weight[i];
 
-            if (jointIndex < 0)
+            if (w <= 0.0 || jointIndex < 0)
                 continue;
 
             if (jointIndex >= MAX_BONES) {
-                totalPosition = vec4(a_Position,1.0f);
+                // Fallback to rigid
+                totalPosition = vec4(a_Position, 1.0);
+                skinnedNormal = a_Normal;
                 break;
             }
 
-            vec4 localPosition = meshBoneMatrices[meshInfo.BonesID][jointIndex] * inverse() * vec4(a_Position, 1.0);
+            mat4 boneMatrix = meshBoneMatrices[meshInfo.BonesID * MAX_BONES + jointIndex];
 
-            totalPosition += localPosition * a_Weight[i];
+            totalPosition += (boneMatrix * vec4(a_Position, 1.0)) * w;
+
+            skinnedNormal += (mat3(boneMatrix) * a_Normal) * w;
         }
-    }
-    else {
+    } else {
         totalPosition = vec4(a_Position, 1.0);
+        skinnedNormal = a_Normal;
     }
 
-    mat4 model = mat4(meshInfo.Transform);
+    // --------------------------------------------------
+    // 2. Apply model transform to skinned pos + normal
+    // --------------------------------------------------
+    vec4 worldPos = model * totalPosition;
+    vec3 worldNormal = normalize(mat3(model) * skinnedNormal);
 
-    // Per-vertex
-    out_Color        = a_Color;
-    out_TexCoord     = a_TexCoord0;
-    o_TexCoord1 = a_TexCoord1;
+    // --------------------------------------------------
+    // 3. Write varying outputs
+    // --------------------------------------------------
+    out_Color          = a_Color;
+    out_TexCoord       = a_TexCoord0;
+    o_TexCoord1        = a_TexCoord1;
 
-    // Normal transform
-    out_VertexNormal  = transpose(inverse(mat3(model))) * a_Normal;
+    out_VertexNormal   = worldNormal;
+    out_FragmentWorldPos = worldPos.xyz;
+    out_FragmentViewPos = vec3(u_CameraParams.ViewMatrix * worldPos);
 
-    // Fragment position
-    out_FragmentWorldPos = vec3(model * vec4(a_Position, 1.0));
-    out_FragmentViewPos = vec3(u_CameraParams.ViewMatrix * vec4(a_Position, 1.0));
+    // Material outputs
+    o_AlbedoIndex     = meshInfo.AlbedoIndex;
+    o_NormalIndex     = meshInfo.NormalIndex;
+    o_MetallicIndex   = meshInfo.MetallicIndex;
+    o_RoughnessIndex  = meshInfo.RoughnessIndex;
+    o_AoIndex         = meshInfo.AoIndex;
 
-    // Material data
-    o_AlbedoIndex    = meshInfo.AlbedoIndex;
-    o_NormalIndex    = meshInfo.NormalIndex;
-    o_MetallicIndex  = meshInfo.MetallicIndex;
-    o_RoughnessIndex = meshInfo.RoughnessIndex;
-    o_AoIndex        = meshInfo.AoIndex;
-    o_Albedo         = meshInfo.Albedo;
-
-    o_MetallicFactor        = meshInfo.MetallicFactor;
-    o_RoughnessFactor        = meshInfo.RoughnessFactor;
-    o_OcclusionStrength        = meshInfo.OcclusionStrength;
-    o_Alpha            = meshInfo.AlphaCutoff;
-
+    o_Albedo          = meshInfo.Albedo;
+    o_MetallicFactor  = meshInfo.MetallicFactor;
+    o_RoughnessFactor = meshInfo.RoughnessFactor;
+    o_OcclusionStrength = meshInfo.OcclusionStrength;
+    o_Alpha           = meshInfo.AlphaCutoff;
     o_EmissiveFactors = meshInfo.EmissiveFactors;
     o_EmissionIntensity = meshInfo.EmissiveIntensity;
-    o_EmissionIndex = meshInfo.EmissiveIndex;
+    o_EmissionIndex     = meshInfo.EmissiveIndex;
 
-    gl_Position = u_CameraParams.Projection * u_CameraParams.ViewMatrix * model * totalPosition;
+    // --------------------------------------------------
+    // 4. Final clip-space position
+    // --------------------------------------------------
+    gl_Position =
+        u_CameraParams.Projection *
+        u_CameraParams.ViewMatrix *
+        worldPos;
 }

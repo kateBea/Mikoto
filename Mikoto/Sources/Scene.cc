@@ -196,7 +196,6 @@ namespace Mikoto {
 
         ProcessPendingCommands();
 
-        UpdateWorldTransformations();
 
         switch ( m_SceneState ) {
 
@@ -207,6 +206,10 @@ namespace Mikoto {
                 UpdateSimulate( timeStep );
                 break;
         }
+
+        // We must ensure this transformations comes after any code
+        // that changes the local transform of any entity, otherwise the world transform will be wrong
+        UpdateWorldTransformations();
 
 #if !defined(NDEBUG)
         ComputeStats();

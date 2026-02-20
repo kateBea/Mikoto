@@ -19,18 +19,13 @@
 
 #include <Library/Utility/Types.hh>
 
+#include <ImGui/ImguiUtility.hh>
 #include <Assets/Texture.hh>
 #include <Panels/Panel.hh>
 
 namespace Mikoto {
 
     struct EditorState;
-
-    enum class GuizmoType {
-        TRANSLATION,
-        ROTATION,
-        SCALE,
-    };
 
     struct ScenePanelCreateInfo {
         UInt32 Width{};
@@ -46,7 +41,7 @@ namespace Mikoto {
         explicit ScenePanel(const ScenePanelCreateInfo& createInfo);
 
         auto OnUpdate(float ts) -> void override;
-        auto SetManipulation( GuizmoType mode ) -> void;
+        auto SetManipulation( ImGuiUtils::GuizmoManipulationMode mode ) -> void;
 
         ~ScenePanel() override = default;
 
@@ -70,7 +65,7 @@ namespace Mikoto {
     private:
         EditorState* m_EditorState{};
 
-        GuizmoType m_GuizmoType{ GuizmoType::TRANSLATION };
+        ImGuiUtils::GuizmoManipulationMode m_GuizmoType{ ImGuiUtils::GuizmoManipulationMode::TRANSLATION };
 
         float m_ViewPortWidth{};
         float m_ViewPortHeight{};

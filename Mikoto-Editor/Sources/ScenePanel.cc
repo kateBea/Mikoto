@@ -35,19 +35,19 @@
 
 namespace Mikoto {
 
-    static auto InferManipulationMode( ImGuiUtils::GuizmoManipulationMode manipulation ) -> GuizmoType {
+    static auto InferManipulationMode( ImGuiUtils::GuizmoManipulationMode manipulation ) -> ImGuizmo::OPERATION {
         switch (manipulation) {
             case ImGuiUtils::GuizmoManipulationMode::TRANSLATION:
-                return GuizmoType::TRANSLATION;
+                return ImGuizmo::OPERATION::TRANSLATE;
             case ImGuiUtils::GuizmoManipulationMode::ROTATION:
-                return GuizmoType::ROTATION;
+                return ImGuizmo::OPERATION::ROTATE;
             case ImGuiUtils::GuizmoManipulationMode::SCALE:
-                return GuizmoType::SCALE;
+                return ImGuizmo::OPERATION::SCALE;
 
             default: ;
         }
 
-        return GuizmoType::TRANSLATION;
+        return ImGuizmo::OPERATION::TRANSLATE;
     }
 
     auto ScenePanel::CreateImguiTextureID() -> void {
@@ -110,7 +110,7 @@ namespace Mikoto {
         ImGui::End();
     }
 
-    auto ScenePanel::SetManipulation( GuizmoType mode ) -> void {
+    auto ScenePanel::SetManipulation( ImGuiUtils::GuizmoManipulationMode mode ) -> void {
         m_GuizmoType = mode;
     }
 
@@ -198,19 +198,8 @@ namespace Mikoto {
 
         Mat4F objectTransform{ transformComponent.GetTransform() };
 
-        m_GuizmoType = InferManipulationMode( m_EditorState->Manipulation );
-
-        switch (m_GuizmoType) {
-            case GuizmoType::TRANSLATION:
-                ImGuizmo::Manipulate( glm::value_ptr( cameraView ), glm::value_ptr( cameraProjection ), ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::MODE::LOCAL, glm::value_ptr( objectTransform ) );
-                break;
-            case GuizmoType::ROTATION:
-                ImGuizmo::Manipulate( glm::value_ptr( cameraView ), glm::value_ptr( cameraProjection ), ImGuizmo::OPERATION::ROTATE, ImGuizmo::MODE::LOCAL, glm::value_ptr( objectTransform ) );
-                break;
-            case GuizmoType::SCALE:
-                ImGuizmo::Manipulate( glm::value_ptr( cameraView ), glm::value_ptr( cameraProjection ), ImGuizmo::OPERATION::SCALE, ImGuizmo::MODE::LOCAL, glm::value_ptr( objectTransform ) );
-                break;
-        }
+        auto operation{ InferManipulationMode( m_EditorState->Manipulation ) };
+        ImGuizmo::Manipulate( glm::value_ptr( cameraView ), glm::value_ptr( cameraProjection ), operation, ImGuizmo::MODE::LOCAL, glm::value_ptr( objectTransform ) );
 
         if (ImGuizmo::IsUsing()) {
             transformComponent.SetTransform( objectTransform );
@@ -257,10 +246,9 @@ namespace Mikoto {
                 toolbarPos.y += delta.y;
             }
 
-            auto makeTool = [&]( const char *icon, GuizmoType type ) {
+            auto makeTool = [&]( const char *icon, ImGuiUtils::GuizmoManipulationMode type ) {
                 const bool active{
-                    m_EditorState->Manipulation ==
-                    static_cast<ImGuiUtils::GuizmoManipulationMode>( type )
+                    m_EditorState->Manipulation == static_cast<ImGuiUtils::GuizmoManipulationMode>( type )
                 };
 
                 const ImVec2 btnSize{ 28.0f, 28.0f };
@@ -271,8 +259,7 @@ namespace Mikoto {
                 ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, iconPadding );
 
                 if (ImGui::Button( icon, btnSize )) {
-                    m_EditorState->Manipulation =
-                            static_cast<ImGuiUtils::GuizmoManipulationMode>( type );
+                    m_EditorState->Manipulation = static_cast<ImGuiUtils::GuizmoManipulationMode>( type );
                 }
 
                 ImGui::PopStyleVar();
@@ -284,11 +271,11 @@ namespace Mikoto {
 
             // Extra spacing on first button
             ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2{ 6.0f, 0.0f } );
-            makeTool( ICON_MD_OPEN_WITH, GuizmoType::TRANSLATION );
+            makeTool( ICON_MD_OPEN_WITH, ImGuiUtils::GuizmoManipulationMode::TRANSLATION );
             ImGui::PopStyleVar();
 
-            makeTool( ICON_MD_ROTATE_RIGHT, GuizmoType::ROTATION );
-            makeTool( ICON_MD_OPEN_IN_FULL, GuizmoType::SCALE );
+            makeTool( ICON_MD_ROTATE_RIGHT, ImGuiUtils::GuizmoManipulationMode::ROTATION );
+            makeTool( ICON_MD_OPEN_IN_FULL, ImGuiUtils::GuizmoManipulationMode::SCALE );
 
             ImGui::NewLine();
         }

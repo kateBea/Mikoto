@@ -209,6 +209,8 @@ namespace Mikoto {
 
         // We must ensure this transformations comes after any code
         // that changes the local transform of any entity, otherwise the world transform will be wrong
+
+        // Important note that this assumes there is no entity that is children from more than one parent
         UpdateWorldTransformations();
 
 #if !defined(NDEBUG)

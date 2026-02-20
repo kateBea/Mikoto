@@ -424,7 +424,7 @@ namespace Mikoto {
                     b.Write( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite );
 
                     b.Read( "SkyboxRender_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
-                    b.Read( "IrradiancePass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
+                    b.Read( "PrefilterPass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
 
                     b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
 
@@ -443,8 +443,10 @@ namespace Mikoto {
 
                     constexpr UInt32 bindSlot{ 1 };
 
+                    // Use the prefiltered map for convoluted background, in the shader you can specify the mip level as third parameter of texture() function
+                    // play around to see what fits best for the scene, remember to pass the max mip level as a push constant to avoid sampling beyond the available mip levels in the shader
                     if ( m_UseConvolutedCubeMap ) {
-                        ctx.BindImage( "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, bindSlot );
+                        ctx.BindImage( "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, bindSlot );
                     } else {
                         if ( m_UsePrecomputedLDRCubeMap && !m_CubeMap.IsEmpty()) {
                             ctx.BindImage( m_CubeMap, m_CubeMapSampler, bindSlot );

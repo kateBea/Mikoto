@@ -74,6 +74,8 @@ namespace Mikoto {
     public:
         explicit TransformComponent() {
             ComputeTransform( m_Translation, m_Scale, m_Rotation );
+
+            m_WorldTransform = m_Transform;
         };
 
         TransformComponent( const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3( 0.0f ) ) {
@@ -95,6 +97,9 @@ namespace Mikoto {
         MKT_NODISCARD auto GetRotationQuat() const -> glm::quat {
             return glm::quat( m_Rotation );
         }
+
+        MKT_NODISCARD auto GetWorldTransform() const -> const Mat4F& { return m_WorldTransform; }
+        auto SetWorldTransform( const Mat4F& worldTransform ) -> void { m_WorldTransform = worldTransform; }
 
         auto ComputeTransform( const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3( 0.0f ) ) -> void {
             m_Translation = position;
@@ -157,6 +162,8 @@ namespace Mikoto {
         Vec3F m_Translation{ 0.0f, 0.0f, 0.0f };
         Vec3F m_Rotation{};
         Vec3F m_Scale{};
+
+        Mat4F m_WorldTransform{ 1.0f };
 
         // Model matrix (defines object translation, rotation and scale
         // according to the current transform values/vectors

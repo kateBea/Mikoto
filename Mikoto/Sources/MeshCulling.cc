@@ -170,7 +170,7 @@ namespace Mikoto {
                 ShaderMaterialParams &ubo{ m_InstanceInfos[meshNode][instanceCount] };
                 DrawIndexedState &drawState{ m_DrawIndexedState[meshNode] };
 
-                ubo.Transform = transform.GetTransform();
+                ubo.Transform = transform.GetWorldTransform();
                 ubo.Albedo = pbrMat->GetColor();
                 ubo.Factors.x = pbrMat->GetMetallicFactor();
                 ubo.Factors.y = pbrMat->GetRoughnessFactor();

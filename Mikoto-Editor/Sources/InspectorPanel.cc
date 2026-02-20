@@ -973,10 +973,6 @@ namespace Mikoto {
     static auto SetupTransformComponentTab( Entity& entity, Scene* scene ) -> void {
         TransformComponent& transformComponent{ entity.GetComponent<TransformComponent>() };
 
-        glm::vec3 oldTranslation{ transformComponent.GetTranslation() };
-        glm::vec3 oldRotation{ transformComponent.GetRotation() };
-        glm::vec3 oldScale{ transformComponent.GetScale() };
-
         glm::vec3 newTranslation{ transformComponent.GetTranslation() };
         glm::vec3 newRotation{ transformComponent.GetRotation() };
         glm::vec3 newScale{ transformComponent.GetScale() };
@@ -999,30 +995,9 @@ namespace Mikoto {
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
         }
 
-        if (newTranslation != oldTranslation ) {
-            transformComponent.SetTranslation( newTranslation );
-
-            scene->ApplyToChildren(std::addressof( entity ),
-                [newTranslation, oldTranslation](Entity* child) -> void {
-                    // Local
-                auto& childTransform{ child->GetComponent<TransformComponent>() };
-                childTransform.SetTranslation( childTransform.GetTranslation() + ( newTranslation - oldTranslation ) );
-            });
-        }
-
-        if (newRotation != oldRotation ) {
-            transformComponent.SetRotation( newRotation );
-            scene->ApplyToChildren(std::addressof( entity ),
-                [newRotation, oldRotation](Entity* child) -> void {
-                    // Local
-                auto& childTransform{ child->GetComponent<TransformComponent>() };
-                childTransform.SetRotation( childTransform.GetRotation() + ( newRotation - oldRotation ) );
-            });
-        }
-
-        if (newScale != oldScale ) {
-            transformComponent.SetScale( newScale );
-        }
+        transformComponent.SetTranslation( newTranslation );
+        transformComponent.SetRotation( newRotation );
+        transformComponent.SetScale( newScale );
     }
 
     static auto SetupScriptingComponentTab( Entity& entity ) -> void {

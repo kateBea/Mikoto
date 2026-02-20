@@ -26,7 +26,7 @@ namespace Mikoto {
         for ( const auto& childID: relation.GetChildren() ) {
 
             if ( Entity * child{ FindByID( childID ) } ) {
-                callable( child );
+                callable( child, parent );
 
                 ApplyToChildren( child, callable );
             }

@@ -214,24 +214,6 @@ namespace Mikoto {
 
         if (ImGuizmo::IsUsing()) {
             transformComponent.SetTransform( objectTransform );
-
-            if (transformComponent.GetTranslation() != oldTranslation ) {
-                m_EditorState->ActiveEditorScene->ApplyToChildren(currentSelection,
-                    [newTranslation = transformComponent.GetTranslation(), oldTranslation](Entity* child) -> void {
-                        // Local
-                    auto& childTransform{ child->GetComponent<TransformComponent>() };
-                    childTransform.SetTranslation( childTransform.GetTranslation() + ( newTranslation - oldTranslation ) );
-                });
-            }
-
-            if (transformComponent.GetRotation() != oldRotation ) {
-                m_EditorState->ActiveEditorScene->ApplyToChildren(currentSelection,
-                    [newRotation = transformComponent.GetTranslation(), oldRotation](Entity* child) -> void {
-                        // Local
-                    auto& childTransform{ child->GetComponent<TransformComponent>() };
-                    childTransform.SetRotation( childTransform.GetRotation() + ( newRotation - oldRotation ) );
-                });
-            }
         }
     }
 

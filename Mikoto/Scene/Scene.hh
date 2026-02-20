@@ -155,6 +155,8 @@ namespace Mikoto {
 
         auto CreateEntityDefault(const EntityCreateInfo& info ) -> Entity*;
 
+        auto UpdateWorldTransformations() -> void;
+
     private:
         auto AddSingleEntityWithRoot(Entity * root, ModelHandle model, Int32 index, UInt64 animatorID = 0 ) -> void;
 
@@ -177,6 +179,10 @@ namespace Mikoto {
 
         // Unique because iterators are invalidated on resize
         ankerl::unordered_dense::map<Size, Unique<Entity>> m_Entities{};
+
+        // Entities with no parent
+        // used to calculate hierarchical trasnform
+        std::vector<Entity*> m_RootEntities{};
 
         // Stats
         UInt32 m_TotalLightCount{ 0 };

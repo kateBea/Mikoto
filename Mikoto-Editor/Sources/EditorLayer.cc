@@ -337,6 +337,7 @@ namespace Mikoto {
 
                     PBRMaterial *pbrMat{ pbr.GetMaterial().Dynamic<PBRMaterial>() };
                     if (pbrMat) {
+                        pbrMat->SetAlphaMaskCutoff( 1.0f );
                         pbrMat->SetMetallicFactor( static_cast<float>( x ) / static_cast<float>( gridSize - 1 ) );
                         pbrMat->SetRoughnessFactor( static_cast<float>( y ) / static_cast<float>( gridSize - 1 ) );
                     }
@@ -883,12 +884,12 @@ namespace Mikoto {
 
         m_ActiveScene = SceneManager::Get()->CreateScene( name );
 
-        SimpleScene();
+        //SimpleScene();
         //DebugInstancingTest();
-        DebugManyLightsTest();
+        //DebugManyLightsTest();
         //DebugDamagedHelmet();
 
-        //DebugSpheresProperties();
+        DebugSpheresProperties();
     }
 
     auto EditorLayer::PrepareRenderer( double ) -> void {

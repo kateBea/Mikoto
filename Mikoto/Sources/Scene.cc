@@ -32,6 +32,23 @@
 
 namespace Mikoto {
 
+    static auto UpdateWorldTrasnform( Entity& e, Mat4F parentWorld, Scene* scene ) -> void {
+        auto& t{ e.GetComponent<TransformComponent>() };
+
+        t.SetWorldTransform( parentWorld * t.GetTransform() );
+
+        auto& rc{ e.GetComponent<RelationComponent>() };
+
+        for ( auto child: rc.GetChildren() ) {
+            Entity* childEntity{ scene->FindByID( child ) };
+            if ( childEntity == nullptr ) {
+                continue;
+            }
+
+            UpdateWorldTrasnform( *childEntity, t.GetWorldTransform(), scene );
+        }
+    }
+
     static auto OnMeshRendererAdded( entt::registry& reg, entt::entity e ) -> void {
         if ( !reg.any_of<MaterialComponent>( e ) ) {
             reg.emplace<MaterialComponent>( e );
@@ -166,10 +183,20 @@ namespace Mikoto {
         m_SceneState = state;
     }
 
+    auto Scene::UpdateWorldTransformations() -> void {
+        Mat4F Identity{ 1.0f };
+
+        for ( Entity* rootEntity : m_RootEntities ) {
+            UpdateWorldTrasnform( *rootEntity, Identity, this );
+        }
+    }
+
     auto Scene::Update( const float timeStep ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         ProcessPendingCommands();
+
+        UpdateWorldTransformations();
 
         switch ( m_SceneState ) {
 
@@ -240,6 +267,10 @@ namespace Mikoto {
 
         entity->AddComponent<TagComponent>( info.Name );
         entity->AddComponent<TransformComponent>( initialPosition, initialSize, initialRotation );
+
+        if ( info.Root == nullptr ) {
+            m_RootEntities.push_back( entity );
+        }
 
         return entity;
     }

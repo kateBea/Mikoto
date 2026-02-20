@@ -117,7 +117,7 @@ namespace Mikoto {
         // ViewPort
         bool m_WantResize{ false };
         SceneCamera* m_Camera{ nullptr };
-        RenderResolution m_RenderResolution{ RenderResolution::FHD_1080 };
+        RenderResolution m_RenderResolution{ RenderResolution::QHD_1440P };
         std::pair<float, float> m_RenderTargetDimensions{ InferDimensions( m_RenderResolution ) };
 
         // Passes

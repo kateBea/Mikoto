@@ -25,52 +25,46 @@ passes, amongst other features.
 
 ### Feature List
 
-| **Feature Name**         | **Feature Description**                                   | **Supported** |
-|--------------------------|-----------------------------------------------------------|---------------|
-| Model Loading            | Load 3D models via Assimp                                 | ✔️            |
-| Image Loading            | Texture/Image loading via STB_Image                       | ✔️            |
-| Cube maps                | Load equirectangular HDR images and use them as cube maps | ✔️            |
-| Entity Component System  | ECS for scene/game object management                      | ✔️            |
-| Scene Serialization      | Editor scene save/load                                    | ❌ (WIP)       |
-| Particle System          | GPU particle simulation (fire, smoke, sparks, etc.)       | ❌             |
-| Vulkan Ray Tracing       | Hardware accelerated RT                                   | ❌             |
-| Physics Integration      | Basic collision detection with Jolt                       | ✔️            |
-| UI Integration (ImGui)   | Runtime + editor ImGui                                    | ✔️            |
-| Animation System         | Skeletal animation, skinning                              | ❌             |
-| Audio Support            | Load and play audio                                       | ✔️            |
-| Text Rendering / Overlay | MSDF-based text rendering                                 | ❌             |
+| **Category**       | **Feature Name**               | **Feature Description**                                   | **Supported**              |
+|--------------------|--------------------------------|-----------------------------------------------------------|----------------------------|
+| **Core Engine**    | Model Loading                  | Load 3D models via Assimp                                 | ✔️                         |
+|                    | Image Loading                  | Texture/Image loading via STB_Image                       | ✔️                         |
+|                    | Cube maps                      | Load equirectangular HDR images and use them as cube maps | ✔️                         |
+|                    | Entity Component System        | ECS for scene/game object management                      | ✔️                         |
+|                    | Scene Serialization            | Editor scene save/load                                    | ❌ (WIP)                    |
+|                    | Particle System                | GPU particle simulation (fire, smoke, sparks, etc.)       | ❌                          |
+|                    | Vulkan Ray Tracing             | Hardware accelerated RT                                   | ❌                          |
+|                    | Physics Integration            | Basic collision detection with Jolt                       | ✔️                         |
+|                    | UI Integration (ImGui)         | Runtime + editor ImGui                                    | ✔️                         |
+|                    | Animation System               | Skeletal animation, skinning                              | ❌                          |
+|                    | Audio Support                  | Load and play audio                                       | ✔️                         |
+|                    | Text Rendering / Overlay       | MSDF-based text rendering                                 | ❌                          |
+| **Visual Effects** | Clustered Forward+             | Main render path with clustered/forward+ lighting         | ✔️                         |
+|                    | Clustered Light Culling        | Per-tile/cluster light assignment                         | ✔️                         |
+|                    | Mesh Culling                   | CPU mesh visibility culling                               | ✔️                         |
+|                    | IBL (Image-Based Lighting)     | Diffuse irradiance + specular reflections                 | ❌                          |
+|                    | Shadows                        | Directional, point, spot shadows                          | ❌                          |
+|                    | Cascaded Shadow Maps (CSM)     | Multi-split directional shadows                           | ❌                          |
+|                    | Outline Pass                   | Object outlining effect                                   | ❌                          |
+|                    | Infinite Grid                  | Procedural grid for editor/world                          | ❌                          |
+|                    | Bloom                          | Multi-pass bright blur                                    | ❌                          |
+|                    | Depth of Field (DoF)           | DoF effect                                                | ❌                          |
+|                    | Screen-Space Reflections (SSR) | Reflections in screen space                               | ❌                          |
+|                    | Screen-Space GI (SSGI)         | Screen-space diffuse bounce lighting                      | ❌                          |
+| **Editor / Tools** | Gizmos (ImGuizmo)              | Move/rotate/scale gizmos                                  | ✔️ (Positions only)        |
+|                    | Profiling / GPU Timers         | Pass timing, pipeline stats                               | ❌ (WIP)                    |
+|                    | Asset Streaming                | Task-based async resource loading                         | ❌                          |
+|                    | Shader hot reloading           | Shader hot reload                                         | ❌                          |
+|                    | Asset hot reloading            | Asset hot reload for scripts, etc.                        | ✔️ (Limited, Scripts only) |
 
-### **Visual Effects**
-| **Feature**                    | **Description**                                   | **Supported** |
-|--------------------------------|---------------------------------------------------|---------------|
-| Clustered Forward+             | Main render path with clustered/forward+ lighting | ✔️            |
-| Clustered Light Culling        | Per-tile/cluster light assignment                 | ✔️            |
-| Mesh Culling                   | CPU mesh visibility culling                       | ✔️            |
-| IBL (Image-Based Lighting)     | Diffuse irradiance + specular reflections         | ❌             |
-| Shadows                        | Directional, point, spot shadows                  | ❌             |
-| Cascaded Shadow Maps (CSM)     | Multi-split directional shadows                   | ❌             |
-| Outline Pass                   | Object outlining effect                           | ❌             |
-| Infinite Grid                  | Procedural grid for editor/world                  | ❌             |
-| Bloom                          | Multi-pass bright blur                            | ❌             |
-| Depth of Field (DoF)           | DoF effect                                        | ❌             |
-| Screen-Space Reflections (SSR) | Reflections in screen space                       | ❌             |
-| Screen-Space GI (SSGI)         | Screen-space diffuse bounce lighting              | ❌             |
+### **Platform Support**
 
-### **Editor / Engine Tools**
-| **Feature**            | **Description**                    | **Supported**              |
-|------------------------|------------------------------------|----------------------------|
-| Gizmos (ImGuizmo)      | Move/rotate/scale gizmos           | ✔️ (Positions only)        |
-| Profiling / GPU Timers | Pass timing, pipeline stats        | ❌ (WIP)                    |
-| Asset Streaming        | Task-based async resource loading  | ❌                          |
-| Shader hot reloading   | Shader hot reload                  | ❌                          |
-| Asset hot reloading    | Asset hot reload for scripts, etc. | ✔️ (Limited, Scripts only) |
-
-## Supported Platforms
-
-| Platform     | Status             |
-|--------------|--------------------|
-| Ubuntu 24.04 | Supported (Tested) |
-| Windows      | Supported          |
+| Platform / Toolchain              | Architecture | Status                 | Notes      |
+|-----------------------------------|--------------|------------------------|------------|
+| **Ubuntu 24.04 LTS** (GCC 13.3.0) | x86_64       | **Supported (Tested)** | Tested     |
+| Other Linux Distros               | x86_64       | **Untested**           | Untested   |
+| **Windows (MSVC)**                | x86_64       | **Supported (Tested)** | Tested     |
+| Windows (MinGW-w64)               | x86_64       | **Untested**           | Not tested |
 
 > Note: This project has been tested on Ubuntu 24.04 for Linux compatibility. While it 
 > works properly on Windows, other Linux distributions are currently untested.
@@ -80,11 +74,13 @@ passes, amongst other features.
 ## Requirements
 
 ### Software Requirements
-- **CMake** 3.22 or higher.
-- **The Vulkan SDK**: Available from [Vulkan](https://vulkan.lunarg.com/).
-- **C++20 Compiler**: Tested with GCC 13.3.0
-- **Visual Studio (On Windows)**: Development done with VS 2022.
-- **GLSL-C**: Optional, as precompiled shader binaries are included.
+### **Software Requirements**
+
+- **CMake 3.22+** – Required for configuring and building the project.
+- **Vulkan SDK** – Install from the official [LunarG SDK](https://vulkan.lunarg.com/).
+- **C++20-compatible compiler** – Tested with **GCC 13.3.0**; other C++20 compilers should work but are untested.
+- **Visual Studio 2022 onwards (Windows)** – Recommended IDE and toolchain for Windows builds.
+- **GLSL-C (Optional)** – Only needed if you want to recompile shaders; precompiled SPIR-V binaries are already included.
 
 ---
 
@@ -216,8 +212,7 @@ If OpenSSL is not available the engine falls back to HTTP support only.
 
 Mikoto integrates the Tracy Profiler for CPU, GPU, and memory profiling.
 >When Tracy instrumentation is enabled, the Tracy Profiler GUI must be running.
-If the profiler is not connected, Tracy will continue to run internally, 
-which can lead to unbounded memory growth over time, so basically memory leaks.
+If the profiler is not connected, Tracy will continue to run internally, which can lead to memory leaks.
 > By default Tracy is disabled, in order to enabled one must compile with the ``MIKOTO_ENABLE_TRACY_PROFILING``
 > flag enabled in the ``CmakeLists.txt`` file. See the [Editor CMake](Mikoto-Editor/CMakeLists.txt) file for reference.
 > 

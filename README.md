@@ -41,7 +41,7 @@ passes, amongst other features.
 |                    | Text Rendering / Overlay       | MSDF-based text rendering                                 | ❌                          |
 | **Visual Effects** | Clustered Forward+             | Main render path with clustered/forward+ lighting         | ✔️                         |
 |                    | Clustered Light Culling        | Per-tile/cluster light assignment                         | ✔️                         |
-|                    | Mesh Culling                   | CPU mesh visibility culling                               | ✔️                         |
+|                    | Mesh Culling                   | CPU mesh visibility culling                               | ❌                          |
 |                    | IBL (Image-Based Lighting)     | Diffuse irradiance + specular reflections                 | ❌                          |
 |                    | Shadows                        | Directional, point, spot shadows                          | ❌                          |
 |                    | Cascaded Shadow Maps (CSM)     | Multi-split directional shadows                           | ❌                          |

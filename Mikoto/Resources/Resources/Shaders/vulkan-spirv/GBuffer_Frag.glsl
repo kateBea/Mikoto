@@ -72,10 +72,6 @@ float LinearDepth(float depth) {
 
 void main() {
 
-    vec3 albedo     = in_AlbedoIndex != INVALID_TEXTURE_INDEX ?
-    pow(texture(g_BindlessTextures[in_AlbedoIndex], in_TexCoord).rgb, vec3(2.2)) :
-    in_Albedo.xyz;
-
     vec3 N = in_NormalIndex != INVALID_TEXTURE_INDEX ?
         GetNormalFromMap(g_BindlessTextures[in_NormalIndex]) :
         normalize(in_Normals);
@@ -83,12 +79,10 @@ void main() {
     out_Position = vec4(in_FragmentViewPos, LinearDepth(gl_FragCoord.z));
     out_Normal = vec4(normalize(N) * 0.5 + 0.5, 1.0);
 
-    vec4 color = vec4(1.0f);
-    if (in_AlbedoIndex != INVALID_TEXTURE_INDEX) {
-        color = texture(g_BindlessTextures[in_AlbedoIndex], in_TexCoord) * vec4(in_Color , 1.0);
-    } else {
-        color = color * vec4(in_Color , 1.0);
-    }
+    vec4 albedo     = in_AlbedoIndex != INVALID_TEXTURE_INDEX ?
+        pow(texture(g_BindlessTextures[in_AlbedoIndex], in_TexCoord), vec4(2.2)) :
+    in_Albedo;
 
-    out_Color = color;
+    // No transparency, alpha maxed
+    out_Color = vec4(albedo.xyz, 1.0f);
 }
